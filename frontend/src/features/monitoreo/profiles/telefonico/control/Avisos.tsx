@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { casosPorRevisar, construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
@@ -160,7 +161,7 @@ export function Avisos({
             </table>
           </div>
         ) : (
-          <p className="mon-avisos-sin-casos">Los avisos de este corte no nombran casos: se revisan en su destino.</p>
+          <NotaDelModo tono="neutro" className="mon-avisos-sin-casos">Los avisos de este corte no nombran casos: se revisan en su destino.</NotaDelModo>
         )}
       </section>
       </div>
@@ -203,7 +204,7 @@ export function Avisos({
                   ))}
                 </ul>
               ) : (
-                <p className="mon-avisos-sin-casos">El corte no nombra los casos de este aviso: se revisan en {elegido.destino.etiqueta}.</p>
+                <NotaDelModo tono="neutro" className="mon-avisos-sin-casos">El corte no nombra los casos de este aviso: se revisan en {elegido.destino.etiqueta}.</NotaDelModo>
               )}
             </section>
             {/* «Qué hacer» va pegado a la lista: sin hueco en medio. */}
@@ -229,7 +230,7 @@ export function Avisos({
             </section>
           </>
         ) : (
-          <p className="mon-ctl-nota">Sin avisos por causa; queda sólo el reparto pendiente.</p>
+          <NotaDelModo tono="neutro">Sin avisos por causa; queda sólo el reparto pendiente.</NotaDelModo>
         )}
       </aside>
     </div>

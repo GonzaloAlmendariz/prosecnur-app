@@ -2083,13 +2083,12 @@
                 texto = "",
                 grafico = list(
                   graficador = "p_barras_multiapiladas",
-                  args = list(
+                  args = c(list(
                     modo = "var",
                     vars = as.list(refs),
                     titulo = labels[[1]],
-                    top2box = choices_n %in% c(4L, 5L),
                     wrap_y = 60
-                  )
+                  ), if (choices_n %in% c(4L, 5L)) list(overrides = list(barra_extra = list("top2box"))))   # barra extra: graficos_barra_extra.R
                 ),
                 base = .graficos_scalar_chr(src$base_label, ""),
                 pie = "",

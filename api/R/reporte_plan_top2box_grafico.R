@@ -20,8 +20,11 @@
 #' Args de la columna Top Two Box que declara el gráfico, para mezclar sobre el preset.
 #'
 #' @param el Elemento `barras_multiapiladas` (o uno de sus bloques).
+#'   `el$top2box` ya es la derivación de su `barra_extra` (graficos_barra_extra.R, `.barra_extra_top2box_de`): con la
+#'   barra extra declarada manda ella; la bandera sólo vale para quien construye el elemento a mano.
 #' @return Lista vacía si el gráfico no pide la columna; si la pide,
-#'   `mostrar_barra_extra`, `barra_extra_preset` y, si las declara, `top2box_labels`.
+#'   `mostrar_barra_extra`, `barra_extra_preset` y, si las declara, `top2box_labels`. Lo demás de la barra extra
+#'   (conteos, bottom, apagado) lo baja `.merge_args()` desde los overrides, encima de esta capa.
 #' @keywords internal
 .top2box_del_grafico <- function(el) {
   if (!is.list(el) || !isTRUE(el[["top2box"]])) return(list())

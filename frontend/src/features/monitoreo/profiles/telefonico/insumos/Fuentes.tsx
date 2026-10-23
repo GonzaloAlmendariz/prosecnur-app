@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import { FileSpreadsheet, ListChecks } from "../../../../../vendor/lucide-react";
 import type { MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { enlaceDeFuente } from "../../../fuentes/enlacesDeFuente";
@@ -70,7 +71,11 @@ export function Fuentes({
             {filas.length > activas.length ? `, ${n(filas.length - activas.length)} sin usar en el corte` : ""}
           </span>
         </header>
-        {mensaje ? <p className={`mon-fuentes-mensaje is-${mensaje.tono}`}>{mensaje.texto}</p> : null}
+        {mensaje ? (
+          <NotaDelModo estado className="mon-fuentes-mensaje" tono={mensaje.tono === "error" ? "error" : mensaje.tono === "exito" ? "exito" : "info"}>
+            {mensaje.texto}
+          </NotaDelModo>
+        ) : null}
         {filas.length ? (
           <ul>
             {filas.map((fila) => {
@@ -131,7 +136,7 @@ export function Fuentes({
             })}
           </ul>
         ) : (
-          <p className="mon-ctl-nota">Aún no hay fuentes conectadas. Conecta la hoja de barrido y la encuesta.</p>
+          <NotaDelModo tono="aviso" className="mon-fuentes-mensaje">Aún no hay fuentes conectadas. Conecta la hoja de barrido y la encuesta.</NotaDelModo>
         )}
       </section>
 

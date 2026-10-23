@@ -150,7 +150,7 @@ export const MONITOREO_PESTANAS = {
   // `features/monitoreo/profiles/telefonico/navegacion/direccionTelefonica.ts`.
   // Reserva (Modelo) y Reemplazos (Avance) son condicionales y todavía no se
   // declaran: dependen de las preguntas P8 y P9 del diseño. Supervisión
-  // (Control) tampoco: hoy no existe en este modo y su diseño está bloqueado.
+  // (Control) se declara con T9 (P5–P7 respondidas).
   telefonico: {
     insumos: [
       pestana("telefonico", "insumos", "fuentes", "Fuentes", "Qué se lee y qué declara el proyecto", PlugZap),
@@ -166,6 +166,7 @@ export const MONITOREO_PESTANAS = {
       pestana("telefonico", "control", "equipo", "Equipo", "Cómo rinde cada responsable", ContactRound),
       pestana("telefonico", "control", "discrepancias", "Discrepancias", "Si Kobo y la hoja dicen lo mismo", GitCompareArrows),
       pestana("telefonico", "control", "respuestas", "Respuestas", "Qué envío es efectiva", ListChecks),
+      pestana("telefonico", "control", "supervision", "Supervisión", "Qué efectivas se vuelven a llamar", ClipboardCheck),
       pestana("telefonico", "control", "avisos", "Avisos", "Qué hay que corregir", ShieldAlert),
     ],
     avance: [

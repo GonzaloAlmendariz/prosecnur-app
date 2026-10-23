@@ -1439,6 +1439,8 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   mostrar_barras: "Muestra u oculta las barras del gráfico.",
   mostrar_barras_extra: "Muestra u oculta barras extra de apoyo.",
   mostrar_barra_extra: "Muestra u oculta la barra extra de apoyo.",
+  barra_extra: "Columna a la derecha de cada barra: Top Two Box, Bottom Two Box o Conteos (el n de casos). Conteos va solo.",
+  word_barra_extra: "Barra extra solo del Word. Sin ella, el Word usa la misma barra extra que el PPT.",
   mostrar_eje_y: "Muestra u oculta el eje Y.",
   mostrar_rango: "Muestra u oculta la zona de rango o segmentación.",
   mostrar_tabla_derecha: "Activa o desactiva la tabla a la derecha del gráfico.",

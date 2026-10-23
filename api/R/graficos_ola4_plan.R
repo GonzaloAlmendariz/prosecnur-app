@@ -692,7 +692,8 @@ p_lollipop <- function(var,
                        overrides = list(),
                        base = list(),
                        filtros = list(),
-                       excluir_opciones = NULL) {
+                       excluir_opciones = NULL,
+                       residuales_gris = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("p_lollipop(): `var` debe ser character(1) no vacio.")
   }
@@ -701,6 +702,7 @@ p_lollipop <- function(var,
   ov <- .ppt_slot_override(overrides, "orden", orden, "opcion", opciones = c("mayor_menor", "menor_mayor", "declarado"))
   if (!is.null(top_n)) ov$top_n <- suppressWarnings(as.integer(top_n)[1])
   if (!is.null(resaltar)) ov$resaltar <- as.character(resaltar)
+  ov <- .ppt_slot_override(ov, "residuales_gris", residuales_gris, "bool")   # residuales en gris: opción del gráfico, apagada por defecto
   if (!is.null(excluir_opciones)) {
     ov$excluir_opciones <- .reporte_plan_excluir_opciones(excluir_opciones)
   }

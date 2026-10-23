@@ -171,7 +171,7 @@
     if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo, centro_ley = centro_ley, lim_ley = lim_ley))
     imagen <<- c(x = x, y = y, w = w, h = alto); invisible(y + alto)
   }
-  publico <- function(n) if (is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL
+  publico <- function(n) if (isTRUE(espec$mostrar_respuestas) && is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()

@@ -145,6 +145,34 @@
   )
 }
 
+# ---- Barra extra -----------------------------------------------------------
+#
+# Una sola opción (Gonzalo, 2026-10-23) reemplaza a `top2box`, `mostrar_barra_extra`, `barra_extra_preset` y
+# `columna_bottom2box`: `barra_extra` es `false` o un vector de "top2box" / "bottom2box" / "conteos" (graficos_barra_extra.R).
+.OPCIONES_BARRA_EXTRA <- list(
+  list(value = "top2box",    label = "Top Two Box",    hint = "Las dos mejores categorías sumadas, en una columna a la derecha."),
+  list(value = "bottom2box", label = "Bottom Two Box", hint = "Las dos peores categorías sumadas. Se combina con el Top Two Box."),
+  list(value = "conteos",    label = "Conteos",        hint = "El número de casos de cada barra o fila, en una columna a la derecha. Por ahora va solo, sin los boxes.")
+)
+
+.arg_barra_extra <- function(grupo = "estilo") {
+  list(
+    name = "barra_extra", label = "Barra extra", tipo_input = "multiflag", grupo = grupo,
+    opciones = .OPCIONES_BARRA_EXTRA,
+    descripcion = paste("Columna que va a la derecha de las barras. Elige cuál o cuáles: Top Two Box, Bottom Two Box (se combinan)",
+                        "o Conteos (solo). Sin ninguna, el gráfico no lleva barra extra. Las categorías de cada box se declaran en",
+                        "«Categorías del Top 2 Box» y «Categorías del Bottom 2 Box».")
+  )
+}
+
+# Las claves que `barra_extra` reemplaza siguen declaradas para planes y proyectos viejos (se migran al abrirlos), pero
+# ya no se ofrecen: `heredado = TRUE`.
+.arg_heredado_barra_extra <- function(arg) {
+  arg$heredado <- TRUE
+  arg$descripcion <- paste0("(Heredado: ahora es la opción «Barra extra».) ", arg$descripcion %||% "")
+  arg
+}
+
 # ===========================================================================
 # SLIDES
 # ===========================================================================
@@ -1067,6 +1095,10 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
@@ -1148,6 +1180,10 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "datos",
            default = FALSE,
            descripcion = "Conserva opciones del instrumento aunque no tengan casos."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
@@ -1281,8 +1317,10 @@
       list(name = "prefijo_grupos", label = "Numerar los grupos", tipo_input = "string", grupo = "textos",
            placeholder = "OE, Dimensión, Eje…",
            descripcion = "Antepone «OE 1:», «OE 2:»… a los grupos visibles, con la palabra que escribas. Vacío = sin numerar, salvo que las etiquetas ya vengan numeradas."),
-      list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
-           descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra."),
+      .arg_barra_extra("filtro"),
+      .arg_heredado_barra_extra(
+        list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
+             descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra.")),
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
            descripcion = "Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico omite la columna y lo avisa: no se deducen del orden."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
@@ -1859,7 +1897,11 @@
            min = 1, max = 40, step = 1,
            descripcion = "Recorte sólo visual: no cambia el denominador. Vacío = todas; si se recorta, el pie declara N de M categorías."),
       list(name = "resaltar", label = "Categorías a destacar", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar.")
+           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris.")
     ), .args_graf_comunes())
   ),
 
@@ -1954,15 +1996,22 @@
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "Piso del eje radial. Con 0 es automático, como en el estándar: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+      list(name = "forma", label = "Forma del gráfico", tipo_input = "choice", grupo = "datos",
+           default = "auto",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Qué se dibuja. Automática: radar con 5 a 8 criterios y, con menos, lo que elijas abajo. Líneas y puntos o barras comparativas se dibujan siempre, con cualquier número de criterios (hasta 8 se leen bien). Radar fuerza la telaraña aunque haya 3 o 4 criterios (queda como triángulo o rombo); con menos de 3 no se puede dibujar.",
+           choices = list(list(value = "auto", label = "Automática: radar con 5 a 8 criterios"),
+                          list(value = "puntos", label = "Líneas y puntos"), list(value = "radar", label = "Radar"),
+                          list(value = "barras", label = "Barras comparativas"))),
       list(name = "fallback_pocos", label = "Con menos de 5 criterios", tipo_input = "choice", grupo = "datos",
            default = "puntos",
+           descripcion = "Un radar con menos de 5 criterios no se lee bien. Por defecto se dibuja como líneas y puntos comparativos; también puedes pedir barras comparativas. Solo rige con la forma Automática y menos de 5 criterios: no cambia los radares de 5 criterios o más ni una forma elegida en «Forma del gráfico».",
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Un radar con menos de 5 criterios no se lee bien. Por defecto se dibuja como líneas y puntos comparativos; también puedes pedir barras comparativas. No cambia los radares de 5 criterios o más.",
            choices = list(list(value = "puntos", label = "Líneas y puntos"), list(value = "barras", label = "Barras comparativas"))),
       list(name = "eje_pocos", label = "Eje del gráfico de líneas y puntos", tipo_input = "choice", grupo = "datos",
            default = "auto",
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Con pocos criterios el radar se dibuja como líneas y puntos; el eje por defecto se acerca a los datos; elige 0–100 % para verlo completo. No cambia los radares de 5 criterios o más.",
+           descripcion = "Eje del gráfico de líneas y puntos (con menos de 5 criterios, o con la forma Líneas y puntos). Por defecto se acerca a los datos; elige 0–100 % para verlo completo o fija un rango. No cambia los radares.",
            choices = list(list(value = "auto", label = "Acercado a los datos"), list(value = "0-100", label = "0–100 %"),
                           list(value = "personalizado", label = "Personalizado"))),
       list(name = "eje_pocos_min", label = "Eje de líneas y puntos: desde (%)", tipo_input = "number", grupo = "datos",
@@ -2491,22 +2540,25 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
 
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
-      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
-           default = TRUE,
-           descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
+      .arg_barra_extra(),
+      .arg_heredado_barra_extra(
+        list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
+             default = TRUE,
+             descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador.")),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
            descripcion = "Color de la barra extra."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuerpo de letra de la cifra de la columna extra."),
-      list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
-           choices = list(
-             list(value = "ninguno",   label = "Base / N"),
-             list(value = "totales",   label = "Total"),
-             list(value = "top2box",   label = "Top 2 box"),
-             list(value = "top3box",   label = "Top 3 box"),
-             list(value = "bottom2box",label = "Bottom 2 box")
-           ),
-           descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box."),
+      .arg_heredado_barra_extra(
+        list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
+             choices = list(
+               list(value = "ninguno",   label = "Base / N"),
+               list(value = "totales",   label = "Total"),
+               list(value = "top2box",   label = "Top 2 box"),
+               list(value = "top3box",   label = "Top 3 box"),
+               list(value = "bottom2box",label = "Bottom 2 box")
+             ),
+             descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box.")),
       # Mismos rotulos que en multi_apiladas: este preset alimenta el mismo
       # motor y dibuja la misma columna, asi que la declaracion tiene que
       # existir en los dos. Sin ella el box se omite con aviso.
@@ -2801,16 +2853,19 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo"),
 
       # --- Barra extra ---------------------------------------------------
-      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
-           descripcion = "Añade una columna a la derecha de las barras, para el Top 2 Box o el total."),
-      list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
-           choices = list(
-             list(value = "ninguno",   label = "Base / N"),
-             list(value = "totales",   label = "Total"),
-             list(value = "top2box",   label = "Top 2 box"),
-             list(value = "top3box",   label = "Top 3 box"),
-             list(value = "bottom2box",label = "Bottom 2 box")
-           )),
+      .arg_barra_extra(),
+      .arg_heredado_barra_extra(
+        list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
+             descripcion = "Añade una columna a la derecha de las barras, para el Top 2 Box o el total.")),
+      .arg_heredado_barra_extra(
+        list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
+             choices = list(
+               list(value = "ninguno",   label = "Base / N"),
+               list(value = "totales",   label = "Total"),
+               list(value = "top2box",   label = "Top 2 box"),
+               list(value = "top3box",   label = "Top 3 box"),
+               list(value = "bottom2box",label = "Bottom 2 box")
+             ))),
       # Que categorias componen cada indicador, por NOMBRE de categoria.
       # Se declara una vez aqui y vale para todo el mazo: el proyecto del 10-08
       # tenia 42 graficos con barra extra y CERO declaraciones, resolviendose

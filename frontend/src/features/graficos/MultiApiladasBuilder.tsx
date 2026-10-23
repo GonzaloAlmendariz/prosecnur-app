@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Top2BoxSelector } from "./Top2BoxSelector";
+import { BarraExtraBloque } from "./BarraExtraBloque";
 import { categoriasDeEscala } from "./top2boxSeleccion";
 import type React from "react";
 import { createPortal } from "react-dom";
@@ -63,8 +63,9 @@ type MultiBlock = {
   titulo?: unknown;
   subtitulo?: unknown;
   altura_rel?: unknown;
-  top2box?: unknown;
+  barra_extra?: unknown;
   top2box_labels?: unknown;
+  bottom2box_labels?: unknown;
   titulos_grupo?: unknown;
   overrides?: unknown;
 };
@@ -384,6 +385,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
             publicos={publicos}
             matriz={matriz}
             cupo={cupoBarras(conteo)}
+            laminaArgs={args}
             onChange={(patch) => {
               const next = normalized.map((b, i) => (
                 i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
@@ -427,6 +429,7 @@ function BlockEditor({
   publicos,
   matriz,
   cupo,
+  laminaArgs,
   onChange,
   onRemove,
   onMove,
@@ -441,6 +444,8 @@ function BlockEditor({
   matriz: FuentesMatriz;
   /** Barras que todavía caben en toda la multiapilada. */
   cupo: number;
+  /** Args de la lámina: de ahí hereda la barra extra el bloque que no declara la suya. */
+  laminaArgs: Record<string, unknown>;
   onChange: (patch: MultiBlock) => void;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
@@ -566,7 +571,7 @@ function BlockEditor({
           />
         )
       )}
-      <BlockSettings block={block} onChange={onChange} refs={refsDeBloque(block)} variables={variables} multi={multi} />
+      <BlockSettings block={block} onChange={onChange} refs={refsDeBloque(block)} variables={variables} multi={multi} laminaArgs={laminaArgs} />
     </div>
   );
 }
@@ -957,29 +962,14 @@ function TitlesEditor({
   );
 }
 
-type Top2BoxScope = { refs: string[]; variables: VarWithSource[]; multi: boolean };
+type Top2BoxScope = { refs: string[]; variables: VarWithSource[]; multi: boolean; laminaArgs: Record<string, unknown> };
 
-function BlockSettings({ block, onChange, refs, variables, multi }: { block: MultiBlock; onChange: (patch: MultiBlock) => void } & Top2BoxScope) {
-  const labels = asStringArray(block.top2box_labels);
+function BlockSettings({ block, onChange, refs, variables, multi, laminaArgs }: { block: MultiBlock; onChange: (patch: MultiBlock) => void } & Top2BoxScope) {
   const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
   return (
     <details style={detailsStyle}>
       <summary style={summaryStyle}>Ajustes de este bloque</summary>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-        <label style={toggleStyle}>
-          <input
-            type="checkbox"
-            checked={!!block.top2box}
-            onChange={(e) => onChange({ top2box: e.target.checked })}
-          />
-          Columna Top Two Box
-        </label>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel label="Categorías del Top Two Box" compact>
-            <Top2BoxSelector categorias={categorias} seleccion={labels} onChange={(next) => onChange({ top2box_labels: next })} />
-          </FieldLabel>
-        </div>
-      </div>
+      <BarraExtraBloque block={block} laminaArgs={laminaArgs} categorias={categorias} onChange={onChange} />
     </details>
   );
 }

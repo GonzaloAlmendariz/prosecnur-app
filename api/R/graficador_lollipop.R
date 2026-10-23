@@ -44,6 +44,7 @@ graficar_lollipop <- function(
     mostrar_valores = TRUE,
     valores_decimales = 0L,
     resaltar = NULL,
+    residuales_gris = FALSE,   # residuales en gris (Word y lámina); apagado por defecto
 
     color_punto = "#0B4F8C",
     color_resalte = "#E76F51",
@@ -125,7 +126,8 @@ graficar_lollipop <- function(
   dec_l <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_l) || dec_l < 0) dec_l <- 0L
   espec_lollipop <- tryCatch({
     e <- preparar_categorica(df$.cat, df$.valor / 100, .pulso_fmt_pct_half_up(df$.valor, dec_l, escala = 1),
-                             if (!is.null(var_n) && var_n %in% names(data)) data[[var_n]][match(df$.cat, as.character(data[[var_categoria]]))] else NULL)
+                             if (!is.null(var_n) && var_n %in% names(data)) data[[var_n]][match(df$.cat, as.character(data[[var_categoria]]))] else NULL,
+                             residuales_gris = isTRUE(residuales_gris))
     e$nota <- nota_pie
     e$nota_recorte <- if (recortadas > 0L) sprintf("Se muestran %s de %s categorías.", nrow(df), total_categorias) else NULL
     e$resaltar <- as.character(resaltar %||% character(0))

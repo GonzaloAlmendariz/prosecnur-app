@@ -1,0 +1,55 @@
+/* Nota del modo: una línea de aviso compacta, con ícono y fondo suave del
+ * tono. Se alinea con el contenido del panel (sin márgenes propios). */
+
+.mon-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.4;
+  text-align: left;
+}
+
+.mon-nota > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.mon-nota > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mon-nota.is-info {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.mon-nota.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-nota.is-error {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-nota.is-exito {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-nota.is-neutro {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}

@@ -128,6 +128,15 @@ function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desg
     .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0) || a.etiqueta.localeCompare(b.etiqueta, "es"));
 }
 
+/** Responsables empatados en la cifra más alta: cuántos y en qué cifra, sin repetir el total. */
+export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valor: number | null }>) {
+  const tope = personas[0]?.valor;
+  const empatados = personas.filter((persona) => persona.valor === tope).length;
+  const cifra = tope == null ? "" : ` (${tope.toLocaleString("es-PE")})`;
+  if (empatados === personas.length) return `Todos con la misma cifra${cifra}.`;
+  return `${empatados.toLocaleString("es-PE")} empatan en la cifra más alta${cifra}.`;
+}
+
 export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
@@ -172,9 +181,11 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     avisos.push({
       id: slug(primera.type) || slug(primera.title) || primera.id,
       nivel,
-      titulo: varias ? `${primera.title}: ${personas.length.toLocaleString("es-PE")} responsables` : primera.title,
+      // El título es la causa; la cifra (columna «Cuántos» y ficha) ya dice
+      // cuántos responsables. Antes «19 responsables» salía tres veces.
+      titulo: primera.title,
       detalle: varias
-        ? empate ? `${personas.length.toLocaleString("es-PE")} responsables con el mismo aviso.` : `El más marcado, ${mayor.owner}: ${mayor.detail}`
+        ? empate ? detalleDeEmpate(personas) : `El más marcado, ${mayor.owner}: ${mayor.detail}`
         : primera.detail,
       casos: varias
         ? personas.length
@@ -313,6 +324,41 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       desglose: [],
       afectados: respuestas.envios.filter((envio) => envio.marcas.includes("repetida")).map((envio) => ({
         codigo: envio.codigo, responsable: envio.responsable, fecha: envio.fecha ?? "", nota: duracionLegible(envio.segundos),
+      })),
+    });
+  }
+  // P3: «la hoja dice Efectivo y Kobo no tiene envío» no se decide en
+  // Discrepancias (no hay envío): se avisa aquí, con responsable y códigos.
+  const efectivoSinKobo = filasDeBloque(reports, ["discrepancias_telefonicas"])
+    .filter((fila) => (texto(fila.Destino) ? texto(fila.Destino) === "avisos" : texto(fila.Sentido) === "hoja_sin_kobo"));
+  // Si el motor ya publica el aviso en la hoja de alertas, no se duplica.
+  const yaEnAlertas = filasDeHoja(reports, "alertas", ["alertas"])
+    .some((fila) => /sin[_ ]kobo/i.test(texto(fila["Tipo alerta"] ?? fila.tipo)));
+  if (efectivoSinKobo.length && !yaEnAlertas) {
+    const porResponsable = new Map<string, number>();
+    efectivoSinKobo.forEach((fila) => {
+      const quien = texto(fila.Responsable) || "Sin asignar";
+      porResponsable.set(quien, (porResponsable.get(quien) ?? 0) + 1);
+    });
+    avisos.push({
+      id: "efectivo-sin-kobo",
+      nivel: "media",
+      titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
+      detalle: "No cuentan en el avance hasta que llegue el envío de Kobo o se corrija el status de la hoja.",
+      casos: efectivoSinKobo.length,
+      unidad: "casos",
+      codigo: "efectivo_sin_kobo",
+      destino: { etiqueta: "Hoja del equipo", direccion: null },
+      donde: "",
+      fuente: "Cruce de CodPulso entre la hoja y Kobo",
+      desglose: [...porResponsable.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+        .map(([etiqueta, valor]) => ({ etiqueta, valor })),
+      afectados: efectivoSinKobo.map((fila) => ({
+        codigo: texto(fila.CodPulso),
+        responsable: texto(fila.Responsable) || "Sin asignar",
+        fecha: texto(fila["Fecha hoja"]),
+        nota: texto(fila.proGres) ? `proGres ${texto(fila.proGres)}` : "",
       })),
     });
   }

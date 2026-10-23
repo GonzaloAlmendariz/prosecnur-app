@@ -54,8 +54,9 @@
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   l <- .word_envolver_holgado(espec$rotulos, 40); p <- espec$largos * 100
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
+  gris <- resid & isTRUE(espec[["residuales_gris"]])   # gris sólo si el analista lo pide; el lugar y el «mayor» siguen usando `resid`
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
-  col <- if (isTRUE(espec$realce)) ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(resid, T$gris, T$navy)
+  col <- if (isTRUE(espec$realce)) ifelse(gris, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(gris, T$gris, T$navy)
   col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, col))          # paleta por lista (ADR 0097), recetario de respaldo
   marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   esc <- if (isTRUE(espec$escala_completa)) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
@@ -107,7 +108,7 @@
 #'
 #' La espec ya trae el orden resuelto (el del ranking o el declarado, las residuales al final): la primera opción va
 #' arriba, como en la lámina 72; reordenar aquí desharía `orden = "declarado"`. Colores del recetario Word: la mayor (sin
-#' contar residuales) en azul, el resto tenue y las residuales en gris; la paleta por lista (ADR 0097) los reemplaza y las
+#' contar residuales) en azul, el resto tenue y las residuales en gris sólo con `residuales_gris`; la paleta por lista (ADR 0097) los reemplaza y las
 #' que el analista resalta van en coral con su rótulo en negrita, como en la lámina. El alto crece con las filas, como las
 #' barras, y nunca baja del de la figura del recetario.
 #' @keywords internal
@@ -115,8 +116,9 @@
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   l <- .word_envolver_holgado(espec$rotulos, 40); p <- espec$largos * 100
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
+  gris <- resid & isTRUE(espec[["residuales_gris"]])   # gris sólo si el analista lo pide; el lugar y el «mayor» siguen usando `resid`
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
-  col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue))))
+  col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, ifelse(gris, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue))))
   marcadas <- espec$rotulos %in% (espec[["resaltar"]] %||% character(0))
   col[marcadas] <- T$coral
   esc <- max(p, 1) * (if (any(grepl("\\(", espec$cifras))) 1.30 else 1.15)

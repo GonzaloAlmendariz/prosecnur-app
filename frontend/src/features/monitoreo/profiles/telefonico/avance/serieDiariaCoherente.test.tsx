@@ -14,7 +14,11 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { chipsDeRitmo } from "./chipsDeRitmo";
 import { Entregas } from "./Entregas";
 import { Ritmo } from "./Ritmo";
-import { efectivasPorDia, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
+import { efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
+import { MonitoreoOutputsReadiness } from "../../../salidas/MonitoreoOutputsReadiness";
+import { MemoryRouter } from "react-router-dom";
+import { phoneQuotaCardsForDashboard } from "../TelefonicoMonitoreoPage";
+import { fechaDeColumna } from "../control/barridoModel";
 
 function reportes(bloques: Record<string, Array<Record<string, unknown>>>): MonitoreoAcreditacionReports {
   return {
@@ -64,5 +68,80 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(ritmo).toContain("30 de 100");
     expect(ritmo).not.toContain(">17<");
     expect(ritmo).toContain("sin actor");
+  });
+
+  it("las salidas explican por qué «Válidas» cuenta una más", () => {
+    expect(notaDeValidasTelefonica(REPORTS)).toBe("30 con cuota y 1 sin actor");
+    const sinDiferencia = reportes({ avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 3 }] });
+    expect(notaDeValidasTelefonica(sinDiferencia)).toBeUndefined();
+    const corte = { ingesta: 40, procesable: 35, oficial: 31, meta: 100, metaEtiqueta: "meta", saltos: [], hasSnapshot: true } as unknown as Parameters<typeof MonitoreoOutputsReadiness>[0]["corte"];
+    const readiness = { estado: "listo", puedePublicarCliente: true, bloqueos: [] } as unknown as Parameters<typeof MonitoreoOutputsReadiness>[0]["readiness"];
+    const con = renderToStaticMarkup(<MemoryRouter><MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas="30 con actor y 1 sin actor" /></MemoryRouter>);
+    const sin = renderToStaticMarkup(<MemoryRouter><MonitoreoOutputsReadiness corte={corte} readiness={readiness} /></MemoryRouter>);
+    expect(con).toContain("30 con actor y 1 sin actor");
+    expect(sin).not.toContain("mon-outputs-readiness__nota");
+  });
+
+  it("un valor del eje sin cuota no entra a la serie y se declara aparte", () => {
+    const conSinDato = reportes({
+      cuotas_variable: [{ Variable: "Actor", Valor: "Homologación de Títulos" }, { Variable: "Actor", Valor: "Vinculación Laboral" }],
+      avance_efectivo_variable_dia: [
+        { Variable: "Actor", Valor: "Homologación de Títulos", Fecha: "2026-08-04", "Efectivas Kobo": 12 },
+        { Variable: "Actor", Valor: "Vinculación Laboral", Fecha: "2026-08-04", "Efectivas Kobo": 4 },
+        { Variable: "Actor", Valor: "Sin dato", Fecha: "2026-08-04", "Efectivas Kobo": 2 },
+      ],
+      avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 19 }],
+    });
+    const { serie, sinCategoria, fueraDeCuota } = serieDiariaDelCorte(conSinDato);
+    expect(serie.total).toBe(16);
+    expect(serie.categorias.map((categoria) => categoria.nombre)).not.toContain("Sin dato");
+    expect(fueraDeCuota).toEqual([{ nombre: "Sin dato", casos: 2 }]);
+    expect(sinCategoria).toBe(1);
+    expect(efectivasPorDia(conSinDato)).toEqual([{ fecha: "2026-08-04", casos: 16 }]);
+    expect(chipsDeRitmo(conSinDato, STATE)[0]).toBe("Pico de 16 el 04/08");
+    expect(notaDeLaSerie(conSinDato)).toBe("No entran a la serie: 1 efectiva de Kobo sin actor y 2 en «Sin dato», que no tiene cuota");
+    expect(notaDeValidasTelefonica(conSinDato)).toBe("16 con cuota, 2 en actor sin cuota y 1 sin actor");
+  });
+
+  it("con efectivas sin fecha y de valores sin cuota, los sumandos cuadran con «Válidas» y la serie es la del diario de Cuotas", () => {
+    const corte = reportes({
+      cuotas_variable: [
+        { Variable: "Actor", Valor: "Homologación de Títulos", Universo: 156, Meta: 80, Efectivas: 23 },
+        { Variable: "Actor", Valor: "Vinculación Laboral", Universo: 27, Meta: 20, Efectivas: 7 },
+      ],
+      avance_efectivo_variable_dia: [
+        { Variable: "Actor", Valor: "Homologación de Títulos", Fecha: "2026-08-04", "Efectivas Kobo": 12 },
+        { Variable: "Actor", Valor: "Vinculación Laboral", Fecha: "2026-08-04", "Efectivas Kobo": 4 },
+        { Variable: "Actor", Valor: "Homologación de Títulos", Fecha: "2026-08-05", "Efectivas Kobo": 11 },
+        { Variable: "Actor", Valor: "Vinculación Laboral", Fecha: "2026-08-05", "Efectivas Kobo": 3 },
+        // Un valor sin cuota, con fecha y sin ella.
+        { Variable: "Actor", Valor: "Sin dato", Fecha: "2026-08-05", "Efectivas Kobo": 2 },
+        { Variable: "Actor", Valor: "Sin dato", Fecha: "Sin fecha", "Efectivas Kobo": 1 },
+      ],
+      avance_efectivo_dia: [
+        { Fecha: "2026-08-04", "Efectivas Kobo": 17 },
+        { Fecha: "2026-08-05", "Efectivas Kobo": 16 },
+        { Fecha: "Sin fecha", "Efectivas Kobo": 4 },
+      ],
+    });
+    const { serie, sinFecha, sinCategoria, fueraDeCuota, totalDeKobo } = serieDiariaDelCorte(corte);
+    const fuera = fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
+    expect(fueraDeCuota).toEqual([{ nombre: "Sin dato", casos: 3 }]);
+    expect(totalDeKobo).toBe(37);
+    expect(serie.total).toBe(30);
+    // De las 4 sin fecha del diario, 1 es «Sin dato» y ya está fuera de cuota.
+    expect(sinFecha).toBe(3);
+    // El 04/08 el diario dice 17 y la serie por actor 16: una sin categoría.
+    expect(sinCategoria).toBe(1);
+    expect(serie.total + sinFecha + fuera + sinCategoria).toBe(totalDeKobo);
+
+    // La serie compartida es la del diario de Avance › Cuotas (phoneQuotaCardsForDashboard).
+    const diarioDeCuotas = new Map<string, number>();
+    phoneQuotaCardsForDashboard(corte).forEach((card) => card.dailyPoints.forEach((punto) => {
+      const iso = fechaDeColumna(String(punto.date)) ?? String(punto.date);
+      diarioDeCuotas.set(iso, (diarioDeCuotas.get(iso) ?? 0) + punto.effective);
+    }));
+    const deLaSerie = new Map(efectivasPorDia(corte).map((dia) => [dia.fecha, dia.casos]));
+    expect(deLaSerie).toEqual(diarioDeCuotas);
   });
 });

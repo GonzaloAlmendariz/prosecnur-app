@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { EnvioEfectivo } from "../control/respuestasModel";
-import { cruceDeLlave, ejemplosDeLlave, enviosPorLlave, filtroDePrueba, llaveDeclarada, porRevisarEnLaLlave } from "./llaveModel";
+import { cruceDeLlave, ejemplosDeLlave, enviosPorLlave, filtroDePrueba, llaveDeclarada, llaveSinIdentificador, porRevisarEnLaLlave } from "./llaveModel";
 
 const envio = (codigo: string, llave: EnvioEfectivo["llave"]) => ({ codigo, llave } as EnvioEfectivo);
 
@@ -44,7 +44,16 @@ describe("Insumos › Llave y filtros del telefónico", () => {
       ] },
       { id: "control_tiempo_kobo", rows: [{ CodPulso: "PDM 1212" }, { CodPulso: "1218" }] },
     ] }] } as unknown as MonitoreoAcreditacionReports;
-    expect(ejemplosDeLlave(reports)).toEqual({ base: ["PDM1042"], respuestas: ["PDM 1212", "1218"], distintosEnLaBase: 1 });
+    expect(ejemplosDeLlave(reports)).toEqual({ base: ["PDM1042"], respuestas: ["PDM 1212", "1218"], distintosEnLaBase: 1, filasEnLaBase: 2 });
+    expect(llaveSinIdentificador(ejemplosDeLlave(reports))).toBe(false);
+  });
+
+  it("avisa cuando todas las filas de la base comparten el mismo código (RMS: el id de la fuente)", () => {
+    const rows = Array.from({ length: 800 }, () => ({ CodPulso: "rms_barrido", "Estado telefónico": "No barrido" }));
+    const reports = { sheets: [{ id: "monitoreo_telefonico", blocks: [{ id: "comparacion_codpulso", rows }] }] } as unknown as MonitoreoAcreditacionReports;
+    const ejemplos = ejemplosDeLlave(reports);
+    expect(ejemplos).toMatchObject({ distintosEnLaBase: 1, filasEnLaBase: 800 });
+    expect(llaveSinIdentificador(ejemplos)).toBe(true);
   });
 
   it("dice el filtro de prueba sólo si está encendido", () => {

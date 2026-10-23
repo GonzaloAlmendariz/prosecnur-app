@@ -22,7 +22,7 @@ const ficha = (s: Slide): FichaInfo => fichaDeRanura(ranurasDeMaqueta(s, VARS, {
 
 describe("M2 · Top Two Box sin respuestas", () => {
   it("la ficha lo avisa y el panel lo cuenta como aviso, sin bloquear", () => {
-    const s = slide("p_barras_multiapiladas", { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], top2box: true });
+    const s = slide("p_barras_multiapiladas", { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], barra_extra: ["top2box"] });
     expect(ficha(s).avisos).toContain(TTB_SIN_RESPUESTAS);
     const entrada = { slides: [s], presets: {}, wPresets: {}, overridesReusables: [], paletas: {}, iconos: [], slidesById: {}, graficadoresById: {}, presetsByName: {}, variables: VARS, multi: true } as unknown as EntradaValidarPlan;
     const r = validarPlan(entrada);
@@ -31,7 +31,7 @@ describe("M2 · Top Two Box sin respuestas", () => {
   });
 
   it("con sus respuestas declaradas no hay aviso", () => {
-    const s = slide("p_barras_multiapiladas", { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] });
+    const s = slide("p_barras_multiapiladas", { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] });
     expect(ficha(s).avisos).not.toContain(TTB_SIN_RESPUESTAS);
   });
 });
@@ -168,8 +168,8 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
 // Inventario de configuraciones, ítem 1 (recetario p79): la columna Bottom Two Box junto a la Top Two Box. El editor ya la
 // ofrecía; la maqueta no la dibujaba. Mata: encenderla y que la ficha siga igual.
 describe("ítem 1 · Bottom Two Box en la maqueta de multiapiladas", () => {
-  const ttb = { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] };
-  const conBtb = { ...ttb, overrides: { columna_bottom2box: true, bottom2box_labels: ["Totalmente en desacuerdo", "En desacuerdo"] } };
+  const ttb = { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] };
+  const conBtb = { ...ttb, overrides: { barra_extra: ["top2box", "bottom2box"], bottom2box_labels: ["Totalmente en desacuerdo", "En desacuerdo"] } };
   it("la ficha la nombra y dibuja su columna al lado de la Top Two Box", () => {
     const sin = ficha(slide("p_barras_multiapiladas", ttb));
     const con = ficha(slide("p_barras_multiapiladas", conBtb));

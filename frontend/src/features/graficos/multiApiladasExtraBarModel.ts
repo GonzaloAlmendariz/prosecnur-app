@@ -6,32 +6,21 @@ function asRecord(value: unknown): MultiApiladasArgs {
     : {};
 }
 
+/**
+ * Mezcla un patch en los args de la lámina o de un bloque. Los `overrides` se fusionan clave a clave. La barra extra ya
+ * no se deriva de nada (no hay `top2box` que traducir): `barra_extra` es una clave más, y `null` la quita para que el
+ * bloque o la lámina vuelva a heredar (bloque > lámina > preset, `barraExtra.ts`).
+ */
 export function mergeMultiApiladasArgsPatch(
   current: MultiApiladasArgs,
   patch: MultiApiladasArgs,
 ): MultiApiladasArgs {
+  const merged: MultiApiladasArgs = { ...current, ...patch };
+  if (merged.barra_extra == null) delete merged.barra_extra;
   const currentOverrides = asRecord(current.overrides);
   const patchOverrides = asRecord(patch.overrides);
-  const overrides: MultiApiladasArgs = {
-    ...currentOverrides,
-    ...patchOverrides,
-  };
-  const hasExplicitExtraBar = Object.prototype.hasOwnProperty.call(
-    patchOverrides,
-    "mostrar_barra_extra",
-  );
-
-  if (!hasExplicitExtraBar && Object.prototype.hasOwnProperty.call(patch, "top2box")) {
-    overrides.mostrar_barra_extra = patch.top2box === true;
-  } else if (!Object.prototype.hasOwnProperty.call(overrides, "mostrar_barra_extra")) {
-    // Sin declaración, la columna sigue lo que ya dice la lámina: cambiar de lectura con el Top Two Box encendido no
-    // lo apaga en silencio (2026-10-14).
-    overrides.mostrar_barra_extra = current.top2box === true;
+  if (Object.keys(currentOverrides).length || Object.keys(patchOverrides).length) {
+    merged.overrides = { ...currentOverrides, ...patchOverrides };
   }
-
-  return {
-    ...current,
-    ...patch,
-    overrides,
-  };
+  return merged;
 }
