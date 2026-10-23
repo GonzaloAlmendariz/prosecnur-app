@@ -19248,7 +19248,6 @@ export function localTabsForTelefonicoView(
     const [summary, consulted, day, times, incidence, responsible, alerts, supervision] = ACREDITACION_PHONE_TABS;
     void consulted;
     void day;
-    void supervision;
     return [
       railTab(summary, {
         detail: `${fmt(phoneStats.totals.effective)} efectivas tel. · ${fmt(phoneStats.totals.unswept)} por barrer`,
@@ -19279,6 +19278,8 @@ export function localTabsForTelefonicoView(
         badge: phoneStats.alertObservations ? fmt(phoneStats.alertObservations) : undefined,
         estado: readyStatus(!phoneStats.alertObservations, phoneStats.alertObservations > 0),
       }),
+      // Control › Supervisión (T9): la vista lee sus propios bloques.
+      railTab(supervision, { detail: "Rellamadas por enumerador" }),
     ];
   }
 
