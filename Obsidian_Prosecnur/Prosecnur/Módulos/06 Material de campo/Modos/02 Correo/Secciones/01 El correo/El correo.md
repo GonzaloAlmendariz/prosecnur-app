@@ -16,7 +16,7 @@ fuentes:
 
 > La única sección de una campaña de correo: el editor, con identidad, destinatarios, plataforma, envíos, revisión e importar como paneles.
 
-Una sección de una sola pestaña no dibuja selector ni rail. Ver [[Editor del correo]].
+Dos pestañas: [[Editor del correo]], donde se compone el correo, y [[Contactos del correo]], con la lista de la campaña, el enlace personal y quién respondió (ADR 0112).
 
 ## Ubicación en la jerarquía
 
