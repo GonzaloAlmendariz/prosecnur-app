@@ -54,7 +54,7 @@ export type OperadorDeEquipo = {
 
 export type FamiliasDeOperador = Array<{ familia: FamiliaDelCliente; casos: number }>;
 
-export type StatusDeOperador = Array<{ status: string; casos: number; familia: FamiliaDelCliente }>;
+export type StatusDeOperador = Array<{ status: string; casos: number; familia: FamiliaDelCliente; porRegla: boolean }>;
 
 export type Equipo = {
   operadores: OperadorDeEquipo[];
@@ -145,15 +145,15 @@ export function construirEquipo({
   porPersona(estatus).forEach(({ nombre, filas }) => {
     if (esSinAsignar(nombre)) return;
     const cuenta = new Map<FamiliaDelCliente, number>();
-    const porStatus = new Map<string, { casos: number; familia: FamiliaDelCliente }>();
+    const porStatus = new Map<string, { casos: number; familia: FamiliaDelCliente; porRegla: boolean }>();
     filas.forEach((fila) => {
       const casos = numero(fila.Casos) ?? 0;
       if (!casos) return;
       const status = texto(fila.Estado);
-      const { familia } = clasificar(status);
+      const { familia, porRegla } = clasificar(status);
       cuenta.set(familia, (cuenta.get(familia) ?? 0) + casos);
       const previo = porStatus.get(status);
-      porStatus.set(status, { casos: (previo?.casos ?? 0) + casos, familia });
+      porStatus.set(status, { casos: (previo?.casos ?? 0) + casos, familia, porRegla });
     });
     familiasPorOperador.set(clave(nombre), [...cuenta.entries()].map(([familia, casos]) => ({ familia, casos })));
     statusPorOperador.set(clave(nombre), [...porStatus.entries()]

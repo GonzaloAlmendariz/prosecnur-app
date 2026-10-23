@@ -6,6 +6,7 @@ import { nombreDelSegmento } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
+import { construirRespuestas } from "../control/respuestasModel";
 import { buildTelefonicoStatusMatrix } from "../telefonicoTeamModel";
 
 /**
@@ -158,6 +159,7 @@ export function chipsDeCabecera(
   if (clave === "control/insistencia") return chipsDeInsistencia(reports);
   if (clave === "control/barrido") return chipsDeBarrido(reports, state);
   if (clave === "control/equipo") return chipsDeEquipo(reports);
+  if (clave === "control/respuestas") return chipsDeRespuestas(reports);
   return [];
 }
 
@@ -181,6 +183,16 @@ function chipsDeBarrido(reports: MonitoreoAcreditacionReports | null, state?: Mo
   return chips;
 }
 
+/** Efectivas sobre envíos que pasan el filtro y cuántas duran más de 2 h. */
+function chipsDeRespuestas(reports: MonitoreoAcreditacionReports | null): string[] {
+  const modelo = construirRespuestas({ reports, segmento: "" });
+  if (!modelo.envios.length) return [];
+  return [
+    `${fmt(modelo.unicas)} efectivas de ${fmt(modelo.envios.length)} envíos`,
+    ...(modelo.conteos["mas-de-2h"] ? [`${fmt(modelo.conteos["mas-de-2h"])} duran más de 2 h`] : []),
+  ];
+}
+
 /** Operadores con casos asignados y casos sin asignar, de `operacion_responsable`. */
 function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
   const filas = filasDeBloque(reports, ["operacion_responsable"]);
@@ -198,6 +210,8 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-export function pestanaConLienzo(direccion: { seccion: string; pestana: string }): boolean {
+export function pestanaConLienzo(direccion: { seccion: string; pestana: string; panel?: string | null }): boolean {
+  // Una sub-vista que todavía monta la vista anterior (Respuestas › Salvedades) conserva la tarjeta.
+  if (direccion.seccion === "control" && direccion.pestana === "respuestas") return !direccion.panel;
   return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo"].includes(`${direccion.seccion}/${direccion.pestana}`);
 }

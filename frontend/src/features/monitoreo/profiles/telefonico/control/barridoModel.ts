@@ -52,7 +52,7 @@ export type FilaDeCategoria = {
 export type GrupoDeStatus = {
   familia: Exclude<FamiliaDelCliente, "sin-llamar">;
   total: number;
-  items: Array<{ status: string; casos: number; conRegla: boolean }>;
+  items: Array<{ status: string; casos: number; conRegla: boolean; porRegla: boolean }>;
 };
 
 export type Barrido = {
@@ -141,7 +141,7 @@ export function construirBarrido({
   let sinLlamarDeStatus = 0;
   let efectivasHoja = 0;
   estatus.forEach(({ status, casos }) => {
-    const { familia, conRegla } = clasificar(status);
+    const { familia, conRegla, porRegla } = clasificar(status);
     if (familia === "sin-llamar") {
       sinLlamarDeStatus += casos;
       return;
@@ -149,7 +149,7 @@ export function construirBarrido({
     if (familia === "efectiva") efectivasHoja += casos;
     const grupo = grupos.get(familia) ?? { familia, total: 0, items: [] };
     grupo.total += casos;
-    grupo.items.push({ status, casos, conRegla });
+    grupo.items.push({ status, casos, conRegla, porRegla });
     grupos.set(familia, grupo);
   });
   const orden: GrupoDeStatus["familia"][] = ["efectiva", "parcial", "rechazo", "reintentable", "terminal"];

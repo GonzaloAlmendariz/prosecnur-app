@@ -57,7 +57,30 @@ function familiaPorNombre(clave: string): FamiliaDelCliente {
   return "reintentable";
 }
 
-export type ClasificacionDeStatus = { familia: FamiliaDelCliente; conRegla: boolean };
+export type ClasificacionDeStatus = {
+  familia: FamiliaDelCliente;
+  conRegla: boolean;
+  /**
+   * La regla del proyecto lo pone en otra familia que la que sugiere su
+   * nombre (en Medios de Vida «Rechazo» cierra y es Terminal). No es un error:
+   * se rotula para que no lo parezca.
+   */
+  porRegla: boolean;
+};
+
+const ETIQUETA_DE_FAMILIA: Record<FamiliaDelCliente, string> = {
+  efectiva: "Efectiva",
+  parcial: "Parcial",
+  rechazo: "Rechazo",
+  reintentable: "Reintentable",
+  terminal: "Terminal",
+  "sin-llamar": "Sin llamar",
+};
+
+/** «Terminal por su regla»: la familia declarada, dicha junto al status. */
+export function rotuloDeRegla(familia: FamiliaDelCliente) {
+  return `${ETIQUETA_DE_FAMILIA[familia]} por su regla`;
+}
 
 export function clasificadorDeStatus(reglas: readonly MonitoreoStateRule[]) {
   const porClave = new Map<string, FamiliaDelCliente>();
@@ -73,8 +96,14 @@ export function clasificadorDeStatus(reglas: readonly MonitoreoStateRule[]) {
     });
   return (status: string): ClasificacionDeStatus => {
     const clave = claveDeStatus(status);
-    if (clave === "no barrido") return { familia: "sin-llamar", conRegla: true };
+    if (clave === "no barrido") return { familia: "sin-llamar", conRegla: true, porRegla: false };
     const declarada = porClave.get(clave);
-    return declarada ? { familia: declarada, conRegla: true } : { familia: familiaPorNombre(clave), conRegla: false };
+    const porNombre = familiaPorNombre(clave);
+    // Sólo cuenta como «por regla» cuando el nombre la ubicaba en una familia de
+    // nombre propio (rechazo, parcial, efectiva) y la regla dice otra cosa.
+    const nombreClaro = porNombre === "rechazo" || porNombre === "parcial" || porNombre === "efectiva";
+    return declarada
+      ? { familia: declarada, conRegla: true, porRegla: nombreClaro && declarada !== porNombre }
+      : { familia: porNombre, conRegla: false, porRegla: false };
   };
 }
