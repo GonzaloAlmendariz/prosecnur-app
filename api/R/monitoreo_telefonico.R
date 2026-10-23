@@ -608,7 +608,7 @@
     phone <- .monitoreo_report_phone_population_data(data, profile, cfg)
     phone_from_population <- nrow(phone) > 0L
   }
-  responses <- data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE]
+  responses <- .monitoreo_telefonico_sin_excluidas(data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE], profile) # «No cuenta»: monitoreo_telefonico_discrepancias.R
   count_df <- function(values, name_col) {
     tab <- sort(table(values), decreasing = TRUE)
     data.frame(
@@ -1222,6 +1222,8 @@
   ))
   if (isTRUE(standalone_phone)) {
     blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", reconciliation_detail)))
+    blocks <- c(blocks, .monitoreo_telefonico_discrepancias_blocks(phone, primary_keys, reconciliation_detail, duration_control, profile, data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE])) # monitoreo_telefonico_discrepancias.R
+    blocks <- c(blocks, .monitoreo_supervision_estratificada_blocks(duration_control, cfg, stats::setNames(.monitoreo_discrepancias_progres(phone), primary_keys), data[.monitoreo_report_role_mask(data, .MONITOREO_SUPERVISION_ROL), , drop = FALSE], responses)) # monitoreo_supervision_estratificada.R
     # Control › Insistencia (revamp T4). Ver `monitoreo_telefonico_cola.R`.
     quota_variable <- if (length(quota_value_columns)) names(quota_value_columns)[[1]] else ""
     blocks <- c(blocks, .monitoreo_telefonico_cola_blocks(phone, list(

@@ -177,3 +177,21 @@ describe("Control › Avisos del telefónico", () => {
     expect(aviso?.destino.etiqueta).toBe("Equipo, en Control");
   });
 });
+
+describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
+  it("va a Avisos con responsable, CodPulso y proGres", () => {
+    const { avisos } = construirAvisos(reportes([], {
+      discrepancias_telefonicas: [
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1114", proGres: "XYZ-26-900001", Responsable: "Op-02", "La hoja dice": "Efectivo", "Fecha hoja": "02/07/2026" },
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1153", proGres: "", Responsable: "", "La hoja dice": "Efectivo", "Fecha hoja": "" },
+        { Sentido: "kobo_sin_hoja", CodPulso: "PDM1001", proGres: "", Responsable: "Op-01", "La hoja dice": "No contesta", "Fecha hoja": "" },
+      ],
+    }));
+    const aviso = avisos.find((item) => item.codigo === "efectivo_sin_kobo");
+    expect(aviso?.casos).toBe(2);
+    expect(aviso?.afectados.map((caso) => caso.codigo)).toEqual(["PDM1114", "PDM1153"]);
+    expect(aviso?.afectados[0]).toMatchObject({ responsable: "Op-02", nota: "proGres XYZ-26-900001" });
+    expect(aviso?.afectados[1].responsable).toBe("Sin asignar");
+    expect(aviso?.desglose).toEqual([{ etiqueta: "Op-02", valor: 1 }, { etiqueta: "Sin asignar", valor: 1 }]);
+  });
+});

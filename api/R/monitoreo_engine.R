@@ -344,7 +344,7 @@
     "hoja_ruta", "ocurrencias_campo",
     # Los tres papeles del libro operativo de aulas. `parte_campo` y no
     # "campo": ver la nota en `.monitoreo_source_role()`.
-    "agendamiento", "parte_campo", "control"
+    "agendamiento", "parte_campo", "control", "supervision" # supervision: hoja de rellamadas del telefónico (monitoreo_supervision_estratificada.R)
   )
 }
 
@@ -383,7 +383,7 @@
     parte_campo = "parte_campo",
     partecampo = "parte_campo",
     aplicacion = "parte_campo",
-    control = "control",
+    control = "control", supervision = "supervision",
     ""
   )
   if (!nzchar(role)) {
@@ -699,7 +699,7 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
     )
   )
   attr(out, "compat_acreditacion") <- acreditacion
-  .monitoreo_profile_origen(.monitoreo_profile_status_reglas(out, profile), profile) # status_from_rules: monitoreo_status_reglas.R; sample_origin y replacement_flag: monitoreo_telefonico_origen.R
+  .monitoreo_profile_equivalencias(.monitoreo_profile_origen(.monitoreo_profile_status_reglas(out, profile), profile), profile) # status_from_rules: monitoreo_status_reglas.R; sample_origin y replacement_flag: monitoreo_telefonico_origen.R; enumerator_equivalences: monitoreo_telefonico_discrepancias.R
 }
 
 # .monitoreo_text_key vive en monitoreo_reconciliacion_memo.R (memoizada; era

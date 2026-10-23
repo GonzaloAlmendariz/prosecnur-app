@@ -123,6 +123,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_recopiladores(pr)
     pr <- mount_monitoreo(pr)
     pr <- mount_monitoreo_telefonico(pr)
+    pr <- mount_monitoreo_telefonico_discrepancias(pr)
     pr <- mount_monitoreo_mailchimp(pr)
     pr <- mount_monitoreo_cuotas(pr)
     pr <- mount_monitoreo_territorial_mapeo(pr)

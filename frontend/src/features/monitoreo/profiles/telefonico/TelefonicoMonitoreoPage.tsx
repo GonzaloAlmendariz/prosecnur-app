@@ -85,6 +85,8 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
+import { Discrepancias } from "./control/Discrepancias";
+import { Supervision } from "./control/Supervision";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
@@ -18748,6 +18750,9 @@ function renderAcreditacionView(
   if (view === "consultas" && (options.activeConsultaTab ?? "plataforma") === "plataforma" && isTelefonicoMonitoreoState(options.state)) {
     return <RespuestasDelCorte reports={reports} state={options.state} />; // Control › Respuestas (T6).
   }
+  if (view === "consultas" && options.activeConsultaTab === "cruces" && isTelefonicoMonitoreoState(options.state)) {
+    return <Discrepancias reports={reports} state={options.state} onStateChange={options.onStateChange} />; // Control › Discrepancias (T9).
+  }
   if (view === "consultas") {
     return (
       <AcreditacionConsultasPanel
@@ -18768,6 +18773,9 @@ function renderAcreditacionView(
   }
   if (view === "telefonico" && options.activePhoneTab === "alertas" && isTelefonicoMonitoreoState(options.state)) {
     return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
+  }
+  if (view === "telefonico" && options.activePhoneTab === "supervision" && isTelefonicoMonitoreoState(options.state)) {
+    return <Supervision reports={reports} />; // Control › Supervisión (T9).
   }
   if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
     return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).
@@ -19240,7 +19248,6 @@ export function localTabsForTelefonicoView(
     const [summary, consulted, day, times, incidence, responsible, alerts, supervision] = ACREDITACION_PHONE_TABS;
     void consulted;
     void day;
-    void supervision;
     return [
       railTab(summary, {
         detail: `${fmt(phoneStats.totals.effective)} efectivas tel. · ${fmt(phoneStats.totals.unswept)} por barrer`,
@@ -19271,6 +19278,8 @@ export function localTabsForTelefonicoView(
         badge: phoneStats.alertObservations ? fmt(phoneStats.alertObservations) : undefined,
         estado: readyStatus(!phoneStats.alertObservations, phoneStats.alertObservations > 0),
       }),
+      // Control › Supervisión (T9): la vista lee sus propios bloques.
+      railTab(supervision, { detail: "Rellamadas por enumerador" }),
     ];
   }
 
