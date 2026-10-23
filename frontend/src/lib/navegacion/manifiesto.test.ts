@@ -95,17 +95,18 @@ describe("manifiesto de navegación", () => {
       "aulas",
     ]);
 
-    // Territorial es el modo con más secciones: seis.
+    // Territorial usa el esqueleto común del revamp: Insumos, Modelo, Control
+    // y Avance.
     const territorial = nodoPorClave("monitoreo/territorial");
     expect(territorial).not.toBeNull();
-    expect(hijosDe(territorial!.clave)).toHaveLength(6);
+    expect(hijosDe(territorial!.clave)).toHaveLength(4);
   });
 
   it("distingue la misma sección en modos distintos", () => {
-    // `calidad` se llama "Validación" en territorial y también en aulas: son
-    // nodos separados porque el contenido y el estado de cada uno difieren.
-    const territorial = nodoPorClave("monitoreo/territorial/calidad");
-    const aulas = nodoPorClave("monitoreo/aulas/calidad");
+    // `modelo` existe en territorial y también en aulas: son nodos separados
+    // porque el contenido y el estado de cada uno difieren.
+    const territorial = nodoPorClave("monitoreo/territorial/modelo");
+    const aulas = nodoPorClave("monitoreo/aulas/modelo");
     expect(territorial).not.toBeNull();
     expect(aulas).not.toBeNull();
     expect(territorial!.clave).not.toBe(aulas!.clave);

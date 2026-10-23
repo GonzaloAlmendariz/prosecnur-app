@@ -172,51 +172,42 @@ export const MONITOREO_PESTANAS = {
       pestana("telefonico", "avance", "entregas", "Entregas", "Qué sale", Download),
     ],
   },
+  // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23):
+  // Insumos, Modelo, Control y Avance. Lo que cada pestaña absorbe de las seis
+  // secciones anteriores está en `docs/qa/revamp-monitoreo/territorial.md` §1,
+  // y la traducción a las vistas que la página todavía monta, en
+  // `features/monitoreo/profiles/territorial/navegacion/direccionTerritorial.ts`.
+  // Control agrupa sus pestañas en Calidad, Ocurrencias y Correcciones; las dos
+  // de Ocurrencias son condicionales (parte del protocolo en ACNUR, opcionales
+  // para otros clientes). El modo aterriza en Avance › Faltante por UMP.
   territorial: {
-    fuentes: [
-      pestana("territorial", "fuentes", "form", "Formulario", "Kobo y corte local", DatabaseZap),
-      pestana("territorial", "fuentes", "filter", "Filtro y distritos", "Efectivas y alcance", SlidersHorizontal),
-      pestana("territorial", "fuentes", "roster", "Encuestadores", "Códigos Pulso", ContactRound),
-      pestana("territorial", "fuentes", "reconciliation", "Reconciliación", "Códigos y UMP", Link2),
-      pestana("territorial", "fuentes", "history", "Historial", "Eventos del corte", Clock),
+    insumos: [
+      pestana("territorial", "insumos", "conexiones", "Conexiones", "Qué fuentes alimentan el modo", PlugZap),
+      pestana("territorial", "insumos", "mapeo", "Mapeo y filtro", "Qué columna es cada cosa y qué cuenta", SlidersHorizontal),
+      pestana("territorial", "insumos", "padron", "Padrón", "Quiénes son los aplicadores declarados", ContactRound),
+      pestana("territorial", "insumos", "historial", "Historial", "Qué se leyó y cuándo", Clock),
     ],
     modelo: [
-      // Va primera —y por eso es la pestaña por defecto de Modelo— porque es
-      // lo que hay que resolver antes de creerle una cifra al resto del módulo.
-      pestana("territorial", "modelo", "variables", "Variables", "Mapeo manual de la base", ListChecks),
-      pestana("territorial", "modelo", "resumen", "Cobertura", "Zonas, UMP y responsables", BarChart3),
-      pestana("territorial", "modelo", "tabla", "Manzanas", "Orden, titulares y reemplazos", Table2),
+      pestana("territorial", "modelo", "metas", "Metas y muestra", "Cuánto, dónde y en qué fase", MapPinned),
+      pestana("territorial", "modelo", "cuotas", "Cuotas", "Qué cuota declara el proyecto", Layers3),
     ],
-    calidad: [
-      pestana("territorial", "calidad", "geolocalizacion", "Geolocalización", "GPS y cartografía", MapPin),
-      pestana("territorial", "calidad", "reconciliacion", "Reconciliación UMP", "Sospechas espaciales", Route),
-      pestana("territorial", "calidad", "duracion", "Duración de tiempo", "Normal, corta y muy corta", Clock),
-      pestana("territorial", "calidad", "cuotas", "Cuotas", "Marginales y brechas", Target),
-      pestana("territorial", "calidad", "anulacion", "Anulación", "Tacha auditada", Trash2),
-    ],
-    consultas: [
-      pestana("territorial", "consultas", "registro", "Registro", "Tabla principal", Table2),
-      pestana("territorial", "consultas", "gps", "GPS con señal", "Distancia y cruce", MapPin),
-      pestana("territorial", "consultas", "duracion", "Tiempo corto/muy corto", "Normal, corta y muy corta", Clock),
-      pestana("territorial", "consultas", "responsable", "Cruce responsable", "UMP y equipo", ContactRound),
-      pestana("territorial", "consultas", "subsanaciones", "Subsanaciones", "Excedentes y brechas", ArrowRight),
+    control: [
+      pestana("territorial", "control", "bandeja", "Bandeja", "Qué reviso hoy y qué decido", ListChecks),
+      pestana("territorial", "control", "senales", "Señales", "Si la calidad es pareja", MapPin),
+      pestana("territorial", "control", "equipo", "Equipo", "Quién produce cuánto", Users),
+      pestana("territorial", "control", "ocurrencias", "Ocurrencias", "Por qué no se logra la entrevista", ClipboardCheck, "condicional"),
+      pestana("territorial", "control", "reportes", "Reportes UMP", "Qué UMP no reporta o no cuadra", Table2, "condicional"),
+      pestana("territorial", "control", "subsanaciones", "Subsanaciones", "Qué celda falta y de dónde se cubre", ArrowRight),
+      pestana("territorial", "control", "anulaciones", "Anulaciones", "Qué salió del conteo", Trash2),
+      pestana("territorial", "control", "conciliacion", "Conciliación", "Códigos y UMP corregidos", Link2),
     ],
     avance: [
-      pestana("territorial", "avance", "resumen", "Resumen", "Estado del campo y corte", BarChart3),
-      pestana("territorial", "avance", "distritos", "Distritos", "Cobertura y cuotas", MapPinned),
-      pestana("territorial", "avance", "ump", "Mapa y UMP", "Ritmo por manzana", Route),
-      pestana("territorial", "avance", "ritmo", "Ritmo diario", "Tendencia del corte", CalendarRange),
-      pestana("territorial", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
+      pestana("territorial", "avance", "faltante", "Faltante por UMP", "Qué celdas faltan y quién las cubre", Target),
+      pestana("territorial", "avance", "resumen", "Resumen", "Cuánto cuenta y a qué ritmo", BarChart3),
+      pestana("territorial", "avance", "mapa", "Mapa", "Dónde está el campo", MapPinned),
+      pestana("territorial", "avance", "umps", "UMP", "Qué UMP están completas", Route),
+      pestana("territorial", "avance", "salidas", "Salidas", "Qué se entrega", Download),
     ],
-    ocurrencias: [
-      pestana("territorial", "ocurrencias", "states", "Resumen", "No efectividad y motivos", ClipboardCheck),
-      pestana("territorial", "ocurrencias", "distritos", "Distritos", "Estados por distrito", MapPinned),
-      pestana("territorial", "ocurrencias", "registro", "Reporte UMP", "Con/sin reporte", Table2),
-      pestana("territorial", "ocurrencias", "ump", "UMP", "Con/sin ocurrencia", Route),
-      pestana("territorial", "ocurrencias", "alerts", "Alertas", "Cruces y observaciones", ShieldAlert),
-      pestana("territorial", "ocurrencias", "rhythm", "Ritmo", "Días e historial", CalendarRange),
-    ],
-    telefonico: [],
   },
   aulas: {
     fuentes: [],
@@ -421,6 +412,62 @@ export const MONITOREO_PESTANAS_INTERNAS_TELEFONICO = {
     detalle: pestana("telefonico", "avance", "detalle", "Detalle", "Controles", Table2),
     salidas: pestana("telefonico", "avance", "salidas", "Salidas", "PDF y hojas de avance", Download),
   },
+} as const;
+
+/**
+ * Vistas que la página territorial monta por dentro.
+ *
+ * No son navegación pública: la dirección del modo Territorial es la de
+ * `MONITOREO_PESTANAS.territorial` (Insumos, Modelo, Control y Avance), y
+ * `direccionTerritorial.ts` traduce cada pestaña pública a la vista que la
+ * absorbe mientras no tiene contenido propio. Se conservan con su clave
+ * histórica porque son las que la página sabe montar y porque los enlaces
+ * guardados con esas claves se leen como alias. Nunca se escriben.
+ */
+export const MONITOREO_PESTANAS_INTERNAS_TERRITORIAL = {
+  fuentes: [
+    pestana("territorial", "fuentes", "form", "Formulario", "Kobo y corte local", DatabaseZap),
+    pestana("territorial", "fuentes", "filter", "Filtro y distritos", "Efectivas y alcance", SlidersHorizontal),
+    pestana("territorial", "fuentes", "roster", "Encuestadores", "Códigos Pulso", ContactRound),
+    pestana("territorial", "fuentes", "reconciliation", "Reconciliación", "Códigos y UMP", Link2),
+    pestana("territorial", "fuentes", "history", "Historial", "Eventos del corte", Clock),
+  ],
+  modelo: [
+    // Va primera —y por eso es la pestaña por defecto de Modelo— porque es
+    // lo que hay que resolver antes de creerle una cifra al resto del módulo.
+    pestana("territorial", "modelo", "variables", "Variables", "Mapeo manual de la base", ListChecks),
+    pestana("territorial", "modelo", "resumen", "Cobertura", "Zonas, UMP y responsables", BarChart3),
+    pestana("territorial", "modelo", "tabla", "Manzanas", "Orden, titulares y reemplazos", Table2),
+  ],
+  calidad: [
+    pestana("territorial", "calidad", "geolocalizacion", "Geolocalización", "GPS y cartografía", MapPin),
+    pestana("territorial", "calidad", "reconciliacion", "Reconciliación UMP", "Sospechas espaciales", Route),
+    pestana("territorial", "calidad", "duracion", "Duración de tiempo", "Normal, corta y muy corta", Clock),
+    pestana("territorial", "calidad", "cuotas", "Cuotas", "Marginales y brechas", Target),
+    pestana("territorial", "calidad", "anulacion", "Anulación", "Tacha auditada", Trash2),
+  ],
+  consultas: [
+    pestana("territorial", "consultas", "registro", "Registro", "Tabla principal", Table2),
+    pestana("territorial", "consultas", "gps", "GPS con señal", "Distancia y cruce", MapPin),
+    pestana("territorial", "consultas", "duracion", "Tiempo corto/muy corto", "Normal, corta y muy corta", Clock),
+    pestana("territorial", "consultas", "responsable", "Cruce responsable", "UMP y equipo", ContactRound),
+    pestana("territorial", "consultas", "subsanaciones", "Subsanaciones", "Excedentes y brechas", ArrowRight),
+  ],
+  avance: [
+    pestana("territorial", "avance", "resumen", "Resumen", "Estado del campo y corte", BarChart3),
+    pestana("territorial", "avance", "distritos", "Distritos", "Cobertura y cuotas", MapPinned),
+    pestana("territorial", "avance", "ump", "Mapa y UMP", "Ritmo por manzana", Route),
+    pestana("territorial", "avance", "ritmo", "Ritmo diario", "Tendencia del corte", CalendarRange),
+    pestana("territorial", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
+  ],
+  ocurrencias: [
+    pestana("territorial", "ocurrencias", "states", "Resumen", "No efectividad y motivos", ClipboardCheck),
+    pestana("territorial", "ocurrencias", "distritos", "Distritos", "Estados por distrito", MapPinned),
+    pestana("territorial", "ocurrencias", "registro", "Reporte UMP", "Con/sin reporte", Table2),
+    pestana("territorial", "ocurrencias", "ump", "UMP", "Con/sin ocurrencia", Route),
+    pestana("territorial", "ocurrencias", "alerts", "Alertas", "Cruces y observaciones", ShieldAlert),
+    pestana("territorial", "ocurrencias", "rhythm", "Ritmo", "Días e historial", CalendarRange),
+  ],
 } as const;
 
 /**

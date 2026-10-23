@@ -27,7 +27,6 @@ const perfiles = [
   ["Aulas", "aulas/AulasMonitoreoPage.tsx"],
   ["Acreditación", "acreditacion/AcreditacionMonitoreoPage.tsx"],
   ["Telefónico", "telefonico/TelefonicoMonitoreoPage.tsx"],
-  ["Territorial", "territorial/TerritorialMonitoreoPage.tsx"],
 ] as const;
 
 function ast(relativePath: string) {
@@ -64,4 +63,18 @@ describe("Monitoreo: la pestaña pedida por dirección se aplica con su sección
       `${label}: hay que distinguir «vengo de una dirección» de «vengo de un clic»`,
     ).toBeGreaterThan(0);
   });
+});
+
+/**
+ * Territorial guarda como estado la dirección PÚBLICA completa (sección,
+ * pestaña y sub-vista) desde el revamp del esqueleto común: no hay pestaña
+ * recordada por sección que pueda pisar la pedida. Lo que se exige es que lea
+ * la dirección entera de la URL y la resuelva con su tabla, alias incluidos.
+ */
+test("Territorial resuelve la dirección pedida entera, con su tabla de alias", () => {
+  const arbol = ast("territorial/TerritorialMonitoreoPage.tsx");
+  expect(llamadasA(arbol, "useMonitoreoDireccionTraducida")).toBe(1);
+  expect(llamadasA(arbol, "monitoreoDireccionDesdeParams")).toBeGreaterThan(0);
+  expect(llamadasA(arbol, "direccionPedida")).toBeGreaterThan(0);
+  expect(llamadasA(arbol, "pideOtraDireccion")).toBeGreaterThan(0);
 });

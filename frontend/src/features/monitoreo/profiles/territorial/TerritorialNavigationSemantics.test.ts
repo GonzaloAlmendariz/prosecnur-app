@@ -2,50 +2,36 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = fs.readFileSync(
-  path.join(__dirname, "TerritorialMonitoreoPage.tsx"),
-  "utf8",
-);
+const leer = (relativo: string) => fs.readFileSync(path.join(__dirname, relativo), "utf8");
+const source = leer("TerritorialMonitoreoPage.tsx");
+const chrome = leer("navegacion/ChromeTerritorial.tsx");
+const selector = leer("navegacion/SelectorDeFase.tsx");
 
-describe("Territorial local navigation semantics", () => {
-  it("uses the canonical contextual tab rail without the legacy workbench rail", () => {
-    expect(source).toContain('import { ContextTabRail } from "../../../../components/ContextTabRail"');
-    expect(source).toContain("<ContextTabRail");
-    expect(source).not.toContain("MonitoreoWorkbenchRail");
+describe("Territorial: navegación del esqueleto común", () => {
+  it("el rail es el de Monitoreo, con el corte al pie y sin el rail heredado", () => {
+    expect(source).toContain("<RailTerritorial");
+    expect(source).not.toContain("<ContextTabRail");
+    expect(chrome).toContain("<MonitoreoWorkbenchRail");
+    expect(chrome).toContain('label: "Corte"');
     // MonitoreoWorkbenchChrome ya emite la clase canónica; repetirla desde la
     // página territorial mezclaba responsabilidades y hacía más frágil el layout.
     expect(source).not.toContain('className="pulso-context-tab-layout"');
   });
 
-  it("keeps local tabs addressable and synchronized with the inspector event", () => {
-    expect(source).toContain("useMonitoreoDireccion(seccionActiva, pestanaActiva, \"territorial\"");
-    expect(source).toContain('window.addEventListener("prosecnur:monitoreo-local-tab-active"');
-    expect(source).toContain("changeLocalTab(key)");
-    expect(source).toContain("panelId={contextPanelId}");
-    expect(source).toContain("footer={(");
-    expect(source).toContain("<MonitoreoRailLastUpdate");
-    expect(source).toContain('value={state?.synced_at ?? ""}');
-    expect(source).toContain("contentId={contextPanelId}");
+  it("la pestaña activa es la dirección pública y el contenido es su tabpanel", () => {
+    expect(source).toContain("useMonitoreoDireccionTraducida({");
+    expect(source).toContain('modo: "territorial"');
     expect(source).toContain('contentRole="tabpanel"');
-    expect(source).toContain("contentAriaLabelledBy={contextTabId(pestanaActiva)}");
+    expect(source).toContain("contentAriaLabelledBy={`monitoreo-${direccion.seccion}-tab-${direccion.pestana}`}");
   });
 
-  it("preserves the Piloto/Campo control in the workbench head, outside the rail", () => {
-    const head = source.slice(
-      source.indexOf("const TerritorialWorkbenchHead"),
-      source.indexOf("function StatTile"),
-    );
-    const rail = source.slice(
-      source.indexOf("<ContextTabRail"),
-      source.indexOf("head={("),
-    );
-
-    expect(head).toContain('role="group" aria-label="Piloto o campo"');
-    expect(head).toContain("aria-pressed={phase === item.key}");
-    expect(head).not.toContain('role="tab"');
-    expect(head).toContain("onPhaseChange(item.key)");
-    expect(rail).not.toContain("phase");
-    expect(rail).not.toContain("status");
-    expect(rail).not.toContain("summary");
+  it("la fase se elige en la barra del modo, no en la cabecera ni en el rail", () => {
+    expect(source).toContain("selector: (");
+    expect(source).toContain("<SelectorDeFase");
+    expect(source).not.toContain('aria-label="Piloto o campo"');
+    expect(chrome).not.toContain("phase");
+    expect(selector).toContain('role="menuitemradio"');
+    expect(selector).toContain("aria-checked={item.activa}");
+    expect(selector).toContain('event.key !== "Escape"');
   });
 });

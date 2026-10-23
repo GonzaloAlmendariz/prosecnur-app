@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import "./barraDelModo.css";
 
@@ -54,6 +54,11 @@ export type AccionDeActualizar = {
 };
 
 export type BarraDelModo = {
+  /**
+   * Control del contexto del modo junto a MODO: el selector `FASE ▾` de
+   * Territorial (A4 de `territorial.md`). Opcional; los demás modos no lo usan.
+   */
+  selector?: ReactNode;
   indicadores: readonly IndicadorDelModo[];
   /** Fecha y hora del corte, ya formateadas («27/07/26 09:04»). */
   corte: string;

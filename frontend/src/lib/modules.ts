@@ -693,12 +693,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "territorial",
         label: "Territorial",
         sections: [
-          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.fuentes },
-          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.modelo },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.calidad },
-          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.consultas },
-          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.avance },
-          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?seccion=ocurrencias", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.ocurrencias },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23). Las
+          // direcciones anteriores (`fuentes`, `calidad`, `consultas`,
+          // `ocurrencias`) se leen como alias en `direccionTerritorial.ts`;
+          // nunca se escriben.
+          { id: "insumos", label: "Insumos", icon: PlugZap, to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.insumos },
+          { id: "modelo", label: "Modelo", icon: Route, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.modelo },
+          { id: "control", label: "Control", icon: ShieldAlert, to: "/monitoreo?seccion=control", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.control },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.avance },
         ],
       },
       {
