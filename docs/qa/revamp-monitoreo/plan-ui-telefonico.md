@@ -393,3 +393,10 @@ categoría se declara aparte («1 efectiva de Kobo sin actor no entra a la serie
 en la vista del PDF. `segmentoDelCorte` delega en `segmentoDeCuotas`, para que el segmento también sea uno solo. Test
 `avance/serieDiariaCoherente.test.tsx`. La prueba de claves sin rótulo cubre además el estado de la tarjeta de fuente
 (lista, inactiva y pendiente).
+
+**Pulido después de T8.** (1) Bajo «Válidas» de las salidas, el telefónico pasa una nota opcional que explica la
+diferencia con la serie (Medios de Vida: «69 con cuota y 1 sin actor»); los demás modos no la reciben. (2) La serie
+diaria compartida cuenta sólo los valores del eje con cuota, como el diario de Avance › Cuotas, y declara aparte lo
+que queda fuera («No entran a la serie: 1 efectiva de Kobo sin actor y 2 en «Sin dato», que no tiene cuota»). (3) La
+columna derecha de Cuotas y de Ritmo mide lo que piden sus tarjetas (el botón del calendario pegado a la lista de días)
+y la hoja del PDF de Entregas se centra en la mesa con su sombra de papel.
