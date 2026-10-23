@@ -20,7 +20,7 @@
 #' @return `list(fila, gap, gaps, altos, alto)`: paso mínimo de fila, gap mínimo, gap necesario antes de cada premisa
 #'   (vector, `gap` o más), alto de cada premisa y alto total.
 #' @keywords internal
-.lam_aire_minimo <- function(alturas, filas, g, chica = TRUE, gap_min = 0.08, holgura = 0.075) {
+.lam_aire_minimo <- function(alturas, filas, g, chica = TRUE, gap_min = 0.08, holgura = .lam_holgura_chica()) {
   n <- length(alturas); chica <- rep_len(as.logical(chica), n)
   paso_chica <- g + 0.28 + holgura
   # Con premisas de varias barras y cifras chicas el paso de fila entero va dentro de la caja; con una barra por premisa
@@ -102,4 +102,47 @@
 .lam_multilista_compartida_parte <- function(x, compartida) {
   if (isTRUE(compartida) || !.std_evitar_cont() || !length(x)) return(isTRUE(compartida))
   .lam_multilista_leyenda_compartida(lapply(x, `[[`, "espec"))
+}
+
+# ---- M1 «apretado»: seis barras con cifras chicas en UNA lámina (Gonzalo, 2026-10-23: «¿no entra en una?») ----------
+#
+# Solo cuando `.std_evitar_cont()` y la alternativa es partir la lámina (la multilista ya no cabe ni con el aire en su
+# mínimo). Combina tres palancas de AIRE, nunca la barra (piso de 1,12 cm intacto) ni la leyenda (centrada a la lámina):
+#  - holgura de la cifra chica con la barra de arriba 0,075 -> 0,03 in (la caja de la cifra mide 0,22 y su texto, menos);
+#  - aire del Top Two Box 0,35 -> 0,25 in (el rótulo conserva su posición absoluta: sube con la franja);
+#  - la franja de datos se extiende 0,30 in hacia el pie y la leyenda se pega a la última barra (queda >= 0,1 in sobre el «Base:»).
+# Una lámina que ya cabía no pasa por aquí: su geometría no cambia.
+.LAM_APRETADO_HOLGURA <- 0.03
+.LAM_APRETADO_AIRE_TTB <- 0.25
+.LAM_APRETADO_EXTRA_FRANJA <- 0.30
+
+.lam_apretado <- function() isTRUE(getOption("prosecnur.lam_apretado", FALSE))
+.lam_holgura_chica <- function() if (.lam_apretado()) .LAM_APRETADO_HOLGURA else 0.075
+.lam_multilista_aire_ttb <- function() if (.lam_apretado()) .LAM_APRETADO_AIRE_TTB else .LAM_MULTILISTA_AIRE_TTB
+
+#' Alto mínimo de la multilista en modo apretado (o `Inf` si no aplica: leyenda propia por bloque o más de seis barras)
+#' @keywords internal
+.lam_multilista_alto_apretado <- function(items, compartida) {
+  if (!isTRUE(compartida) || !.std_evitar_cont() || .lam_escala_n_barras(items) > .MULTIAPILADAS_MAX_BARRAS) return(Inf)
+  op <- options(prosecnur.lam_apretado = TRUE); on.exit(options(op))
+  .lam_multilista_alto_f(items, compartida, 0)
+}
+
+#' Alto mínimo que compara contra `.lam_multilista_disponible()`: el del aire mínimo o, si es menor, el apretado menos la
+#' franja extendida. Con `.std_evitar_cont()` falso es el de siempre.
+#' @keywords internal
+.lam_multilista_alto_min <- function(items, compartida) {
+  base <- .lam_multilista_alto_f(items, compartida, 0)
+  if (!.std_evitar_cont()) return(base)
+  min(base, .lam_multilista_alto_apretado(items, compartida) - .LAM_APRETADO_EXTRA_FRANJA)
+}
+
+#' ¿Esta parte de la multilista se dibuja apretada? Solo si no cabe con el aire en su mínimo y sí apretada
+#' @keywords internal
+.lam_multilista_apretar <- function(items, compartida) {
+  if (!.std_evitar_cont() || !isTRUE(compartida)) return(FALSE)
+  disp <- .lam_multilista_disponible(compartida)
+  .lam_multilista_alto(items, compartida) > disp &&   # lo que cabe al natural conserva su geometría
+    .lam_multilista_alto_f(items, compartida, 0) > disp &&
+    .lam_multilista_alto_apretado(items, compartida) <= disp + .LAM_APRETADO_EXTRA_FRANJA
 }

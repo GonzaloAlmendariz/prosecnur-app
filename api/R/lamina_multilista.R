@@ -125,7 +125,7 @@
 #' @keywords internal
 .lam_multilista_cromo <- function(it, compartida) {
   .lam_multilista_alto_titulo(it) +
-    (if (!is.null(it$espec$box$unidades)) .LAM_MULTILISTA_AIRE_TTB else .LAM_MULTILISTA_AIRE) +
+    (if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE) +
     (if (isTRUE(compartida)) 0 else .LAM_MULTILISTA_LEYENDA)
 }
 
@@ -214,7 +214,7 @@
   for (it in items) {
     cm <- comp_de(list(it))
     if (.lam_multilista_alto(list(it), cm) <= disp || length(it$premisas) <= 1L ||
-        (comprime && .lam_escala_n_barras(list(it)) <= .MULTIAPILADAS_MAX_BARRAS && .lam_multilista_alto_f(list(it), cm, 0) <= disp)) {
+        (comprime && .lam_escala_n_barras(list(it)) <= .MULTIAPILADAS_MAX_BARRAS && .lam_multilista_alto_min(list(it), cm) <= disp)) {
       trozos[[length(trozos) + 1L]] <- it
       next
     }
@@ -227,7 +227,7 @@
     }
   }
   .lam_escala_partir(trozos, disp, alto_fn = function(x) .lam_multilista_alto(x, comp_de(x)),
-                     aire_min_fn = function(x) .lam_multilista_alto_f(x, comp_de(x), 0))
+                     aire_min_fn = function(x) .lam_multilista_alto_min(x, comp_de(x)))
 }
 
 #' ¿La multilista se compone en nativo? Cada bloque trae una escala sin fila Total ni Bottom Two Box, y cada
@@ -242,7 +242,7 @@
   disp <- .lam_multilista_disponible(compartida)
   # M1: con piso, una parte que cabe con el aire en su mínimo también se compone en nativo (la tolerancia de 0,3 in sigue)
   all(vapply(partes, function(pp) .lam_multilista_alto(pp, .lam_multilista_compartida_parte(pp, compartida)) <= disp + 0.3 ||
-               (.std_evitar_cont() && .lam_multilista_alto_f(pp, .lam_multilista_compartida_parte(pp, compartida), 0) <= disp), TRUE))
+               (.std_evitar_cont() && .lam_multilista_alto_min(pp, .lam_multilista_compartida_parte(pp, compartida)) <= disp), TRUE))
 }
 
 # ---- la lámina ----------------------------------------------------------------
@@ -254,6 +254,9 @@
   disp <- .lam_multilista_disponible(compartida)
   nb <- .lam_multilista_filas(items)
   centro_barras <- NULL
+  # M1 apretado (lamina_escala_aire.R): solo si la alternativa era partir; la franja llega 0,30 in más abajo y la leyenda se pega a la barra
+  apretar <- .lam_multilista_apretar(items, compartida)
+  if (apretar) { op_ap <- options(prosecnur.lam_apretado = TRUE); on.exit(options(op_ap), add = TRUE); disp <- disp + .LAM_APRETADO_EXTRA_FRANJA }
   cromo <- vapply(items, .lam_multilista_cromo, 0, compartida = compartida)
   fijo <- sum(cromo) + .LAM_MULTILISTA_GAP * (length(items) - 1L)
   dec <- .lam_multilista_grosor(items, nb, disp, fijo)
@@ -278,10 +281,10 @@
       .lam_txt(lz, it$subtitulo, g_("margen_izq"), y, w, hs, .std_pt("leyenda"), .std_color("texto_suave"), nombre = "bloque:subtitulo")
       y <- y + hs
     }
-    y <- y + (if (!is.null(it$espec$box$unidades)) .LAM_MULTILISTA_AIRE_TTB else .LAM_MULTILISTA_AIRE)
+    y <- y + (if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor,
-                              rotulo_sobre = .LAM_MULTILISTA_ROTULO_TTB)
+                              rotulo_sobre = .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()))
     centro_barras <- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
     y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
@@ -289,7 +292,9 @@
     e <- items[[1]]$espec; ley <- e$leyenda
     con_ttb <- any(vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE))
     fin_bloque <- if (con_ttb) L$x_top_two_box + 0.75 else g_("ancho") - g_("margen_der") - 0.3
-    .lam_leyenda(lz, min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA), e$categorias$rotulo[ley], e$categorias$color[ley],
+    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, y - .LAM_MULTILISTA_GAP - 0.02)   # apretado: pegada a la última barra
+             else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
+    .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
   }
   invisible(lz)
