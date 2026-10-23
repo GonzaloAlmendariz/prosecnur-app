@@ -135,7 +135,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 34px;
+  /* Alto del control de la banda (contrato de ModuleChrome): no un literal. */
+  height: var(--pulso-chrome-control-h);
   border: 0;
   background: var(--pulso-module-monitoring);
   color: var(--pulso-surface);
@@ -193,7 +194,7 @@
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button {
   justify-content: flex-start;
-  height: 32px;
+  height: var(--pulso-chrome-control-h);
   padding: 0 var(--pulso-space-3);
   border-radius: 8px;
   background: transparent;
