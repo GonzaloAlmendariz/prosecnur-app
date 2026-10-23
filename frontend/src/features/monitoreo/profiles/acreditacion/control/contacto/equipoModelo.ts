@@ -90,7 +90,7 @@ export function construirEquipo(
     const nombre = esSinAsignar(crudo) ? "Sin asignar" : crudo;
     const previo = porNombre.get(nombre);
     if (previo) return previo;
-    const nuevo = {
+    const nuevo: ResponsableDelEquipo & { conciliadasVistas: boolean } = {
       nombre, sinAsignar: esSinAsignar(crudo), asignados: 0, barridos: 0, efectivas: 0, conciliadas: 0,
       sinBarrer: 0, pctSinBarrer: null, pctIncidencias: null, efectividad: null, familias: {}, conciliadasVistas: false,
     };
