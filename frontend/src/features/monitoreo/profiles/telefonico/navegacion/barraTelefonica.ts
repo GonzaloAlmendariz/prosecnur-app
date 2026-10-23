@@ -3,6 +3,8 @@ import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import type { BarraDelModo, EstadoDelModo } from "../../../shell/BarraDelModo";
 import { fmt } from "../formato";
 import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { filasDeBloque } from "./bloques";
+import { chipsDeInsistencia } from "../control/insistenciaModel";
 
 /**
  * Lo que la barra del modo telefónico dice en todas las pestañas: el eje de
@@ -27,18 +29,7 @@ export type ResumenDelModoTelefonico = {
   porRevisar: number | null;
 };
 
-/** Filas de un bloque del reporte telefónico. */
-export function filasDeBloque(
-  reports: MonitoreoAcreditacionReports | null | undefined,
-  ids: readonly string[],
-): Array<Record<string, unknown>> {
-  const hoja = reports?.sheets?.find((item) => item.id === "monitoreo_telefonico");
-  if (!hoja) return [];
-  const buscados = new Set(ids.map((id) => id.toLowerCase()));
-  return hoja.blocks.flatMap((bloque) => (
-    buscados.has(String(bloque.id).toLowerCase()) ? bloque.rows as Array<Record<string, unknown>> : []
-  ));
-}
+export { filasDeBloque } from "./bloques";
 
 export function resumenDelModo({
   cuotas,
@@ -151,13 +142,21 @@ export function useResumenDelModo(
   }, [reports, leerCuotas, leerComparacion]);
 }
 
-/** Chips de contexto de la cabecera de pestaña. Hoy sólo Avance › Cuotas. */
+/** Chips de contexto de la cabecera de pestaña: Avance › Cuotas y Control › Insistencia. */
 export function chipsDeCabecera(
   direccion: { seccion: string; pestana: string },
   resumen: ResumenDelModoTelefonico | null,
+  reports: MonitoreoAcreditacionReports | null,
 ): string[] {
   if (direccion.seccion === "avance" && direccion.pestana === "cuotas" && resumen?.meta) {
     return [`${fmt(resumen.efectivas)} de ${fmt(resumen.meta)} efectivas`];
   }
+  if (direccion.seccion === "control" && direccion.pestana === "insistencia") return chipsDeInsistencia(reports);
   return [];
+}
+
+/** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
+export function pestanaConLienzo(direccion: { seccion: string; pestana: string }): boolean {
+  const clave = `${direccion.seccion}/${direccion.pestana}`;
+  return clave === "avance/cuotas" || clave === "control/insistencia";
 }

@@ -69,14 +69,15 @@ import {
   monitoreoSeccionDesdeParams,
   useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
-import { PANELES_DE_SUBVISTA, direccionDeVista, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionTelefonica";
+import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionTelefonica";
 import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { CuotasFaltante } from "./avance/CuotasFaltante";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
-import { chipsDeCabecera, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
+import { Insistencia } from "./control/Insistencia";
+import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import {
@@ -18987,6 +18988,7 @@ function renderAcreditacionView(
     /** Las mismas cifras que pinta el chrome, para el vacío sin corte. */
     fuentesActivas?: number;
     fuentesRequeridas?: number;
+    onActualizar?: () => void;
   } = {},
 ) {
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
@@ -19063,6 +19065,9 @@ function renderAcreditacionView(
         onCaseReconciliationDecision={options.onCaseReconciliationDecision}
       />
     );
+  }
+  if (view === "telefonico" && options.activePhoneTab === "incidencia" && isTelefonicoMonitoreoState(options.state)) {
+    return <Insistencia reports={reports} state={options.state} onActualizar={options.onActualizar} />; // Control › Insistencia (T4).
   }
   if (view === "telefonico") {
     return renderPhoneView(
@@ -19973,7 +19978,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   useMonitoreoDireccionTraducida({
     publica,
     modo: modoIdDesdeFamily(route.family),
-    panelesPropios: PANELES_DE_SUBVISTA,
+    panelesPropios: PANELES_DEL_PERFIL,
+    panelesDeLaPestana: panelesSuperpuestos(publica.seccion, publica.pestana),
     pideOtraVista: (pedida) => pideOtraVista(pedida, vistaActiva),
     onPedida: (pedida) => {
       const vista = vistaPedida(pedida);
@@ -20118,7 +20124,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           className="is-acreditacion"
           contentRole="tabpanel"
           contentId={`monitoreo-${publica.seccion}-panel`}
-          contentClassName={publica.seccion === "avance" && publica.pestana === "cuotas" ? "is-lienzo" : undefined}
+          contentClassName={pestanaConLienzo(publica) ? "is-lienzo" : undefined}
           contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}
           scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
@@ -20138,7 +20144,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               seccion={publica.seccion}
               pestana={publica.pestana}
               pestanas={pestanasPublicas}
-              chips={chipsDeCabecera(publica, resumenModo)}
+              chips={chipsDeCabecera(publica, resumenModo, reports)}
               control={(
                 <SubvistasDePestana
                   seccion={publica.seccion}
@@ -20176,6 +20182,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             savingAcreditacion,
             fuentesActivas: activeSources,
             fuentesRequeridas: sourceTotal,
+            onActualizar: sinFuentesFull ? undefined : () => { void runProfileSourceSync("full"); },
           })}
         </MonitoreoWorkbenchChrome>
       </PageFrame>

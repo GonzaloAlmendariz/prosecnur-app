@@ -243,3 +243,23 @@ export function vistaDeSeccionPedida(seccion: string): VistaInterna {
 export function pestanaDeEntrada<T extends string>(entrada: VistaInterna, seccion: SeccionInterna, porDefecto: T): T {
   return entrada.seccion === seccion ? entrada.pestana as T : porDefecto;
 }
+
+/**
+ * Paneles superpuestos de cada pestaña (`usePanelDireccionable`): la ficha de
+ * un caso en Insistencia (`panel=caso&foco=<CodPulso>`).
+ */
+const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
+  "control/insistencia": ["caso"],
+};
+
+const SIN_PANELES: readonly string[] = [];
+
+export function panelesSuperpuestos(seccion: string, pestana: string): readonly string[] {
+  return PANELES_SUPERPUESTOS[`${seccion}/${pestana}`] ?? SIN_PANELES;
+}
+
+/** Todo `panel` que el perfil telefónico escribe: sub-vistas y superpuestos. */
+export const PANELES_DEL_PERFIL: readonly string[] = [
+  ...PANELES_DE_SUBVISTA,
+  ...new Set(Object.values(PANELES_SUPERPUESTOS).flat()),
+];

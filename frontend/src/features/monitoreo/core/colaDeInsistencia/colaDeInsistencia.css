@@ -1,0 +1,723 @@
+/* Cola de insistencia (ficha «Control, Insistencia»). Barra de filtros arriba;
+ * debajo, grilla `212px minmax(0, 1fr) 316px` que llena el alto con separación
+ * de 12 px. La cola desplaza dentro de su panel (C4). A 1366 la ficha baja a
+ * 300; a 1280 la lista de responsables cede (queda el selector de la barra); a
+ * 1024 × 600 la ficha es un sideover que se abre al elegir un caso. */
+
+.mon-cola {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-cola .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-cola-antetitulo {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-cola-panel,
+.mon-cola-filtros {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* Barra de filtros. */
+.mon-cola-filtros {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+}
+
+.mon-cola-buscar,
+.mon-cola-filtro {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.mon-cola-buscar {
+  width: 220px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-cola-buscar input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.mon-cola-filtro > span {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mon-cola-filtro select {
+  max-width: 220px;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-cola-buscar:focus-within,
+.mon-cola-filtro:focus-within {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.mon-cola-interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* Cuerpo de tres columnas. */
+.mon-cola-cuerpo {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 212px minmax(0, 1fr) 316px;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-cola-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-cola-panel-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-cola-responsables {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-cola-responsables > .mon-cola-panel-cabecera {
+  padding: var(--pulso-space-3) var(--pulso-space-3) 0;
+}
+
+.mon-cola-reparto {
+  margin: 4px var(--pulso-space-3) var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+.mon-cola-responsables-lista {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mon-cola-responsable {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "nombre cuenta"
+    "medida medida";
+  gap: 4px var(--pulso-space-2);
+  align-items: baseline;
+  width: 100%;
+  padding: 7px var(--pulso-space-3);
+  border: 0;
+  border-left: 3px solid transparent;
+  border-top: 1px solid var(--pulso-surface-3);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-cola-responsable > b {
+  grid-area: nombre;
+  min-width: 0;
+}
+
+.mon-cola-responsable > strong {
+  grid-area: cuenta;
+}
+
+.mon-cola-responsable > .mon-cola-responsable-medida {
+  grid-area: medida;
+}
+
+.mon-cola-responsable b {
+  overflow-wrap: anywhere;
+}
+
+.mon-cola-responsable:hover {
+  background: var(--pulso-surface-2);
+}
+
+.mon-cola-responsable.is-activo {
+  border-left-color: var(--pulso-brand-navy);
+  background: var(--pulso-surface-3);
+}
+
+.mon-cola-responsable:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+.mon-cola-responsable-medida {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.mon-cola-responsable-barra {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-bg-deep);
+}
+
+.mon-cola-responsable-barra i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--pulso-warn-accent);
+}
+
+.mon-cola-responsable-barra i.is-sobre {
+  background: var(--pulso-warn-fg);
+}
+
+.mon-cola-responsable-barra em {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 10px;
+  background: var(--pulso-text-soft);
+}
+
+.mon-cola-sin-asignar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-cola-sin-asignar b {
+  color: var(--pulso-text-soft);
+}
+
+/* Teléfonos por caso (condicional). */
+.mon-cola-telefonos {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+}
+
+.mon-cola-condicional {
+  padding: 1px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-accent-violet) 10%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--pulso-accent-violet) 70%, var(--pulso-text));
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-cola-telefonos .mon-cola-panel-cabecera {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.mon-cola-telefonos ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-cola-telefonos li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 32px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}
+
+.mon-cola-telefonos li i {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pulso-bg-deep);
+}
+
+.mon-cola-telefonos li b {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-accent-violet) 60%, var(--pulso-brand-navy));
+}
+
+.mon-cola-telefonos p {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+/* La cola. */
+.mon-cola-centro {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-cola-centro-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-cola-centro-cabecera span {
+  color: var(--pulso-text-soft);
+}
+
+.mon-cola-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mon-cola-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.mon-cola-tabla th,
+.mon-cola-tabla td {
+  padding: 7px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-surface-3);
+  vertical-align: middle;
+  text-align: left;
+}
+
+.mon-cola-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-cola-tabla th:nth-child(1) { width: 92px; padding-left: var(--pulso-space-4); }
+.mon-cola-tabla th:nth-child(2) { width: 76px; }
+.mon-cola-tabla th:nth-child(3) { width: 128px; }
+.mon-cola-tabla th:nth-child(5) { width: 88px; }
+.mon-cola-tabla th:nth-child(6) { width: 100px; }
+.mon-cola-tabla th:nth-child(7) { width: 104px; }
+
+.mon-cola-tabla tbody th {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-cola-tabla tbody th button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-cola-tabla tbody th button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-cola-tabla tbody tr {
+  cursor: default;
+}
+
+.mon-cola-tabla tbody tr:hover {
+  background: var(--pulso-surface-2);
+}
+
+.mon-cola-tabla tbody tr.is-activo {
+  background: var(--pulso-surface-3);
+  box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+}
+
+.mon-cola-intentos {
+  white-space: nowrap;
+}
+
+.mon-cola-intentos b {
+  display: inline-block;
+  min-width: 18px;
+  font-size: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cola-intentos i {
+  display: inline-block;
+  max-width: 44px;
+  height: 4px;
+  margin-left: 6px;
+  border-radius: 2px;
+  background: var(--pulso-warn-accent);
+  vertical-align: middle;
+}
+
+.mon-cola-resultado {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cola-resultado.is-reintento {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cola-resultado.is-cita {
+  color: var(--pulso-brand-navy);
+}
+
+.mon-cola-observacion {
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-cola-observacion.is-vacia {
+  color: var(--pulso-text-faint);
+}
+
+.mon-cola-fecha span,
+.mon-cola-fecha small {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cola-fecha span {
+  white-space: nowrap;
+}
+
+.mon-cola-fecha small {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.mon-cola-kobo {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-cola-kobo.is-efectiva {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-cola-vacia {
+  margin: var(--pulso-space-6) var(--pulso-space-4);
+  color: var(--pulso-text-faint);
+}
+
+.mon-cola-centro-pie {
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+/* Ficha del caso. */
+.mon-cola-ficha {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mon-cola-ficha.is-vacia {
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-faint);
+}
+
+.mon-cola-ficha-cabecera,
+.mon-cola-ficha-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+.mon-cola-ficha-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-cola-ficha-titulo b {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-size: 20px;
+}
+
+.mon-cola-ficha-chip {
+  padding: 2px 10px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-brand-navy);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cola-ficha-sub {
+  color: var(--pulso-text-soft);
+}
+
+.mon-cola-ficha-cerrar {
+  position: absolute;
+  top: var(--pulso-space-3);
+  right: var(--pulso-space-3);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.mon-cola-ficha dl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.mon-cola-dato {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-cola-dato dt {
+  flex: none;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.mon-cola-dato dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.mon-cola-ficha-observacion {
+  margin: 0;
+  font-style: italic;
+}
+
+.mon-cola-ficha-observacion.is-vacia {
+  color: var(--pulso-text-faint);
+  font-style: normal;
+}
+
+.mon-cola-ficha-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: auto var(--pulso-space-4) var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-cola-ficha-nota p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-cola-ficha-pie {
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+/* Estados propios: Preparando y sin hoja. */
+.mon-cola-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  height: 100%;
+  padding: var(--pulso-space-6);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.mon-cola-estado strong {
+  font-size: 18px;
+}
+
+.mon-cola-estado p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.mon-cola-estado-accion {
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 10px;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+@media (max-width: 1400px) {
+  .mon-cola-cuerpo {
+    grid-template-columns: 200px minmax(0, 1fr) 300px;
+  }
+
+  .mon-cola-tabla th:nth-child(5) { width: 80px; }
+}
+
+@media (max-width: 1300px) {
+  .mon-cola-cuerpo {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .mon-cola-izquierda {
+    display: none;
+  }
+}
+
+/* 1024 × 600: la cola ocupa el ancho y la ficha se abre como sideover. Con la
+ * barra de filtros en dos o tres filas, el documento desplaza (dueño:
+ * `.mon-workbench-content`) y la cola conserva una ventana de 15 filas. */
+@media (max-width: 1180px) {
+  .mon-cola {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .mon-cola-cuerpo {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    height: 520px;
+  }
+
+  .mon-cola-ficha {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    width: min(340px, 90vw);
+    box-shadow: var(--pulso-shadow-high);
+  }
+
+  .mon-cola[data-ficha-abierta="false"] .mon-cola-ficha {
+    display: none;
+  }
+
+  .mon-cola-buscar {
+    width: 160px;
+  }
+}
