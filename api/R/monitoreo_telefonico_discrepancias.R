@@ -39,29 +39,53 @@
   "Enumerador Kobo", "Response ID", "Mismo responsable", "Decisión", "Nota", "Decidido el", "Destino"
 )
 .MONITOREO_SIN_RESPONSABLE <- c("", "sin responsable", "sin asignar")
-.MONITOREO_KOBO_ENUMERADOR_ALIAS <- c("_submitted_by", "submitted_by", "submitted by", "username", "usuario", "enumerador", "encuestador")
 .MONITOREO_KOBO_ID_ALIAS <- c("_uuid", "uuid", "response_id", "id_respuesta", "id respuesta", "_id", "id")
 
-# Enumerador de cada fila de Kobo. Primero los alias de la plataforma
-# (`_submitted_by`…); si quedan vacíos, la pregunta del formulario por su
-# nombre sin grupo: PDM lo trae en «Intro/Enumerator_name».
+# Enumerador de cada fila de Kobo. Dos fuentes:
+#   - la pregunta del formulario: por nombre exacto conocido («Enumerator_name»
+#     en PDM, «name_enumerator» en RMS) o, si no, por patrón
+#     (enumerat|encuestador|enumerador) en el nombre sin grupo o en la etiqueta;
+#   - la cuenta de plataforma (`_submitted_by`…).
+# La pregunta manda cuando la cuenta está vacía o es compartida (la misma
+# cuenta —p. ej. la del servidor— con dos o más nombres distintos en la
+# pregunta). Una cuenta por persona se respeta.
+.MONITOREO_KOBO_CUENTA_ALIAS <- c("_submitted_by", "submitted_by", "submitted by", "username", "usuario")
 .MONITOREO_KOBO_ENUMERADOR_PREGUNTA <- c(
-  "enumerator_name", "enumerator", "enumerador", "nombre_enumerador", "encuestador", "nombre_encuestador",
-  "nombre del encuestador", "nombre del encuestador/a", "entrevistador", "operador", "teleoperador"
+  "enumerator_name", "name_enumerator", "nombre_enumerador", "nombre_encuestador", "nombre del encuestador",
+  "nombre del encuestador/a", "enumerator", "enumerador", "encuestador", "entrevistador", "operador", "teleoperador"
 )
+.MONITOREO_KOBO_ENUMERADOR_PATRON <- "enumerat|encuestador|enumerador"
+
+# Columnas candidatas a «pregunta del enumerador», en orden de prioridad.
+.monitoreo_kobo_enumerador_columnas <- function(kobo) {
+  nombres <- names(kobo)[!startsWith(names(kobo), ".")]
+  base <- .monitoreo_text_key(sub("^.*/", "", nombres))
+  cuentas <- .monitoreo_text_key(.MONITOREO_KOBO_CUENTA_ALIAS)
+  exactas <- unlist(lapply(.monitoreo_text_key(.MONITOREO_KOBO_ENUMERADOR_PREGUNTA), function(a) nombres[base == a]), use.names = FALSE)
+  por_nombre <- nombres[grepl(.MONITOREO_KOBO_ENUMERADOR_PATRON, base) & !base %in% cuentas]
+  etiquetas <- c(.monitoreo_variable_label_map(kobo), .monitoreo_source_variable_label_map(kobo))
+  etiquetas <- etiquetas[names(etiquetas) %in% nombres]
+  por_etiqueta <- names(etiquetas)[grepl(.MONITOREO_KOBO_ENUMERADOR_PATRON, .monitoreo_text_key(etiquetas))]
+  unique(c(exactas, por_nombre, por_etiqueta))
+}
+
 .monitoreo_kobo_enumerador <- function(kobo) {
   if (!is.data.frame(kobo) || !nrow(kobo)) return(character(0))
-  out <- .monitoreo_report_first_values(kobo, .MONITOREO_KOBO_ENUMERADOR_ALIAS)
-  if (all(nzchar(out))) return(out)
-  base <- .monitoreo_text_key(sub("^.*/", "", names(kobo)))
-  for (alias in .monitoreo_text_key(.MONITOREO_KOBO_ENUMERADOR_PREGUNTA)) {
-    for (col in names(kobo)[base == alias]) {
-      v <- .monitoreo_discrepancias_txt(kobo[[col]])
-      falta <- !nzchar(out) & nzchar(v)
-      out[falta] <- v[falta]
-    }
+  pregunta <- rep("", nrow(kobo))
+  for (col in .monitoreo_kobo_enumerador_columnas(kobo)) {
+    v <- .monitoreo_discrepancias_txt(kobo[[col]])
+    falta <- !nzchar(pregunta) & nzchar(v)
+    pregunta[falta] <- v[falta]
   }
-  out
+  cuenta <- .monitoreo_report_first_values(kobo, .MONITOREO_KOBO_CUENTA_ALIAS)
+  # Cuenta compartida: la misma cuenta con dos o más personas en la pregunta.
+  compartida <- rep(FALSE, nrow(kobo))
+  con_ambas <- nzchar(cuenta) & nzchar(pregunta)
+  if (any(con_ambas)) {
+    personas <- tapply(.monitoreo_nombre_clave(pregunta[con_ambas]), cuenta[con_ambas], function(x) length(unique(x)))
+    compartida <- cuenta %in% names(personas)[personas >= 2L]
+  }
+  ifelse(nzchar(pregunta) & (!nzchar(cuenta) | compartida), pregunta, ifelse(nzchar(cuenta), cuenta, pregunta))
 }
 
 # Enumerador por Response ID.
