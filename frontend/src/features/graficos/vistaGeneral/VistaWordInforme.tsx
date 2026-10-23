@@ -10,6 +10,7 @@ import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
 import { AperturaMaqueta, ContraportadaMaqueta, PortadaMaqueta } from "./PortadaMaqueta";
+import { comoLeerAuto } from "./comoLeerAuto";
 import { paginasWord, tituloCortoWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
@@ -26,7 +27,7 @@ export function useArmadoWord(slides: readonly Slide[]) {
   const presets = usePlanStore((s) => s.presets);
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
-  // W2: «Cómo leer» decidido en Word › Documento (ausente = si hay escalas, como el motor).
+  // W2: «Cómo leer» decidido en Word › Documento (ausente = automático: `comoLeerAuto`, como el motor).
   const comoLeer = usePlanStore((s) => s.documentoWord.como_leer);
   return useMemo(() => {
     const elementos: ElementoWord[] = [];
@@ -35,6 +36,7 @@ export function useArmadoWord(slides: readonly Slide[]) {
     let portadaFecha = "";
     let hayEscalas = false;
     let hayBottom = false;
+    const conteo = { escala: 0, topTwoBox: 0, bottomTwoBox: 0, cifrasPequenas: 0 };   // láminas por recurso (ver comoLeerAuto)
     let conTablas = false;
     for (const slide of slides) {
       const payload = (slide.payload ?? {}) as Record<string, unknown>;
@@ -59,12 +61,13 @@ export function useArmadoWord(slides: readonly Slide[]) {
       let cifras = false;
       for (const r of ranuras) {
         if (r.graficador === "p_cifra") { if (!cifras) elementos.push({ clase: "cifras" }); cifras = true; continue; }
-        if (ESCALAS.has(r.graficador as string)) hayEscalas = true;
-        if (r.twoBox.btb) hayBottom = true;
+        if (ESCALAS.has(r.graficador as string)) { hayEscalas = true; conteo.escala += 1; }
+        if (r.twoBox.ttb) conteo.topTwoBox += 1;
+        if (r.twoBox.btb) { hayBottom = true; conteo.bottomTwoBox += 1; }
         elementos.push({ clase: "grafico", graficador: r.graficador as string, pregunta: r.pregunta ?? "Sin pregunta", base });
       }
     }
-    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas, comoLeer, portadaSub, portadaFecha });
+    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas, comoLeer, comoLeerAuto: comoLeerAuto(conteo), portadaSub, portadaFecha });
   }, [slides, variables, presets, paletas, vinculos, comoLeer]);
 }
 

@@ -58,4 +58,16 @@ describe("páginas de la vista Word, con la numeración del motor", () => {
     const primera = ps.find((p) => p.clase === "capitulo");
     expect(primera && "folio" in primera && primera.folio).toBe(4);
   });
+
+  it("modo automático: usa las secciones dadas, solo gasta figuras de las que van, y vacío omite el capítulo", () => {
+    const plan: ElementoWord[] = [{ clase: "seccion", nivel: 1, titulo: "Escalas" }, g("p_barras_apiladas", "A")];
+    const base = { tituloInforme: "X", hayEscalas: true, hayBottom: true };
+    const a = paginasWord(plan, { ...base, comoLeerAuto: ["redondeo", "misma_escala", "bases_chicas"] });
+    const cl = a.find((p) => p.clase === "como-leer");
+    expect(cl && cl.clase === "como-leer" && cl.secciones).toEqual(["Redondeo de las cifras", "Una misma escala, muchas redacciones", "Bases chicas e información faltante"]);
+    expect(cl && cl.clase === "como-leer" && cl.figuras).toEqual([]);
+    expect(paginasWord(plan, { ...base, comoLeerAuto: [] }).some((p) => p.clase === "como-leer")).toBe(false);
+    // el valor explícito manda sobre el automático
+    expect(paginasWord(plan, { ...base, comoLeer: true, comoLeerAuto: [] }).some((p) => p.clase === "como-leer")).toBe(true);
+  });
 });

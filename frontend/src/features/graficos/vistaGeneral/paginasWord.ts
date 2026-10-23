@@ -10,6 +10,8 @@
 // Puro; la vista arma los elementos desde el plan y lo dibuja. Verificador de la fase Informe (2026-10-15): la versión
 // anterior numeraba con los números de la app y desde 1, y el Word real no.
 
+import { ROTULO_COMO_LEER, type ClaveComoLeer } from "./comoLeerAuto";
+
 export type ElementoWord =
   | { clase: "seccion"; nivel: 1 | 2; titulo: string; entrada?: string }
   | { clase: "texto"; titulo: string }
@@ -19,6 +21,8 @@ export type ElementoWord =
 
 export type OpcionesWord = {
   tituloInforme: string; hayEscalas: boolean; hayBottom: boolean; comoLeer?: boolean; conTablas?: boolean;
+  /** Modo automático (`comoLeer` ausente): secciones que calcula `comoLeerAuto`; vacío = el capítulo se omite. Un `comoLeer` explícito manda. */
+  comoLeerAuto?: readonly ClaveComoLeer[];
   /** Subtítulo y fecha de la lámina de portada: la portada del Word los usa si Word › Portada no los cambia (W3). */
   portadaSub?: string; portadaFecha?: string;
 };
@@ -76,7 +80,8 @@ export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord
   let cap = 0;
   let sec = 0;
   let capTitulo: string | null = null;
-  let faltaComoLeer = op.comoLeer ?? op.hayEscalas;
+  const auto = op.comoLeer === undefined ? op.comoLeerAuto : undefined;
+  let faltaComoLeer = auto ? auto.length > 0 : op.comoLeer ?? op.hayEscalas;
   let pagina: PaginaCapitulo | null = null;
 
   const nueva = (titulos: string[] = [], texto = false): PaginaCapitulo => {
@@ -96,9 +101,10 @@ export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord
     faltaComoLeer = false;
     cap += 1; sec = 0; capTitulo = "Cómo leer este informe";
     entradas.push({ numero: `${cap}.`, titulo: capTitulo, nivel: 1 });
-    const secciones = ["Top Two Box", ...(op.hayBottom ? ["Bottom Two Box"] : []), "Redondeo de las cifras",
-      "Una misma escala, muchas redacciones", "Cifras muy pequeñas", "Bases chicas e información faltante"];
-    const figuras = [figura++, ...(op.hayBottom ? [figura++] : []), figura++];   // TTB, BTB, cifras pequeñas
+    const claves: readonly ClaveComoLeer[] = auto ?? ["top_two_box", ...(op.hayBottom ? ["bottom_two_box" as const] : []), "redondeo",
+      "misma_escala", "cifras_pequenas", "bases_chicas"];
+    const secciones = claves.map((k) => ROTULO_COMO_LEER[k]);
+    const figuras = claves.filter((k) => k === "top_two_box" || k === "bottom_two_box" || k === "cifras_pequenas").map(() => figura++);   // TTB, BTB, cifras pequeñas
     paginas.push({ clase: "como-leer", numero: cap, secciones, figuras, folio: folio++ });
     pagina = null;
   };

@@ -12,9 +12,12 @@ import type { VarWithSource } from "../useVariables";
 import type { TemaPublicos } from "../multiapiladas/temasPublicos";
 import {
   argsATemas,
+  avisoCriteriosRadar,
+  REGLA_CRITERIOS_RADAR,
   faltaEnBrechaBases,
   faltaEnRadarPublicos,
   faltaEnSerie,
+  patchModoRadar,
   temasAArgs,
 } from "./temasEquivalentesModel";
 
@@ -107,5 +110,68 @@ describe("faltaEnSerie", () => {
   it("una pregunta de otra escala en un tema bloquea", () => {
     const temas = [tema("tema_1", "Clima", ["ola1$p1", "ola2$p9", "ola3$p1"])];
     expect(faltaEnSerie(temas, periodos, variables).length).toBeGreaterThan(0);
+  });
+});
+
+// Arte (P12): la lámina 33 quedó en `modo = "box"` con el `var` del modo «sm» y ocho preguntas planas, y no exportaba.
+// Cambiar de modo deja los args del anterior; `null` los borra (mergeSlotArgsPatch).
+const aplicar = (args: Record<string, unknown>, patch: Record<string, unknown>) => {
+  const out = { ...args };
+  for (const [k, val] of Object.entries(patch)) {
+    if (val === null || val === undefined) delete out[k];
+    else out[k] = val;
+  }
+  return out;
+};
+
+describe("patchModoRadar", () => {
+  it("de «sm» a «box» suelta `var`, que el modo «box» no admite, y conserva `cruce`", () => {
+    const antes = { modo: "sm", var: "estudiantes$p17_1", cruce: "estudiantes$sexo", mostrar_valores: true };
+    const despues = aplicar(antes, patchModoRadar("sm", "box"));
+    expect(despues).toEqual({ modo: "box", cruce: "estudiantes$sexo", mostrar_valores: true });
+  });
+
+  it("de «box» a «sm» suelta `vars` y `box_labels`", () => {
+    const antes = { modo: "box", vars: ["a$p1", "a$p2"], box_labels: ["De acuerdo", "Total"], cruce: "a$sexo" };
+    expect(aplicar(antes, patchModoRadar("box", "sm"))).toEqual({ modo: "sm", cruce: "a$sexo" });
+  });
+
+  it("de «box» a «publicos» reinicia las preguntas y suelta lo propio de «box» y «sm»", () => {
+    const antes = { modo: "box", var: "a$p1", vars: ["a$p1"], box_labels: ["x", "y"], cruce: "a$sexo", top_n: 5 };
+    const despues = aplicar(antes, patchModoRadar("box", "publicos"));
+    expect(despues).toEqual({ modo: "publicos", vars: {}, top_n: 5 });
+  });
+
+  it("de «publicos» a «box» suelta lo propio de «publicos» y reinicia las preguntas como lista", () => {
+    const antes = {
+      modo: "publicos", vars: { t1: ["docentes$p1", "estudiantes$p1"] }, titulos_grupo: { t1: "Tema" }, corte: "3,4",
+      corte_etiqueta: "De acuerdo", estilo: "comparativo", mostrar_tabla: true, tabla_proporcion: 1.2, mostrar_valores: false,
+    };
+    expect(aplicar(antes, patchModoRadar("publicos", "box"))).toEqual({ modo: "box", vars: [], mostrar_valores: false });
+  });
+
+  it("el mismo modo sólo reescribe `modo`", () => {
+    expect(patchModoRadar("box", "box")).toEqual({ modo: "box" });
+  });
+});
+
+describe("avisoCriteriosRadar", () => {
+  it("la regla fija dice mínimo 5 y líneas y puntos con menos", () => {
+    expect(REGLA_CRITERIOS_RADAR).toMatch(/5 a 8 criterios.*líneas y puntos/);
+    expect(REGLA_CRITERIOS_RADAR).toMatch(/el eje se acerca a los datos y puede cambiarse/);
+  });
+  it("de 5 a 8 criterios no avisa", () => {
+    for (const n of [5, 6, 8]) expect(avisoCriteriosRadar(n)).toBeNull();
+  });
+  it("con menos de 5 dice que se dibuja como líneas y puntos, con el número", () => {
+    expect(avisoCriteriosRadar(4)).toMatch(/Hay 4 criterios.*líneas y puntos comparativos/);
+    expect(avisoCriteriosRadar(4)).not.toMatch(/barras/);
+    expect(avisoCriteriosRadar(1)).toMatch(/Hay 1 criterio:/);
+  });
+  it("con más de 8 avisa que puede no leerse bien", () => {
+    expect(avisoCriteriosRadar(9)).toMatch(/más de 8/);
+  });
+  it("sin criterios no avisa", () => {
+    expect(avisoCriteriosRadar(0)).toBeNull();
   });
 });

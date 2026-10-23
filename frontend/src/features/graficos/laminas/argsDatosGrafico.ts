@@ -201,9 +201,11 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
   mostrar_respuestas: {
     rotulo: "Respuestas por público",
-    ayuda: "116 respuestas bajo el nombre de cada público.",
+    ayuda: "Opcional, apagado por defecto: escribe «116 respuestas» bajo el nombre de cada público. El pie «Base» no cambia.",
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
+  // N2 (Renzo, 2026-10-22): la línea gris entre un tema y el siguiente de la multiapilada.
+  filete_temas: { rotulo: "Línea entre temas", soloEn: ["p_barras_multiapiladas"] },
   // G11 (2026-10-13): la nube con su ranking de las diez palabras más dichas (lámina 101 del diseño), o sola.
   mostrar_ranking: { rotulo: "Ranking de palabras", soloEn: ["p_nube_palabras"] },
   // G16: la matriz de cuadrantes; los temas, sus respuestas y los nombres de los cuadrantes van en su tarjeta (MatrizCuadrantes).
