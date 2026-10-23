@@ -104,98 +104,6 @@
 .mon-cadencia .is-reintentable { background: var(--pulso-warn-accent); }
 .mon-cadencia .is-terminal { background: var(--pulso-text-faint); }
 
-.mon-cadencia-lienzo {
-  position: relative;
-  display: grid;
-  flex: 1 1 0;
-  align-items: end;
-  gap: 0 var(--pulso-space-3);
-  min-height: 140px;
-  padding-top: 18px;
-  border-bottom: 1px solid var(--pulso-border-strong);
-}
-
-.mon-cadencia-lienzo.is-bajo {
-  min-height: 110px;
-}
-
-.mon-cadencia-dia {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: stretch;
-  height: 100%;
-  min-width: 0;
-}
-
-.mon-cadencia-cifra {
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.mon-cadencia-pila {
-  display: flex;
-  flex-direction: column-reverse;
-  min-height: 2px;
-  overflow: hidden;
-  border-radius: 4px 4px 0 0;
-}
-
-.mon-cadencia-pila > i {
-  display: block;
-  flex-basis: 0;
-  min-height: 1px;
-}
-
-.mon-cadencia-dia.is-sin-registro .mon-cadencia-cifra {
-  color: var(--pulso-text-faint);
-}
-
-.mon-cadencia-meta {
-  position: absolute;
-  right: 0;
-  left: 0;
-  border-top: 1px dashed var(--pulso-module-monitoring);
-  pointer-events: none;
-}
-
-.mon-cadencia-meta em {
-  position: absolute;
-  top: -16px;
-  right: 0;
-  color: var(--pulso-module-monitoring);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-cadencia-acumulado {
-  position: absolute;
-  inset: 18px 0 0;
-  width: 100%;
-  height: calc(100% - 18px);
-  overflow: visible;
-  pointer-events: none;
-}
-
-.mon-cadencia-acumulado polyline {
-  fill: none;
-  stroke: var(--pulso-module-monitoring);
-  stroke-width: 2;
-}
-
-.mon-cadencia-eje {
-  display: grid;
-  gap: 0 var(--pulso-space-3);
-  padding-top: 4px;
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-  text-align: center;
-}
-
 .mon-cadencia-nota {
   margin: var(--pulso-space-2) 0 0;
   color: var(--pulso-danger-fg);
@@ -266,25 +174,6 @@
 
 .mon-cadencia-valores li.is-aviso code {
   color: var(--pulso-warn-fg);
-}
-
-.mon-cadencia-acumulado-rotulo {
-  position: absolute;
-  z-index: 1;
-  padding: 1px 6px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-module-monitoring);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-  transform: translate(-100%, -130%);
-  pointer-events: none;
-}
-
-/* Cerca del techo el rótulo va bajo la línea, para no pisar la leyenda. */
-.mon-cadencia-acumulado-rotulo.is-debajo {
-  transform: translate(-100%, 40%);
 }
 
 .mon-cadencia-dia-a-dia .mon-cadencia-cabecera > span {
@@ -383,14 +272,13 @@
     overflow: visible;
   }
 
-  .mon-cadencia-columna > .mon-cadencia-grafico,
-  .mon-cadencia-lateral > .mon-cadencia-fechas {
+  .mon-cadencia-columna > .mon-cadencia-grafico {
     flex: none;
   }
 
-  .mon-cadencia-lienzo {
+  .mon-cadencia-grafico .mon-trazado {
     flex: none;
-    height: 180px;
+    height: 220px;
   }
 
   .mon-cadencia-valores {
