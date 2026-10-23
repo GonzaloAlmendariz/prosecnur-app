@@ -1,0 +1,405 @@
+/* Avance › Ritmo del telefónico. Las dos gráficas comparten el eje de fechas:
+ * misma rejilla de columnas, una columna por día. Los colores de categoría son
+ * tonos del azul marino de la marca; los de familia, los del lenguaje común. */
+
+.mon-cadencia {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-cadencia .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-cadencia-columna,
+.mon-cadencia-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mon-cadencia-columna > *,
+.mon-cadencia-lateral > * {
+  flex: none;
+}
+
+.mon-cadencia-grafico {
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3);
+}
+
+/* Las dos gráficas reparten el alto que el mapa de calor no pide. */
+.mon-cadencia-columna > .mon-cadencia-grafico {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 240px;
+}
+
+.mon-cadencia-columna > .mon-cadencia-grafico.is-hoja {
+  min-height: 200px;
+}
+
+.mon-cadencia-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin-bottom: var(--pulso-space-3);
+}
+
+.mon-cadencia-cabecera > strong {
+  font-size: 14px;
+}
+
+.mon-cadencia-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0 0 0 auto;
+  padding: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  list-style: none;
+}
+
+.mon-cadencia-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mon-cadencia-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.mon-cadencia-leyenda i.is-acumulado {
+  height: 2px;
+  border-radius: 0;
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-cadencia .is-serie-0 { background: var(--pulso-brand-navy); }
+.mon-cadencia .is-serie-1 { background: color-mix(in srgb, var(--pulso-brand-navy) 78%, var(--pulso-surface)); }
+.mon-cadencia .is-serie-2 { background: color-mix(in srgb, var(--pulso-brand-navy) 58%, var(--pulso-surface)); }
+.mon-cadencia .is-serie-3 { background: color-mix(in srgb, var(--pulso-brand-navy) 40%, var(--pulso-surface)); }
+.mon-cadencia .is-serie-4 { background: color-mix(in srgb, var(--pulso-brand-navy) 26%, var(--pulso-surface)); }
+.mon-cadencia .is-serie-5 { background: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface)); }
+
+.mon-cadencia .is-efectiva { background: var(--pulso-success-fg); }
+.mon-cadencia .is-parcial { background: color-mix(in srgb, var(--pulso-success-fg) 45%, var(--pulso-surface)); }
+.mon-cadencia .is-rechazo { background: var(--pulso-warn-fg); }
+.mon-cadencia .is-reintentable { background: var(--pulso-warn-accent); }
+.mon-cadencia .is-terminal { background: var(--pulso-text-faint); }
+
+.mon-cadencia-lienzo {
+  position: relative;
+  display: grid;
+  flex: 1 1 0;
+  align-items: end;
+  gap: 0 var(--pulso-space-3);
+  min-height: 140px;
+  padding-top: 18px;
+  border-bottom: 1px solid var(--pulso-border-strong);
+}
+
+.mon-cadencia-lienzo.is-bajo {
+  min-height: 110px;
+}
+
+.mon-cadencia-dia {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  height: 100%;
+  min-width: 0;
+}
+
+.mon-cadencia-cifra {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.mon-cadencia-pila {
+  display: flex;
+  flex-direction: column-reverse;
+  min-height: 2px;
+  overflow: hidden;
+  border-radius: 4px 4px 0 0;
+}
+
+.mon-cadencia-pila > i {
+  display: block;
+  flex-basis: 0;
+  min-height: 1px;
+}
+
+.mon-cadencia-dia.is-sin-registro .mon-cadencia-cifra {
+  color: var(--pulso-text-faint);
+}
+
+.mon-cadencia-meta {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px dashed var(--pulso-module-monitoring);
+  pointer-events: none;
+}
+
+.mon-cadencia-meta em {
+  position: absolute;
+  top: -16px;
+  right: 0;
+  color: var(--pulso-module-monitoring);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-cadencia-acumulado {
+  position: absolute;
+  inset: 18px 0 0;
+  width: 100%;
+  height: calc(100% - 18px);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mon-cadencia-acumulado polyline {
+  fill: none;
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2;
+}
+
+.mon-cadencia-eje {
+  display: grid;
+  gap: 0 var(--pulso-space-3);
+  padding-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.mon-cadencia-nota {
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+}
+
+.mon-cadencia-columna > .mon-cadencia-calor {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.mon-cadencia-calor-marco {
+  overflow-x: auto;
+}
+
+.mon-cadencia-calor-tabla th:first-child {
+  width: 240px;
+  white-space: nowrap;
+}
+
+.mon-cadencia-calor-tabla tbody th {
+  overflow: hidden;
+  max-width: 240px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-cadencia-lateral > .mon-cadencia-dia-a-dia {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+/* La tarjeta de las fechas de la hoja llega al pie: su lista de valores crece
+ * y desplaza. */
+.mon-cadencia-lateral > .mon-cadencia-fechas {
+  flex: 1 1 auto;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.mon-cadencia-valores {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  list-style: none;
+}
+
+.mon-cadencia-valores li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-cadencia-valores code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.mon-cadencia-valores li.is-aviso code {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cadencia-acumulado-rotulo {
+  position: absolute;
+  z-index: 1;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-module-monitoring);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+  transform: translate(-100%, -130%);
+  pointer-events: none;
+}
+
+/* Cerca del techo el rótulo va bajo la línea, para no pisar la leyenda. */
+.mon-cadencia-acumulado-rotulo.is-debajo {
+  transform: translate(-100%, 40%);
+}
+
+.mon-cadencia-dia-a-dia .mon-cadencia-cabecera > span {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-cadencia-dia-a-dia-marco {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.mon-cadencia-dia-a-dia tr.is-pico th,
+.mon-cadencia-dia-a-dia tr.is-pico td {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-cadencia-calor-tabla tbody th,
+.mon-cadencia-calor-tabla tbody td {
+  padding-block: 6px;
+}
+
+.mon-cadencia-celda {
+  border: 2px solid var(--pulso-surface);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.mon-cadencia .mon-cadencia-celda.is-nivel-0 { background: var(--pulso-surface-2); }
+.mon-cadencia .mon-cadencia-celda.is-nivel-1 { background: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface)); }
+.mon-cadencia .mon-cadencia-celda.is-nivel-2 { background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface)); }
+.mon-cadencia .mon-cadencia-celda.is-nivel-3 { background: color-mix(in srgb, var(--pulso-brand-navy) 50%, var(--pulso-surface)); color: var(--pulso-surface); }
+.mon-cadencia .mon-cadencia-celda.is-nivel-4 { background: color-mix(in srgb, var(--pulso-brand-navy) 72%, var(--pulso-surface)); color: var(--pulso-surface); }
+.mon-cadencia .mon-cadencia-celda.is-nivel-5 { background: var(--pulso-brand-navy); color: var(--pulso-surface); }
+
+.mon-cadencia-grande {
+  color: var(--pulso-text-soft);
+}
+
+.mon-cadencia-grande strong {
+  margin-right: 6px;
+  color: var(--pulso-text);
+  font-size: 34px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.02em;
+}
+
+.mon-cadencia-fechas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-cadencia-fechas li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-cadencia-fechas li.is-aviso span {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cadencia-vacio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-6);
+}
+
+.mon-cadencia-vacio p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 1400px) {
+  .mon-cadencia {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-cadencia {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-cadencia > *,
+  .mon-cadencia-columna,
+  .mon-cadencia-lateral {
+    flex: none;
+    overflow: visible;
+  }
+
+  .mon-cadencia-columna > .mon-cadencia-grafico,
+  .mon-cadencia-lateral > .mon-cadencia-fechas {
+    flex: none;
+  }
+
+  .mon-cadencia-lienzo {
+    flex: none;
+    height: 180px;
+  }
+
+  .mon-cadencia-valores {
+    flex: none;
+  }
+}
+
+.mon-cadencia-lateral .mon-cadencia-aviso {
+  color: var(--pulso-warn-fg);
+}

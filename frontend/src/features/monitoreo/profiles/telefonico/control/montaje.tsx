@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
-import { filasDeBloque } from "../navegacion/bloques";
-import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { segmentoDeCuotas } from "../avance/ritmoModel";
 import { Barrido } from "./Barrido";
 import { construirBarrido, type CuotaDeBarrido } from "./barridoModel";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
@@ -10,8 +9,7 @@ import { construirRespuestas, mermaDeRepetidos } from "./respuestasModel";
 
 /** Segmento de cuota del corte (Sede, Actor…), como en Avance › Cuotas. */
 export function segmentoDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
-  return nombreDelSegmento(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
-    .map((fila) => String(fila.Variable ?? "")));
+  return segmentoDeCuotas(reports);
 }
 
 /** Control › Barrido montado sobre el corte y el vocabulario del proyecto. */

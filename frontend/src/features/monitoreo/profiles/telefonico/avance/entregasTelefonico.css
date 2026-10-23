@@ -1,0 +1,230 @@
+/* Avance › Entregas del telefónico: la vista del PDF del cliente llena su
+ * panel; las salidas de siempre van en la columna derecha, apiladas, y esa
+ * columna desplaza si no cabe. */
+
+.mon-entregas {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(600px, 1.1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-entregas .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-entregas-cliente {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-entregas-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-entregas-cabecera > strong {
+  font-size: 14px;
+}
+
+.mon-entregas-cabecera > span {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-entregas-mesa {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: var(--pulso-space-5);
+  overflow-y: auto;
+  background: var(--pulso-surface-2);
+}
+
+.mon-entregas-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--pulso-space-6);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-entregas-hoja > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-entregas-hoja > header strong {
+  color: var(--pulso-brand-navy);
+  font-size: 16px;
+}
+
+.mon-entregas-hoja > header span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-entregas-hoja h3 {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: 19px;
+}
+
+.mon-entregas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mon-entregas-tabla th,
+.mon-entregas-tabla td {
+  padding: 9px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-surface-3);
+  text-align: left;
+}
+
+.mon-entregas-tabla thead th {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-entregas-tabla tbody th {
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-entregas-tabla tfoot th,
+.mon-entregas-tabla tfoot td {
+  border-bottom: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-entregas-tabla .is-num {
+  text-align: right;
+}
+
+.mon-entregas-ritmo h4 {
+  margin: var(--pulso-space-3) 0 var(--pulso-space-2);
+  font-size: 15px;
+}
+
+.mon-entregas-ritmo ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-entregas-ritmo li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-entregas-ritmo li > i {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-entregas-ritmo li > i > i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-entregas-hoja > footer {
+  padding-top: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.mon-entregas-sin-datos {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.mon-entregas-pie {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-entregas-salidas {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.mon-entregas-salidas .mon-outputs-targets-toggle {
+  min-width: 0;
+  white-space: normal;
+}
+
+/* Las salidas de siempre, apiladas en una columna y al ancho de la columna:
+ * su raíz es una rejilla sin columnas declaradas y crecía con el texto. */
+.mon-entregas-salidas .mon-outputs-workbench {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mon-entregas-salidas .mon-outputs-workbench__head {
+  flex-wrap: wrap;
+}
+
+.mon-entregas-salidas .mon-outputs-workbench .mon-outputs-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+
+@media (max-width: 1180px) {
+  .mon-entregas {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-entregas > *,
+  .mon-entregas-salidas {
+    flex: none;
+    overflow: visible;
+  }
+
+  .mon-entregas-mesa {
+    flex: none;
+  }
+}
+
+.mon-entregas-nota {
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}
