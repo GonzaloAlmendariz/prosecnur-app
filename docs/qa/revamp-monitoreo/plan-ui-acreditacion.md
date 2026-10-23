@@ -38,11 +38,11 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A0 | Preparación | Worktree, copias de `acred_conta.pulso` y `acred_institucional.pulso` en `scratchpad/impl-acred/` | — | ☑ |
 | A1 | Navegación y chrome | Catálogo `acreditacion` con Insumos · Modelo · Control · Avance (20 pestañas, 4 condicionales); vistas de hoy en `MONITOREO_PESTANAS_INTERNAS_ACREDITACION`; tabla `navegacion/direccionAcreditacion.ts` con alias de lectura; aterrizaje en Avance › Por público (D2); barra del modo (MODO, PÚBLICOS, insignias de Control y Avance, CORTE, estado, Actualizar ▾); cabecera de pestaña de 44 px con antetítulo «Sección · Grupo»; rail con CORTE al pie y divisor Contacto / Casos en Control; readiness por pestaña (G5) | — | ☑ |
 | A2 | Avance › Resumen y Por público | `avance/Resumen.tsx`, `avance/PorPublico.tsx`, `avance/PanelPublico.tsx` y modelos puros con test | A1 | ☑ |
-| A3 | Control › Por resolver | Subsanación y asignación asistida con la decisión auditada de hoy, cola por tipo, panel del caso | A1 | ☐ |
+| A3 | Control › Por resolver | Subsanación y asignación asistida con la decisión auditada de hoy, cola por tipo, panel del caso | A1 | ◐ (escrita; falta typecheck, gates y capturas) |
 | A4 | Control › Reintentos | `ColaDeInsistencia` con las columnas del barrido de acreditación | A1; bloque `cola_insistencia` en acreditación (backend) | ◐ (escrita; falta typecheck, gates y capturas) |
 | A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ◐ (Barrido, Equipo, Cruce, Calidad, Personas y Respuestas escritas; Correo sigue con la vista de T3) |
-| A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ☐ |
-| A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ☐ |
+| A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
+| A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ☐ |
 
 ## A1: cómo se traduce cada pestaña mientras no tiene contenido propio
@@ -266,6 +266,55 @@ lógica; Avance la sigue usando hasta A8. Se edita con el mismo panel de siempre
   de control de Distribución queda como sub-vista (`panel=variables`) hasta que A8 decida su lugar en Por cuota.
 - D7 sigue abierta: se avisa la diferencia, no se elige cuál manda.
 
+**A7, Modelo › Ventana de campo (escrita, sin gate ni capturas).** `modelo/VentanaDeCampo.tsx` con `ventanaModelo.ts`
+(test): franja de cifras (primer día con respuestas, último día, días con efectivas de los días del campo, fases
+declaradas) y «Ventana de cada público»: la fila «Plan de campo» con las fases que tienen fechas (o «Sin fases con
+fechas») y una fila por público con su ventana real (`client_report.actors`, «Primer día» a «Última efectiva») y la
+intensidad diaria de `daily_actor`. Debajo, el editor del plan de siempre (`AcreditacionModelWorkbench` en
+`estrategias`), para no perder la edición de fases. Se monta sobre la clave interna `modelo/estrategias`.
+
+- **Diferencia con el lienzo:** el botón «Declarar fases» no abre un panel propio (`PanelPlan`): el editor de fases
+  está a la vista, debajo de la línea de tiempo. Pasarlo a panel es la siguiente pasada.
+
+**A6, Insumos › Fuentes (escrita, sin gate ni capturas).** `insumos/Fuentes.tsx` con `fuentesModelo.ts` (test):
+maestro de 380 px con las fuentes agrupadas por público (padrón, respuestas y barrido; servicio, filas leídas) y la
+fuente elegida (`foco=<fuente>`) con servicio, público, papel, canal base, llave de la respuesta, filas, última
+lectura y enlace a su servicio. Los recopiladores de SurveyMonkey van en tabla (nombre, tipo, respuestas, efectivas,
+canal, switch «Incluir») con «Guardar» por `apiMonitoreoCollectorsConfig`, el mismo contrato de siempre; la fila del
+recopilador se arma con `collectorConfigFromRow` de la página, sin copiarla. Respuestas y efectivas salen de
+`internal_queries.totals.collector` (H3), que la memoria del corte guarda cuando llega el corte de Control.
+La declaración de cada encuesta (`FuentesUniverso` y las fichas de encuesta) sigue debajo, y la vista de alias y
+uso operativo por recopilador sigue en `panel=recopiladores`.
+
+- **Diferencias con el lienzo:** el detalle no pasa a sideover a 1024 (va debajo del maestro); no hay grupo de
+  Mailchimp ni panel «Conectar fuente» propio (la conexión sigue en la franja de lectura de arriba); la píldora
+  «Pendiente de recalcular» no existe todavía y no se inventó.
+- **Cifras por recopilador:** el cruce agrega por nombre de recopilador, sin la encuesta. Si dos encuestas tienen
+  un recopilador con el mismo nombre («Envío 1»), la tabla no le atribuye cifras a ninguno y lo dice en el título de
+  la celda. Separarlos exige que el motor publique `source_id` en `totals.collector`.
+- `FuentesResumen` queda sin montar y registrado en `componentesSinMontar` (mudanza, no borrado).
+
+**A6, Insumos › Reglas (escrita, sin gate ni capturas).** `insumos/reglas/Reglas.tsx`, una tarjeta por archivo
+(`LlaveDeCruce`, `QueCuentaComoEfectiva`, `Alertas`) y `reglasModelo.ts` (test). Un solo «Guardar reglas» por
+`apiMonitoreoConfig` que cambia solo esos campos del perfil y la duración válida: switches «Detectar la llave
+automáticamente» y «Usar el nombre como respaldo», duración mínima y máxima en segundos (con su equivalencia en
+minutos), prioridad de deduplicación con subir y bajar (accesible por teclado, en vez de arrastrar) y los cinco
+umbrales de alerta (`no_sweep_pct` se edita en porcentaje). Las reglas de rechazo y los filtros de efectiva y de
+prueba se leen en frases. «Cómo cruzó en el último corte» sale de `case_rollup` (memoria del corte, con Control).
+Debajo, a todo el ancho: el definidor de estados del barrido de siempre (solo si hay barrido) y el editor de eventos
+de contacto y reglas de estado del modelo operativo (`AcreditacionModelConfigWorkbench` en `reglas`), que no tenía
+pestaña pública en la navegación v3.
+
+- **Diferencias con el lienzo:** las columnas de llave se listan como las declara el perfil (no emparejadas
+  padrón ↔ respuesta); reglas de rechazo y filtros se leen pero no se editan aquí (sus editores siguen donde
+  estaban); sin «Ritmo de recordatorios» del institucional, que espera los umbrales de Mailchimp.
+- **Pendiente de P6:** el umbral «Caso que no contesta» se edita como aviso; no marca la cola.
+
+**Corrida no prevista.** Al buscar `tokensDefinidos` un glob mal citado hizo correr la suite completa de vitest
+(84 s, 1,461 archivos): 2 rojos, los dos de la base y ajenos a esta rama — `lectoresDeDireccion`
+(`telefonico/modelo/Cuotas.tsx`, ya corregido en la rama de Telefónico) y `ModuleChrome.contract` (dos reglas de
+`shell/barraDelModo.css`, del commit e1ab35d5a de Telefónico).
+
 ## Preguntas surgidas en la implementación
 
 - **Redondeo de la meta (M1)**: la ficha dice meta = `ceiling(personas × cobertura)`; la app redondea al entero más
@@ -278,3 +327,5 @@ lógica; Avance la sigue usando hasta A8. Se edita con el mismo panel de siempre
   («9 + Piloto») y, si son varios, «9 + 2 sin meta». ¿Sirve así?
 - **Insignia de Control**: cuenta lo que espera decisión (23 y 55), no todos los casos marcados (121 en Contabilidad).
   Coincide con el lienzo; queda anotado porque Consultas › Subsanación decía «32 casos sin cruce».
+- **Fuentes con recopiladores homónimos (I2)**: el cruce suma por nombre de recopilador sin la encuesta; hoy la tabla
+  no atribuye cifras a un nombre repetido. ¿Se pide al motor publicar la encuesta en `totals.collector`?
