@@ -76,7 +76,8 @@ export function serieKobo(
   filas.forEach(({ categoria, fecha, casos }) => {
     if (!casos) return;
     if (porVariable.length && valoresDeCuota?.size && !valoresDeCuota.has(claveDeValor(categoria))) {
-      if (fechaDeColumna(fecha)) fueraDeCuota.set(categoria, (fueraDeCuota.get(categoria) ?? 0) + casos);
+      // Con fecha o sin ella: lo que no tiene cuota se declara, no se pierde.
+      fueraDeCuota.set(categoria, (fueraDeCuota.get(categoria) ?? 0) + casos);
       return;
     }
     const iso = fechaDeColumna(fecha);
@@ -177,7 +178,7 @@ export function formatosDeFecha(reports: MonitoreoAcreditacionReports | null | u
   porColumna.forEach((casos, columna) => {
     const iso = fechaDeColumna(columna);
     if (!iso) sumar("Llamados sin fecha", casos, true);
-    else if (iso.slice(0, 4) !== anio) sumar(`Año ${iso.slice(0, 4)}, de otro año que la hoja`, casos, true);
+    else if (iso.slice(0, 4) !== anio) sumar(`Con año ${iso.slice(0, 4)} (fuera del periodo)`, casos, true);
     else if (/^\d{4}-/.test(columna)) sumar("Año, mes y día (2026-07-01)", casos, false);
     else if (/^\d\//.test(columna)) sumar("Día con un dígito (1/07/2026)", casos, false);
     else sumar("Día con dos dígitos (01/07/2026)", casos, false);
@@ -247,14 +248,24 @@ export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null
   );
   const serie = serieKobo(reports, segmento, valoresDeCuota);
   const fuera = serie.fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
-  const totalDeKobo = filasDeBloque(reports, ["avance_efectivo_dia"]).reduce((suma, fila) => (
-    fechaDeColumna(texto(fila.Fecha)) ? suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas) : suma
+  // Todas las efectivas de Kobo del corte, con fecha o sin ella: es lo que
+  // cuenta «Válidas». Cada una cae en la serie, sin fecha, fuera de cuota o
+  // sin categoría, y los cuatro sumandos cuadran con el total.
+  const diario = filasDeBloque(reports, ["avance_efectivo_dia"]);
+  const totalDeKobo = diario.reduce((suma, fila) => suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas), 0);
+  // El bloque por variable no publica las efectivas sin fecha; el diario sí.
+  const sinFechaDelDiario = diario.reduce((suma, fila) => (
+    fechaDeColumna(texto(fila.Fecha)) ? suma : suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas)
   ), 0);
+  const sinFecha = Math.max(serie.sinFecha, sinFechaDelDiario);
   return {
     segmento,
     serie,
+    totalDeKobo,
+    /** Efectivas de Kobo sin fecha: no entran al eje de días. */
+    sinFecha,
     /** Efectivas de Kobo que no caen en ningún valor del eje. */
-    sinCategoria: Math.max(0, totalDeKobo - serie.total - fuera),
+    sinCategoria: Math.max(0, totalDeKobo - serie.total - sinFecha - fuera),
     /** Efectivas en valores del eje sin cuota. */
     fueraDeCuota: serie.fueraDeCuota,
   };
@@ -274,12 +285,14 @@ export function notaSinCategoria(
   sinCategoria: number,
   segmento: string,
   fueraDeCuota: ReadonlyArray<{ nombre: string; casos: number }> = [],
+  sinFecha = 0,
 ) {
   const nombre = segmento.toLocaleLowerCase("es");
   const fmt = (n: number) => n.toLocaleString("es-PE");
   const partes = [
     sinCategoria ? `${fmt(sinCategoria)} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre}` : "",
     ...fueraDeCuota.map((item) => `${fmt(item.casos)} en «${item.nombre}», que no tiene cuota`),
+    sinFecha ? `${fmt(sinFecha)} sin fecha` : "",
   ].filter(Boolean);
   if (!partes.length) return "";
   if (partes.length === 1 && sinCategoria) return `${partes[0]} no ${sinCategoria === 1 ? "entra" : "entran"} a la serie`;
@@ -288,17 +301,18 @@ export function notaSinCategoria(
 
 /**
  * Detalle bajo «Válidas» en las salidas (cuenta todas las efectivas de Kobo):
- * «69 con actor y 1 sin actor» cuando alguna no cae en una categoría; vacío si
- * no hay diferencia que explicar.
+ * «69 con cuota y 1 sin actor» cuando alguna no entra a la serie (sin fecha,
+ * en un valor sin cuota o sin categoría); vacío si no hay diferencia.
  */
 export function notaDeValidasTelefonica(reports: MonitoreoAcreditacionReports | null | undefined): string | undefined {
-  const { serie, sinCategoria, fueraDeCuota, segmento } = serieDiariaDelCorte(reports);
+  const { serie, sinCategoria, sinFecha, fueraDeCuota, segmento } = serieDiariaDelCorte(reports);
   const fuera = fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
-  if (!sinCategoria && !fuera) return undefined;
+  if (!sinCategoria && !fuera && !sinFecha) return undefined;
   const nombre = segmento.toLocaleLowerCase("es");
   const fmt = (n: number) => n.toLocaleString("es-PE");
   return [
     `${fmt(serie.total)} con cuota`,
+    sinFecha ? `${fmt(sinFecha)} sin fecha` : "",
     fuera ? `${fmt(fuera)} en ${nombre} sin cuota` : "",
     sinCategoria ? `${fmt(sinCategoria)} sin ${nombre}` : "",
   ].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " y $1");
@@ -306,6 +320,6 @@ export function notaDeValidasTelefonica(reports: MonitoreoAcreditacionReports | 
 
 /** La nota de lo que no entra a la serie compartida, para Ritmo, Cuotas y Entregas. */
 export function notaDeLaSerie(reports: MonitoreoAcreditacionReports | null | undefined) {
-  const { sinCategoria, segmento, fueraDeCuota } = serieDiariaDelCorte(reports);
-  return notaSinCategoria(sinCategoria, segmento, fueraDeCuota);
+  const { sinCategoria, segmento, fueraDeCuota, sinFecha } = serieDiariaDelCorte(reports);
+  return notaSinCategoria(sinCategoria, segmento, fueraDeCuota, sinFecha);
 }
