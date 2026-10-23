@@ -1222,6 +1222,14 @@
   ))
   if (isTRUE(standalone_phone)) {
     blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", reconciliation_detail)))
+    # Control › Insistencia (revamp T4). Ver `monitoreo_telefonico_cola.R`.
+    quota_variable <- if (length(quota_value_columns)) names(quota_value_columns)[[1]] else ""
+    blocks <- c(blocks, .monitoreo_telefonico_cola_blocks(phone, list(
+      status = status, responsables = responsables, attempts = attempts, dates = dates,
+      keys = primary_keys, efectiva_kobo = phone_platform_complete, no_barrido = no_barrido_mask,
+      efectivo = efectivo_mask, reintentable = reattempt_mask, quota_variable = quota_variable,
+      quota_values = if (nzchar(quota_variable)) quota_value_columns[[quota_variable]] else NULL
+    ), cfg, data, from_population = phone_from_population))
   }
   # El conflicto de llave se descontaba en silencio; ahora se reporta para poder
   # separarlo de los pendientes por falta de registro (plan §7).
