@@ -220,3 +220,29 @@ Sin dibujar, por falta de dato en los cortes que se piden:
   completo.
 - Las reglas se muestran como lectura y no como interruptores: no hay endpoint para cambiarlas.
 
+**T8 (código listo, sin gate).** Insumos: Conexiones, Mapeo y filtro, Padrón e Historial tienen vista principal propia
+(`insumos/`). Las acciones que todavía no se rehicieron siguen en la vista heredada, como sub-vista con `panel`, así
+que no se pierde ninguna capacidad.
+- **Conexiones** (`ConexionesTab.tsx`): una tarjeta por fuente (Kobo Campo, Kobo Piloto atenuado si no es la fase
+  activa, Ocurrencias si se declaran y la hoja de ruta de Sheets si existe), con estado, formulario, respuestas,
+  preguntas y opciones de la ficha, última lectura, ficha leída, fase desde y la serie de lecturas. «Traer nuevas» y
+  «Traer todo de nuevo» son las mismas de la barra. Al costado, la muestra de Hojas de ruta.
+  - Releer ficha, cambiar formulario y conectar siguen en «Administrar fuentes» (`panel=consola`).
+  - El vacío E2 publica `vacio:sin-fuente`.
+- **Mapeo y filtro** (`MapeoTab.tsx`): cada rol con su columna y si está en la base (con el motivo de la falta), el
+  filtro de efectivas con cuántas pasan sobre su base, los umbrales en sus unidades y el cruce de distritos. Editar
+  sigue en `panel=editar` y `panel=filtro`.
+- **Padrón** (`PadronTab.tsx`): archivo, personas, formato y fecha de subida; tabla con código, nombre, casos, UMP con
+  casos, último y estado; al costado, los códigos fuera del padrón con enlace a Conciliación. El DNI no sale del
+  modelo (lo verifica `clavesSinRotulo`). Reemplazar sigue en `panel=archivo`.
+- **Historial** (`HistorialTab.tsx`): cada lectura con respuestas, nuevas (la diferencia con la lectura anterior de la
+  misma fuente) y resultado, en hora de Lima (`fechaYHoraDeLima`, sin depender del ICU). Al costado, la serie de la
+  fuente activa y las otras acciones (subsanaciones agrupadas por minuto y anulaciones).
+
+Sin dibujar:
+- El ensayo de «Reemplazar padrón» (cuántos códigos entran, salen y cambian): el backend no tiene modo de ensayo.
+- La edición en línea del mapeo con «Guardar y recalcular» de §3.2.
+- El diálogo P3 «Cambiar formulario» con la cifra de filas que se quitan.
+
+Los tres siguen alcanzables en sus sub-vistas heredadas.
+

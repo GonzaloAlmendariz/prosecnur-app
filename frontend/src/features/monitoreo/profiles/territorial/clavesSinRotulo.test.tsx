@@ -23,6 +23,10 @@ import { ConciliacionTab } from "./control/ConciliacionTab";
 import { OcurrenciasTab } from "./control/OcurrenciasTab";
 import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
+import { ConexionesTab } from "./insumos/ConexionesTab";
+import { HistorialTab } from "./insumos/HistorialTab";
+import { MapeoTab } from "./insumos/MapeoTab";
+import { PadronTab } from "./insumos/PadronTab";
 import { CuotasTab } from "./modelo/CuotasTab";
 import { MetasTab } from "./modelo/MetasTab";
 import { EquipoTab } from "./control/EquipoTab";
@@ -128,6 +132,26 @@ const OCURRENCIAS = {
   },
 } as unknown as MonitoreoTerritorialDashboard;
 
+// Insumos: fuentes, historial y padrón con estados y tipos del motor.
+const ESTADO_INSUMOS = {
+  sources: [{ id: "kobo-campo", kind: "kobo", label: "Campo", enabled: true, role: "respuestas" }],
+  config: {
+    territorial: {
+      active_route_phase: "field",
+      phase_sources: { field: { source_id: "kobo-campo" } },
+      phase_windows: { field: { start_at: "2026-06-12T10:00:00Z" } },
+      geo_thresholds_m: { cerca: 150, revision: 300 }, min_duration_seconds: 60, max_duration_seconds: 7200, high_age_review: 95,
+      district_crosswalk: [{ kobo_code: "1", kobo_label: "Ate", ubigeo: "150103", distrito: "ATE" }],
+      enumerator_roster: { file_name: "padron.xlsx", total: 1, code_format: "PXXX", uploaded_at: "2026-06-12T22:59:00Z", assignments: [{ codigo_pulso: "P222", nombre: "Aplicador", dni: "00000000" }] },
+    },
+  },
+  territorial_phase_coherence: { phases: { field: { phase: "field", status: "source_synced_with_rows", source_applied: true, asset_name: "ACNUR Campo", local_rows: 1697, last_sync_at: "2026-07-09T12:24:00Z", source_id: "kobo-campo" } } },
+  territorial_update_history: [
+    { id: "1", type: "sync", source_id: "kobo-campo", asset_name: "ACNUR Campo", response_count: 216, status: "ok", message: "", created_at: "2026-06-13T15:00:00Z" },
+    { id: "2", type: "sync", source_id: "kobo-campo", asset_name: "ACNUR Campo", response_count: 260, status: "error", message: "Kobo no respondió", created_at: "2026-06-14T15:00:00Z" },
+  ],
+} as unknown as MonitoreoState;
+
 const CON_PARTE = {
   ...CORTE_DE_CUOTAS,
   field_occurrences: { by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 8, intentos: 20 }] },
@@ -176,6 +200,16 @@ const PESTANAS: Array<[string, () => string]> = [
     <CuotasTab reports={CORTE_DE_CUOTAS} state={{ config: { territorial: { sex_var: "Core/E2_sex", age_var: "Core/E1_age" } } } as unknown as MonitoreoState} avance={null} />,
     "/monitoreo?modo=territorial&seccion=modelo&pestana=cuotas",
   )],
+  ["Insumos › Conexiones", () => pintar(
+    <ConexionesTab reports={{ ...CORRECCIONES, source_coherence: { survey_count: 79, choices_count: 61 }, advance: { meta: 1200 }, route_overview: { district_count: 6, route_count: 150, replacement_count: 150 } } as unknown as MonitoreoTerritorialDashboard} state={ESTADO_INSUMOS} phase="field" ocupado={false} onAdministrar={() => undefined} />,
+    "/monitoreo?modo=territorial&seccion=insumos&pestana=conexiones",
+  )],
+  ["Insumos › Mapeo y filtro", () => pintar(
+    <MapeoTab reports={{ source_validity: { field: "consent", field_label: "¿Acepta?", values: ["1"], options: [{ value: "1", label: "Sí" }], effective_count: 10, non_effective_count: 2, total_responses: 12 } } as unknown as MonitoreoTerritorialDashboard} state={ESTADO_INSUMOS} version="" onEditarMapeo={() => undefined} onEditarFiltro={() => undefined} />,
+    "/monitoreo?modo=territorial&seccion=insumos&pestana=mapeo",
+  )],
+  ["Insumos › Padrón", () => pintar(<PadronTab reports={CONSULTAS} state={ESTADO_INSUMOS} onReemplazar={() => undefined} />, "/monitoreo?modo=territorial&seccion=insumos&pestana=padron")],
+  ["Insumos › Historial", () => pintar(<HistorialTab reports={CORRECCIONES} state={ESTADO_INSUMOS} fuenteActiva="kobo-campo" />, "/monitoreo?modo=territorial&seccion=insumos&pestana=historial")],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];
 
@@ -205,6 +239,10 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
     // «sin cartografía» antes de haberla pedido.
     expect(pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="false"');
     expect(pintar(<MapaTab avance={null} validacion={null} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="vacio:sin-cuota"');
+  });
+
+  it("el padrón de Insumos tampoco muestra el DNI", () => {
+    expect(pintar(<PadronTab reports={CONSULTAS} state={ESTADO_INSUMOS} onReemplazar={() => undefined} />, "/monitoreo")).not.toContain("00000000");
   });
 
   it("el padrón se ofrece sin DNI", () => {

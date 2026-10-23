@@ -123,3 +123,21 @@ export function diaYMes(raw: unknown): string {
   }
   return "";
 }
+
+/**
+ * «dd/mm hh:mm» en hora de Lima (UTC−5, sin horario de verano) de una marca del
+ * motor. Una marca sin zona se toma como ya local. No depende del ICU del
+ * entorno: Lima no cambia de huso.
+ */
+export function fechaYHoraDeLima(raw: unknown): string {
+  const texto = String(raw ?? "").trim();
+  if (!texto) return "";
+  const conZona = /([zZ]|[+-]\d{2}:?\d{2})$/.test(texto);
+  const local = texto.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!conZona && local) return `${local[3]}/${local[2]} ${local[4]}:${local[5]}`;
+  const fecha = new Date(texto);
+  if (Number.isNaN(fecha.getTime())) return diaYMes(texto);
+  const lima = new Date(fecha.getTime() - 5 * 3_600_000);
+  const dos = (valor: number) => String(valor).padStart(2, "0");
+  return `${dos(lima.getUTCDate())}/${dos(lima.getUTCMonth() + 1)} ${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}`;
+}

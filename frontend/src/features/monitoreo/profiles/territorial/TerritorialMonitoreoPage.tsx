@@ -88,6 +88,10 @@ import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
 import { ConciliacionTab } from "./control/ConciliacionTab";
 import { OcurrenciasTab } from "./control/OcurrenciasTab";
+import { ConexionesTab } from "./insumos/ConexionesTab";
+import { HistorialTab } from "./insumos/HistorialTab";
+import { MapeoTab } from "./insumos/MapeoTab";
+import { PadronTab } from "./insumos/PadronTab";
 import { CuotasTab } from "./modelo/CuotasTab";
 import { MetasTab } from "./modelo/MetasTab";
 import { ReportesTab } from "./control/ReportesTab";
@@ -1203,6 +1207,8 @@ function renderView(
 
 type OpcionesDePestana = Parameters<typeof renderView>[2] & {
   irA?: (destino: DireccionTerritorial) => void;
+  /** «Traer nuevas»: la misma sincronización que «Actualizar» de la barra. */
+  onSyncAvance?: () => void;
   /**
    * Los cortes de Avance y de Validación que ya están en la caché: la ficha de
    * una UMP necesita los dos (subsanaciones de uno, casos del otro).
@@ -1243,6 +1249,48 @@ function renderPestana(
           validacion={options.cortes?.validacion ?? null}
           phase={options.phase ?? "field"}
           onStateChange={options.onStateChange}
+        />
+      );
+    }
+    if (clave === "insumos/conexiones" && !direccion.panel) {
+      return (
+        <ConexionesTab
+          reports={reports}
+          state={options.state ?? null}
+          phase={options.phase ?? "field"}
+          ocupado={Boolean(options.busy)}
+          onTraerNuevas={options.onSyncAvance}
+          onTraerTodo={options.onSyncKobo ? () => { void options.onSyncKobo?.(); } : undefined}
+          onAdministrar={() => options.irA?.({ seccion: "insumos", pestana: "conexiones", panel: "consola" })}
+        />
+      );
+    }
+    if (clave === "insumos/mapeo" && !direccion.panel) {
+      return (
+        <MapeoTab
+          reports={reports}
+          state={options.state ?? null}
+          version={String(options.state?.synced_at ?? "")}
+          onEditarMapeo={() => options.irA?.({ seccion: "insumos", pestana: "mapeo", panel: "editar" })}
+          onEditarFiltro={() => options.irA?.({ seccion: "insumos", pestana: "mapeo", panel: "filtro" })}
+        />
+      );
+    }
+    if (clave === "insumos/padron" && !direccion.panel) {
+      return (
+        <PadronTab
+          reports={options.cortes?.validacion ?? reports}
+          state={options.state ?? null}
+          onReemplazar={() => options.irA?.({ seccion: "insumos", pestana: "padron", panel: "archivo" })}
+        />
+      );
+    }
+    if (clave === "insumos/historial") {
+      return (
+        <HistorialTab
+          reports={options.cortes?.avance ?? reports}
+          state={options.state ?? null}
+          fuenteActiva={String(options.state?.config?.territorial?.phase_sources?.[options.phase ?? "field"]?.source_id ?? "")}
         />
       );
     }
@@ -1945,6 +1993,7 @@ export default function TerritorialMonitoreoPage() {
               state,
               irA,
               cortes,
+              onSyncAvance: () => { void syncAdvance().catch(() => undefined); },
             })
           )}
       </MonitoreoWorkbenchChrome>
