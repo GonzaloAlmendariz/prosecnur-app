@@ -86,6 +86,7 @@ import { Fuentes } from "./insumos/Fuentes";
 import { Cuotas } from "./modelo/Cuotas";
 import { efectivasPorDia } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
+import { Entregas } from "./avance/Entregas";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -18794,7 +18795,7 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
-    return (
+    const salidas = (
       <MonitoreoOutputsWorkbench
         family={isPhoneOutputs ? "telefonico" : "acreditacion"}
         routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
@@ -18805,6 +18806,15 @@ function renderAcreditacionView(
         corte={corteTelefonicoDeReports(outputState, reports)}
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
+      />
+    );
+    // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.
+    if (!isPhoneOutputs) return salidas;
+    return (
+      <Entregas
+        modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
+        corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
+        salidas={salidas}
       />
     );
   }
