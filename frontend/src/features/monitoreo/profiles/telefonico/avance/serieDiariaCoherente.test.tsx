@@ -14,7 +14,9 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { chipsDeRitmo } from "./chipsDeRitmo";
 import { Entregas } from "./Entregas";
 import { Ritmo } from "./Ritmo";
-import { efectivasPorDia, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
+import { efectivasPorDia, notaDeValidasTelefonica, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
+import { MonitoreoOutputsReadiness } from "../../../salidas/MonitoreoOutputsReadiness";
+import { MemoryRouter } from "react-router-dom";
 
 function reportes(bloques: Record<string, Array<Record<string, unknown>>>): MonitoreoAcreditacionReports {
   return {
@@ -64,5 +66,17 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(ritmo).toContain("30 de 100");
     expect(ritmo).not.toContain(">17<");
     expect(ritmo).toContain("sin actor");
+  });
+
+  it("las salidas explican por qué «Válidas» cuenta una más", () => {
+    expect(notaDeValidasTelefonica(REPORTS)).toBe("30 con actor y 1 sin actor");
+    const sinDiferencia = reportes({ avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 3 }] });
+    expect(notaDeValidasTelefonica(sinDiferencia)).toBeUndefined();
+    const corte = { ingesta: 40, procesable: 35, oficial: 31, meta: 100, metaEtiqueta: "meta", saltos: [], hasSnapshot: true } as unknown as Parameters<typeof MonitoreoOutputsReadiness>[0]["corte"];
+    const readiness = { estado: "listo", puedePublicarCliente: true, bloqueos: [] } as unknown as Parameters<typeof MonitoreoOutputsReadiness>[0]["readiness"];
+    const con = renderToStaticMarkup(<MemoryRouter><MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas="30 con actor y 1 sin actor" /></MemoryRouter>);
+    const sin = renderToStaticMarkup(<MemoryRouter><MonitoreoOutputsReadiness corte={corte} readiness={readiness} /></MemoryRouter>);
+    expect(con).toContain("30 con actor y 1 sin actor");
+    expect(sin).not.toContain("mon-outputs-readiness__nota");
   });
 });

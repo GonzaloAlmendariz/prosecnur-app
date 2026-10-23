@@ -85,7 +85,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
-import { efectivasPorDia, notaSinCategoria, serieDiariaDelCorte } from "./avance/ritmoModel";
+import { efectivasPorDia, notaDeValidasTelefonica, notaSinCategoria, serieDiariaDelCorte } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
@@ -18691,6 +18691,7 @@ function renderAcreditacionView(
         corte={corteTelefonicoDeReports(outputState, reports)}
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
+        notaDeValidas={isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined}
       />
     );
     // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.
