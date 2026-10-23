@@ -27,6 +27,7 @@ import { Estados } from "./insumos/Estados";
 import { Fuentes } from "./insumos/Fuentes";
 import { LlaveYFiltros } from "./insumos/Llave";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
+import { Cuotas } from "./modelo/Cuotas";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -203,6 +204,34 @@ const PESTANAS: Array<[string, () => string]> = [
       `${RUTA}&seccion=insumos&pestana=llave`,
     );
   }],
+  ["Modelo › Cuotas y calendario", () => pintar(
+    <Cuotas
+      variable="dim_sede"
+      etiquetaDeVariable="Sede"
+      candidatas={[{ name: "dim_sede", label: "Sede", categories: 2, universe: 900, meta: 150, enUso: true }]}
+      onElegir={nada}
+      onUsar={nada}
+      variableGuardada
+      filas={[
+        { value: "San Juan de Lurigancho (SJL)", universe: 614, meta: 107, effective: 109 },
+        { value: "Pueblo Libre (PL)", universe: 0, meta: 41, effective: 45 },
+      ]}
+      pendientes={{}}
+      onMeta={nada}
+      cambiadas={1}
+      etiquetaConfirmar="Confirmar 1 meta"
+      onConfirmar={nada}
+      onDescartar={nada}
+      onQuitar={nada}
+      onAgregar={nada}
+      objetivoTotal={150}
+      onObjetivoTotal={nada}
+      filtro="Intro/Consent: Yes"
+      calendario={{ ventana: "Semana 1", reporte: "Sin reporte", fases: 0, dias: [{ fecha: "2026-07-01", casos: 74 }] }}
+      estado={{ tono: "success", texto: "Cuotas telefónicas actualizadas." }}
+    />,
+    `${RUTA}&seccion=modelo&pestana=cuotas`,
+  )],
   ["Insumos › Fuentes", () => {
     const fuentes = [hoja, kobo, apagada];
     return pintar(

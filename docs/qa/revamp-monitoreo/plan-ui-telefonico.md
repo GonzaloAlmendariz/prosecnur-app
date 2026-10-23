@@ -329,3 +329,16 @@ misma frase.
   (`sheet_binding` trae `spreadsheet_id`, `sheet_name`, `header_row`, `range`, `last_read_at` y `snapshot_hash`; sin
   encabezados). Se muestra el valor guardado en `dimensions` tal cual, en monoespaciado, porque es el nombre de columna
   que la fuente declaró.
+
+**T8, Modelo › Cuotas y calendario.** `profiles/telefonico/modelo/Cuotas.tsx` con `cuotasModel.ts` (test). El estado y lo
+que se guarda siguen en el editor de cuotas del page-file (`AcreditacionPhoneQuotaEditor`), que ahora sólo pinta
+`Cuotas`: se edita lo mismo que antes (variable, metas por categoría con confirmación, agregar o quitar categoría y
+objetivo total). Lo nuevo es la lectura: cada meta sobre su universo y frente al reparto proporcional (PDM: Chorrillos
++15 y Pueblo Libre −18, como el lienzo), la validación (suma contra el objetivo, categorías con meta en la hoja,
+desvío mayor) y la tarjeta del calendario con los días de campo con efectivas y el enlace a la sub-vista.
+
+- **No va**: «Repartir en proporción al universo» (no existe y escribiría metas), la columna «Muestra» (P8–P9), el
+  horario y los días de llamada (el proyecto no los declara; el calendario guarda semanas, fechas y día de reporte) y
+  las candidatas sin universo en el corte: el motor sólo publica cuotas de la variable en uso, así que «Atención»,
+  «Trámite» y «Origen» no aparecen con sus valores.
+- Sin metas por enumerador.

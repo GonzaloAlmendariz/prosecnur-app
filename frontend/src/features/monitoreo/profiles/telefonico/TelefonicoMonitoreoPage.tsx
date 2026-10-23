@@ -83,6 +83,8 @@ import { Avisos } from "./control/Avisos";
 import { Estados } from "./insumos/Estados";
 import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
+import { Cuotas } from "./modelo/Cuotas";
+import { efectivasPorDia } from "./avance/ritmoModel";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -945,6 +947,18 @@ function AcreditacionCanonicalModelWorkbench({
   if (!reports) {
     return <EmptyPanel title="Modelo pendiente" detail="El último corte no incluye el modelo operativo. Sincroniza las fuentes para reconstruir metas, mecanismos y barrido." />;
   }
+  if (activeVisibleTab === "estructura" && isPhoneModel && state?.config) {
+    return (
+      <AcreditacionPhoneQuotaEditor
+        draft={state.config}
+        variables={state.variables ?? []}
+        quotaRows={phoneQuotaReportRows}
+        calendario={resumenDeCalendario(state.config.strategy_phases ?? [], reports)}
+        estado={quotaStatus}
+        onPatchConfig={savePhoneQuotaPatch}
+      />
+    );
+  }
 
   return (
     <div className={`mon-stage mon-stage--model mon-stage--acr-model${isPhoneModel && activeVisibleTab === "estrategias" ? " is-phone-model-schedule-stage" : ""}`}>
@@ -986,18 +1000,6 @@ function AcreditacionCanonicalModelWorkbench({
             </>
           )}
         </div>
-        {activeVisibleTab === "estructura" && isPhoneModel && state?.config ? (
-          <>
-            <AcreditacionPhoneQuotaEditor
-              draft={state.config}
-              variables={state.variables ?? []}
-              platformSources={(state.sources ?? []).filter(isKoboResponseSource)}
-              quotaRows={phoneQuotaReportRows}
-              onPatchConfig={savePhoneQuotaPatch}
-            />
-            {quotaStatus ? <span className={`mon-acr-model-action-status is-${quotaStatus.tone}`}>{quotaStatus.message}</span> : null}
-          </>
-        ) : null}
         {activeVisibleTab === "estructura" && !isPhoneModel ? (
           <div className="mon-acr-model-actor-grid">
             {cards.length ? cards.map((card) => (
@@ -2700,20 +2702,32 @@ export function buildAcreditacionPhoneQuotaEditorRows({
   ));
 }
 
+/** Lo que la tarjeta «Calendario» de Modelo › Cuotas dice del cronograma guardado. */
+function resumenDeCalendario(phases: MonitoreoStrategyPhase[], reports?: MonitoreoAcreditacionReports | null) {
+  const borrador = acreditacionScheduleDraftFromPhases(phases);
+  return {
+    ventana: calendarWeekRangeLabel(borrador.startWeek, borrador.startWeek + borrador.durationWeeks - 1),
+    reporte: calendarReportWeekdayLabel(borrador.reportWeekday),
+    fases: phases.length,
+    dias: efectivasPorDia(reports),
+  };
+}
+
 function AcreditacionPhoneQuotaEditor({
   draft,
   variables,
-  platformSources = [],
   quotaRows,
+  calendario,
+  estado,
   onPatchConfig,
 }: {
   draft: MonitoreoConfig;
   variables: MonitoreoVariable[];
-  platformSources?: MonitoreoSource[];
   quotaRows: Array<Record<string, unknown>>;
+  calendario: ReturnType<typeof resumenDeCalendario>;
+  estado: AcreditacionActionStatus;
   onPatchConfig: (patch: Partial<MonitoreoConfig>) => void;
 }) {
-  const [newValue, setNewValue] = useState("");
   const [metasPendientes, setMetasPendientes] = useState<MetasPendientes>({});
   const variableOptions = phoneQuotaVariableOptions(variables, draft.control_vars, quotaRows, draft.goals);
   const [activeVariable, setActiveVariable] = useState(() => preferredPhoneQuotaVariable(variables, draft.control_vars, quotaRows, draft.goals));
@@ -2759,97 +2773,15 @@ function AcreditacionPhoneQuotaEditor({
     ))
     .slice(0, 6);
   const quotaTotal = activeVariable ? phoneQuotaGoalTotal(draft.goals, activeVariable) : 0;
-  const totalUniverse = rows.reduce((sum, row) => sum + row.universe, 0);
-  const totalEffective = rows.reduce((sum, row) => sum + row.effective, 0);
-  const totalGap = rows.reduce((sum, row) => sum + (row.gap ?? 0), 0);
-  const rowsWithoutBase = rows.filter((row) => row.meta != null && row.meta > 0 && row.universe <= 0).length;
   const activeVariableLabel = activeVariable ? phoneQuotaVariableLabel(activeVariable) : "Sin variable";
   const phoneFilter = normalizePhoneEffectiveFilter(draft.monitoreo_profile?.platform_effective_filter);
   const phoneFilterConfigured = Boolean(phoneFilter.enabled && phoneFilter.variable && phoneFilter.values.length);
-  const phoneFilterQuestionLabel = phoneFilter.label || (phoneFilter.variable ? phoneQuotaVariableLabel(phoneFilter.variable) : "");
-  const phoneFilterValueLabel = phoneFilter.value_label || phoneFilter.values.join(", ");
-  const activePlatformSources = platformSources.filter((source) => source.enabled);
+  const filtroTexto = phoneFilterConfigured
+    ? `${phoneFilter.label || phoneQuotaVariableLabel(phoneFilter.variable)}: ${phoneFilter.value_label || phoneFilter.values.join(" o ")}`
+    : "";
   const variableIsSaved = activeVariable
     ? draft.control_vars.some((name) => normalizeSourceMatch(name) === normalizeSourceMatch(activeVariable))
     : false;
-  const quotaProgressPct = quotaTotal > 0
-    ? safePercentValue(totalEffective, quotaTotal)
-    : safePercentValue(totalEffective, totalUniverse);
-  const boundedQuotaProgressPct = Math.max(0, Math.min(100, quotaProgressPct ?? 0));
-  const focusRows = [...rows]
-    .filter((row) => row.meta != null || row.universe > 0 || row.effective > 0)
-    .sort((a, b) => (
-      (b.gap ?? 0) - (a.gap ?? 0)
-      || (b.meta ?? 0) - (a.meta ?? 0)
-      || b.universe - a.universe
-      || a.value.localeCompare(b.value, "es", { numeric: true })
-    ))
-    .slice(0, 6);
-  const decisionSteps = [
-    {
-      key: "filter",
-      label: "Filtro",
-      value: phoneFilterConfigured ? phoneFilterQuestionLabel : "Sin filtro",
-      detail: phoneFilterConfigured ? phoneFilterValueLabel : "Kobo",
-      tone: phoneFilterConfigured ? "ready" : "warning",
-    },
-    {
-      key: "variable",
-      label: "Variable",
-      value: activeVariable ? activeVariableLabel : "Pendiente",
-      detail: activeVariable ? `${fmt(rows.length)} categorías` : "Seleccionar",
-      tone: activeVariable ? "ready" : "warning",
-    },
-    {
-      key: "goal",
-      label: "Meta",
-      value: quotaTotal ? fmt(quotaTotal) : "S/M",
-      detail: quotaTotal ? "cuotas Kobo" : "sin objetivo",
-      tone: quotaTotal ? "ready" : "warning",
-    },
-    {
-      key: "effective",
-      label: "Kobo",
-      value: fmt(totalEffective),
-      detail: "filtradas",
-      tone: totalEffective ? "ready" : "neutral",
-    },
-    {
-      // Se llamaba «Avance» y mostraba la brecha: con el mínimo cubierto decía
-      // «Avance 0» junto a un 105,8 % de cumplimiento (plan §2.5).
-      key: "gap",
-      label: "Brecha",
-      value: totalGap ? fmt(totalGap) : "0",
-      detail: totalGap ? "faltan para el mínimo" : "mínimo cubierto",
-      tone: totalGap ? "warning" : "ready",
-    },
-  ] as const;
-  const governorFacts = [
-    {
-      key: "kobo",
-      label: "Fuente Kobo",
-      value: activePlatformSources.length ? `${fmt(activePlatformSources.length)} activa${activePlatformSources.length === 1 ? "" : "s"}` : "Pendiente",
-      tone: activePlatformSources.length ? "ready" : "warning",
-    },
-    {
-      key: "filter",
-      label: "Efectiva Kobo",
-      value: phoneFilterConfigured ? `${phoneFilterQuestionLabel} = ${phoneFilterValueLabel}` : "Configurar filtro",
-      tone: phoneFilterConfigured ? "ready" : "warning",
-    },
-    {
-      key: "quota",
-      label: "Cuotas",
-      value: activeVariable ? `${activeVariableLabel} · ${fmt(rows.length)} categorías` : "Sin variable",
-      tone: activeVariable ? "ready" : "warning",
-    },
-    {
-      key: "match",
-      label: "Contraste",
-      value: "CodPulso Kobo vs barrido",
-      tone: activePlatformSources.length && activeVariable ? "ready" : "warning",
-    },
-  ] as const;
 
   const saveActiveVariable = () => {
     if (!activeVariable) return;
@@ -2898,217 +2830,40 @@ function AcreditacionPhoneQuotaEditor({
     });
     patchGoals(phoneQuotaRemoveGoal(draft.goals, activeVariable, value));
   };
-  const addCategory = () => {
-    const value = newValue.trim();
+  const addCategory = (nueva: string) => {
+    const value = nueva.trim();
     if (!activeVariable || !value) return;
     updateMeta(value, 0, true);
-    setNewValue("");
   };
 
+  // Modelo › Cuotas y calendario (T8): la vista vive en `modelo/Cuotas.tsx`; aquí
+  // quedan el estado del editor y lo que se guarda, igual que antes.
   return (
-    <section className="mon-contract-block mon-contract-block--wide mon-phone-quota-editor">
-      <div className="mon-phone-quota-editor-head">
-        {/* El subtítulo decía «Kobo aporta efectivas; el barrido conserva estados
-          * telefónicos en paralelo»: el mismo hecho que la cabecera de Cuotas
-          * enuncia con otra redacción, y en ninguna de las dos habla de lo que
-          * esa superficie mide —ambas son de metas, no de fuentes—. Además cada
-          * cifra ya se rotula «Efectivas Kobo» o «barridos». Diagnosticado en
-          * plan-fuentes-legibles §4.4 y pendiente desde entonces.
-          *
-          * El título tampoco nombra la pregunta: «Sede organiza categorías y
-          * metas» describe la mecánica de la variable. Lo que se decide aquí es
-          * cuánto se quiere de cada categoría. */}
-        <div>
-          <span>Modelo telefónico</span>
-          <strong>{activeVariable ? `Cuánto se quiere de cada ${activeVariableLabel.toLocaleLowerCase("es")}` : "Elige la variable rectora"}</strong>
-        </div>
-        <div className="mon-phone-quota-editor-controls">
-          <label>
-            <span>Variable</span>
-            <select value={activeVariable} onChange={(event) => setActiveVariable(event.target.value)}>
-              <option value="">Seleccionar</option>
-              {variableOptions.map((name) => <option key={name} value={name}>{phoneQuotaVariableLabel(name)}</option>)}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="mon-phone-quota-governor-save"
-            onClick={saveActiveVariable}
-            disabled={!activeVariable || variableIsSaved}
-          >
-            <CheckCircle2 size={13} />
-            {variableIsSaved ? "Variable guardada" : "Usar para cuotas"}
-          </button>
-          <label>
-            <span>Objetivo total</span>
-            <input
-              type="number"
-              min={0}
-              value={draft.objetivo_total ?? (quotaTotal || "")}
-              onChange={(event) => onPatchConfig({ objetivo_total: event.target.value ? Number(event.target.value) : null })}
-            />
-          </label>
-        </div>
-      </div>
-      <div className="mon-phone-quota-governor" aria-label="Variable rectora del monitoreo telefónico">
-        <div className="mon-phone-quota-governor-main">
-          <div
-            className="mon-phone-quota-governor-gauge"
-            style={{ "--phone-quota-governor-pct": `${Math.max(2, boundedQuotaProgressPct)}%` } as CSSProperties}
-            aria-label={quotaProgressPct == null ? "Sin avance de cuota" : `${formatPercentLabel(quotaProgressPct)} de la meta Kobo`}
-          >
-            <strong>{quotaProgressPct == null ? "S/M" : formatPercentLabel(quotaProgressPct)}</strong>
-            <em>Kobo</em>
-          </div>
-          <div>
-            <span><SlidersHorizontal size={13} /> Variable rectora</span>
-            <strong>{activeVariable ? activeVariableLabel : "Seleccionar variable"}</strong>
-            {/* Con variable elegida sobra el párrafo: enumeraba meta, base
-              * telefónica y efectivas Kobo, que son las columnas que la tabla de
-              * abajo ya rotula. Sin variable sí hace falta, porque entonces no
-              * hay nada que mirar y hay que decir qué se elige. */}
-            {activeVariable ? null : <p>Elige la variable que define las cuotas operativas del estudio telefónico.</p>}
-          </div>
-        </div>
-        <div className="mon-phone-quota-decision-path" aria-label="Regla de lectura de cuotas telefónicas">
-          {decisionSteps.map((step, index) => (
-            <Fragment key={step.key}>
-              <span className={`is-${step.tone}`}>
-                <em>{step.label}</em>
-                <strong>{step.value}</strong>
-                <small>{step.detail}</small>
-              </span>
-              {index < decisionSteps.length - 1 ? <i aria-hidden="true" /> : null}
-            </Fragment>
-          ))}
-        </div>
-        <div className="mon-phone-quota-governor-facts" aria-label="Condiciones para contar efectivas Kobo por cuota">
-          {governorFacts.map((fact) => (
-            <span key={fact.key} className={`is-${fact.tone}`}>
-              <em>{fact.label}</em>
-              <strong title={fact.value}>{fact.value}</strong>
-            </span>
-          ))}
-        </div>
-        {focusRows.length ? (
-          <div className="mon-phone-quota-gap-board" aria-label={`Categorías de cuota por ${activeVariableLabel}`}>
-            <header>
-              <span><BarChart3 size={13} /> Categorías de {activeVariableLabel}</span>
-              <strong>{fmt(rows.length)} categorías · {quotaTotal ? `${fmt(quotaTotal)} meta` : "sin meta"}</strong>
-            </header>
-            <div>
-              {focusRows.map((row) => {
-                const metaPct = row.meta != null && row.universe > 0 ? safePercentValue(row.meta, row.universe) ?? 0 : 0;
-                return (
-                  <article key={row.key} className={row.meta != null ? "is-ready" : "is-gap"}>
-                    <span>
-                      <strong>{row.value}</strong>
-                      <em>{fmt(row.universe)} base · {row.meta == null ? "sin meta" : `${fmt(row.meta)} meta`}</em>
-                    </span>
-                    <i
-                      aria-hidden="true"
-                      style={{
-                        "--phone-quota-gap-pct": "0%",
-                        "--phone-quota-progress-pct": `${Math.max(metaPct ? 4 : 0, Math.min(100, metaPct))}%`,
-                      } as CSSProperties}
-                    />
-                    <small>{row.requiredSuccessPct == null ? "sin base" : `${formatPercentLabel(row.requiredSuccessPct)} requerido`}</small>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-        {candidateVariables.length ? (
-          <div className="mon-phone-quota-governor-candidates" aria-label="Variables candidatas para cuotas">
-            {candidateVariables.map((candidate) => (
-              <button
-                key={candidate.name}
-                type="button"
-                className={normalizeSourceMatch(candidate.name) === normalizeSourceMatch(activeVariable) ? "is-active" : ""}
-                onClick={() => setActiveVariable(candidate.name)}
-              >
-                <strong>{candidate.label}</strong>
-                <em>{fmt(candidate.categories)} categorías · {fmt(candidate.universe)} base{candidate.meta ? ` · ${fmt(candidate.meta)} meta` : ""}</em>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      <div className="mon-phone-quota-editor-summary" aria-label="Resumen de cuotas telefónicas editables">
-        <span><em>Objetivo Kobo</em><strong>{quotaTotal ? fmt(quotaTotal) : "S/M"}</strong></span>
-        <span><em>Base telefónica</em><strong>{fmt(totalUniverse)}</strong></span>
-        <span><em>Efectivas Kobo</em><strong>{fmt(totalEffective)}</strong></span>
-        <span className={totalGap ? "is-warning" : "is-ready"}><em>Pendiente avance</em><strong>{fmt(totalGap)}</strong></span>
-        <span className={rowsWithoutBase ? "is-warning" : "is-ready"}><em>Sin base</em><strong>{fmt(rowsWithoutBase)}</strong></span>
-      </div>
-      <div className="mon-phone-quota-editor-add">
-        <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={`Nuevo valor de ${activeVariable ? phoneQuotaVariableLabel(activeVariable).toLowerCase() : "variable"}`} />
-        <button type="button" onClick={addCategory} disabled={!activeVariable || !newValue.trim()}><Plus size={13} /> Agregar categoría</button>
-      </div>
-      {metasCambiadas.length ? (
-        <div className="mon-phone-quota-editor-confirm" role="status">
-          <span>{metasCambiadas.length === 1 ? "1 meta ajustada sin confirmar" : `${fmt(metasCambiadas.length)} metas ajustadas sin confirmar`}</span>
-          <div>
-            <button type="button" onClick={descartarMetas}>Descartar</button>
-            <button type="button" className="is-primary" onClick={confirmarMetas}>{etiquetaDeConfirmacion(metasCambiadas.length)}</button>
-          </div>
-        </div>
-      ) : null}
-      {rows.length ? (
-        <div className="mon-phone-quota-editor-list">
-          {rows.map((row) => {
-            const progressPct = row.meta && row.meta > 0 ? safePercentValue(row.effective, row.meta) ?? 0 : safePercentValue(row.effective, row.universe) ?? 0;
-            // `nonEffectiveMargin` es universo − mínimo: la base que queda
-            // disponible por encima de lo que hay que alcanzar. Llamarla «no
-            // efectivas» nombraba como resultado de campo lo que es capacidad
-            // remanente (plan §2.5).
-            const marginTitle = row.nonEffectiveMargin == null
-              ? "Sin base"
-              : row.nonEffectiveMargin >= 0
-                ? `${fmt(row.nonEffectiveMargin)} casos de reserva por encima del mínimo`
-                : `${fmt(Math.abs(row.nonEffectiveMargin))} casos de base faltantes para el mínimo`;
-            const marginLabel = row.nonEffectiveMargin == null
-              ? "Sin base"
-              : row.nonEffectiveMargin >= 0
-                ? fmt(row.nonEffectiveMargin)
-                : fmt(Math.abs(row.nonEffectiveMargin));
-            const marginMetricLabel = row.nonEffectiveMargin != null && row.nonEffectiveMargin < 0 ? "Base faltante" : "Reserva";
-            return (
-              <article key={row.key} className={`mon-phone-quota-editor-row ${row.source === "configured" ? "is-configured" : ""} ${row.gap ? "is-gap" : "is-ready"}`}>
-                <header>
-                  <div>
-                    <span>{row.variableLabel}</span>
-                    <strong>{row.value}</strong>
-                  </div>
-                  <button type="button" aria-label={`Quitar cuota ${row.value}`} onClick={() => removeValue(row.value)}>
-                    <XCircle size={14} />
-                  </button>
-                </header>
-                <div className="mon-phone-quota-editor-row-grid">
-                  <span><em>Universo</em><strong>{fmt(row.universe)}</strong></span>
-                  <label>
-                    <span>Meta</span>
-                    <MetaCuotaInput
-                      value={metasPendientes[row.value] ?? row.meta}
-                      ariaLabel={`Meta de ${row.value}`}
-                      onCommit={(meta) => setMetasPendientes((current) => ({ ...current, [row.value]: meta }))}
-                    />
-                  </label>
-                  <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
-                  <span><em>Brecha</em><strong>{row.gap == null ? "S/M" : fmt(row.gap)}</strong></span>
-                  <span><em title="Tasa requerida para cubrir la meta Kobo">Tasa req.</em><strong>{row.requiredSuccessPct == null ? "S/B" : formatPercentLabel(row.requiredSuccessPct)}</strong></span>
-                  <span><em title={marginTitle}>{marginMetricLabel}</em><strong title={marginTitle}>{marginLabel}</strong></span>
-                </div>
-                <i aria-hidden="true" style={{ "--phone-quota-editor-pct": `${Math.max(2, Math.min(100, progressPct))}%` } as CSSProperties} />
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyPanel title="Sin categorías de cuota" detail="Selecciona una variable de control o agrega una categoría para definir metas telefónicas." />
-      )}
-    </section>
+    <Cuotas
+      variable={activeVariable}
+      etiquetaDeVariable={activeVariableLabel}
+      candidatas={candidateVariables.map((candidate) => ({
+        ...candidate,
+        enUso: draft.control_vars.some((name) => normalizeSourceMatch(name) === normalizeSourceMatch(candidate.name)),
+      }))}
+      onElegir={setActiveVariable}
+      onUsar={saveActiveVariable}
+      variableGuardada={variableIsSaved}
+      filas={rows}
+      pendientes={metasPendientes}
+      onMeta={(value, meta) => setMetasPendientes((current) => ({ ...current, [value]: meta }))}
+      cambiadas={metasCambiadas.length}
+      etiquetaConfirmar={etiquetaDeConfirmacion(metasCambiadas.length)}
+      onConfirmar={confirmarMetas}
+      onDescartar={descartarMetas}
+      onQuitar={removeValue}
+      onAgregar={addCategory}
+      objetivoTotal={draft.objetivo_total ?? (quotaTotal || null)}
+      onObjetivoTotal={(valor) => onPatchConfig({ objetivo_total: valor })}
+      filtro={filtroTexto}
+      calendario={calendario}
+      estado={estado ? { tono: estado.tone, texto: estado.message } : null}
+    />
   );
 }
 
@@ -3729,8 +3484,9 @@ function AcreditacionModelConfigWorkbench({
         <AcreditacionPhoneQuotaEditor
           draft={draft}
           variables={variables}
-          platformSources={sources.filter(isKoboResponseSource)}
           quotaRows={phoneQuotaReportRows}
+          calendario={resumenDeCalendario(draft.strategy_phases ?? [])}
+          estado={null}
           onPatchConfig={patchConfig}
         />
       ) : null}
