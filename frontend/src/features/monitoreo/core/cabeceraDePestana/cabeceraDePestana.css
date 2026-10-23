@@ -1,0 +1,115 @@
+/* Cabecera de pestaña del esqueleto común (estándar §2b), 44 px. Misma medida
+ * que la del telefónico (`chromeTelefonico.css`), con prefijo propio para que
+ * las dos hojas no se pisen mientras conviven. */
+
+.mon-pcab {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  height: 44px;
+  min-width: 0;
+}
+
+.mon-pcab-icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-pcab-copia {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.mon-pcab-antetitulo {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-pcab-copia h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mon-pcab-derecha {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.mon-pcab-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-pcab-subvistas {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.mon-pcab-subvista {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-pcab-subvista:hover:not(.is-active) {
+  color: var(--pulso-text);
+}
+
+.mon-pcab-subvista.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-pcab-subvista:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1100px) {
+  .mon-pcab-chip:nth-child(n + 3) {
+    display: none;
+  }
+}

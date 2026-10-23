@@ -107,7 +107,9 @@ describe("semántica de navegación de Monitoreo", () => {
         expect(source).toContain('contentId={`monitoreo-${publica.seccion}-panel`}');
         expect(source).toContain('contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}');
       } else {
-        expect(source).toContain('contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}');
+        // Acreditación también pasó al esqueleto común (revamp, A1).
+        expect(source).toContain('contentId={`monitoreo-${nav.publica.seccion}-panel`}');
+        expect(source).toContain('contentAriaLabelledBy={`monitoreo-${nav.publica.seccion}-tab-${nav.publica.pestana}`}');
       }
     }
   });
