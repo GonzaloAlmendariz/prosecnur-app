@@ -71,6 +71,7 @@ import type { AccionesDeCampanas } from "./useCampanas";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
 import "./correosCampanas.css";
+import { useColoresDeLaMarca } from "./useColoresDeLaMarca";
 import "./correosCapa.css";
 import "./correosEnvios.css";
 import "./correosGuia.css";
@@ -444,6 +445,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     </p>
   ) : null;
 
+  // L3: la paleta del estilo de cada bloque suma los colores del banner o del logo.
+  // Antes de los returns de carga y error: un hook bajo ellos rompe el editor (React #310).
+  const coloresDeLaMarca = useColoresDeLaMarca(template, st.imagenesLocales, st.vistaPrevia?.html);
   if (st.campanasCarga === "error") {
     return (
       <div className="rec-vacio-sin-plan" data-qa-geometry-capacity="owned">
@@ -710,6 +714,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 onSubirLogo={(id, file) => { void acciones.subirImagen(id, file); }}
                 destinatarios={st.destinatarios}
                 onIrAPersonas={() => irAPestana("destinatarios")}
+                coloresDeLaMarca={coloresDeLaMarca}
               />
             ) : null}
             {pestana === "identidad" ? (

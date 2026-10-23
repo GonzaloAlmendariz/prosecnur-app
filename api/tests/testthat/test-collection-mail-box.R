@@ -166,6 +166,18 @@ test_that("dentro de la caja una imagen con margen conserva su ancho; la de sang
   expect_identical(con(list(bg = "tinte"), TRUE), 552L)
 })
 
+test_that("en la vista previa, un campo dentro de una caja oscura se marca con subrayado, no con el tinte claro", {
+  t <- .cmbx_tpl(list(
+    list(block_id = "osc", type = "paragraph", text = "Hola {{nombre}} MARCA osc", box = list(bg = "acento")),
+    list(block_id = "cla", type = "paragraph", text = "Hola {{nombre}} MARCA cla", box = list(bg = "tinte"))
+  ), accent = "#0b1f54")
+  html <- collection_mail_render(t, "preview", "mailchimp", values = list(nombre = "Ana"))$html
+  osc <- regmatches(html, regexpr('<span data-pulso-field="nombre" style="[^"]*">Ana</span> MARCA osc', html))
+  cla <- regmatches(html, regexpr('<span data-pulso-field="nombre" style="[^"]*">Ana</span> MARCA cla', html))
+  expect_match(osc, "border-bottom:1px dashed currentColor;", fixed = TRUE)
+  expect_match(cla, sprintf("background:%s;", .CMAIL_FIELD_TINT), fixed = TRUE)
+})
+
 # ---- validación -------------------------------------------------------------------
 
 test_that("la caja valida sus cinco controles y rechaza lo demás", {
