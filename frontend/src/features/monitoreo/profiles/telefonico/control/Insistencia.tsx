@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { ColaDeInsistencia } from "../../../core/ColaDeInsistencia";
 import { conDiasAlCorte, telefonosPorCaso, type CasoDeCola } from "../../../core/colaDeInsistenciaModel";
-import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { estadoDeInsistencia, repartoDelEquipo } from "./insistenciaModel";
 
 function corteCorto(valor: string | null | undefined) {
@@ -76,7 +76,7 @@ export function Insistencia({
       </section>
     );
   }
-  const variable = nombreDelSegmento(casos.map((caso) => caso.variableCuota), "Cuota");
+  const variable = rotuloDelSegmento(nombreDelSegmento(casos.map((caso) => caso.variableCuota), "Cuota"));
   const conTelefono = casos.some((caso) => caso.ordenTelefono != null);
   return (
     <ColaDeInsistencia
