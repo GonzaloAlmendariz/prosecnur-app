@@ -183,6 +183,17 @@ del proyecto y el acumulado de barridos. «Ritmo diario» sigue como sub-vista (
 - La familia de cada status sale de las reglas declaradas (clasificador del telefónico). Sin regla, la errata
   «Número Incorrrecto» (H7) cae en Reintentable por su nombre; con la regla declarada, en Cerrado sin efectiva.
 
+**A5, Control › Equipo (escrita, sin gate ni capturas).** `control/contacto/Equipo.tsx` con `equipoModelo.ts`
+(test): carga y resultado por responsable (estado de sus casos por familia, escalado a la mayor carga; asignados,
+barridos, efectivas, conciliadas, % sin barrer y % de barridos sin efectiva), carga frente a efectividad (efectivas
+sobre asignados, el tamaño son los barridos, rótulos que no se pisan) y alertas del equipo con los umbrales del perfil
+(`monitoreo_profile.alerts`, los del motor). «Sin asignar» va en gris y como información.
+
+- **Diferencia con el lienzo:** el lienzo alerta a Responsable 6 por 25 % sin barrer; con los umbrales del motor (20
+  casos o la mitad) no alerta. Se dejan los del motor; el umbral se edita en Insumos › Reglas (A6).
+- La columna «Incidencias» del lienzo se rotula «Sin efectiva»: es la proporción de barridos que no terminó en
+  efectiva, y «incidencia» se confunde con las alertas.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
