@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { segmentoDelCorte } from "../control/montaje";
@@ -10,8 +11,10 @@ import {
   enviosPorLlave,
   filtroDePrueba,
   llaveDeclarada,
+  llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
+import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
@@ -46,9 +49,12 @@ export function LlaveYFiltros({
   filtro,
   tarjetaKobo,
   onIrA,
+  onStateChange,
 }: {
   reports: MonitoreoAcreditacionReports;
   state: MonitoreoState | null | undefined;
+  /** Para guardar el origen de la muestra en el perfil. */
+  onStateChange?: (state: MonitoreoState) => void;
   /** El editor del filtro de efectiva que ya existe. */
   filtro: ReactNode;
   /** La tarjeta de la encuesta, con «Cambiar conexión». */
@@ -81,7 +87,13 @@ export function LlaveYFiltros({
             <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
-          <p>Las columnas de la llave no se editan desde la app.</p>
+          {llaveSinIdentificador(ejemplos) ? (
+            <NotaDelModo tono="aviso">
+              Las {n(ejemplos.filasEnLaBase)} filas de la base tienen el mismo código: la llave no encontró una columna que identifique a cada
+              caso.
+            </NotaDelModo>
+          ) : null}
+          <NotaDelModo tono="neutro">Las columnas de la llave no se editan desde la app.</NotaDelModo>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Cruce con la base">
@@ -107,7 +119,7 @@ export function LlaveYFiltros({
               </div>
             </div>
           ) : (
-            <p>El corte no trae efectivas para cruzar.</p>
+            <NotaDelModo tono="neutro">El corte no trae efectivas para cruzar.</NotaDelModo>
           )}
         </section>
 
@@ -121,6 +133,7 @@ export function LlaveYFiltros({
             </li>
           </ul>
         </section>
+        <OrigenDeLaMuestra reports={reports} state={state} onStateChange={onStateChange} />
         <section className="mon-ctl-panel mon-llave-envios" aria-label="Efectivas y su cruce" data-qa-geometry-capacity="owned">
           <header className="mon-insumos-cabecera">
             <strong>Efectivas y su cruce</strong>
@@ -152,7 +165,7 @@ export function LlaveYFiltros({
               </table>
             </div>
           ) : (
-            <p className="mon-ctl-nota">Sin efectivas en el corte.</p>
+            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas en el corte.</NotaDelModo>
           )}
         </section>
       </div>
@@ -175,8 +188,10 @@ export function LlaveYFiltros({
                 </li>
               ))}
             </ul>
+          ) : cruce.total ? (
+            <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
           ) : (
-            <p className="mon-ctl-nota">Todas las efectivas cruzan tal cual con la hoja.</p>
+            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas, no hay cruces que revisar.</NotaDelModo>
           )}
         </section>
       </div>

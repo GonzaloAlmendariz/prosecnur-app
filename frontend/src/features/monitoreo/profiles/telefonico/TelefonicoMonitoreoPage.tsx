@@ -85,7 +85,8 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
-import { efectivasPorDia, notaSinCategoria, serieDiariaDelCorte } from "./avance/ritmoModel";
+import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
+import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
@@ -578,11 +579,7 @@ function platformRejectionDrafts(rules: Array<Record<string, unknown>>): Platfor
 }
 
 function humanizeQuestionSlug(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b([a-záéíóúñ])/g, (letter) => letter.toLocaleUpperCase("es"));
+  return capitalizarPalabras(value.replace(/_/g, " ").replace(/\s+/g, " ").trim());
 }
 
 function platformQuestionLabel(variable: MonitoreoVariable) {
@@ -2595,9 +2592,7 @@ function phoneQuotaVariableOptions(variables: MonitoreoVariable[], controlVars: 
     || variables.some((variable) => variable.name === name)
     || rows.some((row) => normalizeSourceMatch(phoneRowValue(row, ["Variable"], "")) === normalizeSourceMatch(name))
   ));
-  const preferred = names.filter((name) => ["sede", "distrito", "dim_segmento", "segmento", "dim_actor"].includes(normalizeSourceMatch(name)));
-  const rest = names.filter((name) => !preferred.includes(name));
-  return [...preferred, ...rest];
+  return variablesDeCuotaOfrecidas(names, variables, [...controlVars, ...phoneQuotaGoalVariables(goals)]);
 }
 
 function preferredPhoneQuotaVariable(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
@@ -2712,7 +2707,7 @@ function resumenDeCalendario(phases: MonitoreoStrategyPhase[], reports?: Monitor
     reporte: calendarReportWeekdayLabel(borrador.reportWeekday),
     fases: phases.length,
     dias: efectivasPorDia(reports),
-    nota: (() => { const { sinCategoria, segmento } = serieDiariaDelCorte(reports); return notaSinCategoria(sinCategoria, segmento); })(),
+    nota: notaDeLaSerie(reports),
   };
 }
 
@@ -4103,11 +4098,7 @@ function phoneRowRatioPct(row: Record<string, unknown>, keys: string[]) {
 }
 
 function phoneQuotaVariableLabel(value: string) {
-  const raw = String(value ?? "").trim();
-  const cleaned = raw
-    .replace(/^(dim|dimension|variable|var|control)[_\s-]+/i, "")
-    .trim();
-  return humanizeQuestionSlug(cleaned || raw || "Variable");
+  return rotuloDeVariable(value);
 }
 
 function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: string) {
@@ -10708,6 +10699,7 @@ function AcreditacionSourcesWorkbench({
         reports={reports}
         state={state}
         onIrA={(seccion, pestana) => onIrAVista?.(seccion, pestana)}
+        onStateChange={onStateChange}
         filtro={<AcreditacionPhoneEffectiveFilterEditor state={state} variables={state?.variables ?? []} platformSources={plataforma.sources} onStateChange={onStateChange} />}
         tarjetaKobo={(
           <AcreditacionPhoneSourceSlotCard
@@ -10777,7 +10769,7 @@ function AcreditacionSourcesWorkbench({
         fuentes={operationalSources}
         contrato={phoneContract}
         acciones={sourceStatus}
-        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
+        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at, estadosDeLaHoja(reports).filas)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
         onCambiar={(id) => abrirConectarFuente.abrirParaCambiar(id)}
         onRenombrar={async (id, label) => {
           const fuente = operationalSources.find((item) => item.id === id);
@@ -18691,6 +18683,7 @@ function renderAcreditacionView(
         corte={corteTelefonicoDeReports(outputState, reports)}
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
+        notaDeValidas={isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined}
       />
     );
     // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.
@@ -18700,7 +18693,7 @@ function renderAcreditacionView(
         modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
         corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
         dias={efectivasPorDia(reports)}
-        nota={(() => { const { sinCategoria, segmento } = serieDiariaDelCorte(reports); return notaSinCategoria(sinCategoria, segmento); })()}
+        nota={notaDeLaSerie(reports)}
         salidas={salidas}
       />
     );

@@ -31,11 +31,14 @@ export function TablaDeCola({
   columnas,
   elegido,
   onElegir,
+  vacia = "Ningún caso de la cola cumple los filtros.",
 }: {
   casos: readonly CasoDeCola[];
   columnas: ColumnasDeCola;
   elegido: string | null;
   onElegir: (codigo: string) => void;
+  /** Qué decir sin filas: no es lo mismo una cola vacía que filtros sin resultado. */
+  vacia?: string;
 }) {
   const maximo = Math.max(1, ...casos.map((caso) => caso.intentos ?? 0));
   return (
@@ -89,7 +92,7 @@ export function TablaDeCola({
           })}
         </tbody>
       </table>
-      {!casos.length ? <p className="mon-cola-vacia">Ningún caso de la cola cumple los filtros.</p> : null}
+      {!casos.length ? <p className="mon-cola-vacia">{vacia}</p> : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, destinoDeAviso, detalleDeEmpate, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -120,6 +120,17 @@ describe("Control › Avisos del telefónico", () => {
     const aviso = avisos.find((item) => item.unidad === "responsables");
     expect(aviso).toBeDefined();
     expect(aviso?.detalle).not.toMatch(/más marcado/);
+    // La causa no repite la cifra: «2 responsables» va en la columna y la ficha.
+    expect(aviso?.titulo).not.toMatch(/responsables/);
+    expect(aviso?.casos).toBe(2);
+    // La fila del fixture no trae cifra: cada responsable cuenta una alerta.
+    expect(aviso?.detalle).toBe("Todos con la misma cifra (1).");
+  });
+
+  it("con empate parcial dice cuántos empatan arriba", () => {
+    expect(detalleDeEmpate([
+      { etiqueta: "Ana", valor: 28 }, { etiqueta: "Beto", valor: 28 }, { etiqueta: "Ciro", valor: 15 },
+    ])).toBe("2 empatan en la cifra más alta (28).");
   });
 
   it("da ids únicos aunque dos grupos compartan causa", () => {

@@ -1,12 +1,16 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import { metasConProporcion, validarMetas, type FilaDeMeta } from "./cuotasModel";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+
+/** La sub-vista Calendario de Modelo › Cuotas y calendario (`panel=calendario`, ver direccionTelefonica.ts). */
+export const PANEL_CALENDARIO: PanelDeclarado = { id: "calendario", label: "Calendario", clase: "inspector" };
 
 function n(valor: number) {
   return valor.toLocaleString("es-PE");
@@ -71,7 +75,7 @@ export function Cuotas({
   estado: { tono: string; texto: string } | null;
 }) {
   const [nueva, setNueva] = useState("");
-  const [, setParams] = useSearchParams();
+  const panelCalendario = usePanelDireccionable(PANEL_CALENDARIO);
   const conPendientes = useMemo(
     () => filas.map((fila) => ({ ...fila, meta: pendientes[fila.value] ?? fila.meta })),
     [filas, pendientes],
@@ -143,6 +147,12 @@ export function Cuotas({
               <button type="button" className="mon-insumos-boton is-primario" onClick={onConfirmar}>{etiquetaConfirmar}</button>
             </div>
           ) : null}
+          {proporcion.length && variable && !variableGuardada ? (
+            <NotaDelModo tono="info" className="mon-metas-sin-categorias">
+              El universo de cada {nombreDeCategoria} se calcula al usar {etiquetaDeVariable} para cuotas y actualizar el corte.
+            </NotaDelModo>
+          ) : null}
+          {proporcion.length ? (
           <div className="mon-metas-marco">
             <table className="mon-ctl-tabla mon-metas-tabla">
               <thead>
@@ -162,7 +172,7 @@ export function Cuotas({
                   const marca = fila.proporcional != null && fila.universe ? ((fila.proporcional / fila.universe) / maximoSobre) * 100 : null;
                   return (
                     <tr key={fila.value}>
-                      <th scope="row">{fila.value}{fila.universe <= 0 ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
+                      <th scope="row">{fila.value}{fila.universe <= 0 && variableGuardada ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
                       <td className="is-num">{n(fila.universe)}</td>
                       <td className="is-num mon-metas-meta">
                         <MetaCuotaInput value={fila.meta} ariaLabel={`Meta de ${fila.value}`} onCommit={(meta) => onMeta(fila.value, meta)} />
@@ -188,10 +198,18 @@ export function Cuotas({
               </tbody>
             </table>
           </div>
+          ) : (
+            <NotaDelModo tono="neutro" className="mon-metas-sin-categorias">
+              {variable
+                ? `${etiquetaDeVariable} no tiene categorías en la base. Agrega una abajo o elige otro eje de cuota.`
+                : "Elige un eje de cuota para repartir la meta."}
+            </NotaDelModo>
+          )}
           {/* Debajo de la tabla, el avance de cada meta: con pocas categorías usa
             * el alto que la tabla no pide; con muchas baja y la tabla desplaza. */}
           <section className="mon-metas-avance" aria-label="Avance de cada meta" data-qa-geometry-capacity="owned">
             <span className="mon-ctl-antetitulo">Avance de cada meta</span>
+            {conPendientes.some((fila) => (fila.meta ?? 0) > 0 || fila.effective > 0) ? (
             <div className="mon-metas-avance-lienzo" style={{ gridTemplateColumns: `repeat(${Math.max(1, conPendientes.length)}, minmax(0, 1fr))` }}>
               {conPendientes.map((fila) => {
                 const meta = fila.meta ?? 0;
@@ -211,6 +229,11 @@ export function Cuotas({
                 );
               })}
             </div>
+            ) : (
+              <p className="mon-metas-avance-vacio">
+                {conPendientes.length ? "Sin metas ni efectivas todavía: escribe la meta de cada categoría en la tabla." : "Sin categorías, no hay metas que seguir."}
+              </p>
+            )}
           </section>
           <footer className="mon-metas-pie">
             <dl className="mon-metas-total">
@@ -231,7 +254,11 @@ export function Cuotas({
               <button type="submit" className="mon-insumos-boton" disabled={!nueva.trim()}><Plus size={13} /> Agregar</button>
             </form>
           </footer>
-          {estado ? <p className={`mon-metas-estado is-${estado.tono}`}>{estado.texto}</p> : null}
+          {estado ? (
+            <NotaDelModo className="mon-metas-estado" estado tono={estado.tono === "error" ? "error" : estado.tono === "success" ? "exito" : "info"}>
+              {estado.texto}
+            </NotaDelModo>
+          ) : null}
         </section>
       </div>
 
@@ -273,17 +300,15 @@ export function Cuotas({
                   </li>
                 ))}
               </ul>
-              {calendario.nota ? <p className="mon-metas-nota">{calendario.nota}.</p> : null}
+              {calendario.nota ? <NotaDelModo tono="aviso">{calendario.nota}.</NotaDelModo> : null}
             </>
-          ) : null}
+          ) : (
+            <p className="mon-metas-dias-vacio">Ningún día con efectivas de Kobo todavía.</p>
+          )}
           <button
             type="button"
             className="mon-insumos-boton"
-            onClick={() => setParams((actual) => {
-              const siguiente = new URLSearchParams(actual);
-              siguiente.set("panel", "calendario");
-              return siguiente;
-            })}
+            onClick={panelCalendario.abrir}
           >
             Ver y editar el calendario
           </button>

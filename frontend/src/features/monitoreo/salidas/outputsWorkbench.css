@@ -1883,3 +1883,7 @@
   font-size: 0.72rem;
   font-weight: var(--pulso-weight-bold);
 }
+
+.mon-outputs-readiness__granos small.mon-outputs-readiness__nota {
+  color: var(--pulso-warn-fg);
+}
