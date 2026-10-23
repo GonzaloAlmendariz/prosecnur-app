@@ -242,3 +242,14 @@ export function conDiasAlCorte(casos: readonly CasoDeCola[], corteIso: string | 
     return { ...caso, diasSinRegistro: Math.round((diaDelCorte - dia) / 86_400_000) };
   });
 }
+
+/**
+ * Rótulo corto de una categoría de cuota para la columna de la cola: la sigla
+ * entre paréntesis si el valor la trae («San Juan de Lurigancho (SJL)» da
+ * «SJL»); si no, `null` y la celda usa el nombre en una línea. El nombre
+ * completo va siempre en el `title` y en la ficha.
+ */
+export function siglaDeCuota(valor: string): string | null {
+  const partes = valor.match(/\(([^()]{1,12})\)\s*$/);
+  return partes ? partes[1].trim() || null : null;
+}

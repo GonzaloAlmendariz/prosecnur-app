@@ -4,6 +4,7 @@ import {
   FILTROS_INICIALES,
   conDiasAlCorte,
   diasDesde,
+  siglaDeCuota,
   escalaDeIntentos,
   filtrarCola,
   telefonosPorCaso,
@@ -121,5 +122,10 @@ describe("Control › Insistencia del telefónico", () => {
   it("cuenta los días sin registro contra el corte, no contra el día del armado", () => {
     const [caso] = conDiasAlCorte(casosDeCola([fila("PDM1385", "Op-09", 2)]), "2026-07-27T09:04:00");
     expect(caso.diasSinRegistro).toBe(25);
+  });
+
+  it("la columna de cuota usa la sigla entre paréntesis si el valor la trae", () => {
+    expect(siglaDeCuota("San Juan de Lurigancho (SJL)")).toBe("SJL");
+    expect(siglaDeCuota("Cercado de Lima")).toBeNull();
   });
 });
