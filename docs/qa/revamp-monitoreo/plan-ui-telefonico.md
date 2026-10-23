@@ -232,3 +232,9 @@ MVH0053 y MVH0069 con su responsable. El código llega del motor como `codigo:MV
 desglose junta a cada persona en una sola línea. Con empate no se dice «el más marcado». La cifra del motor manda sobre
 los códigos nombrados: en PDM, el formato de CodPulso son 287 alertas y 286 códigos distintos. La clave interna ya no
 sale en el `title`, sólo en `data-aviso`.
+
+**Composición de Avisos.** Las filas de causas ya no reparten el alto del panel: miden lo que pide su contenido, y la
+columna desplaza si no cabe. Debajo va «Por dónde se corrige», que reúne los avisos por destino con sus casos (o
+responsables) y un enlace; la hoja del equipo va al final. En PDM: Discrepancias 453 (166 y 287 de formato),
+Respuestas 57, Equipo 11 responsables y hoja del equipo 9. En la ficha, los afectados o el desglose ocupan lo que tienen
+y «Qué hacer» va pegado. Sólo una lista de más de ocho casos lleva barra visible y degradado.
