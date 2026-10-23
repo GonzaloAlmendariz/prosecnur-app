@@ -48,8 +48,10 @@ eje dan coherencia sin pensar y se traducen a valores fijos del contrato geomét
 
 Outlook: el fondo de color en `<td bgcolor>` + `background-color` inline funciona en todos. El
 **borde** funciona. Las **esquinas** (`border-radius`) Outlook de Windows (motor Word) las ignora y
-pinta recto: se acepta como degradación elegante — nunca se usa VML `v:roundrect` para secciones
-(sí, ya, para el botón). El diseño se valida suponiendo esquinas rectas en Outlook.
+pinta recto: se acepta como degradación elegante — nunca se usa VML `v:roundrect` para secciones.
+El botón tampoco lo usa hoy: es una celda con color y `mso-padding-alt`
+(`collection_mail_blocks.R` ~87), así que en Outlook sale rectangular. El diseño se valida
+suponiendo esquinas rectas en Outlook.
 
 ## 3. Paleta del correo
 

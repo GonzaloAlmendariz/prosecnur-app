@@ -37,6 +37,7 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 | L11 | Prueba real en Gmail, Outlook y celular de un correo con todas las secciones | envío de prueba | ☐ |
 | L12 | «Imagen completa» con una segunda imagen para el celular (una tabla de 600 px a 327 px deja letras de ~9 px) | render (media query + `<img>` alterno) | ☐ (salió de L1) |
 | L13 | Esquinas y círculo de persona horneados en el archivo (Outlook ignora `border-radius`) | `collection_mail_images.R` | ☐ (salió de L0) |
+| L14 | (Opcional) Botón redondeado también en Outlook con VML `v:roundrect`; hoy sale rectangular | `collection_mail_blocks.R` ~87 | ☐ (salió del loop de maquetas, P8) |
 
 ## Espera al usuario
 | Qué | Por qué no puedo yo |
@@ -45,6 +46,7 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 | Decidir dónde viven «Mis secciones» (por equipo, por estudio) | cambia el contrato del .pulso |
 
 ## Trampas
+- El benchmark afirmaba que el botón ya usaba VML: no es así (celda con color + `mso-padding-alt`). Se corrigió al verificarlo en el código; una afirmación sobre el render se comprueba con `grep` en `collection_mail_*.R`, no de memoria.
 - Una tabla o afiche hecho imagen se ve perfecto en 600 px y es ilegible en el celular: el texto escala con la imagen. Se mide el tamaño de letra resultante, no la imagen (L1).
 - Las fotos de las maquetas L1 son de Unsplash (licencia libre, sin atribución obligatoria): sirven para el diseño, no son material de un estudio. Sus recortes @2x están en el artifact.
 - Resolver el pedido al pie de la letra (un control, una pestaña) en vez de pensar el editor completo: es lo que Gonzalo marcó el 2026-10-23.
