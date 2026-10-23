@@ -49,7 +49,8 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const notaDeSerie = notaSinCategoria(sinCategoria, segmento, fueraDeCuota);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -213,7 +214,7 @@ export function Ritmo({
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
           <p>{n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}{kobo.fechas.length ? ` (${fechaCorta(kobo.fechas[0])} a ${fechaCorta(ultimoKobo ?? kobo.fechas[0])})` : ""}{kobo.categorias.length > 1 ? `, en ${n(kobo.categorias.length)} ${nombreDeSegmento === "categoría" ? "categorías" : "valores"}` : ""}.</p>
           {kobo.sinFecha ? <p>{n(kobo.sinFecha)} efectivas sin fecha en Kobo no entran al gráfico.</p> : null}
-          {sinCategoria ? <p className="mon-cadencia-aviso">{notaSinCategoria(sinCategoria, segmento)}.</p> : null}
+          {notaDeSerie ? <p className="mon-cadencia-aviso">{notaDeSerie}.</p> : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">

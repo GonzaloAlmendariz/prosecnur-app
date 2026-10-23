@@ -14,7 +14,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { chipsDeRitmo } from "./chipsDeRitmo";
 import { Entregas } from "./Entregas";
 import { Ritmo } from "./Ritmo";
-import { efectivasPorDia, notaDeValidasTelefonica, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
+import { efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
 import { MonitoreoOutputsReadiness } from "../../../salidas/MonitoreoOutputsReadiness";
 import { MemoryRouter } from "react-router-dom";
 
@@ -69,7 +69,7 @@ describe("la serie diaria de efectivas es una sola", () => {
   });
 
   it("las salidas explican por qué «Válidas» cuenta una más", () => {
-    expect(notaDeValidasTelefonica(REPORTS)).toBe("30 con actor y 1 sin actor");
+    expect(notaDeValidasTelefonica(REPORTS)).toBe("30 con cuota y 1 sin actor");
     const sinDiferencia = reportes({ avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 3 }] });
     expect(notaDeValidasTelefonica(sinDiferencia)).toBeUndefined();
     const corte = { ingesta: 40, procesable: 35, oficial: 31, meta: 100, metaEtiqueta: "meta", saltos: [], hasSnapshot: true } as unknown as Parameters<typeof MonitoreoOutputsReadiness>[0]["corte"];
@@ -78,5 +78,26 @@ describe("la serie diaria de efectivas es una sola", () => {
     const sin = renderToStaticMarkup(<MemoryRouter><MonitoreoOutputsReadiness corte={corte} readiness={readiness} /></MemoryRouter>);
     expect(con).toContain("30 con actor y 1 sin actor");
     expect(sin).not.toContain("mon-outputs-readiness__nota");
+  });
+
+  it("un valor del eje sin cuota no entra a la serie y se declara aparte", () => {
+    const conSinDato = reportes({
+      cuotas_variable: [{ Variable: "Actor", Valor: "Homologación de Títulos" }, { Variable: "Actor", Valor: "Vinculación Laboral" }],
+      avance_efectivo_variable_dia: [
+        { Variable: "Actor", Valor: "Homologación de Títulos", Fecha: "2026-08-04", "Efectivas Kobo": 12 },
+        { Variable: "Actor", Valor: "Vinculación Laboral", Fecha: "2026-08-04", "Efectivas Kobo": 4 },
+        { Variable: "Actor", Valor: "Sin dato", Fecha: "2026-08-04", "Efectivas Kobo": 2 },
+      ],
+      avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 19 }],
+    });
+    const { serie, sinCategoria, fueraDeCuota } = serieDiariaDelCorte(conSinDato);
+    expect(serie.total).toBe(16);
+    expect(serie.categorias.map((categoria) => categoria.nombre)).not.toContain("Sin dato");
+    expect(fueraDeCuota).toEqual([{ nombre: "Sin dato", casos: 2 }]);
+    expect(sinCategoria).toBe(1);
+    expect(efectivasPorDia(conSinDato)).toEqual([{ fecha: "2026-08-04", casos: 16 }]);
+    expect(chipsDeRitmo(conSinDato, STATE)[0]).toBe("Pico de 16 el 04/08");
+    expect(notaDeLaSerie(conSinDato)).toBe("No entran a la serie: 1 efectiva de Kobo sin actor y 2 en «Sin dato», que no tiene cuota");
+    expect(notaDeValidasTelefonica(conSinDato)).toBe("16 con cuota, 2 en actor sin cuota y 1 sin actor");
   });
 });
