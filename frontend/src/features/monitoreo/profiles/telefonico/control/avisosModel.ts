@@ -170,7 +170,9 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
         : primera.detail,
       casos: porPersona && grupo.length > 1
         ? grupo.length
-        : casosNombrados || grupo.reduce((suma, alerta) => suma + (alerta.count ?? 0), 0) || primera.count,
+        // La cifra del motor manda; los casos nombrados sólo cuando no trae cifra
+        // (PDM: el formato de CodPulso cuenta 287 y nombra 286 códigos distintos).
+        : grupo.reduce((suma, alerta) => suma + (alerta.count ?? 0), 0) || casosNombrados || primera.count,
       unidad: porPersona && grupo.length > 1 ? "responsables" : "casos",
       codigo: primera.type,
       destino: porPersona && primera.signal.kind === "assignment_gap"

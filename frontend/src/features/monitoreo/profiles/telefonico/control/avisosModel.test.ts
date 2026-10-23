@@ -69,6 +69,18 @@ describe("Control › Avisos del telefónico", () => {
     expect(new Set(etiquetas).size).toBe(etiquetas.length);
   });
 
+  it("la cifra del motor manda sobre los códigos que nombra", () => {
+    const { avisos } = construirAvisos(reportes([
+      // Una alerta por código, y un código que llega dos veces: el motor cuenta 3.
+      fila("Baja", "Sugerencia formato CodPulso", "Escrito sin el formato PDM.", { CodPulso: "1218" }),
+      fila("Baja", "Sugerencia formato CodPulso", "Escrito sin el formato PDM.", { CodPulso: "1218" }),
+      fila("Baja", "Sugerencia formato CodPulso", "Escrito sin el formato PDM.", { CodPulso: "1231" }),
+    ]));
+    const aviso = avisos.find((item) => /formato/i.test(item.codigo));
+    expect(aviso?.casos).toBe(3);
+    expect(aviso?.unidad).toBe("casos");
+  });
+
   it("con responsables empatados no dice «el más marcado»", () => {
     const { avisos } = construirAvisos(reportes([
       fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos por iniciar", { Responsable: "Ana" }),
