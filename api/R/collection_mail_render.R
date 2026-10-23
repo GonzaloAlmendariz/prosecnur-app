@@ -394,6 +394,8 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     .cmail_justify_style(paste0(card, footer_rows)),
     # two_images se apila en teléfono (E1o, collection_mail_piezas.R).
     .cmail_stack_style(card),
+    # Cajas de estilo propio a 12 px de los bordes en teléfono (collection_mail_box.R).
+    .cmail_box_style(card),
     # Márgenes del cuerpo a 20 px en teléfono (E1p, collection_mail_ajustes.R).
     .cmail_pad_style(),
     # Logos de la cabecera en teléfono: se achican en proporción o se apilan (collection_mail_ajustes.R).

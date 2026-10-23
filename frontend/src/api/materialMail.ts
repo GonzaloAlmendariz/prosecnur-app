@@ -201,21 +201,41 @@ export type MailOpaqueBlock = {
   raw: Record<string, unknown>;
 };
 
+// ---- estilo propio del bloque (GOAL editor profesional, L2) ----------------------
+// Espejo de collection_mail_box.R. Valores cerrados, nunca CSS libre; `bg` es un
+// nombre de la paleta del correo (sigue al acento) o un color libre #rrggbb.
+
+export const MAIL_BOX_BG_NAMES = ["papel", "tinte", "acento", "tinta"] as const;
+export type MailBoxBgName = (typeof MAIL_BOX_BG_NAMES)[number];
+export const MAIL_BOX_BORDERS = ["ninguno", "fino", "acento"] as const;
+export const MAIL_BOX_CORNERS = ["rectas", "suaves", "redondas"] as const;
+export const MAIL_BOX_SPACINGS = ["compacto", "normal", "amplio"] as const;
+export const MAIL_BOX_TEXTS = ["auto", "tinta", "acento", "blanco"] as const;
+export type MailBlockBox = {
+  bg?: MailBoxBgName | string;
+  border?: (typeof MAIL_BOX_BORDERS)[number];
+  corners?: (typeof MAIL_BOX_CORNERS)[number];
+  spacing?: (typeof MAIL_BOX_SPACINGS)[number];
+  text?: (typeof MAIL_BOX_TEXTS)[number];
+};
+/** Todo bloque admite caja salvo el pie legal, que no se dibuja como bloque. */
+export type MailBoxed = { box?: MailBlockBox };
+
 export type MailKnownBlock =
-  | MailGreetingBlock
-  | MailHeadingBlock
-  | MailParagraphBlock
-  | MailButtonBlock
-  | MailCalloutBlock
-  | MailListBlock
-  | MailDividerBlock
-  | MailImageBlock
-  | MailSignatureBlock
+  | (MailGreetingBlock & MailBoxed)
+  | (MailHeadingBlock & MailBoxed)
+  | (MailParagraphBlock & MailBoxed)
+  | (MailButtonBlock & MailBoxed)
+  | (MailCalloutBlock & MailBoxed)
+  | (MailListBlock & MailBoxed)
+  | (MailDividerBlock & MailBoxed)
+  | (MailImageBlock & MailBoxed)
+  | (MailSignatureBlock & MailBoxed)
   | MailFooterBlock
-  | MailBandBlock
-  | MailOrnamentBlock
-  | MailIconTextBlock
-  | MailTwoImagesBlock;
+  | (MailBandBlock & MailBoxed)
+  | (MailOrnamentBlock & MailBoxed)
+  | (MailIconTextBlock & MailBoxed)
+  | (MailTwoImagesBlock & MailBoxed);
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -763,7 +783,34 @@ export function normalizeMailTrato(value: unknown): MailTrato | undefined {
   };
 }
 
+/**
+ * La caja de un bloque: sólo las claves y valores del contrato. Una caja sin
+ * valores reconocidos vuelve como `{}`, que el render dibuja con los valores por
+ * defecto (papel, suaves, normal); sin `box` en el bloque, no hay caja.
+ */
+export function normalizeMailBox(value: unknown): MailBlockBox | undefined {
+  if (!isRecord(value)) return undefined;
+  const bgName = oneOf(value.bg, MAIL_BOX_BG_NAMES);
+  const bg = bgName ?? hexColor(value.bg);
+  const border = oneOf(value.border, MAIL_BOX_BORDERS);
+  const corners = oneOf(value.corners, MAIL_BOX_CORNERS);
+  const spacing = oneOf(value.spacing, MAIL_BOX_SPACINGS);
+  const text = oneOf(value.text, MAIL_BOX_TEXTS);
+  const box: MailBlockBox = {
+    ...(bg ? { bg } : {}), ...(border ? { border } : {}), ...(corners ? { corners } : {}),
+    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}),
+  };
+  return box;
+}
+
 export function normalizeMailBlock(value: unknown): MailBlock | null {
+  const block = normalizeMailBlockSinCaja(value);
+  if (!block || isOpaqueMailBlock(block) || block.type === "footer_legal" || !isRecord(value)) return block;
+  const box = normalizeMailBox(value.box);
+  return box ? { ...block, box } : block;
+}
+
+function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
   if (!isRecord(value)) return null;
   const block_id = str(value.block_id);
   if (!block_id) return null;

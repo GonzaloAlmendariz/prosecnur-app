@@ -33,7 +33,7 @@
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
                           "level", "style", "width", "bleed", "image_ref",
-                          "decorative", "color", "height", "icon", "left", "right")
+                          "decorative", "color", "height", "icon", "left", "right", "box")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(
@@ -129,8 +129,12 @@
 }
 
 # Fondo sobre el que se lee el cuerpo: la tarjeta blanca en sobrio, la página
-# en campaña (sin tarjeta, collection_mail_render.R).
-.cmail_card_bg <- function(pal) if (isTRUE(pal$campana)) pal$page_bg else "#ffffff"
+# en campaña (sin tarjeta, collection_mail_render.R); dentro de una caja, el de
+# la caja (collection_mail_box.R).
+.cmail_card_bg <- function(pal) {
+  if (!is.null(pal$box_bg)) return(pal$box_bg)
+  if (isTRUE(pal$campana)) pal$page_bg else "#ffffff"
+}
 
 #' Tinta del tono `acento`: el acento del tema si se lee sobre el fondo de la
 #' tarjeta (≥ `.CMAIL_CONTRAST_MIN`); si no, el texto normal (`ok = FALSE`,
