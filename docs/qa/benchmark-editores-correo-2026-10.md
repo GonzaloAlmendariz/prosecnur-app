@@ -36,7 +36,7 @@ diseña). Los bloques actuales siguen vivos dentro de una sección «Texto libre
 | Fondo | color | color de fila + color de contenido + imagen | color de franja + color de contenido + imagen | color + imagen | **color de la paleta del correo** o libre (cuentagotas, ya existe) |
 | Borde | sí, por bloque | por fila/columna, por lado | por contenedor | por columna | **ninguno · fino · acento** (tres opciones, no un editor de bordes por lado) |
 | Esquinas | sí | sí | sí | sí | **rectas · suaves 8 px · redondas 16 px** |
-| Espaciado | padding numérico por lado | padding por lado | padding por lado | padding por lado | **compacto · normal · amplio** (escala 16/24/40 px) y «sin margen» para imágenes a sangre |
+| Espaciado | padding numérico por lado | padding por lado | padding por lado | padding por lado | **compacto · normal · amplio** (24/32/48 px arriba y abajo; laterales fijos de 40 px, 24 en el celular) y «sin margen» para imágenes a sangre |
 | Color de texto | sí | sí | sí | sí | **auto** (contraste contra el fondo, ya calculado en `.cmail_accent_ink`) o elegido |
 
 Qué copiamos: el *eje* (fondo, borde, esquinas, espaciado, texto) en todos los niveles, porque es
