@@ -18698,6 +18698,7 @@ function renderAcreditacionView(
       <Entregas
         modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
         corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
+        dias={efectivasPorDia(reports)}
         salidas={salidas}
       />
     );

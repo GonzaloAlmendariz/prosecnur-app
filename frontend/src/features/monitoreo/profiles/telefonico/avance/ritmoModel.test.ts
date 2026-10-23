@@ -46,7 +46,9 @@ describe("Avance › Ritmo del telefónico", () => {
   });
 
   it("dice cómo vienen escritas las fechas de la hoja", () => {
-    const { formatos, columnas, dias } = formatosDeFecha(REPORTS);
+    const { formatos, columnas, dias, valores } = formatosDeFecha(REPORTS);
+    expect(valores[0]).toEqual({ valor: "1/07/2026", casos: 87, aviso: false });
+    expect(valores.find((item) => item.valor === "30/06/2020")?.aviso).toBe(true);
     expect(columnas).toBe(6);
     expect(dias).toBe(3);
     expect(formatos.map((item) => [item.etiqueta, item.casos])).toEqual([

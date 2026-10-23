@@ -81,6 +81,14 @@ export function Ritmo({
     return `${x},${y}`;
   }).filter((_, i) => resumen.acumulado[fechas[i]] != null);
 
+  const ultimaFechaKobo = [...fechas].reverse().find((iso) => resumen.acumulado[iso] != null);
+  const ultimoPunto = ultimaFechaKobo
+    ? {
+      x: ((fechas.indexOf(ultimaFechaKobo) + 0.5) / Math.max(1, fechas.length)) * 100,
+      y: 100 - ((resumen.acumulado[ultimaFechaKobo] ?? 0) / tope) * 100,
+    }
+    : null;
+
   if (!kobo.total && !Object.keys(hoja.totalPorFecha).length) {
     return (
       <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Ritmo">
@@ -106,6 +114,11 @@ export function Ritmo({
             {meta ? (
               <span className="mon-cadencia-meta" style={{ bottom: `${(meta / tope) * 100}%` }}>
                 <em>Meta {n(meta)}</em>
+              </span>
+            ) : null}
+            {ultimoPunto ? (
+              <span className={`mon-cadencia-acumulado-rotulo${ultimoPunto.y < 18 ? " is-debajo" : ""}`} style={{ left: `${ultimoPunto.x}%`, top: `${ultimoPunto.y}%` }}>
+                {meta ? `${n(kobo.total)} de ${n(meta)}` : `${n(kobo.total)} acumuladas`}
               </span>
             ) : null}
             <svg className="mon-cadencia-acumulado" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -248,6 +261,16 @@ export function Ritmo({
             Corresponden a {n(fechasDeLaHoja.dias)} {fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada; la hoja trae
             {" "}{n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor distinto" : "valores distintos"} en su columna de fecha.
           </p>
+          <span className="mon-ctl-antetitulo">Valores en la columna de fecha</span>
+          <ul className="mon-cadencia-valores">
+            {fechasDeLaHoja.valores.map((item) => (
+              <li key={item.valor} className={item.aviso ? "is-aviso" : undefined}>
+                <code>{item.valor}</code>
+                <strong className="is-num">{n(item.casos)}</strong>
+              </li>
+            ))}
+          </ul>
+
         </section>
       </div>
     </div>

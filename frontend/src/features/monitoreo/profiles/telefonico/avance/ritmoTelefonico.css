@@ -38,6 +38,18 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3);
 }
 
+/* Las dos gráficas reparten el alto que el mapa de calor no pide. */
+.mon-cadencia-columna > .mon-cadencia-grafico {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 240px;
+}
+
+.mon-cadencia-columna > .mon-cadencia-grafico.is-hoja {
+  min-height: 200px;
+}
+
 .mon-cadencia-cabecera {
   display: flex;
   flex-wrap: wrap;
@@ -95,15 +107,16 @@
 .mon-cadencia-lienzo {
   position: relative;
   display: grid;
+  flex: 1 1 0;
   align-items: end;
   gap: 0 var(--pulso-space-3);
-  height: 200px;
+  min-height: 140px;
   padding-top: 18px;
   border-bottom: 1px solid var(--pulso-border-strong);
 }
 
 .mon-cadencia-lienzo.is-bajo {
-  height: 150px;
+  min-height: 110px;
 }
 
 .mon-cadencia-dia {
@@ -191,9 +204,8 @@
 
 .mon-cadencia-columna > .mon-cadencia-calor {
   display: flex;
-  flex: 1 0 auto;
+  flex: none;
   flex-direction: column;
-  min-height: 180px;
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
 
@@ -215,11 +227,66 @@
 
 .mon-cadencia-lateral > .mon-cadencia-dia-a-dia {
   display: flex;
-  flex: 1 1 auto;
+  flex: none;
   flex-direction: column;
-  min-height: 200px;
   padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+/* La tarjeta de las fechas de la hoja llega al pie: su lista de valores crece
+ * y desplaza. */
+.mon-cadencia-lateral > .mon-cadencia-fechas {
+  flex: 1 1 auto;
+  min-height: 200px;
   overflow: hidden;
+}
+
+.mon-cadencia-valores {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  list-style: none;
+}
+
+.mon-cadencia-valores li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-cadencia-valores code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.mon-cadencia-valores li.is-aviso code {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cadencia-acumulado-rotulo {
+  position: absolute;
+  z-index: 1;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-module-monitoring);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+  transform: translate(-100%, -130%);
+  pointer-events: none;
+}
+
+/* Cerca del techo el rótulo va bajo la línea, para no pisar la leyenda. */
+.mon-cadencia-acumulado-rotulo.is-debajo {
+  transform: translate(-100%, 40%);
 }
 
 .mon-cadencia-dia-a-dia .mon-cadencia-cabecera > span {
@@ -228,8 +295,7 @@
 }
 
 .mon-cadencia-dia-a-dia-marco {
-  flex: 1 1 0;
-  min-height: 0;
+  max-height: 320px;
   overflow-y: auto;
 }
 
@@ -319,12 +385,17 @@
     overflow: visible;
   }
 
-  .mon-cadencia-columna > .mon-cadencia-calor,
-  .mon-cadencia-lateral > .mon-cadencia-dia-a-dia {
+  .mon-cadencia-columna > .mon-cadencia-grafico,
+  .mon-cadencia-lateral > .mon-cadencia-fechas {
     flex: none;
   }
 
-  .mon-cadencia-dia-a-dia-marco {
+  .mon-cadencia-lienzo {
+    flex: none;
+    height: 180px;
+  }
+
+  .mon-cadencia-valores {
     flex: none;
   }
 }
