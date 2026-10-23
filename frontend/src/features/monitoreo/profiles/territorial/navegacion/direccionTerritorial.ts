@@ -112,7 +112,7 @@ const TABLA: readonly Entrada[] = [
   entrada("avance", "resumen", null, v("avance", "resumen"), { vista: "Resumen", propia: true, corte: v("calidad", "geolocalizacion") }),
   entrada("avance", "resumen", "distritos", v("avance", "distritos"), { vista: "Distritos" }),
   entrada("avance", "resumen", "ritmo", v("avance", "ritmo"), { vista: "Ritmo diario" }),
-  entrada("avance", "mapa", null, v("avance", "ump")),
+  entrada("avance", "mapa", null, v("avance", "ump"), { propia: true, corte: v("avance", "mapa") }),
   entrada("avance", "umps", null, v("modelo", "tabla"), { regreso: false, propia: true, corte: v("avance", "umps") }),
   entrada("avance", "salidas", null, v("avance", "salidas")),
 ];
@@ -181,7 +181,8 @@ export const PANELES_DE_SUBVISTA: readonly string[] = [
  * ahora: la ficha de UMP (P1) llega con Avance › Mapa.
  */
 const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
-  // Ficha de una UMP al costado de la tabla (`panel=ump&foco=<UMP>`).
+  // Ficha de una UMP al costado del mapa o de la tabla (`panel=ump&foco=<UMP>`).
+  "avance/mapa": ["ump"],
   "avance/umps": ["ump"],
 };
 const SIN_PANELES: readonly string[] = [];

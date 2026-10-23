@@ -15,6 +15,7 @@ import type { MonitoreoTerritorialDashboard } from "../../../../api/client";
 import { describe, expect, it } from "vitest";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
+import { MapaTab } from "./avance/MapaTab";
 import { UmpsTab } from "./avance/UmpsTab";
 import { CORTE_DE_CUOTAS } from "./avance/fixtures/corteDeCuotas";
 import { CORTE_DE_RESUMEN } from "./avance/fixtures/corteDeResumen";
@@ -75,6 +76,10 @@ const PESTANAS: Array<[string, () => string]> = [
   )],
   ["Avance › UMP", () => pintar(<UmpsTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=umps`)],
   ["Avance › UMP con la ficha y la historia de la 143", () => pintar(<UmpsTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
+  // Sin cartografía (no hay API en el test) el mapa pinta su barra, su vacío y
+  // el lateral: el texto de esas tres piezas es el que se revisa.
+  ["Avance › Mapa", () => pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa`)],
+  ["Avance › Mapa con la ficha de la 143", () => pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa&panel=ump&foco=143`)],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];
 
@@ -97,6 +102,13 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
     const sinParte = pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps`);
     expect(sinParte).not.toContain("Sin parte");
     expect(sinParte).toContain('data-audit-ready="monitoreo-territorial-avance-umps"');
+  });
+
+  it("Avance › Mapa espera la cartografía antes de declararse lista, y sin UMP publica su vacío", () => {
+    // Sin API la cartografía no llega: la marca queda en espera, nunca en
+    // «sin cartografía» antes de haberla pedido.
+    expect(pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="false"');
+    expect(pintar(<MapaTab avance={null} validacion={null} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="vacio:sin-cuota"');
   });
 
   it("el vacío de Faltante publica su motivo a la readiness", () => {

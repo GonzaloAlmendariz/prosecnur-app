@@ -83,6 +83,7 @@ import { CabeceraTerritorial, RailTerritorial } from "./navegacion/ChromeTerrito
 import { SelectorDeFase } from "./navegacion/SelectorDeFase";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
+import { MapaTab } from "./avance/MapaTab";
 import { UmpsTab } from "./avance/UmpsTab";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
@@ -1217,6 +1218,9 @@ function renderPestana(
     const clave = `${direccion.seccion}/${direccion.pestana}`;
     if (clave === "avance/faltante") return <FaltantePorUmp reports={reports} />;
     if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
+    if (clave === "avance/mapa") {
+      return <MapaTab avance={options.cortes?.avance ?? reports} validacion={options.cortes?.validacion ?? null} />;
+    }
     if (clave === "avance/umps") {
       return <UmpsTab avance={options.cortes?.avance ?? reports} validacion={options.cortes?.validacion ?? null} />;
     }
