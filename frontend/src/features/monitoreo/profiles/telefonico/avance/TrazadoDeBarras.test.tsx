@@ -51,6 +51,13 @@ describe("la cifra de la barra no queda tachada por la meta", () => {
     expect(alturaDeCifra(75, (100 / 120) * 100)).toBeGreaterThan((100 / 120) * 100);
   });
 
+  it("con la meta cerca del tope, la cifra baja bajo la línea en vez de salirse del área", () => {
+    const meta = 96;
+    const cifra = alturaDeCifra(90, meta);
+    expect(cifra + ALTO_CIFRA_PCT).toBeLessThanOrEqual(meta);
+    expect(cifra).toBeGreaterThanOrEqual(0);
+  });
+
   it("si la línea pasa lejos, la cifra se queda sobre su barra", () => {
     expect(alturaDeCifra(30, 80)).toBe(30);
     expect(alturaDeCifra(90, 40)).toBe(90);

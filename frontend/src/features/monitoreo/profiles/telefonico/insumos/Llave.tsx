@@ -14,6 +14,7 @@ import {
   llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
+import { EquivalenciasDeNombres } from "./EquivalenciasDeNombres";
 import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
@@ -140,6 +141,7 @@ export function LlaveYFiltros({
             </li>
           </ul>
         </section>
+        <EquivalenciasDeNombres reports={reports} state={state} onStateChange={onStateChange} />
         <OrigenDeLaMuestra reports={reports} state={state} onStateChange={onStateChange} />
         <section className="mon-ctl-panel mon-llave-envios" aria-label="Efectivas y su cruce" data-qa-geometry-capacity="owned">
           <header className="mon-insumos-cabecera">

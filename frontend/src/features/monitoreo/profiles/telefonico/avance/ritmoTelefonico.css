@@ -271,16 +271,18 @@
   padding: var(--pulso-space-6);
 }
 
+/* El cuerpo mide lo que el aviso: la lista de estados se alinea a su ancho. */
 .mon-cadencia-vacio-cuerpo {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: var(--pulso-space-3);
-  width: min(420px, 100%);
+  width: fit-content;
+  max-width: 100%;
 }
 
-.mon-cadencia-vacio-estados {
-  width: 100%;
+.mon-cadencia-vacio-cuerpo > p {
+  text-align: center;
 }
 
 @media (max-width: 1400px) {

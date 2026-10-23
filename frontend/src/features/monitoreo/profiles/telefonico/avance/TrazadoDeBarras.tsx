@@ -18,7 +18,11 @@ export const ALTO_CIFRA_PCT = 9;
 export function alturaDeCifra(altoBarra: number, referencia: number | null, altoCifra = ALTO_CIFRA_PCT, holgura = 1.5) {
   if (referencia == null) return altoBarra;
   const cruza = referencia >= altoBarra - holgura && referencia <= altoBarra + altoCifra + holgura;
-  return cruza ? referencia + holgura : altoBarra;
+  if (!cruza) return altoBarra;
+  // Encima de la línea; si la meta está tan cerca del tope que la cifra se
+  // saldría del área, justo debajo de la línea (la cifra lleva fondo propio).
+  const encima = referencia + holgura;
+  return encima + altoCifra <= 100 ? encima : Math.max(0, referencia - holgura - altoCifra);
 }
 
 export type ColumnaDelTrazado = {
