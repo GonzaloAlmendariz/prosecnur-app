@@ -12,7 +12,7 @@ const CORTE = {
       { id: "a2", status: "active", scope: "response", response_label: "dcb2051a-1234-5678", reason: "GPS fuera", created_at: "2026-06-29" },
       { id: "a3", status: "reverted", scope: "all_production", responsible_label: "P446" },
     ],
-    // Con los nombres que publica el motor, no los del tipo del cliente.
+    // Con los nombres que publica el motor (`.monitoreo_territorial_annulled_blocks_payload`).
     affected_blocks: [
       { block_id: "m13", ump: "UMP 13", manzana: "0100", district: "LOS OLIVOS", responses_annulled: 2, valid_annulled: 1 },
       { block_id: "m20", ump: "20", manzana: "0200", district: "ATE", responses_annulled: 1, valid_annulled: 1 },
@@ -39,7 +39,7 @@ describe("Control › Anulaciones", () => {
     expect(modelo.revertidas).toBe(1);
   });
 
-  it("las UMP afectadas se leen con los nombres del motor y dicen su estado actual", () => {
+  it("las UMP afectadas dicen su estado actual", () => {
     expect(modelo.umps.map((item) => [item.ump, item.distrito, item.anuladas, item.validasAnuladas, item.estadoActual])).toEqual([
       ["13", "Los Olivos", 2, 1, "Completa"],
       ["20", "Ate", 1, 1, "Con celda pendiente"],

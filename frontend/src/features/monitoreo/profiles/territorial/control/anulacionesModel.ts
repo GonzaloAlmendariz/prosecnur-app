@@ -5,10 +5,6 @@ import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "
  * Control › Anulaciones (territorial.md §3.12): qué quedó fuera del conteo por
  * anulación, por distrito y por UMP, y una tarjeta por anulación activa con
  * «Revertir».
- *
- * `production_annulments$affected_blocks` está tipado en el cliente con la
- * forma de `impact.blocks`, pero el motor lo publica con otros nombres
- * (`block_id`, `responses_annulled`, `valid_annulled`): se lee con los dos.
  */
 
 export type TarjetaDeAnulacion = {
@@ -98,17 +94,16 @@ export function construirAnulaciones(reports: MonitoreoTerritorialDashboard | nu
     (reports?.route_quota_progress?.ump_groups ?? []).map((grupo) => [numeroDeUmp(grupo.ump), String(grupo.status ?? "")]),
   );
   const conRuta = estadoPorUmp.size > 0;
-  const crudos = (anulaciones?.affected_blocks ?? []) as unknown as Array<Record<string, unknown>>;
-  const umps: UmpAnulada[] = crudos.map((bloque, indice) => {
+  const umps: UmpAnulada[] = (anulaciones?.affected_blocks ?? []).map((bloque, indice) => {
     const ump = numeroDeUmp(bloque.ump);
     const estado = estadoPorUmp.get(ump);
     return {
-      clave: texto(bloque.block_id ?? bloque.id_manzana) || `bloque-${indice}`,
+      clave: texto(bloque.block_id) || `bloque-${indice}`,
       ump,
       manzana: texto(bloque.manzana),
-      distrito: texto(bloque.district ?? bloque.distrito) ? nombreDeDistrito(bloque.district ?? bloque.distrito) : "Sin distrito",
-      anuladas: n(bloque.responses_annulled ?? bloque.respuestas_anuladas) ?? 0,
-      validasAnuladas: n(bloque.valid_annulled ?? bloque.validas_anuladas) ?? 0,
+      distrito: texto(bloque.district) ? nombreDeDistrito(bloque.district) : "Sin distrito",
+      anuladas: n(bloque.responses_annulled) ?? 0,
+      validasAnuladas: n(bloque.valid_annulled) ?? 0,
       estadoActual: !conRuta ? "—" : estado == null ? "No está en la ruta" : ESTADO_DE_UMP[estado.toLowerCase()] ?? "En campo",
     };
   });

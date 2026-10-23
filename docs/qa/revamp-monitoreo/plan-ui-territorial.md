@@ -57,7 +57,7 @@ Se conservan las 11 de `territorial.md`; aquí sólo las que una fase vuelve a t
 | # | Hallazgo | Dónde vive | Estado |
 |---|---|---|---|
 | H-1 | Las aprobaciones de observaciones se guardan y nadie las lee. La config acepta `validation_decisions.approved_response_ids`, pero `.monitoreo_territorial_validation_decision_ids` no tiene llamadores y la auditoría deja `validation_decision` vacío, así que una observación «aprobada» sigue igual. Por eso Control › Bandeja no dibuja «Aprobar observación». | `api/R/monitoreo_engine.R` (congelado) | Llevado por el lead; roza la pregunta 3 |
-| H-2 | El tipo del cliente no coincide con lo que el motor publica en `production_annulments.affected_blocks`. El tipo dice `id_manzana`, `respuestas_anuladas` y `validas_anuladas`; el motor envía `block_id`, `responses_annulled`, `valid_annulled`, `district` y `latest_activity`. Control › Anulaciones lee los dos juegos de nombres; corregir el tipo toca `api/monitoreo.ts`, que es compartido. | `frontend/src/api/monitoreo.ts` · `.monitoreo_territorial_annulled_blocks_payload` | Rodeado en T5; falta corregir el tipo |
+| H-2 | El tipo del cliente no coincide con lo que el motor publica en `production_annulments.affected_blocks`. El tipo dice `id_manzana`, `respuestas_anuladas` y `validas_anuladas`; el motor envía `block_id`, `responses_annulled`, `valid_annulled`, `district` y `latest_activity`. Corregido con el tipo `MonitoreoTerritorialAnnulledBlock` (autorizado por el lead). La lectura doble se quitó porque `affected_blocks` lo recalcula el motor en cada reporte y no se guarda en ningún `.pulso`; los nombres viejos solo existen en `impact.blocks`, que es otra estructura. | `frontend/src/api/monitoreo.ts` · `.monitoreo_territorial_annulled_blocks_payload` | Corregido |
 
 ## Notas por fase
 
@@ -162,7 +162,7 @@ la Bandeja siguen montando las vistas heredadas.
   qué celda, a qué distancia), con nota de la decisión y «Aplicar paquete». Si la nota queda vacía se guarda una que
   dice qué se movió (pregunta 1). A la derecha, activas por distrito, revertidas e historial con «Revertir» en dos
   pasos. `foco=<UMP>` desde Faltante pone ese paquete primero.
-- **Anulaciones** (`AnulacionesTab.tsx`): casos fuera del conteo por distrito (los sin distrito al final), una tarjeta
+- **Anulaciones** (`AnulacionesTab.tsx`, lee `affected_blocks` con su tipo corregido, H-2): casos fuera del conteo por distrito (los sin distrito al final), una tarjeta
   por anulación activa con su impacto, su motivo y «Revertir» en dos pasos, y la tabla de UMP afectadas con su estado
   actual («No está en la ruta» si la UMP no figura en `ump_groups`).
 - **Conciliación** (`ConciliacionTab.tsx`): Códigos y UMP declarada, con cifras, los pendientes con su selector (el
