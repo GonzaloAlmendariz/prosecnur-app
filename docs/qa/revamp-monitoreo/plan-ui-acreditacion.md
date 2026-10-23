@@ -256,6 +256,16 @@ contrato (`filters`, `meta`, `meta_pct`) que guardaba cada tarjeta; solo cambian
 - **Diferencia con el lienzo:** la meta se redondea como hoy (`round`), no con `ceiling` como dice la ficha. Cambiarlo
   movería metas guardadas; queda como pregunta. No hay columna «Cuota declarada»: las cuotas se leen en M2.
 
+**A7, Modelo › Cuotas (escrita, sin gate ni capturas).** `modelo/Cuotas.tsx` (test): la lista de cuotas declaradas
+y de variables sin cuota (con «Definir cuota», que abre el panel con ese público y esa variable), y la cuota elegida
+con sus metas por categoría y el aviso cuando no suman la meta del público (812 frente a 811). La configuración
+(lectura, dirección, proponer, guardar y quitar) salió de `AvanceCuotas` a `useConfiguracionDeCuotas.tsx` sin cambiar
+lógica; Avance la sigue usando hasta A8. Se edita con el mismo panel de siempre (`panel=cuota`).
+
+- La pestaña se monta sobre la clave interna `modelo/resumen`, que el modo ya no usaba. La declaración de variables
+  de control de Distribución queda como sub-vista (`panel=variables`) hasta que A8 decida su lugar en Por cuota.
+- D7 sigue abierta: se avisa la diferencia, no se elige cuál manda.
+
 ## Preguntas surgidas en la implementación
 
 - **Redondeo de la meta (M1)**: la ficha dice meta = `ceiling(personas × cobertura)`; la app redondea al entero más

@@ -99,3 +99,17 @@
   .acr-ps.is-metas { grid-template-columns: minmax(0, 1fr); }
   .acr-mo-columna { grid-template-rows: auto; }
 }
+
+/* Cuotas (M2): lista de cuotas y variables a 300 px; la cuota elegida al lado. */
+.acr-ps.is-cuotas {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.acr-ps.is-cuotas .acr-pr-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
+}

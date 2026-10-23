@@ -28,7 +28,11 @@ const TABLA: readonly EntradaDeTabla<SeccionAcreditacion>[] = [
   entrada("insumos", "fuentes", "recopiladores", { seccion: "fuentes", pestana: "recopiladores" }, "Recopiladores"),
   entrada("insumos", "reglas", null, { seccion: "telefonico", pestana: "estados" }),
   entrada("modelo", "metas", null, { seccion: "modelo", pestana: "estructura" }),
-  entrada("modelo", "cuotas", null, { seccion: "modelo", pestana: "distribucion" }),
+  // Modelo › Cuotas (M2) se monta sobre la clave interna `resumen`, que el modo
+  // ya no usaba; la declaración de variables de control de Distribución sigue
+  // como sub-vista hasta que Avance › Por cuota (A8) la absorba.
+  entrada("modelo", "cuotas", null, { seccion: "modelo", pestana: "resumen" }, "Cuotas"),
+  entrada("modelo", "cuotas", "variables", { seccion: "modelo", pestana: "distribucion" }, "Variables de control"),
   entrada("modelo", "ventana", null, { seccion: "modelo", pestana: "estrategias" }),
   // Grupo Contacto: existe solo si el estudio declara el canal.
   entrada("control", "correo", null, { seccion: "avance", pestana: "correo" }),
@@ -64,7 +68,6 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
   seccionesInternas: ["fuentes", "modelo", "consultas", "telefonico", "avance"],
   tabla: TABLA,
   ocultas: {
-    "modelo/resumen": { seccion: "modelo", pestana: "estructura" },
     // Las claves viejas de Fuentes (`survey`, `collectors`…) se leen como su pestaña de hoy.
     ...Object.fromEntries(clavesAceptadasDeFuentes().map((clave) => [
       `fuentes/${clave}`,
@@ -88,8 +91,10 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
     "control/reintentos": ["caso"],
     // Inspector del público en Avance › Por público: `panel=publico&foco=<público>`.
     "avance/publicos": ["publico"],
-    // Editor de una cuota (`AvanceCuotasPanel`), hasta que pase a Modelo › Cuotas (M2).
+    // Editor de una cuota (`AvanceCuotasPanel`): se abre en Modelo › Cuotas (M2) y,
+    // mientras A8 no lo retire, también desde Avance › Por cuota.
     "avance/cuotas": ["cuota"],
+    "modelo/cuotas": ["cuota"],
   },
 });
 
