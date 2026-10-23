@@ -31,4 +31,17 @@ describe("Control › Calidad", () => {
     expect(html).toContain("Muy corta");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
   });
+
+  it("revisa las cortas y deja las largas como dato neutro, fuera de lo que se revisa", () => {
+    const state = { config: { min_duration_seconds: 60, max_duration_seconds: 7200 }, dashboard: { inconsistencies: [
+      { id: "813", tipo: "duracion_muy_corta", valor: "45" },
+      { id: "900", tipo: "duracion_muy_larga", valor: "855360" },
+    ] } } as unknown as MonitoreoState;
+    const html = renderToStaticMarkup(<Calidad reports={{ schema: "t", generated_at: "", reference_tabs: [], sheets: [] } as unknown as MonitoreoAcreditacionReports} state={state} />);
+    expect(html).toContain("A revisar: menos de 1 min");
+    expect(html).toContain("Más de 2 h, no se revisan");
+    expect(html).toContain("Muy corta");
+    expect(html).not.toContain("Muy larga");
+    expect(html).not.toContain("900");
+  });
 });

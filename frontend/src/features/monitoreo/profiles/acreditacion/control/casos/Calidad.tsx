@@ -18,21 +18,23 @@ type PropsDeVista = {
 };
 
 export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVista) {
-  const cortas = duraciones.filter((item) => item.tipo === "corta").length;
-  const largas = duraciones.length - cortas;
+  // Regla de Gonzalo: el control de tiempo vigila las encuestas CORTAS. Las que
+  // pasan del máximo no son un problema: quedan como dato neutro, fuera de lo
+  // que se revisa.
+  const cortas = duraciones.filter((item) => item.tipo === "corta");
+  const largas = duraciones.length - cortas.length;
   return (
     <div className="acr-ps is-calidad" data-qa-geometry-group="acreditacion-control-calidad" data-qa-geometry-contract="intrinsic">
-      <section className="acr-av-panel acr-ps-tabla" aria-label="Duraciones fuera de rango">
+      <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas demasiado cortas">
         <header className="acr-av-panel-cabecera">
-          <h3>Duraciones fuera de rango <span className="acr-av-tenue">{`Rango aceptado de ${duracionLegible(minimo)} a ${duracionLegible(maximo)}`}</span></h3>
+          <h3>Respuestas demasiado cortas <span className="acr-av-tenue">{`Se revisan las de menos de ${duracionLegible(minimo)}`}</span></h3>
         </header>
-        <div className="acr-cl-cifras" data-qa-geometry-group="acreditacion-calidad-cifras" data-qa-geometry-contract="equal">
-          <div className="acr-res-kpi" data-qa-geometry-member><small>Fuera de rango</small><b className="acr-av-num">{fmt(duraciones.length)}</b></div>
-          <div className="acr-res-kpi" data-qa-geometry-member><small>{`Menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas)}</b></div>
-          <div className="acr-res-kpi" data-qa-geometry-member><small>{`Más de ${duracionLegible(maximo)}`}</small><b className="acr-av-num">{fmt(largas)}</b></div>
+        <div className="acr-cl-cifras is-dos" data-qa-geometry-group="acreditacion-calidad-cifras" data-qa-geometry-contract="equal">
+          <div className="acr-res-kpi" data-qa-geometry-member><small>{`A revisar: menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas.length)}</b></div>
+          <div className="acr-res-kpi is-neutra" data-qa-geometry-member><small>{`Más de ${duracionLegible(maximo)}, no se revisan`}</small><b className="acr-av-num">{fmt(largas)}</b></div>
         </div>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
-          {duraciones.length ? (
+          {cortas.length ? (
             <table className="acr-pub-tabla">
               <thead>
                 <tr>
@@ -42,16 +44,16 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
                 </tr>
               </thead>
               <tbody>
-                {duraciones.map((item) => (
+                {cortas.map((item) => (
                   <tr key={`${item.id}-${item.segundos}`}>
                     <th scope="row" className="acr-av-num">{item.id}</th>
                     <td className="is-num">{duracionLegible(item.segundos)}</td>
-                    <td><span className={`acr-av-chip${item.tipo === "corta" ? " is-falta" : ""}`}>{item.tipo === "corta" ? "Muy corta" : "Muy larga"}</span></td>
+                    <td><span className="acr-av-chip is-falta">Muy corta</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">Ninguna respuesta sale del rango de duración.</Alert></div>}
+          ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">{`Ninguna respuesta dura menos de ${duracionLegible(minimo)}.`}</Alert></div>}
         </div>
       </section>
       <section className="acr-av-panel acr-ps-respondieron" aria-label="Señales de consistencia">
