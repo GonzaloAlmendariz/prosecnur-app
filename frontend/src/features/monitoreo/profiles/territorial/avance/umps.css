@@ -1,6 +1,6 @@
 /* Avance › UMP (territorial.md §3.16 y §3.16b) y la ficha de UMP que también
- * usa Avance › Mapa. La tabla llena el alto y desplaza dentro; el inspector
- * va al costado (400 px) con su propio desplazamiento. Escala 4/8/12/16/24. */
+ * usa Avance › Mapa. La tabla llena el alto y desplaza dentro; la ficha va al
+ * costado del mapa o de la exploración. Escala 4/8/12/16/24. */
 
 .mon-umps {
   display: grid;
@@ -8,10 +8,6 @@
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
-}
-
-.mon-umps.con-ficha {
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
 }
 
 .mon-umps-panel,
@@ -147,14 +143,12 @@
 }
 
 .mon-umps-tabla-marco::-webkit-scrollbar,
-.mon-umps-inspector::-webkit-scrollbar,
 .mon-ump-casos::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .mon-umps-tabla-marco::-webkit-scrollbar-thumb,
-.mon-umps-inspector::-webkit-scrollbar-thumb,
 .mon-ump-casos::-webkit-scrollbar-thumb {
   border-radius: 4px;
   background: var(--pulso-border-strong);
@@ -218,15 +212,9 @@
   cursor: pointer;
 }
 
-.mon-umps-tabla tbody th button:hover,
-.mon-umps-tabla tr.is-abierta th button {
+.mon-umps-tabla tbody th button:hover {
   border-color: var(--pulso-module-monitoring-border);
   background: var(--pulso-module-monitoring-soft);
-}
-
-.mon-umps-tabla tr.is-abierta td,
-.mon-umps-tabla tr.is-abierta th {
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 45%, var(--pulso-surface));
 }
 
 .mon-umps-sin-filas {
@@ -251,20 +239,6 @@
   display: block;
   height: 100%;
   background: var(--pulso-brand-navy);
-}
-
-.mon-umps-inspector {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-  min-height: 0;
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--pulso-border-strong) transparent;
-}
-
-.mon-umps-inspector > * {
-  flex: 0 0 auto;
 }
 
 /* Ficha de la UMP. */
@@ -613,10 +587,6 @@
 }
 
 @media (max-width: 1180px) {
-  .mon-umps.con-ficha {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
-  }
-
   .mon-umps-buscar input {
     width: 160px;
   }
