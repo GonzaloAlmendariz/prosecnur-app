@@ -52,6 +52,12 @@ Se conservan las 11 de `territorial.md`; aquí sólo las que una fase vuelve a t
 |---|---|---|---|
 | T-1 | En Faltante por UMP, ¿el aplicador se muestra sólo por su código (P132), con el nombre en el `title`, o como hoy, con código y nombre? | (a) Sólo código. (b) Código y nombre. | (b), como hoy: `rotuloDeAplicador` devuelve «P132 · Nombre». |
 
+## Hallazgos para Gonzalo
+
+| # | Hallazgo | Dónde vive | Estado |
+|---|---|---|---|
+| H-1 | Las aprobaciones de observaciones se guardan y nadie las lee. La config acepta `validation_decisions.approved_response_ids`, pero `.monitoreo_territorial_validation_decision_ids` no tiene llamadores y la auditoría deja `validation_decision` vacío, así que una observación «aprobada» sigue igual. Por eso Control › Bandeja no dibuja «Aprobar observación». | `api/R/monitoreo_engine.R` (congelado) | Llevado por el lead; roza la pregunta 3 |
+
 ## Notas por fase
 
 (Se completan al cerrar cada fase.)
