@@ -104,6 +104,11 @@ function esSinAsignar(alerta: AcreditacionQualityAlertItem) {
   return clave.includes("sin responsable") || clave.includes("sin asignar");
 }
 
+/** El motor escribe a veces «codigo:MVH0006»; la ficha muestra el código. */
+function codigoDeCaso(valor: unknown) {
+  return texto(valor).replace(/^c[oó]digo\s*:\s*/i, "");
+}
+
 /** Una línea por persona (o lugar), sumando sus alertas: nadie aparece dos veces. */
 function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desglose"] {
   const porEtiqueta = new Map<string, number | null>();
@@ -139,8 +144,8 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     filasPorTipo.set(tipo, [...(filasPorTipo.get(tipo) ?? []), fila]);
   });
   const afectadosDe = (tipo: string): CasoAfectado[] => (filasPorTipo.get(normal(tipo)) ?? [])
-    .filter((fila) => texto(fila.CodPulso))
-    .map((fila) => ({ codigo: texto(fila.CodPulso), responsable: texto(fila.Responsable), fecha: "", nota: texto(fila.Detalle) }));
+    .filter((fila) => codigoDeCaso(fila.CodPulso))
+    .map((fila) => ({ codigo: codigoDeCaso(fila.CodPulso), responsable: texto(fila.Responsable), fecha: "", nota: texto(fila.Detalle) }));
   porCausa.forEach((grupo) => {
     const primera = grupo[0];
     const afectados = afectadosDe(primera.type);
