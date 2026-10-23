@@ -247,7 +247,19 @@ Personas y variables salen de `GET /api/monitoreo/cuotas` (`useEstadoDeCuotas`).
   personales» (H9): el estado no publica las columnas de cada fuente. Publicarlas es un cambio del motor.
 - La llave se muestra como la declara el proyecto, en orden de prueba, no la columna exacta de cada padrón.
 
+**A7, Modelo › Metas (escrita, sin gate ni capturas).** `modelo/Metas.tsx` con `metasModelo.ts` (test): meta por
+público con la cobertura editable y la meta que resulta (y al revés), un solo «Guardar», la cobertura exigida de
+mayor a menor y el reparto de la meta. Se guarda por `apiMonitoreoConfig` con `upsertAcreditacionActorGoal`, el mismo
+contrato (`filters`, `meta`, `meta_pct`) que guardaba cada tarjeta; solo cambian los públicos editados.
+`preferredGoalVariable` salió del page-file a `AcreditacionActorGoals.ts`.
+
+- **Diferencia con el lienzo:** la meta se redondea como hoy (`round`), no con `ceiling` como dice la ficha. Cambiarlo
+  movería metas guardadas; queda como pregunta. No hay columna «Cuota declarada»: las cuotas se leen en M2.
+
 ## Preguntas surgidas en la implementación
+
+- **Redondeo de la meta (M1)**: la ficha dice meta = `ceiling(personas × cobertura)`; la app redondea al entero más
+  cercano desde siempre. ¿Se cambia?
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
   dudosos. Se dejó como hoy. ¿Se exige también para descartar?

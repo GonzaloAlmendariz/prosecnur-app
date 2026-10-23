@@ -73,6 +73,7 @@ import { Personas } from "./control/casos/Personas";
 import { Respuestas } from "./control/casos/Respuestas";
 import { Calidad } from "./control/casos/Calidad";
 import { Publicos } from "./insumos/Publicos";
+import { Metas } from "./modelo/Metas";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -151,7 +152,7 @@ import {
   type AcreditacionQualityAlertItem,
   type AcreditacionQualityAlertTone,
 } from "./AcreditacionPhoneAlerts";
-import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
+import { preferredGoalVariable, upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
 import {
   acreditacionActorOptions,
   acreditacionCollectorCountForSource,
@@ -4230,14 +4231,6 @@ function statusValueOptions(variables: MonitoreoVariable[], statusVar: string, c
     "rejected",
     "partial",
   ].map((value) => String(value ?? "").trim()).filter(Boolean)));
-}
-
-function preferredGoalVariable(vars: string[]) {
-  return vars.find((variable) => normalizeSourceMatch(variable).includes("actor"))
-    ?? vars.find((variable) => normalizeSourceMatch(variable).includes("carrera"))
-    ?? vars.find((variable) => normalizeSourceMatch(variable).includes("segment"))
-    ?? vars[0]
-    ?? "";
 }
 
 function prettyModelLabel(value: string) {
@@ -16370,6 +16363,9 @@ function renderAcreditacionView(
         onPublished={options.onPublished}
       />
     );
+  }
+  if (view === "modelo" && (options.activeModelTab ?? "estructura") === "estructura" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Metas (A7).
+    return <Metas state={options.state} onStateChange={options.onStateChange} />;
   }
   if (view === "modelo") {
     return (

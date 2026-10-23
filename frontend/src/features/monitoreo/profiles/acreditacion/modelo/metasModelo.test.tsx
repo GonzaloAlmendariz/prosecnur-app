@@ -1,0 +1,47 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import type { MonitoreoGoal, MonitoreoState } from "../../../../../api/client";
+import { cambios, conCobertura, conMeta, filasDeMetas, metasAGuardar } from "./metasModelo";
+import { Metas } from "./Metas";
+
+const PUBLICOS = [
+  { actor: "Administrativos", universo: 16, efectivas: 15, meta: 15, variables: [] },
+  { actor: "Egresados", universo: 270, efectivas: 178, meta: 108, variables: [] },
+];
+const GOALS = [
+  { filters: { dim_actor: "Administrativos" }, meta: 15, meta_pct: 90 },
+  { filters: { dim_actor: "Egresados" }, meta: 108, meta_pct: 40 },
+] as unknown as MonitoreoGoal[];
+
+describe("Modelo › Metas", () => {
+  const filas = filasDeMetas(PUBLICOS, GOALS);
+
+  it("lee la meta y la cobertura guardadas", () => {
+    expect(filas).toEqual([
+      { publico: "Administrativos", personas: 16, meta: 15, cobertura: 90 },
+      { publico: "Egresados", personas: 270, meta: 108, cobertura: 40 },
+    ]);
+  });
+
+  it("la cobertura recalcula la meta y al revés, con la regla de la tarjeta de hoy", () => {
+    expect(conCobertura(filas[1], "45")).toEqual({ cobertura: "45", meta: "122" });
+    expect(conMeta(filas[1], "135")).toEqual({ meta: "135", cobertura: "50" });
+  });
+
+  it("guarda solo lo que cambió con el mismo contrato de metas", () => {
+    const borradores = { Administrativos: { meta: "15", cobertura: "90" }, Egresados: conCobertura(filas[1], "45") };
+    const cambiadas = cambios(filas, borradores);
+    expect(cambiadas.map((fila) => fila.publico)).toEqual(["Egresados"]);
+    expect(metasAGuardar(GOALS, cambiadas, borradores, "dim_actor")).toEqual([
+      { filters: { dim_actor: "Administrativos" }, meta: 15, meta_pct: 90 },
+      { filters: { dim_actor: "Egresados" }, meta: 122, meta_pct: 45 },
+    ]);
+  });
+
+  it("la vista no muestra claves crudas", () => {
+    const state = { config: { goals: GOALS }, variables: [] } as unknown as MonitoreoState;
+    const html = renderToStaticMarkup(<Metas state={state} publicosDePrueba={PUBLICOS} />);
+    expect(html).toContain("Cobertura exigida");
+    expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
+  });
+});

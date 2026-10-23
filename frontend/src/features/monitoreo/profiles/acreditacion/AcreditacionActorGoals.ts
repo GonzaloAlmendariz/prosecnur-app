@@ -1,4 +1,5 @@
 import type { MonitoreoGoal } from "../../../../api/client";
+import { normalizeSourceMatch } from "./formato";
 
 export function normalizeAcreditacionGoalMatch(value: unknown) {
   return String(value ?? "")
@@ -52,4 +53,13 @@ export function upsertAcreditacionActorGoal({
   }, []);
 
   return replaced ? next : [...next, nextGoal];
+}
+
+/** La variable con que una meta nombra a su actor (`dim_actor` en los estudios de hoy). */
+export function preferredGoalVariable(vars: string[]) {
+  return vars.find((variable) => normalizeSourceMatch(variable).includes("actor"))
+    ?? vars.find((variable) => normalizeSourceMatch(variable).includes("carrera"))
+    ?? vars.find((variable) => normalizeSourceMatch(variable).includes("segment"))
+    ?? vars[0]
+    ?? "";
 }
