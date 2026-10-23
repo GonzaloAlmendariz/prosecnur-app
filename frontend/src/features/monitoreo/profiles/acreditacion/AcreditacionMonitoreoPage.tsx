@@ -76,6 +76,8 @@ import { Publicos } from "./insumos/Publicos";
 import { Metas } from "./modelo/Metas";
 import { Cuotas } from "./modelo/Cuotas";
 import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
+import { Fuentes } from "./insumos/Fuentes";
+import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
@@ -216,7 +218,6 @@ import { SourceSyncActions, type SourceSyncActionsProgress } from "../../compone
 import type { MonitoreoInterestVariable, MonitoreoStateRule } from "../../../../api/monitoreo";
 import type { MonitoreoReportScope } from "../types";
 import { FranjaDeFuentes } from "./fuentes/FranjaDeFuentes";
-import { FuentesResumen } from "./fuentes/FuentesResumen";
 import { FuentesUniverso } from "./fuentes/FuentesUniverso";
 import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
@@ -6877,14 +6878,6 @@ function acreditacionChannelModality(value: unknown): MonitoreoStrategyPhase["mo
   return channelOptionForValue(value).modality;
 }
 
-function collectorTypeLabel(value: string) {
-  const normalized = normalizeSourceMatch(value);
-  if (normalized === "email") return "Envío por correo";
-  if (normalized === "weblink" || normalized === "web_link" || normalized === "web link") return "Link abierto";
-  if (normalized === "sms") return "SMS";
-  return value || "Enlace";
-}
-
 function collectorDisplayName(item: MonitoreoSurveyMonkeyCollector | MonitoreoLinkCollector) {
   const raw = String(item.collector_name || item.collector_id || "Recopilador").trim();
   if (/^collector\s+/i.test(raw)) return raw.replace(/^collector/i, "Recopilador");
@@ -9989,19 +9982,16 @@ function AcreditacionSourcesWorkbench({
   // padrón de cada actor, y las fichas de encuesta de quién es cada encuesta y
   // por qué canal se aplica. El orden va de lo general a la decisión: primero
   // se lee el inventario, después se declara.
-  if (!isPhoneSourceModel) {
+  if (!isPhoneSourceModel) { // Insumos › Fuentes (A6): maestro por público y recopiladores; la declaración, debajo.
     return (
       <div className="mon-profile-stack fuentes-resumen-stack is-inventario">
         {sourceStatus}
-        <FuentesResumen
+        <Fuentes
           sources={operationalSources}
           linkCollectors={state?.config?.operational_model.link_collectors ?? []}
-        />
-        <FuentesUniverso sources={operationalSources} />
-        <AcreditacionPlatformSurveySourcesView
-          sources={operationalSources}
-          config={state?.config}
+          configDeRecopilador={collectorConfigFromRow}
           onStateChange={onStateChange}
+          declaracion={<><FuentesUniverso sources={operationalSources} /><AcreditacionPlatformSurveySourcesView sources={operationalSources} config={state?.config} onStateChange={onStateChange} /></>}
         />
       </div>
     );

@@ -23,6 +23,11 @@ const RAIZ = path.resolve(__dirname);
  * su archivo.
  */
 const SIN_MONTAR_CONOCIDOS = [
+  // Desmontado el 2026-10-23 por el revamp de acreditación (Insumos › Fuentes,
+  // ficha I2): el maestro de fuentes por público con su detalle reemplaza el
+  // inventario por papel, enlace al servicio incluido. Es una MUDANZA, no un
+  // borrado: retirar el archivo es decisión con doble confirmación.
+  "FuentesResumen.tsx::FuentesResumen",
   // Salió de la pestaña «Metas» el 2026-09-08 con el resto de la predicción.
   // Gonzalo: «lo nada que tenga que ver con predicción porque eso le pertenece a
   // otra pestaña» — es una MUDANZA pendiente, no un borrado, y por eso el

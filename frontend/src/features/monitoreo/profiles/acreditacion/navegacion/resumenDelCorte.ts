@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { MonitoreoAcreditacionReports, MonitoreoGoal } from "../../../../../api/client";
+import type { MonitoreoAcreditacionReports, MonitoreoGoal, MonitoreoInternalQueryTotal } from "../../../../../api/client";
 import { normalizeInternalQueries } from "../../../internalQueries";
 import { normalizeSourceMatch } from "../formato";
 import { advanceCardsFromRows, type AcreditacionAdvanceCard } from "../avance/tarjetasDeAvance";
@@ -54,6 +54,8 @@ type EstadoDelResumen = {
   barrido: Map<string, BarridoDelPublico> | null;
   /** Efectivas por fuente y canal del reporte del cliente (`client_report.sources`). */
   fuentes: Array<Record<string, unknown>> | null;
+  /** Respuestas y efectivas por recopilador (`internal_queries.totals.collector`), del corte de Control. */
+  recopiladores: MonitoreoInternalQueryTotal[] | null;
   /** La lectura de casos falló: las vistas dejan de esperarla. */
   casosFallaron: boolean;
   marcarFalloDeCasos: () => void;
@@ -83,6 +85,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
   issues: null,
   barrido: null,
   fuentes: null,
+  recopiladores: null,
   casosFallaron: false,
   marcarFalloDeCasos: () => set({ casosFallaron: true }),
   observar: (reports, goals) => {
@@ -90,12 +93,15 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
     const avance = avanceDeReports(reports, goals);
     const consultas = reports.report_scope === "queries_summary" || reports.report_scope === "full"
       || (Array.isArray(reports.internal_queries?.issues) && reports.internal_queries.issues.length > 0);
-    const issues = consultas ? normalizeInternalQueries(reports.internal_queries).issues : null;
+    const normalizadas = consultas ? normalizeInternalQueries(reports.internal_queries) : null;
+    const issues = normalizadas ? normalizadas.issues : null;
+    const recopiladores = normalizadas?.totals.collector.length ? normalizadas.totals.collector : null;
     const barrido = barridoDeReports(reports);
     const crudas = reports.client_report?.sources;
     const fuentes = Array.isArray(crudas) && crudas.length ? crudas as Array<Record<string, unknown>> : null;
     set((previo) => ({
       fuentes: fuentes ?? previo.fuentes,
+      recopiladores: recopiladores ?? previo.recopiladores,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,
@@ -103,7 +109,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       issues: issues ?? previo.issues,
     }));
   },
-  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, casosFallaron: false }),
+  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, casosFallaron: false }),
 }));
 
 /** Para quien observa fuera de React (el prefetch de scopes). */
