@@ -136,7 +136,7 @@ export type MonitoreoOutputsWorkbenchProps = {
   onPublished?: () => void;
   /**
    * Detalle bajo «Válidas» cuando el modo lee otra cifra. Sólo lo pasa el
-   * telefónico («69 con actor y 1 sin actor»); los demás modos no cambian.
+   * telefónico («69 con cuota y 1 sin actor»); los demás modos no cambian.
    */
   notaDeValidas?: string;
 };

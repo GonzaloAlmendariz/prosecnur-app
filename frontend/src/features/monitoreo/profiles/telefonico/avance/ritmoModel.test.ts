@@ -55,7 +55,7 @@ describe("Avance › Ritmo del telefónico", () => {
       ["Día con un dígito (1/07/2026)", 137],
       ["Día con dos dígitos (01/07/2026)", 25],
       ["Llamados sin fecha", 4],
-      ["Año 2020, de otro año que la hoja", 1],
+      ["Con año 2020 (fuera del periodo)", 1],
     ]);
   });
 
