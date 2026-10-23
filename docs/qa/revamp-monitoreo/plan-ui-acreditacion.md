@@ -43,7 +43,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ◐ (Barrido, Equipo, Cruce, Calidad, Personas y Respuestas escritas; Correo sigue con la vista de T3) |
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
-| A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ☐ |
+| A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ◐ (las cuatro escritas; falta typecheck, gates y capturas) |
 
 ## A1: cómo se traduce cada pestaña mientras no tiene contenido propio
 
@@ -314,6 +314,46 @@ pestaña pública en la navegación v3.
 (84 s, 1,461 archivos): 2 rojos, los dos de la base y ajenos a esta rama — `lectoresDeDireccion`
 (`telefonico/modelo/Cuotas.tsx`, ya corregido en la rama de Telefónico) y `ModuleChrome.contract` (dos reglas de
 `shell/barraDelModo.css`, del commit e1ab35d5a de Telefónico).
+
+**A8, Avance › Ritmo (escrita, sin gate ni capturas).** `avance/Ritmo.tsx` con `ritmoModelo.ts` y `mapaDeCalor.ts`
+(test): efectivas por día apiladas por público sobre un calendario continuo (los días sin efectivas existen; se
+acaba el eje «may may may»), con eje Y, su título y la franja de fases encima en el mismo eje; sin fases, «Declarar
+fases» lleva a Modelo › Ventana de campo. Debajo, efectivas por semana (lunes a domingo) por público; a la derecha,
+«Pulso del campo»: promedio de 7 días, mejor día, días con efectivas, canal que más aporta, promedio por día de la
+semana, efectivas por canal y última efectiva por público. El desglose de siempre por fuente, canal y recopilador
+queda en un sideover direccionable (`panel=fuentes`), sobre `core/superficieFlotante/SuperficieFlotante.tsx`, nueva y
+compartida (portal, Escape, foco al cerrar y de vuelta, movimiento reducido, solo tokens globales).
+
+- **Diferencias con el lienzo:** el mapa de calor es público × semana en los dos proyectos (no fuente × semana): la
+  serie por fuente se arma en la página congelada y sigue en el sideover. Con más de 7 públicos, los menores se
+  juntan en «Otros N públicos» para que los colores se distingan (seis tonos y uno para el resto).
+
+**A8, Avance › Salidas y Cerrar campo (escrita, sin gate ni capturas).** `avance/Salidas.tsx`,
+`avance/DialogoCerrarCampo.tsx` y `salidasModelo.ts` (test). Arriba, «Publicaciones frente al corte» (cada Sheets con
+su última publicación: al día, anterior al corte o sin publicar, con enlace) y «Cierre del campo» (metas cumplidas,
+casos por resolver, Sheets del cliente y aprobación metodológica). «Cerrar campo» abre un diálogo direccionable
+(`panel=cerrar-campo`) con lo pendiente, el plan de refuerzo y el switch de aprobación; el botón dice la cifra
+(«Cerrar con 4 de 4 metas») y sigue la regla del motor (`monitoreo_acreditacion_cerrar`: con brechas bloqueantes,
+plan o aprobación). Se cierra con el mismo `apiMonitoreoCierre` de siempre. Debajo, las tarjetas de salida de
+siempre (`MonitoreoOutputsWorkbench`, compartido, sin tocar).
+
+- **Diferencias con el lienzo:** la línea de tiempo no lista las 13 publicaciones: el estado solo trae la última de
+  cada Sheets (`publication.*_last_sheets`); el historial (`monitoreo_publication_sheet_events_*`) no llega al
+  frontend. «Revisar antes de publicar» y las seis tarjetas nuevas no se rehicieron: las tarjetas son las de siempre.
+  La app no ofrece reabrir un campo cerrado, y el diálogo lo dice.
+
+**A8, Avance › Por cuota (escrita, sin gate ni capturas).** `avance/PorCuota.tsx`, `avance/PesasDeComposicion.tsx`
+y `composicionModelo.ts` (test; el nombre `pesasDeComposicion.ts` de la ficha choca con el componente en un disco
+que no distingue mayúsculas). Lista «Variables»: cuotas con avance y categorías cumplidas, y variables de control sin
+meta (`client_report.controls`) con su mayor diferencia en pp. Detalle de una cuota: franja (efectivas, meta por
+categorías, meta del público con su diferencia por redondeo, la categoría más atrasada) y el detalle de siempre
+(`AvanceCuotasDetalle`, sin cambios); «Editar en Modelo» lleva a `modelo/cuotas&foco=<id>`. Sin meta: composición
+% del universo frente a % de las efectivas con escala y diferencia, y «Definir cuota en Modelo».
+
+- No toqué `AvanceCuotas*.tsx` ni `AvanceCuotas.css`: `main` tiene cambios sin commitear en `AvanceCuotasDetalle.tsx`
+  y `AvanceCuotas.css`. El estudio telefónico sigue montando `AvanceCuotas` con su editor (`panel=cuota`).
+- **Diferencia con el lienzo:** el detalle de la cuota usa la lista de barras de `AvanceCuotasDetalle`, no la tabla con
+  % base y Δ de composición; «Definir cuota en Modelo» abre Modelo › Cuotas sin preelegir la variable.
 
 ## Preguntas surgidas en la implementación
 
