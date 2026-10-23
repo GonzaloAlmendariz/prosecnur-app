@@ -13,7 +13,20 @@
  * carrera, y ninguno de esos es una sede tampoco.
  */
 
-/** La variable de cuota que el corte declara, ya humanizada. */
+import { rotuloDeVariable } from "./modelo/variablesDeCuota";
+
+/**
+ * Cómo se muestra el segmento. `nombreDelSegmento` devuelve la clave tal como
+ * viaja en los bloques (`dim_actor`), que se usa para emparejar filas; en
+ * pantalla va humanizada («Actor»): RMS ficticio mostraba `dim_actor` en la
+ * barra, los títulos, las tablas y los filtros.
+ */
+export function rotuloDelSegmento(nombre: string) {
+  const limpio = String(nombre ?? "").trim();
+  return limpio ? rotuloDeVariable(limpio) : "";
+}
+
+/** La variable de cuota que el corte declara, tal como viaja en los bloques. */
 export function nombreDelSegmento(
   variablesDeLasFilas: ReadonlyArray<string>,
   porDefecto = "Cuota",

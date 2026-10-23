@@ -87,6 +87,7 @@ import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { Discrepancias } from "./control/Discrepancias";
 import { Supervision } from "./control/Supervision";
+import { conMetaDelProyecto } from "./avance/metaDelCorte";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
@@ -18639,7 +18640,8 @@ function corteTelefonicoDeReports(
     actorRows as Array<Record<string, unknown>>,
     state?.config?.goals ?? [],
   );
-  return corteAcreditacion(state, cards, { ...fuentes, generatedAt: reports.generated_at });
+  const corte = corteAcreditacion(state, cards, { ...fuentes, generatedAt: reports.generated_at });
+  return esTelefonico ? conMetaDelProyecto(corte, state) : corte;
 }
 
 function renderAcreditacionView(

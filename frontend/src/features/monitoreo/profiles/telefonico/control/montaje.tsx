@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { rotuloDelSegmento } from "../segmentoDeCuotas";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { segmentoDeCuotas } from "../avance/ritmoModel";
 import { Barrido } from "./Barrido";
@@ -27,7 +28,7 @@ export function BarridoDeLaHoja({
     () => construirBarrido({ reports, reglas: reglas ?? [], cuotas }),
     [reports, reglas, cuotas],
   );
-  return <Barrido modelo={modelo} segmento={segmentoDelCorte(reports)} />;
+  return <Barrido modelo={modelo} segmento={rotuloDelSegmento(segmentoDelCorte(reports))} />;
 }
 
 function plural(cantidad: number, uno: string, varios: string) {
@@ -69,7 +70,7 @@ export function RespuestasDelCorte({
   const reglas: ReglaQueCuenta[] = [
     ...textoDeCriterios.map((texto) => ({ texto, tipo: "filtro" as const })),
     { texto: "Un envío por CodPulso", tipo: "regla" },
-    { texto: "Más de 2 h o menos de 5 min", tipo: "aviso" },
+    { texto: "Menos de 5 min", tipo: "aviso" },
   ];
-  return <Respuestas modelo={modelo} cadena={cadena} reglas={reglas} segmento={segmento} />;
+  return <Respuestas modelo={modelo} cadena={cadena} reglas={reglas} segmento={rotuloDelSegmento(segmento)} />;
 }
