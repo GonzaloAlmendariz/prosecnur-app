@@ -217,3 +217,10 @@ hoja irregular (9).
 
 - **No viaja**: el «Formato de CodPulso» como sugerencia de formulario y el último envío de Kobo frente al último día de
   la hoja como fechas (el lienzo los dibuja en la ficha); la causa sí está.
+
+**Pulido de Avisos.** La ficha lista los casos afectados del aviso elegido (CodPulso, responsable, fecha y nota, con
+scroll visible y degradado al pie) cuando el corte los nombra, o su desglose (por responsable, o por cómo vino escrita la
+fecha); si no nombra ninguno, lo dice. La lista de causas reparte el alto entre sus filas. La clave interna del aviso ya
+no se ve (queda en `title` y `data-aviso`). El nivel pasa a un punto junto al título y la fila elegida se marca con
+fondo y borde azul marino, para que no compitan. La ficha declara su grupo de geometría (`telefonico-avisos-ficha`):
+antes el pie anclado con `margin-top: auto` hacía que el panel llegara al borde y el vacío intermedio no se medía.
