@@ -552,7 +552,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 
 # Barras comparativas: lo que el radar entre publicos dibuja cuando tiene menos de 5 criterios. Una barra por publico y
 # tema, con la cifra al extremo, en la paleta de actores del radar; el orden de temas y publicos es el del radar.
-.radar_mb_barras <- function(datos, titulo = NULL, indicador = "", preset = list()) {
+.radar_mb_barras <- function(datos, titulo = NULL, indicador = "", preset = list(), decimales = 0L) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
@@ -564,7 +564,8 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   colores <- stats::setNames(rep_len(pal, nlevels(d$grupo)), levels(d$grupo))
   navy <- "#062A63"
   fuente <- "Arial"
-  d$etiqueta <- sprintf("%d%%", as.integer(floor(d$valor + 0.5)))   # mitad hacia arriba, como la tabla
+  dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec)) dec <- 0L
+  d$etiqueta <- .pulso_fmt_pct_half_up(d$valor, max(0L, min(3L, dec)), escala = 1)   # mitad hacia arriba, como la tabla
   sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL
   ggplot2::ggplot(d, ggplot2::aes(x = .data$valor, y = .data$eje, fill = .data$grupo)) +
     ggplot2::geom_col(position = ggplot2::position_dodge2(reverse = TRUE, padding = 0.15), width = 0.8) +
@@ -592,7 +593,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 # lo que el radar contaba, y la tabla nativa ya da las cifras. Orden de temas y publicos: el del radar. El dumbbell
 # compara exactamente dos publicos; con otro numero cae a barras, que si admiten cualquier cantidad.
 .radar_mb_puntos <- function(datos, titulo = NULL, indicador = "", decimales = 0L, eje = NULL) {
-  if (nlevels(datos$grupo) != 2L) return(.radar_mb_barras(datos, titulo = titulo, indicador = indicador))
+  if (nlevels(datos$grupo) != 2L) return(.radar_mb_barras(datos, titulo = titulo, indicador = indicador, decimales = decimales))
   d <- data.frame(
     eje = factor(.radar_mb_recortar_eje(levels(datos$eje))[as.integer(datos$eje)],
                  levels = .radar_mb_recortar_eje(levels(datos$eje))),
@@ -833,7 +834,11 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #' @param titulos_grupo Títulos de los temas, `clave -> título`. Cuando llega,
 #'   reemplaza la clave de `vars` como etiqueta del vértice; lo que no se nombra
 #'   conserva su clave.
-#' @param mostrar_tabla Si `TRUE`, compone el radar con su tabla al costado.
+#' @param mostrar_tabla Alias viejo de `tabla`: `TRUE` es `"auto"` y `FALSE` es `"no"`. Solo rige si `tabla` no se declara.
+#' @param tabla Tabla de datos del gráfico (lo que reporta el indicador: criterios por públicos): `"auto"` (defecto; tabla
+#'   junto al radar y ninguna con líneas y puntos o barras), `"si"` (en cualquiera de las tres formas) o `"no"`.
+#' @param word_tabla Solo para el Word: `TRUE` pone una tabla nativa, centrada y encima de la figura. Por defecto no va y
+#'   no hereda `tabla`.
 #' @param mostrar_valores Si `TRUE`, escribe el porcentaje en cada vértice.
 #' @param decimales Decimales del porcentaje, en el vértice y en la tabla.
 #'   `0` da enteros.
@@ -881,9 +886,12 @@ p_radar_publicos <- function(
     eje_pocos = NULL,
     eje_pocos_min = NULL,
     eje_pocos_max = NULL,
-    forma = NULL
+    forma = NULL,
+    tabla = NULL,
+    word_tabla = NULL
 ) {
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_radar_publicos()")
+  tabla <- .radar_mb_tabla_modo(tabla, mostrar_tabla)   # graficos_radar_tabla.R
   fallback_pocos <- .radar_mb_fallback(fallback_pocos)
   forma <- .radar_mb_forma(forma)
   eje_pocos_l <- .radar_mb_eje_pocos(eje_pocos, eje_pocos_min, eje_pocos_max)
@@ -911,7 +919,9 @@ p_radar_publicos <- function(
     corte          = .graf_corte_unido(corte),
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     estilo         = as.character(estilo %||% "comparativo")[1],
-    mostrar_tabla  = isTRUE(mostrar_tabla),
+    mostrar_tabla  = !identical(tabla, "no"),   # derivado de `tabla`: lo que leen los consumidores viejos
+    tabla          = tabla,
+    word_tabla     = .radar_mb_word_tabla(word_tabla),
     tabla_nativa   = if (is.null(tabla_nativa)) NULL else isTRUE(tabla_nativa),
     mostrar_valores = if (is.null(mostrar_valores)) NULL else isTRUE(mostrar_valores),
     decimales      = if (is.null(decimales)) NULL else .radar_mb_decimales(decimales),
@@ -1040,7 +1050,7 @@ p_radar_publicos <- function(
   dibuja <- if (forma %in% c("puntos", "barras")) forma else if (identical(forma, "radar")) "radar" else
     if (n_ejes < .RADAR_MIN_CRITERIOS) fallback else "radar"
   g <- if (identical(dibuja, "barras")) {
-    .radar_mb_barras(datos, titulo = el$title_slide, indicador = el$corte_etiqueta)
+    .radar_mb_barras(datos, titulo = el$title_slide, indicador = el$corte_etiqueta, decimales = res$decimales)
   } else if (identical(dibuja, "puntos")) {
     .radar_mb_puntos(datos, titulo = el$title_slide, indicador = el$corte_etiqueta, decimales = res$decimales,
                       eje = list(tipo = el$eje_pocos, min = el$eje_pocos_min, max = el$eje_pocos_max))
@@ -1051,7 +1061,18 @@ p_radar_publicos <- function(
                          eje_min = res$eje_min,
                          indicador = el$corte_etiqueta,
                          preset = as.list(preset_args %||% list()))
-  if (!isTRUE(el$mostrar_tabla)) return(g)
+  # La tabla de datos (graficos_radar_tabla.R): el Word no la pinta dentro de la imagen —si la pide, `word_tabla`, va como
+  # tabla nativa de Word encima de la figura—; el PPT la lleva segun `tabla`.
+  info_tabla <- function() .radar_mb_tabla_cifras(datos, res$decimales, el$corte_etiqueta, el$tabla_titulo %||% "",
+                                                  el$tabla_encabezados %||% list())
+  if (isTRUE(el[[".word_render"]])) {
+    return(if (isTRUE(el[["word_tabla"]])) .radar_mb_word_adjuntar(g, info_tabla()) else g)
+  }
+  modo_tabla <- .radar_mb_tabla_modo_el(el)
+  if (identical(modo_tabla, "no")) return(g)
+  if (!identical(dibuja, "radar")) {
+    return(if (.radar_mb_tabla_procede(modo_tabla, dibuja)) .radar_mb_tabla_adjuntar(g, info_tabla(), dibuja) else g)
+  }
 
   tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = res$decimales)
   .radar_mb_componer(g, tabla,
