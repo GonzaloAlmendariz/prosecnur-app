@@ -258,6 +258,7 @@ const PESTANAS: Array<[string, () => string]> = [
         faltanteDiario: { fechas: [], series: [] },
       }}
       corte="27/07/26, 9:04 a. m."
+      dias={[{ fecha: "2026-07-01", casos: 74 }]}
       salidas={null}
     />,
     `${RUTA}&seccion=avance&pestana=entregas`,

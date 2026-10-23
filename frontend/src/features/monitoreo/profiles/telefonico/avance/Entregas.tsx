@@ -10,7 +10,8 @@ function n(valor: number | null) {
 
 /**
  * Avance › Entregas: a la izquierda, lo que recibe el cliente (el avance por
- * cuota con las cifras de este corte, como lo lleva su PDF); a la derecha, las
+ * cuota y el ritmo diario con las cifras de este corte, como los lleva su PDF);
+ * a la derecha, las
  * salidas de siempre (`MonitoreoOutputsWorkbench`): el PDF del cliente, el de
  * producción para el equipo y la publicación en las hojas del cliente e
  * interna, con su revisión antes de aplicar. Esta vista no publica ni genera
@@ -19,14 +20,18 @@ function n(valor: number | null) {
 export function Entregas({
   modelo,
   corte,
+  dias,
   salidas,
 }: {
   modelo: CuotasFaltante | null;
+  /** Efectivas de Kobo por día, ISO: el ritmo diario que el PDF también lleva. */
+  dias: ReadonlyArray<{ fecha: string; casos: number }>;
   /** «27/07/2026 09:04», o vacío sin corte. */
   corte: string;
   salidas: ReactNode;
 }) {
   const segmento = modelo?.segmento || "Categoría";
+  const maximoDia = Math.max(1, ...dias.map((dia) => dia.casos));
   return (
     <div className="mon-entregas" data-qa-geometry-group="telefonico-avance-entregas" data-qa-geometry-contract="intrinsic">
       <section className="mon-ctl-panel mon-entregas-cliente" aria-label="Para el cliente: avance por cuota" data-qa-geometry-capacity="owned">
@@ -76,8 +81,22 @@ export function Entregas({
             ) : (
               <p className="mon-entregas-sin-datos">El corte no trae cuotas para mostrar.</p>
             )}
+            {dias.length ? (
+              <section className="mon-entregas-ritmo" aria-label="Ritmo diario">
+                <h4>Ritmo diario</h4>
+                <ul>
+                  {dias.map((dia) => (
+                    <li key={dia.fecha}>
+                      <span>{`${dia.fecha.slice(8, 10)}/${dia.fecha.slice(5, 7)}`}</span>
+                      <i aria-hidden="true"><i style={{ width: `${(dia.casos / maximoDia) * 100}%` }} /></i>
+                      <strong className="is-num">{n(dia.casos)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <footer>
-              El PDF del cliente lleva además el avance ejecutivo y el ritmo diario. Efectivas: envíos de Kobo que pasan
+              El PDF del cliente lleva además el avance ejecutivo. Efectivas: envíos de Kobo que pasan
               el filtro de efectiva, uno por CodPulso.
             </footer>
           </article>

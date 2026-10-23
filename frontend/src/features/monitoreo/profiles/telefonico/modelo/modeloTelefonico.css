@@ -139,8 +139,8 @@
 }
 
 .mon-metas-marco {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 0 1 auto;
+  min-height: 120px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
@@ -224,6 +224,91 @@
 
 .mon-metas-quitar:focus-visible {
   outline: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-metas-avance {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 140px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  overflow: hidden;
+}
+
+.mon-metas-avance-lienzo {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+}
+
+.mon-metas-avance-columna {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  text-align: center;
+}
+
+.mon-metas-modelo .mon-metas-avance-cifra,
+.mon-metas-modelo .mon-metas-avance-faltan {
+  text-align: center;
+}
+
+.mon-metas-avance-cifra {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-metas-avance-area {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 48px;
+  border-bottom: 1px solid var(--pulso-border-strong);
+}
+
+.mon-metas-avance-area > i {
+  display: block;
+  width: min(72%, 96px);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-metas-avance-columna.is-cumple .mon-metas-avance-area > i {
+  background: var(--pulso-success-fg);
+}
+
+.mon-metas-avance-area > b {
+  position: absolute;
+  right: 8%;
+  left: 8%;
+  border-top: 2px dashed var(--pulso-text);
+}
+
+.mon-metas-avance-nombre {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-metas-avance-faltan {
+  color: var(--pulso-module-monitoring);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: center;
+}
+
+.mon-metas-avance-columna.is-cumple .mon-metas-avance-faltan {
+  color: var(--pulso-success-fg);
 }
 
 .mon-metas-pie {
@@ -414,9 +499,17 @@
   }
 
   .mon-metas-marco,
-  .mon-metas-dias {
+  .mon-metas-dias,
+  .mon-metas-avance,
+  .mon-metas-avance-lienzo {
     flex: none;
+    min-height: 0;
     overflow: visible;
+  }
+
+  .mon-metas-avance-area {
+    flex: none;
+    height: 120px;
   }
 
   .mon-metas-tabla th:nth-child(5),

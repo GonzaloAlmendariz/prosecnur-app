@@ -166,6 +166,10 @@ export function formatosDeFecha(reports: MonitoreoAcreditacionReports | null | u
   });
   return {
     formatos: [...grupos.values()].sort((a, b) => Number(a.aviso) - Number(b.aviso) || b.casos - a.casos),
+    /** Cada valor tal como viene en la hoja, con sus llamados: lo que hay que corregir en ella. */
+    valores: [...porColumna.entries()]
+      .map(([valor, casos]) => ({ valor, casos, aviso: !fechaDeColumna(valor) || fechaDeColumna(valor)?.slice(0, 4) !== anio }))
+      .sort((a, b) => b.casos - a.casos || a.valor.localeCompare(b.valor, "es")),
     columnas: porColumna.size,
     dias: [...porIso.keys()].filter((iso) => iso.slice(0, 4) === anio).length,
   };

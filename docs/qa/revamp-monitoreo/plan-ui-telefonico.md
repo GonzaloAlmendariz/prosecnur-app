@@ -377,3 +377,10 @@ desactualizado).
 prueba de claves sin rótulo la monta para universo, barrido y encuesta; el contrato que leía su markup en la página
 (`TelefonicoSubsanacionGuia.test.ts`) lee también el archivo nuevo. La prueba cubre ya Barrido, Insistencia, Equipo,
 Respuestas, Avisos, Estados, Llave y filtros, Fuentes, las tarjetas de fuente, Cuotas, Ritmo y Entregas.
+
+**Composición de T8.** Cuotas: bajo la tabla de metas va «Avance de cada meta» (efectivas frente a su meta, con el
+faltante), que usa el alto que la tabla no pide; con muchas categorías baja y la tabla desplaza; el total y «Agregar»
+quedan al pie. Ritmo: las dos gráficas reparten el alto que el mapa de calor no pide; «Día a día» mide lo que pide y la
+tarjeta de fechas de la hoja llega al pie con cada valor de la columna de fecha (lo que hay que corregir en la hoja); el
+acumulado lleva su valor final rotulado («69 de 100», «423 de 400»). Entregas: la vista del PDF lleva también el ritmo
+diario, que el PDF del cliente incluye, y mide lo que pide.

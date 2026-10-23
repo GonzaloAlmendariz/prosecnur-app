@@ -58,7 +58,6 @@
   flex-direction: column;
   gap: var(--pulso-space-3);
   max-width: 720px;
-  min-height: 100%;
   margin: 0 auto;
   padding: var(--pulso-space-6);
   border: 1px solid var(--pulso-border);
@@ -124,8 +123,43 @@
   text-align: right;
 }
 
+.mon-entregas-ritmo h4 {
+  margin: var(--pulso-space-3) 0 var(--pulso-space-2);
+  font-size: 15px;
+}
+
+.mon-entregas-ritmo ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-entregas-ritmo li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-entregas-ritmo li > i {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-entregas-ritmo li > i > i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--pulso-brand-navy);
+}
+
 .mon-entregas-hoja > footer {
-  margin-top: auto;
   padding-top: var(--pulso-space-4);
   color: var(--pulso-text-soft);
   font-size: 11.5px;

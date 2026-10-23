@@ -83,6 +83,7 @@ export function Cuotas({
   const maximoSobre = Math.max(0.01, ...proporcion.map((fila) => Math.max(fila.sobreUniverso ?? 0, fila.proporcional != null && fila.universe ? fila.proporcional / fila.universe : 0)));
   const nombreDeCategoria = etiquetaDeVariable.toLocaleLowerCase("es");
   const maximoDia = Math.max(1, ...calendario.dias.map((dia) => dia.casos));
+  const topeDeAvance = Math.max(1, ...conPendientes.map((fila) => Math.max(fila.meta ?? 0, fila.effective)));
 
   return (
     <div className="mon-metas-modelo" data-qa-geometry-group="telefonico-modelo-cuotas" data-qa-geometry-contract="intrinsic">
@@ -187,6 +188,30 @@ export function Cuotas({
               </tbody>
             </table>
           </div>
+          {/* Debajo de la tabla, el avance de cada meta: con pocas categorías usa
+            * el alto que la tabla no pide; con muchas baja y la tabla desplaza. */}
+          <section className="mon-metas-avance" aria-label="Avance de cada meta" data-qa-geometry-capacity="owned">
+            <span className="mon-ctl-antetitulo">Avance de cada meta</span>
+            <div className="mon-metas-avance-lienzo" style={{ gridTemplateColumns: `repeat(${Math.max(1, conPendientes.length)}, minmax(0, 1fr))` }}>
+              {conPendientes.map((fila) => {
+                const meta = fila.meta ?? 0;
+                const faltan = meta > 0 ? Math.max(0, meta - fila.effective) : null;
+                return (
+                  <div key={fila.value} className={`mon-metas-avance-columna${faltan === 0 ? " is-cumple" : ""}`} title={`${fila.value}: ${n(fila.effective)} de ${meta > 0 ? n(meta) : "sin meta"}`}>
+                    <span className="is-num mon-metas-avance-cifra">{n(fila.effective)} de {meta > 0 ? n(meta) : "—"}</span>
+                    <div className="mon-metas-avance-area">
+                      <i style={{ height: `${(fila.effective / topeDeAvance) * 100}%` }} />
+                      {meta > 0 ? <b style={{ bottom: `${(meta / topeDeAvance) * 100}%` }} /> : null}
+                    </div>
+                    <span className="mon-metas-avance-nombre">{fila.value}</span>
+                    <span className="is-num mon-metas-avance-faltan">
+                      {faltan == null ? "Sin meta" : faltan === 0 ? "Cumplida" : `Faltan ${n(faltan)}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
           <footer className="mon-metas-pie">
             <dl className="mon-metas-total">
               <div><dt>Universo</dt><dd className="is-num">{n(totalUniverso)}</dd></div>
