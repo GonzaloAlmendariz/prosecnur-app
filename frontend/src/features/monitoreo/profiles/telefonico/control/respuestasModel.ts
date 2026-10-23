@@ -68,7 +68,10 @@ export type TramoDeDuracion = { etiqueta: string; casos: number; largo: boolean 
 export type Respuestas = {
   envios: EnvioEfectivo[];
   unicas: number;
+  /** Envíos de más: los que sobran sobre uno por CodPulso. */
   repetidos: number;
+  /** CodPulso con más de un envío. */
+  casosRepetidos: number;
   mediana: number | null;
   tramos: TramoDeDuracion[];
   conteos: Record<MarcaDeEnvio, number>;
@@ -158,6 +161,7 @@ export function construirRespuestas({
     envios,
     unicas,
     repetidos: envios.length - unicas,
+    casosRepetidos: [...veces.values()].filter((cuantas) => cuantas > 1).length,
     mediana: mediana(duraciones),
     tramos: TRAMOS.map((tramo, i) => {
       const desde = i === 0 ? Number.NEGATIVE_INFINITY : TRAMOS[i - 1].hasta;
@@ -191,4 +195,23 @@ export function duracionLegible(segundos: number | null) {
   if (minutos < 60) return `${minutos} min`;
   const horas = Math.floor(minutos / 60);
   return `${horas} h ${String(minutos % 60).padStart(2, "0")}`;
+}
+
+function plural(cantidad: number, uno: string, varios: string) {
+  return `${cantidad.toLocaleString("es-PE")} ${cantidad === 1 ? uno : varios}`;
+}
+
+/**
+ * Las repetidas se cuentan de dos maneras y cada rótulo dice la suya: el chip
+ * filtra envíos marcados (todos los del caso repetido) y la cadena descuenta
+ * los que sobran. En PDM: «Repetidas: 1 caso, 2 envíos» y «1 envío repetido de
+ * 1 caso».
+ */
+export function rotuloDeRepetidas(modelo: Pick<Respuestas, "casosRepetidos" | "conteos">) {
+  return `Repetidas: ${plural(modelo.casosRepetidos, "caso", "casos")}, ${plural(modelo.conteos.repetida, "envío", "envíos")}`;
+}
+
+export function mermaDeRepetidos(modelo: Pick<Respuestas, "casosRepetidos" | "repetidos">) {
+  if (!modelo.repetidos) return undefined;
+  return `${plural(modelo.repetidos, "envío repetido", "envíos repetidos")} de ${plural(modelo.casosRepetidos, "caso", "casos")}`;
 }

@@ -6,7 +6,7 @@ import { Barrido } from "./Barrido";
 import { construirBarrido, type CuotaDeBarrido } from "./barridoModel";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { Respuestas, type PasoDeLaCadena, type ReglaQueCuenta } from "./Respuestas";
-import { construirRespuestas } from "./respuestasModel";
+import { construirRespuestas, mermaDeRepetidos } from "./respuestasModel";
 
 /** Segmento de cuota del corte (Sede, Actor…), como en Avance › Cuotas. */
 export function segmentoDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
@@ -65,7 +65,7 @@ export function RespuestasDelCorte({
       nombre: "Efectivas",
       valor: modelo.unicas,
       detalle: "Un envío por CodPulso",
-      merma: modelo.repetidos ? `${plural(modelo.repetidos, "envío repetido", "envíos repetidos")}` : undefined,
+      merma: mermaDeRepetidos(modelo),
     },
   ];
   const reglas: ReglaQueCuenta[] = [

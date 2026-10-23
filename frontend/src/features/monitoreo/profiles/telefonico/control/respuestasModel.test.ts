@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { construirRespuestas, duracionLegible, filtrarEnvios } from "./respuestasModel";
+import { construirRespuestas, duracionLegible, filtrarEnvios, mermaDeRepetidos, rotuloDeRepetidas } from "./respuestasModel";
 
 function reportes(bloques: Record<string, Array<Record<string, unknown>>>): MonitoreoAcreditacionReports {
   return {
@@ -47,6 +47,15 @@ describe("Control › Respuestas del telefónico", () => {
     expect(marcas["PDM1640-200"]).toEqual(["corta"]);
     expect(modelo.porRevisar).toBe(5);
     expect([modelo.unicas, modelo.repetidos]).toEqual([4, 1]);
+  });
+
+  it("el chip y la cadena nombran cada uno la unidad que cuentan", () => {
+    // PDM1429 llega dos veces: el chip filtra los 2 envíos marcados, la cadena descuenta 1.
+    expect(modelo.casosRepetidos).toBe(1);
+    expect(modelo.conteos.repetida).toBe(2);
+    expect(rotuloDeRepetidas(modelo)).toBe("Repetidas: 1 caso, 2 envíos");
+    expect(mermaDeRepetidos(modelo)).toBe("1 envío repetido de 1 caso");
+    expect(mermaDeRepetidos({ repetidos: 0, casosRepetidos: 0 })).toBeUndefined();
   });
 
   it("reparte la duración en tramos con la cola de más de 2 h aparte", () => {
