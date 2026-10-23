@@ -6,7 +6,8 @@
 
 .acr-res,
 .acr-pub,
-.acr-ct {
+.acr-ct,
+.acr-ps {
   --acr-efectiva: var(--pulso-brand-navy);
   --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
   --acr-rechazo: var(--pulso-resultado-parcial);
@@ -258,6 +259,10 @@
 .acr-av-punto.is-rechazo { background: var(--acr-rechazo); }
 .acr-av-apilada > .is-sin-respuesta,
 .acr-av-punto.is-sin-respuesta { background: var(--acr-sin-respuesta); }
+.acr-av-apilada > .is-excluida,
+.acr-av-punto.is-excluida { background: var(--pulso-resultado-rechazo); }
+.acr-av-apilada > .is-revision,
+.acr-av-punto.is-revision { background: var(--pulso-resultado-revision); }
 
 .acr-av-punto {
   display: inline-block;
