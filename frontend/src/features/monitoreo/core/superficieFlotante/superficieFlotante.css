@@ -120,3 +120,8 @@
     animation: none;
   }
 }
+
+/* El cuerpo lee al tamaño de la app, no al del documento. */
+.mon-flotante {
+  font-size: 14px;
+}

@@ -402,11 +402,14 @@
 }
 
 .acr-pr-tabla tbody th[scope="row"] {
-  white-space: nowrap;
+  max-width: none;
 }
 
+/* Los códigos se parten en sus guiones, nunca letra a letra. */
 .acr-pr-tabla .acr-pub-nombre {
-  max-width: none;
+  max-width: 220px;
   overflow-wrap: normal;
-  white-space: nowrap;
+  word-break: normal;
+  white-space: normal;
+  text-align: left;
 }

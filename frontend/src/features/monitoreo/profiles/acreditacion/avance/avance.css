@@ -1349,7 +1349,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ps.acr-pc { grid-template-columns: minmax(0, 1fr); }
-  .acr-pc-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acr-pc-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
 }
 
 /* Por cuota usa el detalle de siempre; a 1024 una categoría envuelve y la
@@ -1366,4 +1366,9 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
  * desplaza el contenedor de la página. */
 .acr-sa > * {
   flex-shrink: 0;
+}
+
+.acr-pc-franja > button {
+  align-self: center;
+  justify-self: start;
 }
