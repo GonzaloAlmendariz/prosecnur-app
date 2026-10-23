@@ -95,8 +95,10 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
     "avance/ritmo": ["fuentes"],
     // El diálogo «Cerrar campo» de Avance › Salidas.
     "avance/salidas": ["cerrar-campo"],
-    // Editor de una cuota (`AvanceCuotasPanel`): se abre en Modelo › Cuotas (M2) y,
-    // mientras A8 no lo retire, también desde Avance › Por cuota.
+    // Editor de una cuota (`AvanceCuotasPanel`): se abre en Modelo › Cuotas (M2).
+    // Avance › Por cuota (A8) solo lee y «Editar en Modelo» lleva allá; el panel
+    // sigue declarado en Avance para el estudio telefónico, que monta la vista
+    // anterior con su editor.
     "avance/cuotas": ["cuota"],
     "modelo/cuotas": ["cuota"],
   },

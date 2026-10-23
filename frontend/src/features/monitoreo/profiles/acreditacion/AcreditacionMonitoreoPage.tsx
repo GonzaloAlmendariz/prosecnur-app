@@ -80,6 +80,7 @@ import { Fuentes } from "./insumos/Fuentes";
 import { Reglas } from "./insumos/reglas/Reglas";
 import { Ritmo } from "./avance/Ritmo";
 import { Salidas } from "./avance/Salidas";
+import { PorCuota } from "./avance/PorCuota";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
@@ -16342,7 +16343,11 @@ function renderAcreditacionView(
 ) {
   // Correo lee Mailchimp por su cuenta: no depende del corte de reportes.
   if (view === "avance" && options.activeAdvanceTab === "correo") return <AvanceCorreo />;
-  if (view === "avance" && options.activeAdvanceTab === "cuotas") return <AvanceCuotas />;
+  if (view === "avance" && options.activeAdvanceTab === "cuotas") {
+    if (isTelefonicoMonitoreoState(options.state)) return <AvanceCuotas />;
+    // Avance › Por cuota (A8): lectura de cuotas y variables de control; se edita en Modelo › Cuotas.
+    return <PorCuota controles={(reports?.client_report?.controls ?? []) as Array<Record<string, unknown>>} />;
+  }
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);

@@ -1206,3 +1206,146 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-sa-arriba { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Por cuota (A3): lista de variables a 300 px; a la derecha, la franja de la
+ * cuota y su detalle, o la composición de una variable sin meta. */
+.acr-ps.acr-pc {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.acr-pc .acr-pr-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-pc-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-pc-franja {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.acr-pc-detalle-cuota {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.acr-pc-leyenda {
+  display: flex;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.acr-pc-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-pc-leyenda .acr-pc-anillo,
+.acr-pc-leyenda .acr-pc-punto {
+  position: static;
+  transform: none;
+}
+
+.acr-pc-pesas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-pc-fila {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 30px;
+}
+
+.acr-pc-fila > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.acr-pc-fila.is-eje {
+  min-height: 34px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.acr-pc-escala {
+  position: relative;
+  height: 28px;
+}
+
+.acr-pc-eje-titulo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-pc-marca {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-pc-pista {
+  position: relative;
+  height: 14px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.acr-pc-tramo {
+  position: absolute;
+  top: 6px;
+  height: 2px;
+  background: var(--acr-serie-suave);
+}
+
+.acr-pc-anillo,
+.acr-pc-punto {
+  position: absolute;
+  top: 1px;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.acr-pc-anillo {
+  border: 2px solid var(--pulso-accent-steel);
+  background: var(--pulso-surface);
+}
+
+.acr-pc-punto {
+  background: var(--acr-efectiva);
+}
+
+.acr-pc-fila b.is-marcada {
+  color: var(--pulso-warn-fg);
+}
+
+.acr-pc-fila .is-num {
+  text-align: right;
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.acr-pc { grid-template-columns: minmax(0, 1fr); }
+  .acr-pc-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
