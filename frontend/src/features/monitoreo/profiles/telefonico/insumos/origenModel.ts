@@ -78,13 +78,22 @@ export function rolesSugeridos(valores: ReadonlyArray<{ valor: string }>) {
   return Object.fromEntries(valores.map(({ valor }) => [valor, rolSugerido(valor)])) as Record<string, RolDeOrigen>;
 }
 
-/** El borrador parte de lo declarado; si no hay nada declarado, de la sugerencia por nombre. */
-export function borradorInicial(perfil: MonitoreoProfile | null | undefined, filas: readonly FilaDeOrigen[]) {
-  const columnas = columnasConConteo(filas);
+/**
+ * El borrador parte de lo declarado; si no hay nada declarado, de la sugerencia
+ * por nombre. Sugiere también desde las columnas de la base (`variables`)
+ * cuando el corte es anterior al bloque `origen_de_la_muestra` y no trae
+ * conteos (RMS): la columna se reconoce igual, los casos llegan al actualizar.
+ */
+export function borradorInicial(
+  perfil: MonitoreoProfile | null | undefined,
+  filas: readonly FilaDeOrigen[],
+  variables: readonly VariableDeLaBase[] = [],
+) {
+  const columnas = columnasOfrecidas(filas, variables);
   const origenDeclarado = perfil?.sample_origin;
   const marcaDeclarada = perfil?.replacement_flag;
   const columnaOrigen = origenDeclarado?.column ?? columnaSugerida(columnas, "origen");
-  const valoresOrigen = valoresDeColumna(filas, columnaOrigen);
+  const valoresOrigen = valoresParaElegir(filas, variables, columnaOrigen);
   const roles: Record<string, RolDeOrigen> = origenDeclarado
     ? Object.fromEntries(valoresOrigen.map(({ valor }) => {
       const k = clave(valor);
@@ -96,9 +105,10 @@ export function borradorInicial(perfil: MonitoreoProfile | null | undefined, fil
   const columnaMarca = marcaDeclarada?.column ?? columnaSugerida(columnas.filter((c) => c !== columnaOrigen), "marca");
   const si = marcaDeclarada
     ? marcaDeclarada.yes_values
-    : siSugerido(valoresDeColumna(filas, columnaMarca).map(({ valor }) => valor));
+    : siSugerido(valoresParaElegir(filas, variables, columnaMarca).map(({ valor }) => valor));
   const borrador: BorradorDeOrigen = { origen: { columna: columnaOrigen, roles }, marca: { columna: columnaMarca, si } };
-  return { borrador, declarado: Boolean(origenDeclarado || marcaDeclarada) };
+  const declarado = Boolean(origenDeclarado || marcaDeclarada);
+  return { borrador, declarado, sugerido: !declarado && Boolean(columnaOrigen || columnaMarca) };
 }
 
 export type LecturaDeOrigen = {

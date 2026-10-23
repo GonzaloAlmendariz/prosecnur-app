@@ -245,8 +245,8 @@ export function Ritmo({
 
 /**
  * Sin efectivas ni llamados fechados (un barrido que todavía no empieza) el
- * marco se conserva: el panel de la serie dice por qué está vacío y la columna
- * lateral muestra en qué estado está la hoja.
+ * marco se conserva en un solo panel que dice por qué está vacío y en qué
+ * estado está la hoja.
  */
 function RitmoSinSerie({
   reports,
@@ -258,35 +258,30 @@ function RitmoSinSerie({
   meta: number | null;
 }) {
   const hoja = useMemo(() => estadosDeLaHoja(reports), [reports]);
+  // Un solo panel: con dos líneas de estado, una tarjeta lateral estirada al
+  // alto de la columna era un vacío dentro de una tarjeta (chequeo f).
   return (
-    <div className="mon-cadencia" data-qa-geometry-group="telefonico-avance-ritmo" data-qa-geometry-contract="intrinsic">
-      <div className="mon-cadencia-columna">
-        <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
-          <EstadoVacio
-            tamano="normal"
-            icono={<CalendarClock size={22} />}
-            titulo="Todavía no hay días que graficar"
-            descripcion={motivoSinSerie(hoja, sinFecha)}
-          />
-        </section>
+    <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+      <div className="mon-cadencia-vacio-cuerpo">
+        <EstadoVacio
+          tamano="normal"
+          icono={<CalendarClock size={22} />}
+          titulo="Todavía no hay días que graficar"
+          descripcion={motivoSinSerie(hoja, sinFecha)}
+        />
+        {hoja.estados.length ? (
+          <ul className="mon-cadencia-formatos mon-cadencia-vacio-estados" aria-label="Estado de la hoja de barrido">
+            {hoja.estados.map((item) => (
+              <li key={item.estado}>
+                <i className="mon-cadencia-punto" aria-hidden="true" />
+                <span>{item.estado}</span>
+                <strong className="is-num">{n(item.casos)}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="mon-cadencia-secundaria">{meta ? `Meta del estudio: ${n(meta)} efectivas.` : "Sin meta declarada."}</p>
       </div>
-      <div className="mon-cadencia-lateral">
-        <section className="mon-ctl-panel mon-insumos-tarjeta mon-cadencia-estados" aria-label="Estado de la hoja de barrido">
-          <span className="mon-ctl-antetitulo">Estado de la hoja de barrido</span>
-          {hoja.estados.length ? (
-            <ul className="mon-cadencia-formatos">
-              {hoja.estados.map((item) => (
-                <li key={item.estado}>
-                  <i className="mon-cadencia-punto" aria-hidden="true" />
-                  <span>{item.estado}</span>
-                  <strong className="is-num">{n(item.casos)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : <p>Sin filas en este corte.</p>}
-          <p className="mon-cadencia-secundaria">{meta ? `Meta del estudio: ${n(meta)} efectivas.` : "Sin meta declarada."}</p>
-        </section>
-      </div>
-    </div>
+    </section>
   );
 }

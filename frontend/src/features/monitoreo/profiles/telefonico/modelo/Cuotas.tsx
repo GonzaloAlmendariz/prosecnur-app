@@ -86,6 +86,9 @@ export function Cuotas({
   const totalMeta = conPendientes.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
   const maximoSobre = Math.max(0.01, ...proporcion.map((fila) => Math.max(fila.sobreUniverso ?? 0, fila.proporcional != null && fila.universe ? fila.proporcional / fila.universe : 0)));
   const nombreDeCategoria = etiquetaDeVariable.toLocaleLowerCase("es");
+  // El motor sólo publica el universo de la variable guardada: sin guardarla y
+  // sin universo en ninguna categoría, el cero es «todavía no calculado».
+  const universoPendiente = Boolean(variable && !variableGuardada && proporcion.length && proporcion.every((fila) => fila.universe <= 0));
   const maximoDia = Math.max(1, ...calendario.dias.map((dia) => dia.casos));
   const topeDeAvance = Math.max(1, ...conPendientes.map((fila) => Math.max(fila.meta ?? 0, fila.effective)));
 
@@ -147,7 +150,7 @@ export function Cuotas({
               <button type="button" className="mon-insumos-boton is-primario" onClick={onConfirmar}>{etiquetaConfirmar}</button>
             </div>
           ) : null}
-          {proporcion.length && variable && !variableGuardada ? (
+          {universoPendiente ? (
             <NotaDelModo tono="info" className="mon-metas-sin-categorias">
               El universo de cada {nombreDeCategoria} se calcula al usar {etiquetaDeVariable} para cuotas y actualizar el corte.
             </NotaDelModo>
@@ -172,7 +175,7 @@ export function Cuotas({
                   const marca = fila.proporcional != null && fila.universe ? ((fila.proporcional / fila.universe) / maximoSobre) * 100 : null;
                   return (
                     <tr key={fila.value}>
-                      <th scope="row">{fila.value}{fila.universe <= 0 && variableGuardada ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
+                      <th scope="row">{fila.value}{fila.universe <= 0 && !universoPendiente ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
                       <td className="is-num">{n(fila.universe)}</td>
                       <td className="is-num mon-metas-meta">
                         <MetaCuotaInput value={fila.meta} ariaLabel={`Meta de ${fila.value}`} onCommit={(meta) => onMeta(fila.value, meta)} />
@@ -293,10 +296,12 @@ export function Cuotas({
               <span className="mon-ctl-antetitulo">Días de campo con efectivas</span>
               <ul className="mon-metas-dias">
                 {calendario.dias.map((dia) => (
-                  <li key={dia.fecha}>
+                  <li key={dia.fecha} title={`${dia.fecha.slice(8, 10)}/${dia.fecha.slice(5, 7)}: ${n(dia.casos)} efectivas`}>
+                    <div className="mon-metas-dia-columna">
+                      <strong className="is-num">{n(dia.casos)}</strong>
+                      <i aria-hidden="true" style={{ height: `${(dia.casos / maximoDia) * 85}%` }} />
+                    </div>
                     <span>{`${dia.fecha.slice(8, 10)}/${dia.fecha.slice(5, 7)}`}</span>
-                    <i aria-hidden="true"><i style={{ width: `${(dia.casos / maximoDia) * 100}%` }} /></i>
-                    <strong className="is-num">{n(dia.casos)}</strong>
                   </li>
                 ))}
               </ul>

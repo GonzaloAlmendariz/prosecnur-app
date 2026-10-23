@@ -102,3 +102,27 @@ describe("columnas y valores para elegir", () => {
     expect(valoresParaElegir(filas, variables, "Origen")[0]).toEqual({ valor: "Muestra", casos: 400 });
   });
 });
+
+describe("corte anterior al bloque (RMS)", () => {
+  it("sugiere desde las columnas de la base: Origen y la marca de reemplazo", () => {
+    const variables = [
+      { name: "Código proGres", n_unique: 800 },
+      { name: "Origen", n_unique: 2, values: ["Backup", "Muestra"] },
+      { name: MARCA, n_unique: 2, values: ["No"] },
+      { name: "Periodo de Llegada", n_unique: 4, values: ["A", "B", "C", "D"] },
+    ];
+    const { borrador, declarado, sugerido } = borradorInicial(undefined, [], variables);
+    expect(declarado).toBe(false);
+    expect(sugerido).toBe(true);
+    expect(borrador.origen).toEqual({ columna: "Origen", roles: { Backup: "reserva", Muestra: "titular" } });
+    expect(borrador.marca.columna).toBe(MARCA);
+    // Sin bloque no hay casos: la lectura lo dice en vez de sumar cero.
+    expect(lecturaDeOrigen(borrador, []).conConteoOrigen).toBe(false);
+  });
+
+  it("sin nada que sugerir no se marca como sugerido", () => {
+    const { sugerido, borrador } = borradorInicial(undefined, [], [{ name: "Periodo de Llegada", n_unique: 4 }]);
+    expect(sugerido).toBe(false);
+    expect(borrador.origen.columna).toBe("");
+  });
+});
