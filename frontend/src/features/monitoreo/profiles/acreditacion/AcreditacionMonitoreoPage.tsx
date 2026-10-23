@@ -78,6 +78,7 @@ import { Cuotas } from "./modelo/Cuotas";
 import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
 import { Fuentes } from "./insumos/Fuentes";
 import { Reglas } from "./insumos/reglas/Reglas";
+import { Ritmo } from "./avance/Ritmo";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
@@ -16491,13 +16492,16 @@ function renderAcreditacionView(
     return <PorPublico tarjetas={tarjetasDeAvance} diarioGeneral={dailyRows} diarioPorPublico={client?.daily_actor ?? []} fuentes={sourceRows} />;
   }
   if (view === "avance" && options.activeAdvanceTab === "encuestas") {
-    return (
+    const porFuente = (
       <AcreditacionAdvanceSurveysWorkbench
         reports={reports}
         state={options.state}
         sourceRows={sourceRows as Array<Record<string, unknown>>}
       />
     );
+    if (isPhoneModel) return porFuente;
+    // Avance › Ritmo (A8); el desglose por fuente y recopilador queda en `panel=fuentes`.
+    return <Ritmo actores={actorRows as Array<Record<string, unknown>>} diarioGeneral={dailyRows} diarioPorPublico={client?.daily_actor ?? []} fuentes={sourceRows as Array<Record<string, unknown>>} fases={options.state?.config?.strategy_phases ?? []} detallePorFuente={porFuente} />;
   }
   if (view === "avance" && isPhoneModel && options.activeAdvanceTab === "detalle") {
     const reconciliationRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);

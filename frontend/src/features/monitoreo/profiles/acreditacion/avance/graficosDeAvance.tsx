@@ -295,3 +295,93 @@ export function Minibarras({ valores, etiqueta }: { valores: readonly number[]; 
     </svg>
   );
 }
+
+/**
+ * Efectivas por día apiladas por público, con eje Y y su título, y encima la
+ * franja del plan de campo en el mismo eje de fechas (las fases declaradas, o
+ * nada si no hay: el aviso lo dice la vista).
+ */
+export function BarrasApiladas({
+  fechas,
+  capas,
+  totales,
+  fases,
+  etiqueta,
+}: {
+  fechas: readonly string[];
+  capas: ReadonlyArray<{ publico: string; valores: readonly number[] }>;
+  totales: readonly number[];
+  fases: ReadonlyArray<{ id: string; rotulo: string; desde: string; hasta: string }>;
+  etiqueta: string;
+}) {
+  const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
+  const izquierda = 44;
+  const franja = fases.length ? 22 : 0;
+  const arriba = 22 + franja;
+  const abajo = 22;
+  const w = Math.max(0, ancho - izquierda - 6);
+  const h = Math.max(0, alto - arriba - abajo);
+  const marcas = marcasDeEje(Math.max(1, ...totales) * 1.05);
+  const maximo = marcas.at(-1) ?? 1;
+  const n = fechas.length;
+  const paso = w / Math.max(1, n);
+  const y = (valor: number) => arriba + h - (valor / maximo) * h;
+  const posicion = new Map(fechas.map((fecha, indice) => [fecha, indice]));
+  const xDeFecha = (fecha: string, final: boolean) => {
+    const indice = posicion.get(fecha) ?? (fecha < (fechas[0] ?? "") ? 0 : n - 1);
+    return izquierda + (indice + (final ? 1 : 0)) * paso;
+  };
+  return (
+    <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
+      {ancho > 0 && alto > 0 && n ? (
+        <svg width={ancho} height={alto} aria-hidden="true">
+          {fases.map((fase) => {
+            const x1 = xDeFecha(fase.desde, false);
+            const x2 = xDeFecha(fase.hasta, true);
+            return (
+              <g key={fase.id}>
+                <rect className="acr-av-fase" x={x1} y={2} width={Math.max(2, x2 - x1)} height={16} rx={4} />
+                {x2 - x1 > 60 ? <text className="acr-av-fase-texto" x={x1 + 6} y={14}>{fase.rotulo}</text> : null}
+              </g>
+            );
+          })}
+          <text className="acr-av-eje-titulo" x={0} y={franja + 10}>Efectivas por día</text>
+          {marcas.map((valor) => (
+            <g key={valor}>
+              <line className="acr-av-reticula" x1={izquierda} x2={izquierda + w} y1={y(valor)} y2={y(valor)} />
+              <text className="acr-av-eje" x={izquierda - 6} y={y(valor) + 4} textAnchor="end">{fmt(valor)}</text>
+            </g>
+          ))}
+          {fechas.map((fecha, indice) => {
+            let base = 0;
+            return (
+              <g key={fecha}>
+                {capas.map((capa, capaIndice) => {
+                  const valor = capa.valores[indice] ?? 0;
+                  if (!valor) return null;
+                  const rect = (
+                    <rect
+                      key={capa.publico}
+                      className={`acr-av-capa is-capa-${capaIndice + 1}`}
+                      x={izquierda + indice * paso + paso * 0.12}
+                      y={y(base + valor)}
+                      width={Math.max(1, paso * 0.76)}
+                      height={y(base) - y(base + valor)}
+                    />
+                  );
+                  base += valor;
+                  return rect;
+                })}
+              </g>
+            );
+          })}
+          {indicesDeFecha(n, Math.max(2, Math.min(10, Math.floor(w / 80)))).map((indice) => (
+            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={indice === 0 ? "start" : indice === n - 1 ? "end" : "middle"}>
+              {fechaCorta(fechas[indice])}
+            </text>
+          ))}
+        </svg>
+      ) : null}
+    </div>
+  );
+}

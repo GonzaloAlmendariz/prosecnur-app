@@ -91,6 +91,8 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
     "control/reintentos": ["caso"],
     // Inspector del público en Avance › Por público: `panel=publico&foco=<público>`.
     "avance/publicos": ["publico"],
+    // El desglose por fuente y recopilador de Avance › Ritmo, en un sideover.
+    "avance/ritmo": ["fuentes"],
     // Editor de una cuota (`AvanceCuotasPanel`): se abre en Modelo › Cuotas (M2) y,
     // mientras A8 no lo retire, también desde Avance › Por cuota.
     "avance/cuotas": ["cuota"],

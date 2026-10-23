@@ -7,7 +7,12 @@
 .acr-res,
 .acr-pub,
 .acr-ct,
-.acr-ps {
+.acr-ps,
+.acr-mo-ventana,
+.acr-rg,
+.acr-ri,
+.acr-sa,
+.acr-pc {
   --acr-efectiva: var(--pulso-brand-navy);
   --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
   --acr-rechazo: var(--pulso-resultado-parcial);
@@ -959,4 +964,152 @@
 /* Dentro del Resumen el embudo es una tira de tres pasos también a 1024. */
 .acr-res .acr-res-embudo .mon-acr-embudo.is-avance .mon-acr-embudo-pasos {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Ritmo (A4): efectivas por día y por semana a la izquierda, «Pulso del campo»
+ * a 340 px. Seis tonos para los públicos y uno para «Otros». */
+.acr-ri {
+  --acr-capa-1: var(--pulso-brand-navy);
+  --acr-capa-2: var(--pulso-module-monitoring);
+  --acr-capa-3: var(--pulso-accent-steel);
+  --acr-capa-4: color-mix(in srgb, var(--pulso-brand-navy) 50%, var(--pulso-surface));
+  --acr-capa-5: color-mix(in srgb, var(--pulso-module-monitoring) 50%, var(--pulso-surface));
+  --acr-capa-6: color-mix(in srgb, var(--pulso-accent-steel) 45%, var(--pulso-surface));
+  --acr-capa-7: color-mix(in srgb, var(--pulso-text-faint) 40%, var(--pulso-surface));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-ri-izquierda {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.acr-ri-diario {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-ri-diario .acr-av-grafico {
+  min-height: 280px;
+  margin: var(--pulso-space-2) var(--pulso-space-4) 0;
+}
+
+.acr-ri-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
+}
+
+.acr-av-capa.is-capa-1, .acr-av-capa-muestra.is-capa-1 { fill: var(--acr-capa-1); background: var(--acr-capa-1); }
+.acr-av-capa.is-capa-2, .acr-av-capa-muestra.is-capa-2 { fill: var(--acr-capa-2); background: var(--acr-capa-2); }
+.acr-av-capa.is-capa-3, .acr-av-capa-muestra.is-capa-3 { fill: var(--acr-capa-3); background: var(--acr-capa-3); }
+.acr-av-capa.is-capa-4, .acr-av-capa-muestra.is-capa-4 { fill: var(--acr-capa-4); background: var(--acr-capa-4); }
+.acr-av-capa.is-capa-5, .acr-av-capa-muestra.is-capa-5 { fill: var(--acr-capa-5); background: var(--acr-capa-5); }
+.acr-av-capa.is-capa-6, .acr-av-capa-muestra.is-capa-6 { fill: var(--acr-capa-6); background: var(--acr-capa-6); }
+.acr-av-capa.is-capa-7, .acr-av-capa-muestra.is-capa-7 { fill: var(--acr-capa-7); background: var(--acr-capa-7); }
+
+.acr-av-fase {
+  fill: color-mix(in srgb, var(--pulso-module-monitoring) 20%, var(--pulso-surface));
+}
+
+.acr-av-fase-texto {
+  fill: var(--pulso-text);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-ri-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+  list-style: none;
+  font-size: 12px;
+}
+
+.acr-ri-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-av-capa-muestra {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.acr-ri-calor td.acr-ri-celda {
+  min-width: 56px;
+  border-radius: 4px;
+}
+
+.acr-ri-calor td.acr-ri-celda.is-cero {
+  color: var(--pulso-text-faint);
+}
+
+.acr-ri-pulso-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-ri-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.acr-ri-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-ri-cifras dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-ri-barras,
+.acr-ri-ultimas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-ri-barras li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-ri-barras b,
+.acr-ri-ultimas b {
+  text-align: right;
+}
+
+.acr-ri-ultimas li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ri { grid-template-columns: minmax(0, 1fr); }
 }
