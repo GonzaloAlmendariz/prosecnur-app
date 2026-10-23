@@ -326,12 +326,19 @@ export function useMonitoreoDireccionTraducida({
   publica,
   modo,
   panelesPropios,
+  panelesDeLaPestana = [],
   pideOtraVista,
   onPedida,
 }: {
   publica: MonitoreoDireccionPublica;
   modo: string;
   panelesPropios: readonly string[];
+  /**
+   * Paneles superpuestos que la pestaña activa sabe abrir (la ficha de un
+   * caso). Uno de ellos se conserva; uno de OTRA pestaña del perfil —que está
+   * en `panelesPropios`— se cierra con su `foco` al cambiar de pestaña.
+   */
+  panelesDeLaPestana?: readonly string[];
   pideOtraVista: (pedida: DireccionMonitoreoPedida) => boolean;
   onPedida: (pedida: DireccionMonitoreoPedida) => void;
 }): void {
@@ -350,9 +357,10 @@ export function useMonitoreoDireccionTraducida({
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const panelActual = params.get(PARAMS_DIRECCION.panel);
+    const panelAjeno = Boolean(panelActual && panelesPropios.includes(panelActual) && !panelesDeLaPestana.includes(panelActual));
     const panelYa = publica.panel
       ? panelActual === publica.panel
-      : !panelActual || !panelesPropios.includes(panelActual);
+      : !panelAjeno;
     if (
       params.get(PARAMS_DIRECCION.modo) === modo
       && params.get(PARAMS_DIRECCION.seccion) === publica.seccion
@@ -365,7 +373,10 @@ export function useMonitoreoDireccionTraducida({
     params.set(PARAMS_DIRECCION.seccion, publica.seccion);
     params.set(PARAMS_DIRECCION.pestana, publica.pestana);
     if (publica.panel) params.set(PARAMS_DIRECCION.panel, publica.panel);
-    else if (panelActual && panelesPropios.includes(panelActual)) params.delete(PARAMS_DIRECCION.panel);
+    else if (panelAjeno) {
+      params.delete(PARAMS_DIRECCION.panel);
+      params.delete(PARAMS_DIRECCION.foco);
+    }
     params.delete("tab");
     for (const param of PARAMS_PROYECTO) params.delete(param);
 
@@ -373,7 +384,7 @@ export function useMonitoreoDireccionTraducida({
     const search = query ? `?${query}` : "";
     ultimaEscrita.current = search;
     navigate({ pathname: location.pathname, search }, { replace: true });
-  }, [modo, publica.seccion, publica.pestana, publica.panel, panelesPropios, location.pathname, location.search, navigate]);
+  }, [modo, publica.seccion, publica.pestana, publica.panel, panelesPropios, panelesDeLaPestana, location.pathname, location.search, navigate]);
 }
 
 /**
@@ -393,7 +404,7 @@ export function useMonitoreoDireccionTraducida({
  */
 export function useFocoMonitoreo(): [
   string | null,
-  (valor: string | null, destino?: { seccion?: string; pestana?: string }) => void,
+  (valor: string | null, destino?: { seccion?: string; pestana?: string; panel?: string | null }) => void,
 ] {
   const location = useLocation();
   const navigate = useNavigate();
@@ -414,15 +425,21 @@ export function useFocoMonitoreo(): [
    * Con el destino en la misma navegación no hay dos escritores compitiendo:
    * la URL manda y la vista la sigue, que es lo que el contrato v3 promete.
    */
+  // `panel` va en la misma navegación por la misma razón: abrir la ficha de un
+  // caso (`panel=caso&foco=<código>`) con dos escritores seguidos dejaba sólo
+  // el segundo, porque los dos parten del `search` del mismo render. `null`
+  // lo cierra.
   const escribir = useCallback((
     valor: string | null,
-    destino?: { seccion?: string; pestana?: string },
+    destino?: { seccion?: string; pestana?: string; panel?: string | null },
   ) => {
     const siguientes = new URLSearchParams(location.search);
     if (valor) siguientes.set(PARAMS_DIRECCION.foco, valor);
     else siguientes.delete(PARAMS_DIRECCION.foco);
     if (destino?.seccion) siguientes.set(PARAMS_DIRECCION.seccion, destino.seccion);
     if (destino?.pestana) siguientes.set(PARAMS_DIRECCION.pestana, destino.pestana);
+    if (destino?.panel) siguientes.set(PARAMS_DIRECCION.panel, destino.panel);
+    else if (destino?.panel === null) siguientes.delete(PARAMS_DIRECCION.panel);
     const query = siguientes.toString();
     navigate(`${location.pathname}${query ? `?${query}` : ""}`, { replace: true });
   }, [location.pathname, location.search, navigate]);

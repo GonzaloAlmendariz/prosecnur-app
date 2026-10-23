@@ -31,7 +31,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☑ |
 | T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☑ |
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
-| T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☐ |
+| T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☐ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
@@ -133,3 +133,27 @@ Diferencias con el lienzo, por datos que el payload no trae (no se inventaron):
   viene. Para los cuatro pasos el motor tendría que publicar la cadena.
 - El chip de proyecto, el dock y la píldora «Pendiente» (P17) difieren por el proyecto y su estado, no por la vista.
 - `TelefonicoGoalPanel.tsx` no se tocó: no está montado en esta pestaña.
+
+**T4 frontend, Control › Insistencia.** `features/monitoreo/core/ColaDeInsistencia.tsx` (común: filtros, responsables,
+cola y ficha, con sus piezas en `core/colaDeInsistencia/` y el modelo puro `core/colaDeInsistenciaModel.ts`),
+`profiles/telefonico/control/Insistencia.tsx` (lo monta con los bloques `cola_insistencia` y
+`cola_insistencia_responsables`) e `insistenciaModel.ts` con test. La ficha es `panel=caso&foco=<CodPulso>`
+(`usePanelDireccionable`); al cambiar de pestaña el panel y el foco se cierran. Orden por defecto «Más intentos primero»,
+configurable (P12). Filtros en un store de zustand. Verificado en vivo: PDM 374 por rellamar y 38 ya efectivas en Kobo;
+Medios de Vida 82 por rellamar y ninguno efectivo en Kobo.
+
+- **Paridad con la vista anterior**: la escala de intentos va en la cabecera de la cola, en una frase; los casos por
+  responsable y la intensidad frente a la mediana del equipo (mismos umbrales, ±25 %), en la lista de responsables
+  (barra de intentos por caso con la marca de la mediana); «Sin asignar» va aparte y en gris; los casos por llamar ya
+  asignados y los casos repartidos, en la línea bajo «Responsables»; los «no contesta» se filtran por Último resultado.
+- **Días sin registro** se cuentan contra el CORTE (`synced_at`) en el frontend: el bloque los resta contra la fecha de
+  armado y daba 113 días en PDM donde la hoja lleva 25. En Medios de Vida las fechas son posteriores al corte y la cola
+  dice «después del corte».
+- **Kobo** se rotula «Efectiva» o «Sin efectiva» y no «Sin envío»: el bloque dice si hay efectiva, no si hubo envío.
+- **No están** (el bloque no los trae): Atención y Trámite en la ficha de PDM, «Llamados del responsable ese día» y
+  «Sin envío hasta el 06/07». «Teléfonos por caso» cuenta los casos de la cola, no el listado de 183.
+- **Preparando**: si el corte no trae el bloque, la pestaña lo dice e invita a Actualizar. En la práctica el motor lo
+  arma en vivo al pedir el scope (la copia con caché viejo también lo trajo); las copias sin caché están en el
+  scratchpad (`impl/pdm_cola.pulso`, `impl/mv_cola.pulso`).
+- `scripts/build-visual-catalog.mjs` y `scripts/monitoreo-performance-check.mjs` ya nombran Insumos, Modelo, Control y
+  Avance.

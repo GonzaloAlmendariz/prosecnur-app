@@ -1,6 +1,6 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
-import { filasDeBloque } from "../navegacion/barraTelefonica";
+import { filasDeBloque } from "../navegacion/bloques";
 import { nombreDelSegmento } from "../segmentoDeCuotas";
 import { cadenaDeLaCifra, construirCuotasFaltante, type CuotaDeEntrada } from "./cuotasFaltanteModel";
 
