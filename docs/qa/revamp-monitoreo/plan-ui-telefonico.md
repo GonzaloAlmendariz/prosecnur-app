@@ -77,6 +77,13 @@ barrido, bloques vacíos con nota. El worker `callr` usa el paquete instalado y 
 - **Acreditación con barrido**: el bloque no se publica ahí todavía; montarlo en `Reintentos.tsx` es una línea cuando
   se unifique.
 - **MEDVID 2025**: «Observación de rebarrido» no entra en la cola.
+- **Llave y mapeo de columnas sin editor**: ninguna superficie de la app edita `monitoreo_profile.key_rules` (columnas
+  candidatas de la llave, en orden) ni las `dimensions` de una fuente; el panel de conexión sólo elige la pestaña.
+  Insumos los muestra en lectura. ¿Hace falta editarlos desde la app, o basta con el perfil del estudio?
+- **Hallazgo, tarjeta de Kobo «sin respuestas»**: en la copia de PDM la tarjeta de la encuesta decía «Conectada, sin
+  respuestas todavía. Sincroniza Kobo.» con 424 efectivas en el corte: cuenta las respuestas con la metadata del sync
+  (`response_count`), que la copia no trae. Insumos ya no pinta esa frase, pero la cuenta de la tarjeta sigue
+  dependiendo de esa metadata.
 - **P18 (dos vocabularios de familia)**: el definidor de estados guarda en `state_rules` familias de acreditación
   (`efectivo`, `sin_contacto`, `numero_invalido`, `rechazo`, `otro`, `sin_barrer`), que gobiernan colores y agrupación
   de los gráficos. El motor cuenta con `complete`, `partial`, `refusal`, `pending`, `non_effective` y `excluded`
@@ -262,3 +269,16 @@ esta pestaña, pasan a Fuentes.
 los avisos (CodPulso, aviso, responsable y dónde se corrige). Crece hasta el pie y desplaza dentro con barra visible. Con
 muchos avisos, como en PDM, queda en su mínimo de 280 px y la columna desplaza. La ficha llega al pie del área: la lista
 de afectados crece y «Qué hacer» queda pegado al pie del panel.
+
+**T7, Insumos › Llave y filtros.** `profiles/telefonico/insumos/Llave.tsx` con `llaveModel.ts` (test). La llave va en
+lectura: la primera columna candidata de la base y de las respuestas (primero la que declara la encuesta) con cuántas
+más se prueban, ejemplos de cada lado y distintos en la base (PDM 2,296). El cruce de las efectivas sale de
+`respuestasModel`, como en Control › Respuestas: PDM 418 exactas, 6 por sus dígitos, 424 de 424, 100.0 % (el lienzo
+dice 429 de 430 porque cuenta los envíos antes del filtro de prueba); Medios de Vida 72 de 72. El editor del filtro de
+efectiva es el de siempre, con lo que además queda fuera (prueba o real en Medios de Vida, un envío por CodPulso).
+Abajo, cada efectiva con cómo cruzó y su caso en la hoja; a la derecha, la tarjeta de la encuesta («Cambiar conexión») y
+lo que no cruzó tal cual («1218 se lee PDM1218»).
+
+- **No va**: interruptores de normalización, «Variables de control» (no hay pares que el motor compare) y la caja de
+  discrepancia del lienzo; el conteo «Quedan» por criterio, que el corte no publica.
+- En Medios de Vida «Por revisar en la llave» queda vacío legítimo: todas las efectivas cruzan tal cual.
