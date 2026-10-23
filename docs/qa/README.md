@@ -92,6 +92,21 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [GOAL — Fase 0: Quality en verde](goal-ci-calidad-2026-10-10.md): tablero de los gates rojos del traspaso.
 - [Meta A — Gráficos (encargo del loop F6)](encargo-loop-f6-2026-10-10.md): vara, tablero A0–A11, colas, decisiones y operación.
 
+### Corte 0.9.4: Monitoreo, Material de campo y entregables
+
+- [Checklist — comentarios de Renzo Segura al informe de Arte y Diseño (PPT y Word)](checklist-comentarios-renzo-arte-2026-10-22.md): comentarios al PPT y al Word del informe de Arte y Diseño, por familia de causa.
+- [Checklist · Inspector del correo: Personas, puntos y ayuda (2026-10-23)](checklist-inspector-correo-2026-10-23.md): Personas, puntos y ayuda en el inspector del correo.
+- [Checklist · Mailchimp por API en Material de campo (2026-10-22)](checklist-mailchimp-api-2026-10-22.md): Mailchimp por API en Material de campo: audiencia, borradores y «quién respondió».
+- [Checklist · Monitoreo acreditación a 45 mil contactos: T0 + T1 (2026-10-22)](checklist-monitoreo-acred-inst-t0-t1-2026-10-22.md): acreditación a 45 mil contactos, fases T0 y T1.
+- [Checklist · T3: reportes de Mailchimp en Monitoreo (2026-10-22)](checklist-monitoreo-mailchimp-t3-2026-10-22.md): reportes de Mailchimp en Monitoreo (T3).
+- [Diagnóstico · Monitoreo para «Acreditación Institucional PUCP 2026» (2026-10-22)](diagnostico-monitoreo-acred-institucional-2026-10-22.md): viabilidad del perfil acreditación para Acreditación Institucional PUCP 2026.
+
+### Revamp de Monitoreo (Insumos · Modelo · Control · Avance)
+
+- [Estándar de maqueta del revamp de Monitoreo](revamp-monitoreo/estandar-de-ficha.md): estándar común de las fichas del revamp.
+- [Plan de aplicación a la UI: Monitoreo telefónico](revamp-monitoreo/plan-ui-telefonico.md): plan de aplicación a la UI del perfil telefónico, T0 a T9.
+- [Procedimientos de campo respondidos por Gonzalo](revamp-monitoreo/procedimientos-respondidos.md): procedimientos de campo respondidos por Gonzalo; mandan sobre cualquier supuesto.
+
 ## En curso
 
 - [Goal loop de Cálculo de muestra](goal-loop-calc-muestra-2026-07-31.md):
@@ -229,6 +244,22 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Estudio — paletas por lista en el PPT nativo y el Word](estudio-paletas-por-lista-f6-2026-10-11.md): qué familias honran la paleta por lista, listas que no calzan con el recetario y qué falta.
 - [Pendientes al cierre de la Meta A (Gráficos)](pendientes-cierre-meta-a-graficos-f6-2026-10-11.md): gate final, deuda con dónde vive y qué la bloquea, y notas de versión.
 - [Paridad para el retiro del Editor anterior (A10)](paridad-retiro-editor-anterior-f6-2026-10-11.md): huecos, prerrequisitos del borrado y decisiones 28–33.
+
+### Corte 0.9.4: Monitoreo, Material de campo y entregables
+
+- [Checklist · Ajustes del bloque y campos por persona (2026-10-23)](checklist-ajustes-bloque-2026-10-23.md): alineación, tamaño y tono del bloque, y campos por persona en el editor de correos.
+- [Checklist — comparativos HSyVbG 2024-2026 (2026-10-22)](checklist-comparativos-hsyvbg-2026-10-22.md): indicaciones sobre los comparativos simple y de cruces de HSyVbG 2024-2026.
+- [Checklist · T2 metas por cuota + revisión visual de Correo (2026-10-22)](checklist-monitoreo-cuotas-y-revamp-correo-2026-10-22.md): metas por cuota (T2) y revisión visual de Avance › Correo.
+- [Checklist · Monitoreo telefónico para el ACNUR RMS 2026 (2026-10-22)](checklist-monitoreo-telefonico-rms-2026-10-22.md): llave proGres, Status configurable y reemplazos para el ACNUR RMS 2026.
+- [GOAL · El editor de correos es un editor profesional (2026-10-23)](goal-editor-correos-profesional-2026-10-23.md): loop de convergencia del editor de correos.
+
+### Revamp de Monitoreo (Insumos · Modelo · Control · Avance)
+
+- [Revamp de Monitoreo · Acreditación — arquitectura y fichas por pestaña](revamp-monitoreo/acreditacion.md): fichas por pestaña del perfil acreditación.
+- [Revamp de Monitoreo · Cursos-horario — arquitectura y fichas por pestaña](revamp-monitoreo/aulas.md): fichas por pestaña del perfil cursos-horario.
+- [Aviso: el runner de capturas reinstaló `prosecnurapp` desde la rama del revamp](revamp-monitoreo/aviso-libreria-r.md): incidente: el runner de capturas reinstaló el paquete desde la rama.
+- [Revamp de Monitoreo, Telefónico: arquitectura y fichas por pestaña](revamp-monitoreo/telefonico.md): fichas por pestaña del perfil telefónico.
+- [Revamp de Monitoreo · Territorial](revamp-monitoreo/territorial.md): fichas por pestaña del perfil territorial.
 
 ## Reemplazados
 
