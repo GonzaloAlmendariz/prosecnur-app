@@ -114,6 +114,15 @@ describe("dirección pública del modo territorial", () => {
     expect(esPestanaPropia({ seccion: "modelo", pestana: "metas", panel: null })).toBe(true);
     expect(esPestanaPropia({ seccion: "modelo", pestana: "metas", panel: "manzanas" })).toBe(false);
     expect(esPestanaPropia({ seccion: "modelo", pestana: "cuotas", panel: null })).toBe(true);
+    // Insumos: las cuatro propias; lo que aún no se rehizo queda en sub-vistas heredadas.
+    for (const pestana of ["conexiones", "mapeo", "padron", "historial"]) {
+      expect(esPestanaPropia({ seccion: "insumos", pestana, panel: null })).toBe(true);
+    }
+    expect(subvistasDePestana("insumos", "conexiones").map((item) => item.panel)).toEqual([null, "consola"]);
+    expect(subvistasDePestana("insumos", "mapeo").map((item) => item.panel)).toEqual([null, "editar", "filtro"]);
+    expect(esPestanaPropia({ seccion: "insumos", pestana: "padron", panel: "archivo" })).toBe(false);
+    // Los enlaces viejos vuelven a la vista principal, no a la sub-vista heredada.
+    expect(direccionDeVista({ seccion: "fuentes", pestana: "form" })).toEqual({ seccion: "insumos", pestana: "conexiones", panel: null });
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {

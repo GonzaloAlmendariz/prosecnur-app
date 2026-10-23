@@ -80,11 +80,17 @@ const v = (seccion: SeccionInternaTerritorial, pestana: string): VistaInternaTer
  * de una pestaña, la primera entrada es la principal.
  */
 const TABLA: readonly Entrada[] = [
-  entrada("insumos", "conexiones", null, v("fuentes", "form")),
-  entrada("insumos", "mapeo", null, v("modelo", "variables"), { vista: "Variables" }),
+  // Insumos: la vista principal es propia; las acciones que aún no se rehicieron
+  // (releer ficha, cambiar formulario, editar el mapeo, reemplazar el padrón)
+  // siguen en la vista heredada, como sub-vista.
+  entrada("insumos", "conexiones", null, v("fuentes", "form"), { vista: "Fuentes", propia: true }),
+  entrada("insumos", "conexiones", "consola", v("fuentes", "form"), { vista: "Administrar fuentes" }),
+  entrada("insumos", "mapeo", null, v("modelo", "variables"), { vista: "Resumen", propia: true }),
+  entrada("insumos", "mapeo", "editar", v("modelo", "variables"), { vista: "Editar el mapeo" }),
   entrada("insumos", "mapeo", "filtro", v("fuentes", "filter"), { vista: "Filtro y distritos" }),
-  entrada("insumos", "padron", null, v("fuentes", "roster")),
-  entrada("insumos", "historial", null, v("fuentes", "history")),
+  entrada("insumos", "padron", null, v("fuentes", "roster"), { vista: "Padrón", propia: true }),
+  entrada("insumos", "padron", "archivo", v("fuentes", "roster"), { vista: "Reemplazar padrón" }),
+  entrada("insumos", "historial", null, v("fuentes", "history"), { propia: true }),
   entrada("modelo", "metas", null, v("modelo", "resumen"), { vista: "Cobertura", propia: true }),
   entrada("modelo", "metas", "manzanas", v("modelo", "tabla"), { vista: "Manzanas" }),
   entrada("modelo", "cuotas", null, v("calidad", "cuotas"), { regreso: false, propia: true }),
