@@ -669,10 +669,12 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.fuentes },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.modelo },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.consultas },
-          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.telefonico },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23). Las
+          // direcciones anteriores (`fuentes`, `consultas`, `telefonico`) se
+          // leen como alias en `direccionAcreditacion.ts`; nunca se escriben.
+          { id: "insumos", label: "Insumos", icon: PlugZap, to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.insumos },
+          { id: "modelo", label: "Modelo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.modelo },
+          { id: "control", label: "Control", icon: Search, to: "/monitoreo?seccion=control", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.control },
           { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.avance },
         ],
       },

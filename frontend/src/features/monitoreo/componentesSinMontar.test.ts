@@ -75,11 +75,6 @@ const SIN_MONTAR_CONOCIDOS = [
   // separa agendadas de aplicadas. Se desmonta, no se borra.
   "AulasFrenteDelOperativo.tsx::AulasFrenteDelOperativo",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
-  // Destapado el 2026-10-23, no creado: el detector cuenta por nombre y la
-  // copia homónima del clon telefónico era la que «montaba» a ésta. Telefónico
-  // pasó a `navegacion/CabeceraTelefonica.tsx` y quedó a la vista que la de
-  // Acreditación no la monta nadie. Retirarla es decisión de su perfil.
-  "AcreditacionMonitoreoPage.tsx::AcreditacionWorkbenchHead",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",
   "TerritorialModelWorkbench.tsx::RouteSheetStrip",
   "TerritorialMonitoreoPage.tsx::AdvanceView",

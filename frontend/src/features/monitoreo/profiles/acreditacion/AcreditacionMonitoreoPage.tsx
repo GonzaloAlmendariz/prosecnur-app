@@ -50,7 +50,7 @@ import {
 } from "../../../../api/client";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
-  MONITOREO_PESTANAS,
+  MONITOREO_PESTANAS_INTERNAS_ACREDITACION,
   MONITOREO_PESTANAS_COMPATIBILIDAD_ACREDITACION,
 } from "../../../../lib/navegacion/catalogos/monitoreo";
 import {
@@ -60,17 +60,18 @@ import { CorteAusente } from "../../core/CorteAusente";
 import { coberturaDelCorte } from "../../core/coberturaDelCorte";
 import { fuentesSincronizables, motivoSinFuentes } from "../../core/fuentesSincronizables";
 import { PIEZAS_DEL_PAQUETE_TELEFONICO, piezasRequeridas } from "../../core/paqueteDeFuentes";
-import {
-  monitoreoPestanaDesdeParams,
-  pestanaInicialDeSeccion,
-  seccionInicialMonitoreo,
-  monitoreoSeccionDesdeParams,
-  useMonitoreoDireccion,
-} from "../../useMonitoreoDireccion";
-import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
+import { monitoreoDireccionDesdeParams, monitoreoPestanaDesdeParams, monitoreoSeccionDesdeParams, useMonitoreoDireccionTraducida } from "../../useMonitoreoDireccion";
+import { pestanaDeEntrada } from "../../core/tablaDeDirecciones";
+import { corteCorto, estadoDelModo } from "../../core/barraComun";
+import { readinessDeAcreditacion, useLecturaCompleta, useNavegacionAcreditacion } from "./navegacion/useNavegacionAcreditacion";
+import { chipsDeCabecera, pestanaConLienzo } from "./navegacion/chipsDeCabecera";
+import { PorPublico } from "./avance/PorPublico";
+import { Resumen } from "./avance/Resumen";
+import { CabeceraAcreditacion, RailAcreditacion } from "./navegacion/ChromeAcreditacion";
+import { PANELES_DEL_PERFIL, panelesSuperpuestos, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionAcreditacion";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
+import { MonitoreoWorkbenchChrome, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
   compareInternalQueryDateValues,
@@ -166,7 +167,20 @@ import {
   acreditacionObjetivoDeGoals,
   acreditacionTitularObjetivo,
 } from "./AcreditacionObjetivoActor";
-import { AcreditacionEmbudoCorte } from "./AcreditacionEmbudoCorte";
+import {
+  advanceCardsFromRows,
+  COL_EFECTIVAS,
+  COL_PARCIALES,
+  COL_RECHAZOS,
+  COL_SIN_RESPUESTA,
+  COL_UNIVERSO,
+  rowNumber,
+  rowText,
+  safePercentValue,
+  type AcreditacionAdvanceCard,
+} from "./avance/tarjetasDeAvance";
+// Compatibilidad: tests y superficies vecinas los importaban de este módulo.
+export { advanceCardsFromRows, type AcreditacionAdvanceCard };
 import {
   acreditacionVentanaCampoObservada,
   type AcreditacionVentanaCampo,
@@ -298,16 +312,16 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   },
 ];
 export const ACREDITACION_MODEL_TABS = [
-  ...MONITOREO_PESTANAS.acreditacion.modelo,
+  ...MONITOREO_PESTANAS_INTERNAS_ACREDITACION.modelo,
   MONITOREO_PESTANAS_COMPATIBILIDAD_ACREDITACION.modelo.resumen,
 ] as const;
 type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
-export const ACREDITACION_CONSULTA_TABS = MONITOREO_PESTANAS.acreditacion.consultas;
+export const ACREDITACION_CONSULTA_TABS = MONITOREO_PESTANAS_INTERNAS_ACREDITACION.consultas;
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
-export const ACREDITACION_PHONE_TABS = MONITOREO_PESTANAS.acreditacion.telefonico;
+export const ACREDITACION_PHONE_TABS = MONITOREO_PESTANAS_INTERNAS_ACREDITACION.telefonico;
 type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
-const ACREDITACION_ADVANCE_TABS = MONITOREO_PESTANAS.acreditacion.avance;
+const ACREDITACION_ADVANCE_TABS = MONITOREO_PESTANAS_INTERNAS_ACREDITACION.avance;
 type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
 export type AcreditacionProfileMode = "acreditacion" | "telefonico";
@@ -342,31 +356,6 @@ function num(value: unknown, fallback = 0) {
 function unknownArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
-
-function rowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  const normalized = new Map(Object.keys(row).map((key) => [
-    key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
-    key,
-  ]));
-  for (const key of keys) {
-    const hit = normalized.get(key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-    if (hit) return num(row[hit], fallback);
-  }
-  return fallback;
-}
-
-// Nombres canónicos de columna del reporte de acreditación. Existían SIETE
-// listas distintas para el mismo concepto y varias omitían el nombre real:
-// el reporte publica "Rechazos plataforma", pero `advanceCardsFromRows` sólo
-// buscaba "Rechazo"/"Rechazos"/"Refusals", así que la banda de universo de
-// Avance mostraba RECHAZOS 0 mientras la leyenda del gráfico —que sí leía la
-// columna buena— mostraba 3 en la misma pantalla (acrconta, 2026-07-26).
-// Una métrica, un origen: estos son los alias válidos y no se declaran ad hoc.
-const COL_UNIVERSO = ["Universo", "Base reportada", "Total", "Base", "Casos"];
-const COL_EFECTIVAS = ["Efectivas", "Validas", "Válidas", "Completas", "Completed"];
-const COL_PARCIALES = ["Parciales", "Partial"];
-const COL_RECHAZOS = ["Rechazos plataforma", "Rechazos", "Rechazo", "Refusals"];
-const COL_SIN_RESPUESTA = ["Sin respuesta", "Sin respuesta plataforma", "Pendientes", "Unanswered", "Pending"];
 
 type SeguimientoDraft = {
   n_efectivo: string;
@@ -13285,23 +13274,6 @@ function AcreditacionConsultasPanel({
   );
 }
 
-export type AcreditacionAdvanceCard = {
-  id: string;
-  actor: string;
-  /** Objetivo declarado para este actor (barrido | minimo). Null => se sugiere. */
-  objetivo?: "barrido" | "minimo" | null;
-  universe: number;
-  effective: number;
-  partial: number;
-  refusals: number;
-  pending: number;
-  meta: number | null;
-  missing: number | null;
-  progress: number | null;
-  coverage: number | null;
-  statusTone: "complete" | "steady" | "low" | "muted";
-};
-
 type AcreditacionActorMechanism = {
   id: string;
   label: string;
@@ -13377,25 +13349,6 @@ type AcreditacionControlVariableRow = {
   deltaPp: number | null;
 };
 
-function rowText(row: Record<string, unknown>, keys: string[], fallback = "") {
-  const normalized = new Map(Object.keys(row).map((key) => [
-    key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
-    key,
-  ]));
-  for (const key of keys) {
-    const hit = normalized.get(key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-    if (!hit) continue;
-    const value = row[hit];
-    if (value != null && value !== "") return String(value);
-  }
-  return fallback;
-}
-
-function safePercentValue(value: number | null | undefined, total: number | null | undefined) {
-  if (!Number.isFinite(Number(value)) || !Number.isFinite(Number(total)) || Number(total) <= 0) return null;
-  return (Number(value) / Number(total)) * 100;
-}
-
 function formatPercentLabel(value: number | null | undefined) {
   return pctDecimal(value);
 }
@@ -13449,70 +13402,6 @@ function reportStateTone(value: string) {
   if (normalized.includes("media") || normalized.includes("parcial") || normalized.includes("contactar") || normalized.includes("pendiente")) return "warn";
   if (normalized.includes("ok") || normalized.includes("efectiv") || normalized.includes("completa")) return "good";
   return "muted";
-}
-
-function advanceGoalForActor(actor: string, goals: MonitoreoGoal[]) {
-  const actorKey = normalizeSourceMatch(actor);
-  const direct = goals.find((goal) => Object.values(goal.filters ?? {}).some((value) => normalizeSourceMatch(value) === actorKey));
-  return direct && Number.isFinite(Number(direct.meta)) ? Number(direct.meta) : null;
-}
-
-export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []): AcreditacionAdvanceCard[] {
-  // Dos actores cuyo nombre normaliza igual —"Estudiantes" en dos cortes, o con
-  // distinta capitalización— producían el mismo `id`. React lo veía como una
-  // key duplicada y podía **omitir una de las tarjetas sin avisar**: en el corte
-  // de acreditación multiactor desaparecía un actor completo de Avance. El
-  // desempate mantiene el slug legible y garantiza unicidad.
-  const slugsVistos = new Map<string, number>();
-  const idUnico = (actor: string, index: number) => {
-    const base = normalizeSourceMatch(actor) || String(index);
-    const repeticion = slugsVistos.get(base) ?? 0;
-    slugsVistos.set(base, repeticion + 1);
-    return repeticion === 0 ? `avance-${base}` : `avance-${base}-${repeticion + 1}`;
-  };
-
-  return rows.map((row, index) => {
-    const actor = rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`);
-    const universe = rowNumber(row, COL_UNIVERSO, 0);
-    const effective = rowNumber(row, COL_EFECTIVAS, 0);
-    const partial = rowNumber(row, COL_PARCIALES, 0);
-    const refusals = rowNumber(row, COL_RECHAZOS, 0);
-    const explicitPending = rowNumber(row, COL_SIN_RESPUESTA, NaN);
-    const pending = Number.isFinite(explicitPending) ? explicitPending : Math.max(0, universe - effective - partial - refusals);
-    const rowMeta = rowNumber(row, ["Meta", "Objetivo", "Meta efectiva", "Target"], NaN);
-    const goalMeta = advanceGoalForActor(actor, goals);
-    const meta = Number.isFinite(rowMeta) && rowMeta > 0 ? rowMeta : goalMeta;
-    const missing = meta != null ? Math.max(0, meta - effective) : null;
-    const progress = safePercentValue(effective, universe);
-    const coverage = progress;
-    const targetProgress = meta != null ? safePercentValue(effective, meta) : null;
-    const statusTone: AcreditacionAdvanceCard["statusTone"] = meta == null
-      ? "muted"
-      : missing === 0
-        ? "complete"
-        : (targetProgress ?? 0) >= 70
-          ? "steady"
-          : "low";
-    return {
-      id: idUnico(actor, index),
-      actor,
-      objetivo: acreditacionObjetivoDeGoals(goals, actor),
-      universe,
-      effective,
-      partial,
-      refusals,
-      pending,
-      meta,
-      missing,
-      progress,
-      coverage,
-      statusTone,
-    };
-  }).sort((a, b) => {
-    const aNeeds = a.meta == null ? 1 : 0;
-    const bNeeds = b.meta == null ? 1 : 0;
-    return aNeeds - bNeeds || b.effective - a.effective || a.actor.localeCompare(b.actor, "es");
-  });
 }
 
 function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[]) {
@@ -15087,254 +14976,6 @@ function AcreditacionActorProgressCardView({
   );
 }
 
-function AcreditacionPhoneQuotaLaneCard({ card }: { card: AcreditacionActorCard }) {
-  const meta = card.meta ?? 0;
-  const metaProgress = meta > 0 ? safePercentValue(card.effective, meta) ?? 0 : safePercentValue(card.effective, card.universe) ?? 0;
-  const baseProgress = safePercentValue(card.effective, card.universe) ?? 0;
-  const targetPct = safePercentValue(meta, card.universe) ?? 0;
-  const gap = card.missing ?? Math.max(0, meta - card.effective);
-  const orderedDaily = sortAcreditacionDailyPoints(card.dailyPoints).filter((point) => dailyEffectiveValue(point) > 0);
-  const visibleDaily = orderedDaily.slice(-6);
-  const maxDaily = Math.max(1, ...visibleDaily.map(dailyEffectiveValue));
-  const lastPoint = orderedDaily.at(-1) ?? null;
-  const dailyTotal = orderedDaily.reduce((sum, point) => sum + dailyEffectiveValue(point), 0);
-  return (
-    <article
-      className={`mon-phone-quota-lane is-${card.statusTone}`}
-      style={{
-        "--phone-quota-lane-pct": `${Math.max(baseProgress ? 3 : 0, Math.min(100, baseProgress))}%`,
-        "--phone-quota-lane-target": `${Math.max(0, Math.min(100, targetPct))}%`,
-      } as CSSProperties}
-    >
-      <div className="mon-phone-quota-lane-title">
-        <span>Sede</span>
-        <strong>{card.actor}</strong>
-        <em>{gap > 0 ? `${fmt(gap)} por cumplir` : "cuota cubierta"}</em>
-      </div>
-      <div className="mon-phone-quota-lane-progress" aria-label={`Avance de cuota de ${card.actor}`}>
-        <div>
-          <strong>{meta > 0 ? `${fmt(card.effective)} / ${fmt(meta)}` : fmt(card.effective)}</strong>
-          <span>{formatPercentLabel(metaProgress)} de la meta Kobo</span>
-        </div>
-        <i aria-hidden="true"><b /></i>
-        <small>Base {fmt(card.universe)} · por barrer {fmt(card.pending)}</small>
-      </div>
-      <div className="mon-phone-quota-lane-metrics" aria-label={`Indicadores de ${card.actor}`}>
-        <span><em>Meta</em><strong>{meta ? fmt(meta) : "S/M"}</strong></span>
-        <span><em>Kobo</em><strong>{fmt(card.effective)}</strong></span>
-        <span className={gap ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gap)}</strong></span>
-      </div>
-      <div className="mon-phone-quota-lane-spark" aria-label={`Ritmo diario de ${card.actor}`}>
-        <span>
-          <em>{fmt(orderedDaily.length)} día{orderedDaily.length === 1 ? "" : "s"}</em>
-          <strong>{lastPoint ? shortAdvanceDateLabel(lastPoint.date) : "Sin fecha"}</strong>
-        </span>
-        <div>
-          {visibleDaily.length ? visibleDaily.map((point) => {
-            const value = dailyEffectiveValue(point);
-            return (
-              <i
-                key={point.date}
-                title={`${shortAdvanceDateLabel(point.date)}: ${fmt(value)} efectivas Kobo`}
-                style={{ "--phone-quota-lane-day": `${Math.max(8, Math.min(100, safePercentValue(value, maxDaily) ?? 0))}%` } as CSSProperties}
-              />
-            );
-          }) : <em>Sin serie</em>}
-        </div>
-        <small>{fmt(dailyTotal)} fechadas</small>
-      </div>
-    </article>
-  );
-}
-
-function AcreditacionPhoneQuotaLaneBoard({
-  cards,
-  totals,
-  generatedAt,
-}: {
-  cards: AcreditacionActorCard[];
-  totals: ReturnType<typeof advanceTotals>;
-  generatedAt: string;
-}) {
-  const withMeta = cards.filter((card) => card.meta != null);
-  const reached = withMeta.filter((card) => (card.missing ?? 0) <= 0).length;
-  const metaTotal = cards.reduce((sum, card) => sum + Math.max(0, card.meta ?? 0), 0);
-  const gapTotal = cards.reduce((sum, card) => sum + Math.max(0, card.missing ?? 0), 0);
-  const datedTotal = cards.reduce(
-    (sum, card) => sum + card.dailyPoints.reduce((inner, point) => inner + dailyEffectiveValue(point), 0),
-    0,
-  );
-  return (
-    <div className="mon-phone-quota-lane-board">
-      <section className="mon-phone-quota-lane-brief" aria-label="Resumen de cuotas Kobo por sede">
-        <div>
-          <span>Cuotas Kobo por sede</span>
-          <strong>{fmt(totals.effective)} efectivas de {metaTotal ? fmt(metaTotal) : "S/M"}</strong>
-          <p>Todas las sedes quedan visibles en una sola lectura: meta, efectivas Kobo, pendiente por cumplir y señal diaria fechada.</p>
-        </div>
-        <div className="mon-phone-quota-lane-kpis">
-          <span><em>Sedes</em><strong>{fmt(cards.length)}</strong></span>
-          <span><em>Cubiertas</em><strong>{fmt(reached)}/{fmt(withMeta.length || cards.length)}</strong></span>
-          <span className={gapTotal ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gapTotal)}</strong></span>
-          <span><em>Fechadas</em><strong>{fmt(datedTotal)}</strong></span>
-          {generatedAt ? <span><em>Corte</em><strong>{generatedAt}</strong></span> : null}
-        </div>
-      </section>
-      <div className="mon-phone-quota-lane-list" aria-label="Carriles de avance por sede">
-        {cards.length ? cards.map((card) => (
-          <AcreditacionPhoneQuotaLaneCard key={card.id} card={card} />
-        )) : (
-          <EmptyPanel title="Sin cuotas operativas" detail="El reporte telefónico aún no trae categorías de cuota para mostrar metas, efectivas Kobo y pendientes." />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AcreditacionAdvanceActorsWorkbench({
-  reports,
-  state,
-  actorRows,
-  sourceRows,
-  dailyRows,
-}: {
-  reports: MonitoreoAcreditacionReports;
-  state?: MonitoreoState | null;
-  actorRows: Array<Record<string, unknown>>;
-  sourceRows: Array<Record<string, unknown>>;
-  dailyRows: Array<Record<string, unknown>>;
-}) {
-  const allowedActors = new Set(actorRows.map((row, index) => normalizeSourceMatch(rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`))));
-  const actorDailySeries = buildAcreditacionAdvanceDailySeries(reports, "avance_general_dia", "Unidad", allowedActors);
-  const isPhoneModel = isTelefonicoMonitoreoState(state);
-  const phoneQuotaCards = useMemo(() => phoneQuotaCardsForDashboard(reports), [reports]);
-  const cards = isPhoneModel && phoneQuotaCards.length ? phoneQuotaCards : actorCardsForDashboard({
-    actorRows,
-    sourceRows,
-    dailyRows,
-    actorDailySeries,
-    goals: state?.config.goals ?? [],
-    sources: state?.sources ?? [],
-    progressRows: state?.dashboard?.progress ?? [],
-  });
-  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
-  const totals = advanceTotals(cards);
-  const goals = actorGoalSummary(cards);
-  const completionPct = safePercentValue(totals.effective, totals.universe);
-  const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
-  const mechanismTotal = cards.reduce((sum, card) => sum + card.mechanisms.length, 0);
-  const unitCountLabel = scopeLabel === "Sede"
-    ? `${fmt(cards.length)} sede${cards.length === 1 ? "" : "s"}`
-    : `${fmt(cards.length)} actor${cards.length === 1 ? "" : "es"}`;
-  const mechanismSummary = scopeLabel === "Sede"
-    ? `${fmt(cards.filter((card) => card.meta != null).length)} metas`
-    : `${fmt(mechanismTotal)} mecanismos`;
-  const phoneQuotaWithMeta = cards.filter((card) => card.meta != null).length;
-  const phoneQuotaReached = cards.filter((card) => card.meta != null && (card.missing ?? 0) <= 0).length;
-  const reportCuts = useMemo(
-    () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
-    [state?.config?.strategy_phases],
-  );
-  const reportWeekday = useMemo(
-    () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
-    [state?.config?.strategy_phases],
-  );
-
-  if (isPhoneModel) {
-    return (
-      <section
-        className="pulso-panel mon-fill-panel mon-strata-dashboard mon-actor-dashboard mon-phone-quota-lane-workbench"
-        style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
-        aria-label={`Cuotas Kobo por ${scopeLabel.toLowerCase()}`}
-      >
-        <header className="pulso-panel-header">
-          <div className="pulso-panel-heading">
-            <span className="pulso-panel-eyebrow">Avance</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Cuotas Kobo por sede</span></h2>
-            <p className="pulso-panel-hint">Meta, efectivas Kobo, pendiente por cumplir y ritmo diario fechable sin mezclarlo con estados telefónicos.</p>
-          </div>
-          <div className="pulso-panel-actions mon-actor-dashboard-actions">
-            <span>{unitCountLabel}</span>
-            <span>{mechanismSummary}</span>
-            {generatedAt ? <span>{generatedAt}</span> : null}
-          </div>
-        </header>
-        <AcreditacionPhoneQuotaRhythmBoard
-          cards={cards}
-          variable={scopeLabel}
-          cutDate={reports.generated_at}
-        />
-        <AcreditacionPhoneQuotaLaneBoard
-          cards={cards}
-          totals={totals}
-          generatedAt={generatedAt}
-        />
-      </section>
-    );
-  }
-
-  return (
-    <section
-      className="pulso-panel mon-fill-panel mon-strata-dashboard mon-actor-dashboard"
-      style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
-      aria-label={isPhoneModel ? `Cuotas Kobo por ${scopeLabel.toLowerCase()}` : "Avance canónico por actor"}
-    >
-      <header className="pulso-panel-header">
-        <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> {isPhoneModel ? `Cuotas Kobo por ${scopeLabel.toLowerCase()}` : `Avance por ${scopeLabel.toLowerCase()}`}</span></h2>
-          <p className="pulso-panel-hint">{isPhoneModel ? `Meta, efectivas Kobo, pendiente por cumplir y base telefónica por ${scopeLabel.toLowerCase()}.` : `Universo, meta, brecha y fuentes por ${scopeLabel.toLowerCase()}.`}</p>
-        </div>
-        <div className="pulso-panel-actions mon-actor-dashboard-actions">
-          <span>{unitCountLabel}</span>
-          <span>{mechanismSummary}</span>
-          {generatedAt ? <span>{generatedAt}</span> : null}
-        </div>
-      </header>
-      <div className="mon-advance-hero mon-advance-hero--actors">
-        <div className="mon-advance-hero-copy">
-          <span>{isPhoneModel ? `Cuota por ${scopeLabel.toLowerCase()}` : `Corte por ${scopeLabel.toLowerCase()}`}</span>
-          <strong>{fmt(totals.effective)} {isPhoneModel ? "efectivas Kobo" : "efectivas"} de {fmt(totals.universe)}</strong>
-          <p>{isPhoneModel ? `Cada ${scopeLabel.toLowerCase()} muestra la base telefónica, la meta, las efectivas Kobo y lo que falta cumplir.` : `Lee cada ${scopeLabel.toLowerCase()} como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.`}</p>
-        </div>
-        <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label={scopeLabel === "Sede" ? "Sedes" : "Actores"} value={fmt(cards.length)} hint={mechanismSummary} tone="base" />
-          <AcreditacionAdvanceMetric
-            label={isPhoneModel ? "Cuotas cumplidas" : `Metas ${scopeLabel.toLowerCase()}`}
-            value={isPhoneModel ? `${fmt(phoneQuotaReached)}/${fmt(phoneQuotaWithMeta || cards.length)}` : actorGoalValue(goals)}
-            hint={isPhoneModel ? `${fmt(phoneQuotaWithMeta)} con meta Kobo` : actorGoalHint(goals)}
-            tone={isPhoneModel ? (phoneQuotaWithMeta && phoneQuotaReached >= phoneQuotaWithMeta ? "ready" : "target") : actorGoalTone(goals)}
-          />
-          <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${formatPercentLabel(completionPct)} del universo`} tone="ready" />
-          <AcreditacionAdvanceMetric
-            label={isPhoneModel ? "Por barrer" : "Pendientes"}
-            value={fmt(totals.pending)}
-            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
-            tone={totals.pending ? "warning" : "base"}
-          />
-        </div>
-      </div>
-      <div className={`mon-actor-grid${isPhoneModel ? " mon-actor-grid--phone-quota" : ""}`}>
-        {cards.length ? cards.map((card) => (
-          <AcreditacionActorProgressCardView
-            key={card.id}
-            card={card}
-            cutDate={reports.generated_at}
-            reportCuts={reportCuts}
-            reportWeekday={reportWeekday}
-            scopeLabel={scopeLabel}
-          />
-        )) : (
-          <EmptyPanel
-            title={isPhoneModel ? "Sin cuotas operativas" : "Sin cortes operativos"}
-            detail={isPhoneModel ? "El reporte telefónico aún no trae categorías de cuota para mostrar metas, efectivas Kobo y pendientes." : "El reporte de avance aún no trae actores para mostrar metas, fuentes y brechas."}
-          />
-        )}
-      </div>
-    </section>
-  );
-}
-
 function acreditacionChannelDisplay(value: unknown, fallback = "Sin canal") {
   const raw = String(value ?? "").trim();
   if (!raw) return fallback;
@@ -16727,262 +16368,6 @@ function AcreditacionAdvanceDetailWorkbench({
   );
 }
 
-function AcreditacionAdvanceSummaryWorkbench({
-  reports,
-  state,
-  actorRows,
-  dailyRows,
-  onNavigateLocalTab,
-}: {
-  reports: MonitoreoAcreditacionReports;
-  state?: MonitoreoState | null;
-  actorRows: Array<Record<string, unknown>>;
-  dailyRows: Array<Record<string, unknown>>;
-  onNavigateLocalTab?: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
-}) {
-  const isPhoneModel = isTelefonicoMonitoreoState(state);
-  const phoneQuotaCards = useMemo(() => phoneQuotaCardsForDashboard(reports), [reports]);
-  const cards = useMemo(() => (
-    isPhoneModel && phoneQuotaCards.length
-      ? phoneQuotaCards
-      : advanceCardsFromRows(actorRows, state?.config.goals ?? [])
-  ), [actorRows, isPhoneModel, phoneQuotaCards, state?.config.goals]);
-  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
-  const rawDailyPoints = useMemo(() => dailyPointsFromRows(dailyRows), [dailyRows]);
-  const dailyPoints = useMemo(() => (
-    isPhoneModel ? rawDailyPoints.filter(isDatedAcreditacionDailyPoint) : rawDailyPoints
-  ), [isPhoneModel, rawDailyPoints]);
-  const totals = advanceTotals(cards);
-  const completionPct = safePercentValue(totals.effective, totals.universe);
-  const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
-  const reportCuts = useMemo(
-    () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
-    [state?.config?.strategy_phases],
-  );
-  const reportWeekday = useMemo(
-    () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
-    [state?.config?.strategy_phases],
-  );
-  const phoneComparisonRows = isPhoneModel
-    ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"])
-    : [];
-  const phoneComparison = isPhoneModel ? phonePlatformComparisonTotals(phoneComparisonRows) : null;
-  const phoneStatusRows = isPhoneModel
-    ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"])
-    : [];
-  const phoneStatusTotal = Math.max(1, phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0));
-  const phoneStatusItems = phoneStatusRows.map((row, index) => {
-    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`);
-    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
-    return { key: `${normalizeSourceMatch(label)}-${index}`, label, value, tone: phoneStatusTone(label) };
-  }).filter((item) => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 6);
-  const quotaRows = isPhoneModel
-    ? phoneQuotaRowsForPanel(rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]))
-    : [];
-  const quotaVariable = isPhoneModel ? preferredPhoneAdvanceQuotaVariable(quotaRows) || scopeLabel : scopeLabel;
-  const phoneFilter = isPhoneModel ? normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter) : null;
-  const phoneFilterConfigured = Boolean(phoneFilter?.enabled && phoneFilter.variable && phoneFilter.values.length);
-  const phonePlatformSource = isPhoneModel
-    ? state?.sources?.find(isKoboResponseSource) ?? null
-    : null;
-  const phoneInstrumentTitle = phonePlatformSource ? acreditacionSurveySourceName(phonePlatformSource) : "Kobo pendiente";
-  const phoneInstrumentAsset = phonePlatformSource ? sourceExternalId(phonePlatformSource) : "";
-  const phoneFilterLabel = phoneFilterConfigured
-    ? `${phoneFilter?.label || phoneFilter?.variable} = ${phoneFilter?.value_label || phoneFilter?.values[0]}`
-    : "Sin filtro";
-  const phoneFilterHint = phoneFilterConfigured
-    ? "opción válida"
-    : "elige consentimiento";
-  const dailySignalDays = dailyPoints.filter((point) => dailyPointTotalValue(point) > 0).length;
-  const undatedPhoneEffective = isPhoneModel
-    ? rawDailyPoints.filter((point) => !isDatedAcreditacionDailyPoint(point)).reduce((sum, point) => sum + dailyEffectiveValue(point), 0)
-    : 0;
-
-  if (isPhoneModel) {
-    const comparison = phoneComparison ?? {
-      phoneEffective: 0,
-      platformComplete: totals.effective,
-      matchedEffective: 0, total: 0, // sin `total`, el `mismatch: 0` de abajo hacia que el fallback de «no hay cruce» se declarara «cruce perfecto»
-      mismatch: 0,
-    };
-    const platformEffective = comparison.platformComplete || totals.effective;
-    return (
-      <section className="pulso-panel mon-advance-panel mon-phone-advance-summary" aria-label="Resumen de avance telefónico">
-        <header className="pulso-panel-header">
-          <div className="pulso-panel-heading">
-            <span className="pulso-panel-eyebrow">Avance telefónico</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><BarChart3 size={16} /> Kobo, barrido y cuotas</span></h2>
-            <p className="pulso-panel-hint">Kobo manda las efectivas; el barrido conserva estados telefónicos y CodPulso verifica coincidencia individual.</p>
-          </div>
-          <div className="pulso-panel-actions mon-advance-meta">
-            <span>{fmt(state?.n_rows ?? totals.universe)} registros</span>
-            {generatedAt ? <span>{generatedAt}</span> : null}
-          </div>
-        </header>
-        <div className="mon-phone-advance-hero">
-          <div className="mon-phone-advance-hero-copy">
-            <span>Fuente rectora</span>
-            <strong>{fmt(platformEffective)} efectivas Kobo</strong>
-            <p>{phoneFilterConfigured ? `Filtro aplicado: ${phoneFilter?.label || phoneFilter?.variable} = ${phoneFilter?.value_label || phoneFilter?.values[0]}` : "Configura el filtro de consentimiento/elegibilidad para que el avance quede completamente validado."}</p>
-          </div>
-          <div className="mon-phone-advance-hero-kpis">
-            <AcreditacionAdvanceMetric label="Variable cuota" value={quotaVariable} hint={`${fmt(cards.length)} categorías`} tone={quotaRows.length ? "target" : "warning"} />
-            <AcreditacionAdvanceMetric label="CodPulso" value={phoneCodPulsoEffectiveMatchLabel(comparison)} hint={comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : `${fmt(phoneComparisonRows.length)} llaves trazadas`} tone={comparison.mismatch ? "warning" : "ready"} />
-            <AcreditacionAdvanceMetric label="Barrido efectivo" value={fmt(comparison.phoneEffective)} hint="declarado en base" tone="base" />
-            <AcreditacionAdvanceMetric label="Por barrer" value={fmt(totals.pending)} hint="estado telefónico" tone={totals.pending ? "warning" : "base"} />
-          </div>
-        </div>
-        <div className="mon-phone-advance-rule-console" aria-label="Regla operativa Kobo para avance telefónico">
-          <section className={phoneFilterConfigured ? "is-ready" : "is-warning"}>
-            <span><ListChecks size={13} /> Regla Kobo</span>
-            <strong>{phoneFilterConfigured ? "Efectiva = completa y pasa filtro" : "Falta elegir filtro de efectiva"}</strong>
-            <p>{phoneFilterConfigured ? "Kobo cuenta el avance; el barrido queda como consulta operativa y CodPulso prueba coincidencia individual." : "Sin filtro, el tablero muestra la producción leída, pero la validación de avance todavía no queda cerrada."}</p>
-          </section>
-          <div className="mon-phone-advance-rule-steps">
-            <button type="button" className={phonePlatformSource ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "encuestas")}>
-              <span><ListChecks size={13} /> Instrumento</span>
-              <strong>{phoneInstrumentTitle}</strong>
-              <em>{phoneInstrumentAsset ? shortenMiddle(phoneInstrumentAsset, 38) : "Selecciona Kobo"}</em>
-            </button>
-            <i aria-hidden="true" />
-            <button type="button" className={phoneFilterConfigured ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "encuestas")}>
-              <span><Filter size={13} /> Filtro</span>
-              <strong>{phoneFilterLabel}</strong>
-              <em>{phoneFilterHint}</em>
-            </button>
-            <i aria-hidden="true" />
-            <button type="button" className={quotaRows.length ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("modelo", "estructura")}>
-              <span><SlidersHorizontal size={13} /> Variable rectora</span>
-              <strong>{quotaVariable}</strong>
-              <em>{fmt(cards.length)} categorías de cuota</em>
-            </button>
-            <i aria-hidden="true" />
-            <button type="button" className={comparison.mismatch ? "is-warning" : "is-ready"} onClick={() => onNavigateLocalTab?.("avance", "detalle")}>
-              <span><KeyRound size={13} /> CodPulso</span>
-              <strong>{phoneCodPulsoEffectiveMatchLabel(comparison)}</strong>
-              <em>{comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : comparison.total ? "coincidencia individual" : "todavia sin cruce"}</em>
-            </button>
-          </div>
-        </div>
-        <div className="mon-phone-advance-grid">
-          <AcreditacionAdvanceDailyMini
-            points={dailyPoints}
-            title="Ritmo general Kobo"
-            variant="source"
-            cutDate={reports.generated_at}
-            reportCuts={reportCuts}
-            reportWeekday={reportWeekday}
-            effectiveOnly
-            compact
-          />
-          <section className="mon-phone-advance-parallel" aria-label="Estados de plataforma y estados telefónicos en paralelo">
-            <header>
-              {/* Un enunciado de doctrina sobre un bloque que enfrenta dos
-                * cifras. Lo que hace falta saber es cuánto se separan. */}
-              <div>
-                <span>Contexto telefónico</span>
-                <strong>
-                  {comparison.mismatch
-                    ? `${fmt(Math.abs(comparison.phoneEffective - platformEffective))} de diferencia`
-                    : comparison.total ? "Kobo y barrido coinciden" : "todavia sin cruce"}
-                </strong>
-              </div>
-              <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
-            </header>
-            <div className="mon-phone-advance-parallel-grid">
-              <article>
-                <span>Kobo efectivo</span>
-                <strong>{fmt(platformEffective)} efectivas</strong>
-                <p>{phoneFilterConfigured ? "Pasan filtro y cuentan para cuota." : "Pendiente definir filtro de efectiva."}</p>
-                <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(platformEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
-              </article>
-              <article>
-                <span>Barrido telefónico</span>
-                <strong>{fmt(comparison.phoneEffective)} efectivas declaradas</strong>
-                <p>{comparison.mismatch ? `${fmt(comparison.mismatch)} CodPulso no coinciden.` : comparison.total ? "Coincide con Kobo por llave individual." : "Todavia no hay CodPulso que cruzar con Kobo."}</p>
-                <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(comparison.phoneEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
-              </article>
-            </div>
-            <div className="mon-phone-advance-status-list" aria-label="Distribución de estados telefónicos">
-              {phoneStatusItems.length ? phoneStatusItems.map((item) => (
-                <span key={item.key} className={`is-${item.tone}`}>
-                  <em>{item.label}</em>
-                  <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(item.value, phoneStatusTotal) ?? 0))}%` } as CSSProperties} />
-                  <strong>{fmt(item.value)}</strong>
-                </span>
-              )) : (
-                <span className="is-muted"><em>Sin estados telefónicos</em><strong>S/D</strong></span>
-              )}
-            </div>
-          </section>
-          <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} />
-          <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="pulso-panel mon-advance-panel" aria-label="Resumen canónico de avance">
-      <header className="pulso-panel-header">
-        <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><BarChart3 size={16} /> Reporte</span></h2>
-          <p className="pulso-panel-hint">Corte cliente, universo, metas y ritmo diario.</p>
-        </div>
-        <div className="pulso-panel-actions mon-advance-meta">
-          <span>{fmt(state?.n_rows ?? totals.universe)} registros</span>
-          {generatedAt ? <span>{generatedAt}</span> : null}
-        </div>
-      </header>
-      <div className="mon-advance-hero">
-        <div className="mon-advance-hero-copy">
-          <span>Corte sincronizado</span>
-          <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>
-            {totals.metas
-              ? `${fmt(totals.metas - totals.brechas)} de ${countText(totals.metas, scopeLabel.toLowerCase(), `${scopeLabel.toLowerCase()}es`)} cubren su mínimo interno · ${countText(Math.max(0, totals.universe - totals.effective), "caso", "casos")} del universo sin cubrir.`
-              : `${fmt(Math.max(0, totals.universe - totals.effective))} casos del universo sin cubrir.`}
-          </p>
-        </div>
-        <div className="mon-advance-hero-kpis">
-          {/* Las DOS lecturas conviven: el minimo es el piso interno con el que
-              el estudio se cubre, y la cobertura del universo es lo que el
-              cliente suele perseguir. Mostrar solo la primera daba por cerrado
-              un estudio con casos sin cubrir.
-              «Sin cubrir» y no «sin trabajar»: son universo - efectivas, y 9 de
-              los 331 medidos en acrconta SI se trabajaron (7 parciales y 2
-              rechazos). Tampoco «sin efectiva», que en el modelo telefonico ya
-              nombra otra cosa —barridas sin efectiva, sobre las barridas, no
-              sobre el universo—. «Cubierto» es el verbo que este perfil ya usa
-              para el universo (`Universo cubierto`). */}
-          <AcreditacionAdvanceMetric label={`Mínimos ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} bajo el mínimo` : "todos cubiertos · interno"} tone={totals.brechas ? "target" : "ready"} />
-          <AcreditacionAdvanceMetric label="Universo" value={`${fmt(totals.effective)}/${fmt(totals.universe)}`} hint={`${completionPct == null ? "S/D" : pct(completionPct)} cubierto`} tone="ready" />
-          <AcreditacionAdvanceMetric
-            label={isPhoneModel ? "Por barrer" : "Pendientes"}
-            value={fmt(totals.pending)}
-            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
-            tone={totals.pending ? "warning" : "base"}
-          />
-        </div>
-      </div>
-      <div className="mon-advance-tabbody">
-        <div className="mon-advance-summary-grid">
-          <AcreditacionAdvanceDailyMini
-            points={dailyPoints}
-            cutDate={reports.generated_at}
-            reportCuts={reportCuts}
-            reportWeekday={reportWeekday}
-            effectiveOnly={isPhoneModel}
-          />
-          <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} />
-          <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; label: string }) {
   const items = view === "consultas"
     ? [
@@ -17196,16 +16581,9 @@ function renderAcreditacionView(
       : dailyRows;
   const sourceRows = client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"]);
   const controlRows = client?.controls?.length ? client.controls : rowsFromSheets(reports.sheets, ["control", "segmento", "meta"]);
-  if (view === "avance" && options.activeAdvanceTab === "actores") {
-    return (
-      <AcreditacionAdvanceActorsWorkbench
-        reports={reports}
-        state={options.state}
-        actorRows={actorRows as Array<Record<string, unknown>>}
-        sourceRows={sourceRows as Array<Record<string, unknown>>}
-        dailyRows={actorDailyRows as Array<Record<string, unknown>>}
-      />
-    );
+  const tarjetasDeAvance = advanceCardsFromRows(actorRows as Array<Record<string, unknown>>, options.state?.config?.goals ?? []);
+  if (view === "avance" && options.activeAdvanceTab === "actores") { // Avance › Por público (A2).
+    return <PorPublico tarjetas={tarjetasDeAvance} diarioGeneral={dailyRows} diarioPorPublico={client?.daily_actor ?? []} fuentes={sourceRows} />;
   }
   if (view === "avance" && options.activeAdvanceTab === "encuestas") {
     return (
@@ -17235,15 +16613,7 @@ function renderAcreditacionView(
     );
   }
   if (view === "avance") {
-    return (
-      <AcreditacionAdvanceSummaryWorkbench
-        reports={reports}
-        state={options.state}
-        actorRows={actorRows as Array<Record<string, unknown>>}
-        dailyRows={dailyRows as Array<Record<string, unknown>>}
-        onNavigateLocalTab={options.onNavigateLocalTab}
-      />
-    );
+    return <Resumen tarjetas={tarjetasDeAvance} diarioGeneral={dailyRows} diarioPorPublico={client?.daily_actor ?? []} corte={corteAcreditacionDeReports(options.state, reports)} />;
   }
   return (
     <div className="mon-profile-stack">
@@ -17697,109 +17067,6 @@ export function localTabsForAcreditacionView(
   return [];
 }
 
-function AcreditacionWorkbenchRail({
-  route,
-  seccionActiva,
-  pestanaActiva,
-  onCambioPestana,
-  syncedAt,
-  state,
-  reports,
-}: {
-  route: typeof ACREDITACION_ROUTE;
-  seccionActiva: MonitoreoSeccion;
-  pestanaActiva: string;
-  onCambioPestana: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
-  syncedAt: string;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const views = seccionesDelModo(route);
-  const activeSection = views.find((item) => item.key === seccionActiva) ?? views[0] ?? {
-    label: route.shortLabel,
-    desc: "Vista operativa",
-    icon: route.icon,
-  };
-  const localTabs = localTabsForAcreditacionView(seccionActiva, state, reports, route);
-
-  return (
-    <MonitoreoWorkbenchRail
-      pestanaActiva={pestanaActiva}
-      activeSection={activeSection}
-      seccionActiva={seccionActiva}
-      ariaLabel="Flujos de monitoreo de acreditación"
-      className="is-acreditacion"
-      emptyDetail={reports?.report_scope ?? activeSection.desc ?? "Vista operativa"}
-      iconOnlyTabs
-      localTabs={localTabs}
-      modeCountLabel={`${localTabs.length || 1} pestañas`}
-      routeLabel={route.shortLabel}
-      routeSectionLabel={`${route.shortLabel} · sección`}
-      routeShortLabel={route.shortLabel}
-      statusAriaLabel="Última actualización del monitoreo"
-      statusItems={[
-        {
-          label: "Última actualización",
-          value: syncedAt || "Sin actualización",
-          ready: Boolean(syncedAt),
-        },
-      ]}
-      onCambioPestana={(key) => onCambioPestana(seccionActiva, key as AcreditacionLocalTabKey)}
-    />
-  );
-}
-
-// ⚠ SIN MONTAR: lo «montaba» por nombre la copia del clon telefónico, que pasó
-// a `CabeceraTelefonica` el 2026-10-23. Ver `componentesSinMontar.test.ts`.
-function AcreditacionWorkbenchHead({
-  route,
-  seccionActiva,
-  pestanaActiva,
-  state,
-  reports,
-}: {
-  route: typeof ACREDITACION_ROUTE;
-  seccionActiva: MonitoreoSeccion;
-  pestanaActiva?: string;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const views = seccionesDelModo(route);
-  const meta = views.find((item) => item.key === seccionActiva) ?? views[0];
-  const Icon = meta.icon;
-  const activeSources = activeSourceCount(state);
-  const preferActors = seccionActiva === "modelo" || seccionActiva === "avance";
-  const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), preferActors);
-  const valid = num(state?.dashboard?.kpis?.valid, 0) || summary.effective;
-  const mechanisms = state?.config?.strategy_phases?.length ?? 0;
-  const actorCount = buildAcreditacionSourceActorRoster(state?.sources ?? []).length;
-  const lastPill = seccionActiva === "modelo"
-    ? `${fmt(actorCount)} actores`
-    : `${fmt(mechanisms)} mecanismos`;
-
-  // El nombre y el estado de la pestaña activa se dicen acá: el rail es
-  // icon-only y su cuadrante no lleva rótulo ni marcas.
-  const pestanas = localTabsForAcreditacionView(seccionActiva, state, reports, route);
-  const pestanaDef = pestanas.find((tab) => tab.key === pestanaActiva);
-
-  return (
-    <MonitoreoWorkbenchHead
-      icon={Icon}
-      eyebrow={`${route.shortLabel} · flujo actual`}
-      title={meta.label}
-      pestanaLabel={pestanaDef?.label}
-      pestanaEstado={pestanaDef?.estado}
-      detail={meta.desc}
-      pills={[
-        `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} recibidas`,
-        `${fmt(valid)} válidas`,
-        lastPill,
-      ]}
-    />
-  );
-}
-
 export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, unknown>>) {
   // La franja publicaba las once categorías crudas del cliente —truncadas, con
   // puntos de color indistinguibles y con su error de tipeo incluido— en la
@@ -17820,201 +17087,21 @@ export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, un
   }));
 }
 
-const ETIQUETA_ESTADO_PESTANA: Record<NonNullable<MonitoreoWorkbenchRailTab["estado"]>, string> = {
-  "sin-configurar": "Sin configurar",
-  "no-evaluado": "No evaluado",
-  parcial: "Parcial",
-  bloqueado: "Bloqueado",
-  listo: "Listo",
-};
-
-function AcreditacionClarityStrip({
-  seccionActiva,
-  pestanaActiva,
-  route,
-  state,
-  reports,
-}: {
-  seccionActiva: MonitoreoSeccion;
-  pestanaActiva?: string;
-  route?: typeof ACREDITACION_ROUTE;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const isPhoneState = isTelefonicoMonitoreoState(state);
-  const sourceTotal = piezasRequeridas(isPhoneState, state?.sources?.length ?? 0);
-  const activeSources = activeSourceCount(state);
-  const sourceGap = Math.max(0, sourceTotal - activeSources);
-  const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0));
-  const queries = normalizeInternalQueries(reports?.internal_queries);
-  const cases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
-  const caseSummary = summarizeInternalCases(cases);
-  const issueCount = queries.issues.reduce((acc, issue) => acc + (num(issue.count, 1) || 1), 0);
-  const phoneSummaryRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]) : [];
-  const phoneRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico", "estatus_telefonico"]) : [];
-  const phoneStatusSheetRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]) : [];
-  const phoneStatusRows = phoneStatusSheetRows.length
-    ? phoneStatusSheetRows
-    : groupedCaseRows(cases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
-  const phoneStatusTotal = phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0);
-  // Sin fallback entre denominadores distintos. La cadena anterior era
-  // `phoneBaseFromReport || summary.universe || state?.n_rows`, y hacía que la
-  // MISMA etiqueta "Base tel." dijera 270 en Supervisión —donde el bloque
-  // `estatus_telefonico` resuelve— y 519 en Resumen y Responsables, donde caía
-  // al universo completo del estudio. Igual con "Por barrer": 16 real contra
-  // 90 "sin respuesta del universo". Si la fuente telefónica no resuelve, la
-  // franja dice S/D; nunca otro número.
-  const phoneBaseFromReport = phoneSummaryValue(phoneSummaryRows, "total telefonico")
-    ?? phoneSummaryValue(phoneSummaryRows, "total telefónico")
-    ?? (phoneStatusSheetRows.length ? phoneStatusTotal : null);
-  const phoneBaseTotal = phoneBaseFromReport;
-  const phonePendingTotal = phoneSummaryValue(phoneSummaryRows, "no barridos");
-  const platformCaseCount = cases.length;
-  const platformHasReport = Boolean(
-    platformCaseCount ||
-      reports?.client_report?.actors?.length ||
-      reports?.client_report?.sources?.length ||
-      reports?.client_report?.daily_general?.length,
-  );
-  const actorRows = reports?.client_report?.actors ?? [];
-  const configuredGoals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
-  const bloqueos = state?.acreditacion?.dashboard?.bloqueos ?? 0;
-  const phoneQuotaReportRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
-  const phoneQuotaVariable = isPhoneState && state?.config
-    ? preferredPhoneQuotaVariable(state.variables ?? [], state.config.control_vars ?? [], phoneQuotaReportRows, state.config.goals ?? [])
-    : "";
-  const phoneQuotaEditorRows = isPhoneState && state?.config
-    ? buildAcreditacionPhoneQuotaEditorRows({
-      variable: phoneQuotaVariable,
-      variables: state.variables ?? [],
-      goals: state.config.goals ?? [],
-      quotaRows: phoneQuotaReportRows,
-    })
-    : [];
-  const phoneQuotaGoal = phoneQuotaVariable && state?.config ? phoneQuotaGoalTotal(state.config.goals ?? [], phoneQuotaVariable) : 0;
-  const interestVariables = state?.config?.operational_model?.interest_variables ?? [];
-  const distributionActorCount = (state?.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
-  const distributionDeclaredActors = new Set(interestVariables.map((item) => normalizeSourceMatch(item.actor))).size;
-  const distributionPendingActors = Math.max(0, distributionActorCount - distributionDeclaredActors);
-  const claritySchedule = acreditacionScheduleDraftFromPhases(state?.config?.strategy_phases ?? []);
-  const itemsByView = {
-    fuentes: [
-      { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
-      { label: "Base", value: state?.n_rows ? fmt(state.n_rows) : "S/D", hint: "registros leídos", tone: state?.n_rows ? "base" : "warning", icon: Table2 },
-      { label: "Corte", value: reports ? "Listo" : "Pendiente", hint: reports?.generated_at ? formatDate(reports.generated_at) : "requiere corte", tone: reports ? "ready" : "warning", icon: RefreshCw },
-    ],
-    modelo: isPhoneState ? [
-      { label: "Variable rectora", value: phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente", hint: `${fmt(phoneQuotaEditorRows.length)} categorías`, tone: phoneQuotaVariable ? "base" : "warning", icon: SlidersHorizontal },
-      { label: "Objetivo Kobo", value: phoneQuotaGoal ? fmt(phoneQuotaGoal) : "S/M", hint: "efectivas filtradas", tone: phoneQuotaGoal ? "ready" : "warning", icon: Target },
-      { label: "Categorías", value: fmt(phoneQuotaEditorRows.length), hint: phoneQuotaVariable ? `metas por ${phoneQuotaVariableLabel(phoneQuotaVariable).toLowerCase()}` : "define variable", tone: phoneQuotaEditorRows.length ? "ready" : "warning", icon: ShieldAlert },
-    ] : pestanaActiva === "distribucion" ? [
-      { label: "Actores", value: fmt(distributionActorCount), hint: "con base de universo", tone: distributionActorCount ? "base" : "warning", icon: ClipboardCheck },
-      { label: "Variables", value: fmt(interestVariables.length), hint: "para abrir Avance", tone: interestVariables.length ? "ready" : "warning", icon: BarChartBig },
-      { label: "Pendientes", value: fmt(distributionPendingActors), hint: "sin variable declarada", tone: distributionPendingActors ? "warning" : "ready", icon: AlertCircle },
-    ] : pestanaActiva === "estrategias" ? [
-      { label: "Plan", value: countText(claritySchedule.durationWeeks, "semana", "semanas"), hint: calendarWeekRangeLabel(claritySchedule.startWeek, claritySchedule.startWeek + claritySchedule.durationWeeks - 1), tone: "base", icon: CalendarRange },
-      { label: "Fechas", value: claritySchedule.startDate && claritySchedule.endDate ? "Declaradas" : "Pendientes", hint: "periodo de campo", tone: claritySchedule.startDate && claritySchedule.endDate ? "ready" : "warning", icon: ClipboardCheck },
-      { label: "Reporte", value: calendarReportWeekdayLabel(claritySchedule.reportWeekday), hint: "día de avance", tone: claritySchedule.reportWeekday ? "ready" : "warning", icon: RefreshCw },
-    ] : [
-      { label: "Actores", value: fmt(actorRows.length), hint: "cortes del reporte", tone: actorRows.length ? "base" : "warning", icon: ClipboardCheck },
-      { label: "Metas", value: fmt(configuredGoals), hint: "configuradas", tone: configuredGoals ? "ready" : "warning", icon: Target },
-      { label: "Bloqueos", value: fmt(bloqueos), hint: bloqueos ? "requieren cierre" : "sin bloqueos", tone: bloqueos ? "warning" : "ready", icon: ShieldAlert },
-    ],
-    avance: [
-      { label: "Efectivas", value: summary.effective ? fmt(summary.effective) : "S/D", hint: summary.universe ? `${pctFrom(summary.effective, summary.universe)} del universo` : isPhoneState ? "efectivas Kobo" : "plataforma completa", tone: summary.effective ? "effective" : "warning", icon: CheckCircle2 },
-      isPhoneState
-        ? { label: "Kobo", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: "cruce por CodPulso", tone: platformHasReport ? "ready" : "warning", icon: Search }
-        : { label: "Parciales", value: fmt(summary.partial), hint: "no cuentan como efectivas", tone: summary.partial ? "partial" : "ready", icon: AlertCircle },
-      { label: "Universo", value: summary.universe ? fmt(summary.universe) : fmt(state?.n_rows ?? 0), hint: summary.referenceLabel, tone: summary.universe || state?.n_rows ? "base" : "warning", icon: Table2 },
-    ],
-    consultas: [
-      { label: "Efectivas", value: cases.length ? fmt(caseSummary.effective) : "S/D", hint: "reales trazadas", tone: caseSummary.effective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "Salen pendientes", value: fmt(caseSummary.pendingExit), hint: "faltantes recuperados", tone: caseSummary.pendingExit ? "ready" : "base", icon: Link2 },
-      { label: "Alertas", value: fmt(issueCount), hint: "casos de revisión", tone: issueCount ? "warning" : "ready", icon: ShieldAlert },
-    ],
-    telefonico: [
-      { label: "Base tel.", value: phoneBaseTotal != null ? fmt(phoneBaseTotal) : "S/D", hint: phoneBaseTotal != null ? "base de barrido" : "sin bloque telefónico", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
-      { label: "Kobo", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: platformCaseCount ? "casos trazados" : "cruce no cargado", tone: platformHasReport ? "ready" : "warning", icon: Search },
-      { label: "Por barrer", value: phonePendingTotal != null ? fmt(phonePendingTotal) : "S/D", hint: phonePendingTotal != null ? "operación telefónica" : "sin bloque telefónico", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
-    ],
-    ocurrencias: [],
-    calidad: [],
-  };
-  const items = itemsByView[seccionActiva] ?? itemsByView.fuentes;
-  const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
-  // El embudo cuenta lo que quedó del corte, así que se lee en Avance y en
-  // ninguna otra sección: en Fuentes, donde todavía se están conectando las
-  // bases, es el resultado puesto antes del trabajo.
-  const corte = seccionActiva === "avance" ? corteAcreditacionDeReports(state, reports) : null;
-
-  // El rail es icon-only y su cuadrante no lleva rótulo, así que el nombre de la
-  // pestaña activa y su readiness se dicen acá, en la franja de lectura.
-  const pestanaDef = route && pestanaActiva
-    ? localTabsForAcreditacionView(seccionActiva, state, reports, route).find((tab) => tab.key === pestanaActiva)
-    : undefined;
-
-  return (
-    <section className={`mon-clarity-strip is-${seccionActiva}`} aria-label={clarityLabel}>
-      {pestanaDef ? (
-        <p className="mon-workbench-head-tab mon-clarity-tab">
-          <strong>{pestanaDef.label}</strong>
-          {pestanaDef.estado && pestanaDef.estado !== "listo" ? (
-            <em data-estado={pestanaDef.estado}>{ETIQUETA_ESTADO_PESTANA[pestanaDef.estado]}</em>
-          ) : null}
-        </p>
-      ) : null}
-      {corte ? <AcreditacionEmbudoCorte corte={corte} /> : null}
-      <div className="mon-clarity-items">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span key={`${seccionActiva}-${item.label}`} className={`mon-clarity-card is-${item.tone}`}>
-              <Icon size={14} />
-              <span>
-                <em>{item.label}</em>
-                <strong>{item.value}</strong>
-                <small>{item.hint}</small>
-              </span>
-            </span>
-          );
-        })}
-      </div>
-      {/* Aquí vivía una tira con los estados de la base telefónica. La sección
-        * «Estado de la base de llamadas» de más abajo muestra EXACTAMENTE los
-        * mismos cinco estados, con barra proporcional y sin recortar: la tira
-        * los comprimía a «Sin conta…» y «Número in…» sobre la misma pantalla.
-        * Un dato, un lugar (R3). El componente se retiró junto con su CSS;
-        * `acreditacionPhoneStatusLegendItems` se conserva porque es quien
-        * calcula los estados y la sección de abajo se apoya en ese cálculo. */}
-    </section>
-  );
-}
-
 export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: AcreditacionProfileMode }) {
   const isPhone = mode === "telefonico";
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
-  // `clavesAceptadasDeFuentes()` incluye las claves viejas para que un enlace
-  // guardado con `?pestana=collectors` siga aterrizando donde corresponde;
-  // `resolverPestanaDeFuentes` las traduce a la clave canónica, que es la única
-  // que se escribe de vuelta en la URL (ADR 0044).
-  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
-    resolverPestanaDeFuentes(pestanaInicialDeSeccion(
-      "fuentes",
-      seccionActiva,
-      PESTANA_DE_FUENTES_POR_DEFECTO,
-      clavesAceptadasDeFuentes(),
-    )));
-  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
-    pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
-  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>
-    pestanaInicialDeSeccion("consultas", seccionActiva, "plataforma", ACREDITACION_CONSULTA_TABS.map((tab) => tab.key)));
-  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>(() =>
-    pestanaInicialDeSeccion("telefonico", seccionActiva, "resumen", ACREDITACION_PHONE_TABS.map((tab) => tab.key)));
-  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>(() =>
-    pestanaInicialDeSeccion("avance", seccionActiva, "resumen", ACREDITACION_ADVANCE_TABS.map((tab) => tab.key)));
+  // La dirección pública (Insumos, Modelo, Control, Avance) se traduce a la
+  // vista que se monta; sin dirección se aterriza en Avance › Por público.
+  // Ver `navegacion/direccionAcreditacion.ts`; las claves viejas son alias.
+  const [entrada] = useState(() => vistaInicial(monitoreoDireccionDesdeParams(window.location.search)));
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(entrada.seccion as MonitoreoSeccion);
+  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() => pestanaDeEntrada(entrada, "fuentes", PESTANA_DE_FUENTES_POR_DEFECTO));
+  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() => pestanaDeEntrada<AcreditacionModelTab>(entrada, "modelo", "estructura"));
+  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() => pestanaDeEntrada<AcreditacionConsultaTab>(entrada, "consultas", "plataforma"));
+  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>(() => pestanaDeEntrada<AcreditacionPhoneTab>(entrada, "telefonico", "resumen"));
+  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>(() => pestanaDeEntrada<AcreditacionAdvanceTab>(entrada, "avance", "actores"));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
@@ -18310,18 +17397,29 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     }
     void loadView(view);
   }, [loadView]);
-  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
-    onSeccionPedida: navigateSection,
-    // `changeLocalTab` ya valida la pestaña contra el catálogo de la sección.
-    onPestanaPedida: (pestana, seccion) =>
-      changeLocalTab(seccion, pestana as AcreditacionLocalTabKey),
+  // Dirección pública, pestañas condicionales, rail, inspector y barra del modo (A1).
+  const vistaActiva = { seccion: seccionActiva, pestana: pestanaActiva };
+  const nav = useNavegacionAcreditacion({
+    vistaActiva,
+    state,
+    reports,
+    tieneBarrido: state ? hasAcreditacionPhoneSourceActors(state.sources ?? []) : null,
+    internas: (vista) => localTabsForAcreditacionView(vista, state, reports, route),
+    modo: modoIdDesdeFamily(route.family),
+    ir: (vista) => navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey),
   });
-  // Publica las pestañas de esta sección para que el inspector las enumere.
-  useRegistrarPestanasMonitoreo(
-    modoIdDesdeFamily(route.family),
-    seccionActiva,
-    localTabsForAcreditacionView(seccionActiva, state, reports, route),
-  );
+  const lecturaCompleta = useLecturaCompleta(seccionActiva, pestanaActiva);
+  useMonitoreoDireccionTraducida({
+    publica: nav.publica,
+    modo: modoIdDesdeFamily(route.family),
+    panelesPropios: PANELES_DEL_PERFIL,
+    panelesDeLaPestana: panelesSuperpuestos(nav.publica.seccion, nav.publica.pestana),
+    pideOtraVista: (pedida) => pideOtraVista(pedida, vistaActiva, nav.disponible),
+    onPedida: (pedida) => {
+      const vista = vistaPedida(pedida, nav.disponible);
+      if (vista) navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey);
+    },
+  });
   const hideWorkbenchStatus = seccionActiva === "consultas" && (activeConsultaTab === "plataforma" || activeConsultaTab === "base");
   const changeLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     if (view === "fuentes" && clavesAceptadasDeFuentes().includes(tab)) {
@@ -18396,7 +17494,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? "monitoreo-acreditacion" : "false"}
+          data-audit-ready={auditReady && lecturaCompleta ? readinessDeAcreditacion(seccionActiva, pestanaActiva) : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />
@@ -18406,7 +17504,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           routes={[route]}
           route={route}
           routeSelected
-          seccionActiva={seccionActiva}
+          seccionActiva={nav.publica.seccion}
           saving={chromeBusy}
           syncedAt={state?.synced_at ?? ""}
           generatedAt={state?.generated_at ?? reports?.generated_at ?? ""}
@@ -18426,7 +17524,18 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
-          onCambioSeccion={navigateSection}
+          viewMetrics={nav.insignias}
+          barraDelModo={{
+            indicadores: nav.indicadores,
+            corte: corteCorto(state?.synced_at),
+            estado: estadoDelModo({ actualizando: sourceSyncing, cargando: loading, hayEstado: Boolean(state), generationStatus: state?.generation_status ?? "", pendienteDeRecalcular: Boolean(state?.pending_regeneration), error }),
+            actualizar: { etiqueta: "Actualizar", titulo: sinFuentesFull ? motivoSinFuentes("full") : "Releer todas las fuentes activas y recalcular", disabled: loading || sinFuentesFull, onElegir: () => { void runProfileSourceSync("full"); } },
+            otrasActualizaciones: [{ etiqueta: "Solo respuestas de las encuestas", titulo: sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle, disabled: loading || sinFuentesAvance, onElegir: () => { void runProfileSourceSync("advance"); } }],
+          }}
+          onCambioSeccion={(seccion) => {
+            const vista = vistaDeSeccionPedida(seccion, nav.disponible);
+            navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey);
+          }}
         />
 
         <MonitoreoWorkbenchChrome
@@ -18434,26 +17543,29 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           ariaLabel={`Mesa de trabajo de acreditación: ${activeDef.label}`}
           className="is-acreditacion"
           contentRole="tabpanel"
-          contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
+          contentId={`monitoreo-${nav.publica.seccion}-panel`}
+          contentClassName={pestanaConLienzo(nav.publica) ? "is-lienzo" : undefined}
+          contentAriaLabelledBy={`monitoreo-${nav.publica.seccion}-tab-${nav.publica.pestana}`}
+          scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
-            <AcreditacionWorkbenchRail
-              route={route}
-              seccionActiva={seccionActiva}
-              pestanaActiva={pestanaActiva}
-              onCambioPestana={changeLocalTab}
-              syncedAt={state?.synced_at ?? ""}
-              state={state}
-              reports={reports}
+            <RailAcreditacion
+              seccion={nav.publica.seccion}
+              pestana={nav.publica.pestana}
+              pestanas={nav.pestanas}
+              corte={state?.synced_at ?? ""}
+              onCambioPestana={(pestana) => {
+                const vista = vistaPrincipal(nav.publica.seccion, pestana);
+                if (vista) navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey);
+              }}
             />
           )}
-          head={null}
-          clarity={(
-            <AcreditacionClarityStrip
-              seccionActiva={seccionActiva}
-              pestanaActiva={pestanaActiva}
-              route={route}
-              state={state}
-              reports={reports}
+          head={(
+            <CabeceraAcreditacion
+              seccion={nav.publica.seccion}
+              pestana={nav.publica.pestana}
+              activa={vistaActiva}
+              chips={chipsDeCabecera(nav.publica, state)}
+              onElegirVista={(vista) => navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey)}
             />
           )}
           status={null}
