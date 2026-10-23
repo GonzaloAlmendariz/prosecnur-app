@@ -85,6 +85,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { Cuotas } from "./modelo/Cuotas";
 import { efectivasPorDia } from "./avance/ritmoModel";
+import { Ritmo } from "./avance/Ritmo";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -18834,6 +18835,9 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "actores" && isTelefonicoMonitoreoState(options.state)) {
     const { modelo, cadena } = entradaDeCuotasFaltante(reports, options.state, phoneQuotaCardsForDashboard(reports));
     return <CuotasFaltante modelo={modelo} cadena={cadena} />; // Avance › Cuotas del revamp (T3).
+  }
+  if (view === "avance" && options.activeAdvanceTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
+    return <Ritmo reports={reports} state={options.state} />; // Avance › Ritmo (T8).
   }
   const client = reports.client_report;
   if (view === "modelo") {
