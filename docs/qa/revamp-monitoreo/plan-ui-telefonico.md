@@ -400,3 +400,54 @@ diaria compartida cuenta sólo los valores del eje con cuota, como el diario de 
 que queda fuera («No entran a la serie: 1 efectiva de Kobo sin actor y 2 en «Sin dato», que no tiene cuota»). (3) La
 columna derecha de Cuotas y de Ritmo mide lo que piden sus tarjetas (el botón del calendario pegado a la lista de días)
 y la hoja del PDF de Entregas se centra en la mesa con su sombra de papel.
+
+## Tercer proyecto de prueba: ACNUR RMS 2026 (solo lectura)
+
+**Cómo se armó.** Copia de trabajo en el scratchpad (nunca en el repo: hay nombres y teléfonos reales). Una sola
+fuente de Google Sheets, pestaña «Barrido», leída por la ruta de lectura (`monitoreo_sheets_read_source`, GET); nada
+se publicó, formateó ni sincronizó hacia la hoja. Sin encuesta de Kobo conectada. Forma del corte: 800 filas, las 800
+en «No barrido», Fecha e Intentos vacíos; `Origen` Muestra 400 y Backup 400; «¿Se reemplaza con el Backup?» No 400 y
+vacío 400; `Periodo de Llegada` 4 × 200; Responsable vacío en 400; Tef2 en 110 y Tef3 en 13.
+
+**Lo que RMS destapó y se corrigió** (commits `746626295` y `bd705173c`):
+
+- **Eje de cuota sobre un identificador.** Cuotas tomaba «Código proGres» (800 valores) como eje y lo rotulaba
+  «CÓDigo ProGres» (el `\b` de JavaScript corta en la vocal tildada). `modelo/variablesDeCuota.ts`: no se ofrecen
+  códigos, nombres, teléfonos ni columnas con más de 30 valores salvo que ya estén guardadas o con metas; las columnas
+  operativas (responsable, estado, origen, intentos…) van al final; un encabezado escrito por una persona se respeta
+  tal cual. En RMS el eje propuesto es «Periodo de Llegada».
+- **Cuotas antes de guardar la variable.** El motor sólo publica el universo de la variable en uso: sin guardarla, la
+  tabla marcaba «sin base» en las cuatro categorías. Ahora se dice que el universo se calcula al usar la variable y
+  actualizar; «Avance de cada meta» y el calendario dicen su vacío.
+- **Ritmo sin serie.** Un panel suelto sobre un vacío; ahora el marco se conserva (panel con EstadoVacio y el motivo:
+  «Las 800 filas de la hoja de barrido están en «No barrido» y ninguna tiene fecha de llamada. Kobo no trae efectivas
+  en este corte.») y la lateral lista los estados de la hoja.
+- **Insistencia.** «Ningún caso de la cola cumple los filtros» con la cola vacía; «0 responsables, 400 casos
+  repartidos; 0 por llamar, ya asignados». Ahora: «La cola está vacía…» y «Ningún responsable tiene casos en cola. La
+  hoja reparte 400 casos.»; la ficha vacía es dueña de su alto (era el `capacity-drift` del runner).
+- **Llave y filtros.** «Por revisar» decía en verde «Todas las efectivas cruzan tal cual» con cero efectivas (verde por
+  ausencia). Y la base mostraba `rms_barrido` como ejemplo con 1 distinto en 800 filas: la llave no encontró columna
+  CodPulso y el motor usa el id de la fuente. Ahora hay aviso cuando todas las filas comparten el mismo código.
+- **Barrido.** Sin eje de cuota se pintaba una fila Total en 0 contra un listado de 800; la fecha, lo que falta llamar
+  y el status dicen su vacío.
+- **Estados.** Con un solo status el vocabulario medía una fila y la lateral terminaba 300 px antes: el vocabulario es
+  dueño del alto y la nota del modo va al pie.
+
+**Lo que RMS destapó y queda anotado (no se tocó):**
+
+- **C5, desconexión del motor:** la llave de RMS es «Código proGres», no CodPulso. `key_rules` no se edita desde la
+  app; mientras no se declare, todo cruce con Kobo casará contra `rms_barrido`. Pide decisión (editor de llave o
+  declaración en el proyecto).
+- **C5, limitación del fixture:** «Qué cuenta para la meta» y el filtro de efectiva muestran «Intro/Consent: Yes»,
+  heredado del estado con que se armó la copia de prueba; no es del estudio RMS.
+- **Discrepancias:** el buscador recorta su placeholder («Buscar código, nombre, correo o response_id...», 266 px en
+  243 y 135 px). Componente compartido de Acreditación; no se tocó.
+- **Entregas:** la cabecera del workbench compartido parte «7:33 a. m.» en dos líneas y usa píldoras en versalitas
+  («SALIDAS DEL AVANCE», «INCLUIR METAS»). Componente compartido de salidas; no se tocó.
+- **Equipo:** en la ficha del operador, «Status en la hoja» reparte una sola barra (No barrido 15) al pie de un hueco.
+- **Avisos:** «Responsable con casos por iniciar: 19 responsables» repite «19 responsables» en el título, el número
+  grande y la línea de abajo.
+- **Fuentes:** la tarjeta Barrido no lleva cifra cuando la Universo sí (800); la tarjeta de Kobo trunca «Sin fuente
+  vin…».
+- «No barrido» sin responsable ya se lee «Sin asignar» en Barrido («400 asignados y 400 sin asignar»), Insistencia y
+  Avisos («Casos sin asignar 400»).
