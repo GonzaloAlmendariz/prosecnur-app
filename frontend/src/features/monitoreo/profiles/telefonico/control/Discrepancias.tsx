@@ -7,7 +7,6 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import {
   casosDeDiscrepancia,
-  casosSacados,
   csvParaElEquipo,
   porResponsable,
   queDice,
@@ -65,8 +64,7 @@ export function Discrepancias({
 }) {
   const perfil = state?.config?.monitoreo_profile;
   const vigentes = useMemo(() => casosDeDiscrepancia(reports, perfil), [reports, perfil]);
-  const sacados = useMemo(() => casosSacados(perfil, vigentes), [perfil, vigentes]);
-  const resumen = resumenDeDiscrepancias(vigentes, sacados.length);
+  const resumen = resumenDeDiscrepancias(vigentes);
   const grupos = useMemo(() => porResponsable(vigentes), [vigentes]);
   const [responsable, setResponsable] = useState<string>(TODOS);
   const [aviso, setAviso] = useState("");
@@ -84,7 +82,7 @@ export function Discrepancias({
     }
   };
 
-  if (!vigentes.length && !sacados.length) {
+  if (!vigentes.length) {
     return (
       <section className="mon-ctl-panel mon-dsc-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
         <EstadoVacio
@@ -190,11 +188,6 @@ export function Discrepancias({
               ))}
             </tbody>
           </table>
-          {sacados.length ? (
-            <p className="mon-dsc-sacados">
-              Sacados del avance: {sacados.map((item) => item.codigo || item.responseId).join(", ")}.
-            </p>
-          ) : null}
         </div>
       </section>
 

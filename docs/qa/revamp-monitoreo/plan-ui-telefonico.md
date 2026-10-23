@@ -36,7 +36,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☑ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ◐ (Cuotas, Ritmo y Entregas hechas; Reserva y Reemplazos esperan) |
-| T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
+| T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | P1–P7 respondidas | ◐ (motor y frontend hechos; verificación pendiente) |
 
 Orden de la noche: T0, T1, T2, T3, T4, y luego T5 a T7 si el tiempo alcanza. Cada fase cierra en su propio commit en
 español (conventional commits) con el diseño citado.
@@ -477,3 +477,31 @@ confirma. La lectura al pie (muestra titular, reserva, reemplazos marcados) sale
 **Contrato con la sesión ACNUR RMS.** Modelo › Reserva y Avance › Reemplazos **deben leer estas mismas dos claves** y
 el bloque `origen_de_la_muestra`; no una columna propia ni una lista de valores escrita en su código. Si necesitan algo
 más (p. ej. a qué titular reemplaza cada caso), se agrega aquí, no en paralelo.
+
+
+## T9: Discrepancias y Supervisión (P1–P7)
+
+**Motor** (`9e142f3f8`; el agente backend-r lo completa encima sin cambiar nombres):
+`discrepancias_telefonicas` (Sentido, CodPulso, proGres, Responsable, La hoja dice, Fecha hoja, Fecha Kobo), decisión
+`POST /api/monitoreo/telefonico/discrepancia/decision` sobre `reconciliation_decisions` con nota obligatoria,
+`enumerator_equivalences` en el perfil y `supervision_resumen` / `supervision_reparto` / `supervision_casos`.
+
+**Frontend:**
+
+- **Control › Discrepancias** (`control/Discrepancias.tsx`, `discrepanciasModel.ts` con test): la alerta en los dos
+  sentidos (P2) agrupada por responsable, con «Copiar para el equipo» (texto por responsable, un caso por línea con
+  CodPulso y proGres) y «Exportar CSV». La lista dice «Cuenta mientras tanto» hasta que se decide (P1); la ficha guarda
+  «Cuenta / No cuenta» con nota. «Efectivo sin Kobo» se lista para avisar y se marca «Va a Avisos» (P3). El enumerador de
+  Kobo que no es el responsable de la hoja va en ámbar salvo equivalencia confirmada (P4).
+- **Control › Avisos**: aviso «La hoja dice «Efectivo» y Kobo no tiene envío» con responsable, CodPulso y proGres (P3).
+- **Insumos › Llave y filtros › Enumerador y responsable** (`insumos/EquivalenciasDeNombres.tsx`,
+  `equivalenciasModel.ts` con test): cada enumerador de Kobo sin igual en la hoja con su sugerencia (mismo número y
+  nombre abreviado, o nombre contenido) y confirmación; se guarda en `enumerator_equivalences` (P4).
+- **Control › Supervisión** (pestaña nueva en el catálogo y en `direccionTelefonica.ts`; `control/Supervision.tsx`,
+  `supervisionModel.ts` con test): el sorteo (base, cantidad declarada `supervision_n` y su porcentaje equivalente,
+  semilla, regla y cuánto agrega el mínimo de uno por enumerador, P5–P6), el reparto por enumerador y los casos con el
+  resultado de la rellamada; sin hoja conectada, «Sin hoja de supervisión» (P7). La hoja real «Supervisión_Ronda3» no se
+  conectó: tiene datos personales y es de otro estudio; el motor se probó con un fixture sintético de sus columnas.
+
+**Pendiente de decisión:** conectar la hoja de supervisión desde la app necesita ofrecer el rol `supervision` en el
+panel de conexión de fuentes; hoy el motor lo acepta pero el panel no lo ofrece.

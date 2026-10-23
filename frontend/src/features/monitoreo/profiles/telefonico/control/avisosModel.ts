@@ -327,6 +327,41 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       })),
     });
   }
+  // P3: «la hoja dice Efectivo y Kobo no tiene envío» no se decide en
+  // Discrepancias (no hay envío): se avisa aquí, con responsable y códigos.
+  const efectivoSinKobo = filasDeBloque(reports, ["discrepancias_telefonicas"])
+    .filter((fila) => (texto(fila.Destino) ? texto(fila.Destino) === "avisos" : texto(fila.Sentido) === "hoja_sin_kobo"));
+  // Si el motor ya publica el aviso en la hoja de alertas, no se duplica.
+  const yaEnAlertas = filasDeHoja(reports, "alertas", ["alertas"])
+    .some((fila) => /sin[_ ]kobo/i.test(texto(fila["Tipo alerta"] ?? fila.tipo)));
+  if (efectivoSinKobo.length && !yaEnAlertas) {
+    const porResponsable = new Map<string, number>();
+    efectivoSinKobo.forEach((fila) => {
+      const quien = texto(fila.Responsable) || "Sin asignar";
+      porResponsable.set(quien, (porResponsable.get(quien) ?? 0) + 1);
+    });
+    avisos.push({
+      id: "efectivo-sin-kobo",
+      nivel: "media",
+      titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
+      detalle: "No cuentan en el avance hasta que llegue el envío de Kobo o se corrija el status de la hoja.",
+      casos: efectivoSinKobo.length,
+      unidad: "casos",
+      codigo: "efectivo_sin_kobo",
+      destino: { etiqueta: "Hoja del equipo", direccion: null },
+      donde: "",
+      fuente: "Cruce de CodPulso entre la hoja y Kobo",
+      desglose: [...porResponsable.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+        .map(([etiqueta, valor]) => ({ etiqueta, valor })),
+      afectados: efectivoSinKobo.map((fila) => ({
+        codigo: texto(fila.CodPulso),
+        responsable: texto(fila.Responsable) || "Sin asignar",
+        fecha: texto(fila["Fecha hoja"]),
+        nota: texto(fila.proGres) ? `proGres ${texto(fila.proGres)}` : "",
+      })),
+    });
+  }
   const sinRegistrar = filasDeBloque(reports, ["comparacion_codpulso", "campo_vs_plataforma_codpulso"])
     .filter((fila) => siEsSi(fila["Efectiva Kobo"]) && normal(fila["Estado telefónico"] ?? fila["Estado telefonico"]) === "no barrido");
   if (sinRegistrar.length) {
