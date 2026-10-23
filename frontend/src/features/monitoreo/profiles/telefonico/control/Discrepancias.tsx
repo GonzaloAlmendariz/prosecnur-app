@@ -174,8 +174,8 @@ export function Discrepancias({
                   <th scope="row">
                     <button type="button" className="mon-dsc-codigo" onClick={() => escribirFoco(caso.codigo)}>{caso.codigo}</button>
                   </th>
-                  <td>{caso.progres || "—"}</td>
-                  <td title={queDice(caso)}>{queDiceCorto(caso)}</td>
+                  <td className="mon-dsc-una-linea">{caso.progres || "—"}</td>
+                  <td className="mon-dsc-una-linea" title={queDice(caso)}>{queDiceCorto(caso)}</td>
                   <td>{caso.responsable}</td>
                   <td className={caso.enumeradorDistinto ? "mon-dsc-distinto" : undefined} title={caso.enumeradorDistinto ? "No es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros" : undefined}>
                     {caso.enumerador || "—"}
