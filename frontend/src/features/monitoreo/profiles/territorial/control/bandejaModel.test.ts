@@ -52,6 +52,14 @@ describe("Control › Bandeja", () => {
     expect(modelo.anulados).toEqual([{ id: "a1", responseId: "zz1", rotulo: "Caso zz1", motivo: "GPS fuera", dia: "26/06" }]);
   });
 
+  it("una encuesta larga no es un problema: no entra a la bandeja ni a sus conteos", () => {
+    const conLarga = construirBandeja({
+      internal_queries: { review_cases: [caso({ id: "l1", type: "duration", geo_estado: "geo_ok", distance_m: 10, duration_seconds: 9000, duration_status: "extrema", duration_operational_status: "normal" })] },
+    } as unknown as MonitoreoTerritorialDashboard);
+    expect(conLarga.casos).toEqual([]);
+    expect(conLarga.filtros).toEqual([]);
+  });
+
   it("sin el corte de Consultas la bandeja no está disponible; con cero casos, sí", () => {
     expect(construirBandeja(null).disponible).toBe(false);
     expect(construirBandeja({ internal_queries: { review_cases: [] } } as unknown as MonitoreoTerritorialDashboard).disponible).toBe(true);

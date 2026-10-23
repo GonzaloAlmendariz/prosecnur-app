@@ -59,7 +59,9 @@ export function construirMapeo(
     { rotulo: "GPS cerca de su manzana hasta", valor: `${fmt(territorial.geo_thresholds_m?.cerca)} m` },
     { rotulo: "GPS en revisión hasta", valor: `${fmt(territorial.geo_thresholds_m?.revision)} m` },
     { rotulo: "Duración mínima", valor: segundosEnTexto(n(territorial.min_duration_seconds)) },
-    { rotulo: "Duración máxima", valor: segundosEnTexto(n(territorial.max_duration_seconds)) },
+    // Regla de Gonzalo: el control de tiempo revisa las cortas; el umbral de las
+    // largas es un dato, no una alerta.
+    { rotulo: "Duración larga desde (dato, no se revisa)", valor: segundosEnTexto(n(territorial.max_duration_seconds)) },
     { rotulo: "Edad a revisar desde", valor: `${fmt(territorial.high_age_review)} años` },
   ] : [];
 

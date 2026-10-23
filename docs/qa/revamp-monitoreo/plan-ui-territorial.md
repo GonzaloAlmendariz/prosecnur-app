@@ -246,3 +246,16 @@ Sin dibujar:
 
 Los tres siguen alcanzables en sus sub-vistas heredadas.
 
+**Regla de Gonzalo para el control de tiempo (2026-10-23):** «el control de tiempo no debe controlar tanto las
+encuestas largas, sino controlar las cortas».
+- Las cortas son lo que se revisa: menos de 5 min y, aparte, menos de 2 min. Cada una lleva su alerta y entra en el
+  conteo de la Bandeja, de Señales y de Equipo.
+- Las largas no cuentan como problema:
+  - en Señales sus tramos se pintan neutros, y la leyenda lo dice («5 min o más: sin alerta, también las largas»);
+  - en la Bandeja, un caso de duración que no es corto no entra a la cola ni a sus conteos (test en
+    `bandejaModel.test.ts`);
+  - en Mapeo, el umbral de duración máxima se muestra como dato y no como alerta.
+- El motor ya marcaba para revisión solo `muy_corto` y `corto`, y la sub-vista heredada de Duración trata las largas
+  como «normal». El cambio en el frontend blinda que una larga no se lea como problema.
+- Se verifica en el gate y las capturas del cierre.
+
