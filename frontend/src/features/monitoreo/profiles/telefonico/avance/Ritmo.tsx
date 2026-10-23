@@ -1,8 +1,12 @@
 import { useMemo } from "react";
+import { CalendarClock } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import {
   FAMILIAS_DE_LLAMADA,
+  estadosDeLaHoja,
   fechaCorta,
+  motivoSinSerie,
   formatosDeFecha,
   resumenDeRitmo,
   notaSinCategoria,
@@ -11,6 +15,9 @@ import {
   type FamiliaDeLlamada,
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
+import { TrazadoDeBarras } from "./TrazadoDeBarras";
+import { NotaDelModo } from "../../../core/NotaDelModo";
+import "./trazadoDeBarras.css";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./ritmoTelefonico.css";
@@ -49,7 +56,8 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const notaDeSerie = notaSinCategoria(sinCategoria, segmento, fueraDeCuota, sinFecha);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -68,35 +76,12 @@ export function Ritmo({
       ? kobo.categorias.slice(SERIES - 1).reduce((suma, categoria) => suma + (kobo.celdas[categoria.nombre]?.[iso] ?? 0), 0)
       : kobo.celdas[serie]?.[iso] ?? 0
   );
-  const maximoKobo = Math.max(1, ...fechas.map((iso) => kobo.porFecha[iso] ?? 0));
-  const maximoHoja = Math.max(1, ...fechas.map((iso) => hoja.totalPorFecha[iso] ?? 0));
-  const tope = Math.max(1, meta ?? 0, kobo.total);
   const ultimoKobo = kobo.fechas.at(-1) ?? null;
   const hojaSeDetiene = hoja.ultima && ultimoKobo && hoja.ultima < ultimoKobo ? hoja.ultima : null;
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
   const nombreDeSegmento = segmento ? segmento.toLocaleLowerCase("es") : "categoría";
-  const puntos = fechas.map((iso, i) => {
-    const x = ((i + 0.5) / Math.max(1, fechas.length)) * 100;
-    const y = 100 - ((resumen.acumulado[iso] ?? 0) / tope) * 100;
-    return `${x},${y}`;
-  }).filter((_, i) => resumen.acumulado[fechas[i]] != null);
-
-  const ultimaFechaKobo = [...fechas].reverse().find((iso) => resumen.acumulado[iso] != null);
-  const ultimoPunto = ultimaFechaKobo
-    ? {
-      x: ((fechas.indexOf(ultimaFechaKobo) + 0.5) / Math.max(1, fechas.length)) * 100,
-      y: 100 - ((resumen.acumulado[ultimaFechaKobo] ?? 0) / tope) * 100,
-    }
-    : null;
-
   if (!kobo.total && !Object.keys(hoja.totalPorFecha).length) {
-    return (
-      <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Ritmo">
-        <span className="mon-ctl-antetitulo">Ritmo</span>
-        <strong>Sin efectivas ni llamados fechados</strong>
-        <p>El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja.</p>
-      </section>
-    );
+    return <RitmoSinSerie reports={reports} sinFecha={sinFecha} meta={meta} />;
   }
 
   return (
@@ -108,40 +93,24 @@ export function Ritmo({
             <ul className="mon-cadencia-leyenda">
               {series.map((serie, i) => <li key={serie}><i className={`is-serie-${i}`} />{serie}</li>)}
               <li><i className="is-acumulado" />Acumulado</li>
+              {meta ? <li><i className="is-meta" />Meta {n(meta)}</li> : null}
             </ul>
           </header>
-          <div className="mon-cadencia-lienzo" style={{ gridTemplateColumns: `repeat(${fechas.length}, minmax(0, 1fr))` }}>
-            {meta ? (
-              <span className="mon-cadencia-meta" style={{ bottom: `${(meta / tope) * 100}%` }}>
-                <em>Meta {n(meta)}</em>
-              </span>
-            ) : null}
-            {ultimoPunto ? (
-              <span className={`mon-cadencia-acumulado-rotulo${ultimoPunto.y < 18 ? " is-debajo" : ""}`} style={{ left: `${ultimoPunto.x}%`, top: `${ultimoPunto.y}%` }}>
-                {meta ? `${n(kobo.total)} de ${n(meta)}` : `${n(kobo.total)} acumuladas`}
-              </span>
-            ) : null}
-            <svg className="mon-cadencia-acumulado" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <polyline points={puntos.join(" ")} vectorEffect="non-scaling-stroke" />
-            </svg>
-            {fechas.map((iso) => {
-              const total = kobo.porFecha[iso] ?? 0;
-              return (
-                <div key={iso} className="mon-cadencia-dia" title={`${fechaCorta(iso)}: ${n(total)} efectivas, ${n(resumen.acumulado[iso] ?? 0)} acumuladas`}>
-                  <span className="mon-cadencia-cifra">{total ? n(total) : ""}</span>
-                  <div className="mon-cadencia-pila" style={{ height: `${(total / maximoKobo) * 100}%` }}>
-                    {series.map((serie, i) => {
-                      const valor = valorDe(serie, iso);
-                      return valor ? <i key={serie} className={`is-serie-${i}`} style={{ flexGrow: valor }} /> : null;
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mon-cadencia-eje" style={{ gridTemplateColumns: `repeat(${fechas.length}, minmax(0, 1fr))` }}>
-            {fechas.map((iso) => <span key={iso}>{fechaCorta(iso)}</span>)}
-          </div>
+          <TrazadoDeBarras
+            tituloIzquierdo="Efectivas por día"
+            columnas={fechas.map((iso) => ({
+              fecha: iso,
+              total: kobo.porFecha[iso] ?? 0,
+              titulo: `${fechaCorta(iso)}: ${n(kobo.porFecha[iso] ?? 0)} efectivas, ${n(resumen.acumulado[iso] ?? 0)} acumuladas`,
+              segmentos: series.map((serie, i) => ({ clase: `is-serie-${i}`, valor: valorDe(serie, iso) })),
+            }))}
+            derecho={{
+              titulo: "Acumulado",
+              valores: fechas.map((iso) => resumen.acumulado[iso] ?? null),
+              referencia: meta ? { valor: meta, rotulo: `Meta ${n(meta)}` } : null,
+              rotuloFinal: meta ? `${n(kobo.total)} de ${n(meta)}` : `${n(kobo.total)} acumuladas`,
+            }}
+          />
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-grafico is-hoja" aria-label="Llamados registrados en la hoja de barrido">
@@ -151,29 +120,23 @@ export function Ritmo({
               {FAMILIAS_DE_LLAMADA.map((familia) => <li key={familia}><i className={`is-${familia}`} />{ETIQUETA_DE_FAMILIA[familia]}</li>)}
             </ul>
           </header>
-          <div className="mon-cadencia-lienzo is-bajo" style={{ gridTemplateColumns: `repeat(${fechas.length}, minmax(0, 1fr))` }}>
-            {fechas.map((iso) => {
-              const total = hoja.totalPorFecha[iso] ?? 0;
+          <TrazadoDeBarras
+            bajo
+            tituloIzquierdo="Llamados por día"
+            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja" } : null}
+            columnas={fechas.map((iso) => {
               const familias = hoja.porFecha[iso];
-              const detenida = hojaSeDetiene != null && iso > hojaSeDetiene;
-              return (
-                <div key={iso} className={`mon-cadencia-dia${detenida ? " is-sin-registro" : ""}`} title={`${fechaCorta(iso)}: ${n(total)} llamados en la hoja`}>
-                  <span className="mon-cadencia-cifra">{n(total)}</span>
-                  <div className="mon-cadencia-pila" style={{ height: `${(total / maximoHoja) * 100}%` }}>
-                    {familias ? FAMILIAS_DE_LLAMADA.map((familia) => (
-                      familias[familia] ? <i key={familia} className={`is-${familia}`} style={{ flexGrow: familias[familia] }} /> : null
-                    )) : null}
-                  </div>
-                </div>
-              );
+              const total = hoja.totalPorFecha[iso] ?? 0;
+              return {
+                fecha: iso,
+                total,
+                apagada: hojaSeDetiene != null && iso > hojaSeDetiene,
+                titulo: `${fechaCorta(iso)}: ${n(total)} llamados en la hoja`,
+                segmentos: FAMILIAS_DE_LLAMADA.map((familia) => ({ clase: `is-${familia}`, valor: familias?.[familia] ?? 0 })),
+              };
             })}
-          </div>
-          <div className="mon-cadencia-eje" style={{ gridTemplateColumns: `repeat(${fechas.length}, minmax(0, 1fr))` }}>
-            {fechas.map((iso) => <span key={iso}>{fechaCorta(iso)}</span>)}
-          </div>
-          {hojaSeDetiene ? (
-            <p className="mon-cadencia-nota">La hoja no registra llamados después del {fechaCorta(hojaSeDetiene)}; Kobo sigue hasta el {fechaCorta(ultimoKobo ?? hojaSeDetiene)}.</p>
-          ) : null}
+          />
+
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-calor" aria-label={`Efectivas por ${nombreDeSegmento} y día`} data-qa-geometry-capacity="owned">
@@ -212,8 +175,7 @@ export function Ritmo({
           <span className="mon-ctl-antetitulo">Promedio</span>
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
           <p>{n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}{kobo.fechas.length ? ` (${fechaCorta(kobo.fechas[0])} a ${fechaCorta(ultimoKobo ?? kobo.fechas[0])})` : ""}{kobo.categorias.length > 1 ? `, en ${n(kobo.categorias.length)} ${nombreDeSegmento === "categoría" ? "categorías" : "valores"}` : ""}.</p>
-          {kobo.sinFecha ? <p>{n(kobo.sinFecha)} efectivas sin fecha en Kobo no entran al gráfico.</p> : null}
-          {sinCategoria ? <p className="mon-cadencia-aviso">{notaSinCategoria(sinCategoria, segmento)}.</p> : null}
+          {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">
@@ -248,32 +210,78 @@ export function Ritmo({
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-cadencia-fechas" aria-label="Fecha de la hoja de barrido">
           <div className="mon-insumos-fila">
             <span className="mon-ctl-antetitulo">Fecha de la hoja de barrido</span>
-            <span className="mon-insumos-estado">{n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor" : "valores"}</span>
+            <span
+              className="mon-insumos-estado"
+              title={`La columna de fecha trae ${n(fechasDeLaHoja.columnas)} ${fechasDeLaHoja.columnas === 1 ? "valor distinto" : "valores distintos"}, que corresponden a ${n(fechasDeLaHoja.dias)} ${fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada.`}
+            >
+              {n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor" : "valores"}
+            </span>
           </div>
-          <ul>
+          <p className="mon-cadencia-secundaria">{n(fechasDeLaHoja.dias)} {fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada</p>
+          <ul className="mon-cadencia-formatos">
             {fechasDeLaHoja.formatos.map((formato) => (
-              <li key={formato.etiqueta} className={formato.aviso ? "is-aviso" : undefined}>
+              <li key={formato.etiqueta}>
+                <i className={`mon-cadencia-punto${formato.aviso ? " is-aviso" : ""}`} aria-hidden="true" />
                 <span>{formato.etiqueta}</span>
                 <strong className="is-num">{n(formato.casos)}</strong>
               </li>
             ))}
           </ul>
-          <p>
-            Corresponden a {n(fechasDeLaHoja.dias)} {fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada; la hoja trae
-            {" "}{n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor distinto" : "valores distintos"} en su columna de fecha.
-          </p>
-          <span className="mon-ctl-antetitulo">Valores en la columna de fecha</span>
+          <span className="mon-ctl-antetitulo">Valores en la columna</span>
           <ul className="mon-cadencia-valores">
             {fechasDeLaHoja.valores.map((item) => (
-              <li key={item.valor} className={item.aviso ? "is-aviso" : undefined}>
-                <code>{item.valor}</code>
+              <li key={item.valor}>
+                <i className={`mon-cadencia-punto${item.aviso ? " is-aviso" : ""}`} aria-hidden="true" />
+                <span>{item.valor}</span>
                 <strong className="is-num">{n(item.casos)}</strong>
               </li>
             ))}
           </ul>
-
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * Sin efectivas ni llamados fechados (un barrido que todavía no empieza) el
+ * marco se conserva en un solo panel que dice por qué está vacío y en qué
+ * estado está la hoja.
+ */
+function RitmoSinSerie({
+  reports,
+  sinFecha,
+  meta,
+}: {
+  reports: MonitoreoAcreditacionReports;
+  sinFecha: number;
+  meta: number | null;
+}) {
+  const hoja = useMemo(() => estadosDeLaHoja(reports), [reports]);
+  // Un solo panel: con dos líneas de estado, una tarjeta lateral estirada al
+  // alto de la columna era un vacío dentro de una tarjeta (chequeo f).
+  return (
+    <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+      <div className="mon-cadencia-vacio-cuerpo">
+        <EstadoVacio
+          tamano="normal"
+          icono={<CalendarClock size={22} />}
+          titulo="Todavía no hay días que graficar"
+          descripcion={motivoSinSerie(hoja, sinFecha)}
+        />
+        {hoja.estados.length ? (
+          <ul className="mon-cadencia-formatos mon-cadencia-vacio-estados" aria-label="Estado de la hoja de barrido">
+            {hoja.estados.map((item) => (
+              <li key={item.estado}>
+                <i className="mon-cadencia-punto" aria-hidden="true" />
+                <span>{item.estado}</span>
+                <strong className="is-num">{n(item.casos)}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="mon-cadencia-secundaria">{meta ? `Meta del estudio: ${n(meta)} efectivas.` : "Sin meta declarada."}</p>
+      </div>
+    </section>
   );
 }

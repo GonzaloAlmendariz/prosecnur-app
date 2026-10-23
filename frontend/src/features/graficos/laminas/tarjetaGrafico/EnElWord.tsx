@@ -6,6 +6,7 @@ import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMIN
 import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
+import { BarraExtraControl } from "../../BarraExtraControl";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { leerEtiquetaCorta } from "../argsDatosGrafico";
 import {
@@ -17,6 +18,8 @@ import {
   tituloWordPorDefecto,
   type TituloDeFigura,
 } from "./enElWordModel";
+import { leerTwoBox } from "./twoBox";
+import { leerBarraExtraWord, NOTA_WORD_IGUAL, NOTA_WORD_PROPIA, patchBarraExtraWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; argsDelRegistro: readonly ArgMetadata[] };
@@ -41,6 +44,8 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   const conRotulo = aplicaRotuloWord(valor.graficador, args);
   const repite = conRotulo && repiteRotuloWord(valor.graficador, args, presets, wPresets);
   const modoEfectivo = leerModoLamina(args) || leerModoInforme(wPresets as Record<string, Record<string, unknown>>);
+  const barraWord = leerBarraExtraWord(valor.graficador, args, presets);
+  const estadoPpt = leerTwoBox(valor.graficador, args, presets);
   const porDefecto = tituloWordPorDefecto(variable ? leerEtiquetaCorta(args, variable) : "", "");
 
   return (
@@ -86,6 +91,20 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
             </>
           )}
         </div>
+      )}
+      {barraWord && estadoPpt && (
+        <BarraExtraControl
+          qa="barra-extra-word"
+          rotulo="Barra extra en el Word"
+          ariaLabel="Barra extra en el Word"
+          ayuda={NOTA_WORD_IGUAL}
+          valor={barraWord.valor}
+          onChange={(v) => set(patchBarraExtraWord(valor.graficador, args, presets, v))}
+          escala={{ fase: "externa", nota: "Las categorías de cada box son las de la tarjeta del gráfico (en Cifras)." }}
+          etiquetas={estadoPpt.forma === "por_bloque" ? {} : { top2box: estadoPpt.top.etiquetas, bottom2box: estadoPpt.bottom.etiquetas }}
+          heredada={barraWord.propia ? NOTA_WORD_PROPIA : undefined}
+          restablecer={barraWord.propia ? { rotulo: "Usar la del PPT", onClick: () => set(patchBarraExtraWord(valor.graficador, args, presets, barraWord.ppt)) } : undefined}
+        />
       )}
       {conRotulo && (
         <div className="pulso-f6-dato">

@@ -52,7 +52,19 @@ export function ejemplosDeLlave(reports: MonitoreoAcreditacionReports | null | u
     base: unicos(base).slice(0, 3),
     respuestas: unicos(respuestas).slice(0, 3),
     distintosEnLaBase: unicos(base).length,
+    filasEnLaBase: base.length,
   };
+}
+
+/** Con menos filas, un código repetido puede ser un caso con varios envíos. */
+export const FILAS_PARA_JUZGAR_LA_LLAVE = 5;
+
+/**
+ * Una llave que da el mismo código a todas las filas no está leyendo un
+ * identificador: el cruce casaría cualquier envío con cualquier caso.
+ */
+export function llaveSinIdentificador(ejemplos: { distintosEnLaBase: number; filasEnLaBase: number }) {
+  return ejemplos.filasEnLaBase >= FILAS_PARA_JUZGAR_LA_LLAVE && ejemplos.distintosEnLaBase === 1;
 }
 
 export type CruceDeLlave = {

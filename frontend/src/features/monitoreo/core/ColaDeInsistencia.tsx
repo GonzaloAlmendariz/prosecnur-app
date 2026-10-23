@@ -77,6 +77,7 @@ export function ColaDeInsistencia({
             columnas={columnas}
             elegido={enFicha?.codigo ?? null}
             onElegir={(codigo) => escribirFoco(codigo, { panel: PANEL_CASO.id })}
+            vacia={casos.length ? undefined : "La cola está vacía: ningún caso llamado queda por rellamar en este corte."}
           />
           <footer className="mon-cola-centro-pie">
             {visibles.length.toLocaleString("es-PE")} de {casos.length.toLocaleString("es-PE")} casos en la cola
@@ -90,6 +91,7 @@ export function ColaDeInsistencia({
           cerrable={Boolean(elegido)}
           onCerrar={() => escribirFoco(null, { panel: null })}
           panelProps={panel.props}
+          vacia={casos.length ? "Ningún caso de la cola cumple los filtros." : "Sin casos en la cola."}
         />
       </div>
     </div>

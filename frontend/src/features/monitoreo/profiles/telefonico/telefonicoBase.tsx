@@ -150,6 +150,8 @@ export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = [
   INTERNAS.telefonico.incidencia.key,
   INTERNAS.telefonico.responsables.key,
   INTERNAS.telefonico.alertas.key,
+  // Control › Supervisión (T9).
+  INTERNAS.telefonico.supervision.key,
 ];
 export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = [
   INTERNAS.avance.resumen.key,

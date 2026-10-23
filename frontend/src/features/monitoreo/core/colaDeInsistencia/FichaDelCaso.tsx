@@ -24,10 +24,13 @@ export function FichaDelCaso({
   onCerrar,
   panelProps,
   plataforma = "Kobo",
+  vacia = "Elige un caso de la cola.",
 }: {
   /** Plataforma de las respuestas; Telefónico lee Kobo. */
   plataforma?: string;
   caso: CasoDeCola | null;
+  /** Qué decir sin caso en la ficha. */
+  vacia?: string;
   etiquetaCategoria: string;
   /** Fecha del corte, ya corta («27/07»). */
   corte: string;
@@ -37,9 +40,9 @@ export function FichaDelCaso({
 }) {
   if (!caso) {
     return (
-      <aside className="mon-cola-panel mon-cola-ficha is-vacia" aria-label="Ficha del caso" {...panelProps}>
+      <aside className="mon-cola-panel mon-cola-ficha is-vacia" aria-label="Ficha del caso" data-qa-geometry-capacity="owned" {...panelProps}>
         <span className="mon-cola-antetitulo">Ficha del caso</span>
-        <p>Elige un caso de la cola.</p>
+        <p>{vacia}</p>
       </aside>
     );
   }

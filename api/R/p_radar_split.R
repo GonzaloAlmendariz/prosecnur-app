@@ -36,8 +36,11 @@
 #' @param margen_etiquetas Holgura del panel para las etiquetas de los ejes, entre 1 y 2. `NULL` = automática.
 #' @param fallback_pocos Sólo en modo `publicos`: qué se dibuja con menos de 5 criterios, `"puntos"` (líneas y puntos
 #'   comparativos, defecto) o `"barras"`.
-#' @param eje_pocos,eje_pocos_min,eje_pocos_max Sólo en modo `publicos`, con menos de 5 criterios: eje de las líneas y
+#' @param eje_pocos,eje_pocos_min,eje_pocos_max Sólo en modo `publicos`, con líneas y puntos (menos de 5 criterios o `forma = "puntos"`): eje de las líneas y
 #'   puntos, `"auto"` (acercado a los datos, defecto), `"0-100"` o `"personalizado"` con mínimo y máximo.
+#' @param forma Sólo en modo `publicos`: `"auto"` (defecto: radar con 5 a 8 criterios, `fallback_pocos` con menos),
+#'   `"puntos"` (líneas y puntos siempre, con el eje de `eje_pocos`), `"radar"` (radar aunque haya 3 o 4 criterios; con
+#'   menos de 3 aborta) o `"barras"`.
 #' @param limites Rango del eje radial, `c(min, max)` en escala 0-1 (O7c). Va a
 #'   `overrides` en los tres modos; `NULL` hereda el preset.
 #' @export
@@ -73,7 +76,8 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     fallback_pocos = NULL,
                     eje_pocos = NULL,
                     eje_pocos_min = NULL,
-                    eje_pocos_max = NULL) {
+                    eje_pocos_max = NULL,
+                    forma = NULL) {
   overrides <- .radar_slot_limites(overrides %||% list(), limites)
   # Holgura del panel (1 a 2): va a `overrides`, que es lo que `graficar_radar()` lee en los tres modos.
   overrides <- .radar_slot_margen(overrides, margen_etiquetas)
@@ -96,7 +100,8 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
       tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros,
       titulos_grupo = titulos_grupo, fallback_pocos = fallback_pocos,
-      eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max
+      eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max,
+      forma = forma
     ))
   }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())

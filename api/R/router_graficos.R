@@ -142,7 +142,7 @@
     s
   })
   plan$slides <- slides
-  .graficos_migrar_poblacion_antigua(plan, avisar = avisar)   # la población antigua sale del plan en todo camino que normaliza
+  .graficos_migrar_plan(plan, avisar = avisar)   # la población antigua y las claves viejas de la barra extra salen del plan en todo camino que normaliza
 }
 
 .as_json_list <- function(x) {
@@ -1518,7 +1518,7 @@
   cfg$version <- "graficos/4"
 
   plan <- .graficos_pick_alias(src, "plan")
-  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_poblacion_antigua(plan, avisar = FALSE) else defaults$plan
+  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_plan(plan, avisar = FALSE) else defaults$plan
 
   presets <- .graficos_pick_alias(src, "presets")
   cfg$presets <- if (.graficos_is_obj(presets)) {

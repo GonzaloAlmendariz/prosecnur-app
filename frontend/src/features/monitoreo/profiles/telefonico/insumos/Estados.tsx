@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { AlertTriangle, Loader2, Save } from "../../../../../vendor/lucide-react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
+import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "../../../estados/familiasDeLlamada";
 import type { AcreditacionFamiliaLlamada } from "../../../estados/familiasDeLlamada";
@@ -66,7 +67,7 @@ export function Estados({
 
   return (
     <div className="mon-insumos mon-estados" data-qa-geometry-group="telefonico-insumos-estados" data-qa-geometry-contract="intrinsic">
-      <section className="mon-ctl-panel mon-estados-vocabulario" aria-label="Vocabulario de Status">
+      <section className="mon-ctl-panel mon-estados-vocabulario" aria-label="Vocabulario de Status" data-qa-geometry-capacity="owned">
         <header className="mon-insumos-cabecera">
           <strong>Vocabulario de Status</strong>
           <span>
@@ -84,7 +85,7 @@ export function Estados({
             <span>{declaracion.guardando ? "Guardando…" : "Confirmar estados"}</span>
           </button>
         </header>
-        {declaracion.error ? <p className="mon-insumos-error"><AlertTriangle size={14} /> {declaracion.error}</p> : null}
+        {declaracion.error ? <NotaDelModo tono="error" estado className="mon-insumos-error">{declaracion.error}</NotaDelModo> : null}
         <div className="mon-ctl-tabla-marco mon-estados-marco">
           <table className="mon-ctl-tabla mon-estados-tabla">
             <thead>
@@ -202,10 +203,10 @@ export function Estados({
           </div>
         </section>
 
-        <section className="mon-insumos-nota" aria-label="Sin regla de agotado">
-          <strong>Sin regla de agotado</strong>
-          <p>El supervisor decide cuándo dejar de insistir mirando intentos, status y observación. El modo no declara casos agotados.</p>
-        </section>
+        <NotaDelModo tono="info" className="mon-insumos-nota-modo">
+          <strong>Sin regla de agotado.</strong> El supervisor decide cuándo dejar de insistir mirando intentos, status y
+          observación; el modo no declara casos agotados.
+        </NotaDelModo>
       </div>
     </div>
   );

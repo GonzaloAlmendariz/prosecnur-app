@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, destinoDeAviso, detalleDeEmpate, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -120,6 +120,17 @@ describe("Control › Avisos del telefónico", () => {
     const aviso = avisos.find((item) => item.unidad === "responsables");
     expect(aviso).toBeDefined();
     expect(aviso?.detalle).not.toMatch(/más marcado/);
+    // La causa no repite la cifra: «2 responsables» va en la columna y la ficha.
+    expect(aviso?.titulo).not.toMatch(/responsables/);
+    expect(aviso?.casos).toBe(2);
+    // La fila del fixture no trae cifra: cada responsable cuenta una alerta.
+    expect(aviso?.detalle).toBe("Todos con la misma cifra (1).");
+  });
+
+  it("con empate parcial dice cuántos empatan arriba", () => {
+    expect(detalleDeEmpate([
+      { etiqueta: "Ana", valor: 28 }, { etiqueta: "Beto", valor: 28 }, { etiqueta: "Ciro", valor: 15 },
+    ])).toBe("2 empatan en la cifra más alta (28).");
   });
 
   it("da ids únicos aunque dos grupos compartan causa", () => {
@@ -164,5 +175,23 @@ describe("Control › Avisos del telefónico", () => {
     expect(aviso?.desglose.map((linea) => linea.etiqueta)).toEqual(["Ana"]);
     // Es la señal de asignación: se corrige en Equipo.
     expect(aviso?.destino.etiqueta).toBe("Equipo, en Control");
+  });
+});
+
+describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
+  it("va a Avisos con responsable, CodPulso y proGres", () => {
+    const { avisos } = construirAvisos(reportes([], {
+      discrepancias_telefonicas: [
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1114", proGres: "XYZ-26-900001", Responsable: "Op-02", "La hoja dice": "Efectivo", "Fecha hoja": "02/07/2026" },
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1153", proGres: "", Responsable: "", "La hoja dice": "Efectivo", "Fecha hoja": "" },
+        { Sentido: "kobo_sin_hoja", CodPulso: "PDM1001", proGres: "", Responsable: "Op-01", "La hoja dice": "No contesta", "Fecha hoja": "" },
+      ],
+    }));
+    const aviso = avisos.find((item) => item.codigo === "efectivo_sin_kobo");
+    expect(aviso?.casos).toBe(2);
+    expect(aviso?.afectados.map((caso) => caso.codigo)).toEqual(["PDM1114", "PDM1153"]);
+    expect(aviso?.afectados[0]).toMatchObject({ responsable: "Op-02", nota: "proGres XYZ-26-900001" });
+    expect(aviso?.afectados[1].responsable).toBe("Sin asignar");
+    expect(aviso?.desglose).toEqual([{ etiqueta: "Op-02", valor: 1 }, { etiqueta: "Sin asignar", valor: 1 }]);
   });
 });

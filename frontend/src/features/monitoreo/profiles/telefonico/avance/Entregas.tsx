@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { pctConEspacio } from "../../../core/formatoComun";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import "../control/controlTelefonico.css";
 import "./entregasTelefonico.css";
@@ -82,7 +83,7 @@ export function Entregas({
                 </tfoot>
               </table>
             ) : (
-              <p className="mon-entregas-sin-datos">El corte no trae cuotas para mostrar.</p>
+              <NotaDelModo tono="neutro">El corte no trae cuotas para mostrar.</NotaDelModo>
             )}
             {dias.length ? (
               <section className="mon-entregas-ritmo" aria-label="Ritmo diario">
@@ -96,7 +97,7 @@ export function Entregas({
                     </li>
                   ))}
                 </ul>
-                {nota ? <p className="mon-entregas-nota">{nota}.</p> : null}
+                {nota ? <NotaDelModo tono="aviso">{nota}.</NotaDelModo> : null}
               </section>
             ) : null}
             <footer>
@@ -105,7 +106,9 @@ export function Entregas({
             </footer>
           </article>
         </div>
-        <p className="mon-entregas-pie">El cliente no abre la app: recibe el PDF y su hoja. La fecha de la última publicación queda en el proyecto.</p>
+        <NotaDelModo tono="neutro" className="mon-entregas-pie-nota">
+          El cliente no abre la app: recibe el PDF y su hoja. La fecha de la última publicación queda en el proyecto.
+        </NotaDelModo>
       </section>
 
       <div className="mon-entregas-salidas" aria-label="Salidas del corte">

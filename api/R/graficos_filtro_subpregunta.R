@@ -129,7 +129,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   # La escala hereda del preset la columna Top Two Box; esta lámina no tiene dónde declarar sus respuestas, así que sin
   # ellas va apagada (si no, el motor la omite y avisa «elígelas en la pestaña Gráfico», un aviso sin salida).
   ov_s <- ov
-  if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$mostrar_barra_extra <- FALSE
+  if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$barra_extra <- FALSE
   el_s <- if (!is.null(el$dependiente)) {
     # La dependencia entre dos gráficos: el dependiente es el gráfico que puso el analista, con la base de quienes lo habilitan.
     d <- el$dependiente; d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d
@@ -168,7 +168,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   if (is.null(espec_f) || is.null(espec_s)) {
     habilitadas <- niveles$label[niveles$code %in% codigos]
     attr(p, "pulso_espec") <- list(version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
-                                   habilita = habilitadas, disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo,
+                                   habilita = habilitadas, disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo, mostrar_respuestas = isTRUE(ov$mostrar_respuestas),
                                    pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
                                    n_filtro = NA_real_, n_sub = NA_real_, plot_filtro = p_f, plot_sub = p_s)
     return(p)
@@ -178,7 +178,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
     attr(p, "pulso_espec") <- list(
       version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
       habilita = intersect(espec_f$rotulos %||% character(0), habilitadas),
-      disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo,
+      disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo, mostrar_respuestas = isTRUE(ov$mostrar_respuestas),
       pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
       plot_filtro = p_f, plot_sub = p_s,
       n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),

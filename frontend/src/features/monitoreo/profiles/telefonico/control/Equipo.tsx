@@ -97,6 +97,7 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
   const total = familias.reduce((suma, item) => suma + item.casos, 0) || 1;
   const orden = FAMILIAS_DEL_CLIENTE.map((item) => item.id);
   const ordenadas = [...familias].sort((a, b) => orden.indexOf(a.familia) - orden.indexOf(b.familia));
+  const estados = statusDe(modelo, operador.nombre);
   return (
     <aside className="mon-ctl-panel mon-equipo-ficha" aria-label={`Ficha de ${operador.nombre}`}>
       <span className="mon-equipo-ficha-titulo">
@@ -143,8 +144,10 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
       </section>
       <section className="mon-equipo-bloque mon-equipo-status" aria-label="Status en la hoja">
         <span className="mon-ctl-antetitulo">Status en la hoja</span>
-        <ul>
-          {statusDe(modelo, operador.nombre).map((item) => (
+        {/* Con pocos status la lista va arriba: repartirla en el alto dejaba una
+          * sola barra al pie de un hueco (RMS: «No barrido 15»). */}
+        <ul className={estados.length < 4 ? "is-pocos" : undefined}>
+          {estados.map((item) => (
             <li key={item.status} className={`is-${item.familia}`}>
               <span>
                 {item.status}
@@ -155,6 +158,9 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
             </li>
           ))}
         </ul>
+        {estados.length === 1 ? (
+          <p className="mon-equipo-status-unico">Sus {n(estados[0].casos)} casos están en «{estados[0].status}».</p>
+        ) : null}
       </section>
     </aside>
   );
