@@ -58,22 +58,23 @@
 COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v2"
 COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
 
+# `box`: estilo propio del bloque (collection_mail_box.R); el pie legal no lo admite.
 .CMAIL_BLOCK_KEYS <- list(
-  greeting     = c("text", "fallback", "trato"),
-  heading      = c("text", "level", "align"),
-  paragraph    = c("text", "align", "size", "tone"),
-  button       = c("text", "url", "note", "align", "size", "fill"),
-  callout      = c("title", "items", "variant"),
-  list         = c("items", "ordered"),
-  divider      = c("style", "size"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative"),
-  signature    = c("closing", "name", "lines", "url"),
+  greeting     = c("text", "fallback", "trato", "box"),
+  heading      = c("text", "level", "align", "box"),
+  paragraph    = c("text", "align", "size", "tone", "box"),
+  button       = c("text", "url", "note", "align", "size", "fill", "box"),
+  callout      = c("title", "items", "variant", "box"),
+  list         = c("items", "ordered", "box"),
+  divider      = c("style", "size", "box"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "box"),
+  signature    = c("closing", "name", "lines", "url", "box"),
   footer_legal = c("text", "address"),
   # Piezas gráficas (E1o): collection_mail_piezas.R.
-  band         = c("color", "height"),
-  ornament     = c("style", "color"),
-  icon_text    = c("icon", "text"),
-  two_images   = c("left", "right", "alt_left", "alt_right")
+  band         = c("color", "height", "box"),
+  ornament     = c("style", "color", "box"),
+  icon_text    = c("icon", "text", "box"),
+  two_images   = c("left", "right", "alt_left", "alt_right", "box")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -446,6 +447,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
     }
     add(.cmail_style_problems(b, type, path))
+    if (!is.null(b$box)) add(.cmail_box_problems(b$box, paste0(path, ".box")))
     switch(type,
       greeting = {
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE))

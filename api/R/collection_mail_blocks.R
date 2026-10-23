@@ -247,6 +247,16 @@
 
 .cmail_block_html <- function(b, ctx) {
   type <- as.character(b$type)
+  # Estilo propio (collection_mail_box.R): las filas se leen sobre la caja. El
+  # texto y las imágenes con margen tienen el mismo ancho útil que fuera (caja a
+  # 24 + celda a 24 = 48); sólo lo que va a sangre llena la caja, 48 px menos.
+  box <- .cmail_box_of(b)
+  if (!is.null(box)) {
+    ctx <- .cmail_box_ctx(box, ctx)
+    if (identical(type, "image") && isTRUE(unlist(b$bleed))) {
+      ctx$width <- as.integer(ctx$width %||% .CMAIL_WIDTH) - 2L * .CMAIL_BOX_INSET
+    }
+  }
   html <- switch(type,
     greeting = .cmail_block_greeting(b, ctx),
     paragraph = .cmail_block_paragraph(b, ctx),
@@ -270,6 +280,7 @@
     two_images = .cmail_block_two_images(b, ctx),
     ""
   )
+  if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx)
   mark_type <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else type
   .cmail_mark_row(html, ctx, as.character(b$block_id %||% ""), mark_type)
 }
