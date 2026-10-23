@@ -81,6 +81,7 @@ import { Reglas } from "./insumos/reglas/Reglas";
 import { Ritmo } from "./avance/Ritmo";
 import { Salidas } from "./avance/Salidas";
 import { PorCuota } from "./avance/PorCuota";
+import { Correo } from "./control/contacto/Correo";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
@@ -16342,7 +16343,10 @@ function renderAcreditacionView(
   } = {},
 ) {
   // Correo lee Mailchimp por su cuenta: no depende del corte de reportes.
-  if (view === "avance" && options.activeAdvanceTab === "correo") return <AvanceCorreo />;
+  if (view === "avance" && options.activeAdvanceTab === "correo") {
+    // Control › Correo (Ctl1); el estudio telefónico conserva la vista anterior.
+    return isTelefonicoMonitoreoState(options.state) ? <AvanceCorreo /> : <Correo />;
+  }
   if (view === "avance" && options.activeAdvanceTab === "cuotas") {
     if (isTelefonicoMonitoreoState(options.state)) return <AvanceCuotas />;
     // Avance › Por cuota (A8): lectura de cuotas y variables de control; se edita en Modelo › Cuotas.
