@@ -342,3 +342,19 @@ desvío mayor) y la tarjeta del calendario con los días de campo con efectivas 
   las candidatas sin universo en el corte: el motor sólo publica cuotas de la variable en uso, así que «Atención»,
   «Trámite» y «Origen» no aparecen con sus valores.
 - Sin metas por enumerador.
+
+**T8, Avance › Ritmo.** `profiles/telefonico/avance/Ritmo.tsx` con `ritmoModel.ts` (test), sobre
+`avance_efectivo_variable_dia`, `avance_efectivo_dia` y `estatus_dia`. Las efectivas de Kobo por día apiladas por
+categoría de la variable de cuota, con el acumulado y la línea de la meta, y los llamados de la hoja apilados por familia
+del status en el mismo eje de fechas: en PDM la hoja se detiene el 02/07 y Kobo sigue hasta el 06/07, y la pestaña lo
+dice. Debajo, el mapa de calor categoría por día (PDM 110, 109, 100, 59 y 45). A la derecha: el promedio (PDM 60.4 por
+día, 423 en 7 días), el día a día con Kobo, acumulado y hoja, y cómo vienen escritas las fechas de la hoja (PDM: 7
+valores, 560 con el día de un dígito, 62 con dos, 6 sin fecha y 3 del año 2020, que corresponden a 3 días). Chips de
+cabecera: el pico (133 el 03/07) y el día en que se cruza la meta (04/07).
+
+- **No va**: la hora de inicio de las efectivas (el corte sólo trae la fecha de Kobo) y la ventana de llamada, que el
+  proyecto no declara.
+- La vista anterior llevaba además la base telefónica (barridos, por barrer, efectivas por sede) y el contraste entre
+  Kobo y la hoja: están en Control › Barrido y Control › Discrepancias.
+- Las clases del Ritmo usan el prefijo `mon-cadencia-` y las de Cuotas `mon-metas-`: `mon-ritmo-*` y `mon-cuotas-*` ya
+  existían en otras hojas y se pisaban.

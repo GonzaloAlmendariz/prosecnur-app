@@ -28,6 +28,7 @@ import { Fuentes } from "./insumos/Fuentes";
 import { LlaveYFiltros } from "./insumos/Llave";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { Cuotas } from "./modelo/Cuotas";
+import { Ritmo } from "./avance/Ritmo";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -124,6 +125,14 @@ const REPORTS = bloques({
   ],
   cola_insistencia_responsables: [
     { Responsable: "Op-01", "Sin asignar": false, "Casos en cola": 1, "Ya efectivas en Kobo": 0, "Promedio intentos": 3, "Sin dato de intentos": 0, "Por llamar": 0 },
+  ],
+  avance_efectivo_variable_dia: [
+    { Variable: "Sede", Valor: "San Juan de Lurigancho (SJL)", Fecha: "2026-06-30", "Efectivas Kobo": 3 },
+    { Variable: "Sede", Valor: "Pueblo Libre (PL)", Fecha: "2026-07-01", "Efectivas Kobo": 4 },
+  ],
+  avance_efectivo_dia: [
+    { Fecha: "2026-06-30", "Efectivas Kobo": 3 },
+    { Fecha: "2026-07-01", "Efectivas Kobo": 4 },
   ],
   control_tiempo_kobo: [
     { CodPulso: "PDM1371", "Fecha Kobo": "2026-06-30", "Duración segundos": 365100, "Response ID": "r1" },
@@ -232,6 +241,7 @@ const PESTANAS: Array<[string, () => string]> = [
     />,
     `${RUTA}&seccion=modelo&pestana=cuotas`,
   )],
+  ["Avance › Ritmo", () => pintar(<Ritmo reports={REPORTS} state={STATE} />, `${RUTA}&seccion=avance&pestana=ritmo`)],
   ["Insumos › Fuentes", () => {
     const fuentes = [hoja, kobo, apagada];
     return pintar(
