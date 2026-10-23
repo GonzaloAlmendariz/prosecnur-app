@@ -129,9 +129,10 @@ Todas las cifras por público salen de las mismas tarjetas que la barra; la seri
   parcial no identificable); «Incluido con salvedad» se lee «Asignadas por el supervisor», como en Ctl5.
 - La miniatura de 14 días de cada fila es una miniatura de celda, sin ejes; los gráficos de panel sí los llevan.
 
-**Gate de A1 y A2.** Typecheck limpio; `make gate-front AREA=monitoreo` 5,575 de 5,576 (el que falta es
-`componentesSinMontar` por tope de 5 s bajo contención de la máquina: aislado pasa en 1.5 s); auditoría agentic sin
-hallazgos. Capturas a 1440 × 1000 y 1024 × 600 de Contabilidad e Institucional, distintas por md5. Quedan dos avisos del
+**Gate de A1 y A2.** Typecheck limpio; `make gate-front AREA=monitoreo` 465 archivos y 5,576 tests en verde (con la
+máquina cargada, `componentesSinMontar` llegó a caer por su tope de 5 s; con el candado de corridas pesadas pasa);
+auditoría agentic sin hallazgos. Medición de las capturas a 1440 × 1000: las dos columnas terminan en y = 984 en las
+cuatro vistas (0 px de diferencia) y el pie queda a 15 px del borde. Capturas a 1440 × 1000 y 1024 × 600 de Contabilidad e Institucional, distintas por md5. Quedan dos avisos del
 runner en vistas que A1 solo monta y que se rehacen en sus fases: el placeholder del buscador de Consultas (A3, A5) y
 `fuentes-encuestas-actores` sin alturas iguales en Insumos › Fuentes (A6). La readiness de Resumen y Por público espera
 los casos (llegan con el corte de Control) o su falla, para no capturar «preparando».
