@@ -1113,3 +1113,96 @@
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ri { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Salidas (A5): publicaciones frente al corte y cierre del campo, iguales en
+ * alto; debajo, las tarjetas de salida de siempre. */
+.acr-sa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-sa-arriba {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.acr-sa-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-sa-puntos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  list-style: none;
+}
+
+ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
+  padding: 0;
+}
+
+.acr-sa-puntos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border-left: 3px solid var(--pulso-border);
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-sa-puntos li.is-ok {
+  border-left-color: var(--pulso-success-fg);
+}
+
+.acr-sa-puntos li.is-pendiente {
+  border-left-color: var(--pulso-warn-fg);
+}
+
+.acr-sa-puntos b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acr-sa-dialogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.acr-sa-dialogo p {
+  margin: 0;
+}
+
+.acr-sa-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acr-sa-campo textarea {
+  padding: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.acr-sa-campo textarea:focus-visible {
+  border-color: var(--pulso-brand-navy);
+  outline: 0;
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-sa-arriba { grid-template-columns: minmax(0, 1fr); }
+}

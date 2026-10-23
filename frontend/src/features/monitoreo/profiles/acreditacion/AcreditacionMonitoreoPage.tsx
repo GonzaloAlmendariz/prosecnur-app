@@ -79,6 +79,7 @@ import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
 import { Fuentes } from "./insumos/Fuentes";
 import { Reglas } from "./insumos/reglas/Reglas";
 import { Ritmo } from "./avance/Ritmo";
+import { Salidas } from "./avance/Salidas";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
@@ -16345,7 +16346,7 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
-    return (
+    const tarjetasDeSalida = (
       <MonitoreoOutputsWorkbench
         family={isPhoneOutputs ? "telefonico" : "acreditacion"}
         routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
@@ -16356,6 +16357,20 @@ function renderAcreditacionView(
         corte={corteAcreditacionDeReports(outputState, reports)}
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
+      />
+    );
+    if (isPhoneOutputs) return tarjetasDeSalida;
+    // Avance › Salidas (A8): publicaciones frente al corte y cierre del campo con diálogo.
+    return (
+      <Salidas
+        corte={outputState?.synced_at || null}
+        clienteSheets={outputState?.publication?.client_last_sheets}
+        internoSheets={outputState?.publication?.internal_last_sheets}
+        acreditacion={options.acreditacion}
+        guardando={Boolean(options.savingAcreditacion)}
+        error={options.actionStatus?.tone === "error" ? options.actionStatus.message : null}
+        onCerrarCampo={options.onCerrar ? (plan, aprobacion) => options.onCerrar?.(plan, aprobacion) ?? Promise.resolve() : undefined}
+        salidas={tarjetasDeSalida}
       />
     );
   }
