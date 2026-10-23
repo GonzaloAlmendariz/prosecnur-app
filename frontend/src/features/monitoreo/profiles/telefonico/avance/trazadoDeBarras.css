@@ -13,7 +13,7 @@
 }
 
 .mon-trazado.con-derecho {
-  grid-template-columns: 56px minmax(0, 1fr) 68px;
+  grid-template-columns: 56px minmax(0, 1fr) 108px;
 }
 
 .mon-trazado.is-bajo {
@@ -148,13 +148,7 @@
   pointer-events: none;
 }
 
-.mon-trazado-eje.is-derecho .mon-trazado-marca.is-referencia {
-  padding: 1px 5px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-module-monitoring);
-  color: var(--pulso-surface);
-  font-weight: var(--pulso-weight-bold);
-}
+
 
 .mon-trazado-linea {
   position: absolute;
@@ -182,23 +176,9 @@
   transform: translate(-50%, 50%);
 }
 
-.mon-trazado-rotulo-final {
-  position: absolute;
-  z-index: 1;
-  padding: 1px 6px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-module-monitoring);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-  transform: translate(-100%, -40%);
-  pointer-events: none;
-}
 
-.mon-trazado-rotulo-final.is-debajo {
-  transform: translate(-100%, 120%);
-}
+
+
 
 .mon-trazado-fechas {
   display: grid;
@@ -216,4 +196,52 @@
   .mon-trazado-pila {
     transition: height 160ms ease-out;
   }
+}
+
+/* El valor final del acumulado, anclado al eje derecho a su altura, a la
+ * derecha de las marcas: no se cruza con la línea de la meta ni con nada. */
+.mon-trazado-pastilla {
+  position: absolute;
+  right: 0;
+  padding: 2px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateY(50%);
+}
+
+/* Banda sombreada sobre los días sin registro, con su rótulo. */
+.mon-trazado-banda {
+  position: relative;
+  grid-row: 1;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pulso-surface-2) 0 6px,
+    var(--pulso-surface-3) 6px 12px
+  );
+  pointer-events: none;
+}
+
+.mon-trazado-banda span {
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-trazado-columnas > .mon-trazado-columna {
+  grid-row: 1;
 }

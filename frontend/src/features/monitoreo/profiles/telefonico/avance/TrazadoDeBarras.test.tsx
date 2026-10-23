@@ -15,17 +15,22 @@ describe("trazado de barras con dos ejes", () => {
     expect(html).not.toContain("mon-trazado-eje is-derecho");
   });
 
-  it("el acumulado lleva su propio eje y escala, y la meta se rotula en él", () => {
+  it("el acumulado lleva su propio eje y escala, con su valor final en una pastilla", () => {
     const html = renderToStaticMarkup(
       <TrazadoDeBarras
         columnas={columnas}
         tituloIzquierdo="Efectivas por día"
         derecho={{ titulo: "Acumulado", valores: [109, 1209], referencia: { valor: 1400, rotulo: "Meta 1,400" }, rotuloFinal: "1,209 de 1,400" }}
+        banda={{ desde: 1, rotulo: "Sin registro en la hoja" }}
       />,
     );
     expect(html).toContain("Acumulado");
-    expect(html).toContain("Meta 1,400");
-    expect(html).toContain("1,209 de 1,400");
+    // Una sola lectura: el valor final en una pastilla del eje derecho; la meta
+    // es una línea (su rótulo va en la leyenda de la pestaña).
+    expect(html).toContain("mon-trazado-referencia");
+    expect(html).toMatch(/mon-trazado-pastilla[^>]*>1,209 de 1,400</);
+    expect(html).not.toContain("Meta 1,400");
+    expect(html).toContain("Sin registro en la hoja");
     // Escala derecha propia: 0 a 1,500 en pasos de 500 (la de las barras va en pasos de 250).
     const derecho = html.slice(html.indexOf("mon-trazado-eje is-derecho"));
     expect(derecho).toContain(">1,000<");

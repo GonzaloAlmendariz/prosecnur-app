@@ -20,7 +20,7 @@ export type EjeDerecho = {
   valores: ReadonlyArray<number | null>;
   /** Referencia horizontal en la escala derecha (la meta). */
   referencia?: { valor: number; rotulo: string } | null;
-  /** Rótulo del último punto («423 de 400»). */
+  /** Valor final del acumulado, en pastilla sobre el eje («423 de 400»). */
   rotuloFinal?: string;
 };
 
@@ -37,11 +37,14 @@ export function TrazadoDeBarras({
   tituloIzquierdo,
   derecho,
   bajo = false,
+  banda = null,
 }: {
   columnas: readonly ColumnaDelTrazado[];
   tituloIzquierdo: string;
   derecho?: EjeDerecho | null;
   bajo?: boolean;
+  /** Desde qué columna se sombrea una banda (por ejemplo, la hoja ya no registra). */
+  banda?: { desde: number; rotulo: string } | null;
 }) {
   const izquierda = escalaDeEje(Math.max(0, ...columnas.map((columna) => columna.total)));
   const maximoDerecho = derecho
@@ -71,16 +74,21 @@ export function TrazadoDeBarras({
           <i key={marca} className={`mon-trazado-grid${marca === 0 ? " is-base" : ""}`} style={{ bottom: `${(marca / izquierda.tope) * 100}%` }} />
         ))}
         <div className="mon-trazado-columnas" style={{ gridTemplateColumns: columnasCss }}>
-          {columnas.map((columna) => {
+          {banda && banda.desde < columnas.length ? (
+            <div className="mon-trazado-banda" style={{ gridColumn: `${banda.desde + 1} / -1` }}>
+              <span>{banda.rotulo}</span>
+            </div>
+          ) : null}
+          {columnas.map((columna, i) => {
             const alto = (columna.total / izquierda.tope) * 100;
             return (
-              <div key={columna.fecha} className={`mon-trazado-columna${columna.apagada ? " is-apagada" : ""}`} title={columna.titulo}>
+              <div key={columna.fecha} className={`mon-trazado-columna${columna.apagada ? " is-apagada" : ""}`} title={columna.titulo} style={{ gridColumn: `${i + 1}` }}>
                 <div className="mon-trazado-pila" style={{ height: `${alto}%` }}>
                   {columna.segmentos.map((segmento) => (
                     segmento.valor ? <i key={segmento.clase} className={segmento.clase} style={{ flexGrow: segmento.valor }} /> : null
                   ))}
                 </div>
-                <span className="mon-trazado-cifra" style={{ bottom: `${alto}%` }}>{n(columna.total)}</span>
+                {columna.apagada ? null : <span className="mon-trazado-cifra" style={{ bottom: `${alto}%` }}>{n(columna.total)}</span>}
               </div>
             );
           })}
@@ -97,27 +105,22 @@ export function TrazadoDeBarras({
             {puntos.map((punto) => (
               <i key={punto.i} className="mon-trazado-punto" style={{ left: `${punto.x}%`, bottom: `${punto.y}%` }} title={`${n(punto.valor)} acumuladas`} />
             ))}
-            {ultimo && derecho.rotuloFinal ? (
-              <span className={`mon-trazado-rotulo-final${ultimo.y > 82 ? " is-debajo" : ""}`} style={{ left: `${ultimo.x}%`, bottom: `${ultimo.y}%` }}>
-                {derecho.rotuloFinal}
-              </span>
-            ) : null}
           </>
         ) : null}
       </div>
 
       {derecho && derecha ? (
         <div className="mon-trazado-eje is-derecho" aria-hidden="true">
-          {/* La meta se rotula en su propio eje; la marca que caería encima se omite. */}
+          {/* Una sola lectura del acumulado: su valor final, en una pastilla
+            * anclada al eje a su altura. Las marcas que caerían debajo se
+            * omiten para que nada se pise. */}
           {derecha.marcas
-            .filter((marca) => !derecho.referencia || Math.abs(marca - derecho.referencia.valor) / derecha.tope > 0.06)
+            .filter((marca) => !ultimo || !derecho.rotuloFinal || Math.abs((marca / derecha.tope) * 100 - ultimo.y) > 8)
             .map((marca) => (
               <span key={marca} className="mon-trazado-marca" style={{ bottom: `${(marca / derecha.tope) * 100}%` }}>{n(marca)}</span>
             ))}
-          {derecho.referencia ? (
-            <span className="mon-trazado-marca is-referencia" style={{ bottom: `${(derecho.referencia.valor / derecha.tope) * 100}%` }}>
-              {derecho.referencia.rotulo}
-            </span>
+          {ultimo && derecho.rotuloFinal ? (
+            <span className="mon-trazado-pastilla" style={{ bottom: `${ultimo.y}%` }}>{derecho.rotuloFinal}</span>
           ) : null}
           <span className="mon-trazado-titulo">{derecho.titulo}</span>
         </div>

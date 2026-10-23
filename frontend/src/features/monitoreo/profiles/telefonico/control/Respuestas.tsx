@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CSSProperties } from "react";
 import { Search } from "lucide-react";
 import {
@@ -106,7 +107,7 @@ export function Respuestas({
               </li>
             ))}
           </ul>
-          <p className="mon-ctl-nota">Se edita en Llave y filtros, en Insumos.</p>
+          <NotaDelModo tono="neutro">Se edita en Llave y filtros, en Insumos.</NotaDelModo>
         </section>
       </div>
 
@@ -171,7 +172,7 @@ export function Respuestas({
               ))}
             </tbody>
           </table>
-          {!visibles.length ? <p className="mon-ctl-nota">Ninguna efectiva cumple el filtro.</p> : null}
+          {!visibles.length ? <NotaDelModo tono="neutro" className="mon-respuestas-vacio">Ninguna efectiva cumple el filtro.</NotaDelModo> : null}
         </div>
         <footer className="mon-equipo-pie">
           {n(visibles.length)} de {n(modelo.envios.length)} efectivas. Marcar no excluye: decide el supervisor.
