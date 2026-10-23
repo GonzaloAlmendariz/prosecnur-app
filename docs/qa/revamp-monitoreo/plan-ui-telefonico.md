@@ -257,3 +257,8 @@ el color de cada familia (paridad) y la nota «Sin regla de agotado». Las tarje
 esta pestaña, pasan a Fuentes.
 
 - **No va**: los interruptores Intento, Contacto y Cierra, y encender «Status por reglas» desde la app: no existen hoy.
+
+**Avisos usa el alto.** Debajo de «Por dónde se corrige» va «Casos por revisar»: una tabla con todos los casos que nombran
+los avisos (CodPulso, aviso, responsable y dónde se corrige). Crece hasta el pie y desplaza dentro con barra visible. Con
+muchos avisos, como en PDM, queda en su mínimo de 280 px y la columna desplaza. La ficha llega al pie del área: la lista
+de afectados crece y «Qué hacer» queda pegado al pie del panel.

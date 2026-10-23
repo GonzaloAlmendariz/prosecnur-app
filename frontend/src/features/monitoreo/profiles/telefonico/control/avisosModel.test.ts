@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { construirAvisos, destinoDeAviso, porDestino } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -97,6 +97,19 @@ describe("Control › Avisos del telefónico", () => {
     const equipo = destinos.find((destino) => destino.etiqueta === "Equipo, en Control");
     expect(equipo?.responsables).toBe(2);
     expect(equipo?.casos).toBe(0);
+  });
+
+  it("junta en una tabla los casos que nombran todos los avisos, con su causa y destino", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "x", { Responsable: "Lucía", CodPulso: "MVH0003" }),
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "x", { Responsable: "Marco", CodPulso: "MVV0011" }),
+      fila("Alta", "cruce_llave_bajo", "Solo 2 de 430 respuestas cruzan con el barrido."),
+    ]));
+    const casos = casosPorRevisar(avisos);
+    expect(casos.map((caso) => caso.codigo)).toEqual(["MVH0003", "MVV0011"]);
+    const conCasos = avisos.find((aviso) => aviso.afectados.length);
+    expect(casos[0].aviso).toBe(conCasos?.titulo);
+    expect(casos[0].destino).toBe(conCasos?.destino.etiqueta);
   });
 
   it("con responsables empatados no dice «el más marcado»", () => {

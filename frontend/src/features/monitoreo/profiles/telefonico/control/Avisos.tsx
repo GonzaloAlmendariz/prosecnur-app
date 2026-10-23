@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
 import "./controlTelefonico.css";
 
 const NIVEL: Record<NivelDeAviso, string> = { alta: "Alta", media: "Media", baja: "Baja" };
@@ -25,6 +25,7 @@ export function Avisos({
 }) {
   const modelo = useMemo(() => construirAvisos(reports), [reports]);
   const destinos = useMemo(() => porDestino(modelo.avisos), [modelo.avisos]);
+  const porRevisar = useMemo(() => casosPorRevisar(modelo.avisos), [modelo.avisos]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const elegido: Aviso | null = modelo.avisos.find((aviso) => aviso.id === foco) ?? modelo.avisos[0] ?? null;
 
@@ -126,6 +127,42 @@ export function Avisos({
           </ul>
         </section>
       ) : null}
+      {/* Crece hasta el pie: con pocos avisos usa el alto con los casos; con
+        * muchos queda más bajo y desplaza dentro. */}
+      <section className="mon-ctl-panel mon-avisos-por-revisar" aria-label="Casos por revisar" data-qa-geometry-capacity="owned">
+        <header className="mon-avisos-por-revisar-cabecera">
+          <span className="mon-ctl-antetitulo">Casos por revisar</span>
+          <span>{porRevisar.length ? `${n(porRevisar.length)} ${porRevisar.length === 1 ? "caso nombrado" : "casos nombrados"} por los avisos` : ""}</span>
+        </header>
+        {porRevisar.length ? (
+          <div className="mon-avisos-por-revisar-marco">
+            <table className="mon-ctl-tabla mon-avisos-por-revisar-tabla">
+              <thead>
+                <tr>
+                  <th scope="col">CodPulso</th>
+                  <th scope="col">Aviso</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Se corrige en</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porRevisar.map((caso, i) => (
+                  <tr key={`${caso.avisoId}-${caso.codigo}-${i}`} className={`is-${caso.nivel}`}>
+                    <th scope="row">{caso.codigo}</th>
+                    <td>
+                      <button type="button" className="mon-avisos-enlace" onClick={() => escribirFoco(caso.avisoId)}>{caso.aviso}</button>
+                    </td>
+                    <td>{caso.responsable || "Sin asignar"}</td>
+                    <td>{caso.destino}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mon-avisos-sin-casos">Los avisos de este corte no nombran casos: se revisan en su destino.</p>
+        )}
+      </section>
       </div>
 
       <aside className="mon-ctl-panel mon-avisos-ficha" aria-label="Aviso elegido" data-qa-geometry-group="telefonico-avisos-ficha" data-qa-geometry-contract="intrinsic">
