@@ -24,7 +24,7 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
 | L0 | **Fase 0 — benchmark**: cómo resuelven estilo por bloque, secciones, imágenes, «cambiar por», guardado y edición en lienzo Mailchimp (nuevo editor), Beefree, Stripo y Unlayer; qué copiamos y qué no | `docs/qa/benchmark-editores-correo-2026-10.md` | ☑ ed7d0507a — tres niveles (sección ▸ columna ▸ bloque), presets en vez de padding numérico, «cambiar por» por ranuras, guardado como copia, reglas de imagen (proporción fija, @2x, alt, esquinas horneadas, sin texto sobre foto salvo Fecha límite) |
-| L1 | **Fase 0 — diseño aprobado**: lienzo de maquetas del editor nuevo (biblioteca de secciones, panel de estilo, barra flotante, cada sección con y sin imagen, móvil) para que Gonzalo lo apruebe antes de tocar código | artifact de diseño + `/revamp-visual` + `govern-visual-harmony` | ◐ publicado: [maquetas L1](https://claude.ai/artifact/TMbUJg6XhTxoRhJgixpdVn) — editor con sección seleccionada, biblioteca, panel Estilo, barra flotante, «Cambiar por», «Mis secciones», correo completo PC/celular, tres paletas + modo oscuro, las 9 secciones con y sin imagen y en celular, panel de recorte. Falta: la aprobación de Gonzalo |
+| L1 | **Fase 0 — diseño**: lienzo de maquetas del editor nuevo | [maquetas L1](https://claude.ai/artifact/TMbUJg6XhTxoRhJgixpdVn) (v39) | ☑ diseño cerrado tras 14 pasadas de mejora; Gonzalo (2026-10-23): «dejamos esto pendiente a implementar». Contiene: editor con sección seleccionada y barra «Ver como», biblioteca (Invitar, Confianza, Abrir y cerrar, Pieza completa), panel Estilo, barra flotante, «Cambiar por», «Mis secciones», decisión A/B de dónde viven, «Nuevo correo» (Invitación, Recordatorio, Último aviso, Agradecimiento, En blanco, Desde Mis secciones), correo completo PC/celular, paletas + «Tu color» en vivo + modo oscuro, así en Outlook, estados de imagen, recorte, y 11 secciones con y sin imagen y en celular. Contrato de espaciado medido: vertical 24/32/48, lateral 40 (24 en celular) |
 | L2 | Modelo de estilo por bloque (fondo, borde, esquinas, espaciado, color de texto) en plantilla, render R y validación | `api/R/collection_mail_styles.R`, `collection_mail_blocks.R`, `materialMail.ts` | ☐ |
 | L3 | Paleta del correo: colores del tema + sacados del logo y del banner | Identidad, render | ☐ |
 | L4 | Panel «Estilo» en el inspector para todo bloque | `PanelDeBloque.tsx` + componente nuevo | ☐ |
@@ -42,10 +42,12 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 ## Espera al usuario
 | Qué | Por qué no puedo yo |
 |---|---|
-| Aprobar el diseño de L1 antes de construir | es una decisión de producto y gusto |
-| Decidir dónde viven «Mis secciones» (por equipo, por estudio) | cambia el contrato del .pulso |
+| Arrancar la implementación (L2 en adelante) cuando lo decida | la dejó pendiente el 2026-10-23 |
+| Decidir dónde viven «Mis secciones»: A por equipo (fuera del .pulso) o B por estudio (dentro; recomendada). Tablero «Decisión» en el artifact | cambia el contrato del .pulso |
 
 ## Trampas
+- Gonzalo pidió quitar la vista «imágenes bloqueadas» de las maquetas («no veo necesario…»): el texto alternativo se sigue exigiendo en el render, pero no se maqueta esa vista.
+- Un `.mini` escalado con `transform` dentro de un flex se estira al alto del contenedor (`align-items: stretch`) y el fondo se corta: `align-items: flex-start`.
 - El benchmark afirmaba que el botón ya usaba VML: no es así (celda con color + `mso-padding-alt`). Se corrigió al verificarlo en el código; una afirmación sobre el render se comprueba con `grep` en `collection_mail_*.R`, no de memoria.
 - Una tabla o afiche hecho imagen se ve perfecto en 600 px y es ilegible en el celular: el texto escala con la imagen. Se mide el tamaño de letra resultante, no la imagen (L1).
 - Las fotos de las maquetas L1 son de Unsplash (licencia libre, sin atribución obligatoria): sirven para el diseño, no son material de un estudio. Sus recortes @2x están en el artifact.
