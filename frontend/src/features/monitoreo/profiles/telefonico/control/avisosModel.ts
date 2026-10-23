@@ -128,6 +128,15 @@ function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desg
     .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0) || a.etiqueta.localeCompare(b.etiqueta, "es"));
 }
 
+/** Responsables empatados en la cifra más alta: cuántos y en qué cifra, sin repetir el total. */
+export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valor: number | null }>) {
+  const tope = personas[0]?.valor;
+  const empatados = personas.filter((persona) => persona.valor === tope).length;
+  const cifra = tope == null ? "" : ` (${tope.toLocaleString("es-PE")})`;
+  if (empatados === personas.length) return `Todos con la misma cifra${cifra}.`;
+  return `${empatados.toLocaleString("es-PE")} empatan en la cifra más alta${cifra}.`;
+}
+
 export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
@@ -172,9 +181,11 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     avisos.push({
       id: slug(primera.type) || slug(primera.title) || primera.id,
       nivel,
-      titulo: varias ? `${primera.title}: ${personas.length.toLocaleString("es-PE")} responsables` : primera.title,
+      // El título es la causa; la cifra (columna «Cuántos» y ficha) ya dice
+      // cuántos responsables. Antes «19 responsables» salía tres veces.
+      titulo: primera.title,
       detalle: varias
-        ? empate ? `${personas.length.toLocaleString("es-PE")} responsables con el mismo aviso.` : `El más marcado, ${mayor.owner}: ${mayor.detail}`
+        ? empate ? detalleDeEmpate(personas) : `El más marcado, ${mayor.owner}: ${mayor.detail}`
         : primera.detail,
       casos: varias
         ? personas.length
