@@ -43,7 +43,11 @@ export type Aviso = {
   fuente: string;
   /** Una línea por persona o lugar cuando el aviso agrupa varios. */
   desglose: Array<{ etiqueta: string; valor: number | null }>;
+  /** Los casos que toca, cuando el corte los nombra. */
+  afectados: CasoAfectado[];
 };
+
+export type CasoAfectado = { codigo: string; responsable: string; fecha: string; nota: string };
 
 export type Avisos = {
   avisos: Aviso[];
@@ -115,6 +119,14 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     const llave = normal(alerta.type) || normal(alerta.title);
     porCausa.set(llave, [...(porCausa.get(llave) ?? []), alerta]);
   });
+  const filasPorTipo = new Map<string, Fila[]>();
+  filas.forEach((fila) => {
+    const tipo = normal(fila["Tipo alerta"] ?? fila.tipo);
+    filasPorTipo.set(tipo, [...(filasPorTipo.get(tipo) ?? []), fila]);
+  });
+  const afectadosDe = (tipo: string): CasoAfectado[] => (filasPorTipo.get(normal(tipo)) ?? [])
+    .filter((fila) => texto(fila.CodPulso))
+    .map((fila) => ({ codigo: texto(fila.CodPulso), responsable: texto(fila.Responsable), fecha: "", nota: texto(fila.Detalle) }));
   porCausa.forEach((grupo) => {
     const primera = grupo[0];
     const porPersona = grupo.length > 1 && grupo.every((alerta) => alerta.owner);
@@ -122,7 +134,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     const orden: Record<NivelDeAviso, number> = { alta: 0, media: 1, baja: 2 };
     const nivel = grupo.map((alerta) => nivelDe(alerta.tone)).sort((a, b) => orden[a] - orden[b])[0];
     avisos.push({
-      id: slug(`${primera.type}-${primera.title}`) || primera.id,
+      id: slug(primera.type) || slug(primera.title) || primera.id,
       nivel,
       titulo: porPersona ? `${primera.title}: ${grupo.length.toLocaleString("es-PE")} responsables` : primera.title,
       detalle: porPersona ? `El más marcado, ${mayor.owner}: ${mayor.detail}` : primera.detail,
@@ -137,6 +149,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
       desglose: grupo.length > 1
         ? [...grupo].sort((a, b) => (b.count ?? 0) - (a.count ?? 0)).map((alerta) => ({ etiqueta: alerta.owner || alerta.where, valor: alerta.count }))
         : [],
+      afectados: porPersona ? [] : afectadosDe(primera.type),
     });
   });
 
@@ -164,6 +177,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
       donde: "",
       fuente: "",
       desglose: grupo.map((item) => ({ etiqueta: texto(item.Detalle ?? item["Detalle del tipo de alerta"]), valor: null })),
+      afectados: [],
     });
   });
 
@@ -229,6 +243,9 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       donde: "",
       fuente: "Duración de los envíos de Kobo",
       desglose: [],
+      afectados: [...largos].sort((a, b) => (b.segundos ?? 0) - (a.segundos ?? 0)).map((envio) => ({
+        codigo: envio.codigo, responsable: envio.responsable, fecha: envio.fecha ?? "", nota: duracionLegible(envio.segundos),
+      })),
     });
   }
   const repetidos = [...new Set(respuestas.envios.filter((envio) => envio.marcas.includes("repetida")).map((envio) => envio.codigo))];
@@ -245,6 +262,9 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       donde: "",
       fuente: "Duración de los envíos de Kobo",
       desglose: [],
+      afectados: respuestas.envios.filter((envio) => envio.marcas.includes("repetida")).map((envio) => ({
+        codigo: envio.codigo, responsable: envio.responsable, fecha: envio.fecha ?? "", nota: duracionLegible(envio.segundos),
+      })),
     });
   }
   const sinRegistrar = filasDeBloque(reports, ["comparacion_codpulso", "campo_vs_plataforma_codpulso"])
@@ -262,9 +282,12 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       donde: "",
       fuente: "Cruce de CodPulso entre Kobo y la hoja",
       desglose: [],
+      afectados: sinRegistrar.map((fila) => ({
+        codigo: texto(fila.CodPulso), responsable: texto(fila.Responsable), fecha: texto(fila["Fecha Kobo"]), nota: texto(fila.Sede ?? fila.Actor),
+      })),
     });
   }
-  const { otraFecha } = llamadosPorFecha(filasDeBloque(reports, ["estatus_dia"]));
+  const { otraFecha, otras } = llamadosPorFecha(filasDeBloque(reports, ["estatus_dia"]));
   if (otraFecha) {
     avisos.push({
       id: "fecha-de-la-hoja-irregular",
@@ -277,7 +300,8 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       destino: { etiqueta: "Hoja del equipo", direccion: null },
       donde: "",
       fuente: "Status de la hoja por día",
-      desglose: [],
+      desglose: otras.map((item) => ({ etiqueta: item.etiqueta, valor: item.casos })),
+      afectados: [],
     });
   }
   return avisos;

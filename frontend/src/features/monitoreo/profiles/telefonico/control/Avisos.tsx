@@ -53,7 +53,7 @@ export function Avisos({
               {modelo.avisos.map((aviso) => {
                 const activo = aviso.id === elegido?.id;
                 return (
-                  <tr key={aviso.id} className={`is-${aviso.nivel}${activo ? " is-activo" : ""}`} aria-current={activo ? "true" : undefined}>
+                  <tr key={aviso.id} className={`is-${aviso.nivel}${activo ? " is-activo" : ""}`} aria-current={activo ? "true" : undefined} title={aviso.codigo}>
                     <th scope="row">
                       <button type="button" className="mon-avisos-causa" onClick={() => escribirFoco(aviso.id)}>
                         <i aria-hidden="true" />
@@ -89,26 +89,36 @@ export function Avisos({
         </div>
       </section>
 
-      <aside className="mon-ctl-panel mon-avisos-ficha" aria-label="Aviso elegido">
+      <aside className="mon-ctl-panel mon-avisos-ficha" aria-label="Aviso elegido" data-qa-geometry-group="telefonico-avisos-ficha" data-qa-geometry-contract="intrinsic">
         {elegido ? (
           <>
-            <span className="mon-avisos-ficha-cabecera">
+            <span className="mon-avisos-ficha-cabecera" data-aviso={elegido.codigo}>
               <em className={`mon-avisos-nivel is-${elegido.nivel}`}>{NIVEL[elegido.nivel]}</em>
-              <code>{elegido.codigo}</code>
+              <span>{elegido.destino.etiqueta}</span>
             </span>
             <h3>{elegido.titulo}</h3>
             <strong className="mon-avisos-ficha-cifra is-num">
               {n(elegido.casos)}
               <span> {elegido.unidad === "responsables" ? (elegido.casos === 1 ? "responsable" : "responsables") : elegido.casos === 1 ? "caso" : "casos"}</span>
             </strong>
-            <section className="mon-equipo-bloque">
-              <span className="mon-ctl-antetitulo">Detalle</span>
-              <p>{elegido.detalle || "Sin detalle en el corte."}</p>
-            </section>
-            {elegido.desglose.length ? (
-              <section className="mon-equipo-bloque mon-avisos-desglose">
-                <span className="mon-ctl-antetitulo">Desglose</span>
-                <ul>
+            <p>{elegido.detalle || "Sin detalle en el corte."}</p>
+            <section className="mon-avisos-afectados" aria-label={elegido.afectados.length ? "Casos afectados" : "Desglose"}>
+              <span className="mon-ctl-antetitulo">
+                {elegido.afectados.length ? `Casos afectados (${n(elegido.afectados.length)})` : "Desglose"}
+              </span>
+              {elegido.afectados.length ? (
+                <ul className="mon-avisos-lista-casos">
+                  {elegido.afectados.map((caso, i) => (
+                    <li key={`${caso.codigo}-${i}`}>
+                      <b>{caso.codigo}</b>
+                      <span>{caso.responsable || "Sin asignar"}</span>
+                      <span className="is-num">{caso.fecha ? caso.fecha.replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, "$3/$2") : ""}</span>
+                      <small>{caso.nota}</small>
+                    </li>
+                  ))}
+                </ul>
+              ) : elegido.desglose.length ? (
+                <ul className="mon-avisos-lista-casos is-desglose">
                   {elegido.desglose.map((linea, i) => (
                     <li key={`${linea.etiqueta}-${i}`}>
                       <span>{linea.etiqueta}</span>
@@ -116,13 +126,10 @@ export function Avisos({
                     </li>
                   ))}
                 </ul>
-              </section>
-            ) : null}
-            <dl className="mon-equipo-datos">
-              {elegido.donde ? <div><dt>Dónde</dt><dd>{elegido.donde}</dd></div> : null}
-              {elegido.fuente ? <div><dt>Fuente</dt><dd>{elegido.fuente}</dd></div> : null}
-              <div><dt>Se corrige en</dt><dd>{elegido.destino.etiqueta}</dd></div>
-            </dl>
+              ) : (
+                <p className="mon-avisos-sin-casos">El corte no nombra los casos de este aviso: se revisan en {elegido.destino.etiqueta}.</p>
+              )}
+            </section>
             <div className="mon-avisos-ficha-pie">
               {elegido.destino.direccion ? (
                 <button

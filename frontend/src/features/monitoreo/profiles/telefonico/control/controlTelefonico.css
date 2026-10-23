@@ -1120,14 +1120,33 @@
   padding-block: var(--pulso-space-4);
 }
 
-.mon-avisos-tabla tbody tr.is-activo {
-  background: var(--pulso-surface-3);
+/* La lista llena su panel: las filas reparten el alto. */
+.mon-avisos-tabla {
+  height: 100%;
+}
+
+/* La fila elegida se marca con el fondo y un borde azul marino; el nivel va
+ * en un punto junto al título, así los dos marcadores no compiten. */
+.mon-avisos-tabla tbody tr.is-activo th,
+.mon-avisos-tabla tbody tr.is-activo td {
+  background: var(--pulso-info-bg);
+}
+
+.mon-avisos-tabla tbody tr.is-activo th {
   box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+}
+
+.mon-avisos .mon-avisos-causa {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 0;
 }
 
 .mon-avisos-causa {
   display: grid;
-  grid-template-columns: 5px minmax(0, 1fr);
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: start;
   white-space: normal;
   overflow-wrap: anywhere;
   gap: var(--pulso-space-3);
@@ -1155,8 +1174,10 @@
 }
 
 .mon-avisos-causa > i {
-  align-self: stretch;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 50%;
   background: var(--nivel, var(--pulso-border-strong));
 }
 
@@ -1230,9 +1251,68 @@
   gap: var(--pulso-space-2);
 }
 
-.mon-avisos-ficha-cabecera code {
+.mon-avisos-ficha-cabecera > span {
   color: var(--pulso-text-soft);
   font-size: 12px;
+}
+
+.mon-avisos-afectados {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+}
+
+.mon-avisos-lista-casos {
+  flex: 1 1 auto;
+  min-height: 120px;
+  margin: 0;
+  padding: 0 0 var(--pulso-space-6);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  list-style: none;
+  mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+}
+
+.mon-avisos-lista-casos::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-avisos-lista-casos::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-avisos-lista-casos li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 44px;
+  gap: 2px var(--pulso-space-2);
+  padding: 6px var(--pulso-space-2) 6px 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-avisos-lista-casos li small {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+.mon-avisos-lista-casos li small:empty {
+  display: none;
+}
+
+.mon-avisos-lista-casos.is-desglose li {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.mon-avisos-sin-casos {
+  flex: 1 1 auto;
+  padding: var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 12px;
 }
 
 .mon-avisos-ficha h3 {
@@ -1276,7 +1356,6 @@
 }
 
 .mon-avisos-ficha-pie {
-  margin-top: auto;
   padding-top: var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
 }
