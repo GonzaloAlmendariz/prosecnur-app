@@ -18,6 +18,7 @@ import {
   tituloWordPorDefecto,
   type TituloDeFigura,
 } from "./enElWordModel";
+import { leerTablaWord, aplicaTablaWord, NOTA_TABLA_WORD, patchTablaWord } from "./tablaWord";
 import { leerTwoBox } from "./twoBox";
 import { leerBarraExtraWord, NOTA_WORD_IGUAL, NOTA_WORD_PROPIA, patchBarraExtraWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
@@ -46,6 +47,8 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   const modoEfectivo = leerModoLamina(args) || leerModoInforme(wPresets as Record<string, Record<string, unknown>>);
   const barraWord = leerBarraExtraWord(valor.graficador, args, presets);
   const estadoPpt = leerTwoBox(valor.graficador, args, presets);
+  const conTablaWord = aplicaTablaWord(valor.graficador, args);
+  const tablaWord = conTablaWord && leerTablaWord(args);
   const porDefecto = tituloWordPorDefecto(variable ? leerEtiquetaCorta(args, variable) : "", "");
 
   return (
@@ -105,6 +108,19 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           heredada={barraWord.propia ? NOTA_WORD_PROPIA : undefined}
           restablecer={barraWord.propia ? { rotulo: "Usar la del PPT", onClick: () => set(patchBarraExtraWord(valor.graficador, args, presets, barraWord.ppt)) } : undefined}
         />
+      )}
+      {conTablaWord && (
+        <div className="pulso-f6-dato is-apilado" data-qa="tabla-word">
+          <div className="pulso-f6-dato">
+            <span className="pulso-f6-dato-rotulo" id={`${id}-tabla`}>Tabla de datos en el Word</span>
+            <Switch
+              checked={tablaWord}
+              ariaLabel="Tabla de datos en el Word"
+              onToggle={() => set(patchTablaWord(args, !tablaWord))}
+            />
+          </div>
+          <span className="pulso-f6-dato-ayuda">{NOTA_TABLA_WORD}.</span>
+        </div>
       )}
       {conRotulo && (
         <div className="pulso-f6-dato">

@@ -114,6 +114,7 @@ export const ROTULOS_FIJADOS_WORD: Readonly<Record<string, string>> = {
   ancho_max_eje_y: "Ancho máximo del rótulo de fila",
   barra_extra: "Barra extra",
   word_barra_extra: "Barra extra en el Word",
+  word_tabla: "Tabla de datos en el Word",
   size_barra_extra: "Tamaño de la cifra de la barra extra",
   size_titulo_extra: "Tamaño del título de la barra extra",
   color_barra_extra: "Color de la barra extra",
