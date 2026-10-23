@@ -1,0 +1,49 @@
+# GOAL · El editor de correos es un editor profesional (2026-10-23)
+
+Calidad que se busca: **cualquiera del equipo arma, para cualquier estudio, un correo distinto, atractivo y profesional sin pedir ayuda, y el correo se ve igual de bien en Gmail, Outlook y el celular, enviado por Mailchimp con los datos de cada persona.**
+
+Pedido de Gonzalo (textual, 2026-10-23):
+- «siento que faltan tantas cosas… esta tabla de importante, esta de azul, no la puedes cambiar de otro color, no se puede hacer más cosas con ella, no se puede reemplazar por otra cosa… quizás cuando se menciona un sorteo… poner la imagen de lo que se va a sortear. No es que siempre sea un sorteo… tú lo tienes que volver general… veo muy poca imaginación… hacer un editor en condiciones, pero no te ciñes a lo específico».
+- Al aprobar la propuesta: «Está súper, solo toma en cuenta de que la tabla o lo que sea puede ser una imagen y debe verse súper bien».
+
+Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y siguientes), alineación clásica + tamaños + tono acento (bda51fc33), ajustes con íconos (6328da799), Personas › Variables de cada persona + puntos por fila + sin «Qué hace» (c8a401237), Mailchimp por API (de3d6a560, c1cadaf16).
+
+## Vara
+| # | Afirmación | Cómo se mide |
+|---|---|---|
+| V1 | Todo bloque y sección tiene estilo propio: fondo (paleta del correo + color libre), borde (ninguno, fino, acento), esquinas, espaciado y color de texto | Inspector de cada tipo de bloque: los cinco controles presentes; el render los traduce a HTML inline (test por control) |
+| V2 | Hay un catálogo de secciones prediseñadas que sirve para cualquier estudio: destacado con imagen, pasos, fecha límite, imagen + texto, tres beneficios, cita, preguntas frecuentes, contacto con foto, como mínimo | Biblioteca del editor: insertar cada una en un correo real de estudio y revisar la captura |
+| V3 | **Toda sección puede llevar imagen o ser una imagen, y se ve muy bien**: recorte, proporción, esquinas y texto alternativo cuidados; nunca una imagen estirada, pixelada o con franjas | Captura de cada sección con imagen en 600 px y en celular, en Gmail y Outlook (Litmus o pruebas reales) |
+| V4 | Una sección se cambia por otra sin perder su texto ni sus campos | «Cambiar por» en cada sección: el contenido pasa intacto (test del modelo) |
+| V5 | Las secciones se guardan y se reutilizan entre campañas y estudios | «Mis secciones»: guardar en un estudio, usar en otro |
+| V6 | Se edita sobre el lienzo: arrastrar, duplicar, mover y una barra flotante por sección; el panel derecho queda para el detalle | Recorrido de un correo completo sin usar el panel izquierdo de bloques |
+| V7 | El HTML sigue siendo seguro para correo: tablas, estilo inline, Outlook, modo oscuro, campos de Mailchimp por persona | Gate `collection-mail` + paridad + prueba real enviada a Gmail y Outlook |
+| V8 | Lo nuevo no se explica con muros de texto: cada control se entiende por su ícono, su rótulo corto y la vista previa | Revisión del inspector: ningún bloque con ayuda de más de una línea |
+
+## Cola
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| L0 | **Fase 0 — benchmark**: cómo resuelven estilo por bloque, secciones, imágenes, «cambiar por», guardado y edición en lienzo Mailchimp (nuevo editor), Beefree, Stripo y Unlayer; qué copiamos y qué no | `docs/qa/benchmark-editores-correo-2026-10.md` | ☐ |
+| L1 | **Fase 0 — diseño aprobado**: lienzo de maquetas del editor nuevo (biblioteca de secciones, panel de estilo, barra flotante, cada sección con y sin imagen, móvil) para que Gonzalo lo apruebe antes de tocar código | artifact de diseño + `/revamp-visual` + `govern-visual-harmony` | ☐ |
+| L2 | Modelo de estilo por bloque (fondo, borde, esquinas, espaciado, color de texto) en plantilla, render R y validación | `api/R/collection_mail_styles.R`, `collection_mail_blocks.R`, `materialMail.ts` | ☐ |
+| L3 | Paleta del correo: colores del tema + sacados del logo y del banner | Identidad, render | ☐ |
+| L4 | Panel «Estilo» en el inspector para todo bloque | `PanelDeBloque.tsx` + componente nuevo | ☐ |
+| L5 | Sección «Destacado con imagen» (imagen a la izquierda o arriba, título, texto, botón opcional) | render + catálogo | ☐ |
+| L6 | Resto del catálogo (pasos, fecha límite, imagen + texto, beneficios, cita, preguntas, contacto) | render + catálogo | ☐ |
+| L7 | Imagen en cualquier sección: recorte y proporción, esquinas, alt; sección completa como imagen | render + `PanelDeImagen.tsx` | ☐ |
+| L8 | «Cambiar por» conservando contenido | modelo + barra de sección | ☐ |
+| L9 | «Mis secciones» guardadas y reutilizables entre estudios | almacenamiento fuera del .pulso o en él (decidir con ADR) | ☐ |
+| L10 | Edición en lienzo: arrastrar, duplicar, barra flotante | `CapaDeEdicion.tsx` | ☐ |
+| L11 | Prueba real en Gmail, Outlook y celular de un correo con todas las secciones | envío de prueba | ☐ |
+
+## Espera al usuario
+| Qué | Por qué no puedo yo |
+|---|---|
+| Aprobar el diseño de L1 antes de construir | es una decisión de producto y gusto |
+| Decidir dónde viven «Mis secciones» (por equipo, por estudio) | cambia el contrato del .pulso |
+
+## Trampas
+- Resolver el pedido al pie de la letra (un control, una pestaña) en vez de pensar el editor completo: es lo que Gonzalo marcó el 2026-10-23.
+- Lo que se ve bien en el navegador puede romperse en Outlook (imágenes de fondo, esquinas, columnas): todo diseño se valida contra el HTML de correo, no contra CSS de la app.
+- Una imagen sin dimensiones o sin recorte sale estirada o pixelada: toda imagen lleva tamaño fijo y versión @2x.
+- Otras sesiones editan `frontend/src/features/recopiladores/correos/**`: coordinar antes de tocar un archivo y commitear por nombre.
