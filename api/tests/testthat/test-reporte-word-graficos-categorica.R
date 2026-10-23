@@ -13,14 +13,15 @@ test_that("las barras Word leen la espec: residual al final en gris, la mayor en
   e$escala_completa <- TRUE
   b2 <- suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))
   expect_equal(b2$layout$panel_params[[1]]$x.range[2], 112)                     # agrupadas: 0-100 %, con aire para la cifra
-  expect_equal(attr(g, "alto"), .word_alto_figura("barras", 3))
+  expect_gt(attr(g, "alto"), attr(g, "alto_fijo"))                               # N25: alto desde el eje y (grosor común), ya no la fórmula lineal
 })
 
-test_that("la dicotomía escribe las dos cifras grandes y sus rótulos con la base", {
-  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # base 178: el «(n)» del rótulo es el modo «siempre»
+test_that("la dicotomía del Word es la barra apilada (N5): las dos cifras dentro, sin rótulos de público sueltos", {
+  # Antes: dos cifras de 22 pt y «Sí (56)»/«No (122)» encima. Ahora el Word nunca dibuja esa pieza (test-word-dicotomia-siempre-apilada.R).
   e <- preparar_categorica(c("Sí", "No"), c(.31, .69), c("31%", "69%"), n = c(56, 122))
   tx <- .wc_textos(.word_g_sino(e))
-  expect_true(all(c("31%", "69%", "Sí (56)", "No (122)") %in% tx))
+  expect_true(all(c("31%", "69%") %in% tx))
+  expect_false(any(c("Sí (56)", "No (122)") %in% tx))
 })
 
 test_that("el lollipop respeta el orden de la espec (la primera arriba) y rotula cada punto", {

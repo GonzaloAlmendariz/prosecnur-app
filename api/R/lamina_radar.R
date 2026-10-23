@@ -37,6 +37,24 @@
   mid <- (ang[1] + ang[2]) / 2; half <- (ang[1] - ang[2]) / 2
   niv <- data.frame(v = espec$anillos)
   niv$x <- rr(niv$v) * cos(mid) * cos(half) + 0.02; niv$y <- rr(niv$v) * sin(mid) * cos(half); niv$t <- paste0(niv$v, "%")
+  # Con 3 a 5 ejes el lado entre los dos primeros es corto y las series (90-96 %) corren pegadas a él: la cifra hacia
+  # afuera cruzaba la línea y el punto (lámina 33 de Arte). Ahí la cifra va hacia adentro del lado y sólo las que
+  # quedan por debajo de la serie más baja; las de arriba se omiten antes que pisarla.
+  h_niv <- 0
+  if (K <= 5L) {
+    h_niv <- 1
+    d_lado <- vapply(espec$grupos, function(a) {
+      v <- pmax(lo, 100 * espec$valores[, a])
+      p <- (rr(v[1]) * c(cos(ang[1]), sin(ang[1])) + rr(v[2]) * c(cos(ang[2]), sin(ang[2]))) / 2
+      sum(p * c(cos(mid), sin(mid)))
+    }, numeric(1))
+    rho <- rr(niv$v) * cos(half)
+    niv <- niv[rho + 0.07 < min(d_lado), , drop = FALSE]
+    niv$x <- niv$x - 0.04
+    # En la diagonal de un rombo los anillos quedan a 0.1 u y el texto de 10 pt mide casi lo mismo: se leían montados.
+    # Una de cada dos, empezando por la más externa que cabe.
+    if (nrow(niv) >= 3L && min(diff(niv$y)) < 0.12) niv <- niv[rev(seq(nrow(niv), 1L, by = -2L)), , drop = FALSE]
+  }
   ggplot2::ggplot() +
     ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = .std_color("anillo_radar"), linewidth = 0.4) +
     (if (!is.null(trazo) && nrow(trazo)) ggplot2::geom_path(data = trazo, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a),
@@ -44,7 +62,7 @@
     ggplot2::geom_point(data = serie, ggplot2::aes(.data$x, .data$y, colour = .data$a), size = 2.4) +
     ggplot2::geom_text(data = labr, ggplot2::aes(.data$x, .data$y, label = .data$t, hjust = .data$h), size = 12 / ggplot2::.pt,
                        colour = .std_color("azul"), family = fuente, fontface = "bold") +
-    ggplot2::geom_label(data = niv, ggplot2::aes(.data$x, .data$y, label = .data$t), hjust = 0, vjust = 0.5, size = 10 / ggplot2::.pt,
+    ggplot2::geom_label(data = niv, ggplot2::aes(.data$x, .data$y, label = .data$t), hjust = h_niv, vjust = 0.5, size = 10 / ggplot2::.pt,
                         colour = .std_color("texto_suave"), family = fuente, fill = .std_color("fondo"), label.size = 0,
                         label.padding = grid::unit(0.06, "lines")) +
     ggplot2::scale_colour_manual(values = espec$colores) +

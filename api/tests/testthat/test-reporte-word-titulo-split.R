@@ -31,9 +31,11 @@ source("setup-load-all.R")
     estudiantes = .wt_data_si_no(160, 12)
   )
   instrumento <- list(docentes = .wt_inst_si_no(), estudiantes = .wt_inst_si_no())
+  # El patrón «<lámina> — <tema>» es el corte de antes: el informe lo pide con `automatico` explícito. El default (criterio B,
+  # 2026-10-22) titula cada figura con el enunciado de su premisa, sin antepuesto de lámina.
   presets <- .apply_word_chart_presets(
     do.call(p_presets, .PRESETS_DEFAULT_PULSO),
-    w_presets()
+    w_presets(chart_options = list(multiapiladas_word = "automatico"))
   )
   plan <- list(
     diapo_001 = p_slide_1_grafico(

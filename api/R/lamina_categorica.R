@@ -203,7 +203,7 @@
 #' partida contradiría a sus cifras). Escala: una sola fila y exactamente dos categorías dibujadas.
 #' @keywords internal
 .lam_es_dicotomia <- function(espec) {
-  if (is.null(espec)) return(FALSE)
+  if (is.null(espec) || !isTRUE(.lam_dicotomia_es_sino(espec))) return(FALSE)   # N20: solo Sí/No o declarada
   if (identical(espec$tipo, "categorica")) {
     return(length(espec$largos) == 2L && abs(sum(espec$valores) - 1) < 0.02)
   }
@@ -249,11 +249,24 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   y <- yt + 1.1
-  if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
-  if (isTRUE(vertical)) {
+  est <- identical(.lam_estilo_dicotomia(espec), "barra_estandar")
+  if (est) {
+    # Una sola pregunta Sí/No: no se estira a todo el ancho; la barra mide lo que la de una lámina de 3 o más (`.lam_bloque_escala`) y el
+    # bloque (enunciado, barra, leyenda) se centra en el área de datos, con la leyenda a toda la lámina (v3, defecto 3).
+    W <- g_("ancho"); wb <- min(ancho, W - g_("margen_der") - g_("likert")$x_barra - 0.3); xb <- (W - wb) / 2
+    hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_lineas(pregunta, wb, 13, TRUE) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
+    bloque <- hp + (if (hp > 0) 0.25 else 0) + 0.5 + 0.12 + 0.3
+    yp <- yt + max(0, (g_("contenido_y1") - yt - bloque) / 2)
+    if (hp > 0) .lam_panel_titulo(lz, xb, yp, wb, pregunta, publico)
+    y <- yp + hp + (if (hp > 0) 0.25 else 0)
+    .lam_dicotomia_estandar(lz, xb, y, wb, d$rotulos, d$cifras, d$largos, d$n, g = 0.5, size = .std_pt("cifra"), cols = d$colores,
+                            x_ley = ml, w_ley = ancho, centro_ley = W / 2)
+  } else if (isTRUE(vertical)) {
+    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
     .lam_dicotomia_vertical(lz, ml + 0.4, y, g_("contenido_y1") - y - 0.15, d$rotulos, d$cifras, d$largos, d$n,
                             size = 40, cols = d$colores)
   } else {
+    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
     .lam_dicotomia(lz, ml, y, ancho, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7, cols = d$colores, size_rot = 14)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia")

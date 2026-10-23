@@ -75,7 +75,8 @@
 #' @param render_meta Lista de entradas de `reporte_ppt_plan(solo_lista = TRUE, build_render_meta = TRUE)`.
 #' @param path_docx Archivo de salida.
 #' @param fuente Fuente que cierra cada base («Fuente: PULSO PUCP 2026.»).
-#' @param opciones Lista: `portada` («A», «B», «C»), `apertura` («B», «A»), `como_leer` (`NULL` = si hay escalas),
+#' @param opciones Lista: `portada` («A», «B», «C»), `apertura` («B», «A»), `como_leer` (`NULL`/«auto» = por conteo: cada recurso en >= 2 láminas del plan, `.word_como_leer_auto`; `TRUE`/`FALSE`; o un vector de claves de `.WORD_COMO_LEER_SECCIONES` para llevar sólo esas secciones),
+#'   `indices` (`list(contenido = TRUE, graficos = "inicio"|"anexo"|FALSE, tablas = igual)`; default los tres al inicio),
 #'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...),
 #'   `logos` (rutas de los logos propios del cliente por lugar: `portada_izquierda`, `portada_derecha`, `contraportada`;
 #'   sólo las pone el worker desde `estilo_cliente`, nunca el body).
@@ -109,14 +110,25 @@
   meta <- utils::modifyList(list(titulo = titulo_informe, sub = .word_txt1(t1$subtitle), fecha = .word_txt1(t1$date)), op$meta_portada)
   doc <- .word_portada(doc, meta, op$portada)
   doc <- .word_cerrar_capitulo(doc, "", titulo_corto, primera = .word_logos(logos = op$logos %||% list()))
-  doc <- .word_indices(doc, con_tablas = con_tablas)
-  doc <- .word_cerrar_capitulo(doc, "Contenido", titulo_corto)
+  ind <- .word_indices_opciones(op$indices)
+  if (isTRUE(ind$contenido) || identical(ind$graficos, "inicio") || (con_tablas && identical(ind$tablas, "inicio"))) {
+    doc <- .word_indices(doc, con_tablas = con_tablas, indices = ind, donde = "inicio")
+    doc <- .word_cerrar_capitulo(doc, "Contenido", titulo_corto)
+  }
 
   figura <- 1L; tabla <- 1L; cap <- 0L; sec <- 0L; cap_titulo <- NULL
   cerrar <- function(doc) if (is.null(cap_titulo)) doc else .word_cerrar_capitulo(doc, cap_titulo, titulo_corto)
   # Lo que el plan pone antes de su primera sección (objetivo, presentación) va en un capítulo «Introducción»; «Cómo leer
   # este informe» va justo antes de la primera sección de resultados, como en el recetario (diseño metodológico).
-  falta_como_leer <- isTRUE(op$como_leer %||% hay_escalas)
+  # `como_leer`: NULL (si hay escalas), TRUE/FALSE, o un vector de secciones (`.WORD_COMO_LEER_SECCIONES`) que lo enciende
+  # sólo con esas.
+  cl <- op$como_leer
+  # Ausente o «auto»: por conteo en el plan (`.word_como_leer_auto`: recurso en >= 2 láminas); explícito, manda.
+  if (identical(cl, "auto")) cl <- NULL
+  if (is.null(cl) && hay_escalas) cl <- .word_como_leer_auto(render_meta)
+  secciones_como_leer <- if (is.character(cl)) cl else NULL
+  usa_como_leer <- if (is.character(cl)) length(cl) > 0L else isTRUE(cl)
+  falta_como_leer <- usa_como_leer
   abrir_intro <- function(doc) {
     if (!is.null(cap_titulo)) return(doc)
     cap <<- cap + 1L; sec <<- 0L; cap_titulo <<- "Introducción"
@@ -126,7 +138,7 @@
     if (!falta_como_leer) return(doc)
     falta_como_leer <<- FALSE
     doc <- cerrar(doc); cap <<- cap + 1L
-    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura, ponderada = isTRUE(op$ponderacion$ponderada))
+    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura, ponderada = isTRUE(op$ponderacion$ponderada), secciones = secciones_como_leer)
     sig <- attr(doc, "siguientes"); figura <<- sig[["figura"]]; tabla <<- sig[["tabla"]]
     cap_titulo <<- "Cómo leer este informe"
     doc
@@ -195,8 +207,12 @@
     figura <- figura + 1L
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas
-  for (m in .word_avisos_ponderacion(op$ponderacion, render_meta, como_leer = isTRUE(op$como_leer %||% hay_escalas))) avisar(m)   # D-b/D-c
+  for (m in .word_avisos_ponderacion(op$ponderacion, render_meta, como_leer = usa_como_leer)) avisar(m)   # D-b/D-c
   doc <- cerrar(doc)
+  if (identical(ind$graficos, "anexo") || (con_tablas && identical(ind$tablas, "anexo"))) {   # índices en anexo: no suman capítulo
+    doc <- .word_indices(doc, con_tablas = con_tablas, indices = ind, donde = "anexo")
+    doc <- .word_cerrar_capitulo(doc, "Índices", titulo_corto)
+  }
   doc <- .word_contraportada(doc, op$contacto, logo = (op$logos %||% list())$contraportada)
   print(doc, target = path_docx)
   .docx_conformar(path_docx, revista = TRUE)

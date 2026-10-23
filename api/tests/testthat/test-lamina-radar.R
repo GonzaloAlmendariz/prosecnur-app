@@ -95,8 +95,9 @@ test_that("el radar de públicos con tabla avisa a la lámina que lleva tabla, c
                                          choices = data.frame(list_name = "lst", name = as.character(1:4), label = c("Muy mal", "Mal", "Bien", "Muy bien"))))
   partes <- list(docentes = fuente(c("3", "4", "4", "1")), estudiantes = fuente(c("3", "1", "2", "4")))
   data_sources <- lapply(partes, `[[`, "data"); instrument_sources <- lapply(partes, `[[`, "inst")
-  el <- p_radar(modo = "publicos", vars = list(A = list("docentes$p1", "estudiantes$p1"), B = list("docentes$p1", "estudiantes$p1"),
-                                               C = list("docentes$p1", "estudiantes$p1")), corte = "3,4", mostrar_tabla = TRUE, tabla_titulo = "Tema")
+  # Cinco ejes: con menos de 5 criterios el modo publicos dibuja barras (regla de 5 a 8).
+  el <- p_radar(modo = "publicos", vars = stats::setNames(rep(list(list("docentes$p1", "estudiantes$p1")), 5L), LETTERS[1:5]),
+                corte = "3,4", mostrar_tabla = TRUE, tabla_titulo = "Tema")
   g <- suppressWarnings(suppressMessages(.render_radar_publicos(el)))
   e <- attr(g, "pulso_espec")
   expect_identical(e$tipo, "radar"); expect_true(e$con_tabla); expect_identical(e$encabezado, "Tema")
@@ -122,7 +123,7 @@ test_that("el radar de públicos con tabla lleva a la lámina los decimales del 
                                          choices = data.frame(list_name = "lst", name = as.character(1:4), label = c("Muy mal", "Mal", "Bien", "Muy bien"))))
   partes <- list(docentes = fuente(c("3", "4", "4", "1", "3", "3", "2")), estudiantes = fuente(c("3", "1", "2", "4", "4", "4")))
   data_sources <- lapply(partes, `[[`, "data"); instrument_sources <- lapply(partes, `[[`, "inst")
-  ejes <- list(A = list("docentes$p1", "estudiantes$p1"), B = list("docentes$p1", "estudiantes$p1"), C = list("docentes$p1", "estudiantes$p1"))
+  ejes <- stats::setNames(rep(list(list("docentes$p1", "estudiantes$p1")), 5L), LETTERS[1:5])   # 5 criterios: el mínimo del radar
   el <- p_radar_publicos(vars = ejes, corte = "3,4", mostrar_tabla = TRUE, decimales = 1)
   e <- attr(suppressWarnings(suppressMessages(.render_radar_publicos(el))), "pulso_espec")
   expect_match(e$cifras[1, 1], "^[0-9]+\\.[0-9]%$")                            # 71.4 %, no 71 %

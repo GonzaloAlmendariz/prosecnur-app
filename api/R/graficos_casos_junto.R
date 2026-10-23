@@ -67,9 +67,13 @@
 #' o el defecto). Devuelve las opciones anteriores para `on.exit(options(...))`.
 #' @keywords internal
 .casos_junto_fijar <- function(presets) {
+  est <- .estilo_dicotomia_fijar(presets)   # estilo de la dicotómica del informe (lamina_dicotomia_estandar.R), mismo cableado
+  est <- c(est, .grosor_piso_fijar(presets))   # N1: piso de grosor de las barras de escala del informe (estandar_tokens.R)
+  est <- c(est, .evitar_cont_fijar(presets))   # M1: con piso, comprimir el aire en vez de partir en «(cont.)» (estandar_tokens.R)
+  est <- c(est, .ancho_enunciado_fijar(presets))   # N10: ancho extra de la columna del enunciado de escala (estandar_tokens.R)
   declarado <- presets$base$args$casos_junto %||% presets$base$casos_junto
-  if (is.null(declarado)) return(list())
-  options(prosecnur.casos_junto = .casos_junto_normalizar(declarado))
+  if (is.null(declarado)) return(est)
+  c(est, options(prosecnur.casos_junto = .casos_junto_normalizar(declarado)))
 }
 
 #' Decisión de un gráfico con argumento propio: TRUE/FALSE manda; NULL o NA deja que decida el ajuste del informe

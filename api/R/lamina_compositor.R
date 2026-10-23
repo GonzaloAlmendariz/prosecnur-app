@@ -22,7 +22,9 @@
              nombre = "Antetitulo lamina")
   }
   .lam_txt(lz, titulo, ml, yt + 0.06, 10.4, 0.5, .std_pt("titulo"), .std_color("coral"), bold = TRUE, nombre = "Titulo lamina")
-  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")
+  # P8: un título de dos o más líneas empuja el subtítulo lo que miden las líneas de más (lamina_titulo_alto.R).
+  baja <- (max(1L, .lam_lineas_tinta(trimws(as.character(titulo %||% "")[1]), 10.4, .std_pt("titulo"), TRUE)) - 1L) * .std_pt("titulo") * 1.2 / 72
+  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55 + baja, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")
   .lam_agrupar(doc, lz, nombre = "prosecnur:titulo")
 }
 
@@ -51,13 +53,15 @@
   # El documento officer se modifica en sitio: un folio perezoso (`length(doc) + 1L`) se evaluaría después del
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
+  .op_piso <- .grosor_piso_slot(espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
   premisas <- .lam_escala_premisas(espec)
   # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
   en_filas <- .lam_escala_modo_filas(espec)
-  partes <- if (en_filas) .lam_filas_planear(espec, premisas) else .lam_escala_partir(premisas)
+  partes <- if (en_filas) .lam_filas_planear(espec, premisas) else
+    .lam_escala_partir(premisas, aire_min_fn = function(p) .lam_escala_aire_minimo(p, chica = .lam_escala_chica_por_premisa(espec, p))$alto)   # M1 con piso
   .lam_aviso_partes(titulo, list(premisas), length(partes))
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -67,7 +71,7 @@
     if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L,
                                                                                   titulo_lamina = titulo, encabezar_tema = length(premisas) == 1L)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
-    doc <- .lam_pie(doc, base, if (is.null(folio)) NULL else folio + k - 1L)
+    doc <- .lam_pie(doc, if (en_filas) base else .lam_base_de_parte_escala(base, espec, partes, k), if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)
   }
   list(doc = doc, partes = length(partes))
@@ -205,11 +209,17 @@
     return(.lam_multilista_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
                                    por_lamina = por_lamina)$doc)
   }
-  espec <- attr(p, "pulso_espec")
+  espec <- .lam_con_estilo_dicotomia(attr(p, "pulso_espec"), el_plot)   # el slot pide el estilo de la dicotómica
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
+  # El pie automático nombra al público de la variable («estudiantes$p19» → «Base: 242 estudiantes»), no «242 respuestas» junto a una
+  # etiqueta que ya dice «242 estudiantes» (Renzo, informe Arte v3, PPT 40, 42 y 48). Solo cambia el nombre, no el número; una base
+  # escrita en la lámina se respeta tal cual.
+  if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var) && !is.null(texto(base))) {
+    base <- sub("^(Base:\\s*[0-9][0-9.,]*)\\s+respuestas$", paste0("\\1 ", base_var), texto(base))
+  }
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
     # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
     # universo), salvo que la lámina declare la suya: una lámina, una base.
@@ -230,7 +240,7 @@
   }
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     # Los gráficos de números (láminas 79-87): el público de la base nombra los casos («22 estudiantes»).
-    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    unidad <- if (any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)) base_var else "respuestas"
     # El pie automático dice el mismo público que las filas: «Base: 178 egresados», no «178 respuestas» sobre filas de
     # «91 egresados» (Gonzalo, 2026-10-15). Una base escrita en la lámina se respeta tal cual.
     if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && !identical(unidad, "respuestas") && !is.null(texto(base))) {
@@ -291,14 +301,14 @@
                                       por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "filtro_sub")) {
-    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    unidad <- if (any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)) base_var else "respuestas"
     return(.lam_laminas_filtro_sub(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
                                    sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master,
                                    por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "pie")) {
-    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    unidad <- if (any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)) base_var else "respuestas"
     f <- if (identical(espec$forma, "pie")) .lam_laminas_torta else .lam_laminas_dona
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = paste(c(texto(base), texto(pie)), collapse = ". "),
              folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina,
@@ -324,7 +334,7 @@
       tryCatch(texto(.plan_titulo_corto(titulo_de_var, el_plot)), error = function(e) NULL)
     }
     n_pub <- .espec_n_base(espec)
-    publico <- if (is.finite(n_pub) && nzchar(base_var) && grepl("$", el_plot$var %||% "", fixed = TRUE)) {
+    publico <- if (is.finite(n_pub) && nzchar(base_var) && any(grepl("$", el_plot$var %||% "", fixed = TRUE))) {
       paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
     }
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
@@ -335,7 +345,7 @@
   }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
-    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    unidad <- if (any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)) base_var else "respuestas"
     # La agrupada de una serie va en barras horizontales (lámina 73); en selección múltiple (los porcentajes
     # suman más de 100) lleva el encabezado del recetario.
     forma <- .lam_categorica_forma(espec, if (identical(el_plot$.element_type, "barras_agrupadas")) "barras" else "columnas")
@@ -365,7 +375,7 @@
   # En filas (Bottom Two Box con la premisa corta, decisión «2c») el criterio es el mismo: la premisa encabeza como
   # pregunta y la fila lleva el público con sus respuestas a la izquierda de la barra. La forma se decide antes de
   # cambiar el rótulo, con la premisa.
-  un_publico <- NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)
+  un_publico <- NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)
   publico <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
   if (un_publico && .lam_escala_modo_filas(espec)) {
     espec$pregunta <- as.character(espec$filas$rotulo[1])
@@ -424,7 +434,7 @@
       (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(.plan_titulo_corto(titulo_de_var, el), error = function(e) NULL))) %||% ""
   })
   especs <- lapply(seq_along(ps), function(k) {
-    e <- attr(ps[[k]], "pulso_espec")
+    e <- .lam_con_estilo_dicotomia(attr(ps[[k]], "pulso_espec"), els[[k]])
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
     e
   })

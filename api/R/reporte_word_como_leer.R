@@ -58,39 +58,67 @@
   "Los porcentajes están ponderados. La base de cada gráfico es el número de personas que respondieron, sin ponderar;",
   "por eso, en grupos chicos, “12 de 15” puede no coincidir con el porcentaje.")
 
+#' Secciones de «Cómo leer este informe» que `como_leer` puede condicionar (clave -> título del capítulo)
+#' @keywords internal
+.WORD_COMO_LEER_SECCIONES <- c(top_two_box = "Top Two Box", bottom_two_box = "Bottom Two Box", redondeo = "Redondeo de las cifras",
+                               misma_escala = "Una misma escala, muchas redacciones", cifras_pequenas = "Cifras muy pequeñas",
+                               bases_chicas = "Bases chicas e información faltante")
+
+#' Frase de apertura cuando el capítulo lleva sólo algunas secciones (con todas, la de siempre)
+#' @keywords internal
+.word_como_leer_apertura <- function(secciones, con_bottom) {
+  k <- function(x) x %in% secciones
+  top <- k("top_two_box"); bot <- k("bottom_two_box") && isTRUE(con_bottom)
+  fr <- c(if (top && bot) "el Top Two Box y el Bottom Two Box" else if (top) "el Top Two Box" else if (bot) "el Bottom Two Box",
+          if (k("redondeo")) "el redondeo", if (k("misma_escala")) "las escalas", if (k("cifras_pequenas")) "las cifras pequeñas",
+          if (k("bases_chicas")) "las bases chicas y la información faltante")
+  if (!length(fr)) return("Las páginas que explican al lector cómo leer las cifras del informe.")
+  fr <- if (length(fr) > 1L) paste(paste(fr[-length(fr)], collapse = ", "), "y", fr[length(fr)]) else fr
+  paste0("Las páginas que explican al lector cómo leer las cifras del informe: ", fr, ".")
+}
+
 #' Capítulo «Cómo leer este informe»
 #'
 #' @param redondeo `"estandar"`, `"resto_mayor"` o `"ambos"`: el método que usa el informe (el recuadro final lo dice).
 #' @param con_bottom Si el informe muestra el Bottom Two Box.
 #' @param figura,tabla Contadores de numeración: el capítulo devuelve los siguientes en `attr(doc, "siguientes")`.
+#' @param secciones `NULL` (todas, como siempre) o un subconjunto de `names(.WORD_COMO_LEER_SECCIONES)`: sólo esas secciones
+#'   se escriben y la numeración 2.1, 2.2... se recorre. El recuadro final no cambia.
 #' @param ponderada Si la corrida está ponderada: el recuadro lo dice (contrato base-sin-ponderar F6, §3; D-b: el
 #'   capítulo no se enciende solo por estar ponderada, pero si está, lo declara).
 #' @keywords internal
 .word_como_leer <- function(doc, numero = 2, redondeo = c("estandar", "resto_mayor", "ambos"), con_bottom = TRUE, figura = 1L, tabla = 1L, variante_apertura = "B",
-                            ponderada = FALSE) {
+                            ponderada = FALSE, secciones = NULL) {
   redondeo <- match.arg(redondeo); coral <- .std_word("colores", "acento")
-  doc <- .word_apertura(doc, numero, "Cómo leer este informe", paste(
-    "Las páginas que explican al lector cómo leer las cifras del informe: el Top Two Box", if (con_bottom) "y el Bottom Two Box," else ",",
-    "el redondeo, las escalas, las cifras pequeñas, las bases chicas y la información faltante."), variante = variante_apertura)
+  if (!is.null(secciones)) secciones <- intersect(names(.WORD_COMO_LEER_SECCIONES), as.character(secciones))
+  lleva <- function(k) is.null(secciones) || k %in% secciones
+  doc <- .word_apertura(doc, numero, "Cómo leer este informe",
+    if (is.null(secciones)) paste(
+      "Las páginas que explican al lector cómo leer las cifras del informe: el Top Two Box", if (con_bottom) "y el Bottom Two Box," else ",",
+      "el redondeo, las escalas, las cifras pequeñas, las bases chicas y la información faltante.")
+    else .word_como_leer_apertura(secciones, con_bottom), variante = variante_apertura)
   fig <- function(doc, titulo, g, base = "Ejemplo ilustrativo. Fuente: PULSO PUCP 2026.") {
     png <- .word_png(g, attr(g, "alto")); doc <- .word_figura(doc, figura, titulo, png, alto = attr(g, "alto"), base = base); figura <<- figura + 1L; doc }
   tab <- function(doc, titulo, ft, base) { doc <- .word_tabla(doc, tabla, titulo, ft, base = base); tabla <<- tabla + 1L; doc }
   s <- 0L; sec <- function(doc, t) { s <<- s + 1L; .word_seccion(doc, t, paste0(numero, ".", s)) }
 
+  if (lleva("top_two_box")) {
   doc <- sec(doc, "Top Two Box")
   doc <- .word_cuerpo(doc, "Es la suma de los dos valores superiores de la escala. Resume en una cifra el acuerdo de cada grupo y permite compararlo entre públicos y con mediciones de otros años.", mantener = TRUE)
   doc <- fig(doc, "Cómo se calcula el Top Two Box", .word_g_box_explica(c(5, 5, 35, 55), TRUE))
-  if (isTRUE(con_bottom)) {
+  }
+  if (isTRUE(con_bottom) && lleva("bottom_two_box")) {
     doc <- sec(doc, "Bottom Two Box")
     doc <- .word_cuerpo(doc, "Es la suma de los dos valores inferiores de la escala. Se usa cuando interesa el desacuerdo, por ejemplo para ubicar los aspectos que más críticas reciben. Va en naranja oscuro, al lado del Top Two Box.", mantener = TRUE)
     doc <- fig(doc, "Cómo se calcula el Bottom Two Box", .word_g_box_explica(c(12, 20, 41, 27), FALSE))
   }
 
+  cab <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")
+  if (lleva("redondeo")) {
   doc <- sec(doc, "Redondeo de las cifras")
   doc <- .word_cuerpo(doc, "Las cifras se muestran en enteros. Hay dos maneras de redondear y el informe dice cuál usa. Las dos tablas usan el mismo ejemplo: 1, 7, 60, 110 y 0 casos de 178.", mantener = TRUE)
   n_r <- c(1, 7, 60, 110, 0); ex <- 100 * n_r / sum(n_r); std <- floor(ex + 0.5); ent <- floor(ex); rest <- ex - ent
   faltan <- 100 - sum(ent); suben <- order(-rest)[seq_len(faltan)]; res <- ent; res[suben] <- res[suben] + 1
-  cab <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")
   t_std <- as.data.frame(rbind(c("Valor exacto", sprintf("%.2f%%", ex), "100%"), c("Redondeo estándar", paste0(std, "%"), paste0(sum(std), "%"))))
   names(t_std) <- c(" ", cab, "Suma")
   doc <- .word_cuerpo(doc, "Redondeo estándar. Cada porcentaje se redondea por separado: desde 0.5 sube y por debajo baja. Cada cifra queda lo más cerca posible de su valor exacto, pero la suma puede dar 99% o 101%.", mantener = TRUE)
@@ -105,7 +133,9 @@
   for (j in suben) ft <- ft |> flextable::bg(i = 3:4, j = j + 1, bg = "#FBE3E2") |> flextable::color(i = 3:4, j = j + 1, color = coral)
   doc <- .word_cuerpo(doc, "Redondeo del resto mayor. Primero se toma la parte entera de cada porcentaje. Los puntos que faltan para llegar a 100 se dan, uno por uno, a las categorías con el resto decimal más grande. La suma siempre da 100%.", mantener = TRUE)
   doc <- tab(doc, "Redondeo del resto mayor", ft, sprintf("Base: ejemplo de 178 casos. Faltan %d puntos y van a los %d restos más grandes, marcados. El %.2f%% queda en %d%%.", faltan, faltan, ex[1], res[1]))
+  }
 
+  if (lleva("misma_escala")) {
   doc <- sec(doc, "Una misma escala, muchas redacciones")
   doc <- .word_cuerpo(doc, "La redacción de la escala cambia según el estudio y el público, pero el color y el orden se mantienen: de lo negativo a lo positivo y, al final, en gris, la falta de información. El Top Two Box es siempre la suma de las dos respuestas más altas.", mantener = TRUE)
   esc <- data.frame(Escala = c("Acuerdo", "Satisfacción", "Importancia", "Utilidad", "Competencia"),
@@ -117,7 +147,9 @@
   ft <- .word_ft_base(esc, c(1.1, 1.15, 1.0, 0.95, 1.15, 1.0), size = 8.5) |> flextable::align(j = 2:6, align = "center", part = "all")
   for (j in 1:5) ft <- flextable::bg(ft, j = j + 1, bg = c("#FBE3D3", "#FFF4CC", "#E6F1D8", "#D5E8C7", "#ECECEC")[j], part = "header")
   doc <- tab(doc, "Redacciones de la escala y su color", ft, "Base: escalas usadas en los estudios de PULSO PUCP. El color de cada columna es el de su respuesta en los gráficos.")
+  }
 
+  if (lleva("cifras_pequenas")) {
   doc <- sec(doc, "Cifras muy pequeñas")
   doc <- .word_cuerpo(doc, "Si una cifra no cabe dentro de su color, sube sobre la barra con una línea guía. Si hay varias seguidas, se separan para no taparse, y la fila gana el aire que necesitan. Ninguna cifra se omite.", mantener = TRUE)
   ej <- data.frame(actor = c("Todas chicas salvo una", "Chicas en los dos extremos", "Tres chicas al inicio", "Tres chicas al final"), N = 120,
@@ -127,15 +159,18 @@
                          colores_grupos = stats::setNames(unname(.std_paleta("likert")), cab), orden = "declarado",
                          barra_extra_preset = "top2box", top2box_labels = cab[3:4])
   doc <- fig(doc, "Cifras pequeñas en distintas posiciones de la barra", .word_g_escala(esp, envolver = 16), base = "Base: 120 casos de ejemplo. Cifras ficticias. Fuente: PULSO PUCP 2026.")
+  }
 
+  if (lleva("bases_chicas")) {
   doc <- sec(doc, "Bases chicas e información faltante")
   doc <- .word_lista(doc, c(.casos_junto_frase_larga(),   # sigue «Casos junto al porcentaje» (graficos_casos_junto.R)
                             "«Sin información» reúne a quienes no respondieron o respondieron «No sabe». Va al final de la barra, en gris, y cuenta en la base: así se ve cuántos no pudieron opinar.",
                             "Cada gráfico dice su base debajo. Si una pregunta sólo se hizo a una parte, la base lo indica, por ejemplo «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
+  }
   doc <- .word_recuadro(doc, "Cómo leer este informe", c(
     "Los porcentajes se calculan sobre quienes respondieron cada pregunta. La base va debajo de cada gráfico.",
     if (isTRUE(ponderada)) .WORD_COMO_LEER_PONDERADA,
-    "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
+    if (lleva("top_two_box")) "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
     .casos_junto_frase_corta(),
     if (identical(redondeo, "resto_mayor")) "Las cifras se redondean al entero con el método del resto mayor, de modo que cada barra suma 100%."
     else if (identical(redondeo, "ambos")) "Unos gráficos redondean cada cifra por separado (una barra puede sumar 99% o 101%) y otros con el método del resto mayor (cada barra suma 100%)."

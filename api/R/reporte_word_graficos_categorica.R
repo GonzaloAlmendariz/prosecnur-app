@@ -59,9 +59,9 @@
   col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, col))          # paleta por lista (ADR 0097), recetario de respaldo
   marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   esc <- if (isTRUE(espec$escala_completa)) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
-  d <- data.frame(l = l, p = p, y = ps$y, col = col, et = espec$cifras, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)
+  d <- data.frame(l = l, p = p, pd = ifelse(p <= 0, 100 * .BARRAS_PISO_CERO, p), y = ps$y, col = col, et = espec$cifras, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)   # 0 % con casos: astilla visible (piso del graficador)
   g <- ggplot2::ggplot(d) +
-    ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = .data$p, ymin = .data$y - 0.32, ymax = .data$y + 0.32, fill = .data$col)) + ggplot2::scale_fill_identity() +
+    ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = .data$pd, ymin = .data$y - 0.32, ymax = .data$y + 0.32, fill = .data$col)) + ggplot2::scale_fill_identity() +
     ggplot2::geom_text(ggplot2::aes(x = .data$p + esc * 0.015, y = .data$y, label = .data$et), hjust = 0, size = .word_pt(9, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial") +
     ggplot2::geom_text(ggplot2::aes(x = -esc * 0.02, y = .data$y, label = .data$l, fontface = .word_cara("categorias", .data$negrita)), hjust = 1, size = .word_pt(9, "rotulo"),
                        colour = navy, family = "Arial", lineheight = 0.9) +
@@ -71,13 +71,16 @@
   # 100 % (Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»).
   if (marcas) g <- g + ggplot2::annotate("text", x = seq(0, 100, 25), y = 0.15, label = paste0(seq(0, 100, 25), "%"), size = .word_pt(7.5, "rotulo"),
                                          colour = "#A6A6A6", family = "Arial")
-  attr(g, "filas") <- ps$tot; attr(g, "alto") <- .word_alto_figura("barras", ps$tot) + (if (marcas) 0.15 else 0)
-  g
+  attr(g, "filas") <- ps$tot
+  .word_fijar_alto_por_grosor(g, 0.64)   # N25: grosor común; el eje y incluye las marcas
 }
 
-#' Dicotomía: la barra parte el total y las dos cifras grandes encima (`g_sino()` moderna)
+#' Dicotomía de la lámina (PPT): la barra parte el total y las dos cifras grandes encima (`g_sino()` moderna)
+#'
+#' El Word ya no la usa (N5, Gonzalo 2026-10-22): `.word_g_sino()` devuelve siempre la barra apilada de
+#' `.word_g_sino_estandar()`. Esta pieza queda sólo para quien la pida por nombre.
 #' @keywords internal
-.word_g_sino <- function(espec) {
+.word_g_sino_partida <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   p1 <- espec$largos[1] * 100; rot <- espec$rotulos[1:2]
   # Las mismas piezas que la lámina: el «(n)» va en el rótulo sólo si lo pide el gráfico o «Casos junto al porcentaje», y
@@ -95,6 +98,10 @@
     .word_tema() + ggplot2::theme(legend.position = "none")
   attr(g, "alto") <- .word_alto_figura("dicotomia"); g
 }
+
+#' Dicotomía en el Word: SIEMPRE la barra apilada de 100 % (la versión formal); nunca la pieza de cifras grandes
+#' @keywords internal
+.word_g_sino <- function(espec) .word_g_sino_estandar(espec)   # lamina_dicotomia_estandar.R
 
 #' Ranking con puntos (`g_lollipop()` moderna), en el orden de la espec
 #'

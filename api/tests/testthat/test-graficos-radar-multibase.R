@@ -317,7 +317,8 @@ test_that("el piso del eje estira la banda alta sin recortar ningun dato", {
 test_that("los tres controles viajan del elemento de plan al dibujo", {
   # El eslabon que se rompe callado: un arg que el constructor guarda pero el
   # renderer no lee sale como si nunca se hubiera declarado.
-  el <- p_radar(modo = "publicos", vars = list(A = list("docentes$p1")),
+  # Cinco ejes: con menos de 5 criterios el modo publicos dibuja barras (regla de 5 a 8) y no llama al radar.
+  el <- p_radar(modo = "publicos", vars = stats::setNames(rep(list(list("docentes$p1")), 5L), LETTERS[1:5]),
                 corte = "3,4", mostrar_valores = TRUE,
                 valores_decimales = 0, eje_min = 50)
   expect_true(el$mostrar_valores)

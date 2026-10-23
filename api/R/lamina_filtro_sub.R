@@ -49,11 +49,11 @@
   trimws(sprintf("Sólo los %s%s %s", cuantos, publico, quienes))
 }
 
-#' El pie con las dos bases, como el recetario: «Base: 201 estudiantes. La subpregunta, 20 estudiantes que respondieron «Sí»»
+#' El pie con las dos bases: «Base: 201 estudiantes. Sólo los 20 estudiantes que respondieron «Sí»»
 #' @keywords internal
 .lam_filtro_sub_pie <- function(base, espec) {
-  sub_base <- sub("^Sólo (los )?", "", .lam_filtro_sub_base(espec))
-  partes <- c(if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)), paste0("La subpregunta, ", sub_base))
+  # PPT 23 (Renzo, v3): «Sólo los 77 que conocen el reglamento», una vez y sin «La subpregunta,» delante.
+  partes <- c(if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)), .lam_filtro_sub_base(espec))
   paste(partes, collapse = ". ")
 }
 
@@ -91,13 +91,23 @@
   identical(s$tipo, "escala") && NROW(s$filas) >= 1L && NROW(s$filas) <= 8L
 }
 
+#' Columna de la barra de una escala dependiente de una fila: después de su rótulo y antes de su columna Top Two Box
+#'
+#' La barra del filtro (arriba) usa la misma columna: las dos miden y arrancan igual (PPT 23, Renzo v3).
+#' @keywords internal
+.lam_filtro_sub_barra_geo <- function(s, rotulo, x, w) {
+  wl <- if (!is.null(rotulo) && nzchar(rotulo)) min(w * 0.3, max(1, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2)) else 0
+  wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
+  list(x = x + wl, w = w - wl - wbox, wl = wl, wbox = wbox)
+}
+
 #' La subpregunta en su caja: barras de una serie o una escala al 100 % con su leyenda debajo
 #' @keywords internal
 #'
 #' Gonzalo (2026-10-14): «el gráfico dependiente no debe verse más pequeño del que depende». La subpregunta llena su
 #' columna: filas de hasta 0.75 in con barras gruesas; la escala de una fila, en una barra de 0.8 in con su leyenda en el
 #' ancho de la columna y, si se le da `yc`, centrada a esa altura (la del disco del filtro, de donde sale el conector).
-.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL) {
+.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL, centro_ley = NULL, lim_ley = NULL) {
   if (identical(s$tipo, "categorica")) {
     k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
@@ -112,19 +122,17 @@
     yy <- .lam_likert_panel(lz, s, x, y + 0.1, w, filas, g = g, fila = fila, wlab = wlab, size_lab = 10.5)
     ley <- s$leyenda
     return(invisible(.lam_leyenda_panel(lz, yy + 0.08, s$categorias$rotulo[ley], s$categorias$color[ley],
-                                        centro = x + wlab + (w - wlab) / 2, x0 = x, x1 = x + w)))
+                                        centro = centro_ley %||% (x + wlab + (w - wlab) / 2), x0 = lim_ley[1] %||% x, x1 = lim_ley[2] %||% (x + w))))
   }
   h <- 0.8
   yb <- if (!is.null(yc)) max(y + 0.2, yc - h / 2) else y + 0.35
   # p192: el rótulo corto que escribió el analista («Participaron»), a la izquierda de la barra y en negrita.
-  if (!is.null(rotulo) && nzchar(rotulo)) {
-    wl <- min(w * 0.3, max(1, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2))
-    .lam_txt(lz, rotulo, x, yb + (h - 0.3) / 2, wl - 0.15, 0.3, 10.5, .std_color("azul"), bold = TRUE, align = "right", nombre = "escala:rotulo_fila")
-    x <- x + wl; w <- w - wl
+  geo <- .lam_filtro_sub_barra_geo(s, rotulo, x, w)
+  if (geo$wl > 0) {
+    .lam_txt(lz, rotulo, x, yb + (h - 0.3) / 2, geo$wl - 0.15, 0.3, 10.5, .std_color("azul"), bold = TRUE, align = "right", nombre = "escala:rotulo_fila")
   }
   # F5: con Top Two Box declarada, su columna a la derecha de la barra con su rótulo encima (p192).
-  wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
-  wb <- w - wbox
+  x <- geo$x; wb <- geo$w; wbox <- geo$wbox
   .lam_barra_apilada(lz, x, yb, wb, .lam_escala_seg(s, 1L), h)
   if (wbox > 0) {
     verde <- .std_color("verde_top_two_box")
@@ -133,7 +141,8 @@
     .lam_etiqueta_box(lz, s, x + wb + 0.05, yb, h, 1L, con_n = FALSE, color = verde, w = wbox - 0.05)
   }
   ver <- which(as.logical(s$dibujar[1, ]))
-  fin <- .lam_leyenda_panel(lz, yb + h + 0.25, s$categorias$rotulo[ver], s$categorias$color[ver], centro = x + wb / 2, x0 = x, x1 = x + wb)
+  fin <- .lam_leyenda_panel(lz, yb + h + 0.25, s$categorias$rotulo[ver], s$categorias$color[ver],
+                           centro = centro_ley %||% (x + wb / 2), x0 = lim_ley[1] %||% x, x1 = lim_ley[2] %||% (x + wb))
   invisible(fin)
 }
 
@@ -156,10 +165,10 @@
   if (!nzchar(espec$pregunta_sub %||% "")) { espec$pregunta_sub <- .lam_filtro_sub_base(espec); espec$base_en_titulo <- TRUE }
   # Respaldo parcial: si sólo el dependiente no tiene pieza nativa, el filtro sigue nativo y el dependiente va con su gráfico.
   sub_nativo <- isTRUE(.lam_filtro_sub_cabe_sub(s)); imagen <- NULL
-  dibujar_sub <- function(x, y, w, alto, yc = NULL) {
+  dibujar_sub <- function(x, y, w, alto, yc = NULL, centro_ley = NULL, lim_ley = NULL) {
     # Una batería que no cabe en su alto (con aire para sus cifras chicas) va con su gráfico, no se sale de la lámina.
     cabe_alto <- !(identical(s$tipo, "escala") && NROW(s$filas) > 1L) || alto >= .lam_filtro_sub_alto_bateria(s)
-    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo))
+    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo, centro_ley = centro_ley, lim_ley = lim_ley))
     imagen <<- c(x = x, y = y, w = w, h = alto); invisible(y + alto)
   }
   publico <- function(n) if (is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL
@@ -171,6 +180,11 @@
     # p192: la dicotomía a todo el ancho; la llave baja desde lo que habilita hasta el título de la subpregunta.
     d <- .lam_filtro_sub_dico(f)
     wl <- 1.6; xb <- ml + wl + 0.12; wb <- ancho - wl - 0.12 - 1.1
+    # PPT 23 (Renzo, v3): con la subpregunta en una barra de escala, las dos barras comparten columna (la del texto de las
+    # demás láminas: margen + inset de 0,1 in) y ancho; la leyenda de abajo se centra en la lámina, no en su barra.
+    una_barra <- sub_nativo && identical(s$tipo, "escala") && NROW(s$filas) == 1L
+    xc <- ml + 0.1
+    if (una_barra) { geo <- .lam_filtro_sub_barra_geo(s, espec$rotulo, xc, W - mr - xc); xb <- geo$x; wb <- geo$w }
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
     # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
     bateria <- identical(s$tipo, "escala") && NROW(s$filas) > 1L
@@ -183,7 +197,8 @@
     y2 <- yb_fin + (if (bateria) 0.5 else 0.75)
     .lam_llave_baja(lz, x0, x1, yb_fin + 0.06, ml, y2, espec$pregunta_sub)
     ys <- .lam_panel_titulo(lz, ml, y2, ancho, espec$pregunta_sub, if (isTRUE(espec$base_en_titulo)) NULL else .lam_filtro_sub_base(espec))
-    dibujar_sub(ml, ys + 0.2, ancho, yf - ys - 0.4)
+    if (una_barra) dibujar_sub(xc, ys + 0.2, W - mr - xc, yf - ys - 0.4, centro_ley = W / 2, lim_ley = c(ml, W - mr))
+    else dibujar_sub(ml, ys + 0.2, ancho, yf - ys - 0.4)
   } else {
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y0 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro, publico(espec$n_filtro)) + 0.25

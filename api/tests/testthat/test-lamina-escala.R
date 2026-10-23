@@ -49,8 +49,11 @@ test_that("la batería ocupa las columnas del recetario: barra en 5.2 in de 6 in
   expect_equal(nrow(.formas(o$doc, "filete")), 0L)
 })
 
-test_that("con base menor que 30 cada Top Two Box dice sus casos", {
+test_that("con base menor que 30 y «Respuestas por público» encendido, cada Top Two Box dice sus casos; apagado no", {
   e <- .espec_bateria(4, base = 15)
+  apagado <- .lam_laminas_escala(.doc_vacio(), e, "Gestores", base = "Base: 15 administrativos")
+  expect_equal(nrow(.formas(apagado$doc, "box:casos")), 0L)
+  e$mostrar_respuestas <- TRUE
   o <- .lam_laminas_escala(.doc_vacio(), e, "Gestores", base = "Base: 15 administrativos")
   casos <- .formas(o$doc, "box:casos")
   expect_equal(nrow(casos), 4L)
@@ -60,6 +63,7 @@ test_that("con base menor que 30 cada Top Two Box dice sus casos", {
 test_that("una afirmación con un público encabeza la lámina y la barra ocupa el ancho (216)", {
   e <- .espec_bateria(1, base = 172)
   e$filas$grupo_id <- "Estudiantes"; e$filas$grupo_titulo <- "Existen mecanismos periódicos"; e$filas$rotulo <- "Estudiantes"
+  e$mostrar_respuestas <- TRUE   # N3b: «N respuestas» es opcional (apagado por defecto)
   o <- .lam_laminas_escala(.doc_vacio(), e, "Gestión", ante = "Cuerpo académico", base = "Base: 172 estudiantes", folio = 216)
   seg <- .formas(o$doc, "segmento")
   L <- .std_geom("likert")

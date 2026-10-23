@@ -102,7 +102,8 @@ test_that("GET /api/graficos/config publica como defaults el mismo default Word 
   res <- new.env(parent = emptyenv()); res$status <- 200L; res$setHeader <- function(...) invisible(NULL)
   out <- ep$getFunc()(new.env(parent = emptyenv()), res)
   expect_identical(out$defaults$w_presets, .WORD_PRESETS_DEFAULT_PULSO)
-  expect_identical(out$defaults$documento_word, list(portada = "A", apertura = "B", como_leer = "auto"))
+  expect_identical(out$defaults$documento_word, list(portada = "A", apertura = "B", como_leer = "auto",
+                                                         indices = list(contenido = TRUE, graficos = "inicio", tablas = "inicio")))
   expect_false("defaults" %in% names(out$config))   # hermano de config, no dentro: no se persiste
   # Viaja por JSON con la forma que lee el front.
   j <- jsonlite::fromJSON(as.character(jsonlite::toJSON(out$defaults, auto_unbox = TRUE)), simplifyVector = FALSE)

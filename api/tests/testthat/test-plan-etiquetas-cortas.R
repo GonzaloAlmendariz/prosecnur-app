@@ -92,7 +92,9 @@ test_that("la etiqueta corta llega también al Word: el rótulo de cada panel de
   sin <- word_txt(.ec_plan(cortas = FALSE)["b"])
   expect_true(any(grepl("Máximo grado académico", sin, fixed = TRUE)))             # el Word sí escribe el rótulo del panel
   expect_false(any(grepl("Máximo grado académico", con, fixed = TRUE)))
-  expect_true("Grado" %in% trimws(con))
+  # El rótulo corto llega como pie de figura numerado («Gráfico 4» + «: Grado»), ya no como texto suelto.
+  expect_true(": Grado" %in% trimws(con))
+  expect_false(any(grepl("Máximo grado", con, fixed = TRUE)))
   expect_true(any(grepl("Departamento", con, fixed = TRUE)))
 })
 

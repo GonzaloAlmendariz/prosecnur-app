@@ -461,6 +461,156 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   margen_etiquetas = 1.18
 )
 
+# Margen de las etiquetas segun el rotulo LATERAL mas largo (Arte, P12).
+#
+# Con cuatro o cinco ejes el radar es un rombo o un pentagono y los ejes de los
+# lados llevan su rotulo en horizontal, hacia afuera de la punta: «Representación»
+# o «Creación» son los que invaden la tabla de al lado cuando el panel se calibra
+# para etiquetas cortas. Se suma 0,02 por cada caracter de la linea mas larga por
+# encima de 8, con tope en 1,5 (mas alla el radar seria un punto). De seis ejes en
+# adelante el encuadre no cambia: ahi el aire lo da el anillo de etiquetas.
+#
+# Lo toma `.radar_mb_grafico()` SOLO cuando ni el estilo, ni el preset ni los
+# overrides declaran `margen_etiquetas`: un valor explicito manda.
+.radar_mb_margen_etiquetas <- function(ejes, wrap = .RADAR_MB_MARGENES$wrap_ejes) {
+  base <- .RADAR_MB_MARGENES$margen_etiquetas
+  ejes <- as.character(ejes)
+  K <- length(ejes)
+  if (K < 3L || K > 5L) return(base)
+  ang <- pi / 2 + 2 * pi * (seq_len(K) - 1L) / K
+  laterales <- ejes[abs(cos(ang)) > 0.25]
+  if (!length(laterales)) return(base)
+  ancho <- suppressWarnings(as.integer(wrap)[1]); if (!is.finite(ancho) || ancho < 1L) ancho <- 12L
+  largo <- max(vapply(laterales, function(e) {
+    lineas <- unlist(strsplit(paste(strwrap(e, width = ancho), collapse = "\n"), "\n", fixed = TRUE))
+    max(nchar(lineas), 0L)
+  }, numeric(1)))
+  round(min(1.5, max(base, base + 0.02 * (largo - 8))), 3)
+}
+
+# El radar «box» compara preguntas de UNA base. Con `var` (residuo del modo «sm») o con `vars` de varias bases, quien
+# configuro la lamina queria comparar publicos: el mensaje dice cual es el modo, en vez de abortar por un argumento.
+.radar_box_validar_una_base <- function(var, vars) {
+  # Solo `var` aborta: es el resto del modo «sm» (queda oculto al cambiar de modo). Las preguntas de varias bases en
+  # `vars` NO abortan: `vars` como lista nombrada por tema con referencias `fuente$variable` es un uso soportado de
+  # «box» (test «p_radar_tabla modo box acepta vars como lista multi-fuente»); abortar ahi fue una regresion.
+  if (is.null(var)) return(invisible(NULL))
+  .plan_spec_abort(
+    "p_radar_tabla(modo='box'): el radar «box» compara preguntas de una base y no admite `var` ",
+    "(queda del modo «sm» al cambiar de modo); para comparar públicos usa el modo «publicos».")
+}
+
+# Regla de criterios del radar (decision del usuario, 2026-10-22): un radar se lee bien con 5 a 8 ejes. Con menos es un
+# rombo o un triangulo y las etiquetas chocan con la figura; con mas de 8 los ejes se amontonan. Por debajo del minimo el
+# motor dibuja barras comparativas y lo dice; por encima del maximo sigue siendo radar y lo dice (limite suave). El plan
+# guardado no cambia: es una decision de dibujo.
+.RADAR_MIN_CRITERIOS <- 5L
+.RADAR_MAX_CRITERIOS <- 8L
+
+# Texto del aviso, o `NULL` si `n` esta en rango. Empieza en minuscula: `.aviso_en_lamina()` lo antepone a «Lámina N ·».
+.radar_mb_aviso_ejes <- function(n, fallback = "puntos") {
+  n <- suppressWarnings(as.integer(n)[1])
+  if (!is.finite(n) || n < 1L) return(NULL)
+  if (n < .RADAR_MIN_CRITERIOS) {
+    return(sprintf(paste0("el radar necesita al menos %d criterios para leerse bien; esta lámina tiene %d, ",
+                          "así que se dibuja como %s."), .RADAR_MIN_CRITERIOS, n,
+                  if (identical(fallback, "barras")) "barras comparativas" else "líneas y puntos comparativos"))
+  }
+  if (n > .RADAR_MAX_CRITERIOS) {
+    return(sprintf(paste0("el radar se lee bien con hasta %d criterios; esta lámina tiene %d y más de %d pueden ",
+                          "no leerse bien."), .RADAR_MAX_CRITERIOS, n, .RADAR_MAX_CRITERIOS))
+  }
+  NULL
+}
+
+# Avisos de la validacion del plan para un slot de radar (`/api/graficos/validar`). Cuenta los criterios declarados: los
+# temas de `publicos` o las preguntas de `box`; el modo `sm` depende de las opciones de la pregunta y no se sabe aqui.
+.radar_avisos_plan_slot <- function(slot, tag) {
+  if (!identical(as.character(slot$graficador %||% "")[1], "p_radar")) return(character(0))
+  a <- slot$args %||% list()
+  modo <- as.character(a$modo %||% "sm")[1]
+  if (!modo %in% c("publicos", "box") || is.null(a$vars)) return(character(0))
+  txt <- .radar_mb_aviso_ejes(length(a$vars))
+  if (is.null(txt)) return(character(0))
+  paste0(tag, ": ", txt)
+}
+
+# Barras comparativas: lo que el radar entre publicos dibuja cuando tiene menos de 5 criterios. Una barra por publico y
+# tema, con la cifra al extremo, en la paleta de actores del radar; el orden de temas y publicos es el del radar.
+.radar_mb_barras <- function(datos, titulo = NULL, indicador = "", preset = list()) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
+  }
+  d <- datos
+  d$grupo <- factor(.radar_mb_capitalizar(as.character(d$grupo)), levels = .radar_mb_capitalizar(levels(d$grupo)))
+  niveles <- .radar_mb_recortar_eje(levels(datos$eje))
+  d$eje <- factor(niveles[as.integer(datos$eje)], levels = rev(niveles))
+  pal <- .std_paleta("actores")
+  colores <- stats::setNames(rep_len(pal, nlevels(d$grupo)), levels(d$grupo))
+  navy <- "#062A63"
+  fuente <- "Arial"
+  d$etiqueta <- sprintf("%d%%", as.integer(floor(d$valor + 0.5)))   # mitad hacia arriba, como la tabla
+  sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL
+  ggplot2::ggplot(d, ggplot2::aes(x = .data$valor, y = .data$eje, fill = .data$grupo)) +
+    ggplot2::geom_col(position = ggplot2::position_dodge2(reverse = TRUE, padding = 0.15), width = 0.8) +
+    ggplot2::geom_text(ggplot2::aes(label = .data$etiqueta), position = ggplot2::position_dodge2(width = 0.8, reverse = TRUE),
+                       hjust = -0.15, size = 11 / ggplot2::.pt, colour = navy, family = fuente) +
+    ggplot2::scale_fill_manual(values = colores, breaks = levels(d$grupo)) +
+    ggplot2::scale_x_continuous(limits = c(0, 112), breaks = seq(0, 100, 20), labels = function(x) paste0(x, "%"),
+                                expand = ggplot2::expansion(mult = c(0, 0))) +
+    ggplot2::labs(title = titulo, subtitle = sub, x = NULL, y = NULL, fill = NULL) +
+    ggplot2::theme_minimal(base_size = 11, base_family = fuente) +
+    ggplot2::theme(
+      panel.grid.major.y = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_line(colour = "#D9DCE3", linewidth = 0.3),
+      axis.text.y = ggplot2::element_text(colour = navy, face = "bold", size = 11),
+      axis.text.x = ggplot2::element_text(colour = "#6B7280", size = 9),
+      plot.subtitle = ggplot2::element_text(colour = navy, face = "bold", size = 12),
+      legend.position = "bottom", legend.text = ggplot2::element_text(colour = navy, size = 11),
+      plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      panel.background = ggplot2::element_rect(fill = "transparent", colour = NA))
+}
+
+# Lineas y puntos comparativos: lo que el radar entre publicos dibuja por defecto con menos de 5 criterios. Es el dumbbell
+# del recetario (`graficar_dumbbell`): una fila por tema, una linea que une el punto de cada publico, con la cifra al lado,
+# en la paleta de actores del radar y con el eje de 0 a 100 %. Sin columna de diferencia: la brecha entre publicos no es
+# lo que el radar contaba, y la tabla nativa ya da las cifras. Orden de temas y publicos: el del radar. El dumbbell
+# compara exactamente dos publicos; con otro numero cae a barras, que si admiten cualquier cantidad.
+.radar_mb_puntos <- function(datos, titulo = NULL, indicador = "", decimales = 0L, eje = NULL) {
+  if (nlevels(datos$grupo) != 2L) return(.radar_mb_barras(datos, titulo = titulo, indicador = indicador))
+  d <- data.frame(
+    eje = factor(.radar_mb_recortar_eje(levels(datos$eje))[as.integer(datos$eje)],
+                 levels = .radar_mb_recortar_eje(levels(datos$eje))),
+    grupo = factor(.radar_mb_capitalizar(as.character(datos$grupo)), levels = .radar_mb_capitalizar(levels(datos$grupo))),
+    valor = datos$valor, n = if ("n" %in% names(datos)) datos$n else NA_real_, stringsAsFactors = FALSE)
+  sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL
+  # Eje: por defecto acercado a los datos (el del dumbbell: multiplos de 5 con 3 puntos de margen, dentro de 0-100);
+  # `eje` = list(tipo = "auto"|"0-100"|"personalizado", min, max). Un personalizado que deja fuera un dato se ensancha.
+  tipo <- as.character(eje$tipo %||% "auto")[1]
+  lim <- NULL
+  if (identical(tipo, "0-100")) {
+    lim <- c(0, 100)
+  } else if (identical(tipo, "personalizado")) {
+    v <- d$valor[is.finite(d$valor)]
+    lim <- c(min(eje$min, floor(min(v))), max(eje$max, ceiling(max(v))))
+    if (lim[1] < eje$min || lim[2] > eje$max) {
+      .pulso_aviso(.aviso_en_lamina(sprintf("el eje pedido (%s a %s %%) dejaba fuera un dato; se ensanchó a %s–%s %%",
+                                            eje$min, eje$max, lim[1], lim[2])))
+    }
+  }
+  dibujar <- function(titulo_eje) graficar_dumbbell(d, orden = "declarado", titulo = titulo, titulo_eje = titulo_eje,
+                    valores_decimales = decimales, mostrar_brecha = FALSE, limite_x = lim, size_punto = 4.6,
+                    size_segmento = 1.8, leyenda_posicion = "abajo", var_n = NULL)
+  g <- dibujar(sub)
+  # Un eje que no arranca en 0 lo dice bajo el subtitulo: las marcas del eje ya muestran los valores.
+  lo <- unname(attr(g, "pulso_espec")$eje["lo"])
+  if (length(lo) == 1L && is.finite(lo) && lo > 0) {
+    nota <- sprintf("Eje desde %s %%", format(lo, trim = TRUE))
+    g <- dibujar(if (is.null(sub)) nota else paste0(sub, " \u00b7 ", nota))
+  }
+  g
+}
+
 # Catalogo de estilos en la forma que consume el registro de graficadores. Se
 # deriva de `.RADAR_MB_ESTILOS` en vez de copiarse en `graficos_metadata.R`: un
 # estilo nuevo aparece en la UI solo, y uno retirado deja de ofrecerse sin dejar
@@ -565,6 +715,10 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     ),
     .radar_mb_estilo_args(estilo)
   )
+  # Margen derivado del rotulo lateral mas largo, salvo que el estilo lo declare: el defecto comun no es una decision.
+  if (identical(args$margen_etiquetas, .RADAR_MB_MARGENES$margen_etiquetas)) {
+    args$margen_etiquetas <- .radar_mb_margen_etiquetas(levels(datos$eje), args$wrap_ejes)
+  }
   # Orden (O7c): base -> estilo -> preset del tipo -> lo que declara el elemento
   # -> sus overrides. El preset es el defecto del tipo, no un candado sobre el
   # grafico.
@@ -707,9 +861,15 @@ p_radar_publicos <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
-    titulos_grupo = NULL
+    titulos_grupo = NULL,
+    fallback_pocos = NULL,
+    eje_pocos = NULL,
+    eje_pocos_min = NULL,
+    eje_pocos_max = NULL
 ) {
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_radar_publicos()")
+  fallback_pocos <- .radar_mb_fallback(fallback_pocos)
+  eje_pocos_l <- .radar_mb_eje_pocos(eje_pocos, eje_pocos_min, eje_pocos_max)
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_radar_publicos(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -744,12 +904,49 @@ p_radar_publicos <- function(
     tabla_ancho_tema  = .radar_mb_fraccion(tabla_ancho_tema),
     tabla_proporcion  = .radar_mb_proporcion(tabla_proporcion),
     title_slide    = titulo,
+    fallback_pocos = fallback_pocos,
+    eje_pocos      = eje_pocos_l$tipo,
+    eje_pocos_min  = eje_pocos_l$min,
+    eje_pocos_max  = eje_pocos_l$max,
     overrides      = overrides,
     base           = base,
     filtros        = .ppt_norm_filters(filtros)
   )
   class(el) <- c("ppt_element", "list")
   el
+}
+
+# Que se dibuja con menos de 5 criterios: `puntos` (lineas y puntos comparativos, defecto) o `barras`. `NULL` o vacio =
+# defecto; otro valor aborta en vez de caer en silencio al defecto.
+.radar_mb_fallback <- function(x) {
+  if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x[1])))) return(NULL)
+  v <- tolower(trimws(as.character(x[1])))
+  if (!v %in% c("puntos", "barras")) {
+    .plan_spec_abort("`fallback_pocos` debe ser «puntos» o «barras»; llegó «", x[1], "».")
+  }
+  v
+}
+
+# Eje del grafico de lineas y puntos (menos de 5 criterios): `auto` (acercado a los datos, defecto), `0-100` o
+# `personalizado` con minimo y maximo (0 a 99 y 1 a 100, minimo < maximo). Vacio = defecto; otra cosa aborta.
+.radar_mb_eje_pocos <- function(tipo, min = NULL, max = NULL) {
+  vacio <- function(x) is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x[1])))
+  if (vacio(tipo)) return(list(tipo = NULL, min = NULL, max = NULL))
+  t <- tolower(trimws(as.character(tipo[1])))
+  if (!t %in% c("auto", "0-100", "personalizado")) {
+    .plan_spec_abort("`eje_pocos` debe ser «auto», «0-100» o «personalizado»; llegó «", tipo[1], "».")
+  }
+  if (!identical(t, "personalizado")) return(list(tipo = t, min = NULL, max = NULL))
+  lo <- if (vacio(min)) NA_real_ else suppressWarnings(as.numeric(min[1]))
+  hi <- if (vacio(max)) NA_real_ else suppressWarnings(as.numeric(max[1]))
+  if (!is.finite(lo) || !is.finite(hi)) {
+    .plan_spec_abort("`eje_pocos` personalizado necesita `eje_pocos_min` y `eje_pocos_max` numéricos.")
+  }
+  if (lo < 0 || lo > 99 || hi < 1 || hi > 100 || lo >= hi) {
+    .plan_spec_abort("`eje_pocos_min` y `eje_pocos_max` deben ir entre 0 y 100, con el mínimo menor que el máximo; llegó ",
+                     lo, " y ", hi, ".")
+  }
+  list(tipo = t, min = lo, max = hi)
 }
 
 #' Lo que el radar entre públicos dibuja: el elemento, luego el preset, luego el defecto (O7c).
@@ -801,7 +998,17 @@ p_radar_publicos <- function(
   # con `el$overrides` y esa mezcla se aplicaba al final, asi que el preset
   # pisaba los decimales, las cifras y el piso del propio grafico.
   res <- .radar_mb_resolver(el, preset_args)
-  g <- .radar_mb_grafico(datos, estilo = el$estilo, overrides = as.list(el$overrides %||% list()),
+  # Regla de 5 a 8 criterios: se avisa siempre que este fuera de rango; por debajo del minimo el dibujo son barras.
+  n_ejes <- nlevels(datos$eje)
+  fallback <- .radar_mb_fallback(el$fallback_pocos) %||% "puntos"
+  aviso_ejes <- .radar_mb_aviso_ejes(n_ejes, fallback)
+  if (!is.null(aviso_ejes)) .pulso_aviso(.aviso_en_lamina(aviso_ejes))
+  g <- if (n_ejes < .RADAR_MIN_CRITERIOS && identical(fallback, "barras")) {
+    .radar_mb_barras(datos, titulo = el$title_slide, indicador = el$corte_etiqueta)
+  } else if (n_ejes < .RADAR_MIN_CRITERIOS) {
+    .radar_mb_puntos(datos, titulo = el$title_slide, indicador = el$corte_etiqueta, decimales = res$decimales,
+                      eje = list(tipo = el$eje_pocos, min = el$eje_pocos_min, max = el$eje_pocos_max))
+  } else .radar_mb_grafico(datos, estilo = el$estilo, overrides = as.list(el$overrides %||% list()),
                          titulo = el$title_slide,
                          mostrar_valores = res$mostrar_valores,
                          decimales = res$decimales,

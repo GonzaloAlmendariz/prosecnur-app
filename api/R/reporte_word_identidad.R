@@ -30,7 +30,7 @@
   doc <- par("heading 1", officer::fp_par(padding.top = 0, padding.bottom = 8, keep_with_next = TRUE,
                                           border.bottom = officer::fp_border(color = navy, width = 0.75)), ft(pt("titulo_1"), navy, TRUE))
   doc <- par("heading 2", officer::fp_par(padding.top = 16, padding.bottom = 6, keep_with_next = TRUE), ft(pt("titulo_2"), navy, TRUE))
-  doc <- par("Rótulo de gráfico", officer::fp_par(text.align = "left", padding.top = 10, padding.bottom = 4, keep_with_next = TRUE, line_spacing = 1.15),
+  doc <- par("Rótulo de gráfico", officer::fp_par(text.align = "center", padding.top = 10, padding.bottom = 4, keep_with_next = TRUE, line_spacing = 1.15),
              ft(pt("rotulo"), txt))
   doc <- officer::docx_set_character_style(doc, style_id = .word_estilo_id(doc, "Número de rótulo"), style_name = "Número de rótulo",
                                            base_on = "Default Paragraph Font", fp_t = ft(pt("rotulo"), navy, TRUE))

@@ -73,18 +73,50 @@
   flextable::body_add_flextable(doc, ft, align = "left")
 }
 
+#' Opciones de los índices normalizadas: lo que falte o no se entienda queda como hoy
+#'
+#' @param indices `NULL` o lista con `contenido` (lógico), `graficos` y `tablas` (`"inicio"`, `"anexo"` o `FALSE`; `TRUE` es
+#'   `"inicio"`). Default = el de siempre: los tres al inicio.
+#' @return `list(contenido, graficos, tablas)`.
+#' @keywords internal
+.word_indices_opciones <- function(indices = NULL) {
+  ubic <- function(v) {
+    v <- unlist(v)[1]
+    if (is.null(v) || is.na(v)) return("inicio")
+    if (is.logical(v)) return(if (v) "inicio" else "ninguno")
+    if (tolower(trimws(as.character(v))) %in% c("inicio", "anexo", "ninguno")) tolower(trimws(as.character(v))) else "inicio"
+  }
+  cont <- unlist(indices$contenido)[1]
+  list(contenido = if (is.logical(cont) && !is.na(cont)) cont else TRUE, graficos = ubic(indices$graficos), tablas = ubic(indices$tablas))
+}
+
 #' Índices del informe: «Contenido» (títulos 1 y 2), índice de gráficos y, si hay tablas, índice de tablas; todos campos
 #' TOC de Word con la nota de cómo se actualizan (recetario_word.R:132-139)
+#'
+#' Escribe los que van en `donde` (`"inicio"`: la página de «Contenido», como siempre; `"anexo"`: la de cierre antes de la
+#' contraportada). «Contenido» (el TOC) sólo existe al inicio.
 #' @param con_tablas Si el informe tiene tablas numeradas.
+#' @param indices Ver `.word_indices_opciones()`.
+#' @param donde `"inicio"` o `"anexo"`.
 #' @keywords internal
-.word_indices <- function(doc, con_tablas = TRUE) {
+.word_indices <- function(doc, con_tablas = TRUE, indices = NULL, donde = c("inicio", "anexo")) {
+  donde <- match.arg(donde); ind <- .word_indices_opciones(indices)
   navy <- .std_word("colores", "titulos")
-  doc <- .word_parr(doc, list("Contenido", 18, navy, TRUE), despues = 10)
-  doc <- officer::body_add(doc, officer::block_toc(level = 2))
-  doc <- .word_parr(doc, list("Índice de gráficos", 13, navy, TRUE), antes = 16, despues = 6)
-  doc <- officer::body_add(doc, officer::block_toc(seq_id = "Gráfico"))
-  if (isTRUE(con_tablas)) {
-    doc <- .word_parr(doc, list("Índice de tablas", 13, navy, TRUE), antes = 16, despues = 6)
+  quiere <- c(contenido = identical(donde, "inicio") && isTRUE(ind$contenido), graficos = identical(ind$graficos, donde),
+              tablas = isTRUE(con_tablas) && identical(ind$tablas, donde))
+  if (!any(quiere)) return(doc)
+  primero <- TRUE
+  titulo <- function(doc, t, tam, antes, despues) { a <- if (primero) 0 else antes; primero <<- FALSE; .word_parr(doc, list(t, tam, navy, TRUE), antes = a, despues = despues) }
+  if (quiere[["contenido"]]) {
+    doc <- titulo(doc, "Contenido", 18, 0, 10)
+    doc <- officer::body_add(doc, officer::block_toc(level = 2))
+  }
+  if (quiere[["graficos"]]) {
+    doc <- titulo(doc, "Índice de gráficos", 13, 16, 6)
+    doc <- officer::body_add(doc, officer::block_toc(seq_id = "Gráfico"))
+  }
+  if (quiere[["tablas"]]) {
+    doc <- titulo(doc, "Índice de tablas", 13, 16, 6)
     doc <- officer::body_add(doc, officer::block_toc(seq_id = "Tabla"))
   }
   .word_parr(doc, list("Los índices son campos de Word: se actualizan con clic derecho > Actualizar campos, o seleccionando todo y presionando F9.",

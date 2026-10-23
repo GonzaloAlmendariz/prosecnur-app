@@ -40,7 +40,7 @@
   flextable::body_add_flextable(doc, flextable::paginate(ft, init = TRUE, hdr_ftr = TRUE), align = "left")
 }
 
-#' Tabla numerada del informe: rótulo «Tabla N» con SEQ y título en cursiva, la tabla y, si la hay, la base debajo
+#' Tabla numerada del informe: rótulo «Tabla N: título» (una línea, azul, negrita y centrada) con SEQ, la tabla y, si la hay, la base debajo
 #' @keywords internal
 .word_tabla <- function(doc, n, titulo, ft, base = NULL, cebra = FALSE) {
   doc <- .word_rotulo(doc, n, titulo, etiqueta = "Tabla")

@@ -935,21 +935,31 @@ graficar_barras_agrupadas <- function(
 		    }
 		  }
   }
+	  # F1 (Arte, 2026-10-22): un orden PEDIDO (lista manual, mayor_menor o menor_mayor; lo que `.goc_traducir` escribe) se lee de
+	  # arriba a abajo en horizontal sin depender de `invertir_barras`: los planes guardados lo traen en FALSE y `coord_flip` dejaba
+	  # el primer nivel abajo. Sin orden pedido, o en vertical, `invertir_barras` conserva su significado.
+	  if (identical(orientacion, "horizontal") &&
+	      (.orden_manual_manda(orden_manual_chr, orden_barras, c("mayor_menor", "menor_mayor")) || !identical(orden_barras, "instrumento"))) {
+	    invertir_barras <- TRUE
+	  }
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
 	  # La espec de la lámina nativa lleva el orden en que se LEE el ggplot: de arriba hacia abajo en horizontal
 	  # (`coord_flip` pone el primer nivel abajo, así que es el reverso de los niveles) y de izquierda a derecha en vertical,
 	  # con `invertir_barras` TRUE o FALSE. Tomar los niveles tal cual dejaba la lámina al revés que el gráfico, el
-	  # instrumento y el recetario (p. 162). Paridad con la ruta ggplot; lo que signifique `invertir_barras` se decide en F6.1.
+	  # instrumento y el recetario (p. 162). Paridad con la ruta ggplot (F1: ver arriba, el orden pedido ya no depende de `invertir_barras`).
 	  cat_lvls_lectura <- if (identical(orientacion, "horizontal")) rev(cat_lvls) else cat_lvls
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   # ADR 0093: con una sola serie, lo que afirma el gráfico para la lámina nativa (barras_h del recetario,
   # lámina 73), en el orden de lectura que el graficador ya decidió. Las cifras se reemplazan por las rotuladas en «3) Etiquetas %».
+  # Una categoría con casos cuya cifra redondea a 0 % no se pierde en la espec (la lee el Word y la lámina nativa): el ggplot ya la
+  # conserva con su piso (`.cero_con_casos`). Las que nadie eligió siguen a `mostrar_ceros`: dentro si se pide, fuera si no (C40 «1a»).
+  sin_ceros_espec <- !(isTRUE(mostrar_ceros) || any(df_long$.cero_con_casos %in% TRUE))
   espec_agrupada <- if (length(cols_porcentaje) == 1L) tryCatch({
     d1 <- df_long[order(match(cat_chr, cat_lvls_lectura)), , drop = FALSE]
     v1 <- suppressWarnings(as.numeric(d1$.valor_plot)); v1[!is.finite(v1)] <- 0
     preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
                         if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL,
-                        residuales_al_final = FALSE,
+                        residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                         n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones)   # «Otros» y los residuales ya van donde los puso el gráfico (otros_al_final)
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
@@ -1272,7 +1282,7 @@ graficar_barras_agrupadas <- function(
       o_lab <- order(match(as.character(df_lab[[var_categoria]]), cat_lvls_lectura))
       espec_agrupada <- tryCatch(
         preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
-                            if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE,
+                            if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones),
         error = function(e) espec_agrupada)
       if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }

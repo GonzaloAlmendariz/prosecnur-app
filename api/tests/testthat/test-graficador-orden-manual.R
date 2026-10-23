@@ -55,7 +55,10 @@ test_that("las barras agrupadas respetan el modo elegido", {
       cols_porcentaje         = "pct_1",
       etiquetas_series        = c(pct_1 = "Total"),
       orden_barras            = orden_barras,
-      orden_categorias_manual = manual
+      orden_categorias_manual = manual,
+      # Vertical: aquí se prueba qué modo manda, y en vertical los niveles son el orden pedido tal cual; la lectura
+      # de arriba a abajo en horizontal (F1) se prueba en test-graficos-orden-categorias.R.
+      orientacion             = "vertical"
     )
     levels(p$data[["categoria"]])
   }

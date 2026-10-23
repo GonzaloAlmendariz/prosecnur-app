@@ -6,7 +6,8 @@
 # elige una vez para todo el informe, en la lámina nativa y en las figuras del Word. Contrato congelado:
 #
 #   estilo_cliente.letra.negrita = { titulos: bool, preguntas: bool, categorias: "mayor" | "todas" | "ninguna",
-#                                    cifras: bool, box: bool, leyenda: bool, base: bool }
+#                                    cifras: bool, box: bool, leyenda: bool, base: bool,
+#                                    publicos: bool (defecto true), subtitulos: bool (defecto false) }
 #
 # Cada clave es opcional y su ausencia es lo de hoy. El valor por defecto NO es «negrita sí» en todas partes: hoy cada pieza
 # trae su propia negrita (el subtítulo va plano, la categoría mayor en negrita y las demás no). Por eso la regla es:
@@ -23,7 +24,7 @@
 #' Valores por defecto de la negrita por elemento: lo que el informe hace hoy
 #' @keywords internal
 .NEGRITA_DEFECTO <- list(titulos = TRUE, preguntas = TRUE, categorias = "mayor", cifras = TRUE, box = TRUE, leyenda = FALSE,
-                         base = TRUE)
+                         base = TRUE, publicos = TRUE, subtitulos = FALSE)
 
 #' Valores admitidos de `negrita.categorias`
 #' @keywords internal
@@ -140,7 +141,8 @@
 .lam_rol_negrita <- function(nombre) {
   n <- as.character(nombre %||% "")[1]
   if (is.na(n) || !nzchar(n)) return(NA_character_)
-  if (n %in% c("Titulo lamina", "Antetitulo lamina", "Subtitulo lamina", "objetivo:titulo") ||
+  if (identical(n, "Subtitulo lamina")) return("subtitulos")   # el subtítulo de público: plano de fábrica, rol propio
+  if (n %in% c("Titulo lamina", "Antetitulo lamina", "objetivo:titulo") ||
       grepl("^(portada|seccion|indice|cierre):", n)) return("titulos")
   if (n %in% c("pregunta", "panel:pregunta", "premisa", "bloque:titulo", "divergentes:afirmacion")) return("preguntas")
   if (grepl("^(box2?|ttb):", n)) return("box")
@@ -150,7 +152,8 @@
   if (n %in% c("cifra", "cifra_fuera", "cifra:valor") ||
       grepl(":cifra(2|_a|_b|_inicial|_final|_sin_inf)?$", n) ||
       grepl("^divergentes:total_(acuerdo|desacuerdo)$", n)) return("cifras")
-  if (n %in% c("rotulo", "actor", "escala:rotulo_fila", "comparativo:fila", "redondeo:categoria", "calor:fila", "ranking:palabra") ||
+  if (identical(n, "actor")) return("publicos")   # el público de la fila: negrita de fábrica, rol propio
+  if (n %in% c("rotulo", "escala:rotulo_fila", "comparativo:fila", "redondeo:categoria", "calor:fila", "ranking:palabra") ||
       grepl("^(dicotomia|circular|lollipop|dona|torta|numerico|boxplot|media_rango|pesas):rotulo$", n)) return("categorias")
   NA_character_
 }

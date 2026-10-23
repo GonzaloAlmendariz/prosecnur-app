@@ -25,6 +25,7 @@ source("setup-load-all.R")
   p_plan(slides = list(
     p_slide_1_grafico(titulo = "Escala", grafico = p_barras_multiapiladas(
       modo = "var", vars = c("p1", "p2"),
+      mostrar_respuestas = TRUE,   # «x de y» y «N respuestas» salen solo con el interruptor (default apagado desde N3b/N3c)
       overrides = list(barra_extra_preset = "top2box", top2box_labels = c("De acuerdo", "Totalmente de acuerdo")))),
     p_slide_1_grafico(titulo = "Sexo", grafico = p_barras_agrupadas("sexo")),
     p_slide_1_grafico(titulo = "Torta", grafico = p_pie("sexo"))

@@ -1176,6 +1176,7 @@
       slot <- .as_json_list(payload[[slot_name]])
       espacio <- .aviso_espacio(tipo, slot_name)
       warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, espacio)))   # D8
+      warns <- c(warns, .radar_avisos_plan_slot(slot, tag))   # radar: 5 a 8 criterios (graficos_radar_multibase.R)
       graf_name <- as.character(slot$graficador %||% "")
       if (!nzchar(graf_name)) {
         warns <- c(warns, sprintf("%s: el espacio «%s» está sin gráfico", tag, espacio))

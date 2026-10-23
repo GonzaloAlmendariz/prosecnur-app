@@ -38,17 +38,16 @@ test_that("el Word dibuja la agrupada de una serie en el orden en que se lee el 
   expect_identical(unname(.wo_word_barras(g)), c("50%", "25%", "20%", "5%"))
 })
 
-test_that("la dicotomía del Word pone a la izquierda la categoría que el ggplot lee primero, con su cifra", {
+test_that("la dicotomía del Word (N5: barra apilada) pone a la izquierda la categoría que el ggplot lee primero, con su cifra dentro", {
+  # Antes la pieza partida llevaba rótulo y cifra grande a cada lado; ahora el rótulo va en la leyenda y la cifra dentro del segmento.
   for (inv in c(TRUE, FALSE)) {
     g <- .wo_graf(c("Sí", "No"), c(124, 76), inv)
     primero <- .wo_lectura_gg(g)[1]
     w <- .word_grafico(g); expect_identical(attr(w, "renderer"), "categorica")
-    a <- suppressWarnings(ggplot2::ggplot_build(w))$data
-    textos <- do.call(rbind, lapply(a, function(l) if ("label" %in% names(l)) data.frame(x = l$x, y = l$y, label = as.character(l$label))))
-    izq <- textos[textos$x == min(textos$x), ]
-    cifra_izq <- izq$label[which.max(izq$y)]; rot_izq <- izq$label[which.min(izq$y)]
-    expect_match(rot_izq, paste0("^", primero), info = paste("invertir", inv))
-    expect_identical(cifra_izq, if (primero == "Sí") "62%" else "38%", info = paste("invertir", inv))
+    b <- suppressWarnings(ggplot2::ggplot_build(w))
+    textos <- do.call(rbind, lapply(b$data, function(l) if ("label" %in% names(l)) data.frame(x = l$x, label = as.character(l$label))))
+    expect_identical(textos$label[which.min(textos$x)], if (primero == "Sí") "62%" else "38%", info = paste("invertir", inv))
+    expect_identical(levels(w$data$k)[1], primero, info = paste("invertir", inv))       # la leyenda lee en el mismo orden
   }
   expect_match(.wo_lectura_gg(.wo_graf(c("Sí", "No"), c(124, 76), TRUE))[1], "^Sí")      # preset de la casa: Sí a la izquierda
 })

@@ -227,7 +227,7 @@ test_that("F5: el pie lleva las dos bases y el filtro dicotómico sus casos en e
   r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"),
                        base = "Base: 120 estudiantes")
   n_si <- sum(r$fx$df$inter == "1")
-  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. La subpregunta, %d que respondieron «Sí»", n_si))
+  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí»", n_si))
   expect_true(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
 })
 
@@ -237,7 +237,7 @@ test_that("F5: quien arma la lámina dice quiénes son, y la frase llega del met
                                             subpregunta = "rel", frase = "que trabajan"))
   n <- sum(!is.na(r$fx$df$rel))
   expect_true(any(r$textos == sprintf("Sólo los %d que trabajan", n)), info = paste(r$textos, collapse = " | "))
-  expect_true(any(grepl(sprintf("La subpregunta, %d que trabajan", n), r$por_nombre("Base lamina"), fixed = TRUE)))
+  expect_true(any(grepl(sprintf("Sólo los %d que trabajan", n), r$por_nombre("Base lamina"), fixed = TRUE)))
   s <- .dependencia_como_lamina(list(tipo = "p_slide_2_graficos", payload = list(
     izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "lab")),
     derecha = list(graficador = "p_barras_agrupadas", args = list(var = "rel")),

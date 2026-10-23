@@ -74,6 +74,37 @@
        filete = 100 + (c_in - pad) * k)
 }
 
+#' Rótulos de fila partidos a `envolver` caracteres; con una envoltura ancha (>= 30) ninguno pasa de `.WORD_ESCALA_LINEAS_MAX`
+#' líneas mientras quepa ensanchándola hasta `.WORD_ESCALA_ENVOLTURA_MAX`. Nunca recorta texto.
+#' @keywords internal
+.word_escala_rotulos_envueltos <- function(rotulos, envolver) {
+  parte <- function(w) vapply(rotulos, function(r) paste(strwrap(r, width = w), collapse = "\n"), "", USE.NAMES = FALSE)
+  w <- envolver; lb <- parte(w)
+  if (envolver < 30) return(lb)                                    # envolturas estrechas explícitas (p. ej. la guía «cómo leer») no se tocan
+  lineas <- function(x) max(1L, vapply(strsplit(x, "\n"), length, 1L))
+  while (lineas(lb) > .WORD_ESCALA_LINEAS_MAX && w < .WORD_ESCALA_ENVOLTURA_MAX) { w <- w + 2L; lb <- parte(w) }
+  lb
+}
+
+#' Posición x de las cifras chicas de una fila (unidades de la escala 0-100 %), sin que sus cajas se toquen
+#'
+#' Como el PPT (`pos[k] <- max(pos[k], pos[k-1] + 0,46 in)`) pero midiendo en pulgadas: cada cifra queda al menos a
+#' (mitad de su ancho + mitad del ancho de la anterior + `respiro`) de la anterior, corriéndose a la derecha; si la última
+#' pasa de `tope` se fija ahí y las previas se corren a la izquierda. Solo posición: el codo de la guía parte del centro
+#' real del segmento (`xm`) y llega a la cifra corrida.
+#' @param xm centros de los segmentos chicos, ordenados.
+#' @param ancho_in ancho en pulgadas de cada cifra.
+#' @param k_in unidades del eje por pulgada.
+#' @keywords internal
+.word_escala_separar_chicas <- function(xm, ancho_in, k_in, tope, respiro = 0.06) {
+  pos <- xm; n <- length(pos)
+  if (n < 2L) return(pos)
+  sep <- ((ancho_in[-1] + ancho_in[-n]) / 2 + respiro) * k_in
+  for (j in 2:n) pos[j] <- max(pos[j], pos[j - 1] + sep[j - 1])
+  if (pos[n] > tope) { pos[n] <- tope; for (j in (n - 1):1) pos[j] <- min(pos[j], pos[j + 1] - sep[j]) }
+  pos
+}
+
 #' Gráfico Word de una escala apilada a partir de su espec
 #' @return ggplot con atributos `alto` (in, ya sin el pie) y `filas`.
 #' @keywords internal
@@ -92,7 +123,7 @@
     con <- nzchar(rot_fila) & is.finite(nf_casos)
     rot_fila[con] <- sprintf("%s (%d)", rot_fila[con], as.integer(round(nf_casos[con])))
   }
-  lbw <- vapply(rot_fila, function(r) paste(strwrap(r, width = envolver), collapse = "\n"), "", USE.NAMES = FALSE)
+  lbw <- .word_escala_rotulos_envueltos(rot_fila, envolver)
   hay_chicas <- any(A * 100 > 0 & A * 100 < .WORD_ESCALA_CABE_PCT & Dw)
   nl <- vapply(strsplit(lbw, "\n"), function(x) max(1L, length(x)), 1L)
   esp <- pmax(if (hay_chicas) 1.3 else 1, 0.55 + 0.34 * nl); tot <- sum(esp); ys <- tot - (cumsum(esp) - esp / 2) + 0.5
@@ -106,13 +137,17 @@
   d <- d[d$dibujar & d$p > 0, , drop = FALSE]
   d$cabe <- d$p >= .WORD_ESCALA_CABE_PCT; d$xm <- (d$x0 + d$x1) / 2
   ttb <- !is.null(espec$box) && length(espec$box$cifras)
+  b2b <- ttb && !is.null(espec$box2) && length(espec$box2$cifras)
+  pt_de <- function(x, rol) .word_pt(x, rol) * ggplot2::.pt
+  col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
+                            list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
+  xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo"), xmax, -4)
+  k_in <- (xmax - xmin) / (.std_word("pagina", "ancho_util") - 0.3)   # unidades del eje por pulgada de figura
   chicas <- d[!d$cabe, , drop = FALSE]
   if (nrow(chicas)) chicas <- do.call(rbind, lapply(split(chicas, chicas$y), function(g) {
-    g <- g[order(g$xm), ]; pos <- g$xm
-    for (j in seq_along(pos)[-1]) pos[j] <- max(pos[j], pos[j - 1] + 5.5)   # separación en unidades de %
-    tope <- if (ttb) 96 else 99                                             # no alcanza el rótulo del box
-    if (pos[length(pos)] > tope) { pos[length(pos)] <- tope; if (length(pos) > 1) for (j in (length(pos) - 1):1) pos[j] <- min(pos[j], pos[j + 1] - 5.5) }
-    g$xl <- pos; g
+    g <- g[order(g$xm), ]
+    g$xl <- .word_escala_separar_chicas(g$xm, vapply(g$cifra, .word_texto_in, 0, pt = .word_escala_pt_efectivo("cifra_chica")), k_in, if (ttb) 96 else 99)
+    g
   }))
   h <- .std_word("figura", "alto_apilada")$grosor_fraccion %||% 0.58
   cols <- stats::setNames(cat$color, cat$rotulo)
@@ -128,18 +163,13 @@
       ggplot2::geom_segment(data = chicas, ggplot2::aes(x = .data$xm, xend = .data$xl, y = .data$y + h / 2 + 0.07, yend = .data$y + h / 2 + 0.07), colour = gris, linewidth = 0.3) +
       ggplot2::geom_text(data = chicas, ggplot2::aes(x = .data$xl, y = .data$y + h / 2 + 0.2, label = .data$cifra), size = .word_pt(.WORD_ESCALA_PT$cifra_chica, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial")
   }
-  b2b <- ttb && !is.null(espec$box2) && length(espec$box2$cifras)
   y_tit <- max(ys) + h / 2 + (if (hay_chicas) 0.62 else 0.3)
-  pt_de <- function(x, rol) .word_pt(x, rol) * ggplot2::.pt
-  col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
-                            list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
   if (ttb) {
     g <- g + ggplot2::annotate("text", x = col$x1, y = ys, label = espec$box$cifras[orden], size = .word_pt(.WORD_ESCALA_PT$box_cifra, "cifra"), fontface = .word_cara("box"), colour = verde, family = "Arial") +
       ggplot2::annotate("text", x = col$x1, y = y_tit, label = espec$box$rotulo, size = .word_pt(.WORD_ESCALA_PT$box_rotulo, "rotulo"), fontface = .word_cara("box"), colour = verde, family = "Arial")
     if (b2b) g <- g + ggplot2::annotate("text", x = col$x2, y = ys, label = espec$box2$cifras[orden], size = .word_pt(.WORD_ESCALA_PT$box_cifra, "cifra"), fontface = .word_cara("box"), colour = naranja, family = "Arial") +
       ggplot2::annotate("text", x = col$x2, y = y_tit, label = espec$box2$rotulo, size = .word_pt(.WORD_ESCALA_PT$box_rotulo, "rotulo"), fontface = .word_cara("box"), colour = naranja, family = "Arial")
   }
-  xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo"), xmax, -4)
   attr_cols <- if (ttb) col[c("x1", "x2", "xmax")] else NULL
   if (isTRUE(F$es_total[1]) && nf > 1) {   # desde el borde del eje: con rótulos cortos, −30 del recetario quedaba fuera
     g <- g + ggplot2::annotate("segment", x = max(-30, xmin), xend = if (ttb) col$filete else 116, y = (ys[1] + ys[2]) / 2, yend = (ys[1] + ys[2]) / 2, colour = filete, linewidth = 0.5)
@@ -159,7 +189,7 @@
     ggplot2::coord_cartesian(clip = "off")
   attr(g, "filas") <- tot
   attr(g, "columnas_box") <- attr_cols   # centros y borde del eje: el contrato de no encimado los lee
-  attr(g, "alto") <- .word_alto_figura("escala", tot) + 0.14 * max(0L, length(plan_ley$filas) - 2L)   # 3.ª fila de leyenda
+  g <- .word_fijar_alto_por_grosor(g, h)   # N25: la barra mide .WORD_GROSOR_BARRA_CM; la leyenda de 3 filas ya cuenta en lo fijo
   attr(g, "leyenda_plan") <- plan_ley
   g
 }

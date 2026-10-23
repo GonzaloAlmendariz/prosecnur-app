@@ -268,3 +268,59 @@ test_that("el payload de categorías resuelve una variable sin base contra la ba
   expect_identical(vapply(p$categorias, `[[`, 0L, "n")[match(c("1", "2"), .oc_sector$codigo)] > 0, c(TRUE, TRUE))
   expect_identical(.graficos_categorias_payload(src, "docentes$sector", base_activa = "estudiantes")$base, "docentes")   # la calificada manda
 })
+
+# F1 (Renzo/Arte 2026-10-22): el orden pedido se lee de ARRIBA A ABAJO en horizontal, con invertir_barras en FALSE o TRUE
+# (el plan de Arte lo trae en FALSE en todos los gráficos). Sin orden pedido, invertir_barras conserva su semántica.
+.oc_edad <- data.frame(codigo = c("1", "2", "3", "4"), etiqueta = c("24-35", "36-45", "46-55", "56 a más"), n = c(8, 11, 13, 68),
+                       stringsAsFactors = FALSE)
+
+# Lámina/espec de un plan con `orden_categorias` e `invertir_barras` explícito (como el plan guardado de Arte).
+.oc_f1_espec <- function(oc, invertir) {
+  testthat::skip_if_not_installed("openxlsx")
+  df <- data.frame(edad = rep(.oc_edad$codigo, .oc_edad$n), stringsAsFactors = FALSE)
+  x <- tempfile(fileext = ".xlsx")
+  openxlsx::write.xlsx(list(survey = data.frame(type = "select_one le", name = "edad", label = "Edad", stringsAsFactors = FALSE),
+                            choices = data.frame(list_name = "le", name = .oc_edad$codigo, label = .oc_edad$etiqueta, stringsAsFactors = FALSE)), x)
+  inst <- suppressMessages(reporte_instrumento(x))
+  graf <- p_barras_agrupadas("edad", orden_categorias = oc, overrides = list(invertir_barras = invertir, orientacion = "horizontal"))
+  r <- suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, plan = list(a = p_slide_1_grafico(grafico = graf, titulo = "T")),
+    presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), solo_lista = TRUE, build_render_meta = TRUE, mensajes_progreso = FALSE)))
+  attr(r$render_meta[[1]]$plot_word, "pulso_espec")
+}
+
+# ggplot directo del graficador: niveles en el orden en que se LEE (coord_flip pone el último nivel arriba).
+.oc_f1_ggplot <- function(orden_barras, manual = NULL, invertir = FALSE) {
+  d <- data.frame(categoria = .oc_edad$etiqueta, pct = .oc_edad$n / 100, N = 100, stringsAsFactors = FALSE)
+  p <- graficar_barras_agrupadas(d, "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"), orientacion = "horizontal",
+                                 orden_barras = orden_barras, orden_categorias_manual = manual, invertir_barras = invertir, mostrar_barra_extra = FALSE)
+  rev(levels(p@data[["categoria"]]))
+}
+
+test_that("agrupadas horizontal: el orden del instrumento se lee de arriba a abajo con invertir_barras FALSE y TRUE", {
+  for (inv in c(FALSE, TRUE)) {
+    expect_identical(as.character(.oc_f1_espec(list(modo = "instrumento"), inv)$rotulos), .oc_edad$etiqueta, info = paste("espec, invertir =", inv))
+    expect_identical(.oc_f1_ggplot("manual", .oc_edad$etiqueta, inv), .oc_edad$etiqueta, info = paste("ggplot manual, invertir =", inv))
+  }
+})
+
+test_that("agrupadas horizontal: por frecuencia el mayor queda arriba con invertir_barras FALSE y TRUE", {
+  esperado <- rev(.oc_edad$etiqueta)   # 68, 13, 11, 8 %
+  for (inv in c(FALSE, TRUE)) {
+    expect_identical(as.character(.oc_f1_espec(list(modo = "frecuencia"), inv)$rotulos), esperado, info = paste("espec, invertir =", inv))
+    expect_identical(.oc_f1_ggplot("mayor_menor", NULL, inv), esperado, info = paste("ggplot, invertir =", inv))
+  }
+})
+
+test_that("agrupadas horizontal: sin orden pedido invertir_barras conserva su semántica", {
+  # orden_barras = instrumento y sin lista: FALSE deja el primer nivel abajo (coord_flip); TRUE, arriba.
+  expect_identical(.oc_f1_ggplot("instrumento", NULL, FALSE), rev(.oc_edad$etiqueta))
+  expect_identical(.oc_f1_ggplot("instrumento", NULL, TRUE), .oc_edad$etiqueta)
+})
+
+test_that("agrupadas vertical: el orden pedido sigue a invertir_barras como antes", {
+  d <- data.frame(categoria = .oc_edad$etiqueta, pct = .oc_edad$n / 100, N = 100, stringsAsFactors = FALSE)
+  niv <- function(inv) levels(graficar_barras_agrupadas(d, "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"),
+    orientacion = "vertical", orden_barras = "manual", orden_categorias_manual = .oc_edad$etiqueta, invertir_barras = inv, mostrar_barra_extra = FALSE)@data[["categoria"]])
+  expect_identical(niv(FALSE), .oc_edad$etiqueta)
+  expect_identical(niv(TRUE), rev(.oc_edad$etiqueta))
+})

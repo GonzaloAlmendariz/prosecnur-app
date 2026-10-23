@@ -43,12 +43,13 @@ test_that("la disposición nativa de la corona sale de las ranuras del estándar
   expect_equal(g$paneles[[3]]$y + g$paneles[[3]]$h, .std_geom("contenido_y1"))
 })
 
+# N20 (2026-10-22): sólo Sí/No es dicotomía; «sexo» es aquí una pregunta Sí/No (p. ej. «¿Es mujer?») para que la corona dibuje su dicotomía.
 .cr_fixture <- function() {
   edad <- c("De 18 a 30 años", "De 31 a 40 años", "De 41 a 50 años", "De 51 años a más")
   grado <- c("Bachiller", "Magíster", "Doctor")
-  df <- data.frame(sexo = rep(c("Masculino", "Femenino"), c(33, 19)), grado = rep(grado, c(10, 38, 4)),
+  df <- data.frame(sexo = rep(c("Sí", "No"), c(33, 19)), grado = rep(grado, c(10, 38, 4)),
                    edad = rep(edad, c(10, 7, 12, 23)), stringsAsFactors = FALSE)
-  ch <- rbind(data.frame(list_name = "ls", name = c("Masculino", "Femenino"), label = c("Masculino", "Femenino")),
+  ch <- rbind(data.frame(list_name = "ls", name = c("Sí", "No"), label = c("Sí", "No")),
               data.frame(list_name = "lg", name = grado, label = grado), data.frame(list_name = "le", name = edad, label = edad))
   inst <- list(survey = data.frame(name = c("sexo", "grado", "edad"), type = paste("select_one", c("ls", "lg", "le")),
                                    list_name = c("ls", "lg", "le"), label = c("Sexo", "Máximo grado alcanzado", "Rango de edades"),
@@ -109,7 +110,7 @@ test_that("una lámina corona generada sale nativa y calza con la p160 (toleranc
   # Dicotomía de sexo (recetario_m2c.R:42, `dicotomia(ML, YT + 0.65, wc, ..., n, size = 24, g = 0.38)`): a todo el ancho
   # del panel, con la frecuencia en el rótulo.
   dico_cifra_x = c(0.495, 4.757), dico_cifra_w = 1.6, dico_cifra_y = 2.30,
-  dico_rotulo = c("Masculino (33)", "Femenino (19)"), dico_rotulo_x = c(0.495, 3.426), dico_rotulo_w = 2.931, dico_rotulo_y = 2.647,
+  dico_rotulo = c("Sí (33)", "No (19)"), dico_rotulo_x = c(0.495, 3.426), dico_rotulo_w = 2.931, dico_rotulo_y = 2.647,
   dico_x0 = 0.495, dico_x1 = 6.357, dico_y = 2.967, dico_h = 0.38,
   # Barras de grado (:44, `wlab = 1.4`) y de edad (:48, `barras_h(ML + 2.5, ..., ANCHO - 5, wlab = 1.9)`: el bloque
   # centrado, no a todo el ancho).

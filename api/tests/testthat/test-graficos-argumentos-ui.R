@@ -453,6 +453,7 @@ test_that("barras agrupadas respetan orden, Otros al final y maximo de categoria
     cols_porcentaje = "pct",
     etiquetas_series = c(pct = "Porcentaje"),
     orden_barras = "mayor_menor",
+    orientacion = "vertical",   # se prueba el criterio; en horizontal los niveles van al revés (F1)
     otros_al_final = TRUE,
     mostrar_barra_extra = FALSE
   )
@@ -473,6 +474,7 @@ test_that("barras agrupadas respetan orden, Otros al final y maximo de categoria
     max_categorias = 5,
     agrupar_resto_en_otros = TRUE,
     orden_barras = "mayor_menor",
+    orientacion = "vertical",   # se prueba el criterio; en horizontal los niveles van al revés (F1)
     otros_al_final = TRUE,
     mostrar_barra_extra = FALSE
   )
@@ -502,6 +504,7 @@ test_that("barras agrupadas envian no-respuesta/no-aplica al final", {
     cols_porcentaje = "pct",
     etiquetas_series = c(pct = "Porcentaje"),
     orden_barras = "mayor_menor",
+    orientacion = "vertical",   # se prueba el criterio; en horizontal los niveles van al revés (F1)
     otros_al_final = TRUE,
     mostrar_barra_extra = FALSE
   )
@@ -533,6 +536,7 @@ test_that("barras agrupadas preservan no-respuesta al limitar categorias", {
     max_categorias = 5,
     agrupar_resto_en_otros = TRUE,
     orden_barras = "mayor_menor",
+    orientacion = "vertical",   # se prueba el criterio; en horizontal los niveles van al revés (F1)
     otros_al_final = TRUE,
     mostrar_barra_extra = FALSE
   )
