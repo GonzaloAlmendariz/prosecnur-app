@@ -74,6 +74,7 @@ import { Respuestas } from "./control/casos/Respuestas";
 import { Calidad } from "./control/casos/Calidad";
 import { Publicos } from "./insumos/Publicos";
 import { Metas } from "./modelo/Metas";
+import { Cuotas } from "./modelo/Cuotas";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -16367,6 +16368,7 @@ function renderAcreditacionView(
   if (view === "modelo" && (options.activeModelTab ?? "estructura") === "estructura" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Metas (A7).
     return <Metas state={options.state} onStateChange={options.onStateChange} />;
   }
+  if (view === "modelo" && options.activeModelTab === "resumen" && !isTelefonicoMonitoreoState(options.state)) return <Cuotas />; // Modelo › Cuotas (A7).
   if (view === "modelo") {
     return (
       <AcreditacionModelWorkbench

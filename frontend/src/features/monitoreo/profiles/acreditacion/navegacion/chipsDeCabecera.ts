@@ -20,7 +20,7 @@ export function chipsDeCabecera(
 ): string[] {
   const clave = `${direccion.seccion}/${direccion.pestana}`;
   if (clave === "control/reintentos") return chipsDeReintentos(reports, plataformaDeRespuestas(state?.sources ?? []));
-  if (clave === "modelo/cuotas" && state) {
+  if (clave === "modelo/cuotas" && direccion.panel === "variables" && state) {
     const variables = state.config?.operational_model?.interest_variables ?? [];
     const conPadron = (state.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
     const declarados = new Set(variables.map((item) => normalizeSourceMatch(item.actor))).size;
@@ -35,8 +35,8 @@ export function chipsDeCabecera(
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad", "insumos/publicos", "modelo/metas"];
-const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle"];
+const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad", "insumos/publicos", "modelo/metas", "modelo/cuotas"];
+const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle", "variables"];
 
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
   // Una sub-vista que todavía monta la vista anterior conserva la tarjeta.

@@ -39,6 +39,7 @@ describe("dirección pública de Acreditación", () => {
       [pedida("fuentes", "actores"), "insumos/publicos"],
       [pedida("modelo", "estructura"), "modelo/metas"],
       [pedida("modelo", "distribucion"), "modelo/cuotas"],
+      [pedida("modelo", "resumen"), "modelo/cuotas"],
       [pedida("avance", "actores"), "avance/publicos"],
       [pedida("avance", "encuestas"), "avance/ritmo"],
       [pedida("avance", "correo"), "control/correo"],
