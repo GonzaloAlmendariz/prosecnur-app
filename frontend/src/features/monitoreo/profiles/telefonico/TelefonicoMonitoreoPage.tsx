@@ -86,6 +86,7 @@ import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { Discrepancias } from "./control/Discrepancias";
+import { Supervision } from "./control/Supervision";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
@@ -18772,6 +18773,9 @@ function renderAcreditacionView(
   }
   if (view === "telefonico" && options.activePhoneTab === "alertas" && isTelefonicoMonitoreoState(options.state)) {
     return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
+  }
+  if (view === "telefonico" && options.activePhoneTab === "supervision" && isTelefonicoMonitoreoState(options.state)) {
+    return <Supervision reports={reports} />; // Control › Supervisión (T9).
   }
   if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
     return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).

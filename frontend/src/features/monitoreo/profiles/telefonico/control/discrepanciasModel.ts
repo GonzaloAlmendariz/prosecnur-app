@@ -9,8 +9,8 @@
  * nombres se confirma en Insumos › Llave y filtros.
  *
  * Fuente: bloque `discrepancias_telefonicas`
- * (`api/R/monitoreo_telefonico_discrepancias.R`), cruzado por CodPulso con
- * `control_tiempo_kobo` (envío, enumerador y fecha de Kobo).
+ * (`api/R/monitoreo_telefonico_discrepancias.R`): sentido, códigos, envío,
+ * enumerador, si es el mismo responsable, decisión vigente y destino.
  */
 import type { MonitoreoAcreditacionReports, MonitoreoManualCaseReconciliation, MonitoreoProfile } from "../../../../../api/client";
 import { filasDeBloque } from "../navegacion/bloques";
@@ -59,6 +59,18 @@ export function decisionesTelefonicas(perfil: MonitoreoProfile | null | undefine
   ));
 }
 
+function decisionDeColumna(valor: string): EstadoDeDecision | null {
+  if (valor === "cuenta" || valor === "no_cuenta" || valor === "pendiente") return valor;
+  return null;
+}
+
+/**
+ * Los casos del bloque. El motor publica el envío, el enumerador, si es el
+ * mismo responsable (con las equivalencias confirmadas), la decisión vigente
+ * y el destino (`decision` o `avisos`); una efectiva «No cuenta» sigue en la
+ * lista. Con un corte anterior a esas columnas, se completan desde
+ * `control_tiempo_kobo` y el perfil.
+ */
 export function casosDeDiscrepancia(
   reports: MonitoreoAcreditacionReports | null | undefined,
   perfil: MonitoreoProfile | null | undefined,
@@ -80,37 +92,31 @@ export function casosDeDiscrepancia(
     const codigo = texto(fila.CodPulso);
     const envio = envios.get(codigo);
     const responsable = texto(fila.Responsable);
-    const enumerador = envio?.enumerador ?? "";
-    const decision = (envio?.responseId ? decisiones.get(envio.responseId) : undefined) ?? porCodigo.get(codigo);
+    const sentido: SentidoDeDiscrepancia = texto(fila.Destino) === "avisos" || texto(fila.Sentido) === "hoja_sin_kobo" ? "hoja_sin_kobo" : "kobo_sin_hoja";
+    const responseId = texto(fila["Response ID"]) || envio?.responseId || "";
+    const enumerador = texto(fila["Enumerador Kobo"]) || envio?.enumerador || "";
+    const guardada = (responseId ? decisiones.get(responseId) : undefined) ?? porCodigo.get(codigo);
     const sinResponsable = !responsable || /^sin (responsable|asignar)$/i.test(responsable);
+    const mismo = texto(fila["Mismo responsable"]);
+    const decisionPublicada = decisionDeColumna(texto(fila["Decisión"]));
     return {
-      sentido: texto(fila.Sentido) === "hoja_sin_kobo" ? "hoja_sin_kobo" : "kobo_sin_hoja",
+      sentido,
       codigo,
       progres: texto(fila.proGres),
       responsable: sinResponsable ? SIN_RESPONSABLE : responsable,
       hojaDice: texto(fila["La hoja dice"]),
       fechaHoja: texto(fila["Fecha hoja"]),
       fechaKobo: texto(fila["Fecha Kobo"]) || envio?.fecha || "",
-      responseId: envio?.responseId ?? decision?.response_id ?? "",
+      responseId,
       enumerador,
-      enumeradorDistinto: Boolean(enumerador && !sinResponsable && clave(nombreEnLaHoja(enumerador, equivalencias)) !== clave(responsable)),
-      decision: !decision ? "pendiente" : decision.action === "keep_excluded" ? "no_cuenta" : "cuenta",
-      nota: decision?.note ?? "",
-      decididoEl: decision?.decided_at ?? "",
+      enumeradorDistinto: mismo
+        ? mismo === "No"
+        : Boolean(enumerador && !sinResponsable && clave(nombreEnLaHoja(enumerador, equivalencias)) !== clave(responsable)),
+      decision: decisionPublicada ?? (!guardada ? "pendiente" : guardada.action === "keep_excluded" ? "no_cuenta" : "cuenta"),
+      nota: texto(fila.Nota) || guardada?.note || "",
+      decididoEl: texto(fila["Decidido el"]) || guardada?.decided_at || "",
     } satisfies CasoDeDiscrepancia;
   });
-}
-
-/**
- * Los envíos que el supervisor sacó del avance («No cuenta»): ya no son
- * efectiva de Kobo, así que el bloque no los trae; se listan desde la decisión
- * para que la decisión siga a la vista y se pueda revertir.
- */
-export function casosSacados(perfil: MonitoreoProfile | null | undefined, vigentes: readonly CasoDeDiscrepancia[]) {
-  const vistos = new Set(vigentes.map((caso) => caso.responseId).filter(Boolean));
-  return decisionesTelefonicas(perfil)
-    .filter((item) => item.action === "keep_excluded" && !vistos.has(item.response_id))
-    .map((item) => ({ codigo: item.declared_code, responseId: item.response_id, nota: item.note, decididoEl: item.decided_at }));
 }
 
 export type GrupoPorResponsable = { responsable: string; casos: CasoDeDiscrepancia[] };
@@ -160,13 +166,13 @@ export function csvParaElEquipo(casos: readonly CasoDeDiscrepancia[]) {
 
 export type ResumenDeDiscrepancias = { koboSinHoja: number; hojaSinKobo: number; pendientes: number; decididos: number };
 
-export function resumenDeDiscrepancias(casos: readonly CasoDeDiscrepancia[], sacados = 0): ResumenDeDiscrepancias {
+export function resumenDeDiscrepancias(casos: readonly CasoDeDiscrepancia[]): ResumenDeDiscrepancias {
   const kobo = casos.filter((caso) => caso.sentido === "kobo_sin_hoja");
   return {
     koboSinHoja: kobo.length,
     hojaSinKobo: casos.length - kobo.length,
     pendientes: kobo.filter((caso) => caso.decision === "pendiente").length,
-    decididos: kobo.filter((caso) => caso.decision !== "pendiente").length + sacados,
+    decididos: kobo.filter((caso) => caso.decision !== "pendiente").length,
   };
 }
 
@@ -184,9 +190,13 @@ export function sugerenciasDeEquivalencia(
     .map((enumerador) => {
       const k = clave(enumerador);
       const digitos = k.replace(/\D/g, "");
+      const letras = k.replace(/\d/g, "");
       const parecido = hoja.find((nombre) => {
         const h = clave(nombre);
-        if (digitos && h.replace(/\D/g, "") === digitos && h.replace(/\d/g, "") === k.replace(/\d/g, "")) return true;
+        const hDigitos = h.replace(/\D/g, "");
+        const hLetras = h.replace(/\d/g, "");
+        // «Operador 14» y «Op-14»: el mismo número y un nombre que abrevia al otro.
+        if (digitos && hDigitos && Number(digitos) === Number(hDigitos) && (letras.startsWith(hLetras) || hLetras.startsWith(letras))) return true;
         return h.length >= 4 && (h.includes(k) || k.includes(h));
       }) ?? "";
       return { kobo: enumerador, hoja: parecido };

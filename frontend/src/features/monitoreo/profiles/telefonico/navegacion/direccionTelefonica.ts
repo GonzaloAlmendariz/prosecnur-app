@@ -81,6 +81,7 @@ const TABLA: readonly Entrada[] = [
   // dirección vieja `panel=tiempos` se lee como la pestaña.
   entrada("control", "respuestas", null, { seccion: "consultas", pestana: "plataforma" }, "Efectivas"),
   entrada("control", "respuestas", "salvedades", { seccion: "consultas", pestana: "subsanacion" }, "Salvedades"),
+  entrada("control", "supervision", null, { seccion: "telefonico", pestana: "supervision" }),
   entrada("control", "avisos", null, { seccion: "telefonico", pestana: "alertas" }),
   entrada("avance", "cuotas", null, { seccion: "avance", pestana: "actores" }),
   entrada("avance", "ritmo", null, { seccion: "avance", pestana: "resumen" }),

@@ -88,7 +88,7 @@ describe("dirección pública del telefónico", () => {
     const rail = pestanasDelRail("control", (seccion) => (seccion === "telefonico"
       ? [{ key: "incidencia", label: "Sin efectiva", detail: "x", icon: MONITOREO_PESTANAS.telefonico.control[0].icon, badge: "324", estado: "parcial" }]
       : []));
-    expect(rail.map((tab) => tab.key)).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "avisos"]);
+    expect(rail.map((tab) => tab.key)).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "supervision", "avisos"]);
     const insistencia = rail.find((tab) => tab.key === "insistencia");
     expect(insistencia?.label).toBe("Insistencia");
     expect(insistencia?.badge).toBe("324");

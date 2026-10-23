@@ -179,13 +179,6 @@
   color: var(--pulso-warn-fg);
 }
 
-.mon-dsc-sacados {
-  margin: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
-
 .mon-dsc-ficha {
   display: flex;
   flex-direction: column;
