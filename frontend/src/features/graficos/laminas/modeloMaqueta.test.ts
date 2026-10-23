@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../api/graficos";
-import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, ranurasDeMaqueta, ttbDeBloque } from "./modeloMaqueta";
 
 const slide = (grafico: unknown) => ({ tipo: "p_slide_1_grafico", payload: { titulo: "T", grafico } }) as unknown as Slide;
 
@@ -22,7 +22,7 @@ describe("maqueta: qué muestra cada ranura", () => {
   it("un bloque con Top Two Box enciende la columna en la maqueta", () => {
     const [r] = ranurasDeMaqueta(slide({
       graficador: "p_barras_multiapiladas",
-      args: { modo: "multilista", bloques: [{ vars: { tema_1: ["docentes$p11"] }, top2box: true }] },
+      args: { modo: "multilista", bloques: [{ vars: { tema_1: ["docentes$p11"] }, barra_extra: ["top2box"] }] },
     }), []);
     expect(r.twoBox.ttb).toBe(true);
   });
@@ -59,7 +59,7 @@ describe("maqueta: qué muestra cada ranura", () => {
     ] as never[];
     const s = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: [
       { vars: { t: ["docentes$p11"] } },
-      { vars: { t: ["docentes$p12"] }, top2box: true, top2box_labels: ["De acuerdo"] },
+      { vars: { t: ["docentes$p12"] }, barra_extra: ["top2box"], top2box_labels: ["De acuerdo"] },
     ] } });
     const [r] = ranurasDeMaqueta(s, vars);
     expect(r.preguntas.map((q) => [q.titulo, q.ttb])).toEqual([["¿Conoce?", false], ["Definidos", true]]);
@@ -107,5 +107,15 @@ describe("maqueta: qué muestra cada ranura", () => {
     ] as never[];
     const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "estudiantes$a3", "administrativos$a2"] } } });
     expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
+  });
+});
+
+describe("barra extra por bloque: bloque > lámina > preset", () => {
+  it("un bloque sin barra propia hereda la de la lámina; false propio la apaga; Conteos no es Top Two Box", () => {
+    expect(ttbDeBloque({}, ["top2box"])).toBe(true);
+    expect(ttbDeBloque({ barra_extra: false }, ["top2box"])).toBe(false);
+    expect(ttbDeBloque({ barra_extra: ["top2box"] }, false)).toBe(true);
+    expect(ttbDeBloque({ barra_extra: ["conteos"] }, ["top2box"])).toBe(false);
+    expect(ttbDeBloque({}, undefined)).toBe(false);
   });
 });
