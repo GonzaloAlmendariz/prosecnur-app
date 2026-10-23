@@ -481,11 +481,20 @@
 }
 
 .mon-equipo-llamados {
-  min-width: 120px;
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+.mon-equipo-llamados span {
+  display: inline-block;
+  min-width: 32px;
+  margin-left: var(--pulso-space-2);
 }
 
 .mon-equipo-llamados i {
-  display: block;
+  display: inline-block;
+  width: calc(100% - 44px);
+  vertical-align: middle;
   height: 6px;
   border-radius: 3px;
   background: var(--pulso-bg-deep);
@@ -676,6 +685,43 @@
   margin: 0;
 }
 
+.mon-equipo-status {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-equipo-status ul {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-equipo-status li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 36px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}
+
+.mon-equipo-status li i {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-bg-deep);
+}
+
+.mon-equipo-status li i b {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--familia);
+}
+
 @media (max-width: 1400px) {
   .mon-equipo {
     grid-template-columns: minmax(0, 1fr) 300px;
@@ -695,5 +741,20 @@
 
   .mon-equipo-tabla-panel {
     max-height: 520px;
+  }
+
+  /* La cifra de llamados se queda; la barra cede para que las diez columnas
+   * quepan sin desplazar a lo ancho. */
+  .mon-equipo-llamados {
+    min-width: 0;
+  }
+
+  .mon-equipo-llamados i {
+    display: none;
+  }
+
+  .mon-equipo .mon-ctl-tabla th,
+  .mon-equipo .mon-ctl-tabla td {
+    padding-inline: var(--pulso-space-2);
   }
 }

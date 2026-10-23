@@ -5,6 +5,8 @@ import { fmt } from "../formato";
 import { nombreDelSegmento } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
+import { contarDesvios } from "../control/equipoModel";
+import { buildTelefonicoStatusMatrix } from "../telefonicoTeamModel";
 
 /**
  * Lo que la barra del modo telefónico dice en todas las pestañas: el eje de
@@ -187,7 +189,9 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
   const personas = new Set(filas.filter((fila) => !sinAsignar(fila)).map((fila) => String(fila.Responsable).trim().toLowerCase()));
   const asignados = filas.filter((fila) => !sinAsignar(fila)).reduce((suma, fila) => suma + (Number(fila["Casos asignados"]) || 0), 0);
   const libres = filas.filter(sinAsignar).reduce((suma, fila) => suma + (Number(fila["Casos asignados"]) || 0), 0);
+  const desvios = contarDesvios(buildTelefonicoStatusMatrix(filasDeBloque(reports, ["estatus_responsable"])));
   return [
+    ...(desvios ? [`${fmt(desvios)} ${desvios === 1 ? "desvío" : "desvíos"}`] : []),
     `${fmt(personas.size)} operadores con ${fmt(asignados)} casos`,
     ...(libres ? [`${fmt(libres)} casos sin asignar`] : []),
   ];
@@ -195,5 +199,5 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
 export function pestanaConLienzo(direccion: { seccion: string; pestana: string }): boolean {
-  return ["avance/cuotas", "control/insistencia", "control/barrido"].includes(`${direccion.seccion}/${direccion.pestana}`);
+  return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo"].includes(`${direccion.seccion}/${direccion.pestana}`);
 }

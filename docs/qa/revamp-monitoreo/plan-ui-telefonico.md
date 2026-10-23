@@ -32,7 +32,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☑ |
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
-| T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☐ |
+| T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
@@ -173,3 +173,16 @@ y sin asignar, y status del cliente con su regla. Datos de `resumen_telefonico`,
   (`non_effective`) y no Terminal como en el lienzo; en Medios de Vida «Rechazo» cae en Terminal porque su regla cierra.
 - El resumen anterior (conciliación Kobo y hoja, embudo de la cifra y tarjetas por responsable) sigue en Discrepancias,
   Respuestas, Avance › Cuotas y Equipo.
+
+**T5, Control › Equipo.** `profiles/telefonico/control/Equipo.tsx`, `EquipoMatriz.tsx` y `equipoModel.ts` (test con
+`estatus_responsable` real de PDM anonimizado en `control/fixtures/`). Selector «Carga | Estados por operador»
+(`panel=estados`) y ficha del operador elegido (`foco=<operador>`). Carga por persona (suma las filas de dos actores):
+asignados, llamados, sin llamar, efectivas en la hoja y en Kobo, brecha (efectivas de Kobo que la hoja no marca), sin
+efectiva sobre llamados e intentos por caso reintentable; fila «Sin asignar» aparte. Estados por operador con
+`buildTelefonicoStatusMatrix`: los 18 desvíos de PDM coinciden con el modelo de hoy (test).
+
+- **No viaja y no se inventó**: la columna «Días» y «Llamados por día» del operador (no hay status por responsable y
+  fecha) y «Casos por sede» del operador (no hay responsable por cuota). En su lugar la ficha lista los status de la
+  hoja del operador con su familia, que sí viajan en `estatus_responsable`, y su insistencia (`reintentos_responsable`).
+- La paridad con Responsables se conserva: la matriz con desvíos, la brecha con Kobo por responsable y las cifras de las
+  tarjetas (asignados, barridos, efectivas, sin efectiva, por barrer) están en Carga y en la ficha.
