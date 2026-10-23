@@ -1951,7 +1951,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
                                etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
                                forzar_ancho_max_eje_y = NULL, marcas_eje = NULL, invertir_barras = NULL,
-                               otros_al_final = NULL, normalizar_etiquetas = NULL) {
+                               otros_al_final = NULL, normalizar_etiquetas = NULL, residuales_gris = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1987,6 +1987,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   # O7c: lo que la tarjeta escribe en el slot y el constructor no declaraba se caía en `.clean_rebuild_args()`.
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")
   overrides <- .ppt_slot_override(overrides, "otros_al_final", otros_al_final, "bool")
+  overrides <- .ppt_slot_override(overrides, "residuales_gris", residuales_gris, "bool")   # residuales en gris: opción del gráfico, apagada por defecto
   overrides <- .ppt_slot_override(overrides, "normalizar_etiquetas", normalizar_etiquetas, "opcion",
                                   opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
 
@@ -2038,6 +2039,7 @@ p_barras_categoricas <- function(
     max_categorias = NULL,
     mostrar_promedio = NULL,
     orden_categorias = NULL,
+    residuales_gris = NULL,
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
@@ -2048,6 +2050,7 @@ p_barras_categoricas <- function(
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   extra <- list(...)
   if (length(extra)) overrides <- utils::modifyList(overrides, extra)
+  overrides <- .ppt_slot_override(overrides, "residuales_gris", residuales_gris, "bool")   # residuales en gris: opción del gráfico, apagada por defecto
   if (!is.null(max_categorias)) overrides$max_categorias <- overrides$max_categorias %||% max_categorias
   if (!is.null(mostrar_promedio)) overrides$mostrar_promedio <- overrides$mostrar_promedio %||% isTRUE(mostrar_promedio)
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")

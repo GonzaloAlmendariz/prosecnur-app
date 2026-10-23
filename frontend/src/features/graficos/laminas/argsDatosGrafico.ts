@@ -251,6 +251,11 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   invertir_barras: { rotulo: "Invertir el orden de las barras", soloEn: ["p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas"] },
   otros_al_final: { rotulo: "Otros al final", ayuda: "La categoría Otros va al final, sin importar su frecuencia.", soloEn: ["p_barras_agrupadas"] },
   normalizar_etiquetas: { rotulo: "Escritura de las categorías", soloEn: ["p_barras_agrupadas", "p_barras_categoricas"] },
+  // Opcional y apagado por defecto (Gonzalo, 2026-10-23): formal de p_barras_agrupadas / p_lollipop y `...` de p_barras_categoricas.
+  residuales_gris: {
+    rotulo: "Residuales en gris", ayuda: "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto.",
+    soloEn: ["p_barras_agrupadas", "p_barras_categoricas", "p_lollipop"],
+  },
   max_palabras: { rotulo: "Máximo de palabras", soloEn: ["p_nube_palabras"] },
   min_chars: { rotulo: "Mínimo de letras por palabra", soloEn: ["p_nube_palabras"] },
   decimales: { rotulo: "Decimales", soloEn: ["p_numerico", "p_histograma"] },
