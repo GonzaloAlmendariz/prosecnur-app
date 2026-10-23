@@ -3,7 +3,7 @@
 
 .mon-dsc {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  grid-template-columns: 250px minmax(0, 1fr) 300px;
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -150,8 +150,15 @@
   color: var(--pulso-warn-fg);
 }
 
+/* Qué pasa, proGres y la decisión van en una línea: si no entran, la tabla
+ * desplaza en horizontal dentro de su marco; no se parten ni se cortan. */
+.mon-dsc-una-linea {
+  white-space: nowrap;
+}
+
 .mon-dsc-decision {
   display: inline-block;
+  white-space: nowrap;
   padding: 1px 8px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);

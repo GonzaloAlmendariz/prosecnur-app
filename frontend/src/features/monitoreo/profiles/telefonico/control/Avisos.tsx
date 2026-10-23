@@ -7,6 +7,16 @@ import "./controlTelefonico.css";
 
 const NIVEL: Record<NivelDeAviso, string> = { alta: "Alta", media: "Media", baja: "Baja" };
 
+/** «23/10», venga la fecha como 2026-10-23 o como 23/10/2026. */
+function fechaCortaDeAviso(fecha: string) {
+  if (!fecha) return "";
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(fecha);
+  if (iso) return `${iso[3]}/${iso[2]}`;
+  const dma = /^(\d{1,2})\/(\d{1,2})\/\d{2,4}/.exec(fecha);
+  if (dma) return `${dma[1].padStart(2, "0")}/${dma[2].padStart(2, "0")}`;
+  return fecha;
+}
+
 function n(valor: number | null | undefined) {
   return valor == null ? "—" : valor.toLocaleString("es-PE");
 }
@@ -189,7 +199,7 @@ export function Avisos({
                     <li key={`${caso.codigo}-${i}`}>
                       <b>{caso.codigo}</b>
                       <span>{caso.responsable || "Sin asignar"}</span>
-                      <span className="is-num">{caso.fecha ? caso.fecha.replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, "$3/$2") : ""}</span>
+                      <span className="is-num mon-avisos-fecha">{fechaCortaDeAviso(caso.fecha)}</span>
                       <small>{caso.nota}</small>
                     </li>
                   ))}

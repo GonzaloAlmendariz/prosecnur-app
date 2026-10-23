@@ -140,8 +140,8 @@ const QUE_PASA: Record<SentidoDeDiscrepancia, string> = {
 /** La lectura corta para la tabla: la hoja y Kobo en una línea. */
 export function queDiceCorto(caso: Pick<CasoDeDiscrepancia, "sentido" | "hojaDice">) {
   return caso.sentido === "kobo_sin_hoja"
-    ? `Kobo efectiva; la hoja dice «${caso.hojaDice || "sin status"}»`
-    : "Hoja «Efectivo», sin envío de Kobo";
+    ? `Kobo sí; hoja «${caso.hojaDice || "sin status"}»`
+    : "Hoja «Efectivo»; Kobo no";
 }
 
 export function queDice(caso: Pick<CasoDeDiscrepancia, "sentido" | "hojaDice">) {

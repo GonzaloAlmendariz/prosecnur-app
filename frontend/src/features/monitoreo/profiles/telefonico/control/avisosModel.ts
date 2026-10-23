@@ -137,6 +137,9 @@ export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valo
   return `${empatados.toLocaleString("es-PE")} empatan en la cifra más alta${cifra}.`;
 }
 
+/** La alerta del motor que «Efectivo en la hoja sin Kobo» reemplaza (`monitoreo_engine.R`). */
+export const ALERTA_VIEJA_EFECTIVO_SIN_KOBO = "efectivo_telefonico_sin_kobo";
+
 export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
@@ -238,7 +241,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
   // (RMS ficticio: 1 en Avisos y 2 en Discrepancias); si está la nueva, sale.
   if (deLosBloques.some((aviso) => aviso.codigo === "efectivo_sin_kobo")) {
     for (let i = avisos.length - 1; i >= 0; i -= 1) {
-      if (/efectiv\w*[ _]*(telefonic\w*)?[ _]*sin[ _]+(efectiv\w*[ _]+)?kobo|sin[_ ]kobo/i.test(`${avisos[i].codigo} ${avisos[i].titulo}`)) avisos.splice(i, 1);
+      if (normal(avisos[i].codigo) === normal(ALERTA_VIEJA_EFECTIVO_SIN_KOBO)) avisos.splice(i, 1);
     }
   }
   avisos.push(...deLosBloques);
@@ -349,7 +352,8 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
     });
     avisos.push({
       id: "efectivo-sin-kobo",
-      nivel: "media",
+      // Alta, como en el motor: la discrepancia se avisa rápido al equipo (P2).
+      nivel: "alta",
       titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
       detalle: "No cuentan en el avance hasta que llegue el envío de Kobo o se corrija el status de la hoja.",
       casos: efectivoSinKobo.length,
