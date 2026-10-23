@@ -3,6 +3,7 @@ import { ArrowRight, Loader2, Scale } from "lucide-react";
 import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { diaYMes, fmt } from "../rotulos";
+import { MapaDeMovimientos } from "./MapaDeMovimientos";
 import { ajusteParaAplicar, construirSubsanaciones, type PaqueteSugerido } from "./subsanacionesModel";
 import { useRechazos } from "./useRechazos";
 import "./subsanaciones.css";
@@ -182,6 +183,7 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">El motor no encuentra excedente compatible para las celdas abiertas.</p>
         )}
+        <MapaDeMovimientos activos={modelo.ajustesActivos} sugeridos={sugerencias.map((paquete) => paquete.ajuste)} />
       </section>
 
       <section className="mon-sub-panel" aria-labelledby="mon-sub-activas" data-qa-geometry-member="activas">
