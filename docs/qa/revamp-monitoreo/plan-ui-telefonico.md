@@ -30,7 +30,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T0 | Preparación | Worktree, `pnpm install`, copia de `ACNUR_PDM.pulso` y de `PDM_MedVida2026.pulso`, capturas «antes» de las pestañas actuales, aviso a «ACNUR RMS» | diseño conforme | ☐ |
 | T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☑ |
 | T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☑ |
-| T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☐ |
+| T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☐ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☐ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
@@ -110,3 +110,26 @@ barra y el resto vive en Respuestas, Discrepancias y Barrido.
 - **P17 sigue abierta**: con cambios sin recalcular la píldora dice «Pendiente» (ámbar), como hoy, y no «Al día» como
   dibuja el lienzo. Por eso PDM muestra «Pendiente» en las capturas.
 - A 1024 × 600 las insignias ceden (se ocultan) para que los rótulos de sección no se recorten.
+
+**T3, Avance › Cuotas.** `profiles/telefonico/avance/CuotasFaltante.tsx` (tabla y columna derecha),
+`FaltanteDiario.tsx` (faltante al cierre de cada día, con menos de cuatro categorías), modelo puro
+`cuotasFaltanteModel.ts` con test y `entradaDeCuotas.ts`, que arma la entrada desde bloques que ya viajan
+(`cuotas_variable`, `avance_efectivo_variable_dia`, `no_barridos_responsable`, `control_tiempo_kobo`). Ritmo y
+rendimiento salen de `buildTelefonicoCumplimiento`. Verificado en vivo: PDM 0 de 400 en verde, 423 efectivas, 105.8 %,
+cumplida el 06/07, ritmo 60.4, rendimiento 1.5; Medios de Vida 31 de 100 en carmesí (el corte de la copia trae 69
+efectivas, no las 70 del lienzo), faltante diario 68, 57, 49, 36, 25 y 16, 13, 12, 10, 6.
+
+Diferencias con el lienzo, por datos que el payload no trae (no se inventaron):
+
+- **Muestra por categoría**: el lienzo separa Muestra de Backup y reparte por familia de status de la hoja (efectiva
+  en la hoja, reintentable, rechazo o parcial, terminal). Ningún bloque trae status por cuota ni el origen
+  (`estatus_actor_dia` viene por fuente, no por sede). El panel se llama «Listado por sede» y reparte el listado completo
+  con lo que `cuotas_variable` sí trae: efectivas, rechazos o parciales, llamados sin efectiva y sin llamar.
+- **Sin llamar y Sin asignar** cuentan el listado entero (PDM 1,665 y 1,197), no sólo la muestra (480 y 12): separar
+  Muestra de Backup depende de P8–P9.
+- **De dónde sale la cifra**: el lienzo tiene cuatro pasos (recibidas 430, reales 427, con consentimiento 424, únicas
+  423). El corte trae «pasan el filtro de efectiva» (filas de `control_tiempo_kobo`, 424, con los criterios del filtro)
+  y las únicas (423). «Recibidas en Kobo» sale sólo si la metadata del sync trae `response_count`; en las copias no
+  viene. Para los cuatro pasos el motor tendría que publicar la cadena.
+- El chip de proyecto, el dock y la píldora «Pendiente» (P17) difieren por el proyecto y su estado, no por la vista.
+- `TelefonicoGoalPanel.tsx` no se tocó: no está montado en esta pestaña.
