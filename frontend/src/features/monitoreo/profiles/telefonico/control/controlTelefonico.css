@@ -882,8 +882,10 @@
   background: var(--pulso-brand-navy);
 }
 
-.mon-respuestas-histograma .is-largo i {
-  background: var(--pulso-danger-fg);
+/* Lo que se revisa son las cortas: el tramo «< 5 min» en ámbar. Una larga no
+ * es un problema y va con el color de las demás. */
+.mon-respuestas-histograma .is-corta i {
+  background: var(--pulso-warn-fg);
 }
 
 .mon-respuestas-reglas ul {
@@ -1023,8 +1025,8 @@
   background: var(--pulso-accent-steel);
 }
 
-.mon-respuestas-barra i b.is-largo {
-  background: var(--pulso-danger-fg);
+.mon-respuestas-barra i b.is-corta {
+  background: var(--pulso-warn-fg);
 }
 
 .mon-respuestas-barra span {
