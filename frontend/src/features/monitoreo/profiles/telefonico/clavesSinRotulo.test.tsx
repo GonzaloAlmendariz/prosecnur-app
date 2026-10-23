@@ -26,7 +26,7 @@ import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Estados } from "./insumos/Estados";
 import { Fuentes } from "./insumos/Fuentes";
 import { LlaveYFiltros } from "./insumos/Llave";
-import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
+import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
@@ -208,7 +208,7 @@ const PESTANAS: Array<[string, () => string]> = [
     return pintar(
       <>
         {[contrato.universe, contrato.sweep, contrato.platform].map((slot) => (
-          <ColumnasEsperadas key={slot.key} columnas={slot.expected} pieza={slot.label} />
+          <AcreditacionPhoneSourceSlotCard key={slot.key} slot={slot} icon={null} syncFallback="2026-07-27T09:04:00" onCambiar={nada} />
         ))}
       </>,
       `${RUTA}&seccion=insumos&pestana=llave`,

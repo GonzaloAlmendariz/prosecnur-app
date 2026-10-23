@@ -126,8 +126,11 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
   // El modelo telefónico de Fuentes se renderiza en los dos perfiles: en el
   // fork y también dentro de Acreditación cuando el estudio es telefónico. Las
   // dos copias tienen que decir lo mismo o el rediseño valdría a medias.
+  // En telefónico la tarjeta salió del page-file a `insumos/TarjetaDeFuente.tsx`
+  // (T8); se lee junto con la página para que el contrato siga viendo las dos.
+  const tarjetaTelefonica = readFileSync(resolve(__dirname, "insumos", "TarjetaDeFuente.tsx"), "utf8");
   const copias = [
-    ["telefonico", page],
+    ["telefonico", `${tarjetaTelefonica}\n${page}`],
     ["acreditacion", acreditacion],
   ] as const;
 
