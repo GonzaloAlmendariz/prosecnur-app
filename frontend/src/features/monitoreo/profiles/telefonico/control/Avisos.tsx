@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { construirAvisos, type Aviso, type NivelDeAviso } from "./avisosModel";
+import { construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
 import "./controlTelefonico.css";
 
 const NIVEL: Record<NivelDeAviso, string> = { alta: "Alta", media: "Media", baja: "Baja" };
@@ -24,6 +24,7 @@ export function Avisos({
   onIrA: (seccion: string, pestana: string) => void;
 }) {
   const modelo = useMemo(() => construirAvisos(reports), [reports]);
+  const destinos = useMemo(() => porDestino(modelo.avisos), [modelo.avisos]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const elegido: Aviso | null = modelo.avisos.find((aviso) => aviso.id === foco) ?? modelo.avisos[0] ?? null;
 
@@ -39,6 +40,10 @@ export function Avisos({
 
   return (
     <div className="mon-avisos" data-qa-geometry-group="telefonico-control-avisos" data-qa-geometry-contract="intrinsic">
+      {/* La columna crece con su contenido y desplaza si no cabe: las filas no
+        * reparten el alto del panel. Lo que sobra con pocas causas lo usa
+        * «Por dónde se corrige». */}
+      <div className="mon-avisos-columna">
       <section className="mon-ctl-panel mon-avisos-lista-panel" aria-label="Avisos por causa">
         <div className="mon-ctl-tabla-marco">
           <table className="mon-ctl-tabla mon-avisos-tabla">
@@ -88,6 +93,40 @@ export function Avisos({
           </table>
         </div>
       </section>
+      {destinos.length ? (
+        <section className="mon-ctl-panel mon-avisos-destinos" aria-label="Por dónde se corrige">
+          <span className="mon-ctl-antetitulo">Por dónde se corrige</span>
+          <ul>
+            {destinos.map((destino) => (
+              <li key={destino.etiqueta}>
+                <span>
+                  <b>{destino.etiqueta}</b>
+                  <small>{destino.avisos === 1 ? "1 aviso" : `${n(destino.avisos)} avisos`}</small>
+                </span>
+                <strong className="is-num">
+                  {[
+                    destino.casos ? `${n(destino.casos)} ${destino.casos === 1 ? "caso" : "casos"}` : "",
+                    destino.responsables ? `${n(destino.responsables)} ${destino.responsables === 1 ? "responsable" : "responsables"}` : "",
+                  ].filter(Boolean).join(" y ") || "—"}
+                </strong>
+                {destino.direccion ? (
+                  <button
+                    type="button"
+                    className="mon-avisos-ir"
+                    onClick={() => {
+                      const direccion = destino.direccion;
+                      if (direccion) onIrA(direccion.seccion, direccion.pestana);
+                    }}
+                  >
+                    Ir
+                  </button>
+                ) : <em>fuera de la app</em>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      </div>
 
       <aside className="mon-ctl-panel mon-avisos-ficha" aria-label="Aviso elegido" data-qa-geometry-group="telefonico-avisos-ficha" data-qa-geometry-contract="intrinsic">
         {elegido ? (
@@ -107,7 +146,7 @@ export function Avisos({
                 {elegido.afectados.length ? `Casos afectados (${n(elegido.afectados.length)})` : "Desglose"}
               </span>
               {elegido.afectados.length ? (
-                <ul className="mon-avisos-lista-casos">
+                <ul className={`mon-avisos-lista-casos${elegido.afectados.length > 8 ? " is-larga" : ""}`}>
                   {elegido.afectados.map((caso, i) => (
                     <li key={`${caso.codigo}-${i}`}>
                       <b>{caso.codigo}</b>
@@ -130,22 +169,27 @@ export function Avisos({
                 <p className="mon-avisos-sin-casos">El corte no nombra los casos de este aviso: se revisan en {elegido.destino.etiqueta}.</p>
               )}
             </section>
-            <div className="mon-avisos-ficha-pie">
+            {/* «Qué hacer» va pegado a la lista: sin hueco en medio. */}
+            <section className="mon-avisos-que-hacer" aria-label="Qué hacer">
+              <span className="mon-ctl-antetitulo">Qué hacer</span>
               {elegido.destino.direccion ? (
-                <button
-                  type="button"
-                  className="mon-avisos-ir"
-                  onClick={() => {
-                    const direccion = elegido.destino.direccion;
-                    if (direccion) onIrA(direccion.seccion, direccion.pestana);
-                  }}
-                >
-                  Ir a {elegido.destino.etiqueta}
-                </button>
+                <>
+                  <p>Se revisa en {elegido.destino.etiqueta}.</p>
+                  <button
+                    type="button"
+                    className="mon-avisos-ir"
+                    onClick={() => {
+                      const direccion = elegido.destino.direccion;
+                      if (direccion) onIrA(direccion.seccion, direccion.pestana);
+                    }}
+                  >
+                    Ir a {elegido.destino.etiqueta}
+                  </button>
+                </>
               ) : (
-                <p className="mon-ctl-nota">Se corrige en la hoja del equipo; Monitoreo la lee al actualizar.</p>
+                <p>Se corrige en la hoja del equipo; Monitoreo la lee al actualizar.</p>
               )}
-            </div>
+            </section>
           </>
         ) : (
           <p className="mon-ctl-nota">Sin avisos por causa; queda sólo el reparto pendiente.</p>

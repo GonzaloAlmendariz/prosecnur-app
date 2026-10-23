@@ -338,3 +338,32 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
   }
   return avisos;
 }
+
+export type DestinoConCasos = {
+  etiqueta: string;
+  direccion: DestinoDeAviso["direccion"];
+  avisos: number;
+  casos: number;
+  responsables: number;
+};
+
+/**
+ * «Por dónde se corrige»: los avisos agrupados por la pestaña (o la hoja del
+ * equipo) donde se corrigen, con cuántos casos y responsables reúnen. Los
+ * casos sin asignar no entran: no son atraso de nadie.
+ */
+export function porDestino(avisos: readonly Aviso[]): DestinoConCasos[] {
+  const grupos = new Map<string, DestinoConCasos>();
+  avisos.forEach((aviso) => {
+    const actual = grupos.get(aviso.destino.etiqueta)
+      ?? { etiqueta: aviso.destino.etiqueta, direccion: aviso.destino.direccion, avisos: 0, casos: 0, responsables: 0 };
+    actual.avisos += 1;
+    if (aviso.unidad === "responsables") actual.responsables += aviso.casos ?? 0;
+    else actual.casos += aviso.casos ?? 0;
+    grupos.set(aviso.destino.etiqueta, actual);
+  });
+  // Primero lo que se corrige dentro de la app; la hoja del equipo al final.
+  return [...grupos.values()].sort((a, b) => (
+    Number(a.direccion === null) - Number(b.direccion === null) || b.casos - a.casos || a.etiqueta.localeCompare(b.etiqueta, "es")
+  ));
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { construirAvisos, destinoDeAviso } from "./avisosModel";
+import { construirAvisos, destinoDeAviso, porDestino } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -79,6 +79,24 @@ describe("Control › Avisos del telefónico", () => {
     const aviso = avisos.find((item) => /formato/i.test(item.codigo));
     expect(aviso?.casos).toBe(3);
     expect(aviso?.unidad).toBe("casos");
+  });
+
+  it("reúne los avisos por dónde se corrigen, con la hoja del equipo al final", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Alta", "cruce_llave_bajo", "Solo 2 de 430 respuestas cruzan con el barrido."),
+      fila("Media", "status_desconocido", "Pendiente de llamar: 12."),
+      fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos por iniciar", { Responsable: "Ana" }),
+      fila("Media", "Responsable con casos por iniciar", "Beto tiene 6 casos por iniciar", { Responsable: "Beto" }),
+    ], { estatus_dia: [] }));
+    const destinos = porDestino([
+      ...avisos,
+      { ...avisos[0], id: "x", unidad: "casos", casos: 9, destino: { etiqueta: "Hoja del equipo", direccion: null } },
+    ]);
+    expect(destinos.at(-1)?.etiqueta).toBe("Hoja del equipo");
+    expect(destinos.at(-1)?.casos).toBe(9);
+    const equipo = destinos.find((destino) => destino.etiqueta === "Equipo, en Control");
+    expect(equipo?.responsables).toBe(2);
+    expect(equipo?.casos).toBe(0);
   });
 
   it("con responsables empatados no dice «el más marcado»", () => {

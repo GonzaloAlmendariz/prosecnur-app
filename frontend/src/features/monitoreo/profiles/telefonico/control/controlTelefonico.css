@@ -1092,6 +1092,8 @@
 .mon-avisos {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: start;
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -1100,16 +1102,70 @@
   line-height: 1.35;
 }
 
-.mon-avisos-lista-panel {
+/* Cada panel mide lo que pide su contenido; si la columna no cabe, ella
+ * desplaza (dueña única del overflow). */
+.mon-avisos-columna {
   display: flex;
   flex-direction: column;
+  gap: var(--pulso-space-3);
   min-width: 0;
-  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.mon-avisos-lista-panel {
+  flex: none;
+  min-width: 0;
   overflow: hidden;
 }
 
 .mon-avisos-lista-panel .mon-ctl-tabla-marco {
-  flex: 1 1 auto;
+  overflow: visible;
+}
+
+.mon-avisos-destinos {
+  flex: none;
+  padding: var(--pulso-space-4);
+}
+
+.mon-avisos-destinos ul {
+  display: flex;
+  flex-direction: column;
+  margin: var(--pulso-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-avisos-destinos li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 96px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-avisos-destinos li > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mon-avisos-destinos small,
+.mon-avisos-destinos em {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.mon-avisos-destinos em {
+  text-align: right;
+}
+
+.mon-avisos-destinos .mon-avisos-ir {
+  justify-self: end;
+  min-width: 56px;
 }
 
 .mon-avisos-tabla th:nth-child(2) { width: 88px; }
@@ -1117,12 +1173,7 @@
 
 .mon-avisos-tabla tbody th,
 .mon-avisos-tabla tbody td {
-  padding-block: var(--pulso-space-4);
-}
-
-/* La lista llena su panel: las filas reparten el alto. */
-.mon-avisos-tabla {
-  height: 100%;
+  padding-block: var(--pulso-space-3);
 }
 
 /* La fila elegida se marca con el fondo y un borde azul marino; el nivel va
@@ -1241,8 +1292,9 @@
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-height: 0;
+  max-height: 100%;
   padding: var(--pulso-space-4);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .mon-avisos-ficha-cabecera {
@@ -1258,22 +1310,29 @@
 
 .mon-avisos-afectados {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-height: 0;
 }
 
 .mon-avisos-lista-casos {
-  flex: 1 1 auto;
-  min-height: 120px;
+  flex: 0 1 auto;
+  min-height: 0;
   margin: 0;
-  padding: 0 0 var(--pulso-space-6);
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  padding: 0;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
   list-style: none;
+}
+
+/* Sólo la lista que no cabe lleva barra visible y degradado al pie; la corta
+ * termina en su último caso y «Qué hacer» va pegado. */
+.mon-avisos-lista-casos.is-larga {
+  padding-bottom: var(--pulso-space-6);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
 }
 
@@ -1313,7 +1372,7 @@
 }
 
 .mon-avisos-sin-casos {
-  flex: 1 1 auto;
+  flex: none;
   padding: var(--pulso-space-3);
   border: 1px dashed var(--pulso-border-strong);
   border-radius: 12px;
@@ -1343,23 +1402,12 @@
   color: var(--pulso-text-soft);
 }
 
-.mon-avisos-desglose ul {
+.mon-avisos-que-hacer {
   display: flex;
+  flex: none;
   flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-avisos-desglose li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-  padding: 5px 0;
-  border-top: 1px solid var(--pulso-surface-3);
-}
-
-.mon-avisos-ficha-pie {
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
   padding-top: var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
 }
@@ -1403,6 +1451,7 @@
 
   .mon-avisos > * {
     flex: none;
+    max-height: none;
   }
 
   .mon-avisos-tabla th:nth-child(3) { width: 150px; }
