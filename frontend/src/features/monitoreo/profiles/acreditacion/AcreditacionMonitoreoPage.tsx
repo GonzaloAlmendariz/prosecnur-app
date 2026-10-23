@@ -71,6 +71,7 @@ import { PorResolver } from "./control/casos/PorResolver";
 import { Cruce } from "./control/casos/Cruce";
 import { Personas } from "./control/casos/Personas";
 import { Respuestas } from "./control/casos/Respuestas";
+import { Calidad } from "./control/casos/Calidad";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -16438,6 +16439,7 @@ function renderAcreditacionView(
     if ((options.activePhoneTab ?? "resumen") === "incidencia") return <Reintentos reports={reports} state={options.state} />; // Control › Reintentos (A4).
     if ((options.activePhoneTab ?? "resumen") === "resumen" && !esEstudioTelefonico) return <Barrido reports={reports} state={options.state} />; // Control › Barrido (A5).
     if (options.activePhoneTab === "responsables" && !esEstudioTelefonico) return <Equipo reports={reports} state={options.state} />; // Control › Equipo (A5).
+    if (options.activePhoneTab === "alertas" && !esEstudioTelefonico) return <Calidad reports={reports} state={options.state} />; // Control › Calidad (A5).
     if ((options.activePhoneTab ?? "resumen") === "estados") {
       // Los crudos salen del bloque que ya publica el motor; el definidor no
       // inventa estados, confirma los que el corte trajo.

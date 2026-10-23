@@ -1,0 +1,62 @@
+/* Control › Calidad (ficha Ctl7): duraciones a la izquierda, señales a 420 px. */
+
+.acr-ps.is-calidad {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.acr-cl-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+.acr-cl-senales {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.acr-cl-senales li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-cl-senales li:first-child {
+  border-top: 0;
+}
+
+.acr-cl-senal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.acr-cl-senales li.is-danger .acr-res-punto { background: var(--pulso-resultado-rechazo); }
+.acr-cl-senales li.is-warning .acr-res-punto { background: var(--acr-rechazo); }
+.acr-cl-senales li.is-info .acr-res-punto { background: var(--pulso-accent-steel); }
+
+.acr-cl-detalle {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+@media (max-width: 1365px) {
+  .acr-ps.is-calidad { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-calidad { grid-template-columns: minmax(0, 1fr); }
+}
