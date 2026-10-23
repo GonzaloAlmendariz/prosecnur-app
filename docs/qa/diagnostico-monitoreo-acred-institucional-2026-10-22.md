@@ -1,5 +1,10 @@
 # Diagnóstico · Monitoreo para «Acreditación Institucional PUCP 2026» (2026-10-22)
 
+Tipo: Diagnóstico de viabilidad
+Estado: Vigente
+Fecha: 2026-10-22
+Autoridad: Gonzalo (pedido de sesión)
+
 Estudio para la DAA (firma el Vicerrectorado Académico). Nueve públicos, 45,078
 personas invitadas por correo (Mailchimp, dominio `enviospulso.pucp.edu.pe`),
 encuestas en SurveyMonkey con enlace personal `?t=<token>`. Meta: **8,503

@@ -1,7 +1,8 @@
 # Procedimientos de campo respondidos por Gonzalo
 
 Tipo: Registro de decisiones de dominio
-Estado: Vivo
+Estado: Vigente
+Situación: Vivo
 Fecha: 2026-10-22
 Autoridad: respuestas textuales de Gonzalo en la sesión del revamp de Monitoreo. Manda sobre cualquier supuesto del
 código, de un solo proyecto o de las maquetas. Regla: «si hay alguna duda sobre consentimiento o procedimiento,

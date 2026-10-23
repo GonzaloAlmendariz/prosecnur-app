@@ -1,5 +1,10 @@
 # Checklist · Inspector del correo: Personas, puntos y ayuda (2026-10-23)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-10-23
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo (textual): «sí, hazlo en Personas, además aquí no sé por qué me muestras el qué hace ni el código en html, tampoco sé por qué me exige hacerlo todo en un campo de texto en vez de ir por el profesional approach de dejarme aumentar viñetas de forma interactiva».
 
 Contexto: la propuesta aceptada fue juntar en Personas, en una sección visible aunque no haya lista importada, los campos de cada persona y el saludo según la persona (ver `checklist-ajustes-bloque-2026-10-23.md`, ítems 4 y 5).
