@@ -157,3 +157,19 @@ Medios de Vida 82 por rellamar y ninguno efectivo en Kobo.
   scratchpad (`impl/pdm_cola.pulso`, `impl/mv_cola.pulso`).
 - `scripts/build-visual-catalog.mjs` y `scripts/monitoreo-performance-check.mjs` ya nombran Insumos, Modelo, Control y
   Avance.
+
+**T5, Control › Barrido.** `profiles/telefonico/control/Barrido.tsx` con `barridoModel.ts` (test) y
+`familiasDelCliente.ts`, que ubica cada status de la hoja en Efectiva, Parcial, Rechazo, Reintentable o Terminal según
+`state_rules` (mismo emparejamiento que el motor) y marca «sin regla» lo que el vocabulario no declara. Embudo de cuatro
+tarjetas simétricas (Listado, Llamados, Efectivas en la hoja, Sin llamar), listado por categoría, llamados por fecha del
+último intento (PDM 59, 207, 356 y 9 en «otra o sin fecha», igual que el lienzo), sin llamar por categoría con asignados
+y sin asignar, y status del cliente con su regla. Datos de `resumen_telefonico`, `estatus_telefonico`, `estatus_dia`,
+`no_barridos_responsable` y `cuotas_variable`.
+
+- **No viaja y no se inventó**: la tarjeta «Muestra 1,111» y la reserva 1,185 (columna `Origen`, P8–P9), y la familia de
+  status por categoría (Reintentable y Terminal por sede): la tabla por categoría reparte con parciales, rechazos, sin
+  llamar y efectivas en Kobo de `cuotas_variable`.
+- Las familias siguen el vocabulario declarado, como la cola: en PDM «Número suspendido» es Reintentable
+  (`non_effective`) y no Terminal como en el lienzo; en Medios de Vida «Rechazo» cae en Terminal porque su regla cierra.
+- El resumen anterior (conciliación Kobo y hoja, embudo de la cifra y tarjetas por responsable) sigue en Discrepancias,
+  Respuestas, Avance › Cuotas y Equipo.

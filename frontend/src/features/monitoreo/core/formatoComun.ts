@@ -51,6 +51,16 @@ export function pctDecimal(value: unknown, sinDato = "S/D") {
   return `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
 }
 
+/**
+ * Porcentaje del lenguaje común del revamp de Monitoreo (estándar §2a, 5c):
+ * un decimal fijo y espacio antes del signo, «35.2 %», «70.0 %».
+ */
+export function pctConEspacio(value: unknown, sinDato = "—") {
+  const n = value == null || value === "" ? NaN : Number(value);
+  if (!Number.isFinite(n)) return sinDato;
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+}
+
 export function pct(value: unknown) {
   const n = value == null || value === "" ? NaN : Number(value);
   if (!Number.isFinite(n)) return "S/D";
