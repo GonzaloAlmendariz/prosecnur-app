@@ -224,3 +224,11 @@ fecha); si no nombra ninguno, lo dice. La lista de causas reparte el alto entre 
 no se ve (queda en `title` y `data-aviso`). El nivel pasa a un punto junto al título y la fila elegida se marca con
 fondo y borde azul marino, para que no compitan. La ficha declara su grupo de geometría (`telefonico-avisos-ficha`):
 antes el pie anclado con `margin-top: auto` hacía que el panel llegara al borde y el vacío intermedio no se medía.
+
+**Corrección de Avisos (rechazo del verificador).** Un grupo de alertas sólo se cuenta por persona cuando la señal es de
+asignación o cuando cada alerta nombra a un responsable distinto y ningún caso. En Medios de Vida, «Efectivo telefónico
+sin efectiva Kobo» decía «3 responsables» con «Lucía 1 / Lucía 1 / Marco 1». Ahora dice 3 casos y lista MVH0006,
+MVH0053 y MVH0069 con su responsable. El código llega del motor como `codigo:MVH0006` y la ficha quita el prefijo. El
+desglose junta a cada persona en una sola línea. Con empate no se dice «el más marcado». La cifra del motor manda sobre
+los códigos nombrados: en PDM, el formato de CodPulso son 287 alertas y 286 códigos distintos. La clave interna ya no
+sale en el `title`, sólo en `data-aviso`.
