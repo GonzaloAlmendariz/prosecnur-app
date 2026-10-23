@@ -33,7 +33,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
-| T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
+| T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
@@ -204,3 +204,16 @@ se lee como la pestaña y se limpia de la dirección. Salvedades sigue como sub-
 **Pulido de T5.** Barrido: el panel «Status del cliente» lleva al pie «Lo que la hoja no registra». Barrido y Equipo:
 un status que la regla del proyecto pone en otra familia que su nombre (en Medios de Vida «Rechazo» cierra) se rotula
 «Terminal por su regla».
+
+**T6, Control › Avisos.** `profiles/telefonico/control/Avisos.tsx` con `avisosModel.ts` (test). Lee las alertas reales con
+`TelefonicoPhoneAlerts.ts`, como la vista anterior, y las agrupa por causa con nivel, cuántos, detalle y dónde se
+corrige (enlace a la pestaña, o «Hoja del equipo» cuando se corrige fuera de la app). Las alertas que venían una por
+responsable («Responsable con casos por iniciar», 11 en PDM) se agrupan en una causa con desglose por persona en la
+ficha. Los avisos fuertes del RMS (`cruce_llave_bajo`, `filtro_columna_no_encontrada`, `status_desconocido`) se agregan
+cuando el bloque los trae; en las copias de PDM y Medios de Vida no vienen y no se dibujan. «Casos sin asignar» va
+aparte y en gris. Además se leen de bloques que ya viajan cuatro avisos que el motor no emite como alerta: efectivas
+en Kobo cuyo caso sigue «No barrido» (PDM 166), duración mayor a 2 h (56), CodPulso repetido en Kobo (1) y fecha de la
+hoja irregular (9).
+
+- **No viaja**: el «Formato de CodPulso» como sugerencia de formulario y el último envío de Kobo frente al último día de
+  la hoja como fechas (el lienzo los dibuja en la ficha); la causa sí está.

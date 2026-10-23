@@ -7,6 +7,7 @@ import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
 import { construirRespuestas } from "../control/respuestasModel";
+import { construirAvisos } from "../control/avisosModel";
 import { buildTelefonicoStatusMatrix } from "../telefonicoTeamModel";
 
 /**
@@ -160,6 +161,7 @@ export function chipsDeCabecera(
   if (clave === "control/barrido") return chipsDeBarrido(reports, state);
   if (clave === "control/equipo") return chipsDeEquipo(reports);
   if (clave === "control/respuestas") return chipsDeRespuestas(reports);
+  if (clave === "control/avisos") return chipsDeAvisos(reports);
   return [];
 }
 
@@ -181,6 +183,13 @@ function chipsDeBarrido(reports: MonitoreoAcreditacionReports | null, state?: Mo
     chips.push(`Hoja leída el ${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)} a las ${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`);
   }
   return chips;
+}
+
+/** Cuántos avisos hay de cada nivel. */
+function chipsDeAvisos(reports: MonitoreoAcreditacionReports | null): string[] {
+  const { porNivel } = construirAvisos(reports);
+  const chip = (cantidad: number, uno: string, varios: string) => (cantidad ? [`${fmt(cantidad)} ${cantidad === 1 ? uno : varios}`] : []);
+  return [...chip(porNivel.alta, "alto", "altos"), ...chip(porNivel.media, "medio", "medios"), ...chip(porNivel.baja, "bajo", "bajos")];
 }
 
 /** Efectivas sobre envíos que pasan el filtro y cuántas duran más de 2 h. */
@@ -213,5 +222,5 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
 export function pestanaConLienzo(direccion: { seccion: string; pestana: string; panel?: string | null }): boolean {
   // Una sub-vista que todavía monta la vista anterior (Respuestas › Salvedades) conserva la tarjeta.
   if (direccion.seccion === "control" && direccion.pestana === "respuestas") return !direccion.panel;
-  return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo"].includes(`${direccion.seccion}/${direccion.pestana}`);
+  return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo", "control/avisos"].includes(`${direccion.seccion}/${direccion.pestana}`);
 }

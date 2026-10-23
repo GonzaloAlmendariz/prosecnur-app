@@ -69,7 +69,7 @@ import {
   monitoreoSeccionDesdeParams,
   useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
-import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionTelefonica";
+import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal, vistaDeDestino } from "./navegacion/direccionTelefonica";
 import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
@@ -79,6 +79,7 @@ import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
 import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Equipo } from "./control/Equipo";
+import { Avisos } from "./control/Avisos";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -19073,6 +19074,9 @@ function renderAcreditacionView(
   }
   if (view === "telefonico" && options.activePhoneTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
     return <BarridoDeLaHoja reports={reports} state={options.state} cuotas={phoneQuotaCardsForDashboard(reports)} />; // Control › Barrido (T5).
+  }
+  if (view === "telefonico" && options.activePhoneTab === "alertas" && isTelefonicoMonitoreoState(options.state)) {
+    return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
   }
   if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
     return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).
