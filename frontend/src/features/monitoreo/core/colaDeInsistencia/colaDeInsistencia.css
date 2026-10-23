@@ -37,11 +37,18 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
-/* Barra de filtros. */
+/* Barra de filtros: una sola fila. Los anchos siguen al valor elegido
+ * (`field-sizing`); si la barra no alcanza, el control de menor uso pasa a
+ * «Más filtros» antes que partir la fila (Sede primero, luego Intentos y el
+ * interruptor). Los peldaños miden la barra, no el viewport. */
+.mon-cola-filtros-marco {
+  flex: none;
+  container: cola-filtros / inline-size;
+}
+
 .mon-cola-filtros {
   display: flex;
-  flex: none;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-3);
@@ -57,14 +64,14 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 var(--pulso-space-3);
+  padding: 0 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
 }
 
 .mon-cola-buscar {
-  width: 220px;
+  width: 176px;
   color: var(--pulso-text-faint);
 }
 
@@ -86,7 +93,9 @@
 }
 
 .mon-cola-filtro select {
-  max-width: 220px;
+  field-sizing: content;
+  max-width: 200px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--pulso-text);
@@ -104,12 +113,98 @@
 
 .mon-cola-interruptor {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--pulso-space-2);
-  margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 12.5px;
   white-space: nowrap;
+}
+
+.mon-cola-filtros > .mon-cola-interruptor {
+  margin-left: auto;
+}
+
+.mon-cola-mas {
+  position: relative;
+  display: none;
+  flex: none;
+}
+
+.mon-cola-mas-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mon-cola-mas-boton:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.mon-cola-mas-lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-2);
+  min-width: 240px;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+/* En la barra ancha, las copias del menú no se pintan. */
+.mon-cola-mas-lista > [data-prioridad] {
+  display: none;
+}
+
+@container cola-filtros (max-width: 1330px) {
+  .mon-cola-filtros > [data-prioridad="baja"] {
+    display: none;
+  }
+
+  .mon-cola-mas {
+    display: inline-flex;
+  }
+
+  .mon-cola-mas-lista > [data-prioridad="baja"] {
+    display: inline-flex;
+  }
+}
+
+@container cola-filtros (max-width: 1080px) {
+  .mon-cola-filtros > [data-prioridad="media"] {
+    display: none;
+  }
+
+  .mon-cola-mas-lista > [data-prioridad="media"] {
+    display: inline-flex;
+  }
+
+  .mon-cola-mas {
+    margin-left: auto;
+  }
+
+  .mon-cola-buscar {
+    width: 176px;
+  }
 }
 
 /* Cuerpo de tres columnas. */
@@ -153,13 +248,29 @@
   font-size: 11.5px;
 }
 
+/* La lista desplaza con barra visible (también en macOS, donde la barra se
+ * oculta sola) y un degradado al pie dice que sigue: un ítem cortado a media
+ * línea sin esas dos señales se lee como el último. */
 .mon-cola-responsables-lista {
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
-  padding: 0;
-  overflow-y: auto;
+  padding: 0 0 var(--pulso-space-6);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
   list-style: none;
+  mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+}
+
+.mon-cola-responsables-lista::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-cola-responsables-lista::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
 }
 
 .mon-cola-responsable {
@@ -466,6 +577,15 @@
   color: var(--pulso-text-faint);
 }
 
+/* Una línea: la sigla o el nombre con elipsis; el nombre entero está en el
+ * `title` y en la ficha del caso. */
+.mon-cola-cuota {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mon-cola-fecha span,
 .mon-cola-fecha small {
   display: block;
@@ -717,7 +837,4 @@
     display: none;
   }
 
-  .mon-cola-buscar {
-    width: 160px;
-  }
 }

@@ -1,5 +1,5 @@
 import type { CasoDeCola } from "../colaDeInsistenciaModel";
-import { diasDesde, fechaDeCola } from "../colaDeInsistenciaModel";
+import { diasDesde, fechaDeCola, siglaDeCuota } from "../colaDeInsistenciaModel";
 
 export type ColumnasDeCola = {
   /** Rótulo de la columna de cuota que declara el estudio (Sede, Actor…). */
@@ -70,7 +70,11 @@ export function TablaDeCola({
                 <td className={caso.observacion ? "mon-cola-observacion" : "mon-cola-observacion is-vacia"}>
                   {caso.observacion || "Sin observación"}
                 </td>
-                <td>{columnas.telefono ? telefonoDelCaso(caso) || "—" : caso.cuota || "—"}</td>
+                <td>
+                  {columnas.telefono ? telefonoDelCaso(caso) || "—" : caso.cuota ? (
+                    <span className="mon-cola-cuota" title={caso.cuota}>{siglaDeCuota(caso.cuota) ?? caso.cuota}</span>
+                  ) : "—"}
+                </td>
                 <td className="mon-cola-fecha">
                   <span>{fechaDeCola(caso.fecha) || "Sin fecha"}</span>
                   <small>{diasDesde(caso.diasSinRegistro)}</small>
