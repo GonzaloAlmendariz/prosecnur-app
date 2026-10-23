@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { rotuloDelSegmento } from "../segmentoDeCuotas";
 import { CalendarClock } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
@@ -57,7 +58,7 @@ export function Ritmo({
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
   const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
-  const notaDeSerie = notaSinCategoria(sinCategoria, segmento, fueraDeCuota, sinFecha);
+  const notaDeSerie = notaSinCategoria(sinCategoria, rotuloDelSegmento(segmento), fueraDeCuota, sinFecha);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -79,7 +80,14 @@ export function Ritmo({
   const ultimoKobo = kobo.fechas.at(-1) ?? null;
   const hojaSeDetiene = hoja.ultima && ultimoKobo && hoja.ultima < ultimoKobo ? hoja.ultima : null;
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
-  const nombreDeSegmento = segmento ? segmento.toLocaleLowerCase("es") : "categoría";
+  const rotulo = rotuloDelSegmento(segmento);
+  // Un día sin efectivas de Kobo conserva el acumulado del día anterior (RMS
+  // ficticio mostraba «—» el 15/10 y el 16/10 entre 1 y 36).
+  const acumuladoAl = (iso: string) => {
+    const previos = Object.keys(resumen.acumulado).filter((dia) => dia <= iso).sort();
+    return previos.length ? resumen.acumulado[previos[previos.length - 1]] : null;
+  };
+  const nombreDeSegmento = rotulo ? rotulo.toLocaleLowerCase("es") : "categoría";
   if (!kobo.total && !Object.keys(hoja.totalPorFecha).length) {
     return <RitmoSinSerie reports={reports} sinFecha={sinFecha} meta={meta} />;
   }
@@ -147,7 +155,7 @@ export function Ritmo({
             <table className="mon-ctl-tabla mon-cadencia-calor-tabla">
               <thead>
                 <tr>
-                  <th scope="col">{segmento || "Categoría"}</th>
+                  <th scope="col">{rotulo || "Categoría"}</th>
                   {kobo.fechas.map((iso) => <th key={iso} scope="col" className="is-num">{fechaCorta(iso)}</th>)}
                   <th scope="col" className="is-num">Total</th>
                 </tr>
@@ -198,7 +206,7 @@ export function Ritmo({
                   <tr key={iso} className={resumen.pico?.fecha === iso ? "is-pico" : undefined}>
                     <th scope="row">{fechaCorta(iso)}</th>
                     <td className="is-num">{n(kobo.porFecha[iso] ?? 0)}</td>
-                    <td className="is-num">{resumen.acumulado[iso] != null ? n(resumen.acumulado[iso]) : "—"}</td>
+                    <td className="is-num">{acumuladoAl(iso) != null ? n(acumuladoAl(iso) ?? 0) : "—"}</td>
                     <td className="is-num">{n(hoja.totalPorFecha[iso] ?? 0)}</td>
                   </tr>
                 ))}

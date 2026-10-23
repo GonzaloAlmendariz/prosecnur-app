@@ -258,8 +258,7 @@
   casos <- if (length(elegidas)) {
     cod <- base$CodPulso[elegidas]
     rid <- .monitoreo_supervision_texto(base[["Response ID"]][elegidas])
-    pg <- unname(progres[match(.monitoreo_nombre_clave(cod), .monitoreo_nombre_clave(names(progres)))])
-    pg[is.na(pg)] <- ""
+    pg <- .monitoreo_discrepancias_progres_de(cod, progres)
     res <- lapply(seq_along(cod), function(i) {
       hit <- hojas$por_pulso[[.monitoreo_text_key(cod[[i]])]]
       if (is.null(hit) && nzchar(pg[[i]])) hit <- hojas$por_progres[[.monitoreo_text_key(pg[[i]])]]

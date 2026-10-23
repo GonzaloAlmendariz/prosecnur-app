@@ -5,9 +5,11 @@
  * hoja de cada caso y su categoría de cuota).
  *
  * Absorbe «Efectivas Kobo» y «Validación de tiempo»: cada envío con su duración,
- * su cruce con la hoja y sus marcas, y la distribución de duraciones. La regla
- * de tiempo de la vista anterior rotulaba «Normal (5+ min)» a los envíos de más
- * de 2 h; aquí se marcan aparte. Marcar no excluye: decide el supervisor.
+ * su cruce con la hoja y sus marcas, y la distribución de duraciones. El
+ * control de tiempo revisa las CORTAS (pueden estar mal hechas o inventadas);
+ * una encuesta larga no es un problema (Gonzalo, 2026-10-23): no se marca, no
+ * va a «por revisar» ni a Avisos, y sólo se dice cuántas hay como dato neutro.
+ * Marcar no excluye: decide el supervisor.
  *
  * Lo que el corte no trae no se inventa: los envíos de prueba y los sin
  * consentimiento ya vienen filtrados fuera del bloque, así que no hay chips
@@ -37,10 +39,9 @@ function clave(valor: unknown) {
 export const DOS_HORAS = 7200;
 export const CINCO_MINUTOS = 300;
 
-export type MarcaDeEnvio = "mas-de-2h" | "corta" | "repetida" | "no-cruza";
+export type MarcaDeEnvio = "corta" | "repetida" | "no-cruza";
 
 export const ETIQUETA_DE_MARCA: Record<MarcaDeEnvio, string> = {
-  "mas-de-2h": "Más de 2 h",
   corta: "Menos de 5 min",
   repetida: "Repetida",
   "no-cruza": "No cruza",
@@ -74,7 +75,8 @@ export type EnvioEfectivo = {
   responseId: string;
 };
 
-export type TramoDeDuracion = { etiqueta: string; casos: number; largo: boolean };
+/** `corto`: el tramo que el control de tiempo revisa (menos de 5 min). */
+export type TramoDeDuracion = { etiqueta: string; casos: number; corto: boolean };
 
 export type Respuestas = {
   envios: EnvioEfectivo[];
@@ -86,18 +88,20 @@ export type Respuestas = {
   mediana: number | null;
   tramos: TramoDeDuracion[];
   conteos: Record<MarcaDeEnvio, number>;
+  /** Dato neutro: cuántas duraron más de 2 h. */
+  largas: number;
   porRevisar: number;
 };
 
-const TRAMOS: ReadonlyArray<{ etiqueta: string; hasta: number; largo?: boolean }> = [
-  { etiqueta: "< 5 min", hasta: 300 },
+const TRAMOS: ReadonlyArray<{ etiqueta: string; hasta: number; corto?: boolean }> = [
+  { etiqueta: "< 5 min", hasta: 300, corto: true },
   { etiqueta: "5–10", hasta: 600 },
   { etiqueta: "10–15", hasta: 900 },
   { etiqueta: "15–20", hasta: 1200 },
   { etiqueta: "20–30", hasta: 1800 },
   { etiqueta: "30–60", hasta: 3600 },
   { etiqueta: "1–2 h", hasta: DOS_HORAS },
-  { etiqueta: "> 2 h", hasta: Number.POSITIVE_INFINITY, largo: true },
+  { etiqueta: "> 2 h", hasta: Number.POSITIVE_INFINITY },
 ];
 
 function mediana(valores: number[]) {
@@ -144,8 +148,11 @@ export function construirRespuestas({
     const caso = exacto ?? normalizado;
     const segundos = numero(fila["Duración segundos"] ?? fila["Duracion segundos"]);
     const marcas: MarcaDeEnvio[] = [];
-    if (segundos != null && segundos > DOS_HORAS) marcas.push("mas-de-2h");
-    if (segundos != null && segundos < CINCO_MINUTOS) marcas.push("corta");
+    // Corta: la regla de duración del motor (muy corto o corto) o, sin ella,
+    // menos de 5 min. Una larga no se marca.
+    const estadoDuracion = texto(fila["Estado duración"] ?? fila["Estado duracion"]).toLowerCase();
+    const cortaPorRegla = estadoDuracion === "muy_corto" || estadoDuracion === "corto";
+    if (cortaPorRegla || (segundos != null && segundos < CINCO_MINUTOS)) marcas.push("corta");
     if (llave && (veces.get(llave) ?? 0) > 1) marcas.push("repetida");
     if (!caso) marcas.push("no-cruza");
     return {
@@ -164,7 +171,7 @@ export function construirRespuestas({
   });
 
   const duraciones = envios.map((envio) => envio.segundos).filter((s): s is number => s != null);
-  const conteos: Record<MarcaDeEnvio, number> = { "mas-de-2h": 0, corta: 0, repetida: 0, "no-cruza": 0 };
+  const conteos: Record<MarcaDeEnvio, number> = { corta: 0, repetida: 0, "no-cruza": 0 };
   envios.forEach((envio) => envio.marcas.forEach((marca) => { conteos[marca] += 1; }));
   const unicas = new Set(envios.map((envio) => clave(envio.codigo)).filter(Boolean)).size;
 
@@ -179,10 +186,12 @@ export function construirRespuestas({
       return {
         etiqueta: tramo.etiqueta,
         casos: duraciones.filter((s) => s >= desde && s < tramo.hasta).length,
-        largo: Boolean(tramo.largo),
+        corto: Boolean(tramo.corto),
       };
     }),
     conteos,
+    /** Dato neutro: cuántas duraron más de 2 h. No es un problema ni se revisa. */
+    largas: duraciones.filter((s) => s > DOS_HORAS).length,
     porRevisar: envios.filter((envio) => envio.marcas.length > 0).length,
   };
 }
