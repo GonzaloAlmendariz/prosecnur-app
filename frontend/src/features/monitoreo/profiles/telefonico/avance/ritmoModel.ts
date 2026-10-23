@@ -49,9 +49,20 @@ export type SerieKobo = {
   total: number;
   /** Fechas sin parsear (o «Sin fecha»), que no entran al eje. */
   sinFecha: number;
+  /** Valores del eje sin cuota («Sin dato», o un valor sin meta): no entran a la serie. */
+  fueraDeCuota: Array<{ nombre: string; casos: number }>;
 };
 
-export function serieKobo(reports: MonitoreoAcreditacionReports | null | undefined, segmento: string): SerieKobo {
+function claveDeValor(valor: unknown) {
+  return texto(valor).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ");
+}
+
+export function serieKobo(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  segmento: string,
+  /** Si viene, sólo cuentan los valores con cuota (como el diario de Avance › Cuotas). */
+  valoresDeCuota?: ReadonlySet<string>,
+): SerieKobo {
   const porVariable = filasDeBloque(reports, ["avance_efectivo_variable_dia"])
     .filter((fila) => !segmento || texto(fila.Variable).toLocaleLowerCase("es") === segmento.toLocaleLowerCase("es"));
   const filas: Array<{ categoria: string; fecha: string; casos: number }> = porVariable.length
@@ -61,8 +72,13 @@ export function serieKobo(reports: MonitoreoAcreditacionReports | null | undefin
   const porFecha: Record<string, number> = {};
   const totales = new Map<string, number>();
   let sinFecha = 0;
+  const fueraDeCuota = new Map<string, number>();
   filas.forEach(({ categoria, fecha, casos }) => {
     if (!casos) return;
+    if (porVariable.length && valoresDeCuota?.size && !valoresDeCuota.has(claveDeValor(categoria))) {
+      if (fechaDeColumna(fecha)) fueraDeCuota.set(categoria, (fueraDeCuota.get(categoria) ?? 0) + casos);
+      return;
+    }
     const iso = fechaDeColumna(fecha);
     if (!iso) {
       sinFecha += casos;
@@ -81,6 +97,7 @@ export function serieKobo(reports: MonitoreoAcreditacionReports | null | undefin
     porFecha,
     total: fechas.reduce((suma, iso) => suma + porFecha[iso], 0),
     sinFecha,
+    fueraDeCuota: [...fueraDeCuota.entries()].sort((a, b) => b[1] - a[1]).map(([nombre, casos]) => ({ nombre, casos })),
   };
 }
 
@@ -221,11 +238,26 @@ export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | 
  */
 export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
   const segmento = segmentoDeCuotas(reports);
-  const serie = serieKobo(reports, segmento);
+  // Los valores con cuota del eje: el mismo filtro que el diario de Avance › Cuotas.
+  const valoresDeCuota = new Set(
+    filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
+      .filter((fila) => texto(fila.Variable).toLocaleLowerCase("es") === segmento.toLocaleLowerCase("es"))
+      .map((fila) => claveDeValor(fila.Valor ?? fila["Categoría"] ?? fila.Categoria))
+      .filter(Boolean),
+  );
+  const serie = serieKobo(reports, segmento, valoresDeCuota);
+  const fuera = serie.fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
   const totalDeKobo = filasDeBloque(reports, ["avance_efectivo_dia"]).reduce((suma, fila) => (
     fechaDeColumna(texto(fila.Fecha)) ? suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas) : suma
   ), 0);
-  return { segmento, serie, sinCategoria: Math.max(0, totalDeKobo - serie.total) };
+  return {
+    segmento,
+    serie,
+    /** Efectivas de Kobo que no caen en ningún valor del eje. */
+    sinCategoria: Math.max(0, totalDeKobo - serie.total - fuera),
+    /** Efectivas en valores del eje sin cuota. */
+    fueraDeCuota: serie.fueraDeCuota,
+  };
 }
 
 /** Efectivas por día de la serie compartida, en orden. */
@@ -234,11 +266,24 @@ export function efectivasPorDia(reports: MonitoreoAcreditacionReports | null | u
   return serie.fechas.map((fecha) => ({ fecha, casos: serie.porFecha[fecha] ?? 0 }));
 }
 
-/** «1 efectiva sin actor», o vacío si todas caen en una categoría. */
-export function notaSinCategoria(sinCategoria: number, segmento: string) {
-  if (!sinCategoria) return "";
+/**
+ * «1 efectiva de Kobo sin actor no entra a la serie», y las de valores sin
+ * cuota («2 en Sin dato, sin cuota»); vacío si todo cae en un valor con cuota.
+ */
+export function notaSinCategoria(
+  sinCategoria: number,
+  segmento: string,
+  fueraDeCuota: ReadonlyArray<{ nombre: string; casos: number }> = [],
+) {
   const nombre = segmento.toLocaleLowerCase("es");
-  return `${sinCategoria.toLocaleString("es-PE")} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre} no ${sinCategoria === 1 ? "entra" : "entran"} a la serie`;
+  const fmt = (n: number) => n.toLocaleString("es-PE");
+  const partes = [
+    sinCategoria ? `${fmt(sinCategoria)} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre}` : "",
+    ...fueraDeCuota.map((item) => `${fmt(item.casos)} en «${item.nombre}», que no tiene cuota`),
+  ].filter(Boolean);
+  if (!partes.length) return "";
+  if (partes.length === 1 && sinCategoria) return `${partes[0]} no ${sinCategoria === 1 ? "entra" : "entran"} a la serie`;
+  return `No entran a la serie: ${partes.join(" y ")}`;
 }
 
 /**
@@ -247,9 +292,20 @@ export function notaSinCategoria(sinCategoria: number, segmento: string) {
  * no hay diferencia que explicar.
  */
 export function notaDeValidasTelefonica(reports: MonitoreoAcreditacionReports | null | undefined): string | undefined {
-  const { serie, sinCategoria, segmento } = serieDiariaDelCorte(reports);
-  if (!sinCategoria) return undefined;
+  const { serie, sinCategoria, fueraDeCuota, segmento } = serieDiariaDelCorte(reports);
+  const fuera = fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
+  if (!sinCategoria && !fuera) return undefined;
   const nombre = segmento.toLocaleLowerCase("es");
   const fmt = (n: number) => n.toLocaleString("es-PE");
-  return `${fmt(serie.total)} con ${nombre} y ${fmt(sinCategoria)} sin ${nombre}`;
+  return [
+    `${fmt(serie.total)} con cuota`,
+    fuera ? `${fmt(fuera)} en ${nombre} sin cuota` : "",
+    sinCategoria ? `${fmt(sinCategoria)} sin ${nombre}` : "",
+  ].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " y $1");
+}
+
+/** La nota de lo que no entra a la serie compartida, para Ritmo, Cuotas y Entregas. */
+export function notaDeLaSerie(reports: MonitoreoAcreditacionReports | null | undefined) {
+  const { sinCategoria, segmento, fueraDeCuota } = serieDiariaDelCorte(reports);
+  return notaSinCategoria(sinCategoria, segmento, fueraDeCuota);
 }
