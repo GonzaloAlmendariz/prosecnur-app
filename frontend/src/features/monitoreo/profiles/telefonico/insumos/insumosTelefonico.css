@@ -999,6 +999,8 @@
 
 /* La tarjeta de Kobo en la lateral de Llave mide 360 px: truncaba «Sin fuente
  * vin…» y «27/07/26, 9:0…». Aquí cada dato parte línea en vez de cortar. */
+.is-telefonico-profile .mon-llave .mon-llave-kobo .mon-phone-source-slot-data a,
+.is-telefonico-profile .mon-llave .mon-llave-kobo .mon-phone-source-slot-data strong,
 .mon-llave-kobo .mon-phone-source-slot-data a,
 .mon-llave-kobo .mon-phone-source-slot-data strong {
   overflow: visible;
