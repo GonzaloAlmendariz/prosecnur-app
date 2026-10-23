@@ -1,7 +1,8 @@
 # Estándar de maqueta del revamp de Monitoreo
 
 Tipo: Contrato de entregable QA
-Estado: Vigente (v2, reemplaza la v1 del mismo día)
+Estado: Vigente
+Situación: Vigente (v2, reemplaza la v1 del mismo día)
 Fecha: 2026-10-22
 Autoridad: pedidos de Gonzalo (2026-10-22): «maquetar el revamp completo con su detalle para que luego los ejecutores no
 adivinen»; y, al ver la v1: «muy planas, poco imaginativas, no aprovechan el alto disponible y no se centran en

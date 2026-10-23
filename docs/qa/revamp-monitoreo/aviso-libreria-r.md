@@ -1,8 +1,10 @@
 # Aviso: el runner de capturas reinstaló `prosecnurapp` desde la rama del revamp
 
 Tipo: Incidente operativo
-Estado: Abierto hasta que Gonzalo lo dé por visto
+Estado: En curso
+Situación: Abierto hasta que Gonzalo lo dé por visto
 Fecha: 2026-10-23
+Autoridad: Gonzalo (pedido de sesión)
 
 ## Qué pasó
 
@@ -28,7 +30,7 @@ El log lo deja escrito (`scratchpad/impl/t1/logs/api.log`):
 ## En qué estado quedó
 
 - La instalación terminó bien. `prosecnurapp` 0.9.3 está en
-  `/Users/gonzaloalmendariz/Library/R/arm64/4.5/library/prosecnurapp`, carga y no quedó `00LOCK-api`.
+  `~/Library/R/arm64/4.5/library/prosecnurapp`, carga y no quedó `00LOCK-api`.
 - Su código es el de la rama `revamp-monitoreo-telefonico` a esa hora: `main` en `7a301695b` más el bloque
   `cola_insistencia`. Desde entonces la rama no tocó `api/`.
 - Los jobs `callr` de cualquier backend que use esa librería (incluido el del usuario en 8787) corren ese código hasta

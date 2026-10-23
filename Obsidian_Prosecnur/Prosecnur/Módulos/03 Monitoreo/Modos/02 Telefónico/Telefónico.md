@@ -51,33 +51,34 @@ Confirma que existe un marco contactable con responsables asignados, que la plat
 
 ## Mapa de navegación
 
+Desde el revamp de 2026-10-23 el modo se recorre en cuatro secciones, en el orden del operativo, y aterriza en Avance › Cuotas.
+
 ```mermaid
 flowchart TD
     N["Telefónico"]
-    N --> C1["Fuentes telefónicas"]
+    N --> C1["Insumos telefónicos"]
     N --> C2["Modelo operativo telefónico"]
-    N --> C3["Llamadas telefónicas"]
-    N --> C4["Consultas telefónicas"]
-    N --> C5["Avance telefónico"]
+    N --> C3["Control telefónico"]
+    N --> C4["Avance telefónico"]
 ```
 
 ## Guía de destinos
 
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
-| [[Fuentes telefónicas]] | Al montar el estudio y cuando una cifra no cuadre | Declarar la encuesta de plataforma, la base y el barrido | El paquete de tres piezas que alimenta el modo |
-| [[Modelo operativo telefónico]] | Al fijar qué se espera del operativo | Declarar cuotas y cronograma | El criterio de cumplimiento |
-| [[Llamadas telefónicas]] | Durante el campo, todos los días | Revisar estados, tiempos, pendientes, equipo y alertas | El gobierno diario de la operación |
-| [[Consultas telefónicas]] | Cuando hay que responder por un caso | Revisar efectivas, conciliación por código y salvedades | La trazabilidad caso a caso |
-| [[Avance telefónico]] | Para leer cumplimiento y entregar | Revisar ritmo y cuotas, y generar salidas | El reporte del corte |
+| [[Insumos telefónicos]] | Al montar el estudio y cuando una cifra no cuadre | Declarar fuentes, llave, filtros y status | El corte y el cruce Kobo–hoja |
+| [[Modelo operativo telefónico]] | Al fijar qué se espera del operativo | Declarar cuotas y calendario | El criterio de cumplimiento |
+| [[Control telefónico]] | Durante el campo, todos los días | Revisar barrido, insistencia, equipo, discrepancias, respuestas, supervisión y avisos | El gobierno diario de la operación |
+| [[Avance telefónico]] | Para leer cumplimiento y entregar | Revisar el faltante y el ritmo, y generar entregas | El reporte del corte |
+
+Las notas de las secciones y pestañas anteriores (Consultas, Validación de tiempo, Salvedades y Cronograma) se conservan como históricas en `Retiradas/`.
 
 ## Recorrido recomendado
 
-1. **Fuentes telefónicas** al configurar: las tres piezas —base, barrido y plataforma— se mantienen separadas a propósito.
-2. **Modelo operativo telefónico** para declarar la cuota, que es lo que convierte la producción en cumplimiento.
-3. **Llamadas telefónicas** en el día a día: es la sección de gobierno del operativo.
-4. **Consultas telefónicas** cuando un caso concreto exige explicación.
-5. **Avance telefónico** para cerrar y entregar.
+1. **Avance › Cuotas** al abrir: lo primero es cuánto falta.
+2. **Control** en el día a día: Insistencia y Discrepancias son las colas que se trabajan.
+3. **Insumos** cuando una cifra no cuadra o cambia una fuente.
+4. **Modelo** al declarar o corregir la cuota.
 
 ## Cómo interpretar avance y estados
 
