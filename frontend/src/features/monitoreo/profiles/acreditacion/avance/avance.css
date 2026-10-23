@@ -12,7 +12,8 @@
 .acr-rg,
 .acr-ri,
 .acr-sa,
-.acr-pc {
+.acr-pc,
+.acr-co {
   --acr-efectiva: var(--pulso-brand-navy);
   --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
   --acr-rechazo: var(--pulso-resultado-parcial);
