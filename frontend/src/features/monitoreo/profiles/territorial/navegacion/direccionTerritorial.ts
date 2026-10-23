@@ -88,12 +88,12 @@ const TABLA: readonly Entrada[] = [
   entrada("modelo", "metas", null, v("modelo", "resumen"), { vista: "Cobertura" }),
   entrada("modelo", "metas", "manzanas", v("modelo", "tabla"), { vista: "Manzanas" }),
   entrada("modelo", "cuotas", null, v("calidad", "cuotas"), { regreso: false }),
-  entrada("control", "bandeja", null, v("consultas", "registro"), { vista: "Registro" }),
+  entrada("control", "bandeja", null, v("consultas", "registro"), { vista: "Registro", propia: true }),
   entrada("control", "bandeja", "gps", v("consultas", "gps"), { vista: "GPS" }),
   entrada("control", "bandeja", "duracion", v("consultas", "duracion"), { vista: "Duración" }),
-  entrada("control", "senales", null, v("calidad", "geolocalizacion"), { vista: "GPS" }),
+  entrada("control", "senales", null, v("calidad", "geolocalizacion"), { vista: "GPS", propia: true }),
   entrada("control", "senales", "duracion", v("calidad", "duracion"), { vista: "Duración" }),
-  entrada("control", "equipo", null, v("consultas", "responsable")),
+  entrada("control", "equipo", null, v("consultas", "responsable"), { propia: true }),
   entrada("control", "ocurrencias", null, v("ocurrencias", "states"), { vista: "Resumen" }),
   entrada("control", "ocurrencias", "distritos", v("ocurrencias", "distritos"), { vista: "Distritos" }),
   entrada("control", "ocurrencias", "ritmo", v("ocurrencias", "rhythm"), { vista: "Ritmo" }),
@@ -183,6 +183,10 @@ export const PANELES_DE_SUBVISTA: readonly string[] = [
 const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   // Ficha de una UMP al costado del mapa o de la tabla (`panel=ump&foco=<UMP>`).
   "avance/mapa": ["ump"],
+  // Bandeja: diálogo de anular un caso. Equipo: inspector del código y anular
+  // su producción (el `foco` dice cuál).
+  "control/bandeja": ["anular"],
+  "control/equipo": ["codigo", "anular"],
   "avance/umps": ["ump"],
 };
 const SIN_PANELES: readonly string[] = [];

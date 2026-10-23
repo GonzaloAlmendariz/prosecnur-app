@@ -92,6 +92,13 @@ describe("dirección pública del modo territorial", () => {
     expect(panelesSuperpuestos("avance", "umps")).toEqual(["ump"]);
     expect(esPestanaPropia({ seccion: "avance", pestana: "mapa", panel: null })).toBe(true);
     expect(panelesSuperpuestos("avance", "mapa")).toEqual(["ump"]);
+    // Control › Calidad: Bandeja, Señales y Equipo propias; sus sub-vistas
+    // heredadas (GPS, Duración) siguen montando la vista vieja.
+    for (const pestana of ["bandeja", "senales", "equipo"]) {
+      expect(esPestanaPropia({ seccion: "control", pestana, panel: null })).toBe(true);
+    }
+    expect(esPestanaPropia({ seccion: "control", pestana: "senales", panel: "duracion" })).toBe(false);
+    expect(panelesSuperpuestos("control", "equipo")).toEqual(["codigo", "anular"]);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {
