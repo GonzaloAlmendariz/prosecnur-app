@@ -232,3 +232,12 @@
   gap: 4px;
   color: var(--pulso-brand-navy);
 }
+
+.acr-in-variables li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.acr-in-variables li > span:last-child {
+  flex: 0 0 auto;
+}

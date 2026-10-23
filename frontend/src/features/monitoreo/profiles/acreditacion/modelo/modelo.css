@@ -54,7 +54,7 @@
 
 .acr-mo-exigida li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 60px 96px;
+  grid-template-columns: minmax(110px, 1fr) minmax(60px, 120px) 60px 96px;
   align-items: center;
   gap: var(--pulso-space-2);
 }
@@ -208,4 +208,19 @@
 
 @media (max-width: 1100px) {
   .acr-mo-fila { grid-template-columns: 140px minmax(0, 1fr) 110px; }
+}
+
+.acr-cl-cifras.acr-mo-cifras {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .acr-cl-cifras.acr-mo-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Los dos paneles de Ventana de campo miden su contenido: encogerlos dejaba
+ * las filas de los públicos encima del editor del plan. */
+.acr-mo-ventana > .acr-av-panel {
+  flex: 0 0 auto;
+  overflow: visible;
 }

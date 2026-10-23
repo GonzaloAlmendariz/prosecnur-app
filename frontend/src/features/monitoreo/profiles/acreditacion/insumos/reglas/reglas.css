@@ -8,8 +8,9 @@
   min-height: 100%;
 }
 
-.acr-rg-barra {
+.acr-av-panel.acr-rg-barra {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);

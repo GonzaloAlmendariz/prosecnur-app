@@ -990,3 +990,10 @@
 }
 
 /* ══ Fin Encuestas y recopiladores ══════════════════════════════════════════ */
+
+/* Insumos › Fuentes (A6): las fichas de declaración son un grupo de alturas
+ * iguales; con `align-items: start` cada una medía lo suyo (92 a 202 px). */
+.fuentes-resumen-stack .mon-acr-survey-declaration-list {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}

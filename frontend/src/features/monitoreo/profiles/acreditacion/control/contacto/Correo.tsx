@@ -180,8 +180,10 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
             <span className="acr-co-chip is-ok">Conectada</span>
           </header>
           <div className="acr-co-cuerpo">
-            <strong className="acr-co-audiencia">{nombreAudiencia(estado.list_id, audiencias)}</strong>
+            {/* Sin la lista de audiencias de la cuenta no hay nombre que mostrar: no se pone el identificador en su lugar. */}
+            <strong className="acr-co-audiencia">{audiencias.some((item) => item.id === estado.list_id) ? nombreAudiencia(estado.list_id, audiencias) : "Audiencia de Mailchimp"}</strong>
             <span className="acr-av-tenue">{estado.leido_at ? `Leída el ${corteCorto(estado.leido_at)}` : "Sin leer"}</span>
+            <span className="acr-av-tenue acr-av-num">{`Lista ${estado.list_id}`}</span>
             <dl className="acr-co-cifras">
               <div><dt>Envíos leídos</dt><dd className="acr-av-num">{cifra(estado.envios.length)}</dd></div>
               <div><dt>Respuestas atribuidas</dt><dd className="acr-av-num">{cifra(respuestasAtribuidas)}</dd></div>

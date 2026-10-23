@@ -36,7 +36,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   return (
     <div className="acr-ps is-respuestas" data-qa-geometry-group="acreditacion-control-respuestas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Facetas de las respuestas">
-        <div className="acr-pr-filtros-cuerpo">
+        <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <p className="acr-rs-total">
             <b className="acr-av-num">{fmt(respuestas.length)}</b>
             <span className="acr-av-tenue">{`respuestas; ${fmt(cuentan)} cuentan en el avance`}</span>

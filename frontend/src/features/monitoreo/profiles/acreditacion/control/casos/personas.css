@@ -141,3 +141,8 @@
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ps.is-respuestas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* El buscador de Respuestas: su ejemplo («Respuesta, público o encuesta») cabe entero. */
+.acr-ps-filtros .acr-pr-buscador {
+  min-width: 300px;
+}

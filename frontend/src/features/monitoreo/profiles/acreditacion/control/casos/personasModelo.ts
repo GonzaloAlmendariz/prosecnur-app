@@ -53,12 +53,17 @@ export function comoCruzo(caso: MonitoreoInternalQueryCase): string {
   return internalCaseCrossingLabel(internalCaseCrossingValue(caso));
 }
 
+/** La llave sin el prefijo técnico del motor («codigo:20222716» → «20222716»). */
+export function llaveLegible(crudo: string): string {
+  return crudo.replace(/^[a-z_]+:/i, "").trim();
+}
+
 export function personasDe(casos: readonly MonitoreoInternalQueryCase[]): Persona[] {
   return casos.map((caso, indice) => {
     const estado = estadoDePersona(caso);
     return {
       clave: `${texto(caso.actor)}-${texto(caso.case_key) || indice}-${indice}`,
-      llave: texto(caso.case_key) || "Sin llave",
+      llave: llaveLegible(texto(caso.case_key)) || "Sin llave",
       publico: texto(caso.actor) || "Sin público",
       estado,
       canal: estado === "sin-respuesta" ? "" : texto(caso.channel) || "Sin canal",

@@ -49,7 +49,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
     <div className="acr-ps acr-pc" data-qa-geometry-group="acreditacion-avance-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Variables">
         <header className="acr-av-panel-cabecera"><h3>Variables</h3></header>
-        <div className="acr-pr-filtros-cuerpo">
+        <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {cuotas.length ? (
             <section className="acr-pr-grupo">
               <h3 className="acr-av-antetitulo">Con meta <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>

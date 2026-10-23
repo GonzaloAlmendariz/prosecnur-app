@@ -39,7 +39,7 @@ export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: Var
             <span role="columnheader">Categoría</span>
             <span role="columnheader" className="acr-pc-escala">
               <span className="acr-pc-eje-titulo">% del público</span>
-              {marcas.map((valor) => <span key={valor} className="acr-pc-marca" style={{ left: x(valor) }}>{fmt(valor)}</span>)}
+              {marcas.map((valor, indice) => <span key={valor} className="acr-pc-marca" style={{ left: x(valor), transform: indice === 0 ? "none" : indice === marcas.length - 1 ? "translateX(-100%)" : undefined }}>{fmt(valor)}</span>)}
             </span>
             <span role="columnheader" className="is-num">Diferencia</span>
           </div>
