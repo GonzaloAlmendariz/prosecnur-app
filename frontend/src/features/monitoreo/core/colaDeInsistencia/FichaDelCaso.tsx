@@ -23,7 +23,10 @@ export function FichaDelCaso({
   cerrable,
   onCerrar,
   panelProps,
+  plataforma = "Kobo",
 }: {
+  /** Plataforma de las respuestas; Telefónico lee Kobo. */
+  plataforma?: string;
   caso: CasoDeCola | null;
   etiquetaCategoria: string;
   /** Fecha del corte, ya corta («27/07»). */
@@ -81,9 +84,9 @@ export function FichaDelCaso({
         </p>
       </section>
       <section className="mon-cola-ficha-bloque">
-        <span className="mon-cola-antetitulo">Kobo y tiempos</span>
+        <span className="mon-cola-antetitulo">{`${plataforma} y tiempos`}</span>
         <dl>
-          <Dato etiqueta="Envío en Kobo" valor={caso.efectivaKobo ? "Efectiva" : "Sin efectiva"} />
+          <Dato etiqueta={`Envío en ${plataforma}`} valor={caso.efectivaKobo ? "Efectiva" : "Sin efectiva"} />
           <Dato
             etiqueta="Días sin registro"
             valor={dias == null ? "Sin fecha" : dias < 0 ? `fecha posterior al corte del ${corte}` : `${dias.toLocaleString("es-PE")} al corte del ${corte}`}

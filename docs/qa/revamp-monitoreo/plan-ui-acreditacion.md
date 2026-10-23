@@ -39,7 +39,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A1 | Navegación y chrome | Catálogo `acreditacion` con Insumos · Modelo · Control · Avance (20 pestañas, 4 condicionales); vistas de hoy en `MONITOREO_PESTANAS_INTERNAS_ACREDITACION`; tabla `navegacion/direccionAcreditacion.ts` con alias de lectura; aterrizaje en Avance › Por público (D2); barra del modo (MODO, PÚBLICOS, insignias de Control y Avance, CORTE, estado, Actualizar ▾); cabecera de pestaña de 44 px con antetítulo «Sección · Grupo»; rail con CORTE al pie y divisor Contacto / Casos en Control; readiness por pestaña (G5) | — | ☑ |
 | A2 | Avance › Resumen y Por público | `avance/Resumen.tsx`, `avance/PorPublico.tsx`, `avance/PanelPublico.tsx` y modelos puros con test | A1 | ☑ |
 | A3 | Control › Por resolver | Subsanación y asignación asistida con la decisión auditada de hoy, cola por tipo, panel del caso | A1 | ☐ |
-| A4 | Control › Reintentos | `ColaDeInsistencia` con las columnas del barrido de acreditación | A1; bloque `cola_insistencia` en acreditación (backend) | ☐ |
+| A4 | Control › Reintentos | `ColaDeInsistencia` con las columnas del barrido de acreditación | A1; bloque `cola_insistencia` en acreditación (backend) | ◐ (escrita; falta typecheck, gates y capturas) |
 | A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ☐ |
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ☐ |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ☐ |
@@ -158,6 +158,20 @@ page-file a `control/casos/revisionAsistida.ts` sin cambiar lógica, y la vista 
 **Diferencias con el lienzo en A3:** el motivo no es obligatorio para descartar (hoy no lo es; ver pregunta). La
 franja «205 casos revisables pueden afectar la lista de no respuesta» de la vista anterior no está en Por resolver:
 esa lista es más amplia que los casos marcados y su lugar es Control › Personas (A5).
+
+**A4, Control › Reintentos (escrita, sin gate ni capturas).** Backend: el bloque `cola_insistencia` del telefónico
+se publica también cuando el barrido es de una acreditación (`monitoreo_telefonico.R`, 8 líneas insertadas después
+del bloque del telefónico, sin tocar las suyas), con el público de cada caso como categoría. Test nuevo
+`test-monitoreo-acreditacion-reintentos.R` (5 expectativas) y el de la cola del telefónico sigue en verde (44). Front:
+`control/contacto/Reintentos.tsx` monta `core/ColaDeInsistencia` con el modelo del telefónico
+(`estadoDeInsistencia`, `repartoDelEquipo`) y la ficha del caso (`panel=caso&foco=<código>`). En `core/` se agregó
+una prop opcional `plataforma` a la cola (por defecto «Kobo», así Telefónico no cambia): en acreditación las
+efectivas vienen de SurveyMonkey y la cola no puede decir Kobo.
+
+**Diferencias con el lienzo en A4:** la columna «Teléfonos registrados» (cuenta de `TELÉFONO 1–3`) no está: el bloque
+común solo trae `NumTelefonos` si la hoja la declara. El orden por defecto es «Más intentos primero» (P1, opción a) y
+la cola la forman los status que el motor y el vocabulario dejan abiertos (P2 sigue abierta). La distribución de
+intentos va en la cabecera de la cola, como en Telefónico, y no en un panel aparte.
 
 ## Preguntas surgidas en la implementación
 

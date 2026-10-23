@@ -1,4 +1,5 @@
-import type { MonitoreoState } from "../../../../../api/client";
+import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
+import { chipsDeReintentos, plataformaDeRespuestas } from "../control/contacto/Reintentos";
 import { fmt, normalizeSourceMatch } from "../formato";
 import type { DireccionAcreditacion } from "./direccionAcreditacion";
 
@@ -12,8 +13,13 @@ function contar(cantidad: number, uno: string, varios: string) {
  * para que no se pierda: en Modelo › Cuotas, cuántos públicos tienen padrón y
  * cuántos ya declararon su variable de control.
  */
-export function chipsDeCabecera(direccion: DireccionAcreditacion, state: MonitoreoState | null): string[] {
+export function chipsDeCabecera(
+  direccion: DireccionAcreditacion,
+  state: MonitoreoState | null,
+  reports: MonitoreoAcreditacionReports | null = null,
+): string[] {
   const clave = `${direccion.seccion}/${direccion.pestana}`;
+  if (clave === "control/reintentos") return chipsDeReintentos(reports, plataformaDeRespuestas(state?.sources ?? []));
   if (clave === "modelo/cuotas" && state) {
     const variables = state.config?.operational_model?.interest_variables ?? [];
     const conPadron = (state.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
@@ -29,7 +35,7 @@ export function chipsDeCabecera(direccion: DireccionAcreditacion, state: Monitor
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver"];
+const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos"];
 
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
   return CON_LIENZO.includes(`${direccion.seccion}/${direccion.pestana}`);

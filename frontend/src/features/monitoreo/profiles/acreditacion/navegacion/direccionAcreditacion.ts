@@ -82,6 +82,8 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
   superpuestos: {
     // El caso en Control › Por resolver: `panel=caso&foco=<response_id>`.
     "control/resolver": ["caso"],
+    // La ficha de un caso de la cola en Control › Reintentos (`ColaDeInsistencia`).
+    "control/reintentos": ["caso"],
     // Inspector del público en Avance › Por público: `panel=publico&foco=<público>`.
     "avance/publicos": ["publico"],
     // Editor de una cuota (`AvanceCuotasPanel`), hasta que pase a Modelo › Cuotas (M2).
