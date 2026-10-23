@@ -27,7 +27,10 @@ TRADUCIDOS_POR_EL_PLAN <- c(
   # llamar al graficador. Es el caso más explícito de los tres: el código dice
   # que no deben llegar.
   "mostrar_significancia",
-  "significancia_alpha"
+  "significancia_alpha",
+  # «Barra extra»: `.merge_args` (reporte_plan_helpers.R) la baja a `mostrar_barra_extra`,
+  # `barra_extra_preset`, `columna_bottom2box` con `.barra_extra_a_args()` antes de llamar al graficador.
+  "barra_extra"
 )
 
 GRAFICADOR_DE_PRESET <- list(
@@ -87,7 +90,7 @@ test_that("la lista de traducidos no crece sola", {
   # Cada nombre aquí es un arg que el test deja pasar sin comprobar nada. Si la
   # lista engorda, el test se vuelve decorativo: es la forma que tiene este
   # aserto de dejar de distinguir el caso bueno del malo.
-  expect_lte(length(TRADUCIDOS_POR_EL_PLAN), 4L)
+  expect_lte(length(TRADUCIDOS_POR_EL_PLAN), 5L)
   # Y que siguen siendo ciertos: el plan los menciona de verdad.
   plan <- paste(readLines(file.path("..", "..", "R", "reporte_plan_ppt.R"), warn = FALSE),
                 collapse = "\n")

@@ -4375,7 +4375,7 @@ reporte_ppt_plan <- function(
       show_legend <- block_overrides$mostrar_leyenda %||%
         preset_args_multi$mostrar_leyenda %||% preset_args_single$mostrar_leyenda %||% TRUE
 
-      show_extra <- block_overrides$mostrar_barra_extra %||%
+      show_extra <- .barra_extra_mostrar_de(block_overrides) %||% block_overrides$mostrar_barra_extra %||%
         isTRUE(block_el$top2box) ||
         (!is.null(block_overrides$barra_extra_preset) &&
            !identical(block_overrides$barra_extra_preset, "ninguno"))
@@ -5307,11 +5307,10 @@ reporte_ppt_plan <- function(
         extra_preset <- as.character(effective_args$barra_extra_preset %||% "ninguno")[1]
         show_flag <- effective_args$mostrar_barra_extra
         if (is.null(show_flag)) show_flag <- TRUE
-        show_extra <- isTRUE(el$top2box) ||
-          isTRUE(show_flag) ||
+        show_extra <- isTRUE(show_flag) ||
           (!is.na(extra_preset) && extra_preset != "ninguno")
-        if (!is.null(overrides$mostrar_barra_extra)) {
-          show_extra <- isTRUE(overrides$mostrar_barra_extra)
+        if (!is.null(overrides$mostrar_barra_extra) || !is.null(.barra_extra_mostrar_de(overrides))) {
+          show_extra <- isTRUE(.barra_extra_mostrar_de(overrides) %||% overrides$mostrar_barra_extra)
         }
         args <- .merge_args(
           args,

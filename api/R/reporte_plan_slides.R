@@ -2171,7 +2171,7 @@ p_barras_multiapiladas <- function(
     cruces = NULL,
     wrap_y = 50,
     top2box        = FALSE,
-    top2box_codes  = NULL,
+    top2box_codes  = NULL, barra_extra = NULL,   # barra_extra: graficos_barra_extra.R (reemplaza a top2box)
     top2box_labels = NULL,
     titulos_grupo  = NULL,
     numerar_oe = NULL,
@@ -2285,7 +2285,7 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
   overrides <- .ppt_slot_override(overrides, "filete_temas", filete_temas, "bool")   # N2
   overrides <- .ppt_slot_override(overrides, "grosor_piso_cm", grosor_piso_cm, "numero", min = 0)   # N1
-  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")   # O7c
+  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool"); overrides <- .barra_extra_en_overrides(overrides, barra_extra)   # O7c; la barra extra del nivel manda sobre la heredada
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
   word_titulo_figura <- .word_titulo_figura_normalizar(word_titulo_figura)   # reporte_word_multi_modos.R
@@ -2338,7 +2338,7 @@ p_barras_multiapiladas <- function(
         # que la declare —incluido `top2box = FALSE`— sigue mandando sobre la
         # herencia, que es lo que hace `%||%`.
         top2box = block[["top2box", exact = TRUE]] %||% top2box,
-        top2box_codes = block[["top2box_codes", exact = TRUE]] %||% top2box_codes,
+        top2box_codes = block[["top2box_codes", exact = TRUE]] %||% top2box_codes, barra_extra = block[["barra_extra", exact = TRUE]],
         top2box_labels = block[["top2box_labels", exact = TRUE]] %||% top2box_labels,
         titulos_grupo = block[["titulos_grupo", exact = TRUE]] %||% NULL,
         numerar_oe = block[["numerar_oe", exact = TRUE]] %||% numerar_oe,
@@ -2410,7 +2410,7 @@ p_barras_multiapiladas <- function(
       cruce          = cruces,
       title_slide    = titulo,
       wrap_y         = wrap_y,
-      top2box        = isTRUE(top2box),
+      top2box        = .barra_extra_top2box_de(top2box, overrides),
       top2box_codes  = top2box_codes,
       top2box_labels = top2box_labels,
       titulos_grupo  = NULL,
@@ -2469,7 +2469,7 @@ p_barras_multiapiladas <- function(
       cruce          = cruces,
       title_slide    = titulo,
       wrap_y         = wrap_y,
-      top2box        = isTRUE(top2box),
+      top2box        = .barra_extra_top2box_de(top2box, overrides),
       top2box_codes  = top2box_codes,
       top2box_labels = top2box_labels,
       titulos_grupo  = titulos_grupo,
@@ -2501,7 +2501,7 @@ p_barras_multiapiladas <- function(
     cruce          = cruces,
     title_slide    = titulo,
     wrap_y         = wrap_y,
-    top2box        = isTRUE(top2box),
+    top2box        = .barra_extra_top2box_de(top2box, overrides),
     top2box_codes  = top2box_codes,
     top2box_labels = top2box_labels,
     titulos_grupo  = NULL,

@@ -1983,7 +1983,7 @@
       out[[nm]] <- val
     }
   }
-  out
+  .barra_extra_bajar(out)   # la `barra_extra` que declara el gráfico se vuelve args del motor (graficos_barra_extra.R)
 }
 #' @keywords internal
 .keep_formals <- function(fun, args, contexto = NULL) {
@@ -2915,6 +2915,8 @@ p_reset <- function(
   titulo_extra <- trimws(as.character(ov$titulo_barra_extra %||% "")[1])
   if (is.na(preset_extra)) preset_extra <- ""
   if (is.na(titulo_extra)) titulo_extra <- ""
+  be <- .barra_extra_normalizar(ov[["barra_extra"]], avisar = FALSE)   # la barra extra declarada (graficos_barra_extra.R)
+  if (!is.null(be)) return(!isFALSE(be) || nzchar(titulo_extra))
   isTRUE(ov$mostrar_barra_extra) ||
     (nzchar(preset_extra) && !identical(preset_extra, "ninguno")) ||
     nzchar(titulo_extra)
@@ -2923,9 +2925,10 @@ p_reset <- function(
 .word_conservar_barra_extra_pedida <- function(ov, w_extra = 0.16, w_bars = 0.64,
                                                w_buf = 0.02) {
   if (!is.list(ov)) ov <- list()
-  if (isFALSE(ov$mostrar_barra_extra)) return(ov)
+  be <- .barra_extra_normalizar(ov[["barra_extra"]], avisar = FALSE)
+  if (isFALSE(ov$mostrar_barra_extra) || isFALSE(be)) return(ov)
   if (!.word_barra_extra_pedida(ov)) return(ov)
-  ov$mostrar_barra_extra <- TRUE
+  if (is.null(be)) ov$mostrar_barra_extra <- TRUE   # con `barra_extra` declarada la columna sale de ella
   # Geometria Word solo donde la lamina no la fijo: la columna extra recibe
   # una fraccion legible del lienzo (0.16 de 6.1in ~ 1in) y las barras ceden
   # el ancho equivalente. Las fracciones son relativas (se re-normalizan).
