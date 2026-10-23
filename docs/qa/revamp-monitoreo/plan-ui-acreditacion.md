@@ -221,6 +221,15 @@ exportación CSV. Con Personas y Respuestas, la sección Consultas de antes ya n
   reconciliación) quedan cubiertas por las facetas de Respuestas, los estados de Personas y los «Decididos» de Por
   resolver, pero sin sus nombres. Si alguna se usaba como lista propia, conviene decirlo.
 
+**A5, Control › Calidad (escrita, sin gate ni capturas).** `control/casos/Calidad.tsx` con `calidadModelo.ts`
+(test): las duraciones fuera de rango de `dashboard.inconsistencies`, cada una con su valor y su lectura (muy corta o
+muy larga según los umbrales del proyecto, H1), y las señales de consistencia de la hoja «Alertas» con el modelo de
+siempre. La supervisión por rellamada sigue como sub-vista (`panel=supervision`) hasta P3.
+
+- **Diferencia con el lienzo:** no hay histograma de todas las duraciones ni la mediana: el corte solo trae las que
+  salen del rango, y la mediana del tablero no dice su unidad en este modo. Publicar la serie de duraciones es un
+  cambio del motor.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos

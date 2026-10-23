@@ -35,7 +35,7 @@ export function chipsDeCabecera(
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas"];
+const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad"];
 const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle"];
 
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
