@@ -53,7 +53,7 @@ export function Avisos({
               {modelo.avisos.map((aviso) => {
                 const activo = aviso.id === elegido?.id;
                 return (
-                  <tr key={aviso.id} className={`is-${aviso.nivel}${activo ? " is-activo" : ""}`} aria-current={activo ? "true" : undefined} title={aviso.codigo}>
+                  <tr key={aviso.id} className={`is-${aviso.nivel}${activo ? " is-activo" : ""}`} aria-current={activo ? "true" : undefined} data-aviso={aviso.codigo}>
                     <th scope="row">
                       <button type="button" className="mon-avisos-causa" onClick={() => escribirFoco(aviso.id)}>
                         <i aria-hidden="true" />

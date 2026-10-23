@@ -104,6 +104,20 @@ function esSinAsignar(alerta: AcreditacionQualityAlertItem) {
   return clave.includes("sin responsable") || clave.includes("sin asignar");
 }
 
+/** Una línea por persona (o lugar), sumando sus alertas: nadie aparece dos veces. */
+function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desglose"] {
+  const porEtiqueta = new Map<string, number | null>();
+  grupo.forEach((alerta) => {
+    const etiqueta = alerta.owner || alerta.where;
+    const previo = porEtiqueta.get(etiqueta);
+    const valor = alerta.count ?? 1;
+    porEtiqueta.set(etiqueta, previo === undefined ? valor : (previo ?? 0) + valor);
+  });
+  return [...porEtiqueta.entries()]
+    .map(([etiqueta, valor]) => ({ etiqueta, valor }))
+    .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0) || a.etiqueta.localeCompare(b.etiqueta, "es"));
+}
+
 export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
@@ -129,27 +143,38 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     .map((fila) => ({ codigo: texto(fila.CodPulso), responsable: texto(fila.Responsable), fecha: "", nota: texto(fila.Detalle) }));
   porCausa.forEach((grupo) => {
     const primera = grupo[0];
-    const porPersona = grupo.length > 1 && grupo.every((alerta) => alerta.owner);
-    const mayor = [...grupo].sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0];
+    const afectados = afectadosDe(primera.type);
+    // Una alerta por persona sólo cuando la señal es de asignación, o cuando
+    // cada alerta nombra a un responsable distinto y ninguna nombra un caso.
+    // Tres alertas por caso de dos personas son tres casos, no «3 responsables».
+    const duenos = grupo.map((alerta) => alerta.owner);
+    const porPersona = primera.signal.kind === "assignment_gap"
+      || (grupo.length > 1 && duenos.every(Boolean) && new Set(duenos).size === duenos.length && !afectados.length);
+    const ordenados = [...grupo].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+    const mayor = ordenados[0];
+    const empate = ordenados.length > 1 && (ordenados[1].count ?? 0) === (mayor.count ?? 0);
     const orden: Record<NivelDeAviso, number> = { alta: 0, media: 1, baja: 2 };
     const nivel = grupo.map((alerta) => nivelDe(alerta.tone)).sort((a, b) => orden[a] - orden[b])[0];
+    const casosNombrados = new Set(afectados.map((caso) => caso.codigo)).size;
     avisos.push({
       id: slug(primera.type) || slug(primera.title) || primera.id,
       nivel,
-      titulo: porPersona ? `${primera.title}: ${grupo.length.toLocaleString("es-PE")} responsables` : primera.title,
-      detalle: porPersona ? `El más marcado, ${mayor.owner}: ${mayor.detail}` : primera.detail,
-      casos: porPersona ? grupo.length : grupo.reduce((suma, alerta) => suma + (alerta.count ?? 0), 0) || primera.count,
-      unidad: porPersona ? "responsables" : "casos",
+      titulo: porPersona && grupo.length > 1 ? `${primera.title}: ${grupo.length.toLocaleString("es-PE")} responsables` : primera.title,
+      detalle: porPersona && grupo.length > 1
+        ? empate ? `${grupo.length.toLocaleString("es-PE")} responsables con el mismo aviso.` : `El más marcado, ${mayor.owner}: ${mayor.detail}`
+        : primera.detail,
+      casos: porPersona && grupo.length > 1
+        ? grupo.length
+        : casosNombrados || grupo.reduce((suma, alerta) => suma + (alerta.count ?? 0), 0) || primera.count,
+      unidad: porPersona && grupo.length > 1 ? "responsables" : "casos",
       codigo: primera.type,
       destino: porPersona && primera.signal.kind === "assignment_gap"
         ? { etiqueta: "Equipo, en Control", direccion: { seccion: "control", pestana: "equipo" } }
         : destinoDeAviso(primera.type, primera.signal.kind),
-      donde: porPersona ? "" : primera.where,
+      donde: porPersona && grupo.length > 1 ? "" : primera.where,
       fuente: primera.source,
-      desglose: grupo.length > 1
-        ? [...grupo].sort((a, b) => (b.count ?? 0) - (a.count ?? 0)).map((alerta) => ({ etiqueta: alerta.owner || alerta.where, valor: alerta.count }))
-        : [],
-      afectados: porPersona ? [] : afectadosDe(primera.type),
+      desglose: grupo.length > 1 ? desgloseDe(grupo) : [],
+      afectados: porPersona ? [] : afectados,
     });
   });
 
