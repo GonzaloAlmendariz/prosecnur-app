@@ -137,7 +137,32 @@ runner en vistas que A1 solo monta y que se rehacen en sus fases: el placeholder
 `fuentes-encuestas-actores` sin alturas iguales en Insumos › Fuentes (A6). La readiness de Resumen y Por público espera
 los casos (llegan con el corte de Control) o su falla, para no capturar «preparando».
 
+**A3, Control › Por resolver (escrita, sin gate ni capturas por el candado de corridas pesadas).**
+`control/casos/PorResolver.tsx`, `control/casos/PanelCaso.tsx`, `control/casos/porResolver.css`, el modelo puro
+`control/casos/porResolverModelo.ts` con test y el estado de filtros en `porResolverStore.ts`. Las reglas de la
+revisión asistida (`assistedCandidateId`, nivel de evidencia, notas para decidir, `normalizeCaseSearch`) salieron del
+page-file a `control/casos/revisionAsistida.ts` sin cambiar lógica, y la vista anterior las sigue usando.
+
+- Filtros a la izquierda: «Esperan decisión», «Decididos por el supervisor» y «Resueltos por regla», cada tipo con la
+  cifra del motor (la misma de Resumen y de la insignia), y el público con lo que espera decisión.
+- Cola del tipo elegido: respuesta, público, canal, llave enmascarada, cuánto respondió, fecha y estado (Espera,
+  Asignada, Descartada, Por regla). Cuando una fila cuenta varios casos (duplicados), la cabecera dice las dos cifras.
+- Panel del caso (`panel=caso&foco=<response_id>`): datos, lo que pasó (respondió, cruce con el motivo de
+  `core/motivoDeNoCruce`, decisión), la llave por canal, los avisos del motor, lo que encontró y la asignación: buscador
+  sobre las personas sin efectiva, switch «Confirmo la asignación», motivo y «Descartar» o «Asignar a esta persona».
+- Lo que se guarda no cambió: `response_id`, `action` (`keep_excluded` o `include_with_caveat`), `candidate_id` y
+  `note`, por el mismo `apiMonitoreoAcreditacionCaseReconciliation`. Las reglas siguen: solo se asigna una completa o
+  parcial, nunca a quien ya tiene efectiva, con confirmación, y la nota es obligatoria si la respuesta es parcial, el
+  código contradice o la evidencia no es exacta.
+
+**Diferencias con el lienzo en A3:** el motivo no es obligatorio para descartar (hoy no lo es; ver pregunta). La
+franja «205 casos revisables pueden afectar la lista de no respuesta» de la vista anterior no está en Por resolver:
+esa lista es más amplia que los casos marcados y su lugar es Control › Personas (A5).
+
 ## Preguntas surgidas en la implementación
+
+- **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
+  dudosos. Se dejó como hoy. ¿Se exige también para descartar?
 
 - **Públicos en la barra**: el lienzo dice «9 + piloto». Se escribe el nombre declarado del público sin meta
   («9 + Piloto») y, si son varios, «9 + 2 sin meta». ¿Sirve así?
