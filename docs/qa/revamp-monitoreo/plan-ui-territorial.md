@@ -57,6 +57,7 @@ Se conservan las 11 de `territorial.md`; aquí sólo las que una fase vuelve a t
 | # | Hallazgo | Dónde vive | Estado |
 |---|---|---|---|
 | H-1 | Las aprobaciones de observaciones se guardan y nadie las lee. La config acepta `validation_decisions.approved_response_ids`, pero `.monitoreo_territorial_validation_decision_ids` no tiene llamadores y la auditoría deja `validation_decision` vacío, así que una observación «aprobada» sigue igual. Por eso Control › Bandeja no dibuja «Aprobar observación». | `api/R/monitoreo_engine.R` (congelado) | Llevado por el lead; roza la pregunta 3 |
+| H-2 | El tipo del cliente no coincide con lo que el motor publica en `production_annulments.affected_blocks`. El tipo dice `id_manzana`, `respuestas_anuladas` y `validas_anuladas`; el motor envía `block_id`, `responses_annulled`, `valid_annulled`, `district` y `latest_activity`. Control › Anulaciones lee los dos juegos de nombres; corregir el tipo toca `api/monitoreo.ts`, que es compartido. | `frontend/src/api/monitoreo.ts` · `.monitoreo_territorial_annulled_blocks_payload` | Rodeado en T5; falta corregir el tipo |
 
 ## Notas por fase
 
@@ -154,4 +155,21 @@ vacío). Dibujar el botón prometería algo que no ocurre; conectarlo exige toca
 congelado. También queda atado a la pregunta 3. Sin dibujar: «Aprobados» en el segmentado y las acciones de lote con
 selección múltiple, porque la vista previa del motor es por caso. La sub-vista Duración de Señales y GPS/Duración de
 la Bandeja siguen montando las vistas heredadas.
+
+**T5 (código listo, sin gate).** Control › Correcciones: Subsanaciones, Anulaciones y Conciliación son pestañas propias.
+- **Subsanaciones** (`SubsanacionesTab.tsx`): a la izquierda, las celdas con déficit por UMP (elegibles primero, las
+  bloqueadas sin motivo porque el motor no lo publica, pregunta 8). Al centro, el paquete sugerido (de dónde, a dónde,
+  qué celda, a qué distancia), con nota de la decisión y «Aplicar paquete». Si la nota queda vacía se guarda una que
+  dice qué se movió (pregunta 1). A la derecha, activas por distrito, revertidas e historial con «Revertir» en dos
+  pasos. `foco=<UMP>` desde Faltante pone ese paquete primero.
+- **Anulaciones** (`AnulacionesTab.tsx`): casos fuera del conteo por distrito (los sin distrito al final), una tarjeta
+  por anulación activa con su impacto, su motivo y «Revertir» en dos pasos, y la tabla de UMP afectadas con su estado
+  actual («No está en la ruta» si la UMP no figura en `ump_groups`).
+- **Conciliación** (`ConciliacionTab.tsx`): Códigos y UMP declarada, con cifras, los pendientes con su selector (el
+  padrón sin DNI, la ruta) y las conciliaciones hechas. Cada conciliación va al lote del motor con un cambio auditado
+  por respuesta. Pide el corte de Validación.
+
+Bloqueado, a decidir con el lead: «Rechazar» el paquete sugerido. Gonzalo pidió aplicar o rechazar con decisión
+auditada, pero el motor no tiene dónde guardar un rechazo. Hace falta un endpoint nuevo y su registro en
+`plumber_app.R`, que es compartido. Sin dibujar: el mapa de los movimientos activos de §3.11.
 
