@@ -673,10 +673,13 @@
   color: #fff;
 }
 
+/* En la sección activa la insignia invierte el contraste: fondo de
+ * superficie y cifra en el tono del módulo. El blanco translúcido sobre la
+ * pastilla granate medía 3.3:1 y la «4» de Control casi no se leía. */
 .mon-section-pill.pulso-phase-pill.is-active .pulso-phase-pill-metric {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  border-color: var(--pulso-surface);
+  background: var(--pulso-surface);
+  color: color-mix(in srgb, var(--mon-shell-accent) 82%, var(--pulso-text));
 }
 
 .mon-section-pill:active:not(:disabled) {
