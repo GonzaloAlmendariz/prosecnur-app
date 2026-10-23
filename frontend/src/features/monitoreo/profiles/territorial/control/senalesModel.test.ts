@@ -36,6 +36,11 @@ describe("Control › Señales", () => {
     expect(modelo.duracion.tramos[1]).toMatchObject({ rotulo: "2 a 5 min", casos: 1, marca: "corta" });
   });
 
+  it("las duraciones largas se muestran como dato neutro, sin marca de alerta", () => {
+    const largos = modelo.duracion.tramos.filter((tramo) => tramo.desde >= 5);
+    expect(largos.every((tramo) => tramo.marca === undefined)).toBe(true);
+  });
+
   it("la matriz por distrito separa cada señal y declara los casos sin distrito", () => {
     expect(modelo.distritos.map((item) => item.distrito)).toEqual(["Ate", "San Martín de Porres"]);
     expect(modelo.distritos[1]).toMatchObject({ casos: 3, enManzana: 1, hasta150: 1, de150a300: 1, corta: 1, muyCorta: 1 });

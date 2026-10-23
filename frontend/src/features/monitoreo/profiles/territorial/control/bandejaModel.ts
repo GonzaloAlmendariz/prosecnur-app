@@ -6,6 +6,11 @@ import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "
  * Control › Bandeja (territorial.md §3.6): los casos por revisar
  * (`internal_queries$review_cases`, corte de Consultas) con filtros por motivo
  * y por distrito, y los casos ya anulados uno a uno.
+ *
+ * Regla de Gonzalo para el control de tiempo: se revisan las encuestas CORTAS
+ * (menos de 5 min, y las de menos de 2 aparte). Una larga no es un problema:
+ * si llegara un caso de duración que no es corto, no entra a la bandeja ni a
+ * sus conteos.
  */
 
 export type MotivoDeBandeja = "gps-lejos" | "gps-revision" | "sin-gps" | "muy-corta" | "corta" | "ump" | "registro";
@@ -50,7 +55,7 @@ export type ModeloBandeja = {
   anulados: AnuladoDeBandeja[];
 };
 
-export function motivoDe(caso: TerritorialInternalReviewCase): MotivoDeBandeja {
+export function motivoDe(caso: TerritorialInternalReviewCase): MotivoDeBandeja | null {
   if (caso.type === "gps") {
     if (caso.geo_estado === "geo_no_defendible") return "gps-lejos";
     if (caso.geo_estado === "geo_revision") return "gps-revision";
@@ -64,7 +69,8 @@ export function motivoDe(caso: TerritorialInternalReviewCase): MotivoDeBandeja {
       durationOperationalStatus: caso.duration_operational_status,
       durationOperationalLabel: caso.duration_operational_label,
     });
-    return estado === "muy_corto" ? "muy-corta" : "corta";
+    if (estado === "muy_corto") return "muy-corta";
+    return estado === "corto" ? "corta" : null;
   }
   if (caso.type === "ump") return "ump";
   return "registro";
@@ -85,10 +91,11 @@ export function textoDeMetros(metros: number | null): string {
 
 export function construirBandeja(consultas: MonitoreoTerritorialDashboard | null | undefined): ModeloBandeja {
   const crudos = consultas?.internal_queries?.review_cases;
-  const casos: CasoDeBandeja[] = (crudos ?? []).map((caso) => {
+  const casos: CasoDeBandeja[] = (crudos ?? []).flatMap((caso) => {
     const motivo = motivoDe(caso);
+    if (!motivo) return [];
     const distancia = caso.distance_m != null && Number.isFinite(Number(caso.distance_m)) ? Number(caso.distance_m) : null;
-    return {
+    return [{
       id: String(caso.id),
       responseId: String(caso.response_id ?? ""),
       motivo,
@@ -104,7 +111,7 @@ export function construirBandeja(consultas: MonitoreoTerritorialDashboard | null
       distanciaM: motivo === "sin-gps" ? null : distancia,
       distancia: motivo === "sin-gps" ? "Sin GPS" : textoDeMetros(distancia),
       duracion: minutosYSegundos(caso.duration_seconds),
-    };
+    }];
   });
   casos.sort((a, b) => ORDEN.indexOf(a.motivo) - ORDEN.indexOf(b.motivo) || a.fechaIso.localeCompare(b.fechaIso) || a.hora.localeCompare(b.hora));
 

@@ -48,7 +48,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
           base={`${fmt(modelo.duracion.base)} casos con duración`}
           mediana={modelo.duracion.mediana != null ? `Mediana ${modelo.duracion.mediana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min` : "Sin mediana"}
           histograma={modelo.duracion}
-          leyenda={[["is-muy-corta", "Menos de 2 min"], ["is-corta", "2 a 5 min"]]}
+          leyenda={[["is-muy-corta", "Menos de 2 min: se revisa"], ["is-corta", "2 a 5 min: se revisa"], ["is-neutra", "5 min o más: sin alerta, también las largas"]]}
         />
       </div>
       <MatrizPorDistrito modelo={modelo} />

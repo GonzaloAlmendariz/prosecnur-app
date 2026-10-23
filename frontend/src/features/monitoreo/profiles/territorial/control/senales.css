@@ -108,6 +108,10 @@
   font-size: 12px;
 }
 
+.mon-sen-leyenda .is-neutra::before {
+  background: var(--pulso-brand-navy);
+}
+
 .mon-sen-leyenda span::before {
   content: "";
   display: inline-block;
