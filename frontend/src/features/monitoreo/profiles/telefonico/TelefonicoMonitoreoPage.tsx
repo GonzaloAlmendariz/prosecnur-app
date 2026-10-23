@@ -69,7 +69,7 @@ import {
   monitoreoSeccionDesdeParams,
   useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
-import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionTelefonica";
+import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal, vistaDeDestino } from "./navegacion/direccionTelefonica";
 import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
@@ -77,8 +77,13 @@ import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { CuotasFaltante } from "./avance/CuotasFaltante";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
-import { BarridoDeLaHoja } from "./control/montaje";
+import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Equipo } from "./control/Equipo";
+import { Avisos } from "./control/Avisos";
+import { Estados } from "./insumos/Estados";
+import { LlaveYFiltros } from "./insumos/Llave";
+import { Fuentes } from "./insumos/Fuentes";
+import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -10636,9 +10641,7 @@ function AcreditacionPhoneSourceSlotCard({
           </span>
         ) : null}
       </div>
-      <div className="mon-phone-source-slot-tags" aria-label={`Columnas esperadas para ${slot.label}`}>
-        {slot.expected.map((item) => <i key={item}>{item}</i>)}
-      </div>
+      <ColumnasEsperadas columnas={slot.expected} pieza={slot.label} />
       {/* La única puerta al cableado, y va al panel que ya conoce el guion del
         * estudio. Antes cada pestaña llevaba su propio formulario con la
         * dirección, la pestaña y el rango a la vista: dos caminos para lo mismo,
@@ -10994,12 +10997,15 @@ function AcreditacionSourcesWorkbench({
   activeTab = "survey",
   onStateChange,
   onSourceTabChange,
+  onIrAVista,
 }: {
   reports: MonitoreoAcreditacionReports;
   state?: MonitoreoState | null;
   activeTab?: AcreditacionSourceTab;
   onStateChange?: (state: MonitoreoState) => void;
   onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
+  /** Ir a otra pestaña pública del modo (Insumos › Llave lleva a Control › Respuestas). */
+  onIrAVista?: (seccion: string, pestana: string) => void;
 }) {
   const client = reports.client_report;
   const reportSources = (client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"])) as Array<Record<string, unknown>>;
@@ -11012,6 +11018,7 @@ function AcreditacionSourcesWorkbench({
   // corre como job en segundo plano (async opt-in) y la espera sigue amarrada
   // al desmontaje del componente.
   const { syncBusy, syncStatus, syncProgress, syncSheets, syncExternal } = useSourceSyncActions({ onStateChange });
+  const abrirConectarFuente = useAbrirConectarFuente();
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
@@ -11050,6 +11057,27 @@ function AcreditacionSourcesWorkbench({
     />
   ) : null;
 
+  if (activeTab === "survey" && isPhoneSourceModel) {
+    // Insumos › Llave y filtros (T7): la llave en lectura, el cruce y el editor de filtro de siempre.
+    const plataforma = buildAcreditacionPhoneSourceContract(operationalSources).platform;
+    return (
+      <LlaveYFiltros
+        reports={reports}
+        state={state}
+        onIrA={(seccion, pestana) => onIrAVista?.(seccion, pestana)}
+        filtro={<AcreditacionPhoneEffectiveFilterEditor state={state} variables={state?.variables ?? []} platformSources={plataforma.sources} onStateChange={onStateChange} />}
+        tarjetaKobo={(
+          <AcreditacionPhoneSourceSlotCard
+            slot={plataforma}
+            icon={<ListChecks size={15} />}
+            syncFallback={state?.synced_at ?? reports.generated_at}
+            onCambiar={() => abrirConectarFuente.abrirParaCambiar(plataforma.sources.find((source) => source.enabled)?.id ?? plataforma.sources[0]?.id)}
+          />
+        )}
+      />
+    );
+  }
+
   if (activeTab === "survey") {
     return (
       <div className="mon-profile-stack mon-phone-source-tab is-kobo">
@@ -11063,6 +11091,11 @@ function AcreditacionSourcesWorkbench({
         )}
       </div>
     );
+  }
+
+  if (activeTab === "sheets" && isPhoneSourceModel) {
+    // Insumos › Estados (T7): vocabulario de status; las tarjetas de universo y barrido pasan a Fuentes.
+    return <Estados reports={reports} state={state} onStateChange={onStateChange} onIrA={() => onSourceTabChange?.("activas")} />;
   }
 
   if (activeTab === "sheets") {
@@ -11093,28 +11126,36 @@ function AcreditacionSourcesWorkbench({
     );
   }
 
+  const phoneContract = buildAcreditacionPhoneSourceContract(operationalSources);
+  if (isPhoneSourceModel) {
+    return (
+      <Fuentes
+        state={state}
+        fuentes={operationalSources}
+        contrato={phoneContract}
+        acciones={sourceStatus}
+        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
+        onCambiar={(id) => abrirConectarFuente.abrirParaCambiar(id)}
+        onRenombrar={async (id, label) => {
+          const fuente = operationalSources.find((item) => item.id === id);
+          if (!fuente) return;
+          const result = await apiMonitoreoSource(sourcePayloadFromExisting(fuente, { label }));
+          onStateChange?.(result.state);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className={`mon-profile-stack${isPhoneSourceModel ? " mon-phone-source-tab is-package" : ""}`}>
+    <div className="mon-profile-stack">
       {sourceStatus}
-      {isPhoneSourceModel ? (
-        <>
-          {phoneSourceContract("activas")}
-          <AcreditacionConfiguredSourcesList
-            sources={operationalSources}
-            syncFallback={state?.synced_at ?? reports.generated_at}
-            phoneMode={isPhoneSourceModel}
-            onStateChange={onStateChange}
-          />
-        </>
-      ) : (
-        <AcreditacionActiveSourcesView
-          sources={operationalSources}
-          config={state?.config}
-          reportSources={reportSources}
-          state={state}
-          onStateChange={onStateChange}
-        />
-      )}
+      <AcreditacionActiveSourcesView
+        sources={operationalSources}
+        config={state?.config}
+        reportSources={reportSources}
+        state={state}
+        onStateChange={onStateChange}
+      />
     </div>
   );
 }
@@ -19021,6 +19062,7 @@ function renderAcreditacionView(
         activeTab={options.activeSourceTab ?? pestanaDeFuentesInicial(isTelefonicoMonitoreoState(options.state))}
         onStateChange={options.onStateChange}
         onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
+        onIrAVista={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }}
       />
     );
   }
@@ -19053,6 +19095,9 @@ function renderAcreditacionView(
       />
     );
   }
+  if (view === "consultas" && (options.activeConsultaTab ?? "plataforma") === "plataforma" && isTelefonicoMonitoreoState(options.state)) {
+    return <RespuestasDelCorte reports={reports} state={options.state} />; // Control › Respuestas (T6).
+  }
   if (view === "consultas") {
     return (
       <AcreditacionConsultasPanel
@@ -19070,6 +19115,9 @@ function renderAcreditacionView(
   }
   if (view === "telefonico" && options.activePhoneTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
     return <BarridoDeLaHoja reports={reports} state={options.state} cuotas={phoneQuotaCardsForDashboard(reports)} />; // Control › Barrido (T5).
+  }
+  if (view === "telefonico" && options.activePhoneTab === "alertas" && isTelefonicoMonitoreoState(options.state)) {
+    return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
   }
   if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
     return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).

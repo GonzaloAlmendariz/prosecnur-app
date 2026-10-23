@@ -16,12 +16,16 @@ import path from "node:path";
 // archivo porque montar el componente exigiría el árbol de contextos del
 // módulo entero, y lo que hay que impedir es el patrón, que es reconocible.
 
-const fuente = fs.readFileSync(
+// Desde T7 el borrador vive en `useDeclaracionDeEstados` y lo montan dos
+// vistas: el definidor y Insumos › Estados del telefónico. Las dos se vigilan.
+const ARCHIVOS = [
   path.resolve(__dirname, "DefinidorDeEstados.tsx"),
-  "utf8",
-);
+  path.resolve(__dirname, "../profiles/telefonico/insumos/Estados.tsx"),
+];
 
-describe("los handlers no leen el evento dentro del updater", () => {
+describe.each(ARCHIVOS)("los handlers no leen el evento dentro del updater (%s)", (archivo) => {
+  const fuente = fs.readFileSync(archivo, "utf8");
+
   test("ningún setState recibe un updater que use currentTarget", () => {
     // Busca `set…((…) => …event.currentTarget…)`, que es exactamente la forma
     // que falla.
@@ -33,7 +37,12 @@ describe("los handlers no leen el evento dentro del updater", () => {
   test("cada handler captura el valor en una constante antes de actualizar", () => {
     // Las dos superficies que lo sufrieron: color de familia y familia del
     // estado crudo.
-    expect(fuente).toMatch(/const elegido = event\.currentTarget\.value;[\s\S]{0,120}setColores/);
-    expect(fuente).toMatch(/const elegida = event\.currentTarget\.value[\s\S]{0,140}setAsignaciones/);
+    expect(fuente).toMatch(/const elegido = event\.currentTarget\.value;[\s\S]{0,120}colorear\(/);
+    expect(fuente).toMatch(/const elegida = event\.currentTarget\.value[\s\S]{0,140}asignar\(/);
   });
+});
+
+test("el hook recibe valores, no eventos", () => {
+  const hook = fs.readFileSync(path.resolve(__dirname, "useDeclaracionDeEstados.ts"), "utf8");
+  expect(hook).not.toMatch(/currentTarget/);
 });

@@ -43,7 +43,8 @@ describe("dirección pública del telefónico", () => {
   it("lee las direcciones viejas como alias y devuelve la forma pública", () => {
     const casos: Array<[ReturnType<typeof pedida>, string]> = [
       [pedida("telefonico", "incidencia"), "control/insistencia"],
-      [pedida("telefonico", "tiempos"), "control/respuestas/tiempos"],
+      [pedida("telefonico", "tiempos"), "control/respuestas"],
+      [pedida("control", "respuestas", "tiempos"), "control/respuestas"],
       [pedida("consultas", "cruces"), "control/discrepancias"],
       [pedida("consultas", "subsanacion"), "control/respuestas/salvedades"],
       [pedida("fuentes", "sheets"), "insumos/estados"],
@@ -80,7 +81,7 @@ describe("dirección pública del telefónico", () => {
   });
 
   it("los paneles de sub-vista son ids estables", () => {
-    expect(PANELES_DE_SUBVISTA).toEqual(["calendario", "tiempos", "salvedades"]);
+    expect(PANELES_DE_SUBVISTA).toEqual(["calendario", "salvedades"]);
   });
 
   it("el rail toma nombre del catálogo público y la insignia de la vista que monta", () => {

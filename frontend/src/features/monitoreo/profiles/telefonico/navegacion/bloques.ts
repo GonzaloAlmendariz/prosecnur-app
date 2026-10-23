@@ -12,3 +12,17 @@ export function filasDeBloque(
     buscados.has(String(bloque.id).toLowerCase()) ? bloque.rows as Array<Record<string, unknown>> : []
   ));
 }
+
+/** Filas de un bloque de otra hoja del reporte (la de alertas, por ejemplo). */
+export function filasDeHoja(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  hojaId: string,
+  ids: readonly string[],
+): Array<Record<string, unknown>> {
+  const hoja = reports?.sheets?.find((item) => item.id === hojaId);
+  if (!hoja) return [];
+  const buscados = new Set(ids.map((id) => id.toLowerCase()));
+  return hoja.blocks.flatMap((bloque) => (
+    buscados.has(String(bloque.id).toLowerCase()) ? bloque.rows as Array<Record<string, unknown>> : []
+  ));
+}

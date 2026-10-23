@@ -33,8 +33,8 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
-| T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
-| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
+| T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
+| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☑ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
 
@@ -77,6 +77,20 @@ barrido, bloques vacíos con nota. El worker `callr` usa el paquete instalado y 
 - **Acreditación con barrido**: el bloque no se publica ahí todavía; montarlo en `Reintentos.tsx` es una línea cuando
   se unifique.
 - **MEDVID 2025**: «Observación de rebarrido» no entra en la cola.
+- **Llave y mapeo de columnas sin editor**: ninguna superficie de la app edita `monitoreo_profile.key_rules` (columnas
+  candidatas de la llave, en orden) ni las `dimensions` de una fuente; el panel de conexión sólo elige la pestaña.
+  Insumos los muestra en lectura. ¿Hace falta editarlos desde la app, o basta con el perfil del estudio?
+- **Hallazgo, tarjeta de Kobo «sin respuestas»**: en la copia de PDM la tarjeta de la encuesta decía «Conectada, sin
+  respuestas todavía. Sincroniza Kobo.» con 424 efectivas en el corte: cuenta las respuestas con la metadata del sync
+  (`response_count`), que la copia no trae. Insumos ya no pinta esa frase, pero la cuenta de la tarjeta sigue
+  dependiendo de esa metadata.
+- **P18 (dos vocabularios de familia)**: el definidor de estados guarda en `state_rules` familias de acreditación
+  (`efectivo`, `sin_contacto`, `numero_invalido`, `rechazo`, `otro`, `sin_barrer`), que gobiernan colores y agrupación
+  de los gráficos. El motor cuenta con `complete`, `partial`, `refusal`, `pending`, `non_effective` y `excluded`
+  (`monitoreo_status_reglas.R`). Un status confirmado en el definidor casa con una regla que no decide nada, así que
+  deja de dar `status_desconocido` sin contar. Opciones: (a) traducir al guardar; (b) que el definidor del telefónico
+  use las familias del motor; (c) dejarlo así y sólo avisar. Hoy Insumos › Estados muestra las dos: la que se guarda,
+  editable, y la del motor en lectura, con la marca «difiere» cuando no corresponden.
 
 ## Notas de T1 a T3 (frontend)
 
@@ -186,3 +200,132 @@ efectiva sobre llamados e intentos por caso reintentable; fila «Sin asignar» a
   hoja del operador con su familia, que sí viajan en `estatus_responsable`, y su insistencia (`reintentos_responsable`).
 - La paridad con Responsables se conserva: la matriz con desvíos, la brecha con Kobo por responsable y las cifras de las
   tarjetas (asignados, barridos, efectivas, sin efectiva, por barrer) están en Carga y en la ficha.
+
+**T6, Control › Respuestas.** `profiles/telefonico/control/Respuestas.tsx` con `respuestasModel.ts` (test), sobre
+`control_tiempo_kobo` y `comparacion_codpulso`. Cadena (pasan el filtro 424, efectivas 423 con «1 envío repetido»),
+duración de las efectivas en tramos con la mediana (PDM 29 min) y los de más de 2 h en rojo (PDM 56, que hoy se rotulan
+«Normal (5+ min)»), «Qué cuenta» con los criterios del filtro y la regla de un envío por CodPulso, y el registro de cada
+efectiva con llave (exacta, normalizada por dígitos o no cruza), lo que dice la hoja, responsable y marcas, con chips
+Por revisar, Todas, Más de 2 h, Menos de 5 min, Repetidas y No cruzan. Integra «Validación de tiempo»: `panel=tiempos`
+se lee como la pestaña y se limpia de la dirección. Salvedades sigue como sub-vista condicional.
+
+- **No viaja y no se inventó**: «Recibidas en Kobo 430» y «Reales 427» (el bloque ya trae los envíos filtrados; los
+  recibidos sólo aparecen si la metadata del sync trae `response_count`), y los chips «Prueba» y «Sin consentimiento».
+  Por eso el histograma es de 424 efectivas y no de 430 envíos, y los de más de 2 h son 56 y no 57.
+- La llave «normalizada» se calcula en la vista (dígitos que señalan un único caso de la hoja); el motor normaliza por
+  su cuenta y su regla exacta no viaja.
+
+**Pulido de T5.** Barrido: el panel «Status del cliente» lleva al pie «Lo que la hoja no registra». Barrido y Equipo:
+un status que la regla del proyecto pone en otra familia que su nombre (en Medios de Vida «Rechazo» cierra) se rotula
+«Terminal por su regla».
+
+**T6, Control › Avisos.** `profiles/telefonico/control/Avisos.tsx` con `avisosModel.ts` (test). Lee las alertas reales con
+`TelefonicoPhoneAlerts.ts`, como la vista anterior, y las agrupa por causa con nivel, cuántos, detalle y dónde se
+corrige (enlace a la pestaña, o «Hoja del equipo» cuando se corrige fuera de la app). Las alertas que venían una por
+responsable («Responsable con casos por iniciar», 11 en PDM) se agrupan en una causa con desglose por persona en la
+ficha. Los avisos fuertes del RMS (`cruce_llave_bajo`, `filtro_columna_no_encontrada`, `status_desconocido`) se agregan
+cuando el bloque los trae; en las copias de PDM y Medios de Vida no vienen y no se dibujan. «Casos sin asignar» va
+aparte y en gris. Además se leen de bloques que ya viajan cuatro avisos que el motor no emite como alerta: efectivas
+en Kobo cuyo caso sigue «No barrido» (PDM 166), duración mayor a 2 h (56), CodPulso repetido en Kobo (1) y fecha de la
+hoja irregular (9).
+
+- **No viaja**: el «Formato de CodPulso» como sugerencia de formulario y el último envío de Kobo frente al último día de
+  la hoja como fechas (el lienzo los dibuja en la ficha); la causa sí está.
+
+**Pulido de Avisos.** La ficha lista los casos afectados del aviso elegido (CodPulso, responsable, fecha y nota, con
+scroll visible y degradado al pie) cuando el corte los nombra, o su desglose (por responsable, o por cómo vino escrita la
+fecha); si no nombra ninguno, lo dice. La lista de causas reparte el alto entre sus filas. La clave interna del aviso ya
+no se ve (queda en `title` y `data-aviso`). El nivel pasa a un punto junto al título y la fila elegida se marca con
+fondo y borde azul marino, para que no compitan. La ficha declara su grupo de geometría (`telefonico-avisos-ficha`):
+antes el pie anclado con `margin-top: auto` hacía que el panel llegara al borde y el vacío intermedio no se medía.
+
+**Corrección de Avisos (rechazo del verificador).** Un grupo de alertas sólo se cuenta por persona cuando la señal es de
+asignación o cuando cada alerta nombra a un responsable distinto y ningún caso. En Medios de Vida, «Efectivo telefónico
+sin efectiva Kobo» decía «3 responsables» con «Lucía 1 / Lucía 1 / Marco 1». Ahora dice 3 casos y lista MVH0006,
+MVH0053 y MVH0069 con su responsable. El código llega del motor como `codigo:MVH0006` y la ficha quita el prefijo. El
+desglose junta a cada persona en una sola línea. Con empate no se dice «el más marcado». La cifra del motor manda sobre
+los códigos nombrados: en PDM, el formato de CodPulso son 287 alertas y 286 códigos distintos. La clave interna ya no
+sale en el `title`, sólo en `data-aviso`.
+
+**Composición de Avisos.** Las filas de causas ya no reparten el alto del panel: miden lo que pide su contenido, y la
+columna desplaza si no cabe. Debajo va «Por dónde se corrige», que reúne los avisos por destino con sus casos (o
+responsables) y un enlace; la hoja del equipo va al final. En PDM: Discrepancias 453 (166 y 287 de formato),
+Respuestas 57, Equipo 11 responsables y hoja del equipo 9. En la ficha, los afectados o el desglose ocupan lo que tienen
+y «Qué hacer» va pegado. Sólo una lista de más de ocho casos lleva barra visible y degradado.
+
+**T7, Insumos › Estados.** `profiles/telefonico/insumos/Estados.tsx` con `estadosModel.ts` (test). El borrador y el
+guardado del definidor salieron a `estados/useDeclaracionDeEstados.ts`; el definidor de Acreditación lo usa igual y lo
+que se guarda no cambió. Vocabulario de Status con valor del cliente, casos, familia en los gráficos (editable, como
+hoy) y cómo lo cuenta el motor (lectura, «sin regla» en ámbar, «difiere» si no corresponde; P18). A la derecha:
+«Status por reglas» en lectura (`status_from_rules`, apagado en PDM y Medios de Vida) con los valores sin regla (PDM 6
+valores y 84 casos, como el lienzo; Medios de Vida «Número equivocado», 6), «Intentos que registra la hoja» sobre la
+cola de insistencia (PDM 374 casos: sin dato 2, 1: 107, 2: 136, 3: 122, 4: 5, 5: 2; el lienzo contaba sólo la muestra),
+el color de cada familia (paridad) y la nota «Sin regla de agotado». Las tarjetas de universo y barrido, que vivían en
+esta pestaña, pasan a Fuentes.
+
+- **No va**: los interruptores Intento, Contacto y Cierra, y encender «Status por reglas» desde la app: no existen hoy.
+
+**Avisos usa el alto.** Debajo de «Por dónde se corrige» va «Casos por revisar»: una tabla con todos los casos que nombran
+los avisos (CodPulso, aviso, responsable y dónde se corrige). Crece hasta el pie y desplaza dentro con barra visible. Con
+muchos avisos, como en PDM, queda en su mínimo de 280 px y la columna desplaza. La ficha llega al pie del área: la lista
+de afectados crece y «Qué hacer» queda pegado al pie del panel.
+
+**T7, Insumos › Llave y filtros.** `profiles/telefonico/insumos/Llave.tsx` con `llaveModel.ts` (test). La llave va en
+lectura: la primera columna candidata de la base y de las respuestas (primero la que declara la encuesta) con cuántas
+más se prueban, ejemplos de cada lado y distintos en la base (PDM 2,296). El cruce de las efectivas sale de
+`respuestasModel`, como en Control › Respuestas: PDM 418 exactas, 6 por sus dígitos, 424 de 424, 100.0 % (el lienzo
+dice 429 de 430 porque cuenta los envíos antes del filtro de prueba); Medios de Vida 72 de 72. El editor del filtro de
+efectiva es el de siempre, con lo que además queda fuera (prueba o real en Medios de Vida, un envío por CodPulso).
+Abajo, cada efectiva con cómo cruzó y su caso en la hoja; a la derecha, la tarjeta de la encuesta («Cambiar conexión») y
+lo que no cruzó tal cual («1218 se lee PDM1218»).
+
+- **No va**: interruptores de normalización, «Variables de control» (no hay pares que el motor compare) y la caja de
+  discrepancia del lienzo; el conteo «Quedan» por criterio, que el corte no publica.
+- En Medios de Vida «Por revisar en la llave» queda vacío legítimo: todas las efectivas cruzan tal cual.
+
+**T7, Insumos › Fuentes.** `profiles/telefonico/insumos/Fuentes.tsx` con `fuentesModel.ts` (test). En una columna: la
+franja de lectura y sincronización de siempre (Sheets, Kobo, Todo y Conectar fuente), la cadena del corte (universo,
+barrido y encuesta, con su cifra y enlace), las fuentes del proyecto (papel en el contrato, servicio, nombre editable
+como antes, lo que se lee, volumen si la metadata lo trae, última lectura y «Cambiar conexión», que abre el panel de
+conexión sobre esa fuente) y, al pie, las columnas que cada pieza espera con la que la fuente declara (PDM: llave
+CodPulso y sede, atención, trámite y origen; el resto se busca por nombre). Las tarjetas de universo y barrido que
+vivían en la vieja «Universo y barrido» quedan cubiertas por la cadena y las filas.
+
+- **Diferencias con el lienzo**: una columna y no dos, porque la columna derecha del lienzo («Capacidades del
+  proyecto» y «Qué cambia al guardar») no tiene capacidad detrás y dejaba un vacío; sin vista previa ni validación por
+  columna (el corte no publica qué trae cada columna; `state.variables` mezcla la hoja con Kobo); sin «Traer nuevas» y
+  «Todo de nuevo» por fuente (la franja sincroniza por servicio, como hoy).
+- A 1024 la cadena queda en fila dentro de Fuentes: apilada, la pieza con cifra quedaba más alta que las otras dos y
+  rompía su contrato de marcos iguales.
+- El volumen por fuente sale de la metadata del sync (`row_count`, `fetched_count`); las copias no la traen y la fila no
+  pinta cifra. La del corte está en la cadena (2,726 en PDM).
+
+**Rechazo del verificador sobre `0e965bb13`.** «Columnas que se leen» pintaba claves internas del contrato (atencion,
+tramite, telefono). Ahora usa el diccionario `insumos/rotulosDeColumna.ts`, con un test que falla si el contrato agrega
+una clave sin rótulo. Avisos quita el prefijo `codigo:` de título, detalle, desglose y notas, no sólo de los afectados.
+Con la señal de asignación se cuentan personas distintas. Renombrar una fuente vuelve a decir «Guardando…» y
+«… actualizado.».
+
+**Repetidas con su unidad.** En Respuestas el chip contaba envíos marcados («Repetidas (2)») y la cadena, envíos que
+sobran («1 envío repetido»). Ahora cada rótulo dice qué cuenta: el chip «Repetidas: 1 caso, 2 envíos» y la cadena «1
+envío repetido de 1 caso» (Medios de Vida: 2 casos, 4 envíos y 2 envíos repetidos de 2 casos). Llave y filtros usa la
+misma frase.
+
+**Claves sin rótulo (segundo rechazo).** Barrido de todo lo que pintan Control, Insumos y las tarjetas que montan:
+
+- El cruce de la llave tiene un único mapa en `control/respuestasModel.ts` (`ROTULO_DE_LLAVE`: Exacta, Por sus dígitos,
+  No cruza), que usan Respuestas y Llave y filtros.
+- Las marcas pasan a mayúscula inicial (Más de 2 h, Menos de 5 min, Repetida, No cruza, Efectiva), igual que el tipo de
+  regla de «Qué cuenta» (Filtro, Regla, Aviso, no excluye) y «Apagada» en Fuentes.
+- Las columnas esperadas de la tarjeta de cada fuente salen del page-file a `insumos/ColumnasEsperadas.tsx` y pasan
+  por `rotuloDeDato` (Consentimiento, Fecha, Respuesta…).
+- En «Todas», Respuestas pone primero lo que no cruzó tal cual (en PDM, los 6 por sus dígitos).
+- Test transversal `profiles/telefonico/clavesSinRotulo.test.tsx`: renderiza Barrido, Insistencia (con ficha), Equipo
+  (con estados), Respuestas, Avisos, Estados, Llave y filtros, Fuentes y las tarjetas de fuente con un corte de prueba.
+  Falla si un texto visible es una clave conocida en minúscula o tiene forma de clave (`snake_case`, `kebab-case`). El
+  contenido de `<code>` queda fuera: son nombres de columna. Se comprobó que falla si se revierte cualquiera de los dos
+  defectos.
+- **Fuentes, columna «Columna»**: la cabecera real de la hoja no viaja en la metadata de la fuente
+  (`sheet_binding` trae `spreadsheet_id`, `sheet_name`, `header_row`, `range`, `last_read_at` y `snapshot_hash`; sin
+  encabezados). Se muestra el valor guardado en `dimensions` tal cual, en monoespaciado, porque es el nombre de columna
+  que la fuente declaró.

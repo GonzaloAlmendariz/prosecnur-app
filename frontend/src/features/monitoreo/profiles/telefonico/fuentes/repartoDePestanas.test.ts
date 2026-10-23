@@ -13,10 +13,10 @@ import { repartoDeFuentes, type PestanaDeFuentes } from "./repartoDePestanas";
 const PESTANAS: PestanaDeFuentes[] = ["activas", "sheets", "survey"];
 
 describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
-  it("Universo y barrido no ofrece configurar Kobo", () => {
+  it("Estados (la clave vieja «sheets») no pinta tarjetas de conexión", () => {
     const reparto = repartoDeFuentes("sheets", true);
     expect(reparto.decisionKobo).toBe(false);
-    expect(reparto.slots).toEqual(["universo", "barrido"]);
+    expect(reparto.slots).toEqual([]);
   });
 
   it("Encuestas no ofrece hojas de cálculo", () => {
@@ -24,11 +24,11 @@ describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
     expect(reparto.slots).toEqual(["plataforma"]);
   });
 
-  it("Fuentes activas no repite las tarjetas de las otras dos", () => {
-    // Era su defecto de fondo: con los tres slots pintados, la pestaña de
-    // resumen no aportaba nada que no estuviera ya en las otras dos.
+  it("Fuentes lleva las hojas y no repite la tarjeta de Kobo de Llave y filtros", () => {
+    // Desde T7 las tarjetas de universo y barrido viven en Fuentes: la pestaña
+    // que antes las llevaba es ahora Estados.
     const reparto = repartoDeFuentes("activas", true);
-    expect(reparto.slots).toEqual([]);
+    expect(reparto.slots).toEqual(["universo", "barrido"]);
     expect(reparto.cadena).toBe(true);
     expect(reparto.listaConfigurada).toBe(true);
   });
@@ -89,9 +89,9 @@ describe("el resumen abre la puerta cuando falta una pieza", () => {
     expect(reparto.slots).toEqual(["universo", "barrido", "plataforma"]);
   });
 
-  it("con el contrato completo el resumen vuelve a ser sólo lectura", () => {
+  it("con el contrato completo la tarjeta de Kobo queda en Llave y filtros", () => {
     const reparto = repartoDeFuentes("activas", true);
-    expect(reparto.slots).toEqual([]);
+    expect(reparto.slots).not.toContain("plataforma");
   });
 
   it("las pestañas de decisión no cambian con el estado del contrato", () => {
