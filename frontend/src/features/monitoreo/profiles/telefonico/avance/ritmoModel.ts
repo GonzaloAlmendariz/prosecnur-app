@@ -323,3 +323,40 @@ export function notaDeLaSerie(reports: MonitoreoAcreditacionReports | null | und
   const { sinCategoria, segmento, fueraDeCuota, sinFecha } = serieDiariaDelCorte(reports);
   return notaSinCategoria(sinCategoria, segmento, fueraDeCuota, sinFecha);
 }
+
+/** Cómo se reparte la hoja de barrido por estado, para decir por qué Ritmo no tiene serie. */
+export function estadosDeLaHoja(reports: MonitoreoAcreditacionReports | null | undefined) {
+  const porEstado = new Map<string, number>();
+  filasDeBloque(reports, ["estatus_telefonico"]).forEach((fila: Fila) => {
+    const estado = texto(fila.Estatus ?? fila.Estado) || "Sin estado";
+    porEstado.set(estado, (porEstado.get(estado) ?? 0) + numero(fila.Casos));
+  });
+  const estados = [...porEstado.entries()]
+    .map(([estado, casos]) => ({ estado, casos }))
+    .filter((item) => item.casos > 0)
+    .sort((a, b) => b.casos - a.casos || a.estado.localeCompare(b.estado, "es"));
+  return { estados, filas: estados.reduce((suma, item) => suma + item.casos, 0) };
+}
+
+/** Por qué no hay serie: lo que dice la hoja y lo que dice Kobo, sin suponer. */
+export function motivoSinSerie(
+  hoja: { estados: ReadonlyArray<{ estado: string; casos: number }>; filas: number },
+  efectivasSinFecha: number,
+) {
+  const partes: string[] = [];
+  if (!hoja.filas) partes.push("La hoja de barrido no trae filas en este corte");
+  else if (hoja.estados.length === 1) {
+    const [unico] = hoja.estados;
+    partes.push(`Las ${n(hoja.filas)} filas de la hoja de barrido están en «${unico.estado}» y ninguna tiene fecha de llamada`);
+  } else partes.push(`Ninguna de las ${n(hoja.filas)} filas de la hoja de barrido tiene fecha de llamada`);
+  partes.push(
+    efectivasSinFecha
+      ? `Kobo trae ${n(efectivasSinFecha)} ${efectivasSinFecha === 1 ? "efectiva" : "efectivas"} sin fecha`
+      : "Kobo no trae efectivas en este corte",
+  );
+  return `${partes.join(". ")}.`;
+}
+
+function n(valor: number) {
+  return valor.toLocaleString("es-PE");
+}

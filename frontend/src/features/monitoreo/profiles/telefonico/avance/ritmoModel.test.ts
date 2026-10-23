@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports, MonitoreoStateRule } from "../../../../../api/client";
-import { efectivasPorDia, formatosDeFecha, resumenDeRitmo, serieHoja, serieKobo } from "./ritmoModel";
+import { efectivasPorDia, estadosDeLaHoja, formatosDeFecha, motivoSinSerie, resumenDeRitmo, serieHoja, serieKobo } from "./ritmoModel";
 
 function reportes(bloques: Record<string, Array<Record<string, unknown>>>): MonitoreoAcreditacionReports {
   return {
@@ -70,5 +70,30 @@ describe("Avance › Ritmo del telefónico", () => {
       { Fecha: "2026-07-01", "Efectivas Kobo": 74 }, { Fecha: "2026-06-30", "Efectivas Kobo": 14 }, { Fecha: "Sin fecha", "Efectivas Kobo": 2 },
     ] }));
     expect(dias).toEqual([{ fecha: "2026-06-30", casos: 14 }, { fecha: "2026-07-01", casos: 74 }]);
+  });
+});
+
+describe("Ritmo sin serie", () => {
+  it("un barrido que no empezó dice cuántas filas hay y en qué estado", () => {
+    const hoja = estadosDeLaHoja(reportes({ estatus_telefonico: [{ Estatus: "No barrido", Casos: 800, "% del total telefónico": 1 }] }));
+    expect(hoja).toEqual({ estados: [{ estado: "No barrido", casos: 800 }], filas: 800 });
+    expect(motivoSinSerie(hoja, 0)).toBe(
+      "Las 800 filas de la hoja de barrido están en «No barrido» y ninguna tiene fecha de llamada. Kobo no trae efectivas en este corte.",
+    );
+  });
+
+  it("con varios estados y efectivas sin fecha, lo dice sin suponer", () => {
+    const hoja = estadosDeLaHoja(reportes({ estatus_telefonico: [
+      { Estatus: "No barrido", Casos: 1200 },
+      { Estatus: "No contesta", Casos: 34 },
+      { Estatus: "Vacío", Casos: 0 },
+    ] }));
+    expect(hoja.estados.map((item) => item.estado)).toEqual(["No barrido", "No contesta"]);
+    expect(motivoSinSerie(hoja, 3)).toBe(
+      "Ninguna de las 1,234 filas de la hoja de barrido tiene fecha de llamada. Kobo trae 3 efectivas sin fecha.",
+    );
+    expect(motivoSinSerie({ estados: [], filas: 0 }, 1)).toBe(
+      "La hoja de barrido no trae filas en este corte. Kobo trae 1 efectiva sin fecha.",
+    );
   });
 });

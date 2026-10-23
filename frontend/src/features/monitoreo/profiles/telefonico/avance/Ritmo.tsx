@@ -1,8 +1,12 @@
 import { useMemo } from "react";
+import { CalendarClock } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import {
   FAMILIAS_DE_LLAMADA,
+  estadosDeLaHoja,
   fechaCorta,
+  motivoSinSerie,
   formatosDeFecha,
   resumenDeRitmo,
   notaSinCategoria,
@@ -77,13 +81,7 @@ export function Ritmo({
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
   const nombreDeSegmento = segmento ? segmento.toLocaleLowerCase("es") : "categoría";
   if (!kobo.total && !Object.keys(hoja.totalPorFecha).length) {
-    return (
-      <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Ritmo">
-        <span className="mon-ctl-antetitulo">Ritmo</span>
-        <strong>Sin efectivas ni llamados fechados</strong>
-        <p>El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja.</p>
-      </section>
-    );
+    return <RitmoSinSerie reports={reports} sinFecha={sinFecha} meta={meta} />;
   }
 
   return (
@@ -239,6 +237,54 @@ export function Ritmo({
               </li>
             ))}
           </ul>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sin efectivas ni llamados fechados (un barrido que todavía no empieza) el
+ * marco se conserva: el panel de la serie dice por qué está vacío y la columna
+ * lateral muestra en qué estado está la hoja.
+ */
+function RitmoSinSerie({
+  reports,
+  sinFecha,
+  meta,
+}: {
+  reports: MonitoreoAcreditacionReports;
+  sinFecha: number;
+  meta: number | null;
+}) {
+  const hoja = useMemo(() => estadosDeLaHoja(reports), [reports]);
+  return (
+    <div className="mon-cadencia" data-qa-geometry-group="telefonico-avance-ritmo" data-qa-geometry-contract="intrinsic">
+      <div className="mon-cadencia-columna">
+        <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+          <EstadoVacio
+            tamano="normal"
+            icono={<CalendarClock size={22} />}
+            titulo="Todavía no hay días que graficar"
+            descripcion={motivoSinSerie(hoja, sinFecha)}
+          />
+        </section>
+      </div>
+      <div className="mon-cadencia-lateral">
+        <section className="mon-ctl-panel mon-insumos-tarjeta mon-cadencia-estados" aria-label="Estado de la hoja de barrido">
+          <span className="mon-ctl-antetitulo">Estado de la hoja de barrido</span>
+          {hoja.estados.length ? (
+            <ul className="mon-cadencia-formatos">
+              {hoja.estados.map((item) => (
+                <li key={item.estado}>
+                  <i className="mon-cadencia-punto" aria-hidden="true" />
+                  <span>{item.estado}</span>
+                  <strong className="is-num">{n(item.casos)}</strong>
+                </li>
+              ))}
+            </ul>
+          ) : <p>Sin filas en este corte.</p>}
+          <p className="mon-cadencia-secundaria">{meta ? `Meta del estudio: ${n(meta)} efectivas.` : "Sin meta declarada."}</p>
         </section>
       </div>
     </div>
