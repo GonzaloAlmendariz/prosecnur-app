@@ -1,7 +1,7 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { filasDeBloque } from "../navegacion/bloques";
-import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { cadenaDeLaCifra, construirCuotasFaltante, type CuotaDeEntrada } from "./cuotasFaltanteModel";
 
 function numero(valor: unknown): number {
@@ -34,7 +34,7 @@ export function entradaDeCuotasFaltante(
   const segmento = nombreDelSegmento(filasDeCuota.map((fila) => String(fila.Variable ?? "")));
   const modelo = construirCuotasFaltante({
     cuotas,
-    segmento,
+    segmento: rotuloDelSegmento(segmento),
     sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
   });
 
