@@ -2983,6 +2983,10 @@ export type MonitoreoProfile = {
     use_name_fallback: boolean;
     automatic_detection: boolean;
   };
+  /** Telefónico: columna que separa la muestra titular de su reserva (`monitoreo_telefonico_origen.R`). */
+  sample_origin?: { column: string; titular_values: string[]; reserva_values: string[] };
+  /** Telefónico: columna que marca que un caso de la reserva reemplaza a un titular. */
+  replacement_flag?: { column: string; yes_values: string[] };
   deduplication: {
     priority: string[];
   };

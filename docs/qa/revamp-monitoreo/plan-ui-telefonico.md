@@ -451,3 +451,29 @@ vacío 400; `Periodo de Llegada` 4 × 200; Responsable vacío en 400; Tef2 en 11
   vin…».
 - «No barrido» sin responsable ya se lee «Sin asignar» en Barrido («400 asignados y 400 sin asignar»), Insistencia y
   Avisos («Casos sin asignar 400»).
+
+## Origen de la muestra y marca de reemplazo (contrato autorizado)
+
+**Perfil (`monitoreo_profile`).** Dos claves opcionales; sin columna declarada no aparecen en el perfil normalizado
+(`.monitoreo_profile_origen`, llamado desde `monitoreo_normalize_profile` en la misma línea que
+`status_from_rules`, sin crecer `monitoreo_engine.R`):
+
+- `sample_origin: {column, titular_values[], reserva_values[]}`: la columna que separa la muestra titular de su
+  reserva y qué valores son de cada lista (RMS: `Origen`, «Muestra» titular y «Backup» reserva).
+- `replacement_flag: {column, yes_values[]}`: la columna que marca que un caso de la reserva reemplaza a un titular y
+  qué valores significan sí (RMS: «¿Se reemplaza con el Backup?»).
+
+**Bloque `origen_de_la_muestra`** (`api/R/monitoreo_telefonico_origen.R`, test
+`test-monitoreo-telefonico-origen.R`; solo lectura): `Columna · Valor · Rol · Casos`. Rol `titular`, `reserva` o
+`sin_rol` en la columna de origen; `reemplazo` o `no_reemplazo` en la marca; `sin_declarar` en las columnas cuyo
+nombre sugiere origen o reemplazo cuando nada se declaró. El vacío se publica como «Sin dato», así los casos suman la
+hoja.
+
+**Quién lo consume.** Insumos › Llave y filtros › «Origen de la muestra» (`insumos/OrigenDeLaMuestra.tsx`, modelo
+`insumos/origenModel.ts` con test): elige la columna, asigna Titular, Reserva o Sin rol a cada valor y marca qué
+valores de la marca significan reemplazo, con los casos de cada uno; sin declarar propone por el nombre y el equipo
+confirma. La lectura al pie (muestra titular, reserva, reemplazos marcados) sale del mismo bloque.
+
+**Contrato con la sesión ACNUR RMS.** Modelo › Reserva y Avance › Reemplazos **deben leer estas mismas dos claves** y
+el bloque `origen_de_la_muestra`; no una columna propia ni una lista de valores escrita en su código. Si necesitan algo
+más (p. ej. a qué titular reemplaza cada caso), se agrega aquí, no en paralelo.

@@ -699,7 +699,7 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
     )
   )
   attr(out, "compat_acreditacion") <- acreditacion
-  .monitoreo_profile_status_reglas(out, profile) # status_from_rules: monitoreo_status_reglas.R
+  .monitoreo_profile_origen(.monitoreo_profile_status_reglas(out, profile), profile) # status_from_rules: monitoreo_status_reglas.R; sample_origin y replacement_flag: monitoreo_telefonico_origen.R
 }
 
 # .monitoreo_text_key vive en monitoreo_reconciliacion_memo.R (memoizada; era
