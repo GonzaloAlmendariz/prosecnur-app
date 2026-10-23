@@ -227,7 +227,8 @@
   out <- data.frame(
     Sentido = sentido[filas], CodPulso = texto("CodPulso"), Responsable = texto("Responsable"),
     `La hoja dice` = texto("Estado telefónico"), `Fecha hoja` = texto("Fecha"), `Fecha Kobo` = texto("Fecha Kobo"),
-    `Enumerador Kobo` = "", `Response ID` = "", check.names = FALSE, stringsAsFactors = FALSE
+    `Enumerador Kobo` = rep("", length(filas)), `Response ID` = rep("", length(filas)),
+    check.names = FALSE, stringsAsFactors = FALSE
   )
   # Envío de Kobo por CodPulso: el primero de control_tiempo_kobo.
   if (is.data.frame(efectivas) && nrow(efectivas) && nrow(out)) {
