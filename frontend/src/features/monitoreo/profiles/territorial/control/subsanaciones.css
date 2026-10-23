@@ -192,6 +192,60 @@
   color: var(--pulso-danger-fg);
 }
 
+.mon-sub-mapa {
+  display: grid;
+  flex: 0 0 auto;
+  gap: var(--pulso-space-1);
+  margin: 0;
+}
+
+.mon-sub-mapa svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-sub-mapa-distritos path {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-sub-mapa line {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-sub-mapa line.is-activo {
+  stroke: var(--pulso-brand-navy);
+}
+
+.mon-sub-mapa line.is-sugerido {
+  stroke: var(--pulso-module-monitoring);
+  stroke-dasharray: 6 4;
+}
+
+.mon-sub-mapa marker path {
+  fill: var(--pulso-text-soft);
+}
+
+.mon-sub-leyenda::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin: 0 6px 0 var(--pulso-space-2);
+  vertical-align: 3px;
+  border-top: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-sub-leyenda.is-sugerido::before {
+  border-top: 2px dashed var(--pulso-module-monitoring);
+}
+
 .mon-sub-acciones {
   display: inline-flex;
   flex-wrap: wrap;

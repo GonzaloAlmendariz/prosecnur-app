@@ -54,6 +54,8 @@ export type ModeloSubsanaciones = {
   historial: EntradaDeHistorial[];
   /** Ajustes activos, para revertir uno desde el historial. */
   idsActivos: Set<string>;
+  /** Los ajustes activos tal cual, para dibujar sus movimientos. */
+  ajustesActivos: MonitoreoTerritorialOperationalAdjustment[];
 };
 
 function n(valor: unknown): number {
@@ -180,6 +182,7 @@ export function construirSubsanaciones(
     rechazadas: rechazos.length,
     historial,
     idsActivos: new Set(activos.map((item) => String(item.id ?? ""))),
+    ajustesActivos: activos,
   };
 }
 

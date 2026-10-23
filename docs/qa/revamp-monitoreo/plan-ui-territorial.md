@@ -183,7 +183,7 @@ la Bandeja siguen montando las vistas heredadas.
   en `session_schema.R`.
 - El test R (`test-monitoreo-territorial-rechazos.R`) va en el `gate-area` del cierre.
 
-Sin dibujar: el mapa de los movimientos activos de §3.11, que queda para después de T7 y T8.
+El mapa de movimientos de §3.11 está en `control/MapaDeMovimientos.tsx`, al centro de Subsanaciones. Muestra cada movimiento activo como línea de la manzana que cede a la que recibe y el sugerido punteado, con la cartografía y la caché de Avance › Mapa. Si alguna manzana no está en la cartografía, lo dice.
 
 **T6 (código listo, sin gate).** Control › Ocurrencias y Reportes UMP, propias y condicionales: solo existen si el
 proyecto declara el parte (`tieneOcurrencias`, E4).
