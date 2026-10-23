@@ -83,6 +83,7 @@ import { Avisos } from "./control/Avisos";
 import { Estados } from "./insumos/Estados";
 import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
+import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -10640,9 +10641,7 @@ function AcreditacionPhoneSourceSlotCard({
           </span>
         ) : null}
       </div>
-      <div className="mon-phone-source-slot-tags" aria-label={`Columnas esperadas para ${slot.label}`}>
-        {slot.expected.map((item) => <i key={item}>{item}</i>)}
-      </div>
+      <ColumnasEsperadas columnas={slot.expected} pieza={slot.label} />
       {/* La única puerta al cableado, y va al panel que ya conoce el guion del
         * estudio. Antes cada pestaña llevaba su propio formulario con la
         * dirección, la pestaña y el rango a la vista: dos caminos para lo mismo,

@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { segmentoDelCorte } from "../control/montaje";
-import { construirRespuestas, mermaDeRepetidos } from "../control/respuestasModel";
+import { ROTULO_DE_LLAVE, construirRespuestas, mermaDeRepetidos } from "../control/respuestasModel";
 import {
   UMBRAL_DE_CRUCE,
   cruceDeLlave,
@@ -15,7 +15,6 @@ import {
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
-const COMO_CRUZO = { exacta: "Exacta", normalizada: "Por sus dígitos", "no-cruza": "No cruza" } as const;
 
 function n(valor: number) {
   return valor.toLocaleString("es-PE");
@@ -143,7 +142,7 @@ export function LlaveYFiltros({
                   {envios.map((envio, i) => (
                     <tr key={`${envio.codigo}-${envio.responseId}-${i}`} className={`is-${envio.llave}`}>
                       <th scope="row"><code>{envio.codigo}</code></th>
-                      <td className="mon-llave-como">{COMO_CRUZO[envio.llave]}</td>
+                      <td className="mon-llave-como">{ROTULO_DE_LLAVE[envio.llave]}</td>
                       <td><code>{envio.codigoEnHoja || "—"}</code></td>
                       <td>{envio.hojaDice || "—"}</td>
                       <td>{envio.responsable || "—"}</td>
@@ -171,7 +170,7 @@ export function LlaveYFiltros({
               {porRevisar.map((item, i) => (
                 <li key={`${item.codigo}-${i}`} className={`is-${item.llave}`}>
                   <code>{item.codigo}</code>
-                  <span>{COMO_CRUZO[item.llave]}</span>
+                  <span>{ROTULO_DE_LLAVE[item.llave]}</span>
                   <small>{item.lectura}</small>
                 </li>
               ))}
