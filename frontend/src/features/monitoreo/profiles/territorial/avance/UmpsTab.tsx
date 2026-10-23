@@ -3,8 +3,7 @@ import { Download, Search, Target } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
-import { FichaDeUmp } from "./FichaDeUmp";
-import { HistoriaUmp } from "./HistoriaUmp";
+import { ExploracionUmp } from "./ExploracionUmp";
 import { construirFichaDeUmp } from "./fichaUmpModel";
 import { construirHistoriaDeUmp } from "./historiaUmpModel";
 import { construirUmps, csvDeUmps, filtrarUmps, type FiltroDeUmps } from "./umpsModel";
@@ -30,12 +29,12 @@ function descargarCsv(nombre: string, csv: string) {
 
 /**
  * Avance › UMP (territorial.md §3.16 y §3.16b). La tabla de las UMP con las
- * pendientes primero; al elegir una (`panel=ump&foco=<UMP>`) el inspector abre
- * su ficha y su historia al costado, sin tapar la tabla.
+ * pendientes primero; al elegir una (`panel=ump&foco=<UMP>`) la pestaña pasa a
+ * su exploración (`ExploracionUmp.tsx`) y «Todas las UMP» vuelve a la tabla.
  *
  * `avance` trae la cuota y las subsanaciones; `validacion`, los casos uno a
- * uno. La exploración en el mapa con el GPS de cada formulario espera el
- * endpoint de casos por UMP (backend).
+ * uno; el GPS y la hora de cada formulario, anulados incluidos, llegan de
+ * `GET /api/monitoreo/territorial/casos-ump`.
  */
 function UmpsTabImpl({
   avance,
@@ -67,6 +66,23 @@ function UmpsTabImpl({
     );
   }
 
+  if (ficha) {
+    // §3.16b: con una UMP elegida, la pestaña es su exploración (mapa con un
+    // punto por formulario, tarjeta del caso, ficha e historia).
+    return (
+      <section className="mon-umps con-exploracion" aria-label={`UMP ${ficha.ump}`} data-audit-ready="monitoreo-territorial-avance-umps-detalle">
+        <ExploracionUmp
+          ficha={ficha}
+          historia={historia}
+          avance={avance}
+          version={avance?.generated_at ?? ""}
+          onCerrar={() => escribirFoco(null, { panel: null })}
+          onSugerencia={() => escribirFoco(ficha.ump, { seccion: "control", pestana: "subsanaciones", panel: null })}
+        />
+      </section>
+    );
+  }
+
   const filtros: FiltroDeUmps[] = modelo.conOcurrencias
     ? ["todas", "pendientes", "subsanadas", "completas", "sin-parte"]
     : ["todas", "pendientes", "subsanadas", "completas"];
@@ -74,9 +90,9 @@ function UmpsTabImpl({
 
   return (
     <section
-      className={`mon-umps${ficha ? " con-ficha" : ""}`}
+      className="mon-umps"
       aria-label="UMP"
-      data-audit-ready={ficha ? "monitoreo-territorial-avance-umps-detalle" : "monitoreo-territorial-avance-umps"}
+      data-audit-ready="monitoreo-territorial-avance-umps"
       data-qa-geometry-group="territorial-umps"
       data-qa-geometry-contract="intrinsic"
     >
@@ -119,15 +135,13 @@ function UmpsTabImpl({
             </thead>
             <tbody>
               {filas.length ? filas.map((fila) => {
-                const abierta = ficha?.ump === fila.ump;
                 return (
-                  <tr key={fila.ump} className={`is-${fila.estado}${abierta ? " is-abierta" : ""}`}>
+                  <tr key={fila.ump} className={`is-${fila.estado}`}>
                     <th scope="row">
                       <button
                         type="button"
-                        aria-pressed={abierta}
-                        aria-label={`UMP ${fila.ump}: ${abierta ? "cerrar" : "abrir"} su ficha`}
-                        onClick={() => escribirFoco(abierta ? null : fila.ump, { panel: abierta ? null : "ump" })}
+                        aria-label={`UMP ${fila.ump}: explorar sus formularios`}
+                        onClick={() => escribirFoco(fila.ump, { panel: "ump" })}
                       >
                         {fila.ump}
                       </button>
@@ -160,16 +174,6 @@ function UmpsTabImpl({
         </div>
       </section>
 
-      {ficha ? (
-        <div className="mon-umps-inspector" data-qa-geometry-member="inspector">
-          <FichaDeUmp
-            ficha={ficha}
-            onCerrar={() => escribirFoco(null, { panel: null })}
-            onSugerencia={() => escribirFoco(ficha.ump, { seccion: "control", pestana: "subsanaciones", panel: null })}
-          />
-          {historia ? <HistoriaUmp historia={historia} /> : null}
-        </div>
-      ) : null}
     </section>
   );
 }

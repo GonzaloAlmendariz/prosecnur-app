@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Info } from "lucide-react";
 import { fmt } from "../rotulos";
-import type { HistoriaDeUmp, ResultadoDeFormulario } from "./historiaUmpModel";
+import type { Jornada } from "./exploracionModel";
+import type { CapituloDeUmp, HistoriaDeUmp, ResultadoDeFormulario } from "./historiaUmpModel";
+import { JornadaDeFormularios } from "./JornadaDeFormularios";
 
 const ROTULO_DE_RESULTADO: Record<ResultadoDeFormulario, string> = {
   cuenta: "Cuenta",
@@ -16,8 +18,22 @@ const ROTULO_DE_RESULTADO: Record<ResultadoDeFormulario, string> = {
  * cuenta frente a la meta, con un día por paso a la misma distancia, y los
  * capítulos que la explican. Elegir un capítulo marca su día en la curva.
  */
-export function HistoriaUmp({ historia }: { historia: HistoriaDeUmp }) {
+export function HistoriaUmp({
+  historia,
+  jornadas = null,
+  casoElegido = null,
+  onElegirCapitulo,
+  onElegirCaso,
+}: {
+  historia: HistoriaDeUmp;
+  /** Con los casos de la UMP (GPS y hora) se puede ver cada formulario. */
+  jornadas?: Jornada[] | null;
+  casoElegido?: string | null;
+  onElegirCapitulo?: (capitulo: CapituloDeUmp) => void;
+  onElegirCaso?: (id: string) => void;
+}) {
   const [elegido, setElegido] = useState<number | null>(null);
+  const [cadaFormulario, setCadaFormulario] = useState(false);
   const { dias, capitulos, meta } = historia;
   if (!capitulos.length) {
     return (
@@ -41,12 +57,18 @@ export function HistoriaUmp({ historia }: { historia: HistoriaDeUmp }) {
   });
   const cada = Math.max(1, Math.ceil(dias.length / 6));
   const diaElegido = elegido ? capitulos.find((capitulo) => capitulo.numero === elegido)?.dia : null;
+  const jornada = jornadas?.length ? jornadas.find((item) => item.dia === diaElegido) ?? jornadas[0] : null;
 
   return (
     <section className="mon-ump-historia" aria-labelledby="mon-ump-historia-titulo">
       <header className="mon-ump-historia-cabecera">
         <h4 id="mon-ump-historia-titulo" className="mon-ump-subtitulo">Historia de la UMP</h4>
         <span className="mon-ump-base">Cuentan frente a la meta de {fmt(meta)}, día por día</span>
+        {jornada ? (
+          <button type="button" className="mon-ump-alternar" aria-pressed={cadaFormulario} onClick={() => setCadaFormulario((valor) => !valor)}>
+            Ver cada formulario
+          </button>
+        ) : null}
       </header>
       <svg
         className="mon-ump-curva"
@@ -77,6 +99,9 @@ export function HistoriaUmp({ historia }: { historia: HistoriaDeUmp }) {
           La curva termina en {fmt(capitulos.at(-1)?.cuentan ?? 0)} y el corte dice {fmt(historia.cuentanHoy)}: hay formularios sin fecha o fuera del corte.
         </p>
       ) : null}
+      {cadaFormulario && jornada ? (
+        <JornadaDeFormularios jornada={jornada} casoElegido={casoElegido} onElegirCaso={(id) => onElegirCaso?.(id)} />
+      ) : (
       <ol className="mon-ump-capitulos" data-qa-geometry-group="territorial-ump-capitulos" data-qa-geometry-contract="equal">
         {capitulos.map((capitulo) => (
           <li key={capitulo.numero}>
@@ -84,7 +109,11 @@ export function HistoriaUmp({ historia }: { historia: HistoriaDeUmp }) {
               type="button"
               className={`mon-ump-capitulo is-${capitulo.tipo}`}
               aria-pressed={elegido === capitulo.numero}
-              onClick={() => setElegido(elegido === capitulo.numero ? null : capitulo.numero)}
+              onClick={() => {
+                const siguiente = elegido === capitulo.numero ? null : capitulo.numero;
+                setElegido(siguiente);
+                if (siguiente != null) onElegirCapitulo?.(capitulo);
+              }}
             >
               <span className="mon-ump-capitulo-numero" aria-hidden="true">{capitulo.numero}</span>
               <span className="mon-ump-capitulo-texto">
@@ -103,6 +132,7 @@ export function HistoriaUmp({ historia }: { historia: HistoriaDeUmp }) {
           </li>
         ))}
       </ol>
+      )}
     </section>
   );
 }

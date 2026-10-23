@@ -94,9 +94,22 @@ La historia se arma en el frontend con lo que el motor ya publica: formularios d
 consentimiento, fecha de la anulación y subsanaciones aplicadas; la curva cuadra contra lo que cuenta hoy y avisa si
 no.
 
-Bloqueado por backend (`backend-r`, fuera de este glob): el endpoint de casos por UMP con GPS de §3.16b. Sin él no se
-dibujan el mapa de la exploración (puntos numerados por GPS, segmentados Titular/Reemplazo/Ambas y
-Recorrido/Estado/Cuota) ni «Ver cada formulario», porque las filas anuladas no traen GPS ni hora.
+Exploración de la UMP (§3.16b), con un endpoint propio autorizado por el lead:
+`GET /api/monitoreo/territorial/casos-ump?ump=<UMP>` (`api/R/monitoreo_territorial_casos_ump.R`, solo lectura).
+- Trae cada formulario de la UMP con GPS y hora, incluidos los anulados. Para eso pide la auditoría de Validación con
+  una copia de la config sin anulaciones y marca los anulados con la misma máscara del motor; el motor, congelado, no
+  crece.
+- Guarda la auditoría por sesión, con la invalidación en la clave: huella de la base, fase y config territorial.
+- El frontend lo lee con `api/monitoreoCasosUmp.ts` y su normalizador. Al elegir una UMP, Avance › UMP pasa a
+  `ExploracionUmp.tsx`: mapa de su entorno con un punto numerado por formulario (los que comparten GPS se separan en
+  espiral), vistas Titular, Reemplazo o Ambas y capas Recorrido, Estado o Cuota.
+- Al costado van la tarjeta del caso (hora, aplicador, tiempo desde el anterior, celda, distancia a su manzana), la
+  ficha y los casos de la jornada.
+- Debajo va la historia con «Ver cada formulario»: marcas por hora con el ancho de lo que duró cada formulario. Elegir
+  un capítulo, un punto, una fila o una marca elige el mismo caso en los tres lugares.
+
+El test R (`test-monitoreo-territorial-casos-ump.R`, fixture sintética) está escrito pero sin correr: va en el
+`gate-area` del cierre, cuando el lead devuelva el candado.
 
 Avance › Mapa (§3.15) montado (`avance/MapaTab.tsx`) sobre la cartografía y la proyección del atlas, con su caché.
 - Vista general: distritos PlanMet con su nombre rotulado y la manzana en uso de cada UMP como punto por estado; las que
