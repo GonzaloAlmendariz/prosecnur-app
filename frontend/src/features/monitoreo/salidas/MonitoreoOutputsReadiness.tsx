@@ -22,9 +22,12 @@ function fmt(value: number | null, ausente = "S/D") {
 export function MonitoreoOutputsReadiness({
   corte,
   readiness,
+  notaDeValidas,
 }: {
   corte: MonitoreoCorte;
   readiness: MonitoreoSalidaReadiness;
+  /** Por qué «Válidas» difiere de la cifra que lee el modo (telefónico: efectivas sin categoría). */
+  notaDeValidas?: string;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,6 +82,7 @@ export function MonitoreoOutputsReadiness({
           <dt>Válidas</dt>
           <dd>{fmt(corte.oficial, "sin determinar")}</dd>
           <small>{corte.meta != null ? `${corte.metaEtiqueta} ${fmt(corte.meta)}` : `sin ${corte.metaEtiqueta} declarada`}</small>
+          {notaDeValidas ? <small className="mon-outputs-readiness__nota">{notaDeValidas}</small> : null}
         </div>
       </dl>
 

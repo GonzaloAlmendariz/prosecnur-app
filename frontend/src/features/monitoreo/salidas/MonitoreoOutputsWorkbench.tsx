@@ -134,6 +134,11 @@ export type MonitoreoOutputsWorkbenchProps = {
   pdfSupport?: { client?: boolean; production?: boolean };
   className?: string;
   onPublished?: () => void;
+  /**
+   * Detalle bajo «Válidas» cuando el modo lee otra cifra. Sólo lo pasa el
+   * telefónico («69 con actor y 1 sin actor»); los demás modos no cambian.
+   */
+  notaDeValidas?: string;
 };
 
 function fmt(value: unknown, fallback = "0") {
@@ -621,6 +626,7 @@ export function MonitoreoOutputsWorkbench({
   pdfSupport,
   className = "",
   onPublished,
+  notaDeValidas,
 }: MonitoreoOutputsWorkbenchProps) {
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
@@ -1179,7 +1185,7 @@ export function MonitoreoOutputsWorkbench({
         ) : null}
       </header>
 
-      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} />
+      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas={notaDeValidas} />
 
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">

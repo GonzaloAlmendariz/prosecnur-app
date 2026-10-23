@@ -240,3 +240,16 @@ export function notaSinCategoria(sinCategoria: number, segmento: string) {
   const nombre = segmento.toLocaleLowerCase("es");
   return `${sinCategoria.toLocaleString("es-PE")} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre} no ${sinCategoria === 1 ? "entra" : "entran"} a la serie`;
 }
+
+/**
+ * Detalle bajo «Válidas» en las salidas (cuenta todas las efectivas de Kobo):
+ * «69 con actor y 1 sin actor» cuando alguna no cae en una categoría; vacío si
+ * no hay diferencia que explicar.
+ */
+export function notaDeValidasTelefonica(reports: MonitoreoAcreditacionReports | null | undefined): string | undefined {
+  const { serie, sinCategoria, segmento } = serieDiariaDelCorte(reports);
+  if (!sinCategoria) return undefined;
+  const nombre = segmento.toLocaleLowerCase("es");
+  const fmt = (n: number) => n.toLocaleString("es-PE");
+  return `${fmt(serie.total)} con ${nombre} y ${fmt(sinCategoria)} sin ${nombre}`;
+}
