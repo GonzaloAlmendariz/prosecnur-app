@@ -220,3 +220,108 @@
   .acr-ct-fila { grid-template-columns: minmax(0, 1fr); }
   .acr-ct-familias { overflow: visible; }
 }
+
+/* Equipo (Ctl4). */
+.acr-ct.is-equipo {
+  grid-template-columns: minmax(0, 1fr) 440px;
+}
+
+.acr-ct-equipo-tabla {
+  overflow: hidden;
+}
+
+.acr-ct-equipo-tabla .acr-pr-cola-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.acr-ct-equipo-tabla td {
+  white-space: nowrap;
+}
+
+.acr-ct-equipo-tabla td:nth-child(2) {
+  width: 32%;
+  min-width: 140px;
+}
+
+.acr-ct-equipo-tabla tr.is-sin-asignar th,
+.acr-ct-equipo-tabla tr.is-sin-asignar td {
+  color: var(--pulso-text-soft);
+}
+
+.acr-ct-carga {
+  display: block;
+}
+
+.acr-ct-carga .acr-av-apilada {
+  height: 14px;
+  border-radius: 3px;
+}
+
+.acr-ct-pie {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-ct-columna.is-equipo {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.acr-ct-grafico.is-dispersion {
+  min-height: 260px;
+}
+
+.acr-ct-punto {
+  fill: color-mix(in srgb, var(--acr-efectiva) 85%, var(--pulso-surface));
+  stroke: var(--pulso-surface);
+  stroke-width: 1.5;
+}
+
+.acr-ct-punto-rotulo {
+  fill: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-ct-alertas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
+  list-style: none;
+}
+
+.acr-ct-alertas li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-ct-alertas li:first-child {
+  border-top: 0;
+}
+
+.acr-ct-alertas li.is-atencion .acr-res-punto {
+  background: var(--acr-rechazo);
+}
+
+.acr-ct-alertas li.is-informa .acr-res-punto {
+  background: var(--acr-sin-respuesta);
+}
+
+@media (max-width: 1365px) {
+  .acr-ct.is-equipo { grid-template-columns: minmax(0, 1fr) 360px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ct.is-equipo { grid-template-columns: minmax(0, 1fr); }
+  .acr-ct-columna.is-equipo { grid-template-rows: auto; }
+}
