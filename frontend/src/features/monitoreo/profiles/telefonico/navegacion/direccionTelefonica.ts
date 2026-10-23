@@ -250,6 +250,8 @@ export function pestanaDeEntrada<T extends string>(entrada: VistaInterna, seccio
  */
 const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   "control/insistencia": ["caso"],
+  // «Estados por operador» de Equipo: una vista con dirección, como la ficha.
+  "control/equipo": ["estados"],
 };
 
 const SIN_PANELES: readonly string[] = [];
