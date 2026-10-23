@@ -367,3 +367,20 @@ export function porDestino(avisos: readonly Aviso[]): DestinoConCasos[] {
     Number(a.direccion === null) - Number(b.direccion === null) || b.casos - a.casos || a.etiqueta.localeCompare(b.etiqueta, "es")
   ));
 }
+
+export type CasoPorRevisar = CasoAfectado & { aviso: string; avisoId: string; nivel: NivelDeAviso; destino: string };
+
+/**
+ * «Casos por revisar»: todos los casos que los avisos nombran, en una sola
+ * tabla, en el orden de los avisos (primero los de nivel alto). Un caso que
+ * aparece en dos avisos sale dos veces, una por cada causa.
+ */
+export function casosPorRevisar(avisos: readonly Aviso[]): CasoPorRevisar[] {
+  return avisos.flatMap((aviso) => aviso.afectados.map((caso) => ({
+    ...caso,
+    aviso: aviso.titulo,
+    avisoId: aviso.id,
+    nivel: aviso.nivel,
+    destino: aviso.destino.etiqueta,
+  })));
+}

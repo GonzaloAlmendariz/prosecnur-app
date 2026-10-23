@@ -1109,9 +1109,76 @@
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-width: 0;
-  max-height: 100%;
+  height: 100%;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+}
+
+/* Llega hasta el pie de la columna; con muchos avisos queda en su mínimo y
+ * desplaza dentro con barra visible. */
+.mon-avisos-por-revisar {
+  display: flex;
+  flex: 1 0 280px;
+  flex-direction: column;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.mon-avisos-por-revisar-cabecera {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-2);
+}
+
+.mon-avisos-por-revisar-cabecera > span:last-child {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-avisos-por-revisar-marco {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-avisos-por-revisar-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+}
+
+.mon-avisos-por-revisar-tabla th:nth-child(1) { width: 112px; }
+.mon-avisos-por-revisar-tabla th:nth-child(3) { width: 160px; }
+.mon-avisos-por-revisar-tabla th:nth-child(4) { width: 200px; }
+
+.mon-avisos-por-revisar-tabla tbody th,
+.mon-avisos-por-revisar-tabla tbody td {
+  padding-block: 6px;
+}
+
+.mon-avisos-enlace {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--pulso-border-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.mon-avisos-enlace:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-avisos-por-revisar .mon-avisos-sin-casos {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-4);
 }
 
 .mon-avisos-lista-panel {
@@ -1292,7 +1359,7 @@
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-height: 0;
-  max-height: 100%;
+  height: 100%;
   padding: var(--pulso-space-4);
   overflow: hidden;
 }
@@ -1310,14 +1377,14 @@
 
 .mon-avisos-afectados {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-height: 0;
 }
 
 .mon-avisos-lista-casos {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   margin: 0;
   padding: 0;
@@ -1451,7 +1518,13 @@
 
   .mon-avisos > * {
     flex: none;
+    height: auto;
     max-height: none;
+  }
+
+  .mon-avisos-por-revisar {
+    flex: none;
+    height: 360px;
   }
 
   .mon-avisos-tabla th:nth-child(3) { width: 150px; }
