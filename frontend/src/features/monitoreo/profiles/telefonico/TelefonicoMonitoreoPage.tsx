@@ -77,7 +77,7 @@ import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { CuotasFaltante } from "./avance/CuotasFaltante";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
-import { BarridoDeLaHoja } from "./control/montaje";
+import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Equipo } from "./control/Equipo";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -19052,6 +19052,9 @@ function renderAcreditacionView(
         onStateChange={options.onStateChange}
       />
     );
+  }
+  if (view === "consultas" && (options.activeConsultaTab ?? "plataforma") === "plataforma" && isTelefonicoMonitoreoState(options.state)) {
+    return <RespuestasDelCorte reports={reports} state={options.state} />; // Control › Respuestas (T6).
   }
   if (view === "consultas") {
     return (

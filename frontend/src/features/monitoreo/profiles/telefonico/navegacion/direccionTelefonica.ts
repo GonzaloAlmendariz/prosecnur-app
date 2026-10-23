@@ -14,7 +14,7 @@
  * La traducción es una tabla y no una cadena de `if`: cada vista interna tiene
  * exactamente una dirección pública, y cada dirección pública una vista. Cuando
  * una pestaña absorbe más de una vista, las demás cuelgan de ella como
- * `panel` (Respuestas › Tiempos, Cuotas y calendario › Calendario), el mismo
+ * `panel` (Respuestas › Salvedades, Cuotas y calendario › Calendario), el mismo
  * recurso que el diseño usa en Equipo para «Estados por operador».
  *
  * Las claves históricas se LEEN como alias —hay enlaces guardados y corridas de
@@ -77,8 +77,9 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "insistencia", null, { seccion: "telefonico", pestana: "incidencia" }),
   entrada("control", "equipo", null, { seccion: "telefonico", pestana: "responsables" }),
   entrada("control", "discrepancias", null, { seccion: "consultas", pestana: "cruces" }),
+  // Respuestas integra «Efectivas Kobo» y «Validación de tiempo» (T6); la
+  // dirección vieja `panel=tiempos` se lee como la pestaña.
   entrada("control", "respuestas", null, { seccion: "consultas", pestana: "plataforma" }, "Efectivas"),
-  entrada("control", "respuestas", "tiempos", { seccion: "telefonico", pestana: "tiempos" }, "Tiempos"),
   entrada("control", "respuestas", "salvedades", { seccion: "consultas", pestana: "subsanacion" }, "Salvedades"),
   entrada("control", "avisos", null, { seccion: "telefonico", pestana: "alertas" }),
   entrada("avance", "cuotas", null, { seccion: "avance", pestana: "actores" }),
@@ -96,6 +97,7 @@ const INTERNAS_OCULTAS: Record<string, VistaInterna> = {
   "consultas/base": { seccion: "consultas", pestana: "plataforma" },
   "telefonico/consultados": { seccion: "consultas", pestana: "plataforma" },
   "telefonico/dia": { seccion: "avance", pestana: "resumen" },
+  "telefonico/tiempos": { seccion: "consultas", pestana: "plataforma" },
   "avance/encuestas": { seccion: "avance", pestana: "actores" },
   "avance/detalle": { seccion: "avance", pestana: "actores" },
 };
@@ -263,5 +265,7 @@ export function panelesSuperpuestos(seccion: string, pestana: string): readonly 
 /** Todo `panel` que el perfil telefónico escribe: sub-vistas y superpuestos. */
 export const PANELES_DEL_PERFIL: readonly string[] = [
   ...PANELES_DE_SUBVISTA,
+  // Sub-vistas retiradas: se leen y la dirección se limpia al escribir.
+  "tiempos",
   ...new Set(Object.values(PANELES_SUPERPUESTOS).flat()),
 ];

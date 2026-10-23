@@ -5,7 +5,7 @@ import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/n
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { resumenDeEquipo } from "../conteoDeEquipo";
 import { EquipoMatriz } from "./EquipoMatriz";
-import { FAMILIAS_DEL_CLIENTE } from "./familiasDelCliente";
+import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import { construirEquipo, familiasDe, statusDe, type Equipo as Modelo, type OperadorDeEquipo } from "./equipoModel";
 import "./controlTelefonico.css";
 
@@ -146,7 +146,10 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
         <ul>
           {statusDe(modelo, operador.nombre).map((item) => (
             <li key={item.status} className={`is-${item.familia}`}>
-              <span>{item.status}</span>
+              <span>
+                {item.status}
+                {item.porRegla ? <em className="mon-ctl-por-regla">{rotuloDeRegla(item.familia)}</em> : null}
+              </span>
               <i aria-hidden="true"><b style={{ width: `${(item.casos / total) * 100}%` }} /></i>
               <strong className="is-num">{n(item.casos)}</strong>
             </li>

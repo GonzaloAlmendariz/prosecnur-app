@@ -1,0 +1,180 @@
+import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { Search } from "lucide-react";
+import {
+  DOS_HORAS,
+  ETIQUETA_DE_MARCA,
+  duracionLegible,
+  filtrarEnvios,
+  type FiltroDeRespuestas,
+  type MarcaDeEnvio,
+  type Respuestas as Modelo,
+} from "./respuestasModel";
+import "./controlTelefonico.css";
+
+function n(valor: number | null | undefined) {
+  return valor == null ? "—" : valor.toLocaleString("es-PE");
+}
+
+function fechaCorta(fecha: string | null) {
+  const partes = fecha?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return partes ? `${partes[3]}/${partes[2]}` : fecha ?? "—";
+}
+
+export type PasoDeLaCadena = { nombre: string; valor: number; detalle: string; merma?: string };
+
+export type ReglaQueCuenta = { texto: string; tipo: "filtro" | "regla" | "aviso" };
+
+const CHIPS: ReadonlyArray<{ id: FiltroDeRespuestas; etiqueta: string }> = [
+  { id: "por-revisar", etiqueta: "Por revisar" },
+  { id: "todas", etiqueta: "Todas" },
+  { id: "mas-de-2h", etiqueta: "Más de 2 h" },
+  { id: "corta", etiqueta: "Menos de 5 min" },
+  { id: "repetida", etiqueta: "Repetidas" },
+  { id: "no-cruza", etiqueta: "No cruzan" },
+];
+
+const TIPO_DE_REGLA: Record<ReglaQueCuenta["tipo"], string> = {
+  filtro: "filtro",
+  regla: "regla",
+  aviso: "aviso, no excluye",
+};
+
+/**
+ * Control › Respuestas: la cadena de envíos a efectivas, la distribución de
+ * duración y el registro de cada efectiva con sus marcas. Marcar no excluye;
+ * lo que cuenta se edita en Insumos › Llave y filtros.
+ */
+export function Respuestas({
+  modelo,
+  cadena,
+  reglas,
+  segmento,
+}: {
+  modelo: Modelo;
+  cadena: readonly PasoDeLaCadena[];
+  reglas: readonly ReglaQueCuenta[];
+  segmento: string;
+}) {
+  const [filtro, setFiltro] = useState<FiltroDeRespuestas>(modelo.porRevisar ? "por-revisar" : "todas");
+  const [busqueda, setBusqueda] = useState("");
+  const visibles = useMemo(() => filtrarEnvios(modelo.envios, filtro, busqueda), [modelo.envios, filtro, busqueda]);
+  const maximoTramo = Math.max(1, ...modelo.tramos.map((tramo) => tramo.casos));
+  const maximoDuracion = Math.max(1, ...modelo.envios.map((envio) => Math.min(envio.segundos ?? 0, DOS_HORAS)));
+  const cuenta = (id: FiltroDeRespuestas) => (
+    id === "todas" ? modelo.envios.length : id === "por-revisar" ? modelo.porRevisar : modelo.conteos[id as MarcaDeEnvio]
+  );
+
+  return (
+    <div className="mon-respuestas" data-qa-geometry-group="telefonico-control-respuestas" data-qa-geometry-contract="intrinsic">
+      <section className="mon-ctl-panel mon-respuestas-cadena" aria-label="De los envíos a las efectivas">
+        {cadena.map((paso) => (
+          <div key={paso.nombre} className="mon-respuestas-paso">
+            <span className="mon-ctl-antetitulo">{paso.nombre}</span>
+            <strong className="is-num">{n(paso.valor)}</strong>
+            <span>{paso.detalle}</span>
+            <em>{paso.merma ?? ""}</em>
+          </div>
+        ))}
+      </section>
+
+      <div className="mon-respuestas-medio">
+        <section className="mon-ctl-panel mon-respuestas-duracion" aria-label="Duración de las efectivas">
+          <header className="mon-ctl-panel-cabecera">
+            <b>Duración de las {n(modelo.envios.length)} efectivas</b>
+            <span className="mon-respuestas-mediana">Mediana de {duracionLegible(modelo.mediana)}, entre el inicio y el fin</span>
+          </header>
+          <div className="mon-barrido-columnas mon-respuestas-histograma" role="img" aria-label={modelo.tramos.map((tramo) => `${tramo.etiqueta}: ${n(tramo.casos)}`).join(", ")}>
+            {modelo.tramos.map((tramo) => (
+              <span key={tramo.etiqueta} className={tramo.largo ? "is-largo" : undefined}>
+                <b className="is-num">{n(tramo.casos)}</b>
+                <i style={{ "--alto": `${(tramo.casos / maximoTramo) * 100}%` } as CSSProperties} />
+                <em>{tramo.etiqueta}</em>
+              </span>
+            ))}
+          </div>
+        </section>
+        <section className="mon-ctl-panel mon-respuestas-reglas" aria-label="Qué cuenta">
+          <header className="mon-ctl-panel-cabecera"><span className="mon-ctl-antetitulo">Qué cuenta</span></header>
+          <ul>
+            {reglas.map((regla) => (
+              <li key={regla.texto}>
+                <span>{regla.texto}</span>
+                <em className={`is-${regla.tipo}`}>{TIPO_DE_REGLA[regla.tipo]}</em>
+              </li>
+            ))}
+          </ul>
+          <p className="mon-ctl-nota">Se edita en Llave y filtros, en Insumos.</p>
+        </section>
+      </div>
+
+      <section className="mon-ctl-panel mon-respuestas-registro" aria-label="Registro de efectivas">
+        <div className="mon-respuestas-filtros">
+          <div className="mon-respuestas-chips" role="group" aria-label="Filtrar efectivas">
+            {CHIPS.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                className={`mon-respuestas-chip${filtro === chip.id ? " is-activo" : ""}`}
+                aria-pressed={filtro === chip.id}
+                onClick={() => setFiltro(chip.id)}
+              >
+                {chip.etiqueta} ({n(cuenta(chip.id))})
+              </button>
+            ))}
+          </div>
+          <label className="mon-cola-buscar mon-respuestas-buscar">
+            <Search size={14} aria-hidden="true" />
+            <input type="search" value={busqueda} placeholder="Buscar CodPulso" aria-label="Buscar CodPulso" onChange={(event) => setBusqueda(event.target.value)} />
+          </label>
+        </div>
+        <div className="mon-ctl-tabla-marco" data-scroll-reset="">
+          <table className="mon-ctl-tabla mon-respuestas-tabla">
+            <thead>
+              <tr>
+                <th scope="col">CodPulso</th>
+                <th scope="col">{segmento}</th>
+                <th scope="col">Envío</th>
+                <th scope="col">Duración</th>
+                <th scope="col">Llave</th>
+                <th scope="col">La hoja dice</th>
+                <th scope="col">Responsable</th>
+                <th scope="col">Marca</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibles.map((envio, indice) => (
+                <tr key={`${envio.responseId || envio.codigo}-${indice}`}>
+                  <th scope="row">{envio.codigo}</th>
+                  <td>{envio.categoria || "—"}</td>
+                  <td className="is-num">{fechaCorta(envio.fecha)}</td>
+                  <td className="mon-respuestas-barra">
+                    <i aria-hidden="true">
+                      <b
+                        className={envio.marcas.includes("mas-de-2h") ? "is-largo" : undefined}
+                        style={{ width: `${(Math.min(envio.segundos ?? 0, DOS_HORAS) / maximoDuracion) * 100}%` }}
+                      />
+                    </i>
+                    <span className="is-num">{duracionLegible(envio.segundos)}</span>
+                  </td>
+                  <td className={`mon-respuestas-llave is-${envio.llave}`}>{envio.llave === "no-cruza" ? "no cruza" : envio.llave}</td>
+                  <td>{envio.cruza ? envio.hojaDice || "—" : "—"}</td>
+                  <td>{envio.cruza ? envio.responsable || "Sin asignar" : "—"}</td>
+                  <td>
+                    {envio.marcas.length ? envio.marcas.map((marca) => (
+                      <span key={marca} className={`mon-respuestas-marca is-${marca}`}>{ETIQUETA_DE_MARCA[marca]}</span>
+                    )) : <span className="mon-respuestas-marca is-efectiva">efectiva</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!visibles.length ? <p className="mon-ctl-nota">Ninguna efectiva cumple el filtro.</p> : null}
+        </div>
+        <footer className="mon-equipo-pie">
+          {n(visibles.length)} de {n(modelo.envios.length)} efectivas. Marcar no excluye: decide el supervisor.
+        </footer>
+      </section>
+    </div>
+  );
+}

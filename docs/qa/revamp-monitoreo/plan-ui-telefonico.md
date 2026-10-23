@@ -186,3 +186,21 @@ efectiva sobre llamados e intentos por caso reintentable; fila «Sin asignar» a
   hoja del operador con su familia, que sí viajan en `estatus_responsable`, y su insistencia (`reintentos_responsable`).
 - La paridad con Responsables se conserva: la matriz con desvíos, la brecha con Kobo por responsable y las cifras de las
   tarjetas (asignados, barridos, efectivas, sin efectiva, por barrer) están en Carga y en la ficha.
+
+**T6, Control › Respuestas.** `profiles/telefonico/control/Respuestas.tsx` con `respuestasModel.ts` (test), sobre
+`control_tiempo_kobo` y `comparacion_codpulso`. Cadena (pasan el filtro 424, efectivas 423 con «1 envío repetido»),
+duración de las efectivas en tramos con la mediana (PDM 29 min) y los de más de 2 h en rojo (PDM 56, que hoy se rotulan
+«Normal (5+ min)»), «Qué cuenta» con los criterios del filtro y la regla de un envío por CodPulso, y el registro de cada
+efectiva con llave (exacta, normalizada por dígitos o no cruza), lo que dice la hoja, responsable y marcas, con chips
+Por revisar, Todas, Más de 2 h, Menos de 5 min, Repetidas y No cruzan. Integra «Validación de tiempo»: `panel=tiempos`
+se lee como la pestaña y se limpia de la dirección. Salvedades sigue como sub-vista condicional.
+
+- **No viaja y no se inventó**: «Recibidas en Kobo 430» y «Reales 427» (el bloque ya trae los envíos filtrados; los
+  recibidos sólo aparecen si la metadata del sync trae `response_count`), y los chips «Prueba» y «Sin consentimiento».
+  Por eso el histograma es de 424 efectivas y no de 430 envíos, y los de más de 2 h son 56 y no 57.
+- La llave «normalizada» se calcula en la vista (dígitos que señalan un único caso de la hoja); el motor normaliza por
+  su cuenta y su regla exacta no viaja.
+
+**Pulido de T5.** Barrido: el panel «Status del cliente» lleva al pie «Lo que la hoja no registra». Barrido y Equipo:
+un status que la regla del proyecto pone en otra familia que su nombre (en Medios de Vida «Rechazo» cierra) se rotula
+«Terminal por su regla».
