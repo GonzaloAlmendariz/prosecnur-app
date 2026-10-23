@@ -84,6 +84,20 @@ test_that("la alerta va en los dos sentidos con responsable, CodPulso y proGres"
   expect_false(any(c("DSC-002", "DSC-004", "DSC-006") %in% filas$CodPulso))
 })
 
+test_that("sin discrepancias el bloque sale vacío con sus columnas; con una «No cuenta» la conserva", {
+  # Kobo y la hoja coinciden en DSC-002: nada que alertar.
+  b <- dsc_bloques(dsc_escenario(bar = dsc_barrido()[2, ], kobo = "DSC-002"))
+  expect_length(b$discrepancias_telefonicas$rows, 0L)
+  expect_length(unlist(b$discrepancias_telefonicas$columns), 14L)
+  decisiones <- list(manual_case_reconciliations = list(R9 = list(
+    response_id = "R9", action = "keep_excluded", match_type = "telefonico_discrepancia",
+    declared_code = "DSC-002", note = "x", decided_at = "2026-10-23T10:00:00Z"
+  )), exclude_response_ids = list("R9"))
+  solo <- dsc_filas(dsc_bloques(dsc_escenario(bar = dsc_barrido()[2, ], kobo = "DSC-002", decisiones = decisiones))$discrepancias_telefonicas)
+  expect_identical(solo$`Response ID`, "R9")
+  expect_identical(solo$`Decisión`, "no_cuenta")
+})
+
 test_that("sin columna proGres el bloque sale igual, con proGres vacío", {
   filas <- dsc_filas(dsc_bloques(dsc_escenario(bar = dsc_barrido(con_progres = FALSE)))$discrepancias_telefonicas)
   expect_true(nrow(filas) > 0L)
