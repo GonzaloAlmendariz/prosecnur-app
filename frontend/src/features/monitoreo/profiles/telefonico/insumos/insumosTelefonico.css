@@ -993,10 +993,10 @@
   }
 }
 
-/* La tarjeta de Kobo en la lateral de Llave mide 360 px: el origen truncaba
- * «Sin fuente vin…». Aquí parte línea en vez de cortar (sin puntos suspensivos). */
-.mon-llave-kobo .mon-phone-source-slot-data .is-origen a,
-.mon-llave-kobo .mon-phone-source-slot-data .is-origen strong {
+/* La tarjeta de Kobo en la lateral de Llave mide 360 px: truncaba «Sin fuente
+ * vin…» y «27/07/26, 9:0…». Aquí cada dato parte línea en vez de cortar. */
+.mon-llave-kobo .mon-phone-source-slot-data a,
+.mon-llave-kobo .mon-phone-source-slot-data strong {
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
