@@ -40,7 +40,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A2 | Avance › Resumen y Por público | `avance/Resumen.tsx`, `avance/PorPublico.tsx`, `avance/PanelPublico.tsx` y modelos puros con test | A1 | ☑ |
 | A3 | Control › Por resolver | Subsanación y asignación asistida con la decisión auditada de hoy, cola por tipo, panel del caso | A1 | ◐ (escrita; falta typecheck, gates y capturas) |
 | A4 | Control › Reintentos | `ColaDeInsistencia` con las columnas del barrido de acreditación | A1; bloque `cola_insistencia` en acreditación (backend) | ◐ (escrita; falta typecheck, gates y capturas) |
-| A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ◐ (Barrido, Equipo, Cruce, Calidad, Personas y Respuestas escritas; Correo sigue con la vista de T3) |
+| A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ◐ (las siete escritas; falta typecheck, gates y capturas) |
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ◐ (las cuatro escritas; falta typecheck, gates y capturas) |
@@ -230,10 +230,24 @@ siempre. La supervisión por rellamada sigue como sub-vista (`panel=supervision`
   salen del rango, y la mediana del tablero no dice su unidad en este modo. Publicar la serie de duraciones es un
   cambio del motor.
 
-**A5, Control › Correo: sin rehacer.** Monta la vista de Correo de T3 (`AvanceCorreo*.tsx`) tal cual, con su
-cabecera, su lectura de Mailchimp y su readiness propia. La matriz de envíos por público con el embudo por envío del
-lienzo Ctl1 queda para una pasada propia: la vista ya trae envíos, embudo, ritmo e inválidos, y rehacerla sin poder
-capturar el institucional (único proyecto con Mailchimp) era dibujar a ciegas.
+**A5, Control › Correo (escrita, sin gate ni capturas).** `control/contacto/Correo.tsx` con `correoModelo.ts` (test).
+Izquierda: «Secuencia de envíos por público» (Universo, Alcanzable, una columna por posición en la serie del público
+—Invitación, 2.º, 3.º…— con entregados y respuestas, la siguiente posición siempre visible y vacía con borde
+discontinuo, y Ritmo con su motivo); debajo, el embudo de cada envío al público elegido (`foco=<público>`:
+entregados, abrieron sin contar Apple, clic, respondieron; rebotes, bajas y quejas), y «Campañas»: cada envío con su
+fecha, su papel en cada público (invitación o recordatorio N) y de qué invitación es recordatorio. Derecha, 340 px:
+audiencia con «Leer Mailchimp» y «Cambiar audiencia», los umbrales de ritmo del motor (`.MCM_UMBRALES` y «más bajas
+que respuestas»), la tasa sobre la base alcanzable por público y los inválidos con «Exportar» (CSV solo con tokens).
+La posición dentro del público es `envios[].orden` cuando el envío es de ese público (ADR 0111) y, si no, su lugar
+por fecha. La lectura salió de `AvanceCorreo` a `useCorreoMailchimp.ts` sin cambiar lógica; conectar, elegir
+audiencia y los estados vacíos siguen en `AvanceCorreoVista`, y el estudio telefónico conserva la vista anterior.
+
+- **Diferencias con el lienzo:** las columnas son las que la serie usa más una, no «Invitación + R1…R8» fijas: el
+  estudio no declara cuántos recordatorios planea. No moví `AvanceCorreo*.tsx` a `control/contacto/`: `main` tiene
+  cambios sin commitear en `AvanceCorreo.css`. No hay mapa lógico de campañas en el lienzo de Ctl1; la relación entre
+  campañas va en la tabla «Campañas», y la cronología de T3 sigue en la vista anterior.
+- En un envío desglosado por público, Mailchimp no separa las aperturas de Apple: ese paso se rotula «Abrieron, con
+  Apple» en vez de dar por buena una cifra que no es la del lienzo.
 
 **A6, Insumos › Públicos (escrita, sin gate ni capturas).** `insumos/Publicos.tsx` con `publicosModelo.ts` (test).
 El borrador y el guardado del elenco salieron de `ActoresDelEstudio` a `fuentes/useElencoDeActores.ts` sin cambiar
