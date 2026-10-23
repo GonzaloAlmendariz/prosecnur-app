@@ -140,6 +140,14 @@
 #' @return `ov` con `mostrar_barra_extra`/`barra_extra_preset` resueltos para el Word y sin `word_mostrar_barra_extra`.
 #' @keywords internal
 .word_barra_extra_solo_word <- function(ov) {
+  # `word_barra_extra` (mismo vocabulario que `barra_extra`) sustituye la barra extra de la lámina sólo en el Word.
+  if (is.list(ov) && !is.null(ov[["word_barra_extra"]])) {
+    pedido <- .barra_extra_normalizar(ov[["word_barra_extra"]])
+    ov[["word_barra_extra"]] <- NULL
+    ov[["word_mostrar_barra_extra"]] <- NULL
+    if (!is.null(pedido)) ov[["barra_extra"]] <- .barra_extra_repr(pedido)
+    return(ov)
+  }
   if (!is.list(ov) || is.null(ov$word_mostrar_barra_extra)) return(ov)
   pedido <- ov$word_mostrar_barra_extra
   ov$word_mostrar_barra_extra <- NULL

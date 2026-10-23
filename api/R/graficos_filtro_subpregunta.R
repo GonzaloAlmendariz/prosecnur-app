@@ -129,7 +129,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   # La escala hereda del preset la columna Top Two Box; esta lámina no tiene dónde declarar sus respuestas, así que sin
   # ellas va apagada (si no, el motor la omite y avisa «elígelas en la pestaña Gráfico», un aviso sin salida).
   ov_s <- ov
-  if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$mostrar_barra_extra <- FALSE
+  if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$barra_extra <- FALSE
   el_s <- if (!is.null(el$dependiente)) {
     # La dependencia entre dos gráficos: el dependiente es el gráfico que puso el analista, con la base de quienes lo habilitan.
     d <- el$dependiente; d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d

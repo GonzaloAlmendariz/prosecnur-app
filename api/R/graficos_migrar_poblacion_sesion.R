@@ -25,10 +25,10 @@
   avisos <- character()
   migrar <- function(cfg, base = NULL) {
     if (!is.list(cfg) || !is.list(cfg$plan) || !is.list(cfg$plan$slides)) return(NULL)
-    plan <- .graficos_migrar_poblacion_antigua(cfg$plan, avisar = TRUE)
+    plan <- .graficos_migrar_plan(cfg$plan, avisar = TRUE)
     av <- .graficos_avisos_migracion(plan)
-    if (!length(av)) return(NULL)
     attr(plan, "avisos_migracion") <- NULL
+    if (!length(av) && identical(plan, cfg$plan)) return(NULL)   # la barra extra migra también en silencio: se guarda una vez
     cfg$plan <- plan
     avisos <<- c(avisos, if (is.null(base)) av else sprintf("Base «%s»: %s", base, av))
     cfg
@@ -62,7 +62,7 @@
 .graficos_config_importar <- function(sid, parsed) {
   src <- if (.graficos_is_obj(parsed) && .graficos_is_obj(parsed$config)) parsed$config else parsed
   plan <- if (.graficos_is_obj(src)) .graficos_pick_alias(src, "plan") else NULL
-  avisos <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_avisos_migracion(.graficos_migrar_poblacion_antigua(plan)) else character()
+  avisos <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_avisos_migracion(.graficos_migrar_plan(plan, avisar = TRUE)) else character()
   .graficos_config_set(sid, .graficos_normalize_config(parsed, sid = sid))
   avisos
 }
