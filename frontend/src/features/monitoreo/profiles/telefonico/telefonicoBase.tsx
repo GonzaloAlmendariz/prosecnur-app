@@ -30,10 +30,7 @@
 import type { CSSProperties } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ClipboardCheck, Clock3, ContactRound, Download, Layers3, Link2, ListChecks, PhoneCall, ShieldAlert, Table2, Target } from "lucide-react";
 import { MONITOREO_MODOS } from "../../core/monitoreoRegistry";
-import {
-  MONITOREO_PESTANAS,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO,
-} from "../../../../lib/navegacion/catalogos/monitoreo";
+import { MONITOREO_PESTANAS_INTERNAS_TELEFONICO as INTERNAS } from "../../../../lib/navegacion/catalogos/monitoreo";
 import { normalizeInternalQueries, summarizeInternalCases } from "../../internalQueries";
 import { fmt } from "./formato";
 import type {
@@ -109,56 +106,56 @@ export const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
     sourceLabel: "Respuestas de plataforma",
   },
 ];
-const [modeloEstructura, modeloEstrategias] = MONITOREO_PESTANAS.telefonico.modelo;
+// Las vistas que la página monta por dentro, en el orden histórico que sus
+// ramas esperan. La navegación pública del modo es otra (ver
+// `navegacion/direccionTelefonica.ts`); éstas se nombran por clave, nunca por
+// posición.
 export const ACREDITACION_MODEL_TABS = [
-  modeloEstructura,
-  modeloEstrategias,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.modelo.resumen,
+  INTERNAS.modelo.estructura,
+  INTERNAS.modelo.estrategias,
+  INTERNAS.modelo.resumen,
 ] as const;
 export type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 export type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
-const [consultaPlataforma, consultaCruces, consultaSubsanacion] =
-  MONITOREO_PESTANAS.telefonico.consultas;
 export const ACREDITACION_CONSULTA_TABS = [
-  consultaPlataforma,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.consultas.base,
-  consultaCruces,
-  consultaSubsanacion,
+  INTERNAS.consultas.plataforma,
+  INTERNAS.consultas.base,
+  INTERNAS.consultas.cruces,
+  INTERNAS.consultas.subsanacion,
 ] as const;
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
-const [
-  telefonoResumen,
-  telefonoTiempos,
-  telefonoIncidencia,
-  telefonoResponsables,
-  telefonoAlertas,
-] = MONITOREO_PESTANAS.telefonico.telefonico;
 export const ACREDITACION_PHONE_TABS = [
-  telefonoResumen,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.consultados,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.dia,
-  telefonoTiempos,
-  telefonoIncidencia,
-  telefonoResponsables,
-  telefonoAlertas,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.supervision,
+  INTERNAS.telefonico.resumen,
+  INTERNAS.telefonico.consultados,
+  INTERNAS.telefonico.dia,
+  INTERNAS.telefonico.tiempos,
+  INTERNAS.telefonico.incidencia,
+  INTERNAS.telefonico.responsables,
+  INTERNAS.telefonico.alertas,
+  INTERNAS.telefonico.supervision,
 ] as const;
 export type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
-const [avanceResumen, avanceActores, avanceSalidas] =
-  MONITOREO_PESTANAS.telefonico.avance;
 export const ACREDITACION_ADVANCE_TABS = [
-  avanceResumen,
-  avanceActores,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.avance.encuestas,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.avance.detalle,
-  avanceSalidas,
+  INTERNAS.avance.resumen,
+  INTERNAS.avance.actores,
+  INTERNAS.avance.encuestas,
+  INTERNAS.avance.detalle,
+  INTERNAS.avance.salidas,
 ] as const;
 export type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 export type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
-export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] =
-  MONITOREO_PESTANAS.telefonico.telefonico.map((tab) => tab.key);
-export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] =
-  MONITOREO_PESTANAS.telefonico.avance.map((tab) => tab.key);
+export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = [
+  INTERNAS.telefonico.resumen.key,
+  INTERNAS.telefonico.tiempos.key,
+  INTERNAS.telefonico.incidencia.key,
+  INTERNAS.telefonico.responsables.key,
+  INTERNAS.telefonico.alertas.key,
+];
+export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = [
+  INTERNAS.avance.resumen.key,
+  INTERNAS.avance.actores.key,
+  INTERNAS.avance.salidas.key,
+];
 
 export function isTelefonicoVisiblePhoneTab(tab: AcreditacionLocalTabKey): tab is AcreditacionPhoneTab {
   return TELEFONICO_VISIBLE_PHONE_TABS.includes(tab as AcreditacionPhoneTab);

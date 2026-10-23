@@ -101,7 +101,14 @@ describe("semántica de navegación de Monitoreo", () => {
     for (const profileFile of profileFiles) {
       const source = fs.readFileSync(path.resolve(shellDir, profileFile), "utf8");
       expect(source).toContain('contentRole="tabpanel"');
-      expect(source).toContain('contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}');
+      // Telefónico enlaza con su dirección PÚBLICA (esqueleto común de cuatro
+      // secciones), que es la que usa el rail para los ids de sus pestañas.
+      if (profileFile.includes("telefonico")) {
+        expect(source).toContain('contentId={`monitoreo-${publica.seccion}-panel`}');
+        expect(source).toContain('contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}');
+      } else {
+        expect(source).toContain('contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}');
+      }
     }
   });
 

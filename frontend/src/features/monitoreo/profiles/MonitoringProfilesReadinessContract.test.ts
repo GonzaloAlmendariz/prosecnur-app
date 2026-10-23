@@ -89,16 +89,38 @@ function readinessDependencyText(ast: ts.SourceFile, root: ts.Expression) {
 describe("Perfiles de monitoreo: navegación y readiness ligados al scope activo", () => {
   test.each(profiles)("%s hidrata la sección pedida desde una navegación externa", (label, relativePath) => {
     const ast = profileAst(relativePath);
-    const directionCall = findNode(ast, (node): node is ts.CallExpression => (
-      ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "useMonitoreoDireccion"
+    // Telefónico traduce su dirección pública (Insumos, Modelo, Control,
+    // Avance) a la vista interna: la petición entra por `onPedida`, que va a
+    // `navigateLocalTab`, y ése activa la sección con `navigateSection`. Lo que
+    // se exige a la sección es lo mismo que a los demás perfiles.
+    const traducida = findNode(ast, (node): node is ts.CallExpression => (
+      ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "useMonitoreoDireccionTraducida"
     ));
-    const options = directionCall?.arguments[3];
-    const handlerProperty = options && ts.isObjectLiteralExpression(options)
-      ? options.properties.find((property): property is ts.PropertyAssignment => (
-          ts.isPropertyAssignment(property) && property.name.getText() === "onSeccionPedida"
-        ))
-      : undefined;
-    const callback = resolveCallback(ast, handlerProperty?.initializer);
+    let handlerInitializer: ts.Expression | undefined;
+    if (traducida) {
+      const opciones = traducida.arguments[0];
+      const onPedida = opciones && ts.isObjectLiteralExpression(opciones)
+        ? opciones.properties.find((property): property is ts.PropertyAssignment => (
+            ts.isPropertyAssignment(property) && property.name.getText() === "onPedida"
+          ))
+        : undefined;
+      expect(onPedida?.initializer.getText() ?? "", `${label}: la dirección pedida debe llegar a navigateLocalTab`).toContain("navigateLocalTab(");
+      const navigateLocalTab = resolveCallback(ast, variableInitializer(ast, "navigateLocalTab"));
+      expect(navigateLocalTab?.getText() ?? "", `${label}: navigateLocalTab debe activar la sección`).toContain("navigateSection(");
+      handlerInitializer = variableInitializer(ast, "navigateSection");
+    } else {
+      const directionCall = findNode(ast, (node): node is ts.CallExpression => (
+        ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "useMonitoreoDireccion"
+      ));
+      const options = directionCall?.arguments[3];
+      const handlerProperty = options && ts.isObjectLiteralExpression(options)
+        ? options.properties.find((property): property is ts.PropertyAssignment => (
+            ts.isPropertyAssignment(property) && property.name.getText() === "onSeccionPedida"
+          ))
+        : undefined;
+      handlerInitializer = handlerProperty?.initializer;
+    }
+    const callback = resolveCallback(ast, handlerInitializer);
 
     expect(callback, `${label}: onSeccionPedida no puede ser el setter crudo; debe llamar loadView para la sección solicitada`).toBeDefined();
     if (!callback) return;

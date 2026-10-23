@@ -59,11 +59,14 @@ type MonitoreoWorkbenchRailProps = {
 };
 
 function isLastUpdateLabel(label: string) {
-  return label
+  const normalizado = label
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .includes("ultima actualizacion");
+    .trim();
+  // «Corte» es el rótulo del esqueleto común del revamp (2026-10-23); los
+  // modos que aún no lo adoptan siguen diciendo «Última actualización».
+  return normalizado.includes("ultima actualizacion") || normalizado === "corte";
 }
 
 export function MonitoreoWorkbenchRail({

@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION, PARAMS_PROYECTO } from "../../lib/navegacion/direccion";
-import type { MonitoreoSeccion } from "./core/monitoreoRegistry";
+import type { MonitoreoSeccion, MonitoreoSeccionPublica } from "./core/monitoreoRegistry";
 
 const SECCIONES: readonly MonitoreoSeccion[] = [
   "avance",
@@ -49,6 +49,8 @@ const ALIAS_SECCION: Record<string, MonitoreoSeccion> = {
   "monitoreo telefonico": "telefonico",
   telefono: "telefonico",
   phone: "telefonico",
+  // La sección «Llamadas» del telefónico anterior al esqueleto común.
+  llamadas: "telefonico",
 };
 
 function normalizarToken(raw: string): string {
@@ -273,6 +275,105 @@ export function useMonitoreoDireccion(
     location.search,
     navigate,
   ]);
+}
+
+/** Lo que pide la URL en los tres niveles que mueve un perfil, ya normalizado. */
+export type DireccionMonitoreoPedida = {
+  seccion: string | null;
+  pestana: string | null;
+  panel: string | null;
+};
+
+/**
+ * Lee sección, pestaña y panel tal como los pide la URL.
+ *
+ * La sección pasa por los alias de etiqueta (`llamadas`, `consulta`…) pero no
+ * se valida contra un modo: un perfil que reorganizó sus secciones —Telefónico
+ * con el esqueleto común— necesita ver también las claves viejas para leerlas
+ * como alias.
+ */
+export function monitoreoDireccionDesdeParams(search: string): DireccionMonitoreoPedida {
+  const params = new URLSearchParams(search);
+  const rawSeccion = params.get(PARAMS_DIRECCION.seccion) ?? params.get("tab");
+  const tokenSeccion = rawSeccion ? normalizarToken(rawSeccion) : "";
+  const seccion = tokenSeccion ? (ALIAS_SECCION[tokenSeccion] ?? tokenSeccion) : null;
+  const rawPanel = params.get(PARAMS_DIRECCION.panel);
+  return {
+    seccion,
+    pestana: monitoreoPestanaDesdeParams(search),
+    panel: rawPanel ? normalizarToken(rawPanel) : null,
+  };
+}
+
+export type MonitoreoDireccionPublica = {
+  seccion: MonitoreoSeccionPublica;
+  pestana: string;
+  /** Sub-vista de la pestaña, si la tiene. */
+  panel: string | null;
+};
+
+/**
+ * La misma sincronización de `useMonitoreoDireccion`, para un perfil cuya
+ * dirección pública no coincide con las vistas que monta por dentro.
+ *
+ * El perfil dice qué dirección pública corresponde a lo que se ve y decide qué
+ * hacer con una dirección pedida; este hook sólo lee y escribe la URL, por el
+ * router y con `replace`, igual que el original. `panelesPropios` son los
+ * `panel` que el perfil usa como sub-vista: se borran al salir de ellos, y
+ * cualquier otro panel (un diálogo abierto por su cuenta) se deja en paz.
+ */
+export function useMonitoreoDireccionTraducida({
+  publica,
+  modo,
+  panelesPropios,
+  pideOtraVista,
+  onPedida,
+}: {
+  publica: MonitoreoDireccionPublica;
+  modo: string;
+  panelesPropios: readonly string[];
+  pideOtraVista: (pedida: DireccionMonitoreoPedida) => boolean;
+  onPedida: (pedida: DireccionMonitoreoPedida) => void;
+}): void {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const ultimaEscrita = useRef<string | null>(null);
+  const decidir = useRef({ pideOtraVista, onPedida });
+  decidir.current = { pideOtraVista, onPedida };
+
+  useEffect(() => {
+    if (location.search === ultimaEscrita.current) return;
+    const pedida = monitoreoDireccionDesdeParams(location.search);
+    if (decidir.current.pideOtraVista(pedida)) decidir.current.onPedida(pedida);
+  }, [location.search, publica.seccion, publica.pestana, publica.panel]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const panelActual = params.get(PARAMS_DIRECCION.panel);
+    const panelYa = publica.panel
+      ? panelActual === publica.panel
+      : !panelActual || !panelesPropios.includes(panelActual);
+    if (
+      params.get(PARAMS_DIRECCION.modo) === modo
+      && params.get(PARAMS_DIRECCION.seccion) === publica.seccion
+      && params.get(PARAMS_DIRECCION.pestana) === publica.pestana
+      && panelYa
+      && !params.has("tab")
+    ) return;
+
+    params.set(PARAMS_DIRECCION.modo, modo);
+    params.set(PARAMS_DIRECCION.seccion, publica.seccion);
+    params.set(PARAMS_DIRECCION.pestana, publica.pestana);
+    if (publica.panel) params.set(PARAMS_DIRECCION.panel, publica.panel);
+    else if (panelActual && panelesPropios.includes(panelActual)) params.delete(PARAMS_DIRECCION.panel);
+    params.delete("tab");
+    for (const param of PARAMS_PROYECTO) params.delete(param);
+
+    const query = params.toString();
+    const search = query ? `?${query}` : "";
+    ultimaEscrita.current = search;
+    navigate({ pathname: location.pathname, search }, { replace: true });
+  }, [modo, publica.seccion, publica.pestana, publica.panel, panelesPropios, location.pathname, location.search, navigate]);
 }
 
 /**

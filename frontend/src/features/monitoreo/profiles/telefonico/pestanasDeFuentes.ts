@@ -9,10 +9,7 @@
  * el rail de Teléfono en Acreditación.
  */
 
-import {
-  MONITOREO_PESTANAS,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO,
-} from "../../../../lib/navegacion/catalogos/monitoreo";
+import { MONITOREO_PESTANAS_INTERNAS_TELEFONICO } from "../../../../lib/navegacion/catalogos/monitoreo";
 
 /**
  * Cada pestaña se nombra por la pregunta que responde, no por el servicio que
@@ -23,15 +20,16 @@ import {
  *
  * «barrido» se conserva: es vocabulario del estudio, no de la implementación.
  */
-const [activas, sheets, survey] = MONITOREO_PESTANAS.telefonico.fuentes;
+const { activas, sheets, survey, collectors } = MONITOREO_PESTANAS_INTERNAS_TELEFONICO.fuentes;
 
 // Conserva el orden histórico que todavía consume la rama de compatibilidad
-// del clon, pero cada objeto viene del catálogo común. El perfil telefónico
-// público usa únicamente `activas`, `sheets` y `survey`.
+// del clon, pero cada objeto viene del catálogo común. Son vistas internas:
+// la dirección pública las nombra Insumos › Fuentes, Llave y filtros y Estados
+// (`navegacion/direccionTelefonica.ts`).
 export const ACREDITACION_SOURCE_TABS = [
   survey,
   sheets,
-  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.fuentes.collectors,
+  collectors,
   activas,
 ] as const;
 

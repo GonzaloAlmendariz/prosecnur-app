@@ -44,6 +44,14 @@ const VIEJAS: readonly Vieja[] = [
     patron: /(?:^|[?&])pestana=correos(?:&|$)/,
     lectores: [],
   },
+  // Revamp de Monitoreo (2026-10-23): Telefónico pasó al esqueleto común
+  // Insumos · Modelo · Control · Avance. Sus secciones viejas las lee como alias
+  // `profiles/telefonico/navegacion/direccionTelefonica.ts`, sin escribirlas.
+  {
+    marcador: "modo=telefonico&seccion=",
+    patron: /modo=telefonico&seccion=(?:fuentes|telefonico|consultas)(?:&|$)/,
+    lectores: [],
+  },
   // Una sección del modo aulas sin `modo=`: sólo la lee la redirección.
   {
     marcador: "/material-campo?seccion=",

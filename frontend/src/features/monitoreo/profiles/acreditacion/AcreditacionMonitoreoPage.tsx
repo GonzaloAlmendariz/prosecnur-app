@@ -17749,6 +17749,8 @@ function AcreditacionWorkbenchRail({
   );
 }
 
+// ⚠ SIN MONTAR: lo «montaba» por nombre la copia del clon telefónico, que pasó
+// a `CabeceraTelefonica` el 2026-10-23. Ver `componentesSinMontar.test.ts`.
 function AcreditacionWorkbenchHead({
   route,
   seccionActiva,

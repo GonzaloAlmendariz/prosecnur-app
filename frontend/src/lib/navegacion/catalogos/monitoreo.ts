@@ -14,6 +14,8 @@ import {
   DatabaseZap,
   Download,
   Gauge,
+  GitCompareArrows,
+  KeyRound,
   Layers3,
   LifeBuoy,
   Link2,
@@ -23,6 +25,7 @@ import {
   MapPinned,
   PhoneCall,
   PlugZap,
+  Repeat,
   Route,
   MessageSquare,
   ShieldAlert,
@@ -43,9 +46,11 @@ export type MonitoreoModoId =
   | "aulas";
 
 export type MonitoreoSeccionId =
+  | "insumos"
   | "fuentes"
   | "modelo"
   | "consultas"
+  | "control"
   | "telefonico"
   | "avance"
   | "calidad"
@@ -96,8 +101,7 @@ function pestana<const Key extends string>(
  * Fuente única de las pestañas posibles de los cuatro modos de Monitoreo.
  *
  * El contrato estático enumera posibilidades. El registro runtime publica el
- * subconjunto que realmente está visible en el proyecto montado; hoy el único
- * caso condicional es Telefónico > Consultas > Salvedades.
+ * subconjunto que realmente está visible en el proyecto montado.
  */
 export const MONITOREO_PESTANAS = {
   acreditacion: {
@@ -136,32 +140,36 @@ export const MONITOREO_PESTANAS = {
       pestana("acreditacion", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
     ],
   },
+  // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23):
+  // Insumos, Modelo, Control y Avance, en el orden del operativo. Lo que cada
+  // pestaña absorbe de la arquitectura anterior está en
+  // `docs/qa/revamp-monitoreo/telefonico.md` §1, y la traducción a las vistas
+  // que la página monta por dentro, en
+  // `features/monitoreo/profiles/telefonico/navegacion/direccionTelefonica.ts`.
+  // Reserva (Modelo) y Reemplazos (Avance) son condicionales y todavía no se
+  // declaran: dependen de las preguntas P8 y P9 del diseño. Supervisión
+  // (Control) tampoco: hoy no existe en este modo y su diseño está bloqueado.
   telefonico: {
-    fuentes: [
-      pestana("telefonico", "fuentes", "activas", "Fuentes activas", "Estado del paquete", PlugZap),
-      pestana("telefonico", "fuentes", "sheets", "Universo y barrido", "Estados y colores", Table2),
-      pestana("telefonico", "fuentes", "survey", "Encuestas", "Quién responde y qué cuenta", ListChecks),
+    insumos: [
+      pestana("telefonico", "insumos", "fuentes", "Fuentes", "Qué se lee y qué declara el proyecto", PlugZap),
+      pestana("telefonico", "insumos", "llave", "Llave y filtros", "Qué cuenta y cómo cruza", KeyRound),
+      pestana("telefonico", "insumos", "estados", "Estados", "Qué significa cada status de la hoja", SlidersHorizontal),
     ],
     modelo: [
-      pestana("telefonico", "modelo", "estructura", "Cuotas", "Metas por variable", Target),
-      pestana("telefonico", "modelo", "estrategias", "Cronograma", "Campo y reportes", CalendarRange),
+      pestana("telefonico", "modelo", "cuotas", "Cuotas y calendario", "Sobre qué variable y cuánto", Target),
     ],
-    telefonico: [
-      pestana("telefonico", "telefonico", "resumen", "Resumen operativo", "Cumplimiento y casos", PhoneCall),
-      pestana("telefonico", "telefonico", "tiempos", "Validación de tiempo", "Duración Kobo", Clock3),
-      pestana("telefonico", "telefonico", "incidencia", "Sin efectiva", "Insistencia y reintentos", AlertCircle),
-      pestana("telefonico", "telefonico", "responsables", "Responsables", "Equipo y carga", ContactRound),
-      pestana("telefonico", "telefonico", "alertas", "Alertas reales", "Alertas reales", ShieldAlert),
-    ],
-    consultas: [
-      pestana("telefonico", "consultas", "plataforma", "Efectivas Kobo", "Respuestas que pasan el filtro", ListChecks),
-      pestana("telefonico", "consultas", "cruces", "CodPulso", "Cruce entre plataforma y barrido", Link2),
-      pestana("telefonico", "consultas", "subsanacion", "Salvedades", "Efectivas no identificables", ShieldAlert, "condicional"),
+    control: [
+      pestana("telefonico", "control", "barrido", "Barrido", "Cómo rinde la hoja", PhoneCall),
+      pestana("telefonico", "control", "insistencia", "Insistencia", "A quién se sigue llamando", Repeat),
+      pestana("telefonico", "control", "equipo", "Equipo", "Cómo rinde cada responsable", ContactRound),
+      pestana("telefonico", "control", "discrepancias", "Discrepancias", "Si Kobo y la hoja dicen lo mismo", GitCompareArrows),
+      pestana("telefonico", "control", "respuestas", "Respuestas", "Qué envío es efectiva", ListChecks),
+      pestana("telefonico", "control", "avisos", "Avisos", "Qué hay que corregir", ShieldAlert),
     ],
     avance: [
-      pestana("telefonico", "avance", "resumen", "Diario", "Ritmo Kobo", BarChart3),
-      pestana("telefonico", "avance", "actores", "Cuotas", "Brechas por categoría", Layers3),
-      pestana("telefonico", "avance", "salidas", "Salidas", "PDF y hojas de avance", Download),
+      pestana("telefonico", "avance", "cuotas", "Cuotas", "Cuánto falta", Target),
+      pestana("telefonico", "avance", "ritmo", "Ritmo", "A qué velocidad", CalendarRange),
+      pestana("telefonico", "avance", "entregas", "Entregas", "Qué sale", Download),
     ],
   },
   territorial: {
@@ -369,28 +377,49 @@ export const MONITOREO_PESTANAS = {
 >;
 
 /**
- * Paneles heredados que el clon telefónico conserva para poder montarse en su
- * antiguo modo de acreditación. No forman parte de la navegación pública del
- * modo Telefónico y, por tanto, no se adjuntan a `modules.ts`.
+ * Vistas que la página telefónica monta por dentro.
+ *
+ * No son navegación pública: la dirección del modo Telefónico es la de
+ * `MONITOREO_PESTANAS.telefonico` (Insumos, Modelo, Control y Avance), y
+ * `direccionTelefonica.ts` traduce cada pestaña pública a una de estas vistas.
+ * Se conservan con su clave histórica porque son las que la página congelada
+ * sabe montar, y porque los enlaces guardados con esas claves se siguen leyendo
+ * como alias. Nunca se escriben.
  */
-export const MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO = {
+export const MONITOREO_PESTANAS_INTERNAS_TELEFONICO = {
   fuentes: {
+    activas: pestana("telefonico", "fuentes", "activas", "Fuentes activas", "Estado del paquete", PlugZap),
+    sheets: pestana("telefonico", "fuentes", "sheets", "Universo y barrido", "Estados y colores", Table2),
+    survey: pestana("telefonico", "fuentes", "survey", "Encuestas", "Quién responde y qué cuenta", ListChecks),
     collectors: pestana("telefonico", "fuentes", "collectors", "Recopiladores", "Inclusión y alias", ContactRound),
   },
   modelo: {
+    estructura: pestana("telefonico", "modelo", "estructura", "Cuotas", "Metas por variable", Target),
+    estrategias: pestana("telefonico", "modelo", "estrategias", "Cronograma", "Campo y reportes", CalendarRange),
     resumen: pestana("telefonico", "modelo", "resumen", "Lectura", "Lectura de Fuentes", BarChart3),
   },
   consultas: {
+    plataforma: pestana("telefonico", "consultas", "plataforma", "Efectivas Kobo", "Respuestas que pasan el filtro", ListChecks),
     base: pestana("telefonico", "consultas", "base", "Estado de la base", "Actor por actor", Table2),
+    cruces: pestana("telefonico", "consultas", "cruces", "CodPulso", "Cruce entre plataforma y barrido", Link2),
+    subsanacion: pestana("telefonico", "consultas", "subsanacion", "Salvedades", "Efectivas no identificables", ShieldAlert, "condicional"),
   },
   telefonico: {
+    resumen: pestana("telefonico", "telefonico", "resumen", "Resumen operativo", "Cumplimiento y casos", PhoneCall),
     consultados: pestana("telefonico", "telefonico", "consultados", "Consultados", "Efectivas Kobo", ListChecks),
     dia: pestana("telefonico", "telefonico", "dia", "Día", "Efectivas Kobo", CalendarRange),
+    tiempos: pestana("telefonico", "telefonico", "tiempos", "Validación de tiempo", "Duración Kobo", Clock3),
+    incidencia: pestana("telefonico", "telefonico", "incidencia", "Sin efectiva", "Insistencia y reintentos", AlertCircle),
+    responsables: pestana("telefonico", "telefonico", "responsables", "Responsables", "Equipo y carga", ContactRound),
+    alertas: pestana("telefonico", "telefonico", "alertas", "Alertas reales", "Alertas reales", ShieldAlert),
     supervision: pestana("telefonico", "telefonico", "supervision", "Supervisión telefónica", "Control y muestra", ClipboardCheck),
   },
   avance: {
+    resumen: pestana("telefonico", "avance", "resumen", "Diario", "Ritmo Kobo", BarChart3),
+    actores: pestana("telefonico", "avance", "actores", "Cuotas", "Brechas por categoría", Layers3),
     encuestas: pestana("telefonico", "avance", "encuestas", "Encuestas", "Fuentes y canales", ListChecks),
     detalle: pestana("telefonico", "avance", "detalle", "Detalle", "Controles", Table2),
+    salidas: pestana("telefonico", "avance", "salidas", "Salidas", "PDF y hojas de avance", Download),
   },
 } as const;
 

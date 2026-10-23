@@ -28,7 +28,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | # | Fase | Contenido | Depende de | Estado |
 |---|---|---|---|---|
 | T0 | Preparación | Worktree, `pnpm install`, copia de `ACNUR_PDM.pulso` y de `PDM_MedVida2026.pulso`, capturas «antes» de las pestañas actuales, aviso a «ACNUR RMS» | diseño conforme | ☐ |
-| T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☐ |
+| T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☑ (ver «Notas de T1 a T3») |
 | T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☐ |
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☐ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☐ |
@@ -77,3 +77,20 @@ barrido, bloques vacíos con nota. El worker `callr` usa el paquete instalado y 
 - **Acreditación con barrido**: el bloque no se publica ahí todavía; montarlo en `Reintentos.tsx` es una línea cuando
   se unifique.
 - **MEDVID 2025**: «Observación de rebarrido» no entra en la cola.
+
+## Notas de T1 a T3 (frontend)
+
+**T1, navegación.** Catálogo público `MONITOREO_PESTANAS.telefonico` con Insumos (Fuentes, Llave y filtros, Estados),
+Modelo (Cuotas y calendario), Control (Barrido, Insistencia, Equipo, Discrepancias, Respuestas, Avisos) y Avance
+(Cuotas, Ritmo, Entregas): 13 pestañas. Las vistas que la página monta siguen con su clave histórica en
+`MONITOREO_PESTANAS_INTERNAS_TELEFONICO`; la tabla `profiles/telefonico/navegacion/direccionTelefonica.ts` traduce en las
+dos direcciones y lee las claves viejas como alias (`seccion=telefonico&pestana=incidencia` termina en
+`seccion=control&pestana=insistencia`). Cuando una pestaña absorbe más de una vista, las demás cuelgan como sub-vista
+direccionable con `panel`: Respuestas (`tiempos`, `salvedades`; Salvedades sólo si hay efectivas no identificables) y
+Cuotas y calendario (`calendario`). Sin dirección, el modo aterriza en Avance › Cuotas.
+
+- **Supervisión no se declaró**: hoy no existe en el modo telefónico (la página la oculta) y su diseño está bloqueado
+  por P4–P7 (T9). Queda para T9.
+- Reserva y Reemplazos no se declararon (P8–P9), como pide el plan.
+- `scripts/build-visual-catalog.mjs` y `scripts/monitoreo-performance-check.mjs` todavía nombran las secciones viejas
+  del telefónico; están fuera del glob del frontend. Funcionan por alias, pero conviene actualizarlos.

@@ -2,20 +2,21 @@ import type { CSSProperties } from "react";
 import { Activity, Loader2, RefreshCw } from "lucide-react";
 import type {
   MonitoreoModoDefinicion,
-  MonitoreoSeccion,
+  MonitoreoSeccion as MonitoreoSeccionDePagina,
+  MonitoreoSeccionPublica as MonitoreoSeccion,
 } from "../core/monitoreoRegistry";
-import { seccionesDelModo } from "../core/monitoreoRegistry";
+import { seccionesPublicasDelModo } from "../core/monitoreoRegistry";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 
-type MonitoreoModuleChromeProps = {
+export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSeccionDePagina> = {
   routes: MonitoreoModoDefinicion[];
   route: MonitoreoModoDefinicion | null;
   routeSelected: boolean;
-  seccionActiva: MonitoreoSeccion;
+  seccionActiva: K;
   saving: boolean;
   syncedAt: string;
   generatedAt?: string;
@@ -37,7 +38,8 @@ type MonitoreoModuleChromeProps = {
   advanceSyncLabel?: string;
   advanceSyncTitle?: string;
   onSyncAdvance?: () => Promise<void> | void;
-  onCambioSeccion?: (view: MonitoreoSeccion) => void;
+  /** Recibe la clave de la píldora; cada modo sólo pinta las suyas. */
+  onCambioSeccion?: (view: K) => void;
 };
 
 type MonitoreoModuleSyncProgress = {
@@ -108,7 +110,7 @@ type ChromeGenerationInfo = {
   title: string;
 };
 
-export function MonitoreoModuleChrome({
+export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSeccionDePagina>({
   routes,
   route,
   routeSelected,
@@ -135,9 +137,9 @@ export function MonitoreoModuleChrome({
   advanceSyncTitle,
   onSyncAdvance,
   onCambioSeccion,
-}: MonitoreoModuleChromeProps) {
+}: MonitoreoModuleChromeProps<K>) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
-  const views = route ? seccionesDelModo(route) : [];
+  const views = route ? seccionesPublicasDelModo(route) : [];
   const statusLabel = route
     ? routeSelected
       ? "Modo fijado"
@@ -256,7 +258,7 @@ export function MonitoreoModuleChrome({
                       return;
                     }
                     event.preventDefault();
-                    onCambioSeccion(item.key);
+                    onCambioSeccion(item.key as K);
                   }}
                 >
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />

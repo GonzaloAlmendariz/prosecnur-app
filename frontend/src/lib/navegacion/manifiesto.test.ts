@@ -120,8 +120,13 @@ describe("manifiesto de navegación", () => {
     expect(pestanas.length).toBeGreaterThan(0);
     expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(pestanas.length);
     expect(pestanas).toContainEqual(
-      nodoPorClave("monitoreo/telefonico/consultas/subsanacion"),
+      nodoPorClave("monitoreo/telefonico/control/insistencia"),
     );
+    // El modo telefónico aterriza en Avance › Cuotas, y la clave existe.
+    expect(nodoPorClave("monitoreo/telefonico/avance/cuotas")).not.toBeNull();
+    // Las claves anteriores al esqueleto común ya no son nodos: se leen como
+    // alias en `direccionTelefonica.ts`.
+    expect(nodoPorClave("monitoreo/telefonico/consultas/subsanacion")).toBeNull();
   });
 
   it("expone las 32 pestañas de Muestra, 29 de Procesamiento y 4 de Dashboard", () => {
@@ -182,35 +187,35 @@ describe("manifiesto de navegación", () => {
   });
 
   it("permite que runtime sustituya una sección por un subconjunto declarado", () => {
-    const clave = "monitoreo/telefonico/consultas";
+    const clave = "monitoreo/telefonico/control";
 
     expect(
       pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
-    ).toEqual(["plataforma", "cruces", "subsanacion"]);
+    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "avisos"]);
 
     try {
       registrarPestanasDeSeccion(
         clave,
-        { modulo: "monitoreo", modo: "telefonico", seccion: "consultas" },
+        { modulo: "monitoreo", modo: "telefonico", seccion: "control" },
         [
-          { key: "plataforma", label: "copy runtime ignorado" },
-          { key: "cruces", label: "copy runtime ignorado" },
+          { key: "barrido", label: "copy runtime ignorado" },
+          { key: "insistencia", label: "copy runtime ignorado" },
         ],
       );
 
       const visibles = pestanasDisponiblesDeSeccion(clave);
       expect(visibles.map((nodo) => nodo.direccion.pestana)).toEqual([
-        "plataforma",
-        "cruces",
+        "barrido",
+        "insistencia",
       ]);
       expect(visibles[0]).toBe(
-        nodoPorClave("monitoreo/telefonico/consultas/plataforma"),
+        nodoPorClave("monitoreo/telefonico/control/barrido"),
       );
-      expect(visibles[0]?.label).toBe("Efectivas Kobo");
+      expect(visibles[0]?.label).toBe("Barrido");
       expect(() =>
         registrarPestanasDeSeccion(
           clave,
-          { modulo: "monitoreo", modo: "telefonico", seccion: "consultas" },
+          { modulo: "monitoreo", modo: "telefonico", seccion: "control" },
           [{ key: "fuera-del-contrato", label: "No existe" }],
         ),
       ).toThrow(/fuera-del-contrato/);
@@ -220,7 +225,7 @@ describe("manifiesto de navegación", () => {
 
     expect(
       pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
-    ).toEqual(["plataforma", "cruces", "subsanacion"]);
+    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "avisos"]);
   });
 
   it("expone las pestañas de Selección de Hojas de ruta", () => {
