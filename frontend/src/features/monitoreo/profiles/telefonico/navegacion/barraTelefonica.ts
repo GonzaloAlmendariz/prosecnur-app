@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
+import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { BarraDelModo, EstadoDelModo } from "../../../shell/BarraDelModo";
 import { fmt } from "../formato";
 import { nombreDelSegmento } from "../segmentoDeCuotas";
@@ -142,21 +142,58 @@ export function useResumenDelModo(
   }, [reports, leerCuotas, leerComparacion]);
 }
 
-/** Chips de contexto de la cabecera de pestaña: Avance › Cuotas y Control › Insistencia. */
+/** Chips de contexto de la cabecera de pestaña. */
 export function chipsDeCabecera(
   direccion: { seccion: string; pestana: string },
   resumen: ResumenDelModoTelefonico | null,
   reports: MonitoreoAcreditacionReports | null,
+  state?: MonitoreoState | null,
 ): string[] {
-  if (direccion.seccion === "avance" && direccion.pestana === "cuotas" && resumen?.meta) {
+  const clave = `${direccion.seccion}/${direccion.pestana}`;
+  if (clave === "avance/cuotas" && resumen?.meta) {
     return [`${fmt(resumen.efectivas)} de ${fmt(resumen.meta)} efectivas`];
   }
-  if (direccion.seccion === "control" && direccion.pestana === "insistencia") return chipsDeInsistencia(reports);
+  if (clave === "control/insistencia") return chipsDeInsistencia(reports);
+  if (clave === "control/barrido") return chipsDeBarrido(reports, state);
+  if (clave === "control/equipo") return chipsDeEquipo(reports);
   return [];
+}
+
+/** «631 de 2,296 casos llamados» y cuándo se leyó la hoja. */
+function chipsDeBarrido(reports: MonitoreoAcreditacionReports | null, state?: MonitoreoState | null): string[] {
+  const resumen = filasDeBloque(reports, ["resumen_telefonico"]);
+  const valor = (indicador: string) => {
+    const fila = resumen.find((item) => String(item.Indicador ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === indicador);
+    return fila ? Number(fila.Casos) : null;
+  };
+  const chips: string[] = [];
+  const llamados = valor("casos barridos");
+  const total = valor("total telefonico");
+  if (llamados != null && total != null) chips.push(`${fmt(llamados)} de ${fmt(total)} casos llamados`);
+  const hoja = (state?.sources ?? []).find((fuente) => fuente.enabled && fuente.role === "barrido" && fuente.last_sync_at);
+  const fecha = hoja?.last_sync_at ? new Date(hoja.last_sync_at) : null;
+  if (fecha && !Number.isNaN(fecha.getTime())) {
+    const dos = (n: number) => String(n).padStart(2, "0");
+    chips.push(`Hoja leída el ${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)} a las ${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`);
+  }
+  return chips;
+}
+
+/** Operadores con casos asignados y casos sin asignar, de `operacion_responsable`. */
+function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
+  const filas = filasDeBloque(reports, ["operacion_responsable"]);
+  if (!filas.length) return [];
+  const sinAsignar = (fila: Record<string, unknown>) => ["sin responsable", "sin asignar", ""].includes(String(fila.Responsable ?? "").trim().toLowerCase());
+  const personas = new Set(filas.filter((fila) => !sinAsignar(fila)).map((fila) => String(fila.Responsable).trim().toLowerCase()));
+  const asignados = filas.filter((fila) => !sinAsignar(fila)).reduce((suma, fila) => suma + (Number(fila["Casos asignados"]) || 0), 0);
+  const libres = filas.filter(sinAsignar).reduce((suma, fila) => suma + (Number(fila["Casos asignados"]) || 0), 0);
+  return [
+    `${fmt(personas.size)} operadores con ${fmt(asignados)} casos`,
+    ...(libres ? [`${fmt(libres)} casos sin asignar`] : []),
+  ];
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
 export function pestanaConLienzo(direccion: { seccion: string; pestana: string }): boolean {
-  const clave = `${direccion.seccion}/${direccion.pestana}`;
-  return clave === "avance/cuotas" || clave === "control/insistencia";
+  return ["avance/cuotas", "control/insistencia", "control/barrido"].includes(`${direccion.seccion}/${direccion.pestana}`);
 }
