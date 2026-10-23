@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
@@ -8,6 +8,9 @@ import { metasConProporcion, validarMetas, type FilaDeMeta } from "./cuotasModel
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+
+/** La sub-vista Calendario de Modelo › Cuotas y calendario (`panel=calendario`, ver direccionTelefonica.ts). */
+export const PANEL_CALENDARIO: PanelDeclarado = { id: "calendario", label: "Calendario", clase: "inspector" };
 
 function n(valor: number) {
   return valor.toLocaleString("es-PE");
@@ -72,7 +75,7 @@ export function Cuotas({
   estado: { tono: string; texto: string } | null;
 }) {
   const [nueva, setNueva] = useState("");
-  const [, setParams] = useSearchParams();
+  const panelCalendario = usePanelDireccionable(PANEL_CALENDARIO);
   const conPendientes = useMemo(
     () => filas.map((fila) => ({ ...fila, meta: pendientes[fila.value] ?? fila.meta })),
     [filas, pendientes],
@@ -305,11 +308,7 @@ export function Cuotas({
           <button
             type="button"
             className="mon-insumos-boton"
-            onClick={() => setParams((actual) => {
-              const siguiente = new URLSearchParams(actual);
-              siguiente.set("panel", "calendario");
-              return siguiente;
-            })}
+            onClick={panelCalendario.abrir}
           >
             Ver y editar el calendario
           </button>
