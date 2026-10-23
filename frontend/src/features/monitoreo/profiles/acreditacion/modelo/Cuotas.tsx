@@ -11,11 +11,11 @@ import "./modelo.css";
 export type VariableSinCuota = { actor: string; variable: string; categorias: number | null };
 
 /**
- * Una variable con casi tantas categorías como personas (código, nombre,
- * correo) identifica a cada una: no sirve de cuota y no se ofrece.
+ * Una variable con tres cuartos o más de categorías que personas (código,
+ * nombre, correo, teléfono) identifica a cada una: no sirve de cuota y no se ofrece.
  */
 export function esIdentificador(categorias: number | null, personas: number | null) {
-  return categorias != null && personas != null && personas > 0 && categorias >= personas * 0.9;
+  return categorias != null && personas != null && personas > 0 && categorias >= personas * 0.75;
 }
 
 /** Variables elegibles de cada público que todavía no tienen cuota. */

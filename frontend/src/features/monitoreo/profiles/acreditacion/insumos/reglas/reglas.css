@@ -139,3 +139,7 @@
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-rg-reticula { grid-template-columns: minmax(0, 1fr); }
 }
+
+.acr-rg > * {
+  flex-shrink: 0;
+}

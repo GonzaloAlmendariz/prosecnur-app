@@ -241,3 +241,7 @@
 .acr-in-variables li > span:last-child {
   flex: 0 0 auto;
 }
+
+.acr-in-fuentes > * {
+  flex-shrink: 0;
+}
