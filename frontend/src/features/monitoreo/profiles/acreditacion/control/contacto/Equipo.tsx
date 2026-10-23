@@ -57,21 +57,32 @@ function CargaFrenteAEfectividad({ responsables }: { responsables: readonly Resp
             <text key={valor} className="acr-av-eje" x={x(valor)} y={arriba + h + 16} textAnchor="middle">{fmt(valor)}</text>
           ))}
           <text className="acr-av-eje" x={izquierda + w / 2} y={alto - 2} textAnchor="middle">Casos asignados</text>
+          {puntos.map((item) => (
+            <circle key={item.nombre} className="acr-ct-punto" cx={x(item.asignados)} cy={y(item.efectividad ?? 0)} r={radio(item.barridos)} />
+          ))}
           {puntos.map((item) => {
             const cx = x(item.asignados);
+            const ly = posicion.get(item.nombre) ?? 0;
+            // Los círculos que cruzan la línea del rótulo lo empujan: el rótulo
+            // empieza después del último (o termina antes del primero).
+            const enLinea = puntos.filter((otro) => {
+              const cy = y(otro.efectividad ?? 0);
+              const r = radio(otro.barridos);
+              return cy + r >= ly - 11 && cy - r <= ly + 3;
+            });
             const derechaLibre = cx < izquierda + w * 0.62;
+            const xDerecha = Math.max(cx + radio(item.barridos), ...enLinea.filter((otro) => x(otro.asignados) >= cx).map((otro) => x(otro.asignados) + radio(otro.barridos))) + 6;
+            const xIzquierda = Math.min(cx - radio(item.barridos), ...enLinea.filter((otro) => x(otro.asignados) <= cx).map((otro) => x(otro.asignados) - radio(otro.barridos))) - 6;
             return (
-              <g key={item.nombre}>
-                <circle className="acr-ct-punto" cx={cx} cy={y(item.efectividad ?? 0)} r={radio(item.barridos)} />
-                <text
-                  className="acr-ct-punto-rotulo"
-                  x={derechaLibre ? cx + radio(item.barridos) + 6 : cx - radio(item.barridos) - 6}
-                  y={posicion.get(item.nombre)}
-                  textAnchor={derechaLibre ? "start" : "end"}
-                >
-                  {`${item.nombre}, ${pctEntero(item.efectividad)}`}
-                </text>
-              </g>
+              <text
+                key={item.nombre}
+                className="acr-ct-punto-rotulo"
+                x={derechaLibre ? xDerecha : xIzquierda}
+                y={ly}
+                textAnchor={derechaLibre ? "start" : "end"}
+              >
+                {`${item.nombre}, ${pctEntero(item.efectividad)}`}
+              </text>
             );
           })}
         </svg>

@@ -57,7 +57,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
       <section className="acr-av-panel acr-ps-respondieron" aria-label="Señales de consistencia">
         <header className="acr-av-panel-cabecera"><h3>Señales de consistencia</h3></header>
         {senales.length ? (
-          <ul className="acr-cl-senales">
+          <ul className="acr-cl-senales" data-qa-geometry-capacity="owned">
             {senales.map((senal) => (
               <li key={senal.id} className={`is-${senal.tone}`}>
                 <p className="acr-cl-senal">

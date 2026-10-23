@@ -75,7 +75,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
       <div className="acr-ps is-fuentes" data-qa-geometry-group="acreditacion-insumos-fuentes" data-qa-geometry-contract="intrinsic">
         <nav className="acr-av-panel acr-pr-filtros" aria-label="Fuentes del estudio">
           <header className="acr-av-panel-cabecera"><h3>Fuentes <span className="acr-av-tenue acr-av-num">{fmt(todas.length)}</span></h3></header>
-          <div className="acr-pr-filtros-cuerpo">
+          <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
             {grupos.map((grupo) => (
               <section key={grupo.publico} className="acr-pr-grupo">
                 <h3 className="acr-av-antetitulo">{grupo.publico}</h3>
@@ -97,7 +97,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
           </div>
         </nav>
         {elegida ? (
-          <section className="acr-av-panel acr-ps-tabla" aria-label={`Fuente ${elegida.nombre}`}>
+          <section className="acr-av-panel acr-ps-tabla" aria-label={`Fuente ${elegida.nombre}`} data-qa-geometry-capacity="owned">
             <header className="acr-av-panel-cabecera">
               <h3>{elegida.nombre}</h3>
               {conRecopiladores ? (

@@ -1095,7 +1095,7 @@
 
 .acr-ri-barras li {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(84px, 1fr) minmax(60px, 1fr) 48px;
   align-items: center;
   gap: var(--pulso-space-2);
 }
@@ -1204,7 +1204,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   outline: 0;
 }
 
-@media (max-width: 1200px), (max-height: 720px) {
+@media (max-width: 900px) {
   .acr-sa-arriba { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -1230,7 +1230,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-franja {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  align-items: center;
+  align-items: stretch;
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
@@ -1302,6 +1302,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   position: absolute;
   bottom: 0;
   transform: translateX(-50%);
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1349,4 +1350,14 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ps.acr-pc { grid-template-columns: minmax(0, 1fr); }
   .acr-pc-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Por cuota usa el detalle de siempre; a 1024 una categoría envuelve y la
+ * lista es un grupo de alturas iguales: todas reservan las dos líneas. */
+.acr-pc-detalle-cuota .mon-cuotas-categoria {
+  min-height: 64px;
+}
+
+.acr-pc-franja .acr-res-kpi {
+  align-self: stretch;
 }

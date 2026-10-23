@@ -251,6 +251,12 @@ export function BarrasSuperpuestas({
   const paso = w / Math.max(1, categorias.length);
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
   const conRotulo = paso >= 22;
+  // Un rótulo de fecha mide unos 46 px: si no cabe en cada barra, se dibuja uno
+  // de cada `cada` (siempre el primero y el último) para que no se pisen.
+  const cada = Math.max(1, Math.ceil(50 / Math.max(1, paso)));
+  const conFecha = (indice: number) => indice === 0 || indice === categorias.length - 1
+    ? true
+    : indice % cada === 0 && categorias.length - 1 - indice >= cada;
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
       {ancho > 0 && alto > 0 && categorias.length ? (
@@ -270,7 +276,7 @@ export function BarrasSuperpuestas({
                 {item.fondo > 0 ? <rect className="acr-av-barra-dia" x={x} y={y(item.fondo)} width={anchoBarra} height={y(0) - y(item.fondo)} rx={1.5} /> : null}
                 {item.frente > 0 ? <rect className="acr-av-barra" x={x + anchoBarra * 0.18} y={y(item.frente)} width={anchoBarra * 0.64} height={y(0) - y(item.frente)} rx={1.5} /> : null}
                 {conRotulo && item.fondo > 0 ? <text className="acr-av-eje is-cifra" x={x + anchoBarra / 2} y={y(item.fondo) - 4} textAnchor="middle">{fmt(item.fondo)}</text> : null}
-                {conRotulo || indice % 2 === 0 ? <text className="acr-av-eje" x={x + anchoBarra / 2} y={alto - 6} textAnchor="middle">{item.rotulo}</text> : null}
+                {conFecha(indice) ? <text className="acr-av-eje" x={x + anchoBarra / 2} y={alto - 6} textAnchor="middle">{item.rotulo}</text> : null}
               </g>
             );
           })}

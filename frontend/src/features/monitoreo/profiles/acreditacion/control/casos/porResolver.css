@@ -365,3 +365,48 @@
   .acr-pr-panel-cuerpo,
   .acr-pr-filtros-cuerpo { overflow: visible; }
 }
+
+/* Las listas de los maestros (Por resolver, Fuentes, Cuotas, Por cuota): el
+ * rótulo a la izquierda y envuelve; la cifra a la derecha, sin encogerse. */
+.acr-pr-grupo button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.acr-pr-grupo button > span:not([aria-hidden]) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.acr-pr-grupo button > :is(b, small, [aria-hidden]) {
+  flex: 0 0 auto;
+}
+
+/* Los públicos largos («Estudiantes de posgrado CENTRUM») envuelven dentro del
+ * botón; el código de un caso también, en la cabecera de su ficha. */
+.acr-pr-grupo button {
+  padding-block: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.acr-av-panel.acr-pr-panel h3 {
+  white-space: normal;
+  min-width: 0;
+}
+
+.acr-av-panel.acr-pr-panel h3 .acr-av-num {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.acr-pr-tabla tbody th[scope="row"] {
+  white-space: nowrap;
+}
+
+.acr-pr-tabla .acr-pub-nombre {
+  max-width: none;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}

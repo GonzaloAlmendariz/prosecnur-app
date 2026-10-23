@@ -10,11 +10,19 @@ import "./modelo.css";
 
 export type VariableSinCuota = { actor: string; variable: string; categorias: number | null };
 
+/**
+ * Una variable con casi tantas categorías como personas (código, nombre,
+ * correo) identifica a cada una: no sirve de cuota y no se ofrece.
+ */
+export function esIdentificador(categorias: number | null, personas: number | null) {
+  return categorias != null && personas != null && personas > 0 && categorias >= personas * 0.9;
+}
+
 /** Variables elegibles de cada público que todavía no tienen cuota. */
 export function variablesSinCuota(publicos: readonly MonitoreoCuotaPublico[], cuotas: readonly MonitoreoCuota[]): VariableSinCuota[] {
   const declaradas = new Set(cuotas.map((cuota) => `${cuota.actor}::${cuota.variable}`));
   return publicos.flatMap((publico) => publico.variables
-    .filter((item) => !declaradas.has(`${publico.actor}::${item.variable}`))
+    .filter((item) => !declaradas.has(`${publico.actor}::${item.variable}`) && !esIdentificador(item.categorias, publico.universo))
     .map((item) => ({ actor: publico.actor, variable: item.variable, categorias: item.categorias })));
 }
 
@@ -42,7 +50,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
             <Plus size={14} aria-hidden="true" /> Nueva cuota
           </button>
         </header>
-        <div className="acr-pr-filtros-cuerpo">
+        <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <section className="acr-pr-grupo">
             <h3 className="acr-av-antetitulo">Declaradas <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
             {cuotas.length ? (
@@ -133,7 +141,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
         </section>
       ) : (
         <section className="acr-av-panel acr-ps-tabla" aria-label="Cuota elegida">
-          <div className="acr-pr-cola-vacia" data-vacio>
+          <div className="acr-pr-cola-vacia" data-vacio data-qa-geometry-capacity="owned">
             <Alert kind="info">{sinCuota.length ? "Elige una variable sin cuota para definir sus metas por categoría." : "La base de los públicos no tiene variables con 2 a 150 categorías."}</Alert>
           </div>
         </section>

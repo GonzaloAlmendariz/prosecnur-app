@@ -72,7 +72,7 @@ export function PorResolver({
   return (
     <div className="acr-pr" data-qa-geometry-group="acreditacion-control-resolver" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Tipos de caso">
-        <div className="acr-pr-filtros-cuerpo">
+        <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {GRUPOS.map(({ grupo, titulo }) => {
             const tipos = resumen.porTipo.filter((item) => item.grupo === grupo);
             if (!tipos.length) return null;

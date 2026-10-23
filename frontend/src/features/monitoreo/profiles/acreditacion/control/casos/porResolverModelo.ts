@@ -13,6 +13,7 @@ import {
   normalizeCaseSearch,
 } from "./revisionAsistida";
 import { etiquetaDeTipo, grupoDeTipo, type GrupoDeCaso } from "./tiposDeCaso";
+import { llaveLegible } from "./personasModelo";
 
 /**
  * Modelo puro de Control › Por resolver (ficha Ctl5).
@@ -86,7 +87,7 @@ export function filasDeCola(
       grupo: grupoDeTipo(tipo),
       publico: texto(issue.actor || caso?.actor) || "Sin público",
       canal: texto(caso?.channel) || "Sin canal",
-      llave: texto(issue.case_key || caso?.case_key) || "Sin llave",
+      llave: llaveLegible(texto(issue.case_key || caso?.case_key)) || "Sin llave",
       completitud: completitud(caso),
       fecha,
       decision: decisionDe(caso),

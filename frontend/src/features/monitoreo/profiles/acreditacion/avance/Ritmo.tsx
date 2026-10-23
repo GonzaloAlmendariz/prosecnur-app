@@ -93,7 +93,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       </div>
       <aside className="acr-av-panel acr-ri-pulso" aria-label="Pulso del campo">
         <header className="acr-av-panel-cabecera"><h3>Pulso del campo</h3></header>
-        <div className="acr-ri-pulso-cuerpo">
+        <div className="acr-ri-pulso-cuerpo" data-qa-geometry-capacity="owned">
           <dl className="acr-ri-cifras">
             <div><dt>Promedio de los últimos 7 días</dt><dd className="acr-av-num">{UNA_DECIMAL(pulso.promedio7)}</dd></div>
             <div><dt>Mejor día</dt><dd className="acr-av-num">{pulso.mejor ? `${fmt(pulso.mejor.efectivas)}, ${fechaCorta(pulso.mejor.fecha)}` : "—"}</dd></div>
@@ -156,7 +156,7 @@ export function Ritmo({ detallePorFuente, ...props }: Omit<PropsDeVista, "onDecl
         onVerFuentes={detallePorFuente ? panel.abrir : undefined}
       />
       {panel.abierto && detallePorFuente ? (
-        <SuperficieFlotante tipo="sideover" antetitulo="Ritmo" titulo="Por fuente y recopilador" onCerrar={panel.cerrar} panelId={PANEL_FUENTES.id} ancho={960}>
+        <SuperficieFlotante tipo="sideover" antetitulo="Ritmo" titulo="Por fuente y recopilador" onCerrar={panel.cerrar} panelId={PANEL_FUENTES.id} ancho={1240}>
           {detallePorFuente}
         </SuperficieFlotante>
       ) : null}

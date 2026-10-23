@@ -541,3 +541,8 @@
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-co { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Las filas del embudo de Barrido miden lo mismo aunque el rótulo envuelva a 1024. */
+.acr-ct-embudo-fila {
+  min-height: 36px;
+}
