@@ -114,6 +114,35 @@
   valores
 }
 
+# proGres de cada fila del barrido, por la llave publicada de ESA fila (clave
+# normalizada). Una llave que se repite con proGres distintos no se usa: nunca
+# se atribuye a un caso el proGres de otro.
+.monitoreo_discrepancias_progres_mapa <- function(phone, claves) {
+  progres <- .monitoreo_discrepancias_progres(phone)
+  claves <- as.character(claves %||% character(0))
+  if (!length(progres) || length(claves) != length(progres)) return(character(0))
+  k <- .monitoreo_nombre_clave(claves)
+  ok <- nzchar(k) & nzchar(progres)
+  k <- k[ok]
+  progres <- progres[ok]
+  ambiguas <- unique(k[duplicated(k) & !duplicated(paste(k, progres))])
+  keep <- !k %in% ambiguas & !duplicated(k)
+  stats::setNames(progres[keep], k[keep])
+}
+
+# proGres por código publicado; si el código ES un proGres del barrido (llave
+# proGres sin CodPulso), es él mismo.
+.monitoreo_discrepancias_progres_de <- function(codigos, mapa) {
+  if (!length(codigos)) return(character(0))
+  if (length(mapa)) names(mapa) <- .monitoreo_nombre_clave(names(mapa))
+  k <- .monitoreo_nombre_clave(codigos)
+  out <- unname(mapa[k])
+  out[is.na(out)] <- ""
+  propio <- !nzchar(out) & k %in% .monitoreo_nombre_clave(unname(mapa))
+  out[propio] <- unname(mapa[match(k[propio], .monitoreo_nombre_clave(unname(mapa)))])
+  out
+}
+
 .monitoreo_discrepancias_txt <- function(x) {
   v <- trimws(as.character(x %||% character(0)))
   v[is.na(v)] <- ""
@@ -242,9 +271,7 @@
   hoja_ok <- si("Efectiva telefónica")
   sentido <- ifelse(kobo_ok & !hoja_ok, "kobo_sin_hoja", ifelse(hoja_ok & !kobo_ok, "hoja_sin_kobo", ""))
   filas <- which(nzchar(sentido))
-  progres <- .monitoreo_discrepancias_progres(phone)
-  mapa <- stats::setNames(progres, as.character(claves %||% character(0)))
-  mapa <- mapa[nzchar(names(mapa))]
+  mapa <- .monitoreo_discrepancias_progres_mapa(phone, claves)
   texto <- function(col, idx = filas) {
     if (col %in% names(detalle)) .monitoreo_discrepancias_txt(detalle[[col]][idx]) else rep("", length(idx))
   }
@@ -295,8 +322,7 @@
     out <- rbind(out, extra)
   }
   if (!nrow(out)) return(.monitoreo_discrepancias_vacio())
-  out$proGres <- unname(ifelse(out$CodPulso %in% names(mapa), mapa[out$CodPulso], ""))
-  out$proGres[is.na(out$proGres)] <- ""
+  out$proGres <- .monitoreo_discrepancias_progres_de(out$CodPulso, mapa)
   # P4: mismo responsable con la equivalencia confirmada o sugerida.
   responsables <- .monitoreo_responsables_hoja(detalle)
   confirmadas <- .monitoreo_equivalencias_mapa(profile)
