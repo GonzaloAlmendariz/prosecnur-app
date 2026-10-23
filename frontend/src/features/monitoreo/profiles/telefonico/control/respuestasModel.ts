@@ -40,10 +40,21 @@ export const CINCO_MINUTOS = 300;
 export type MarcaDeEnvio = "mas-de-2h" | "corta" | "repetida" | "no-cruza";
 
 export const ETIQUETA_DE_MARCA: Record<MarcaDeEnvio, string> = {
-  "mas-de-2h": "más de 2 h",
-  corta: "menos de 5 min",
-  repetida: "repetida",
-  "no-cruza": "no cruza",
+  "mas-de-2h": "Más de 2 h",
+  corta: "Menos de 5 min",
+  repetida: "Repetida",
+  "no-cruza": "No cruza",
+};
+
+/**
+ * Cómo cruzó el código de un envío con la hoja. Lo pintan Control › Respuestas
+ * e Insumos › Llave y filtros: vive aquí, junto al valor, para que las dos
+ * pestañas no puedan decirlo distinto.
+ */
+export const ROTULO_DE_LLAVE: Record<EnvioEfectivo["llave"], string> = {
+  exacta: "Exacta",
+  normalizada: "Por sus dígitos",
+  "no-cruza": "No cruza",
 };
 
 export type EnvioEfectivo = {
@@ -178,6 +189,8 @@ export function construirRespuestas({
 
 export type FiltroDeRespuestas = "por-revisar" | "todas" | MarcaDeEnvio;
 
+const ORDEN_DE_LLAVE: Record<EnvioEfectivo["llave"], number> = { "no-cruza": 0, normalizada: 1, exacta: 2 };
+
 export function filtrarEnvios(envios: readonly EnvioEfectivo[], filtro: FiltroDeRespuestas, busqueda: string) {
   const buscada = clave(busqueda);
   return envios
@@ -185,7 +198,12 @@ export function filtrarEnvios(envios: readonly EnvioEfectivo[], filtro: FiltroDe
       filtro === "todas" ? true : filtro === "por-revisar" ? envio.marcas.length > 0 : envio.marcas.includes(filtro)
     ))
     .filter((envio) => !buscada || clave(envio.codigo).includes(buscada))
-    .sort((a, b) => b.marcas.length - a.marcas.length || (a.fecha ?? "").localeCompare(b.fecha ?? "") || a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
+    // En «Todas» van primero los que no cruzaron tal cual (por sus dígitos o
+    // sin cruce): sin otro criterio, es lo único de la llave que hay que mirar.
+    .sort((a, b) => (filtro === "todas" ? ORDEN_DE_LLAVE[a.llave] - ORDEN_DE_LLAVE[b.llave] : 0)
+      || b.marcas.length - a.marcas.length
+      || (a.fecha ?? "").localeCompare(b.fecha ?? "")
+      || a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
 }
 
 /** «29 min», «2 h 22», «101 h 45». */

@@ -68,6 +68,8 @@ describe("Control › Respuestas del telefónico", () => {
     expect(modelo.envios.find((e) => e.codigo === "PDM1640")).toMatchObject({ categoria: "Cercado de Lima", hojaDice: "Efectivo", cruza: true });
     expect(filtrarEnvios(modelo.envios, "repetida", "").map((e) => e.codigo)).toEqual(["PDM1429", "PDM1429"]);
     expect(filtrarEnvios(modelo.envios, "todas", "1371")).toHaveLength(1);
+    // En «Todas» lo que no cruzó tal cual va primero.
+    expect(filtrarEnvios(modelo.envios, "todas", "")[0].llave).not.toBe("exacta");
   });
 
   it("escribe la duración sin abreviaturas raras", () => {

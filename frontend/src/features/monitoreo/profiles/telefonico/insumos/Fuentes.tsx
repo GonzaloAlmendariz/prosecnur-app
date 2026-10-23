@@ -85,7 +85,7 @@ export function Fuentes({
                     <div>
                       <b>{fila.papel}</b>
                       <em>{fila.servicio}</em>
-                      {fila.activa ? null : <em>apagada</em>}
+                      {fila.activa ? null : <em>Apagada</em>}
                     </div>
                     <input
                       defaultValue={fila.etiqueta}

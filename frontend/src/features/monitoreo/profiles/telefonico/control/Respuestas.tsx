@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import {
   DOS_HORAS,
   ETIQUETA_DE_MARCA,
+  ROTULO_DE_LLAVE,
   rotuloDeRepetidas,
   duracionLegible,
   filtrarEnvios,
@@ -36,9 +37,9 @@ const CHIPS: ReadonlyArray<{ id: FiltroDeRespuestas; etiqueta: string }> = [
 ];
 
 const TIPO_DE_REGLA: Record<ReglaQueCuenta["tipo"], string> = {
-  filtro: "filtro",
-  regla: "regla",
-  aviso: "aviso, no excluye",
+  filtro: "Filtro",
+  regla: "Regla",
+  aviso: "Aviso, no excluye",
 };
 
 /**
@@ -158,13 +159,13 @@ export function Respuestas({
                     </i>
                     <span className="is-num">{duracionLegible(envio.segundos)}</span>
                   </td>
-                  <td className={`mon-respuestas-llave is-${envio.llave}`}>{envio.llave === "no-cruza" ? "no cruza" : envio.llave}</td>
+                  <td className={`mon-respuestas-llave is-${envio.llave}`}>{ROTULO_DE_LLAVE[envio.llave]}</td>
                   <td>{envio.cruza ? envio.hojaDice || "—" : "—"}</td>
                   <td>{envio.cruza ? envio.responsable || "Sin asignar" : "—"}</td>
                   <td>
                     {envio.marcas.length ? envio.marcas.map((marca) => (
                       <span key={marca} className={`mon-respuestas-marca is-${marca}`}>{ETIQUETA_DE_MARCA[marca]}</span>
-                    )) : <span className="mon-respuestas-marca is-efectiva">efectiva</span>}
+                    )) : <span className="mon-respuestas-marca is-efectiva">Efectiva</span>}
                   </td>
                 </tr>
               ))}
