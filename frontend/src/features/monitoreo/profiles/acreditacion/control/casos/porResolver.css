@@ -413,3 +413,8 @@
   white-space: normal;
   text-align: left;
 }
+
+.acr-av-panel.acr-pr-panel h3 .acr-av-antetitulo {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
