@@ -32,7 +32,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☑ |
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☑ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
-| T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☐ |
+| T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☐ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
@@ -157,3 +157,32 @@ Medios de Vida 82 por rellamar y ninguno efectivo en Kobo.
   scratchpad (`impl/pdm_cola.pulso`, `impl/mv_cola.pulso`).
 - `scripts/build-visual-catalog.mjs` y `scripts/monitoreo-performance-check.mjs` ya nombran Insumos, Modelo, Control y
   Avance.
+
+**T5, Control › Barrido.** `profiles/telefonico/control/Barrido.tsx` con `barridoModel.ts` (test) y
+`familiasDelCliente.ts`, que ubica cada status de la hoja en Efectiva, Parcial, Rechazo, Reintentable o Terminal según
+`state_rules` (mismo emparejamiento que el motor) y marca «sin regla» lo que el vocabulario no declara. Embudo de cuatro
+tarjetas simétricas (Listado, Llamados, Efectivas en la hoja, Sin llamar), listado por categoría, llamados por fecha del
+último intento (PDM 59, 207, 356 y 9 en «otra o sin fecha», igual que el lienzo), sin llamar por categoría con asignados
+y sin asignar, y status del cliente con su regla. Datos de `resumen_telefonico`, `estatus_telefonico`, `estatus_dia`,
+`no_barridos_responsable` y `cuotas_variable`.
+
+- **No viaja y no se inventó**: la tarjeta «Muestra 1,111» y la reserva 1,185 (columna `Origen`, P8–P9), y la familia de
+  status por categoría (Reintentable y Terminal por sede): la tabla por categoría reparte con parciales, rechazos, sin
+  llamar y efectivas en Kobo de `cuotas_variable`.
+- Las familias siguen el vocabulario declarado, como la cola: en PDM «Número suspendido» es Reintentable
+  (`non_effective`) y no Terminal como en el lienzo; en Medios de Vida «Rechazo» cae en Terminal porque su regla cierra.
+- El resumen anterior (conciliación Kobo y hoja, embudo de la cifra y tarjetas por responsable) sigue en Discrepancias,
+  Respuestas, Avance › Cuotas y Equipo.
+
+**T5, Control › Equipo.** `profiles/telefonico/control/Equipo.tsx`, `EquipoMatriz.tsx` y `equipoModel.ts` (test con
+`estatus_responsable` real de PDM anonimizado en `control/fixtures/`). Selector «Carga | Estados por operador»
+(`panel=estados`) y ficha del operador elegido (`foco=<operador>`). Carga por persona (suma las filas de dos actores):
+asignados, llamados, sin llamar, efectivas en la hoja y en Kobo, brecha (efectivas de Kobo que la hoja no marca), sin
+efectiva sobre llamados e intentos por caso reintentable; fila «Sin asignar» aparte. Estados por operador con
+`buildTelefonicoStatusMatrix`: los 18 desvíos de PDM coinciden con el modelo de hoy (test).
+
+- **No viaja y no se inventó**: la columna «Días» y «Llamados por día» del operador (no hay status por responsable y
+  fecha) y «Casos por sede» del operador (no hay responsable por cuota). En su lugar la ficha lista los status de la
+  hoja del operador con su familia, que sí viajan en `estatus_responsable`, y su insistencia (`reintentos_responsable`).
+- La paridad con Responsables se conserva: la matriz con desvíos, la brecha con Kobo por responsable y las cifras de las
+  tarjetas (asignados, barridos, efectivas, sin efectiva, por barrer) están en Carga y en la ficha.

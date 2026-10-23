@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { fmt } from "../formato";
+import { pctConEspacio } from "../../../core/formatoComun";
 import { FaltanteDiario } from "./FaltanteDiario";
 import type { CadenaDeLaCifra, CuotasFaltante as Modelo, FilaDeCuota, PuntoAcumulado } from "./cuotasFaltanteModel";
 import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
@@ -17,7 +18,7 @@ function decimal(valor: number) {
 
 /** «105.8 %»: un decimal y espacio antes del signo (estándar §2a, 5c). */
 function porcentaje(valor: number | null) {
-  return valor == null || !Number.isFinite(valor) ? "—" : `${decimal(valor)} %`;
+  return pctConEspacio(valor);
 }
 
 /** Barra de efectivas con la marca de la meta, a la escala del mayor de los dos. */
