@@ -293,11 +293,11 @@
 }
 
 .mon-metas-avance-nombre {
-  overflow: hidden;
+  min-height: 2.6em;
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .mon-metas-avance-faltan {
@@ -365,16 +365,9 @@
   font: inherit;
 }
 
-.mon-metas-estado {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
 
-.mon-metas-estado.is-error {
-  color: var(--pulso-danger-fg);
-}
+
+
 
 .mon-metas-validacion {
   display: flex;
@@ -431,18 +424,25 @@
   align-self: flex-start;
 }
 
-/* La columna derecha mide lo que piden sus tarjetas; el botón del calendario
- * va pegado a la lista de días, que desplaza si es larga. */
-.mon-metas-modelo-lateral {
-  align-self: start;
-  max-height: 100%;
+/* La columna derecha termina con la izquierda: la tarjeta del calendario toma
+ * el alto que queda, la lista de días crece y desplaza dentro con la barra
+ * visible, y el botón queda pegado al pie de la tarjeta. */
+.mon-metas-modelo-lateral > .mon-metas-calendario {
+  flex: 1 1 auto;
+  min-height: 220px;
+  overflow: hidden;
 }
 
 .mon-metas-dias {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 6px;
-  max-height: 240px;
+  min-height: 0;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -496,8 +496,14 @@
     min-height: 0;
   }
 
+  .mon-metas-modelo-lateral > .mon-metas-calendario {
+    flex: none;
+    min-height: 0;
+  }
+
   .mon-metas-dias {
-    max-height: none;
+    flex: none;
+    overflow: visible;
   }
 
   .mon-metas-marco,
@@ -523,8 +529,8 @@
   }
 }
 
-.mon-metas-calendario .mon-metas-nota {
-  margin: 0;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
+
+
+.mon-metas-metas > .mon-metas-estado {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
 }

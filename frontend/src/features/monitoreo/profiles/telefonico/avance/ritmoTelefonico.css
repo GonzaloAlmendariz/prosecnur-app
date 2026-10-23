@@ -85,6 +85,13 @@
   border-radius: 3px;
 }
 
+.mon-cadencia-leyenda i.is-meta {
+  height: 0;
+  border-top: 2px dashed var(--pulso-module-monitoring);
+  border-radius: 0;
+  background: transparent;
+}
+
 .mon-cadencia-leyenda i.is-acumulado {
   height: 2px;
   border-radius: 0;
@@ -140,40 +147,33 @@
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
 
-/* La columna derecha mide lo que piden sus tarjetas (no se estira hasta el
- * pie); la lista de valores de fecha desplaza si es larga. */
-.mon-cadencia-lateral {
-  align-self: start;
-  max-height: 100%;
+/* La columna derecha termina con la izquierda: la tarjeta de fechas toma el
+ * alto que queda y su lista de valores crece y desplaza dentro, con la barra
+ * visible. */
+.mon-cadencia-lateral > .mon-cadencia-fechas {
+  flex: 1 1 auto;
+  min-height: 200px;
+  overflow: hidden;
 }
 
 .mon-cadencia-valores {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 4px;
-  max-height: 240px;
+  min-height: 0;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
   list-style: none;
 }
 
-.mon-cadencia-valores li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-}
-
-.mon-cadencia-valores code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-}
-
-.mon-cadencia-valores li.is-aviso code {
-  color: var(--pulso-warn-fg);
+.mon-cadencia-valores li span {
+  font-variant-numeric: tabular-nums;
+  text-align: left;
 }
 
 .mon-cadencia-dia-a-dia .mon-cadencia-cabecera > span {
@@ -221,23 +221,44 @@
   letter-spacing: -0.02em;
 }
 
-.mon-cadencia-fechas ul {
+.mon-cadencia-secundaria {
+  margin: -4px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-cadencia-formatos {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.mon-cadencia-fechas li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
+.mon-cadencia-formatos li,
+.mon-cadencia-valores li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
 }
 
-.mon-cadencia-fechas li.is-aviso span {
-  color: var(--pulso-warn-fg);
+.mon-cadencia-formatos li strong,
+.mon-cadencia-valores li strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Punto de estado: gris si el valor es legible, ámbar si hay que corregirlo. */
+.mon-cadencia-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pulso-border-strong);
+}
+
+.mon-cadencia-punto.is-aviso {
+  background: var(--pulso-warn-accent);
 }
 
 .mon-cadencia-vacio {
@@ -281,8 +302,13 @@
     height: 220px;
   }
 
+  .mon-cadencia-lateral > .mon-cadencia-fechas {
+    flex: none;
+  }
+
   .mon-cadencia-valores {
-    max-height: none;
+    flex: none;
+    overflow: visible;
   }
 }
 

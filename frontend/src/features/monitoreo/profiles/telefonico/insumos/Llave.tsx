@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { segmentoDelCorte } from "../control/montaje";
@@ -81,7 +82,7 @@ export function LlaveYFiltros({
             <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
-          <p>Las columnas de la llave no se editan desde la app.</p>
+          <NotaDelModo tono="neutro">Las columnas de la llave no se editan desde la app.</NotaDelModo>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Cruce con la base">
@@ -107,7 +108,7 @@ export function LlaveYFiltros({
               </div>
             </div>
           ) : (
-            <p>El corte no trae efectivas para cruzar.</p>
+            <NotaDelModo tono="neutro">El corte no trae efectivas para cruzar.</NotaDelModo>
           )}
         </section>
 
@@ -152,7 +153,7 @@ export function LlaveYFiltros({
               </table>
             </div>
           ) : (
-            <p className="mon-ctl-nota">Sin efectivas en el corte.</p>
+            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas en el corte.</NotaDelModo>
           )}
         </section>
       </div>
@@ -176,7 +177,7 @@ export function LlaveYFiltros({
               ))}
             </ul>
           ) : (
-            <p className="mon-ctl-nota">Todas las efectivas cruzan tal cual con la hoja.</p>
+            <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
           )}
         </section>
       </div>

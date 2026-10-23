@@ -12,6 +12,7 @@ import {
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import "./trazadoDeBarras.css";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
@@ -51,8 +52,8 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria, fueraDeCuota } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
-  const notaDeSerie = notaSinCategoria(sinCategoria, segmento, fueraDeCuota);
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const notaDeSerie = notaSinCategoria(sinCategoria, segmento, fueraDeCuota, sinFecha);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -94,6 +95,7 @@ export function Ritmo({
             <ul className="mon-cadencia-leyenda">
               {series.map((serie, i) => <li key={serie}><i className={`is-serie-${i}`} />{serie}</li>)}
               <li><i className="is-acumulado" />Acumulado</li>
+              {meta ? <li><i className="is-meta" />Meta {n(meta)}</li> : null}
             </ul>
           </header>
           <TrazadoDeBarras
@@ -123,6 +125,7 @@ export function Ritmo({
           <TrazadoDeBarras
             bajo
             tituloIzquierdo="Llamados por día"
+            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja" } : null}
             columnas={fechas.map((iso) => {
               const familias = hoja.porFecha[iso];
               const total = hoja.totalPorFecha[iso] ?? 0;
@@ -135,9 +138,7 @@ export function Ritmo({
               };
             })}
           />
-          {hojaSeDetiene ? (
-            <p className="mon-cadencia-nota">La hoja no registra llamados después del {fechaCorta(hojaSeDetiene)}; Kobo sigue hasta el {fechaCorta(ultimoKobo ?? hojaSeDetiene)}.</p>
-          ) : null}
+
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-calor" aria-label={`Efectivas por ${nombreDeSegmento} y día`} data-qa-geometry-capacity="owned">
@@ -176,8 +177,7 @@ export function Ritmo({
           <span className="mon-ctl-antetitulo">Promedio</span>
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
           <p>{n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}{kobo.fechas.length ? ` (${fechaCorta(kobo.fechas[0])} a ${fechaCorta(ultimoKobo ?? kobo.fechas[0])})` : ""}{kobo.categorias.length > 1 ? `, en ${n(kobo.categorias.length)} ${nombreDeSegmento === "categoría" ? "categorías" : "valores"}` : ""}.</p>
-          {kobo.sinFecha ? <p>{n(kobo.sinFecha)} efectivas sin fecha en Kobo no entran al gráfico.</p> : null}
-          {notaDeSerie ? <p className="mon-cadencia-aviso">{notaDeSerie}.</p> : null}
+          {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">
@@ -212,30 +212,33 @@ export function Ritmo({
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-cadencia-fechas" aria-label="Fecha de la hoja de barrido">
           <div className="mon-insumos-fila">
             <span className="mon-ctl-antetitulo">Fecha de la hoja de barrido</span>
-            <span className="mon-insumos-estado">{n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor" : "valores"}</span>
+            <span
+              className="mon-insumos-estado"
+              title={`La columna de fecha trae ${n(fechasDeLaHoja.columnas)} ${fechasDeLaHoja.columnas === 1 ? "valor distinto" : "valores distintos"}, que corresponden a ${n(fechasDeLaHoja.dias)} ${fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada.`}
+            >
+              {n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor" : "valores"}
+            </span>
           </div>
-          <ul>
+          <p className="mon-cadencia-secundaria">{n(fechasDeLaHoja.dias)} {fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada</p>
+          <ul className="mon-cadencia-formatos">
             {fechasDeLaHoja.formatos.map((formato) => (
-              <li key={formato.etiqueta} className={formato.aviso ? "is-aviso" : undefined}>
+              <li key={formato.etiqueta}>
+                <i className={`mon-cadencia-punto${formato.aviso ? " is-aviso" : ""}`} aria-hidden="true" />
                 <span>{formato.etiqueta}</span>
                 <strong className="is-num">{n(formato.casos)}</strong>
               </li>
             ))}
           </ul>
-          <p>
-            Corresponden a {n(fechasDeLaHoja.dias)} {fechasDeLaHoja.dias === 1 ? "día" : "días"} de llamada; la hoja trae
-            {" "}{n(fechasDeLaHoja.columnas)} {fechasDeLaHoja.columnas === 1 ? "valor distinto" : "valores distintos"} en su columna de fecha.
-          </p>
-          <span className="mon-ctl-antetitulo">Valores en la columna de fecha</span>
+          <span className="mon-ctl-antetitulo">Valores en la columna</span>
           <ul className="mon-cadencia-valores">
             {fechasDeLaHoja.valores.map((item) => (
-              <li key={item.valor} className={item.aviso ? "is-aviso" : undefined}>
-                <code>{item.valor}</code>
+              <li key={item.valor}>
+                <i className={`mon-cadencia-punto${item.aviso ? " is-aviso" : ""}`} aria-hidden="true" />
+                <span>{item.valor}</span>
                 <strong className="is-num">{n(item.casos)}</strong>
               </li>
             ))}
           </ul>
-
         </section>
       </div>
     </div>

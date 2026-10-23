@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import { metasConProporcion, validarMetas, type FilaDeMeta } from "./cuotasModel";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
@@ -231,7 +232,11 @@ export function Cuotas({
               <button type="submit" className="mon-insumos-boton" disabled={!nueva.trim()}><Plus size={13} /> Agregar</button>
             </form>
           </footer>
-          {estado ? <p className={`mon-metas-estado is-${estado.tono}`}>{estado.texto}</p> : null}
+          {estado ? (
+            <NotaDelModo className="mon-metas-estado" estado tono={estado.tono === "error" ? "error" : estado.tono === "success" ? "exito" : "info"}>
+              {estado.texto}
+            </NotaDelModo>
+          ) : null}
         </section>
       </div>
 
@@ -273,7 +278,7 @@ export function Cuotas({
                   </li>
                 ))}
               </ul>
-              {calendario.nota ? <p className="mon-metas-nota">{calendario.nota}.</p> : null}
+              {calendario.nota ? <NotaDelModo tono="aviso">{calendario.nota}.</NotaDelModo> : null}
             </>
           ) : null}
           <button

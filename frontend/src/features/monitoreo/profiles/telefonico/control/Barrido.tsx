@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import type { Barrido as Modelo, FilaDeCategoria } from "./barridoModel";
@@ -147,7 +148,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
                 </span>
               ))}
             </div>
-            <p className="mon-ctl-nota">La hoja guarda solo la fecha del último intento de cada caso.</p>
+            <NotaDelModo tono="neutro" className="mon-barrido-nota">La hoja guarda solo la fecha del último intento de cada caso.</NotaDelModo>
           </section>
           <section className="mon-ctl-panel mon-barrido-sin-llamar" aria-label="Sin llamar">
             <header className="mon-ctl-panel-cabecera">
@@ -198,10 +199,10 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               </ul>
             </div>
           ))}
-          <div className="mon-barrido-no-registra">
-            <span className="mon-ctl-antetitulo">Lo que la hoja no registra</span>
-            <p>Un status por caso, el del último intento: la hoja no guarda cada llamada, su hora ni el número marcado.</p>
-          </div>
+          <NotaDelModo tono="info" className="mon-barrido-no-registra">
+            <strong>Lo que la hoja no registra.</strong> Un status por caso, el del último intento: la hoja no guarda cada
+            llamada, su hora ni el número marcado.
+          </NotaDelModo>
         </div>
         <footer className="mon-barrido-status-pie">
           <span className="mon-tel-chip">No barrido {n(modelo.sinLlamar)}</span>
