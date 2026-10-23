@@ -232,20 +232,18 @@
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
 
-/* La tarjeta de las fechas de la hoja llega al pie: su lista de valores crece
- * y desplaza. */
-.mon-cadencia-lateral > .mon-cadencia-fechas {
-  flex: 1 1 auto;
-  min-height: 200px;
-  overflow: hidden;
+/* La columna derecha mide lo que piden sus tarjetas (no se estira hasta el
+ * pie); la lista de valores de fecha desplaza si es larga. */
+.mon-cadencia-lateral {
+  align-self: start;
+  max-height: 100%;
 }
 
 .mon-cadencia-valores {
   display: flex;
-  flex: 1 1 0;
   flex-direction: column;
   gap: 4px;
-  min-height: 0;
+  max-height: 240px;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -396,7 +394,7 @@
   }
 
   .mon-cadencia-valores {
-    flex: none;
+    max-height: none;
   }
 }
 
