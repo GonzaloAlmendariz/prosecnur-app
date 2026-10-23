@@ -106,7 +106,7 @@ function celdaDe(item: TerritorialQuotaProgressItem): CeldaDeCuota {
   };
 }
 
-function estadoDeGrupo(status: string | undefined, falta: number): EstadoDeUmp {
+export function estadoDeGrupo(status: string | undefined, falta: number): EstadoDeUmp {
   if (falta > 0) return "pendiente";
   const valor = String(status ?? "").toLowerCase();
   if (valor.startsWith("subsan")) return "subsanada";

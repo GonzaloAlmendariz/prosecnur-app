@@ -12,6 +12,7 @@ import {
   pideOtraDireccion,
   SECCIONES_TERRITORIALES,
   subvistasDePestana,
+  panelesSuperpuestos,
   vistaDeDireccion,
   vistaQueAbsorbe,
 } from "./direccionTerritorial";
@@ -85,6 +86,10 @@ describe("dirección pública del modo territorial", () => {
     // Resumen necesita `response_audit` para los motivos de observación.
     expect(vistaDeDireccion({ seccion: "avance", pestana: "resumen", panel: null }).seccion).toBe("calidad");
     expect(esPestanaPropia({ seccion: "avance", pestana: "resumen", panel: "ritmo" })).toBe(false);
+    // Avance › UMP es propia, pide el corte de Avance y abre la ficha con `panel=ump`.
+    expect(esPestanaPropia({ seccion: "avance", pestana: "umps", panel: null })).toBe(true);
+    expect(vistaDeDireccion({ seccion: "avance", pestana: "umps", panel: null }).seccion).toBe("avance");
+    expect(panelesSuperpuestos("avance", "umps")).toEqual(["ump"]);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {

@@ -113,7 +113,7 @@ const TABLA: readonly Entrada[] = [
   entrada("avance", "resumen", "distritos", v("avance", "distritos"), { vista: "Distritos" }),
   entrada("avance", "resumen", "ritmo", v("avance", "ritmo"), { vista: "Ritmo diario" }),
   entrada("avance", "mapa", null, v("avance", "ump")),
-  entrada("avance", "umps", null, v("modelo", "tabla"), { regreso: false }),
+  entrada("avance", "umps", null, v("modelo", "tabla"), { regreso: false, propia: true, corte: v("avance", "umps") }),
   entrada("avance", "salidas", null, v("avance", "salidas")),
 ];
 
@@ -180,7 +180,10 @@ export const PANELES_DE_SUBVISTA: readonly string[] = [
  * Paneles superpuestos de cada pestaña (`usePanelDireccionable`). Vacío por
  * ahora: la ficha de UMP (P1) llega con Avance › Mapa.
  */
-const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {};
+const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
+  // Ficha de una UMP al costado de la tabla (`panel=ump&foco=<UMP>`).
+  "avance/umps": ["ump"],
+};
 const SIN_PANELES: readonly string[] = [];
 
 export function panelesSuperpuestos(seccion: string, pestana: string): readonly string[] {
