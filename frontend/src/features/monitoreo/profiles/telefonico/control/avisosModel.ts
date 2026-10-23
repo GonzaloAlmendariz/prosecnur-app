@@ -109,6 +109,11 @@ function codigoDeCaso(valor: unknown) {
   return texto(valor).replace(/^c[oó]digo\s*:\s*/i, "");
 }
 
+/** Quita el prefijo «codigo:» dondequiera que aparezca en un texto del motor. */
+export function sinPrefijoDeCodigo(valor: string) {
+  return valor.replace(/\bc[oó]digo\s*:\s*(?=\S)/gi, "");
+}
+
 /** Una línea por persona (o lugar), sumando sus alertas: nadie aparece dos veces. */
 function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desglose"] {
   const porEtiqueta = new Map<string, number | null>();
@@ -155,30 +160,33 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     const duenos = grupo.map((alerta) => alerta.owner);
     const porPersona = primera.signal.kind === "assignment_gap"
       || (grupo.length > 1 && duenos.every(Boolean) && new Set(duenos).size === duenos.length && !afectados.length);
-    const ordenados = [...grupo].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
-    const mayor = ordenados[0];
-    const empate = ordenados.length > 1 && (ordenados[1].count ?? 0) === (mayor.count ?? 0);
+    // Por persona se cuentan personas distintas, no alertas: dos alertas de
+    // asignación del mismo dueño son un responsable.
+    const personas = desgloseDe(grupo);
+    const varias = porPersona && personas.length > 1;
+    const empate = personas.length > 1 && (personas[1].valor ?? 0) === (personas[0].valor ?? 0);
+    const mayor = grupo.find((alerta) => (alerta.owner || alerta.where) === personas[0]?.etiqueta) ?? primera;
     const orden: Record<NivelDeAviso, number> = { alta: 0, media: 1, baja: 2 };
     const nivel = grupo.map((alerta) => nivelDe(alerta.tone)).sort((a, b) => orden[a] - orden[b])[0];
     const casosNombrados = new Set(afectados.map((caso) => caso.codigo)).size;
     avisos.push({
       id: slug(primera.type) || slug(primera.title) || primera.id,
       nivel,
-      titulo: porPersona && grupo.length > 1 ? `${primera.title}: ${grupo.length.toLocaleString("es-PE")} responsables` : primera.title,
-      detalle: porPersona && grupo.length > 1
-        ? empate ? `${grupo.length.toLocaleString("es-PE")} responsables con el mismo aviso.` : `El más marcado, ${mayor.owner}: ${mayor.detail}`
+      titulo: varias ? `${primera.title}: ${personas.length.toLocaleString("es-PE")} responsables` : primera.title,
+      detalle: varias
+        ? empate ? `${personas.length.toLocaleString("es-PE")} responsables con el mismo aviso.` : `El más marcado, ${mayor.owner}: ${mayor.detail}`
         : primera.detail,
-      casos: porPersona && grupo.length > 1
-        ? grupo.length
+      casos: varias
+        ? personas.length
         // La cifra del motor manda; los casos nombrados sólo cuando no trae cifra
         // (PDM: el formato de CodPulso cuenta 287 y nombra 286 códigos distintos).
         : grupo.reduce((suma, alerta) => suma + (alerta.count ?? 0), 0) || casosNombrados || primera.count,
-      unidad: porPersona && grupo.length > 1 ? "responsables" : "casos",
+      unidad: varias ? "responsables" : "casos",
       codigo: primera.type,
       destino: porPersona && primera.signal.kind === "assignment_gap"
         ? { etiqueta: "Equipo, en Control", direccion: { seccion: "control", pestana: "equipo" } }
         : destinoDeAviso(primera.type, primera.signal.kind),
-      donde: porPersona && grupo.length > 1 ? "" : primera.where,
+      donde: varias ? "" : primera.where,
       fuente: primera.source,
       desglose: grupo.length > 1 ? desgloseDe(grupo) : [],
       afectados: porPersona ? [] : afectados,
@@ -214,6 +222,15 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
   });
 
   avisos.push(...avisosDeLosBloques(reports));
+
+  // El motor escribe «codigo:MVH9999» también dentro de los textos; en pantalla
+  // va el código solo.
+  avisos.forEach((aviso) => {
+    aviso.titulo = sinPrefijoDeCodigo(aviso.titulo);
+    aviso.detalle = sinPrefijoDeCodigo(aviso.detalle);
+    aviso.desglose = aviso.desglose.map((linea) => ({ ...linea, etiqueta: sinPrefijoDeCodigo(linea.etiqueta) }));
+    aviso.afectados = aviso.afectados.map((caso) => ({ ...caso, nota: sinPrefijoDeCodigo(caso.nota) }));
+  });
 
   // Dos grupos pueden compartir causa y título (mismo tipo en dos fuentes): el
   // `foco` necesita un id único y estable.
