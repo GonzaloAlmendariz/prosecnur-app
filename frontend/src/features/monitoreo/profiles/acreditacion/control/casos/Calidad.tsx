@@ -56,7 +56,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
           ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">{`Ninguna respuesta dura menos de ${duracionLegible(minimo)}.`}</Alert></div>}
         </div>
       </section>
-      <section className="acr-av-panel acr-ps-respondieron" aria-label="Señales de consistencia">
+      <section className="acr-av-panel acr-ps-respondieron" aria-label="Señales de consistencia" data-qa-geometry-capacity="owned">
         <header className="acr-av-panel-cabecera"><h3>Señales de consistencia</h3></header>
         {senales.length ? (
           <ul className="acr-cl-senales" data-qa-geometry-capacity="owned">
