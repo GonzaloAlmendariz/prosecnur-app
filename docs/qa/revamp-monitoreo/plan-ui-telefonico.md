@@ -310,3 +310,22 @@ Con la señal de asignación se cuentan personas distintas. Renombrar una fuente
 sobran («1 envío repetido»). Ahora cada rótulo dice qué cuenta: el chip «Repetidas: 1 caso, 2 envíos» y la cadena «1
 envío repetido de 1 caso» (Medios de Vida: 2 casos, 4 envíos y 2 envíos repetidos de 2 casos). Llave y filtros usa la
 misma frase.
+
+**Claves sin rótulo (segundo rechazo).** Barrido de todo lo que pintan Control, Insumos y las tarjetas que montan:
+
+- El cruce de la llave tiene un único mapa en `control/respuestasModel.ts` (`ROTULO_DE_LLAVE`: Exacta, Por sus dígitos,
+  No cruza), que usan Respuestas y Llave y filtros.
+- Las marcas pasan a mayúscula inicial (Más de 2 h, Menos de 5 min, Repetida, No cruza, Efectiva), igual que el tipo de
+  regla de «Qué cuenta» (Filtro, Regla, Aviso, no excluye) y «Apagada» en Fuentes.
+- Las columnas esperadas de la tarjeta de cada fuente salen del page-file a `insumos/ColumnasEsperadas.tsx` y pasan
+  por `rotuloDeDato` (Consentimiento, Fecha, Respuesta…).
+- En «Todas», Respuestas pone primero lo que no cruzó tal cual (en PDM, los 6 por sus dígitos).
+- Test transversal `profiles/telefonico/clavesSinRotulo.test.tsx`: renderiza Barrido, Insistencia (con ficha), Equipo
+  (con estados), Respuestas, Avisos, Estados, Llave y filtros, Fuentes y las tarjetas de fuente con un corte de prueba.
+  Falla si un texto visible es una clave conocida en minúscula o tiene forma de clave (`snake_case`, `kebab-case`). El
+  contenido de `<code>` queda fuera: son nombres de columna. Se comprobó que falla si se revierte cualquiera de los dos
+  defectos.
+- **Fuentes, columna «Columna»**: la cabecera real de la hoja no viaja en la metadata de la fuente
+  (`sheet_binding` trae `spreadsheet_id`, `sheet_name`, `header_row`, `range`, `last_read_at` y `snapshot_hash`; sin
+  encabezados). Se muestra el valor guardado en `dimensions` tal cual, en monoespaciado, porque es el nombre de columna
+  que la fuente declaró.
