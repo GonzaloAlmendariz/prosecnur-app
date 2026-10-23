@@ -104,8 +104,9 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
         <section className="mon-ctl-panel mon-barrido-matriz" aria-label={`Listado por ${segmentoMinuscula}`}>
           <header className="mon-ctl-panel-cabecera">
             <b>Listado por {segmentoMinuscula}</b>
-            <span>{n(modelo.total.listado)} casos</span>
+            <span>{n(modelo.categorias.length ? modelo.total.listado : modelo.listado)} casos</span>
           </header>
+          {modelo.categorias.length ? (
           <div className="mon-ctl-tabla-marco">
             <table className="mon-ctl-tabla">
               <thead>
@@ -128,6 +129,11 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               </tfoot>
             </table>
           </div>
+          ) : (
+            <NotaDelModo tono="neutro" className="mon-barrido-nota">
+              El listado de {n(modelo.listado)} casos no se reparte por cuota hasta declarar el eje en Modelo, Cuotas.
+            </NotaDelModo>
+          )}
         </section>
 
         <div className="mon-barrido-pie">
@@ -136,6 +142,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               <b>Llamados por fecha del último intento</b>
               <span>{n(modelo.llamados)} casos</span>
             </header>
+            {modelo.porFecha.length || modelo.otraFecha ? (
             <div className="mon-barrido-columnas" role="img" aria-label={[
               ...modelo.porFecha.map((item) => `${item.fecha}: ${n(item.casos)}`),
               modelo.otraFecha ? `otra o sin fecha: ${n(modelo.otraFecha)}` : "",
@@ -148,6 +155,9 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
                 </span>
               ))}
             </div>
+            ) : (
+              <p className="mon-barrido-vacio">Ningún caso llamado todavía.</p>
+            )}
             <NotaDelModo tono="neutro" className="mon-barrido-nota">La hoja guarda solo la fecha del último intento de cada caso.</NotaDelModo>
           </section>
           <section className="mon-ctl-panel mon-barrido-sin-llamar" aria-label="Sin llamar">
@@ -155,6 +165,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               <b>Sin llamar</b>
               <span>{n(modelo.sinLlamar)} del listado</span>
             </header>
+            {modelo.categorias.length ? (
             <ul>
               {[...modelo.categorias].sort((a, b) => b.sinLlamar - a.sinLlamar).map((fila) => (
                 <li key={fila.nombre}>
@@ -164,6 +175,9 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
                 </li>
               ))}
             </ul>
+            ) : (
+              <p className="mon-barrido-vacio">Sin eje de cuota, lo que falta llamar no se reparte por categoría.</p>
+            )}
             <footer className="mon-barrido-reparto">
               <span><span className="mon-ctl-antetitulo">Asignados</span><b className="is-num">{n(modelo.porLlamarAsignados)}</b></span>
               <span><span className="mon-ctl-antetitulo">Sin asignar</span><b className="is-num">{n(modelo.sinAsignar)}</b></span>
@@ -177,6 +191,9 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
           <span className="mon-ctl-antetitulo">Status del cliente</span>
         </header>
         <div className="mon-barrido-status-lista">
+          {modelo.status.length ? null : (
+            <p className="mon-barrido-vacio">Ningún caso llamado: los {n(modelo.sinLlamar)} del listado siguen sin barrer.</p>
+          )}
           {modelo.status.map((grupo) => (
             <div key={grupo.familia} className={`mon-barrido-familia is-${grupo.familia}`}>
               <span className="mon-barrido-familia-titulo">

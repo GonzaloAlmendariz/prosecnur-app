@@ -67,7 +67,7 @@ export function Estados({
 
   return (
     <div className="mon-insumos mon-estados" data-qa-geometry-group="telefonico-insumos-estados" data-qa-geometry-contract="intrinsic">
-      <section className="mon-ctl-panel mon-estados-vocabulario" aria-label="Vocabulario de Status">
+      <section className="mon-ctl-panel mon-estados-vocabulario" aria-label="Vocabulario de Status" data-qa-geometry-capacity="owned">
         <header className="mon-insumos-cabecera">
           <strong>Vocabulario de Status</strong>
           <span>

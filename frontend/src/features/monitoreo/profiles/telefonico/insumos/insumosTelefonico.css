@@ -214,18 +214,31 @@
 
 /* ---------- Estados ---------- */
 
+/* El vocabulario es dueño del alto: con un solo status (RMS, barrido sin
+ * empezar) la tabla no se encoge a una fila sobre un vacío del lienzo, y las
+ * dos columnas terminan juntas; la nota del modo va al pie de la lateral. */
 .mon-estados-vocabulario {
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   min-width: 0;
-  max-height: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
 .mon-estados-marco {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+.mon-estados > .mon-insumos-lateral {
+  align-self: stretch;
+  height: 100%;
+}
+
+.mon-estados > .mon-insumos-lateral > .mon-insumos-nota-modo {
+  margin-top: auto;
 }
 
 .mon-estados-tabla th:nth-child(2) { width: 168px; }
@@ -799,6 +812,7 @@
   .mon-insumos-columna,
   .mon-insumos-lateral,
   .mon-llave .mon-insumos-lateral,
+  .mon-estados > .mon-insumos-lateral,
   .mon-estados-vocabulario {
     flex: none;
     height: auto;

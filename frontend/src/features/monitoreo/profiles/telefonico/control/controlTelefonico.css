@@ -73,6 +73,20 @@
   margin-top: auto;
 }
 
+/* Un barrido que no empezó (RMS): cada panel dice su vacío en el sitio que
+ * ocuparían sus datos, centrado en el alto que ese panel ya tiene. */
+.mon-barrido-vacio {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  min-height: 80px;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 
 
 .mon-ctl-tabla-marco {
@@ -1517,4 +1531,8 @@
   }
 
   .mon-avisos-tabla th:nth-child(3) { width: 150px; }
+}
+
+.mon-barrido-matriz > .mon-nota {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
 }

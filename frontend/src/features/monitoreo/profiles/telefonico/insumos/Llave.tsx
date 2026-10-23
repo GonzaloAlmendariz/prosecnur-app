@@ -11,6 +11,7 @@ import {
   enviosPorLlave,
   filtroDePrueba,
   llaveDeclarada,
+  llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
 import "../control/controlTelefonico.css";
@@ -82,6 +83,12 @@ export function LlaveYFiltros({
             <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
+          {llaveSinIdentificador(ejemplos) ? (
+            <NotaDelModo tono="aviso">
+              Las {n(ejemplos.filasEnLaBase)} filas de la base tienen el mismo código: la llave no encontró una columna que identifique a cada
+              caso.
+            </NotaDelModo>
+          ) : null}
           <NotaDelModo tono="neutro">Las columnas de la llave no se editan desde la app.</NotaDelModo>
         </section>
 
@@ -176,8 +183,10 @@ export function LlaveYFiltros({
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : cruce.total ? (
             <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
+          ) : (
+            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas, no hay cruces que revisar.</NotaDelModo>
           )}
         </section>
       </div>
