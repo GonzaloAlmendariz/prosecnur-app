@@ -438,44 +438,26 @@ const HIERARCHY = [
         label: "Acreditación · Avance",
         tabs: ["Resumen", "Actores", "Encuestas", "Detalle", "Salidas"],
       },
+      // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23).
       {
-        id: "telefonico-fuentes",
-        label: "Telefónico · Fuentes",
-        tabs: ["Kobo", "Base y barrido", "Paquete"],
+        id: "telefonico-insumos",
+        label: "Telefónico · Insumos",
+        tabs: ["Fuentes", "Llave y filtros", "Estados"],
       },
       {
         id: "telefonico-modelo",
-        label: "Telefónico · Modelo operativo",
-        tabs: ["Modelo operativo", "Cronograma", "Resumen"],
+        label: "Telefónico · Modelo",
+        tabs: ["Cuotas y calendario"],
       },
       {
-        id: "telefonico-llamadas",
-        label: "Telefónico · Llamadas",
-        tabs: [
-          "Resumen",
-          "Consultados",
-          "Día",
-          "Tiempos",
-          "Incidencia",
-          "Responsables",
-          "Alertas",
-          "Supervisión",
-        ],
-      },
-      {
-        id: "telefonico-consultas",
-        label: "Telefónico · Consultas",
-        tabs: [
-          "Registros en plataforma",
-          "Estado de la base",
-          "Cruces efectivos",
-          "Subsanación",
-        ],
+        id: "telefonico-control",
+        label: "Telefónico · Control",
+        tabs: ["Barrido", "Insistencia", "Equipo", "Discrepancias", "Respuestas", "Avisos"],
       },
       {
         id: "telefonico-avance",
         label: "Telefónico · Avance",
-        tabs: ["Resumen", "Actores", "Encuestas", "Detalle", "Salidas"],
+        tabs: ["Cuotas", "Ritmo", "Entregas"],
       },
       {
         id: "aulas-fuentes",
@@ -996,7 +978,7 @@ const SOURCE_CONTEXT_RULES = [
   rule(
     /features\/monitoreo\/profiles\/telefonico\//,
     "monitoreo",
-    "telefonico-fuentes",
+    "telefonico-control",
     null,
   ),
   rule(
@@ -1846,6 +1828,9 @@ function refineContext(
       ["modelo", /modelo operativo|cronograma/],
       ["telefonico", /monitoreo telef[oó]nico/],
       ["llamadas", /llamada|consultado|tiempo|incidencia|supervisi[oó]n/],
+      // Telefónico con el esqueleto común (revamp, 2026-10-23).
+      ["insumos", /insumo|fuente|llave|estados/],
+      ["control", /control|barrido|insistencia|equipo|discrepancia|respuesta|aviso|llamada|incidencia/],
       ["agenda", /agenda|curso.?horario/],
     ];
     const profile =
@@ -2611,7 +2596,9 @@ function monitoringDeclaredSection(profile, tabId) {
     consultas: "consultas",
     avance: "avance",
     ocurrencias: "ocurrencias",
-    telefonico: prefix === "telefonico" ? "llamadas" : "telefonico",
+    telefonico: prefix === "telefonico" ? "control" : "telefonico",
+    insumos: "insumos",
+    control: "control",
   };
   return `${prefix}-${suffixMap[tabId] ?? tabId}`;
 }

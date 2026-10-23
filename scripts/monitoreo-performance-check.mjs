@@ -360,17 +360,20 @@ const PROFILE_COVERAGE = {
       "Validacion/Alertas",
     ],
   },
+  // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23).
   telefonico: {
-    declaredViews: ["Telefono"],
+    declaredViews: ["Control", "Avance"],
     declaredTabs: [
-      "Telefono/Resumen",
-      "Telefono/Dia",
-      "Telefono/Responsables",
-      "Telefono/Alertas",
+      "Control/Barrido",
+      "Control/Insistencia",
+      "Control/Equipo",
+      "Control/Avisos",
+      "Avance/Cuotas",
+      "Avance/Ritmo",
     ],
     measuredTabs: [
-      "Telefono/Resumen",
-      "Telefono/Responsables",
+      "Control/Barrido",
+      "Control/Equipo",
     ],
   },
 };
@@ -434,10 +437,12 @@ const PROFILE_TAB_PLANS = {
     { view: "fuentes", viewLabel: "Fuentes", key: "plan", label: "Plan" },
   ],
   telefonico: [
-    { view: "telefonico", viewLabel: "Telefono", key: "resumen", label: "Resumen" },
-    { view: "telefonico", viewLabel: "Telefono", key: "dia", label: "Dia" },
-    { view: "telefonico", viewLabel: "Telefono", key: "responsables", label: "Responsables" },
-    { view: "telefonico", viewLabel: "Telefono", key: "alertas", label: "Alertas" },
+    { view: "control", viewLabel: "Control", key: "barrido", label: "Barrido" },
+    { view: "control", viewLabel: "Control", key: "insistencia", label: "Insistencia" },
+    { view: "control", viewLabel: "Control", key: "equipo", label: "Equipo" },
+    { view: "control", viewLabel: "Control", key: "avisos", label: "Avisos" },
+    { view: "avance", viewLabel: "Avance", key: "cuotas", label: "Cuotas" },
+    { view: "avance", viewLabel: "Avance", key: "ritmo", label: "Ritmo" },
   ],
 };
 
@@ -457,8 +462,8 @@ const PROFILE_HYDRATION_TAB_MAP = {
     agenda_hydrated: "Agenda/Aulas",
   },
   telefonico: {
-    entry_data: "Telefono/Resumen",
-    phone_responsibles_hydrated: "Telefono/Responsables",
+    entry_data: "Control/Barrido",
+    phone_responsibles_hydrated: "Control/Equipo",
   },
 };
 
