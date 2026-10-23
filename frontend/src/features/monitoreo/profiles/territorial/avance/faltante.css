@@ -1,0 +1,601 @@
+/* Avance › Faltante por UMP (territorial.md §3.17). Arriba dos paneles a la
+ * misma altura; abajo la cuota de cada UMP llena el alto restante y desplaza
+ * dentro, con barra visible. Escala 4/8/12/16/24; separación 12 px. */
+
+.mon-falt {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-falt-arriba {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: stretch;
+}
+
+.mon-falt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-falt-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.mon-falt-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-base {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-controles {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-4);
+  margin-left: auto;
+}
+
+/* Tarjetas de las UMP con falta en la manzana en uso. */
+.mon-falt-tarjetas {
+  display: grid;
+  gap: var(--pulso-space-3);
+  align-content: start;
+  flex: 1 1 auto;
+}
+
+.mon-falt-tarjeta {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+}
+
+.mon-falt-tarjeta.is-con-sugerencia {
+  border-color: var(--pulso-module-monitoring-border);
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 35%, var(--pulso-surface));
+}
+
+.mon-falt-tarjeta-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.mon-falt-tarjeta-linea > strong {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-tarjeta-linea > span {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.mon-falt-tarjeta-linea > small {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-tarjeta-linea > .mon-falt-boton {
+  margin-left: auto;
+}
+
+.mon-falt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-falt-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.mon-falt-chip.is-falta {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-falt-chip.is-sugerencia {
+  background: var(--pulso-info-bg);
+  color: var(--pulso-brand-navy);
+  border: 1px solid var(--pulso-primary-border);
+}
+
+.mon-falt-sin {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.mon-falt-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-falt-boton:hover {
+  background: var(--pulso-surface-3);
+}
+
+.mon-falt-boton.is-primario {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-falt-boton.is-primario:hover {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 88%, var(--pulso-text));
+}
+
+.mon-falt-boton:focus-visible,
+.mon-falt-segmentado button:focus-visible,
+.mon-falt-tabla th.is-ump button:focus-visible,
+.mon-falt-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* Aviso del sistema: ícono, tono de token y fondo suave (no texto suelto). */
+.mon-falt-aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 10px;
+  background: var(--pulso-info-bg);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-aviso svg {
+  flex: none;
+  color: var(--pulso-brand-navy);
+}
+
+.mon-falt-aviso.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.mon-falt-aviso.is-ok svg {
+  color: var(--pulso-success-fg);
+}
+
+/* Mapa de calor por distrito. */
+.mon-falt-calor-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-calor-tabla thead th {
+  padding: 0 0 var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mon-falt-calor-tabla tbody th {
+  padding-right: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-falt-calor-tabla td {
+  padding: 0;
+}
+
+.mon-falt-calor-celda {
+  display: block;
+  padding: 7px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mon-falt-calor-celda.is-clara {
+  color: var(--pulso-surface);
+}
+
+.mon-falt-calor-celda.is-oscura {
+  color: var(--pulso-text);
+}
+
+/* Cuota de cada UMP. */
+.mon-falt-cuotas {
+  padding-bottom: 0;
+}
+
+.mon-falt-segmentado {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.mon-falt-segmentado button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-falt-segmentado button b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-segmentado button.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-falt-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.mon-falt-switch-piel {
+  --pulso-switch-accent: var(--pulso-brand-navy);
+}
+
+.mon-falt-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-falt-tabla-marco::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-falt-tabla-marco::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-falt-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-falt-tabla thead th.is-celda,
+.mon-falt-tabla td.is-celda {
+  text-align: center;
+}
+
+.mon-falt-tabla thead th.is-num,
+.mon-falt-tabla td.is-num {
+  text-align: right;
+}
+
+.mon-falt-tabla th:first-child,
+.mon-falt-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-falt-tabla tbody td,
+.mon-falt-tabla tbody th {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-falt-tabla tbody th.is-ump button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -4px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.mon-falt-tabla tbody th.is-ump button svg {
+  color: var(--pulso-text-faint);
+}
+
+.mon-falt-tabla tbody tr:hover > * {
+  background: var(--pulso-surface-3);
+}
+
+.mon-falt-tabla tbody tr.is-pendiente > th:first-child {
+  box-shadow: inset 3px 0 0 var(--pulso-module-monitoring);
+}
+
+.mon-falt-tabla tbody tr.is-abierta > * {
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 40%, var(--pulso-surface));
+}
+
+.mon-falt-tabla td.is-falta {
+  color: var(--pulso-module-monitoring);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-tabla td.is-cubre {
+  color: var(--pulso-text-soft);
+}
+
+.mon-falt-celda {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-falt-celda.is-cumple {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-falt-celda.is-falta {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-falt-celda b,
+.mon-falt-cruce b {
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.is-recibe {
+  color: var(--pulso-brand-navy);
+}
+
+.is-cede {
+  color: var(--pulso-danger-fg);
+}
+
+/* Detalle desplegable de una UMP. */
+.mon-falt-detalle-fila > td {
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4) !important;
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 20%, var(--pulso-surface)) !important;
+  white-space: normal !important;
+}
+
+.mon-falt-detalle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3) var(--pulso-space-6, 24px);
+  align-items: start;
+}
+
+.mon-falt-capas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+}
+
+.mon-falt-capas div {
+  display: grid;
+  gap: 2px;
+}
+
+.mon-falt-capas dt {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-falt-capas dd {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.mon-falt-capas dd b {
+  margin-right: 4px;
+  color: var(--pulso-text);
+  font-size: 14px;
+}
+
+.mon-falt-cruce {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-cruce th,
+.mon-falt-cruce td {
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  text-align: center;
+}
+
+.mon-falt-cruce thead th {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-cruce tbody th {
+  text-align: left;
+}
+
+.mon-falt-cruce b {
+  margin-left: 4px;
+}
+
+.mon-falt-de {
+  color: var(--pulso-text-faint);
+}
+
+.mon-falt-otras {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-falt-otras li {
+  display: inline-flex;
+  gap: var(--pulso-space-2);
+  padding: 4px 10px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-otras li b {
+  color: var(--pulso-text);
+}
+
+.mon-falt-detalle-vacio,
+.mon-falt-vacio-tabla {
+  margin: 0;
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.mon-falt-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-falt-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+/* 1024 × 600: los dos paneles de arriba se apilan y la página desplaza; la
+ * tabla conserva un mínimo útil para no quedar en una franja. */
+@media (max-width: 1180px) {
+  .mon-falt {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-falt-arriba {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mon-falt-cuotas {
+    min-height: 420px;
+  }
+
+  .mon-falt-controles {
+    margin-left: 0;
+  }
+}

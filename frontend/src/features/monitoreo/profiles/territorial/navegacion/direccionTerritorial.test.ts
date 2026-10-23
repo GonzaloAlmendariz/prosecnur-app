@@ -13,6 +13,7 @@ import {
   SECCIONES_TERRITORIALES,
   subvistasDePestana,
   vistaDeDireccion,
+  vistaQueAbsorbe,
 } from "./direccionTerritorial";
 
 const pedida = (seccion: string | null, pestana: string | null = null, panel: string | null = null) => ({ seccion, pestana, panel });
@@ -38,7 +39,7 @@ describe("dirección pública del modo territorial", () => {
     const internas = Object.entries(MONITOREO_PESTANAS_INTERNAS_TERRITORIAL)
       .flatMap(([seccion, tabs]) => tabs.map((tab) => `${seccion}/${tab.key}`));
     const montadas = new Set(direccionesPublicas().map((item) => {
-      const vista = vistaDeDireccion(item);
+      const vista = vistaQueAbsorbe(item);
       return `${vista.seccion}/${vista.pestana}`;
     }));
     const alias = aliasDeLectura();
@@ -77,9 +78,13 @@ describe("dirección pública del modo territorial", () => {
     expect(direccionDeVista({ seccion: "modelo", pestana: "tabla" })).toEqual({ seccion: "modelo", pestana: "metas", panel: "manzanas" });
   });
 
-  it("Faltante por UMP es propia y, mientras no se monta, absorbe Validación › Cuotas", () => {
+  it("Faltante por UMP es propia y pide el corte de avance", () => {
     expect(esPestanaPropia(ATERRIZAJE_TERRITORIAL)).toBe(true);
-    expect(vistaDeDireccion(ATERRIZAJE_TERRITORIAL).seccion).toBe("calidad");
+    // `validation_summary` (el corte de Validación) no trae las subsanaciones.
+    expect(vistaDeDireccion(ATERRIZAJE_TERRITORIAL).seccion).toBe("avance");
+    // Resumen necesita `response_audit` para los motivos de observación.
+    expect(vistaDeDireccion({ seccion: "avance", pestana: "resumen", panel: null }).seccion).toBe("calidad");
+    expect(esPestanaPropia({ seccion: "avance", pestana: "resumen", panel: "ritmo" })).toBe(false);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {
