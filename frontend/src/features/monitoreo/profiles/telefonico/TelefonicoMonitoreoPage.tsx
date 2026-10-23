@@ -77,6 +77,8 @@ import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { CuotasFaltante } from "./avance/CuotasFaltante";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
+import { BarridoDeLaHoja } from "./control/montaje";
+import { Equipo } from "./control/Equipo";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -19066,6 +19068,12 @@ function renderAcreditacionView(
       />
     );
   }
+  if (view === "telefonico" && options.activePhoneTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
+    return <BarridoDeLaHoja reports={reports} state={options.state} cuotas={phoneQuotaCardsForDashboard(reports)} />; // Control › Barrido (T5).
+  }
+  if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
+    return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).
+  }
   if (view === "telefonico" && options.activePhoneTab === "incidencia" && isTelefonicoMonitoreoState(options.state)) {
     return <Insistencia reports={reports} state={options.state} onActualizar={options.onActualizar} />; // Control › Insistencia (T4).
   }
@@ -20144,7 +20152,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               seccion={publica.seccion}
               pestana={publica.pestana}
               pestanas={pestanasPublicas}
-              chips={chipsDeCabecera(publica, resumenModo, reports)}
+              chips={chipsDeCabecera(publica, resumenModo, reports, state)}
               control={(
                 <SubvistasDePestana
                   seccion={publica.seccion}
