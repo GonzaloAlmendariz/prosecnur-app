@@ -235,6 +235,18 @@ cabecera, su lectura de Mailchimp y su readiness propia. La matriz de envíos po
 lienzo Ctl1 queda para una pasada propia: la vista ya trae envíos, embudo, ritmo e inválidos, y rehacerla sin poder
 capturar el institucional (único proyecto con Mailchimp) era dibujar a ciegas.
 
+**A6, Insumos › Públicos (escrita, sin gate ni capturas).** `insumos/Publicos.tsx` con `publicosModelo.ts` (test).
+El borrador y el guardado del elenco salieron de `ActoresDelEstudio` a `fuentes/useElencoDeActores.ts` sin cambiar
+lógica: renombrar arrastra las fuentes del público y luego se guarda el elenco, como siempre. Tabla de públicos
+(nombre editable, padrón, personas, encuestas y canales, switch de teléfono, variables para cuotas, quitar), matriz
+«Por dónde entra cada público» (público por canal y barrido) y panel del padrón (`panel=publico&foco=<público>`) con su
+fuente, la llave de cruce declarada (`key_rules.universe_fields`), las variables para cuotas y sus encuestas.
+Personas y variables salen de `GET /api/monitoreo/cuotas` (`useEstadoDeCuotas`).
+
+- **Diferencia con el lienzo:** el panel no lista las columnas del padrón con su completitud ni marca «Trae datos
+  personales» (H9): el estado no publica las columnas de cada fuente. Publicarlas es un cambio del motor.
+- La llave se muestra como la declara el proyecto, en orden de prueba, no la columna exacta de cada padrón.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
