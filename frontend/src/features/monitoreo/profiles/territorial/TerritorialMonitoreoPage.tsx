@@ -81,6 +81,8 @@ import { opcionesDeFase } from "./navegacion/fase";
 import { casosEnBandeja, corteCorto, estadoDelModo, insigniasDelModo, lecturaDelAvance } from "./navegacion/barraTerritorial";
 import { CabeceraTerritorial, RailTerritorial } from "./navegacion/ChromeTerritorial";
 import { SelectorDeFase } from "./navegacion/SelectorDeFase";
+import { FaltantePorUmp } from "./avance/FaltantePorUmp";
+import { ResumenTerritorial } from "./avance/Resumen";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
@@ -1205,6 +1207,11 @@ function renderPestana(
   reports: MonitoreoTerritorialDashboard | null,
   options: OpcionesDePestana = {},
 ) {
+  if (esPestanaPropia(direccion)) {
+    const clave = `${direccion.seccion}/${direccion.pestana}`;
+    if (clave === "avance/faltante") return <FaltantePorUmp reports={reports} />;
+    if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
+  }
   const vista = vistaDeDireccion(direccion);
   return renderView(vista.seccion, reports, { ...options, pestanaActiva: vista.pestana });
 }

@@ -47,6 +47,13 @@ type Entrada = {
   interna: VistaInternaTerritorial;
   /** La pestaña ya tiene su componente nuevo: `interna` sólo decide el corte. */
   propia?: boolean;
+  /**
+   * Vista cuyo corte pide una pestaña propia cuando no es el de `interna`.
+   * Faltante por UMP regresa a Validación › Cuotas, pero necesita el corte de
+   * Avance: `validation_summary` no trae las subsanaciones del motor. Resumen,
+   * al revés: `advance_summary` omite las respuestas una a una.
+   */
+  corte?: VistaInternaTerritorial;
   /** Rótulo de la sub-vista, sólo cuando la pestaña tiene más de una. */
   vista?: string;
   /**
@@ -99,8 +106,10 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "conciliacion", "espacial", v("calidad", "reconciliacion"), { vista: "Sospechas espaciales" }),
   // Faltante por UMP reemplaza a Validación › Cuotas (§3.17): la vista vieja
   // vuelve aquí cuando un enlace interno la pide.
-  entrada("avance", "faltante", null, v("calidad", "cuotas"), { propia: true }),
-  entrada("avance", "resumen", null, v("avance", "resumen"), { vista: "Resumen" }),
+  entrada("avance", "faltante", null, v("calidad", "cuotas"), { propia: true, corte: v("avance", "faltante") }),
+  // Resumen cuenta los motivos de observación caso por caso: pide el corte de
+  // Validación, el único con `response_audit` además de `advance`.
+  entrada("avance", "resumen", null, v("avance", "resumen"), { vista: "Resumen", propia: true, corte: v("calidad", "geolocalizacion") }),
   entrada("avance", "resumen", "distritos", v("avance", "distritos"), { vista: "Distritos" }),
   entrada("avance", "resumen", "ritmo", v("avance", "ritmo"), { vista: "Ritmo diario" }),
   entrada("avance", "mapa", null, v("avance", "ump")),
@@ -209,12 +218,22 @@ export function direccionDeSeccion(seccion: SeccionTerritorial): DireccionTerrit
 
 /** Vista heredada que una dirección monta (o cuyo corte pide, si es propia). */
 export function vistaDeDireccion(direccion: DireccionTerritorial): VistaInternaTerritorial {
+  const item = entradaDe(direccion) ?? entradaDe(d(direccion.seccion, direccion.pestana)) ?? entradaDe(ATERRIZAJE_TERRITORIAL)!;
+  return item.corte ?? item.interna;
+}
+
+/** Vista heredada que una dirección absorbe (columna «Absorbe de hoy» de §1). */
+export function vistaQueAbsorbe(direccion: DireccionTerritorial): VistaInternaTerritorial {
   return (entradaDe(direccion) ?? entradaDe(d(direccion.seccion, direccion.pestana)) ?? entradaDe(ATERRIZAJE_TERRITORIAL)!).interna;
 }
 
-/** ¿La pestaña ya tiene su contenido propio? */
+/**
+ * ¿La dirección ya tiene su contenido propio? Se mira la sub-vista exacta: en
+ * Avance › Resumen sólo la principal es propia y Distritos y Ritmo diario
+ * siguen montando la vista heredada.
+ */
 export function esPestanaPropia(direccion: DireccionTerritorial): boolean {
-  return Boolean(entradaDe(d(direccion.seccion, direccion.pestana))?.propia);
+  return Boolean((entradaDe(direccion) ?? entradaDe(d(direccion.seccion, direccion.pestana)))?.propia);
 }
 
 /**
