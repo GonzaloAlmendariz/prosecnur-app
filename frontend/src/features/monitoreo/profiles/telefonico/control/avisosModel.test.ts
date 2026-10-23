@@ -55,7 +55,7 @@ describe("Control › Avisos del telefónico", () => {
     const { avisos } = construirAvisos(reportes([
       fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVH0003", { Responsable: "Lucía", CodPulso: "MVH0003" }),
       fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVH0007", { Responsable: "Lucía", CodPulso: "MVH0007" }),
-      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVV0011", { Responsable: "Marco", CodPulso: "MVV0011" }),
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVV0011", { Responsable: "Marco", CodPulso: "codigo:MVV0011" }),
     ]));
     const aviso = avisos.find((item) => /sin efectiva kobo/i.test(item.codigo));
     expect(aviso).toBeDefined();

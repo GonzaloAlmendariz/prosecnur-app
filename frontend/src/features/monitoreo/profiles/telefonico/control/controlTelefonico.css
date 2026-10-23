@@ -1288,10 +1288,14 @@
 
 .mon-avisos-lista-casos li {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(84px, max-content) minmax(0, 1fr) 44px;
   gap: 2px var(--pulso-space-2);
   padding: 6px var(--pulso-space-2) 6px 0;
   border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-avisos-lista-casos li > b {
+  overflow-wrap: anywhere;
 }
 
 .mon-avisos-lista-casos li small {
