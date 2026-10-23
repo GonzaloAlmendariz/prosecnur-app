@@ -1,0 +1,311 @@
+/* Control › Discrepancias (T9): avisar al equipo a la izquierda, los casos al
+ * centro y el caso elegido con la decisión a la derecha. Prefijo `mon-dsc-`. */
+
+.mon-dsc {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-dsc .is-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-dsc-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-dsc-cifras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-dsc-cifras > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-dsc-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-dsc-cifras dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-dsc-avisar {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-dsc-responsables {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  margin: 0;
+  padding: var(--pulso-space-2);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mon-dsc-responsables button {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-dsc-responsables button.is-activo {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-dsc-responsables button:focus-visible,
+.mon-dsc-codigo:focus-visible,
+.mon-dsc-opciones button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-dsc-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-dsc-aviso {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--pulso-success-fg);
+  font-size: 12px;
+}
+
+.mon-dsc-centro {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-dsc-marco {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mon-dsc-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+}
+
+.mon-dsc-tabla tr.is-activo {
+  background: var(--pulso-surface-2);
+}
+
+.mon-dsc-codigo {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-dsc-distinto {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-dsc-decision {
+  padding: 1px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.mon-dsc-decision.is-cuenta {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-dsc-decision.is-no_cuenta {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-dsc-decision.is-avisos {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-dsc-sacados {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-dsc-ficha {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mon-dsc-ficha.is-vacia {
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-faint);
+}
+
+.mon-dsc-ficha-cabecera,
+.mon-dsc-ficha-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+.mon-dsc-ficha-cabecera b {
+  font-size: 18px;
+}
+
+.mon-dsc-ficha-cabecera small,
+.mon-dsc-pie,
+.mon-dsc-estado {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-dsc-ficha-bloque dl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.mon-dsc-ficha-bloque dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-dsc-ficha-bloque dt {
+  color: var(--pulso-text-soft);
+}
+
+.mon-dsc-ficha-bloque dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: right;
+}
+
+.mon-dsc-decidir {
+  flex: 1 1 auto;
+  border-bottom: 0;
+}
+
+.mon-dsc-nota-guardada {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.mon-dsc-opciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.mon-dsc-opciones button {
+  height: 32px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-dsc-opciones button.is-activo {
+  border-color: var(--pulso-brand-navy);
+  box-shadow: inset 0 0 0 1px var(--pulso-brand-navy);
+}
+
+.mon-dsc-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.mon-dsc-nota textarea {
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.mon-dsc-vacio {
+  display: grid;
+  height: 100%;
+  place-items: center;
+}
+
+@media (max-width: 1280px) {
+  .mon-dsc {
+    grid-template-columns: 240px minmax(0, 1fr) 280px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-dsc {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+}

@@ -85,6 +85,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
+import { Discrepancias } from "./control/Discrepancias";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
@@ -18747,6 +18748,9 @@ function renderAcreditacionView(
   }
   if (view === "consultas" && (options.activeConsultaTab ?? "plataforma") === "plataforma" && isTelefonicoMonitoreoState(options.state)) {
     return <RespuestasDelCorte reports={reports} state={options.state} />; // Control › Respuestas (T6).
+  }
+  if (view === "consultas" && options.activeConsultaTab === "cruces" && isTelefonicoMonitoreoState(options.state)) {
+    return <Discrepancias reports={reports} state={options.state} onStateChange={options.onStateChange} />; // Control › Discrepancias (T9).
   }
   if (view === "consultas") {
     return (
