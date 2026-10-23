@@ -20,6 +20,8 @@ import { advanceCardsFromRows } from "./avance/tarjetasDeAvance";
 import { CabeceraAcreditacion, RailAcreditacion } from "./navegacion/ChromeAcreditacion";
 import { disponibilidad, pestanasDelRail } from "./navegacion/modeloDelRail";
 import { casosDelCorte } from "./control/casos/tiposDeCaso";
+import { PorResolver } from "./control/casos/PorResolver";
+import type { MonitoreoInternalQueries } from "../../../../api/client";
 import { SECCIONES_ACREDITACION, pestanasDeSeccion, vistaPrincipal } from "./navegacion/direccionAcreditacion";
 
 const CLAVES = [
@@ -30,7 +32,7 @@ const CLAVES = [
   "effective", "partial", "refusal", "pending", "excluded", "efectiva", "parcial", "rechazo", "sin-respuesta",
   // Claves de la dirección.
   "insumos", "modelo", "control", "avance", "publicos", "resolver", "reintentos", "personas", "respuestas",
-  "dim_actor",
+  "dim_actor", "correo_token", "manual_search", "keep_excluded", "include_with_caveat",
 ];
 
 const FORMA_DE_CLAVE = /^[a-z0-9]+([_-][a-z0-9]+)+$/;
@@ -102,6 +104,36 @@ describe("Acreditación: claves sin rótulo", () => {
     );
     expect(html).toContain("Barrido telefónico");
     expect(html).toContain("Asignadas por el supervisor");
+    expect(clavesCrudas(html)).toEqual([]);
+  });
+
+  it("Control › Por resolver con el caso abierto", () => {
+    const caso = {
+      actor: "Docentes", person_label: "", case_key: "cód. ••••29", response_id: "115118926233", date: "2026-06-12",
+      source_id: "", source_label: "SurveyMonkey · Docentes", channel: "Enlace personalizado", collector_id: "", collector_name: "",
+      platform_state: "Completa", base_result: "Sin cruce", base_record: "", base_source: "", base_status: "", decision: "",
+      decision_reason: "", advancement: "excluded", issue_type: "fuera_base", rule: "", pending_exit: false, recovery_collector: false,
+      response_row: 1, duplicate_count: 1, channel_key_strategy: "correo_token", channel_key_strategy_label: "Correo con enlace personalizado",
+      primary_identity_label: "Código PUCP", primary_identity_value: "••••29",
+      assisted_review: {
+        warnings: ["No se encontró coincidencia por código, correo ni nombre"],
+        assignment_candidates: [{
+          candidate_id: "c-82", person_label: "Persona ••••82", case_key: "cód. ••••82", base_record: "", base_source: "Universo · Docentes",
+          base_row: 4, base_status: "Pendiente", match_type: "manual_search", match_label: "", current_status: "Pendiente", already_effective: false,
+        }],
+      },
+    };
+    const consultas = {
+      schema: "test", cases: [caso], totals: { actor: [], date: [], channel: [], source: [], collector: [] },
+      pending_exit: [], issues: ISSUES.map((item, indice) => (indice === 0 ? { ...item, response_id: "115118926233", actor: "Docentes" } : item)),
+      flow: { nodes: [], links: [] },
+    } as unknown as MonitoreoInternalQueries;
+    const html = pintar(
+      <PorResolver consultas={consultas} onDecision={() => undefined} />,
+      "/monitoreo?modo=acreditacion&seccion=control&pestana=resolver&panel=caso&foco=115118926233",
+    );
+    expect(html).toContain("Asignar a esta persona");
+    expect(html).toContain("Llave fuera de base");
     expect(clavesCrudas(html)).toEqual([]);
   });
 
