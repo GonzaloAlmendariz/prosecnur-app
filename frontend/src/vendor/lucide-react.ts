@@ -15,6 +15,7 @@ export { default as AlignCenter } from "lucide-react/dist/esm/icons/text-align-c
 export { default as AlignHorizontalJustifyCenter } from "lucide-react/dist/esm/icons/align-horizontal-justify-center.mjs";
 export { default as AlignJustify } from "lucide-react/dist/esm/icons/text-align-justify.mjs";
 export { default as AlignLeft } from "lucide-react/dist/esm/icons/text-align-start.mjs";
+export { default as AlignRight } from "lucide-react/dist/esm/icons/text-align-end.mjs";
 export { default as Archive } from "lucide-react/dist/esm/icons/archive.mjs";
 export { default as ArrowDown } from "lucide-react/dist/esm/icons/arrow-down.mjs";
 export { default as ArrowDown01 } from "lucide-react/dist/esm/icons/arrow-down-0-1.mjs";

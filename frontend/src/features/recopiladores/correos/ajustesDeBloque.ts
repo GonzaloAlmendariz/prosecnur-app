@@ -6,7 +6,7 @@
 // de valores y el render traduce cada uno a su estilo inline. El valor por
 // defecto es el que usa el render cuando la clave falta.
 
-import { MAIL_ICONS, isOpaqueMailBlock, type MailBlock } from "../../../api/materialMail";
+import { MAIL_ICONS, isOpaqueMailBlock, type MailBlock, type MailTheme } from "../../../api/materialMail";
 import { ROTULO_DE_ICONO } from "./piezasGraficas";
 
 export type OpcionDeAjuste = { valor: string; rotulo: string; ayuda?: string };
@@ -18,34 +18,27 @@ export type Ajuste = {
   defecto: string;
 };
 
-/**
- * «Del estilo»: el bloque no fija alineación y sigue la del estilo del correo (Identidad › Alineación, justificado
- * por defecto). Es la ausencia de la clave, no un valor que viaje al backend.
- */
-export const DEL_ESTILO = "estilo";
+const IZQUIERDA: OpcionDeAjuste = { valor: "left", rotulo: "Izquierda" };
+const CENTRADO: OpcionDeAjuste = { valor: "center", rotulo: "Centrado" };
+const DERECHA: OpcionDeAjuste = { valor: "right", rotulo: "Derecha" };
+const JUSTIFICADO: OpcionDeAjuste = { valor: "justify", rotulo: "Justificado" };
 
-const ALINEACION_PARRAFO: readonly OpcionDeAjuste[] = [
-  { valor: DEL_ESTILO, rotulo: "Del estilo", ayuda: "la de Identidad" },
-  { valor: "left", rotulo: "Izquierda" },
-  { valor: "justify", rotulo: "Justificado" },
-  { valor: "center", rotulo: "Centrado" },
-];
-
-const ALINEACION_TEXTO: readonly OpcionDeAjuste[] = [
-  { valor: "left", rotulo: "Izquierda" },
-  { valor: "justify", rotulo: "Justificado" },
-  { valor: "center", rotulo: "Centrado" },
-];
+/** El orden clásico de los editores de texto. El título y el botón no se justifican. */
+const ALINEACION_PARRAFO: readonly OpcionDeAjuste[] = [IZQUIERDA, CENTRADO, DERECHA, JUSTIFICADO];
+const ALINEACION_SIN_JUSTIFICAR: readonly OpcionDeAjuste[] = [IZQUIERDA, CENTRADO, DERECHA];
 
 export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste[]>> = {
   paragraph: [
-    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_PARRAFO, defecto: DEL_ESTILO },
+    // Sin tema a mano, el defecto es el del render (justificado); con tema, `heredadoDe` manda.
+    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_PARRAFO, defecto: "justify" },
     {
       clave: "size",
       rotulo: "Tamaño",
       opciones: [
-        { valor: "normal", rotulo: "Normal", ayuda: "15 px" },
         { valor: "pequeno", rotulo: "Pequeño", ayuda: "13 px, para notas" },
+        { valor: "normal", rotulo: "Normal", ayuda: "16 px" },
+        { valor: "grande", rotulo: "Grande", ayuda: "18 px" },
+        { valor: "muy_grande", rotulo: "Muy grande", ayuda: "21 px" },
       ],
       defecto: "normal",
     },
@@ -55,6 +48,7 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       opciones: [
         { valor: "normal", rotulo: "Normal" },
         { valor: "suave", rotulo: "Suave", ayuda: "gris, para lo secundario" },
+        { valor: "acento", rotulo: "Acento", ayuda: "el color del correo" },
       ],
       defecto: "normal",
     },
@@ -69,15 +63,7 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       ],
       defecto: "titulo",
     },
-    {
-      clave: "align",
-      rotulo: "Alineación",
-      opciones: [
-        { valor: "left", rotulo: "Izquierda" },
-        { valor: "center", rotulo: "Centrado" },
-      ],
-      defecto: "left",
-    },
+    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_SIN_JUSTIFICAR, defecto: "left" },
   ],
   button: [
     {
@@ -99,15 +85,7 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       ],
       defecto: "normal",
     },
-    {
-      clave: "align",
-      rotulo: "Alineación",
-      opciones: [
-        { valor: "center", rotulo: "Centrado" },
-        { valor: "left", rotulo: "Izquierda" },
-      ],
-      defecto: "center",
-    },
+    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_SIN_JUSTIFICAR, defecto: "center" },
   ],
   callout: [
     {
@@ -209,19 +187,54 @@ export function ajustesDe(block: MailBlock): readonly Ajuste[] {
   return AJUSTES_POR_TIPO[block.type] ?? [];
 }
 
-/** El valor vigente de un ajuste (el del bloque o, si falta, el del render). */
-export function valorDeAjuste(block: MailBlock, ajuste: Ajuste): string {
-  const raw = (block as Record<string, unknown>)[ajuste.clave];
-  if (ajuste.clave === "ordered") return raw === true ? "si" : "no";
-  return typeof raw === "string" && ajuste.opciones.some((o) => o.valor === raw) ? raw : ajuste.defecto;
+/** Lo que el render aplica cuando el bloque no fija el ajuste. */
+export type Herencia = { valor: string; deIdentidad: boolean };
+
+type TemaDeAlineacion = Pick<MailTheme, "text_align"> | null | undefined;
+
+/**
+ * La alineación que hereda un bloque sin `align` propio, espejo de
+ * collection_mail_campana.R: el párrafo sigue Identidad › Alineación
+ * (justificado por defecto), el título va centrado sólo si Identidad centra y
+ * el botón va centrado siempre (eso no sale de Identidad). Los demás ajustes no
+ * heredan: su ausencia es el `defecto` del render.
+ */
+export function heredadoDe(block: MailBlock, ajuste: Ajuste, theme?: TemaDeAlineacion): Herencia | null {
+  if (ajuste.clave !== "align" || isOpaqueMailBlock(block)) return null;
+  const identidad = theme?.text_align ?? "justify";
+  if (block.type === "paragraph") return { valor: identidad, deIdentidad: true };
+  if (block.type === "heading") return { valor: identidad === "center" ? "center" : "left", deIdentidad: true };
+  if (block.type === "button") return { valor: "center", deIdentidad: false };
+  return null;
 }
 
-/** El bloque con el ajuste nuevo. Un valor fuera de la enumeración no se aplica. */
-export function conAjuste(block: MailBlock, clave: string, valor: string): MailBlock {
+function valorPropio(block: MailBlock, ajuste: Ajuste): string | null {
+  const raw = (block as Record<string, unknown>)[ajuste.clave];
+  return typeof raw === "string" && ajuste.opciones.some((o) => o.valor === raw) ? raw : null;
+}
+
+/** El valor vigente de un ajuste: el del bloque o, si falta, el que hereda (o el del render). */
+export function valorDeAjuste(block: MailBlock, ajuste: Ajuste, theme?: TemaDeAlineacion): string {
+  if (ajuste.clave === "ordered") return (block as Record<string, unknown>).ordered === true ? "si" : "no";
+  return valorPropio(block, ajuste) ?? heredadoDe(block, ajuste, theme)?.valor ?? ajuste.defecto;
+}
+
+/** Verdadero si el bloque no fija el ajuste y sigue la alineación de Identidad. */
+export function sigueAIdentidad(block: MailBlock, ajuste: Ajuste, theme?: TemaDeAlineacion): boolean {
+  return valorPropio(block, ajuste) === null && heredadoDe(block, ajuste, theme)?.deIdentidad === true;
+}
+
+/**
+ * El bloque con el ajuste nuevo. Un valor fuera de la enumeración no se aplica.
+ * Elegir el valor heredado no escribe la clave (y la quita si estaba): la
+ * ausencia sigue significando «hereda».
+ */
+export function conAjuste(block: MailBlock, clave: string, valor: string, theme?: TemaDeAlineacion): MailBlock {
   const ajuste = ajustesDe(block).find((a) => a.clave === clave);
   if (!ajuste || !ajuste.opciones.some((o) => o.valor === valor)) return block;
   if (clave === "ordered") return { ...block, ordered: valor === "si" } as MailBlock;
-  if (valor === DEL_ESTILO) {
+  if (heredadoDe(block, ajuste, theme)?.valor === valor) {
+    if (!(clave in block)) return block;
     const { [clave]: _quitada, ...resto } = block as Record<string, unknown>;
     return resto as MailBlock;
   }

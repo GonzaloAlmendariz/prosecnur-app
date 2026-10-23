@@ -70,7 +70,7 @@
 .rec-ajuste-glifo {
   align-items: center;
   display: inline-flex;
-  height: 19px;
+  height: 20px;
   justify-content: center;
 }
 
@@ -81,7 +81,17 @@
   white-space: nowrap;
 }
 
-/* Tono: una muestra del color del texto (normal) y del gris secundario (suave). */
+/* Herencia: una línea gris, sólo cuando el bloque sigue la alineación de Identidad. */
+.rec-ajuste-aviso {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tono: una muestra del color del texto (normal), del gris secundario (suave) y
+   del acento del correo (su color llega inline desde el tema). */
 .rec-ajuste-muestra {
   border-radius: 999px;
   display: inline-block;
@@ -95,6 +105,10 @@
 
 .rec-ajuste-muestra--suave {
   background: var(--pulso-text-muted);
+}
+
+.rec-ajuste-muestra--acento {
+  background: var(--pulso-module-fieldkit);
 }
 
 /* Relleno del botón: sólido o con contorno, en miniatura. */

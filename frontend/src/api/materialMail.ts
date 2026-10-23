@@ -72,7 +72,7 @@ export const MAIL_BLOCK_TYPES = [
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
-export type MailAlign = "left" | "justify" | "center";
+export type MailAlign = "left" | "justify" | "center" | "right";
 export type MailCalloutVariant = "box" | "bar" | "tinte";
 
 /**
@@ -101,15 +101,15 @@ export type MailHeadingBlock = {
   type: "heading";
   text: string;
   level?: "titulo" | "subtitulo";
-  align?: "left" | "center";
+  align?: "left" | "center" | "right";
 };
 export type MailParagraphBlock = {
   block_id: string;
   type: "paragraph";
   text: string;
   align?: MailAlign;
-  size?: "normal" | "pequeno";
-  tone?: "normal" | "suave";
+  size?: "normal" | "pequeno" | "grande" | "muy_grande";
+  tone?: "normal" | "suave" | "acento";
 };
 export type MailButtonBlock = {
   block_id: string;
@@ -117,7 +117,7 @@ export type MailButtonBlock = {
   text: string;
   url: string;
   note?: string[];
-  align?: "center" | "left";
+  align?: "center" | "left" | "right";
   size?: "compacto" | "normal" | "grande";
   fill?: "solido" | "contorno";
 };
@@ -785,13 +785,13 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
     }
     case "heading": {
       const level = oneOf(value.level, ["titulo", "subtitulo"] as const);
-      const align = oneOf(value.align, ["left", "center"] as const);
+      const align = oneOf(value.align, ["left", "center", "right"] as const);
       return { block_id, type, text: str(value.text), ...(level ? { level } : {}), ...(align ? { align } : {}) };
     }
     case "paragraph": {
-      const align = oneOf(value.align, ["left", "justify", "center"] as const);
-      const size = oneOf(value.size, ["normal", "pequeno"] as const);
-      const tone = oneOf(value.tone, ["normal", "suave"] as const);
+      const align = oneOf(value.align, ["left", "justify", "center", "right"] as const);
+      const size = oneOf(value.size, ["normal", "pequeno", "grande", "muy_grande"] as const);
+      const tone = oneOf(value.tone, ["normal", "suave", "acento"] as const);
       return {
         block_id, type, text: str(value.text),
         ...(align ? { align } : {}), ...(size ? { size } : {}), ...(tone ? { tone } : {}),
@@ -799,7 +799,7 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
     }
     case "button": {
       const note = strings(value.note);
-      const align = oneOf(value.align, ["center", "left"] as const);
+      const align = oneOf(value.align, ["center", "left", "right"] as const);
       const size = oneOf(value.size, ["compacto", "normal", "grande"] as const);
       const fill = oneOf(value.fill, ["solido", "contorno"] as const);
       return {

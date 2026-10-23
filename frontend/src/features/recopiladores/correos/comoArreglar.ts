@@ -39,6 +39,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   campana_text_contrast: "Elige en Identidad › Estilo un fondo de página más oscuro o más claro.",
   campana_button_contrast: "Elige en Identidad › Estilo otro relleno para el botón.",
   campana_footer_contrast: "Elige en Identidad › Estilo un fondo de página más oscuro o más claro.",
+  paragraph_accent_contrast: "Elige un acento más oscuro en Identidad, o deja esos párrafos en tono Normal.",
   piezas_contrast: "Elige para la pieza un color que resalte sobre el fondo, en Bloque › Color.",
   icon_text_sm_icon: "Pon en el bloque la dirección web (https) del ícono; si no, el texto sale solo, sin ícono.",
   logos_duplicados: "Quita la franja de logos o marca que el banner no los trae.",
