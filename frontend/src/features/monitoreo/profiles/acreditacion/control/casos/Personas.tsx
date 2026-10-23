@@ -16,22 +16,13 @@ import {
   ROTULO_DE_ESTADO,
   type EstadoDePersona,
 } from "./personasModelo";
+import { descargarCsv } from "./descargarCsv";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
 
 /** Estados que van como columna en «Estado por público»; los demás aparecen si hay. */
 const COLUMNAS_FIJAS: readonly EstadoDePersona[] = ["efectiva", "sin-respuesta", "parcial", "rechazo"];
-
-function descargar(contenido: string, nombre: string) {
-  if (typeof document === "undefined" || typeof Blob === "undefined") return;
-  const url = URL.createObjectURL(new Blob([`﻿${contenido}`], { type: "text/csv;charset=utf-8" }));
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
-}
 
 function Barras({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: string; casos: number }> }) {
   const maximo = Math.max(1, ...filas.map((fila) => fila.casos));
@@ -142,7 +133,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
               </button>
             ))}
           </div>
-          <button type="button" className="acr-av-boton" onClick={() => descargar(csvDePersonas(filtradas), "personas-del-padron.csv")} disabled={!filtradas.length}>
+          <button type="button" className="acr-av-boton" onClick={() => descargarCsv(csvDePersonas(filtradas), "personas-del-padron.csv")} disabled={!filtradas.length}>
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
         </header>

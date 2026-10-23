@@ -212,6 +212,15 @@ traía Consultas › Cruces efectivos.
 - **Diferencia con el lienzo:** exporta CSV (el mismo formato de la vista anterior), no XLSX. La paginación es en el
   cliente sobre el transporte compacto de T1.6; la paginación en servidor que pide la ficha queda pendiente.
 
+**A5, Control › Respuestas (escrita, sin gate ni capturas).** `control/casos/Respuestas.tsx` con
+`respuestasModelo.ts` (test), sobre `internal_queries.cases` sin las personas sin respuesta: facetas con su conteo
+(estado de la respuesta, canal, cruce y si cuenta en el avance), tabla más reciente primero con buscador, páginas y
+exportación CSV. Con Personas y Respuestas, la sección Consultas de antes ya no monta ninguna de sus pestañas.
+
+- **Paridad a revisar:** las vistas internas de Consultas (efectivas, faltantes, distribución, auditoría y
+  reconciliación) quedan cubiertas por las facetas de Respuestas, los estados de Personas y los «Decididos» de Por
+  resolver, pero sin sus nombres. Si alguna se usaba como lista propia, conviene decirlo.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
