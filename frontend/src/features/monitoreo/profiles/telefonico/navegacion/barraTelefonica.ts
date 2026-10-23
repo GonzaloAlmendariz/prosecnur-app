@@ -1,4 +1,5 @@
 import { chipsDeEstados } from "../insumos/estadosModel";
+import { cruceDeLlave } from "../insumos/llaveModel";
 import { useMemo, useRef } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { BarraDelModo, EstadoDelModo } from "../../../shell/BarraDelModo";
@@ -163,6 +164,10 @@ export function chipsDeCabecera(
   if (clave === "control/equipo") return chipsDeEquipo(reports);
   if (clave === "control/respuestas") return chipsDeRespuestas(reports);
   if (clave === "control/avisos") return chipsDeAvisos(reports);
+  if (clave === "insumos/llave") {
+    const cruce = cruceDeLlave(construirRespuestas({ reports, segmento: "" }));
+    return cruce.total ? [`${fmt(cruce.cruzan)} de ${fmt(cruce.total)} efectivas cruzan con la base`] : [];
+  }
   if (clave === "insumos/estados") return chipsDeEstados(reports, state?.config?.operational_model?.state_rules ?? []);
   return [];
 }

@@ -57,6 +57,8 @@ export type EnvioEfectivo = {
   cruza: boolean;
   /** Cómo cruzó el código con la hoja: tal cual, o sólo por sus dígitos. */
   llave: "exacta" | "normalizada" | "no-cruza";
+  /** El CodPulso del caso de la hoja con el que cruzó; vacío si no cruza. */
+  codigoEnHoja: string;
   marcas: MarcaDeEnvio[];
   responseId: string;
 };
@@ -141,6 +143,7 @@ export function construirRespuestas({
       responsable: caso ? texto(caso.Responsable) : texto(fila["Responsable plataforma"]),
       cruza: Boolean(caso),
       llave: exacto ? "exacta" : normalizado ? "normalizada" : "no-cruza",
+      codigoEnHoja: caso ? texto(caso.CodPulso) : "",
       marcas,
       responseId: texto(fila["Response ID"]),
     };

@@ -81,6 +81,7 @@ import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Equipo } from "./control/Equipo";
 import { Avisos } from "./control/Avisos";
 import { Estados } from "./insumos/Estados";
+import { LlaveYFiltros } from "./insumos/Llave";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -10996,12 +10997,15 @@ function AcreditacionSourcesWorkbench({
   activeTab = "survey",
   onStateChange,
   onSourceTabChange,
+  onIrAVista,
 }: {
   reports: MonitoreoAcreditacionReports;
   state?: MonitoreoState | null;
   activeTab?: AcreditacionSourceTab;
   onStateChange?: (state: MonitoreoState) => void;
   onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
+  /** Ir a otra pestaña pública del modo (Insumos › Llave lleva a Control › Respuestas). */
+  onIrAVista?: (seccion: string, pestana: string) => void;
 }) {
   const client = reports.client_report;
   const reportSources = (client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"])) as Array<Record<string, unknown>>;
@@ -11014,6 +11018,7 @@ function AcreditacionSourcesWorkbench({
   // corre como job en segundo plano (async opt-in) y la espera sigue amarrada
   // al desmontaje del componente.
   const { syncBusy, syncStatus, syncProgress, syncSheets, syncExternal } = useSourceSyncActions({ onStateChange });
+  const abrirConectarFuente = useAbrirConectarFuente();
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
@@ -11051,6 +11056,27 @@ function AcreditacionSourcesWorkbench({
       onSourceTabChange={onSourceTabChange}
     />
   ) : null;
+
+  if (activeTab === "survey" && isPhoneSourceModel) {
+    // Insumos › Llave y filtros (T7): la llave en lectura, el cruce y el editor de filtro de siempre.
+    const plataforma = buildAcreditacionPhoneSourceContract(operationalSources).platform;
+    return (
+      <LlaveYFiltros
+        reports={reports}
+        state={state}
+        onIrA={(seccion, pestana) => onIrAVista?.(seccion, pestana)}
+        filtro={<AcreditacionPhoneEffectiveFilterEditor state={state} variables={state?.variables ?? []} platformSources={plataforma.sources} onStateChange={onStateChange} />}
+        tarjetaKobo={(
+          <AcreditacionPhoneSourceSlotCard
+            slot={plataforma}
+            icon={<ListChecks size={15} />}
+            syncFallback={state?.synced_at ?? reports.generated_at}
+            onCambiar={() => abrirConectarFuente.abrirParaCambiar(plataforma.sources.find((source) => source.enabled)?.id ?? plataforma.sources[0]?.id)}
+          />
+        )}
+      />
+    );
+  }
 
   if (activeTab === "survey") {
     return (
@@ -19028,6 +19054,7 @@ function renderAcreditacionView(
         activeTab={options.activeSourceTab ?? pestanaDeFuentesInicial(isTelefonicoMonitoreoState(options.state))}
         onStateChange={options.onStateChange}
         onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
+        onIrAVista={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }}
       />
     );
   }
