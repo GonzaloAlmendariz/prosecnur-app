@@ -194,6 +194,15 @@ sobre asignados, el tamaño son los barridos, rótulos que no se pisan) y alerta
 - La columna «Incidencias» del lienzo se rotula «Sin efectiva»: es la proporción de barridos que no terminó en
   efectiva, y «incidencia» se confunde con las alertas.
 
+**A5, Control › Cruce (escrita, sin gate ni capturas).** `control/casos/Cruce.tsx` con la geometría pura
+`flujoDeCruce.ts` (test): diagrama de flujo en cuatro columnas (origen, canal, plataforma y resultado) sobre
+`internal_queries.flow.links`, con el resultado re-rotulado (H4: Efectiva 418, En el universo sin contar 11, Excluida
+32, Pendiente 90 en Contabilidad) y, a la derecha, llave usada, cómo cruzó con el padrón y estrategia por canal, de
+`case_rollup`. «Llave en base» se lee «Llave del padrón, sin respuesta» y «Cruzó», «Cruzó por llave».
+
+- **Paridad pendiente:** la vista anterior listaba los cruces caso por caso con su razón; esa lectura por persona va
+  en Control › Personas (columna «Cómo cruzó»), que es la siguiente.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos
