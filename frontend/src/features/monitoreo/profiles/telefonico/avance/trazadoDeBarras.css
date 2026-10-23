@@ -122,11 +122,17 @@
   min-height: 1px;
 }
 
+/* La cifra va sobre la línea de la meta, nunca debajo: con fondo propio para
+ * que la discontinua, si pasa cerca, se corte detrás del número. */
 .mon-trazado-cifra {
   position: absolute;
-  right: 0;
-  left: 0;
+  z-index: 2;
+  left: 50%;
   margin-bottom: 4px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  transform: translateX(-50%);
   color: var(--pulso-text);
   font-size: 12px;
   font-weight: var(--pulso-weight-bold);

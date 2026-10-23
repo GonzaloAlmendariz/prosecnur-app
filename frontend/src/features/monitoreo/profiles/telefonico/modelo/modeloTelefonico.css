@@ -433,18 +433,23 @@
   overflow: hidden;
 }
 
+/* Los días de campo son columnas que llenan el alto que la tarjeta tiene: el
+ * alto se reparte con las barras (y una rejilla tenue cada 32 px), no queda
+ * como franja en blanco entre el último día y el botón (chequeo f). Con
+ * muchos días la fila desplaza en horizontal. */
 .mon-metas-dias {
   display: flex;
   flex: 1 1 0;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 120px;
+  margin: 0;
+  padding: 0 0 2px;
+  overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
-  margin: 0;
-  padding: 0;
+  background-image: repeating-linear-gradient(to top, var(--pulso-surface-3) 0 1px, transparent 1px 32px);
+  background-position: 0 calc(100% - 22px);
   list-style: none;
 }
 
@@ -467,25 +472,42 @@
 }
 
 .mon-metas-dias li {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 44px;
+  display: flex;
+  flex: 1 0 28px;
+  flex-direction: column;
   align-items: center;
-  gap: var(--pulso-space-2);
+  gap: 4px;
+  min-width: 28px;
 }
 
-.mon-metas-dias li > i {
-  display: block;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--pulso-surface-3);
+.mon-metas-dia-columna {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  width: 100%;
+  min-height: 0;
 }
 
-.mon-metas-dias li > i > i {
+.mon-metas-dia-columna > strong {
+  font-size: 12px;
+}
+
+.mon-metas-dia-columna > i {
   display: block;
-  height: 100%;
-  border-radius: 4px;
+  width: 60%;
+  max-width: 28px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
   background: var(--pulso-brand-navy);
+}
+
+.mon-metas-dias li > span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 @media (max-width: 1400px) {
@@ -520,7 +542,7 @@
 
   .mon-metas-dias {
     flex: none;
-    overflow: visible;
+    height: 160px;
   }
 
   .mon-metas-marco,
