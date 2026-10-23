@@ -75,6 +75,8 @@ import { Calidad } from "./control/casos/Calidad";
 import { Publicos } from "./insumos/Publicos";
 import { Metas } from "./modelo/Metas";
 import { Cuotas } from "./modelo/Cuotas";
+import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
+import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -16369,6 +16371,11 @@ function renderAcreditacionView(
     return <Metas state={options.state} onStateChange={options.onStateChange} />;
   }
   if (view === "modelo" && options.activeModelTab === "resumen" && !isTelefonicoMonitoreoState(options.state)) return <Cuotas />; // Modelo › Cuotas (A7).
+  if (view === "modelo" && options.activeModelTab === "estrategias" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Ventana de campo (A7).
+    const clienteDelModelo = reports?.client_report;
+    const ventana = construirVentana(clienteDelModelo?.actors ?? [], clienteDelModelo?.daily_general ?? [], clienteDelModelo?.daily_actor ?? [], options.state?.config?.strategy_phases ?? []);
+    return <VentanaDeCampo modelo={ventana} editorDelPlan={<AcreditacionModelWorkbench acreditacion={options.acreditacion} reports={reports} state={options.state} activeTab="estrategias" saving={Boolean(options.savingAcreditacion)} actionStatus={options.actionStatus ?? null} onSaveSeguimiento={options.onSaveSeguimiento} onCerrar={options.onCerrar} onStateChange={options.onStateChange} />} />;
+  }
   if (view === "modelo") {
     return (
       <AcreditacionModelWorkbench

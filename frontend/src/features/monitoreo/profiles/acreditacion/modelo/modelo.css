@@ -113,3 +113,99 @@
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Ventana de campo (M3): cifras, una fila por público con su ventana real y su
+ * intensidad diaria, y el editor del plan debajo. */
+.acr-mo-ventana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-mo-linea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-mo-fila {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 140px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 32px;
+}
+
+.acr-mo-fila > span:first-child {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-mo-fila > span:last-child {
+  text-align: right;
+}
+
+.acr-mo-pista {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-mo-fila.is-eje .acr-mo-pista {
+  height: 16px;
+  background: transparent;
+}
+
+.acr-mo-banda {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 6px;
+}
+
+.acr-mo-banda.is-real {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface));
+}
+
+.acr-mo-banda.is-plan {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 22%, var(--pulso-surface));
+}
+
+.acr-mo-dia {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--pulso-brand-navy);
+}
+
+.acr-mo-sin-fases {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-mo-eje-texto {
+  position: absolute;
+  top: 0;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-mo-editor {
+  flex: 1 0 auto;
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .acr-mo-fila { grid-template-columns: 140px minmax(0, 1fr) 110px; }
+}
