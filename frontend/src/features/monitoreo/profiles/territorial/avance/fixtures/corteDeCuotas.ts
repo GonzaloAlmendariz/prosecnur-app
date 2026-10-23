@@ -74,6 +74,7 @@ const ump7 = bloque({
   id_manzana: "150103007000100",
   ump: "7",
   distrito: "ATE",
+  ubigeo: "150103",
   manzana: "0100",
   tipo_manzana: "reemplazo",
   status: "subsanada",
@@ -81,7 +82,7 @@ const ump7 = bloque({
   operational_adjustment_gain: 1,
   sex: [item("Hombre", 4, 4), item("Mujer", 4, 5, 1)],
 });
-const ump35 = bloque({ id_manzana: "150108035000200", ump: "35", distrito: "CHORRILLOS", manzana: "0200", responsable: "" });
+const ump35 = bloque({ id_manzana: "150108035000200", ump: "35", distrito: "CHORRILLOS", ubigeo: "150108", manzana: "0200", responsable: "" });
 
 export const CORTE_DE_CUOTAS = {
   report_scope: "advance_summary",

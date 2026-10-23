@@ -90,6 +90,8 @@ describe("dirección pública del modo territorial", () => {
     expect(esPestanaPropia({ seccion: "avance", pestana: "umps", panel: null })).toBe(true);
     expect(vistaDeDireccion({ seccion: "avance", pestana: "umps", panel: null }).seccion).toBe("avance");
     expect(panelesSuperpuestos("avance", "umps")).toEqual(["ump"]);
+    expect(esPestanaPropia({ seccion: "avance", pestana: "mapa", panel: null })).toBe(true);
+    expect(panelesSuperpuestos("avance", "mapa")).toEqual(["ump"]);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {

@@ -98,7 +98,19 @@ Bloqueado por backend (`backend-r`, fuera de este glob): el endpoint de casos po
 dibujan el mapa de la exploración (puntos numerados por GPS, segmentados Titular/Reemplazo/Ambas y
 Recorrido/Estado/Cuota) ni «Ver cada formulario», porque las filas anuladas no traen GPS ni hora.
 
-Pendiente en el frontend: Avance › Mapa (§3.15) sobre `TerritorialRouteCoverageAtlas.tsx`, con el lateral de conteos y
-el P1 usando `FichaDeUmp`. En la historia los aplicadores se rotulan como hoy (código y nombre); el diseño pide
+Avance › Mapa (§3.15) montado (`avance/MapaTab.tsx`) sobre la cartografía y la proyección del atlas, con su caché.
+- Vista general: distritos PlanMet con su nombre rotulado y la manzana en uso de cada UMP como punto por estado; las que
+  ya no se usan van como anillo.
+- Al elegir una UMP (`panel=ump&foco`) acerca a ≈ 520 m: vecinas INEI, calles OSM del entorno, la manzana resaltada y
+  la flecha de la subsanación sugerida.
+- Barra arriba (capa Avance/Ocurrencias si hay parte, ir a una UMP, acercar, alejar, encuadrar) y leyenda con fuente
+  abajo, en flujo: `mapaSinSuperpuestos.contract.test.ts` impide hijos absolutos en `mapa.css`.
+- Lateral con Completas, Subsanadas y Pendientes, las UMP con celda pendiente y las sin parte, o la `FichaDeUmp`.
+- Readiness: `false` mientras la cartografía no se resuelve (nunca «sin cartografía» antes de pedirla),
+  `vacio:sin-cuota` sin UMP y `vacio:sin-cartografia` si Hojas de ruta no la tiene.
+
+Diferencias con §3.15, sin dibujar todavía: límites y rótulos de zona, escala gráfica y la hoja inferior *plegable* a
+1024 × 600 (hoy el lateral pasa debajo del mapa con su propio desplazamiento). Los puntos del mapa se eligen con el
+mouse; desde el teclado se llega por «Ir a la UMP» y las listas del lateral. En la historia los aplicadores se rotulan como hoy (código y nombre); el diseño pide
 «Aplicador 1 / 2». Queda atado a la pregunta T-1.
 
