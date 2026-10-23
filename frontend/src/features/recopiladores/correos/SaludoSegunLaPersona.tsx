@@ -1,4 +1,5 @@
-// «Saludo según la persona» en el inspector del bloque Saludo (C8).
+// «Saludo según la persona» en el inspector del bloque Saludo (C8) y en
+// Personas › «Variables de cada persona».
 //
 // Igual para todos, o según el sexo: la columna sale de la lista cargada en
 // Personas (sin lista, se pide cargarla), las tres palabras se editan, y el
@@ -29,7 +30,8 @@ type Props = {
   plataforma: MailPlatform;
   problemas: readonly MailProblem[];
   onEditar: (update: (b: MailGreetingBlock) => MailGreetingBlock, grupo?: string) => void;
-  onIrAPersonas: () => void;
+  /** Sin él, el saludo ya vive en Personas: se pide importar la lista arriba, sin enlace. */
+  onIrAPersonas?: () => void;
 };
 
 const MODOS = [
@@ -84,8 +86,14 @@ export function SaludoSegunLaPersona({ block, destinatarios, plataforma, problem
           ) : (
             <p className="rec-trato-sin-lista">
               {trato.columna ? <>Columna elegida: <b>{trato.columna}</b>. </> : null}
-              Carga la lista en Personas para elegir la columna.
-              <button type="button" className="rec-mail-link" data-foco={FOCO_COLUMNA_DEL_TRATO} onClick={onIrAPersonas}>Ir a Personas</button>
+              {onIrAPersonas ? (
+                <>
+                  Carga la lista en Personas para elegir la columna.
+                  <button type="button" className="rec-mail-link" data-foco={FOCO_COLUMNA_DEL_TRATO} onClick={onIrAPersonas}>Ir a Personas</button>
+                </>
+              ) : (
+                <span>Elige la columna al importar la lista.</span>
+              )}
             </p>
           )}
 

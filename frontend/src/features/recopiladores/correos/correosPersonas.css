@@ -77,3 +77,54 @@
   color: var(--pulso-text-faint);
   margin-left: auto;
 }
+
+/* Variables de cada persona (checklist-inspector-correo ítem 1): campos y
+   saludo juntos, visibles con o sin lista. Una línea por cosa. */
+.rec-variables {
+  gap: var(--pulso-space-2);
+}
+
+.rec-variables-titulo {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-variables-intro {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rec-variables-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.rec-variables-linea {
+  align-items: center;
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: 7ch minmax(0, 1fr);
+  min-width: 0;
+}
+
+.rec-variables-linea-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.rec-variables-sin-columna {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rec-variables-tag-fija {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}

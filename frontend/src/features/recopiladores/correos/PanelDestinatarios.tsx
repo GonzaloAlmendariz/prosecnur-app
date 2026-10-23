@@ -1,6 +1,6 @@
 import { useId, useState, type ChangeEvent } from "react";
 
-import type { MailField, MailPlatform, MailRecipients, MailRecipientsMapping, MailTemplate } from "../../../api/materialMail";
+import type { MailField, MailGreetingBlock, MailPlatform, MailProblem, MailRecipients, MailRecipientsMapping, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowRight, FileUp, Plus, ShieldCheck, Sparkles, Trash2, Users } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
@@ -8,6 +8,7 @@ import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import { notasDeLectura, nuevoCampo, problemaDeCampo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import type { OfertaDelTrato } from "./modeloTrato";
 import { DestinatariosEnSurveyMonkey, MapeoSurveyMonkey } from "./PanelSurveyMonkey";
+import { SaludoSegunLaPersona } from "./SaludoSegunLaPersona";
 import "./correosPersonas.css";
 
 type Props = {
@@ -26,7 +27,14 @@ type Props = {
   oferta?: OfertaDelTrato;
   onUsarColumnaDeSexo?: (columna: string) => void;
   onVerSaludo?: () => void;
+  /** El bloque Saludo de la plantilla: su trato se edita aquí, en «Variables de cada persona». */
+  saludo?: MailGreetingBlock | null;
+  problemasDelSaludo?: readonly MailProblem[];
+  onEditarSaludo?: (update: (b: MailGreetingBlock) => MailGreetingBlock, grupo?: string) => void;
 };
+
+/** Sin lista no hay columnas: la fila lo dice en vez de esconder el selector. */
+const SIN_LISTA_COLUMNA = "Elige la columna al importar la lista";
 
 const SIN_COLUMNA = "";
 
@@ -155,26 +163,34 @@ function FilaDeCampo({
           value={field.label}
           onChange={(e) => onCambiar({ ...field, label: e.target.value })}
         />
-        <input
-          className="rec-mail-input rec-mail-input--sm"
-          aria-label={`Si falta el dato de ${field.label}`}
-          placeholder="Si falta el dato…"
-          value={field.fallback ?? ""}
-          onChange={(e) => {
-            const { fallback: _f, ...resto } = field;
-            void _f;
-            onCambiar(e.target.value ? { ...resto, fallback: e.target.value } : resto);
-          }}
-        />
-        {cargados ? (
-          <SelectorDeColumna
-            label={`Columna de ${field.label}`}
-            value={columna}
-            columnas={columnas}
-            disabled={ocupado}
-            onChange={onColumna}
+        <span className="rec-variables-linea">
+          <span className="rec-variables-linea-rotulo" aria-hidden>Columna</span>
+          {cargados ? (
+            <SelectorDeColumna
+              label={`Columna de ${field.label}`}
+              value={columna}
+              columnas={columnas}
+              disabled={ocupado}
+              onChange={onColumna}
+            />
+          ) : (
+            <span className="rec-variables-sin-columna">{SIN_LISTA_COLUMNA}</span>
+          )}
+        </span>
+        <span className="rec-variables-linea">
+          <span className="rec-variables-linea-rotulo" aria-hidden>Si falta</span>
+          <input
+            className="rec-mail-input rec-mail-input--sm"
+            aria-label={`Si falta el dato de ${field.label}`}
+            placeholder="Texto de respaldo (opcional)"
+            value={field.fallback ?? ""}
+            onChange={(e) => {
+              const { fallback: _f, ...resto } = field;
+              void _f;
+              onCambiar(e.target.value ? { ...resto, fallback: e.target.value } : resto);
+            }}
           />
-        ) : null}
+        </span>
       </span>
       {problema ? <span className="rec-mail-problema-linea" role="status">{problema}</span> : null}
     </li>
@@ -196,8 +212,12 @@ export function PanelDestinatarios({
   oferta = null,
   onUsarColumnaDeSexo,
   onVerSaludo,
+  saludo = null,
+  problemasDelSaludo = [],
+  onEditarSaludo,
 }: Props) {
   const [nuevo, setNuevo] = useState("");
+  const idVariables = useId();
   const texto = TEXTO_DE_PERSONAS[dialecto];
   const cargados = Boolean(destinatarios?.loaded);
   const mapping = destinatarios?.mapping ?? null;
@@ -339,64 +359,110 @@ export function PanelDestinatarios({
         </div>
       )}
 
-      <section className="rec-mail-definiciones" aria-label="Campos de cada persona">
-        <span className="xfk-over">Campos de cada persona</span>
-        <ul
-          className="rec-mail-def-campos"
-          data-qa-geometry-group="material-campo/correo/campos"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <li className="rec-mail-def-campo rec-mail-def-campo--fijo">
-            <span className="rec-mail-def-campo-tags">
-              <span className="rec-mail-def-campo-nombre" title="Nombre: cambia con cada persona">Nombre</span>
-            </span>
-            {/* #12: sólo con lista hay una columna de nombre elegida arriba. */}
-            {cargados ? <span className="rec-mail-ayuda">Sale de la columna de nombre que elegiste arriba.</span> : null}
-          </li>
-          {template.fields.map((field, i) => (
-            <FilaDeCampo
-              key={`${field.key}-${i}`}
-              field={field}
-              otros={template.fields.filter((_, j) => j !== i)}
-              columna={mapping?.fields[field.key] ?? null}
-              columnas={columnas}
-              cargados={cargados}
-              ocupado={ocupado}
-              dialecto={dialecto}
-              onCambiar={(next) => onEditar((t) => ({ ...t, fields: t.fields.map((f, j) => (j === i ? next : f)) }))}
-              onQuitar={() => onEditar((t) => ({ ...t, fields: t.fields.filter((_, j) => j !== i) }))}
-              onColumna={(columna) => {
-                if (!mapping) return;
-                const fields = { ...mapping.fields };
-                if (columna) fields[field.key] = columna;
-                else delete fields[field.key];
-                onMapear({ ...mapping, fields });
-              }}
+      <section
+        className="rec-mail-definiciones rec-variables"
+        aria-labelledby={`${idVariables}-titulo`}
+        data-qa-geometry-group="material-campo/correo/variables"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <h3 id={`${idVariables}-titulo`} className="rec-variables-titulo">Variables de cada persona</h3>
+        <p className="rec-variables-intro">Lo que cambia en cada correo. Cada valor sale de una columna de la lista.</p>
+        <div className="rec-variables-bloque" data-qa-geometry-member>
+          <span className="xfk-over">Campos</span>
+          <ul
+            className="rec-mail-def-campos"
+            data-qa-geometry-group="material-campo/correo/campos"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <li className="rec-mail-def-campo rec-mail-def-campo--fijo">
+              <span className="rec-mail-def-campo-tags">
+                <span className="rec-mail-def-campo-nombre" title="Nombre: cambia con cada persona">Nombre</span>
+                {dialecto === "mailchimp" ? (
+                  <>
+                    <span className="rec-mail-def-campo-plataforma" aria-hidden>en Mailchimp</span>
+                    <span className="rec-variables-tag-fija xfk-mono" title="Etiqueta fija de Mailchimp para el nombre">FNAME</span>
+                  </>
+                ) : null}
+              </span>
+              {/* #12: sólo con lista hay una columna de nombre elegida arriba. */}
+              <span className="rec-variables-linea">
+                <span className="rec-variables-linea-rotulo" aria-hidden>Columna</span>
+                {cargados ? (
+                  <span className="rec-mail-ayuda">
+                    {mapping?.name_column ? <>«{mapping.name_column}», la que elegiste arriba.</> : "Elígela arriba, en Nombre."}
+                  </span>
+                ) : (
+                  <span className="rec-variables-sin-columna">{SIN_LISTA_COLUMNA}</span>
+                )}
+              </span>
+              {saludo?.fallback ? (
+                <span className="rec-variables-linea">
+                  <span className="rec-variables-linea-rotulo" aria-hidden>Si falta</span>
+                  <span className="rec-mail-ayuda">El saludo dice «{saludo.fallback}».</span>
+                </span>
+              ) : null}
+            </li>
+            {template.fields.map((field, i) => (
+              <FilaDeCampo
+                key={`${field.key}-${i}`}
+                field={field}
+                otros={template.fields.filter((_, j) => j !== i)}
+                columna={mapping?.fields[field.key] ?? null}
+                columnas={columnas}
+                cargados={cargados}
+                ocupado={ocupado}
+                dialecto={dialecto}
+                onCambiar={(next) => onEditar((t) => ({ ...t, fields: t.fields.map((f, j) => (j === i ? next : f)) }))}
+                onQuitar={() => onEditar((t) => ({ ...t, fields: t.fields.filter((_, j) => j !== i) }))}
+                onColumna={(columna) => {
+                  if (!mapping) return;
+                  const fields = { ...mapping.fields };
+                  if (columna) fields[field.key] = columna;
+                  else delete fields[field.key];
+                  onMapear({ ...mapping, fields });
+                }}
+              />
+            ))}
+          </ul>
+          {dialecto === "surveymonkey" ? (
+            <div className="rec-personas-sm">
+              <span className="xfk-over">Para {NOMBRE_DE_PLATAFORMA.surveymonkey}</span>
+              <span className="rec-mail-ayuda">Cada campo va en una etiqueta del recopilador.</span>
+              <MapeoSurveyMonkey template={template} onEditar={onEditar} />
+            </div>
+          ) : null}
+          <form
+            className="rec-mail-nuevo-campo"
+            onSubmit={(e) => { e.preventDefault(); agregarCampo(); }}
+          >
+            <input
+              className="rec-mail-input rec-mail-input--sm"
+              aria-label="Rótulo del campo nuevo"
+              placeholder="Campo nuevo (p. ej. Aula)"
+              value={nuevo}
+              onChange={(e) => setNuevo(e.target.value)}
             />
-          ))}
-        </ul>
-        {dialecto === "surveymonkey" ? (
-          <div className="rec-personas-sm">
-            <span className="xfk-over">Para {NOMBRE_DE_PLATAFORMA.surveymonkey}</span>
-            <span className="rec-mail-ayuda">Cada campo va en una etiqueta del recopilador.</span>
-            <MapeoSurveyMonkey template={template} onEditar={onEditar} />
-          </div>
-        ) : null}
-        <form
-          className="rec-mail-nuevo-campo"
-          onSubmit={(e) => { e.preventDefault(); agregarCampo(); }}
-        >
-          <input
-            className="rec-mail-input rec-mail-input--sm"
-            aria-label="Rótulo del campo nuevo"
-            placeholder="Campo nuevo (p. ej. Aula)"
-            value={nuevo}
-            onChange={(e) => setNuevo(e.target.value)}
-          />
-          <PulsoButton variant="secondary" size="sm" type="submit" disabled={!nuevo.trim()}>
-            <Plus size={14} aria-hidden /> Agregar
-          </PulsoButton>
-        </form>
+            <PulsoButton variant="secondary" size="sm" type="submit" disabled={!nuevo.trim()}>
+              <Plus size={14} aria-hidden /> Agregar
+            </PulsoButton>
+          </form>
+        </div>
+        <div className="rec-variables-bloque" data-qa-geometry-member>
+          {saludo && onEditarSaludo ? (
+            <SaludoSegunLaPersona
+              block={saludo}
+              destinatarios={destinatarios}
+              plataforma={dialecto}
+              problemas={problemasDelSaludo}
+              onEditar={onEditarSaludo}
+            />
+          ) : (
+            <section className="rec-trato" aria-label="Saludo según la persona">
+              <h4 className="rec-trato-titulo">Saludo según la persona</h4>
+              <p className="rec-trato-sin-lista">El correo no tiene bloque Saludo: agrégalo para decir Estimado o Estimada según cada persona.</p>
+            </section>
+          )}
+        </div>
       </section>
     </div>
   );

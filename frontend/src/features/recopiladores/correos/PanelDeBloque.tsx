@@ -17,7 +17,8 @@ import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
 import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { fraseDeNitidez } from "./nitidez";
 import { PanelDeImagen } from "./PanelDeImagen";
-import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
+import { ChequeosDelBloque } from "./TarjetaDidactica";
+import { ListaDePuntos } from "./ListaDePuntos";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
 import { causaDelChequeo } from "./comoArreglar";
 import { esProblemaDelTrato } from "./modeloTrato";
@@ -56,7 +57,11 @@ type Props = {
   onAbrirIdentidad: () => void;
   /** Elige otra zona del correo (la cabecera, un bloque) en el lienzo y aquí. */
   onSeleccionar?: (id: string) => void;
-  /** Modo didáctico: la tarjeta «Qué hace» y «Cómo sale en la plataforma». */
+  /**
+   * Ya no pinta nada aquí: la tarjeta «Qué hace» / «Cómo sale» salió del
+   * inspector (ítem 2 de checklist-inspector-correo-2026-10-23). Se acepta
+   * mientras quien lo pasa no lo suelte.
+   */
   explicaciones?: boolean;
   dialecto?: Dialecto;
   /** Chequeos de la revisión que nombran el bloque elegido (`targets`). */
@@ -84,7 +89,6 @@ export function pasoALaCabecera(despues: Pick<MailTemplate, "header" | "blocks">
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
   url: "Dirección web o de correo, o un campo de cada persona.",
-  items: "Enter empieza otro punto.",
 };
 
 /**
@@ -162,7 +166,6 @@ export function PanelDeBloque({
   onQuitar,
   onAbrirIdentidad,
   onSeleccionar,
-  explicaciones = false,
   dialecto = "mailchimp",
   chequeos = [],
   vistaDeImagen = null,
@@ -342,7 +345,21 @@ export function PanelDeBloque({
           onColor={(color) => editar((b) => conColor(b, color), `${block.block_id}.color`)}
         />
       ) : null}
-      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (conFormato(prop) ? (
+      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (prop === "items" && (block.type === "callout" || block.type === "list") ? (
+        // Ítem 3: un punto por fila, cada uno con su campo con formato.
+        <ListaDePuntos
+          key={`${block.block_id}-${prop}`}
+          label={ROTULO_DE_PROP[prop]}
+          items={block.items}
+          numerada={block.type === "list" && Boolean(block.ordered)}
+          opciones={rotulosDeCampos(template)}
+          enlaces={admiteEnlaces(block.type, prop)}
+          problemas={problemasDe(propios, prop)}
+          onCambio={(items) => editar((b) => (b.type === "callout" || b.type === "list" ? { ...b, items } : b), `${block.block_id}.${prop}`)}
+          onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
+          onIrAPersonas={onIrAPersonas}
+        />
+      ) : conFormato(prop) ? (
         // #4 y #1 (re-QA e10-2): el texto se ve como en el lienzo, con chips
         // «Nombre» y la negrita como negrita; nunca asteriscos ni llaves.
         <CampoConCampos
@@ -385,7 +402,6 @@ export function PanelDeBloque({
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
         />
       )))}
-      {explicaciones ? <TarjetaDidactica block={block} template={template} dialecto={dialecto} /> : null}
       {block.type === "icon_text" && block.icon && dialecto === "surveymonkey" ? (
         <CampoDeTexto
           label="Dirección web del ícono"
