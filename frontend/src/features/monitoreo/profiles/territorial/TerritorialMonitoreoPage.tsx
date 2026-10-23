@@ -51,29 +51,36 @@ import {
   type TerritorialResponseAuditRow,
 } from "../../../../api/client";
 import { Alert } from "../../../../components/Alert";
-import { ContextTabRail } from "../../../../components/ContextTabRail";
-import type { ContextTabRailEstado } from "../../../../components/ContextTabRail";
 import { PageFrame } from "../../../../components/PageFrame";
-import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitoreo";
-import {
-  MonitoreoRailLastUpdate,
-  MonitoreoWorkbenchChrome,
-  MonitoreoWorkbenchHead,
-} from "../../components";
+import { MONITOREO_PESTANAS_INTERNAS_TERRITORIAL } from "../../../../lib/navegacion/catalogos/monitoreo";
+import { MonitoreoWorkbenchChrome } from "../../components";
 import {
   MONITOREO_MODOS,
-  TERRITORIAL_WORKBENCH_VIEWS,
   type MonitoreoSeccion,
-  type MonitoreoSeccionDefinicion,
 } from "../../core/monitoreoRegistry";
 import {
-  pestanaInicialMonitoreo,
-  seccionInicialMonitoreo,
-  monitoreoPestanaDesdeParams,
-  monitoreoSeccionDesdeParams,
-  useMonitoreoDireccion,
+  monitoreoDireccionDesdeParams,
+  useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
-import { describirFilasDeFase } from "./filasDeFase";
+import {
+  ATERRIZAJE_TERRITORIAL,
+  direccionDeSeccion,
+  direccionDeVista,
+  direccionInicial,
+  direccionPedida,
+  esPestanaPropia,
+  esSeccionTerritorial,
+  PANELES_DEL_PERFIL,
+  panelesSuperpuestos,
+  pideOtraDireccion,
+  vistaDeDireccion,
+  type DireccionTerritorial,
+} from "./navegacion/direccionTerritorial";
+import { pestanasDelRail } from "./navegacion/modeloDelRail";
+import { opcionesDeFase } from "./navegacion/fase";
+import { casosEnBandeja, corteCorto, estadoDelModo, insigniasDelModo, lecturaDelAvance } from "./navegacion/barraTerritorial";
+import { CabeceraTerritorial, RailTerritorial } from "./navegacion/ChromeTerritorial";
+import { SelectorDeFase } from "./navegacion/SelectorDeFase";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
@@ -88,7 +95,6 @@ import { TerritorialAdvanceWorkbench } from "./TerritorialAdvanceWorkbench";
 import { TerritorialDurationControl } from "./TerritorialDurationControl";
 import { TerritorialFieldOccurrencesWorkbench } from "./TerritorialFieldOccurrencesWorkbench";
 import { corteTerritorial } from "../../corte/corteAdapters";
-import { estadoVisual, readinessDeSalidas } from "../../corte/corteContract";
 import { TerritorialOutputsPanel } from "./TerritorialOutputsPanel";
 import { TerritorialModelWorkbench } from "./TerritorialModelWorkbench";
 import { TerritorialVariableMappingWorkbench } from "./TerritorialVariableMappingWorkbench";
@@ -133,7 +139,7 @@ const VIEW_ICONS: Partial<Record<MonitoreoSeccion, typeof Route>> = {
   ocurrencias: MapPinned,
 };
 const TERRITORIAL_ROUTE = MONITOREO_MODOS.find((route) => route.family === "territorial") ?? MONITOREO_MODOS[0];
-const TERRITORIAL_LOCAL_TABS = MONITOREO_PESTANAS.territorial;
+const TERRITORIAL_LOCAL_TABS = MONITOREO_PESTANAS_INTERNAS_TERRITORIAL;
 const TERRITORIAL_ADVANCE_TABS = TERRITORIAL_LOCAL_TABS.avance;
 type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"];
 
@@ -154,71 +160,6 @@ function TerritorialRecorte({ visibles, total, unidad }: { visibles: number; tot
       Mostrando {fmt(visibles)} de {fmt(total)} {unidad}.
     </p>
   );
-}
-
-function defaultLocalTabForView(view: MonitoreoSeccion) {
-  return TERRITORIAL_LOCAL_TABS[view]?.[0]?.key ?? "";
-}
-
-/**
- * Readiness y badge de cada pestaña de Avance territorial.
- *
- * Todo se deriva del corte canónico, así que el rail no puede contradecir lo que
- * muestra el panel: era exactamente lo que pasaba cuando cada superficie contaba
- * por su cuenta.
- */
-function estadoPestanaAvanceTerritorial(
-  key: string,
-  state: MonitoreoState | null,
-  reports: MonitoreoTerritorialDashboard | null,
-): { estado?: ContextTabRailEstado; badge?: string } {
-  const corte = corteTerritorial(state, reports);
-  const configurado = Boolean(state?.has_snapshot);
-  const evaluado = corte.oficial != null;
-
-  if (key === "salidas") {
-    const readiness = readinessDeSalidas(corte);
-    return {
-      estado: readiness.estado,
-      badge: readiness.bloqueos.length ? String(readiness.bloqueos.length) : undefined,
-    };
-  }
-  if (key === "ump") {
-    const blocks = reports?.advance?.block_progress ?? [];
-    const pendientes = blocks.filter((row) => (row.validas ?? 0) < (row.meta ?? 0)).length;
-    return {
-      estado: estadoVisual({ configurado: blocks.length > 0, evaluado, completo: pendientes === 0 }),
-      badge: pendientes ? String(pendientes) : undefined,
-    };
-  }
-  if (key === "ritmo") {
-    const dias = reports?.advance?.daily ?? [];
-    const conValidas = dias.filter((row) => (row.validas ?? 0) > 0).length;
-    return {
-      estado: estadoVisual({ configurado, evaluado: dias.length > 0, completo: conValidas > 0 }),
-    };
-  }
-  if (key === "distritos") {
-    const distritos = reports?.advance?.district_progress ?? [];
-    const conBrecha = distritos.filter((row) => (row.brecha ?? 0) > 0).length;
-    return {
-      estado: estadoVisual({ configurado: distritos.length > 0, evaluado, completo: conBrecha === 0 }),
-      badge: conBrecha ? String(conBrecha) : undefined,
-    };
-  }
-  // resumen
-  return {
-    estado: estadoVisual({ configurado, evaluado, completo: evaluado && corte.brecha === 0 }),
-    badge: corte.brecha ? String(corte.brecha) : undefined,
-  };
-}
-
-function territorialContextTabId(view: MonitoreoSeccion, key: string) {
-  return `mon-territorial-${view}-tab-${key}`;
-}
-
-function territorialContextPanelId(view: MonitoreoSeccion) {
-  return `mon-territorial-${view}-panel`;
 }
 
 // Fallback estable para callbacks opcionales: una lambda inline nueva por
@@ -258,40 +199,6 @@ function nullableMetric(value: unknown) {
 
 function labelForPhase(phase: string) {
   return phase === "pilot" ? "Piloto" : "Campo";
-}
-
-function territorialPhaseHealthForState(
-  state: MonitoreoState | null,
-  phase: MonitoreoTerritorialPhase,
-): MonitoreoTerritorialPhaseCoherenceItem | null {
-  const coherence = state?.territorial_phase_coherence ?? state?.dashboard?.territorial_reports?.phase_coherence ?? null;
-  return coherence?.phases?.[phase] ?? (coherence?.active?.phase === phase ? coherence.active : null) ?? null;
-}
-
-function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
-  if (!item) return "Sin diagnóstico";
-  // El mismo criterio que la consola: cuando el corte de la fase deja filas
-  // fuera, el badge dice las dos cifras y no sólo la mayor.
-  const filas = describirFilasDeFase(item, item.label || "");
-  if (filas) return filas.badge;
-  switch (item.status) {
-    case "source_not_applied":
-      return "Sin fuente";
-    case "source_applied_not_synced":
-      return "Sin actualizar";
-    case "source_synced_with_rows":
-      return `${fmt(item.local_rows)} locales`;
-    case "source_synced_zero_rows":
-      return "Sin respuestas";
-    case "dashboard_stale":
-      return "Ficha desactualizada";
-    case "source_snapshot_mismatch":
-      return "Revisar fuente";
-    case "sync_error":
-      return "Error al actualizar";
-    default:
-      return item.status || "Sin diagnóstico";
-  }
 }
 
 function isReplacementBlock(block: TerritorialBlockProgress) {
@@ -438,90 +345,6 @@ function territorialReportKpis(
     avance_pct: reports.advance.avance_pct ?? reports.kpis?.avance_pct,
   };
 }
-
-const TerritorialWorkbenchHead = memo(function TerritorialWorkbenchHead({
-  activeDef,
-  activeSources,
-  fieldPhaseHealth,
-  headerAvance,
-  headerMeta,
-  headerValidas,
-  loadingView,
-  nRows,
-  onPhaseChange,
-  pestanaEstado,
-  pestanaLabel,
-  phase,
-  pilotPhaseHealth,
-}: {
-  activeDef: MonitoreoSeccionDefinicion;
-  activeSources: number;
-  fieldPhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
-  headerAvance: number | null | undefined;
-  headerMeta: number | null | undefined;
-  headerValidas: number | null | undefined;
-  loadingView: MonitoreoSeccion | "initial" | "background" | null;
-  nRows: number;
-  onPhaseChange: (phase: MonitoreoTerritorialPhase) => void;
-  pestanaEstado?: ContextTabRailEstado;
-  pestanaLabel?: string;
-  phase: MonitoreoTerritorialPhase;
-  pilotPhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
-}) {
-  const Icon = VIEW_ICONS[activeDef.key] ?? activeDef.icon ?? Route;
-  const fuenteView = activeDef.key === "fuentes";
-  const phaseOptions = [
-    { key: "pilot" as const, label: "Piloto", hint: territorialPhaseBadgeLabel(pilotPhaseHealth) },
-    { key: "field" as const, label: "Campo", hint: territorialPhaseBadgeLabel(fieldPhaseHealth) },
-  ];
-  return (
-    <>
-      <MonitoreoWorkbenchHead
-        icon={Icon}
-        eyebrow="Territorial · flujo actual"
-        title={activeDef.label}
-        pestanaLabel={pestanaLabel}
-        pestanaEstado={pestanaEstado}
-        detail={activeDef.desc}
-        // "N registros" a secas era el conteo crudo y se leía como casos
-        // defendibles. La píldora lo nombra por lo que es. Dice «recibidas» y no
-        // «en el snapshot» —cómo lo guarda la app— para hablar igual que los
-        // otros perfiles; la distinción con las válidas es la que importa y se
-        // mantiene.
-        pills={fuenteView ? [
-          `${activeSources} fuentes`,
-          `${fmt(nRows)} recibidas`,
-          `${fmt(headerValidas)} efectivas`,
-          headerMeta == null ? "sin meta declarada" : `${fmt(headerMeta)} meta`,
-        ] : [
-          `${activeSources} fuentes`,
-          `${fmt(nRows)} recibidas`,
-          `${fmt(headerValidas)} válidas`,
-          headerMeta == null ? "sin meta declarada" : `${fmt(headerMeta)} meta`,
-          pct(headerAvance),
-        ]}
-      />
-      <div className="mon-rail-phase-switch" aria-label="Formato territorial">
-        <span>Formato territorial</span>
-        <div role="group" aria-label="Piloto o campo">
-          {phaseOptions.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              aria-pressed={phase === item.key}
-              className={phase === item.key ? "is-active" : ""}
-              disabled={phase === item.key || loadingView === "initial"}
-              onClick={() => onPhaseChange(item.key)}
-            >
-              <strong>{item.label}</strong>
-              <small>{item.hint}</small>
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-});
 
 function StatTile({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "good" | "warn" | "danger" }) {
   return (
@@ -1364,30 +1187,40 @@ function renderView(
   return null;
 }
 
+type OpcionesDePestana = Parameters<typeof renderView>[2] & {
+  irA?: (destino: DireccionTerritorial) => void;
+};
+
+/** Piloto sólo tiene Avance: otra sección pedida en piloto vuelve al aterrizaje. */
+function direccionPermitidaEnFase(phase: MonitoreoTerritorialPhase, direccion: DireccionTerritorial): DireccionTerritorial {
+  return phase === "pilot" && direccion.seccion !== "avance" ? ATERRIZAJE_TERRITORIAL : direccion;
+}
+
+/**
+ * Monta una dirección pública: su componente propio si ya lo tiene, o la vista
+ * heredada que absorbe (`direccionTerritorial.ts`).
+ */
+function renderPestana(
+  direccion: DireccionTerritorial,
+  reports: MonitoreoTerritorialDashboard | null,
+  options: OpcionesDePestana = {},
+) {
+  const vista = vistaDeDireccion(direccion);
+  return renderView(vista.seccion, reports, { ...options, pestanaActiva: vista.pestana });
+}
+
 export default function TerritorialMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", TERRITORIAL_WORKBENCH_VIEWS));
-  const [activeLocalTabs, setActiveLocalTabs] = useState<Partial<Record<MonitoreoSeccion, string>>>(() => {
-    const porDefecto: Partial<Record<MonitoreoSeccion, string>> = {
-      fuentes: defaultLocalTabForView("fuentes"),
-      modelo: defaultLocalTabForView("modelo"),
-      calidad: defaultLocalTabForView("calidad"),
-      consultas: defaultLocalTabForView("consultas"),
-      avance: defaultLocalTabForView("avance"),
-      ocurrencias: defaultLocalTabForView("ocurrencias"),
-    };
-    // `?pestana=` solo aplica a la sección con la que se aterriza: pedir
-    // "mapa" no debe reescribir la pestaña recordada de las otras cinco.
-    const seccion = seccionInicialMonitoreo("fuentes", TERRITORIAL_WORKBENCH_VIEWS);
-    const disponibles = (TERRITORIAL_LOCAL_TABS[seccion] ?? []).map((tab) => tab.key);
-    return {
-      ...porDefecto,
-      [seccion]: pestanaInicialMonitoreo(
-        porDefecto[seccion] ?? defaultLocalTabForView(seccion),
-        disponibles,
-      ),
-    };
-  });
+  // La dirección PÚBLICA (Insumos, Modelo, Control, Avance) es el estado; la
+  // vista heredada que se monta y el corte que se pide se derivan de ella. Sin
+  // dirección se aterriza en Avance › Faltante por UMP.
+  // Ver `navegacion/direccionTerritorial.ts`.
+  const [direccion, setDireccion] = useState<DireccionTerritorial>(
+    () => direccionInicial(monitoreoDireccionDesdeParams(window.location.search)),
+  );
+  const vistaActiva = vistaDeDireccion(direccion);
+  const seccionActiva: MonitoreoSeccion = vistaActiva.seccion;
+  const pestanaActiva = vistaActiva.pestana;
   const [phase, setPhase] = useState<MonitoreoTerritorialPhase>("field");
   const [selectedValidationResponseId, setSelectedValidationResponseId] = useState("");
   const [loadingView, setLoadingView] = useState<MonitoreoSeccion | "initial" | "background" | null>("initial");
@@ -1398,11 +1231,9 @@ export default function TerritorialMonitoreoPage() {
   const latestScopeRequestRef = useRef(new Map<string, number>());
   const scopeStateCacheRef = useRef(new Map<string, MonitoreoState>());
   const stateRef = useRef<MonitoreoState | null>(null);
-  const activeViewRef = useRef<MonitoreoSeccion>("fuentes");
-  const activeLocalTabsRef = useRef<Partial<Record<MonitoreoSeccion, string>>>(activeLocalTabs);
+  const direccionRef = useRef<DireccionTerritorial>(direccion);
   const [chromeSyncJob, setChromeSyncJob] = useState<JobSnapshot<MonitoreoSyncResult> | null>(null);
   const [chromeSyncJobId, setChromeSyncJobId] = useState("");
-  const [chromeSyncMode, setChromeSyncMode] = useState<"advance" | "full">("advance");
   const chromeSyncReloadedRef = useRef("");
   const [pendingScopes, setPendingScopes] = useState<Set<string>>(() => new Set());
 
@@ -1417,42 +1248,21 @@ export default function TerritorialMonitoreoPage() {
     });
   }, []);
 
-  const localTabs = TERRITORIAL_LOCAL_TABS[seccionActiva] ?? [];
-  const pestanaActiva = activeLocalTabs[seccionActiva] ?? defaultLocalTabForView(seccionActiva);
-  const contextPanelId = territorialContextPanelId(seccionActiva);
-  const contextTabId = useCallback(
-    (key: string) => territorialContextTabId(seccionActiva, key),
-    [seccionActiva],
-  );
-  useMonitoreoDireccion(seccionActiva, pestanaActiva, "territorial", {
-    onSeccionPedida: (seccion) => {
-      setActiveView(seccion);
-      // La pestaña de la URL se aplica JUNTO con su sección. Al cambiar de
-      // sección, la pestaña activa pasa a ser la recordada para esa sección y
-      // se publica, pisando la pedida: medido, `consultas/gps` desde Avance
-      // aterrizaba en `duracion` si esa era la última vista de Consultas.
-      //
-      // Se exige que la sección de la URL coincida con la que se activa: eso
-      // distingue «vengo de una dirección» de «vengo de un clic», donde la URL
-      // todavía trae la pestaña de la sección anterior.
-      if (monitoreoSeccionDesdeParams(window.location.search) !== seccion) return;
-      const pedida = monitoreoPestanaDesdeParams(window.location.search);
-      if (!pedida) return;
-      const disponibles = TERRITORIAL_LOCAL_TABS[seccion] ?? [];
-      if (!disponibles.some((tab) => tab.key === pedida)) return;
-      setActiveLocalTabs((actuales) => ({ ...actuales, [seccion]: pedida }));
-    },
-    onPestanaPedida: (pestana, seccion) => {
-      // Solo si esa pestaña existe en la sección destino: una dirección con
-      // una pestaña ajena no debe dejar la sección sin selección válida.
-      const disponibles = TERRITORIAL_LOCAL_TABS[seccion] ?? [];
-      if (!disponibles.some((tab) => tab.key === pestana)) return;
-      setActiveLocalTabs((actuales) => ({ ...actuales, [seccion]: pestana }));
+  // Piloto sólo tiene Avance: cualquier otra sección vuelve al aterrizaje.
+  const irA = useCallback((destino: DireccionTerritorial) => {
+    setDireccion(destino);
+  }, []);
+  useMonitoreoDireccionTraducida({
+    publica: direccion,
+    modo: "territorial",
+    panelesPropios: PANELES_DEL_PERFIL,
+    panelesDeLaPestana: panelesSuperpuestos(direccion.seccion, direccion.pestana),
+    pideOtraVista: (pedida) => pideOtraDireccion(pedida, direccion),
+    onPedida: (pedida) => {
+      const destino = direccionPedida(pedida);
+      if (destino) irA(destino);
     },
   });
-  // Publica las pestañas de esta sección para que el inspector las enumere.
-  useRegistrarPestanasMonitoreo("territorial", seccionActiva, localTabs);
-  const activeLocalTabDef = localTabs.find((tab) => tab.key === pestanaActiva) ?? localTabs[0] ?? null;
   const sourceKey = state ? territorialSourceKeyFromState(state, phase) : "sin-fuente";
   const preferredScope = scopeForPhaseViewTab(phase, seccionActiva, pestanaActiva);
   const cachedEntry = useMemo(() => {
@@ -1473,27 +1283,13 @@ export default function TerritorialMonitoreoPage() {
     : cachedEntry?.reports ?? null;
   const reportReady = Boolean(reports && territorialReportsCoverSelection(reports, seccionActiva, pestanaActiva));
 
-  // El rail territorial montaba `ContextTabRail` sin estado: nunca tuvo señal de
-  // readiness, ni siquiera la que Acreditación calculaba y descartaba. Las
-  // pestañas de Avance —que son las que sostienen el entregable— ahora la traen.
-  const contextTabItems = useMemo(
-    () => localTabs.map((tab) => ({
-      key: tab.key,
-      label: tab.label,
-      description: tab.detail,
-      icon: tab.icon,
-      ...(seccionActiva === "avance"
-        ? estadoPestanaAvanceTerritorial(tab.key, state, reports)
-        : {}),
-    })),
-    [localTabs, reports, seccionActiva, state],
-  );
-  // Readiness de la pestaña activa, para decirla en el encabezado del workbench.
-  const pestanaEstadoActiva = contextTabItems.find((tab) => tab.key === pestanaActiva)?.estado;
-
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    direccionRef.current = direccion;
+  }, [direccion]);
 
   const scopeStateKey = useCallback((scope: MonitoreoReportScope, phaseValue = phase, sourceValue = sourceKey) => (
     `${phaseValue}|${sourceValue}|${scope}`
@@ -1529,14 +1325,6 @@ export default function TerritorialMonitoreoPage() {
     }
     monitoreoScopeCache.invalidateTerritorial({ phase: phaseValue, source: sourceValue });
   }, []);
-
-  useEffect(() => {
-    activeViewRef.current = seccionActiva;
-  }, [seccionActiva]);
-
-  useEffect(() => {
-    activeLocalTabsRef.current = activeLocalTabs;
-  }, [activeLocalTabs]);
 
   const loadScope = useCallback(async (scope: MonitoreoReportScope, viewForLoading?: MonitoreoSeccion, force = false) => {
     const key = scopeStateKey(scope);
@@ -1598,11 +1386,11 @@ export default function TerritorialMonitoreoPage() {
         const nextState = withTerritorialPhase(next, nextPhase);
         setPhase(nextPhase);
         setState(nextState);
-        const requestedView = activeViewRef.current;
-        const nextView = viewAllowedInPhase(nextPhase, requestedView) ? requestedView : "avance";
-        const nextLocalTab = activeLocalTabsRef.current[nextView] ?? defaultLocalTabForView(nextView);
-        setActiveView(nextView);
-        const scope = scopeForPhaseViewTab(nextPhase, nextView, nextLocalTab);
+        const pedida = direccionRef.current;
+        const destino = direccionPermitidaEnFase(nextPhase, pedida);
+        if (destino !== pedida) setDireccion(destino);
+        const vista = vistaDeDireccion(destino);
+        const scope = scopeForPhaseViewTab(nextPhase, vista.seccion, vista.pestana);
         const cached = monitoreoScopeCache.getTerritorial({
           phase: nextPhase,
           source: territorialSourceKeyFromState(nextState, nextPhase),
@@ -1641,8 +1429,22 @@ export default function TerritorialMonitoreoPage() {
   }, []);
 
   useEffect(() => {
-    if (!viewAllowedInPhase(phase, seccionActiva)) setActiveView("avance");
-  }, [seccionActiva, phase]);
+    const permitida = direccionPermitidaEnFase(phase, direccion);
+    if (permitida !== direccion) setDireccion(permitida);
+  }, [direccion, phase]);
+
+  // Una pestaña condicional que este proyecto no declara (Ocurrencias sin
+  // parte de campo) no se queda a medias: vuelve a la primera de su sección.
+  const pestanasRail = useMemo(
+    () => pestanasDelRail(direccion.seccion, state, reports),
+    [direccion.seccion, reports, state],
+  );
+  useEffect(() => {
+    if (!state || !pestanasRail.length) return;
+    if (pestanasRail.some((tab) => tab.key === direccion.pestana)) return;
+    setDireccion({ seccion: direccion.seccion, pestana: pestanasRail[0].key, panel: null });
+  }, [direccion, pestanasRail, state]);
+  useRegistrarPestanasMonitoreo("territorial", direccion.seccion, pestanasRail);
 
   useEffect(() => {
     if (!state || loadingView === "initial") return;
@@ -1675,23 +1477,6 @@ export default function TerritorialMonitoreoPage() {
   useEffect(() => {
     if (!state || loadingView === "initial") return;
     if (error) return;
-    if (phase === "pilot" || seccionActiva !== "avance" || pestanaActiva !== "resumen") return;
-    if ((reports?.report_scope || "") !== "route_summary") return;
-    const cachedAdvance = monitoreoScopeCache.getTerritorial({
-      phase,
-      source: sourceKey,
-      scope: "advance_summary",
-    });
-    if (cachedAdvance) return;
-    const timer = window.setTimeout(() => {
-      void loadScope("advance_summary");
-    }, 1400);
-    return () => window.clearTimeout(timer);
-  }, [pestanaActiva, seccionActiva, error, loadScope, loadingView, phase, reports?.report_scope, sourceKey, state]);
-
-  useEffect(() => {
-    if (!state || loadingView === "initial") return;
-    if (error) return;
     let cancelled = false;
     const run = async () => {
       setLoadingView("background");
@@ -1707,61 +1492,16 @@ export default function TerritorialMonitoreoPage() {
     };
   }, [error, state?.synced_at, phase]);
 
-  const visibleViews = useMemo(
-    () => TERRITORIAL_WORKBENCH_VIEWS.filter((item) => viewAllowedInPhase(phase, item.key)),
-    [phase],
-  );
-  const activeDef = useMemo(
-    () => visibleViews.find((item) => item.key === seccionActiva) ?? visibleViews[0] ?? TERRITORIAL_WORKBENCH_VIEWS[0],
-    [seccionActiva, visibleViews],
-  );
-
-  useEffect(() => {
-    if (!localTabs.length) return;
-    if (localTabs.some((tab) => tab.key === pestanaActiva)) return;
-    setActiveLocalTabs((current) => ({ ...current, [seccionActiva]: localTabs[0]?.key ?? "" }));
-  }, [pestanaActiva, seccionActiva, localTabs]);
-
-  useEffect(() => {
-    if (!activeLocalTabDef || typeof window === "undefined") return undefined;
-    const timer = window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: seccionActiva, key: activeLocalTabDef.key, label: activeLocalTabDef.label },
-      }));
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [activeLocalTabDef, seccionActiva]);
-
+  // Las vistas heredadas piden otra de las suyas por su clave vieja
+  // (`onCambioPestana("duracion")` desde Geolocalización): se traduce a la
+  // dirección pública que la monta.
   const changeLocalTab = useCallback((key: string) => {
-    const tab = (TERRITORIAL_LOCAL_TABS[seccionActiva] ?? []).find((item) => item.key === key);
-    setActiveLocalTabs((current) => ({ ...current, [seccionActiva]: key }));
-    if (tab && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: seccionActiva, key: tab.key, label: tab.label },
-      }));
-    }
-  }, [seccionActiva]);
-  useEffect(() => {
-    const tabsByKey = new Map(localTabs.map((tab) => [String(tab.key), tab]));
-    function handleLocalTabActive(event: Event) {
-      const detail = (event as CustomEvent<{ view?: string; key?: unknown }>).detail;
-      const key = typeof detail?.key === "string" ? detail.key : "";
-      if (detail?.view !== seccionActiva || !tabsByKey.has(key) || key === pestanaActiva) return;
-      changeLocalTab(key);
-    }
-    window.addEventListener("prosecnur:monitoreo-local-tab-active", handleLocalTabActive);
-    return () => window.removeEventListener("prosecnur:monitoreo-local-tab-active", handleLocalTabActive);
-  }, [changeLocalTab, localTabs, pestanaActiva, seccionActiva]);
+    irA(direccionDeVista({ seccion: vistaDeDireccion(direccionRef.current).seccion, pestana: key }));
+  }, [irA]);
   const openValidationCase = useCallback((tab: "geolocalizacion" | "duracion", responseId?: string) => {
-    setActiveLocalTabs((current) => ({ ...current, calidad: tab }));
     if (responseId) setSelectedValidationResponseId(responseId);
-    setActiveView("calidad");
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: "calidad", key: tab },
-      }));
-    }
-  }, []);
+    irA(direccionDeVista({ seccion: "calidad", pestana: tab }));
+  }, [irA]);
   const canonicalHeaderReports = useMemo(() => {
     if (rawReports && TERRITORIAL_CANONICAL_HEADER_SCOPE_SET.has(rawReports.report_scope || "")) return rawReports;
     for (const scope of TERRITORIAL_CANONICAL_HEADER_SCOPES) {
@@ -1770,15 +1510,15 @@ export default function TerritorialMonitoreoPage() {
     }
     return null;
   }, [phase, rawReports, sourceKey, state?.synced_at]);
-  const reportKpis = territorialReportKpis(reports);
-  const canonicalReportKpis = territorialReportKpis(canonicalHeaderReports);
-  const dashboardKpis = state?.dashboard?.kpis;
-  const headerValidas = nullableMetric(canonicalReportKpis.validas) ?? nullableMetric(reportKpis.validas) ?? nullableMetric(dashboardKpis?.valid);
-  const headerMeta = nullableMetric(canonicalReportKpis.meta) ?? nullableMetric(reportKpis.meta) ?? nullableMetric(dashboardKpis?.target);
-  const headerAvance = nullableMetric(canonicalReportKpis.avance_pct) ?? nullableMetric(reportKpis.avance_pct) ?? nullableMetric(dashboardKpis?.avance_pct);
-  const sectionViewMetrics = { avance: pct(headerAvance) };
-  const pilotPhaseHealth = territorialPhaseHealthForState(state, "pilot");
-  const fieldPhaseHealth = territorialPhaseHealthForState(state, "field");
+  // Una sola lectura de avance en todo el modo (L20): la del corte de avance.
+  const lecturaAvance = useMemo(() => {
+    const avance = monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope: "advance_summary" })?.reports;
+    return lecturaDelAvance(avance ?? (rawReports?.report_scope === "advance_summary" || rawReports?.report_scope === "full" ? rawReports : canonicalHeaderReports));
+  }, [canonicalHeaderReports, phase, rawReports, sourceKey, state?.synced_at]);
+  const enBandeja = useMemo(() => {
+    const consultas = monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope: "queries_summary" })?.reports;
+    return casosEnBandeja(consultas ?? rawReports);
+  }, [phase, rawReports, sourceKey, state?.synced_at]);
   const refreshCurrentView = useCallback(() => {
     void loadScope(preferredScope, seccionActiva, true);
   }, [seccionActiva, loadScope, preferredScope]);
@@ -1793,7 +1533,6 @@ export default function TerritorialMonitoreoPage() {
       return;
     }
     setError("");
-    setChromeSyncMode(syncMode);
     setChromeSyncJob(null);
     setChromeSyncJobId("");
     chromeSyncReloadedRef.current = "";
@@ -1942,19 +1681,19 @@ export default function TerritorialMonitoreoPage() {
   }, [applyTerritorialPageState, phase]);
   const changeTerritorialPhase = useCallback(async (nextPhase: MonitoreoTerritorialPhase) => {
     if (nextPhase === phase) return;
-    const nextView = viewAllowedInPhase(nextPhase, seccionActiva) ? seccionActiva : "avance";
-    const nextLocalTab = activeLocalTabs[nextView] ?? defaultLocalTabForView(nextView);
+    const destino = direccionPermitidaEnFase(nextPhase, direccion);
+    const vista = vistaDeDireccion(destino);
     setError("");
     setLoadingView("initial");
     try {
       const phaseResult = await apiMonitoreoTerritorialPhase(nextPhase);
       if (!phaseResult?.ok) throw new Error(`No se pudo seleccionar ${labelForPhase(nextPhase)}.`);
       setPhase(nextPhase);
-      setActiveView(nextView);
+      setDireccion(destino);
       clearScopeStateCache();
       const hydrated = await apiMonitoreoState({
         includeReports: true,
-        reportScope: scopeForPhaseViewTab(nextPhase, nextView, nextLocalTab),
+        reportScope: scopeForPhaseViewTab(nextPhase, vista.seccion, vista.pestana),
         warmupCache: true,
       });
       const nextState = withTerritorialPhase(hydrated, nextPhase);
@@ -1965,7 +1704,7 @@ export default function TerritorialMonitoreoPage() {
     } finally {
       setLoadingView(null);
     }
-  }, [activeLocalTabs, seccionActiva, clearScopeStateCache, phase, rememberScopeState]);
+  }, [direccion, clearScopeStateCache, phase, rememberScopeState]);
   const handlePhaseChange = useCallback((nextPhase: MonitoreoTerritorialPhase) => {
     void changeTerritorialPhase(nextPhase);
   }, [changeTerritorialPhase]);
@@ -1981,14 +1720,16 @@ export default function TerritorialMonitoreoPage() {
     || Boolean(state && activeNeedsReport && !reportReady && !error);
   const chromeSyncing = Boolean(chromeSyncJobId);
   const chromeBusy = activeLoading || mutationBusy || chromeSyncing;
-  const chromeSyncProgress = chromeSyncing ? {
-    active: chromeSyncMode,
-    percent: jobProgressPercent(chromeSyncJob),
-    phase: jobProgressPhase(chromeSyncJob) ?? "Actualizando",
-    message: jobProgressMessage(chromeSyncJob) ?? "Sincronizando respuestas territoriales...",
-  } : null;
   const chromeGeneratedAt = reports?.generated_at ?? state?.generated_at ?? state?.synced_at ?? "";
   const chromeGenerationStatus = error ? "failed" : reportReady ? "" : "stale";
+  const progresoDelSync = chromeSyncing
+    ? [jobProgressPhase(chromeSyncJob), jobProgressMessage(chromeSyncJob), jobProgressPercent(chromeSyncJob) != null ? `${Math.round(jobProgressPercent(chromeSyncJob) ?? 0)} %` : ""].filter(Boolean).join(" · ")
+    : undefined;
+  const opcionesFase = useMemo(
+    () => opcionesDeFase(state, phase, lecturaAvance?.meta ?? null),
+    [lecturaAvance?.meta, phase, state],
+  );
+  const lienzo = esPestanaPropia(direccion);
 
   return (
     <PageFrame
@@ -1997,8 +1738,8 @@ export default function TerritorialMonitoreoPage() {
       bodyMode="fill"
       layout="workbench"
       scrollOwner="panels"
-      resetScrollKey={`${seccionActiva}/${pestanaActiva}`}
-      className="mon-page"
+      resetScrollKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
+      className="mon-page is-territorial-profile"
       density="compact"
     >
       <span
@@ -2017,7 +1758,7 @@ export default function TerritorialMonitoreoPage() {
         routes={MONITOREO_MODOS}
         route={TERRITORIAL_ROUTE}
         routeSelected
-        seccionActiva={seccionActiva}
+        seccionActiva={direccion.seccion}
         saving={chromeBusy}
         syncedAt={state?.synced_at ?? ""}
         generatedAt={chromeGeneratedAt}
@@ -2028,57 +1769,68 @@ export default function TerritorialMonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={chromeSyncing}
-        syncProgress={chromeSyncProgress}
-        viewMetrics={sectionViewMetrics}
-        syncDisabled={!state || chromeBusy}
-        syncLabel="Todo"
-        syncTitle="Actualizar todas las respuestas Kobo de la fase activa"
-        onSyncAll={syncField}
-        advanceSyncDisabled={!state || chromeBusy}
-        advanceSyncLabel="Avance"
-        advanceSyncTitle="Actualizar avance territorial"
-        onSyncAdvance={syncAdvance}
-        onCambioSeccion={setActiveView}
+        viewMetrics={insigniasDelModo(lecturaAvance, enBandeja)}
+        barraDelModo={{
+          selector: (
+            <SelectorDeFase
+              opciones={opcionesFase}
+              deshabilitado={loadingView === "initial" || chromeSyncing}
+              onElegir={handlePhaseChange}
+            />
+          ),
+          indicadores: [],
+          corte: corteCorto(state?.synced_at),
+          estado: estadoDelModo({ actualizando: chromeSyncing, cargando: loadingView === "initial", hayEstado: Boolean(state), error }),
+          progreso: progresoDelSync,
+          actualizar: {
+            etiqueta: "Actualizar",
+            titulo: "Traer las respuestas nuevas de Kobo y las ocurrencias, y recalcular",
+            disabled: !state || chromeBusy,
+            onElegir: () => { void syncAdvance().catch(() => undefined); },
+          },
+          otrasActualizaciones: [{
+            etiqueta: "Traer todo de nuevo",
+            titulo: "Volver a leer todas las respuestas Kobo de la fase activa",
+            disabled: !state || chromeBusy,
+            onElegir: () => { void syncField().catch(() => undefined); },
+          }, {
+            etiqueta: "Solo recalcular",
+            titulo: "Recalcular la vista con lo que ya está en el proyecto",
+            disabled: !state || chromeBusy,
+            onElegir: refreshCurrentView,
+          }],
+        }}
+        onCambioSeccion={(seccion) => {
+          if (esSeccionTerritorial(seccion)) irA(direccionPermitidaEnFase(phase, direccionDeSeccion(seccion)));
+        }}
       />
 
       <MonitoreoWorkbenchChrome
         seccionActiva={seccionActiva}
+        ariaLabel={`Mesa de trabajo de monitoreo territorial: ${pestanasRail.find((tab) => tab.key === direccion.pestana)?.label ?? direccion.pestana}`}
         isTerritorial
         hasReportStatus
-        scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
+        scrollResetKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
         rail={(
-          <ContextTabRail
-            ariaLabel={`Pestañas locales de ${activeDef.label}`}
-            activeKey={pestanaActiva}
-            items={contextTabItems}
-            panelId={contextPanelId}
-            tabId={contextTabId}
-            onChange={changeLocalTab}
-            footer={(
-              <MonitoreoRailLastUpdate value={state?.synced_at ?? ""} />
-            )}
+          <RailTerritorial
+            seccion={direccion.seccion}
+            pestana={direccion.pestana}
+            pestanas={pestanasRail}
+            corte={state?.synced_at ?? ""}
+            onCambioPestana={(pestana) => irA({ seccion: direccion.seccion, pestana, panel: null })}
           />
         )}
         head={(
-          <TerritorialWorkbenchHead
-            activeDef={activeDef}
-            activeSources={activeSources}
-            fieldPhaseHealth={fieldPhaseHealth}
-            headerAvance={headerAvance}
-            headerMeta={headerMeta}
-            headerValidas={headerValidas}
-            loadingView={loadingView}
-            nRows={state?.n_rows ?? reports?.kpis.total_respuestas ?? 0}
-            onPhaseChange={handlePhaseChange}
-            pestanaEstado={pestanaEstadoActiva}
-            pestanaLabel={activeLocalTabDef?.label}
-            phase={phase}
-            pilotPhaseHealth={pilotPhaseHealth}
+          <CabeceraTerritorial
+            direccion={direccion}
+            pestanas={pestanasRail}
+            onSubvista={(panel) => irA({ ...direccion, panel })}
           />
         )}
-        contentId={contextPanelId}
+        contentId={`monitoreo-${direccion.seccion}-panel`}
         contentRole="tabpanel"
-        contentAriaLabelledBy={contextTabId(pestanaActiva)}
+        contentClassName={lienzo ? "is-lienzo" : undefined}
+        contentAriaLabelledBy={`monitoreo-${direccion.seccion}-tab-${direccion.pestana}`}
       >
           {error && (
             <TerritorialViewError message={error} onRetry={refreshCurrentView} retrying={chromeBusy} />
@@ -2087,7 +1839,7 @@ export default function TerritorialMonitoreoPage() {
           {activeLoading ? (
             <TerritorialLoadingView view={seccionActiva} />
           ) : (
-            renderView(seccionActiva, reports, {
+            renderPestana(direccion, reports, {
               pestanaActiva,
               busy: chromeBusy,
               onError: setError,
@@ -2104,6 +1856,7 @@ export default function TerritorialMonitoreoPage() {
               phase,
               selectedValidationResponseId,
               state,
+              irA,
             })
           )}
       </MonitoreoWorkbenchChrome>

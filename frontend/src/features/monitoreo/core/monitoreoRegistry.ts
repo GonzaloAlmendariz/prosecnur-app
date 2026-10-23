@@ -180,6 +180,19 @@ export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | 
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cuotas, ritmo y entregas", icon: BarChart3 },
 ];
 
+/**
+ * Las cuatro secciones públicas del modo territorial (revamp, 2026-10-23;
+ * `docs/qa/revamp-monitoreo/territorial.md` §1). La página sigue montando por
+ * dentro las de `TERRITORIAL_WORKBENCH_VIEWS` y las traduce en
+ * `profiles/territorial/navegacion/direccionTerritorial.ts`.
+ */
+export const TERRITORIAL_SECCIONES_PUBLICAS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
+  { key: "insumos", label: "Insumos", shortLabel: "Insumos", desc: "Fuentes, mapeo, padrón e historial", icon: PlugZap },
+  { key: "modelo", label: "Modelo", shortLabel: "Modelo", desc: "Metas, muestra y cuotas", icon: Route },
+  { key: "control", label: "Control", shortLabel: "Control", desc: "Calidad, ocurrencias y correcciones", icon: ShieldAlert },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Faltante, resumen, mapa y salidas", icon: BarChart3 },
+];
+
 export const TERRITORIAL_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuente", shortLabel: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
   { key: "modelo", label: "UMPs", shortLabel: "UMPs", desc: "Orden, responsables y manzanas", icon: Route },
@@ -225,5 +238,6 @@ export function seccionesPublicasDelModo(
   route: Pick<MonitoreoModoDefinicion, "family">,
 ): MonitoreoSeccionDefinicion<MonitoreoSeccionPublica>[] {
   if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
+  if (route.family === "territorial") return TERRITORIAL_SECCIONES_PUBLICAS;
   return seccionesDelModo(route);
 }
