@@ -54,6 +54,18 @@ describe("Control › Subsanaciones", () => {
     expect(ajusteParaAplicar(modelo.sugerencias[0], "").note).toBe("Aplicado desde Control › Subsanaciones: UMP 142 → UMP 143: 1 caso (hombre de 30 a 44 años).");
   });
 
+  it("un paquete ya rechazado se marca con su nota y el rechazo entra al historial", () => {
+    const rechazo = {
+      id: "rechazo_1", fase: "field", clavePaquete: "m142|m143|hombre|30-44", sugerenciaId: "s0", sourceBlockId: "m142", targetBlockId: "m143",
+      sourceUmp: "UMP 142", targetUmp: "UMP 143", sex: "Hombre", ageGroup: "30-44", casos: 1, nota: "Campo dice que no", autor: "coordinacion", fecha: "2026-07-04T09:00:00",
+    };
+    const con = construirSubsanaciones(CORTE, [rechazo]);
+    expect(con.sugerencias[0].rechazo?.nota).toBe("Campo dice que no");
+    expect(con.rechazadas).toBe(1);
+    expect(con.historial[0]).toMatchObject({ cuando: "04/07 09:00", estado: "rechazada", nota: "Campo dice que no", texto: "Rechazada · UMP 142 → UMP 143: hombre de 30 a 44 años · coordinacion" });
+    expect(construirSubsanaciones(CORTE).sugerencias[0].rechazo).toBeNull();
+  });
+
   it("un corte sin subsanaciones calculadas no se lee como «nada que subsanar»", () => {
     const sin = construirSubsanaciones({ operational_adjustments: { schema: "x", reason: "scope_sin_subsanaciones" } } as unknown as MonitoreoTerritorialDashboard);
     expect(sin.disponible).toBe(false);

@@ -673,6 +673,8 @@ errores_registrados <- function() {
     "E_MONITOREO_PUBLIC_PROFILE",                            "router_monitoreo.R",                "409",
     "E_MONITOREO_RESPONSE_ID",                               "router_monitoreo.R",                "400",
     "E_MONITOREO_ROUTE_PHASE",                               "router_monitoreo.R",                "400",
+    # Control › Subsanaciones: rechazo auditado del paquete sugerido (§3.11).
+    "E_MONITOREO_TERRITORIAL_RECHAZO_INVALIDO",              "monitoreo_territorial_rechazos.R",  "400",
     "E_MONITOREO_TERRITORIAL_REQUIRED",                      "router_monitoreo.R",                "409",
     # Avance › UMP · exploración (docs/qa/revamp-monitoreo/territorial.md §3.16b).
     "E_MONITOREO_TERRITORIAL_UMP_REQUERIDA",                 "monitoreo_territorial_casos_ump.R", "400",

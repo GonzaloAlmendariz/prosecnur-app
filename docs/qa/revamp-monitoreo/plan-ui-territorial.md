@@ -169,9 +169,21 @@ la Bandeja siguen montando las vistas heredadas.
   padrón sin DNI, la ruta) y las conciliaciones hechas. Cada conciliación va al lote del motor con un cambio auditado
   por respuesta. Pide el corte de Validación.
 
-Bloqueado, a decidir con el lead: «Rechazar» el paquete sugerido. Gonzalo pidió aplicar o rechazar con decisión
-auditada, pero el motor no tiene dónde guardar un rechazo. Hace falta un endpoint nuevo y su registro en
-`plumber_app.R`, que es compartido. Sin dibujar: el mapa de los movimientos activos de §3.11.
+«Rechazar» el paquete sugerido (autorizado por el lead): `api/R/monitoreo_territorial_rechazos.R`, con
+`GET …/subsanaciones/rechazos` y `POST …/subsanaciones/rechazar`.
+- El rechazo guarda nota, autor y fecha en la clave de sesión persistible `monitoreo_territorial_rechazos`, que viaja
+  en el `.pulso` y está censada en `session_schema.R`.
+- No vive en la config territorial por dos razones. La normalización del motor, que está congelado, arma esa config
+  como lista explícita y descarta claves nuevas. Y una entrada de `operational_adjustments` con estado distinto de
+  active/reverted se normaliza a «active», con lo que el rechazo se aplicaría.
+- La UI lo muestra en el historial y marca «ya rechazado» si el motor vuelve a sugerir el mismo paquete (misma clave:
+  bloque origen, bloque destino, sexo y edad, con la misma receta en R y en TS). El motor de sugerencias no lo filtra:
+  eso exigiría tocar `monitoreo_engine.R`.
+- Enganche: una línea en `plumber_app.R`, `E_MONITOREO_TERRITORIAL_RECHAZO_INVALIDO` en `errors_registry.R` y una fila
+  en `session_schema.R`.
+- El test R (`test-monitoreo-territorial-rechazos.R`) va en el `gate-area` del cierre.
+
+Sin dibujar: el mapa de los movimientos activos de §3.11, que queda para después de T7 y T8.
 
 **T6 (código listo, sin gate).** Control › Ocurrencias y Reportes UMP, propias y condicionales: solo existen si el
 proyecto declara el parte (`tieneOcurrencias`, E4).

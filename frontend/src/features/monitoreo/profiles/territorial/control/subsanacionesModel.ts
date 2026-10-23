@@ -3,6 +3,7 @@ import type {
   MonitoreoTerritorialOperationalAdjustment,
   MonitoreoTerritorialOperationalAdjustmentSuggestion,
 } from "../../../../../api/client";
+import { claveDePaquete, type RechazoDeSubsanacion } from "../../../../../api/monitoreoRechazos";
 import { celdaEnFrase, diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
 
 /**
@@ -33,11 +34,13 @@ export type PaqueteSugerido = {
   casos: number;
   distancia: string;
   motivo: string;
+  /** El coordinador ya rechazó este mismo paquete (el motor lo volvió a sugerir). */
+  rechazo: RechazoDeSubsanacion | null;
   /** Lo que se manda al motor al aplicar. */
   ajuste: MonitoreoTerritorialOperationalAdjustmentSuggestion;
 };
 
-export type EntradaDeHistorial = { id: string; cuando: string; orden: string; texto: string; nota: string; estado: "activa" | "revertida" };
+export type EntradaDeHistorial = { id: string; cuando: string; orden: string; texto: string; nota: string; estado: "activa" | "revertida" | "rechazada" };
 
 export type ModeloSubsanaciones = {
   disponible: boolean;
@@ -47,6 +50,7 @@ export type ModeloSubsanaciones = {
   activas: number;
   activasPorDistrito: Array<{ distrito: string; casos: number }>;
   revertidas: number;
+  rechazadas: number;
   historial: EntradaDeHistorial[];
   /** Ajustes activos, para revertir uno desde el historial. */
   idsActivos: Set<string>;
@@ -87,7 +91,11 @@ function cuandoDe(fecha: unknown): { cuando: string; orden: string } {
   return { cuando: `${diaYMes(texto)}${hora ? ` ${hora}` : ""}`, orden: texto };
 }
 
-export function construirSubsanaciones(reports: MonitoreoTerritorialDashboard | null | undefined): ModeloSubsanaciones {
+export function construirSubsanaciones(
+  reports: MonitoreoTerritorialDashboard | null | undefined,
+  rechazos: readonly RechazoDeSubsanacion[] = [],
+): ModeloSubsanaciones {
+  const rechazoPorClave = new Map(rechazos.map((rechazo) => [rechazo.clavePaquete, rechazo]));
   const ajustes = reports?.operational_adjustments;
   const disponible = Boolean(ajustes) && !/scope/i.test(String(ajustes?.reason ?? ""));
   const deficits = ajustes?.deficits ?? [];
@@ -122,6 +130,7 @@ export function construirSubsanaciones(reports: MonitoreoTerritorialDashboard | 
       casos: movimientos.reduce((suma, movimiento) => suma + movimiento.casos, 0),
       distancia: distanciaDe(sugerencia.distance_km ?? sugerencia.max_distance_km),
       motivo: String(sugerencia.reason ?? ""),
+      rechazo: rechazoPorClave.get(claveDePaquete(sugerencia)) ?? null,
       ajuste: sugerencia,
     };
   });
@@ -146,7 +155,19 @@ export function construirSubsanaciones(reports: MonitoreoTerritorialDashboard | 
       nota: String(item.note ?? ""),
       estado: revertida ? "revertida" : "activa",
     };
-  }).sort((a, b) => b.orden.localeCompare(a.orden));
+  });
+  for (const rechazo of rechazos) {
+    const { cuando, orden } = cuandoDe(rechazo.fecha);
+    historial.push({
+      id: rechazo.id,
+      cuando,
+      orden,
+      texto: `Rechazada · UMP ${numeroDeUmp(rechazo.sourceUmp)} → UMP ${numeroDeUmp(rechazo.targetUmp)}: ${celdaDelAjuste({ sex: rechazo.sex, age_group: rechazo.ageGroup })} · ${rechazo.autor}`,
+      nota: rechazo.nota,
+      estado: "rechazada",
+    });
+  }
+  historial.sort((a, b) => b.orden.localeCompare(a.orden));
 
   return {
     disponible,
@@ -156,6 +177,7 @@ export function construirSubsanaciones(reports: MonitoreoTerritorialDashboard | 
     activas: activos.length,
     activasPorDistrito: [...porDistrito.entries()].map(([distrito, casos]) => ({ distrito, casos })).sort((a, b) => b.casos - a.casos),
     revertidas: revertidos.length,
+    rechazadas: rechazos.length,
     historial,
     idsActivos: new Set(activos.map((item) => String(item.id ?? ""))),
   };

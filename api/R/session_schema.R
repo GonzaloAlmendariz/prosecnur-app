@@ -407,6 +407,7 @@ session_schema <- function() {
     "monitoreo_territorial_occurrences_snapshot", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_territorial_occurrences_history", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_territorial_operational_package_review_events", "literal", "persistible", "router_monitoreo.R", "session_set", "",
+    "monitoreo_territorial_rechazos", "literal", "persistible", "monitoreo_territorial_rechazos.R", "session_set", "rechazos auditados de paquetes de subsanación sugeridos (nota, autor, fecha) por fase; no vive en la config territorial porque su normalización descarta claves nuevas y la de operational_adjustments volvería «active» un rechazo. Un .pulso viejo no la trae y se lee como vacía",
     "monitoreo_dashboard_cache",   "literal", "cache_stripped", "router_monitoreo.R", "directa",     "clave sin scope (legacy)",
     "monitoreo_dashboard_cache_token", "literal", "cache_stripped", "router_monitoreo.R", "directa", "clave sin scope (legacy)",
     "monitoreo_dashboard_light_cache", "literal", "cache_stripped", "router_monitoreo.R", "directa", "",

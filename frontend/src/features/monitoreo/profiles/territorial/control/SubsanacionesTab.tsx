@@ -1,9 +1,10 @@
 import { memo, useMemo, useState } from "react";
 import { ArrowRight, Loader2, Scale } from "lucide-react";
-import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment } from "../../../../../api/client";
+import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { fmt } from "../rotulos";
+import { diaYMes, fmt } from "../rotulos";
 import { ajusteParaAplicar, construirSubsanaciones, type PaqueteSugerido } from "./subsanacionesModel";
+import { useRechazos } from "./useRechazos";
 import "./subsanaciones.css";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
@@ -14,20 +15,24 @@ type Aviso = { tono: "ok" | "error"; texto: string } | null;
  * coordinador aplica con una nota (queda en el historial con autor y fecha);
  * a la derecha las activas, las revertidas y el historial, con «Revertir».
  *
- * «Rechazar» el paquete no se dibuja todavía: el motor no tiene dónde guardar
- * un rechazo auditado (ver el plan, T5). `foco=<UMP>` (desde Faltante por UMP)
+ * «Rechazar» guarda la decisión con su nota, autor y fecha
+ * (`monitoreo_territorial_rechazos.R`); si el motor vuelve a sugerir el mismo
+ * paquete, se marca como ya rechazado. `foco=<UMP>` (desde Faltante por UMP)
  * pone primero el paquete de esa UMP.
  */
 function SubsanacionesTabImpl({
   reports,
+  phase,
   onApply,
   onRevert,
 }: {
   reports: MonitoreoTerritorialDashboard | null;
+  phase: MonitoreoTerritorialPhase;
   onApply?: (adjustment: MonitoreoTerritorialOperationalAdjustment) => Promise<unknown>;
   onRevert?: (id: string, reason?: string) => Promise<unknown>;
 }) {
-  const modelo = useMemo(() => construirSubsanaciones(reports), [reports]);
+  const { rechazos, rechazar } = useRechazos(phase);
+  const modelo = useMemo(() => construirSubsanaciones(reports, rechazos), [rechazos, reports]);
   const [foco] = useFocoMonitoreo();
   const [notas, setNotas] = useState<Record<string, string>>({});
   const [enCurso, setEnCurso] = useState<string | null>(null);
@@ -57,6 +62,19 @@ function SubsanacionesTabImpl({
     try {
       await onApply(ajusteParaAplicar(paquete, notas[paquete.id] ?? ""));
       setAviso({ tono: "ok", texto: `Paquete aplicado: UMP ${paquete.origen.ump} → UMP ${paquete.destino.ump}. El avance se recalculó.` });
+    } catch (error) {
+      setAviso({ tono: "error", texto: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setEnCurso(null);
+    }
+  };
+
+  const rechazarPaquete = async (paquete: PaqueteSugerido) => {
+    setEnCurso(`rechazo:${paquete.id}`);
+    setAviso(null);
+    try {
+      await rechazar(paquete.ajuste, notas[paquete.id] ?? "");
+      setAviso({ tono: "ok", texto: `Paquete rechazado: UMP ${paquete.origen.ump} → UMP ${paquete.destino.ump}. Queda en el historial.` });
     } catch (error) {
       setAviso({ tono: "error", texto: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -130,6 +148,12 @@ function SubsanacionesTabImpl({
                 <p className="mon-sub-base">
                   {fmt(paquete.casos)} {paquete.casos === 1 ? "caso" : "casos"}: {paquete.movimientos.map((m) => m.celda).join(", ")} · {paquete.distancia}
                 </p>
+                {paquete.rechazo ? (
+                  <p className="mon-sub-ya-rechazado">
+                    Ya rechazado el {diaYMes(paquete.rechazo.fecha) || "—"} por {paquete.rechazo.autor}
+                    {paquete.rechazo.nota ? `: «${paquete.rechazo.nota}»` : "."} El motor lo vuelve a sugerir.
+                  </p>
+                ) : null}
                 <label className="mon-sub-nota">
                   <span>Nota de la decisión</span>
                   <textarea
@@ -142,10 +166,16 @@ function SubsanacionesTabImpl({
                     }}
                   />
                 </label>
-                <button type="button" className="mon-sub-boton is-primario" disabled={!onApply || enCurso != null} onClick={() => { void aplicar(paquete); }}>
-                  {enCurso === paquete.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
-                  Aplicar paquete
-                </button>
+                <span className="mon-sub-acciones">
+                  <button type="button" className="mon-sub-boton" disabled={enCurso != null} onClick={() => { void rechazarPaquete(paquete); }}>
+                    {enCurso === `rechazo:${paquete.id}` ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
+                    Rechazar
+                  </button>
+                  <button type="button" className="mon-sub-boton is-primario" disabled={!onApply || enCurso != null} onClick={() => { void aplicar(paquete); }}>
+                    {enCurso === paquete.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
+                    Aplicar paquete
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
@@ -157,7 +187,7 @@ function SubsanacionesTabImpl({
       <section className="mon-sub-panel" aria-labelledby="mon-sub-activas" data-qa-geometry-member="activas">
         <header className="mon-sub-cabecera">
           <h3 id="mon-sub-activas">Subsanaciones aplicadas</h3>
-          <span className="mon-sub-base">{fmt(modelo.activas)} activas · {fmt(modelo.revertidas)} revertidas</span>
+          <span className="mon-sub-base">{fmt(modelo.activas)} activas · {fmt(modelo.revertidas)} revertidas · {fmt(modelo.rechazadas)} paquetes rechazados</span>
         </header>
         {modelo.activasPorDistrito.length ? (
           <ul className="mon-sub-distritos">
