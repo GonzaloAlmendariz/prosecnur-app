@@ -47,6 +47,8 @@ const CLAVES = [
   "complete", "partial", "refusal", "pending", "excluded",
   // Tipo de regla y nivel.
   "filtro", "regla", "aviso", "alta", "media", "baja",
+  // Estado de una pieza del contrato (TelefonicoSourcesModel `status`).
+  "ready", "inactive", "missing",
 ];
 
 const FORMA_DE_CLAVE = /^[a-z0-9]+([_-][a-z0-9]+)+$/;
@@ -204,11 +206,16 @@ const PESTANAS: Array<[string, () => string]> = [
     `${RUTA}&seccion=insumos&pestana=llave`,
   )],
   ["Tarjetas de fuente (universo, barrido y encuesta)", () => {
+    // Una pieza lista, una inactiva (sólo la hoja apagada) y una pendiente (sin
+    // encuesta): los tres estados de la tarjeta.
     const contrato = buildAcreditacionPhoneSourceContract([hoja, kobo]);
+    const sinEncuesta = buildAcreditacionPhoneSourceContract([apagada, { ...hoja, id: "barrido-apagado", enabled: false }]);
+    const piezas = [contrato.universe, contrato.sweep, contrato.platform, sinEncuesta.sweep, sinEncuesta.platform];
+    expect(new Set(piezas.map((slot) => slot.status))).toEqual(new Set(["ready", "inactive", "missing"]));
     return pintar(
       <>
-        {[contrato.universe, contrato.sweep, contrato.platform].map((slot) => (
-          <AcreditacionPhoneSourceSlotCard key={slot.key} slot={slot} icon={null} syncFallback="2026-07-27T09:04:00" onCambiar={nada} />
+        {piezas.map((slot, i) => (
+          <AcreditacionPhoneSourceSlotCard key={`${slot.key}-${i}`} slot={slot} icon={null} syncFallback="2026-07-27T09:04:00" onCambiar={nada} />
         ))}
       </>,
       `${RUTA}&seccion=insumos&pestana=llave`,
@@ -237,7 +244,7 @@ const PESTANAS: Array<[string, () => string]> = [
       objetivoTotal={150}
       onObjetivoTotal={nada}
       filtro="Intro/Consent: Yes"
-      calendario={{ ventana: "Semana 1", reporte: "Sin reporte", fases: 0, dias: [{ fecha: "2026-07-01", casos: 74 }] }}
+      calendario={{ ventana: "Semana 1", reporte: "Sin reporte", fases: 0, dias: [{ fecha: "2026-07-01", casos: 74 }], nota: "1 efectiva de Kobo sin sede no entra a la serie" }}
       estado={{ tono: "success", texto: "Cuotas telefónicas actualizadas." }}
     />,
     `${RUTA}&seccion=modelo&pestana=cuotas`,

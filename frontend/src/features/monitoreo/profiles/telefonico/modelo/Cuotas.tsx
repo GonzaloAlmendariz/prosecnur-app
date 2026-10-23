@@ -67,7 +67,7 @@ export function Cuotas({
   onObjetivoTotal: (valor: number | null) => void;
   /** «Intro/Consent: Yes», o vacío si no hay filtro de efectiva. */
   filtro: string;
-  calendario: { ventana: string; reporte: string; fases: number; dias: ReadonlyArray<{ fecha: string; casos: number }> };
+  calendario: { ventana: string; reporte: string; fases: number; dias: ReadonlyArray<{ fecha: string; casos: number }>; nota: string };
   estado: { tono: string; texto: string } | null;
 }) {
   const [nueva, setNueva] = useState("");
@@ -273,6 +273,7 @@ export function Cuotas({
                   </li>
                 ))}
               </ul>
+              {calendario.nota ? <p className="mon-metas-nota">{calendario.nota}.</p> : null}
             </>
           ) : null}
           <button
