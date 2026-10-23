@@ -16,7 +16,21 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { MonitoreoProfile } from "../../../api/client";
 
-export type MonitoreoSeccion = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
+export type MonitoreoSeccion =
+  | "avance"
+  | "ocurrencias"
+  | "consultas"
+  | "modelo"
+  | "fuentes"
+  | "telefonico"
+  | "calidad";
+/**
+ * Secciones que se pueden NOMBRAR en la barra del modo: las de siempre más las
+ * del esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23).
+ * Hoy sólo Telefónico declara `insumos` y `control`; las páginas de los otros
+ * modos siguen indexando por `MonitoreoSeccion` y no las ven.
+ */
+export type MonitoreoSeccionPublica = MonitoreoSeccion | "insumos" | "control";
 export type PestanaModeloOperativo = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
 export type MonitoreoModo = MonitoreoProfile["family"];
 
@@ -33,8 +47,8 @@ export type MonitoreoModoDefinicion = {
   sourceRoles: Array<{ label: string; detail: string }>;
 };
 
-export type MonitoreoSeccionDefinicion = {
-  key: MonitoreoSeccion;
+export type MonitoreoSeccionDefinicion<K extends MonitoreoSeccionPublica = MonitoreoSeccion> = {
+  key: K;
   label: string;
   shortLabel?: string;
   desc: string;
@@ -156,12 +170,14 @@ export const MONITOREO_SECCIONES: MonitoreoSeccionDefinicion[] = [
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cumplimiento y brechas", icon: BarChart3 },
 ];
 
-export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
-  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Encuestas, universo y barrido", icon: PlugZap },
-  { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas y cuotas telefónicas", icon: ListChecks },
-  { key: "telefonico", label: "Llamadas", shortLabel: "Llamadas", desc: "Estados, barrido y supervisión", icon: PhoneCall },
-  { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Efectivas, CodPulso y salvedades", icon: Search },
-  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Ritmo, cuotas, reportes y entregables", icon: BarChart3 },
+// Las cuatro secciones del esqueleto común, en el orden del operativo: lo que
+// se configura, lo que se controla mientras el campo corre y, al final, la
+// lectura. Ver `docs/qa/revamp-monitoreo/telefonico.md` §1.
+export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
+  { key: "insumos", label: "Insumos", shortLabel: "Insumos", desc: "Fuentes, llave y estados", icon: PlugZap },
+  { key: "modelo", label: "Modelo", shortLabel: "Modelo", desc: "Cuotas y calendario", icon: ListChecks },
+  { key: "control", label: "Control", shortLabel: "Control", desc: "Llamadas y casos", icon: PhoneCall },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cuotas, ritmo y entregas", icon: BarChart3 },
 ];
 
 export const TERRITORIAL_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
@@ -193,9 +209,21 @@ export const PESTANAS_MODELO_OPERATIVO: PestanaModeloOperativoDefinicion[] = [
   { key: "estrategias", label: "Calendario", desc: "Mecanismos por semana", icon: Route },
 ];
 
-export function seccionesDelModo(route: Pick<MonitoreoModoDefinicion, "family">) {
+/**
+ * Las secciones que una PÁGINA monta por dentro. Telefónico ya no las muestra:
+ * su barra lleva el esqueleto común (`seccionesPublicasDelModo`) y la página
+ * traduce cada sección pública a una de éstas.
+ */
+export function seccionesDelModo(route: Pick<MonitoreoModoDefinicion, "family">): MonitoreoSeccionDefinicion[] {
   if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
   if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
-  if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
   return MONITOREO_SECCIONES;
+}
+
+/** Las secciones que la barra del modo nombra y enlaza. */
+export function seccionesPublicasDelModo(
+  route: Pick<MonitoreoModoDefinicion, "family">,
+): MonitoreoSeccionDefinicion<MonitoreoSeccionPublica>[] {
+  if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
+  return seccionesDelModo(route);
 }

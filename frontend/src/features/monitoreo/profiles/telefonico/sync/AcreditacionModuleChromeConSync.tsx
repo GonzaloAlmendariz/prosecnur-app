@@ -1,13 +1,14 @@
-import type { ComponentProps } from "react";
-import { MonitoreoModuleChrome } from "../../../shell/MonitoreoModuleChrome";
+import { MonitoreoModuleChrome, type MonitoreoModuleChromeProps } from "../../../shell/MonitoreoModuleChrome";
+import type { MonitoreoSeccionPublica } from "../../../core/monitoreoRegistry";
 import { useSourceSyncStore } from "./sourceSyncStore";
 
-type Props = Omit<ComponentProps<typeof MonitoreoModuleChrome>, "syncProgress">;
+type Props = Omit<MonitoreoModuleChromeProps<MonitoreoSeccionPublica>, "syncProgress">;
 
 // Chrome de módulo suscrito al progreso del sync (unidad 2.2 del plan de
 // performance): el tick por segundo del job re-renderiza solo este wrapper
-// (y el chrome que pinta la barra), nunca la raíz del perfil.
+// (y el chrome que pinta la barra), nunca la raíz del perfil. Telefónico
+// nombra las secciones del esqueleto común (Insumos, Modelo, Control, Avance).
 export function AcreditacionModuleChromeConSync(props: Props) {
   const progress = useSourceSyncStore((state) => state.progress);
-  return <MonitoreoModuleChrome {...props} syncProgress={progress} />;
+  return <MonitoreoModuleChrome<MonitoreoSeccionPublica> {...props} syncProgress={progress} />;
 }

@@ -11,7 +11,7 @@ import {
   registrarPestanasDeSeccion,
 } from "../../lib/navegacion/runtime";
 import { describirDireccion } from "../../lib/navegacion/direccion";
-import type { MonitoreoSeccion } from "./core/monitoreoRegistry";
+import type { MonitoreoSeccionPublica as MonitoreoSeccion } from "./core/monitoreoRegistry";
 
 export function useRegistrarPestanasMonitoreo(
   modo: string,

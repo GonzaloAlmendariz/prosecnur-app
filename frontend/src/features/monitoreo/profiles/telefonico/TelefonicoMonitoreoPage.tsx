@@ -64,12 +64,16 @@ import { coberturaDelCorte } from "../../core/coberturaDelCorte";
 import { fuentesSincronizables, motivoSinFuentes } from "../../core/fuentesSincronizables";
 import { PIEZAS_DEL_PAQUETE_TELEFONICO, piezasRequeridas } from "../../core/paqueteDeFuentes";
 import {
+  monitoreoDireccionDesdeParams,
   monitoreoPestanaDesdeParams,
-  pestanaInicialDeSeccion,
-  seccionInicialMonitoreo,
   monitoreoSeccionDesdeParams,
-  useMonitoreoDireccion,
+  useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
+import { PANELES_DE_SUBVISTA, direccionDeVista, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionTelefonica";
+import { pestanasDelRail } from "./navegacion/modeloDelRail";
+import { RailTelefonico } from "./navegacion/RailTelefonico";
+import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
+import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import {
@@ -19607,108 +19611,6 @@ export function localTabsForTelefonicoView(
   return [];
 }
 
-function AcreditacionWorkbenchRail({
-  route,
-  seccionActiva,
-  pestanaActiva,
-  onCambioPestana,
-  syncedAt,
-  state,
-  reports,
-}: {
-  route: typeof ACREDITACION_ROUTE;
-  seccionActiva: MonitoreoSeccion;
-  pestanaActiva: string;
-  onCambioPestana: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
-  syncedAt: string;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const views = seccionesDelModo(route);
-  const isPhoneRoute = route.family === "telefonico";
-  const activeSection = views.find((item) => item.key === seccionActiva) ?? views[0] ?? {
-    label: route.shortLabel,
-    desc: "Vista operativa",
-    icon: route.icon,
-  };
-  const localTabs = localTabsForTelefonicoView(seccionActiva, state, reports, route);
-
-  return (
-    <MonitoreoWorkbenchRail
-      pestanaActiva={pestanaActiva}
-      activeSection={activeSection}
-      seccionActiva={seccionActiva}
-      ariaLabel={isPhoneRoute ? "Flujos de monitoreo telefónico" : "Flujos de monitoreo de acreditación"}
-      className={isPhoneRoute ? "is-telefonico" : "is-acreditacion"}
-      emptyDetail={reports?.report_scope ?? activeSection.desc ?? "Vista operativa"}
-      iconOnlyTabs
-      localTabs={localTabs}
-      modeCountLabel={`${localTabs.length || 1} pestañas`}
-      routeLabel={route.shortLabel}
-      routeSectionLabel={`${route.shortLabel} · sección`}
-      routeShortLabel={route.shortLabel}
-      statusAriaLabel="Última actualización del monitoreo"
-      statusItems={[
-        {
-          label: "Última actualización",
-          value: syncedAt || "Sin actualización",
-          ready: Boolean(syncedAt),
-        },
-      ]}
-      onCambioPestana={(key) => onCambioPestana(seccionActiva, key as AcreditacionLocalTabKey)}
-    />
-  );
-}
-
-function AcreditacionWorkbenchHead({
-  route,
-  seccionActiva,
-  pestanaActiva,
-  state,
-  reports,
-}: {
-  route: typeof ACREDITACION_ROUTE;
-  seccionActiva: MonitoreoSeccion;
-  pestanaActiva?: string;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const views = seccionesDelModo(route);
-  const meta = views.find((item) => item.key === seccionActiva) ?? views[0];
-  const Icon = meta.icon;
-  const activeSources = activeSourceCount(state);
-  const preferActors = seccionActiva === "modelo" || seccionActiva === "avance";
-  const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), preferActors);
-  const valid = num(state?.dashboard?.kpis?.valid, 0) || summary.effective;
-  const mechanisms = state?.config?.strategy_phases?.length ?? 0;
-  const actorCount = reports?.client_report?.actors?.length ?? 0;
-  const lastPill = seccionActiva === "modelo"
-    ? `${fmt(actorCount)} actores`
-    : `${fmt(mechanisms)} mecanismos`;
-
-  // El nombre y el estado de la pestaña activa se dicen acá: el rail es
-  // icon-only y su cuadrante no lleva rótulo ni marcas.
-  const pestanas = localTabsForTelefonicoView(seccionActiva, state, reports, route);
-  const pestanaDef = pestanas.find((tab) => tab.key === pestanaActiva);
-
-  return (
-    <MonitoreoWorkbenchHead
-      icon={Icon}
-      eyebrow={`${route.shortLabel} · flujo actual`}
-      title={meta.label}
-      pestanaLabel={pestanaDef?.label}
-      pestanaEstado={pestanaDef?.estado}
-      detail={meta.desc}
-      pills={[
-        `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} recibidas`,
-        `${fmt(valid)} válidas`,
-        lastPill,
-      ]}
-    />
-  );
-}
-
 function AcreditacionClarityStrip({
   seccionActiva,
   state,
@@ -19853,19 +19755,17 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
-  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
-    // El aterrizaje lo declara el catálogo, no este useState: era el segundo
-    // sitio donde se decidía lo mismo. Ver `pestanasDeFuentes`.
-    pestanaInicialDeSeccion("fuentes", seccionActiva, pestanaDeFuentesInicial(isPhone), ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
-  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
-    pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
-  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>
-    pestanaInicialDeSeccion("consultas", seccionActiva, "plataforma", ACREDITACION_CONSULTA_TABS.map((tab) => tab.key)));
-  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>(() =>
-    pestanaInicialDeSeccion("telefonico", seccionActiva, "resumen", ACREDITACION_PHONE_TABS.map((tab) => tab.key)));
-  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>(() =>
-    pestanaInicialDeSeccion("avance", seccionActiva, "resumen", ACREDITACION_ADVANCE_TABS.map((tab) => tab.key)));
+  // La dirección pública (Insumos, Modelo, Control, Avance) se traduce a la
+  // vista interna que se monta; sin dirección se aterriza en Avance › Cuotas.
+  // Ver `navegacion/direccionTelefonica.ts`.
+  const [entrada] = useState(() => vistaInicial(monitoreoDireccionDesdeParams(window.location.search)));
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(entrada.seccion);
+  // El aterrizaje de Fuentes lo declara el catálogo (`pestanasDeFuentes`).
+  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() => pestanaDeEntrada(entrada, "fuentes", pestanaDeFuentesInicial(isPhone)));
+  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() => pestanaDeEntrada<AcreditacionModelTab>(entrada, "modelo", "estructura"));
+  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() => pestanaDeEntrada<AcreditacionConsultaTab>(entrada, "consultas", "plataforma"));
+  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>(() => pestanaDeEntrada<AcreditacionPhoneTab>(entrada, "telefonico", "resumen"));
+  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>(() => pestanaDeEntrada<AcreditacionAdvanceTab>(entrada, "avance", "resumen"));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
@@ -20199,18 +20099,25 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     }
     void loadView(view);
   }, [loadView]);
-  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
-    onSeccionPedida: navigateSection,
-    // `changeLocalTab` ya valida la pestaña contra el catálogo de la sección.
-    onPestanaPedida: (pestana, seccion) =>
-      changeLocalTab(seccion, pestana as AcreditacionLocalTabKey),
+  // La URL dice la dirección pública; `changeLocalTab` valida la vista pedida.
+  const vistaActiva = { seccion: seccionActiva, pestana: pestanaActiva };
+  const publica = direccionDeVista(vistaActiva);
+  useMonitoreoDireccionTraducida({
+    publica,
+    modo: modoIdDesdeFamily(route.family),
+    panelesPropios: PANELES_DE_SUBVISTA,
+    pideOtraVista: (pedida) => pideOtraVista(pedida, vistaActiva),
+    onPedida: (pedida) => {
+      const vista = vistaPedida(pedida);
+      if (vista) navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey);
+    },
   });
-  // Publica las pestañas de esta sección para que el inspector las enumere.
-  useRegistrarPestanasMonitoreo(
-    modoIdDesdeFamily(route.family),
-    seccionActiva,
-    localTabsForTelefonicoView(seccionActiva, state, reports, route),
+  // El rail y el inspector enumeran las pestañas PÚBLICAS de la sección.
+  const pestanasPublicas = useMemo(
+    () => pestanasDelRail(publica.seccion, (vista) => localTabsForTelefonicoView(vista, state, reports, route)),
+    [publica.seccion, state, reports, route],
   );
+  useRegistrarPestanasMonitoreo(modoIdDesdeFamily(route.family), publica.seccion, pestanasPublicas);
   const hideWorkbenchStatus = seccionActiva === "consultas" && (activeConsultaTab === "plataforma" || (!isPhone && activeConsultaTab === "base"));
   const changeLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     if (view === "fuentes" && ACREDITACION_SOURCE_TABS.some((item) => item.key === tab)) {
@@ -20302,7 +20209,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           routes={[route]}
           route={route}
           routeSelected
-          seccionActiva={seccionActiva}
+          seccionActiva={publica.seccion}
           saving={chromeBusy}
           syncedAt={state?.synced_at ?? ""}
           generatedAt={state?.generated_at ?? reports?.generated_at ?? ""}
@@ -20322,7 +20229,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
-          onCambioSeccion={navigateSection}
+          onCambioSeccion={(seccion) => {
+            const vista = vistaDeSeccionPedida(seccion);
+            navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey);
+          }}
         />
 
         <MonitoreoWorkbenchChrome
@@ -20330,26 +20240,35 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           ariaLabel={`Mesa de trabajo de ${isPhone ? "monitoreo telefónico" : "acreditación"}: ${activeDef.label}`}
           className="is-acreditacion"
           contentRole="tabpanel"
-          contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
+          contentId={`monitoreo-${publica.seccion}-panel`}
+          contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}
           scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
-            <AcreditacionWorkbenchRail
-              route={route}
-              seccionActiva={seccionActiva}
-              pestanaActiva={pestanaActiva}
-              onCambioPestana={changeLocalTab}
-              syncedAt={state?.synced_at ?? ""}
-              state={state}
-              reports={reports}
+            <RailTelefonico
+              seccion={publica.seccion}
+              pestana={publica.pestana}
+              pestanas={pestanasPublicas}
+              corte={state?.synced_at ?? ""}
+              onCambioPestana={(pestana) => {
+                const vista = vistaPrincipal(publica.seccion, pestana);
+                if (vista) navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey);
+              }}
             />
           )}
           head={(
-            <AcreditacionWorkbenchHead
-              route={route}
-              seccionActiva={seccionActiva}
-              pestanaActiva={pestanaActiva}
-              state={state}
-              reports={reports}
+            <CabeceraTelefonica
+              seccion={publica.seccion}
+              pestana={publica.pestana}
+              pestanas={pestanasPublicas}
+              control={(
+                <SubvistasDePestana
+                  seccion={publica.seccion}
+                  pestana={publica.pestana}
+                  activa={vistaActiva}
+                  disponible={(vista) => vista.pestana !== "subsanacion" || phoneConsultaCaveatCount > 0}
+                  onElegir={(vista) => navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey)}
+                />
+              )}
             />
           )}
           clarity={(
@@ -20362,7 +20281,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           status={null}
         >
           {seccionCargando ? (
-            <AcreditacionLoadingPanel view={seccionActiva} label={activeDef.label} phoneMode={isPhone} />
+            <AcreditacionLoadingPanel view={seccionActiva} label={pestanasPublicas.find((tab) => tab.key === publica.pestana)?.label ?? activeDef.label} phoneMode={isPhone} />
           ) : renderAcreditacionView(seccionActiva, reports, {
             activeSourceTab,
             activeModelTab,

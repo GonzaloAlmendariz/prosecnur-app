@@ -680,10 +680,12 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "telefonico",
         label: "Telefónico",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.fuentes },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.modelo },
-          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.telefonico },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.consultas },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23). Las
+          // direcciones anteriores (`fuentes`, `telefonico`, `consultas`) se
+          // leen como alias en `direccionTelefonica.ts`; nunca se escriben.
+          { id: "insumos", label: "Insumos", icon: PlugZap, to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.insumos },
+          { id: "modelo", label: "Modelo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.modelo },
+          { id: "control", label: "Control", icon: PhoneCall, to: "/monitoreo?seccion=control", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.control },
           { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.avance },
         ],
       },

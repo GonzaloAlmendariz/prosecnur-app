@@ -248,10 +248,10 @@ describe("manifiesto primario de navegación", () => {
         id: "telefonico",
         label: "Telefónico",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Llamadas", to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23).
+          { id: "insumos", label: "Insumos", to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "control", label: "Control", to: "/monitoreo?seccion=control", layoutPolicy: "viewport" },
           { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
@@ -353,7 +353,10 @@ describe("manifiesto primario de navegación", () => {
       declaradas
         .filter((tab) => tab.disponibilidad === "condicional")
         .map((tab) => tab.key),
-    ).toEqual(["subsanacion"]);
+      // Salvedades dejó de ser pestaña al pasar Telefónico al esqueleto común:
+      // es una sub-vista de Control › Respuestas. Reserva y Reemplazos, las
+      // condicionales del diseño, todavía no se declaran (P8 y P9).
+    ).toEqual([]);
   });
 
   it("adjunta sin clonar los catálogos de Muestra, Procesamiento y Dashboard", () => {

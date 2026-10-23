@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitoreo";
+import { MONITOREO_PESTANAS_INTERNAS_TELEFONICO } from "../../../../lib/navegacion/catalogos/monitoreo";
+
+const FUENTES_INTERNAS = [
+  MONITOREO_PESTANAS_INTERNAS_TELEFONICO.fuentes.activas,
+  MONITOREO_PESTANAS_INTERNAS_TELEFONICO.fuentes.sheets,
+  MONITOREO_PESTANAS_INTERNAS_TELEFONICO.fuentes.survey,
+];
 
 /**
  * El perfil Telefónico es un fork deliberado del de Acreditación (no se
@@ -95,7 +101,7 @@ describe("Telefónico: el rail de Fuentes nombra el objeto del estudio, no el se
     expect(railDeFuentes).toContain("railTab(active");
     expect(railDeFuentes).toContain("railTab(sheets");
     expect(railDeFuentes).toContain("railTab(survey");
-    expect(MONITOREO_PESTANAS.telefonico.fuentes.map((tab) => tab.label)).toEqual([
+    expect(FUENTES_INTERNAS.map((tab) => tab.label)).toEqual([
       "Fuentes activas",
       "Universo y barrido",
       "Encuestas",
@@ -160,7 +166,7 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
     // —el chrome ya lo dice justo encima—, así que «Universo y barrido» se leía
     // tres veces en la misma pantalla. El nombre por pregunta se conserva; lo
     // que se retira es la tercera copia.
-    const labels = MONITOREO_PESTANAS.telefonico.fuentes.map((tab) => tab.label);
+    const labels = FUENTES_INTERNAS.map((tab) => tab.label);
     expect(labels).toContain("Encuestas");
     expect(labels).toContain("Universo y barrido");
     expect(page).not.toContain('eyebrow: "Universo y barrido"');
