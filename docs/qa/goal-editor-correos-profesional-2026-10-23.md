@@ -23,8 +23,8 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 ## Cola
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| L0 | **Fase 0 — benchmark**: cómo resuelven estilo por bloque, secciones, imágenes, «cambiar por», guardado y edición en lienzo Mailchimp (nuevo editor), Beefree, Stripo y Unlayer; qué copiamos y qué no | `docs/qa/benchmark-editores-correo-2026-10.md` | ☐ |
-| L1 | **Fase 0 — diseño aprobado**: lienzo de maquetas del editor nuevo (biblioteca de secciones, panel de estilo, barra flotante, cada sección con y sin imagen, móvil) para que Gonzalo lo apruebe antes de tocar código | artifact de diseño + `/revamp-visual` + `govern-visual-harmony` | ☐ |
+| L0 | **Fase 0 — benchmark**: cómo resuelven estilo por bloque, secciones, imágenes, «cambiar por», guardado y edición en lienzo Mailchimp (nuevo editor), Beefree, Stripo y Unlayer; qué copiamos y qué no | `docs/qa/benchmark-editores-correo-2026-10.md` | ☑ ed7d0507a — tres niveles (sección ▸ columna ▸ bloque), presets en vez de padding numérico, «cambiar por» por ranuras, guardado como copia, reglas de imagen (proporción fija, @2x, alt, esquinas horneadas, sin texto sobre foto salvo Fecha límite) |
+| L1 | **Fase 0 — diseño aprobado**: lienzo de maquetas del editor nuevo (biblioteca de secciones, panel de estilo, barra flotante, cada sección con y sin imagen, móvil) para que Gonzalo lo apruebe antes de tocar código | artifact de diseño + `/revamp-visual` + `govern-visual-harmony` | ◐ publicado: [maquetas L1](https://claude.ai/artifact/TMbUJg6XhTxoRhJgixpdVn) — editor con sección seleccionada, biblioteca, panel Estilo, barra flotante, «Cambiar por», «Mis secciones», correo completo PC/celular, tres paletas + modo oscuro, las 9 secciones con y sin imagen y en celular, panel de recorte. Falta: la aprobación de Gonzalo |
 | L2 | Modelo de estilo por bloque (fondo, borde, esquinas, espaciado, color de texto) en plantilla, render R y validación | `api/R/collection_mail_styles.R`, `collection_mail_blocks.R`, `materialMail.ts` | ☐ |
 | L3 | Paleta del correo: colores del tema + sacados del logo y del banner | Identidad, render | ☐ |
 | L4 | Panel «Estilo» en el inspector para todo bloque | `PanelDeBloque.tsx` + componente nuevo | ☐ |
@@ -35,6 +35,8 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 | L9 | «Mis secciones» guardadas y reutilizables entre estudios | almacenamiento fuera del .pulso o en él (decidir con ADR) | ☐ |
 | L10 | Edición en lienzo: arrastrar, duplicar, barra flotante | `CapaDeEdicion.tsx` | ☐ |
 | L11 | Prueba real en Gmail, Outlook y celular de un correo con todas las secciones | envío de prueba | ☐ |
+| L12 | «Imagen completa» con una segunda imagen para el celular (una tabla de 600 px a 327 px deja letras de ~9 px) | render (media query + `<img>` alterno) | ☐ (salió de L1) |
+| L13 | Esquinas y círculo de persona horneados en el archivo (Outlook ignora `border-radius`) | `collection_mail_images.R` | ☐ (salió de L0) |
 
 ## Espera al usuario
 | Qué | Por qué no puedo yo |
@@ -43,6 +45,8 @@ Antecedentes ya hechos (no rehacer): render profesional del correo (5988884dd y 
 | Decidir dónde viven «Mis secciones» (por equipo, por estudio) | cambia el contrato del .pulso |
 
 ## Trampas
+- Una tabla o afiche hecho imagen se ve perfecto en 600 px y es ilegible en el celular: el texto escala con la imagen. Se mide el tamaño de letra resultante, no la imagen (L1).
+- Las fotos de las maquetas L1 son de Unsplash (licencia libre, sin atribución obligatoria): sirven para el diseño, no son material de un estudio. Sus recortes @2x están en el artifact.
 - Resolver el pedido al pie de la letra (un control, una pestaña) en vez de pensar el editor completo: es lo que Gonzalo marcó el 2026-10-23.
 - Lo que se ve bien en el navegador puede romperse en Outlook (imágenes de fondo, esquinas, columnas): todo diseño se valida contra el HTML de correo, no contra CSS de la app.
 - Una imagen sin dimensiones o sin recorte sale estirada o pixelada: toda imagen lleva tamaño fijo y versión @2x.
