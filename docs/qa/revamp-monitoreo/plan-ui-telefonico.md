@@ -299,3 +299,9 @@ vivían en la vieja «Universo y barrido» quedan cubiertas por la cadena y las 
   rompía su contrato de marcos iguales.
 - El volumen por fuente sale de la metadata del sync (`row_count`, `fetched_count`); las copias no la traen y la fila no
   pinta cifra. La del corte está en la cadena (2,726 en PDM).
+
+**Rechazo del verificador sobre `0e965bb13`.** «Columnas que se leen» pintaba claves internas del contrato (atencion,
+tramite, telefono). Ahora usa el diccionario `insumos/rotulosDeColumna.ts`, con un test que falla si el contrato agrega
+una clave sin rótulo. Avisos quita el prefijo `codigo:` de título, detalle, desglose y notas, no sólo de los afectados.
+Con la señal de asignación se cuentan personas distintas. Renombrar una fuente vuelve a decir «Guardando…» y
+«… actualizado.».
