@@ -74,6 +74,8 @@ import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
+import { CuotasFaltante } from "./avance/CuotasFaltante";
+import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { chipsDeCabecera, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -19026,6 +19028,10 @@ function renderAcreditacionView(
         onIrAFuentes={() => options.onNavigateLocalTab?.("fuentes", "activas")}
       />
     );
+  }
+  if (view === "avance" && options.activeAdvanceTab === "actores" && isTelefonicoMonitoreoState(options.state)) {
+    const { modelo, cadena } = entradaDeCuotasFaltante(reports, options.state, phoneQuotaCardsForDashboard(reports));
+    return <CuotasFaltante modelo={modelo} cadena={cadena} />; // Avance › Cuotas del revamp (T3).
   }
   const client = reports.client_report;
   if (view === "modelo") {
