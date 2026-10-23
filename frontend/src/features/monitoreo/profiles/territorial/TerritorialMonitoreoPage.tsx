@@ -88,6 +88,8 @@ import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
 import { ConciliacionTab } from "./control/ConciliacionTab";
 import { OcurrenciasTab } from "./control/OcurrenciasTab";
+import { CuotasTab } from "./modelo/CuotasTab";
+import { MetasTab } from "./modelo/MetasTab";
 import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
@@ -1243,6 +1245,12 @@ function renderPestana(
           onStateChange={options.onStateChange}
         />
       );
+    }
+    if (clave === "modelo/metas" && !direccion.panel) {
+      return <MetasTab reports={reports} state={options.state ?? null} phase={options.phase ?? "field"} />;
+    }
+    if (clave === "modelo/cuotas") {
+      return <CuotasTab reports={reports} state={options.state ?? null} avance={options.cortes?.avance ?? null} />;
     }
     if (clave === "control/ocurrencias" && !direccion.panel) return <OcurrenciasTab reports={reports} />;
     if (clave === "control/reportes" && !direccion.panel) {

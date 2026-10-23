@@ -199,3 +199,24 @@ proyecto declara el parte (`tieneOcurrencias`, E4).
 Sin dibujar: «Traer nuevas» en el vacío de Ocurrencias (el vacío remite a «Actualizar») y el tamaño fijo de 46 × 54 de
 las baldosas (se usa 46 × 40 para que quepan los seis distritos a 1440).
 
+**T7 (código listo, sin gate).** Modelo › Metas y muestra y Cuotas son pestañas propias (`modelo/`). Se leen aquí y se
+editan en Hojas de ruta.
+- **Metas** (`MetasTab.tsx`): meta por distrito con UMP, reemplazos, meta por UMP, y viviendas y población de las
+  manzanas titulares. Debajo, las dos fases (las mismas opciones del selector FASE) y «Cómo se arma la muestra»
+  (unidad, método, entrevistas y rango, reemplazos por UMP, eje). A la derecha, el mapa de la muestra
+  (`MapaDeLaMuestra.tsx`), con la misma cartografía y caché de Avance › Mapa: titulares con relleno, reemplazos como
+  anillo.
+  - El mapa de cobertura del atlas heredado no se reusó: pinta los distritos con la clave cruda del motor (lo detectó
+    `clavesSinRotulo`).
+  - Su readiness `false` mientras carga quedó declarada en `FALSE_TRANSITORIO`.
+- **Cuotas** (`CuotasTab.tsx`): las variables de cuota con su columna, la plantilla por UMP (la que usan las manzanas,
+  avisando cuántas traen otra), la cuota por distrito con su total y las reglas de flexibilidad que publica el motor
+  en los déficits (o «sin dato en este corte»).
+
+Sin dibujar, por falta de dato en los cortes que se piden:
+- La población 18+ del distrito y «Cuota frente a población 18+» (Censo 2017): `route_population` solo viaja en el
+  corte completo.
+- El aviso de contradicción entre celdas cruzadas y marginales: es la pregunta 6, y `route_quota` también solo viaja
+  completo.
+- Las reglas se muestran como lectura y no como interruptores: no hay endpoint para cambiarlas.
+

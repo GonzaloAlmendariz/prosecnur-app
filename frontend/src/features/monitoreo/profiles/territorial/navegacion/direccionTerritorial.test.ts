@@ -110,6 +110,10 @@ describe("dirección pública del modo territorial", () => {
     expect(esPestanaPropia({ seccion: "control", pestana: "ocurrencias", panel: null })).toBe(true);
     expect(esPestanaPropia({ seccion: "control", pestana: "reportes", panel: null })).toBe(true);
     expect(esPestanaPropia({ seccion: "control", pestana: "reportes", panel: "alertas" })).toBe(false);
+    // Modelo: Metas y Cuotas propias; la sub-vista Manzanas sigue heredada.
+    expect(esPestanaPropia({ seccion: "modelo", pestana: "metas", panel: null })).toBe(true);
+    expect(esPestanaPropia({ seccion: "modelo", pestana: "metas", panel: "manzanas" })).toBe(false);
+    expect(esPestanaPropia({ seccion: "modelo", pestana: "cuotas", panel: null })).toBe(true);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {

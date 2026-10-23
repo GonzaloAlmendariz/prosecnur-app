@@ -23,6 +23,8 @@ import { ConciliacionTab } from "./control/ConciliacionTab";
 import { OcurrenciasTab } from "./control/OcurrenciasTab";
 import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
+import { CuotasTab } from "./modelo/CuotasTab";
+import { MetasTab } from "./modelo/MetasTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
 import { CORTE_DE_CUOTAS } from "./avance/fixtures/corteDeCuotas";
@@ -161,6 +163,18 @@ const PESTANAS: Array<[string, () => string]> = [
   ["Control › Reportes UMP con la 143 elegida", () => pintar(
     <ReportesTab ocurrencias={OCURRENCIAS} validacion={AUDITORIA} />,
     "/monitoreo?modo=territorial&seccion=control&pestana=reportes&foco=143",
+  )],
+  ["Modelo › Metas y muestra", () => pintar(
+    <MetasTab
+      reports={{ ...CORTE_DE_CUOTAS, route_blocks: [{ id_manzana: "m1", ubigeo: "150135", distrito: "SAN MARTIN DE PORRES", zona: "063", manzana: "0590", tipo_manzana: "titular", viviendas: 30, poblacion: 120, entrevistas: 8, metodo: "pps", rango_inicio: 1, rango_fin: 8, meta: 8, validas: 8, revision: 0, no_defendibles: 0, avance_pct: 100, brecha: 0 }] } as unknown as MonitoreoTerritorialDashboard}
+      state={null}
+      phase="field"
+    />,
+    "/monitoreo?modo=territorial&seccion=modelo&pestana=metas",
+  )],
+  ["Modelo › Cuotas", () => pintar(
+    <CuotasTab reports={CORTE_DE_CUOTAS} state={{ config: { territorial: { sex_var: "Core/E2_sex", age_var: "Core/E1_age" } } } as unknown as MonitoreoState} avance={null} />,
+    "/monitoreo?modo=territorial&seccion=modelo&pestana=cuotas",
   )],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];

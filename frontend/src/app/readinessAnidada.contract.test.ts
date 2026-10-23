@@ -161,6 +161,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "`exploradorListo`: sólo mientras lee la base; error y marco son terminales en true (AD6)",
   "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx": "`loading` de la página",
   "features/monitoreo/profiles/territorial/TerritorialMonitoreoPage.tsx": "`activeLoading` de la página",
+  "features/monitoreo/profiles/territorial/modelo/MapaDeLaMuestra.tsx":
+    "carga de la cartografía de Hojas de ruta: termina cuando cada distrito se resuelve, haya llegado o fallado",
   "features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx":
     "carga de la sección; un error de PÁGINA sigue en false por la política de página (Bitácora en auditReadyRoutes)",
   "features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx":
