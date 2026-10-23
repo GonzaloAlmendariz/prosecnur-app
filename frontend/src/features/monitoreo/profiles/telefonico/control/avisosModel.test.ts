@@ -51,6 +51,34 @@ describe("Control › Avisos del telefónico", () => {
     expect(destinoDeAviso("duracion_muy_larga", "short_duration").direccion).toEqual({ seccion: "control", pestana: "respuestas" });
   });
 
+  it("tres alertas por caso de dos responsables cuentan casos y nombran sus CodPulso", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVH0003", { Responsable: "Lucía", CodPulso: "MVH0003" }),
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVH0007", { Responsable: "Lucía", CodPulso: "MVH0007" }),
+      fila("Alta", "Efectivo telefonico sin efectiva Kobo", "MVV0011", { Responsable: "Marco", CodPulso: "MVV0011" }),
+    ]));
+    const aviso = avisos.find((item) => /sin efectiva kobo/i.test(item.codigo));
+    expect(aviso).toBeDefined();
+    expect(aviso?.unidad).toBe("casos");
+    expect(aviso?.casos).toBe(3);
+    expect(aviso?.titulo).not.toMatch(/responsables/);
+    expect(aviso?.detalle).not.toMatch(/más marcado/);
+    expect(aviso?.afectados.map((caso) => caso.codigo).sort()).toEqual(["MVH0003", "MVH0007", "MVV0011"]);
+    // El desglose junta a cada persona una vez.
+    const etiquetas = aviso?.desglose.map((linea) => linea.etiqueta) ?? [];
+    expect(new Set(etiquetas).size).toBe(etiquetas.length);
+  });
+
+  it("con responsables empatados no dice «el más marcado»", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos por iniciar", { Responsable: "Ana" }),
+      fila("Media", "Responsable con casos por iniciar", "Beto tiene 4 casos por iniciar", { Responsable: "Beto" }),
+    ]));
+    const aviso = avisos.find((item) => item.unidad === "responsables");
+    expect(aviso).toBeDefined();
+    expect(aviso?.detalle).not.toMatch(/más marcado/);
+  });
+
   it("da ids únicos aunque dos grupos compartan causa", () => {
     const { avisos } = construirAvisos(reportes([
       fila("Alta", "cruce_llave_bajo", "a"),
