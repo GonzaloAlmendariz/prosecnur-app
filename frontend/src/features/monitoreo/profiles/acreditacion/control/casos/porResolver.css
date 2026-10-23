@@ -373,13 +373,13 @@
   text-align: left;
 }
 
-.acr-pr-grupo button > span:not([aria-hidden]) {
+.acr-pr-grupo button > span:not([aria-hidden], .acr-av-num) {
   flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.acr-pr-grupo button > :is(b, small, [aria-hidden]) {
+.acr-pr-grupo button > :is(b, small, [aria-hidden], .acr-av-num) {
   flex: 0 0 auto;
 }
 

@@ -546,3 +546,17 @@
 .acr-ct-embudo-fila {
   min-height: 36px;
 }
+
+/* «Conciliadas» no se parte por letra: la celda corta sus márgenes antes. */
+.acr-ct-matriz-celda {
+  padding: var(--pulso-space-2);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+
+/* En las columnas de Correo los paneles miden su contenido. */
+.acr-co-izquierda > *,
+.acr-co-derecha > * {
+  flex-shrink: 0;
+}

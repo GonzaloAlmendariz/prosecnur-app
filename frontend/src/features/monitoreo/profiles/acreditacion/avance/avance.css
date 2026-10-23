@@ -1361,3 +1361,9 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-franja .acr-res-kpi {
   align-self: stretch;
 }
+
+/* Las vistas apiladas (Salidas) no encogen sus paneles: lo que sobra lo
+ * desplaza el contenedor de la página. */
+.acr-sa > * {
+  flex-shrink: 0;
+}
