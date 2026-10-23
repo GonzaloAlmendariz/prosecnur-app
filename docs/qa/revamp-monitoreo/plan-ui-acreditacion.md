@@ -203,6 +203,15 @@ sobre asignados, el tamaño son los barridos, rótulos que no se pisan) y alerta
 - **Paridad pendiente:** la vista anterior listaba los cruces caso por caso con su razón; esa lectura por persona va
   en Control › Personas (columna «Cómo cruzó»), que es la siguiente.
 
+**A5, Control › Personas (escrita, sin gate ni capturas).** `control/casos/Personas.tsx` con `personasModelo.ts`
+(test), sobre `case_rollup`: estado por público con una fila de todos (Efectiva, Sin respuesta, Parcial, Rechazo y,
+si hay, Excluida o En revisión), que filtra la tabla con `foco=<público>`; canal y cómo cruzó de quienes respondieron;
+tabla de 50 por página con buscador, estados y exportación. Aquí queda también la lectura caso por caso del cruce que
+traía Consultas › Cruces efectivos.
+
+- **Diferencia con el lienzo:** exporta CSV (el mismo formato de la vista anterior), no XLSX. La paginación es en el
+  cliente sobre el transporte compacto de T1.6; la paginación en servidor que pide la ficha queda pendiente.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos

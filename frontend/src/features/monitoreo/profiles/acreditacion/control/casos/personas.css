@@ -1,0 +1,117 @@
+/* Control › Personas (ficha Ctl8): estado por público a 520 px, que filtra la
+ * tabla; la tabla paginada ocupa el resto y desplaza dentro. */
+
+.acr-ps {
+  grid-template-columns: 520px minmax(0, 1fr);
+}
+
+.acr-ps-izquierda {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-ps-estados th[scope="row"] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.acr-ps-barra {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.acr-ps-estados tbody tr.is-activa {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
+}
+
+.acr-ps-estados tbody tr.is-activa .acr-pub-nombre {
+  color: var(--pulso-module-monitoring);
+}
+
+.acr-ps-respondieron {
+  overflow: hidden;
+}
+
+.acr-ps-tabla {
+  overflow: hidden;
+}
+
+.acr-ps-tabla .acr-pr-cola-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.acr-ps-tabla td {
+  white-space: nowrap;
+}
+
+.acr-ps-filtros {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.acr-ps-filtros .acr-pr-buscador {
+  flex: 0 1 260px;
+}
+
+.acr-ps-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.acr-ps-chips .acr-av-chip {
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-ps-chips .acr-av-chip.is-activo {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.acr-ps-chips .acr-av-chip:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.acr-ps-estado {
+  display: inline-flex;
+  align-items: center;
+}
+
+.acr-ps-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-ps-paginas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+@media (max-width: 1365px) {
+  .acr-ps { grid-template-columns: 440px minmax(0, 1fr); }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps { grid-template-columns: minmax(0, 1fr); }
+  .acr-ps-izquierda { grid-template-rows: auto; }
+  .acr-ps-tabla .acr-pr-cola-marco { max-height: 520px; }
+}
