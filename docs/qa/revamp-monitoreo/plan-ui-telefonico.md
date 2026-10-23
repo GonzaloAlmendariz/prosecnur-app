@@ -35,7 +35,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☑ |
-| T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
+| T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ◐ (Cuotas, Ritmo y Entregas hechas; Reserva y Reemplazos esperan) |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
 
 Orden de la noche: T0, T1, T2, T3, T4, y luego T5 a T7 si el tiempo alcanza. Cada fase cierra en su propio commit en
@@ -372,3 +372,8 @@ desactualizado).
   dibuja porque el contenido real del PDF lo dice su tarjeta («Resumen por responsable, estados de llamada y
   trazabilidad del barrido contra Kobo»); «Por definir» (P15) queda en este plan.
 - La vista previa es HTML con las cifras del corte, no el PDF renderizado.
+
+**Tarjeta de fuente fuera del page-file.** `AcreditacionPhoneSourceSlotCard` vive en `insumos/TarjetaDeFuente.tsx` y la
+prueba de claves sin rótulo la monta para universo, barrido y encuesta; el contrato que leía su markup en la página
+(`TelefonicoSubsanacionGuia.test.ts`) lee también el archivo nuevo. La prueba cubre ya Barrido, Insistencia, Equipo,
+Respuestas, Avisos, Estados, Llave y filtros, Fuentes, las tarjetas de fuente, Cuotas, Ritmo y Entregas.
