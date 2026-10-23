@@ -70,6 +70,7 @@ import { Resumen } from "./avance/Resumen";
 import { PorResolver } from "./control/casos/PorResolver";
 import { Cruce } from "./control/casos/Cruce";
 import { Personas } from "./control/casos/Personas";
+import { Respuestas } from "./control/casos/Respuestas";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -16412,6 +16413,7 @@ function renderAcreditacionView(
   }
   if (view === "consultas" && options.activeConsultaTab === "cruces") return <Cruce consultas={normalizeInternalQueries(reports.internal_queries)} />; // Control › Cruce (A5).
   if (view === "consultas" && options.activeConsultaTab === "base") return <Personas consultas={normalizeInternalQueries(reports.internal_queries)} />; // Control › Personas (A5).
+  if (view === "consultas" && options.activeConsultaTab === "plataforma") return <Respuestas consultas={normalizeInternalQueries(reports.internal_queries)} />; // Control › Respuestas (A5).
   if (view === "consultas") {
     return (
       <AcreditacionConsultasPanel

@@ -115,3 +115,29 @@
   .acr-ps-izquierda { grid-template-rows: auto; }
   .acr-ps-tabla .acr-pr-cola-marco { max-height: 520px; }
 }
+
+/* Respuestas (Ctl9) reutiliza la grilla con facetas a 280 px. */
+.acr-ps.is-respuestas {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.acr-rs-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 var(--pulso-space-2);
+}
+
+.acr-rs-total b {
+  font-size: 24px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+@media (max-width: 1365px) {
+  .acr-ps.is-respuestas { grid-template-columns: 240px minmax(0, 1fr); }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-respuestas { grid-template-columns: minmax(0, 1fr); }
+}
