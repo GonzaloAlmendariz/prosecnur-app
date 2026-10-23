@@ -358,3 +358,17 @@ cabecera: el pico (133 el 03/07) y el día en que se cruza la meta (04/07).
   Kobo y la hoja: están en Control › Barrido y Control › Discrepancias.
 - Las clases del Ritmo usan el prefijo `mon-cadencia-` y las de Cuotas `mon-metas-`: `mon-ritmo-*` y `mon-cuotas-*` ya
   existían en otras hojas y se pisaban.
+
+**T8, Avance › Entregas.** `profiles/telefonico/avance/Entregas.tsx`. A la izquierda, «Para el cliente: avance por
+cuota»: la vista del PDF del cliente con las cifras del corte (categoría, meta, efectivas, faltan y avance, del mismo
+modelo que Avance › Cuotas; PDM 400, 423, 0 y 105.8 %). A la derecha, las salidas de siempre
+(`MonitoreoOutputsWorkbench`) apiladas en una columna: el PDF del cliente, el de producción para el equipo, la base
+para Procesamiento y la publicación en las hojas del cliente e interna, con su revisión antes de aplicar. La vista no
+publica ni genera nada por su cuenta; los bloqueos de readiness siguen igual (PDM «Bloqueado» porque el corte quedó
+desactualizado).
+
+- **Diferencias con el lienzo**: los botones «Publicar en la hoja del cliente» y «Descargar PDF» no se duplican en la
+  cabecera de la vista previa (viven en las salidas, con su ensayo); la lista numerada del PDF de producción no se
+  dibuja porque el contenido real del PDF lo dice su tarjeta («Resumen por responsable, estados de llamada y
+  trazabilidad del barrido contra Kobo»); «Por definir» (P15) queda en este plan.
+- La vista previa es HTML con las cifras del corte, no el PDF renderizado.

@@ -29,6 +29,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
 import { Cuotas } from "./modelo/Cuotas";
 import { Ritmo } from "./avance/Ritmo";
+import { Entregas } from "./avance/Entregas";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -242,6 +243,25 @@ const PESTANAS: Array<[string, () => string]> = [
     `${RUTA}&seccion=modelo&pestana=cuotas`,
   )],
   ["Avance › Ritmo", () => pintar(<Ritmo reports={REPORTS} state={STATE} />, `${RUTA}&seccion=avance&pestana=ritmo`)],
+  ["Avance › Entregas", () => pintar(
+    <Entregas
+      modelo={{
+        segmento: "Sede",
+        filas: [{
+          clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple", meta: 107, efectivas: 109, faltan: 0, pct: 101.9,
+          acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03", sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
+        }],
+        total: { meta: 107, efectivas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
+        ritmo: null,
+        rendimiento: null,
+        sinAsignar: null,
+        faltanteDiario: { fechas: [], series: [] },
+      }}
+      corte="27/07/26, 9:04 a. m."
+      salidas={null}
+    />,
+    `${RUTA}&seccion=avance&pestana=entregas`,
+  )],
   ["Insumos › Fuentes", () => {
     const fuentes = [hoja, kobo, apagada];
     return pintar(
