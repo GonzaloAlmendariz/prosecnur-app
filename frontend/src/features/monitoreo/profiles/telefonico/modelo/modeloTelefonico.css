@@ -445,8 +445,25 @@
   scrollbar-color: var(--pulso-border-strong) transparent;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
+}
+
+/* Sin días ni categorías, el vacío se dice en el sitio que ocuparían y ocupa
+ * su alto: la tarjeta no cambia de marco entre cero y muchos. */
+.mon-metas-dias-vacio,
+.mon-metas-avance-vacio {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-height: 0;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.mon-metas-sin-categorias {
+  margin: var(--pulso-space-3) var(--pulso-space-4) 0;
 }
 
 .mon-metas-dias li {

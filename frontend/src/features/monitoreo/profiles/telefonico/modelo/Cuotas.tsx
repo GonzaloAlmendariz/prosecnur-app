@@ -144,6 +144,7 @@ export function Cuotas({
               <button type="button" className="mon-insumos-boton is-primario" onClick={onConfirmar}>{etiquetaConfirmar}</button>
             </div>
           ) : null}
+          {proporcion.length ? (
           <div className="mon-metas-marco">
             <table className="mon-ctl-tabla mon-metas-tabla">
               <thead>
@@ -189,10 +190,18 @@ export function Cuotas({
               </tbody>
             </table>
           </div>
+          ) : (
+            <NotaDelModo tono="neutro" className="mon-metas-sin-categorias">
+              {variable
+                ? `${etiquetaDeVariable} no tiene categorías en la base. Agrega una abajo o elige otro eje de cuota.`
+                : "Elige un eje de cuota para repartir la meta."}
+            </NotaDelModo>
+          )}
           {/* Debajo de la tabla, el avance de cada meta: con pocas categorías usa
             * el alto que la tabla no pide; con muchas baja y la tabla desplaza. */}
           <section className="mon-metas-avance" aria-label="Avance de cada meta" data-qa-geometry-capacity="owned">
             <span className="mon-ctl-antetitulo">Avance de cada meta</span>
+            {conPendientes.length ? (
             <div className="mon-metas-avance-lienzo" style={{ gridTemplateColumns: `repeat(${Math.max(1, conPendientes.length)}, minmax(0, 1fr))` }}>
               {conPendientes.map((fila) => {
                 const meta = fila.meta ?? 0;
@@ -212,6 +221,9 @@ export function Cuotas({
                 );
               })}
             </div>
+            ) : (
+              <p className="mon-metas-avance-vacio">Sin categorías, no hay metas que seguir.</p>
+            )}
           </section>
           <footer className="mon-metas-pie">
             <dl className="mon-metas-total">
@@ -280,7 +292,9 @@ export function Cuotas({
               </ul>
               {calendario.nota ? <NotaDelModo tono="aviso">{calendario.nota}.</NotaDelModo> : null}
             </>
-          ) : null}
+          ) : (
+            <p className="mon-metas-dias-vacio">Ningún día con efectivas de Kobo todavía.</p>
+          )}
           <button
             type="button"
             className="mon-insumos-boton"

@@ -261,16 +261,17 @@
   background: var(--pulso-warn-accent);
 }
 
+/* Sin serie, el panel de la serie ocupa la columna entera y centra el aviso;
+ * la tarjeta lateral también llega al pie para que ambas columnas terminen juntas. */
 .mon-cadencia-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
   padding: var(--pulso-space-6);
 }
 
-.mon-cadencia-vacio p {
-  margin: 0;
-  color: var(--pulso-text-soft);
+.mon-cadencia-lateral > .mon-cadencia-estados {
+  flex: 1 1 auto;
 }
 
 @media (max-width: 1400px) {

@@ -85,6 +85,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
+import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
@@ -578,11 +579,7 @@ function platformRejectionDrafts(rules: Array<Record<string, unknown>>): Platfor
 }
 
 function humanizeQuestionSlug(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b([a-záéíóúñ])/g, (letter) => letter.toLocaleUpperCase("es"));
+  return capitalizarPalabras(value.replace(/_/g, " ").replace(/\s+/g, " ").trim());
 }
 
 function platformQuestionLabel(variable: MonitoreoVariable) {
@@ -2595,9 +2592,7 @@ function phoneQuotaVariableOptions(variables: MonitoreoVariable[], controlVars: 
     || variables.some((variable) => variable.name === name)
     || rows.some((row) => normalizeSourceMatch(phoneRowValue(row, ["Variable"], "")) === normalizeSourceMatch(name))
   ));
-  const preferred = names.filter((name) => ["sede", "distrito", "dim_segmento", "segmento", "dim_actor"].includes(normalizeSourceMatch(name)));
-  const rest = names.filter((name) => !preferred.includes(name));
-  return [...preferred, ...rest];
+  return variablesDeCuotaOfrecidas(names, variables, [...controlVars, ...phoneQuotaGoalVariables(goals)]);
 }
 
 function preferredPhoneQuotaVariable(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
@@ -4103,11 +4098,7 @@ function phoneRowRatioPct(row: Record<string, unknown>, keys: string[]) {
 }
 
 function phoneQuotaVariableLabel(value: string) {
-  const raw = String(value ?? "").trim();
-  const cleaned = raw
-    .replace(/^(dim|dimension|variable|var|control)[_\s-]+/i, "")
-    .trim();
-  return humanizeQuestionSlug(cleaned || raw || "Variable");
+  return rotuloDeVariable(value);
 }
 
 function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: string) {
