@@ -143,7 +143,11 @@ describe("#1 · el texto de un bloque en el inspector se ve como en el lienzo", 
     }
     expect(inspector("motivo")).toContain('aria-multiline="true"');
     expect(inspector("titulo")).not.toContain('aria-multiline="true"');
-    expect(inspector("aviso")).toContain('aria-multiline="true"');
+    // Ítem 3 de checklist-inspector-correo-2026-10-23: los puntos del aviso ya
+    // no son un campo multilínea («Enter empieza otro punto»), sino una fila
+    // de una línea por punto (ListaDePuntos), cada una con su campo con chips.
+    expect(inspector("aviso")).not.toContain('aria-multiline="true"');
+    expect(inspector("aviso")).toContain('class="rec-mail-puntos"');
     // La dirección del botón: campo con chips, sin formato ni letra de texto corrido.
     expect(inspector("accion")).not.toMatch(/<input[^>]*value="[^"]*\{\{/);
     expect(inspector("accion")).toMatch(/rec-mail-input--campos is-mono/);

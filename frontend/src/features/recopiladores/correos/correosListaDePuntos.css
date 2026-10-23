@@ -1,0 +1,89 @@
+/* Los puntos de un Recuadro o de una Lista, uno por fila (ListaDePuntos.tsx).
+   Filas de altura pareja: marca · campo · acciones. Sólo tokens. */
+
+.rec-mail-puntos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.rec-mail-puntos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-mail-puntos-fila {
+  align-items: start;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+
+.rec-mail-puntos-marca {
+  color: var(--pulso-module-fieldkit);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 34px;
+  text-align: right;
+}
+
+.rec-mail-puntos-lista:not(.is-numerada) .rec-mail-puntos-marca {
+  font-size: 15px;
+}
+
+/* El campo de cada punto: el rótulo «Punto N» queda para el lector de
+   pantalla; B e I se montan dentro de la caja, a la derecha. */
+.rec-mail-puntos-campo {
+  min-width: 0;
+}
+
+.rec-mail-puntos-campo .rec-mail-campo-texto {
+  gap: var(--pulso-space-1);
+  position: relative;
+}
+
+.rec-mail-puntos-campo .rec-mail-campo-rotulo {
+  position: absolute;
+  right: 5px;
+  top: 6px;
+  z-index: 1;
+}
+
+.rec-mail-puntos-campo .rec-mail-campo-rotulo > span:first-child {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.rec-mail-puntos-campo .rec-mail-input.rec-mail-input--campos {
+  padding-right: 54px;
+}
+
+.rec-mail-puntos-acciones {
+  align-items: center;
+  display: inline-flex;
+  gap: 1px;
+  height: 34px;
+}
+
+.rec-mail-puntos-acciones .pulso-button--icon {
+  --pulso-button-height: 24px;
+  color: var(--pulso-text-soft);
+}
+
+.rec-mail-puntos-agregar.pulso-button {
+  align-self: flex-start;
+  margin-left: 24px;
+}

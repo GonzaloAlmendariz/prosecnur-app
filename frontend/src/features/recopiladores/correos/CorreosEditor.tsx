@@ -7,7 +7,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { AlertTriangle, LayoutList, ListChecks, Palette, RefreshCw, Send, Users, type LucideIcon } from "../../../vendor/lucide-react";
 import { BarraDelCorreo } from "./BarraDelCorreo";
-import { alcanceDelPaqueteSM, conTratoPorSexo, ofertaDelTrato } from "./modeloTrato";
+import { alcanceDelPaqueteSM, conTratoPorSexo, esProblemaDelTrato, ofertaDelTrato } from "./modeloTrato";
 import { mostrarInicioDelPanel, useConCajon } from "./anchoDelEditor";
 import { CajonDeBloques } from "./CajonDeBloques";
 import { MenuExportar } from "./MenuExportar";
@@ -763,6 +763,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                   editarUnBloque(saludo.block_id, (b) => (b.type === "greeting" ? conTratoPorSexo(b, columna) : b));
                 }}
                 onVerSaludo={saludo ? () => irAlBloque(saludo.block_id) : undefined}
+                saludo={saludo}
+                problemasDelSaludo={saludo ? (problemas.porBloque[saludo.block_id] ?? []).filter(esProblemaDelTrato) : []}
+                onEditarSaludo={saludo ? (update, grupo) => editarUnBloque(saludo.block_id, (b) => (b.type === "greeting" ? update(b) : b), grupo) : undefined}
                 onEditar={editar}
                 onImportar={(file) => { void acciones.importar(file); }}
                 onMapear={(mapping) => { void acciones.mapear(mapping); }}
