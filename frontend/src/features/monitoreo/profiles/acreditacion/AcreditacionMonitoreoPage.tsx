@@ -72,6 +72,7 @@ import { Cruce } from "./control/casos/Cruce";
 import { Personas } from "./control/casos/Personas";
 import { Respuestas } from "./control/casos/Respuestas";
 import { Calidad } from "./control/casos/Calidad";
+import { Publicos } from "./insumos/Publicos";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
@@ -16388,6 +16389,10 @@ function renderAcreditacionView(
   // Fuentes va ANTES del guardia del corte: es la sección que produce el corte.
   // Detrás del guardia, un estudio recién abierto veía «Resumen pendiente» en el
   // único sitio donde podía conectar sus fuentes. Ver `core/corteVacio`.
+  if (view === "fuentes" && (options.activeSourceTab ?? PESTANA_DE_FUENTES_POR_DEFECTO) === "actores") { // Insumos › Públicos (A6).
+    const perfil = options.state?.config?.monitoreo_profile;
+    return <Publicos sources={options.state?.sources ?? []} unidades={(perfil?.units ?? []) as unknown as MonitoreoActorUnit[]} llave={perfil?.key_rules?.universe_fields ?? []} onStateChange={options.onStateChange} />;
+  }
   if (view === "fuentes") {
     return (
       <AcreditacionSourcesWorkbench

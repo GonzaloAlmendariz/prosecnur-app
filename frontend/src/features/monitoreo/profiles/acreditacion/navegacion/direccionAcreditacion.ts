@@ -80,6 +80,8 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
   },
   aterrizaje: ATERRIZAJE_ACREDITACION,
   superpuestos: {
+    // El padrón del público en Insumos › Públicos: `panel=publico&foco=<público>`.
+    "insumos/publicos": ["publico"],
     // El caso en Control › Por resolver: `panel=caso&foco=<response_id>`.
     "control/resolver": ["caso"],
     // La ficha de un caso de la cola en Control › Reintentos (`ColaDeInsistencia`).
