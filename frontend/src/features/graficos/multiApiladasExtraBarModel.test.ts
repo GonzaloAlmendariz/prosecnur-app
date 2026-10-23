@@ -1,80 +1,42 @@
 import { describe, expect, test } from "vitest";
 import { mergeMultiApiladasArgsPatch } from "./multiApiladasExtraBarModel";
 
-function extraBarValue(args: Record<string, unknown>): unknown {
-  const overrides = args.overrides as Record<string, unknown> | undefined;
-  return overrides?.mostrar_barra_extra;
-}
-
 describe("mergeMultiApiladasArgsPatch", () => {
-  test("cambiar de lectura con el Top Two Box encendido no apaga la columna", () => {
+  test("cambiar de lectura conserva la barra extra de la lámina y no inventa overrides", () => {
     const merged = mergeMultiApiladasArgsPatch(
-      { top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] },
+      { barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] },
       { modo: "var" },
     );
 
-    expect(extraBarValue(merged)).toBe(true);
+    expect(merged.barra_extra).toEqual(["top2box"]);
+    expect(merged.overrides).toBeUndefined();
+    expect(merged).not.toHaveProperty("mostrar_barra_extra");
   });
 
-  test("declara la barra extra apagada por defecto", () => {
+  test("ya no declara una barra extra apagada por defecto ni escribe claves viejas", () => {
     const merged = mergeMultiApiladasArgsPatch({}, { vars: ["estudiantes$p1"] });
 
-    expect(extraBarValue(merged)).toBe(false);
+    expect(merged).toEqual({ vars: ["estudiantes$p1"] });
   });
 
-  test.each([
-    [true, true],
-    [false, false],
-  ])("sincroniza Top 2=%s con barra extra=%s", (top2box, expected) => {
+  test("un patch con barra_extra la escribe en el bloque; false se conserva (apagada propia)", () => {
+    expect(mergeMultiApiladasArgsPatch({ vars: ["a"] }, { barra_extra: ["conteos"] }).barra_extra).toEqual(["conteos"]);
+    expect(mergeMultiApiladasArgsPatch({ vars: ["a"] }, { barra_extra: false }).barra_extra).toBe(false);
+  });
+
+  test("barra_extra: null quita la declaración para que el bloque vuelva a heredar", () => {
+    const merged = mergeMultiApiladasArgsPatch({ barra_extra: false, titulo: "x" }, { barra_extra: null });
+
+    expect(merged).toEqual({ titulo: "x" });
+  });
+
+  test("fusiona los overrides clave a clave y preserva los ajenos", () => {
     const merged = mergeMultiApiladasArgsPatch(
-      { overrides: { mostrar_barra_extra: !expected } },
-      { top2box },
+      { overrides: { ancho_max_eje_y: 44, barra_extra: false } },
+      { overrides: { barra_extra: ["top2box"] }, top2box_labels: ["Satisfecho", "Muy satisfecho"] },
     );
 
-    expect(extraBarValue(merged)).toBe(expected);
-  });
-
-  test.each([
-    [true, false],
-    [false, true],
-  ])(
-    "Top 2=%s cede ante el override explicito barra extra=%s",
-    (top2box, mostrarBarraExtra) => {
-      const merged = mergeMultiApiladasArgsPatch(
-        { overrides: { mostrar_barra_extra: top2box } },
-        {
-          top2box,
-          overrides: { mostrar_barra_extra: mostrarBarraExtra },
-        },
-      );
-
-      expect(extraBarValue(merged)).toBe(mostrarBarraExtra);
-    },
-  );
-
-  test("preserva el override actual durante cambios ajenos", () => {
-    const merged = mergeMultiApiladasArgsPatch(
-      {
-        top2box: true,
-        overrides: { mostrar_barra_extra: false, ancho_max_eje_y: 44 },
-      },
-      { top2box_labels: ["Satisfecho", "Muy satisfecho"] },
-    );
-
-    expect(extraBarValue(merged)).toBe(false);
-  });
-
-  test("aplica el mismo contrato a un subbloque", () => {
-    const mergedBlock = mergeMultiApiladasArgsPatch(
-      {
-        modo: "var",
-        vars: ["docentes$p2"],
-        overrides: { mostrar_barra_extra: false },
-      },
-      { top2box: true },
-    );
-
-    expect(mergedBlock.modo).toBe("var");
-    expect(extraBarValue(mergedBlock)).toBe(true);
+    expect(merged.overrides).toEqual({ ancho_max_eje_y: 44, barra_extra: ["top2box"] });
+    expect(merged.top2box_labels).toEqual(["Satisfecho", "Muy satisfecho"]);
   });
 });

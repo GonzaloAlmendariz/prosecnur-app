@@ -1,0 +1,99 @@
+/* Barra extra (interruptor + chips). Intrínseca: crece con sus chips y categorías; el scroll es del contenedor que la
+   aloja (C4). Geometría en la escala del sistema; nada se recorta (min-width: 0, overflow-wrap). */
+
+.pulso-barra-extra {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2) 0;
+}
+
+.pulso-barra-extra-cabeza {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--pulso-space-3);
+  row-gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-barra-extra-rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+
+.pulso-barra-extra-ayuda {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-barra-extra-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-barra-extra-chip {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  white-space: normal;
+  text-align: left;
+}
+
+.pulso-barra-extra-chip[aria-pressed="true"] {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-weight: 700;
+}
+
+.pulso-barra-extra-chip:disabled {
+  color: var(--pulso-text-soft);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pulso-barra-extra-chip:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+}
+
+.pulso-barra-extra-nota,
+.pulso-barra-extra-estado {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-barra-extra-estado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-barra-extra-estado.is-error { color: var(--pulso-danger-fg); }
+.pulso-barra-extra-estado.is-pendiente { color: var(--pulso-warn-fg); }
+
+.pulso-barra-extra-categorias {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-barra-extra-restablecer {
+  justify-self: start;
+}

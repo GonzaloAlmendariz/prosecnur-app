@@ -39,7 +39,7 @@ const SATISF_TTB = ["Satisfecho", "Muy satisfecho"];
 
 describe("ficha de la maqueta: los casos de la galería", () => {
   it("1 · públicos por tema, 1 tema × 3 públicos, con Top Two Box", () => {
-    const f = ficha(multi({ modo: "var_cruce", vars: { t1: tema("cultura", ["docentes", "administrativos", "estudiantes"]) }, top2box: true, top2box_labels: SATISF_TTB }));
+    const f = ficha(multi({ modo: "var_cruce", vars: { t1: tema("cultura", ["docentes", "administrativos", "estudiantes"]) }, barra_extra: ["top2box"], top2box_labels: SATISF_TTB }));
     expect(f).toMatchObject({ tipo: "Multiapiladas", lectura: "Públicos por tema", publicos: ["Docentes", "Administrativos", "Estudiantes"], ajustes: ["Top Two Box"], avisos: [] });
     expect(filasDe(f)).toBe(3);
     expect(f.leyendas).toHaveLength(1);
@@ -72,7 +72,7 @@ describe("ficha de la maqueta: los casos de la galería", () => {
 
   it("6 · bloques con la misma escala: una sola leyenda, sin título, y «2 bloques»", () => {
     const f = ficha(multi({ modo: "multilista", bloques: [
-      { titulo: "Aulas", top2box: true, vars: { t: tema("salud") } }, { titulo: "Biblioteca", top2box: true, vars: { t: tema("bienestar") } },
+      { titulo: "Aulas", barra_extra: ["top2box"], vars: { t: tema("salud") } }, { titulo: "Biblioteca", barra_extra: ["top2box"], vars: { t: tema("bienestar") } },
     ] }));
     expect(f.leyendas).toHaveLength(1);
     expect(f.leyendas[0].titulo).toBeNull();
@@ -82,7 +82,7 @@ describe("ficha de la maqueta: los casos de la galería", () => {
 
   it("7 · bloques con escalas distintas: una leyenda por bloque con su título, Top Two Box en uno", () => {
     const f = ficha(multi({ modo: "multilista", bloques: [
-      { titulo: "Satisfacción", top2box: true, vars: { t: tema("salud") } }, { titulo: "Frecuencia de uso", vars: { t: tema("uso") } },
+      { titulo: "Satisfacción", barra_extra: ["top2box"], vars: { t: tema("salud") } }, { titulo: "Frecuencia de uso", vars: { t: tema("uso") } },
     ] }));
     expect(f.leyendas.map((l) => l.titulo)).toEqual(["Satisfacción", "Frecuencia de uso"]);
     expect(f.ajustes).toEqual(["Top Two Box en un bloque", "2 bloques"]);
@@ -114,16 +114,16 @@ describe("ficha de la maqueta: los casos de la galería", () => {
   });
 
   it("lámina 1 de Arte · género no es dicotómica y no promete un Top Two Box que el motor omite", () => {
-    const g = ficha(multi({ modo: "var_cruce", vars: { t: tema("genero", ["docentes", "administrativos", "estudiantes"]) }, top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] }));
+    const g = ficha(multi({ modo: "var_cruce", vars: { t: tema("genero", ["docentes", "administrativos", "estudiantes"]) }, barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] }));
     expect(g.tipo).toBe("Multiapiladas");
     expect(g.ajustes).not.toContain("Top Two Box");
     expect(g.forma?.bloques[0].ttb).toBe(false);
     // Encendido desde el estilo del informe SIN categorías (Arte): en género tampoco, porque no tiene orden (`sin_orden`);
     // en una escala de satisfacción sí (la tarjeta avisa que faltan las categorías).
-    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("genero") }, top2box: true })).ajustes).not.toContain("Top Two Box");
-    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, top2box: true })).ajustes).toContain("Top Two Box");
+    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("genero") }, barra_extra: ["top2box"] })).ajustes).not.toContain("Top Two Box");
+    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, barra_extra: ["top2box"] })).ajustes).toContain("Top Two Box");
     // Con categorías que sí están en la escala, se muestra.
-    const s = ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, top2box: true, top2box_labels: ["Satisfecho", "Muy satisfecho"] }));
+    const s = ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, barra_extra: ["top2box"], top2box_labels: ["Satisfecho", "Muy satisfecho"] }));
     expect(s.ajustes).toContain("Top Two Box");
   });
 
@@ -155,7 +155,7 @@ describe("ficha de la maqueta: los casos de la galería", () => {
 
 describe("geometría de la ficha", () => {
   const pesada = ficha(multi({ modo: "multilista", bloques: [
-    { titulo: "Satisfacción con los servicios de la universidad", top2box: true, vars: { a: tema("salud"), b: tema("bienestar"), c: tema("cultura") } },
+    { titulo: "Satisfacción con los servicios de la universidad", barra_extra: ["top2box"], vars: { a: tema("salud"), b: tema("bienestar"), c: tema("cultura") } },
     { titulo: "Frecuencia de uso", vars: { t: tema("uso") } },
   ] }));
   const dentro = (p: Pieza, w: number, h: number) => { const c = cajaDe(p); return c.x >= -1e-6 && c.y >= -1e-6 && c.x + c.w <= w + 1e-6 && c.y + c.h <= h + 1e-6; };
@@ -184,7 +184,7 @@ describe("geometría de la ficha", () => {
   });
 
   it("M8 · las barras conservan su clave al encender el Top Two Box (transitan, no se rehacen)", () => {
-    const args = (ttb: boolean) => ({ modo: "var_cruce", vars: { t1: tema("salud") }, top2box: ttb });
+    const args = (ttb: boolean) => ({ modo: "var_cruce", vars: { t1: tema("salud") }, barra_extra: ttb ? ["top2box"] : false });
     const claves = (ttb: boolean) => escenaFicha(ficha(multi(args(ttb))), 12.5, 4.6, "k").piezas.filter((p) => p.tipo === "barra" && p.rol === "segmento").map((p) => (p as { clave: string }).clave);
     expect(claves(true)).toEqual(claves(false));
   });

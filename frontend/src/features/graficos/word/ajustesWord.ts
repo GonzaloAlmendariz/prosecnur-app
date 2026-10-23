@@ -11,8 +11,8 @@ export type AjusteWord = { arg: string; rotulo: string; ayuda: string; tipo: "bo
 
 /** Los ajustes del Word que tienen efecto en el documento, por tipo de gráfico. Un tipo ausente sale como en la lámina. */
 export const AJUSTES_WORD: Readonly<Record<string, readonly AjusteWord[]>> = {
-  barras_apiladas: [{ arg: "mostrar_barra_extra", rotulo: "Top y Bottom Box en el Word", ayuda: "La barra del box junto a cada escala del documento.", tipo: "bool" }],
-  multi_apiladas: [{ arg: "mostrar_barra_extra", rotulo: "Top y Bottom Box en el Word", ayuda: "La barra del box junto a cada tema del documento.", tipo: "bool" }],
+  // La barra extra ya no es un ajuste del informe en el Word: el Word usa la misma que el PPT (`barra_extra`) y cada
+  // gráfico puede cambiarla sólo para el Word con `word_barra_extra` (tarjeta del gráfico, «En el Word»).
   radar_tabla: [
     { arg: "tabla_body_size", rotulo: "Letra de la tabla", ayuda: "Tamaño del texto de las filas.", tipo: "number", unidad: "pt" },
     { arg: "tabla_firstcol_bold", rotulo: "Primera columna en negrita", ayuda: "Los nombres de cada fila.", tipo: "bool" },
