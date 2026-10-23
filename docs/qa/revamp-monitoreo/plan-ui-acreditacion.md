@@ -40,7 +40,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A2 | Avance › Resumen y Por público | `avance/Resumen.tsx`, `avance/PorPublico.tsx`, `avance/PanelPublico.tsx` y modelos puros con test | A1 | ☑ |
 | A3 | Control › Por resolver | Subsanación y asignación asistida con la decisión auditada de hoy, cola por tipo, panel del caso | A1 | ☐ |
 | A4 | Control › Reintentos | `ColaDeInsistencia` con las columnas del barrido de acreditación | A1; bloque `cola_insistencia` en acreditación (backend) | ◐ (escrita; falta typecheck, gates y capturas) |
-| A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ☐ |
+| A5 | Resto de Control | Correo, Barrido, Equipo, Cruce, Calidad, Personas, Respuestas | A1 | ◐ (Barrido, Equipo, Cruce, Calidad, Personas y Respuestas escritas; Correo sigue con la vista de T3) |
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ☐ |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ☐ |
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ☐ |
@@ -229,6 +229,11 @@ siempre. La supervisión por rellamada sigue como sub-vista (`panel=supervision`
 - **Diferencia con el lienzo:** no hay histograma de todas las duraciones ni la mediana: el corte solo trae las que
   salen del rango, y la mediana del tablero no dice su unidad en este modo. Publicar la serie de duraciones es un
   cambio del motor.
+
+**A5, Control › Correo: sin rehacer.** Monta la vista de Correo de T3 (`AvanceCorreo*.tsx`) tal cual, con su
+cabecera, su lectura de Mailchimp y su readiness propia. La matriz de envíos por público con el embudo por envío del
+lienzo Ctl1 queda para una pasada propia: la vista ya trae envíos, embudo, ritmo e inválidos, y rehacerla sin poder
+capturar el institucional (único proyecto con Mailchimp) era dibujar a ciegas.
 
 ## Preguntas surgidas en la implementación
 
