@@ -84,6 +84,9 @@ import { SelectorDeFase } from "./navegacion/SelectorDeFase";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
 import { MapaTab } from "./avance/MapaTab";
+import { BandejaTab } from "./control/BandejaTab";
+import { EquipoTab } from "./control/EquipoTab";
+import { SenalesTab } from "./control/SenalesTab";
 import { UmpsTab } from "./avance/UmpsTab";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
@@ -1197,7 +1200,11 @@ type OpcionesDePestana = Parameters<typeof renderView>[2] & {
    * Los cortes de Avance y de Validación que ya están en la caché: la ficha de
    * una UMP necesita los dos (subsanaciones de uno, casos del otro).
    */
-  cortes?: { avance: MonitoreoTerritorialDashboard | null; validacion: MonitoreoTerritorialDashboard | null };
+  cortes?: {
+    avance: MonitoreoTerritorialDashboard | null;
+    validacion: MonitoreoTerritorialDashboard | null;
+    consultas: MonitoreoTerritorialDashboard | null;
+  };
 };
 
 /** Piloto sólo tiene Avance: otra sección pedida en piloto vuelve al aterrizaje. */
@@ -1218,6 +1225,20 @@ function renderPestana(
     const clave = `${direccion.seccion}/${direccion.pestana}`;
     if (clave === "avance/faltante") return <FaltantePorUmp reports={reports} />;
     if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
+    if (clave === "control/senales" && !direccion.panel) return <SenalesTab reports={reports} />;
+    if (clave === "control/bandeja" && !direccion.panel) {
+      return <BandejaTab consultas={options.cortes?.consultas ?? reports} phase={options.phase ?? "field"} onStateChange={options.onStateChange} />;
+    }
+    if (clave === "control/equipo") {
+      return (
+        <EquipoTab
+          consultas={options.cortes?.consultas ?? reports}
+          validacion={options.cortes?.validacion ?? null}
+          phase={options.phase ?? "field"}
+          onStateChange={options.onStateChange}
+        />
+      );
+    }
     if (clave === "avance/mapa") {
       return <MapaTab avance={options.cortes?.avance ?? reports} validacion={options.cortes?.validacion ?? null} />;
     }
@@ -1752,7 +1773,7 @@ export default function TerritorialMonitoreoPage() {
   const lienzo = esPestanaPropia(direccion);
   const cortes = useMemo(() => {
     const deLaCache = (scope: MonitoreoReportScope) => monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope })?.reports ?? null;
-    return { avance: deLaCache("advance_summary"), validacion: deLaCache("validation_summary") };
+    return { avance: deLaCache("advance_summary"), validacion: deLaCache("validation_summary"), consultas: deLaCache("queries_summary") };
     // `state` cambia con cada corte que llega a la caché: es lo que relee.
   }, [phase, sourceKey, state]);
 

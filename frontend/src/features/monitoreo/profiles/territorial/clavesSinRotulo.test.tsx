@@ -17,6 +17,9 @@ import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
 import { MapaTab } from "./avance/MapaTab";
 import { UmpsTab } from "./avance/UmpsTab";
+import { BandejaTab } from "./control/BandejaTab";
+import { EquipoTab } from "./control/EquipoTab";
+import { SenalesTab } from "./control/SenalesTab";
 import { CORTE_DE_CUOTAS } from "./avance/fixtures/corteDeCuotas";
 import { CORTE_DE_RESUMEN } from "./avance/fixtures/corteDeResumen";
 
@@ -60,6 +63,26 @@ const VALIDACION = {
     { response_id: "b", advance_block_id: "150135063000590", advance_block_manzana: "0590", advance_valid: false, validation_status: "no_defendible", observation_status: "no_valida", submission_date_iso: "2026-06-18", submission_hour: "", sex: "", age: null, distance_m: null, responsible_display: "P132 · Aplicadora de Prueba" },
   ],
 } as unknown as MonitoreoTerritorialDashboard;
+// Corte de Consultas para Bandeja y Equipo, con claves como las publica el motor.
+const CONSULTAS = {
+  internal_queries: {
+    review_cases: [
+      { id: "g1", type: "gps", reason: "gps_no_defendible", district: "SAN MARTIN DE PORRES", ump: "UMP 145", manzana: "0200", responsible: "P222 · Aplicador", pulso_code: "P222", submission_date_iso: "2026-06-16", submission_hour: "11:30:00", geo_estado: "geo_no_defendible", distance_m: 628, duration_seconds: 895, response_id: "dcb2051a" },
+      { id: "d1", type: "duration", reason: "duracion_corta", district: "ATE", ump: "12", responsible: "P222 · Aplicador", pulso_code: "P222", submission_date_iso: "2026-06-17", duration_seconds: 100, duration_operational_status: "muy_corto", response_id: "e1" },
+    ],
+  },
+  production_annulments: {
+    responsibles: [{ key: "p222_aplicador", label: "P222 · Aplicador", pulso_code: "P222", responses: 20, valid_responses: 18, umps: 3, districts: "ATE · SAN MARTIN DE PORRES", latest_activity: "2026-06-17", status: "activo" }],
+    entries: [{ id: "a1", status: "active", scope: "response", response_id: "zz1", response_label: "Caso zz1", reason: "GPS fuera", created_at: "2026-06-26" }],
+  },
+} as unknown as MonitoreoTerritorialDashboard;
+const AUDITORIA = {
+  response_audit: [
+    { distrito: "SAN MARTIN DE PORRES", pulso_code: "P222", geo_estado: "geo_no_defendible", distance_m: 628, duration_seconds: 895, duration_operational_status: "normal", submission_date_iso: "2026-06-16", advance_valid: true },
+    { distrito: "ATE", pulso_code: "P222", geo_estado: "geo_sin_gps", distance_m: null, duration_seconds: 100, duration_operational_status: "muy_corto", submission_date_iso: "2026-06-17", advance_valid: true },
+  ],
+} as unknown as MonitoreoTerritorialDashboard;
+
 const CON_PARTE = {
   ...CORTE_DE_CUOTAS,
   field_occurrences: { by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 8, intentos: 20 }] },
@@ -80,6 +103,11 @@ const PESTANAS: Array<[string, () => string]> = [
   // el lateral: el texto de esas tres piezas es el que se revisa.
   ["Avance › Mapa", () => pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa`)],
   ["Avance › Mapa con la ficha de la 143", () => pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa&panel=ump&foco=143`)],
+  ["Control › Señales", () => pintar(<SenalesTab reports={AUDITORIA} />, "/monitoreo?modo=territorial&seccion=control&pestana=senales")],
+  ["Control › Bandeja", () => pintar(<BandejaTab consultas={CONSULTAS} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=bandeja")],
+  ["Control › Bandeja filtrada por GPS lejos", () => pintar(<BandejaTab consultas={CONSULTAS} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=bandeja&foco=gps-lejos")],
+  ["Control › Equipo", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo")],
+  ["Control › Equipo con el inspector de P222", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo&panel=codigo&foco=P222")],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];
 

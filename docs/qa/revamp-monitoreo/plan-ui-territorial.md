@@ -127,3 +127,25 @@ Diferencias con §3.15, sin dibujar todavía: límites y rótulos de zona, escal
 mouse; desde el teclado se llega por «Ir a la UMP» y las listas del lateral. En la historia los aplicadores se rotulan como hoy (código y nombre); el diseño pide
 «Aplicador 1 / 2». Queda atado a la pregunta T-1.
 
+**T4 (código listo, sin gate).** Control › Calidad: Bandeja, Señales y Equipo son pestañas propias (`control/`).
+- **Señales** (`SenalesTab.tsx`): histogramas de distancia del GPS a su manzana (10 tramos, marcas en 150 y 300 m) y de
+  duración (cortes en 2 y 5 min, los de `territorialDuration.ts`), cada uno con su base y su mediana, y la matriz por
+  distrito, que declara los casos del corte sin distrito.
+- **Equipo** (`EquipoTab.tsx`): una fila por código, con recibidas, cuentan, UMP y distritos de las anulaciones; GPS
+  observado con su base, menos de 5 min y cuentan por día de la auditoría; lo que tiene en bandeja. El inspector
+  (`panel=codigo&foco=<código>`) muestra sus señales y sus UMP, y al pie «Anular producción».
+- **Bandeja** (`BandejaTab.tsx`): filtros por motivo (en `foco`, como en el diseño) y por distrito; segmentado En
+  bandeja / Anulados (los anulados uno a uno); inspector con el esquema de distancia (anillos de 150 y 300 m, sin
+  coordenadas) y «Anular caso».
+- **P2** (`DialogoDeAnulacion.tsx`, `panel=anular`): `<dialog>` modal nativo con la vista previa del motor en frases
+  con base («UMP 145: 8 → 7 de 8», «Estudio: 1,283 → 1,282 que cuentan»), motivo obligatorio y botón de peligro. Al
+  aplicar, el estado devuelto pasa por `applyTerritorialPageState`, que invalida los cortes de la fase.
+- Los cortes vienen de la caché de la página: Consultas (`review_cases`, anulaciones) y Validación (auditoría).
+
+Bloqueado: «Aprobar observación». La config guarda `validation_decisions.approved_response_ids`, pero el motor no las
+consume (`.monitoreo_territorial_validation_decision_ids` no tiene llamadores y la auditoría deja `validation_decision`
+vacío). Dibujar el botón prometería algo que no ocurre; conectarlo exige tocar `monitoreo_engine.R`, que está
+congelado. También queda atado a la pregunta 3. Sin dibujar: «Aprobados» en el segmentado y las acciones de lote con
+selección múltiple, porque la vista previa del motor es por caso. La sub-vista Duración de Señales y GPS/Duración de
+la Bandeja siguen montando las vistas heredadas.
+

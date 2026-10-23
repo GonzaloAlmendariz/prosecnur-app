@@ -1,0 +1,318 @@
+/* Control › Equipo (territorial.md §3.8). Tabla por código que llena el alto;
+ * inspector del código al costado (340 px) con su propio desplazamiento. */
+
+.mon-eq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-eq.con-inspector {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+}
+
+.mon-eq-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-eq-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.mon-eq-cabecera h3,
+.mon-eq-inspector-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-eq-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eq-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-eq-tabla-marco::-webkit-scrollbar,
+.mon-eq-inspector::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-eq-tabla-marco::-webkit-scrollbar-thumb,
+.mon-eq-inspector::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-eq-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eq-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-eq-tabla tbody th,
+.mon-eq-tabla tbody td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-eq-tabla th:first-child,
+.mon-eq-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-eq-tabla .is-num {
+  text-align: right;
+}
+
+.mon-eq-tabla tr.is-anulado td,
+.mon-eq-tabla tr.is-anulado th {
+  color: var(--pulso-text-soft);
+}
+
+.mon-eq-tabla tr.is-elegida td,
+.mon-eq-tabla tr.is-elegida th {
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 45%, var(--pulso-surface));
+}
+
+.mon-eq-tabla tbody th button {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-eq-tabla tbody th button:hover,
+.mon-eq-tabla tbody th button[aria-pressed="true"] {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-eq-proporcion {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-eq-proporcion-barra {
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-eq-proporcion-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-warn-accent);
+}
+
+.mon-eq-spark {
+  display: block;
+  width: 96px;
+  height: 16px;
+}
+
+.mon-eq-spark rect {
+  fill: var(--pulso-brand-navy);
+}
+
+/* Inspector del código. */
+.mon-eq-inspector {
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-eq-inspector > * {
+  flex: 0 0 auto;
+}
+
+.mon-eq-inspector-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-eq-inspector-cabecera > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-eq-cerrar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.mon-eq-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-eq-cifras dt,
+.mon-eq-subtitulo {
+  margin: 0 0 var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-eq-cifras dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eq-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.mon-eq-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eq-umps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-eq-umps button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mon-eq-pie {
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-eq-boton {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-eq-boton.is-peligro {
+  border-color: var(--pulso-danger-fg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-eq-tabla tbody th button:focus-visible,
+.mon-eq-tabla-marco:focus-visible,
+.mon-eq-cerrar:focus-visible,
+.mon-eq-umps button:focus-visible,
+.mon-eq-boton:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-eq-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-eq-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
