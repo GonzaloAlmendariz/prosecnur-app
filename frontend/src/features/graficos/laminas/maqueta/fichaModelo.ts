@@ -181,9 +181,10 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       if (!glifo.cifras) ajustes.push("Sin cifras");
       break;
     case "p_radar":
-      // `mostrar_tabla` depende de `modo = "publicos"` (registro): en los demás modos la tabla sale siempre.
-      glifo.tabla = !(v("modo") === "publicos" && v("mostrar_tabla") === false);
-      if (!glifo.tabla) ajustes.push("Sin tabla al costado");
+      // `tabla` depende de `modo = "publicos"` (registro): en los demás modos la tabla sale siempre. `mostrar_tabla:
+      // false` (proyectos viejos) equivale a `tabla = "no"`.
+      glifo.tabla = !(v("modo") === "publicos" && (v("tabla") === "no" || (v("tabla") === undefined && v("mostrar_tabla") === false)));
+      if (!glifo.tabla) ajustes.push("Sin tabla de datos");
       break;
     case "p_nube_palabras":
       glifo.ranking = v("mostrar_ranking") !== false;
