@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -141,5 +141,28 @@ describe("Control › Avisos del telefónico", () => {
     }));
     const porCodigo = Object.fromEntries(avisos.map((aviso) => [aviso.codigo, aviso.casos]));
     expect(porCodigo).toMatchObject({ duracion_mayor_2h: 1, codpulso_repetido: 1, barrido_desfasado: 1, fecha_irregular: 3 });
+  });
+
+  it("quita el prefijo «codigo:» del detalle, no sólo de los afectados", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Alta", "Efectiva Kobo fuera de base", "Kobo trae una respuesta completa, pero la llave detectada no aparece en la base (codigo:MVH9999).", { CodPulso: "codigo:MVH9999" }),
+    ]));
+    const textos = avisos.flatMap((aviso) => [aviso.titulo, aviso.detalle, ...aviso.afectados.map((caso) => `${caso.codigo} ${caso.nota}`)]);
+    expect(textos.join(" ")).not.toMatch(/c[oó]digo:/i);
+    expect(avisos.some((aviso) => aviso.detalle.includes("(MVH9999)"))).toBe(true);
+    expect(sinPrefijoDeCodigo("Código: PDM1 y codigo:PDM2")).toBe("PDM1 y PDM2");
+  });
+
+  it("dos alertas de asignación del mismo dueño son un responsable", () => {
+    const { avisos } = construirAvisos(reportes([
+      fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos por iniciar", { Responsable: "Ana" }),
+      fila("Media", "Responsable con casos por iniciar", "Ana tiene 3 casos por iniciar", { Responsable: "Ana" }),
+    ]));
+    const aviso = avisos.find((item) => /por iniciar/i.test(item.codigo));
+    expect(aviso?.titulo).not.toMatch(/2 responsables/);
+    expect(aviso?.unidad).not.toBe("responsables");
+    expect(aviso?.desglose.map((linea) => linea.etiqueta)).toEqual(["Ana"]);
+    // Es la señal de asignación: se corrige en Equipo.
+    expect(aviso?.destino.etiqueta).toBe("Equipo, en Control");
   });
 });
