@@ -13,6 +13,7 @@ import { nombreDeFuente, servicioDeFuente } from "../../../fuentes/enlacesDeFuen
 import type { AcreditacionPhoneSourceContract } from "../TelefonicoSourcesModel";
 import { acreditacionSourceResponseCount } from "../TelefonicoSourcesModel";
 import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "../fuentes/camposDeFuente";
+import { rotuloDeDato } from "./rotulosDeColumna";
 
 export type FilaDeFuente = {
   id: string;
@@ -72,7 +73,15 @@ export function filasDeFuentes(fuentes: readonly MonitoreoSource[], contrato: Ac
     });
 }
 
-export type ColumnaQueSeLee = { pieza: string; dato: string; columna: string; declarada: boolean };
+export type ColumnaQueSeLee = {
+  pieza: string;
+  /** Clave interna del dato (no se muestra). */
+  dato: string;
+  /** Lo que se pinta. */
+  rotulo: string;
+  columna: string;
+  declarada: boolean;
+};
 
 /**
  * Las columnas que cada pieza espera, con la que la fuente declara en sus
@@ -83,7 +92,7 @@ export function columnasQueSeLeen(contrato: AcreditacionPhoneSourceContract, sta
   const filas: ColumnaQueSeLee[] = [];
   const llave = state?.config?.monitoreo_profile?.key_rules;
   if (llave?.universe_fields?.length) {
-    filas.push({ pieza: "Universo y barrido", dato: "Llave del caso", columna: String(llave.universe_fields[0]), declarada: true });
+    filas.push({ pieza: "Universo y barrido", dato: "llave", rotulo: rotuloDeDato("llave") ?? "Llave del caso", columna: String(llave.universe_fields[0]), declarada: true });
   }
   ([["Universo", contrato.universe], ["Barrido", contrato.sweep], ["Respuestas", contrato.platform]] as const).forEach(([pieza, slot]) => {
     const dimensiones = new Map<string, string>();
@@ -94,7 +103,7 @@ export function columnasQueSeLeen(contrato: AcreditacionPhoneSourceContract, sta
     });
     slot.expected.forEach((dato) => {
       const declarada = dimensiones.get(dato.toLowerCase());
-      filas.push({ pieza, dato, columna: declarada ?? "", declarada: Boolean(declarada) });
+      filas.push({ pieza, dato, rotulo: rotuloDeDato(dato) ?? dato, columna: declarada ?? "", declarada: Boolean(declarada) });
     });
   });
   return filas;

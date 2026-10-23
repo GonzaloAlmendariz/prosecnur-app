@@ -726,6 +726,19 @@
   font-size: 12px;
 }
 
+.mon-fuentes-mensaje.is-exito {
+  color: var(--pulso-success-fg);
+}
+
+.mon-fuentes-nombre small .mon-fuentes-guardando {
+  margin-left: var(--pulso-space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-style: normal;
+}
+
 .mon-fuentes-mensaje.is-error {
   color: var(--pulso-danger-fg);
 }
