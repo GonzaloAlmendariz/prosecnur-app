@@ -17,7 +17,7 @@
 # condicionales de Outlook) y lo oculto (salvo el preheader). De los atributos
 # solo se leen href, src, alt y width; de los estilos, dos valores validados: el
 # color de fondo hexadecimal del botón o del separador (→ `theme.accent`) y
-# `text-align: justify|center`. Nunca se copia CSS: el formato lo pone la
+# `text-align: justify|center|right`. Nunca se copia CSS: el formato lo pone la
 # plantilla.
 #
 # **Sin pérdida de texto.** Lo que no se reconoce entra como párrafo con su
@@ -443,8 +443,8 @@
         cls <- regmatches(sel, regexec("^\\.([A-Za-z0-9_-]+)$", sel))[[1]]
         if (length(cls) == 2L) {
           al <- .cmail_ih_decl(r$decl, "text-align")
-          if (!is.null(al) && grepl("justify|center", al)) {
-            ctx$css_align[[tolower(cls[[2]])]] <- if (grepl("justify", al)) "justify" else "center"
+          if (!is.null(al) && grepl("justify|center|right", al)) {
+            ctx$css_align[[tolower(cls[[2]])]] <- if (grepl("justify", al)) "justify" else if (grepl("center", al)) "center" else "right"
           }
         }
         if (is.null(ctx$accent) && grepl("button|btn|cta", sel, ignore.case = TRUE) && !grepl(":", sel)) {
@@ -478,6 +478,7 @@
     if (!is.null(al)) {
       if (grepl("justify", al)) return("justify")
       if (grepl("center", al)) return("center")
+      if (grepl("right", al)) return("right")
       return(NULL)
     }
     for (c in .cmail_ih_classes(n)) if (!is.null(ctx$css_align[[c]])) return(ctx$css_align[[c]])
@@ -941,7 +942,7 @@
     } else if (identical(kind, "heading")) {
       add(.cmc_drop_nulls_deep(list(block_id = next_id("titulo"), type = "heading", text = .cmail_ih_strip_links(s$text, ctx, "Un título"),
                                     level = if (s$level %in% c("h1", "h2")) "titulo" else "subtitulo",
-                                    align = if (identical(s$align, "center")) "center")))
+                                    align = if (!is.null(s$align) && s$align %in% c("center", "right")) s$align)))
     } else if (identical(kind, "list")) {
       add(list(block_id = next_id("lista"), type = "list", items = as.list(s$items), ordered = isTRUE(s$ordered)))
     } else if (identical(kind, "callout_cell")) {
@@ -1007,7 +1008,7 @@
       } else {
         for (part in .cmail_ih_split_long(text)) {
           id <- add(.cmc_drop_nulls_deep(list(block_id = next_id("parrafo"), type = "paragraph", text = part,
-                                              align = if (!is.null(s$align) && s$align %in% c("justify", "center")) s$align)))
+                                              align = if (!is.null(s$align) && s$align %in% c("justify", "center", "right")) s$align)))
         }
         if (identical(kind, "unrecognized")) {
           .cmail_ih_report(ctx, "unrecognized", s$reason, s$node, block_id = blocks[[length(blocks)]]$block_id)

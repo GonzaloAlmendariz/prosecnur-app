@@ -15,10 +15,13 @@
 # los campos de esa URL cuentan como uso «url» (un vacío bloquea el export).
 
 .CMAIL_STYLE_ENUMS <- list(
-  paragraph = list(align = c("left", "justify", "center"), size = c("normal", "pequeno"), tone = c("normal", "suave")),
-  button = list(align = c("center", "left"), size = c("compacto", "normal", "grande"), fill = c("solido", "contorno")),
+  # Los valores nuevos (2026-10-23) van al final: los existentes no cambian.
+  paragraph = list(align = c("left", "justify", "center", "right"),
+                   size = c("normal", "pequeno", "grande", "muy_grande"),
+                   tone = c("normal", "suave", "acento")),
+  button = list(align = c("center", "left", "right"), size = c("compacto", "normal", "grande"), fill = c("solido", "contorno")),
   callout = list(variant = c("box", "bar", "tinte")),
-  heading = list(level = c("titulo", "subtitulo"), align = c("left", "center")),
+  heading = list(level = c("titulo", "subtitulo"), align = c("left", "center", "right")),
   divider = list(style = c("linea", "espacio"), size = c("s", "m", "l")),
   image = list(align = c("left", "center", "right")),
   # Piezas gráficas (E1o, collection_mail_piezas.R).
@@ -112,6 +115,40 @@
 .cmail_contrast <- function(fg, bg) {
   l <- sort(c(.cmail_luminance(fg), .cmail_luminance(bg)), decreasing = TRUE)
   (l[[1]] + 0.05) / (l[[2]] + 0.05)
+}
+
+# ---- tamaño y tono del párrafo ---------------------------------------------------
+
+# px de letra y de línea por `size` del párrafo. `normal` y `pequeno` son los
+# de siempre (paridad: el pequeño es 13/20, no 13/21).
+.CMAIL_PARAGRAPH_SIZE <- list(pequeno = c(13L, 20L), normal = c(16L, 26L),
+                              grande = c(18L, 28L), muy_grande = c(21L, 32L))
+
+.cmail_paragraph_size <- function(b) {
+  .CMAIL_PARAGRAPH_SIZE[[.cmail_style(b, "size", "normal")]] %||% .CMAIL_PARAGRAPH_SIZE$normal
+}
+
+# Fondo sobre el que se lee el cuerpo: la tarjeta blanca en sobrio, la página
+# en campaña (sin tarjeta, collection_mail_render.R).
+.cmail_card_bg <- function(pal) if (isTRUE(pal$campana)) pal$page_bg else "#ffffff"
+
+#' Tinta del tono `acento`: el acento del tema si se lee sobre el fondo de la
+#' tarjeta (≥ `.CMAIL_CONTRAST_MIN`); si no, el texto normal (`ok = FALSE`,
+#' chequeo `paragraph_accent_contrast`).
+#' @keywords internal
+.cmail_accent_ink <- function(pal, accent) {
+  accent <- tolower(accent)
+  bg <- .cmail_card_bg(pal)
+  ratio <- .cmail_contrast(accent, bg)
+  ok <- ratio >= .CMAIL_CONTRAST_MIN
+  list(color = if (ok) accent else pal$text, ok = ok, ratio = ratio, accent = accent, bg = bg)
+}
+
+.cmail_paragraph_color <- function(b, ctx) {
+  switch(.cmail_style(b, "tone", "normal"),
+         suave = ctx$pal$muted,
+         acento = .cmail_accent_ink(ctx$pal, ctx$accent)$color,
+         ctx$pal$text)
 }
 
 # ---- campos por bloque (targets) ---------------------------------------------

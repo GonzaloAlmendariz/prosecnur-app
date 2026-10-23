@@ -723,6 +723,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   campana_text_contrast: "El texto se lee sobre el fondo",
   campana_button_contrast: "El botón se lee sobre su color",
   campana_footer_contrast: "El pie se lee sobre el fondo",
+  paragraph_accent_contrast: "Párrafos en tono acento se leen",
   // Piezas gráficas (E1o).
   piezas_contrast: "Las piezas gráficas se distinguen del fondo",
   icon_text_sm_icon: "Íconos en SurveyMonkey",
@@ -815,6 +816,7 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "campana_text_contrast":
     case "campana_button_contrast":
     case "campana_footer_contrast":
+    case "paragraph_accent_contrast":
       // La razón va sólo en el `title` (`tituloDeChequeo`): a la vista, si se lee.
       return check.status === "ok" ? "se lee bien" : "cuesta leerlo";
     case "logos_duplicados":
@@ -859,7 +861,7 @@ export function cifraDeChequeo(check: MailCheck): string {
   }
 }
 
-const CONTRASTE: ReadonlySet<string> = new Set(["accent_contrast", "campana_text_contrast", "campana_button_contrast", "campana_footer_contrast"]);
+const CONTRASTE: ReadonlySet<string> = new Set(["accent_contrast", "campana_text_contrast", "campana_button_contrast", "campana_footer_contrast", "paragraph_accent_contrast"]);
 
 /** Una razón de contraste con coma decimal, como se escribe en el informe: `15,7:1`. */
 export function razonDeContraste(v: number): string {

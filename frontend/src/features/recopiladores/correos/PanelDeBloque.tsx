@@ -3,7 +3,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow } from "../../xlsformEditor/kit";
 import { AjusteDeBloque } from "./AjusteDeBloque";
-import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
+import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, sigueAIdentidad, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
 import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
@@ -324,8 +324,14 @@ export function PanelDeBloque({
         <AjusteDeBloque
           key={ajuste.clave}
           ajuste={ajuste}
-          valor={valorDeAjuste(block, ajuste)}
-          onCambio={(valor) => editar((b) => conAjuste(b, ajuste.clave, valor))}
+          valor={valorDeAjuste(block, ajuste, template.theme)}
+          sigueAIdentidad={sigueAIdentidad(block, ajuste, template.theme)}
+          acento={template.theme.accent}
+          onCambio={(valor) => {
+            // Elegir lo que ya hereda no escribe nada: ni la clave ni una edición vacía.
+            if (conAjuste(block, ajuste.clave, valor, template.theme) === block) return;
+            editar((b) => conAjuste(b, ajuste.clave, valor, template.theme));
+          }}
         />
       )) : null}
       {tieneColor(block) ? (

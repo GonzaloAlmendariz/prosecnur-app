@@ -61,6 +61,8 @@
   # Banner que ya trae los logos bajo la franja de logos (collection_mail_trae_logos.R).
   dup <- .cmail_logos_duplicados_check(tpl)
   if (!is.null(dup)) push(dup)
+  # Párrafos en tono acento (collection_mail_styles.R): solo si hay alguno.
+  push <- .cmail_paragraph_tone_checks(tpl, push)
   if (identical(dialect, "surveymonkey")) return(.cmail_image_checks_sm(tpl, images, push))
   # Alojamiento: cada imagen tiene URL https o va dentro del ZIP importable.
   data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))
@@ -328,4 +330,29 @@
   } else {
     .cmail_check("accent_contrast", "ok", ratio, sprintf("Contraste del texto blanco sobre el acento: %.2f:1.", ratio))
   }
+}
+
+#' Párrafos en tono `acento`: el acento del tema contra el fondo de la tarjeta
+#' (`paragraph_accent_contrast`). Sin contraste (< 4,5:1) el render los pinta
+#' del color del texto y aquí se avisa (warning). Sin párrafos en acento, nada.
+#' @keywords internal
+.cmail_paragraph_tone_checks <- function(tpl, push) {
+  blocks <- Filter(function(b) is.list(b) && identical(b$type, "paragraph") &&
+                     identical(.cmail_style(b, "tone", "normal"), "acento"), tpl$blocks %||% list())
+  if (!length(blocks)) return(push)
+  accent <- .cmail_one(tpl$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
+  ink <- .cmail_accent_ink(.cmail_theme_palette(tpl, accent, accent), accent)
+  ratio <- round(ink$ratio, 2)
+  fmt <- formatC(ink$ratio, format = "f", digits = 2, decimal.mark = ",")
+  targets <- lapply(blocks, function(b) .cmail_target(as.character(b$block_id), "tone"))
+  push(if (ink$ok) {
+    .cmail_check("paragraph_accent_contrast", "ok", ratio,
+                 sprintf("Los párrafos en tono acento se leen sobre el fondo: %s:1.", fmt))
+  } else {
+    .cmail_check("paragraph_accent_contrast", "warning", ratio,
+                 sprintf("El acento %s se lee poco sobre el fondo %s (%s:1; mínimo 4,5:1), así que los párrafos en tono acento salen del color del texto.",
+                         ink$accent, ink$bg, fmt),
+                 targets = targets)
+  })
+  push
 }

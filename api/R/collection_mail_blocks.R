@@ -27,16 +27,16 @@
 }
 
 .cmail_block_paragraph <- function(b, ctx) {
-  small <- identical(.cmail_style(b, "size", "normal"), "pequeno")
-  soft <- identical(.cmail_style(b, "tone", "normal"), "suave")
+  # Tamaño y tono: collection_mail_styles.R (el acento cae al texto si no se lee).
+  px <- .cmail_paragraph_size(b)
   # La apertura de un envío (E1k) es un párrafo cuyo valor vive en `send.opening`.
   prop <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else "text"
   .cmail_text_td(
     sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), .cmail_inline(b$text, ctx, links = TRUE)),
     # Sin `align` propio, el del tema (justificado por defecto, collection_mail_campana.R).
     align = .cmail_style(b, "align", ctx$pal$text_align),
-    size = if (small) 13L else 16L, line = if (small) 20L else 26L,
-    color = if (soft) ctx$pal$muted else ctx$pal$text
+    size = px[[1]], line = px[[2]],
+    color = .cmail_paragraph_color(b, ctx)
   )
 }
 

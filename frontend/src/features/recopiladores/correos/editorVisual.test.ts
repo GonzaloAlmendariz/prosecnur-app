@@ -332,15 +332,18 @@ describe("ajustesDeBloque", () => {
     expect(conAjuste(boton, "fill", "rojo")).toBe(boton);
   });
 
-  it("un párrafo sin alineación sigue la del estilo; elegir «Del estilo» quita la clave", () => {
+  // Reescrito a propósito (checklist ajustes-bloque 2026-10-23, ítem 1): ya no
+  // existe «Del estilo»; sin clave se marca la alineación que hereda de Identidad.
+  it("un párrafo sin alineación marca la de Identidad; volver a ella quita la clave", () => {
     const parrafo = { block_id: "p", type: "paragraph" as const, text: "Hola" };
     const align = ajustesDe(parrafo).find((a) => a.clave === "align")!;
-    expect(valorDeAjuste(parrafo, align)).toBe("estilo");
+    expect(align.opciones.map((o) => o.valor)).not.toContain("estilo");
+    expect(valorDeAjuste(parrafo, align)).toBe("justify");
     const izquierda = conAjuste(parrafo, "align", "left");
     expect(izquierda).toMatchObject({ align: "left" });
-    const deVuelta = conAjuste(izquierda, "align", "estilo");
+    const deVuelta = conAjuste(izquierda, "align", "justify");
     expect("align" in deVuelta).toBe(false);
-    expect(valorDeAjuste(deVuelta, align)).toBe("estilo");
+    expect(valorDeAjuste(deVuelta, align)).toBe("justify");
   });
 
   it("la lista numerada es un booleano; el ancho de imagen se acota a 40–600", () => {
