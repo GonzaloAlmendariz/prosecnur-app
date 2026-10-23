@@ -125,9 +125,13 @@
       overscroll-behavior: contain;
     }
 
-    /* Las pestañas ya viajan con el inspector: no necesitan pegarse solas. */
+    /* Las pestañas ya viajan con el inspector: no necesitan pegarse solas.
+       `relative` y no `static`: la barra es el bloque contenedor del resaltado
+       de la pestaña activa (GlidingTabList lo ubica en absoluto). Con `static`
+       el resaltado se medía contra el inspector y quedaba 8 px arriba y a la
+       izquierda, con su línea cruzando el rótulo. */
     .rec-mail .rec-mail-col--inspector .rec-mail-tabs.rec-mail-tabs--secciones {
-      position: static;
+      position: relative;
     }
   }
 }
