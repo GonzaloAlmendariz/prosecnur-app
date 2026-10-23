@@ -1067,6 +1067,10 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
@@ -1148,6 +1152,10 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "datos",
            default = FALSE,
            descripcion = "Conserva opciones del instrumento aunque no tengan casos."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
@@ -1859,7 +1867,11 @@
            min = 1, max = 40, step = 1,
            descripcion = "Recorte sólo visual: no cambia el denominador. Vacío = todas; si se recorta, el pie declara N de M categorías."),
       list(name = "resaltar", label = "Categorías a destacar", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar.")
+           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar."),
+      # Gonzalo (2026-10-23): el gris de «Prefiero no responder» es adicional, no la regla.
+      list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris.")
     ), .args_graf_comunes())
   ),
 

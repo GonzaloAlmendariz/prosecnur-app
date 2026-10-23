@@ -24,6 +24,7 @@
 #' @param cifras Cifra rotulada por el motor para cada categoría.
 #' @param n Frecuencia de cada categoría (ponderada cuando la corrida tiene peso).
 #' @param n_casos Casos sin ponderar de cada categoría (contrato base-sin-ponderar F6, I1); sin él, `n_casos := n`.
+#' @param residuales_gris Si `TRUE`, las residuales se pintan de gris en Word y lámina; por defecto `FALSE` (color de la serie).
 #' @param n_base_casos Base de la pregunta en casos (los que respondieron; en selección múltiple, personas y no
 #'   marcas). Sin ella `.espec_n_base()` la reconstruye.
 #' @return Lista con `version`, `tipo`, `rotulos`, `valores`, `cifras`, `n`, `n_casos`, `n_base_casos`, `realce`. El
@@ -31,7 +32,8 @@
 #'   (`.paleta_en_espec()`, ADR 0097); sin ella la lámina es monocroma, como el recetario.
 #' @keywords internal
 preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_al_final = TRUE, sin_ceros = TRUE,
-                                n_casos = NULL, n_base_casos = NULL, casos = NA, resaltar = FALSE, resaltar_opciones = NULL) {
+                                n_casos = NULL, n_base_casos = NULL, casos = NA, resaltar = FALSE, resaltar_opciones = NULL,
+                                residuales_gris = FALSE) {
   rotulos <- trimws(gsub("\\s*\n\\s*", " ", as.character(rotulos)))
   valores <- suppressWarnings(as.numeric(valores)); valores[!is.finite(valores)] <- 0
   cifras <- as.character(cifras)
@@ -58,7 +60,10 @@ preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_a
        realce = isTRUE(resaltar) && length(largo) > 2L && sum(abs(largo - max(largo)) < 1e-9) == 1L,
        # D1 (checklist-poblacion-y-filtro): las respuestas que el analista resalta (por rótulo). Con alguna elegida, ésas
        # van en azul con su rótulo en negrita y las demás en tenue, como el realce del recetario; sin ninguna, un solo color.
-       resaltar = intersect(trimws(as.character(unlist(resaltar_opciones %||% character(0)))), rotulos[idx]))
+       resaltar = intersect(trimws(as.character(unlist(resaltar_opciones %||% character(0)))), rotulos[idx]),
+       # Opción del gráfico (apagada por defecto, Gonzalo 2026-10-23): pintar de gris las residuales («Prefiero no responder»,
+       # «No sabe», «Otros»…). Sin ella llevan el color de su serie; el LUGAR (al final) no depende de esto.
+       residuales_gris = isTRUE(residuales_gris))
 }
 
 # ---- casos sin ponderar (contrato base-sin-ponderar F6, I1) ------------------

@@ -47,6 +47,7 @@ test_that("el helper empareja por rótulo exacto, luego normalizado, y sin color
 test_that("barras: sin colores el relleno es el del recetario; con colores cada barra toma el suyo por rótulo", {
   e <- preparar_categorica(c("Redes sociales", "Un amigo", "No sabe"), c(.45, .30, .25), c("45%", "30%", "25%"))
   T <- .WORD_TINTA
+  e$residuales_gris <- TRUE      # el gris de las residuales es opcional (test-residuales-gris-opcional.R): aquí, encendido
   r0 <- .wcp_capa(.word_g_barras(e))
   esperado0 <- ifelse(grepl(.CATEGORIAS_RESIDUALES, e$rotulos, ignore.case = TRUE), T$gris,
                       ifelse(seq_along(e$rotulos) == which.max(ifelse(grepl(.CATEGORIAS_RESIDUALES, e$rotulos, ignore.case = TRUE), -1, e$largos)),
