@@ -78,7 +78,7 @@ test_that("el nombre de cada pieza de la lámina cae en su rol", {
   esperado <- c("Titulo lamina" = "titulos", "portada:titulo" = "titulos", "pregunta" = "preguntas", "premisa" = "preguntas",
                 "box:cifra" = "box", "box2:rotulo" = "box", "ttb:cifra" = "box", "leyenda:texto" = "leyenda",
                 "Base lamina" = "base", "premisa:n" = "base", "torta:casos" = "base", "cifra" = "cifras", "cifra_fuera" = "cifras",
-                "dicotomia:cifra" = "cifras", "pesas:cifra_a" = "cifras", "rotulo" = "categorias", "actor" = "categorias",
+                "dicotomia:cifra" = "cifras", "pesas:cifra_a" = "cifras", "rotulo" = "categorias", "actor" = "publicos",
                 "lollipop:rotulo" = "categorias", "mapa:cifra_rotulo" = NA, "encabezado" = NA, "eje:marca" = NA)
   for (n in names(esperado)) expect_identical(.lam_rol_negrita(n), unname(esperado[[n]]), info = n)
 })

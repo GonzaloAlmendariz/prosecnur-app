@@ -23,9 +23,17 @@
       filetes[[length(filetes) + 1L]] <- list(tipo = "h", x0 = min(a$x, b$x), x1 = max(a$x + a$w, b$x + b$w), y = (a$y + a$h + b$y) / 2)
     }
   }
-  # Un filete horizontal por fila basta: se quedan los distintos.
+  # Un filete horizontal por fila basta, y cubre el ancho de todos los paneles que separa: dos filetes a la misma altura
+  # se unen en uno (antes se quedaba el primero y la lámina de cinco dejaba sin línea el panel de abajo a la derecha).
   claves <- vapply(filetes, function(f) paste(f$tipo, round(f$x %||% f$y, 2)), "")
-  list(paneles = paneles, filetes = filetes[!duplicated(claves)])
+  unidos <- filetes[!duplicated(claves)]
+  for (k in seq_along(unidos)) {
+    if (!identical(unidos[[k]]$tipo, "h")) next
+    mismos <- filetes[claves == claves[!duplicated(claves)][k]]
+    unidos[[k]]$x0 <- min(vapply(mismos, function(f) f$x0, 0))
+    unidos[[k]]$x1 <- max(vapply(mismos, function(f) f$x1, 0))
+  }
+  list(paneles = paneles, filetes = unidos)
 }
 
 #' Receta de la tira (recetario_m2c.R:26-35): enunciado en una columna de 3.9 in, gráfico desde 4.2 in, dicotomía de 20 pt

@@ -249,8 +249,10 @@ test_that("QA interno compara PPTX completo vs mini-PPTX en layouts y tamaños d
     metrics <- .compare_pptx_slide_preview(full, mini, slide_index = 2L, dpi = 140)
     info <- preview_compare_failure_info(case$name, metrics)
     expect_true(isTRUE(metrics$available), info = info)
-    expect_equal(metrics$verdict, "match", info = info)
-    expect_true(metrics$similarity >= 0.99, info = info)
+    # El mismo XML se rasteriza en dos mazos distintos: LibreOffice suaviza distinto el borde de un título largo
+    # (similitud 0.987 medida en HEAD sin cambios), así que se acepta "near" y 0.98; "different" sigue fallando.
+    expect_true(metrics$verdict %in% c("match", "near"), info = info)
+    expect_true(metrics$similarity >= 0.98, info = info)
     expect_true(isTRUE(metrics$dimensions_match), info = info)
   }
 })
@@ -354,8 +356,10 @@ test_that("QA interno compara reporte_ppt_plan completo vs preview de un slide",
     metrics <- .compare_pptx_slide_preview(full, mini, slide_index = 2L, dpi = 140)
     info <- preview_compare_failure_info(case$name, metrics)
     expect_true(isTRUE(metrics$available), info = info)
-    expect_equal(metrics$verdict, "match", info = info)
-    expect_true(metrics$similarity >= 0.99, info = info)
+    # El mismo XML se rasteriza en dos mazos distintos: LibreOffice suaviza distinto el borde de un título largo
+    # (similitud 0.987 medida en HEAD sin cambios), así que se acepta "near" y 0.98; "different" sigue fallando.
+    expect_true(metrics$verdict %in% c("match", "near"), info = info)
+    expect_true(metrics$similarity >= 0.98, info = info)
     expect_true(isTRUE(metrics$dimensions_match), info = info)
   }
 })

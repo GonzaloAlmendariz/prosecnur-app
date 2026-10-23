@@ -1,14 +1,16 @@
 # Cuadrícula de población (p_slide_4_graficos_poblacion; láminas 193 y 210 del recetario, ADR 0093, N7): va por la
 # disposición `paneles_4` de las mixtas, como la de cuatro gráficos.
 
+# N20 (2026-10-22): sólo Sí/No es dicotomía; «sexo» y «grado» son aquí preguntas Sí/No (p. ej. «¿Es mujer?», «¿Tiene posgrado?») para que
+# la cuadrícula dibuje sus dos dicotomías. `p_dicotomica()` dentro de una mixta de cuatro gráficos no llega al motor (ver informe).
 .pb_fixture <- function() {
   cargo <- c("Decano(a) o director(a)", "Coordinador(a)", "Jefe(a) de departamento", "Secretario(a) académico(a)")
   anios <- c("Menos de 2 años", "De 2 a 4 años", "Más de 4 años")
-  df <- data.frame(cargo = rep(cargo, c(20, 50, 30, 20)), anios = rep(anios, c(40, 60, 20)), sexo = rep(c("Mujer", "Hombre"), c(70, 50)),
-                   grado = rep(c("Magíster", "Doctor(a)"), c(50, 70)), edad = rep(18:29, 10), stringsAsFactors = FALSE)
+  df <- data.frame(cargo = rep(cargo, c(20, 50, 30, 20)), anios = rep(anios, c(40, 60, 20)), sexo = rep(c("Sí", "No"), c(70, 50)),
+                   grado = rep(c("Sí", "No"), c(50, 70)), edad = rep(18:29, 10), stringsAsFactors = FALSE)
   ch <- rbind(data.frame(list_name = "lc", name = cargo, label = cargo), data.frame(list_name = "la", name = anios, label = anios),
-              data.frame(list_name = "ls", name = c("Mujer", "Hombre"), label = c("Mujer", "Hombre")),
-              data.frame(list_name = "lg", name = c("Magíster", "Doctor(a)"), label = c("Magíster", "Doctor(a)")))
+              data.frame(list_name = "ls", name = c("Sí", "No"), label = c("Sí", "No")),
+              data.frame(list_name = "lg", name = c("Sí", "No"), label = c("Sí", "No")))
   inst <- list(survey = data.frame(name = c("cargo", "anios", "sexo", "grado", "edad"), type = c(paste("select_one", c("lc", "la", "ls", "lg")), "integer"),
                                    list_name = c("lc", "la", "ls", "lg", NA), label = c("Cargo", "Años en el cargo", "Sexo", "Máximo grado alcanzado", "Edad"),
                                    stringsAsFactors = FALSE), choices = ch, orders_list = NULL)

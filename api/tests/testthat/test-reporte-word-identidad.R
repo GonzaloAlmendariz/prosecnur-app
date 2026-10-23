@@ -105,6 +105,42 @@ test_that("la figura lleva el rótulo con SEQ, la imagen pegada a la base y la l
   expect_identical(negritas, c("72 %", "8 pts", "2025"))
 })
 
+test_that("N4b: el rótulo es UNA línea «Gráfico N: título» en el estilo azul y negrita, centrado, con el campo SEQ", {
+  png <- tempfile(fileext = ".png"); grDevices::png(png, 600, 300); graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new(); grDevices::dev.off()
+  rotulo <- function(titulo, etiqueta = "Gráfico") {
+    doc <- .word_rotulo(.word_documento_nuevo(), 7, titulo, etiqueta = etiqueta)
+    out <- tempfile(fileext = ".docx"); print(doc, target = out); .docx_conformar(out, revista = TRUE)
+    ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+    list(x = xml2::read_xml(unz(out, "word/document.xml")), st = xml2::read_xml(unz(out, "word/styles.xml")), ns = ns)
+  }
+  r <- rotulo("¿Qué tan satisfecho está?")
+  ps <- xml2::xml_find_all(r$x, "//w:body/w:p", r$ns)
+  expect_length(ps, 1L)
+  expect_length(xml2::xml_find_all(ps[[1]], ".//w:br", r$ns), 0L)                           # una sola línea
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(ps[[1]], ".//w:t", r$ns)), collapse = ""), "Gráfico 7: ¿Qué tan satisfecho está?")
+  expect_length(xml2::xml_find_all(ps[[1]], ".//w:i", r$ns), 0L)                            # sin cursiva
+  expect_match(paste(xml2::xml_text(xml2::xml_find_all(ps[[1]], ".//w:instrText", r$ns)), collapse = ""), "SEQ Gráfico", fixed = TRUE)
+  nombre_de <- function(id) xml2::xml_attr(xml2::xml_find_first(r$st, sprintf("//w:style[@w:styleId='%s']/w:name", id), r$ns), "w:val", ns = r$ns)
+  # todo el texto visible (número, separador y título) lleva el estilo de carácter azul/negrita
+  runs_t <- xml2::xml_find_all(ps[[1]], ".//w:r[w:t]", r$ns)
+  estilos <- vapply(runs_t, function(n) nombre_de(xml2::xml_attr(xml2::xml_find_first(n, "w:rPr/w:rStyle", r$ns), "w:val", ns = r$ns)), "")
+  expect_true(all(estilos == "Número de rótulo"))
+  # centrado: el párrafo (directo) o su estilo
+  est_p <- xml2::xml_attr(xml2::xml_find_first(ps[[1]], "w:pPr/w:pStyle", r$ns), "w:val", ns = r$ns)
+  jc <- xml2::xml_attr(xml2::xml_find_first(r$st, sprintf("//w:style[@w:styleId='%s']//w:jc", est_p), r$ns), "w:val", ns = r$ns)
+  expect_identical(jc, "center")
+  # título largo: sigue siendo un párrafo (el centrado lo parte en líneas, no se corta texto)
+  largo <- paste(rep("palabra", 40), collapse = " ")
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo(largo)$x, "//w:t", r$ns)), collapse = ""), paste0("Gráfico 7: ", largo))
+  # título vacío (también el espacio duro de D-b): solo «Gráfico N», sin separador ni salto
+  for (vacio in list("", "\u00A0", NULL)) {
+    rv <- rotulo(vacio)
+    expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rv$x, "//w:t", r$ns)), collapse = ""), "Gráfico 7")
+    expect_length(xml2::xml_find_all(rv$x, "//w:br", r$ns), 0L)
+  }
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo("Resumen", "Tabla")$x, "//w:t", r$ns)), collapse = ""), "Tabla 7: Resumen")
+})
+
 test_that("el alto de la figura sigue las filas del recetario y ningún texto baja de 8 pt", {
   expect_equal(.word_alto_figura("escala", 1), 1.34); expect_equal(.word_alto_figura("escala", 3), 2.06)
   expect_equal(.word_alto_figura("barras", 4), 1.61)

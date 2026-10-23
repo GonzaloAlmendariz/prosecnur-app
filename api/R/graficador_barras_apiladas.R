@@ -1169,9 +1169,15 @@ graficar_barras_apiladas <- function(
     # conservando la suma 100 %. Es el ESCAPE de la regla de abajo: apagado
     # —el default— un segmento que redondea a 0 % no se dibuja.
     mostrar_categorias_en_cero = FALSE,
-    # «N respuestas» junto a cada público en la lámina nativa (M10 de la maqueta; Gonzalo, 2026-10-13). Encendido por
-    # defecto, como siempre salió; apagado, el público se queda y su conteo no.
-    mostrar_respuestas    = TRUE,
+    # «N respuestas» junto a cada público en la lámina nativa (M10 de la maqueta; Gonzalo, 2026-10-13). Apagado por
+    # defecto (N3b, 2026-10-22: «lo conversamos»); sólo `TRUE` lo escribe, como switcher opcional por gráfico.
+    mostrar_respuestas    = FALSE,
+    # N2 (Renzo, 2026-10-22): la línea gris entre un tema y el siguiente de la multiapilada. N2b: apagada por defecto (pedido expreso: sin líneas
+    # entre temas); sólo `TRUE` explícito la dibuja. El filete del Total no depende de esto.
+    filete_temas          = FALSE,
+    # N1 (Renzo, 2026-10-22): piso de grosor de la barra en la lámina nativa de escala, en cm. NULL = el del informe o ninguno;
+    # 0 = sin piso aunque el informe lo declare. Con piso, la lámina se parte en vez de apretar la barra (`.std_grosor()`).
+    grosor_piso_cm        = NULL,
     piso_categoria_cero   = .BARRAS_PISO_CERO,
     # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
     # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
@@ -2888,7 +2894,9 @@ graficar_barras_apiladas <- function(
     message("[espec escala] ", conditionMessage(e))
     NULL
   })
-  if (!is.null(espec_escala)) espec_escala$mostrar_respuestas <- !identical(mostrar_respuestas, FALSE)
+  if (!is.null(espec_escala)) espec_escala$mostrar_respuestas <- isTRUE(mostrar_respuestas)
+  if (!is.null(espec_escala)) espec_escala$filete_temas <- isTRUE(filete_temas)
+  if (!is.null(espec_escala) && is.numeric(grosor_piso_cm) && length(grosor_piso_cm) == 1L && is.finite(grosor_piso_cm)) espec_escala$grosor_piso_cm <- grosor_piso_cm
   if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box") &&
       !is.null(espec_escala$box$unidades)) {
     i_esp <- match(cat_lvls, espec_escala$filas$id)

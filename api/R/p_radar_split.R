@@ -33,6 +33,11 @@
 #'   en modo `publicos`: encabezados y anchos de la tabla al costado.
 #' @param titulos_grupo Sólo en modo `publicos`: títulos de los temas,
 #'   `clave -> título` (ver `p_radar_publicos`).
+#' @param margen_etiquetas Holgura del panel para las etiquetas de los ejes, entre 1 y 2. `NULL` = automática.
+#' @param fallback_pocos Sólo en modo `publicos`: qué se dibuja con menos de 5 criterios, `"puntos"` (líneas y puntos
+#'   comparativos, defecto) o `"barras"`.
+#' @param eje_pocos,eje_pocos_min,eje_pocos_max Sólo en modo `publicos`, con menos de 5 criterios: eje de las líneas y
+#'   puntos, `"auto"` (acercado a los datos, defecto), `"0-100"` o `"personalizado"` con mínimo y máximo.
 #' @param limites Rango del eje radial, `c(min, max)` en escala 0-1 (O7c). Va a
 #'   `overrides` en los tres modos; `NULL` hereda el preset.
 #' @export
@@ -63,8 +68,15 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     base = list(),
                     filtros = list(),
                     titulos_grupo = NULL,
-                    limites = NULL) {
+                    limites = NULL,
+                    margen_etiquetas = NULL,
+                    fallback_pocos = NULL,
+                    eje_pocos = NULL,
+                    eje_pocos_min = NULL,
+                    eje_pocos_max = NULL) {
   overrides <- .radar_slot_limites(overrides %||% list(), limites)
+  # Holgura del panel (1 a 2): va a `overrides`, que es lo que `graficar_radar()` lee en los tres modos.
+  overrides <- .radar_slot_margen(overrides, margen_etiquetas)
   # El modo se resuelve ANTES del `match.arg` de `p_radar_tabla`, que no conoce
   # `publicos` y abortaría.
   if (identical(as.character(modo)[1], "publicos")) {
@@ -83,7 +95,8 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
       tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
       tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros,
-      titulos_grupo = titulos_grupo
+      titulos_grupo = titulos_grupo, fallback_pocos = fallback_pocos,
+      eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max
     ))
   }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())
@@ -104,6 +117,17 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
     sm_omit_na = sm_omit_na,
     overrides = overrides, base = base, filtros = filtros
   )
+}
+
+# `margen_etiquetas` (1 a 2): escalar con rango, que `.ppt_slot_override()` no expresa. Un override explícito manda.
+.radar_slot_margen <- function(overrides, margen_etiquetas) {
+  if (is.null(margen_etiquetas) || !is.null(overrides$margen_etiquetas)) return(overrides)
+  m <- suppressWarnings(as.numeric(margen_etiquetas))
+  if (length(m) != 1L || !is.finite(m) || m < 1 || m > 2) {
+    .plan_spec_abort("`margen_etiquetas` debe ser NULL o un numero entre 1 y 2.")
+  }
+  overrides$margen_etiquetas <- m
+  overrides
 }
 
 # O7c: `limites` es un par, así que no cabe en `.ppt_slot_override()` (escalares). Un override explícito manda.

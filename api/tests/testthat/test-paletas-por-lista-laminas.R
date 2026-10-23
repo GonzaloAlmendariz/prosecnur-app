@@ -24,7 +24,7 @@ skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   choices = data.frame(list_name = c(rep("cic", 3), "sn", "sn", rep("lst_p14", 4)), name = c("Quinto", "Sexto", "Otros", "1", "2", as.character(1:4)),
                        label = c("Quinto", "Sexto", "Otros", "Sí", "No", .pll_lk), stringsAsFactors = FALSE),
   orders_list = NULL)
-.pll_dat <- data.frame(p1 = rep(c("Quinto", "Sexto", "Otros"), c(22, 19, 3)), s = rep(c("1", "2", "1"), c(20, 12, 12)),
+.pll_dat <- data.frame(p1 = rep(c("Quinto", "Sexto", "Otros"), c(22, 19, 3)), s = rep(c("Sí", "No", "Sí"), c(20, 12, 12)),
                        q1 = rep(as.character(1:4), 11), q2 = rep(as.character(c(4, 3, 3, 1)), 11), stringsAsFactors = FALSE)
 .pll_ruta <- function(plan, paletas = list()) {
   f <- tempfile(fileext = ".pptx")

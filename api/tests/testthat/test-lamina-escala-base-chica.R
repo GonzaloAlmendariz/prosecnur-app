@@ -14,14 +14,17 @@
   "Estoy satisfecho(a) con los programas de motivación e incentivos que me brinda la Universidad como su trabajador de la Unidad.",
   "Estoy satisfecho(a) con los programas de ayuda (becas, movilidad académica, bolsa de trabajo, pasantías) que me brinda la Universidad.")
 
-.bc_espec <- function(rotulos, n, bottom = TRUE, total = FALSE) {
+# N3b+: el «x de y» lo gobierna el interruptor `mostrar_respuestas` (apagado por defecto); estas pruebas de la regla lo encienden.
+.bc_espec <- function(rotulos, n, bottom = TRUE, total = FALSE, resp = TRUE) {
   d <- data.frame(item = sprintf("i%d", seq_along(rotulos)), rot = rotulos, N = n,
                   t1 = .1, t2 = .1, t3 = .4, t4 = .3, t5 = .1, stringsAsFactors = FALSE)
   args <- list(d, "item", "N", paste0("t", 1:5), setNames(.bc_niv, paste0("t", 1:5)), var_etiqueta_categoria = "rot",
                colores_grupos = as.list(setNames(.std_paleta("likert"), .bc_niv)), barra_extra_preset = "top2box",
                top2box_labels = .bc_niv[3:4], fila_total = total)
   if (bottom) args <- c(args, list(columna_bottom2box = TRUE, bottom2box_labels = .bc_niv[1:2]))
-  do.call(preparar_escala, args)
+  e <- do.call(preparar_escala, args)
+  e$mostrar_respuestas <- resp
+  e
 }
 
 .bc_formas <- function(x, nombre) {
@@ -172,7 +175,7 @@ test_that("la base chica se decide para la espec entera: la parte «(cont.)» si
 
 test_that("(e) ruta real: «Dividir por» con niveles cortos y 5 casos por grupo va en filas y dice «x de 5» en cada fila", {
   f <- .bc_cruce()
-  x <- .bc_plan(f$df, f$inst, p_barras_apiladas("p2", cruces = "grupo", overrides = .bc_over))
+  x <- .bc_plan(f$df, f$inst, p_barras_apiladas("p2", cruces = "grupo", overrides = .bc_over, mostrar_respuestas = TRUE))
   expect_length(x, 1L)
   expect_identical(.pptx_lamina_estado(x[[1]]), "nativa")
   expect_setequal(.bc_formas(x[[1]], "actor")$t, .bc_cortas)
@@ -190,7 +193,7 @@ test_that("ruta real: la apilada sola de un público en filas nombra al público
   df <- data.frame(p1 = sample(.bc_niv, 172, TRUE, prob = c(.08, .12, .45, .3, .05)), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = "p1", type = "select_one lk", list_name = "lk", label = "Trato del personal", stringsAsFactors = FALSE),
                choices = data.frame(list_name = "lk", name = .bc_niv, label = .bc_niv, stringsAsFactors = FALSE), orders_list = NULL)
-  x <- .bc_plan(list(estudiantes = df), list(estudiantes = inst), p_barras_apiladas("estudiantes$p1", overrides = .bc_over))
+  x <- .bc_plan(list(estudiantes = df), list(estudiantes = inst), p_barras_apiladas("estudiantes$p1", overrides = .bc_over, mostrar_respuestas = TRUE))
   expect_length(x, 1L)
   expect_identical(nrow(.bc_formas(x[[1]], "premisa")), 0L)                  # forma en filas (97)
   expect_identical(.bc_formas(x[[1]], "actor")$t, "Estudiantes")
@@ -211,4 +214,30 @@ test_that("una pregunta de dos líneas en filas crece su caja y no pisa las cabe
   # Una pregunta de una línea conserva la caja de siempre.
   e$pregunta <- "¿Qué tan satisfecho está con cada aspecto?"
   expect_equal(.bc_formas(.bc_laminas(e)[[1]], "pregunta")$h, 0.34, tolerance = 1e-6)
+})
+
+test_that("base chica con el interruptor apagado: ni «x de y» ni caja box:casos, en filas y en bloque; cifras y pie iguales", {
+  for (bottom in c(TRUE, FALSE)) {
+    on <- .bc_espec(.bc_cortas, n = c(5, 12, 20), bottom = bottom, resp = TRUE)
+    off <- .bc_espec(.bc_cortas, n = c(5, 12, 20), bottom = bottom, resp = FALSE)
+    expect_true(.lam_base_chica(off))   # la regla sigue siendo de la espec; sólo se dibuja con el interruptor
+    for (f in list(.bc_laminas, .bc_bloque)) {
+      con <- f(on)[[1]]; sin <- f(off)[[1]]
+      expect_length(.bc_textos(con, "box:casos"), 3L)
+      for (nm in c("box:casos", "box2:casos")) expect_identical(nrow(.bc_formas(sin, nm)), 0L, info = nm)
+      expect_false(grepl("\\d+ de \\d+", paste(.bc_textos(sin, "box:cifra"), collapse = " ")))
+      expect_identical(.bc_textos(sin, "box:cifra"), .bc_textos(con, "box:cifra"))   # las cifras no cambian
+      expect_match(xml2::xml_text(xml2::read_xml(sin)), "Base: 15", fixed = TRUE)    # el pie «Base» sigue
+    }
+  }
+})
+
+test_that("base chica apagada no reserva el aire del «x de y»: la fila conserva el aire de la cifra chica y la cifra se centra con la barra", {
+  on <- .bc_espec(.bc_cortas, n = c(5, 12, 20), resp = TRUE); off <- .bc_espec(.bc_cortas, n = c(5, 12, 20), resp = FALSE)
+  # El aire de la fila (paso entre barras) es el mismo: lo pide la cifra chica fuera de la barra, no el «x de y».
+  p_on <- .bc_formas(.bc_laminas(on)[[1]], "box:cifra"); p_off <- .bc_formas(.bc_laminas(off)[[1]], "box:cifra")
+  expect_equal(diff(sort(p_on$y)), diff(sort(p_off$y)), tolerance = 1e-6)
+  # Con el interruptor apagado la cifra del box queda centrada en la barra (no sube 0.1 in para dejar sitio al «x de y»).
+  expect_true(all(sort(p_off$y) > sort(p_on$y)))
+  expect_true(all(sort(p_off$y) - sort(p_on$y) > 0.05))
 })

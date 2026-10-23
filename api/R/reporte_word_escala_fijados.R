@@ -25,8 +25,19 @@
 )
 
 #' Caracteres por línea del rótulo de fila (`strwrap(width = )`)
+#'
+#' N7 (Renzo, Arte, 2026-10-22): con 22 los enunciados largos salían en 7-8 líneas y la figura «absurdamente alta»; la
+#' columna de etiquetas es ahora más ancha (42) y las barras algo más cortas.
 #' @keywords internal
-.WORD_ESCALA_ENVOLTURA <- 22L
+.WORD_ESCALA_ENVOLTURA <- 42L
+
+#' Tope de líneas de un rótulo de fila; si el enunciado lo supera se ensancha la envoltura hasta `.WORD_ESCALA_ENVOLTURA_MAX`
+#' @keywords internal
+.WORD_ESCALA_LINEAS_MAX <- 4L
+
+#' Envoltura máxima (caracteres) de la columna de etiquetas: lo que `.word_rotulo_in()` (tope 3,3 in) alcanza a reservar
+#' @keywords internal
+.WORD_ESCALA_ENVOLTURA_MAX <- 48L
 
 #' Porcentaje del segmento desde el que la cifra va dentro; por debajo va encima con su guía (nunca se oculta)
 #' @keywords internal

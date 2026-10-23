@@ -2079,8 +2079,8 @@ p_barras_categoricas <- function(
 #' @param mostrar_categorias_en_cero Si `TRUE`, dibuja las opciones sustantivas
 #'   sin casos; las especiales (90-99, SIN INF) ausentes nunca (C40 D2). `NULL`
 #'   hereda el preset.
-#' @param mostrar_respuestas Si `FALSE`, la lámina no escribe «N respuestas» junto a cada público (el público se
-#'   queda). `NULL` hereda (encendido).
+#' @param mostrar_respuestas Si `TRUE`, la lámina escribe «N respuestas» junto a cada público (opcional; N3b: apagado
+#'   por defecto). `NULL` hereda (apagado). El pie «Base» y el «x de y» de las bases chicas no cambian.
 #' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel. Van a
 #'   `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`; `NULL` hereda el preset.
@@ -2141,6 +2141,8 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #' @param word_multiapiladas Figuras del Word (W6/D6): `"un_grafico"`, `"por_tema"` o `"por_barra"`; `NULL` o `""`
 #'   hereda `w_presets$chart_options$multiapiladas_word`. En `multilista` vale
 #'   para cada bloque. La lámina del PPT no cambia.
+#' @param word_titulo_figura Título de la figura única del Word (`modo = "var"` con `un_grafico` o
+#'   `un_grafico_mismo_publico`); `NULL` o `""` la deja sin título. No cambia el PPT ni los demás modos.
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
@@ -2177,8 +2179,11 @@ p_barras_multiapiladas <- function(
     mostrar_categorias_en_cero = NULL,
     ancho_tema = NULL,
     mostrar_respuestas = NULL,
+    filete_temas = NULL,
+    grosor_piso_cm = NULL,
     invertir_barras = NULL,
-    word_multiapiladas = NULL
+    word_multiapiladas = NULL,
+    word_titulo_figura = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2275,9 +2280,12 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
   overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
+  overrides <- .ppt_slot_override(overrides, "filete_temas", filete_temas, "bool")   # N2
+  overrides <- .ppt_slot_override(overrides, "grosor_piso_cm", grosor_piso_cm, "numero", min = 0)   # N1
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")   # O7c
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
+  word_titulo_figura <- .word_titulo_figura_normalizar(word_titulo_figura)   # reporte_word_multi_modos.R
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2361,7 +2369,8 @@ p_barras_multiapiladas <- function(
       overrides      = overrides,
       base           = base,
       filtros        = filtros,
-      word_multiapiladas = word_multiapiladas
+      word_multiapiladas = word_multiapiladas,
+      word_titulo_figura = word_titulo_figura
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2407,7 +2416,8 @@ p_barras_multiapiladas <- function(
       overrides      = overrides,
       base           = base,
       filtros        = filtros,
-      word_multiapiladas = word_multiapiladas
+      word_multiapiladas = word_multiapiladas,
+      word_titulo_figura = word_titulo_figura
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2465,7 +2475,8 @@ p_barras_multiapiladas <- function(
       overrides      = overrides,
       base           = base,
       filtros        = filtros,
-      word_multiapiladas = word_multiapiladas
+      word_multiapiladas = word_multiapiladas,
+      word_titulo_figura = word_titulo_figura
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2496,7 +2507,8 @@ p_barras_multiapiladas <- function(
     overrides      = overrides,
     base           = base,
     filtros        = filtros,
-    word_multiapiladas = word_multiapiladas
+    word_multiapiladas = word_multiapiladas,
+    word_titulo_figura = word_titulo_figura
   )
   class(el) <- c("ppt_element", "list")
   el
@@ -3121,7 +3133,7 @@ p_radar_tabla <- function(
       .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() o lista nombrada.")
     }
 
-    if (!is.null(var)) .plan_spec_abort("p_radar_tabla(modo='box'): no usar `var`.")
+    .radar_box_validar_una_base(var, vars)
 
     if (is.list(box_labels) && all(vapply(box_labels, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
       box_labels <- unlist(box_labels, use.names = FALSE)   # arreglo JSON del editor (G11)

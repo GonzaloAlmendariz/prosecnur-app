@@ -3643,7 +3643,7 @@ reporte_ppt_plan <- function(
       # W-4 (B52): la Base sellada/prorrateada («52 docentes y 155
       # estudiantes») manda, igual que en el slide PPT; el caption por actor
       # («Docentes (52) y …») queda solo como fallback.
-      base_b <- base_b %||% attr(p_b, "pulso_actor_base_caption", exact = TRUE)
+      base_b <- .word_base_filas(base_b %||% attr(p_b, "pulso_actor_base_caption", exact = TRUE), p_b, block_clean)   # N propio de la fila que no cuadra (reporte_word_publico_barra.R)
 
       render_meta[[length(render_meta) + 1]] <<- list(
         kind      = "chart",
@@ -3656,24 +3656,24 @@ reporte_ppt_plan <- function(
     }
 
     # Helper: divide un bloque en figuras Word segun el modo de la lamina o del informe (W6/D6: reporte_word_multi_modos.R)
-    .split_multi_block <- function(block_data, modo_word = "automatico") {
-      for (pz in .word_multi_piezas(block_data, modo_word, .title_of_var)) .push_multi_block(pz$sub, pz$titulo)
+    .split_multi_block <- function(block_data, modo_word = "automatico", partes = NULL) {
+      for (pz in .word_multi_piezas(block_data, modo_word, .title_of_var, escala_de = function(r) .word_multi_escala_firma(r, .resolve_ref, .choice_signature_from_ctx_norm), partes = partes)) .push_multi_block(pz$sub, pz$titulo)
     }
 
     # --- MULTILISTA: un entry por grupo dentro de cada bloque ---
     if (identical(etype, "barras_multiapiladas") && identical(el$modo %||% "", "multilista")) {
-      for (block in .calculos_sanear_elemento(el)$bloques %||% list()) .split_multi_block(block, .word_multi_modo_resolver(el, presets))  # redondeo: graficos_calculos_gobernados.R
+      for (b in .word_bloques_con_partes(.calculos_sanear_elemento(el)$bloques, el, .word_particion_ppt(plot))) .split_multi_block(b$block, .word_multi_modo_resolver(el, presets), b$partes)  # redondeo: graficos_calculos_gobernados.R
       return(invisible(NULL))
     }
 
     # --- MULTIAPILADAS var_cruce / var: un entry por grupo/variable ---
     if (identical(etype, "barras_multiapiladas")) {
-      .split_multi_block(.calculos_sanear_elemento(el), .word_multi_modo_resolver(el, presets))  # el Word redondea como la lámina
+      .split_multi_block(.calculos_sanear_elemento(el), .word_multi_modo_resolver(el, presets), .word_particion_ppt(plot))  # el Word redondea como la lámina
       return(invisible(NULL))
     }
 
     # --- ELEMENTO NORMAL ---
-    title <- .word_title_for_element(el)
+    title <- .word_titulo_una_pregunta(el, .word_title_for_element(el), function(ref, src) .word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src))))  # criterio B: una premisa, su enunciado (reporte_word_publico_barra.R)
 
     word_note <- .plot_note_from(plot, el$overrides$nota_pie %||% el$nota_pie %||% NULL)
 
@@ -4620,7 +4620,7 @@ reporte_ppt_plan <- function(
       )
 
       # En Word con una sola variable, el label puede salir como titulo arriba.
-      single_word_var <- isTRUE(el$.word_sin_grupo) && length(vars) == 1L
+      single_word_var <- isTRUE(el$.word_sin_grupo) && length(vars) == 1L && !isTRUE(el$.word_rotular_publico)
       hide_single_word_label <- single_word_var &&
         isTRUE(overrides$word_ocultar_etiqueta_categoria %||%
                  preset_args_multi$word_ocultar_etiqueta_categoria %||%
@@ -4635,7 +4635,7 @@ reporte_ppt_plan <- function(
         if (hide_single_word_label) {
           label_v <- ""
         } else {
-          label_v <- labels_by_v[[v]] %||% .title_of_var(v)
+          label_v <- .word_publico_barra_rotulo(el, ctx_v$source) %||% labels_by_v[[v]] %||% .title_of_var(v)
           if (isTRUE(duplicated_labels[match(v, names(labels_by_v))])) {
             label_v <- .pretty_source_label(ctx_v$source)
           }

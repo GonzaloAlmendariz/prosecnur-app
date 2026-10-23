@@ -145,15 +145,15 @@ test_that("las pesas siguen la regla del recetario: diferencia primero menos seg
   expect_true(all(ifelse(e$a >= e$b, ca$x > pa$x, ca$x + ca$w < pa$x + pa$w)))   # la cifra al costado exterior de su punto
 })
 
-test_that("en la brecha entre públicos la leyenda sube al antetítulo con el color de cada público (G4)", {
+test_that("en la brecha entre públicos la leyenda va abajo, centrada a la lámina, no en el antetítulo (PPT 39, Renzo v3)", {
   d <- data.frame(eje = rep(c("A", "B"), 2), grupo = factor(rep(c("Docentes", "Estudiantes"), each = 2), levels = c("Docentes", "Estudiantes")),
                   valor = c(92, 96, 94, 91), n = rep(c(51, 109), each = 2))
   e <- attr(graficar_dumbbell(d), "pulso_espec")
   xml <- .nm_xml(.nm_print(.lam_laminas_pesas(.nm_doc(), e, "Brecha", ante = "Comparaciones", folio = 86)$doc), 1L)
-  expect_length(.nm_txt(xml, "leyenda:texto"), 0L)
+  expect_match(paste(.nm_txt(xml, "leyenda:texto"), collapse = "|"), "Docentes.*Estudiantes")
   ante <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Antetitulo lamina']]")
-  expect_match(xml2::xml_text(ante), "COMPARACIONES.*DOCENTES \\(51\\).*ESTUDIANTES \\(109\\)")
-  expect_true(all(toupper(sub("^#", "", e$colores)) %in% toupper(xml2::xml_attr(xml2::xml_find_all(ante, ".//a:srgbClr"), "val"))))
+  expect_identical(xml2::xml_text(ante), "COMPARACIONES")   # el antetítulo conserva solo el capítulo
+  expect_true(all(toupper(sub("^#", "", e$colores)) %in% toupper(xml2::xml_attr(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:cuadro']]//a:srgbClr"), "val"))))
 })
 
 test_that("una lámina con meta$leyenda_antetitulo = FALSE apaga la leyenda arriba mientras se compone (G4)", {

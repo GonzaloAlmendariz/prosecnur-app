@@ -28,7 +28,7 @@ test_that("en la lámina exportada el gráfico empieza bajo la última línea de
   local_mocked_bindings(
     .lam_escala_premisas = function(espec) premisas,
     .lam_escala_modo_filas = function(espec) FALSE,
-    .lam_escala_partir = function(p) list(p),
+    .lam_escala_partir = function(premisas, ...) list(premisas),
     .lam_bloque_escala = function(lz, espec, premisas, solo = TRUE, ...) {
       assign("y_bloque", .std_geom("zona_datos_y0"), envir = globalenv()); invisible(lz)
     }

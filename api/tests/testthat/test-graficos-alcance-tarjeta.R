@@ -110,6 +110,8 @@ test_that("agrupadas: invertir_barras, otros_al_final y normalizar_etiquetas de 
   expect_error(p_barras_agrupadas("m", normalizar_etiquetas = "rara"), "normalizar_etiquetas")
 })
 
+# F1: con un orden pedido (también el recetario por frecuencia de una nominal) la lámina se lee de arriba a abajo y
+# `invertir_barras` no la gira; la tarjeta lo conserva donde no se pide orden (`overrides = list(orden_barras = "instrumento")`, heredado).
 test_that("agrupadas: invertir_barras = FALSE de la tarjeta da la vuelta a la lámina nativa", {
   withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
   espec <- function(el) {
@@ -119,8 +121,8 @@ test_that("agrupadas: invertir_barras = FALSE de la tarjeta da la vuelta a la l�
     )))
     attr(res$rendered[[1]], "pulso_espec")$rotulos
   }
-  casa <- espec(.o7_slot("p_barras_agrupadas", var = "m"))
-  vuelta <- espec(.o7_slot("p_barras_agrupadas", var = "m", invertir_barras = FALSE))
+  casa <- espec(.o7_slot("p_barras_agrupadas", var = "m", overrides = list(orden_barras = "instrumento")))
+  vuelta <- espec(.o7_slot("p_barras_agrupadas", var = "m", overrides = list(orden_barras = "instrumento", invertir_barras = FALSE)))
   expect_setequal(vuelta, casa)
   expect_false(identical(vuelta, casa))
 })
@@ -287,8 +289,9 @@ test_that("el saneo de «Cálculos» deja los decimales de los tipos que esa pes
 }
 
 test_that("radar entre públicos: el elemento manda sobre el preset y el preset sobre el defecto", {
-  ejes <- list(A = list("docentes$p1", "estudiantes$p1"), B = list("docentes$p1", "estudiantes$p1"),
-               C = list("docentes$p1", "estudiantes$p1"))
+  # Desde que el radar exige >= 5 criterios (por debajo dibuja puntos), el test usa 5 ejes.
+  par_p1 <- list("docentes$p1", "estudiantes$p1")
+  ejes <- list(A = par_p1, B = par_p1, C = par_p1, D = par_p1, E = par_p1)
   pub <- function(...) p_radar(modo = "publicos", vars = ejes, corte = "3,4", mostrar_tabla = FALSE, ...)
 
   # Nada declarado: los defectos de siempre (sin cifras, enteros, sin piso).

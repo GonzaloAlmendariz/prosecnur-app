@@ -101,6 +101,9 @@
 #'
 #' La tabla es escalonada (`filas_hasta`): la barra no adelgaza en continuo y
 #' tampoco por tener cifras chicas; en ese caso la fila gana aire.
+#'
+#' N1 (Renzo, 2026-10-22): con un piso declarado (`grosor_piso_cm`, ver `.std_piso_escala_in()`) la barra de ESCALA no
+#' baja de él; las categóricas no lo usan. Sin piso, la tabla manda como siempre.
 #' @param n_filas Filas (barras) de la lámina.
 #' @param tipo `escala_apilada` (Likert y escalas) o `categorias`.
 #' @keywords internal
@@ -108,8 +111,61 @@
   tipo <- match.arg(tipo)
   tabla <- .std_valor("ppt", "grosor", tipo)
   n <- max(1L, as.integer(n_filas))
-  for (fila in tabla) if (n <= fila$filas_hasta) return(fila$grosor)
-  tabla[[length(tabla)]]$grosor
+  g <- tabla[[length(tabla)]]$grosor
+  for (fila in tabla) if (n <= fila$filas_hasta) { g <- fila$grosor; break }
+  if (identical(tipo, "escala_apilada")) max(g, .std_piso_escala_in()) else g
+}
+
+#' Piso de grosor de las barras de escala, en pulgadas (0 = sin piso)
+#'
+#' Lo fija `options(prosecnur.grosor_piso_cm = )`: el informe (`presets$base$args$grosor_piso_cm`, vía
+#' `.grosor_piso_fijar()`) o, durante una lámina, el slot (`espec$grosor_piso_cm`). Un valor ausente, no numérico o
+#' no positivo no es piso. Solo geometría: no toca grano ni denominadores.
+#' @keywords internal
+.std_piso_escala_in <- function() {
+  v <- suppressWarnings(as.numeric(getOption("prosecnur.grosor_piso_cm")))
+  if (length(v) != 1L || !is.finite(v) || v <= 0) return(0)
+  v / 2.54
+}
+
+#' Fija el piso del slot mientras se compone su lámina (gana al del informe; 0 lo quita); NULL no toca nada
+#' @return Las opciones anteriores, para `on.exit(options(...))`.
+#' @keywords internal
+.grosor_piso_slot <- function(piso_cm) if (is.null(piso_cm)) list() else options(prosecnur.grosor_piso_cm = piso_cm)
+
+#' Fija el piso del informe (`presets$base$args$grosor_piso_cm`); sin declaración no toca nada
+#' @return Las opciones anteriores, para `on.exit(options(...))`.
+#' @keywords internal
+.grosor_piso_fijar <- function(presets) {
+  declarado <- presets$base$args$grosor_piso_cm %||% presets$base$grosor_piso_cm
+  if (is.null(declarado)) return(list())
+  ok <- length(declarado) == 1L && is.numeric(declarado) && is.finite(declarado) && declarado >= 0
+  if (!ok) {
+    warning("`grosor_piso_cm` del informe no es válido («", paste(format(declarado), collapse = ", "),
+            "»); se ignora. Debe ser un número >= 0 (cm).", call. = FALSE)
+    return(list())
+  }
+  options(prosecnur.grosor_piso_cm = as.numeric(declarado))
+}
+
+#' M1 (Gonzalo, 2026-10-22): ¿se evita el «(cont.)» comprimiendo el AIRE (no la barra) cuando hay piso de grosor?
+#'
+#' `options(prosecnur.evitar_cont = )`, que fija `presets$base$args$evitar_cont` (`.evitar_cont_fijar()`). Sin declarar,
+#' sigue al piso: con piso se evita el «(cont.)»; sin piso nada cambia. `FALSE` apaga la compresión (N1 puro: se parte).
+#' @keywords internal
+.std_evitar_cont <- function() {
+  v <- getOption("prosecnur.evitar_cont")
+  if (is.null(v) || length(v) != 1L || is.na(v)) return(.std_piso_escala_in() > 0)
+  isTRUE(as.logical(v)) && .std_piso_escala_in() > 0
+}
+
+#' Fija `evitar_cont` del informe (`presets$base$args$evitar_cont`); sin declaración no toca nada
+#' @return Las opciones anteriores, para `on.exit(options(...))`.
+#' @keywords internal
+.evitar_cont_fijar <- function(presets) {
+  declarado <- presets$base$args$evitar_cont %||% presets$base$evitar_cont
+  if (is.null(declarado) || length(declarado) != 1L || is.na(declarado)) return(list())
+  options(prosecnur.evitar_cont = isTRUE(as.logical(declarado)))
 }
 
 #' Aire extra por fila cuando sus cifras chicas suben con guía, en pulgadas
@@ -134,4 +190,33 @@
 .std_word <- function(seccion, nombre) {
   v <- .std_valor("word", seccion, nombre)
   if (identical(seccion, "tipografia")) .std_letra_desplazada(v, "word", nombre) else v
+}
+
+#' Ancho extra de la columna del ENUNCIADO de las láminas de escala, en pulgadas (0 = el del estándar)
+#'
+#' N10 (Renzo, 2026-10-22): un enunciado más ancho ocupa menos líneas y la lámina cabe sin partirse aun con el piso de
+#' grosor. El ancho sale del área de barras (la columna de públicos y la barra se corren a la derecha; la Top Two Box
+#' no se mueve). Lo fija `options(prosecnur.ancho_enunciado_extra_in = )` desde el informe
+#' (`presets$base$args$ancho_enunciado_extra_in`, vía `.ancho_enunciado_fijar()`). Tope de 1.5 in: más se comería las
+#' barras. Solo geometría: no toca grano ni denominadores.
+#' @keywords internal
+.std_enunciado_extra_in <- function() {
+  v <- suppressWarnings(as.numeric(getOption("prosecnur.ancho_enunciado_extra_in")))
+  if (length(v) != 1L || !is.finite(v) || v <= 0) return(0)
+  min(v, 1.5)
+}
+
+#' Fija el ancho extra de enunciado del informe; sin declaración no toca nada
+#' @return Las opciones anteriores, para `on.exit(options(...))`.
+#' @keywords internal
+.ancho_enunciado_fijar <- function(presets) {
+  declarado <- presets$base$args$ancho_enunciado_extra_in %||% presets$base$ancho_enunciado_extra_in
+  if (is.null(declarado)) return(list())
+  ok <- length(declarado) == 1L && is.numeric(declarado) && is.finite(declarado) && declarado >= 0
+  if (!ok) {
+    warning("`ancho_enunciado_extra_in` del informe no es válido («", paste(format(declarado), collapse = ", "),
+            "»); se ignora. Debe ser un número >= 0 (in).", call. = FALSE)
+    return(list())
+  }
+  options(prosecnur.ancho_enunciado_extra_in = as.numeric(declarado))
 }

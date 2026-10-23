@@ -129,9 +129,10 @@ test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 i
 
 test_that("en la ruta real una categórica de dos opciones que suman 100 sale como dicotomía partida", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
-  dat <- data.frame(p1 = rep(c("1", "2"), c(172, 4)), stringsAsFactors = FALSE)
+  # N20: la dicotomía se decide por los rótulos Sí/No (ya no por la estructura); la base llega con sus rótulos, como en el flujo real.
+  dat <- data.frame(p1 = rep(c("Sí", "No"), c(172, 4)), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = "p1", type = "select_one sn", list_name = "sn", label = "¿Está trabajando actualmente?", stringsAsFactors = FALSE),
-               choices = data.frame(list_name = "sn", name = c("1", "2"), label = c("Sí", "No"), stringsAsFactors = FALSE), orders_list = NULL)
+               choices = data.frame(list_name = "sn", name = c("Sí", "No"), label = c("Sí", "No"), stringsAsFactors = FALSE), orders_list = NULL)
   plan <- list(b = p_slide_1_grafico(grafico = p_barras_categoricas("p1"), titulo = "Situación laboral"))
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))

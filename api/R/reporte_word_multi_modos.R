@@ -4,8 +4,14 @@
 #
 # D6 (Gonzalo, checklist-revamp-informe-graficos-2026-10-14): la multiapilada del Word se elige por lámina, con un valor
 # del informe debajo. El slot declara `word_multiapiladas` (argumento de `p_barras_multiapiladas()`) y el informe
-# `w_presets$chart_options$multiapiladas_word`; el slot manda y, si ninguno dice nada, rige «automático», que es el
-# corte de siempre: `var_cruce` sale una figura por tema y `var` una por barra. La lámina del PPT no cambia.
+# `w_presets$chart_options$multiapiladas_word`; el slot manda.
+#
+# N8b + criterio B (usuario, 2026-10-22): si NINGUNO dice nada rige el criterio B (`.WORD_MULTI_MODO_DEFAULT`,
+# reporte_word_publico_barra.R): una figura por premisa; la misma premisa con varios actores, una fila por actor; un solo
+# actor repetido en varias premisas con la misma escala, una batería con los enunciados en el eje Y (tramos de hasta 6
+# barras). La partición del PPT (`partes`, reporte_word_particion_ppt.R) es el tope de agrupación (R0). «automatico»
+# EXPLÍCITO en el informe es el corte de antes: `var_cruce` una figura por tema y `var` una por barra.
+# `un_grafico_mismo_actor` (N8) es alias del default. La lámina del PPT no cambia.
 #
 #   un_grafico — la multiapilada entera en UNA figura, como la lámina. En `var_cruce` los temas van dentro de la figura
 #                con su rótulo (la escala Word los dibuja: `.word_escala_grupos()`).
@@ -21,12 +27,23 @@
 #' @keywords internal
 .WORD_MULTI_MODOS <- c("un_grafico", "por_tema", "por_barra")
 
+#' Nombre interno del criterio por defecto: mismo conjunto de actores y misma escala (N8b)
+#' @keywords internal
+.WORD_MULTI_MODO_DEFAULT <- "mismo_actor_escala"
+
+#' ¿Este modo resuelto es el criterio «mismo actor y misma escala»? (el default y su alias `un_grafico_mismo_actor`)
+#' @keywords internal
+.word_multi_es_actor_escala <- function(modo) {
+  length(modo) == 1L && !is.na(modo) && modo %in% c(.WORD_MULTI_MODO_DEFAULT, "un_grafico_mismo_actor")
+}
+
 #' Normaliza un modo Word de multiapilada: vacío es «sin decidir» (NULL), uno inválido es 400
 #'
 #' @param x Valor del slot o del informe.
 #' @param origen Texto para el mensaje («la lámina», «el informe»).
-#' @param admite_automatico En el informe, «automatico» también significa «sin decidir».
-#' @return Uno de `.WORD_MULTI_MODOS` o NULL.
+#' @param admite_automatico En el informe, «automatico» es válido y significa el corte de antes (N8b); vacío es «sin
+#'   decidir» y rige el criterio por defecto.
+#' @return Uno de `.WORD_MULTI_MODOS`, «automatico» (sólo informe) o NULL.
 #' @keywords internal
 .word_multi_modo_normalizar <- function(x, origen = "la lámina", admite_automatico = FALSE) {
   if (is.null(x) || !length(x)) return(NULL)
@@ -34,15 +51,17 @@
   if (length(x) != 1L) .plan_spec_abort("El modo Word de las multiapiladas de ", origen, " debe ser un solo valor.")
   if (is.na(x)) return(NULL)
   v <- trimws(as.character(x))
-  if (!nzchar(v) || (isTRUE(admite_automatico) && identical(v, "automatico"))) return(NULL)
-  if (!v %in% .WORD_MULTI_MODOS) {
+  if (!nzchar(v)) return(NULL)
+  if (isTRUE(admite_automatico) && identical(v, "automatico")) return("automatico")   # explícito: el corte de antes (N8b)
+  validos <- c(.WORD_MULTI_MODOS, if (isTRUE(admite_automatico)) c("un_grafico_mismo_publico", "un_grafico_mismo_actor", .WORD_MULTI_MODO_DEFAULT))   # estos, sólo el informe (reporte_word_publico_barra.R)
+  if (!v %in% validos) {
     .plan_spec_abort("El modo Word de las multiapiladas de ", origen, " es «", v, "»; los válidos son ",
-                     paste(.WORD_MULTI_MODOS, collapse = ", "), ".")
+                     paste(validos, collapse = ", "), ".")
   }
   v
 }
 
-#' Modo Word de un elemento multiapilado: el del slot, si no el del informe, si no «automatico»
+#' Modo Word de un elemento multiapilado: el del slot, si no el del informe, si no el criterio por defecto (N8b)
 #' @param el Elemento `barras_multiapiladas` (el de la lámina; en multilista, el padre).
 #' @param presets Presets PPT del render; el informe lo sella `.apply_word_chart_presets()` en `base$args`.
 #' @keywords internal
@@ -50,7 +69,29 @@
   slot <- .word_multi_modo_normalizar((el %||% list())[["word_multiapiladas", exact = TRUE]], "la lámina")
   args_base <- ((presets %||% list())$base %||% list())$args %||% list()
   informe <- .word_multi_modo_normalizar(args_base[["word_multiapiladas", exact = TRUE]], "el informe", admite_automatico = TRUE)
-  slot %||% informe %||% "automatico"
+  slot %||% informe %||% .WORD_MULTI_MODO_DEFAULT
+}
+
+#' Marca de «sin título» de una figura única: `.push_multi_block` (congelado) trata un título vacío como «usa el de la
+#' lámina», así que la figura sin título viaja con un espacio duro, que se ve en blanco y no se infiere de nada.
+#' @keywords internal
+.WORD_TITULO_VACIO <- "\u00A0"
+
+#' Título declarado de la figura única (`word_titulo_figura` del slot): texto limpio o NULL
+#' @keywords internal
+.word_titulo_figura_normalizar <- function(x) {
+  if (is.null(x) || !length(x)) return(NULL)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  if (length(x) != 1L) .plan_spec_abort("El título de la figura Word debe ser un solo texto.")
+  if (is.na(x)) return(NULL)
+  v <- trimws(as.character(x))
+  if (nzchar(v)) v else NULL
+}
+
+#' Pieza de la figura única de un `var`: el título que el analista declaró o, si no, ninguno (nunca el de la lámina)
+#' @keywords internal
+.word_multi_pieza_unica <- function(sub) {
+  list(sub = sub, titulo = .word_titulo_figura_normalizar(sub$word_titulo_figura) %||% .WORD_TITULO_VACIO)
 }
 
 #' Rótulo de una variable para el título Word: el título de la pregunta o, si falta, la referencia
@@ -76,12 +117,14 @@
 #' Piezas Word de un bloque multiapilado: cada una es una figura con su sub-bloque y su título
 #'
 #' @param block_data Bloque (`var`, `var_cruce`, `cruce`) ya saneado.
-#' @param modo_word «automatico» o uno de `.WORD_MULTI_MODOS`.
+#' @param modo_word `.WORD_MULTI_MODO_DEFAULT`, «automatico» o uno de `.WORD_MULTI_MODOS`.
+#' @param escala_de Función ref -> firma de la escala (lista de categorías) o NULL (sin firma: todas iguales).
 #' @param titulo_var Función ref -> título de la variable (`.title_of_var` del plan).
 #' @return Lista de `list(sub, titulo)`; `titulo` NULL deja que el plan use el título de la lámina
 #'   (`.word_title_for_element`).
 #' @keywords internal
-.word_multi_piezas <- function(block_data, modo_word = "automatico", titulo_var = identity) {
+.word_multi_piezas <- function(block_data, modo_word = "automatico", titulo_var = identity, escala_de = NULL, partes = NULL) {
+  force(partes)
   modo_b <- block_data$modo %||% "var"
   lam <- block_data$title_slide
   pieza <- function(sub, titulo = NULL) list(sub = sub, titulo = titulo)
@@ -96,12 +139,13 @@
     vars_list <- block_data$vars %||% list()
     titulos_grupo <- block_data$titulos_grupo %||% list()
     if (identical(modo_word, "un_grafico")) return(entero(con_grupos = length(vars_list) > 1L))
+    if (.word_multi_es_actor_escala(modo_word) && is.list(vars_list)) return(.word_criterio_piezas(block_data, titulo_var, escala_de, partes))   # criterio B (default)
     if (identical(modo_word, "automatico")) {   # el corte de siempre, tal cual (W-7/B54)
       return(lapply(names(vars_list), function(nm) {
         pieza(sin_grupo(vars_list[nm]), .word_titulo_bloque_multi(lam, titulos_grupo[[nm]] %||% nm))
       }))
     }
-    if (is.character(vars_list)) {
+    if (is.character(vars_list)) {   # incluye el default sobre un cruce: sus variables abiertas no se agrupan
       # Temas = variables abiertas por el mismo cruce: sus barras son los grupos del cruce y no se separan.
       tit <- function(v) {
         tg <- if (!is.null(names(titulos_grupo)) && v %in% names(titulos_grupo)) titulos_grupo[[v]] else NULL
@@ -124,7 +168,10 @@
   }
 
   if (identical(modo_b, "var")) {
-    if (modo_word %in% c("un_grafico", "por_tema")) return(entero())
+    if (.word_multi_es_actor_escala(modo_word)) return(.word_criterio_piezas(block_data, titulo_var, escala_de, partes))   # criterio B (default)
+    if (identical(modo_word, .WORD_MULTI_MODO_MISMO_PUBLICO)) return(.word_publico_piezas_var(block_data, titulo_var))
+    if (identical(modo_word, "un_grafico")) return(list(.word_multi_pieza_unica(block_data)))   # D-b: título declarado o ninguno
+    if (identical(modo_word, "por_tema")) return(entero())
     vars_vec <- block_data$vars %||% character(0)
     if (is.list(vars_vec)) vars_vec <- unlist(vars_vec, use.names = FALSE)
     return(lapply(vars_vec, function(v) pieza(sin_grupo(v), .word_titulo_bloque_multi(lam, .word_multi_rotulo_var(v, titulo_var)))))

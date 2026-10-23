@@ -259,8 +259,9 @@
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
   doc <- officer::add_slide(doc, layout = layout, master = master)
-  arriba <- .lam_leyenda_va_arriba(espec$leyenda)   # G4: la leyenda sube al antetítulo
-  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, leyenda = if (arriba) stats::setNames(espec$colores, espec$leyenda))
+  # PPT 39 (Renzo, v3): la leyenda no sube al antetítulo (salía diminuta y pegada al título): va como en las demás láminas,
+  # a `leyenda_y`, a `.std_pt("leyenda")` y centrada a toda la lámina.
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   for (v in seq(lo, hi, by = paso)) {
     .lam_caja(lz, px(v), yb, 0.006, k * fila, .std_color("filete"), nombre = "pesas:guia")
@@ -298,7 +299,7 @@
              align = if (sube_b) "center" else if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
   }
-  if (!arriba) .lam_leyenda(lz, yf - 0.3, espec$leyenda, espec$colores, centrar_en = xl + wl / 2)
+  .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$leyenda, espec$colores, centrar_en = W / 2)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:pesas")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)

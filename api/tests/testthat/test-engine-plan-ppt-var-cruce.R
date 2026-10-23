@@ -3102,7 +3102,9 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
   skip_if_not_installed("rvg")
 
   dat <- data.frame(
-    p1 = c("1", "1", "2", "2", "2"),
+    # 50 casos: con menos de 30 la regla de base chica («Casos junto al porcentaje») pone «(n)» sola; aqui se prueba el
+    # interruptor `mostrar_n_en_etiquetas`. Desde N20 un par nominal ya no es dicotomia: sale como barras agrupadas.
+    p1 = c(rep("1", 20), rep("2", 30)),
     stringsAsFactors = FALSE
   )
   attr(dat$p1, "label") <- "Pregunta"
@@ -3165,19 +3167,17 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
 
   expect_true(grepl("40%", slide1_xml, fixed = TRUE))
   expect_true(grepl("60%", slide1_xml, fixed = TRUE))
-  expect_false(grepl("40% (2)", slide1_xml, fixed = TRUE))
-  expect_false(grepl("60% (3)", slide1_xml, fixed = TRUE))
+  expect_false(grepl("40% (20)", slide1_xml, fixed = TRUE))
+  expect_false(grepl("60% (30)", slide1_xml, fixed = TRUE))
 
   expect_true(grepl("40%", slide2_xml, fixed = TRUE))
   expect_true(grepl("60%", slide2_xml, fixed = TRUE))
-  expect_false(grepl("40% (2)", slide2_xml, fixed = TRUE))
-  expect_false(grepl("60% (3)", slide2_xml, fixed = TRUE))
+  expect_false(grepl("40% (20)", slide2_xml, fixed = TRUE))
+  expect_false(grepl("60% (30)", slide2_xml, fixed = TRUE))
 
-  # Dos categorías que suman 100 salen como dicotomía partida (lámina 74, ADR 0093): la frecuencia pedida con
-  # mostrar_n_en_etiquetas va en el rótulo («Nada util (2)») y la cifra queda limpia.
+  # Un par nominal ya no sale como dicotomia (N20): con `mostrar_n_en_etiquetas` la frecuencia va en la etiqueta de la barra.
   expect_true(grepl("40%", slide3_xml, fixed = TRUE))
   expect_true(grepl("60%", slide3_xml, fixed = TRUE))
-  rot3 <- xml2::xml_text(xml2::xml_find_all(xml2::read_xml(file.path(slide_dir, "ppt/slides/slide3.xml")),
-                                              "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:rotulo']]"))
-  expect_setequal(sub("^.*\\s", "", rot3), c("(2)", "(3)"))
+  expect_true(grepl("(20)", slide3_xml, fixed = TRUE))
+  expect_true(grepl("(30)", slide3_xml, fixed = TRUE))
 })

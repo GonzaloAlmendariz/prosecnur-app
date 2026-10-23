@@ -10,7 +10,8 @@ withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
 .ao_cats <- c("Primera", "Segunda", "Tercera", "Cuarta")
 .ao_edad <- c("De 18 a 30 años", "De 31 a 40 años", "De 41 a 50 años", "De 51 años a más")
 .ao_grado <- c("Bachiller", "Magíster", "Doctor")
-.ao_sexo <- c("Hombre", "Mujer")
+# N20 (2026-10-22): sólo Sí/No es dicotomía; «sexo» es aquí una pregunta Sí/No (la menor, 37 %, va primero en el instrumento).
+.ao_sexo <- c("Sí", "No")
 
 # Instrumento con listas declaradas (códigos y rótulos) y orders_list explícito: el motor no reordena.
 .ao_inst <- function(listas, etiquetas, ordenes = NULL) {
@@ -100,7 +101,7 @@ test_that("en los paneles de la población de 4 la ordinal y las demás se leen 
   expect_identical(derecha[derecha %in% .ao_cats], .ao_cats)               # arriba a la derecha
   expect_identical(derecha[derecha %in% .ao_grado], .ao_grado)             # abajo a la derecha
   # La dicotomía pone a la izquierda la primera categoría del instrumento, aunque sea la menor.
-  expect_identical(.ao_rotulos(x, nombre = "dicotomia:rotulo")[1], "Hombre")
+  expect_identical(.ao_rotulos(x, nombre = "dicotomia:rotulo")[1], "Sí")
 })
 
 test_that("un orders_list 3, 1, 2, 4 sale tal cual: el motor no reordena", {

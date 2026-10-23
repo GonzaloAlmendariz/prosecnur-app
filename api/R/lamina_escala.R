@@ -68,10 +68,14 @@
     for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + 0.46)
     m <- length(pos); lim <- x + w - 0.12
     if (pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - 0.46) }
+    # N9: la caja de la cifra sube 0,28 in sobre el borde de la fila (antes 0,32): queda >= 0,075 in bajo la barra de la
+    # fila de arriba (antes 0,04) con la misma fila (`aire_cifra_chica`) y la misma separación entre cifras.
+    # N9b: la caja mide 0,22 in y acaba a la altura de la base del glifo (el texto lleva 0,05 in de margen superior y
+    # desborda sin recorte); la guía (0,03 in) y su codo (a 0,04 in) quedan a 0,02 in por debajo de ella: ya no tocan el número.
     for (k in seq_along(peq)) {
-      .lam_caja(lz, cs[k] - 0.006, y - 0.07, 0.012, 0.07, tenue, nombre = "guia")
-      if (abs(pos[k] - cs[k]) > 0.01) .lam_caja(lz, min(cs[k], pos[k]), y - 0.08, abs(pos[k] - cs[k]), 0.012, tenue, nombre = "guia")
-      .lam_txt(lz, peq[[k]]$v, pos[k] - 0.32, y - 0.32, 0.64, 0.26, .std_pt("cifra_fuera"), azul, bold = TRUE,
+      .lam_caja(lz, cs[k] - 0.006, y - 0.03, 0.012, 0.03, tenue, nombre = "guia")
+      if (abs(pos[k] - cs[k]) > 0.01) .lam_caja(lz, min(cs[k], pos[k]), y - 0.04, abs(pos[k] - cs[k]), 0.012, tenue, nombre = "guia")
+      .lam_txt(lz, peq[[k]]$v, pos[k] - 0.32, y - 0.28, 0.64, 0.22, .std_pt("cifra_fuera"), azul, bold = TRUE,
                align = "center", nombre = "cifra_fuera")
     }
   }
@@ -116,7 +120,7 @@
 .lam_escala_sin_actor <- function(premisas) all(vapply(premisas, function(p) all(vapply(p$filas, function(f) !nzchar(f$actor), TRUE)), TRUE))
 .lam_escala_ancho_prem <- function(premisas) {
   L <- .std_geom("likert")
-  if (.lam_escala_sin_actor(premisas)) L$x_barra - L$x_premisa - 0.25 else L$ancho_premisa
+  (if (.lam_escala_sin_actor(premisas)) L$x_barra - L$x_premisa - 0.25 else L$ancho_premisa) + .std_enunciado_extra_in()   # N10
 }
 #' Alto del texto de una premisa, con la línea de su N si la lleva
 #' @keywords internal
@@ -149,13 +153,21 @@
 #' reordena.
 #' @return Lista de grupos de premisas, uno por lámina.
 #' @keywords internal
-.lam_escala_partir <- function(premisas, disponible = .lam_escala_alto_util(), alto_fn = .lam_escala_alto) {
+.lam_escala_partir <- function(premisas, disponible = .lam_escala_alto_util(), alto_fn = .lam_escala_alto, aire_min_fn = NULL) {
   n <- length(premisas)
   if (n <= 1L || alto_fn(premisas) <= disponible) return(list(premisas))
+  # M1 con piso (lamina_escala_aire.R): hasta seis barras caben en una lámina si, con la barra del piso y el aire mínimo
+  # (separación entre premisas >= 0,12 in y cifra chica a >= 0,075 in de la barra de arriba), entran en la franja.
+  if (!is.null(aire_min_fn) && .std_evitar_cont() && .lam_escala_n_barras(premisas) <= .MULTIAPILADAS_MAX_BARRAS &&
+      aire_min_fn(premisas) <= disponible) return(list(premisas))
   # M1: seis barras caben en una lámina (Gonzalo, 2026-10-14). Si se pasan por poco —el aire entre temas de dos o tres
   # públicos—, el bloque se compacta lo justo al dibujarse en vez de partirse en «(cont.)».
-  if (.lam_escala_n_barras(premisas) <= .MULTIAPILADAS_MAX_BARRAS && alto_fn(premisas) <= 1.15 * disponible) return(list(premisas))
-  cabe <- function(ix) all(vapply(split(premisas, ix), alto_fn, 0) <= disponible)
+  # N1: con piso de grosor declarado no hay tolerancia: la lámina se parte en vez de apretar la barra por debajo del piso.
+  if (.std_piso_escala_in() <= 0 && .lam_escala_n_barras(premisas) <= .MULTIAPILADAS_MAX_BARRAS && alto_fn(premisas) <= 1.15 * disponible) return(list(premisas))
+  comprime <- !is.null(aire_min_fn) && .std_evitar_cont()   # M1: cada parte de hasta seis barras puede componerse con el aire mínimo
+  cabe_parte <- function(pp) alto_fn(pp) <= disponible ||
+    (comprime && .lam_escala_n_barras(pp) <= .MULTIAPILADAS_MAX_BARRAS && aire_min_fn(pp) <= disponible)
+  cabe <- function(ix) all(vapply(split(premisas, ix), cabe_parte, TRUE))
   for (k in 2:n) {
     mejor <- NULL; mejor_v <- Inf
     for (cs in utils::combn(n - 1, k - 1, simplify = FALSE)) {
@@ -214,7 +226,7 @@
 #' partición y el alto de las filas no cambian (F-d, lámina 24 de acrconta_mazo).
 #' @return Lista con `ancho_barra`, `ancho_col` y `cols` (cada una con `caja`, `color`, `x`, `prefijo`, `rotulo`).
 #' @keywords internal
-.lam_escala_columnas_box <- function(espec) {
+.lam_escala_columnas_box <- function(espec, extra = 0) {
   L <- .std_geom("likert")
   ttb <- !is.null(espec$box$unidades); btb <- ttb && !is.null(espec$box2$unidades)
   paso <- if (btb) 1.25 else 0; wcol <- if (btb) 1.25 else 1.5
@@ -224,7 +236,7 @@
                              prefijo = "box", rotulo = espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
   if (btb) cols[[2]] <- list(caja = espec$box2, color = .std_color("naranja_bottom_two_box_texto"), x = centro(0) - wcol / 2,
                              prefijo = "box2", rotulo = espec$box2$rotulo %||% "Bottom Two Box")
-  list(ancho_barra = L$ancho_barra - paso, ancho_col = wcol, cols = cols)
+  list(ancho_barra = L$ancho_barra - paso - extra, ancho_col = wcol, cols = cols)
 }
 
 #' Dibuja un bloque de escala en el lienzo
@@ -251,10 +263,12 @@
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
   ttb_col <- !is.null(espec$box$unidades)
-  cb <- .lam_escala_columnas_box(espec); wcol <- cb$ancho_col; dx_btb <- L$ancho_barra - cb$ancho_barra
+  # N10: el enunciado gana `ex` in a costa de la barra: públicos y barra se corren a la derecha; la Top Two Box queda donde está.
+  ex <- .std_enunciado_extra_in(); L$x_actor <- L$x_actor + ex; L$x_barra <- L$x_barra + ex; L$ancho_barra <- L$ancho_barra - ex
+  cb <- .lam_escala_columnas_box(espec, ex); wcol <- cb$ancho_col; dx_btb <- L$ancho_barra - cb$ancho_barra
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
-  con_n <- !identical(espec$mostrar_respuestas, FALSE)   # M10: «Respuestas por público»
+  con_n <- isTRUE(espec$mostrar_respuestas)   # M10 / N3b: «Respuestas por público»; apagado por defecto, switcher opcional por gráfico
   y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
 
   # Con Bottom Two Box la afirmación sola no encabeza: si es corta va en filas (lámina 97, `.lam_escala_modo_filas`) y
@@ -266,7 +280,7 @@
     yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2)
     .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
     yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.25
-    if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - 0.18, 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
+    if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - (if (con_n) 0.18 else 0.15), 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
     if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, fl$i), g)
     for (cc in cb$cols) {
@@ -279,34 +293,47 @@
     return(invisible(yb + g))
   }
 
-  hay_chica <- .lam_base_chica(espec)   # la especificación entera, no la parte (estándar `base_chica`)
+  # La especificación entera, no la parte (estándar `base_chica`). El «x de y» lo gobierna el mismo interruptor que «N respuestas»
+  # (`mostrar_respuestas`, N3b+): apagado no se dibuja; la regla sigue en `.lam_base_chica` y el pie «Base: N» no cambia.
+  hay_chica <- con_n && .lam_base_chica(espec)
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
+  extra_gap <- rep(0, max(0L, length(premisas) - 1L))   # M1: aire extra por separación (donde una cifra chica pide más); 0 = el gap uniforme de siempre
   WB <- if (ttb_col) cb$ancho_barra else W - MR - L$x_barra - 0.3
   altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
-  altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+  altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
+  # M1 con piso: el aire mínimo al que puede ceder la lámina sin bajar la barra del piso (lamina_escala_aire.R)
+  aire_mn <- function() .lam_aire_minimo(vapply(premisas, function(p) .lam_premisa_alto(p, wp), 0), vapply(premisas, function(p) length(p$filas), 0), g,
+                                         chica = vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
   if (!is.null(estirar)) {   # el aire lo reparte quien compone varios bloques: el mismo factor en todos
     fila <- fila * estirar; gap <- gap * estirar
-    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+    if (estirar < 1 && .std_evitar_cont()) { mn <- aire_mn(); fila <- max(mn$fila, fila); gap <- max(mn$gap, gap); extra_gap <- pmax(0, mn$gaps - gap) }   # M1: la multilista comprime
+    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   } else if (tot < 0.88 * disp) {   # pocas filas: se reparte el alto, el grosor no cambia
     f_ <- min(2.0, 0.93 * disp / tot); fila <- fila * f_; gap <- gap * f_
-    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   } else if (tot > disp) {   # M1: hasta seis barras se compactan para caber en vez de partirse (`.lam_escala_partir`)
-    f_ <- disp / tot; fila <- fila * f_; gap <- gap * f_
-    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+    f_ <- disp / tot
+    if (.std_evitar_cont()) {   # M1 con piso: cede el aire hasta su mínimo (lamina_escala_aire.R); la barra no baja del piso
+      mn <- aire_mn()
+      fila <- max(mn$fila, fila * f_); gap <- max(mn$gap, gap * f_); extra_gap <- pmax(0, mn$gaps - gap)
+    } else {
+      fila <- fila * f_; gap <- gap * f_
+    }
+    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   }
   nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, 0.34 - (fila - g))
   if (!is.null(aire)) {   # lo decidió la lámina (multilista)
-    if (aire > 0) { fila <- fila + aire; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) }
+    if (aire > 0) { fila <- fila + aire; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap) }
   } else if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
-    fila <- fila + extra; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+    fila <- fila + extra; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   }
   if (!is.null(grosor)) {
     g <- grosor
   } else {
     peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
-    if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
+    if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36, .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
   }
   y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
@@ -318,6 +345,8 @@
   # sólo corta la lectura (Gonzalo, 2026-10-14: «en el caso que todas las barras sean de un público es mejor no
   # agregar líneas grises dividiéndolas»).
   con_filete <- !.lam_escala_sin_actor(premisas)
+  # N2 (Renzo, 2026-10-22): `filete_temas` gobierna sólo la línea entre temas (N2b: apagada por defecto, TRUE la dibuja); el filete bajo el Total es otro.
+  filete_temas <- isTRUE(espec$filete_temas)   # N2b: sin línea entre temas salvo TRUE explícito
   # Un solo tema con varios públicos (Gonzalo, 2026-10-14): el tema va arriba como encabezado y no le quita a los públicos
   # la columna de la izquierda; sus rótulos usan todo el ancho hasta la barra y un nombre largo («Estudiantes 2018») ya
   # no se parte sobre sus respuestas. Si el tema repite el título de la lámina, no se escribe.
@@ -334,7 +363,7 @@
   }
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
-    if (i > 1 && con_filete) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
+    if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     if (un_tema) {
       if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
         .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% 0.45), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
@@ -352,7 +381,9 @@
         cabe <- .lam_ancho_tinta(fl$actor, .std_pt("actor"), TRUE) <= w_act - 0.2
         lin <- if (cabe) 1L else .lam_lineas_tinta(fl$actor, w_act, .std_pt("actor"), TRUE)
         dy <- if (lin > 1) (lin - 1) * .std_pt("actor") * 1.2 / 72 else 0
-        .lam_txt(lz, fl$actor, x_act, yb + g / 2 - 0.25 - dy, w_act, 0.3 + dy, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+        # N3b: sin la línea «N respuestas» el nombre se centra con la barra (con ella, sube para hacerle sitio).
+        y_act <- if (con_n) yb + g / 2 - 0.25 - dy else yb + g / 2 - 0.15 - dy / 2
+        .lam_txt(lz, fl$actor, x_act, y_act, w_act, 0.3 + dy, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
         if (con_n) .lam_txt(lz, respuestas(fl$valid), x_act - 0.4, yb + g / 2, w_act + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                             align = "right", nombre = "respuestas")
       }
@@ -361,11 +392,11 @@
                                             w = wcol, prefijo = cc$prefijo)
       yf <- yf + fila
     }
-    y <- y + a + gap
+    y <- y + a + gap + (if (i <= length(extra_gap)) extra_gap[i] else 0)
   }
   fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
-  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = (L$x_premisa + fin_bloque) / 2)
-  invisible(ytop + tot)
+  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
+  invisible(structure(ytop + tot, centro_barras = x_bar + WB / 2))   # N16: la multilista centra su leyenda compartida con este eje
 }
 
 # ---- filas con Total y Bottom Two Box (recetario: propuestas_rescatables.R:23-47, lámina 77) ----------
@@ -387,8 +418,9 @@
   g <- g %||% .std_grosor(length(filas), "escala_apilada")
   chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
   fila <- max(fila %||% 0, g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
-  base_chica <- .lam_base_chica(espec)   # la especificación entera: todas las filas dicen «x de y» (estándar `base_chica`)
-  con_respuestas <- isTRUE(espec$filas_respuestas) && !identical(espec$mostrar_respuestas, FALSE)
+  # La especificación entera: todas las filas dicen «x de y» (estándar `base_chica`), sólo con `mostrar_respuestas` encendido (N3b+).
+  base_chica <- isTRUE(espec$mostrar_respuestas) && .lam_base_chica(espec)
+  con_respuestas <- isTRUE(espec$filas_respuestas) && isTRUE(espec$mostrar_respuestas)
   yh <- y
   if (!is.null(pregunta) && nzchar(pregunta)) {
     # La caja crece con las líneas de la pregunta; la letra no encoge.
@@ -565,7 +597,7 @@
   geo <- .lam_filas_geo(espec, unlist(lapply(bloques, `[[`, "filas")))
   x <- g_("margen_izq"); w <- g_("ancho") - x - g_("margen_der"); y <- g_("zona_datos_y0") + 0.1
   for (k in seq_along(bloques)) {
-    if (k > 1L) .lam_caja(lz, x, y - 0.1, w, 0.008, .std_color("filete"), nombre = "filete")
+    if (k > 1L && isTRUE(espec$filete_temas)) .lam_caja(lz, x, y - 0.1, w, 0.008, .std_color("filete"), nombre = "filete")
     y <- .lam_filas_box(lz, espec, bloques[[k]]$filas, x = x, y = y, w = w, pregunta = bloques[[k]]$pregunta,
                         g = geo$g, fila = geo$fila) + 0.2
   }

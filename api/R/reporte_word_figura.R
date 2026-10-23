@@ -4,8 +4,8 @@
 #
 # recetario_word.R:28-66. Todo lo que pone el motor es un estilo o un campo de Word, para que la posedición se haga desde
 # Inicio > Estilos y la numeración se recalcule sola:
-#   - rótulo «Gráfico N» (estilo de carácter «Número de rótulo» con campo SEQ) y, en la línea siguiente, el título en
-#     cursiva, con el estilo «Rótulo de gráfico» (APA 7.ª); con el SEQ, Word arma el índice de gráficos;
+#   - rótulo en una línea centrada «Gráfico N: título» (estilo de carácter «Número de rótulo», azul y negrita, con campo SEQ
+#     en el número) dentro del estilo «Rótulo de gráfico»; con el SEQ, Word arma el índice de gráficos;
 #   - la imagen centrada, del ancho del texto y pegada a lo que sigue;
 #   - la base y la fuente centradas, sin la palabra «Nota»; si hay lectura, no se separan de ella;
 #   - la lectura con las cifras en negrita.
@@ -36,13 +36,26 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
          '<w:r>', r, '<w:fldChar w:fldCharType="end"/></w:r>')
 }
 
-#' Rótulo de una figura o tabla: «Gráfico N» con SEQ y el título en cursiva en la línea siguiente
+#' Separador entre «Gráfico N» y su título en el rótulo (una sola línea); cámbialo aquí
+#' @keywords internal
+.WORD_ROTULO_SEPARADOR <- ": "
+
+#' Título del rótulo sin vacíos: NULL, NA, espacios y el espacio duro de «sin título» (`.WORD_TITULO_VACIO`) cuentan como vacío
+#' @keywords internal
+.word_rotulo_titulo <- function(titulo) {
+  if (is.null(titulo) || !length(titulo) || is.na(titulo[[1]])) return("")
+  trimws(gsub("[\u00A0\u2007\u202F]", " ", as.character(titulo[[1]])))
+}
+
+#' Rótulo de una figura o tabla: UNA línea centrada «Gráfico N: título», todo con el estilo de carácter «Número de rótulo»
+#' (azul y negrita); «Gráfico N» lleva el campo SEQ. Sin título queda solo «Gráfico N».
 #' @keywords internal
 .word_rotulo <- function(doc, n, titulo, etiqueta = "Gráfico") {
   num <- .word_estilo_id(doc, "Número de rótulo")
-  officer::body_add_fpar(doc, officer::fpar(.word_run_estilo(paste0(etiqueta, " "), num), .word_run_seq(etiqueta, n, num), officer::run_linebreak(),
-                                            officer::ftext(titulo %||% "", officer::fp_text_lite(italic = TRUE))),
-                         style = "Rótulo de gráfico")
+  titulo <- .word_rotulo_titulo(titulo)
+  partes <- list(.word_run_estilo(paste0(etiqueta, " "), num), .word_run_seq(etiqueta, n, num))
+  if (nzchar(titulo)) partes[[3]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
+  officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico")
 }
 
 #' Base y fuente bajo la figura; con lectura, el estilo que no la separa de ella
@@ -111,6 +124,39 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
     unname(fijos[tipo]) %||% NA_real_)
   if (!is.finite(alto)) alto <- 2.95
   alto - 0.22
+}
+
+#' Grosor de la barra en el Word (cm), igual para escala, barras y apilada (N25, Renzo, Arte, 2026-10-22)
+#'
+#' Medido antes: escala de 1 barra 0,92 cm, de 5 enunciados 0,62, categóricas 0,55-0,6, apilada 1,2. 0,70 cm es el punto
+#' medio: la cifra de 9 pt cabe dentro de la barra con aire y una figura de 6 barras sigue cabiendo en media página.
+#' @keywords internal
+.WORD_GROSOR_BARRA_CM <- 0.70
+
+#' Parte del alto de una figura que no es panel: márgenes y leyenda, en pulgadas (lo que el gtable reserva en términos absolutos)
+#' @keywords internal
+.word_alto_fijo <- function(g) {
+  gt <- suppressWarnings(ggplot2::ggplotGrob(g))
+  # convertHeight evalúa las unidades «null» como 0: queda solo lo absoluto (márgenes, leyenda), incluso dentro de sum(0.5null, 0.28cm, ...)
+  fijo <- tryCatch(suppressWarnings(sum(vapply(seq_along(gt$heights), function(i) grid::convertHeight(gt$heights[i], "in", valueOnly = TRUE), 0))),
+                   error = function(e) NA_real_)
+  if (is.finite(fijo)) fijo else 0.5
+}
+
+#' Fija el alto de la figura desde su eje y para que la barra mida `.WORD_GROSOR_BARRA_CM` (N25)
+#'
+#' La barra ocupa la fracción `h` de la unidad-y; las pulgadas por unidad-y son `grosor / h`, así que el alto del panel es
+#' esa razón por el rango del eje y, más lo fijo (márgenes y leyenda). Con piso para figuras de una barra y tope por página.
+#' @param h Fracción de la unidad-y que ocupa la barra (escala 0,58; barras 0,64; apilada 1).
+#' @return El ggplot con atributos `alto` (in) y `alto_fijo`.
+#' @keywords internal
+.word_fijar_alto_por_grosor <- function(g, h, minimo = 0.4, tope = 8.5) {
+  dy <- diff(suppressWarnings(ggplot2::ggplot_build(g))$layout$panel_params[[1]]$y.range)
+  fijo <- .word_alto_fijo(g)
+  k <- (.WORD_GROSOR_BARRA_CM / 2.54) / h
+  attr(g, "alto_fijo") <- fijo
+  attr(g, "alto") <- min(tope, max(minimo, k * dy + fijo))
+  g
 }
 
 #' Ningún texto de la figura bajo 8 pt (la letra mínima del Word del recetario)

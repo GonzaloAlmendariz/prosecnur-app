@@ -45,7 +45,7 @@ test_that("la nota de significancia de cruces sale con la redacción de la maque
     "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda ",
     "indica que esa proporción es significativamente mayor que la de la columna identificada ",
     "con esa letra (prueba z de diferencia de proporciones con corrección de Bonferroni, ",
-    "nivel de significancia de 0.05). «.a» indica una columna excluida de la comparación ",
+    "nivel de significancia de 0.05). \".a\" indica una columna excluida de la comparación ",
     "porque su proporción es 0 % o 100 %."
   ))
   expect_false(grepl("Letras por estrato", nota, fixed = TRUE))

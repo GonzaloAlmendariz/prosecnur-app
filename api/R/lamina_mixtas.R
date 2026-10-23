@@ -240,6 +240,11 @@
   geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda, receta = receta)
   if (identical(geo$tipo, "dicotomia")) {
     d <- .lam_dicotomia_datos(espec)
+    if (identical(.lam_estilo_dicotomia(espec), "barra_estandar")) {
+      # La barra mide `geo$w` (el panel menos 0,8 in) y va centrada en el panel; su leyenda, en el mismo eje.
+      return(.lam_dicotomia_estandar(lz, x + (w - geo$w) / 2, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, g = geo$g,
+                                     size = min(12, .std_pt("cifra")), cols = d$colores, x_ley = x, w_ley = w))
+    }
     return(.lam_dicotomia(lz, x, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, size = geo$size, g = geo$g,
                           cols = d$colores))   # ADR 0097: la paleta del usuario de la escala o la categórica
   }
@@ -508,5 +513,68 @@
   g <- tryCatch(grafico + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL) +
                   ggplot2::theme(plot.caption = ggplot2::element_blank(), plot.title = ggplot2::element_blank(),
                                  plot.subtitle = ggplot2::element_blank()), error = function(e) grafico)
-  list(p = g, x = x0, y = y0, w = max(0.5, w0), h = max(0.5, h0))
+  w1 <- max(0.5, w0); h1 <- max(0.5, h0)
+  list(p = .lam_mixta_respaldo_cifras(g, w1, h1), x = x0, y = y0, w = w1, h = h1)
+}
+
+#' Las cifras y el grosor del gráfico de respaldo, al estándar de los paneles nativos de su lámina
+#'
+#' El gráfico de respaldo nace con el tamaño de cifra del preset (14 pt) y reparte sus barras en el alto de la caja, así que
+#' junto a los paneles nativos (cifra de 12 pt, barra de `.std_grosor()` acotada a 0,7 de la fila) se ve con cifras más grandes,
+#' montadas sobre barras más delgadas. Aquí sólo se cambia el tamaño y la posición de las cifras (12 pt, negrita, azul, a la
+#' derecha del extremo de su barra; dentro del extremo, en blanco, si afuera no caben) y el grosor de las barras (el de la
+#' receta nativa, sin pasar de 0,7 de la fila). No toca valores, orden ni denominadores.
+#' @param g Gráfico de la caja (`ggplot` de lienzo con panel de barras `geom_rect` y sus cifras).
+#' @param w,h Medidas de la caja en pulgadas (las del `ph_location`).
+#' @return El mismo gráfico con las cifras y las barras ajustadas, o el original si no tiene esa estructura.
+#' @keywords internal
+.lam_mixta_respaldo_cifras <- function(g, w, h) {
+  # tryCatch: la estructura del lienzo (gtable, panel, rect y texto de grid) depende de ggplot2; si cambia o el gráfico no es
+  # de barras, el respaldo sale como llegó (legible) en vez de tumbar la lámina.
+  tryCatch({
+    ly <- g$layers[[1]]
+    gt <- ly$geom_params$grob
+    if (!inherits(ly$geom, "GeomDrawGrob") || !inherits(gt, "gtable")) return(g)
+    ip <- which(gt$layout$name == "panel")
+    if (length(ip) != 1L) return(g)
+    pn <- gt$grobs[[ip]]
+    nm <- grid::childNames(pn)
+    nr <- nm[grepl("^geom_rect", nm)]; nt <- nm[grepl("^GRID\\.text", nm)]
+    if (length(nr) != 1L || length(nt) != 1L) return(g)
+    r <- grid::getGrob(pn, nr); tx <- grid::getGrob(pn, nt)
+    nb <- length(r$height)
+    nl <- length(tx$label)
+    if (nb < 1L || nl < 1L || nl > nb) return(g)
+    # Medidas reales del panel en pulgadas: se miden dibujando el lienzo en un dispositivo nulo del tamaño de la caja (sólo se leen longitudes; la falta de Arial en `pdf()` avisa y no cambia la medida).
+    grDevices::pdf(NULL, width = w, height = h); on.exit(grDevices::dev.off(), add = TRUE)
+    suppressWarnings({ grid::grid.newpage(); grid::grid.draw(ggplot2::ggplotGrob(g)); grid::grid.force() })
+    ls <- grid::grid.ls(viewports = TRUE, print = FALSE)
+    i <- which(grepl("^geom_rect\\.rect", ls$name))
+    if (!length(i)) return(g)
+    grid::downViewport(sub("^ROOT::", "", ls$vpPath[i[1]]), strict = FALSE)
+    pw <- grid::convertWidth(grid::unit(1, "npc"), "in", valueOnly = TRUE)
+    ph <- grid::convertHeight(grid::unit(1, "npc"), "in", valueOnly = TRUE)
+    nat <- function(u) as.numeric(u)
+    h0 <- nat(r$height); y_top <- nat(r$y); x0 <- nat(r$x); w0 <- nat(r$width)
+    centro <- y_top - h0 / 2
+    paso <- if (nb > 1L) min(abs(diff(sort(centro)))) * ph else Inf
+    grosor <- min(.std_grosor(nb, "categorias"), if (is.finite(paso)) 0.7 * paso else Inf)
+    nh <- grosor / ph
+    r$height <- grid::unit(rep(nh, nb), "native"); r$y <- grid::unit(centro + nh / 2, "native")
+    size <- min(12, .std_pt("cifra"))
+    ancho_txt <- vapply(as.character(tx$label), function(l) .lam_ancho_tinta(l, size, TRUE), 0)
+    # Cada cifra va con su barra por la fila (una barra en cero o sin etiqueta no tiene cifra).
+    ib <- vapply(nat(tx$y), function(yy) which.min(abs(centro - yy)), 1L)
+    fin <- (x0[ib] + w0[ib]) * pw
+    fuera <- fin + 0.06 + ancho_txt + 0.02 <= pw
+    tx$x <- grid::unit(ifelse(fuera, (fin + 0.06) / pw, (fin - 0.06) / pw), "native")
+    tx$hjust <- ifelse(fuera, 0, 1)
+    tx$gp$fontsize <- rep(size, nl)
+    tx$gp$col <- ifelse(fuera, .std_color("azul"), "#FFFFFF")
+    tx$gp$font <- stats::setNames(rep(2L, nl), rep("bold", nl))
+    pn <- grid::setGrob(grid::setGrob(pn, nr, r), nt, tx)
+    gt$grobs[[ip]] <- pn
+    g$layers[[1]]$geom_params$grob <- gt
+    g
+  }, error = function(e) g)
 }

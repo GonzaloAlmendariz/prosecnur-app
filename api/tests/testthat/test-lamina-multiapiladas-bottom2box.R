@@ -34,7 +34,8 @@
 }
 
 .b2_over <- function(bottom) {
-  o <- list(top2box_labels = .b2_niv[3:4])
+  # N3b (2026-10-22): «x de y» (`box:casos`/`box2:casos`) sólo sale con `mostrar_respuestas` encendido; estas pruebas lo piden.
+  o <- list(top2box_labels = .b2_niv[3:4], mostrar_respuestas = TRUE)
   if (bottom) o <- c(o, list(columna_bottom2box = TRUE, bottom2box_labels = .b2_niv[1:2]))
   o
 }

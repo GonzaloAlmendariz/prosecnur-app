@@ -43,11 +43,12 @@
   list(modo = "var", vars = c("b2", "b1"), titulo = "Plan de estudios e infraestructura")
 )
 
-.mlt_generar <- function(bloques = .mlt_bloques(), meta = list(), data = .mlt_datos(), inst = .mlt_inst()) {
+.mlt_generar <- function(bloques = .mlt_bloques(), meta = list(), data = .mlt_datos(), inst = .mlt_inst(), mostrar_respuestas = NULL) {
   p_reset()
   plan <- list(diapo_001 = p_slide_1_grafico(
     titulo = "Satisfacción con la Unidad", meta = meta,
-    grafico = p_barras_multiapiladas(modo = "multilista", top2box = TRUE, top2box_labels = .mlt_niv[3:4], bloques = bloques)
+    grafico = p_barras_multiapiladas(modo = "multilista", top2box = TRUE, top2box_labels = .mlt_niv[3:4], bloques = bloques,
+                                  mostrar_respuestas = mostrar_respuestas)
   ))
   path <- tempfile(fileext = ".pptx")
   suppressMessages(reporte_ppt_plan(
@@ -174,7 +175,8 @@ test_that("la compuerta no toma bloques sin espec de escala ni los que llevan fi
   p_reset()
   plan <- list(diapo_001 = p_slide_1_grafico(
     titulo = "Satisfacción con la Unidad",
-    grafico = p_barras_multiapiladas(modo = "multilista", top2box = TRUE, top2box_labels = .mlt_niv[3:4], bloques = .mlt_bloques())
+    grafico = p_barras_multiapiladas(modo = "multilista", top2box = TRUE, top2box_labels = .mlt_niv[3:4], bloques = .mlt_bloques(),
+                                  word_multiapiladas = "por_barra")   # N8b: el default agrupa la batería (base común 120); una figura por variable da la base propia
   ))
   path <- tempfile(fileext = ".docx")
   suppressMessages(reporte_word_plan(data = data, instrumento = .mlt_inst(), plan = plan, path_docx = path,
@@ -211,7 +213,7 @@ test_that("sin salto no se anota ninguna N", {
   expect_false(any(grepl("^N = ", textos)))
 })
 
-test_that("con actores la lámina no cambia: cada público ya nombra sus respuestas", {
+test_that("con actores «N respuestas» no sale por defecto (N3b) y sí con mostrar_respuestas = TRUE", {
   skip_if_not_installed("officer")
   skip_if_not_installed("cowplot")
   d <- .mlt_datos()
@@ -222,9 +224,11 @@ test_that("con actores la lámina no cambia: cada público ya nombra sus respues
     list(modo = "var_cruce", vars = list(t1 = c("docentes$a2", "estudiantes$a2"), t2 = c("docentes$a3", "estudiantes$a3")),
          titulo = "Servicios académicos")
   )
-  out <- .mlt_generar(bloques = bloques, data = data, inst = inst)
-  textos <- unlist(lapply(seq_along(.pptx_slide_paths(out)), function(i) .mlt_textos(.mlt_xml(out, i))))
+  .txt <- function(out) unlist(lapply(seq_along(.pptx_slide_paths(out)), function(i) .mlt_textos(.mlt_xml(out, i))))
+  textos <- .txt(.mlt_generar(bloques = bloques, data = data, inst = inst))
   expect_false(any(grepl("^N = ", textos)))
+  expect_false(any(grepl(" respuestas$", textos)))   # N3b: apagado por defecto
+  textos <- .txt(.mlt_generar(bloques = bloques, data = data, inst = inst, mostrar_respuestas = TRUE))
   expect_true("80 respuestas" %in% textos)
 })
 

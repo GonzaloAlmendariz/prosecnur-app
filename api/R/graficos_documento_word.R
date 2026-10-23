@@ -12,7 +12,7 @@
 
 #' Normaliza las opciones del documento que manda el editor
 #'
-#' @param x Lista (del JSON del editor) con `portada`, `apertura`, `como_leer` (`"auto"`, `TRUE` o `FALSE`), `redondeo`,
+#' @param x Lista (del JSON del editor) con `portada`, `apertura`, `como_leer` (`"auto"`, `TRUE`, `FALSE` o un vector de secciones: top_two_box, bottom_two_box, redondeo, misma_escala, cifras_pequenas, bases_chicas), `indices` (`contenido` lógico; `graficos` y `tablas`: `"inicio"`, `"anexo"` o `FALSE`), `redondeo`,
 #'   `titulo_corto`, `fuente`, `contacto` (`correo`, `direccion`, `web`) y `meta_portada` (`ante`, `sub`, `para`, `por`,
 #'   `fecha`, `version`).
 #' @return Lista para `opciones_documento` de `reporte_word_plan` (más `fuente`), sin las claves que no vinieron: lo que
@@ -32,10 +32,38 @@
     }
     out[[k]] <- v
   }
-  if (!is.null(x$como_leer)) {
-    v <- unlist(x$como_leer)[1]
-    if (is.logical(v) && !is.na(v)) out$como_leer <- v
-    else if (!identical(tolower(txt(v)), "auto")) stop_api(400, "E_BAD_DOCUMENTO_WORD", "«como_leer» debe ser auto, true o false.")
+  vs <- unlist(x$como_leer)
+  if (length(vs)) {
+    msg <- sprintf("«como_leer» debe ser auto, true, false o una lista de secciones (%s).", paste(names(.WORD_COMO_LEER_SECCIONES), collapse = ", "))
+    if (is.logical(vs)) {
+      if (length(vs) != 1L || is.na(vs)) stop_api(400, "E_BAD_DOCUMENTO_WORD", msg)
+      out$como_leer <- vs
+    } else {
+      vs <- tolower(trimws(as.character(vs)))
+      if (length(vs) == 1L && identical(vs, "auto")) NULL
+      else if (!anyNA(vs) && all(vs %in% names(.WORD_COMO_LEER_SECCIONES))) out$como_leer <- unique(vs)
+      else stop_api(400, "E_BAD_DOCUMENTO_WORD", msg)
+    }
+  }
+  if (!is.null(x$indices) && length(.as_json_list(x$indices))) {
+    ind <- .as_json_list(x$indices)
+    if (!is.list(ind) || is.null(names(ind))) stop_api(400, "E_BAD_DOCUMENTO_WORD", "«indices» debe ser un objeto con contenido, graficos y tablas.")
+    mal <- setdiff(names(ind), c("contenido", "graficos", "tablas"))
+    if (length(mal)) stop_api(400, "E_BAD_DOCUMENTO_WORD", sprintf("«indices» no admite «%s»; admite contenido, graficos y tablas.", mal[1]))
+    oi <- list()
+    if (!is.null(ind$contenido)) {
+      v <- unlist(ind$contenido)
+      if (!is.logical(v) || length(v) != 1L || is.na(v)) stop_api(400, "E_BAD_DOCUMENTO_WORD", "«indices.contenido» debe ser true o false.")
+      oi$contenido <- v
+    }
+    for (k in c("graficos", "tablas")) {
+      if (is.null(ind[[k]])) next
+      v <- unlist(ind[[k]])
+      ok <- length(v) == 1L && !is.na(v) && (is.logical(v) || tolower(trimws(as.character(v))) %in% c("inicio", "anexo"))
+      if (!ok) stop_api(400, "E_BAD_DOCUMENTO_WORD", sprintf("«indices.%s» debe ser inicio, anexo o false.", k))
+      oi[[k]] <- if (is.logical(v)) { if (v) "inicio" else FALSE } else tolower(trimws(as.character(v)))
+    }
+    if (length(oi)) out$indices <- oi
   }
   for (k in c("titulo_corto", "fuente")) if (nzchar(txt(x[[k]]))) out[[k]] <- txt(x[[k]])
   sub_lista <- function(l, claves) {
@@ -79,8 +107,12 @@
 #' informe).
 #' @keywords internal
 .graficos_documento_word_defaults_publicos <- function() {
-  c(.graficos_documento_word_default_fijo(), list(como_leer = "auto"))
+  c(.graficos_documento_word_default_fijo(), list(como_leer = "auto", indices = .graficos_documento_word_indices_default()))
 }
+
+#' Default de `documento_word$indices`: los tres índices al inicio, como siempre
+#' @keywords internal
+.graficos_documento_word_indices_default <- function() list(contenido = TRUE, graficos = "inicio", tablas = "inicio")
 
 .dw_txt <- function(v) { v <- as.character(unlist(v) %||% "")[1]; if (is.na(v)) "" else trimws(v) }
 
@@ -101,7 +133,13 @@
     v <- x[[k]]
     if (is.null(v) || (is.list(v) && !length(v))) next
     if (k %in% names(fijo) && identical(.dw_txt(v), fijo[[k]])) next
-    if (identical(k, "como_leer") && !is.logical(unlist(v)) && identical(tolower(.dw_txt(v)), "auto")) next
+    if (identical(k, "como_leer") && !is.logical(unlist(v)) && length(unlist(v)) == 1L && identical(tolower(.dw_txt(v)), "auto")) next
+    if (identical(k, "indices") && .graficos_is_obj(v)) {   # sólo lo que difiere de los tres índices al inicio
+      d <- .graficos_documento_word_indices_default()
+      v <- v[vapply(names(v), function(n) !(n %in% names(d) && identical(unlist(v[[n]]), d[[n]])), logical(1))]
+      if (!length(v)) next
+      out[[k]] <- v; next
+    }
     if (.graficos_is_obj(v)) {
       v <- v[!vapply(v, function(e) is.null(e) || (is.character(e) && length(e) == 1L && !nzchar(trimws(e))), logical(1))]
       if (!length(v)) next
@@ -122,7 +160,7 @@
 .graficos_documento_word_validos <- function(x) {
   x <- .as_json_list(x)
   if (!is.list(x) || !length(x) || is.null(names(x))) return(list())
-  for (k in intersect(names(x), c(names(.DOCUMENTO_WORD_ENUMS), "como_leer"))) {
+  for (k in intersect(names(x), c(names(.DOCUMENTO_WORD_ENUMS), "como_leer", "indices"))) {
     ok <- tryCatch({ .graficos_opciones_documento(x[k]); TRUE }, api_error = function(e) {
       warning(sprintf("Se descartó la opción guardada del documento Word «%s»: %s", k, conditionMessage(e)), call. = FALSE)
       FALSE

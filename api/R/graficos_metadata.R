@@ -1238,8 +1238,8 @@
            descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
       # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
       list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
-           default = TRUE,
-           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no.")
+           default = FALSE,
+           descripcion = "Opcional, apagado por defecto: escribe «116 respuestas» bajo el nombre de cada público. El pie «Base» y el «x de y» de las bases chicas no dependen de esto.")
     ), .args_graf_comunes())
   ),
 
@@ -1295,8 +1295,16 @@
            descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
       # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
       list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
-           default = TRUE,
-           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no."),
+           default = FALSE,
+           descripcion = "Opcional, apagado por defecto: escribe «116 respuestas» bajo el nombre de cada público. El pie «Base» y el «x de y» de las bases chicas no dependen de esto."),
+      # N2 (Renzo, 2026-10-22): la línea gris que separa un tema del siguiente.
+      list(name = "filete_temas", label = "Línea entre temas", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Dibuja una línea gris entre un tema y el siguiente. Apagada (lo habitual), los temas se separan sólo por el aire."),
+      # N1 (Renzo, 2026-10-22): piso de grosor de la barra de escala; con piso la lámina se parte en vez de adelgazar.
+      list(name = "grosor_piso_cm", label = "Grosor mínimo de barra (cm)", tipo_input = "number", grupo = "valores",
+           min = 0, max = 3, step = 0.01,
+           descripcion = "Las barras de la escala no bajan de este grosor; si no caben, la lámina se parte en dos. Vacío hereda el del informe; 0 lo quita."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
@@ -1309,11 +1317,14 @@
       # (`w_presets$chart_options$multiapiladas_word`). Sólo lo lee el Word (reporte_word_multi_modos.R).
       list(name = "word_multiapiladas", label = "En el Word", tipo_input = "choice", grupo = "word", default = "",
            choices = list(
-             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, una figura por tema (o por barra si compara preguntas)."),
+             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, por actor y escala: junta los temas seguidos con los mismos públicos y la misma escala."),
              list(value = "un_grafico", label = "Un gráfico", hint = "La lámina entera en una sola figura, con sus temas dentro."),
              list(value = "por_tema", label = "Por tema", hint = "Una figura por tema."),
              list(value = "por_barra", label = "Por barra", hint = "Una figura por barra, con el título del tema y el de la barra.")),
-           descripcion = "Cuántas figuras sale de esta lámina en el Word. La lámina del PPT no cambia.")
+           descripcion = "Cuántas figuras sale de esta lámina en el Word. La lámina del PPT no cambia."),
+      # D-b (usuario, 2026-10-22): título de la figura única del Word (Un gráfico). Vacío = sin título.
+      list(name = "word_titulo_figura", label = "Título de la figura en el Word", tipo_input = "string", grupo = "word", default = "",
+           descripcion = "Título de la figura cuando la lámina sale en una sola (Un gráfico). Vacío, la figura sale sin título.")
     ), .args_graf_comunes())
   ),
 
@@ -1913,7 +1924,7 @@
            descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar."),
       list(name = "vars",         label = "Preguntas",  tipo_input = "variables_list", grupo = "datos",
            depende = list(arg = "modo", valores = list("box", "publicos")),
-           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box); entre públicos, cada tema con su pregunta en cada base."),
+           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box); entre públicos, cada tema con su pregunta en cada base. El radar pide de 5 a 8 criterios: entre públicos, con menos se dibuja como barras comparativas y se avisa."),
       list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos",
            depende = list(arg = "modo", valores = list("sm", "box")),
            descripcion = "Cada grupo de esta variable es una línea del radar."),
@@ -1943,6 +1954,25 @@
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "Piso del eje radial. Con 0 es automático, como en el estándar: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+      list(name = "fallback_pocos", label = "Con menos de 5 criterios", tipo_input = "choice", grupo = "datos",
+           default = "puntos",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Un radar con menos de 5 criterios no se lee bien. Por defecto se dibuja como líneas y puntos comparativos; también puedes pedir barras comparativas. No cambia los radares de 5 criterios o más.",
+           choices = list(list(value = "puntos", label = "Líneas y puntos"), list(value = "barras", label = "Barras comparativas"))),
+      list(name = "eje_pocos", label = "Eje del gráfico de líneas y puntos", tipo_input = "choice", grupo = "datos",
+           default = "auto",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Con pocos criterios el radar se dibuja como líneas y puntos; el eje por defecto se acerca a los datos; elige 0–100 % para verlo completo. No cambia los radares de 5 criterios o más.",
+           choices = list(list(value = "auto", label = "Acercado a los datos"), list(value = "0-100", label = "0–100 %"),
+                          list(value = "personalizado", label = "Personalizado"))),
+      list(name = "eje_pocos_min", label = "Eje de líneas y puntos: desde (%)", tipo_input = "number", grupo = "datos",
+           min = 0, max = 99,
+           depende = list(arg = "eje_pocos", valores = list("personalizado")),
+           descripcion = "Mínimo del eje personalizado; debe ser menor que el máximo. Si deja fuera un dato, el eje se ensancha."),
+      list(name = "eje_pocos_max", label = "Eje de líneas y puntos: hasta (%)", tipo_input = "number", grupo = "datos",
+           min = 1, max = 100,
+           depende = list(arg = "eje_pocos", valores = list("personalizado")),
+           descripcion = "Máximo del eje personalizado; no puede pasar de 100."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),
@@ -1961,6 +1991,9 @@
            min = 0.3, max = 3, step = 0.1,
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "1 deja el reparto por defecto. Súbelo cuando la tabla tenga muchas columnas; bájalo cuando el radar sea lo que hay que mirar."),
+      list(name = "margen_etiquetas", label = "Aire para las etiquetas de los ejes", tipo_input = "number", grupo = "datos",
+           min = 1, max = 2, step = 0.05,
+           descripcion = "Holgura del panel, de 1 a 2. Súbela si la etiqueta de un eje se corta o llega a la tabla; el radar se dibuja un poco más chico. Vacío = automática según el largo de las etiquetas laterales (1,18 o más con cuatro o cinco ejes). Rige en la ruta anterior del radar; la lámina nativa la ajusta sola."),
 
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro",
            descripcion = "Cantidad máxima de categorías a mostrar. Si vacío, se muestran todas."),

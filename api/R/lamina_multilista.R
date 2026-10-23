@@ -133,7 +133,8 @@
 #' @keywords internal
 .lam_multilista_peq <- function(it) {
   L <- .std_geom("likert")
-  WB <- if (!is.null(it$espec$box$unidades)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3
+  ex <- .std_enunciado_extra_in()   # N10: el enunciado ancho le quita su ancho a la barra
+  WB <- (if (!is.null(it$espec$box$unidades)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3) - ex
   any(vapply(it$premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(it$espec, fl$i), WB), TRUE)), TRUE))
 }
 
@@ -158,7 +159,7 @@
        decidir = function(f) {
          aire <- if (aire0 > 0) max(0, 0.34 - (fila0 * f - g0)) else 0
          fila <- fila0 * f + aire
-         list(aire = aire, grosor = if (peq && fila - g0 < 0.36) max(0.24, fila - 0.36) else g0)
+         list(aire = aire, grosor = if (peq && fila - g0 < 0.36) max(0.24, fila - 0.36, .std_piso_escala_in()) else g0)   # N1: piso
        })
 }
 
@@ -208,18 +209,25 @@
 .lam_multilista_planear <- function(items, compartida) {
   disp <- .lam_multilista_disponible(compartida)
   trozos <- list()
+  comprime <- .std_evitar_cont()   # M1 con piso (lamina_escala_aire.R): el aire cede hasta su mínimo antes de partir
+  comp_de <- function(x) .lam_multilista_compartida_parte(x, compartida)   # M1: la leyenda de una lámina con una sola escala es una
   for (it in items) {
-    if (.lam_multilista_alto(list(it), compartida) <= disp || length(it$premisas) <= 1L) {
+    cm <- comp_de(list(it))
+    if (.lam_multilista_alto(list(it), cm) <= disp || length(it$premisas) <= 1L ||
+        (comprime && .lam_escala_n_barras(list(it)) <= .MULTIAPILADAS_MAX_BARRAS && .lam_multilista_alto_f(list(it), cm, 0) <= disp)) {
       trozos[[length(trozos) + 1L]] <- it
       next
     }
-    resto <- disp - .lam_multilista_cromo(it, compartida)
-    for (ps in .lam_escala_partir(it$premisas, resto)) {
-      t <- it; t$premisas <- ps
+    resto <- disp - .lam_multilista_cromo(it, cm)
+    chica_ <- function(p) .lam_escala_chica_por_premisa(it$espec, p)
+    for (k in seq_along(ps_ <- .lam_escala_partir(it$premisas, resto, aire_min_fn = function(p) .lam_escala_aire_minimo(p, chica = chica_(p))$alto))) {
+      t <- it; t$premisas <- ps_[[k]]
+      t$continua <- k > 1L   # el corte cae DENTRO de este bloque: la lámina que sigue lo continúa
       trozos[[length(trozos) + 1L]] <- t
     }
   }
-  .lam_escala_partir(trozos, disp, alto_fn = function(x) .lam_multilista_alto(x, compartida))
+  .lam_escala_partir(trozos, disp, alto_fn = function(x) .lam_multilista_alto(x, comp_de(x)),
+                     aire_min_fn = function(x) .lam_multilista_alto_f(x, comp_de(x), 0))
 }
 
 #' ¿La multilista se compone en nativo? Cada bloque trae una escala sin fila Total ni Bottom Two Box, y cada
@@ -228,10 +236,13 @@
 .lam_multilista_cabe <- function(ml) {
   items <- .lam_multilista_items(ml)
   if (is.null(items)) return(FALSE)
+  .op_piso <- .grosor_piso_slot(items[[1]]$espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1
   compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
   partes <- .lam_multilista_planear(items, compartida)
   disp <- .lam_multilista_disponible(compartida)
-  all(vapply(partes, function(pp) .lam_multilista_alto(pp, compartida) <= disp + 0.3, TRUE))
+  # M1: con piso, una parte que cabe con el aire en su mínimo también se compone en nativo (la tolerancia de 0,3 in sigue)
+  all(vapply(partes, function(pp) .lam_multilista_alto(pp, .lam_multilista_compartida_parte(pp, compartida)) <= disp + 0.3 ||
+               (.std_evitar_cont() && .lam_multilista_alto_f(pp, .lam_multilista_compartida_parte(pp, compartida), 0) <= disp), TRUE))
 }
 
 # ---- la lámina ----------------------------------------------------------------
@@ -242,6 +253,7 @@
   g_ <- .std_geom; L <- g_("likert")
   disp <- .lam_multilista_disponible(compartida)
   nb <- .lam_multilista_filas(items)
+  centro_barras <- NULL
   cromo <- vapply(items, .lam_multilista_cromo, 0, compartida = compartida)
   fijo <- sum(cromo) + .LAM_MULTILISTA_GAP * (length(items) - 1L)
   dec <- .lam_multilista_grosor(items, nb, disp, fijo)
@@ -250,6 +262,8 @@
   # (`.lam_bloque_escala`: hasta el doble, al 93 % de lo disponible). El grosor no cambia.
   total <- fijo + sum(natural)
   f <- if (total < 0.88 * disp && sum(natural) > 0) max(1, min(2.0, 0.93 * (disp - fijo) / sum(natural))) else 1
+  # M1 con piso: si no caben, el aire cede hasta su mínimo (la barra no baja del piso); `.lam_bloque_escala` aplica los pisos
+  if (total > disp && .std_evitar_cont()) f <- .lam_multilista_factor_compresion(items, compartida, disp)
   gr <- dec$decidir(f)
   w <- .lam_multilista_ancho(); y <- g_("zona_datos_y0")
   for (k in seq_along(items)) {
@@ -268,6 +282,7 @@
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor,
                               rotulo_sobre = .LAM_MULTILISTA_ROTULO_TTB)
+    centro_barras <- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
     y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
   if (compartida) {
@@ -275,7 +290,7 @@
     con_ttb <- any(vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE))
     fin_bloque <- if (con_ttb) L$x_top_two_box + 0.75 else g_("ancho") - g_("margen_der") - 0.3
     .lam_leyenda(lz, min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA), e$categorias$rotulo[ley], e$categorias$color[ley],
-                 centrar_en = (L$x_premisa + fin_bloque) / 2)
+                 centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
   }
   invisible(lz)
 }
@@ -286,19 +301,22 @@
 .lam_laminas_multilista <- function(doc, ml, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  items <- .lam_multilista_items(ml)
+  .op_piso <- .grosor_piso_slot(items[[1]]$espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot (los bloques lo heredan)
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
-  items <- .lam_multilista_items(ml)
   compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
   partes <- .lam_multilista_planear(items, compartida)
   .lam_aviso_partes(titulo, lapply(items, `[[`, "premisas"), length(partes))  # K12b
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
-    doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
+    # M1: con piso, «(cont.)» solo si el corte cayó DENTRO de un bloque; si cayó entre bloques, la lámina que sigue empieza otro.
+    cont_ <- k > 1 && (!.std_evitar_cont() || isTRUE(partes[[k]][[1]]$continua))
+    doc <- .lam_titulo(doc, if (cont_) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
-    .lam_multilista_bloques(lz, partes[[k]], compartida)
+    .lam_multilista_bloques(lz, partes[[k]], .lam_multilista_compartida_parte(partes[[k]], compartida))
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:multilista")
-    doc <- .lam_pie(doc, base, if (is.null(folio)) NULL else folio + k - 1L)
+    doc <- .lam_pie(doc, .lam_base_de_parte_multilista(base, partes, k), if (is.null(folio)) NULL else folio + k - 1L)   # N15: el pie de la parte, solo sus públicos
     doc <- por_lamina(doc)
   }
   list(doc = doc, partes = length(partes))

@@ -31,8 +31,9 @@ source("setup-load-all.R")
 # Lo que el visor hace con el campo (espejo de `fueraDeRecetario`, tolerancia 0.5 pt).
 .pe_rojo <- function(f) !is.na(f$pt_estandar) && any(abs(c(f$pt_min, f$pt_max) - f$pt_estandar) > 0.5, na.rm = TRUE)
 
+# `respuestas` sólo se dibuja con mostrar_respuestas encendido (apagado por defecto desde N3b+).
 test_that("lámina de escala con antetítulo: título, antetítulo, cifra, leyenda, base y folio llevan su token", {
-  formas <- .pe_formas(list(a = p_slide_1_grafico(grafico = p_barras_apiladas("p1"), titulo = "Una escala",
+  formas <- .pe_formas(list(a = p_slide_1_grafico(grafico = p_barras_apiladas("p1", mostrar_respuestas = TRUE), titulo = "Una escala",
                                                  meta = list(antetitulo = "Sección uno"))))
   esperado <- c("Titulo lamina" = "titulo", "Antetitulo lamina" = "antetitulo", cifra = "cifra", "leyenda:texto" = "leyenda",
                 respuestas = "n", "Base lamina" = "base", "Folio lamina" = "base")
