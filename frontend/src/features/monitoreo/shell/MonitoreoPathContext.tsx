@@ -21,6 +21,8 @@ import { MONITOREO_MODOS } from "../core/monitoreoRegistry";
 
 type Props = {
   route: MonitoreoModoDefinicion | null;
+  /** La barra del esqueleto común sólo nombra el modo activo. */
+  conHermanos?: boolean;
 };
 
 // El catálogo de caminos sale del registry y NO del prop `routes` del chrome.
@@ -28,11 +30,11 @@ type Props = {
 // conoce a sí mismo. Preguntarle a ese prop por los hermanos devuelve siempre
 // una lista vacía, que es justamente el motivo por el que los otros caminos
 // eran invisibles desde la UI.
-export function MonitoreoPathContext({ route }: Props) {
+export function MonitoreoPathContext({ route, conHermanos = true }: Props) {
   const activeFamily = route?.family ?? null;
   const activeLabel = route?.shortLabel ?? "Sin definir";
   const ActiveIcon = route?.icon ?? Activity;
-  const siblings = MONITOREO_MODOS.filter((item) => item.family !== activeFamily);
+  const siblings = conHermanos ? MONITOREO_MODOS.filter((item) => item.family !== activeFamily) : [];
 
   return (
     <span

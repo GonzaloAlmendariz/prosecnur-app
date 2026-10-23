@@ -43,3 +43,30 @@ export function pestanasDelRail(
     };
   });
 }
+
+/**
+ * Antetítulo de la cabecera de pestaña: «SECCIÓN · GRUPO» (estándar §2b). En
+ * Control, las pestañas de la operación de llamadas forman un grupo y las que
+ * revisan casos, otro; el resto lleva sólo la sección.
+ */
+const GRUPOS_DE_CONTROL: Record<string, string> = {
+  barrido: "Llamadas",
+  insistencia: "Llamadas",
+  equipo: "Llamadas",
+  discrepancias: "Casos",
+  respuestas: "Casos",
+  supervision: "Casos",
+  avisos: "Casos",
+};
+
+const NOMBRE_DE_SECCION: Record<SeccionTelefonica, string> = {
+  insumos: "Insumos",
+  modelo: "Modelo",
+  control: "Control",
+  avance: "Avance",
+};
+
+export function antetituloDePestana(seccion: SeccionTelefonica, pestana: string): string {
+  const grupo = seccion === "control" ? GRUPOS_DE_CONTROL[pestana] : undefined;
+  return grupo ? `${NOMBRE_DE_SECCION[seccion]} · ${grupo}` : NOMBRE_DE_SECCION[seccion];
+}

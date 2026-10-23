@@ -1,0 +1,215 @@
+/* Barra del modo del esqueleto común (revamp de Monitoreo, 2026-10-23).
+ * Medidas del lienzo «Revamp de Monitoreo, Telefónico»: rótulos de 9.5 px en
+ * versalitas, valor de 13 px, separadores de 1 px; píldoras de sección con
+ * insignia; CORTE, píldora de estado y Actualizar partido a la derecha. */
+
+.mon-commandbar.is-barra-comun .mon-path-context {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 var(--pulso-space-3) 0 var(--pulso-space-2);
+  border-right: 1px solid var(--pulso-border);
+  border-radius: 0;
+}
+
+.mon-commandbar.is-barra-comun .mon-path-context small,
+.mon-modo-stat small {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mon-commandbar.is-barra-comun .mon-path-context strong,
+.mon-modo-stat b {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-modo-stat {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 var(--pulso-space-3);
+  border-right: 1px solid var(--pulso-border);
+}
+
+.mon-modo-stat:last-child {
+  border-right: 0;
+}
+
+.mon-modo-stat.is-falta b {
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-modo-stat.is-cumple b {
+  color: var(--pulso-success-fg);
+}
+
+/* Insignias de las píldoras de sección: cifra en cápsula gris; sobre la
+ * píldora activa, cápsula translúcida. */
+.mon-commandbar.is-barra-comun .pulso-phase-pill-metric {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-commandbar.is-barra-comun .mon-section-pill.is-active .pulso-phase-pill-metric {
+  background: color-mix(in srgb, var(--pulso-surface) 25%, transparent);
+  color: var(--pulso-surface);
+}
+
+.mon-modo-herramientas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.mon-modo-herramientas > .mon-modo-stat {
+  border-right: 0;
+}
+
+.mon-modo-estado {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-modo-estado.is-al-dia {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-modo-estado.is-actualizando,
+.mon-modo-estado.is-preparando {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-brand-navy);
+}
+
+.mon-modo-estado.is-fallo {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-modo-estado.is-pendiente {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar {
+  position: relative;
+  display: inline-flex;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar button {
+  box-shadow: none;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  border: 0;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-principal {
+  padding: 0 13px;
+  border-radius: 10px;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-principal:has(+ .mon-modo-actualizar-menu) {
+  border-radius: 10px 0 0 10px;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-menu {
+  padding: 0 9px;
+  border-left: 1px solid color-mix(in srgb, var(--pulso-surface) 30%, transparent) !important;
+  border-radius: 0 10px 10px 0;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar > button:hover:not(:disabled),
+.mon-commandbar.is-barra-comun .mon-modo-actualizar > button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 88%, var(--pulso-text));
+  color: var(--pulso-surface);
+  transform: none;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 220px;
+  padding: var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button {
+  justify-content: flex-start;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+}
+
+/* Con la banda angosta (1024 × 600) ceden primero las insignias: un rótulo de
+ * sección recortado a «C.» dice menos que una sección sin su cifra, y la cifra
+ * sigue en la pestaña a la que lleva. */
+@media (max-width: 1180px) {
+  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric {
+    display: none;
+  }
+}

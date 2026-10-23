@@ -41,16 +41,18 @@ describe("Consultas: cada fila visible tiene un dueño", () => {
     expect(accreditationPage).toMatch(/clarity=\{\(\s*<AcreditacionClarityStrip/);
   });
 
-  test("Telefonico conserva head, clarity y contenido como tres filas explicitas", () => {
+  // Revamp de Monitoreo (2026-10-23): Telefónico retiró la franja de lectura;
+  // sus filas son la cabecera de pestaña y el contenido, y la grilla lo dice.
+  test("Telefonico declara cabecera y contenido como dos filas explicitas, sin franja", () => {
     const bodies = ruleBodies(
       phoneCss,
       ".mon-profile-canonical-shell.is-telefonico-profile .mon-workbench.is-acreditacion .mon-workbench-main",
     );
 
     expect(bodies.some((body) => (
-      /grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\);/.test(body)
+      /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/.test(body)
     ))).toBe(true);
-    expect(phonePage).toMatch(/clarity=\{\(\s*<AcreditacionClarityStrip/);
+    expect(phonePage).not.toMatch(/clarity=\{/);
   });
 
   test("en escritorio bajo conserva una ventana de datos real dentro del scroll exterior", () => {
