@@ -305,3 +305,8 @@ tramite, telefono). Ahora usa el diccionario `insumos/rotulosDeColumna.ts`, con 
 una clave sin rótulo. Avisos quita el prefijo `codigo:` de título, detalle, desglose y notas, no sólo de los afectados.
 Con la señal de asignación se cuentan personas distintas. Renombrar una fuente vuelve a decir «Guardando…» y
 «… actualizado.».
+
+**Repetidas con su unidad.** En Respuestas el chip contaba envíos marcados («Repetidas (2)») y la cadena, envíos que
+sobran («1 envío repetido»). Ahora cada rótulo dice qué cuenta: el chip «Repetidas: 1 caso, 2 envíos» y la cadena «1
+envío repetido de 1 caso» (Medios de Vida: 2 casos, 4 envíos y 2 envíos repetidos de 2 casos). Llave y filtros usa la
+misma frase.
