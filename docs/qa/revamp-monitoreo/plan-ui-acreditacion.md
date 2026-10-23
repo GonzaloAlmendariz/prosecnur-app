@@ -173,6 +173,16 @@ común solo trae `NumTelefonos` si la hoja la declara. El orden por defecto es �
 la cola la forman los status que el motor y el vocabulario dejan abiertos (P2 sigue abierta). La distribución de
 intentos va en la cabecera de la cola, como en Telefónico, y no en un panel aparte.
 
+**A5, Control › Barrido (escrita, sin gate ni capturas).** `control/contacto/Barrido.tsx` con
+`barridoModelo.ts` (test): del padrón al cruce (padrón telefónico, barridos, efectivos al teléfono, conciliados), casos
+por fecha de su último intento con las fechas normalizadas (H2) y las de otro año aparte, la matriz barrido y
+plataforma (conciliadas, efectiva solo al teléfono, completa sin efectiva al teléfono, de «Operación por
+responsable»), efectivas del público por canal con su meta, el estado de los casos por familia con el vocabulario
+del proyecto y el acumulado de barridos. «Ritmo diario» sigue como sub-vista (`panel=ritmo`).
+
+- La familia de cada status sale de las reglas declaradas (clasificador del telefónico). Sin regla, la errata
+  «Número Incorrrecto» (H7) cae en Reintentable por su nombre; con la regla declarada, en Cerrado sin efectiva.
+
 ## Preguntas surgidas en la implementación
 
 - **Motivo al descartar (A3)**: el lienzo dice «motivo obligatorio»; hoy solo es obligatorio para asignar en los casos

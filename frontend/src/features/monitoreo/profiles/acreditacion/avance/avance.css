@@ -5,7 +5,8 @@
  * columnas se apilan y el contenido desplaza (dueño: `.mon-workbench-content`). */
 
 .acr-res,
-.acr-pub {
+.acr-pub,
+.acr-ct {
   --acr-efectiva: var(--pulso-brand-navy);
   --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
   --acr-rechazo: var(--pulso-resultado-parcial);
@@ -167,6 +168,11 @@
   height: 8px;
 }
 
+.acr-av-pista.is-alta {
+  height: 32px;
+  border-radius: 6px;
+}
+
 .acr-av-pista > i {
   display: block;
   height: 100%;
@@ -301,6 +307,11 @@
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.acr-av-eje.is-cifra {
+  fill: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
 }
 
 .acr-av-eje.is-secundario {

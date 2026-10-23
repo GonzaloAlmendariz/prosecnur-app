@@ -227,6 +227,59 @@ export function AreaAcumulada({ serie, meta, etiqueta }: { serie: readonly DiaDe
   );
 }
 
+/**
+ * Dos series en barras superpuestas por categoría (la clara detrás, la oscura
+ * delante), con eje Y y su título; cada barra lleva su cifra arriba si cabe.
+ */
+export function BarrasSuperpuestas({
+  categorias,
+  tituloEje,
+  etiqueta,
+}: {
+  categorias: ReadonlyArray<{ clave: string; rotulo: string; fondo: number; frente: number }>;
+  tituloEje: string;
+  etiqueta: string;
+}) {
+  const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
+  const izquierda = 40;
+  const arriba = 26;
+  const abajo = 22;
+  const w = Math.max(0, ancho - izquierda - 6);
+  const h = Math.max(0, alto - arriba - abajo);
+  const marcas = marcasDeEje(Math.max(1, ...categorias.map((item) => item.fondo)) * 1.08);
+  const maximo = marcas.at(-1) ?? 1;
+  const paso = w / Math.max(1, categorias.length);
+  const y = (valor: number) => arriba + h - (valor / maximo) * h;
+  const conRotulo = paso >= 22;
+  return (
+    <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
+      {ancho > 0 && alto > 0 && categorias.length ? (
+        <svg width={ancho} height={alto} aria-hidden="true">
+          <text className="acr-av-eje-titulo" x={0} y={10}>{tituloEje}</text>
+          {marcas.map((valor) => (
+            <g key={valor}>
+              <line className="acr-av-reticula" x1={izquierda} x2={izquierda + w} y1={y(valor)} y2={y(valor)} />
+              <text className="acr-av-eje" x={izquierda - 6} y={y(valor) + 4} textAnchor="end">{fmt(valor)}</text>
+            </g>
+          ))}
+          {categorias.map((item, indice) => {
+            const x = izquierda + indice * paso + paso * 0.14;
+            const anchoBarra = paso * 0.72;
+            return (
+              <g key={item.clave}>
+                {item.fondo > 0 ? <rect className="acr-av-barra-dia" x={x} y={y(item.fondo)} width={anchoBarra} height={y(0) - y(item.fondo)} rx={1.5} /> : null}
+                {item.frente > 0 ? <rect className="acr-av-barra" x={x + anchoBarra * 0.18} y={y(item.frente)} width={anchoBarra * 0.64} height={y(0) - y(item.frente)} rx={1.5} /> : null}
+                {conRotulo && item.fondo > 0 ? <text className="acr-av-eje is-cifra" x={x + anchoBarra / 2} y={y(item.fondo) - 4} textAnchor="middle">{fmt(item.fondo)}</text> : null}
+                {conRotulo || indice % 2 === 0 ? <text className="acr-av-eje" x={x + anchoBarra / 2} y={alto - 6} textAnchor="middle">{item.rotulo}</text> : null}
+              </g>
+            );
+          })}
+        </svg>
+      ) : null}
+    </div>
+  );
+}
+
 /** Miniatura de barras dentro de una celda o una fila: sin ejes, con su lectura en `aria-label`. */
 export function Minibarras({ valores, etiqueta }: { valores: readonly number[]; etiqueta: string }) {
   const maximo = Math.max(1, ...valores);

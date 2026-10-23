@@ -52,6 +52,8 @@ type EstadoDelResumen = {
   /** Issues tal como vinieron, para filtrar por público en el inspector. */
   issues: ReturnType<typeof normalizeInternalQueries>["issues"] | null;
   barrido: Map<string, BarridoDelPublico> | null;
+  /** Efectivas por fuente y canal del reporte del cliente (`client_report.sources`). */
+  fuentes: Array<Record<string, unknown>> | null;
   /** La lectura de casos falló: las vistas dejan de esperarla. */
   casosFallaron: boolean;
   marcarFalloDeCasos: () => void;
@@ -80,6 +82,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
   casos: null,
   issues: null,
   barrido: null,
+  fuentes: null,
   casosFallaron: false,
   marcarFalloDeCasos: () => set({ casosFallaron: true }),
   observar: (reports, goals) => {
@@ -89,7 +92,10 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       || (Array.isArray(reports.internal_queries?.issues) && reports.internal_queries.issues.length > 0);
     const issues = consultas ? normalizeInternalQueries(reports.internal_queries).issues : null;
     const barrido = barridoDeReports(reports);
+    const crudas = reports.client_report?.sources;
+    const fuentes = Array.isArray(crudas) && crudas.length ? crudas as Array<Record<string, unknown>> : null;
     set((previo) => ({
+      fuentes: fuentes ?? previo.fuentes,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,
@@ -97,7 +103,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       issues: issues ?? previo.issues,
     }));
   },
-  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, casosFallaron: false }),
+  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, casosFallaron: false }),
 }));
 
 /** Para quien observa fuera de React (el prefetch de scopes). */

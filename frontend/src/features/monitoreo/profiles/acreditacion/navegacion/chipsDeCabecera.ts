@@ -35,8 +35,11 @@ export function chipsDeCabecera(
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos"];
+const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "control/resolver", "control/reintentos", "control/barrido"];
+const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle"];
 
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
+  // Una sub-vista que todavía monta la vista anterior conserva la tarjeta.
+  if (direccion.panel && SUBVISTAS.includes(direccion.panel)) return false;
   return CON_LIENZO.includes(`${direccion.seccion}/${direccion.pestana}`);
 }
