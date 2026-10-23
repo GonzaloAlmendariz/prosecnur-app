@@ -11,13 +11,16 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import type { MonitoreoTerritorialDashboard } from "../../../../api/client";
+import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../api/client";
 import { describe, expect, it } from "vitest";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
 import { MapaTab } from "./avance/MapaTab";
 import { UmpsTab } from "./avance/UmpsTab";
+import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
+import { ConciliacionTab } from "./control/ConciliacionTab";
+import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
 import { CORTE_DE_CUOTAS } from "./avance/fixtures/corteDeCuotas";
@@ -83,6 +86,32 @@ const AUDITORIA = {
   ],
 } as unknown as MonitoreoTerritorialDashboard;
 
+// Correcciones: anulaciones con los nombres que publica el motor, conciliación
+// con códigos y UMP sin cruzar, y el padrón (sin DNI en pantalla).
+const CORRECCIONES = {
+  ...CORTE_DE_CUOTAS,
+  production_annulments: {
+    summary: { annulled_responses: 2, affected_umps: 1 },
+    rows: [{ district: "LOS OLIVOS" }, { district: "" }],
+    entries: [{ id: "a1", status: "active", scope: "all_production", responsible_label: "P702 · Aplicador", reason: "Caso anulado", created_at: "2026-06-26T16:51:00", impact: { responses_excluded: 2, valid_responses_excluded: 1, umps_affected: 1 } }],
+    affected_blocks: [{ block_id: "m1301", ump: "1301", manzana: "0900", district: "LOS OLIVOS", responses_annulled: 2, valid_annulled: 1 }],
+  },
+  enumerator_code_summary: {
+    response_code_count: 3, recognized_code_count: 2, reconciled_code_count: 1,
+    unrecognized_codes: [{ code: "109", raw_code: "109", normalized_code: "109", count: 1 }],
+    unrecognized_responses: [{ row_index: 1, response_id: "r1", raw_code: "109", normalized_code: "109" }],
+    reconciliation_entries: [{ raw_code: "P19", normalized_code: "P019", assigned_code: "P190", assigned_name: "Aplicador Uno" }],
+  },
+  ump_declared_summary: {
+    rows: [{ raw_ump: "UMP 285", normalized_ump: "285", response_count: 1, route_match: false, status: "review" }, { raw_ump: "UMP 1", normalized_ump: "1", response_count: 8, route_match: true, status: "recognized" }],
+    route_options: [{ route_ump: "UMP 28", id_manzana: "150103001000280", distrito: "ATE", ubigeo: "150103", manzana: "0280" }],
+  },
+  spatial_reconciliation: { candidates: [], patterns: [], metrics: { candidates: 0, patterns: 0, in_queue: 0 } },
+} as unknown as MonitoreoTerritorialDashboard;
+const ESTADO_CON_PADRON = {
+  config: { territorial: { enumerator_roster: { assignments: [{ codigo_pulso: "P109", nombre: "Aplicador Tres", dni: "00000000" }] } } },
+} as unknown as MonitoreoState;
+
 const CON_PARTE = {
   ...CORTE_DE_CUOTAS,
   field_occurrences: { by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 8, intentos: 20 }] },
@@ -108,6 +137,12 @@ const PESTANAS: Array<[string, () => string]> = [
   ["Control › Bandeja filtrada por GPS lejos", () => pintar(<BandejaTab consultas={CONSULTAS} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=bandeja&foco=gps-lejos")],
   ["Control › Equipo", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo")],
   ["Control › Equipo con el inspector de P222", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo&panel=codigo&foco=P222")],
+  ["Control › Subsanaciones", () => pintar(<SubsanacionesTab reports={CORTE_DE_CUOTAS} />, "/monitoreo?modo=territorial&seccion=control&pestana=subsanaciones&foco=143")],
+  ["Control › Anulaciones", () => pintar(<AnulacionesTab reports={CORRECCIONES} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=anulaciones")],
+  ["Control › Conciliación", () => pintar(
+    <ConciliacionTab reports={CORRECCIONES} state={ESTADO_CON_PADRON} phase="field" onEspacial={() => undefined} />,
+    "/monitoreo?modo=territorial&seccion=control&pestana=conciliacion",
+  )],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];
 
@@ -137,6 +172,12 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
     // «sin cartografía» antes de haberla pedido.
     expect(pintar(<MapaTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="false"');
     expect(pintar(<MapaTab avance={null} validacion={null} />, `${RUTA}&pestana=mapa`)).toContain('data-audit-ready="vacio:sin-cuota"');
+  });
+
+  it("el padrón se ofrece sin DNI", () => {
+    const html = pintar(<ConciliacionTab reports={CORRECCIONES} state={ESTADO_CON_PADRON} phase="field" onEspacial={() => undefined} />, "/monitoreo");
+    expect(html).toContain("P109 · Aplicador Tres");
+    expect(html).not.toContain("00000000");
   });
 
   it("el vacío de Faltante publica su motivo a la readiness", () => {

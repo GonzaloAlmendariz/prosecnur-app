@@ -84,7 +84,10 @@ import { SelectorDeFase } from "./navegacion/SelectorDeFase";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
 import { MapaTab } from "./avance/MapaTab";
+import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
+import { ConciliacionTab } from "./control/ConciliacionTab";
+import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
 import { UmpsTab } from "./avance/UmpsTab";
@@ -1236,6 +1239,29 @@ function renderPestana(
           validacion={options.cortes?.validacion ?? null}
           phase={options.phase ?? "field"}
           onStateChange={options.onStateChange}
+        />
+      );
+    }
+    if (clave === "control/subsanaciones") {
+      return (
+        <SubsanacionesTab
+          reports={options.cortes?.consultas ?? reports}
+          onApply={options.onOperationalAdjustmentApply}
+          onRevert={options.onOperationalAdjustmentRevert}
+        />
+      );
+    }
+    if (clave === "control/anulaciones") {
+      return <AnulacionesTab reports={reports} phase={options.phase ?? "field"} onStateChange={options.onStateChange} />;
+    }
+    if (clave === "control/conciliacion" && !direccion.panel) {
+      return (
+        <ConciliacionTab
+          reports={options.cortes?.validacion ?? reports}
+          state={options.state ?? null}
+          phase={options.phase ?? "field"}
+          onStateChange={options.onStateChange}
+          onEspacial={() => options.irA?.({ seccion: "control", pestana: "conciliacion", panel: "espacial" })}
         />
       );
     }

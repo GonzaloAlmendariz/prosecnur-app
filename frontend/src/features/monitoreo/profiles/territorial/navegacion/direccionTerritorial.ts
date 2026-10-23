@@ -100,9 +100,11 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "reportes", null, v("ocurrencias", "registro"), { vista: "Reporte por UMP" }),
   entrada("control", "reportes", "ump", v("ocurrencias", "ump"), { vista: "UMP" }),
   entrada("control", "reportes", "alertas", v("ocurrencias", "alerts"), { vista: "Alertas" }),
-  entrada("control", "subsanaciones", null, v("consultas", "subsanaciones")),
-  entrada("control", "anulaciones", null, v("calidad", "anulacion")),
-  entrada("control", "conciliacion", null, v("fuentes", "reconciliation"), { vista: "Códigos" }),
+  entrada("control", "subsanaciones", null, v("consultas", "subsanaciones"), { propia: true }),
+  entrada("control", "anulaciones", null, v("calidad", "anulacion"), { propia: true }),
+  // Conciliación pide el corte de Validación, que trae el cruce de códigos y la
+  // UMP declarada; regresa a Fuente › Reconciliación para los enlaces viejos.
+  entrada("control", "conciliacion", null, v("fuentes", "reconciliation"), { vista: "Códigos", propia: true, corte: v("calidad", "geolocalizacion") }),
   entrada("control", "conciliacion", "espacial", v("calidad", "reconciliacion"), { vista: "Sospechas espaciales" }),
   // Faltante por UMP reemplaza a Validación › Cuotas (§3.17): la vista vieja
   // vuelve aquí cuando un enlace interno la pide.

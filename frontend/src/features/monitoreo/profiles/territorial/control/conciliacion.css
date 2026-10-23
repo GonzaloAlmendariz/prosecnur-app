@@ -1,0 +1,208 @@
+/* Control › Conciliación (territorial.md §3.13): dos paneles iguales y un pie
+ * con las sospechas espaciales. */
+
+.mon-con {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-con-aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.mon-con-aviso.is-ok {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-con-aviso.is-error {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-con-panel {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-con-panel > * {
+  flex: 0 0 auto;
+}
+
+.mon-con-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-con-panel::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-con-cabecera {
+  display: grid;
+  gap: var(--pulso-space-1);
+}
+
+.mon-con-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-con-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-con-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-con-pendientes {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-con-pendientes li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  background: var(--pulso-warn-bg);
+}
+
+.mon-con-escrito {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-con-escrito small {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-con-pendientes select {
+  width: 100%;
+  height: 30px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.mon-con-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-brand-navy);
+  border-radius: 8px;
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-con-boton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mon-con-hechas {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.mon-con-hechas li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-con-pie {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.mon-con-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mon-con-boton:focus-visible,
+.mon-con-enlace:focus-visible,
+.mon-con-pendientes select:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1100px) {
+  .mon-con-pendientes li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .mon-con-pendientes label {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

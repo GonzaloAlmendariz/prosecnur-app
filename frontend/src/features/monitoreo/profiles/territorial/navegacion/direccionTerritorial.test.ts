@@ -99,6 +99,13 @@ describe("dirección pública del modo territorial", () => {
     }
     expect(esPestanaPropia({ seccion: "control", pestana: "senales", panel: "duracion" })).toBe(false);
     expect(panelesSuperpuestos("control", "equipo")).toEqual(["codigo", "anular"]);
+    // Control › Correcciones: las tres propias; Conciliación pide el corte de
+    // Validación y su sub-vista espacial sigue heredada.
+    for (const pestana of ["subsanaciones", "anulaciones", "conciliacion"]) {
+      expect(esPestanaPropia({ seccion: "control", pestana, panel: null })).toBe(true);
+    }
+    expect(vistaDeDireccion({ seccion: "control", pestana: "conciliacion", panel: null }).seccion).toBe("calidad");
+    expect(esPestanaPropia({ seccion: "control", pestana: "conciliacion", panel: "espacial" })).toBe(false);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {
