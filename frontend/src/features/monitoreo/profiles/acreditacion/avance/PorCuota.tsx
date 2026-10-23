@@ -100,17 +100,17 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
         {elegidaCuota && franja ? (
           <>
             <div className="acr-av-panel acr-pc-franja" data-qa-geometry-group="acreditacion-avance-cuotas-franja" data-qa-geometry-contract="equal">
-              <div className="acr-res-kpi" data-qa-geometry-member><small>Efectivas</small><b className="acr-av-num">{fmt(franja.efectivas)}</b></div>
-              <div className="acr-res-kpi" data-qa-geometry-member><small>Meta por categorías</small><b className="acr-av-num">{fmt(franja.metaPorCategorias)}</b></div>
+              <div className="acr-res-kpi" data-qa-geometry-member><small>Efectivas</small><b className="acr-av-num">{fmt(franja.efectivas)}</b><span className="acr-av-tenue">{elegidaCuota.universo == null ? "Sin padrón cruzado" : `de ${fmt(elegidaCuota.universo)} personas`}</span></div>
+              <div className="acr-res-kpi" data-qa-geometry-member><small>Meta por categorías</small><b className="acr-av-num">{fmt(franja.metaPorCategorias)}</b><span className="acr-av-tenue">{`suma de ${fmt(elegidaCuota.categorias.length)} categorías`}</span></div>
               <div className="acr-res-kpi" data-qa-geometry-member>
                 <small>Meta del público</small>
                 <b className="acr-av-num">{franja.metaDelPublico == null ? "—" : fmt(franja.metaDelPublico)}</b>
-                {franja.diferencia ? <span className="acr-av-tenue">{`${franja.diferencia > 0 ? "+" : ""}${fmt(franja.diferencia)} por redondeo`}</span> : null}
+                <span className="acr-av-tenue">{franja.diferencia ? `${franja.diferencia > 0 ? "+" : ""}${fmt(franja.diferencia)} por redondeo` : "Igual a la suma"}</span>
               </div>
               <div className="acr-res-kpi" data-qa-geometry-member>
                 <small>Más atrasada</small>
                 <b>{franja.masAtrasada ? franja.masAtrasada.categoria : "—"}</b>
-                {franja.masAtrasada ? <span className="acr-av-tenue acr-av-num">{pctConEspacio(franja.masAtrasada.avance * 100)}</span> : null}
+                <span className="acr-av-tenue acr-av-num">{franja.masAtrasada ? pctConEspacio(franja.masAtrasada.avance * 100) : "Sin metas"}</span>
               </div>
               <button type="button" className="acr-av-boton" onClick={() => onEditarEnModelo(elegidaCuota.id)}><Pencil size={14} aria-hidden="true" /> Editar en Modelo</button>
             </div>
