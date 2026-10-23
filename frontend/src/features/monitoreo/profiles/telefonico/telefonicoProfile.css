@@ -5213,8 +5213,11 @@
    declaraba solo dos filas; el contenido caía en una fila implícita mientras
    la segunda absorbía el alto libre. Esta regla contractual debe empatar esa
    especificidad para que la capacidad restante pertenezca al contenido. */
+/* Dos filas: la cabecera de pestaña y el contenido. La franja de lectura que
+ * iba en medio se retiró con el chrome común del revamp (2026-10-23): FALTAN
+ * vive en la barra del modo y el resto, en la pestaña que lo explica. */
 .mon-profile-canonical-shell.is-telefonico-profile .mon-workbench.is-acreditacion .mon-workbench-main {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .is-telefonico-profile .mon-workbench-content {

@@ -74,6 +74,7 @@ import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
+import { chipsDeCabecera, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import {
@@ -19611,145 +19612,6 @@ export function localTabsForTelefonicoView(
   return [];
 }
 
-function AcreditacionClarityStrip({
-  seccionActiva,
-  state,
-  reports,
-}: {
-  seccionActiva: MonitoreoSeccion;
-  state: MonitoreoState | null;
-  reports: MonitoreoAcreditacionReports | null;
-}) {
-  const isPhoneState = isTelefonicoMonitoreoState(state);
-  const sourceTotal = piezasRequeridas(isPhoneState, state?.sources?.length ?? 0);
-  const activeSources = activeSourceCount(state);
-  const sourceGap = Math.max(0, sourceTotal - activeSources);
-  const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0));
-  const queries = normalizeInternalQueries(reports?.internal_queries);
-  const cases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
-  const caseSummary = summarizeInternalCases(cases);
-  const issueCount = queries.issues.reduce((acc, issue) => acc + (num(issue.count, 1) || 1), 0);
-  const phoneSummaryRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]) : [];
-  const phoneRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico", "estatus_telefonico"]) : [];
-  const phoneStatusSheetRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]) : [];
-  const phoneStatusRows = phoneStatusSheetRows.length
-    ? phoneStatusSheetRows
-    : groupedCaseRows(cases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
-  const phoneStatusTotal = phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0);
-  const phoneBaseFromReport = phoneSummaryValue(phoneSummaryRows, "total telefonico")
-    ?? phoneSummaryValue(phoneSummaryRows, "total telefónico")
-    ?? phoneStatusTotal;
-  const phoneBaseTotal = phoneBaseFromReport
-    || summary.universe
-    || state?.n_rows
-    || 0;
-  const phonePendingTotal = phoneSummaryValue(phoneSummaryRows, "no barridos") ?? summary.unanswered;
-  const platformCaseCount = cases.length;
-  const platformHasReport = Boolean(
-    platformCaseCount ||
-      reports?.client_report?.actors?.length ||
-      reports?.client_report?.sources?.length ||
-      reports?.client_report?.daily_general?.length,
-  );
-  const phoneComparisonRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]) : [];
-  const phoneComparison = phonePlatformComparisonTotals(phoneComparisonRows);
-  const phoneCaveatCount = isPhoneState ? telefonicoConsultaCaveatCount(reports) : 0;
-  const phoneDailyBlock = reports ? phoneDailyBlockForPanel(reports) : null;
-  const phoneEffectiveFromDaily = normalizeSourceMatch(phoneDailyBlock?.id ?? "").includes("avance_efectivo")
-    ? buildAcreditacionPhoneDailyPoints(phoneDailyBlock?.rows ?? []).reduce((sum, point) => sum + point.effective, 0)
-    : 0;
-  const phonePlatformEffective = isPhoneState
-    ? phoneComparison.platformComplete || phoneEffectiveFromDaily
-    : summary.effective;
-  const actorRows = reports?.client_report?.actors ?? [];
-  const configuredGoals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
-  const bloqueos = state?.acreditacion?.dashboard?.bloqueos ?? 0;
-  const phoneQuotaReportRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
-  const phoneQuotaVariable = isPhoneState && state?.config
-    ? preferredPhoneQuotaVariable(state.variables ?? [], state.config.control_vars ?? [], phoneQuotaReportRows, state.config.goals ?? [])
-    : "";
-  const phoneQuotaEditorRows = isPhoneState && state?.config
-    ? buildAcreditacionPhoneQuotaEditorRows({
-      variable: phoneQuotaVariable,
-      variables: state.variables ?? [],
-      goals: state.config.goals ?? [],
-      quotaRows: phoneQuotaReportRows,
-    })
-    : [];
-  const phoneQuotaGoal = phoneQuotaVariable && state?.config ? phoneQuotaGoalTotal(state.config.goals ?? [], phoneQuotaVariable) : 0;
-  const phoneFilter = isPhoneState ? normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter) : null;
-  const phoneFilterConfigured = Boolean(phoneFilter?.enabled && phoneFilter.variable && phoneFilter.values.length);
-  const phoneFilterRailValue = phoneFilterConfigured
-    ? `${phoneQuotaVariableLabel(phoneFilter?.label || phoneFilter?.variable || "")} = ${phoneQuotaVariableLabel(phoneFilter?.value_label || phoneFilter?.values[0] || "valor")}`
-    : "Pendiente";
-  const phoneFilterRailHint = phoneFilterConfigured
-    ? "opción válida"
-    : "define consentimiento";
-  const itemsByView = {
-    fuentes: [
-      { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
-      { label: "Base", value: state?.n_rows ? fmt(state.n_rows) : "S/D", hint: "registros leídos", tone: state?.n_rows ? "base" : "warning", icon: Table2 },
-      { label: "Corte", value: reports ? "Listo" : "Pendiente", hint: reports?.generated_at ? formatDate(reports.generated_at) : "requiere corte", tone: reports ? "ready" : "warning", icon: RefreshCw },
-    ],
-    modelo: isPhoneState ? [
-      { label: "Filtro Kobo", value: phoneFilterRailValue, hint: phoneFilterRailHint, tone: phoneFilterConfigured ? "ready" : "warning", icon: Filter },
-      { label: "CodPulso", value: phoneComparisonRows.length ? phoneCodPulsoEffectiveMatchLabel(phoneComparison) : "S/D", hint: phoneComparison.mismatch ? "tel. pendiente" : "tel. alineado", tone: phoneComparison.mismatch ? "warning" : "ready", icon: Search },
-      { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : "S/D", hint: phoneQuotaVariable ? `${fmt(phoneQuotaEditorRows.length)} cuotas` : "define variable", tone: phoneBaseTotal && phoneQuotaEditorRows.length ? "base" : "warning", icon: Table2 },
-    ] : [
-      { label: "Actores", value: fmt(actorRows.length), hint: "cortes del reporte", tone: actorRows.length ? "base" : "warning", icon: ClipboardCheck },
-      { label: "Metas", value: fmt(configuredGoals), hint: "configuradas", tone: configuredGoals ? "ready" : "warning", icon: Target },
-      { label: "Bloqueos", value: fmt(bloqueos), hint: bloqueos ? "requieren cierre" : "sin bloqueos", tone: bloqueos ? "warning" : "ready", icon: ShieldAlert },
-    ],
-    avance: isPhoneState ? [
-      { label: "Efectivas Kobo", value: phonePlatformEffective ? fmt(phonePlatformEffective) : "S/D", hint: "pasan filtro", tone: phonePlatformEffective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "CodPulso", value: phoneComparisonRows.length ? phoneCodPulsoEffectiveMatchLabel(phoneComparison) : "S/D", hint: phoneComparisonRows.length ? phoneCodPulsoDifferenceHint(phoneComparison) : "sin cruce", tone: phoneComparison.mismatch ? "warning" : "ready", icon: Search },
-      { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : fmt(state?.n_rows ?? 0), hint: "universo de llamadas", tone: phoneBaseTotal || state?.n_rows ? "base" : "warning", icon: Table2 },
-    ] : [
-      { label: "Efectivas", value: summary.effective ? fmt(summary.effective) : "S/D", hint: summary.universe ? `${pctFrom(summary.effective, summary.universe)} del universo` : "plataforma completa", tone: summary.effective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "Parciales", value: fmt(summary.partial), hint: "no cuentan como efectivas", tone: summary.partial ? "partial" : "ready", icon: AlertCircle },
-      { label: "Universo", value: summary.universe ? fmt(summary.universe) : fmt(state?.n_rows ?? 0), hint: summary.referenceLabel, tone: summary.universe || state?.n_rows ? "base" : "warning", icon: Table2 },
-    ],
-    consultas: isPhoneState ? [
-      { label: "Efectivas Kobo", value: phonePlatformEffective ? fmt(phonePlatformEffective) : "S/D", hint: "pasan filtro", tone: phonePlatformEffective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "CodPulso", value: phoneComparisonRows.length ? phoneCodPulsoEffectiveMatchLabel(phoneComparison) : "S/D", hint: phoneComparisonRows.length ? phoneCodPulsoDifferenceHint(phoneComparison) : "sin cruce", tone: phoneComparison.mismatch ? "warning" : "ready", icon: Search },
-      { label: "Salvedades", value: fmt(phoneCaveatCount), hint: phoneCaveatCount ? "efectivas no identificables" : "sin salvedades", tone: phoneCaveatCount ? "warning" : "ready", icon: ShieldAlert },
-    ] : [
-      { label: "Efectivas", value: cases.length ? fmt(caseSummary.effective) : "S/D", hint: "reales trazadas", tone: caseSummary.effective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "Salen pendientes", value: fmt(caseSummary.pendingExit), hint: "faltantes recuperados", tone: caseSummary.pendingExit ? "ready" : "base", icon: Link2 },
-      { label: "Alertas", value: fmt(issueCount), hint: "casos de revisión", tone: issueCount ? "warning" : "ready", icon: ShieldAlert },
-    ],
-	    telefonico: [
-	      { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : "Pendiente", hint: phoneRows.length ? "base de barrido" : "requiere corte", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
-	      { label: "Efectivas Kobo", value: phonePlatformEffective ? fmt(phonePlatformEffective) : (platformHasReport ? "Listo" : "Pendiente"), hint: phonePlatformEffective ? "pasan filtro" : "comparación no cargada", tone: phonePlatformEffective || platformHasReport ? "ready" : "warning", icon: Search },
-	      { label: "Por barrer", value: fmt(phonePendingTotal), hint: "operación telefónica", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
-	    ],
-    ocurrencias: [],
-    calidad: [],
-  };
-  const items = itemsByView[seccionActiva] ?? itemsByView.fuentes;
-  const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
-
-  return (
-    <section className={`mon-clarity-strip is-${seccionActiva}`} aria-label={clarityLabel}>
-      <div className="mon-clarity-items">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span key={`${seccionActiva}-${item.label}`} className={`mon-clarity-card is-${item.tone}`}>
-              <Icon size={14} />
-              <span>
-                <em>{item.label}</em>
-                <strong>{item.value}</strong>
-                <small>{item.hint}</small>
-              </span>
-            </span>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: AcreditacionProfileMode }) {
   const isPhone = mode === "telefonico";
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
@@ -20113,6 +19975,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     },
   });
   // El rail y el inspector enumeran las pestañas PÚBLICAS de la sección.
+  const resumenModo = useResumenDelModo(reports, phoneQuotaCardsForDashboard, phonePlatformComparisonTotals);
   const pestanasPublicas = useMemo(
     () => pestanasDelRail(publica.seccion, (vista) => localTabsForTelefonicoView(vista, state, reports, route)),
     [publica.seccion, state, reports, route],
@@ -20229,6 +20092,14 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
+          viewMetrics={resumenModo ? insigniasDelModo(resumenModo) : undefined}
+          barraDelModo={{
+            indicadores: resumenModo ? indicadoresDelModo(resumenModo) : [],
+            corte: corteCorto(state?.synced_at),
+            estado: estadoDelModo({ actualizando: sourceSyncing, cargando: loading, hayEstado: Boolean(state), generationStatus: state?.generation_status ?? "", pendienteDeRecalcular: Boolean(state?.pending_regeneration), error }),
+            actualizar: { etiqueta: "Actualizar", titulo: sinFuentesFull ? motivoSinFuentes("full") : "Releer todas las fuentes activas y recalcular", disabled: loading || sinFuentesFull, onElegir: () => { void runProfileSourceSync("full"); } },
+            otrasActualizaciones: [{ etiqueta: "Sólo respuestas de Kobo", titulo: sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle, disabled: loading || sinFuentesAvance, onElegir: () => { void runProfileSourceSync("advance"); } }],
+          }}
           onCambioSeccion={(seccion) => {
             const vista = vistaDeSeccionPedida(seccion);
             navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey);
@@ -20241,6 +20112,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           className="is-acreditacion"
           contentRole="tabpanel"
           contentId={`monitoreo-${publica.seccion}-panel`}
+          contentClassName={publica.seccion === "avance" && publica.pestana === "cuotas" ? "is-lienzo" : undefined}
           contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}
           scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
@@ -20260,6 +20132,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               seccion={publica.seccion}
               pestana={publica.pestana}
               pestanas={pestanasPublicas}
+              chips={chipsDeCabecera(publica, resumenModo)}
               control={(
                 <SubvistasDePestana
                   seccion={publica.seccion}
@@ -20269,13 +20142,6 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
                   onElegir={(vista) => navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey)}
                 />
               )}
-            />
-          )}
-          clarity={(
-            <AcreditacionClarityStrip
-              seccionActiva={seccionActiva}
-              state={state}
-              reports={reports}
             />
           )}
           status={null}

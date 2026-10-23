@@ -1,0 +1,187 @@
+/* Chrome común del modo telefónico (revamp de Monitoreo, 2026-10-23; estándar
+ * §2a y §2b). El rail es una tarjeta propia a toda altura; la columna de
+ * trabajo lleva la cabecera de pestaña de 44 px sobre el fondo y, debajo, el
+ * contenido. Separación entre contenedores: 12 px. */
+
+.is-telefonico-profile .mon-workbench {
+  gap: var(--pulso-space-3);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-workbench > .pulso-context-tab-rail {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.is-telefonico-profile .mon-workbench-main {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  background: transparent;
+}
+
+/* El contenido provisional (las vistas que cada pestaña absorbe mientras no
+ * tiene diseño propio) va en una tarjeta; las pestañas ya rediseñadas traen
+ * sus propios paneles y piden el lienzo desnudo con `is-lienzo`. */
+.is-telefonico-profile .mon-workbench-content {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.is-telefonico-profile .mon-workbench-content.is-lienzo {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Cabecera de pestaña, 44 px. */
+.mon-tel-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  height: 44px;
+  min-width: 0;
+}
+
+.mon-tel-cabecera-icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-tel-cabecera-copia {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.mon-tel-cabecera-antetitulo {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-tel-cabecera-copia h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mon-tel-cabecera-derecha {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.mon-tel-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Selector de vistas de una pestaña que absorbe más de una. */
+.mon-tel-subvistas {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.mon-tel-subvista {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-tel-subvista:hover:not(.is-active) {
+  color: var(--pulso-text);
+}
+
+.mon-tel-subvista.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-tel-subvista:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* Pie del rail: «CORTE» en gris, fecha y hora en dos líneas. */
+.is-telefonico-profile .pulso-context-tab-rail-meta > span {
+  min-height: 0;
+  padding: var(--pulso-space-1) 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.is-telefonico-profile .pulso-context-tab-rail-meta > span > span {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .pulso-context-tab-rail-meta strong,
+.is-telefonico-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El switch encendido es azul marino en el lenguaje común (estándar §2a). */
+.is-telefonico-profile .mon-switch-line input:checked,
+.is-telefonico-profile .mon-acr-use-switch input[type="checkbox"]:checked {
+  border-color: var(--pulso-brand-navy) !important;
+  background: var(--pulso-brand-navy);
+}
+
+.is-telefonico-profile .mon-acr-use-switch:has(input:checked) {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+}

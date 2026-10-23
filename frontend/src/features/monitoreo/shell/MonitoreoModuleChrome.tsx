@@ -11,6 +11,7 @@ import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
+import { HerramientasDelModo, IndicadoresDelModo, type BarraDelModo } from "./BarraDelModo";
 
 export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSeccionDePagina> = {
   routes: MonitoreoModoDefinicion[];
@@ -40,6 +41,11 @@ export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSec
   onSyncAdvance?: () => Promise<void> | void;
   /** Recibe la clave de la píldora; cada modo sólo pinta las suyas. */
   onCambioSeccion?: (view: K) => void;
+  /**
+   * Barra del esqueleto común del revamp (MODO, EJE DE CUOTA, FALTAN, CORTE,
+   * estado y Actualizar). Opcional: sin ella el chrome se pinta como siempre.
+   */
+  barraDelModo?: BarraDelModo;
 };
 
 type MonitoreoModuleSyncProgress = {
@@ -137,6 +143,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
   advanceSyncTitle,
   onSyncAdvance,
   onCambioSeccion,
+  barraDelModo,
 }: MonitoreoModuleChromeProps<K>) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
   const views = route ? seccionesPublicasDelModo(route) : [];
@@ -305,7 +312,22 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
   ) : null;
 
   return (
-    <div className="mon-module-chrome" data-audit-chrome="monitoring">
+    <div className={`mon-module-chrome${barraDelModo ? " is-barra-comun" : ""}`} data-audit-chrome="monitoring">
+      {barraDelModo ? (
+        <ModuleCommandBar
+          modulo="monitoreo"
+          className="mon-commandbar is-barra-comun"
+          ariaLabel="Contexto operativo de monitoreo"
+          contexto={
+            <>
+              <MonitoreoPathContext route={route} conHermanos={false} />
+              <IndicadoresDelModo indicadores={barraDelModo.indicadores} />
+            </>
+          }
+          secciones={sectionRail}
+          herramientas={<HerramientasDelModo barra={barraDelModo} ocupado={saving || syncing} />}
+        />
+      ) : (
       <ModuleCommandBar
         modulo="monitoreo"
         className="mon-commandbar"
@@ -371,6 +393,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
           </>
         }
       />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 :root {
-  --pulso-primary: #002457;
+  --pulso-brand-navy: #002457; /* fijo: --pulso-primary toma el acento de cada módulo */
+  --pulso-primary: var(--pulso-brand-navy);
   --pulso-primary-soft: rgba(0, 36, 87, 0.08);
   --pulso-primary-border: rgba(0, 36, 87, 0.18);
   --pulso-primary-focus: rgba(0, 36, 87, 0.15);

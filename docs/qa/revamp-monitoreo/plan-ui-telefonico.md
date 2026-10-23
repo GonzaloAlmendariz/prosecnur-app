@@ -28,8 +28,8 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | # | Fase | Contenido | Depende de | Estado |
 |---|---|---|---|---|
 | T0 | Preparación | Worktree, `pnpm install`, copia de `ACNUR_PDM.pulso` y de `PDM_MedVida2026.pulso`, capturas «antes» de las pestañas actuales, aviso a «ACNUR RMS» | diseño conforme | ☐ |
-| T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☑ (ver «Notas de T1 a T3») |
-| T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☐ |
+| T1 | Navegación | Catálogo `telefonico` en `lib/navegacion/catalogos/monitoreo.ts` con Insumos · Modelo · Control · Avance y sus pestañas; alias de las direcciones viejas (se leen, nunca se escriben); aterrizaje en Avance › Cuotas; contratos `modulesNavigation`, `auditReadyRoutes`, `direccion` | T0 | ☑ |
+| T2 | Chrome común | Cabecera de pestaña de 44 px, CORTE y FALTAN en la barra del modo, insignias en las píldoras, píldora de estado común, pie del rail con CORTE, switch `#002457` | T1 | ☑ |
 | T3 | Avance › Cuotas | `avance/CuotasFaltante.tsx`, `avance/FaltanteDiario.tsx`; reutiliza `segmentoDeCuotas.ts`, `metasPendientes.ts`, `telefonicoGoalModel.ts`, `avance/ritmoDiario.ts` | T2 | ☐ |
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☐ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☐ |
@@ -94,3 +94,19 @@ Cuotas y calendario (`calendario`). Sin dirección, el modo aterriza en Avance �
 - Reserva y Reemplazos no se declararon (P8–P9), como pide el plan.
 - `scripts/build-visual-catalog.mjs` y `scripts/monitoreo-performance-check.mjs` todavía nombran las secciones viejas
   del telefónico; están fuera del glob del frontend. Funcionan por alias, pero conviene actualizarlos.
+
+**T2, chrome común.** La barra del modo dice MODO, EJE DE CUOTA («Sede, 5 valores») y FALTAN («0 de 400», verde si
+cumple y carmesí si falta); las píldoras llevan insignia (Control: casos en que Kobo y la hoja no coinciden, PDM 207;
+Avance: efectivas sobre la meta, 106 %); a la derecha CORTE («27/07/26 09:04»), la píldora de estado y Actualizar
+partido (el menú ofrece «Sólo respuestas de Kobo», que es el sync de avance de hoy). Cabecera de pestaña de 44 px con
+antetítulo «CONTROL · LLAMADAS» / «CONTROL · CASOS»; rail con «CORTE» gris al pie; switch encendido azul marino con el
+token nuevo `--pulso-brand-navy`. Se retiró la franja de lectura (Efectivas Kobo, CodPulso, Base tel.): FALTAN va en la
+barra y el resto vive en Respuestas, Discrepancias y Barrido.
+
+- El chrome es compartido: `MonitoreoModuleChrome` gana la prop opcional `barraDelModo` (piezas en
+  `shell/BarraDelModo.tsx`); Acreditación, Territorial y Cursos-horario no la pasan y se pintan igual que antes.
+- **Píldora «Actualizando, paso N de M»**: el job de sincronización sólo publica porcentaje y fase, no pasos; la píldora
+  dice «Actualizando» y el avance va en el `title` del botón. Contar pasos exige que el backend los publique.
+- **P17 sigue abierta**: con cambios sin recalcular la píldora dice «Pendiente» (ámbar), como hoy, y no «Al día» como
+  dibuja el lienzo. Por eso PDM muestra «Pendiente» en las capturas.
+- A 1024 × 600 las insignias ceden (se ocultan) para que los rótulos de sección no se recorten.

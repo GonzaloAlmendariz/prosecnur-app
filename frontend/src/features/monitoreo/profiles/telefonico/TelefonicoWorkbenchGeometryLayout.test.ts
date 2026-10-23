@@ -13,13 +13,14 @@ function ruleBodies(selector: string): string[] {
 }
 
 describe("Telefónico: geometría del workbench", () => {
-  test("declara una fila para cabecera, claridad y superficie de contenido", () => {
+  // Sin franja de claridad desde el chrome común del revamp (2026-10-23).
+  test("declara una fila para la cabecera de pestaña y otra para el contenido", () => {
     const bodies = ruleBodies(
       ".mon-profile-canonical-shell.is-telefonico-profile .mon-workbench.is-acreditacion .mon-workbench-main",
     );
 
     expect(bodies.some((body) => (
-      /grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\);/.test(body)
+      /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/.test(body)
     ))).toBe(true);
   });
 
