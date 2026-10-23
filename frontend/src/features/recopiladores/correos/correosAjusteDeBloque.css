@@ -1,0 +1,117 @@
+/* Ajustes del bloque en el inspector (AjusteDeBloque): rótulo arriba, opciones
+   a todo el ancho con ícono sobre el rótulo. Sólo tokens. Dos clases para ganar
+   a `.rec-mail-ajuste` (correos.css), que ponía rótulo y control en línea. */
+
+.rec-mail-ajuste.rec-ajuste {
+  align-items: stretch;
+  display: grid;
+  gap: 6px;
+  justify-content: stretch;
+}
+
+.rec-ajuste-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.rec-ajuste-opciones {
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(var(--rec-ajuste-columnas, 2), minmax(0, 1fr));
+  padding: 3px;
+}
+
+.rec-ajuste-opcion {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  font-size: 11.5px;
+  gap: 3px;
+  justify-content: center;
+  min-height: 46px;
+  min-width: 0;
+  padding: 6px 4px 5px;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-ajuste-opcion:hover {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.rec-ajuste-opcion.is-on {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-ajuste-opcion.is-on .rec-ajuste-glifo {
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-ajuste-opcion:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.rec-ajuste-glifo {
+  align-items: center;
+  display: inline-flex;
+  height: 19px;
+  justify-content: center;
+}
+
+.rec-ajuste-texto {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tono: una muestra del color del texto (normal) y del gris secundario (suave). */
+.rec-ajuste-muestra {
+  border-radius: 999px;
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.rec-ajuste-muestra--normal {
+  background: var(--pulso-text);
+}
+
+.rec-ajuste-muestra--suave {
+  background: var(--pulso-text-muted);
+}
+
+/* Relleno del botón: sólido o con contorno, en miniatura. */
+.rec-ajuste-boton {
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  display: inline-block;
+  height: 11px;
+  width: 22px;
+}
+
+.rec-ajuste-boton--solido {
+  background: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-ajuste-opcion {
+    transition: none;
+  }
+}

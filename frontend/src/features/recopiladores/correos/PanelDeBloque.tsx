@@ -1,7 +1,8 @@
 import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
-import { PropRow, Segmented } from "../../xlsformEditor/kit";
+import { PropRow } from "../../xlsformEditor/kit";
+import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
@@ -320,16 +321,12 @@ export function PanelDeBloque({
         <SelectorDeIcono valor={block.icon} onElegir={(icon) => editar((b) => conAjuste(b, "icon", icon))} />
       ) : null}
       {block.type !== "image" ? ajustesDe(block).filter((a) => !AJUSTES_CON_CONTROL_PROPIO.has(a.clave)).map((ajuste) => (
-        <div className="rec-mail-ajuste" key={ajuste.clave}>
-          <span>{ajuste.rotulo}</span>
-          <Segmented
-            aria-label={`${ajuste.rotulo} del bloque`}
-            size="sm"
-            value={valorDeAjuste(block, ajuste)}
-            options={ajuste.opciones.map((o) => ({ value: o.valor, label: o.rotulo }))}
-            onChange={(valor) => editar((b) => conAjuste(b, ajuste.clave, valor))}
-          />
-        </div>
+        <AjusteDeBloque
+          key={ajuste.clave}
+          ajuste={ajuste}
+          valor={valorDeAjuste(block, ajuste)}
+          onCambio={(valor) => editar((b) => conAjuste(b, ajuste.clave, valor))}
+        />
       )) : null}
       {tieneColor(block) ? (
         <ColorDePieza
