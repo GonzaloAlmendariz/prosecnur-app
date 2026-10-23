@@ -60,6 +60,7 @@ export function ColaDeInsistencia({
         resultados={unicos(casos.map((caso) => caso.status))}
         cuotas={unicos(casos.map((caso) => caso.cuota))}
         etiquetaCuota={columnas.categoria}
+        plataforma={columnas.plataforma}
       />
       <div className="mon-cola-cuerpo" data-qa-geometry-group="telefonico-control-insistencia" data-qa-geometry-contract="intrinsic">
         <div className="mon-cola-izquierda">
@@ -84,6 +85,7 @@ export function ColaDeInsistencia({
         <FichaDelCaso
           caso={enFicha}
           etiquetaCategoria={columnas.categoria}
+          plataforma={columnas.plataforma}
           corte={corte}
           cerrable={Boolean(elegido)}
           onCerrar={() => escribirFoco(null, { panel: null })}

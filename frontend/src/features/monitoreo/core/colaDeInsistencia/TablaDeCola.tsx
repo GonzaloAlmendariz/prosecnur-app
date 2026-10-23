@@ -6,6 +6,8 @@ export type ColumnasDeCola = {
   categoria: string;
   /** Teléfono en uso y teléfonos del caso, si la hoja los trae. */
   telefono: boolean;
+  /** Plataforma de las respuestas, para rotular la efectiva («Kobo» si no se dice). */
+  plataforma?: string;
 };
 
 export function telefonoDelCaso(caso: CasoDeCola): string {
@@ -49,7 +51,7 @@ export function TablaDeCola({
             <th scope="col">Observación de la hoja</th>
             <th scope="col">{columnas.telefono ? "Teléfono" : columnas.categoria}</th>
             <th scope="col">Fecha</th>
-            <th scope="col">Kobo</th>
+            <th scope="col">{columnas.plataforma ?? "Kobo"}</th>
           </tr>
         </thead>
         <tbody>

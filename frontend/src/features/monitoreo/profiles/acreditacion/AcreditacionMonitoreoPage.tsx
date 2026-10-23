@@ -68,6 +68,7 @@ import { chipsDeCabecera, pestanaConLienzo } from "./navegacion/chipsDeCabecera"
 import { PorPublico } from "./avance/PorPublico";
 import { Resumen } from "./avance/Resumen";
 import { PorResolver } from "./control/casos/PorResolver";
+import { Reintentos } from "./control/contacto/Reintentos";
 import { CabeceraAcreditacion, RailAcreditacion } from "./navegacion/ChromeAcreditacion";
 import { PANELES_DEL_PERFIL, panelesSuperpuestos, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionAcreditacion";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -16426,6 +16427,7 @@ function renderAcreditacionView(
     // (384) sobre un barrido que estaba en cero. Sin fuente propia se pasa 0 y
     // la vista dice S/D, nunca otro denominador.
     const esEstudioTelefonico = isTelefonicoMonitoreoState(options.state);
+    if ((options.activePhoneTab ?? "resumen") === "incidencia") return <Reintentos reports={reports} state={options.state} />; // Control › Reintentos (A4).
     if ((options.activePhoneTab ?? "resumen") === "estados") {
       // Los crudos salen del bloque que ya publica el motor; el definidor no
       // inventa estados, confirma los que el corte trajo.
@@ -17450,7 +17452,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               seccion={nav.publica.seccion}
               pestana={nav.publica.pestana}
               activa={vistaActiva}
-              chips={chipsDeCabecera(nav.publica, state)}
+              chips={chipsDeCabecera(nav.publica, state, reports)}
               onElegirVista={(vista) => navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey)}
             />
           )}
