@@ -39,17 +39,20 @@ export function Fuentes({
 }) {
   const filas = useMemo(() => filasDeFuentes(fuentes, contrato), [fuentes, contrato]);
   const columnas = useMemo(() => columnasQueSeLeen(contrato, state), [contrato, state]);
-  const [mensaje, setMensaje] = useState<{ tono: "info" | "error"; texto: string } | null>(null);
+  // Mismo aviso que la lista anterior: «Guardando…» mientras se guarda (en la
+  // fila y arriba) y «… actualizado.» al terminar.
+  const [mensaje, setMensaje] = useState<{ tono: "info" | "exito" | "error"; texto: string; fuente: string } | null>(null);
+  const guardando = mensaje?.tono === "info" ? mensaje.fuente : "";
   const activas = filas.filter((fila) => fila.activa);
   const declaradas = columnas.filter((columna) => columna.declarada).length;
 
   const renombrar = async (sourceId: string, nombre: string, anterior: string) => {
-    setMensaje({ tono: "info", texto: `Guardando ${nombre}…` });
+    setMensaje({ tono: "info", texto: `Guardando ${anterior}…`, fuente: sourceId });
     try {
       await onRenombrar(sourceId, nombre);
-      setMensaje({ tono: "info", texto: `${anterior} ahora se llama ${nombre}.` });
+      setMensaje({ tono: "exito", texto: `${nombre} actualizado.`, fuente: sourceId });
     } catch (error) {
-      setMensaje({ tono: "error", texto: (error as Error).message });
+      setMensaje({ tono: "error", texto: (error as Error).message, fuente: sourceId });
       throw error;
     }
   };
@@ -86,6 +89,7 @@ export function Fuentes({
                     </div>
                     <input
                       defaultValue={fila.etiqueta}
+                      disabled={Boolean(guardando)}
                       aria-label={`Nombre de ${fila.nombre}`}
                       title="Nombre con el que la app muestra esta fuente"
                       onBlur={(event) => {
@@ -107,9 +111,11 @@ export function Fuentes({
                     />
                     <small>
                       {[fila.nombre !== fila.etiqueta ? fila.nombre : "", fila.detalle !== fila.etiqueta && fila.detalle !== fila.nombre ? fila.detalle : ""].filter(Boolean).join(", ")}
-                      {enlace?.estado === "enlace"
-                        ? <a href={enlace.href} target="_blank" rel="noreferrer" title={enlace.titulo}>Abrir en {fila.servicio}</a>
-                        : null}
+                      {guardando === fila.id
+                        ? <em className="mon-fuentes-guardando">Guardando…</em>
+                        : enlace?.estado === "enlace"
+                          ? <a href={enlace.href} target="_blank" rel="noreferrer" title={enlace.titulo}>Abrir en {fila.servicio}</a>
+                          : null}
                     </small>
                   </div>
                   <div className="mon-fuentes-volumen">
@@ -147,7 +153,7 @@ export function Fuentes({
               {columnas.map((columna) => (
                 <tr key={`${columna.pieza}-${columna.dato}`}>
                   <th scope="row">{columna.pieza}</th>
-                  <td>{columna.dato}</td>
+                  <td>{columna.rotulo}</td>
                   <td>{columna.declarada ? <code>{columna.columna}</code> : <span className="mon-fuentes-por-nombre">se busca por nombre</span>}</td>
                 </tr>
               ))}

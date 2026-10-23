@@ -30,7 +30,8 @@ describe("Insumos › Fuentes del telefónico", () => {
     const fuentes = [hoja, kobo];
     const state = { config: { monitoreo_profile: { key_rules: { universe_fields: ["CodPulso"], response_fields: [], use_name_fallback: false, automatic_detection: true } } } } as unknown as MonitoreoState;
     const columnas = columnasQueSeLeen(buildAcreditacionPhoneSourceContract(fuentes), state);
-    expect(columnas[0]).toEqual({ pieza: "Universo y barrido", dato: "Llave del caso", columna: "CodPulso", declarada: true });
+    expect(columnas[0]).toEqual({ pieza: "Universo y barrido", dato: "llave", rotulo: "Llave del caso", columna: "CodPulso", declarada: true });
+    expect(columnas.find((fila) => fila.dato === "atencion")?.rotulo).toBe("Atención");
     const sede = columnas.find((fila) => fila.pieza === "Universo" && fila.dato === "sede");
     expect(sede).toMatchObject({ columna: "sede", declarada: true });
     const responsable = columnas.find((fila) => fila.pieza === "Barrido" && fila.dato === "responsable");
