@@ -132,3 +132,5 @@ api/inst/hojas_ruta/cartografia/**/*.properties
 # Catálogo visual generado: herramienta interna, se regenera con
 # `node scripts/build-visual-catalog.mjs`. ~70 MB que no viajan al repo.
 branding/catalogo-visual/data/
+# El código del frontend también tiene carpetas «insumos/» (sección de Monitoreo); no son datos del analista.
+!frontend/src/**/insumos/
