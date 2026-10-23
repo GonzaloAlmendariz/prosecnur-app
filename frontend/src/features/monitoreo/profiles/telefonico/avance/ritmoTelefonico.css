@@ -400,6 +400,6 @@
   }
 }
 
-.mon-cadencia-aviso {
+.mon-cadencia-lateral .mon-cadencia-aviso {
   color: var(--pulso-warn-fg);
 }

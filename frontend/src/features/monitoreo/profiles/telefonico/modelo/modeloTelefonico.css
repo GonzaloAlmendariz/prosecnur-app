@@ -522,7 +522,7 @@
   }
 }
 
-.mon-metas-nota {
+.mon-metas-calendario .mon-metas-nota {
   margin: 0;
   color: var(--pulso-warn-fg);
   font-size: 12px;
