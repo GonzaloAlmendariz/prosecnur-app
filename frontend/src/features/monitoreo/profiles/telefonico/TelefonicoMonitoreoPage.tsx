@@ -82,6 +82,7 @@ import { Equipo } from "./control/Equipo";
 import { Avisos } from "./control/Avisos";
 import { Estados } from "./insumos/Estados";
 import { LlaveYFiltros } from "./insumos/Llave";
+import { Fuentes } from "./insumos/Fuentes";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -11126,28 +11127,36 @@ function AcreditacionSourcesWorkbench({
     );
   }
 
+  const phoneContract = buildAcreditacionPhoneSourceContract(operationalSources);
+  if (isPhoneSourceModel) {
+    return (
+      <Fuentes
+        state={state}
+        fuentes={operationalSources}
+        contrato={phoneContract}
+        acciones={sourceStatus}
+        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
+        onCambiar={(id) => abrirConectarFuente.abrirParaCambiar(id)}
+        onRenombrar={async (id, label) => {
+          const fuente = operationalSources.find((item) => item.id === id);
+          if (!fuente) return;
+          const result = await apiMonitoreoSource(sourcePayloadFromExisting(fuente, { label }));
+          onStateChange?.(result.state);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className={`mon-profile-stack${isPhoneSourceModel ? " mon-phone-source-tab is-package" : ""}`}>
+    <div className="mon-profile-stack">
       {sourceStatus}
-      {isPhoneSourceModel ? (
-        <>
-          {phoneSourceContract("activas")}
-          <AcreditacionConfiguredSourcesList
-            sources={operationalSources}
-            syncFallback={state?.synced_at ?? reports.generated_at}
-            phoneMode={isPhoneSourceModel}
-            onStateChange={onStateChange}
-          />
-        </>
-      ) : (
-        <AcreditacionActiveSourcesView
-          sources={operationalSources}
-          config={state?.config}
-          reportSources={reportSources}
-          state={state}
-          onStateChange={onStateChange}
-        />
-      )}
+      <AcreditacionActiveSourcesView
+        sources={operationalSources}
+        config={state?.config}
+        reportSources={reportSources}
+        state={state}
+        onStateChange={onStateChange}
+      />
     </div>
   );
 }

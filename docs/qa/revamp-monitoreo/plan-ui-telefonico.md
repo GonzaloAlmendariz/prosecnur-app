@@ -34,7 +34,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
-| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ◐ |
+| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☑ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
 
@@ -282,3 +282,20 @@ lo que no cruzó tal cual («1218 se lee PDM1218»).
 - **No va**: interruptores de normalización, «Variables de control» (no hay pares que el motor compare) y la caja de
   discrepancia del lienzo; el conteo «Quedan» por criterio, que el corte no publica.
 - En Medios de Vida «Por revisar en la llave» queda vacío legítimo: todas las efectivas cruzan tal cual.
+
+**T7, Insumos › Fuentes.** `profiles/telefonico/insumos/Fuentes.tsx` con `fuentesModel.ts` (test). En una columna: la
+franja de lectura y sincronización de siempre (Sheets, Kobo, Todo y Conectar fuente), la cadena del corte (universo,
+barrido y encuesta, con su cifra y enlace), las fuentes del proyecto (papel en el contrato, servicio, nombre editable
+como antes, lo que se lee, volumen si la metadata lo trae, última lectura y «Cambiar conexión», que abre el panel de
+conexión sobre esa fuente) y, al pie, las columnas que cada pieza espera con la que la fuente declara (PDM: llave
+CodPulso y sede, atención, trámite y origen; el resto se busca por nombre). Las tarjetas de universo y barrido que
+vivían en la vieja «Universo y barrido» quedan cubiertas por la cadena y las filas.
+
+- **Diferencias con el lienzo**: una columna y no dos, porque la columna derecha del lienzo («Capacidades del
+  proyecto» y «Qué cambia al guardar») no tiene capacidad detrás y dejaba un vacío; sin vista previa ni validación por
+  columna (el corte no publica qué trae cada columna; `state.variables` mezcla la hoja con Kobo); sin «Traer nuevas» y
+  «Todo de nuevo» por fuente (la franja sincroniza por servicio, como hoy).
+- A 1024 la cadena queda en fila dentro de Fuentes: apilada, la pieza con cifra quedaba más alta que las otras dos y
+  rompía su contrato de marcos iguales.
+- El volumen por fuente sale de la metadata del sync (`row_count`, `fetched_count`); las copias no la traen y la fila no
+  pinta cifra. La del corte está en la cadena (2,726 en PDM).

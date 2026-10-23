@@ -590,6 +590,180 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* ---------- Fuentes ---------- */
+
+/* Una sola columna: franja, cadena, fuentes y, al pie, las columnas, que
+ * crecen hasta el borde y desplazan dentro. */
+.mon-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-fuentes > * {
+  flex: none;
+}
+
+.mon-fuentes .is-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-fuentes code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.mon-fuentes-lista ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-fuentes-lista li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 168px auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-fuentes-lista li:first-child {
+  border-top: 0;
+}
+
+.mon-fuentes-lista li.is-apagada {
+  color: var(--pulso-text-soft);
+}
+
+.mon-fuentes-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-fuentes-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-fuentes-nombre > div {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-fuentes-nombre em {
+  padding: 0 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-fuentes-lista .mon-fuentes-nombre input {
+  height: auto;
+  box-shadow: none;
+  width: 100%;
+  max-width: 520px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+}
+
+.mon-fuentes-lista .mon-fuentes-nombre input:hover {
+  border-color: var(--pulso-border);
+}
+
+.mon-fuentes-lista .mon-fuentes-nombre input:focus-visible {
+  border-color: var(--pulso-brand-navy);
+  outline: none;
+}
+
+.mon-fuentes-nombre small,
+.mon-fuentes-volumen small {
+  overflow: hidden;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-fuentes-nombre small a {
+  margin-left: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-fuentes-volumen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.mon-fuentes-mensaje {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-fuentes-mensaje.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-fuentes > .mon-fuentes-columnas {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 240px;
+  overflow: hidden;
+}
+
+.mon-fuentes-marco {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-fuentes-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+}
+
+.mon-fuentes-tabla th:nth-child(1) { width: 200px; }
+
+.mon-fuentes-tabla tbody th,
+.mon-fuentes-tabla tbody td {
+  padding-block: 6px;
+}
+
+.mon-fuentes-por-nombre {
+  color: var(--pulso-text-faint);
+}
+
 @media (max-width: 1400px) {
   .mon-insumos {
     grid-template-columns: minmax(0, 1fr) 300px;
@@ -626,6 +800,31 @@
 
   .mon-llave .mon-insumos-columna {
     height: auto;
+  }
+
+  .mon-fuentes {
+    height: auto;
+  }
+
+  /* En Fuentes la cadena ocupa todo el ancho de la pestaña: las tres piezas
+   * caben en fila y se leen como hermanas del mismo papel. Apiladas, la que
+   * trae cifra quedaba más alta que las otras dos. */
+  .mon-fuentes .mon-tel-cadena ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mon-fuentes > .mon-fuentes-columnas {
+    flex: none;
+    height: 360px;
+  }
+
+  .mon-fuentes-lista li {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
+  .mon-fuentes-lista li > button {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 
   .mon-llave-cruce {
