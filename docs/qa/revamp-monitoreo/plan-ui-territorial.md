@@ -173,3 +173,17 @@ Bloqueado, a decidir con el lead: «Rechazar» el paquete sugerido. Gonzalo pidi
 auditada, pero el motor no tiene dónde guardar un rechazo. Hace falta un endpoint nuevo y su registro en
 `plumber_app.R`, que es compartido. Sin dibujar: el mapa de los movimientos activos de §3.11.
 
+**T6 (código listo, sin gate).** Control › Ocurrencias y Reportes UMP, propias y condicionales: solo existen si el
+proyecto declara el parte (`tieneOcurrencias`, E4).
+- **Ocurrencias** (`OcurrenciasTab.tsx`): la banda trae intentos, efectivas declaradas, tasa y no efectivas, con la barra
+  de motivos y la base «partes de ocurrencias de campo · N UMP». El rótulo dice siempre que las efectivas son las
+  declaradas y no las que cuentan. Debajo van los motivos por cada 100 intentos por distrito (mapa de calor), el ritmo
+  por día y el histograma de la tasa por UMP con su mediana.
+- **Reportes UMP** (`ReportesTab.tsx`): una baldosa por UMP de la ruta, agrupadas por distrito: sin parte en punteado
+  ámbar, un parte, dos o más, y borde ámbar si lo declarado no cuadra con lo recibido en Kobo. El lateral muestra la
+  UMP elegida (`foco`), las UMP sin parte y los partes de UMP fuera de la ruta. «No cuadra» compara contra lo recibido,
+  como la maqueta (pregunta 7).
+
+Sin dibujar: «Traer nuevas» en el vacío de Ocurrencias (el vacío remite a «Actualizar») y el tamaño fijo de 46 × 54 de
+las baldosas (se usa 46 × 40 para que quepan los seis distritos a 1440).
+

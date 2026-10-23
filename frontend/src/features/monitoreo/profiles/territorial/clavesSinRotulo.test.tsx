@@ -20,6 +20,8 @@ import { UmpsTab } from "./avance/UmpsTab";
 import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
 import { ConciliacionTab } from "./control/ConciliacionTab";
+import { OcurrenciasTab } from "./control/OcurrenciasTab";
+import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
@@ -112,6 +114,18 @@ const ESTADO_CON_PADRON = {
   config: { territorial: { enumerator_roster: { assignments: [{ codigo_pulso: "P109", nombre: "Aplicador Tres", dni: "00000000" }] } } },
 } as unknown as MonitoreoState;
 
+// Ocurrencias de campo con claves de motivo como las publica el motor.
+const OCURRENCIAS = {
+  ...CORTE_DE_CUOTAS,
+  field_occurrences: {
+    summary: { total_records: 3, intentos: 200, efectivas: 30, no_efectivas: 170 },
+    by_outcome: [{ key: "efectiva", label: "Efectiva", total: 30 }, { key: "no_contesta", label: "No contesta", total: 90 }, { key: "vivienda_desocupada", label: "Vivienda desocupada", total: 80 }],
+    by_district: [{ distrito: "SAN MARTIN DE PORRES", intentos: 200, ump_reportadas: 2, efectivas: 30, outcomes: [{ key: "no_contesta", label: "No contesta", total: 90 }] }],
+    by_day: [{ date: "2026-06-13", intentos: 200, efectivas: 30 }],
+    by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 9, intentos: 100 }, { ump: "1437", has_report: true, reportes: 1, efectivas: 3, intentos: 9 }],
+  },
+} as unknown as MonitoreoTerritorialDashboard;
+
 const CON_PARTE = {
   ...CORTE_DE_CUOTAS,
   field_occurrences: { by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 8, intentos: 20 }] },
@@ -142,6 +156,11 @@ const PESTANAS: Array<[string, () => string]> = [
   ["Control › Conciliación", () => pintar(
     <ConciliacionTab reports={CORRECCIONES} state={ESTADO_CON_PADRON} phase="field" onEspacial={() => undefined} />,
     "/monitoreo?modo=territorial&seccion=control&pestana=conciliacion",
+  )],
+  ["Control › Ocurrencias", () => pintar(<OcurrenciasTab reports={OCURRENCIAS} />, "/monitoreo?modo=territorial&seccion=control&pestana=ocurrencias")],
+  ["Control › Reportes UMP con la 143 elegida", () => pintar(
+    <ReportesTab ocurrencias={OCURRENCIAS} validacion={AUDITORIA} />,
+    "/monitoreo?modo=territorial&seccion=control&pestana=reportes&foco=143",
   )],
   ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];

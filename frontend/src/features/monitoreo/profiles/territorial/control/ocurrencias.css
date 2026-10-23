@@ -1,0 +1,480 @@
+/* Control › Ocurrencias y Reportes UMP (territorial.md §3.9–3.10). Lo que
+ * declaran los partes; las efectivas son declaradas y se rotulan así. */
+
+.mon-ocu {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-ocu-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-ocu-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ocu-derecha > * {
+  flex: 0 0 auto;
+}
+
+.mon-ocu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-ocu-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ocu-subtitulo {
+  margin: 0 0 var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-ocu-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.mon-ocu-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Banda superior. */
+.mon-ocu-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-ocu-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-ocu-cifras dd {
+  margin: 2px 0 0;
+  color: var(--pulso-text);
+  font-size: 22px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-motivos {
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.mon-ocu-barra {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mon-ocu-barra i {
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+.mon-ocu-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-ocu-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.mon-ocu-barra .is-0,
+.mon-ocu-leyenda .is-0::before,
+.mon-ocu-leyenda .is-intentos::before {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
+}
+
+.mon-ocu-barra .is-1,
+.mon-ocu-leyenda .is-1::before {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-ocu-barra .is-2,
+.mon-ocu-leyenda .is-2::before {
+  background: var(--pulso-danger-fg);
+}
+
+.mon-ocu-barra .is-3,
+.mon-ocu-leyenda .is-3::before,
+.mon-ocu-leyenda .is-efectivas::before {
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ocu-barra .is-4,
+.mon-ocu-leyenda .is-4::before {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-ocu-barra .is-5,
+.mon-ocu-leyenda .is-5::before {
+  background: var(--pulso-text-soft);
+}
+
+/* Por distrito. */
+.mon-ocu-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ocu-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.mon-ocu-tabla tbody th,
+.mon-ocu-tabla tbody td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-ocu-tabla th:first-child,
+.mon-ocu-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-ocu-tabla .is-num {
+  text-align: right;
+}
+
+/* Por día y tasa por UMP. */
+.mon-ocu-dias {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 140px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ocu-dias li {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.mon-ocu-dias small {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mon-ocu-columna {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.mon-ocu-columna i {
+  display: block;
+  width: 70%;
+  border-radius: 2px 2px 0 0;
+}
+
+.mon-ocu-columna .is-intentos {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
+}
+
+.mon-ocu-columna .is-efectivas {
+  position: absolute;
+  bottom: 0;
+  width: 40%;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ocu-tramos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ocu-tramos li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-tramos b {
+  text-align: right;
+}
+
+.mon-ocu-tramo-barra {
+  height: 8px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-ocu-tramo-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-brand-navy);
+}
+
+/* Reportes UMP. */
+.mon-rep {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-rep-reticula {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  align-content: start;
+  gap: var(--pulso-space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-rep-baldosas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 46px);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-rep-baldosa {
+  width: 46px;
+  height: 40px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.mon-rep-baldosa.is-un-parte,
+.mon-ocu-leyenda .is-un-parte::before {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-rep-baldosa.is-dos-partes,
+.mon-ocu-leyenda .is-dos-partes::before {
+  background: var(--pulso-success-fg);
+  color: var(--pulso-surface);
+}
+
+.mon-rep-baldosa.is-sin-parte,
+.mon-ocu-leyenda .is-sin-parte::before {
+  border: 1.5px dashed var(--pulso-warn-accent);
+  background: var(--pulso-surface);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-rep-baldosa.is-no-cuadra,
+.mon-ocu-leyenda .is-no-cuadra::before {
+  border-color: var(--pulso-warn-accent);
+  border-style: solid;
+}
+
+.mon-rep-baldosa.is-elegida {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+.mon-rep-lateral {
+  overflow: auto;
+}
+
+.mon-rep-lateral > * {
+  flex: 0 0 auto;
+}
+
+.mon-rep-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-2) 0 0;
+}
+
+.mon-rep-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-rep-cifras dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-rep-cuadre {
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-success-fg);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-rep-cuadre.is-no-cuadra {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-rep-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-rep-chips button {
+  height: 26px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px dashed var(--pulso-warn-accent);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mon-rep-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}
+
+.mon-rep-baldosa:focus-visible,
+.mon-rep-chips button:focus-visible,
+.mon-ocu-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-ocu--vacio,
+.mon-rep--vacio {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-ocu-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-ocu-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .mon-ocu-cuerpo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .mon-ocu-cifras dd {
+    font-size: 18px;
+  }
+}

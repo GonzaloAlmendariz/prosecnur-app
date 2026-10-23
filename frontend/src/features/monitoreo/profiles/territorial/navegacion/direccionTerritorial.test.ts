@@ -106,6 +106,10 @@ describe("dirección pública del modo territorial", () => {
     }
     expect(vistaDeDireccion({ seccion: "control", pestana: "conciliacion", panel: null }).seccion).toBe("calidad");
     expect(esPestanaPropia({ seccion: "control", pestana: "conciliacion", panel: "espacial" })).toBe(false);
+    // Control › Ocurrencias y Reportes UMP propias; sus sub-vistas siguen heredadas.
+    expect(esPestanaPropia({ seccion: "control", pestana: "ocurrencias", panel: null })).toBe(true);
+    expect(esPestanaPropia({ seccion: "control", pestana: "reportes", panel: null })).toBe(true);
+    expect(esPestanaPropia({ seccion: "control", pestana: "reportes", panel: "alertas" })).toBe(false);
   });
 
   it("lista las sub-vistas sólo cuando hay más de una", () => {
