@@ -53,8 +53,10 @@ const REPARTO: Record<PestanaDeFuentes, RepartoDeFuentes> = {
   // Resumen. Responde «¿de dónde salen mis números?» y no decide nada. Lo que sí
   // lleva es la lista de lo conectado, que es la única superficie donde una
   // fuente inactiva o duplicada se ve.
+  // Desde T7 lleva también las tarjetas de universo y barrido: «sheets» pasó a
+  // ser Insumos › Estados (vocabulario de status), que no habla de conexiones.
   activas: {
-    slots: [],
+    slots: ["universo", "barrido"],
     cadena: true,
     decisionKobo: false,
     declaracionDeEstados: false,
@@ -66,11 +68,13 @@ const REPARTO: Record<PestanaDeFuentes, RepartoDeFuentes> = {
   // No lleva un bloque de lectura aparte: el que había decía «Sheets listos para
   // operación» y repetía universo, barrido y último sync, que ya están en las
   // tarjetas.
+  // Insumos › Estados la monta `insumos/Estados.tsx`; este reparto ya no pinta
+  // nada ahí y se conserva para leer la clave vieja.
   sheets: {
-    slots: ["universo", "barrido"],
+    slots: [],
     cadena: false,
     decisionKobo: false,
-    declaracionDeEstados: true,
+    declaracionDeEstados: false,
     listaConfigurada: false,
     papelAlConectar: undefined,
   },

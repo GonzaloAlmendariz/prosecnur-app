@@ -27,13 +27,16 @@ const REGLAS: MonitoreoStateRule[] = [
 describe("Control › Barrido del telefónico", () => {
   it("agrupa los status del cliente por la familia de su regla y marca los que no tienen", () => {
     const clasificar = clasificadorDeStatus(REGLAS);
-    expect(clasificar("No contesta")).toEqual({ familia: "reintentable", conRegla: true });
-    expect(clasificar("Contactar después")).toEqual({ familia: "reintentable", conRegla: true });
-    expect(clasificar("Colgó / Cortó la llamada")).toEqual({ familia: "reintentable", conRegla: false });
-    expect(clasificar("No existe el número")).toEqual({ familia: "terminal", conRegla: false });
-    expect(clasificar("No efectivo / No beneficiario")).toEqual({ familia: "terminal", conRegla: false });
-    expect(clasificar("Encuesta parcial")).toEqual({ familia: "parcial", conRegla: false });
+    expect(clasificar("No contesta")).toEqual({ familia: "reintentable", conRegla: true, porRegla: false });
+    expect(clasificar("Contactar después")).toEqual({ familia: "reintentable", conRegla: true, porRegla: false });
+    expect(clasificar("Colgó / Cortó la llamada")).toEqual({ familia: "reintentable", conRegla: false, porRegla: false });
+    expect(clasificar("No existe el número")).toEqual({ familia: "terminal", conRegla: false, porRegla: false });
+    expect(clasificar("No efectivo / No beneficiario")).toEqual({ familia: "terminal", conRegla: false, porRegla: false });
+    expect(clasificar("Encuesta parcial")).toEqual({ familia: "parcial", conRegla: false, porRegla: false });
     expect(clasificar("No barrido").familia).toBe("sin-llamar");
+    // Medios de Vida: su regla declara que el rechazo cierra. Es Terminal y se rotula.
+    const cierra = clasificadorDeStatus([{ id: "r", label: "", final_state: "refusal", priority: 1, stop_contact: true, outcome_values: ["rechazo"] }]);
+    expect(cierra("Rechazo")).toEqual({ familia: "terminal", conRegla: true, porRegla: true });
   });
 
   it("une las fechas tecleadas de dos formas y aparta las de otro año", () => {

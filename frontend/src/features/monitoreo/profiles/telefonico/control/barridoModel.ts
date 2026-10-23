@@ -52,7 +52,7 @@ export type FilaDeCategoria = {
 export type GrupoDeStatus = {
   familia: Exclude<FamiliaDelCliente, "sin-llamar">;
   total: number;
-  items: Array<{ status: string; casos: number; conRegla: boolean }>;
+  items: Array<{ status: string; casos: number; conRegla: boolean; porRegla: boolean }>;
 };
 
 export type Barrido = {
@@ -93,8 +93,14 @@ export function fechaDeColumna(columna: string): string | null {
  * el mismo día). Una fecha de otro año que el grueso de la hoja (un «2020»
  * tecleado por error) va a «otra o sin fecha» con las vacías.
  */
-export function llamadosPorFecha(filas: readonly Fila[]): { porFecha: Array<{ fecha: string; casos: number }>; otraFecha: number } {
+export function llamadosPorFecha(filas: readonly Fila[]): {
+  porFecha: Array<{ fecha: string; casos: number }>;
+  otraFecha: number;
+  /** Lo que cayó en «otra o sin fecha», por cómo vino escrito. */
+  otras: Array<{ etiqueta: string; casos: number }>;
+} {
   const porDia = new Map<string, number>();
+  const otras = new Map<string, number>();
   let otra = 0;
   filas.forEach((fila) => {
     if (normal(fila.Estado) === "no barrido") return;
@@ -104,7 +110,10 @@ export function llamadosPorFecha(filas: readonly Fila[]): { porFecha: Array<{ fe
       if (!casos) return;
       const iso = fechaDeColumna(columna);
       if (iso) porDia.set(iso, (porDia.get(iso) ?? 0) + casos);
-      else otra += casos;
+      else {
+        otra += casos;
+        otras.set(columna, (otras.get(columna) ?? 0) + casos);
+      }
     });
   });
   const porAnio = new Map<string, number>();
@@ -113,9 +122,17 @@ export function llamadosPorFecha(filas: readonly Fila[]): { porFecha: Array<{ fe
   const porFecha: Array<{ fecha: string; casos: number }> = [];
   [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([iso, casos]) => {
     if (iso.slice(0, 4) === anio) porFecha.push({ fecha: `${iso.slice(8, 10)}/${iso.slice(5, 7)}`, casos });
-    else otra += casos;
+    else {
+      otra += casos;
+      const etiqueta = `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+      otras.set(etiqueta, (otras.get(etiqueta) ?? 0) + casos);
+    }
   });
-  return { porFecha, otraFecha: otra };
+  return {
+    porFecha,
+    otraFecha: otra,
+    otras: [...otras.entries()].sort((a, b) => b[1] - a[1]).map(([etiqueta, casos]) => ({ etiqueta, casos })),
+  };
 }
 
 export function construirBarrido({
@@ -141,7 +158,7 @@ export function construirBarrido({
   let sinLlamarDeStatus = 0;
   let efectivasHoja = 0;
   estatus.forEach(({ status, casos }) => {
-    const { familia, conRegla } = clasificar(status);
+    const { familia, conRegla, porRegla } = clasificar(status);
     if (familia === "sin-llamar") {
       sinLlamarDeStatus += casos;
       return;
@@ -149,7 +166,7 @@ export function construirBarrido({
     if (familia === "efectiva") efectivasHoja += casos;
     const grupo = grupos.get(familia) ?? { familia, total: 0, items: [] };
     grupo.total += casos;
-    grupo.items.push({ status, casos, conRegla });
+    grupo.items.push({ status, casos, conRegla, porRegla });
     grupos.set(familia, grupo);
   });
   const orden: GrupoDeStatus["familia"][] = ["efectiva", "parcial", "rechazo", "reintentable", "terminal"];

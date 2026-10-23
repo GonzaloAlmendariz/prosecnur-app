@@ -1,3 +1,5 @@
+import { chipsDeEstados } from "../insumos/estadosModel";
+import { cruceDeLlave } from "../insumos/llaveModel";
 import { useMemo, useRef } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { BarraDelModo, EstadoDelModo } from "../../../shell/BarraDelModo";
@@ -6,6 +8,8 @@ import { nombreDelSegmento } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
+import { construirRespuestas } from "../control/respuestasModel";
+import { construirAvisos } from "../control/avisosModel";
 import { buildTelefonicoStatusMatrix } from "../telefonicoTeamModel";
 
 /**
@@ -158,6 +162,13 @@ export function chipsDeCabecera(
   if (clave === "control/insistencia") return chipsDeInsistencia(reports);
   if (clave === "control/barrido") return chipsDeBarrido(reports, state);
   if (clave === "control/equipo") return chipsDeEquipo(reports);
+  if (clave === "control/respuestas") return chipsDeRespuestas(reports);
+  if (clave === "control/avisos") return chipsDeAvisos(reports);
+  if (clave === "insumos/llave") {
+    const cruce = cruceDeLlave(construirRespuestas({ reports, segmento: "" }));
+    return cruce.total ? [`${fmt(cruce.cruzan)} de ${fmt(cruce.total)} efectivas cruzan con la base`] : [];
+  }
+  if (clave === "insumos/estados") return chipsDeEstados(reports, state?.config?.operational_model?.state_rules ?? []);
   return [];
 }
 
@@ -181,6 +192,23 @@ function chipsDeBarrido(reports: MonitoreoAcreditacionReports | null, state?: Mo
   return chips;
 }
 
+/** Cuántos avisos hay de cada nivel. */
+function chipsDeAvisos(reports: MonitoreoAcreditacionReports | null): string[] {
+  const { porNivel } = construirAvisos(reports);
+  const chip = (cantidad: number, uno: string, varios: string) => (cantidad ? [`${fmt(cantidad)} ${cantidad === 1 ? uno : varios}`] : []);
+  return [...chip(porNivel.alta, "alto", "altos"), ...chip(porNivel.media, "medio", "medios"), ...chip(porNivel.baja, "bajo", "bajos")];
+}
+
+/** Efectivas sobre envíos que pasan el filtro y cuántas duran más de 2 h. */
+function chipsDeRespuestas(reports: MonitoreoAcreditacionReports | null): string[] {
+  const modelo = construirRespuestas({ reports, segmento: "" });
+  if (!modelo.envios.length) return [];
+  return [
+    `${fmt(modelo.unicas)} efectivas de ${fmt(modelo.envios.length)} envíos`,
+    ...(modelo.conteos["mas-de-2h"] ? [`${fmt(modelo.conteos["mas-de-2h"])} duran más de 2 h`] : []),
+  ];
+}
+
 /** Operadores con casos asignados y casos sin asignar, de `operacion_responsable`. */
 function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
   const filas = filasDeBloque(reports, ["operacion_responsable"]);
@@ -198,6 +226,8 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-export function pestanaConLienzo(direccion: { seccion: string; pestana: string }): boolean {
-  return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo"].includes(`${direccion.seccion}/${direccion.pestana}`);
+export function pestanaConLienzo(direccion: { seccion: string; pestana: string; panel?: string | null }): boolean {
+  // Una sub-vista que todavía monta la vista anterior (Respuestas › Salvedades) conserva la tarjeta.
+  if (direccion.seccion === "control" && direccion.pestana === "respuestas") return !direccion.panel;
+  return ["avance/cuotas", "control/insistencia", "control/barrido", "control/equipo", "control/avisos"].includes(`${direccion.seccion}/${direccion.pestana}`);
 }
