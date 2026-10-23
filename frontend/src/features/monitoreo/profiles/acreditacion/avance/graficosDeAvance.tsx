@@ -19,7 +19,7 @@ export function fechaCorta(iso: string): string {
   return `${dia} ${MESES[mes - 1]}`;
 }
 
-function useTamano<T extends HTMLElement>() {
+export function useTamano<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [tamano, setTamano] = useState({ ancho: 0, alto: 0 });
   useLayoutEffect(() => {

@@ -1,8 +1,9 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { Alert } from "../../../../../../components/Alert";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { marcasDeEje } from "../../avance/avanceModelo";
+import { useTamano } from "../../avance/graficosDeAvance";
 import type { FamiliaDelCliente } from "../../../telefonico/control/familiasDelCliente";
 import { ROTULO_DE_FAMILIA } from "./barridoModelo";
 import { construirEquipo, umbralesDelPerfil, type ModeloDeEquipo, type ResponsableDelEquipo } from "./equipoModelo";
@@ -15,28 +16,9 @@ function pctEntero(valor: number | null) {
   return valor == null ? "—" : `${fmt(Math.round(valor * 100))} %`;
 }
 
-function useAncho<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [tamano, setTamano] = useState({ ancho: 0, alto: 0 });
-  useLayoutEffect(() => {
-    const nodo = ref.current;
-    if (!nodo) return undefined;
-    const medir = () => {
-      const caja = nodo.getBoundingClientRect();
-      setTamano((previo) => (Math.abs(previo.ancho - caja.width) < 1 && Math.abs(previo.alto - caja.height) < 1 ? previo : { ancho: caja.width, alto: caja.height }));
-    };
-    medir();
-    if (typeof ResizeObserver === "undefined") return undefined;
-    const observador = new ResizeObserver(medir);
-    observador.observe(nodo);
-    return () => observador.disconnect();
-  }, []);
-  return [ref, tamano] as const;
-}
-
 /** Carga (asignados) frente a efectividad (efectivas sobre asignados); el tamaño dice los barridos. */
 function CargaFrenteAEfectividad({ responsables }: { responsables: readonly ResponsableDelEquipo[] }) {
-  const [ref, { ancho, alto }] = useAncho<HTMLDivElement>();
+  const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const puntos = responsables.filter((item) => !item.sinAsignar && item.efectividad != null);
   const izquierda = 44;
   const derecha = 16;
