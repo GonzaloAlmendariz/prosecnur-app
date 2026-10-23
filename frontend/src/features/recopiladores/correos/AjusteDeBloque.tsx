@@ -64,6 +64,14 @@ function glifo(ajuste: Ajuste, indice: number, acento: string | undefined): Reac
   if (clave === "ordered") return valor === "si" ? <ListOrdered {...i} /> : <List {...i} />;
   if (clave === "variant") return valor === "bar" ? <PanelLeft {...i} /> : <Square {...i} />;
   if (clave === "style") return <Minus {...i} />;
+  // Estilo propio del bloque (EstiloDelBloque): una tarjeta en miniatura por opción.
+  if (clave === "border" || clave === "corners" || clave === "spacing") {
+    return <span className={`rec-caja-mini rec-caja-mini--${clave}-${valor}`} aria-hidden />;
+  }
+  if (clave === "text") {
+    const estilo = valor === "acento" && acento ? { color: acento } : undefined;
+    return <span className={`rec-caja-letra rec-caja-letra--${valor}`} style={estilo} aria-hidden>A</span>;
+  }
   return null;
 }
 

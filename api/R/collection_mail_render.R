@@ -105,8 +105,10 @@
 .cmail_field_span <- function(key, html, ctx) {
   if (!isTRUE(ctx$marks)) return(html)
   # En campaña el fondo puede ser oscuro: el tinte claro dejaría el dato ilegible; se marca con un subrayado
-  # punteado del mismo color del texto.
-  if (isTRUE(ctx$pal$campana)) {
+  # punteado del mismo color del texto. Igual dentro de una caja (collection_mail_box.R) cuya
+  # tinta no se lee sobre el tinte: el texto blanco de una caja acento sobre el verde claro.
+  sobre_caja <- !is.null(ctx$pal$box_bg) && .cmail_contrast(ctx$pal$text, .CMAIL_FIELD_TINT) < .CMAIL_CONTRAST_MIN
+  if (isTRUE(ctx$pal$campana) || sobre_caja) {
     return(sprintf('<span data-pulso-field="%s" style="border-bottom:1px dashed currentColor;">%s</span>',
                    .cmail_esc(key), html))
   }
