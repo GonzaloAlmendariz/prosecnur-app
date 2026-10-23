@@ -269,3 +269,8 @@ export const PANELES_DEL_PERFIL: readonly string[] = [
   "tiempos",
   ...new Set(Object.values(PANELES_SUPERPUESTOS).flat()),
 ];
+
+/** Vista interna de una dirección pública dicha como texto (los destinos de Avisos). */
+export function vistaDeDestino(seccion: string, pestana: string): VistaInterna | null {
+  return esSeccionTelefonica(seccion) ? vistaPrincipal(seccion, pestana) : null;
+}

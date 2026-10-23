@@ -1086,3 +1086,241 @@
     flex-wrap: wrap;
   }
 }
+
+/* ---------- Avisos ---------- */
+
+.mon-avisos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-avisos-lista-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-avisos-lista-panel .mon-ctl-tabla-marco {
+  flex: 1 1 auto;
+}
+
+.mon-avisos-tabla th:nth-child(2) { width: 88px; }
+.mon-avisos-tabla th:nth-child(3) { width: 220px; }
+
+.mon-avisos-tabla tbody th,
+.mon-avisos-tabla tbody td {
+  padding-block: var(--pulso-space-4);
+}
+
+.mon-avisos-tabla tbody tr.is-activo {
+  background: var(--pulso-surface-3);
+  box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+}
+
+.mon-avisos-causa {
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-avisos-causa.is-inerte {
+  cursor: default;
+}
+
+.mon-avisos-causa:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 4px;
+}
+
+.mon-avisos-causa > span {
+  min-width: 0;
+}
+
+.mon-avisos-causa > i {
+  align-self: stretch;
+  border-radius: 3px;
+  background: var(--nivel, var(--pulso-border-strong));
+}
+
+.mon-avisos-causa b {
+  margin-right: var(--pulso-space-2);
+}
+
+.mon-avisos-causa small {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-avisos-tabla tr.is-alta { --nivel: var(--pulso-danger-fg); }
+.mon-avisos-tabla tr.is-media { --nivel: var(--pulso-warn-accent); }
+.mon-avisos-tabla tr.is-baja { --nivel: var(--pulso-accent-steel); }
+
+.mon-avisos-tabla tr.is-sin-asignar th,
+.mon-avisos-tabla tr.is-sin-asignar td {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-avisos-casos {
+  font-size: 16px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-avisos-nivel {
+  display: inline-block;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  vertical-align: 1px;
+}
+
+.mon-avisos-nivel.is-alta {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-avisos-nivel.is-media {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-avisos-nivel.is-baja {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-avisos-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow-y: auto;
+}
+
+.mon-avisos-ficha-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-avisos-ficha-cabecera code {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-avisos-ficha h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.mon-avisos-ficha-cifra {
+  font-size: 40px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.mon-avisos-ficha-cifra span {
+  color: var(--pulso-text-faint);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+}
+
+.mon-avisos-ficha p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.mon-avisos-desglose ul {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-avisos-desglose li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: 5px 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-avisos-ficha-pie {
+  margin-top: auto;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-avisos-ir {
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-avisos-ir:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-avisos-vacio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-6);
+}
+
+@media (max-width: 1400px) {
+  .mon-avisos {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-avisos {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-avisos > * {
+    flex: none;
+  }
+
+  .mon-avisos-tabla th:nth-child(3) { width: 150px; }
+}
