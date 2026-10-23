@@ -21,11 +21,14 @@ export function Entregas({
   modelo,
   corte,
   dias,
+  nota = "",
   salidas,
 }: {
   modelo: CuotasFaltante | null;
   /** Efectivas de Kobo por día, ISO: el ritmo diario que el PDF también lleva. */
   dias: ReadonlyArray<{ fecha: string; casos: number }>;
+  /** «1 efectiva de Kobo sin actor no entra a la serie», si aplica. */
+  nota?: string;
   /** «27/07/2026 09:04», o vacío sin corte. */
   corte: string;
   salidas: ReactNode;
@@ -93,6 +96,7 @@ export function Entregas({
                     </li>
                   ))}
                 </ul>
+                {nota ? <p className="mon-entregas-nota">{nota}.</p> : null}
               </section>
             ) : null}
             <footer>

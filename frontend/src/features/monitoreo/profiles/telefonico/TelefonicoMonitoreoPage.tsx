@@ -85,7 +85,7 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
-import { efectivasPorDia } from "./avance/ritmoModel";
+import { efectivasPorDia, notaSinCategoria, serieDiariaDelCorte } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
@@ -2712,6 +2712,7 @@ function resumenDeCalendario(phases: MonitoreoStrategyPhase[], reports?: Monitor
     reporte: calendarReportWeekdayLabel(borrador.reportWeekday),
     fases: phases.length,
     dias: efectivasPorDia(reports),
+    nota: (() => { const { sinCategoria, segmento } = serieDiariaDelCorte(reports); return notaSinCategoria(sinCategoria, segmento); })(),
   };
 }
 
@@ -18699,6 +18700,7 @@ function renderAcreditacionView(
         modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
         corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
         dias={efectivasPorDia(reports)}
+        nota={(() => { const { sinCategoria, segmento } = serieDiariaDelCorte(reports); return notaSinCategoria(sinCategoria, segmento); })()}
         salidas={salidas}
       />
     );

@@ -14,6 +14,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoStateRule } from "../../../
 import { fechaDeColumna } from "../control/barridoModel";
 import { clasificadorDeStatus, type FamiliaDelCliente } from "../control/familiasDelCliente";
 import { filasDeBloque } from "../navegacion/bloques";
+import { nombreDelSegmento } from "../segmentoDeCuotas";
 
 type Fila = Record<string, unknown>;
 
@@ -205,13 +206,37 @@ export function resumenDeRitmo(serie: Pick<SerieKobo, "fechas" | "porFecha" | "t
   };
 }
 
-/** Efectivas de Kobo por día (`avance_efectivo_dia`), en orden; sin las de fecha ilegible. */
+/** Segmento de cuota del corte (Sede, Actor…), el mismo de Avance › Cuotas. */
+export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | undefined) {
+  return nombreDelSegmento(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
+    .map((fila) => texto(fila.Variable)));
+}
+
+/**
+ * La serie diaria de efectivas que comparten Ritmo, el calendario de Cuotas,
+ * la vista del PDF de Entregas y los chips: la de las categorías de cuota,
+ * que es la que suma Avance › Cuotas y FALTAN. Una efectiva de Kobo que no cae
+ * en ninguna categoría no entra a la serie; se cuenta aparte (`sinCategoria`)
+ * para que la vista lo declare en vez de mostrar dos totales.
+ */
+export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
+  const segmento = segmentoDeCuotas(reports);
+  const serie = serieKobo(reports, segmento);
+  const totalDeKobo = filasDeBloque(reports, ["avance_efectivo_dia"]).reduce((suma, fila) => (
+    fechaDeColumna(texto(fila.Fecha)) ? suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas) : suma
+  ), 0);
+  return { segmento, serie, sinCategoria: Math.max(0, totalDeKobo - serie.total) };
+}
+
+/** Efectivas por día de la serie compartida, en orden. */
 export function efectivasPorDia(reports: MonitoreoAcreditacionReports | null | undefined): Array<{ fecha: string; casos: number }> {
-  const porIso = new Map<string, number>();
-  filasDeBloque(reports, ["avance_efectivo_dia"]).forEach((fila) => {
-    const iso = fechaDeColumna(texto(fila.Fecha));
-    const casos = numero(fila["Efectivas Kobo"] ?? fila.Efectivas);
-    if (iso && casos) porIso.set(iso, (porIso.get(iso) ?? 0) + casos);
-  });
-  return [...porIso.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([fecha, casos]) => ({ fecha, casos }));
+  const { serie } = serieDiariaDelCorte(reports);
+  return serie.fechas.map((fecha) => ({ fecha, casos: serie.porFecha[fecha] ?? 0 }));
+}
+
+/** «1 efectiva sin actor», o vacío si todas caen en una categoría. */
+export function notaSinCategoria(sinCategoria: number, segmento: string) {
+  if (!sinCategoria) return "";
+  const nombre = segmento.toLocaleLowerCase("es");
+  return `${sinCategoria.toLocaleString("es-PE")} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre} no ${sinCategoria === 1 ? "entra" : "entran"} a la serie`;
 }

@@ -521,3 +521,9 @@
     justify-content: flex-start;
   }
 }
+
+.mon-metas-nota {
+  margin: 0;
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}

@@ -399,3 +399,7 @@
     flex: none;
   }
 }
+
+.mon-cadencia-aviso {
+  color: var(--pulso-warn-fg);
+}

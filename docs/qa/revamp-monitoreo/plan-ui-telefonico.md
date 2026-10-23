@@ -384,3 +384,12 @@ quedan al pie. Ritmo: las dos gráficas reparten el alto que el mapa de calor no
 tarjeta de fechas de la hoja llega al pie con cada valor de la columna de fecha (lo que hay que corregir en la hoja); el
 acumulado lleva su valor final rotulado («69 de 100», «423 de 400»). Entregas: la vista del PDF lleva también el ritmo
 diario, que el PDF del cliente incluye, y mide lo que pide.
+
+**Una sola serie diaria (rechazo del verificador).** En Medios de Vida, Ritmo daba 16 el 04/08 y 69 en total, y el chip,
+el calendario de Cuotas y la vista del PDF daban 17 y 70: leían `avance_efectivo_variable_dia` y `avance_efectivo_dia`,
+y una efectiva de Kobo no tiene actor. Ahora las cuatro vistas leen `serieDiariaDelCorte` (`avance/ritmoModel.ts`): la
+serie por categoría de cuota, que es la que suma Avance › Cuotas (69) y la barra FALTAN (31 de 100). La efectiva sin
+categoría se declara aparte («1 efectiva de Kobo sin actor no entra a la serie») en Ritmo, en el calendario de Cuotas y
+en la vista del PDF. `segmentoDelCorte` delega en `segmentoDeCuotas`, para que el segmento también sea uno solo. Test
+`avance/serieDiariaCoherente.test.tsx`. La prueba de claves sin rótulo cubre además el estado de la tarjeta de fuente
+(lista, inactiva y pendiente).

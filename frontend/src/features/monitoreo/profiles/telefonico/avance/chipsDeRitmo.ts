@@ -2,7 +2,10 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { metaDelProyecto } from "./metaDelProyecto";
 import { efectivasPorDia, fechaCorta, resumenDeRitmo } from "./ritmoModel";
 
-/** «pico 133 el 03/07» y «meta 400 cruzada el 04/07», para la cabecera de Avance › Ritmo. */
+/**
+ * «Pico de 133 el 03/07» y «Meta de 400 cruzada el 04/07», para la cabecera de
+ * Avance › Ritmo. Lee la misma serie que la pestaña (`efectivasPorDia`).
+ */
 export function chipsDeRitmo(reports: MonitoreoAcreditacionReports | null, state?: MonitoreoState | null): string[] {
   const dias = efectivasPorDia(reports);
   if (!dias.length) return [];
