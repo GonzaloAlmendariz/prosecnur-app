@@ -89,15 +89,19 @@
 #'
 #' @param f,acum Fracción de cada porción y su acumulado (desde las 12, horario).
 #' @keywords internal
-.lam_circular_cifras <- function(lz, espec, cx, cy, r, f, acum, cols, prefijo = "torta") {
+#' @param r_cifra Radio donde va la cifra dentro (la torta, a media distancia del centro; la dona, a media altura del aro).
+#' @param color_sobre `TRUE`: la cifra de dentro toma el color que se lee sobre su porción (la dona); si no, la regla de la
+#'   torta (blanca sobre la primera, azul sobre las demás, salvo paleta propia).
+.lam_circular_cifras <- function(lz, espec, cx, cy, r, f, acum, cols, prefijo = "torta", r_cifra = r * 0.5, color_sobre = FALSE,
+                                 nombre_dentro = paste0(prefijo, ":cifra")) {
   azul <- .std_color("azul"); tenue <- .std_color("texto_tenue"); k <- length(f)
   mid <- acum[seq_len(k)] + f / 2
-  chica <- vapply(seq_len(k), function(i) f[i] > 0 && .lam_circular_cifra_chica(espec$cifras[i], 2 * pi * (r * 0.5) * f[i]), TRUE)
+  chica <- vapply(seq_len(k), function(i) f[i] > 0 && .lam_circular_cifra_chica(espec$cifras[i], 2 * pi * r_cifra * f[i]), TRUE)
   for (i in which(f > 0 & !chica)) {
-    a <- 2 * pi * mid[i]; tx <- cx + r * 0.5 * sin(a); ty <- cy - r * 0.5 * cos(a)
-    col_t <- if (!is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
+    a <- 2 * pi * mid[i]; tx <- cx + r_cifra * sin(a); ty <- cy - r_cifra * cos(a)
+    col_t <- if (isTRUE(color_sobre) || !is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
     .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, .std_pt("cifra"), col_t, bold = TRUE, align = "center",
-             nombre = paste0(prefijo, ":cifra"))
+             nombre = nombre_dentro)
   }
   idx <- which(f > 0 & chica)
   if (!length(idx)) return(invisible(lz))

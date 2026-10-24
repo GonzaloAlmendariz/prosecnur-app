@@ -63,7 +63,7 @@ test_that("en la ruta real p_pie y p_donut salen nativos; con muchas porciones l
 
 # ---- Hallazgos del verificador de N6 (ruta real con datos de borde) ----------
 
-test_that("torta y dona nativas llevan la base; la dona de más de dos porciones, sin n o de rótulo largo va por la ruta anterior", {
+test_that("torta y dona nativas llevan la base; la dona de más de dos porciones o de rótulo largo va nativa en grande", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(s = rep(c("Sí", "No"), c(133, 39)), q4 = rep(c("A", "B", "C", "D"), 43),
                     l = rep(c("Sí, conoce la misión y los propósitos", "No los conoce"), c(100, 72)), stringsAsFactors = FALSE)
@@ -80,6 +80,8 @@ test_that("torta y dona nativas llevan la base; la dona de más de dos porciones
   expect_match(paste(.ci_txt(x(1), "Base lamina"), collapse = ""), "Base")                   # hallazgo 1
   expect_match(paste(.ci_txt(x(2), "Base lamina"), collapse = ""), "Base")
   expect_identical(.ci_txt(x(1), "torta:cifra_leyenda"), c("77%", "23%"))
-  expect_false(any(grepl("prosecnur:grafico", g(3))))                                         # hallazgo 2: cuatro porciones
-  expect_false(any(grepl("prosecnur:grafico", g(4))))                                         # hallazgo 3: rótulo largo en el centro
+  # L4 (CCSS Perfil 2026): la dona de más de dos porciones y la de rótulo largo ya no van por la ruta anterior: se componen
+  # nativas en grande, con la leyenda de cifras (test-lamina-dona-lamina-completa.R).
+  expect_true("prosecnur:grafico:dona" %in% g(3))                                             # hallazgo 2: cuatro porciones
+  expect_true("prosecnur:grafico:dona" %in% g(4))                                             # hallazgo 3: rótulo largo en el centro
 })
