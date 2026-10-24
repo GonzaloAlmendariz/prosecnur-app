@@ -72,7 +72,7 @@
   g_ <- .std_geom; yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   n <- max(1L, length(espec$largos))
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
-  fila <- min(0.62, (yf - yt - 0.45) / n); g <- min(0.42, fila * 0.62)
+  uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, .std_negrita_forzada("categorias"))) + 0.3))
   list(size = size, fila = fila, g = g, wlab = wlab)
 }
@@ -121,7 +121,8 @@
     if (!is.null(encabezado) && nzchar(encabezado)) {
       .lam_txt(lz, encabezado, ml + wlab + 0.25, yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
     }
-    .lam_barras_h(lz, espec, ml, yt + 0.2, ancho, wlab = wlab, g = g, fila = fila, size = size)
+    y0 <- yt + .lam_uso_area_arranque(length(espec$largos), fila, extra = if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)) 0.28 else 0)
+    .lam_barras_h(lz, espec, ml, y0, ancho, wlab = wlab, g = g, fila = fila, size = size)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:categorica")
   doc <- .lam_pie(doc, base, folio)
