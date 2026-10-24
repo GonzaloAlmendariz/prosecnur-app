@@ -87,6 +87,9 @@ test_that("la imagen nunca se deforma ni se agranda: su proporción real y no m�
   # Un archivo de 150 px no se estira a 216.
   ch <- .cmft_html(.cmft_feature(image_ref = "premio", alt = "Audífonos"), images = .cmft_img(150L, 150L))
   expect_match(ch, '<img [^>]*width="150" height="150"')
+  # Ni en teléfono: una foto más angosta que la columna no lleva la clase que la estira.
+  expect_false(grepl("cmail-feature-img", ch, fixed = TRUE))
+  expect_match(.cmft_html(.cmft_feature(image_ref = "premio", alt = "Audífonos")), 'class="cmail-feature-img"', fixed = TRUE)
 })
 
 test_that("sin imagen sale el texto solo, sin hueco ni celda de imagen", {

@@ -69,6 +69,8 @@ export const MAIL_BLOCK_TYPES = [
   "ornament",
   "icon_text",
   "two_images",
+  // Secciones (GOAL editor profesional, collection_mail_destacado.R).
+  "feature",
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
@@ -170,6 +172,22 @@ export type MailTwoImagesBlock = {
   alt_left: string;
   alt_right: string;
 };
+/** «Destacado»: la imagen a la izquierda, a la derecha o arriba (`collection_mail_destacado.R`). */
+export const MAIL_FEATURE_LAYOUTS = ["izquierda", "derecha", "arriba"] as const;
+export type MailFeatureLayout = (typeof MAIL_FEATURE_LAYOUTS)[number];
+/** Sin `image_ref` sale sin imagen; con imagen, `alt` es obligatorio. */
+export type MailFeatureBlock = {
+  block_id: string;
+  type: "feature";
+  eyebrow?: string;
+  title: string;
+  text?: string;
+  image_ref?: string;
+  alt?: string;
+  button_text?: string;
+  url?: string;
+  layout?: MailFeatureLayout;
+};
 export type MailCalloutBlock = {
   block_id: string;
   type: "callout";
@@ -235,7 +253,8 @@ export type MailKnownBlock =
   | (MailBandBlock & MailBoxed)
   | (MailOrnamentBlock & MailBoxed)
   | (MailIconTextBlock & MailBoxed)
-  | (MailTwoImagesBlock & MailBoxed);
+  | (MailTwoImagesBlock & MailBoxed)
+  | (MailFeatureBlock & MailBoxed);
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -893,6 +912,16 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         left: str(value.left), right: str(value.right),
         alt_left: str(value.alt_left), alt_right: str(value.alt_right),
       };
+    case "feature": {
+      const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
+      const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
+      return {
+        block_id, type, title: str(value.title),
+        ...opcional("eyebrow"), ...opcional("text"), ...opcional("image_ref"), ...opcional("alt"),
+        ...opcional("button_text"), ...opcional("url"),
+        ...(layout ? { layout } : {}),
+      };
+    }
     case "callout": {
       const variant = oneOf(value.variant, ["box", "bar", "tinte"] as const);
       const title = optStr(value.title);

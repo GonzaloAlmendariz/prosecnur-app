@@ -10,6 +10,7 @@ import { ColorDePieza } from "./ColorDePieza";
 import { EstiloDelBloque, SelectorDeVista, type VistaDelBloque } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
+import { ImagenDelDestacado } from "./ImagenDelDestacado";
 import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
@@ -286,6 +287,8 @@ export function PanelDeBloque({
   const props = propsDeTexto(block.type);
   const sueltos = propios.filter((p) => !esProblemaDelTrato(p)).filter((p) => {
     const prop = propDelProblema(p.path);
+    // La descripción de la foto del Destacado la muestra su propio panel.
+    if (block.type === "feature" && prop === "alt") return false;
     return !prop || !(props as readonly string[]).includes(prop);
   });
   const editar = (update: (b: MailBlock) => MailBlock, grupo?: string) => onEditarBloque(block.block_id, update, grupo);
@@ -340,6 +343,16 @@ export function PanelDeBloque({
           ocupado={ocupado}
           onEditarBloque={editar}
           onSubir={(lado, file) => onSubirImagen?.(block.block_id, file, lado)}
+        />
+      ) : null}
+      {block.type === "feature" ? (
+        <ImagenDelDestacado
+          block={block}
+          vista={vistaDeImagen}
+          problemas={propios}
+          ocupado={ocupado}
+          onEditarBloque={editar}
+          onSubir={(file) => onSubirImagen?.(block.block_id, file)}
         />
       ) : null}
       {block.type === "icon_text" ? (

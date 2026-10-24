@@ -17,6 +17,8 @@ export const ARRASTRE_DE_BLOQUE = "application/x-pulso-bloque";
  * gráficas (E1o) muestran a la vista su «cuándo usarla»; el resto, qué es.
  */
 export const GRUPOS: readonly { titulo: string; tipos: readonly TipoInsertable[]; cuandoALaVista?: boolean }[] = [
+  // Secciones armadas (GOAL editor profesional): una foto, un título, un texto y un botón.
+  { titulo: "Secciones", tipos: ["feature"] },
   { titulo: "Texto", tipos: ["greeting", "heading", "paragraph", "list", "callout"] },
   { titulo: "Acción e imagen", tipos: ["button", "image", "divider"] },
   { titulo: "Piezas gráficas", tipos: PIEZAS_GRAFICAS, cuandoALaVista: true },
@@ -150,6 +152,16 @@ const ESQUEMA: Record<TipoInsertable, ReactNode> = {
       <circle className="rec-bib-sol" cx="52" cy="18" r="2.5" />
     </>
   ),
+  feature: (
+    <>
+      <rect className={S} x="3" y="6" width="58" height="32" rx="3" />
+      <rect className="rec-bib-img" x="7" y="10" width="22" height="24" rx="2" />
+      <path className="rec-bib-montana" d="M9 32 L16 23 L21 28 L27 32 Z" />
+      <rect className={A} x="33" y="12" width="14" height="3" rx="1.5" />
+      <rect className={L} x="33" y="18" width="24" height="4" rx="2" />
+      <rect className={L} x="33" y="27" width="16" height="5" rx="2" />
+    </>
+  ),
   [IMAGEN_DECORATIVA]: (
     <>
       <rect className="rec-bib-img" x="4" y="9" width="56" height="26" rx="2" />
@@ -175,6 +187,7 @@ export const CUANDO_USARLO: Record<TipoInsertable, string> = {
   ornament: "Para separar dos partes con un adorno.",
   icon_text: "Para un dato clave: fecha, lugar o premio.",
   two_images: "Para dos fotos o logos, uno junto al otro.",
+  feature: "Para lo que tiene que verse primero: el sorteo, el incentivo, el anuncio.",
   [IMAGEN_DECORATIVA]: "Para un adorno: no necesita descripción.",
 };
 
@@ -197,6 +210,7 @@ export const DESCRIPCION_CORTA: Record<TipoInsertable, string> = {
   ornament: CUANDO_USARLO.ornament,
   icon_text: CUANDO_USARLO.icon_text,
   two_images: CUANDO_USARLO.two_images,
+  feature: "Foto, título y botón: el sorteo o el anuncio.",
   [IMAGEN_DECORATIVA]: CUANDO_USARLO[IMAGEN_DECORATIVA],
 };
 

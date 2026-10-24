@@ -83,6 +83,15 @@ export function tipoDisponible(template: Pick<MailTemplate, "blocks">, type: Tip
   return type !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal");
 }
 
+/** El enlace que ya usa el correo: el de su primer botón, o el campo que lleva a la encuesta. */
+export function enlaceDelCorreo(template: Pick<MailTemplate, "blocks" | "fields">): string | null {
+  for (const b of template.blocks) {
+    if (b.type === "button" && b.url && b.url.trim() !== "https://") return b.url;
+  }
+  const campo = (template.fields ?? []).find((f) => f.destino === "encuesta");
+  return campo ? `{{${campo.key}}}` : null;
+}
+
 /** Un bloque nuevo, con ids que no chocan (cada imagen —y cada lado de un par— nombra su propio archivo). */
 export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable): MailBlock {
   const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
@@ -93,6 +102,14 @@ export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable)
   if (block.type === "two_images") {
     const left = idLibre("imagen-izquierda", usados);
     return { ...block, left, right: idLibre("imagen-derecha", [...usados, left]) };
+  }
+  if (block.type === "feature") {
+    // El botón nace con un enlace que ya vale (la vista previa no se frena): el
+    // del botón del correo o el campo que lleva a la encuesta; sin ninguno, nace sin botón.
+    const url = enlaceDelCorreo(template);
+    if (url) return { ...block, url };
+    const { button_text: _texto, url: _url, ...sinBoton } = block;
+    return sinBoton;
   }
   return block;
 }

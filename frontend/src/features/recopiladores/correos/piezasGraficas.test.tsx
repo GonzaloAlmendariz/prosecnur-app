@@ -81,7 +81,8 @@ describe("biblioteca › piezas gráficas", () => {
       expect(tarjeta).toContain('<svg class="rec-bib-esquema"');
       expect(tarjeta).not.toContain("<img");
     }
-    expect(html.match(/data-tipo=/g)).toHaveLength(15);
+    // 15 de siempre + la sección «Destacado» (GOAL editor profesional, L5).
+    expect(html.match(/data-tipo=/g)).toHaveLength(16);
   });
 
   it("lo que trae un arrastre se valida contra lo insertable", () => {

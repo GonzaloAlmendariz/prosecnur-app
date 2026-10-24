@@ -150,6 +150,8 @@ export function descripcionesPendientes(template: Pick<MailTemplate, "blocks">):
   const out: DescripcionPendiente[] = [];
   for (const b of template.blocks) {
     if (b.type === "image" && b.decorative !== true && altPendiente(b.alt)) out.push({ block_id: b.block_id, prop: "alt" });
+    // La foto de un Destacado, sólo si la tiene.
+    if (b.type === "feature" && b.image_ref && altPendiente(b.alt ?? "")) out.push({ block_id: b.block_id, prop: "alt" });
     if (b.type === "two_images") {
       if (altPendiente(b.alt_left)) out.push({ block_id: b.block_id, prop: "alt_left" });
       if (altPendiente(b.alt_right)) out.push({ block_id: b.block_id, prop: "alt_right" });
@@ -166,6 +168,7 @@ export type LadoDelPar = "left" | "right";
 export function imagenesDelCuerpo(template: Pick<MailTemplate, "blocks">, salvo?: { block_id: string; lado?: LadoDelPar }): string[] {
   return template.blocks.flatMap((b) => {
     if (b.type === "image") return salvo && salvo.block_id === b.block_id ? [] : [b.image_ref];
+    if (b.type === "feature") return !b.image_ref || (salvo && salvo.block_id === b.block_id) ? [] : [b.image_ref];
     if (b.type === "two_images") {
       return (["left", "right"] as const)
         .filter((lado) => !(salvo && salvo.block_id === b.block_id && salvo.lado === lado))
@@ -180,6 +183,8 @@ export function imagenDeBloque(block: MailBlock | undefined, lado?: LadoDelPar):
   if (!block) return null;
   if (block.type === "image") return block.image_ref;
   if (block.type === "two_images") return block[lado ?? "left"];
+  // Un Destacado sin foto todavía: "" (subir le pone una).
+  if (block.type === "feature") return block.image_ref ?? "";
   return null;
 }
 
