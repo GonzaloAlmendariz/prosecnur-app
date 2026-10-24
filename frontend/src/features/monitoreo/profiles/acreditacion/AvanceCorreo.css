@@ -556,6 +556,10 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  max-inline-size: 100%;
+  /* El nombre parte dentro de su columna en vez de desbordar el botón a 1024. */
+  white-space: normal;
+  overflow-wrap: anywhere;
   padding: 0;
   border: 0;
   background: none;
@@ -963,7 +967,9 @@ button.mon-correo-ritmo {
   border: 2px solid var(--publico);
   border-radius: 4px;
   background: var(--publico-suave);
-  transform: rotate(45deg) scale(0.78);
+  /* Girado 45°, la diagonal del cuadrado es 1.41 veces su lado: con 0.66 cabe
+     en la caja del nodo (0.70 al apuntar) en vez de desbordarla. */
+  transform: rotate(45deg) scale(0.66);
 }
 
 .mon-correo-nodo:hover > i {
@@ -971,7 +977,7 @@ button.mon-correo-ritmo {
 }
 
 .mon-correo-nodo.es-recordatorio:hover > i {
-  transform: rotate(45deg) scale(0.86);
+  transform: rotate(45deg) scale(0.7);
 }
 
 .mon-correo-nodo.is-elegido > i {
