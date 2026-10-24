@@ -45,14 +45,17 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, unidad_n = "estudiantes")),
                    "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
-                   "89e50ad2dc8d9363403922241b32af71980d40ae98b150caca8eae628797590c")
+                   "9d2563cff9c9ace53119fd482b518ff52d6457014670bc4d291de9119c8eb526")
+  # 2026-10-24 (loop motor PPT ↔ CCSS), cambios deliberados de geometría sin tocar colores: las barras usan el alto del área
+  # (98e6690db), la dicotomía partida deja el mismo margen a ambos lados (7e10765b8) y la torta saca sus cifras chicas con
+  # guía (9947637ce). Los hashes se rehicieron con esos tres; Arte salió idéntico en las tres oleadas.
   # La dicotomía rotulaba «Sí (62)» siempre; desde «Casos junto al porcentaje» eso es el modo «siempre».
   # 2026-10-14 (Gonzalo): en la lámina completa el rótulo pasa de 10.5 pt a 14 pt en negrita; cambio deliberado de la
   # huella (los colores por defecto no cambian: azul y azul medio del recetario).
   expect_identical(withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .pll_hash(.lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))),
-                   "fcacc05dc78afa9a83154edfe45f76422049500c93d117371ccabf0eabb0ec5e")
+                   "68e290e289d34e76215fbd62c79d60344da8888c23adadcd246d2e513df0a839")
   expect_identical(.pll_hash(.lam_laminas_torta(.pll_doc(), pie3, "Torta", folio = 69, unidad_n = "egresados")),
-                   "ac570e9ae137e339c3d9f218f12c26ae64c3e289793e856ce187439c5e2ee669")
+                   "1aca84665e354a72cdc3fc04319262a6c3706b6921f246b6a3cfe4c25b79adba")
   expect_identical(.pll_hash(.lam_laminas_dona(.pll_doc(), dona2, "Dona", folio = 70, unidad_n = "estudiantes", rotulo_centro = "conoce")),
                    "7f898712d77a9f50a5e562fd8e6de3999a8b0ddbcde2242735cc9d2086a79b1a")
 })
