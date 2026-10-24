@@ -64,7 +64,14 @@ export function construirConexiones(
   state: MonitoreoState | null | undefined,
   reports: MonitoreoTerritorialDashboard | null | undefined,
   activa: MonitoreoTerritorialPhase,
+  cortes: { avance?: MonitoreoTerritorialDashboard | null; consultas?: MonitoreoTerritorialDashboard | null } = {},
 ): ModeloConexiones {
+  // El corte de la fuente trae la ficha (preguntas, opciones) pero no la
+  // muestra ni los partes: la meta y la ruta salen del corte de avance y los
+  // partes del de consultas, que es donde el motor los calcula.
+  const conRuta = [cortes.avance, reports].find((corte) => n(corte?.route_overview?.route_count) != null) ?? null;
+  const conMeta = [cortes.avance, reports].find((corte) => n(corte?.advance?.meta) != null) ?? null;
+  const conPartes = [cortes.consultas, reports].find((corte) => corte?.field_occurrences?.summary) ?? null;
   const territorial = state?.config?.territorial;
   const historial = state?.territorial_update_history ?? [];
   const ventanas = territorial?.phase_windows;
@@ -102,7 +109,7 @@ export function construirConexiones(
   });
 
   if (tieneOcurrencias(state ?? null)) {
-    const tablero = reports?.field_occurrences;
+    const tablero = conPartes?.field_occurrences;
     tarjetas.push({
       clave: "ocurrencias",
       titulo: "Kobo · Ocurrencias de campo",
@@ -135,12 +142,12 @@ export function construirConexiones(
     });
   }
 
-  const ruta = reports?.route_overview;
+  const ruta = conRuta?.route_overview;
   return {
     conFuenteDeCampo: Boolean(itemDeFase(state, "field")?.source_applied || territorial?.phase_sources?.field?.source_id),
     tarjetas,
     muestra: [
-      { rotulo: "Meta", valor: texto(n(reports?.advance?.meta)) },
+      { rotulo: "Meta", valor: texto(n(conMeta?.advance?.meta)) },
       { rotulo: "Distritos", valor: texto(n(ruta?.district_count)) },
       { rotulo: "UMP titulares", valor: texto(n(ruta?.route_count)) },
       { rotulo: "Reemplazos", valor: texto(n(ruta?.replacement_count)) },

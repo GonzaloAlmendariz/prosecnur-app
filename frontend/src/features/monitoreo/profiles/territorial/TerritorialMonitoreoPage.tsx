@@ -73,13 +73,17 @@ import {
   PANELES_DEL_PERFIL,
   panelesSuperpuestos,
   pideOtraDireccion,
+  subvistasDePestana,
   vistaDeDireccion,
   type DireccionTerritorial,
 } from "./navegacion/direccionTerritorial";
-import { pestanasDelRail } from "./navegacion/modeloDelRail";
+import { antetituloDePestana, pestanasDelRail } from "./navegacion/modeloDelRail";
 import { opcionesDeFase } from "./navegacion/fase";
 import { casosEnBandeja, corteCorto, estadoDelModo, insigniasDelModo, lecturaDelAvance } from "./navegacion/barraTerritorial";
 import { CabeceraTerritorial, RailTerritorial } from "./navegacion/ChromeTerritorial";
+import { RotuloDePestanaProvider } from "./navegacion/RotuloDePestana";
+import { scopesDePestana } from "./navegacion/cortesDePestana";
+import "./tablasTerritoriales.css";
 import { SelectorDeFase } from "./navegacion/SelectorDeFase";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
@@ -1256,6 +1260,8 @@ function renderPestana(
       return (
         <ConexionesTab
           reports={reports}
+          avance={options.cortes?.avance ?? null}
+          consultas={options.cortes?.consultas ?? null}
           state={options.state ?? null}
           phase={options.phase ?? "field"}
           ocupado={Boolean(options.busy)}
@@ -1649,6 +1655,25 @@ export default function TerritorialMonitoreoPage() {
     const consultas = monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope: "queries_summary" })?.reports;
     return casosEnBandeja(consultas ?? rawReports);
   }, [phase, rawReports, sourceKey, state?.synced_at]);
+  // Los cortes extra de la pestaña propia (Equipo lee consultas y validación,
+  // Conexiones avance y consultas…) se piden en cuanto se entra, sin esperar
+  // al recorrido de fondo; la vista no se marca lista hasta tenerlos.
+  const scopesExtra = useMemo(() => scopesDePestana(direccion), [direccion]);
+  const scopesExtraFaltantes = scopesExtra.filter((scope) => !monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope }));
+  const claveExtraFaltantes = scopesExtraFaltantes.join(",");
+  useEffect(() => {
+    if (!state || loadingView === "initial" || error || !claveExtraFaltantes) return;
+    let cancelado = false;
+    void (async () => {
+      for (const scope of claveExtraFaltantes.split(",") as MonitoreoReportScope[]) {
+        if (cancelado) return;
+        await loadScope(scope);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [claveExtraFaltantes, error, loadScope, loadingView, state]);
   const refreshCurrentView = useCallback(() => {
     void loadScope(preferredScope, seccionActiva, true);
   }, [seccionActiva, loadScope, preferredScope]);
@@ -1847,7 +1872,8 @@ export default function TerritorialMonitoreoPage() {
   const activeLoading = loadingView === "initial"
     || loadingView === seccionActiva
     || activeScopePending
-    || Boolean(state && activeNeedsReport && !reportReady && !error);
+    || Boolean(state && activeNeedsReport && !reportReady && !error)
+    || Boolean(state && scopesExtraFaltantes.length && !error);
   const chromeSyncing = Boolean(chromeSyncJobId);
   const chromeBusy = activeLoading || mutationBusy || chromeSyncing;
   const chromeGeneratedAt = reports?.generated_at ?? state?.generated_at ?? state?.synced_at ?? "";
@@ -1860,6 +1886,13 @@ export default function TerritorialMonitoreoPage() {
     [lecturaAvance?.meta, phase, state],
   );
   const lienzo = esPestanaPropia(direccion);
+  const rotulo = useMemo(() => ({
+    antetitulo: antetituloDePestana(direccion.seccion, direccion.pestana),
+    titulo: pestanasRail.find((tab) => tab.key === direccion.pestana)?.label ?? direccion.pestana,
+    subvistas: subvistasDePestana(direccion.seccion, direccion.pestana),
+    panel: direccion.panel,
+    onSubvista: (panel: string | null) => irA({ ...direccion, panel }),
+  }), [direccion, irA, pestanasRail]);
   const cortes = useMemo(() => {
     const deLaCache = (scope: MonitoreoReportScope) => monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope })?.reports ?? null;
     return { avance: deLaCache("advance_summary"), validacion: deLaCache("validation_summary"), consultas: deLaCache("queries_summary") };
@@ -1946,6 +1979,8 @@ export default function TerritorialMonitoreoPage() {
         isTerritorial
         hasReportStatus
         scrollResetKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
+        sinCalidadDeCampo={lienzo}
+        mainClassName={lienzo ? "sin-cabecera" : undefined}
         rail={(
           <RailTerritorial
             seccion={direccion.seccion}
@@ -1955,7 +1990,7 @@ export default function TerritorialMonitoreoPage() {
             onCambioPestana={(pestana) => irA({ seccion: direccion.seccion, pestana, panel: null })}
           />
         )}
-        head={(
+        head={lienzo ? null : (
           <CabeceraTerritorial
             direccion={direccion}
             pestanas={pestanasRail}
@@ -1974,7 +2009,8 @@ export default function TerritorialMonitoreoPage() {
           {activeLoading ? (
             <TerritorialLoadingView view={seccionActiva} />
           ) : (
-            renderPestana(direccion, reports, {
+            <RotuloDePestanaProvider valor={rotulo}>
+            {renderPestana(direccion, reports, {
               pestanaActiva,
               busy: chromeBusy,
               onError: setError,
@@ -1994,7 +2030,8 @@ export default function TerritorialMonitoreoPage() {
               irA,
               cortes,
               onSyncAvance: () => { void syncAdvance().catch(() => undefined); },
-            })
+            })}
+            </RotuloDePestanaProvider>
           )}
       </MonitoreoWorkbenchChrome>
     </PageFrame>

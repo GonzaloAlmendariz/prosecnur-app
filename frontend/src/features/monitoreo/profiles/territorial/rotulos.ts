@@ -49,6 +49,8 @@ const CONECTORES = new Set(["de", "del", "la", "las", "los", "y", "el"]);
 export function nombreDeDistrito(raw: unknown): string {
   const texto = String(raw ?? "").trim();
   if (!texto) return "Sin distrito";
+  // El motor agrupa aparte los partes cuya UMP no cruza con la ruta.
+  if (/^sin[\s_]*cruce[\s_]*(con[\s_]*)?ump$/i.test(texto)) return "UMP sin cruce con la ruta";
   return texto
     .toLowerCase()
     .split(/\s+/)

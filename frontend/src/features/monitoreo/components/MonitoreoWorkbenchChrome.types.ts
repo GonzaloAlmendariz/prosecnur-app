@@ -11,6 +11,11 @@ export type MonitoreoWorkbenchChromeProps = {
   isTerritorial?: boolean;
   /** Perfil que monta el chrome; hoy sólo ajusta el texto del vacío de calidad. */
   perfil?: string;
+  /**
+   * Las pestañas rediseñadas traen sus propias señales de calidad (Territorial
+   * › Control › Señales): el bloque «Desempeño del trabajo de campo» sobra.
+   */
+  sinCalidadDeCampo?: boolean;
   hasReportStatus?: boolean;
   ariaLabel?: string;
   ariaLive?: "off" | "polite" | "assertive";

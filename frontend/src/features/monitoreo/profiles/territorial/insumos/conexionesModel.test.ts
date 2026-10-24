@@ -65,6 +65,12 @@ describe("Insumos › Conexiones", () => {
     expect(modelo.conFuenteDeCampo).toBe(true);
   });
 
+  it("con el corte de la fuente, la muestra sale del corte de avance", () => {
+    const fuente = { source_coherence: { survey_count: 79 }, route_overview: {} } as unknown as MonitoreoTerritorialDashboard;
+    const conAvance = construirConexiones(STATE, fuente, "field", { avance: REPORTS });
+    expect(conAvance.muestra.map((cifra) => cifra.valor)).toEqual(["1,200", "6", "150", "150"]);
+  });
+
   it("sin fuente de campo lo dice", () => {
     expect(construirConexiones(null, null, "field").conFuenteDeCampo).toBe(false);
   });

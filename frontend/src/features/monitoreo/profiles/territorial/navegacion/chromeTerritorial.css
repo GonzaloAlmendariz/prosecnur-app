@@ -219,3 +219,104 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
 }
+
+/* Pestañas rediseñadas (§2a-bis): sin fila de cabecera; el rótulo vive en la
+ * barra o en la primera tarjeta de la pestaña y el contenido toma todo el alto. */
+/* Con la especificidad de `.mon-workbench-main.is-territorial.has-report-status`
+ * (monitoreo.css, `auto auto minmax(0, 1fr)`) más uno: si no, el contenido
+ * caía en la primera fila `auto`, medía lo que traía y dejaba la tercera fila
+ * vacía al pie (150 px de hueco en Resumen, Señales, Conciliación…). */
+.is-territorial-profile .mon-workbench-main.is-territorial.sin-cabecera {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-ter-rotulo {
+  display: inline-flex;
+  margin-inline-end: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  min-width: 0;
+}
+
+.mon-ter-rotulo-copia {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mon-ter-rotulo-copia small {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-ter-rotulo-copia h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mon-ter-rotulo-subvistas {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-ter-rotulo-subvistas button {
+  height: 26px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-ter-rotulo-subvistas button.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-ter-rotulo-subvistas button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* Cuando el rótulo encabeza una tarjeta que trae su propio título, el rótulo
+ * va en su fila y el título de la tarjeta debajo, a la izquierda; sin esto el
+ * título se iba al extremo derecho de la cabecera. En una barra de
+ * herramientas (título sólo para lectores de pantalla) sigue en línea. */
+:is(header, div):has(> .mon-ter-rotulo + :is(h2, h3, h4):not(.pulso-sr-only)) {
+  flex-wrap: wrap;
+}
+
+.mon-ter-rotulo:has(+ :is(h2, h3, h4):not(.pulso-sr-only)) {
+  flex: 1 0 100%;
+  margin-inline-end: 0;
+}
+
+/* En un estado vacío el rótulo va arriba a la izquierda, como en la pestaña
+ * llena, y el mensaje queda centrado en el resto de la tarjeta. */
+[class*="-vacio"] > .mon-ter-rotulo {
+  align-self: flex-start;
+  justify-self: start;
+  margin-bottom: auto;
+  text-align: left;
+}
+
+[class*="-vacio"]:has(> .mon-ter-rotulo) > :last-child {
+  margin-bottom: auto;
+}
