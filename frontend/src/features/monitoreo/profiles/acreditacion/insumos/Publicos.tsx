@@ -15,6 +15,7 @@ import { useEstadoDeCuotas } from "./useEstadoDeCuotas";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./insumos.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /** El padrón de un público es un panel direccionable: `panel=publico&foco=<público>`. */
 export const PANEL_PADRON: PanelDeclarado = { id: "publico", label: "Padrón del público", clase: "inspector" };
@@ -118,7 +119,10 @@ export function Publicos({
   cuotasDePrueba?: MonitoreoCuotaPublico[];
 }) {
   const elenco = useElencoDeActores({ sources, unidades, onStateChange });
-  const { estado } = useEstadoDeCuotas();
+  const { estado, error: errorDeCuotas } = useEstadoDeCuotas();
+  // Personas y variables vienen del estado de cuotas: hasta que llega no se
+  // publica «0 personas», que no son del estudio (C5).
+  const leyendoCuotas = !cuotasDePrueba && !estado && !errorDeCuotas;
   const cuotas = cuotasDePrueba ?? estado?.publicos ?? [];
   const panel = usePanelDireccionable(PANEL_PADRON);
   const [foco, escribirFoco] = useFocoMonitoreo();
@@ -136,10 +140,10 @@ export function Publicos({
     <div className="acr-ps is-publicos" data-qa-geometry-group="acreditacion-insumos-publicos" data-qa-geometry-contract="intrinsic">
       <div className="acr-in-izquierda">
         <section className="acr-av-panel acr-ps-tabla" aria-label="Públicos del estudio">
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>
               {`${fmt(filas.length)} ${filas.length === 1 ? "público" : "públicos"}`}
-              <span className="acr-av-tenue">{`${fmt(personas)} personas en ${fmt(padrones)} ${padrones === 1 ? "padrón" : "padrones"}`}</span>
+              <span className="acr-av-tenue">{leyendoCuotas ? "Leyendo las personas de cada padrón" : `${fmt(personas)} personas en ${fmt(padrones)} ${padrones === 1 ? "padrón" : "padrones"}`}</span>
             </h3>
             <span className="acr-in-acciones">
               <button type="button" className="acr-av-boton" onClick={() => elenco.agregar()} disabled={elenco.guardando}>
@@ -149,7 +153,7 @@ export function Publicos({
                 {elenco.guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Guardar
               </button>
             </span>
-          </header>
+          </CabeceraDeTarjeta>
           {elenco.error ? <div className="acr-ct-cuerpo"><Alert kind="error">{elenco.error}</Alert></div> : null}
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla">

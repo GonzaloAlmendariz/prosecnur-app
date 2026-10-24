@@ -3,6 +3,7 @@ import { Alert } from "../../../../../components/Alert";
 import { fmt } from "../formato";
 import { fechaCorta } from "../avance/graficosDeAvance";
 import { posicion, type ModeloDeVentana } from "./ventanaModelo";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import "../avance/avance.css";
 import "./modelo.css";
 
@@ -23,6 +24,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
   return (
     <div className="acr-mo-ventana" data-qa-geometry-group="acreditacion-modelo-ventana" data-qa-geometry-contract="intrinsic">
       <section className="acr-av-panel" aria-label="Ventana de cada público">
+        <CabeceraDeTarjeta primera><h3>Ventana de cada público <span className="acr-av-tenue">Del primer día con respuestas a la última efectiva</span></h3></CabeceraDeTarjeta>
         <div className="acr-cl-cifras acr-mo-cifras" data-qa-geometry-group="acreditacion-ventana-cifras" data-qa-geometry-contract="equal">
           <div className="acr-res-kpi" data-qa-geometry-member><small>Primer día con respuestas</small><b className="acr-av-num">{desde ? fechaCorta(desde) : "—"}</b></div>
           <div className="acr-res-kpi" data-qa-geometry-member><small>Último día</small><b className="acr-av-num">{hasta ? fechaCorta(hasta) : "—"}</b></div>

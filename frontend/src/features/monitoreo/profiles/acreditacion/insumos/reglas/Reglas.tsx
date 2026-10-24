@@ -3,6 +3,7 @@ import { Check, Loader2 } from "lucide-react";
 import { Alert } from "../../../../../../components/Alert";
 import { apiMonitoreoConfig, type MonitoreoConfig, type MonitoreoState } from "../../../../../../api/client";
 import { useResumenDelCorte } from "../../navegacion/resumenDelCorte";
+import { RotuloEnBarra } from "../../navegacion/rotuloDePestana";
 import { Alertas } from "./Alertas";
 import { LlaveDeCruce } from "./LlaveDeCruce";
 import { QueCuentaComoEfectiva } from "./QueCuentaComoEfectiva";
@@ -41,7 +42,7 @@ export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, gu
   return (
     <div className="acr-rg">
       <div className="acr-av-panel acr-rg-barra">
-        <p>Todo lo que cambia una cifra antes de contarla.</p>
+        <span className="acr-rg-barra-copia"><RotuloEnBarra /><span className="acr-av-tenue">Todo lo que cambia una cifra antes de contarla.</span></span>
         <button type="button" className="acr-av-boton is-primario" onClick={onGuardar} disabled={guardando || !cambiado || problemas.length > 0}>
           {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Guardar reglas
         </button>

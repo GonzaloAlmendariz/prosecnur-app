@@ -10,6 +10,7 @@ import { descargarCsv } from "./descargarCsv";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 /**
  * Control › Respuestas (ficha Ctl9): qué llegó de cada plataforma. Facetas
@@ -67,7 +68,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
         </div>
       </nav>
       <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas recibidas">
-        <header className="acr-av-panel-cabecera acr-ps-filtros">
+        <CabeceraDeTarjeta primera className="acr-ps-filtros">
           <label className="acr-pr-buscador">
             <Search size={14} aria-hidden="true" />
             <input type="search" value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setNumero(1); }} placeholder="Respuesta, público o encuesta" aria-label="Buscar respuestas" />
@@ -76,7 +77,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
           <button type="button" className="acr-av-boton" onClick={() => descargarCsv(csvDeRespuestas(filtradas), "respuestas-recibidas.csv")} disabled={!filtradas.length}>
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
           {vista.filas.length ? (
             <table className="acr-pub-tabla">

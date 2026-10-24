@@ -18,6 +18,7 @@ import "../control/casos/porResolver.css";
 import "../control/casos/personas.css";
 import "../modelo/modelo.css";
 import "../insumos/insumos.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 type PropsDeVista = {
   publicos: readonly MonitoreoCuotaPublico[];
@@ -48,7 +49,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
   return (
     <div className="acr-ps acr-pc" data-qa-geometry-group="acreditacion-avance-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Variables">
-        <header className="acr-av-panel-cabecera"><h3>Variables</h3></header>
+        <CabeceraDeTarjeta primera><h3>Variables</h3></CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {cuotas.length ? (
             <section className="acr-pr-grupo">

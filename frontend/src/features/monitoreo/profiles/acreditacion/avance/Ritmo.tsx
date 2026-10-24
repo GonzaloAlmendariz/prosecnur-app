@@ -10,6 +10,7 @@ import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
 import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import "./avance.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /** El desglose por fuente y recopilador: `panel=fuentes`. */
 export const PANEL_FUENTES: PanelDeclarado = { id: "fuentes", label: "Por fuente y recopilador", clase: "sideover" };
@@ -40,14 +41,14 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
     <div className="acr-ri" data-qa-geometry-group="acreditacion-avance-ritmo" data-qa-geometry-contract="intrinsic">
       <div className="acr-ri-izquierda">
         <section className="acr-av-panel acr-ri-diario" aria-label="Efectivas por día">
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>Efectivas por día <span className="acr-av-tenue">{`${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}, por público`}</span></h3>
             {onVerFuentes ? (
               <button type="button" className="acr-av-boton" onClick={onVerFuentes}>
                 <ListChecks size={14} aria-hidden="true" /> Por fuente y recopilador
               </button>
             ) : null}
-          </header>
+          </CabeceraDeTarjeta>
           {plan.length ? null : (
             <div className="acr-ri-plan">
               <span className="acr-av-tenue">Plan de campo: sin fases con fechas.</span>

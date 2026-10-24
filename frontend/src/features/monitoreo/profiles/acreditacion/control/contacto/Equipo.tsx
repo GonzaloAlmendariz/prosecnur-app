@@ -9,6 +9,7 @@ import { ROTULO_DE_FAMILIA } from "./barridoModelo";
 import { construirEquipo, umbralesDelPerfil, type ModeloDeEquipo, type ResponsableDelEquipo } from "./equipoModelo";
 import "../../avance/avance.css";
 import "./contacto.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 const FAMILIAS: FamiliaDelCliente[] = ["efectiva", "reintentable", "terminal", "rechazo", "parcial", "sin-llamar"];
 
@@ -95,14 +96,14 @@ export function EquipoVista({ modelo }: { modelo: ModeloDeEquipo }) {
   return (
     <div className="acr-ct is-equipo" data-qa-geometry-group="acreditacion-control-equipo" data-qa-geometry-contract="intrinsic">
       <section className="acr-av-panel acr-ct-equipo-tabla" aria-label="Carga y resultado">
-        <header className="acr-av-panel-cabecera">
+        <CabeceraDeTarjeta primera>
           <h3>Carga y resultado</h3>
           <span className="acr-av-leyenda">
             {FAMILIAS.filter((familia) => modelo.responsables.some((item) => item.familias[familia])).map((familia) => (
               <span key={familia}><i className={`acr-av-punto is-familia-${familia}`} aria-hidden="true" />{ROTULO_DE_FAMILIA[familia]}</span>
             ))}
           </span>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
           <table className="acr-pub-tabla">
             <thead>

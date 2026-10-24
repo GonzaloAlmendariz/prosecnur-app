@@ -10,6 +10,7 @@ import { PanelPublico } from "./PanelPublico";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import "./avance.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /** El inspector del público es un panel direccionable: `panel=publico&foco=<público>`. */
 export const PANEL_PUBLICO: PanelDeclarado = { id: "publico", label: "Público", clase: "inspector" };
@@ -73,9 +74,9 @@ export function PorPublicoVista({
     <div className="acr-pub" data-qa-geometry-group="acreditacion-avance-publicos" data-qa-geometry-contract="intrinsic">
       <div className="acr-pub-izquierda">
         <section className="acr-av-panel acr-pub-tabla-panel" aria-label="Públicos">
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>{fmt(filas.length)} {filas.length === 1 ? "público" : "públicos"} <span className="acr-av-tenue">Ordenados por universo</span></h3>
-          </header>
+          </CabeceraDeTarjeta>
           <div className="acr-pub-tabla-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla">
               <thead>

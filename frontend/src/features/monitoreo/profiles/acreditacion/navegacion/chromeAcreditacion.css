@@ -89,3 +89,65 @@
   border-color: var(--pulso-brand-navy) !important;
   background: var(--pulso-brand-navy);
 }
+
+/* Sin fila de cabecera: el rótulo vive en la primera tarjeta (§2a-bis). */
+.mon-profile-canonical-shell .mon-workbench.is-acreditacion .mon-workbench-main:has(> .mon-workbench-content.is-rotulo-en-tarjeta) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.acr-av-panel-cabecera .acr-enc-copia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acr-enc-rotulo {
+  flex: 0 0 auto;
+  color: var(--pulso-module-monitoring);
+  white-space: nowrap;
+}
+
+.acr-enc-derecha,
+.acr-enc-barra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.acr-enc-barra {
+  justify-content: flex-start;
+  margin-right: auto;
+}
+
+.acr-enc-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.acr-av-panel-cabecera.is-con-rotulo {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding-top: var(--pulso-space-3);
+}
+
+.acr-enc-linea {
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap; /* en una tarjeta angosta el selector baja bajo el antetítulo */
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px var(--pulso-space-3);
+  min-height: 26px;
+}

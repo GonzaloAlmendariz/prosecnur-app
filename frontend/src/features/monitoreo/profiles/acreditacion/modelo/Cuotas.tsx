@@ -7,6 +7,7 @@ import { useConfiguracionDeCuotas } from "../useConfiguracionDeCuotas";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 export type VariableSinCuota = { actor: string; variable: string; categorias: number | null };
 
@@ -44,12 +45,12 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
   return (
     <div className="acr-ps is-cuotas" data-qa-geometry-group="acreditacion-modelo-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Cuotas del estudio">
-        <header className="acr-av-panel-cabecera">
+        <CabeceraDeTarjeta primera>
           <h3>Cuotas</h3>
           <button type="button" className="acr-av-boton" onClick={() => onNueva()}>
             <Plus size={14} aria-hidden="true" /> Nueva cuota
           </button>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <section className="acr-pr-grupo">
             <h3 className="acr-av-antetitulo">Declaradas <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>

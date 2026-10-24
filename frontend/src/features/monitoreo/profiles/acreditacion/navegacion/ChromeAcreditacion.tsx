@@ -3,6 +3,7 @@ import { ACREDITACION_WORKBENCH_VIEWS } from "../../../core/monitoreoRegistry";
 import { CabeceraDePestana, SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
 import { PESTANAS_DE_CONTACTO, subvistasDePestana, type SeccionAcreditacion, type VistaInterna } from "./direccionAcreditacion";
 import { antetituloDePestana, catalogoDeSeccion, nombreDePestana } from "./modeloDelRail";
+import type { RotuloDePestana } from "./rotuloDePestana";
 import "./chromeAcreditacion.css";
 
 function definicionDe(seccion: SeccionAcreditacion) {
@@ -82,4 +83,36 @@ export function CabeceraAcreditacion({
       )}
     />
   );
+}
+
+/** El mismo contenido de la cabecera, para llevarlo dentro de la primera tarjeta (§2a-bis). */
+export function rotuloDeAcreditacion({
+  seccion,
+  pestana,
+  activa,
+  chips = [],
+  onElegirVista,
+}: {
+  seccion: SeccionAcreditacion;
+  pestana: string;
+  activa: VistaInterna;
+  chips?: readonly string[];
+  onElegirVista: (vista: VistaInterna) => void;
+}): RotuloDePestana {
+  const opciones = subvistasDePestana(seccion, pestana).map((item) => ({
+    clave: item.panel ?? "principal",
+    etiqueta: item.etiqueta,
+    valor: item.interna,
+  }));
+  return {
+    antetitulo: `${antetituloDePestana(seccion, pestana)} · ${nombreDePestana(seccion, pestana)}`,
+    chips,
+    control: opciones.length > 1 ? (
+      <SelectorDeSubvistas
+        opciones={opciones}
+        esActiva={(vista) => vista.seccion === activa.seccion && vista.pestana === activa.pestana}
+        onElegir={onElegirVista}
+      />
+    ) : undefined,
+  };
 }

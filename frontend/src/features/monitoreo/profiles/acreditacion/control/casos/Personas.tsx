@@ -20,6 +20,7 @@ import { descargarCsv } from "./descargarCsv";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 /** Estados que van como columna en «Estado por público»; los demás aparecen si hay. */
 const COLUMNAS_FIJAS: readonly EstadoDePersona[] = ["efectiva", "sin-respuesta", "parcial", "rechazo"];
@@ -80,7 +81,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
     <div className="acr-ps" data-qa-geometry-group="acreditacion-control-personas" data-qa-geometry-contract="intrinsic">
       <div className="acr-ps-izquierda">
         <section className="acr-av-panel" aria-label="Estado por público">
-          <header className="acr-av-panel-cabecera"><h3>Estado por público</h3></header>
+          <CabeceraDeTarjeta primera><h3>Estado por público</h3></CabeceraDeTarjeta>
           <table className="acr-pub-tabla acr-ps-estados">
             <thead>
               <tr>

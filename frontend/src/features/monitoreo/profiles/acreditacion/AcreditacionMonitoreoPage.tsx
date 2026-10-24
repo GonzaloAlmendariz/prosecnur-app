@@ -64,7 +64,8 @@ import { monitoreoDireccionDesdeParams, monitoreoPestanaDesdeParams, monitoreoSe
 import { pestanaDeEntrada } from "../../core/tablaDeDirecciones";
 import { corteCorto, estadoDelModo } from "../../core/barraComun";
 import { readinessDeAcreditacion, useLecturaCompleta, useNavegacionAcreditacion } from "./navegacion/useNavegacionAcreditacion";
-import { chipsDeCabecera, pestanaConLienzo } from "./navegacion/chipsDeCabecera";
+import { chipsDeCabecera, pestanaConLienzo, rotuloEnTarjeta } from "./navegacion/chipsDeCabecera";
+import { RotuloDePestanaContexto, RotuloEnBarra } from "./navegacion/rotuloDePestana";
 import { PorPublico } from "./avance/PorPublico";
 import { Resumen } from "./avance/Resumen";
 import { PorResolver } from "./control/casos/PorResolver";
@@ -87,7 +88,7 @@ import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
 import { Barrido } from "./control/contacto/Barrido";
 import { Equipo } from "./control/contacto/Equipo";
-import { CabeceraAcreditacion, RailAcreditacion } from "./navegacion/ChromeAcreditacion";
+import { CabeceraAcreditacion, RailAcreditacion, rotuloDeAcreditacion } from "./navegacion/ChromeAcreditacion";
 import { PANELES_DEL_PERFIL, panelesSuperpuestos, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal } from "./navegacion/direccionAcreditacion";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
@@ -9990,7 +9991,7 @@ function AcreditacionSourcesWorkbench({
   if (!isPhoneSourceModel) { // Insumos › Fuentes (A6): maestro por público y recopiladores; la declaración, debajo.
     return (
       <div className="mon-profile-stack fuentes-resumen-stack is-inventario">
-        {sourceStatus}
+        <div className="acr-in-barra"><RotuloEnBarra />{sourceStatus}</div>
         <Fuentes
           sources={operationalSources}
           linkCollectors={state?.config?.operational_model.link_collectors ?? []}
@@ -17401,6 +17402,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   );
   const seccionCargando = loading || Boolean(state && !error && cobertura === "otra-seccion");
   const auditReady = !seccionCargando && !error && Boolean(state);
+  // §2a-bis: en las pestañas rediseñadas el rótulo va en la primera tarjeta, sin fila propia.
+  const conRotuloEnTarjeta = !seccionCargando && !error && rotuloEnTarjeta(nav.publica) && !isTelefonicoMonitoreoState(state);
   // Pedir el corte que falta, una vez por desajuste observado. El tope no es
   // defensivo de más: si el backend devolviera siempre un scope que no cubre,
   // reintentar sin límite convertiría un dato incompleto en un bucle de red.
@@ -17477,7 +17480,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           className="is-acreditacion"
           contentRole="tabpanel"
           contentId={`monitoreo-${nav.publica.seccion}-panel`}
-          contentClassName={pestanaConLienzo(nav.publica) ? "is-lienzo" : undefined}
+          contentClassName={[pestanaConLienzo(nav.publica) ? "is-lienzo" : "", conRotuloEnTarjeta ? "is-rotulo-en-tarjeta" : ""].filter(Boolean).join(" ") || undefined}
           contentAriaLabelledBy={`monitoreo-${nav.publica.seccion}-tab-${nav.publica.pestana}`}
           scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
@@ -17492,7 +17495,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               }}
             />
           )}
-          head={(
+          head={conRotuloEnTarjeta ? null : (
             <CabeceraAcreditacion
               seccion={nav.publica.seccion}
               pestana={nav.publica.pestana}
@@ -17503,6 +17506,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           )}
           status={null}
         >
+          <RotuloDePestanaContexto.Provider value={conRotuloEnTarjeta ? rotuloDeAcreditacion({ seccion: nav.publica.seccion, pestana: nav.publica.pestana, activa: vistaActiva, chips: chipsDeCabecera(nav.publica, state, reports), onElegirVista: (vista) => navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey) }) : null}>
           {seccionCargando ? (
             <AcreditacionLoadingPanel view={seccionActiva} label={activeDef.label} />
           ) : renderAcreditacionView(seccionActiva, reports, {
@@ -17528,6 +17532,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             fuentesActivas: activeSources,
             fuentesRequeridas: sourceTotal,
           })}
+          </RotuloDePestanaContexto.Provider>
         </MonitoreoWorkbenchChrome>
       </PageFrame>
     </div>
