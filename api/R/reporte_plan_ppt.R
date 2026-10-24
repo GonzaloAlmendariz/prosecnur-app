@@ -7870,7 +7870,7 @@ reporte_ppt_plan <- function(
         doc <- .lam_respaldo_titulo(doc, marco)
         if (!marco$activo && !is.null(title_slide) && nzchar(title_slide)) doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
         if (!marco$activo && !is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
-        p <- .lam_respaldo_grafico(p, marco); plot_slot <- .lam_respaldo_cajon(.plot_slot_for_rendered_plot(contract$slots$plot, p), marco, if (marco$activo) .lam_respaldo_pic(doc, contract$layout, master), p)   # P2: lamina_titulo_lienzo.R
+        marco$pic <- if (marco$activo) .lam_respaldo_pic(doc, contract$layout, master); p <- .lam_respaldo_grafico(p, marco); plot_slot <- .lam_respaldo_cajon(.plot_slot_for_rendered_plot(contract$slots$plot, p), marco, marco$pic, p)   # P2: lamina_titulo_lienzo.R
 
         # Grafico Y tabla en el mismo cajon: el aprobado pone el radar a la
         # izquierda y su tabla a la derecha, las dos como formas propias. Si el
