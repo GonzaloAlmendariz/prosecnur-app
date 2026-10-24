@@ -1,8 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { Supervision } from "./Supervision";
+
+// Supervisión abre sus diálogos por `?panel=`: se pinta dentro de un router.
+function pintar(props: Parameters<typeof Supervision>[0]) {
+  return renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Supervision, props)));
+}
 import { construirSupervision, porcentajeLegible } from "./supervisionModel";
 
 function reportes(bloques: Record<string, Array<Record<string, unknown>>>): MonitoreoAcreditacionReports {
@@ -44,12 +50,16 @@ describe("Control › Supervisión", () => {
   });
 
   it("sin hoja de supervisión lo dice en cada caso; con hoja, el resultado y si coincide (P7)", () => {
-    const sin = renderToStaticMarkup(createElement(Supervision, { reports: CORTE("sin_hoja") }));
+    const sin = pintar({ reports: CORTE("sin_hoja") });
     expect(sin).toContain("Sin hoja de supervisión");
+    // La explicación va una sola vez (en la tarjeta de casos), no en cada fila.
+    expect(sin.match(/Sin hoja de supervisión/g)).toHaveLength(1);
+    // Sin proGres en ningún caso, la columna no aparece (es llave del proyecto, no del modo).
+    expect(sin).not.toContain(">proGres<");
     expect(sin).toContain("5.7 %");
     const con = construirSupervision(CORTE("conectada"));
     expect(con?.resultados).toEqual({ coinciden: 1, noCoinciden: 0, sinResultado: 1 });
-    const html = renderToStaticMarkup(createElement(Supervision, { reports: CORTE("conectada") }));
+    const html = pintar({ reports: CORTE("conectada") });
     expect(html).toContain("Efectivo · Conforme (coincide)");
     expect(html).toContain("Sin rellamar");
     expect(html).toContain(">3 de 4<");
@@ -60,6 +70,6 @@ describe("Control › Supervisión", () => {
 
   it("un corte sin los bloques no inventa un sorteo", () => {
     expect(construirSupervision(reportes({}))).toBeNull();
-    expect(renderToStaticMarkup(createElement(Supervision, { reports: reportes({}) }))).toContain("actualiza para sortear");
+    expect(pintar({ reports: reportes({}) })).toContain("actualiza para sortear");
   });
 });

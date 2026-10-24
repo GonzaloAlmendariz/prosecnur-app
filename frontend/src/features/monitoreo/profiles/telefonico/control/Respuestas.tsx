@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CSSProperties } from "react";
-import { Search } from "lucide-react";
+import { Search } from "../../../../../vendor/lucide-react";
 import {
   DOS_HORAS,
   ETIQUETA_DE_MARCA,
@@ -13,6 +13,7 @@ import {
   type MarcaDeEnvio,
   type Respuestas as Modelo,
 } from "./respuestasModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 
 function n(valor: number | null | undefined) {
@@ -63,13 +64,17 @@ export function Respuestas({
   const visibles = useMemo(() => filtrarEnvios(modelo.envios, filtro, busqueda), [modelo.envios, filtro, busqueda]);
   const maximoTramo = Math.max(1, ...modelo.tramos.map((tramo) => tramo.casos));
   const maximoDuracion = Math.max(1, ...modelo.envios.map((envio) => Math.min(envio.segundos ?? 0, DOS_HORAS)));
+  const hayRotulo = useHayRotulo();
   const cuenta = (id: FiltroDeRespuestas) => (
     id === "todas" ? modelo.envios.length : id === "por-revisar" ? modelo.porRevisar : modelo.conteos[id as MarcaDeEnvio]
   );
 
   return (
     <div className="mon-respuestas" data-qa-geometry-group="telefonico-control-respuestas" data-qa-geometry-contract="intrinsic">
-      <section className="mon-ctl-panel mon-respuestas-cadena" aria-label="De los envíos a las efectivas">
+      <section className="mon-ctl-panel mon-respuestas-cadena-panel" aria-label="De los envíos a las efectivas">
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+        {hayRotulo ? <header className="mon-ctl-panel-cabecera mon-respuestas-cadena-cabecera"><RotuloDePestana /></header> : null}
+        <div className="mon-respuestas-cadena">
         {cadena.map((paso) => (
           <div key={paso.nombre} className="mon-respuestas-paso">
             <span className="mon-ctl-antetitulo">{paso.nombre}</span>
@@ -78,6 +83,7 @@ export function Respuestas({
             <em>{paso.merma ?? ""}</em>
           </div>
         ))}
+        </div>
       </section>
 
       <div className="mon-respuestas-medio">

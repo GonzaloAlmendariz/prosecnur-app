@@ -18,6 +18,7 @@ import {
 import { metaDelProyecto } from "./metaDelProyecto";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
 import { NotaDelModo } from "../../../core/NotaDelModo";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./trazadoDeBarras.css";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
@@ -40,6 +41,12 @@ function n(valor: number) {
 
 function decimal(valor: number) {
   return valor.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** El rótulo de la pestaña como primera línea de una tarjeta (sólo si la página lo publica). */
+function RotuloDeTarjeta() {
+  const hay = useHayRotulo();
+  return hay ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null;
 }
 
 /**
@@ -96,6 +103,8 @@ export function Ritmo({
     <div className="mon-cadencia" data-qa-geometry-group="telefonico-avance-ritmo" data-qa-geometry-contract="intrinsic">
       <div className="mon-cadencia-columna">
         <section className="mon-ctl-panel mon-cadencia-grafico" aria-label={`Efectivas de Kobo por día y ${nombreDeSegmento}`}>
+          {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+          <RotuloDeTarjeta />
           <header className="mon-cadencia-cabecera">
             <strong>Efectivas de Kobo por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
             <ul className="mon-cadencia-leyenda">
@@ -269,7 +278,8 @@ function RitmoSinSerie({
   // Un solo panel: con dos líneas de estado, una tarjeta lateral estirada al
   // alto de la columna era un vacío dentro de una tarjeta (chequeo f).
   return (
-    <section className="mon-ctl-panel mon-cadencia-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+    <section className="mon-ctl-panel mon-cadencia-vacio mon-tel-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+      <RotuloDeTarjeta />
       <div className="mon-cadencia-vacio-cuerpo">
         <EstadoVacio
           tamano="normal"

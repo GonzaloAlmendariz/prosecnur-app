@@ -9,6 +9,7 @@ import { FAMILIAS_DEL_CLIENTE } from "../control/familiasDelCliente";
 import { casosDeCola } from "../control/insistenciaModel";
 import { filasDeBloque } from "../navegacion/bloques";
 import { entradasDeEstatus, filasDeEstados, intentosDeLaCola, sinReglaDelMotor } from "./estadosModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
@@ -53,11 +54,12 @@ export function Estados({
   const maximo = Math.max(1, ...filas.map((fila) => fila.value));
   const maximoIntentos = Math.max(1, ...intentos.map((tramo) => tramo.casos));
   const encendidas = reglasEncendidas(state);
+  const hayRotulo = useHayRotulo();
 
   if (!entradas.length) {
     return (
       <section className="mon-ctl-panel mon-insumos-vacio" aria-label="Estados">
-        <span className="mon-ctl-antetitulo">Estados</span>
+        {hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Estados</span>}
         <strong>Sin status que leer</strong>
         <p>Conecta la hoja de barrido en Insumos, Fuentes, o actualiza el corte.</p>
         <button type="button" className="mon-insumos-boton" onClick={() => onIrA("insumos", "fuentes")}>Ir a Fuentes</button>
@@ -68,6 +70,8 @@ export function Estados({
   return (
     <div className="mon-insumos mon-estados" data-qa-geometry-group="telefonico-insumos-estados" data-qa-geometry-contract="intrinsic">
       <section className="mon-ctl-panel mon-estados-vocabulario" aria-label="Vocabulario de Status" data-qa-geometry-capacity="owned">
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+        {hayRotulo ? <header className="mon-insumos-cabecera mon-tel-cabecera-rotulo"><RotuloDePestana /></header> : null}
         <header className="mon-insumos-cabecera">
           <strong>Vocabulario de Status</strong>
           <span>
