@@ -194,7 +194,7 @@
 .MONITOREO_SUPERVISION_CASOS_COLS <- c(
   "N", "CodPulso", "proGres", "Enumerador", "Categoría", "Fecha Kobo", "Response ID", "Resultado", "Status final",
   "Coincide", "Observación", "En hoja", "Supervisor", "Status barrido", "Status supervisión", "Intentos supervisión",
-  "Observaciones", "Controles", "Controles coinciden", "Coincide según", "Ronda", "Origen"
+  "Observaciones", "Controles", "Controles coinciden", "Coincide según", "Ronda", "Origen", "Resultado de"
 )
 
 .monitoreo_supervision_casos_vacio <- function() {
@@ -309,26 +309,48 @@
   ultima <- rondas[[length(rondas)]]
 
   hojas <- .monitoreo_supervision_resultados(hoja, respuestas)
-  conectada <- is.data.frame(hoja) && nrow(hoja) > 0L
+  # Cada ronda lee primero su propia pestaña «Ronda N» (leída por
+  # monitoreo_supervision_rondas.R) y, si el caso no está ahí, la declarada.
+  hojas_ronda <- lapply(rondas, function(r) {
+    filas <- (r$resultados %||% list())$filas
+    if (is.data.frame(filas) && nrow(filas)) .monitoreo_supervision_resultados(filas, respuestas) else NULL
+  })
+  conectada <- (is.data.frame(hoja) && nrow(hoja) > 0L) || any(!vapply(hojas_ronda, is.null, logical(1)))
   kobo_ids <- if (is.data.frame(respuestas) && nrow(respuestas)) .monitoreo_report_first_values(respuestas, .MONITOREO_KOBO_ID_ALIAS) else character(0)
   controles_largo <- list()
-  casos_de <- function(ronda) {
+  casos_de <- function(k) {
+    ronda <- rondas[[k]]
+    propia <- hojas_ronda[[k]]
     sel <- ronda$casos
     if (!is.data.frame(sel) || !nrow(sel)) return(NULL)
     cod <- .monitoreo_supervision_texto(sel$CodPulso)
     rid <- .monitoreo_supervision_texto(sel[["Response ID"]])
     pg <- .monitoreo_supervision_texto(sel$proGres)
+    buscar <- function(h, i) {
+      if (is.null(h)) return(NULL)
+      hit <- h$por_pulso[[.monitoreo_text_key(cod[[i]])]]
+      if (is.null(hit) && nzchar(pg[[i]])) hit <- h$por_progres[[.monitoreo_text_key(pg[[i]])]]
+      hit
+    }
     res <- lapply(seq_along(cod), function(i) {
-      hit <- hojas$por_pulso[[.monitoreo_text_key(cod[[i]])]]
-      if (is.null(hit) && nzchar(pg[[i]])) hit <- hojas$por_progres[[.monitoreo_text_key(pg[[i]])]]
+      hit <- buscar(propia, i)
+      fuente <- hojas
+      de <- sprintf("Ronda %d", as.integer(ronda$numero))
+      if (is.null(hit)) {
+        hit <- buscar(hojas, i)
+        de <- "hoja declarada"
+      } else {
+        fuente <- propia
+      }
       if (is.null(hit)) return(list(en_hoja = FALSE))
       hit$en_hoja <- TRUE
+      hit$de <- de
       fila_kobo <- if (nzchar(rid[[i]])) match(rid[[i]], kobo_ids) else NA_integer_
       cmp <- character(0)
-      for (pregunta in names(hojas$controles)) {
+      for (pregunta in names(fuente$controles)) {
         en_hoja <- hit$controles[[pregunta]] %||% ""
         if (!nzchar(en_hoja) || is.na(fila_kobo)) next
-        en_kobo <- .monitoreo_supervision_texto(respuestas[[hojas$controles[[pregunta]]]][[fila_kobo]])
+        en_kobo <- .monitoreo_supervision_texto(respuestas[[fuente$controles[[pregunta]]]][[fila_kobo]])
         igual <- .monitoreo_supervision_igual(en_hoja, en_kobo)
         cmp[[pregunta]] <- if (igual) "Sí" else "No"
         controles_largo[[length(controles_largo) + 1L]] <<- data.frame(
@@ -364,13 +386,14 @@
       `Coincide según` = campo("segun"),
       Ronda = rep(as.integer(ronda$numero), length(cod)),
       Origen = .monitoreo_supervision_texto(sel$Origen %||% rep("sorteo", length(cod))),
+      `Resultado de` = campo("de"),
       check.names = FALSE, stringsAsFactors = FALSE
     )
     out <- out[order(out$Origen != "sorteo", out$Enumerador, out$CodPulso), .MONITOREO_SUPERVISION_CASOS_COLS, drop = FALSE]
     out$N <- seq_len(nrow(out))
     out
   }
-  partes <- Filter(Negate(is.null), lapply(rondas, casos_de))
+  partes <- Filter(Negate(is.null), lapply(seq_along(rondas), casos_de))
   casos <- if (length(partes)) do.call(rbind, partes) else .monitoreo_supervision_casos_vacio()
   rownames(casos) <- NULL
   controles_df <- if (length(controles_largo)) do.call(rbind, controles_largo) else .monitoreo_supervision_controles_vacio()
@@ -396,7 +419,8 @@
                   "Rondas", "Rondas guardadas", "Efectivas sin ronda"),
     Valor = c(as.character(nrow(base)), as.character(ultima$cantidad), as.character(nrow(casos)), as.character(ultima$semilla),
               if (conectada) "conectada" else "sin_hoja", as.character(sum(casos$`En hoja` == "Sí")),
-              as.character(length(hojas$controles)), as.character(length(rondas)), as.character(length(guardadas)),
+              as.character(length(unique(c(names(hojas$controles), unlist(lapply(hojas_ronda, function(h) names(h$controles))))))),
+              as.character(length(rondas)), as.character(length(guardadas)),
               as.character(sin_ronda)),
     stringsAsFactors = FALSE
   )
@@ -414,9 +438,10 @@
     .monitoreo_report_block("supervision_casos", "Supervisión: casos sorteados", casos,
                             if (conectada) "Resultado de la rellamada según la hoja de supervisión." else "Sin hoja de supervisión conectada."),
     .monitoreo_report_block("supervision_controles", "Supervisión: preguntas de control frente a Kobo", controles_df,
-                            if (!conectada) "Sin hoja de supervisión conectada." else if (!length(hojas$controles)) "La hoja no trae preguntas que existan en Kobo." else ""),
+                            if (!conectada) "Sin hoja de supervisión conectada." else if (!length(controles_largo)) "La hoja no trae preguntas que existan en Kobo." else ""),
     .monitoreo_report_block("supervision_rondas", "Supervisión: rondas", .monitoreo_supervision_rondas_df(rondas),
                             if (length(guardadas)) "" else "Ronda 1 sin guardar: el sorteo de supervision_n sobre todas las efectivas."),
+    .monitoreo_report_block("supervision_avisos", "Supervisión: avisos de la hoja", .monitoreo_supervision_avisos_df(rondas)),
     .monitoreo_report_block("supervision_base", "Supervisión: efectivas de Kobo", base_df,
                             "Universo de las rondas: una fila por CodPulso efectivo. «Disponible» = nunca elegido en una ronda.")
   )

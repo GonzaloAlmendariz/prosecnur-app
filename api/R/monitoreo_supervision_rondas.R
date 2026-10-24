@@ -77,11 +77,83 @@
         spreadsheet_id = .monitoreo_scalar(r$publicada$spreadsheet_id, ""),
         pestana = .monitoreo_scalar(r$publicada$pestana, ""),
         filas = .monitoreo_int(r$publicada$filas, 0L)
-      ) else NULL
+      ) else NULL,
+      resultados = .monitoreo_supervision_resultados_normalizar(r$resultados)
     )
   })
   out <- Filter(Negate(is.null), out)
   out[order(vapply(out, function(r) r$numero, integer(1)))]
+}
+
+# Lectura de la pestaña «Ronda N»: estado (`leida` | `pestana_borrada` |
+# `sin_pestana`), cuándo y sus filas (sin nombre ni teléfonos).
+.MONITOREO_SUPERVISION_LECTURA_ESTADOS <- c("leida", "pestana_borrada", "sin_pestana")
+.MONITOREO_SUPERVISION_NO_GUARDAR <- c("Nombre", "Telefono_final", "Teléfono final", "Tef1", "Tef2", "Tef3")
+
+.monitoreo_supervision_resultados_normalizar <- function(x) {
+  if (!is.list(x) || !length(x)) return(NULL)
+  estado <- .monitoreo_scalar(x$estado, "")
+  if (!estado %in% .MONITOREO_SUPERVISION_LECTURA_ESTADOS) return(NULL)
+  filas <- if (is.data.frame(x$filas)) x$filas else .monitoreo_supervision_df(x$filas, unique(unlist(lapply(x$filas %||% list(), names))))
+  filas <- filas[, !.monitoreo_text_key(names(filas)) %in% .monitoreo_text_key(.MONITOREO_SUPERVISION_NO_GUARDAR), drop = FALSE]
+  list(estado = estado, leido_el = .monitoreo_scalar(x$leido_el, ""), pestana = .monitoreo_scalar(x$pestana, ""), filas = filas)
+}
+
+# Valores de una pestaña (lista de filas de la API) → data.frame de texto.
+.monitoreo_supervision_tabla_pestana <- function(values) {
+  values <- values %||% list()
+  if (length(values) < 1L) return(data.frame())
+  cabecera <- trimws(vapply(values[[1]], function(v) .monitoreo_scalar(v, ""), character(1)))
+  if (!length(cabecera)) return(data.frame())
+  cuerpo <- values[-1]
+  cols <- lapply(seq_along(cabecera), function(j) vapply(cuerpo, function(fila) {
+    if (length(fila) >= j) .monitoreo_scalar(fila[[j]], "") else ""
+  }, character(1)))
+  out <- as.data.frame(stats::setNames(cols, make.unique(ifelse(nzchar(cabecera), cabecera, "columna"))),
+                       check.names = FALSE, stringsAsFactors = FALSE)
+  out[apply(out, 1, function(f) any(nzchar(f))), , drop = FALSE]
+}
+
+#' Lee todas las pestañas «Ronda N» del libro de supervisión y deja en cada
+#' ronda guardada sus resultados. Una ronda publicada cuya pestaña ya no
+#' está queda `pestana_borrada` y genera un aviso. Devuelve list(rondas,
+#' avisos, leidas).
+#' @noRd
+.monitoreo_supervision_leer_pestanas <- function(spreadsheet_id, rondas, ahora = .monitoreo_now_iso()) {
+  google <- function(expr) tryCatch(expr, api_error = function(e) stop(e), error = .monitoreo_sheets_stop)
+  base_url <- .monitoreo_sheets_api_base(spreadsheet_id)
+  tabs <- names(.monitoreo_sheets_tab_map(google(.monitoreo_sheets_metadata(spreadsheet_id))))
+  de_ronda <- tabs[grepl("^Ronda [0-9]+$", tabs)]
+  numeros <- vapply(rondas, function(r) r$numero, integer(1))
+  avisos <- character(0)
+  leidas <- 0L
+  for (pestana in de_ronda) {
+    n <- as.integer(sub("^Ronda ", "", pestana))
+    i <- match(n, numeros)
+    if (is.na(i)) {
+      avisos <- c(avisos, sprintf("La pestaña «%s» no corresponde a ninguna ronda guardada; no se leyó.", pestana))
+      next
+    }
+    rango <- utils::URLencode(paste0(.monitoreo_sheets_quote_sheet(pestana), "!A1:ZZ"), reserved = TRUE)
+    valores <- google(.monitoreo_google_api(paste0(base_url, "/values/", rango)))$values
+    rondas[[i]]$resultados <- .monitoreo_supervision_resultados_normalizar(list(
+      estado = "leida", leido_el = ahora, pestana = pestana, filas = .monitoreo_supervision_tabla_pestana(valores)
+    ))
+    leidas <- leidas + 1L
+  }
+  for (i in seq_along(rondas)) {
+    pestana <- sprintf("Ronda %d", rondas[[i]]$numero)
+    if (pestana %in% de_ronda) next
+    publicada <- is.list(rondas[[i]]$publicada)
+    rondas[[i]]$resultados <- list(estado = if (publicada) "pestana_borrada" else "sin_pestana", leido_el = ahora,
+                                   pestana = pestana, filas = data.frame())
+    if (publicada) {
+      avisos <- c(avisos, sprintf(
+        "La Ronda %d se publicó en «%s» el %s, pero esa pestaña ya no está en la hoja de supervisión: sus resultados no se pueden leer.",
+        rondas[[i]]$numero, rondas[[i]]$publicada$pestana, rondas[[i]]$publicada$en))
+    }
+  }
+  list(rondas = rondas, avisos = avisos, leidas = leidas)
 }
 
 #' El estado lee las rondas guardadas de la sesión para el reporte. La clave
@@ -121,7 +193,8 @@
     return(data.frame(Ronda = integer(0), Guardada = character(0), `Generada el` = character(0), Semilla = integer(0),
                       Porcentaje = numeric(0), Universo = integer(0), `Corte anterior` = character(0), Corte = character(0),
                       Sorteados = integer(0), Agregados = integer(0), Casos = integer(0), `Publicada en` = character(0),
-                      `Publicada el` = character(0), check.names = FALSE, stringsAsFactors = FALSE))
+                      `Publicada el` = character(0), Lectura = character(0), `Leída el` = character(0),
+                      check.names = FALSE, stringsAsFactors = FALSE))
   }
   do.call(rbind, lapply(rondas, function(r) {
     origen <- .monitoreo_supervision_texto(r$casos$Origen)
@@ -133,9 +206,24 @@
       Sorteados = sum(origen == "sorteo"), Agregados = sum(origen == "analista"), Casos = length(origen),
       `Publicada en` = if (is.list(r$publicada)) r$publicada$pestana else "",
       `Publicada el` = if (is.list(r$publicada)) r$publicada$en else "",
+      Lectura = if (is.list(r$resultados)) r$resultados$estado else "",
+      `Leída el` = if (is.list(r$resultados)) r$resultados$leido_el else "",
       check.names = FALSE, stringsAsFactors = FALSE
     )
   }))
+}
+
+#' Bloque `supervision_avisos`: Ronda · Aviso. Hoy, rondas publicadas cuya
+#' pestaña se borró de la hoja de supervisión.
+#' @noRd
+.monitoreo_supervision_avisos_df <- function(rondas) {
+  filas <- Filter(Negate(is.null), lapply(rondas, function(r) {
+    if (!is.list(r$resultados) || !identical(r$resultados$estado, "pestana_borrada")) return(NULL)
+    data.frame(Ronda = as.integer(r$numero), Aviso = sprintf(
+      "La Ronda %d se publicó en «%s», pero esa pestaña ya no está en la hoja de supervisión: sus resultados no se pueden leer.",
+      r$numero, r$resultados$pestana), stringsAsFactors = FALSE)
+  }))
+  if (length(filas)) do.call(rbind, filas) else data.frame(Ronda = integer(0), Aviso = character(0), stringsAsFactors = FALSE)
 }
 
 # Fecha más reciente de un vector (ISO o dd/mm/aaaa), en ISO; "" si ninguna.
@@ -403,6 +491,7 @@
   r$universo_claves <- NULL
   r$casos <- .monitoreo_report_records(r$casos)
   r$reparto <- .monitoreo_report_records(r$reparto)
+  if (is.list(r$resultados)) r$resultados$filas <- .monitoreo_report_records(r$resultados$filas)
   r
 }
 
@@ -446,5 +535,15 @@ mount_monitoreo_supervision_rondas <- function(pr) {
       rondas <- .monitoreo_supervision_guardar_rondas(sid, ctx$rondas)
       list(ok = TRUE, ronda = .monitoreo_supervision_ronda_payload(rondas[[i]]),
            rondas = lapply(rondas, .monitoreo_supervision_ronda_payload), state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/telefonico/supervision/resultados/leer", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      fuente <- .monitoreo_supervision_fuente_hoja(monitoreo_normalize_sources(s$monitoreo_sources %||% list()))
+      rondas <- .monitoreo_supervision_rondas_normalizar(s[["monitoreo_supervision_rondas"]])
+      lectura <- .monitoreo_supervision_leer_pestanas(fuente$sheet_binding$spreadsheet_id, rondas)
+      if (length(rondas)) .monitoreo_supervision_guardar_rondas(sid, lectura$rondas)
+      list(ok = TRUE, leidas = lectura$leidas, avisos = as.list(lectura$avisos),
+           rondas = lapply(lectura$rondas, .monitoreo_supervision_ronda_payload), state = .monitoreo_state_payload(sid))
     }))
 }
