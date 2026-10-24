@@ -458,7 +458,8 @@ export function srcOriginalDelBloque(html: string | null | undefined, blockId: s
   const fin = resto.indexOf("data-pulso-block=");
   const tramo = fin < 0 ? resto : resto.slice(0, fin);
   const m = /\sdata-pulso-original="([^"]*)"/i.exec(tramo);
-  return m ? m[1].replace(/&amp;/g, "&") : null;
+  // El base64 de R llega partido en renglones (`&#10;`), como el `src`: sin quitarlos no se decodifica.
+  return m ? m[1].replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&") : null;
 }
 
 /**

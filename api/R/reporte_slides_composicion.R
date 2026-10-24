@@ -69,10 +69,7 @@
 
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
-  anchos <- vapply(nombres, function(nm) {
-    loc <- contract$slots[[nm]]$loc %||% NULL
-    as.numeric(loc$width %||% 5.2)
-  }, numeric(1))
+  anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
 
   rendered <- list()
   for (i in seq_along(nombres)) {
