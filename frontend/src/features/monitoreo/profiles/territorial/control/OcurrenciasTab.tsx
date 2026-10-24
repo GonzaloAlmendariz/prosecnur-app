@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { fmt } from "../rotulos";
+import { fmt, pct } from "../rotulos";
 import { construirOcurrencias, type ModeloOcurrencias } from "./ocurrenciasModel";
 import "./ocurrencias.css";
 
@@ -137,7 +137,7 @@ function TasaPorUmp({ modelo }: { modelo: ModeloOcurrencias }) {
     <section className="mon-ocu-panel" aria-labelledby="mon-ocu-tasa" data-qa-geometry-member="tasa">
       <header className="mon-ocu-cabecera">
         <h3 id="mon-ocu-tasa" className="mon-ocu-titulo">UMP por tasa de efectividad</h3>
-        <span className="mon-ocu-base">{modelo.medianaDeTasa == null ? "Sin mediana" : `Mediana ${modelo.medianaDeTasa.toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`}</span>
+        <span className="mon-ocu-base">{modelo.medianaDeTasa == null ? "Sin mediana" : `Mediana ${pct(modelo.medianaDeTasa)}`}</span>
       </header>
       <ol className="mon-ocu-tramos">
         {modelo.tasas.map((tramo) => (
