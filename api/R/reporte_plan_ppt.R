@@ -7866,7 +7866,7 @@ reporte_ppt_plan <- function(
       if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
-        marco <- .lam_respaldo_marco(.lam_plantilla_estandar(opened_template_path), title_slide, subtitle_slide, ANTETITULOS[[i]], p)   # lamina_marco_respaldo.R
+        marco <- .lam_respaldo_marco(.lam_plantilla_estandar(opened_template_path) && !identical((slide$meta %||% list())$motor_nativo, FALSE), title_slide, subtitle_slide, ANTETITULOS[[i]], p)   # lamina_marco_respaldo.R; con el motor nativo apagado, la ruta anterior pura
         doc <- .lam_respaldo_titulo(doc, marco)
         if (!marco$activo && !is.null(title_slide) && nzchar(title_slide)) doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
         if (!marco$activo && !is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
