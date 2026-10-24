@@ -493,10 +493,10 @@
   white-space: nowrap;
 }
 
-.mon-cola-tabla th:nth-child(1) { width: 92px; padding-left: var(--pulso-space-4); }
+.mon-cola-tabla th:nth-child(1) { padding-left: var(--pulso-space-4); }
 .mon-cola-tabla th:nth-child(2) { width: 76px; }
 .mon-cola-tabla th:nth-child(3) { width: 128px; }
-.mon-cola-tabla th:nth-child(5) { width: 88px; }
+.mon-cola-tabla th:nth-child(5) { width: 112px; }
 .mon-cola-tabla th:nth-child(6) { width: 100px; }
 .mon-cola-tabla th:nth-child(7) { width: 104px; }
 
@@ -506,6 +506,7 @@
 
 .mon-cola-tabla tbody th button {
   padding: 0;
+  white-space: nowrap;
   border: 0;
   background: transparent;
   color: var(--pulso-text);
@@ -577,13 +578,11 @@
   color: var(--pulso-text-faint);
 }
 
-/* Una línea: la sigla o el nombre con elipsis; el nombre entero está en el
- * `title` y en la ficha del caso. */
+/* La sigla o el nombre entero, en dos líneas si hace falta: con elipsis se
+ * leía «Post-pa…» y «Actualid…» (RMS). */
 .mon-cola-cuota {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .mon-cola-fecha span,
@@ -795,7 +794,7 @@
     grid-template-columns: 200px minmax(0, 1fr) 300px;
   }
 
-  .mon-cola-tabla th:nth-child(5) { width: 80px; }
+  .mon-cola-tabla th:nth-child(5) { width: 104px; }
 }
 
 @media (max-width: 1300px) {
