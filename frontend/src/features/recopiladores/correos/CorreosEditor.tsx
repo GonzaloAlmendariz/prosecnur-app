@@ -38,6 +38,7 @@ import { PanelSurveyMonkey } from "./PanelSurveyMonkey";
 import {
   APERTURA,
   bloqueParaInsertar,
+  duplicarBloque,
   chequeosPorBloque,
   conPuntoNuevo,
   conTextoDeZona,
@@ -297,6 +298,18 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
           seleccionar(out.block_id);
         }}
         onQuitar={quitarConAviso}
+        onDuplicar={(id) => {
+          const actual = useCorreosStore.getState().borrador;
+          const out = actual ? duplicarBloque(actual, id) : null;
+          if (!out) return;
+          st.reemplazarBorrador(out.template);
+          seleccionar(out.block_id);
+        }}
+        onEditarBloque={(id, update) => editarUnBloque(id, update)}
+        onEstilo={(id) => {
+          seleccionar(id);
+          st.setVistaDelBloque("estilo");
+        }}
         onArchivoDeImagen={subirImagenDeBloque}
         onArchivoDeLogo={(id, file) => { void acciones.subirImagen(id, file); }}
         onDeshacer={st.deshacer}
