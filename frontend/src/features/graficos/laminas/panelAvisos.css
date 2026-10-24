@@ -88,6 +88,13 @@
   overflow-wrap: anywhere;
 }
 
+/* Fila con una acción masiva de rótulo largo («Fijar la base principal en todas las láminas»): el texto ocupa el ancho
+   y la acción va debajo; en dos columnas el texto quedaba en una franja de una palabra por renglón. */
+.pulso-f6-avisos-grupo li.is-accion {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+
 .pulso-f6-avisos-grupo.is-bloquea li {
   border-color: var(--pulso-danger-border);
 }

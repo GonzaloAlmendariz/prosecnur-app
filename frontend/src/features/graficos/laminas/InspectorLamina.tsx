@@ -16,6 +16,7 @@ import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenid
 import { DatosGrafico } from "./DatosGrafico";
 import { DependenciaLamina } from "./DependenciaLamina";
 import { SeccionComposicion } from "./SeccionComposicion";
+import { rolDeEstructura } from "./rolEstructura";
 import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
@@ -85,7 +86,8 @@ export function InspectorLamina({
   const conGraficos = slots.length > 0;
   const seccion: SeccionInspector = conGraficos && (seccionGuardada === "graficos" || seccionGuardada === "estado") ? "graficos" : "contenido";
   const { issues } = usePlanValidator();
-  const avisos = [...issues.filter((i) => i.slideId === slide.id).map((i) => i.message), ...(visor?.avisos ?? [])];
+  // Dentro de la lámina, sin repetir «Lámina N · “título”» ni el mismo aviso dos veces (U4 de CCSS: cuatro casi iguales).
+  const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])])];
 
   const tabId = (k: SeccionInspector) => `${baseId}-tab-${k}`;
   const panelId = (k: SeccionInspector) => `${baseId}-panel-${k}`;
@@ -98,7 +100,7 @@ export function InspectorLamina({
         </span>
         <span className="pulso-f6-inspector-tipo-texto">
           <strong id="pulso-f6-inspector-titulo">Lámina {lamina.posicion}: {lamina.tipoLabel}</strong>
-          <span>{conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : "Estructura del informe"}</span>
+          <span>{conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : rolDeEstructura(slide.tipo)}</span>
         </span>
         <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
           Cambiar

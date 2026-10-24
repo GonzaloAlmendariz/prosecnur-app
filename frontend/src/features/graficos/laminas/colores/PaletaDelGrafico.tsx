@@ -17,6 +17,7 @@ import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
 import { GRAFICOS_POR_CATEGORIA, preguntasDelGrafico } from "../modeloMaqueta";
 import { varCalificada } from "../ordenCategorias";
+import { fraseOtrasPreguntas } from "./frasesPaleta";
 import "../../estilo/coloresRespuestas.css";
 import "./paletaDelGrafico.css";
 
@@ -36,7 +37,7 @@ function Barra({ fila }: { fila: FilaPaleta }) {
           <li key={o} className={fila.colores[o] ? undefined : "is-falta"}>
             <span className={fila.colores[o] ? "pulso-cr-punto" : "pulso-cr-punto is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} aria-hidden="true" />
             {o}
-            {fila.colores[o] ? null : <span className="pulso-pg-sin">por defecto</span>}
+            {fila.colores[o] ? null : <span className="pulso-sr-only"> (color por defecto)</span>}
           </li>
         ))}
       </ul>
@@ -109,7 +110,7 @@ export function PaletaDelGrafico({ valor }: Props) {
               </label>
             ) : null}
             <p className="pulso-f6-dato-ayuda">
-              {otras > 0 ? `Estos colores también pintan otras ${otras} ${otras === 1 ? "pregunta" : "preguntas"} con las mismas respuestas.` : "Estos colores son los de esta pregunta."}{" "}
+              {fraseOtrasPreguntas(otras)}{" "}
               <button type="button" className="pulso-pg-enlace" onClick={irAIdentidad}>Editar colores</button>
             </p>
           </div>

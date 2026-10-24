@@ -22,6 +22,7 @@ import { VisorLamina } from "./VisorLamina";
 import { TiraMiniaturas } from "./TiraMiniaturas";
 import { PanelAvisos } from "./PanelAvisos";
 import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
+import { useFijarBase } from "../useFijarBase";
 import { EditorAmplio } from "./EditorAmplio";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura } from "./modeloEstructura";
@@ -73,6 +74,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const avisos = usePanelDireccionable(PANEL_AVISOS_INFORME);
   const colores = useColoresPendientes();
   const coloresPendientes = { laminas: new Set(colores.pendientes.map((p) => p.slideId)).size, completar: colores.completar };
+  const baseImplicita = useFijarBase();
   const resumenes = useLaminasUi((s) => s.resumenes);
   const parte = useLaminasUi((s) => s.parte);
   const setParte = useLaminasUi((s) => s.setParte);
@@ -276,7 +278,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           </div>
         </div>
       </div>
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} />}
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
       <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} />
       </div>
     );
@@ -376,7 +378,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         />
       </div>
       <EditorAmplio />
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} />}
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
       {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}

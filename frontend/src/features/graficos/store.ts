@@ -206,6 +206,7 @@ type PlanStore = {
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, direction: "up" | "down") => void;
   updateSlidePayload: (id: string, patch: Record<string, unknown>) => void;
+  transformarLaminas: (f: (slides: Slide[]) => Slide[]) => void; // todas en un paso deshacible (fijarBase.ts)
   /** Cambia el tipo de una lámina con el payload ya reacomodado (laminas/selectores/cambioTipoLamina.ts). */
   setSlideTipo: (id: string, tipo: SlideType, payload: Record<string, unknown>) => void;
   /** Inserta una lámina en `index` (0-based) con su payload, la selecciona y devuelve su id (un paso deshacible). */
@@ -653,6 +654,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     });
   },
 
+  transformarLaminas: (f) => set((state) => { const slides = f(state.plan.slides); return slides === state.plan.slides ? {} : dirty(state, { plan: { slides } }); }),
   updateSlidePayload: (id, patch) => {
     set((state) => dirty(state, {
       plan: {
