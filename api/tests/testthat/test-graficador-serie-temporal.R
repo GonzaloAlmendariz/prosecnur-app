@@ -244,7 +244,9 @@ test_that("serie temporal conserva su prefijo y llamada posicional historicos", 
       # las llamadas posicionales.
       "titulos_grupo",
       # O7c: la leyenda que escribe la tarjeta de Láminas; al final por lo mismo.
-      "mostrar_leyenda"
+      "mostrar_leyenda",
+      # L10-7: la evolución por los niveles de un cruce de la misma base; al final por lo mismo.
+      "cruce", "grupos"
     )
   )
 
