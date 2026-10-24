@@ -123,7 +123,7 @@ test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 i
   ext <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:segmento']]/p:spPr/a:xfrm/a:ext")
   cx <- as.numeric(xml2::xml_attr(ext, "cx")) / 914400; cy <- as.numeric(xml2::xml_attr(ext, "cy")) / 914400
   expect_equal(cy, c(0.7, 0.7), tolerance = 1e-3)
-  ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  ancho <- .lam_dicotomia_partida_geo(TRUE)$w   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
   expect_equal(max(cx), ancho * .98 + 0.004, tolerance = 1e-3)   # el Sí mide su 98 % rotulado
 })
 

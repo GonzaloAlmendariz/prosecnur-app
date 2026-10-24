@@ -4880,7 +4880,7 @@ reporte_ppt_plan <- function(
       if (!is.null(nota_sig) && nzchar(nota_sig) &&
           is.null(overrides$nota_pie) && is.null(preset_args_multi$nota_pie) &&
           is.null(preset_args_single$nota_pie)) {
-        base_args$nota_pie <- nota_sig
+        base_args$nota_pie <- .sig_nota_pie_del_grafico(nota_sig)   # lamina_nota_significancia.R
       }
       for (k in c("mostrar_significancia", "significancia_alpha")) {
         overrides[[k]] <- NULL
@@ -5572,7 +5572,7 @@ reporte_ppt_plan <- function(
     # apagada el caption sigue vacio y la banda de Base se reserva igual.
     if (!is.null(nota_significancia) && nzchar(nota_significancia) &&
         is.null(overrides$nota_pie) && is.null(preset_args$nota_pie)) {
-      base_args$nota_pie <- nota_significancia
+      base_args$nota_pie <- .sig_nota_pie_del_grafico(nota_significancia)
     }
     preset_args$mostrar_significancia <- NULL
     preset_args$significancia_alpha <- NULL
@@ -7835,7 +7835,7 @@ reporte_ppt_plan <- function(
 
       el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
       el_plot <- .inject_var_titulo(el_plot)
-      p <- .render_element(el_plot, ancho_slot = 12.5)
+      p <- .lam_con_sig_en_lamina(.lam_plantilla_estandar(opened_template_path), .render_element(el_plot, ancho_slot = 12.5))
 
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
@@ -7866,16 +7866,11 @@ reporte_ppt_plan <- function(
       if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
-
-        if (!is.null(title_slide) && nzchar(title_slide)) {
-          doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
-        }
-
-        if (!is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) {
-          doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
-        }
-
-        plot_slot <- .plot_slot_for_rendered_plot(contract$slots$plot, p)
+        marco <- .lam_respaldo_marco(.lam_plantilla_estandar(opened_template_path), title_slide, subtitle_slide, ANTETITULOS[[i]], p)   # lamina_marco_respaldo.R
+        doc <- .lam_respaldo_titulo(doc, marco)
+        if (!marco$activo && !is.null(title_slide) && nzchar(title_slide)) doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
+        if (!marco$activo && !is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
+        plot_slot <- .lam_respaldo_cajon(.plot_slot_for_rendered_plot(contract$slots$plot, p), marco, if (marco$activo) .lam_respaldo_pic(doc, contract$layout, master))
 
         # Grafico Y tabla en el mismo cajon: el aprobado pone el radar a la
         # izquierda y su tabla a la derecha, las dos como formas propias. Si el
@@ -7926,7 +7921,7 @@ reporte_ppt_plan <- function(
 
         if (!suppress_base_placeholder) {
           if (is.null(base_txt)) base_txt <- " "
-          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+          if (marco$activo) marco$base <- as.character(base_txt)[1] else doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
         }
 
         # RIGHT (usa footer o deja en blanco)
@@ -7942,8 +7937,9 @@ reporte_ppt_plan <- function(
 
         if (!suppress_footer_placeholder) {
           if (is.null(right_txt) || !nzchar(trimws(right_txt))) right_txt <- " "
-          doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
+          if (marco$activo) marco$derecha <- right_txt else doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
         }
+        doc <- .lam_respaldo_cierre(doc, marco)
         doc <- .add_partner_footer_logo(doc)
       }
 
