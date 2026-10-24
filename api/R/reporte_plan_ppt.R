@@ -3435,7 +3435,7 @@ reporte_ppt_plan <- function(
 
     .base_auto_from_refs(
       refs = refs_base,
-      filtros = el$filtros %||% list(),
+      filtros = .base_filtros_con_cruce(el, el$filtros %||% list(), .resolve_ref, .filter_data, refs_base[[1]]),   # reporte_plan_base_cruce.R
       sufijo_auto = sufijo_auto,
       formato = formato,
       excluir_opciones = excluir_base
