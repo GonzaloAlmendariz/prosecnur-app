@@ -174,7 +174,7 @@
 #' La primera categoría va en azul y la segunda en celeste; la barra mide las cifras rotuladas.
 #' @keywords internal
 .lam_dicotomia <- function(lz, x, y, w, rotulos, cifras, largos, n = NULL, size = 22, g = 0.34,
-                           cols = .std_paleta("dicotomica"), size_rot = 10.5) {
+                           cols = .std_paleta("dicotomica"), size_rot = 10.5, alinear_texto = FALSE) {
   size <- round(size * 0.85)   # C14 y C19 del recetario: las cifras de la dicotomía, un poco más chicas
   azul <- .std_color("azul"); medio <- .std_color("azul_medio")
   dico <- identical(toupper(cols), toupper(.std_paleta("dicotomica")))
@@ -183,15 +183,16 @@
   # muy claro escribe su cifra en un tono más hondo del mismo color para que se lea sobre el fondo.
   col_cifra <- if (dico) c(azul, medio) else vapply(cols[1:2], .lam_color_legible, "")
   et <- function(k) if (is.null(n) || !is.finite(n[k])) rotulos[k] else sprintf("%s (%d)", rotulos[k], as.integer(n[k]))
-  .lam_txt(lz, cifras[1], x, y, 1.6, size * 1.3 / 72, size, col_cifra[1], bold = TRUE, nombre = "dicotomia:cifra")
-  .lam_txt(lz, cifras[2], x + w - 1.6, y, 1.6, size * 1.3 / 72, size, col_cifra[2], bold = TRUE, align = "right",
+  xt <- if (isTRUE(alinear_texto)) x - .LAM_SANGRIA_TXT else x; wt <- if (isTRUE(alinear_texto)) w + 2 * .LAM_SANGRIA_TXT else w   # el texto cae sobre el borde de la barra (lamina_dicotomia_margenes.R)
+  .lam_txt(lz, cifras[1], xt, y, 1.6, size * 1.3 / 72, size, col_cifra[1], bold = TRUE, nombre = "dicotomia:cifra")
+  .lam_txt(lz, cifras[2], xt + wt - 1.6, y, 1.6, size * 1.3 / 72, size, col_cifra[2], bold = TRUE, align = "right",
            nombre = "dicotomia:cifra")
   # En la lámina completa el rótulo («Sí», «No») va a 14 pt en negrita: a 10.5 pt se perdía bajo una cifra de 34 pt
   # (Gonzalo, 2026-10-14). Los paneles (corona, mixtas) conservan los 10.5 pt medidos sobre el recetario.
   grande <- size_rot > 10.5
   yl <- y + size * 1.25 / 72; yb <- yl + if (grande) 0.38 else 0.32
-  .lam_txt(lz, et(1), x, yl, w / 2, if (grande) 0.32 else 0.26, size_rot, azul, bold = grande, nombre = "dicotomia:rotulo")
-  .lam_txt(lz, et(2), x + w / 2, yl, w / 2, if (grande) 0.32 else 0.26, size_rot, azul, bold = grande, align = "right", nombre = "dicotomia:rotulo")
+  .lam_txt(lz, et(1), xt, yl, wt / 2, if (grande) 0.32 else 0.26, size_rot, azul, bold = grande, nombre = "dicotomia:rotulo")
+  .lam_txt(lz, et(2), xt + wt / 2, yl, wt / 2, if (grande) 0.32 else 0.26, size_rot, azul, bold = grande, align = "right", nombre = "dicotomia:rotulo")
   w1 <- w * largos[1] / sum(largos[1:2])
   .lam_caja(lz, x + w1, yb, w - w1, g, cols[2], nombre = "dicotomia:segmento")
   .lam_caja(lz, x, yb, w1 + 0.004, g, cols[1], nombre = "dicotomia:segmento")
@@ -283,8 +284,10 @@
     .lam_dicotomia_vertical(lz, ml + 0.4, y, g_("contenido_y1") - y - 0.15, d$rotulos, d$cifras, d$largos, d$n,
                             size = 40, cols = d$colores)
   } else {
-    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
-    .lam_dicotomia(lz, ml, y, ancho, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7, cols = d$colores, size_rot = 14)
+    mg <- .lam_dicotomia_partida_geo(!is.null(pregunta) && nzchar(pregunta))   # lamina_dicotomia_margenes.R: mismo margen a ambos lados, centrada
+    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3 + mg$dy, ancho, pregunta, publico)
+    .lam_dicotomia(lz, mg$x, y + mg$dy, mg$w, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7, cols = d$colores, size_rot = 14,
+                   alinear_texto = TRUE)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia")
   doc <- .lam_pie(doc, base, folio)
