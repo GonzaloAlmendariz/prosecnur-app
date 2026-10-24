@@ -54,3 +54,55 @@ test_that("la dona ggplot de seis porciones saca las chicas con su guía y sin e
   pos <- sort(g$y_texto[g$fuera])
   expect_true(all(diff(pos) >= attr(g, "minimo") - 1e-9))
 })
+
+# ---- Guía de dos tramos (Gonzalo: «recta y perpendicular a 90° y luego curvar siguiendo la curvatura») -------------
+
+test_that("el trazo de la guía: primer tramo radial dentro de 1°, el segundo equidista del centro", {
+  tr <- .lam_circular_guia_trazo(0.97, 0.93, r = 1.75, largo = 0.15)
+  x <- tr$rad * sin(2 * pi * tr$ang); y <- tr$rad * cos(2 * pi * tr$ang)
+  dir1 <- atan2(x[2] - x[1], y[2] - y[1])                    # dirección del primer tramo
+  radial <- atan2(x[1], y[1])                                 # dirección del radio en el punto de salida
+  expect_lt(abs((dir1 - radial + pi) %% (2 * pi) - pi) * 180 / pi, 1)
+  expect_equal(sqrt(x[1]^2 + y[1]^2), 1.75)
+  expect_true(all(abs(sqrt(x[-1]^2 + y[-1]^2) - 1.9) < 1e-9))  # el arco, a r + largo
+  expect_gte(nrow(tr), 12L)
+  expect_equal(tr$ang[nrow(tr)], 0.93)
+  # Si la cifra va en el ángulo de su porción, sólo queda el tramo radial.
+  expect_equal(nrow(.lam_circular_guia_trazo(0.2, 0.2, 1, 0.1)), 2L)
+})
+
+test_that("la separación abre el grupo hacia los dos lados alrededor de su porción", {
+  pos <- .lam_circular_separar(c(0.98, 0.99, 0.995), minimo = 0.03)
+  expect_true(all(diff(pos) >= 0.03 - 1e-9))
+  expect_lt(pos[1], 0.98); expect_gt(pos[3], 0.995)          # no empuja sólo hacia adelante
+  expect_equal(mean(pos), mean(c(0.98, 0.99, 0.995)))
+})
+
+test_that("en la torta nativa la guía es radial y luego en arco, y las cifras de fuera no se tocan", {
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  o <- .lam_laminas_torta(doc, .lg_espec(c(96, 2, 2)), "Torta", folio = 1)
+  x <- .lg_xml(o)
+  expect_gte(length(.lg_sp(x, "torta:guia")), 3L)              # radial + tramos del arco
+  ln <- xml2::xml_find_first(.lg_sp(x, "torta:guia"), "p:spPr/a:ln")
+  expect_identical(unique(xml2::xml_attr(ln, "w")), as.character(as.integer(round(0.012 * 72 * 12700))))
+  f <- .lg_caja(.lg_sp(x, "torta:cifra_fuera"))
+  expect_equal(nrow(f), 2L)
+  expect_false(!(f[1, "x"] + f[1, "w"] <= f[2, "x"] || f[2, "x"] + f[2, "w"] <= f[1, "x"] ||
+                   f[1, "y"] + f[1, "h"] <= f[2, "y"] || f[2, "y"] + f[2, "h"] <= f[1, "y"]))
+})
+
+test_that("la dona ggplot de Género (2 %, 0 %) a lámina completa saca las dos cifras con guía de dos tramos, sin encimarlas", {
+  g <- c("Femenino", "Masculino", "Persona de género no binario", "Prefiero no responder"); v <- c(212, 182, 9, 0)
+  p <- suppressWarnings(graficar_pie(data.frame(c = g, p = v / sum(v), n = v), "c", "p", var_n = "n", tipo_pie = "donut",
+                                     ancho = 11.5, alto = 4.6))
+  gu <- attr(p, "pulso_pie_guias")
+  expect_true(all(c("Persona de género no binario", "Prefiero no responder") %in% gu$categoria[gu$fuera]))
+  tr <- attr(gu, "trazos")
+  for (cat in unique(tr$categoria)) {
+    t1 <- tr[tr$categoria == cat, ]
+    expect_equal(t1$ang[1], t1$ang[2])                            # primer tramo radial
+    expect_true(all(abs(t1$rad[-1] - attr(gu, "r_arco")) < 1e-9))  # el resto, sobre el arco
+  }
+  fz <- gu[gu$fuera, ]
+  expect_gte(abs(diff(fz$y_texto)), attr(gu, "minimo") - 1e-9)
+})
