@@ -59,3 +59,11 @@ describe("criteriosDelRadar", () => {
     expect(criteriosDelRadar({})).toBe(0);
   });
 });
+
+describe("rotuloTablaAuto", () => {
+  it("no promete «junto al radar» cuando la forma efectiva no es radar", async () => {
+    const { rotuloTablaAuto } = await import("./formaRadar");
+    expect(rotuloTablaAuto("puntos", "Automática: junto al radar")).toBe("Automática");
+    expect(rotuloTablaAuto("radar", "Automática: junto al radar")).toBe("Automática: junto al radar");
+  });
+});

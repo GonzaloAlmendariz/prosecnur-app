@@ -49,3 +49,8 @@ export function formaEfectivaRadar(e: EntradaForma): FormaEfectiva {
   const conTabla = tabla === "si" ? true : tabla === "no" ? false : forma === "radar";
   return { forma, conTabla, nota, aviso };
 }
+
+/** Rótulo de la opción «Automática» de la tabla: con una forma que no es radar no promete «junto al radar». */
+export function rotuloTablaAuto(forma: FormaDibujada, rotulo: string): string {
+  return forma === "radar" ? rotulo : rotulo.split(":")[0];
+}

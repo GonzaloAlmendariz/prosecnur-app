@@ -188,6 +188,7 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       const tabla = v("tabla") ?? (v("mostrar_tabla") === false ? "no" : undefined);
       const f = formaEfectivaRadar({ forma: v("forma"), fallback_pocos: v("fallback_pocos"), tabla, nCriterios: criteriosDelRadar(args) });
       glifo.formaRadar = f.forma;
+      glifo.criterios = criteriosDelRadar(args);
       glifo.tabla = f.conTabla;
       if (f.forma !== "radar") ajustes.push(f.forma === "puntos" ? "Líneas y puntos" : "Barras comparativas");
       if (!f.conTabla) ajustes.push("Sin tabla de datos");
