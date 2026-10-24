@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { normalizeMailBlock, normalizeMailCrop, type MailFeatureBlock } from "../../../api/materialMail";
+import { normalizeMailBlock, normalizeMailCrop, type MailFeatureBlock, type MailImageBlock } from "../../../api/materialMail";
 import { srcOriginalDelBloque } from "./estructuraCorreo";
 import { conRecorte, recorteDe, rectDelRecorte } from "./modeloRecorte";
 
@@ -45,5 +45,21 @@ describe("contrato del recorte en el cliente", () => {
     const html = '<tr data-pulso-block="d"><td><img src="data:image/jpeg;base64,RECORTE" data-pulso-original="data:image/jpeg;base64,ENTERA"></td></tr><tr data-pulso-block="otro"><img data-pulso-original="NO"></tr>';
     expect(srcOriginalDelBloque(html, "d")).toBe("data:image/jpeg;base64,ENTERA");
     expect(srcOriginalDelBloque(html, "nada")).toBeNull();
+  });
+});
+
+describe("recorte en un bloque Imagen", () => {
+  const img = (extra: Partial<MailImageBlock> = {}): MailImageBlock => ({ block_id: "i", type: "image", image_ref: "premio", alt: "P", ...extra });
+
+  it("sin crop sale entera (nada de antes cambia); con crop, el mismo rectángulo que en R", () => {
+    expect(recorteDe(img()).ratio).toBe("original");
+    expect(rectDelRecorte({ width: 320, height: 240 }, recorteDe(img()))).toBeNull();
+    expect(rectDelRecorte({ width: 320, height: 240 }, recorteDe(img({ crop: { ratio: "16:9", y: 0.2 } })))).toEqual({ x0: 0, y0: 0, w: 320, h: 180 });
+    expect(conRecorte(img(), { ratio: "4:3" })).toMatchObject({ crop: { ratio: "4:3" } });
+  });
+
+  it("el normalizador conserva el crop de una Imagen", () => {
+    expect(normalizeMailBlock({ block_id: "i", type: "image", image_ref: "p", alt: "P", crop: { ratio: "2:1", zoom: 1.5 } }))
+      .toMatchObject({ crop: { ratio: "2:1", zoom: 1.5 } });
   });
 });

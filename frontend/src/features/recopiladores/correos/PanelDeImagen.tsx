@@ -8,6 +8,7 @@ import { Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { EncuadreDeFoto } from "./EncuadreDeFoto";
 import { conTraeLogos, esBannerDeArriba, franjaPorElBanner, hayFranjaDeLogos, propDelProblema, traeLogosDe } from "./modeloCorreo";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
 import { descripcionesPendientes } from "./piezasGraficas";
@@ -86,16 +87,17 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
 
   return (
     <div className="rec-capa-img-panel">
-      <div className={`rec-capa-img-vista${vista ? "" : " is-vacia"}`} data-qa-geometry-capacity="owned">
-        {vista ? (
-          <img src={vista} alt={decorativa ? "" : block.alt || "Imagen del correo"} />
-        ) : (
+      {vista ? (
+        // La foto entera y, si se recorta (L7), el encuadre encima.
+        <EncuadreDeFoto block={block} vista={vista} onEditarBloque={onEditarBloque} />
+      ) : (
+        <div className="rec-capa-img-vista is-vacia" data-qa-geometry-capacity="owned">
           <span className="rec-capa-img-vacia">
             <ImagePlus size={20} aria-hidden />
             <span>{decorativa ? "Sin archivo todavía. En el correo se ve el hueco." : "Sin archivo todavía. En el correo se ve el hueco con el texto alternativo."}</span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
       <div className="rec-capa-img-subir">
         <PulsoButton variant={vista ? "secondary" : "primary"} size="sm" disabled={ocupado} onClick={() => archivo.current?.click()}>
           <Upload size={14} aria-hidden /> {vista ? "Reemplazar la imagen" : "Subir imagen"}

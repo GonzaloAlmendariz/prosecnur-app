@@ -130,3 +130,44 @@ test_that("la vista previa del editor lleva la foto entera para encuadrar; el co
   # Y el correo exportado nombra el recorte, no el original.
   expect_match(exp, imgs$premio$crops[[1]], fixed = TRUE)
 })
+
+# ---- bloque Imagen ----------------------------------------------------------------
+
+.cmrc_image <- function(...) {
+  utils::modifyList(list(block_id = "img", type = "image", image_ref = "premio", alt = "Premio"), list(...))
+}
+
+test_that("un bloque Imagen sin crop sale entero, como siempre", {
+  expect_null(.cmail_crop_of(.cmrc_image()))
+  original <- .cmrc_jpeg(300L, 200L)
+  t <- .cmrc_tpl(list(.cmrc_image()))
+  imgs <- .cmail_crop_apply(t, list(premio = original))
+  expect_null(imgs$premio$crops)
+  expect_false(isTRUE(imgs$premio$superseded))
+})
+
+test_that("un bloque Imagen con crop valida, se recorta y muestra el recorte, con la foto entera sólo en la vista previa", {
+  b <- .cmrc_image(crop = list(ratio = "16:9", y = 0.2))
+  t <- .cmrc_tpl(list(b))
+  v <- collection_mail_template_validate(t)
+  expect_true(v$ok, info = paste(vapply(v$problems, `[[`, "", "detail"), collapse = "; "))
+  expect_true("bad_crop_ratio" %in% vapply(collection_mail_template_validate(.cmrc_tpl(list(.cmrc_image(crop = list(ratio = "5:4")))))$problems,
+                                           `[[`, "", "code"))
+  original <- .cmrc_jpeg(320L, 240L)
+  imgs <- .cmail_crop_apply(t, list(premio = original))
+  cut_id <- imgs$premio$crops[[1]]
+  expect_match(cut_id, "^premio-r320x180-")
+  expect_true(isTRUE(imgs$premio$superseded))
+  ctx <- list(pal = .cmail_theme_palette(t, "#0b1f54", "#0b1f54"), accent = "#0b1f54", width = 600L, images = imgs, export = FALSE)
+  # A la mitad del natural del recorte (160), no del original.
+  expect_match(.cmail_block_image(b, ctx), '<img [^>]*width="160"')
+  prev <- collection_mail_render(t, "preview", "mailchimp", images = imgs)$html
+  expect_match(prev, 'data-pulso-original="data:image/jpeg;base64,', fixed = TRUE)
+  exp <- collection_mail_render(t, "export", "mailchimp", images = imgs)$html
+  expect_false(grepl("data-pulso-original", exp, fixed = TRUE))
+  expect_match(exp, cut_id, fixed = TRUE)
+  # Nitidez sobre el recorte: 320 px de ancho mostrados a 160 pasan justo a 2x.
+  checks <- list(); push <- function(x) { checks[[length(checks) + 1L]] <<- x; invisible(push) }
+  .cmail_image_checks_common(t, imgs, .cmail_image_uses(t), push)
+  expect_identical(Filter(function(c) identical(c$code, "image_width"), checks)[[1]]$status, "ok")
+})

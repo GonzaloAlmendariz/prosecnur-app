@@ -1,10 +1,11 @@
 # collection_mail_recorte.R — recorte de la foto a una proporción fija (GOAL
 # editor de correos profesional, L7; benchmark §8, reglas 1 y 2).
 #
-#   crop { ratio?, x?, y?, zoom? }      en la foto de un Destacado (`feature`)
+#   crop { ratio?, x?, y?, zoom? }      en la foto de un Destacado (`feature`) y de un bloque Imagen
 #
-# `ratio` es cerrado: original · 1:1 · 4:3 · 2:1 · 16:9. Sin `crop`, la
-# proporción de la maqueta aprobada: 1:1 con la foto a un lado, 2:1 arriba.
+# `ratio` es cerrado: original · 1:1 · 4:3 · 2:1 · 16:9. Sin `crop`, en un
+# Destacado la proporción de la maqueta aprobada (1:1 con la foto a un lado,
+# 2:1 arriba); en un bloque Imagen, «original»: ningún correo de antes cambia.
 # `x` e `y` (0 a 1) son el centro del encuadre; `zoom` (1 a 3) acerca.
 #
 # **El recorte es del archivo, no de CSS.** `object-fit` no existe en Outlook ni
@@ -50,8 +51,9 @@
 #' @keywords internal
 .cmail_crop_of <- function(b) {
   crop <- if (is.list(b$crop)) b$crop else list()
-  layout <- .cmail_style(b, "layout", "izquierda")
-  ratio <- .cmail_one(crop$ratio) %||% (if (identical(layout, "arriba")) "2:1" else "1:1")
+  defecto <- if (!identical(.cmail_one(b$type), "feature")) "original"
+             else if (identical(.cmail_style(b, "layout", "izquierda"), "arriba")) "2:1" else "1:1"
+  ratio <- .cmail_one(crop$ratio) %||% defecto
   if (identical(ratio, "original") || !(ratio %in% names(.CMAIL_CROP_RATIOS))) return(NULL)
   num <- function(k, default) {
     v <- suppressWarnings(as.numeric(unlist(crop[[k]])))
@@ -113,9 +115,8 @@
   recortados <- character(0)
   for (b in template$blocks %||% list()) {
     type <- .cmail_one(b$type) %||% ""
-    if (identical(type, "image")) usados_enteros <- c(usados_enteros, as.character(.cmail_one(b$image_ref) %||% ""))
     if (identical(type, "two_images")) usados_enteros <- c(usados_enteros, as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
-    if (!identical(type, "feature")) next
+    if (!(type %in% c("feature", "image"))) next
     id <- .cmail_one(b$image_ref)
     img <- if (!is.null(id)) images[[id]] else NULL
     crop <- .cmail_crop_of(b)
@@ -137,7 +138,8 @@
   images
 }
 
-#' La imagen que muestra un Destacado: su recorte si existe; si no, la original.
+#' La imagen que muestra un bloque con `image_ref` (Destacado o Imagen): su
+#' recorte si existe; si no, la original.
 #' @keywords internal
 .cmail_feature_img <- function(b, ctx) {
   id <- as.character(.cmail_one(b$image_ref) %||% "")

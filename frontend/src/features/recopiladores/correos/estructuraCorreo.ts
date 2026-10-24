@@ -389,8 +389,8 @@ export function srcDeImagenDelBloque(html: string | null | undefined, blockId: s
 }
 
 /**
- * La foto entera de un Destacado recortado, tal como la manda la vista previa
- * en `data-pulso-original` (collection_mail_destacado.R): sobre ella se encuadra.
+ * La foto entera de un Destacado o una Imagen recortados, tal como la manda la
+ * vista previa en `data-pulso-original` (collection_mail_recorte.R): sobre ella se encuadra.
  */
 export function srcOriginalDelBloque(html: string | null | undefined, blockId: string): string | null {
   if (!html) return null;
