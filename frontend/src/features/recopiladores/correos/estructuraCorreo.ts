@@ -11,7 +11,8 @@
 //   nada se mueve ni se inserta después de él, y él no se mueve.
 
 import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailTemplate } from "../../../api/materialMail";
-import { CABECERA, bloqueNuevo, idLibre, nuevoIdDeBloque } from "./modeloCorreo";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
+import { CABECERA, bloqueNuevo, idLibre, lugarParaAgregar, nuevoIdDeBloque } from "./modeloCorreo";
 import { imagenesDelCuerpo, type TipoInsertable } from "./piezasGraficas";
 
 /** Zona de la apertura de un recordatorio (addendum E1k): se edita en `send.opening`. */
@@ -102,6 +103,29 @@ export function duplicarBloque(template: MailTemplate, blockId: string): { templ
   const blocks = [...template.blocks];
   blocks.splice(i + 1, 0, copia);
   return { template: { ...template, blocks }, block_id };
+}
+
+/**
+ * Inserta una copia de una sección guardada (L9): con un id nuevo, en el hueco
+ * pedido o después del bloque elegido; la descripción y la URL de sus fotos se
+ * suman a `template.images` sólo si el correo no las tiene. `null` si no cabe.
+ */
+export function insertarSeccionGuardada(
+  template: MailTemplate,
+  seccion: Pick<MailSavedSection, "block" | "images">,
+  donde: { hueco: number } | { despuesDe: string | null },
+): { template: MailTemplate; block_id: string } | null {
+  if (template.blocks.length >= MAXIMO_DE_BLOQUES || seccion.block.type === "footer_legal" || isOpaqueMailBlock(seccion.block)) return null;
+  const block_id = nuevoIdDeBloque(seccion.block.type, template);
+  const copia = { ...(JSON.parse(JSON.stringify(seccion.block)) as MailBlock), block_id };
+  const blocks = [...template.blocks];
+  const at = "hueco" in donde ? huecoValido(template, donde.hueco) : lugarParaAgregar(blocks, donde.despuesDe);
+  blocks.splice(at, 0, copia);
+  const images = { ...template.images };
+  for (const [id, e] of Object.entries(seccion.images)) {
+    if (!images[id]) images[id] = { alt: e.alt ?? "", ...(e.url ? { url: e.url } : {}) };
+  }
+  return { template: { ...template, blocks, images }, block_id };
 }
 
 export function puedeDuplicar(template: MailTemplate, blockId: string): boolean {

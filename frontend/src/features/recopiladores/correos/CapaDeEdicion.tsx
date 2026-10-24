@@ -29,6 +29,7 @@ import {
 import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura";
 import { useTopeDeLaBarra } from "./topeDeLaBarra";
 import { AccionesDeSeccion, botonesDeSeccion } from "./AccionesDeSeccion";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
 import { anchoDeLasAcciones, areaVisibleDeLaCapa, lugarDeLasAcciones, type AreaVisible } from "./lugarDeLasAcciones";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
@@ -76,6 +77,10 @@ type Props = {
   onDuplicar: (blockId: string) => void;
   onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock) => void;
   onEstilo: (blockId: string) => void;
+  /** «Mis secciones» (L9): guardar la elegida e insertar una guardada en un hueco. */
+  onGuardarSeccion?: (blockId: string, name: string) => Promise<boolean>;
+  errorAlGuardar?: string | null;
+  onInsertarGuardada?: (seccion: MailSavedSection, hueco: number) => void;
   /** Con `lado`, el archivo es de un lado de un par de imágenes. */
   onArchivoDeImagen: (blockId: string, file: File, lado?: LadoDelPar) => void;
   /** Sube el logo de la franja con su id, igual que en Identidad. */
@@ -188,6 +193,9 @@ export function CapaDeEdicion({
   onDuplicar,
   onEditarBloque,
   onEstilo,
+  onGuardarSeccion,
+  errorAlGuardar = null,
+  onInsertarGuardada,
   onArchivoDeImagen,
   onArchivoDeLogo,
   onDeshacer,
@@ -462,7 +470,7 @@ export function CapaDeEdicion({
   const bloqueElegido = elegida ? porId.get(elegida.id) : undefined;
   const conAcciones = Boolean(elegida && bloqueElegido && elegida.id !== CABECERA && elegida.id !== APERTURA);
   const nombreElegido = bloqueElegido ? rotuloDeBloque(bloqueElegido) : "";
-  const anchoAcciones = anchoDeLasAcciones(nombreElegido, (elegida && esMovible(template, elegida.id) ? 4 : 1) + botonesDeSeccion(template, bloqueElegido));
+  const anchoAcciones = anchoDeLasAcciones(nombreElegido, (elegida && esMovible(template, elegida.id) ? 4 : 1) + botonesDeSeccion(template, bloqueElegido, Boolean(onGuardarSeccion)));
 
   // N2/N3: la barra del bloque elegido va encima de su borde superior; si ahí
   // no se ve, pegada a lo más alto visible del bloque. El área visible se
@@ -646,7 +654,15 @@ export function CapaDeEdicion({
             </>
           ) : null}
           {bloqueElegido ? (
-            <AccionesDeSeccion template={template} block={bloqueElegido} onDuplicar={onDuplicar} onEditarBloque={onEditarBloque} onEstilo={onEstilo} />
+            <AccionesDeSeccion
+              template={template}
+              block={bloqueElegido}
+              onDuplicar={onDuplicar}
+              onEditarBloque={onEditarBloque}
+              onEstilo={onEstilo}
+              onGuardarSeccion={onGuardarSeccion}
+              errorAlGuardar={errorAlGuardar}
+            />
           ) : null}
           <button type="button" className="rec-capa-accion is-peligro" aria-label="Quitar el bloque" title="Quitar" disabled={template.blocks.length <= 1} onClick={() => onQuitar(elegida.id)}>
             <Trash2 size={14} aria-hidden />
@@ -707,6 +723,11 @@ export function CapaDeEdicion({
             setBiblioteca(null);
             onInsertar(type, h);
           }}
+          onElegirGuardada={onInsertarGuardada ? (seccion) => {
+            const h = biblioteca.hueco;
+            setBiblioteca(null);
+            onInsertarGuardada(seccion, h);
+          } : undefined}
           onCerrar={() => {
             const h = biblioteca.hueco;
             setBiblioteca(null);

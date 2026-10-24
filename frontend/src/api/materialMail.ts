@@ -1692,7 +1692,8 @@ export class MailApiError extends ApiError {
   }
 }
 
-async function handleMail(res: Response): Promise<unknown> {
+/** Respuesta de un endpoint `mail-*`: el error del backend como `MailApiError` (lo usa también materialMailMisSecciones.ts). */
+export async function handleMail(res: Response): Promise<unknown> {
   if (res.ok) return handle<unknown>(res);
   const raw = await res.clone().text().catch(() => "");
   let details: unknown = null;

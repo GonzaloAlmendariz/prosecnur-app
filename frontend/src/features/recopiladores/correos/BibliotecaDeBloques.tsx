@@ -1,11 +1,13 @@
-import { useEffect, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 
 import type { MailTemplate } from "../../../api/materialMail";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
 import { X, type LucideIcon } from "../../../vendor/lucide-react";
 import { tipoDisponible } from "./estructuraCorreo";
 import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA, ICONO_DE_IMAGEN_Y_TEXTO } from "./iconos";
 import { ROTULO_DE_BLOQUE } from "./modeloCorreo";
 import { IMAGEN_DECORATIVA, IMAGEN_Y_TEXTO, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
+import { useMisSecciones } from "./misSeccionesStore";
 import { useCabezaSinLugar } from "./topeDeLaBarra";
 import "./correosBiblioteca.css";
 
@@ -310,15 +312,85 @@ type Props = {
   /** Se abre hacia arriba del punto de inserción (cerca del final del correo). */
   arriba?: boolean;
   onElegir: (type: TipoInsertable) => void;
+  /** «Mis secciones» (L9, ADR 0113): sin esta prop, la biblioteca no las ofrece. */
+  onElegirGuardada?: (seccion: MailSavedSection) => void;
   onCerrar: () => void;
 };
+
+/** «24 oct» de una fecha ISO; vacío si no se lee. */
+function fechaCorta(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-PE", { day: "numeric", month: "short" }).replace(".", "");
+}
+
+/** Las secciones guardadas del estudio, primero en la biblioteca (lee el store). */
+function MisSecciones({ onElegir }: { onElegir: (seccion: MailSavedSection) => void }) {
+  const { secciones, estado, error, cargar, borrar } = useMisSecciones();
+  // Se relee al abrir: el store es de la app y otro proyecto trae sus propias secciones (ver misSeccionesStore).
+  useEffect(() => { void cargar(); }, [cargar]);
+  return <ListaDeMisSecciones secciones={secciones} cargando={estado === "cargando"} error={error} onElegir={onElegir} onBorrar={(id) => { void borrar(id); }} />;
+}
+
+/** La lista de «Mis secciones»: cada una inserta una copia; su ✕ la borra. */
+export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBorrar }: {
+  secciones: readonly MailSavedSection[];
+  cargando: boolean;
+  error: string | null;
+  onElegir: (seccion: MailSavedSection) => void;
+  onBorrar: (sectionId: string) => void;
+}) {
+  // Borrar pide un segundo clic: no hay deshacer y la sección puede servir en otros correos.
+  const [porBorrar, setPorBorrar] = useState<string | null>(null);
+  return (
+    <section className="rec-bib-grupo" aria-label="Mis secciones">
+      <h4 className="rec-bib-grupo-titulo">Mis secciones · de este estudio</h4>
+      {cargando && !secciones.length ? <p className="rec-bib-vacio">Leyendo las secciones del estudio…</p> : null}
+      {!cargando && !secciones.length ? (
+        <p className="rec-bib-vacio">Aún no hay. Elige una sección del correo y usa «Guardar» en su barra: queda aquí para los otros correos de este estudio.</p>
+      ) : null}
+      {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
+      {secciones.length ? (
+        <div className="rec-bib-rejilla" data-qa-geometry-group="material-campo/correo/biblioteca" data-qa-geometry-contract="equal">
+          {secciones.map((s) => {
+            const tipo = s.block.type === "__no_reconocido" ? null : s.block.type;
+            const Icono = tipo ? ICONO_DE_BLOQUE[tipo] : null;
+            const detalle = [tipo ? ROTULO_DE_BLOQUE[tipo] : "", fechaCorta(s.created_at)].filter(Boolean).join(" · ");
+            return (
+              <span key={s.section_id} className="rec-bib-guardada" data-qa-geometry-member>
+                <button type="button" className="rec-bib-tipo" data-guardada={s.section_id} title={`Insertar una copia de «${s.name}»`} onClick={() => onElegir(s)}>
+                  <svg className="rec-bib-esquema" viewBox="0 0 64 44" aria-hidden focusable="false">
+                    <rect className="rec-bib-papel" x="0.5" y="0.5" width="63" height="43" rx="3" />
+                    {tipo ? ESQUEMA[tipo] : null}
+                  </svg>
+                  <span className="rec-bib-texto">
+                    <span className="rec-bib-nombre">{Icono ? <Icono size={13} aria-hidden /> : null} {s.name}</span>
+                    <span className="rec-bib-desc">{detalle}</span>
+                  </span>
+                </button>
+                {porBorrar === s.section_id ? (
+                  <button type="button" className="rec-bib-borrar is-confirmando" aria-label={`Confirmar: borrar «${s.name}» de Mis secciones`} onClick={() => { setPorBorrar(null); onBorrar(s.section_id); }} onBlur={() => setPorBorrar(null)}>
+                    ¿Borrar?
+                  </button>
+                ) : (
+                  <button type="button" className="rec-bib-borrar" aria-label={`Borrar «${s.name}» de Mis secciones`} title="Borrar de Mis secciones (los correos que la usan no cambian)" onClick={() => setPorBorrar(s.section_id)}>
+                    <X size={12} aria-hidden />
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 /**
  * Biblioteca de bloques (E1g §2): una cuadrícula de tipos con su ícono, su
  * nombre, para qué sirve y un esquema de cómo se ve. Se elige con un clic o se
  * arrastra a un punto del correo. Nunca está vacía; el pie es único.
  */
-export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un bloque", arriba = false, onElegir, onCerrar }: Props) {
+export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un bloque", arriba = false, onElegir, onElegirGuardada, onCerrar }: Props) {
   const raiz = useRef<HTMLDivElement | null>(null);
   // Residuo del #17: al final del desplazamiento, la cabecera no se mete bajo la barra del correo.
   const cabezaFuera = useCabezaSinLugar(raiz, ".rec-bib-cabeza");
@@ -368,6 +440,7 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
         </button>
       </div>
       <div className="rec-bib-cuerpo">
+        {onElegirGuardada ? <MisSecciones onElegir={onElegirGuardada} /> : null}
         {GRUPOS.map((grupo) => (
           <section key={grupo.titulo} className="rec-bib-grupo" aria-label={grupo.titulo}>
             <h4 className="rec-bib-grupo-titulo">{grupo.titulo}</h4>
