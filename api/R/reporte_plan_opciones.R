@@ -439,7 +439,9 @@
 .ppt_multiple_choice_notice_overrides <- function(overrides = list()) {
   if (!is.list(overrides)) overrides <- list()
 
-  overrides$subtitulo <- "Pregunta de opción múltiple"
+  # CCSS Perfil 2026 (CCSS-9b): el mismo encabezado que la lámina nativa de opción múltiple (recetario p72,
+  # lamina_compositor.R), para que todas las múltiples del mazo digan lo mismo.
+  overrides$subtitulo <- "% de encuestados que marcó cada opción"
   # Italica y no negrita: es una acotacion sobre la pregunta, no un segundo
   # titulo compitiendo con el primero.
   overrides$face_subtitulo <- "italic"
