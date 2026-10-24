@@ -171,7 +171,8 @@
     })
   }
 
-  heavy <- Filter(function(i) isTRUE(i$bytes > .CMAIL_IMAGE_WARN_BYTES), images)
+  # Un original que su recorte reemplazó (`superseded`, collection_mail_recorte.R) no viaja ni se carga: no cuenta.
+  heavy <- Filter(function(i) isTRUE(i$bytes > .CMAIL_IMAGE_WARN_BYTES) && !isTRUE(i$superseded), images)
   if (length(heavy)) {
     push(.cmail_check("image_weight", "warning", length(heavy),
                       "Imágenes de más de 200 KB: tardan en cargar en el teléfono.",

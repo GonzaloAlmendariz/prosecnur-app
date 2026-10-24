@@ -171,3 +171,20 @@ test_that("un bloque Imagen con crop valida, se recorta y muestra el recorte, co
   .cmail_image_checks_common(t, imgs, .cmail_image_uses(t), push)
   expect_identical(Filter(function(c) identical(c$code, "image_width"), checks)[[1]]$status, "ok")
 })
+
+test_that("el aviso de peso no cuenta un original que su recorte reemplazó (no viaja ni se carga)", {
+  set.seed(3)
+  path <- tempfile(fileext = ".jpg")
+  jpeg::writeJPEG(array(runif(1600 * 1200 * 3), dim = c(1600, 1200, 3)), path, quality = 0.85)
+  original <- list(id = "premio", path = path, type = "jpeg", size = list(width = 1200L, height = 1600L),
+                   bytes = as.numeric(file.info(path)$size), url = NULL, alt = "Premio", export_name = "premio.jpg")
+  expect_gt(original$bytes, .CMAIL_IMAGE_WARN_BYTES)
+  t <- .cmrc_tpl(list(list(block_id = "q", type = "quote", text = "T", name = "N", image_ref = "premio", alt = "Premio")))
+  imgs <- .cmail_crop_apply(t, list(premio = original))
+  expect_true(isTRUE(imgs$premio$superseded))
+  checks <- list(); push <- function(x) { checks[[length(checks) + 1L]] <<- x; invisible(push) }
+  .cmail_image_checks_common(t, imgs, .cmail_image_uses(t), push)
+  pesadas <- Filter(function(c) identical(c$code, "image_weight"), checks)
+  # `.cmail_check` guarda `extra` como `items`.
+  expect_false(any(vapply(pesadas, function(c) any(vapply(c$items, function(x) identical(x$id, "premio"), NA)), NA)))
+})
