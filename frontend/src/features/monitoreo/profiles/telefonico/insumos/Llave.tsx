@@ -14,6 +14,8 @@ import {
   llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
+import { CodigoDeLaPersona } from "./CodigoDeLaPersona";
+import { fuentesDeRespuestas } from "./codigoDePersonaModel";
 import { EquivalenciasDeNombres } from "./EquivalenciasDeNombres";
 import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import "../control/controlTelefonico.css";
@@ -73,11 +75,16 @@ export function LlaveYFiltros({
   // Sin nada por revisar, la columna lateral sería una tarjeta estirada con una
   // línea: la vista se recompone en una columna y la encuesta va arriba.
   const conRevision = porRevisar.length > 0;
+  // La pregunta con el código de la persona, una por fuente de respuestas.
+  const codigos = fuentesDeRespuestas(state?.sources).map((fuente) => (
+    <CodigoDeLaPersona key={fuente.id} fuente={fuente} state={state} cruce={cruce} onStateChange={onStateChange} />
+  ));
 
   return (
     <div className={`mon-insumos mon-llave${conRevision ? "" : " is-sin-revision"}`} data-qa-geometry-group="telefonico-insumos-llave" data-qa-geometry-contract="intrinsic">
       <div className="mon-insumos-columna">
         {conRevision ? null : <div className="mon-llave-kobo">{tarjetaKobo}</div>}
+        {conRevision ? null : codigos}
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Llave de cruce">
           <div className="mon-insumos-fila">
             <strong>Llave de cruce</strong>
@@ -182,6 +189,7 @@ export function LlaveYFiltros({
       {conRevision ? (
         <div className="mon-insumos-lateral">
           <div className="mon-llave-kobo">{tarjetaKobo}</div>
+          {codigos}
           <section className="mon-ctl-panel mon-llave-revisar" aria-label="Por revisar en la llave" data-qa-geometry-capacity="owned">
             <header className="mon-insumos-cabecera">
               <strong>Por revisar en la llave</strong>
