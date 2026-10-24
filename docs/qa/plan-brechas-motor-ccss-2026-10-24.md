@@ -9,6 +9,10 @@
   - `8. Procesamiento/CCSS PUCP 2026_Script de selección de la muestra 400.R` (selección por cuotas y factor);
   - `8. Procesamiento/CCSS PUCP 2026_Codificacion Otros detallada.xlsx` (decisiones por caso);
   - `4. Seleccion/CCSS2026_procesamiento_codificado_24-10.pulso`.
+- **Ampliación del mismo día** (sesión «CCSS Base (fork)», al generar los entregables de Analítica): B0 y B14 a
+  B17. El material es `4. Seleccion/CCSS2026_analitica_muestra400_24-10.pulso` (muestra 400 con secciones, banner
+  de 6 variables, notas al pie y peso por columna) y `7. Entregables/Entregables 2026-10-24 (borrador)/`.
+  **B0 bloquea el entregable al cliente y va primero.**
 - **Precedente**: HSyVbG 2026 (`checklist-entregables-hsyvbg-2026-10-13.md`, ADR 0100,
   `api/R/carga_reemplazar_respuestas.R`).
 - **Método**: cada brecha se verificó leyendo el código en `claude/keen-diffie-8fc654` (base `50cdabdfe`).
@@ -21,6 +25,8 @@ Estados: **pendiente** (falta implementar) · **bloqueado** (falta una decisión
 
 | # | Brecha | ¿Se confirma? | Dónde vive | Capacidad parcial que ya existe | Severidad | Estado |
 |---|---|---|---|---|---|---|
+| **B0a** | **Las categorías de toda recodificada salen desordenadas en Frecuencias y Cruces** (los códigos de los grupos de Codificación primero, el resto después; 98/99 a mitad de lista) | **Sí, reproducido con el estado del `.pulso`** | Motor: `api/R/orden_categorias.R` (`.apply_grupos_recod_orden`, `.orden_categorias_perm`) | El instrumento adaptado ya está en orden y con los especiales al final; `.orden_especiales_al_final` existe, pero solo actúa dentro de la lista parcial | **Crítica: bloquea el entregable al cliente** | pendiente — **prioridad 1** |
+| B0b | Sufijo «(Recodificada)» en el título de Frecuencias y Cruces | Sí; PPT y Word ya lo quitan | Motor: `reporte_frecuencias.R:328-341` (`.clean_recode_title`), `reporte_cruces.R:141,151` | `reporte_plan_ppt.R:2944` y `reporte_word_publico_barra.R` ya lo retiran | Media (entregable al cliente) | **bloqueado** (D11) |
 | B1 | Codificación vuelve a adaptar desde el origen viejo sin avisar | Sí, y alcanza más rutas que `default` | Motor: `router_codificacion.R` + `session_store.R` | Analítica ya resuelve el mismo caso (`.analitica_original_member_id`); SurveyMonkey reasigna `original_*` | **Alta**: N equivocado (467 en vez de 397) y en silencio | pendiente |
 | B2 | «Nueva versión» no actualiza las bases hijas de repeat | Sí | Motor: `carga_reemplazar_respuestas.R` | Las hijas xlsx se regeneran al reabrir el `.pulso`; `estudio_init_default_base` y el refresco de Kobo sí las regeneran | **Alta**: hija con filas de otra versión | pendiente |
 | B3 | Selección aleatoria por cuotas y factor fuera de la app | Sí; el redondeo es del script | Motor nuevo + ADR | `ponderacion_engine.R` calcula el peso de diseño por estrato (normalizado a media 1) | Media (cada estudio por cuotas lo repite: HSyVbG y CCSS) | **bloqueado** (D1, D2) |
@@ -37,6 +43,15 @@ Estados: **pendiente** (falta implementar) · **bloqueado** (falta una decisión
 | B11 | No hay vía headless para el pipeline | Sí | Herramienta nueva (`api/scripts/` + Makefile) | `load_pulso`, `build_pulso`, `.codif_apply_complete`, bootstrap `PULSO_BOOTSTRAP_SID` | Baja-media | **bloqueado** (D10) |
 | B12 | Jobs callr con el paquete instalado | En parte: con `make dev-api` los workers ya hacen `load_all`; el riesgo está en un Plumber lanzado a mano y en closures sin marcar | Motor (`jobs.R`) | `PULSO_REPO_ROOT` → `load_all`; reinstalación por mtime en `launch.R`; sello de código del warmup | Media (recurrente) | pendiente |
 | B13 | *(hallazgo lateral)* La sugerencia de parejas nunca empareja | Sí, verificado en código y en Rscript | Motor (`router_codificacion.R:963`) | El motor de `relevant` y de sufijos existe; solo le falta el `name_map` | **Alta**: apaga en silencio el emparejado automático y es la vía del síntoma de B8 | pendiente |
+| B14 | Una variable retirada en la carga (`cod_pucp`) rompe `/api/analitica/preparar` (E_DATA_XLSFORM_INCOMPATIBLE) | Sí: la retirada se apaga cuando cambia el `data_file_id` (aplicar codificación lo cambia) | Motor: `base_variables_instrumento.R:30-35`, `carga_origen_externo.R:146-153`, `session_store.R:1178` | La retirada existe (ADR 0100 Enm. 1 / ADR 0106); el test cubre carga + redeclaración, no carga + aplicar + preparar | **Alta**: obliga a editar el instrumento a mano | pendiente |
+| B15 | Al reabrir el proyecto, Frecuencias y Cruces piden «Paso 1 preparar» (E_ANALITICA_NO_PREP) | Sí: la caché no se persiste a propósito, y la re-preparación implícita **traga el error real** | Motor: `router_analitica.R:2242`, `:2280-2285`; `helpers_multibase.R:46-48`; `project_pulso.R:628-646` | La re-preparación implícita y el auto-preparar del front existen | Media-alta: esconde la causa (probablemente B14) | pendiente |
+| B16 | El worker callr de cruces depende del cwd («Could not find a root DESCRIPTION in ./api») | Sí | Motor: `app_paths.R:17` + 7 jobs con `load_all` propio | El bootstrap de `jobs.R:94-121` ya carga el paquete con rutas absolutas; `project_warmup_paralelo.R:72-86` tiene el patrón correcto | Media (rompe en cuanto el servidor no arranca desde la raíz) | pendiente |
+| B17 | El rótulo del banner de Cruces es el enunciado completo; no hay forma corta | Sí | Motor: `reporte_cruces.R` (`label_variable`, `:131-154`), `router_analitica.R:3196-3211` (`.cruces_vars_parse`) + front de Cruces | `variable_labels` de Analítica (renombra en todas partes); `etiquetas_vars` de Gráficos (la única etiqueta corta real, pero en el plan PPT/Word) | Media (entregable al cliente) | **bloqueado** (D12) |
+
+**Lo que cubre la ampliación de B1 y B2.** «Reemplazar respuestas no alcanza a la hija repeat y cambiar de base deja
+un origen viejo» es B2 + B1. El rodeo de ese día —rehacer el proyecto y copiar `codif_por_base` a mano— pasa a ser
+el criterio de aceptación de ambos: pasar de la base total a la muestra con «Nueva versión» conserva el catálogo
+(ADR 0100 D3) y deja madre, hija y origen de Codificación en la muestra.
 
 ## Decisiones que necesita Gonzalo
 
@@ -51,9 +66,59 @@ Estados: **pendiente** (falta implementar) · **bloqueado** (falta una decisión
 | D7 | **Valores especiales en codificación**: adoptar el estándar de la casa (90 No aplica, 98 No sabe, 99 No responde) y retirar la convención propia del front (`Otros=70, No sabe=88, No aplica=99`) | B7c | Una sola fuente (`reporte_plan_opciones.R:625`) y botones fijos en el codificador |
 | D8 | **Camino canónico de un texto que detalla una opción distinta de Otro** (A9_otro detalla la opción 3): (a) SO/SM-padre con disparador = 3, y el texto recodifica solo las filas que marcaron 3; (b) dejarlo como abierta aparte | B8 | (a): el texto pertenece a la pregunta madre y el `relevant` lo dice |
 | D9 | **Analítica con derivadas**: si existe `p_recod`/`p_agrup`, ¿se oculta la original de las secciones sugeridas o se lista detrás? | B9 | Proponer la derivada más reciente y dejar la original disponible pero fuera de las secciones sugeridas |
+| D11 | **«(Recodificada)» en el título**: ¿se quita de Frecuencias y Cruces siempre, o solo en los entregables al cliente (y se conserva en el libro de códigos interno)? | B0b | Quitarlo de Frecuencias y Cruces, como ya hacen PPT y Word. El libro de códigos distingue la recodificada por su nombre `_recod` |
+| D12 | **Rótulo corto del banner**: ¿dónde vive? (a) campo `rotulo` por variable del banner en la config de Cruces; (b) reusar `etiquetas_vars` de Gráficos como fuente única de etiqueta corta; (c) una columna del XLSForm (`label::short`) | B17 | (a) con (b) como valor sugerido: el rótulo es del banner, y no debe cambiar el enunciado de la misma variable cuando va en filas |
 | D10 | **Runner headless**: ¿script oficial soportado (con target de Makefile) o solo herramienta interna de QA? ¿Puede escribir el `.pulso` de vuelta? | B11 | Herramienta interna que escribe a un `.pulso` nuevo, nunca al original; se decide después de cerrar B1, B2 y B13, que son las que hoy obligan a rodearla |
 
 ## Detalle por brecha
+
+### B0. Orden de las categorías recodificadas (prioridad 1)
+
+**Verificación (reproducida sobre una copia de `CCSS2026_analitica_muestra400_24-10.pulso`)**
+- El instrumento adaptado está bien. `choices` de `ciclo_recod` = 6, 7, 8, 9, 70, 10, 98 con etiquetas completas, y
+  `reporte_instrumento(...)$orders_list$A1_recod` da el mismo orden. **El desorden entra después.**
+- `.analitica_get_config` (`router_analitica.R:2446-2458`) inyecta en la config los `grupos_recod` de Codificación.
+  `.analitica_apply_data_review` (`router_analitica.R:2693-2694`) los pasa por `.orden_grupos_recod_por_parent` y
+  `.apply_grupos_recod_orden` (`orden_categorias.R:107-175`), que reordenan `orders_list[[<p>_recod]]`.
+- `.orden_categorias_perm` (`orden_categorias.R:43-50`) pone **a la cabeza** los códigos de la lista y deja el resto
+  detrás. Pero `grupos_recod` no es un orden completo: trae **solo los grupos que el analista tocó**. Estado real del
+  `.pulso`:
+
+  | Pregunta | `grupos_recod` | Resultado en la tabla |
+  |---|---|---|
+  | A1 | 10 (nuevo), 98 (nuevo) | Décimo ciclo, No sabe, Sexto…Noveno, Otro (lo observado, exacto) |
+  | B3 | 1, 2, 6, 7, 9 (existentes) | esos cinco primero, el resto detrás |
+  | B14 | 1, 2, 80, 99 | 80 y 99 a mitad de lista |
+  | E2 | 4, 99 | 99 en segundo lugar |
+
+- `.orden_especiales_al_final` (`orden_categorias.R:135-142`) ordena los especiales **dentro** de la lista parcial,
+  no del orden final: por eso 99 queda delante de la cola.
+- El override está documentado para select_multiple (`orden_categorias.R:82-96`), pero se aplica a todo `_recod`,
+  incluidos los SO.
+- `.reordenar_por_instrumento` (`reporte_frecuencias.R:290-325`) respeta fielmente el `orders_list` que recibe. El
+  error no está ahí, sino en el orden que se le entrega. Las SM `_recod` heredan lo mismo por
+  `.analitica_order_sm_dummy_cols` (`analitica_sm_dummy_order.R`), que lee el `instrumento_reporte` sincronizado
+  en `:2703-2709`.
+- Tests: `test-analitica-order-by-instrument.R:300-340` y `test-orden-grupos-recod-especiales.R` solo prueban listas
+  **completas** de SM. Ninguno prueba una lista parcial ni un SO.
+
+**Propuesta (fix, Rama 1, con regresión)**
+1. `autor-regresiones`: un test que falle con `grupos_recod` parcial (A1: `10, 98` sobre 6, 7, 8, 9, 70, 10, 98 ⇒
+   esperado 6, 7, 8, 9, 10, 70, 98, o el orden del instrumento) y con especiales en la lista parcial (B14).
+2. Fix en `orden_categorias.R`: el orden de las flechas **solo reordena los códigos que nombra, en sus posiciones
+   relativas dentro del orden del instrumento**, en vez de ponerlos a la cabeza. Así, una lista parcial no mueve nada
+   que no haya tocado. Después, especiales [80,100) al final **sobre la lista completa**.
+3. Fijar el mismo contrato en Frecuencias, Cruces, la BBDD y el libro de códigos (todos leen ese `orders_list`).
+   Verificar los cuatro sobre el `.pulso` del caso y revisar las láminas de Gráficos.
+
+Pendiente de confirmar con Gonzalo: si un orden puesto **a propósito** con las flechas (por ejemplo, una categoría
+nueva subida al principio) debe seguir pudiendo ganar sobre el instrumento. Con el fix 2 gana para lo que nombra,
+pero nunca arrastra al resto.
+
+**B0b.** Quitar el sufijo de `.clean_recode_title` según D11. Lo usan Frecuencias (`reporte_frecuencias.R:441,453`)
+y Cruces (`reporte_cruces.R:141,151`).
+
+**Dependencias**: ninguna. Va en la oleada 1.
 
 ### B1. Codificación vuelve a adaptar desde el origen viejo
 
@@ -358,6 +423,89 @@ Revisar que no cambie parejas ya confirmadas en proyectos existentes (la sugeren
 
 **Dependencias**: ninguna. Precede a B7 y B8.
 
+### B14. Una variable retirada rompe Analítica
+
+**Verificación**
+- Retirar no reescribe la data ni el XLSForm. Se deriva un XLSForm adaptado sin las filas retiradas
+  (`base_variables_instrumento.R:85-111`, `:168-170`). Salen del instrumento las de `retiradas_carga_manual` o las de
+  motivo `metadato`/`no_va_al_cliente` (`:50-59`). Las de motivo `otra` se rellenan con NA
+  (`base_variables_calculadas.R:128-136`).
+- **El candado**: las dos listas se leen solo a través de `.base_variables_retiradas_vigentes`
+  (`base_variables_instrumento.R:30-35`). Esa función devuelve `list()` salvo que `origen_externo` esté «vigente»
+  para el `data_file_id` **actual** (`carga_origen_externo.R:146-153`).
+- `.codif_apply_complete` (`router_codificacion.R:2084-2096`) cambia `data_file_id` a la data adaptada
+  (`session_store.R:1178`) sin mover el `data_file_id` del bloque. Desde ahí el estado es `otra_base`, `cod_pucp`
+  vuelve al instrumento, y el assert estricto (`data_normalizer.R:1056`, sin umbral; mensaje en
+  `router_carga.R:262-279`) falla en `.analitica_read_pair_uncached` (`router_analitica.R:636`).
+- Lo mismo pasa en cualquier flujo que llame a `estudio_replace_base_files` sin volver a registrar la retirada
+  (handoffs de Monitoreo, refresco de Kobo, SM, repeats xlsx).
+- ADR 0106 (l.76-81) dice que `retiradas_carga_manual` vive fuera del bloque «para sobrevivir a la redeclaración».
+  El código no lo cumple cuando el bloque pasa a `otra_base`.
+
+**Propuesta (fix)**. Que la vigencia de la retirada siga el **linaje** de la data (original, limpieza, universo,
+adaptada) y no un id puntual. O bien que `estudio_replace_base_files` traslade el `data_file_id` del bloque cuando la
+data nueva es una derivada. Test: cargar → retirar → aplicar codificación → preparar ⇒ sin error y sin `cod_pucp`.
+
+**Dependencias**: comparte terreno con B1 (los dos son «qué archivo es el original»). Conviene que un mismo
+writer los resuelva con una sola regla de linaje.
+
+### B15. «Paso 1 preparar» tras reabrir
+
+**Verificación**
+- E_ANALITICA_NO_PREP se lanza solo en `.load_rp_data` (`router_analitica.R:2247`).
+- Antes se intenta `.analitica_prepare_and_cache(sid)` dentro de `tryCatch(..., error = function(e) NULL)` (`:2242`):
+  **el error real se pierde** y se publica «Paso 1» en su lugar. Igual en `.load_rp_sources` (`:2280-2285`) y en
+  `run_report_per_base` (`helpers_multibase.R:46-48`).
+- La caché no viaja en el `.pulso` a propósito (`.pulso_strip_caches`, `project_pulso.R:628-646`; la lista de la
+  cabecera, `:20-25`, está desactualizada). El warmup no la reconstruye. Aplicar codificación también la invalida
+  (`router_codificacion.R:147`, `:183-185`). En esa sesión funcionó porque la re-preparación implícita tuvo éxito.
+  Al reabrir, falla: lo más probable es B14 (inferido).
+
+**Propuesta (fix)**. Propagar el `stop_api` de la preparación, o adjuntarlo en `details` de NO_PREP, en los tres
+sitios. Actualizar el comentario de `project_pulso.R:20-25`. Test: proyecto con B14 reabierto ⇒ el error dice
+«Faltantes: …», no «Paso 1».
+
+**Dependencias**: se verifica junto con B14.
+
+### B16. Worker de cruces dependiente del cwd
+
+**Verificación**. `.app_api_dir()` (`api/R/app_paths.R:1-18`) prueba `PULSO_API_DIR`, después
+`PULSO_REPO_ROOT/api`, después el cwd, y al final devuelve `normalizePath("./api", mustWork = FALSE)`: una ruta
+**relativa** si no existe. Siete jobs calculan esa ruta en el proceso padre y hacen su propio `load_all` dentro del
+worker:
+- `analitica.multibase.tablas` (`router_analitica.R:4051`)
+- `analitica.cruces` (`:4432`, el caso reportado)
+- `analitica.enumeradores` (`:5060`)
+- `validacion.v2.auditoria` (`router_validacion.R:1221`)
+- `validacion.v2.reglas_custom.ejecutar` (`:2145`)
+- `hojas_ruta.manual_replacements_pdf` (`router_hojas_ruta.R:866`)
+- `hojas_ruta.generate` (`:961`)
+
+El bootstrap de `jobs.R:94-121` ya carga el paquete con rutas absolutas y protegidas por `dir.exists`.
+
+**Propuesta (fix)**. Que `.app_api_dir()` devuelva una ruta absoluta o NULL, resolviendo desde el namespace en dev
+como hace `project_warmup_paralelo.R:72-86`. Quitar el `load_all` propio de los siete jobs (el bootstrap ya lo hace).
+Es el mismo trabajo que B12: van juntos.
+
+### B17. Rótulo corto del banner
+
+**Verificación**. El encabezado del banner toma `label_variable` (`reporte_cruces.R:131-154`, `:1473-1494` y los
+otros modos), que da prioridad a `labels_override` → `attr(label)` → `orders_list` → diccionario. El job
+`analitica.cruces` no pasa `labels_override` (`router_analitica.R:4465-4504`). `.cruces_vars_parse` (`:3196-3211`)
+descarta todo lo que no sea `name`/`excluidas`. Las capacidades que existen renombran **en todas partes**:
+- `variable_labels` de Analítica (`:2538-2544`, `DataReviewPane.tsx`);
+- `etiqueta_estandar` de la matriz de equivalencias;
+- `label_overrides$titles`.
+
+La única etiqueta corta real es `etiquetas_vars` de Gráficos (`reporte_plan_etiquetas_cortas.R`). El XLSForm no lee
+`label::short` (`reporte_instrumento.R:105-205`).
+
+**Propuesta (según D12)**. Campo `rotulo` opcional en cada variable de `cruces_vars`, pasado al job como un
+parámetro **solo del encabezado del banner**, no como `labels_override`, que cambiaría también el enunciado de la
+variable en filas. El editor del banner lo propone desde `etiquetas_vars` si existe.
+
+**Dependencias**: D12.
+
 ## Orden sugerido en oleadas
 
 Reglas de la casa: máximo tres trabajadores y dos writers con globs sin solape; `autor-regresiones` fija el rojo
@@ -366,19 +514,25 @@ primero; toda oleada termina en `verificador`; gate por área (`make gate-area A
 
 | Oleada | Rama | Ítems | Trabajadores (writers) | Glob de escritura | Gate |
 |---|---|---|---|---|---|
-| 0 | 8 | D1–D10 con Gonzalo; ADR nuevo de selección y depuración (D1–D4); enmienda al ADR 0100 (D6, D8) | lead | `docs/adrs/`, este plan | — |
-| 1 | 1 | **B1 + B13** · **B2** | `autor-regresiones` → `backend-r` A (`codificacion_origen_vigente.R`, `router_codificacion.R` mínimo) · `backend-r` B (`carga_reemplazar_respuestas.R`, `carga_xlsx_repeats.R`) | sin solape | `gate-area` codificación y carga; reproducir con el `.pulso` del caso (n = 397 en `_recod`; la hija con las filas de la muestra) |
+| 0 | 8 | D1–D12 con Gonzalo; ADR nuevo de selección y depuración (D1–D4); enmienda al ADR 0100 (D6, D8) | lead | `docs/adrs/`, este plan | — |
+| 1 | 1 | **B0a** (prioridad 1) · **B1 + B13** | `autor-regresiones` (rojo de B0a, B1 y B13) → `backend-r` A (`orden_categorias.R`) · `backend-r` B (`codificacion_origen_vigente.R`, `router_codificacion.R` mínimo) | sin solape | `gate-area` analítica y codificación; regenerar Frecuencias y Cruces del `.pulso` de la muestra 400 y **leer las tablas** (A1, B3, B14, E2 en orden, 98/99 al final) |
 | 1b | 1 | **B10** (solo medir) | `diagnosticador-regresiones` (solo lectura) | `tmp/` | informe de tiempos por tramo |
-| 2 | 1 | **B5** · **B6** | `backend-r` (Cruces: orden ponderar/excluir; `base_variables_servicio.R`, `segmentos_cruce.R`) · `frontend-react` (`PesoPorColumna.tsx`, `ColumnasDeLaBase.tsx`, acceso desde Cruces) | contrato congelado antes: candidatas de peso y tipo declarable | `gate-area` analítica y base-variables, `gate-front`, `ui-quick-check` de Carga › Variables y Analítica › Cruces |
-| 3 | 1 | **B12** · **B9** (markdown + tipos) · **B10** (fix según medición) | `backend-r` A (`jobs.R`) · `backend-r` B (`analitica_secciones_detectar.R` y sus tres consumidores) | sin solape | `gate-area` jobs y analítica |
-| 4 | 1 | **B7b(i)** upsert · **B7a/B7d** · **B7c** · **B8** (tras D5–D8) | `backend-r` (bridge en un archivo nuevo `codificacion_bridge_*.R`) · `frontend-react` (`RespuestasCodificador.tsx`) + `revisor-metodologico` | contrato congelado: acciones `anular`/`ya_marcada`, códigos reservados, `trigger_code` | `gate-area` codificación, `gate-front`, reaplicar CCSS y HSyVbG y comparar |
-| 5 | 1 | **B7b(ii-iii)** import por caso · **B9** preferencia (tras D9) | `backend-r` · `frontend-react` | — | ídem |
-| 6 | 1 | **B3** · **B4** (tras D1–D4) | `backend-r` (motor de selección; `carga_monitoreo_handoff_aulas.R`) + `revisor-metodologico` + `guardian-contratos` (PII, `.pulso`) | archivos nuevos | test de semilla fija que reproduzca las 400 del script; registro de filtros que cuadre con el del script |
-| 7 | 7 | **B11** (tras D10) | `backend-r` | `api/scripts/pipeline_run.R`, `Makefile` | correr el pipeline del caso sin UI |
+| 2 | 1 | **B14 + B15** · **B2** | `backend-r` A (`base_variables_instrumento.R`, `carga_origen_externo.R`, `router_analitica.R:2242/2280`, `helpers_multibase.R`) · `backend-r` B (`carga_reemplazar_respuestas.R`, `carga_xlsx_repeats.R`) | sin solape; A comparte con B1 la regla de linaje (se congela en la oleada 1) | `gate-area` carga, base-variables y analítica; total → muestra con «Nueva versión» sin rehacer el proyecto; reabrir y preparar sin error |
+| 3 | 1 | **B5** · **B6** | `backend-r` (Cruces: orden ponderar/excluir; `base_variables_servicio.R`, `segmentos_cruce.R`) · `frontend-react` (`PesoPorColumna.tsx`, `ColumnasDeLaBase.tsx`, acceso desde Cruces) | contrato congelado antes: candidatas de peso y tipo declarable | `gate-area` analítica y base-variables, `gate-front`, `ui-quick-check` de Carga › Variables y Analítica › Cruces |
+| 4 | 1 | **B12 + B16** · **B9** (markdown + tipos) | `backend-r` A (`jobs.R`, `app_paths.R`, los siete closures de job) · `backend-r` B (`analitica_secciones_detectar.R`, con sus tres consumidores cambiados por una sola llamada) | A toca `router_analitica.R` solo en los jobs; B solo en el handler de detect-secciones | `gate-area` jobs y analítica; correr cruces con el servidor fuera de la raíz del repo |
+| 5 | 1 | **B10** (fix según medición) · **B0b + B17** (tras D11, D12) | `backend-r` (lectura de detect-secciones, memo de reparadores) · `backend-r`/`frontend-react` (`reporte_frecuencias.R`, `reporte_cruces.R`, editor del banner) | sin solape | `gate-area` analítica, `gate-front`, regenerar los entregables y revisarlos visualmente |
+| 6 | 1 | **B7b(i)** upsert · **B7a/B7d** · **B7c** · **B8** (tras D5–D8) | `backend-r` (bridge en un archivo nuevo `codificacion_bridge_*.R`) · `frontend-react` (`RespuestasCodificador.tsx`) + `revisor-metodologico` | contrato congelado: acciones `anular`/`ya_marcada`, códigos reservados, `trigger_code` | `gate-area` codificación, `gate-front`, reaplicar CCSS y HSyVbG y comparar |
+| 7 | 1 | **B7b(ii-iii)** import por caso · **B9** preferencia (tras D9) | `backend-r` · `frontend-react` | — | ídem |
+| 8 | 1 | **B3** · **B4** (tras D1–D4) | `backend-r` (motor de selección; `carga_monitoreo_handoff_aulas.R`) + `revisor-metodologico` + `guardian-contratos` (PII, `.pulso`) | archivos nuevos | test de semilla fija que reproduzca las 400 del script; registro de filtros que cuadre con el del script |
+| 9 | 7 | **B11** (tras D10) | `backend-r` | `api/scripts/pipeline_run.R`, `Makefile` | correr el pipeline del caso sin UI |
+
+**Si el entregable no puede esperar a la oleada 1 completa**, B0a cabe sola en una oleada mínima: un test rojo, un
+fix en `orden_categorias.R` y la regeneración de las tablas del caso. No depende de nada más del plan.
 
 **Criterio de cierre del plan**: rehacer el procesamiento de CCSS 2026-II dentro de la app, sin script
-externo ni curl, y que la base, el factor y las frecuencias coincidan con los del 24-10. Solo Gonzalo da por
-cerrado cada ítem.
+externo ni curl, y que la base, el factor y las frecuencias coincidan con los del 24-10. Además, Frecuencias y
+Cruces salen con las categorías en el orden del instrumento, los especiales al final y el rótulo acordado, sin
+editar el XLSForm a mano. Solo Gonzalo da por cerrado cada ítem.
 
 ## Notas para la próxima sesión
 
