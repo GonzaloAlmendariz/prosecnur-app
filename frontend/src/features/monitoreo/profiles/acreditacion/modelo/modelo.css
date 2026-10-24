@@ -294,32 +294,23 @@
 }
 
 .acr-mo-tarjeta {
-  --acr-mo-franja: var(--pulso-border);
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-4);
   padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-left: 4px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-soft);
 }
 
-/* Franja de estado recortada por el radio de la caja: ni sombra inset ni borde
- * lateral grueso, que en una caja redondeada se curvan y parecen un bisel. */
-.acr-mo-tarjeta::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(to right, var(--acr-mo-franja) 4px, transparent 4px);
-  pointer-events: none;
-}
-
-.acr-mo-tarjeta.is-cumplida { --acr-mo-franja: var(--pulso-success-fg); }
-.acr-mo-tarjeta.is-en-curso { --acr-mo-franja: var(--pulso-warn-fg); }
-.acr-mo-tarjeta.is-abierta { --acr-mo-franja: var(--pulso-brand-navy); }
+/* El estado va en el borde lateral sólido (un `border` real, como las tarjetas
+ * de cuotas por UMP del Territorial) y en el chip; nunca en sombra inset ni en
+ * un fondo teñido de toda la tarjeta. */
+.acr-mo-tarjeta.is-cumplida { border-left-color: var(--pulso-success-fg); }
+.acr-mo-tarjeta.is-en-curso { border-left-color: var(--pulso-warn-fg); }
+.acr-mo-tarjeta.is-abierta { border-left-color: var(--pulso-brand-navy); }
 .acr-mo-tarjeta.is-cambiada { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pulso-module-monitoring) 30%, transparent); }
 
 .acr-mo-tarjeta-cabecera {
@@ -403,6 +394,28 @@
 
 .acr-mo-tarjeta-pie .acr-av-pista {
   width: 100%;
+}
+
+/* Esqueleto de las tarjetas mientras llega el estado de cuotas. */
+.acr-mo-hueso {
+  display: block;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-mo-hueso.is-corto { width: 64px; height: 10px; }
+.acr-mo-hueso.is-titulo { width: 40%; height: 18px; }
+.acr-mo-hueso.is-tesela { height: 72px; border: 0; }
+.acr-mo-hueso.is-pista { width: 100%; height: 8px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .acr-mo-tarjeta.is-esqueleto .acr-mo-hueso {
+    animation: acr-mo-latido 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes acr-mo-latido {
+  50% { opacity: 0.55; }
 }
 
 @media (max-width: 1200px), (max-height: 720px) {

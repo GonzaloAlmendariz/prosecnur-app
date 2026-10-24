@@ -23,6 +23,7 @@ import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { MetasEnEspera } from "./MetasEnEspera";
 
 /**
  * Modelo › Metas (ficha M1): cuántas encuestas por público. Arriba, la meta del
@@ -79,13 +80,7 @@ export function Metas({
   // públicos (C5): se dice que se está leyendo.
   const leyendo = !publicosDePrueba && !estado && !errorDeCuotas;
   if (!filas.length) {
-    return (
-      <div className="acr-cr is-vacio" data-vacio>
-        {errorDeCuotas
-          ? <Alert kind="error">{errorDeCuotas}</Alert>
-          : <Alert kind="info">{leyendo ? "Leyendo los públicos del estudio." : estado?.preparando ? "El motor está preparando el cruce del padrón; las metas aparecen al terminar." : "El estudio todavía no tiene públicos con padrón. Se declaran en Insumos › Públicos."}</Alert>}
-      </div>
-    );
+    return <MetasEnEspera motivo={leyendo ? "leyendo" : estado?.preparando ? "preparando" : "sin-publicos"} error={errorDeCuotas || undefined} />;
   }
 
   const efectivasDe = (publico: string) => avance?.tarjetas.find((tarjeta) => normalizeSourceMatch(tarjeta.actor) === normalizeSourceMatch(publico))?.effective ?? null;
