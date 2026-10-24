@@ -18,13 +18,15 @@ const fuente = (over: Partial<MonitoreoSource>): MonitoreoSource => ({
 } as MonitoreoSource);
 
 describe("cada modo declara sus piezas, no una lista de proveedores", () => {
-  it("telefónico ordena barrido, universo y encuesta", () => {
+  it("telefónico ordena barrido, universo, encuesta y la hoja de supervisión opcional", () => {
     // El orden es la dependencia: sin barrido el padrón es una lista de
     // teléfonos sin operación.
     expect(guionDeConexion("telefonico").piezas.map((p) => p.papel)).toEqual([
       "barrido",
       "universo",
       "respuestas",
+      // Opcional: sólo la usa Control › Supervisión para publicar sus rondas.
+      "supervision",
     ]);
   });
 

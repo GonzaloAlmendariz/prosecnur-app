@@ -33,6 +33,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  ClipboardCheck,
   ExternalLink,
   Layers3,
   Loader2,
@@ -94,6 +95,7 @@ const ICONO_DE_PAPEL: Record<PapelDeFuente, LucideIcon> = {
   universo: Layers3,
   barrido: PhoneCall,
   respuestas: ListChecks,
+  supervision: ClipboardCheck,
 };
 
 type Paso = "pieza" | "cual" | "verificar";
@@ -424,7 +426,7 @@ export function ConectarFuente({
           // Al cambiar se respeta el nombre con el que el estudio ya la conoce:
           // reetiquetarla por corregir su dirección rompería el reconocimiento.
           label: editando?.label
-            || (pieza.papel === "barrido" ? "Barrido telefónico" : `Base ${actor}`.trim()),
+            || (pieza.papel === "barrido" ? "Barrido telefónico" : pieza.papel === "supervision" ? "Hoja de supervisión" : `Base ${actor}`.trim()),
           enabled: true,
           role: pieza.papel,
           integration_mode: "connected_read",
@@ -432,7 +434,7 @@ export function ConectarFuente({
           dimensions: {
             actor,
             segmento: actor,
-            canal: pieza.papel === "barrido" ? "Telefónico" : "Base",
+            canal: pieza.papel === "barrido" ? "Telefónico" : pieza.papel === "supervision" ? "Supervisión" : "Base",
             sheet_name: hoja,
           },
         });

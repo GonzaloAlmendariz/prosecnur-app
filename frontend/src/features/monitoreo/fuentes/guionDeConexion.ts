@@ -32,7 +32,7 @@ export type FamiliaDeMonitoreo =
   | "aulas_universitarias"
   | "digital_general";
 
-export type PapelDeFuente = "universo" | "barrido" | "respuestas";
+export type PapelDeFuente = "universo" | "barrido" | "respuestas" | "supervision";
 
 export type PiezaDelGuion = {
   papel: PapelDeFuente;
@@ -109,6 +109,16 @@ const GUIONES: Record<FamiliaDeMonitoreo, GuionDeConexion> = {
         aporta: "Qué respuesta cuenta como efectiva",
         servicios: KOBO,
         porActor: false,
+      },
+      {
+        // Opcional: sólo la usa Control › Supervisión, que publica cada ronda
+        // en su propia pestaña «Ronda N» de esta hoja sin tocar ninguna otra.
+        papel: "supervision",
+        titulo: "Hoja de supervisión",
+        aporta: "Dónde se publica cada ronda de supervisión, en su pestaña",
+        servicios: SHEETS,
+        porActor: false,
+        opcional: true,
       },
     ],
   },
