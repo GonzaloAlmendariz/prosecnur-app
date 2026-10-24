@@ -158,6 +158,8 @@
   for (b in template$blocks %||% list()) {
     type <- .cmail_one(b$type) %||% ""
     if (identical(type, "two_images")) usados_enteros <- c(usados_enteros, as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
+    # La versión del celular no se recorta: viaja entera.
+    if (identical(type, "image") && !is.null(.cmail_mobile_ref(b))) usados_enteros <- c(usados_enteros, .cmail_mobile_ref(b))
     if (!(type %in% c(.CMAIL_PHOTO_TYPES, "image"))) next
     id <- .cmail_one(b$image_ref)
     img <- if (!is.null(id)) images[[id]] else NULL

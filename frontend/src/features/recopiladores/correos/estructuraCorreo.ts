@@ -436,3 +436,20 @@ export function srcOriginalDelBloque(html: string | null | undefined, blockId: s
   const m = /\sdata-pulso-original="([^"]*)"/i.exec(tramo);
   return m ? m[1].replace(/&amp;/g, "&") : null;
 }
+
+/**
+ * El `src` de la versión del celular de un bloque Imagen (L12), tal como la
+ * pinta la vista previa: su `<img>` lleva `data-pulso-prop="mobile_ref"`.
+ */
+export function srcDelMovil(html: string | null | undefined, blockId: string): string | null {
+  if (!html) return null;
+  const marca = `data-pulso-block="${blockId}"`;
+  const inicio = html.indexOf(marca);
+  if (inicio < 0) return null;
+  const resto = html.slice(inicio + marca.length);
+  const fin = resto.indexOf("data-pulso-block=");
+  const tramo = fin < 0 ? resto : resto.slice(0, fin);
+  const img = [...tramo.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]).find((t) => /data-pulso-prop="mobile_ref"/.test(t));
+  const src = img ? /\ssrc="([^"]*)"/i.exec(img)?.[1] : null;
+  return src ? src.replace(/&amp;/g, "&") : null;
+}

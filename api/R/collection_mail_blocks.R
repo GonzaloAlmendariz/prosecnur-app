@@ -169,6 +169,9 @@
     osrc <- .cmail_image_src(ctx$images[[img$cropped_from]], ctx)
     if (!is.null(osrc)) tag <- sub("<img ", sprintf('<img data-pulso-original="%s" ', .cmail_esc(osrc)), tag, fixed = TRUE)
   }
+  # Versión para el celular (collection_mail_movil.R): la de PC se oculta bajo 480 px.
+  movil <- if (!is.null(src)) .cmail_mobile_tag(b, ctx, alt) else ""
+  if (nzchar(movil)) tag <- paste0(sub("<img ", sprintf('<img class="%s" ', .CMAIL_PC_CLASS), tag, fixed = TRUE), movil)
   url <- .cmail_one(b$url)
   if (!is.null(url) && nzchar(trimws(url))) {
     tag <- sprintf('<a href="%s" target="_blank" style="text-decoration:none;">%s</a>', .cmail_url(url, ctx), tag)

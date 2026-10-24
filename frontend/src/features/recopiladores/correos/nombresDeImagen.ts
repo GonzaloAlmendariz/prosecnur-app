@@ -25,7 +25,8 @@ function desdeElId(id: string): string {
 function altDe(template: Plantilla, id: string): string {
   let delBloque = "";
   for (const b of template.blocks) {
-    if (b.type === "image" && b.image_ref === id) delBloque = b.alt;
+    // La versión del celular (L12) comparte la descripción de su bloque.
+    if (b.type === "image" && (b.image_ref === id || b.mobile_ref === id)) delBloque = b.alt;
     // Un lado de un par de imágenes (E1o) se nombra con su descripción.
     else if (b.type === "two_images" && (b.left === id || b.right === id)) delBloque = b.left === id ? b.alt_left : b.alt_right;
     else if (tieneFoto(b) && b.image_ref === id) delBloque = b.alt ?? "";

@@ -49,6 +49,14 @@
                                       target = .cmail_target(as.character(b$block_id), "alt"),
                                       alt = .cmail_one(b$alt) %||% "", block = b,
                                       decorative = isTRUE(unlist(b$decorative)))
+    # Su versión para el celular (collection_mail_movil.R): comparte alt; los
+    # avisos de archivo o URL que falta llevan al bloque. No se mide su nitidez.
+    if (!is.null(.cmail_mobile_ref(b))) {
+      uses[[length(uses) + 1L]] <- list(id = .cmail_mobile_ref(b),
+                                        target = .cmail_target(as.character(b$block_id), "mobile_ref"),
+                                        alt = .cmail_one(b$alt) %||% "", movil = TRUE,
+                                        decorative = isTRUE(unlist(b$decorative)))
+    }
   }
   uses
 }
@@ -134,7 +142,8 @@
 # Chequeos de imagen comunes a los dos dialectos.
 .cmail_image_checks_common <- function(tpl, images, uses, push) {
   # Una imagen decorativa (E1o) lleva alt vacío a propósito.
-  no_alt <- Filter(function(u) !isTRUE(u$decorative) && .cmail_alt_missing(u$alt), uses)
+  # La versión del celular comparte el alt de su bloque: se cuenta una vez, en la de PC.
+  no_alt <- Filter(function(u) !isTRUE(u$decorative) && !isTRUE(u$movil) && .cmail_alt_missing(u$alt), uses)
   push(if (length(no_alt)) {
     .cmail_check("images_alt", "error", length(no_alt), "Imágenes sin texto alternativo.",
                  extra = as.list(unique(vapply(no_alt, `[[`, "", "id"))), targets = lapply(no_alt, `[[`, "target"))

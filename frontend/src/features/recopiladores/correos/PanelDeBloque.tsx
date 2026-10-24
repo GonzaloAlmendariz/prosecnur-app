@@ -13,7 +13,7 @@ import { CambiarPorSeccion } from "./CambiarPorSeccion";
 import { EntradasDeSeccion } from "./EntradasDeSeccion";
 import { esIntercambiable, type TipoIntercambiable } from "./modeloCambiarPor";
 import { FotoDeLaSeccion } from "./FotoDeLaSeccion";
-import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
+import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar, type RanuraDeImagen } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { CampoConCampos } from "./CampoConCampos";
@@ -79,7 +79,9 @@ type Props = {
   vistasDelPar?: Record<LadoDelPar, string | null> | null;
   ocupado?: boolean;
   /** Con `lado`, el archivo es de un lado de un par. */
-  onSubirImagen?: (blockId: string, file: File, lado?: LadoDelPar) => void;
+  onSubirImagen?: (blockId: string, file: File, lado?: RanuraDeImagen) => void;
+  /** La versión del celular de una Imagen (L12): la subida o la de la vista previa. */
+  vistaDelMovil?: string | null;
   /** Sube una imagen de la cabecera (logo o banner) con su id, como en Identidad. */
   onSubirLogo?: (id: string, file: File) => void;
   /** La lista cargada en Personas: de ahí sale la columna del saludo por sexo (C8). */
@@ -178,6 +180,7 @@ export function PanelDeBloque({
   dialecto = "mailchimp",
   chequeos = [],
   vistaDeImagen = null,
+  vistaDelMovil = null,
   vistasDelPar = null,
   ocupado = false,
   onSubirImagen,
@@ -338,6 +341,8 @@ export function PanelDeBloque({
             if (pasoALaCabecera(update(template), block)) onSeleccionar?.(CABECERA);
           }}
           onSubir={(file) => onSubirImagen?.(block.block_id, file)}
+          vistaDelMovil={vistaDelMovil}
+          onSubirMovil={(file) => onSubirImagen?.(block.block_id, file, "movil")}
         />
       ) : null}
       {block.type === "two_images" ? (
