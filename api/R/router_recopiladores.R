@@ -191,6 +191,16 @@ mount_recopiladores <- function(pr) {
       collection_mail_section_delete(session_header(req), expected_revision = body$expected_revision,
                                      section_id = body$section_id)
     })) |>
+    # «Importar de otro estudio…» (ADR 0113): leer otro .pulso y copiar sus secciones con sus fotos.
+    plumber::pr_post("/api/recopiladores/mail-sections/import/peek", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_sections_import_peek(session_header(req), path = body$path)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-sections/import", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_sections_import(session_header(req), expected_revision = body$expected_revision,
+                                      path = body$path, section_ids = body$section_ids)
+    })) |>
     # «Actualizar quién respondió»: SurveyMonkey → etiqueta en Mailchimp.
     plumber::pr_get("/api/recopiladores/mail-sync/options", wrap_endpoint(function(req, res, ...) {
       collection_mail_mailchimp_options(session_header(req))

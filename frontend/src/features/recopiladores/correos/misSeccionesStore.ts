@@ -7,7 +7,10 @@ import { create } from "zustand";
 
 import { getSession } from "../../../api/core";
 import type { MailBlock, MailTemplate } from "../../../api/materialMail";
-import { apiMailSectionCreate, apiMailSectionDelete, apiMailSections, type MailSavedSection, type MailSavedSectionImage } from "../../../api/materialMailMisSecciones";
+import {
+  apiMailSectionCreate, apiMailSectionDelete, apiMailSections, apiMailSectionsImport,
+  type MailSavedSection, type MailSavedSectionImage, type MailSectionsImportResult,
+} from "../../../api/materialMailMisSecciones";
 import { useCorreosStore } from "./store";
 
 type Estado = "sin-cargar" | "cargando" | "lista" | "error";
@@ -22,6 +25,8 @@ type MisSecciones = {
   /** Guarda una copia de `block` con `name`; devuelve la sección o `null` si falló (el error queda en `error`). */
   guardar: (name: string, block: MailBlock, template: Pick<MailTemplate, "images">, campaignId?: string | null) => Promise<MailSavedSection | null>;
   borrar: (sectionId: string) => Promise<boolean>;
+  /** Copia secciones de otro `.pulso` (con sus fotos); devuelve el resumen o `null` si falló (el error queda en `error`). */
+  importar: (path: string, sectionIds: string[]) => Promise<MailSectionsImportResult | null>;
   limpiarError: () => void;
 };
 
@@ -88,6 +93,19 @@ export const useMisSecciones = create<MisSecciones>((set, get) => ({
     } catch (e) {
       set({ error: mensaje(e) });
       return false;
+    }
+  },
+  importar: async (path, sectionIds) => {
+    const revision = useCorreosStore.getState().stateRevision;
+    if (revision === null) { set({ error: "El correo todavía no termina de cargar: vuelve a intentarlo en un momento." }); return null; }
+    try {
+      const out = await apiMailSectionsImport({ expected_revision: revision, path, section_ids: sectionIds });
+      useCorreosStore.getState().anotarRevision(out.state_revision);
+      set({ secciones: out.sections, error: null });
+      return out;
+    } catch (e) {
+      set({ error: mensaje(e) });
+      return null;
     }
   },
   limpiarError: () => set({ error: null }),

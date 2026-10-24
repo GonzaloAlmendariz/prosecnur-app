@@ -2,7 +2,7 @@
 
 Estado: Aceptado
 
-Implementacion: En curso (GOAL editor de correos profesional, L9)
+Implementacion: Hecha (GOAL editor de correos profesional, L9; importar desde otro estudio el 2026-10-24)
 
 Fecha: 2026-10-24
 
@@ -46,7 +46,11 @@ Había dos lugares posibles:
 - **Revisión**: guardar y borrar exigen `expected_revision = state_revision`, como toda escritura del estado.
 - **Rehacer el plan** (`collection_reseed.R`) conserva `mail_sections`: es configuración del usuario.
 - **Importar de otro estudio** es un paso aparte y explícito: se elige un `.pulso` y sus secciones (con sus imágenes)
-  se copian a este. Hasta que exista, una sección se lleva a otro estudio duplicando el correo que la usa.
+  se copian a este (`collection_mail_sections_import.R`). El otro `.pulso` sólo se lee: no se abre como proyecto ni se
+  escribe. Cada foto entra como `mail_image` de este estudio; si aquí ya hay una imagen con su id, con los mismos bytes
+  se reutiliza y con otros entra con id nuevo (`<id>-2`) y el bloque se reescribe, porque el id vigente gana por fecha
+  y pisaría la foto propia. Una sección que ya está (mismo nombre y mismo bloque) no se duplica; no viaja su
+  `campaign_id` (nombra una campaña del otro estudio); si no caben todas bajo el tope, no entra ninguna.
 
 ## Consecuencias
 
@@ -57,8 +61,10 @@ Había dos lugares posibles:
 
 ## Cumplimiento
 
-- `collection_mail_sections.R` es el único que escribe `mail_sections`; `test-collection-mail-sections.R` cubre
-  guardar, listar, usar y borrar, el tope, el nombre y la revisión.
+- `collection_mail_sections.R` y su importador `collection_mail_sections_import.R` son los únicos que escriben
+  `mail_sections`; `test-collection-mail-sections.R` cubre guardar, listar, usar y borrar, el tope, el nombre y la
+  revisión, y `test-collection-mail-sections-import.R` el importar (fotos que chocan, lo que ya está, el tope y el viaje
+  en el `.pulso`).
 - `.COLLECTION_RESEED_CONSERVA` incluye `mail_sections` (`test-collection-reseed-conserva.R`).
 
 ## Notas
