@@ -21,3 +21,12 @@
   s <- trimws(gsub("[[:space:][:punct:]]+$", "", s, perl = TRUE))
   s %in% c("other", "otro", "otra", "otros", "otras")
 }
+
+#' Etiquetas de opción como se imprimen: «Otros» para la opción que es «otro» y sin los dos puntos finales de una opción
+#' para escribir («Otra institución:» → «Otra institución»). No se renombra por ser la disparadora del `_otro`: la opción
+#' 3 de A9 («Otra persona responsable…») también lo es, y su rótulo es el del instrumento.
+#' @noRd
+.etiqueta_opcion_imprimible <- function(y) {
+  y[.etiqueta_es_otros(y)] <- "Otros"
+  sub("\\s*:\\s*$", "", y, perl = TRUE)
+}

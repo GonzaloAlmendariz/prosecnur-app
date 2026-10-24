@@ -35,3 +35,8 @@ test_that("Frecuencias ya no suma «Otra persona…» con el «Otro (especifique
   expect_equal(out$Opciones, c("Madre", "Otra persona responsable o tutor/a", "Otros", "Total"))
   expect_equal(out$n, c(10, 5, 2, 17))
 })
+
+test_that("una opción para escribir se imprime sin los dos puntos finales", {
+  expect_equal(prosecnurapp:::.freq_clean_other_label_es(c("Otra institución:", "Otro:", "Madre")),
+               c("Otra institución", "Otros", "Madre"))
+})

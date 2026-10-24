@@ -70,8 +70,7 @@
   y <- .reporte_plan_clean_chr(x)
   if (!length(y)) return(y)
 
-  y[.etiqueta_es_otros(y)] <- "Otros"   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
-  y
+  .etiqueta_opcion_imprimible(y)   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
 }
 
 #' @noRd

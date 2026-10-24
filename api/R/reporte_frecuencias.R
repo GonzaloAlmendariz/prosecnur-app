@@ -899,8 +899,7 @@ mk_styles_spss <- function() {
   y <- trimws(y)
   if (!length(y)) return(y)
 
-  y[.etiqueta_es_otros(y)] <- "Otros"   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
-  y
+  .etiqueta_opcion_imprimible(y)   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
 }
 
 #' @noRd
