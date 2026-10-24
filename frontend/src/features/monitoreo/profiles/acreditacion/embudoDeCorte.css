@@ -37,8 +37,19 @@
 
 /* El paso final no se distingue solo por el fondo: lleva el acento del módulo
    en el borde izquierdo, que es lo que se ve de reojo. */
+/* Franja de estado recortada por el radio de la caja: ni sombra inset ni borde
+ * lateral grueso, que en una caja redondeada se curvan y parecen un bisel. */
 .mon-acr-embudo.is-avance .mon-acr-embudo-pasos li.is-oficial {
-  border-left: 3px solid var(--pulso-module-monitoring-border, var(--pulso-primary));
+  position: relative;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li.is-oficial::after {
+  content: "";
+  position: absolute;
+  inset: -1px; /* sobre el borde de 1 px de la caja */
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--pulso-module-monitoring-border, var(--pulso-primary)) 3px, transparent 3px);
+  pointer-events: none;
 }
 
 .mon-acr-embudo.is-avance .mon-acr-embudo-pasos li strong {

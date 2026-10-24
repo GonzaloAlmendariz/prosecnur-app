@@ -71,8 +71,19 @@
  * al cambiar de pestaña, sin leer el título. `currentColor` NO sirve —lo medí:
  * daba el mismo `rgb(23,33,47)` en las dos, porque hereda el color del texto y
  * no del tono—; el acento por tono ya existe como variable. */
+/* Franja de estado recortada por el radio de la caja: ni sombra inset ni borde
+ * lateral grueso, que en una caja redondeada se curvan y parecen un bisel. */
 .mon-query-answer.is-compacta {
-  border-left: 3px solid var(--query-answer-accent, var(--pulso-border-strong));
+  position: relative;
+}
+
+.mon-query-answer.is-compacta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--query-answer-accent, var(--pulso-border-strong)) 3px, transparent 3px);
+  pointer-events: none;
 }
 
 /* Y el encabezado con el mismo acento, para que la señal no dependa de una
