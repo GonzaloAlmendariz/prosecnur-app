@@ -146,6 +146,8 @@
     if (identical(b$type, "image")) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
     # Las dos imágenes de una pieza two_images (E1o).
     if (identical(b$type, "two_images")) return(as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
+    # La foto de un Destacado (collection_mail_destacado.R), si tiene.
+    if (identical(b$type, "feature")) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
     character(0)
   }), use.names = FALSE)
   unique(c(head, blocks))

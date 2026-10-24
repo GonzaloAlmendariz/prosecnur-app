@@ -36,6 +36,15 @@
       }
       next
     }
+    if (identical(b$type, "feature")) {
+      if (is.null(.cmail_one(b$image_ref))) next
+      fb <- b
+      uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref)),
+                                        target = .cmail_target(as.character(b$block_id), "alt"),
+                                        alt = .cmail_one(b$alt) %||% "",
+                                        shown = function(img, col_w) .cmail_feature_shown(fb, img, col_w))
+      next
+    }
     if (!identical(b$type, "image")) next
     uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref) %||% ""),
                                       target = .cmail_target(as.character(b$block_id), "alt"),
@@ -137,16 +146,19 @@
   # Nitidez: el ancho mostrado a 2x no debe pasar el natural (al ancho de la columna del tema, E1p).
   col_w <- .cmail_theme_width(tpl$theme)
   blurry <- list()
-  for (u in Filter(function(u) !is.null(u$block) || isTRUE(u$pair), uses)) {
+  medible <- function(u) !is.null(u$block) || isTRUE(u$pair) || is.function(u$shown)
+  for (u in Filter(medible, uses)) {
     natural <- images[[u$id]]$size$width
     if (is.null(natural)) next
-    shown <- if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]], col_w) else .cmail_image_width(u$block, images[[u$id]], col_w)
+    shown <- if (is.function(u$shown)) u$shown(images[[u$id]], col_w)
+             else if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]], col_w)
+             else .cmail_image_width(u$block, images[[u$id]], col_w)
     if (shown * 2L > natural) {
       blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural),
-                                            prop = if (isTRUE(u$pair)) u$target$prop else "width")
+                                            prop = if (isTRUE(u$pair) || is.function(u$shown)) u$target$prop else "width")
     }
   }
-  if (any(vapply(uses, function(u) !is.null(u$block) || isTRUE(u$pair), NA))) {
+  if (any(vapply(uses, medible, NA))) {
     push(if (length(blurry)) {
       .cmail_check("image_width", "warning", length(blurry),
                    "Imágenes mostradas a más de la mitad de su ancho natural: se verán borrosas en pantallas de alta densidad.",

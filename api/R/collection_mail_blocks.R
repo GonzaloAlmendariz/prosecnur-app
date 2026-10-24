@@ -278,6 +278,8 @@
     ornament = .cmail_block_ornament(b, ctx),
     icon_text = .cmail_block_icon_text(b, ctx),
     two_images = .cmail_block_two_images(b, ctx),
+    # Secciones: collection_mail_destacado.R.
+    feature = .cmail_block_feature(b, ctx),
     ""
   )
   if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx)
