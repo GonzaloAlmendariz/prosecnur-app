@@ -1047,3 +1047,38 @@
   font-size: 11px;
   font-weight: var(--pulso-weight-regular);
 }
+
+/* Pregunta con el código de la persona (una por fuente de respuestas). */
+.mon-codigo-persona {
+  display: flex;
+  flex-direction: column;
+}
+
+.mon-codigo-persona-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.mon-codigo-persona-cuerpo select {
+  height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+}
+
+.mon-codigo-persona-cuerpo select:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-codigo-persona-detalle {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

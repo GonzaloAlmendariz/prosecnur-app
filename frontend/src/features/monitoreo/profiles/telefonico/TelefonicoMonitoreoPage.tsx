@@ -142,6 +142,7 @@ import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/
 import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
 import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
 import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/camposDeFuente";
+import { sourcePayloadFromExisting } from "./fuentes/payloadDeFuente";
 import { eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
@@ -7214,34 +7215,6 @@ function dimensionLabel(key: string) {
   return labels[key] ?? key.replaceAll("_", " ");
 }
 
-function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>): MonitoreoSourcePayload {
-  const fallbackSheetBinding = sourceSheetField(source, "spreadsheet_id")
-    ? {
-      spreadsheet_id: sourceSheetField(source, "spreadsheet_id"),
-      sheet_name: sourceSheetField(source, "sheet_name"),
-      header_row: Number(source.sheet_binding?.header_row ?? 1),
-      range: sourceSheetField(source, "range"),
-    }
-    : undefined;
-  return {
-    id: source.id,
-    kind: source.kind,
-    label: source.label,
-    enabled: source.enabled,
-    role: source.role,
-    integration_mode: source.integration_mode,
-    sheet_binding: source.sheet_binding ?? fallbackSheetBinding,
-    asset_uid: source.asset_uid,
-    survey_id: source.survey_id,
-    survey_title: source.survey_title,
-    base_url: source.base_url,
-    connection_profile_id: source.connection_profile_id,
-    declared_person_code_var: source.declared_person_code_var,
-    declared_person_code_label: source.declared_person_code_label,
-    dimensions: source.dimensions,
-    ...patch,
-  };
-}
 
 function normalizeCollectorUse(value: unknown): MonitoreoCollectorUse {
   return MODEL_COLLECTOR_USE_OPTIONS.some((option) => option.value === value)
