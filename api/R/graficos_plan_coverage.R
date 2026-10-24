@@ -81,10 +81,10 @@
   if (!is.list(src) || !is.list(src$data_sources) || !is.list(src$inst_sources)) return(src)
   common <- intersect(names(src$data_sources), names(src$inst_sources))
   for (name in common) {
-    src$data_sources[[name]] <- .graficos_align_recoded_dummy_names(
-      src$data_sources[[name]],
-      src$inst_sources[[name]]
-    )
+    data <- .graficos_align_recoded_dummy_names(src$data_sources[[name]], src$inst_sources[[name]])
+    # Las dummies de una SM original también llegan en minúscula (`a9.1`, `reporte_data`): se recasean al survey con
+    # la misma regla de Analítica, para que ambas vean las mismas columnas (G1, CCSS 2026: A9 y B1 salían del mazo).
+    src$data_sources[[name]] <- .analitica_restore_survey_case(data, src$inst_sources[[name]])
   }
   src
 }

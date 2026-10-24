@@ -7,6 +7,7 @@ import { useVariables, type VarWithSource } from "./useVariables";
 import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
+import { avisoRadarDe } from "./avisosRadar";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
@@ -65,7 +66,8 @@ export type ValidationIssue = {
     | "titulo-vacio"
     | "titulo-con-nota"
     | "indice-sin-capitulos"
-    | "ttb-sin-respuestas";
+    | "ttb-sin-respuestas"
+    | "radar-criterios";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -311,6 +313,16 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         message: `${rotuloLamina(slide, indice)}: el Top Two Box está encendido pero sin sus respuestas; el PowerPoint sale sin la columna. Elígelas en la pestaña Gráfico.`,
         slideId: slide.id,
       });
+    }
+  });
+
+  // 4c) Radar entre públicos con un número de criterios que el motor no dibuja bien (avisosRadar.ts) -------------------
+  slides.forEach((slide, indice) => {
+    for (const valor of Object.values((slide.payload ?? {}) as Record<string, unknown>)) {
+      const g = valor as GraficadorRef | undefined;
+      if (!g || typeof g !== "object" || typeof g.graficador !== "string") continue;
+      const aviso = avisoRadarDe(g);
+      if (aviso) issues.push({ severity: "warning", code: "radar-criterios", message: `${rotuloLamina(slide, indice)}: ${aviso}.`, slideId: slide.id });
     }
   });
 

@@ -152,6 +152,10 @@ test_that("dos gráficos migrados conservan la base de cada uno y no la repiten 
   vieja <- list(id = "y", tipo = "p_slide_2_graficos_poblacion", payload = list(titulo = "Perfil", izquierda = g("anios"), derecha = g("grado")))
   nueva <- suppressMessages(.graficos_migrar_poblacion_antigua(list(slides = list(vieja))))$slides[[1]]
   a <- .mp_textos_base(vieja); d <- .mp_textos_base(nueva)
-  expect_identical(d$bases, a$bases)
+  # La migrada sale nativa (lamina_grilla_nativa.R): cada panel nombra su base bajo el enunciado («100 respuestas») y el pie
+  # no afirma una común. Lo que se conserva es la base de cada gráfico, no el prefijo «Base:».
+  sin_prefijo <- function(x) sort(sub("^Base: ", "", x))
+  expect_identical(sin_prefijo(d$bases), sin_prefijo(a$bases))
   expect_identical(a$bases, c("Base: 100 respuestas", "Base: 80 respuestas"))
+  expect_false(any(grepl("^Base:", d$bases)))
 })

@@ -164,6 +164,10 @@ elegante.
   sumar huecos.
 - Antes de construir o pulir una pestaña, se captura la referencia antigua equivalente si existe, y la nueva debe
   verse al menos igual de ordenada.
+- **La cabecera de pestaña no ocupa su propia fila** (Gonzalo, 2026-10-24: «esta sección ocupa toda una fila de forma
+  innecesaria y se ve fuera, como si no estuviera bien integrada»). El rótulo «SECCIÓN · GRUPO / Pestaña» comparte fila
+  con la barra de herramientas de la pestaña (filtros, chips, acciones). Si la pestaña no tiene barra, el rótulo es el
+  encabezado de su primera tarjeta. El rail ya indica la pestaña activa; no se repite un bloque suelto con ícono.
 
 ## 2b. Un lenguaje de diseño común a los cuatro modos
 

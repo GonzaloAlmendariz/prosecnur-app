@@ -133,7 +133,8 @@
 
 .cmail_block_image <- function(b, ctx) {
   id <- as.character(.cmail_one(b$image_ref) %||% "")
-  img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
+  # Recortada si el bloque lo pide (collection_mail_recorte.R); si no, la original.
+  img <- .cmail_feature_img(b, ctx)$img
   bleed <- isTRUE(unlist(b$bleed))
   width <- .cmail_image_width(b, img, ctx$width)
   align <- .cmail_style(b, "align", "center")
@@ -163,6 +164,14 @@
               .cmail_esc(src), width, .cmail_esc(alt), width, margin)
     }
   }
+  # Sólo en la vista previa del editor: la foto entera, para encuadrar el recorte sobre ella.
+  if (isTRUE(ctx$marks) && !is.null(img$cropped_from) && !is.null(src)) {
+    osrc <- .cmail_image_src(ctx$images[[img$cropped_from]], ctx)
+    if (!is.null(osrc)) tag <- sub("<img ", sprintf('<img data-pulso-original="%s" ', .cmail_esc(osrc)), tag, fixed = TRUE)
+  }
+  # Versión para el celular (collection_mail_movil.R): la de PC se oculta bajo 480 px.
+  movil <- if (!is.null(src)) .cmail_mobile_tag(b, ctx, alt) else ""
+  if (nzchar(movil)) tag <- paste0(sub("<img ", sprintf('<img class="%s" ', .CMAIL_PC_CLASS), tag, fixed = TRUE), movil)
   url <- .cmail_one(b$url)
   if (!is.null(url) && nzchar(trimws(url))) {
     tag <- sprintf('<a href="%s" target="_blank" style="text-decoration:none;">%s</a>', .cmail_url(url, ctx), tag)
@@ -247,6 +256,16 @@
 
 .cmail_block_html <- function(b, ctx) {
   type <- as.character(b$type)
+  # Estilo propio (collection_mail_box.R): las filas se leen sobre la caja. El
+  # texto y las imágenes con margen tienen el mismo ancho útil que fuera (caja a
+  # 24 + celda a 24 = 48); sólo lo que va a sangre llena la caja, 48 px menos.
+  box <- .cmail_box_of(b)
+  if (!is.null(box)) {
+    ctx <- .cmail_box_ctx(box, ctx)
+    if (identical(type, "image") && isTRUE(unlist(b$bleed))) {
+      ctx$width <- as.integer(ctx$width %||% .CMAIL_WIDTH) - 2L * .CMAIL_BOX_INSET
+    }
+  }
   html <- switch(type,
     greeting = .cmail_block_greeting(b, ctx),
     paragraph = .cmail_block_paragraph(b, ctx),
@@ -268,8 +287,13 @@
     ornament = .cmail_block_ornament(b, ctx),
     icon_text = .cmail_block_icon_text(b, ctx),
     two_images = .cmail_block_two_images(b, ctx),
+    # Secciones: collection_mail_destacado.R.
+    feature = .cmail_block_feature(b, ctx),
+    # Resto del catálogo (L6): collection_mail_secciones.R.
+    steps = , deadline = , benefits = , quote = , faq = , contact = .cmail_block_section(b, type, ctx),
     ""
   )
+  if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx)
   mark_type <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else type
   .cmail_mark_row(html, ctx, as.character(b$block_id %||% ""), mark_type)
 }

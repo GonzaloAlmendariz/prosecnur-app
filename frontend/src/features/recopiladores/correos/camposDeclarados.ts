@@ -20,7 +20,10 @@ export function clavesDeclaradas(template: Pick<MailTemplate, "fields">): Set<st
 function textosDe(valor: unknown, out: string[]): void {
   if (typeof valor === "string") out.push(valor);
   else if (Array.isArray(valor)) valor.forEach((v) => textosDe(v, out));
-  else if (valor && typeof valor === "object") Object.values(valor).forEach((v) => textosDe(v, out));
+  // Lo `guardado` por «Cambiar por» (L8) no sale en el correo: sus campos no cuentan (igual que en R).
+  else if (valor && typeof valor === "object") {
+    Object.entries(valor).forEach(([k, v]) => { if (k !== "guardado") textosDe(v, out); });
+  }
 }
 
 /**

@@ -5,16 +5,10 @@
 // humano (su descripción, o el papel que cumple) y la frase de lo que falta
 // subir. Ningún id llega a la pantalla desde aquí.
 
-import type { MailBlock, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailBlock, type MailTemplate } from "../../../api/materialMail";
 import { altPendiente, resumenDeBloque } from "./modeloCorreo";
 
 type Plantilla = Pick<MailTemplate, "header" | "images" | "blocks">;
-
-/** Las imágenes que trae la plantilla de serie: su nombre y cómo se dice «de quién». */
-const CONOCIDAS: Readonly<Record<string, { nombre: string; de: string }>> = {
-  "logo-cliente": { nombre: "Unidad solicitante", de: "de la unidad solicitante" },
-  pulso: { nombre: "Pulso PUCP", de: "de Pulso PUCP" },
-};
 
 export type ClaseDeImagen = "logo" | "banner" | "imagen";
 
@@ -31,9 +25,11 @@ function desdeElId(id: string): string {
 function altDe(template: Plantilla, id: string): string {
   let delBloque = "";
   for (const b of template.blocks) {
-    if (b.type === "image" && b.image_ref === id) delBloque = b.alt;
+    // La versión del celular (L12) comparte la descripción de su bloque.
+    if (b.type === "image" && (b.image_ref === id || b.mobile_ref === id)) delBloque = b.alt;
     // Un lado de un par de imágenes (E1o) se nombra con su descripción.
     else if (b.type === "two_images" && (b.left === id || b.right === id)) delBloque = b.left === id ? b.alt_left : b.alt_right;
+    else if (tieneFoto(b) && b.image_ref === id) delBloque = b.alt ?? "";
     if (delBloque) break;
   }
   const alt = template.images[id]?.alt || delBloque;
@@ -47,18 +43,22 @@ export function claseDeImagen(template: Pick<MailTemplate, "header">, id: string
   return header.logo_ids.includes(id) ? "logo" : "imagen";
 }
 
-/** El nombre humano de una imagen: su descripción o, sin ella, el papel que cumple. */
+/**
+ * El nombre humano de una imagen: la descripción que le dio el equipo o, sin
+ * ella, el papel que cumple («Logo 2», «Banner»). Nunca un nombre de serie de
+ * la app: el correo no siempre es de Pulso PUCP (Gonzalo, 2026-10-24).
+ */
 export function nombreDeImagen(template: Plantilla, id: string): string {
-  if (claseDeImagen(template, id) === "banner") return altDe(template, id) || "Banner";
-  return altDe(template, id) || CONOCIDAS[id]?.nombre || desdeElId(id);
+  const clase = claseDeImagen(template, id);
+  if (clase === "banner") return altDe(template, id) || "Banner";
+  if (clase === "logo") return altDe(template, id) || rotuloDeLogo(template, id);
+  return altDe(template, id) || desdeElId(id);
 }
 
-/** «de la unidad solicitante», «de Pulso PUCP» o «Facultad X» entre comillas. */
-function deQuien(template: Plantilla, id: string): string {
-  const nombre = nombreDeImagen(template, id);
-  const conocida = CONOCIDAS[id];
-  if (conocida && nombre.toLocaleLowerCase("es-PE") === conocida.nombre.toLocaleLowerCase("es-PE")) return conocida.de;
-  return `«${nombre}»`;
+/** «Logo 2» por su lugar en la franja; «Logo» si es el único. */
+export function rotuloDeLogo(template: Pick<MailTemplate, "header">, id: string): string {
+  const logos = template.header.kind === "logos" ? template.header.logo_ids : [];
+  return logos.length > 1 ? `Logo ${logos.indexOf(id) + 1}` : "Logo";
 }
 
 function enLista(partes: readonly string[]): string {
@@ -67,25 +67,33 @@ function enLista(partes: readonly string[]): string {
 }
 
 /**
- * Lo que falta subir, en una frase: «Falta el logo de la unidad solicitante y
- * el de Pulso PUCP». `null` si no falta nada.
+ * Lo que falta subir, en una frase y sin nombrar a nadie: por su papel y
+ * cuántas («Faltan los logos», «Falta el banner y una imagen»). `null` si no
+ * falta nada. No nombra instituciones: el correo no siempre es de Pulso PUCP.
  */
 export function fraseDeLoQueFalta(template: Plantilla, ids: readonly string[]): string | null {
   const unicos = Array.from(new Set(ids));
   if (!unicos.length) return null;
-  const vistas = new Set<ClaseDeImagen>();
-  const partes = unicos.map((id) => {
-    const clase = claseDeImagen(template, id);
-    const primera = !vistas.has(clase);
-    vistas.add(clase);
-    if (clase === "banner") return "el banner";
-    const quien = deQuien(template, id);
-    const articulo = clase === "logo" ? "el" : "la";
-    // La segunda de la misma clase no repite el sustantivo: «y el de Pulso PUCP».
-    if (!primera) return `${articulo} ${quien}`;
-    return `${articulo} ${clase} ${quien}`;
-  });
-  return `Falta ${enLista(partes)}.`;
+  const cuantas = (clase: ClaseDeImagen) => unicos.filter((id) => claseDeImagen(template, id) === clase).length;
+  const logos = cuantas("logo");
+  const enLaFranja = template.header.kind === "logos" ? template.header.logo_ids.length : 0;
+  const imagenes = cuantas("imagen");
+  const partes = [
+    logos === 0 ? null
+      : logos === enLaFranja ? (logos === 1 ? "el logo" : "los logos")
+      : logos === 1 ? "un logo" : `${logos} logos`,
+    cuantas("banner") ? "el banner" : null,
+    imagenes === 0 ? null : imagenes === 1 ? "una imagen" : `${imagenes} imágenes`,
+  ].filter((p): p is string => p !== null);
+  return `${unicos.length === 1 ? "Falta" : "Faltan"} ${enLista(partes)}.`;
+}
+
+/** Lo que falta de una sola imagen de la cabecera, para su renglón: «Falta el logo 2». */
+export function fraseDeLoQueFaltaDe(template: Plantilla, id: string): string {
+  const clase = claseDeImagen(template, id);
+  if (clase === "banner") return "Falta el banner";
+  if (clase === "logo") return `Falta el ${rotuloDeLogo(template, id).toLocaleLowerCase("es-PE")}`;
+  return "Falta una imagen";
 }
 
 /** Ids de la revisión (`images_available`) que no tienen archivo, sin repetir. */
@@ -101,7 +109,7 @@ export function idsSinArchivo(items: readonly unknown[]): string[] {
 export function descripcionDeImagen(template: Plantilla, id: string): string {
   const alt = altDe(template, id);
   // El texto de serie de un bloque nuevo («Describe la imagen de la derecha») pide la descripción: no lo es.
-  return (INSTRUCCION_DE_ALT.test(alt) ? "" : alt) || CONOCIDAS[id]?.nombre || "";
+  return INSTRUCCION_DE_ALT.test(alt) ? "" : alt;
 }
 
 /** Lo que traen de serie los bloques de imagen nuevos (`bloqueNuevo`): una instrucción, no una descripción. */

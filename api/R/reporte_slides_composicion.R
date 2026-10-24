@@ -69,10 +69,7 @@
 
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
-  anchos <- vapply(nombres, function(nm) {
-    loc <- contract$slots[[nm]]$loc %||% NULL
-    as.numeric(loc$width %||% 5.2)
-  }, numeric(1))
+  anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
 
   rendered <- list()
   for (i in seq_along(nombres)) {
@@ -103,7 +100,10 @@
       if (!is.null(p_s)) para_lamina[[i]] <- p_s
     }
     # El `icon` que traiga un plan guardado se ignora: la población ya no lleva ícono (Gonzalo, 2026-10-14).
-    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var)
+    # La base: la declarada manda; si no, una sola si los paneles la comparten y ninguna en el pie si difieren (lamina_grilla_nativa.R).
+    decl <- slots$base %||% slots$footer; if (inherits(decl, "ppt_element_text")) decl <- decl$text
+    b <- .lam_grilla_base(if (is.character(decl) && length(decl) && nzchar(trimws(decl[1]))) decl[1], unname(els), unname(rendered), FALSE, function(e) NULL)
+    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var, base = b$base, solo_base_declarada = b$solo)
     if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
   }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype
