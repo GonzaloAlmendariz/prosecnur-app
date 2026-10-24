@@ -731,9 +731,12 @@
   grid-template-columns: minmax(0, 1fr) 420px;
 }
 
+/* Las dos tarjetas con su alto natural: barras de grosor fijo y separación
+ * pareja, sin estirar filas para llenar la columna. */
 .acr-pub-izquierda {
   display: grid;
-  grid-template-rows: minmax(0, max-content) minmax(180px, 1fr);
+  grid-template-rows: minmax(0, max-content) minmax(0, max-content);
+  align-content: start;
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
@@ -841,9 +844,8 @@
 
 /* Las filas no se estiran: cuando hay alto, la barra engrosa y lo usa. */
 .acr-pub-estados-lista > li {
-  flex: 1 1 0;
-  min-height: 36px;
-  max-height: 112px;
+  flex: 0 0 auto;
+  min-height: 44px;
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr) 60px;
   align-items: center;
@@ -851,7 +853,7 @@
 }
 
 .acr-pub-estados-lista .acr-av-apilada {
-  height: clamp(22px, 55%, 44px);
+  height: 24px;
 }
 
 .acr-pub-estados-nombre {
@@ -1155,30 +1157,18 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   justify-content: space-between;
   gap: var(--pulso-space-3);
   min-height: 32px;
-  position: relative;
-  padding: 0 var(--pulso-space-3) 0 calc(var(--pulso-space-3) + 3px);
+  padding: 0 var(--pulso-space-3);
+  border-left: 3px solid var(--pulso-border);
   border-radius: 4px;
   background: var(--pulso-surface-3);
-  --acr-sa-franja: var(--pulso-border);
-}
-
-/* Franja de estado recortada por el radio de la caja: ni sombra inset ni borde
- * lateral grueso, que en una caja redondeada se curvan y parecen un bisel. */
-.acr-sa-puntos li::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(to right, var(--acr-sa-franja) 3px, transparent 3px);
-  pointer-events: none;
 }
 
 .acr-sa-puntos li.is-ok {
-  --acr-sa-franja: var(--pulso-success-fg);
+  border-left-color: var(--pulso-success-fg);
 }
 
 .acr-sa-puntos li.is-pendiente {
-  --acr-sa-franja: var(--pulso-warn-fg);
+  border-left-color: var(--pulso-warn-fg);
 }
 
 .acr-sa-puntos b {
@@ -1411,6 +1401,14 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pub-tabla tbody td {
   height: 42px;
   padding-block: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+/* El nombre de la fila es un botón sin caja: el relieve global de los botones
+ * dibujaba un recuadro que se leía como un divisor cortado en «Público». */
+.acr-pub-nombre {
+  border-radius: 4px;
+  box-shadow: none;
 }
 
 /* El padding lateral de 20 px no le quita ancho al nombre de la fila. */

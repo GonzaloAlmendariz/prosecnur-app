@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { MonitoreoGoal, MonitoreoState } from "../../../../../api/client";
 import { cambios, conCobertura, conMeta, filasDeMetas, metasAGuardar } from "./metasModelo";
 import { Metas } from "./Metas";
+import { MetasEnEspera } from "./MetasEnEspera";
 
 const PUBLICOS = [
   { actor: "Administrativos", universo: 16, efectivas: 15, meta: 15, variables: [] },
@@ -49,5 +50,16 @@ describe("Modelo › Metas", () => {
     expect(html).toContain("Meta del estudio");
     expect(html).toContain("Padrón");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
+  });
+
+  it("sin filas conserva el marco: el aviso va dentro de la tarjeta y la espera muestra el esqueleto", () => {
+    const vacio = renderToStaticMarkup(<Metas state={{ config: { goals: [] } } as unknown as MonitoreoState} publicosDePrueba={[]} />);
+    expect(vacio).toContain("Meta del estudio");
+    expect(vacio).toContain("todavía no tiene públicos");
+    expect(vacio).not.toContain("is-esqueleto");
+    const leyendo = renderToStaticMarkup(<MetasEnEspera motivo="leyendo" />);
+    expect(leyendo).toContain("Leyendo los públicos");
+    expect(leyendo).toContain("acr-mo-tarjetas is-esqueleto");
+    expect(leyendo).toContain('aria-busy="true"');
   });
 });
