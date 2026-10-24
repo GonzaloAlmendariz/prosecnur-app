@@ -180,7 +180,6 @@
 
 .mon-mod-fase.is-activa {
   border-color: var(--pulso-module-monitoring-border);
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 35%, var(--pulso-surface));
 }
 
 .mon-mod-lista {
@@ -222,9 +221,15 @@
   vector-effect: non-scaling-stroke;
 }
 
-.mon-mod-mapa-distritos text {
-  fill: var(--pulso-text-faint);
-  font-size: 13px;
+/* Los nombres van encima de los puntos, con halo de superficie, y ubicados
+ * donde no pisan manzanas (`rotulosDelMapa.ts`). */
+.mon-mod-mapa-rotulos text {
+  fill: var(--pulso-text-soft);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  font-size: 22px;
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -291,10 +296,47 @@
   color: var(--pulso-text-soft);
 }
 
+/* Cada variable de cuota en su tarjeta, con su columna y sus categorías en
+ * chips; cada regla en su fila con el valor en chip (§2a-bis). */
+.mon-mod-variables {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.mon-mod-variables > div {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-mod-variables dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.mon-mod-reglas {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
 .mon-mod-reglas div {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);
+  min-height: 42px;
+  padding: 4px var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-mod-reglas div:first-child {
+  border-top: 0;
 }
 
 .mon-mod-plantilla {
@@ -351,5 +393,31 @@
 @media (max-width: 1180px) {
   .mon-mod-plantilla {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* La última tarjeta de la columna toma el alto sobrante (C3). */
+.mon-mod-izquierda > :last-child {
+  flex-grow: 1;
+}
+
+/* Modelo › Cuotas: arriba la definición y las reglas lado a lado; abajo la
+ * cuota por distrito a todo el ancho, con sus filas repartiendo el alto
+ * (§2a, 1: sin hueco al pie de ninguna columna). */
+@media (min-width: 1181px) {
+  .mon-mod.mon-mod-cuotas {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .mon-mod-cuotas > .mon-mod-izquierda {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .mon-mod-cuotas .mon-mod-tabla {
+    height: 100%;
   }
 }

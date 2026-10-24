@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, fmtConSigno } from "../rotulos";
 import { construirHistorial } from "./historialModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./insumos.css";
 
 /**
@@ -30,7 +31,10 @@ function HistorialTabImpl({
       data-qa-geometry-contract="intrinsic"
     >
       <section className="mon-ins-panel" aria-labelledby="mon-ins-lecturas" data-qa-geometry-member="lecturas">
-        <h3 id="mon-ins-lecturas" className="mon-ins-titulo">Lecturas de las fuentes · {fmt(modelo.lecturas.length)}</h3>
+        <header className="mon-ins-cabecera is-inicio">
+          <RotuloDePestana />
+          <h3 id="mon-ins-lecturas" className="mon-ins-titulo">Lecturas de las fuentes · {fmt(modelo.lecturas.length)}</h3>
+        </header>
         {modelo.lecturas.length ? (
           <div className="mon-ins-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Lecturas, con desplazamiento">
             <table className="mon-ins-tabla">
@@ -63,7 +67,7 @@ function HistorialTabImpl({
         )}
       </section>
 
-      <div className="mon-ins-derecha" data-qa-geometry-member="lateral">
+      <div className="mon-ins-derecha" data-qa-geometry-member="lateral" data-qa-geometry-group="territorial-insumos-historial-lateral" data-qa-geometry-contract="intrinsic">
         {modelo.serie.length > 1 ? (
           <section className="mon-ins-panel" aria-labelledby="mon-ins-serie">
             <h3 id="mon-ins-serie" className="mon-ins-titulo">Respuestas en cada lectura</h3>

@@ -4,11 +4,18 @@ import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { construirCuotas } from "./cuotasModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./modelo.css";
 
 function textoDeRegla(valor: boolean | null): string {
   if (valor == null) return "Sin dato en este corte";
   return valor ? "Sí" : "No";
+}
+
+function claseDeRegla(valor: boolean | null): string {
+  if (valor == null) return "";
+  return valor ? "is-ok" : "is-aviso";
 }
 
 /**
@@ -33,6 +40,7 @@ function CuotasTabImpl({
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Cuotas">
         <div className="mon-mod-panel mon-mod-vacio">
+          <RotuloDePestana />
           <Target size={20} aria-hidden="true" />
           <strong>Sin cuota territorial configurada</strong>
           <span>La cuota por UMP sale de la muestra de Hojas de ruta.</span>
@@ -50,14 +58,14 @@ function CuotasTabImpl({
       data-qa-geometry-group="territorial-modelo-cuotas"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="mon-mod-izquierda" data-qa-geometry-member="definicion">
+      <div className="mon-mod-izquierda" data-qa-geometry-member="definicion" data-qa-geometry-group="territorial-modelo-definicion" data-qa-geometry-contract="intrinsic">
         <section className="mon-mod-panel" aria-labelledby="mon-mod-variables">
-          <h3 id="mon-mod-variables" className="mon-mod-titulo">Variables de cuota</h3>
+          <header className="mon-mod-cabecera is-inicio"><RotuloDePestana /><h3 id="mon-mod-variables" className="mon-mod-titulo">Variables de cuota</h3></header>
           <dl className="mon-mod-variables">
             {modelo.variables.map((variable) => (
               <div key={variable.rotulo}>
                 <dt>{variable.rotulo} <code>{variable.columna || "sin columna"}</code></dt>
-                <dd>{variable.categorias.join(", ")}</dd>
+                <dd>{variable.categorias.map((categoria) => <span key={categoria} className="mon-ter-chip">{categoria}</span>)}</dd>
               </div>
             ))}
           </dl>
@@ -78,8 +86,8 @@ function CuotasTabImpl({
         <section className="mon-mod-panel" aria-labelledby="mon-mod-reglas">
           <h3 id="mon-mod-reglas" className="mon-mod-titulo">Reglas para cubrir una celda</h3>
           <dl className="mon-mod-reglas">
-            <div><dt>El sexo puede cambiar al subsanar</dt><dd>{textoDeRegla(modelo.reglas.sexoFlexible)}</dd></div>
-            <div><dt>La edad puede cambiar al subsanar</dt><dd>{textoDeRegla(modelo.reglas.edadFlexible)}</dd></div>
+            <div><dt>El sexo puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.sexoFlexible)}`}>{textoDeRegla(modelo.reglas.sexoFlexible)}</span></dd></div>
+            <div><dt>La edad puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.edadFlexible)}`}>{textoDeRegla(modelo.reglas.edadFlexible)}</span></dd></div>
           </dl>
         </section>
       </div>
@@ -98,7 +106,7 @@ function CuotasTabImpl({
             <tbody>
               {modelo.distritos.map((fila) => (
                 <tr key={fila.distrito}>
-                  <th scope="row">{fila.distrito}</th>
+                  <th scope="row"><span className="mon-ter-con-silueta"><SiluetaDeDistrito distrito={fila.distrito} lado={30} />{fila.distrito}</span></th>
                   {fila.metas.map((meta, indice) => <td key={modelo.plantilla[indice]?.clave ?? indice} className="is-num">{fmt(meta)}</td>)}
                   <td className="is-num">{fmt(fila.total)}</td>
                 </tr>

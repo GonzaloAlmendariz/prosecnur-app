@@ -12,6 +12,7 @@ import {
 } from "../TerritorialRouteCoverageAtlas";
 import { centroDeManzana } from "../avance/mapaModel";
 import { useCartografiaDelMapa } from "../avance/useCartografiaDelMapa";
+import { cajaProyectada, candidatosDeCaja, ubicarRotulos } from "./rotulosDelMapa";
 
 /**
  * Las manzanas de la muestra sobre sus distritos (territorial.md §3.5):
@@ -34,6 +35,23 @@ export function MapaDeLaMuestra({ bloques }: { bloques: readonly TerritorialBloc
     [activos],
   );
   const proyeccion = useMemo(() => buildTerritorialMapProjection(distritos.length ? distritos : LIMA_DISTRICT_FEATURES, [], [], 24), [distritos]);
+  const puntos = useMemo(() => emparejadas.flatMap((item) => {
+    const centro = centroDeManzana(item.feature);
+    if (!centro) return [];
+    const punto = proyeccion.project(centro.lon, centro.lat);
+    return [{ key: item.key, x: punto.x, y: punto.y, reemplazo: String(item.block.tipo_manzana).toLowerCase() === "reemplazo" }];
+  }), [emparejadas, proyeccion]);
+  const rotulos = useMemo(() => ubicarRotulos(
+    distritos.map((feature) => ({
+      clave: feature.properties.ubigeo,
+      texto: nombreDeDistrito(feature.properties.distrito),
+      candidatos: candidatosDeCaja(
+        proyeccion.project(feature.properties.label_lon, feature.properties.label_lat),
+        cajaProyectada(feature.geometry.coordinates, proyeccion.project),
+      ),
+    })),
+    puntos,
+  ), [distritos, proyeccion, puntos]);
   const titulares = bloques.filter((bloque) => String(bloque.tipo_manzana).toLowerCase() !== "reemplazo").length;
   const listo = !cartografia.cargando || emparejadas.length > 0;
 
@@ -46,24 +64,13 @@ export function MapaDeLaMuestra({ bloques }: { bloques: readonly TerritorialBloc
         aria-label={`${fmt(titulares)} manzanas titulares y ${fmt(bloques.length - titulares)} reemplazos en ${fmt(distritos.length)} distritos`}
       >
         <g className="mon-mod-mapa-distritos">
-          {distritos.map((feature) => {
-            const rotulo = proyeccion.project(feature.properties.label_lon, feature.properties.label_lat);
-            return (
-              <g key={feature.properties.ubigeo}>
-                <path d={territorialDistrictPath(feature, proyeccion)} />
-                <text x={rotulo.x} y={rotulo.y} textAnchor="middle">{nombreDeDistrito(feature.properties.distrito)}</text>
-              </g>
-            );
-          })}
+          {distritos.map((feature) => <path key={feature.properties.ubigeo} d={territorialDistrictPath(feature, proyeccion)} />)}
         </g>
         <g>
-          {emparejadas.map((item) => {
-            const centro = centroDeManzana(item.feature);
-            if (!centro) return null;
-            const punto = proyeccion.project(centro.lon, centro.lat);
-            const reemplazo = String(item.block.tipo_manzana).toLowerCase() === "reemplazo";
-            return <circle key={item.key} cx={punto.x} cy={punto.y} r={4} className={reemplazo ? "is-reemplazo" : "is-titular"} />;
-          })}
+          {puntos.map((punto) => <circle key={punto.key} cx={punto.x} cy={punto.y} r={4} className={punto.reemplazo ? "is-reemplazo" : "is-titular"} />)}
+        </g>
+        <g className="mon-mod-mapa-rotulos">
+          {rotulos.map((rotulo) => <text key={rotulo.clave} x={rotulo.x} y={rotulo.y} textAnchor="middle">{rotulo.texto}</text>)}
         </g>
       </svg>
       <footer className="mon-mod-mapa-pie">
