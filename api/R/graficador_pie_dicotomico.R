@@ -451,6 +451,18 @@ graficar_pie <- function(
   # pequeño “clamp” para que el texto nunca se salga del aro visualmente
   r_text <- max(r_in + 0.01, min(r_out - 0.03, r_text + nudge_radial_etiqueta))
 
+  # Frente C: la cifra que no cabe en su porción sale fuera con su línea guía (graficador_pie_guia.R). El disco se mide
+  # en pulgadas con el alto y el ancho que le deja el canvas.
+  .d_in <- .pie_guias_d_in(ancho, alto, usar_canvas, mostrar_leyenda, leyenda_posicion, canvas_h_title, canvas_h_caption,
+                           canvas_pad_top, canvas_w_legend_right, canvas_h_legend_bottom, nlevels(df$categoria), ncol_leyenda_bajo)
+  if (!is.finite(.d_in) || .d_in <= 0) .d_in <- 4
+  .pt_cifra <- size_etiquetas_pct * ggplot2::.pt
+  guias_pie <- .pie_guias(df, r_text, r_lab, .d_in, .pt_cifra, r_in = if (tipo_pie == "donut") r_in)
+  if (isTRUE(mostrar_etiquetas_pct) && any(guias_pie$fuera)) {
+    r_lab <- .pie_guias_r_lab(TRUE, r_out)
+    guias_pie <- .pie_guias(df, r_text, r_lab, .d_in, .pt_cifra, r_in = if (tipo_pie == "donut") r_in)
+  }
+
   # ---------------------------------------------------------------------------
   # 2) Panel base (sin márgenes; FULL)
   # ---------------------------------------------------------------------------
@@ -501,18 +513,8 @@ graficar_pie <- function(
     if (nrow(df_lab) > 0) {
       ff <- if (isTRUE(etiquetas_negrita) || ("etiquetas" %in% textos_negrita)) "bold" else "plain"
 
-      p_panel <- p_panel +
-        ggplot2::geom_text(
-          data = df_lab,
-          ggplot2::aes(x = r_text, y = y_mid, label = pct_txt),
-          color       = color_etiquetas_pct,
-          size        = size_etiquetas_pct,
-          family      = font_family,
-          fontface    = ff,
-          hjust       = 0.5,
-          vjust       = 0.5,
-          show.legend = FALSE
-        )
+      p_panel <- .pie_guias_capas(p_panel, df_lab, guias_pie, r_text, color_etiquetas_pct, color_leyenda,
+                                  size_etiquetas_pct, font_family, ff)
     }
   }
 
@@ -733,6 +735,7 @@ graficar_pie <- function(
   attr(p_final, "pulso_title_lines") <- as.integer(title_lines)
   attr(p_final, "pulso_canvas_title_height") <- as.numeric(canvas_title_height_eff)
   attr(p_final, "pulso_espec") <- espec_pie
+  attr(p_final, "pulso_pie_guias") <- if (isTRUE(mostrar_etiquetas_pct)) guias_pie
   p_final <- .calculos_nota_al_grafico(p_final, nota_pie_previa, nota_pie)
   if (exportar == "rplot") return(p_final)
 

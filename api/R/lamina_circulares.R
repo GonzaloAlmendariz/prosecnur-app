@@ -37,7 +37,9 @@
   propios <- if (!is.null(espec)) .espec_colores_de(espec)
   if (length(propios) == k) return(propios)
   if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
-  rep_len(c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue")), k)
+  base <- c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue"))
+  # Frente C: con más de cinco porciones el ciclo repetía el azul de la primera; se reparte la rampa de la marca.
+  if (k <= length(base)) base[seq_len(k)] else grDevices::colorRampPalette(base[1:4])(k)
 }
 
 #' Lámina de una torta con leyenda de cifras (lámina 69, recetario_m3a.R:20-31)
@@ -59,16 +61,8 @@
   lz <- .lam_lienzo()
   f <- espec$valores / sum(espec$valores); acum <- c(0, cumsum(f))
   for (i in seq_len(k)) if (f[i] > 0) .lam_sector(lz, cx, cy, r, acum[i], acum[i + 1], cols[i], nombre = "torta:porcion")
-  for (i in seq_len(k)) {
-    if (f[i] <= 0) next
-    a <- 2 * pi * (acum[i] + f[i] / 2)   # desde las 12, horario
-    dentro <- 100 * f[i] >= 12
-    rr <- if (dentro) r * 0.5 else r * 1.22   # dentro, a media distancia del centro; fuera, junto al borde
-    tx <- cx + rr * sin(a); ty <- cy - rr * cos(a)
-    col_t <- if (!dentro) azul else if (!is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
-    .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, if (dentro) .std_pt("cifra") else .std_pt("cifra_fuera"), col_t, bold = TRUE,
-             align = "center", nombre = "torta:cifra")
-  }
+  # Frente C: la cifra que no cabe en su porción sale fuera con su línea guía (lamina_circular_guia.R).
+  .lam_circular_cifras(lz, espec, cx, cy, r, f, acum, cols, prefijo = "torta")
   for (i in seq_len(k)) {
     yk <- yt + 1.0 + (i - 1) * min(1.9, 3.8 / k)
     .lam_caja(lz, 6.7, yk + 0.12, 0.3, 0.3, cols[i], nombre = "torta:cuadro")

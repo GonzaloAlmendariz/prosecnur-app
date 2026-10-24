@@ -384,13 +384,13 @@ graficar_barras_categoricas <- function(
   # pueden llegar cortos, sin nombres o como el deparse de un vector; se sanean
   # y rellenan con el helper compartido a un palette limpio keyed por categoria,
   # para que scale_fill_manual nunca reciba basura ("Unknown colour name").
-  paleta_propia <- .barras_h_paleta_propia(colores_categorias, paleta_colores, df$categoria)
+  paleta_propia <- .barras_h_paleta_propia(colores_categorias, paleta_colores, df$categoria); columnas_propias <- .graficos_columnas_colores_propios(colores_categorias, paleta_colores, df$categoria)
   if (!is.null(colores_categorias) && length(colores_categorias)) {
     colores_categorias <- .graficos_mk_palette(unique(df$categoria), pal_user = colores_categorias)
   } else if (!is.null(paleta_colores) && length(paleta_colores)) {
     paleta_colores <- .graficos_mk_palette(unique(df$categoria), pal_user = paleta_colores)
   }
-  df$fill <- .barras_categoricas_resolve_colors(df$categoria, colores_categorias, paleta_colores)
+  df$fill <- .graficos_columnas_fill(df$valor, .barras_categoricas_resolve_colors(df$categoria, colores_categorias, paleta_colores), columnas_propias)   # graficos_columnas_paleta.R
   df$x <- factor(df$categoria, levels = df$categoria)
   if (!is.null(ancho_max_eje_x) && is.finite(suppressWarnings(as.numeric(ancho_max_eje_x)))) {
     # El envoltorio y el cuerpo salen del ancho real de cada columna (graficador_rotulos_eje_x.R).
