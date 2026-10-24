@@ -128,6 +128,13 @@ export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable)
     const left = idLibre("imagen-izquierda", usados);
     return { ...block, left, right: idLibre("imagen-derecha", [...usados, left]) };
   }
+  // Un botón nace con el enlace que ya usa el correo (el de relleno, «https://», no
+  // valida y frena la vista previa). Sin ninguno, queda el de relleno: un botón
+  // no existe sin enlace, y la revisión pide escribirlo.
+  if (block.type === "button") {
+    const url = enlaceDelCorreo(template);
+    return url ? { ...block, url } : block;
+  }
   // «Imagen + texto» nace sin botón: no se le pone enlace (un enlace sin texto de botón no vale).
   if ((block.type === "feature" || block.type === "deadline") && block.button_text) {
     // El botón nace con un enlace que ya vale (la vista previa no se frena): el
