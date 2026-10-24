@@ -52,19 +52,7 @@
       }
     }
   }
-  fid_fields <- if (identical(slot, "xlsform")) {
-    c("original_xlsform_file_id", "xlsform_file_id")
-  } else {
-    c("original_data_file_id", "data_file_id")
-  }
-  if (!isTRUE(prefer_original)) fid_fields <- rev(fid_fields)
-  for (field in fid_fields) {
-    fid <- as.character(base[[field]] %||% "")
-    if (!nzchar(fid)) next
-    meta <- s$files[[fid]]
-    if (!is.null(meta)) return(meta)
-  }
-  NULL
+  codificacion_fuente_meta(s, base, slot, prefer_original)  # codificacion_fuente_actual.R
 }
 
 .codif_source_pair_for_adapt <- function(sid) {
@@ -2177,6 +2165,7 @@ attr(.codif_apply_job_runner, "prosecnur_job_function_name") <- ".codif_apply_jo
     inst <- leer_instrumento_xlsform(xls$path)
     data_df <- .read_data_any(dat)
     data_df <- normalize_data_for_xlsform(data_df, inst)
+    aviso_fuente <- codificacion_fuente_aviso_n(sid, codif_source_active(sid), nrow(data_df))
     data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
 
     draft <- codif_get(sid, "familias_draft")
@@ -2282,7 +2271,7 @@ attr(.codif_apply_job_runner, "prosecnur_job_function_name") <- ".codif_apply_jo
         .codif_apply_complete(j$sid, target_base, j$result_data)
       }
     )
-    list(ok = TRUE, job_id = job_id, kind = kind, base_name = target_base)
+    list(ok = TRUE, job_id = job_id, kind = kind, base_name = target_base, aviso_fuente = aviso_fuente)
   })
 }
 
@@ -3164,6 +3153,7 @@ mount_codificacion <- function(pr) {
       data_df <- .read_data_any(dat)
       data_df <- normalize_data_for_xlsform(data_df, inst)
       data_df <- base_variables_materializar(data_df, base_codif_meta)
+      aviso_fuente <- codificacion_fuente_aviso_n(sid, base_codif, nrow(data_df))
       data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
 
       # 1) Ensure we have a familias draft (auto-generate from suggestion
@@ -3337,7 +3327,8 @@ mount_codificacion <- function(pr) {
         sin_recodificar = sin_recod,
         omitidas = omitidas,
         textos_sin_codigo = textos_sin_codigo,
-        avisos_incompletos = as.list(diag_fallos)
+        avisos_incompletos = as.list(diag_fallos),
+        aviso_fuente = aviso_fuente
       )
     }))
 }
