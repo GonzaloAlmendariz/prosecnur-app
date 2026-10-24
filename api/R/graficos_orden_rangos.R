@@ -36,7 +36,9 @@
   if (length(nr) < 3L) return(idx)
   v <- .goc_primer_numero(as.character(cats$etiqueta[nr]))
   if (anyNA(v)) return(idx)
-  if (length(unique(.goc_unidades_rango(cats$etiqueta[nr]))) > 1L) return(idx)   # minutos y horas no se comparan
+  # Minutos y horas no se comparan; un rótulo que no nombra unidad («36 a más») no cuenta como otra.
+  unidades <- Filter(length, .goc_unidades_rango(cats$etiqueta[nr]))
+  if (length(unique(unidades)) > 1L) return(idx)
   if (!is.unsorted(v) || !is.unsorted(rev(v))) return(idx)
   c(nr[order(v, seq_along(nr))], idx[cats$residual[idx]])
 }

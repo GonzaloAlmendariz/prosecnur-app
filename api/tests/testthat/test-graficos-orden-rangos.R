@@ -25,3 +25,8 @@ test_that("rangos con unidades distintas (minutos y horas) no se reordenan por s
   meses <- cats_de(c("De 7 a 12 meses", "1 mes", "De 2 a 6 meses"), c("3", "1", "2"))
   expect_identical(.goc_orden_codigos(meses, "instrumento")$codigos, c("1", "2", "3"))
 })
+
+test_that("un rótulo sin unidad («36 a más») no apaga la heurística entre rótulos con «años»", {
+  cats <- cats_de(c("De 30 a 35 años", "De 22 a 25 años", "De 26 a 29 años", "36 a más"), c("3", "1", "2", "4"))
+  expect_identical(.goc_orden_codigos(cats, "instrumento")$codigos, c("1", "2", "3", "4"))
+})

@@ -40,3 +40,9 @@ test_that("una opción para escribir se imprime sin los dos puntos finales", {
   expect_equal(prosecnurapp:::.freq_clean_other_label_es(c("Otra institución:", "Otro:", "Madre")),
                c("Otra institución", "Otros", "Madre"))
 })
+
+test_that("una opción para escribir que no es «otro» se imprime sin el «(especifique)»", {
+  expect_equal(prosecnurapp:::.freq_clean_other_label_es(c("Otra institución (especifique)", "Otra institución, especifique:")),
+               c("Otra institución", "Otra institución"))
+  expect_equal(prosecnurapp:::.reporte_plan_clean_other_label_es("Otra institución (especifique)"), "Otra institución")
+})
