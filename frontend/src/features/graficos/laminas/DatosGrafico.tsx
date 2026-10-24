@@ -65,6 +65,7 @@ import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import { EditorTemasEquivalentes } from "../temasEquivalentes/EditorTemasEquivalentes";
 import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes/temasEquivalentesModel";
 import { useVariables } from "../useVariables";
+import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -352,6 +353,16 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
         <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
         <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
           onCambiar={(k) => onCambio(Number(k))} />
+        {nota}
+      </div>
+    );
+  }
+  if (control === "numero" && tieneRango(arg)) {
+    return (
+      <div className="pulso-f6-dato">
+        {etiqueta}
+        <NumeroAcotado id={id} rotulo={rotulo} arg={arg} valor={valor} describe={describe}
+          placeholder={placeholder ?? (arg.default !== undefined && arg.default !== null ? String(arg.default) : "")} onCambio={onCambio} />
         {nota}
       </div>
     );
