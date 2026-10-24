@@ -136,7 +136,8 @@ export function ComposicionLamina({
                 r={r}
                 k={k}
                 grafico={r.slot ? graficos[r.slot] ?? null : null}
-                opciones={r.slot ? opciones?.[r.slot] : undefined}
+                // Lámina real (con opciones): sin cifras de ejemplo, que se leían como su resultado (M6, U2 de CCSS).
+                opciones={opciones ? { ...(r.slot ? opciones[r.slot] : undefined), sinCifras: true } : undefined}
                 activa={k !== null && k === ranuraActiva}
                 numerar={numerar}
               />

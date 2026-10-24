@@ -17,6 +17,8 @@
 
 .pulso-f6-maqueta-zona {
   display: block;
+  /* El alto mínimo global de los botones (28 px) no es de la lámina: el antetítulo ocupaba el triple de su texto. */
+  min-height: 0;
   margin: 0;
   padding: 0.2em 0.4em;
   border: 1.5px dashed transparent;
@@ -55,7 +57,8 @@
 
 .pulso-f6-maqueta-ante {
   color: var(--pulso-text-muted);
-  font-size: 1.05em;
+  /* Proporcional a la hoja, como el título, con un piso legible (ver `.pulso-f6-maqueta-titulo`). */
+  font-size: min(1.05em, max(1.05cqw, 7px));
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -65,15 +68,25 @@
   color: var(--pulso-text-faint);
 }
 
+/* Hasta dos renglones, como el título del PPT; el tercero, si lo hubiera, se corta con «…» sin desbordar (U3 de CCSS:
+   en una línea con elipsis, 9 títulos medían más que su caja). */
 .pulso-f6-maqueta-titulo {
+  display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 2.3em;
+  /* `1cqw` de `.pulso-f6-maqueta` se resuelve contra el visor (un contenedor no se mide a sí mismo), no contra la hoja:
+     con el inspector encima (1024×600) el título salía 60 % más grande que la lámina y su segundo renglón pisaba el
+     gráfico. Aquí `cqw` sí es la hoja, y el título no pasa de su proporción. */
+  font-size: min(2.3em, 2.3cqw);
   font-weight: 700;
   line-height: 1.15;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .pulso-f6-maqueta-titulo-estructura {

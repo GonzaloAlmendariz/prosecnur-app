@@ -15,6 +15,7 @@ import {
 import { ETIQUETA_ESTADO } from "./estadoLamina";
 import { useLaminasUi, type ResumenLamina } from "./laminasStore";
 import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
+import { rolDeEstructura } from "./rolEstructura";
 import "./estructuraInforme.css";
 
 export type MarcaValidacion = "error" | "warning";
@@ -194,7 +195,7 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
   const detalle = lamina.ranuras > 0 && lamina.ranurasLlenas < lamina.ranuras
     ? `${lamina.tipoLabel}, ${lamina.ranurasLlenas} de ${lamina.ranuras} con gráfico`
     : lamina.ranuras === 0 && lamina.titulo === lamina.tipoLabel
-      ? "Estructura del informe"   // sin título propio, el tipo ya es el título: no se repite debajo
+      ? rolDeEstructura(lamina.tipo)   // sin título propio, el tipo ya es el título: debajo, su papel en el informe
       : lamina.tipoLabel;
   return (
     <li>

@@ -56,4 +56,15 @@ export function leerModoLamina(args: Record<string, unknown>): ModoMultiLamina {
   return v === "un_grafico" || v === "por_tema" || v === "por_barra" ? v : "";
 }
 
+// Dentro de «Como el informe (…)»: sin «(recomendado)» ni «Como antes (…)», que anidaban paréntesis (U7 de CCSS).
+const HEREDADOS: Readonly<Record<ModoMultiInforme, string>> = {
+  mismo_actor_escala: "por pregunta",
+  automatico: "una figura por tema",
+  un_grafico: "un gráfico",
+  por_tema: "por tema",
+  por_barra: "por barra",
+  un_grafico_mismo_publico: "un gráfico si es el mismo público",
+};
+export const rotuloHeredado = (m: ModoMultiInforme): string => HEREDADOS[m] ?? "por pregunta";
+
 export const rotuloModo = (m: ModoMultiInforme) => MODOS_MULTI_INFORME.find((x) => x.clave === m)?.rotulo ?? "Por pregunta (recomendado)";

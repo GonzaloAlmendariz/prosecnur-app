@@ -12,6 +12,7 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { opcionesDeComposicion } from "./opcionesComposicion";
+import { rolDeEstructura } from "./rolEstructura";
 import { graficosDeLamina } from "./selectores/cambioTipoLamina";
 import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe } from "./selectores/tiposLamina";
 import "./selectores/selectores.css";
@@ -59,7 +60,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
         <span>
           {slots.length > 0
             ? `${rotuloRanuras(slide.tipo)}, ${lamina.ranurasLlenas} con contenido`
-            : "Lámina de estructura, sin ranuras de gráfico"}
+            : `${rolDeEstructura(slide.tipo)}; no lleva gráficos.`}
         </span>
         {uso && <span>{uso}.</span>}
         {comp.fuente === "derivada" && <span>Composición antigua: ya no se ofrece al insertar, pero sigue saliendo así.</span>}
