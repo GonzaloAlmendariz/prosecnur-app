@@ -1,0 +1,23 @@
+# etiqueta_otros.R — qué etiqueta de opción es «otro» y se imprime como «Otros».
+#
+# Una sola regla para Frecuencias (`.freq_clean_other_label_es`) y el mazo (`.reporte_plan_clean_other_label_es`).
+# Antes cada sitio marcaba como «otro» toda etiqueta que EMPEZARA por otro/otra, y CCSS 2026 imprimió «Otra persona
+# responsable o tutor/a» como «Otros» (y la sumó con el «Otro (especifique)»). Ahora es «otro» sólo la etiqueta que,
+# quitado el «especifique» / «¿cuál?» y la puntuación final, queda en other/otro/otra/otros/otras.
+
+#' ¿Cada etiqueta es la opción «otro»?
+#' @param x Etiquetas de opción.
+#' @return `logical` del largo de `x`.
+#' @noRd
+.etiqueta_es_otros <- function(x) {
+  y <- as.character(x)
+  y[is.na(y)] <- ""
+  # stringi y no iconv: el iconv de macOS translitera «cuál» como «cu'al».
+  norm <- stringi::stri_trans_general(trimws(y), "Latin-ASCII")
+  norm <- tolower(trimws(gsub("\\s+", " ", norm, perl = TRUE)))
+  s <- gsub("\\s*\\([^)]*(especific|specif|please|cual)[^)]*\\)", "", norm, perl = TRUE)
+  s <- gsub("\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica|specify|please specify)\\b", "", s, perl = TRUE)
+  s <- gsub("\\s*,?\\s*\\??\\s*(cual|cuales)\\s*\\??", "", s, perl = TRUE)
+  s <- trimws(gsub("[[:space:][:punct:]]+$", "", s, perl = TRUE))
+  s %in% c("other", "otro", "otra", "otros", "otras")
+}
