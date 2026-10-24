@@ -59,6 +59,13 @@ describe("biblioteca", () => {
     expect(b).not.toHaveProperty("button_text");
   });
 
+  it("un botón nuevo nace con el enlace que ya usa el correo, no con el de relleno", () => {
+    const conBoton = { blocks: [{ block_id: "b", type: "button", text: "Ir", url: "https://pulso.pe/e" }], images: {}, fields: [] } as unknown as MailTemplate;
+    expect(bloqueParaInsertar(conBoton, "button")).toMatchObject({ type: "button", url: "https://pulso.pe/e" });
+    const conCampo = { blocks: [], images: {}, fields: [{ key: "enlace", label: "Enlace", destino: "encuesta" }] } as unknown as MailTemplate;
+    expect(bloqueParaInsertar(conCampo, "button")).toMatchObject({ url: "{{enlace}}" });
+  });
+
   it("la fecha límite nace con el enlace del correo o, sin ninguno, sin botón", () => {
     const sinEnlace = { blocks: [], images: {}, fields: [] } as unknown as MailTemplate;
     expect(bloqueParaInsertar(sinEnlace, "deadline")).not.toHaveProperty("button_text");
