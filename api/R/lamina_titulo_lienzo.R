@@ -81,7 +81,25 @@
   k <- which(nm == "pulso_encabezado:titulo")
   if (length(k) != 1L) return(p)
   t <- .lienzo_norm(.lienzo_texto_capa(p$layers[[k]]))
-  if (t %in% .lienzo_norm(c(m$titulo, m$sub))) .lienzo_sin_encabezado(p, roles = "titulo") else p
+  if (t %in% .lienzo_norm(c(m$titulo, m$sub))) return(.lienzo_sin_encabezado(p, roles = "titulo"))
+  .lienzo_titulo_como_panel(p, k)
+}
+
+#' CCSS-19: el título que se conserva toma el estilo del encabezado de un panel nativo (`.lam_panel_titulo`): azul, negrita y
+#' alineado a la izquierda, no el coral centrado del preset
+#' @keywords internal
+.lienzo_titulo_como_panel <- function(p, k) {
+  viejo <- p$layers[[k]]
+  if (!is.data.frame(viejo$data) || !"x" %in% names(viejo$data)) return(p)
+  d <- viejo$data; d$x <- 0.01
+  ap <- viejo$aes_params
+  # Capa nueva (no se modifica la del gráfico: las capas son entornos y el cambio se filtraría al original).
+  nueva <- ggplot2::geom_text(data = d, mapping = viejo$mapping, inherit.aes = FALSE, colour = .std_color("azul"),
+                              size = ap$size %||% 3.9, family = ap$family %||% "Arial", fontface = "bold", hjust = 0,
+                              vjust = ap$vjust %||% 0.5)
+  capas <- p$layers; capas[[k]] <- nueva; names(capas)[k] <- "pulso_encabezado:titulo"
+  p$layers <- capas
+  p
 }
 
 #' G6/P4/A12: el panel de composición que no cabe en pieza nativa se vuelve a dibujar sin título, subtítulo ni nota (el panel

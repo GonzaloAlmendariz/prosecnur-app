@@ -37,7 +37,9 @@ test_that("el título del lienzo se suprime cuando repite el de la lámina y se 
   por_sub <- .lam_respaldo_marco(TRUE, .tgl_titulo2, "Agrupaciones presenciales", NULL, g)
   expect_false("Agrupaciones presenciales" %in% .tgl_textos(.lam_respaldo_grafico(g, por_sub)))
   otro <- .lam_respaldo_marco(TRUE, .tgl_titulo2, NULL, NULL, g)
-  expect_identical(.lam_respaldo_grafico(g, otro), g)
+  conservado <- .lam_respaldo_grafico(g, otro)   # se conserva, con el estilo del encabezado nativo (CCSS-19)
+  expect_true("Agrupaciones presenciales" %in% .tgl_textos(conservado))
+  expect_equal(length(conservado$layers), length(g$layers))
   expect_identical(.lam_respaldo_grafico(g, .lam_respaldo_marco(FALSE, "Agrupaciones presenciales", NULL, NULL, g)), g)   # plantilla propia
 })
 
