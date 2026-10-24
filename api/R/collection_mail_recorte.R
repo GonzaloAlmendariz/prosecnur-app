@@ -17,6 +17,14 @@
 #
 # Sin archivo (sólo URL, como en SurveyMonkey) no se puede recortar: la foto
 # sale entera, a su proporción, y la revisión no lo marca como error.
+#
+# **Retratos redondos horneados (L13).** Outlook ignora `border-radius`: el
+# retrato de Cita y Contacto salía cuadrado. Su recorte se guarda como PNG con
+# el círculo en el canal alfa (borde suavizado), así se ve redondo sobre
+# cualquier fondo y en cualquier cliente. Sólo cuando el recorte es cuadrado
+# (con «original» la foto no es un círculo y queda el CSS). Un PNG sin pérdida
+# de toda la resolución pesaba ~2 MB y bloqueaba el ZIP de Mailchimp: el
+# retrato se reduce antes a 2× lo que se muestra (`.CMAIL_PORTRAIT_PX`, 192 px).
 
 .CMAIL_CROP_RATIOS <- c(original = NA_real_, "1:1" = 1, "4:3" = 4 / 3, "2:1" = 2, "16:9" = 16 / 9)
 .CMAIL_CROP_KEYS <- c("ratio", "x", "y", "zoom")
@@ -80,16 +88,42 @@
   list(x0 = x0, y0 = y0, w = w, h = h)
 }
 
-.cmail_crop_key <- function(rect) sprintf("%d-%d-%d-%d", rect$x0, rect$y0, rect$w, rect$h)
+.cmail_crop_key <- function(rect, round = FALSE) sprintf("%d-%d-%d-%d%s", rect$x0, rect$y0, rect$w, rect$h, if (round) "-c" else "")
+
+# ¿El recorte de este bloque se hornea redondo? Retratos de Cita y Contacto, recortados en cuadrado.
+.cmail_crop_round <- function(b, crop) {
+  isTRUE((.cmail_one(b$type) %||% "") %in% c("quote", "contact")) && !is.null(crop) && isTRUE(crop$r == 1)
+}
+
+# El recorte con el círculo en el canal alfa: 1 dentro, 0 fuera, medio píxel suavizado en el borde.
+.cmail_circle_alpha <- function(px) {
+  h <- dim(px)[1]; w <- dim(px)[2]
+  nc <- if (length(dim(px)) == 2L) 1L else dim(px)[3]
+  # Gris (1 o 2 canales) se repite en los tres; el alfa de origen (canal 2 o 4) se conserva.
+  rgb <- if (nc <= 2L) array(rep(if (nc == 1L) px else px[, , 1], 3L), c(h, w, 3L)) else px[, , 1:3, drop = FALSE]
+  cx <- (w + 1) / 2; cy <- (h + 1) / 2; r <- min(w, h) / 2
+  d <- sqrt(outer((seq_len(h) - cy)^2, (seq_len(w) - cx)^2, `+`))
+  a <- pmin(1, pmax(0, r - d + 0.5))
+  if (nc %in% c(2L, 4L)) a <- a * px[, , nc]
+  out <- array(0, c(h, w, 4L))
+  out[, , 1:3] <- rgb
+  out[, , 4] <- a
+  out
+}
 
 # ---- archivos derivados ----------------------------------------------------------
 
 # Escribe (o reutiliza) el recorte de `img` y devuelve su entrada de imagen.
-.cmail_crop_file <- function(img, rect) {
+# `round`: el círculo horneado en un PNG con alfa (retratos, L13).
+.cmail_crop_file <- function(img, rect, round = FALSE) {
   # La huella cambia con el archivo y con el rectángulo: subir otra foto con el mismo id no reusa un recorte viejo.
-  sello <- substr(sub("^sha256:", "", collection_fingerprint(list(unname(tools::md5sum(img$path)), .cmail_crop_key(rect)))), 1L, 6L)
-  id <- sprintf("%s-r%dx%d-%s", img$id, rect$w, rect$h, sello)
-  ext <- if (identical(img$type, "jpeg")) "jpg" else "png"
+  sello <- substr(sub("^sha256:", "", collection_fingerprint(list(unname(tools::md5sum(img$path)), .cmail_crop_key(rect, round)))), 1L, 6L)
+  # El retrato redondo se reduce a 2× lo que se muestra: un PNG sin pérdida más grande no cabe en el ZIP.
+  lado <- if (round) as.integer(min(rect$w, 2L * .CMAIL_PORTRAIT_PX)) else NULL
+  size <- if (round) list(width = lado, height = lado) else list(width = rect$w, height = rect$h)
+  id <- sprintf("%s-r%dx%d%s-%s", img$id, size$width, size$height, if (round) "c" else "", sello)
+  type <- if (round) "png" else img$type
+  ext <- if (identical(type, "jpeg")) "jpg" else "png"
   dir <- file.path(tempdir(), "prosecnur-cmail-recortes")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   path <- file.path(dir, sprintf("%s.%s", id, ext))
@@ -100,9 +134,13 @@
     rows <- (rect$y0 + 1L):(rect$y0 + rect$h)
     cols <- (rect$x0 + 1L):(rect$x0 + rect$w)
     cut <- if (is.matrix(px)) px[rows, cols, drop = FALSE] else px[rows, cols, , drop = FALSE]
-    writeBin(.cmail_encode(cut, img$type), path)
+    if (round) {
+      if (lado < rect$w) cut <- .cmail_resample_image(cut, lado, lado)
+      cut <- .cmail_circle_alpha(cut)
+    }
+    writeBin(.cmail_encode(cut, type), path)
   }
-  list(id = id, path = path, type = img$type, size = list(width = rect$w, height = rect$h),
+  list(id = id, path = path, type = type, size = size,
        bytes = as.numeric(file.info(path)$size), url = NULL, alt = img$alt %||% "",
        export_name = sprintf("%s.%s", id, ext), cropped_from = img$id)
 }
@@ -129,9 +167,10 @@
       next
     }
     rect <- .cmail_crop_rect(img$size, crop)
-    key <- .cmail_crop_key(rect)
+    round <- .cmail_crop_round(b, crop)
+    key <- .cmail_crop_key(rect, round)
     if (is.null(images[[id]]$crops[[key]])) {
-      entry <- .cmail_crop_file(img, rect)
+      entry <- .cmail_crop_file(img, rect, round)
       if (is.null(entry)) { usados_enteros <- c(usados_enteros, id); next }
       images[[entry$id]] <- entry
       images[[id]]$crops[[key]] <- entry$id
@@ -150,7 +189,7 @@
   img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
   crop <- .cmail_crop_of(b)
   if (is.null(crop) || !.cmail_size_ok(img$size)) return(list(img = img, crop = crop))
-  key <- .cmail_crop_key(.cmail_crop_rect(img$size, crop))
+  key <- .cmail_crop_key(.cmail_crop_rect(img$size, crop), .cmail_crop_round(b, crop))
   cut <- img$crops[[key]]
   list(img = if (!is.null(cut) && !is.null(ctx$images[[cut]])) ctx$images[[cut]] else img, crop = crop)
 }

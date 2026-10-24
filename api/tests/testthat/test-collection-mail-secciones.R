@@ -111,7 +111,8 @@ test_that("cita y contacto con retrato: alt obligatorio, recorte 1:1 de 96 px y 
     .cmsc_ok(b)
     t <- .cmsc_tpl(list(b))
     imgs <- .cmail_crop_apply(t, list(retrato = img))
-    expect_match(imgs$retrato$crops[[1]], "^retrato-r300x300-", info = type)
+    # La «c»: el retrato se hornea redondo (L13, test de abajo).
+    expect_match(imgs$retrato$crops[[1]], "^retrato-r192x192c-", info = type)
     html <- collection_mail_render(t, "export", "mailchimp", images = imgs)$html
     expect_match(html, '<img [^>]*width="96" height="96"[^>]*border-radius:50%', info = type)
     expect_false(grepl(">LR</td>", html, fixed = TRUE))
@@ -154,4 +155,70 @@ test_that("lo guardado por «Cambiar por» valida su forma, no se muestra y sus 
   expect_true("bad_guardado" %in% .cmsc_problems(.cmsc_con(.cmsc$deadline, list(guardado = list("a", "b")))))
   expect_true("unknown_key" %in% vapply(collection_mail_template_validate(.cmsc_tpl(list(
     list(block_id = "p", type = "paragraph", text = "Hola", guardado = list(x = "y")))))$problems, `[[`, "", "code"))
+})
+
+test_that("el retrato de Cita y Contacto lleva el círculo horneado (Outlook ignora border-radius); una foto de Destacado no", {
+  path <- tempfile(fileext = ".jpg")
+  jpeg::writeJPEG(array(0.4, dim = c(300, 400, 3)), path)
+  img <- list(id = "retrato", path = path, type = "jpeg", size = list(width = 400L, height = 300L),
+              bytes = as.numeric(file.info(path)$size), url = NULL, alt = "Retrato", export_name = "retrato.jpg")
+  for (type in c("quote", "contact")) {
+    t <- .cmsc_tpl(list(.cmsc_con(.cmsc[[type]], list(image_ref = "retrato", alt = "Retrato de Lucía"))))
+    imgs <- .cmail_crop_apply(t, list(retrato = img))
+    cut <- imgs[[imgs$retrato$crops[[1]]]]
+    expect_match(cut$id, "^retrato-r192x192c-", info = type)
+    expect_identical(cut$type, "png")
+    expect_match(cut$export_name, "\\.png$")
+    px <- png::readPNG(cut$path)
+    # Reducido a 2× lo que se muestra (96 px): un PNG sin pérdida de toda la foto no cabe en el ZIP.
+    expect_identical(dim(px), c(192L, 192L, 4L))
+    expect_identical(cut$size, list(width = 192L, height = 192L))
+    expect_identical(px[1, 1, 4], 0)          # esquina: transparente
+    expect_identical(px[96, 96, 4], 1)        # centro: opaco
+    # El borde se suaviza (no es un escalón): hay píxeles a medias, todos en el contorno.
+    medios <- which(px[, , 4] > 0 & px[, , 4] < 1, arr.ind = TRUE)
+    expect_gt(nrow(medios), 60L)
+    d <- sqrt((medios[, 1] - 96.5)^2 + (medios[, 2] - 96.5)^2)
+    expect_true(all(abs(d - 96) <= 1))
+    # El correo nombra el PNG redondo.
+    html <- collection_mail_render(t, "export", "mailchimp", images = imgs)$html
+    expect_match(html, paste0(cut$id, ".png"), fixed = TRUE, info = type)
+  }
+  # Con «original» no hay círculo que hornear (la foto no es cuadrada): sale como estaba.
+  orig <- .cmsc_tpl(list(.cmsc_con(.cmsc$quote, list(image_ref = "retrato", alt = "R", crop = list(ratio = "original")))))
+  expect_null(.cmail_crop_apply(orig, list(retrato = img))$retrato$crops)
+  # Un Destacado no se hornea: su recorte sigue en JPEG.
+  dest <- .cmsc_tpl(list(list(block_id = "d", type = "feature", title = "T", image_ref = "retrato", alt = "R")))
+  di <- .cmail_crop_apply(dest, list(retrato = img))
+  expect_identical(di[[di$retrato$crops[[1]]]]$type, "jpeg")
+})
+
+test_that("un retrato de tamaño real horneado redondo no bloquea el ZIP de Mailchimp (lo encontró el verificador)", {
+  set.seed(7)
+  path <- tempfile(fileext = ".jpg")
+  px <- array(runif(1600 * 1200 * 3), dim = c(1600, 1200, 3))  # ruido: lo peor para un PNG
+  jpeg::writeJPEG(px, path, quality = 0.85)
+  img <- list(id = "retrato", path = path, type = "jpeg", size = list(width = 1200L, height = 1600L),
+              bytes = as.numeric(file.info(path)$size), url = NULL, alt = "Retrato", export_name = "retrato.jpg")
+  t <- .cmsc_tpl(list(.cmsc_con(.cmsc$contact, list(image_ref = "retrato", alt = "Retrato de Lucía"))))
+  imgs <- .cmail_crop_apply(t, list(retrato = img))
+  cut <- imgs[[imgs$retrato$crops[[1]]]]
+  expect_lt(cut$bytes, 150000)
+  checks <- list(); push <- function(x) { checks[[length(checks) + 1L]] <<- x; invisible(push) }
+  html <- collection_mail_render(t, "export", "mailchimp", images = imgs)$html
+  .cmail_image_checks(t, imgs, html, nchar(html, type = "bytes"), push, "mailchimp")
+  expect_true(any(vapply(checks, function(c) identical(c$code, "import_zip_weight"), NA)))
+  zip <- Filter(function(c) identical(c$code, "import_zip_weight"), checks)
+  expect_false(identical(zip[[1]]$status, "error"))
+  # Nitidez: 192 px mostrados a 96 cumplen el 2x.
+  w <- Filter(function(c) identical(c$code, "image_width"), checks)
+  expect_true(length(w) == 0L || !any(vapply(w[[1]]$items %||% list(), function(x) identical(x$id, "retrato"), NA)))
+})
+
+test_that("un PNG gris con transparencia conserva su alfa al hornearse redondo", {
+  px <- array(0, dim = c(200, 200, 2)); px[, , 1] <- 0.5; px[, , 2] <- 0.5
+  out <- .cmail_circle_alpha(px)
+  expect_identical(dim(out), c(200L, 200L, 4L))
+  expect_equal(out[100, 100, 4], 0.5)
+  expect_equal(out[100, 100, 1:3], rep(0.5, 3))
 })
