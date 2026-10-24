@@ -29,7 +29,9 @@ describe("Consultas: cada fila visible tiene un dueño", () => {
     expect(bodies.every((body) => !/display:\s*none;/.test(body))).toBe(true);
   });
 
-  test("Acreditacion entrega la fila flexible al contenido tras clarity", () => {
+  // Revamp (A1): Acreditación retiró la franja como Telefónico; sus filas son
+  // la cabecera de pestaña y el contenido.
+  test("Acreditacion entrega la fila flexible al contenido tras la cabecera", () => {
     const bodies = ruleBodies(
       sharedCss,
       ".mon-profile-canonical-shell .mon-workbench.is-acreditacion .mon-workbench-main",
@@ -38,7 +40,8 @@ describe("Consultas: cada fila visible tiene un dueño", () => {
     expect(bodies.some((body) => (
       /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/.test(body)
     ))).toBe(true);
-    expect(accreditationPage).toMatch(/clarity=\{\(\s*<AcreditacionClarityStrip/);
+    expect(accreditationPage).not.toMatch(/clarity=\{/);
+    expect(accreditationPage).toMatch(/head=\{\(\s*<CabeceraAcreditacion/);
   });
 
   // Revamp de Monitoreo (2026-10-23): Telefónico retiró la franja de lectura;

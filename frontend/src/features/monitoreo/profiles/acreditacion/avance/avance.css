@@ -1,0 +1,1470 @@
+/* Avance de acreditación: Resumen (A1) y Por público (A2) del revamp.
+ * Composición medida (estándar §2a, G12): 12 px entre contenedores, 16 px de
+ * relleno, las columnas llenan el alto y terminan a la misma altura. Colores
+ * de estado por luminosidad (G10), siempre sobre tokens. A 1024 × 600 las
+ * columnas se apilan y el contenido desplaza (dueño: `.mon-workbench-content`). */
+
+.acr-res,
+.acr-pub,
+.acr-ct,
+.acr-ps,
+.acr-mo-ventana,
+.acr-rg,
+.acr-ri,
+.acr-sa,
+.acr-pc,
+.acr-co {
+  --acr-efectiva: var(--pulso-brand-navy);
+  --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
+  --acr-rechazo: var(--pulso-resultado-parcial);
+  --acr-sin-respuesta: color-mix(in srgb, var(--pulso-text-faint) 22%, var(--pulso-surface));
+  --acr-meta: var(--pulso-module-monitoring);
+  --acr-pista: var(--pulso-surface-3);
+  --acr-serie-suave: color-mix(in srgb, var(--pulso-accent-steel) 45%, var(--pulso-surface));
+  display: grid;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.acr-av-num,
+.acr-res .is-num,
+.acr-pub .is-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.acr-av-tenue {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.acr-av-antetitulo {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* Paneles. */
+.acr-av-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.acr-av-panel-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 48px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+.acr-av-panel-cabecera h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-av-panel-cabecera h3 .acr-av-tenue {
+  font-size: 12px;
+}
+
+.acr-av-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.acr-av-chip.is-cumple {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.acr-av-chip.is-falta {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.acr-av-chip.is-avance {
+  border-color: color-mix(in srgb, var(--acr-efectiva) 24%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--acr-efectiva) 8%, var(--pulso-surface));
+  color: var(--acr-efectiva);
+}
+
+.acr-av-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.acr-av-boton:hover,
+.acr-av-icono:hover {
+  background: var(--pulso-surface-3);
+}
+
+.acr-av-icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.acr-av-boton:focus-visible,
+.acr-av-icono:focus-visible,
+.acr-res-publico-boton:focus-visible,
+.acr-res-resolver-lista button:focus-visible,
+.acr-pub-nombre:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* Barras. */
+.acr-av-pista {
+  position: relative;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--acr-pista);
+}
+
+.acr-av-pista.is-gruesa {
+  height: 8px;
+}
+
+.acr-av-pista.is-alta {
+  height: 32px;
+  border-radius: 6px;
+}
+
+.acr-av-pista > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--acr-efectiva);
+}
+
+.acr-av-pista > i.is-cumple {
+  background: var(--pulso-resultado-efectiva);
+}
+
+.acr-av-pista > i.is-universo {
+  background: var(--acr-sin-respuesta);
+}
+
+.acr-av-pista > i.is-respondieron,
+.acr-av-pista > i.is-canal {
+  background: var(--pulso-accent-steel);
+}
+
+.acr-av-marca-meta {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--acr-meta);
+}
+
+.acr-av-leyenda-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-av-leyenda-meta > i {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--acr-meta);
+}
+
+.acr-av-apilada {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--acr-pista);
+}
+
+.acr-av-apilada.is-alta {
+  height: 36px;
+  border-radius: 7px;
+}
+
+.acr-av-apilada > span {
+  display: flex;
+  align-items: center;
+  min-width: 3px;
+  padding: 0 6px;
+  overflow: hidden;
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.acr-av-apilada > .is-efectiva,
+.acr-av-punto.is-efectiva { background: var(--acr-efectiva); }
+.acr-av-apilada > .is-parcial,
+.acr-av-punto.is-parcial { background: var(--acr-parcial); }
+.acr-av-apilada > .is-rechazo,
+.acr-av-punto.is-rechazo { background: var(--acr-rechazo); }
+.acr-av-apilada > .is-sin-respuesta,
+.acr-av-punto.is-sin-respuesta { background: var(--acr-sin-respuesta); }
+.acr-av-apilada > .is-excluida,
+.acr-av-punto.is-excluida { background: var(--pulso-resultado-rechazo); }
+.acr-av-apilada > .is-revision,
+.acr-av-punto.is-revision { background: var(--pulso-resultado-revision); }
+
+.acr-av-punto {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.acr-av-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-av-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Gráficos. */
+.acr-av-grafico {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.acr-av-grafico > svg {
+  position: absolute;
+  inset: 0;
+}
+
+.acr-av-eje,
+.acr-av-eje-titulo {
+  fill: var(--pulso-text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-av-eje-titulo {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.acr-av-eje.is-cifra {
+  fill: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-av-eje.is-secundario {
+  fill: color-mix(in srgb, var(--pulso-accent-steel) 70%, var(--pulso-text-faint));
+}
+
+.acr-av-reticula {
+  stroke: var(--pulso-surface-3);
+  stroke-width: 1;
+}
+
+.acr-av-barra-dia {
+  fill: var(--acr-serie-suave);
+}
+
+.acr-av-barra {
+  fill: var(--acr-efectiva);
+}
+
+.acr-av-barra.is-cero {
+  fill: var(--acr-sin-respuesta);
+}
+
+.acr-av-area {
+  fill: color-mix(in srgb, var(--acr-efectiva) 7%, transparent);
+}
+
+.acr-av-linea {
+  fill: none;
+  stroke: var(--acr-efectiva);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.acr-av-meta {
+  stroke: var(--acr-meta);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.acr-av-meta-texto,
+.acr-av-hito-texto {
+  fill: var(--acr-meta);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-av-hito {
+  fill: var(--pulso-surface);
+  stroke: var(--acr-meta);
+  stroke-width: 2;
+}
+
+.acr-av-final {
+  fill: var(--acr-efectiva);
+}
+
+.acr-av-final-texto {
+  fill: var(--acr-efectiva);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-av-minibarras {
+  flex: none;
+  fill: var(--pulso-accent-steel);
+}
+
+.acr-av-minibarras-base {
+  stroke: var(--pulso-border);
+  stroke-dasharray: 2 2;
+}
+
+/* ---------------------------------------------------------------- Resumen */
+
+.acr-res {
+  grid-template-columns: minmax(0, 1fr) 440px;
+}
+
+.acr-res-izquierda,
+.acr-res-derecha {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-res-izquierda {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.acr-res-derecha {
+  grid-template-rows: minmax(0, max-content) minmax(200px, 1fr);
+}
+
+.acr-res-kpis {
+  display: grid;
+  grid-template-columns: minmax(0, 2.6fr) repeat(4, minmax(0, 1fr));
+  align-items: end;
+  padding: var(--pulso-space-4);
+}
+
+.acr-res-kpi-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: var(--pulso-space-4);
+}
+
+.acr-res-kpi-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  white-space: nowrap;
+}
+
+.acr-res-kpi-linea > .acr-av-chip {
+  flex: none;
+}
+
+.acr-res-kpi-grande {
+  font-size: 40px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.acr-res-kpi-meta {
+  color: var(--pulso-text-soft);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-res-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acr-res-kpis > .acr-res-kpi {
+  padding-left: var(--pulso-space-4);
+  border-left: 1px solid var(--pulso-border);
+}
+
+.acr-res-kpi small {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.acr-res-kpi small:last-child:not(:first-child) {
+  font-weight: var(--pulso-weight-medium);
+}
+
+.acr-res-kpi b {
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-res-principal {
+  overflow: hidden;
+}
+
+.acr-res-curva {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 220px;
+  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.acr-res-fila {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.acr-av-universo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-av-universo-leyenda {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.acr-av-universo-leyenda b {
+  font-size: 15px;
+}
+
+.acr-res-ultimos {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-res-ultimos .acr-av-grafico {
+  min-height: 76px;
+}
+
+.acr-res-ultimos-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.acr-res-ultimos-cifras b {
+  font-size: 15px;
+}
+
+.acr-res-ultimos-cifras .acr-av-tenue {
+  font-size: 12px;
+}
+
+.acr-res-embudo {
+  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.acr-res-publicos {
+  overflow: hidden;
+}
+
+.acr-res-publicos-lista {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-gutter: stable;
+}
+
+.acr-res-publico {
+  display: flex;
+  flex: none;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-res-publico:first-child {
+  border-top: 0;
+}
+
+.acr-res-publico-boton {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-res-publico.is-denso .acr-res-publico-boton {
+  padding-block: var(--pulso-space-2);
+}
+
+.acr-res-publico-boton:hover {
+  background: var(--pulso-surface-2);
+}
+
+.acr-res-publico-linea {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.acr-res-publico-nombre {
+  min-width: 0;
+  font-size: 13px;
+}
+
+.acr-res-publico-cifra {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-1);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.acr-res-publico-barra {
+  position: relative;
+  display: block;
+}
+
+.acr-res-publico-pie {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  font-size: 11.5px;
+}
+
+.acr-res-resolver {
+  overflow: hidden;
+}
+
+.acr-res-resolver-cuerpo {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-res-resolver-total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.acr-res-resolver-total b {
+  color: var(--pulso-text);
+  font-size: 24px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.acr-res-resolver-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-res-resolver-lista button {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--pulso-surface-3);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-res-resolver-lista b {
+  margin-left: auto;
+}
+
+.acr-res-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acr-meta);
+}
+
+.acr-res-resueltos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: var(--pulso-space-1);
+}
+
+.acr-res-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* El embudo del corte es una superficie compacta dentro de su tarjeta. */
+.acr-res-embudo .mon-acr-embudo {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------ Por público */
+
+.acr-pub {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+/* Las dos tarjetas con su alto natural: barras de grosor fijo y separación
+ * pareja, sin estirar filas para llenar la columna. */
+.acr-pub-izquierda {
+  display: grid;
+  grid-template-rows: minmax(0, max-content) minmax(0, max-content);
+  align-content: start;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-pub-tabla-marco {
+  min-height: 0;
+  overflow: auto;
+}
+
+.acr-pub-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.acr-pub-tabla th,
+.acr-pub-tabla td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.acr-pub-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.acr-pub-tabla .is-num {
+  text-align: right;
+}
+
+.acr-pub-tabla tbody tr.is-activa {
+  background: color-mix(in srgb, var(--acr-meta) 7%, var(--pulso-surface));
+}
+
+.acr-pub-tabla tbody tr:hover {
+  background: var(--pulso-surface-3);
+}
+
+.acr-pub-tabla tfoot th,
+.acr-pub-tabla tfoot td {
+  border-bottom: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-pub-tabla tbody th {
+  min-width: 150px;
+  max-width: 210px;
+}
+
+.acr-pub-nombre {
+  display: block;
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-pub-avance {
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) 44px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 108px;
+}
+
+.acr-pub-avance b {
+  text-align: right;
+}
+
+.acr-pub-estados {
+  overflow: hidden;
+}
+
+.acr-pub-estados-lista {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* Las filas no se estiran: cuando hay alto, la barra engrosa y lo usa. */
+.acr-pub-estados-lista > li {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 60px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.acr-pub-estados-lista .acr-av-apilada {
+  height: 24px;
+}
+
+.acr-pub-estados-nombre {
+  overflow-wrap: anywhere;
+}
+
+.acr-pub-estados-pct {
+  color: var(--pulso-text-soft);
+  text-align: right;
+}
+
+.acr-pub-panel {
+  overflow: hidden;
+}
+
+.acr-pub-panel .acr-av-panel-cabecera h3 {
+  align-items: center;
+  font-size: 15px;
+}
+
+.acr-pub-panel-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.acr-pub-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.acr-pub-cifra b {
+  font-size: 34px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1;
+}
+
+.acr-pub-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acr-pub-acumulado {
+  flex: 1 1 auto;
+  min-height: 170px;
+}
+
+.acr-pub-embudo-fila {
+  display: grid;
+  grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.acr-pub-embudo-fila b {
+  text-align: right;
+}
+
+.acr-pub-kvs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+/* ------------------------------------------------------------- Ventanas */
+
+@media (max-width: 1365px) {
+  .acr-res { grid-template-columns: minmax(0, 1fr) 360px; }
+  .acr-pub { grid-template-columns: minmax(0, 1fr) 340px; }
+  .acr-pub-col-ultimos { display: none; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-res,
+  .acr-pub {
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100%;
+  }
+
+  .acr-pub-izquierda { grid-template-rows: auto auto; }
+  .acr-pub-acumulado { min-height: 200px; }
+
+  .acr-res-izquierda { grid-template-rows: minmax(420px, auto) auto; }
+  .acr-res-derecha { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+  .acr-res-publicos-lista { overflow: visible; }
+  .acr-pub-estados-lista > li { flex: none; min-height: 40px; }
+  .acr-pub-tabla-marco,
+  .acr-pub-estados-lista,
+  .acr-pub-panel-cuerpo { overflow: visible; }
+  .acr-pub-col-ultimos { display: table-cell; }
+}
+
+@media (max-width: 1100px) {
+  .acr-res-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--pulso-space-3); }
+  .acr-res-kpi-principal { grid-column: 1 / -1; }
+  .acr-res-kpis > .acr-res-kpi:nth-child(2) { border-left: 0; padding-left: 0; }
+  .acr-pub-col-ultimos { display: none; }
+  .acr-pub-estados-lista > li { grid-template-columns: 160px minmax(0, 1fr) 56px; }
+}
+
+/* Dentro del Resumen el embudo es una tira de tres pasos también a 1024. */
+.acr-res .acr-res-embudo .mon-acr-embudo.is-avance .mon-acr-embudo-pasos {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Ritmo (A4): efectivas por día y por semana a la izquierda, «Pulso del campo»
+ * a 340 px. Seis tonos para los públicos y uno para «Otros». */
+.acr-ri {
+  --acr-capa-1: var(--pulso-brand-navy);
+  --acr-capa-2: var(--pulso-module-monitoring);
+  --acr-capa-3: var(--pulso-accent-steel);
+  --acr-capa-4: color-mix(in srgb, var(--pulso-brand-navy) 50%, var(--pulso-surface));
+  --acr-capa-5: color-mix(in srgb, var(--pulso-module-monitoring) 50%, var(--pulso-surface));
+  --acr-capa-6: color-mix(in srgb, var(--pulso-accent-steel) 45%, var(--pulso-surface));
+  --acr-capa-7: color-mix(in srgb, var(--pulso-text-faint) 40%, var(--pulso-surface));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-ri-izquierda {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.acr-ri-diario {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-ri-diario .acr-av-grafico {
+  min-height: 280px;
+  margin: var(--pulso-space-2) var(--pulso-space-4) 0;
+}
+
+.acr-ri-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
+}
+
+.acr-av-capa.is-capa-1, .acr-av-capa-muestra.is-capa-1 { fill: var(--acr-capa-1); background: var(--acr-capa-1); }
+.acr-av-capa.is-capa-2, .acr-av-capa-muestra.is-capa-2 { fill: var(--acr-capa-2); background: var(--acr-capa-2); }
+.acr-av-capa.is-capa-3, .acr-av-capa-muestra.is-capa-3 { fill: var(--acr-capa-3); background: var(--acr-capa-3); }
+.acr-av-capa.is-capa-4, .acr-av-capa-muestra.is-capa-4 { fill: var(--acr-capa-4); background: var(--acr-capa-4); }
+.acr-av-capa.is-capa-5, .acr-av-capa-muestra.is-capa-5 { fill: var(--acr-capa-5); background: var(--acr-capa-5); }
+.acr-av-capa.is-capa-6, .acr-av-capa-muestra.is-capa-6 { fill: var(--acr-capa-6); background: var(--acr-capa-6); }
+.acr-av-capa.is-capa-7, .acr-av-capa-muestra.is-capa-7 { fill: var(--acr-capa-7); background: var(--acr-capa-7); }
+
+.acr-av-fase {
+  fill: color-mix(in srgb, var(--pulso-module-monitoring) 20%, var(--pulso-surface));
+}
+
+.acr-av-fase-texto {
+  fill: var(--pulso-text);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-ri-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+  list-style: none;
+  font-size: 12px;
+}
+
+.acr-ri-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-av-capa-muestra {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.acr-ri-calor td.acr-ri-celda {
+  min-width: 56px;
+  border-radius: 4px;
+}
+
+.acr-ri-calor td.acr-ri-celda.is-cero {
+  color: var(--pulso-text-faint);
+}
+
+.acr-ri-pulso-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-ri-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.acr-ri-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-ri-cifras dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-ri-barras,
+.acr-ri-ultimas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-ri-barras li {
+  display: grid;
+  grid-template-columns: minmax(84px, 1fr) minmax(60px, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-ri-barras b,
+.acr-ri-ultimas b {
+  text-align: right;
+}
+
+.acr-ri-ultimas li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ri { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Salidas (A5): publicaciones frente al corte y cierre del campo, iguales en
+ * alto; debajo, las tarjetas de salida de siempre. */
+.acr-sa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-sa-arriba {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.acr-sa-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-sa-puntos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  list-style: none;
+}
+
+ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
+  padding: 0;
+}
+
+.acr-sa-puntos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border-left: 3px solid var(--pulso-border);
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-sa-puntos li.is-ok {
+  border-left-color: var(--pulso-success-fg);
+}
+
+.acr-sa-puntos li.is-pendiente {
+  border-left-color: var(--pulso-warn-fg);
+}
+
+.acr-sa-puntos b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acr-sa-dialogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.acr-sa-dialogo p {
+  margin: 0;
+}
+
+.acr-sa-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acr-sa-campo textarea {
+  padding: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.acr-sa-campo textarea:focus-visible {
+  border-color: var(--pulso-brand-navy);
+  outline: 0;
+}
+
+@media (max-width: 900px) {
+  .acr-sa-arriba { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Por cuota (A3): lista de variables a 300 px; a la derecha, la franja de la
+ * cuota y su detalle, o la composición de una variable sin meta. */
+.acr-ps.acr-pc {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.acr-pc .acr-pr-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-pc-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-pc-franja {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  align-items: stretch;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.acr-pc-detalle-cuota {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.acr-pc-leyenda {
+  display: flex;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.acr-pc-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-pc-leyenda .acr-pc-anillo,
+.acr-pc-leyenda .acr-pc-punto {
+  position: static;
+  transform: none;
+}
+
+.acr-pc-pesas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-pc-fila {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 30px;
+}
+
+.acr-pc-fila > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.acr-pc-fila.is-eje {
+  min-height: 34px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.acr-pc-escala {
+  position: relative;
+  height: 28px;
+}
+
+.acr-pc-eje-titulo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-pc-marca {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-pc-pista {
+  position: relative;
+  height: 14px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.acr-pc-tramo {
+  position: absolute;
+  top: 6px;
+  height: 2px;
+  background: var(--acr-serie-suave);
+}
+
+.acr-pc-anillo,
+.acr-pc-punto {
+  position: absolute;
+  top: 1px;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.acr-pc-anillo {
+  border: 2px solid var(--pulso-accent-steel);
+  background: var(--pulso-surface);
+}
+
+.acr-pc-punto {
+  background: var(--acr-efectiva);
+}
+
+.acr-pc-fila b.is-marcada {
+  color: var(--pulso-warn-fg);
+}
+
+.acr-pc-fila .is-num {
+  text-align: right;
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.acr-pc { grid-template-columns: minmax(0, 1fr); }
+  .acr-pc-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+}
+
+/* Por cuota usa el detalle de siempre; a 1024 una categoría envuelve y la
+ * lista es un grupo de alturas iguales: todas reservan las dos líneas. */
+.acr-pc-detalle-cuota .mon-cuotas-categoria {
+  min-height: 64px;
+}
+
+.acr-pc-franja .acr-res-kpi {
+  align-self: stretch;
+}
+
+/* Las vistas apiladas (Salidas) no encogen sus paneles: lo que sobra lo
+ * desplaza el contenedor de la página. */
+.acr-sa > * {
+  flex-shrink: 0;
+}
+
+.acr-pc-franja > button {
+  align-self: center;
+  justify-self: start;
+}
+
+/* ══ §2a-bis Contenedores (Gonzalo, 2026-10-24) ══════════════════════════
+ * Cada unidad de lectura en su tarjeta, con aire y jerarquía; las tablas,
+ * elegantes dentro de su tarjeta: cabecera sobre superficie alternativa,
+ * filas de 42 px, cebra tenue y cifras tabulares a la derecha. */
+.acr-av-panel {
+  border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.acr-av-panel-cabecera {
+  flex-shrink: 0; /* con el rótulo crece a dos líneas; en un panel flex no debe encogerse bajo la tabla */
+  min-height: 52px;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.acr-pub-tabla thead th {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.acr-pub-tabla tbody th,
+.acr-pub-tabla tbody td {
+  height: 42px;
+  padding-block: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+/* El nombre de la fila es un botón sin caja: el relieve global de los botones
+ * dibujaba un recuadro que se leía como un divisor cortado en «Público». */
+.acr-pub-nombre {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+/* El padding lateral de 20 px no le quita ancho al nombre de la fila. */
+.acr-pub-tabla tbody th {
+  max-width: 230px;
+}
+
+/* Una celda de fila que es flex (Personas) deja de ser celda: el alto fijo la
+ * recortaría con nombres de dos líneas. */
+.acr-ps-estados tbody th[scope="row"] {
+  height: auto;
+  min-height: 42px;
+}
+
+.acr-pub-tabla th:first-child,
+.acr-pub-tabla td:first-child {
+  padding-left: var(--pulso-space-5);
+}
+
+.acr-pub-tabla th:last-child,
+.acr-pub-tabla td:last-child {
+  padding-right: var(--pulso-space-5);
+}
+
+.acr-pub-tabla tbody tr:nth-child(even):not(.is-activa):not(:hover) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, var(--pulso-surface));
+}
+
+.acr-pub-tabla .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acr-pub-tabla tfoot th,
+.acr-pub-tabla tfoot td {
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+/* Bloques de cifras: cada cifra en su tesela, iguales y con aire. */
+.acr-cl-cifras,
+.acr-pc-franja {
+  gap: var(--pulso-space-3);
+}
+
+.acr-cl-cifras {
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-bottom: 0;
+}
+
+.acr-cl-cifras > .acr-res-kpi,
+.acr-pc-franja > .acr-res-kpi,
+.acr-ri-cifras > div,
+.acr-co-cifras > div {
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}

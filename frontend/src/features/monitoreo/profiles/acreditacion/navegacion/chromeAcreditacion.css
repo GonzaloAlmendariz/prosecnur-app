@@ -1,0 +1,153 @@
+/* Chrome común del modo acreditación (revamp, 2026-10-23; estándar §2a y §2b,
+ * G1 y G2). Igual que el telefónico: el rail es una tarjeta propia a toda
+ * altura y la columna de trabajo lleva la cabecera de pestaña de 44 px sobre
+ * el fondo y, debajo, el contenido. Separación entre contenedores: 12 px. */
+
+.is-acreditacion-profile .mon-workbench {
+  gap: var(--pulso-space-3);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.is-acreditacion-profile .mon-workbench > .pulso-context-tab-rail {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.is-acreditacion-profile .mon-workbench-main {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  background: transparent;
+}
+
+/* La vista que una pestaña absorbe mientras no tiene diseño propio va en una
+ * tarjeta; las pestañas rediseñadas traen sus paneles y piden el lienzo
+ * desnudo con `is-lienzo`. */
+.is-acreditacion-profile .mon-workbench-content {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.is-acreditacion-profile .mon-workbench-content.is-lienzo {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Control: una línea entre el grupo Contacto y el grupo Casos (G2). La primera
+ * pestaña de Casos es siempre Por resolver. */
+.is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"] {
+  position: relative;
+  margin-top: var(--pulso-space-4);
+}
+
+.is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"]::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--pulso-space-2) - 1px);
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--pulso-border);
+}
+
+/* Pie del rail: «CORTE» en gris, fecha y hora en dos líneas. */
+.is-acreditacion-profile .pulso-context-tab-rail-meta > span {
+  min-height: 0;
+  padding: var(--pulso-space-1) 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.is-acreditacion-profile .pulso-context-tab-rail-meta > span > span {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-acreditacion-profile .pulso-context-tab-rail-meta strong,
+.is-acreditacion-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El switch encendido es azul marino en el lenguaje común (estándar §2a). */
+.is-acreditacion-profile .mon-switch-line input:checked,
+.is-acreditacion-profile .mon-acr-use-switch input[type="checkbox"]:checked {
+  border-color: var(--pulso-brand-navy) !important;
+  background: var(--pulso-brand-navy);
+}
+
+/* Sin fila de cabecera: el rótulo vive en la primera tarjeta (§2a-bis). */
+.mon-profile-canonical-shell .mon-workbench.is-acreditacion .mon-workbench-main:has(> .mon-workbench-content.is-rotulo-en-tarjeta) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.acr-av-panel-cabecera .acr-enc-copia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acr-enc-rotulo {
+  flex: 0 0 auto;
+  color: var(--pulso-module-monitoring);
+  white-space: nowrap;
+}
+
+.acr-enc-derecha,
+.acr-enc-barra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.acr-enc-barra {
+  justify-content: flex-start;
+  margin-right: auto;
+}
+
+.acr-enc-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.acr-av-panel-cabecera.is-con-rotulo {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding-top: var(--pulso-space-3);
+}
+
+.acr-enc-linea {
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap; /* en una tarjeta angosta el selector baja bajo el antetítulo */
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px var(--pulso-space-3);
+  min-height: 26px;
+}

@@ -25,14 +25,14 @@
 // usuario con `?pestana=collectors` tiene que seguir aterrizando donde
 // corresponde.
 
-import { MONITOREO_PESTANAS } from "../../../../../lib/navegacion/catalogos/monitoreo";
+import { MONITOREO_PESTANAS_INTERNAS_ACREDITACION } from "../../../../../lib/navegacion/catalogos/monitoreo";
 
-export type PestanaDeFuentes = typeof MONITOREO_PESTANAS.acreditacion.fuentes[number]["key"];
+export type PestanaDeFuentes = typeof MONITOREO_PESTANAS_INTERNAS_ACREDITACION.fuentes[number]["key"];
 
-export type PestanaDeFuentesDefinicion = typeof MONITOREO_PESTANAS.acreditacion.fuentes[number];
+export type PestanaDeFuentesDefinicion = typeof MONITOREO_PESTANAS_INTERNAS_ACREDITACION.fuentes[number];
 
 export const PESTANAS_DE_FUENTES: readonly PestanaDeFuentesDefinicion[] =
-  MONITOREO_PESTANAS.acreditacion.fuentes;
+  MONITOREO_PESTANAS_INTERNAS_ACREDITACION.fuentes;
 
 /**
  * Dónde se aterriza en Fuentes.

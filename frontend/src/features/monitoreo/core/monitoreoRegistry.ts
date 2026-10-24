@@ -180,6 +180,15 @@ export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | 
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cuotas, ritmo y entregas", icon: BarChart3 },
 ];
 
+// Acreditación con el mismo esqueleto (`docs/qa/revamp-monitoreo/acreditacion.md`
+// §1): Control reúne el contacto declarado (correo, barrido) y los casos.
+export const ACREDITACION_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
+  { key: "insumos", label: "Insumos", shortLabel: "Insumos", desc: "Públicos, fuentes y reglas", icon: PlugZap },
+  { key: "modelo", label: "Modelo", shortLabel: "Modelo", desc: "Metas, cuotas y ventana de campo", icon: ListChecks },
+  { key: "control", label: "Control", shortLabel: "Control", desc: "Contacto y casos", icon: Search },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Resumen, públicos, cuotas, ritmo y salidas", icon: BarChart3 },
+];
+
 export const TERRITORIAL_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuente", shortLabel: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
   { key: "modelo", label: "UMPs", shortLabel: "UMPs", desc: "Orden, responsables y manzanas", icon: Route },
@@ -225,5 +234,6 @@ export function seccionesPublicasDelModo(
   route: Pick<MonitoreoModoDefinicion, "family">,
 ): MonitoreoSeccionDefinicion<MonitoreoSeccionPublica>[] {
   if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
+  if (route.family === "acreditacion") return ACREDITACION_WORKBENCH_VIEWS;
   return seccionesDelModo(route);
 }

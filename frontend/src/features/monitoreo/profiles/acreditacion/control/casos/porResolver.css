@@ -1,0 +1,420 @@
+/* Control › Por resolver (ficha Ctl5): filtros 250 px, la cola y el caso a
+ * 400 px, con 12 px entre columnas que llenan el alto. Usa las piezas comunes
+ * de Avance (`acr-av-*`) para paneles, chips y botones. A 1200 px y menos el
+ * caso baja bajo la cola y el contenido desplaza. */
+
+.acr-pr {
+  --acr-efectiva: var(--pulso-brand-navy);
+  --acr-meta: var(--pulso-module-monitoring);
+  --acr-pista: var(--pulso-surface-3);
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.acr-pr.is-vacio {
+  display: flex;
+  align-items: flex-start;
+}
+
+.acr-pr-filtros,
+.acr-pr-cola,
+.acr-pr-panel {
+  overflow: hidden;
+}
+
+.acr-pr-filtros-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-3);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.acr-pr-grupo h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  padding: 0 var(--pulso-space-2);
+}
+
+.acr-pr-grupo ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-pr-grupo button {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-pr-grupo button > b {
+  margin-left: auto;
+}
+
+.acr-pr-grupo button:hover {
+  background: var(--pulso-surface-3);
+}
+
+.acr-pr-grupo button.is-activo {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pr-grupo button:focus-visible,
+.acr-pr-personas button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.acr-pr-cola-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.acr-pr-tabla td {
+  white-space: nowrap;
+}
+
+.acr-pr-tabla tbody th {
+  min-width: 0;
+}
+
+.acr-pr-cola-vacia {
+  padding: var(--pulso-space-4);
+}
+
+.acr-pr-cabecera-derecha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-pr-panel-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.acr-pr-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.acr-pr-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0;
+}
+
+.acr-pr-datos.is-llave {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.acr-pr-datos.is-llave .acr-pr-dato {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+}
+
+.acr-pr-dato dt {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pr-dato dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-pr-linea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0 0 0 var(--pulso-space-4);
+  border-left: 2px solid var(--pulso-surface-3);
+  list-style: none;
+}
+
+.acr-pr-linea li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acr-pr-linea li::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: calc(-1 * var(--pulso-space-4) - 6px);
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--pulso-surface);
+  border-radius: 50%;
+  background: var(--pulso-brand-navy);
+}
+
+.acr-pr-linea li.is-pendiente::before {
+  background: var(--pulso-module-monitoring);
+}
+
+.acr-pr-linea b {
+  font-size: 12px;
+}
+
+.acr-pr-linea span {
+  color: var(--pulso-text-soft);
+}
+
+.acr-pr-evidencia,
+.acr-pr-personas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-pr-personas {
+  max-height: 232px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.acr-pr-evidencia li,
+.acr-pr-personas button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  padding: 7px var(--pulso-space-2);
+  border: 1px solid var(--pulso-surface-3);
+  border-radius: 8px;
+}
+
+.acr-pr-personas button {
+  width: 100%;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-pr-personas button.is-activa {
+  border-color: var(--pulso-brand-navy);
+  box-shadow: inset 0 0 0 1px var(--pulso-brand-navy);
+}
+
+.acr-pr-evidencia li > span:first-child,
+.acr-pr-personas button > span:first-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.acr-pr-evidencia small,
+.acr-pr-personas small {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-av-chip.is-exact {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.acr-av-chip.is-possible {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.acr-pr-buscador {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 34px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text-soft);
+}
+
+.acr-pr-buscador input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+}
+
+.acr-pr-buscador:focus-within {
+  border-color: var(--pulso-brand-navy);
+}
+
+.acr-pr-confirmar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-pr-confirmar .pulso-switch {
+  --pulso-switch-accent: var(--pulso-brand-navy);
+}
+
+.acr-pr-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acr-pr-nota span {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pr-nota textarea {
+  min-height: 56px;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.acr-pr-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.acr-av-boton.is-primario {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.acr-av-boton.is-primario:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 88%, var(--pulso-text));
+}
+
+.acr-av-boton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 1365px) {
+  .acr-pr { grid-template-columns: 220px minmax(0, 1fr) 360px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-pr {
+    flex: 0 0 auto;
+    grid-template-columns: 220px minmax(0, 1fr);
+    height: auto;
+    min-height: 100%;
+  }
+
+  .acr-pr-panel { grid-column: 1 / -1; }
+  .acr-pr-cola-marco { max-height: 420px; }
+  .acr-pr-panel-cuerpo,
+  .acr-pr-filtros-cuerpo { overflow: visible; }
+}
+
+/* Las listas de los maestros (Por resolver, Fuentes, Cuotas, Por cuota): el
+ * rótulo a la izquierda y envuelve; la cifra a la derecha, sin encogerse. */
+.acr-pr-grupo button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.acr-pr-grupo button > span:not([aria-hidden], .acr-av-num) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.acr-pr-grupo button > :is(b, small, [aria-hidden], .acr-av-num) {
+  flex: 0 0 auto;
+}
+
+/* Los públicos largos («Estudiantes de posgrado CENTRUM») envuelven dentro del
+ * botón; el código de un caso también, en la cabecera de su ficha. */
+.acr-pr-grupo button {
+  padding-block: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.acr-av-panel.acr-pr-panel h3 {
+  white-space: normal;
+  min-width: 0;
+}
+
+.acr-av-panel.acr-pr-panel h3 .acr-av-num {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.acr-pr-tabla tbody th[scope="row"] {
+  max-width: none;
+}
+
+/* Los códigos se parten en sus guiones, nunca letra a letra. */
+.acr-pr-tabla .acr-pub-nombre {
+  max-width: 220px;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
+  text-align: left;
+}
+
+.acr-av-panel.acr-pr-panel h3 .acr-av-antetitulo {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

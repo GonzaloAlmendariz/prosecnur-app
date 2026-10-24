@@ -8,6 +8,9 @@ const css = fs.readFileSync(path.join(modeloDir, "modeloOperativo.css"), "utf8")
 const distributionCss = fs.readFileSync(path.join(modeloDir, "distribucionPorActor.css"), "utf8");
 const distributionPage = fs.readFileSync(path.join(modeloDir, "DistribucionPorActor.tsx"), "utf8");
 const page = fs.readFileSync(path.join(modeloDir, "..", "AcreditacionMonitoreoPage.tsx"), "utf8");
+// La franja de lectura se retiró con el revamp (G1); lo que decía de
+// Distribución pasó a los chips de la cabecera de Modelo › Cuotas.
+const chips = fs.readFileSync(path.join(modeloDir, "..", "navegacion", "chipsDeCabecera.ts"), "utf8");
 
 function between(source: string, start: string, end: string): string {
   const startAt = source.indexOf(start);
@@ -126,8 +129,9 @@ describe("Acreditación > Modelo operativo > Distribución", () => {
   });
 
   test("alinea resumen, encabezado y vacíos con la tarea", () => {
-    expect(page).toContain('pestanaActiva === "distribucion" ? [');
-    expect(page).toContain('{ label: "Variables", value: fmt(interestVariables.length)');
+    expect(chips).toContain('clave === "modelo/cuotas"');
+    expect(chips).toContain('"variable declarada", "variables declaradas"');
+    expect(chips).toContain('"público sin variable", "públicos sin variable"');
     expect(workbench).toContain('activeVisibleTab !== "distribucion" && (activeVisibleTab !== "estrategias" || isPhoneModel) ? <div className="mon-acr-model-map"');
     expect(distributionPage).toContain("Variables para abrir el detalle de cada actor");
     expect(distributionPage).not.toContain("<span>Distribución</span>");
@@ -170,9 +174,11 @@ describe("Acreditación > Modelo operativo > Cronograma", () => {
   });
 
   test("da a la franja superior métricas propias de Cronograma", () => {
-    expect(page).toContain('pestanaActiva === "estrategias" ? [');
-    expect(page).toContain('{ label: "Plan", value: countText(claritySchedule.durationWeeks');
-    expect(page).toContain('{ label: "Fechas", value: claritySchedule.startDate && claritySchedule.endDate ? "Declaradas" : "Pendientes"');
-    expect(page).toContain('{ label: "Reporte", value: calendarReportWeekdayLabel(claritySchedule.reportWeekday)');
+    // La franja se retiró (G1): plan, fechas y día de reporte los dice el
+    // resumen del propio panel del cronograma.
+    expect(page).not.toContain("<AcreditacionClarityStrip");
+    expect(schedulePanel).toContain('<StatTile label="Semanas del plan"');
+    expect(schedulePanel).toContain('<StatTile label="Fechas del plan"');
+    expect(schedulePanel).toContain('<StatTile label="Reporte" value={calendarReportWeekdayLabel(draft.reportWeekday)}');
   });
 });

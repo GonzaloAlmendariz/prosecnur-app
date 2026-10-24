@@ -1233,6 +1233,15 @@
       quota_values = if (nzchar(quota_variable)) quota_value_columns[[quota_variable]] else NULL
     ), cfg, data, from_population = phone_from_population))
   }
+  if (!isTRUE(standalone_phone)) {
+    # Acreditación › Control › Reintentos (revamp A4): la misma cola sobre el barrido del estudio.
+    blocks <- c(blocks, .monitoreo_telefonico_cola_blocks(phone, list(
+      status = status, responsables = responsables, attempts = attempts, dates = dates,
+      keys = primary_keys, efectiva_kobo = phone_platform_complete, no_barrido = no_barrido_mask,
+      efectivo = efectivo_mask, reintentable = reattempt_mask, quota_variable = "Público",
+      quota_values = .monitoreo_source_declared_actor_values(phone)
+    ), cfg, data, from_population = phone_from_population))
+  }
   blocks <- c(blocks, .monitoreo_telefonico_origen_blocks(phone, profile)) # monitoreo_telefonico_origen.R
   # El conflicto de llave se descontaba en silencio; ahora se reporta para poder
   # separarlo de los pendientes por falta de registro (plan §7).

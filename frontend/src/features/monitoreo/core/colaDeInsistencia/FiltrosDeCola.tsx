@@ -51,11 +51,13 @@ export function FiltrosDeCola({
   resultados,
   cuotas,
   etiquetaCuota,
+  plataforma = "Kobo",
 }: {
   responsables: readonly string[];
   resultados: readonly string[];
   cuotas: readonly string[];
   etiquetaCuota: string;
+  plataforma?: string;
 }) {
   const { filtros, cambiar } = useFiltrosDeCola();
   const [abierto, setAbierto] = useState(false);
@@ -99,10 +101,10 @@ export function FiltrosDeCola({
   ) : null);
   const interruptor = (prioridad: Prioridad) => (
     <span className="mon-cola-interruptor" data-prioridad={prioridad}>
-      <span aria-hidden="true">Ocultar las efectivas en Kobo</span>
+      <span aria-hidden="true">{`Ocultar las efectivas en ${plataforma}`}</span>
       <Switch
         checked={filtros.ocultarEfectivas}
-        ariaLabel="Ocultar las efectivas en Kobo"
+        ariaLabel={`Ocultar las efectivas en ${plataforma}`}
         onToggle={() => cambiar({ ocultarEfectivas: !filtros.ocultarEfectivas })}
       />
     </span>

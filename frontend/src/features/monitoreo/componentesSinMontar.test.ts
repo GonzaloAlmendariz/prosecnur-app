@@ -23,6 +23,11 @@ const RAIZ = path.resolve(__dirname);
  * su archivo.
  */
 const SIN_MONTAR_CONOCIDOS = [
+  // Desmontado el 2026-10-23 por el revamp de acreditación (Insumos › Fuentes,
+  // ficha I2): el maestro de fuentes por público con su detalle reemplaza el
+  // inventario por papel, enlace al servicio incluido. Es una MUDANZA, no un
+  // borrado: retirar el archivo es decisión con doble confirmación.
+  "FuentesResumen.tsx::FuentesResumen",
   // Salió de la pestaña «Metas» el 2026-09-08 con el resto de la predicción.
   // Gonzalo: «lo nada que tenga que ver con predicción porque eso le pertenece a
   // otra pestaña» — es una MUDANZA pendiente, no un borrado, y por eso el
@@ -75,11 +80,6 @@ const SIN_MONTAR_CONOCIDOS = [
   // separa agendadas de aplicadas. Se desmonta, no se borra.
   "AulasFrenteDelOperativo.tsx::AulasFrenteDelOperativo",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
-  // Destapado el 2026-10-23, no creado: el detector cuenta por nombre y la
-  // copia homónima del clon telefónico era la que «montaba» a ésta. Telefónico
-  // pasó a `navegacion/CabeceraTelefonica.tsx` y quedó a la vista que la de
-  // Acreditación no la monta nadie. Retirarla es decisión de su perfil.
-  "AcreditacionMonitoreoPage.tsx::AcreditacionWorkbenchHead",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",
   "TerritorialModelWorkbench.tsx::RouteSheetStrip",
   "TerritorialMonitoreoPage.tsx::AdvanceView",
