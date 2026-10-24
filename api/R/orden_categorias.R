@@ -143,10 +143,29 @@
   c(codes[!esp], codes[esp])
 }
 
+#' Permutación de `cur` que reordena SÓLO los códigos de `desired`, dentro de las posiciones que ya ocupaban.
+#'
+#' `grupos_recod` trae sólo los grupos que el analista tocó, no un orden completo (CCSS 2026: A1 = 10, 98 sobre
+#' 6, 7, 8, 9, 70, 10, 98). Ponerlos a la cabeza (`.orden_categorias_perm`) arrastraba al resto detrás; aquí los
+#' códigos nombrados se reparten, en el orden de `desired`, sobre los lugares que ocupaban, y los demás no se mueven.
+#' Con una lista completa equivale a `.orden_categorias_perm`.
+#' @noRd
+.orden_categorias_perm_en_lugar <- function(cur, desired) {
+  cur <- as.character(cur)
+  desired <- unique(as.character(desired))
+  desired <- desired[desired %in% cur]
+  perm <- seq_along(cur)
+  slots <- which(cur %in% desired)
+  if (!length(slots)) return(perm)
+  perm[slots] <- unlist(lapply(desired, function(code) which(cur == code)), use.names = FALSE)[seq_along(slots)]
+  perm
+}
+
 #' Aplica el orden de las flechas de Codificación a la recodificada de cada
-#' select_multiple, reordenando `inst$orders_list[[<parent>_recod]]`. Reusa
-#' `.apply_orden_categorias` (keyed por list_name) para compartir maquinaria y
-#' precedencia — de ahí que este override se aplique ANTES que el de Analítica.
+#' pregunta (select_one o select_multiple), reordenando
+#' `inst$orders_list[[<parent>_recod]]` por list_name, como `.apply_orden_categorias`.
+#' Una lista parcial sólo reordena lo que nombra (`.orden_categorias_perm_en_lugar`).
+#' Se aplica ANTES que el orden de Analítica, que manda por encima.
 #'
 #' @param inst  Instrumento con `$orders_list` y `$survey`.
 #' @param grupos_por_parent  salida de `.orden_grupos_recod_por_parent`.
@@ -164,10 +183,25 @@
     recod_var <- paste0(parent, "_recod")
     ln <- tryCatch(.analitica_list_name_for_var(inst, recod_var), error = function(e) "")
     if (!nzchar(ln)) next
-    orden_cfg[[ln]] <- .orden_especiales_al_final(codes)
+    orden_cfg[[ln]] <- codes
   }
   if (!length(orden_cfg)) return(inst)
-  .apply_orden_categorias(inst, orden_cfg)
+  for (var in names(inst$orders_list)) {
+    entry <- inst$orders_list[[var]]
+    if (is.null(entry$names) || !length(entry$names)) next
+    ln <- tryCatch(.analitica_list_name_for_var(inst, var), error = function(e) "")
+    if (!nzchar(ln) || is.null(orden_cfg[[ln]])) next
+    perm <- .orden_categorias_perm_en_lugar(entry$names, orden_cfg[[ln]])
+    # Los especiales [80,100) van al final de la lista COMPLETA, no de la parcial (B14: 99 a mitad de lista).
+    reordenados <- as.character(entry$names)[perm]
+    perm <- perm[match(.orden_especiales_al_final(reordenados), reordenados)]
+    if (identical(perm, seq_along(entry$names))) next
+    inst$orders_list[[var]]$names <- as.character(entry$names)[perm]
+    if (!is.null(entry$labels) && length(entry$labels) == length(entry$names)) {
+      inst$orders_list[[var]]$labels <- entry$labels[perm]
+    }
+  }
+  inst
 }
 
 # =============================================================================
