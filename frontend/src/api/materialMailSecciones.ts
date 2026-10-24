@@ -53,6 +53,11 @@ export function tieneFoto(block: MailBlock): block is MailBlockConFoto & MailBlo
   return (MAIL_PHOTO_TYPES as readonly string[]).includes(block.type);
 }
 
+/** Las secciones que «Cambiar por» intercambia y que pueden llevar `guardado` (`.CMAIL_GUARDADO_TYPES`). */
+export const MAIL_GUARDADO_TYPES = ["feature", ...MAIL_SECTION_TYPES] as const;
+/** Lo que una sección conserva sin mostrar después de «Cambiar por» (L8). */
+export type MailGuardado = { guardado?: Record<string, unknown> };
+
 export function esTipoDeSeccion(type: string): type is MailSectionType {
   return (MAIL_SECTION_TYPES as readonly string[]).includes(type);
 }

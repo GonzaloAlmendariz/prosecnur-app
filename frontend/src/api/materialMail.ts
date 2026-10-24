@@ -44,7 +44,7 @@
 // navegador. Lo que llega vive en memoria mientras la vista existe.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
-import { MAIL_SECTION_TYPES, normalizeMailSection, type MailSectionBlock } from "./materialMailSecciones";
+import { MAIL_GUARDADO_TYPES, MAIL_SECTION_TYPES, normalizeMailSection, type MailGuardado, type MailSectionBlock } from "./materialMailSecciones";
 
 // El resto del catálogo de secciones (L6) vive en su módulo; se lee desde aquí como el resto del contrato.
 export * from "./materialMailSecciones";
@@ -268,8 +268,8 @@ export type MailKnownBlock =
   | (MailOrnamentBlock & MailBoxed)
   | (MailIconTextBlock & MailBoxed)
   | (MailTwoImagesBlock & MailBoxed)
-  | (MailFeatureBlock & MailBoxed)
-  | (MailSectionBlock & MailBoxed);
+  | (MailFeatureBlock & MailBoxed & MailGuardado)
+  | (MailSectionBlock & MailBoxed & MailGuardado);
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -854,7 +854,9 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
   const block = normalizeMailBlockSinCaja(value);
   if (!block || isOpaqueMailBlock(block) || block.type === "footer_legal" || !isRecord(value)) return block;
   const box = normalizeMailBox(value.box);
-  return box ? { ...block, box } : block;
+  // Lo que «Cambiar por» dejó sin mostrar (L8): viaja tal cual, el render lo ignora.
+  const guardado = (MAIL_GUARDADO_TYPES as readonly string[]).includes(block.type) && isRecord(value.guardado) ? { guardado: value.guardado } : {};
+  return { ...block, ...(box ? { box } : {}), ...guardado };
 }
 
 function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
