@@ -43,7 +43,7 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | D13 aviso | Escala con categoría fuera del recorrido no excluida → aviso en la lámina | junto a G4 | ⛔ decidido, implementación en 1H | |
 | G6 = P4 | Título duplicado en slots de mixtas (agrupadas canvas dibuja su título con `draw_text`) | `lamina_mixtas.R:452,503`, `reporte_slides_composicion.R:96` | ✅ `c0df7056d` | |
 | A12 | Rótulos montados en `p_slide_cifras_y_graficos` con agrupadas de `A12_recod` | `reporte_slides_composicion.R` sin `alto_slot`; envoltorio a 12 pt sin recalcular a 8 | ✅ `c0df7056d` | |
-| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | `router_codificacion.R:55-67` prefiere `original_data_file_id` sin mirar si el actual es adaptado; `original_*` se congela (`session_store.R:1221`) | 🔵 writer B1 | diagnosticado: aplicar la regla de Analítica (`router_analitica.R:48-60`) |
+| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | `router_codificacion.R:55-67` prefiere `original_data_file_id` sin mirar si el actual es adaptado; `original_*` se congela (`session_store.R:1221`) | ✅ `82005becc` | aplicada la regla de Analítica (`router_analitica.R:48-60`) |
 | B2 B5 B6 B12–B16 B9 B10 | Ver plan | | ⬜ | sin decisión |
 | B0b B3 B4 B7a–c B8 B9pref B11 B17 | Bloqueados por D11, D1–D10, D12 | | ⛔ | |
 
