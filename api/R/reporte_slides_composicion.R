@@ -92,11 +92,21 @@
   # ADR 0093: las disposiciones que el recetario ya compone con piezas nativas no pasan por la plantilla.
   if (!is.null(.lam_mixta_geo(stype)) && .lam_compositor_aplica_mixta(unname(rendered), slide, stype, unname(els), helpers$title_of_var)) {
     # P4: el panel que no cabe en piezas nativas va con su gráfico; sin su nota al pie, que la lámina ya escribe en la base.
-    caben <- .lam_mixta_caben(lapply(unname(rendered), .lam_espec_de), .lam_mixta_geo(stype), unname(els), helpers$title_of_var)
+    especs_c <- lapply(unname(rendered), .lam_espec_de)
+    caben <- .lam_mixta_caben(especs_c, .lam_mixta_geo(stype), unname(els), helpers$title_of_var)
     para_lamina <- rendered
+    enc_c <- if (any(!caben)) .lam_mixta_encabezados(especs_c, unname(els), helpers$title_of_var)
     for (i in which(!caben)) {
-      el_s <- els[[i]]; el_s$overrides$nota_pie <- ""
+      # G6/A12: sin título ni subtítulo (el panel tiene su encabezado) y con el alto real de su cajón (lamina_titulo_lienzo.R).
+      alto_i <- .composicion_alto_respaldo(stype, i, enc_c$preguntas[[i]] %||% NULL, (enc_c$publicos %||% list())[i][[1]] %||% NULL)
+      # El alto sólo se pasa si con el de la firma los rótulos se montarían en la fila real: lo que hoy cabe no cambia.
+      el_s <- .lam_respaldo_el_sin_encabezado(els[[i]])
       p_s <- tryCatch(helpers$render_element(helpers$inject_title_override(el_s), ancho_slot = anchos[[i]]), error = function(e) NULL)
+      if (.lam_respaldo_rotulos_solapan(p_s, alto_i)) {
+        p_a <- tryCatch(helpers$render_element(helpers$inject_title_override(.lam_respaldo_el_sin_encabezado(els[[i]], alto = alto_i)),
+                                               ancho_slot = anchos[[i]], alto_slot = alto_i), error = function(e) NULL)
+        if (!is.null(p_a)) p_s <- p_a
+      }
       if (!is.null(p_s)) para_lamina[[i]] <- p_s
     }
     # El `icon` que traiga un plan guardado se ignora: la población ya no lleva ícono (Gonzalo, 2026-10-14).
