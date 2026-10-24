@@ -1,12 +1,19 @@
-import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
+
+import { isOpaqueMailBlock, tieneEntradas, tieneFoto, type TipoConEntradas, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow } from "../../xlsformEditor/kit";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, sigueAIdentidad, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
+import { EstiloDelBloque, SelectorDeVista } from "./EstiloDelBloque";
+import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
-import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
+import { CambiarPorSeccion } from "./CambiarPorSeccion";
+import { EntradasDeSeccion } from "./EntradasDeSeccion";
+import { esIntercambiable, type TipoIntercambiable } from "./modeloCambiarPor";
+import { FotoDeLaSeccion } from "./FotoDeLaSeccion";
+import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar, type RanuraDeImagen } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { CampoConCampos } from "./CampoConCampos";
@@ -40,7 +47,7 @@ import {
   type PropDeTexto,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
-import type { DestinoDelCampo } from "./store";
+import { useCorreosStore, type DestinoDelCampo } from "./store";
 
 type Props = {
   template: MailTemplate;
@@ -72,12 +79,16 @@ type Props = {
   vistasDelPar?: Record<LadoDelPar, string | null> | null;
   ocupado?: boolean;
   /** Con `lado`, el archivo es de un lado de un par. */
-  onSubirImagen?: (blockId: string, file: File, lado?: LadoDelPar) => void;
+  onSubirImagen?: (blockId: string, file: File, lado?: RanuraDeImagen) => void;
+  /** La versión del celular de una Imagen (L12): la subida o la de la vista previa. */
+  vistaDelMovil?: string | null;
   /** Sube una imagen de la cabecera (logo o banner) con su id, como en Identidad. */
   onSubirLogo?: (id: string, file: File) => void;
   /** La lista cargada en Personas: de ahí sale la columna del saludo por sexo (C8). */
   destinatarios?: MailRecipients | null;
   onIrAPersonas?: () => void;
+  /** Los colores de la marca (banner o logo) para el fondo del bloque (L3). */
+  coloresDeLaMarca?: readonly string[];
 };
 
 /** ¿La edición convirtió el bloque imagen en la cabecera (banner) y lo quitó de la lista? */
@@ -169,13 +180,19 @@ export function PanelDeBloque({
   dialecto = "mailchimp",
   chequeos = [],
   vistaDeImagen = null,
+  vistaDelMovil = null,
   vistasDelPar = null,
   ocupado = false,
   onSubirImagen,
   onSubirLogo,
   destinatarios = null,
   onIrAPersonas,
+  coloresDeLaMarca = [],
 }: Props) {
+  // Antes de cualquier return: un hook bajo una guarda rompe al cambiar de selección (React #310).
+  // En el store: la barra del lienzo también abre «Estilo» (L10).
+  const vista = useCorreosStore((s) => s.vistaDelBloque);
+  const setVista = useCorreosStore((s) => s.setVistaDelBloque);
   if (seleccion === SOBRE) {
     return (
       <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
@@ -277,13 +294,29 @@ export function PanelDeBloque({
   const props = propsDeTexto(block.type);
   const sueltos = propios.filter((p) => !esProblemaDelTrato(p)).filter((p) => {
     const prop = propDelProblema(p.path);
+    // La descripción de la foto de una sección la muestra su propio panel; las entradas, el suyo.
+    if (tieneFoto(block) && prop === "alt") return false;
+    if (tieneEntradas(block.type) && p.path.includes(".entries")) return false;
     return !prop || !(props as readonly string[]).includes(prop);
   });
   const editar = (update: (b: MailBlock) => MailBlock, grupo?: string) => onEditarBloque(block.block_id, update, grupo);
+  const conEstilo = admiteCaja(block);
+
+  if (conEstilo && vista === "estilo") {
+    return (
+      <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
+        <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
+        <SelectorDeVista vista={vista} onVista={setVista} />
+        <EstiloDelBloque block={block} theme={template.theme} deLaMarca={coloresDeLaMarca} onEditar={editar} />
+        <AccionesDelBloque template={template} blockId={block.block_id} onMover={onMover} onQuitar={onQuitar} />
+      </div>
+    );
+  }
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
+      {conEstilo ? <SelectorDeVista vista={vista} onVista={setVista} /> : null}
       <ChequeosDelBloque
         chequeos={chequeos}
         detalleDe={(c) => {
@@ -308,6 +341,8 @@ export function PanelDeBloque({
             if (pasoALaCabecera(update(template), block)) onSeleccionar?.(CABECERA);
           }}
           onSubir={(file) => onSubirImagen?.(block.block_id, file)}
+          vistaDelMovil={vistaDelMovil}
+          onSubirMovil={(file) => onSubirImagen?.(block.block_id, file, "movil")}
         />
       ) : null}
       {block.type === "two_images" ? (
@@ -318,6 +353,25 @@ export function PanelDeBloque({
           ocupado={ocupado}
           onEditarBloque={editar}
           onSubir={(lado, file) => onSubirImagen?.(block.block_id, file, lado)}
+        />
+      ) : null}
+      {tieneEntradas(block.type) ? (
+        <EntradasDeSeccion
+          block={block as MailBlock & { type: TipoConEntradas }}
+          opciones={rotulosDeCampos(template)}
+          problemas={propios}
+          onEditarBloque={editar}
+          onIrAPersonas={onIrAPersonas}
+        />
+      ) : null}
+      {tieneFoto(block) ? (
+        <FotoDeLaSeccion
+          block={block}
+          vista={vistaDeImagen}
+          problemas={propios}
+          ocupado={ocupado}
+          onEditarBloque={editar}
+          onSubir={(file) => onSubirImagen?.(block.block_id, file)}
         />
       ) : null}
       {block.type === "icon_text" ? (
@@ -436,6 +490,9 @@ export function PanelDeBloque({
         <ul className="rec-mail-problemas">
           {sueltos.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
         </ul>
+      ) : null}
+      {esIntercambiable(block.type) ? (
+        <CambiarPorSeccion block={block as MailBlock & { type: TipoIntercambiable }} onEditarBloque={editar} />
       ) : null}
       <AccionesDelBloque template={template} blockId={block.block_id} onMover={onMover} onQuitar={onQuitar} />
     </div>

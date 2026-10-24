@@ -37,7 +37,9 @@
   propios <- if (!is.null(espec)) .espec_colores_de(espec)
   if (length(propios) == k) return(propios)
   if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
-  rep_len(c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue")), k)
+  base <- c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue"))
+  # Frente C: con más de cinco porciones el ciclo repetía el azul de la primera; se reparte la rampa de la marca.
+  if (k <= length(base)) base[seq_len(k)] else grDevices::colorRampPalette(base[1:4])(k)
 }
 
 #' Lámina de una torta con leyenda de cifras (lámina 69, recetario_m3a.R:20-31)
@@ -59,16 +61,8 @@
   lz <- .lam_lienzo()
   f <- espec$valores / sum(espec$valores); acum <- c(0, cumsum(f))
   for (i in seq_len(k)) if (f[i] > 0) .lam_sector(lz, cx, cy, r, acum[i], acum[i + 1], cols[i], nombre = "torta:porcion")
-  for (i in seq_len(k)) {
-    if (f[i] <= 0) next
-    a <- 2 * pi * (acum[i] + f[i] / 2)   # desde las 12, horario
-    dentro <- 100 * f[i] >= 12
-    rr <- if (dentro) r * 0.5 else r * 1.22   # dentro, a media distancia del centro; fuera, junto al borde
-    tx <- cx + rr * sin(a); ty <- cy - rr * cos(a)
-    col_t <- if (!dentro) azul else if (!is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
-    .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, if (dentro) .std_pt("cifra") else .std_pt("cifra_fuera"), col_t, bold = TRUE,
-             align = "center", nombre = "torta:cifra")
-  }
+  # Frente C: la cifra que no cabe en su porción sale fuera con su línea guía (lamina_circular_guia.R).
+  .lam_circular_cifras(lz, espec, cx, cy, r, f, acum, cols, prefijo = "torta")
   for (i in seq_len(k)) {
     yk <- yt + 1.0 + (i - 1) * min(1.9, 3.8 / k)
     .lam_caja(lz, 6.7, yk + 0.12, 0.3, 0.3, cols[i], nombre = "torta:cuadro")
@@ -90,6 +84,10 @@
 .lam_laminas_dona <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
                               rotulo_centro = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  if (!.lam_dona_recetario_cabe(espec)) {   # L4: más de dos porciones o el rótulo no cabe en el hueco
+    return(.lam_laminas_dona_grande(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
+                                    rotulo_centro = rotulo_centro, layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
   azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   d <- 4.0; xd <- ml + 1.2; yd <- yt + 0.35; cx <- xd + d / 2; cy <- yd + d / 2; r <- d / 2 * 0.79
@@ -124,6 +122,13 @@
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
   # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
   # centro debe caber en el hueco (≈ 1.8 in).
+  .lam_dona_recetario_cabe(espec) || .lam_dona_grande_cabe(espec)   # L4: si no, la dona grande (lamina_circular_dona_grande.R)
+}
+
+#' ¿Cabe la dona del recetario (lámina 70): dos porciones con sus frecuencias y el rótulo del centro en el hueco?
+#' @keywords internal
+.lam_dona_recetario_cabe <- function(espec) {
+  k <- length(espec$valores)
   k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
     .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0

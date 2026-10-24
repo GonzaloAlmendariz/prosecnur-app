@@ -139,3 +139,15 @@ Reservas:
 2. El engine tiene cambios ajenos sin commitear: este trabajo debe commitearse por archivo y por hunk, sin arrastrarlos.
 3. `status_from_rules` y la llave se declaran por JSON o API (sin UI, 1.3 y 4.2 siguen bloqueados). Falta probar guardar y reabrir el `.pulso` con la bandera encendida.
 4. Falta 5.3: verificar con un envío real los nombres de columna de Kobo del RMS.
+
+## Principio de diseño (Gonzalo, 2026-10-22): un proyecto no gobierna la plataforma
+
+El RMS es un proyecto en particular. El modo Telefónico atiende proyectos con naturalezas muestrales distintas (PDM Telefónico por sede, Medios de Vida por actor, CBI, RMS por periodo de llegada con backup), así que **nada del RMS se vuelve comportamiento por defecto del modo**. Se trata «con pinzas»:
+
+- **Backup y reemplazos (sección 3) son una capacidad opcional**, declarada por el proyecto en su perfil (por ejemplo, un bloque `reserva` con la columna de origen, las columnas de reemplazo y el umbral de aviso). Sin esa declaración, ni el motor ni la UI muestran reemplazos, ni reservan espacio, ni emiten sus alertas.
+- **La dimensión de cuota es genérica** (sede, actor, periodo…), con rótulo declarado por el proyecto; «Periodo» no se escribe a fuego en ningún sitio.
+- **La llave y el vocabulario de Status son configuración del proyecto.** La primera tanda ya sigue esto: proGres es solo respaldo, y el Status por reglas es opt-in. Cualquier alias nuevo entra igual: respaldo, nunca pisa lo declarado.
+- **Los nombres de columnas del RMS** (`¿Se reemplaza?`, `Reemplaza a`, `Reemplazado por`, `Código proGres`) son ejemplo de configuración de un proyecto, no contrato del modo.
+- **Prueba de no regresión obligatoria** para toda capacidad nueva: con ella apagada, las cifras de `acnur_pdm` y de Medios de Vida no cambian (5.2).
+
+Efecto en la segunda tanda: 3.1–3.6 se rediseñan como capacidad declarativa; 3.6 (la vista) solo se pinta si el perfil declara reserva. Esto reemplaza al contrato «propuesto» que se le envió a la sesión del revamp visual.

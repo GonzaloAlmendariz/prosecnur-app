@@ -6,7 +6,7 @@ type Props = {
   etiqueta: string;
   disabled: boolean;
   onArchivo: (file: File) => void;
-  /** Nombre accesible si la etiqueta visible no basta («Subir el logo de Pulso PUCP»). */
+  /** Nombre accesible si la etiqueta visible no basta («Subir el logo 2»). */
   ariaLabel?: string;
 };
 

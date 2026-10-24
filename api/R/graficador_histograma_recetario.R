@@ -28,7 +28,7 @@
                                   color_titulo = .std_color("coral"), size_titulo = 12,
                                   color_subtitulo = .std_color("azul"), size_subtitulo = 10,
                                   color_nota_pie = .std_color("azul"), size_nota_pie = 8,
-                                  unidad = "") {
+                                  unidad = "", ancho = NULL) {
   cara <- function(token) if (token %in% textos_negrita) "bold" else "plain"
   mediana <- stats::median(x)
   tope <- suppressWarnings(as.numeric(limite_superior)[1])
@@ -45,6 +45,12 @@
   x_med <- min(mediana, if (is.finite(tope)) tope else Inf) - min(xv) + 1
   enteros <- .datos_enteros(x)
   texto_med <- trimws(sprintf("Mediana: %s %s", .cifra_mediana(mediana, enteros), unidad))
+  # CCSS-23: en una celda angosta sólo se rotula lo que no se encima y el eje va como texto del eje
+  # (graficador_histograma_angosto.R).
+  rt <- .histograma_rotulado(lab, rot, valor, x_med, ancho)
+  if (isTRUE(rt$en_eje)) return(.histograma_recetario_angosto(d, rt, ymax, texto_med, titulo, subtitulo, nota_pie, cara, font_family,
+                                                              color_titulo, size_titulo, color_subtitulo, size_subtitulo, color_nota_pie,
+                                                              size_nota_pie, mediana, niveles, cnt, valor, lab, rot, x_med, enteros))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$.x, y = .data$.valor)) +
     ggplot2::geom_col(width = 0.88, fill = .std_color("azul")) +
     ggplot2::geom_text(ggplot2::aes(label = .data$.lab), vjust = -0.5, size = 12 / ggplot2::.pt,
@@ -66,7 +72,7 @@
       plot.caption = ggplot2::element_text(colour = color_nota_pie, size = size_nota_pie, face = cara("nota_pie"), hjust = 1),
       plot.margin = ggplot2::margin(8, 12, 8, 12)
     )
-  attr(p, "pulso_histograma_recetario") <- list(mediana = mediana, niveles = niveles, conteos = cnt)
+  attr(p, "pulso_histograma_recetario") <- c(list(mediana = mediana, niveles = niveles, conteos = cnt), rt)
   # ADR 0093 (N4): lo que afirma el histograma para la lámina nativa; las cifras son las mismas que rotula el gráfico.
   attr(p, "pulso_espec") <- list(version = "histograma/1", tipo = "histograma", rotulos = rot, valores = valor, cifras = lab,
                                  conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med, enteros = enteros)

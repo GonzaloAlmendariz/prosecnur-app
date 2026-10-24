@@ -28,17 +28,21 @@
   band = list(height = c("s", "m", "l")),
   ornament = list(style = c("onda", "puntos", "linea_doble")),
   icon_text = list(icon = c("calendario", "reloj", "candado", "sobre", "persona", "grupo",
-                            "mapa", "check", "info", "alerta", "regalo", "enlace"))
+                            "mapa", "check", "info", "alerta", "regalo", "enlace")),
+  # Secciones (collection_mail_destacado.R).
+  feature = list(layout = c("izquierda", "derecha", "arriba")),
+  steps = list(layout = c("columnas", "lista"))
 )
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
                           "level", "style", "width", "bleed", "image_ref",
-                          "decorative", "color", "height", "icon", "left", "right")
+                          "decorative", "color", "height", "icon", "left", "right", "box", "layout", "crop", "guardado", "mobile_ref")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(
   paragraph = "text", callout = c("title", "items"), list = "items",
-  signature = "lines", footer_legal = "text", icon_text = "text"
+  signature = "lines", footer_legal = "text", icon_text = "text", feature = "text",
+  deadline = "text", contact = "text"
 )
 
 .CMAIL_LINK_RE <- "\\[([^\\]\\n]+)\\]\\(([^()\\s]+)\\)"
@@ -129,8 +133,12 @@
 }
 
 # Fondo sobre el que se lee el cuerpo: la tarjeta blanca en sobrio, la página
-# en campaña (sin tarjeta, collection_mail_render.R).
-.cmail_card_bg <- function(pal) if (isTRUE(pal$campana)) pal$page_bg else "#ffffff"
+# en campaña (sin tarjeta, collection_mail_render.R); dentro de una caja, el de
+# la caja (collection_mail_box.R).
+.cmail_card_bg <- function(pal) {
+  if (!is.null(pal$box_bg)) return(pal$box_bg)
+  if (isTRUE(pal$campana)) pal$page_bg else "#ffffff"
+}
 
 #' Tinta del tono `acento`: el acento del tema si se lee sobre el fondo de la
 #' tarjeta (≥ `.CMAIL_CONTRAST_MIN`); si no, el texto normal (`ok = FALSE`,

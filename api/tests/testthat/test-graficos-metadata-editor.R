@@ -109,7 +109,9 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$df, instrumento = fx$inst, mensajes_progreso = FALSE, path_ppt = out,
     plan = p_plan(slides = list(p_slide_1_grafico(p_barras_agrupadas("cat", cruces = "g"), titulo = "Cruce"))))))
-  expect_identical(.preview_partes(out)$partes[[1]]$estado, "ruta_anterior")
+  # Con la plantilla estándar la lámina de respaldo lleva el marco del recetario (7e10765b8, lamina_marco_respaldo.R): título,
+  # pie y folio del motor con el dibujo ggplot adentro, que es lo que `.pptx_lamina_estado` llama «marco».
+  expect_identical(.preview_partes(out)$partes[[1]]$estado, "marco")
   expect_match(.GRAFICADORES_META$p_barras_agrupadas$salida_condicion, "Dividir por", fixed = TRUE)
 })
 

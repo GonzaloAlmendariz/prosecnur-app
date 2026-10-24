@@ -11,6 +11,7 @@ import { composicionDe } from "../iconos/composicion";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { LaminaEnEstructura } from "./modeloEstructura";
+import { opcionesDeComposicion } from "./opcionesComposicion";
 import { graficosDeLamina } from "./selectores/cambioTipoLamina";
 import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe } from "./selectores/tiposLamina";
 import "./selectores/selectores.css";
@@ -46,6 +47,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
           tipo={slide.tipo}
           slots={slots}
           graficos={graficos}
+          opciones={opcionesDeComposicion(slide)}
           variante={variante}
           ranuraActiva={ranura}
           numerar

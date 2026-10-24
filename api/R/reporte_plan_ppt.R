@@ -3435,7 +3435,7 @@ reporte_ppt_plan <- function(
 
     .base_auto_from_refs(
       refs = refs_base,
-      filtros = el$filtros %||% list(),
+      filtros = .base_filtros_con_cruce(el, el$filtros %||% list(), .resolve_ref, .filter_data, refs_base[[1]]),   # reporte_plan_base_cruce.R
       sufijo_auto = sufijo_auto,
       formato = formato,
       excluir_opciones = excluir_base
@@ -4588,15 +4588,15 @@ reporte_ppt_plan <- function(
 
       if (!length(tabs_by_v)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
 
-      all_opts <- .ordered_stack_levels(
+      all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R: 9/77 al final, en gris
         ln,
         all_opts,
         choices_use = choices_use,
         palette_names = names(colores_grupos %||% NULL)
-      )
+      ), ln, choices_use)
       if (is.null(colores_grupos) || !length(colores_grupos)) {
-        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-          .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+        colores_grupos <- .graficos_no_sustantivos_paleta(
+          ln, all_opts, choices_use
         )
       }
       labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
@@ -4752,15 +4752,15 @@ reporte_ppt_plan <- function(
 
       all_opts <- as.character(tab_total$Opciones)
 
-      all_opts <- .ordered_stack_levels(
+      all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
         ln_var,
         all_opts,
         choices_use = ctx_var$choices,
         palette_names = names(colores_grupos %||% NULL)
-      )
+      ), ln_var, ctx_var$choices)
       if (is.null(colores_grupos) || !length(colores_grupos)) {
-        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-          .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
+        colores_grupos <- .graficos_no_sustantivos_paleta(
+          ln_var, all_opts, ctx_var$choices
         )
       }
       labels_opts <- .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
@@ -4880,7 +4880,7 @@ reporte_ppt_plan <- function(
       if (!is.null(nota_sig) && nzchar(nota_sig) &&
           is.null(overrides$nota_pie) && is.null(preset_args_multi$nota_pie) &&
           is.null(preset_args_single$nota_pie)) {
-        base_args$nota_pie <- nota_sig
+        base_args$nota_pie <- .sig_nota_pie_del_grafico(nota_sig)   # lamina_nota_significancia.R
       }
       for (k in c("mostrar_significancia", "significancia_alpha")) {
         overrides[[k]] <- NULL
@@ -4894,7 +4894,7 @@ reporte_ppt_plan <- function(
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
-      return(suppressWarnings(do.call(fun, args)))
+      return(.sig_nota_a_lamina(suppressWarnings(do.call(fun, args)), nota_sig, args$nota_pie))   # lamina_nota_significancia.R
     }
 
     if (identical(modo, "var_cruce")) {
@@ -4959,15 +4959,15 @@ reporte_ppt_plan <- function(
           return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
         }
 
-        all_opts <- .ordered_stack_levels(
+        all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
           ln,
           all_opts,
           choices_use = choices_use,
           palette_names = names(colores_grupos %||% NULL)
-        )
+        ), ln, choices_use)
         if (is.null(colores_grupos) || !length(colores_grupos)) {
-          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+          colores_grupos <- .graficos_no_sustantivos_paleta(
+            ln, all_opts, choices_use
           )
         }
         labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
@@ -5109,15 +5109,15 @@ reporte_ppt_plan <- function(
           return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
         }
 
-        all_opts <- .ordered_stack_levels(
+        all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
           ln,
           all_opts,
           choices_use = scale_spec$choices,
           palette_names = names(colores_grupos %||% NULL)
-        )
+        ), ln, scale_spec$choices)
         if (is.null(colores_grupos) || !length(colores_grupos)) {
-          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
+          colores_grupos <- .graficos_no_sustantivos_paleta(
+            ln, all_opts, scale_spec$choices
           )
         }
         labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
@@ -5572,7 +5572,7 @@ reporte_ppt_plan <- function(
     # apagada el caption sigue vacio y la banda de Base se reserva igual.
     if (!is.null(nota_significancia) && nzchar(nota_significancia) &&
         is.null(overrides$nota_pie) && is.null(preset_args$nota_pie)) {
-      base_args$nota_pie <- nota_significancia
+      base_args$nota_pie <- .sig_nota_pie_del_grafico(nota_significancia)
     }
     preset_args$mostrar_significancia <- NULL
     preset_args$significancia_alpha <- NULL
@@ -7835,7 +7835,7 @@ reporte_ppt_plan <- function(
 
       el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
       el_plot <- .inject_var_titulo(el_plot)
-      p <- .render_element(el_plot, ancho_slot = 12.5)
+      p <- .lam_con_sig_en_lamina(.lam_plantilla_estandar(opened_template_path), .render_element(el_plot, ancho_slot = 12.5))
 
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
@@ -7866,16 +7866,11 @@ reporte_ppt_plan <- function(
       if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
-
-        if (!is.null(title_slide) && nzchar(title_slide)) {
-          doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
-        }
-
-        if (!is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) {
-          doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
-        }
-
-        plot_slot <- .plot_slot_for_rendered_plot(contract$slots$plot, p)
+        marco <- .lam_respaldo_marco(.lam_plantilla_estandar(opened_template_path), title_slide, subtitle_slide, ANTETITULOS[[i]], p)   # lamina_marco_respaldo.R
+        doc <- .lam_respaldo_titulo(doc, marco)
+        if (!marco$activo && !is.null(title_slide) && nzchar(title_slide)) doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
+        if (!marco$activo && !is.null(subtitle_slide) && nzchar(trimws(as.character(subtitle_slide)[1]))) doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
+        marco$pic <- if (marco$activo) .lam_respaldo_pic(doc, contract$layout, master); p <- .lam_respaldo_grafico(p, marco); plot_slot <- .lam_respaldo_cajon(.plot_slot_for_rendered_plot(contract$slots$plot, p), marco, marco$pic, p)   # P2: lamina_titulo_lienzo.R
 
         # Grafico Y tabla en el mismo cajon: el aprobado pone el radar a la
         # izquierda y su tabla a la derecha, las dos como formas propias. Si el
@@ -7926,7 +7921,7 @@ reporte_ppt_plan <- function(
 
         if (!suppress_base_placeholder) {
           if (is.null(base_txt)) base_txt <- " "
-          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+          if (marco$activo) marco$base <- as.character(base_txt)[1] else doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
         }
 
         # RIGHT (usa footer o deja en blanco)
@@ -7942,8 +7937,9 @@ reporte_ppt_plan <- function(
 
         if (!suppress_footer_placeholder) {
           if (is.null(right_txt) || !nzchar(trimws(right_txt))) right_txt <- " "
-          doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
+          if (marco$activo) marco$derecha <- right_txt else doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
         }
+        doc <- .lam_respaldo_cierre(doc, marco)
         doc <- .add_partner_footer_logo(doc)
       }
 
@@ -8000,8 +7996,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_right, pR)
       }
 
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_paneles(list(pL, pR), slide)) doc <- .lam_slide_paneles_nativa(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)
-      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_paneles(list(pL, pR), slide)) {
+      if ((nat2 <- !isTRUE(solo_lista) && .lam_slide_2_aplica(list(pL, pR), list(el_left, el_right), slide, .title_of_var))) doc <- .lam_slide_2_despacho(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)   # lamina_grilla_nativa.R
+      if (!isTRUE(solo_lista) && !nat2) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {
@@ -8337,7 +8333,7 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_bl, pBL)
         .push_render_meta_for_element(el_br, pBR)
       }
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = if (.base_por_grafico_migrada(slide)) slots$base else slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"), solo_base_declarada = .base_por_grafico_migrada(slide))
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_grilla_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, slots$base, .base_por_grafico_migrada(slide), function(e) .base_auto_de_elementos(els = e, sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))   # lamina_grilla_nativa.R
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
