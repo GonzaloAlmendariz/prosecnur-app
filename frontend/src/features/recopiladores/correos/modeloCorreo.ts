@@ -632,11 +632,27 @@ export const BANNER_ANCHO = 1200;
 export const BANNER_ALTO = 600;
 export const MAX_LOGOS = 6;
 
-/** Los logos de la franja: los del header, o los que el mapa recuerda si hoy hay banner. */
+/** Las imágenes que nombra el cuerpo del correo: no son logos aunque el mapa guarde su URL. */
+function imagenesDeLosBloques(template: MailTemplate): Set<string> {
+  const ids = template.blocks.flatMap((b) => {
+    const r = b as unknown as Record<string, unknown>;
+    return ["image_ref", "mobile_ref", "left", "right"].map((k) => r[k]).filter((v): v is string => typeof v === "string");
+  });
+  return new Set(ids);
+}
+
+/**
+ * Los logos de la franja: los del header, o los que el mapa recuerda si hoy
+ * hay banner. El mapa también guarda la URL de imágenes del cuerpo (la de una
+ * Imagen, su versión para el celular) y de íconos generados: ésas no son logos.
+ */
 export function logosDeLaFranja(template: MailTemplate): string[] {
   const header = template.header;
   if (header.kind === "logos") return header.logo_ids;
-  return Object.keys(template.images).filter((id) => id !== header.image_ref).slice(0, MAX_LOGOS);
+  const delCuerpo = imagenesDeLosBloques(template);
+  return Object.keys(template.images)
+    .filter((id) => id !== header.image_ref && !delCuerpo.has(id) && !/^(icono|ornamento)-/.test(id))
+    .slice(0, MAX_LOGOS);
 }
 
 /**
