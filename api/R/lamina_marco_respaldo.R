@@ -53,18 +53,30 @@
 #' Sólo se toca si hace falta: un título de una línea sin nota deja el cajón de la plantilla tal cual.
 #' @param spec Marcador del gráfico del contrato.
 #' @param pic Propiedades del marcador de imagen de la plantilla (`left`, `top`, `width`, `height` en pulgadas).
+#' @param p Gráfico que va en el cajón: lo que su título de lienzo sobresale por arriba también baja el cajón (P2,
+#'   lamina_titulo_lienzo.R), para que nunca toque el bloque de título.
 #' @keywords internal
-.lam_respaldo_cajon <- function(spec, m, pic) {
+.lam_respaldo_cajon <- function(spec, m, pic, p = NULL) {
   if (!m$activo || is.null(pic)) return(spec)
   g <- .std_geom
-  fin_bloque <- if (!is.null(m$sub)) g("titulo_y") + 0.55 + .lam_titulo_baja(m$titulo) + 0.32 else
-    g("titulo_y") + 0.06 + max(1, .lam_titulo_lineas(m$titulo)) * .std_pt("titulo") * 1.2 / 72 + 0.05
-  top <- max(pic$top, fin_bloque + 0.08)
+  fin_bloque <- .lam_titulo_fin(m$titulo, m$sub)
   fondo <- pic$top + pic$height
   if (!is.null(m$nota)) fondo <- min(fondo, g("base_y") - .lam_nota_sig_alto(m$nota) - 0.05)
+  top <- max(pic$top, fin_bloque + 0.08)
+  # El desborde depende del alto del cajón; tres pasadas bastan (el cajón sólo se acorta unas décimas).
+  if (!is.null(p)) for (k in 1:3) top <- max(pic$top, fin_bloque + 0.08 + .lienzo_desborde_superior_in(p, fondo - top))
   if (abs(top - pic$top) < 1e-6 && abs(fondo - pic$top - pic$height) < 1e-6) return(spec)
   spec$loc <- list(left = pic$left, top = top, width = pic$width, height = max(1, fondo - top))
   spec
+}
+
+#' Dónde termina el bloque de título de `.lam_titulo` (in): bajo el subtítulo si lo hay; si no, bajo la última línea del título
+#' @keywords internal
+.lam_titulo_fin <- function(titulo, sub = NULL) {
+  g <- .std_geom
+  hay_sub <- !is.null(sub) && length(sub) && !is.na(sub[1]) && nzchar(trimws(sub[1]))
+  if (hay_sub) g("titulo_y") + 0.55 + .lam_titulo_baja(titulo) + 0.32 else
+    g("titulo_y") + 0.06 + max(1, .lam_titulo_lineas(titulo)) * .std_pt("titulo") * 1.2 / 72 + 0.05
 }
 
 #' Líneas del título a 24 pt en el ancho del título (mínimo 1)
