@@ -24,9 +24,9 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | D1 | Orden «instrumento» manda (VI–IX con romanos; explícito en dona) | `graficos_orden_categorias.R`, `graficos_orden_romanos.R` | ✅ `8bc71f483` | `args.orden_barras` se pierde en `router_graficos.R:203` (abierto) |
 | D2 | No sustantivos (9, 77) en gris, al final y en la leyenda; denominador intacto | `graficos_no_sustantivos.R`, enganche en `reporte_plan_ppt.R` (modo var) | ✅ `8bc71f483` `9947637ce` | cruce, var_cruce y multilista en `bd8fd87b6`; gris `#BFBFBF` vs neutro `#D9D9D9` a revisar |
 | P1 | Dona de lámina completa (`p_slide_1_grafico`) sigue en imagen: título rojo duplicado, «2%0%» encimado (CCSS l. 8) | `lamina_circulares.R`, ruta de respaldo | ⬜ | |
-| P2 | Título del slot choca con título de dos líneas y rótulos en el piso de 8 pt (CCSS l. 37) | ruta de respaldo / `graficador_barras_agrupadas.R` | ⬜ | ensanchar la columna antes que encoger (P43) |
+| P2 | Título del slot choca con título de dos líneas y rótulos en el piso de 8 pt (CCSS l. 37) | `lamina_titulo_lienzo.R`, `graficador_barras_agrupadas_rotulos.R` | ✅ `c0df7056d` | ensanchar la columna antes que encoger (P43) |
 | P3 | «(Recodificada)» en la rama de escala en filas | | ⬜ | |
-| P4 | Título duplicado en slots de varias láminas | | ⬜ | |
+| P4 | Título duplicado en slots de varias láminas | `lamina_titulo_lienzo.R` | ✅ `c0df7056d` | |
 
 ## Frente brechas (traspasado a esta sesión; plan completo: `docs/qa/plan-brechas-motor-ccss-2026-10-24.md`, en la rama hasta el ff)
 
@@ -41,9 +41,9 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | G3 | `excluir_opciones` como arreglo JSON falla | `reporte_plan_slides.R` `.ppt_norm_chr_vec_arg`, `router_graficos.R` | ⛔ 1H sin aprobar | |
 | G4 | Multiapiladas no acepta `excluir_opciones`; argumentos descartados en silencio | `reporte_plan_slides.R:2165`, `graficos_metadata.R`, `router_graficos.R:203` | ⛔ 1H sin aprobar | |
 | D13 aviso | Escala con categoría fuera del recorrido no excluida → aviso en la lámina | junto a G4 | ⛔ decidido, implementación en 1H | |
-| G6 = P4 | Título duplicado en slots de mixtas (agrupadas canvas dibuja su título con `draw_text`) | `lamina_mixtas.R:452,503`, `reporte_slides_composicion.R:96` | 🔵 | estaba en el encargo original |
-| A12 | Rótulos montados en `p_slide_cifras_y_graficos` con agrupadas de `A12_recod` | `reporte_slides_composicion.R` sin `alto_slot`; envoltorio a 12 pt sin recalcular a 8 | 🔵 agente de títulos | diagnosticado |
-| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | `router_codificacion.R:55-67` prefiere `original_data_file_id` sin mirar si el actual es adaptado; `original_*` se congela (`session_store.R:1221`) | ⬜ siguiente writer | diagnosticado: aplicar la regla de Analítica (`router_analitica.R:48-60`) |
+| G6 = P4 | Título duplicado en slots de mixtas (agrupadas canvas dibuja su título con `draw_text`) | `lamina_mixtas.R:452,503`, `reporte_slides_composicion.R:96` | ✅ `c0df7056d` | |
+| A12 | Rótulos montados en `p_slide_cifras_y_graficos` con agrupadas de `A12_recod` | `reporte_slides_composicion.R` sin `alto_slot`; envoltorio a 12 pt sin recalcular a 8 | ✅ `c0df7056d` | |
+| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | `router_codificacion.R:55-67` prefiere `original_data_file_id` sin mirar si el actual es adaptado; `original_*` se congela (`session_store.R:1221`) | 🔵 writer B1 | diagnosticado: aplicar la regla de Analítica (`router_analitica.R:48-60`) |
 | B2 B5 B6 B12–B16 B9 B10 | Ver plan | | ⬜ | sin decisión |
 | B0b B3 B4 B7a–c B8 B9pref B11 B17 | Bloqueados por D11, D1–D10, D12 | | ⛔ | |
 
@@ -60,5 +60,6 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 
 - Bases distintas por panel → cada panel lleva su «N respuestas» y el pie de la lámina no afirma una base común (C5). Alternativa si no le gusta: pie con «Base: n1 / n2 / …».
 - Color de los no sustantivos: pasa de `#BFBFBF` (casi igual al neutro `#D9D9D9`, reportado por ccss-mazo en R6) al gris azulado `texto_tenue` `#8A93A8` del estándar, que se lee como «fuera de la escala» (D2).
+- Forma del pie (CCSS-15): sin sufijo declarado en el preset de base, todas las rutas dicen «Base: N» (hoy 50 de 58 láminas de CCSS ya lo hacen); con sufijo, «Base: N <sufijo>» en todas. No se rellena el sufijo con el default de Pulso porque `base` «no configurado» tiene significado (router_graficos.R:1843). Si Gonzalo prefiere «respuestas» por defecto, basta con declararlo en el preset de base del proyecto.
 - Base de un cruce (CCSS-16): el pie cuenta los casos válidos en la variable Y en el cruce, que es el denominador real de las barras; los % no cambian.
 - `launch.json` (servidores 8822 de Arte) queda sin commitear: lleva rutas locales de un proyecto de cliente.
