@@ -303,6 +303,8 @@
 #' @keywords internal
 .espec_n_base <- function(espec) {
   if (identical(espec$tipo, "escala")) return(if (NROW(espec$filas) == 1L) .espec_casos(espec$filas)[1] else NA_real_)
+  # CCSS-2: el histograma cuenta sus casos válidos sin ponderar por valor (`conteos`); su suma es el público del panel.
+  if (identical(espec$tipo, "histograma")) { cn <- suppressWarnings(as.numeric(espec$conteos)); return(if (any(is.finite(cn))) sum(cn, na.rm = TRUE) else NA_real_) }
   nb <- suppressWarnings(as.numeric(espec[["n_base_casos"]] %||% NA_real_)[1])
   if (is.finite(nb) && nb > 0) return(nb)
   n <- suppressWarnings(as.numeric(.espec_casos(espec))); v <- suppressWarnings(as.numeric(espec$valores))
@@ -321,3 +323,41 @@
   all(.lam_ancho_txt(et, 10.5) <= w / 2 - 0.1)
 }
 
+
+#' CCSS-24: barras horizontales compactas para una categórica en una celda chica (grilla de seis, 3.91 x 1.75 in)
+#'
+#' Cuando las barras del recetario no caben (fila bajo 0.30 in o rótulo en dos líneas) y el panel no es lo bastante ancho
+#' para columnas, el panel caía a su ggplot de columnas, que en 1.17 in de alto útil las aplastaba hasta rayas de 3 px.
+#' Aquí se prueban, antes de caer, filas que usan todo el alto del panel (piso 0.24 in), barras del 62 % de la fila y
+#' rótulos a 11, 10.5 o 10 pt con su columna hasta la mitad del panel. Sólo para celdas chicas sin receta propia.
+#' @param barras La geometría que no cupo (`.lam_panel_geo`).
+#' @param fin Borde inferior del panel. @param x,y,w,h El panel.
+#' @return La geometría compacta si cabe; si no, `NULL` (y el panel sigue a su ruta anterior).
+#' @keywords internal
+.lam_panel_barras_compactas <- function(espec, barras, fin, w, h, x = NULL, y = NULL) {
+  if (!is.list(barras) || isTRUE(barras$cabe) || !is.null(barras$receta) || !is.finite(h) || h >= 2.5 || w >= 6) return(NULL)
+  # Acotado a las celdas de la grilla de seis, donde el respaldo aplastaba las columnas: la grilla de cinco del informe
+  # Arte (lámina 2, «¿Cuál es su categoría académica?») sale por su respaldo de barras horizontales y no debe cambiar.
+  if (!.lam_panel_en_grilla(x, y, w, h, "poblacion_6")) return(NULL)
+  n <- length(espec$largos); if (n < 1L || n > 6L) return(NULL)
+  nb <- .std_negrita_forzada("categorias")
+  fila <- min(0.5, (fin - barras$y0) * 0.95 / n)
+  if (fila < 0.24) return(NULL)
+  g <- min(.std_grosor(n, "categorias"), fila * 0.62)
+  for (size in c(11, 10.5, 10)) {
+    wlab <- min(w * 0.5, max(0.6, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
+    altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size, nb), 0)
+    if (all(altos - 0.1 <= fila - 0.02)) {
+      return(utils::modifyList(barras, list(fila = fila, g = g, wlab = wlab, size = size, cabe = TRUE, compacta = TRUE)))
+    }
+  }
+  NULL
+}
+
+#' ¿El panel es una celda de la grilla `tipo` (`.lam_mixta_geo`)? Misma comparación que `.lam_circular_d_grilla`
+#' @keywords internal
+.lam_panel_en_grilla <- function(x, y, w, h, tipo = "poblacion_6") {
+  if (is.null(x) || is.null(y)) return(FALSE)
+  P <- tryCatch(.lam_mixta_geo(tipo)$paneles, error = function(e) NULL)
+  length(P) > 0L && any(vapply(P, function(p) abs(p$x - x) < 1e-3 && abs(p$y - y) < 1e-3 && abs(p$w - w) < 1e-3 && abs(p$h - h) < 1e-3, TRUE))
+}

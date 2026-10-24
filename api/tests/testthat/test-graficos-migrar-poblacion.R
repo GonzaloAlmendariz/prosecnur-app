@@ -154,8 +154,9 @@ test_that("dos gráficos migrados conservan la base de cada uno y no la repiten 
   a <- .mp_textos_base(vieja); d <- .mp_textos_base(nueva)
   # La migrada sale nativa (lamina_grilla_nativa.R): cada panel nombra su base bajo el enunciado («100 respuestas») y el pie
   # no afirma una común. Lo que se conserva es la base de cada gráfico, no el prefijo «Base:».
-  sin_prefijo <- function(x) sort(sub("^Base: ", "", x))
-  expect_identical(sin_prefijo(d$bases), sin_prefijo(a$bases))
-  expect_identical(a$bases, c("Base: 100 respuestas", "Base: 80 respuestas"))
+  # Y desde CCSS-15 el pie sin sufijo declarado dice «Base: N»; el «N respuestas» del panel es su público y se queda.
+  numeros <- function(x) sort(sub("^Base: ([0-9]+).*$", "\\1", sub("^([0-9]+) respuestas$", "\\1", x)))
+  expect_identical(numeros(d$bases), numeros(a$bases))
+  expect_identical(a$bases, c("Base: 100", "Base: 80"))
   expect_false(any(grepl("^Base:", d$bases)))
 })
