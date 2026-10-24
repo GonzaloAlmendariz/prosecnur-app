@@ -142,7 +142,7 @@ test_that("supervision_casos agrega los campos de la hoja sin quitar los previos
   expect_identical(unlist(b$supervision_casos$columns), c(
     "N", "CodPulso", "proGres", "Enumerador", "Categoría", "Fecha Kobo", "Response ID", "Resultado", "Status final",
     "Coincide", "Observación", "En hoja", "Supervisor", "Status barrido", "Status supervisión", "Intentos supervisión",
-    "Observaciones", "Controles", "Controles coinciden", "Coincide según"
+    "Observaciones", "Controles", "Controles coinciden", "Coincide según", "Ronda", "Origen"
   ))
   casos <- sup_df(b$supervision_casos)
   uno <- casos[casos$CodPulso == "SUP-011", ]
