@@ -464,7 +464,11 @@
   protected_names <- as.character(protected_names %||% character())
   protected_names <- protected_names[!is.na(protected_names) & nzchar(protected_names)]
   if (length(protected_names)) {
-    candidates <- setdiff(candidates, protected_names)
+    # Sin distinguir mayusculas, igual que la busqueda de candidatas (H67): tras
+    # `lector_limpieza` conviven `b1_otro` y `B1_otro`, y un texto libre vacio
+    # tiene forma de dummy; protegido solo en una capitalizacion, el otro se
+    # colaba como dummy de opcion y vaciaba la madre.
+    candidates <- candidates[!(tolower(candidates) %in% tolower(protected_names))]
   }
   # En data ya recodificada, `<parent>_recod` es una madre analítica, no
   # una dummy de opción de `<parent>`. Si la dejamos como candidata, el
