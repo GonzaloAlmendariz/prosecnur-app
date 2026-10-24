@@ -138,6 +138,33 @@ Decisiones de unificación ya tomadas: el switch encendido es azul marino `#0024
 «Al día», «Actualizando, paso N de M», «Falló» o «Preparando», sin repetir la fecha que ya muestra CORTE. Quien construya corre las mismas mediciones en la app con `ui-quick-check` y la geometría
 declarada.
 
+### 2a-bis. Contenedores: cada cosa en su tarjeta (Gonzalo, 2026-10-24)
+
+Textual: «A veces siento que todos tus diseños están bien pero les faltan contenedores o cards que ayuden a darle
+espacio, armonía, separación y distinción a los elementos, va para todo». Referencias de cómo debe verse: el antiguo
+establecedor de metas por público de Acreditación y el seguimiento de cuotas por UMP de Territorial, con su tabla
+elegante.
+
+- **Cada unidad de lectura va en su propio contenedor**: tarjeta con fondo de superficie, borde o sombra suave de
+  token, radio y padding de la escala (16 a 24 px). Ejemplos de unidad: una meta por público, un responsable, una
+  cuota, un bloque de cifras o una tabla. No se pegan bloques sueltos sobre el fondo de la página.
+- **Grupos hermanos en rejilla de tarjetas iguales**, separadas por 12 a 16 px. La separación la da el aire entre
+  tarjetas, no filetes sueltos.
+- **Jerarquía dentro de la tarjeta**:
+  - antetítulo en versalitas;
+  - cifra o nombre principal;
+  - detalle secundario en tono suave;
+  - acciones al pie o a la derecha, nunca flotando.
+- **Tablas elegantes**: la tabla vive en su tarjeta. Lleva cabecera con fondo de superficie alternativa, filas con
+  altura cómoda (40 a 44 px), cebra o divisores tenues, números alineados a la derecha con cifras tabulares, y
+  barras o chips de estado dentro de la celda cuando ayuden a leer. Así es la tabla de cuotas por UMP del territorial.
+- **Distinción por estado**: el estado se marca con el borde lateral o un chip de la tarjeta (cumplida, en riesgo,
+  sin meta). No se pinta el texto suelto.
+- Esto no contradice «sin espacios vacíos»: las tarjetas reparten el alto con contenido. Sumar contenedores no es
+  sumar huecos.
+- Antes de construir o pulir una pestaña, se captura la referencia antigua equivalente si existe, y la nueva debe
+  verse al menos igual de ordenada.
+
 ## 2b. Un lenguaje de diseño común a los cuatro modos
 
 Pedido de Gonzalo (2026-10-22): aunque los estudios sean distintos, todos los Monitoreos comparten el mismo lenguaje.
