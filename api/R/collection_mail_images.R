@@ -143,7 +143,8 @@
   head <- if (identical(h$kind, "banner")) as.character(h$image_ref) else
     as.character(unlist(h$logo_ids %||% list(), use.names = FALSE))
   blocks <- unlist(lapply(template$blocks %||% list(), function(b) {
-    if (identical(b$type, "image")) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
+    # Con su versión para el celular (collection_mail_movil.R), si la tiene.
+    if (identical(b$type, "image")) return(as.character(c(.cmail_one(b$image_ref), .cmail_mobile_ref(b))))
     # Las dos imágenes de una pieza two_images (E1o).
     if (identical(b$type, "two_images")) return(as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
     # La foto de una sección (Destacado, Pasos, Cita, Contacto), si tiene.

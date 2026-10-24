@@ -150,6 +150,8 @@ export type MailImageBlock = {
   decorative?: boolean;
   /** Recorte a una proporción fija (L7); sin él, la foto entera. */
   crop?: MailCrop;
+  /** Otra imagen para el celular (L12): bajo 480 px reemplaza a la de PC. */
+  mobile_ref?: string;
 };
 
 // ---- piezas gráficas (E1o) -------------------------------------------------------
@@ -921,6 +923,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(value.bleed !== undefined ? { bleed: bool(value.bleed) } : {}),
         ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
+        ...(optStr(value.mobile_ref) !== undefined ? { mobile_ref: str(value.mobile_ref) } : {}),
       };
     }
     case "band": {

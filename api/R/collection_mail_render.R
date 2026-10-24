@@ -400,6 +400,8 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     .cmail_box_style(card),
     # La imagen del Destacado a todo el ancho en teléfono (collection_mail_destacado.R).
     .cmail_feature_style(card),
+    # La pieza para el celular en vez de la de PC bajo 480 px (collection_mail_movil.R).
+    .cmail_movil_style(card),
     # Márgenes del cuerpo a 20 px en teléfono (E1p, collection_mail_ajustes.R).
     .cmail_pad_style(),
     # Logos de la cabecera en teléfono: se achican en proporción o se apilan (collection_mail_ajustes.R).

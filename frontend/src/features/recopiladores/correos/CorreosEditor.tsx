@@ -46,13 +46,13 @@ import {
   moverBloqueA,
   sinPunto,
   sinPuntosVacios,
-  srcDeImagenDelBloque, srcOriginalDelBloque,
+  srcDeImagenDelBloque, srcDelMovil, srcOriginalDelBloque,
 } from "./estructuraCorreo";
 import { atajoDeHistorial, esCampoNativo } from "./historialCorreo";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import { PanelDeBloque } from "./PanelDeBloque";
-import { conArchivoDeImagen, srcsDelPar, type LadoDelPar, type TipoInsertable } from "./piezasGraficas";
+import { conArchivoDeImagen, srcsDelPar, type RanuraDeImagen, type TipoInsertable } from "./piezasGraficas";
 import { PanelDestinatarios } from "./PanelDestinatarios";
 import { PanelIdentidad } from "./PanelIdentidad";
 import { CHEQUEOS_DE_ESTILO, IDENTIDAD } from "./modeloEstilo";
@@ -230,7 +230,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
    * del nombre del archivo y no choca con otra imagen del correo; el bloque
    * pasa a nombrarlo (`conArchivoDeImagen`, piezasGraficas.ts).
    */
-  const subirImagenDeBloque = (blockId: string, file: File, lado?: LadoDelPar) => {
+  const subirImagenDeBloque = (blockId: string, file: File, lado?: RanuraDeImagen) => {
     const actual = useCorreosStore.getState().borrador;
     const out = actual ? conArchivoDeImagen(actual, blockId, file.name, lado) : null;
     if (!actual || !out) return;
@@ -526,6 +526,10 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
       ?? srcOriginalDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
       ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
     : null;
+  // La versión del celular de una Imagen (L12): la subida o la que pinta la vista previa.
+  const movilDelBloque = bloqueElegido?.type === "image" && bloqueElegido.mobile_ref
+    ? st.imagenesLocales[bloqueElegido.mobile_ref] ?? srcDelMovil(st.vistaPrevia?.html, bloqueElegido.block_id)
+    : null;
   // Un par: lo que ya se ve de cada lado (recién subido o pintado por la vista previa).
   const parDelBloque = bloqueElegido?.type === "two_images" ? srcsDelPar(st.vistaPrevia?.html, bloqueElegido.block_id) : null;
   const imagenesDelPar = bloqueElegido?.type === "two_images" && parDelBloque
@@ -724,6 +728,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 dialecto={dialecto}
                 chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}
                 vistaDeImagen={imagenDelBloque}
+                vistaDelMovil={movilDelBloque}
                 vistasDelPar={imagenesDelPar}
                 ocupado={ocupado}
                 onSubirImagen={subirImagenDeBloque}

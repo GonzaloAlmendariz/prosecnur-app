@@ -166,11 +166,19 @@ export function descripcionesPendientes(template: Pick<MailTemplate, "blocks">):
 // ---- imágenes de los bloques ------------------------------------------------------------
 
 export type LadoDelPar = "left" | "right";
+/** La ranura de imagen de un bloque: un lado del par o la versión del celular de una Imagen (L12). */
+export type RanuraDeImagen = LadoDelPar | "movil";
 
 /** Los archivos que nombran los bloques del cuerpo (image y los dos lados de cada par). */
-export function imagenesDelCuerpo(template: Pick<MailTemplate, "blocks">, salvo?: { block_id: string; lado?: LadoDelPar }): string[] {
+export function imagenesDelCuerpo(template: Pick<MailTemplate, "blocks">, salvo?: { block_id: string; lado?: RanuraDeImagen }): string[] {
   return template.blocks.flatMap((b) => {
-    if (b.type === "image") return salvo && salvo.block_id === b.block_id ? [] : [b.image_ref];
+    if (b.type === "image") {
+      const propia = salvo && salvo.block_id === b.block_id;
+      return [
+        ...(propia && salvo.lado !== "movil" ? [] : [b.image_ref]),
+        ...(b.mobile_ref && !(propia && salvo.lado === "movil") ? [b.mobile_ref] : []),
+      ];
+    }
     if (tieneFoto(b)) return !b.image_ref || (salvo && salvo.block_id === b.block_id) ? [] : [b.image_ref];
     if (b.type === "two_images") {
       return (["left", "right"] as const)
@@ -182,10 +190,11 @@ export function imagenesDelCuerpo(template: Pick<MailTemplate, "blocks">, salvo?
 }
 
 /** El id de imagen que nombra hoy un bloque (o un lado del par); `null` si no es de imagen. */
-export function imagenDeBloque(block: MailBlock | undefined, lado?: LadoDelPar): string | null {
+export function imagenDeBloque(block: MailBlock | undefined, lado?: RanuraDeImagen): string | null {
   if (!block) return null;
-  if (block.type === "image") return block.image_ref;
-  if (block.type === "two_images") return block[lado ?? "left"];
+  // La versión del celular sin archivo todavía: "" (subir le pone una).
+  if (block.type === "image") return lado === "movil" ? block.mobile_ref ?? "" : block.image_ref;
+  if (block.type === "two_images") return block[lado === "right" ? "right" : "left"];
   // Una sección sin foto todavía: "" (subir le pone una).
   if (tieneFoto(block)) return block.image_ref ?? "";
   return null;
@@ -201,7 +210,7 @@ export function conArchivoDeImagen(
   template: MailTemplate,
   blockId: string,
   nombreDelArchivo: string,
-  lado?: LadoDelPar,
+  lado?: RanuraDeImagen,
 ): { template: MailTemplate; id: string } | null {
   const block = template.blocks.find((b) => b.block_id === blockId);
   const actual = imagenDeBloque(block, lado);
@@ -214,7 +223,7 @@ export function conArchivoDeImagen(
     images[id] = images[actual];
     delete images[actual];
   }
-  const clave = block.type === "two_images" ? lado ?? "left" : "image_ref";
+  const clave = block.type === "two_images" ? (lado === "right" ? "right" : "left") : lado === "movil" ? "mobile_ref" : "image_ref";
   return { template: { ...editarBloque(template, blockId, (b) => ({ ...b, [clave]: id }) as MailBlock), images }, id };
 }
 

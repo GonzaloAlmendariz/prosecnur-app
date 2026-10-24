@@ -67,7 +67,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   callout      = c("title", "items", "variant", "box"),
   list         = c("items", "ordered", "box"),
   divider      = c("style", "size", "box"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "box"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "box"),
   signature    = c("closing", "name", "lines", "url", "box"),
   footer_legal = c("text", "address"),
   # Piezas gráficas (E1o): collection_mail_piezas.R.
@@ -547,8 +547,9 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     push("bad_flag", "bleed", "bleed es verdadero o falso.")
   }
   if (!is.null(b$url)) out <- c(out, .cmail_url_problems(b$url, paste0(path, ".url"), keys, required = FALSE))
-  # Recorte (collection_mail_recorte.R).
+  # Recorte (collection_mail_recorte.R) y versión para el celular (collection_mail_movil.R).
   if (!is.null(b$crop)) out <- c(out, .cmail_crop_problems(b$crop, paste0(path, ".crop")))
+  out <- c(out, .cmail_mobile_problems(b, path))
   out
 }
 

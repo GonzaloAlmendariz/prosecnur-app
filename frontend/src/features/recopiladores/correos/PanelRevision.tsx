@@ -88,7 +88,7 @@ export function salidasDeLoQueFalta(
     if (destino === CABECERA) return { destino, ...salidaDelChequeo(check.code, destino, undefined, contexto) };
     const block = template.blocks.find((b) => b.block_id === destino);
     if (!block) return { destino, texto: "Ir al bloque" };
-    const ids = block.type === "image" ? [block.image_ref]
+    const ids = block.type === "image" ? [block.image_ref, ...(block.mobile_ref ? [block.mobile_ref] : [])]
       : block.type === "two_images" ? [block.left, block.right]
       : tieneFoto(block) && block.image_ref ? [block.image_ref] : [];
     const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);

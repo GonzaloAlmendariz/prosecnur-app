@@ -11,6 +11,7 @@ import { CampoDeTexto } from "./CampoDeTexto";
 import { EncuadreDeFoto } from "./EncuadreDeFoto";
 import { conTraeLogos, esBannerDeArriba, franjaPorElBanner, hayFranjaDeLogos, propDelProblema, traeLogosDe } from "./modeloCorreo";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
+import { VersionParaElCelular } from "./VersionParaElCelular";
 import { descripcionesPendientes } from "./piezasGraficas";
 
 /**
@@ -36,6 +37,9 @@ type Props = {
   onEditarBloque: (update: (b: MailBlock) => MailBlock, grupo?: string) => void;
   onEditar: (update: (t: MailTemplate) => MailTemplate, grupo?: string) => void;
   onSubir: (file: File) => void;
+  /** Versión para el celular (L12). */
+  vistaDelMovil?: string | null;
+  onSubirMovil?: (file: File) => void;
 };
 
 /**
@@ -43,7 +47,7 @@ type Props = {
  * su texto alternativo —obligatorio—, el ancho, la alineación, a todo el ancho,
  * el enlace y dónde se aloja para el envío.
  */
-export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEditarBloque, onEditar, onSubir }: Props) {
+export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEditarBloque, onEditar, onSubir, vistaDelMovil = null, onSubirMovil }: Props) {
   const id = useId();
   const archivo = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,18 +75,19 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
     onSubir(file);
   };
 
-  const ponerUrl = (url: string) => {
+  // La URL pública de una imagen del bloque: la de PC o (L12) la del celular.
+  const ponerUrl = (url: string, id: string = block.image_ref, grupo = `${block.block_id}.image_url`) => {
     onEditar((t) => {
       const images = { ...t.images };
-      const actual = images[block.image_ref] ?? { alt: block.alt };
-      if (url) images[block.image_ref] = { ...actual, url };
+      const actual = images[id] ?? { alt: block.alt };
+      if (url) images[id] = { ...actual, url };
       else {
         const { url: _u, ...sinUrl } = actual;
         void _u;
-        images[block.image_ref] = sinUrl;
+        images[id] = sinUrl;
       }
       return { ...t, images };
-    }, `${block.block_id}.image_url`);
+    }, grupo);
   };
 
   return (
@@ -125,6 +130,21 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
             ? () => onEditar((t) => franjaPorElBanner(t, block.block_id))
             : null}
           onResponder={(valor) => onEditar((t) => conTraeLogos(t, block.image_ref, valor, block.alt))}
+        />
+      ) : null}
+
+      {/* L12: otra imagen para el celular, sólo para una pieza con archivo (no un adorno). */}
+      {vista && !decorativa && onSubirMovil ? (
+        <VersionParaElCelular
+          block={block}
+          vista={vistaDelMovil}
+          ocupado={ocupado}
+          onEditarBloque={onEditarBloque}
+          onSubir={onSubirMovil}
+          // Alojada por URL (SurveyMonkey): la del celular también necesita la suya.
+          url={alojamiento === "url" && block.mobile_ref ? template.images[block.mobile_ref]?.url ?? "" : null}
+          onUrl={(url) => { if (block.mobile_ref) ponerUrl(url, block.mobile_ref, `${block.block_id}.mobile_url`); }}
+          problemas={problemas.filter((p) => propDelProblema(p.path) === "mobile_ref")}
         />
       ) : null}
 
