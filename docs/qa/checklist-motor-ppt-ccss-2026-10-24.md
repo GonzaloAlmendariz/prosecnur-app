@@ -59,5 +59,6 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 - B1 se arregla aunque el plan de brechas lo tenía «sin decisión»: es un error silencioso de datos (N equivocado) y el arreglo sólo hace que Codificación lea la base actual, igual que Analítica. No cambia ninguna regla metodológica.
 
 - Bases distintas por panel → cada panel lleva su «N respuestas» y el pie de la lámina no afirma una base común (C5). Alternativa si no le gusta: pie con «Base: n1 / n2 / …».
-- Gris de los no sustantivos `#BFBFBF`, distinto del neutro `#D9D9D9` de la escala (D2).
+- Color de los no sustantivos: pasa de `#BFBFBF` (casi igual al neutro `#D9D9D9`, reportado por ccss-mazo en R6) al gris azulado `texto_tenue` `#8A93A8` del estándar, que se lee como «fuera de la escala» (D2).
+- Base de un cruce (CCSS-16): el pie cuenta los casos válidos en la variable Y en el cruce, que es el denominador real de las barras; los % no cambian.
 - `launch.json` (servidores 8822 de Arte) queda sin commitear: lleva rutas locales de un proyecto de cliente.
