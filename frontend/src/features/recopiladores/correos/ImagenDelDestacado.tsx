@@ -9,6 +9,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { EncuadreDeFoto } from "./EncuadreDeFoto";
 import { propDelProblema } from "./modeloCorreo";
 import { problemaDelArchivo } from "./PanelDeImagen";
 import { descripcionesPendientes } from "./piezasGraficas";
@@ -48,16 +49,17 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
   return (
     <section className="rec-pieza-lado" aria-label="Foto del destacado">
       <span className="rec-pieza-lado-titulo">Foto</span>
-      <div className={`rec-capa-img-vista rec-pieza-lado-vista${vista ? "" : " is-vacia"}`} data-qa-geometry-capacity="owned">
-        {vista ? (
-          <img src={vista} alt={block.alt || "Foto del destacado"} />
-        ) : (
+      {vista && tiene ? (
+        // Con foto: la foto entera y, encima, el encuadre del recorte (L7).
+        <EncuadreDeFoto block={block} vista={vista} onEditarBloque={onEditarBloque} />
+      ) : (
+        <div className="rec-capa-img-vista rec-pieza-lado-vista is-vacia" data-qa-geometry-capacity="owned">
           <span className="rec-capa-img-vacia">
             <ImagePlus size={18} aria-hidden />
             <span>{tiene ? "Sin archivo todavía" : "Sin foto: sale sólo el texto"}</span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
       <span className="rec-mail-insp-acciones">
         <PulsoButton variant={vista ? "secondary" : "primary"} size="sm" disabled={ocupado} onClick={() => archivo.current?.click()}>
           <Upload size={14} aria-hidden /> {vista ? "Cambiar la foto" : "Subir una foto"}

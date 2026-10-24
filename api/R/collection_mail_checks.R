@@ -38,11 +38,9 @@
     }
     if (identical(b$type, "feature")) {
       if (is.null(.cmail_one(b$image_ref))) next
-      fb <- b
       uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref)),
                                         target = .cmail_target(as.character(b$block_id), "alt"),
-                                        alt = .cmail_one(b$alt) %||% "",
-                                        shown = function(img, col_w) .cmail_feature_shown(fb, img, col_w))
+                                        alt = .cmail_one(b$alt) %||% "", feature = b)
       next
     }
     if (!identical(b$type, "image")) next
@@ -146,16 +144,18 @@
   # Nitidez: el ancho mostrado a 2x no debe pasar el natural (al ancho de la columna del tema, E1p).
   col_w <- .cmail_theme_width(tpl$theme)
   blurry <- list()
-  medible <- function(u) !is.null(u$block) || isTRUE(u$pair) || is.function(u$shown)
+  medible <- function(u) !is.null(u$block) || isTRUE(u$pair) || !is.null(u$feature)
   for (u in Filter(medible, uses)) {
-    natural <- images[[u$id]]$size$width
+    # La foto de un Destacado se mide recortada: su recorte es lo que se muestra.
+    img <- if (!is.null(u$feature)) .cmail_feature_img(u$feature, list(images = images))$img else images[[u$id]]
+    natural <- img$size$width
     if (is.null(natural)) next
-    shown <- if (is.function(u$shown)) u$shown(images[[u$id]], col_w)
-             else if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]], col_w)
-             else .cmail_image_width(u$block, images[[u$id]], col_w)
+    shown <- if (!is.null(u$feature)) .cmail_feature_shown(u$feature, img, col_w)
+             else if (isTRUE(u$pair)) .cmail_pair_shown_width(img, col_w)
+             else .cmail_image_width(u$block, img, col_w)
     if (shown * 2L > natural) {
       blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural),
-                                            prop = if (isTRUE(u$pair) || is.function(u$shown)) u$target$prop else "width")
+                                            prop = if (isTRUE(u$pair) || !is.null(u$feature)) u$target$prop else "width")
     }
   }
   if (any(vapply(uses, medible, NA))) {

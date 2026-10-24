@@ -387,3 +387,19 @@ export function srcDeImagenDelBloque(html: string | null | undefined, blockId: s
   if (!src) return null;
   return src.replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
 }
+
+/**
+ * La foto entera de un Destacado recortado, tal como la manda la vista previa
+ * en `data-pulso-original` (collection_mail_destacado.R): sobre ella se encuadra.
+ */
+export function srcOriginalDelBloque(html: string | null | undefined, blockId: string): string | null {
+  if (!html) return null;
+  const marca = `data-pulso-block="${blockId}"`;
+  const inicio = html.indexOf(marca);
+  if (inicio < 0) return null;
+  const resto = html.slice(inicio + marca.length);
+  const fin = resto.indexOf("data-pulso-block=");
+  const tramo = fin < 0 ? resto : resto.slice(0, fin);
+  const m = /\sdata-pulso-original="([^"]*)"/i.exec(tramo);
+  return m ? m[1].replace(/&amp;/g, "&") : null;
+}
