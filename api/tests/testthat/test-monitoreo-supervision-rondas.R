@@ -100,7 +100,7 @@ test_that("los bloques reflejan todas las rondas guardadas con su número", {
   rondas <- do.call(rbind, lapply(b$supervision_rondas$rows, as.data.frame, check.names = FALSE))
   expect_identical(unlist(b$supervision_rondas$columns), c(
     "Ronda", "Guardada", "Generada el", "Semilla", "Porcentaje", "Universo", "Corte anterior", "Corte",
-    "Sorteados", "Agregados", "Casos", "Publicada en", "Publicada el"))
+    "Sorteados", "Agregados", "Casos", "Publicada en", "Publicada el", "Lectura", "Leída el"))
   expect_identical(rondas$Ronda, c(1L, 2L))
   expect_identical(rondas$Guardada, c("Sí", "Sí"))
   expect_identical(rondas$Universo, c(20L, 10L))
@@ -295,4 +295,91 @@ test_that("HTTP: rondas vacías, ronda sin datos y publicar una ronda que no exi
   expect_identical(sin_datos$json$error$code, "E_MONITOREO_NO_SNAPSHOT")
   pub <- http_post_json(srv, "/api/monitoreo/telefonico/supervision/ronda/publicar", sid = sid, body = list(numero = 1))
   expect_identical(pub$status, 409L) # sin datos, antes de buscar la ronda
+  leer <- http_post_json(srv, "/api/monitoreo/telefonico/supervision/resultados/leer", sid = sid, body = list())
+  expect_identical(leer$status, 409L)
+  expect_identical(leer$json$error$code, "E_MONITOREO_SUPERVISION_HOJA")
+})
+
+# --- Lectura de las pestañas «Ronda N» ----------------------------------------
+
+rnd_libro_mock <- function(pestanas) {
+  llamadas <- list()
+  handler <- function(url, method = "GET", body = NULL) {
+    url <- utils::URLdecode(url)
+    llamadas[[length(llamadas) + 1L]] <<- list(url = url, method = method)
+    if (grepl("\\?fields=", url)) {
+      return(list(sheets = lapply(seq_along(pestanas), function(i) list(properties = list(sheetId = i, title = names(pestanas)[[i]])))))
+    }
+    tab <- sub("^.*/values/'(.*)'!.*$", "\\1", url)
+    list(values = pestanas[[tab]] %||% list())
+  }
+  list(handler = handler, llamadas = function() llamadas)
+}
+
+rnd_valores <- function(casos, status_final, personas) {
+  cab <- list("N", "Código PULSO", "COD.proGres", "Nombre", "Tef1", "personas", "Responsable de la supervisión",
+              "Status supervisión", "Status final", "Observaciones re barrido")
+  c(list(cab), lapply(seq_along(casos), function(i) list(as.character(i), casos[[i]], "", "Hogar X", "+51999", personas[[i]],
+                                                       "Sup-01", "Efectivo", status_final[[i]], "")))
+}
+
+rnd_dos_rondas <- function() {
+  base <- rbind(rnd_base(), rnd_base(n = 10L, desde = 21L))
+  r1 <- .monitoreo_supervision_ronda_nueva(base[1:20, ], list(), rnd_cfg(), porcentaje = 20)
+  g <- .monitoreo_supervision_rondas_normalizar(list(rondas = list(r1)))
+  r2 <- .monitoreo_supervision_ronda_nueva(base, g, rnd_cfg(), porcentaje = 20)
+  r1$publicada <- list(en = "2026-10-24T11:00:00Z", spreadsheet_id = "fx", pestana = "Ronda 1", filas = nrow(r1$casos))
+  r2$publicada <- list(en = "2026-10-25T11:00:00Z", spreadsheet_id = "fx", pestana = "Ronda 2", filas = nrow(r2$casos))
+  .monitoreo_supervision_rondas_normalizar(list(rondas = list(r1, r2)))
+}
+
+test_that("lee todas las pestañas «Ronda N», sin nombre ni teléfonos; una publicada borrada da aviso", {
+  rondas <- rnd_dos_rondas()
+  c1 <- rondas[[1]]$casos$CodPulso
+  mock <- rnd_libro_mock(list(
+    supervision = list(),
+    `Ronda 1` = rnd_valores(c1, rep("Conforme", length(c1)), rep("3", length(c1))),
+    `Ronda 9` = list(list("N"))
+  ))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  lectura <- .monitoreo_supervision_leer_pestanas("fx", rondas, ahora = "2026-10-26T09:00:00Z")
+  expect_identical(lectura$leidas, 1L)
+  r1 <- lectura$rondas[[1]]$resultados
+  expect_identical(r1$estado, "leida")
+  expect_identical(nrow(r1$filas), length(c1))
+  expect_false(any(c("Nombre", "Tef1") %in% names(r1$filas)))
+  expect_identical(lectura$rondas[[2]]$resultados$estado, "pestana_borrada")
+  expect_true(any(grepl("Ronda 2 se publicó", lectura$avisos)))
+  expect_true(any(grepl("«Ronda 9» no corresponde", lectura$avisos)))
+  # Solo lecturas: ninguna escritura.
+  expect_true(all(vapply(mock$llamadas(), function(l) identical(l$method, "GET"), logical(1))))
+})
+
+test_that("cada resultado se asocia a su ronda: primero su pestaña, luego la declarada", {
+  rondas <- rnd_dos_rondas()
+  c1 <- rondas[[1]]$casos$CodPulso
+  c2 <- rondas[[2]]$casos$CodPulso
+  mock <- rnd_libro_mock(list(`Ronda 1` = rnd_valores(c1, c("No coincide", rep("Conforme", length(c1) - 1L)), rep("3", length(c1)))))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  leidas <- .monitoreo_supervision_leer_pestanas("fx", rondas)$rondas
+  efectivas <- rbind(rnd_base(), rnd_base(n = 10L, desde = 21L))
+  names(efectivas)[names(efectivas) == "Enumerador"] <- "Responsable plataforma"
+  efectivas$Actor <- "Norte"
+  respuestas <- data.frame(`_id` = efectivas$`Response ID`, personas = "3", check.names = FALSE, stringsAsFactors = FALSE)
+  declarada <- data.frame(`Código PULSO` = c2[[1]], `Status final` = "Conforme", check.names = FALSE, stringsAsFactors = FALSE)
+  cfg <- .monitoreo_supervision_rondas_en_cfg(rnd_cfg(), list(monitoreo_supervision_rondas = list(rondas = leidas)))
+  b <- .monitoreo_supervision_estratificada_blocks(efectivas, cfg, character(0), declarada, respuestas)
+  b <- stats::setNames(b, vapply(b, function(x) x$id, ""))
+  casos <- do.call(rbind, lapply(b$supervision_casos$rows, as.data.frame, check.names = FALSE))
+  de1 <- casos[casos$Ronda == 1L, ]
+  expect_true(all(de1$`Resultado de` == "Ronda 1"))
+  expect_true(all(de1$`En hoja` == "Sí"))
+  # La pregunta de control de la pestaña se compara con Kobo.
+  expect_true(all(de1$`Coincide según` == "controles"))
+  expect_identical(casos$`Resultado de`[casos$CodPulso == c2[[1]]], "hoja declarada")
+  expect_true(all(casos$`Resultado de`[casos$Ronda == 2L & casos$CodPulso != c2[[1]]] == ""))
+  avisos <- do.call(rbind, lapply(b$supervision_avisos$rows, as.data.frame))
+  expect_identical(avisos$Ronda, 2L)
+  rondas_b <- do.call(rbind, lapply(b$supervision_rondas$rows, as.data.frame, check.names = FALSE))
+  expect_identical(rondas_b$Lectura, c("leida", "pestana_borrada"))
 })
