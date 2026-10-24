@@ -50,15 +50,29 @@
     }
     for (k in 1:2) {
       dentro <- !is.na(g) & g == grupos[k]
-      m <- .radar_mb_pct(datos[[ctx$resolved_variable]][dentro], codigos, pesos = pesos[dentro])
-      filas[[length(filas) + 1L]] <- data.frame(eje = tema, grupo = etiquetas[k], valor = m$valor, n = m$n, stringsAsFactors = FALSE)
+      v <- datos[[ctx$resolved_variable]][dentro]
+      m <- .radar_mb_pct(v, codigos, pesos = pesos[dentro])
+      # L10-2: `n` es la suma de pesos (denominador del %); la leyenda escribe los casos que respondieron, sin ponderar.
+      filas[[length(filas) + 1L]] <- data.frame(eje = tema, grupo = etiquetas[k], valor = m$valor, n = m$n,
+                                                n_casos = .dumbbell_casos(v, pesos[dentro]), stringsAsFactors = FALSE)
     }
   }
   out <- do.call(rbind, filas)
   out$eje <- factor(out$eje, levels = names(temas))
   out$grupo <- factor(out$grupo, levels = etiquetas)
   rownames(out) <- NULL
+  attr(out, "dumbbell_colores") <- unname(.std_paleta("dicotomica"))[1:2]   # L10-3: pareja de marca para dos grupos de una base
   out
+}
+
+#' Casos sin ponderar que entran al porcentaje de un grupo: respuestas no vacías con peso positivo (el mismo filtro
+#' que `.radar_mb_pct`, contando filas en vez de sumar pesos)
+#' @keywords internal
+.dumbbell_casos <- function(valores, pesos = NULL) {
+  v <- as.character(valores)
+  ok <- !is.na(v) & nzchar(trimws(v))
+  if (!is.null(pesos)) { w <- suppressWarnings(as.numeric(pesos)); ok <- ok & is.finite(w) & w > 0 }
+  sum(ok)
 }
 
 #' Temas de la brecha entre grupos: refs sueltas o lista nombrada de una ref por tema; sin nombre, la etiqueta de la

@@ -60,6 +60,7 @@ graficar_dumbbell <- function(
     encabezado_brecha = "Diferencia",
     umbral_brecha_pct = 0,
     var_n = "n",
+    var_n_casos = "n_casos",
     titulo_eje = NULL,
 
     colores_grupos = NULL,
@@ -159,7 +160,13 @@ graficar_dumbbell <- function(
     stringsAsFactors = FALSE
   )
 
-  colores <- .graficos_mk_palette(niveles_grupo, pal_user = colores_grupos %||% unname(.std_paleta("actores"))[1:2])
+  # L10-3: dos grupos de una misma base (`.dumbbell_grupos_datos`) van en la pareja de marca (azul y azul claro de
+  # `dicotomica`), que esa función declara en `attr(data, "dumbbell_colores")`; entre bases sigue `actores` (Arte, 35).
+  colores <- .graficos_mk_palette(niveles_grupo, pal_user = colores_grupos %||% attr(data, "dumbbell_colores", exact = TRUE) %||%
+                                    unname(.std_paleta("actores"))[1:2])
+  # La cifra de un grupo pintado en un color claro se escribe en un tono legible de su misma familia.
+  colores_cifra <- .dumbbell_colores_cifra(unname(colores[niveles_grupo]))
+  sentido <- .dumbbell_sentido(a, b)
 
   # Eje acercado al rango de los datos, en múltiplos de 5, sin pasar de 0 ni 100.
   lim <- suppressWarnings(as.numeric(limite_x))
@@ -199,11 +206,12 @@ graficar_dumbbell <- function(
     # no caiga sobre el segmento ni sobre el otro punto.
     ancla <- merge(lab, res[, c(".eje", ".a", ".b")], by = ".eje", all.x = TRUE)
     ancla$.izq <- ancla$.valor <= pmin(ancla$.a, ancla$.b)
+    ancla$.col <- unname(stats::setNames(colores_cifra, niveles_grupo)[as.character(ancla$.grupo)])
     p <- p + ggplot2::geom_text(
       data = ancla,
       ggplot2::aes(x = .data$.valor, y = .data$.eje, label = .data$.lab,
-                   hjust = ifelse(.data$.izq, 1.45, -0.45), colour = .data$.grupo),
-      size = size_valores,
+                   hjust = ifelse(.data$.izq, 1.45, -0.45)),
+      colour = ancla$.col, size = size_valores,
       family = font_family, fontface = face("valores"), show.legend = FALSE
     )
   }
@@ -234,14 +242,16 @@ graficar_dumbbell <- function(
   n_g <- rep(NA_real_, length(niveles_grupo))
   # Sólo si la base del grupo es la misma en todas las filas (dos públicos comparados tema por tema, lámina 86);
   # si cambia de fila en fila, las filas son públicos y su base va en cada fila (lámina 85), no en la leyenda.
+  # L10-2: la leyenda escribe casos sin ponderar (`var_n_casos`); un `n` fraccionario es suma de pesos y no se escribe.
+  col_casos <- .dumbbell_col_casos(data, var_n, var_n_casos)
   etiquetas_leyenda <- niveles_grupo
-  if (!is.null(var_n) && var_n %in% names(data)) {
+  if (!is.null(col_casos)) {
     n_g <- vapply(niveles_grupo, function(g) {
-      v <- suppressWarnings(as.numeric(data[[var_n]][as.character(data[[var_grupo]]) == g]))
+      v <- suppressWarnings(as.numeric(data[[col_casos]][as.character(data[[var_grupo]]) == g]))
       v <- unique(v[is.finite(v)])
       if (length(v) == 1L) v else NA_real_
     }, numeric(1))
-    etiquetas_leyenda <- ifelse(is.finite(n_g), sprintf("%s (%s)", niveles_grupo, format(n_g, big.mark = ",", trim = TRUE)), niveles_grupo)
+    etiquetas_leyenda <- ifelse(is.finite(n_g), sprintf("%s (%s)", niveles_grupo, .dumbbell_fmt_casos(n_g)), niveles_grupo)
   }
 
   # ADR 0093 (N4): lo que afirman las pesas para la lámina nativa (láminas 85 y 86, recetario_m3c.R). Como el
@@ -256,15 +266,16 @@ graficar_dumbbell <- function(
                  r2[match(ejes, r2$.eje), , drop = FALSE])
     # Los casos van en la fila cuando son los mismos para los dos grupos de esa fila (la fila es un público) y no
     # están ya en la leyenda.
-    n_fila <- if (!is.null(var_n) && var_n %in% names(data) && !any(is.finite(n_g))) vapply(r2$.eje, function(e) {
-      v <- suppressWarnings(as.numeric(data[[var_n]][as.character(data[[var_eje]]) == e])); v <- unique(v[is.finite(v)])
+    n_fila <- if (!is.null(col_casos) && !any(is.finite(n_g))) vapply(r2$.eje, function(e) {
+      v <- suppressWarnings(as.numeric(data[[col_casos]][as.character(data[[var_eje]]) == e])); v <- unique(v[is.finite(v)])
       if (length(v) == 1L) v else NA_real_
     }, numeric(1)) else rep(NA_real_, nrow(r2))
     list(version = "pesas/1", tipo = "pesas", rotulos = r2$.eje, a = r2$.a, b = r2$.b,
          cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
          diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), " ", etiqueta_brecha),
-         mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha,
-         grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), leyenda = unname(etiquetas_leyenda),
+         mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha, sentido_diferencia = sentido,
+         grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), colores_cifra = colores_cifra,
+         leyenda = unname(etiquetas_leyenda),
          n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
   }, error = function(e) NULL)
 
@@ -277,8 +288,9 @@ graficar_dumbbell <- function(
     ggplot2::scale_y_discrete(expand = ggplot2::expansion(add = c(0.6, 1.0))) +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::labs(
-      title = titulo, subtitle = subtitulo, caption = nota_pie,
-      x = titulo_eje, y = NULL, colour = NULL
+      title = titulo, caption = nota_pie, x = titulo_eje,
+      # L10-3: en la ruta de respaldo, quién menos quién va en el subtítulo (la columna no tiene ancho para decirlo).
+      subtitle = if (isTRUE(mostrar_brecha)) paste(c(subtitulo, paste0(encabezado_brecha %||% "Diferencia", ": ", sentido)), collapse = "\n") else subtitulo, y = NULL, colour = NULL
     ) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(
@@ -304,7 +316,10 @@ graficar_dumbbell <- function(
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_line(colour = .PULSO_COLOR_GRID, linewidth = 0.3),
-      plot.margin = ggplot2::margin(10, 16, 8, 12)
+      plot.margin = ggplot2::margin(10, 16, 8, 12),
+      # L10-1: en la ruta de respaldo el gráfico no lleva caja blanca sobre el fondo de la lámina.
+      plot.background = ggplot2::element_rect(fill = NA, colour = NA),
+      panel.background = ggplot2::element_rect(fill = NA, colour = NA)
     )
   attr(p, "pulso_espec") <- espec_pesas
   p
