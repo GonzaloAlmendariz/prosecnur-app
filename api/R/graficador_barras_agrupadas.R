@@ -1096,11 +1096,28 @@ graficar_barras_agrupadas <- function(
     # no su texto mas pequeno. Encoger es correcto como ultimo recurso, pero el
     # primero deberia ser ensanchar la columna. Eso es P43, no esto.
     filas_eje <- .agrupadas_lineas_eje(cat_lvls, ancho_max_eje_y_eff)
+    size_previo_eje <- size_ejes_eff
     size_ejes_eff <- .agrupadas_size_que_cabe(
       size_ejes_eff, filas_eje, n_categorias,
       alto_in = suppressWarnings(as.numeric(alto)[1]),
       lineheight = lineheight_eje_y_render
     )
+    # P2/A12: si hubo que encoger, cuerpo y envoltorio se eligen juntos con el ancho real de la columna, y la columna se
+    # ensancha antes que solapar (graficador_barras_agrupadas_rotulos.R). Sin encoger, nada cambia.
+    if (!forzar_ancho_max_eje_y && size_ejes_eff < size_previo_eje) {
+      aj_rot <- .agrupadas_rotulos_ajustar(
+        cat_lvls, ancho, canvas_w_etiquetas, canvas_w_bars,
+        w_resto = canvas_w_buf_etq_bars + canvas_w_buf_bars_extra + canvas_w_extra + (if (isTRUE(mostrar_leyenda) && legend_is_side) 0.18 else 0),
+        size_pt = size_previo_eje, n_categorias = n_categorias, alto_in = alto, lineheight = lineheight_eje_y_render,
+        negrita = "eje_y" %in% textos_negrita, titulo = titulo,
+        frac_panel = .agrupadas_frac_panel(alto, titulo, subtitulo, canvas_h_header_in, mostrar_leyenda && !legend_is_side && length(cols_porcentaje) > 1L,
+                                           canvas_h_legend_in, nzchar(paste0(nota_pie %||% "", nota_pie_derecha %||% "")), canvas_h_caption_in,
+                                           canvas_h_reserva_pie_in, canvas_h_toprow_in))
+      if (!is.null(aj_rot)) {
+        size_ejes_eff <- aj_rot$size; ancho_max_eje_y_eff <- aj_rot$wrap
+        canvas_w_etiquetas <- aj_rot$w_etiquetas; canvas_w_bars <- aj_rot$w_bars
+      }
+    }
   }
 
   usar_color_categorias <- !is.null(colores_categorias) &&
@@ -2000,6 +2017,7 @@ graficar_barras_agrupadas <- function(
         family = font_family,
         fontface = if ("titulo" %in% textos_negrita) "bold" else "plain"
       )
+      canvas <- .lienzo_marcar_ultima(canvas, "titulo")   # el panel con encabezado propio lo quita (lamina_titulo_lienzo.R)
     }
     if (has_s) {
       canvas <- canvas + cowplot::draw_text(
@@ -2013,6 +2031,7 @@ graficar_barras_agrupadas <- function(
         family = font_family,
         fontface = .graficos_face_subtitulo(textos_negrita, face_subtitulo)
       )
+      canvas <- .lienzo_marcar_ultima(canvas, "subtitulo")
     }
 
     if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h,
@@ -2181,7 +2200,7 @@ graficar_barras_agrupadas <- function(
       usar_eje_libre = isTRUE(usar_eje_libre),
       grosor_eff = grosor_barras_eff,
       canvas_min_filas = canvas_min_filas_eff,
-      h_panel_in = h_panel_in,
+      h_panel_in = h_panel_in, h_total_in = h_total_in, h_top_in = top_in,   # A12: la fila real (lamina_titulo_lienzo.R)
       size_ejes_eff = size_ejes_eff,
       size_texto_barras_eff = size_texto_barras_eff,
       lineheight_eje_y_eff = lineheight_eje_y_eff,

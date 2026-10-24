@@ -970,6 +970,8 @@ graficar_radar <- function(
   espec_radar <- tryCatch(.espec_radar(df_plot, r_lim, pal, digits = tabla_digits,
                                        encabezado = if (identical(titulo_tabla, "Top 2 Box")) NULL else titulo_tabla,
                                        con_tabla = mostrar_tabla_derecha, nota = nota_pie), error = function(e) NULL)
+  # El indicador que el radar escribe sobre sí mismo (su subtítulo) viaja con la espec: la lámina nativa lo pone bajo el título.
+  if (!is.null(espec_radar) && length(subtitulo) == 1L && !is.na(subtitulo) && nzchar(trimws(subtitulo))) espec_radar$subtitulo <- subtitulo
   # G11 (2026-10-13): sin radar (`p_tabla`) la misma cuenta sale como la tabla del diseño (láminas 197/225), en piezas
   # editables, en vez de la ruta anterior.
   if (isTRUE(ocultar_radar) && !is.null(espec_radar)) { espec_radar$tipo <- "tabla"; espec_radar$version <- "tabla/1" }

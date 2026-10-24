@@ -38,7 +38,7 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_histograma(lz, espec, ml, yt + 0.55, ancho, yf - yt - 1.25)
+  .lam_histograma(lz, espec, ml + .LAM_SANGRIA_TXT, yt + 0.55, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - yt - 1.25)   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
   .lam_txt(lz, espec$texto_mediana, W - g_("margen_der") - 3.2, yt, 3.2, 0.3, 12, .std_color("coral"), bold = TRUE, align = "right",
            nombre = "histograma:texto_mediana")
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:histograma")

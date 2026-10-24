@@ -70,21 +70,7 @@
   y <- .reporte_plan_clean_chr(x)
   if (!length(y)) return(y)
 
-  norm <- .reporte_plan_ascii_lower(y)
-  norm <- gsub("\\s+", " ", norm, perl = TRUE)
-  norm <- trimws(norm)
-  stripped <- gsub("\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?", "", norm, perl = TRUE)
-  stripped <- gsub("\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica|specify|please specify)\\s*:?", "", stripped, perl = TRUE)
-  stripped <- trimws(gsub("\\s+", " ", stripped, perl = TRUE))
-
-  is_other <- (
-    grepl("\\b(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) &
-      grepl("\\b(especific|specif|please|por favor)\\b", norm, perl = TRUE)
-  ) | grepl("^\\s*(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) |
-    stripped %in% c("other", "otro", "otra", "otros", "otras")
-
-  y[is_other] <- "Otros"
-  y
+  .etiqueta_opcion_imprimible(y)   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
 }
 
 #' @noRd
@@ -453,10 +439,12 @@
 .ppt_multiple_choice_notice_overrides <- function(overrides = list()) {
   if (!is.list(overrides)) overrides <- list()
 
-  overrides$subtitulo <- "Pregunta de opción múltiple"
-  # Italica y no negrita: es una acotacion sobre la pregunta, no un segundo
-  # titulo compitiendo con el primero.
-  overrides$face_subtitulo <- "italic"
+  # CCSS Perfil 2026 (CCSS-9b): el mismo encabezado que la lámina nativa de opción múltiple (recetario p72,
+  # lamina_compositor.R), para que todas las múltiples del mazo digan lo mismo.
+  overrides$subtitulo <- "% de encuestados que marcó cada opción"
+  # Como la nativa (lamina_categorica.R, encabezado): negrita en el gris `texto_suave`, sin cursiva (CCSS-19).
+  overrides$face_subtitulo <- "bold"
+  overrides$color_subtitulo <- .std_color("texto_suave")
 
   size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
   overrides$size_subtitulo <- if (is.finite(size_sub)) min(size_sub, 10.5) else 10.0
