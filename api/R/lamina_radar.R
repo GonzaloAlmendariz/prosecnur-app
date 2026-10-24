@@ -12,7 +12,71 @@
 # y = zona + 0.6, filas de 0.5 in, primera columna de 2.2 in.
 
 .LAM_RADAR <- list(ancho = 6.6, alto = 4.5, dy = 0.2, x_tabla = 7.25, dy_tabla = 0.6, fila = 0.5, fila_min = 0.4,
-                   col1 = 2.2, col = 1.15)
+                   col1 = 2.2, col = 1.15, rot_max = 1.8)
+
+#' Rótulos de los ejes envueltos por palabras en `w` pulgadas (12 pt, negrita), separados por «\n»
+#' @keywords internal
+.lam_radar_envolver <- function(txt, w) {
+  vapply(as.character(txt), function(x) {
+    pal <- strsplit(trimws(x), "\\s+")[[1]]; pal <- pal[nzchar(pal)]
+    if (length(pal) < 2L || .lam_ancho_tinta(x, 12, TRUE) <= w) return(x)
+    lin <- character(0); cur <- pal[1]
+    for (q in pal[-1]) {
+      if (.lam_ancho_tinta(paste(cur, q), 12, TRUE) <= w) cur <- paste(cur, q) else { lin <- c(lin, cur); cur <- q }
+    }
+    paste(c(lin, cur), collapse = "\n")
+  }, "", USE.NAMES = FALSE)
+}
+
+#' Geometría del radar en su zona: rótulos, unidad (pulgadas por unidad de ggplot), límites y centro
+#'
+#' Sin tabla, la del recetario (±2.15 × ±1.25, rótulos de una línea). Con tabla, el radar toma toda su zona: los rótulos
+#' de los lados que pasan de `rot_max` se envuelven (hasta tres líneas), la unidad crece hasta que radar y rótulos llenan
+#' el ancho de la zona (o su alto) y el conjunto queda centrado en ella; nunca baja de la unidad del recetario.
+#' @keywords internal
+.lam_radar_geom <- function(espec) {
+  R <- .LAM_RADAR; K <- length(espec$ejes)
+  ang <- pi / 2 - 2 * pi * (seq_len(K) - 1) / K; de_lado <- abs(cos(ang)) >= 0.1
+  u0 <- min(R$ancho / 4.3, R$alto / 2.5)
+  if (!isTRUE(espec$con_tabla)) {
+    return(list(rot = espec$ejes, unidad = u0, xlim = c(-2.15, 2.15), ylim = c(-1.25, 1.25), ang = ang, de_lado = de_lado,
+                lineas = rep(1L, K), ancho_rot = .lam_ancho_tinta(espec$ejes, 12, TRUE)))
+  }
+  rot <- espec$ejes; rot[de_lado] <- .lam_radar_envolver(espec$ejes[de_lado], R$rot_max)
+  lineas <- lengths(strsplit(rot, "\n", fixed = TRUE))
+  ancho_rot <- vapply(strsplit(rot, "\n", fixed = TRUE), function(l) max(.lam_ancho_tinta(l, 12, TRUE)), 0)
+  lado <- function(signo) { i <- which(de_lado & sign(cos(ang)) == signo); list(c = if (length(i)) max(1.2 * abs(cos(ang[i]))) else 0,
+                                                                              w = if (length(i)) max(ancho_rot[i]) else 0) }
+  L <- lado(-1); Rr <- lado(1)
+  u_w <- (R$ancho - L$w - Rr$w - 0.1) / max(L$c + Rr$c, 1e-6)
+  u <- max(u0, min(R$alto / 2.5, u_w))
+  cx <- ((Rr$c * u + Rr$w) - (L$c * u + L$w)) / 2 / u
+  list(rot = rot, unidad = u, xlim = cx + c(-1, 1) * R$ancho / 2 / u, ylim = c(-1, 1) * R$alto / 2 / u, ang = ang,
+       de_lado = de_lado, lineas = lineas, ancho_rot = ancho_rot)
+}
+
+#' Cajas (pulgadas, relativas a la esquina de la zona del radar) de los rótulos de ejes y de las cifras de los anillos
+#'
+#' Para comprobar que ninguna cifra de anillo cae sobre un rótulo de eje. Rótulo: 12 pt, interlineado de 1.2; cifra: 10 pt.
+#' @keywords internal
+.lam_radar_cajas <- function(espec) {
+  R <- .LAM_RADAR; g <- .lam_radar_geom(espec); K <- length(espec$ejes); u <- g$unidad
+  px <- function(x) (x - g$xlim[1]) * u; py <- function(y) (g$ylim[2] - y) * u     # y hacia abajo, como la lámina
+  hj <- ifelse(abs(cos(g$ang)) < 0.1, 0.5, ifelse(cos(g$ang) > 0, 0, 1))
+  alto <- g$lineas * 12 * 1.2 / 72
+  ejes <- data.frame(eje = espec$ejes, x0 = px(1.2 * cos(g$ang)) - hj * g$ancho_rot, x1 = px(1.2 * cos(g$ang)) + (1 - hj) * g$ancho_rot,
+                     y0 = py(1.12 * sin(g$ang)) - alto / 2, y1 = py(1.12 * sin(g$ang)) + alto / 2, stringsAsFactors = FALSE)
+  gg <- ggplot2::ggplot_build(.lam_radar_gg(espec))
+  lab <- Filter(function(d) "label" %in% names(d) && any(grepl("%$", d$label)), gg$data)
+  niv <- if (length(lab)) lab[[1]] else NULL
+  cifras <- NULL
+  if (!is.null(niv) && nrow(niv)) {
+    w <- .lam_ancho_tinta(niv$label, 10); h <- 10 * 1.2 / 72; hjn <- niv$hjust
+    cifras <- data.frame(t = niv$label, x0 = px(niv$x) - hjn * w, x1 = px(niv$x) + (1 - hjn) * w,
+                         y0 = py(niv$y) - h / 2, y1 = py(niv$y) + h / 2, stringsAsFactors = FALSE)
+  }
+  list(ejes = ejes, cifras = cifras, geom = g)
+}
 
 #' El ggplot del radar del recetario, desde la espec
 #' @keywords internal
@@ -20,7 +84,7 @@
   K <- length(espec$ejes); lo <- espec$lo
   ang <- pi / 2 - 2 * pi * (seq_len(K) - 1) / K                  # desde arriba, en el sentido del reloj
   rr <- function(v) (v - lo) / (100 - lo)
-  fuente <- .std_pt("fuente")
+  fuente <- .std_pt("fuente"); geo <- .lam_radar_geom(espec)
   ring <- do.call(rbind, lapply(espec$anillos, function(v) data.frame(r = v, x = rr(v) * cos(c(ang, ang[1])), y = rr(v) * sin(c(ang, ang[1])))))
   serie <- do.call(rbind, lapply(espec$grupos, function(a) {
     v <- pmax(lo, 100 * espec$valores[, a])
@@ -32,7 +96,7 @@
   # tiene extensión se queda sólo con sus puntos.
   con_area <- vapply(split(serie, serie$a), function(s0) diff(range(s0$x)) > 1e-6 || diff(range(s0$y)) > 1e-6, TRUE)
   trazo <- do.call(rbind, lapply(split(serie, serie$a)[con_area], function(s0) rbind(s0, s0[1, ])))
-  labr <- data.frame(t = espec$ejes, x = 1.2 * cos(ang), y = 1.12 * sin(ang), h = ifelse(abs(cos(ang)) < 0.1, 0.5, ifelse(cos(ang) > 0, 0, 1)))
+  labr <- data.frame(t = geo$rot, x = 1.2 * cos(ang), y = 1.12 * sin(ang), h = ifelse(abs(cos(ang)) < 0.1, 0.5, ifelse(cos(ang) > 0, 0, 1)))
   # Las cifras de los anillos, entre los dos primeros ejes y con fondo: no pisan el rótulo del eje de arriba.
   mid <- (ang[1] + ang[2]) / 2; half <- (ang[1] - ang[2]) / 2
   niv <- data.frame(v = espec$anillos)
@@ -66,7 +130,7 @@
                         colour = .std_color("texto_suave"), family = fuente, fill = .std_color("fondo"), label.size = 0,
                         label.padding = grid::unit(0.06, "lines")) +
     ggplot2::scale_colour_manual(values = espec$colores) +
-    ggplot2::coord_equal(xlim = c(-2.15, 2.15), ylim = c(-1.25, 1.25), clip = "off") +
+    ggplot2::coord_equal(xlim = geo$xlim, ylim = geo$ylim, clip = "off") +
     ggplot2::theme_void() + ggplot2::theme(legend.position = "none")
 }
 
@@ -137,6 +201,7 @@
   R <- .LAM_RADAR; g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   doc <- officer::add_slide(doc, layout = layout, master = master)
   arriba <- .lam_leyenda_va_arriba(espec$grupos)   # G4: la leyenda sube al antetítulo
+  if (is.null(sub) || !nzchar(trimws(sub))) sub <- espec$subtitulo %||% sub   # el indicador del radar, si la lámina no trae subtítulo
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, leyenda = if (arriba) espec$colores)
   # Sin tabla, el radar y su leyenda se centran en la lámina.
   x_radar <- if (isTRUE(espec$con_tabla)) ml else W / 2 - R$ancho / 2
@@ -170,11 +235,11 @@
   R <- .LAM_RADAR; K <- length(espec$ejes); k <- length(espec$grupos)
   if (K < 3L || K > 8L || k < 1L || k > 6L) return(FALSE)
   ang <- pi / 2 - 2 * pi * (seq_len(K) - 1) / K; de_lado <- abs(cos(ang)) >= 0.1
-  tinta <- .lam_ancho_tinta(espec$ejes, 12, TRUE)
-  g_ <- .std_geom; W <- g_("ancho")
+  g_ <- .std_geom; W <- g_("ancho"); geo <- .lam_radar_geom(espec); tinta <- geo$ancho_rot
+  if (any(geo$lineas > 3L)) return(FALSE)
   x0 <- if (isTRUE(espec$con_tabla)) g_("margen_izq") else W / 2 - R$ancho / 2
-  unidad <- min(R$ancho / 4.3, R$alto / 2.5); xc <- x0 + R$ancho / 2       # coord_equal en ±2.15 × ±1.25
-  punta <- xc + 1.2 * cos(ang) * unidad
+  xc <- x0 + (0 - geo$xlim[1]) * geo$unidad                                  # donde cae el centro del radar
+  punta <- xc + 1.2 * cos(ang) * geo$unidad
   tope_der <- if (isTRUE(espec$con_tabla)) R$x_tabla else W - g_("margen_der")
   disp <- ifelse(cos(ang) > 0, tope_der - punta, punta - g_("margen_izq_borde"))
   if (any(tinta[de_lado] > disp[de_lado]) || any(tinta[!de_lado] > R$ancho - 1)) return(FALSE)

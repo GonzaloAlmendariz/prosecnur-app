@@ -210,7 +210,7 @@
                                    por_lamina = por_lamina)$doc)
   }
   espec <- .lam_con_estilo_dicotomia(attr(p, "pulso_espec"), el_plot)   # el slot pide el estilo de la dicotómica
-  base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
+  base_var <- .base_nombre_visible(sub("\\$.*$", "", as.character(el_plot$var %||% "")[1]))   # «default» no se nombra (graficos_base_por_base.R)
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
@@ -330,9 +330,7 @@
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
-    pregunta <- if (!is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
-      tryCatch(texto(.plan_titulo_corto(titulo_de_var, el_plot)), error = function(e) NULL)
-    }
+    pregunta <- if (!is.null(slide$title)) .lam_pregunta_dicotomia(el_plot, titulo_de_var)   # lamina_pregunta_dicotomia.R
     n_pub <- .espec_n_base(espec)
     publico <- .lam_dicotomia_publico(n_pub, base_var, el_plot$var, el_plot$overrides, espec)
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
@@ -385,8 +383,11 @@
     espec$filas$rotulo <- publico
   }
   attr(p, "pulso_espec") <- espec
-  .lam_compositor_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
-                          por_lamina = por_lamina)$doc
+  # Las letras de significancia llevan su nota sobre «Base:» (lamina_nota_significancia.R).
+  .lam_con_nota_sig(.lam_nota_sig_de(p), por_lamina, function(por_lamina) {
+    .lam_compositor_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
+                            por_lamina = por_lamina)$doc
+  })
 }
 
 #' ¿La lámina de varios gráficos se compone con piezas nativas?

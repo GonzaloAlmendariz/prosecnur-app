@@ -94,6 +94,8 @@
   # Una lámina con narrativa arriba (ADR 0093, N7) baja la zona de datos lo que mide su texto: cada lámina nativa y su
   # compuerta se acomodan al alto que queda, sin conocer la narrativa. La opción la fija sólo el compositor narrativo.
   if (identical(nombre, "zona_datos_y0")) v <- v + getOption("prosecnur.lam_desplazo", 0) + getOption("prosecnur.lam_desplazo_titulo", 0)
+  # Una nota sobre «Base:» (la de significancia, lamina_nota_significancia.R) sube el fondo de la zona de datos lo que mide.
+  if (nombre %in% c("zona_datos_y1", "leyenda_y", "contenido_y1")) v <- v - getOption("prosecnur.lam_reserva_pie", 0)
   v
 }
 

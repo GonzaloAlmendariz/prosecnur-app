@@ -283,3 +283,31 @@
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
 .pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
 .pulso-f6-cortes .pulso-f6-cortes-campo { flex: 0 0 76px; width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Aviso de criterios del radar (NotaFormaRadar.tsx): se lee como advertencia, sin caja. */
+.pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }
+
+/* La forma efectiva (NotaFormaRadar.tsx): más legible que la ayuda tenue, para no perderse junto al aviso. */
+.pulso-f6-dato-ayuda.is-nota { color: var(--pulso-text-muted); }
+
+.pulso-f6-numero-aviso {
+  grid-column: 1 / -1;
+}
+
+.pulso-f6-numero-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1, 4px);
+}
+
+.pulso-f6-numero-fila .pulso-f6-dato-numero {
+  width: 64px;
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-numero-paso:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

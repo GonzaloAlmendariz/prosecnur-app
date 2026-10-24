@@ -91,3 +91,11 @@ Ejemplos: HSVG 2026 y CCSS Perfil 2026, uno principal y el otro para contrastar.
 | Pregunta | Respuesta | Consecuencia para el diseño |
 |---|---|---|
 | ¿Qué controla el control de duración? | «El control de tiempo no debe controlar tanto las encuestas largas, sino controlar las cortas.» | Solo las encuestas bajo el mínimo declarado son alerta y cuentan como casos a revisar. Las largas no son problema: a lo sumo un dato informativo neutro, sin color de alerta ni conteo en «a revisar». Aplica a Telefónico, Acreditación y Territorial. |
+
+## Telefónico: rondas de supervisión (respuestas del 2026-10-24)
+
+| Pregunta | Respuesta | Consecuencia para el diseño |
+|---|---|---|
+| ¿De dónde sale cada ronda? | Solo de las efectivas nuevas, las llegadas desde la ronda anterior. | El universo de la ronda N son las efectivas posteriores al corte de la ronda N−1; nunca se repite un caso. |
+| ¿Cuántos casos trae? | «Un % de las efectivas por ronda + alguna en particular que el analista quiera». | Porcentaje declarado sobre el universo de la ronda, repartido por enumerador con mínimo 1 (P5), más casos agregados a mano por el analista, marcados como «elegidos por el analista». |
+| ¿Qué pasa con la ronda generada? | Queda guardada y numerada, y se publica al Sheets. | Ronda 1, 2, 3… con fecha, semilla, universo y casos, guardada en el `.pulso` e inmutable. Se publica a la hoja de supervisión, en su propia pestaña, sin tocar las demás. |
