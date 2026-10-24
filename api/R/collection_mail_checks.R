@@ -36,7 +36,8 @@
       }
       next
     }
-    if (identical(b$type, "feature")) {
+    # La foto de una sección (Destacado, Pasos, Cita, Contacto), si tiene.
+    if (isTRUE(b$type %in% .CMAIL_PHOTO_TYPES)) {
       if (is.null(.cmail_one(b$image_ref))) next
       uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref)),
                                         target = .cmail_target(as.character(b$block_id), "alt"),
@@ -151,7 +152,7 @@
     img <- if (!is.null(bloque)) .cmail_feature_img(bloque, list(images = images))$img else images[[u$id]]
     natural <- img$size$width
     if (is.null(natural)) next
-    shown <- if (!is.null(u$feature)) .cmail_feature_shown(u$feature, img, col_w)
+    shown <- if (!is.null(u$feature)) .cmail_photo_shown(u$feature, img, col_w)
              else if (isTRUE(u$pair)) .cmail_pair_shown_width(img, col_w)
              else .cmail_image_width(u$block, img, col_w)
     if (shown * 2L > natural) {

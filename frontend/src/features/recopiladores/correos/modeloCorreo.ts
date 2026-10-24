@@ -3,6 +3,8 @@
 // forma de la vista previa. Todo lo que aquí se decide se prueba con Vitest.
 
 import {
+  CLAVES_OBLIGATORIAS,
+  esTipoDeSeccion,
   isOpaqueMailBlock,
   type MailBlock,
   type MailBlockType,
@@ -40,6 +42,12 @@ export const ROTULO_DE_BLOQUE: Record<MailBlockType, string> = {
   icon_text: "Ícono con texto",
   two_images: "Dos imágenes",
   feature: "Destacado",
+  steps: "Pasos",
+  deadline: "Fecha límite",
+  benefits: "Beneficios",
+  quote: "Cita",
+  faq: "Preguntas frecuentes",
+  contact: "Contacto",
 };
 
 export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
@@ -58,6 +66,12 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   icon_text: "Un ícono de la casa junto a una línea de texto: una fecha, un lugar, un plazo.",
   two_images: "Dos imágenes lado a lado; en el teléfono se apilan. Cada una conserva su proporción.",
   feature: "Una foto junto a un título, un texto y un botón. En el teléfono la foto sube y ocupa el ancho.",
+  steps: "Cómo responder en pasos numerados, a lo ancho o uno debajo de otro, con una foto arriba si quieres.",
+  deadline: "El día en que cierra la encuesta, grande y centrado, con su botón. Sale igual en Outlook.",
+  benefits: "De dos a cuatro razones para responder, cada una con su ícono. En el teléfono se apilan.",
+  quote: "La voz de alguien del estudio, con su nombre y su cargo, y su retrato si lo tienes.",
+  faq: "Las dudas de siempre con su respuesta, todas abiertas: en un correo no hay acordeones.",
+  contact: "A quién escribir si hay dudas: nombre, cargo, correo y horario. Sin foto, van sus iniciales.",
 };
 
 export const ROTULO_DE_BLOQUE_OPACO = "Bloque no reconocido";
@@ -134,7 +148,16 @@ export function resumenDeBloque(block: MailBlock): string {
     case "two_images":
       return [block.alt_left, block.alt_right].filter((alt) => !altPendiente(alt)).map(textoPlano).join(" · ");
     case "feature":
+    case "deadline":
       return textoPlano(block.title);
+    case "steps":
+    case "benefits":
+    case "faq":
+      return textoPlano(block.title ?? block.entries[0]?.title ?? "");
+    case "quote":
+      return textoPlano(block.text);
+    case "contact":
+      return textoPlano(block.name);
   }
 }
 
@@ -242,7 +265,10 @@ export type PropDeTexto =
   | "alt_left"
   | "alt_right"
   | "eyebrow"
-  | "button_text";
+  | "button_text"
+  | "role"
+  | "email"
+  | "phone";
 
 const PROPS_DE_LISTA: readonly PropDeTexto[] = ["note", "items", "lines"];
 
@@ -263,8 +289,13 @@ export function propsDeTexto(type: MailBlockType | MailBlock["type"]): PropDeTex
     case "footer_legal": return ["text", "address"];
     case "icon_text": return ["text"];
     case "two_images": return ["alt_left", "alt_right"];
-    // La foto y su descripción van en su propio panel (ImagenDelDestacado).
+    // La foto y su descripción van en su propio panel (FotoDeLaSeccion).
     case "feature": return ["eyebrow", "title", "text", "button_text", "url"];
+    // Resto del catálogo (L6): las entradas y la foto tienen su propio panel.
+    case "steps": case "benefits": case "faq": return ["title"];
+    case "deadline": return ["eyebrow", "title", "text", "button_text", "url"];
+    case "quote": return ["text", "name", "role"];
+    case "contact": return ["eyebrow", "name", "role", "email", "phone", "text"];
     default: return [];
   }
 }
@@ -283,6 +314,9 @@ export const ROTULO_DE_PROP: Record<PropDeTexto, string> = {
   alt: "Texto alternativo",
   eyebrow: "Antetítulo",
   button_text: "Texto del botón",
+  role: "Cargo",
+  email: "Correo",
+  phone: "Teléfono",
   alt_left: "Descripción de la imagen izquierda",
   alt_right: "Descripción de la imagen derecha",
 };
@@ -307,6 +341,9 @@ export function conTexto(block: MailBlock, prop: PropDeTexto, valor: string): Ma
     else delete next[prop];
   } else if (valor === "" && block.type === "feature" && ["eyebrow", "text", "button_text", "url", "alt"].includes(prop)) {
     // El título del Destacado es obligatorio: se queda aunque se vacíe (la revisión lo marca).
+    delete next[prop];
+  } else if (valor === "" && esTipoDeSeccion(block.type) && !CLAVES_OBLIGATORIAS[block.type].includes(prop)) {
+    // En una sección, lo opcional vacío se quita; lo obligatorio se queda (la revisión lo marca).
     delete next[prop];
   } else if (valor === "" && ["fallback", "title", "closing", "url", "address"].includes(prop) && block.type !== "button" && block.type !== "feature") {
     delete next[prop];
@@ -443,6 +480,48 @@ export function bloqueNuevo(type: TipoInsertable, block_id: string): MailBlock {
         block_id, type, eyebrow: "Novedad", title: "Escribe aquí el título",
         text: "Cuéntalo en una o dos líneas.", button_text: "Responder la encuesta", url: "https://",
         layout: "izquierda", box: { bg: "tinte" },
+      };
+    // Resto del catálogo (L6): con su contenido de ejemplo, que se lee y se cambia.
+    case "steps":
+      return {
+        block_id, type, title: "Cómo responder", layout: "columnas",
+        entries: [
+          { title: "Abre tu enlace", text: "Es personal: no lo reenvíes." },
+          { title: "Responde con calma", text: "Toma unos diez minutos." },
+          { title: "Envía al final", text: "Puedes pausar y volver cuando quieras." },
+        ],
+      };
+    case "deadline":
+      return {
+        block_id, type, eyebrow: "La encuesta cierra el", title: "[Día y fecha de cierre]",
+        button_text: "Responder ahora", url: "https://", box: { bg: "acento" },
+      };
+    case "benefits":
+      return {
+        block_id, type, title: "Por qué vale la pena responder",
+        entries: [
+          { title: "Es confidencial", text: "Nadie verá tu respuesta por separado.", icon: "candado" },
+          { title: "Toma diez minutos", text: "Desde el celular, cuando puedas.", icon: "reloj" },
+          { title: "Llega a quien decide", text: "Los resultados se presentan a las autoridades.", icon: "grupo" },
+        ],
+      };
+    case "quote":
+      return { block_id, type, text: "Escribe aquí lo que dice, entre una y tres líneas.", name: "[Quién lo dice]", role: "[Su cargo]" };
+    case "faq":
+      return {
+        block_id, type, title: "Preguntas frecuentes",
+        entries: [
+          { title: "¿Quién verá mis respuestas?", text: "Sólo el equipo del estudio, y en conjunto." },
+          { title: "¿Puedo responder desde el celular?", text: "Sí. El enlace se adapta a cualquier pantalla." },
+        ],
+      };
+    case "contact":
+      return { block_id, type, eyebrow: "¿Dudas? Escríbele a", name: "[Quién responde]", role: "[Su cargo]", email: "[correo@dominio]", box: { bg: "tinte" } };
+    // «Imagen + texto»: un Destacado con la foto 4:3 a un lado y sin caja.
+    case "imagen_texto":
+      return {
+        block_id, type: "feature", title: "Escribe aquí el título", text: "Cuéntalo en dos o tres líneas.",
+        layout: "izquierda", crop: { ratio: "4:3" },
       };
     // Decorativa: sale con alt vacío y la revisión no le pide descripción.
     case "image_decorativa": return { block_id, type: "image", image_ref: "decorativa", alt: "", decorative: true };

@@ -1,6 +1,13 @@
 import { isOpaqueMailBlock, type MailBlock, type MailBlockType } from "../../../api/materialMail";
 import {
   AlignLeft,
+  Award,
+  CalendarClock,
+  Contact,
+  ListOrdered,
+  PanelLeft,
+  MessageCircleQuestion,
+  Quote,
   CalendarCheck,
   Columns2,
   Paintbrush,
@@ -38,10 +45,19 @@ export const ICONO_DE_BLOQUE: Record<MailBlockType, LucideIcon> = {
   icon_text: CalendarCheck,
   two_images: Columns2,
   feature: LayoutPanelLeft,
+  steps: ListOrdered,
+  deadline: CalendarClock,
+  benefits: Award,
+  quote: Quote,
+  faq: MessageCircleQuestion,
+  contact: Contact,
 };
 
 /** La imagen decorativa tiene su propio ícono en la biblioteca y en la lista. */
 export const ICONO_DE_IMAGEN_DECORATIVA: LucideIcon = Paintbrush;
+
+/** «Imagen + texto» (L6) es un Destacado, con su propio ícono en la biblioteca. */
+export const ICONO_DE_IMAGEN_Y_TEXTO: LucideIcon = PanelLeft;
 
 export function iconoDeBloque(block: MailBlock): LucideIcon {
   if (isOpaqueMailBlock(block)) return CircleHelp;

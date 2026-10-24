@@ -3,9 +3,9 @@ import { useEffect, useRef, type CSSProperties, type DragEvent, type KeyboardEve
 import type { MailTemplate } from "../../../api/materialMail";
 import { X, type LucideIcon } from "../../../vendor/lucide-react";
 import { tipoDisponible } from "./estructuraCorreo";
-import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA } from "./iconos";
+import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA, ICONO_DE_IMAGEN_Y_TEXTO } from "./iconos";
 import { ROTULO_DE_BLOQUE } from "./modeloCorreo";
-import { IMAGEN_DECORATIVA, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
+import { IMAGEN_DECORATIVA, IMAGEN_Y_TEXTO, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
 import { useCabezaSinLugar } from "./topeDeLaBarra";
 import "./correosBiblioteca.css";
 
@@ -18,7 +18,7 @@ export const ARRASTRE_DE_BLOQUE = "application/x-pulso-bloque";
  */
 export const GRUPOS: readonly { titulo: string; tipos: readonly TipoInsertable[]; cuandoALaVista?: boolean }[] = [
   // Secciones armadas (GOAL editor profesional): una foto, un título, un texto y un botón.
-  { titulo: "Secciones", tipos: ["feature"] },
+  { titulo: "Secciones", tipos: ["feature", IMAGEN_Y_TEXTO, "steps", "deadline", "benefits", "quote", "faq", "contact"] },
   { titulo: "Texto", tipos: ["greeting", "heading", "paragraph", "list", "callout"] },
   { titulo: "Acción e imagen", tipos: ["button", "image", "divider"] },
   { titulo: "Piezas gráficas", tipos: PIEZAS_GRAFICAS, cuandoALaVista: true },
@@ -27,10 +27,12 @@ export const GRUPOS: readonly { titulo: string; tipos: readonly TipoInsertable[]
 
 /** Nombre, descripción e ícono de una entrada de la biblioteca. */
 export function rotuloDeInsertable(tipo: TipoInsertable): string {
+  if (tipo === IMAGEN_Y_TEXTO) return "Imagen + texto";
   return tipo === IMAGEN_DECORATIVA ? "Imagen decorativa" : ROTULO_DE_BLOQUE[tipo];
 }
 
 function iconoDeInsertable(tipo: TipoInsertable): LucideIcon {
+  if (tipo === IMAGEN_Y_TEXTO) return ICONO_DE_IMAGEN_Y_TEXTO;
   return tipo === IMAGEN_DECORATIVA ? ICONO_DE_IMAGEN_DECORATIVA : ICONO_DE_BLOQUE[tipo];
 }
 
@@ -162,6 +164,77 @@ const ESQUEMA: Record<TipoInsertable, ReactNode> = {
       <rect className={L} x="33" y="27" width="16" height="5" rx="2" />
     </>
   ),
+  [IMAGEN_Y_TEXTO]: (
+    <>
+      <rect className="rec-bib-img" x="5" y="10" width="24" height="18" rx="2" />
+      <path className="rec-bib-montana" d="M7 26 L14 19 L19 23 L27 26 Z" />
+      <rect className={L} x="33" y="11" width="24" height="4" rx="2" />
+      <rect className={S} x="33" y="19" width="24" height="3" rx="1.5" />
+      <rect className={S} x="33" y="25" width="18" height="3" rx="1.5" />
+    </>
+  ),
+  steps: (
+    <>
+      <rect className={L} x="6" y="8" width="26" height="4" rx="2" />
+      {[6, 26, 46].map((x) => (
+        <g key={x}>
+          <circle className={A} cx={x + 4} cy="21" r="4" />
+          <rect className={L} x={x} y="28" width="13" height="3" rx="1.5" />
+          <rect className={S} x={x} y="33" width="11" height="2.5" rx="1.25" />
+        </g>
+      ))}
+    </>
+  ),
+  deadline: (
+    <>
+      <rect className={A} x="3" y="6" width="58" height="32" rx="3" />
+      <rect className="rec-bib-claro" x="22" y="11" width="20" height="2.5" rx="1.25" />
+      <rect className="rec-bib-claro" x="12" y="17" width="40" height="6" rx="2" />
+      <rect className="rec-bib-claro" x="24" y="28" width="16" height="5" rx="2.5" />
+    </>
+  ),
+  benefits: (
+    <>
+      <rect className={L} x="16" y="7" width="32" height="4" rx="2" />
+      {[6, 26, 46].map((x) => (
+        <g key={x}>
+          <rect className={S} x={x} y="15" width="12" height="10" rx="3" />
+          <rect className={L} x={x} y="29" width="12" height="3" rx="1.5" />
+          <rect className={S} x={x + 1} y="34" width="10" height="2.5" rx="1.25" />
+        </g>
+      ))}
+    </>
+  ),
+  quote: (
+    <>
+      <circle className="rec-bib-img" cx="13" cy="20" r="8" />
+      <rect className={A} x="27" y="9" width="6" height="5" rx="1" />
+      <rect className={L} x="27" y="17" width="30" height="3.5" rx="1.75" />
+      <rect className={L} x="27" y="23" width="24" height="3.5" rx="1.75" />
+      <rect className={S} x="27" y="31" width="14" height="3" rx="1.5" />
+    </>
+  ),
+  faq: (
+    <>
+      <rect className={L} x="6" y="7" width="30" height="4" rx="2" />
+      {[15, 27].map((y) => (
+        <g key={y}>
+          <rect className={S} x="6" y={y - 2} width="52" height="0.8" />
+          <rect className={L} x="6" y={y} width="34" height="3" rx="1.5" />
+          <rect className={S} x="6" y={y + 5} width="46" height="2.5" rx="1.25" />
+        </g>
+      ))}
+    </>
+  ),
+  contact: (
+    <>
+      <rect className={S} x="3" y="6" width="58" height="32" rx="3" />
+      <circle className={A} cx="16" cy="22" r="8" />
+      <rect className={L} x="29" y="14" width="22" height="4" rx="2" />
+      <rect className={S} x="29" y="21" width="18" height="3" rx="1.5" />
+      <rect className={A} x="29" y="27" width="24" height="3" rx="1.5" />
+    </>
+  ),
   [IMAGEN_DECORATIVA]: (
     <>
       <rect className="rec-bib-img" x="4" y="9" width="56" height="26" rx="2" />
@@ -188,6 +261,13 @@ export const CUANDO_USARLO: Record<TipoInsertable, string> = {
   icon_text: "Para un dato clave: fecha, lugar o premio.",
   two_images: "Para dos fotos o logos, uno junto al otro.",
   feature: "Para lo que tiene que verse primero: el sorteo, el incentivo, el anuncio.",
+  [IMAGEN_Y_TEXTO]: "Para dar contexto: el campus, el aula, quién hace el estudio.",
+  steps: "Para explicar cómo se responde, en tres pasos o menos a lo ancho.",
+  deadline: "Para que nadie pase por alto el día en que cierra la encuesta.",
+  benefits: "Para decir por qué vale la pena responder: confidencial, corto, útil.",
+  quote: "Para que hable alguien del estudio: una autoridad, una docente.",
+  faq: "Para las dudas de siempre, antes de que escriban al equipo.",
+  contact: "Para decir a quién escribir: nombre, cargo, correo y horario.",
   [IMAGEN_DECORATIVA]: "Para un adorno: no necesita descripción.",
 };
 
@@ -211,6 +291,13 @@ export const DESCRIPCION_CORTA: Record<TipoInsertable, string> = {
   icon_text: CUANDO_USARLO.icon_text,
   two_images: CUANDO_USARLO.two_images,
   feature: "Foto, título y botón: el sorteo o el anuncio.",
+  [IMAGEN_Y_TEXTO]: "Una foto a un lado y su texto: el contexto.",
+  steps: "Cómo responder, en pasos numerados.",
+  deadline: "El día en que cierra, grande y con su botón.",
+  benefits: "Por qué responder, con un ícono cada razón.",
+  quote: "La voz de alguien, con su nombre y su cargo.",
+  faq: "Las dudas de siempre, con su respuesta.",
+  contact: "A quién escribir si hay dudas.",
   [IMAGEN_DECORATIVA]: CUANDO_USARLO[IMAGEN_DECORATIVA],
 };
 

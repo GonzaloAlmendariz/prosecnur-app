@@ -44,6 +44,10 @@
 // navegador. Lo que llega vive en memoria mientras la vista existe.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
+import { MAIL_SECTION_TYPES, normalizeMailSection, type MailSectionBlock } from "./materialMailSecciones";
+
+// El resto del catálogo de secciones (L6) vive en su módulo; se lee desde aquí como el resto del contrato.
+export * from "./materialMailSecciones";
 
 /**
  * Esquema que escribe este cliente. El backend lee v1 y la sube a v2 sin
@@ -71,6 +75,8 @@ export const MAIL_BLOCK_TYPES = [
   "two_images",
   // Secciones (GOAL editor profesional, collection_mail_destacado.R).
   "feature",
+  // Resto del catálogo (L6, collection_mail_secciones.R; materialMailSecciones.ts).
+  ...MAIL_SECTION_TYPES,
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
@@ -262,7 +268,8 @@ export type MailKnownBlock =
   | (MailOrnamentBlock & MailBoxed)
   | (MailIconTextBlock & MailBoxed)
   | (MailTwoImagesBlock & MailBoxed)
-  | (MailFeatureBlock & MailBoxed);
+  | (MailFeatureBlock & MailBoxed)
+  | (MailSectionBlock & MailBoxed);
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -934,6 +941,8 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         left: str(value.left), right: str(value.right),
         alt_left: str(value.alt_left), alt_right: str(value.alt_right),
       };
+    case "steps": case "deadline": case "benefits": case "quote": case "faq": case "contact":
+      return normalizeMailSection(value, block_id, type, { str, optStr, icon: (v) => oneOf(v, MAIL_ICONS), crop: normalizeMailCrop });
     case "feature": {
       const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
       const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});

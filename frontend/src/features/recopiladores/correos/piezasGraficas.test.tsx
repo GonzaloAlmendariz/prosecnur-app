@@ -82,7 +82,8 @@ describe("biblioteca › piezas gráficas", () => {
       expect(tarjeta).not.toContain("<img");
     }
     // 15 de siempre + la sección «Destacado» (GOAL editor profesional, L5).
-    expect(html.match(/data-tipo=/g)).toHaveLength(16);
+    // + el resto del catálogo (L6): seis secciones e «Imagen + texto».
+    expect(html.match(/data-tipo=/g)).toHaveLength(23);
   });
 
   it("lo que trae un arrastre se valida contra lo insertable", () => {

@@ -161,9 +161,9 @@ describe("sección Destacado en el editor (L5)", () => {
     const t = plantilla([{ block_id: "d", type: "feature", title: "Sorteo" }]);
     const out = conArchivoDeImagen(t, "d", "Audífonos Sorteo.JPG");
     expect(out?.template.blocks[0]).toMatchObject({ image_ref: expect.stringMatching(/^audifonos-sorteo/) });
-    const { ImagenDelDestacado } = await import("./ImagenDelDestacado");
+    const { FotoDeLaSeccion } = await import("./FotoDeLaSeccion");
     const html = renderToStaticMarkup(
-      <ImagenDelDestacado block={{ block_id: "d", type: "feature", title: "Sorteo", image_ref: "premio" }} vista={null}
+      <FotoDeLaSeccion block={{ block_id: "d", type: "feature", title: "Sorteo", image_ref: "premio" }} vista={null}
         problemas={[]} ocupado={false} onEditarBloque={noop} onSubir={noop} />,
     );
     expect(html).toContain("Falta describirla");

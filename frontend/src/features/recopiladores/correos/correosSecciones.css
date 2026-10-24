@@ -1,0 +1,75 @@
+/* Entradas de Pasos, Beneficios y Preguntas en el inspector (EntradasDeSeccion, L6). Sólo tokens. */
+
+.rec-sec-entradas {
+  display: grid;
+  gap: 10px;
+}
+
+.rec-sec-entrada {
+  align-items: stretch;
+}
+
+.rec-sec-entrada-cabeza {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.rec-sec-entrada-acciones {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rec-sec-boton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.rec-sec-boton:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-sec-boton:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.rec-sec-boton:focus-visible,
+.rec-sec-icono:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+.rec-sec-icono {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.rec-sec-icono-accion {
+  color: var(--pulso-text-soft);
+  margin-left: auto;
+}
+
+.rec-sec-agregar {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}

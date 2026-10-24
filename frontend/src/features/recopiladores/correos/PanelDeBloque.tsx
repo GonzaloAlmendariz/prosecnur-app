@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, tieneEntradas, tieneFoto, type TipoConEntradas, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow } from "../../xlsformEditor/kit";
@@ -10,7 +10,8 @@ import { ColorDePieza } from "./ColorDePieza";
 import { EstiloDelBloque, SelectorDeVista, type VistaDelBloque } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
-import { ImagenDelDestacado } from "./ImagenDelDestacado";
+import { EntradasDeSeccion } from "./EntradasDeSeccion";
+import { FotoDeLaSeccion } from "./FotoDeLaSeccion";
 import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
@@ -287,8 +288,9 @@ export function PanelDeBloque({
   const props = propsDeTexto(block.type);
   const sueltos = propios.filter((p) => !esProblemaDelTrato(p)).filter((p) => {
     const prop = propDelProblema(p.path);
-    // La descripción de la foto del Destacado la muestra su propio panel.
-    if (block.type === "feature" && prop === "alt") return false;
+    // La descripción de la foto de una sección la muestra su propio panel; las entradas, el suyo.
+    if (tieneFoto(block) && prop === "alt") return false;
+    if (tieneEntradas(block.type) && p.path.includes(".entries")) return false;
     return !prop || !(props as readonly string[]).includes(prop);
   });
   const editar = (update: (b: MailBlock) => MailBlock, grupo?: string) => onEditarBloque(block.block_id, update, grupo);
@@ -345,8 +347,17 @@ export function PanelDeBloque({
           onSubir={(lado, file) => onSubirImagen?.(block.block_id, file, lado)}
         />
       ) : null}
-      {block.type === "feature" ? (
-        <ImagenDelDestacado
+      {tieneEntradas(block.type) ? (
+        <EntradasDeSeccion
+          block={block as MailBlock & { type: TipoConEntradas }}
+          opciones={rotulosDeCampos(template)}
+          problemas={propios}
+          onEditarBloque={editar}
+          onIrAPersonas={onIrAPersonas}
+        />
+      ) : null}
+      {tieneFoto(block) ? (
+        <FotoDeLaSeccion
           block={block}
           vista={vistaDeImagen}
           problemas={propios}

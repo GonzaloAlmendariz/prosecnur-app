@@ -190,6 +190,7 @@ export { default as MapPinned } from "lucide-react/dist/esm/icons/map-pinned.mjs
 export { default as Maximize2 } from "lucide-react/dist/esm/icons/maximize-2.mjs";
 export { default as Merge } from "lucide-react/dist/esm/icons/merge.mjs";
 export { default as MessageCircle } from "lucide-react/dist/esm/icons/message-circle.mjs";
+export { default as MessageCircleQuestion } from "lucide-react/dist/esm/icons/message-circle-question-mark.mjs";
 export { default as MessageSquare } from "lucide-react/dist/esm/icons/message-square.mjs";
 export { default as Mic } from "lucide-react/dist/esm/icons/mic.mjs";
 export { default as Minimize2 } from "lucide-react/dist/esm/icons/minimize-2.mjs";
@@ -221,6 +222,7 @@ export { default as PlugZap } from "lucide-react/dist/esm/icons/plug-zap.mjs";
 export { default as Plus } from "lucide-react/dist/esm/icons/plus.mjs";
 export { default as Power } from "lucide-react/dist/esm/icons/power.mjs";
 export { default as QrCode } from "lucide-react/dist/esm/icons/qr-code.mjs";
+export { default as Quote } from "lucide-react/dist/esm/icons/quote.mjs";
 export { default as Radar } from "lucide-react/dist/esm/icons/radar.mjs";
 export { default as Redo2 } from "lucide-react/dist/esm/icons/redo-2.mjs";
 export { default as RefreshCcw } from "lucide-react/dist/esm/icons/refresh-ccw.mjs";
