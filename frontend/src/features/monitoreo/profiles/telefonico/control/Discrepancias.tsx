@@ -16,6 +16,7 @@ import {
   type CasoDeDiscrepancia,
   type EstadoDeDecision,
 } from "./discrepanciasModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 import "./discrepancias.css";
 
@@ -73,6 +74,7 @@ export function Discrepancias({
   const visibles = responsable === TODOS ? grupos.flatMap((grupo) => grupo.casos) : grupos.find((grupo) => grupo.responsable === responsable)?.casos ?? [];
   const elegido = vigentes.find((caso) => caso.codigo === foco) ?? visibles[0] ?? null;
   const gruposParaAvisar = responsable === TODOS ? grupos : grupos.filter((grupo) => grupo.responsable === responsable);
+  const hayRotulo = useHayRotulo();
 
   const copiar = async () => {
     try {
@@ -85,7 +87,8 @@ export function Discrepancias({
 
   if (!vigentes.length) {
     return (
-      <section className="mon-ctl-panel mon-dsc-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel mon-dsc-vacio mon-tel-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
+        {hayRotulo ? <header className="mon-ctl-panel-cabecera"><RotuloDePestana /></header> : null}
         <EstadoVacio
           tamano="normal"
           icono={<GitCompareArrows size={22} />}
@@ -100,6 +103,8 @@ export function Discrepancias({
     <div className="mon-dsc" data-qa-geometry-group="telefonico-control-discrepancias" data-qa-geometry-contract="intrinsic">
       <div className="mon-dsc-izquierda">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Cómo no coinciden">
+          {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+          {hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
           <span className="mon-ctl-antetitulo">Cómo no coinciden</span>
           <dl className="mon-dsc-cifras">
             <div><dt>Kobo efectiva, la hoja no dice «Efectivo»</dt><dd className="is-num">{n(resumen.koboSinHoja)}</dd></div>

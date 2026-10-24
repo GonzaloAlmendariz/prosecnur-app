@@ -158,10 +158,13 @@
   color: var(--pulso-warn-fg);
 }
 
-/* Qué pasa, proGres y la decisión van en una línea: si no entran, la tabla
- * desplaza en horizontal dentro de su marco; no se parten ni se cortan. */
+/* Qué pasa va en una línea mientras quepa; con nombres largos en Responsable y
+ * Enumerador (PDM: «JORGE DEL SOLAR») la Decisión quedaba fuera del marco a
+ * 1440, así que puede partirse en dos líneas con un ancho mínimo que evita la
+ * columna de cuatro renglones de antes. La decisión nunca se parte. */
 .mon-dsc-una-linea {
-  white-space: nowrap;
+  min-width: 170px;
+  white-space: normal;
 }
 
 .mon-dsc-decision {
@@ -313,8 +316,23 @@
 }
 
 @media (max-width: 1180px) {
+  /* Crece con su contenido y desplaza el contenedor (ver Supervisión). */
   .mon-dsc {
+    flex: none;
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+    min-height: auto;
+  }
+
+  /* Apiladas, las listas y la tabla tienen su alto propio y desplazan dentro. */
+  .mon-dsc-avisar,
+  .mon-dsc-centro {
+    flex: none;
+  }
+
+  .mon-dsc-responsables,
+  .mon-dsc-marco {
+    flex: none;
+    max-height: 360px;
   }
 }

@@ -18,8 +18,11 @@ export function AcreditacionPhoneSourceSlotCard({
   rowFallback = 0,
   onSelect,
   onCambiar,
+  encabezado,
 }: {
   slot: AcreditacionPhoneSourceSlot;
+  /** Lo que encabeza la tarjeta cuando es la primera de la pestaña (su rótulo, §2a-bis). */
+  encabezado?: ReactNode;
   icon: ReactNode;
   syncFallback?: string;
   rowFallback?: number;
@@ -56,6 +59,7 @@ export function AcreditacionPhoneSourceSlotCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
     >
+      {encabezado ? <header className="mon-tel-rotulo-de-tarjeta">{encabezado}</header> : null}
       <div className="mon-phone-source-slot-main">
         <span className="mon-phone-source-slot-icon">{icon}</span>
         <div>

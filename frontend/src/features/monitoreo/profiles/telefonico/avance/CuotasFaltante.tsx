@@ -4,6 +4,7 @@ import { pctConEspacio } from "../../../core/formatoComun";
 import { FaltanteDiario } from "./FaltanteDiario";
 import type { CadenaDeLaCifra, CuotasFaltante as Modelo, FilaDeCuota, PuntoAcumulado } from "./cuotasFaltanteModel";
 import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./cuotasFaltante.css";
 
 const ESTADO: Record<FilaDeCuota["estado"], string> = {
@@ -128,10 +129,11 @@ function detalleDelReparto(fila: FilaDeCuota) {
  */
 export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: CadenaDeLaCifra }) {
   const { total, filas, segmento } = modelo;
+  const hayRotulo = useHayRotulo();
   if (!filas.length) {
     return (
       <section className="mon-cuotas-vacio" aria-label="Cuotas">
-        <span className="mon-cuotas-antetitulo">Avance por cuota</span>
+        {hayRotulo ? <RotuloDePestana /> : <span className="mon-cuotas-antetitulo">Avance por cuota</span>}
         <strong>Sin cuotas declaradas</strong>
         <p>Declara la variable de cuota y sus metas en Modelo, Cuotas y calendario.</p>
       </section>
@@ -152,6 +154,13 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
       style={{ "--mon-cuotas-filas": filas.length } as CSSProperties}
     >
       <section className="mon-cuotas-tabla-panel" aria-label={`Cuánto falta por ${segmentoMinuscula}`}>
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+        {hayRotulo ? (
+          <header className="mon-cuotas-tabla-cabecera">
+            <RotuloDePestana />
+            <b>Cuánto falta por {segmentoMinuscula}</b>
+          </header>
+        ) : null}
         <div role="table" aria-label={`Cuotas por ${segmentoMinuscula}`} className="mon-cuotas-tabla">
           <div role="row" className="mon-cuotas-fila is-cabecera">
             <span role="columnheader">{segmento}</span>

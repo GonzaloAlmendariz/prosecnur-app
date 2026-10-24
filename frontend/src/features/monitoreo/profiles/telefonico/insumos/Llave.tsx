@@ -18,6 +18,7 @@ import { CodigoDeLaPersona } from "./CodigoDeLaPersona";
 import { fuentesDeRespuestas } from "./codigoDePersonaModel";
 import { EquivalenciasDeNombres } from "./EquivalenciasDeNombres";
 import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
@@ -60,8 +61,8 @@ export function LlaveYFiltros({
   onStateChange?: (state: MonitoreoState) => void;
   /** El editor del filtro de efectiva que ya existe. */
   filtro: ReactNode;
-  /** La tarjeta de la encuesta, con «Cambiar conexión». */
-  tarjetaKobo: ReactNode;
+  /** La tarjeta de la encuesta, con «Cambiar conexión»; como función recibe lo que la encabeza. */
+  tarjetaKobo: ReactNode | ((encabezado: ReactNode) => ReactNode);
   onIrA: (seccion: string, pestana: string) => void;
 }) {
   const llave = llaveDeclarada(state);
@@ -75,6 +76,10 @@ export function LlaveYFiltros({
   // Sin nada por revisar, la columna lateral sería una tarjeta estirada con una
   // línea: la vista se recompone en una columna y la encuesta va arriba.
   const conRevision = porRevisar.length > 0;
+  // §2a-bis: el rótulo de la pestaña encabeza la primera tarjeta, que es la de
+  // la encuesta cuando no hay nada por revisar y la de la llave cuando sí.
+  const hayRotulo = useHayRotulo();
+  const kobo = (encabezado: ReactNode) => (typeof tarjetaKobo === "function" ? tarjetaKobo(encabezado) : tarjetaKobo);
   // La pregunta con el código de la persona, una por fuente de respuestas.
   const codigos = fuentesDeRespuestas(state?.sources).map((fuente) => (
     <CodigoDeLaPersona key={fuente.id} fuente={fuente} state={state} cruce={cruce} onStateChange={onStateChange} />
@@ -83,9 +88,10 @@ export function LlaveYFiltros({
   return (
     <div className={`mon-insumos mon-llave${conRevision ? "" : " is-sin-revision"}`} data-qa-geometry-group="telefonico-insumos-llave" data-qa-geometry-contract="intrinsic">
       <div className="mon-insumos-columna">
-        {conRevision ? null : <div className="mon-llave-kobo">{tarjetaKobo}</div>}
+        {conRevision ? null : <div className="mon-llave-kobo">{kobo(hayRotulo ? <RotuloDePestana /> : null)}</div>}
         {conRevision ? null : codigos}
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Llave de cruce">
+          {conRevision && hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
           <div className="mon-insumos-fila">
             <strong>Llave de cruce</strong>
             <span className="mon-insumos-estado">{llave.automatica ? "Detección automática" : "Declarada en el proyecto"}</span>
@@ -188,7 +194,7 @@ export function LlaveYFiltros({
 
       {conRevision ? (
         <div className="mon-insumos-lateral">
-          <div className="mon-llave-kobo">{tarjetaKobo}</div>
+          <div className="mon-llave-kobo">{kobo(null)}</div>
           {codigos}
           <section className="mon-ctl-panel mon-llave-revisar" aria-label="Por revisar en la llave" data-qa-geometry-capacity="owned">
             <header className="mon-insumos-cabecera">
