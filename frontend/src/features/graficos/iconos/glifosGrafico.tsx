@@ -5,6 +5,8 @@
 // «31%» sin espacio y en negrita. Los colores no viven aquí: cada pieza lleva una clase de tono que glifoGrafico.css
 // resuelve con tokens `--pulso-*`.
 
+import { BarrasComparativas, PuntosComparativos } from "./glifoRadarPocos";
+
 type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v" | "r";
 /**
  * Lo que el dibujo puede reflejar del gráfico real (la maqueta de la lámina, ítem 9); sin opciones, el dibujo del catálogo.
@@ -36,6 +38,8 @@ export type OpcionesGlifo = {
   cifras?: boolean;
   /** Radar entre públicos: la tabla al costado (por defecto sí). */
   tabla?: boolean;
+  /** Radar entre públicos: lo que el motor dibuja de verdad (formaEfectivaRadar); sin valor, el radar. */
+  formaRadar?: "radar" | "puntos" | "barras";
   /** Nube: el ranking de las palabras al costado (por defecto sí). */
   ranking?: boolean;
   /** Matriz de cuadrantes: cuál lleva fondo. */
@@ -556,6 +560,19 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
   // Sin la tabla al costado (maqueta), el radar se centra y crece.
   p_radar: (o) => {
     const tabla = o?.tabla ?? true;
+    const forma = o?.formaRadar ?? "radar";
+    const tablaAlLado = tabla && forma !== "radar";
+    if (forma !== "radar") {
+      // Con la tabla pedida en otra forma, el dibujo cede el costado derecho: una columna de filas con cifras.
+      return (
+        <>
+          <g transform={tablaAlLado ? "translate(2 20) scale(0.62)" : undefined}>{forma === "puntos" ? <PuntosComparativos /> : <BarrasComparativas />}</g>
+          {tablaAlLado && [22, 40, 58, 76].map((y) => (
+            <g key={y}><Rotulo x={104} y={y} w={22} /><Valor x={132} y={y - 0.25} w={12} /></g>
+          ))}
+        </>
+      );
+    }
     return (
       <>
         <Radar cx={tabla ? 50 : 80} cy={tabla ? 52 : 50} r={tabla ? 34 : 40} lados={5} series={[{ k: [0.9, 0.62, 0.78, 0.5, 0.7], t: "p" }]} />
@@ -645,7 +662,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
   // Con el ranking (maqueta, por defecto), la nube a la izquierda y las diez más dichas a la derecha.
   p_nube_palabras: (o) => o?.ranking ? (
     <>
-      <g transform="translate(6 0) scale(0.62 1)">
+      <g transform="translate(6 0) translate(2 20) scale(0.62)">
         <Barra x={44} y={42} w={72} h={14} t="p" rx={3} />
         <Barra x={22} y={22} w={44} h={10} t="a" rx={3} />
         <Barra x={76} y={20} w={52} h={9} t="e2" rx={3} />

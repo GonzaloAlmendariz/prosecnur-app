@@ -35,6 +35,7 @@ import { CasosGrafico } from "./CasosGrafico";
 import { ListaPreguntas } from "./ListaPreguntas";
 import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
+import { NotaFormaRadar } from "./NotaFormaRadar";
 import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
@@ -158,6 +159,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     <Fragment key={c.arg.name}>
       <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+      {radarPublicos && c.arg.name === "forma" && <NotaFormaRadar args={args} />}
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
   );

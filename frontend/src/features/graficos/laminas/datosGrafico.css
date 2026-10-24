@@ -283,3 +283,6 @@
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
 .pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
 .pulso-f6-cortes .pulso-f6-cortes-campo { flex: 0 0 76px; width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Aviso de criterios del radar (NotaFormaRadar.tsx): se lee como advertencia, sin caja. */
+.pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }
