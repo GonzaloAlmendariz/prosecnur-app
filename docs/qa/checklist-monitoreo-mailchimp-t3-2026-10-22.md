@@ -1,5 +1,10 @@
 # Checklist · T3: reportes de Mailchimp en Monitoreo (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-10-22
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «Dale con T3», sobre el diseño de
 `docs/qa/diagnostico-monitoreo-acred-institucional-2026-10-22.md` §3 y §4.
 

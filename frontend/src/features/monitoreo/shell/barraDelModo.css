@@ -56,7 +56,8 @@
 }
 
 /* Insignias de las píldoras de sección: cifra en cápsula gris; sobre la
- * píldora activa, cápsula translúcida. */
+ * píldora activa, el contraste se invierte (cápsula de superficie y cifra en el
+ * tono del módulo): la cápsula translúcida sobre el granate medía 3.3:1. */
 .mon-commandbar.is-barra-comun .pulso-phase-pill-metric {
   margin-left: 6px;
   padding: 1px 7px;
@@ -70,8 +71,8 @@
 }
 
 .mon-commandbar.is-barra-comun .mon-section-pill.is-active .pulso-phase-pill-metric {
-  background: color-mix(in srgb, var(--pulso-surface) 25%, transparent);
-  color: var(--pulso-surface);
+  background: var(--pulso-surface);
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 80%, var(--pulso-text));
 }
 
 .mon-modo-herramientas {
@@ -135,7 +136,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 34px;
+  /* Alto del control de la banda (contrato de ModuleChrome): no un literal. */
+  height: var(--pulso-chrome-control-h);
   border: 0;
   background: var(--pulso-module-monitoring);
   color: var(--pulso-surface);
@@ -193,7 +195,7 @@
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button {
   justify-content: flex-start;
-  height: 32px;
+  height: var(--pulso-chrome-control-h);
   padding: 0 var(--pulso-space-3);
   border-radius: 8px;
   background: transparent;

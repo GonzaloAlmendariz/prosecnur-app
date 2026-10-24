@@ -31,7 +31,7 @@ test_that("una pregunta Sí/No en barra estándar: barra no más ancha que la de
                                publico = "279 estudiantes", base = "Base: 279 estudiantes", folio = 1)
   seg1 <- .dc_formas(o1$doc, "barra:segmento")
   ancho1 <- max(seg1$x + seg1$w) - min(seg1$x)
-  expect_lte(ancho1, ancho4 + 0.02)
+  expect_gt(ancho1, ancho4)   # el usuario (v6): la barra única aprovecha el ancho (test-lamina-dicotomia-unica-ancho.R)
   # centrada a la lámina
   expect_lt(abs((min(seg1$x) + max(seg1$x + seg1$w)) / 2 - .std_geom("ancho") / 2), 0.03)
   # centro vertical del bloque dentro del área de datos ±0,3 in

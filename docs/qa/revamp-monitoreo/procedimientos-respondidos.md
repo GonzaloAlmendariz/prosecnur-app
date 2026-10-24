@@ -1,7 +1,8 @@
 # Procedimientos de campo respondidos por Gonzalo
 
 Tipo: Registro de decisiones de dominio
-Estado: Vivo
+Estado: Vigente
+Situación: Vivo
 Fecha: 2026-10-22
 Autoridad: respuestas textuales de Gonzalo en la sesión del revamp de Monitoreo. Manda sobre cualquier supuesto del
 código, de un solo proyecto o de las maquetas. Regla: «si hay alguna duda sobre consentimiento o procedimiento,
@@ -72,3 +73,29 @@ Ejemplos: HSVG 2026 y CCSS Perfil 2026, uno principal y el otro para contrastar.
   Telefono de la encuesta, Intentos, Fecha, Observación de rebarrido, Observación.
 - Medios de Vida 2026: CodPulso, Actor, Sexo, Edad, País, Estatus, Departamento, Telefono1 a 4, NumTelefonos,
   EstadoFinal, Origen, Telefono, OrdenTelefono, TelefonosIntentados, Responsable, Status, Intentos, Fecha, Observacion.
+
+## Telefónico: discrepancias y supervisión (respuestas del 2026-10-23)
+
+| Pregunta | Respuesta | Consecuencia para el diseño |
+|---|---|---|
+| P1. ¿Cuenta en el avance una efectiva cuya discrepancia sigue pendiente? | Sí, manda Kobo. | El avance no cambia; la discrepancia sólo puede sacar una efectiva cuando el supervisor decide que no cuenta. Discrepancias la marca «cuenta mientras tanto». |
+| P2. ¿Qué decide el supervisor? | «Cuenta y no cuenta está bien, pero lo principal aquí es poder lanzar la alerta de qué casos no coinciden, ya sea por efectivos en Kobo que no están en la base de barrido o viceversa, poder saber el responsable y los códigos para identificar, ya sea el proGres o el Pulso, y poder avisarle al equipo la discrepancia rápidamente antes de decidir si cuenta o no.» | Lo primero de Discrepancias es la alerta en los dos sentidos (Kobo efectiva sin «Efectivo» en la hoja, y hoja «Efectivo» sin Kobo), con responsable, CodPulso y código proGres, y una salida rápida para avisar al equipo (lista copiable o exportable por responsable). La decisión Cuenta / No cuenta viene después. |
+| P3. Hoja «Efectivo» sin envío de Kobo | Van a Avisos. | Salen de la cola de decisión; quedan como aviso con responsable y códigos (encaja con la alerta de P2). |
+| P4. ¿Enumerador de Kobo y responsable de la hoja son la misma persona? | Sí, misma persona. | Hace falta una tabla de equivalencias de nombres en Insumos › Llave y filtros (sugerencia automática + confirmación). |
+| P5. ¿Un enumerador con pocas efectivas puede quedar sin rellamada? | No: al menos 1 por persona. | Muestra proporcional con mínimo de un caso por enumerador con efectivas (PDM pasa de 20 a 26). |
+| P6. ¿Se declara porcentaje o cantidad? | Cantidad. | Se mantiene `supervision_n`; la app muestra el porcentaje equivalente. |
+| P7. Hoja de resultados de supervisión | Ejemplo: Sheets «Supervisión_Ronda3» (`12kfHvOnLGB4fE3ORxjHOQJhNutPw_QQSg8iKHpak24Q`, pestaña «supervision»). «Jala mucha información por un lado de la base de barrido y por otro de algunas preguntas y sus respuestas, porque va a ser la pregunta que el supervisor use para ver si las respuestas coinciden, pero además tiene sus propios campos como observaciones propias del supervisor y el resultado del status de su evaluación.» | Columnas: preguntas de control de Kobo con su respuesta (p. ej. «¿Acepta continuar con la encuesta?», «¿Es usted la persona que ha recibido la tarjeta prepago…?», «¿Recibió el efectivo el día que lo esperaba?», «¿Cuántas personas viven…?»), N, Fecha, COD.proGres, Código PULSO, Nombre del encuestador/a, nombre y teléfonos (Telefono_final, Tef1–Tef3), Observaciones, y los campos propios del supervisor: Responsable de la supervisión, Status (el del barrido), Status supervisión, Intentos supervisión, Observaciones re barrido, Status final. Supervisión lee esa hoja, cruza por Código PULSO o proGres, y muestra por caso el resultado de la rellamada y si las respuestas de control coinciden con Kobo. Solo lectura. |
+
+## Control de tiempo (todas las modalidades, 2026-10-23)
+
+| Pregunta | Respuesta | Consecuencia para el diseño |
+|---|---|---|
+| ¿Qué controla el control de duración? | «El control de tiempo no debe controlar tanto las encuestas largas, sino controlar las cortas.» | Solo las encuestas bajo el mínimo declarado son alerta y cuentan como casos a revisar. Las largas no son problema: a lo sumo un dato informativo neutro, sin color de alerta ni conteo en «a revisar». Aplica a Telefónico, Acreditación y Territorial. |
+
+## Telefónico: rondas de supervisión (respuestas del 2026-10-24)
+
+| Pregunta | Respuesta | Consecuencia para el diseño |
+|---|---|---|
+| ¿De dónde sale cada ronda? | Solo de las efectivas nuevas, las llegadas desde la ronda anterior. | El universo de la ronda N son las efectivas posteriores al corte de la ronda N−1; nunca se repite un caso. |
+| ¿Cuántos casos trae? | «Un % de las efectivas por ronda + alguna en particular que el analista quiera». | Porcentaje declarado sobre el universo de la ronda, repartido por enumerador con mínimo 1 (P5), más casos agregados a mano por el analista, marcados como «elegidos por el analista». |
+| ¿Qué pasa con la ronda generada? | Queda guardada y numerada, y se publica al Sheets. | Ronda 1, 2, 3… con fecha, semilla, universo y casos, guardada en el `.pulso` e inmutable. Se publica a la hoja de supervisión, en su propia pestaña, sin tocar las demás. |

@@ -1,20 +1,19 @@
-// Top Two Box y Bottom Two Box en la tarjeta de un gráfico de escala (F6.2, F-d; dirección F6 §7 A6/A14). Dos chips
-// por caja sobre las categorías de la escala (`Top2BoxSelector`), sin args de estilo; la Bottom Two Box va al lado del
-// Top Two Box (en multilista y en láminas de varios gráficos, sólo para quitarla: aún no sale en la lámina nativa).
-// Lo que se guarda y por qué: `twoBox.ts`. Superficie intrínseca: crece con sus chips, el scroll es del
-// cuerpo del inspector (C4); el vacío (sin pregunta, sin escala, error) vive dentro de la sección (C3/C5).
+// Barra extra en la tarjeta de un gráfico de escala (F6.2, F-d; dirección F6 §7 A6/A14): UN control (`BarraExtraControl`)
+// con el interruptor y los chips Top Two Box / Bottom Two Box / Conteos, sin args de estilo. Lo que se guarda y por qué:
+// `twoBox.ts`. En multilista la decisión es de cada bloque: aquí se fija la de la lámina y se resume lo que cada bloque
+// hace. Superficie intrínseca: crece con sus chips, el scroll es del cuerpo del inspector (C4); el vacío (sin pregunta,
+// sin escala, error) vive dentro del control (C3/C5).
 
-import { useId } from "react";
 import { useLocation } from "react-router-dom";
-import { Loader2, RefreshCw, Rows3 } from "../../../../vendor/lucide-react";
+import { Rows3 } from "../../../../vendor/lucide-react";
 import type { GraficadorRef } from "../../../../api/graficos";
-import { Switch } from "../../../../components/Switch";
 import { useSession } from "../../../../lib/SessionContext";
+import { resumenDeBloques, type BarraExtra } from "../../barraExtra";
+import { BarraExtraControl, type EscalaBarraExtra } from "../../BarraExtraControl";
 import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
 import { varCalificada } from "../ordenCategorias";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
-import { ChipsTwoBox } from "./ChipsTwoBox";
 import {
   bottomDisponible,
   categoriasElegibles,
@@ -23,78 +22,64 @@ import {
   leerTwoBox,
   patchTwoBox,
   preguntaDeEscala,
-  type BottomDisponible,
-  type Caja,
+  valorHeredado,
   type CambioTwoBox,
   type Composicion,
 } from "./twoBox";
-import { NOTA_TOP_EN_WORD, leerTopEnWord, patchTopEnWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; onAbrirBloques: () => void };
 
+const NOTA_HEREDADA = "Viene del estilo del informe; cambiarla aquí solo afecta a este gráfico.";
+
 export function TwoBoxGrafico({ slideId, slot, valor, onAbrirBloques }: Props) {
   const tipoLamina = usePlanStore((s) => s.plan.slides.find((x) => x.id === slideId)?.tipo);
-  const presets = usePlanStore((s) => s.presets);
-  const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
   const composicion = composicionDeLamina(tipoLamina);
   const args = (valor.args ?? {}) as Record<string, unknown>;
   const forma = formaTwoBox(valor.graficador, args);
   if (!forma) return null;
-  if (forma === "por_bloque") {
-    const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
-    const topEnBloques = topDeBloques(args.bloques);
-    return (
-      <div className="pulso-f6-twobox" data-qa-geometry-group="graficos/f6-twobox" data-qa-geometry-contract="intrinsic" data-qa="twobox-por-bloque">
-        <div className="pulso-f6-dato">
-          <span className="pulso-f6-dato-rotulo">Top Two Box</span>
-          {/* Encender o apagar aquí vale para todos los bloques; con bloques distintos, el detalle va en «Por bloque». */}
-          <Switch
-            checked={topEnBloques === "todos"}
-            ariaLabel="Columna Top Two Box en todos los bloques"
-            onToggle={() => updateSlotArgs(slideId, slot, { bloques: conTopEnBloques(args.bloques, topEnBloques !== "todos") })}
-          />
-          <span className="pulso-f6-dato-ayuda">
-            {topEnBloques === "algunos" ? "Encendida sólo en algunos bloques. " : ""}
-            {bloquesSinCategorias(args.bloques) > 0 ? `Falta elegir sus categorías en ${bloquesSinCategorias(args.bloques)} ${bloquesSinCategorias(args.bloques) === 1 ? "bloque" : "bloques"}. ` : ""}
-            <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirBloques}>
-              <Rows3 size={13} aria-hidden="true" /> Ajustar por bloque…
-            </button>
-          </span>
-        </div>
-        {/* Donde la lámina no puede dibujarla, no se ofrece un interruptor muerto; si ya venía encendida, sí, para quitarla. */}
-        {(bottom.editable || bottom.activa) && (
-          <FilaBottom
-            bottom={bottom}
-            onToggle={() => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, { caja: "bottom", activa: !bottom.activa }, composicion))}
-          />
-        )}
-      </div>
-    );
-  }
-  return <CajasDeEscala slideId={slideId} slot={slot} valor={valor} composicion={composicion} />;
+  if (forma === "por_bloque") return <BarraExtraPorBloque slideId={slideId} slot={slot} valor={valor} composicion={composicion} onAbrirBloques={onAbrirBloques} />;
+  return <BarraExtraDeEscala slideId={slideId} slot={slot} valor={valor} composicion={composicion} />;
 }
 
-/** «Bottom Two Box al lado»: el interruptor y, donde la lámina nativa aún no la dibuja, por qué no se enciende. */
-function FilaBottom({ bottom, id, onToggle }: { bottom: BottomDisponible; id?: string; onToggle: () => void }) {
+type PropsCuerpo = Omit<Props, "onAbrirBloques"> & { composicion: Composicion };
+
+/** La barra extra a nivel de lámina de una multilista; los bloques con barra propia la sustituyen. */
+function BarraExtraPorBloque({ slideId, slot, valor, composicion, onAbrirBloques }: PropsCuerpo & { onAbrirBloques: () => void }) {
+  const presets = usePlanStore((s) => s.presets);
+  const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
+  const args = (valor.args ?? {}) as Record<string, unknown>;
+  const estado = leerTwoBox(valor.graficador, args, presets);
+  if (!estado) return null;
+  const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
+  const resumen = resumenDeBloques(args.bloques, estado.valor);
+  const sinCategorias = resumen.sinCategorias + resumen.conBottomSinCategorias;
+  const heredada = estado.origen === "lamina" ? undefined : NOTA_HEREDADA;
   return (
-    <div className="pulso-f6-dato" data-qa="twobox-bottom">
-      <span className="pulso-f6-dato-rotulo" id={id}>Bottom Two Box al lado</span>
-      <Switch
-        checked={bottom.activa}
-        disabled={!bottom.editable}
-        ariaLabel="Columna Bottom Two Box al lado del Top Two Box"
-        onToggle={onToggle}
+    <div className="pulso-f6-twobox" data-qa-geometry-group="graficos/f6-twobox" data-qa-geometry-contract="intrinsic" data-qa="twobox-por-bloque">
+      <BarraExtraControl
+        valor={estado.valor}
+        onChange={(v: BarraExtra) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, { valor: v }, composicion))}
+        escala={{ fase: "externa", nota: "Las categorías de cada box se eligen en su bloque." }}
+        etiquetas={{}}
+        heredada={heredada}
+        bottomBloqueado={bottom.editable ? undefined : bottom.nota}
+        ariaLabel="Barra extra de todos los bloques"
+        ayuda="Muestra una columna a la derecha de cada barra. Cada bloque puede tener la suya."
       />
-      {bottom.nota && <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{bottom.nota}</span>}
+      <p className="pulso-f6-dato-ayuda">
+        {resumen.total === 0 ? "Aún no hay bloques." : `${resumen.conBarra} de ${resumen.total} ${resumen.total === 1 ? "bloque lleva" : "bloques llevan"} barra extra${resumen.propios > 0 ? `; ${resumen.propios} ${resumen.propios === 1 ? "tiene" : "tienen"} la suya propia` : ""}. `}
+        {sinCategorias > 0 ? `Falta elegir categorías en ${sinCategorias} ${sinCategorias === 1 ? "bloque" : "bloques"}. ` : ""}
+        <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirBloques}>
+          <Rows3 size={13} aria-hidden="true" /> Ajustar por bloque…
+        </button>
+      </p>
     </div>
   );
 }
 
-function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbrirBloques"> & { composicion: Composicion }) {
-  const id = useId();
+function BarraExtraDeEscala({ slideId, slot, valor, composicion }: PropsCuerpo) {
   const presets = usePlanStore((s) => s.presets);
-  const wPresets = usePlanStore((s) => s.wPresets);
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
@@ -103,113 +88,41 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
   const estado = leerTwoBox(valor.graficador, args, presets);
   const cats = useCategoriasGrafico(pregunta ? varCalificada(pregunta, baseActiva, scope) : "", scope);
   if (!estado) return null;
-  const enWord = leerTopEnWord(valor.graficador, args, presets, wPresets);
   const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
-
   const cambiar = (c: CambioTwoBox) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, c, composicion));
   const categorias = cats.fase === "lista" ? categoriasElegibles(cats.datos.categorias, args.excluir_opciones) : [];
-  // Una pregunta cuyas respuestas no van de menos a más (género, carrera) no lleva Top ni Bottom Two Box: la sección no se
-  // ofrece; si quedó encendida de antes, se muestra sólo para decir por qué y poder apagarla (loop UI, Arte lámina 1).
+  // Una pregunta cuyas respuestas no van de menos a más (género, carrera) no lleva Top ni Bottom Two Box. Si el estilo del
+  // informe los pide, el motor no los dibuja y avisarlo en cada Sí/No es ruido: se muestra sin ellos (queda Conteos, que
+  // sí vale en cualquier pregunta). Si esta lámina los encendió, se muestran para poder apagarlos.
   const noOrdenada = cats.fase === "lista" && !cats.datos.ordinal;
-  // Encendido por el estilo del informe (no por esta lámina) en una pregunta que no es escala: el motor no lo dibuja y
-  // pedir «apágalo» en cada Sí/No es ruido (láminas 5–7 de Arte). Sólo si esta lámina lo encendió se dice y se deja apagar.
-  const encendidoAqui = args.top2box === true || args.columna_bottom2box === true;
-  if (noOrdenada && !encendidoAqui) return null;
+  const sinBoxes: BarraExtra = estado.conteos ? ["conteos"] : false;
+  const mostrado: BarraExtra = noOrdenada && estado.origen !== "lamina" ? sinBoxes : estado.valor;
 
-  const escala = (caja: Caja, nombre: "Top Two Box" | "Bottom Two Box", clave: "top" | "bottom") => {
-    if (!pregunta) return <p className="pulso-f6-twobox-estado">Elige la pregunta para declarar su {nombre}.</p>;
-    if (cats.fase === "cargando") {
-      return (
-        <p className="pulso-f6-twobox-estado" role="status">
-          <Loader2 size={13} className="pulso-spin" aria-hidden="true" /> Leyendo la escala de la pregunta…
-        </p>
-      );
-    }
-    if (cats.fase === "error") {
-      return (
-        <p className="pulso-f6-twobox-estado is-error" role="alert">
-          {cats.mensaje}{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={cats.reintentar}>
-            <RefreshCw size={12} aria-hidden="true" /> Reintentar
-          </button>
-        </p>
-      );
-    }
-    if (noOrdenada) {
-      return <p className="pulso-f6-twobox-estado">Sus respuestas no van de menos a más: no hay {nombre} que sumar. Apágalo.</p>;
-    }
-    if (cats.fase === "sin_lista" || !categorias.length) {
-      return <p className="pulso-f6-twobox-estado">La pregunta no tiene una escala con categorías: no hay {nombre} que sumar.</p>;
-    }
-    if (categorias.length <= 2) {
-      // `.box_decidir` no dibuja un box que cubre la escala entera («cubre_escala»): sería 100 % en todas las filas.
-      return <p className="pulso-f6-twobox-estado">Con {categorias.length === 1 ? "una categoría" : "dos categorías"} el {nombre} sumaría la escala entera: el motor no lo dibuja.</p>;
-    }
-    return (
-      <ChipsTwoBox caja={caja} nombre={nombre} categorias={categorias} onChange={(etiquetas) => cambiar({ caja: clave, etiquetas })} />
-    );
-  };
+  let escala: EscalaBarraExtra;
+  if (!pregunta) escala = { fase: "sin_escala", mensaje: "Elige la pregunta para declarar su Top Two Box." };
+  else if (cats.fase === "cargando") escala = { fase: "cargando" };
+  else if (cats.fase === "error") escala = { fase: "error", mensaje: cats.mensaje, reintentar: cats.reintentar };
+  else if (noOrdenada) escala = { fase: "sin_escala", mensaje: "Sus respuestas no van de menos a más: no hay Top ni Bottom Two Box que sumar. Usa Conteos o apaga la barra." };
+  else if (cats.fase === "sin_lista" || !categorias.length) escala = { fase: "sin_escala", mensaje: "La pregunta no tiene una escala con categorías: no hay Top ni Bottom Two Box que sumar. Usa Conteos." };
+  else escala = { fase: "lista", categorias };
 
+  const heredaDe = valorHeredado(valor.graficador, args, presets);
+  const heredada = estado.origen === "lamina" ? undefined : NOTA_HEREDADA;
   return (
     <div className="pulso-f6-twobox" data-qa-geometry-group="graficos/f6-twobox" data-qa-geometry-contract="intrinsic" data-qa="twobox">
-      <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={`${id}-top`}>Top Two Box</span>
-        <Switch
-          checked={estado.top.activa}
-          ariaLabel="Columna Top Two Box"
-          onToggle={() => cambiar({ caja: "top", activa: !estado.top.activa })}
-        />
-      </div>
-      {estado.top.activa ? (
-        <div className="pulso-f6-twobox-caja" role="group" aria-labelledby={`${id}-top`}>{escala(estado.top, "Top Two Box", "top")}</div>
-      ) : (
-        <p className="pulso-f6-twobox-estado">Sin columna Top Two Box: la lámina y el Word salen sólo con las barras.</p>
-      )}
-      {enWord.aplica && (
-        <div className="pulso-f6-dato">
-          <span className="pulso-f6-dato-rotulo">
-            También en el Word
-          </span>
-          <Switch
-            checked={enWord.sale}
-            disabled={!enWord.editable}
-            ariaLabel="Top Two Box también en el Word"
-            onToggle={() => updateSlotArgs(slideId, slot, patchTopEnWord(valor.graficador, args, presets, wPresets, !enWord.sale))}
-          />
-          {enWord.motivo && (
-            <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{NOTA_TOP_EN_WORD[enWord.motivo]}</span>
-          )}
-        </div>
-      )}
-      {bottom.ofrecer && (
-        <>
-          <FilaBottom bottom={bottom} id={`${id}-bottom`} onToggle={() => cambiar({ caja: "bottom", activa: !estado.bottom.activa })} />
-          {estado.bottom.activa && (
-            <div className="pulso-f6-twobox-caja" role="group" aria-labelledby={`${id}-bottom`}>{escala(estado.bottom, "Bottom Two Box", "bottom")}</div>
-          )}
-        </>
-      )}
+      <BarraExtraControl
+        valor={mostrado}
+        onChange={(v) => cambiar({ valor: v })}
+        escala={escala}
+        etiquetas={{ top2box: estado.top.etiquetas, bottom2box: estado.bottom.etiquetas }}
+        onEtiquetas={(caja, etiquetas) => cambiar({ caja: caja === "top2box" ? "top" : "bottom", etiquetas })}
+        categoriasDelInforme={{ top2box: estado.top.delInforme, bottom2box: estado.bottom.delInforme }}
+        heredada={heredada}
+        bottomBloqueado={bottom.editable ? undefined : bottom.nota}
+        restablecer={estado.origen === "lamina" && heredaDe !== null
+          ? { rotulo: "Volver a la del informe", onClick: () => cambiar({ valor: heredaDe }) }
+          : undefined}
+      />
     </div>
   );
-}
-
-type TopEnBloques = "todos" | "algunos" | "ninguno";
-
-/** Cuántos bloques de una multilista llevan su columna Top Two Box. */
-export function topDeBloques(bloques: unknown): TopEnBloques {
-  const lista = Array.isArray(bloques) ? bloques.filter((b) => b && typeof b === "object") as Record<string, unknown>[] : [];
-  const n = lista.filter((b) => b.top2box === true).length;
-  return lista.length > 0 && n === lista.length ? "todos" : n > 0 ? "algunos" : "ninguno";
-}
-
-/** Los bloques con su Top Two Box encendido o apagado; lo demás de cada bloque (preguntas, categorías) se conserva. */
-export function conTopEnBloques(bloques: unknown, activa: boolean): unknown[] {
-  const lista = Array.isArray(bloques) ? bloques : [];
-  return lista.map((b) => (b && typeof b === "object" ? { ...(b as Record<string, unknown>), top2box: activa } : b));
-}
-
-/** Bloques con la columna encendida pero sin categorías elegidas: el motor la omite en ellos. */
-export function bloquesSinCategorias(bloques: unknown): number {
-  const lista = Array.isArray(bloques) ? bloques.filter((b) => b && typeof b === "object") as Record<string, unknown>[] : [];
-  return lista.filter((b) => b.top2box === true && !(Array.isArray(b.top2box_labels) && b.top2box_labels.length > 0)).length;
 }

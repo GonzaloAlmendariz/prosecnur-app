@@ -334,9 +334,7 @@
       tryCatch(texto(.plan_titulo_corto(titulo_de_var, el_plot)), error = function(e) NULL)
     }
     n_pub <- .espec_n_base(espec)
-    publico <- if (is.finite(n_pub) && nzchar(base_var) && any(grepl("$", el_plot$var %||% "", fixed = TRUE))) {
-      paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
-    }
+    publico <- .lam_dicotomia_publico(n_pub, base_var, el_plot$var, el_plot$overrides, espec)
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
                                   publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
                                   folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,

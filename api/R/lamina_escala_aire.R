@@ -120,10 +120,14 @@
 .lam_holgura_chica <- function() if (.lam_apretado()) .LAM_APRETADO_HOLGURA else 0.075
 .lam_multilista_aire_ttb <- function() if (.lam_apretado()) .LAM_APRETADO_AIRE_TTB else .LAM_MULTILISTA_AIRE_TTB
 
-#' Alto mínimo de la multilista en modo apretado (o `Inf` si no aplica: leyenda propia por bloque o más de seis barras)
+#' Alto mínimo de la multilista en modo apretado (o `Inf` si no aplica: más de seis barras)
+#'
+#' Vale también con leyenda propia por bloque (escalas distintas, p. ej. una de acuerdo y un Sí/No de una barra: Arte,
+#' «Mecanismos de admisión»): la leyenda del último bloque va dentro de su cromo y la franja extendida la deja >= 0,1 in
+#' sobre el «Base:».
 #' @keywords internal
 .lam_multilista_alto_apretado <- function(items, compartida) {
-  if (!isTRUE(compartida) || !.std_evitar_cont() || .lam_escala_n_barras(items) > .MULTIAPILADAS_MAX_BARRAS) return(Inf)
+  if (!.std_evitar_cont() || .lam_escala_n_barras(items) > .MULTIAPILADAS_MAX_BARRAS) return(Inf)
   op <- options(prosecnur.lam_apretado = TRUE); on.exit(options(op))
   .lam_multilista_alto_f(items, compartida, 0)
 }
@@ -140,7 +144,7 @@
 #' ¿Esta parte de la multilista se dibuja apretada? Solo si no cabe con el aire en su mínimo y sí apretada
 #' @keywords internal
 .lam_multilista_apretar <- function(items, compartida) {
-  if (!.std_evitar_cont() || !isTRUE(compartida)) return(FALSE)
+  if (!.std_evitar_cont()) return(FALSE)
   disp <- .lam_multilista_disponible(compartida)
   .lam_multilista_alto(items, compartida) > disp &&   # lo que cabe al natural conserva su geometría
     .lam_multilista_alto_f(items, compartida, 0) > disp &&

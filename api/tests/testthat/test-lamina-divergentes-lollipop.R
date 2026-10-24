@@ -35,9 +35,9 @@ test_that("la lámina divergente pone el desacuerdo a la izquierda del centro y 
   e$filas <- rep(e$filas, 5); expect_false(.lam_divergentes_cabe(e))               # 10 afirmaciones no caben
 })
 
-test_that("el ranking con puntos deja las residuales al final en gris y sin ceros", {
+test_that("el ranking con puntos deja las residuales al final (en gris sólo con residuales_gris) y sin ceros", {
   d <- data.frame(cat = c("No sabe / Ninguna", "B", "A", "C", "Nada"), v = c(4, 21, 29, 9, 0))
-  e <- attr(graficar_lollipop(d, "cat", "v"), "pulso_espec")
+  e <- attr(graficar_lollipop(d, "cat", "v", residuales_gris = TRUE), "pulso_espec")
   expect_identical(e$forma, "lollipop")
   expect_identical(e$rotulos, c("A", "B", "C", "No sabe / Ninguna"))            # «Nada» rotula 0 %: fuera
   o <- .lam_laminas_lollipop(.dl_doc(), e, "Mejoras", folio = 72, encabezado = "% de encuestados que marcó cada opción")

@@ -12,6 +12,27 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.9.4",
+    date: "2026-10-23",
+    highlights: [
+      "Monitoreo telefónico: el perfil se recorre en Insumos, Modelo, Control y Avance, y abre en Avance › Cuotas con lo que falta en cada cuota. Control reúne la cola de insistencia caso por caso, el barrido de la hoja, la carga de cada operador, las respuestas y los avisos agrupados por causa.",
+      "Monitoreo telefónico: Avance › Ritmo dibuja la serie diaria y el acumulado con un eje para cada uno, y Avance › Entregas muestra la vista del PDF del cliente junto a las demás salidas. Insumos declara si cada caso viene de la muestra titular o de la reserva y marca los reemplazos.",
+      "Monitoreo telefónico: Discrepancias cruza Kobo con la hoja en los dos sentidos, con responsable, CodPulso y proGres, y avisa al equipo. Cada caso se decide como «Cuenta» o «No cuenta» y la decisión queda registrada; mientras no se decide, la efectiva cuenta.",
+      "Monitoreo telefónico: Supervisión sortea los casos a revisar por enumerador, al menos uno de cada uno, y las equivalencias unen a quien figura con otro nombre en Kobo y en la hoja. Cuando la cuenta de Kobo es compartida, el enumerador se lee de la pregunta del formulario. Avisos lista los efectivos de la hoja que no tienen envío en Kobo. El control de duración revisa las encuestas demasiado cortas; las largas quedan como dato.",
+      "Monitoreo telefónico: un estudio con código proGres, como el RMS de ACNUR, cruza por ese código sin declararlo, avisa cuando casi ningún caso cruza o un filtro no encuentra su columna, y puede leer el Status con reglas. Cada caso se muestra con su propio código aunque la hoja no traiga CodPulso.",
+      "Monitoreo de acreditación: Avance › Correo trae de Mailchimp los envíos del estudio y los mide por público, sin contar los correos inválidos. Avance › Cuotas mide las metas por categoría de la base, y el cruce responde con 45 mil contactos.",
+      "Material de campo: Recopiladores pasa a llamarse Material de campo y se organiza por campañas de aulas o de correo. El catálogo muestra cada tipo de material con su miniatura real y el editor de fichas trabaja sobre la página impresa, frente y dorso.",
+      "Material de campo: el correo se compone por bloques sobre el correo mismo, en estilo sobrio o de campaña, con piezas gráficas, logos y el saludo Estimado o Estimada según la persona. La Revisión dice qué falla y cómo arreglarlo, y no deja exportar mientras queden textos entre corchetes.",
+      "Material de campo: la pestaña Contactos guarda los contactos de cada campaña en el proyecto, genera el enlace personal a la encuesta y registra quién respondió. Con Mailchimp conectado, los envíos se crean como borradores y el recordatorio sabe quién ya respondió; la app nunca envía.",
+      "Gráficos: una lámina del PowerPoint lleva hasta seis barras sin partirse en «(cont.)», y escalas y preguntas Sí/No comparten lámina con el porcentaje dentro de la barra. «Barra extra» reúne Top Two Box, Bottom Two Box y Conteos en un solo control; los planes anteriores se convierten con un aviso por lámina.",
+      "Gráficos: el radar entre públicos exige al menos cinco criterios y, con menos, se dibuja en líneas y puntos. La forma, el eje y la tabla de datos se eligen en la tarjeta del gráfico, y los residuales en gris pasan a ser una opción apagada.",
+      "Gráficos: el Word sigue el orden de categorías, el título de cada figura y la agrupación del PowerPoint, conserva las categorías con casos, incluye «Cómo leer» y puede llevar la tabla del radar como tabla de Word.",
+      "Formularios: las listas de opciones y los filtros de opciones tienen pestaña propia, con la vista de lo que ve el encuestado. El Constructor coloca cada pregunta donde se suelta, muestra la maqueta de cada tipo, y Restricciones arma patrones de formato sin escribir la expresión.",
+      "Analítica: las tablas cruzadas de 80 variables bajan de 528 s a 42 s y un comparativo de 10 preguntas de 362 s a 12 s. La base en SPSS y Excel guarda las selecciones múltiples como No/Sí y las recodificadas junto a su variable original, y la ficha técnica sale como entregable aparte.",
+      "Correcciones: cambiar «Qué casos cuentan» rehace la base preparada antes de exportar, y el comparativo toma la base de la medición dueña de cada pregunta aunque otro año use el mismo código.",
+    ],
+  },
+  {
     version: "0.9.3",
     date: "2026-10-16",
     highlights: [

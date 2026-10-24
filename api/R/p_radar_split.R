@@ -26,7 +26,11 @@
 #' @param corte Sólo en modo `publicos`: códigos que suman el indicador.
 #' @param corte_etiqueta Sólo en modo `publicos`: nombre del indicador.
 #' @param estilo Sólo en modo `publicos`: clave de `.RADAR_MB_ESTILOS`.
-#' @param mostrar_tabla Sólo en modo `publicos`: compone el radar con su tabla.
+#' @param mostrar_tabla Sólo en modo `publicos`: alias viejo de `tabla` (`TRUE` es `"auto"`, `FALSE` es `"no"`).
+#' @param tabla Sólo en modo `publicos`: tabla de datos del gráfico, `"auto"` (defecto: junto al radar, ninguna con líneas y
+#'   puntos o barras), `"si"` (en las tres formas) o `"no"`.
+#' @param word_tabla Sólo en modo `publicos`: `TRUE` pone en el Word una tabla nativa, centrada y encima de la figura; por
+#'   defecto no va.
 #' @param eje_min Sólo en modo `publicos`: piso del eje radial en puntos
 #'   porcentuales.
 #' @param tabla_titulo,tabla_encabezados,tabla_ancho_tema,tabla_proporcion Sólo
@@ -36,8 +40,11 @@
 #' @param margen_etiquetas Holgura del panel para las etiquetas de los ejes, entre 1 y 2. `NULL` = automática.
 #' @param fallback_pocos Sólo en modo `publicos`: qué se dibuja con menos de 5 criterios, `"puntos"` (líneas y puntos
 #'   comparativos, defecto) o `"barras"`.
-#' @param eje_pocos,eje_pocos_min,eje_pocos_max Sólo en modo `publicos`, con menos de 5 criterios: eje de las líneas y
+#' @param eje_pocos,eje_pocos_min,eje_pocos_max Sólo en modo `publicos`, con líneas y puntos (menos de 5 criterios o `forma = "puntos"`): eje de las líneas y
 #'   puntos, `"auto"` (acercado a los datos, defecto), `"0-100"` o `"personalizado"` con mínimo y máximo.
+#' @param forma Sólo en modo `publicos`: `"auto"` (defecto: radar con 5 a 8 criterios, `fallback_pocos` con menos),
+#'   `"puntos"` (líneas y puntos siempre, con el eje de `eje_pocos`), `"radar"` (radar aunque haya 3 o 4 criterios; con
+#'   menos de 3 aborta) o `"barras"`.
 #' @param limites Rango del eje radial, `c(min, max)` en escala 0-1 (O7c). Va a
 #'   `overrides` en los tres modos; `NULL` hereda el preset.
 #' @export
@@ -73,7 +80,10 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     fallback_pocos = NULL,
                     eje_pocos = NULL,
                     eje_pocos_min = NULL,
-                    eje_pocos_max = NULL) {
+                    eje_pocos_max = NULL,
+                    forma = NULL,
+                    tabla = NULL,
+                    word_tabla = NULL) {
   overrides <- .radar_slot_limites(overrides %||% list(), limites)
   # Holgura del panel (1 a 2): va a `overrides`, que es lo que `graficar_radar()` lee en los tres modos.
   overrides <- .radar_slot_margen(overrides, margen_etiquetas)
@@ -89,14 +99,15 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
     # render cuando ni el grafico ni el preset dicen nada.
     return(p_radar_publicos(
       vars = vars, corte = corte, estilo = estilo %||% "comparativo",
-      corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
+      corte_etiqueta = corte_etiqueta, mostrar_tabla = mostrar_tabla,
       mostrar_valores = mostrar_valores,
       decimales = valores_decimales, eje_min = eje_min,
       tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
       tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros,
       titulos_grupo = titulos_grupo, fallback_pocos = fallback_pocos,
-      eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max
+      eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max,
+      forma = forma, tabla = tabla, word_tabla = word_tabla
     ))
   }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())

@@ -70,21 +70,24 @@
 }
 
 .mon-barrido-no-registra {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   margin-top: auto;
-  padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  background: var(--pulso-surface-2);
 }
 
-.mon-barrido-no-registra p {
+/* Un barrido que no empezó (RMS): cada panel dice su vacío en el sitio que
+ * ocuparían sus datos, centrado en el alto que ese panel ya tiene. */
+.mon-barrido-vacio {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  min-height: 80px;
   margin: 0;
-  color: var(--pulso-text-soft);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  color: var(--pulso-text-muted);
   font-size: 12px;
+  text-align: center;
 }
+
+
 
 .mon-ctl-tabla-marco {
   min-height: 0;
@@ -731,6 +734,18 @@
   list-style: none;
 }
 
+.mon-equipo-status ul.is-pocos {
+  flex: none;
+  justify-content: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.mon-equipo-status-unico {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: inherit;
+}
+
 .mon-equipo-status li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 72px 36px;
@@ -867,8 +882,10 @@
   background: var(--pulso-brand-navy);
 }
 
-.mon-respuestas-histograma .is-largo i {
-  background: var(--pulso-danger-fg);
+/* Lo que se revisa son las cortas: el tramo «< 5 min» en ámbar. Una larga no
+ * es un problema y va con el color de las demás. */
+.mon-respuestas-histograma .is-corta i {
+  background: var(--pulso-warn-fg);
 }
 
 .mon-respuestas-reglas ul {
@@ -1008,8 +1025,8 @@
   background: var(--pulso-accent-steel);
 }
 
-.mon-respuestas-barra i b.is-largo {
-  background: var(--pulso-danger-fg);
+.mon-respuestas-barra i b.is-corta {
+  background: var(--pulso-warn-fg);
 }
 
 .mon-respuestas-barra span {
@@ -1528,4 +1545,13 @@
   }
 
   .mon-avisos-tabla th:nth-child(3) { width: 150px; }
+}
+
+.mon-barrido-matriz > .mon-nota {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
+}
+
+/* La fecha del caso afectado no se parte a mitad de número. */
+.mon-avisos-fecha {
+  white-space: nowrap;
 }

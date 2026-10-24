@@ -383,6 +383,7 @@ graficar_barras_agrupadas <- function(
     cols_n                    = NULL,
     mostrar_n_en_etiquetas    = NA,   # NA: lo decide «Casos junto al porcentaje» del informe
     resaltar_mayor            = FALSE,   # en la lámina nativa, la barra más alta en otro tono (opción del gráfico)
+    residuales_gris           = FALSE,   # residuales en gris en Word y lámina; apagado por defecto
     resaltar_opciones         = NULL,    # D1: las respuestas que el analista resalta, por rótulo (lámina nativa)
     escala_valor              = c("proporcion_1", "proporcion_100"),
     orientacion               = c("horizontal", "vertical"),
@@ -960,7 +961,7 @@ graficar_barras_agrupadas <- function(
     preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
                         if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL,
                         residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
-                        n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones)   # «Otros» y los residuales ya van donde los puso el gráfico (otros_al_final)
+                        n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris))   # «Otros» y los residuales ya van donde los puso el gráfico (otros_al_final)
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
@@ -1283,7 +1284,7 @@ graficar_barras_agrupadas <- function(
       espec_agrupada <- tryCatch(
         preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
-                            n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones),
+                            n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
       if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
     }

@@ -1,5 +1,10 @@
 # Checklist · Monitoreo acreditación a 45 mil contactos: T0 + T1 (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-10-22
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «Dale con T0 y T1», sobre
 `docs/qa/diagnostico-monitoreo-acred-institucional-2026-10-22.md` §4.
 

@@ -438,3 +438,25 @@ test_that("contrato HTTP: las tres rutas responden sin correos y la de sync es u
   expect_identical(bad$status, 422L)
   expect_identical(bad$body$error$code, "E_COLLECTION_MAIL_SYNC_CAMPAIGN_INPUT")
 })
+
+test_that("mailchimp: .mc_http sale con timeout y connecttimeout aplicados", {
+  # Censo de transporte (test-api-http-transporte.R): un handle sin esperas
+  # acotadas cuelga el backend entero, porque Plumber atiende en un solo hilo.
+  opts <- list()
+  testthat::local_mocked_bindings(
+    handle_setopt = function(handle, ...) {
+      opts <<- c(opts, list(list(...)))
+      invisible(handle)
+    },
+    curl_fetch_memory = function(url, handle, ...) {
+      list(status_code = 200L, content = charToRaw("{}"), headers = raw(0))
+    },
+    .package = "curl"
+  )
+  res <- .mc_http("GET", "https://us21.api.mailchimp.com/3.0/ping", .mca_key)
+  expect_equal(res$status, 200L)
+  aplicados <- Filter(function(x) "timeout" %in% names(x), opts)
+  expect_length(aplicados, 1L)
+  expect_equal(aplicados[[1]]$timeout, 60L)
+  expect_equal(aplicados[[1]]$connecttimeout, 15L)
+})

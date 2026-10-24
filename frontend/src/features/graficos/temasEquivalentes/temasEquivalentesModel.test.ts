@@ -145,7 +145,7 @@ describe("patchModoRadar", () => {
   it("de «publicos» a «box» suelta lo propio de «publicos» y reinicia las preguntas como lista", () => {
     const antes = {
       modo: "publicos", vars: { t1: ["docentes$p1", "estudiantes$p1"] }, titulos_grupo: { t1: "Tema" }, corte: "3,4",
-      corte_etiqueta: "De acuerdo", estilo: "comparativo", mostrar_tabla: true, tabla_proporcion: 1.2, mostrar_valores: false,
+      corte_etiqueta: "De acuerdo", estilo: "comparativo", forma: "puntos", tabla: "si", mostrar_tabla: true, tabla_proporcion: 1.2, mostrar_valores: false,
     };
     expect(aplicar(antes, patchModoRadar("publicos", "box"))).toEqual({ modo: "box", vars: [], mostrar_valores: false });
   });

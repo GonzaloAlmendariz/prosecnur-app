@@ -234,6 +234,21 @@
        colores = .espec_colores_de(espec, espec$categorias$rotulo[k]) %||% .std_paleta("dicotomica"))
 }
 
+#' Subtítulo «N público» de la dicotomía: sólo con «Respuestas por público» (`mostrar_respuestas`) encendido (N3b), como la escala
+#' @keywords internal
+.lam_dicotomia_publico <- function(n_pub, base_var, var, overrides = NULL, espec = NULL) {
+  enc <- isTRUE((overrides %||% list())$mostrar_respuestas) || isTRUE(espec[["mostrar_respuestas"]])
+  if (enc && is.finite(n_pub) && nzchar(base_var %||% "") && any(grepl("$", var %||% "", fixed = TRUE)))
+    paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
+}
+
+#' Ancho (in) de la barra de una lámina con UNA sola pregunta Sí/No: la fracción del lienzo, acotada por márgenes simétricos
+#' @keywords internal
+.LAM_DICOTOMIA_UNICA_FRAC <- 0.85
+.lam_dicotomia_unica_ancho <- function() {
+  W <- .std_geom("ancho"); min(.LAM_DICOTOMIA_UNICA_FRAC * W, W - 2 * max(.std_geom("margen_izq"), .std_geom("margen_der")))
+}
+
 #' Lámina de una dicotomía a todo el ancho (lámina 74 del recetario, recetario_graficos2.R:20-25)
 #'
 #' La pregunta encabeza el panel con su público («176 egresados») y la barra partida va debajo, con cifras
@@ -251,9 +266,10 @@
   y <- yt + 1.1
   est <- identical(.lam_estilo_dicotomia(espec), "barra_estandar")
   if (est) {
-    # Una sola pregunta Sí/No: no se estira a todo el ancho; la barra mide lo que la de una lámina de 3 o más (`.lam_bloque_escala`) y el
-    # bloque (enunciado, barra, leyenda) se centra en el área de datos, con la leyenda a toda la lámina (v3, defecto 3).
-    W <- g_("ancho"); wb <- min(ancho, W - g_("margen_der") - g_("likert")$x_barra - 0.3); xb <- (W - wb) / 2
+    # Una sola pregunta Sí/No: el bloque (enunciado, barra, leyenda) se centra en la lámina y la barra aprovecha el ancho
+    # (`.LAM_DICOTOMIA_UNICA_FRAC` de la lámina, sin pasar del margen izquierdo del estándar simétrico); el enunciado se alinea
+    # al borde izquierdo de la barra y la leyenda va centrada a toda la lámina.
+    W <- g_("ancho"); wb <- .lam_dicotomia_unica_ancho(); xb <- (W - wb) / 2
     hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_lineas(pregunta, wb, 13, TRUE) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
     bloque <- hp + (if (hp > 0) 0.25 else 0) + 0.5 + 0.12 + 0.3
     yp <- yt + max(0, (g_("contenido_y1") - yt - bloque) / 2)
@@ -304,7 +320,7 @@
 #' Lámina de ranking con puntos (lámina 72, recetario_m3a.R:81-95)
 #'
 #' Rótulos a la derecha en una columna de 6.3 in, guías cada 10 % con su cifra arriba, un tallo fino y un punto
-#' por opción con su cifra a la derecha; las residuales («Otros», «No sabe») en gris claro y al final.
+#' por opción con su cifra a la derecha; las residuales («Otros», «No sabe») al final y, sólo con `residuales_gris`, en gris claro.
 #' @keywords internal
 .lam_laminas_lollipop <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, encabezado = NULL,
                                   layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
@@ -328,7 +344,7 @@
     # Las que el analista resalta van en coral (como la ruta anterior); las residuales, en gris.
     # Con paleta del usuario (ADR 0097) cada punto lleva el color de su opción; el resaltado sigue en coral.
     col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else if (!is.null(cols_u)) cols_u[i] else
-      if (grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) tenue else azul
+      if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) tenue else azul
     hl <- .lam_alto_txt(lab[i], wl, 11)
     .lam_txt(lz, lab[i], ml, yc - hl / 2, wl, hl, 11, azul, align = "right", nombre = "lollipop:rotulo")
     .lam_caja(lz, xs, yc - 0.012, max(0.002, xv - xs), 0.024, col, nombre = "lollipop:tallo")

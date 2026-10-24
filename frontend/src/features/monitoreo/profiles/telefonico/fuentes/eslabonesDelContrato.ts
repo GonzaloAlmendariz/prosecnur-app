@@ -65,10 +65,17 @@ export function eslabonesDelContrato(
   contract: AcreditacionPhoneSourceContract,
   nRows: number,
   syncedAt?: string,
+  /** Casos de la hoja de barrido en el corte, cuando la metadata de la fuente no trae conteo (RMS: universo y barrido son la misma hoja). */
+  casosDelBarrido = 0,
 ): EslabonDeFuente[] {
+  // Con universo y barrido en la misma hoja, el universo son los casos de esa
+  // hoja; `n_rows` suma también las respuestas de Kobo (RMS ficticio: 1,163
+  // «personas por llamar» con 800 en la hoja).
+  const ids = (slot: AcreditacionPhoneSourceSlot) => slot.sources.map((source) => source.id).sort().join("|");
+  const mismaHoja = casosDelBarrido > 0 && ids(contract.universe) !== "" && ids(contract.universe) === ids(contract.sweep);
   return [
-    eslabonDelSlot(contract.universe, syncedAt, nRows),
-    eslabonDelSlot(contract.sweep, syncedAt),
+    eslabonDelSlot(contract.universe, syncedAt, mismaHoja ? casosDelBarrido : nRows),
+    eslabonDelSlot(contract.sweep, syncedAt, casosDelBarrido),
     eslabonDelSlot(contract.platform, syncedAt),
   ];
 }

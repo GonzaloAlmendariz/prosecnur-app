@@ -1,5 +1,10 @@
 # Checklist · Ajustes del bloque y campos por persona (2026-10-23)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-23
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo (textual): «¿No sería poder tener más control del tono o el tamaño? O de la alineación no tener un "Del estilo" sino lo que ya clásicamente está establecido. Además, ¿dónde puedo editar los campos personalizados, conectarlos con las variables de la audiencia, y cómo puedo configurar que cada audiencia tenga una variable o campo para el correo, por ejemplo cómo sé quién es estimado o estimada?»
 
 | # | Ítem | Dónde vive | Estado |

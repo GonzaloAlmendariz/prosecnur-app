@@ -192,7 +192,7 @@ describe("manifiesto de navegación", () => {
 
     expect(
       pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
-    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "avisos"]);
+    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "supervision", "avisos"]);
 
     try {
       registrarPestanasDeSeccion(
@@ -226,7 +226,7 @@ describe("manifiesto de navegación", () => {
 
     expect(
       pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
-    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "avisos"]);
+    ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "supervision", "avisos"]);
   });
 
   it("expone las pestañas de Selección de Hojas de ruta", () => {

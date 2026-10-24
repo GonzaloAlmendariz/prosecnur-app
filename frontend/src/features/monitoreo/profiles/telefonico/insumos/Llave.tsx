@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { segmentoDelCorte } from "../control/montaje";
@@ -10,8 +11,11 @@ import {
   enviosPorLlave,
   filtroDePrueba,
   llaveDeclarada,
+  llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
+import { EquivalenciasDeNombres } from "./EquivalenciasDeNombres";
+import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
@@ -46,9 +50,12 @@ export function LlaveYFiltros({
   filtro,
   tarjetaKobo,
   onIrA,
+  onStateChange,
 }: {
   reports: MonitoreoAcreditacionReports;
   state: MonitoreoState | null | undefined;
+  /** Para guardar el origen de la muestra en el perfil. */
+  onStateChange?: (state: MonitoreoState) => void;
   /** El editor del filtro de efectiva que ya existe. */
   filtro: ReactNode;
   /** La tarjeta de la encuesta, con «Cambiar conexión». */
@@ -63,10 +70,14 @@ export function LlaveYFiltros({
   const porRevisar = useMemo(() => porRevisarEnLaLlave(respuestas.envios), [respuestas.envios]);
   const prueba = filtroDePrueba(state);
   const bajo = cruce.tasa != null && cruce.tasa < UMBRAL_DE_CRUCE;
+  // Sin nada por revisar, la columna lateral sería una tarjeta estirada con una
+  // línea: la vista se recompone en una columna y la encuesta va arriba.
+  const conRevision = porRevisar.length > 0;
 
   return (
-    <div className="mon-insumos mon-llave" data-qa-geometry-group="telefonico-insumos-llave" data-qa-geometry-contract="intrinsic">
+    <div className={`mon-insumos mon-llave${conRevision ? "" : " is-sin-revision"}`} data-qa-geometry-group="telefonico-insumos-llave" data-qa-geometry-contract="intrinsic">
       <div className="mon-insumos-columna">
+        {conRevision ? null : <div className="mon-llave-kobo">{tarjetaKobo}</div>}
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Llave de cruce">
           <div className="mon-insumos-fila">
             <strong>Llave de cruce</strong>
@@ -81,7 +92,13 @@ export function LlaveYFiltros({
             <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
-          <p>Las columnas de la llave no se editan desde la app.</p>
+          {llaveSinIdentificador(ejemplos) ? (
+            <NotaDelModo tono="aviso">
+              Las {n(ejemplos.filasEnLaBase)} filas de la base tienen el mismo código: la llave no encontró una columna que identifique a cada
+              caso.
+            </NotaDelModo>
+          ) : null}
+          <NotaDelModo tono="neutro">Las columnas de la llave no se editan desde la app.</NotaDelModo>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Cruce con la base">
@@ -107,8 +124,11 @@ export function LlaveYFiltros({
               </div>
             </div>
           ) : (
-            <p>El corte no trae efectivas para cruzar.</p>
+            <NotaDelModo tono="neutro">El corte no trae efectivas para cruzar.</NotaDelModo>
           )}
+          {cruce.total && !conRevision ? (
+            <NotaDelModo tono="exito">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
+          ) : null}
         </section>
 
         <section className="mon-ctl-panel mon-llave-filtro" aria-label="Qué cuenta como efectiva">
@@ -121,6 +141,8 @@ export function LlaveYFiltros({
             </li>
           </ul>
         </section>
+        <EquivalenciasDeNombres reports={reports} state={state} onStateChange={onStateChange} />
+        <OrigenDeLaMuestra reports={reports} state={state} onStateChange={onStateChange} />
         <section className="mon-ctl-panel mon-llave-envios" aria-label="Efectivas y su cruce" data-qa-geometry-capacity="owned">
           <header className="mon-insumos-cabecera">
             <strong>Efectivas y su cruce</strong>
@@ -152,34 +174,38 @@ export function LlaveYFiltros({
               </table>
             </div>
           ) : (
-            <p className="mon-ctl-nota">Sin efectivas en el corte.</p>
+            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas en el corte.</NotaDelModo>
           )}
         </section>
       </div>
 
-      <div className="mon-insumos-lateral">
-        <div className="mon-llave-kobo">{tarjetaKobo}</div>
-        <section className="mon-ctl-panel mon-llave-revisar" aria-label="Por revisar en la llave" data-qa-geometry-capacity="owned">
-          <header className="mon-insumos-cabecera">
-            <strong>Por revisar en la llave</strong>
-            <span>{porRevisar.length ? n(porRevisar.length) : ""}</span>
-            <button type="button" className="mon-insumos-boton" onClick={() => onIrA("control", "respuestas")}>Respuestas</button>
-          </header>
-          {porRevisar.length ? (
-            <ul className="mon-llave-lista">
-              {porRevisar.map((item, i) => (
-                <li key={`${item.codigo}-${i}`} className={`is-${item.llave}`}>
-                  <code>{item.codigo}</code>
-                  <span>{ROTULO_DE_LLAVE[item.llave]}</span>
-                  <small>{item.lectura}</small>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mon-ctl-nota">Todas las efectivas cruzan tal cual con la hoja.</p>
-          )}
-        </section>
-      </div>
+      {conRevision ? (
+        <div className="mon-insumos-lateral">
+          <div className="mon-llave-kobo">{tarjetaKobo}</div>
+          <section className="mon-ctl-panel mon-llave-revisar" aria-label="Por revisar en la llave" data-qa-geometry-capacity="owned">
+            <header className="mon-insumos-cabecera">
+              <strong>Por revisar en la llave</strong>
+              <span>{porRevisar.length ? n(porRevisar.length) : ""}</span>
+              <button type="button" className="mon-insumos-boton" onClick={() => onIrA("control", "respuestas")}>Respuestas</button>
+            </header>
+            {porRevisar.length ? (
+              <ul className="mon-llave-lista">
+                {porRevisar.map((item, i) => (
+                  <li key={`${item.codigo}-${i}`} className={`is-${item.llave}`}>
+                    <code>{item.codigo}</code>
+                    <span>{ROTULO_DE_LLAVE[item.llave]}</span>
+                    <small>{item.lectura}</small>
+                  </li>
+                ))}
+              </ul>
+            ) : cruce.total ? (
+              <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
+            ) : (
+              <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas, no hay cruces que revisar.</NotaDelModo>
+            )}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
