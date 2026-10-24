@@ -11,7 +11,7 @@ export function opcionesDeComposicion(slide: Pick<Slide, "tipo" | "payload">): R
   for (const { slot, grafico } of graficosDeLamina(slide)) {
     if (grafico.graficador !== "p_radar") continue;
     const { glifo } = ajustesDelGlifo("p_radar", (grafico.args ?? {}) as Record<string, unknown>, false);
-    salida[slot] = { formaRadar: glifo.formaRadar, tabla: glifo.tabla };
+    salida[slot] = { formaRadar: glifo.formaRadar, tabla: glifo.tabla, criterios: glifo.criterios };
   }
   return salida;
 }

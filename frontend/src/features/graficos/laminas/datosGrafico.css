@@ -286,3 +286,6 @@
 
 /* Aviso de criterios del radar (NotaFormaRadar.tsx): se lee como advertencia, sin caja. */
 .pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }
+
+/* La forma efectiva (NotaFormaRadar.tsx): más legible que la ayuda tenue, para no perderse junto al aviso. */
+.pulso-f6-dato-ayuda.is-nota { color: var(--pulso-text-muted); }

@@ -13,3 +13,10 @@ describe("NotaFormaRadar", () => {
     expect(renderToStaticMarkup(<NotaFormaRadar args={{ modo: "publicos", vars: vars(6) }} />)).toBe("");
   });
 });
+
+describe("NotaFormaRadar: Automática de la tabla", () => {
+  it("con líneas y puntos efectivos, dice que Automática es sin tabla; con tabla «si» no lo dice", () => {
+    expect(renderToStaticMarkup(<NotaFormaRadar args={{ modo: "publicos", vars: vars(4) }} />)).toContain("Con esta forma, Automática es sin tabla");
+    expect(renderToStaticMarkup(<NotaFormaRadar args={{ modo: "publicos", vars: vars(4), tabla: "si" }} />)).not.toContain("Automática es sin tabla");
+  });
+});
