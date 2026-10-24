@@ -6,6 +6,7 @@
 import { esRespuestaResidual } from "../../estilo/modeloColoresRespuestas";
 import type { OpcionesGlifo } from "../../iconos/glifosGrafico";
 import { firmaOpciones } from "../../paletasResolver";
+import { criteriosDelRadar, formaEfectivaRadar } from "../formaRadar";
 import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
@@ -180,12 +181,18 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       glifo.cifras = v("mostrar_valores") !== false;
       if (!glifo.cifras) ajustes.push("Sin cifras");
       break;
-    case "p_radar":
-      // `tabla` depende de `modo = "publicos"` (registro): en los demás modos la tabla sale siempre. `mostrar_tabla:
-      // false` (proyectos viejos) equivale a `tabla = "no"`.
-      glifo.tabla = !(v("modo") === "publicos" && (v("tabla") === "no" || (v("tabla") === undefined && v("mostrar_tabla") === false)));
-      if (!glifo.tabla) ajustes.push("Sin tabla de datos");
+    case "p_radar": {
+      // Entre públicos manda lo que el motor dibuja de verdad (formaRadar.ts): con menos de 5 criterios, líneas y puntos y
+      // sin tabla. En los demás modos, el radar con su tabla. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
+      if (v("modo") !== "publicos") { glifo.tabla = true; break; }
+      const tabla = v("tabla") ?? (v("mostrar_tabla") === false ? "no" : undefined);
+      const f = formaEfectivaRadar({ forma: v("forma"), fallback_pocos: v("fallback_pocos"), tabla, nCriterios: criteriosDelRadar(args) });
+      glifo.formaRadar = f.forma;
+      glifo.tabla = f.conTabla;
+      if (f.forma !== "radar") ajustes.push(f.forma === "puntos" ? "Líneas y puntos" : "Barras comparativas");
+      if (!f.conTabla) ajustes.push("Sin tabla de datos");
       break;
+    }
     case "p_nube_palabras":
       glifo.ranking = v("mostrar_ranking") !== false;
       if (!glifo.ranking) ajustes.push("Sin ranking de palabras");
