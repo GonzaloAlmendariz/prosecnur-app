@@ -13,6 +13,8 @@
   B17. El material es `4. Seleccion/CCSS2026_analitica_muestra400_24-10.pulso` (muestra 400 con secciones, banner
   de 6 variables, notas al pie y peso por columna) y `7. Entregables/Entregables 2026-10-24 (borrador)/`.
   **B0 bloquea el entregable al cliente y va primero.**
+- **Segunda ampliación** (misma sesión, al armar el mazo de 38 láminas guardado en `graficos_config` de ese
+  `.pulso`; mazo en `7. Entregables/…/CCSS PUCP 2026_Presentación de resultados.pptx`): **G1 a G9**, de Gráficos.
 - **Precedente**: HSyVbG 2026 (`checklist-entregables-hsyvbg-2026-10-13.md`, ADR 0100,
   `api/R/carga_reemplazar_respuestas.R`).
 - **Método**: cada brecha se verificó leyendo el código en `claude/keen-diffie-8fc654` (base `50cdabdfe`).
@@ -48,6 +50,16 @@ Estados: **pendiente** (falta implementar) · **bloqueado** (falta una decisión
 | B16 | El worker callr de cruces depende del cwd («Could not find a root DESCRIPTION in ./api») | Sí | Motor: `app_paths.R:17` + 7 jobs con `load_all` propio | El bootstrap de `jobs.R:94-121` ya carga el paquete con rutas absolutas; `project_warmup_paralelo.R:72-86` tiene el patrón correcto | Media (rompe en cuanto el servidor no arranca desde la raíz) | pendiente |
 | B17 | El rótulo del banner de Cruces es el enunciado completo; no hay forma corta | Sí | Motor: `reporte_cruces.R` (`label_variable`, `:131-154`), `router_analitica.R:3196-3211` (`.cruces_vars_parse`) + front de Cruces | `variable_labels` de Analítica (renombra en todas partes); `etiquetas_vars` de Gráficos (la única etiqueta corta real, pero en el plan PPT/Word) | Media (entregable al cliente) | **bloqueado** (D12) |
 
+| **G1** | **Gráficos pierde toda select_multiple graficada por su madre original** (A9, B1: «no se encuentra en `data` ni se detectaron dummies») | **Sí, reproducido**: las dummies llegan en minúscula (`a9.1`) y solo se realinean las `_recod` | Motor: `graficos_plan_coverage.R:57-89`, `router_graficos.R:860`, `reporte_data.R:182-185` | Analítica ya realinea todo con `.analitica_restore_survey_case` (`analitica_sm_dummy_order.R:226-260`) | **Alta**: saca variables del mazo; afecta a todas las SM sin `_recod` | pendiente |
+| G2 | `p_cifra` no acepta una select_multiple (`A12_recod`) | Sí: exige una columna única, y la madre de una SM no existe en la data | Motor: `graficos_cifra.R:36-40` | `freq_table_spss` ya detecta `var.k` (`reporte_frecuencias.R:1061-1077`); pedir la dummy directa (`A12_recod.3`) probablemente funcione | Media | pendiente |
+| G3 | `excluir_opciones` como arreglo JSON falla («debe ser NULL o character()») | Sí: el body se relee sin simplificar y el arreglo llega como `list` | Motor: `reporte_plan_slides.R:1892-1899` | El motor de opciones ya acepta listas (`reporte_plan_opciones.R:143-150`); multiapiladas tiene su propio `.ppt_as_chr_vec` | Media (rompe lo que la UI guarda) | pendiente |
+| G4 | `p_barras_multiapiladas` no puede excluir códigos no sustantivos; el argumento se descarta en silencio | Sí; el renderer **ya** sabe excluir | Motor: `reporte_plan_slides.R:2165-2189`, `graficos_metadata.R:1282-1367`, `router_graficos.R:203` | `overrides.excluir_opciones` funciona hoy; `.reporte_plan_excluir_cascada` lo aplica antes de los porcentajes | **Alta**: el Top Two Box sale con el denominador equivocado | explícito: pendiente · automático: **bloqueado** (D13) |
+| **G5** | Orden roto en una variable **no** recodificada (B2 `tiempo_llegada` sale 3, 4, 5, 1, 2) | **Sí, reproducido**: la heurística de rangos toma el primer número sin unidades (30, 30, 1, 1, 2) | Motor: `graficos_orden_rangos.R:11-28`, `graficos_orden_categorias.R:171-229` | Pedir `orden_barras = "manual"` lo evita | **Alta**: orden equivocado y silencioso en el entregable (no es B0a) | pendiente |
+| G6 | Título duplicado en los slots de láminas mixtas (`p_slide_4_graficos`, `1mas2`, `cifras_y_graficos`) | Sí: el respaldo dibuja el título del panel y el gráfico canvas conserva el suyo | Motor: `lamina_mixtas.R:503-518`, `reporte_slides_composicion.R:99-103`, `reporte_plan_ppt.R:8340` (congelado) | El re-render del respaldo ya existe para `nota_pie = ""` | Media | pendiente |
+| G7 | Un título de lámina en dos líneas se monta sobre los gráficos (`p_slide_2_graficos`, narrativo con dos gráficos) | Sí en la ruta de plantilla; la nativa solo desplaza desde cuatro líneas | Motor: `lamina_titulo_alto.R:10-27`, ruta de plantilla en `reporte_plan_ppt.R:8004-8013` (congelado) | `.lam_titulo_desplazo` + `.lam_con_titulo` (solo en escala y multilista); `.lam_aviso_titulo` | Media | pendiente |
+| G8 | La opción 3 de A9, «Otra persona responsable o tutor/a», sale como «Otros» | Sí; el culpable es `.freq_clean_other_label_es`, no `es_otros_sugerido` | Motor: `reporte_frecuencias.R:896-917` y su gemelo `reporte_plan_opciones.R:69-88` | — | **Alta**: rótulo falso en Frecuencias y en el mazo; además suma opciones que acaban como «Otros» | pendiente |
+| G9 | La nota de significancia pisa la leyenda en `p_barras_agrupadas` con cruces | Sí: bandas de alto fijo (0,40 y 0,75 in) sin medir líneas | Motor: `graficador_barras_agrupadas.R:1804-1821`, `:2155-2168` | Apiladas ya mide su leyenda (`.barras_leyenda_alto_in`, `graficador_helpers_leyenda.R:125`) | Media | pendiente |
+
 **Lo que cubre la ampliación de B1 y B2.** «Reemplazar respuestas no alcanza a la hija repeat y cambiar de base deja
 un origen viejo» es B2 + B1. El rodeo de ese día —rehacer el proyecto y copiar `codif_por_base` a mano— pasa a ser
 el criterio de aceptación de ambos: pasar de la base total a la muestra con «Nueva versión» conserva el catálogo
@@ -68,6 +80,7 @@ el criterio de aceptación de ambos: pasar de la base total a la muestra con «N
 | D9 | **Analítica con derivadas**: si existe `p_recod`/`p_agrup`, ¿se oculta la original de las secciones sugeridas o se lista detrás? | B9 | Proponer la derivada más reciente y dejar la original disponible pero fuera de las secciones sugeridas |
 | D11 | **«(Recodificada)» en el título**: ¿se quita de Frecuencias y Cruces siempre, o solo en los entregables al cliente (y se conserva en el libro de códigos interno)? | B0b | Quitarlo de Frecuencias y Cruces, como ya hacen PPT y Word. El libro de códigos distingue la recodificada por su nombre `_recod` |
 | D12 | **Rótulo corto del banner**: ¿dónde vive? (a) campo `rotulo` por variable del banner en la config de Cruces; (b) reusar `etiquetas_vars` de Gráficos como fuente única de etiqueta corta; (c) una columna del XLSForm (`label::short`) | B17 | (a) con (b) como valor sugerido: el rótulo es del banner, y no debe cambiar el enunciado de la misma variable cuando va en filas |
+| D13 | **Códigos no sustantivos en escalas** (9 «No tengo información suficiente», 77 «No lo sé / No uso este recurso»): ¿se excluyen solos del denominador del Top Two Box y de la escala, o solo cuando el plan lo declara? | G4 | Solo cuando se declara, pero con aviso en la lámina si una escala trae una categoría que no es del recorrido. El 9 no cae en ningún rango estándar y no se puede adivinar |
 | D10 | **Runner headless**: ¿script oficial soportado (con target de Makefile) o solo herramienta interna de QA? ¿Puede escribir el `.pulso` de vuelta? | B11 | Herramienta interna que escribe a un `.pulso` nuevo, nunca al original; se decide después de cerrar B1, B2 y B13, que son las que hoy obligan a rodearla |
 
 ## Detalle por brecha
@@ -506,6 +519,93 @@ variable en filas. El editor del banner lo propone desde `etiquetas_vars` si exi
 
 **Dependencias**: D12.
 
+### G1–G9. Gráficos (mazo de CCSS 2026)
+
+Verificado leyendo código. G1, G5 y G8 se reprodujeron además con `pkgload::load_all` sobre una copia del
+`.pulso` de la muestra 400. Nota de casa: `reporte_plan_ppt.R` está **congelado** (9 272 líneas, línea base 9 304),
+así que todo lo que toque esa ruta va en un archivo nuevo al que el congelado llama.
+
+**G1 — select_multiple por su madre original.** `/api/graficos/ppt` (`router_graficos.R:3080-3110`) toma
+`s$rp_data_sources`, reconstruidas con `normalize_data_for_xlsform` → `reporte_data` → `sanitize_base_data`
+(`project_pulso.R:853-868`). `reporte_data` genera las dummies y las renombra con `clean_dummy_name`, que hace
+`tolower` (`reporte_data.R:182-185`, `:473`): salen `a9.1`, `b1.1`…. El único realineo de Gráficos,
+`.graficos_align_recoded_dummy_names` (`graficos_plan_coverage.R:57-89`), solo recorre variables `_recod` (`:62`).
+`freq_table_spss` distingue mayúsculas (`reporte_frecuencias.R:1065-1072`) y aborta. Analítica funciona porque llama
+a `.analitica_restore_survey_case` (`router_analitica.R:2715`). Con esa función, la misma data da A9 = 379 / 301 / 56
+sobre 397. Afecta a **toda** SM no recodificada (A12, B3, B4, B11, B14, B18, E1…). La cobertura dice que hay datos
+porque compara sin mayúsculas (`graficos_plan_coverage.R:36-40`). **Fix**: llamar a `.analitica_restore_survey_case`
+por base en `finalize_sources` (`router_graficos.R:860`) y en `graficos_consolidado.R:152`. El arreglo de raíz es
+que `clean_dummy_name` conserve el caso del stem, pero alcanza a todo el motor y va aparte, con su propio análisis
+de impacto. Es primo del commit `50cdabdfe` (capitalización en el normalizador): conviene un test de contrato que
+compare, para la misma base, las columnas que ven Analítica y Gráficos.
+
+**G2 — `p_cifra` con SM.** `.cifra_desde_datos` (`graficos_cifra.R:36-40`) exige `var %in% names(data)`; no hay
+detección de SM. **Fix**: si `var` no existe y hay `var.k`, resolver `categoria` a código (`.explorar_map_choices`)
+y calcular sobre `var.<código>`, con base en los casos que tienen alguna dummy no NA. Depende de G1.
+
+**G3 — `excluir_opciones` como arreglo.** El body se relee con `simplifyVector = FALSE`
+(`router_graficos.R:111-121`, `:2089-2097`), así que un arreglo llega como `list`. `.clean_rebuild_args`
+(`:175-210`) no convierte tipos, y `.ppt_norm_chr_vec_arg` (`reporte_plan_slides.R:1892-1899`) aborta si no es
+character. Afecta a agrupadas (`:1976`), categóricas (`:2062`, y por ella dicotómica) y apiladas (`:2114`). El tipo
+`codigos_list` del registro (`graficos_metadata.R:28`) solo lo lee la UI. **Fix**: `.ppt_norm_chr_vec_arg` aplana
+`list`, convierte numeric/logical y trata `list()` como NULL. Test con los tres formatos.
+
+**G4 — multiapiladas sin exclusión.** El registro (`graficos_metadata.R:1282-1367`) y los formales
+(`reporte_plan_slides.R:2165-2189`) no tienen `excluir_opciones`. `router_graficos.R:203` y
+`graficos_miniaturas.R:252` descartan en silencio todo argumento que no sea formal. El renderer ya excluye antes de
+calcular porcentajes (`.reporte_plan_excluir_cascada`, `reporte_plan_opciones.R:698-718`; uso en
+`reporte_plan_ppt.R:4128-4142`). El Top Two Box suma columnas de porcentajes calculados sobre todas las categorías
+(`graficador_barras_apiladas.R:2758-2777`). **Fix**: formal + registro («Excluir del denominador») y propagarlo a
+los cuatro `el` y a los bloques de multilista. Además, **avisar** de los argumentos descartados en
+`.clean_rebuild_args` (`setdiff(names(args), names(formals(fn)))`): ese aviso habría delatado G4 y protege a todo el
+registro. La exclusión automática queda sujeta a D13. Mientras tanto, `overrides.excluir_opciones` funciona.
+
+**G5 — orden de rangos.** El choices y `orders_list$B2` están en 1..5; el desorden lo mete el plan.
+`.plan_orden_categorias` (`reporte_plan_ppt.R:6925`) → `.goc_traducir` (`graficos_orden_categorias.R:207`) →
+`.goc_orden_rangos` (`graficos_orden_rangos.R:21-28`). Esta toma el primer número sin unidades
+(«Menos de 30 minutos» = 30, «Entre 1 hora y…» = 1), ve un orden revuelto y lo «corrige» a 3, 4, 5, 1, 2. La
+heurística existe para recodificadas revueltas (comentario `:3-7`), pero corre también sobre variables originales
+y en el modo «instrumento» explícito. **Fix**: que el modo «instrumento» explícito respete el choices tal cual; que
+la heurística solo actúe sobre `_recod`/`_agrup` y solo si todas las etiquetas tienen la misma forma de rango y la
+misma unidad. Test con `tiempo_llegada` y con el caso de acrconta que motivó la heurística.
+
+**G6 — título duplicado.** Las mixtas (`paneles_4`, `reporte_plan_ppt.R:8340`; `1mas2` y `cifras_y_graficos`,
+`reporte_slides_composicion.R:96-107`) mandan a respaldo los paneles que no caben en piezas nativas.
+`.lam_mixta_respaldo_caja` (`lamina_mixtas.R:503-518`) dibuja el título del panel e intenta borrar el del gráfico
+con `labs(title = NULL)`. Pero agrupadas en canvas dibuja su título con `cowplot::draw_text`
+(`graficador_barras_agrupadas.R:1989-2002`), así que sobrevive. **Fix**: re-render del respaldo con
+`overrides$titulo = ""` y `subtitulo = ""`, junto al `nota_pie = ""` que ya existe
+(`reporte_slides_composicion.R:100`), y lo mismo en `.lam_composicion_mixta` (`lamina_mixtas.R:452`). Vale para todo
+graficador canvas.
+
+**G7 — título en dos líneas.** En la ruta de plantilla, el placeholder del título (`slideLayout6.xml`: y = 0,37 in,
+alto 0,685 in, 24 pt) termina cerca de 1,27 in, y los gráficos empiezan en 1,17–1,21 in. Nada mide el título en
+`.ph_with_strict`. En la ruta nativa, `.lam_titulo_desplazo` (`lamina_titulo_alto.R:10-19`) solo desplaza desde
+cuatro líneas y solo lo usan escala y multilista. `.lam_aviso_titulo` (`lamina_avisos_lineas.R:172-179`) solo avisa
+con más de dos. **Fix**: medir con `.lam_lineas_tinta` en la ruta de plantilla y, con dos líneas, bajar los
+gráficos (`loc` explícito) o avisar. Envolver mixtas y narrativo2 en `.lam_con_titulo`. La lógica va en un archivo
+nuevo (`lamina_titulo_plantilla.R`); el congelado solo gana la llamada.
+
+**G8 — «Otra persona…» como «Otros».** `.freq_clean_other_label_es` (`reporte_frecuencias.R:896-917`) marca como
+otro toda etiqueta que **empiece** por «otro/otra» (`:912`) y la renombra «Otros» (`:915`). Además, si dos opciones
+quedan como «Otros», las **suma** (`.freq_clean_option_labels_for_export`, `:969-993`). El gemelo
+`.reporte_plan_clean_other_label_es` (`reporte_plan_opciones.R:69-88`) lleva el problema al mazo, también por
+`.goc_traducir` (`graficos_orden_categorias.R:229`). `es_otros_sugerido` (`router_codificacion.R:636-643`) solo
+sugiere en la UI de Codificación y no renombra. **Fix**: una sola función para los dos sitios. Es «otro» solo la
+etiqueta que, sin «especifique», queda en «otro/a/s», o la opción que el instrumento declara como disparadora del
+`_otro` (empalma con el `trigger_code` de B8). Test: «Otra persona responsable» se conserva y «Otro (especifique)»
+pasa a «Otros».
+
+**G9 — nota de significancia sobre la leyenda.** La nota (`graficos_significancia.R:307-335`) se parte cada 72
+caracteres y añade el mapa de letras: dos a cuatro líneas a 8 pt. La banda del caption mide 0,40 in fijos y la de
+la leyenda 0,75 in (`graficador_barras_agrupadas.R:487-489`, `:1804-1821`). El caption se centra sin medir
+(`:2155-2168`), y en los slots chicos todo se comprime en npc (`:1842-1862`). `.reservar_pie_para_base_slide` no
+reserva nada cuando hay caption (`reporte_plan_helpers.R:3135`). **Fix**: alto del caption según sus líneas, alto de
+la leyenda con `.barras_leyenda_alto_in`, y caption anclado arriba de su banda (`vjust = 1`).
+
+**Verificación común de G1–G9**: regenerar el mazo de 38 láminas del caso con A9 y B1 de vuelta y **revisar las
+láminas renderizadas**, no el XML. Tres fallos (G6, G7, G9) son de geometría y solo se ven en la imagen.
+
 ## Orden sugerido en oleadas
 
 Reglas de la casa: máximo tres trabajadores y dos writers con globs sin solape; `autor-regresiones` fija el rojo
@@ -517,6 +617,8 @@ primero; toda oleada termina en `verificador`; gate por área (`make gate-area A
 | 0 | 8 | D1–D12 con Gonzalo; ADR nuevo de selección y depuración (D1–D4); enmienda al ADR 0100 (D6, D8) | lead | `docs/adrs/`, este plan | — |
 | 1 | 1 | **B0a** (prioridad 1) · **B1 + B13** | `autor-regresiones` (rojo de B0a, B1 y B13) → `backend-r` A (`orden_categorias.R`) · `backend-r` B (`codificacion_origen_vigente.R`, `router_codificacion.R` mínimo) | sin solape | `gate-area` analítica y codificación; regenerar Frecuencias y Cruces del `.pulso` de la muestra 400 y **leer las tablas** (A1, B3, B14, E2 en orden, 98/99 al final) |
 | 1b | 1 | **B10** (solo medir) | `diagnosticador-regresiones` (solo lectura) | `tmp/` | informe de tiempos por tramo |
+| 1G | 1 | **G1 + G2** · **G5 + G8** (los cuatro que dan cifras o rótulos falsos en el mazo) | `autor-regresiones` → `backend-r` A (`router_graficos.R` `finalize_sources`, `graficos_consolidado.R`, `graficos_cifra.R`) · `backend-r` B (`graficos_orden_rangos.R`, `graficos_orden_categorias.R`, una función de «otro» compartida que usen `reporte_frecuencias.R` y `reporte_plan_opciones.R`) | sin solape; B toca `reporte_frecuencias.R` solo en la función de «otro» (B0b la toca después) | `gate-area` gráficos y analítica; test de contrato «Analítica y Gráficos ven las mismas columnas»; regenerar el mazo con A9 y B1 |
+| 1H | 1 | **G3 + G4** · **G6 + G7 + G9** | `backend-r` A (`reporte_plan_slides.R`, `graficos_metadata.R`, aviso de argumentos descartados en `router_graficos.R:175-210`) · `especialista-entregables` B (`lamina_mixtas.R`, `reporte_slides_composicion.R`, `lamina_titulo_alto.R`, nuevo `lamina_titulo_plantilla.R`, `graficador_barras_agrupadas.R`) | A y B tocan `router_graficos.R` en zonas distintas: solo A; B no lo toca | `gate-area` gráficos; `sync-agentic-os --audit` (congelado sin crecer); render del mazo y revisión visual lámina por lámina de las afectadas |
 | 2 | 1 | **B14 + B15** · **B2** | `backend-r` A (`base_variables_instrumento.R`, `carga_origen_externo.R`, `router_analitica.R:2242/2280`, `helpers_multibase.R`) · `backend-r` B (`carga_reemplazar_respuestas.R`, `carga_xlsx_repeats.R`) | sin solape; A comparte con B1 la regla de linaje (se congela en la oleada 1) | `gate-area` carga, base-variables y analítica; total → muestra con «Nueva versión» sin rehacer el proyecto; reabrir y preparar sin error |
 | 3 | 1 | **B5** · **B6** | `backend-r` (Cruces: orden ponderar/excluir; `base_variables_servicio.R`, `segmentos_cruce.R`) · `frontend-react` (`PesoPorColumna.tsx`, `ColumnasDeLaBase.tsx`, acceso desde Cruces) | contrato congelado antes: candidatas de peso y tipo declarable | `gate-area` analítica y base-variables, `gate-front`, `ui-quick-check` de Carga › Variables y Analítica › Cruces |
 | 4 | 1 | **B12 + B16** · **B9** (markdown + tipos) | `backend-r` A (`jobs.R`, `app_paths.R`, los siete closures de job) · `backend-r` B (`analitica_secciones_detectar.R`, con sus tres consumidores cambiados por una sola llamada) | A toca `router_analitica.R` solo en los jobs; B solo en el handler de detect-secciones | `gate-area` jobs y analítica; correr cruces con el servidor fuera de la raíz del repo |
@@ -532,7 +634,8 @@ fix en `orden_categorias.R` y la regeneración de las tablas del caso. No depend
 **Criterio de cierre del plan**: rehacer el procesamiento de CCSS 2026-II dentro de la app, sin script
 externo ni curl, y que la base, el factor y las frecuencias coincidan con los del 24-10. Además, Frecuencias y
 Cruces salen con las categorías en el orden del instrumento, los especiales al final y el rótulo acordado, sin
-editar el XLSForm a mano. Solo Gonzalo da por cerrado cada ítem.
+editar el XLSForm a mano. Y el mazo de 38 láminas sale con todas sus variables (A9 y B1 incluidas), sin orden
+manual en B2, sin títulos duplicados ni texto montado. Solo Gonzalo da por cerrado cada ítem.
 
 ## Notas para la próxima sesión
 
