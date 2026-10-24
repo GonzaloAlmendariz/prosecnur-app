@@ -65,7 +65,9 @@
   # emitia dos veces —una en el placeholder y otra en su sitio— y la lamina del
   # radar acababa con dos tablas.
   nat <- .tabla_nativa_de(p)
-  if (!is.null(nat) && is.list((nat$estilo %||% list())$geom_frac)) {
+  # `lugar_auto`: la tabla de un radar en lineas y puntos o barras decide su sitio (o se omite) al colocar la lamina
+  # (`.lam_tabla_costado_geom`); nunca ocupa el placeholder.
+  if (!is.null(nat) && (is.list((nat$estilo %||% list())$geom_frac) || isTRUE((nat$estilo %||% list())$lugar_auto))) {
     return(rvg::dml(ggobj = p, bg = "transparent"))
   }
   nativa <- .tabla_nativa_de(p)
@@ -121,6 +123,9 @@
   ancho_cajon <- num("ancho_in", NA_real_)
   if (is.finite(ancho_cajon) && ancho_cajon > 0 && ncol(tabla) >= 2L) {
     frac_1 <- num("primera_col_frac", 0.40)
+    # La primera columna en pulgadas (tabla de datos del radar): manda sobre la fraccion por defecto.
+    col1_in <- num("ancho_col1_in", NA_real_)
+    if (is.finite(col1_in) && col1_in > 0) frac_1 <- col1_in / ancho_cajon
     if (!is.finite(frac_1) || frac_1 <= 0 || frac_1 >= 0.9) frac_1 <- 0.40
     resto <- (1 - frac_1) / (ncol(tabla) - 1L)
     ft <- flextable::width(ft, j = 1, width = ancho_cajon * frac_1)
@@ -150,6 +155,12 @@
     padding.left = num("padding_h", 6), padding.right = num("padding_h", 6),
     part = "all"
   )
+  # Fila fija (tabla de datos del radar): el alto que uso el calculo de sitio.
+  alto_fila <- num("alto_fila", NA_real_)
+  if (is.finite(alto_fila) && alto_fila > 0) {
+    ft <- flextable::height_all(ft, height = alto_fila, part = "all")
+    ft <- flextable::hrule(ft, rule = "atleast", part = "all")
+  }
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(ft, border = borde, part = "all")
   ft <- flextable::border_inner_h(ft, border = borde, part = "all")
@@ -175,6 +186,8 @@
 .tabla_nativa_geom <- function(p, loc) {
   nativa <- .tabla_nativa_de(p)
   if (is.null(nativa)) return(NULL)
+  # Lineas y puntos o barras con tabla de datos: el sitio (costado, debajo u omitida) se decide con el cajon real.
+  if (isTRUE((nativa$estilo %||% list())$lugar_auto)) return(.lam_tabla_costado_geom(nativa$estilo, loc))
   g <- (nativa$estilo %||% list())$geom_frac
   if (!is.list(g)) return(NULL)
 
@@ -213,6 +226,13 @@
   if (is.null(geom_tab) || is.null(slot)) return(slot)
   loc <- slot$loc
   if (is.null(loc)) return(slot)
+
+  # La tabla de datos con sitio decidido (costado o debajo) dice cuanto le queda al grafico: ancho si va al costado y alto
+  # si va debajo.
+  if (!is.null(geom_tab$graf_w) && !is.null(geom_tab$graf_h)) {
+    if (identical(geom_tab$lugar, "debajo")) slot$loc$height <- geom_tab$graf_h else slot$loc$width <- geom_tab$graf_w
+    return(slot)
+  }
 
   izq <- suppressWarnings(as.numeric(loc$left)[1])
   ancho <- suppressWarnings(as.numeric(loc$width)[1])

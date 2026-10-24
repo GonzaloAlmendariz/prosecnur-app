@@ -61,7 +61,10 @@ test_that("«no hay secreto» y «hay uno que no abre» se distinguen", {
   expect_false(prosecnur_secret_locked("un_secreto_que_no_existe"))
 
   con <- file(prosecnurapp:::.secret_path(nombre), open = "wb")
-  writeBin(openssl::rand_bytes(64L), con); close(con)
+  # 16 bytes de IV + 20 de cifrado: no es múltiplo del bloque AES, así que
+  # ninguna clave lo abre. Con 64 bytes al azar el relleno salía válido ~1 de
+  # cada 128 corridas y el test caía en falso (CI de 0.9.4).
+  writeBin(openssl::rand_bytes(36L), con); close(con)
   expect_true(prosecnur_secret_exists(nombre))
   expect_true(prosecnur_secret_locked(nombre))
   expect_true(is.na(prosecnur_secret_load(nombre)))

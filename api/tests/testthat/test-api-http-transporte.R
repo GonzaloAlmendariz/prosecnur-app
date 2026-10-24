@@ -24,7 +24,10 @@
     # pone timeout y connecttimeout) y le suma un timeout proporcional al peso
     # del cuerpo, porque un bundle de fichas no sube en los segundos que basta
     # para una llamada de Sheets. Su test de módulo comprueba las dos cosas.
-    "collection_drive.R"       # Google Drive      -> test-collection-drive.R
+    "collection_drive.R",      # Google Drive      -> test-collection-drive.R
+    # Mailchimp por API (material de campo y Monitoreo › Correo): `.mc_http`
+    # construye su handle con timeout 60 s y connecttimeout 15 s.
+    "collection_mail_mailchimp.R" # Mailchimp     -> test-collection-mail-mailchimp-api.R
   )
 }
 

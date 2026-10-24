@@ -26,7 +26,11 @@
 #' @param corte Sólo en modo `publicos`: códigos que suman el indicador.
 #' @param corte_etiqueta Sólo en modo `publicos`: nombre del indicador.
 #' @param estilo Sólo en modo `publicos`: clave de `.RADAR_MB_ESTILOS`.
-#' @param mostrar_tabla Sólo en modo `publicos`: compone el radar con su tabla.
+#' @param mostrar_tabla Sólo en modo `publicos`: alias viejo de `tabla` (`TRUE` es `"auto"`, `FALSE` es `"no"`).
+#' @param tabla Sólo en modo `publicos`: tabla de datos del gráfico, `"auto"` (defecto: junto al radar, ninguna con líneas y
+#'   puntos o barras), `"si"` (en las tres formas) o `"no"`.
+#' @param word_tabla Sólo en modo `publicos`: `TRUE` pone en el Word una tabla nativa, centrada y encima de la figura; por
+#'   defecto no va.
 #' @param eje_min Sólo en modo `publicos`: piso del eje radial en puntos
 #'   porcentuales.
 #' @param tabla_titulo,tabla_encabezados,tabla_ancho_tema,tabla_proporcion Sólo
@@ -77,7 +81,9 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     eje_pocos = NULL,
                     eje_pocos_min = NULL,
                     eje_pocos_max = NULL,
-                    forma = NULL) {
+                    forma = NULL,
+                    tabla = NULL,
+                    word_tabla = NULL) {
   overrides <- .radar_slot_limites(overrides %||% list(), limites)
   # Holgura del panel (1 a 2): va a `overrides`, que es lo que `graficar_radar()` lee en los tres modos.
   overrides <- .radar_slot_margen(overrides, margen_etiquetas)
@@ -93,7 +99,7 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
     # render cuando ni el grafico ni el preset dicen nada.
     return(p_radar_publicos(
       vars = vars, corte = corte, estilo = estilo %||% "comparativo",
-      corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
+      corte_etiqueta = corte_etiqueta, mostrar_tabla = mostrar_tabla,
       mostrar_valores = mostrar_valores,
       decimales = valores_decimales, eje_min = eje_min,
       tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
@@ -101,7 +107,7 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
       titulo = titulo, overrides = overrides, base = base, filtros = filtros,
       titulos_grupo = titulos_grupo, fallback_pocos = fallback_pocos,
       eje_pocos = eje_pocos, eje_pocos_min = eje_pocos_min, eje_pocos_max = eje_pocos_max,
-      forma = forma
+      forma = forma, tabla = tabla, word_tabla = word_tabla
     ))
   }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())

@@ -37,6 +37,9 @@ describe("Control › Barrido del telefónico", () => {
     // Medios de Vida: su regla declara que el rechazo cierra. Es Terminal y se rotula.
     const cierra = clasificadorDeStatus([{ id: "r", label: "", final_state: "refusal", priority: 1, stop_contact: true, outcome_values: ["rechazo"] }]);
     expect(cierra("Rechazo")).toEqual({ familia: "terminal", conRegla: true, porRegla: true });
+    // Una efectiva que también cierra el contacto sigue siendo efectiva (RMS ficticio).
+    const efectivaQueCierra = clasificadorDeStatus([{ id: "e", label: "", final_state: "complete", priority: 1, stop_contact: true, outcome_values: ["Efectivo"] }]);
+    expect(efectivaQueCierra("Efectivo").familia).toBe("efectiva");
   });
 
   it("une las fechas tecleadas de dos formas y aparta las de otro año", () => {

@@ -23,11 +23,13 @@
 #' Pone una tabla con el formato del recetario: ancho útil exacto, cabecera navy de 8.5 pt entre un filete de 1.25 y uno de
 #' 0.75, filetes grises de 0.5 entre filas, el de cierre navy y sin sangría a la izquierda de la primera columna
 #' @param cebra Fondo alterno; el recetario lo deja apagado (informe formal).
+#' @param ancho,align Ancho total de la tabla (el útil por defecto) y su alineación en la página.
+#' @param pegada Si `TRUE`, la tabla se queda en la página de lo que sigue.
 #' @keywords internal
-.word_poner_tabla <- function(doc, ft, cebra = FALSE) {
+.word_poner_tabla <- function(doc, ft, cebra = FALSE, ancho = .std_word("pagina", "ancho_util"), align = "left", pegada = FALSE) {
   navy <- .std_word("colores", "titulos")
   w <- dim(ft)$widths
-  ft <- flextable::width(ft, j = seq_along(w), width = w * .std_word("pagina", "ancho_util") / sum(w))
+  ft <- flextable::width(ft, j = seq_along(w), width = w * ancho / sum(w))
   ft <- ft |> flextable::bg(bg = "transparent", part = "header") |> flextable::color(color = navy, part = "header") |>
     flextable::fontsize(size = 8.5, part = "header") |> flextable::border_remove() |>
     flextable::hline_top(border = officer::fp_border(color = navy, width = 1.25), part = "header") |>
@@ -37,7 +39,9 @@
     flextable::padding(j = 1, padding.left = 0, part = "all")
   nb <- flextable::nrow_part(ft, "body")
   if (isTRUE(cebra) && nb > 2) ft <- flextable::bg(ft, i = seq(2, nb, 2), bg = .std_word("colores", "recuadro"), part = "body")
-  flextable::body_add_flextable(doc, flextable::paginate(ft, init = TRUE, hdr_ftr = TRUE), align = "left")
+  # `pegada`: la tabla no se parte de lo que sigue (la figura a la que acompaña): todas sus filas con keep-with-next.
+  ft <- if (isTRUE(pegada)) flextable::keep_with_next(flextable::keep_with_next(ft, value = TRUE, part = "header"), value = TRUE, part = "body") else flextable::paginate(ft, init = TRUE, hdr_ftr = TRUE)
+  flextable::body_add_flextable(doc, ft, align = align)
 }
 
 #' Tabla numerada del informe: rótulo «Tabla N: título» (una línea, azul, negrita y centrada) con SEQ, la tabla y, si la hay, la base debajo

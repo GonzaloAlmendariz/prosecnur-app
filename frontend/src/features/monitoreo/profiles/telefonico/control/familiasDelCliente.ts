@@ -34,7 +34,11 @@ export function claveDeStatus(valor: unknown): string {
 }
 
 function familiaDeRegla(regla: MonitoreoStateRule): FamiliaDelCliente | null {
-  if (regla.stop_contact) return "terminal";
+  // «Cierra el contacto» vuelve terminal lo que cierra sin ser efectiva (el
+  // rechazo de Medios de Vida se rotula Terminal a propósito). Una efectiva que
+  // también cierra sigue siendo efectiva: con Efectivo marcado «cierra»,
+  // Barrido contaba 0 efectivas en la hoja y 360 terminales (RMS ficticio).
+  if (regla.stop_contact && regla.final_state !== "complete") return "terminal";
   switch (regla.final_state) {
     case "complete": return "efectiva";
     case "partial": return "parcial";

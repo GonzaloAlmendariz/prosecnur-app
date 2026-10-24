@@ -254,7 +254,17 @@
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
   con_dif <- isTRUE(espec$mostrar_diferencia); con_n <- any(is.finite(espec$n_fila))
   k <- length(espec$rotulos)
-  xl <- ml + if (con_dif) 3.0 else 2.4; wl <- W - mr - xl - (if (con_dif) 2.4 else 1.0)
+  # Tabla de datos (radar entre públicos con `tabla = "si"`): al costado o debajo, y el gráfico cede ese sitio; si no cabe
+  # en ninguno se omite con aviso (lamina_tabla_costado.R).
+  tp <- .lam_pesas_tabla_plan(espec); x_der <- W - mr; ley_y <- g_("leyenda_y") - 0.05; ley_c <- W / 2
+  if (!is.null(tp)) {
+    .lam_tabla_costado_avisar(tp)
+    if (!identical(tp$lugar, "omitir")) {
+      x_der <- tp$graf_x1; yf <- tp$graf_y1; ley_c <- (ml + x_der) / 2
+      if (identical(tp$lugar, "debajo")) ley_y <- yf - 0.35
+    }
+  }
+  xl <- ml + if (con_dif) 3.0 else 2.4; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
   yb <- yt + 0.75; fila <- (yf - yb - 0.6) / k
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
@@ -299,8 +309,9 @@
              align = if (sube_b) "center" else if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
   }
-  .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$leyenda, espec$colores, centrar_en = W / 2)
+  .lam_leyenda(lz, ley_y, espec$leyenda, espec$colores, centrar_en = ley_c)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:pesas")
+  doc <- .lam_pesas_tabla_emitir(doc, espec, tp)
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
@@ -389,7 +400,9 @@
         all(.lam_ancho_txt(paste("Media", espec$cifras), 12, TRUE) <= 1.55)
     },
     pesas = {
-      k <- length(espec$rotulos); fila <- (yf - yt - 0.75 - 0.6) / max(1L, k)
+      k <- length(espec$rotulos)
+      tp <- .lam_pesas_tabla_plan(espec); if (!is.null(tp) && !identical(tp$lugar, "omitir")) yf <- tp$graf_y1   # la tabla debajo le quita alto
+      fila <- (yf - yt - 0.75 - 0.6) / max(1L, k)
       wrot <- if (isTRUE(espec$mostrar_diferencia)) 2.8 else 2.2; extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
       k >= 1L && k <= 12L && dos_lineas(espec$rotulos, wrot, 13) &&
         all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, wrot, 13, TRUE), 0) + extra <= fila)

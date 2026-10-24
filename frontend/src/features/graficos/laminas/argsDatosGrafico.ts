@@ -51,6 +51,8 @@ type Entrada = {
 export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se muestran.";
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
+export const AYUDA_TABLA =
+  "Con Líneas y puntos o Barras comparativas, elige “Sí” para ver la tabla; si no cabe al costado va debajo y, si tampoco, se omite con aviso.";
 export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como Sin encuestas y la lámina lo avisa.";
 export const AYUDA_CORTES = "Tres cortes dan cuatro clases. Vacío: 55, 65 y 75.";
@@ -148,7 +150,16 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
-  mostrar_tabla: { rotulo: "Tabla al costado", estricto: true, soloEn: ["p_radar"] },
+  // Radar entre públicos (Gonzalo, 2026-10-23): la tabla de datos es una opción del radar y de sus variantes. `tabla`
+  // reemplaza a `mostrar_tabla` (alias que el motor migra al cargar: aquí solo se lee y se escribe `tabla`).
+  forma: { rotulo: "Forma del gráfico", estricto: true, soloEn: ["p_radar"] },
+  // Eje y alternativa de las líneas y puntos: el front no conoce el número de criterios, así que salen siempre en
+  // «entre públicos»; la ayuda del registro dice cuándo rigen. Desde/hasta sólo con el eje personalizado.
+  fallback_pocos: { rotulo: "Con menos de 5 criterios", estricto: true, soloEn: ["p_radar"] },
+  eje_pocos: { rotulo: "Eje del gráfico de líneas y puntos", estricto: true, soloEn: ["p_radar"] },
+  eje_pocos_min: { rotulo: "Desde (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
+  eje_pocos_max: { rotulo: "Hasta (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
+  tabla: { rotulo: "Tabla de datos", ayuda: AYUDA_TABLA, estricto: true, soloEn: ["p_radar"] },
   tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: Tema.", estricto: true, soloEn: ["p_radar"] },
   eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
   objetivo: { rotulo: "Objetivo" },
@@ -283,6 +294,8 @@ export const RETIRADOS: ReadonlySet<string> = new Set([
   "umbral_rojo_pct", "mostrar_tabla_derecha", "modo_semaforo", "mostrar_ref_label", "mostrar_n_cruce_x", "radar_min_ejes",
   "bins", "ancho_bin", "mostrar_bins_vacios", "mostrar_saldo", "umbral_etiqueta_pct",
   "mostrar_promedio", "formato_valor", "cortes_chip",
+  // Reemplazado por `tabla` (auto | si | no); el valor guardado lo migra el motor al cargar.
+  "mostrar_tabla",
 ]);
 /** Familias retiradas enteras: las brechas declaradas (`brecha_*`) y los args propios de la matriz FODA. */
 const RETIRADO_PREFIJO = ["brecha_"];
