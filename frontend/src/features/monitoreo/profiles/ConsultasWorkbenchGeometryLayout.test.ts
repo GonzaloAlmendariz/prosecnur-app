@@ -41,7 +41,9 @@ describe("Consultas: cada fila visible tiene un dueño", () => {
       /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/.test(body)
     ))).toBe(true);
     expect(accreditationPage).not.toMatch(/clarity=\{/);
-    expect(accreditationPage).toMatch(/head=\{\(\s*<CabeceraAcreditacion/);
+    // La cabecera ocupa la fila `auto` salvo cuando el rótulo de la pestaña va
+    // en su primera tarjeta (§2a-bis): entonces no hay fila de cabecera.
+    expect(accreditationPage).toMatch(/head=\{conRotuloEnTarjeta \? null : \(\s*<CabeceraAcreditacion/);
   });
 
   // Revamp de Monitoreo (2026-10-23): Telefónico retiró la franja de lectura;
