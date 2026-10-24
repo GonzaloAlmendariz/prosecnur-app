@@ -61,7 +61,7 @@
   width: 100%;
   min-height: 32px;
   padding: 0 var(--pulso-space-2);
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--pulso-text);
@@ -79,8 +79,8 @@
 }
 
 .acr-pr-grupo button.is-activo {
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 9%, var(--pulso-surface));
-  box-shadow: inset 2px 0 0 var(--pulso-module-monitoring);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
   font-weight: var(--pulso-weight-semibold);
 }
 
