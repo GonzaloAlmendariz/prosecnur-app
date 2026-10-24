@@ -20,6 +20,8 @@ export type FilaDelPadron = {
 
 export type ModeloPadron = {
   disponible: boolean;
+  /** Sin el corte de Validación no se sabe cuántos casos tiene cada código: se muestra «—», no 0. */
+  conCasos: boolean;
   archivo: { nombre: string; personas: number; formato: string; subido: string };
   filas: FilaDelPadron[];
   fueraDelPadron: Array<{ codigo: string; casos: number }>;
@@ -75,6 +77,7 @@ export function construirPadron(
 
   return {
     disponible: asignaciones.length > 0,
+    conCasos: Boolean(reports?.production_annulments),
     archivo: {
       nombre: String(padron?.file_name ?? ""),
       personas: Math.round(n(padron?.total) || asignaciones.length),

@@ -7,6 +7,8 @@ import {
 } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { construirMapeo } from "./mapeoModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./insumos.css";
 
 type Lectura = { tipo: "cargando" } | { tipo: "listo"; mapeo: MonitoreoTerritorialMapeo } | { tipo: "error"; mensaje: string };
@@ -52,6 +54,7 @@ function MapeoTabImpl({
     >
       <section className="mon-ins-panel" aria-labelledby="mon-ins-roles" data-qa-geometry-member="roles">
         <header className="mon-ins-cabecera">
+          <RotuloDePestana />
           <h3 id="mon-ins-roles" className="mon-ins-titulo">Roles del formulario</h3>
           {modelo.roles ? <span className="mon-ins-base">{modelo.pendientes ? `${fmt(modelo.pendientes)} sin columna en la base` : "Todos con su columna"}</span> : null}
           <button type="button" className="mon-ins-boton" onClick={onEditarMapeo}>Editar el mapeo</button>
@@ -69,7 +72,7 @@ function MapeoTabImpl({
                   <tr key={rol.campo} className={rol.estado === "encontrada" ? "" : "is-falta"}>
                     <th scope="row">{rol.rol}</th>
                     <td>{rol.columna ? <code>{rol.columna}</code> : "—"}</td>
-                    <td>{rol.rotuloDeEstado}</td>
+                    <td><span className={`mon-ter-chip ${rol.estado === "encontrada" ? "is-ok" : "is-falta"}`}>{rol.rotuloDeEstado}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -80,8 +83,8 @@ function MapeoTabImpl({
         )}
       </section>
 
-      <div className="mon-ins-derecha" data-qa-geometry-member="reglas">
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-filtro">
+      <div className="mon-ins-derecha" data-qa-geometry-member="reglas" data-qa-geometry-group="territorial-insumos-mapeo-reglas" data-qa-geometry-contract="intrinsic">
+        <section className="mon-ins-panel" aria-labelledby="mon-ins-filtro" data-qa-geometry-group="territorial-insumos-mapeo-filtro" data-qa-geometry-contract="intrinsic">
           <header className="mon-ins-cabecera">
             <h3 id="mon-ins-filtro" className="mon-ins-titulo">Filtro de efectivas</h3>
             <button type="button" className="mon-ins-boton" onClick={onEditarFiltro}>Editar filtro y distritos</button>
@@ -111,8 +114,12 @@ function MapeoTabImpl({
           {modelo.distritos.length ? (
             <ul className="mon-ins-lista">
               {modelo.distritos.map((fila) => (
-                <li key={fila.codigo} className={fila.ok ? "" : "is-falta"}>
-                  <code>{fila.codigo}</code> {fila.etiqueta} → {fila.ok ? `${fila.ubigeo} · ${fila.distrito}` : "sin ubigeo"}
+                <li key={fila.codigo} className={`mon-ins-distrito${fila.ok ? "" : " is-falta"}`}>
+                  <span className="mon-ins-distrito-sello" aria-hidden="true"><SiluetaDeDistrito distrito={fila.ok ? fila.distrito : ""} lado={26} /></span>
+                  <span><code>{fila.codigo}</code> {fila.etiqueta}</span>
+                  {fila.ok
+                    ? <span className="mon-ins-distrito-destino">{fila.ubigeo} · {fila.distrito}</span>
+                    : <span className="mon-ter-chip is-falta">Sin ubigeo</span>}
                 </li>
               ))}
             </ul>

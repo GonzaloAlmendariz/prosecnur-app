@@ -6,6 +6,7 @@ import { opcionesDeFase } from "../navegacion/fase";
 import { fmt } from "../rotulos";
 import { MapaDeLaMuestra } from "./MapaDeLaMuestra";
 import { construirMetas } from "./metasModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./modelo.css";
 
 /**
@@ -32,6 +33,7 @@ function MetasTabImpl({
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-muestra" aria-label="Metas y muestra">
         <div className="mon-mod-panel mon-mod-vacio">
+          <RotuloDePestana />
           <MapIcon size={20} aria-hidden="true" />
           <strong>Sin muestra de Hojas de ruta</strong>
           <span>La meta y las UMP salen de la muestra que se arma en Hojas de ruta.</span>
@@ -49,9 +51,10 @@ function MetasTabImpl({
       data-qa-geometry-group="territorial-modelo-metas"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="mon-mod-izquierda" data-qa-geometry-member="metas">
+      <div className="mon-mod-izquierda" data-qa-geometry-member="metas" data-qa-geometry-group="territorial-modelo-metas-columna" data-qa-geometry-contract="intrinsic">
         <section className="mon-mod-panel" aria-labelledby="mon-mod-meta">
           <header className="mon-mod-cabecera">
+            <RotuloDePestana />
             <h3 id="mon-mod-meta">Meta por distrito</h3>
             <button type="button" className="mon-mod-boton" onClick={abrirHojasDeRuta}>
               <ExternalLink size={14} aria-hidden="true" />
