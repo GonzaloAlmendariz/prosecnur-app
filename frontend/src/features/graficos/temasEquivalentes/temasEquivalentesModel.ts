@@ -208,7 +208,7 @@ const ARGS_PROPIOS_RADAR: Record<string, readonly string[]> = {
   sm: ["var", "cruce"],
   box: ["vars", "cruce", "box_labels"],
   publicos: [
-    "vars", "corte", "corte_etiqueta", "estilo", "eje_min", "mostrar_tabla", "tabla_titulo", "tabla_encabezados",
+    "vars", "corte", "corte_etiqueta", "estilo", "eje_min", "forma", "fallback_pocos", "eje_pocos", "eje_pocos_min", "eje_pocos_max", "tabla", "mostrar_tabla", "tabla_titulo", "tabla_encabezados",
     "tabla_ancho_tema", "tabla_proporcion", "titulos_grupo",
   ],
 };

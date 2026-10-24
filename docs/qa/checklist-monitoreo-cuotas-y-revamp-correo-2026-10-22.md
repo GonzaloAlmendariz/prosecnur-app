@@ -1,5 +1,10 @@
 # Checklist · T2 metas por cuota + revisión visual de Correo (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-22
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «Dale con T2, luego revisa la UI porque se ve altamente simple, plana y le falta
 profesionalismo».
 

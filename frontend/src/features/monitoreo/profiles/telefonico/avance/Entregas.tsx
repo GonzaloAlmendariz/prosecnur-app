@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { rotuloDelSegmento } from "../segmentoDeCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CuotasFaltante } from "./cuotasFaltanteModel";
@@ -34,7 +35,7 @@ export function Entregas({
   corte: string;
   salidas: ReactNode;
 }) {
-  const segmento = modelo?.segmento || "Categoría";
+  const segmento = rotuloDelSegmento(modelo?.segmento ?? "") || "Categoría";
   const maximoDia = Math.max(1, ...dias.map((dia) => dia.casos));
   return (
     <div className="mon-entregas" data-qa-geometry-group="telefonico-avance-entregas" data-qa-geometry-contract="intrinsic">

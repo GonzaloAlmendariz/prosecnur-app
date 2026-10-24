@@ -1,8 +1,10 @@
 # Revamp de Monitoreo · Territorial
 
 Tipo: Especificación de maqueta (estándar de ficha v2, §5)
-Estado: Propuesta para revisión de Gonzalo
+Estado: En curso
+Situación: Propuesta para revisión de Gonzalo
 Fecha: 2026-10-22
+Autoridad: Gonzalo (pedido de sesión)
 Lienzo: https://claude.ai/artifact/3XUDDUWpFbUwsuzdiYaDXQ («Revamp de Monitoreo · Territorial», 32 tableros)
 Proyecto de datos: copia de trabajo de `ACNURCG` (ACNUR Comunidad de Acogida, territorial por UMP/manzana, Kobo), corte
 guardado el 9/07/26 07:24. Cifras recalculadas sin red con `.monitoreo_dashboard_for_session()` del motor sobre la copia

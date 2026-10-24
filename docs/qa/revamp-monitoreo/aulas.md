@@ -1,8 +1,10 @@
 # Revamp de Monitoreo · Cursos-horario — arquitectura y fichas por pestaña
 
 Tipo: Especificación de maqueta (copia durable del lienzo)
-Estado: Fichas completas con el esqueleto común (Insumos · Modelo · Control · Avance), pendientes de tu revisión
+Estado: En curso
+Situación: Fichas completas con el esqueleto común (Insumos · Modelo · Control · Avance), pendientes de tu revisión
 Fecha: 2026-10-23
+Autoridad: Gonzalo (pedido de sesión)
 Lienzo: https://claude.ai/artifact/DUz7BW49dHvfQX34wrmaPo («Revamp de Monitoreo · Cursos-horario», privado, 28 tableros)
 Estándar: `docs/qa/revamp-monitoreo/estandar-de-ficha.md` (v2)
 Procedimientos: `docs/qa/revamp-monitoreo/procedimientos-respondidos.md` manda sobre cualquier supuesto de este documento.

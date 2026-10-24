@@ -1,5 +1,10 @@
 # Checklist — comparativos HSyVbG 2024-2026 (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-22
+Autoridad: Indicaciones de Gonzalo (citadas abajo); sólo él da por terminado un ítem
+
 Indicaciones de Gonzalo sobre los comparativos simple y de cruces generados el 2026-10-22
 (`Procesamiento/Tercera semana/Entregables 2026-10-22/`). Referencia de contenido: matriz de
 correspondencias de Nadia. Los cambios van a la matriz de la copia de trabajo por la API

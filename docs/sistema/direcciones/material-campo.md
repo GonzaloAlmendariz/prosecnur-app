@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `material-campo` · ruta `/material-campo` · 18 direcciones.
+Módulo `material-campo` · ruta `/material-campo` · 19 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `material-campo` | modulo | Material de campo | sí | ecbb0613 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md), [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo` | modulo | Material de campo | sí | 2d369a29 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md), [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
 | `material-campo/aulas` | modo | Campo en aulas | sí | 5660c63d | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
 | `material-campo/aulas/unidades` | seccion | Unidades | sí | dff2966f | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/aulas/unidades/lista` | pestana | Lista | sí | 06387e59 | sí | — |
@@ -25,6 +25,7 @@ Módulo `material-campo` · ruta `/material-campo` · 18 direcciones.
 | `material-campo/aulas/paquetes/armado` | pestana | Armado | sí | a18b8bbb | sí | — |
 | `material-campo/aulas/entrega` | seccion | Entrega | sí | 5ebd2f88 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/aulas/entrega/traspaso` | pestana | Monitoreo | sí | 480c039e | sí | — |
-| `material-campo/correo` | modo | Correo | sí | 37d517ca | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
-| `material-campo/correo/correo` | seccion | Correo | sí | b2331791 | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/correo` | modo | Correo | sí | 4c960cfe | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/correo/correo` | seccion | Correo | sí | 309af9d9 | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
 | `material-campo/correo/correo/editor` | pestana | Editor | sí | 97b69a1b | sí | — |
+| `material-campo/correo/correo/contactos` | pestana | Contactos | sí | 6b13b9fa | sí | — |

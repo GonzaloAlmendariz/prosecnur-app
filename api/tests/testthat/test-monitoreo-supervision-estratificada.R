@@ -201,3 +201,44 @@ test_that("P5 por persona: grafías que solo cambian tildes o mayúsculas son un
   perfil <- list(enumerator_equivalences = list(list(kobo = "op4", hoja = "Op-01")))
   expect_identical(.monitoreo_enumerador_persona(c("OP4", "Op-01"), perfil), c("Op-01", "Op-01"))
 })
+
+# --- Enumerador con la forma del RMS: cuenta del servidor + name_enumerator ----
+
+sup_rms_respuestas <- function(cuenta = "pulso_servidor") {
+  data.frame(
+    `_id` = sprintf("U%03d", 1:20),
+    `_submitted_by` = cuenta,
+    `group_intro/name_enumerator` = c(rep("Op-01", 10), rep("Op-02", 6), rep("Op-03", 3), "Op-04"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+test_that("RMS: con la cuenta del servidor compartida manda name_enumerator", {
+  enum <- .monitoreo_kobo_enumerador(sup_rms_respuestas())
+  expect_identical(enum, sup_rms_respuestas()$`group_intro/name_enumerator`)
+  # Cuenta vacía: también manda la pregunta.
+  expect_identical(.monitoreo_kobo_enumerador(sup_rms_respuestas(cuenta = ""))[[1]], "Op-01")
+  # La muestra estratifica por persona, no cae en «Sin enumerador».
+  efectivas <- sup_efectivas()
+  efectivas$`Responsable plataforma` <- "pulso_servidor"
+  b <- .monitoreo_supervision_estratificada_blocks(efectivas, list(supervision_n = 8L), character(0), NULL, sup_rms_respuestas())
+  reparto <- sup_df(b[[2]])
+  expect_setequal(reparto$Enumerador, c("Op-01", "Op-02", "Op-03", "Op-04"))
+  expect_identical(sum(as.integer(reparto$Casos)), 9L)
+})
+
+test_that("una cuenta por persona se respeta aunque la pregunta diga otra cosa", {
+  r <- data.frame(`_submitted_by` = c("ana", "luis"), `intro/name_enumerator` = c("Ana P.", "Luis S."),
+                  check.names = FALSE, stringsAsFactors = FALSE)
+  expect_identical(.monitoreo_kobo_enumerador(r), c("ana", "luis"))
+})
+
+test_that("el enumerador se reconoce por patrón en el nombre o en la etiqueta, sin el grupo", {
+  por_nombre <- data.frame(`g/datos_encuestador_txt` = c("A", "B"), check.names = FALSE, stringsAsFactors = FALSE)
+  expect_identical(.monitoreo_kobo_enumerador(por_nombre), c("A", "B"))
+  por_etiqueta <- data.frame(`g/q07` = c("A", "B"), otra = c("x", "y"), check.names = FALSE, stringsAsFactors = FALSE)
+  attr(por_etiqueta$`g/q07`, "label") <- "Nombre del enumerador"
+  expect_identical(.monitoreo_kobo_enumerador(por_etiqueta), c("A", "B"))
+  # Sin pregunta ni cuenta: vacío, no se inventa.
+  expect_identical(.monitoreo_kobo_enumerador(data.frame(otra = "x")), "")
+})

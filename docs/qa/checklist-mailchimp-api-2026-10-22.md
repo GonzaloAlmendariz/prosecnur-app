@@ -1,5 +1,10 @@
 # Checklist · Mailchimp por API en Material de campo (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-10-22
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «Podemos hacer el punto 1 y 2, el punto 3 deberá ser su propia sesión… el 4 no hace falta, los contactos se pueden quitar en plataforma».
 
 - Punto 1: reintentos, avance y carga de la audiencia por API.

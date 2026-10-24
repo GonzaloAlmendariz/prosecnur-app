@@ -883,14 +883,14 @@
     insistencia <- insistencia[insistencia$`Casos No contesta` > 0L, , drop = FALSE]
     insistencia <- insistencia[order(insistencia$Actor, -insistencia$`Casos No contesta`, insistencia$Responsable), , drop = FALSE]
   }
-  key_col <- .monitoreo_report_col(phone, c("CodPulso", "Cod Pulso", "Cód Pulso", "Codigo Pulso", "Código Pulso", "Código PUCP", "Codigo PUCP", "ID", "id", "codigo", "Código", "Codigo"))
+  key_col <- .monitoreo_telefonico_columna_codigo(phone) # nunca `.source_id`: monitoreo_telefonico_llave_publicada.R
   keys <- if (nzchar(key_col)) trimws(as.character(phone[[key_col]])) else rep("", nrow(phone))
   keys[!.monitoreo_report_nonempty(keys)] <- ""
   people <- .monitoreo_report_person_values(phone)
   people[!.monitoreo_report_nonempty(people)] <- keys[!.monitoreo_report_nonempty(people)]
   actors <- .monitoreo_report_trace_actor_values(phone, profile)
   primary_keys <- vapply(reconciliation$phone_keys %||% vector("list", nrow(phone)), function(item) {
-    if (length(item)) item[[1]] else ""
+    if (length(item)) .monitoreo_telefonico_llave_visible(item[[1]]) else "" # sin «codigo:»: monitoreo_telefonico_llave_publicada.R
   }, character(1))
   if (length(primary_keys) != nrow(phone)) primary_keys <- keys
   primary_keys[!.monitoreo_report_nonempty(primary_keys)] <- keys[!.monitoreo_report_nonempty(primary_keys)]
@@ -1223,7 +1223,7 @@
   if (isTRUE(standalone_phone)) {
     blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", reconciliation_detail)))
     blocks <- c(blocks, .monitoreo_telefonico_discrepancias_blocks(phone, primary_keys, reconciliation_detail, duration_control, profile, data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE])) # monitoreo_telefonico_discrepancias.R
-    blocks <- c(blocks, .monitoreo_supervision_estratificada_blocks(duration_control, cfg, stats::setNames(.monitoreo_discrepancias_progres(phone), primary_keys), data[.monitoreo_report_role_mask(data, .MONITOREO_SUPERVISION_ROL), , drop = FALSE], responses)) # monitoreo_supervision_estratificada.R
+    blocks <- c(blocks, .monitoreo_supervision_estratificada_blocks(duration_control, cfg, .monitoreo_discrepancias_progres_mapa(phone, primary_keys), data[.monitoreo_report_role_mask(data, .MONITOREO_SUPERVISION_ROL), , drop = FALSE], responses)) # monitoreo_supervision_estratificada.R
     # Control › Insistencia (revamp T4). Ver `monitoreo_telefonico_cola.R`.
     quota_variable <- if (length(quota_value_columns)) names(quota_value_columns)[[1]] else ""
     blocks <- c(blocks, .monitoreo_telefonico_cola_blocks(phone, list(

@@ -1,8 +1,10 @@
 # Revamp de Monitoreo, Telefónico: arquitectura y fichas por pestaña
 
 Tipo: Especificación de maqueta (copia durable del lienzo)
-Estado: Lista para revisión de Gonzalo; las piezas que dependen de una pregunta están dibujadas como «Por definir»
+Estado: En curso
+Situación: Lista para revisión de Gonzalo; las piezas que dependen de una pregunta están dibujadas como «Por definir»
 Fecha: 2026-10-23
+Autoridad: Gonzalo (pedido de sesión)
 Lienzo: https://claude.ai/artifact/3TBxyrduztwWp4b3hNS2dh («Revamp de Monitoreo, Telefónico», privado)
 Estándar: `docs/qa/revamp-monitoreo/estandar-de-ficha.md` (v2, con «Realismo operativo» en §0)
 Procedimientos: `docs/qa/revamp-monitoreo/procedimientos-respondidos.md` manda sobre cualquier supuesto de este documento.

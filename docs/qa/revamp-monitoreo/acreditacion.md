@@ -1,8 +1,10 @@
 # Revamp de Monitoreo · Acreditación — arquitectura y fichas por pestaña
 
 Tipo: Especificación de maqueta (copia durable del lienzo)
-Estado: Fichas completas con el esqueleto común (Insumos · Modelo · Control · Avance), pendientes de tu revisión
+Estado: En curso
+Situación: Fichas completas con el esqueleto común (Insumos · Modelo · Control · Avance), pendientes de tu revisión
 Fecha: 2026-10-22
+Autoridad: Gonzalo (pedido de sesión)
 Lienzo: https://claude.ai/artifact/NKWF6WjdTjqcrTevsCiYRY («Revamp de Monitoreo · Acreditación», privado)
 Estándar: `docs/qa/revamp-monitoreo/estandar-de-ficha.md` (v2, con §2b y «Realismo operativo» en §0)
 Procedimientos: `docs/qa/revamp-monitoreo/procedimientos-respondidos.md` manda sobre cualquier supuesto de este documento.

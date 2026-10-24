@@ -298,11 +298,12 @@
   plan
 }
 
-#' Migra un plan: población antigua y barra extra, en ese orden, con sus avisos juntos
+#' Migra un plan: población antigua, barra extra y tabla del radar, en ese orden, con sus avisos juntos
 #'
 #' Es el punto que llaman `.normalize_plan()`, `.graficos_normalize_config()` y la migración de la sesión.
 #' @keywords internal
 .graficos_migrar_plan <- function(plan, avisar = FALSE) {
   plan <- .graficos_migrar_poblacion_antigua(plan, avisar = avisar)
-  .graficos_migrar_barra_extra(plan, avisar = avisar)
+  plan <- .graficos_migrar_barra_extra(plan, avisar = avisar)
+  .graficos_migrar_radar_tabla(plan)   # `mostrar_tabla` -> `tabla` del radar entre públicos (graficos_radar_tabla.R)
 }

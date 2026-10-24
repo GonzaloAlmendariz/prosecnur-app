@@ -14,6 +14,7 @@ import {
   AYUDA_EJE_MIN,
   AYUDA_LIMITE_SUPERIOR,
   AYUDA_MIN_N,
+  AYUDA_TABLA,
   AYUDA_TIPO_RANGO,
   AVISO_RANGO_CUSTOM,
   GRAFICADORES_NO_NATIVOS,
@@ -48,7 +49,12 @@ const serie = [
 ];
 const radar = [
   a("modo", "choice"), a("var", "variable_opt", { depende: { arg: "modo", valores: ["sm"] } }), a("corte", "codigos_list", publicos),
-  a("eje_min", "number", { default: 0, ...publicos }), a("mostrar_tabla", "bool", { default: true, ...publicos }),
+  a("eje_min", "number", { default: 0, ...publicos }), a("tabla", "choice", { default: "auto", ...publicos, choices: [
+    { value: "auto", label: "Automática: junto al radar" }, { value: "si", label: "Sí, en cualquier forma" }, { value: "no", label: "No" }] }),
+  a("forma", "choice", { default: "auto", ...publicos }),
+  a("fallback_pocos", "choice", { default: "puntos", ...publicos }), a("eje_pocos", "choice", { default: "auto", ...publicos }),
+  a("eje_pocos_min", "number", { depende: { arg: "eje_pocos", valores: ["personalizado"] } }),
+  a("eje_pocos_max", "number", { depende: { arg: "eje_pocos", valores: ["personalizado"] } }), a("mostrar_tabla", "bool", { default: true, ...publicos }),
   a("tabla_titulo", "string", publicos), a("tabla_ancho_tema", "number", publicos), a("tabla_proporcion", "number", publicos),
   a("top_n", "number"), a("sm_omit_codes", "codigos_list"), a("sm_omit_na", "bool"),
   a("mostrar_valores", "bool", { default: false }), a("valores_decimales", "number", { default: 0 }),
@@ -118,11 +124,23 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(serie, tresOlas, "p_serie_temporal")).not.toContain("valores_decimales");
     expect(nombres(radar, { modo: "sm" }, "p_radar")).toContain("valores_decimales");
   });
-  it("radar entre públicos: tabla al costado, su encabezado y el piso del eje con su guarda", () => {
+  it("radar entre públicos: forma, tabla de datos (ya no «mostrar_tabla»), su encabezado y el piso del eje", () => {
     expect(nombres(radar, { modo: "publicos" }, "p_radar")).toEqual(
-      ["modo", "corte", "mostrar_tabla", "tabla_titulo", "eje_min", "valores_decimales"]);
+      ["modo", "corte", "forma", "fallback_pocos", "eje_pocos", "tabla", "tabla_titulo", "eje_min", "valores_decimales"]);
+    const t = campo(radar, { modo: "publicos" }, "p_radar", "tabla");
+    expect(t?.rotulo).toBe("Tabla de datos");
+    expect(t?.ayuda).toBe(AYUDA_TABLA);
+    expect(t?.opciones.map((o) => o.value)).toEqual(["auto", "si", "no"]);
+    expect(esRetirado("mostrar_tabla", "p_radar")).toBe(true);
+    expect(nombres(radar, {}, "p_radar")).not.toContain("tabla");
     expect(campo(radar, { modo: "publicos" }, "p_radar", "eje_min")?.ayuda).toBe(AYUDA_EJE_MIN);
-    expect(nombres(radar, {}, "p_radar")).not.toContain("mostrar_tabla");
+  });
+  it("radar: eje de líneas y puntos siempre en «publicos»; desde/hasta sólo con eje personalizado", () => {
+    expect(nombres(radar, { modo: "publicos", eje_pocos: "0-100" }, "p_radar")).not.toContain("eje_pocos_min");
+    expect(nombres(radar, { modo: "publicos" }, "p_radar")).not.toContain("eje_pocos_max");
+    const n = nombres(radar, { modo: "publicos", eje_pocos: "personalizado" }, "p_radar");
+    expect(n).toEqual(expect.arrayContaining(["eje_pocos", "eje_pocos_min", "eje_pocos_max"]));
+    expect(nombres(radar, { modo: "sm", eje_pocos: "personalizado" }, "p_radar")).not.toContain("eje_pocos_min");
   });
   it("NO ASIGNAR todavía: top_n y sm_omit_codes de radar y tabla (falta «Se muestran X de Y»)", () => {
     for (const [args, g] of [[radar, "p_radar"], [tabla, "p_tabla"]] as const) {
