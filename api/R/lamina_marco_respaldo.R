@@ -62,9 +62,10 @@
   fin_bloque <- .lam_titulo_fin(m$titulo, m$sub)
   fondo <- pic$top + pic$height
   if (!is.null(m$nota)) fondo <- min(fondo, g("base_y") - .lam_nota_sig_alto(m$nota) - 0.05)
-  top <- max(pic$top, fin_bloque + 0.08)
+  aire <- if (isTRUE(attr(p, "pulso_titulo_panel", exact = TRUE))) 0.22 else 0.08   # CCSS-27: el encabezado de panel no se pega al título
+  top <- max(pic$top, fin_bloque + aire)
   # El desborde depende del alto del cajón; tres pasadas bastan (el cajón sólo se acorta unas décimas).
-  if (!is.null(p)) for (k in 1:3) top <- max(pic$top, fin_bloque + 0.08 + .lienzo_desborde_superior_in(p, fondo - top))
+  if (!is.null(p)) for (k in 1:3) top <- max(pic$top, fin_bloque + aire + .lienzo_desborde_superior_in(p, fondo - top))
   if (abs(top - pic$top) < 1e-6 && abs(fondo - pic$top - pic$height) < 1e-6) return(spec)
   spec$loc <- list(left = pic$left, top = top, width = pic$width, height = max(1, fondo - top))
   spec
