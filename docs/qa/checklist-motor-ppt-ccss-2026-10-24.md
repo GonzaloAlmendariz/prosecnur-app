@@ -18,11 +18,11 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | C1 | Worker callr hereda la fuente del servidor; falla si la versión no coincide | `jobs_fuente_paquete.R` | ✅ | `a83a687e4` |
 | C2 | Grilla rota (fondo de lámina entera por la leyenda ggplot de una dona en cajón chico) | `lamina_panel_circular.R`, `lamina_circular_leyenda.R` | ✅ | `9947637ce` |
 | C3 | Dona con un solo modo (nativo) en paneles; leyenda compacta, nunca cortada | `lamina_circular_leyenda.R`, `lamina_grilla_nativa.R` | ✅ | `9947637ce` |
-| C4 | Línea guía en tajadas chicas (umbral de las apiladas) | `lamina_circular_guia.R`, `graficador_pie_guia.R` | ✅ umbral `9947637ce` · 🔵 forma | Gonzalo: la guía sale **radial a 90°** y luego **sigue un arco concéntrico** para acomodar las cifras (agente C) |
+| C4 | Línea guía en tajadas chicas (umbral de las apiladas) | `lamina_circular_guia.R`, `graficador_pie_guia.R` | ✅ | `9947637ce` umbral · `0860e9471` forma radial + arco | Gonzalo: la guía sale **radial a 90°** y luego **sigue un arco concéntrico** para acomodar las cifras (agente C) |
 | C5 | Base por panel en grillas (iguales: una; distintas: cada panel la suya, pie vacío) | `lamina_grilla_nativa.R` (`.lam_grilla_base`), `reporte_slides_composicion.R` | ✅ | `9947637ce`; falta revisión metodológica del «pie vacío» |
 | C6 | Paleta de marca en columnas de una serie | `graficos_columnas_paleta.R` | ✅ | `9947637ce` |
 | D1 | Orden «instrumento» manda (VI–IX con romanos; explícito en dona) | `graficos_orden_categorias.R`, `graficos_orden_romanos.R` | ✅ `8bc71f483` | `args.orden_barras` se pierde en `router_graficos.R:203` (abierto) |
-| D2 | No sustantivos (9, 77) en gris, al final y en la leyenda; denominador intacto | `graficos_no_sustantivos.R`, enganche en `reporte_plan_ppt.R` (modo var) | ✅ `8bc71f483` `9947637ce` | modos cruce y multilista sin enganche; gris `#BFBFBF` vs neutro `#D9D9D9` a revisar |
+| D2 | No sustantivos (9, 77) en gris, al final y en la leyenda; denominador intacto | `graficos_no_sustantivos.R`, enganche en `reporte_plan_ppt.R` (modo var) | ✅ `8bc71f483` `9947637ce` | cruce, var_cruce y multilista en `bd8fd87b6`; gris `#BFBFBF` vs neutro `#D9D9D9` a revisar |
 | P1 | Dona de lámina completa (`p_slide_1_grafico`) sigue en imagen: título rojo duplicado, «2%0%» encimado (CCSS l. 8) | `lamina_circulares.R`, ruta de respaldo | ⬜ | |
 | P2 | Título del slot choca con título de dos líneas y rótulos en el piso de 8 pt (CCSS l. 37) | ruta de respaldo / `graficador_barras_agrupadas.R` | ⬜ | ensanchar la columna antes que encoger (P43) |
 | P3 | «(Recodificada)» en la rama de escala en filas | | ⬜ | |
@@ -42,8 +42,8 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | G4 | Multiapiladas no acepta `excluir_opciones`; argumentos descartados en silencio | `reporte_plan_slides.R:2165`, `graficos_metadata.R`, `router_graficos.R:203` | ⛔ 1H sin aprobar | |
 | D13 aviso | Escala con categoría fuera del recorrido no excluida → aviso en la lámina | junto a G4 | ⛔ decidido, implementación en 1H | |
 | G6 = P4 | Título duplicado en slots de mixtas (agrupadas canvas dibuja su título con `draw_text`) | `lamina_mixtas.R:452,503`, `reporte_slides_composicion.R:96` | 🔵 | estaba en el encargo original |
-| A12 | Rótulos montados en `p_slide_cifras_y_graficos` con agrupadas de `A12_recod` | geometría del slot chico | ⬜ | sin diagnóstico |
-| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | ver plan | ⬜ diagnóstico | sin decisión |
+| A12 | Rótulos montados en `p_slide_cifras_y_graficos` con agrupadas de `A12_recod` | `reporte_slides_composicion.R` sin `alto_slot`; envoltorio a 12 pt sin recalcular a 8 | 🔵 agente de títulos | diagnosticado |
+| B1 | Codificación re-adapta desde el origen viejo: N = 467 en vez de 397, en silencio (ALTA) | `router_codificacion.R:55-67` prefiere `original_data_file_id` sin mirar si el actual es adaptado; `original_*` se congela (`session_store.R:1221`) | ⬜ siguiente writer | diagnosticado: aplicar la regla de Analítica (`router_analitica.R:48-60`) |
 | B2 B5 B6 B12–B16 B9 B10 | Ver plan | | ⬜ | sin decisión |
 | B0b B3 B4 B7a–c B8 B9pref B11 B17 | Bloqueados por D11, D1–D10, D12 | | ⛔ | |
 
@@ -55,6 +55,8 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 - D13: los no sustantivos salen del denominador sólo si el plan lo declara, con aviso (aprobado).
 
 ## Decisiones tomadas en el loop (para revisión de Gonzalo; él pidió no preguntar)
+
+- B1 se arregla aunque el plan de brechas lo tenía «sin decisión»: es un error silencioso de datos (N equivocado) y el arreglo sólo hace que Codificación lea la base actual, igual que Analítica. No cambia ninguna regla metodológica.
 
 - Bases distintas por panel → cada panel lleva su «N respuestas» y el pie de la lámina no afirma una base común (C5). Alternativa si no le gusta: pie con «Base: n1 / n2 / …».
 - Gris de los no sustantivos `#BFBFBF`, distinto del neutro `#D9D9D9` de la escala (D2).
