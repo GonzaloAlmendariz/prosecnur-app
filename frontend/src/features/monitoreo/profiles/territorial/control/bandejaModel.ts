@@ -30,6 +30,8 @@ const ORDEN: MotivoDeBandeja[] = ["gps-lejos", "gps-revision", "sin-gps", "muy-c
 export type CasoDeBandeja = {
   id: string;
   responseId: string;
+  /** Lo que se lee en la columna Caso: el formulario, o la UMP si el caso es de una UMP entera. */
+  etiqueta: string;
   motivo: MotivoDeBandeja;
   rotuloDeMotivo: string;
   detalle: string;
@@ -95,9 +97,14 @@ export function construirBandeja(consultas: MonitoreoTerritorialDashboard | null
     const motivo = motivoDe(caso);
     if (!motivo) return [];
     const distancia = caso.distance_m != null && Number.isFinite(Number(caso.distance_m)) ? Number(caso.distance_m) : null;
+    const responseId = String(caso.response_id ?? "");
+    const ump = numeroDeUmp(caso.ump);
     return [{
       id: String(caso.id),
-      responseId: String(caso.response_id ?? ""),
+      responseId,
+      // Un caso de UMP («UMP iniciada incompleta») no trae formulario: su id es
+      // la clave del motor («ump:ump_iniciada_incompleta:1501…») y no se pinta.
+      etiqueta: responseId ? responseId.slice(0, 8) : ump ? `UMP ${ump}` : "Sin formulario",
       motivo,
       rotuloDeMotivo: ROTULO_DE_MOTIVO[motivo],
       detalle: String(caso.reason ?? ""),
@@ -105,7 +112,7 @@ export function construirBandeja(consultas: MonitoreoTerritorialDashboard | null
       fechaIso: String(caso.submission_date_iso ?? ""),
       hora: String(caso.submission_hour ?? "").slice(0, 5),
       distrito: nombreDeDistrito(caso.district),
-      ump: numeroDeUmp(caso.ump),
+      ump,
       manzana: String(caso.manzana ?? ""),
       aplicador: rotuloDeAplicador(caso.responsible || caso.pulso_code),
       distanciaM: motivo === "sin-gps" ? null : distancia,

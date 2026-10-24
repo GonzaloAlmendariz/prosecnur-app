@@ -247,3 +247,8 @@
     margin: 0 calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3));
   }
 }
+
+/* Las filas de distritos se reparten el alto de su tarjeta (§2a, 1). */
+.mon-sen-tabla {
+  height: 100%;
+}

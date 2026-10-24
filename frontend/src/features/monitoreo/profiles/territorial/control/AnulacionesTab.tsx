@@ -8,6 +8,7 @@ import {
 } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { construirAnulaciones, resumenDeTarjeta } from "./anulacionesModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./anulaciones.css";
 
 /**
@@ -34,6 +35,7 @@ function AnulacionesTabImpl({
     return (
       <section className="mon-anu mon-anu--vacio" data-audit-ready="vacio:sin-anulaciones" aria-label="Anulaciones">
         <div className="mon-anu-panel mon-anu-vacio">
+          <RotuloDePestana />
           <ShieldCheck size={20} aria-hidden="true" />
           <strong>Ningún caso anulado en esta fase</strong>
           <span>Un caso o la producción de un aplicador se anulan desde Control › Bandeja o Control › Equipo.</span>
@@ -67,6 +69,7 @@ function AnulacionesTabImpl({
     >
       <div className="mon-anu-izquierda" data-qa-geometry-member="resumen">
         <section className="mon-anu-panel" aria-labelledby="mon-anu-fuera">
+          <RotuloDePestana />
           <h3 id="mon-anu-fuera" className="mon-anu-titulo">{fmt(modelo.casosFuera)} casos fuera del conteo · {fmt(modelo.umpsAfectadas)} UMP</h3>
           <ul className="mon-anu-barras">
             {modelo.porDistrito.map((item) => (

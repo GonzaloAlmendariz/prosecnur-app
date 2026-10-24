@@ -4,6 +4,8 @@ import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { construirReportes, textoDeDiferencia, type BaldosaDeUmp } from "./reportesModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./ocurrencias.css";
 
 /**
@@ -29,6 +31,7 @@ function ReportesTabImpl({
     return (
       <section className="mon-rep mon-rep--vacio" data-audit-ready="vacio:sin-partes" aria-label="Reportes UMP">
         <div className="mon-ocu-panel mon-ocu-vacio">
+          <RotuloDePestana />
           <ClipboardList size={20} aria-hidden="true" />
           <strong>Sin partes por UMP en el corte</strong>
           <span>Los partes llegan del formulario de ocurrencias de campo; «Actualizar» trae los nuevos.</span>
@@ -47,6 +50,7 @@ function ReportesTabImpl({
     >
       <section className="mon-ocu-panel mon-rep-reticula-panel" aria-labelledby="mon-rep-titulo" data-qa-geometry-member="reticula">
         <header className="mon-ocu-cabecera">
+          <RotuloDePestana />
           <h3 id="mon-rep-titulo" className="mon-ocu-titulo">Partes por UMP</h3>
           <span className="mon-ocu-base">
             {fmt(modelo.conUnParte)} con un parte · {fmt(modelo.conDosOMas)} con dos o más · {fmt(modelo.sinParte.length)} sin parte
@@ -56,7 +60,7 @@ function ReportesTabImpl({
         <div className="mon-rep-reticula" data-qa-geometry-capacity="owned">
           {modelo.distritos.map((bloque) => (
             <section key={bloque.distrito} className="mon-rep-distrito" aria-label={bloque.distrito}>
-              <h4 className="mon-ocu-subtitulo">{bloque.distrito}</h4>
+              <h4 className="mon-ocu-subtitulo mon-ter-con-silueta"><SiluetaDeDistrito distrito={bloque.distrito} lado={22} />{bloque.distrito}</h4>
               <ul className="mon-rep-baldosas">
                 {bloque.baldosas.map((baldosa) => (
                   <li key={baldosa.ump}>

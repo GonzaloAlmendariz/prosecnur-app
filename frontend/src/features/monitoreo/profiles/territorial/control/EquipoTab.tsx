@@ -6,6 +6,7 @@ import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { construirEquipo, type FilaDeEquipo } from "./equipoModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./equipo.css";
 
 /**
@@ -38,6 +39,7 @@ function EquipoTabImpl({
     return (
       <section className="mon-eq mon-eq--vacio" data-audit-ready="vacio:sin-equipo" aria-label="Equipo">
         <div className="mon-eq-panel mon-eq-vacio">
+          <RotuloDePestana />
           <Users size={20} aria-hidden="true" />
           <strong>Sin códigos de aplicador en el corte</strong>
           <span>Los códigos salen del padrón de Insumos y de las respuestas de Kobo.</span>
@@ -56,7 +58,8 @@ function EquipoTabImpl({
     >
       <section className="mon-eq-panel mon-eq-tabla-panel" aria-labelledby="mon-eq-titulo" data-qa-geometry-member="tabla">
         <header className="mon-eq-cabecera">
-          <h3 id="mon-eq-titulo">Equipo por código</h3>
+          <RotuloDePestana />
+          <h3 id="mon-eq-titulo" className="pulso-sr-only">Equipo por código</h3>
           <span className="mon-eq-base">{fmt(modelo.filas.length)} códigos; señales sobre los casos del corte</span>
         </header>
         <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Equipo por código, con desplazamiento">

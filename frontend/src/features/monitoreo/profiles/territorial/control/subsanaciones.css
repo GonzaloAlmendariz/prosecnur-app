@@ -77,9 +77,23 @@
   border-radius: 10px;
 }
 
+/* Celda con déficit: contorno del distrito a la izquierda, UMP y faltas al lado. */
+.mon-sub-lista li {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--pulso-space-3);
+  align-items: center;
+}
+
+.mon-sub-lista li > .mon-ter-silueta {
+  grid-row: 1 / span 2;
+}
+
+.mon-sub-lista li > :not(.mon-ter-silueta) {
+  grid-column: 2;
+}
+
 .mon-sub-lista li.is-elegible {
   border-color: var(--pulso-module-monitoring-border);
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 35%, var(--pulso-surface));
 }
 
 .mon-sub-ump {
@@ -351,4 +365,40 @@
   .mon-sub > :last-child {
     grid-column: 1 / -1;
   }
+}
+
+/* Tercera columna: el mapa de movimientos llena el alto y las subsanaciones
+ * aplicadas van debajo con lo que traen (antes, media columna vacía). */
+.mon-sub-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-sub-derecha > .mon-sub-movimientos {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+.mon-sub-movimientos .mon-sub-mapa {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-sub-derecha > .mon-sub-aplicadas {
+  flex: 0 1 auto;
+  max-height: 55%;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.mon-sub-movimientos .mon-sub-mapa {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.mon-sub-movimientos .mon-sub-mapa svg {
+  height: 100%;
+  min-height: 200px;
 }
