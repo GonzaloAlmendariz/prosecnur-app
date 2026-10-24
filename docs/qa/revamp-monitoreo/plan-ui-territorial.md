@@ -259,3 +259,82 @@ encuestas largas, sino controlar las cortas».
   como «normal». El cambio en el frontend blinda que una larga no se lea como problema.
 - Se verifica en el gate y las capturas del cierre.
 
+
+### Cierre para la 0.9.5 (2026-10-24)
+
+**Cabecera de pestaña (§2a-bis).** En las pestañas propias la cabecera de una línea ya no ocupa fila: el rótulo
+«SECCIÓN · GRUPO / Pestaña» (`navegacion/RotuloDePestana.tsx`) entra en la barra de la pestaña o encabeza su primera
+tarjeta, también en los estados vacíos, y lleva las sub-vistas cuando hay más de una. Las sub-vistas heredadas
+siguen con `CabeceraTerritorial`.
+
+**Cortes que cada pestaña lee** (`navegacion/cortesDePestana.ts`). Equipo, Reportes, Conexiones, Padrón, Mapa, UMP,
+Cuotas, Historial, Subsanaciones, Bandeja y Conciliación leen cortes además del suyo. La página los pide al entrar y
+no marca la vista lista hasta tenerlos. Antes, la captura las tomaba con «—» o ceros que el motor sí sabía: Equipo
+sin GPS, Reportes «sin partes» con 84, Conexiones sin meta y Padrón con casos en 0.
+- Reportes elige el corte cuya ruta trae UMP. El de consultas trae `route_quota_progress` vacío, no ausente.
+- Padrón muestra «—» sin el corte de Validación.
+
+**Hallazgos de las capturas, corregidos:**
+- **Sexo en la tarjeta del caso.** Decía «Celda: 2, 30 años». El endpoint de casos por UMP lo rotula con la misma
+  regla que la cuota (`.monitoreo_territorial_quota_sex_label`), con un test.
+- **Faltante.**
+  - El alto de la fila superior lo pone el mapa de calor; las pendientes desplazan dentro, así que con 29 la cuota
+    por UMP ya no sale de la vista.
+  - Cada tarjeta pasa a dos líneas, con la acción a la derecha.
+  - A 1024×600, la pestaña desplaza entera con un solo dueño de desplazamiento.
+- **Tablas.** Una regla común (`tablasTerritoriales.css`): cabecera sobre la superficie alterna, filas de 42 px y
+  cifras tabulares.
+- **Estado de fila.** Va en chip (`mon-ter-chip`): la cuota de UMP, el estado del Padrón y «Con excedente compatible»
+  en Subsanaciones.
+- **Bandeja.**
+  - Anchos fijos con puntos suspensivos en aplicador, distrito y motivo (el texto entero va en el `title`). Antes la
+    tabla escondía distancia y duración.
+  - Los filtros miden lo que traen y sus conteos ya no tocan el borde.
+- **Ocurrencias.**
+  - Las cabeceras de motivo van en dos líneas, con el color de su tramo y «por cada 100 intentos» en el subtítulo.
+  - «Sin Cruce Ump» pasa a «UMP sin cruce con la ruta».
+  - «Por día» lleva eje con título y marcas.
+- **Ritmo de Resumen.** Lleva eje Y con título («Acumulado que cuenta») y tres marcas.
+- **Mapa de la muestra (Metas).** Los nombres de distrito van encima de los puntos, con halo, y en el candidato de
+  su caja que menos manzanas pisa (`modelo/rotulosDelMapa.ts`, con test).
+- **Subsanaciones.** El mapa de movimientos pasa a la tercera columna y llena su alto; las aplicadas van debajo.
+- **Huecos.** La última tarjeta de cada columna toma el alto sobrante (exploración, lateral del mapa, Modelo, Mapeo,
+  Historial); los laterales cortos (muestra y fuera del padrón) miden lo que traen.
+- **C1.** Se declararon las colecciones que el runner encontró sin contrato (filtros de la Bandeja, barras de
+  Señales, déficit y chips de Subsanaciones, paneles de Conciliación, columna derecha y barra de Ocurrencias, columnas
+  de Modelo, Mapeo e Historial, e identidad de la ficha). Las celdas de cuota de la ficha van a filas iguales.
+
+### Pasada de contenedores (2026-10-24, §2a-bis)
+
+Referencia antigua capturada antes de tocar nada: Validación › Cuotas de `main` (tarjeta por UMP con cabecera de
+zona y manzana, chip de estado, responsable y actividad en celdas, sub-tarjetas de Sexo y Edad y la tabla de
+encuestadores) y Avance › Distritos (contorno del distrito como sello). Decisiones:
+
+- **Tarjeta de UMP.** El detalle desplegable de Faltante por UMP pasa a ser esa tarjeta: cabecera con distrito, zona,
+  manzana y tipo; estado en chip y borde lateral sólido de su tono; responsable, actividad y «cuentan» en sus celdas;
+  una sub-tarjeta por variable de cuota (`CuotaPorVariable.tsx`, con la suma de cada variable en `faltanteModel`);
+  «Encuestadores» con levantado, subsanado y falta real, y la matriz sexo por edad. La ficha de UMP (Mapa y UMP) usa
+  las mismas sub-tarjetas.
+- **Contorno de distritos.** La geometría existe: `limaDistrictCoverage.json` (PlanMet), la misma de Avance › Mapa.
+  `siluetaModel.ts` (con test) encuadra un distrito en su caja; `SiluetaDeDistrito.tsx` lo pinta como sello en las
+  tarjetas de pendientes, la ficha, la tarjeta de UMP y las celdas con déficit de Subsanaciones, y junto al nombre del
+  distrito en el mapa de calor, Resumen, Señales, Reportes, Cuotas y Mapeo. Sin geometría para un distrito no se pinta
+  nada (no se inventa). En los mapas el contorno va marcado y los nombres con halo, donde menos puntos pisan
+  (`rotulosDelMapa.ts`, la regla de Metas, ahora también en Avance › Mapa).
+- **Estado sin bisel ni tinte.** Ninguna franja con sombra `inset` sobre caja redondeada (13 reglas heredadas de
+  `territorialProfile.css` pasan a anillo de 1 px, sin crecer el archivo) y ningún fondo teñido para un estado que no es
+  error (fuente activa, fase activa, elegibles, pendientes de Conciliación, conteo de pendientes del Mapa, celdas de la
+  ficha). El borde lateral sólido sí vale (es el de la referencia).
+- **Hueco al pie.** Causa común: `.mon-workbench-main.is-territorial.has-report-status` (`auto auto minmax(0, 1fr)`)
+  le ganaba a `.sin-cabecera`; el contenido caía en una fila `auto` y dejaba ~150 px vacíos. Con la regla corregida,
+  Resumen, Señales, Cuotas y Mapeo reparten el alto entre sus filas y los laterales llegan al pie con su acción abajo.
+- **Rótulo con título de tarjeta.** Si la tarjeta trae su propio título, el rótulo de la pestaña va en su fila y el
+  título debajo (antes el título se iba al extremo derecho). En los vacíos el rótulo va arriba a la izquierda.
+- **Bandeja.** Un caso de UMP entera se rotulaba con la clave del motor (`ump:ump_iniciada_incompleta:1501…`); ahora
+  «UMP 38» (`etiqueta`, con test). Sin elipsis: los textos largos pasan a dos líneas. A 1024 la tabla desplaza en
+  horizontal dentro de su marco.
+- **1024 × 600.** Faltante dejaba las pendientes en 45 px y Conexiones cortaba las fuentes con dos desplazamientos
+  anidados; ahora la pestaña desplaza entera con el dueño del área de trabajo.
+
+Pendiente: la tarjeta de UMP vive en el detalle de la cuota de cada UMP; una vista de «tarjetas de todas las UMP» en
+rejilla (como la lista antigua) no se dibujó porque Avance › UMP ya es la tabla de §3.16 y duplicaría la navegación.
