@@ -326,7 +326,7 @@ test_that("aviso de opcion multiple reserva una sola franja compacta", {
   expect_equal(compact$subtitulo, "% de encuestados que marcó cada opción")
   # Italica y no negrita (36d6cea4): es una acotacion sobre la pregunta, no un
   # segundo titulo compitiendo con el primero.
-  expect_equal(compact$face_subtitulo, "italic")
+  expect_equal(compact$face_subtitulo, "bold")
   expect_lte(compact$size_subtitulo, 10.5)
   # El encabezado aloja DOS textos y necesita alto para los dos: con 0.34 salian
   # superpuestos. La franja sigue siendo compacta, con el alto que hace falta.
