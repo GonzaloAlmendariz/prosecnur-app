@@ -497,6 +497,8 @@
 .mon-cola-tabla th:nth-child(2) { width: 76px; }
 .mon-cola-tabla th:nth-child(3) { width: 128px; }
 .mon-cola-tabla th:nth-child(5) { width: 112px; }
+/* «Observación de la hoja» parte línea si la columna del código crece. */
+.mon-cola-tabla thead th:nth-child(4) { white-space: normal; }
 .mon-cola-tabla th:nth-child(6) { width: 100px; }
 .mon-cola-tabla th:nth-child(7) { width: 104px; }
 

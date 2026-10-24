@@ -22,7 +22,9 @@ export function telefonoDelCaso(caso: CasoDeCola): string {
  */
 export function anchoDeColumnaDeCodigo(casos: readonly Pick<CasoDeCola, "codigo">[]) {
   const largo = Math.max(0, ...casos.map((caso) => caso.codigo.length));
-  return `max(92px, calc(${largo}ch + 40px))`;
+  // El código va en negrita y con espaciado: 1.15 ch por carácter.
+  const ancho = Math.round(largo * 1.15 * 10) / 10;
+  return `max(92px, calc(${ancho}ch + 40px))`;
 }
 
 function tonoDeResultado(status: string) {
