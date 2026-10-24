@@ -459,7 +459,7 @@ graficar_pie <- function(
   .pt_cifra <- size_etiquetas_pct * ggplot2::.pt
   guias_pie <- .pie_guias(df, r_text, r_lab, .d_in, .pt_cifra, r_in = if (tipo_pie == "donut") r_in)
   if (isTRUE(mostrar_etiquetas_pct) && any(guias_pie$fuera)) {
-    r_lab <- .pie_guias_r_lab(TRUE, r_out)
+    r_lab <- .pie_guias_r_lab(TRUE, r_out, .d_in, attr(guias_pie, "extension_in"))
     guias_pie <- .pie_guias(df, r_text, r_lab, .d_in, .pt_cifra, r_in = if (tipo_pie == "donut") r_in)
   }
 
