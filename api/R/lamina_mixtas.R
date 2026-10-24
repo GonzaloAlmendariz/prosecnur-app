@@ -466,7 +466,7 @@
   if (any(!is.finite(ns)) || length(unique(round(ns))) != 1L) return(FALSE)
   fuente <- function(el) {
     ref <- as.character(unlist(el$var %||% el$vars %||% ""))[1]
-    if (is.na(ref) || !grepl("$", ref, fixed = TRUE)) "" else sub("\\$.*$", "", ref)
+    if (is.na(ref) || !grepl("$", ref, fixed = TRUE)) "" else .base_nombre_visible(sub("\\$.*$", "", ref))
   }
   fuentes <- vapply(els[graficos[graficos <= length(els)]], fuente, "")
   length(unique(fuentes)) <= 1L

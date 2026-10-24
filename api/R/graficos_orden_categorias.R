@@ -132,6 +132,7 @@
   if (sum(grepl(grados, t, perl = TRUE)) >= 2L) return(TRUE)
   ordinales <- "\\b(primer|segund|tercer|cuart|quint|sext|septim|setim|octav|noven|decim)"   # «Quinto ciclo» … «Décimo ciclo» (p68)
   if (sum(grepl(ordinales, t, perl = TRUE)) >= 2L) return(TRUE)
+  if (.goc_pistas_romanos(e)) return(TRUE)   # «VI», «VII», «Ciclo IX» (graficos_orden_romanos.R)
   gradacion <- "\\b(nada|poco|algo|mucho|muy|totalmente|siempre|nunca|a veces|rara vez|bajo|medio|alto|acuerdo|desacuerdo|satisfech|insatisfech|malo|bueno|regular|excelente|pesimo|nivel|menos de|mas de|a mas)\\b"
   sum(grepl(gradacion, t, perl = TRUE)) >= 2L
 }
@@ -207,6 +208,7 @@
   }
   if (!nrow(cats)) return(el)
   modo <- oc$modo
+  if (identical(modo, "recetario") && .goc_circular_instrumento_explicito(el)) modo <- "instrumento"   # graficos_orden_romanos.R
   if (identical(modo, "recetario")) {
     if (.goc_orden_heredado(el, presets)) return(el)
     sv <- .goc_survey(ctx$inst, ctx$var)

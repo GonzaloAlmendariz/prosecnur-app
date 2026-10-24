@@ -158,6 +158,12 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_CAMPAIGN_NAME",                       "collection_mail_campaigns.R",       "422",
     "E_COLLECTION_MAIL_CAMPAIGN_LIMIT",                      "collection_mail_campaigns.R",       "409",
     "E_COLLECTION_MAIL_CAMPAIGN_CONFIRM",                    "collection_mail_campaigns.R",       "422",
+    # «Mis secciones» del correo (ADR 0113).
+    "E_COLLECTION_MAIL_SECTION_INVALID",                     "collection_mail_sections.R",        "422",
+    "E_COLLECTION_MAIL_SECTION_NAME",                        "collection_mail_sections.R",        "422",
+    "E_COLLECTION_MAIL_SECTION_LIMIT",                       "collection_mail_sections.R",        "409",
+    "E_COLLECTION_MAIL_SECTION_NOT_FOUND",                   "collection_mail_sections.R",        "404",
+    "E_COLLECTION_MAIL_SECTIONS_IMPORT",                     "collection_mail_sections_import.R", "422",
     # Campañas tipadas de Material de campo (ADR 0111).
     "E_COLLECTION_CAMPAIGN_NOT_FOUND",                       "collection_campaigns.R",            "404",
     "E_COLLECTION_CAMPAIGN_TIPO",                            "collection_campaigns.R",            "422",

@@ -574,8 +574,14 @@
 
 .mon-cuotas-categoria-cifras small {
   grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
   color: var(--pulso-text-faint);
   font-size: 11px;
+  /* Una sola línea en toda fila: si parte en unas y no en otras, la lista
+     deja de ser pareja (contrato `equal` de las categorías). */
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mon-cuotas-sin-coincidencias {

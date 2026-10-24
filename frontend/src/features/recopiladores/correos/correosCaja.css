@@ -1,0 +1,186 @@
+/* «Estilo» del bloque (EstiloDelBloque, GOAL editor profesional L4). Sólo
+   tokens: los colores reales del correo (la paleta y la marca) llegan inline
+   desde el tema, como la muestra del tono «Acento». */
+
+.rec-caja-vistas {
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3px;
+}
+
+.rec-caja-vista {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  min-height: 30px;
+}
+
+.rec-caja-vista.is-on {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-caja {
+  display: grid;
+  gap: 14px;
+}
+
+.rec-caja--sin {
+  justify-items: start;
+}
+
+.rec-caja-sin {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  margin: 0;
+}
+
+.rec-mail-ajuste.rec-caja-fondo {
+  align-items: stretch;
+  display: grid;
+  gap: 6px;
+  justify-content: stretch;
+}
+
+.rec-caja-muestras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rec-caja-muestra {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  font-size: 11px;
+  gap: 4px;
+  min-width: 46px;
+  padding: 5px 4px 4px;
+  position: relative;
+}
+
+.rec-caja-muestra:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-caja-muestra.is-on {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-caja-punto,
+.rec-caja-otro input[type="color"] {
+  border: 1px solid color-mix(in srgb, var(--pulso-text) 16%, transparent);
+  border-radius: 8px;
+  display: block;
+  height: 30px;
+  width: 30px;
+}
+
+.rec-caja-otro input[type="color"] {
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rec-caja-muestra-rotulo {
+  line-height: 1.1;
+}
+
+.rec-caja-pie {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.rec-caja-nota {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.rec-caja-quitar {
+  justify-self: start;
+}
+
+/* Miniaturas de las opciones de la caja (AjusteDeBloque). */
+.rec-caja-mini {
+  background: color-mix(in srgb, var(--pulso-text) 12%, var(--pulso-surface));
+  border-radius: 4px;
+  box-sizing: border-box;
+  display: block;
+  height: 18px;
+  width: 30px;
+}
+
+.rec-caja-mini--border-fino {
+  border: 1px solid var(--pulso-text-soft);
+}
+
+.rec-caja-mini--border-acento {
+  border-left: 3px solid var(--pulso-text);
+}
+
+.rec-caja-mini--corners-rectas {
+  border-radius: 0;
+}
+
+.rec-caja-mini--corners-suaves {
+  border-radius: 4px;
+}
+
+.rec-caja-mini--corners-redondas {
+  border-radius: 9px;
+}
+
+.rec-caja-mini--spacing-compacto {
+  height: 12px;
+}
+
+.rec-caja-mini--spacing-normal {
+  height: 18px;
+}
+
+.rec-caja-mini--spacing-amplio {
+  height: 24px;
+}
+
+.rec-caja-letra {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 18px;
+}
+
+.rec-caja-letra--auto {
+  background: linear-gradient(90deg, var(--pulso-text) 50%, var(--pulso-text-faint) 50%);
+  background-clip: text;
+  color: transparent;
+}
+
+.rec-caja-letra--blanco {
+  background: var(--pulso-text);
+  border-radius: 4px;
+  color: var(--pulso-surface);
+  padding: 0 4px;
+}

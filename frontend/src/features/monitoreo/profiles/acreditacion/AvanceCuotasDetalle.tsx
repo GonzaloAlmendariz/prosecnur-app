@@ -111,7 +111,7 @@ export function AvanceCuotasDetalle({
                     <span> / {(c.meta ?? 0) > 0 ? cifra(c.meta) : "—"}</span>
                   </span>
                   <em className="mon-cuotas-resto">{restoDeCategoria(c)}</em>
-                  <small>
+                  <small title={`${(c.meta ?? 0) > 0 ? `${porcentaje(c.avance)} de la meta · ` : ""}${conBase(c.efectivas, c.universo)} en la base`}>
                     {(c.meta ?? 0) > 0 ? `${porcentaje(c.avance)} de la meta · ` : ""}
                     {conBase(c.efectivas, c.universo)} en la base
                   </small>
