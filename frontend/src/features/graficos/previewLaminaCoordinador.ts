@@ -36,9 +36,21 @@ export function clavePreview(valor: unknown): string {
   return JSON.stringify(ordenar(valor));
 }
 
-export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { esperaMs?: number; temporizador?: Temporizador } = {}) {
+/** Respuestas ya dibujadas, por clave; la comparten los coordinadores de un registro (laminas/previewLaminaRegistro.ts). */
+export type CachePreview = {
+  leer: (clave: string) => PreviewSlideResponse | undefined;
+  guardar: (clave: string, respuesta: PreviewSlideResponse) => void;
+  /** Reintentar: la clave deja de responder desde la caché. */
+  descartar?: (clave: string) => void;
+};
+
+export function crearCoordinadorPreviewLamina(
+  cargar: CargaPreview,
+  opciones: { esperaMs?: number; temporizador?: Temporizador; cache?: CachePreview } = {},
+) {
   const espera = opciones.esperaMs ?? 600;
   const t = opciones.temporizador ?? temporizadorReal;
+  const cache = opciones.cache;
   let ultima: { respuesta: PreviewSlideResponse; clave: string } | undefined;
   let programada: unknown;
   let enCurso: AbortController | undefined;
@@ -52,6 +64,19 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
     solicitar(clave: string, avisar: (e: EstadoPreviewLamina) => void): Promise<void> {
       if (ultima && ultima.clave === clave && !enCurso && programada === undefined) {
         avisar({ estado: "lista", ...ultima });
+        return Promise.resolve();
+      }
+      // Una versión ya dibujada (volver a la lámina tras desmontar, deshacer): al instante, sin otra vuelta al motor.
+      const guardada = cache?.leer(clave);
+      if (guardada) {
+        turno++;
+        if (programada !== undefined) t.cancelar(programada);
+        programada = undefined;
+        enCurso?.abort();
+        enCurso = undefined;
+        soltarPendiente();
+        ultima = { respuesta: guardada, clave };
+        avisar({ estado: "lista", respuesta: guardada, clave });
         return Promise.resolve();
       }
       const mio = ++turno;
@@ -75,6 +100,7 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
             const respuesta = await cargar(clave, { signal: control.signal });
             if (mio !== turno || control.signal.aborted) return terminar();
             ultima = { respuesta, clave };
+            cache?.guardar(clave, respuesta);
             avisar({ estado: "lista", respuesta, clave });
           } catch (e) {
             if (mio !== turno || control.signal.aborted) return terminar();
@@ -89,7 +115,7 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
     /** La próxima solicitud vuelve a pedir aunque la clave no haya cambiado (Reintentar). La última respuesta sigue
      *  sirviendo de «anterior» mientras llega la nueva. */
     olvidar() {
-      if (ultima) ultima = { ...ultima, clave: "" };
+      if (ultima) { cache?.descartar?.(ultima.clave); ultima = { ...ultima, clave: "" }; }
     },
     /** Cancela lo pendiente (al salir de la lámina o desmontar). */
     cancelar() {

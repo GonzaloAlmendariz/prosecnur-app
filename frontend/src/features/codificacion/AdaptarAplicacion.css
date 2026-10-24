@@ -103,3 +103,7 @@
   color: var(--pulso-primary);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* B1: aviso de la fuente de Codificación (otro n que el de la base). */
+.pulso-codif-aviso-fuente { margin: 12px 0; }
+.pulso-codif-aviso-fuente p { margin: 2px 0 0; }

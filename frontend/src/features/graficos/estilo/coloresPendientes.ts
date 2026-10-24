@@ -1,7 +1,8 @@
 // P8 (Gonzalo 2026-10-11): «si hay gráficos que aún no tienen paleta configurada cuando deberían […] no se puede
 // exportar. Tenemos que asegurar que el usuario tenga todo definido antes de exportar pero también que pueda hacerlo
 // fácilmente». Un gráfico que pinta cada respuesta con su color bloquea la exportación mientras a su paleta le falte
-// algún color; el arreglo en un clic completa sólo lo que falta con la primera combinación de la marca.
+// algún color; el arreglo en un clic completa sólo lo que falta con la primera combinación de la marca. La regla única
+// vive en exportarInformeRegla.ts (U9, 2026-10-24).
 
 import type { Slide } from "../../../api/graficos";
 import type { MapaPaletas } from "../paletasResolver";

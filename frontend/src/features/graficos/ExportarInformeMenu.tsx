@@ -7,7 +7,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronDown, Database, Download, FileText, Loader2 } from "../../vendor/lucide-react";
 import { apiSaveFileAs, downloadUrl } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
-import { ColoresPendientesAviso, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
+import { ColoresPendientesAviso, ID_COLORES_PENDIENTES, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
+import { puedeGenerarInforme } from "./exportarInformeRegla";
 
 export type ExportarInformeMenuProps = {
   onExportPpt: () => void;
@@ -37,9 +38,9 @@ export function ExportarInformeMenu({
   const { project } = useProjectShell();
   const [saveStatus, setSaveStatus] = useState("");
   const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(!isSharedReport && docxFileId));
-  // P8: un gráfico que pinta cada respuesta con su color no se exporta con respuestas sin color.
+  // P8: un gráfico que pinta cada respuesta con su color no se exporta con respuestas sin color (exportarInformeRegla.ts).
   const { pendientes: coloresPendientes, completar: completarColores } = useColoresPendientes();
-  const puedeGenerar = canExportFinal && coloresPendientes.length === 0;
+  const puedeGenerar = puedeGenerarInforme({ planSinErrores: canExportFinal, coloresPendientes: coloresPendientes.length });
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -116,9 +117,9 @@ export function ExportarInformeMenu({
                 disabled={!canExportFinal && !pptFileId && (isSharedReport || !docxFileId)}
                 aria-haspopup="dialog"
                 aria-expanded={exportMenuOpen}
-                title={canExportFinal
-                  ? isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"
-                  : "Revisa el estado del plan antes de exportar"}
+                title={!canExportFinal ? "Revisa el estado del plan antes de exportar"
+                  : coloresPendientes.length ? "Faltan colores: complétalos para exportar"
+                  : isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"}
               >
                 {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
                 <span>Exportar</span>
@@ -143,6 +144,8 @@ export function ExportarInformeMenu({
                       Revisa el estado del plan antes de generar archivos.
                     </div>
                   )}
+
+                  {/* El motivo y el arreglo en un clic antes de las acciones que deshabilita (P8, U9). */}
                   <ColoresPendientesAviso pendientes={coloresPendientes} onCompletar={completarColores} onVer={() => setExportMenuOpen(false)} />
 
                   <div className="pulso-gv2-export-menu-actions">
@@ -153,6 +156,7 @@ export function ExportarInformeMenu({
                         onExportPpt();
                       }}
                       disabled={!puedeGenerar || exportBusy}
+                      aria-describedby={coloresPendientes.length ? ID_COLORES_PENDIENTES : undefined}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
                         {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
@@ -169,6 +173,7 @@ export function ExportarInformeMenu({
                         onExportWord();
                       }}
                       disabled={!puedeGenerar || exportBusy}
+                      aria-describedby={coloresPendientes.length ? ID_COLORES_PENDIENTES : undefined}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
                         {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
