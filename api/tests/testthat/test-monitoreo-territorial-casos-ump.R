@@ -127,3 +127,11 @@ test_that("pedir casos sin UMP es un error de la API con su código", {
   expect_equal(err$status, 400)
   expect_equal(err$code, "E_MONITOREO_TERRITORIAL_UMP_REQUERIDA")
 })
+
+test_that("el sexo con código del formulario sale con su rótulo, como en la cuota", {
+  df <- .casos_ump_fixture()
+  df$sex <- c("2", "1", "", "Mujer", "2")
+  out <- monitoreo_territorial_casos_ump_desde_auditoria(df, .casos_ump_tcfg(), "field", "107")
+  por_id <- stats::setNames(vapply(out$casos, function(caso) caso$sexo, character(1)), vapply(out$casos, function(caso) caso$id, character(1)))
+  expect_identical(unname(por_id[c("a2", "a1", "b1", "b2")]), c("Mujer", "Hombre", "", "Mujer"))
+})
