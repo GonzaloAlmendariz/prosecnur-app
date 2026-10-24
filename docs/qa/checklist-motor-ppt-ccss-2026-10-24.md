@@ -28,6 +28,19 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | P3 | «(Recodificada)» en la rama de escala en filas | | ⬜ | |
 | P4 | Título duplicado en slots de varias láminas | `lamina_titulo_lienzo.R` | ✅ `c0df7056d` | |
 
+## Frente UI (QA visual de Gráficos con CCSS: RECHAZADO, 16 PASS / 8 FAIL / 2 DEBT)
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| U1 | Exportar bloqueado: 117 bloqueos por pregunta en dos bases, mientras la vista previa resuelve | `frontend/src/features/graficos/avisosPlan.ts`, planValidator | ⬜ prioridad máxima |
+| U2 | Miniatura de la dona con «64%» cuando el dato es 53% | `iconos/ComposicionLamina.tsx` (`sinCifras`) | ⬜ |
+| U3 | Títulos de la maqueta recortados | `.pulso-f6-maqueta-titulo` | ⬜ |
+| U4 | Avisos repetidos con jerga que tapan el inspector | panel de avisos | ⬜ |
+| U5 | «0%» con 1 caso; leyenda de dona mal agrupada | motor (donas) | ⬜ |
+| U6 | Previsualizar re-dibuja ~20 s cada vez | preview | ⬜ |
+| U7 | Textos («otras 1 pregunta», paréntesis anidados, rótulos de capítulo) | varios | ⬜ |
+| U8 | Capacity-drift en índice y ficha técnica | f6 | ⬜ |
+
 ## Frente brechas (traspasado a esta sesión; plan completo: `docs/qa/plan-brechas-motor-ccss-2026-10-24.md`, en la rama hasta el ff)
 
 | # | Ítem | Dónde vive | Estado | Commit / nota |
@@ -55,6 +68,8 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 - D13: los no sustantivos salen del denominador sólo si el plan lo declara, con aviso (aprobado).
 
 ## Decisiones tomadas en el loop (para revisión de Gonzalo; él pidió no preguntar)
+
+- Exportar bloqueado por preguntas que existen en dos bases (QA de UI, 117 bloqueos en CCSS): la exportación resolverá igual que el motor y la vista previa; base principal por defecto con aviso no bloqueante y acción masiva para fijarla. Pendiente de implementar (oleada UI).
 
 - B1 se arregla aunque el plan de brechas lo tenía «sin decisión»: es un error silencioso de datos (N equivocado) y el arreglo sólo hace que Codificación lea la base actual, igual que Analítica. No cambia ninguna regla metodológica.
 
