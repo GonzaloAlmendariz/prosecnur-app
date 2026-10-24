@@ -29,6 +29,17 @@ describe("Avance › Faltante por UMP", () => {
     expect(saldoDeSubsanaciones(modelo.filas[2])).toBe("—");
   });
 
+  it("agrupa las celdas por variable de cuota, con su suma, para las sub-tarjetas", () => {
+    const fila = modelo.filas[0];
+    expect(fila.variables.map((variable) => variable.nombre)).toEqual(["Sexo", "Edad"]);
+    for (const variable of fila.variables) {
+      expect(variable.logrado).toBe(variable.celdas.reduce((suma, celda) => suma + celda.logrado, 0));
+      expect(variable.meta).toBe(variable.celdas.reduce((suma, celda) => suma + celda.meta, 0));
+    }
+    expect(fila.variables.flatMap((variable) => variable.celdas)).toEqual(fila.celdas);
+    expect(fila.variables.find((variable) => variable.nombre === "Edad")?.falta).toBe(1);
+  });
+
   it("las otras manzanas de la UMP quedan en su detalle", () => {
     expect(modelo.filas[0].otras.map((otra) => otra.id_manzana)).toEqual(["150135063000600"]);
   });

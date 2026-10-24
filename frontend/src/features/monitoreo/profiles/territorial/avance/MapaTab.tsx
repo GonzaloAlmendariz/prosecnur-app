@@ -18,6 +18,8 @@ import { FichaDeUmp } from "./FichaDeUmp";
 import { construirFichaDeUmp } from "./fichaUmpModel";
 import { callesCercanas, centroDeManzana, construirMapa, manzanasVecinas, type EstadoEnMapa } from "./mapaModel";
 import { useCartografiaDelMapa } from "./useCartografiaDelMapa";
+import { cajaProyectada, candidatosDeCaja, ubicarRotulos } from "../modelo/rotulosDelMapa";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./mapa.css";
 
 type Capa = "avance" | "ocurrencias";
@@ -91,6 +93,27 @@ function MapaTabImpl({
     return buildTerritorialMapProjection(distritos.length ? distritos : LIMA_DISTRICT_FEATURES, [], [], 24);
   }, [acercada, distritos]);
 
+  // Los nombres de distrito van encima de los puntos, con halo, donde menos
+  // manzanas pisan (la misma regla que el mapa de Modelo › Metas).
+  const rotulosDeDistrito = useMemo(() => {
+    if (acercada) return [];
+    const puntos = emparejadas.flatMap((item) => {
+      const centro = centroDeManzana(item.feature);
+      return centro ? [proyeccion.project(centro.lon, centro.lat)] : [];
+    });
+    return ubicarRotulos(
+      distritos.map((feature) => ({
+        clave: feature.properties.ubigeo,
+        texto: nombreDeDistrito(feature.properties.distrito),
+        candidatos: candidatosDeCaja(
+          proyeccion.project(feature.properties.label_lon, feature.properties.label_lat),
+          cajaProyectada(feature.geometry.coordinates, proyeccion.project),
+        ),
+      })),
+      puntos,
+    );
+  }, [acercada, distritos, emparejadas, proyeccion]);
+
   const escala = ACERCAMIENTOS[nivel] ?? 1;
   const ancho = LIMA_MAP_WIDTH / escala;
   const alto = LIMA_MAP_HEIGHT / escala;
@@ -128,6 +151,7 @@ function MapaTabImpl({
     >
       <div className="mon-mapa-lienzo-panel" data-qa-geometry-member="mapa">
         <header className="mon-mapa-barra">
+          <RotuloDePestana />
           {modelo.conOcurrencias ? (
             <span className="mon-mapa-segmentado" role="group" aria-label="Capa del mapa">
               <button type="button" aria-pressed={capa === "avance"} className={capa === "avance" ? "is-active" : ""} onClick={() => setCapa("avance")}>Avance UMP</button>
@@ -193,16 +217,7 @@ function MapaTabImpl({
                 </>
               ) : (
                 <g className="mon-mapa-distritos">
-                  {distritos.map((feature) => {
-                    const d = territorialDistrictPath(feature, proyeccion);
-                    const rotulo = proyeccion.project(feature.properties.label_lon, feature.properties.label_lat);
-                    return (
-                      <g key={feature.properties.ubigeo}>
-                        <path d={d} />
-                        <text x={rotulo.x} y={rotulo.y} textAnchor="middle">{nombreDeDistrito(feature.properties.distrito)}</text>
-                      </g>
-                    );
-                  })}
+                  {distritos.map((feature) => <path key={feature.properties.ubigeo} d={territorialDistrictPath(feature, proyeccion)} />)}
                 </g>
               )}
 
@@ -242,6 +257,12 @@ function MapaTabImpl({
                   );
                 })}
               </g>
+
+              {rotulosDeDistrito.length ? (
+                <g className="mon-mapa-rotulos" aria-hidden="true">
+                  {rotulosDeDistrito.map((rotulo) => <text key={rotulo.clave} x={rotulo.x} y={rotulo.y} textAnchor="middle">{rotulo.texto}</text>)}
+                </g>
+              ) : null}
 
               {acercada?.flecha && acercada.origen ? (() => {
                 const desde = centroDeManzana(acercada.origen.feature);

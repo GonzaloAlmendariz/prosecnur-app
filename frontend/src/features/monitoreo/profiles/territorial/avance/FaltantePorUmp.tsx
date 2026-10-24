@@ -15,6 +15,8 @@ import {
   type ModeloFaltante,
 } from "./faltanteModel";
 import { DetalleDeUmp } from "./DetalleDeUmp";
+import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./faltante.css";
 
 /**
@@ -37,6 +39,7 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
     return (
       <section className="mon-falt mon-falt--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Faltante por UMP">
         <div className="mon-falt-panel mon-falt-vacio" data-qa-geometry-empty="legitimo">
+          <RotuloDePestana />
           <Target size={20} aria-hidden="true" />
           <strong>Sin cuota territorial configurada</strong>
           <span>La cuota por UMP se declara en Modelo › Cuotas desde la muestra de Hojas de ruta.</span>
@@ -125,6 +128,7 @@ function PanelDePendientes({
   return (
     <section className="mon-falt-panel mon-falt-pendientes" aria-labelledby="mon-falt-pendientes-titulo" data-qa-geometry-member="pendientes">
       <header className="mon-falt-cabecera">
+        <RotuloDePestana />
         <h3 id="mon-falt-pendientes-titulo">Falta en la manzana en uso</h3>
         {modelo.celdasFueraDeUso > 0 ? (
           <span className="mon-falt-base">
@@ -134,13 +138,13 @@ function PanelDePendientes({
           </span>
         ) : null}
       </header>
-      <div className="mon-falt-tarjetas" data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="equal">
+      <div className="mon-falt-tarjetas" data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
         {modelo.pendientes.map((fila) => (
           <article key={fila.ump} className={`mon-falt-tarjeta${fila.cubre?.tipo === "sugerencia" ? " is-con-sugerencia" : ""}`}>
+            <SiluetaDeDistrito distrito={fila.distrito} tono="falta" />
             <div className="mon-falt-tarjeta-linea is-identidad">
               <strong>UMP {fila.ump}</strong>
               <span>{fila.distrito}, manzana {fila.manzana}, {fila.aplicador}</span>
-              {fila.ultimoCaso ? <small>Último caso el {fila.ultimoCaso}</small> : null}
             </div>
             <div className="mon-falt-tarjeta-linea is-falta">
               {fila.faltantes.map((item) => (
@@ -151,6 +155,9 @@ function PanelDePendientes({
               ) : (
                 <span className="mon-falt-sin">Sin excedente compatible cerca</span>
               )}
+            </div>
+            <div className="mon-falt-tarjeta-accion">
+              {fila.ultimoCaso ? <small>Último caso el {fila.ultimoCaso}</small> : null}
               {fila.cubre?.tipo === "sugerencia" ? (
                 <button type="button" className="mon-falt-boton is-primario" onClick={() => onSugerencia(fila.ump)}>
                   <ArrowRightLeft size={14} aria-hidden="true" />
@@ -209,7 +216,7 @@ function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
         <tbody>
           {modelo.distritos.map((fila) => (
             <tr key={fila.distrito}>
-              <th scope="row">{fila.distrito}</th>
+              <th scope="row"><span className="mon-ter-con-silueta"><SiluetaDeDistrito distrito={fila.distrito} lado={22} />{fila.distrito}</span></th>
               {fila.celdas.map((celda) => {
                 const tono = tonoDeCalor(celda.logrado, celda.meta);
                 return (

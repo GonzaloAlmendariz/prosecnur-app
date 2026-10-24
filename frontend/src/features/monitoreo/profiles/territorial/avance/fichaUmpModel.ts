@@ -1,6 +1,6 @@
 import type { MonitoreoTerritorialDashboard, TerritorialResponseAuditRow } from "../../../../../api/client";
 import { diaYMes, fmt, numeroDeUmp, rotuloDeAplicador, rotuloDeCelda } from "../rotulos";
-import { construirFaltante, textoDeQuienCubre, type CeldaDeCuota, type EstadoDeUmp } from "./faltanteModel";
+import { construirFaltante, textoDeQuienCubre, type CeldaDeCuota, type EstadoDeUmp, type VariableDeCuota } from "./faltanteModel";
 
 /**
  * Ficha de una UMP: P1 de Avance › Mapa e inspector de Avance › UMP
@@ -43,6 +43,7 @@ export type FichaDeUmp = {
   /** Saldo de la subsanación: recibidas menos cedidas. */
   subsanado: number;
   celdas: CeldaDeCuota[];
+  variables: VariableDeCuota[];
   faltantes: Array<{ texto: string; falta: number }>;
   sugerencia: string | null;
   /** Casos del corte en las manzanas de la UMP; `null` sin `response_audit`. */
@@ -137,6 +138,7 @@ export function construirFichaDeUmp(
     levantadas: fila.logrado - subsanado,
     subsanado,
     celdas: fila.celdas,
+    variables: fila.variables,
     faltantes: fila.faltantes,
     sugerencia: fila.cubre?.tipo === "sugerencia" ? textoDeQuienCubre(fila.cubre) : null,
     casos,
