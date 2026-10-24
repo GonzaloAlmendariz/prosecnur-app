@@ -32,13 +32,14 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| U1 | Exportar bloqueado: 117 bloqueos por pregunta en dos bases, mientras la vista previa resuelve | `frontend/src/features/graficos/avisosPlan.ts`, planValidator | ⬜ prioridad máxima |
-| U2 | Miniatura de la dona con «64%» cuando el dato es 53% | `iconos/ComposicionLamina.tsx` (`sinCifras`) | ⬜ |
-| U3 | Títulos de la maqueta recortados | `.pulso-f6-maqueta-titulo` | ⬜ |
-| U4 | Avisos repetidos con jerga que tapan el inspector | panel de avisos | ⬜ |
+| U1 ✅ `d0daae8d8` | Exportar bloqueado: 117 bloqueos por pregunta en dos bases, mientras la vista previa resuelve | `frontend/src/features/graficos/avisosPlan.ts`, planValidator | ⬜ prioridad máxima |
+| U2 ✅ `d0daae8d8` | Miniatura de la dona con «64%» cuando el dato es 53% | `iconos/ComposicionLamina.tsx` (`sinCifras`) | ⬜ |
+| U3 ✅ `d0daae8d8` | Títulos de la maqueta recortados | `.pulso-f6-maqueta-titulo` | ⬜ |
+| U4 ✅ `d0daae8d8` | Avisos repetidos con jerga que tapan el inspector | panel de avisos | ⬜ |
 | U5 | «0%» con 1 caso; leyenda de dona mal agrupada | motor (donas) | ⬜ |
 | U6 | Previsualizar re-dibuja ~20 s cada vez | preview | ⬜ |
-| U7 | Textos («otras 1 pregunta», paréntesis anidados, rótulos de capítulo) | varios | ⬜ |
+| U7 ◐ `d0daae8d8` (falta id «avisos» duplicado) | Textos («otras 1 pregunta», paréntesis anidados, rótulos de capítulo) | varios | ⬜ |
+| U9 | «Faltan colores» dice bloquear con Exportar habilitado | panel de avisos | 🔵 |
 | U8 | Capacity-drift en índice y ficha técnica | f6 | ⬜ |
 
 ## Frente brechas (traspasado a esta sesión; plan completo: `docs/qa/plan-brechas-motor-ccss-2026-10-24.md`, en la rama hasta el ff)
