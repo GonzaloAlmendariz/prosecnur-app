@@ -44,6 +44,10 @@
 // navegador. Lo que llega vive en memoria mientras la vista existe.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
+import { MAIL_GUARDADO_TYPES, MAIL_SECTION_TYPES, normalizeMailSection, type MailGuardado, type MailSectionBlock } from "./materialMailSecciones";
+
+// El resto del catálogo de secciones (L6) vive en su módulo; se lee desde aquí como el resto del contrato.
+export * from "./materialMailSecciones";
 
 /**
  * Esquema que escribe este cliente. El backend lee v1 y la sube a v2 sin
@@ -69,6 +73,10 @@ export const MAIL_BLOCK_TYPES = [
   "ornament",
   "icon_text",
   "two_images",
+  // Secciones (GOAL editor profesional, collection_mail_destacado.R).
+  "feature",
+  // Resto del catálogo (L6, collection_mail_secciones.R; materialMailSecciones.ts).
+  ...MAIL_SECTION_TYPES,
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
@@ -140,6 +148,10 @@ export type MailImageBlock = {
   bleed?: boolean;
   /** Decorativa (E1o): sale con alt vacío y la revisión no le pide descripción. */
   decorative?: boolean;
+  /** Recorte a una proporción fija (L7); sin él, la foto entera. */
+  crop?: MailCrop;
+  /** Otra imagen para el celular (L12): bajo 480 px reemplaza a la de PC. */
+  mobile_ref?: string;
 };
 
 // ---- piezas gráficas (E1o) -------------------------------------------------------
@@ -169,6 +181,28 @@ export type MailTwoImagesBlock = {
   right: string;
   alt_left: string;
   alt_right: string;
+};
+/** «Destacado»: la imagen a la izquierda, a la derecha o arriba (`collection_mail_destacado.R`). */
+export const MAIL_FEATURE_LAYOUTS = ["izquierda", "derecha", "arriba"] as const;
+export type MailFeatureLayout = (typeof MAIL_FEATURE_LAYOUTS)[number];
+/** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
+export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
+export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
+export type MailCrop = { ratio?: MailCropRatio; x?: number; y?: number; zoom?: number };
+/** Sin `image_ref` sale sin imagen; con imagen, `alt` es obligatorio. */
+export type MailFeatureBlock = {
+  block_id: string;
+  type: "feature";
+  eyebrow?: string;
+  title: string;
+  text?: string;
+  image_ref?: string;
+  alt?: string;
+  button_text?: string;
+  url?: string;
+  layout?: MailFeatureLayout;
+  /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
+  crop?: MailCrop;
 };
 export type MailCalloutBlock = {
   block_id: string;
@@ -201,21 +235,43 @@ export type MailOpaqueBlock = {
   raw: Record<string, unknown>;
 };
 
+// ---- estilo propio del bloque (GOAL editor profesional, L2) ----------------------
+// Espejo de collection_mail_box.R. Valores cerrados, nunca CSS libre; `bg` es un
+// nombre de la paleta del correo (sigue al acento) o un color libre #rrggbb.
+
+export const MAIL_BOX_BG_NAMES = ["papel", "tinte", "acento", "tinta"] as const;
+export type MailBoxBgName = (typeof MAIL_BOX_BG_NAMES)[number];
+export const MAIL_BOX_BORDERS = ["ninguno", "fino", "acento"] as const;
+export const MAIL_BOX_CORNERS = ["rectas", "suaves", "redondas"] as const;
+export const MAIL_BOX_SPACINGS = ["compacto", "normal", "amplio"] as const;
+export const MAIL_BOX_TEXTS = ["auto", "tinta", "acento", "blanco"] as const;
+export type MailBlockBox = {
+  bg?: MailBoxBgName | string;
+  border?: (typeof MAIL_BOX_BORDERS)[number];
+  corners?: (typeof MAIL_BOX_CORNERS)[number];
+  spacing?: (typeof MAIL_BOX_SPACINGS)[number];
+  text?: (typeof MAIL_BOX_TEXTS)[number];
+};
+/** Todo bloque admite caja salvo el pie legal, que no se dibuja como bloque. */
+export type MailBoxed = { box?: MailBlockBox };
+
 export type MailKnownBlock =
-  | MailGreetingBlock
-  | MailHeadingBlock
-  | MailParagraphBlock
-  | MailButtonBlock
-  | MailCalloutBlock
-  | MailListBlock
-  | MailDividerBlock
-  | MailImageBlock
-  | MailSignatureBlock
+  | (MailGreetingBlock & MailBoxed)
+  | (MailHeadingBlock & MailBoxed)
+  | (MailParagraphBlock & MailBoxed)
+  | (MailButtonBlock & MailBoxed)
+  | (MailCalloutBlock & MailBoxed)
+  | (MailListBlock & MailBoxed)
+  | (MailDividerBlock & MailBoxed)
+  | (MailImageBlock & MailBoxed)
+  | (MailSignatureBlock & MailBoxed)
   | MailFooterBlock
-  | MailBandBlock
-  | MailOrnamentBlock
-  | MailIconTextBlock
-  | MailTwoImagesBlock;
+  | (MailBandBlock & MailBoxed)
+  | (MailOrnamentBlock & MailBoxed)
+  | (MailIconTextBlock & MailBoxed)
+  | (MailTwoImagesBlock & MailBoxed)
+  | (MailFeatureBlock & MailBoxed & MailGuardado)
+  | (MailSectionBlock & MailBoxed & MailGuardado);
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -763,7 +819,49 @@ export function normalizeMailTrato(value: unknown): MailTrato | undefined {
   };
 }
 
+/** El recorte de una foto: sólo valores del contrato (los números, dentro de su rango). */
+export function normalizeMailCrop(value: unknown): MailCrop | undefined {
+  if (!isRecord(value)) return undefined;
+  const ratio = oneOf(value.ratio, MAIL_CROP_RATIOS);
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : undefined);
+  const x = num(value.x, 0, 1);
+  const y = num(value.y, 0, 1);
+  const zoom = num(value.zoom, 1, 3);
+  return {
+    ...(ratio ? { ratio } : {}), ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}), ...(zoom !== undefined ? { zoom } : {}),
+  };
+}
+
+/**
+ * La caja de un bloque: sólo las claves y valores del contrato. Una caja sin
+ * valores reconocidos vuelve como `{}`, que el render dibuja con los valores por
+ * defecto (papel, suaves, normal); sin `box` en el bloque, no hay caja.
+ */
+export function normalizeMailBox(value: unknown): MailBlockBox | undefined {
+  if (!isRecord(value)) return undefined;
+  const bgName = oneOf(value.bg, MAIL_BOX_BG_NAMES);
+  const bg = bgName ?? hexColor(value.bg);
+  const border = oneOf(value.border, MAIL_BOX_BORDERS);
+  const corners = oneOf(value.corners, MAIL_BOX_CORNERS);
+  const spacing = oneOf(value.spacing, MAIL_BOX_SPACINGS);
+  const text = oneOf(value.text, MAIL_BOX_TEXTS);
+  const box: MailBlockBox = {
+    ...(bg ? { bg } : {}), ...(border ? { border } : {}), ...(corners ? { corners } : {}),
+    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}),
+  };
+  return box;
+}
+
 export function normalizeMailBlock(value: unknown): MailBlock | null {
+  const block = normalizeMailBlockSinCaja(value);
+  if (!block || isOpaqueMailBlock(block) || block.type === "footer_legal" || !isRecord(value)) return block;
+  const box = normalizeMailBox(value.box);
+  // Lo que «Cambiar por» dejó sin mostrar (L8): viaja tal cual, el render lo ignora.
+  const guardado = (MAIL_GUARDADO_TYPES as readonly string[]).includes(block.type) && isRecord(value.guardado) ? { guardado: value.guardado } : {};
+  return { ...block, ...(box ? { box } : {}), ...guardado };
+}
+
+function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
   if (!isRecord(value)) return null;
   const block_id = str(value.block_id);
   if (!block_id) return null;
@@ -824,6 +922,8 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
         ...(url !== undefined ? { url } : {}),
         ...(value.bleed !== undefined ? { bleed: bool(value.bleed) } : {}),
         ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
+        ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
+        ...(optStr(value.mobile_ref) !== undefined ? { mobile_ref: str(value.mobile_ref) } : {}),
       };
     }
     case "band": {
@@ -846,6 +946,19 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
         left: str(value.left), right: str(value.right),
         alt_left: str(value.alt_left), alt_right: str(value.alt_right),
       };
+    case "steps": case "deadline": case "benefits": case "quote": case "faq": case "contact":
+      return normalizeMailSection(value, block_id, type, { str, optStr, icon: (v) => oneOf(v, MAIL_ICONS), crop: normalizeMailCrop });
+    case "feature": {
+      const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
+      const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
+      return {
+        block_id, type, title: str(value.title),
+        ...opcional("eyebrow"), ...opcional("text"), ...opcional("image_ref"), ...opcional("alt"),
+        ...opcional("button_text"), ...opcional("url"),
+        ...(layout ? { layout } : {}),
+        ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
+      };
+    }
     case "callout": {
       const variant = oneOf(value.variant, ["box", "bar", "tinte"] as const);
       const title = optStr(value.title);
@@ -1579,7 +1692,8 @@ export class MailApiError extends ApiError {
   }
 }
 
-async function handleMail(res: Response): Promise<unknown> {
+/** Respuesta de un endpoint `mail-*`: el error del backend como `MailApiError` (lo usa también materialMailMisSecciones.ts). */
+export async function handleMail(res: Response): Promise<unknown> {
   if (res.ok) return handle<unknown>(res);
   const raw = await res.clone().text().catch(() => "");
   let details: unknown = null;

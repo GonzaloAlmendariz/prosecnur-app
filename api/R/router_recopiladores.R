@@ -176,6 +176,21 @@ mount_recopiladores <- function(pr) {
       collection_mail_campaign_delete(session_header(req), expected_revision = body$expected_revision,
                                       campaign_id = body$campaign_id, confirm_name = body$confirm_name)
     })) |>
+    # «Mis secciones» del correo (ADR 0113): viven en el estudio. Borrar es POST, como las campañas.
+    plumber::pr_get("/api/recopiladores/mail-sections", wrap_endpoint(function(req, res, ...) {
+      collection_mail_sections_get(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-sections", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_section_create(session_header(req), expected_revision = body$expected_revision,
+                                     name = body$name, block = body$block, images = body$images,
+                                     campaign_id = body$campaign_id)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-sections/delete", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_section_delete(session_header(req), expected_revision = body$expected_revision,
+                                     section_id = body$section_id)
+    })) |>
     # «Actualizar quién respondió»: SurveyMonkey → etiqueta en Mailchimp.
     plumber::pr_get("/api/recopiladores/mail-sync/options", wrap_endpoint(function(req, res, ...) {
       collection_mail_mailchimp_options(session_header(req))

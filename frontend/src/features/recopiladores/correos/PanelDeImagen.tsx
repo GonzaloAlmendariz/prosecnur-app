@@ -8,8 +8,10 @@ import { Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { EncuadreDeFoto } from "./EncuadreDeFoto";
 import { conTraeLogos, esBannerDeArriba, franjaPorElBanner, hayFranjaDeLogos, propDelProblema, traeLogosDe } from "./modeloCorreo";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
+import { VersionParaElCelular } from "./VersionParaElCelular";
 import { descripcionesPendientes } from "./piezasGraficas";
 
 /**
@@ -35,6 +37,9 @@ type Props = {
   onEditarBloque: (update: (b: MailBlock) => MailBlock, grupo?: string) => void;
   onEditar: (update: (t: MailTemplate) => MailTemplate, grupo?: string) => void;
   onSubir: (file: File) => void;
+  /** Versión para el celular (L12). */
+  vistaDelMovil?: string | null;
+  onSubirMovil?: (file: File) => void;
 };
 
 /**
@@ -42,7 +47,7 @@ type Props = {
  * su texto alternativo —obligatorio—, el ancho, la alineación, a todo el ancho,
  * el enlace y dónde se aloja para el envío.
  */
-export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEditarBloque, onEditar, onSubir }: Props) {
+export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEditarBloque, onEditar, onSubir, vistaDelMovil = null, onSubirMovil }: Props) {
   const id = useId();
   const archivo = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,32 +75,34 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
     onSubir(file);
   };
 
-  const ponerUrl = (url: string) => {
+  // La URL pública de una imagen del bloque: la de PC o (L12) la del celular.
+  const ponerUrl = (url: string, id: string = block.image_ref, grupo = `${block.block_id}.image_url`) => {
     onEditar((t) => {
       const images = { ...t.images };
-      const actual = images[block.image_ref] ?? { alt: block.alt };
-      if (url) images[block.image_ref] = { ...actual, url };
+      const actual = images[id] ?? { alt: block.alt };
+      if (url) images[id] = { ...actual, url };
       else {
         const { url: _u, ...sinUrl } = actual;
         void _u;
-        images[block.image_ref] = sinUrl;
+        images[id] = sinUrl;
       }
       return { ...t, images };
-    }, `${block.block_id}.image_url`);
+    }, grupo);
   };
 
   return (
     <div className="rec-capa-img-panel">
-      <div className={`rec-capa-img-vista${vista ? "" : " is-vacia"}`} data-qa-geometry-capacity="owned">
-        {vista ? (
-          <img src={vista} alt={decorativa ? "" : block.alt || "Imagen del correo"} />
-        ) : (
+      {vista ? (
+        // La foto entera y, si se recorta (L7), el encuadre encima.
+        <EncuadreDeFoto block={block} vista={vista} onEditarBloque={onEditarBloque} />
+      ) : (
+        <div className="rec-capa-img-vista is-vacia" data-qa-geometry-capacity="owned">
           <span className="rec-capa-img-vacia">
             <ImagePlus size={20} aria-hidden />
             <span>{decorativa ? "Sin archivo todavía. En el correo se ve el hueco." : "Sin archivo todavía. En el correo se ve el hueco con el texto alternativo."}</span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
       <div className="rec-capa-img-subir">
         <PulsoButton variant={vista ? "secondary" : "primary"} size="sm" disabled={ocupado} onClick={() => archivo.current?.click()}>
           <Upload size={14} aria-hidden /> {vista ? "Reemplazar la imagen" : "Subir imagen"}
@@ -123,6 +130,21 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
             ? () => onEditar((t) => franjaPorElBanner(t, block.block_id))
             : null}
           onResponder={(valor) => onEditar((t) => conTraeLogos(t, block.image_ref, valor, block.alt))}
+        />
+      ) : null}
+
+      {/* L12: otra imagen para el celular, sólo para una pieza con archivo (no un adorno). */}
+      {vista && !decorativa && onSubirMovil ? (
+        <VersionParaElCelular
+          block={block}
+          vista={vistaDelMovil}
+          ocupado={ocupado}
+          onEditarBloque={onEditarBloque}
+          onSubir={onSubirMovil}
+          // Alojada por URL (SurveyMonkey): la del celular también necesita la suya.
+          url={alojamiento === "url" && block.mobile_ref ? template.images[block.mobile_ref]?.url ?? "" : null}
+          onUrl={(url) => { if (block.mobile_ref) ponerUrl(url, block.mobile_ref, `${block.block_id}.mobile_url`); }}
+          problemas={problemas.filter((p) => propDelProblema(p.path) === "mobile_ref")}
         />
       ) : null}
 
