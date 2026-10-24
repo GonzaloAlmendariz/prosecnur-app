@@ -70,20 +70,7 @@
   y <- .reporte_plan_clean_chr(x)
   if (!length(y)) return(y)
 
-  norm <- .reporte_plan_ascii_lower(y)
-  norm <- gsub("\\s+", " ", norm, perl = TRUE)
-  norm <- trimws(norm)
-  stripped <- gsub("\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?", "", norm, perl = TRUE)
-  stripped <- gsub("\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica|specify|please specify)\\s*:?", "", stripped, perl = TRUE)
-  stripped <- trimws(gsub("\\s+", " ", stripped, perl = TRUE))
-
-  is_other <- (
-    grepl("\\b(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) &
-      grepl("\\b(especific|specif|please|por favor)\\b", norm, perl = TRUE)
-  ) | grepl("^\\s*(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) |
-    stripped %in% c("other", "otro", "otra", "otros", "otras")
-
-  y[is_other] <- "Otros"
+  y[.etiqueta_es_otros(y)] <- "Otros"   # etiqueta_otros.R: sólo la opción que es «otro», no «Otra persona…»
   y
 }
 
