@@ -5,6 +5,8 @@
 //   GET    mail-sections          las del estudio
 //   POST   mail-sections          guarda una copia de un bloque (sin id ni `guardado`)
 //   POST   mail-sections/delete   la borra (los correos que la usan no cambian)
+//   POST   mail-sections/import/peek   lee otro `.pulso` sin abrirlo: qué secciones trae
+//   POST   mail-sections/import        copia las elegidas, con sus fotos, a este estudio
 // Toda escritura exige `expected_revision` (la revisión global del estado).
 
 import { apiFetch, headers } from "./core";
@@ -84,4 +86,64 @@ export async function apiMailSectionCreate(input: {
 
 export async function apiMailSectionDelete(input: { expected_revision: number; section_id: string }): Promise<{ state_revision: number }> {
   return { state_revision: normalizePayload(await handleMail(await apiFetch(`${BASE}/mail-sections/delete`, json(input)))).state_revision };
+}
+
+// ---- «Importar de otro estudio…» --------------------------------------------
+
+/** Una sección del otro estudio, con lo que pasaría al importarla. */
+export type MailImportableSection = MailSavedSection & {
+  importable: boolean;
+  already_here: boolean;
+  photos: number;
+  photos_missing: number;
+};
+
+export type MailSectionsImportPeek = {
+  project_name: string;
+  same_project: boolean;
+  /** Cuántas caben todavía en este estudio. */
+  room: number;
+  sections: MailImportableSection[];
+};
+
+export type MailSectionsImportResult = MailSectionsPayload & {
+  project_name: string;
+  imported: number;
+  already_here: number;
+  not_readable: number;
+  photos_renamed: number;
+  photos_missing: number;
+};
+
+const entero = (v: unknown): number => {
+  const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isFinite(n) ? n : 0;
+};
+const logico = (v: unknown): boolean => (Array.isArray(v) ? v[0] === true : v === true);
+
+export function normalizeMailSectionsImportPeek(value: unknown): MailSectionsImportPeek {
+  const v = esObjeto(value) ? value : {};
+  const sections: MailImportableSection[] = [];
+  for (const raw of Array.isArray(v.sections) ? v.sections : []) {
+    const s = normalizeMailSavedSection(raw);
+    if (!s || !esObjeto(raw)) continue;
+    sections.push({
+      ...s, importable: logico(raw.importable), already_here: logico(raw.already_here),
+      photos: entero(raw.photos), photos_missing: entero(raw.photos_missing),
+    });
+  }
+  return { project_name: texto(v.project_name), same_project: logico(v.same_project), room: entero(v.room), sections };
+}
+
+export async function apiMailSectionsImportPeek(path: string): Promise<MailSectionsImportPeek> {
+  return normalizeMailSectionsImportPeek(await handleMail(await apiFetch(`${BASE}/mail-sections/import/peek`, json({ path }))));
+}
+
+export async function apiMailSectionsImport(input: { expected_revision: number; path: string; section_ids: string[] }): Promise<MailSectionsImportResult> {
+  const out = await handleMail(await apiFetch(`${BASE}/mail-sections/import`, json(input)));
+  const v = esObjeto(out) ? out : {};
+  return {
+    ...normalizePayload(v), project_name: texto(v.project_name), imported: entero(v.imported), already_here: entero(v.already_here),
+    not_readable: entero(v.not_readable), photos_renamed: entero(v.photos_renamed), photos_missing: entero(v.photos_missing),
+  };
 }

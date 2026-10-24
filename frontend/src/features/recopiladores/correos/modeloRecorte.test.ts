@@ -45,6 +45,9 @@ describe("contrato del recorte en el cliente", () => {
     const html = '<tr data-pulso-block="d"><td><img src="data:image/jpeg;base64,RECORTE" data-pulso-original="data:image/jpeg;base64,ENTERA"></td></tr><tr data-pulso-block="otro"><img data-pulso-original="NO"></tr>';
     expect(srcOriginalDelBloque(html, "d")).toBe("data:image/jpeg;base64,ENTERA");
     expect(srcOriginalDelBloque(html, "nada")).toBeNull();
+    // El base64 de R viene partido en renglones: la miniatura del encuadre no se decodificaba.
+    const partido = '<tr data-pulso-block="d"><img src="x" data-pulso-original="data:image/png;base64,AAAA&#10;BBBB&#13;&#10;CC"></tr>';
+    expect(srcOriginalDelBloque(partido, "d")).toBe("data:image/png;base64,AAAABBBBCC");
   });
 });
 

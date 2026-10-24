@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 
 import type { MailTemplate } from "../../../api/materialMail";
-import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
+import type { MailSavedSection, MailSectionsImportResult } from "../../../api/materialMailMisSecciones";
 import { X, type LucideIcon } from "../../../vendor/lucide-react";
+import { ImportarSecciones, resumenDeImportacion } from "./ImportarSecciones";
 import { tipoDisponible } from "./estructuraCorreo";
 import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA, ICONO_DE_IMAGEN_Y_TEXTO } from "./iconos";
 import { ROTULO_DE_BLOQUE } from "./modeloCorreo";
@@ -325,25 +326,49 @@ function fechaCorta(iso: string): string {
 
 /** Las secciones guardadas del estudio, primero en la biblioteca (lee el store). */
 function MisSecciones({ onElegir }: { onElegir: (seccion: MailSavedSection) => void }) {
-  const { secciones, estado, error, cargar, borrar } = useMisSecciones();
+  const { secciones, estado, error, cargar, borrar, importar } = useMisSecciones();
   // Se relee al abrir: el store es de la app y otro proyecto trae sus propias secciones (ver misSeccionesStore).
   useEffect(() => { void cargar(); }, [cargar]);
-  return <ListaDeMisSecciones secciones={secciones} cargando={estado === "cargando"} error={error} onElegir={onElegir} onBorrar={(id) => { void borrar(id); }} />;
+  return <ListaDeMisSecciones secciones={secciones} cargando={estado === "cargando"} error={error} onElegir={onElegir} onBorrar={(id) => { void borrar(id); }} onImportar={importar} />;
 }
 
 /** La lista de «Mis secciones»: cada una inserta una copia; su ✕ la borra. */
-export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBorrar }: {
+export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBorrar, onImportar }: {
   secciones: readonly MailSavedSection[];
   cargando: boolean;
   error: string | null;
   onElegir: (seccion: MailSavedSection) => void;
   onBorrar: (sectionId: string) => void;
+  /** «Importar de otro estudio…»: sin esta prop, la lista no lo ofrece. */
+  onImportar?: (path: string, sectionIds: string[]) => Promise<MailSectionsImportResult | null>;
 }) {
   // Borrar pide un segundo clic: no hay deshacer y la sección puede servir en otros correos.
   const [porBorrar, setPorBorrar] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
+  const [resumen, setResumen] = useState<string | null>(null);
+  // Al cerrar el panel, el foco vuelve al botón que lo abrió.
+  const botonImportar = useRef<HTMLButtonElement | null>(null);
+  const abierto = useRef(false);
+  useEffect(() => {
+    if (abierto.current && !importando) botonImportar.current?.focus();
+    abierto.current = importando;
+  }, [importando]);
   return (
     <section className="rec-bib-grupo" aria-label="Mis secciones">
-      <h4 className="rec-bib-grupo-titulo">Mis secciones · de este estudio</h4>
+      <span className="rec-bib-grupo-cabeza">
+        <h4 className="rec-bib-grupo-titulo">Mis secciones · de este estudio</h4>
+        {onImportar && !importando ? (
+          <button ref={botonImportar} type="button" className="rec-bib-importar" onClick={() => { setResumen(null); setImportando(true); }}>Importar de otro estudio…</button>
+        ) : null}
+      </span>
+      {onImportar && importando ? (
+        <ImportarSecciones
+          onImportar={onImportar}
+          onListo={(r) => { setImportando(false); setResumen(resumenDeImportacion(r)); }}
+          onCerrar={() => setImportando(false)}
+        />
+      ) : null}
+      {resumen ? <p className="rec-bib-importado" role="status">{resumen}</p> : null}
       {cargando && !secciones.length ? <p className="rec-bib-vacio">Leyendo las secciones del estudio…</p> : null}
       {!cargando && !secciones.length ? (
         <p className="rec-bib-vacio">Aún no hay. Elige una sección del correo y usa «Guardar» en su barra: queda aquí para los otros correos de este estudio.</p>
