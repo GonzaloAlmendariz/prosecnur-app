@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PlugZap } from "lucide-react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { construirConexiones, type TarjetaDeFuente } from "./conexionesModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./insumos.css";
 
 /**
@@ -14,6 +15,8 @@ import "./insumos.css";
  */
 function ConexionesTabImpl({
   reports,
+  avance = null,
+  consultas = null,
   state,
   phase,
   ocupado,
@@ -22,6 +25,8 @@ function ConexionesTabImpl({
   onAdministrar,
 }: {
   reports: MonitoreoTerritorialDashboard | null;
+  avance?: MonitoreoTerritorialDashboard | null;
+  consultas?: MonitoreoTerritorialDashboard | null;
   state: MonitoreoState | null;
   phase: MonitoreoTerritorialPhase;
   ocupado: boolean;
@@ -29,13 +34,14 @@ function ConexionesTabImpl({
   onTraerTodo?: () => void;
   onAdministrar: () => void;
 }) {
-  const modelo = useMemo(() => construirConexiones(state, reports, phase), [phase, reports, state]);
+  const modelo = useMemo(() => construirConexiones(state, reports, phase, { avance, consultas }), [avance, consultas, phase, reports, state]);
   const navigate = useNavigate();
 
   if (!modelo.conFuenteDeCampo) {
     return (
       <section className="mon-ins mon-ins--vacio" data-audit-ready="vacio:sin-fuente" aria-label="Conexiones">
         <div className="mon-ins-panel mon-ins-vacio">
+          <RotuloDePestana />
           <PlugZap size={20} aria-hidden="true" />
           <strong>Sin formulario de campo · Kobo · fase Campo</strong>
           <span>Conecta el formulario de Kobo de la fase para leer sus respuestas.</span>
@@ -54,10 +60,11 @@ function ConexionesTabImpl({
       data-qa-geometry-contract="intrinsic"
     >
       <ul className="mon-ins-fuentes" data-qa-geometry-member="fuentes">
-        {modelo.tarjetas.map((tarjeta) => (
+        {modelo.tarjetas.map((tarjeta, indice) => (
           <li key={tarjeta.clave}>
             <Fuente
               tarjeta={tarjeta}
+              conRotulo={indice === 0}
               ocupado={ocupado}
               onTraerNuevas={tarjeta.activa ? onTraerNuevas : undefined}
               onTraerTodo={tarjeta.activa ? onTraerTodo : undefined}
@@ -84,12 +91,14 @@ function ConexionesTabImpl({
 
 function Fuente({
   tarjeta,
+  conRotulo = false,
   ocupado,
   onTraerNuevas,
   onTraerTodo,
   onAdministrar,
 }: {
   tarjeta: TarjetaDeFuente;
+  conRotulo?: boolean;
   ocupado: boolean;
   onTraerNuevas?: () => void;
   onTraerTodo?: () => void;
@@ -99,6 +108,7 @@ function Fuente({
   return (
     <article className={`mon-ins-panel mon-ins-fuente is-${tarjeta.tono}${tarjeta.activa ? " is-activa" : ""}`} aria-labelledby={`mon-ins-fuente-${tarjeta.clave}`}>
       <header className="mon-ins-fuente-cabecera">
+        {conRotulo ? <RotuloDePestana /> : null}
         <div>
           <h3 id={`mon-ins-fuente-${tarjeta.clave}`}>{tarjeta.titulo}</h3>
           <span className="mon-ins-base">{tarjeta.formulario}</span>
