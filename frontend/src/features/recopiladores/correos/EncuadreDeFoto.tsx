@@ -1,17 +1,17 @@
-// Encuadre de la foto de un Destacado o de una Imagen (GOAL editor profesional, L7): la
+// Encuadre de la foto de una sección o de una Imagen (GOAL editor profesional, L7): la
 // proporción, el centro y el acercamiento. Sobre la miniatura se ve, oscurecido,
 // lo que el recorte deja fuera; un clic (o las flechas) mueve el centro. El
 // render recorta el archivo con los mismos números (collection_mail_recorte.R).
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
-import type { MailBlock, MailFeatureBlock, MailImageBlock } from "../../../api/materialMail";
+import type { MailBlock, MailBlockConFoto, MailImageBlock } from "../../../api/materialMail";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTE_DE_PROPORCION, conRecorte, recorteDe, rectDelRecorte } from "./modeloRecorte";
 import "./correosRecorte.css";
 
 type Props = {
-  block: MailFeatureBlock | MailImageBlock;
+  block: MailBlockConFoto | MailImageBlock;
   vista: string;
   onEditarBloque: (update: (b: MailBlock) => MailBlock, grupo?: string) => void;
 };

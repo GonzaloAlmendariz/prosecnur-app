@@ -148,6 +148,8 @@ const PROPS_CON_ENLACE: Partial<Record<MailBlock["type"], readonly PropDeTexto[]
   footer_legal: ["text"],
   icon_text: ["text"],
   feature: ["text"],
+  deadline: ["text"],
+  contact: ["text"],
 };
 
 export function admiteEnlaces(type: MailBlock["type"], prop: string): boolean {

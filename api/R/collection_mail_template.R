@@ -76,7 +76,14 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   icon_text    = c("icon", "text", "box"),
   two_images   = c("left", "right", "alt_left", "alt_right", "box"),
   # Secciones (GOAL editor profesional): collection_mail_destacado.R.
-  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "crop", "box")
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "crop", "box"),
+  # Resto del catálogo (L6): collection_mail_secciones.R.
+  steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box"),
+  deadline     = c("eyebrow", "title", "text", "button_text", "url", "box"),
+  benefits     = c("title", "entries", "box"),
+  quote        = c("text", "name", "role", "image_ref", "alt", "crop", "box"),
+  faq          = c("title", "entries", "box"),
+  contact      = c("eyebrow", "name", "role", "text", "email", "phone", "image_ref", "alt", "crop", "box")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -446,7 +453,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     }
     # Enlaces del texto: válidos donde se permiten, prohibidos en el resto.
     for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right",
-                                    "eyebrow", "button_text"))) {
+                                    "eyebrow", "button_text", "role", "email", "phone"))) {
       add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
     }
     add(.cmail_style_problems(b, type, path))
@@ -491,6 +498,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
         add(.cmail_text_problems(b$address, paste0(path, ".address"), keys))
       },
       feature = add(.cmail_feature_problems(b, path, keys)),
+      steps = , deadline = , benefits = , quote = , faq = , contact = add(.cmail_section_problems(b, type, path, keys)),
       add(.cmail_piezas_problems(b, type, path, keys))
     )
   }

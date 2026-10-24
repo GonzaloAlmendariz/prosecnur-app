@@ -103,7 +103,8 @@ export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable)
     const left = idLibre("imagen-izquierda", usados);
     return { ...block, left, right: idLibre("imagen-derecha", [...usados, left]) };
   }
-  if (block.type === "feature") {
+  // «Imagen + texto» nace sin botón: no se le pone enlace (un enlace sin texto de botón no vale).
+  if ((block.type === "feature" || block.type === "deadline") && block.button_text) {
     // El botón nace con un enlace que ya vale (la vista previa no se frena): el
     // del botón del correo o el campo que lleva a la encuesta; sin ninguno, nace sin botón.
     const url = enlaceDelCorreo(template);

@@ -286,6 +286,8 @@
     two_images = .cmail_block_two_images(b, ctx),
     # Secciones: collection_mail_destacado.R.
     feature = .cmail_block_feature(b, ctx),
+    # Resto del catálogo (L6): collection_mail_secciones.R.
+    steps = , deadline = , benefits = , quote = , faq = , contact = .cmail_block_section(b, type, ctx),
     ""
   )
   if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx)

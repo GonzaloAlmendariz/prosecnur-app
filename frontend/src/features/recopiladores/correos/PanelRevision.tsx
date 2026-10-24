@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 
-import type { MailCheck, MailCheckItem, MailReview, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailCheck, type MailCheckItem, type MailReview, type MailTemplate } from "../../../api/materialMail";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { AlertCircle, ArrowRight, CheckCircle2, ChevronRight, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDelChequeo, pestanaDelChequeo, type PestanaDelChequeo } from "./comoArreglar";
@@ -90,7 +90,7 @@ export function salidasDeLoQueFalta(
     if (!block) return { destino, texto: "Ir al bloque" };
     const ids = block.type === "image" ? [block.image_ref]
       : block.type === "two_images" ? [block.left, block.right]
-      : block.type === "feature" && block.image_ref ? [block.image_ref] : [];
+      : tieneFoto(block) && block.image_ref ? [block.image_ref] : [];
     const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);
     return { destino, texto: nombres.length === 1 ? `Subir «${nombres[0]}»` : `Subir en «${rotuloDeBloque(block)}»` };
   });

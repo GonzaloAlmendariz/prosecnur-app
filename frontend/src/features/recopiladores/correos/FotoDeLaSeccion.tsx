@@ -1,10 +1,11 @@
-// La foto de un «Destacado» en el inspector (GOAL editor profesional, L5): verla,
-// subirla o cambiarla, describirla y quitarla. Sin foto, la sección sale sólo
-// con su texto (collection_mail_destacado.R), así que quitarla nunca deja un hueco.
+// La foto de una sección en el inspector (GOAL editor profesional, L5 y L6):
+// Destacado, Pasos, Cita y Contacto. Verla, subirla o cambiarla, encuadrarla,
+// describirla y quitarla. Sin foto, la sección sale sólo con su texto (Contacto,
+// con las iniciales), así que quitarla nunca deja un hueco.
 
 import { useRef, useState } from "react";
 
-import type { MailBlock, MailFeatureBlock, MailProblem } from "../../../api/materialMail";
+import { tieneFoto, type MailBlock, type MailBlockConFoto, type MailProblem } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { AvisoDeReduccion } from "./AvisoDeReduccion";
@@ -16,7 +17,7 @@ import { descripcionesPendientes } from "./piezasGraficas";
 import "./correosPiezas.css";
 
 type Props = {
-  block: MailFeatureBlock;
+  block: MailBlockConFoto;
   /** Lo que ya se ve: el `blob:` recién subido o el `src` de la vista previa. */
   vista: string | null;
   problemas: readonly MailProblem[];
@@ -25,11 +26,13 @@ type Props = {
   onSubir: (file: File) => void;
 };
 
-/** Ancho con que sale la foto con 600 px de columna (`.cmail_feature_slot`): se sube al doble. */
-const ANCHO_A_UN_LADO = 216;
-const ANCHO_ARRIBA = 504;
+/** Ancho con que sale la foto con 600 px de columna (`.cmail_photo_shown`): se sube al doble. */
+function anchoMostrado(block: MailBlockConFoto): number {
+  if (block.type === "feature") return block.layout === "arriba" ? 504 : 216;
+  return block.type === "steps" ? 504 : 96;
+}
 
-export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarBloque, onSubir }: Props) {
+export function FotoDeLaSeccion({ block, vista, problemas, ocupado, onEditarBloque, onSubir }: Props) {
   const archivo = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tiene = Boolean(block.image_ref);
@@ -47,8 +50,8 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
   };
 
   return (
-    <section className="rec-pieza-lado" aria-label="Foto del destacado">
-      <span className="rec-pieza-lado-titulo">Foto</span>
+    <section className="rec-pieza-lado" aria-label="Foto de la sección">
+      <span className="rec-pieza-lado-titulo">{block.type === "quote" || block.type === "contact" ? "Retrato" : "Foto"}</span>
       {vista && tiene ? (
         // Con foto: la foto entera y, encima, el encuadre del recorte (L7).
         <EncuadreDeFoto block={block} vista={vista} onEditarBloque={onEditarBloque} />
@@ -56,7 +59,7 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
         <div className="rec-capa-img-vista rec-pieza-lado-vista is-vacia" data-qa-geometry-capacity="owned">
           <span className="rec-capa-img-vacia">
             <ImagePlus size={18} aria-hidden />
-            <span>{tiene ? "Sin archivo todavía" : "Sin foto: sale sólo el texto"}</span>
+            <span>{tiene ? "Sin archivo todavía" : block.type === "contact" ? "Sin foto: salen las iniciales" : "Sin foto: sale sólo el texto"}</span>
           </span>
         </div>
       )}
@@ -69,7 +72,7 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
             variant="ghost"
             size="sm"
             onClick={() => onEditarBloque((b) => {
-              if (b.type !== "feature") return b;
+              if (!tieneFoto(b)) return b;
               const { image_ref: _foto, alt: _alt, ...resto } = b;
               return resto;
             })}
@@ -83,7 +86,7 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
         type="file"
         accept="image/png,image/jpeg"
         className="pulso-sr-only"
-        aria-label="Elegir la foto del destacado (PNG o JPEG)"
+        aria-label="Elegir la foto de la sección (PNG o JPEG)"
         tabIndex={-1}
         onChange={(event) => {
           elegir(event.target.files?.[0]);
@@ -101,7 +104,7 @@ export function ImagenDelDestacado({ block, vista, problemas, ocupado, onEditarB
         />
       ) : null}
       <p className="rec-capa-img-ayuda">
-        PNG o JPEG, al menos {(block.layout === "arriba" ? ANCHO_ARRIBA : ANCHO_A_UN_LADO) * 2} px de ancho: así se ve nítida.
+        PNG o JPEG, al menos {anchoMostrado(block) * 2} px de ancho: así se ve nítida.
       </p>
     </section>
   );

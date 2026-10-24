@@ -190,6 +190,18 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       defecto: "izquierda",
     },
   ],
+  // Pasos (collection_mail_secciones.R): más de tres van siempre en lista.
+  steps: [
+    {
+      clave: "layout",
+      rotulo: "Forma",
+      opciones: [
+        { valor: "columnas", rotulo: "A lo ancho", ayuda: "hasta tres pasos" },
+        { valor: "lista", rotulo: "En lista", ayuda: "para pasos con más texto" },
+      ],
+      defecto: "columnas",
+    },
+  ],
 };
 
 /** Ajustes que no se muestran como segmentado: tienen su propio control. */

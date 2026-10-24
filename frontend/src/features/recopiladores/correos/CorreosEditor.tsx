@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import type { MailBlock, MailGreetingBlock, MailPlatform, MailPreset, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailBlock, type MailGreetingBlock, type MailPlatform, type MailPreset, type MailTemplate } from "../../../api/materialMail";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -508,7 +508,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const ocupado = st.ocupado !== null;
   const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
   // La foto de una Imagen o de un Destacado, ENTERA (para encuadrar): la subida, la original de la vista previa o la que pinta.
-  const imagenDelBloque = (bloqueElegido?.type === "image" || bloqueElegido?.type === "feature") && bloqueElegido.image_ref
+  const imagenDelBloque = bloqueElegido && (bloqueElegido.type === "image" || tieneFoto(bloqueElegido)) && bloqueElegido.image_ref
     ? st.imagenesLocales[bloqueElegido.image_ref]
       ?? srcOriginalDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
       ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)

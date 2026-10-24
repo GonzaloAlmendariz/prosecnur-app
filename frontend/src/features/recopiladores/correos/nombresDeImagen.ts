@@ -5,7 +5,7 @@
 // humano (su descripción, o el papel que cumple) y la frase de lo que falta
 // subir. Ningún id llega a la pantalla desde aquí.
 
-import type { MailBlock, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailBlock, type MailTemplate } from "../../../api/materialMail";
 import { altPendiente, resumenDeBloque } from "./modeloCorreo";
 
 type Plantilla = Pick<MailTemplate, "header" | "images" | "blocks">;
@@ -28,7 +28,7 @@ function altDe(template: Plantilla, id: string): string {
     if (b.type === "image" && b.image_ref === id) delBloque = b.alt;
     // Un lado de un par de imágenes (E1o) se nombra con su descripción.
     else if (b.type === "two_images" && (b.left === id || b.right === id)) delBloque = b.left === id ? b.alt_left : b.alt_right;
-    else if (b.type === "feature" && b.image_ref === id) delBloque = b.alt ?? "";
+    else if (tieneFoto(b) && b.image_ref === id) delBloque = b.alt ?? "";
     if (delBloque) break;
   }
   const alt = template.images[id]?.alt || delBloque;

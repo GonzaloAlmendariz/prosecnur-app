@@ -17,6 +17,7 @@
 import {
   MAIL_BLOCK_TYPES,
   MAIL_ICONS,
+  tieneFoto,
   type MailBlock,
   type MailBlockType,
   type MailCheck,
@@ -32,19 +33,21 @@ import { contraste, estiloDe } from "./modeloEstilo";
 
 /** «Imagen decorativa»: un bloque `image` con `decorative: true`, con su propia entrada en la biblioteca. */
 export const IMAGEN_DECORATIVA = "image_decorativa" as const;
-export type TipoInsertable = MailBlockType | typeof IMAGEN_DECORATIVA;
+/** «Imagen + texto» (L6): un Destacado con la foto 4:3 a un lado y sin caja, con su propia entrada. */
+export const IMAGEN_Y_TEXTO = "imagen_texto" as const;
+export type TipoInsertable = MailBlockType | typeof IMAGEN_DECORATIVA | typeof IMAGEN_Y_TEXTO;
 
 /** Las cinco piezas, en el orden de la biblioteca. */
 export const PIEZAS_GRAFICAS: readonly TipoInsertable[] = ["band", "ornament", "icon_text", "two_images", IMAGEN_DECORATIVA];
 
 /** El tipo de bloque que produce una entrada de la biblioteca. */
 export function tipoDelInsertable(tipo: TipoInsertable): MailBlockType {
-  return tipo === IMAGEN_DECORATIVA ? "image" : tipo;
+  return tipo === IMAGEN_DECORATIVA ? "image" : tipo === IMAGEN_Y_TEXTO ? "feature" : tipo;
 }
 
 /** ¿Lo que trae un arrastre es algo que la biblioteca sabe insertar? */
 export function esInsertable(valor: string): valor is TipoInsertable {
-  return valor === IMAGEN_DECORATIVA || (MAIL_BLOCK_TYPES as readonly string[]).includes(valor);
+  return valor === IMAGEN_DECORATIVA || valor === IMAGEN_Y_TEXTO || (MAIL_BLOCK_TYPES as readonly string[]).includes(valor);
 }
 
 // ---- rótulos ----------------------------------------------------------------------
@@ -150,8 +153,8 @@ export function descripcionesPendientes(template: Pick<MailTemplate, "blocks">):
   const out: DescripcionPendiente[] = [];
   for (const b of template.blocks) {
     if (b.type === "image" && b.decorative !== true && altPendiente(b.alt)) out.push({ block_id: b.block_id, prop: "alt" });
-    // La foto de un Destacado, sólo si la tiene.
-    if (b.type === "feature" && b.image_ref && altPendiente(b.alt ?? "")) out.push({ block_id: b.block_id, prop: "alt" });
+    // La foto de una sección (Destacado, Pasos, Cita, Contacto), sólo si la tiene.
+    if (tieneFoto(b) && b.image_ref && altPendiente(b.alt ?? "")) out.push({ block_id: b.block_id, prop: "alt" });
     if (b.type === "two_images") {
       if (altPendiente(b.alt_left)) out.push({ block_id: b.block_id, prop: "alt_left" });
       if (altPendiente(b.alt_right)) out.push({ block_id: b.block_id, prop: "alt_right" });
@@ -168,7 +171,7 @@ export type LadoDelPar = "left" | "right";
 export function imagenesDelCuerpo(template: Pick<MailTemplate, "blocks">, salvo?: { block_id: string; lado?: LadoDelPar }): string[] {
   return template.blocks.flatMap((b) => {
     if (b.type === "image") return salvo && salvo.block_id === b.block_id ? [] : [b.image_ref];
-    if (b.type === "feature") return !b.image_ref || (salvo && salvo.block_id === b.block_id) ? [] : [b.image_ref];
+    if (tieneFoto(b)) return !b.image_ref || (salvo && salvo.block_id === b.block_id) ? [] : [b.image_ref];
     if (b.type === "two_images") {
       return (["left", "right"] as const)
         .filter((lado) => !(salvo && salvo.block_id === b.block_id && salvo.lado === lado))
@@ -183,8 +186,8 @@ export function imagenDeBloque(block: MailBlock | undefined, lado?: LadoDelPar):
   if (!block) return null;
   if (block.type === "image") return block.image_ref;
   if (block.type === "two_images") return block[lado ?? "left"];
-  // Un Destacado sin foto todavía: "" (subir le pone una).
-  if (block.type === "feature") return block.image_ref ?? "";
+  // Una sección sin foto todavía: "" (subir le pone una).
+  if (tieneFoto(block)) return block.image_ref ?? "";
   return null;
 }
 
