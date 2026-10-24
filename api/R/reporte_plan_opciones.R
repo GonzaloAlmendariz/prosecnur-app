@@ -442,9 +442,9 @@
   # CCSS Perfil 2026 (CCSS-9b): el mismo encabezado que la lámina nativa de opción múltiple (recetario p72,
   # lamina_compositor.R), para que todas las múltiples del mazo digan lo mismo.
   overrides$subtitulo <- "% de encuestados que marcó cada opción"
-  # Italica y no negrita: es una acotacion sobre la pregunta, no un segundo
-  # titulo compitiendo con el primero.
-  overrides$face_subtitulo <- "italic"
+  # Como la nativa (lamina_categorica.R, encabezado): negrita en el gris `texto_suave`, sin cursiva (CCSS-19).
+  overrides$face_subtitulo <- "bold"
+  overrides$color_subtitulo <- .std_color("texto_suave")
 
   size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
   overrides$size_subtitulo <- if (is.finite(size_sub)) min(size_sub, 10.5) else 10.0
