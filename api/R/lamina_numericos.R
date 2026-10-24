@@ -38,7 +38,7 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_histograma(lz, espec, ml, yt + 0.55, ancho, yf - yt - 1.25)
+  .lam_histograma(lz, espec, ml + .LAM_SANGRIA_TXT, yt + 0.55, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - yt - 1.25)   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
   .lam_txt(lz, espec$texto_mediana, W - g_("margen_der") - 3.2, yt, 3.2, 0.3, 12, .std_color("coral"), bold = TRUE, align = "right",
            nombre = "histograma:texto_mediana")
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:histograma")
@@ -264,7 +264,8 @@
       if (identical(tp$lugar, "debajo")) ley_y <- yf - 0.35
     }
   }
-  xl <- ml + if (con_dif) 3.0 else 2.4; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
+  wrot0 <- .lam_pesas_ancho_rotulo(espec$rotulos, con_dif); if (!is.finite(wrot0)) wrot0 <- if (con_dif) 2.8 else 2.2   # L10-1
+  xl <- ml + wrot0 + 0.2; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
   yb <- yt + 0.75; fila <- (yf - yb - 0.6) / k
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
@@ -279,11 +280,13 @@
   }
   if (!is.null(espec$titulo_eje) && nzchar(espec$titulo_eje)) .lam_txt(lz, espec$titulo_eje, xl, yb - 0.58, 6, 0.26, 10, suave, bold = TRUE, nombre = "pesas:titulo_eje")
   if (con_dif && !is.null(espec$encabezado_diferencia) && nzchar(espec$encabezado_diferencia)) {
-    .lam_txt(lz, espec$encabezado_diferencia, W - mr - 1.3, yb - 0.3, 1.3, 0.26, 10, suave, bold = TRUE, align = "center", nombre = "pesas:encabezado")
+    sen <- espec$sentido_diferencia %||% ""   # L10-3: quién menos quién, debajo del encabezado
+    .lam_txt(lz, espec$encabezado_diferencia, W - mr - 1.3, yb - (if (nzchar(sen)) 0.54 else 0.3), 1.3, 0.26, 10, suave, bold = TRUE, align = "center", nombre = "pesas:encabezado")
+    if (nzchar(sen)) .lam_txt(lz, sen, W - mr - 1.45, yb - 0.3, 1.6, 0.26, .lam_pesas_sentido_pt(sen), suave, align = "center", nombre = "pesas:sentido")
   }
-  ca <- espec$colores[1]; cb <- espec$colores[2]; dp <- if (con_dif) 0.13 else 0.12; hs <- if (con_dif) 0.04 else 0.024
+  ca <- espec$colores[1]; cb <- espec$colores[2]; tc <- espec$colores_cifra %||% espec$colores; dp <- if (con_dif) 0.13 else 0.12; hs <- if (con_dif) 0.04 else 0.024
   for (i in seq_len(k)) {
-    yc <- yb + (i - 0.5) * fila; a <- espec$a[i]; b <- espec$b[i]; wrot <- if (con_dif) 2.8 else 2.2
+    yc <- yb + (i - 0.5) * fila; a <- espec$a[i]; b <- espec$b[i]; wrot <- wrot0
     if (con_n && is.finite(espec$n_fila[i])) {
       hr <- .lam_alto_txt(espec$rotulos[i], wrot, 13, TRUE)
       .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27 - max(0, hr - 0.317), wrot, hr, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
@@ -303,9 +306,9 @@
     # entra en la columna de rótulos ni tapa el punto del otro grupo.
     piso <- ml + wrot + 0.05
     sube_a <- xa < piso; sube_b <- xb < piso
-    .lam_txt(lz, espec$cifras_a[i], if (sube_a) px(a) - 0.35 else xa, if (sube_a) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, ca, bold = TRUE,
+    .lam_txt(lz, espec$cifras_a[i], if (sube_a) px(a) - 0.35 else xa, if (sube_a) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, tc[1], bold = TRUE,
              align = if (sube_a) "center" else if (mayor_a) "left" else "right", nombre = "pesas:cifra_a")
-    .lam_txt(lz, espec$cifras_b[i], if (sube_b) px(b) - 0.35 else xb, if (sube_b) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, cb, bold = TRUE,
+    .lam_txt(lz, espec$cifras_b[i], if (sube_b) px(b) - 0.35 else xb, if (sube_b) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, tc[2], bold = TRUE,
              align = if (sube_b) "center" else if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
   }
@@ -403,8 +406,8 @@
       k <- length(espec$rotulos)
       tp <- .lam_pesas_tabla_plan(espec); if (!is.null(tp) && !identical(tp$lugar, "omitir")) yf <- tp$graf_y1   # la tabla debajo le quita alto
       fila <- (yf - yt - 0.75 - 0.6) / max(1L, k)
-      wrot <- if (isTRUE(espec$mostrar_diferencia)) 2.8 else 2.2; extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
-      k >= 1L && k <= 12L && dos_lineas(espec$rotulos, wrot, 13) &&
+      wrot <- .lam_pesas_ancho_rotulo(espec$rotulos, espec$mostrar_diferencia); extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
+      k >= 1L && k <= 12L && is.finite(wrot) && dos_lineas(espec$rotulos, wrot, 13) &&
         all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, wrot, 13, TRUE), 0) + extra <= fila)
     },
     serie2 = {

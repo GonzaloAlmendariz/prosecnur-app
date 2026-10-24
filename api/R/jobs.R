@@ -50,7 +50,8 @@ job_submit <- function(sid,
   # Los nombres de los args del bootstrap son intencionalmente feos
   # para no colisionar con args del inner func.
   repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
-  api_dir <- Sys.getenv("PULSO_API_DIR", "")
+  api_dir <- .jobs_api_dir_heredado()   # sin variables, la ruta del load_all del servidor (jobs_fuente_paquete.R)
+  firma <- .jobs_firma_paquete()
 
   # Si `func` es una funcion top-level del paquete y no trae la marca
   # `prosecnur_job_function_name`, derivarla automaticamente. Sin la marca,
@@ -69,7 +70,7 @@ job_submit <- function(sid,
       }
     }
   }
-  bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_api_dir__, .__job_args__) {
+  bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_api_dir__, .__job_args__, .__job_firma__ = NULL) {
     # Locale UTF-8 en el subprocess. Igual que en launcher/launch.R: sin
     # esto, pkgload::load_all falla al parsear .R que tienen tildes en
     # comentarios o strings (ej. "Estadísticas"), porque callr arranca
@@ -120,6 +121,11 @@ job_submit <- function(sid,
         library(prosecnurapp, quietly = TRUE, warn.conflicts = FALSE)
       ))
     }
+    # Mismo código que el servidor, o se dice: sin la función, el paquete cargado es anterior a esta comprobación.
+    ns_job <- asNamespace("prosecnurapp")
+    if (!exists(".jobs_verificar_firma", envir = ns_job, inherits = FALSE)) {
+      if (identical(.__job_firma__$origen, "fuente")) stop("El trabajo cargó un prosecnurapp instalado anterior a la fuente del servidor. Define PULSO_API_DIR.", call. = FALSE)
+    } else get(".jobs_verificar_firma", envir = ns_job)(get(".jobs_firma_paquete", envir = ns_job)(), .__job_firma__)
     job_function_name <- attr(.__job_inner_func__, "prosecnur_job_function_name", exact = TRUE)
     if (!is.null(job_function_name) && nzchar(as.character(job_function_name)[1])) {
       fresh_func <- tryCatch(
@@ -159,7 +165,8 @@ job_submit <- function(sid,
       .__job_inner_func__ = func,
       .__job_repo_root__ = repo_root,
       .__job_api_dir__ = api_dir,
-      .__job_args__ = args
+      .__job_args__ = args,
+      .__job_firma__ = firma
     ),
     stdout = file.path(jobs_dir, paste0(job_id, ".out")),
     stderr = file.path(jobs_dir, paste0(job_id, ".err")),

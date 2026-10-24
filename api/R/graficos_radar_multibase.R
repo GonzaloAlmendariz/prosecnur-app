@@ -1054,7 +1054,12 @@ p_radar_publicos <- function(
   } else if (identical(dibuja, "puntos")) {
     .radar_mb_puntos(datos, titulo = el$title_slide, indicador = el$corte_etiqueta, decimales = res$decimales,
                       eje = list(tipo = el$eje_pocos, min = el$eje_pocos_min, max = el$eje_pocos_max))
-  } else .radar_mb_grafico(datos, estilo = el$estilo, overrides = as.list(el$overrides %||% list()),
+  } else .radar_mb_grafico(datos, estilo = el$estilo,
+                         # `tabla = "no"` apaga también la tabla del radar: el preset del proyecto trae
+                         # `mostrar_tabla_derecha = TRUE` y la lámina nativa la dibujaba aunque se pidió sin ella.
+                         overrides = utils::modifyList(as.list(el$overrides %||% list()),
+                           if (!isTRUE(el[[".word_render"]]) && identical(.radar_mb_tabla_modo_el(el), "no"))
+                             list(mostrar_tabla_derecha = FALSE) else list()),
                          titulo = el$title_slide,
                          mostrar_valores = res$mostrar_valores,
                          decimales = res$decimales,

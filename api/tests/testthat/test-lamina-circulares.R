@@ -26,7 +26,10 @@ test_that("la torta nativa dibuja un sector por porción, la cifra dentro o fuer
   expect_identical(.ci_txt(xml, "torta:cifra_leyenda"), c("60%", "33%", "7%"))
   expect_identical(.ci_txt(xml, "torta:casos"), c("60 de 100 egresados", "33 de 100 egresados", "7 de 100 egresados"))
   sz <- xml2::xml_attr(xml2::xml_find_first(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='torta:cifra']]"), ".//a:rPr"), "sz")
-  expect_identical(sz[3], as.character(.std_pt("cifra_fuera") * 100))         # el 7 % va fuera, en la cifra de fuera
+  # Frente C (CCSS Perfil 2026): el umbral ya no es «menos de 12 %» sino el de las barras apiladas (la cifra no cabe en el
+  # arco de su porción con 0.12 in de aire, lamina_circular_guia.R). En un disco de 3.5 in el «7%» cabe y va dentro; las
+  # porciones chicas y su línea guía se prueban en test-lamina-dona-linea-guia.R.
+  expect_identical(sz[3], as.character(.std_pt("cifra") * 100))
 })
 
 test_that("la dona nativa usa arcos, la cifra clave al centro y la lectura con las cifras en negrita", {
@@ -60,7 +63,7 @@ test_that("en la ruta real p_pie y p_donut salen nativos; con muchas porciones l
 
 # ---- Hallazgos del verificador de N6 (ruta real con datos de borde) ----------
 
-test_that("torta y dona nativas llevan la base; la dona de más de dos porciones, sin n o de rótulo largo va por la ruta anterior", {
+test_that("torta y dona nativas llevan la base; la dona de más de dos porciones o de rótulo largo va nativa en grande", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(s = rep(c("Sí", "No"), c(133, 39)), q4 = rep(c("A", "B", "C", "D"), 43),
                     l = rep(c("Sí, conoce la misión y los propósitos", "No los conoce"), c(100, 72)), stringsAsFactors = FALSE)
@@ -77,6 +80,8 @@ test_that("torta y dona nativas llevan la base; la dona de más de dos porciones
   expect_match(paste(.ci_txt(x(1), "Base lamina"), collapse = ""), "Base")                   # hallazgo 1
   expect_match(paste(.ci_txt(x(2), "Base lamina"), collapse = ""), "Base")
   expect_identical(.ci_txt(x(1), "torta:cifra_leyenda"), c("77%", "23%"))
-  expect_false(any(grepl("prosecnur:grafico", g(3))))                                         # hallazgo 2: cuatro porciones
-  expect_false(any(grepl("prosecnur:grafico", g(4))))                                         # hallazgo 3: rótulo largo en el centro
+  # L4 (CCSS Perfil 2026): la dona de más de dos porciones y la de rótulo largo ya no van por la ruta anterior: se componen
+  # nativas en grande, con la leyenda de cifras (test-lamina-dona-lamina-completa.R).
+  expect_true("prosecnur:grafico:dona" %in% g(3))                                             # hallazgo 2: cuatro porciones
+  expect_true("prosecnur:grafico:dona" %in% g(4))                                             # hallazgo 3: rótulo largo en el centro
 })

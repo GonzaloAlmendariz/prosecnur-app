@@ -5,7 +5,7 @@
 
 import { useId } from "react";
 import { CuerpoGlifo } from "./GlifoGrafico";
-import { GLIFO } from "./glifosGrafico";
+import { GLIFO, type OpcionesGlifo } from "./glifosGrafico";
 import { composicionDe, LAMINA_PULGADAS, numeroDeRanura, type RanuraComposicion } from "./composicion";
 import { Cabecera, DibujoEstructura } from "./dibujosEstructura";
 import type { DatosEstructura } from "../laminas/maqueta/datosEstructura";
@@ -18,6 +18,8 @@ export type ComposicionLaminaProps = {
   slots: readonly string[];
   /** Graficador que llena cada slot (`null` o ausente: ranura vacía). */
   graficos?: Readonly<Record<string, string | null | undefined>>;
+  /** Lo que cada gráfico refleja de sus ajustes (por slot; ver `opcionesDeComposicion`); sin él, el dibujo del catálogo. */
+  opciones?: Readonly<Record<string, OpcionesGlifo>>;
   /** Variante de las láminas de estructura (portada, índice, separador, cierre). */
   variante?: string | null;
   /** Ranura resaltada (1-based, la de `foco=<slide.id>:gK`). */
@@ -33,8 +35,9 @@ export type ComposicionLaminaProps = {
 
 const INSET = 0.1;
 
-function Ranura({ r, k, grafico, activa, numerar }: {
+function Ranura({ r, k, grafico, opciones, activa, numerar }: {
   r: RanuraComposicion;
+  opciones?: OpcionesGlifo;
   k: number | null;
   grafico: string | null;
   activa: boolean;
@@ -80,7 +83,7 @@ function Ranura({ r, k, grafico, activa, numerar }: {
           preserveAspectRatio="xMidYMid meet"
           className={`pulso-glifo-anidado${activa ? " is-activa" : ""}`}
         >
-          <CuerpoGlifo tipo={grafico} />
+          <CuerpoGlifo tipo={grafico} opciones={opciones} />
         </svg>
       )}
       {!grafico && r.tipo === "cifras" && (
@@ -100,7 +103,7 @@ function Ranura({ r, k, grafico, activa, numerar }: {
 }
 
 export function ComposicionLamina({
-  tipo, slots, graficos = {}, variante = null, ranuraActiva = null, numerar = false, titulo, className, datos,
+  tipo, slots, graficos = {}, opciones, variante = null, ranuraActiva = null, numerar = false, titulo, className, datos,
 }: ComposicionLaminaProps): JSX.Element {
   const idTitulo = useId();
   const comp = composicionDe(tipo, slots);
@@ -133,6 +136,8 @@ export function ComposicionLamina({
                 r={r}
                 k={k}
                 grafico={r.slot ? graficos[r.slot] ?? null : null}
+                // Lámina real (con opciones): sin cifras de ejemplo, que se leían como su resultado (M6, U2 de CCSS).
+                opciones={opciones ? { ...(r.slot ? opciones[r.slot] : undefined), sinCifras: true } : undefined}
                 activa={k !== null && k === ranuraActiva}
                 numerar={numerar}
               />

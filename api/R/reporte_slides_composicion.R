@@ -69,10 +69,7 @@
 
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
-  anchos <- vapply(nombres, function(nm) {
-    loc <- contract$slots[[nm]]$loc %||% NULL
-    as.numeric(loc$width %||% 5.2)
-  }, numeric(1))
+  anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
 
   rendered <- list()
   for (i in seq_along(nombres)) {
@@ -95,15 +92,28 @@
   # ADR 0093: las disposiciones que el recetario ya compone con piezas nativas no pasan por la plantilla.
   if (!is.null(.lam_mixta_geo(stype)) && .lam_compositor_aplica_mixta(unname(rendered), slide, stype, unname(els), helpers$title_of_var)) {
     # P4: el panel que no cabe en piezas nativas va con su gráfico; sin su nota al pie, que la lámina ya escribe en la base.
-    caben <- .lam_mixta_caben(lapply(unname(rendered), .lam_espec_de), .lam_mixta_geo(stype), unname(els), helpers$title_of_var)
+    especs_c <- lapply(unname(rendered), .lam_espec_de)
+    caben <- .lam_mixta_caben(especs_c, .lam_mixta_geo(stype), unname(els), helpers$title_of_var)
     para_lamina <- rendered
+    enc_c <- if (any(!caben)) .lam_mixta_encabezados(especs_c, unname(els), helpers$title_of_var)
     for (i in which(!caben)) {
-      el_s <- els[[i]]; el_s$overrides$nota_pie <- ""
+      # G6/A12: sin título ni subtítulo (el panel tiene su encabezado) y con el alto real de su cajón (lamina_titulo_lienzo.R).
+      alto_i <- .composicion_alto_respaldo(stype, i, enc_c$preguntas[[i]] %||% NULL, (enc_c$publicos %||% list())[i][[1]] %||% NULL)
+      # El alto sólo se pasa si con el de la firma los rótulos se montarían en la fila real: lo que hoy cabe no cambia.
+      el_s <- .lam_respaldo_el_sin_encabezado(els[[i]])
       p_s <- tryCatch(helpers$render_element(helpers$inject_title_override(el_s), ancho_slot = anchos[[i]]), error = function(e) NULL)
+      if (.lam_respaldo_rotulos_solapan(p_s, alto_i)) {
+        p_a <- tryCatch(helpers$render_element(helpers$inject_title_override(.lam_respaldo_el_sin_encabezado(els[[i]], alto = alto_i)),
+                                               ancho_slot = anchos[[i]], alto_slot = alto_i), error = function(e) NULL)
+        if (!is.null(p_a)) p_s <- p_a
+      }
       if (!is.null(p_s)) para_lamina[[i]] <- p_s
     }
     # El `icon` que traiga un plan guardado se ignora: la población ya no lleva ícono (Gonzalo, 2026-10-14).
-    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var)
+    # La base: la declarada manda; si no, una sola si los paneles la comparten y ninguna en el pie si difieren (lamina_grilla_nativa.R).
+    decl <- slots$base %||% slots$footer; if (inherits(decl, "ppt_element_text")) decl <- decl$text
+    b <- .lam_grilla_base(if (is.character(decl) && length(decl) && nzchar(trimws(decl[1]))) decl[1], unname(els), unname(rendered), FALSE, function(e) NULL)
+    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var, base = b$base, solo_base_declarada = b$solo)
     if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
   }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype

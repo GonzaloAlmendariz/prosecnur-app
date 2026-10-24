@@ -34,6 +34,8 @@
   # Campanas de correo (E1h): configuracion del usuario, no derivan del plan.
   # Los destinatarios no viven aqui (tempdir de la sesion) y no se tocan.
   "mail_campaigns",
+  # «Mis secciones» del correo (ADR 0113): configuración del usuario, viven en el estudio.
+  "mail_sections",
   # Historico de fichas de prueba: no entra al plan; su `vigente` se recalcula
   # al leer contra el despliegue de hoy.
   "pruebas",

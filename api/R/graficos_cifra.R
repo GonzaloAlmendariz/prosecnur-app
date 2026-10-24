@@ -37,6 +37,10 @@
                                instrumento = NULL, rotulo, detalle = NULL, unidad = NULL, decimales = NULL, icono = NULL) {
   modo <- match.arg(modo)
   valor_word <- NULL
+  if (is.data.frame(data) && !var %in% names(data)) {
+    sm <- .cifra_sm_como_variable(data, var, modo, categoria, instrumento)   # una SM: graficos_cifra_sm.R
+    if (!is.null(sm)) { data <- sm$data; var <- sm$var; categoria <- sm$categoria; instrumento <- NULL }
+  }
   if (!is.data.frame(data) || !var %in% names(data)) .plan_spec_abort(sprintf("La cifra pide «%s», que no está en la base.", var))
   x <- data[[var]]
   if (inherits(x, "haven_labelled")) x <- as.vector(x)

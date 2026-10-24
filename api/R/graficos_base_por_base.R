@@ -24,3 +24,14 @@
   # (Gonzalo, 2026-10-14).
   if (is.character(propio) && length(propio) == 1L && nzchar(propio)) propio else gsub("_+", " ", trimws(src))
 }
+
+#' El nombre de una base tal como puede verse en una lámina
+#'
+#' «default» es el nombre INTERNO de la base única (o de la primera que el usuario no nombró): nunca se escribe en un
+#' rótulo («325 default») ni en el pie («Base: 397 default»). Una base con nombre propio («docentes») sí se nombra.
+#' Devuelve "" cuando el nombre no debe verse.
+#' @keywords internal
+.base_nombre_visible <- function(nombre) {
+  x <- trimws(as.character(nombre %||% "")[1])
+  if (is.na(x) || !nzchar(x) || identical(tolower(x), "default")) "" else x
+}

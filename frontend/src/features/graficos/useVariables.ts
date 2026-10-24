@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { apiGraficosVariables, VarInfo, VariablesBySource } from "../../api/client";
 import { useGraficosReportScope, type GraficosReportScope } from "./reportScope";
 import { safeText } from "./safeText";
+import { relacionDeFuentes, SIN_RELACION, type FuenteConRelacion, type RelacionBases } from "./relacionBases";
 
 // Hook de variables del estudio (multi-base, v0.2+).
 //
@@ -50,6 +51,8 @@ export function useVariables(): {
   sources: { name: string; source_kind?: string; variables: VarInfo[] }[];
   multi: boolean;
   variables: VarWithSource[];  // lista plana con `source` anotado
+  /** De qué base lee el motor una ref suelta y qué base es hija de cuál (repeats); ver relacionBases.ts. */
+  relacionBases: RelacionBases;
   loading: boolean;
   error: string;
 } {
@@ -130,7 +133,20 @@ export function useVariables(): {
     }
   }
 
-  return { sources, multi, variables, loading, error };
+  return { sources, multi, variables, relacionBases: relacionDeCache(data), loading, error };
+}
+
+// La relación se memoiza por respuesta (inmutable, cacheada arriba) para que `usePlanValidator` no recalcule en cada
+// render. El endpoint trae `source_role` y `repeat_grain.parent_base` por fuente aunque `VariablesBySource` no los tipe.
+const relaciones = new WeakMap<VariablesBySource, RelacionBases>();
+function relacionDeCache(data: VariablesBySource | null): RelacionBases {
+  if (!data) return SIN_RELACION;
+  const previa = relaciones.get(data);
+  if (previa) return previa;
+  const fuentes: FuenteConRelacion[] = (data.sources ?? []).map((source) => ({ ...(source as FuenteConRelacion), name: safeText(source.name, "default") }));
+  const relacion = relacionDeFuentes(fuentes);
+  relaciones.set(data, relacion);
+  return relacion;
 }
 
 export function invalidateVariables() {

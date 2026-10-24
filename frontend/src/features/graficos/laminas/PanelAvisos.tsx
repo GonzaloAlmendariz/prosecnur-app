@@ -14,6 +14,7 @@ import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStor
 import { agruparAvisos as agruparPorLamina, type GrupoAvisos as GrupoPorLamina } from "../avisosExportacion/avisosExportacionModel";
 import "../avisosExportacion/avisosExportacion.css";
 import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
+import { laBase } from "../relacionBases";
 import "./panelAvisos.css";
 
 type Props = {
@@ -25,9 +26,14 @@ type Props = {
   enfocarAlAbrir?: boolean;
   /** Láminas con respuestas sin color (bloquean «Exportar») y cómo completarlas; ausente, no se muestra. */
   coloresPendientes?: { laminas: number; completar: () => void };
+  /**
+   * Preguntas que el motor lee de una base sin que el plan lo diga (`var-base-implicita`) y cómo dejarlo escrito en
+   * todas (fijarBase.ts). Presente, sus avisos se juntan en una fila con la acción; ausente, se listan uno por uno.
+   */
+  baseImplicita?: { laminas: number; preguntas: number; base: string; fijar: () => void };
 };
 
-export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false, coloresPendientes }: Props) {
+export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false, coloresPendientes, baseImplicita }: Props) {
   // Quién lo abrió (la barra o el visor): al cerrar, el foco vuelve ahí; si ya no existe, a «N avisos» de la barra.
   const disparadorRef = useRef<HTMLElement | null>(null);
   const cerrarRef = useRef<HTMLButtonElement>(null);
@@ -66,6 +72,10 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
     const p = slideId ? posicionDe.get(slideId) : undefined;
     if (p) onIr(p);
   };
+  // 117 avisos casi iguales en CCSS: con la acción masiva a mano, una sola fila los resume (el detalle sigue en cada lámina).
+  const juntarBase = !!baseImplicita && baseImplicita.laminas > 0;
+  const revisar = juntarBase ? grupos.revisar.filter((i) => i.code !== "var-base-implicita") : grupos.revisar;
+  const totalRevisar = revisar.length + (juntarBase ? 1 : 0);
   const fila = (i: ValidationIssue, k: number) => (
     <li key={`${i.code}-${i.slideId ?? ""}-${i.slotName ?? ""}-${k}`}>
       <span>{i.message}</span>
@@ -113,7 +123,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
           {grupos.bloquean.length || laminasSinColor ? (
             <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">
               {laminasSinColor ? (
-                <li>
+                <li className="is-accion">
                   <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: esos gráficos pintan cada respuesta con su color.</span>
                   <button type="button" className="pulso-f6-texto-boton" onClick={coloresPendientes?.completar}>Completar todos los colores</button>
                 </li>
@@ -123,8 +133,20 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
           ) : <p>Nada bloquea la exportación.</p>}
         </section>
         <section className="pulso-f6-avisos-grupo" aria-label="Conviene revisar">
-          <h3>Conviene revisar <span>{grupos.revisar.length}</span></h3>
-          {grupos.revisar.length ? <ul data-qa-geometry-group="graficos/f6-avisos-revisar" data-qa-geometry-contract="intrinsic">{grupos.revisar.map(fila)}</ul> : <p>Sin advertencias del plan.</p>}
+          <h3>Conviene revisar <span>{totalRevisar}</span></h3>
+          {totalRevisar ? (
+            <ul data-qa-geometry-group="graficos/f6-avisos-revisar" data-qa-geometry-contract="intrinsic">
+              {juntarBase && baseImplicita ? (
+                <li className="is-accion">
+                  <span>
+                    En {baseImplicita.laminas === 1 ? "1 lámina" : `${baseImplicita.laminas} láminas`}, {baseImplicita.preguntas === 1 ? "1 pregunta se lee" : `${baseImplicita.preguntas} preguntas se leen`} de {laBase(baseImplicita.base)} sin que el plan lo diga.
+                  </span>
+                  <button type="button" className="pulso-f6-texto-boton" onClick={baseImplicita.fijar}>Fijar {laBase(baseImplicita.base)} en todas las láminas</button>
+                </li>
+              ) : null}
+              {revisar.map(fila)}
+            </ul>
+          ) : <p>Sin advertencias del plan.</p>}
         </section>
         <ListaPorLamina titulo="Antes de exportar" grupos={agruparPorLamina(previos)} geometria="graficos/f6-avisos-previos" />
         <ListaPorLamina titulo="Última exportación" grupos={agruparPorLamina(ultimos)} geometria="graficos/f6-avisos-ultima" />

@@ -8,6 +8,7 @@ import { ComposicionLamina } from "../../iconos/ComposicionLamina";
 import { IconoTipo } from "../../iconos/IconoTipo";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import type { LaminaEnEstructura } from "../modeloEstructura";
+import { opcionesDeComposicion } from "../opcionesComposicion";
 import { graficosDeLamina } from "../selectores/cambioTipoLamina";
 import { varianteDe } from "../selectores/tiposLamina";
 import type { VistaMiniatura } from "./vistaMiniatura";
@@ -15,7 +16,7 @@ import type { VistaMiniatura } from "./vistaMiniatura";
 function Composicion({ slide }: { slide: Slide }) {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const graficos = Object.fromEntries(graficosDeLamina(slide).map((g) => [g.slot, g.grafico.graficador]));
-  return <ComposicionLamina tipo={slide.tipo} slots={slots} graficos={graficos} variante={varianteDe(slide)} className="pulso-f6-miniatura-composicion" />;
+  return <ComposicionLamina tipo={slide.tipo} slots={slots} graficos={graficos} opciones={opcionesDeComposicion(slide)} variante={varianteDe(slide)} className="pulso-f6-miniatura-composicion" />;
 }
 
 type Props = { vista: VistaMiniatura; src: string | null; slide: Slide | undefined; lamina: LaminaEnEstructura };

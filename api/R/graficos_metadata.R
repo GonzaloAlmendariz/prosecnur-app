@@ -1913,6 +1913,11 @@
     blueprint     = "line-series",
     requisito     = "Cada tema necesita su pregunta en todas las mediciones: eliges la pregunta de cada medición y tu matriz de equivalencias te sugiere la equivalente. Un periodo sin datos no se inventa.",
     args = c(list(
+      # L10-7 (bandeja CCSS, 2026-10-24): la evolución también por los niveles de una pregunta ordinal de la misma base.
+      list(name = "cruce", label = "Evolución por los niveles de", tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Opcional. Pregunta ordinal de la misma base (ej. nivel curricular): un punto por nivel, en el orden del instrumento. Vacía, un punto por medición (base)."),
+      list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Opcional, con un cruce. Los códigos del cruce en el orden del eje; vacío, todos los que tienen respuestas."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
@@ -2296,7 +2301,7 @@
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
   p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
-  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
+  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones o niveles; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
   p_tabla = list("comparar", "nativa", condicion = "Con más de seis públicos, o filas que no caben en la lámina, va por la ruta anterior."),   # G11: láminas 197/225 del diseño
   p_dim_radar = list("dimensiones", "nativa", condicion = "Con menos de tres ejes sale como barras, por la ruta anterior."),   # G11: ya salía nativo (medido 2026-10-13)

@@ -162,3 +162,10 @@
     fill: GrayText;
   }
 }
+
+.pulso-glifo__eje-radar {
+  fill: none;
+  stroke: var(--glifo-neutro);
+  stroke-width: 0.5;
+  opacity: 0.7;
+}
