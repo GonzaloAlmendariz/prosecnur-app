@@ -146,8 +146,9 @@
   blurry <- list()
   medible <- function(u) !is.null(u$block) || isTRUE(u$pair) || !is.null(u$feature)
   for (u in Filter(medible, uses)) {
-    # La foto de un Destacado se mide recortada: su recorte es lo que se muestra.
-    img <- if (!is.null(u$feature)) .cmail_feature_img(u$feature, list(images = images))$img else images[[u$id]]
+    # Destacado o Imagen recortada: se mide el recorte, que es lo que se muestra.
+    bloque <- u$feature %||% u$block
+    img <- if (!is.null(bloque)) .cmail_feature_img(bloque, list(images = images))$img else images[[u$id]]
     natural <- img$size$width
     if (is.null(natural)) next
     shown <- if (!is.null(u$feature)) .cmail_feature_shown(u$feature, img, col_w)

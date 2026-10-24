@@ -142,6 +142,8 @@ export type MailImageBlock = {
   bleed?: boolean;
   /** Decorativa (E1o): sale con alt vacío y la revisión no le pide descripción. */
   decorative?: boolean;
+  /** Recorte a una proporción fija (L7); sin él, la foto entera. */
+  crop?: MailCrop;
 };
 
 // ---- piezas gráficas (E1o) -------------------------------------------------------
@@ -909,6 +911,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(url !== undefined ? { url } : {}),
         ...(value.bleed !== undefined ? { bleed: bool(value.bleed) } : {}),
         ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
+        ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }
     case "band": {

@@ -1,17 +1,17 @@
-// Encuadre de la foto de un Destacado (GOAL editor profesional, L7): la
+// Encuadre de la foto de un Destacado o de una Imagen (GOAL editor profesional, L7): la
 // proporción, el centro y el acercamiento. Sobre la miniatura se ve, oscurecido,
 // lo que el recorte deja fuera; un clic (o las flechas) mueve el centro. El
 // render recorta el archivo con los mismos números (collection_mail_recorte.R).
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
-import type { MailBlock, MailFeatureBlock } from "../../../api/materialMail";
+import type { MailBlock, MailFeatureBlock, MailImageBlock } from "../../../api/materialMail";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTE_DE_PROPORCION, conRecorte, recorteDe, rectDelRecorte } from "./modeloRecorte";
 import "./correosRecorte.css";
 
 type Props = {
-  block: MailFeatureBlock;
+  block: MailFeatureBlock | MailImageBlock;
   vista: string;
   onEditarBloque: (update: (b: MailBlock) => MailBlock, grupo?: string) => void;
 };
@@ -43,7 +43,10 @@ export function EncuadreDeFoto({ block, vista, onEditarBloque }: Props) {
         valor={recorte.ratio}
         onCambio={(ratio) => cambiar({ ratio: ratio as typeof recorte.ratio })}
       />
-      {recorte.ratio === "original" ? null : (
+      {recorte.ratio === "original" ? (
+        // Entera: la foto tal cual, sin marco que mover.
+        <div className="rec-capa-img-vista" data-qa-geometry-capacity="owned"><img src={vista} alt="" /></div>
+      ) : (
         <>
           <button
             type="button"

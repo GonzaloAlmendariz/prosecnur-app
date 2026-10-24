@@ -1,11 +1,12 @@
 // =============================================================================
-// modeloRecorte.ts — el recorte de la foto de un Destacado (L7), sin React
+// modeloRecorte.ts — el recorte de la foto de un Destacado o de una Imagen (L7), sin React
 // =============================================================================
-// Espejo de collection_mail_recorte.R: los mismos valores por defecto (1:1 con
-// la foto a un lado, 2:1 arriba) y el mismo rectángulo, para que el encuadre
+// Espejo de collection_mail_recorte.R: los mismos valores por defecto (en un
+// Destacado 1:1 con la foto a un lado y 2:1 arriba; en una Imagen, la foto
+// entera) y el mismo rectángulo, para que el encuadre
 // que se ve en el inspector sea el que recorta el render.
 
-import type { MailBlock, MailCrop, MailCropRatio, MailFeatureBlock } from "../../../api/materialMail";
+import type { MailBlock, MailCrop, MailCropRatio, MailFeatureBlock, MailImageBlock } from "../../../api/materialMail";
 import type { Ajuste } from "./ajustesDeBloque";
 
 export const PROPORCION: Record<Exclude<MailCropRatio, "original">, number> = {
@@ -30,9 +31,10 @@ export type RecorteEfectivo = { ratio: MailCropRatio; x: number; y: number; zoom
 const limitar = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** `.cmail_crop_of`: la proporción del bloque o la de su forma; el centro y el zoom con sus defectos. */
-export function recorteDe(block: MailFeatureBlock): RecorteEfectivo {
+export function recorteDe(block: MailFeatureBlock | MailImageBlock): RecorteEfectivo {
   const c = block.crop ?? {};
-  const ratio = c.ratio ?? (block.layout === "arriba" ? "2:1" : "1:1");
+  const defecto: MailCropRatio = block.type === "image" ? "original" : block.layout === "arriba" ? "2:1" : "1:1";
+  const ratio = c.ratio ?? defecto;
   return { ratio, x: limitar(c.x ?? 0.5, 0, 1), y: limitar(c.y ?? 0.5, 0, 1), zoom: limitar(c.zoom ?? 1, 1, 3) };
 }
 
@@ -53,7 +55,7 @@ export function rectDelRecorte(size: { width: number; height: number }, r: Recor
 
 /** El bloque con un cambio de recorte. Un centro o un zoom se redondean a 2 decimales. */
 export function conRecorte(block: MailBlock, cambio: Partial<MailCrop>): MailBlock {
-  if (block.type !== "feature") return block;
+  if (block.type !== "feature" && block.type !== "image") return block;
   const redondeo = (v: number | undefined) => (v === undefined ? undefined : Math.round(v * 100) / 100);
   const next: MailCrop = { ...(block.crop ?? {}), ...cambio };
   const limpio: MailCrop = {

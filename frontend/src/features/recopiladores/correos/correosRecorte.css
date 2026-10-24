@@ -1,4 +1,4 @@
-/* Encuadre de la foto de un Destacado (EncuadreDeFoto, L7). Sólo tokens. */
+/* Encuadre de la foto de un Destacado o de una Imagen (EncuadreDeFoto, L7). Sólo tokens. */
 
 .rec-recorte {
   display: grid;

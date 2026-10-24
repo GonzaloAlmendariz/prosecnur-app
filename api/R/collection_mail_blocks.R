@@ -133,7 +133,8 @@
 
 .cmail_block_image <- function(b, ctx) {
   id <- as.character(.cmail_one(b$image_ref) %||% "")
-  img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
+  # Recortada si el bloque lo pide (collection_mail_recorte.R); si no, la original.
+  img <- .cmail_feature_img(b, ctx)$img
   bleed <- isTRUE(unlist(b$bleed))
   width <- .cmail_image_width(b, img, ctx$width)
   align <- .cmail_style(b, "align", "center")
@@ -162,6 +163,11 @@
       sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;%s">',
               .cmail_esc(src), width, .cmail_esc(alt), width, margin)
     }
+  }
+  # Sólo en la vista previa del editor: la foto entera, para encuadrar el recorte sobre ella.
+  if (isTRUE(ctx$marks) && !is.null(img$cropped_from) && !is.null(src)) {
+    osrc <- .cmail_image_src(ctx$images[[img$cropped_from]], ctx)
+    if (!is.null(osrc)) tag <- sub("<img ", sprintf('<img data-pulso-original="%s" ', .cmail_esc(osrc)), tag, fixed = TRUE)
   }
   url <- .cmail_one(b$url)
   if (!is.null(url) && nzchar(trimws(url))) {
