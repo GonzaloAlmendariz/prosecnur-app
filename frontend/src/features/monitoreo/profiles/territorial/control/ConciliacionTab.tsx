@@ -14,6 +14,7 @@ import {
   construirConciliacion,
   type Conciliacion,
 } from "./conciliacionModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./conciliacion.css";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
@@ -69,8 +70,9 @@ function ConciliacionTabImpl({
     >
       {aviso ? <p className={`mon-con-aviso is-${aviso.tono}`} role={aviso.tono === "error" ? "alert" : "status"}>{aviso.texto}</p> : null}
 
-      <section className="mon-con-panel" aria-labelledby="mon-con-codigos" data-qa-geometry-member="codigos">
+      <section className="mon-con-panel" aria-labelledby="mon-con-codigos" data-qa-geometry-member="codigos" data-qa-geometry-group="territorial-conciliacion-codigos" data-qa-geometry-contract="intrinsic">
         <header className="mon-con-cabecera">
+          <RotuloDePestana />
           <h3 id="mon-con-codigos">Códigos</h3>
           {modelo.codigos.disponible ? (
             <span className="mon-con-base">
@@ -122,7 +124,7 @@ function ConciliacionTabImpl({
         )}
       </section>
 
-      <section className="mon-con-panel" aria-labelledby="mon-con-umps" data-qa-geometry-member="umps">
+      <section className="mon-con-panel" aria-labelledby="mon-con-umps" data-qa-geometry-member="umps" data-qa-geometry-group="territorial-conciliacion-umps" data-qa-geometry-contract="intrinsic">
         <header className="mon-con-cabecera">
           <h3 id="mon-con-umps">UMP declarada</h3>
           {modelo.umps.disponible ? (

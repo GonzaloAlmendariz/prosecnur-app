@@ -1,8 +1,10 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { Activity } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { construirSenales, type FilaDeSenales, type Histograma } from "./senalesModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./senales.css";
 
 /**
@@ -17,6 +19,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
     return (
       <section className="mon-sen mon-sen--vacio" data-audit-ready="vacio:sin-respuestas" aria-label="Señales">
         <div className="mon-sen-panel mon-sen-vacio">
+          <RotuloDePestana />
           <Activity size={20} aria-hidden="true" />
           <strong>Sin respuestas en el corte</strong>
           <span>Las señales de GPS y duración aparecen cuando la fuente de Kobo trae respuestas de la fase activa.</span>
@@ -36,6 +39,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
       <div className="mon-sen-histogramas" data-qa-geometry-member="histogramas" data-qa-geometry-group="territorial-senales-histogramas" data-qa-geometry-contract="equal">
         <PanelDeHistograma
           id="distancia"
+          encabezado={<RotuloDePestana />}
           titulo="Distancia del GPS a la manzana"
           base={`${fmt(modelo.distancia.base)} casos con GPS cruzable`}
           mediana={modelo.distancia.mediana != null ? `Mediana ${fmt(Math.round(modelo.distancia.mediana))} m` : "Sin mediana"}
@@ -58,6 +62,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
 
 function PanelDeHistograma({
   id,
+  encabezado = null,
   titulo,
   base,
   mediana,
@@ -70,15 +75,17 @@ function PanelDeHistograma({
   mediana: string;
   histograma: Histograma;
   leyenda: Array<[string, string]>;
+  encabezado?: ReactNode;
 }) {
   const maximo = Math.max(1, ...histograma.tramos.map((tramo) => tramo.casos));
   return (
     <section className="mon-sen-panel" aria-labelledby={`mon-sen-${id}`}>
       <header className="mon-sen-cabecera">
+        {encabezado}
         <h3 id={`mon-sen-${id}`}>{titulo}</h3>
         <span className="mon-sen-base">{base} · {mediana}</span>
       </header>
-      <ol className="mon-sen-barras">
+      <ol className="mon-sen-barras" data-qa-geometry-group={`territorial-senales-barras-${id}`} data-qa-geometry-contract="intrinsic">
         {histograma.tramos.map((tramo) => (
           <li key={tramo.desde} className={tramo.marca ? `is-${tramo.marca}` : ""}>
             <span className="mon-sen-rotulo">{tramo.rotulo}</span>
@@ -128,7 +135,7 @@ function MatrizPorDistrito({ modelo }: { modelo: ReturnType<typeof construirSena
           <tbody>
             {modelo.distritos.map((fila) => (
               <tr key={fila.distrito}>
-                <th scope="row">{fila.distrito}</th>
+                <th scope="row"><span className="mon-ter-con-silueta"><SiluetaDeDistrito distrito={fila.distrito} lado={30} />{fila.distrito}</span></th>
                 {columnas.map(([clave]) => <td key={clave} className="is-num">{fmt(fila[clave])}</td>)}
               </tr>
             ))}

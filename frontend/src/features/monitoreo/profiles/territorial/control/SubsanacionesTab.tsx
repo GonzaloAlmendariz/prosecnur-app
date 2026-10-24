@@ -6,6 +6,8 @@ import { diaYMes, fmt } from "../rotulos";
 import { MapaDeMovimientos } from "./MapaDeMovimientos";
 import { ajusteParaAplicar, construirSubsanaciones, type PaqueteSugerido } from "./subsanacionesModel";
 import { useRechazos } from "./useRechazos";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./subsanaciones.css";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
@@ -48,6 +50,7 @@ function SubsanacionesTabImpl({
     return (
       <section className="mon-sub mon-sub--vacio" data-audit-ready="vacio:sin-subsanaciones-en-el-corte" aria-label="Subsanaciones">
         <div className="mon-sub-panel mon-sub-vacio">
+          <RotuloDePestana />
           <Scale size={20} aria-hidden="true" />
           <strong>Este corte no trae las subsanaciones del motor</strong>
           <span>Actualiza la vista para pedir el corte de Consultas, que las calcula.</span>
@@ -108,19 +111,21 @@ function SubsanacionesTabImpl({
     >
       <section className="mon-sub-panel" aria-labelledby="mon-sub-deficit" data-qa-geometry-member="deficit">
         <header className="mon-sub-cabecera">
+          <RotuloDePestana />
           <h3 id="mon-sub-deficit">Celdas con déficit</h3>
           <span className="mon-sub-base">{fmt(modelo.celdas)} en {fmt(modelo.umps.length)} UMP</span>
         </header>
         {modelo.umps.length ? (
-          <ul className="mon-sub-lista" data-qa-geometry-capacity="owned">
+          <ul className="mon-sub-lista" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-subsanaciones-deficit" data-qa-geometry-contract="intrinsic">
             {modelo.umps.map((item) => (
               <li key={`${item.ump}-${item.manzana}`} className={item.elegible ? "is-elegible" : "is-bloqueada"}>
+                <SiluetaDeDistrito distrito={item.distrito} tono="falta" lado={36} />
                 <div className="mon-sub-ump">
                   <b>UMP {item.ump}</b>
                   <span>{item.distrito}{item.manzana ? `, manzana ${item.manzana}` : ""}</span>
-                  <small>{item.elegible ? "Con excedente compatible" : "Bloqueada"}</small>
                 </div>
-                <span className="mon-sub-chips">
+                <span className="mon-sub-chips" data-qa-geometry-group={`territorial-subsanaciones-chips-${item.ump}-${item.manzana}`} data-qa-geometry-contract="intrinsic">
+                  <span className={`mon-ter-chip ${item.elegible ? "is-info" : "is-aviso"}`}>{item.elegible ? "Con excedente compatible" : "Bloqueada"}</span>
                   {item.celdas.map((celda) => <span key={celda.texto} className="mon-sub-chip">Falta {fmt(celda.falta)}: {celda.texto}</span>)}
                 </span>
               </li>
@@ -183,10 +188,18 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">El motor no encuentra excedente compatible para las celdas abiertas.</p>
         )}
+      </section>
+
+      <div className="mon-sub-derecha" data-qa-geometry-member="derecha">
+      <section className="mon-sub-panel mon-sub-movimientos" aria-labelledby="mon-sub-movimientos">
+        <header className="mon-sub-cabecera">
+          <h3 id="mon-sub-movimientos">Movimientos en el territorio</h3>
+          <span className="mon-sub-base">Activos y el paquete sugerido</span>
+        </header>
         <MapaDeMovimientos activos={modelo.ajustesActivos} sugeridos={sugerencias.map((paquete) => paquete.ajuste)} />
       </section>
 
-      <section className="mon-sub-panel" aria-labelledby="mon-sub-activas" data-qa-geometry-member="activas">
+      <section className="mon-sub-panel mon-sub-aplicadas" aria-labelledby="mon-sub-activas">
         <header className="mon-sub-cabecera">
           <h3 id="mon-sub-activas">Subsanaciones aplicadas</h3>
           <span className="mon-sub-base">{fmt(modelo.activas)} activas · {fmt(modelo.revertidas)} revertidas · {fmt(modelo.rechazadas)} paquetes rechazados</span>
@@ -224,6 +237,7 @@ function SubsanacionesTabImpl({
           <p className="mon-sub-base">Todavía no se aplicó ninguna subsanación.</p>
         )}
       </section>
+      </div>
     </section>
   );
 }

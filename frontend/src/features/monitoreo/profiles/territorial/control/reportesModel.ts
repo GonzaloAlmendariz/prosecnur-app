@@ -55,7 +55,10 @@ export function construirReportes(
     if (ump) recibidasPorUmp.set(ump, (recibidasPorUmp.get(ump) ?? 0) + 1);
   }
 
-  const cuota = ocurrencias?.route_quota_progress ?? validacion?.route_quota_progress;
+  // El corte de consultas trae `route_quota_progress` VACÍO, no ausente: con
+  // `??` se quedaba con él y la pestaña decía «sin partes» con 84 en la base.
+  const cuota = [ocurrencias?.route_quota_progress, validacion?.route_quota_progress]
+    .find((item) => (item?.ump_groups?.length ?? 0) > 0) ?? ocurrencias?.route_quota_progress ?? validacion?.route_quota_progress;
   const distritoPorManzana = new Map((cuota?.blocks ?? []).map((bloque) => [bloque.id_manzana, nombreDeDistrito(bloque.distrito)]));
   const grupos = cuota?.ump_groups ?? [];
   const enRuta = new Set(grupos.map((grupo) => numeroDeUmp(grupo.ump)));

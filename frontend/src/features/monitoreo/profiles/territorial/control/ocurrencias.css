@@ -310,7 +310,7 @@
 
 .mon-rep-reticula {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(314px, 1fr));
   align-content: start;
   gap: var(--pulso-space-3);
   flex: 1 1 auto;
@@ -318,6 +318,22 @@
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+/* Cada distrito en su tarjeta (§2a-bis), con el contorno del distrito junto
+ * a su nombre. */
+.mon-rep-distrito {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.mon-rep-distrito > h4 {
+  margin: 0;
 }
 
 .mon-rep-baldosas {
@@ -477,4 +493,89 @@
   .mon-ocu-cifras dd {
     font-size: 18px;
   }
+}
+
+/* Cabecera de motivo: el rótulo del parte es largo; va en dos líneas con el
+ * color de su tramo en la barra de arriba y el texto entero en el title. */
+.is-territorial-profile .mon-ocu-tabla thead th.is-motivo {
+  width: 120px;
+  min-width: 120px;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+
+.mon-ocu-motivo {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+  text-align: right;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.mon-ocu-motivo::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 2px;
+  vertical-align: 0;
+}
+
+.mon-ocu-motivo.is-0::before { background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface)); }
+.mon-ocu-motivo.is-1::before { background: var(--pulso-warn-accent); }
+.mon-ocu-motivo.is-2::before { background: var(--pulso-danger-fg); }
+.mon-ocu-motivo.is-3::before { background: var(--pulso-brand-navy); }
+.mon-ocu-motivo.is-4::before { background: var(--pulso-module-monitoring); }
+.mon-ocu-motivo.is-5::before { background: var(--pulso-text-soft); }
+
+/* Por día con su eje: título vertical, tres marcas y las columnas. El panel
+ * toma el alto que sobra en la columna derecha. */
+.mon-ocu-derecha > .mon-ocu-dias-panel {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.mon-ocu-grafico {
+  display: grid;
+  grid-template-columns: 14px auto minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  flex: 1 1 auto;
+  min-height: 140px;
+}
+
+.mon-ocu-grafico .mon-ocu-dias {
+  height: auto;
+  min-height: 140px;
+}
+
+.mon-ocu-eje-titulo {
+  align-self: center;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.mon-ocu-eje {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-ocu-eje b {
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1;
 }

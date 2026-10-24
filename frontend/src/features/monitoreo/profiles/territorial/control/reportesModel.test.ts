@@ -60,4 +60,10 @@ describe("Control › Reportes UMP", () => {
     expect(sin.distritos[0].baldosas[1].diferencia).toBeNull();
     expect(textoDeDiferencia(null)).toBe("Sin recibidas para comparar");
   });
+
+  it("toma la ruta del corte que la trae aunque el de consultas venga vacío", () => {
+    const consultasVacio = { ...OCURRENCIAS, route_quota_progress: { blocks: [], ump_groups: [] } } as unknown as MonitoreoTerritorialDashboard;
+    const conRuta = { ...VALIDACION, route_quota_progress: OCURRENCIAS.route_quota_progress } as unknown as MonitoreoTerritorialDashboard;
+    expect(construirReportes(consultasVacio, conRuta).distritos.flatMap((bloque) => bloque.baldosas.map((b) => b.ump))).toEqual(["1", "2", "3"]);
+  });
 });

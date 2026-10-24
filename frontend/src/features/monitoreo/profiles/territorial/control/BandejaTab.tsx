@@ -12,6 +12,7 @@ import {
   type CasoDeBandeja,
 } from "./bandejaModel";
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./bandeja.css";
 
 type Vista = "bandeja" | "anulados";
@@ -52,6 +53,7 @@ function BandejaTabImpl({
     return (
       <section className="mon-ban mon-ban--vacio" data-audit-ready="vacio:sin-bandeja" aria-label="Bandeja">
         <div className="mon-ban-panel mon-ban-vacio">
+          <RotuloDePestana />
           <Inbox size={20} aria-hidden="true" />
           <strong>La bandeja se está preparando</strong>
           <span>Los casos por revisar llegan con el corte de Consultas.</span>
@@ -68,7 +70,7 @@ function BandejaTabImpl({
       data-qa-geometry-group="territorial-bandeja"
       data-qa-geometry-contract="intrinsic"
     >
-      <aside className="mon-ban-panel mon-ban-filtros" aria-label="Filtros de la bandeja" data-qa-geometry-member="filtros">
+      <aside className="mon-ban-panel mon-ban-filtros" aria-label="Filtros de la bandeja" data-qa-geometry-member="filtros" data-qa-geometry-group="territorial-bandeja-filtros" data-qa-geometry-contract="intrinsic">
         <h3 className="mon-ban-subtitulo">Motivo</h3>
         <ul className="mon-ban-lista-filtros">
           <li>
@@ -103,6 +105,7 @@ function BandejaTabImpl({
 
       <section className="mon-ban-panel mon-ban-tabla-panel" aria-labelledby="mon-ban-titulo" data-qa-geometry-member="tabla">
         <header className="mon-ban-cabecera">
+          <RotuloDePestana />
           <h3 id="mon-ban-titulo" className="pulso-sr-only">Casos de la bandeja</h3>
           <span className="mon-ban-segmentado" role="group" aria-label="Qué casos ver">
             <button type="button" aria-pressed={vista === "bandeja"} className={vista === "bandeja" ? "is-active" : ""} onClick={() => setVista("bandeja")}>
@@ -120,7 +123,17 @@ function BandejaTabImpl({
           {vista === "anulados" ? (
             <TablaDeAnulados anulados={modelo.anulados} />
           ) : filas.length ? (
-            <table className="mon-ban-tabla">
+            <table className="mon-ban-tabla is-casos">
+              <colgroup>
+                <col className="is-caso" />
+                <col className="is-dia" />
+                <col className="is-distrito" />
+                <col className="is-ump" />
+                <col />
+                <col className="is-motivo" />
+                <col className="is-cifra" />
+                <col className="is-cifra" />
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col">Caso</th>
@@ -137,15 +150,15 @@ function BandejaTabImpl({
                 {filas.map((caso) => (
                   <tr key={caso.id} className={elegido?.id === caso.id ? "is-elegido" : ""}>
                     <th scope="row">
-                      <button type="button" aria-pressed={elegido?.id === caso.id} aria-label={`Caso ${caso.responseId.slice(0, 8) || caso.id}: ${caso.rotuloDeMotivo}`} onClick={() => setElegido(elegido?.id === caso.id ? null : caso.id)}>
-                        {caso.responseId.slice(0, 8) || caso.id}
+                      <button type="button" aria-pressed={elegido?.id === caso.id} aria-label={`Caso ${caso.etiqueta}: ${caso.rotuloDeMotivo}`} onClick={() => setElegido(elegido?.id === caso.id ? null : caso.id)}>
+                        {caso.etiqueta}
                       </button>
                     </th>
                     <td>{caso.dia}{caso.hora ? ` ${caso.hora}` : ""}</td>
-                    <td>{caso.distrito}</td>
+                    <td title={caso.distrito}>{caso.distrito}</td>
                     <td>{caso.ump || "—"}</td>
-                    <td>{caso.aplicador}</td>
-                    <td>{caso.rotuloDeMotivo}</td>
+                    <td title={caso.aplicador}>{caso.aplicador}</td>
+                    <td title={caso.rotuloDeMotivo}>{caso.rotuloDeMotivo}</td>
                     <td className="is-num">{caso.distancia}</td>
                     <td className="is-num">{caso.duracion}</td>
                   </tr>
@@ -219,7 +232,7 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
     <aside className="mon-ban-panel mon-ban-inspector" aria-labelledby="mon-ban-inspector-titulo" data-qa-geometry-member="inspector">
       <header className="mon-ban-inspector-cabecera">
         <div>
-          <h3 id="mon-ban-inspector-titulo">Caso {caso.responseId.slice(0, 8) || caso.id}</h3>
+          <h3 id="mon-ban-inspector-titulo">Caso {caso.etiqueta}</h3>
           <span className="mon-ban-base">{caso.distrito}, UMP {caso.ump || "—"}{caso.manzana ? ` (manzana ${caso.manzana})` : ""}</span>
           <span className="mon-ban-base">{caso.aplicador} · {caso.dia} {caso.hora}</span>
         </div>

@@ -3,6 +3,7 @@ import { ClipboardList } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, pct } from "../rotulos";
 import { construirOcurrencias, type ModeloOcurrencias } from "./ocurrenciasModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./ocurrencias.css";
 
 /**
@@ -18,6 +19,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
     return (
       <section className="mon-ocu mon-ocu--vacio" data-audit-ready="vacio:sin-partes" aria-label="Ocurrencias">
         <div className="mon-ocu-panel mon-ocu-vacio">
+          <RotuloDePestana />
           <ClipboardList size={20} aria-hidden="true" />
           <strong>Sin partes de ocurrencias</strong>
           <span>Los partes llegan del formulario de ocurrencias de campo; «Actualizar» trae los nuevos.</span>
@@ -37,7 +39,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
       <Banda modelo={modelo} />
       <div className="mon-ocu-cuerpo">
         <PorDistrito modelo={modelo} />
-        <div className="mon-ocu-derecha">
+        <div className="mon-ocu-derecha" data-qa-geometry-group="territorial-ocurrencias-derecha" data-qa-geometry-contract="intrinsic">
           <PorDia modelo={modelo} />
           <TasaPorUmp modelo={modelo} />
         </div>
@@ -49,6 +51,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
 function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
   return (
     <section className="mon-ocu-panel mon-ocu-banda" aria-label="Lo que declaran los partes" data-qa-geometry-member="banda">
+      <header className="mon-ocu-cabecera"><RotuloDePestana /></header>
       <dl className="mon-ocu-cifras" data-qa-geometry-group="territorial-ocurrencias-cifras" data-qa-geometry-contract="equal">
         <div><dt>Intentos</dt><dd>{fmt(modelo.intentos)}</dd></div>
         <div><dt>Efectivas declaradas</dt><dd>{fmt(modelo.efectivas)}</dd></div>
@@ -56,7 +59,7 @@ function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
         <div><dt>No efectivas</dt><dd>{fmt(modelo.noEfectivas)}</dd></div>
       </dl>
       <div className="mon-ocu-motivos">
-        <span className="mon-ocu-barra" role="img" aria-label={modelo.motivos.map((motivo) => `${motivo.rotulo}: ${fmt(motivo.total)}`).join(", ")}>
+        <span className="mon-ocu-barra" data-qa-geometry-group="territorial-ocurrencias-barra" data-qa-geometry-contract="intrinsic" role="img" aria-label={modelo.motivos.map((motivo) => `${motivo.rotulo}: ${fmt(motivo.total)}`).join(", ")}>
           {modelo.motivos.map((motivo, indice) => (
             <i key={motivo.clave} className={`is-${indice % 6}`} style={{ flexGrow: motivo.total }} title={`${motivo.rotulo}: ${fmt(motivo.total)}`} />
           ))}
@@ -74,7 +77,10 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
   const maximo = Math.max(1, ...modelo.distritos.flatMap((fila) => fila.porCien));
   return (
     <section className="mon-ocu-panel mon-ocu-distritos" aria-labelledby="mon-ocu-distritos" data-qa-geometry-member="distritos">
-      <h3 id="mon-ocu-distritos" className="mon-ocu-titulo">Por distrito</h3>
+      <header className="mon-ocu-cabecera">
+        <h3 id="mon-ocu-distritos" className="mon-ocu-titulo">Por distrito</h3>
+        <span className="mon-ocu-base">Motivos por cada 100 intentos</span>
+      </header>
       <div className="mon-ocu-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Ocurrencias por distrito, con desplazamiento">
         <table className="mon-ocu-tabla">
           <thead>
@@ -83,7 +89,14 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
               <th scope="col" className="is-num">Intentos</th>
               <th scope="col" className="is-num">UMP con parte</th>
               <th scope="col" className="is-num">Efectivas declaradas</th>
-              {modelo.columnas.map((columna) => <th key={columna.clave} scope="col" className="is-num">{columna.rotulo} por 100</th>)}
+              {modelo.columnas.map((columna) => {
+                const tono = Math.max(0, modelo.motivos.findIndex((motivo) => motivo.clave === columna.clave)) % 6;
+                return (
+                  <th key={columna.clave} scope="col" className="is-num is-motivo" title={`${columna.rotulo}, por cada 100 intentos`}>
+                    <span className={`mon-ocu-motivo is-${tono}`}>{columna.rotulo}</span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -110,8 +123,15 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
 function PorDia({ modelo }: { modelo: ModeloOcurrencias }) {
   const maximo = Math.max(1, ...modelo.dias.map((dia) => dia.intentos));
   return (
-    <section className="mon-ocu-panel" aria-labelledby="mon-ocu-dias" data-qa-geometry-member="dias">
+    <section className="mon-ocu-panel mon-ocu-dias-panel" aria-labelledby="mon-ocu-dias" data-qa-geometry-member="dias">
       <h3 id="mon-ocu-dias" className="mon-ocu-titulo">Por día</h3>
+      <div className="mon-ocu-grafico">
+      <span className="mon-ocu-eje-titulo" aria-hidden="true">Partes por día</span>
+      <span className="mon-ocu-eje" aria-hidden="true">
+        <b>{fmt(maximo)}</b>
+        <b>{fmt(Math.round(maximo / 2))}</b>
+        <b>0</b>
+      </span>
       <ol className="mon-ocu-dias" aria-label="Intentos y efectivas declaradas por día">
         {modelo.dias.map((dia) => (
           <li key={dia.rotulo} title={`${dia.rotulo}: ${fmt(dia.intentos)} intentos, ${fmt(dia.efectivas)} efectivas declaradas`}>
@@ -123,6 +143,7 @@ function PorDia({ modelo }: { modelo: ModeloOcurrencias }) {
           </li>
         ))}
       </ol>
+      </div>
       <span className="mon-ocu-leyenda">
         <span className="is-intentos">Intentos</span>
         <span className="is-efectivas">Efectivas declaradas</span>

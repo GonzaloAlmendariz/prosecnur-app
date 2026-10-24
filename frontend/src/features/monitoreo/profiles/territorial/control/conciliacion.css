@@ -5,14 +5,16 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--pulso-space-3);
+  gap: 0 var(--pulso-space-3);
   height: 100%;
   min-height: 0;
 }
 
+/* Sin separación de fila en la rejilla: sin aviso, la primera fila mide 0 y
+ * no deja 12 px de más arriba; el aviso y el pie llevan su propio margen. */
 .mon-con-aviso {
   grid-column: 1 / -1;
-  margin: 0;
+  margin: 0 0 var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-radius: 8px;
   font-size: 13px;
@@ -102,7 +104,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-warn-border);
   border-radius: 10px;
-  background: var(--pulso-warn-bg);
+  background: var(--pulso-surface);
 }
 
 .mon-con-escrito {
@@ -147,24 +149,50 @@
   opacity: 0.5;
 }
 
+/* Las conciliaciones hechas, como tabla dentro de su caja: lo escrito a la
+ * izquierda, a quién se asignó a la derecha, una fila por conciliación. */
 .mon-con-hechas {
   display: grid;
-  gap: var(--pulso-space-1);
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
   list-style: none;
   font-size: 13px;
 }
 
 .mon-con-hechas li {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(96px, 0.5fr) 16px minmax(0, 1fr);
   align-items: center;
   gap: var(--pulso-space-2);
+  min-height: 36px;
+  padding: 4px var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-con-hechas li:first-child {
+  border-top: 0;
+}
+
+.mon-con-hechas li:nth-child(even) {
+  background: var(--pulso-surface-2);
+}
+
+.mon-con-hechas li > span:first-child {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-con-hechas li > svg {
+  color: var(--pulso-text-faint);
 }
 
 .mon-con-pie {
   grid-column: 1 / -1;
   grid-row: 3;
+  margin-top: var(--pulso-space-3);
   display: flex;
   flex-wrap: wrap;
   align-items: center;

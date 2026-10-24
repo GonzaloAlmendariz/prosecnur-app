@@ -39,6 +39,14 @@ describe("Control › Bandeja", () => {
     expect(modelo.casos[2]).toMatchObject({ distancia: "Sin GPS", distanciaM: null });
   });
 
+  it("un caso de UMP entera se rotula con su UMP, nunca con la clave del motor", () => {
+    const conUmp = construirBandeja({
+      internal_queries: { review_cases: [caso({ id: "ump:ump_iniciada_incompleta:150108016000580", type: "ump", response_id: "", ump: "UMP 38" })] },
+    } as unknown as MonitoreoTerritorialDashboard);
+    expect(conUmp?.casos.map((item) => item.etiqueta)).toEqual(["UMP 38"]);
+    expect(modelo?.casos.find((item) => item.id === "g1")?.etiqueta).toBe("dcb2051a");
+  });
+
   it("los filtros dicen cuántos casos tiene cada motivo y cada distrito", () => {
     expect(modelo.filtros.map((filtro) => [filtro.clave, filtro.casos])).toEqual([
       ["gps-lejos", 1], ["gps-revision", 1], ["sin-gps", 1], ["muy-corta", 1], ["corta", 1],
