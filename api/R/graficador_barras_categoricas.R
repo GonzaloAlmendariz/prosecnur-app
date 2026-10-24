@@ -393,6 +393,10 @@ graficar_barras_categoricas <- function(
   df$fill <- .barras_categoricas_resolve_colors(df$categoria, colores_categorias, paleta_colores)
   df$x <- factor(df$categoria, levels = df$categoria)
   if (!is.null(ancho_max_eje_x) && is.finite(suppressWarnings(as.numeric(ancho_max_eje_x)))) {
+    # El envoltorio y el cuerpo salen del ancho real de cada columna (graficador_rotulos_eje_x.R).
+    aj <- .rotulos_eje_x_ajuste(df$categoria, ancho, size_ejes, ancho_max_eje_x, bold = any(c("ejes", "eje_x") %in% textos_negrita))
+    if (!isTRUE(aj$cabe)) .pulso_aviso("Los rótulos de «", titulo %||% "un gráfico de columnas", "» no caben en su columna ni al cuerpo mínimo: conviene un panel más ancho o barras horizontales.")
+    ancho_max_eje_x <- aj$wrap; size_ejes <- aj$size
     df$x_label <- stringr::str_wrap(df$categoria, width = as.numeric(ancho_max_eje_x)[1])
   } else {
     df$x_label <- df$categoria
