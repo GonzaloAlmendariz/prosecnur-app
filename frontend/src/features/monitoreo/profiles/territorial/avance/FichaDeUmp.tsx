@@ -1,6 +1,10 @@
 import { ArrowRightLeft, X } from "lucide-react";
 import { fmt, fmtConSigno } from "../rotulos";
 import type { FichaDeUmp as Ficha } from "./fichaUmpModel";
+import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
+import { CuotaPorVariable } from "./CuotaPorVariable";
+
+const TONO_DE_SILUETA = { pendiente: "falta", subsanada: "info", completa: "ok" } as const;
 
 /**
  * Ficha de una UMP (P1 de Avance › Mapa e inspector de Avance › UMP). Va al
@@ -19,7 +23,8 @@ export function FichaDeUmp({
   return (
     <aside className="mon-ump-ficha" aria-labelledby="mon-ump-ficha-titulo" data-qa-geometry-member="ficha">
       <header className="mon-ump-ficha-cabecera">
-        <div>
+        <SiluetaDeDistrito distrito={ficha.distrito} tono={TONO_DE_SILUETA[ficha.estado]} lado={48} />
+        <div data-qa-geometry-group="territorial-ump-identidad" data-qa-geometry-contract="intrinsic">
           <h3 id="mon-ump-ficha-titulo">UMP {ficha.ump}</h3>
           <span className="mon-ump-base">{ficha.distrito}, manzana {ficha.tipo.toLowerCase()} {ficha.manzana}</span>
           <span className="mon-ump-base">{ficha.aplicador}</span>
@@ -48,17 +53,9 @@ export function FichaDeUmp({
         </div>
       </dl>
 
-      <section aria-labelledby="mon-ump-ficha-cuota">
-        <h4 id="mon-ump-ficha-cuota" className="mon-ump-subtitulo">Cuota por celda</h4>
-        <ul className="mon-ump-celdas" data-qa-geometry-group="territorial-ump-celdas" data-qa-geometry-contract="equal">
-          {ficha.celdas.map((celda) => (
-            <li key={celda.clave} className={celda.falta > 0 ? "is-falta" : ""}>
-              <span>{celda.rotulo}</span>
-              <b>{fmt(celda.logrado)} / {fmt(celda.meta)}</b>
-              {celda.falta > 0 ? <small>Falta {fmt(celda.falta)}</small> : null}
-            </li>
-          ))}
-        </ul>
+      <section aria-labelledby="mon-ump-ficha-cuota" className="mon-ump-cuota">
+        <h4 id="mon-ump-ficha-cuota" className="mon-ump-subtitulo">Cuota por variable</h4>
+        <CuotaPorVariable variables={ficha.variables} titulo={`Cuota de la UMP ${ficha.ump}`} />
       </section>
 
       {ficha.sugerencia ? (

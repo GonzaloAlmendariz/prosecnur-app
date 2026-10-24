@@ -251,6 +251,7 @@
 
 .mon-ump-ficha-cabecera > div {
   display: grid;
+  flex: 1 1 auto;
   gap: 2px;
   min-width: 0;
 }
@@ -334,37 +335,8 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-ump-celdas {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--pulso-space-2);
-  margin: var(--pulso-space-2) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-ump-celdas li {
-  display: grid;
-  gap: 2px;
-  padding: var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-ump-celdas li span {
-  color: var(--pulso-text-soft);
-}
-
-.mon-ump-celdas li.is-falta {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-}
-
-.mon-ump-celdas li small {
-  color: var(--pulso-warn-fg);
-  font-weight: var(--pulso-weight-semibold);
+.mon-ump-cuota .mon-ter-variables {
+  margin-top: var(--pulso-space-2);
 }
 
 .mon-ump-sugerencia,

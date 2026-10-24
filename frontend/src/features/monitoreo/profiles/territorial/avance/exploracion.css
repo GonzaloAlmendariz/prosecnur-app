@@ -451,3 +451,10 @@
     height: clamp(240px, 52vh, 420px);
   }
 }
+
+/* La última tarjeta de cada columna toma el alto que sobra: el vacío queda
+ * dentro de su tarjeta y no como hueco bajo la columna (C3). */
+.mon-exp-principal > :last-child,
+.mon-exp-lateral > :last-child {
+  flex-grow: 1;
+}

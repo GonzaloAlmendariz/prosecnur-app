@@ -95,6 +95,7 @@
 
 /* Cifra con anillo. */
 .mon-res-cifra {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: var(--pulso-space-4);
@@ -220,20 +221,32 @@
 }
 
 /* Motivos de observación y pie de fechas. */
+/* Los motivos como tabla dentro de su caja (§2a-bis): filas de 40 px con
+ * divisores tenues y la cifra a la derecha. */
 .mon-res-motivos {
   display: grid;
-  gap: var(--pulso-space-1);
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
   list-style: none;
   font-size: 13px;
 }
 
 .mon-res-motivos li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);
+  min-height: 40px;
+  padding: 4px var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
   font-variant-numeric: tabular-nums;
+}
+
+.mon-res-motivos li:first-child {
+  border-top: 0;
 }
 
 .mon-res-pie {
@@ -511,4 +524,54 @@
   .mon-res-embudo li {
     grid-template-columns: 132px minmax(0, 1fr) 52px;
   }
+}
+
+/* Eje del ritmo: el SVG se estira sin conservar proporción, así que el título
+ * y las marcas van en HTML al costado, ubicadas con la misma escala. */
+.mon-res-grafico-marco {
+  display: grid;
+  grid-template-columns: 14px 40px minmax(0, 1fr);
+  gap: var(--pulso-space-1);
+  align-items: stretch;
+}
+
+.mon-res-eje-titulo {
+  align-self: center;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.mon-res-eje-y {
+  position: relative;
+  height: 180px;
+}
+
+.mon-res-eje-y b {
+  position: absolute;
+  right: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+/* El alto se usa entero (§2a, 1): a la izquierda, la última tarjeta crece y
+ * lleva sus fechas al pie; a la derecha, las filas de distritos se reparten
+ * el alto de su tarjeta en vez de dejar un hueco bajo el total. */
+.mon-res-izquierda > .mon-res-panel:last-child {
+  flex: 1 0 auto;
+}
+
+.mon-res-izquierda > .mon-res-panel:last-child > .mon-res-pie {
+  margin-top: auto;
+}
+
+.mon-res-distritos .mon-res-tabla {
+  height: 100%;
 }

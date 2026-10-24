@@ -4,6 +4,8 @@ import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt, fmtConSigno } from "../rotulos";
 import { construirResumen, type DiaDelRitmo, type ModeloResumen, type TirasDeUmp } from "./resumenModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import "./resumen.css";
 
 /**
@@ -19,6 +21,7 @@ function ResumenImpl({ reports }: { reports: MonitoreoTerritorialDashboard | nul
     return (
       <section className="mon-res mon-res--vacio" data-audit-ready="vacio:sin-avance" aria-label="Resumen del avance">
         <div className="mon-res-panel mon-res-vacio" data-qa-geometry-empty="legitimo">
+          <RotuloDePestana />
           <Target size={20} aria-hidden="true" />
           <strong>Todavía no hay avance que resumir</strong>
           <span>El avance se calcula cuando la fuente de Kobo tiene respuestas de la fase activa.</span>
@@ -55,8 +58,10 @@ function CifraConBase({ modelo }: { modelo: ModeloResumen }) {
   const radio = 34;
   const circunferencia = 2 * Math.PI * radio;
   return (
-    <section className="mon-res-panel mon-res-cifra" aria-labelledby="mon-res-cifra-titulo">
+    <section className="mon-res-panel mon-res-cifra-panel" aria-labelledby="mon-res-cifra-titulo">
+      <header className="mon-res-cabecera"><RotuloDePestana /></header>
       <h3 id="mon-res-cifra-titulo" className="pulso-sr-only">Avance frente a la meta</h3>
+      <div className="mon-res-cifra">
       <svg className="mon-res-anillo" viewBox="0 0 84 84" role="img" aria-label={`Avance ${modelo.avance}`}>
         <circle cx="42" cy="42" r={radio} className="mon-res-anillo-fondo" />
         <circle
@@ -80,6 +85,7 @@ function CifraConBase({ modelo }: { modelo: ModeloResumen }) {
         ) : (
           <span className="mon-res-chip">Faltan {fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta</span>
         )}
+      </div>
       </div>
     </section>
   );
@@ -171,6 +177,13 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
         </span>
       </header>
       {dias.length ? (
+        <div className="mon-res-grafico-marco">
+        <span className="mon-res-eje-titulo" aria-hidden="true">Acumulado que cuenta</span>
+        <span className="mon-res-eje-y" aria-hidden="true">
+          {[tope, Math.round(tope / 2), 0].map((valor, indice) => (
+            <b key={indice} style={{ top: `${(y(valor) / alto) * 100}%` }}>{fmt(valor)}</b>
+          ))}
+        </span>
         <svg className="mon-res-grafico" viewBox={`0 0 ${ancho} ${alto}`} preserveAspectRatio="none" role="img" aria-label={descripcionDelRitmo(dias, modelo)}>
           {dias.map((dia, indice) => (
             <g key={dia.fecha}>
@@ -182,6 +195,7 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
           {modelo.meta > 0 ? <line className="mon-res-meta" x1={margen.izquierda} x2={ancho - margen.derecha} y1={y(modelo.meta)} y2={y(modelo.meta)} /> : null}
           <path className="mon-res-linea" d={linea} />
         </svg>
+        </div>
       ) : (
         <p className="mon-res-base" data-qa-geometry-empty="legitimo">Sin días con campo en el corte.</p>
       )}
@@ -229,7 +243,7 @@ function Distritos({ modelo }: { modelo: ModeloResumen }) {
           <tbody>
             {modelo.distritos.map((fila) => (
               <tr key={fila.distrito}>
-                <th scope="row">{fila.distrito}</th>
+                <th scope="row"><span className="mon-ter-con-silueta"><SiluetaDeDistrito distrito={fila.distrito} lado={34} />{fila.distrito}</span></th>
                 <td>
                   <span className="mon-res-avance">
                     <span className="mon-res-avance-barra" aria-hidden="true">

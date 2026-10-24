@@ -58,25 +58,67 @@
   margin-left: auto;
 }
 
+/* El alto de la fila lo pone el mapa de calor: el panel de pendientes no
+ * aporta alto propio (alto 0, mínimo 100 %) y desplaza sus tarjetas dentro.
+ * Con 29 pendientes empujaba la cuota de cada UMP fuera de la vista. */
+.mon-falt-pendientes {
+  height: 0;
+  min-height: 100%;
+}
+
 /* Tarjetas de las UMP con falta en la manzana en uso. */
 .mon-falt-tarjetas {
   display: grid;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-2);
   align-content: start;
   flex: 1 1 auto;
+  min-height: 0;
+  margin-right: calc(-1 * var(--pulso-space-2));
+  padding-right: var(--pulso-space-2);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
 }
 
+/* Tarjeta de UMP (§2a-bis): contorno del distrito como sello a la izquierda,
+ * identidad y faltas al centro, acción a la derecha. El estado va en el borde
+ * lateral sólido, como la tarjeta de Validación › Cuotas; nunca con sombra
+ * inset (se curva con el radio y parece un bisel) ni con el fondo teñido. */
 .mon-falt-tarjeta {
   display: grid;
-  gap: var(--pulso-space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  align-items: center;
   padding: var(--pulso-space-3) var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-border);
   border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
 }
 
-.mon-falt-tarjeta.is-con-sugerencia {
-  border-color: var(--pulso-module-monitoring-border);
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 35%, var(--pulso-surface));
+.mon-falt-tarjeta > .mon-ter-silueta {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.mon-falt-tarjeta > .mon-falt-tarjeta-linea {
+  grid-column: 2;
+}
+
+.mon-falt-tarjeta-accion {
+  display: grid;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  justify-items: end;
+  gap: var(--pulso-space-2);
+}
+
+.mon-falt-tarjeta-accion > small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .mon-falt-tarjeta-linea {
@@ -103,10 +145,6 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-
-.mon-falt-tarjeta-linea > .mon-falt-boton {
-  margin-left: auto;
 }
 
 .mon-falt-chip {
@@ -403,10 +441,6 @@
   background: var(--pulso-surface-3);
 }
 
-.mon-falt-tabla tbody tr.is-pendiente > th:first-child {
-  box-shadow: inset 3px 0 0 var(--pulso-module-monitoring);
-}
-
 .mon-falt-tabla tbody tr.is-abierta > * {
   background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 40%, var(--pulso-surface));
 }
@@ -454,33 +488,49 @@
   color: var(--pulso-danger-fg);
 }
 
-/* Detalle desplegable de una UMP. */
+/* Tarjeta de la UMP desplegada bajo su fila (modelo: Validación › Cuotas). La
+ * fila que la contiene no se tiñe; la tarjeta lleva borde lateral sólido del
+ * color de su estado. */
 .mon-falt-detalle-fila > td {
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4) !important;
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 20%, var(--pulso-surface)) !important;
+  background: var(--pulso-surface-2) !important;
   white-space: normal !important;
 }
 
 .mon-falt-detalle {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--pulso-space-3) var(--pulso-space-6, 24px);
-  align-items: start;
+  gap: var(--pulso-space-3);
+  max-width: 980px;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-success-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
 }
 
-.mon-falt-capas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--pulso-space-2) var(--pulso-space-4);
-  margin: 0;
+.mon-falt-detalle.is-pendiente {
+  border-left-color: var(--pulso-warn-border);
 }
 
-.mon-falt-capas div {
+.mon-falt-detalle.is-subsanada {
+  border-left-color: var(--pulso-primary-border);
+}
+
+.mon-falt-detalle-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-falt-detalle-titulo {
   display: grid;
+  flex: 1 1 auto;
   gap: 2px;
+  min-width: 0;
 }
 
-.mon-falt-capas dt {
+.mon-falt-detalle-titulo small {
   color: var(--pulso-text-faint);
   font-size: 10.5px;
   font-weight: var(--pulso-weight-bold);
@@ -488,16 +538,127 @@
   text-transform: uppercase;
 }
 
+.mon-falt-detalle-titulo strong {
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-detalle-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-falt-detalle-meta > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-falt-detalle-meta dt,
+.mon-falt-capas dt,
+.mon-falt-encuestadores h5 {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-falt-detalle-meta dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-falt-detalle-barra {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-falt-detalle-barra > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-success-fg);
+}
+
+.mon-falt-detalle.is-pendiente .mon-falt-detalle-barra > b {
+  background: var(--pulso-warn-fg);
+}
+
+.mon-falt-encuestadores {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-falt-encuestadores > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-falt-capas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-falt-capas > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-falt-capas > div.is-info {
+  border-color: var(--pulso-primary-border);
+}
+
+.mon-falt-capas > div.is-falta {
+  border-color: var(--pulso-warn-border);
+}
+
+.mon-falt-capas > div.is-ok {
+  border-color: var(--pulso-success-border);
+}
+
 .mon-falt-capas dd {
+  display: grid;
+  gap: 2px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .mon-falt-capas dd b {
-  margin-right: 4px;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-falt-capas > div.is-falta dd b {
+  color: var(--pulso-warn-fg);
 }
 
 .mon-falt-cruce {
@@ -533,7 +694,6 @@
 }
 
 .mon-falt-otras {
-  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: var(--pulso-space-2);
@@ -591,11 +751,41 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Apiladas, las pendientes ya no toman el alto del mapa de calor (que va
+   * debajo): miden lo que traen, hasta 380 px, y desplazan sus tarjetas. */
+  .mon-falt-pendientes {
+    height: auto;
+    min-height: 0;
+    max-height: 380px;
+  }
+
   .mon-falt-cuotas {
     min-height: 420px;
   }
 
   .mon-falt-controles {
     margin-left: 0;
+  }
+}
+
+/* Viewport bajo (1024 × 600): la cuota de cada UMP conserva un alto útil y
+ * la pestaña entera desplaza; un solo dueño de desplazamiento. */
+@media (max-height: 760px) {
+  .mon-falt {
+    grid-template-rows: auto minmax(300px, 1fr);
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+}
+
+/* La fila de arriba mide al menos 380 px para que las pendientes muestren dos
+ * tarjetas y media; el mapa de calor reparte ese alto entre sus filas. */
+@media (min-width: 1181px) {
+  .mon-falt-arriba {
+    min-height: 380px;
+  }
+
+  .mon-falt-calor-tabla {
+    flex: 1 1 auto;
   }
 }

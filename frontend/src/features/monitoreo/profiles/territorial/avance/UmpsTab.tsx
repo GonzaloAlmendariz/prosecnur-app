@@ -7,6 +7,7 @@ import { ExploracionUmp } from "./ExploracionUmp";
 import { construirFichaDeUmp } from "./fichaUmpModel";
 import { construirHistoriaDeUmp } from "./historiaUmpModel";
 import { construirUmps, csvDeUmps, filtrarUmps, type FiltroDeUmps } from "./umpsModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./umps.css";
 
 const ROTULO_DE_FILTRO: Record<FiltroDeUmps, string> = {
@@ -55,6 +56,7 @@ function UmpsTabImpl({
     return (
       <section className="mon-umps mon-umps--vacio" data-audit-ready="vacio:sin-cuota" aria-label="UMP">
         <div className="mon-umps-panel mon-umps-vacio">
+          <RotuloDePestana />
           <Target size={20} aria-hidden="true" />
           <strong>Sin UMP en la cuota del corte</strong>
           <span>Las UMP salen de la muestra de Hojas de ruta declarada en Modelo › Cuotas.</span>
@@ -98,7 +100,8 @@ function UmpsTabImpl({
     >
       <section className="mon-umps-panel mon-umps-tabla-panel" aria-labelledby="mon-umps-titulo" data-qa-geometry-member="tabla">
         <header className="mon-umps-cabecera">
-          <h3 id="mon-umps-titulo">UMP del corte</h3>
+          <RotuloDePestana />
+          <h3 id="mon-umps-titulo" className="pulso-sr-only">UMP del corte</h3>
           <span className="mon-umps-segmentado" role="group" aria-label="Qué UMP mostrar">
             {filtros.map((clave) => (
               <button key={clave} type="button" aria-pressed={filtro === clave} className={filtro === clave ? "is-active" : ""} onClick={() => setFiltro(clave)}>
@@ -110,7 +113,7 @@ function UmpsTabImpl({
           <label className="mon-umps-buscar">
             <Search size={14} aria-hidden="true" />
             <span className="pulso-sr-only">Buscar UMP, distrito, manzana o aplicador</span>
-            <input type="search" value={busqueda} placeholder="Buscar UMP, distrito o aplicador" onChange={(event) => setBusqueda(event.currentTarget.value)} />
+            <input type="search" value={busqueda} placeholder="Buscar UMP o aplicador" onChange={(event) => setBusqueda(event.currentTarget.value)} />
           </label>
           <button type="button" className="mon-umps-boton" onClick={() => descargarCsv("ump-del-corte.csv", csvDeUmps(filas, modelo.conOcurrencias))}>
             <Download size={14} aria-hidden="true" />
@@ -159,7 +162,7 @@ function UmpsTabImpl({
                       </span>
                     </td>
                     <td className="is-num">{fmt(fila.observacion)}</td>
-                    <td className={fila.estado === "pendiente" ? "is-falta" : ""}>{fila.cuota}</td>
+                    <td><span className={`mon-ter-chip ${fila.estado === "pendiente" ? "is-falta" : fila.estado === "subsanada" ? "is-info" : "is-ok"}`}>{fila.cuota}</span></td>
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte ? `${fmt(fila.parte.efectivas)} / ${fmt(fila.parte.intentos)}` : "Sin parte"}</td> : null}
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte?.tasa ?? "—"}</td> : null}
                   </tr>

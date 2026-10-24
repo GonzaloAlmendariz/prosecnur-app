@@ -43,6 +43,10 @@ export type FilaDeUmp = {
   aplicador: string;
   aplicadorCompleto: string;
   celdas: CeldaDeCuota[];
+  /** Las mismas celdas agrupadas por variable de cuota, una sub-tarjeta cada una. */
+  variables: VariableDeCuota[];
+  /** Zona censal de la manzana en uso («00100»), vacía si la ruta no la trae. */
+  zona: string;
   logrado: number;
   meta: number;
   falta: number;
@@ -57,6 +61,24 @@ export type FilaDeUmp = {
   /** Las otras manzanas de la UMP (titular o reemplazo que ya no se usa). */
   otras: TerritorialQuotaProgressBlock[];
 };
+
+export type VariableDeCuota = {
+  nombre: "Sexo" | "Edad";
+  celdas: CeldaDeCuota[];
+  logrado: number;
+  meta: number;
+  falta: number;
+};
+
+function variableDeCuota(nombre: VariableDeCuota["nombre"], celdas: CeldaDeCuota[]): VariableDeCuota {
+  return {
+    nombre,
+    celdas,
+    logrado: celdas.reduce((suma, celda) => suma + celda.logrado, 0),
+    meta: celdas.reduce((suma, celda) => suma + celda.meta, 0),
+    falta: celdas.reduce((suma, celda) => suma + celda.falta, 0),
+  };
+}
 
 export type CeldaDeDistrito = { clave: string; rotulo: string; logrado: number; meta: number };
 
@@ -145,7 +167,13 @@ export function construirFaltante(reports: MonitoreoTerritorialDashboard | null 
   for (const grupo of grupos) {
     const bloque = porId.get(String(grupo.selected_id_manzana ?? ""));
     if (!bloque) continue;
-    const celdas = [...(bloque.sex ?? []), ...(bloque.age ?? [])].map(celdaDe);
+    const celdasDeSexo = (bloque.sex ?? []).map(celdaDe);
+    const celdasDeEdad = (bloque.age ?? []).map(celdaDe);
+    const celdas = [...celdasDeSexo, ...celdasDeEdad];
+    const variables = [
+      ...(celdasDeSexo.length ? [variableDeCuota("Sexo", celdasDeSexo)] : []),
+      ...(celdasDeEdad.length ? [variableDeCuota("Edad", celdasDeEdad)] : []),
+    ];
     const deficitsEnUso = deficits.filter((item) => item.target_block_id === bloque.id_manzana && n(item.missing) > 0);
     const falta = Math.max(
       0,
@@ -175,6 +203,8 @@ export function construirFaltante(reports: MonitoreoTerritorialDashboard | null 
       aplicador: rotuloDeAplicador(bloque.responsable || bloque.responsible),
       aplicadorCompleto: String(bloque.responsable || bloque.responsible || ""),
       celdas,
+      variables,
+      zona: String(bloque.zona ?? "").trim(),
       logrado: Math.round(n(bloque.validas)),
       meta: Math.round(n(bloque.target)),
       falta,

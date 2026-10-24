@@ -34,6 +34,7 @@ import { callesCercanas, centroDeManzana, construirMapa, manzanasVecinas } from 
 import { rotuloDeMotivo } from "./resumenModel";
 import { useCartografiaDelMapa } from "./useCartografiaDelMapa";
 import { useCasosDeUmp } from "./useCasosDeUmp";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./exploracion.css";
 
 const ROTULO_DE_VISTA: Record<VistaDeManzana, string> = { titular: "Titular", reemplazo: "Reemplazo", ambas: "Ambas" };
@@ -123,6 +124,7 @@ export function ExploracionUmp({
       <div className="mon-exp-principal" data-qa-geometry-member="principal">
         <section className="mon-exp-panel mon-exp-mapa-panel" aria-labelledby="mon-exp-titulo">
           <header className="mon-exp-barra">
+            <RotuloDePestana />
             <button type="button" className="mon-exp-volver" onClick={onCerrar}>
               <ArrowLeft size={14} aria-hidden="true" />
               Todas las UMP
