@@ -5,6 +5,7 @@ import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { metasConProporcion, validarMetas, type FilaDeMeta } from "./cuotasModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
@@ -96,7 +97,9 @@ export function Cuotas({
     <div className="mon-metas-modelo" data-qa-geometry-group="telefonico-modelo-cuotas" data-qa-geometry-contract="intrinsic">
       <div className="mon-metas-modelo-columna">
         <section className="mon-ctl-panel mon-metas-eje" aria-label="Eje de cuota">
+          {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
           <header>
+            <RotuloDePestana />
             <strong>Eje de cuota</strong>
             <span>{candidatas.length > 1 ? "Una variable, como máximo dos" : ""}</span>
             {variable && !variableGuardada ? (

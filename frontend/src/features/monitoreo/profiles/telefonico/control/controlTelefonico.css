@@ -152,6 +152,16 @@
   min-height: 0;
 }
 
+.mon-barrido-embudo-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.mon-barrido-embudo-cabecera {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
 .mon-barrido-embudo {
   display: grid;
   flex: none;
@@ -821,6 +831,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mon-respuestas-cadena-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.mon-respuestas-cadena-cabecera {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
 .mon-respuestas-cadena {
   display: grid;
   flex: none;
@@ -1204,6 +1224,10 @@
   overflow: hidden;
 }
 
+.mon-avisos-lista-cabecera {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
 .mon-avisos-lista-panel .mon-ctl-tabla-marco {
   overflow: visible;
 }
@@ -1554,4 +1578,64 @@
 /* La fecha del caso afectado no se parte a mitad de número. */
 .mon-avisos-fecha {
   white-space: nowrap;
+}
+
+/* ---------- Insistencia: rótulo en la fila de la barra de filtros ---------- */
+
+/* La cola (core/) no recibe el rótulo: el envoltorio lo pone encima del
+ * margen izquierdo de la barra de filtros, que pasa a ser la tarjeta común.
+ * La cola conserva su columna propia (barra y cuerpo) y su dueño de scroll. */
+.mon-tel-insistencia {
+  --mon-tel-rotulo-ancho: 168px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-tel-insistencia > .mon-cola {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-tel-insistencia > .mon-tel-rotulo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: var(--mon-tel-rotulo-ancho);
+  height: 58px;
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-tel-insistencia .mon-cola-filtros-marco {
+  min-height: 58px;
+  padding-left: var(--mon-tel-rotulo-ancho);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* La barra ya va dentro de la tarjeta común: sin borde ni fondo propios. */
+.mon-tel-insistencia .mon-cola-filtros {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Angosta: la barra necesita todo el ancho; el rótulo va arriba de ella, en
+ * la misma tarjeta. */
+@media (max-width: 1180px) {
+  .mon-tel-insistencia > .mon-tel-rotulo {
+    width: auto;
+    height: 48px;
+    padding-top: var(--pulso-space-2);
+  }
+
+  .mon-tel-insistencia .mon-cola-filtros-marco {
+    padding-top: 48px;
+    padding-left: 0;
+  }
 }

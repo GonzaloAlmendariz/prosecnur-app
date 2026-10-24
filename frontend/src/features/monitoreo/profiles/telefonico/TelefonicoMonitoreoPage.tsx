@@ -74,6 +74,8 @@ import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
+import { RotuloDePestana, RotuloDePestanaProvider } from "./navegacion/RotuloDePestana";
+import { antetituloDePestana } from "./navegacion/modeloDelRail";
 import { CuotasFaltante } from "./avance/CuotasFaltante";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
@@ -92,7 +94,7 @@ import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
-import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
+import { chipsDeCabecera, pestanaConLienzo, rotuloEnLaPestana, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import {
@@ -7879,6 +7881,7 @@ function AcreditacionSourceStatusStrip({
         * Lo que ocupa su lugar es la fecha de la última lectura, que estaba
         * repetida en tres sitios de la misma pantalla y en ninguno junto al
         * botón que la cambia. */}
+      {phoneContract ? <RotuloDePestana /> : null}
       {phoneContract ? (
         <p className="mon-acr-source-status-sync">
           <em>Última lectura</em>
@@ -10677,8 +10680,9 @@ function AcreditacionSourcesWorkbench({
         onIrA={(seccion, pestana) => onIrAVista?.(seccion, pestana)}
         onStateChange={onStateChange}
         filtro={<AcreditacionPhoneEffectiveFilterEditor state={state} variables={state?.variables ?? []} platformSources={plataforma.sources} onStateChange={onStateChange} />}
-        tarjetaKobo={(
+        tarjetaKobo={(encabezado) => (
           <AcreditacionPhoneSourceSlotCard
+            encabezado={encabezado}
             slot={plataforma}
             icon={<ListChecks size={15} />}
             syncFallback={state?.synced_at ?? reports.generated_at}
@@ -18750,7 +18754,7 @@ function renderAcreditacionView(
     return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
   }
   if (view === "telefonico" && options.activePhoneTab === "supervision" && isTelefonicoMonitoreoState(options.state)) {
-    return <Supervision reports={reports} />; // Control › Supervisión (T9).
+    return <Supervision reports={reports} state={options.state} onStateChange={options.onStateChange} onIrAFuentes={() => { const vista = vistaDeDestino("insumos", "fuentes"); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Supervisión (T9, rondas).
   }
   if (view === "telefonico" && options.activePhoneTab === "responsables" && isTelefonicoMonitoreoState(options.state)) {
     return <Equipo reports={reports} state={options.state} />; // Control › Equipo (T5).
@@ -19737,6 +19741,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     scopeForView(seccionActiva, isPhone ? "telefonico" : "acreditacion"),
   );
   const seccionCargando = loading || Boolean(state && !error && cobertura === "otra-seccion");
+  const conRotulo = !seccionCargando && !error && Boolean(state) && (publica.seccion === "insumos" || Boolean(reports)) && rotuloEnLaPestana(publica);
+  const subvistas = <SubvistasDePestana seccion={publica.seccion} pestana={publica.pestana} activa={vistaActiva} disponible={(vista) => vista.pestana !== "subsanacion" || phoneConsultaCaveatCount > 0} onElegir={(vista) => navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey)} />;
   const auditReady = !seccionCargando && !error && Boolean(state);
   // Pedir el corte que falta, una vez por desajuste observado. El tope no es
   // defensivo de más: si el backend devolviera siempre un scope que no cubre,
@@ -19814,7 +19820,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           className="is-acreditacion"
           contentRole="tabpanel"
           contentId={`monitoreo-${publica.seccion}-panel`}
-          contentClassName={pestanaConLienzo(publica) ? "is-lienzo" : undefined}
+          contentClassName={[pestanaConLienzo(publica) ? "is-lienzo" : "", conRotulo ? "is-rotulo-en-pestana" : ""].filter(Boolean).join(" ") || undefined}
           contentAriaLabelledBy={`monitoreo-${publica.seccion}-tab-${publica.pestana}`}
           scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
@@ -19829,25 +19835,11 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               }}
             />
           )}
-          head={(
-            <CabeceraTelefonica
-              seccion={publica.seccion}
-              pestana={publica.pestana}
-              pestanas={pestanasPublicas}
-              chips={chipsDeCabecera(publica, resumenModo, reports, state)}
-              control={(
-                <SubvistasDePestana
-                  seccion={publica.seccion}
-                  pestana={publica.pestana}
-                  activa={vistaActiva}
-                  disponible={(vista) => vista.pestana !== "subsanacion" || phoneConsultaCaveatCount > 0}
-                  onElegir={(vista) => navigateLocalTab(vista.seccion, vista.pestana as AcreditacionLocalTabKey)}
-                />
-              )}
-            />
-          )}
+          head={conRotulo ? null : <CabeceraTelefonica seccion={publica.seccion} pestana={publica.pestana} pestanas={pestanasPublicas} chips={chipsDeCabecera(publica, resumenModo, reports, state)} control={subvistas} />}
           status={null}
         >
+          {/* §2a-bis: el rótulo de la pestaña va en su barra o en su primera tarjeta, sin fila propia. */}
+          <RotuloDePestanaProvider valor={conRotulo ? { antetitulo: antetituloDePestana(publica.seccion, publica.pestana), titulo: pestanasPublicas.find((tab) => tab.key === publica.pestana)?.label ?? activeDef.label, chips: chipsDeCabecera(publica, resumenModo, reports, state), control: subvistas } : null}>
           {seccionCargando ? (
             <AcreditacionLoadingPanel view={seccionActiva} label={pestanasPublicas.find((tab) => tab.key === publica.pestana)?.label ?? activeDef.label} phoneMode={isPhone} />
           ) : renderAcreditacionView(seccionActiva, reports, {
@@ -19874,6 +19866,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             fuentesRequeridas: sourceTotal,
             onActualizar: sinFuentesFull ? undefined : () => { void runProfileSourceSync("full"); },
           })}
+          </RotuloDePestanaProvider>
         </MonitoreoWorkbenchChrome>
       </PageFrame>
     </div>

@@ -4,6 +4,8 @@ import { ColaDeInsistencia } from "../../../core/ColaDeInsistencia";
 import { conDiasAlCorte, telefonosPorCaso, type CasoDeCola } from "../../../core/colaDeInsistenciaModel";
 import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { estadoDeInsistencia, repartoDelEquipo } from "./insistenciaModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
+import "./controlTelefonico.css";
 
 function corteCorto(valor: string | null | undefined) {
   const fecha = new Date(String(valor ?? ""));
@@ -53,6 +55,7 @@ export function Insistencia({
   onActualizar?: () => void;
 }) {
   const estado = useMemo(() => estadoDeInsistencia(reports), [reports]);
+  const hayRotulo = useHayRotulo();
   const casos = useMemo(
     () => (estado.clave === "lista" ? conDiasAlCorte(estado.casos, state?.synced_at) : []),
     [estado, state?.synced_at],
@@ -60,7 +63,7 @@ export function Insistencia({
   if (estado.clave === "sin-hoja") {
     return (
       <section className="mon-cola-estado" aria-label="Insistencia">
-        <span className="mon-cola-antetitulo">Insistencia</span>
+        {hayRotulo ? <RotuloDePestana /> : <span className="mon-cola-antetitulo">Insistencia</span>}
         <strong>Sin hoja de barrido</strong>
         <p>Conecta la hoja de barrido en Insumos, Fuentes.</p>
       </section>
@@ -69,6 +72,7 @@ export function Insistencia({
   if (estado.clave === "preparando") {
     return (
       <section className="mon-cola-estado" aria-label="Insistencia" aria-live="polite">
+        {hayRotulo ? <RotuloDePestana /> : null}
         <span className="mon-cola-antetitulo">Preparando</span>
         <strong>Este corte todavía no trae la cola de insistencia</strong>
         <p>El proyecto se calculó antes de que existiera. Actualizar la arma con la hoja de barrido actual.</p>
@@ -78,7 +82,7 @@ export function Insistencia({
   }
   const variable = rotuloDelSegmento(nombreDelSegmento(casos.map((caso) => caso.variableCuota), "Cuota"));
   const conTelefono = casos.some((caso) => caso.ordenTelefono != null);
-  return (
+  const cola = (
     <ColaDeInsistencia
       casos={casos}
       responsables={estado.responsables}
@@ -87,5 +91,16 @@ export function Insistencia({
       corte={corteCorto(state?.synced_at)}
       bajoLosResponsables={conTelefono ? <TelefonosPorCaso casos={casos} /> : null}
     />
+  );
+  if (!hayRotulo) return cola;
+  // §2a-bis: el rótulo comparte fila con la barra de filtros de la cola. La
+  // cola es común (core/) y no recibe el rótulo: la rejilla de este envoltorio
+  // pone el rótulo y la barra en la misma fila, dentro de una sola tarjeta.
+  return (
+    <div className="mon-tel-insistencia">
+      {/* Sin chips: la cola ya dice cuántos casos tiene y cuáles son efectivas en Kobo. */}
+      <RotuloDePestana sinChips />
+      {cola}
+    </div>
   );
 }
