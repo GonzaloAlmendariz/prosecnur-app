@@ -12,7 +12,7 @@ import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { filasDeBloque } from "../navegacion/bloques";
 
-export type RepartoDeEnumerador = { enumerador: string; efectivas: number; casos: number; minimo: boolean };
+export type RepartoDeEnumerador = { enumerador: string; efectivas: number; casos: number; minimo: boolean; ronda: number | null };
 
 export type CasoSorteado = {
   n: number;
@@ -30,6 +30,9 @@ export type CasoSorteado = {
   controles: string;
   /** Las preguntas de control que no coinciden con Kobo. */
   controlesQueNoCoinciden: string[];
+  ronda: number | null;
+  /** «sorteo» o «analista» (agregado a mano). */
+  origen: string;
 };
 
 export type Supervision = {
@@ -71,6 +74,7 @@ export function construirSupervision(reports: MonitoreoAcreditacionReports | nul
     efectivas: entero(fila.Efectivas),
     casos: entero(fila.Casos),
     minimo: verdadero(fila["Mínimo"]),
+    ronda: texto(fila.Ronda) ? entero(fila.Ronda) : null,
   }));
   const noCoinciden = new Map<string, string[]>();
   filasDeBloque(reports, ["supervision_controles"]).forEach((fila) => {
@@ -95,6 +99,8 @@ export function construirSupervision(reports: MonitoreoAcreditacionReports | nul
       supervisor: texto(fila.Supervisor),
       controles: texto(fila["Controles coinciden"]),
       controlesQueNoCoinciden: noCoinciden.get(texto(fila.CodPulso)) ?? [],
+      ronda: texto(fila.Ronda) ? entero(fila.Ronda) : null,
+      origen: texto(fila.Origen),
     } satisfies CasoSorteado;
   });
   const base = entero(valor("Base"));

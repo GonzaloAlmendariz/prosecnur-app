@@ -19,7 +19,9 @@ export type MonitoreoSourceRole =
   | "avance_interno"
   | "reporte_cliente"
   | "hoja_ruta"
-  | "ocurrencias_campo";
+  | "ocurrencias_campo"
+  /** Hoja de supervisión del telefónico: cada ronda se publica en su pestaña «Ronda N». */
+  | "supervision";
 
 export type MonitoreoIntegrationMode = "file" | "connected_read" | "controlled_write";
 
