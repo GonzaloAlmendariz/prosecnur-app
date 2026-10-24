@@ -28,6 +28,7 @@ import {
   textoPlano,
   type ProblemasPorDestino,
 } from "./modeloCorreo";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
 import type { TipoInsertable } from "./piezasGraficas";
 import { rotuloDeClave } from "./camposDeclarados";
 import "./correosColumna.css";
@@ -45,6 +46,8 @@ type Props = {
   onCancelarPreset: () => void;
   onSeleccionar: (id: string) => void;
   onAgregar: (type: TipoInsertable) => void;
+  /** «Mis secciones» (L9): agrega una copia de una guardada después del bloque elegido. */
+  onAgregarGuardada?: (seccion: MailSavedSection) => void;
   onInsertarCampo: (key: string) => void;
   hayDestino: boolean;
   /** Mover un bloque a su índice final (arrastre o teclado en la lista). */
@@ -177,6 +180,7 @@ export function ColumnaDeBloques({
   onCancelarPreset,
   onSeleccionar,
   onAgregar,
+  onAgregarGuardada,
   onInsertarCampo,
   hayDestino,
   onMover,
@@ -276,6 +280,7 @@ export function ColumnaDeBloques({
                   titulo="Agregar después del bloque elegido"
                   estilo={{ position: "static", width: "min(560px, calc(100vw - 24px))" }}
                   onElegir={(type) => { onAgregar(type); setAgregando(false); }}
+                  onElegirGuardada={onAgregarGuardada ? (s) => { onAgregarGuardada(s); setAgregando(false); } : undefined}
                   onCerrar={() => setAgregando(false)}
                 />
               </Popover.Content>

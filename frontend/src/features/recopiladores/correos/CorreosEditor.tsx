@@ -39,6 +39,7 @@ import {
   APERTURA,
   bloqueParaInsertar,
   duplicarBloque,
+  insertarSeccionGuardada,
   chequeosPorBloque,
   conPuntoNuevo,
   conTextoDeZona,
@@ -73,6 +74,8 @@ import { useCorreos } from "./useCorreos";
 import "./correos.css";
 import "./correosCampanas.css";
 import { useColoresDeLaMarca } from "./useColoresDeLaMarca";
+import { useMisSecciones } from "./misSeccionesStore";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
 import "./correosCapa.css";
 import "./correosEnvios.css";
 import "./correosGuia.css";
@@ -230,6 +233,22 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
    * del nombre del archivo y no choca con otra imagen del correo; el bloque
    * pasa a nombrarlo (`conArchivoDeImagen`, piezasGraficas.ts).
    */
+  // «Mis secciones» (L9, ADR 0113): guardar la elegida y usar una guardada (una copia).
+  const misSecciones = useMisSecciones();
+  const guardarSeccion = async (blockId: string, name: string) => {
+    const actual = useCorreosStore.getState().borrador;
+    const block = actual?.blocks.find((b) => b.block_id === blockId);
+    if (!actual || !block) return false;
+    return (await misSecciones.guardar(name, block, actual, st.campana)) !== null;
+  };
+  const usarSeccionGuardada = (seccion: MailSavedSection, donde: { hueco: number } | { despuesDe: string | null }) => {
+    const actual = useCorreosStore.getState().borrador;
+    const out = actual ? insertarSeccionGuardada(actual, seccion, donde) : null;
+    if (!out) return;
+    st.reemplazarBorrador(out.template);
+    seleccionar(out.block_id);
+  };
+
   const subirImagenDeBloque = (blockId: string, file: File, lado?: RanuraDeImagen) => {
     const actual = useCorreosStore.getState().borrador;
     const out = actual ? conArchivoDeImagen(actual, blockId, file.name, lado) : null;
@@ -310,6 +329,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
           seleccionar(id);
           st.setVistaDelBloque("estilo");
         }}
+        onGuardarSeccion={guardarSeccion}
+        errorAlGuardar={misSecciones.error}
+        onInsertarGuardada={(seccion, hueco) => usarSeccionGuardada(seccion, { hueco })}
         onArchivoDeImagen={subirImagenDeBloque}
         onArchivoDeLogo={(id, file) => { void acciones.subirImagen(id, file); }}
         onDeshacer={st.deshacer}
@@ -575,6 +597,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
       onCancelarPreset={() => setPresetPendiente(null)}
       onSeleccionar={elegirEnLaColumna}
       onAgregar={agregar}
+      onAgregarGuardada={(seccion) => usarSeccionGuardada(seccion, { despuesDe: useCorreosStore.getState().seleccion })}
       onInsertarCampo={insertarCampo}
       hayDestino={Boolean(st.destino) && pestana === "bloque"}
       ejemploDeNombre={persona?.nombre && !PARECE_CORREO.test(persona.nombre) ? persona.nombre : undefined}

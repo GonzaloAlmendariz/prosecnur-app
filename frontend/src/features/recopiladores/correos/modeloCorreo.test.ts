@@ -205,9 +205,11 @@ describe("imágenes", () => {
         afiche: { alt: "A", url: "https://x.pe/a.png" },
         "afiche-movil": { alt: "A", url: "https://x.pe/m.png" },
         "icono-reloj-0b1f54": { alt: "Reloj", url: "https://x.pe/i.png" },
+        "icono-de-la-unidad": { alt: "Logo de la unidad" },
       },
     } as MailTemplate;
-    expect(logosDeLaFranja(t)).toEqual(["logo-cliente", "pulso"]);
+    // Un logo cuyo archivo se llama «icono-…» no es un ícono generado: se queda.
+    expect(logosDeLaFranja(t)).toEqual(["logo-cliente", "pulso", "icono-de-la-unidad"]);
   });
 });
 

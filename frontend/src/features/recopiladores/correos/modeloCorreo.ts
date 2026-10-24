@@ -529,9 +529,8 @@ export function bloqueNuevo(type: TipoInsertable, block_id: string): MailBlock {
 }
 
 /** Agrega un bloque después del elegido (o antes del pie si no hay elegido). */
-export function agregarBloque(template: MailTemplate, type: TipoInsertable, despuesDe: string | null): { template: MailTemplate; block_id: string } {
-  const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
-  const blocks = [...template.blocks];
+/** Dónde se agrega un bloque: después del elegido o, sin elegido, antes de la firma (o del pie). Nunca después del pie. */
+export function lugarParaAgregar(blocks: readonly MailBlock[], despuesDe: string | null, esPie = false): number {
   let at = despuesDe ? blocks.findIndex((b) => b.block_id === despuesDe) + 1 : 0;
   if (at <= 0) {
     const pie = blocks.findIndex((b) => b.type === "footer_legal");
@@ -540,8 +539,14 @@ export function agregarBloque(template: MailTemplate, type: TipoInsertable, desp
   }
   // El pie va siempre al final: nada se agrega después de él.
   const pie = blocks.findIndex((b) => b.type === "footer_legal");
-  if (pie >= 0 && at > pie && type !== "footer_legal") at = pie;
-  blocks.splice(at, 0, block);
+  if (pie >= 0 && at > pie && !esPie) at = pie;
+  return at;
+}
+
+export function agregarBloque(template: MailTemplate, type: TipoInsertable, despuesDe: string | null): { template: MailTemplate; block_id: string } {
+  const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
+  const blocks = [...template.blocks];
+  blocks.splice(lugarParaAgregar(blocks, despuesDe, type === "footer_legal"), 0, block);
   return { template: { ...template, blocks }, block_id: block.block_id };
 }
 
@@ -651,7 +656,8 @@ export function logosDeLaFranja(template: MailTemplate): string[] {
   if (header.kind === "logos") return header.logo_ids;
   const delCuerpo = imagenesDeLosBloques(template);
   return Object.keys(template.images)
-    .filter((id) => id !== header.image_ref && !delCuerpo.has(id) && !/^(icono|ornamento)-/.test(id))
+    // Sólo los ids que genera el render (`.cmail_icon_id`, `.cmail_ornament_id`): un logo llamado «icono-…» se queda.
+    .filter((id) => id !== header.image_ref && !delCuerpo.has(id) && !/^(icono-[a-z]+|ornamento-onda)-[0-9a-f]{6}$/.test(id))
     .slice(0, MAX_LOGOS);
 }
 
