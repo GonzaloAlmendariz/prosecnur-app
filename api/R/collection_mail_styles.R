@@ -28,17 +28,19 @@
   band = list(height = c("s", "m", "l")),
   ornament = list(style = c("onda", "puntos", "linea_doble")),
   icon_text = list(icon = c("calendario", "reloj", "candado", "sobre", "persona", "grupo",
-                            "mapa", "check", "info", "alerta", "regalo", "enlace"))
+                            "mapa", "check", "info", "alerta", "regalo", "enlace")),
+  # Secciones (collection_mail_destacado.R).
+  feature = list(layout = c("izquierda", "derecha", "arriba"))
 )
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
                           "level", "style", "width", "bleed", "image_ref",
-                          "decorative", "color", "height", "icon", "left", "right", "box")
+                          "decorative", "color", "height", "icon", "left", "right", "box", "layout")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(
   paragraph = "text", callout = c("title", "items"), list = "items",
-  signature = "lines", footer_legal = "text", icon_text = "text"
+  signature = "lines", footer_legal = "text", icon_text = "text", feature = "text"
 )
 
 .CMAIL_LINK_RE <- "\\[([^\\]\\n]+)\\]\\(([^()\\s]+)\\)"

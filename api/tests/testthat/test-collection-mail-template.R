@@ -19,7 +19,9 @@ test_that("los presets built-in cumplen collection_mail_template/v2", {
   }
   expect_setequal(unlist(out$block_types),
                   c("greeting", "heading", "paragraph", "button", "callout", "list", "divider", "image",
-                    "signature", "footer_legal", "band", "ornament", "icon_text", "two_images"))
+                    "signature", "footer_legal", "band", "ornament", "icon_text", "two_images",
+                    # Secciones del GOAL editor profesional (collection_mail_destacado.R).
+                    "feature"))
 })
 
 test_that("el registro cerrado rechaza HTML libre, etiquetas crudas, tipos y claves ajenas", {

@@ -74,7 +74,9 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   band         = c("color", "height", "box"),
   ornament     = c("style", "color", "box"),
   icon_text    = c("icon", "text", "box"),
-  two_images   = c("left", "right", "alt_left", "alt_right", "box")
+  two_images   = c("left", "right", "alt_left", "alt_right", "box"),
+  # Secciones (GOAL editor profesional): collection_mail_destacado.R.
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "box")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -443,7 +445,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       }), recursive = FALSE)
     }
     # Enlaces del texto: válidos donde se permiten, prohibidos en el resto.
-    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right"))) {
+    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right",
+                                    "eyebrow", "button_text"))) {
       add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
     }
     add(.cmail_style_problems(b, type, path))
@@ -487,6 +490,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys))
         add(.cmail_text_problems(b$address, paste0(path, ".address"), keys))
       },
+      feature = add(.cmail_feature_problems(b, path, keys)),
       add(.cmail_piezas_problems(b, type, path, keys))
     )
   }
