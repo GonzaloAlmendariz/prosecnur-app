@@ -6,6 +6,7 @@ import { useTamano } from "../../avance/graficosDeAvance";
 import { COLUMNAS, conteoPor, dibujarFlujo, type EnlaceDeFlujo } from "./flujoDeCruce";
 import "../../avance/avance.css";
 import "./cruce.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 /** Rótulos que el motor publica con su nombre interno de etapa. */
 const ROTULO_DE_LLAVE: Record<string, string> = {
@@ -104,14 +105,14 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
   return (
     <div className="acr-cr" data-qa-geometry-group="acreditacion-control-cruce" data-qa-geometry-contract="intrinsic">
       <section className="acr-av-panel acr-cr-principal" aria-label="De la respuesta al avance">
-        <header className="acr-av-panel-cabecera">
+        <CabeceraDeTarjeta primera>
           <h3>
             De la respuesta al avance
             <span className="acr-av-tenue">
               {`${fmt(registros)} registros: ${fmt(registros - fuera)} personas del padrón y ${fmt(fuera)} ${fuera === 1 ? "respuesta" : "respuestas"} fuera de él`}
             </span>
           </h3>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-cr-cuerpo" data-qa-geometry-capacity="owned">
           <Diagrama enlaces={enlaces} />
         </div>

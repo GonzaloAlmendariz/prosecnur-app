@@ -4,7 +4,8 @@ import { Alert } from "../../../../../components/Alert";
 import { apiMonitoreoConfig, type MonitoreoState } from "../../../../../api/client";
 import type { MonitoreoCuotaPublico } from "../../../../../api/monitoreoCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
-import { fmt } from "../formato";
+import { fmt, normalizeSourceMatch } from "../formato";
+import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { preferredGoalVariable } from "../AcreditacionActorGoals";
 import { useEstadoDeCuotas } from "../insumos/useEstadoDeCuotas";
 import {
@@ -21,11 +22,13 @@ import {
 import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /**
- * Modelo › Metas (ficha M1): cuántas encuestas por público. Una tabla con la
- * cobertura editable y la meta que resulta, un solo «Guardar»; al lado, la
- * cobertura exigida a cada público y cómo se reparte la meta.
+ * Modelo › Metas (ficha M1): cuántas encuestas por público. Arriba, la meta del
+ * estudio con su reparto y un solo «Guardar»; debajo, una tarjeta por público
+ * (§2a-bis, como el establecedor de metas anterior) con personas, cobertura y
+ * meta editables, efectivas y el estado marcado en el borde.
  */
 export function Metas({
   state,
@@ -38,6 +41,7 @@ export function Metas({
   publicosDePrueba?: MonitoreoCuotaPublico[];
 }) {
   const { estado, error: errorDeCuotas } = useEstadoDeCuotas();
+  const avance = useResumenDelCorte((memoria) => memoria.avance);
   const publicos = publicosDePrueba ?? estado?.publicos ?? [];
   const goals = state?.config?.goals;
   const filas = useMemo(() => filasDeMetas(publicos, goals ?? []), [publicos, goals]);
@@ -54,10 +58,6 @@ export function Metas({
   const cambiadas = cambios(filas, borradores);
   const metaTotal = filas.reduce((suma, fila) => suma + (metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0), 0);
   const personasTotal = filas.reduce((suma, fila) => suma + (fila.personas ?? 0), 0);
-  const exigida = [...filas]
-    .map((fila) => ({ fila, cobertura: coberturaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)), meta: metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) }))
-    .filter((item) => item.cobertura != null)
-    .sort((a, b) => (b.cobertura ?? 0) - (a.cobertura ?? 0));
 
   async function guardar() {
     if (!state?.config || !cambiadas.length) return;
@@ -75,114 +75,109 @@ export function Metas({
     }
   }
 
+  // Mientras el estado de cuotas no llega, no se afirma que el estudio no tiene
+  // públicos (C5): se dice que se está leyendo.
+  const leyendo = !publicosDePrueba && !estado && !errorDeCuotas;
   if (!filas.length) {
     return (
       <div className="acr-cr is-vacio" data-vacio>
-        <Alert kind="info">{estado?.preparando ? "El motor está preparando el cruce del padrón; las metas aparecen al terminar." : errorDeCuotas || "El estudio todavía no tiene públicos con padrón. Se declaran en Insumos › Públicos."}</Alert>
+        {errorDeCuotas
+          ? <Alert kind="error">{errorDeCuotas}</Alert>
+          : <Alert kind="info">{leyendo ? "Leyendo los públicos del estudio." : estado?.preparando ? "El motor está preparando el cruce del padrón; las metas aparecen al terminar." : "El estudio todavía no tiene públicos con padrón. Se declaran en Insumos › Públicos."}</Alert>}
       </div>
     );
   }
 
+  const efectivasDe = (publico: string) => avance?.tarjetas.find((tarjeta) => normalizeSourceMatch(tarjeta.actor) === normalizeSourceMatch(publico))?.effective ?? null;
   return (
-    <div className="acr-ps is-metas" data-qa-geometry-group="acreditacion-modelo-metas" data-qa-geometry-contract="intrinsic">
-      <section className="acr-av-panel acr-ps-tabla" aria-label="Meta por público">
-        <header className="acr-av-panel-cabecera">
-          <h3>Meta por público <span className="acr-av-tenue">{`${fmt(metaTotal)} de ${fmt(personasTotal)} personas, ${personasTotal ? pctConEspacio((metaTotal / personasTotal) * 100) : "—"}`}</span></h3>
+    <div className="acr-mo-metas" data-qa-geometry-group="acreditacion-modelo-metas" data-qa-geometry-contract="intrinsic">
+      <section className="acr-av-panel" aria-label="Meta del estudio">
+        <CabeceraDeTarjeta primera>
+          <h3>Meta del estudio <span className="acr-av-tenue">{`${fmt(metaTotal)} de ${fmt(personasTotal)} personas, ${personasTotal ? pctConEspacio((metaTotal / personasTotal) * 100) : "—"}`}</span></h3>
           <button type="button" className="acr-av-boton is-primario" onClick={() => { void guardar(); }} disabled={guardando || !cambiadas.length}>
-            {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Guardar
+            {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
+            {cambiadas.length ? `Guardar ${fmt(cambiadas.length)} ${cambiadas.length === 1 ? "meta" : "metas"}` : "Guardar"}
           </button>
-        </header>
+        </CabeceraDeTarjeta>
         {mensaje ? <div className="acr-ct-cuerpo"><Alert kind={mensaje.tono === "error" ? "error" : "info"}>{mensaje.texto}</Alert></div> : null}
-        <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
-          <table className="acr-pub-tabla">
-            <thead>
-              <tr>
-                <th scope="col">Público</th>
-                <th scope="col" className="is-num">Personas</th>
-                <th scope="col" className="is-num">Cobertura</th>
-                <th scope="col" className="is-num">Meta</th>
-                <th scope="col">La meta dentro del padrón</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((fila) => {
-                const borrador = borradores[fila.publico] ?? borradorDe(fila);
-                const meta = metaDelBorrador(borrador);
-                const cambiada = cambiadas.includes(fila);
-                return (
-                  <tr key={fila.publico} className={cambiada ? "is-activa" : undefined}>
-                    <th scope="row">{fila.publico}</th>
-                    <td className="is-num">{fila.personas == null ? "—" : fmt(fila.personas)}</td>
-                    <td className="is-num">
-                      <span className="acr-mo-entrada">
-                        <input
-                          inputMode="decimal"
-                          value={borrador.cobertura}
-                          onChange={(event) => { const valor = event.currentTarget.value; setBorradores((previo) => ({ ...previo, [fila.publico]: conCobertura(fila, valor) })); }}
-                          aria-label={`Cobertura de ${fila.publico}, en porcentaje`}
-                          disabled={guardando || !fila.personas}
-                        />
-                        <span aria-hidden="true">%</span>
-                      </span>
-                    </td>
-                    <td className="is-num">
-                      <input
-                        className="acr-mo-meta"
-                        inputMode="numeric"
-                        value={borrador.meta}
-                        onChange={(event) => { const valor = event.currentTarget.value; setBorradores((previo) => ({ ...previo, [fila.publico]: conMeta(fila, valor) })); }}
-                        aria-label={`Meta de ${fila.publico}`}
-                        disabled={guardando}
-                      />
-                    </td>
-                    <td>
-                      <span className="acr-av-pista is-gruesa"><i style={{ width: `${fila.personas && meta != null ? Math.min(100, (meta / fila.personas) * 100) : 0}%` }} /></span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row">Total</th>
-                <td className="is-num">{fmt(personasTotal)}</td>
-                <td className="is-num">{personasTotal ? pctConEspacio((metaTotal / personasTotal) * 100) : "—"}</td>
-                <td className="is-num">{fmt(metaTotal)}</td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+        <div className="acr-mo-reparto-barra" role="img" aria-label={filas.map((fila) => `${fila.publico}: ${fmt(metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0)}`).join("; ")}>
+          {filas.map((fila, indice) => {
+            const meta = metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0;
+            return meta > 0 ? <i key={fila.publico} className={`is-tono-${(indice % 6) + 1}`} style={{ flexGrow: meta }} title={`${fila.publico}: ${fmt(meta)}`} /> : null;
+          })}
         </div>
-      </section>
-      <div className="acr-mo-columna">
-        <section className="acr-av-panel" aria-label="Cobertura exigida">
-          <header className="acr-av-panel-cabecera"><h3>Cobertura exigida <span className="acr-av-tenue">De mayor a menor</span></h3></header>
-          <ul className="acr-mo-exigida" data-qa-geometry-capacity="owned">
-            {exigida.map(({ fila, cobertura, meta }) => (
+        <ul className="acr-mo-reparto-leyenda">
+          {filas.map((fila, indice) => {
+            const meta = metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0;
+            return (
               <li key={fila.publico}>
+                <i className={`is-tono-${(indice % 6) + 1}`} aria-hidden="true" />
                 <span>{fila.publico}</span>
-                <span className="acr-mo-riel" aria-hidden="true"><i style={{ left: `${Math.min(100, cobertura ?? 0)}%` }} /></span>
-                <b className="acr-av-num">{pctConEspacio(cobertura ?? 0)}</b>
-                <span className="acr-av-tenue acr-av-num">{meta == null ? "—" : `${fmt(meta)} encuestas`}</span>
+                <b className="acr-av-num">{metaTotal ? pctConEspacio((meta / metaTotal) * 100) : "—"}</b>
               </li>
-            ))}
-          </ul>
-        </section>
-        <section className="acr-av-panel" aria-label="Reparto de la meta">
-          <header className="acr-av-panel-cabecera"><h3>Reparto de la meta</h3></header>
-          <ul className="acr-mo-reparto">
-            {filas.map((fila) => {
-              const meta = metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0;
-              return (
-                <li key={fila.publico}>
-                  <span>{fila.publico}</span>
-                  <span className="acr-av-pista"><i style={{ width: `${metaTotal ? (meta / metaTotal) * 100 : 0}%` }} /></span>
-                  <b className="acr-av-num">{metaTotal ? pctConEspacio((meta / metaTotal) * 100) : "—"}</b>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+            );
+          })}
+        </ul>
+      </section>
+      <div className="acr-mo-tarjetas" data-qa-geometry-group="acreditacion-metas-publicos" data-qa-geometry-contract="equal">
+        {filas.map((fila) => {
+          const borrador = borradores[fila.publico] ?? borradorDe(fila);
+          const meta = metaDelBorrador(borrador);
+          const efectivas = efectivasDe(fila.publico);
+          const estado = !meta ? "sin-meta" : efectivas == null ? "abierta" : efectivas >= meta ? "cumplida" : "en-curso";
+          const cambiada = cambiadas.includes(fila);
+          return (
+            <article key={fila.publico} data-qa-geometry-member className={`acr-mo-tarjeta is-${estado}${cambiada ? " is-cambiada" : ""}`} aria-label={`Meta de ${fila.publico}`}>
+              <header className="acr-mo-tarjeta-cabecera">
+                <span>
+                  <span className="acr-av-antetitulo">Público</span>
+                  <strong>{fila.publico}</strong>
+                </span>
+                <span className={`acr-av-chip acr-mo-estado is-${estado}`}>
+                  {cambiada ? "Sin guardar" : estado === "cumplida" ? "Meta cumplida" : estado === "en-curso" ? `${pctConEspacio(((efectivas ?? 0) / (meta ?? 1)) * 100)} de la meta` : estado === "sin-meta" ? "Sin meta" : "Meta declarada"}
+                </span>
+              </header>
+              <div className="acr-mo-teselas">
+                <div className="acr-mo-tesela">
+                  <small>Padrón</small>
+                  <b className="acr-av-num">{fila.personas == null ? "—" : fmt(fila.personas)}</b>
+                </div>
+                <label className="acr-mo-tesela is-editable">
+                  <small>Cobertura</small>
+                  <span className="acr-mo-entrada">
+                    <input
+                      inputMode="decimal"
+                      value={borrador.cobertura}
+                      onChange={(event) => { const valor = event.currentTarget.value; setBorradores((previo) => ({ ...previo, [fila.publico]: conCobertura(fila, valor) })); }}
+                      aria-label={`Cobertura de ${fila.publico}, en porcentaje`}
+                      disabled={guardando || !fila.personas}
+                    />
+                    <span aria-hidden="true">%</span>
+                  </span>
+                </label>
+                <label className="acr-mo-tesela is-editable">
+                  <small>Meta</small>
+                  <input
+                    className="acr-mo-meta"
+                    inputMode="numeric"
+                    value={borrador.meta}
+                    onChange={(event) => { const valor = event.currentTarget.value; setBorradores((previo) => ({ ...previo, [fila.publico]: conMeta(fila, valor) })); }}
+                    aria-label={`Meta de ${fila.publico}`}
+                    disabled={guardando}
+                  />
+                </label>
+                <div className="acr-mo-tesela">
+                  <small>Efectivas</small>
+                  <b className="acr-av-num">{efectivas == null ? "—" : fmt(efectivas)}</b>
+                </div>
+              </div>
+              <div className="acr-mo-tarjeta-pie">
+                <span className="acr-av-pista is-gruesa" aria-hidden="true"><i style={{ width: `${fila.personas && meta != null ? Math.min(100, (meta / fila.personas) * 100) : 0}%` }} /></span>
+                <span className="acr-av-tenue">{meta != null && metaTotal ? `${pctConEspacio((meta / metaTotal) * 100)} de la meta del estudio` : "Sin meta"}{fila.personas && meta != null ? ` · la meta es el ${pctConEspacio(Math.min(100, (meta / fila.personas) * 100))} del padrón` : ""}</span>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

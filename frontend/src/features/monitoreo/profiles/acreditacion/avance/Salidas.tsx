@@ -10,6 +10,7 @@ import { estadoDelCierre, publicacionesFrenteAlCorte, type EstadoDelCierre, type
 import "./avance.css";
 import "../insumos/insumos.css";
 import "../insumos/reglas/reglas.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /** El cierre del campo es un diálogo direccionable: `panel=cerrar-campo`. */
 export const PANEL_CERRAR_CAMPO: PanelDeclarado = { id: "cerrar-campo", label: "Cerrar campo", clase: "dialogo" };
@@ -28,9 +29,9 @@ export function SalidasVista({ corte, publicaciones, cierre, onAbrirCierre, sali
     <div className="acr-sa">
       <div className="acr-sa-arriba" data-qa-geometry-group="acreditacion-avance-salidas" data-qa-geometry-contract="equal">
         <section className="acr-av-panel" aria-label="Publicaciones frente al corte" data-qa-geometry-member>
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>Publicaciones frente al corte <span className="acr-av-tenue">{corte ? `Corte ${corteCorto(corte)}` : "Sin corte"}</span></h3>
-          </header>
+          </CabeceraDeTarjeta>
           <ul className="acr-sa-puntos acr-sa-cuerpo">
             {publicaciones.map((item) => (
               <li key={item.salida} className={item.alDia ? "is-ok" : "is-pendiente"}>

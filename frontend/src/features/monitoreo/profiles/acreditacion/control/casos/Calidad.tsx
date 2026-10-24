@@ -9,6 +9,7 @@ import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
 import "./calidad.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 type PropsDeVista = {
   duraciones: DuracionFueraDeRango[];
@@ -26,9 +27,9 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
   return (
     <div className="acr-ps is-calidad" data-qa-geometry-group="acreditacion-control-calidad" data-qa-geometry-contract="intrinsic">
       <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas demasiado cortas">
-        <header className="acr-av-panel-cabecera">
+        <CabeceraDeTarjeta primera>
           <h3>Respuestas demasiado cortas <span className="acr-av-tenue">{`Se revisan las de menos de ${duracionLegible(minimo)}`}</span></h3>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-cl-cifras is-dos" data-qa-geometry-group="acreditacion-calidad-cifras" data-qa-geometry-contract="equal">
           <div className="acr-res-kpi" data-qa-geometry-member><small>{`A revisar: menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas.length)}</b></div>
           <div className="acr-res-kpi is-neutra" data-qa-geometry-member><small>{`Más de ${duracionLegible(maximo)}, no se revisan`}</small><b className="acr-av-num">{fmt(largas)}</b></div>

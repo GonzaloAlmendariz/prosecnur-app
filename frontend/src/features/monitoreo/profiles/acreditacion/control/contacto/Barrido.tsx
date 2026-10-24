@@ -10,6 +10,7 @@ import type { AcreditacionAdvanceCard } from "../../avance/tarjetasDeAvance";
 import { barridosAcumulados, construirBarridoDeAcreditacion, type ModeloDeBarrido } from "./barridoModelo";
 import "../../avance/avance.css";
 import "./contacto.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 function porcentaje(parte: number, total: number) {
   return total > 0 ? pctConEspacio((parte / total) * 100) : "—";
@@ -59,7 +60,7 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
     <div className="acr-ct" data-qa-geometry-group="acreditacion-control-barrido" data-qa-geometry-contract="intrinsic">
       <div className="acr-ct-izquierda">
         <section className="acr-av-panel" aria-label="Del padrón al cruce">
-          <header className="acr-av-panel-cabecera"><h3>Del padrón al cruce</h3></header>
+          <CabeceraDeTarjeta primera><h3>Del padrón al cruce</h3></CabeceraDeTarjeta>
           <ol className="acr-ct-embudo" data-qa-geometry-group="acreditacion-barrido-embudo" data-qa-geometry-contract="equal">
             <FilaDelEmbudo etiqueta="Padrón telefónico" valor={modelo.padron} base={modelo.padron} clase="is-universo" />
             <FilaDelEmbudo etiqueta="Barridos" valor={modelo.barridos} base={modelo.padron} clase="is-respondieron" />

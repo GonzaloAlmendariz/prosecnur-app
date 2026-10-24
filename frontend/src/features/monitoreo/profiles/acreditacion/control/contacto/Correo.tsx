@@ -13,6 +13,7 @@ import { campanas, csvDeInvalidos, rotuloDeColumna, secuenciaDeEnvios, tasasPorP
 import { useCorreoMailchimp } from "./useCorreoMailchimp";
 import "../../avance/avance.css";
 import "./contacto.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 type PropsDeVista = {
   estado: MonitoreoMailchimpEstado;
@@ -57,9 +58,9 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
         {error ? <Alert kind="error">{error}</Alert> : null}
         {estado.avisos.map((texto) => <Alert key={texto} kind="warn">{texto}</Alert>)}
         <section className="acr-av-panel" aria-label="Secuencia de envíos por público">
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>Secuencia de envíos por público <span className="acr-av-tenue">Entregados y respuestas atribuidas, en el orden de envío de cada público</span></h3>
-          </header>
+          </CabeceraDeTarjeta>
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla acr-co-matriz">
               <thead>

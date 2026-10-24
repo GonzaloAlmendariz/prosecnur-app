@@ -25,6 +25,7 @@ import { EstadoDelUniverso } from "./EstadoDelUniverso";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { normalizeSourceMatch } from "../formato";
 import "./avance.css";
+import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 function porcentaje(valor: number, total: number) {
   return total > 0 ? pctConEspacio((valor / total) * 100) : "—";
@@ -209,10 +210,10 @@ export function ResumenVista({
     <div className="acr-res" data-qa-geometry-group="acreditacion-avance-resumen" data-qa-geometry-contract="intrinsic">
       <div className="acr-res-izquierda">
         <section className="acr-av-panel acr-res-principal" aria-label="Efectivas acumuladas">
-          <header className="acr-av-panel-cabecera">
+          <CabeceraDeTarjeta primera>
             <h3>Efectivas acumuladas</h3>
             <ChipDeProyeccion serie={serie} totales={totales} />
-          </header>
+          </CabeceraDeTarjeta>
           <div className="acr-res-kpis" data-qa-geometry-group="acreditacion-resumen-cifras" data-qa-geometry-contract="equal">
             <div className="acr-res-kpi-principal">
               <span className="acr-av-antetitulo">Efectivas</span>

@@ -1155,18 +1155,30 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   justify-content: space-between;
   gap: var(--pulso-space-3);
   min-height: 32px;
-  padding: 0 var(--pulso-space-3);
-  border-left: 3px solid var(--pulso-border);
+  position: relative;
+  padding: 0 var(--pulso-space-3) 0 calc(var(--pulso-space-3) + 3px);
   border-radius: 4px;
   background: var(--pulso-surface-3);
+  --acr-sa-franja: var(--pulso-border);
+}
+
+/* Franja de estado recortada por el radio de la caja: ni sombra inset ni borde
+ * lateral grueso, que en una caja redondeada se curvan y parecen un bisel. */
+.acr-sa-puntos li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--acr-sa-franja) 3px, transparent 3px);
+  pointer-events: none;
 }
 
 .acr-sa-puntos li.is-ok {
-  border-left-color: var(--pulso-success-fg);
+  --acr-sa-franja: var(--pulso-success-fg);
 }
 
 .acr-sa-puntos li.is-pendiente {
-  border-left-color: var(--pulso-warn-fg);
+  --acr-sa-franja: var(--pulso-warn-fg);
 }
 
 .acr-sa-puntos b {
@@ -1371,4 +1383,90 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-franja > button {
   align-self: center;
   justify-self: start;
+}
+
+/* ══ §2a-bis Contenedores (Gonzalo, 2026-10-24) ══════════════════════════
+ * Cada unidad de lectura en su tarjeta, con aire y jerarquía; las tablas,
+ * elegantes dentro de su tarjeta: cabecera sobre superficie alternativa,
+ * filas de 42 px, cebra tenue y cifras tabulares a la derecha. */
+.acr-av-panel {
+  border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.acr-av-panel-cabecera {
+  flex-shrink: 0; /* con el rótulo crece a dos líneas; en un panel flex no debe encogerse bajo la tabla */
+  min-height: 52px;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.acr-pub-tabla thead th {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.acr-pub-tabla tbody th,
+.acr-pub-tabla tbody td {
+  height: 42px;
+  padding-block: 8px;
+}
+
+/* El padding lateral de 20 px no le quita ancho al nombre de la fila. */
+.acr-pub-tabla tbody th {
+  max-width: 230px;
+}
+
+/* Una celda de fila que es flex (Personas) deja de ser celda: el alto fijo la
+ * recortaría con nombres de dos líneas. */
+.acr-ps-estados tbody th[scope="row"] {
+  height: auto;
+  min-height: 42px;
+}
+
+.acr-pub-tabla th:first-child,
+.acr-pub-tabla td:first-child {
+  padding-left: var(--pulso-space-5);
+}
+
+.acr-pub-tabla th:last-child,
+.acr-pub-tabla td:last-child {
+  padding-right: var(--pulso-space-5);
+}
+
+.acr-pub-tabla tbody tr:nth-child(even):not(.is-activa):not(:hover) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, var(--pulso-surface));
+}
+
+.acr-pub-tabla .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acr-pub-tabla tfoot th,
+.acr-pub-tabla tfoot td {
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+/* Bloques de cifras: cada cifra en su tesela, iguales y con aire. */
+.acr-cl-cifras,
+.acr-pc-franja {
+  gap: var(--pulso-space-3);
+}
+
+.acr-cl-cifras {
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-bottom: 0;
+}
+
+.acr-cl-cifras > .acr-res-kpi,
+.acr-pc-franja > .acr-res-kpi,
+.acr-ri-cifras > div,
+.acr-co-cifras > div {
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
 }

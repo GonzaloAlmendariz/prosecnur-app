@@ -23,6 +23,11 @@ describe("Modelo › Metas", () => {
     ]);
   });
 
+  it("un meta_pct en cero con meta positiva no es la cobertura: sale de la meta", () => {
+    const sinPct = [{ filters: { dim_actor: "Egresados" }, meta: 108, meta_pct: 0 }] as unknown as MonitoreoGoal[];
+    expect(filasDeMetas([PUBLICOS[1]], sinPct)).toEqual([{ publico: "Egresados", personas: 270, meta: 108, cobertura: 40 }]);
+  });
+
   it("la cobertura recalcula la meta y al revés, con la regla de la tarjeta de hoy", () => {
     expect(conCobertura(filas[1], "45")).toEqual({ cobertura: "45", meta: "122" });
     expect(conMeta(filas[1], "135")).toEqual({ meta: "135", cobertura: "50" });
@@ -41,7 +46,8 @@ describe("Modelo › Metas", () => {
   it("la vista no muestra claves crudas", () => {
     const state = { config: { goals: GOALS }, variables: [] } as unknown as MonitoreoState;
     const html = renderToStaticMarkup(<Metas state={state} publicosDePrueba={PUBLICOS} />);
-    expect(html).toContain("Cobertura exigida");
+    expect(html).toContain("Meta del estudio");
+    expect(html).toContain("Padrón");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
   });
 });

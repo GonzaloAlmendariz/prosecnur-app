@@ -32,7 +32,10 @@ export function filasDeMetas(
   return publicos.map(({ actor, universo }) => {
     const goal = goalDe(goals, actor);
     const meta = goal && Number.isFinite(Number(goal.meta)) ? Number(goal.meta) : null;
-    const pct = goal && Number.isFinite(Number(goal.meta_pct)) ? Number(goal.meta_pct) : null;
+    // Un `meta_pct: 0` junto a una meta positiva es un % que nunca se escribió
+    // (Institucional guarda solo el mínimo): la cobertura sale de la meta.
+    const pctGuardado = goal && Number.isFinite(Number(goal.meta_pct)) ? Number(goal.meta_pct) : null;
+    const pct = pctGuardado === 0 && meta != null && meta > 0 ? null : pctGuardado;
     const cobertura = pct ?? (meta != null && universo ? Math.round((meta / universo) * 1000) / 10 : null);
     return { publico: actor, personas: universo, meta, cobertura };
   });

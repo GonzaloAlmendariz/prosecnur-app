@@ -44,6 +44,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ◐ (las cuatro escritas; falta typecheck, gates y capturas) |
+| A9 | Contenedores (§2a-bis) | Cada unidad de lectura en su tarjeta; tablas con cabecera sobre superficie alternativa, filas de 42 px y cifras tabulares; el rótulo de la pestaña va en la primera tarjeta o en la fila de la barra, sin fila propia; Modelo › Metas como rejilla de tarjetas por público | A2–A8 | ◐ (escrita; ver nota A9) |
 
 ## A1: cómo se traduce cada pestaña mientras no tiene contenido propio
 
@@ -368,6 +369,20 @@ categorías, meta del público con su diferencia por redondeo, la categoría má
   y `AvanceCuotas.css`. El estudio telefónico sigue montando `AvanceCuotas` con su editor (`panel=cuota`).
 - **Diferencia con el lienzo:** el detalle de la cuota usa la lista de barras de `AvanceCuotasDetalle`, no la tabla con
   % base y Δ de composición; «Definir cuota en Modelo» abre Modelo › Cuotas sin preelegir la variable.
+
+**A9, Contenedores y cabecera integrada (estándar §2a-bis).** El rótulo «Sección · Grupo · Pestaña» deja de ocupar
+una fila: la página lo publica por contexto (`navegacion/rotuloDePestana.tsx`) y lo lee la primera tarjeta
+(`CabeceraDeTarjeta primera`) o la barra de herramientas que ya es la primera fila (`RotuloEnBarra`, en Insumos ›
+Fuentes y Reglas). Qué pestañas lo hacen lo decide `rotuloEnTarjeta` (`chipsDeCabecera.ts`); Control › Reintentos
+conserva la fila porque su primera fila es la barra común de `core/ColaDeInsistencia`, y las sub-vistas que aún montan
+la vista anterior (ritmo, recopiladores, supervisión, detalle, variables) también. Las tablas de la familia
+`acr-pub-tabla` toman cabecera sobre `--pulso-surface-2`, filas de 42 px, cebra tenue y cifras tabulares; los bloques
+de cifras van en teselas. Modelo › Metas sigue al establecedor de metas anterior: arriba «Meta del estudio» con la
+barra de reparto y un solo Guardar; debajo una tarjeta por público (personas, cobertura y meta editables, efectivas
+del corte) con el estado en el borde lateral y un chip (cumplida, % de la meta, sin meta, sin guardar).
+
+- **Diferencia con la referencia:** las tarjetas de Metas no listan las fuentes de cada público (eso vive en Insumos ›
+  Fuentes) ni los canales; el mínimo y el % se guardan juntos con un solo botón, no uno por tarjeta.
 
 ## Preguntas surgidas en la implementación
 

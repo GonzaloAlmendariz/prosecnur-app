@@ -12,6 +12,7 @@ import { PanelCaso, type EstadoDeGuardado } from "./PanelCaso";
 import { useFiltrosPorResolver } from "./porResolverStore";
 import "../../avance/avance.css";
 import "./porResolver.css";
+import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 
 /** El caso elegido es un panel direccionable: `panel=caso&foco=<response_id>`. */
 export const PANEL_CASO: PanelDeclarado = { id: "caso", label: "Caso por resolver", clase: "inspector" };
@@ -126,7 +127,7 @@ export function PorResolver({
       </nav>
 
       <section className="acr-av-panel acr-pr-cola" aria-label="Cola del tipo elegido">
-        <header className="acr-av-panel-cabecera">
+        <CabeceraDeTarjeta primera>
           <h3>
             {tipoActual?.etiqueta ?? "Casos"}
             <span className="acr-av-tenue">
@@ -135,7 +136,7 @@ export function PorResolver({
                 : `${fmt(cola.length)} ${cola.length === 1 ? "respuesta" : "respuestas"} con ${fmt(tipoActual?.casos ?? 0)} casos`}
             </span>
           </h3>
-        </header>
+        </CabeceraDeTarjeta>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
           {cola.length ? (
             <table className="acr-pub-tabla acr-pr-tabla">

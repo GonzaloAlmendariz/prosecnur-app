@@ -245,3 +245,16 @@
 .acr-in-fuentes > * {
   flex-shrink: 0;
 }
+
+/* Insumos › Fuentes: el rótulo de la pestaña en la fila de la barra de lectura (§2a-bis). */
+.acr-in-barra {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.acr-in-barra > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
