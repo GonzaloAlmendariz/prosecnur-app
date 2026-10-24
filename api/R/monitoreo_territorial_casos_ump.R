@@ -126,6 +126,11 @@ monitoreo_territorial_casos_ump_desde_auditoria <- function(auditoria, tcfg, pha
   orden_clave <- paste(fecha, momento, .casos_ump_chr(df, "response_id"))
   orden <- order(orden_clave)
   edad <- .casos_ump_num(df, "age")
+  # El sexo llega con el código del formulario («2»); la tarjeta decía
+  # «Celda: 2, 30 años». Se rotula con la misma regla que usa la cuota, para
+  # que la celda del caso y la de la tabla digan lo mismo.
+  sexo_crudo <- .casos_ump_chr(df, "sex")
+  sexo <- ifelse(nzchar(trimws(sexo_crudo)), .monitoreo_territorial_quota_sex_label(sexo_crudo), "")
 
   casos <- lapply(seq_along(orden), function(posicion) {
     i <- orden[[posicion]]
@@ -145,7 +150,7 @@ monitoreo_territorial_casos_ump_desde_auditoria <- function(auditoria, tcfg, pha
       tipo_manzana = .casos_ump_chr(df, "advance_block_type")[[i]],
       aplicador = .casos_ump_chr(df, "responsible_display")[[i]],
       codigo_pulso = .casos_ump_chr(df, "pulso_code")[[i]],
-      sexo = .casos_ump_chr(df, "sex")[[i]],
+      sexo = sexo[[i]],
       edad = if (is.finite(edad[[i]])) edad[[i]] else NULL,
       consentimiento = consentimiento[[i]],
       motivos = .casos_ump_chr(df, "observation_reasons")[[i]],
