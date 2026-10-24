@@ -57,6 +57,8 @@
     }
     add(.cmail_alt_problems(b$alt, paste0(path, ".alt")))
   }
+  # Recorte de la foto (collection_mail_recorte.R).
+  if (!is.null(b$crop)) add(.cmail_crop_problems(b$crop, paste0(path, ".crop")))
   button <- .cmail_one(b$button_text)
   if (!is.null(button) && nzchar(trimws(button))) {
     add(.cmail_text_problems(button, paste0(path, ".button_text"), keys))
@@ -71,9 +73,14 @@
 
 .cmail_feature_image <- function(b, ctx, slot) {
   id <- as.character(.cmail_one(b$image_ref) %||% "")
-  img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
+  # La recortada a su proporción (collection_mail_recorte.R) o, sin archivo, la original.
+  elegida <- .cmail_feature_img(b, ctx)
+  img <- elegida$img
   alt <- .cmail_one(b$alt) %||% ""
-  size <- if (.cmail_size_ok(img$size)) img$size else list(width = 1, height = 1)
+  # Sin medidas (un hueco de vista previa), el hueco ya tiene la proporción del recorte.
+  size <- if (.cmail_size_ok(img$size)) img$size
+          else if (!is.null(elegida$crop)) list(width = elegida$crop$r, height = 1)
+          else list(width = 1, height = 1)
   fit <- .cmail_fit(size, .cmail_feature_shown(b, img, ctx$width))
   src <- .cmail_image_src(img, ctx)
   if (is.null(src)) {
@@ -81,9 +88,13 @@
   }
   # En teléfono llena el ancho sólo si su archivo da para eso: nunca se agranda una foto chica.
   llena <- !.cmail_size_ok(img$size) || as.integer(img$size$width) >= .cmail_text_col(ctx$width %||% .CMAIL_WIDTH)
-  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s%s style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;">',
+  # Sólo en la vista previa del editor: la foto entera, para encuadrar el recorte sobre ella.
+  original <- if (isTRUE(ctx$marks) && !is.null(img$cropped_from)) ctx$images[[img$cropped_from]] else NULL
+  osrc <- if (!is.null(original)) .cmail_image_src(original, ctx) else NULL
+  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s%s%s style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;">',
           .cmail_esc(src), fit$width, fit$height, .cmail_esc(alt), .cmail_prop(ctx, "alt"),
-          if (llena) sprintf(' class="%s"', .CMAIL_FEATURE_IMG_CLASS) else "", fit$width)
+          if (llena) sprintf(' class="%s"', .CMAIL_FEATURE_IMG_CLASS) else "",
+          if (!is.null(osrc)) sprintf(' data-pulso-original="%s"', .cmail_esc(osrc)) else "", fit$width)
 }
 
 # El botón dentro de la columna de texto: el mismo de siempre (sólido, el del

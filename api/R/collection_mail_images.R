@@ -184,7 +184,8 @@
   # Íconos y ondas de ornamento de las piezas (E1o, collection_mail_piezas.R),
   # con la misma regla: nunca pisan una imagen del autor.
   for (g in .cmail_piezas_images(template)) if (!(g$id %in% ids)) out[[g$id]] <- g
-  out
+  # Las fotos de los Destacados, recortadas a su proporción (collection_mail_recorte.R).
+  .cmail_crop_apply(template, out)
 }
 
 .cmail_image_placeholder <- function(id) {

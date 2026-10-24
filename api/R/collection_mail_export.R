@@ -643,7 +643,8 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     html_bytes = r$rendered$bytes,
     import_zip = list(path = .CMAIL_IMPORT_ZIP_NAME, size_bytes = importable$size_bytes,
                       sha256 = sha(importable$path), entries = importable$entries, html = html_name),
-    images = unname(lapply(r$images, function(i) .cmc_drop_nulls_deep(list(
+    # Un original que sólo se usa recortado no viaja en el ZIP: no se lista (collection_mail_recorte.R).
+    images = unname(lapply(Filter(function(i) !isTRUE(i$superseded), r$images), function(i) .cmc_drop_nulls_deep(list(
       id = i$id, file = if (is.null(i$url) && !is.null(i$path)) i$export_name, hosted_url = i$url,
       type = i$type, width = i$size$width, height = i$size$height
     )))),

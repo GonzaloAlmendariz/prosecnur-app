@@ -19,7 +19,8 @@
 
 # Imágenes que viajan dentro del ZIP: con archivo y sin URL declarada.
 .cmail_import_images <- function(images) {
-  Filter(function(i) is.null(i$url) && !is.null(i$path) && file.exists(i$path), images)
+  # Un original que sólo se usa recortado no viaja: viaja su recorte (collection_mail_recorte.R).
+  Filter(function(i) is.null(i$url) && !is.null(i$path) && file.exists(i$path) && !isTRUE(i$superseded), images)
 }
 
 # Peso previsto (el HTML más las imágenes que entran; PNG/JPEG casi no comprimen).

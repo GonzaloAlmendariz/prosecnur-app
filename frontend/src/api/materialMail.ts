@@ -175,6 +175,10 @@ export type MailTwoImagesBlock = {
 /** «Destacado»: la imagen a la izquierda, a la derecha o arriba (`collection_mail_destacado.R`). */
 export const MAIL_FEATURE_LAYOUTS = ["izquierda", "derecha", "arriba"] as const;
 export type MailFeatureLayout = (typeof MAIL_FEATURE_LAYOUTS)[number];
+/** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
+export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
+export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
+export type MailCrop = { ratio?: MailCropRatio; x?: number; y?: number; zoom?: number };
 /** Sin `image_ref` sale sin imagen; con imagen, `alt` es obligatorio. */
 export type MailFeatureBlock = {
   block_id: string;
@@ -187,6 +191,8 @@ export type MailFeatureBlock = {
   button_text?: string;
   url?: string;
   layout?: MailFeatureLayout;
+  /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
+  crop?: MailCrop;
 };
 export type MailCalloutBlock = {
   block_id: string;
@@ -802,6 +808,19 @@ export function normalizeMailTrato(value: unknown): MailTrato | undefined {
   };
 }
 
+/** El recorte de una foto: sólo valores del contrato (los números, dentro de su rango). */
+export function normalizeMailCrop(value: unknown): MailCrop | undefined {
+  if (!isRecord(value)) return undefined;
+  const ratio = oneOf(value.ratio, MAIL_CROP_RATIOS);
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : undefined);
+  const x = num(value.x, 0, 1);
+  const y = num(value.y, 0, 1);
+  const zoom = num(value.zoom, 1, 3);
+  return {
+    ...(ratio ? { ratio } : {}), ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}), ...(zoom !== undefined ? { zoom } : {}),
+  };
+}
+
 /**
  * La caja de un bloque: sólo las claves y valores del contrato. Una caja sin
  * valores reconocidos vuelve como `{}`, que el render dibuja con los valores por
@@ -920,6 +939,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...opcional("eyebrow"), ...opcional("text"), ...opcional("image_ref"), ...opcional("alt"),
         ...opcional("button_text"), ...opcional("url"),
         ...(layout ? { layout } : {}),
+        ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }
     case "callout": {
