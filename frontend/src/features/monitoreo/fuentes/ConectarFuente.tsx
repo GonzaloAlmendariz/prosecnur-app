@@ -25,6 +25,8 @@
 // nadie mira hasta que el avance sale en cero.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CatalogoDeEncuestas } from "./CatalogoDeEncuestas";
+import { desdeKobo, desdeSurveyMonkey } from "./modeloDeCatalogo";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
@@ -244,8 +246,7 @@ export function ConectarFuente({
   // A qué servidor de Kobo pertenece la cuenta conectada. Se resuelve del
   // perfil activo en vez de asumir el público: ver servidorKobo.ts.
   const [koboServidor, setKoboServidor] = useState(KOBO_POR_DEFECTO);
-  const [encuestasSm, setEncuestasSm] = useState<Array<{ id: string; title: string }> | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+  const [encuestasSm, setEncuestasSm] = useState<Array<{ id: string; title: string; date_modified: string | null; response_count: number | null }> | null>(null);
 
   const lecturaDeLoPegado = useMemo(
     () => (admiteDireccionPegada(servicio) ? leerDireccion(servicio, pegado) : null),
@@ -335,7 +336,9 @@ export function ConectarFuente({
         setAssetsKobo(data.assets ?? []);
       } else if (servicio === "surveymonkey") {
         const data = await apiSurveyMonkeyMultibaseListSurveys("", 200, 12);
-        setEncuestasSm(data.surveys.map((survey) => ({ id: survey.id, title: survey.title })));
+        setEncuestasSm(data.surveys.map((survey) => ({
+          id: survey.id, title: survey.title, date_modified: survey.date_modified ?? null, response_count: survey.response_count ?? null,
+        })));
       }
     } catch (e) {
       setError((e as Error).message);
@@ -499,26 +502,13 @@ export function ConectarFuente({
   const actorQueSugiereElNombre = actorQueContradiceElNombre(nombreDeLaFuente, actor, actoresSugeridos);
 
   /**
-   * El catálogo entero de la cuenta, sin tope: la lista es dueña de su scroll
-   * y tiene alto para ejercerlo. Recortarla a las más recientes escondía
-   * encuestas detrás de una búsqueda que hay que adivinar; con 76 nombres
-   * delante, bajar es más barato que recordar cómo se llamaba.
+   * El catálogo entero de la cuenta, sin tope y de la más reciente a la más
+   * antigua (`CatalogoDeEncuestas`): la lista es dueña de su scroll y se busca
+   * por nombre o por código.
    */
-  const catalogoCompleto = useMemo(() => (
-    servicio === "kobo"
-      ? (assetsKobo ?? []).map((asset) => ({
-        id: asset.uid,
-        nombre: asset.name,
-        extra: asset.deployment_active ? "Desplegado" : "Inactivo",
-      }))
-      : (encuestasSm ?? []).map((survey) => ({ id: survey.id, nombre: survey.title, extra: "" }))
+  const catalogo = useMemo(() => (
+    servicio === "kobo" ? desdeKobo(assetsKobo ?? []) : desdeSurveyMonkey(encuestasSm ?? [])
   ), [servicio, assetsKobo, encuestasSm]);
-
-  const catalogoVisible = useMemo(() => {
-    const termino = busqueda.trim().toLocaleLowerCase("es-PE");
-    if (!termino) return catalogoCompleto;
-    return catalogoCompleto.filter((item) => item.nombre.toLocaleLowerCase("es-PE").includes(termino));
-  }, [catalogoCompleto, busqueda]);
 
   const indiceDelPaso = Math.max(0, pasos.indexOf(paso));
 
@@ -748,29 +738,15 @@ export function ConectarFuente({
                     <span>Ver mis {servicio === "kobo" ? "formularios" : "encuestas"}</span>
                   </button>
                 ) : (
-                  <>
-                    <input
-                      value={busqueda}
-                      onChange={(event) => setBusqueda(event.currentTarget.value)}
-                      placeholder={`Buscar entre ${catalogoCompleto.length}`}
-                    />
-                    <div className="fuentes-conectar-catalogo" data-qa-geometry-capacity="owned">
-                      {catalogoVisible.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              void verificar(servicio === "kobo"
-                                ? { servicio: "kobo", baseUrl: koboServidor, assetUid: item.id, nombre: item.nombre }
-                                : { servicio: "surveymonkey", surveyId: item.id, nombre: item.nombre });
-                            }}
-                          >
-                            <strong>{item.nombre}</strong>
-                            {item.extra ? <em>{item.extra}</em> : null}
-                          </button>
-                        ))}
-                    </div>
-                  </>
+                  <CatalogoDeEncuestas
+                    items={catalogo}
+                    servicio={servicio === "kobo" ? "kobo" : "surveymonkey"}
+                    onElegir={(item) => {
+                      void verificar(servicio === "kobo"
+                        ? { servicio: "kobo", baseUrl: koboServidor, assetUid: item.id, nombre: item.nombre }
+                        : { servicio: "surveymonkey", surveyId: item.id, nombre: item.nombre });
+                    }}
+                  />
                 )}
               </fieldset>
               )}

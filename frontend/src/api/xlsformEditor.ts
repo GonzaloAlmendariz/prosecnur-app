@@ -1548,6 +1548,9 @@ export function normalizeKoboAssets(raw: unknown) {
         version_id: item.version_id == null || item.version_id === "NA" ? "" : String(item.version_id),
         date_modified: item.date_modified == null || item.date_modified === "NA" ? null : String(item.date_modified),
         deployment_active: item.deployment_active === true,
+        // Sólo si el backend los manda: no se inventan.
+        submission_count: item.submission_count == null || item.submission_count === "NA" ? null : Number(item.submission_count),
+        last_submission_time: item.last_submission_time == null || item.last_submission_time === "NA" ? null : String(item.last_submission_time),
       }))
       .filter((item) => item.uid),
   };

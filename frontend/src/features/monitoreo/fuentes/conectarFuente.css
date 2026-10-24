@@ -747,3 +747,17 @@
 
 /* En pantalla corta tampoco se topa el catálogo: el cuerpo scrollea igual y un
  * `max-height` aquí sería un recorte, no una franja. */
+
+/* Cada encuesta del catálogo: el nombre y, debajo, su código, envíos, fecha y
+ * estado, para distinguir dos formularios con nombres parecidos. */
+.fuentes-conectar-catalogo button.fuentes-conectar-encuesta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.fuentes-conectar-catalogo button.fuentes-conectar-encuesta em {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

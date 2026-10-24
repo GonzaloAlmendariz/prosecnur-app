@@ -87,6 +87,10 @@ export type MonitoreoKoboAssetItem = {
   version_id?: string;
   date_modified: string | null;
   deployment_active: boolean;
+  /** Envíos del formulario, si el backend lo publica (Kobo: `deployment__submission_count`). */
+  submission_count?: number | null;
+  /** Último envío, si el backend lo publica (Kobo: `deployment__last_submission_time`). */
+  last_submission_time?: string | null;
 };
 
 export type MonitoreoKoboSurveyLink = {
