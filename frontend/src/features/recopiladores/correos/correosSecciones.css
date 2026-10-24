@@ -1,0 +1,207 @@
+/* Entradas de Pasos, Beneficios y Preguntas en el inspector (EntradasDeSeccion, L6). Sólo tokens. */
+
+.rec-sec-entradas {
+  display: grid;
+  gap: 10px;
+}
+
+.rec-sec-entrada {
+  align-items: stretch;
+}
+
+.rec-sec-entrada-cabeza {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.rec-sec-entrada-acciones {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rec-sec-boton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.rec-sec-boton:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-sec-boton:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.rec-sec-boton:focus-visible,
+.rec-sec-icono:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+.rec-sec-icono {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+/* En la tarjeta de una entrada, el botón del ícono ocupa el ancho: «Cambiar» va al borde derecho. */
+.rec-sec-entrada > .rec-sec-icono {
+  align-self: stretch;
+}
+
+.rec-sec-icono-accion {
+  color: var(--pulso-text-soft);
+  margin-left: auto;
+}
+
+.rec-sec-agregar {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+/* «Cambiar por» (CambiarPorSeccion, L8). */
+.rec-sec-cambiar {
+  display: grid;
+  gap: 8px;
+}
+
+.rec-sec-destinos {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-sec-destino {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  padding: 9px 10px;
+  text-align: left;
+  /* El botón global no parte renglones; esta tarjeta sí (su frase puede ser larga). */
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-sec-destino > svg {
+  flex: none;
+}
+
+.rec-sec-destino:hover {
+  background: var(--pulso-surface-2);
+}
+
+.rec-sec-destino:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+/* La frase larga hace salto de línea dentro de la tarjeta (C2): nunca se sale del panel. */
+.rec-sec-destino-texto {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-sec-destino-nombre {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-sec-destino-nota,
+.rec-sec-destino-ok {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rec-sec-destino-ok {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Barra del lienzo (AccionesDeSeccion, L10): sus botones y el menú «Cambiar por». */
+.rec-capa-acciones-grupo {
+  display: inline-flex;
+  gap: 2px;
+  position: relative;
+}
+
+.rec-capa-accion.is-activa {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-capa-cambiar {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  box-shadow: var(--pulso-shadow-popover);
+  display: grid;
+  gap: 8px;
+  /* Nunca más alto que lo que se ve del lienzo: la lista se desplaza dentro (C4) y la página no se mueve. */
+  max-height: min(340px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 300px;
+  z-index: 6;
+}
+
+/* «Guardar sección» (GuardarSeccion, L9): mismo popover que «Cambiar por». */
+.rec-sec-guardar {
+  gap: 10px;
+}
+
+.rec-sec-guardar-campo {
+  display: grid;
+  font-size: 12.5px;
+  gap: 4px;
+}
+
+.rec-sec-guardar-campo input {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text);
+  font-size: 13px;
+  padding: 7px 9px;
+}
+
+.rec-sec-guardar-campo input:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}

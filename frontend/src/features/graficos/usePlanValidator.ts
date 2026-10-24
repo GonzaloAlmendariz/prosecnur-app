@@ -7,11 +7,14 @@ import { useVariables, type VarWithSource } from "./useVariables";
 import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
+import { avisoRadarDe } from "./avisosRadar";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
 import { twoBoxDeGrafico } from "./laminas/modeloMaqueta";
+import { laBase, type RelacionBases } from "./relacionBases";
+import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
@@ -30,6 +33,10 @@ import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MU
 //     siguieron vivos después de sumar las demás; hasta que se distinguió
 //     este caso, el plan decía que la variable no existía ("¿la renombraste
 //     o borraste?") mientras el selector mostraba a su lado la base real.
+//   - "var-base-implicita": con varias bases, la referencia no dice de cuál
+//     es pero el motor la lee sin ambigüedad de la base `default` (las otras
+//     bases donde aparece son repeats o hijas suyas; relacionBases.ts). Es
+//     WARNING: la lámina sale bien. Uno por gráfico, no uno por pregunta.
 //   - "icon-unknown": un slide de población referencia un ícono que ya
 //     no está en el catálogo (alguien lo borró).
 //   - "paleta-monocromatica": una paleta tiene muchos colores con hue
@@ -57,6 +64,7 @@ export type ValidationIssue = {
     | "slot-empty"
     | "var-unknown"
     | "var-sin-base"
+    | "var-base-implicita"
     | "icon-unknown"
     | "paleta-monocromatica"
     | "numeric-invalid"
@@ -65,8 +73,11 @@ export type ValidationIssue = {
     | "titulo-vacio"
     | "titulo-con-nota"
     | "indice-sin-capitulos"
-    | "ttb-sin-respuestas";
+    | "ttb-sin-respuestas"
+    | "radar-criterios";
   message: string;
+  /** El mensaje sin «Lámina N · “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
+  detalle?: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
   listName?: string;      // para paletas
@@ -88,11 +99,11 @@ export function usePlanValidator(): ValidationSummary {
   const iconos = usePlanStore((s) => s.iconos);
   const { slidesById, graficadoresById } = useGraficosRegistry();
   const { presetsByName } = usePresetsMetadata();
-  const { variables, multi } = useVariables();
+  const { variables, multi, relacionBases } = useVariables();
 
   return useMemo(
-    () => validarPlan({ slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi }),
-    [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi],
+    () => validarPlan({ slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases }),
+    [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases],
   );
 }
 
@@ -109,12 +120,14 @@ export type EntradaValidarPlan = {
   presetsByName: Readonly<Record<string, Pick<PresetMetadata, "args" | "titulo_humano"> | undefined>>;
   variables: readonly VarWithSource[];
   multi: boolean;
+  /** De qué base lee el motor una ref suelta (relacionBases.ts). Sin ella, toda ref suelta en multi es error. */
+  relacionBases?: RelacionBases;
 };
 
 // Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3 · “título”») y su tipo y espacio como el
 // selector; el id de la lámina viaja sólo en `slideId`, para «Ir a la lámina».
 export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
-  const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi } = entrada;
+  const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases } = entrada;
   const issues: ValidationIssue[] = [];
 
   // 1) Plan vacío ---------------------------------------------------------
@@ -146,12 +159,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
   // En qué bases vive cada nombre suelto. Con varias bases, una ref sin `$`
   // no es necesariamente una variable perdida: casi siempre es una que se
   // eligió cuando el estudio tenía una sola base.
-  const basesPorVariable = new Map<string, string[]>();
-  for (const v of variables) {
-    const previas = basesPorVariable.get(v.name) ?? [];
-    if (!previas.includes(v.source)) previas.push(v.source);
-    basesPorVariable.set(v.name, previas);
-  }
+  const basesPorVariable = basesPorNombre(variables);
   const basesDeVariableSuelta = (ref: string) =>
     ref.includes("$") ? [] : (basesPorVariable.get(ref) ?? []);
 
@@ -198,7 +206,25 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         // Variable desconocida dentro del graficador. Con varias bases hay
         // que separar dos cosas que se veían igual: la que no existe y la
         // que existe pero no dice de qué base es.
-        checkVarRefs(graf, varNames).forEach((varName) => {
+        const sueltas = checkVarRefs(graf, varNames);
+        const implicitas = new Map<string, string[]>();
+        for (const varName of sueltas) {
+          const base = multi && relacionBases ? baseImplicitaDe(varName, basesPorVariable, relacionBases) : null;
+          if (base) implicitas.set(base, [...(implicitas.get(base) ?? []), varName]);
+        }
+        const conBase = new Set([...implicitas.values()].flat());
+        for (const [base, nombres] of implicitas) {
+          const detalle = frasePreguntasEnBase(nombres.map((n) => etiquetaPregunta(n, base, variables)), base);
+          issues.push({
+            severity: "warning",
+            code: "var-base-implicita",
+            message: `${enEspacio(slot)}: ${detalle}`,
+            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio «${nombreEspacio(slot)}»: ${detalle}` : enMayuscula(detalle),
+            slideId: slide.id,
+            slotName: slot,
+          });
+        }
+        sueltas.filter((n) => !conBase.has(n)).forEach((varName) => {
           const aviso = avisoDeVariableNoResuelta(
             varName,
             multi ? basesDeVariableSuelta(varName) : [],
@@ -207,6 +233,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
             severity: aviso.severity,
             code: aviso.code,
             message: `${enEspacio(slot)}: ${aviso.detalle}`,
+            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio «${nombreEspacio(slot)}»: ${aviso.detalle}` : enMayuscula(aviso.detalle),
             slideId: slide.id,
             slotName: slot,
           });
@@ -311,6 +338,16 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         message: `${rotuloLamina(slide, indice)}: el Top Two Box está encendido pero sin sus respuestas; el PowerPoint sale sin la columna. Elígelas en la pestaña Gráfico.`,
         slideId: slide.id,
       });
+    }
+  });
+
+  // 4c) Radar entre públicos con un número de criterios que el motor no dibuja bien (avisosRadar.ts) -------------------
+  slides.forEach((slide, indice) => {
+    for (const valor of Object.values((slide.payload ?? {}) as Record<string, unknown>)) {
+      const g = valor as GraficadorRef | undefined;
+      if (!g || typeof g !== "object" || typeof g.graficador !== "string") continue;
+      const aviso = avisoRadarDe(g);
+      if (aviso) issues.push({ severity: "warning", code: "radar-criterios", message: `${rotuloLamina(slide, indice)}: ${aviso}.`, slideId: slide.id });
     }
   });
 
@@ -487,6 +524,31 @@ function checkTopeBarras(
     slideId: context.slideId,
     slotName: context.slotName,
   }];
+}
+
+/** «4 preguntas («WhatsApp», «Instagram» y 2 más) se leen de la base principal.» */
+function frasePreguntasEnBase(etiquetas: string[], base: string): string {
+  if (etiquetas.length === 1) return `la pregunta «${etiquetas[0]}» se lee de ${laBase(base)}.`;
+  const vistas = etiquetas.slice(0, 2).map((e) => `«${e}»`);
+  const resto = etiquetas.length - vistas.length;
+  const lista = resto ? `${vistas.join(", ")} y ${resto === 1 ? "1 más" : `${resto} más`}` : vistas.join(" y ");
+  return `${etiquetas.length} preguntas (${lista}) se leen de ${laBase(base)}.`;
+}
+
+/** El texto visible de la pregunta en esa base, sin HTML y acotado; nunca su nombre interno salvo que no tenga texto. */
+function etiquetaPregunta(nombre: string, base: string, variables: readonly VarWithSource[]): string {
+  const v = variables.find((x) => x.source === base && x.name === nombre) ?? variables.find((x) => x.name === nombre);
+  const t = (v?.label ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  if (!t) return nombre;
+  return t.length > 60 ? `${t.slice(0, 59).trimEnd()}…` : t;
+}
+
+function graficosDeLamina(slots: readonly string[]): number {
+  return slots.filter((s) => s !== "icono").length;
+}
+
+function enMayuscula(texto: string): string {
+  return texto ? texto.charAt(0).toLocaleUpperCase("es") + texto.slice(1) : texto;
 }
 
 /** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3 · …: ». */

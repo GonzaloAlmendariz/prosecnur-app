@@ -331,7 +331,12 @@ test_that("QA interno compara reporte_ppt_plan completo vs preview de un slide",
       diapo_001 = p_slide_seccion("Slide previa para validar índice"),
       diapo_002 = case$selected
     )
-    mini_plan <- list(diapo_001 = case$selected)
+    # Como la vista previa real (`.preview_con_antetitulo`, graficos_preview_lamina.R): la lámina sola hereda el
+    # antetítulo de su sección. Sin esto, el marco del estándar en la ruta de respaldo (7e10765b8) dibuja el antetítulo
+    # en el mazo completo y no en el mini-plan, y la comparación mide el arnés, no la vista previa.
+    sel <- case$selected
+    if (!inherits(sel, "ppt_slide_seccion")) sel$meta$antetitulo <- sel$meta$antetitulo %||% "Slide previa para validar índice"
+    mini_plan <- list(diapo_001 = sel)
 
     reporte_ppt_plan(
       data = dat,

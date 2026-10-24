@@ -103,7 +103,8 @@ test_that("select_one con campo otros no explota textos abiertos como categorias
   out <- .freq_clean_option_labels_for_export(tab)
 
   expect_false(any(out$Opciones %in% c("Centro Tecnico Internacional", "UNI y CENTRUM PUCP")))
-  expect_equal(out$n[out$Opciones == "Otros"], 2)
+  # «Otra institución:» es el rótulo del instrumento: se imprime sin los dos puntos, no como «Otros» (G8, CCSS 2026).
+  expect_equal(out$n[out$Opciones == "Otra institución"], 2)
   expect_equal(out$n[out$Opciones == "Total"], 4)
 })
 

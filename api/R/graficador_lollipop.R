@@ -133,8 +133,15 @@ graficar_lollipop <- function(
     e$resaltar <- as.character(resaltar %||% character(0))
     e
   }, error = function(e) NULL)
+  # L10-5b: como la lámina nativa (preparar_categorica), las residuales («Ninguna», «Otros», «No sabe») van al final
+  # y, con `residuales_gris`, en el color de no sustantivo; el resaltado del analista manda sobre el gris.
+  resid <- grepl(.CATEGORIAS_RESIDUALES, trimws(df$.cat), ignore.case = TRUE)
+  if (any(resid) && !all(resid)) df <- df[c(which(!resid), which(resid)), , drop = FALSE]
   df$.cat <- factor(df$.cat, levels = rev(df$.cat))
   df$.destacada <- df$.cat %in% as.character(resaltar %||% character(0))
+  df$.tono <- ifelse(df$.destacada, "TRUE",
+                     ifelse(isTRUE(residuales_gris) & grepl(.CATEGORIAS_RESIDUALES, trimws(as.character(df$.cat)), ignore.case = TRUE),
+                            "residual", "FALSE"))
 
   tope <- suppressWarnings(as.numeric(limite_x)[1])
   if (!is.finite(tope)) tope <- max(df$.valor, na.rm = TRUE) * 1.15
@@ -146,11 +153,11 @@ graficar_lollipop <- function(
       colour = color_tallo, linewidth = size_tallo, lineend = "round"
     ) +
     ggplot2::geom_point(
-      ggplot2::aes(colour = .data$.destacada), size = size_punto, show.legend = FALSE
+      ggplot2::aes(colour = .data$.tono), size = size_punto, show.legend = FALSE
     ) +
     ggplot2::scale_colour_manual(
-      values = c("FALSE" = color_punto, "TRUE" = color_resalte),
-      breaks = c("FALSE", "TRUE")
+      values = c("FALSE" = color_punto, "TRUE" = color_resalte, "residual" = .graficos_no_sustantivo_color()),
+      breaks = c("FALSE", "TRUE", "residual")
     )
 
   if (isTRUE(mostrar_valores)) {
@@ -184,7 +191,10 @@ graficar_lollipop <- function(
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_line(colour = .PULSO_COLOR_GRID, linewidth = 0.3),
-      plot.margin = ggplot2::margin(10, 16, 8, 12)
+      plot.margin = ggplot2::margin(10, 16, 8, 12),
+      # L10-5: en la ruta de respaldo, sin caja blanca sobre el fondo de la lámina.
+      plot.background = ggplot2::element_rect(fill = NA, colour = NA),
+      panel.background = ggplot2::element_rect(fill = NA, colour = NA)
     )
 
   attr(out, "pulso_lollipop_recortadas") <- recortadas

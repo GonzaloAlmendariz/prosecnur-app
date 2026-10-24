@@ -100,8 +100,3 @@
   align-items: center;
   gap: 6px;
 }
-
-.pulso-pg-sin {
-  color: var(--pulso-warn-fg);
-  font-size: 11px;
-}

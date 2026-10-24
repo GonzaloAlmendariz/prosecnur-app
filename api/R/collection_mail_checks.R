@@ -36,11 +36,27 @@
       }
       next
     }
+    # La foto de una sección (Destacado, Pasos, Cita, Contacto), si tiene.
+    if (isTRUE(b$type %in% .CMAIL_PHOTO_TYPES)) {
+      if (is.null(.cmail_one(b$image_ref))) next
+      uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref)),
+                                        target = .cmail_target(as.character(b$block_id), "alt"),
+                                        alt = .cmail_one(b$alt) %||% "", feature = b)
+      next
+    }
     if (!identical(b$type, "image")) next
     uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref) %||% ""),
                                       target = .cmail_target(as.character(b$block_id), "alt"),
                                       alt = .cmail_one(b$alt) %||% "", block = b,
                                       decorative = isTRUE(unlist(b$decorative)))
+    # Su versión para el celular (collection_mail_movil.R): comparte alt; los
+    # avisos de archivo o URL que falta llevan al bloque. No se mide su nitidez.
+    if (!is.null(.cmail_mobile_ref(b))) {
+      uses[[length(uses) + 1L]] <- list(id = .cmail_mobile_ref(b),
+                                        target = .cmail_target(as.character(b$block_id), "mobile_ref"),
+                                        alt = .cmail_one(b$alt) %||% "", movil = TRUE,
+                                        decorative = isTRUE(unlist(b$decorative)))
+    }
   }
   uses
 }
@@ -126,7 +142,8 @@
 # Chequeos de imagen comunes a los dos dialectos.
 .cmail_image_checks_common <- function(tpl, images, uses, push) {
   # Una imagen decorativa (E1o) lleva alt vacío a propósito.
-  no_alt <- Filter(function(u) !isTRUE(u$decorative) && .cmail_alt_missing(u$alt), uses)
+  # La versión del celular comparte el alt de su bloque: se cuenta una vez, en la de PC.
+  no_alt <- Filter(function(u) !isTRUE(u$decorative) && !isTRUE(u$movil) && .cmail_alt_missing(u$alt), uses)
   push(if (length(no_alt)) {
     .cmail_check("images_alt", "error", length(no_alt), "Imágenes sin texto alternativo.",
                  extra = as.list(unique(vapply(no_alt, `[[`, "", "id"))), targets = lapply(no_alt, `[[`, "target"))
@@ -137,16 +154,22 @@
   # Nitidez: el ancho mostrado a 2x no debe pasar el natural (al ancho de la columna del tema, E1p).
   col_w <- .cmail_theme_width(tpl$theme)
   blurry <- list()
-  for (u in Filter(function(u) !is.null(u$block) || isTRUE(u$pair), uses)) {
-    natural <- images[[u$id]]$size$width
+  medible <- function(u) !is.null(u$block) || isTRUE(u$pair) || !is.null(u$feature)
+  for (u in Filter(medible, uses)) {
+    # Destacado o Imagen recortada: se mide el recorte, que es lo que se muestra.
+    bloque <- u$feature %||% u$block
+    img <- if (!is.null(bloque)) .cmail_feature_img(bloque, list(images = images))$img else images[[u$id]]
+    natural <- img$size$width
     if (is.null(natural)) next
-    shown <- if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]], col_w) else .cmail_image_width(u$block, images[[u$id]], col_w)
+    shown <- if (!is.null(u$feature)) .cmail_photo_shown(u$feature, img, col_w)
+             else if (isTRUE(u$pair)) .cmail_pair_shown_width(img, col_w)
+             else .cmail_image_width(u$block, img, col_w)
     if (shown * 2L > natural) {
       blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural),
-                                            prop = if (isTRUE(u$pair)) u$target$prop else "width")
+                                            prop = if (isTRUE(u$pair) || !is.null(u$feature)) u$target$prop else "width")
     }
   }
-  if (any(vapply(uses, function(u) !is.null(u$block) || isTRUE(u$pair), NA))) {
+  if (any(vapply(uses, medible, NA))) {
     push(if (length(blurry)) {
       .cmail_check("image_width", "warning", length(blurry),
                    "Imágenes mostradas a más de la mitad de su ancho natural: se verán borrosas en pantallas de alta densidad.",
@@ -157,7 +180,8 @@
     })
   }
 
-  heavy <- Filter(function(i) isTRUE(i$bytes > .CMAIL_IMAGE_WARN_BYTES), images)
+  # Un original que su recorte reemplazó (`superseded`, collection_mail_recorte.R) no viaja ni se carga: no cuenta.
+  heavy <- Filter(function(i) isTRUE(i$bytes > .CMAIL_IMAGE_WARN_BYTES) && !isTRUE(i$superseded), images)
   if (length(heavy)) {
     push(.cmail_check("image_weight", "warning", length(heavy),
                       "Imágenes de más de 200 KB: tardan en cargar en el teléfono.",

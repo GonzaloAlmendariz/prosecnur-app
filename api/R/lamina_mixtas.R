@@ -279,6 +279,7 @@
   force(folio)
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo)) return(NULL)   # disposición sin geometría del recetario: quien llama sigue con la ruta anterior
+  geo <- .lam_mixta_geo_bajo_titulo(geo, titulo, sub)   # CCSS-25: un título de tres líneas no pisa los paneles (lamina_mixtas_titulo.R)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   # Gonzalo, 2026-10-14: las láminas de población ya no llevan el ícono del público en la cabecera; la cabecera es la
   # de cualquier lámina de varios gráficos (antetítulo y título desde el margen).
@@ -466,7 +467,7 @@
   if (any(!is.finite(ns)) || length(unique(round(ns))) != 1L) return(FALSE)
   fuente <- function(el) {
     ref <- as.character(unlist(el$var %||% el$vars %||% ""))[1]
-    if (is.na(ref) || !grepl("$", ref, fixed = TRUE)) "" else sub("\\$.*$", "", ref)
+    if (is.na(ref) || !grepl("$", ref, fixed = TRUE)) "" else .base_nombre_visible(sub("\\$.*$", "", ref))
   }
   fuentes <- vapply(els[graficos[graficos <= length(els)]], fuente, "")
   length(unique(fuentes)) <= 1L
@@ -510,6 +511,8 @@
     x0 <- p$x; w0 <- p$w; y0 <- y_fin + 0.1; h0 <- p$y + p$h - y0
   }
   # Sin título, subtítulo ni pie: el panel tiene su enunciado y la lámina su base (antes se repetía «Base: …» dentro).
+  # G6: el lienzo dibuja su título y su subtítulo como capas de texto, que `labs()` no alcanza (lamina_titulo_lienzo.R).
+  grafico <- .lienzo_sin_encabezado(grafico, textos = pregunta)
   g <- tryCatch(grafico + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL) +
                   ggplot2::theme(plot.caption = ggplot2::element_blank(), plot.title = ggplot2::element_blank(),
                                  plot.subtitle = ggplot2::element_blank()), error = function(e) grafico)

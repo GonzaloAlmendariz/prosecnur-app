@@ -59,15 +59,16 @@
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
   V <- espec$valores; nf <- nrow(V); nc <- ncol(V); C <- espec$columnas
-  xl <- ml + 2.9; wc <- (W - mr - xl) / nc; y0 <- yt + 0.85
+  wf <- espec$ancho_filas %||% 2.75; xl <- ml + wf + 0.15; wc <- (W - mr - xl) / nc; y0 <- yt + 0.85   # L10-6: columna de filas a medida
   hc <- min(0.95, (yf - y0 - 1.0) / nf)
   lo <- espec$rango[1]; hi <- espec$rango[2]
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   chica <- is.finite(C$n) & C$n < 15
+  dos <- isTRUE(espec$encabezado_dos_lineas)   # L10-6: opciones de una escala («Totalmente en desacuerdo») en dos líneas
   for (j in seq_len(nc)) {
-    .lam_txt(lz, sub(" ciclo$", "", C$rotulo[j]), xl + (j - 1) * wc, y0 - 0.58, wc, 0.26, 11, azul, bold = TRUE, align = "center", nombre = "calor:columna")
+    .lam_txt(lz, sub(" ciclo$", "", C$rotulo[j]), xl + (j - 1) * wc, y0 - (if (dos) 0.62 else 0.58), wc, if (dos) 0.46 else 0.26, 11, azul, bold = TRUE, align = "center", nombre = "calor:columna")
     if (is.finite(C$n[j])) .lam_txt(lz, paste0(format(round(C$n[j]), big.mark = ",", trim = TRUE), if (chica[j]) "*" else ""), xl + (j - 1) * wc, y0 - 0.33, wc, 0.24, 10,
                                     tenue, align = "center", nombre = "calor:casos")
   }
@@ -76,8 +77,8 @@
   }
   for (i in seq_len(nf)) {
     yi <- y0 + (i - 1) * hc
-    hf <- .lam_alto_tinta(espec$filas[i], 2.75, 13, TRUE)
-    .lam_txt(lz, espec$filas[i], ml, yi + (hc - hf) / 2, 2.75, hf, 13, azul, bold = TRUE, align = "right", nombre = "calor:fila")
+    hf <- .lam_alto_tinta(espec$filas[i], wf, 13, TRUE)
+    .lam_txt(lz, espec$filas[i], ml, yi + (hc - hf) / 2, wf, hf, 13, azul, bold = TRUE, align = "right", nombre = "calor:fila")
     for (j in seq_len(nc)) {
       ref <- if (!is.na(espec$col_total) && j != espec$col_total) V[i, espec$col_total] else NULL
       .lam_celda_calor(lz, xl + (j - 1) * wc, yi, wc, hc, V[i, j], lo, hi, ref, v_color = (espec$valores_crudos %||% V)[i, j])
@@ -86,7 +87,7 @@
   # Filetes azules tras la columna Total y entre bloques de grupos.
   cortes <- c(if (!is.na(espec$col_total)) espec$col_total, vapply(espec$bloques, function(b) max(b$cols), 0))
   for (k in setdiff(unique(cortes), nc)) .lam_caja(lz, xl + k * wc - 0.01, y0 - 0.1, 0.02, nf * hc + 0.1, azul, nombre = "calor:filete")
-  .lam_escala_calor(lz, xl + nc * wc / 2, y0 + nf * hc + 0.45, lo, hi, rotulo = rotulo_escala)
+  .lam_escala_calor(lz, xl + nc * wc / 2, y0 + nf * hc + 0.45, lo, hi, rotulo = espec$rotulo_escala %||% rotulo_escala)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:heatmap_dim")
   # El pie del recetario explica el asterisco y la cifra de abajo (recetario_m3d.R, pie de la lámina 92).
   notas <- c(if (any(chica)) "* Menos de 15 casos.",
@@ -147,11 +148,12 @@
   dos <- function(t, w, size) all(vapply(t, function(x) .lam_lineas(x, w, size, TRUE) <= 2L, TRUE))
   if (identical(espec$tipo, "heatmap_criterios")) return(.lam_heatmap_criterios_cabe(espec))
   if (identical(espec$tipo, "heatmap_dim")) {
-    nc <- ncol(espec$valores); nf <- nrow(espec$valores); wc <- (W - mr - ml - 2.9) / max(1L, nc)
+    wf <- espec$ancho_filas %||% 2.75; nc <- ncol(espec$valores); nf <- nrow(espec$valores); wc <- (W - mr - ml - wf - 0.15) / max(1L, nc)
     hc <- min(0.95, (g_("contenido_y1") - g_("zona_datos_y0") - 0.85 - 1.0) / max(1L, nf))
     return(nc >= 1L && nc <= 9L && nf %in% 1:8 && all(is.finite(espec$rango)) && espec$rango[2] > espec$rango[1] &&
-             dos(espec$filas, 2.75, 13) && all(.lam_alto_tinta(espec$filas, 2.75, 13, TRUE) <= hc) &&
-             all(.lam_ancho_txt(sub(" ciclo$", "", espec$columnas$rotulo), 11, TRUE) <= wc - 0.05))
+             dos(espec$filas, wf, 13) && all(.lam_alto_tinta(espec$filas, wf, 13, TRUE) <= hc) &&
+             (if (isTRUE(espec$encabezado_dos_lineas)) dos(espec$columnas$rotulo, wc - 0.05, 11) else
+               all(.lam_ancho_txt(sub(" ciclo$", "", espec$columnas$rotulo), 11, TRUE) <= wc - 0.05)))
   }
   if (identical(espec$tipo, "comparativo_dim")) {
     # La leyenda (con la base de cada grupo) debe caber sobre las barras, sin entrar en la columna «Diferencia».

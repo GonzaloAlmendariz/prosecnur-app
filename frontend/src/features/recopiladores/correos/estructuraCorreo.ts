@@ -10,8 +10,9 @@
 // - el pie (`footer_legal`) se dibuja siempre al final, fuera de la tarjeta:
 //   nada se mueve ni se inserta después de él, y él no se mueve.
 
-import type { MailBlock, MailCheck, MailTemplate } from "../../../api/materialMail";
-import { CABECERA, bloqueNuevo, idLibre, nuevoIdDeBloque } from "./modeloCorreo";
+import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailTemplate } from "../../../api/materialMail";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
+import { CABECERA, bloqueNuevo, idLibre, lugarParaAgregar, nuevoIdDeBloque } from "./modeloCorreo";
 import { imagenesDelCuerpo, type TipoInsertable } from "./piezasGraficas";
 
 /** Zona de la apertura de un recordatorio (addendum E1k): se edita en `send.opening`. */
@@ -83,6 +84,63 @@ export function tipoDisponible(template: Pick<MailTemplate, "blocks">, type: Tip
   return type !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal");
 }
 
+/** Tope de bloques de un correo (`.CMAIL_MAX_BLOCKS`): pasarlo deja la plantilla inválida. */
+export const MAXIMO_DE_BLOQUES = 40;
+
+/**
+ * Duplica un bloque justo debajo de sí (L10, barra del lienzo): la copia es
+ * idéntica, con su propio id; una foto se comparte (el mismo archivo sale dos
+ * veces). El pie legal no se duplica, ni un bloque que esta versión no conoce,
+ * ni se pasa del tope. `null` si no se puede.
+ */
+export function duplicarBloque(template: MailTemplate, blockId: string): { template: MailTemplate; block_id: string } | null {
+  const i = template.blocks.findIndex((b) => b.block_id === blockId);
+  const original = template.blocks[i];
+  if (!original || isOpaqueMailBlock(original) || !tipoDisponible(template, original.type)) return null;
+  if (template.blocks.length >= MAXIMO_DE_BLOQUES) return null;
+  const block_id = nuevoIdDeBloque(original.type, template);
+  const copia = { ...(JSON.parse(JSON.stringify(original)) as MailBlock), block_id };
+  const blocks = [...template.blocks];
+  blocks.splice(i + 1, 0, copia);
+  return { template: { ...template, blocks }, block_id };
+}
+
+/**
+ * Inserta una copia de una sección guardada (L9): con un id nuevo, en el hueco
+ * pedido o después del bloque elegido; la descripción y la URL de sus fotos se
+ * suman a `template.images` sólo si el correo no las tiene. `null` si no cabe.
+ */
+export function insertarSeccionGuardada(
+  template: MailTemplate,
+  seccion: Pick<MailSavedSection, "block" | "images">,
+  donde: { hueco: number } | { despuesDe: string | null },
+): { template: MailTemplate; block_id: string } | null {
+  if (template.blocks.length >= MAXIMO_DE_BLOQUES || seccion.block.type === "footer_legal" || isOpaqueMailBlock(seccion.block)) return null;
+  const block_id = nuevoIdDeBloque(seccion.block.type, template);
+  const copia = { ...(JSON.parse(JSON.stringify(seccion.block)) as MailBlock), block_id };
+  const blocks = [...template.blocks];
+  const at = "hueco" in donde ? huecoValido(template, donde.hueco) : lugarParaAgregar(blocks, donde.despuesDe);
+  blocks.splice(at, 0, copia);
+  const images = { ...template.images };
+  for (const [id, e] of Object.entries(seccion.images)) {
+    if (!images[id]) images[id] = { alt: e.alt ?? "", ...(e.url ? { url: e.url } : {}) };
+  }
+  return { template: { ...template, blocks, images }, block_id };
+}
+
+export function puedeDuplicar(template: MailTemplate, blockId: string): boolean {
+  return duplicarBloque(template, blockId) !== null;
+}
+
+/** El enlace que ya usa el correo: el de su primer botón, o el campo que lleva a la encuesta. */
+export function enlaceDelCorreo(template: Pick<MailTemplate, "blocks" | "fields">): string | null {
+  for (const b of template.blocks) {
+    if (b.type === "button" && b.url && b.url.trim() !== "https://") return b.url;
+  }
+  const campo = (template.fields ?? []).find((f) => f.destino === "encuesta");
+  return campo ? `{{${campo.key}}}` : null;
+}
+
 /** Un bloque nuevo, con ids que no chocan (cada imagen —y cada lado de un par— nombra su propio archivo). */
 export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable): MailBlock {
   const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
@@ -93,6 +151,22 @@ export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable)
   if (block.type === "two_images") {
     const left = idLibre("imagen-izquierda", usados);
     return { ...block, left, right: idLibre("imagen-derecha", [...usados, left]) };
+  }
+  // Un botón nace con el enlace que ya usa el correo (el de relleno, «https://», no
+  // valida y frena la vista previa). Sin ninguno, queda el de relleno: un botón
+  // no existe sin enlace, y la revisión pide escribirlo.
+  if (block.type === "button") {
+    const url = enlaceDelCorreo(template);
+    return url ? { ...block, url } : block;
+  }
+  // «Imagen + texto» nace sin botón: no se le pone enlace (un enlace sin texto de botón no vale).
+  if ((block.type === "feature" || block.type === "deadline") && block.button_text) {
+    // El botón nace con un enlace que ya vale (la vista previa no se frena): el
+    // del botón del correo o el campo que lleva a la encuesta; sin ninguno, nace sin botón.
+    const url = enlaceDelCorreo(template);
+    if (url) return { ...block, url };
+    const { button_text: _texto, url: _url, ...sinBoton } = block;
+    return sinBoton;
   }
   return block;
 }
@@ -369,4 +443,38 @@ export function srcDeImagenDelBloque(html: string | null | undefined, blockId: s
     .find((s) => s && !/^data:image\/svg\+xml/i.test(s));
   if (!src) return null;
   return src.replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+}
+
+/**
+ * La foto entera de un Destacado o una Imagen recortados, tal como la manda la
+ * vista previa en `data-pulso-original` (collection_mail_recorte.R): sobre ella se encuadra.
+ */
+export function srcOriginalDelBloque(html: string | null | undefined, blockId: string): string | null {
+  if (!html) return null;
+  const marca = `data-pulso-block="${blockId}"`;
+  const inicio = html.indexOf(marca);
+  if (inicio < 0) return null;
+  const resto = html.slice(inicio + marca.length);
+  const fin = resto.indexOf("data-pulso-block=");
+  const tramo = fin < 0 ? resto : resto.slice(0, fin);
+  const m = /\sdata-pulso-original="([^"]*)"/i.exec(tramo);
+  // El base64 de R llega partido en renglones (`&#10;`), como el `src`: sin quitarlos no se decodifica.
+  return m ? m[1].replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&") : null;
+}
+
+/**
+ * El `src` de la versión del celular de un bloque Imagen (L12), tal como la
+ * pinta la vista previa: su `<img>` lleva `data-pulso-prop="mobile_ref"`.
+ */
+export function srcDelMovil(html: string | null | undefined, blockId: string): string | null {
+  if (!html) return null;
+  const marca = `data-pulso-block="${blockId}"`;
+  const inicio = html.indexOf(marca);
+  if (inicio < 0) return null;
+  const resto = html.slice(inicio + marca.length);
+  const fin = resto.indexOf("data-pulso-block=");
+  const tramo = fin < 0 ? resto : resto.slice(0, fin);
+  const img = [...tramo.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]).find((t) => /data-pulso-prop="mobile_ref"/.test(t));
+  const src = img ? /\ssrc="([^"]*)"/i.exec(img)?.[1] : null;
+  return src ? src.replace(/&amp;/g, "&") : null;
 }

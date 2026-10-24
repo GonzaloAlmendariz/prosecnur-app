@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import type { MailBlock, MailGreetingBlock, MailPlatform, MailPreset, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailBlock, type MailGreetingBlock, type MailPlatform, type MailPreset, type MailTemplate } from "../../../api/materialMail";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -38,6 +38,8 @@ import { PanelSurveyMonkey } from "./PanelSurveyMonkey";
 import {
   APERTURA,
   bloqueParaInsertar,
+  duplicarBloque,
+  insertarSeccionGuardada,
   chequeosPorBloque,
   conPuntoNuevo,
   conTextoDeZona,
@@ -45,13 +47,13 @@ import {
   moverBloqueA,
   sinPunto,
   sinPuntosVacios,
-  srcDeImagenDelBloque,
+  srcDeImagenDelBloque, srcDelMovil, srcOriginalDelBloque,
 } from "./estructuraCorreo";
 import { atajoDeHistorial, esCampoNativo } from "./historialCorreo";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import { PanelDeBloque } from "./PanelDeBloque";
-import { conArchivoDeImagen, srcsDelPar, type LadoDelPar, type TipoInsertable } from "./piezasGraficas";
+import { conArchivoDeImagen, srcsDelPar, type RanuraDeImagen, type TipoInsertable } from "./piezasGraficas";
 import { PanelDestinatarios } from "./PanelDestinatarios";
 import { PanelIdentidad } from "./PanelIdentidad";
 import { CHEQUEOS_DE_ESTILO, IDENTIDAD } from "./modeloEstilo";
@@ -71,6 +73,9 @@ import type { AccionesDeCampanas } from "./useCampanas";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
 import "./correosCampanas.css";
+import { useColoresDeLaMarca } from "./useColoresDeLaMarca";
+import { useMisSecciones } from "./misSeccionesStore";
+import type { MailSavedSection } from "../../../api/materialMailMisSecciones";
 import "./correosCapa.css";
 import "./correosEnvios.css";
 import "./correosGuia.css";
@@ -228,7 +233,23 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
    * del nombre del archivo y no choca con otra imagen del correo; el bloque
    * pasa a nombrarlo (`conArchivoDeImagen`, piezasGraficas.ts).
    */
-  const subirImagenDeBloque = (blockId: string, file: File, lado?: LadoDelPar) => {
+  // «Mis secciones» (L9, ADR 0113): guardar la elegida y usar una guardada (una copia).
+  const misSecciones = useMisSecciones();
+  const guardarSeccion = async (blockId: string, name: string) => {
+    const actual = useCorreosStore.getState().borrador;
+    const block = actual?.blocks.find((b) => b.block_id === blockId);
+    if (!actual || !block) return false;
+    return (await misSecciones.guardar(name, block, actual, st.campana)) !== null;
+  };
+  const usarSeccionGuardada = (seccion: MailSavedSection, donde: { hueco: number } | { despuesDe: string | null }) => {
+    const actual = useCorreosStore.getState().borrador;
+    const out = actual ? insertarSeccionGuardada(actual, seccion, donde) : null;
+    if (!out) return;
+    st.reemplazarBorrador(out.template);
+    seleccionar(out.block_id);
+  };
+
+  const subirImagenDeBloque = (blockId: string, file: File, lado?: RanuraDeImagen) => {
     const actual = useCorreosStore.getState().borrador;
     const out = actual ? conArchivoDeImagen(actual, blockId, file.name, lado) : null;
     if (!actual || !out) return;
@@ -296,6 +317,21 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
           seleccionar(out.block_id);
         }}
         onQuitar={quitarConAviso}
+        onDuplicar={(id) => {
+          const actual = useCorreosStore.getState().borrador;
+          const out = actual ? duplicarBloque(actual, id) : null;
+          if (!out) return;
+          st.reemplazarBorrador(out.template);
+          seleccionar(out.block_id);
+        }}
+        onEditarBloque={(id, update) => editarUnBloque(id, update)}
+        onEstilo={(id) => {
+          seleccionar(id);
+          st.setVistaDelBloque("estilo");
+        }}
+        onGuardarSeccion={guardarSeccion}
+        errorAlGuardar={misSecciones.error}
+        onInsertarGuardada={(seccion, hueco) => usarSeccionGuardada(seccion, { hueco })}
         onArchivoDeImagen={subirImagenDeBloque}
         onArchivoDeLogo={(id, file) => { void acciones.subirImagen(id, file); }}
         onDeshacer={st.deshacer}
@@ -444,6 +480,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     </p>
   ) : null;
 
+  // L3: la paleta del estilo de cada bloque suma los colores del banner o del logo.
+  // Antes de los returns de carga y error: un hook bajo ellos rompe el editor (React #310).
+  const coloresDeLaMarca = useColoresDeLaMarca(template, st.imagenesLocales, st.vistaPrevia?.html);
   if (st.campanasCarga === "error") {
     return (
       <div className="rec-vacio-sin-plan" data-qa-geometry-capacity="owned">
@@ -503,8 +542,15 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     .map((c) => [c.code, c]));
   const ocupado = st.ocupado !== null;
   const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
-  const imagenDelBloque = bloqueElegido?.type === "image"
-    ? st.imagenesLocales[bloqueElegido.image_ref] ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+  // La foto de una Imagen o de un Destacado, ENTERA (para encuadrar): la subida, la original de la vista previa o la que pinta.
+  const imagenDelBloque = bloqueElegido && (bloqueElegido.type === "image" || tieneFoto(bloqueElegido)) && bloqueElegido.image_ref
+    ? st.imagenesLocales[bloqueElegido.image_ref]
+      ?? srcOriginalDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+      ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+    : null;
+  // La versión del celular de una Imagen (L12): la subida o la que pinta la vista previa.
+  const movilDelBloque = bloqueElegido?.type === "image" && bloqueElegido.mobile_ref
+    ? st.imagenesLocales[bloqueElegido.mobile_ref] ?? srcDelMovil(st.vistaPrevia?.html, bloqueElegido.block_id)
     : null;
   // Un par: lo que ya se ve de cada lado (recién subido o pintado por la vista previa).
   const parDelBloque = bloqueElegido?.type === "two_images" ? srcsDelPar(st.vistaPrevia?.html, bloqueElegido.block_id) : null;
@@ -551,6 +597,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
       onCancelarPreset={() => setPresetPendiente(null)}
       onSeleccionar={elegirEnLaColumna}
       onAgregar={agregar}
+      onAgregarGuardada={(seccion) => usarSeccionGuardada(seccion, { despuesDe: useCorreosStore.getState().seleccion })}
       onInsertarCampo={insertarCampo}
       hayDestino={Boolean(st.destino) && pestana === "bloque"}
       ejemploDeNombre={persona?.nombre && !PARECE_CORREO.test(persona.nombre) ? persona.nombre : undefined}
@@ -704,12 +751,14 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 dialecto={dialecto}
                 chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}
                 vistaDeImagen={imagenDelBloque}
+                vistaDelMovil={movilDelBloque}
                 vistasDelPar={imagenesDelPar}
                 ocupado={ocupado}
                 onSubirImagen={subirImagenDeBloque}
                 onSubirLogo={(id, file) => { void acciones.subirImagen(id, file); }}
                 destinatarios={st.destinatarios}
                 onIrAPersonas={() => irAPestana("destinatarios")}
+                coloresDeLaMarca={coloresDeLaMarca}
               />
             ) : null}
             {pestana === "identidad" ? (

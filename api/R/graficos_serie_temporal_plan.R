@@ -124,9 +124,18 @@ p_serie_temporal <- function(
     mostrar_puntos = NULL,
     mostrar_grid_y = NULL,
     titulos_grupo = NULL,
-    mostrar_leyenda = NULL
+    mostrar_leyenda = NULL,
+    cruce = NULL,
+    grupos = NULL
 ) {
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_serie_temporal()")
+  # L10-7: con `cruce`, la evolución es por los niveles de una pregunta ordinal de la misma base (graficos_serie_cruce.R).
+  if (!is.null(cruce) && nzchar(trimws(as.character(cruce)[1]))) {
+    return(.p_serie_cruce(vars, corte, corte_etiqueta, cruce, grupos, titulo, overrides, base, filtros,
+                          mostrar_valores = mostrar_valores, valores_decimales = valores_decimales, destacar_ultimo = destacar_ultimo,
+                          colores_series = colores_series, limite_y = limite_y, max_series_con_cifras = max_series_con_cifras,
+                          mostrar_puntos = mostrar_puntos, mostrar_grid_y = mostrar_grid_y, mostrar_leyenda = mostrar_leyenda))
+  }
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_serie_temporal(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -214,6 +223,7 @@ p_serie_temporal <- function(
     stop("serie_temporal: el render no expone las fuentes del estudio.", call. = FALSE)
   }
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
+  if (!is.null(el$cruce)) return(.render_serie_cruce(el, sources, preset_args))   # L10-7
 
   # `preset_args` llega vacio para un etype que el switch del motor no conoce;
   # el preset real se recupera del scope. Los overrides del elemento mandan.

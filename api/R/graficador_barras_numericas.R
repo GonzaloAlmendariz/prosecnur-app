@@ -1073,7 +1073,7 @@ graficar_histograma <- function(
 
   estilo <- match.arg(estilo)
   if (identical(estilo, "recetario") && .histograma_recetario_aplica(x[keep], grupo, bins, ancho_bin)) {
-    p <- .histograma_recetario(x[keep], modo = modo, decimales = decimales, limite_superior = limite_superior,
+    p <- .histograma_recetario(x[keep], modo = modo, decimales = decimales, limite_superior = limite_superior, ancho = ancho,   # CCSS-23: el ancho del cajón
                                titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie,
                                textos_negrita = textos_negrita, font_family = font_family,
                                color_titulo = color_titulo, size_titulo = size_titulo,

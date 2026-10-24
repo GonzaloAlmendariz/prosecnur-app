@@ -2,7 +2,7 @@
 // motor ya lee por gráfico (`enElWord.ts`). Sección intrínseca con encabezado propio; nada se recorta (C4).
 
 import { useId } from "react";
-import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloModo } from "../../word/modeloMultiWord";
+import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloHeredado } from "../../word/modeloMultiWord";
 import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
@@ -80,7 +80,7 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-multi`}>Cómo sale en el Word</label>
           <select id={`${id}-multi`} className="pulso-f6-input" value={leerModoLamina(args)}
             onChange={(e) => set({ word_multiapiladas: e.target.value || null })}>
-            <option value="">Como el informe ({rotuloModo(leerModoInforme(wPresets as Record<string, Record<string, unknown>>)).toLowerCase()})</option>
+            <option value="">Como el informe ({rotuloHeredado(leerModoInforme(wPresets as Record<string, Record<string, unknown>>))})</option>
             {MODOS_MULTI_LAMINA.map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
           </select>
           <span className="pulso-f6-dato-ayuda">{MODOS_MULTI_INFORME.find((m) => m.clave === modoEfectivo)?.detalle} Solo cambia el Word; la lámina del PPT no se toca.</span>

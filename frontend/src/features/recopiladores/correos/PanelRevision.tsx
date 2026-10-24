@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 
-import type { MailCheck, MailCheckItem, MailReview, MailTemplate } from "../../../api/materialMail";
+import { tieneFoto, type MailCheck, type MailCheckItem, type MailReview, type MailTemplate } from "../../../api/materialMail";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { AlertCircle, ArrowRight, CheckCircle2, ChevronRight, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDelChequeo, pestanaDelChequeo, type PestanaDelChequeo } from "./comoArreglar";
@@ -88,7 +88,9 @@ export function salidasDeLoQueFalta(
     if (destino === CABECERA) return { destino, ...salidaDelChequeo(check.code, destino, undefined, contexto) };
     const block = template.blocks.find((b) => b.block_id === destino);
     if (!block) return { destino, texto: "Ir al bloque" };
-    const ids = block.type === "image" ? [block.image_ref] : block.type === "two_images" ? [block.left, block.right] : [];
+    const ids = block.type === "image" ? [block.image_ref, ...(block.mobile_ref ? [block.mobile_ref] : [])]
+      : block.type === "two_images" ? [block.left, block.right]
+      : tieneFoto(block) && block.image_ref ? [block.image_ref] : [];
     const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);
     return { destino, texto: nombres.length === 1 ? `Subir «${nombres[0]}»` : `Subir en «${rotuloDeBloque(block)}»` };
   });
@@ -158,7 +160,7 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
   const columnaElegida = check.code === "greeting_trato" && check.status === "warning" && Boolean(destino && columnaDelSaludo(template, destino));
   const arregloGeneral = arregloEnLaRevision(check.code, { columnaElegida });
   const Icono = ICONO[check.status];
-  // H7: «Falta el logo de la unidad solicitante y el de Pulso PUCP», sin ids.
+  // H7: «Faltan los logos», sin ids ni nombres.
   const faltan = check.code === "images_available" && template
     ? fraseDeLoQueFalta(template, idsSinArchivo(check.items))
     : null;

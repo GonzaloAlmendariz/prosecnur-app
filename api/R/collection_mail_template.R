@@ -58,22 +58,32 @@
 COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v2"
 COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
 
+# `box`: estilo propio del bloque (collection_mail_box.R); el pie legal no lo admite.
 .CMAIL_BLOCK_KEYS <- list(
-  greeting     = c("text", "fallback", "trato"),
-  heading      = c("text", "level", "align"),
-  paragraph    = c("text", "align", "size", "tone"),
-  button       = c("text", "url", "note", "align", "size", "fill"),
-  callout      = c("title", "items", "variant"),
-  list         = c("items", "ordered"),
-  divider      = c("style", "size"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative"),
-  signature    = c("closing", "name", "lines", "url"),
+  greeting     = c("text", "fallback", "trato", "box"),
+  heading      = c("text", "level", "align", "box"),
+  paragraph    = c("text", "align", "size", "tone", "box"),
+  button       = c("text", "url", "note", "align", "size", "fill", "box"),
+  callout      = c("title", "items", "variant", "box"),
+  list         = c("items", "ordered", "box"),
+  divider      = c("style", "size", "box"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "box"),
+  signature    = c("closing", "name", "lines", "url", "box"),
   footer_legal = c("text", "address"),
   # Piezas gráficas (E1o): collection_mail_piezas.R.
-  band         = c("color", "height"),
-  ornament     = c("style", "color"),
-  icon_text    = c("icon", "text"),
-  two_images   = c("left", "right", "alt_left", "alt_right")
+  band         = c("color", "height", "box"),
+  ornament     = c("style", "color", "box"),
+  icon_text    = c("icon", "text", "box"),
+  two_images   = c("left", "right", "alt_left", "alt_right", "box"),
+  # Secciones (GOAL editor profesional): collection_mail_destacado.R.
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "crop", "box", "guardado"),
+  # Resto del catálogo (L6): collection_mail_secciones.R.
+  steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box", "guardado"),
+  deadline     = c("eyebrow", "title", "text", "button_text", "url", "box", "guardado"),
+  benefits     = c("title", "entries", "box", "guardado"),
+  quote        = c("text", "name", "role", "image_ref", "alt", "crop", "box", "guardado"),
+  faq          = c("title", "entries", "box", "guardado"),
+  contact      = c("eyebrow", "name", "role", "text", "email", "phone", "image_ref", "alt", "crop", "box", "guardado")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -442,10 +452,12 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       }), recursive = FALSE)
     }
     # Enlaces del texto: válidos donde se permiten, prohibidos en el resto.
-    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right"))) {
+    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right",
+                                    "eyebrow", "button_text", "role", "email", "phone"))) {
       add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
     }
     add(.cmail_style_problems(b, type, path))
+    if (!is.null(b$box)) add(.cmail_box_problems(b$box, paste0(path, ".box")))
     switch(type,
       greeting = {
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE))
@@ -485,8 +497,15 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys))
         add(.cmail_text_problems(b$address, paste0(path, ".address"), keys))
       },
+      feature = add(.cmail_feature_problems(b, path, keys)),
+      steps = , deadline = , benefits = , quote = , faq = , contact = add(.cmail_section_problems(b, type, path, keys)),
       add(.cmail_piezas_problems(b, type, path, keys))
     )
+  }
+  # Lo que «Cambiar por» dejó guardado (collection_mail_secciones.R, L8).
+  for (i in seq_along(template$blocks %||% list())) {
+    g <- template$blocks[[i]]$guardado
+    if (!is.null(g)) add(.cmail_guardado_problems(g, sprintf("template.blocks[%d].guardado", i)))
   }
   # Nada binario en lo que persiste (mismo guard que collection_state).
   add(.cc_security_problems(template, "template"))
@@ -528,6 +547,9 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     push("bad_flag", "bleed", "bleed es verdadero o falso.")
   }
   if (!is.null(b$url)) out <- c(out, .cmail_url_problems(b$url, paste0(path, ".url"), keys, required = FALSE))
+  # Recorte (collection_mail_recorte.R) y versión para el celular (collection_mail_movil.R).
+  if (!is.null(b$crop)) out <- c(out, .cmail_crop_problems(b$crop, paste0(path, ".crop")))
+  out <- c(out, .cmail_mobile_problems(b, path))
   out
 }
 
