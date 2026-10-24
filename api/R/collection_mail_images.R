@@ -143,9 +143,12 @@
   head <- if (identical(h$kind, "banner")) as.character(h$image_ref) else
     as.character(unlist(h$logo_ids %||% list(), use.names = FALSE))
   blocks <- unlist(lapply(template$blocks %||% list(), function(b) {
-    if (identical(b$type, "image")) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
+    # Con su versión para el celular (collection_mail_movil.R), si la tiene.
+    if (identical(b$type, "image")) return(as.character(c(.cmail_one(b$image_ref), .cmail_mobile_ref(b))))
     # Las dos imágenes de una pieza two_images (E1o).
     if (identical(b$type, "two_images")) return(as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
+    # La foto de una sección (Destacado, Pasos, Cita, Contacto), si tiene.
+    if (isTRUE(b$type %in% .CMAIL_PHOTO_TYPES)) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
     character(0)
   }), use.names = FALSE)
   unique(c(head, blocks))
@@ -182,7 +185,8 @@
   # Íconos y ondas de ornamento de las piezas (E1o, collection_mail_piezas.R),
   # con la misma regla: nunca pisan una imagen del autor.
   for (g in .cmail_piezas_images(template)) if (!(g$id %in% ids)) out[[g$id]] <- g
-  out
+  # Las fotos de los Destacados, recortadas a su proporción (collection_mail_recorte.R).
+  .cmail_crop_apply(template, out)
 }
 
 .cmail_image_placeholder <- function(id) {

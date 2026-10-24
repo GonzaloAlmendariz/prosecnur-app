@@ -138,11 +138,14 @@
   out <- list()
   for (b in template$blocks %||% list()) {
     type <- .cmail_one(b$type) %||% ""
-    if (identical(type, "icon_text")) {
-      icon <- .cmail_one(b$icon)
-      if (is.null(icon) || !(icon %in% .CMAIL_ICONS)) next
-      id <- .cmail_icon_id(icon, pal$bar)
-      if (is.null(out[[id]])) out[[id]] <- .cmail_generated_image(id, .cmail_icon_png(icon, pal$bar), .cmail_declared_url(template, id))
+    if (type %in% c("icon_text", "benefits")) {
+      # Los íconos de los beneficios (collection_mail_secciones.R) salen igual que el de icon_text.
+      icons <- if (identical(type, "icon_text")) list(b$icon) else lapply(.cmail_entries_of(b), `[[`, "icon")
+      for (icon in Filter(Negate(is.null), lapply(icons, .cmail_one))) {
+        if (!(icon %in% .CMAIL_ICONS)) next
+        id <- .cmail_icon_id(icon, pal$bar)
+        if (is.null(out[[id]])) out[[id]] <- .cmail_generated_image(id, .cmail_icon_png(icon, pal$bar), .cmail_declared_url(template, id))
+      }
     } else if (identical(type, "ornament") && identical(.cmail_style(b, "style", "onda"), "onda")) {
       color <- .cmail_piece_color(b, pal)
       if (!.cmail_hex_ok(color)) next

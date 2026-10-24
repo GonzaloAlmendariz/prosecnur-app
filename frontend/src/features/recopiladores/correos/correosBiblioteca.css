@@ -319,3 +319,55 @@
   stroke-linecap: round;
   stroke-width: 2.5;
 }
+
+/* «Mis secciones» (L9, ADR 0113): la tarjeta lleva su ✕ para borrarla, fuera del botón que inserta. */
+.rec-bib-guardada {
+  display: grid;
+  position: relative;
+}
+
+.rec-bib-guardada > .rec-bib-tipo {
+  padding-right: 30px;
+  width: 100%;
+}
+
+.rec-bib-borrar {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 22px;
+}
+
+.rec-bib-borrar:hover {
+  color: var(--pulso-text);
+}
+
+.rec-bib-borrar:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+.rec-bib-vacio {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rec-bib-borrar.is-confirmando {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  padding: 0 8px;
+  width: auto;
+}

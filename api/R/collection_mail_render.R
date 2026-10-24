@@ -105,8 +105,10 @@
 .cmail_field_span <- function(key, html, ctx) {
   if (!isTRUE(ctx$marks)) return(html)
   # En campaña el fondo puede ser oscuro: el tinte claro dejaría el dato ilegible; se marca con un subrayado
-  # punteado del mismo color del texto.
-  if (isTRUE(ctx$pal$campana)) {
+  # punteado del mismo color del texto. Igual dentro de una caja (collection_mail_box.R) cuya
+  # tinta no se lee sobre el tinte: el texto blanco de una caja acento sobre el verde claro.
+  sobre_caja <- !is.null(ctx$pal$box_bg) && .cmail_contrast(ctx$pal$text, .CMAIL_FIELD_TINT) < .CMAIL_CONTRAST_MIN
+  if (isTRUE(ctx$pal$campana) || sobre_caja) {
     return(sprintf('<span data-pulso-field="%s" style="border-bottom:1px dashed currentColor;">%s</span>',
                    .cmail_esc(key), html))
   }
@@ -394,6 +396,12 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     .cmail_justify_style(paste0(card, footer_rows)),
     # two_images se apila en teléfono (E1o, collection_mail_piezas.R).
     .cmail_stack_style(card),
+    # Cajas de estilo propio a 12 px de los bordes en teléfono (collection_mail_box.R).
+    .cmail_box_style(card),
+    # La imagen del Destacado a todo el ancho en teléfono (collection_mail_destacado.R).
+    .cmail_feature_style(card),
+    # La pieza para el celular en vez de la de PC bajo 480 px (collection_mail_movil.R).
+    .cmail_movil_style(card),
     # Márgenes del cuerpo a 20 px en teléfono (E1p, collection_mail_ajustes.R).
     .cmail_pad_style(),
     # Logos de la cabecera en teléfono: se achican en proporción o se apilan (collection_mail_ajustes.R).

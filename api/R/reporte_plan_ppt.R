@@ -4894,7 +4894,7 @@ reporte_ppt_plan <- function(
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
-      return(suppressWarnings(do.call(fun, args)))
+      return(.sig_nota_a_lamina(suppressWarnings(do.call(fun, args)), nota_sig, args$nota_pie))   # lamina_nota_significancia.R
     }
 
     if (identical(modo, "var_cruce")) {

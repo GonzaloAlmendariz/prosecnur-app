@@ -5,7 +5,7 @@ import { comoArreglar } from "./comoArreglar";
 import { domDePrueba } from "./domDePrueba.test-util";
 import { logosDeLaCabecera } from "./estructuraCorreo";
 import { cifraDeChequeo, rotuloDeChequeo } from "./modeloCorreo";
-import { claseDeImagen, fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
+import { claseDeImagen, fraseDeLoQueFalta, fraseDeLoQueFaltaDe, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { salidaDelChequeo } from "./PanelRevision";
 
 type Plantilla = Pick<MailTemplate, "header" | "images" | "blocks">;
@@ -17,13 +17,15 @@ const LOGOS: Plantilla = {
 };
 
 describe("H7 — cada imagen se nombra por su papel, nunca por su id", () => {
-  it("usa la descripción sin corchetes; sin ella, el papel conocido o el id legible", () => {
+  it("usa la descripción que le dio el equipo, sin corchetes; sin ella, su papel («Logo 2»), nunca un nombre de serie", () => {
     expect(nombreDeImagen(LOGOS, "logo-cliente")).toBe("Unidad solicitante");
-    expect(nombreDeImagen(LOGOS, "pulso")).toBe("Pulso PUCP");
     expect(nombreDeImagen(LOGOS, "campus")).toBe("Foto del campus");
-    const sinAlt: Plantilla = { ...LOGOS, images: { "logo-cliente": { alt: "" }, "logo-facultad": { alt: "[Describe la imagen]" } } };
-    expect(nombreDeImagen(sinAlt, "logo-cliente")).toBe("Unidad solicitante");
-    expect(nombreDeImagen(sinAlt, "logo-facultad")).toBe("Logo facultad");
+    const sinAlt: Plantilla = { ...LOGOS, images: { "logo-cliente": { alt: "" }, pulso: { alt: "" } } };
+    // Sin descripción, ni «Unidad solicitante» ni «Pulso PUCP»: el correo no siempre es de Pulso (Gonzalo, 2026-10-24).
+    expect(nombreDeImagen(sinAlt, "logo-cliente")).toBe("Logo 1");
+    expect(nombreDeImagen(sinAlt, "pulso")).toBe("Logo 2");
+    const otra: Plantilla = { ...sinAlt, images: { "logo-facultad": { alt: "[Describe la imagen]" } } };
+    expect(nombreDeImagen(otra, "logo-facultad")).toBe("Logo facultad");
   });
 
   it("distingue logo de la franja, banner e imagen de un bloque", () => {
@@ -34,16 +36,20 @@ describe("H7 — cada imagen se nombra por su papel, nunca por su id", () => {
     expect(nombreDeImagen(banner, "banner-mailing")).toBe("Banner");
   });
 
-  it("dice lo que falta en una frase: «Falta el logo de la unidad solicitante y el de Pulso PUCP»", () => {
-    expect(fraseDeLoQueFalta(LOGOS, ["logo-cliente", "pulso"])).toBe("Falta el logo de la unidad solicitante y el de Pulso PUCP.");
-    expect(fraseDeLoQueFalta(LOGOS, ["pulso"])).toBe("Falta el logo de Pulso PUCP.");
-    expect(fraseDeLoQueFalta(LOGOS, ["pulso", "campus"])).toBe("Falta el logo de Pulso PUCP y la imagen «Foto del campus».");
+  it("dice lo que falta por su papel y cuántas, sin nombrar a nadie: «Faltan los logos»", () => {
+    expect(fraseDeLoQueFalta(LOGOS, ["logo-cliente", "pulso"])).toBe("Faltan los logos.");
+    expect(fraseDeLoQueFalta(LOGOS, ["pulso"])).toBe("Falta un logo.");
+    expect(fraseDeLoQueFalta(LOGOS, ["pulso", "campus"])).toBe("Faltan un logo y una imagen.");
     expect(fraseDeLoQueFalta(LOGOS, [])).toBeNull();
-    // Un logo propio va por su descripción, entre comillas; nunca su id.
+    const banner: Plantilla = { ...LOGOS, header: { kind: "banner", image_ref: "b" }, images: { b: { alt: "Banner" } } };
+    expect(fraseDeLoQueFalta(banner, ["b"])).toBe("Falta el banner.");
+    // Ni la descripción propia ni el id: «Facultad de Letras» tampoco se cita.
     const propio: Plantilla = { ...LOGOS, images: { ...LOGOS.images, "logo-cliente": { alt: "Facultad de Letras" } } };
-    const frase = fraseDeLoQueFalta(propio, ["logo-cliente", "pulso"]);
-    expect(frase).toBe("Falta el logo «Facultad de Letras» y el de Pulso PUCP.");
-    expect(frase).not.toMatch(/logo-cliente|pulso\b/);
+    const frase = fraseDeLoQueFalta(propio, ["logo-cliente", "pulso"]) ?? "";
+    expect(frase).not.toMatch(/Pulso|Facultad|unidad|logo-cliente|pulso\b/i);
+    // El renglón de cada logo por subir: «Falta el logo 2».
+    expect(fraseDeLoQueFaltaDe(LOGOS, "pulso")).toBe("Falta el logo 2");
+    expect(fraseDeLoQueFaltaDe(banner, "b")).toBe("Falta el banner");
   });
 
   it("la revisión de images_available habla de logos subidos y lleva a Identidad", () => {

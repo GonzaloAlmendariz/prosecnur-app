@@ -5,7 +5,7 @@
 // «31%» sin espacio y en negrita. Los colores no viven aquí: cada pieza lleva una clase de tono que glifoGrafico.css
 // resuelve con tokens `--pulso-*`.
 
-import { BarrasComparativas, PuntosComparativos } from "./glifoRadarPocos";
+import { BarrasComparativas, filasDe, filaY, PuntosComparativos } from "./glifoRadarPocos";
 
 type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v" | "r";
 /**
@@ -40,6 +40,8 @@ export type OpcionesGlifo = {
   tabla?: boolean;
   /** Radar entre públicos: lo que el motor dibuja de verdad (formaEfectivaRadar); sin valor, el radar. */
   formaRadar?: "radar" | "puntos" | "barras";
+  /** Radar entre públicos: cuántos criterios tiene (vértices del radar y filas de las otras formas; 3 a 8). */
+  criterios?: number;
   /** Nube: el ranking de las palabras al costado (por defecto sí). */
   ranking?: boolean;
   /** Matriz de cuadrantes: cuál lleva fondo. */
@@ -131,12 +133,16 @@ function poligono(cx: number, cy: number, r: number, k: readonly number[]): stri
   return k.map((f, i) => polar(cx, cy, r * f, i / k.length).join(",")).join(" ");
 }
 
-function Radar({ cx, cy, r, lados, series }: {
-  cx: number; cy: number; r: number; lados: number; series: ReadonlyArray<{ k: readonly number[]; t: Tono }>;
+function Radar({ cx, cy, r, lados, series, ejes = false }: {
+  cx: number; cy: number; r: number; lados: number; series: ReadonlyArray<{ k: readonly number[]; t: Tono }>; ejes?: boolean;
 }) {
   const uno = Array.from({ length: lados }, () => 1);
   return (
     <>
+      {ejes && uno.map((_, i) => {
+        const [x, y] = polar(cx, cy, r, i / lados);
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} className="pulso-glifo__eje-radar" />;
+      })}
       <polygon points={poligono(cx, cy, r, uno)} className="pulso-glifo__rejilla" />
       <polygon points={poligono(cx, cy, r * 0.55, uno)} className="pulso-glifo__rejilla" />
       {series.map(({ k, t }) => (
@@ -561,28 +567,27 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
   p_radar: (o) => {
     const tabla = o?.tabla ?? true;
     const forma = o?.formaRadar ?? "radar";
-    const tablaAlLado = tabla && forma !== "radar";
+    const n = filasDe(o?.criterios);
+    // Las filas de la mini-tabla: una por criterio y a la altura de su línea o barra (`filaY`).
+    const filasTabla = (ys: readonly number[], x0: number) => ys.map((y) => (
+      <g key={y} data-fila-tabla={y}><Rotulo x={x0} y={y - 1.5} w={22} /><Valor x={x0 + 32} y={y - 1.75} w={12} /></g>
+    ));
     if (forma !== "radar") {
-      // Con la tabla pedida en otra forma, el dibujo cede el costado derecho: una columna de filas con cifras.
       return (
         <>
-          <g transform={tablaAlLado ? "translate(2 20) scale(0.62)" : undefined}>{forma === "puntos" ? <PuntosComparativos /> : <BarrasComparativas />}</g>
-          {tablaAlLado && [22, 40, 58, 76].map((y) => (
-            <g key={y}><Rotulo x={104} y={y} w={22} /><Valor x={132} y={y - 0.25} w={12} /></g>
-          ))}
+          {forma === "puntos" ? <PuntosComparativos criterios={n} conTabla={tabla} /> : <BarrasComparativas criterios={n} conTabla={tabla} />}
+          {tabla && filasTabla(Array.from({ length: n }, (_, i) => filaY(n, i)), 100)}
         </>
       );
     }
+    // Un vértice por criterio (3 a 8; sin criterios, el pentágono del catálogo).
+    const lados = o?.criterios && o.criterios > 0 ? n : 5;
+    const k = Array.from({ length: lados }, (_, i) => [0.9, 0.62, 0.78, 0.5, 0.7][i % 5]);
     return (
       <>
-        <Radar cx={tabla ? 50 : 80} cy={tabla ? 52 : 50} r={tabla ? 34 : 40} lados={5} series={[{ k: [0.9, 0.62, 0.78, 0.5, 0.7], t: "p" }]} />
+        <Radar cx={tabla ? 50 : 80} cy={tabla ? 52 : 50} r={tabla ? 34 : 40} lados={lados} ejes series={[{ k, t: "p" }]} />
         {tabla && <Barra x={98} y={18} w={48} h={9} t="p" rx={1} />}
-        {tabla && [32, 44, 56, 68, 80].map((y) => (
-          <g key={y}>
-            <Rotulo x={100} y={y} w={22} />
-            <Valor x={132} y={y - 0.25} w={12} />
-          </g>
-        ))}
+        {tabla && filasTabla(Array.from({ length: lados }, (_, i) => r2(32 + (48 / lados) * (i + 0.5))), 100)}
       </>
     );
   },

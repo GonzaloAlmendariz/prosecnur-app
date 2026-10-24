@@ -35,6 +35,7 @@ import { CasosGrafico } from "./CasosGrafico";
 import { ListaPreguntas } from "./ListaPreguntas";
 import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
+import { criteriosDelRadar, formaEfectivaRadar, rotuloTablaAuto } from "./formaRadar";
 import { NotaFormaRadar } from "./NotaFormaRadar";
 import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
@@ -64,6 +65,7 @@ import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import { EditorTemasEquivalentes } from "../temasEquivalentes/EditorTemasEquivalentes";
 import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes/temasEquivalentesModel";
 import { useVariables } from "../useVariables";
+import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -86,7 +88,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const cifra = valor.graficador === "p_cifra";
   const delEditor = (name: string) => (cifra && name !== "var") ||
     (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
+  const formaRadar = radarPublicos ? formaEfectivaRadar({ forma: args.forma, fallback_pocos: args.fallback_pocos, tabla: args.tabla, nCriterios: criteriosDelRadar(args) }).forma : "radar";
   const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
+    // «Automática: junto al radar» miente cuando la forma efectiva es otra: sólo cambia el rótulo, no el valor.
+    .map((c) => c.arg.name === "tabla" ? { ...c, opciones: c.opciones.map((o) => o.value === "auto" ? { ...o, label: rotuloTablaAuto(formaRadar, o.label) } : o) } : c)
     .filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)) && !delEditor(c.arg.name));
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
@@ -348,6 +353,16 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
         <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
         <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
           onCambiar={(k) => onCambio(Number(k))} />
+        {nota}
+      </div>
+    );
+  }
+  if (control === "numero" && tieneRango(arg)) {
+    return (
+      <div className="pulso-f6-dato">
+        {etiqueta}
+        <NumeroAcotado id={id} rotulo={rotulo} arg={arg} valor={valor} describe={describe}
+          placeholder={placeholder ?? (arg.default !== undefined && arg.default !== null ? String(arg.default) : "")} onCambio={onCambio} />
         {nota}
       </div>
     );

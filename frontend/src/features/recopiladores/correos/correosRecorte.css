@@ -1,0 +1,62 @@
+/* Encuadre de la foto de un Destacado o de una Imagen (EncuadreDeFoto, L7). Sólo tokens. */
+
+.rec-recorte {
+  display: grid;
+  gap: 10px;
+}
+
+.rec-recorte-lienzo {
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  cursor: crosshair;
+  display: block;
+  line-height: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+.rec-recorte-lienzo:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 2px;
+}
+
+.rec-recorte-lienzo img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+/* Lo que el recorte deja fuera, oscurecido; el marco blanco es lo que sale. */
+.rec-recorte-marco {
+  border: 2px solid var(--pulso-surface);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--pulso-text) 55%, transparent);
+  box-sizing: border-box;
+  pointer-events: none;
+  position: absolute;
+  transition:
+    left var(--motion-dur-fast) var(--motion-ease-out),
+    top var(--motion-dur-fast) var(--motion-ease-out),
+    width var(--motion-dur-fast) var(--motion-ease-out),
+    height var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-recorte-zoom {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: flex;
+  font-size: 12.5px;
+  gap: 10px;
+}
+
+.rec-recorte-zoom input[type="range"] {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-recorte-marco {
+    transition: none;
+  }
+}
