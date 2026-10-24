@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
-import { casosPorRevisar, construirAvisos, destinoDeAviso, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
+import { casosPorRevisar, construirAvisos, destinoDeAviso, detalleDeEmpate, porDestino, sinPrefijoDeCodigo } from "./avisosModel";
 
 function reportes(alertas: Array<Record<string, unknown>>, telefonico: Record<string, Array<Record<string, unknown>>> = {}): MonitoreoAcreditacionReports {
   return {
@@ -120,6 +120,17 @@ describe("Control › Avisos del telefónico", () => {
     const aviso = avisos.find((item) => item.unidad === "responsables");
     expect(aviso).toBeDefined();
     expect(aviso?.detalle).not.toMatch(/más marcado/);
+    // La causa no repite la cifra: «2 responsables» va en la columna y la ficha.
+    expect(aviso?.titulo).not.toMatch(/responsables/);
+    expect(aviso?.casos).toBe(2);
+    // La fila del fixture no trae cifra: cada responsable cuenta una alerta.
+    expect(aviso?.detalle).toBe("Todos con la misma cifra (1).");
+  });
+
+  it("con empate parcial dice cuántos empatan arriba", () => {
+    expect(detalleDeEmpate([
+      { etiqueta: "Ana", valor: 28 }, { etiqueta: "Beto", valor: 28 }, { etiqueta: "Ciro", valor: 15 },
+    ])).toBe("2 empatan en la cifra más alta (28).");
   });
 
   it("da ids únicos aunque dos grupos compartan causa", () => {
@@ -133,6 +144,7 @@ describe("Control › Avisos del telefónico", () => {
     const { avisos } = construirAvisos(reportes([], {
       control_tiempo_kobo: [
         { CodPulso: "PDM1371", "Duración segundos": 365_100 },
+        { CodPulso: "PDM1500", "Duración segundos": 120 },
         { CodPulso: "PDM1429", "Duración segundos": 900 },
         { CodPulso: "PDM1429", "Duración segundos": 1000 },
       ],
@@ -140,7 +152,9 @@ describe("Control › Avisos del telefónico", () => {
       estatus_dia: [{ Estado: "Efectivo", "1/07/2026": 10, "30/06/2020": 1, "Sin fecha": 2 }],
     }));
     const porCodigo = Object.fromEntries(avisos.map((aviso) => [aviso.codigo, aviso.casos]));
-    expect(porCodigo).toMatchObject({ duracion_mayor_2h: 1, codpulso_repetido: 1, barrido_desfasado: 1, fecha_irregular: 3 });
+    expect(porCodigo).toMatchObject({ duracion_menor_5min: 1, codpulso_repetido: 1, barrido_desfasado: 1, fecha_irregular: 3 });
+    // Una encuesta larga no es un problema: no hay aviso por durar más de 2 h.
+    expect(Object.keys(porCodigo).some((codigo) => /mayor|larg|2h/i.test(codigo))).toBe(false);
   });
 
   it("quita el prefijo «codigo:» del detalle, no sólo de los afectados", () => {
@@ -164,5 +178,45 @@ describe("Control › Avisos del telefónico", () => {
     expect(aviso?.desglose.map((linea) => linea.etiqueta)).toEqual(["Ana"]);
     // Es la señal de asignación: se corrige en Equipo.
     expect(aviso?.destino.etiqueta).toBe("Equipo, en Control");
+  });
+});
+
+describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
+  it("va a Avisos con responsable, CodPulso y proGres", () => {
+    const { avisos } = construirAvisos(reportes([], {
+      discrepancias_telefonicas: [
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1114", proGres: "XYZ-26-900001", Responsable: "Op-02", "La hoja dice": "Efectivo", "Fecha hoja": "02/07/2026" },
+        { Sentido: "hoja_sin_kobo", CodPulso: "PDM1153", proGres: "", Responsable: "", "La hoja dice": "Efectivo", "Fecha hoja": "" },
+        { Sentido: "kobo_sin_hoja", CodPulso: "PDM1001", proGres: "", Responsable: "Op-01", "La hoja dice": "No contesta", "Fecha hoja": "" },
+      ],
+    }));
+    const aviso = avisos.find((item) => item.codigo === "efectivo_sin_kobo");
+    expect(aviso?.casos).toBe(2);
+    expect(aviso?.afectados.map((caso) => caso.codigo)).toEqual(["PDM1114", "PDM1153"]);
+    expect(aviso?.afectados[0]).toMatchObject({ responsable: "Op-02", nota: "proGres XYZ-26-900001" });
+    expect(aviso?.afectados[1].responsable).toBe("Sin asignar");
+    expect(aviso?.desglose).toEqual([{ etiqueta: "Op-02", valor: 1 }, { etiqueta: "Sin asignar", valor: 1 }]);
+  });
+});
+
+describe("una sola cifra para «Efectivo sin Kobo»", () => {
+  it("la alerta vieja del motor sale cuando Discrepancias trae los casos", () => {
+    const { avisos } = construirAvisos(reportes(
+      [
+        fila("Alta", "efectivo_telefonico_sin_kobo", "Caso marcado efectivo en barrido, pero sin efectiva Kobo para ese CodPulso.", { CodPulso: "A1", Responsable: "Ana" }),
+        // Otra alerta que también menciona «sin Kobo» no se borra.
+        fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos sin Kobo por iniciar", { Responsable: "Ana" }),
+      ],
+      { discrepancias_telefonicas: [
+        { Sentido: "hoja_sin_kobo", CodPulso: "A1", proGres: "", Responsable: "Ana", Destino: "avisos" },
+        { Sentido: "hoja_sin_kobo", CodPulso: "A2", proGres: "", Responsable: "Ana", Destino: "avisos" },
+      ] },
+    ));
+    const nueva = avisos.find((aviso) => aviso.codigo === "efectivo_sin_kobo");
+    expect(nueva?.casos).toBe(2);
+    expect(nueva?.nivel).toBe("alta");
+    expect(avisos.some((aviso) => aviso.codigo === "efectivo_telefonico_sin_kobo")).toBe(false);
+    // La de «por iniciar» trae «sin Kobo» en su detalle y no se borra: el borrado es por código.
+    expect(avisos.some((aviso) => /por iniciar/i.test(aviso.codigo))).toBe(true);
   });
 });

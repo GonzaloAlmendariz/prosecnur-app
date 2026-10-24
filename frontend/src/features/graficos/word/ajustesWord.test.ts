@@ -20,7 +20,16 @@ describe("ajustes del Word", () => {
       expect(todos).not.toContain(prohibido);
     }
     const sob = ajustesSobrantes({ pie: { decimales_pct: 1, tipo_pie: "donut" }, barras_apiladas: { mostrar_barra_extra: false, canvas_w_extra: 2 } });
-    expect(sob).toEqual([{ tipo: "pie", arg: "decimales_pct" }, { tipo: "pie", arg: "tipo_pie" }, { tipo: "barras_apiladas", arg: "canvas_w_extra" }]);
+    // La barra extra del Word ya no es un ajuste del informe (el Word usa la del PPT): un `mostrar_barra_extra` guardado se avisa.
+    expect(sob).toEqual([
+      { tipo: "pie", arg: "decimales_pct" }, { tipo: "pie", arg: "tipo_pie" },
+      { tipo: "barras_apiladas", arg: "mostrar_barra_extra" }, { tipo: "barras_apiladas", arg: "canvas_w_extra" },
+    ]);
+  });
+
+  it("la barra extra no se ofrece como ajuste del informe en el Word: el Word hereda la del PPT", () => {
+    const todos = Object.values(AJUSTES_WORD).flat().map((a) => a.arg);
+    for (const arg of ["mostrar_barra_extra", "barra_extra", "word_barra_extra", "barra_extra_preset"]) expect(todos).not.toContain(arg);
   });
 
   it("quitar los sobrantes los devuelve al valor por defecto y no toca lo demás", () => {

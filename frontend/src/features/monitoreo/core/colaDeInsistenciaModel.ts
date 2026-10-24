@@ -253,3 +253,15 @@ export function siglaDeCuota(valor: string): string | null {
   const partes = valor.match(/\(([^()]{1,12})\)\s*$/);
   return partes ? partes[1].trim() || null : null;
 }
+
+/** La línea del reparto bajo «Responsables»: quién tiene casos en cola y cuántos reparte la hoja. */
+export function fraseDelReparto(reparto: { porLlamarAsignados: number; repartidos: number | null; equipo: number }) {
+  const n = (valor: number) => valor.toLocaleString("es-PE");
+  const repartidos = reparto.repartidos != null
+    ? `La hoja reparte ${n(reparto.repartidos)} ${reparto.repartidos === 1 ? "caso" : "casos"}`
+    : "";
+  if (!reparto.equipo) return `Ningún responsable tiene casos en cola.${repartidos ? ` ${repartidos}.` : ""}`;
+  const quien = `${n(reparto.equipo)} ${reparto.equipo === 1 ? "responsable" : "responsables"} con casos en cola`;
+  const porLlamar = `${n(reparto.porLlamarAsignados)} por llamar, ya ${reparto.porLlamarAsignados === 1 ? "asignado" : "asignados"}`;
+  return `${quien}; ${porLlamar}.${repartidos ? ` ${repartidos}.` : ""}`;
+}

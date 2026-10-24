@@ -6,7 +6,8 @@ import { composicionDe, LAMINA_PULGADAS, numeroDeRanura } from "../iconos/compos
 import { cleanInferredVariableTitle } from "../slideAutoTitle";
 import { SLIDE_GRAF_SLOTS } from "../store";
 import { parseVarRef } from "../useVariables";
-import { formaTwoBox, leerTwoBox } from "./tarjetaGrafico/twoBox";
+import { barraExtraDeBloque, opcionesActivas, resolverBarraExtra, type BarraExtra } from "../barraExtra";
+import { leerTwoBox } from "./tarjetaGrafico/twoBox";
 import { firmaOpciones, resolverPaleta, type MapaPaletas, type VinculosPaletas } from "../paletasResolver";
 
 type VarLike = VarInfo & { source?: string };
@@ -75,17 +76,22 @@ export function escalaDe(info: VarLike | undefined, colores: ColoresMaqueta | un
   });
 }
 
+/** ¿El bloque dibuja su columna Top Two Box? Su `barra_extra` manda; sin ella, la de la lámina. */
+export function ttbDeBloque(bloque: unknown, lamina: BarraExtra | undefined): boolean {
+  return opcionesActivas(resolverBarraExtra({ bloque: barraExtraDeBloque(bloque), lamina }).valor).includes("top2box");
+}
+
 /** Las columnas Two Box encendidas en el gráfico. Sin categorías elegidas el motor la omite, pero la tarjeta ya lo avisa:
  *  la maqueta la muestra en cuanto se enciende, para que el cambio se vea. */
 export function twoBoxDeGrafico(graficador: string | null, args: Record<string, unknown>, presets: Presets): { ttb: boolean; btb: boolean; etiquetas?: string[] } {
   if (!graficador) return { ttb: false, btb: false };
-  if (formaTwoBox(graficador, args) === "por_bloque") {
-    const bloques = Array.isArray(args.bloques) ? args.bloques : [];
-    const ttb = bloques.some((b) => !!b && typeof b === "object" && (b as Record<string, unknown>).top2box === true);
-    return { ttb, btb: false };
-  }
   const e = leerTwoBox(graficador, args, presets);
   if (!e) return { ttb: false, btb: false };
+  if (e.forma === "por_bloque") {
+    const bloques = Array.isArray(args.bloques) ? args.bloques : [];
+    const ttb = bloques.length > 0 ? bloques.some((b) => ttbDeBloque(b, e.valor)) : e.top.activa;
+    return { ttb, btb: false };
+  }
   return { ttb: e.top.activa, btb: e.top.activa && e.bottom.activa, etiquetas: e.top.etiquetas };
 }
 
@@ -159,11 +165,11 @@ function cruceDe(args: Record<string, unknown>): string | null {
   return args.modo === "cruce" || (args.modo === "var_cruce" && !nombrados) ? c : null;
 }
 
-function gruposDe(args: Record<string, unknown>, bloque = 0): Grupo[] {
+function gruposDe(args: Record<string, unknown>, bloque = 0, lamina?: BarraExtra): Grupo[] {
   if (Array.isArray(args.bloques)) {
     return args.bloques.flatMap((b, i) => {
       if (!b || typeof b !== "object") return [];
-      const ttb = (b as Record<string, unknown>).top2box === true;
+      const ttb = ttbDeBloque(b, lamina);
       return gruposDe(b as Record<string, unknown>, i).map((g) => ({ ...g, ttb }));
     });
   }
@@ -210,7 +216,8 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
     .map((r) => {
       const ref = r.slot ? (payload[r.slot] as GraficadorRef | undefined) : undefined;
       const args = (ref && typeof ref === "object" ? ref.args : null) ?? {};
-      const grupos = gruposDe(args as Record<string, unknown>).filter((g) => g.refs.length > 0 || g.titulo);
+      const lamina = leerTwoBox(ref?.graficador ?? "", args as Record<string, unknown>, presets)?.valor;
+      const grupos = gruposDe(args as Record<string, unknown>, 0, lamina).filter((g) => g.refs.length > 0 || g.titulo);
       const refs = grupos.flatMap((g) => g.refs);
       const bases = [...new Set(refs.map((x) => parseVarRef(x).source).filter((s): s is string => !!s))];
       const primera = refs[0] ? parseVarRef(refs[0]) : null;
@@ -239,7 +246,7 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
       const bloques = bloquesArgs
         ? bloquesArgs.map((b) => {
           const o = (b && typeof b === "object" ? b : {}) as Record<string, unknown>;
-          return { titulo: typeof o.titulo === "string" && o.titulo.trim() ? o.titulo.trim() : null, ttb: o.top2box === true };
+          return { titulo: typeof o.titulo === "string" && o.titulo.trim() ? o.titulo.trim() : null, ttb: ttbDeBloque(o, lamina) };
         })
         : [{ titulo: null, ttb: twoBox.ttb }];
       const firmas = new Set(preguntas.map((q) => firmaOpciones(q.opciones.map((o) => o.rotulo))).filter(Boolean));

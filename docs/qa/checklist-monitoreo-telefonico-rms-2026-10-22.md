@@ -1,5 +1,10 @@
 # Checklist · Monitoreo telefónico para el ACNUR RMS 2026 (2026-10-22)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-22
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «propón los cambios al motor para Status configurable, backup/reemplazos y la llave, con checklist antes de tocar código».
 
 **Estado de este documento: propuesta. No se ha tocado código.** Solo el usuario da un ítem por terminado.

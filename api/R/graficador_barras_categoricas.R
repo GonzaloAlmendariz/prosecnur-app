@@ -176,6 +176,7 @@ graficar_barras_categoricas <- function(
     var_pct                   = NULL,
     resaltar_mayor            = FALSE,   # en la lámina nativa, la barra más alta en otro tono (opción del gráfico)
     resaltar_opciones         = NULL,    # D1: las respuestas que el analista resalta, por rótulo (lámina nativa)
+    residuales_gris           = FALSE,   # residuales («Prefiero no responder», «No sabe»…) en gris en Word y lámina; apagado por defecto
     modo_valor                = c("conteo", "porcentaje", "valor"),
     max_categorias            = 10,
     agrupar_resto_en_otros    = FALSE,
@@ -441,7 +442,8 @@ graficar_barras_categoricas <- function(
     df$categoria, df$pct %||% df$valor,
     .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n,
     residuales_al_final = isTRUE(residuales_al_final), n_casos = df$n_casos, n_base_casos = n_base_casos,
-    resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones
+    resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones,
+    residuales_gris = isTRUE(residuales_gris)
   ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
   # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
   if (!is.null(espec_categorica)) espec_categorica$nota <- label_note

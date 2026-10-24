@@ -252,3 +252,65 @@
   rownames(out) <- NULL
   utils::head(out, 300L)
 }
+
+# --- P3 · la hoja dice «Efectivo» y Kobo no tiene envío -----------------------
+#
+# Revamp T9 (procedimientos-respondidos.md, P3): estos casos no van a la cola
+# de decisión sino a Avisos. Misma fuente que Control › Discrepancias: las
+# filas de `discrepancias_telefonicas` con `Destino = "avisos"`, sin recalcular
+# el cruce. Viven en la hoja `monitoreo_telefonico` (el bloque `alertas` se
+# arma en otra hoja y sin el cruce a mano). Dos bloques, solo lectura:
+#   - `avisos_hoja_sin_kobo`: Responsable · CodPulso · proGres · La hoja dice ·
+#     Fecha hoja · Casos del responsable; agrupado por responsable.
+#   - `avisos_hoja_sin_kobo_responsable`: Responsable · Casos · CodPulso (lista
+#     separada por «, »).
+# Orden de los grupos: más casos primero, «Sin responsable» al final.
+
+.MONITOREO_AVISO_SIN_RESPONSABLE <- "Sin responsable"
+
+.monitoreo_avisos_hoja_sin_kobo_df <- function(discrepancias) {
+  vacio <- data.frame(Responsable = character(0), CodPulso = character(0), proGres = character(0),
+                      `La hoja dice` = character(0), `Fecha hoja` = character(0), `Casos del responsable` = integer(0),
+                      check.names = FALSE, stringsAsFactors = FALSE)
+  if (!is.data.frame(discrepancias) || !nrow(discrepancias) || !"Destino" %in% names(discrepancias)) return(vacio)
+  d <- discrepancias[as.character(discrepancias$Destino) == "avisos", , drop = FALSE]
+  if (!nrow(d)) return(vacio)
+  txt <- function(col) {
+    v <- if (col %in% names(d)) trimws(as.character(d[[col]])) else rep("", nrow(d))
+    v[is.na(v)] <- ""
+    v
+  }
+  quien <- txt("Responsable")
+  quien[tolower(quien) %in% c("", "sin responsable", "sin asignar")] <- .MONITOREO_AVISO_SIN_RESPONSABLE
+  out <- data.frame(Responsable = quien, CodPulso = txt("CodPulso"), proGres = txt("proGres"),
+                    `La hoja dice` = txt("La hoja dice"), `Fecha hoja` = txt("Fecha hoja"),
+                    check.names = FALSE, stringsAsFactors = FALSE)
+  out$`Casos del responsable` <- as.integer(stats::ave(seq_len(nrow(out)), out$Responsable, FUN = length))
+  out <- out[order(out$Responsable == .MONITOREO_AVISO_SIN_RESPONSABLE, -out$`Casos del responsable`,
+                   out$Responsable, out$CodPulso), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+#' Bloques de Avisos para «Efectivo sin Kobo», desde las filas ya calculadas
+#' de `discrepancias_telefonicas`.
+#' @noRd
+.monitoreo_avisos_hoja_sin_kobo_blocks <- function(discrepancias) {
+  casos <- .monitoreo_avisos_hoja_sin_kobo_df(discrepancias)
+  grupos <- if (nrow(casos)) {
+    orden <- unique(casos$Responsable)
+    data.frame(
+      Responsable = orden,
+      Casos = vapply(orden, function(r) sum(casos$Responsable == r), integer(1), USE.NAMES = FALSE),
+      CodPulso = vapply(orden, function(r) paste(casos$CodPulso[casos$Responsable == r], collapse = ", "), "", USE.NAMES = FALSE),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(Responsable = character(0), Casos = integer(0), CodPulso = character(0), stringsAsFactors = FALSE)
+  }
+  nota <- if (nrow(casos)) "La hoja dice «Efectivo» y Kobo no tiene envío: avisar al responsable." else "Ningún caso de la hoja en «Efectivo» sin envío de Kobo."
+  list(
+    .monitoreo_report_block("avisos_hoja_sin_kobo", "Avisos: «Efectivo» en la hoja sin envío de Kobo", casos, nota),
+    .monitoreo_report_block("avisos_hoja_sin_kobo_responsable", "Avisos: «Efectivo» sin Kobo por responsable", grupos, nota)
+  )
+}

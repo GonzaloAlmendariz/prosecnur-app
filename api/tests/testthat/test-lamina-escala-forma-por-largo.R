@@ -146,8 +146,8 @@ test_that("no vuelve F-d: la lámina 24 de acrconta_mazo con Top y Bottom Two Bo
   a <- sl$payload$grafico$args
   expect_identical(a$graficador %||% sl$payload$grafico$graficador, "p_barras_multiapiladas")
   expect_length(a$vars, 7L)
-  a$top2box <- TRUE
-  a$overrides$top2box_labels <- .fl_niv[3:4]; a$overrides$bottom2box_labels <- .fl_niv[1:2]; a$overrides$columna_bottom2box <- TRUE
+  a$overrides$barra_extra <- c("top2box", "bottom2box")   # la barra extra del contrato (graficos_barra_extra.R) reemplaza a top2box + columna_bottom2box
+  a$overrides$top2box_labels <- .fl_niv[3:4]; a$overrides$bottom2box_labels <- .fl_niv[1:2]
   sl$payload$grafico$args <- a
   plan <- cfg$plan; plan$slides <- list(sl)
   src <- .graficos_processing_sources(sid)

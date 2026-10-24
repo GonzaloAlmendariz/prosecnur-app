@@ -45,25 +45,30 @@
   font-size: 12px;
 }
 
+/* La hoja del PDF se centra en la mesa, con su sombra de papel; si es más
+ * alta que el panel, la mesa desplaza (el margen automático no la recorta). */
 .mon-entregas-mesa {
+  display: flex;
   flex: 1 1 0;
+  flex-direction: column;
   min-height: 0;
   padding: var(--pulso-space-5);
   overflow-y: auto;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-border) 55%, var(--pulso-surface-2));
 }
 
 .mon-entregas-hoja {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
+  width: 100%;
   max-width: 720px;
-  margin: 0 auto;
+  margin: auto;
   padding: var(--pulso-space-6);
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
   background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow: var(--pulso-shadow-med);
 }
 
 .mon-entregas-hoja > header {
@@ -165,18 +170,9 @@
   font-size: 11.5px;
 }
 
-.mon-entregas-sin-datos {
-  margin: 0;
-  color: var(--pulso-text-soft);
-}
 
-.mon-entregas-pie {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
+
+
 
 .mon-entregas-salidas {
   min-width: 0;
@@ -223,8 +219,24 @@
   }
 }
 
-.mon-entregas-nota {
-  margin: var(--pulso-space-2) 0 0;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
+
+
+/* En la columna de Entregas la cabecera de las salidas se lee entera: sin
+ * puntos suspensivos, en dos líneas si hace falta. */
+.mon-entregas-salidas .mon-outputs-workbench__head strong,
+.mon-entregas-salidas .mon-outputs-workbench__head small,
+.mon-entregas-salidas .mon-outputs-status span,
+.mon-entregas-salidas .mon-outputs-status small,
+.mon-entregas-salidas .mon-outputs-diagnostics summary small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.mon-entregas-cliente > .mon-entregas-pie-nota {
+  margin: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.mon-entregas-ritmo .mon-nota {
+  margin-top: var(--pulso-space-2);
 }

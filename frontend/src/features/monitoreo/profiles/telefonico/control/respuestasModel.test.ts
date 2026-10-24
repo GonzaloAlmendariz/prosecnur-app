@@ -38,14 +38,16 @@ describe("Control › Respuestas del telefónico", () => {
     segmento: "Sede",
   });
 
-  it("marca más de 2 h, menos de 5 min, repetidas y las que no cruzan con la hoja", () => {
+  it("marca menos de 5 min, repetidas y las que no cruzan; una larga no se marca", () => {
     const marcas = Object.fromEntries(modelo.envios.map((e) => [`${e.codigo}-${e.segundos}`, e.marcas]));
-    expect(marcas["PDM1371-365100"]).toEqual(["mas-de-2h"]);
+    // 101 h: larga, pero no es un problema (Gonzalo: el control revisa las cortas).
+    expect(marcas["PDM1371-365100"]).toEqual([]);
+    expect(modelo.largas).toBe(1);
     expect(marcas["PDM1429-960"]).toEqual(["repetida"]);
     expect(marcas["1231-1680"]).toEqual(["no-cruza"]);
     expect(modelo.envios.find((e) => e.codigo === "PDM1371")?.llave).toBe("exacta");
     expect(marcas["PDM1640-200"]).toEqual(["corta"]);
-    expect(modelo.porRevisar).toBe(5);
+    expect(modelo.porRevisar).toBe(4);
     expect([modelo.unicas, modelo.repetidos]).toEqual([4, 1]);
   });
 
@@ -58,9 +60,10 @@ describe("Control › Respuestas del telefónico", () => {
     expect(mermaDeRepetidos({ repetidos: 0, casosRepetidos: 0 })).toBeUndefined();
   });
 
-  it("reparte la duración en tramos con la cola de más de 2 h aparte", () => {
+  it("reparte la duración en tramos y resalta sólo el de menos de 5 min", () => {
     expect(modelo.tramos.map((t) => t.casos)).toEqual([1, 0, 0, 2, 1, 0, 0, 1]);
-    expect(modelo.tramos.at(-1)?.largo).toBe(true);
+    expect(modelo.tramos[0].corto).toBe(true);
+    expect(modelo.tramos.filter((t) => t.corto)).toHaveLength(1);
     expect(modelo.mediana).toBe(1020);
   });
 

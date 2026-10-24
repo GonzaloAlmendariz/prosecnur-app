@@ -293,11 +293,11 @@
 }
 
 .mon-metas-avance-nombre {
-  overflow: hidden;
+  min-height: 2.6em;
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .mon-metas-avance-faltan {
@@ -365,16 +365,9 @@
   font: inherit;
 }
 
-.mon-metas-estado {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
 
-.mon-metas-estado.is-error {
-  color: var(--pulso-danger-fg);
-}
+
+
 
 .mon-metas-validacion {
   display: flex;
@@ -431,45 +424,90 @@
   align-self: flex-start;
 }
 
-/* La tarjeta del calendario llega al pie: la lista de días crece y desplaza. */
+/* La columna derecha termina con la izquierda: la tarjeta del calendario toma
+ * el alto que queda, la lista de días crece y desplaza dentro con la barra
+ * visible, y el botón queda pegado al pie de la tarjeta. */
 .mon-metas-modelo-lateral > .mon-metas-calendario {
   flex: 1 1 auto;
   min-height: 220px;
   overflow: hidden;
 }
 
+/* Los días de campo son columnas que llenan el alto que la tarjeta tiene: el
+ * alto se reparte con las barras (y una rejilla tenue cada 32 px), no queda
+ * como franja en blanco entre el último día y el botón (chequeo f). Con
+ * muchos días la fila desplaza en horizontal. */
 .mon-metas-dias {
   display: flex;
   flex: 1 1 0;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 120px;
   margin: 0;
-  padding: 0;
-  overflow-y: auto;
+  padding: 0 0 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  background-image: repeating-linear-gradient(to top, var(--pulso-surface-3) 0 1px, transparent 1px 32px);
+  background-position: 0 calc(100% - 22px);
   list-style: none;
 }
 
-.mon-metas-dias li {
+/* Sin días ni categorías, el vacío se dice en el sitio que ocuparían y ocupa
+ * su alto: la tarjeta no cambia de marco entre cero y muchos. */
+.mon-metas-dias-vacio,
+.mon-metas-avance-vacio {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 44px;
+  flex: 1 1 0;
+  place-items: center;
+  min-height: 0;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.mon-metas-sin-categorias {
+  margin: var(--pulso-space-3) var(--pulso-space-4) 0;
+}
+
+.mon-metas-dias li {
+  display: flex;
+  flex: 1 0 28px;
+  flex-direction: column;
   align-items: center;
-  gap: var(--pulso-space-2);
+  gap: 4px;
+  min-width: 28px;
 }
 
-.mon-metas-dias li > i {
-  display: block;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--pulso-surface-3);
+.mon-metas-dia-columna {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  width: 100%;
+  min-height: 0;
 }
 
-.mon-metas-dias li > i > i {
+.mon-metas-dia-columna > strong {
+  font-size: 12px;
+}
+
+.mon-metas-dia-columna > i {
   display: block;
-  height: 100%;
-  border-radius: 4px;
+  width: 60%;
+  max-width: 28px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
   background: var(--pulso-brand-navy);
+}
+
+.mon-metas-dias li > span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 @media (max-width: 1400px) {
@@ -492,14 +530,22 @@
     overflow: visible;
   }
 
-  .mon-metas-modelo-columna > .mon-metas-metas,
+  .mon-metas-modelo-columna > .mon-metas-metas {
+    flex: none;
+    min-height: 0;
+  }
+
   .mon-metas-modelo-lateral > .mon-metas-calendario {
     flex: none;
     min-height: 0;
   }
 
+  .mon-metas-dias {
+    flex: none;
+    height: 160px;
+  }
+
   .mon-metas-marco,
-  .mon-metas-dias,
   .mon-metas-avance,
   .mon-metas-avance-lienzo {
     flex: none;
@@ -522,8 +568,8 @@
   }
 }
 
-.mon-metas-calendario .mon-metas-nota {
-  margin: 0;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
+
+
+.mon-metas-metas > .mon-metas-estado {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
 }

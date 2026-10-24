@@ -292,7 +292,7 @@ test_that("barras divergentes y lollipop conservan su prefijo posicional", {
     names(formals(p_lollipop)),
     c(
       "var", "orden", "top_n", "resaltar", "titulo", "overrides", "base",
-      "filtros", "excluir_opciones"
+      "filtros", "excluir_opciones", "residuales_gris"
     )
   )
   l <- p_lollipop(

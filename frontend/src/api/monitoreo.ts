@@ -3000,6 +3000,12 @@ export type MonitoreoProfile = {
     use_name_fallback: boolean;
     automatic_detection: boolean;
   };
+  /** Telefónico: columna que separa la muestra titular de su reserva (`monitoreo_telefonico_origen.R`). */
+  sample_origin?: { column: string; titular_values: string[]; reserva_values: string[] };
+  /** Telefónico: columna que marca que un caso de la reserva reemplaza a un titular. */
+  replacement_flag?: { column: string; yes_values: string[] };
+  /** Telefónico (P4): el enumerador de Kobo y el responsable de la hoja son la misma persona escrita de dos formas. */
+  enumerator_equivalences?: Array<{ kobo: string; hoja: string }>;
   deduplication: {
     priority: string[];
   };

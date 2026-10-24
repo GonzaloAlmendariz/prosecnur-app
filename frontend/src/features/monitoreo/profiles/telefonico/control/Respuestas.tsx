@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CSSProperties } from "react";
 import { Search } from "lucide-react";
 import {
@@ -30,7 +31,6 @@ export type ReglaQueCuenta = { texto: string; tipo: "filtro" | "regla" | "aviso"
 const CHIPS: ReadonlyArray<{ id: FiltroDeRespuestas; etiqueta: string }> = [
   { id: "por-revisar", etiqueta: "Por revisar" },
   { id: "todas", etiqueta: "Todas" },
-  { id: "mas-de-2h", etiqueta: "Más de 2 h" },
   { id: "corta", etiqueta: "Menos de 5 min" },
   { id: "repetida", etiqueta: "Repetidas" },
   { id: "no-cruza", etiqueta: "No cruzan" },
@@ -84,11 +84,14 @@ export function Respuestas({
         <section className="mon-ctl-panel mon-respuestas-duracion" aria-label="Duración de las efectivas">
           <header className="mon-ctl-panel-cabecera">
             <b>Duración de las {n(modelo.envios.length)} efectivas</b>
-            <span className="mon-respuestas-mediana">Mediana de {duracionLegible(modelo.mediana)}, entre el inicio y el fin</span>
+            <span className="mon-respuestas-mediana">
+              Mediana de {duracionLegible(modelo.mediana)}, entre el inicio y el fin
+              {modelo.largas ? `; ${n(modelo.largas)} ${modelo.largas === 1 ? "duró" : "duraron"} más de 2 h` : ""}
+            </span>
           </header>
           <div className="mon-barrido-columnas mon-respuestas-histograma" role="img" aria-label={modelo.tramos.map((tramo) => `${tramo.etiqueta}: ${n(tramo.casos)}`).join(", ")}>
             {modelo.tramos.map((tramo) => (
-              <span key={tramo.etiqueta} className={tramo.largo ? "is-largo" : undefined}>
+              <span key={tramo.etiqueta} className={tramo.corto && tramo.casos ? "is-corta" : undefined}>
                 <b className="is-num">{n(tramo.casos)}</b>
                 <i style={{ "--alto": `${(tramo.casos / maximoTramo) * 100}%` } as CSSProperties} />
                 <em>{tramo.etiqueta}</em>
@@ -106,7 +109,7 @@ export function Respuestas({
               </li>
             ))}
           </ul>
-          <p className="mon-ctl-nota">Se edita en Llave y filtros, en Insumos.</p>
+          <NotaDelModo tono="neutro">Se edita en Llave y filtros, en Insumos.</NotaDelModo>
         </section>
       </div>
 
@@ -153,7 +156,7 @@ export function Respuestas({
                   <td className="mon-respuestas-barra">
                     <i aria-hidden="true">
                       <b
-                        className={envio.marcas.includes("mas-de-2h") ? "is-largo" : undefined}
+                        className={envio.marcas.includes("corta") ? "is-corta" : undefined}
                         style={{ width: `${(Math.min(envio.segundos ?? 0, DOS_HORAS) / maximoDuracion) * 100}%` }}
                       />
                     </i>
@@ -171,7 +174,7 @@ export function Respuestas({
               ))}
             </tbody>
           </table>
-          {!visibles.length ? <p className="mon-ctl-nota">Ninguna efectiva cumple el filtro.</p> : null}
+          {!visibles.length ? <NotaDelModo tono="neutro" className="mon-respuestas-vacio">Ninguna efectiva cumple el filtro.</NotaDelModo> : null}
         </div>
         <footer className="mon-equipo-pie">
           {n(visibles.length)} de {n(modelo.envios.length)} efectivas. Marcar no excluye: decide el supervisor.
