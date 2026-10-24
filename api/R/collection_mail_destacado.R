@@ -79,8 +79,11 @@
   if (is.null(src)) {
     return(.cmail_preview_hole(fit$width, fit$height, if (nzchar(alt)) alt else id, margin = ""))
   }
-  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s class="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;">',
-          .cmail_esc(src), fit$width, fit$height, .cmail_esc(alt), .cmail_prop(ctx, "alt"), .CMAIL_FEATURE_IMG_CLASS, fit$width)
+  # En teléfono llena el ancho sólo si su archivo da para eso: nunca se agranda una foto chica.
+  llena <- !.cmail_size_ok(img$size) || as.integer(img$size$width) >= .cmail_text_col(ctx$width %||% .CMAIL_WIDTH)
+  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s%s style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;">',
+          .cmail_esc(src), fit$width, fit$height, .cmail_esc(alt), .cmail_prop(ctx, "alt"),
+          if (llena) sprintf(' class="%s"', .CMAIL_FEATURE_IMG_CLASS) else "", fit$width)
 }
 
 # El botón dentro de la columna de texto: el mismo de siempre (sólido, el del

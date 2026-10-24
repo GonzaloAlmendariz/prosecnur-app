@@ -11,6 +11,7 @@ import {
   CircleHelp,
   Image,
   Info,
+  LayoutPanelLeft,
   List,
   Mail,
   MessageSquareText,
@@ -36,6 +37,7 @@ export const ICONO_DE_BLOQUE: Record<MailBlockType, LucideIcon> = {
   ornament: Sparkles,
   icon_text: CalendarCheck,
   two_images: Columns2,
+  feature: LayoutPanelLeft,
 };
 
 /** La imagen decorativa tiene su propio ícono en la biblioteca y en la lista. */

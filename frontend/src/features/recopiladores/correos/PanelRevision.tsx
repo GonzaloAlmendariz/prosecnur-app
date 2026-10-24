@@ -88,7 +88,9 @@ export function salidasDeLoQueFalta(
     if (destino === CABECERA) return { destino, ...salidaDelChequeo(check.code, destino, undefined, contexto) };
     const block = template.blocks.find((b) => b.block_id === destino);
     if (!block) return { destino, texto: "Ir al bloque" };
-    const ids = block.type === "image" ? [block.image_ref] : block.type === "two_images" ? [block.left, block.right] : [];
+    const ids = block.type === "image" ? [block.image_ref]
+      : block.type === "two_images" ? [block.left, block.right]
+      : block.type === "feature" && block.image_ref ? [block.image_ref] : [];
     const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);
     return { destino, texto: nombres.length === 1 ? `Subir «${nombres[0]}»` : `Subir en «${rotuloDeBloque(block)}»` };
   });
@@ -158,7 +160,7 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
   const columnaElegida = check.code === "greeting_trato" && check.status === "warning" && Boolean(destino && columnaDelSaludo(template, destino));
   const arregloGeneral = arregloEnLaRevision(check.code, { columnaElegida });
   const Icono = ICONO[check.status];
-  // H7: «Falta el logo de la unidad solicitante y el de Pulso PUCP», sin ids.
+  // H7: «Faltan los logos», sin ids ni nombres.
   const faltan = check.code === "images_available" && template
     ? fraseDeLoQueFalta(template, idsSinArchivo(check.items))
     : null;

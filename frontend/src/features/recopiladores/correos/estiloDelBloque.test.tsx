@@ -144,3 +144,58 @@ describe("colores de la marca en el editor", () => {
     expect(hook).toBeLessThan(primerReturn);
   });
 });
+
+describe("sección Destacado en el editor (L5)", () => {
+  it("se inserta sin foto, sobre el tinte, con sus textos editables y la forma «Imagen»", async () => {
+    const { bloqueNuevo, propsDeTexto } = await import("./modeloCorreo");
+    const { ajustesDe } = await import("./ajustesDeBloque");
+    const b = bloqueNuevo("feature", "feature-1");
+    expect(b).toMatchObject({ type: "feature", layout: "izquierda", box: { bg: "tinte" } });
+    expect(b).not.toHaveProperty("image_ref");
+    expect(propsDeTexto("feature")).toEqual(["eyebrow", "title", "text", "button_text", "url"]);
+    expect(ajustesDe(b).map((a) => a.opciones.map((o) => o.valor))).toEqual([["izquierda", "derecha", "arriba"]]);
+  });
+
+  it("subir una foto le pone su id y el panel pide describirla", async () => {
+    const { conArchivoDeImagen } = await import("./piezasGraficas");
+    const t = plantilla([{ block_id: "d", type: "feature", title: "Sorteo" }]);
+    const out = conArchivoDeImagen(t, "d", "Audífonos Sorteo.JPG");
+    expect(out?.template.blocks[0]).toMatchObject({ image_ref: expect.stringMatching(/^audifonos-sorteo/) });
+    const { ImagenDelDestacado } = await import("./ImagenDelDestacado");
+    const html = renderToStaticMarkup(
+      <ImagenDelDestacado block={{ block_id: "d", type: "feature", title: "Sorteo", image_ref: "premio" }} vista={null}
+        problemas={[]} ocupado={false} onEditarBloque={noop} onSubir={noop} />,
+    );
+    expect(html).toContain("Falta describirla");
+    expect(html).toContain("Quitar la foto");
+  });
+
+  it("el normalizador conserva el Destacado y su caja; una forma desconocida se descarta", async () => {
+    const { normalizeMailBlock } = await import("../../../api/materialMail");
+    const b = normalizeMailBlock({ block_id: "d", type: "feature", title: "T", image_ref: "premio", alt: "A", layout: "abajo", box: { bg: "tinte" } });
+    expect(b).toMatchObject({ type: "feature", title: "T", image_ref: "premio", alt: "A", box: { bg: "tinte" } });
+    expect(b).not.toHaveProperty("layout");
+  });
+});
+
+describe("Destacado recién insertado (L5)", () => {
+  it("nace con un enlace que ya vale: el del botón del correo, o el campo de la encuesta, o sin botón", async () => {
+    const { bloqueParaInsertar } = await import("./estructuraCorreo");
+    const conBoton = plantilla([{ block_id: "b", type: "button", text: "Ir", url: "{{enlace}}" }]);
+    expect(bloqueParaInsertar(conBoton, "feature")).toMatchObject({ url: "{{enlace}}", button_text: "Responder la encuesta" });
+    const conCampo = { ...plantilla([]), fields: [{ key: "link", tag: "LINK", label: "Enlace", destino: "encuesta" as const }] };
+    expect(bloqueParaInsertar(conCampo, "feature")).toMatchObject({ url: "{{link}}" });
+    const sinNada = bloqueParaInsertar(plantilla([{ block_id: "b", type: "button", text: "Ir", url: "https://" }]), "feature");
+    expect(sinNada).not.toHaveProperty("url");
+    expect(sinNada).not.toHaveProperty("button_text");
+  });
+});
+
+describe("enlaces en el Destacado", () => {
+  it("el texto admite [texto](url) como en el render; el título y el botón no", async () => {
+    const { admiteEnlaces } = await import("./comoSaleEnLaPlataforma");
+    expect(admiteEnlaces("feature", "text")).toBe(true);
+    expect(admiteEnlaces("feature", "title")).toBe(false);
+    expect(admiteEnlaces("feature", "button_text")).toBe(false);
+  });
+});

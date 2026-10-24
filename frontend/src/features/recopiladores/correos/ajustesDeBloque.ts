@@ -177,6 +177,19 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       defecto: "calendario",
     },
   ],
+  // Sección Destacado (collection_mail_destacado.R): dónde va la foto.
+  feature: [
+    {
+      clave: "layout",
+      rotulo: "Imagen",
+      opciones: [
+        { valor: "izquierda", rotulo: "Izquierda" },
+        { valor: "derecha", rotulo: "Derecha" },
+        { valor: "arriba", rotulo: "Arriba", ayuda: "a todo el ancho" },
+      ],
+      defecto: "izquierda",
+    },
+  ],
 };
 
 /** Ajustes que no se muestran como segmentado: tienen su propio control. */

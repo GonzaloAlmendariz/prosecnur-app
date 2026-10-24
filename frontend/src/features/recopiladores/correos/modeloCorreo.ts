@@ -39,6 +39,7 @@ export const ROTULO_DE_BLOQUE: Record<MailBlockType, string> = {
   ornament: "Separador decorativo",
   icon_text: "Ícono con texto",
   two_images: "Dos imágenes",
+  feature: "Destacado",
 };
 
 export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
@@ -56,6 +57,7 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   ornament: "Una onda, tres puntos o una línea doble entre dos partes del correo.",
   icon_text: "Un ícono de la casa junto a una línea de texto: una fecha, un lugar, un plazo.",
   two_images: "Dos imágenes lado a lado; en el teléfono se apilan. Cada una conserva su proporción.",
+  feature: "Una foto junto a un título, un texto y un botón. En el teléfono la foto sube y ocupa el ancho.",
 };
 
 export const ROTULO_DE_BLOQUE_OPACO = "Bloque no reconocido";
@@ -131,6 +133,8 @@ export function resumenDeBloque(block: MailBlock): string {
       return textoPlano(block.text);
     case "two_images":
       return [block.alt_left, block.alt_right].filter((alt) => !altPendiente(alt)).map(textoPlano).join(" · ");
+    case "feature":
+      return textoPlano(block.title);
   }
 }
 
@@ -236,7 +240,9 @@ export type PropDeTexto =
   | "address"
   | "alt"
   | "alt_left"
-  | "alt_right";
+  | "alt_right"
+  | "eyebrow"
+  | "button_text";
 
 const PROPS_DE_LISTA: readonly PropDeTexto[] = ["note", "items", "lines"];
 
@@ -257,6 +263,8 @@ export function propsDeTexto(type: MailBlockType | MailBlock["type"]): PropDeTex
     case "footer_legal": return ["text", "address"];
     case "icon_text": return ["text"];
     case "two_images": return ["alt_left", "alt_right"];
+    // La foto y su descripción van en su propio panel (ImagenDelDestacado).
+    case "feature": return ["eyebrow", "title", "text", "button_text", "url"];
     default: return [];
   }
 }
@@ -273,6 +281,8 @@ export const ROTULO_DE_PROP: Record<PropDeTexto, string> = {
   lines: "Líneas",
   address: "Dirección",
   alt: "Texto alternativo",
+  eyebrow: "Antetítulo",
+  button_text: "Texto del botón",
   alt_left: "Descripción de la imagen izquierda",
   alt_right: "Descripción de la imagen derecha",
 };
@@ -295,7 +305,10 @@ export function conTexto(block: MailBlock, prop: PropDeTexto, valor: string): Ma
     const items = valor.split("\n").map((l) => l.trim()).filter(Boolean);
     if (items.length || prop === "items") next[prop] = items;
     else delete next[prop];
-  } else if (valor === "" && ["fallback", "title", "closing", "url", "address"].includes(prop) && block.type !== "button") {
+  } else if (valor === "" && block.type === "feature" && ["eyebrow", "text", "button_text", "url", "alt"].includes(prop)) {
+    // El título del Destacado es obligatorio: se queda aunque se vacíe (la revisión lo marca).
+    delete next[prop];
+  } else if (valor === "" && ["fallback", "title", "closing", "url", "address"].includes(prop) && block.type !== "button" && block.type !== "feature") {
     delete next[prop];
   } else {
     next[prop] = valor;
@@ -412,7 +425,8 @@ export function bloqueNuevo(type: TipoInsertable, block_id: string): MailBlock {
     case "heading": return { block_id, type, text: "Título de la sección", level: "subtitulo" };
     case "divider": return { block_id, type, style: "linea", size: "m" };
     case "image": return { block_id, type, image_ref: "imagen", alt: "Describe la imagen" };
-    case "signature": return { block_id, type, closing: "Atentamente,", name: "Pulso PUCP" };
+    // Un dato por llenar, no una institución de serie: el correo no siempre es de Pulso PUCP.
+    case "signature": return { block_id, type, closing: "Atentamente,", name: "[Quién firma]" };
     case "footer_legal": return { block_id, type };
     // Piezas gráficas (E1o): sin color, siguen el de la casa hasta que se elija otro.
     case "band": return { block_id, type, height: "m" };
@@ -422,6 +436,13 @@ export function bloqueNuevo(type: TipoInsertable, block_id: string): MailBlock {
       return {
         block_id, type, left: "imagen-izquierda", right: "imagen-derecha",
         alt_left: "Describe la imagen de la izquierda", alt_right: "Describe la imagen de la derecha",
+      };
+    // Sección Destacado: sin foto al insertarla (sale sin imagen hasta que se suba), sobre el tinte.
+    case "feature":
+      return {
+        block_id, type, eyebrow: "Novedad", title: "Escribe aquí el título",
+        text: "Cuéntalo en una o dos líneas.", button_text: "Responder la encuesta", url: "https://",
+        layout: "izquierda", box: { bg: "tinte" },
       };
     // Decorativa: sale con alt vacío y la revisión no le pide descripción.
     case "image_decorativa": return { block_id, type: "image", image_ref: "decorativa", alt: "", decorative: true };

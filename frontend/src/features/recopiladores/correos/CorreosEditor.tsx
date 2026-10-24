@@ -509,7 +509,10 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
   const imagenDelBloque = bloqueElegido?.type === "image"
     ? st.imagenesLocales[bloqueElegido.image_ref] ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
-    : null;
+    // La foto de un Destacado: la única imagen de su sección.
+    : bloqueElegido?.type === "feature" && bloqueElegido.image_ref
+      ? st.imagenesLocales[bloqueElegido.image_ref] ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+      : null;
   // Un par: lo que ya se ve de cada lado (recién subido o pintado por la vista previa).
   const parDelBloque = bloqueElegido?.type === "two_images" ? srcsDelPar(st.vistaPrevia?.html, bloqueElegido.block_id) : null;
   const imagenesDelPar = bloqueElegido?.type === "two_images" && parDelBloque
