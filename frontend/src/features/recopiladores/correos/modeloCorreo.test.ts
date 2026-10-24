@@ -194,6 +194,21 @@ describe("imágenes", () => {
     expect(logosDeLaFranja(conBanner)).toEqual(["logo-cliente", "pulso"]);
     expect(usarLogos(conBanner, "light").header).toEqual({ kind: "logos", logo_ids: ["logo-cliente", "pulso"], background: "light" });
   });
+
+  test("con banner, la URL guardada de una imagen del cuerpo o de un ícono no se recuerda como logo", () => {
+    const conBanner = usarBanner(plantilla());
+    const t = {
+      ...conBanner,
+      blocks: [...conBanner.blocks, { block_id: "a", type: "image", image_ref: "afiche", alt: "A", mobile_ref: "afiche-movil" }],
+      images: {
+        ...conBanner.images,
+        afiche: { alt: "A", url: "https://x.pe/a.png" },
+        "afiche-movil": { alt: "A", url: "https://x.pe/m.png" },
+        "icono-reloj-0b1f54": { alt: "Reloj", url: "https://x.pe/i.png" },
+      },
+    } as MailTemplate;
+    expect(logosDeLaFranja(t)).toEqual(["logo-cliente", "pulso"]);
+  });
 });
 
 describe("problemas del 422", () => {
