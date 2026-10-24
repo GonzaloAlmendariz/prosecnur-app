@@ -1,0 +1,260 @@
+/* Insumos de acreditación (Públicos, Fuentes y Reglas). Tabla y matriz a la
+ * izquierda, panel del elemento elegido a 400 px; 12 px entre contenedores. */
+
+.acr-ps.is-publicos {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+.acr-in-izquierda {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-in-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-2);
+}
+
+.acr-in-nombre {
+  width: 100%;
+  min-width: 140px;
+  padding: 5px var(--pulso-space-2);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-in-nombre:hover,
+.acr-in-nombre:focus {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+  outline: 0;
+}
+
+.acr-in-nombre:focus-visible {
+  border-color: var(--pulso-brand-navy);
+}
+
+.acr-in-nombre[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.acr-pub-tabla th .pulso-alert {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.acr-in-canales {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.acr-in-switch {
+  --pulso-switch-accent: var(--pulso-brand-navy);
+}
+
+.acr-in-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.acr-in-matriz-marco {
+  overflow-x: auto;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-in-matriz {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px 6px;
+  font-size: 12.5px;
+}
+
+.acr-in-matriz th {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.acr-in-matriz tbody th {
+  color: var(--pulso-text);
+}
+
+.acr-in-celda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-accent-steel) 14%, var(--pulso-surface));
+  color: var(--pulso-brand-navy);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-in-celda.is-vacia {
+  border: 1px dashed var(--pulso-border);
+  background: transparent;
+}
+
+.acr-in-panel {
+  overflow: hidden;
+}
+
+.acr-in-llave,
+.acr-in-variables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-in-llave li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-in-columna {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-in-variables li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+@media (max-width: 1365px) {
+  .acr-ps.is-publicos { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-publicos { grid-template-columns: minmax(0, 1fr); }
+  .acr-in-izquierda { grid-template-rows: auto; }
+}
+
+/* Fuentes (I2): maestro de fuentes por público a 380 px; la fuente elegida con
+ * sus recopiladores al lado; la declaración de las encuestas debajo. */
+.acr-in-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-ps.is-fuentes {
+  grid-template-columns: 380px minmax(0, 1fr);
+}
+
+.acr-ps.is-fuentes .acr-pr-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-pr-grupo button.acr-in-fuente {
+  min-height: 44px;
+  padding-block: 4px;
+  text-align: left;
+}
+
+.acr-in-fuente-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.acr-in-fuente-nombre > span {
+  overflow-wrap: anywhere;
+}
+
+.acr-in-fuente-nombre small {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.acr-pr-grupo button.acr-in-fuente.is-inactiva {
+  color: var(--pulso-text-soft);
+}
+
+.acr-pr-datos.acr-in-datos-fuente {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.acr-pub-tabla tr.is-excluida th,
+.acr-pub-tabla tr.is-excluida td:not(:last-child) {
+  color: var(--pulso-text-soft);
+}
+
+.acr-in-declaracion,
+.acr-in-fuentes-vacio {
+  padding: var(--pulso-space-3);
+}
+
+.acr-in-fuentes-vacio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-fuentes { grid-template-columns: minmax(0, 1fr); }
+}
+
+.acr-in-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pulso-brand-navy);
+}
+
+.acr-in-variables li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.acr-in-variables li > span:last-child {
+  flex: 0 0 auto;
+}
+
+.acr-in-fuentes > * {
+  flex-shrink: 0;
+}
+
+/* Insumos › Fuentes: el rótulo de la pestaña en la fila de la barra de lectura (§2a-bis). */
+.acr-in-barra {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.acr-in-barra > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}

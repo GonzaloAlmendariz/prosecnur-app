@@ -1,0 +1,423 @@
+/* Modelo de acreditación (Metas, Cuotas, Ventana). Tabla a la izquierda y dos
+ * paneles de lectura a 420 px; 12 px entre contenedores. */
+
+.acr-ps.is-metas {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.acr-mo-columna {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.acr-mo-entrada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.acr-mo-entrada input,
+.acr-mo-meta {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acr-mo-entrada input:focus-visible,
+.acr-mo-meta:focus-visible {
+  border-color: var(--pulso-brand-navy);
+  outline: 0;
+}
+
+.acr-mo-exigida,
+.acr-mo-reparto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+  list-style: none;
+}
+
+.acr-mo-exigida {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.acr-mo-exigida li {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(60px, 120px) 60px 96px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-mo-riel {
+  position: relative;
+  height: 2px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-mo-riel i {
+  position: absolute;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--pulso-brand-navy);
+}
+
+.acr-mo-exigida b,
+.acr-mo-exigida li > span:last-child {
+  text-align: right;
+}
+
+.acr-mo-reparto li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 60px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-mo-reparto b {
+  text-align: right;
+}
+
+@media (max-width: 1365px) {
+  .acr-ps.is-metas { grid-template-columns: minmax(0, 1fr) 360px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-metas { grid-template-columns: minmax(0, 1fr); }
+  .acr-mo-columna { grid-template-rows: auto; }
+}
+
+/* Cuotas (M2): lista de cuotas y variables a 300 px; la cuota elegida al lado. */
+.acr-ps.is-cuotas {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.acr-ps.is-cuotas .acr-pr-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Ventana de campo (M3): cifras, una fila por público con su ventana real y su
+ * intensidad diaria, y el editor del plan debajo. */
+.acr-mo-ventana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 100%;
+}
+
+.acr-mo-linea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-mo-fila {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 140px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 32px;
+}
+
+.acr-mo-fila > span:first-child {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-mo-fila > span:last-child {
+  text-align: right;
+}
+
+.acr-mo-pista {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-mo-fila.is-eje .acr-mo-pista {
+  height: 16px;
+  background: transparent;
+}
+
+.acr-mo-banda {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 6px;
+}
+
+.acr-mo-banda.is-real {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface));
+}
+
+.acr-mo-banda.is-plan {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 22%, var(--pulso-surface));
+}
+
+.acr-mo-dia {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--pulso-brand-navy);
+}
+
+.acr-mo-sin-fases {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-mo-eje-texto {
+  position: absolute;
+  top: 0;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-mo-editor {
+  flex: 1 0 auto;
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .acr-mo-fila { grid-template-columns: 140px minmax(0, 1fr) 110px; }
+}
+
+.acr-cl-cifras.acr-mo-cifras {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .acr-cl-cifras.acr-mo-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Los dos paneles de Ventana de campo miden su contenido: encogerlos dejaba
+ * las filas de los públicos encima del editor del plan. */
+.acr-mo-ventana > .acr-av-panel {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* Metas (M1), §2a-bis: la meta del estudio en su tarjeta y una tarjeta por
+ * público en rejilla de dos, con el estado en el borde lateral. */
+.acr-mo-metas {
+  /* Fuera de la familia `.acr-ps`: trae sus variables y su escala de texto. */
+  --acr-efectiva: var(--pulso-brand-navy);
+  --acr-meta: var(--pulso-module-monitoring);
+  --acr-pista: var(--pulso-surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.acr-mo-metas > * {
+  flex-shrink: 0;
+}
+
+.acr-mo-reparto-barra {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  margin: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-2);
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.acr-mo-reparto-barra > i {
+  flex-basis: 0;
+  min-width: 4px;
+}
+
+.acr-mo-reparto-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-5);
+  margin: 0;
+  padding: 0 var(--pulso-space-5) var(--pulso-space-4);
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.acr-mo-reparto-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-mo-reparto-leyenda li > i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.acr-mo-metas .is-tono-1 { background: var(--pulso-brand-navy); }
+.acr-mo-metas .is-tono-2 { background: var(--pulso-module-monitoring); }
+.acr-mo-metas .is-tono-3 { background: var(--pulso-accent-steel); }
+.acr-mo-metas .is-tono-4 { background: color-mix(in srgb, var(--pulso-brand-navy) 50%, var(--pulso-surface)); }
+.acr-mo-metas .is-tono-5 { background: color-mix(in srgb, var(--pulso-module-monitoring) 50%, var(--pulso-surface)); }
+.acr-mo-metas .is-tono-6 { background: color-mix(in srgb, var(--pulso-accent-steel) 45%, var(--pulso-surface)); }
+
+.acr-mo-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-4);
+}
+
+.acr-mo-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-left: 4px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+/* El estado va en el borde lateral sólido (un `border` real, como las tarjetas
+ * de cuotas por UMP del Territorial) y en el chip; nunca en sombra inset ni en
+ * un fondo teñido de toda la tarjeta. */
+.acr-mo-tarjeta.is-cumplida { border-left-color: var(--pulso-success-fg); }
+.acr-mo-tarjeta.is-en-curso { border-left-color: var(--pulso-warn-fg); }
+.acr-mo-tarjeta.is-abierta { border-left-color: var(--pulso-brand-navy); }
+.acr-mo-tarjeta.is-cambiada { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pulso-module-monitoring) 30%, transparent); }
+
+.acr-mo-tarjeta-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.acr-mo-tarjeta-cabecera > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acr-mo-tarjeta-cabecera strong {
+  font-size: 17px;
+}
+
+.acr-mo-estado.is-cumplida {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 35%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-success-fg) 10%, var(--pulso-surface));
+  color: var(--pulso-success-fg);
+}
+
+.acr-mo-estado.is-en-curso {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-warn-fg) 10%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+}
+
+.acr-mo-teselas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.acr-mo-tesela {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.acr-mo-tesela small {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.acr-mo-tesela b {
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-mo-tesela.is-editable input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+  background: var(--pulso-surface);
+}
+
+.acr-mo-tesela.is-editable .acr-mo-entrada {
+  display: flex;
+}
+
+.acr-mo-tarjeta-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.acr-mo-tarjeta-pie .acr-av-pista {
+  width: 100%;
+}
+
+/* Esqueleto de las tarjetas mientras llega el estado de cuotas. */
+.acr-mo-hueso {
+  display: block;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+}
+
+.acr-mo-hueso.is-corto { width: 64px; height: 10px; }
+.acr-mo-hueso.is-titulo { width: 40%; height: 18px; }
+.acr-mo-hueso.is-tesela { height: 72px; border: 0; }
+.acr-mo-hueso.is-pista { width: 100%; height: 8px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .acr-mo-tarjeta.is-esqueleto .acr-mo-hueso {
+    animation: acr-mo-latido 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes acr-mo-latido {
+  50% { opacity: 0.55; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-mo-tarjetas { grid-template-columns: minmax(0, 1fr); }
+}

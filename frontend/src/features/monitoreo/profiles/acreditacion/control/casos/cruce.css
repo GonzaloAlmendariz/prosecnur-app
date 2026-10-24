@@ -1,0 +1,135 @@
+/* Control › Cruce (ficha Ctl6): el diagrama ocupa el alto; a la derecha, 360 px
+ * con la llave, el cruce y la estrategia. */
+
+.acr-cr {
+  --acr-efectiva: var(--pulso-brand-navy);
+  --acr-parcial: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
+  --acr-rechazo: var(--pulso-resultado-parcial);
+  --acr-sin-respuesta: color-mix(in srgb, var(--pulso-text-faint) 30%, var(--pulso-surface));
+  --acr-pista: var(--pulso-surface-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.acr-cr.is-vacio {
+  display: flex;
+  align-items: flex-start;
+}
+
+.acr-cr-principal,
+.acr-cr-derecha {
+  overflow: hidden;
+}
+
+.acr-cr-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 420px;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-cr-diagrama {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.acr-cr-diagrama > svg {
+  position: absolute;
+  inset: 0;
+}
+
+.acr-cr-cinta {
+  fill: color-mix(in srgb, var(--pulso-text-faint) 18%, transparent);
+}
+
+.acr-cr-cinta.is-efectiva { fill: color-mix(in srgb, var(--acr-efectiva) 16%, transparent); }
+.acr-cr-cinta.is-excluida,
+.acr-cr-cinta.is-rechazo { fill: color-mix(in srgb, var(--acr-rechazo) 30%, transparent); }
+.acr-cr-cinta.is-no-cuenta,
+.acr-cr-cinta.is-parcial { fill: color-mix(in srgb, var(--acr-parcial) 35%, transparent); }
+.acr-cr-cinta:hover { fill-opacity: 0.6; }
+
+.acr-cr-nodo { fill: color-mix(in srgb, var(--pulso-text-faint) 75%, var(--pulso-surface)); }
+.acr-cr-nodo.is-efectiva { fill: var(--acr-efectiva); }
+.acr-cr-nodo.is-parcial,
+.acr-cr-nodo.is-no-cuenta { fill: var(--acr-parcial); }
+.acr-cr-nodo.is-rechazo,
+.acr-cr-nodo.is-excluida { fill: var(--acr-rechazo); }
+.acr-cr-nodo.is-sin-respuesta { fill: var(--acr-sin-respuesta); }
+
+.acr-cr-rotulo {
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.acr-cr-rotulo .is-nombre {
+  fill: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-cr-rotulo .is-cifra {
+  fill: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-cr-listas {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-6);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.acr-cr-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.acr-cr-lista ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-cr-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  grid-template-rows: auto auto;
+  column-gap: var(--pulso-space-3);
+  row-gap: 4px;
+}
+
+.acr-cr-lista li > span:first-child { grid-column: 1; }
+.acr-cr-lista li > .acr-av-pista { grid-column: 1; grid-row: 2; }
+.acr-cr-lista li > b { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
+
+@media (max-width: 1365px) {
+  .acr-cr { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+
+@media (max-width: 1200px), (max-height: 720px) {
+  .acr-cr {
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100%;
+  }
+
+  .acr-cr-listas { overflow: visible; }
+}

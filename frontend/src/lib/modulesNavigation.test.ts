@@ -237,10 +237,10 @@ describe("manifiesto primario de navegación", () => {
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Monitoreo telefónico", to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
+          // Esqueleto común de cuatro secciones (revamp de acreditación, A1).
+          { id: "insumos", label: "Insumos", to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "control", label: "Control", to: "/monitoreo?seccion=control", layoutPolicy: "viewport" },
           { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
@@ -355,8 +355,10 @@ describe("manifiesto primario de navegación", () => {
         .map((tab) => tab.key),
       // Salvedades dejó de ser pestaña al pasar Telefónico al esqueleto común:
       // es una sub-vista de Control › Respuestas. Reserva y Reemplazos, las
-      // condicionales del diseño, todavía no se declaran (P8 y P9).
-    ).toEqual([]);
+      // condicionales del diseño, todavía no se declaran (P8 y P9). En
+      // Acreditación, el grupo Contacto de Control existe solo si el estudio
+      // declara el canal (`acreditacion.md` §1).
+    ).toEqual(["correo", "barrido", "reintentos", "equipo"]);
   });
 
   it("adjunta sin clonar los catálogos de Muestra, Procesamiento y Dashboard", () => {
