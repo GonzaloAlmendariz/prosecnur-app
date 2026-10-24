@@ -111,6 +111,13 @@
   escala <- .reporte_plan_pulso_palette_for_levels(etiquetas[!ns])
   out <- stats::setNames(character(length(etiquetas)), etiquetas)
   out[!ns] <- unname(escala)
-  out[ns] <- unname(.std_paleta("likert"))[5]
+  out[ns] <- .graficos_no_sustantivo_color()
   out
 }
+
+#' Color del no sustantivo: el gris azulado `texto_tenue` del estándar
+#'
+#' El gris de «SIN INF» (`likert[5]`, #BFBFBF) casi no se distinguía del neutro de la escala (#D9D9D9) cuando ambos están en la
+#' misma barra (CCSS Perfil 2026, ccss-mazo, ronda R6). Decisión del loop, para revisión de Gonzalo.
+#' @keywords internal
+.graficos_no_sustantivo_color <- function() .std_color("texto_tenue")

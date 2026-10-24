@@ -17,7 +17,7 @@
     stringsAsFactors = FALSE
   )
 }
-.gns_gris <- function() unname(.std_paleta("likert"))[5]
+.gns_gris <- function() .graficos_no_sustantivo_color()
 
 test_that("(b) un código fuera del rango de la escala es no sustantivo: 9 en 1-5 y 77 en 1-5", {
   expect_identical(.graficos_no_sustantivos(c("1", "2", "3", "4", "5", "9"), .gns_c1_etq),
@@ -101,4 +101,10 @@ test_that("el color no mueve cifras ni el denominador del Top Two Box", {
   expect_identical(ahora$cifras, antes$cifras)
   expect_identical(ahora$categorias$color[6], .gns_gris())
   expect_identical(ahora$categorias$rotulo[6], .gns_c1_etq[6])   # sigue en la leyenda, al final
+})
+
+test_that("el no sustantivo se distingue del neutro de la escala (contraste de luminancia)", {
+  lum <- function(h) { v <- grDevices::col2rgb(h)[, 1] / 255; sum(c(0.2126, 0.7152, 0.0722) * v) }
+  pal <- .graficos_no_sustantivos_paleta("acuerdo", c("1", "2", "3", "4", "5", "9"), .gns_choices()[1:6, ])
+  expect_gt(abs(lum(pal[3]) - lum(pal[6])), 0.15)
 })
