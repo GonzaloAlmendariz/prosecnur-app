@@ -15,3 +15,13 @@ test_that("un orden decreciente deliberado y los rótulos sin cifra se respetan"
   # Frecuencia no se toca.
   expect_identical(.goc_orden_codigos(cats_de(c("De 30 a 35", "De 22 a 25", "De 26 a 29")), "frecuencia", n = c(5, 9, 1))$codigos, c("2", "1", "3"))
 })
+
+test_that("rangos con unidades distintas (minutos y horas) no se reordenan por su primer número (G5, CCSS 2026)", {
+  # B2 `tiempo_llegada`: el primer número es 30, 30, 1, 1, 2; ordenarlo daba 3, 4, 5, 1, 2.
+  b2 <- cats_de(c("Menos de 30 minutos", "Entre 30 minutos y 1 hora", "Entre 1 hora y 1 hora y media",
+                  "Entre 1 hora y media y 2 horas", "Más de 2 horas"))
+  expect_identical(.goc_orden_codigos(b2, "instrumento")$codigos, c("1", "2", "3", "4", "5"))
+  # La misma unidad en singular y plural no cuenta como otra unidad.
+  meses <- cats_de(c("De 7 a 12 meses", "1 mes", "De 2 a 6 meses"), c("3", "1", "2"))
+  expect_identical(.goc_orden_codigos(meses, "instrumento")$codigos, c("1", "2", "3"))
+})
