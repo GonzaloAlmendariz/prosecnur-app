@@ -1104,15 +1104,26 @@ graficar_barras_agrupadas <- function(
     )
     # P2/A12: si hubo que encoger, cuerpo y envoltorio se eligen juntos con el ancho real de la columna, y la columna se
     # ensancha antes que solapar (graficador_barras_agrupadas_rotulos.R). Sin encoger, nada cambia.
-    if (!forzar_ancho_max_eje_y && size_ejes_eff < size_previo_eje) {
+    es_cruce_agr <- .agrupadas_es_cruce(length(cols_porcentaje), comparativo_activo, orientacion, usar_canvas)
+    frac_panel_agr <- .agrupadas_frac_panel(alto, titulo, subtitulo, canvas_h_header_in, mostrar_leyenda && !legend_is_side && length(cols_porcentaje) > 1L,
+                                            canvas_h_legend_in, nzchar(paste0(nota_pie %||% "", nota_pie_derecha %||% "")), canvas_h_caption_in,
+                                            canvas_h_reserva_pie_in, canvas_h_toprow_in)
+    # CCSS-7: en un cruce la columna de rótulos mide lo que sus rótulos y el resto va a las barras (graficador_barras_agrupadas_cruce.R).
+    aj_cruce <- if (!forzar_ancho_max_eje_y && isTRUE(es_cruce_agr)) .agrupadas_cruce_rotulos(
+      cat_lvls, ancho, canvas_w_etiquetas, canvas_w_bars,
+      w_resto = canvas_w_buf_etq_bars + canvas_w_buf_bars_extra + canvas_w_extra + (if (isTRUE(mostrar_leyenda) && legend_is_side) 0.18 else 0),
+      size_pt = size_previo_eje, n_categorias = n_categorias, alto_in = alto, lineheight = lineheight_eje_y_render,
+      negrita = "eje_y" %in% textos_negrita, frac_panel = frac_panel_agr, titulo = titulo)
+    if (!is.null(aj_cruce)) {
+      size_ejes_eff <- aj_cruce$size; ancho_max_eje_y_eff <- aj_cruce$wrap
+      canvas_w_etiquetas <- aj_cruce$w_etiquetas; canvas_w_bars <- aj_cruce$w_bars
+    } else if (!forzar_ancho_max_eje_y && size_ejes_eff < size_previo_eje) {
       aj_rot <- .agrupadas_rotulos_ajustar(
         cat_lvls, ancho, canvas_w_etiquetas, canvas_w_bars,
         w_resto = canvas_w_buf_etq_bars + canvas_w_buf_bars_extra + canvas_w_extra + (if (isTRUE(mostrar_leyenda) && legend_is_side) 0.18 else 0),
         size_pt = size_previo_eje, n_categorias = n_categorias, alto_in = alto, lineheight = lineheight_eje_y_render,
         negrita = "eje_y" %in% textos_negrita, titulo = titulo,
-        frac_panel = .agrupadas_frac_panel(alto, titulo, subtitulo, canvas_h_header_in, mostrar_leyenda && !legend_is_side && length(cols_porcentaje) > 1L,
-                                           canvas_h_legend_in, nzchar(paste0(nota_pie %||% "", nota_pie_derecha %||% "")), canvas_h_caption_in,
-                                           canvas_h_reserva_pie_in, canvas_h_toprow_in))
+        frac_panel = frac_panel_agr)
       if (!is.null(aj_rot)) {
         size_ejes_eff <- aj_rot$size; ancho_max_eje_y_eff <- aj_rot$wrap
         canvas_w_etiquetas <- aj_rot$w_etiquetas; canvas_w_bars <- aj_rot$w_bars
@@ -1156,6 +1167,16 @@ graficar_barras_agrupadas <- function(
   # doce barras sueltas en vez de seis pares. Igualarlos cierra ese hueco sin
   # tocar el que queda entre categorias, que lo fija el dodge.
   if (isTRUE(comparativo_activo)) grosor_barras_eff <- width_dodge_eff
+  # CCSS-7: el par del cruce va pegado como el del comparativo, la cifra cabe en su barra y la primera serie va arriba.
+  cruce_agr <- if (.agrupadas_es_cruce(n_series, comparativo_activo, orientacion, usar_canvas)) {
+    .agrupadas_cruce_par(size_texto_barras_eff, length(cat_lvls), n_series, alto,
+                         frac_panel = if (exists("frac_panel_agr", inherits = FALSE)) frac_panel_agr else 0.62)
+  }
+  if (!is.null(cruce_agr)) {
+    width_dodge_eff <- cruce_agr$dodge; grosor_barras_eff <- cruce_agr$grosor; size_texto_barras_eff <- cruce_agr$size_mm
+    cruce_agr$colores <- .agrupadas_cruce_paleta_efectiva(levels(df_long$.fill_key), colores_series)
+    cruce_agr$dodge_invertido <- !isTRUE(invertir_leyenda)
+  }
 
   # La escala de arriba reparte por NUMERO de series y no mira el alto real, asi
   # que con dos series no reduce nada —y `preservar_tamanos_texto` no reduce
@@ -1212,7 +1233,7 @@ graficar_barras_agrupadas <- function(
     )
   ) +
     ggplot2::geom_col(
-      position = ggplot2::position_dodge(width = width_dodge),
+      position = ggplot2::position_dodge(width = width_dodge, reverse = isTRUE(cruce_agr$dodge_invertido)),
       width    = grosor_barras_eff,
       # Glifo de tamano ABSOLUTO: el key box hereda la altura del texto de la
       # leyenda (mas alto que ancho), asi que tanto el glifo default como
@@ -1388,7 +1409,9 @@ graficar_barras_agrupadas <- function(
     df_lab$hjust_label <- ifelse(df_lab$inside, 0.5, 0)
     if (orientacion == "vertical") df_lab$hjust_label <- 0.5
 
-    df_lab$col_label <- ifelse(df_lab$inside, color_texto_barras, color_texto_barras_fuera)
+    if (!is.null(cruce_agr)) df_lab$inside <- df_lab$inside & !isTRUE(cruce_agr$fuera)
+    df_lab$col_label <- ifelse(df_lab$inside, .agrupadas_cruce_cifra_dentro(cruce_agr, df_lab$.fill_key, color_texto_barras),
+                               color_texto_barras_fuera)
 
     p <- p +
       ggplot2::geom_text(
@@ -1405,7 +1428,7 @@ graficar_barras_agrupadas <- function(
           hjust  = .data$hjust_label
         ),
         inherit.aes = FALSE,
-        position    = ggplot2::position_dodge(width = width_dodge),
+        position    = ggplot2::position_dodge(width = width_dodge, reverse = isTRUE(cruce_agr$dodge_invertido)),
         vjust       = 0.5,
         size        = size_texto_barras_eff,
         family      = font_family,
@@ -1460,6 +1483,7 @@ graficar_barras_agrupadas <- function(
       rep(.PULSO_PPT_COLORS$azul, length(pal_fill)), names(pal_fill)
     )
   }
+  if (length(cruce_agr$colores)) pal_fill <- cruce_agr$colores
   p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {
@@ -2210,6 +2234,7 @@ graficar_barras_agrupadas <- function(
       alinear_etiquetas = alinear_etiquetas
     )
     attr(canvas, "pulso_espec") <- espec_agrupada
+    if (!is.null(cruce_agr)) attr(canvas, "pulso_barras_agrupadas_cruce") <- .agrupadas_cruce_diagnostico(cruce_agr, pal_fill, levels(df_long$.serie))
     return(canvas)
   }
 

@@ -203,7 +203,7 @@
       return(list(tipo = "columnas", x0 = x_c + 0.6, ybase = ybase, wv = w_c - 1.2, hmax = ybase - techo,
                   cabe = ybase - techo >= 0.6 && rot_ok))
     }
-    return(barras)
+    return(.lam_panel_barras_compactas(espec, barras, fin, w, h, x, y) %||% barras)   # CCSS-24: grilla de seis (lamina_categorica.R)
   }
   if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(list(tipo = "escala", cabe = FALSE))
   # Escala: el likert compacto (likert_panel). El recetario lo pone 0.45 in bajo la pregunta con público y, sin

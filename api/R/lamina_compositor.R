@@ -210,6 +210,7 @@
                                    por_lamina = por_lamina)$doc)
   }
   espec <- .lam_con_estilo_dicotomia(attr(p, "pulso_espec"), el_plot)   # el slot pide el estilo de la dicotómica
+  espec <- .lam_espec_menor_uno(espec)   # U5: «0%» con casos se escribe «<1%» (lamina_cifra_menor_uno.R)
   base_var <- .base_nombre_visible(sub("\\$.*$", "", as.character(el_plot$var %||% "")[1]))   # «default» no se nombra (graficos_base_por_base.R)
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
@@ -218,7 +219,7 @@
   # etiqueta que ya dice «242 estudiantes» (Renzo, informe Arte v3, PPT 40, 42 y 48). Solo cambia el nombre, no el número; una base
   # escrita en la lámina se respeta tal cual.
   if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var) && !is.null(texto(base))) {
-    base <- sub("^(Base:\\s*[0-9][0-9.,]*)\\s+respuestas$", paste0("\\1 ", base_var), texto(base))
+    base <- .lam_base_con_publico(texto(base), base_var)   # CCSS-15: también el pie sin sufijo (graficos_base_pie_forma.R)
   }
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
     # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
@@ -244,7 +245,7 @@
     # El pie automático dice el mismo público que las filas: «Base: 178 egresados», no «178 respuestas» sobre filas de
     # «91 egresados» (Gonzalo, 2026-10-15). Una base escrita en la lámina se respeta tal cual.
     if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && !identical(unidad, "respuestas") && !is.null(texto(base))) {
-      base <- sub("^(Base:\\s*[0-9][0-9.,]*)\\s+respuestas$", paste0("\\1 ", unidad), texto(base))
+      base <- .lam_base_con_publico(texto(base), unidad)
     }
     # La unidad del valor («años») sale de la etiqueta de la variable, no de una constante.
     etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(.plan_titulo_corto(titulo_de_var, el_plot), error = function(e) NULL)
