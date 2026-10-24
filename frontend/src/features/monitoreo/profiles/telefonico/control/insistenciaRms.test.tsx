@@ -43,10 +43,10 @@ const FICTICIO = reportes({
 
 describe("Control › Insistencia con el RMS", () => {
   it("la columna del código mide lo que el código más largo", () => {
-    expect(anchoDeColumnaDeCodigo([{ codigo: "PDM1698" }])).toBe("max(92px, calc(7ch + 40px))");
-    expect(anchoDeColumnaDeCodigo([{ codigo: "PDM1698" }, { codigo: "CGU268000420" }])).toBe("max(92px, calc(12ch + 40px))");
+    expect(anchoDeColumnaDeCodigo([{ codigo: "PDM1698" }])).toBe("max(92px, calc(8ch + 40px))");
+    expect(anchoDeColumnaDeCodigo([{ codigo: "PDM1698" }, { codigo: "CGU268000420" }])).toBe("max(92px, calc(13.8ch + 40px))");
     const html = pintar(FICTICIO);
-    expect(html).toContain("width:max(92px, calc(12ch + 40px))");
+    expect(html).toContain("width:max(92px, calc(13.8ch + 40px))");
     expect(html).toContain(">CGU268000420<");
   });
 
