@@ -4752,15 +4752,15 @@ reporte_ppt_plan <- function(
 
       all_opts <- as.character(tab_total$Opciones)
 
-      all_opts <- .ordered_stack_levels(
+      all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
         ln_var,
         all_opts,
         choices_use = ctx_var$choices,
         palette_names = names(colores_grupos %||% NULL)
-      )
+      ), ln_var, ctx_var$choices)
       if (is.null(colores_grupos) || !length(colores_grupos)) {
-        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-          .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
+        colores_grupos <- .graficos_no_sustantivos_paleta(
+          ln_var, all_opts, ctx_var$choices
         )
       }
       labels_opts <- .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
@@ -4959,15 +4959,15 @@ reporte_ppt_plan <- function(
           return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
         }
 
-        all_opts <- .ordered_stack_levels(
+        all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
           ln,
           all_opts,
           choices_use = choices_use,
           palette_names = names(colores_grupos %||% NULL)
-        )
+        ), ln, choices_use)
         if (is.null(colores_grupos) || !length(colores_grupos)) {
-          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+          colores_grupos <- .graficos_no_sustantivos_paleta(
+            ln, all_opts, choices_use
           )
         }
         labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
@@ -5109,15 +5109,15 @@ reporte_ppt_plan <- function(
           return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
         }
 
-        all_opts <- .ordered_stack_levels(
+        all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R
           ln,
           all_opts,
           choices_use = scale_spec$choices,
           palette_names = names(colores_grupos %||% NULL)
-        )
+        ), ln, scale_spec$choices)
         if (is.null(colores_grupos) || !length(colores_grupos)) {
-          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
+          colores_grupos <- .graficos_no_sustantivos_paleta(
+            ln, all_opts, scale_spec$choices
           )
         }
         labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
