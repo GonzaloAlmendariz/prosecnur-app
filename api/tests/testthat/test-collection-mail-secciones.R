@@ -56,7 +56,8 @@ test_that("las entradas tienen su rango, sus claves cerradas y el ícono sólo e
   expect_true("entries_count" %in% .cmsc_problems(.cmsc_con(.cmsc$benefits, list(entries = .cmsc_entries(1, "candado")))))
   expect_true("bad_entries" %in% .cmsc_problems(.cmsc_con(.cmsc$faq, list(entries = list(title = "x")))))
   expect_true("unknown_key" %in% .cmsc_problems(.cmsc_con(.cmsc$steps, list(entries = list(list(title = "a", css = "x"))))))
-  expect_true("missing_text" %in% .cmsc_problems(.cmsc_con(.cmsc$faq, list(entries = list(list(title = "¿Quién?"))))))
+  # Una pregunta sin respuesta vale: sale sola (L8: Beneficios → Preguntas no frena la vista previa).
+  expect_false("missing_text" %in% .cmsc_problems(.cmsc_con(.cmsc$faq, list(entries = list(list(title = "¿Quién?"))))))
   expect_true("unknown_key" %in% .cmsc_problems(.cmsc_con(.cmsc$steps, list(entries = .cmsc_entries(2, "candado")))))
   expect_true("bad_icon" %in% .cmsc_problems(.cmsc_con(.cmsc$benefits, list(entries = .cmsc_entries(2, "cohete")))))
   expect_true("bad_email" %in% .cmsc_problems(.cmsc_con(.cmsc$contact, list(email = "sin arroba"))))
@@ -138,4 +139,19 @@ test_that("la vista previa marca las propiedades de cada sección para editarlas
   prev <- .cmsc_html(.cmsc$faq, mode = "preview")
   expect_match(prev, 'data-pulso-block="faq"', fixed = TRUE)
   expect_match(prev, 'data-pulso-prop="entries.1.text"', fixed = TRUE)
+})
+
+test_that("lo guardado por «Cambiar por» valida su forma, no se muestra y sus campos no cuentan como usados", {
+  b <- .cmsc_con(.cmsc$deadline, list(guardado = list(image_ref = "premio", alt = "Audífonos", feature_layout = "derecha",
+                                                       text = "Hola {{carrera}}", `_relleno` = list(title = "x"))))
+  .cmsc_ok(b)
+  html <- .cmsc_html(b)
+  expect_false(grepl("premio", html, fixed = TRUE))
+  expect_false(grepl("Audífonos", html, fixed = TRUE))
+  t <- .cmsc_tpl(list(b))
+  expect_false("premio" %in% .cmail_image_ids(t))
+  expect_false(any(vapply(.cmail_key_targets(t, "carrera"), function(x) identical(x$block_id, "fecha"), NA)))
+  expect_true("bad_guardado" %in% .cmsc_problems(.cmsc_con(.cmsc$deadline, list(guardado = list("a", "b")))))
+  expect_true("unknown_key" %in% vapply(collection_mail_template_validate(.cmsc_tpl(list(
+    list(block_id = "p", type = "paragraph", text = "Hola", guardado = list(x = "y")))))$problems, `[[`, "", "code"))
 })

@@ -36,7 +36,7 @@
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
                           "level", "style", "width", "bleed", "image_ref",
-                          "decorative", "color", "height", "icon", "left", "right", "box", "layout", "crop")
+                          "decorative", "color", "height", "icon", "left", "right", "box", "layout", "crop", "guardado")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(

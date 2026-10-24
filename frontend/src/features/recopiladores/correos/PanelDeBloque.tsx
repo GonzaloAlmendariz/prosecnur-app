@@ -10,7 +10,9 @@ import { ColorDePieza } from "./ColorDePieza";
 import { EstiloDelBloque, SelectorDeVista, type VistaDelBloque } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
+import { CambiarPorSeccion } from "./CambiarPorSeccion";
 import { EntradasDeSeccion } from "./EntradasDeSeccion";
+import { esIntercambiable, type TipoIntercambiable } from "./modeloCambiarPor";
 import { FotoDeLaSeccion } from "./FotoDeLaSeccion";
 import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
@@ -482,6 +484,9 @@ export function PanelDeBloque({
         <ul className="rec-mail-problemas">
           {sueltos.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
         </ul>
+      ) : null}
+      {esIntercambiable(block.type) ? (
+        <CambiarPorSeccion block={block as MailBlock & { type: TipoIntercambiable }} onEditarBloque={editar} />
       ) : null}
       <AccionesDelBloque template={template} blockId={block.block_id} onMover={onMover} onQuitar={onQuitar} />
     </div>

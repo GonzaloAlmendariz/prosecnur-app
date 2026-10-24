@@ -73,3 +73,74 @@
   display: flex;
   gap: 10px;
 }
+
+/* «Cambiar por» (CambiarPorSeccion, L8). */
+.rec-sec-cambiar {
+  display: grid;
+  gap: 8px;
+}
+
+.rec-sec-destinos {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-sec-destino {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  padding: 9px 10px;
+  text-align: left;
+  /* El botón global no parte renglones; esta tarjeta sí (su frase puede ser larga). */
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-sec-destino > svg {
+  flex: none;
+}
+
+.rec-sec-destino:hover {
+  background: var(--pulso-surface-2);
+}
+
+.rec-sec-destino:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+/* La frase larga hace salto de línea dentro de la tarjeta (C2): nunca se sale del panel. */
+.rec-sec-destino-texto {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-sec-destino-nombre {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-sec-destino-nota,
+.rec-sec-destino-ok {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rec-sec-destino-ok {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}

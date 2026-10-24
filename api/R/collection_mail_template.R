@@ -76,14 +76,14 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   icon_text    = c("icon", "text", "box"),
   two_images   = c("left", "right", "alt_left", "alt_right", "box"),
   # Secciones (GOAL editor profesional): collection_mail_destacado.R.
-  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "crop", "box"),
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "layout", "crop", "box", "guardado"),
   # Resto del catálogo (L6): collection_mail_secciones.R.
-  steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box"),
-  deadline     = c("eyebrow", "title", "text", "button_text", "url", "box"),
-  benefits     = c("title", "entries", "box"),
-  quote        = c("text", "name", "role", "image_ref", "alt", "crop", "box"),
-  faq          = c("title", "entries", "box"),
-  contact      = c("eyebrow", "name", "role", "text", "email", "phone", "image_ref", "alt", "crop", "box")
+  steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box", "guardado"),
+  deadline     = c("eyebrow", "title", "text", "button_text", "url", "box", "guardado"),
+  benefits     = c("title", "entries", "box", "guardado"),
+  quote        = c("text", "name", "role", "image_ref", "alt", "crop", "box", "guardado"),
+  faq          = c("title", "entries", "box", "guardado"),
+  contact      = c("eyebrow", "name", "role", "text", "email", "phone", "image_ref", "alt", "crop", "box", "guardado")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -501,6 +501,11 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       steps = , deadline = , benefits = , quote = , faq = , contact = add(.cmail_section_problems(b, type, path, keys)),
       add(.cmail_piezas_problems(b, type, path, keys))
     )
+  }
+  # Lo que «Cambiar por» dejó guardado (collection_mail_secciones.R, L8).
+  for (i in seq_along(template$blocks %||% list())) {
+    g <- template$blocks[[i]]$guardado
+    if (!is.null(g)) add(.cmail_guardado_problems(g, sprintf("template.blocks[%d].guardado", i)))
   }
   # Nada binario en lo que persiste (mismo guard que collection_state).
   add(.cc_security_problems(template, "template"))

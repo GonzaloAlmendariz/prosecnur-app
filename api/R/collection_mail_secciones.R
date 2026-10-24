@@ -20,6 +20,11 @@
 # `box` (nace con el acento) se lee igual en Outlook, que no pinta fondos de
 # imagen.
 #
+# **Guardado (L8).** «Cambiar por» pasa el contenido de ranura a ranura; lo
+# que el destino no tiene queda en `guardado`, un objeto que el render ignora
+# (y la revisión no lee: sus campos no cuentan como usados) y que el editor
+# devuelve al regresar a la sección anterior. Sólo se valida su forma.
+#
 # **Fotos.** Pasos lleva una foto arriba (2:1 sin recorte declarado), Cita y
 # Contacto un retrato de 96 px (1:1) redondo. El recorte es el de
 # collection_mail_recorte.R; las esquinas redondas son CSS (Outlook las deja
@@ -40,6 +45,21 @@
 .CMAIL_EMAIL_RE <- "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
 
 # ---- validación ---------------------------------------------------------------
+
+.CMAIL_GUARDADO_MAX_KEYS <- 40L
+
+#' Lo guardado de una sección: un objeto con nombres, de tamaño acotado. Su
+#' contenido no se valida (no se muestra); lo binario lo frena el guard común.
+#' @keywords internal
+.cmail_guardado_problems <- function(g, path) {
+  if (!is.list(g) || (length(g) && is.null(names(g))) || any(!nzchar(names(g)))) {
+    return(list(.cmail_problem(path, "bad_guardado", "guardado es un objeto con nombres.")))
+  }
+  if (length(g) > .CMAIL_GUARDADO_MAX_KEYS) {
+    return(list(.cmail_problem(path, "bad_guardado", sprintf("guardado admite hasta %d claves.", .CMAIL_GUARDADO_MAX_KEYS))))
+  }
+  list()
+}
 
 .cmail_entries_of <- function(b) {
   e <- b$entries
@@ -71,8 +91,9 @@
     }
     add(.cmail_text_problems(x$title, paste0(p, ".title"), keys, required = TRUE))
     add(.cmail_link_problems(x$title, paste0(p, ".title"), keys, FALSE))
-    # La respuesta de una pregunta es obligatoria; el texto de un paso o un beneficio, no.
-    add(.cmail_text_problems(x$text, paste0(p, ".text"), keys, required = identical(type, "faq")))
+    # El texto es opcional en todas: una pregunta sin respuesta sale sola (así
+    # «Cambiar por» desde Beneficios o Pasos no frena la vista previa).
+    add(.cmail_text_problems(x$text, paste0(p, ".text"), keys))
     add(.cmail_link_problems(x$text, paste0(p, ".text"), keys, TRUE))
     if (!is.null(x$icon)) {
       icon <- .cmail_one(x$icon)
