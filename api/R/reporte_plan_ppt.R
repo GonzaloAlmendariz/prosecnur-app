@@ -4588,15 +4588,15 @@ reporte_ppt_plan <- function(
 
       if (!length(tabs_by_v)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
 
-      all_opts <- .ordered_stack_levels(
+      all_opts <- .graficos_no_sustantivos_al_final(.ordered_stack_levels(   # graficos_no_sustantivos.R: 9/77 al final, en gris
         ln,
         all_opts,
         choices_use = choices_use,
         palette_names = names(colores_grupos %||% NULL)
-      )
+      ), ln, choices_use)
       if (is.null(colores_grupos) || !length(colores_grupos)) {
-        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
-          .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+        colores_grupos <- .graficos_no_sustantivos_paleta(
+          ln, all_opts, choices_use
         )
       }
       labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
@@ -7996,8 +7996,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_right, pR)
       }
 
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_paneles(list(pL, pR), slide)) doc <- .lam_slide_paneles_nativa(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)
-      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_paneles(list(pL, pR), slide)) {
+      if ((nat2 <- !isTRUE(solo_lista) && .lam_slide_2_aplica(list(pL, pR), list(el_left, el_right), slide, .title_of_var))) doc <- .lam_slide_2_despacho(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)   # lamina_grilla_nativa.R
+      if (!isTRUE(solo_lista) && !nat2) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {
@@ -8333,7 +8333,7 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_bl, pBL)
         .push_render_meta_for_element(el_br, pBR)
       }
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = if (.base_por_grafico_migrada(slide)) slots$base else slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"), solo_base_declarada = .base_por_grafico_migrada(slide))
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_grilla_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, slots$base, .base_por_grafico_migrada(slide), function(e) .base_auto_de_elementos(els = e, sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))   # lamina_grilla_nativa.R
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
