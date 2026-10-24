@@ -104,8 +104,11 @@ export function leerTwoBox(graficador: string, args: Readonly<Registro>, presets
     h.valor,
   );
   const activas = opcionesActivas(valor);
-  // Apiladas: las categorías son del gráfico (`overrides`). Multiapiladas: del plan (`args`).
-  const fuenteTop = forma === "apiladas" ? ov : args;
+  // Apiladas: las categorías son del gráfico (`overrides`). Multiapiladas: del plan (`args`). El motor recibe los args
+  // como `...` y `overrides` manda (`modifyList(dots, overrides)`, reporte_plan_slides.R): en apiladas, unas respuestas
+  // escritas en los args también salen en el PowerPoint (CCSS-UI-1).
+  const fuenteTop = forma === "apiladas" && !tieneLista(ov, "top2box_labels") && tieneLista(args, "top2box_labels") ? args
+    : forma === "apiladas" ? ov : args;
   const topDelInforme = !tieneLista(fuenteTop, "top2box_labels") && h.top.length > 0;
   const bottomDelInforme = !tieneLista(ov, "bottom2box_labels") && h.bottomEtiquetas.length > 0;
   return {

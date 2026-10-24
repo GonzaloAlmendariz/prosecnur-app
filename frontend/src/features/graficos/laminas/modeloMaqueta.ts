@@ -107,7 +107,8 @@ export function twoBoxEnPregunta(activa: boolean, etiquetas: readonly string[] |
   if (!opciones.length) return true;
   // Sin categorías declaradas el motor lo omite en una lista sin orden (`sin_orden`) y avisa en una escala: la maqueta lo
   // muestra sólo donde el aviso de la tarjeta tiene sentido.
-  if (!etiquetas?.length) return tienePistasDeOrden(opciones.map((o) => o.rotulo));
+  // Ni en una escala corta (menos de 3, `escala_corta`): Sí/No no tiene «dos mejores» que elegir (CCSS-UI-1).
+  if (!etiquetas?.length) return opciones.length >= 3 && tienePistasDeOrden(opciones.map((o) => o.rotulo));
   const escala = new Set(opciones.map((o) => normalizarRotulo(o.rotulo)));
   return etiquetas.some((e) => escala.has(normalizarRotulo(e)));
 }
