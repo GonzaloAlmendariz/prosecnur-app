@@ -13,14 +13,16 @@
 #' @param alto Alto disponible bajo el encabezado del panel (in).
 #' @return Geometría con `compacto = TRUE` (o la que mejor se acercó, con `cabe = FALSE`).
 #' @keywords internal
-.lam_circular_leyenda_compacta <- function(espec, x, y0, w, alto) {
+.lam_circular_leyenda_compacta <- function(espec, x, y0, w, alto, d_tope = Inf) {
   k <- length(espec$valores)
-  d_max <- min(alto, w * 0.42, 2.6)
+  d_max <- min(alto, w * 0.42, 2.6, d_tope)
   discos <- if (d_max >= 0.9) unique(round(c(d_max, rev(seq(0.9, d_max, by = 0.15))), 3)) else numeric(0)
   ultimo <- NULL
   if (k < 2L || !length(discos)) return(list(tipo = "circular", compacto = TRUE, cabe = FALSE))
-  # Primero con el disco de al menos tres cuartos del mayor; si no hay manera, con cualquiera desde 0.9 in.
-  for (piso_d in c(0.75 * d_max, 0.9)) for (size in c(11, 10, 9.5, 9, 8.5, 8)) for (nc in 1:2) for (d in discos[discos >= piso_d - 1e-9]) {
+  # En una grilla (CCSS-26) se intenta primero con el diámetro común; después, con el disco de al menos tres cuartos del
+  # mayor y, si no hay manera, con cualquiera desde 0.9 in.
+  pisos <- c(if (is.finite(d_tope)) d_max, 0.75 * d_max, 0.9)
+  for (piso_d in pisos) for (size in c(11, 10, 9.5, 9, 8.5, 8)) for (nc in 1:2) for (d in discos[discos >= piso_d - 1e-9]) {
     per <- ceiling(k / nc)
     xl <- x + d + 0.3; wl <- x + w - xl
     wcol <- (wl - 0.15 * (nc - 1L)) / nc
@@ -55,4 +57,19 @@
     .lam_txt(lz, espec$rotulos[i], xr, yk + 0.01, xc + geo$wcol - xr, geo$fila - 0.02, geo$size, azul, nombre = "circular:rotulo")
   }
   invisible(y_ley + geo$per * geo$fila)
+}
+
+#' Diámetro común de las donas de una grilla con celdas de distinto alto (CCSS-26)
+#'
+#' Si el panel es una celda de la grilla de cinco o de seis gráficos de población, el diámetro que cabe en su celda más
+#' baja; si no, sin tope. Las grillas de celdas iguales (2 x 2, dos gráficos) no cambian.
+#' @keywords internal
+.lam_circular_d_grilla <- function(x, y, w, h) {
+  for (tipo in c("poblacion_6", "poblacion_5")) {
+    P <- tryCatch(.lam_mixta_geo(tipo)$paneles, error = function(e) NULL)
+    if (!length(P)) next
+    es <- vapply(P, function(p) abs(p$x - x) < 1e-3 && abs(p$y - y) < 1e-3 && abs(p$w - w) < 1e-3 && abs(p$h - h) < 1e-3, TRUE)
+    if (any(es)) return(min(vapply(P, function(p) min(p$h - 0.72, p$w * 0.42, 2.6), 0)))
+  }
+  Inf
 }

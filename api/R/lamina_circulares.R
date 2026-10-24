@@ -84,6 +84,10 @@
 .lam_laminas_dona <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
                               rotulo_centro = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  if (!.lam_dona_recetario_cabe(espec)) {   # L4: más de dos porciones o el rótulo no cabe en el hueco
+    return(.lam_laminas_dona_grande(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
+                                    rotulo_centro = rotulo_centro, layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
   azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   d <- 4.0; xd <- ml + 1.2; yd <- yt + 0.35; cx <- xd + d / 2; cy <- yd + d / 2; r <- d / 2 * 0.79
@@ -118,6 +122,13 @@
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
   # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
   # centro debe caber en el hueco (≈ 1.8 in).
+  .lam_dona_recetario_cabe(espec) || .lam_dona_grande_cabe(espec)   # L4: si no, la dona grande (lamina_circular_dona_grande.R)
+}
+
+#' ¿Cabe la dona del recetario (lámina 70): dos porciones con sus frecuencias y el rótulo del centro en el hueco?
+#' @keywords internal
+.lam_dona_recetario_cabe <- function(espec) {
+  k <- length(espec$valores)
   k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
     .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0

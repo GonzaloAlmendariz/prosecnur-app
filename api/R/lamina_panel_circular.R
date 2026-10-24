@@ -10,7 +10,8 @@
 .lam_panel_circular_geo <- function(espec, x, y, w, h, dy = 0) {
   k <- length(espec$valores); y0 <- y + 0.62 + dy
   alto <- y + h - y0 - 0.1
-  d <- min(alto, w * 0.42, 2.6)
+  tope <- .lam_circular_d_grilla(x, y, w, h)   # CCSS-26: todas las donas de la grilla del mismo diámetro
+  d <- min(alto, w * 0.42, 2.6, tope)
   wl <- w - d - 0.35
   fila <- if (k) min(0.62, alto / k) else 0
   # El rótulo va en una línea: 11 pt si cabe, 9.5 si no (la caja de texto descuenta 0.2 in de márgenes internos).
@@ -22,7 +23,7 @@
   geo <- list(tipo = "circular", x = x, y0 = y0, d = d, xl = x + d + 0.35, wl = wl, fila = fila, size = size,
               cabe = k >= 2L && k <= 5L && d >= 1.1 && fila >= 0.36 && rot_ok)
   # Frente C: lo que no cabe así se compacta (lamina_circular_leyenda.R) en vez de caer a la imagen ggplot.
-  if (isTRUE(geo$cabe) || k < 2L) geo else .lam_circular_leyenda_compacta(espec, x, y0, w, alto)
+  if (isTRUE(geo$cabe) || k < 2L) geo else .lam_circular_leyenda_compacta(espec, x, y0, w, alto, d_tope = tope)
 }
 
 #' Dibuja el panel circular
