@@ -285,6 +285,20 @@
   display: none;
 }
 
+/* §2a-bis: el rótulo de Insumos › Fuentes va en esta barra, a la izquierda de
+ * «Última lectura», con un filete entre los dos. */
+.mon-profile-canonical-shell .mon-acr-source-status-strip.is-phone:has(> .mon-tel-rotulo),
+.mon-acr-source-status-strip.is-phone:has(> .mon-tel-rotulo) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.mon-acr-source-status-strip.is-phone > .mon-tel-rotulo + .mon-acr-source-status-sync {
+  padding-left: var(--pulso-space-4);
+  border-left: 1px solid var(--pulso-border);
+}
+
 .mon-acr-source-status-sync {
   min-width: 0;
   margin: 0;

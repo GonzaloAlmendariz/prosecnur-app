@@ -505,3 +505,54 @@ más (p. ej. a qué titular reemplaza cada caso), se agrega aquí, no en paralel
 
 **Pendiente de decisión:** conectar la hoja de supervisión desde la app necesita ofrecer el rol `supervision` en el
 panel de conexión de fuentes; hoy el motor lo acepta pero el panel no lo ofrece.
+
+## T9b: rondas de supervisión en la UI (2026-10-24)
+
+Motor en `api/R/monitoreo_supervision_rondas.R` (commits `e419d1e4a`, `912a280cc`, `f694e71d5`). Frontend:
+
+- **Cliente** (`api/monitoreoTelefonico.ts`): `apiSupervisionRondas`, `apiSupervisionNuevaRonda`,
+  `apiSupervisionPublicarRonda`, `apiSupervisionLeerResultados`, con normalizador defensivo
+  (`normalizarRondasDeSupervision`: escalares de largo uno, `{}` por `NULL`, `resultados` de la última lectura).
+- **Control › Supervisión**: la tarjeta «Rondas» lista las rondas guardadas (número, fecha, semilla, casos y cuántos a
+  mano, porcentaje sobre las efectivas del universo) con su estado en chip: «Guardada», «Publicada en «Ronda N»» o
+  «La pestaña «Ronda N» ya no está» (lectura `pestana_borrada`). La elegida filtra el reparto y los casos. Un proyecto
+  anterior a las rondas muestra la Ronda 1 sin guardar y ofrece guardarla tal cual (misma semilla, mismos casos).
+- **Nueva ronda** (diálogo con dirección `panel=nueva-ronda`): efectivas nuevas desde la última ronda, porcentaje con
+  el reparto por enumerador calculado en vivo (mayor resto, mínimo uno por enumerador, nunca más que sus efectivas,
+  `ceiling(universo × % / 100)` como el motor; 0 % sólo con casos agregados) y buscador por CodPulso, proGres o
+  enumerador para agregar casos a mano (los que ya salieron en una ronda, deshabilitados). El reparto previo se marca
+  «aproximado» cuando las efectivas sin ronda del motor no coinciden con las nunca elegidas de la base: el bloque
+  `supervision_base` no trae el universo de cada ronda, sólo la ronda que eligió cada caso.
+- **Publicar en el Sheets** (`panel=publicar-ronda`): preguntas de control de Kobo como columnas, aviso de que se crea
+  la pestaña «Ronda N» sin tocar otra; sin hoja de supervisión conectada, camino a Insumos › Fuentes. El motor rechaza
+  la doble publicación (`E_MONITOREO_SUPERVISION_PUBLICADA`) y la pestaña ocupada; el error llega en palabras.
+- **Leer resultados**: con hoja conectada y alguna ronda publicada, lee (sólo lectura) las pestañas «Ronda N» y deja
+  el recibo; los avisos de `supervision_avisos` (pestaña borrada) se pintan en la tarjeta.
+- **Insumos › Fuentes**: pieza opcional «Hoja de supervisión» (rol `supervision`) en el guion de conexión; cierra el
+  pendiente de decisión anterior.
+
+## §2a-bis en Telefónico: rótulo dentro de la pestaña (2026-10-24)
+
+El rótulo «SECCIÓN · GRUPO / Pestaña» deja la fila propia (con ícono) y entra a la pestaña
+(`navegacion/RotuloDePestana.tsx`, contexto publicado por la página; `rotuloEnLaPestana` en `barraTelefonica.ts`):
+
+| Pestaña | Dónde va el rótulo |
+|---|---|
+| Insumos › Fuentes | barra de acciones (antes de «Última lectura») |
+| Insumos › Llave y filtros | primera tarjeta: «Encuesta en Kobo» sin nada por revisar; «Llave de cruce» con revisión |
+| Insumos › Estados | cabecera de «Vocabulario de Status», junto a «Confirmar estados» |
+| Modelo › Cuotas y calendario | cabecera de «Eje de cuota», con el selector Cuotas / Calendario |
+| Control › Barrido | cabecera nueva de la tarjeta del embudo |
+| Control › Insistencia | fila de la barra de filtros (la cola es común en `core/`: la rejilla del envoltorio pone rótulo y barra en una tarjeta) |
+| Control › Equipo | cabecera de «Carga por operador» |
+| Control › Discrepancias | primera línea de «Cómo no coinciden» |
+| Control › Respuestas | cabecera nueva de la cadena de envíos a efectivas |
+| Control › Supervisión | cabecera de «Rondas», con «Leer resultados» y «Nueva ronda» |
+| Control › Avisos | cabecera nueva de la tabla de avisos |
+| Avance › Cuotas | cabecera nueva de la tabla «Cuánto falta por …» |
+| Avance › Ritmo | primera línea de «Efectivas de Kobo por día» |
+| Avance › Entregas | cabecera de «Para el cliente: avance por cuota» |
+
+Esas pestañas piden el lienzo desnudo (sin tarjeta envolvente: eran tarjetas dentro de otra). Conservan la cabecera de
+siempre las sub-vistas que todavía montan la vista anterior (Respuestas › Salvedades y Cuotas y calendario ›
+Calendario), la carga de una sección y el corte ausente.

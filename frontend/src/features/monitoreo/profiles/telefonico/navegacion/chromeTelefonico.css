@@ -185,3 +185,146 @@
   border-color: var(--pulso-border);
   background: var(--pulso-surface);
 }
+
+/* Rótulo de pestaña dentro de la pestaña (estándar §2a-bis, 2026-10-24): la
+ * cabecera «SECCIÓN · GRUPO / Pestaña» ya no ocupa una fila propia sobre el
+ * fondo; comparte fila con la barra de herramientas o encabeza la primera
+ * tarjeta. Sin ícono: el rail ya marca la pestaña activa. */
+/* Más específica que `profilePage.css` (`.mon-profile-canonical-shell
+ * .mon-workbench.is-acreditacion .mon-workbench-main`, que carga después): con
+ * el empate, el contenido quedaba en la fila `auto` y no llenaba el alto. */
+.mon-profile-canonical-shell.is-telefonico-profile .mon-workbench.is-acreditacion .mon-workbench-main:has(> .mon-workbench-content.is-rotulo-en-pestana) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-tel-rotulo {
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  min-width: 0;
+  margin-inline-end: auto;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.mon-tel-rotulo-copia {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mon-tel-rotulo-copia small {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-tel-rotulo-copia h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mon-tel-rotulo-extra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+/* En el encabezado de una tarjeta: el rótulo a la izquierda, el título propio
+ * de la tarjeta como detalle tras un filete y las acciones a la derecha. */
+:is(header, .mon-tel-barra-rotulo):has(> .mon-tel-rotulo) {
+  align-items: center;
+}
+
+.mon-tel-rotulo + b,
+.mon-tel-rotulo + strong,
+.mon-tel-rotulo + .mon-tel-rotulo-detalle {
+  padding-left: var(--pulso-space-3);
+  border-left: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* El rótulo empuja lo demás a la derecha; si la tarjeta ya trae su título,
+ * ese título va pegado al rótulo y el empuje pasa a lo que sigue. */
+:is(header, .mon-tel-barra-rotulo):has(> .mon-tel-rotulo + :is(b, strong)) > .mon-tel-rotulo {
+  margin-inline-end: 0;
+}
+
+/* Barra propia cuando la pestaña no trae una: tarjeta de altura de barra. */
+.mon-tel-barra-rotulo {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: 56px;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-tel-barra-rotulo-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+/* Rótulo arriba de una tarjeta con relleno propio (columna angosta): una
+ * línea con filete debajo, antes del contenido de la tarjeta. */
+.mon-tel-rotulo-de-tarjeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding-bottom: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-1);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* Una tarjeta vacía que lleva el rótulo: el rótulo arriba, el vacío al centro
+ * del resto (C3: el vacío es de la tarjeta). */
+.mon-tel-vacio:has(> header > .mon-tel-rotulo) {
+  display: flex;
+  flex-direction: column;
+  place-items: stretch;
+}
+
+.mon-tel-vacio:has(> header > .mon-tel-rotulo) > :last-child {
+  margin: auto;
+}
+
+/* Línea de rótulo propia dentro de la tarjeta, cuando su cabecera ya trae
+ * título, detalle y selector: el rótulo arriba, con filete, y la cabecera de
+ * siempre debajo. */
+.mon-tel-cabecera-rotulo {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-tel-cabecera-rotulo + header {
+  align-items: center;
+}
+
+/* Algunas cabeceras empujan su último hijo a la derecha; el rótulo solo, no. */
+header.mon-tel-cabecera-rotulo > .mon-tel-rotulo {
+  margin-left: 0;
+}

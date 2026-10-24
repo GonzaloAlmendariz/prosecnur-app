@@ -255,6 +255,8 @@ const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   "control/insistencia": ["caso"],
   // «Estados por operador» de Equipo: una vista con dirección, como la ficha.
   "control/equipo": ["estados"],
+  // Supervisión: los diálogos de una ronda nueva y de publicar una ronda.
+  "control/supervision": ["nueva-ronda", "publicar-ronda"],
 };
 
 const SIN_PANELES: readonly string[] = [];

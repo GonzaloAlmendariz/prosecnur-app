@@ -142,7 +142,7 @@ test_that("supervision_casos agrega los campos de la hoja sin quitar los previos
   expect_identical(unlist(b$supervision_casos$columns), c(
     "N", "CodPulso", "proGres", "Enumerador", "Categoría", "Fecha Kobo", "Response ID", "Resultado", "Status final",
     "Coincide", "Observación", "En hoja", "Supervisor", "Status barrido", "Status supervisión", "Intentos supervisión",
-    "Observaciones", "Controles", "Controles coinciden", "Coincide según"
+    "Observaciones", "Controles", "Controles coinciden", "Coincide según", "Ronda", "Origen", "Resultado de"
   ))
   casos <- sup_df(b$supervision_casos)
   uno <- casos[casos$CodPulso == "SUP-011", ]
@@ -241,4 +241,18 @@ test_that("el enumerador se reconoce por patrón en el nombre o en la etiqueta, 
   expect_identical(.monitoreo_kobo_enumerador(por_etiqueta), c("A", "B"))
   # Sin pregunta ni cuenta: vacío, no se inventa.
   expect_identical(.monitoreo_kobo_enumerador(data.frame(otra = "x")), "")
+})
+
+test_that("caché: cambiar supervision_n o la semilla cambia el token del dashboard (la Ronda 1 se re-sortea)", {
+  data <- data.frame(CodPulso = "SUP-001", stringsAsFactors = FALSE)
+  cfg <- monitoreo_normalize_config(list(supervision_n = 20L, supervision_seed = 1L), data)
+  snapshot <- list(synced_at = "2026-10-24T00:00:00Z")
+  token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg)
+  otro_n <- cfg
+  otro_n$supervision_n <- 30L
+  otra_semilla <- cfg
+  otra_semilla$supervision_seed <- 2L
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, otro_n)))
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, otra_semilla)))
+  expect_identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg))
 })

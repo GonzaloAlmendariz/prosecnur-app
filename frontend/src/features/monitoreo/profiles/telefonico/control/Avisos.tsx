@@ -3,6 +3,7 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { casosPorRevisar, construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 
 const NIVEL: Record<NivelDeAviso, string> = { alta: "Alta", media: "Media", baja: "Baja" };
@@ -39,11 +40,12 @@ export function Avisos({
   const porRevisar = useMemo(() => casosPorRevisar(modelo.avisos), [modelo.avisos]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const elegido: Aviso | null = modelo.avisos.find((aviso) => aviso.id === foco) ?? modelo.avisos[0] ?? null;
+  const hayRotulo = useHayRotulo();
 
   if (!modelo.avisos.length && !modelo.sinAsignar) {
     return (
       <section className="mon-ctl-panel mon-avisos-vacio" aria-label="Avisos">
-        <span className="mon-ctl-antetitulo">Avisos</span>
+        {hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Avisos</span>}
         <strong>Sin avisos activos</strong>
         <p>La hoja de barrido y las respuestas no muestran nada que corregir en este corte.</p>
       </section>
@@ -57,6 +59,8 @@ export function Avisos({
         * «Por dónde se corrige». */}
       <div className="mon-avisos-columna">
       <section className="mon-ctl-panel mon-avisos-lista-panel" aria-label="Avisos por causa">
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+        {hayRotulo ? <header className="mon-ctl-panel-cabecera mon-avisos-lista-cabecera"><RotuloDePestana /></header> : null}
         <div className="mon-ctl-tabla-marco">
           <table className="mon-ctl-tabla mon-avisos-tabla">
             <thead>

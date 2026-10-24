@@ -62,9 +62,6 @@ monitoreo_data_fingerprint <- function(data, synced_at = "") {
 # Regla conservadora: SOLO se excluyen campos que con certeza no cambian
 # ningún número ni etiqueta del dashboard cacheado; ante la duda el campo se
 # queda en el token. Hoy salen:
-#   - supervision_n / supervision_seed: solo alimentan el endpoint bajo
-#     demanda /supervision/sample (monitoreo_supervision_sample), nunca el
-#     build del dashboard.
 #   - territorial$inspected_at (y el de cada phase_source): timestamp de la
 #     última inspección del asset Kobo; cambia en cada re-inspección sin
 #     alterar cálculo alguno.
@@ -79,10 +76,12 @@ monitoreo_data_fingerprint <- function(data, synced_at = "") {
 # números, pero viajan horneadas dentro del dashboard cacheado (client_report
 # embebido) y excluirlas serviría alias obsoletos. Pendiente documentado: el
 # mapeo fino por scope individual.
+# supervision_n / supervision_seed SE QUEDAN: desde el revamp T9 sortean la
+# Ronda 1 de los bloques supervision_* del reporte telefónico
+# (monitoreo_supervision_estratificada.R); sacarlos del token servía el sorteo
+# viejo tras cambiar la cantidad o la semilla.
 monitoreo_perf_config_for_cache_token <- function(cfg) {
   if (is.null(cfg) || !is.list(cfg)) return(cfg)
-  cfg$supervision_n <- NULL
-  cfg$supervision_seed <- NULL
   territorial <- cfg$territorial
   if (is.list(territorial)) {
     territorial$inspected_at <- NULL
