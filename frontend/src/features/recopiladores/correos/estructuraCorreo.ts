@@ -10,7 +10,7 @@
 // - el pie (`footer_legal`) se dibuja siempre al final, fuera de la tarjeta:
 //   nada se mueve ni se inserta después de él, y él no se mueve.
 
-import type { MailBlock, MailCheck, MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailTemplate } from "../../../api/materialMail";
 import { CABECERA, bloqueNuevo, idLibre, nuevoIdDeBloque } from "./modeloCorreo";
 import { imagenesDelCuerpo, type TipoInsertable } from "./piezasGraficas";
 
@@ -81,6 +81,31 @@ export function huecoValido(template: Pick<MailTemplate, "blocks">, hueco: numbe
 /** ¿Se puede agregar este tipo? El pie es único. */
 export function tipoDisponible(template: Pick<MailTemplate, "blocks">, type: TipoInsertable): boolean {
   return type !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal");
+}
+
+/** Tope de bloques de un correo (`.CMAIL_MAX_BLOCKS`): pasarlo deja la plantilla inválida. */
+export const MAXIMO_DE_BLOQUES = 40;
+
+/**
+ * Duplica un bloque justo debajo de sí (L10, barra del lienzo): la copia es
+ * idéntica, con su propio id; una foto se comparte (el mismo archivo sale dos
+ * veces). El pie legal no se duplica, ni un bloque que esta versión no conoce,
+ * ni se pasa del tope. `null` si no se puede.
+ */
+export function duplicarBloque(template: MailTemplate, blockId: string): { template: MailTemplate; block_id: string } | null {
+  const i = template.blocks.findIndex((b) => b.block_id === blockId);
+  const original = template.blocks[i];
+  if (!original || isOpaqueMailBlock(original) || !tipoDisponible(template, original.type)) return null;
+  if (template.blocks.length >= MAXIMO_DE_BLOQUES) return null;
+  const block_id = nuevoIdDeBloque(original.type, template);
+  const copia = { ...(JSON.parse(JSON.stringify(original)) as MailBlock), block_id };
+  const blocks = [...template.blocks];
+  blocks.splice(i + 1, 0, copia);
+  return { template: { ...template, blocks }, block_id };
+}
+
+export function puedeDuplicar(template: MailTemplate, blockId: string): boolean {
+  return duplicarBloque(template, blockId) !== null;
 }
 
 /** El enlace que ya usa el correo: el de su primer botón, o el campo que lleva a la encuesta. */

@@ -1,4 +1,3 @@
-import { useState } from "react";
 
 import { isOpaqueMailBlock, tieneEntradas, tieneFoto, type TipoConEntradas, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -7,7 +6,7 @@ import { PropRow } from "../../xlsformEditor/kit";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, sigueAIdentidad, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
-import { EstiloDelBloque, SelectorDeVista, type VistaDelBloque } from "./EstiloDelBloque";
+import { EstiloDelBloque, SelectorDeVista } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
 import { CambiarPorSeccion } from "./CambiarPorSeccion";
@@ -48,7 +47,7 @@ import {
   type PropDeTexto,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
-import type { DestinoDelCampo } from "./store";
+import { useCorreosStore, type DestinoDelCampo } from "./store";
 
 type Props = {
   template: MailTemplate;
@@ -188,7 +187,9 @@ export function PanelDeBloque({
   coloresDeLaMarca = [],
 }: Props) {
   // Antes de cualquier return: un hook bajo una guarda rompe al cambiar de selección (React #310).
-  const [vista, setVista] = useState<VistaDelBloque>("contenido");
+  // En el store: la barra del lienzo también abre «Estilo» (L10).
+  const vista = useCorreosStore((s) => s.vistaDelBloque);
+  const setVista = useCorreosStore((s) => s.setVistaDelBloque);
   if (seleccion === SOBRE) {
     return (
       <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">

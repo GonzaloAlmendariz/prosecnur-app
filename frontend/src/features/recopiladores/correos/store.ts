@@ -24,6 +24,7 @@ import {
   type PropDeTexto,
   type VistaDelCorreo,
 } from "./modeloCorreo";
+import type { VistaDelBloque } from "./EstiloDelBloque";
 import { revisionEncadenada } from "./modeloCampanas";
 import { enviosCambiados, envioRecordado, envioVigente, reconciliarEnvios, recordarEnvio } from "./modeloEnvios";
 import {
@@ -124,6 +125,8 @@ export type EstadoCorreos = {
   aviso: Aviso | null;
 
   seleccion: string;
+  /** «Contenido | Estilo» del inspector del bloque elegido; la barra del lienzo abre «Estilo» (L10). */
+  vistaDelBloque: VistaDelBloque;
   vista: VistaDelCorreo;
   /** Posición (1..n) entre los destinatarios válidos; `null` = persona de ejemplo. */
   persona: number | null;
@@ -195,6 +198,7 @@ type Acciones = {
   setPlataforma: (plataforma: MailPlatform) => void;
   setPedirAlt: (id: string | null) => void;
   seleccionar: (seleccion: string) => void;
+  setVistaDelBloque: (vista: VistaDelBloque) => void;
   setVista: (vista: VistaDelCorreo) => void;
   setCajonAbierto: (abierto: boolean) => void;
   setExportarAbierto: (abierto: boolean) => void;
@@ -253,6 +257,7 @@ const INICIAL: EstadoCorreos = {
   ocupado: null,
   aviso: null,
   seleccion: SOBRE,
+  vistaDelBloque: "contenido",
   vista: "escritorio",
   persona: null,
   destino: null,
@@ -458,7 +463,9 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   setPedirAlt: (pedirAlt) => set({ pedirAlt }),
   setPlataforma: (plataforma) => set((s) => (s.plataforma === plataforma ? {} : { plataforma, exportacion: null, refresco: s.refresco + 1 })),
 
-  seleccionar: (seleccion) => set({ seleccion }),
+  // Otro bloque abre en su contenido; volver a elegir el mismo no cambia la vista.
+  seleccionar: (seleccion) => set((s) => (s.seleccion === seleccion ? { seleccion } : { seleccion, vistaDelBloque: "contenido" })),
+  setVistaDelBloque: (vistaDelBloque) => set({ vistaDelBloque }),
   setVista: (vista) => set({ vista }),
   setCajonAbierto: (cajonAbierto) => set({ cajonAbierto }),
   setExportarAbierto: (exportarAbierto) => set({ exportarAbierto }),

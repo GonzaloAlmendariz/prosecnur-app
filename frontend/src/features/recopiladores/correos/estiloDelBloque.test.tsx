@@ -138,7 +138,8 @@ describe("colores de la marca en el editor", () => {
   it("la vista Contenido | Estilo se declara antes del primer return de PanelDeBloque", async () => {
     const { readFileSync } = await import("node:fs");
     const fuente = readFileSync(new URL("./PanelDeBloque.tsx", import.meta.url), "utf8");
-    const hook = fuente.indexOf("useState<VistaDelBloque>");
+    // L10: la vista vive en el store (la barra del lienzo abre «Estilo»); el hook sigue antes del primer return.
+    const hook = fuente.indexOf("useCorreosStore((s) => s.vistaDelBloque)");
     const primerReturn = fuente.indexOf("if (seleccion === SOBRE)");
     expect(hook).toBeGreaterThan(0);
     expect(hook).toBeLessThan(primerReturn);
