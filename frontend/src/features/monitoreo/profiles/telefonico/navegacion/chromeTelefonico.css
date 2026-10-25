@@ -245,7 +245,7 @@
 
 /* En el encabezado de una tarjeta: el rótulo a la izquierda, el título propio
  * de la tarjeta como detalle tras un filete y las acciones a la derecha. */
-:is(header, .mon-tel-barra-rotulo):has(> .mon-tel-rotulo) {
+header:has(> .mon-tel-rotulo) {
   align-items: center;
 }
 
@@ -261,32 +261,8 @@
 
 /* El rótulo empuja lo demás a la derecha; si la tarjeta ya trae su título,
  * ese título va pegado al rótulo y el empuje pasa a lo que sigue. */
-:is(header, .mon-tel-barra-rotulo):has(> .mon-tel-rotulo + :is(b, strong)) > .mon-tel-rotulo {
+header:has(> .mon-tel-rotulo + :is(b, strong)) > .mon-tel-rotulo {
   margin-inline-end: 0;
-}
-
-/* Barra propia cuando la pestaña no trae una: tarjeta de altura de barra. */
-.mon-tel-barra-rotulo {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2) var(--pulso-space-3);
-  min-height: 56px;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.mon-tel-barra-rotulo-acciones {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--pulso-space-2);
-  margin-left: auto;
 }
 
 /* Rótulo arriba de una tarjeta con relleno propio (columna angosta): una

@@ -130,6 +130,12 @@ export function Supervision({
               {minimos === 1 ? "Un enumerador sube" : `${n(minimos)} enumeradores suben`} a un caso por el mínimo.
             </NotaDelModo>
           ) : null}
+          {/* Las cifras van rotuladas en su cabecera y cada barra dice qué mide:
+            * no hace falta leyenda al pie. */}
+          <div className="mon-sup-lista-cabeza" aria-hidden="true">
+            <span>Enumerador</span>
+            <span>Efectivas · <b>sorteados</b></span>
+          </div>
           <ul className="mon-sup-lista">
             {repartoVisible.map((fila) => (
               <li key={fila.enumerador}>
@@ -137,18 +143,14 @@ export function Supervision({
                   {fila.enumerador}
                   {fila.minimo ? <em className="mon-sup-minimo" title="El caso existe por el mínimo de uno por enumerador">mínimo</em> : null}
                 </span>
-                <i className="mon-sup-barras" aria-hidden="true">
+                <i className="mon-sup-barras" title={`${n(fila.efectivas)} efectivas; ${n(fila.casos)} ${fila.casos === 1 ? "caso sorteado" : "casos sorteados"}`}>
                   <i className="is-efectivas" style={{ width: `${(fila.efectivas / maximo) * 100}%` }} />
                   <i className="is-casos" style={{ width: `${(fila.casos / maximo) * 100}%` }} />
                 </i>
-                <span className="mon-sup-cifras is-num">{n(fila.efectivas)} · <b>{n(fila.casos)}</b></span>
+                <span className="mon-sup-cifras is-num" aria-label={`${n(fila.efectivas)} efectivas, ${n(fila.casos)} sorteados`}>{n(fila.efectivas)} · <b>{n(fila.casos)}</b></span>
               </li>
             ))}
           </ul>
-          <footer className="mon-sup-leyenda">
-            <span><i className="is-efectivas" aria-hidden="true" />Efectivas</span>
-            <span><i className="is-casos" aria-hidden="true" />Casos sorteados</span>
-          </footer>
         </section>
           {/* Sin hoja, la explicación vive una sola vez, en la tarjeta de casos. */}
           {modelo.hojaConectada ? (

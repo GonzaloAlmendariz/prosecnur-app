@@ -3,6 +3,8 @@
 .mon-sup {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: start;
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -15,10 +17,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Alto natural (pocos casos, como el RMS ficticio con 9): cada tarjeta mide lo
+ * que pide y no deja aire al pie; con muchos, la columna llega al pie y la
+ * lista o la tabla desplazan dentro. */
 .mon-sup-izquierda {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
+  max-height: 100%;
   min-height: 0;
 }
 
@@ -51,15 +57,36 @@
 
 .mon-sup-reparto {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   min-height: 160px;
   overflow: hidden;
 }
 
+.mon-sup-lista-cabeza {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 64px;
+  gap: var(--pulso-space-2);
+  padding: 0 var(--pulso-space-4);
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-sup-lista-cabeza > span:last-child {
+  grid-column: 2 / 4;
+  text-align: right;
+}
+
+.mon-sup-lista-cabeza b {
+  color: var(--pulso-brand-navy);
+}
+
 .mon-sup-lista {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: 6px;
   min-height: 0;
@@ -108,13 +135,11 @@
   border-radius: 5px;
 }
 
-.mon-sup-barras > .is-efectivas,
-.mon-sup-leyenda .is-efectivas {
+.mon-sup-barras > .is-efectivas {
   background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
 }
 
-.mon-sup-barras > .is-casos,
-.mon-sup-leyenda .is-casos {
+.mon-sup-barras > .is-casos {
   background: var(--pulso-brand-navy);
 }
 
@@ -122,38 +147,17 @@
   text-align: right;
 }
 
-.mon-sup-leyenda {
-  display: flex;
-  gap: var(--pulso-space-4);
-  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
-  border-top: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
-
-.mon-sup-leyenda span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mon-sup-leyenda i {
-  display: inline-block;
-  width: 12px;
-  height: 8px;
-  border-radius: 3px;
-}
-
 .mon-sup-casos {
   display: flex;
   flex-direction: column;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
 .mon-sup-marco {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-height: 0;
   overflow: auto;
 }
@@ -206,8 +210,14 @@
   .mon-sup {
     flex: none;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     height: auto;
     min-height: auto;
+  }
+
+  .mon-sup-izquierda,
+  .mon-sup-casos {
+    max-height: none;
   }
 
   .mon-sup-reparto,

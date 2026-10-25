@@ -232,13 +232,9 @@
   overflow-y: auto;
 }
 
+/* La lateral mide lo que piden sus tarjetas (alto natural). */
 .mon-estados > .mon-insumos-lateral {
-  align-self: stretch;
-  height: 100%;
-}
-
-.mon-estados > .mon-insumos-lateral > .mon-insumos-nota-modo {
-  margin-top: auto;
+  align-self: start;
 }
 
 .mon-estados-tabla th:nth-child(2) { width: 168px; }
@@ -269,9 +265,10 @@
   font-weight: var(--pulso-weight-regular);
 }
 
-.mon-estados-tabla tr.is-sin-regla th,
-.mon-estados-tabla tr.is-sin-regla td {
-  background: var(--pulso-warn-bg);
+/* Sin regla: un borde lateral sólido y el chip de la columna del motor; la
+ * fila no se tiñe entera. */
+.mon-estados-tabla tr.is-sin-regla > th:first-child {
+  border-left: 3px solid var(--pulso-warn-accent);
 }
 
 .mon-estados-casos {

@@ -82,6 +82,9 @@ export function Insistencia({
   }
   const variable = rotuloDelSegmento(nombreDelSegmento(casos.map((caso) => caso.variableCuota), "Cuota"));
   const conTelefono = casos.some((caso) => caso.ordenTelefono != null);
+  // §2a-bis: el rótulo comparte fila con la barra de filtros, por el hueco
+  // que la cola común abre a su izquierda. Sin chips: la cola ya dice cuántos
+  // casos tiene y cuáles son efectivas en Kobo.
   const cola = (
     <ColaDeInsistencia
       casos={casos}
@@ -90,17 +93,8 @@ export function Insistencia({
       reparto={repartoDelEquipo(estado.responsables, reports)}
       corte={corteCorto(state?.synced_at)}
       bajoLosResponsables={conTelefono ? <TelefonosPorCaso casos={casos} /> : null}
+      antesDeLosFiltros={hayRotulo ? <RotuloDePestana sinChips /> : undefined}
     />
   );
-  if (!hayRotulo) return cola;
-  // §2a-bis: el rótulo comparte fila con la barra de filtros de la cola. La
-  // cola es común (core/) y no recibe el rótulo: la rejilla de este envoltorio
-  // pone el rótulo y la barra en la misma fila, dentro de una sola tarjeta.
-  return (
-    <div className="mon-tel-insistencia">
-      {/* Sin chips: la cola ya dice cuántos casos tiene y cuáles son efectivas en Kobo. */}
-      <RotuloDePestana sinChips />
-      {cola}
-    </div>
-  );
+  return hayRotulo ? <div className="mon-tel-insistencia">{cola}</div> : cola;
 }

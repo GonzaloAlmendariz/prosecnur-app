@@ -69,7 +69,7 @@ export function Discrepancias({
   const resumen = resumenDeDiscrepancias(vigentes);
   const grupos = useMemo(() => porResponsable(vigentes), [vigentes]);
   const [responsable, setResponsable] = useState<string>(TODOS);
-  const [aviso, setAviso] = useState("");
+  const [aviso, setAviso] = useState<{ tono: "exito" | "error"; texto: string } | null>(null);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const visibles = responsable === TODOS ? grupos.flatMap((grupo) => grupo.casos) : grupos.find((grupo) => grupo.responsable === responsable)?.casos ?? [];
   const elegido = vigentes.find((caso) => caso.codigo === foco) ?? visibles[0] ?? null;
@@ -79,9 +79,9 @@ export function Discrepancias({
   const copiar = async () => {
     try {
       await navigator.clipboard.writeText(textoParaElEquipo(gruposParaAvisar));
-      setAviso("Lista copiada: pégala en el chat del equipo.");
+      setAviso({ tono: "exito", texto: "Lista copiada: pégala en el chat del equipo." });
     } catch {
-      setAviso("No se pudo copiar; usa «Exportar CSV».");
+      setAviso({ tono: "error", texto: "No se pudo copiar; usa «Exportar CSV»." });
     }
   };
 
@@ -151,7 +151,7 @@ export function Discrepancias({
             >
               <Download size={14} /> Exportar CSV
             </button>
-            {aviso ? <p className="mon-dsc-aviso" role="status">{aviso}</p> : null}
+            {aviso ? <NotaDelModo estado tono={aviso.tono} className="mon-dsc-aviso">{aviso.texto}</NotaDelModo> : null}
           </footer>
         </section>
       </div>

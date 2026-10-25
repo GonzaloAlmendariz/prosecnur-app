@@ -230,9 +230,8 @@ function chipsDeEquipo(reports: MonitoreoAcreditacionReports | null): string[] {
 /**
  * Pestañas ya rediseñadas: traen sus propios paneles (tarjetas) y piden el
  * lienzo desnudo; una tarjeta envolvente las dejaba como tarjetas dentro de
- * otra (§2a-bis). Son las mismas que llevan el rótulo dentro: las sub-vistas
- * que todavía montan la vista anterior (Respuestas › Salvedades, Cuotas y
- * calendario › Calendario) conservan la tarjeta y la cabecera.
+ * otra (§2a-bis). Son las mismas que llevan el rótulo dentro, sub-vistas
+ * incluidas (Respuestas › Salvedades, Cuotas y calendario › Calendario).
  */
 export function pestanaConLienzo(direccion: { seccion: string; pestana: string; panel?: string | null }): boolean {
   return rotuloEnLaPestana(direccion);
@@ -241,20 +240,21 @@ export function pestanaConLienzo(direccion: { seccion: string; pestana: string; 
 /**
  * Pestañas que llevan su rótulo dentro (estándar §2a-bis): en la barra de
  * herramientas o en el encabezado de su primera tarjeta, sin la fila propia de
- * la cabecera. Las sub-vistas que todavía montan la vista anterior (Respuestas
- * › Salvedades, Cuotas y calendario › Calendario) conservan la cabecera.
+ * la cabecera. Las sub-vistas (Respuestas › Salvedades, Cuotas y calendario ›
+ * Calendario) también: el selector de sub-vista va junto al rótulo.
  */
 export function rotuloEnLaPestana(direccion: { seccion: string; pestana: string; panel?: string | null }): boolean {
   const clave = `${direccion.seccion}/${direccion.pestana}`;
-  if (clave === "control/respuestas" || clave === "modelo/cuotas") return !direccion.panel;
   return [
     "insumos/fuentes",
     "insumos/llave",
     "insumos/estados",
+    "modelo/cuotas",
     "control/barrido",
     "control/insistencia",
     "control/equipo",
     "control/discrepancias",
+    "control/respuestas",
     "control/supervision",
     "control/avisos",
     "avance/cuotas",
