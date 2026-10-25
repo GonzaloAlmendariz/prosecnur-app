@@ -196,12 +196,27 @@
   paste0(x, ": preguntas generales")
 }
 
+#' ¿Abre `etiqueta` su propio subtema tras una batería? (TXT-25)
+#'
+#' Sí cuando la pregunta trae un enunciado interrogativo propio (con «¿» o «?», de 20 caracteres o más), distinto del
+#' que abrió el subtema en curso, y no comparte la lista de opciones de la pregunta anterior (una escala compartida es
+#' un ítem de batería, aunque pregunte). Su recodificada (mismo enunciado) y su «Por favor, especifica» se quedan.
+#' @keywords internal
+.codif_ss_abre_pregunta <- function(etiqueta, etiqueta_abre, lista, lista_anterior) {
+  e <- trimws(gsub("\\s+", " ", as.character(etiqueta %||% "")[1], perl = TRUE))
+  if (is.na(e) || nchar(e, type = "chars") < 20L || !grepl("[\u00bf?]", e, perl = TRUE)) return(FALSE)
+  if (identical(e, trimws(gsub("\\s+", " ", as.character(etiqueta_abre %||% "")[1], perl = TRUE)))) return(FALSE)
+  !(nzchar(lista) && identical(lista, lista_anterior))
+}
+
 #' Subtemas de un módulo: sus grupos formales, sus baterías y sus preguntas sueltas
 #'
 #' Recorre el módulo en el orden del formulario. Un grupo hijo (con lo que anide) es un subtema. Una batería es una
 #' nota (`note`, o un `enunciado_*`) directamente en el módulo, con las preguntas que la siguen hasta la próxima nota
-#' o grupo. Las preguntas sueltas fuera de batería y de grupo forman el subtema «general» del módulo. Un subtema sin
-#' preguntas con texto no entra. Devuelve una lista de `list(seccion, etiqueta, textos)`.
+#' o grupo. TXT-25: dentro de una batería, una pregunta que ya no es ítem de ella (`.codif_ss_abre_pregunta`) abre su
+#' propio subtema, aunque no haya nota de por medio, y lo mismo la pregunta que la siga. Las preguntas sueltas fuera de
+#' batería y de grupo forman el subtema «general» del módulo (ése no se parte). Un subtema sin preguntas con texto no
+#' entra. Devuelve una lista de `list(seccion, etiqueta, textos)`.
 #' @keywords internal
 .codif_ss_subtemas <- function(inst, modulo, variable, etiqueta_modulo = modulo) {
   sv <- inst$survey
@@ -215,25 +230,26 @@
   if (!length(ini)) return(list())
   subs <- list(); n_preg <- list()
   # TXT-20: la etiqueta de siempre va recortada a 90 caracteres; la completa viaja aparte para el rótulo corto.
-  abrir <- function(clave, nombre, etiqueta = NULL) {
+  abrir <- function(clave, nombre, etiqueta = NULL, tipo = "bateria") {
     if (is.null(subs[[clave]])) {
       lab <- .codif_var_label(inst, nombre, "")
       etiqueta <- etiqueta %||% .codif_ss_recortar_etiqueta(lab, nombre)
       completa <- .codif_ss_recortar_etiqueta(lab, etiqueta, max_chars = Inf)
-      subs[[clave]] <<- list(seccion = clave, etiqueta = etiqueta, etiqueta_completa = completa, textos = character(0))
+      subs[[clave]] <<- list(seccion = clave, etiqueta = etiqueta, etiqueta_completa = completa, textos = character(0),
+                             tipo = tipo)
       n_preg[[clave]] <<- 0L
     }
     clave
   }
   general <- paste0(modulo, "__general")
-  prof <- 0L; en_grupo <- NULL; bateria <- NULL
+  prof <- 0L; en_grupo <- NULL; bateria <- NULL; abre_bateria <- ""; lista_anterior <- ""
   for (i in seq.int(ini[[1]] + 1L, length.out = max(0L, length(tipo) - ini[[1]]))) {
     bt <- base_tipo[[i]]
     if (bt %in% c("begin_group", "begin_repeat")) {
       prof <- prof + 1L
       if (prof == 1L) {
         clave_g <- if (nzchar(nom[[i]])) nom[[i]] else sprintf("%s__grupo_%d", modulo, i)
-        en_grupo <- abrir(clave_g, nom[[i]])
+        en_grupo <- abrir(clave_g, nom[[i]], tipo = "grupo")
         bateria <- NULL
       }
       next
@@ -248,10 +264,18 @@
     if (!nzchar(nm) || identical(nm, variable)) next
     if (prof == 0L && (bt == "note" || startsWith(tolower(nm), "enunciado_"))) {
       bateria <- abrir(nm, nm)
+      abre_bateria <- .codif_var_label(inst, nm, ""); lista_anterior <- ""
       next
     }
     if (bt == "note" || bt %in% .CODIF_SS_TIPOS_SIN_TEXTO) next
-    clave <- en_grupo %||% bateria %||% abrir(general, general, .codif_ss_etiqueta_general(etiqueta_modulo))
+    if (prof == 0L && !is.null(bateria) && n_preg[[bateria]] > 0L) {
+      lab_i <- .codif_var_label(inst, nm, "")
+      if (.codif_ss_abre_pregunta(lab_i, abre_bateria, lista[[i]], lista_anterior)) {
+        bateria <- abrir(nm, nm, tipo = "pregunta"); abre_bateria <- lab_i
+      }
+    }
+    if (prof == 0L && !is.null(bateria)) lista_anterior <- lista[[i]]
+    clave <- en_grupo %||% bateria %||% abrir(general, general, .codif_ss_etiqueta_general(etiqueta_modulo), tipo = "general")
     subs[[clave]]$textos <- c(subs[[clave]]$textos, .codif_ss_texto_pregunta(inst, nm, bt, lista[[i]], usos_lista))
     n_preg[[clave]] <- n_preg[[clave]] + 1L
   }
@@ -260,6 +284,10 @@
 }
 
 #' Fusiona subtemas consecutivos, siempre el par vecino de menor vocabulario, hasta `max_subtemas`
+#'
+#' TXT-25: primero entre dos baterías vecinas (suelen ser el mismo tema en dos escalas: frecuencia de redes y de IA,
+#' trato docente y horarios de atención); sólo cuando ya no quedan dos baterías juntas se fusiona cualquier par. Así
+#' una pregunta que se separó de su batería no vuelve a juntarse mientras haya otra salida.
 #' @keywords internal
 .codif_ss_fusionar_subtemas <- function(subs, vacias, max_subtemas = 9L) {
   n_voc <- function(x) {
@@ -268,11 +296,15 @@
   }
   while (length(subs) > max_subtemas) {
     tam <- vapply(subs, n_voc, integer(1))
-    k <- which.min(utils::head(tam, -1L) + tam[-1L])
+    costo <- utils::head(tam, -1L) + tam[-1L]
+    es_bat <- vapply(subs, function(x) identical(x$tipo %||% "bateria", "bateria"), logical(1))
+    par_bat <- utils::head(es_bat, -1L) & es_bat[-1L]
+    if (any(par_bat)) costo[!par_bat] <- Inf
+    k <- which.min(costo)
     a <- subs[[k]]; b <- subs[[k + 1L]]
     subs[[k]] <- list(seccion = a$seccion, etiqueta = paste(a$etiqueta, b$etiqueta, sep = " / "),
                       etiqueta_completa = paste(a$etiqueta_completa %||% a$etiqueta, b$etiqueta_completa %||% b$etiqueta, sep = " / "),
-                      textos = c(a$textos, b$textos))
+                      textos = c(a$textos, b$textos), tipo = if (identical(a$tipo, b$tipo)) a$tipo else "mixto")
     subs[[k + 1L]] <- NULL
   }
   subs
