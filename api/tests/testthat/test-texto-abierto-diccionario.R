@@ -388,7 +388,7 @@ test_that("GET y PUT del diccionario por HTTP: base por query, cuerpo JSON y err
   body <- jsonlite::toJSON(list(equivalencias = list(list(mostrar = "estudiantes", formas = c("alumnos", "estudiantes"))),
                                 excluir = list("ciencias sociales"), frases = list("ciencias sociales")), auto_unbox = TRUE)
   res <- plumber:::PlumberResponse$new()
-  out <- put$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid, postBody = as.character(body)), res = res, variable = "coment")
+  out <- put$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid, postBody = as.character(body), argsQuery = list(variable = "coment")), res = res)   # el PUT lee la query de req$argsQuery (458fdeb49)
   expect_true(isTRUE(out$ok))
   expect_identical(out$base, "ccss")
   expect_identical(session_get(sid)$texto_abierto_diccionario$ccss$coment$frases, "ciencias sociales")
@@ -405,7 +405,7 @@ test_that("GET y PUT del diccionario por HTTP: base por query, cuerpo JSON y err
   res <- plumber:::PlumberResponse$new()
   bad <- jsonlite::toJSON(list(equivalencias = list(list(mostrar = "a", formas = c("alumnos", "estudiantes")),
                                                     list(mostrar = "alumnos", formas = c("alumnos", "pupilos")))), auto_unbox = TRUE)
-  err <- put$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid, postBody = as.character(bad)), res = res, variable = "coment")
+  err <- put$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid, postBody = as.character(bad), argsQuery = list(variable = "coment")), res = res)
   expect_equal(res$status, 422)
   res <- plumber:::PlumberResponse$new()
   err <- get$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid), res = res, base = "ccss")
