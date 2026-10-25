@@ -234,7 +234,10 @@
   outline-offset: 2px;
 }
 
-.mon-anu--vacio {
+/* El vacío toma el ancho entero también a 1024: con una sola clase, la regla
+ * de dos columnas del @media de abajo le ganaba y dejaba la tarjeta en la
+ * primera columna con el resto vacío (C3). */
+.mon-anu.mon-anu--vacio {
   grid-template-columns: minmax(0, 1fr);
 }
 
