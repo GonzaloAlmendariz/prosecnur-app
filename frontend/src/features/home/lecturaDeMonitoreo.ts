@@ -4,10 +4,10 @@ import type { ProjectOverview } from "../../api/client";
  * La lectura de avance de la tarjeta de Monitoreo (L20, Meta B): la cifra con
  * su base y, mientras el tablero se regenera, el estado en lugar de la cifra.
  *
- * `regenerando` todavía no lo manda el backend (`.overview_monitoreo_facts`
- * en `api/R/project_overview.R`): se lee como opcional para que la tarjeta lo
- * respete en cuanto llegue, sin otra vuelta por el frontend. Ver
- * `docs/qa/revamp-monitoreo/plan-metab-insignia.md`.
+ * `regenerando` lo publica `.overview_monitoreo_facts` (`api/R/project_overview.R`)
+ * mientras la cifra sea la heredada del corte anterior tras un sync; se apaga
+ * cuando Monitoreo recalcula la familia. Es opcional porque un backend anterior
+ * no lo manda. Ver `docs/qa/revamp-monitoreo/plan-metab-insignia.md`.
  */
 
 export type HechosDeMonitoreo = ProjectOverview["facts"]["monitoreo"] & {
