@@ -164,8 +164,18 @@
 /* Una fila por caso (Meta B, L28): Hoja, Kobo, Responsable y Enumerador van
  * en una línea y lo que no cabe se corta con puntos suspensivos; el dato
  * entero queda en el tooltip de la celda. La decisión nunca se parte. */
+.mon-dsc-tabla {
+  table-layout: fixed;
+}
+
+/* El código (con su proGres debajo), Kobo y la Decisión tienen ancho propio:
+ * nunca se cortan. Hoja, Responsable y Enumerador se reparten el resto. */
+.mon-dsc-tabla col.is-codigo { width: 140px; }
+.mon-dsc-tabla col.is-kobo { width: 84px; }
+.mon-dsc-tabla col.is-decision { width: 172px; }
+
+.mon-dsc-progres,
 .mon-dsc-una-linea {
-  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -173,6 +183,10 @@
 
 .mon-dsc-decision {
   display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
   white-space: nowrap;
   padding: 1px 8px;
   border: 1px solid var(--pulso-border);

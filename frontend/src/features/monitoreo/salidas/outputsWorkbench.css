@@ -25,7 +25,7 @@
   min-width: 0;
 }
 
-.mon-outputs-workbench__head span:not(.pulso-switch-thumb),
+.mon-outputs-workbench__head span:where(:not(.pulso-switch-thumb)),
 .mon-outputs-card__head span {
   display: inline-flex;
   align-items: center;
@@ -1232,14 +1232,14 @@
   min-width: 0;
 }
 
-.mon-outputs-workbench__head span:not(.pulso-switch-thumb),
+.mon-outputs-workbench__head span:where(:not(.pulso-switch-thumb)),
 .mon-outputs-card__head span,
 .mon-outputs-audience-tabs span,
 .mon-outputs-diagnostics summary span {
   letter-spacing: 0;
 }
 
-.mon-outputs-workbench__head span:not(.pulso-switch-thumb) {
+.mon-outputs-workbench__head span:where(:not(.pulso-switch-thumb)) {
   flex: 0 0 auto;
   min-height: 28px;
   border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 20%, var(--pulso-border));

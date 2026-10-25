@@ -138,6 +138,12 @@
   border-left: 3px solid var(--pulso-brand-navy);
 }
 
+/* Un botón dentro de una celda (el código, el operador, la causa) no impone
+ * el alto de control de la casa a la fila: la fila mide su línea (L29). */
+.mon-ctl-tabla tbody :is(th, td) > button {
+  min-height: 0;
+}
+
 .mon-ctl-tabla tbody th,
 .mon-ctl-tabla tfoot th {
   font-weight: var(--pulso-weight-bold);

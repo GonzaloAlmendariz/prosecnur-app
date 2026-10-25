@@ -147,7 +147,7 @@ export function Supervision({
             {repartoVisible.map((fila) => (
               <li key={fila.enumerador}>
                 <span className="mon-sup-nombre">
-                  {fila.enumerador}
+                  <span className="mon-sup-nombre-texto" title={fila.enumerador}>{fila.enumerador}</span>
                   {fila.minimo ? <em className="mon-sup-minimo" title="El caso existe por el mínimo de uno por enumerador">mínimo</em> : null}
                 </span>
                 <i className="mon-sup-barras" title={`${n(fila.efectivas)} efectivas; ${n(fila.casos)} ${fila.casos === 1 ? "caso sorteado" : "casos sorteados"}`}>

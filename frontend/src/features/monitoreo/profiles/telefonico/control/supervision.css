@@ -103,8 +103,23 @@
   gap: var(--pulso-space-2);
 }
 
+/* Un renglón por enumerador (Meta B, L28): el nombre se corta con puntos
+ * suspensivos y el chip «mínimo» queda siempre visible a su lado. */
 .mon-sup-nombre {
-  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.mon-sup-nombre-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-sup-minimo {
+  flex: none;
 }
 
 .mon-sup-minimo {

@@ -164,13 +164,23 @@ export function Discrepancias({
         </header>
         <div className="mon-ctl-tabla-marco mon-dsc-marco">
           <table className="mon-ctl-tabla mon-dsc-tabla">
+            {/* Anchos declarados (L28): con cinco nombres largos la Decisión
+                quedaba fuera del marco a 1440. */}
+            <colgroup>
+              <col className="is-codigo" />
+              <col className="is-hoja" />
+              <col className="is-kobo" />
+              <col className="is-responsable" />
+              <col className="is-enumerador" />
+              <col className="is-decision" />
+            </colgroup>
             <thead>
               <tr>
-                <th scope="col">CodPulso y proGres</th>
+                <th scope="col">CodPulso</th>
                 <th scope="col">Hoja</th>
                 <th scope="col">Kobo</th>
                 <th scope="col">Responsable</th>
-                <th scope="col">Enumerador Kobo</th>
+                <th scope="col" title="Enumerador del envío en Kobo">Enumerador</th>
                 <th scope="col">Decisión</th>
               </tr>
             </thead>
@@ -180,7 +190,7 @@ export function Discrepancias({
                   <th scope="row">
                     <button type="button" className="mon-dsc-codigo" onClick={() => escribirFoco(caso.codigo)}>{caso.codigo}</button>
                     {/* proGres bajo el código: en una columna propia la decisión quedaba cortada a 1440. */}
-                    {caso.progres ? <small className="mon-dsc-progres">proGres {caso.progres}</small> : null}
+                    {caso.progres ? <small className="mon-dsc-progres" title={`proGres ${caso.progres}`}>{caso.progres}</small> : null}
                   </th>
                   {/* La hoja y Kobo en dos celdas: cada una dice su dato, sin frase
                       que los encadene. La lectura completa va en el tooltip. */}

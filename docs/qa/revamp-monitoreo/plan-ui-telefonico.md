@@ -658,3 +658,74 @@ Pendiente:
   decidir con los tres modos.
 - **Avance › Cuotas y Control › Equipo**: el aire al pie es el que deja el tope de grosor. Si con 2–3 categorías se
   ve demasiado, el tope es la palanca (112 px y 40 px).
+
+## Ronda 4 de mejora visual: sin explicaciones encadenadas, bloqueo dicho una vez y alineación con Meta B (2026-10-25)
+
+Gonzalo, textual: «sigues haciendo explicaciones innecesarias luego de puntos y comas». La regla vale para los tres
+modos: en subtítulos, pies, celdas y leyendas no van frases explicativas encadenadas con «;», «·» o «:». Queda la
+cifra o el rótulo mínimo; si hace falta explicar, va en el tooltip (`title`, la convención del perfil).
+
+Decisiones tomadas sin volver a preguntar:
+
+- **Entregas, bloqueo dicho una vez** (`salidas/`, compartido por los tres modos): la tarjeta del PDF ya no repite en
+  rojo el bloqueo del estado del corte. El botón queda deshabilitado; el motivo va en el `title` de un envoltorio
+  (un botón deshabilitado no recibe el puntero en todos los motores) y en un texto `pulso-sr-only` enlazado con
+  `aria-describedby`. Test `salidas/bloqueoUnaVez.test.tsx` monta Telefónico, Acreditación y Territorial.
+- **Interruptores (Meta B, L26)**: «Incluir metas» y la confirmación de la salida interna de Sheets (`salidas/`),
+  «Significa reemplazo» en Llave › Origen de la muestra y las preguntas de control al publicar una ronda de
+  Supervisión pasan de casilla a `components/Switch`. Los selectores `__head span` del workbench excluyen la perilla
+  (`:not(.pulso-switch-thumb)`). Quedan casillas en vistas heredadas del page-file congelado que el perfil ya no
+  monta (cierre de acreditación, barrido operativo, colectores, asignación asistida): no se tocaron.
+- **Tablas (Meta B, L28/L29)**: `.mon-ctl-tabla` pasa a celda de 12.5 px con cifras tabulares, padding 8 px, cabecera
+  pegada en `--pulso-header-row` (10 px en versalitas, el piso de la escala) y hover de fila. La fila elegida lleva
+  fondo y borde lateral sólido en todas las tablas del perfil (con `:where`, especificidad cero, para no pisar la
+  matriz teñida de Estados por operador). Todas las cabeceras pegadas del perfil y la cola usan `--pulso-header-row`.
+  - Discrepancias: «Qué pasa» («Kobo sí; hoja «No contesta»») se parte en dos columnas, **Hoja** y **Kobo**, cada una
+    con su dato; Responsable y Enumerador en una línea con puntos suspensivos y el nombre en el tooltip. La primera
+    captura (`tel-r4/a-pdm`) dejó la Decisión 99 px fuera del marco a 1440 (`desplazamientoH=1`): la tabla pasa a
+    `table-layout: fixed` con anchos declarados (L28) para Código 140 px, Kobo 84 px y Decisión 172 px; Hoja,
+    Responsable y Enumerador se reparten el resto. La cabecera dice «CodPulso» (el proGres va rotulado debajo).
+  - Un botón dentro de una celda ya no impone el alto de control de la casa (`min-height` de `button` en
+    `theme.css`): las filas miden su línea, como pide L29.
+  - Insistencia (cola común con Acreditación › Reintentos): la fila elegida tenía la franja `box-shadow: inset`;
+    ahora borde lateral sólido. Resultado y observación caben en dos líneas (el alto de la fecha) y el texto entero
+    va en el tooltip y en la ficha.
+  - Supervisión: el enumerador no parte línea, en la tabla ni en «Por enumerador» (el chip «mínimo» queda visible); el envío se escribe «01/07» como el resto del perfil (antes
+    «2026-07-01»). La celda del resultado conserva «Efectivo · Conforme (coincide)»: es dato que exige P7, no
+    explicación.
+  - Avisos: una fila por causa; el detalle va al tooltip y a la ficha.
+- **Readiness por pestaña (Meta B, L10)**: la marca única «monitoreo-telefonico» pasa a
+  `monitoreo-telefonico-<seccion>-<pestana>` con la dirección pública (`readinessDeTelefonico`), como Acreditación y
+  Territorial. Cambio de una línea en el page-file congelado, sin crecer. Test `navegacion/readinessPorPestana.test.ts`.
+
+Textos recortados (antes → después; lo quitado va al tooltip salvo que se diga):
+
+| Pestaña | Antes | Después |
+|---|---|---|
+| Insumos › Fuentes | «5 declaradas por la fuente; el resto se busca por nombre» | «5 declaradas» |
+| Insumos › Llave y filtros | «Efectivas Kobo filtradas para comparar avance por CodPulso.»; «Por sus dígitos · un código sin prefijo que señala un único caso»; «Un envío por CodPulso: 1 envío repetido de 1 caso queda fuera.» | «Efectivas por CodPulso»; «Por sus dígitos»; «Un envío por CodPulso» con «−1» a la derecha |
+| Insumos › Estados | «Las cifras usan el vocabulario fijo del motor; se enciende por proyecto.»; «374 casos en la cola de insistencia, según su columna Intentos, que es el total acumulado.»; «Sin regla de agotado. El supervisor decide…; el modo no declara casos agotados.» | «Vocabulario fijo del motor»; «374 casos en la cola»; «Sin regla de agotado» |
+| Modelo › Cuotas | «Las metas son por sede; no hay metas por enumerador.» | «Metas por sede» |
+| Control › Barrido | «35.2 % de los llamados; Kobo registra 423» | «35.2 % de los llamados» |
+| Control › Insistencia | «15 responsables con casos en cola; 468 por llamar, ya asignados. La hoja reparte 1,099 casos.»; «0 en cola; 1,197 sin llamar y sin responsable»; ficha: «La fecha y el resultado… Por eso la ficha no muestra historia de llamadas.» y «El supervisor decide… ; Monitoreo la lee al actualizar.» | «468 por llamar»; «1,197 sin llamar»; «Fecha, resultado, hora y número de cada intento»; «La asignación se cambia en la hoja del equipo» |
+| Control › Discrepancias | «Mientras no se decide, la efectiva de Kobo cuenta… «Efectivo» sin Kobo se sigue en Avisos.»; «No hay envío de Kobo que decidir: el caso sigue en Avisos…»; «Se guarda en el proyecto con la fecha y la nota. «No cuenta»…» | tooltip de «Cómo no coinciden»; «Sin envío de Kobo que decidir»; «Se guarda en el proyecto» |
+| Control › Respuestas | «Mediana de 29 min, entre el inicio y el fin; 56 duraron más de 2 h» | «Mediana 29 min» |
+| Control › Supervisión | «Ronda 1: 24 para volver a llamar»; «Sin hoja de supervisión: el resultado de cada rellamada aparece cuando…»; «La Ronda 1 todavía no está guardada: es el sorteo de antes… Guárdala tal cual…» | «Ronda 1, 24 casos»; «Sin hoja de supervisión»; «La Ronda 1 no está guardada» |
+| Control › Avisos | detalle bajo cada causa («…no la marcó: la hoja va atrasada respecto de Kobo.», «…Es una convención de escritura: no afecta…»); «Qué hacer: Se revisa en Discrepancias, en Control.» junto al botón que dice lo mismo | una fila por causa y el detalle, en una sola cláusula, en el tooltip y la ficha; sólo el botón «Ir a …» |
+| Avance › Cuotas | «423 efectivas, 105.8 %; cumplida el 06/07» | «423 efectivas, cumplida el 06/07» (el % en el tooltip) |
+| Avance › Ritmo | «423 en 7 días (30/06 a 06/07), en 5 valores.»; «meta 400 cruzada el 04/07» bajo «Día a día», que ya decía el chip de la cabecera; columna Hoja con «0» los días sin registro | «423 en 7 días»; sin subtítulo; «—» como en Calendario |
+| Avance › Entregas | «Para el cliente: avance por cuota» + «Así lo lleva su PDF, con las cifras de este corte»; pie «El PDF del cliente lleva además…»; nota «El cliente no abre la app: …»; en el workbench, «Avance ejecutivo, ritmo diario y cuotas del corte activo, en una salida agregada para cliente.», «Se usará en la portada…», «Las audiencias se publican por separado…», «Los tres granos traen la misma cifra: en este corte…» | «PDF del cliente»; sin pie ni nota; «Avance, ritmo diario y cuotas»; «Por responsable, con sus estados de llamada»; los otros dos al tooltip; «En este corte no se descarta ningún caso.» |
+
+Páginas de Meta B consultadas: L28 (tabla e inspector), L29 (densidad y escala tipográfica), L26 (kit de inputs),
+L10 (readiness). L38 (actualizar monitoreo) no se tocó: la franja «Sheets · Kobo · Todo» es
+`components/SourceSyncActions.tsx`, compartida, y va en otra ronda con un solo dueño. L21 (criterios honestos) no
+pidió cambios en este perfil.
+
+Pendiente, fuera del glob de esta ronda:
+
+- **Cola de Insistencia, cabecera** «374 casos: 2 con 5 a 9, 370 con 1 a 4 y 2 sin dato»: la arma
+  `core/ColaDeInsistencia.tsx` con `escalaDeIntentos` de `core/colaDeInsistenciaModel.ts`, ambos en `core/` y fuera
+  de `core/colaDeInsistencia/**`. Basta con dejar «374 casos» y llevar la escala al `title`.
+- **El texto del bloqueo** («El corte quedó desactualizado desde la última sincronización; vuelve a sincronizar antes
+  de publicar.») vive en `corte/corteContract.ts`; también encadena con «;».
+- Casillas del page-file congelado en vistas que el perfil ya no monta (ver arriba).
