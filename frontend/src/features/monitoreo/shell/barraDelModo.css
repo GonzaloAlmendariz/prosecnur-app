@@ -277,7 +277,8 @@
  * sección recortado a «C.» dice menos que una sección sin su cifra, y la cifra
  * sigue en la pestaña a la que lleva. */
 @media (max-width: 1180px) {
-  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric {
+  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric,
+  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric.has-base {
     display: none;
   }
 }
