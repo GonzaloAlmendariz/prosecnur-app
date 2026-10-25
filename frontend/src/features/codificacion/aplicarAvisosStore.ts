@@ -27,6 +27,8 @@ export type AplicarEntrada = {
   jobId: string | null;
   avisos: CodifAplicarAvisos;
   sinRecodificar: CodifSinRecodificar[];
+  /** B1: lo adaptado no corresponde a la base vigente (otro n). Aviso propio, no de `avisos_incompletos`. */
+  avisoFuente: string | null;
   salida: AplicarSalida | null;
   error: string;
   /**
@@ -50,6 +52,7 @@ export const APLICAR_ENTRADA_VACIA: AplicarEntrada = Object.freeze({
   jobId: null,
   avisos: Object.freeze({ omitidas: [], textos_sin_codigo: [], avisos_incompletos: [] }) as CodifAplicarAvisos,
   sinRecodificar: [],
+  avisoFuente: null,
   salida: null,
   error: "",
   enfocarPendiente: false,
@@ -112,6 +115,7 @@ export const useAplicarAvisosStore = create<AplicarAvisosState>((set) => ({
           jobId: r.job_id,
           avisos,
           sinRecodificar: r.sin_recodificar ?? [],
+          avisoFuente: r.aviso_fuente ?? null,
           enfocarPendiente: tieneAvisos(avisos),
           revelarTrasJob: tieneAvisos(avisos),
         }),

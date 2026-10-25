@@ -5830,7 +5830,7 @@ monitoreo_sheets_read_source <- function(source) {
   if (!nzchar(range)) range <- sprintf("'%s'", gsub("'", "''", sheet_name))
   url <- paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values/", utils::URLencode(range, reserved = TRUE))
   payload <- .monitoreo_google_api(url)
-  data <- .monitoreo_values_to_dataframe(payload$values %||% list(), binding$header_row %||% 1L)
+  data <- monitoreo_sheets_bloques_dataframe(payload$values %||% list(), binding$header_row %||% 1L) # bloques lado a lado: monitoreo_sheets_bloques.R
   binding$last_read_at <- .monitoreo_now_iso()
   binding$snapshot_hash <- monitoreo_snapshot_hash(data)
   attr(data, "sheet_binding") <- binding

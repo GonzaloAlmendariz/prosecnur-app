@@ -3,6 +3,7 @@ import { rotuloDelSegmento } from "../segmentoDeCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CuotasFaltante } from "./cuotasFaltanteModel";
+import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./entregasTelefonico.css";
 
@@ -40,7 +41,9 @@ export function Entregas({
   return (
     <div className="mon-entregas" data-qa-geometry-group="telefonico-avance-entregas" data-qa-geometry-contract="intrinsic">
       <section className="mon-ctl-panel mon-entregas-cliente" aria-label="Para el cliente: avance por cuota" data-qa-geometry-capacity="owned">
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
         <header className="mon-entregas-cabecera">
+          <RotuloDePestana />
           <strong>Para el cliente: avance por cuota</strong>
           <span>Así lo lleva su PDF, con las cifras de este corte</span>
         </header>

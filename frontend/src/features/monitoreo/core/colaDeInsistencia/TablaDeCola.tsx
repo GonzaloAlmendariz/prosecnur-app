@@ -6,6 +6,8 @@ export type ColumnasDeCola = {
   categoria: string;
   /** Teléfono en uso y teléfonos del caso, si la hoja los trae. */
   telefono: boolean;
+  /** Plataforma de las respuestas, para rotular la efectiva («Kobo» si no se dice). */
+  plataforma?: string;
 };
 
 export function telefonoDelCaso(caso: CasoDeCola): string {
@@ -13,6 +15,18 @@ export function telefonoDelCaso(caso: CasoDeCola): string {
   return caso.numTelefonos != null
     ? `${caso.ordenTelefono.toLocaleString("es-PE")} de ${caso.numTelefonos.toLocaleString("es-PE")}`
     : caso.ordenTelefono.toLocaleString("es-PE");
+}
+
+/**
+ * La columna del código mide lo que el código más largo: 92 px alcanzaban
+ * para «PDM1698», pero un proGres («CGU268000420», RMS) se cortaba por la
+ * izquierda y se montaba sobre los intentos.
+ */
+export function anchoDeColumnaDeCodigo(casos: readonly Pick<CasoDeCola, "codigo">[]) {
+  const largo = Math.max(0, ...casos.map((caso) => caso.codigo.length));
+  // El código va en negrita y con espaciado: 1.15 ch por carácter.
+  const ancho = Math.round(largo * 1.15 * 10) / 10;
+  return `max(92px, calc(${ancho}ch + 40px))`;
 }
 
 function tonoDeResultado(status: string) {
@@ -41,18 +55,19 @@ export function TablaDeCola({
   vacia?: string;
 }) {
   const maximo = Math.max(1, ...casos.map((caso) => caso.intentos ?? 0));
+  const anchoDelCodigo = anchoDeColumnaDeCodigo(casos);
   return (
     <div className="mon-cola-tabla-marco" data-scroll-reset="">
       <table className="mon-cola-tabla">
         <thead>
           <tr>
-            <th scope="col">CodPulso</th>
+            <th scope="col" style={{ width: anchoDelCodigo }}>CodPulso</th>
             <th scope="col">Intentos</th>
             <th scope="col">Último resultado</th>
             <th scope="col">Observación de la hoja</th>
             <th scope="col">{columnas.telefono ? "Teléfono" : columnas.categoria}</th>
             <th scope="col">Fecha</th>
-            <th scope="col">Kobo</th>
+            <th scope="col">{columnas.plataforma ?? "Kobo"}</th>
           </tr>
         </thead>
         <tbody>

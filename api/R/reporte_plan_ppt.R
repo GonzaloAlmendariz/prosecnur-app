@@ -198,7 +198,7 @@ reporte_ppt_plan <- function(
   presets$base$args <- presets$base$args %||% list()
 
   presets$base$args$formato   <- presets$base$args$formato %||% "Base: %s"
-  presets$base$args$sufijo_auto <- presets$base$args$sufijo_auto %||% NULL
+  presets$base$args$sufijo_auto <- .base_pie_sufijo_declarado(presets$base$args$sufijo_auto)   # CCSS-15: el de fábrica no cuenta (graficos_base_pie_forma.R)
 
   # defaults para que nunca falle el acceso a $args
   presets$barras_agrupadas <- presets$barras_agrupadas %||% list(args = list())
@@ -2496,8 +2496,8 @@ reporte_ppt_plan <- function(
     trimws(gsub("\\s+", " ", x, perl = TRUE))
   }
 
-  .nonblank_open_text_for_nube <- function(x) {
-    nzchar(.clean_open_text_for_nube(x))
+  .nonblank_open_text_for_nube <- function(x, filtrar = FALSE) {   # TXT-1: con filtro, sólo los comentarios con contenido
+    if (isTRUE(filtrar)) nzchar(.clean_open_text_for_nube(x)) & !.txt_no_respuesta(x) else nzchar(.clean_open_text_for_nube(x))
   }
 
   .clean_other_response_bullet <- function(x) {
@@ -3127,7 +3127,7 @@ reporte_ppt_plan <- function(
 
     .fmt_base_part <- function(n_txt, src) {
       src <- trimws(as.character(src %||% "")[1])
-      if (!nzchar(src) || identical(src, "default")) return(n_txt)
+      if (!nzchar(src) || identical(src, "default")) return(.base_pie_parte_default(n_txt, sufijo_auto))   # CCSS-15
       paste(n_txt, .base_sufijo_de_fuente(src))   # graficos_base_por_base.R
     }
 
@@ -3336,7 +3336,7 @@ reporte_ppt_plan <- function(
       df_base <- .filter_data(el$filtros %||% list(), source = ctx_var$source)
       if (!nrow(df_base) || !ctx_var$var %in% names(df_base)) return(NULL)
       keep <- .nonblank_open_text(df_base[[ctx_var$var]]) &
-        .nonblank_open_text_for_nube(df_base[[ctx_var$var]])
+        .nonblank_open_text_for_nube(df_base[[ctx_var$var]], filtrar = .txt_flag((el$overrides %||% list())$filtrar_no_respuestas %||% presets$nube_palabras$args$filtrar_no_respuestas))
       parent_var <- el$parent_var %||% NULL
       if (!is.null(parent_var) && is.character(parent_var) && nzchar(trimws(parent_var))) {
         ctx_parent <- tryCatch(.resolve_ref(parent_var, source = ctx_var$source, arg_name = "parent_var"), error = function(e) NULL)
@@ -3766,19 +3766,11 @@ reporte_ppt_plan <- function(
     tryCatch(sprintf(fmt, core), error = function(e) paste0("Base: ", core))
   }
 
-  .format_n_caption <- function(n_values, unit = "respuestas") {
-    n_values <- suppressWarnings(as.numeric(n_values))
-    n_values <- n_values[is.finite(n_values) & !is.na(n_values) & n_values > 0]
-    if (!length(n_values)) return(NULL)
-    n_values <- unique(round(n_values))
-    n_values <- sort(n_values)
-    unit <- .clean_note_text(unit) %||% "respuestas"
-    fmt <- function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE)
-    core <- if (length(n_values) == 1L) {
-      paste0(fmt(n_values[[1]]), " ", unit)
-    } else {
-      paste0(fmt(min(n_values)), "-", fmt(max(n_values)), " ", unit)
-    }
+  .format_n_caption <- function(n_values, unit = presets$base$args$sufijo_auto %||% NULL) {
+    # CCSS-15 (graficos_base_pie_forma.R): «Base: N», o «Base: N <sufijo>» si el preset de base lo declara; nunca
+    # «respuestas» por su cuenta, que hacía alternar el pie entre rutas del mismo mazo.
+    core <- .base_pie_nucleo(n_values, unit)
+    if (is.null(core)) return(NULL)
     # El prefijo sale del preset (`presets$base$args$formato`) igual que en
     # `.base_auto_from_var`: un estudio que declara "N = %s" no debe quedar con
     # dos prefijos distintos segun que camino compuso la nota de base.
@@ -3970,7 +3962,7 @@ reporte_ppt_plan <- function(
     }
 
     text_vals <- .reporte_plan_clean_chr(dsrc[[ctx$var]])
-    keep <- nzchar(text_vals) & .nonblank_open_text_for_nube(text_vals)
+    keep <- nzchar(text_vals) & (.txt_flag((el$overrides %||% list())$filtrar_no_respuestas %||% preset_args$filtrar_no_respuestas) | .nonblank_open_text_for_nube(text_vals))   # TXT-1: con filtro, el graficador cuenta quiénes escribieron algo
     parent_var <- el$parent_var %||% NULL
     if (!is.null(parent_var) && is.character(parent_var) && nzchar(trimws(parent_var))) {
       ctx_parent <- tryCatch(.resolve_ref(parent_var, source = ctx$source, arg_name = "parent_var"), error = function(e) NULL)

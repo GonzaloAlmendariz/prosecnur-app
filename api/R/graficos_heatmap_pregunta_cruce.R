@@ -20,10 +20,12 @@
 #'
 #' @param args Argumentos ya resueltos de `graficar_heatmap_dimensiones()` (data, instrumento, objetivo, cruce, filtros).
 #' @param dibujar Función sin argumentos que dibuja el mapa de dimensiones (la ruta de siempre).
+#' @param box Opciones del Top Two Box de la variante pregunta × cruce (L10-10, graficos_heatmap_top2box.R).
 #' @keywords internal
-.heatmap_dim_o_pregunta <- function(args, dibujar) {
+.heatmap_dim_o_pregunta <- function(args, dibujar, box = .heatmap_box_del_elemento()) {
   if (!.heatmap_objetivo_es_dimension(args) && .heatmap_objetivo_es_pregunta(args)) {
-    return(graficar_heatmap_pregunta_cruce(args$data, args$instrumento, args$objetivo, args$cruce, filtros = args$filtros %||% list()))
+    return(graficar_heatmap_pregunta_cruce(args$data, args$instrumento, args$objetivo, args$cruce, filtros = args$filtros %||% list(),
+                                           box = box))
   }
   p <- tryCatch(dibujar(), error = function(e) {
     if (!.heatmap_objetivo_es_dimension(args)) {
@@ -65,19 +67,22 @@
 #' @param var Pregunta de respuesta única (columnas).
 #' @param cruce Pregunta que define los grupos (filas), en el orden del instrumento.
 #' @param filtros Filtros nombrados de la lámina.
+#' @param box `list(top2box, top2box_labels)`: la columna Top Two Box (graficos_heatmap_top2box.R).
 #' @return ggplot de respaldo con `attr(, "pulso_espec")` `heatmap/1` (filas = Total y grupos, columnas = opciones).
 #' @keywords internal
-graficar_heatmap_pregunta_cruce <- function(data, instrumento, var, cruce, filtros = list()) {
-  e <- .heatmap_pc_espec(data, instrumento, var, cruce, filtros)
+graficar_heatmap_pregunta_cruce <- function(data, instrumento, var, cruce, filtros = list(), box = NULL) {
+  e <- .heatmap_pc_espec(data, instrumento, var, cruce, filtros, box = box)
   df <- expand.grid(fila = seq_along(e$filas), col = seq_len(ncol(e$valores)))
   df$v <- e$valores[cbind(df$fila, df$col)]
+  df$v_color <- ifelse(df$col %in% e$col_box, NA_real_, df$v)   # el Top Two Box no entra a la escala de color
   df$f <- factor(e$filas[df$fila], levels = rev(e$filas)); df$c <- factor(e$columnas$rotulo[df$col], levels = e$columnas$rotulo)
   tramos <- unlist(.std_paleta("calor")$tramos)
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$c, y = .data$f, fill = .data$v)) +
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$c, y = .data$f, fill = .data$v_color)) +
     ggplot2::geom_tile(colour = .std_color("fondo"), linewidth = 1) +
     ggplot2::geom_text(ggplot2::aes(label = paste0(.data$v, "%")), size = 11 / ggplot2::.pt, fontface = "bold",
-                       colour = ifelse(df$v > mean(e$rango), "white", .std_color("azul"))) +
-    ggplot2::scale_fill_gradientn(colours = tramos, limits = e$rango, guide = "none") +
+                       colour = ifelse(df$col %in% e$col_box, .std_color("verde_top_two_box"),
+                                                     ifelse(df$v > mean(e$rango), "white", .std_color("azul")))) +
+    ggplot2::scale_fill_gradientn(colours = tramos, limits = e$rango, guide = "none", na.value = "transparent") +
     ggplot2::scale_x_discrete(position = "top", labels = function(x) vapply(x, function(s) paste(strwrap(s, 16), collapse = "\n"), "")) +
     ggplot2::labs(x = NULL, y = NULL) + ggplot2::theme_minimal(base_family = "Arial") +
     ggplot2::theme(axis.text = ggplot2::element_text(colour = .std_color("azul"), size = 11, face = "bold"),
@@ -98,7 +103,7 @@ graficar_heatmap_pregunta_cruce <- function(data, instrumento, var, cruce, filtr
 
 #' Especificación `heatmap/1` de la variante pregunta × cruce
 #' @keywords internal
-.heatmap_pc_espec <- function(data, instrumento, var, cruce, filtros = list()) {
+.heatmap_pc_espec <- function(data, instrumento, var, cruce, filtros = list(), box = NULL) {
   # Las frecuencias salen de `.tab_freq()` del motor cuando el render la expone (mismo peso, exclusiones, rótulos y orden
   # que el resto del mazo); fuera del render, de `.plan_freq_tabla()`, que es lo que ella llama.
   tab_freq <- dynGet(".tab_freq", ifnotfound = NULL)
@@ -139,9 +144,11 @@ graficar_heatmap_pregunta_cruce <- function(data, instrumento, var, cruce, filtr
   if (hi <= lo) { lo <- max(0, lo - 5); hi <- min(100, hi + 5) }
   nota <- paste0("Base: ", .dumbbell_fmt_casos(total$casos), " casos que respondieron. Entre paréntesis, los casos de cada fila",
                  if (any(chica)) "; * menos de 15 casos" else "", ".")
-  list(version = "heatmap/1", tipo = "heatmap_dim", variante = "pregunta_cruce", filas = rot,
-       columnas = data.frame(rotulo = total$opciones, n = NA_real_, stringsAsFactors = FALSE),
-       valores = v, valores_crudos = crudo, col_total = NA_integer_, bloques = list(), rango = c(lo, hi),
-       rotulo_escala = "% de cada fila", encabezado_dos_lineas = TRUE, n_casos_filas = unname(casos), nota = nota,
-       ancho_filas = .heatmap_pc_ancho_filas(rot))
+  e <- list(version = "heatmap/1", tipo = "heatmap_dim", variante = "pregunta_cruce", filas = rot,
+            columnas = data.frame(rotulo = total$opciones, n = NA_real_, stringsAsFactors = FALSE),
+            valores = v, valores_crudos = crudo, col_total = NA_integer_, bloques = list(), rango = c(lo, hi),
+            rotulo_escala = "% de cada fila", encabezado_dos_lineas = TRUE, n_casos_filas = unname(casos), nota = nota,
+            ancho_filas = .heatmap_pc_ancho_filas(rot))
+  # L10-10: la columna Top Two Box, al final y fuera de la escala de color (graficos_heatmap_top2box.R).
+  .heatmap_pc_con_box(e, .heatmap_pc_box_cols(total$opciones, box))
 }

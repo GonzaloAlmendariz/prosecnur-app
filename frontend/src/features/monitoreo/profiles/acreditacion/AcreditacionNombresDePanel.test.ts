@@ -125,7 +125,10 @@ describe("dos cifras vecinas del mismo hecho no se llaman igual", () => {
   });
 
   test("dice «sin cubrir», el verbo que el perfil ya usa para el universo", () => {
-    expect(fuente.match(/del universo sin cubrir/g)?.length).toBe(3);
+    // Avance › Resumen y Por público del revamp (A2) salieron del page-file y
+    // no usan la frase: muestran «Sin respuesta» (personas sin respuesta, G4),
+    // que es otra cifra, junto a parciales y rechazos que sí la reconcilian.
+    expect(fuente.match(/del universo sin cubrir/g)?.length).toBe(1);
     expect(fuente).toContain('return "Universo cubierto";');
   });
 

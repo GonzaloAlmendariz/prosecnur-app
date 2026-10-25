@@ -342,6 +342,16 @@ export function normalizeCodifMotivoOmision(raw: unknown): string {
   return codifTexto(raw);
 }
 
+/**
+ * `aviso_fuente` de `/aplicar` (B1): Codificación leyó otro número de casos que el de la base, así que lo adaptado no
+ * corresponde a la base vigente. Texto o `null`; un `NULL` de R llega como `{}` y no es aviso.
+ */
+export function normalizeCodifAvisoFuente(raw: unknown): string | null {
+  const v = codifRegistro(raw).aviso_fuente;
+  const texto = Array.isArray(v) ? v[0] : v;
+  return typeof texto === "string" && texto.trim() ? texto.trim() : null;
+}
+
 /** Lee `omitidas` y `textos_sin_codigo` de la respuesta de `/aplicar`. */
 export function normalizeCodifAplicarAvisos(raw: unknown): CodifAplicarAvisos {
   const root = codifRegistro(raw);

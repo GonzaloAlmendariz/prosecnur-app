@@ -63,9 +63,11 @@
     h_rot <- if (isTRUE(geo$casos)) geo$alto_fila - 0.32 else geo$alto_fila - 0.04
     .lam_txt(lz, espec$rotulos[i], geo$xr, yk + 0.02, geo$wr, h_rot, geo$rotulo, azul, bold = TRUE, nombre = "dona:rotulo_leyenda")
     if (isTRUE(geo$casos) && is.finite(.espec_casos(espec)[i]) && is.finite(.espec_total_casos(espec))) {
+      # U5: pegado bajo su rótulo (su alto medido), no al fondo de la fila: ahí quedaba más cerca de la categoría siguiente.
+      y_cas <- min(yk + geo$alto_fila - 0.3, yk + 0.02 + .lam_alto_tinta(espec$rotulos[i], geo$wr, geo$rotulo, TRUE) - 0.04)
       .lam_txt(lz, sprintf("%s de %s %s", format(round(.espec_casos(espec)[i]), big.mark = ",", trim = TRUE),
                            format(round(.espec_total_casos(espec)), big.mark = ",", trim = TRUE), unidad_n),
-               geo$xr, yk + geo$alto_fila - 0.3, geo$wr, 0.26, 11, .std_color("texto_tenue"), nombre = "dona:casos")
+               geo$xr, y_cas, geo$wr, 0.26, 11, .std_color("texto_tenue"), nombre = "dona:casos")
     }
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dona")

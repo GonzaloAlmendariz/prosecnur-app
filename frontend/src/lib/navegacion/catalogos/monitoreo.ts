@@ -15,6 +15,7 @@ import {
   Download,
   Gauge,
   GitCompareArrows,
+  Inbox,
   KeyRound,
   Layers3,
   LifeBuoy,
@@ -36,6 +37,7 @@ import {
   TrendingUp,
   Trash2,
   Users,
+  Workflow,
   type LucideIcon,
 } from "../../../vendor/lucide-react";
 
@@ -104,40 +106,40 @@ function pestana<const Key extends string>(
  * subconjunto que realmente está visible en el proyecto montado.
  */
 export const MONITOREO_PESTANAS = {
+  // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23), con
+  // las 20 pestañas de `docs/qa/revamp-monitoreo/acreditacion.md` §1. La
+  // traducción a las vistas que la página monta por dentro está en
+  // `features/monitoreo/profiles/acreditacion/navegacion/direccionAcreditacion.ts`.
+  // Correo, Barrido, Reintentos y Equipo son el grupo Contacto de Control y
+  // existen solo si el estudio declara ese canal.
   acreditacion: {
-    fuentes: [
-      pestana("acreditacion", "fuentes", "actores", "Actores", "Quiénes responden el estudio", Users),
-      pestana("acreditacion", "fuentes", "fuentes", "Fuentes y universo", "Qué está conectado y de quién es", Layers3),
-      pestana("acreditacion", "fuentes", "recopiladores", "Recopiladores", "Por dónde llegó cada respuesta", ListChecks),
+    insumos: [
+      pestana("acreditacion", "insumos", "publicos", "Públicos", "Quiénes responden y contra qué padrón", Users),
+      pestana("acreditacion", "insumos", "fuentes", "Fuentes", "Qué está conectado y por qué canal entra", PlugZap),
+      pestana("acreditacion", "insumos", "reglas", "Reglas", "Cómo se lee y se cruza cada dato", SlidersHorizontal),
     ],
     modelo: [
-      pestana("acreditacion", "modelo", "estructura", "Modelo operativo", "Metas por actor", Target),
-      pestana("acreditacion", "modelo", "distribucion", "Distribución", "Variable de interés por actor", BarChartBig),
-      pestana("acreditacion", "modelo", "estrategias", "Cronograma", "Campo y reportes", CalendarRange),
+      pestana("acreditacion", "modelo", "metas", "Metas", "Cuántas encuestas por público", Target),
+      pestana("acreditacion", "modelo", "cuotas", "Cuotas", "Cuántas por categoría", BarChartBig),
+      pestana("acreditacion", "modelo", "ventana", "Ventana de campo", "Cuándo entra cada público", CalendarRange),
     ],
-    consultas: [
-      pestana("acreditacion", "consultas", "plataforma", "Registros en plataforma", "Respuestas y cruce", ListChecks),
-      pestana("acreditacion", "consultas", "base", "Estado de la base", "Actor por actor", Table2),
-      pestana("acreditacion", "consultas", "cruces", "Cruces efectivos", "Razón de cruce", Link2),
-      pestana("acreditacion", "consultas", "subsanacion", "Subsanación", "Decisión auditada", ShieldAlert),
-    ],
-    telefonico: [
-      pestana("acreditacion", "telefonico", "resumen", "Barrido + Kobo", "Barrido telefónico", PhoneCall),
-      pestana("acreditacion", "telefonico", "estados", "Estados", "Confirma y colorea", SlidersHorizontal),
-      pestana("acreditacion", "telefonico", "dia", "Ritmo diario", "Efectivas Kobo", CalendarRange),
-      pestana("acreditacion", "telefonico", "incidencia", "Sin efectiva", "Sin efectiva e insistencia", AlertCircle),
-      pestana("acreditacion", "telefonico", "responsables", "Responsables", "Equipo y carga", ContactRound),
-      pestana("acreditacion", "telefonico", "alertas", "Alertas reales", "Alertas reales", ShieldAlert),
-      pestana("acreditacion", "telefonico", "supervision", "Supervisión", "Control y muestra", ClipboardCheck),
+    control: [
+      pestana("acreditacion", "control", "correo", "Correo", "Cómo rinde cada envío", Mail, "condicional"),
+      pestana("acreditacion", "control", "barrido", "Barrido", "Cuánto del padrón se llamó", PhoneCall, "condicional"),
+      pestana("acreditacion", "control", "reintentos", "Reintentos", "En qué casos se sigue insistiendo", Repeat, "condicional"),
+      pestana("acreditacion", "control", "equipo", "Equipo", "Cómo rinde cada responsable", ContactRound, "condicional"),
+      pestana("acreditacion", "control", "resolver", "Por resolver", "Qué respuestas esperan una decisión", Inbox),
+      pestana("acreditacion", "control", "cruce", "Cruce", "Cómo se volvió avance cada respuesta", Workflow),
+      pestana("acreditacion", "control", "calidad", "Calidad", "Si hay respuestas sospechosas", ShieldAlert),
+      pestana("acreditacion", "control", "personas", "Personas", "En qué está cada persona del padrón", Table2),
+      pestana("acreditacion", "control", "respuestas", "Respuestas", "Qué llegó de cada plataforma", ListChecks),
     ],
     avance: [
-      pestana("acreditacion", "avance", "resumen", "Resumen", "Avance general", BarChart3),
-      pestana("acreditacion", "avance", "actores", "Actores", "Brechas por unidad", Layers3),
-      pestana("acreditacion", "avance", "cuotas", "Cuotas", "Metas por categoría", Target),
-      pestana("acreditacion", "avance", "encuestas", "Encuestas", "Fuentes y canales", ListChecks),
-      pestana("acreditacion", "avance", "detalle", "Detalle", "Controles", Table2),
-      pestana("acreditacion", "avance", "correo", "Correo", "Envíos de Mailchimp", Mail),
-      pestana("acreditacion", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
+      pestana("acreditacion", "avance", "resumen", "Resumen", "Si se llega a la meta", BarChart3),
+      pestana("acreditacion", "avance", "publicos", "Por público", "Quién se queda atrás", Users),
+      pestana("acreditacion", "avance", "cuotas", "Por cuota", "Si se cumple cada categoría", Target),
+      pestana("acreditacion", "avance", "ritmo", "Ritmo", "A qué velocidad entra", CalendarRange),
+      pestana("acreditacion", "avance", "salidas", "Salidas", "Qué se entrega y si está al día", Download),
     ],
   },
   // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23):
@@ -468,6 +470,52 @@ export const MONITOREO_PESTANAS_INTERNAS_TERRITORIAL = {
     pestana("territorial", "ocurrencias", "ump", "UMP", "Con/sin ocurrencia", Route),
     pestana("territorial", "ocurrencias", "alerts", "Alertas", "Cruces y observaciones", ShieldAlert),
     pestana("territorial", "ocurrencias", "rhythm", "Ritmo", "Días e historial", CalendarRange),
+  ],
+} as const;
+
+/**
+ * Vistas que la página de acreditación monta por dentro.
+ *
+ * Igual que en Telefónico, no son navegación pública: la dirección del modo es
+ * la de `MONITOREO_PESTANAS.acreditacion` y `direccionAcreditacion.ts` traduce
+ * cada pestaña pública a una de estas vistas. Conservan su clave histórica
+ * porque la página congelada las monta así y porque los enlaces guardados con
+ * esas claves se leen como alias. Nunca se escriben.
+ */
+export const MONITOREO_PESTANAS_INTERNAS_ACREDITACION = {
+  fuentes: [
+    pestana("acreditacion", "fuentes", "actores", "Actores", "Quiénes responden el estudio", Users),
+    pestana("acreditacion", "fuentes", "fuentes", "Fuentes y universo", "Qué está conectado y de quién es", Layers3),
+    pestana("acreditacion", "fuentes", "recopiladores", "Recopiladores", "Por dónde llegó cada respuesta", ListChecks),
+  ],
+  modelo: [
+    pestana("acreditacion", "modelo", "estructura", "Modelo operativo", "Metas por actor", Target),
+    pestana("acreditacion", "modelo", "distribucion", "Distribución", "Variable de interés por actor", BarChartBig),
+    pestana("acreditacion", "modelo", "estrategias", "Cronograma", "Campo y reportes", CalendarRange),
+  ],
+  consultas: [
+    pestana("acreditacion", "consultas", "plataforma", "Registros en plataforma", "Respuestas y cruce", ListChecks),
+    pestana("acreditacion", "consultas", "base", "Estado de la base", "Actor por actor", Table2),
+    pestana("acreditacion", "consultas", "cruces", "Cruces efectivos", "Razón de cruce", Link2),
+    pestana("acreditacion", "consultas", "subsanacion", "Subsanación", "Decisión auditada", ShieldAlert),
+  ],
+  telefonico: [
+    pestana("acreditacion", "telefonico", "resumen", "Barrido + Kobo", "Barrido telefónico", PhoneCall),
+    pestana("acreditacion", "telefonico", "estados", "Estados", "Confirma y colorea", SlidersHorizontal),
+    pestana("acreditacion", "telefonico", "dia", "Ritmo diario", "Efectivas Kobo", CalendarRange),
+    pestana("acreditacion", "telefonico", "incidencia", "Sin efectiva", "Sin efectiva e insistencia", AlertCircle),
+    pestana("acreditacion", "telefonico", "responsables", "Responsables", "Equipo y carga", ContactRound),
+    pestana("acreditacion", "telefonico", "alertas", "Alertas reales", "Alertas reales", ShieldAlert),
+    pestana("acreditacion", "telefonico", "supervision", "Supervisión", "Control y muestra", ClipboardCheck),
+  ],
+  avance: [
+    pestana("acreditacion", "avance", "resumen", "Resumen", "Avance general", BarChart3),
+    pestana("acreditacion", "avance", "actores", "Actores", "Brechas por unidad", Layers3),
+    pestana("acreditacion", "avance", "cuotas", "Cuotas", "Metas por categoría", Target),
+    pestana("acreditacion", "avance", "encuestas", "Encuestas", "Fuentes y canales", ListChecks),
+    pestana("acreditacion", "avance", "detalle", "Detalle", "Controles", Table2),
+    pestana("acreditacion", "avance", "correo", "Correo", "Envíos de Mailchimp", Mail),
+    pestana("acreditacion", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
   ],
 } as const;
 

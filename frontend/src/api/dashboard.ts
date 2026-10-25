@@ -4,7 +4,7 @@
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
 import type { CodifAplicarAvisos, CodifSinRecodificar } from "./codificacion";
-import { normalizeCodifAplicarAvisos, normalizeCodifMotivoOmision } from "./codificacion";
+import { normalizeCodifAplicarAvisos, normalizeCodifAvisoFuente, normalizeCodifMotivoOmision } from "./codificacion";
 
 // ---- Dimensiones (tab Analítica → Dimensiones) ---------------------------
 
@@ -1115,6 +1115,8 @@ export type CodifAplicarRespuesta = CodifAplicarAvisos & {
   job_id: string;
   kind: string;
   sin_recodificar?: CodifSinRecodificar[];
+  /** B1: Codificación leyó otro n que el de la base (`normalizeCodifAvisoFuente`); `null` sin aviso. */
+  aviso_fuente?: string | null;
 };
 
 export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
@@ -1131,6 +1133,7 @@ export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
     omitidas?: unknown;
     textos_sin_codigo?: unknown;
     avisos_incompletos?: unknown;
+    aviso_fuente?: unknown;
   }>(
     await apiFetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
@@ -1143,6 +1146,7 @@ export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
     omitidas: avisos.omitidas,
     textos_sin_codigo: avisos.textos_sin_codigo,
     avisos_incompletos: avisos.avisos_incompletos,
+    aviso_fuente: normalizeCodifAvisoFuente(raw),
   };
 }
 

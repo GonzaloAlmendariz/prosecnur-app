@@ -482,7 +482,7 @@ mount_monitoreo_telefonico_discrepancias <- function(pr) {
 .monitoreo_profile_equivalencias <- function(out, profile) {
   raw <- profile[["enumerator_equivalences"]] %||% profile[["name_equivalences"]]
   if (is.data.frame(raw)) raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
-  if (!is.list(raw) || !length(raw)) return(out)
+  if (!is.list(raw) || !length(raw)) return(.monitoreo_profile_supervision_rondas(out, profile))
   pares <- list()
   vistos <- character(0)
   for (item in raw) {
@@ -495,5 +495,5 @@ mount_monitoreo_telefonico_discrepancias <- function(pr) {
     pares[[length(pares) + 1L]] <- list(kobo = kobo, hoja = hoja)
   }
   if (length(pares)) out[["enumerator_equivalences"]] <- pares
-  out
+  .monitoreo_profile_supervision_rondas(out, profile) # monitoreo_supervision_rondas.R
 }

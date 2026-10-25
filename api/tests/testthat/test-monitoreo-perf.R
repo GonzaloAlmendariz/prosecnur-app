@@ -382,12 +382,14 @@ test_that("3.4b: metadata de publicación/inspección fuera del token; campos de
   snapshot <- list(synced_at = "2026-06-15T00:00:00Z")
   token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg)
 
-  # supervision_* solo alimenta /supervision/sample bajo demanda: editarlo ya
-  # no invalida los 7 scopes.
+  # supervision_* sortea la Ronda 1 del reporte telefónico (T9): editarlo SÍ
+  # invalida, o se serviría el sorteo viejo.
   cfg_sup <- cfg
   cfg_sup$supervision_n <- 55L
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_sup)))
+  cfg_sup <- cfg
   cfg_sup$supervision_seed <- 99L
-  expect_identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_sup))
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_sup)))
 
   # Timestamps de inspección y metadata de despliegue del form de ocurrencias
   # (la causa histórica de invalidaciones nucleares por ciclo de ocurrencias).
@@ -469,7 +471,7 @@ test_that("3.8b: la key de tabs discrimina corte/audiencia/destino y tolera meta
 
   # Coherente con 3.4b: metadata que no entra al token tampoco rompe la key.
   cfg_meta <- cfg
-  cfg_meta$supervision_n <- 99L
+  cfg_meta$territorial$inspected_at <- "2026-07-23T10:00:00Z"
   expect_identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg_meta, "client", FALSE, "full", "sheet_1", "acreditacion"))
 })
 

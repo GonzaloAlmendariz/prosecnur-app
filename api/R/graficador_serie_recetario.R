@@ -89,6 +89,7 @@
   if (diff(lim) <= 0) lim <- c(0, 100)
   d <- .serie_recetario_ubicar(d, lim)
   d$.lab <- .pulso_fmt_pct_half_up(d$v, decimales, escala = 1)
+  if (".sufijo" %in% names(d)) d$.lab <- paste0(d$.lab, d$.sufijo)   # L10-9: letras de significancia tras la cifra
   guias <- seq(lim[1], lim[2], paso)
   ultimo <- do.call(rbind, lapply(split(d, d$g), function(z) {
     z <- z[is.finite(z$v), , drop = FALSE]; if (!nrow(z)) NULL else z[which.max(z$x), , drop = FALSE]

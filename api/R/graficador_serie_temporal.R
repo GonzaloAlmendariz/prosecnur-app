@@ -99,6 +99,8 @@
 #' @param destacar_ultimo Engrosa el marcador del ultimo periodo de cada serie,
 #'   que es el dato que el lector busca primero.
 #' @param limite_y Tope del eje Y. Vacio = automatico.
+#' @param var_sufijo Columna con lo que va tras la cifra de cada punto (las letras de significancia, " AB"); `NULL`, nada.
+#'   Con ella la serie va dibujada en su lámina aunque tenga dos mediciones: la pieza nativa de dos no lleva letras.
 #'
 #' @family graficador
 #' @export
@@ -107,6 +109,7 @@ graficar_serie_temporal <- function(
     var_eje    = "eje",
     var_grupo  = "grupo",
     var_valor  = "valor",
+    var_sufijo = NULL,
 
     orden_periodos = NULL,
     orden_series   = NULL,
@@ -178,6 +181,9 @@ graficar_serie_temporal <- function(
     .valor   = suppressWarnings(as.numeric(data[[var_valor]])),
     stringsAsFactors = FALSE
   )
+  # L10-9: las letras de significancia viajan con su punto (graficos_serie_significancia.R).
+  con_sufijo <- !is.null(var_sufijo) && var_sufijo %in% names(data)
+  if (con_sufijo) { df$.sufijo <- as.character(data[[var_sufijo]]); df$.sufijo[is.na(df$.sufijo)] <- "" }
   df <- df[!is.na(df$.serie) & nzchar(trimws(df$.serie)), , drop = FALSE]
   df <- df[!is.na(df$.periodo) & nzchar(trimws(df$.periodo)), , drop = FALSE]
   if (!nrow(df)) stop("No quedan filas con serie y periodo utilizables.", call. = FALSE)
@@ -230,7 +236,7 @@ graficar_serie_temporal <- function(
     attr(p, "pulso_serie_cifras_omitidas") <- isTRUE(mostrar_valores) && !cifras_r
     # Dos mediciones: la lámina nativa (87). Tres o más: el ggplot del recetario dentro de su lámina (88), con la
     # ubicación de recetario_m3c.R:68 (0.4 in a la derecha, 4.7 in de alto).
-    attr(p, "pulso_espec") <- tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL) %||%
+    attr(p, "pulso_espec") <- (if (con_sufijo) NULL else tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL)) %||%
       .espec_ggplot_marco("serie", nota = nota_pie, zona = c(dx = 0.4, dy = 0.1, dw = 0.4, dh = 0.27))
     return(p)
   }
@@ -263,6 +269,7 @@ graficar_serie_temporal <- function(
 
   if (isTRUE(mostrar_valores) && cifras_caben) {
     df$.lab <- .serie_temporal_formato(df$.y, "proporcion_100", valores_decimales)
+    if (con_sufijo) df$.lab <- paste0(df$.lab, df$.sufijo)
     # La separacion minima se mide contra el rango real de los datos, no contra
     # un absoluto: un grafico que va de 20% a 80% tolera cifras mas juntas que
     # uno que va de 40% a 45%.

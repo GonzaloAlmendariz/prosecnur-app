@@ -162,7 +162,22 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-surface-2);
+}
+
+/* Relleno interno de la tarjeta en los bordes y columnas compactas a su
+ * contenido: el ancho sobrante va a Enumerador y Resultado, no a huecos. */
+.mon-sup-tabla :is(th, td):first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-sup-tabla :is(th, td):last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+.mon-sup-tabla .is-compacta {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .mon-sup-pendiente {
@@ -185,9 +200,14 @@
 }
 
 @media (max-width: 1180px) {
+  /* Una columna que crece con su contenido: el contenedor de la pestaña
+   * desplaza (C4). Sin `flex: none`, el contenedor la encogía a su alto y las
+   * tarjetas se montaban unas sobre otras. */
   .mon-sup {
+    flex: none;
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+    min-height: auto;
   }
 
   .mon-sup-reparto,
@@ -206,4 +226,349 @@
 .mon-sup-controles.is-no {
   color: var(--pulso-danger-fg);
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* Rondas de supervisión: la lista numerada con su estado y, al pie de cada una
+ * guardada sin publicar, «Publicar en el Sheets». */
+.mon-sup-rondas {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+/* Con el rótulo de la pestaña, la cabecera son dos líneas: rótulo y acciones
+ * arriba, «Rondas» y las efectivas nuevas debajo. */
+.mon-sup-rondas-cabecera {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mon-sup-rondas-titulo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.mon-sup-rondas-titulo > b {
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.mon-sup-rondas-cabecera:has(> .mon-tel-rotulo) > .mon-sup-rondas-titulo {
+  order: 3;
+  flex-basis: 100%;
+}
+
+.mon-sup-rondas-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.mon-sup-migracion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.mon-sup-lista-rondas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  max-height: 260px;
+  margin: 0;
+  padding: 0 var(--pulso-space-4) var(--pulso-space-4);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mon-sup-lista-rondas li {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+/* La ronda elegida: borde de 1 px en el tono del módulo y fondo neutro suave.
+ * Sin sombra inset (dibujaba un bisel que no seguía el radio) y sin teñir la
+ * tarjeta: el estado (sin guardar, publicada) lo dice sólo el chip. */
+.mon-sup-lista-rondas li.is-activa {
+  border-color: var(--module-accent-border, var(--pulso-border-strong));
+  background: var(--pulso-surface-2);
+}
+
+.mon-sup-ronda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--pulso-space-2);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.mon-sup-ronda small {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-sup-ronda em {
+  grid-row: 1;
+  grid-column: 2;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.mon-sup-ronda em.is-publicada {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-sup-ronda em.is-borrada {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-sup-ronda-lectura {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-sup-ronda em.is-pendiente {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-sup-ronda:focus-visible,
+.mon-sup-cerrar:focus-visible,
+.mon-sup-enlace:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-sup-lista-rondas li > .mon-insumos-boton {
+  align-self: flex-start;
+}
+
+.mon-sup-rondas-vacio {
+  margin: 0;
+  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* Diálogos de ronda (portal al body). */
+.mon-sup-dialogo-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--pulso-space-5);
+  background: color-mix(in srgb, var(--pulso-text) 28%, transparent);
+}
+
+.mon-sup-dialogo {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 48px);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.mon-sup-dialogo > header,
+.mon-sup-dialogo > footer {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.mon-sup-dialogo > header {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-sup-dialogo > header h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 16px;
+}
+
+.mon-sup-dialogo > footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-sup-cerrar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.mon-sup-dialogo-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  overflow-y: auto;
+}
+
+.mon-sup-dialogo-dato {
+  margin: 0;
+}
+
+.mon-sup-porcentaje,
+.mon-sup-buscar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sup-porcentaje input {
+  width: 80px;
+  height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  font: inherit;
+  text-align: right;
+}
+
+.mon-sup-porcentaje em {
+  font-style: normal;
+}
+
+.mon-sup-buscar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.mon-sup-buscar input {
+  height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.mon-sup-dialogo-reparto,
+.mon-sup-dialogo-encontrados {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mon-sup-dialogo-reparto li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 40px;
+  gap: var(--pulso-space-2);
+  align-items: baseline;
+}
+
+.mon-sup-dialogo-reparto li > :not(:first-child) {
+  text-align: right;
+}
+
+.mon-sup-dialogo-encontrados li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sup-dialogo-encontrados em {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.mon-sup-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mon-sup-preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  margin: 0;
+  padding: var(--pulso-space-3);
+  overflow-y: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-sup-preguntas legend {
+  padding: 0 4px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-sup-preguntas label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sup-preguntas small {
+  color: var(--pulso-text-faint);
+}
+
+/* Avisos dentro de su tarjeta, bajo la cabecera. */
+.mon-sup-reparto-nota,
+.mon-sup-casos-nota {
+  flex: none;
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.mon-sup-casos-nota .mon-sup-enlace {
+  margin-left: var(--pulso-space-2);
 }

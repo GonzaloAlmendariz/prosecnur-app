@@ -84,7 +84,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
   const avisosPlan = useAvisosPlanSesion();
   const { avisos: avisosEquivalencias } = useDeclaracionAplicada();   // ADR 0096: los avisos de la siembra cuentan en «N avisos»
   const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias), [validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias]);
-  // Los colores que faltan bloquean «Exportar»: cuentan como un aviso que bloquea, igual que en el panel.
+  // Los colores que faltan bloquean «Exportar» (P8): cuentan como un aviso que bloquea, igual que en el panel (U9).
   const sinColor = useColoresPendientes().pendientes.length > 0;
   const nAvisos = totalAvisos(grupos) + (sinColor ? 1 : 0);
 
@@ -133,7 +133,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
           className={`pulso-f6-boton pulso-f6-barra-avisos${grupos.bloquean.length || sinColor ? " is-bloquea" : ""}`}
           aria-expanded={avisosPanel.abierto}
           onClick={avisosPanel.alternar}
-          title={grupos.bloquean.length ? `${grupos.bloquean.length} bloquean la exportación` : "Avisos del informe"}
+          title={grupos.bloquean.length || sinColor ? `${grupos.bloquean.length + (sinColor ? 1 : 0)} bloquean la exportación` : "Avisos del informe"}
         >
           <AlertTriangle size={14} aria-hidden="true" />
           {nAvisos === 1 ? "1 aviso" : `${nAvisos} avisos`}

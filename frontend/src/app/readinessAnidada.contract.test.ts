@@ -146,6 +146,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
   "features/graficos/GraficosPage.tsx":
     "fallbacks de Suspense de las pestañas perezosas: los reemplaza el chunk al cargar",
   "features/graficos/estilo/PestanaEstilo.tsx": "listo al llegar las opciones o su error",
+  "features/graficos/laminas/VisorLamina.tsx":
+    "vista previa pedida («Previsualizar») mientras el motor dibuja; lista o en error (también desactualizada) publica true",
   "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
   "features/calcMuestra/CalcMuestraPage.tsx":

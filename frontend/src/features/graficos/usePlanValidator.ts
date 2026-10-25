@@ -12,7 +12,7 @@ import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
-import { twoBoxDeGrafico } from "./laminas/modeloMaqueta";
+import { avisaTtbSinRespuestas } from "./laminas/ttbSinRespuestas";
 import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
@@ -325,13 +325,13 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
     }
   }
 
-  // 4b) Top Two Box encendido sin sus respuestas: el motor omite la columna (catálogo del recetario, M2) --------------
+  // 4b) Top Two Box encendido sin sus respuestas: el motor omite la columna (catálogo del recetario, M2). Sólo donde el
+  // motor lo avisa: escala con orden de 3+ respuestas, leídas de overrides o de los args (CCSS-UI-1) ------------------
   slides.forEach((slide, indice) => {
     for (const valor of Object.values((slide.payload ?? {}) as Record<string, unknown>)) {
       const g = valor as GraficadorRef | undefined;
       if (!g || typeof g !== "object" || typeof g.graficador !== "string") continue;
-      const tb = twoBoxDeGrafico(g.graficador, (g.args ?? {}) as Record<string, unknown>, presets);
-      if (!tb.ttb || !Array.isArray(tb.etiquetas) || tb.etiquetas.length) continue;
+      if (!avisaTtbSinRespuestas(g.graficador, (g.args ?? {}) as Record<string, unknown>, presets, variables)) continue;
       issues.push({
         severity: "warning",
         code: "ttb-sin-respuestas",

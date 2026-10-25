@@ -77,6 +77,9 @@ describe("la plantilla de filas alcanza para todos los hijos del stack", () => {
     // tests de arriba pasarían sin comprobar nada.
     const usos = usosDelStack();
     expect(usos.length).toBe(2);
-    expect(usos.map((u) => u.hijos).sort()).toEqual([2, 4]);
+    // Desde Insumos › Fuentes (revamp A6) el inventario es un solo bloque bajo
+    // la franja: `<Fuentes>` reúne maestro, detalle y declaración. Los dos
+    // stacks tienen dos hijos.
+    expect(usos.map((u) => u.hijos).sort()).toEqual([2, 2]);
   });
 });

@@ -105,6 +105,8 @@
 #'   preset del tipo y, sin el, el defecto de `graficar_serie_temporal()` (los
 #'   mismos que tenia este constructor). `valores_decimales` lo gobierna la
 #'   pestaña «Cálculos» salvo `calculos_propios = TRUE` en `overrides`.
+#' @param mostrar_significancia,significancia_alpha Con `cruce`: marca en cada punto la letra del nivel al que supera, con
+#'   la prueba de las tablas de cruces (graficos_serie_significancia.R). Sin `cruce` (olas) no se marca y se avisa.
 #' @export
 p_serie_temporal <- function(
     vars,
@@ -126,7 +128,9 @@ p_serie_temporal <- function(
     titulos_grupo = NULL,
     mostrar_leyenda = NULL,
     cruce = NULL,
-    grupos = NULL
+    grupos = NULL,
+    mostrar_significancia = NULL,
+    significancia_alpha = NULL
 ) {
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_serie_temporal()")
   # L10-7: con `cruce`, la evolución es por los niveles de una pregunta ordinal de la misma base (graficos_serie_cruce.R).
@@ -134,8 +138,10 @@ p_serie_temporal <- function(
     return(.p_serie_cruce(vars, corte, corte_etiqueta, cruce, grupos, titulo, overrides, base, filtros,
                           mostrar_valores = mostrar_valores, valores_decimales = valores_decimales, destacar_ultimo = destacar_ultimo,
                           colores_series = colores_series, limite_y = limite_y, max_series_con_cifras = max_series_con_cifras,
-                          mostrar_puntos = mostrar_puntos, mostrar_grid_y = mostrar_grid_y, mostrar_leyenda = mostrar_leyenda))
+                          mostrar_puntos = mostrar_puntos, mostrar_grid_y = mostrar_grid_y, mostrar_leyenda = mostrar_leyenda,
+                          mostrar_significancia = mostrar_significancia, significancia_alpha = significancia_alpha))
   }
+  .serie_sig_sin_cruce(mostrar_significancia)   # L10-9: entre olas no se marca; se dice en vez de callar
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_serie_temporal(): `vars` debe ser una lista nombrada no vacia.")
   }

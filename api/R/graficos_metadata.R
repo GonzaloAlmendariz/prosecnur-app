@@ -1383,7 +1383,24 @@
            default = 3),
       # G11 (2026-10-13): la lámina 101 del diseño pone junto a la nube las diez palabras más dichas con su conteo.
       list(name = "mostrar_ranking", label = "Ranking de palabras", tipo_input = "bool", grupo = "valores", default = TRUE,
-           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones.")
+           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones."),
+      # TXT-1 (plan-texto-abierto-ccss-2026-10-24): la nube limpia del comentario final. Todo apagado por defecto para
+      # no cambiar las nubes ya hechas. `p_nube_palabras()` no los tiene como formales: viajan por overrides.
+      list(name = "filtrar_no_respuestas", label = "Quitar no respuestas", tipo_input = "bool", grupo = "filtro", default = FALSE,
+           via_overrides = TRUE,
+           descripcion = "Deja fuera «-», «no», «ninguno», «nada» y parecidos. El ranking dice cuántos comentarios tienen contenido de cuántos escribieron algo."),
+      list(name = "lematizar", label = "Agrupar flexiones", tipo_input = "bool", grupo = "filtro", default = FALSE,
+           via_overrides = TRUE,
+           descripcion = "Une plural y formas verbales de una palabra (no sinónimos), quita palabras de opinión como «considero» y une las frases que usan tres personas o más."),
+      list(name = "contar", label = "Contar", tipo_input = "choice", grupo = "valores", default = "menciones",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "menciones", label = "Menciones", hint = "Cada vez que aparece la palabra."),
+             list(value = "personas", label = "Personas", hint = "Cada persona cuenta una vez por palabra, sin ponderar.")),
+           descripcion = "Qué mide el tamaño de cada palabra y la cifra del ranking."),
+      list(name = "min_personas", label = "Mínimo de personas", tipo_input = "number", grupo = "filtro", default = 3,
+           via_overrides = TRUE,
+           descripcion = "Contando personas, sólo entran las palabras que usan al menos estas personas.")
     ), .args_graf_comunes())
   ),
 
@@ -1918,6 +1935,13 @@
            descripcion = "Opcional. Pregunta ordinal de la misma base (ej. nivel curricular): un punto por nivel, en el orden del instrumento. Vacía, un punto por medición (base)."),
       list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Opcional, con un cruce. Los códigos del cruce en el orden del eje; vacío, todos los que tienen respuestas."),
+      # L10-9 (bandeja CCSS, 2026-10-24): la serie por nivel reemplaza a apiladas con letras; los cruces se muestran con su prueba.
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE,
+           descripcion = "Con un cruce: agrega a cada punto la letra de los niveles a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. La nota de la prueba va sobre la base."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005,
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
@@ -2184,7 +2208,14 @@
            )),
       list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
            descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado"),
+      # L10-10 (bandeja CCSS, 2026-10-24): con una pregunta como objetivo, la columna Top Two Box (graficos_heatmap_top2box.R).
+      # `via_overrides`: `p_dim_heatmap()` no los tiene como formales.
+      list(name = "top2box", label = "Columna Top Two Box", tipo_input = "bool", grupo = "valores", via_overrides = TRUE,
+           descripcion = "Con una pregunta como objetivo. Vacío: encendida si la escala es ordinal de cuatro o más puntos. Suma las categorías de «Categorías del Top 2 Box»; sin ellas se omite y se avisa."),
+      list(name = "top2box_labels", label = "Categorías del Top 2 Box", tipo_input = "categorias_escala", grupo = "valores",
+           via_overrides = TRUE, ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
+           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala.")
     ), .args_graf_comunes())
   ),
 

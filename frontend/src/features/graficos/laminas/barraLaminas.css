@@ -112,6 +112,10 @@
    se le da movimiento dentro de la barra de Láminas. */
 .pulso-f6-mas-menu,
 .pulso-f6-barra .pulso-gv2-export-menu-popover {
+  /* C4 a 1024×600: con la lista de colores pendientes el menú pasaba el borde de la ventana; se desplaza adentro. */
+  max-height: max(240px, calc(100dvh - 210px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transform-origin: top right;
   transition:
     opacity var(--motion-dur-fast) var(--motion-ease-out),
