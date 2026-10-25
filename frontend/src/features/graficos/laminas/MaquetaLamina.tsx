@@ -19,6 +19,7 @@ import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 import { fichaDeRanura } from "./maqueta/fichaModelo";
 import { FichaRanura } from "./maqueta/FichaRanura";
 import { LlaveDependencia } from "./maqueta/LlaveDependencia";
+import { useConteosMaqueta } from "./maqueta/useConteosMaqueta";
 import { datosEstructura } from "./maqueta/datosEstructura";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
@@ -44,6 +45,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
+  const { conteos, listos: conteosListos } = useConteosMaqueta(ranuras);
   const dep = dependenciaDe(slide);
   const rectDe = dep ? ranuras.find((r) => r.slot === dep.de)?.rect : undefined;
   const rectA = dep ? ranuras.find((r) => r.slot === dep.a)?.rect : undefined;
@@ -75,7 +77,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   }
 
   return (
-    <div className="pulso-f6-maqueta" data-maqueta-tipo={slide.tipo}>
+    // `data-maqueta-conteos`: la leyenda ya lista lo que el motor dibuja (CCSS-UI-3); el QA puede esperarlo.
+    <div className="pulso-f6-maqueta" data-maqueta-tipo={slide.tipo} data-maqueta-conteos={conteosListos ? "listos" : "pendientes"}>
       <div className="pulso-f6-maqueta-cabecera">
         {campos.has("antetitulo") && (
           <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-ante" onClick={() => onTexto("antetitulo")} aria-label="Editar antetítulo">
@@ -103,7 +106,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         if (r.k === null) {
           return <span key={i} className="pulso-f6-maqueta-ranura is-cifra" style={estilo} aria-hidden="true"><span className="pulso-f6-maqueta-cifras">Cifras</span></span>;
         }
-        const base = fichaDeRanura(r, nombreTipo);
+        const base = fichaDeRanura(r, nombreTipo, r.variable ? conteos.get(r.variable) : null);
         // Dependencia entre los dos gráficos: el dependiente dice quiénes lo responden; el independiente, a quién habilita.
         const ficha = !dep ? base : r.slot === dep.a
           ? { ...base, ajustes: [`Sólo quienes ${quienes.replace(/^que\s+/, "")}`, ...base.ajustes] }
