@@ -1,6 +1,7 @@
 import type { DisenoEstudioSourceState, ProjectOverview } from "../../api/client";
 import type { ProsecnurModuleMeta } from "../../lib/modules";
 import { resumenDelInicio } from "../recopiladores/campanas/resumenDelInicio";
+import { baseDelAvance, estaRegenerando, lineaDelAvance, rezagado, type HechosDeMonitoreo } from "./lecturaDeMonitoreo";
 
 export type ModuleStatusState = DisenoEstudioSourceState;
 
@@ -326,8 +327,11 @@ export function buildModuleCardView(
     }
 
     case "monitoreo": {
-      const monitoring = facts.monitoreo;
-      const state: ModuleStatusState = monitoring.alerts > 0 ? "warning" : nodeState;
+      const monitoring: HechosDeMonitoreo = facts.monitoreo;
+      // Mientras el tablero se regenera la cifra guardada es la del corte
+      // anterior: la tarjeta dice el estado y no la publica como actual (L20).
+      const regenerando = estaRegenerando(monitoring);
+      const state: ModuleStatusState = regenerando ? "active" : monitoring.alerts > 0 ? "warning" : nodeState;
       const family =
         MONITOREO_FAMILY_LABEL[monitoring.family] ??
         (monitoring.family ? capitalize(monitoring.family) : "Sin tipo registrado");
@@ -339,7 +343,9 @@ export function buildModuleCardView(
       const collectedLabel = monitoring.collected_label || "recolectados";
       const avanceLabel = monitoring.avance_label || "avance de campo";
       const viz: ModuleCardViz =
-        monitoring.avance_pct >= 0
+        regenerando
+          ? { kind: "stat", value: "Actualizando", label: avanceLabel }
+          : monitoring.avance_pct >= 0
           ? { kind: "stat", value: `${monitoring.avance_pct}%`, label: avanceLabel }
           : monitoring.valid > 0
             ? { kind: "stat", value: formatCount(monitoring.valid), label: `casos ${validLabel}` }
@@ -353,35 +359,17 @@ export function buildModuleCardView(
                   }
                 : { kind: "stat", value: "Sin fuentes", label: "conexión de campo" };
       // Lo que el operativo necesita saber es cuánto falta para la meta, no
-      // cuánto se ha recorrido de la base: esa lectura va en la sub-línea y el
-      // recorrido baja a fact. Antes una alerta borraba el progreso; ahora el
-      // progreso manda y la alerta vive en su propio chip (repetirla aquí era
-      // ruido).
-      const gap = Math.max(0, monitoring.target - monitoring.valid);
-      const progressText =
-        monitoring.target > 0
-          ? gap === 0
-            ? `Meta cumplida · ${formatCount(monitoring.valid)} de ${formatCount(monitoring.target)} ${validLabel}`
-            : `Faltan ${formatCount(gap)} para la meta · ${formatCount(monitoring.valid)} de ${formatCount(monitoring.target)}`
-          : monitoring.collected > 0
-            ? `${formatCount(monitoring.valid)} ${validLabel} de ${formatCount(monitoring.collected)}`
-            : "";
-      // Con cuotas por actor el agregado no basta: la tarjeta nombra al que va
-      // último, que es donde hay que mirar. Solo cuando hay más de un actor y
-      // de verdad está rezagado respecto del conjunto.
-      const lagging =
-        monitoring.actors_count && monitoring.actors_count > 1 &&
-        monitoring.lagging_actor &&
-        typeof monitoring.lagging_pct === "number" &&
-        monitoring.lagging_pct >= 0 &&
-        monitoring.lagging_pct < monitoring.avance_pct
-          ? `${monitoring.lagging_actor} al ${Math.round(monitoring.lagging_pct)}%`
-          : "";
+      // cuánto se ha recorrido de la base: la sub-línea dice la base del
+      // porcentaje («423 de 400 efectivas») y si se cumplió o cuánto falta. El
+      // recorrido baja a fact y el actor rezagado va a su propio pie, sin
+      // encadenarlo con «·».
+      const progressText = lineaDelAvance(monitoring);
+      const lagging = regenerando ? "" : rezagado(monitoring);
       const alertText =
         monitoring.alerts > 0 ? `${formatCount(monitoring.alerts)} por revisar` : "";
       return {
         state,
-        statusLabel: stateLabel(state),
+        statusLabel: regenerando ? "Actualizando" : stateLabel(state),
         emphasis:
           monitoring.alerts > 0 ||
           (monitoring.avance_pct < 0 &&
@@ -403,7 +391,7 @@ export function buildModuleCardView(
         // Sin fuentes manda la ausencia, porque es lo accionable: lo que hay
         // que hacer es conectar una, no leer que está conectado.
         sub:
-          [progressText, lagging].filter(Boolean).join(" · ") ||
+          (regenerando ? (baseDelAvance(monitoring) ? `Corte anterior: ${baseDelAvance(monitoring)}` : "") : progressText) ||
           alertText ||
           (protocol.monitoring_sources_count === 0
             ? "Conecta una fuente para iniciar el seguimiento"
@@ -425,6 +413,7 @@ export function buildModuleCardView(
                 ? "0"
                 : "Sin sincronizar",
           },
+          ...(lagging ? [{ label: "va último", value: lagging }] : []),
         ],
         action: moduleAction(module, monitoring.alerts > 0 ? "Revisar alertas" : "Abrir monitoreo"),
         alert: monitoring.alerts > 0 ? `${formatCount(monitoring.alerts)} por revisar` : nodeAlert,
