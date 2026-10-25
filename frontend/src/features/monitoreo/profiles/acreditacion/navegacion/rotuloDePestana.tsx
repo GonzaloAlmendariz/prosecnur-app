@@ -15,41 +15,6 @@ export type RotuloDePestana = {
 
 export const RotuloDePestanaContexto = createContext<RotuloDePestana | null>(null);
 
-export function EncabezadoDeTarjeta({
-  titulo,
-  detalle,
-  acciones,
-  primera = false,
-  className,
-}: {
-  titulo: ReactNode;
-  detalle?: ReactNode;
-  acciones?: ReactNode;
-  /** La primera tarjeta de la pestaña lleva el rótulo. */
-  primera?: boolean;
-  className?: string;
-}) {
-  const contexto = useContext(RotuloDePestanaContexto);
-  const rotulo = primera ? contexto : null;
-  const derecha = (
-    <>
-      {rotulo?.control}
-      {rotulo?.chips.map((chip) => <span key={chip} className="acr-enc-chip">{chip}</span>)}
-      {acciones}
-    </>
-  );
-  const conDerecha = Boolean(rotulo?.control || rotulo?.chips.length || acciones);
-  return (
-    <header className={`acr-av-panel-cabecera${rotulo ? " is-con-rotulo" : ""}${className ? ` ${className}` : ""}`}>
-      <div className="acr-enc-copia">
-        {rotulo ? <span className="acr-av-antetitulo acr-enc-rotulo">{rotulo.antetitulo}</span> : null}
-        <h3>{titulo}{detalle ? <span className="acr-av-tenue">{detalle}</span> : null}</h3>
-      </div>
-      {conDerecha ? <div className="acr-enc-derecha">{derecha}</div> : null}
-    </header>
-  );
-}
-
 /** Para una barra de herramientas que ya es la primera fila: el rótulo a su izquierda. */
 export function RotuloEnBarra() {
   const rotulo = useContext(RotuloDePestanaContexto);
