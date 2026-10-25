@@ -114,7 +114,9 @@ export function ExploracionUmp({
     setElegido(id);
   };
 
-  const readiness = estado.tipo === "listo"
+  // Lista sólo con los casos y la cartografía rica (calles y vecinas) ya
+  // resueltas: antes la captura podía salir con la manzana sola.
+  const readiness = estado.tipo === "listo" && !cartografia.ricaPendiente
     ? "monitoreo-territorial-avance-umps-exploracion"
     : estado.tipo === "error" ? "vacio:sin-casos-de-ump" : "false";
   const delDia = elegido ? casos.filter((caso) => caso.fechaIso === elegido.fechaIso) : [];
@@ -214,11 +216,11 @@ export function ExploracionUmp({
           <footer className="mon-exp-pie">
             <Leyenda capa={capa} aplicadores={aplicadores} />
             <span>
-              Fuentes: {enumerar(["manzanas INEI 2017", geometria.calles.length ? "calles OpenStreetMap" : "", "GPS de Kobo"])}.
-              {estado.tipo === "listo" && estado.datos.resumen.total > estado.datos.resumen.conGps
-                ? ` ${fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS.`
-                : ""}
+              Fuentes: {enumerar(["manzanas INEI 2017", geometria.calles.length ? "calles OpenStreetMap" : "", "GPS de Kobo"])}
             </span>
+            {estado.tipo === "listo" && estado.datos.resumen.total > estado.datos.resumen.conGps
+              ? <span className="mon-ter-chip is-aviso">{fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS</span>
+              : null}
           </footer>
         </section>
 

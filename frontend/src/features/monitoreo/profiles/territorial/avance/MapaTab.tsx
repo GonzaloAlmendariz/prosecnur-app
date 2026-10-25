@@ -126,9 +126,12 @@ function MapaTabImpl({
   const viewBox = `${Math.max(0, Math.min(LIMA_MAP_WIDTH - ancho, centroVista.x - ancho / 2)).toFixed(1)} ${Math.max(0, Math.min(LIMA_MAP_HEIGHT - alto, centroVista.y - alto / 2)).toFixed(1)} ${ancho.toFixed(1)} ${alto.toFixed(1)}`;
 
   const sinGeometria = !cartografia.cargando && !emparejadas.length;
+  // Acercada a una UMP, la vista no está lista hasta tener sus calles y
+  // vecinas (o saber que fallaron): mientras tanto lo declara en el pie.
+  const esperaCalles = enfocada != null && cartografia.ricaPendiente;
   const readiness = !modelo.manzanas.length
     ? "vacio:sin-cuota"
-    : cartografia.cargando && !emparejadas.length
+    : (cartografia.cargando && !emparejadas.length) || esperaCalles
       ? "false"
       : sinGeometria ? "vacio:sin-cartografia" : "monitoreo-territorial-avance-mapa";
 
@@ -188,7 +191,7 @@ function MapaTabImpl({
           </span>
         </header>
 
-        <div className="mon-mapa-lienzo">
+        <div className="mon-mapa-lienzo" aria-busy={esperaCalles || undefined}>
           {sinGeometria ? (
             <p className="mon-mapa-vacio">
               {cartografia.incompleta
@@ -309,9 +312,10 @@ function MapaTabImpl({
             )}
           </span>
           <span className="mon-mapa-fuente">
-            Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}.
-            {cartografia.incompleta ? " La cartografía está incompleta." : ""}
+            Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}
           </span>
+          {cartografia.incompleta ? <span className="mon-ter-chip is-aviso">Cartografía incompleta</span> : null}
+          {esperaCalles ? <span className="mon-ter-chip is-info" role="status">Cargando calles</span> : null}
         </footer>
       </div>
 
