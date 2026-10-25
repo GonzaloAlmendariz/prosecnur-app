@@ -169,12 +169,6 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
     <section className="mon-res-panel mon-res-ritmo" aria-labelledby="mon-res-ritmo-titulo" data-qa-geometry-member="ritmo">
       <header className="mon-res-cabecera">
         <h3 id="mon-res-ritmo-titulo" className="mon-res-titulo">Ritmo del campo</h3>
-        <span className="mon-res-leyenda">
-          <span className="is-acumulado">Acumulado que cuenta</span>
-          <span className="is-dia">Cuentan por día</span>
-          <span className="is-observacion">De ellas en observación</span>
-          <span className="is-meta">Meta {fmt(modelo.meta)}</span>
-        </span>
       </header>
       {dias.length ? (
         <div className="mon-res-grafico-marco">
@@ -199,6 +193,14 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
       ) : (
         <p className="mon-res-base" data-qa-geometry-empty="legitimo">Sin días con campo en el corte.</p>
       )}
+      {dias.length ? (
+          <span className="mon-res-leyenda">
+            <span className="is-acumulado">Acumulado que cuenta</span>
+            <span className="is-dia">Cuentan por día</span>
+            <span className="is-observacion">De ellas en observación</span>
+            <span className="is-meta">Meta {fmt(modelo.meta)}</span>
+          </span>
+      ) : null}
       {modelo.metaAlcanzada ? (
         <p className="mon-res-base">Cruzó la meta el {modelo.metaAlcanzada.fecha}, con {fmt(modelo.metaAlcanzada.acumulado)} que cuentan.</p>
       ) : null}

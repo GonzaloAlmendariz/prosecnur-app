@@ -252,3 +252,19 @@
 .mon-sen-tabla {
   height: 100%;
 }
+
+/* Viewport bajo (1024 × 600): la pestaña desplaza entera con el dueño del
+ * área de trabajo; la matriz por distrito muestra sus filas en vez de quedar
+ * reducida a la cabecera y el total. */
+@media (max-height: 760px) {
+  .mon-sen {
+    flex: 0 0 auto;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mon-sen-tabla-marco {
+    overflow: visible;
+  }
+}

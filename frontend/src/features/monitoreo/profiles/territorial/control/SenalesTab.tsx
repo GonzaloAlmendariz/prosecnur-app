@@ -42,17 +42,17 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
           encabezado={<RotuloDePestana />}
           titulo="Distancia del GPS a la manzana"
           base={`${fmt(modelo.distancia.base)} casos con GPS cruzable`}
+          criterio="En observación desde 150 m"
           mediana={modelo.distancia.mediana != null ? `Mediana ${fmt(Math.round(modelo.distancia.mediana))} m` : "Sin mediana"}
           histograma={modelo.distancia}
-          leyenda={[["is-revision", "150 a 300 m: en observación"], ["is-lejos", "Más de 300 m: en observación"]]}
         />
         <PanelDeHistograma
           id="duracion"
           titulo="Duración del formulario"
           base={`${fmt(modelo.duracion.base)} casos con duración`}
+          criterio="Se revisan las de menos de 5 min"
           mediana={modelo.duracion.mediana != null ? `Mediana ${modelo.duracion.mediana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min` : "Sin mediana"}
           histograma={modelo.duracion}
-          leyenda={[["is-muy-corta", "Menos de 2 min: se revisa"], ["is-corta", "2 a 5 min: se revisa"], ["is-neutra", "5 min o más: sin alerta, también las largas"]]}
         />
       </div>
       <MatrizPorDistrito modelo={modelo} />
@@ -67,14 +67,15 @@ function PanelDeHistograma({
   base,
   mediana,
   histograma,
-  leyenda,
+  criterio,
 }: {
   id: string;
   titulo: string;
   base: string;
   mediana: string;
   histograma: Histograma;
-  leyenda: Array<[string, string]>;
+  /** El criterio de color, una sola vez en el subtítulo (sin leyenda: cada fila ya está rotulada). */
+  criterio: string;
   encabezado?: ReactNode;
 }) {
   const maximo = Math.max(1, ...histograma.tramos.map((tramo) => tramo.casos));
@@ -83,7 +84,7 @@ function PanelDeHistograma({
       <header className="mon-sen-cabecera">
         {encabezado}
         <h3 id={`mon-sen-${id}`}>{titulo}</h3>
-        <span className="mon-sen-base">{base} · {mediana}</span>
+        <span className="mon-sen-base">{base} · {mediana} · {criterio}</span>
       </header>
       <ol className="mon-sen-barras" data-qa-geometry-group={`territorial-senales-barras-${id}`} data-qa-geometry-contract="intrinsic">
         {histograma.tramos.map((tramo) => (
@@ -94,9 +95,6 @@ function PanelDeHistograma({
           </li>
         ))}
       </ol>
-      <footer className="mon-sen-leyenda">
-        {leyenda.map(([clase, rotulo]) => <span key={clase} className={clase}>{rotulo}</span>)}
-      </footer>
     </section>
   );
 }
