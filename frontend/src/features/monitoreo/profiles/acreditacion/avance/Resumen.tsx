@@ -9,20 +9,17 @@ import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { esperanPorPublico, type CasosDelCorte } from "../control/casos/tiposDeCaso";
 import {
   diaDeMetaCumplida,
-  enFechas,
   proyeccion,
   rezagadosPrimero,
   serieDiaria,
-  seriesPorPublico,
   tieneMeta,
   totalesDeAvance,
   ultimosDias,
   type TotalesDeAvance,
 } from "./avanceModelo";
-import { BarrasPorDia, CurvaAcumulada, fechaCorta, Minibarras } from "./graficosDeAvance";
+import { BarrasPorDia, CurvaAcumulada, fechaCorta } from "./graficosDeAvance";
 import { EstadoDelUniverso } from "./EstadoDelUniverso";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
-import { normalizeSourceMatch } from "../formato";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
@@ -43,31 +40,36 @@ function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDi
   if (lectura.tipo === "cumplida") {
     return <span className="acr-av-chip is-cumple">{lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"}</span>;
   }
+  // El chip dice la cifra; el cálculo que la sostiene va en el tooltip.
   const ritmo = fmt(Math.round(lectura.ritmo));
   return (
-    <span className="acr-av-chip is-falta">
-      {lectura.dias != null
-        ? `Faltan ${fmt(lectura.faltan)}: unos ${fmt(lectura.dias)} días al ritmo de ${ritmo} diarias`
-        : `Faltan ${fmt(lectura.faltan)}; sin efectivas en los últimos siete días`}
+    <span className="acr-res-chips-proyeccion">
+      <span className="acr-av-chip is-falta">{`Faltan ${fmt(lectura.faltan)}`}</span>
+      {lectura.dias != null ? (
+        <span className="acr-av-chip" title={`Al ritmo de ${ritmo} efectivas diarias`}>{`≈ ${fmt(lectura.dias)} ${lectura.dias === 1 ? "día" : "días"}`}</span>
+      ) : (
+        <span className="acr-av-chip" title="Sin efectivas en los últimos siete días">Sin ritmo</span>
+      )}
     </span>
   );
 }
 
 /**
- * Una tesela por público (L9): efectivas sobre su padrón con la marca de la
- * meta. El color del público (el mismo de Metas) va en el punto y en la barra;
- * el estado frente a la meta, en el borde lateral sólido y el chip.
+ * Una tesela por público (L9): efectivas contra la meta con su marca. El color
+ * del público (el mismo de Metas) va en el punto y en la barra; el estado
+ * frente a la meta, en el borde lateral sólido y el chip. Debajo, solo la
+ * cifra mínima («100 % de la meta»): el porcentaje del universo vive en el
+ * tooltip y la serie de 14 días, en Avance › Por público. En densidad
+ * compacta (más de seis públicos) la tesela es nombre, cifra y barra.
  */
 function PublicoEnBarra({
   tarjeta,
-  ultimos,
-  denso,
+  compacta,
   clase,
   onAbrir,
 }: {
   tarjeta: AcreditacionAdvanceCard;
-  ultimos: number[];
-  denso: boolean;
+  compacta: boolean;
   clase: string;
   onAbrir: () => void;
 }) {
@@ -76,9 +78,12 @@ function PublicoEnBarra({
   const relleno = tarjeta.universe > 0 ? Math.min(100, (tarjeta.effective / tarjeta.universe) * 100) : 0;
   const marca = conMeta && tarjeta.universe > 0 ? Math.min(100, (meta / tarjeta.universe) * 100) : null;
   const faltan = Math.max(0, meta - tarjeta.effective);
+  const delUniverso = `${porcentaje(tarjeta.effective, tarjeta.universe)} del universo (${fmt(tarjeta.universe)} personas)`;
+  const pie = conMeta ? `${porcentajeEntero(tarjeta.effective, meta)} de la meta` : delUniverso;
+  const ayuda = conMeta ? `${delUniverso}. La marca vertical es la meta.` : delUniverso;
   return (
-    <li className={`acr-res-publico ${clase} ${conMeta ? (faltan > 0 ? "is-falta" : "is-cumple") : "is-sin-meta"}${denso ? " is-denso" : ""}`} data-qa-geometry-member>
-      <button type="button" className="acr-res-publico-boton" onClick={onAbrir} aria-label={`Ver ${tarjeta.actor} en Por público`}>
+    <li className={`acr-res-publico ${clase} ${conMeta ? (faltan > 0 ? "is-falta" : "is-cumple") : "is-sin-meta"}`} data-qa-geometry-member>
+      <button type="button" className="acr-res-publico-boton" onClick={onAbrir} title={ayuda} aria-label={`Ver ${tarjeta.actor} en Por público`}>
         <span className="acr-res-publico-linea">
           <b className="acr-res-publico-nombre"><i className="mon-publico-punto" aria-hidden="true" />{tarjeta.actor}</b>
           {conMeta
@@ -95,15 +100,7 @@ function PublicoEnBarra({
           <span className="acr-av-pista"><i style={{ width: `${relleno}%` }} /></span>
           {marca != null ? <span className="acr-av-marca-meta" style={{ left: `${marca}%` }} aria-hidden="true" /> : null}
         </span>
-        {denso ? null : (
-          <span className="acr-res-publico-pie">
-            <span className="acr-av-tenue">
-              {conMeta ? `${porcentajeEntero(tarjeta.effective, meta)} de la meta; ` : ""}
-              {`${porcentaje(tarjeta.effective, tarjeta.universe)} de ${fmt(tarjeta.universe)} personas`}
-            </span>
-            <Minibarras valores={ultimos} etiqueta={`Efectivas de ${tarjeta.actor} en los últimos 14 días`} />
-          </span>
-        )}
+        {compacta ? null : <span className="acr-res-publico-pie acr-av-tenue">{pie}</span>}
       </button>
     </li>
   );
@@ -144,12 +141,12 @@ function PorResolver({ casos, porPublico, paleta }: { casos: CasosDelCorte | nul
           {porPublico.length ? (
             <div className="acr-res-resueltos">
               <span className="acr-av-antetitulo">Esperan decisión por público</span>
-              <ul className="acr-res-resolver-lista is-publicos">
+              <ul className="acr-res-chips is-publicos">
                 {porPublico.map((item) => (
                   <li key={item.actor} className={clasePublico(paleta, item.actor)}>
-                    <button type="button" onClick={abrir}>
+                    <button type="button" className="acr-av-chip acr-res-chip-publico" onClick={abrir} aria-label={`${item.actor}: ${fmt(item.esperan)} esperan decisión`}>
                       <i className="mon-publico-punto" aria-hidden="true" />
-                      <span>{item.actor}</span>
+                      {item.actor}
                       <b className="acr-av-num">{fmt(item.esperan)}</b>
                     </button>
                   </li>
@@ -198,7 +195,6 @@ export function Resumen(props: PropsDelResumen) {
 export function ResumenVista({
   tarjetas,
   diarioGeneral,
-  diarioPorPublico,
   corte,
   casos,
   casosPorPublico = [],
@@ -207,15 +203,14 @@ export function ResumenVista({
   const totales = useMemo(() => totalesDeAvance(tarjetas), [tarjetas]);
   const serie = useMemo(() => serieDiaria(diarioGeneral), [diarioGeneral]);
   const ultimos = useMemo(() => ultimosDias(serie), [serie]);
-  const porPublico = useMemo(() => seriesPorPublico(diarioPorPublico), [diarioPorPublico]);
-  const fechas14 = ultimos.dias.map((dia) => dia.fecha);
   const ordenadas = useMemo(() => rezagadosPrimero(tarjetas), [tarjetas]);
   const paleta = useMemo(() => paletaDePublicos(tarjetas.map((tarjeta) => tarjeta.actor)), [tarjetas]);
-  const denso = tarjetas.length > 6;
+  // Densidad declarable (Meta B, L29): cómoda con pocos públicos, compacta con muchos.
+  const compacta = tarjetas.length > 6;
   const avance = totales.meta > 0 ? totales.efectivas / totales.meta : null;
 
   return (
-    <div className="acr-res" data-qa-geometry-group="acreditacion-avance-resumen" data-qa-geometry-contract="intrinsic">
+    <div className="acr-res" data-density={compacta ? "compacta" : "comoda"} data-qa-geometry-group="acreditacion-avance-resumen" data-qa-geometry-contract="intrinsic">
       <div className="acr-res-izquierda">
         <section className="acr-av-panel acr-res-principal" aria-label="Efectivas acumuladas">
           <CabeceraDeTarjeta primera>
@@ -288,16 +283,15 @@ export function ResumenVista({
       <div className="acr-res-derecha">
         <section className="acr-av-panel acr-res-publicos" aria-label="Por público">
           <header className="acr-av-panel-cabecera">
-            <h3>Por público <span className="acr-av-tenue">Rezagados primero; la marca vertical es la meta</span></h3>
+            <h3 title="Rezagados primero. La marca vertical de cada barra es la meta.">Por público</h3>
           </header>
           <ul className="acr-res-publicos-lista" data-qa-geometry-group="acreditacion-resumen-publicos" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
             {ordenadas.map((tarjeta) => (
               <PublicoEnBarra
                 key={tarjeta.id}
                 tarjeta={tarjeta}
-                denso={denso}
+                compacta={compacta}
                 clase={clasePublico(paleta, tarjeta.actor)}
-                ultimos={enFechas(porPublico.get(normalizeSourceMatch(tarjeta.actor)), fechas14)}
                 onAbrir={() => escribir(tarjeta.actor, { seccion: "avance", pestana: "publicos", panel: "publico" })}
               />
             ))}

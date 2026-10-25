@@ -33,7 +33,8 @@ export function AvanceCuotasDetalle({
 }: {
   cuota: MonitoreoCuota;
   paleta: PaletaDePublicos;
-  onEditar: (id: string) => void;
+  /** Sin él no hay botón: en Avance › Por cuota la franja ya lleva «Editar en Modelo». */
+  onEditar?: (id: string) => void;
 }) {
   const ids = useId();
   const [orden, setOrden] = useState<OrdenCategorias>("brecha");
@@ -48,14 +49,18 @@ export function AvanceCuotasDetalle({
         <div className="mon-cuotas-detalle-titulo">
           <span className="mon-cuotas-versalita"><i className="mon-publico-punto" aria-hidden /> {cuota.actor}</span>
           <h3 id={`${ids}-t`}>{cuota.variable}</h3>
-          <p>
-            <strong>{r.avanceTexto}</strong> · {r.cumplidas} · {r.cobertura}
-            {cuota.sin_dato ? ` · ${cifra(cuota.sin_dato)} personas sin dato en la base` : ""}
+          {/* Una cifra por pieza; cobertura y personas sin dato, en el tooltip. */}
+          <p title={[r.cobertura, cuota.sin_dato ? `${cifra(cuota.sin_dato)} personas sin dato en la base` : ""].filter(Boolean).join(". ")}>
+            <span className={`mon-cuotas-chip es-${r.tono}`}>{r.meta > 0 ? porcentaje(r.avance) : "Sin metas"}</span>
+            {r.meta > 0 ? <span>{`${cifra(r.efectivas)} de ${cifra(r.meta)}`}</span> : null}
+            <span className="mon-cuotas-chip">{r.cumplidas}</span>
           </p>
         </div>
-        <PulsoButton variant="secondary" size="sm" onClick={() => onEditar(cuota.id)}>
-          <Pencil size={14} aria-hidden /> Editar metas
-        </PulsoButton>
+        {onEditar ? (
+          <PulsoButton variant="secondary" size="sm" onClick={() => onEditar(cuota.id)}>
+            <Pencil size={14} aria-hidden /> Editar metas
+          </PulsoButton>
+        ) : null}
       </header>
 
       <div className="mon-cuotas-herramientas" role="toolbar" aria-label={`Categorías de ${cuota.variable}`}>
@@ -72,21 +77,15 @@ export function AvanceCuotasDetalle({
           </label>
         ) : null}
         <div className="mon-cuotas-orden" role="group" aria-label="Ordenar categorías">
-          <span className="mon-cuotas-versalita" aria-hidden>Ordenar</span>
+          <span className="mon-cuotas-orden-rotulo" aria-hidden>Ordenar</span>
           {ORDENES_CATEGORIAS.map((o) => (
             <button key={o.valor} type="button" aria-pressed={orden === o.valor} onClick={() => setOrden(o.valor)}>
               {o.etiqueta}
             </button>
           ))}
         </div>
-        <ul className="mon-cuotas-leyenda" aria-label="Estados">
-          {(["cumplida", "en_curso", "sin_avance"] as const).map((e) => (
-            <li key={e} className={`es-${e}`}><i aria-hidden />{ESTADO_CATEGORIA[e].etiqueta}</li>
-          ))}
-          <li className="es-meta"><i aria-hidden />Meta</li>
-        </ul>
-        <span className="mon-cuotas-cuenta" aria-live="polite">
-          {filtro ? `${cifra(filas.length)} de ${cifra(cuota.categorias.length)}` : `${cifra(cuota.categorias.length)} categorías · ${cifra(conMeta)} con meta`}
+        <span className="mon-cuotas-cuenta" aria-live="polite" title={`${cifra(conMeta)} con meta`}>
+          {filtro ? `${cifra(filas.length)} de ${cifra(cuota.categorias.length)}` : `${cifra(cuota.categorias.length)} ${cuota.categorias.length === 1 ? "categoría" : "categorías"}`}
         </span>
       </div>
 
@@ -111,9 +110,8 @@ export function AvanceCuotasDetalle({
                     <span> / {(c.meta ?? 0) > 0 ? cifra(c.meta) : "—"}</span>
                   </span>
                   <em className="mon-cuotas-resto">{restoDeCategoria(c)}</em>
-                  <small title={`${(c.meta ?? 0) > 0 ? `${porcentaje(c.avance)} de la meta · ` : ""}${conBase(c.efectivas, c.universo)} en la base`}>
-                    {(c.meta ?? 0) > 0 ? `${porcentaje(c.avance)} de la meta · ` : ""}
-                    {conBase(c.efectivas, c.universo)} en la base
+                  <small title={`${conBase(c.efectivas, c.universo)} en la base`}>
+                    {(c.meta ?? 0) > 0 ? `${porcentaje(c.avance)} de la meta` : `${porcentaje(c.universo ? (c.efectivas ?? 0) / c.universo : null)} de la base`}
                   </small>
                 </span>
               </li>
@@ -123,6 +121,14 @@ export function AvanceCuotasDetalle({
       ) : (
         <p className="mon-cuotas-sin-coincidencias" role="status">Ninguna categoría contiene «{filtro}».</p>
       )}
+
+      {/* Leyenda centrada, bajo lo que lee. */}
+      <ul className="mon-cuotas-leyenda" aria-label="Estados">
+        {(["cumplida", "en_curso", "sin_avance"] as const).map((e) => (
+          <li key={e} className={`es-${e}`}><i aria-hidden />{ESTADO_CATEGORIA[e].etiqueta}</li>
+        ))}
+        <li className="es-meta"><i aria-hidden />Meta</li>
+      </ul>
     </section>
   );
 }

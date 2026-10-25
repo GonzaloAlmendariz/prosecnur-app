@@ -171,7 +171,7 @@ export function FuentesUniverso({
             })}
           </div>
         ) : (
-          <p>Sin hoja de barrido. Es opcional: solo hace falta si el estudio persigue a quien no contestó.</p>
+          <p title="Solo hace falta si el estudio persigue a quien no contestó.">Sin hoja de barrido (opcional).</p>
         )}
       </section>
     </div>

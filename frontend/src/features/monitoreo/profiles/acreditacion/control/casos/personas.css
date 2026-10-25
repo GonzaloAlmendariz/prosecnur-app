@@ -138,6 +138,11 @@
   padding: 0 var(--pulso-space-2);
 }
 
+.acr-rs-total > .acr-av-chip {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
 .acr-rs-total b {
   font-size: 24px;
   font-weight: var(--pulso-weight-heavy);

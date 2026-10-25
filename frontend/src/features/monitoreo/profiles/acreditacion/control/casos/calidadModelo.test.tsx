@@ -38,7 +38,7 @@ describe("Control › Calidad", () => {
       { id: "900", tipo: "duracion_muy_larga", valor: "855360" },
     ] } } as unknown as MonitoreoState;
     const html = renderToStaticMarkup(<Calidad reports={{ schema: "t", generated_at: "", reference_tabs: [], sheets: [] } as unknown as MonitoreoAcreditacionReports} state={state} />);
-    expect(html).toContain("A revisar: menos de 1 min");
+    expect(html).toContain("Menos de 1 min");
     expect(html).toContain("Más de 2 h, no se revisan");
     expect(html).toContain("Muy corta");
     expect(html).not.toContain("Muy larga");

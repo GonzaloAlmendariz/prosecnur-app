@@ -80,21 +80,6 @@ describe("la lectura activa nunca se apaga por completo", () => {
   });
 });
 
-describe("las cohortes se leen en orden cronológico", () => {
-  test("una serie de años no se ordena por tamaño", () => {
-    // Salía «2021, 2023, 2025, 2022» —por peso en el universo— y obligaba a
-    // releer la columna para situarse en el tiempo.
-    const bloque = fuente.slice(fuente.indexOf("function groupControlVariableRows"));
-    expect(bloque).toContain("esSerieDeAnios(variableRows)");
-  });
-
-  test("solo aplica cuando TODAS las categorías son años", () => {
-    // Una categoría suelta como «Sin dato» no debe volver alfabética la serie
-    // ni decidir el orden del resto.
-    const helper = fuente.slice(fuente.indexOf("function esSerieDeAnios"));
-    expect(helper).toContain("rows.every(");
-    expect(helper).toMatch(/\^\(19\|20\)/);
-    expect(helper).toContain("rows.length < 2");
-  });
-});
+// «Las cohortes se leen en orden cronológico» pasó a `avance/variablesDeControlModelo.test.ts`,
+// con la función que agrupa las variables de control (ronda 4).
 

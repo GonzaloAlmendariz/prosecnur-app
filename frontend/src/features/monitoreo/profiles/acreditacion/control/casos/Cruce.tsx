@@ -112,8 +112,8 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
         <CabeceraDeTarjeta primera>
           <h3>
             De la respuesta al avance
-            <span className="acr-av-tenue">
-              {`${fmt(registros)} registros: ${fmt(registros - fuera)} personas del padrón y ${fmt(fuera)} ${fuera === 1 ? "respuesta" : "respuestas"} fuera de él`}
+            <span className="acr-av-tenue" title={`${fmt(registros - fuera)} personas del padrón y ${fmt(fuera)} ${fuera === 1 ? "respuesta" : "respuestas"} fuera de él`}>
+              {`${fmt(registros)} registros`}
             </span>
           </h3>
         </CabeceraDeTarjeta>
