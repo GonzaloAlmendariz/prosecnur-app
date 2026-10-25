@@ -31,7 +31,9 @@ describe("Avance de acreditación", () => {
   it("los totales son los del glosario G4 (418 de 287, 519 personas)", () => {
     const totales = totalesDeAvance(tarjetas);
     expect(totales).toMatchObject({ universo: 519, efectivas: 418, parciales: 8, meta: 287, publicos: 4, conMeta: 4 });
-    expect(insigniasDeAcreditacion({ efectivas: totales.efectivas, meta: totales.meta }, null)).toEqual({ avance: "146 %" });
+    expect(insigniasDeAcreditacion({ efectivas: totales.efectivas, meta: totales.meta }, null)).toEqual({
+      avance: { valor: "146 %", base: "418/287", lectura: "418 efectivas de una meta de 287" },
+    });
     expect(valorDePublicos(tarjetas)).toBe("4");
   });
 

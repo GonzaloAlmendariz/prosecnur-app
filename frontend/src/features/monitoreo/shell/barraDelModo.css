@@ -75,6 +75,21 @@
   color: color-mix(in srgb, var(--pulso-module-monitoring) 80%, var(--pulso-text));
 }
 
+/* L20: el avance lleva su base dentro de la misma cápsula, separada por un
+ * filete y en peso normal: «106 %» manda y «423/400» se lee como su base. */
+.mon-commandbar.is-barra-comun .pulso-phase-pill-metric.has-base {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.mon-commandbar.is-barra-comun .mon-pill-metric-base {
+  padding-left: 5px;
+  border-left: 1px solid color-mix(in srgb, var(--pulso-text-muted) 40%, transparent);
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-medium);
+}
+
 .mon-modo-herramientas {
   display: inline-flex;
   align-items: center;
@@ -263,6 +278,14 @@
  * sigue en la pestaña a la que lleva. */
 @media (max-width: 1180px) {
   .mon-commandbar.is-barra-comun .pulso-phase-pill-metric {
+    display: none;
+  }
+}
+
+/* Entre 1181 y 1365 la cifra queda y su base pasa al `title` y al nombre
+ * accesible, que la llevan siempre. */
+@media (max-width: 1365px) {
+  .mon-commandbar.is-barra-comun .mon-pill-metric-base {
     display: none;
   }
 }
