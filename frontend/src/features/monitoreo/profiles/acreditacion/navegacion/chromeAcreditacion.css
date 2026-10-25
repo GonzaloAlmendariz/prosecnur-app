@@ -152,12 +152,86 @@
   min-height: 26px;
 }
 
-/* Sub-vista anterior (SubvistaConRotulo): el rótulo y el selector son la
- * cabecera de la tarjeta de contenido, a sangre con su borde, no una fila
- * suelta sobre el fondo. */
-.is-acreditacion-profile .mon-workbench-content > .acr-subvista-cabecera {
+/* Sub-vista anterior (SubvistaConRotulo): una sola tarjeta, a su alto natural.
+ * El rótulo y el selector son su cabecera; la vista anterior, su cuerpo. */
+.is-acreditacion-profile .mon-workbench-content > .acr-subvista {
   flex: 0 0 auto;
-  margin: -6px -6px 0;
-  background: var(--pulso-surface);
-  border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
+  overflow: hidden;
 }
+
+.acr-subvista-cuerpo {
+  min-width: 0;
+  padding: 0 var(--pulso-space-2) var(--pulso-space-2);
+}
+
+/* Un solo marco: dentro de una tarjeta de Acreditación la vista anterior
+ * pierde el suyo (borde, sombra, degradado y radio). Vale para las sub-vistas
+ * y para el editor del plan en Modelo › Ventana de campo. */
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior > .pulso-panel,
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior > .mon-stage > .pulso-panel,
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior .mon-phone-trend,
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior .mon-acr-object-surface,
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior .mon-acr-model-panel > .mon-contract-block {
+  border: 0;
+  border-radius: 0;
+  background: var(--pulso-surface);
+  box-shadow: none;
+}
+
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior > .pulso-panel,
+.is-acreditacion-profile .mon-workbench-content .acr-vista-anterior > .mon-stage > .pulso-panel {
+  height: auto;
+  min-height: 0;
+}
+
+/* L10 en la vista anterior: las teselas de cifras van sobre la superficie, sin
+ * degradado ni fondo teñido; el estado queda en su borde lateral sólido. */
+.is-acreditacion-profile .acr-vista-anterior .mon-phone-trend-metrics > *,
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat {
+  background: var(--pulso-surface);
+}
+
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat {
+  border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-left: 3px solid var(--pulso-border);
+}
+
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--good { border-left-color: var(--pulso-success-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--warn { border-left-color: var(--pulso-warn-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--bad { border-left-color: var(--pulso-danger-fg); }
+
+/* La franja de lectura de Recopiladores: sin fondo teñido, y el grupo de
+ * botones sin su banda blanca, que dejaba un vacío sin motivo entre las cifras
+ * y las acciones. */
+.is-acreditacion-profile .acr-vista-anterior .mon-acr-source-status-strip {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.is-acreditacion-profile .acr-vista-anterior .mon-acr-source-sync-actions {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* L10 en la vista anterior: sus bloques (Supervisión, Ritmo diario, Modelo)
+ * pintaban el estado con un degradado de toda la tarjeta. Aquí van sobre la
+ * superficie y el estado pasa al borde lateral sólido. */
+.is-acreditacion-profile .acr-vista-anterior :is(section, article)[class*="mon-"] {
+  background-image: none;
+}
+
+.is-acreditacion-profile .acr-vista-anterior :is(
+  .mon-phone-supervision-hero,
+  .mon-phone-time-control,
+  .mon-phone-supervision-plan,
+  .mon-phone-supervision-priority,
+  .mon-phone-supervision-source
+) {
+  border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  background-color: var(--pulso-surface);
+  box-shadow: none;
+}
+
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-danger { border-left: 4px solid var(--pulso-danger-fg); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-warn { border-left: 4px solid var(--pulso-warn-fg); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-ok { border-left: 4px solid var(--pulso-success-fg); }

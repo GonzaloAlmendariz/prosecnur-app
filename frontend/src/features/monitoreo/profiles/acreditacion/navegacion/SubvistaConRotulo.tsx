@@ -8,16 +8,17 @@ import "./chromeAcreditacion.css";
 /**
  * Las sub-vistas que todavía montan la vista anterior (Ritmo diario,
  * Recopiladores, Supervisión, Variables de control de Avance y de Modelo) van
- * dentro de la tarjeta de contenido del workbench. Su rótulo y el selector de
- * sub-vistas ya no ocupan una fila propia sobre el fondo (§2a-bis): son la
- * cabecera de esa misma tarjeta.
+ * en UNA tarjeta: el rótulo y el selector de sub-vistas son su cabecera (§2a-bis)
+ * y la vista anterior es su cuerpo, sin su propio marco (`.acr-vista-anterior`
+ * en chromeAcreditacion.css). La tarjeta toma su alto natural: el vacío bajo
+ * una vista corta es fondo de página, no una tarjeta estirada.
  */
 export function SubvistaConRotulo({ direccion, children }: { direccion: DireccionAcreditacion; children: ReactNode }) {
   if (!esSubvistaAnterior(direccion)) return <>{children}</>;
   return (
-    <>
+    <div className="acr-av-panel acr-subvista">
       <CabeceraDeTarjeta primera className="acr-subvista-cabecera">{null}</CabeceraDeTarjeta>
-      {children}
-    </>
+      <div className="acr-subvista-cuerpo acr-vista-anterior">{children}</div>
+    </div>
   );
 }

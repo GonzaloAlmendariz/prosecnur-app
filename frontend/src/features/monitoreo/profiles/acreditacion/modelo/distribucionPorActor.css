@@ -32,7 +32,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   align-content: start;
-  align-items: stretch;
+  /* Contrato intrínseco: cada actor a su alto; estirarlos dejaba hasta 70 px
+     vacíos bajo los que no declaran variable. */
+  align-items: start;
   gap: 10px;
   overflow: visible;
 }
