@@ -34,13 +34,19 @@ function medidaDePestana(
   key: string,
   dashboard: MonitoreoAulasDashboard | null,
 ): { badge?: string; estado?: MonitoreoWorkbenchRailTab["estado"] } {
+  // **Sin tablero no hay medida** (Meta B, L21). Mientras el proyecto se lee,
+  // `brechas` y `reemplazos` salían en cero y Resumen, Reemplazos y Brechas se
+  // declaraban «listo» con la vista todavía en «Preparando vista». Un cero que
+  // no se pudo contar no es un cero: la pestaña queda sin estado hasta que hay
+  // con qué medirla.
+  if (!dashboard) return {};
   const n = (xs: unknown) => (Array.isArray(xs) ? xs.length : 0);
-  const kpis = dashboard?.kpis ?? null;
+  const kpis = dashboard.kpis ?? null;
   const cuenta = (v: number) => (v > 0 ? String(v) : undefined);
 
   if (seccion === "modelo" && key === "agenda") {
     // Pendiente = lo que aún no tiene STATUS MUESTRA resuelto.
-    const filas = n(dashboard?.agenda);
+    const filas = n(dashboard.agenda);
     return { estado: filas ? "listo" : "parcial" };
   }
   // **La sección es `calidad`, no `modelo`.** La pestaña se declara en el
@@ -102,14 +108,14 @@ function medidaDePestana(
      * junto a «Reemplazos», lo que el lector entiende es que hubo mil
      * trescientos reemplazos.
      */
-    const filas = (dashboard?.reemplazos ?? []) as Array<Record<string, unknown>>;
+    const filas = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const movidas = filas.filter((fila) => (
       String(fila.sample_status ?? "").trim().toLowerCase().startsWith("reemplazada")
     )).length;
     return { badge: cuenta(movidas), estado: movidas ? "parcial" : "listo" };
   }
   if (seccion === "consultas" && key === "brechas") {
-    const filas = n(dashboard?.brechas);
+    const filas = n(dashboard.brechas);
     return { badge: cuenta(filas), estado: filas ? "bloqueado" : "listo" };
   }
   return {};
