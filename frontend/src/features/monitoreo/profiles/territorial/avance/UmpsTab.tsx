@@ -113,7 +113,7 @@ function UmpsTabImpl({
           <label className="mon-umps-buscar">
             <Search size={14} aria-hidden="true" />
             <span className="pulso-sr-only">Buscar UMP, distrito, manzana o aplicador</span>
-            <input type="search" value={busqueda} placeholder="Buscar UMP o aplicador" onChange={(event) => setBusqueda(event.currentTarget.value)} />
+            <input type="search" value={busqueda} placeholder="Buscar UMP" onChange={(event) => setBusqueda(event.currentTarget.value)} />
           </label>
           <button type="button" className="mon-umps-boton" onClick={() => descargarCsv("ump-del-corte.csv", csvDeUmps(filas, modelo.conOcurrencias))}>
             <Download size={14} aria-hidden="true" />

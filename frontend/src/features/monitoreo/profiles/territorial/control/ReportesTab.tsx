@@ -83,7 +83,7 @@ function ReportesTabImpl({
           <span className="is-sin-parte">Sin parte</span>
           <span className="is-un-parte">Un parte</span>
           <span className="is-dos-partes">Dos o más</span>
-          <span className="is-no-cuadra">Borde: no cuadra con lo recibido</span>
+          <span className="is-no-cuadra">No cuadra con lo recibido</span>
         </span>
       </section>
 

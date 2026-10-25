@@ -264,3 +264,37 @@
 .mon-ter-variable li.is-falta .mon-ter-variable-barra > b {
   background: var(--pulso-warn-fg);
 }
+
+/* Leyendas (Gonzalo, 2026-10-24): centradas respecto de su tarjeta y con
+ * rótulos cortos, sin «rótulo: comentario». En los pies de mapa la leyenda y
+ * la fuente van juntas al centro. */
+.is-territorial-profile :is(
+  .mon-res-leyenda,
+  .mon-ocu-leyenda,
+  .mon-exp-leyenda,
+  .mon-mapa-leyenda
+) {
+  display: flex;
+  justify-content: center;
+  margin-inline: 0;
+  text-align: center;
+}
+
+.is-territorial-profile :is(.mon-mapa-pie, .mon-exp-pie, .mon-mod-mapa-pie) {
+  justify-content: center;
+  column-gap: var(--pulso-space-6, 24px);
+  text-align: center;
+}
+
+.is-territorial-profile .mon-sub-mapa figcaption,
+.is-territorial-profile figcaption.mon-sub-base {
+  text-align: center;
+}
+
+/* Señales: sin leyenda (cada fila ya está rotulada); las filas del histograma
+ * reparten el alto de la tarjeta y la barra conserva su grosor de 10 px. */
+.is-territorial-profile .mon-sen-barras {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(18px, 1fr);
+  align-content: stretch;
+}

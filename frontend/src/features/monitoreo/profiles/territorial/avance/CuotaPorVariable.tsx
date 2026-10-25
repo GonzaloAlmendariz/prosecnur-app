@@ -15,7 +15,7 @@ export function CuotaPorVariable({ variables, titulo }: { variables: readonly Va
       role="group"
       aria-label={titulo ?? "Cuota por variable"}
       data-qa-geometry-group="territorial-cuota-variables"
-      data-qa-geometry-contract="equal"
+      data-qa-geometry-contract="intrinsic"
     >
       {variables.map((variable) => (
         <section key={variable.nombre} className="mon-ter-variable" aria-label={`Cuota por ${variable.nombre.toLowerCase()}`} data-qa-geometry-member={variable.nombre}>
