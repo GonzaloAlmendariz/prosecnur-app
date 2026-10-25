@@ -434,6 +434,7 @@
     backend_modules = as.list(ids),
     frontend_modules = as.list(frontend),
     reasons = reasons,
+    estimacion = .project_warmup_estimacion(sid, ids),
     profile = list(
       processing = isTRUE(processing),
       monitoreo_family = family %||% "",
@@ -1268,6 +1269,8 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
     return(.project_warmup_public_result(result))
   }
   .project_warmup_merge_session_patch(j$sid, result$session_patch %||% list())
+  # La duración de esta apertura es la estimación de la próxima (L23).
+  .project_warmup_registrar_duracion(j$sid, result)
   # La lectura de todas las bases para Analítica NO bloquea la apertura: arranca
   # aquí como job aparte y se cosecha sola en la primera lectura que la necesite
   # (analitica_warmup.R).
@@ -1321,5 +1324,8 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       error = conditionMessage(job_id)
     )
   }
-  list(ok = TRUE, job_id = job_id, kind = "project.warmup")
+  c(
+    list(ok = TRUE, job_id = job_id, kind = "project.warmup"),
+    .project_warmup_estimacion(sid, module_ids)
+  )
 }
