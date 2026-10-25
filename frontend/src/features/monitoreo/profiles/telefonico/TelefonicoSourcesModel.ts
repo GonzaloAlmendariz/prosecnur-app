@@ -511,7 +511,7 @@ export function buildAcreditacionPhoneSourceContract(
     // «Kobo» a secas nombraba el servicio; esto nombra el objeto y conserva
     // dónde vive, que en telefónico el usuario sí necesita distinguir de la hoja.
     label: "Encuesta en Kobo",
-    purpose: "Efectivas Kobo filtradas para comparar avance por CodPulso.",
+    purpose: "Efectivas por CodPulso",
     expected: ["CodPulso", "consentimiento", "fecha", "respuesta"],
     sources: platformSources,
     ready: platformStatus === "ready",

@@ -10,7 +10,6 @@ import {
   csvParaElEquipo,
   porResponsable,
   queDice,
-  queDiceCorto,
   resumenDeDiscrepancias,
   textoParaElEquipo,
   type CasoDeDiscrepancia,
@@ -105,14 +104,16 @@ export function Discrepancias({
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Cómo no coinciden">
           {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
           {hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
-          <span className="mon-ctl-antetitulo">Cómo no coinciden</span>
+          <span
+            className="mon-ctl-antetitulo"
+            title="Mientras no se decide, la efectiva de Kobo cuenta en el avance. «Efectivo» sin Kobo se sigue en Avisos."
+          >
+            Cómo no coinciden
+          </span>
           <dl className="mon-dsc-cifras">
             <div><dt>Kobo efectiva, la hoja no dice «Efectivo»</dt><dd className="is-num">{n(resumen.koboSinHoja)}</dd></div>
             <div><dt>La hoja dice «Efectivo», Kobo sin envío</dt><dd className="is-num">{n(resumen.hojaSinKobo)}</dd></div>
           </dl>
-          <NotaDelModo tono="info">
-            Mientras no se decide, la efectiva de Kobo cuenta en el avance. «Efectivo» sin Kobo se sigue en Avisos.
-          </NotaDelModo>
         </section>
 
         <section className="mon-ctl-panel mon-dsc-avisar" aria-label="Avisar al equipo" data-qa-geometry-capacity="owned">
@@ -166,7 +167,8 @@ export function Discrepancias({
             <thead>
               <tr>
                 <th scope="col">CodPulso y proGres</th>
-                <th scope="col">Qué pasa</th>
+                <th scope="col">Hoja</th>
+                <th scope="col">Kobo</th>
                 <th scope="col">Responsable</th>
                 <th scope="col">Enumerador Kobo</th>
                 <th scope="col">Decisión</th>
@@ -180,9 +182,12 @@ export function Discrepancias({
                     {/* proGres bajo el código: en una columna propia la decisión quedaba cortada a 1440. */}
                     {caso.progres ? <small className="mon-dsc-progres">proGres {caso.progres}</small> : null}
                   </th>
-                  <td className="mon-dsc-una-linea" title={queDice(caso)}>{queDiceCorto(caso)}</td>
-                  <td>{caso.responsable}</td>
-                  <td className={caso.enumeradorDistinto ? "mon-dsc-distinto" : undefined} title={caso.enumeradorDistinto ? "No es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros" : undefined}>
+                  {/* La hoja y Kobo en dos celdas: cada una dice su dato, sin frase
+                      que los encadene. La lectura completa va en el tooltip. */}
+                  <td className="mon-dsc-una-linea" title={queDice(caso)}>{caso.sentido === "hoja_sin_kobo" ? "Efectivo" : caso.hojaDice || "Sin status"}</td>
+                  <td className="mon-dsc-una-linea" title={queDice(caso)}>{caso.sentido === "hoja_sin_kobo" ? "Sin envío" : "Efectiva"}</td>
+                  <td className="mon-dsc-una-linea" title={caso.responsable}>{caso.responsable}</td>
+                  <td className={`mon-dsc-una-linea${caso.enumeradorDistinto ? " mon-dsc-distinto" : ""}`} title={caso.enumeradorDistinto ? `${caso.enumerador}, no es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros` : caso.enumerador || undefined}>
                     {caso.enumerador || "—"}
                   </td>
                   <td>
@@ -302,12 +307,14 @@ function FichaDeDiscrepancia({
               <span>{envio.guardando ? "Guardando…" : "Guardar decisión"}</span>
             </button>
             {envio.error ? <NotaDelModo tono="error" estado>{envio.error}</NotaDelModo> : null}
-            <p className="mon-dsc-pie">Se guarda en el proyecto con la fecha y la nota. «No cuenta» la saca del avance al actualizar.</p>
+            <p className="mon-dsc-pie" title="Se guarda con la fecha y la nota. «No cuenta» la saca del avance al actualizar.">Se guarda en el proyecto</p>
           </>
         ) : caso.sentido === "hoja_sin_kobo" ? (
-          <NotaDelModo tono="aviso">No hay envío de Kobo que decidir: el caso sigue en Avisos hasta que llegue el Kobo o se corrija la hoja.</NotaDelModo>
+          <NotaDelModo tono="aviso">
+            <span title="El caso sigue en Avisos hasta que llegue el Kobo o se corrija la hoja">Sin envío de Kobo que decidir</span>
+          </NotaDelModo>
         ) : (
-          <NotaDelModo tono="neutro">El corte no trae el envío de Kobo de este caso; actualiza para decidir.</NotaDelModo>
+          <NotaDelModo tono="neutro"><span title="Actualiza para decidir">El corte no trae su envío de Kobo</span></NotaDelModo>
         )}
       </section>
       {state?.config ? null : <NotaDelModo tono="neutro">Sin configuración cargada.</NotaDelModo>}

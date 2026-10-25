@@ -40,12 +40,11 @@ export function Entregas({
   const maximoDia = Math.max(1, ...dias.map((dia) => dia.casos));
   return (
     <div className="mon-entregas" data-qa-geometry-group="telefonico-avance-entregas" data-qa-geometry-contract="intrinsic">
-      <section className="mon-ctl-panel mon-entregas-cliente" aria-label="Para el cliente: avance por cuota" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel mon-entregas-cliente" aria-label="PDF del cliente" data-qa-geometry-capacity="owned">
         {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
         <header className="mon-entregas-cabecera">
           <RotuloDePestana />
-          <strong>Para el cliente: avance por cuota</strong>
-          <span>Así lo lleva su PDF, con las cifras de este corte</span>
+          <strong title="El cliente no abre la app: recibe el PDF y su hoja">PDF del cliente</strong>
         </header>
         <div className="mon-entregas-mesa">
           <article className="mon-entregas-hoja" aria-label="Vista del PDF del cliente">
@@ -104,15 +103,8 @@ export function Entregas({
                 {nota ? <NotaDelModo tono="aviso">{nota}.</NotaDelModo> : null}
               </section>
             ) : null}
-            <footer>
-              El PDF del cliente lleva además el avance ejecutivo. Efectivas: envíos de Kobo que pasan
-              el filtro de efectiva, uno por CodPulso.
-            </footer>
           </article>
         </div>
-        <NotaDelModo tono="neutro" className="mon-entregas-pie-nota">
-          El cliente no abre la app: recibe el PDF y su hoja. La fecha de la última publicación queda en el proyecto.
-        </NotaDelModo>
       </section>
 
       <div className="mon-entregas-salidas" aria-label="Salidas del corte">

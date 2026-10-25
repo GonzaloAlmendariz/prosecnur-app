@@ -36,7 +36,10 @@ export function ResponsablesDeCola({
         <b>Responsables</b>
         <span className="mon-cola-antetitulo">En cola</span>
       </header>
-      <p className="mon-cola-reparto">{fraseDelReparto(reparto)}</p>
+      {/* La cifra en la tarjeta; la frase entera, en su tooltip. */}
+      <p className="mon-cola-reparto" title={fraseDelReparto(reparto)}>
+        {reparto.porLlamarAsignados.toLocaleString("es-PE")} por llamar
+      </p>
       <ul className="mon-cola-responsables-lista">
         {equipo.map((item) => {
           const elegido = filtros.responsable === item.nombre;
@@ -69,8 +72,8 @@ export function ResponsablesDeCola({
       {sinAsignar ? (
         <footer className="mon-cola-sin-asignar">
           <b>Sin asignar</b>
-          <span>
-            {sinAsignar.enCola.toLocaleString("es-PE")} en cola; {sinAsignar.porLlamar.toLocaleString("es-PE")} sin llamar y sin responsable
+          <span title={`${sinAsignar.enCola.toLocaleString("es-PE")} en cola. Sin llamar y sin responsable.`}>
+            {sinAsignar.porLlamar.toLocaleString("es-PE")} sin llamar
           </span>
         </footer>
       ) : null}

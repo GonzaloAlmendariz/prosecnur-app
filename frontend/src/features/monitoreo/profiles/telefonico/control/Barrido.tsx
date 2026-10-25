@@ -17,12 +17,14 @@ function porcentaje(valor: number | null) {
 const ETIQUETA = new Map(FAMILIAS_DEL_CLIENTE.map((item) => [item.id, item.etiqueta]));
 
 /** Tarjeta del embudo: misma estructura en las cuatro (estándar §2a, 5b). */
-function Tarjeta({ rotulo, valor, base, tramos, nota }: {
+function Tarjeta({ rotulo, valor, base, tramos, nota, notaTitulo }: {
   rotulo: string;
   valor: number;
   base: number;
   tramos: Array<{ clave: string; valor: number }>;
   nota: string;
+  /** Lo que la nota no dice en la tarjeta: va en su tooltip. */
+  notaTitulo?: string;
 }) {
   return (
     <div className="mon-barrido-tarjeta">
@@ -33,7 +35,7 @@ function Tarjeta({ rotulo, valor, base, tramos, nota }: {
           <i key={tramo.clave} className={`is-${tramo.clave}`} style={{ width: `${base > 0 ? (tramo.valor / base) * 100 : 0}%` }} />
         ))}
       </span>
-      <span className="mon-barrido-tarjeta-nota">{nota}</span>
+      <span className="mon-barrido-tarjeta-nota" title={notaTitulo}>{nota}</span>
     </div>
   );
 }
@@ -93,7 +95,8 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
             valor={modelo.efectivasHoja}
             base={modelo.llamados}
             tramos={[{ clave: "efectiva", valor: modelo.efectivasHoja }]}
-            nota={`${porcentaje(modelo.llamados ? (modelo.efectivasHoja / modelo.llamados) * 100 : null)} de los llamados; Kobo registra ${n(modelo.efectivasKobo)}`}
+            nota={`${porcentaje(modelo.llamados ? (modelo.efectivasHoja / modelo.llamados) * 100 : null)} de los llamados`}
+            notaTitulo={`Kobo registra ${n(modelo.efectivasKobo)}`}
           />
           <Tarjeta
             rotulo="Sin llamar"

@@ -325,7 +325,7 @@ function acreditacionQualityGroupedAlertDetail(alert: AcreditacionQualityAlertIt
     return `${formatAlertMetric(count)} respuestas parciales deben permanecer fuera de efectivas y separadas para seguimiento.`;
   }
   if (key.includes("formato codpulso")) {
-    return `${formatAlertMetric(count)} códigos cruzan correctamente pero están escritos sin el formato PDM. Es una convención de escritura: no afecta el avance ni el cruce.`;
+    return `${formatAlertMetric(count)} códigos cruzan bien, escritos sin el formato PDM`;
   }
   return alert.detail;
 }

@@ -273,7 +273,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
   const sinAsignar = libres || alertaLibre
     ? {
       casos: libres || (alertaLibre?.count ?? 0),
-      detalle: "Casos de la hoja sin responsable. No es atraso: todavía no se reparten.",
+      detalle: "Casos de la hoja sin responsable, todavía sin repartir",
     }
     : null;
 
@@ -308,7 +308,7 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       id: "duracion-menor-a-5-min",
       nivel: "alta",
       titulo: "Duración menor a 5 min",
-      detalle: "Encuestas demasiado cortas para haberse hecho completas: revisa si están bien hechas.",
+      detalle: "Encuestas demasiado cortas para estar completas",
       casos: cortas.length,
       unidad: "casos",
       codigo: "duracion_menor_5min",
@@ -327,7 +327,7 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       id: "codpulso-repetido-en-kobo",
       nivel: "media",
       titulo: "CodPulso repetido en Kobo",
-      detalle: `${repetidos.slice(0, 4).join(", ")}${repetidos.length > 4 ? " y otros" : ""}: más de un envío efectivo para el mismo caso.`,
+      detalle: `Más de un envío efectivo en ${repetidos.slice(0, 4).join(", ")}${repetidos.length > 4 ? " y otros" : ""}`,
       casos: repetidos.length,
       unidad: "casos",
       codigo: "codpulso_repetido",
@@ -355,7 +355,7 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       // Alta, como en el motor: la discrepancia se avisa rápido al equipo (P2).
       nivel: "alta",
       titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
-      detalle: "No cuentan en el avance hasta que llegue el envío de Kobo o se corrija el status de la hoja.",
+      detalle: "No cuentan en el avance hasta que llegue su envío de Kobo",
       casos: efectivoSinKobo.length,
       unidad: "casos",
       codigo: "efectivo_sin_kobo",
@@ -380,7 +380,7 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
       id: "la-hoja-dejo-de-registrar",
       nivel: "alta",
       titulo: "Efectivas en Kobo cuyo caso sigue «No barrido»",
-      detalle: "Kobo registra la entrevista y la hoja de barrido no la marcó: la hoja va atrasada respecto de Kobo.",
+      detalle: "Kobo registra la entrevista y la hoja de barrido no la marcó",
       casos: sinRegistrar.length,
       unidad: "casos",
       codigo: "barrido_desfasado",

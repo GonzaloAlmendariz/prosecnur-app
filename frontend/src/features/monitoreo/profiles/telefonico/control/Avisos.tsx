@@ -76,12 +76,12 @@ export function Avisos({
                 return (
                   <tr key={aviso.id} className={`is-${aviso.nivel}${activo ? " is-activo" : ""}`} aria-current={activo ? "true" : undefined} data-aviso={aviso.codigo}>
                     <th scope="row">
-                      <button type="button" className="mon-avisos-causa" onClick={() => escribirFoco(aviso.id)}>
+                      {/* Una fila por causa (Meta B, L28): el detalle va en el tooltip y en la ficha. */}
+                      <button type="button" className="mon-avisos-causa" title={aviso.detalle} onClick={() => escribirFoco(aviso.id)}>
                         <i aria-hidden="true" />
                         <span>
                           <b>{aviso.titulo}</b>
                           <em className={`mon-avisos-nivel is-${aviso.nivel}`}>{NIVEL[aviso.nivel]}</em>
-                          <small>{aviso.detalle}</small>
                         </span>
                       </button>
                     </th>
@@ -93,11 +93,10 @@ export function Avisos({
               {modelo.sinAsignar ? (
                 <tr className="is-sin-asignar">
                   <th scope="row">
-                    <span className="mon-avisos-causa is-inerte">
+                    <span className="mon-avisos-causa is-inerte" title={modelo.sinAsignar.detalle}>
                       <i aria-hidden="true" />
                       <span>
                         <b>Casos sin asignar</b>
-                        <small>{modelo.sinAsignar.detalle}</small>
                       </span>
                     </span>
                   </th>
@@ -226,7 +225,6 @@ export function Avisos({
               <span className="mon-ctl-antetitulo">Qué hacer</span>
               {elegido.destino.direccion ? (
                 <>
-                  <p>Se revisa en {elegido.destino.etiqueta}.</p>
                   <button
                     type="button"
                     className="mon-avisos-ir"
@@ -239,12 +237,12 @@ export function Avisos({
                   </button>
                 </>
               ) : (
-                <p>Se corrige en la hoja del equipo; Monitoreo la lee al actualizar.</p>
+                <p title="Monitoreo la lee al actualizar">Se corrige en la hoja del equipo</p>
               )}
             </section>
           </>
         ) : (
-          <NotaDelModo tono="neutro">Sin avisos por causa; queda sólo el reparto pendiente.</NotaDelModo>
+          <NotaDelModo tono="neutro">Sin avisos por causa</NotaDelModo>
         )}
       </aside>
     </div>

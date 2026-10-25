@@ -110,7 +110,9 @@ export function RondasDeSupervision({
       {sinGuardar ? (
         <div className="mon-sup-migracion">
           <NotaDelModo tono="aviso">
-            La Ronda {n(sinGuardar.numero)} todavía no está guardada: es el sorteo de antes, sobre todas las efectivas. Guárdala tal cual para numerar las siguientes.
+            <span title="Es el sorteo de antes, sobre todas las efectivas. Guárdala tal cual para numerar las siguientes.">
+              La Ronda {n(sinGuardar.numero)} no está guardada
+            </span>
           </NotaDelModo>
           <button type="button" className="mon-insumos-boton" disabled={envio.guardando} onClick={() => { void guardarTalCual(); }}>
             {envio.guardando ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}

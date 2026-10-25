@@ -470,6 +470,8 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-cola-tabla th,
@@ -484,11 +486,11 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
+  background: var(--pulso-header-row);
+  color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -532,9 +534,14 @@
   background: var(--pulso-surface-2);
 }
 
+/* Fila elegida: fondo y borde lateral sólido en su primera celda, no una
+ * franja de sombra interior (pedido de Gonzalo sobre la maqueta Meta B). */
 .mon-cola-tabla tbody tr.is-activo {
   background: var(--pulso-surface-3);
-  box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+}
+
+.mon-cola-tabla tbody tr.is-activo > th:first-child {
+  border-left: 3px solid var(--pulso-brand-navy);
 }
 
 .mon-cola-intentos {
@@ -557,6 +564,18 @@
   border-radius: 2px;
   background: var(--pulso-warn-accent);
   vertical-align: middle;
+}
+
+/* Resultado y observación caben en el alto de la fecha (dos líneas): la
+ * fila no crece con el texto libre de la hoja (Meta B, L28). El texto entero
+ * va en el tooltip y en la ficha del caso. */
+.mon-cola-resultado,
+.mon-cola-observacion {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .mon-cola-resultado {
