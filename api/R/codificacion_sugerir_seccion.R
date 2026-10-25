@@ -26,7 +26,10 @@
   "tenido", "llegar", "acuerdo", "desacuerdo", "cuanto", "cuanta", "relacion", "tiempo", "mayor", "menor", "ofrecer",
   "ofrece", "ofrecen", "buscar", "dejar", "tomar", "uso", "usar", "dar", "permitir", "permitan", "cumplir", "cumplan",
   "totalmente", "nivel", "tipo", "caso", "grado", "actual", "actualmente", "momento", "año", "ano", "anos", "dia",
-  "vida", "gran", "nuevo", "nueva", "posible", "cualquier", "persona", "gente", "hola", "aspecto", "aspectos"
+  "vida", "gran", "nuevo", "nueva", "posible", "cualquier", "persona", "gente", "hola", "aspecto", "aspectos",
+  # TXT-22: la carrera se pregunta en el módulo de datos generales, pero un comentario la nombra para hablar de otra
+  # cosa (la malla, los docentes): no decide el módulo.
+  "carrera", "carreras"
 )
 .CODIF_SS_TIPOS_SIN_TEXTO <- c("calculate", "hidden", "start", "end", "today", "deviceid", "username",
                                "simserialid", "subscriberid", "phonenumber", "audit", "begin_group", "end_group",
@@ -211,8 +214,15 @@
   ini <- which(base_tipo %in% c("begin_group", "begin_repeat") & nom == modulo)
   if (!length(ini)) return(list())
   subs <- list(); n_preg <- list()
-  abrir <- function(clave, etiqueta) {
-    if (is.null(subs[[clave]])) { subs[[clave]] <<- list(seccion = clave, etiqueta = etiqueta, textos = character(0)); n_preg[[clave]] <<- 0L }
+  # TXT-20: la etiqueta de siempre va recortada a 90 caracteres; la completa viaja aparte para el rótulo corto.
+  abrir <- function(clave, nombre, etiqueta = NULL) {
+    if (is.null(subs[[clave]])) {
+      lab <- .codif_var_label(inst, nombre, "")
+      etiqueta <- etiqueta %||% .codif_ss_recortar_etiqueta(lab, nombre)
+      completa <- .codif_ss_recortar_etiqueta(lab, etiqueta, max_chars = Inf)
+      subs[[clave]] <<- list(seccion = clave, etiqueta = etiqueta, etiqueta_completa = completa, textos = character(0))
+      n_preg[[clave]] <<- 0L
+    }
     clave
   }
   general <- paste0(modulo, "__general")
@@ -222,8 +232,8 @@
     if (bt %in% c("begin_group", "begin_repeat")) {
       prof <- prof + 1L
       if (prof == 1L) {
-        en_grupo <- abrir(if (nzchar(nom[[i]])) nom[[i]] else sprintf("%s__grupo_%d", modulo, i),
-                          .codif_ss_recortar_etiqueta(.codif_var_label(inst, nom[[i]], ""), nom[[i]]))
+        clave_g <- if (nzchar(nom[[i]])) nom[[i]] else sprintf("%s__grupo_%d", modulo, i)
+        en_grupo <- abrir(clave_g, nom[[i]])
         bateria <- NULL
       }
       next
@@ -237,11 +247,11 @@
     nm <- nom[[i]]
     if (!nzchar(nm) || identical(nm, variable)) next
     if (prof == 0L && (bt == "note" || startsWith(tolower(nm), "enunciado_"))) {
-      bateria <- abrir(nm, .codif_ss_recortar_etiqueta(.codif_var_label(inst, nm, ""), nm))
+      bateria <- abrir(nm, nm)
       next
     }
     if (bt == "note" || bt %in% .CODIF_SS_TIPOS_SIN_TEXTO) next
-    clave <- en_grupo %||% bateria %||% abrir(general, .codif_ss_etiqueta_general(etiqueta_modulo))
+    clave <- en_grupo %||% bateria %||% abrir(general, general, .codif_ss_etiqueta_general(etiqueta_modulo))
     subs[[clave]]$textos <- c(subs[[clave]]$textos, .codif_ss_texto_pregunta(inst, nm, bt, lista[[i]], usos_lista))
     n_preg[[clave]] <- n_preg[[clave]] + 1L
   }
@@ -261,6 +271,7 @@
     k <- which.min(utils::head(tam, -1L) + tam[-1L])
     a <- subs[[k]]; b <- subs[[k + 1L]]
     subs[[k]] <- list(seccion = a$seccion, etiqueta = paste(a$etiqueta, b$etiqueta, sep = " / "),
+                      etiqueta_completa = paste(a$etiqueta_completa %||% a$etiqueta, b$etiqueta_completa %||% b$etiqueta, sep = " / "),
                       textos = c(a$textos, b$textos))
     subs[[k + 1L]] <- NULL
   }
@@ -376,7 +387,9 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
       partidos <- c(partidos, codigos[[m]])
       nuevas <- c(nuevas, lapply(seq_along(subs), function(j) list(
         codigo = as.character(as.integer(codigos[[m]]) + j), seccion = subs[[j]]$seccion,
-        etiqueta = subs[[j]]$etiqueta, padre = codigos[[m]], textos = subs[[j]]$textos
+        etiqueta = subs[[j]]$etiqueta, padre = codigos[[m]], textos = subs[[j]]$textos,
+        etiqueta_completa = subs[[j]]$etiqueta_completa %||% subs[[j]]$etiqueta,
+        etiqueta_corta = .codif_rotulo_corto_subtema(subs[[j]]$etiqueta_completa %||% subs[[j]]$etiqueta)
       )))
     }
     if (length(partidos)) { unidades <- nuevas; pz <- puntuar(lapply(unidades, `[[`, "textos")) }
@@ -388,7 +401,10 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
       u <- unidades[[s$m]]
       p <- list(codigo = u$codigo, seccion = u$seccion, etiqueta = u$etiqueta,
                 puntaje = round(s$puntaje, 2), palabras = as.list(s$palabras))
-      if (!is.null(u$padre)) { p$padre <- u$padre; p$subtema <- u$codigo }
+      if (!is.null(u$padre)) {
+        p$padre <- u$padre; p$subtema <- u$codigo
+        p$etiqueta_completa <- u$etiqueta_completa; p$etiqueta_corta <- u$etiqueta_corta   # TXT-20
+      }
       p
     })
     list(
@@ -410,6 +426,7 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
     )
     for (u in Filter(function(u) identical(u$padre, codigos[[m]]), unidades)) {
       modulos[[length(modulos) + 1L]] <- list(codigo = u$codigo, seccion = u$seccion, etiqueta = u$etiqueta,
+                                              etiqueta_completa = u$etiqueta_completa, etiqueta_corta = u$etiqueta_corta,
                                               padre = u$padre, n_terminos = unname(n_terminos[[u$codigo]]))
     }
   }
