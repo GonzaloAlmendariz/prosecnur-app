@@ -40,10 +40,13 @@ export function lineaDelAvance(hechos: HechosDeMonitoreo): string {
   return faltan === 0 ? `${base}, meta cumplida` : `${base}, faltan ${cuenta(faltan)}`;
 }
 
-/** El que va último, si de verdad está rezagado respecto del conjunto. */
+/**
+ * El que va último, si de verdad está rezagado respecto del conjunto. Un actor
+ * que ya cumplió su meta no está rezagado aunque el agregado vaya más arriba.
+ */
 export function rezagado(hechos: HechosDeMonitoreo): string {
   const { actors_count: actores, lagging_actor: actor, lagging_pct: pct } = hechos;
-  if (!actores || actores <= 1 || !actor || typeof pct !== "number" || pct < 0) return "";
+  if (!actores || actores <= 1 || !actor || typeof pct !== "number" || pct < 0 || pct >= 100) return "";
   if (!(pct < hechos.avance_pct)) return "";
   return `${actor} al ${Math.round(pct)}%`;
 }

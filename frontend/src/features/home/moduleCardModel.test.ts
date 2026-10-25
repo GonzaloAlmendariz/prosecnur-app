@@ -528,6 +528,26 @@ describe("moduleCardModel", () => {
     expect(monitoreo.facts).toContainEqual({ label: "va último", value: "Docentes al 12%" });
   });
 
+  it("un actor que ya cumplió su meta no se nombra como rezagado", () => {
+    // acred_conta: Administrativos 15 de 15 (100 %) con el agregado al 145.6 %.
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "acreditacion",
+      has_snapshot: true,
+      collected: 519,
+      valid: 418,
+      target: 287,
+      avance_pct: 145.6,
+      alerts: 0,
+      valid_label: "efectivas",
+      actors_count: 4,
+      lagging_actor: "Administrativos",
+      lagging_pct: 100,
+    };
+    const etiquetas = (view("monitoreo", overview).facts ?? []).map((fact) => fact.label);
+    expect(etiquetas).not.toContain("va último");
+  });
+
   it("cae al vocabulario neutro cuando el backend no manda etiquetas", () => {
     const overview = makeOverview();
     overview.facts.monitoreo = {

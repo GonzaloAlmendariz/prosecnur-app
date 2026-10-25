@@ -90,7 +90,12 @@ function ProgressView({
         </span>
       </span>
       {viz.steps && (
-        <span className="home-mc-progress-steps" aria-hidden="true">
+        <span
+          className="home-mc-progress-steps"
+          aria-hidden="true"
+          data-qa-geometry-group="home-mc-progress-steps"
+          data-qa-geometry-contract="intrinsic"
+        >
           {viz.steps.map((step) => (
             <span key={step.label} className={`is-${step.state}`}>{step.label}</span>
           ))}
