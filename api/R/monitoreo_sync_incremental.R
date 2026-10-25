@@ -1092,16 +1092,11 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
       conservadas = nrow(combined_data)
     )
   ), artifacts)
-  # Los facts del home se conservan del corte previo (stale pero informativo)
-  # hasta que el primer GET de la familia los re-espeje con el tablero fresco
-  # (ver monitoreo_overview_facts.R). Antes se recalculaban aquí desde el
-  # dashboard recién construido; sin build no hay fuente nueva.
-  if (is.list(prev_snapshot)) {
-    for (field in c("territorial_overview_facts", "efectividad_overview_facts",
-                    "aulas_overview_facts")) {
-      if (!is.null(prev_snapshot[[field]])) snapshot[[field]] <- prev_snapshot[[field]]
-    }
-  }
+  # Los facts del home se conservan del corte previo hasta que el primer GET de
+  # la familia los re-espeje con el tablero fresco, y viajan MARCADOS con el
+  # corte del que vienen para que Home diga «Actualizando» en vez de publicar
+  # la cifra vieja junto al corte nuevo (ver monitoreo_overview_facts.R).
+  snapshot <- monitoreo_snapshot_inherit_overview_facts(snapshot, prev_snapshot)
   # Sin dashboard ni dashboard_cache_token: .monitoreo_snapshot_dashboard_valid
   # devuelve FALSE de entrada (snapshot$dashboard no es lista), así que el
   # PRIMER GET de cada scope construye con la data nueva sin poder rescatar el

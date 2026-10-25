@@ -9,7 +9,7 @@ De la maqueta se toma la función (la cifra con su denominador, Home lee el cort
 | 1 | La insignia de Avance de la barra lleva su base | `shell/metricaDeSeccion.ts` (modelo), `shell/MonitoreoModuleChrome.tsx` (píldora), `shell/barraDelModo.css`; Tel en `profiles/telefonico/navegacion/barraTelefonica.ts`, Acr en `profiles/acreditacion/navegacion/barraAcreditacion.ts`; test `shell/avanceConBase.test.tsx` | Hecho en Telefónico y Acreditación |
 | 2 | La base es la misma que usa la vista de Avance de cada modo | Tel: `resumenDelModo` (efectivas y meta de las cuotas con meta, el par del chip «423 de 400 efectivas» de Avance › Cuotas). Acr: `avanceDeReports` en `navegacion/resumenDelCorte.ts` (= `totalesDeAvance`, el «418 de 287 meta» de Avance › Resumen) | Hecho, sin pedir nada nuevo al backend |
 | 3 | Territorial | `profiles/territorial/navegacion/barraTerritorial.ts` sigue pasando texto | Preparado: `viewMetrics` acepta `{ valor, base, lectura }`; lo cambia quien lleva `profiles/territorial/**` |
-| 4 | Home dice «Actualizando» mientras el tablero se regenera y no publica la cifra vieja como actual | `features/home/lecturaDeMonitoreo.ts`, `moduleCardModel.ts`; tests en `moduleCardModel.test.ts` | Hecho en el frontend; **bloqueado por backend**: el overview no manda `regenerando` |
+| 4 | Home dice «Actualizando» mientras el tablero se regenera y no publica la cifra vieja como actual | `features/home/lecturaDeMonitoreo.ts`, `moduleCardModel.ts`; tests en `moduleCardModel.test.ts` | Hecho. Backend en M6: `regenerando` y `regenerando_desde` en `facts.monitoreo` (ver «Backend M6») |
 | 5 | Home lee el corte guardado, no uno a medio armar | `api/R/project_overview.R` (`.overview_monitoreo_facts`) | Verificado por lectura; ver abajo |
 | 6 | Regla de escritura: nada de «;» o «·» explicativos | Sub-línea de la tarjeta de Monitoreo; tooltip de las píldoras | Hecho |
 
@@ -32,7 +32,7 @@ De la maqueta se toma la función (la cifra con su denominador, Home lee el cort
   la vista viva. Leer ese flag haría decir «Actualizando» a una tarjeta cuya cifra ya está al día. La barra del modo
   lo lee como «Preparando», que es otra cosa.
 
-## Lo que exige backend (no hecho)
+## Lo que exigía backend (resuelto en M6, ver abajo)
 
 - **`regenerando` en `facts.monitoreo`.** `.overview_monitoreo_facts` debe mandar `regenerando = TRUE` mientras haya
   un job de sync de monitoreo en curso para la sesión, o mientras el tablero quede por rehacer y el espejo de Home
@@ -52,6 +52,32 @@ De la maqueta se toma la función (la cifra con su denominador, Home lee el cort
   `overview_facts_heredado = TRUE` en el carry-over y `FALSE` en `monitoreo_snapshot_refresh_overview_facts`) y
   publicarlo como `regenerando` en `.overview_monitoreo_facts`. Con eso la tarjeta dice «Actualizando» y «Corte
   anterior: …» sin cambios en el frontend.
+
+## Backend M6 — el espejo heredado viaja marcado
+
+- **Dónde vive la marca.** `monitoreo_snapshot$overview_facts_heredado`, una lista por campo
+  (`efectividad_overview_facts`, `territorial_overview_facts`, `aulas_overview_facts`) cuyo valor es el
+  `synced_at` del corte que calculó la cifra. La pone `monitoreo_snapshot_inherit_overview_facts`
+  (`api/R/monitoreo_overview_facts.R`), que `monitoreo_sync_apply_deferred` llama en lugar del bucle de copia.
+- **Quién la borra.** `monitoreo_snapshot_refresh_overview_facts`, sólo la del campo de su familia, y aunque la
+  cifra nueva coincida con la heredada (si no, Home quedaría en «Actualizando» para siempre). Un tablero que no
+  trae facts de la familia no la borra.
+- **Dos syncs seguidos** sin abrir Monitoreo conservan el corte de ORIGEN, no el intermedio.
+- **Qué publica Home.** `.overview_monitoreo_facts` agrega `regenerando` (lógico) y `regenerando_desde` (el corte
+  de origen, `""` si el espejo es propio), con el campo de la familia vigente. El `safe()` de respaldo lleva los
+  dos en `FALSE`/`""`.
+- **Viaja en el `.pulso`.** `monitoreo_snapshot` es persistible entero (`session_schema.R`); no hay sanitizado de
+  sus subcampos al guardar. Decisión: que viaje. Un `.pulso` guardado en ese intervalo sigue teniendo la cifra del
+  corte anterior, así que reabrirlo debe decirlo igual; la marca se limpia la primera vez que Monitoreo sirve la
+  familia. Limpiarla al guardar volvería a publicar la cifra vieja como del corte nuevo.
+- **Sin registro de jobs.** No se usa `pending_regeneration`. `regenerando` no significa «hay un job corriendo»,
+  significa «la cifra es de un corte anterior al vigente».
+- **Frontend.** Lee `regenerando`; `regenerando_desde` queda disponible y aún no se consume. El tipo
+  `ProjectOverview` no se tocó (fuera del glob).
+- **Verificación.** `api/tests/testthat/test-monitoreo-overview-regenerando.R` (8 casos, sync real por
+  `monitoreo_sync_apply_deferred` → overview → `monitoreo_snapshot_store_overview_facts` → overview). Rojo antes
+  del fix (9 fallas), verde después (20 pass). `make gate-area AREA=monitoreo GATE_ARGS='--patron
+  "sync|snapshot|overview|home"'`: 16 suites, 600 pass, 0 fail. `test-session-schema.R`: 14 pass.
 
 ## Verificación
 
@@ -74,7 +100,6 @@ De la maqueta se toma la función (la cifra con su denominador, Home lee el cort
 
 ## Pendientes
 
-- Backend: `regenerando` en `facts.monitoreo` (arriba).
 - Territorial: pasar `{ valor, base, lectura }` desde `barraTerritorial.ts` («cuentan para la meta» sobre la meta).
 - Acreditación al abrir en Insumos: la insignia de Avance (y la de Control) no aparece hasta visitar Avance, porque
   `useResumenDelCorte` sólo la arma con `client_report.actors`, que trae el corte de Avance. Pasa igual en main.
