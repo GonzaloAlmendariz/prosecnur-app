@@ -10,6 +10,7 @@ import { criteriosDelRadar, formaEfectivaRadar } from "../formaRadar";
 import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
+import { categoriasQueSalen, type ConteoCategoria } from "./categoriasQueSalen";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
 export const TTB_SIN_RESPUESTAS = "Top Two Box sin respuestas elegidas";
@@ -235,8 +236,19 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
   return { glifo, ajustes };
 }
 
-/** La ficha de una ranura. `nombreTipo`: el nombre visible del graficador (registro). */
-export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): FichaInfo {
+/**
+ * Lo que el panel dice como pregunta: con una sola, el `titulo` que el plan declara para el gráfico, que es el que el
+ * motor pone sobre el panel (CCSS-UI-2); con varias, cada una la suya (son las filas del gráfico).
+ */
+function preguntasVisibles(r: RanuraMaqueta, titulos: string[]): string[] {
+  return r.tituloPanel && titulos.length <= 1 ? [r.tituloPanel] : titulos.filter(Boolean);
+}
+
+/**
+ * La ficha de una ranura. `nombreTipo`: el nombre visible del graficador (registro). `conteos`: los casos por categoría
+ * de su pregunta (`GET /api/graficos/categorias`); con ellos la leyenda lista sólo lo que el motor dibuja (CCSS-UI-3).
+ */
+export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null): FichaInfo {
   const base = { graficador: r.graficador, lectura: null, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [], forma: null, glifo: {} } as const;
   if (!r.graficador) return { ...base, tipo: "Elegir gráfico", vacia: true, faltaPregunta: false, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [] };
   const tipoNombre = nombreTipo ?? "Gráfico";
@@ -245,15 +257,22 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   if (!BARRAS.has(r.graficador)) {
     // Los demás tipos: su glifo, sus preguntas, sus públicos y, si pintan por categoría, su escala.
     const q0 = r.preguntas[0];
-    const leyendas = r.pinta === "categorias" && q0.opciones.length
-      ? [{ titulo: null, items: q0.opciones.map((o, k) => ({ rotulo: o.rotulo, color: coloresDeEscala(q0.opciones)[k] })) }]
+    // Los colores se asignan sobre la escala completa (el color de una respuesta no cambia porque otra no tenga casos).
+    const colores = coloresDeEscala(q0.opciones);
+    const salen = r.pinta === "categorias" ? categoriasQueSalen(q0.opciones, conteos, r.graficador, r.args) : { opciones: [], fuera: [] };
+    const leyendas = salen.opciones.length
+      ? [{ titulo: null, items: salen.opciones.map((o) => {
+        const k = q0.opciones.indexOf(o);
+        return { rotulo: o.rotulo, color: k >= 0 ? colores[k] : gris(1, 1, true) };
+      }) }]
       : [];
     const cruceUno = q0.cruce;
     const propios = ajustesDelGlifo(r.graficador, r.args, !!cruceUno);
     return {
       graficador: r.graficador, tipo: tipoNombre, lectura: null, vacia: false, faltaPregunta: false, forma: null, glifo: propios.glifo,
-      preguntas: r.preguntas.map((q) => q.titulo).filter(Boolean), publicos: r.bases, leyendas,
-      ajustes: [...(r.twoBox.ttb ? ["Top Two Box"] : []), ...(cruceUno ? [`Por grupos: ${cruceUno}`] : []), ...ajustesComunes(r.args), ...propios.ajustes],
+      preguntas: preguntasVisibles(r, r.preguntas.map((q) => q.titulo)), publicos: r.bases, leyendas,
+      ajustes: [...(r.twoBox.ttb ? ["Top Two Box"] : []), ...(cruceUno ? [`Por grupos: ${cruceUno}`] : []), ...ajustesComunes(r.args), ...propios.ajustes,
+        ...(salen.fuera.length ? [`Sin casos: ${salen.fuera.join(", ")}`] : [])],
       avisos: [],
     };
   }
@@ -305,7 +324,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
     graficador: r.graficador,
     tipo: dicotomica && r.graficador === "p_barras_multiapiladas" ? "Dicotómica" : tipoNombre,
     lectura,
-    preguntas: preguntasParte.map((q) => q.titulo).filter(Boolean),
+    preguntas: preguntasVisibles(r, preguntasParte.map((q) => q.titulo)),
     publicos,
     leyendas,
     ajustes,

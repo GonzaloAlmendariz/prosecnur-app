@@ -513,6 +513,22 @@ export type Grupo = {
   origen?: "existente" | "nuevo"; // "existente" = viene del choice list
                                   // original (read-only código/etiqueta).
                                   // "nuevo" = creado por el analista.
+  /** Asignaciones por caso (multicode de un texto abierto): las importa la matriz Excel y las escribe la confirmación
+   *  de un módulo sugerido. Con alguna, `/adaptar` codifica el texto por caso y admite varios códigos por persona. */
+  matrix_cases?: CasoMatriz[];
+};
+
+/** Una persona asignada a un código (`.codif_matrix_case_payload`). `origen: "sugerencia"` marca las que salieron de
+ *  confirmar una propuesta de módulo, para poder quitarlas sin tocar las importadas. */
+export type CasoMatriz = {
+  id_caso: string;
+  respuesta: string;
+  codigo: string;
+  etiqueta: string;
+  obs: string;
+  origen?: "sugerencia";
+  /** Con `origen: "sugerencia"`: el `texto_normalizado` de la respuesta que se confirmó. */
+  clave?: string;
 };
 
 export type OpcionExistente = { codigo: string; etiqueta: string };
@@ -854,4 +870,106 @@ export async function apiCodifAgrupacionSet(parent: string, spec: AgrupacionSpec
   }
   const raw = await handle<unknown>(res);
   return normalizeAgrupacionGuardada(raw, parent);
+}
+
+
+// ---------- Codificación: módulo sugerido del comentario abierto (TXT-3) ----------
+// GET /api/codificacion/sugerencias-seccion. Sólo lectura: propone el o los módulos del formulario de cada comentario
+// por las palabras que comparte con ellos; el analista confirma por el flujo de grupos. Nunca trae asignaciones.
+
+export type ModuloSugerible = { codigo: string; seccion: string; etiqueta: string; nTerminos: number };
+export type PropuestaModulo = { codigo: string; seccion: string; etiqueta: string; puntaje: number; palabras: string[] };
+export type RespuestaConPropuesta = {
+  idCaso: string;
+  fila: number;
+  texto: string;
+  noRespuesta: boolean;
+  candidatoOtro: boolean;
+  propuestas: PropuestaModulo[];
+};
+export type CodifSugerenciasSeccion = {
+  variable: string;
+  base: string;
+  /** Siempre `true`: es una propuesta. */
+  requiereConfirmacion: true;
+  modulos: ModuloSugerible[];
+  otro: { codigo: string; etiqueta: string };
+  respuestas: RespuestaConPropuesta[];
+  resumen: { escribieron: number; conContenido: number; conPropuesta: number; candidatosOtro: number; porModulo: Record<string, number> };
+};
+
+function codifVerdad(value: unknown): boolean {
+  return codifEscalar(value) === true;
+}
+
+function codifNumero(value: unknown): number {
+  const v = codifEscalar(value);
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function normalizeCodifSugerenciasSeccion(raw: unknown): CodifSugerenciasSeccion {
+  const r = codifRegistro(raw);
+  const modulos: ModuloSugerible[] = [];
+  for (const m of codifLista(r.modulos)) {
+    const o = codifRegistro(m);
+    const codigo = codifTexto(o.codigo);
+    if (!codigo || modulos.some((x) => x.codigo === codigo)) continue;
+    modulos.push({ codigo, seccion: codifTexto(o.seccion), etiqueta: codifTexto(o.etiqueta) || codigo, nTerminos: codifEntero(o.n_terminos) });
+  }
+  const conocidos = new Set(modulos.map((m) => m.codigo));
+  const respuestas: RespuestaConPropuesta[] = [];
+  for (const x of codifLista(r.respuestas)) {
+    const o = codifRegistro(x);
+    const idCaso = codifTexto(o.id_caso);
+    if (!idCaso) continue;
+    const noRespuesta = codifVerdad(o.no_respuesta);
+    const propuestas: PropuestaModulo[] = noRespuesta ? [] : codifLista(o.propuestas).flatMap((p) => {
+      const q = codifRegistro(p);
+      const codigo = codifTexto(q.codigo);
+      if (!conocidos.has(codigo)) return [];
+      return [{
+        codigo,
+        seccion: codifTexto(q.seccion),
+        etiqueta: codifTexto(q.etiqueta) || codigo,
+        puntaje: codifNumero(q.puntaje),
+        palabras: codifLista(q.palabras).map(codifTexto).filter(Boolean),
+      }];
+    });
+    respuestas.push({
+      idCaso,
+      fila: codifEntero(o.fila),
+      texto: typeof codifEscalar(o.texto) === "string" ? (codifEscalar(o.texto) as string) : codifTexto(o.texto),
+      noRespuesta,
+      candidatoOtro: !noRespuesta && codifVerdad(o.candidato_otro) && propuestas.length === 0,
+      propuestas,
+    });
+  }
+  const otro = codifRegistro(r.otro);
+  const resumen = codifRegistro(r.resumen);
+  const porModulo: Record<string, number> = {};
+  for (const [k, v] of Object.entries(codifRegistro(resumen.por_modulo))) porModulo[k] = codifEntero(v);
+  return {
+    variable: codifTexto(r.variable),
+    base: codifTexto(r.base_name),
+    requiereConfirmacion: true,
+    modulos,
+    otro: { codigo: codifTexto(otro.codigo) || "80", etiqueta: codifTexto(otro.etiqueta) || "Otro" },
+    respuestas,
+    resumen: {
+      escribieron: codifEntero(resumen.escribieron),
+      conContenido: codifEntero(resumen.con_contenido),
+      conPropuesta: codifEntero(resumen.con_propuesta),
+      candidatosOtro: codifEntero(resumen.candidatos_otro),
+      porModulo,
+    },
+  };
+}
+
+export async function apiCodifSugerenciasSeccion(variable: string, opts?: { base?: string; secciones?: string[] }) {
+  const q = new URLSearchParams({ variable });
+  if (opts?.base) q.set("base", opts.base);
+  if (opts?.secciones?.length) q.set("secciones", opts.secciones.join(","));
+  const raw = await handle<unknown>(await apiFetch(`/api/codificacion/sugerencias-seccion?${q.toString()}`, { headers: headers() }));
+  return normalizeCodifSugerenciasSeccion(raw);
 }

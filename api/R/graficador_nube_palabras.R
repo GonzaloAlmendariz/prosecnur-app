@@ -18,7 +18,12 @@
 #' @param contar `"menciones"` (por defecto, apariciones) o `"personas"`: cada persona cuenta una vez por término,
 #'   sin ponderar.
 #' @param min_personas Con `contar = "personas"`, mínimo de personas para que un término entre a la nube.
-#' @param equivalencias Vector con nombre raíz → raíz para unir sinónimos de forma explícita. Por defecto, ninguno.
+#' @param equivalencias Sinónimos que unió el usuario: grupos `list(list(mostrar, formas))` del diccionario de la
+#'   pregunta (TXT-6/7) o el vector con nombre raíz → raíz de antes. Por defecto, ninguno: no hay sinónimos de fábrica.
+#' @param excluir_terminos Términos que no informan (del diccionario de la pregunta): salen de la nube y del ranking.
+#'   Uno de varias palabras se lleva sus palabras donde aparece («ciencias sociales» no deja «sociales» suelto).
+#' @param frases_fijas Frases que se unen aunque no las usen tres personas, y que entran aunque no lleguen a
+#'   `min_personas`.
 #' @return Objeto `ggplot`.
 #' @family graficadores
 #' @export
@@ -46,6 +51,8 @@ graficar_nube_palabras <- function(
     contar = c("menciones", "personas"),
     min_personas = 3,
     equivalencias = NULL,
+    excluir_terminos = NULL,
+    frases_fijas = NULL,
     ...
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
@@ -68,7 +75,9 @@ graficar_nube_palabras <- function(
   filtrar_no_respuestas <- .txt_flag(filtrar_no_respuestas)
   lematizar <- .txt_flag(lematizar)
   contar <- if (identical(tolower(trimws(as.character(contar %||% "menciones")[1])), "personas")) "personas" else "menciones"
-  limpia <- lematizar || identical(contar, "personas")
+  # TXT-6/7: con diccionario de la pregunta también se cuenta por el camino limpio (sin él, nada cambia).
+  dic <- length(equivalencias) > 0L || length(excluir_terminos) > 0L || length(frases_fijas) > 0L
+  limpia <- lematizar || identical(contar, "personas") || dic
 
   textos_crudos <- data[[var_texto]]
   textos <- .txt_normalizar(textos_crudos)
@@ -86,7 +95,8 @@ graficar_nube_palabras <- function(
 
   if (limpia) {
     words <- .txt_conteo_terminos(textos, pesos = weights, contar = contar, lematizar = lematizar, min_chars = min_chars,
-                                  min_personas = min_personas, equivalencias = equivalencias)
+                                  min_personas = min_personas, equivalencias = equivalencias, excluir = excluir_terminos,
+                                  frases_fijas = frases_fijas)
   } else {
     tokens <- strsplit(textos, "\\s+", perl = TRUE)
     token_df <- do.call(rbind, lapply(seq_along(tokens), function(i) {

@@ -217,17 +217,20 @@
 /* El vocabulario es dueño del alto: con un solo status (RMS, barrido sin
  * empezar) la tabla no se encoge a una fila sobre un vacío del lienzo, y las
  * dos columnas terminan juntas; la nota del modo va al pie de la lateral. */
+/* Alto natural (Ronda 3, L10): con 11 valores (RMS) la tarjeta dejaba un
+ * hueco bajo la última fila. Con más, llega al alto de la rejilla y la tabla
+ * desplaza dentro (C4). */
 .mon-estados-vocabulario {
   display: flex;
   flex-direction: column;
-  align-self: stretch;
+  align-self: start;
   min-width: 0;
-  height: 100%;
+  max-height: 100%;
   overflow: hidden;
 }
 
 .mon-estados-marco {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
 }
@@ -1004,6 +1007,15 @@
   text-overflow: clip;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* En la lateral (360 px) los datos van uno bajo otro: en tres columnas el
+ * nombre de la encuesta partía en seis líneas y la hora en dos, con una celda
+ * vacía al lado (Ronda 3, L10). Debajo de 1180 la lateral es ancha. */
+@media (min-width: 1181px) {
+  .is-telefonico-profile .mon-llave .mon-insumos-lateral .mon-llave-kobo .mon-phone-source-slot-data {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Llave sin nada por revisar: una sola columna, con la encuesta arriba; la

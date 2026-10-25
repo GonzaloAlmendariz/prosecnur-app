@@ -20,6 +20,24 @@ function mensajeDe(e: unknown): string {
   return e instanceof Error ? e.message : "No se pudieron leer las categorías.";
 }
 
+/**
+ * Las categorías de una pregunta desde la misma memoria de la tarjeta (la maqueta las pide para su leyenda, CCSS-UI-3).
+ * Una pregunta sin lista resuelve vacía: no hay categorías que filtrar.
+ */
+export async function cargarCategorias(variable: string, scope: "active" | "consolidated", graficador = ""): Promise<GraficosCategorias | null> {
+  const clave = claveCategorias(getSession() ?? "", scope, variable, graficador);
+  const c = cache.get(clave);
+  if (c) return c;
+  try {
+    const datos = await apiGraficosCategorias(variable, scope, graficador || undefined);
+    cache.set(clave, datos);
+    return datos;
+  } catch (e) {
+    if (e instanceof ApiError && e.code === "E_CATEGORIAS_SIN_LISTA") return null;
+    throw e;
+  }
+}
+
 export function claveCategorias(sesion: string, scope: "active" | "consolidated", variable: string, graficador: string): string {
   return `${sesion}|${scope}|${graficador}|${variable}`;
 }
