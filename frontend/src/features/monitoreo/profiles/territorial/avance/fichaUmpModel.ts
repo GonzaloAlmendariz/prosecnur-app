@@ -77,9 +77,21 @@ function distancia(fila: TerritorialResponseAuditRow): string {
   return metros >= 1000 ? `${(metros / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} km` : `${fmt(Math.round(metros))} m`;
 }
 
-function rotuloDeSexo(valor: unknown): string {
+/**
+ * La auditoría de Validación publica el sexo con el código de Kobo («1»,
+ * «2»); la ficha decía «2, 30 años». Misma regla que el motor de cuotas
+ * (`.monitoreo_territorial_quota_sex_label`, monitoreo_engine.R).
+ */
+const SEXO_HOMBRE = new Set(["1", "h", "hom", "hombre", "masculino", "m", "male", "varon", "varón"]);
+const SEXO_MUJER = new Set(["2", "mujer", "femenino", "f", "female"]);
+
+export function rotuloDeSexo(valor: unknown): string {
   const texto = String(valor ?? "").trim();
-  return texto ? rotuloDeCelda(texto) : "Sin dato";
+  if (!texto) return "Sin dato";
+  const clave = texto.toLowerCase();
+  if (SEXO_HOMBRE.has(clave)) return "Hombre";
+  if (SEXO_MUJER.has(clave)) return "Mujer";
+  return rotuloDeCelda(texto);
 }
 
 /** Casos de la UMP en el corte, por orden de llegada. */

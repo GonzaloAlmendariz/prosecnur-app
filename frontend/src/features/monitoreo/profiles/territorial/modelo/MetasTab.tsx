@@ -32,6 +32,21 @@ function MetasTabImpl({
   const abrirHojasDeRuta = () => navigate("/hojas-ruta?seccion=muestra");
   const conViviendas = modelo.total.viviendas != null;
 
+  // Sin el corte de ruta todavía no se sabe si hay muestra: decir «Sin
+  // muestra» sería un vacío falso (C5). La página no se marca lista mientras
+  // ese corte no llega (`cortesDePestana`).
+  if (!reports) {
+    return (
+      <section className="mon-mod mon-mod--vacio" aria-label="Metas y muestra" aria-busy="true">
+        <div className="mon-mod-panel mon-mod-vacio">
+          <RotuloDePestana />
+          <MapIcon size={20} aria-hidden="true" />
+          <strong>Leyendo la muestra de Hojas de ruta…</strong>
+        </div>
+      </section>
+    );
+  }
+
   if (!modelo.disponible) {
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-muestra" aria-label="Metas y muestra">
@@ -104,14 +119,14 @@ function MetasTabImpl({
             </table>
           </div>
           <p className="mon-mod-base">
-            {conViviendas ? "Viviendas y población de las manzanas titulares. " : ""}La población 18+ del distrito (Censo 2017) llega con el corte completo de Hojas de ruta.
+            <span title="La población 18+ del distrito, del Censo 2017, llega con el corte completo de Hojas de ruta">{conViviendas ? "Viviendas y población de las manzanas titulares" : "Sin población 18+ en este corte"}</span>
           </p>
         </section>
 
         <ul className="mon-mod-fases" data-qa-geometry-group="territorial-modelo-fases" data-qa-geometry-contract="equal">
           {fases.map((fase) => (
             <li key={fase.fase} className={`mon-mod-panel mon-mod-fase${fase.activa ? " is-activa" : ""}`}>
-              <strong>{fase.nombre}{fase.activa ? " · activa" : ""}</strong>
+              <strong>{fase.nombre}{fase.activa ? <span className="mon-ter-chip is-ok">Activa</span> : null}</strong>
               <span>{fase.detalle}</span>
               {fase.fecha ? <small>Última lectura {fase.fecha}</small> : null}
             </li>
