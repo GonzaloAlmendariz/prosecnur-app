@@ -228,3 +228,84 @@ test_that("hojas ruta state counts active sample outputs as local data", {
   expect_equal(state$active_phase, "field")
   expect_equal(length(state$workspace_outputs$sample$blocks), 1L)
 })
+
+test_that("el warmup aprende la duración de la apertura anterior sin marcar el proyecto como editado (L23)", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  project_path <- tempfile(fileext = ".pulso")
+  s <- session_get(sid)
+  s$project_path <- project_path
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+
+  # Sin apertura anterior no hay estimación: ni total ni fases.
+  antes <- .project_warmup_estimacion(sid, c("project", "monitoreo"))
+  expect_null(antes$ultima_apertura)
+  expect_length(antes$tareas_ms, 0L)
+
+  .project_warmup_on_complete(list(
+    sid = sid,
+    result_data = list(
+      ok = TRUE,
+      project_path = project_path,
+      elapsed_ms = 228000L,
+      tasks = list(
+        list(id = "project", status = "ready", elapsed_ms = 4000L),
+        list(id = "monitoreo", status = "ready", elapsed_ms = 108000L)
+      )
+    )
+  ))
+  after <- session_get(sid)
+  expect_false(isTRUE(after$project_dirty))
+
+  # Mismo juego de módulos, en cualquier orden: total y fases conocidas.
+  est <- .project_warmup_estimacion(sid, c("monitoreo", "project"))
+  expect_identical(est$ultima_apertura$elapsed_ms, 228000L)
+  expect_true(nzchar(est$ultima_apertura$at))
+  expect_identical(est$tareas_ms$monitoreo, 108000L)
+  expect_identical(est$tareas_ms$project, 4000L)
+
+  # Otro juego de módulos no hereda ese total, sólo las fases que comparte.
+  otro <- .project_warmup_estimacion(sid, c("project", "carga"))
+  expect_null(otro$ultima_apertura)
+  expect_identical(names(otro$tareas_ms), "project")
+})
+
+test_that("una fase cortada por presupuesto no se anota como duración prevista", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  .project_warmup_registrar_duracion(sid, list(
+    elapsed_ms = 90000L,
+    tasks = list(
+      list(id = "project", status = "ready", elapsed_ms = 3000L),
+      list(id = "monitoreo", status = "timeout", elapsed_ms = 87000L)
+    )
+  ))
+  est <- .project_warmup_estimacion(sid, c("project", "monitoreo"))
+  expect_identical(est$ultima_apertura$elapsed_ms, 90000L)
+  expect_null(est$tareas_ms$monitoreo)
+  expect_identical(est$tareas_ms$project, 3000L)
+})
+
+test_that("la duración aprendida viaja en state.rds: no es un cache derivable", {
+  s <- list(
+    warmup_duraciones = list(
+      aperturas = list(project = list(elapsed_ms = 5000L, at = "2026-10-25T10:00:00-0500")),
+      tareas = list(project = 5000L)
+    )
+  )
+  limpio <- .pulso_strip_caches(s)
+  expect_identical(limpio$warmup_duraciones, s$warmup_duraciones)
+})
+
+test_that("el plan y el arranque del warmup publican la estimación", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  plan <- .project_warmup_plan(sid)
+  expect_true("estimacion" %in% names(plan))
+  expect_null(plan$estimacion$ultima_apertura)
+  json <- jsonlite::toJSON(plan$estimacion, auto_unbox = TRUE, null = "null")
+  expect_match(as.character(json), '"tareas_ms":\\{\\}')
+})
