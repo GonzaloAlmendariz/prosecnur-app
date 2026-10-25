@@ -76,6 +76,7 @@ describe("restante", () => {
 describe("duracionFase", () => {
   test("terminada: lo que tomó", () => {
     expect(duracionFase({ status: "ready", elapsedMs: 31_000, ahoraMs: 0 })).toBe("0:31");
+    expect(duracionFase({ status: "ready", elapsedMs: 300, ahoraMs: 0 })).toBe("0:01");
   });
 
   test("en curso: lo que lleva desde que empezó", () => {
