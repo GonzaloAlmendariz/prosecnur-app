@@ -115,7 +115,14 @@
   gap: var(--pulso-space-1);
 }
 
+.mon-sub-chips {
+  align-items: center;
+}
+
+/* Átomos en línea: el chip mide su texto. */
 .mon-sub-chip {
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
@@ -356,16 +363,6 @@
   font-size: 15px;
 }
 
-@media (max-width: 1180px) {
-  .mon-sub {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr);
-  }
-
-  .mon-sub > :last-child {
-    grid-column: 1 / -1;
-  }
-}
 
 /* Tercera columna: el mapa de movimientos llena el alto y las subsanaciones
  * aplicadas van debajo con lo que traen (antes, media columna vacía). */
@@ -401,4 +398,40 @@
 .mon-sub-movimientos .mon-sub-mapa svg {
   height: 100%;
   min-height: 200px;
+}
+
+/* 1024 × 600: dos columnas arriba y la tercera debajo a todo el ancho, con el
+ * mapa y las aplicadas lado a lado. La pestaña mide lo que trae y desplaza
+ * entera con el dueño del área de trabajo; las listas de arriba desplazan
+ * dentro de un tope para que la fila no crezca con 33 UMP. Antes, las filas
+ * en fracción del alto dejaban el historial fuera de alcance. */
+@media (max-width: 1180px) {
+  .mon-sub {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+
+  .mon-sub > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .mon-sub > .mon-sub-panel {
+    max-height: 460px;
+  }
+
+  .mon-sub-derecha {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .mon-sub-derecha > .mon-sub-movimientos {
+    min-height: 320px;
+  }
+
+  .mon-sub-derecha > .mon-sub-aplicadas {
+    max-height: none;
+    overflow: visible;
+  }
 }

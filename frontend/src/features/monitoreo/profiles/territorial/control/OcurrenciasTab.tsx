@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, pct } from "../rotulos";
-import { construirOcurrencias, type ModeloOcurrencias } from "./ocurrenciasModel";
+import { construirOcurrencias, motivosDeLaBarra, type ModeloOcurrencias } from "./ocurrenciasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./ocurrencias.css";
 
@@ -49,6 +49,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
 }
 
 function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
+  const barra = motivosDeLaBarra(modelo.motivos);
   return (
     <section className="mon-ocu-panel mon-ocu-banda" aria-label="Lo que declaran los partes" data-qa-geometry-member="banda">
       <header className="mon-ocu-cabecera"><RotuloDePestana /></header>
@@ -59,16 +60,17 @@ function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
         <div><dt>No efectivas</dt><dd>{fmt(modelo.noEfectivas)}</dd></div>
       </dl>
       <div className="mon-ocu-motivos">
-        <span className="mon-ocu-barra" data-qa-geometry-group="territorial-ocurrencias-barra" data-qa-geometry-contract="intrinsic" role="img" aria-label={modelo.motivos.map((motivo) => `${motivo.rotulo}: ${fmt(motivo.total)}`).join(", ")}>
-          {modelo.motivos.map((motivo, indice) => (
-            <i key={motivo.clave} className={`is-${indice % 6}`} style={{ flexGrow: motivo.total }} title={`${motivo.rotulo}: ${fmt(motivo.total)}`} />
+        {/* Un solo gráfico, no una colección: cada tramo lleva su propio color. */}
+        <span className="mon-ocu-barra" role="img" aria-label={barra.map((motivo) => `${motivo.rotulo}: ${fmt(motivo.total)}`).join(", ")}>
+          {barra.map((motivo, indice) => (
+            <i key={motivo.clave} className={`is-${indice}`} style={{ flexGrow: motivo.total }} title={`${motivo.rotulo}: ${fmt(motivo.total)}`} />
           ))}
         </span>
         <span className="mon-ocu-leyenda">
-          {modelo.motivos.slice(0, 6).map((motivo, indice) => <span key={motivo.clave} className={`is-${indice % 6}`}>{motivo.rotulo} {fmt(motivo.total)}</span>)}
+          {barra.map((motivo, indice) => <span key={motivo.clave} className={`is-${indice}`}>{motivo.rotulo} {fmt(motivo.total)}</span>)}
         </span>
       </div>
-      <p className="mon-ocu-base">Base: {fmt(modelo.partes)} partes de ocurrencias de campo · {fmt(modelo.umpsConParte)} UMP. Las efectivas son las que declara el parte, no las que cuentan para la meta.</p>
+      <p className="mon-ocu-base" title="Las efectivas son las que declara el parte, no las que cuentan para la meta">{fmt(modelo.partes)} {modelo.partes === 1 ? "parte" : "partes"} en {fmt(modelo.umpsConParte)} UMP</p>
     </section>
   );
 }

@@ -91,12 +91,13 @@ function MapeoTabImpl({
           </header>
           {modelo.filtro ? (
             <>
-              <p className="mon-ins-base">{modelo.filtro.pregunta || "Pregunta sin rótulo"}: cuenta si es {modelo.filtro.valores.join(" o ") || "—"}</p>
+              <p className="mon-ins-pregunta">«{modelo.filtro.pregunta || "Pregunta sin rótulo"}»</p>
+              <p className="mon-ins-base">Cuenta si la respuesta es {modelo.filtro.valores.join(" o ") || "—"}.</p>
               <span className="mon-ins-barra" aria-hidden="true">
                 <i style={{ width: `${modelo.filtro.base ? ((modelo.filtro.pasan ?? 0) / modelo.filtro.base) * 100 : 0}%` }} />
               </span>
               <p className="mon-ins-base">
-                {fmt(modelo.filtro.pasan)} pasan ({modelo.filtro.proporcion}) y {fmt(modelo.filtro.noPasan)} no, de {fmt(modelo.filtro.base)} recibidas
+                {fmt(modelo.filtro.pasan)} de {fmt(modelo.filtro.base)} pasan, el {modelo.filtro.proporcion}
               </p>
             </>
           ) : (
@@ -110,15 +111,15 @@ function MapeoTabImpl({
           </dl>
         </section>
         <section className="mon-ins-panel" aria-labelledby="mon-ins-distritos">
-          <h3 id="mon-ins-distritos" className="mon-ins-titulo">Distritos · código Kobo → ubigeo</h3>
+          <h3 id="mon-ins-distritos" className="mon-ins-titulo">Distritos de Kobo y su ubigeo</h3>
           {modelo.distritos.length ? (
-            <ul className="mon-ins-lista">
+            <ul className="mon-ins-lista" data-qa-geometry-group="territorial-insumos-mapeo-distritos" data-qa-geometry-contract="equal">
               {modelo.distritos.map((fila) => (
                 <li key={fila.codigo} className={`mon-ins-distrito${fila.ok ? "" : " is-falta"}`}>
                   <span className="mon-ins-distrito-sello" aria-hidden="true"><SiluetaDeDistrito distrito={fila.ok ? fila.distrito : ""} lado={26} /></span>
                   <span><code>{fila.codigo}</code> {fila.etiqueta}</span>
                   {fila.ok
-                    ? <span className="mon-ins-distrito-destino">{fila.ubigeo} · {fila.distrito}</span>
+                    ? <span className="mon-ins-distrito-destino">{fila.distrito} <code>{fila.ubigeo}</code></span>
                     : <span className="mon-ter-chip is-falta">Sin ubigeo</span>}
                 </li>
               ))}

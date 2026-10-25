@@ -26,7 +26,7 @@ export function JornadaDeFormularios({
   return (
     <section className="mon-ump-jornada" aria-label={`Formularios del ${jornada.fecha}`}>
       <header className="mon-ump-historia-cabecera">
-        <span className="mon-ump-base">{fmt(jornada.marcas.length)} formularios el {jornada.fecha}, por hora de apertura</span>
+        <span className="mon-ump-base">{fmt(jornada.marcas.length)} formularios el {jornada.fecha}</span>
       </header>
       <div className="mon-ump-jornada-eje" aria-hidden="true">
         {horas.map((t) => <span key={t}>{hora(t)}</span>)}

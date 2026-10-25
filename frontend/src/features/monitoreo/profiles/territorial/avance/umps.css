@@ -362,8 +362,7 @@
 }
 
 .mon-ump-casos {
-  display: grid;
-  gap: 0;
+  display: block;
   max-height: 240px;
   margin: var(--pulso-space-2) 0 0;
   padding: 0;
@@ -482,9 +481,10 @@
   cursor: pointer;
 }
 
+/* Elegido: borde, sin teñir la tarjeta (ronda 2). */
 .mon-ump-capitulo[aria-pressed="true"] {
   border-color: var(--pulso-brand-navy);
-  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 45%, var(--pulso-surface));
+  box-shadow: 0 0 0 1px var(--pulso-brand-navy);
 }
 
 .mon-ump-capitulo-numero {
@@ -504,6 +504,9 @@
   grid-area: texto;
   display: grid;
   gap: 2px;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .mon-ump-capitulo-texto small {
@@ -524,23 +527,25 @@
   gap: 2px;
 }
 
-.mon-ump-tira i {
+/* Átomos en línea de la tira, uno por formulario. */
+.mon-ump-tira > span {
+  display: flex;
   width: 8px;
   height: 12px;
   border-radius: 2px;
   background: var(--pulso-brand-navy);
 }
 
-.mon-ump-tira i.is-observacion {
+.mon-ump-tira > span.is-observacion {
   background: var(--pulso-warn-accent);
 }
 
-.mon-ump-tira i.is-no-cuenta,
-.mon-ump-tira i.is-anulado-sin-consentimiento {
+.mon-ump-tira > span.is-no-cuenta,
+.mon-ump-tira > span.is-anulado-sin-consentimiento {
   background: var(--pulso-border-strong);
 }
 
-.mon-ump-tira i.is-anulado-efectiva {
+.mon-ump-tira > span.is-anulado-efectiva {
   background: var(--pulso-danger-fg);
 }
 
@@ -562,4 +567,27 @@
   .mon-umps-buscar input {
     width: 160px;
   }
+}
+
+/* Ficha de la UMP (ronda 2): los casos toman el alto que queda en la ficha y
+ * desplazan dentro, en vez de cortarse a 240 px con un hueco debajo. Las
+ * demás piezas de la ficha no se encogen. */
+.mon-ump-ficha > * {
+  flex-shrink: 0;
+}
+
+.mon-ump-ficha > .mon-ump-casos-marco {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+}
+
+.mon-ump-ficha > .mon-ump-casos-marco > .mon-ump-casos {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: none;
+  margin: 0;
+  padding-bottom: var(--pulso-space-1);
 }

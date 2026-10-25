@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { construirFichaDeUmp } from "./fichaUmpModel";
+import { construirFichaDeUmp, rotuloDeSexo } from "./fichaUmpModel";
 import { CORTE_DE_CUOTAS } from "./fixtures/corteDeCuotas";
 
 const caso = (extra: Record<string, unknown>) => ({
@@ -59,5 +59,9 @@ describe("ficha de una UMP", () => {
   it("una UMP que no existe no tiene ficha", () => {
     expect(construirFichaDeUmp(CORTE_DE_CUOTAS, VALIDACION, "999")).toBeNull();
     expect(construirFichaDeUmp(CORTE_DE_CUOTAS, VALIDACION, null)).toBeNull();
+  });
+
+  it("el sexo llega con el código de Kobo y sale con su rótulo, como en el motor de cuotas", () => {
+    expect(["1", "2", "Mujer", "", "otro"].map(rotuloDeSexo)).toEqual(["Hombre", "Mujer", "Mujer", "Sin dato", "Otro"]);
   });
 });

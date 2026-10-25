@@ -78,6 +78,9 @@ export function construirMapa(
   for (const fila of umps.filas) {
     for (const otra of fila.base.otras) {
       if (vistas.has(otra.id_manzana)) continue;
+      // Un reemplazo de reserva no reemplaza nada: no se pinta. Sí la titular
+      // que dejó de usarse porque su reemplazo entró.
+      if (String(otra.tipo_manzana ?? "").trim().toLowerCase() === "reemplazo") continue;
       const bloque = comoBloqueDeRuta(otra);
       manzanas.push({ idManzana: otra.id_manzana, ump: fila.ump, estado: "sin-usar", ubigeo: bloque.ubigeo, bloque });
       vistas.add(otra.id_manzana);

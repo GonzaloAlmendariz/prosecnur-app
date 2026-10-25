@@ -53,11 +53,15 @@ function ReportesTabImpl({
           <RotuloDePestana />
           <h3 id="mon-rep-titulo" className="mon-ocu-titulo">Partes por UMP</h3>
           <span className="mon-ocu-base">
-            {fmt(modelo.conUnParte)} con un parte · {fmt(modelo.conDosOMas)} con dos o más · {fmt(modelo.sinParte.length)} sin parte
-            {modelo.noCuadran ? ` · ${fmt(modelo.noCuadran.total)} no cuadran con lo recibido (${fmt(modelo.noCuadran.conMenos)} con menos, ${fmt(modelo.noCuadran.conMas)} con más)` : ""}
+            {fmt(modelo.conUnParte)} con un parte, {fmt(modelo.conDosOMas)} con dos o más y {fmt(modelo.sinParte.length)} sin parte
+            {modelo.noCuadran ? (
+              <span className="mon-ter-cuenta" title={`${fmt(modelo.noCuadran.conMenos)} con menos y ${fmt(modelo.noCuadran.conMas)} con más de lo recibido`}>
+                {fmt(modelo.noCuadran.total)} no cuadran
+              </span>
+            ) : null}
           </span>
         </header>
-        <div className="mon-rep-reticula" data-qa-geometry-capacity="owned">
+        <div className="mon-rep-reticula" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-reportes-distritos" data-qa-geometry-contract="equal">
           {modelo.distritos.map((bloque) => (
             <section key={bloque.distrito} className="mon-rep-distrito" aria-label={bloque.distrito}>
               <h4 className="mon-ocu-subtitulo mon-ter-con-silueta"><SiluetaDeDistrito distrito={bloque.distrito} lado={22} />{bloque.distrito}</h4>
@@ -100,10 +104,10 @@ function ReportesTabImpl({
             {elegida.partes ? <p className={`mon-rep-cuadre${elegida.diferencia ? " is-no-cuadra" : ""}`}>{textoDeDiferencia(elegida.diferencia)}</p> : null}
           </section>
         ) : (
-          <p className="mon-ocu-base">Elige una UMP para ver su parte frente a lo recibido.</p>
+          <p className="mon-ocu-base" title="Su parte frente a lo recibido">Elige una UMP</p>
         )}
         <section aria-labelledby="mon-rep-sin-parte">
-          <h4 id="mon-rep-sin-parte" className="mon-ocu-subtitulo">Sin parte · {fmt(modelo.sinParte.length)}</h4>
+          <h4 id="mon-rep-sin-parte" className="mon-ocu-subtitulo">Sin parte <span className="mon-ter-cuenta">{fmt(modelo.sinParte.length)}</span></h4>
           {modelo.sinParte.length ? (
             <ul className="mon-rep-chips">
               {modelo.sinParte.map((ump) => <li key={ump}><button type="button" onClick={() => escribirFoco(ump)}>{ump}</button></li>)}

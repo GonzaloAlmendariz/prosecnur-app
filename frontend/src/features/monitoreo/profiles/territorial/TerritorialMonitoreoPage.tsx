@@ -1221,6 +1221,7 @@ type OpcionesDePestana = Parameters<typeof renderView>[2] & {
     avance: MonitoreoTerritorialDashboard | null;
     validacion: MonitoreoTerritorialDashboard | null;
     consultas: MonitoreoTerritorialDashboard | null;
+    ruta?: MonitoreoTerritorialDashboard | null;
   };
 };
 
@@ -1233,14 +1234,14 @@ function direccionPermitidaEnFase(phase: MonitoreoTerritorialPhase, direccion: D
  * Monta una dirección pública: su componente propio si ya lo tiene, o la vista
  * heredada que absorbe (`direccionTerritorial.ts`).
  */
-function renderPestana(
+export function renderPestana(
   direccion: DireccionTerritorial,
   reports: MonitoreoTerritorialDashboard | null,
   options: OpcionesDePestana = {},
 ) {
   if (esPestanaPropia(direccion)) {
     const clave = `${direccion.seccion}/${direccion.pestana}`;
-    if (clave === "avance/faltante") return <FaltantePorUmp reports={reports} />;
+    if (clave === "avance/faltante") return <FaltantePorUmp reports={options.cortes?.avance ?? reports} />;
     if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
     if (clave === "control/senales" && !direccion.panel) return <SenalesTab reports={reports} />;
     if (clave === "control/bandeja" && !direccion.panel) {
@@ -1301,7 +1302,7 @@ function renderPestana(
       );
     }
     if (clave === "modelo/metas" && !direccion.panel) {
-      return <MetasTab reports={reports} state={options.state ?? null} phase={options.phase ?? "field"} />;
+      return <MetasTab reports={options.cortes ? options.cortes.ruta ?? null : reports} avance={options.cortes?.avance ?? null} state={options.state ?? null} phase={options.phase ?? "field"} />;
     }
     if (clave === "modelo/cuotas") {
       return <CuotasTab reports={reports} state={options.state ?? null} avance={options.cortes?.avance ?? null} />;
@@ -1895,7 +1896,7 @@ export default function TerritorialMonitoreoPage() {
   }), [direccion, irA, pestanasRail]);
   const cortes = useMemo(() => {
     const deLaCache = (scope: MonitoreoReportScope) => monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope })?.reports ?? null;
-    return { avance: deLaCache("advance_summary"), validacion: deLaCache("validation_summary"), consultas: deLaCache("queries_summary") };
+    return { avance: deLaCache("advance_summary"), validacion: deLaCache("validation_summary"), consultas: deLaCache("queries_summary"), ruta: deLaCache("route_summary") };
     // `state` cambia con cada corte que llega a la caché: es lo que relee.
   }, [phase, sourceKey, state]);
 

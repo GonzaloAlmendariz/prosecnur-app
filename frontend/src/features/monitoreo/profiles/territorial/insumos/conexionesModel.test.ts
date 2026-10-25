@@ -39,7 +39,7 @@ describe("Insumos › Conexiones", () => {
 
   it("la fuente de la fase activa dice cuántas filas trajo, cuándo y su ficha", () => {
     const campo = modelo.tarjetas[0];
-    expect(campo).toMatchObject({ titulo: "Kobo · Campo", activa: true, estado: "Al día", tono: "ok", formulario: "ACNUR Campo", serie: [216, 1697] });
+    expect(campo).toMatchObject({ titulo: "Kobo de Campo", activa: true, estado: "Al día", tono: "ok", formulario: "ACNUR Campo", serie: [216, 1697] });
     expect(campo.cifras).toEqual([
       { rotulo: "Respuestas", valor: "1,697" },
       { rotulo: "Preguntas", valor: "79" },
@@ -52,7 +52,7 @@ describe("Insumos › Conexiones", () => {
 
   it("la fase no activa se atenúa y no muestra la ficha de la activa", () => {
     const piloto = modelo.tarjetas[1];
-    expect(piloto).toMatchObject({ titulo: "Kobo · Piloto", activa: false, tono: "inactiva", estado: "Fase no activa · al día" });
+    expect(piloto).toMatchObject({ titulo: "Kobo de Piloto", activa: false, tono: "inactiva", estado: "Fase no activa, al día" });
     expect(piloto.cifras.map((cifra) => cifra.rotulo)).not.toContain("Preguntas");
   });
 

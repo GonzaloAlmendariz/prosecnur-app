@@ -84,7 +84,8 @@ function PanelDeHistograma({
       <header className="mon-sen-cabecera">
         {encabezado}
         <h3 id={`mon-sen-${id}`}>{titulo}</h3>
-        <span className="mon-sen-base">{base} · {mediana} · {criterio}</span>
+        <span className="mon-sen-base" title={criterio}>{base}</span>
+        <span className="mon-ter-chip">{mediana}</span>
       </header>
       <ol className="mon-sen-barras" data-qa-geometry-group={`territorial-senales-barras-${id}`} data-qa-geometry-contract="intrinsic">
         {histograma.tramos.map((tramo) => (
@@ -118,8 +119,8 @@ function MatrizPorDistrito({ modelo }: { modelo: ReturnType<typeof construirSena
       <header className="mon-sen-cabecera">
         <h3 id="mon-sen-matriz">Señales por distrito</h3>
         <span className="mon-sen-base">
-          Base: {fmt(modelo.total.casos)} casos del corte con distrito
-          {modelo.sinDistrito ? `; ${fmt(modelo.sinDistrito)} sin distrito quedan fuera` : ""}
+          {fmt(modelo.total.casos)} casos con distrito
+          {modelo.sinDistrito ? <span className="mon-ter-cuenta" title="Casos del corte sin distrito: no entran a la matriz">{fmt(modelo.sinDistrito)} sin distrito</span> : null}
         </span>
       </header>
       <div className="mon-sen-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Señales por distrito, con desplazamiento">

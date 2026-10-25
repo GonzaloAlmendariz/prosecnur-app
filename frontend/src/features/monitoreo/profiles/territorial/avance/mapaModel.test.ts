@@ -16,14 +16,23 @@ const cuadrado = (id: string, lon: number, lat: number, lado = 0.0004): HojasRut
 describe("Avance › Mapa", () => {
   const modelo = construirMapa(CORTE_DE_CUOTAS);
 
-  it("una manzana en uso por UMP con su estado, y las que ya no usa como anillo", () => {
+  it("una manzana en uso por UMP con su estado; el reemplazo de reserva no se pinta", () => {
     expect(modelo.manzanas.map((item) => [item.ump, item.idManzana, item.estado])).toEqual([
       ["143", "150135063000590", "pendiente"],
       ["7", "150103007000100", "subsanada"],
       ["35", "150108035000200", "completa"],
-      ["143", "150135063000600", "sin-usar"],
     ]);
     expect(modelo.ubigeos).toEqual(["150135", "150103", "150108"]);
+  });
+
+  it("la titular que su reemplazo dejó sin usar va como anillo", () => {
+    const cuota = CORTE_DE_CUOTAS.route_quota_progress!;
+    const reemplazo7 = (cuota.blocks ?? []).find((bloque) => bloque.ump === "7")!;
+    const titular7 = { ...reemplazo7, id_manzana: "150103007000090", manzana: "0090", tipo_manzana: "titular", operational_group_selected: false };
+    const conTitular = { ...CORTE_DE_CUOTAS, route_quota_progress: { ...cuota, blocks: [...(cuota.blocks ?? []), titular7] } } as typeof CORTE_DE_CUOTAS;
+    expect(construirMapa(conTitular).manzanas.filter((item) => item.estado === "sin-usar").map((item) => [item.ump, item.idManzana])).toEqual([
+      ["7", "150103007000090"],
+    ]);
   });
 
   it("los conteos del lateral son los de Avance › UMP", () => {
