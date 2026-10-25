@@ -13,6 +13,7 @@ que todos los monitoreos deben tener para que no perdamos ninguna funcionalidad 
 | 3 | Píldora con «Al día», «Actualizando, paso N de M», «Falló», «Preparando», sin fecha | `shell/BarraDelModo.tsx`, `core/barraComun.ts`, `sync/pasosDelSync.ts`; `step`/`steps` en `api/R/jobs.R` y `api/R/monitoreo_engine.R` | Hecho |
 | 4 | Recibo no bloqueante al terminar: filas por fuente, si recalculó o falló | `sync/reciboDelSync.ts` + Toaster global (ADR 0047) | Hecho |
 | 5 | Un sync a la vez: el menú también queda apagado | `HerramientasDelModo` (`ocupado`) + guarda en el hook | Hecho |
+| 6 | (Encargo añadido) Mientras se lee el proyecto, el chrome no publica «Registros 0» ni «Sin sincronizar» (L21) | Prop `cargando` en `shell/MonitoreoModuleChrome.tsx` y `HerramientasDelModo` («Leyendo…», también en CORTE); Tel y Acr pasan `loading && !state`; test en `shell/corteDiceSuFecha.test.tsx` | Hecho; Territorial y Cursos-horario sólo tienen la prop disponible |
 
 ### Decisiones
 
