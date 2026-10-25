@@ -60,6 +60,18 @@ describe("PalabrasCuerpo", () => {
     expect(readinessPalabras(listo())).toBe("true");
   });
 
+  it("TXT-15: la lista de palabras más frecuentes va primero; unidas, excluidas y frases van plegadas en un resumen", () => {
+    const html = cuerpo(listo());
+    const lista = html.indexOf("Palabras más frecuentes");
+    expect(lista).toBeGreaterThan(-1);
+    for (const otra of ["Palabras unidas", "Palabras excluidas", "Frases que se repiten"]) {
+      expect(html.indexOf(otra)).toBeGreaterThan(lista);
+    }
+    // El resumen plegable dice qué guarda sin abrirlo.
+    expect(html).toMatch(/<details[^>]*class="pulso-cv2-pal-ajustes"/);
+    expect(html).toContain("1 grupo · 1 excluida · 1 frase");
+  });
+
   it("el buscador filtra y avisa si nada coincide", () => {
     const html = cuerpo(reducirPalabras(listo(), { tipo: "buscar", consulta: "zzz" }));
     expect(html).toContain("Ninguna palabra coincide con «zzz»");

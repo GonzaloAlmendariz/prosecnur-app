@@ -43,6 +43,8 @@ import {
 } from "./sugerenciasModulo";
 import { useSugerenciasModulo } from "./useSugerenciasModulo";
 import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
+import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
+import "./noRespuestas.css";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -222,6 +224,12 @@ export function RespuestasCodificador({ parent }: Props) {
       return r.texto.toLowerCase().includes(q) || r.texto_normalizado.includes(q);
     });
   }, [respuestas, query]);
+
+  // TXT-12: las no respuestas («No», «.», «Ninguno»…) van aparte y al final, con el criterio del backend.
+  const tramos = useMemo(() => {
+    const claves = sugerencias.fase === "lista" && respuestas ? clavesNoRespuesta(sugerencias.datos, respuestas) : new Set<string>();
+    return separarNoRespuestas(visibleRespuestas, claves);
+  }, [sugerencias, respuestas, visibleRespuestas]);
 
   const codificadas = useMemo(() => asignaciones.size, [asignaciones]);
   const pendientes = (respuestas?.length ?? 0) - codificadas;
@@ -435,6 +443,74 @@ export function RespuestasCodificador({ parent }: Props) {
         { label: grupos.length === 1 ? "Grupo" : "Grupos", value: grupos.length, tone: "info" },
       ];
 
+  function filaRespuesta(r: RespuestaUnica) {
+    const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
+    const grupo = gruposAsignados[0];
+    const assigned = gruposAsignados.length > 0;
+    const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
+    const display = displayCodificacionValueLabel(r.texto, r.label);
+    const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
+    const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
+    const assignedIds = new Set(gruposAsignados.map((g) => g.id));
+    const checkboxLabel = esSM && activeGroup
+      ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
+      : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
+    return (
+      <div
+        key={r.texto_normalizado}
+        className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => toggleRespuesta(r.texto_normalizado)}
+          aria-label={checkboxLabel}
+        />
+        <div className="pulso-cv2-resp-main">
+          <div className="pulso-cv2-resp-text" title={display.title}>
+            {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
+            {display.label}
+          </div>
+          <div className="pulso-cv2-resp-meta">
+            <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
+            {r.variantes > 1 && <span>{r.variantes} variantes</span>}
+            {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
+            {mapaSugerencias.size > 0 && (
+              <SugerenciaModuloFila
+                entrada={mapaSugerencias.get(r.texto_normalizado)}
+                grupos={grupos}
+                onConfirmar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) confirmarPropuesta(e, p); }}
+                onQuitar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) quitarPropuesta(e, p); }}
+              />
+            )}
+          </div>
+        </div>
+        {esSM
+          ? grupos.length > 0 && (
+              <QuickAssignDropdown
+                mode="multi"
+                grupos={grupos}
+                asignados={assignedIds}
+                respuesta={display.label}
+                yaMarcadas={r.ya_marcadas}
+                frecuencia={r.frecuencia}
+                onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
+              />
+            )
+          : puedeAsignarRapidoSO && (
+              <QuickAssignDropdown
+                mode="single"
+                grupos={gruposDisponibles}
+                respuesta={display.label}
+                yaMarcadas={r.ya_marcadas}
+                frecuencia={r.frecuencia}
+                onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
+              />
+            )}
+      </div>
+    );
+  }
+
   return (
     <div
       className="pulso-codificacion-respuestas pulso-cv2-rc"
@@ -548,73 +624,16 @@ export function RespuestasCodificador({ parent }: Props) {
             {visibleRespuestas.length === 0 && (
               <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
             )}
-            {visibleRespuestas.map((r) => {
-              const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
-              const grupo = gruposAsignados[0];
-              const assigned = gruposAsignados.length > 0;
-              const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
-              const display = displayCodificacionValueLabel(r.texto, r.label);
-              const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
-              const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
-              const assignedIds = new Set(gruposAsignados.map((g) => g.id));
-              const checkboxLabel = esSM && activeGroup
-                ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
-                : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
-              return (
-                <div
-                  key={r.texto_normalizado}
-                  className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleRespuesta(r.texto_normalizado)}
-                    aria-label={checkboxLabel}
-                  />
-                  <div className="pulso-cv2-resp-main">
-                    <div className="pulso-cv2-resp-text" title={display.title}>
-                      {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
-                      {display.label}
-                    </div>
-                    <div className="pulso-cv2-resp-meta">
-                      <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
-                      {r.variantes > 1 && <span>{r.variantes} variantes</span>}
-                      {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
-                      {mapaSugerencias.size > 0 && (
-                        <SugerenciaModuloFila
-                          entrada={mapaSugerencias.get(r.texto_normalizado)}
-                          grupos={grupos}
-                          onConfirmar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) confirmarPropuesta(e, p); }}
-                          onQuitar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) quitarPropuesta(e, p); }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  {esSM
-                    ? grupos.length > 0 && (
-                        <QuickAssignDropdown
-                          mode="multi"
-                          grupos={grupos}
-                          asignados={assignedIds}
-                          respuesta={display.label}
-                          yaMarcadas={r.ya_marcadas}
-                          frecuencia={r.frecuencia}
-                          onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
-                        />
-                      )
-                    : puedeAsignarRapidoSO && (
-                        <QuickAssignDropdown
-                          mode="single"
-                          grupos={gruposDisponibles}
-                          respuesta={display.label}
-                          yaMarcadas={r.ya_marcadas}
-                          frecuencia={r.frecuencia}
-                          onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
-                        />
-                      )}
-                </div>
-              );
-            })}
+            {tramos.conContenido.map(filaRespuesta)}
+            {tramos.noRespuestas.length > 0 && (
+              <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
+                <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
+                <span className="pulso-cv2-resp-tramo-n">
+                  {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como «No», «.» o «Ninguno»
+                </span>
+              </div>
+            )}
+            {tramos.noRespuestas.map(filaRespuesta)}
           </div>
         </section>
 
