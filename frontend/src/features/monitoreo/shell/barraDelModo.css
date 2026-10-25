@@ -119,12 +119,6 @@
   color: var(--pulso-danger-fg);
 }
 
-.mon-modo-estado.is-pendiente {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .mon-commandbar.is-barra-comun .mon-modo-actualizar {
   position: relative;
   display: inline-flex;
@@ -185,7 +179,10 @@
   right: 0;
   z-index: 30;
   display: grid;
-  min-width: 220px;
+  /* Con `width` la captura midió el menú en 145 px, encogido a su contenido;
+   * con `min-width` toma su ancho. */
+  min-width: min(320px, calc(100vw - 32px));
+  max-width: min(360px, calc(100vw - 32px));
   padding: var(--pulso-space-1);
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
@@ -194,13 +191,67 @@
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button {
-  justify-content: flex-start;
-  height: var(--pulso-chrome-control-h);
-  padding: 0 var(--pulso-space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  height: auto;
+  min-height: var(--pulso-chrome-control-h);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
   border-radius: 8px;
   background: transparent;
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  /* Los nombres de encuesta son largos («Acreditación Contabilidad PUCP -
+   * Docentes Personalizado»): se parten en dos líneas, no se recortan. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* Abierto, el menú tiene que pasar por encima de la mesa de trabajo, que es
+ * hermana posterior del chrome: se sube la capa del chrome, como hace la fila
+ * de fases de Procesamiento con su menú (theme.css). */
+.mon-module-chrome.is-barra-comun:has(.mon-modo-actualizar-lista) {
+  position: relative;
+  z-index: var(--pulso-z-flyout);
+}
+
+.mon-modo-actualizar-grupo {
+  display: grid;
+}
+
+/* Con muchas fuentes (13 en acred_conta) sólo esta lista desplaza; las
+ * acciones generales de arriba no se esconden bajo el scroll. */
+.mon-modo-actualizar-fuentes {
+  display: grid;
+  /* Las filas miden su contenido: con tope de alto, un grid `auto` las
+   * aplastaba a 32 px y partía las etiquetas de dos líneas (captura). */
+  grid-auto-rows: max-content;
+  max-height: min(45vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mon-modo-actualizar-rotulo {
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-modo-actualizar-separador {
+  height: 1px;
+  margin: var(--pulso-space-1) var(--pulso-space-2);
+  background: var(--pulso-border);
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button:hover:not(:disabled) {

@@ -46,6 +46,11 @@ export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSec
    * estado y Actualizar). Opcional: sin ella el chrome se pinta como siempre.
    */
   barraDelModo?: BarraDelModo;
+  /**
+   * El proyecto todavía se lee (L21). Mientras tanto no se publican «Registros 0»
+   * ni «Sin sincronizar», que serían cifras falsas: va «Leyendo…».
+   */
+  cargando?: boolean;
 };
 
 type MonitoreoModuleSyncProgress = {
@@ -53,7 +58,12 @@ type MonitoreoModuleSyncProgress = {
   percent?: number | null;
   phase?: string;
   message?: string;
+  /** «Actualizando, paso N de M» de la barra común (§2b). */
+  paso?: number;
+  pasos?: number;
 };
+
+const LEYENDO = "Leyendo…";
 
 function formatChromeCount(value: number) {
   return Number.isFinite(value) ? value.toLocaleString("es-PE") : "0";
@@ -144,6 +154,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
   onSyncAdvance,
   onCambioSeccion,
   barraDelModo,
+  cargando = false,
 }: MonitoreoModuleChromeProps<K>) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
   const views = route ? seccionesPublicasDelModo(route) : [];
@@ -284,13 +295,15 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
     </div>
   ) : null;
 
+  const registrosLabel = cargando ? LEYENDO : formatChromeCount(nRows);
+  const sincronizadoLabel = cargando ? LEYENDO : cutLabel;
   const indicadores = routeSelected ? (
     <ChromeIndicatorGroup
       ariaLabel="Estado del monitoreo"
       resumen={[
         generationInfo ? `${generationInfo.label}: ${generationInfo.value}` : null,
-        `Registros: ${formatChromeCount(nRows)}`,
-        `Sincronizado: ${cutLabel}`,
+        `Registros: ${registrosLabel}`,
+        `Sincronizado: ${sincronizadoLabel}`,
       ].filter(Boolean).join(" · ")}
     >
       {generationInfo ? (
@@ -301,12 +314,12 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
           detalle={generationInfo.title}
         />
       ) : null}
-      <ChromeIndicator label="Registros" value={formatChromeCount(nRows)} prioridad="alta" />
+      <ChromeIndicator label="Registros" value={registrosLabel} prioridad="alta" />
       <ChromeIndicator
         label="Sincronizado"
-        value={cutLabel}
+        value={sincronizadoLabel}
         prioridad="media"
-        detalle={cutOrigen}
+        detalle={cargando ? "Leyendo el proyecto" : cutOrigen}
       />
     </ChromeIndicatorGroup>
   ) : null;
@@ -326,7 +339,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
             </>
           }
           secciones={sectionRail}
-          herramientas={<HerramientasDelModo barra={barraDelModo} ocupado={saving || syncing} />}
+          herramientas={<HerramientasDelModo barra={barraDelModo} ocupado={saving || syncing} progreso={syncing ? syncProgress : null} cargando={cargando} />}
         />
       ) : (
       <ModuleCommandBar
