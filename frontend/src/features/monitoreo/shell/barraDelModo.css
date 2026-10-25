@@ -179,7 +179,10 @@
   right: 0;
   z-index: 30;
   display: grid;
-  width: min(340px, calc(100vw - 32px));
+  /* Con `width` la captura midió el menú en 145 px, encogido a su contenido;
+   * con `min-width` toma su ancho. */
+  min-width: min(320px, calc(100vw - 32px));
+  max-width: min(360px, calc(100vw - 32px));
   /* El menú crece con las fuentes del proyecto: con muchas, se desplaza él. */
   max-height: min(70vh, 520px);
   overflow-y: auto;
