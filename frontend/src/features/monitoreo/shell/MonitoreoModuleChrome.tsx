@@ -53,6 +53,9 @@ type MonitoreoModuleSyncProgress = {
   percent?: number | null;
   phase?: string;
   message?: string;
+  /** «Actualizando, paso N de M» de la barra común (§2b). */
+  paso?: number;
+  pasos?: number;
 };
 
 function formatChromeCount(value: number) {
@@ -326,7 +329,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
             </>
           }
           secciones={sectionRail}
-          herramientas={<HerramientasDelModo barra={barraDelModo} ocupado={saving || syncing} />}
+          herramientas={<HerramientasDelModo barra={barraDelModo} ocupado={saving || syncing} progreso={syncing ? syncProgress : null} />}
         />
       ) : (
       <ModuleCommandBar

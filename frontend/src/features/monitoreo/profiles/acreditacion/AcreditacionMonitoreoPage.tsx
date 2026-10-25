@@ -15,7 +15,6 @@ import {
   apiMonitoreoConfig,
   apiMonitoreoSource,
   apiMonitoreoState,
-  apiMonitoreoSync,
   apiMonitoreoSurveyMonkeyCollectors,
   apiSurveyMonkeyMultibaseInspectSurvey,
   apiSurveyMonkeyMultibaseListSurveys,
@@ -58,7 +57,7 @@ import {
 import { CORTE_VACIO } from "../../core/corteVacio";
 import { CorteAusente } from "../../core/CorteAusente";
 import { coberturaDelCorte } from "../../core/coberturaDelCorte";
-import { fuentesSincronizables, motivoSinFuentes } from "../../core/fuentesSincronizables";
+import { fuentesSincronizables } from "../../core/fuentesSincronizables";
 import { PIEZAS_DEL_PAQUETE_TELEFONICO, piezasRequeridas } from "../../core/paqueteDeFuentes";
 import { monitoreoDireccionDesdeParams, monitoreoPestanaDesdeParams, monitoreoSeccionDesdeParams, useMonitoreoDireccionTraducida } from "../../useMonitoreoDireccion";
 import { pestanaDeEntrada } from "../../core/tablaDeDirecciones";
@@ -111,8 +110,7 @@ import {
   summarizeInternalCases,
 } from "../../internalQueries";
 import { corteAcreditacion } from "../../corte/corteAdapters";
-import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
-import { useSourceSyncActions } from "./sync/useSourceSyncActions";
+import { useActualizarDelModo } from "../../sync/useActualizarDelModo";
 import { sourceSyncActions, useSourceSyncStore } from "./sync/sourceSyncStore";
 import { AcreditacionModuleChromeConSync } from "./sync/AcreditacionModuleChromeConSync";
 import { countText, fmt, formatDate, formatMetric, normalizeSourceMatch } from "./formato";
@@ -224,7 +222,6 @@ import { acreditacionAgruparEstados } from "../../estados/familiasDeLlamada";
 import { motivoDeNoCruce } from "../../core/motivoDeNoCruce";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
-import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
 import type { MonitoreoInterestVariable, MonitoreoStateRule } from "../../../../api/monitoreo";
 import type { MonitoreoReportScope } from "../types";
 import { FranjaDeFuentes } from "./fuentes/FranjaDeFuentes";
@@ -7286,12 +7283,6 @@ function AcreditacionSourceStatusStrip({
   unidades,
   reports,
   phoneMode = false,
-  status,
-  busy,
-  progress = null,
-  onSyncSheets,
-  onSyncSurvey,
-  onSyncAll,
   onStateChange,
 }: {
   sources: MonitoreoSource[];
@@ -7299,12 +7290,6 @@ function AcreditacionSourceStatusStrip({
   unidades?: MonitoreoActorUnit[];
   reports: MonitoreoAcreditacionReports;
   phoneMode?: boolean;
-  status?: AcreditacionActionStatus;
-  busy: boolean;
-  progress?: SourceSyncActionsProgress | null;
-  onSyncSheets: () => Promise<void>;
-  onSyncSurvey: () => Promise<void>;
-  onSyncAll: () => Promise<void>;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const activeSources = sources.filter((source) => source.enabled);
@@ -7312,13 +7297,11 @@ function AcreditacionSourceStatusStrip({
   const phoneReadyCount = phoneContract ? phoneContractReadyCount(phoneContract) : 0;
   const packageActiveCount = phoneContract ? phoneReadyCount : activeSources.length;
   const packageTotalCount = piezasRequeridas(Boolean(phoneContract), sources.length);
-  const sheetCount = activeSources.filter((source) => source.kind === "google_sheets").length;
   const surveyCount = phoneContract ? phoneContract.platform.sources.filter((source) => source.enabled).length : activeSources.filter(isPlatformResponseSource).length;
   const baseCount = phoneContract ? (phoneContract.universe.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[0]).length;
   const sweepCount = phoneContract ? (phoneContract.sweep.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[1]).length;
   return (
     <section className="mon-acr-source-status-strip" aria-label="Estado de fuentes de acreditación">
-      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
       <header>
         <span>Fuentes</span>
         <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
@@ -7340,18 +7323,6 @@ function AcreditacionSourceStatusStrip({
           <SelectorDeCanalBase value={value} onChange={onChange} label="Canal base" />
         )}
         onStateChange={onStateChange}
-      />
-      <AcreditacionSourceSyncActions
-        sheetCount={sheetCount}
-        surveyCount={surveyCount}
-        totalCount={activeSources.length}
-        busy={busy}
-        progress={progress}
-        surveyLabel={phoneContract ? "Kobo" : "encuestas"}
-        surveyTitle={phoneContract ? "fuentes Kobo activas" : "encuestas de plataforma activas"}
-        onSyncSheets={onSyncSheets}
-        onSyncSurvey={onSyncSurvey}
-        onSyncAll={onSyncAll}
       />
     </section>
   );
@@ -9137,147 +9108,6 @@ function AcreditacionConfiguredSourcesList({
   );
 }
 
-// Adaptador local sobre la tira canónica compartida (components/SourceSyncActions):
-// conserva la firma histórica de este profile y aplica el vocabulario uniforme
-// (fuentes por nombre + "Todo" para el sync completo).
-function AcreditacionSourceSyncActions({
-  sheetCount,
-  surveyCount,
-  totalCount,
-  busy,
-  progress = null,
-  surveyLabel = "encuestas",
-  surveyTitle = "encuestas de plataforma activas",
-  onSyncSheets,
-  onSyncSurvey,
-  onSyncAll,
-}: {
-  sheetCount: number;
-  surveyCount: number;
-  totalCount: number;
-  busy: boolean;
-  progress?: SourceSyncActionsProgress | null;
-  surveyLabel?: string;
-  surveyTitle?: string;
-  onSyncSheets: () => Promise<void>;
-  onSyncSurvey: () => Promise<void>;
-  onSyncAll: () => Promise<void>;
-}) {
-  return (
-    <SourceSyncActions
-      className="mon-acr-source-sync-actions"
-      ariaLabel="Actualizar fuentes de acreditación"
-      busy={busy}
-      progress={progress}
-      actions={[
-        { key: "sheets", label: "Sheets", title: sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas", icon: Layers3, disabled: !sheetCount, onRun: onSyncSheets },
-        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: ListChecks, disabled: !surveyCount, onRun: onSyncSurvey },
-        { key: "all", label: "Todo", title: totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas", icon: RefreshCw, disabled: !totalCount, primary: true, onRun: onSyncAll },
-      ]}
-    />
-  );
-}
-
-function AcreditacionSourcePackageConsole({
-  sources,
-  activePresetKey,
-  status,
-  busy,
-  onSelectPreset,
-  onSyncSheets,
-  onSyncSurvey,
-  onSyncAll,
-}: {
-  sources: MonitoreoSource[];
-  activePresetKey: AcreditacionSourcePresetKey;
-  status: AcreditacionActionStatus;
-  busy: boolean;
-  onSelectPreset: (key: AcreditacionSourcePresetKey) => void;
-  onSyncSheets: () => Promise<void>;
-  onSyncSurvey: () => Promise<void>;
-  onSyncAll: () => Promise<void>;
-}) {
-  const activePreset = ACREDITACION_SOURCE_PRESETS.find((preset) => preset.key === activePresetKey) ?? ACREDITACION_SOURCE_PRESETS[0];
-  const basePreset = ACREDITACION_SOURCE_PRESETS[0];
-  const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
-  const surveyPreset = ACREDITACION_SOURCE_PRESETS[2];
-  const baseSources = sourcesForPreset(sources, basePreset);
-  const sweepSources = sourcesForPreset(sources, sweepPreset);
-  const surveySources = sourcesForPreset(sources, surveyPreset);
-  const activeSources = sources.filter((source) => source.enabled);
-  const sheetCount = activeSources.filter((source) => source.kind === "google_sheets").length;
-  const surveyCount = activeSources.filter(isPlatformResponseSource).length;
-
-  return (
-    <section className="mon-acr-sources-panel mon-acr-sources-panel--standalone">
-      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
-      <div className="mon-acr-fixed-source-shell">
-        <AcreditacionSourceBlueprint
-          sources={sources}
-          activePresetKey={activePreset.key}
-          onSelectPreset={onSelectPreset}
-        />
-        <AcreditacionSourceSyncActions
-          sheetCount={sheetCount}
-          surveyCount={surveyCount}
-          totalCount={activeSources.length}
-          busy={busy}
-          onSyncSheets={onSyncSheets}
-          onSyncSurvey={onSyncSurvey}
-          onSyncAll={onSyncAll}
-        />
-        <div className="mon-acr-fixed-source-grid">
-          <section className="mon-acr-platform-panel mon-acr-platform-panel--sheets" aria-label="Bases de Sheets">
-            <header className="mon-acr-platform-head">
-              <div>
-                <span><Layers3 size={14} /> Paso 1 · Google Sheets</span>
-                <strong>Base trabajada y barrido telefónico</strong>
-              </div>
-              <em>{fmt(baseSources.length + sweepSources.length)} conectadas</em>
-            </header>
-            <div className="mon-acr-requirement-grid">
-              <AcreditacionSourceRequirementCard
-                preset={basePreset}
-                sources={baseSources}
-                active={activePreset.key === basePreset.key}
-                onSelect={() => onSelectPreset(basePreset.key)}
-              />
-              <AcreditacionSourceRequirementCard
-                preset={sweepPreset}
-                sources={sweepSources}
-                active={activePreset.key === sweepPreset.key}
-                onSelect={() => onSelectPreset(sweepPreset.key)}
-              />
-            </div>
-          </section>
-          <section className="mon-acr-platform-panel mon-acr-platform-panel--survey" aria-label="Encuestas de plataforma">
-            <header className="mon-acr-platform-head">
-              <div>
-                <span><ListChecks size={14} /> Paso 2 · Kobo/plataforma</span>
-                <strong>Respuestas por actor, segmento y canal</strong>
-              </div>
-              <em>{fmt(surveySources.length)} seleccionadas</em>
-            </header>
-            <AcreditacionSourceRequirementCard
-              preset={surveyPreset}
-              sources={surveySources}
-              active={activePreset.key === surveyPreset.key}
-              onSelect={() => onSelectPreset(surveyPreset.key)}
-            />
-            <div className="mon-acr-source-context">
-              <strong>{activePreset.label}</strong>
-              <span>{activePreset.detail}</span>
-              <div className="mon-acr-source-step-tags">
-                {activePreset.bullets.map((bullet) => <i key={bullet}>{bullet}</i>)}
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function AcreditacionPhoneSourceSlotCard({
   slot,
   icon,
@@ -9865,10 +9695,6 @@ function AcreditacionSourcesWorkbench({
     () => configuredSources.map((source) => acreditacionSourceWithOperationalMetadata(source, state?.source_metadata)),
     [configuredSources, state?.source_metadata],
   );
-  // Acciones de sincronización extraídas a sync/useSourceSyncActions: Sheets
-  // corre como job en segundo plano (async opt-in) y la espera sigue amarrada
-  // al desmontaje del componente.
-  const { syncBusy, syncStatus, syncProgress, syncSheets, syncExternal } = useSourceSyncActions({ onStateChange });
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
@@ -9882,12 +9708,6 @@ function AcreditacionSourcesWorkbench({
       unidades={(state?.config?.monitoreo_profile?.units ?? []) as unknown as MonitoreoActorUnit[]}
       reports={reports}
       phoneMode={isPhoneSourceModel}
-      status={syncStatus}
-      busy={Boolean(syncBusy)}
-      progress={syncProgress}
-      onSyncSheets={() => syncSheets(activeSheetSources.map((source) => source.id))}
-      onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
-      onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
       onStateChange={onStateChange}
     />
   );
@@ -16731,7 +16551,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   // Ciclo de vida de los polls (1.5b/1.5c): timeouts de prefetch cancelados y
   // espera de jobs cortada al desmontar el perfil.
   const prefetchTimeoutsRef = usePrefetchTimeouts();
-  const waitForSourceSyncJob = useWaitForSourceSyncJob();
+  const limpiarErrorDelSync = useCallback(() => setError(""), []);
 
   const routeWorkbenchViews = useMemo(() => seccionesDelModo(route), [route]);
   const activeDef = useMemo(
@@ -16911,67 +16731,34 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setCaseReconciliationBusyId("");
     }
   }, [clearScopeStateCache]);
-  const runProfileSourceSync = useCallback(async (syncMode: "full" | "advance") => {
-    const sourceIds = fuentesSincronizables(state?.sources ?? [], syncMode, route.family).map((source) => source.id);
-    if (!sourceIds.length) {
-      // Ver la nota gemela en el perfil telefónico: sin fuentes que leer no hay
-      // fallo que reportar, y `setError` marcaría la vista como rota.
-      setActionStatus({ tone: "info", message: motivoSinFuentes(syncMode) });
-      return;
-    }
-    sourceSyncActions.start({
-      mode: syncMode,
-      percent: 2,
-      phase: "Preparando",
-      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
-    });
-    setError("");
-    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
-    try {
-      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
-      sourceSyncActions.report({
-        mode: syncMode,
-        percent: 8,
-        phase: "En cola",
-        message: `Job ${start.job_id} en cola.`,
-      });
-      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
-      // El tick por segundo del poll entra al store, no a un useState de la
-      // raíz: solo re-renderiza al chrome conectado (unidad 2.2).
-      await waitForSourceSyncJob(start.job_id, (progress) => {
-        sourceSyncActions.report({
-          mode: syncMode,
-          ...progress,
-        });
-      });
-      clearScopeStateCache();
-      const reportScope = scopeForView(activeViewRef.current, route.family);
-      const next = await apiMonitoreoState({
-        includeReports: true,
-        reportScope,
-        warmupCache: false,
-        force: true,
-      });
-      stateByScopeRef.current.set(reportScope, next);
-      warmedScopesRef.current.add(reportScope);
-      setState(next);
-      setActionStatus({ tone: "success", message: syncMode === "full" ? "Actualizacion completa lista; recopiladores persistidos si la API devolvio metadata." : "Avance actualizado usando la relacion guardada de recopiladores." });
-    } catch (e) {
-      const message = (e as Error).message;
-      setError(message);
-      setActionStatus({ tone: "error", message });
-    } finally {
-      sourceSyncActions.finish();
-    }
-  }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
+  // Releer el estado tras un sync o al pedir «Recalcular»: el backend rehace el
+  // tablero en el primer GET de cada scope (build lazy, monitoreo_perf.R).
+  const recargarEstado = useCallback(async () => {
+    clearScopeStateCache();
+    const reportScope = scopeForView(activeViewRef.current, route.family);
+    const next = await apiMonitoreoState({ includeReports: true, reportScope, warmupCache: false, force: true });
+    stateByScopeRef.current.set(reportScope, next);
+    warmedScopesRef.current.add(reportScope);
+    setState(next);
+  }, [clearScopeStateCache, route.family]);
+  // Control único «Actualizar ▾» (L38): cuerpo, menú por fuente, paso N de M y recibo.
+  const actualizarDelModo = useActualizarDelModo({
+    familia: route.family,
+    fuentes: state?.sources ?? [],
+    config: state?.config,
+    deshabilitado: loading,
+    pendienteDeRecalcular: Boolean(state?.pending_regeneration),
+    acciones: sourceSyncActions,
+    recargar: recargarEstado,
+    alEmpezar: limpiarErrorDelSync,
+    alFallar: setError,
+  });
   // El botón se apaga con la misma cuenta con la que la acción se rendiría: la
   // afordancia y lo que hace no pueden discrepar. Ver `core/fuentesSincronizables`.
   const sinFuentesFull = !fuentesSincronizables(state?.sources ?? [], "full", route.family).length;
-  const sinFuentesAvance = !fuentesSincronizables(state?.sources ?? [], "advance", route.family).length;
   const sourceTotal = piezasRequeridas(isPhone, state?.sources?.length ?? 0);
   const activeSources = activeSourceCount(state);
   const chromeBusy = savingAcreditacion || sourceSyncing || Boolean(caseReconciliationBusyId);
-  const refreshTitle = sourceSyncing ? "Sincronizando fuentes..." : loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
   const pestanaActiva = seccionActiva === "fuentes"
     ? activeSourceTab
     : seccionActiva === "modelo"
@@ -17127,21 +16914,13 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
           syncing={loading || sourceSyncing}
-          syncDisabled={loading || sourceSyncing || sinFuentesFull}
-          syncLabel="Todo"
-          syncTitle={sinFuentesFull ? motivoSinFuentes("full") : "Actualizar todas las fuentes activas"}
-          onSyncAll={() => { void runProfileSourceSync("full"); }}
-          advanceSyncDisabled={loading || sourceSyncing || sinFuentesAvance}
-          advanceSyncLabel="Avance"
-          advanceSyncTitle={sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle}
-          onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
           viewMetrics={nav.insignias}
           barraDelModo={{
             indicadores: nav.indicadores,
             corte: corteCorto(state?.synced_at),
             estado: estadoDelModo({ actualizando: sourceSyncing, cargando: loading, hayEstado: Boolean(state), generationStatus: state?.generation_status ?? "", pendienteDeRecalcular: Boolean(state?.pending_regeneration), error }),
-            actualizar: { etiqueta: "Actualizar", titulo: sinFuentesFull ? motivoSinFuentes("full") : "Releer todas las fuentes activas y recalcular", disabled: loading || sinFuentesFull, onElegir: () => { void runProfileSourceSync("full"); } },
-            otrasActualizaciones: [{ etiqueta: "Solo respuestas de las encuestas", titulo: sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle, disabled: loading || sinFuentesAvance, onElegir: () => { void runProfileSourceSync("advance"); } }],
+            actualizar: actualizarDelModo.actualizar,
+            otrasActualizaciones: actualizarDelModo.otrasActualizaciones,
           }}
           onCambioSeccion={(seccion) => {
             const vista = vistaDeSeccionPedida(seccion, nav.disponible);

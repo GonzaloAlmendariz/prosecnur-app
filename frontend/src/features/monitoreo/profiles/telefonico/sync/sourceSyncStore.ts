@@ -13,6 +13,9 @@ export type AcreditacionSourceSyncProgress = {
   percent: number | null;
   phase: string;
   message: string;
+  /** Paso en que va el job (`step`/`steps` del progreso), para la píldora. */
+  paso?: number;
+  pasos?: number;
 };
 
 type SourceSyncState = {
