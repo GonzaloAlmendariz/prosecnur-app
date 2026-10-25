@@ -111,7 +111,7 @@ export function PanelCaso({
                 {manual
                   ? manual.action === "include_with_caveat"
                     ? `Asignada a ${[manual.assigned_person_label, manual.assigned_case_key].filter(Boolean).join(", ") || "una persona del padrón"}`
-                    : "Descartada: queda fuera del avance"
+                    : "Descartada, fuera del avance"
                   : "Sin decisión"}
               </span>
             </li>

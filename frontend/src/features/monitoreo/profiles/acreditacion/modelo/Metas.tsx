@@ -176,7 +176,9 @@ export function Metas({
               </div>
               <div className="acr-mo-tarjeta-pie">
                 <span className="acr-av-pista is-gruesa" aria-hidden="true"><i style={{ width: `${fila.personas && meta != null ? Math.min(100, (meta / fila.personas) * 100) : 0}%` }} /></span>
-                <span className="acr-av-tenue">{meta != null && metaTotal ? `${pctConEspacio((meta / metaTotal) * 100)} de la meta del estudio` : "Sin meta"}{fila.personas && meta != null ? ` · la meta es el ${pctConEspacio(Math.min(100, (meta / fila.personas) * 100))} del padrón` : ""}</span>
+                <span className="acr-av-tenue" title={meta != null && metaTotal ? `${pctConEspacio((meta / metaTotal) * 100)} de la meta del estudio` : undefined}>
+                  {meta == null ? "Sin meta" : fila.personas ? `${pctConEspacio(Math.min(100, (meta / fila.personas) * 100))} del padrón` : metaTotal ? `${pctConEspacio((meta / metaTotal) * 100)} de la meta del estudio` : "Sin padrón"}
+                </span>
               </div>
             </article>
           );
