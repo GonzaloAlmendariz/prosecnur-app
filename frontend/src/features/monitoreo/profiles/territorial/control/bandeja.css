@@ -3,14 +3,14 @@
 
 .mon-ban {
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
 }
 
 .mon-ban.con-inspector {
-  grid-template-columns: 224px minmax(0, 1fr) minmax(300px, 340px);
+  grid-template-columns: 240px minmax(0, 1fr) minmax(300px, 340px);
 }
 
 .mon-ban-panel {
@@ -55,20 +55,45 @@
   text-transform: uppercase;
 }
 
+/* Las filas reparten el alto del riel hasta 56 px cada una (el contrato de
+ * Resumen): con los motivos y distritos de un estudio el riel llega al pie de
+ * la tabla sin hueco. Cada lista crece en proporción a sus filas
+ * (`--filas`); con pocas filas el sobrante queda al pie, que es el vacío
+ * legítimo de una lista corta. */
 .mon-ban-lista-filtros {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.mon-ban-filtros > .mon-ban-lista-filtros {
+  flex: var(--filas, 1) 0 auto;
+  max-height: calc(var(--filas, 1) * 58px);
+}
+
+.mon-ban-lista-filtros li {
+  display: flex;
+  flex: 1 0 auto;
+  max-height: 56px;
+}
+
+/* El botón global no parte línea y lleva bisel: aquí un motivo largo pasa a
+ * dos líneas y su cifra no se corta (C4), sin sombra interior. */
 .mon-ban-lista-filtros button {
   display: flex;
+  flex: 1 1 auto;
+  align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-2);
   width: 100%;
+  min-height: 0;
   padding: 6px var(--pulso-space-2);
+  white-space: normal;
+  line-height: 1.3;
+  box-shadow: none;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -371,7 +396,10 @@
   outline-offset: 2px;
 }
 
-.mon-ban--vacio {
+/* El vacío toma el ancho entero también a 1024: con una sola clase, la regla
+ * de dos columnas del @media de abajo le ganaba y dejaba la tarjeta en la
+ * primera columna con el resto vacío (C3). */
+.mon-ban.mon-ban--vacio {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -401,7 +429,7 @@
 
 @media (max-width: 1180px) {
   .mon-ban {
-    grid-template-columns: 196px minmax(0, 1fr);
+    grid-template-columns: 216px minmax(0, 1fr);
   }
 
   /* Compacto: la tabla conserva un ancho legible y desplaza en horizontal
