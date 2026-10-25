@@ -91,7 +91,7 @@ muertas de la barra de porcentaje. Lo nuevo va en `app/module-warmup.css`,
 ## Verificación
 
 - `pnpm -C frontend typecheck`: limpio.
-- `vitest run src/app`: 18 archivos, 604 pruebas, todas verdes.
+- `vitest run src/app`: 18 archivos, 603 pruebas, todas verdes.
 - `make gate-front` (sólo transversales): 7 archivos, 503 pruebas, todas verdes.
 - `make gate-area AREA=warmup GATE_ARGS='--patron "warmup|bootstrap"'`: 261 pass, 0 fail.
 - Capturas con `pdm.pulso` (telefónico, `/monitoreo?pulso=…`), API propia en
