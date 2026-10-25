@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { CasoDeUmpConGps } from "../../../../../api/monitoreoCasosUmp";
-import { celdaEnFrase, diaYMes, fmt } from "../rotulos";
+import { celdaEnFrase, diaYMes, enumerar, fmt } from "../rotulos";
 import {
   LIMA_MAP_HEIGHT,
   LIMA_MAP_WIDTH,
@@ -214,9 +214,9 @@ export function ExploracionUmp({
           <footer className="mon-exp-pie">
             <Leyenda capa={capa} aplicadores={aplicadores} />
             <span>
-              Manzanas INEI 2017{geometria.calles.length ? " · calles OpenStreetMap" : ""} · GPS de Kobo
+              Fuentes: {enumerar(["manzanas INEI 2017", geometria.calles.length ? "calles OpenStreetMap" : "", "GPS de Kobo"])}.
               {estado.tipo === "listo" && estado.datos.resumen.total > estado.datos.resumen.conGps
-                ? ` · ${fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS`
+                ? ` ${fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS.`
                 : ""}
             </span>
           </footer>

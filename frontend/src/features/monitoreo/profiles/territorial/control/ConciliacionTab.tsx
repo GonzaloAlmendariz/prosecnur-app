@@ -65,19 +65,24 @@ function ConciliacionTabImpl({
       className="mon-con"
       aria-label="Conciliación"
       data-audit-ready="monitoreo-territorial-control-conciliacion"
-      data-qa-geometry-group="territorial-conciliacion"
-      data-qa-geometry-contract="equal"
     >
       {aviso ? <p className={`mon-con-aviso is-${aviso.tono}`} role={aviso.tono === "error" ? "alert" : "status"}>{aviso.texto}</p> : null}
+
+      <div className="mon-con-paneles" data-qa-geometry-group="territorial-conciliacion" data-qa-geometry-contract="equal">
 
       <section className="mon-con-panel" aria-labelledby="mon-con-codigos" data-qa-geometry-member="codigos" data-qa-geometry-group="territorial-conciliacion-codigos" data-qa-geometry-contract="intrinsic">
         <header className="mon-con-cabecera">
           <RotuloDePestana />
           <h3 id="mon-con-codigos">Códigos</h3>
           {modelo.codigos.disponible ? (
-            <span className="mon-con-base">
-              {fmt(modelo.codigos.enBase)} en la base · {fmt(modelo.codigos.reconocidos)} reconocidos · {fmt(modelo.codigos.conciliados)} conciliados · {fmt(modelo.codigos.sinReconocer.length)} sin reconocer
-            </span>
+            <Cifras
+              items={[
+                ["En la base", modelo.codigos.enBase],
+                ["Reconocidos", modelo.codigos.reconocidos],
+                ["Conciliados", modelo.codigos.conciliados],
+                ["Sin reconocer", modelo.codigos.sinReconocer.length],
+              ]}
+            />
           ) : null}
         </header>
         {!modelo.codigos.disponible ? (
@@ -128,9 +133,14 @@ function ConciliacionTabImpl({
         <header className="mon-con-cabecera">
           <h3 id="mon-con-umps">UMP declarada</h3>
           {modelo.umps.disponible ? (
-            <span className="mon-con-base">
-              {fmt(modelo.umps.valores)} valores · {fmt(modelo.umps.cruzan)} cruzan · {fmt(modelo.umps.conciliados)} conciliados · {fmt(modelo.umps.sinCruce.length)} sin cruce
-            </span>
+            <Cifras
+              items={[
+                ["Valores", modelo.umps.valores],
+                ["Cruzan", modelo.umps.cruzan],
+                ["Conciliados", modelo.umps.conciliados],
+                ["Sin cruce", modelo.umps.sinCruce.length],
+              ]}
+            />
           ) : null}
         </header>
         {!modelo.umps.disponible ? (
@@ -175,12 +185,33 @@ function ConciliacionTabImpl({
           </>
         )}
       </section>
+      </div>
 
       <footer className="mon-con-pie">
-        <span>Sospechas espaciales · {espaciales == null ? "sin dato en este corte" : `${fmt(espaciales)} ${espaciales === 1 ? "candidata" : "candidatas"} en cola`}</span>
+        <span>
+          {espaciales == null
+            ? "El corte no trae las sospechas espaciales."
+            : espaciales === 1
+              ? "1 sospecha espacial en cola."
+              : `${fmt(espaciales)} sospechas espaciales en cola.`}
+        </span>
         <button type="button" className="mon-con-enlace" onClick={onEspacial}>Revisar sospechas espaciales</button>
       </footer>
     </section>
+  );
+}
+
+/** Las cuatro cifras del panel, cada una con su rótulo, en vez de una cadena con «·». */
+function Cifras({ items }: { items: ReadonlyArray<readonly [string, number]> }) {
+  return (
+    <dl className="mon-con-cifras">
+      {items.map(([rotulo, valor]) => (
+        <div key={rotulo}>
+          <dt>{rotulo}</dt>
+          <dd>{fmt(valor)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -188,7 +219,7 @@ function ListaDeConciliaciones({ titulo, conciliaciones }: { titulo: string; con
   if (!conciliaciones.length) return null;
   return (
     <>
-      <h4 className="mon-con-subtitulo">{titulo} · {fmt(conciliaciones.length)}</h4>
+      <h4 className="mon-con-subtitulo">{titulo} <span className="mon-ter-cuenta">{fmt(conciliaciones.length)}</span></h4>
       <ul className="mon-con-hechas" data-qa-geometry-capacity="owned">
         {conciliaciones.map((item, indice) => (
           <li key={`${item.escrito}-${indice}`}>

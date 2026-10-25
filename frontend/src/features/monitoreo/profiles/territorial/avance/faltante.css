@@ -852,3 +852,9 @@
     padding-inline: 6px;
   }
 }
+
+/* «UMP 25, a 0.96 km» parte en dos líneas dentro de su celda en vez de
+ * desbordarla a 1024 (ronda 2). */
+.mon-falt-tabla td.is-cubre .mon-falt-chip {
+  white-space: normal;
+}

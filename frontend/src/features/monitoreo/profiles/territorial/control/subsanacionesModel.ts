@@ -83,7 +83,7 @@ function distanciaDe(km: unknown): string {
 function textoDelAjuste(item: MonitoreoTerritorialOperationalAdjustment): string {
   const movimientos = movimientosDe(item);
   const casos = movimientos.reduce((suma, movimiento) => suma + movimiento.casos, 0);
-  return `UMP ${numeroDeUmp(item.source_ump)} → UMP ${numeroDeUmp(item.target_ump)}: ${fmt(casos)} ${casos === 1 ? "caso" : "casos"} (${movimientos.map((m) => m.celda).join(", ")})`;
+  return `de la UMP ${numeroDeUmp(item.source_ump)} a la UMP ${numeroDeUmp(item.target_ump)}, ${fmt(casos)} ${casos === 1 ? "caso" : "casos"} de ${movimientos.map((m) => m.celda).join(", ")}`;
 }
 
 function cuandoDe(fecha: unknown): { cuando: string; orden: string } {
@@ -153,7 +153,7 @@ export function construirSubsanaciones(
       id: String(item.id ?? `ajuste-${indice}`),
       cuando,
       orden,
-      texto: `${revertida ? "Revertida" : "Aplicada"} · ${textoDelAjuste(item)}${item.created_by ? ` · ${item.created_by}` : ""}`,
+      texto: `${revertida ? "Revertida" : "Aplicada"}: ${textoDelAjuste(item)}${item.created_by ? `, por ${item.created_by}` : ""}`,
       nota: String(item.note ?? ""),
       estado: revertida ? "revertida" : "activa",
     };
@@ -164,7 +164,7 @@ export function construirSubsanaciones(
       id: rechazo.id,
       cuando,
       orden,
-      texto: `Rechazada · UMP ${numeroDeUmp(rechazo.sourceUmp)} → UMP ${numeroDeUmp(rechazo.targetUmp)}: ${celdaDelAjuste({ sex: rechazo.sex, age_group: rechazo.ageGroup })} · ${rechazo.autor}`,
+      texto: `Rechazada: de la UMP ${numeroDeUmp(rechazo.sourceUmp)} a la UMP ${numeroDeUmp(rechazo.targetUmp)}, ${celdaDelAjuste({ sex: rechazo.sex, age_group: rechazo.ageGroup })}${rechazo.autor ? `, por ${rechazo.autor}` : ""}`,
       nota: rechazo.nota,
       estado: "rechazada",
     });
@@ -194,4 +194,12 @@ export function ajusteParaAplicar(paquete: PaqueteSugerido, nota: string): Monit
     note: texto || `Aplicado desde Control › Subsanaciones: ${textoDelAjuste(paquete.ajuste)}.`,
     reason: paquete.ajuste.reason || "Excedente compatible usado como subsanación operativa",
   };
+}
+
+/**
+ * «manzana 0430, P132 · Nombre», sin la manzana si el motor no la trae (un
+ * paquete de sobrantes junta varias manzanas). Antes salía «Mz  · …».
+ */
+export function lugarDelPaquete(extremo: PaqueteSugerido["origen"]): string {
+  return [extremo.manzana.trim() ? `manzana ${extremo.manzana.trim()}` : "", extremo.aplicador.trim()].filter(Boolean).join(", ");
 }

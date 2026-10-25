@@ -233,8 +233,8 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
       <header className="mon-ban-inspector-cabecera">
         <div>
           <h3 id="mon-ban-inspector-titulo">Caso {caso.etiqueta}</h3>
-          <span className="mon-ban-base">{caso.distrito}, UMP {caso.ump || "—"}{caso.manzana ? ` (manzana ${caso.manzana})` : ""}</span>
-          <span className="mon-ban-base">{caso.aplicador} · {caso.dia} {caso.hora}</span>
+          <span className="mon-ban-base">{caso.distrito}, UMP {caso.ump || "—"}{caso.manzana ? `, manzana ${caso.manzana}` : ""}</span>
+          <span className="mon-ban-base">{caso.aplicador}, {caso.dia} a las {caso.hora}</span>
         </div>
         <button type="button" className="mon-ban-cerrar" aria-label="Cerrar el caso" onClick={onCerrar}>
           <X size={16} aria-hidden="true" />
@@ -243,17 +243,18 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
       <section aria-label="Distancia a su manzana">
         <h4 className="mon-ban-subtitulo">Distancia a su manzana</h4>
         <EsquemaDeDistancia metros={caso.distanciaM} />
-        <p className="mon-ban-base">Esquema sin coordenadas: el caso a {caso.distancia === "Sin GPS" ? "una distancia desconocida" : caso.distancia} de su manzana.</p>
+        <p className="mon-ban-base">{caso.distancia === "Sin GPS" ? "El caso no trae GPS." : `A ${caso.distancia} de su manzana.`}</p>
       </section>
       <section aria-label="Señales del caso">
         <h4 className="mon-ban-subtitulo">Señal</h4>
-        <p className="mon-ban-senal">{caso.rotuloDeMotivo}{caso.duracion !== "—" ? ` · duró ${caso.duracion}` : ""}</p>
+        <p className="mon-ban-senal">{caso.rotuloDeMotivo}</p>
+        {caso.duracion !== "—" ? <p className="mon-ban-base">Duración {caso.duracion}</p> : null}
       </section>
       <footer className="mon-ban-pie">
         {onAnular ? (
           <button type="button" className="mon-ban-boton is-peligro" onClick={onAnular}>Anular caso</button>
         ) : (
-          <p className="mon-ban-base">Este caso no trae identificador de respuesta y no se puede anular desde aquí.</p>
+          <p className="mon-ban-base" title="Sin identificador de respuesta no se puede anular desde aquí">Sin identificador de respuesta</p>
         )}
       </footer>
     </aside>

@@ -435,12 +435,26 @@
   flex-grow: 1;
 }
 
+/* Laterales cortas a su alto natural (ronda 2: una tarjeta no deja vacío
+ * abajo): la acción va justo después del contenido, no empujada al pie. */
 .mon-ins .mon-ins-lateral {
-  align-self: stretch;
+  align-self: start;
 }
 
-.mon-ins-lateral > .mon-ins-boton:last-child {
-  margin-top: auto;
+/* Cifras de la muestra, cada una en su celda con aire. */
+.mon-ins-lateral .mon-ins-cifras {
+  gap: var(--pulso-space-2);
+}
+
+.mon-ins-lateral .mon-ins-cifras > div {
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-ins-lateral .mon-ins-cifras dd {
+  font-size: 18px;
 }
 
 /* Mapeo: las filas de roles se reparten el alto de su tarjeta. */
@@ -455,4 +469,51 @@
 
 .mon-ins-fuentes > li:last-child > .mon-ins-fuente {
   flex: 1 1 auto;
+}
+
+/* Historial: la serie de lecturas toma el alto que sobra y «Otras acciones»
+ * mide lo que trae (antes, 529 px vacíos bajo «Sin subsanaciones ni
+ * anulaciones»). */
+.mon-ins-derecha.is-historial > :last-child {
+  flex-grow: 0;
+}
+
+.mon-ins-derecha.is-historial > .is-serie {
+  flex: 1 0 auto;
+}
+
+.mon-ins-derecha.is-historial > .is-serie .mon-ins-serie-grande {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 120px;
+}
+
+/* Mapeo (ronda 2): la lista de distritos es la última tarjeta de la columna y
+ * sus filas se reparten el alto, en vez de dejar 164 px vacíos al pie. */
+.mon-ins-mapeo .mon-ins-derecha > :last-child > .mon-ins-lista {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(42px, 1fr);
+}
+
+.mon-ins-distrito-destino code {
+  margin-left: var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+}
+
+.mon-ins-pregunta {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Conexiones (ronda 2): la última fuente mide lo que trae; antes crecía
+ * hasta el pie con 160 px vacíos bajo sus cifras. */
+.mon-ins-conexiones .mon-ins-fuentes > :last-child {
+  flex-grow: 0;
+}
+
+.mon-ins-conexiones .mon-ins-fuentes {
+  align-self: start;
+  max-height: 100%;
 }
