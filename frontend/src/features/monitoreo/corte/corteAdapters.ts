@@ -38,6 +38,7 @@ export function corteTerritorial(
     cutAt: state?.synced_at || reports?.generated_at || "",
     hasSnapshot: Boolean(state?.has_snapshot),
     generationStatus: state?.generation_status,
+    procesableEtiqueta: "con consentimiento",
     reglaProcesable: "Respuestas sin consentimiento o fuera del filtro de la fuente.",
     direccionProcesable: "seccion=fuentes&pestana=filter",
     reglaOficial: "Casos en revisión o no defendibles que no cuentan como avance.",
@@ -92,6 +93,9 @@ export function corteAcreditacion(
     cutAt: state?.synced_at || opciones.generatedAt || "",
     hasSnapshot: Boolean(state?.has_snapshot),
     generationStatus: state?.generation_status,
+    // El procesable aquí es la suma de universos declarados (personas por
+    // llamar), no un filtro de respuestas.
+    procesableEtiqueta: "en el universo declarado",
     reglaProcesable: "Registros fuera del universo declarado por actor.",
     direccionProcesable: "seccion=fuentes&pestana=estado",
     reglaOficial: "Casos sin encuesta efectiva registrada.",
@@ -146,6 +150,7 @@ export function corteAulas(
     cutAt: state?.synced_at || dashboard?.generated_at || "",
     hasSnapshot: Boolean(state?.has_snapshot),
     generationStatus: state?.generation_status,
+    procesableEtiqueta: "en el filtro de aplicación",
     reglaProcesable: "Respuestas fuera del filtro declarado para la aplicación en aula.",
     direccionProcesable: "seccion=fuentes",
     reglaOficial: "Respuestas sin curso-horario reconocido o descartadas por el control de validez.",

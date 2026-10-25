@@ -607,6 +607,26 @@
   color: var(--pulso-text-soft);
 }
 
+/* Sin vacío al pie (QA final, Avance › Cuotas): sin faltante diario, la
+ * tabla y la columna derecha miden lo que traen —110 px quedaban bajo
+ * «Total» y 70 bajo la leyenda del listado—. Con más filas que alto llegan
+ * al alto de la rejilla y desplazan dentro (C4); el aire, si sobra, queda
+ * debajo de las tarjetas, no dentro. */
+@media (min-width: 1181px) {
+  .mon-cuotas:not(.has-diario) {
+    align-items: start;
+  }
+
+  .mon-cuotas:not(.has-diario) > .mon-cuotas-tabla-panel,
+  .mon-cuotas:not(.has-diario) > .mon-cuotas-lado {
+    max-height: 100%;
+  }
+
+  .mon-cuotas:not(.has-diario) .mon-cuotas-reparto {
+    flex: 0 1 auto;
+  }
+}
+
 @media (max-width: 1400px) {
   .mon-cuotas {
     --mon-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 56px 72px;

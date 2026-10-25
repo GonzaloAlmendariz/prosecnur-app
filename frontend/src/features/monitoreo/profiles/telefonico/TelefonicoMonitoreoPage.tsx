@@ -146,7 +146,7 @@ import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
 import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
 import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/camposDeFuente";
 import { sourcePayloadFromExisting } from "./fuentes/payloadDeFuente";
-import { eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
+import { efectivasDeLaEncuesta, eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
@@ -10505,7 +10505,7 @@ function AcreditacionSourcesWorkbench({
         fuentes={operationalSources}
         contrato={phoneContract}
         acciones={sourceStatus}
-        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at, estadosDeLaHoja(reports).filas)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
+        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at, estadosDeLaHoja(reports).filas, efectivasDeLaEncuesta(reports))} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
         onCambiar={(id) => abrirConectarFuente.abrirParaCambiar(id)}
         onRenombrar={async (id, label) => {
           const fuente = operationalSources.find((item) => item.id === id);
