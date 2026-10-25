@@ -9,6 +9,7 @@
 import { useId } from "react";
 
 import type { MailBlock, MailTheme } from "../../../api/materialMail";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, CheckCircle2, Paintbrush } from "../../../vendor/lucide-react";
 import { AjusteDeBloque } from "./AjusteDeBloque";
@@ -32,12 +33,13 @@ export type VistaDelBloque = "contenido" | "estilo";
 /** «Contenido | Estilo» arriba del inspector del bloque: dos vistas del mismo bloque, como pestañas. */
 export function SelectorDeVista({ vista, onVista }: { vista: VistaDelBloque; onVista: (v: VistaDelBloque) => void }) {
   return (
-    <div className="rec-caja-vistas" role="tablist" aria-label="Qué editar del bloque">
+    <GlidingTabList className="rec-caja-vistas" role="tablist" aria-label="Qué editar del bloque" activeKey={vista} onRovingKeyChange={(k) => onVista(k as VistaDelBloque)}>
       {(["contenido", "estilo"] as const).map((v) => (
         <button
           key={v}
           type="button"
           role="tab"
+          data-gliding-key={v}
           aria-selected={vista === v}
           className={`rec-caja-vista${vista === v ? " is-on" : ""}`}
           onClick={() => onVista(v)}
@@ -45,7 +47,7 @@ export function SelectorDeVista({ vista, onVista }: { vista: VistaDelBloque; onV
           {v === "contenido" ? "Contenido" : "Estilo"}
         </button>
       ))}
-    </div>
+    </GlidingTabList>
   );
 }
 

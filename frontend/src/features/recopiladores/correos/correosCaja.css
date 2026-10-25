@@ -2,7 +2,12 @@
    tokens: los colores reales del correo (la paleta y la marca) llegan inline
    desde el tema, como la muestra del tono «Acento». */
 
+/* Indicador común (GlidingTabList): la cápsula blanca se desliza entre las dos vistas. */
 .rec-caja-vistas {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  --pulso-gliding-active-color: var(--pulso-text);
   background: var(--pulso-surface-2);
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
@@ -23,6 +28,7 @@
   min-height: 30px;
 }
 
+/* Hasta que el indicador se mide, la vista elegida conserva su propio pintado. */
 .rec-caja-vista.is-on {
   background: var(--pulso-surface);
   border-color: var(--pulso-border);
