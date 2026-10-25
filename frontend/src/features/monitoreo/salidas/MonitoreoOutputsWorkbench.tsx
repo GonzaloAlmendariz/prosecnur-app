@@ -139,6 +139,14 @@ export type MonitoreoOutputsWorkbenchProps = {
    * telefónico («69 con cuota y 1 sin actor»); los demás modos no cambian.
    */
   notaDeValidas?: string;
+  /**
+   * Cabecera como primera tarjeta de una ficha (§2a-bis del estándar de
+   * Monitoreo): antetítulo sin píldora, el corte en una sola línea (los granos
+   * ya van debajo, en el estado del corte) y «Incluir metas» como casilla
+   * simple. También quita el teñido de las tarjetas: el estado va en el borde
+   * lateral y en su chip. Opcional y aditiva: sólo la pasa Telefónico.
+   */
+  variante?: "ficha";
 };
 
 function fmt(value: unknown, fallback = "0") {
@@ -627,6 +635,7 @@ export function MonitoreoOutputsWorkbench({
   className = "",
   onPublished,
   notaDeValidas,
+  variante,
 }: MonitoreoOutputsWorkbenchProps) {
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
@@ -1160,13 +1169,24 @@ export function MonitoreoOutputsWorkbench({
   ].filter((item) => item.file?.download_url);
 
   return (
-    <section className={`mon-outputs-workbench ${className}`} aria-label="Salidas de monitoreo">
+    <section
+      className={`mon-outputs-workbench${variante === "ficha" ? " mon-outputs-workbench--ficha" : ""} ${className}`}
+      aria-label="Salidas de monitoreo"
+    >
       <header className="mon-outputs-workbench__head">
-        <div>
-          <span><FileText size={15} /> Salidas del avance</span>
-          <strong>{copy.sheetsTitle}</strong>
-          <small>{snapshotHint}</small>
-        </div>
+        {variante === "ficha" ? (
+          <div>
+            <span className="mon-outputs-workbench__antetitulo">Salidas del avance</span>
+            <strong>{copy.sheetsTitle}</strong>
+            <small>{hasSnapshot && syncedAt ? `Corte del ${formatDate(syncedAt)}` : hasSnapshot ? "Corte sin fecha" : "Sin corte sincronizado"}</small>
+          </div>
+        ) : (
+          <div>
+            <span><FileText size={15} /> Salidas del avance</span>
+            <strong>{copy.sheetsTitle}</strong>
+            <small>{snapshotHint}</small>
+          </div>
+        )}
         {ofreceMetasOpcionales ? (
           <label className="mon-outputs-targets-toggle">
             <input

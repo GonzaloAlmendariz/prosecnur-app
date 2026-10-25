@@ -14,7 +14,9 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 
 /**
  * Ficha del caso: lo que dice la hoja de barrido, su observación literal y lo
- * que se sabe de Kobo. Lo que la hoja no registra se dice, no se dibuja.
+ * que se sabe de Kobo. Lo que la hoja no registra se dice, no se dibuja: va
+ * como un bloque más, en el flujo, y la ficha toma su alto natural (§2a-bis:
+ * sin nota flotando sobre un hueco).
  */
 export function FichaDelCaso({
   caso,
@@ -96,10 +98,10 @@ export function FichaDelCaso({
           />
         </dl>
       </section>
-      <div className="mon-cola-ficha-nota">
+      <section className="mon-cola-ficha-bloque mon-cola-ficha-nota">
         <span className="mon-cola-antetitulo">Lo que la hoja no registra</span>
         <p>La fecha y el resultado de cada intento, la hora y el número marcado. Por eso la ficha no muestra historia de llamadas.</p>
-      </div>
+      </section>
       <footer className="mon-cola-ficha-pie">
         El supervisor decide si se sigue insistiendo. La asignación se cambia en la hoja del equipo; Monitoreo la lee al actualizar.
       </footer>

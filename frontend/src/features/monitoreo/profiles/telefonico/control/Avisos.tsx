@@ -142,9 +142,9 @@ export function Avisos({
           </ul>
         </section>
       ) : null}
-      {/* Crece hasta el pie: con pocos avisos usa el alto con los casos; con
-        * muchos queda más bajo y desplaza dentro. */}
-      <section className="mon-ctl-panel mon-avisos-por-revisar" aria-label="Casos por revisar" data-qa-geometry-capacity="owned">
+      {/* Con hasta ocho casos la tarjeta mide sus filas (sin hueco al pie);
+        * con más crece hasta el pie y desplaza dentro. */}
+      <section className={`mon-ctl-panel mon-avisos-por-revisar${porRevisar.length <= 8 ? " is-pocos" : ""}`} aria-label="Casos por revisar" data-qa-geometry-capacity="owned">
         <header className="mon-avisos-por-revisar-cabecera">
           <span className="mon-ctl-antetitulo">Casos por revisar</span>
           <span>{porRevisar.length ? `${n(porRevisar.length)} ${porRevisar.length === 1 ? "caso nombrado" : "casos nombrados"} por los avisos` : ""}</span>
