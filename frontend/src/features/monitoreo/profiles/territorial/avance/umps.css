@@ -361,8 +361,13 @@
   cursor: pointer;
 }
 
+/* Ronda 4: las filas comparten columnas (subgrid). «Hombre, 51 años» no parte
+ * línea; si la ficha es angosta, quien parte es el estado. */
 .mon-ump-casos {
-  display: block;
+  display: grid;
+  grid-template-columns: max-content max-content minmax(max-content, 1fr) auto;
+  align-content: start;
+  column-gap: var(--pulso-space-2);
   max-height: 240px;
   margin: var(--pulso-space-2) 0 0;
   padding: 0;
@@ -374,9 +379,9 @@
 
 .mon-ump-casos li {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 64px auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: var(--pulso-space-2);
   padding: 6px 0;
   border-bottom: 1px solid var(--pulso-surface-3);
   font-size: 12px;
@@ -385,6 +390,15 @@
 
 .mon-ump-casos li b {
   font-weight: var(--pulso-weight-semibold);
+  text-align: right;
+}
+
+.mon-ump-casos li > span {
+  white-space: nowrap;
+}
+
+.mon-ump-caso-gps {
+  text-align: right;
 }
 
 .mon-ump-casos li.is-observacion b {

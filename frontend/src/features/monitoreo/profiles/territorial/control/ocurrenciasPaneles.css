@@ -1,0 +1,367 @@
+/* Control › Ocurrencias › Distritos y Ritmo (ronda 4). Mismo lenguaje que
+ * Resumen (`ocurrencias.css`): tarjetas con aire, cifras en celdas rotuladas y
+ * motivos con rótulo corto. */
+
+.mon-ocu-partes,
+.mon-ocu-ritmo {
+  display: grid;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-ocu-partes {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-ocu-ritmo {
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Lateral: las cifras miden lo que traen y las lecturas toman el resto. */
+.mon-ocu-ritmo-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-ocu-ritmo-lateral > .mon-ocu-panel {
+  flex: 0 0 auto;
+}
+
+.mon-ocu-ritmo-lateral > .mon-ocu-lecturas {
+  flex: 1 1 auto;
+}
+
+/* Celdas rotuladas. */
+.mon-ocu-celdas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-ocu-celdas > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-ocu-celdas dt {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.mon-ocu-celdas dd {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-celdas dd small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-ocu-celdas dd.tiene-ayuda {
+  justify-self: start;
+  text-decoration: underline dotted var(--pulso-border-strong);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+/* Distritos: una tarjeta por distrito que reparte el alto de la rejilla. */
+.mon-ocu-partes-panel {
+  height: 100%;
+}
+
+.mon-ocu-partes-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ocu-distrito {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.mon-ocu-distrito-nombre {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ocu-cobertura {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-cobertura-barra {
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-warn-accent) 30%, var(--pulso-surface-3));
+  overflow: hidden;
+}
+
+.mon-ocu-cobertura-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-success-fg);
+}
+
+/* Cifras del distrito: una por fila, rótulo a la izquierda y valor a la
+ * derecha, como el embudo de Avance › Resumen. */
+.mon-ocu-distrito-cifras {
+  display: grid;
+  margin: 0;
+  font-size: 13px;
+}
+
+.mon-ocu-distrito-cifras > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: 5px 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-ocu-distrito-cifras > div:first-child {
+  border-top: 0;
+}
+
+.mon-ocu-distrito-cifras dt {
+  color: var(--pulso-text-soft);
+}
+
+.mon-ocu-distrito-cifras dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-distrito-cifras dd.tiene-ayuda {
+  text-decoration: underline dotted var(--pulso-border-strong);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.mon-ocu-distrito-motivos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ocu-distrito-motivos li {
+  font-size: 12px;
+}
+
+.mon-ocu-distrito-motivos b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ritmo. */
+.mon-ocu-ritmo-cifras {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mon-ocu-ritmo-dias .mon-ocu-ritmo-tabla {
+  height: 100%;
+}
+
+.mon-ocu-ritmo-cifras {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Intentos del día como barra: el tramo oscuro son las efectivas declaradas
+ * y el claro las no efectivas; los encabezados llevan el color de cada serie. */
+.mon-ocu-ritmo-intentos {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 52px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  text-align: right;
+}
+
+.mon-ocu-ritmo-pista {
+  display: block;
+  height: 18px;
+}
+
+.mon-ocu-ritmo-barra {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
+  overflow: hidden;
+}
+
+.mon-ocu-ritmo-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ocu-ritmo-tabla tbody tr:last-child th,
+.mon-ocu-ritmo-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mon-ocu-serie::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: 0;
+}
+
+.mon-ocu-serie.is-efectivas::before {
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ocu-serie.is-no-efectivas::before {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
+}
+
+.mon-ocu-lecturas {
+  min-height: 0;
+}
+
+.mon-ocu-lecturas-lista {
+  display: grid;
+  grid-auto-rows: minmax(min-content, 1fr);
+  flex: 1 1 auto;
+  gap: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ocu-lecturas-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px var(--pulso-space-2);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+  font-size: 13px;
+}
+
+.mon-ocu-lecturas-lista li:first-child {
+  border-top: 0;
+}
+
+.mon-ocu-lecturas-lista li > .mon-ter-chip {
+  font-size: 11.5px;
+}
+
+.mon-ocu-lectura-cuando,
+.mon-ocu-lectura-registros {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ocu-lectura-registros {
+  text-align: right;
+}
+
+.mon-ocu-lecturas-lista small {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* 1024 × 600: la pestaña desplaza entera con el dueño del área de trabajo. */
+@media (max-width: 1180px), (max-height: 700px) {
+  .mon-ocu-partes,
+  .mon-ocu-ritmo {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mon-ocu-partes,
+  .mon-ocu-ritmo {
+    grid-template-rows: auto;
+  }
+
+  .mon-ocu-lecturas-lista {
+    grid-auto-rows: auto;
+  }
+
+  .mon-ocu-partes-panel {
+    height: auto;
+  }
+
+  .mon-ocu-partes-rejilla,
+  .mon-ocu-lecturas-lista {
+    overflow: visible;
+  }
+
+  .mon-ocu-partes-rejilla {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .mon-ocu-ritmo-dias .mon-ocu-tabla-marco {
+    overflow: visible;
+  }
+
+  .mon-ocu-ritmo-dias .mon-ocu-ritmo-tabla {
+    height: auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-ocu-ritmo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

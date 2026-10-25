@@ -572,6 +572,13 @@
   margin-top: auto;
 }
 
+/* Ronda 4: el alto sobrante de «Por qué N están en observación» lo toman sus
+ * filas, repartido, en vez de quedar como franja vacía sobre las fechas. */
+.mon-res-izquierda > .mon-res-panel:last-child > .mon-res-motivos {
+  flex: 1 0 auto;
+  grid-auto-rows: minmax(40px, 1fr);
+}
+
 .mon-res-distritos .mon-res-tabla {
   height: 100%;
 }

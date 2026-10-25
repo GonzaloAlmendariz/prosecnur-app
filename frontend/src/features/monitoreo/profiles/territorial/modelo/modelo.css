@@ -183,6 +183,18 @@
   display: flex;
   align-items: center;
   gap: var(--pulso-space-2);
+  min-height: 24px;
+}
+
+/* Cifras de la fase en celdas rotuladas (ronda 4), tres por fila en las dos
+ * tarjetas para que las columnas casen entre Piloto y Campo. */
+.mon-mod-parametros.mon-mod-fase-cifras {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--pulso-space-1) 0;
+}
+
+.mon-mod-parametros.mon-mod-fase-cifras > div {
+  padding: var(--pulso-space-2);
 }
 
 .mon-mod-fase.is-activa {

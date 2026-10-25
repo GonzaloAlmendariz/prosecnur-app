@@ -18,7 +18,14 @@ export type OpcionDeFase = {
   /** Última lectura de la fuente de esa fase, «dd/mm». */
   fecha: string;
   activa: boolean;
+  /**
+   * Las mismas cifras que `detalle`, una por celda rotulada (Modelo › Metas):
+   * vacío si la fase no tiene respuestas, y entonces `detalle` dice por qué.
+   */
+  cifras: CifraDeFase[];
 };
+
+export type CifraDeFase = { clave: string; rotulo: string; valor: string; ayuda?: string };
 
 const NOMBRE: Record<MonitoreoTerritorialPhase, string> = { pilot: "Piloto", field: "Campo" };
 
@@ -62,23 +69,32 @@ export function opcionesDeFase(
     const enCorte = entero((item as { dashboard_rows?: unknown } | null)?.dashboard_rows) ?? entero(item?.report_rows);
     const locales = entero(item?.local_rows);
     const desde = diaYMes(ventanas?.[fase]?.start_at);
+    const fecha = diaYMes(item?.last_sync_at);
     let detalle: string;
+    const cifras: CifraDeFase[] = [];
     if (sinRespuestas) detalle = sinRespuestas;
     else if (esActiva && enCorte != null) {
       detalle = `${fmt(enCorte)} en el corte`;
-      if (meta != null && meta > 0) detalle += ` y meta de ${fmt(meta)}`;
+      cifras.push({ clave: "corte", rotulo: "Respuestas", valor: fmt(enCorte), ayuda: "Respuestas de la fase en el corte" });
+      if (meta != null && meta > 0) {
+        detalle += ` y meta de ${fmt(meta)}`;
+        cifras.push({ clave: "meta", rotulo: "Meta", valor: fmt(meta) });
+      }
       if (desde) detalle += `, desde el ${desde}`;
     } else {
       const n = locales ?? enCorte ?? 0;
       detalle = `${fmt(n)} ${n === 1 ? "respuesta" : "respuestas"}`;
+      cifras.push({ clave: "respuestas", rotulo: "Respuestas", valor: fmt(n) });
       if (desde) detalle += `, desde el ${desde}`;
     }
+    if (cifras.length && desde) cifras.push({ clave: "desde", rotulo: "Desde", valor: desde });
     return {
       fase,
       nombre: NOMBRE[fase],
       detalle,
-      fecha: diaYMes(item?.last_sync_at),
+      fecha,
       activa: esActiva,
+      cifras,
     };
   });
 }
