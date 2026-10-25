@@ -6,7 +6,7 @@ import {
 } from "../../../api/monitoreo";
 import { toast } from "../../../components/toasterStore";
 import { esperarJobDeSync } from "./esperarJobDeSync";
-import type { PeticionDeActualizar } from "./menuDeActualizar";
+import type { PeticionDeActualizar, PeticionDeTraer } from "./menuDeActualizar";
 import { fusionarProgreso, type ProgresoDelSync } from "./pasosDelSync";
 import { reciboDeFallo, reciboDeHojas, reciboDeRecalcular, reciboDeSync, type ReciboDelSync } from "./reciboDelSync";
 
@@ -26,6 +26,49 @@ export type AccionesDelStoreDeSync = {
 
 type Resultado = { ok: true } | { ok: false; mensaje: string };
 
+/**
+ * Lo que trajo un lanzamiento, en la forma que lee el recibo: el `result_data`
+ * de `/api/monitoreo/sync` (`sync_summary`, `errors`) o el del job de hojas.
+ */
+export type ResultadoDelLanzamiento =
+  | { tipo: "sync"; resultado: unknown }
+  | { tipo: "hojas"; resultado: unknown; cuantas: number };
+
+export type HerramientasDelLanzamiento = {
+  config?: Partial<MonitoreoConfig>;
+  /** Reporta el progreso al store del perfil; el paso no retrocede. */
+  reportar: (progreso: ProgresoDelSync) => void;
+  cancelado: () => boolean;
+};
+
+/**
+ * Cómo se lanza lo que pide el control. Por defecto, las hojas van por
+ * `/api/monitoreo/sheets/sync` y lo demás por `/api/monitoreo/sync`. Un perfil
+ * con fuentes que no van por ahí —las ocurrencias de campo de Territorial—
+ * inyecta el suyo y delega en `lanzarPorDefecto` lo que sí va.
+ */
+export type LanzadorDeActualizacion = (
+  peticion: PeticionDeTraer,
+  herramientas: HerramientasDelLanzamiento,
+) => Promise<ResultadoDelLanzamiento>;
+
+export const lanzarPorDefecto: LanzadorDeActualizacion = async (peticion, { config, reportar, cancelado }) => {
+  if (peticion.tipo === "hojas") {
+    const inicio = await apiMonitoreoSheetsSyncAsync(peticion.fuentes);
+    reportar({ percent: 8, phase: "En cola", message: "Esperando al motor local..." });
+    const snapshot = await esperarJobDeSync(inicio.job_id, reportar, cancelado);
+    return {
+      tipo: "hojas",
+      resultado: normalizeMonitoreoSheetsSyncResult(snapshot.result_data),
+      cuantas: peticion.fuentes.length,
+    };
+  }
+  const inicio = await apiMonitoreoSync(config, peticion.fuentes, { syncMode: peticion.modo });
+  reportar({ percent: 8, phase: "En cola", message: "Esperando al motor local..." });
+  const snapshot = await esperarJobDeSync(inicio.job_id, reportar, cancelado);
+  return { tipo: "sync", resultado: snapshot.result_data };
+};
+
 export function emitirRecibo(recibo: ReciboDelSync) {
   const extra = recibo.detalle ? { detalle: recibo.detalle } : undefined;
   if (recibo.tono === "error") toast.error(recibo.mensaje, extra);
@@ -42,6 +85,7 @@ export async function ejecutarActualizacion(
     alEmpezar,
     alFallar,
     cancelado = () => false,
+    lanzar = lanzarPorDefecto,
   }: {
     config?: Partial<MonitoreoConfig>;
     acciones: AccionesDelStoreDeSync;
@@ -49,6 +93,8 @@ export async function ejecutarActualizacion(
     alEmpezar?: () => void;
     alFallar?: (mensaje: string) => void;
     cancelado?: () => boolean;
+    /** Lanzamiento propio del perfil; sin él, `lanzarPorDefecto`. */
+    lanzar?: LanzadorDeActualizacion;
   },
 ): Promise<void> {
   const modo = peticion.tipo === "sync" ? peticion.modo : "full";
@@ -79,20 +125,14 @@ export async function ejecutarActualizacion(
       cerrar(reciboDeRecalcular(recalculo), recalculo);
       return;
     }
-    if (peticion.tipo === "hojas") {
-      const inicio = await apiMonitoreoSheetsSyncAsync(peticion.fuentes);
-      reportar({ percent: 8, phase: "En cola", message: "Esperando al motor local..." });
-      const snapshot = await esperarJobDeSync(inicio.job_id, reportar, cancelado);
-      const resultado = normalizeMonitoreoSheetsSyncResult(snapshot.result_data);
-      const recalculo = await releer();
-      cerrar(reciboDeHojas(resultado, peticion.fuentes.length, recalculo), recalculo);
-      return;
-    }
-    const inicio = await apiMonitoreoSync(config, peticion.fuentes, { syncMode: peticion.modo });
-    reportar({ percent: 8, phase: "En cola", message: "Esperando al motor local..." });
-    const snapshot = await esperarJobDeSync(inicio.job_id, reportar, cancelado);
+    const traido = await lanzar(peticion, { config, reportar, cancelado });
     const recalculo = await releer();
-    cerrar(reciboDeSync(snapshot.result_data, recalculo), recalculo);
+    cerrar(
+      traido.tipo === "hojas"
+        ? reciboDeHojas(traido.resultado, traido.cuantas, recalculo)
+        : reciboDeSync(traido.resultado, recalculo),
+      recalculo,
+    );
   } catch (e) {
     // Al salir del módulo el poll se corta, pero el job sigue: no es un fallo.
     if (!cancelado()) {
