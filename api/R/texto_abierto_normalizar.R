@@ -148,7 +148,7 @@
 
 #' Raíz de cada palabra: el singular, o el infinitivo cuando el corpus lo trae
 #'
-#' Sólo agrupa flexiones. Una forma verbal («mejoren», «mejoran») se une a su infinitivo si éste aparece en
+#' Sólo agrupa flexiones. Un plural nominal va a su singular, nunca al infinitivo (TXT-13). Una forma verbal («mejoren», «mejoran») se une a su infinitivo si éste aparece en
 #' `vocabulario`; si no, queda sola. El plural se lleva al singular («profesores» → «profesor», «veces» → «vez»).
 #' No une sinónimos (profesores ≠ docentes); para eso está `equivalencias`, un vector con nombre raíz → raíz.
 #' Devuelve las raíces sin tilde, en el orden de `x`.
@@ -168,6 +168,8 @@
     }
     NA_character_
   }
+  # Los participios plurales («mejorados», «atendidas») sí son formas del verbo.
+  verbo_participio <- function(p) if (grepl("(ados|adas|idos|idas)$", p)) verbo(p) else NA_character_
   singular <- function(p) {
     n <- nchar(p)
     if (n < 4L || grepl("(is|us)$", p)) return(p)
@@ -177,12 +179,16 @@
     if (grepl("[aeiou]s$", p)) return(sub("s$", "", p))
     p
   }
+  # Un plural nominal (-as/-os/-es que no es participio: ésos los toma `verbo`) va a su singular y no al infinitivo:
+  # «prácticas» es «práctica», no «practicar» (TXT-13). Y un singular que el corpus trae también en plural es
+  # sustantivo (sólo en -a/-o: «mejore» con «mejores» sigue siendo verbo): tampoco se vuelve verbo, para que «práctica» y «prácticas» queden juntas.
+  corpus <- unique(c(w, voc))
+  nominal <- function(p) grepl("(as|os|es)$", p) || (grepl("[ao]$", p) && paste0(p, "s") %in% corpus)
   r <- vapply(w, function(p) {
+    if (nominal(p) && is.na(verbo_participio(p))) return(singular(p))
     v <- verbo(p)
     if (!is.na(v)) return(v)
-    s <- singular(p)
-    if (!identical(s, p)) { v <- verbo(s); if (!is.na(v)) return(v) }
-    s
+    singular(p)
   }, character(1), USE.NAMES = FALSE)
   eq <- unlist(equivalencias %||% list())
   if (length(eq) && !is.null(names(eq))) {
