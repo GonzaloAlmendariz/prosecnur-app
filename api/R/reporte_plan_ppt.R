@@ -3245,7 +3245,7 @@ reporte_ppt_plan <- function(
     .base_auto_from_element(primero[[1]], sufijo_auto = sufijo_auto, formato = formato)
   }
 
-  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .reporte_plan_nota_base_sellada(.plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato), data_sources, source = tryCatch(.element_source(el), error = function(e) NULL))
+  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .reporte_plan_nota_base_sellada(.plan_tt_caption(el, formato, .resolve_ref, .filter_data) %||% .plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato), data_sources, source = tryCatch(.element_source(el), error = function(e) NULL))
   .base_auto_from_element_impl <- function(el, sufijo_auto = NULL, formato = "Base: %s") {
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
 
@@ -5331,7 +5331,7 @@ reporte_ppt_plan <- function(
 
     var <- el$var
     filtros <- el$filtros %||% list()
-    overrides <- el$overrides %||% list()
+    overrides <- .plan_tt_overrides(el$overrides %||% list())   # TXT-20: temas de un texto (reporte_plan_temas_texto.R)
     base_unit <- .clean_note_text(overrides$unidad_base %||% preset_args$unidad_base) %||% "respuestas"
     base_por_grupo <- isTRUE(overrides$base_por_grupo %||% preset_args$base_por_grupo)
     overrides$unidad_base <- NULL
@@ -5347,7 +5347,7 @@ reporte_ppt_plan <- function(
     excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     ctx_var <- .resolve_ref(var, arg_name = "var")
     excluir_opciones <- .exclusion_for_ctx(ctx_var, excluir_opciones)
-    tab <- .tab_freq(var, filtros = filtros)
+    tab <- .plan_tt_tab_render(.tab_freq(var, filtros = filtros), overrides, var, filtros, cruce_ref, .resolve_ref, .filter_data)   # TXT-20
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
     mostrar_ceros <- .should_show_zero_options(

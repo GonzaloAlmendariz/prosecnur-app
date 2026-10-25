@@ -350,7 +350,7 @@
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
                                    sub = texto(subtitulo), forma = forma, unidad_n = unidad,
-                                   encabezado = if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL,
+                                   encabezado = .plan_tt_encabezado(el_plot) %||% (if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL),   # TXT-20
                                    layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
