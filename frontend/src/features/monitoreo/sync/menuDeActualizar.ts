@@ -19,6 +19,9 @@ export type PeticionDeActualizar =
   | { tipo: "hojas"; fuentes: string[] }
   | { tipo: "recalcular" };
 
+/** Lo que trae algo de afuera: todo menos «Recalcular». */
+export type PeticionDeTraer = Exclude<PeticionDeActualizar, { tipo: "recalcular" }>;
+
 export type EntradaDeActualizar = {
   clave: string;
   etiqueta: string;
@@ -60,6 +63,9 @@ function peticionDeFuentes(fuentes: MonitoreoSource[]): PeticionDeActualizar {
     : { tipo: "sync", modo: "full", fuentes: ids };
 }
 
+/** El cuerpo del botón y las entradas del menú. Un perfil puede armar el suyo. */
+export type PlanDeActualizar = { principal: EntradaDeActualizar; menu: EntradaDeActualizar[] };
+
 export function planDeActualizar({
   fuentes,
   familia,
@@ -70,7 +76,7 @@ export function planDeActualizar({
   familia: string;
   deshabilitado?: boolean;
   pendienteDeRecalcular?: boolean;
-}): { principal: EntradaDeActualizar; menu: EntradaDeActualizar[] } {
+}): PlanDeActualizar {
   const completas = fuentesSincronizables(fuentes, "full", familia);
   const avance = fuentesSincronizables(fuentes, "advance", familia);
   // El backend no lee las ocurrencias de campo por este camino: ofrecerlas
