@@ -18,12 +18,14 @@ import path from "node:path";
 
 // Desde T7 el borrador vive en `useDeclaracionDeEstados` y lo montan dos
 // vistas: el definidor y Insumos › Estados del telefónico. Las dos se vigilan.
+// El color de cada familia salió a `PaletaDeFamilias`, que montan las dos.
 const ARCHIVOS = [
   path.resolve(__dirname, "DefinidorDeEstados.tsx"),
   path.resolve(__dirname, "../profiles/telefonico/insumos/Estados.tsx"),
 ];
+const PALETA = path.resolve(__dirname, "PaletaDeFamilias.tsx");
 
-describe.each(ARCHIVOS)("los handlers no leen el evento dentro del updater (%s)", (archivo) => {
+describe.each([...ARCHIVOS, PALETA])("los handlers no leen el evento dentro del updater (%s)", (archivo) => {
   const fuente = fs.readFileSync(archivo, "utf8");
 
   test("ningún setState recibe un updater que use currentTarget", () => {
@@ -34,12 +36,24 @@ describe.each(ARCHIVOS)("los handlers no leen el evento dentro del updater (%s)"
     expect(hallazgos).toEqual([]);
   });
 
-  test("cada handler captura el valor en una constante antes de actualizar", () => {
-    // Las dos superficies que lo sufrieron: color de familia y familia del
-    // estado crudo.
-    expect(fuente).toMatch(/const elegido = event\.currentTarget\.value;[\s\S]{0,120}colorear\(/);
+});
+
+describe.each(ARCHIVOS)("cada vista captura el valor antes de actualizar (%s)", (archivo) => {
+  const fuente = fs.readFileSync(archivo, "utf8");
+
+  test("la familia del estado crudo", () => {
     expect(fuente).toMatch(/const elegida = event\.currentTarget\.value[\s\S]{0,140}asignar\(/);
   });
+
+  test("el color lo edita la paleta común, no una copia", () => {
+    expect(fuente).toMatch(/<PaletaDeFamilias\b/);
+    expect(fuente).not.toMatch(/type="color"/);
+  });
+});
+
+test("la paleta captura el color antes de guardarlo", () => {
+  const fuente = fs.readFileSync(PALETA, "utf8");
+  expect(fuente).toMatch(/const elegido = event\.currentTarget\.value;[\s\S]{0,120}colorear\(/);
 });
 
 test("el hook recibe valores, no eventos", () => {
