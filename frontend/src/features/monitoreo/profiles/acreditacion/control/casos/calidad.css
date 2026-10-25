@@ -4,6 +4,13 @@
   grid-template-columns: minmax(0, 1fr) 420px;
 }
 
+/* Las señales toman su alto natural, con tope en la columna y dueñas de su
+ * scroll: estiradas al pie dejaban unos 340 px vacíos con tres señales. */
+.acr-ps.is-calidad > .acr-ps-respondieron {
+  align-self: start;
+  max-height: 100%;
+}
+
 .acr-cl-cifras {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
