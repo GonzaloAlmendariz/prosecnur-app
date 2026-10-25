@@ -283,8 +283,9 @@ export function Cuotas({
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Qué cuenta para la meta">
           <span className="mon-ctl-antetitulo">Qué cuenta para la meta</span>
-          <p>{filtro ? `Efectivas de Kobo que pasan el filtro ${filtro}, una por CodPulso.` : "Efectivas de Kobo, una por CodPulso. El filtro de efectiva no está declarado."}</p>
-          <p>Las metas son por {nombreDeCategoria}; no hay metas por enumerador.</p>
+          <p>{filtro ? `Efectivas de Kobo con ${filtro}, una por CodPulso` : "Efectivas de Kobo, una por CodPulso"}</p>
+          {filtro ? null : <p>Filtro de efectiva sin declarar</p>}
+          <p title="No hay metas por enumerador">Metas por {nombreDeCategoria}</p>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-metas-calendario" aria-label="Calendario">

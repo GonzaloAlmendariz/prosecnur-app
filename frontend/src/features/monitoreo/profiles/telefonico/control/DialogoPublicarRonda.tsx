@@ -4,6 +4,7 @@ import { Loader2, Upload, X } from "../../../../../vendor/lucide-react";
 import { apiSupervisionPublicarRonda, type RondaDeSupervisionApi } from "../../../../../api/monitoreoTelefonico";
 import type { MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { NotaDelModo } from "../../../core/NotaDelModo";
+import { Switch } from "../../../../../components/Switch";
 import { useDialogoDeRonda } from "./useDialogoDeRonda";
 import "../insumos/insumosTelefonico.css";
 import "./supervision.css";
@@ -56,23 +57,27 @@ export function DialogoPublicarRonda({
           {hoja ? (
             <>
               <NotaDelModo tono="info">
-                Se crea la pestaña «Ronda {numero.toLocaleString("es-PE")}» en «{hoja.label || hoja.id}». No se toca ninguna otra pestaña de la hoja.
+                <span title="No se toca ninguna otra pestaña de la hoja">
+                  Se crea la pestaña «Ronda {numero.toLocaleString("es-PE")}» en «{hoja.label || hoja.id}»
+                </span>
               </NotaDelModo>
               <fieldset className="mon-sup-preguntas">
                 <legend>Preguntas de control de Kobo que van como columnas</legend>
                 {preguntas.length ? preguntas.map((pregunta) => (
                   <label key={pregunta.nombre}>
-                    <input
-                      type="checkbox"
+                    {/* Interruptor, no casilla (Meta B, L26). */}
+                    <Switch
                       checked={elegidas.includes(pregunta.nombre)}
-                      onChange={(event) => {
-                        const marcada = event.currentTarget.checked;
-                        setElegidas((actual) => (marcada ? [...actual, pregunta.nombre] : actual.filter((item) => item !== pregunta.nombre)));
+                      ariaLabel={pregunta.etiqueta || pregunta.nombre}
+                      onToggle={() => {
+                        setElegidas((actual) => (actual.includes(pregunta.nombre)
+                          ? actual.filter((item) => item !== pregunta.nombre)
+                          : [...actual, pregunta.nombre]));
                       }}
                     />
-                    <span>{pregunta.etiqueta || pregunta.nombre}{pregunta.etiqueta ? <small> ({pregunta.nombre})</small> : null}</span>
+                    <span aria-hidden="true">{pregunta.etiqueta || pregunta.nombre}{pregunta.etiqueta ? <small> ({pregunta.nombre})</small> : null}</span>
                   </label>
-                )) : <p>La encuesta todavía no trae preguntas; actualiza para leerlas.</p>}
+                )) : <p title="Actualiza para leerlas">La encuesta todavía no trae preguntas</p>}
               </fieldset>
             </>
           ) : (

@@ -69,7 +69,7 @@ import {
   monitoreoSeccionDesdeParams,
   useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
-import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal, vistaDeDestino } from "./navegacion/direccionTelefonica";
+import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, readinessDeTelefonico, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal, vistaDeDestino } from "./navegacion/direccionTelefonica";
 import { pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
@@ -19634,7 +19634,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : "false"}
+          data-audit-ready={auditReady ? (isPhone ? readinessDeTelefonico(seccionActiva, pestanaActiva) : "monitoreo-acreditacion") : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />

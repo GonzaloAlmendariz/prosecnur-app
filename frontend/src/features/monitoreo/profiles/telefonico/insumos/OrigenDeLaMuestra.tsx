@@ -3,6 +3,7 @@ import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { NotaDelModo } from "../../../core/NotaDelModo";
+import { Switch } from "../../../../../components/Switch";
 import {
   borradorInicial,
   clavesDelPerfil,
@@ -184,12 +185,12 @@ export function OrigenDeLaMuestra({
                     <th scope="row">{valor}</th>
                     <td className="is-num">{casos(cuantos)}</td>
                     <td>
-                      <input
-                        type="checkbox"
+                      {/* Booleano que queda puesto: interruptor, no casilla (Meta B, L26). */}
+                      <Switch
                         checked={borrador.marca.si.includes(valor)}
                         disabled={valor === "Sin dato"}
-                        onChange={(event) => marcarSi(valor, event.currentTarget.checked)}
-                        aria-label={`${valor} significa reemplazo`}
+                        onToggle={() => marcarSi(valor, !borrador.marca.si.includes(valor))}
+                        ariaLabel={`${valor} significa reemplazo`}
                       />
                     </td>
                   </tr>

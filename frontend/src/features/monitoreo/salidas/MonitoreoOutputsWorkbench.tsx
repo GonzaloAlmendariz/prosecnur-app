@@ -38,6 +38,7 @@ import {
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { Switch } from "../../../components/Switch";
 import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
 import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
 import "./outputsWorkbench.css";
@@ -142,7 +143,7 @@ export type MonitoreoOutputsWorkbenchProps = {
   /**
    * Cabecera como primera tarjeta de una ficha (§2a-bis del estándar de
    * Monitoreo): antetítulo sin píldora, el corte en una sola línea (los granos
-   * ya van debajo, en el estado del corte) y «Incluir metas» como casilla
+   * ya van debajo, en el estado del corte) y «Incluir metas» como interruptor
    * simple. También quita el teñido de las tarjetas: el estado va en el borde
    * lateral y en su chip. Opcional y aditiva: sólo la pasa Telefónico.
    */
@@ -218,7 +219,7 @@ function copyForFamily(family: OutputFamily) {
     return {
       eyebrow: "PDF telefónico",
       title: "PDF de avance telefónico",
-      detail: "Avance ejecutivo, ritmo diario y cuotas del corte activo, en una salida agregada para cliente.",
+      detail: "Avance, ritmo diario y cuotas",
       button: "Generar PDF telefónico",
       progress: "Generando PDF telefónico",
       ready: "PDF telefónico listo para descargar.",
@@ -266,7 +267,7 @@ function productionCopyForFamily(family: OutputFamily) {
     return {
       eyebrow: "Producción telefónica",
       title: "Producción por responsable",
-      detail: "Resumen por responsable, estados de llamada y trazabilidad del barrido contra Kobo.",
+      detail: "Por responsable, con sus estados de llamada",
       button: "Generar PDF de producción telefónica",
       progress: "Generando PDF de producción telefónica",
       ready: "PDF de producción telefónica listo para descargar.",
@@ -791,6 +792,9 @@ export function MonitoreoOutputsWorkbench({
   // El PDF de avance es el entregable de cliente: pasa por el gate de readiness,
   // no por el conteo de filas del snapshot.
   const canGeneratePdf = salidaClienteHabilitada && !pdfJobId;
+  const motivoPdfBloqueado = salidaClienteHabilitada
+    ? undefined
+    : readiness.bloqueos[0]?.mensaje ?? "El corte todavía no puede publicarse a cliente";
   const canGenerateProductionPdf = hasSnapshot && nRows > 0 && !productionPdfJobId;
   const sheetsClienteBloqueado = activeAudience === "client" && !salidaClienteHabilitada;
   const canPreflightSheets = hasSnapshot &&
@@ -1188,19 +1192,21 @@ export function MonitoreoOutputsWorkbench({
           </div>
         )}
         {ofreceMetasOpcionales ? (
+          // Un booleano que queda puesto es un interruptor, no una casilla
+          // (maqueta Meta B, L26).
           <label className="mon-outputs-targets-toggle">
-            <input
-              type="checkbox"
+            <Switch
               checked={includeTargets}
-                  onChange={(event) => {
-                    setIncludeTargets(event.target.checked);
-                    setPreflights({ client: null, internal: null });
-                    setEvidencePacks({ client: null, internal: null });
-                    setEvidenceStatuses(emptyEvidencePackStatuses());
-                  }}
+              ariaLabel="Incluir metas"
+              onToggle={() => {
+                setIncludeTargets((actual) => !actual);
+                setPreflights({ client: null, internal: null });
+                setEvidencePacks({ client: null, internal: null });
+                setEvidenceStatuses(emptyEvidencePackStatuses());
+              }}
               disabled={!hasSnapshot || Boolean(pdfJobId) || Boolean(productionPdfJobId) || Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || operationalBusy}
             />
-            <span>Incluir metas</span>
+            <span aria-hidden="true">Incluir metas</span>
           </label>
         ) : null}
       </header>
@@ -1216,11 +1222,6 @@ export function MonitoreoOutputsWorkbench({
                 <strong>{copy.title}</strong>
                 <small>{copy.detail}</small>
               </div>
-              {readiness.bloqueos.length ? (
-                <div className="mon-outputs-alert is-error">
-                  <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
-                </div>
-              ) : null}
               {ofrecePortada ? (
                 <div className="mon-outputs-portada">
                   <button
@@ -1265,16 +1266,26 @@ export function MonitoreoOutputsWorkbench({
                   ) : null}
                 </div>
               ) : null}
-              <button
-                type="button"
-                className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
-                onClick={() => { void generatePdf(); }}
-                disabled={!canGeneratePdf}
-                style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
-              >
-                {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
-                {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
-              </button>
+              {/* El bloqueo se dice una sola vez, en el estado del corte de arriba.
+                  Aquí sólo queda el motivo en el tooltip del botón deshabilitado;
+                  el envoltorio lleva el `title` porque un botón deshabilitado no
+                  recibe el puntero en todos los motores. */}
+              <span className="mon-outputs-action-motivo" title={motivoPdfBloqueado}>
+                <button
+                  type="button"
+                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
+                  onClick={() => { void generatePdf(); }}
+                  disabled={!canGeneratePdf}
+                  aria-describedby={motivoPdfBloqueado ? "mon-outputs-pdf-motivo" : undefined}
+                  style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
+                >
+                  {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
+                  {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
+                </button>
+                {motivoPdfBloqueado ? (
+                  <span id="mon-outputs-pdf-motivo" className="pulso-sr-only">{motivoPdfBloqueado}</span>
+                ) : null}
+              </span>
               <JobStatusLine
                 jobId={pdfJobId}
                 label={copy.progress}
@@ -1319,7 +1330,7 @@ export function MonitoreoOutputsWorkbench({
                 <span>Orden por apellido</span>
                 <span>Detalle por responsable</span>
               </div>
-              <label className="mon-outputs-field mon-outputs-production-title">
+              <label className="mon-outputs-field mon-outputs-production-title" title="Va en la portada y en el encabezado del reporte">
                 <span>Título del PDF</span>
                 <input
                   type="text"
@@ -1329,7 +1340,6 @@ export function MonitoreoOutputsWorkbench({
                   disabled={Boolean(productionPdfJobId)}
                   onChange={(event) => setProductionPdfTitle(event.target.value)}
                 />
-                <small>Se usará en la portada y en el encabezado del reporte.</small>
               </label>
               {!hasSnapshot ? (
                 <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> Sincroniza un corte antes de generar producción.</div>
@@ -1440,19 +1450,20 @@ export function MonitoreoOutputsWorkbench({
                 </button>
               </>
             ) : (
-              <p className="mon-outputs-processing-hint">
-                El trabajo de campo validado se trae desde <strong>Carga</strong>, junto con su
-                formulario, para validar y codificar en Procesamiento.
+              <p
+                className="mon-outputs-processing-hint"
+                title="El trabajo de campo validado se trae con su formulario para validar y codificar"
+              >
+                Se trae desde <strong>Carga</strong>
               </p>
             )}
           </article>
         </div>
 
         <article className="mon-outputs-card mon-outputs-card--sheets">
-          <div className="mon-outputs-card__head">
+          <div className="mon-outputs-card__head" title="Cada audiencia se publica por separado">
             <span>Google Sheets</span>
             <strong>Cliente e interno</strong>
-            <small>Las audiencias se publican por separado para preservar el alcance de cada salida.</small>
           </div>
           <GlidingTabList
             activeKey={activeAudience}
@@ -1493,11 +1504,11 @@ export function MonitoreoOutputsWorkbench({
             </div>
             {activeAudience === "internal" ? (
               <label className="mon-outputs-confirm">
-                <input
-                  type="checkbox"
+                <Switch
                   checked={internalConfirmed}
-                  onChange={(event) => {
-                    setInternalConfirmed(event.target.checked);
+                  ariaLabel="Confirmo que esta salida interna puede incluir datos personales, GPS, IDs y auditoría."
+                  onToggle={() => {
+                    setInternalConfirmed((actual) => !actual);
                     setPreflights((current) => ({ ...current, internal: null }));
                     setEvidencePacks((current) => ({ ...current, internal: null }));
                     setEvidenceStatuses((current) => ({ ...current, internal: { kind: "idle", message: "" } }));
@@ -1508,7 +1519,7 @@ export function MonitoreoOutputsWorkbench({
                   }}
                   disabled={Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || operationalBusy}
                 />
-                <span>Confirmo que esta salida interna puede incluir datos personales, GPS, IDs y auditoría.</span>
+                <span aria-hidden="true">Confirmo que esta salida interna puede incluir datos personales, GPS, IDs y auditoría.</span>
               </label>
             ) : null}
             <label className="mon-outputs-field">

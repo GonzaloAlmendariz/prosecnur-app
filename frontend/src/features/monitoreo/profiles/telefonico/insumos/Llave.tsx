@@ -121,7 +121,7 @@ export function LlaveYFiltros({
               <ul className="mon-llave-pasos">
                 <li><span>Coincidencia exacta</span><strong className="is-num">{n(cruce.exacta)}</strong></li>
                 <li>
-                  <span>Por sus dígitos <small>un código sin prefijo que señala un único caso</small></span>
+                  <span title="Un código sin prefijo que señala un único caso">Por sus dígitos</span>
                   <strong className="is-num">{cruce.normalizada ? `+${n(cruce.normalizada)}` : "0"}</strong>
                 </li>
                 <li className="is-total"><span>Cruzan con la base</span><strong className="is-num">{n(cruce.cruzan)} de {n(cruce.total)}</strong></li>
@@ -149,8 +149,12 @@ export function LlaveYFiltros({
           <ul className="mon-llave-fuera">
             {prueba ? <li>{prueba}</li> : null}
             <li>
-              Un envío por CodPulso
-              {respuestas.repetidos ? `: ${mermaDeRepetidos(respuestas)} ${respuestas.repetidos === 1 ? "queda fuera" : "quedan fuera"}.` : "."}
+              <span>Un envío por CodPulso</span>
+              {respuestas.repetidos ? (
+                <strong className="is-num" title={`${mermaDeRepetidos(respuestas)} ${respuestas.repetidos === 1 ? "queda fuera" : "quedan fuera"}`}>
+                  −{n(respuestas.repetidos)}
+                </strong>
+              ) : null}
             </li>
           </ul>
         </section>

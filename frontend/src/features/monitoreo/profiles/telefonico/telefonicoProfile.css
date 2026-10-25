@@ -4431,7 +4431,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);

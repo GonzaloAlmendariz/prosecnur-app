@@ -100,10 +100,13 @@ export function FichaDelCaso({
       </section>
       <section className="mon-cola-ficha-bloque mon-cola-ficha-nota">
         <span className="mon-cola-antetitulo">Lo que la hoja no registra</span>
-        <p>La fecha y el resultado de cada intento, la hora y el número marcado. Por eso la ficha no muestra historia de llamadas.</p>
+        <p title="Por eso la ficha no muestra historia de llamadas">Fecha, resultado, hora y número de cada intento</p>
       </section>
-      <footer className="mon-cola-ficha-pie">
-        El supervisor decide si se sigue insistiendo. La asignación se cambia en la hoja del equipo; Monitoreo la lee al actualizar.
+      <footer
+        className="mon-cola-ficha-pie"
+        title="El supervisor decide si se sigue insistiendo. Monitoreo lee la hoja al actualizar."
+      >
+        La asignación se cambia en la hoja del equipo
       </footer>
     </aside>
   );

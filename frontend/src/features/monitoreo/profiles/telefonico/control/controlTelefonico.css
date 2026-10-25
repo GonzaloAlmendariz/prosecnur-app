@@ -90,15 +90,19 @@
   overflow: auto;
 }
 
+/* Tabla de la casa (maqueta Meta B, L28/L29): celda de 12.5 px con cifras
+ * tabulares, cabecera pegada en la fila de cabecera de la casa, 10 px en
+ * versalitas (el piso de la escala) y una fila por registro. */
 .mon-ctl-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-ctl-tabla th,
 .mon-ctl-tabla td {
-  padding: 9px var(--pulso-space-3);
+  padding: 8px var(--pulso-space-3);
   border-top: 1px solid var(--pulso-surface-3);
   text-align: left;
   vertical-align: middle;
@@ -109,13 +113,35 @@
   top: 0;
   z-index: 1;
   border-top: 0;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
+  background: var(--pulso-header-row);
+  color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* `:where` deja la especificidad en cero: una celda con tinte propio (la
+ * matriz de Estados por operador) conserva su color. */
+:where(.mon-ctl-tabla tbody tr:hover) > * {
+  background-color: var(--pulso-surface-2);
+}
+
+/* La fila elegida, en todas las tablas del perfil: fondo y borde lateral
+ * sólido en la primera celda; nunca una franja de sombra interior. */
+:where(.mon-ctl-tabla tbody tr.is-activo) > * {
+  background-color: var(--pulso-surface-3);
+}
+
+:where(.mon-ctl-tabla tbody tr.is-activo) > :first-child {
+  border-left: 3px solid var(--pulso-brand-navy);
+}
+
+/* Un botón dentro de una celda (el código, el operador, la causa) no impone
+ * el alto de control de la casa a la fila: la fila mide su línea (L29). */
+.mon-ctl-tabla tbody :is(th, td) > button {
+  min-height: 0;
 }
 
 .mon-ctl-tabla tbody th,
@@ -1245,7 +1271,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
 }
 
 .mon-avisos-por-revisar-tabla th:nth-child(1) { width: 112px; }

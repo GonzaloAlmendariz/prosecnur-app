@@ -143,7 +143,7 @@ export function Fuentes({
       <section className="mon-ctl-panel mon-fuentes-columnas" aria-label="Columnas que se leen" data-qa-geometry-capacity="owned">
         <header className="mon-insumos-cabecera">
           <strong>Columnas que se leen</strong>
-          <span>{n(declaradas)} {declaradas === 1 ? "declarada" : "declaradas"} por la fuente; el resto se busca por nombre</span>
+          <span title="Declaradas por la fuente. El resto se busca por nombre.">{n(declaradas)} {declaradas === 1 ? "declarada" : "declaradas"}</span>
         </header>
         <div className="mon-fuentes-marco">
           <table className="mon-ctl-tabla mon-fuentes-tabla">
