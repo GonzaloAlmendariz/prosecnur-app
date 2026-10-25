@@ -494,3 +494,58 @@ frío (familia de H-3), no de esta ronda; queda anotado para la ronda 4.
   parámetros.
 - **Ficha de UMP**: la fila de caso parte «Hombre, 51 años» en dos líneas a 1440.
 - H-3 y H-4 siguen anotados arriba.
+
+## Ronda 4 (2026-10-25): la última de Territorial
+
+Sólo los pendientes de la ronda 3; ningún frente nuevo. `components/**` y `core/**` no se tocaron (quedan para el
+botón único «Actualizar»).
+
+- **Ocurrencias › Distritos y Ritmo.** Dejan de montar `TerritorialFieldOccurrencesWorkbench` (que sigue montando
+  Reportes › UMP y Alertas, por eso no se borra nada): son pestañas propias (`control/OcurrenciasPaneles.tsx`, modelo
+  puro `ocurrenciasPanelesModel.ts` con test). El rótulo de la pestaña encabeza la primera tarjeta, como en Resumen.
+  - *Distritos*: una tarjeta por distrito con su contorno, la cobertura de partes en barra («7 de 25 UMP con parte»),
+    seis cifras rotuladas una por fila (intentos, efectivas declaradas, no efectividad, completas, incompletas y
+    válidas sin parte; el último ingreso sin parte va en el tooltip) y los tres motivos en chips con su rótulo corto.
+    Las tarjetas reparten el alto (contrato `equal`) y reparten su aire por dentro; los grupos que no son distrito
+    («UMP sin cruce con la ruta») van al final. Antes: cadena «19 REPORTADAS · 4 COMPLETAS SIN OCURRENCIAS · …» en
+    mayúsculas y celdas que partían «INCOMPLETA S SIN OCURRENCIA S».
+  - *Ritmo*: a la izquierda la tabla por día (intentos en barra, con el tramo de efectivas declaradas; los encabezados
+    llevan el color de su serie, así que no hace falta leyenda) cuyas filas reparten el alto; a la derecha las cuatro
+    cifras (intentos, días con parte, pico diario, último día) y las lecturas del formulario, con tipo y estado en
+    chip («Lectura de partes», «Correcta») en vez de «sync», «ok» y la fecha pegada con «·».
+- **Avance › Resumen.** «Por qué N están en observación» era la última tarjeta y crecía, pero su lista medía lo
+  suyo y dejaba ~110 px sobre las fechas. Ahora las filas de la lista toman ese alto (contrato `equal`), la regla de
+  las demás columnas.
+- **Modelo › Metas, fases.** La frase «1,594 en el corte y meta de 1,200, desde el 12/06» pasa a celdas rotuladas
+  (Respuestas, Meta, Desde), tres columnas en las dos tarjetas para que casen; «Respuestas» lleva en el tooltip que
+  son las del corte. `opcionesDeFase` publica `cifras` además de `detalle` (el selector de fase del chrome sigue
+  usando la frase). Test: `navegacion/fase.test.ts`.
+- **Ficha de UMP.** Las filas de «Casos de la UMP» comparten columnas (`subgrid`): «Hombre, 51 años» no parte y la
+  distancia se alinea a la derecha en todas las filas. Si la ficha es angosta, quien parte es el estado.
+- **Arranque en frío (diagnóstico).** No se reproduce. Con pila propia y Reportes como primera ruta, la vista quedó
+  lista en 53 s: la página pidió el estado ligero y luego `queries_summary` (19 s en frío) y `validation_summary`
+  (20 s), los dos cortes que declara Reportes, y se marcó lista. Subsanaciones como primera ruta pasó igual en la
+  corrida `terr-r4/a`. Las dos corridas de la ronda 3 que se quedaron 420 s en `marca-en-false` usaban la pila
+  compartida de `terr/sesion.sh` (frontend y API «existentes», con el navegador vivo `vivo.mjs` sobre la misma
+  sesión y el mismo puerto, mientras se editaba el árbol): dos navegadores sobre una API de un solo hilo y el HMR
+  reiniciando el arranque. No es un corte que nunca llega ni un defecto del frontend; no hay nada que corregir aquí.
+  H-3 (`casos-ump` síncrono) sigue siendo el costo real de la primera UMP abierta y queda anotado arriba.
+
+| Pestaña | Antes (terr-r3/b) | Después (terr-r4) |
+|---|---|---|
+| Control › Ocurrencias › Distritos | vista heredada: otra cabecera, «19 REPORTADAS · 4 COMPLETAS SIN OCURRENCIAS · …», celdas «INCOMPLETA S SIN OCURRENCIA S», motivo «Vivienda abandonada/sin vivencia/inaccesible» | rótulo en la primera tarjeta; tarjeta por distrito con contorno, cobertura en barra, seis cifras rotuladas y tres motivos con rótulo corto; contrato `equal`, sin «…» (`terr-r4/c`) |
+| Control › Ocurrencias › Ritmo | vista heredada: barras con «pico diario · 15/06», «ultimo dia», historial «sync / ok» con «·» | tabla por día con barra de intentos y tramo de efectivas; cuatro cifras en celdas; lecturas con tipo y estado en chip (`terr-r4/c`) |
+| Avance › Resumen | ~110 px vacíos entre la lista de motivos y las fechas | la lista toma el alto; fechas al pie sin hueco (`terr-r4/a`) |
+| Modelo › Metas (fases) | «1,594 en el corte y meta de 1,200, desde el 12/06» | celdas Respuestas, Meta y Desde en las dos fases (`terr-r4/c`) |
+| Avance › Mapa y UMP (ficha) | «Hombre, 51 años» en dos líneas; distancias desalineadas | una línea, columnas comunes (`terr-r4/a`) |
+
+Corridas: `terr-r4/a` (Subsanaciones primero en frío; 14 capturas, 14 distintas) `issues=0 scrollJails=0`, con
+`equal-frame-drift` de 5 px y 16 colecciones sin contrato en la primera versión de Distritos, corregidos;
+`terr-r4/c` (6 capturas, 6 distintas) `ok=true issues=0 scrollJails=0 geometryIssues=0 geometryCoverageMisses=0
+desplazamientoH=0`. Metas a 1024 × 600 da la misma imagen en `a` y `c` porque las fases quedan bajo el pliegue (la
+geometría sí las mide, sin hallazgos).
+
+Pendientes que quedan (fuera del alcance de la ronda):
+- H-3 (`casos-ump` síncrono, backend) y H-4 (P514 conciliado con dos personas, decide coordinación), arriba.
+- Reportes › UMP y Reportes › Alertas siguen en la vista heredada; no estaban en la lista de esta ronda.
+- El botón único «Actualizar» (`components/**`, `core/**`) viene después.
