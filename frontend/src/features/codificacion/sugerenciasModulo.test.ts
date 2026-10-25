@@ -12,6 +12,8 @@ import {
   pendientesDelModulo,
   podarCasosSugeridos,
   quitarSugerencia,
+  rotuloCortoSubtema,
+  rotuloDePropuesta,
   rotuloModulo,
   sugerenciasPorRespuesta,
 } from "./sugerenciasModulo";
@@ -143,5 +145,57 @@ describe("rotuloModulo: el módulo en palabras llanas", () => {
   });
   it("una etiqueta sin el patrón queda como está", () => {
     expect(rotuloModulo("Datos del hogar")).toEqual({ letra: "", nombre: "Datos del hogar", corto: "Datos del hogar", grupo: "Datos del hogar" });
+  });
+});
+
+// TXT-17: un subtema (módulo partido, TXT-11) trae como etiqueta el enunciado entero de su batería. La banda y los chips
+// van con un rótulo corto, de 2 a 4 palabras, derivado del enunciado; el enunciado completo queda en el tooltip.
+describe("rotuloCortoSubtema: de 2 a 4 palabras desde el enunciado de la batería", () => {
+  const casos: Array<[string, string]> = [
+    ["Experiencia universitaria: preguntas generales", "Preguntas generales"],
+    ["¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?", "Redes sociales y plataformas"],
+    ["¿Con qué frecuencia utilizas las siguientes herramientas de inteligencia artificial…", "Herramientas de inteligencia artificial"],
+    ["¿Cómo te definirías como estudiante en los siguientes bloques? Selecciona la opción que…", "Como estudiante"],
+    ["¿Cómo valoras los recursos que ofrece la Facultad?", "Recursos de la Facultad"],
+    ["¿Qué tan de acuerdo estás con las siguientes afirmaciones sobre tu comodidad para…", "Tu comodidad"],
+    ["¿Qué tan de acuerdo estás con las siguientes afirmaciones sobre la relación entre…", "La relación"],
+    ["¿Qué tan de acuerdo estás con la siguiente afirmación sobre los horarios de atención…", "Horarios de atención"],
+    ["EXPERIENCIA LABORAL", "Experiencia laboral"],
+  ];
+  it.each(casos)("«%s» → «%s»", (enunciado, corto) => {
+    expect(rotuloCortoSubtema(enunciado)).toBe(corto);
+  });
+  it("nunca pasa de cuatro palabras ni termina en una palabra vacía", () => {
+    for (const [e] of casos) {
+      const r = rotuloCortoSubtema(e).split(" ");
+      expect(r.length).toBeLessThanOrEqual(4);
+      expect(["de", "la", "el", "y", "para", "entre", "con"]).not.toContain(r[r.length - 1].toLowerCase());
+    }
+    expect(rotuloCortoSubtema("Uno dos tres cuatro cinco seis siete")).toBe("Uno dos tres cuatro");
+  });
+  it("dos subtemas fusionados («a / b») acortan cada parte", () => {
+    expect(rotuloCortoSubtema("EXPERIENCIA LABORAL / ¿Cómo valoras los recursos que ofrece la Facultad?")).toBe("Experiencia laboral / Recursos de la Facultad");
+  });
+  it("vacío no inventa nada", () => {
+    expect(rotuloCortoSubtema("  ")).toBe("");
+  });
+});
+
+describe("rotuloDePropuesta: el subtema se nombra con la letra de su módulo y su rótulo corto", () => {
+  // TXT-21: el grupo que crea «Confirmar» se llama igual que lo que muestra la banda: es la etiqueta que ven los gráficos.
+  it("con padre: «B · Redes sociales y plataformas», también como nombre del grupo, y el enunciado entero para el tooltip", () => {
+    const r = rotuloDePropuesta({ etiqueta: "¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
+    expect(r.corto).toBe("B · Redes sociales y plataformas");
+    expect(r.grupo).toBe(r.corto);
+    expect(r.completo).toBe("¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?");
+  });
+  it("lo que repite el nombre del módulo no distingue: «Experiencia laboral» en «Experiencia universitaria» es «B · Laboral»", () => {
+    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA LABORAL", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B · Laboral");
+    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA UNIVERSITARIA", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B · Universitaria");
+  });
+  it("sin padre es el rótulo de módulo de siempre", () => {
+    const r = rotuloDePropuesta({ etiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
+    expect(r.corto).toBe("B · Experiencia universitaria");
+    expect(r.completo).toBe("MÓDULO B. EXPERIENCIA UNIVERSITARIA");
   });
 });

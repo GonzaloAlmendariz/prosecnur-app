@@ -59,3 +59,20 @@ describe("normalizeCodifSugerenciasSeccion", () => {
     expect(normalizeCodifSugerenciasSeccion(null).requiereConfirmacion).toBe(true);
   });
 });
+
+// TXT-11/17: un módulo partido trae sus subtemas con `padre`; las propuestas a un subtema también. El front los agrupa
+// bajo su módulo y los nombra con la letra del módulo.
+describe("normalizeCodifSugerenciasSeccion: subtemas", () => {
+  it("lleva `padre` y la etiqueta del módulo padre a los subtemas y a sus propuestas", () => {
+    const out = normalizeCodifSugerenciasSeccion({
+      modulos: [
+        { codigo: "20", seccion: "modulo_b", etiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA", n_terminos: 9 },
+        { codigo: "22", seccion: "redes", etiqueta: "¿Con qué frecuencia utilizas las siguientes redes sociales?", padre: "20", n_terminos: 4 },
+      ],
+      respuestas: [{ id_caso: "1", texto: "x", propuestas: [{ codigo: "22", etiqueta: "¿Con qué frecuencia utilizas las siguientes redes sociales?", padre: "20", subtema: "22", puntaje: 1 }] }],
+    });
+    expect(out.modulos[0].padre).toBeUndefined();
+    expect(out.modulos[1]).toMatchObject({ padre: "20", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
+    expect(out.respuestas[0].propuestas[0]).toMatchObject({ codigo: "22", padre: "20", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
+  });
+});

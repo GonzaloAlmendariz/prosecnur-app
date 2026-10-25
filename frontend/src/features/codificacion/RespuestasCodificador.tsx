@@ -36,7 +36,7 @@ import {
   deshacerConfirmacion,
   podarCasosSugeridos,
   quitarSugerencia,
-  rotuloModulo,
+  rotuloDePropuesta,
   sugerenciasPorRespuesta,
   type EntradaSugerida,
   type RegistroConfirmacion,
@@ -394,20 +394,20 @@ export function RespuestasCodificador({ parent }: Props) {
   }
 
   function confirmarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
-    const r = rotuloModulo(p.etiqueta);
+    const r = rotuloDePropuesta(p);
     setGrupos(confirmarSugerencias(grupos, { codigo: p.codigo, etiqueta: r.grupo }, [entrada]).grupos);
     announce(`"${respuestaLabel(entrada.clave)}" confirmada en ${r.corto}.`);
   }
 
   function quitarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
-    const r = rotuloModulo(p.etiqueta);
+    const r = rotuloDePropuesta(p);
     setGrupos(quitarSugerencia(grupos, p.codigo, entrada.clave));
     announce(`"${respuestaLabel(entrada.clave)}" quitada de ${r.corto}.`);
   }
 
   function confirmarModulo(m: ModuloSugerible, entradas: EntradaSugerida[]) {
     if (!entradas.length) return;
-    const r = rotuloModulo(m.etiqueta);
+    const r = rotuloDePropuesta(m);
     const out = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
     setGrupos(out.grupos);
     setUltimaMasiva({ registro: out.registro, aviso: { modulo: r.corto, n: entradas.length } });

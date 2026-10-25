@@ -275,3 +275,23 @@ export function mensajeGuardadoLlano(code: string, mensaje: string): string {
   if (code === "E_TXT_MOSTRAR_FUERA_DE_FORMAS") return "La palabra que se muestra tiene que ser una de las que uniste.";
   return frase || "No se pudo guardar.";
 }
+
+export type TotalGrupo = {
+  /** Personas que usan alguna palabra del grupo, sin repetir (del backend); `null` mientras el grupo no esté guardado. */
+  personas: number | null;
+  /** Personas por palabra del grupo, de más a menos: el desglose («alumnos 6 + estudiantes 7»). */
+  partes: Array<{ forma: string; personas: number }>;
+};
+
+/** TXT-18: el total de un grupo unido y su desglose por palabra. */
+export function totalDelGrupo(g: EquivalenciaPalabras, datos: TextoAbiertoDiccionario | null): TotalGrupo {
+  if (!datos) return { personas: null, partes: [] };
+  const mismas = (a: readonly string[], b: readonly string[]) =>
+    a.length === b.length && a.every((f) => contieneTermino(b, f));
+  const guardado = datos.grupos.find((s) => claveTermino(s.mostrar) === claveTermino(g.mostrar) && mismas(s.formas, g.formas));
+  const partes = datos.palabras
+    .filter((p) => p.formas.some((f) => contieneTermino(g.formas, f)))
+    .map((p) => ({ forma: p.forma, personas: p.personas }))
+    .sort((a, b) => b.personas - a.personas);
+  return { personas: guardado ? guardado.personas : null, partes };
+}

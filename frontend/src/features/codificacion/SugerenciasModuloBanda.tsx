@@ -5,7 +5,7 @@
 import { Undo2 } from "lucide-react";
 import type { CodifSugerenciasSeccion, Grupo, ModuloSugerible } from "../../api/codificacion";
 import { formatoConteo } from "../../lib/formatoNumero";
-import { pendientesDelModulo, rotuloModulo, type EntradaSugerida } from "./sugerenciasModulo";
+import { pendientesDelModulo, rotuloDePropuesta, type EntradaSugerida } from "./sugerenciasModulo";
 import "./sugerenciasModulo.css";
 
 export type UltimaConfirmacion = { modulo: string; n: number };
@@ -22,13 +22,21 @@ type Props = {
 export function SugerenciasModuloBanda({ datos, mapa, grupos, ultima, onConfirmarModulo, onDeshacer }: Props) {
   const entradas = [...mapa.values()];
   const sinModulo = entradas.filter((e) => e.candidatoOtro).length;
+  const fila = (m: ModuloSugerible) => ({
+    m,
+    r: rotuloDePropuesta(m),
+    total: entradas.filter((e) => e.propuestas.some((p) => p.codigo === m.codigo)).length,
+    pendientes: pendientesDelModulo(mapa, grupos, m.codigo),
+  });
+  // TXT-17: los subtemas de un módulo partido (TXT-11) van dentro de su módulo, que muestra el total de los suyos.
   const filas = datos.modulos
-    .map((m) => ({
-      m,
-      r: rotuloModulo(m.etiqueta),
-      total: entradas.filter((e) => e.propuestas.some((p) => p.codigo === m.codigo)).length,
-      pendientes: pendientesDelModulo(mapa, grupos, m.codigo),
-    }))
+    .filter((m) => !m.padre)
+    .map((m) => {
+      const subtemas = datos.modulos.filter((s) => s.padre === m.codigo).map(fila).filter((f) => f.total > 0);
+      const codigos = new Set([m.codigo, ...subtemas.map((s) => s.m.codigo)]);
+      const total = subtemas.length ? entradas.filter((e) => e.propuestas.some((p) => codigos.has(p.codigo))).length : fila(m).total;
+      return { ...fila(m), total, subtemas };
+    })
     .filter((f) => f.total > 0);
   return (
     <section
@@ -45,25 +53,30 @@ export function SugerenciasModuloBanda({ datos, mapa, grupos, ultima, onConfirma
         <p className="pulso-cv2-modsug-banda-vacia">Ningún comentario comparte palabras con los módulos del formulario.</p>
       ) : (
         <ul className="pulso-cv2-modsug-banda-lista" data-qa-geometry-group="codificacion/sugerencias-modulos" data-qa-geometry-contract="intrinsic">
-          {filas.map(({ m, r, total, pendientes }) => (
-            <li key={m.codigo} className="pulso-cv2-modsug-banda-item" data-qa-geometry-member="modulo">
+          {filas.map(({ m, r, total, pendientes, subtemas }) => subtemas.length ? (
+            <li key={m.codigo} className="pulso-cv2-modsug-banda-item is-grupo" data-qa-geometry-member="modulo">
               <span className="pulso-cv2-modsug-banda-modulo" title={m.etiqueta}>{r.corto}</span>
               <span className="pulso-cv2-modsug-banda-n">
                 {formatoConteo(total)} {total === 1 ? "respuesta" : "respuestas"}
               </span>
-              <button
-                type="button"
-                className="pulso-cv2-modsug-banda-accion"
-                disabled={pendientes.length === 0}
-                aria-label={pendientes.length === 1
-                  ? `Confirmar la respuesta sugerida para ${r.corto}`
-                  : pendientes.length
-                  ? `Confirmar las ${pendientes.length} respuestas sugeridas para ${r.corto}`
-                  : `Todas las sugeridas para ${r.corto} están confirmadas`}
-                onClick={() => onConfirmarModulo(m, pendientes)}
-              >
-                {pendientes.length ? `Confirmar ${formatoConteo(pendientes.length)}` : "Confirmadas"}
-              </button>
+              <ul className="pulso-cv2-modsug-banda-subtemas" aria-label={`Subtemas de ${r.corto}`}
+                data-qa-geometry-group="codificacion/sugerencias-subtemas" data-qa-geometry-contract="intrinsic">
+                {subtemas.map((s) => (
+                  <li key={s.m.codigo} className="pulso-cv2-modsug-banda-item is-subtema" data-qa-geometry-member="subtema">
+                    <span className="pulso-cv2-modsug-banda-modulo" title={s.r.completo}>{s.r.nombre}</span>
+                    <span className="pulso-cv2-modsug-banda-n">{formatoConteo(s.total)}</span>
+                    <BotonConfirmar rotulo={s.r.corto} pendientes={s.pendientes} onConfirmar={() => onConfirmarModulo(s.m, s.pendientes)} />
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ) : (
+            <li key={m.codigo} className="pulso-cv2-modsug-banda-item" data-qa-geometry-member="modulo">
+              <span className="pulso-cv2-modsug-banda-modulo" title={r.completo}>{r.corto}</span>
+              <span className="pulso-cv2-modsug-banda-n">
+                {formatoConteo(total)} {total === 1 ? "respuesta" : "respuestas"}
+              </span>
+              <BotonConfirmar rotulo={r.corto} pendientes={pendientes} onConfirmar={() => onConfirmarModulo(m, pendientes)} />
             </li>
           ))}
           {sinModulo > 0 && (
@@ -86,5 +99,23 @@ export function SugerenciasModuloBanda({ datos, mapa, grupos, ultima, onConfirma
         </p>
       )}
     </section>
+  );
+}
+
+function BotonConfirmar({ rotulo, pendientes, onConfirmar }: { rotulo: string; pendientes: EntradaSugerida[]; onConfirmar: () => void }) {
+  return (
+    <button
+      type="button"
+      className="pulso-cv2-modsug-banda-accion"
+      disabled={pendientes.length === 0}
+      aria-label={pendientes.length === 1
+        ? `Confirmar la respuesta sugerida para ${rotulo}`
+        : pendientes.length
+        ? `Confirmar las ${pendientes.length} respuestas sugeridas para ${rotulo}`
+        : `Todas las sugeridas para ${rotulo} están confirmadas`}
+      onClick={onConfirmar}
+    >
+      {pendientes.length ? `Confirmar ${formatoConteo(pendientes.length)}` : "Confirmadas"}
+    </button>
   );
 }

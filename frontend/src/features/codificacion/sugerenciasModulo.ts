@@ -174,3 +174,85 @@ export function rotuloModulo(etiqueta: string): RotuloModulo {
   const letra = m ? m[1].toLocaleUpperCase("es") : "";
   return { letra, nombre, corto: letra ? `${letra} · ${nombre}` : nombre, grupo: letra ? `${letra}. ${nombre}` : nombre };
 }
+
+// TXT-17: rótulo corto de un subtema (módulo partido, TXT-11), cuya etiqueta es el enunciado entero de su batería. Regla
+// simple, en este orden: (1) «Tema: subtema» se queda con lo de después de los dos puntos; (2) sólo la primera oración,
+// sin signos de pregunta ni «…»; (3) si hay «sobre», «acerca de», «respecto a» o «siguiente(s)», lo que sigue al último,
+// salvo que quede una sola palabra (entonces lo de antes); (4) sin la apertura de la pregunta («Con qué frecuencia
+// utilizas», «Cómo te definirías», «Qué tan de acuerdo estás con»); (5) «X que <verbo> la Y» pasa a «X de la Y»;
+// (6) hasta cuatro palabras, sin palabras vacías al final ni artículos al inicio (si queda más de una).
+
+const VACIAS_BORDE = new Set(["de", "del", "la", "las", "el", "los", "un", "una", "unos", "unas", "y", "o", "en", "con", "para",
+  "por", "a", "al", "entre", "que", "sobre", "tu", "tus", "su", "sus", "mi", "mis", "como"]);
+const ARTICULOS_INICIO = new Set(["la", "las", "el", "los", "un", "una", "unos", "unas", "tu", "tus", "su", "sus", "mi", "mis"]);
+const PIVOTE = /\b(?:sobre|acerca de|respecto a|con respecto a|siguientes?)\s+/gi;
+const APERTURA = /^(?:con qu[eé] frecuencia|en qu[eé] medida|qu[eé] tan de acuerdo|qu[eé] tan|c[oó]mo|cu[aá]ntos?|cu[aá]ntas?|cu[aá]les|cu[aá]l|por qu[eé]|qu[eé]|d[oó]nde)\s+(?:(?:te|se|le|les|me|nos)\s+)?\S+\s*(?:(?:con|en|a|de)\s+)?/i;
+
+const palabras = (s: string) => s.split(/\s+/).filter(Boolean);
+const enFrase = (s: string) => (s && s === s.toLocaleUpperCase("es") ? s.charAt(0) + s.slice(1).toLocaleLowerCase("es") : s);
+
+function recortarBordes(ws: string[], quitarArticulo: boolean): string[] {
+  const out = [...ws];
+  while (out.length && VACIAS_BORDE.has(out[out.length - 1].toLocaleLowerCase("es"))) out.pop();
+  if (quitarArticulo && out.length > 2 && ARTICULOS_INICIO.has(out[0].toLocaleLowerCase("es"))) out.shift();
+  return out;
+}
+
+function cortoDeUno(enunciado: string): string {
+  let t = enunciado.trim().replace(/\s+/g, " ");
+  if (!t) return "";
+  const dos = /^[^¿?:]{2,60}:\s*(.+)$/.exec(t);
+  if (dos) t = dos[1];
+  t = t.replace(/^[¿¡\s]+/, "");
+  const fin = /[?.!]/.exec(t);
+  if (fin) t = t.slice(0, fin.index);
+  t = t.replace(/[…]+|\.{3}/g, " ").trim();
+  let base = t;
+  const pivotes = [...t.matchAll(PIVOTE)];
+  if (pivotes.length) {
+    const ult = pivotes[pivotes.length - 1];
+    const tras = t.slice((ult.index ?? 0) + ult[0].length);
+    if (recortarBordes(palabras(tras), true).length >= 2 || recortarBordes(palabras(tras), false).length >= 2) base = tras;
+    else base = recortarBordes(palabras(t.slice(0, ult.index ?? 0)), false).join(" ");
+  }
+  if (APERTURA.test(base)) base = base.replace(APERTURA, "");
+  let ws = recortarBordes(palabras(base), true);
+  const rel = /^(\S+) que \S+ (la|las|los|el) (\S+)$/i.exec(ws.join(" "));
+  if (rel) ws = palabras(`${rel[1]} ${rel[2].toLowerCase() === "el" ? "del" : `de ${rel[2]}`} ${rel[3]}`);
+  ws = recortarBordes(ws.slice(0, 4), false);
+  const out = enFrase(ws.join(" "));
+  return out.charAt(0).toLocaleUpperCase("es") + out.slice(1);
+}
+
+/** Rótulo corto (de 2 a 4 palabras) de un subtema a partir del enunciado de su batería. «a / b» acorta cada parte. */
+export function rotuloCortoSubtema(enunciado: string): string {
+  return enunciado.split(" / ").map(cortoDeUno).filter(Boolean).join(" / ");
+}
+
+export type RotuloPropuesta = RotuloModulo & { completo: string };
+
+/** «Experiencia laboral» dentro de «Experiencia universitaria» es «Laboral»: lo que repite al módulo no distingue. */
+function sinPalabrasDelPadre(corto: string, nombrePadre: string): string {
+  const delPadre = new Set(palabras(nombrePadre).map((w) => normalizarTextoCodif(w)));
+  const ws = palabras(corto);
+  let i = 0;
+  while (i < ws.length - 1 && delPadre.has(normalizarTextoCodif(ws[i]))) i++;
+  const out = ws.slice(i).join(" ");
+  return out ? out.charAt(0).toLocaleUpperCase("es") + out.slice(1) : "";
+}
+
+/** El rótulo de un módulo o, si trae `padreEtiqueta`, el de un subtema con la letra de su módulo. */
+export function rotuloDePropuesta(p: { etiqueta: string; padreEtiqueta?: string }): RotuloPropuesta {
+  if (!p.padreEtiqueta) return { ...rotuloModulo(p.etiqueta), completo: p.etiqueta };
+  const padre = rotuloModulo(p.padreEtiqueta);
+  const nombre = sinPalabrasDelPadre(rotuloCortoSubtema(p.etiqueta), padre.nombre) || padre.nombre;
+  const corto = padre.letra ? `${padre.letra} · ${nombre}` : nombre;
+  // TXT-21: el grupo que crea «Confirmar» se llama como lo muestra la banda; es la etiqueta que después ven los gráficos.
+  return {
+    letra: padre.letra,
+    nombre,
+    corto,
+    grupo: corto,
+    completo: p.etiqueta,
+  };
+}
