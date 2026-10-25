@@ -7,9 +7,9 @@ source("setup-load-all.R")
 
 .FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto")
 
-test_that("los 30 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
+test_that("los 31 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
   m <- .GRAFICADORES_META
-  expect_length(m, 30L)
+  expect_length(m, 31L)
   for (nm in names(m)) {
     expect_true(m[[nm]]$familia_editor %in% .FAMILIAS_F6, info = nm)
     expect_true(is.logical(m[[nm]]$salida_nativa) && length(m[[nm]]$salida_nativa) == 1L && !is.na(m[[nm]]$salida_nativa), info = nm)
@@ -122,7 +122,7 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
 test_that("p_dim_foda y la pieza de la dependencia salen del selector pero siguen registrados y renderizables; los demás quedan", {
   m <- .GRAFICADORES_META
   en <- vapply(m, function(x) x$en_selector, logical(1))
-  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta"))
+  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta", "p_citas"))   # p_citas: entra con su tarjeta de aprobación (TXT-4, O3)
   expect_true("p_dim_foda" %in% .graf_names())                            # el validador del plan lo sigue aceptando
   expect_true(exists("p_dim_foda", mode = "function"))
   reg <- .graficos_registry_payload()
