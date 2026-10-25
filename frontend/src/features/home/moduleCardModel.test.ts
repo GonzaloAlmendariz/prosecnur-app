@@ -452,7 +452,7 @@ describe("moduleCardModel", () => {
       value: "65.5%",
       label: "avance de meta",
     });
-    expect(monitoreo.sub).toBe("Faltan 99 para la meta · 188 de 287");
+    expect(monitoreo.sub).toBe("188 de 287 efectivas, faltan 99");
     expect(monitoreo.facts).toContainEqual({ label: "universo", value: "519" });
     // La alerta ya no borra el progreso de la sub-línea; viaja en su chip y no
     // se repite ahí (regresión de ruido detectada en la app real).
@@ -478,9 +478,54 @@ describe("moduleCardModel", () => {
     };
     const monitoreo = view("monitoreo", overview);
     expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "105.8%" });
-    expect(monitoreo.sub).toBe("Meta cumplida · 423 de 400 efectivas");
+    expect(monitoreo.sub).toBe("423 de 400 efectivas, meta cumplida");
     expect(monitoreo.sub).not.toContain("Faltan");
     expect(monitoreo.facts).toContainEqual({ label: "universo", value: "2,296" });
+  });
+
+  it("mientras el tablero se regenera dice «Actualizando» y no publica la cifra vieja como actual (L20)", () => {
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "telefonico",
+      has_snapshot: true,
+      collected: 2296,
+      valid: 423,
+      target: 400,
+      avance_pct: 105.8,
+      alerts: 0,
+      valid_label: "efectivas",
+      collected_label: "universo",
+      avance_label: "avance de meta",
+      regenerando: true,
+    } as typeof overview.facts.monitoreo;
+    const monitoreo = view("monitoreo", overview);
+    expect(monitoreo.statusLabel).toBe("Actualizando");
+    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "Actualizando", label: "avance de meta" });
+    expect(JSON.stringify(monitoreo.viz)).not.toContain("105.8");
+    expect(monitoreo.sub).toBe("Corte anterior: 423 de 400 efectivas");
+  });
+
+  it("el actor rezagado va a su propio pie, sin encadenarlo con «·»", () => {
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "acreditacion",
+      has_snapshot: true,
+      collected: 519,
+      valid: 188,
+      target: 287,
+      avance_pct: 65.5,
+      alerts: 0,
+      valid_label: "efectivas",
+      collected_label: "universo",
+      avance_label: "avance de meta",
+      actors_count: 4,
+      lagging_actor: "Docentes",
+      lagging_pct: 12.4,
+    };
+    const monitoreo = view("monitoreo", overview);
+    expect(monitoreo.sub).toBe("188 de 287 efectivas, faltan 99");
+    expect(monitoreo.sub).not.toMatch(/[·;]/);
+    expect(monitoreo.facts).toContainEqual({ label: "va último", value: "Docentes al 12%" });
   });
 
   it("cae al vocabulario neutro cuando el backend no manda etiquetas", () => {
@@ -496,7 +541,7 @@ describe("moduleCardModel", () => {
     };
     const monitoreo = view("monitoreo", overview);
     expect(monitoreo.viz).toMatchObject({ kind: "stat", label: "avance de campo" });
-    expect(monitoreo.sub).toBe("Faltan 225 para la meta · 975 de 1,200");
+    expect(monitoreo.sub).toBe("975 de 1,200 válidos, faltan 225");
     expect(monitoreo.facts).toContainEqual({ label: "recolectados", value: "1,351" });
   });
 
