@@ -835,6 +835,9 @@
     flex: none;
     height: auto;
     max-height: none;
+    /* En columna, `align-self: start` encoge la tarjeta a su tabla (QA final:
+     * 232 px vacíos a la derecha de Estados a 1024). Toma el ancho. */
+    align-self: stretch;
   }
 
   .mon-insumos-columna > .mon-llave-envios,
