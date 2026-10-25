@@ -260,3 +260,10 @@
     grid-template-columns: 120px minmax(0, 1fr) 40px;
   }
 }
+
+/* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
+ * queda pegada al borde de la tarjeta. */
+.mon-anu-tabla th:last-child,
+.mon-anu-tabla td:last-child {
+  padding-right: var(--pulso-space-4);
+}

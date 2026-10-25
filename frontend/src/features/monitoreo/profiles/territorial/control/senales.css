@@ -278,3 +278,10 @@
     overflow: visible;
   }
 }
+
+/* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
+ * queda pegada al borde de la tarjeta. */
+.mon-sen-tabla th:last-child,
+.mon-sen-tabla td:last-child {
+  padding-right: var(--pulso-space-4);
+}

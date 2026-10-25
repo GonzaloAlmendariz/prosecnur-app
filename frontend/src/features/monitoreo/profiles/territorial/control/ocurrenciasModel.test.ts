@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { motivosDeLaBarra, construirOcurrencias } from "./ocurrenciasModel";
+import { motivosDeLaBarra, construirOcurrencias, rotuloCortoDeMotivo } from "./ocurrenciasModel";
 
 const CORTE = {
   field_occurrences: {
@@ -62,5 +62,17 @@ describe("Control › Ocurrencias", () => {
 
   it("sin partes no hay ocurrencias", () => {
     expect(construirOcurrencias(null).conPartes).toBe(false);
+  });
+
+  it("los motivos llevan un rótulo corto que cabe en su encabezado", () => {
+    expect(rotuloCortoDeMotivo("Fuera de cuota (sexo, edad)")).toBe("Fuera de cuota");
+    expect(rotuloCortoDeMotivo("Vivienda abandonada/sin vivencia/inaccesible")).toBe("Vivienda abandonada");
+    expect(rotuloCortoDeMotivo("Miembros del hogar ausentes")).toBe("Hogar ausente");
+    expect(rotuloCortoDeMotivo("No cumple criterios de selección del entrevistado")).toBe("No cumple criterios");
+    expect(rotuloCortoDeMotivo("No quería participar")).toBe("No quería participar");
+    expect(rotuloCortoDeMotivo("Un motivo larguísimo que nadie previó en el parte")).toBe("Un motivo larguísimo…");
+    for (const corto of ["Fuera de cuota (sexo, edad)", "Vivienda abandonada/sin vivencia/inaccesible"].map((r) => rotuloCortoDeMotivo(r))) {
+      expect(corto.length).toBeLessThanOrEqual(22);
+    }
   });
 });

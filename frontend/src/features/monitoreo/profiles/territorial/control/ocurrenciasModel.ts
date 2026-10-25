@@ -113,3 +113,30 @@ export function motivosDeLaBarra(motivos: readonly Motivo[], colores = 6): Motiv
   const proporcion = resto.reduce((suma, motivo) => suma + motivo.proporcion, 0);
   return [...primeros, { clave: "otros", rotulo: `Otros ${resto.length} motivos`, total, proporcion }];
 }
+
+/** Rótulos cortos de los motivos frecuentes del parte de ocurrencias. */
+const CORTOS: Array<[RegExp, string]> = [
+  [/miembros del hogar ausentes?/i, "Hogar ausente"],
+  [/no cumple (los )?criterios/i, "No cumple criterios"],
+];
+
+/**
+ * Rótulo corto de un motivo, para encabezados y leyendas que no caben con el
+ * rótulo del formulario («Fuera de cuota (sexo, edad)», «Vivienda abandonada/
+ * sin vivencia/inaccesible»). Quita la aclaración entre paréntesis y se queda
+ * con la primera alternativa; el texto entero va siempre en el `title`.
+ */
+export function rotuloCortoDeMotivo(rotulo: string, maximo = 22): string {
+  const texto = rotulo.trim();
+  for (const [patron, corto] of CORTOS) if (patron.test(texto)) return corto;
+  const limpio = texto.replace(/\s*\([^)]*\)\s*/g, " ").split("/")[0].replace(/\s+/g, " ").trim() || texto;
+  if (limpio.length <= maximo) return limpio;
+  const palabras = limpio.split(" ");
+  let corto = "";
+  for (const palabra of palabras) {
+    const siguiente = corto ? `${corto} ${palabra}` : palabra;
+    if (siguiente.length > maximo - 1) break;
+    corto = siguiente;
+  }
+  return `${corto || limpio.slice(0, maximo - 1)}…`;
+}

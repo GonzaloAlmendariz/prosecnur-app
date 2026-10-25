@@ -107,7 +107,7 @@ function MapeoTabImpl({
         <section className="mon-ins-panel" aria-labelledby="mon-ins-umbrales">
           <h3 id="mon-ins-umbrales" className="mon-ins-titulo">Umbrales de la Bandeja</h3>
           <dl className="mon-ins-cifras">
-            {modelo.umbrales.map((umbral) => <div key={umbral.rotulo}><dt>{umbral.rotulo}</dt><dd>{umbral.valor}</dd></div>)}
+            {modelo.umbrales.map((umbral) => <div key={umbral.rotulo} title={umbral.ayuda}><dt>{umbral.rotulo}</dt><dd>{umbral.valor}</dd></div>)}
           </dl>
         </section>
         <section className="mon-ins-panel" aria-labelledby="mon-ins-distritos">

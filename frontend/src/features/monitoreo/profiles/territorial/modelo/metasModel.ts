@@ -17,7 +17,9 @@ export type FilaDeMeta = {
   poblacion: number | null;
 };
 
-export type ComoSeArma = { clave: string; texto: string };
+/** Un parámetro del diseño muestral: rótulo corto, valor y, si el término lo
+ * pide, la aclaración que va al tooltip (nunca tras «;» en el texto). */
+export type ComoSeArma = { clave: string; rotulo: string; valor: string; ayuda?: string };
 
 export type ModeloMetas = {
   disponible: boolean;
@@ -54,10 +56,10 @@ function suma(valores: Array<number | null>): number | null {
   return conDato.length ? conDato.reduce((total, valor) => total + valor, 0) : null;
 }
 
-const METODOS: Record<string, string> = {
-  pps: "PPS (probabilidad proporcional al tamaño) por territorio muestral",
-  srs: "Muestreo aleatorio simple por territorio muestral",
-  sistematico: "Muestreo sistemático por territorio muestral",
+const METODOS: Record<string, { valor: string; ayuda: string }> = {
+  pps: { valor: "PPS por territorio", ayuda: "Probabilidad proporcional al tamaño, dentro de cada territorio muestral" },
+  srs: { valor: "Aleatoria simple por territorio", ayuda: "Muestreo aleatorio simple dentro de cada territorio muestral" },
+  sistematico: { valor: "Sistemática por territorio", ayuda: "Muestreo sistemático dentro de cada territorio muestral" },
 };
 
 export function construirMetas(reports: MonitoreoTerritorialDashboard | null | undefined): ModeloMetas {
@@ -102,12 +104,14 @@ export function construirMetas(reports: MonitoreoTerritorialDashboard | null | u
   const fin = moda(titulares.map((bloque) => n(bloque.rango_fin)).filter((valor): valor is number => valor != null));
   const reemplazosPorUmp = n(reports?.route_overview?.replacement_per_route);
 
+  const seleccion = metodo ? METODOS[metodo] ?? { valor: metodo, ayuda: "" } : null;
   const comoSeArma: ComoSeArma[] = [
-    { clave: "unidad", texto: "La UMP es la manzana titular; si no rinde, se pasa a su reemplazo" },
-    metodo ? { clave: "metodo", texto: METODOS[metodo] ?? `Selección: ${metodo}` } : null,
-    entrevistas != null ? { clave: "entrevistas", texto: `${fmt(entrevistas)} entrevistas por UMP${inicio != null && fin != null ? `, rango de viviendas ${fmt(inicio)} a ${fmt(fin)}` : ""}` } : null,
-    reemplazosPorUmp != null ? { clave: "reemplazos", texto: `${fmt(reemplazosPorUmp)} ${reemplazosPorUmp === 1 ? "reemplazo" : "reemplazos"} por UMP` } : null,
-    { clave: "eje", texto: "La meta se reparte por distrito" },
+    { clave: "unidad", rotulo: "UMP", valor: "Manzana titular", ayuda: "Si la titular no rinde, se pasa a su reemplazo" },
+    seleccion ? { clave: "metodo", rotulo: "Selección", valor: seleccion.valor, ...(seleccion.ayuda ? { ayuda: seleccion.ayuda } : {}) } : null,
+    entrevistas != null ? { clave: "entrevistas", rotulo: "Entrevistas por UMP", valor: fmt(entrevistas) } : null,
+    inicio != null && fin != null ? { clave: "rango", rotulo: "Rango de viviendas", valor: `${fmt(inicio)} a ${fmt(fin)}`, ayuda: "Viviendas de la manzana entre las que arranca el recorrido" } : null,
+    reemplazosPorUmp != null ? { clave: "reemplazos", rotulo: "Reemplazos por UMP", valor: fmt(reemplazosPorUmp) } : null,
+    { clave: "eje", rotulo: "Reparto de la meta", valor: "Por distrito" },
   ].filter((item): item is ComoSeArma => item != null);
 
   return { disponible: bloques.length > 0, distritos, total, comoSeArma, bloques };

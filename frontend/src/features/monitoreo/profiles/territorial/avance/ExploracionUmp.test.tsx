@@ -17,6 +17,12 @@ const caso = (extra: Partial<CasoDeUmpConGps>): CasoDeUmpConGps => ({
 
 let estado: EstadoDeCasosDeUmp = { tipo: "cargando", ump: "143" };
 vi.mock("./useCasosDeUmp", () => ({ useCasosDeUmp: () => estado }));
+// La cartografía rica (calles y vecinas) se simula: en el render estático el
+// efecto que la pide no corre y quedaría siempre pendiente.
+let ricaPendiente = false;
+vi.mock("./useCartografiaDelMapa", () => ({
+  useCartografiaDelMapa: () => ({ base: {}, rica: {}, cargando: ricaPendiente, incompleta: false, ricaPendiente }),
+}));
 
 const { ExploracionUmp } = await import("./ExploracionUmp");
 
@@ -61,6 +67,20 @@ describe("exploración de una UMP", () => {
     expect(html).toContain("Anulado, había aceptado");
     // El mismo GPS para dos casos no los apila: los dos puntos llevan su número.
     expect((html.match(/class="mon-exp-punto /g) ?? []).length).toBe(2);
+  });
+
+  it("con los casos pero sin las calles todavía, la readiness espera", () => {
+    estado = {
+      tipo: "listo",
+      ump: "143",
+      datos: { ump: "143", fase: "field", casos: [caso({ id: "a1" })], resumen: { total: 1, anulados: 0, conGps: 1 } },
+    };
+    ricaPendiente = true;
+    try {
+      expect(pintar()).toContain('data-audit-ready="false"');
+    } finally {
+      ricaPendiente = false;
+    }
   });
 
   it("si el endpoint falla, la exploración lo dice y publica su vacío", () => {
