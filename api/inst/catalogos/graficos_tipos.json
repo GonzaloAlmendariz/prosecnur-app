@@ -241,7 +241,7 @@
       "name": "p_citas",
       "familia_editor": "texto",
       "salida": "nativa",
-      "en_selector": false
+      "en_selector": true
     },
     {
       "name": "p_mapa_cobertura_territorial",
