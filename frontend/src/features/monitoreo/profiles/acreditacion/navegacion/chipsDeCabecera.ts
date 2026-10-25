@@ -55,11 +55,11 @@ export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
 
 /**
  * Pestañas que llevan el rótulo en su primera tarjeta en vez de una fila de
- * cabecera (§2a-bis). Reintentos conserva la fila: su primera fila es la barra
- * de filtros de la cola común (`core/ColaDeInsistencia`), que no recibe rótulo.
+ * cabecera (§2a-bis). Reintentos ya no está: la tarjeta de filtros de la cola
+ * común (`core/ColaDeInsistencia`) recibe el rótulo por `antesDeLosFiltros`.
  * Las sub-vistas anteriores lo llevan como cabecera de la tarjeta de contenido.
  */
-const SIN_ROTULO_EN_TARJETA: readonly string[] = ["control/reintentos"];
+const SIN_ROTULO_EN_TARJETA: readonly string[] = [];
 
 export function rotuloEnTarjeta(direccion: DireccionAcreditacion): boolean {
   const clave = `${direccion.seccion}/${direccion.pestana}`;

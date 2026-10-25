@@ -6,6 +6,7 @@ import { conDiasAlCorte } from "../../../../core/colaDeInsistenciaModel";
 import { estadoDeInsistencia, repartoDelEquipo } from "../../../telefonico/control/insistenciaModel";
 import { fmt } from "../../formato";
 import { PestanaSinContenido } from "../../piezas/AvisoDeTarjeta";
+import { RotuloEnBarra } from "../../navegacion/rotuloDePestana";
 
 /**
  * Plataforma de las respuestas del barrido, para rotular la efectiva en la
@@ -86,6 +87,7 @@ export function Reintentos({
       columnas={{ categoria: "Público", telefono: casos.some((caso) => caso.ordenTelefono != null), plataforma }}
       reparto={repartoDelEquipo(estado.responsables, reports)}
       corte={corteDiaMes(state?.synced_at)}
+      antesDeLosFiltros={<RotuloEnBarra />}
     />
   );
 }
