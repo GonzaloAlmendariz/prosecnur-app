@@ -48,12 +48,13 @@
   elegidas <- espec$resaltar %||% character(0)   # D1: las que el analista resalta mandan sobre «la mayor»
   for (k in seq_along(et)) {
     es_max <- if (length(elegidas)) et[k] %in% elegidas else isTRUE(espec$realce) && v[k] == max(v)
-    h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias"))   # tinta medida: la estimación por carácter subía el rótulo de una línea
-    .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
+    st <- .lam_jer_estilo(espec, k, if (!is.null(cols) && !length(elegidas)) cols[k])   # TXT-26: temas y subtemas (lamina_barras_jerarquia.R)
+    h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias") || isTRUE(st$bold))   # tinta medida: la estimación por carácter subía el rótulo de una línea
+    .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, st$color_rotulo %||% azul, bold = st$bold %||% es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    fill <- if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul
+    fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
@@ -73,9 +74,10 @@
   n <- max(1L, length(espec$largos))
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
   uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
-  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, .std_negrita_forzada("categorias"))) + 0.3))
+  nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
+  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
   ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
-  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, .std_negrita_forzada("categorias"), previa = wlab); wlab <- r$wlab; size <- r$size
+  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab); wlab <- r$wlab; size <- r$size
   list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, size))
 }
 
@@ -92,7 +94,7 @@
   wbox <- (ancho - 1.2) / k * 0.56 + 0.8
   cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, 12, TRUE) <= 0.62, TRUE))
   geo <- .lam_barras_geo(espec)
-  barras_ok <- geo$fila >= 0.26 && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, geo$wlab, geo$size) <= geo$fila + 0.02, TRUE))
+  barras_ok <- geo$fila >= 0.26 && all(.lam_jer_altos(espec, geo$wlab, geo$size) <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
   if (identical(preferida, "columnas") && cols_ok) return("columnas")
   if (barras_ok) return("barras")
   if (cols_ok) return("columnas")

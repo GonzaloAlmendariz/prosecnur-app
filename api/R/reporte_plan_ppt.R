@@ -5577,7 +5577,7 @@ reporte_ppt_plan <- function(
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
 
-    plot <- .paleta_en_espec(suppressWarnings(do.call(fun, args)), colores_categorias)   # ADR 0097: espec$colores
+    plot <- .plan_tt_con_jerarquia(.paleta_en_espec(suppressWarnings(do.call(fun, args)), colores_categorias), overrides, cruce_ref)   # ADR 0097: espec$colores; TXT-26: jerarquía de temas
     attr(plot, "pulso_barras_series") <- unname(etiquetas_series)
     attr(plot, "pulso_barras_cruce") <- if (length(etiquetas_series) > 1L) cruce_ref else NULL
     attr(plot, "pulso_barras_bases") <- stats::setNames(
