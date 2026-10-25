@@ -1288,9 +1288,14 @@ monitoreo_sheets_sync_submit_job <- function(sid, sources, cfg) {
     on_complete = function(j) {
       report <- if (!is.null(j$progress_path)) job_progress_writer(j$progress_path) else NULL
       monitoreo_sheets_sync_apply_result(j$sid, j$result_data, report = report)
-    }
+    },
+    # Los RDS de fuentes y config no sobreviven al job, ni a un pedido deduplicado.
+    on_cleanup = function(j) job_unlink_inputs(c(sources_path, cfg_path)),
+    # Un sync de hojas a la vez por sesión (M7, jobs_dedupe.R). Clave propia: el
+    # front lee su resultado con otro normalizador que el de /api/monitoreo/sync.
+    dedupe_key = "monitoreo.sheets_sync"
   )
-  list(ok = TRUE, job_id = job_id, kind = "monitoreo.sheets_sync", async = TRUE)
+  job_respuesta_inicio(job_id, "monitoreo.sheets_sync", async = TRUE)
 }
 
 # --- Unidad 3.8b: publicación Sheets con opt-in async ------------------------
