@@ -56,9 +56,10 @@ describe("Modelo › Ventana de campo", () => {
     expect(html).not.toMatch(/strategy_phases|daily_actor|2026-10-01/);
   });
 
-  it("sin respuestas con fecha avisa con el componente del sistema", () => {
+  it("sin respuestas con fecha avisa con el vacío del sistema, dentro de su tarjeta", () => {
     const html = renderToStaticMarkup(<VentanaDeCampo modelo={construirVentana([], [], [], [])} />);
-    expect(html).toContain("pulso-alert");
+    expect(html).toContain("pulso-estado-vacio");
+    expect(html).toContain("acr-av-panel");
     expect(html).toContain("todavía no trae respuestas con fecha");
   });
 });

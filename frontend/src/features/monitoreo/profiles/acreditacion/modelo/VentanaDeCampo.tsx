@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { Alert } from "../../../../../components/Alert";
+import { CalendarDays } from "lucide-react";
 import { fmt } from "../formato";
 import { fechaCorta } from "../avance/graficosDeAvance";
 import { posicion, type ModeloDeVentana } from "./ventanaModelo";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import "../avance/avance.css";
 import "./modelo.css";
+import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 function Banda({ desde, hasta, inicio, total, clase }: { desde: string; hasta: string; inicio: string; total: number; clase: string }) {
   const izquierda = posicion(desde, inicio, total);
@@ -68,7 +69,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
               <span />
             </div>
           </div>
-        ) : <div className="acr-ct-cuerpo"><Alert kind="info">El corte todavía no trae respuestas con fecha.</Alert></div>}
+        ) : <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae respuestas con fecha." descripcion="La ventana de cada público aparece con las primeras respuestas." />}
       </section>
       {editorDelPlan ? <section className="acr-av-panel acr-mo-editor" aria-label="Plan de campo">{editorDelPlan}</section> : null}
     </div>

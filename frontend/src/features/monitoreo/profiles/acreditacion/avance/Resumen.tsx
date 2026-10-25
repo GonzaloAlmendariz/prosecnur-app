@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { ArrowRight } from "lucide-react";
-import { Alert } from "../../../../../components/Alert";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import type { MonitoreoCorte } from "../../../corte/corteContract";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -26,6 +25,7 @@ import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { normalizeSourceMatch } from "../formato";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 function porcentaje(valor: number, total: number) {
   return total > 0 ? pctConEspacio((valor / total) * 100) : "—";
@@ -160,9 +160,7 @@ function PorResolver({ casos, porPublico }: { casos: CasosDelCorte | null; porPu
           ) : null}
         </div>
       ) : (
-        <div className="acr-res-resolver-cuerpo">
-          <Alert kind="info">Los casos se están preparando con el cruce del padrón; aparecen aquí al terminar.</Alert>
-        </div>
+        <VacioDeBloque vacio="cargando" icono={null} titulo="Los casos se están preparando con el cruce del padrón." descripcion="Aparecen aquí al terminar." />
       )}
     </section>
   );
@@ -252,7 +250,7 @@ export function ResumenVista({
             {serie.length ? (
               <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} />
             ) : (
-              <Alert kind="info">El corte todavía no trae efectivas con fecha.</Alert>
+              <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae efectivas con fecha." descripcion="La curva aparece cuando las encuestas devuelven respuestas completas." />
             )}
           </div>
         </section>
@@ -280,8 +278,7 @@ export function ResumenVista({
       <div className="acr-res-derecha">
         <section className="acr-av-panel acr-res-publicos" aria-label="Por público">
           <header className="acr-av-panel-cabecera">
-            <h3>Por público <span className="acr-av-tenue">Rezagados primero</span></h3>
-            <span className="acr-av-leyenda-meta"><i aria-hidden="true" />Meta</span>
+            <h3>Por público <span className="acr-av-tenue">Rezagados primero; la marca vertical es la meta</span></h3>
           </header>
           <ul className="acr-res-publicos-lista" data-qa-geometry-group="acreditacion-resumen-publicos" data-qa-geometry-contract="equal" data-qa-geometry-capacity="owned">
             {ordenadas.map((tarjeta) => (

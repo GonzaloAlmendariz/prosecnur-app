@@ -16,11 +16,6 @@
   font-size: 13px;
 }
 
-.acr-cr.is-vacio {
-  display: flex;
-  align-items: flex-start;
-}
-
 .acr-cr-principal,
 .acr-cr-derecha {
   overflow: hidden;
@@ -119,6 +114,26 @@
 .acr-cr-lista li > .acr-av-pista { grid-column: 1; grid-row: 2; }
 .acr-cr-lista li > b { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
 
+/* A la derecha, una tarjeta por lectura (§2a-bis): llave, cruce y estrategia. */
+.acr-cr-pila {
+  align-self: start;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.acr-cr-lista-tarjeta {
+  flex: 0 0 auto;
+}
+
+.acr-cr-lista-tarjeta > .acr-cr-lista {
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
 @media (max-width: 1365px) {
   .acr-cr { grid-template-columns: minmax(0, 1fr) 300px; }
 }
@@ -131,5 +146,6 @@
     min-height: 100%;
   }
 
-  .acr-cr-listas { overflow: visible; }
+  .acr-cr-listas,
+  .acr-cr-pila { overflow: visible; }
 }

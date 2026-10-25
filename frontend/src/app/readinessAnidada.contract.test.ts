@@ -167,6 +167,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "carga de la sección; un error de PÁGINA sigue en false por la política de página (Bitácora en auditReadyRoutes)",
   "features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx":
     "carga de la sección; un error de PÁGINA sigue en false por la política de página (Bitácora en auditReadyRoutes)",
+  "features/monitoreo/profiles/acreditacion/navegacion/MarcaDeLectura.tsx":
+    "Metas, Públicos y Modelo › Cuotas mientras leen el estado de cuotas o el motor prepara el cruce (se vuelve a pedir solo); leído o en error publica true",
   "features/xlsformEditor/shell/FormsLibrary.tsx": "`loading` de la biblioteca de formularios",
   "features/xlsformEditor/choiceFilters/ChoiceFiltersView.tsx":
     "`model` sólo es null con el overlay cerrado, y cerrado no se monta",

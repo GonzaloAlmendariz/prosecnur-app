@@ -280,12 +280,29 @@
   border-radius: 3px;
 }
 
-.acr-mo-metas .is-tono-1 { background: var(--pulso-brand-navy); }
-.acr-mo-metas .is-tono-2 { background: var(--pulso-module-monitoring); }
-.acr-mo-metas .is-tono-3 { background: var(--pulso-accent-steel); }
-.acr-mo-metas .is-tono-4 { background: color-mix(in srgb, var(--pulso-brand-navy) 50%, var(--pulso-surface)); }
-.acr-mo-metas .is-tono-5 { background: color-mix(in srgb, var(--pulso-module-monitoring) 50%, var(--pulso-surface)); }
-.acr-mo-metas .is-tono-6 { background: color-mix(in srgb, var(--pulso-accent-steel) 45%, var(--pulso-surface)); }
+/* El reparto usa la paleta de públicos (paletaPublicos.css): diez tonos, uno
+ * por público, los mismos que Avance y Control. */
+.acr-mo-reparto-barra > i,
+.acr-mo-reparto-leyenda li > i {
+  background: var(--publico);
+}
+
+/* La identidad del público en su tarjeta: el punto delante del nombre y la
+ * barra de su parte del padrón. El estado sigue en el borde lateral y el chip. */
+.acr-mo-tarjeta-cabecera strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.acr-mo-tarjeta-cabecera .mon-publico-punto {
+  inline-size: 10px;
+  block-size: 10px;
+}
+
+.acr-mo-tarjeta .acr-mo-tarjeta-pie .acr-av-pista > i {
+  background: var(--publico);
+}
 
 .acr-mo-tarjetas {
   display: grid;
@@ -420,4 +437,9 @@
 
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-mo-tarjetas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* La leyenda del reparto va centrada respecto a su tarjeta. */
+.acr-mo-reparto-leyenda {
+  justify-content: center;
 }

@@ -1,6 +1,5 @@
 import { useMemo, type ReactNode } from "react";
 import { CalendarRange, ListChecks } from "lucide-react";
-import { Alert } from "../../../../../components/Alert";
 import type { MonitoreoStrategyPhase } from "../../../../../api/client";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -11,6 +10,7 @@ import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
 
 /** El desglose por fuente y recopilador: `panel=fuentes`. */
 export const PANEL_FUENTES: PanelDeclarado = { id: "fuentes", label: "Por fuente y recopilador", clase: "sideover" };
@@ -35,7 +35,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const maxSemana = Math.max(1, ...pulso.porDiaDeLaSemana.map((dia) => dia.promedio));
   const totalCanal = pulso.porCanal.reduce((suma, item) => suma + item.efectivas, 0);
   if (!serie.fechas.length) {
-    return <div className="acr-cr is-vacio" data-vacio><Alert kind="info">El corte todavía no trae efectivas con fecha.</Alert></div>;
+    return <PestanaSinContenido titulo="Efectivas por día" icono={<CalendarRange size={18} />} motivo="El corte todavía no trae efectivas con fecha." descripcion="Las efectivas por día aparecen cuando las encuestas conectadas devuelven respuestas completas." />;
   }
   return (
     <div className="acr-ri" data-qa-geometry-group="acreditacion-avance-ritmo" data-qa-geometry-contract="intrinsic">
@@ -50,10 +50,9 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
             ) : null}
           </CabeceraDeTarjeta>
           {plan.length ? null : (
-            <div className="acr-ri-plan">
-              <span className="acr-av-tenue">Plan de campo: sin fases con fechas.</span>
-              <button type="button" className="acr-av-boton" onClick={onDeclararFases}><CalendarRange size={14} aria-hidden="true" /> Declarar fases</button>
-            </div>
+            <AvisoDeTarjeta accion={<button type="button" className="acr-av-boton" onClick={onDeclararFases}><CalendarRange size={14} aria-hidden="true" /> Declarar fases</button>}>
+              El plan de campo no tiene fases con fechas; sin ellas el gráfico no marca las etapas.
+            </AvisoDeTarjeta>
           )}
           <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} />
           <ul className="acr-ri-leyenda" aria-label="Públicos">

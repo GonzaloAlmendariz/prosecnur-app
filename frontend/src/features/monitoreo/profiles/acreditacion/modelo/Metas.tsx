@@ -21,9 +21,12 @@ import {
 } from "./metasModelo";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
+import "../paletaPublicos.css";
 import "./modelo.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { MetasEnEspera } from "./MetasEnEspera";
+import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
+import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 
 /**
  * Modelo › Metas (ficha M1): cuántas encuestas por público. Arriba, la meta del
@@ -79,13 +82,18 @@ export function Metas({
   // Mientras el estado de cuotas no llega, no se afirma que el estudio no tiene
   // públicos (C5): se dice que se está leyendo.
   const leyendo = !publicosDePrueba && !estado && !errorDeCuotas;
+  const marca = <MarcaDeLectura leyendo={leyendo || Boolean(!publicosDePrueba && !errorDeCuotas && estado?.preparando)} />;
+  // Un tono por público, el mismo de Avance y Control (paletaPublicos): con
+  // hasta 10 públicos ninguno se repite en la barra ni en la leyenda.
+  const paleta = paletaDePublicos(filas.map((fila) => fila.publico));
   if (!filas.length) {
-    return <MetasEnEspera motivo={leyendo ? "leyendo" : estado?.preparando ? "preparando" : "sin-publicos"} error={errorDeCuotas || undefined} />;
+    return <>{marca}<MetasEnEspera motivo={leyendo ? "leyendo" : estado?.preparando ? "preparando" : "sin-publicos"} error={errorDeCuotas || undefined} /></>;
   }
 
   const efectivasDe = (publico: string) => avance?.tarjetas.find((tarjeta) => normalizeSourceMatch(tarjeta.actor) === normalizeSourceMatch(publico))?.effective ?? null;
   return (
     <div className="acr-mo-metas" data-qa-geometry-group="acreditacion-modelo-metas" data-qa-geometry-contract="intrinsic">
+      {marca}
       <section className="acr-av-panel" aria-label="Meta del estudio">
         <CabeceraDeTarjeta primera>
           <h3>Meta del estudio <span className="acr-av-tenue">{`${fmt(metaTotal)} de ${fmt(personasTotal)} personas, ${personasTotal ? pctConEspacio((metaTotal / personasTotal) * 100) : "—"}`}</span></h3>
@@ -96,17 +104,17 @@ export function Metas({
         </CabeceraDeTarjeta>
         {mensaje ? <div className="acr-ct-cuerpo"><Alert kind={mensaje.tono === "error" ? "error" : "info"}>{mensaje.texto}</Alert></div> : null}
         <div className="acr-mo-reparto-barra" role="img" aria-label={filas.map((fila) => `${fila.publico}: ${fmt(metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0)}`).join("; ")}>
-          {filas.map((fila, indice) => {
+          {filas.map((fila) => {
             const meta = metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0;
-            return meta > 0 ? <i key={fila.publico} className={`is-tono-${(indice % 6) + 1}`} style={{ flexGrow: meta }} title={`${fila.publico}: ${fmt(meta)}`} /> : null;
+            return meta > 0 ? <i key={fila.publico} className={clasePublico(paleta, fila.publico)} style={{ flexGrow: meta }} title={`${fila.publico}: ${fmt(meta)}`} /> : null;
           })}
         </div>
         <ul className="acr-mo-reparto-leyenda">
-          {filas.map((fila, indice) => {
+          {filas.map((fila) => {
             const meta = metaDelBorrador(borradores[fila.publico] ?? borradorDe(fila)) ?? 0;
             return (
               <li key={fila.publico}>
-                <i className={`is-tono-${(indice % 6) + 1}`} aria-hidden="true" />
+                <i className={clasePublico(paleta, fila.publico)} aria-hidden="true" />
                 <span>{fila.publico}</span>
                 <b className="acr-av-num">{metaTotal ? pctConEspacio((meta / metaTotal) * 100) : "—"}</b>
               </li>
@@ -122,11 +130,11 @@ export function Metas({
           const estado = !meta ? "sin-meta" : efectivas == null ? "abierta" : efectivas >= meta ? "cumplida" : "en-curso";
           const cambiada = cambiadas.includes(fila);
           return (
-            <article key={fila.publico} data-qa-geometry-member className={`acr-mo-tarjeta is-${estado}${cambiada ? " is-cambiada" : ""}`} aria-label={`Meta de ${fila.publico}`}>
+            <article key={fila.publico} data-qa-geometry-member className={`acr-mo-tarjeta is-${estado}${cambiada ? " is-cambiada" : ""} ${clasePublico(paleta, fila.publico)}`} aria-label={`Meta de ${fila.publico}`}>
               <header className="acr-mo-tarjeta-cabecera">
                 <span>
                   <span className="acr-av-antetitulo">Público</span>
-                  <strong>{fila.publico}</strong>
+                  <strong><i className="mon-publico-punto" aria-hidden="true" />{fila.publico}</strong>
                 </span>
                 <span className={`acr-av-chip acr-mo-estado is-${estado}`}>
                   {cambiada ? "Sin guardar" : estado === "cumplida" ? "Meta cumplida" : estado === "en-curso" ? `${pctConEspacio(((efectivas ?? 0) / (meta ?? 1)) * 100)} de la meta` : estado === "sin-meta" ? "Sin meta" : "Meta declarada"}

@@ -211,15 +211,8 @@
   color: var(--pulso-text-soft);
 }
 
-.acr-in-declaracion,
-.acr-in-fuentes-vacio {
+.acr-in-declaracion {
   padding: var(--pulso-space-3);
-}
-
-.acr-in-fuentes-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
 }
 
 @media (max-width: 1200px), (max-height: 720px) {
@@ -257,4 +250,26 @@
 .acr-in-barra > :last-child {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Tarjetas de pocas filas: alto natural, sin vacío abajo. */
+.acr-ps.is-fuentes > .acr-ps-tabla {
+  align-self: start;
+}
+
+.acr-ps.is-publicos .acr-in-izquierda {
+  grid-template-rows: auto auto;
+  align-content: start;
+}
+
+/* El nombre del público se lee entero: «Estudiantes de posgrado CENTRUM». */
+.acr-ps.is-publicos .acr-pub-tabla tbody th[scope="row"] {
+  min-width: 230px;
+  max-width: none;
+}
+
+/* El padrón envuelve en dos líneas para que la tabla quepa en su tarjeta. */
+.acr-ps.is-publicos .acr-pub-tabla tbody td:nth-child(2) {
+  min-width: 160px;
+  white-space: normal;
 }

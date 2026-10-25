@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Download, Search } from "lucide-react";
-import { Alert } from "../../../../../../components/Alert";
+import { Download, Inbox, Search, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { fechaCorta } from "../../avance/graficosDeAvance";
@@ -11,6 +10,10 @@ import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
+import { MarcoDesplazable } from "../../piezas/MarcoDesplazable";
+import { clasePublico, paletaDePublicos } from "../../paletaPublicos";
+import "../../paletaPublicos.css";
 
 /**
  * Control › Respuestas (ficha Ctl9): qué llegó de cada plataforma. Facetas
@@ -25,12 +28,11 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   const filtradas = useMemo(() => filtrarRespuestas(respuestas, seleccion, busqueda), [respuestas, seleccion, busqueda]);
   const vista = pagina(filtradas, numero);
   const cuentan = respuestas.filter((respuesta) => respuesta.cuenta).length;
+  const paleta = useMemo(() => paletaDePublicos(respuestas.map((respuesta) => respuesta.publico)), [respuestas]);
 
   if (!respuestas.length) {
     return (
-      <div className="acr-cr is-vacio" data-vacio>
-        <Alert kind="info">El corte todavía no trae respuestas de las plataformas.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Respuestas recibidas" icono={<Inbox size={18} />} motivo="El corte todavía no trae respuestas de las plataformas." descripcion="Llegan al actualizar, desde las encuestas conectadas en Insumos › Fuentes." />
     );
   }
 
@@ -78,16 +80,14 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
         </CabeceraDeTarjeta>
-        <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
+        <MarcoDesplazable etiqueta="Respuestas recibidas">
           {vista.filas.length ? (
             <table className="acr-pub-tabla">
               <thead>
                 <tr>
                   <th scope="col">Respuesta</th>
-                  <th scope="col" className="is-num">Recibida</th>
-                  <th scope="col">Público</th>
+                  <th scope="col">Público y encuesta</th>
                   <th scope="col">Canal</th>
-                  <th scope="col">Encuesta</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Cruce</th>
                   <th scope="col">Avance</th>
@@ -96,11 +96,19 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
               <tbody>
                 {vista.filas.map((respuesta) => (
                   <tr key={respuesta.clave}>
-                    <th scope="row" className="acr-av-num">{respuesta.id}</th>
-                    <td className="is-num">{respuesta.recibida ? fechaCorta(respuesta.recibida) : "—"}</td>
-                    <td>{respuesta.publico}</td>
+                    <th scope="row">
+                      <span className="acr-celda-doble">
+                        <span className="acr-av-num">{respuesta.id}</span>
+                        <small>{respuesta.recibida ? `Recibida el ${fechaCorta(respuesta.recibida)}` : "Sin fecha"}</small>
+                      </span>
+                    </th>
+                    <td>
+                      <span className="acr-celda-doble">
+                        <span className={`acr-celda-publico ${clasePublico(paleta, respuesta.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{respuesta.publico}</span>
+                        {respuesta.encuesta ? <small>{respuesta.encuesta}</small> : null}
+                      </span>
+                    </td>
                     <td>{respuesta.canal}</td>
-                    <td>{respuesta.encuesta || "—"}</td>
                     <td>{respuesta.estado}</td>
                     <td>{respuesta.cruce}</td>
                     <td><span className={`acr-av-chip${respuesta.cuenta ? " is-cumple" : ""}`}>{respuesta.cuenta ? "Cuenta" : "No cuenta"}</span></td>
@@ -108,8 +116,8 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                 ))}
               </tbody>
             </table>
-          ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">Ninguna respuesta coincide con estos filtros.</Alert></div>}
-        </div>
+          ) : <VacioDeBloque vacio="sin-coincidencias" icono={<SearchX size={15} />} titulo="Ninguna respuesta coincide con estos filtros." descripcion="Quita una faceta o cambia la búsqueda." />}
+        </MarcoDesplazable>
         <footer className="acr-ps-pie">
           <span className="acr-av-tenue">{`${fmt(filtradas.length)} ${filtradas.length === 1 ? "respuesta" : "respuestas"}`}</span>
           <span className="acr-ps-paginas">

@@ -1,5 +1,4 @@
-import { Pencil, Plus } from "lucide-react";
-import { Alert } from "../../../../../components/Alert";
+import { Pencil, Plus, Target } from "lucide-react";
 import type { MonitoreoCuota, MonitoreoCuotaPublico } from "../../../../../api/monitoreoCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
@@ -8,6 +7,8 @@ import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
+import { AvisosDeTarjeta, PestanaSinContenido, VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 export type VariableSinCuota = { actor: string; variable: string; categorias: number | null };
 
@@ -65,7 +66,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
                   </li>
                 ))}
               </ul>
-            ) : <Alert kind="info">El estudio todavía no declara cuotas.</Alert>}
+            ) : <VacioDeBloque icono={<Target size={15} />} titulo="El estudio todavía no declara cuotas." descripcion="Elige una variable sin cuota para definir la primera." />}
           </section>
           <section className="acr-pr-grupo">
             <h3 className="acr-av-antetitulo">Variables sin cuota <span className="acr-av-num">{fmt(sinCuota.length)}</span></h3>
@@ -95,15 +96,15 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
               <Pencil size={14} aria-hidden="true" /> Editar cuota
             </button>
           </header>
-          {avisos.length ? <div className="acr-ct-cuerpo">{avisos.map((aviso) => <Alert key={aviso} kind="info">{aviso}</Alert>)}</div> : null}
           {(() => {
             const metaPublico = metaDelPublico(elegida.actor);
             const diferencia = metaPublico != null && elegida.meta != null ? elegida.meta - metaPublico : null;
-            return diferencia ? (
-              <div className="acr-ct-cuerpo">
-                <Alert kind="warn">{`Las metas por categoría suman ${fmt(elegida.meta)} y la meta del público es ${fmt(metaPublico)}: ${diferencia > 0 ? "sobran" : "faltan"} ${fmt(Math.abs(diferencia))}.`}</Alert>
-              </div>
-            ) : null;
+            return (
+              <AvisosDeTarjeta avisos={[
+                ...avisos.map((texto) => ({ texto })),
+                ...(diferencia ? [{ kind: "warn" as const, texto: `Las metas por categoría suman ${fmt(elegida.meta)} y la meta del público es ${fmt(metaPublico)}: ${diferencia > 0 ? "sobran" : "faltan"} ${fmt(Math.abs(diferencia))}.` }] : []),
+              ]} />
+            );
           })()}
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla">
@@ -142,8 +143,14 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
         </section>
       ) : (
         <section className="acr-av-panel acr-ps-tabla" aria-label="Cuota elegida">
-          <div className="acr-pr-cola-vacia" data-vacio data-qa-geometry-capacity="owned">
-            <Alert kind="info">{sinCuota.length ? "Elige una variable sin cuota para definir sus metas por categoría." : "La base de los públicos no tiene variables con 2 a 150 categorías."}</Alert>
+          <header className="acr-av-panel-cabecera"><h3>Metas por categoría</h3></header>
+          <AvisosDeTarjeta avisos={avisos.map((texto) => ({ texto }))} />
+          <div data-qa-geometry-capacity="owned">
+            <VacioDeBloque
+              icono={<Target size={15} />}
+              titulo={sinCuota.length ? "Todavía no hay una cuota que mostrar." : "La base de los públicos no tiene variables con 2 a 150 categorías."}
+              descripcion={sinCuota.length ? "Elige una variable sin cuota a la izquierda para definir sus metas por categoría." : "Las variables salen del padrón de cada público, en Insumos › Públicos."}
+            />
           </div>
         </section>
       )}
@@ -162,12 +169,16 @@ export function Cuotas() {
   const { s, foco, irA, cargar, abrirNueva, panelNode } = useConfiguracionDeCuotas();
   if (!s.estado) {
     return (
-      <div className="acr-cr is-vacio" data-vacio>
-        {s.error
-          ? <Alert kind="error">{s.error}</Alert>
-          : <Alert kind="info">Leyendo las cuotas del estudio.</Alert>}
-        {s.error ? <button type="button" className="acr-av-boton" onClick={() => { void cargar(); }}>Reintentar</button> : null}
-      </div>
+      <>
+        <MarcaDeLectura leyendo={!s.error} />
+        <PestanaSinContenido
+          vacio={s.error ? "error" : "cargando"}
+          titulo="Cuotas"
+          icono={<Target size={18} />}
+          motivo={s.error || "Leyendo las cuotas del estudio."}
+          accion={s.error ? <button type="button" className="acr-av-boton" onClick={() => { void cargar(); }}>Reintentar</button> : undefined}
+        />
+      </>
     );
   }
   const avisos = [
@@ -176,6 +187,7 @@ export function Cuotas() {
   ];
   return (
     <>
+      <MarcaDeLectura leyendo={s.estado.preparando} />
       <CuotasVista
         avisos={avisos}
         publicos={s.estado.publicos}
