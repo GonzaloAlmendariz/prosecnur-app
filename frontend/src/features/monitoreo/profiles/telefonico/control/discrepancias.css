@@ -49,9 +49,12 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* Alto natural (Ronda 3, L10): con pocos casos (RMS: 4) la tabla y la lista
+ * de responsables dejaban media tarjeta vacía. Con muchos, la tarjeta llega
+ * al alto de la rejilla y su lista desplaza dentro (C4). */
 .mon-dsc-avisar {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
@@ -59,7 +62,7 @@
 
 .mon-dsc-responsables {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: 2px;
   min-height: 0;
@@ -112,13 +115,15 @@
 .mon-dsc-centro {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
 .mon-dsc-marco {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-height: 0;
   overflow: auto;
 }

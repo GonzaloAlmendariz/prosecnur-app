@@ -20,6 +20,7 @@ import {
   type MarcaPrevia,
   RespuestaUnica,
 } from "../../api/client";
+import type { ModuloSugerible, PropuestaModulo } from "../../api/codificacion";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
@@ -28,6 +29,19 @@ import { grupoAccentColor } from "./codificacionGrupoColor";
 import { avisoMarcaPrevia } from "./marcasPrevias";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoVacio } from "../../components/EstadoVacio";
+import { SugerenciaModuloFila } from "./SugerenciaModuloFila";
+import { SugerenciasModuloBanda, type UltimaConfirmacion } from "./SugerenciasModuloBanda";
+import {
+  confirmarSugerencias,
+  deshacerConfirmacion,
+  podarCasosSugeridos,
+  quitarSugerencia,
+  rotuloModulo,
+  sugerenciasPorRespuesta,
+  type EntradaSugerida,
+  type RegistroConfirmacion,
+} from "./sugerenciasModulo";
+import { useSugerenciasModulo } from "./useSugerenciasModulo";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -85,6 +99,9 @@ export function RespuestasCodificador({ parent }: Props) {
   const [tipo, setTipo] = useState<string>("");
   const [smOtros, setSmOtros] = useState<{ dummy_col: string; n_otros_marcados: number } | null>(null);
   const [liveMsg, setLiveMsg] = useState("");
+  // TXT-3: la columna que se codifica (para pedir la propuesta de módulo) y la última confirmación masiva (deshacer).
+  const [colEfectiva, setColEfectiva] = useState("");
+  const [ultimaMasiva, setUltimaMasiva] = useState<{ registro: RegistroConfirmacion; aviso: UltimaConfirmacion } | null>(null);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -128,6 +145,7 @@ export function RespuestasCodificador({ parent }: Props) {
         }
         setGrupos(merged);
         setTipo(r.tipo);
+        setColEfectiva(r.col_efectiva || parent);
         setSmOtros(r.sm_otros ?? null);
         setSaveStatus("idle");
       } catch (e) {
@@ -145,7 +163,8 @@ export function RespuestasCodificador({ parent }: Props) {
     saveTimer.current = window.setTimeout(async () => {
       setSaveStatus("saving");
       try {
-        await apiCodifGrupos(parent, grupos);
+        // Un caso confirmado desde una sugerencia cuya respuesta ya salió del grupo deja de valer (sugerenciasModulo.ts).
+        await apiCodifGrupos(parent, podarCasosSugeridos(grupos));
         setSaveStatus("saved");
         announce("Cambios guardados.");
       } catch (e) {
@@ -158,6 +177,13 @@ export function RespuestasCodificador({ parent }: Props) {
   }, [grupos, parent, respuestas]);
 
   const esSM = tipo === "select_multiple" && !!smOtros;
+
+  // TXT-3: el módulo del formulario que se propone para cada comentario. Sólo en texto abierto y sólo como propuesta.
+  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas);
+  const mapaSugerencias = useMemo(
+    () => (sugerencias.fase === "lista" && respuestas ? sugerenciasPorRespuesta(sugerencias.datos, respuestas) : new Map<string, EntradaSugerida>()),
+    [sugerencias, respuestas],
+  );
 
   // Reverse map: texto_normalizado → grupos. En recodificación de
   // select_multiple una misma respuesta puede aportar a más de una categoría.
@@ -355,8 +381,38 @@ export function RespuestasCodificador({ parent }: Props) {
     );
   }
 
+  function confirmarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
+    const r = rotuloModulo(p.etiqueta);
+    setGrupos(confirmarSugerencias(grupos, { codigo: p.codigo, etiqueta: r.grupo }, [entrada]).grupos);
+    announce(`"${respuestaLabel(entrada.clave)}" confirmada en ${r.corto}.`);
+  }
+
+  function quitarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
+    const r = rotuloModulo(p.etiqueta);
+    setGrupos(quitarSugerencia(grupos, p.codigo, entrada.clave));
+    announce(`"${respuestaLabel(entrada.clave)}" quitada de ${r.corto}.`);
+  }
+
+  function confirmarModulo(m: ModuloSugerible, entradas: EntradaSugerida[]) {
+    if (!entradas.length) return;
+    const r = rotuloModulo(m.etiqueta);
+    const out = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
+    setGrupos(out.grupos);
+    setUltimaMasiva({ registro: out.registro, aviso: { modulo: r.corto, n: entradas.length } });
+    announce(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${entradas.length} respuestas`} en ${r.corto}.`);
+  }
+
+  function deshacerMasiva() {
+    if (!ultimaMasiva) return;
+    setGrupos(deshacerConfirmacion(grupos, ultimaMasiva.registro));
+    announce(`Se deshizo la confirmación en ${ultimaMasiva.aviso.modulo}.`);
+    setUltimaMasiva(null);
+  }
+
   if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
+  // En texto abierto se espera también la propuesta de módulo (o su error): la mesa se monta una vez y con sus chips.
+  if (tipo === "text" && (sugerencias.fase === "cargando" || sugerencias.fase === "apagado")) return <LoadingBlock variant="inline" label="Leyendo los módulos del formulario…" />;
 
   // Banda de KPIs: para SM el conteo es en CASOS reales (quienes marcaron
   // "Otros"); para el resto, en textos únicos. Tonos semánticos, no el accent
@@ -414,6 +470,24 @@ export function RespuestasCodificador({ parent }: Props) {
           ))}
         </div>
       </div>
+
+      {tipo === "text" && (
+        <div className="pulso-cv2-modsug-slot">
+          {sugerencias.fase === "lista" && (
+            <SugerenciasModuloBanda
+              datos={sugerencias.datos}
+              mapa={mapaSugerencias}
+              grupos={grupos}
+              ultima={ultimaMasiva?.aviso ?? null}
+              onConfirmarModulo={confirmarModulo}
+              onDeshacer={deshacerMasiva}
+            />
+          )}
+          {sugerencias.fase === "error" && (
+            <p className="pulso-cv2-modsug-banda-vacia" role="note">No se pudo proponer un módulo para estos comentarios: {sugerencias.mensaje}</p>
+          )}
+        </div>
+      )}
 
       {/* Split-view origen → destino. El destino (grupos) lleva superficie de
           acento del módulo para leerse como el lugar donde caen las respuestas. */}
@@ -496,6 +570,14 @@ export function RespuestasCodificador({ parent }: Props) {
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
                       {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
+                      {mapaSugerencias.size > 0 && (
+                        <SugerenciaModuloFila
+                          entrada={mapaSugerencias.get(r.texto_normalizado)}
+                          grupos={grupos}
+                          onConfirmar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) confirmarPropuesta(e, p); }}
+                          onQuitar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) quitarPropuesta(e, p); }}
+                        />
+                      )}
                     </div>
                   </div>
                   {esSM
