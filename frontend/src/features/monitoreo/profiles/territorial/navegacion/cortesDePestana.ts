@@ -16,6 +16,7 @@ export const SCOPE_DEL_CORTE: Record<CorteDePestana, MonitoreoReportScope> = {
  * no marca la vista lista hasta que llegan.
  */
 const CORTES: Record<string, readonly CorteDePestana[]> = {
+  "avance/faltante": ["avance"],
   "avance/umps": ["avance", "validacion"],
   "avance/mapa": ["avance", "validacion"],
   "control/bandeja": ["consultas"],

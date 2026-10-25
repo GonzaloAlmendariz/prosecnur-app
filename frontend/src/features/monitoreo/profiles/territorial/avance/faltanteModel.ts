@@ -175,10 +175,15 @@ export function construirFaltante(reports: MonitoreoTerritorialDashboard | null 
       ...(celdasDeEdad.length ? [variableDeCuota("Edad", celdasDeEdad)] : []),
     ];
     const deficitsEnUso = deficits.filter((item) => item.target_block_id === bloque.id_manzana && n(item.missing) > 0);
+    // Sin subsanaciones calculadas no hay déficits: la falta sale de las
+    // celdas (la variable que más debe; sexo y edad reparten la misma cuota),
+    // nunca de un 0 que el corte no midió.
+    const faltaDeCeldas = subsanacionesCalculadas ? 0 : Math.max(0, ...variables.map((variable) => variable.falta));
     const falta = Math.max(
       0,
       Math.round(n(bloque.missing_total)),
       deficitsEnUso.reduce((suma, item) => suma + n(item.missing), 0),
+      faltaDeCeldas,
     );
     const sugerencia: MonitoreoTerritorialOperationalAdjustmentSuggestion | undefined = sugerencias
       .find((item) => item.target_block_id === bloque.id_manzana);
