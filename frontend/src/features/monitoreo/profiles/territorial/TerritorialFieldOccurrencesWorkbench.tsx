@@ -27,7 +27,6 @@ import {
   apiMonitoreoKoboAssets,
   apiMonitoreoTerritorialOccurrencesConfig,
   apiMonitoreoTerritorialOccurrencesInspect,
-  apiMonitoreoTerritorialOccurrencesSync,
   apiMonitoreoTerritorialOccurrencesUploadKobo,
   apiMonitoreoTerritorialOccurrencesXlsform,
   apiMonitoreoTerritorialUmpExport,
@@ -55,7 +54,7 @@ import {
 import { copiarTexto } from "../../../../lib/portapapeles";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
-type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync" | "ump-export";
+type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "ump-export";
 type OccurrenceAlertKind = "missing" | "observations" | "outside_route" | "high_non_effective";
 type OccurrenceAlertFilter = "todos" | OccurrenceAlertKind;
 type OccurrenceRegisterFilter = "todos" | "con_registro" | "sin_registro" | "sin_conciliacion";
@@ -752,14 +751,6 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
       }
     }), [runAction]);
 
-  const syncOccurrences = useCallback(() => runAction("sync", async () => {
-    const result = await apiMonitoreoTerritorialOccurrencesSync({
-      asset_uid: config?.asset_uid,
-      source_id: config?.source_id,
-    });
-    onStateChange?.(result.state);
-  }), [config?.asset_uid, config?.source_id, onStateChange, runAction]);
-
   const copyOccurrenceLink = useCallback(async () => {
     if (!surveyLink) return;
     try {
@@ -826,10 +817,8 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               {localBusy === "ump-export" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
               Excel UMP
             </button>
-            <button type="button" className="pulso-button is-primary" onClick={syncOccurrences} disabled={disabled || !active}>
-              {localBusy === "sync" ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-              Actualizar
-            </button>
+            {/* «Actualizar» (traer las ocurrencias) vive en el «Actualizar ▾» de la
+                barra del modo (L38): en el cuerpo y como fuente propia del menú. */}
             <button type="button" className="pulso-button" onClick={copyOccurrenceLink} disabled={disabled || !surveyLink} title={copiedLink ? "Enlace copiado" : "Copiar enlace"}>
               {copiedLink ? <CheckCircle2 size={15} /> : <Link2 size={15} />}
             </button>

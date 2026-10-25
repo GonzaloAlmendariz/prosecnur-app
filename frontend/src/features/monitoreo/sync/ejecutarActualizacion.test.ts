@@ -15,7 +15,7 @@ vi.mock("../../../api/jobs", () => jobs);
 vi.mock("../../../api/monitoreo", () => monitoreo);
 
 import { useToasterStore } from "../../../components/toasterStore";
-import { ejecutarActualizacion, type ProgresoDelStore } from "./ejecutarActualizacion";
+import { ejecutarActualizacion, type LanzadorDeActualizacion, type ProgresoDelStore } from "./ejecutarActualizacion";
 
 function storeSimulado() {
   const reportes: ProgresoDelStore[] = [];
@@ -100,5 +100,36 @@ describe("Actualizar con un job simulado", () => {
     await corrida;
     expect(useToasterStore.getState().toasts).toHaveLength(0);
     expect(store.eventos).toEqual(["start", "finish"]);
+  });
+
+  it("un perfil inyecta su lanzamiento y el recibo sale de lo que devuelve", async () => {
+    const lanzar = vi.fn<LanzadorDeActualizacion>(async (_peticion, { reportar }) => {
+      reportar({ percent: 30, phase: "propio", message: "Paso propio", paso: 1, pasos: 2 });
+      reportar({ percent: 70, phase: "propio", message: "Otro paso", paso: 2, pasos: 2 });
+      return { tipo: "sync", resultado: { sync_summary: [{ source_label: "Ocurrencias", mode: "full", rows: 7 }], errors: [] } };
+    });
+    const store = storeSimulado();
+    const recargar = vi.fn().mockResolvedValue(undefined);
+    const config = {};
+    await ejecutarActualizacion({ tipo: "sync", modo: "advance", fuentes: ["k", "o"] }, {
+      acciones: store.acciones,
+      recargar,
+      lanzar,
+      config,
+    });
+    expect(lanzar).toHaveBeenCalledTimes(1);
+    expect(lanzar.mock.calls[0][0]).toEqual({ tipo: "sync", modo: "advance", fuentes: ["k", "o"] });
+    expect(lanzar.mock.calls[0][1].config).toBe(config);
+    expect(monitoreo.apiMonitoreoSync).not.toHaveBeenCalled();
+    expect(store.reportes.filter((r) => r.paso != null).map((r) => `${r.paso}/${r.pasos}`)).toEqual(["1/2", "2/2"]);
+    expect(recargar).toHaveBeenCalledTimes(1);
+    expect(useToasterStore.getState().toasts[0]).toMatchObject({ tono: "exito", mensaje: "Actualizado", detalle: "Ocurrencias: 7 leídas · Recalculado" });
+  });
+
+  it("Recalcular no pasa por el lanzamiento inyectado", async () => {
+    const lanzar = vi.fn<LanzadorDeActualizacion>();
+    const store = storeSimulado();
+    await ejecutarActualizacion({ tipo: "recalcular" }, { acciones: store.acciones, recargar: vi.fn().mockResolvedValue(undefined), lanzar });
+    expect(lanzar).not.toHaveBeenCalled();
   });
 });
