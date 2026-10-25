@@ -18,7 +18,8 @@
 
 .PLAN_TT_UNIDAD <- "comentarios con contenido"
 .PLAN_TT_SUBTITULO <- "% de comentarios con contenido que toca cada tema (suman más de 100 %)"
-.PLAN_TT_PATRON_LETRA <- "^\\s*([A-Za-z])\\.\\s+(.+)$"
+# «B. …» o «B · …»: Confirmar en Codificación deja los subtemas con el punto medio (TXT-23)
+.PLAN_TT_PATRON_LETRA <- "^\\s*([A-Za-z])\\s*(?:\\.|\u00b7)\\s+(.+)$"
 
 #' El texto abierto declarado en `temas_de_texto`, o `NULL` si la opción está apagada
 #' @keywords internal

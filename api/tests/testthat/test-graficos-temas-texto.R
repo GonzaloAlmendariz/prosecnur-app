@@ -102,3 +102,14 @@ test_that("sin temas_de_texto la múltiple sigue igual: base de quienes recibier
   expect_false(grepl("Experiencia universitaria", txt, fixed = TRUE))
   expect_identical(.tt_formas(x, "cifra")[1], "50%")   # «Como estudiante»: 2 de 4
 })
+
+test_that("TXT-23: subtemas rotulados «B · …» (como los deja Confirmar en Codificación) también van bajo su módulo", {
+  inst <- .tt_inst()
+  lab <- c("A. Información general", "B · Como estudiante", "B · La relación", "C · Gobierno y gestión")
+  inst$orders_list$coment_recod$labels <- lab
+  tab <- .plan_tt_tabla(.tt_data(), "coment_recod", "coment", inst$orders_list, inst$survey)
+  expect_identical(as.character(tab$Opciones), c(
+    "A. Información general", "B. Experiencia universitaria", "B · Como estudiante", "B · La relación",
+    "C · Gobierno y gestión", "Total"))
+  expect_equal(tab$n, c(1, 2, 2, 1, 1, 5))
+})
