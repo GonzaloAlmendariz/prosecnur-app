@@ -35,6 +35,7 @@ import type { MonitoreoConfig, MonitoreoState } from "../../../api/client";
 import { contar } from "../fuentes/vocabulario";
 import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "./familiasDeLlamada";
 import type { AcreditacionFamiliaLlamada } from "./familiasDeLlamada";
+import { PaletaDeFamilias } from "./PaletaDeFamilias";
 import { useDeclaracionDeEstados, type EntradaDeEstado } from "./useDeclaracionDeEstados";
 import "./definidorDeEstados.css";
 
@@ -90,27 +91,7 @@ export function DefinidorDeEstados({
       {error ? <p className="tel-estados-error"><AlertTriangle size={14} /> {error}</p> : null}
 
       <section className="tel-estados-colores" aria-label="Color de cada familia">
-        {ACREDITACION_ORDEN_FAMILIAS.map((familia) => {
-          const color = declaracion.colorDe(familia);
-          return (
-            <label key={familia} className="tel-estados-color">
-              <input
-                type="color"
-                value={color}
-                onChange={(event) => {
-                  // El valor se lee ANTES del updater. `currentTarget` es null
-                  // dentro de la función de actualización —React ya recicló el
-                  // evento sintético para entonces— y leerlo ahí revienta la
-                  // vista entera con «Cannot read properties of null».
-                  const elegido = event.currentTarget.value;
-                  declaracion.colorear(familia, elegido);
-                }}
-                aria-label={`Color de ${acreditacionEtiquetaDeFamilia(familia)}`}
-              />
-              <span>{acreditacionEtiquetaDeFamilia(familia)}</span>
-            </label>
-          );
-        })}
+        <PaletaDeFamilias colorDe={declaracion.colorDe} colorear={declaracion.colorear} />
       </section>
 
       <section
