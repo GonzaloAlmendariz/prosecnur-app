@@ -858,3 +858,19 @@
 .mon-falt-tabla td.is-cubre .mon-falt-chip {
   white-space: normal;
 }
+
+/* Partido, el chip no se vuelve óvalo: dos líneas con esquinas de tarjeta. */
+@media (max-width: 1180px) {
+  .mon-falt-tabla tbody td.is-cubre {
+    min-width: 124px;
+  }
+
+  .mon-falt-tabla td.is-cubre .mon-falt-chip {
+    border-radius: 10px;
+  }
+}
+
+/* La fila que trae `foco` llega a la vista bajo la cabecera fija de la tabla. */
+.mon-falt-tabla tbody tr.is-abierta {
+  scroll-margin-top: 44px;
+}

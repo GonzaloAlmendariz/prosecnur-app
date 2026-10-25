@@ -66,9 +66,14 @@ export function CadenaDeFuentes({
                     * de un estudio recién sincronizado suelen no traerlo— y
                     * rellenar ese hueco con «Sin filas» convierte un dato que la
                     * app no tiene en un problema que el usuario no tiene. */}
+                  {/* Sin cifra, el vacío se dice en su sitio (C5): las tres
+                    * hermanas traen el mismo bloque y la que no conoce su
+                    * volumen lo declara, en vez de dejar un hueco mudo. */}
                   {eslabon.cifra ? (
                     <span className="mon-tel-cadena-cifra"><strong>{eslabon.cifra}</strong></span>
-                  ) : <span />}
+                  ) : (
+                    <span className="mon-tel-cadena-cifra is-vacia" title="Actualizar el corte lo cuenta">Sin conteo en este corte</span>
+                  )}
                   <div className="mon-tel-cadena-pie">
                     {eslabon.origen ? (
                       eslabon.origen.href ? (
