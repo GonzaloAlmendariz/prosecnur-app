@@ -25,7 +25,9 @@ const page = readFileSync(path.join(__dirname, "AulasMonitoreoPage.tsx"), "utf8"
 
 describe("readiness del perfil de aulas", () => {
   it("la marca depende de `loading`", () => {
-    expect(page).toContain('data-audit-ready={loading ? "false" : "monitoreo-aulas"}');
+    // Lista, publica la dirección de la vista (Meta B, L10), no un rótulo fijo.
+    expect(page).toContain('data-audit-ready={loading ? "false" : readinessDeAulas(seccionActiva, pestanaActiva)}');
+    expect(page).not.toContain('data-audit-ready={loading ? "false" : "monitoreo-aulas"}');
     // El control: la forma vieja no puede volver por un merge distraído.
     expect(page).not.toContain('data-audit-ready="monitoreo-aulas"');
   });

@@ -65,7 +65,19 @@ export function AulasTablasDeAvance(): ReactNode {
       </p>
     );
   }
-  if (!tablas) return <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">Leyendo las tablas de avance...</p>;
+  if (!tablas) {
+    // **Mientras llega, la vista no está lista** (Meta B, L10). Estas tablas se
+    // piden en su propio endpoint, después del estado: la marca de la página ya
+    // dice `monitoreo-aulas-avance-salidas` y el runner capturaba «Leyendo las
+    // tablas de avance...» como si fuera la pestaña. Con las tablas, su vacío o
+    // su error, la marca desaparece y manda la de la página.
+    return (
+      <p className="mon-profile-muted aulas-tav-vacio" aria-busy="true" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <span hidden data-audit-ready="false" />
+        Leyendo las tablas de avance...
+      </p>
+    );
+  }
   if (!tablas.length) {
     return (
       <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
