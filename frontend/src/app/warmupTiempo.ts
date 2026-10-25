@@ -117,7 +117,8 @@ export function duracionFase({
 }): string {
   if (status === "ready" || status === "error" || status === "timeout") {
     const ms = msPositivo(elapsedMs);
-    return ms === null ? "" : formatReloj(ms);
+    // Una fase de menos de un segundo terminó: se lee «0:01», no «0:00».
+    return ms === null ? "" : formatReloj(Math.max(1000, ms));
   }
   if (status === "running") {
     if (typeof inicioMs === "number" && Number.isFinite(inicioMs)) {
