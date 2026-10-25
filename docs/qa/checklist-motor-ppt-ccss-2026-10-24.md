@@ -23,7 +23,7 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | C6 | Paleta de marca en columnas de una serie | `graficos_columnas_paleta.R` | ✅ | `9947637ce` |
 | D1 | Orden «instrumento» manda (VI–IX con romanos; explícito en dona) | `graficos_orden_categorias.R`, `graficos_orden_romanos.R` | ✅ `8bc71f483` | `args.orden_barras` se pierde en `router_graficos.R:203` (abierto) |
 | D2 | No sustantivos (9, 77) en gris, al final y en la leyenda; denominador intacto | `graficos_no_sustantivos.R`, enganche en `reporte_plan_ppt.R` (modo var) | ✅ `8bc71f483` `9947637ce` | cruce, var_cruce y multilista en `bd8fd87b6`; gris `#BFBFBF` vs neutro `#D9D9D9` a revisar |
-| P1 | Dona de lámina completa (`p_slide_1_grafico`) sigue en imagen: título rojo duplicado, «2%0%» encimado (CCSS l. 8) | `lamina_circulares.R`, ruta de respaldo | ⬜ | |
+| P1 | Dona de lámina completa (`p_slide_1_grafico`) sigue en imagen: título rojo duplicado, «2%0%» encimado (CCSS l. 8) | `lamina_circulares.R`, ruta de respaldo | ✅ | `1ea1f788b` |
 | P2 | Título del slot choca con título de dos líneas y rótulos en el piso de 8 pt (CCSS l. 37) | `lamina_titulo_lienzo.R`, `graficador_barras_agrupadas_rotulos.R` | ✅ `c0df7056d` | ensanchar la columna antes que encoger (P43) |
 | P3 | «(Recodificada)» en la rama de escala en filas | | ⬜ | |
 | P4 | Título duplicado en slots de varias láminas | `lamina_titulo_lienzo.R` | ✅ `c0df7056d` | |
@@ -39,8 +39,21 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 | U5 | «0%» con 1 caso; leyenda de dona mal agrupada | motor (donas) | ⬜ |
 | U6 | Previsualizar re-dibuja ~20 s cada vez | preview | ⬜ |
 | U7 ◐ `d0daae8d8` (falta id «avisos» duplicado) | Textos («otras 1 pregunta», paréntesis anidados, rótulos de capítulo) | varios | ⬜ |
-| U9 | «Faltan colores» dice bloquear con Exportar habilitado | panel de avisos | 🔵 |
+| U9 | «Faltan colores» dice bloquear con Exportar habilitado | panel de avisos | ✅ `e544c718e` |
 | U8 | Capacity-drift en índice y ficha técnica | f6 | ⬜ |
+
+## Frente CCSS de cierre (barras, grillas y texto abierto)
+
+| # | Ítem | Dónde vive | Estado | Commit / nota |
+|---|---|---|---|---|
+| CCSS-8 | Barras de una serie: columna de rótulos acotada (35 %, hasta 3 líneas); eje al máximo sólo con `usar_eje_libre` | `lamina_barras_ancho.R`, `lamina_categorica.R` | ✅ | `a865d7b60`; agrupadas de cruce (CCSS l. 29 y 34) abiertas |
+| CCSS-30 | Grilla de seis: filete vertical también en la fila de abajo | `lamina_poblacion_geo.R` | ✅ | `b433855dc` |
+| TXT-1–22 | Nube, sugerencia de módulo, citas, diccionario, panel «Palabras» | `texto_abierto_*.R`, `codificacion_*.R`, `features/codificacion` | ✅ | ver bandeja (sync) |
+| TXT-20 | Lámina de temas de un texto codificado (`temas_de_texto`) | `reporte_plan_temas_texto.R` | ✅ | `d596bb4f1` `71879da06` |
+| TXT-23 | Subtemas «B · …» van bajo su módulo | `reporte_plan_temas_texto.R` | ✅ | `37e9c6ed3` |
+| TXT-24 | Renombrar un grupo tras adaptar llega al instrumento adaptado | `codificacion_rotulos_adaptados.R` | ✅ | `04f76e73a`; el front aún no pinta `rotulos_adaptados` ni reaparece «Adaptar» en la sesión |
+| TXT-25 | Sugerencia parte preguntas interrogativas seguidas en subtemas | `codificacion_sugerir_seccion.R` | ✅ | `18514fb0b`; CCSS debe volver a sugerir; revisión metodológica de las fusiones pendiente |
+| TXT-26 | Jerarquía módulo/subtema y rótulo del analista sin recortar | `lamina_barras_jerarquia.R`, `reporte_plan_temas_texto.R` | ✅ | `eaa599f57`; Word y ruta ggplot sin jerarquía |
 
 ## Frente brechas (traspasado a esta sesión; plan completo: `docs/qa/plan-brechas-motor-ccss-2026-10-24.md`, en la rama hasta el ff)
 
@@ -86,3 +99,7 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 - `launch.json` (servidores 8822 de Arte) queda sin commitear: lleva rutas locales de un proyecto de cliente.
 - TXT-20, temas del comentario final (d596bb4f1, 71879da06): el % se calcula sobre los comentarios con contenido (61), no sobre quienes escribieron algo (93) ni sobre el total. Los 6 comentarios con contenido que no tienen tema cuentan en la base y en ninguna barra. Las barras siguen el orden de los códigos (A–E, con los subtemas de B debajo) y no el `mayor_menor` del plan. B se cuenta por personas: quien toca cualquier subtema. La opción está apagada por defecto y en un cruce avisa y deja la múltiple como siempre. El «Sin datos» del .pulso real no venía del motor: la Adaptación tenía la data vieja, sin `coment_recod`, y hay que volver a aplicarla. Pendiente: el revisor metodológico, el rótulo «B · La relación», que es ambiguo, y la jerarquía visual de la fila B.
 - CCSS-8 y el eje de 0 a 100 %: según el recetario p74 («el recetario es la fuente de verdad», Gonzalo, 2026-10-09), las barras de una serie van de 0 a 100 % por defecto, y eso no se revierte. Lo que se arregla siempre es la columna de rótulos: ocupa como máximo el 35 % del ancho y envuelve el texto en hasta 3 líneas, así que las barras ganan el ancho liberado. Escalar el eje al máximo observado × 1.15 (que da barras a todo el ancho) es opcional y se activa con `usar_eje_libre = TRUE` en la lámina. Para CCSS lo decide el plan. Alternativa, si Gonzalo lo prefiere: el eje libre por defecto en el PPT y 0 a 100 % solo con marcas (p75).
+
+## Cierre del loop (2026-10-25)
+
+Gonzalo ordenó cerrar tras TXT-24, TXT-25 y TXT-26. Quedan para un próximo encargo: agrupadas de cruce a todo el ancho (CCSS-8b), CCSS-13/17/18/9b y UI-1/2/3 sin commit identificado, B1 residual (`analitica_script_replica.R:670`, `router_sistema.R:547`, `universe_filter`), el anonimizador sin listas del diccionario, P3 y los ⛔ de arriba. Este checklist lo da por terminado sólo Gonzalo.
