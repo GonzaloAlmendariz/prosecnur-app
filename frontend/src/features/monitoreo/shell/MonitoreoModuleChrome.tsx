@@ -12,6 +12,7 @@ import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/Chrom
 import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 import { HerramientasDelModo, IndicadoresDelModo, type BarraDelModo } from "./BarraDelModo";
+import { nombreDeLaPildora, normalizarMetrica, tituloDeLaPildora, type MetricaDeSeccion } from "./metricaDeSeccion";
 
 export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSeccionDePagina> = {
   routes: MonitoreoModoDefinicion[];
@@ -30,7 +31,11 @@ export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSec
   hasSnapshot: boolean;
   syncing?: boolean;
   syncProgress?: MonitoreoModuleSyncProgress | null;
-  viewMetrics?: Partial<Record<MonitoreoSeccion, string>>;
+  /**
+   * Insignia de cada píldora. Un avance va con su base (`{ valor, base, lectura }`,
+   * L20); un texto suelto sirve para conteos. Territorial todavía pasa texto.
+   */
+  viewMetrics?: Partial<Record<MonitoreoSeccion, MetricaDeSeccion>>;
   syncDisabled?: boolean;
   syncLabel?: string;
   syncTitle?: string;
@@ -240,8 +245,8 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
           {views.map((item, index) => {
             const selected = item.key === seccionActiva;
             const displayLabel = item.shortLabel ?? item.label;
-            const metric = viewMetrics?.[item.key] ?? "";
-            const accessibilityLabel = metric ? `${displayLabel}, ${metric}: ${item.desc}` : `${displayLabel}: ${item.desc}`;
+            const metric = normalizarMetrica(viewMetrics?.[item.key]);
+            const accessibilityLabel = nombreDeLaPildora(displayLabel, metric, item.desc);
             return (
               <li key={item.key} className="pulso-phase-pill-item">
                 <a
@@ -259,7 +264,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
                   aria-disabled={saving ? "true" : undefined}
                   data-view-key={item.key}
                   tabIndex={saving ? -1 : undefined}
-                  title={metric ? `${item.label}: ${metric} · ${item.desc}` : `${item.label}: ${item.desc}`}
+                  title={tituloDeLaPildora(item.label, metric, item.desc)}
                   onClick={(event) => {
                     if (saving) {
                       event.preventDefault();
@@ -283,7 +288,12 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
                   <span className="pulso-phase-pill-stack">
                     <span className="pulso-phase-pill-label">
                       <span className="pulso-phase-pill-text">{displayLabel}</span>
-                      {metric ? <em className="pulso-phase-pill-metric">{metric}</em> : null}
+                      {metric ? (
+                        <em className={`pulso-phase-pill-metric${metric.base ? " has-base" : ""}`}>
+                          <span className="mon-pill-metric-valor">{metric.valor}</span>
+                          {metric.base ? <span className="mon-pill-metric-base">{metric.base}</span> : null}
+                        </em>
+                      ) : null}
                     </span>
                   </span>
                 </a>

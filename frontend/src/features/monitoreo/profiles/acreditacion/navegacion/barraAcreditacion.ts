@@ -1,4 +1,5 @@
 import type { BarraDelModo } from "../../../shell/BarraDelModo";
+import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import type { AcreditacionAdvanceCard } from "../avance/tarjetasDeAvance";
 import type { CasosDelCorte } from "../control/casos/tiposDeCaso";
 import { fmt } from "../formato";
@@ -43,13 +44,23 @@ export function porcentajeDeAvance(efectivas: number, meta: number): string | nu
   return `${fmt(Math.round((efectivas / meta) * 100))} %`;
 }
 
+/**
+ * La insignia de Avance lleva su base (L20): efectivas sobre meta, el mismo
+ * par que Avance › Resumen publica como «418 de 287 meta».
+ */
 export function insigniasDeAcreditacion(
   avance: { efectivas: number; meta: number } | null,
   casos: CasosDelCorte | null,
-): Partial<Record<"control" | "avance", string>> {
-  const insignias: Partial<Record<"control" | "avance", string>> = {};
+): Partial<Record<"control" | "avance", MetricaDeSeccion>> {
+  const insignias: Partial<Record<"control" | "avance", MetricaDeSeccion>> = {};
   if (casos && casos.esperan > 0) insignias.control = fmt(casos.esperan);
   const porcentaje = avance ? porcentajeDeAvance(avance.efectivas, avance.meta) : null;
-  if (porcentaje) insignias.avance = porcentaje;
+  if (avance && porcentaje) {
+    insignias.avance = {
+      valor: porcentaje,
+      base: `${fmt(avance.efectivas)}/${fmt(avance.meta)}`,
+      lectura: `${fmt(avance.efectivas)} efectivas de una meta de ${fmt(avance.meta)}`,
+    };
+  }
   return insignias;
 }
