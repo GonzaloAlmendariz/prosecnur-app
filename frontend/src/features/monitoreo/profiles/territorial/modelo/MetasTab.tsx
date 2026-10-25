@@ -135,9 +135,14 @@ function MetasTabImpl({
 
         <section className="mon-mod-panel" aria-labelledby="mon-mod-arma">
           <h3 id="mon-mod-arma" className="mon-mod-titulo">Cómo se arma la muestra</h3>
-          <ul className="mon-mod-lista">
-            {modelo.comoSeArma.map((item) => <li key={item.clave}>{item.texto}</li>)}
-          </ul>
+          <dl className="mon-mod-parametros" data-qa-geometry-group="territorial-modelo-parametros" data-qa-geometry-contract="equal">
+            {modelo.comoSeArma.map((item) => (
+              <div key={item.clave} data-qa-geometry-member={item.clave}>
+                <dt>{item.rotulo}</dt>
+                <dd className={item.ayuda ? "tiene-ayuda" : undefined} title={item.ayuda}>{item.valor}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
       </div>
 

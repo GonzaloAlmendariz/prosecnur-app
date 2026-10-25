@@ -492,3 +492,85 @@
     height: 100%;
   }
 }
+
+/* Metas (ronda 3): «Cómo se arma la muestra» deja de ser prosa con «;» y
+ * paréntesis. Cada parámetro es una celda con su rótulo corto arriba y el
+ * valor debajo; la aclaración de un término va en el tooltip (punteado). */
+.mon-mod-parametros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-mod-parametros > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-mod-parametros dt {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-mod-parametros dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-mod-parametros dd.tiene-ayuda {
+  justify-self: start;
+  text-decoration: underline dotted var(--pulso-border-strong);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+/* Metas a 1024 (ronda 3): la meta por distrito desplazaba en horizontal
+ * (Viviendas y Población). La columna de la tabla toma más ancho que el mapa
+ * (que se encuadra con su proporción medida), las celdas se compactan y los
+ * encabezados de dos palabras parten línea. */
+@media (max-width: 1180px) {
+  .mon-mod.mon-mod-metas {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+
+  .mon-mod-metas .mon-mod-tabla thead th {
+    padding: 6px 5px;
+    white-space: normal;
+    vertical-align: bottom;
+  }
+
+  .mon-mod-metas .mon-mod-tabla tbody th,
+  .mon-mod-metas .mon-mod-tabla tbody td,
+  .mon-mod-metas .mon-mod-tabla tfoot th,
+  .mon-mod-metas .mon-mod-tabla tfoot td {
+    padding: 7px 5px;
+  }
+
+  .mon-mod-metas .mon-mod-tabla th:first-child,
+  .mon-mod-metas .mon-mod-tabla td:first-child {
+    padding-left: var(--pulso-space-4);
+  }
+
+  .mon-mod-metas .mon-mod-tabla th:last-child,
+  .mon-mod-metas .mon-mod-tabla td:last-child {
+    padding-right: var(--pulso-space-4);
+  }
+
+  /* Si aun así no cabe, el nombre del distrito parte línea antes que la tabla
+   * desplace. */
+  .mon-mod-metas .mon-mod-tabla tbody th {
+    white-space: normal;
+  }
+}

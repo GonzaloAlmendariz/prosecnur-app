@@ -32,13 +32,17 @@ describe("Modelo › Metas y muestra", () => {
   });
 
   it("cómo se arma la muestra sale de las manzanas titulares", () => {
-    expect(modelo.comoSeArma.map((item) => item.texto)).toEqual([
-      "La UMP es la manzana titular; si no rinde, se pasa a su reemplazo",
-      "PPS (probabilidad proporcional al tamaño) por territorio muestral",
-      "8 entrevistas por UMP, rango de viviendas 1 a 8",
-      "1 reemplazo por UMP",
-      "La meta se reparte por distrito",
+    expect(modelo.comoSeArma.map((item) => `${item.rotulo}: ${item.valor}`)).toEqual([
+      "UMP: Manzana titular",
+      "Selección: PPS por territorio",
+      "Entrevistas por UMP: 8",
+      "Rango de viviendas: 1 a 8",
+      "Reemplazos por UMP: 1",
+      "Reparto de la meta: Por distrito",
     ]);
+    // Ningún valor lleva una explicación encadenada: la aclaración va al tooltip.
+    for (const item of modelo.comoSeArma) expect(item.valor).not.toMatch(/[;:(·]/);
+    expect(modelo.comoSeArma.find((item) => item.clave === "metodo")?.ayuda).toMatch(/proporcional al tamaño/);
   });
 
   it("sin muestra de Hojas de ruta no hay modelo", () => {

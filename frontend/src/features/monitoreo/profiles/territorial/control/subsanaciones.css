@@ -400,24 +400,54 @@
   min-height: 200px;
 }
 
-/* 1024 × 600: dos columnas arriba y la tercera debajo a todo el ancho, con el
- * mapa y las aplicadas lado a lado. La pestaña mide lo que trae y desplaza
- * entera con el dueño del área de trabajo; las listas de arriba desplazan
- * dentro de un tope para que la fila no crezca con 33 UMP. Antes, las filas
- * en fracción del alto dejaban el historial fuera de alcance. */
+/* 1024 × 600 (ronda 3): una columna. Antes las dos listas compartían fila con
+ * un tope de 460 px y, como la pestaña era un hijo flexible del área de
+ * trabajo, la fila se encogía a ~230 px y la tarjeta del paquete quedaba
+ * cortada. Ahora la pestaña mide lo que trae (`flex: 0 0 auto`) y desplaza
+ * entera con el dueño del área de trabajo; cada lista va a todo el ancho con
+ * un alto que cabe en la ventana: las celdas con déficit en dos columnas y
+ * cada paquete con la ruta a la izquierda y la nota y las acciones a la
+ * derecha. Debajo, el mapa y las aplicadas lado a lado. */
 @media (max-width: 1180px) {
   .mon-sub {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    flex: 0 0 auto;
     height: auto;
-  }
-
-  .mon-sub > :last-child {
-    grid-column: 1 / -1;
+    min-height: auto;
   }
 
   .mon-sub > .mon-sub-panel {
-    max-height: 460px;
+    height: clamp(340px, calc(100vh - 180px), 560px);
+  }
+
+  /* Cada celda mide lo que trae: estiradas a la más alta de su fila
+   * dejaban aire al pie (capacity-drift). */
+  .mon-sub-lista {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    align-items: start;
+  }
+
+  .mon-sub-paquetes li {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    column-gap: var(--pulso-space-4);
+    align-items: start;
+  }
+
+  .mon-sub-paquetes li > .mon-sub-ruta,
+  .mon-sub-paquetes li > .mon-sub-base,
+  .mon-sub-paquetes li > .mon-sub-ya-rechazado {
+    grid-column: 1;
+  }
+
+  .mon-sub-paquetes li > .mon-sub-nota {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .mon-sub-paquetes li > .mon-sub-acciones {
+    grid-column: 2;
+    grid-row: 3;
   }
 
   .mon-sub-derecha {

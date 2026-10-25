@@ -69,7 +69,7 @@ export function FichaDeUmp({
       <section aria-labelledby="mon-ump-ficha-casos" className="mon-ump-casos-marco">
         <h4 id="mon-ump-ficha-casos" className="mon-ump-subtitulo">Casos de la UMP</h4>
         {ficha.casos === null ? (
-          <p className="mon-ump-base">Los casos llegan con el corte de Validación, que aún se está preparando.</p>
+          <p className="mon-ump-base" title="Los casos llegan con el corte de Validación" aria-busy="true">Preparando el corte de Validación…</p>
         ) : ficha.casos.length ? (
           <ol className="mon-ump-casos" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-ump-casos" data-qa-geometry-contract="intrinsic">
             {ficha.casos.map((caso) => (

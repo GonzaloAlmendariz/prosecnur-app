@@ -122,7 +122,8 @@ export function MapaDeLaMuestra({
         {conteo.enUso ? <span className="is-reemplazo">Reemplazo en uso</span> : null}
         {conteo.reserva && !conteo.sinDatoDeUso ? <span>{fmt(conteo.reserva)} de reserva sin usar</span> : null}
         {conteo.sinDatoDeUso ? <span>Reemplazos en uso sin dato</span> : null}
-        <span>Fuentes: distritos PlanMet y manzanas INEI 2017.{cartografia.incompleta ? " La cartografía está incompleta." : ""}</span>
+        <span>Fuentes: distritos PlanMet y manzanas INEI 2017</span>
+        {cartografia.incompleta ? <span className="mon-ter-chip is-aviso">Cartografía incompleta</span> : null}
       </footer>
     </div>
   );

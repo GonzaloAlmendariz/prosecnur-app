@@ -495,26 +495,23 @@
   }
 }
 
-/* Cabecera de motivo: el rótulo del parte es largo; va en dos líneas con el
- * color de su tramo en la barra de arriba y el texto entero en el title. */
+/* Cabecera de motivo (ronda 3): rótulo corto del motivo (`rotuloCortoDeMotivo`)
+ * que cabe entero en dos líneas, con el color de su tramo en la barra de
+ * arriba y el texto del formulario en el title. Sin recorte con «…». */
 .is-territorial-profile .mon-ocu-tabla thead th.is-motivo {
-  width: 120px;
-  min-width: 120px;
+  width: 104px;
+  min-width: 104px;
   letter-spacing: 0;
   text-transform: none;
   white-space: normal;
 }
 
 .mon-ocu-motivo {
-  display: -webkit-box;
-  overflow: hidden;
+  display: block;
   font-size: 11.5px;
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   text-align: right;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
 }
 
 .mon-ocu-motivo::before {
@@ -637,5 +634,42 @@
   .mon-ocu-distritos .mon-ocu-tabla tbody th {
     max-width: 150px;
     white-space: normal;
+  }
+}
+
+/* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
+ * queda pegada al borde de la tarjeta. */
+.mon-ocu-tabla th:last-child,
+.mon-ocu-tabla td:last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+/* Ocurrencias a 1024 (ronda 3): en dos columnas «Por distrito» sólo mostraba
+ * hasta Efectivas y los motivos quedaban fuera, a la derecha. Por debajo de
+ * 1181 px la tabla va a todo el ancho con sus cuatro motivos, y Por día y la
+ * tasa por UMP lado a lado debajo; la pestaña mide lo que trae y desplaza
+ * entera con el dueño del área de trabajo. */
+@media (max-width: 1180px) {
+  .mon-ocu {
+    grid-template-rows: auto auto;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mon-ocu-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mon-ocu-derecha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .mon-ocu-distritos .mon-ocu-tabla thead th.is-motivo {
+    width: 96px;
+    min-width: 96px;
   }
 }

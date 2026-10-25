@@ -34,7 +34,7 @@ function ReportesTabImpl({
           <RotuloDePestana />
           <ClipboardList size={20} aria-hidden="true" />
           <strong>Sin partes por UMP en el corte</strong>
-          <span>Los partes llegan del formulario de ocurrencias de campo; «Actualizar» trae los nuevos.</span>
+          <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
         </div>
       </section>
     );
@@ -117,11 +117,9 @@ function ReportesTabImpl({
           )}
         </section>
         {modelo.fueraDeRuta.length ? (
-          <p className="mon-rep-aviso">
+          <p className="mon-rep-aviso" title="Tiene parte de ocurrencias pero su UMP no está en la ruta de Hojas de ruta">
             <TriangleAlert size={14} aria-hidden="true" />
-            {modelo.fueraDeRuta.length === 1
-              ? `UMP ${modelo.fueraDeRuta[0]} tiene parte pero no está en la ruta.`
-              : `UMP ${modelo.fueraDeRuta.join(", ")} tienen parte pero no están en la ruta.`}
+            {`Parte fuera de la ruta: UMP ${modelo.fueraDeRuta.join(", ")}`}
           </p>
         ) : null}
       </aside>
