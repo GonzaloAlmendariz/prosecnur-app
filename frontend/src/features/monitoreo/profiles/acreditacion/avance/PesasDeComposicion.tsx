@@ -25,14 +25,11 @@ export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: Var
       <header className="acr-av-panel-cabecera">
         <h3>
           {`${variable.actor}, ${variable.variable}`}
-          <span className="acr-av-tenue">{`Sin meta · mayor diferencia ${pp(variable.maxDelta)}`}</span>
+          <span className="acr-av-chip">Sin meta</span>
+          <span className="acr-av-tenue" title="Mayor diferencia entre el % de las efectivas y el % del universo">{`Máx. ${pp(variable.maxDelta)}`}</span>
         </h3>
         <button type="button" className="acr-av-boton" onClick={onDefinirCuota}><Plus size={14} aria-hidden="true" /> Definir cuota en Modelo</button>
       </header>
-      <ul className="acr-pc-leyenda" aria-label="Lectura">
-        <li><i className="acr-pc-anillo" aria-hidden="true" /> % del universo</li>
-        <li><i className="acr-pc-punto" aria-hidden="true" /> % de las efectivas</li>
-      </ul>
       <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
         <div className="acr-pc-pesas" role="table" aria-label={`% del universo frente a % de las efectivas por ${variable.variable}`}>
           <div className="acr-pc-fila is-eje" role="row">
@@ -62,6 +59,10 @@ export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: Var
           ))}
         </div>
       </div>
+      <ul className="acr-pc-leyenda" aria-label="Lectura">
+        <li><i className="acr-pc-anillo" aria-hidden="true" /> % del universo</li>
+        <li><i className="acr-pc-punto" aria-hidden="true" /> % de las efectivas</li>
+      </ul>
     </section>
   );
 }

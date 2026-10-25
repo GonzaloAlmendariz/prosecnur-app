@@ -6,6 +6,7 @@
 
 .acr-res,
 .acr-pub,
+.acr-vc,
 .acr-ct,
 .acr-ps,
 .acr-mo-ventana,
@@ -420,6 +421,30 @@
   grid-template-rows: minmax(0, max-content) minmax(200px, 1fr);
 }
 
+/* Densidad declarable (Meta B, L29). Cómoda —hasta seis públicos—: las
+ * teselas y «Por resolver» toman al menos su alto natural, nada se corta y
+ * las teselas reparten parejo el alto que sobra; si la ventana no alcanza,
+ * la página crece y desplaza el workbench. Compacta —más de seis—: la lista
+ * de públicos va primero y toma lo que necesita; «Por resolver» lleva el resto
+ * con su propio scroll (se probó al revés y la lista quedaba en cuatro
+ * teselas y media con 10 públicos). */
+.acr-res[data-density="comoda"] {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 100%;
+}
+
+.acr-res[data-density="comoda"] .acr-res-derecha {
+  grid-template-rows: minmax(max-content, 1fr) max-content;
+}
+
+.acr-res-chips-proyeccion {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .acr-res-kpis {
   display: grid;
   grid-template-columns: minmax(0, 2.6fr) repeat(4, minmax(0, 1fr));
@@ -580,6 +605,7 @@
 .acr-res-publico {
   display: flex;
   flex: none;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
   border-left: 3px solid var(--pulso-border);
@@ -626,8 +652,29 @@
   cursor: pointer;
 }
 
-.acr-res-publico.is-denso .acr-res-publico-boton {
-  padding-block: var(--pulso-space-2);
+.acr-res[data-density="comoda"] .acr-res-publico {
+  flex: 1 0 auto;
+}
+
+.acr-res[data-density="comoda"] .acr-res-publico-boton {
+  gap: 7px;
+  padding: 10px var(--pulso-space-4);
+}
+
+.acr-res[data-density="comoda"] .acr-res-publico-nombre {
+  font-size: 13.5px;
+}
+
+.acr-res[data-density="comoda"] .acr-res-publico-cifra b {
+  font-size: 16px;
+}
+
+.acr-res[data-density="comoda"] .acr-res-publico .acr-av-pista {
+  height: 8px;
+}
+
+.acr-res[data-density="compacta"] .acr-res-publico-nombre {
+  font-size: 12.5px;
 }
 
 .acr-res-publico-boton:hover {
@@ -660,11 +707,9 @@
 }
 
 .acr-res-publico-pie {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-  font-size: 11.5px;
+  display: block;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .acr-res-resolver {
@@ -739,6 +784,29 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Lo que espera decisión por público: un chip por público con su punto de
+ * color y su cifra, que lleva a la bandeja. */
+.acr-res-chip-publico {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.acr-res-chip-publico:hover {
+  background: var(--pulso-surface-2);
+}
+
+.acr-res-chip-publico:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.acr-res-chip-publico > b {
+  color: var(--pulso-text);
 }
 
 /* El embudo del corte es una superficie compacta dentro de su tarjeta. */
@@ -971,7 +1039,8 @@
   .acr-pub-acumulado { min-height: 200px; }
 
   .acr-res-izquierda { grid-template-rows: minmax(420px, auto) auto; }
-  .acr-res-derecha { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+  .acr-res-derecha,
+  .acr-res[data-density] .acr-res-derecha { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
   .acr-res-publicos-lista { overflow: visible; }
   .acr-pub-estados-lista > li { flex: none; min-height: 40px; }
   .acr-pub-tabla-marco,
@@ -1265,9 +1334,29 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
 
+/* El detalle de la cuota en su tarjeta, a su alto natural y con tope en la
+ * columna: si la variable trae muchas categorías, la tarjeta es dueña del
+ * scroll. El vacío bajo una cuota corta es fondo de página (§2a-bis). */
 .acr-pc-detalle-cuota {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.acr-pc-detalle-cuota .mon-cuotas-detalle {
+  margin: 0;
+  padding: 0 var(--pulso-space-4) var(--pulso-space-2);
+  border-top: 0;
+}
+
+.acr-pc-detalle-cuota .mon-cuotas-detalle-cabeza {
+  padding: var(--pulso-space-3) 0 var(--pulso-space-2);
+}
+
+.acr-pc-detalle-cuota .mon-cuotas-detalle-titulo h3 {
+  font-size: 16px;
 }
 
 .acr-pc-leyenda {
@@ -1295,6 +1384,17 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-2);
+}
+
+/* La composición, a su alto natural con tope en la columna; la leyenda va
+ * centrada debajo de lo que lee. */
+.acr-pc-derecha > .acr-pc-detalle {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.acr-pc-detalle > .acr-pc-leyenda {
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
 }
 
@@ -1530,3 +1630,109 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-bloqueado { border-left-color: var(--pulso-state-blocked-fg); }
 .is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-parcial { border-left-color: var(--pulso-state-partial-fg); }
 .is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-sin-configurar { border-left-color: var(--pulso-state-unset-fg); }
+
+/* Avance › Por cuota › Variables de control (ronda 4): la tabla de la
+ * composición en su tarjeta, con una fila de grupo por público y variable, y
+ * debajo las tablas del reporte. Sustituye a la vista heredada (tarjeta
+ * teñida, párrafos y píldoras en versalitas). Desplaza el workbench. */
+.acr-vc {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  height: auto;
+  min-height: 100%;
+}
+
+.acr-vc > * {
+  flex-shrink: 0;
+}
+
+.acr-vc-tabla .acr-pub-tabla-marco {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.acr-vc-grupo th {
+  padding-top: var(--pulso-space-3);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-vc-grupo th > .mon-publico-punto {
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+
+.acr-vc .acr-pub-tabla tbody tr.acr-vc-grupo:hover {
+  background: inherit;
+}
+
+.acr-vc .acr-pub-tabla tbody th[scope="row"] {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-vc-col-barras {
+  width: 34%;
+  min-width: 220px;
+}
+
+.acr-vc-barras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 3px var(--pulso-space-2);
+}
+
+.acr-vc-barra {
+  position: relative;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--acr-pista);
+}
+
+.acr-vc-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.acr-vc-barra.is-universo > i,
+.acr-vc-punto.is-universo {
+  background: var(--acr-parcial);
+}
+
+.acr-vc-barra.is-efectivas > i,
+.acr-vc-punto.is-efectivas {
+  background: var(--acr-efectiva);
+}
+
+.acr-vc-pct {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  text-align: right;
+}
+
+.acr-vc-punto {
+  display: inline-block;
+  width: 10px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 999px;
+}
+
+.acr-vc .is-num.is-marcada {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-vc-reporte .mon-gs-report-tabs {
+  margin: var(--pulso-space-3) var(--pulso-space-4) 0;
+}
+
+.acr-vc-reporte .mon-gs-report-body {
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
