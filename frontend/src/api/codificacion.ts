@@ -877,8 +877,10 @@ export async function apiCodifAgrupacionSet(parent: string, spec: AgrupacionSpec
 // GET /api/codificacion/sugerencias-seccion. Sólo lectura: propone el o los módulos del formulario de cada comentario
 // por las palabras que comparte con ellos; el analista confirma por el flujo de grupos. Nunca trae asignaciones.
 
-export type ModuloSugerible = { codigo: string; seccion: string; etiqueta: string; nTerminos: number };
-export type PropuestaModulo = { codigo: string; seccion: string; etiqueta: string; puntaje: number; palabras: string[] };
+/** Un subtema de un módulo partido (TXT-11) trae `padre` (el código del módulo) y la etiqueta de ese módulo. */
+type SubtemaDe = { padre?: string; padreEtiqueta?: string };
+export type ModuloSugerible = { codigo: string; seccion: string; etiqueta: string; nTerminos: number } & SubtemaDe;
+export type PropuestaModulo = { codigo: string; seccion: string; etiqueta: string; puntaje: number; palabras: string[] } & SubtemaDe;
 export type RespuestaConPropuesta = {
   idCaso: string;
   fila: number;
@@ -915,9 +917,13 @@ export function normalizeCodifSugerenciasSeccion(raw: unknown): CodifSugerencias
     const o = codifRegistro(m);
     const codigo = codifTexto(o.codigo);
     if (!codigo || modulos.some((x) => x.codigo === codigo)) continue;
-    modulos.push({ codigo, seccion: codifTexto(o.seccion), etiqueta: codifTexto(o.etiqueta) || codigo, nTerminos: codifEntero(o.n_terminos) });
+    const padre = codifTexto(o.padre);
+    modulos.push({ codigo, seccion: codifTexto(o.seccion), etiqueta: codifTexto(o.etiqueta) || codigo, nTerminos: codifEntero(o.n_terminos), ...(padre ? { padre } : {}) });
   }
   const conocidos = new Set(modulos.map((m) => m.codigo));
+  const etiquetaDe = new Map(modulos.map((m) => [m.codigo, m.etiqueta]));
+  const subtema = (padre: string): SubtemaDe => (padre ? { padre, padreEtiqueta: etiquetaDe.get(padre) ?? "" } : {});
+  for (const m of modulos) if (m.padre) Object.assign(m, subtema(m.padre));
   const respuestas: RespuestaConPropuesta[] = [];
   for (const x of codifLista(r.respuestas)) {
     const o = codifRegistro(x);
@@ -934,6 +940,7 @@ export function normalizeCodifSugerenciasSeccion(raw: unknown): CodifSugerencias
         etiqueta: codifTexto(q.etiqueta) || codigo,
         puntaje: codifNumero(q.puntaje),
         palabras: codifLista(q.palabras).map(codifTexto).filter(Boolean),
+        ...subtema(codifTexto(q.padre)),
       }];
     });
     respuestas.push({

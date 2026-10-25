@@ -21,7 +21,9 @@ import {
   grupoDePalabra,
   hayCambios,
   palabrasFrecuentes,
+  totalDelGrupo,
   type AccionPalabras,
+  type TotalGrupo,
   type EstadoPalabras,
 } from "./diccionarioPalabras";
 import { PANEL_PALABRAS } from "./panelesCodificacion";
@@ -246,10 +248,25 @@ function AjustesPlegados({ estado, despachar }: CuerpoProps) {
   );
 }
 
+/** «estudiantes 7 + alumnos 6»: de dónde sale el total de un grupo (TXT-18). */
+function desglose(t: TotalGrupo): string {
+  return t.partes.length > 1 ? t.partes.map((x) => `${x.forma} ${formatoConteo(x.personas)}`).join(" + ") : "";
+}
+
+function ChipGrupo({ total, n }: { total: TotalGrupo; n: number }) {
+  if (total.personas == null) return <span className="pulso-cv2-pal-chip">Junta {n} palabras</span>;
+  const d = desglose(total);
+  return (
+    <span className="pulso-cv2-pal-chip" title={d || undefined}>
+      {personas(total.personas)} en el grupo{d ? ` (${d})` : ""}
+    </span>
+  );
+}
+
 function GruposSeccion({ estado, despachar }: CuerpoProps) {
   const grupos = estado.borrador.equivalencias;
   if (!grupos.length) return null;
-  const delServidor = estado.lectura.fase === "lista" ? estado.lectura.datos.grupos : [];
+  const datos = estado.lectura.fase === "lista" ? estado.lectura.datos : null;
   return (
     <section className="pulso-cv2-pal-seccion" aria-labelledby="pulso-cv2-pal-grupos" data-qa-geometry-member="grupos">
       <div className="pulso-cv2-col-head">
@@ -258,17 +275,14 @@ function GruposSeccion({ estado, despachar }: CuerpoProps) {
       </div>
       <ul className="pulso-cv2-pal-lista" data-qa-geometry-group="codificacion/palabras-unidas" data-qa-geometry-contract="intrinsic">
         {grupos.map((g) => {
-          const guardado = delServidor.find((s) =>
-            claveTermino(s.mostrar) === claveTermino(g.mostrar) &&
-            s.formas.length === g.formas.length &&
-            s.formas.every((f) => g.formas.some((x) => claveTermino(x) === claveTermino(f))));
+          const total = totalDelGrupo(g, datos);
           return (
             <li key={g.mostrar} className="pulso-cv2-pal-fila is-grupo" data-qa-geometry-member="grupo">
               <span className="pulso-cv2-pal-texto">
                 <strong>{g.mostrar}</strong>
-                <span className="pulso-cv2-pal-formas">junta {g.formas.join(", ")}</span>
+                <span className="pulso-cv2-pal-formas">{desglose(total) || `junta ${g.formas.join(", ")}`}</span>
               </span>
-              <span className="pulso-cv2-pal-n">{guardado ? personas(guardado.personas) : "Se cuenta al guardar"}</span>
+              <span className="pulso-cv2-pal-n">{total.personas != null ? personas(total.personas) : "Se cuenta al guardar"}</span>
               <button
                 type="button"
                 className="pulso-cv2-pal-accion"
@@ -308,7 +322,7 @@ function PalabraFila({ p, estado, despachar }: { p: PalabraReconocida } & Cuerpo
             <span className="pulso-cv2-pal-chip">Se muestra como «{grupo.mostrar}»</span>
           )}
           {grupo && claveTermino(grupo.mostrar) === claveTermino(p.forma) && (
-            <span className="pulso-cv2-pal-chip">Junta {grupo.formas.length} palabras</span>
+            <ChipGrupo total={totalDelGrupo(grupo, estado.lectura.fase === "lista" ? estado.lectura.datos : null)} n={grupo.formas.length} />
           )}
           {p.excluidaEn.map((t) => (
             <span key={t} className="pulso-cv2-pal-chip is-excluida">No se cuenta dentro de «{t}»</span>

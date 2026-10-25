@@ -6,7 +6,7 @@
 import { useId } from "react";
 import { Check, Plus } from "lucide-react";
 import type { Grupo, PropuestaModulo } from "../../api/codificacion";
-import { estaConfirmada, rotuloModulo, type EntradaSugerida } from "./sugerenciasModulo";
+import { estaConfirmada, rotuloDePropuesta, type EntradaSugerida } from "./sugerenciasModulo";
 
 type Props = {
   entrada: EntradaSugerida | undefined;
@@ -31,7 +31,7 @@ export function SugerenciaModuloFila({ entrada, grupos, onConfirmar, onQuitar }:
     <span className="pulso-cv2-modsug" role="group" aria-label="Módulo sugerido" data-qa-geometry-group="codificacion/sugerencia-respuesta" data-qa-geometry-contract="intrinsic">
       <span className="pulso-cv2-modsug-eyebrow" aria-hidden="true">Sugerido</span>
       {entrada.propuestas.map((p, i) => {
-        const r = rotuloModulo(p.etiqueta);
+        const r = rotuloDePropuesta(p);
         const ok = estaConfirmada(grupos, p.codigo, entrada.clave);
         const porque = p.palabras.length ? `Coincide en: ${p.palabras.join(", ")}` : "Coincide con el vocabulario del módulo";
         const idPorque = `${base}-${i}`;
@@ -43,7 +43,7 @@ export function SugerenciaModuloFila({ entrada, grupos, onConfirmar, onQuitar }:
               aria-pressed={ok}
               aria-label={ok ? `Quitar ${r.corto} de esta respuesta` : `Confirmar ${r.corto} para esta respuesta`}
               aria-describedby={idPorque}
-              title={`${porque}${ok ? " · Confirmado: clic para quitar" : " · Clic para confirmar"}`}
+              title={`${r.nombre !== r.completo && p.padreEtiqueta ? `${r.completo}\n` : ""}${porque}${ok ? " · Confirmado: clic para quitar" : " · Clic para confirmar"}`}
               onClick={() => (ok ? onQuitar(p) : onConfirmar(p))}
             >
               {ok ? <Check size={11} aria-hidden="true" /> : <Plus size={11} aria-hidden="true" />}

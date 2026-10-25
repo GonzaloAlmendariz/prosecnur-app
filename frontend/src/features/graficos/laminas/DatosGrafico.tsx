@@ -51,6 +51,7 @@ import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlc
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
 import { CifraGrafico } from "./CifraGrafico";
+import { CitasAprobadas } from "./citas/CitasAprobadas";
 import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
 import { Segmentado } from "../subpestanas/Segmentado";
@@ -86,7 +87,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const conCasillas = (radarPublicos || serie) && codigosComunes(argsATemas(args), variables).length > 0;
   // La cifra destacada tiene su propio editor (qué cifra, respuesta y texto); de la lista genérica sólo queda la pregunta.
   const cifra = valor.graficador === "p_cifra";
-  const delEditor = (name: string) => (cifra && name !== "var") ||
+  // O3b-b: las citas aprobadas tienen su tarjeta de aprobación (candidatas, recorte, corrección y [sic]).
+  const citas = valor.graficador === "p_citas";
+  const delEditor = (name: string) => (cifra && name !== "var") || (citas && name === "citas_aprobadas") ||
     (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
   const formaRadar = radarPublicos ? formaEfectivaRadar({ forma: args.forma, fallback_pocos: args.fallback_pocos, tabla: args.tabla, nCriterios: criteriosDelRadar(args) }).forma : "radar";
   const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
@@ -194,6 +197,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
         {delGrupo("datos")}
         {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
+        {citas && <CitasAprobadas args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} onCambio={set} />}
         {sinBaseCompartido && <NotaBaseCompartido />}
         {variable && !cifra && (
           <FilaTexto
