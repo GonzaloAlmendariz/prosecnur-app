@@ -35,6 +35,13 @@
   max-height: 100%;
 }
 
+/* Los filtros, igual: a su alto natural con tope en la columna. Estirados
+ * dejaban 250 px vacíos bajo el último público. */
+.acr-pr > .acr-pr-filtros {
+  align-self: start;
+  max-height: 100%;
+}
+
 .acr-pr-filtros-cuerpo {
   display: flex;
   flex-direction: column;
@@ -367,7 +374,12 @@
     min-height: 100%;
   }
 
-  .acr-pr-panel { grid-column: 1 / -1; }
+  /* El caso baja bajo la cola, en su misma columna, y los filtros ocupan las dos
+   * filas. A lo ancho, debajo de las dos columnas, la fila de arriba medía lo
+   * que los filtros y una cola de 2 casos dejaba 250 px vacíos antes del caso. */
+  .acr-pr { grid-template-rows: auto minmax(0, 1fr); }
+  .acr-pr > .acr-pr-filtros { grid-row: 1 / span 2; }
+  .acr-pr-panel { grid-column: 2; grid-row: 2; align-self: start; }
   .acr-pr-cola-marco { max-height: 420px; }
   .acr-pr-panel-cuerpo,
   .acr-pr-filtros-cuerpo { overflow: visible; }
