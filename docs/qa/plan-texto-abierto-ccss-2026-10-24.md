@@ -41,3 +41,36 @@ Variable `coment`. Diseño hecho en solo lectura sobre una copia del proyecto; c
 - **O1b, backend, en paralelo:** `codificacion_sugerir_seccion.R`, un bloque al final de `router_codificacion.R`, `test-codificacion-sugerir-seccion.R`.
 - **O2, backend, después de O1:** citas y n-gramas, más sus entradas en `graficos_metadata.R`, `reporte_plan_slides.R` y `catalogo_recetario_plan.R`.
 - **O3, frontend, después de O2:** argumentos y tarjeta de aprobación de citas en Gráficos; marca de módulo sugerido en Codificación.
+
+## TXT-6 + TXT-7: diccionario del proyecto por pregunta (contrato congelado, 2026-10-24)
+
+Gonzalo aprobó unir «alumnos» con «estudiantes» y «profesores» con «docentes», con esta condición (textual): «esa unificación no debe
+ser hardcodeada… la interfaz usuaria debe permitir establecer equivalencias entre las palabras que reconozca, de tal manera que el
+usuario pueda hacerlo de forma sencilla».
+
+**Dónde vive.** Un campo nuevo de la sesión, `texto_abierto_diccionario`, que viaja en el `.pulso` (`state.rds`) y está indexado por
+base y pregunta:
+
+```
+texto_abierto_diccionario[[base]][[variable]] = list(
+  equivalencias = list(list(mostrar = "estudiantes", formas = c("alumnos", "estudiantes"))),  # grupos de raíces/palabras
+  excluir       = c("ciencias sociales"),                                                   # términos que no informan
+  frases        = c("ciencias sociales")                                                    # se unen aunque no lleguen a 3 personas
+)
+```
+
+No es una opción de lámina: es del proyecto. Lo leen la nube (TXT-1), la sugerencia de módulo (TXT-3) y las citas (TXT-4). Un
+override en el plan sigue funcionando y gana sobre el diccionario.
+
+**API.**
+- `GET /api/texto-abierto/diccionario?base=&variable=` devuelve el diccionario y las **palabras reconocidas** de esa pregunta, cada
+  una con su conteo de personas, sus formas y si ya está en un grupo o excluida.
+- `PUT` del mismo recurso guarda el diccionario completo, valida que no haya formas repetidas entre grupos y marca `project_dirty`.
+- Errores con `stop_api` y códigos `E_TXT_*` registrados.
+
+**UI.** Lista de palabras reconocidas con su conteo. El usuario marca dos o más, pulsa «Unir», elige cuál se muestra; las uniones se
+ven y se deshacen. Desde la misma lista se excluye un término o se fija una frase. Vive en Codificación › abiertas (la pregunta) y se
+puede abrir desde la nube en Gráficos.
+
+**Oleadas.** O4 backend (campo de sesión + `.pulso` + endpoint + lectura en nube, sugerencia y citas) → O5 frontend (la lista y sus
+acciones).
