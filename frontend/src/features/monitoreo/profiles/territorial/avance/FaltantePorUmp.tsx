@@ -273,13 +273,13 @@ function TablaDeCuotas({
         <thead>
           <tr>
             <th scope="col" className="is-ump">UMP</th>
-            <th scope="col">Distrito</th>
+            <th scope="col" className="is-distrito">Distrito</th>
             <th scope="col">Manzana</th>
-            <th scope="col">Aplicador</th>
+            <th scope="col" className="is-aplicador">Aplicador</th>
             {columnas.map((columna) => <th key={columna.clave} scope="col" className="is-celda">{columna.rotulo}</th>)}
             <th scope="col" className="is-num">Falta</th>
-            <th scope="col" className="is-num">Subsanaciones</th>
-            <th scope="col">Quién la cubre</th>
+            <th scope="col" className="is-num" title="Saldo de subsanaciones recibidas o cedidas">Saldo</th>
+            <th scope="col" className="is-cubre" title="Quién cubre la falta">Cubre</th>
           </tr>
         </thead>
         <tbody>
@@ -300,9 +300,9 @@ function TablaDeCuotas({
                       {fila.ump}
                     </button>
                   </th>
-                  <td>{fila.distrito}</td>
+                  <td className="is-distrito">{fila.distrito}</td>
                   <td>{fila.reemplazo ? "Reemplazo" : "Titular"} {fila.manzana}</td>
-                  <td>{fila.aplicador}</td>
+                  <td className="is-aplicador">{fila.aplicador}</td>
                   {fila.celdas.map((celda) => (
                     <td key={celda.clave} className="is-celda"><CeldaDeTabla celda={celda} /></td>
                   ))}
