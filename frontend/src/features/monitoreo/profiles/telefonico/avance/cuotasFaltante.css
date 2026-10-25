@@ -280,6 +280,13 @@
   gap: var(--pulso-space-3);
 }
 
+.mon-cuotas-diario-leyendas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+}
+
 .mon-cuotas-diario-leyenda {
   display: inline-flex;
   align-items: center;
@@ -524,10 +531,12 @@
   background: var(--pulso-border-strong);
 }
 
+/* Leyenda de rótulos cortos, centrada en la tarjeta. */
 .mon-cuotas-leyenda {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--pulso-space-1) var(--pulso-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
   color: var(--pulso-text-soft);
   font-size: 11.5px;
 }

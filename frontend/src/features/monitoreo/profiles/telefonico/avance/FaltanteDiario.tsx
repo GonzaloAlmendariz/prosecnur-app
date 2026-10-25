@@ -33,12 +33,6 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
     <section className="mon-cuotas-diario" aria-label={`Faltante al cierre de cada día por ${modelo.segmento.toLocaleLowerCase("es")}`}>
       <header className="mon-cuotas-diario-cabecera">
         <span className="mon-cuotas-antetitulo">Faltante al cierre de cada día</span>
-        {visibles.map((serie, indice) => (
-          <span key={serie.clave} className={`mon-cuotas-diario-leyenda is-serie-${indice}`}>
-            <i aria-hidden="true" />
-            {serie.nombre}
-          </span>
-        ))}
       </header>
       <div className="mon-cuotas-diario-lienzo" role="img" aria-label={visibles.map((serie) => (
         `${serie.nombre}: ${serie.valores.map((valor, i) => `${fechaCorta(fechas[i])} ${fmt(valor)}`).join(", ")}`
@@ -71,6 +65,17 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
           <span key={fecha} className="mon-cuotas-diario-fecha" style={{ left: `${x(i)}%` }}>{fechaCorta(fecha)}</span>
         ))}
       </div>
+      {/* Leyenda centrada en la tarjeta; con una sola serie, el título ya la nombra. */}
+      {visibles.length > 1 ? (
+        <span className="mon-cuotas-diario-leyendas">
+          {visibles.map((serie, indice) => (
+            <span key={serie.clave} className={`mon-cuotas-diario-leyenda is-serie-${indice}`}>
+              <i aria-hidden="true" />
+              {serie.nombre}
+            </span>
+          ))}
+        </span>
+      ) : null}
     </section>
   );
 }

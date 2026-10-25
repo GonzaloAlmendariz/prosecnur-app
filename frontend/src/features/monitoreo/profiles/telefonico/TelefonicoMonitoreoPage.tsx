@@ -92,6 +92,9 @@ import { Supervision } from "./control/Supervision";
 import { conMetaDelProyecto } from "./avance/metaDelCorte";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
 import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
+import { acreditacionPrimarySchedulePhase, acreditacionScheduleDraftFromPhases, calendarWeekRangeLabel, positiveInteger, upsertAcreditacionFieldSchedulePhase, type AcreditacionFieldScheduleDraft } from "./modelo/calendarioModel";
+import { Calendario } from "./modelo/Calendario";
+import { Salvedades, type FilaDeSalvedad } from "./control/Salvedades";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
 import { chipsDeCabecera, pestanaConLienzo, rotuloEnLaPestana, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
@@ -964,6 +967,8 @@ function AcreditacionCanonicalModelWorkbench({
       />
     );
   }
+  // §2a-bis: el calendario del telefónico lleva el rótulo en su primera tarjeta (modelo/Calendario.tsx).
+  if (activeVisibleTab === "estrategias" && isPhoneModel) return <Calendario state={state ?? null} reports={reports} onStateChange={onStateChange} />;
 
   return (
     <div className={`mon-stage mon-stage--model mon-stage--acr-model${isPhoneModel && activeVisibleTab === "estrategias" ? " is-phone-model-schedule-stage" : ""}`}>
@@ -1954,14 +1959,6 @@ type AcreditacionCalendarActorPlan = {
   endWeek: number;
 };
 
-function calendarWeekRangeLabel(startWeek: number | null | undefined, endWeek: number | null | undefined) {
-  const start = Number(startWeek);
-  const end = Number(endWeek ?? startWeek);
-  if (!Number.isFinite(start) || start <= 0) return "Sin semana";
-  if (!Number.isFinite(end) || end <= 0 || end === start) return `Semana ${fmt(start)}`;
-  return `Semanas ${fmt(start)}-${fmt(end)}`;
-}
-
 function calendarWeekWindowLabel(phases: MonitoreoStrategyPhase[], fallbackEnd: number | null) {
   const weeks = phases.flatMap((phase) => [
     Number(phase.start_week),
@@ -2026,67 +2023,6 @@ type AcreditacionCalendarReportRow = {
 
 const CALENDAR_DATE_FORMATTER = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" });
 const CALENDAR_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("es-PE", { weekday: "short" });
-const ACREDITACION_FIELD_PHASE_ID = "acreditacion-campo";
-
-export type AcreditacionFieldScheduleDraft = {
-  startWeek: number;
-  durationWeeks: number;
-  startDate: string;
-  endDate: string;
-  reportWeekday: MonitoreoReportWeekday | "";
-};
-
-function positiveInteger(value: unknown, fallback: number) {
-  const parsed = Math.round(Number(value));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function acreditacionPrimarySchedulePhase(phases: MonitoreoStrategyPhase[]) {
-  return phases.find((phase) => phase.id === ACREDITACION_FIELD_PHASE_ID) ?? phases[0] ?? null;
-}
-
-export function acreditacionScheduleDraftFromPhases(phases: MonitoreoStrategyPhase[]): AcreditacionFieldScheduleDraft {
-  const phase = acreditacionPrimarySchedulePhase(phases);
-  const startWeek = positiveInteger(phase?.start_week, 1);
-  const endWeek = Math.max(startWeek, positiveInteger(phase?.end_week ?? phase?.start_week, startWeek));
-  return {
-    startWeek,
-    durationWeeks: Math.max(1, endWeek - startWeek + 1),
-    startDate: phase?.start_date ?? "",
-    endDate: phase?.end_date ?? "",
-    reportWeekday: normalizeCalendarReportWeekday(phase?.client_report_weekday),
-  };
-}
-
-export function upsertAcreditacionFieldSchedulePhase(
-  phases: MonitoreoStrategyPhase[],
-  draft: AcreditacionFieldScheduleDraft,
-) {
-  const existingIndex = phases.findIndex((phase) => phase.id === ACREDITACION_FIELD_PHASE_ID);
-  const targetIndex = existingIndex >= 0 ? existingIndex : phases.length ? 0 : -1;
-  const existing = targetIndex >= 0 ? phases[targetIndex] : null;
-  const startWeek = positiveInteger(draft.startWeek, 1);
-  const durationWeeks = positiveInteger(draft.durationWeeks, 1);
-  const nextPhase: MonitoreoStrategyPhase = {
-    id: existing?.id || ACREDITACION_FIELD_PHASE_ID,
-    stratum: existing?.stratum || "Acreditación",
-    modality: existing?.modality || "mixto",
-    start_week: startWeek,
-    end_week: startWeek + durationWeeks - 1,
-    start_date: draft.startDate,
-    end_date: draft.endDate,
-    client_report_weekday: normalizeCalendarReportWeekday(draft.reportWeekday),
-    client_report_exceptions: existing?.client_report_exceptions ?? [],
-    target_rule: existing?.target_rule || "Cumplir metas por actor en campo",
-    kpi_focus: existing?.kpi_focus?.length ? existing.kpi_focus : ["meta actor", "avance efectivo", "faltantes"],
-    kpi_modules: existing?.kpi_modules ?? ["progress"],
-    breakdown_vars: existing?.breakdown_vars ?? [],
-    attempts_var: existing?.attempts_var ?? "",
-    outcome_var: existing?.outcome_var ?? "",
-  };
-  if (targetIndex < 0) return [nextPhase];
-  return phases.map((phase, index) => index === targetIndex ? nextPhase : phase);
-}
 
 function parseCalendarIsoDate(value: string | null | undefined) {
   const match = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -14317,93 +14253,20 @@ function TelefonicoCaveatsView({
   reviewedCount?: number;
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
 }) {
-  const visible = cases.slice(0, 80);
-  const selectedVisible = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase))
-    ? selectedCase
-    : cases[0] ?? null;
-
-  if (!cases.length) {
-    return (
-      <div className="mon-phone-caveats mon-phone-caveats--empty">
-        <section className="mon-phone-caveats-panel is-empty" aria-label="Salvedades CodPulso">
-          <div className="mon-phone-caveats-empty-icon">
-            <CheckCircle2 size={20} />
-          </div>
-          <span>Salvedades CodPulso</span>
-          <strong>Sin efectivas con salvedad</strong>
-          <p>Con los filtros activos, todas las efectivas de Kobo se pudieron identificar. Si alguna deja de identificarse, aparece aquí con su CodPulso, fecha, responsable y lectura del barrido.</p>
-          <div className="mon-phone-caveats-empty-metrics" aria-label="Resumen de salvedades">
-            <span><em>Efectivas revisadas</em><strong>{fmt(reviewedCount)}</strong></span>
-            <span><em>Salvedades</em><strong>0</strong></span>
-            <span><em>No identificables</em><strong>0</strong></span>
-          </div>
-          <div className="mon-phone-caveats-empty-guide" aria-label="Criterios de salvedad CodPulso">
-            <span>
-              <em>Cuenta</em>
-              <strong>Completa + filtro</strong>
-              <small>Pruebas quedan fuera.</small>
-            </span>
-            <span>
-              <em>CodPulso</em>
-              <strong>PDM 1234 o 1234</strong>
-              <small>Sugerir PDM 1234.</small>
-            </span>
-            <span>
-              <em>Salvedad</em>
-              <strong>Sin cruce claro</strong>
-              <small>Revisión separada.</small>
-            </span>
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mon-phone-caveats">
-      <section className="mon-phone-caveats-panel" aria-label="Efectivas con salvedad">
-        <header className="mon-query-section-head">
-          <div>
-            <span>Salvedades CodPulso</span>
-            <strong><ShieldAlert size={16} /> Efectivas no identificables</strong>
-            <small>Casos que cuentan en Kobo, pero requieren revisar llave, base o estado telefónico antes del corte final.</small>
-          </div>
-          <em>{fmt(cases.length)} casos</em>
-        </header>
-        <div className="mon-phone-caveats-list">
-          {visible.map((item) => {
-            const id = caseIdentity(item);
-            const selected = selectedVisible && caseIdentity(selectedVisible) === id;
-            const responsible = item.phone_audit?.responsible || internalQueryCollectorDisplayLabel(item) || "Sin responsable";
-            const action = item.phone_audit?.recommended_action || "Revisar barrido frente a Kobo";
-            return (
-              <button key={id} type="button" className={selected ? "is-active" : ""} onClick={() => onCaseSelect(item)}>
-                <span>
-                  <em>{caseResponseDateTimeLabel(item)}</em>
-                  <strong>{telefonicoCaseCodPulsoLabel(item)}</strong>
-                  <small>{responsible}</small>
-                </span>
-                <span>
-                  <em>Kobo</em>
-                  <strong>{internalCaseResponseStateLabel(internalCaseResponseStateValue(item))}</strong>
-                  <small>{item.source_label || "KoboToolbox"}</small>
-                </span>
-                <span>
-                  <em>Barrido</em>
-                  <strong>{item.base_status || item.base_result || "Revisar"}</strong>
-                  <small>{action}</small>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {cases.length > visible.length ? (
-          <p className="mon-query-table-more">Mostrando {fmt(visible.length)} de {fmt(cases.length)} salvedades.</p>
-        ) : null}
-      </section>
-      <AcreditacionCaseDetail item={selectedVisible} />
-    </div>
-  );
+  // §2a-bis: la vista vive en control/Salvedades.tsx; aquí sólo se traduce cada caso a palabras.
+  const elegido = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : cases[0] ?? null;
+  const filas: FilaDeSalvedad[] = cases.map((item) => ({
+    id: caseIdentity(item),
+    fecha: caseResponseDateTimeLabel(item),
+    codigo: telefonicoCaseCodPulsoLabel(item),
+    responsable: item.phone_audit?.responsible || internalQueryCollectorDisplayLabel(item) || "Sin responsable",
+    kobo: internalCaseResponseStateLabel(internalCaseResponseStateValue(item)),
+    fuente: item.source_label || "KoboToolbox",
+    hojaDice: item.base_status || item.base_result || "Revisar",
+    queHacer: item.phone_audit?.recommended_action || "Revisar barrido frente a Kobo",
+  }));
+  const onElegir = (id: string) => { const item = cases.find((caso) => caseIdentity(caso) === id); if (item) onCaseSelect(item); };
+  return <Salvedades filas={filas} elegida={elegido ? caseIdentity(elegido) : null} revisadas={reviewedCount} onElegir={onElegir} detalle={<AcreditacionCaseDetail item={elegido} />} />;
 }
 
 function TelefonicoConsultedWorkbench({ cases, segmento }: { cases: MonitoreoInternalQueryCase[]; segmento: string }) {

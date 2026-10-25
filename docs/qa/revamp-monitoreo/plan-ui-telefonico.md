@@ -556,3 +556,52 @@ El rótulo «SECCIÓN · GRUPO / Pestaña» deja la fila propia (con ícono) y e
 Esas pestañas piden el lienzo desnudo (sin tarjeta envolvente: eran tarjetas dentro de otra). Conservan la cabecera de
 siempre las sub-vistas que todavía montan la vista anterior (Respuestas › Salvedades y Cuotas y calendario ›
 Calendario), la carga de una sección y el corte ausente.
+
+## Ronda 2 de mejora visual: contenedores, leyendas, alto y avisos (2026-10-24)
+
+Gonzalo, textual: «si bien el diseño y los gráficos nuevos están bien aún el texto, las trabas, los avisos y en general
+muchos elementos tienen falta de contenedor, de coherencia visual, de espacios vacíos…»; y sobre una leyenda: «Mira la
+leyenda cómo da comentarios tras un punto y cómo innecesario, y cómo no está centrado y el contenedor usando todo su
+alto».
+
+Reglas que se aplicaron en las 14 pestañas (y que valen para los tres modos):
+
+- **Leyendas**: rótulos cortos, nunca «rótulo: comentario», centradas en su tarjeta. Si las series o las filas ya van
+  rotuladas, la leyenda sobra. La explicación, una sola vez, en el subtítulo o en un tooltip.
+- **Alto**: una tarjeta no deja vacío abajo; o su contenido usa el alto, o toma su alto natural.
+- **Estado**: sin `box-shadow: inset` como franja y sin teñir la tarjeta (ni la fila) entera; un borde lateral sólido
+  y el estado en un chip.
+- **Avisos y trabas**: dentro de su tarjeta y con `NotaDelModo` (un mismo tratamiento en todo el perfil).
+
+| Pestaña | Antes (d2–d5) | Después (tel-r2) |
+|---|---|---|
+| Insumos › Fuentes | rótulo en la barra de acciones | sin cambios |
+| Insumos › Llave y filtros | rótulo en la primera tarjeta | sin cambios |
+| Insumos › Estados | filas «sin regla» teñidas de ámbar; «Sin regla de agotado» suelto al pie de la columna, con hueco encima | borde lateral sólido y chip; la nota entra en la tarjeta «Intentos que registra la hoja»; la lateral toma su alto natural |
+| Modelo › Cuotas y calendario | Cuotas ya en §2a-bis; Calendario con la cabecera en fila propia, cuatro tiles con franja de color, columna «Corte observado» con vacío y dos «30 junio» (uno era 2020) | Calendario nuevo (`modelo/Calendario.tsx`, `calendarioModel.ts`): rótulo y selector en la tarjeta del cronograma, formulario, lectura en tres celdas, días de campo de la serie compartida con acumulado y llamados de la hoja, «Ritmo observado» al lado; alto natural |
+| Control › Barrido | «Lo que la hoja no registra» empujado al pie con hueco; la misma explicación repetida en «Llamados por fecha» | la explicación va una vez, en el subtítulo y el tooltip de «Status del cliente»; la tarjeta toma su alto natural |
+| Control › Insistencia | rótulo superpuesto con 168 px fijos sobre la barra de filtros | slot `antesDeLosFiltros` en `core/ColaDeInsistencia.tsx`: rótulo y filtros comparten fila y tarjeta; a 1024 el rótulo va arriba en la misma tarjeta. Acreditación › Reintentos no pasa el slot y se monta igual (test) |
+| Control › Equipo | pie «Brecha: …. Intentos por caso: …»; leyenda de la matriz con un tercer ítem-comentario; fila elegida con franja `inset` | el significado va en el tooltip de cada columna; leyenda «Sobre / Bajo la mediana» centrada con la regla en su tooltip; borde lateral sólido |
+| Control › Discrepancias | ficha con vacío al pie; «Lista copiada» como texto verde suelto | ficha de alto natural; el recibo de copiar va en `NotaDelModo` |
+| Control › Respuestas | registro estirado con dos filas y un hueco grande; pie «Marcar no excluye: decide el supervisor» que repite «Qué cuenta» | el registro mide sus filas y la duración usa el alto; «Qué cuenta» de alto natural; el pie sólo cuenta |
+| Respuestas › Salvedades | vista anterior con cabecera en fila propia | `control/Salvedades.tsx`: rótulo y selector en la tarjeta de la lista, tabla, ficha al lado, vacío con su motivo (C3). En PDM y RMS no hay salvedades y la dirección cae en Respuestas: se verifica con test |
+| Control › Supervisión | leyenda al pie «Efectivas / Casos sorteados»; con 9 casos (RMS) las dos tarjetas con aire abajo | cabecera de lista «Efectivas · sorteados» y tooltip por barra, sin leyenda; las dos tarjetas toman su alto natural |
+| Control › Avisos | fila elegida con franja `inset` | borde lateral sólido |
+| Avance › Cuotas | leyenda en rejilla de dos columnas, alineada a la izquierda | leyenda centrada; la del faltante diario va al pie, centrada, y sólo con más de una serie |
+| Avance › Ritmo | leyendas en la cabecera, a la derecha, con «Acumulado» y «Meta 400», que ya van rotulados en el gráfico | leyendas al pie de cada gráfico, centradas, sólo con lo que no está rotulado |
+| Avance › Entregas | sin cambios en el perfil | sin cambios (la cabecera es del workbench compartido de salidas) |
+
+Verificación: tsc 0; `make gate-front AREA=monitoreo` con 5,762 de 5,764 (los dos rojos son de Acreditación y están
+fuera de este glob: `componentesSinMontar` pide `acreditacion/navegacion/rotuloDePestana.tsx::EncabezadoDeTarjeta` y
+`ConsultasWorkbenchGeometryLayout` busca `<CabeceraAcreditacion` en su page-file); vitest de `profiles/acreditacion`
+366 de 366. `BarraConRotulo`, que nadie montaba, se borró con su CSS. Capturas `tel-r2/b-pdm` y `tel-r2/b-rms`, 34 cada
+una, todas distintas por md5, `ok=true` con `geometryIssues=0`.
+
+Pendiente, fuera del glob de esta ronda:
+
+- **Insistencia, ficha del caso** (`core/colaDeInsistencia/FichaDelCaso.tsx`): «Lo que la hoja no registra» flota a
+  media altura con un hueco encima. Es común con Acreditación.
+- **Entregas**: el workbench compartido de salidas sigue con píldoras en versalitas y la hora partida en dos líneas.
+- **Avance › Cuotas**: las filas de la tabla reparten el alto (134 px con 5 sedes en PDM). Es «el contenido usa el
+  alto», pero se ve aireado; bajar a alto natural deja la columna izquierda más corta que la derecha. Decidir con
+  Gonzalo.

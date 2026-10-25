@@ -56,19 +56,3 @@ export function RotuloDePestana({ sinChips = false }: { sinChips?: boolean }) {
     </span>
   );
 }
-
-/**
- * Barra de la pestaña cuando su contenido no trae una: el rótulo a la
- * izquierda y las acciones a la derecha, en una tarjeta de altura de barra.
- * Úsala sólo si la primera tarjeta no puede llevar el rótulo en su encabezado.
- */
-export function BarraConRotulo({ children, className }: { children?: ReactNode; className?: string }) {
-  const hay = useHayRotulo();
-  if (!hay && !children) return null;
-  return (
-    <div className={`mon-tel-barra-rotulo${className ? ` ${className}` : ""}`}>
-      <RotuloDePestana />
-      {children ? <span className="mon-tel-barra-rotulo-acciones">{children}</span> : null}
-    </div>
-  );
-}
