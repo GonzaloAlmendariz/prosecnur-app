@@ -364,3 +364,116 @@ test_that("el endpoint es GET, lee la base pedida (no la primera) y no muta la c
   expect_equal(res$status, 400)
   expect_equal(err$error$code %||% err$code, "E_CODIF_SUGERIR_SIN_VARIABLE")
 })
+
+# ---------------------------------------------------------------------------
+# TXT-25: una pregunta con enunciado interrogativo propio que sigue a una
+# batería sin una nota de por medio no es un ítem de esa batería: forma su
+# propio subtema. Un ítem de batería (sin enunciado propio, o que comparte la
+# escala del ítem anterior) se queda en la batería. El general no se parte.
+# ---------------------------------------------------------------------------
+
+.ss_xlsform_sin_nota <- function(path = .ss_tmp(), items_interrogativos = FALSE) {
+  it_lab <- if (items_interrogativos) c("¿Usas el bus del campus?", "¿Usas la bicicleta del campus?") else c("Bloque 1", "Bloque 2")
+  it_tipo <- if (items_interrogativos) c("select_one frec", "select_one frec") else c("select_one perfil_1", "select_one perfil_2")
+  survey <- data.frame(
+    type = c(
+      "begin_group", "select_one transporte", "integer",
+      "note", it_tipo,
+      "select_one forma", "select_one forma", "text",
+      "select_multiple espacios", "text",
+      "end_group",
+      "begin_group", "select_one frec", "text", "end_group",
+      "begin_group", "text", "end_group"
+    ),
+    name = c(
+      "modulo_a", "a1", "a1b",
+      "enunciado_a9", "a9_1", "a9_2",
+      "a10", "a10_recod", "a10_otro",
+      "a11", "a11_otro",
+      NA,
+      "modulo_b", "b1", "b2", NA,
+      "modulo_coment", "coment", NA
+    ),
+    label = c(
+      "MÓDULO A. VIDA UNIVERSITARIA", "¿Qué medio de transporte usas para llegar al campus?", "¿Cuántos minutos tardas en llegar?",
+      "¿Cómo te definirías como estudiante en los siguientes bloques?", it_lab,
+      "¿Cómo te sientes más cómodo/a estudiando?", "¿Cómo te sientes más cómodo/a estudiando?", "Por favor, especifica:",
+      "¿Cuáles son los espacios de la Facultad donde pasas más tiempo?", "Por favor, especifica:",
+      NA,
+      "MÓDULO B. TRÁMITES", "Los trámites de matrícula y pagos son sencillos", "¿Qué trámite te costó más?", NA,
+      "Comentarios", "¿Algún comentario final?", NA
+    ),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("transporte", "transporte", "frec", "frec", "perfil_1", "perfil_1", "perfil_2", "perfil_2",
+                  "forma", "forma", "espacios", "espacios"),
+    name = c("1", "2", "1", "2", "1", "2", "1", "2", "1", "2", "1", "2"),
+    label = c("Bus o combi", "Bicicleta", "Nunca", "Siempre", "Dedicado", "Relajado", "Puntual", "Impuntual",
+              "Solo en silencio", "En grupo con compañeros", "Biblioteca", "Cafetería"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  .ss_write_xlsform(path, survey, choices)
+}
+
+.ss_data_sin_nota <- function() {
+  data.frame(
+    `_uuid` = paste0("w", 1:6),
+    coment = c(
+      "Soy un estudiante dedicado pero impuntual",
+      "Prefiero estudiar en grupo con compañeros",
+      "La cafetería y la biblioteca siempre están llenas",
+      "El transporte al campus es caótico, el bus demora",
+      "Los trámites de matrícula son lentos",
+      "nada"
+    ),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+}
+
+test_that("tres preguntas seguidas sin nota entre ellas salen como tres subtemas (TXT-25)", {
+  inst <- leer_instrumento_xlsform(.ss_xlsform_sin_nota())
+  out <- codif_sugerir_seccion(inst, .ss_data_sin_nota(), "coment")
+  subs <- Filter(function(m) identical(m$padre, "10"), out$modulos)
+  expect_equal(vapply(subs, `[[`, "", "seccion"), c("modulo_a__general", "enunciado_a9", "a10", "a11"))
+  expect_equal(vapply(subs, `[[`, "", "codigo"), c("11", "12", "13", "14"))
+  # El subtema de una pregunta suelta se rotula con su enunciado.
+  expect_equal(.ss_mod(out, "13")$etiqueta, "¿Cómo te sientes más cómodo/a estudiando?")
+  expect_equal(.ss_mod(out, "14")$etiqueta, "¿Cuáles son los espacios de la Facultad donde pasas más tiempo?")
+  # Su recodificada (mismo enunciado) y su «especifica» no abren otro subtema.
+  expect_false(any(c("a10_recod", "a10_otro", "a11_otro") %in% vapply(subs, `[[`, "", "seccion")))
+  expect_equal(.ss_codigos(.ss_resp(out, "w1")), "12")
+  expect_equal(.ss_codigos(.ss_resp(out, "w2")), "13")
+  expect_equal(.ss_codigos(.ss_resp(out, "w3")), "14")
+  expect_equal(.ss_codigos(.ss_resp(out, "w4")), "11")
+  expect_identical(out$estado, "propuesta")
+  expect_null(out$grupos)
+})
+
+test_that("los ítems interrogativos que comparten la escala de la batería no se parten (TXT-25)", {
+  inst <- leer_instrumento_xlsform(.ss_xlsform_sin_nota(items_interrogativos = TRUE))
+  out <- codif_sugerir_seccion(inst, .ss_data_sin_nota(), "coment")
+  secs <- vapply(Filter(function(m) identical(m$padre, "10"), out$modulos), `[[`, "", "seccion")
+  # «¿Usas la bicicleta…?» comparte la escala de «¿Usas el bus…?»: es un ítem de la batería.
+  expect_false("a9_2" %in% secs)
+  # El primer ítem tampoco: con la escala de la batería, es la batería.
+  expect_false("a9_1" %in% secs)
+  expect_true(all(c("enunciado_a9", "a10", "a11") %in% secs))
+})
+
+test_that("sobre el tope se fusionan primero dos baterías vecinas, no las preguntas que se separaron (TXT-25)", {
+  u <- function(s, tipo, txt) list(seccion = s, etiqueta = s, etiqueta_completa = s, textos = txt, tipo = tipo)
+  subs <- list(
+    u("bat1", "bateria", c("redes sociales frecuencia", "whatsapp instagram tiktok youtube facebook linkedin")),
+    u("p1", "pregunta", "estudiar comodo"),
+    u("p2", "pregunta", "espacios facultad"),
+    u("bat2", "bateria", c("docentes trato aula", "capacitados distantes dispuestos valoran ejemplos")),
+    u("bat3", "bateria", c("horarios atencion", "cumplen horas establecidas alumnos fuera"))
+  )
+  out <- .codif_ss_fusionar_subtemas(subs, vacias = character(0), max_subtemas = 4L)
+  expect_equal(vapply(out, `[[`, "", "seccion"), c("bat1", "p1", "p2", "bat2"))
+  expect_equal(out[[4]]$etiqueta, "bat2 / bat3")
+  # Sin dos baterías juntas, se fusiona el par vecino de menor vocabulario, como antes.
+  out3 <- .codif_ss_fusionar_subtemas(out, vacias = character(0), max_subtemas = 3L)
+  expect_equal(vapply(out3, `[[`, "", "seccion"), c("bat1", "p1", "bat2"))
+})
