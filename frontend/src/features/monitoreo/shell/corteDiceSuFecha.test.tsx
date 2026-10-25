@@ -64,3 +64,29 @@ describe("el indicador dice qué mide y cuándo", () => {
     expect(html).not.toContain("Invalid");
   });
 });
+
+describe("mientras el proyecto se lee no se publican cifras (L21)", () => {
+  it("«Registros» y «Sincronizado» dicen «Leyendo…», no «0» ni «Sin sincronizar»", () => {
+    const html = render({ cargando: true, nRows: 0, hasSnapshot: false });
+    expect(html).toContain("Leyendo…");
+    expect(html).not.toContain("Sin sincronizar");
+    expect(html).not.toMatch(/Registros: 0/);
+  });
+
+  it("con la barra común, CORTE tampoco dice «Sin corte»", () => {
+    const barra = {
+      indicadores: [],
+      corte: "",
+      estado: { clave: "preparando" as const },
+      actualizar: { etiqueta: "Actualizar", onElegir: () => {} },
+    };
+    const html = render({ cargando: true, barraDelModo: barra });
+    expect(html).toContain("Leyendo…");
+    expect(html).not.toContain("Sin corte");
+  });
+
+  it("al terminar de leer vuelven las cifras", () => {
+    const html = render({ cargando: false, nRows: 0, hasSnapshot: false });
+    expect(html).toContain("Sin sincronizar");
+  });
+});

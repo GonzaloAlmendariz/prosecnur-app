@@ -172,9 +172,12 @@ export function HerramientasDelModo({
   barra,
   ocupado,
   progreso = null,
+  cargando = false,
 }: {
   barra: BarraDelModo;
   ocupado: boolean;
+  /** El proyecto todavía se lee: CORTE no dice «Sin corte» (L21). */
+  cargando?: boolean;
   /** Avance del job en curso (store de sync del perfil). */
   progreso?: ProgresoDeLaBarra | null;
 }) {
@@ -232,7 +235,7 @@ export function HerramientasDelModo({
     <div className="mon-modo-herramientas">
       <span className="mon-modo-stat" title="Fecha y hora del último corte">
         <small>Corte</small>
-        <b>{barra.corte || "Sin corte"}</b>
+        <b>{cargando && !barra.corte ? "Leyendo…" : barra.corte || "Sin corte"}</b>
       </span>
       <span
         className={`mon-modo-estado is-${estado.clave}`}
