@@ -5,6 +5,7 @@ import {
   computeGlidingIndicatorGeometry,
   findActiveGlidingItem,
   findNextRovingGlidingItem,
+  glidingIndicatorClassName,
   glidingNavigationDelta,
   type GlidingRovingItemLike,
 } from "./GlidingTabList";
@@ -196,5 +197,20 @@ describe("GlidingTabList SSR", () => {
     expect(html).not.toContain('role="tab"');
     expect(html).not.toContain("aria-orientation");
     expect(html).toContain('aria-current="page"');
+  });
+});
+
+describe("glidingIndicatorClassName", () => {
+  it("animates selection changes once motion is ready", () => {
+    expect(glidingIndicatorClassName({ visible: true, canAnimate: true })).toBe(
+      "pulso-gliding-tab-indicator is-visible is-motion-ready",
+    );
+    expect(glidingIndicatorClassName({ visible: true, canAnimate: false })).toBe("pulso-gliding-tab-indicator is-visible");
+  });
+
+  it("drops the transition for a layout snap so the indicator never paints over a stale pill", () => {
+    expect(glidingIndicatorClassName({ visible: true, canAnimate: true, instant: true, indicatorClassName: "x" })).toBe(
+      "pulso-gliding-tab-indicator is-visible x",
+    );
   });
 });
