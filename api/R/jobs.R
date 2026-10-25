@@ -278,15 +278,18 @@ job_read_progress <- function(progress_path) {
 #' Helper para reportar progreso desde un job en subproceso
 #'
 #' Devuelve una función que escribe a `progress_path` un JSON con
-#' phase, current/total, percent y mensaje opcional. Es seguro pasarle
+#' phase, current/total, percent, mensaje y step/steps opcionales. Es seguro pasarle
 #' `NULL` o un path inválido (no falla, simplemente no escribe).
 #'
 #' @param progress_path Ruta absoluta del archivo .progress.
 #' @return Función reportadora.
 #' @export
 job_progress_writer <- function(progress_path) {
+  # `step`/`steps`: en qué paso de cuántos va el job («paso N de M» de la
+  # píldora de Monitoreo). Opcionales y aditivos: quien no los pasa escribe lo
+  # mismo que antes.
   function(phase = "running", current = NULL, total = NULL,
-           percent = NULL, message = NULL) {
+           percent = NULL, message = NULL, step = NULL, steps = NULL) {
     if (is.null(progress_path) || !nzchar(progress_path)) return(invisible(NULL))
     pct <- if (!is.null(percent)) {
       percent
@@ -301,6 +304,8 @@ job_progress_writer <- function(progress_path) {
       total = if (!is.null(total)) as.integer(total) else NULL,
       percent = if (!is.na(pct)) as.numeric(pct) else NULL,
       message = if (!is.null(message)) as.character(message) else NULL,
+      step = if (!is.null(step)) as.integer(step) else NULL,
+      steps = if (!is.null(steps)) as.integer(steps) else NULL,
       ts = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     )
     payload <- payload[!vapply(payload, is.null, logical(1))]

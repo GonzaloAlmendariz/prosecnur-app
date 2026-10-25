@@ -6018,7 +6018,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
   errors <- list()
   sync_summary <- list()
   n_sources <- length(sources)
-  report("prepare", percent = 3, message = "Preparando fuentes de monitoreo...")
+  report("prepare", percent = 3, message = "Preparando fuentes de monitoreo...", step = 1L, steps = n_sources + 1L)
   for (i in seq_along(sources)) {
     src <- sources[[i]]
     source_label <- .monitoreo_scalar(src$label, sprintf("fuente %d", i))
@@ -6032,7 +6032,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
       google_sheets = "sheets_fetch",
       "source"
     )
-    report(source_phase, current = i, total = n_sources,
+    report(source_phase, current = i, total = n_sources, step = i, steps = n_sources + 1L,
            percent = source_start,
            message = sprintf("Preparando %s...", source_label))
     local_progress <- function(current, total, message) {
@@ -6078,7 +6078,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
         }
       }
       pct <- max(source_start, min(source_end - 1, round(pct)))
-      report(phase,
+      report(phase, step = i, steps = n_sources + 1L,
              current = if (is.finite(current_n)) as.integer(current_n) else NULL,
              total = if (is.finite(total_n)) as.integer(total_n) else NULL,
              percent = pct,
@@ -6092,7 +6092,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
     )
     df <- tryCatch(monitoreo_sync_source(src, since = since, progress = local_progress, sid = sid, connection_token = source_token, sync_mode = sync_mode), error = function(e) {
       errors[[length(errors) + 1L]] <<- list(source_id = src$id, source_label = src$label, message = conditionMessage(e))
-      report("source_error", current = i, total = n_sources,
+      report("source_error", current = i, total = n_sources, step = i, steps = n_sources + 1L,
              percent = max(source_start, min(source_end - 1, source_start + round(source_span * 0.85))),
              message = sprintf("%s no se pudo sincronizar: %s", source_label, conditionMessage(e)))
       NULL
@@ -6127,13 +6127,13 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
         cursor = if (is.list(sync_cursor)) .monitoreo_normalize_sync_cursor(sync_cursor) else list()
       )
       dfs[[length(dfs) + 1L]] <- df
-      report("source_done", current = i, total = n_sources,
+      report("source_done", current = i, total = n_sources, step = i, steps = n_sources + 1L,
              percent = source_end,
              message = sprintf("%s listo: %s registros", source_label, format(nrow(df), big.mark = ",", trim = TRUE)))
     }
   }
   if (!length(dfs)) {
-    report("snapshot", percent = 82, message = "No se pudo actualizar ninguna fuente; se conservara el snapshot anterior.")
+    report("snapshot", percent = 82, message = "No se pudo actualizar ninguna fuente; se conservara el snapshot anterior.", step = n_sources + 1L, steps = n_sources + 1L)
     empty <- data.frame()
     cfg <- monitoreo_normalize_config(config, empty)
     return(list(
@@ -6150,7 +6150,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
       sync_summary = sync_summary
     ))
   }
-  report("snapshot", percent = 82, message = "Uniendo fuentes en un snapshot local...")
+  report("snapshot", percent = 82, message = "Uniendo fuentes en un snapshot local...", step = n_sources + 1L, steps = n_sources + 1L)
   data <- .monitoreo_bind_rows(dfs)
   report("config", percent = 85, message = "Recalculando variables y mapeos...")
   cfg <- monitoreo_normalize_config(config, data)
