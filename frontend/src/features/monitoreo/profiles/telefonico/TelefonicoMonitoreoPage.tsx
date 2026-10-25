@@ -19419,6 +19419,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
 
         <AcreditacionModuleChromeConSync
           routes={[route]}
+          cargando={loading && !state}
           route={route}
           routeSelected
           seccionActiva={publica.seccion}
