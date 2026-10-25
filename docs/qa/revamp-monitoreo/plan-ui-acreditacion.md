@@ -44,7 +44,8 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A6 | Insumos | Públicos, Fuentes, Reglas | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A7 | Modelo | Metas, Cuotas, Ventana de campo | A1 | ◐ (las tres escritas; falta typecheck, gates y capturas) |
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ◐ (las cuatro escritas; falta typecheck, gates y capturas) |
-| A9 | Contenedores (§2a-bis) | Cada unidad de lectura en su tarjeta; tablas con cabecera sobre superficie alternativa, filas de 42 px y cifras tabulares; el rótulo de la pestaña va en la primera tarjeta o en la fila de la barra, sin fila propia; Modelo › Metas como rejilla de tarjetas por público | A2–A8 | ◐ (escrita; ver nota A9) |
+| A9 | Contenedores (§2a-bis) | Cada unidad de lectura en su tarjeta; tablas con cabecera sobre superficie alternativa, filas de 42 px y cifras tabulares; el rótulo de la pestaña va en la primera tarjeta o en la fila de la barra, sin fila propia; Modelo › Metas como rejilla de tarjetas por público | A2–A8 | ☑ ronda 1 aprobada (16530c06d) |
+| A9b | Contenedores, ronda 2 | Avisos, trabas y vacíos dentro de su tarjeta con una sola receta; sub-vistas anteriores sin fila de cabecera; tablas que caben o desplazan señaladas; paleta de públicos en Metas y punto de público en las listas; readiness de las pestañas que leen el estado de cuotas | A9 | ◐ (ver nota A9b) |
 
 ## A1: cómo se traduce cada pestaña mientras no tiene contenido propio
 
@@ -383,6 +384,60 @@ del corte) con el estado en el borde lateral y un chip (cumplida, % de la meta, 
 
 - **Diferencia con la referencia:** las tarjetas de Metas no listan las fuentes de cada público (eso vive en Insumos ›
   Fuentes) ni los canales; el mínimo y el % se guardan juntos con un solo botón, no uno por tarjeta.
+
+**A9b, contenedores ronda 2 (Gonzalo: «el texto, las trabas, los avisos y en general muchos elementos tienen falta de
+contenedor, de coherencia visual, de espacios vacíos … contenedores por perfil de acredita»).**
+
+- **Una receta para avisos, trabas y vacíos** (`piezas/AvisoDeTarjeta.tsx`, `piezas/avisos.css`). Aviso o traba: el
+  `Alert` del sistema en el cuerpo de la tarjeta a la que pertenece (`AvisoDeTarjeta`, con su acción a la derecha en la
+  misma fila). Vacío de un bloque: la receta compartida `EstadoVacio` compacta dentro de su tarjeta, con el motivo y
+  cómo se llena (`VacioDeBloque`). Pestaña sin contenido (cargando, sin corte, sin datos): una tarjeta con el rótulo de
+  la pestaña, a su alto natural, con el motivo al centro (`PestanaSinContenido`). Cada vacío lleva `data-vacio` con su
+  clase C5: `legitimo`, `sin-coincidencias`, `cargando` o `error`. Se retiraron las píldoras sueltas sobre el fondo
+  (`acr-cr is-vacio`, `acr-ct is-vacio`, `acr-pr is-vacio`, `mon-cola-estado`, `acr-in-fuentes-vacio`) en Ritmo, Equipo,
+  Por resolver, Respuestas, Personas, Cruce, Barrido, Reintentos, Reglas, Fuentes, Modelo › Cuotas y Por cuota.
+- **Avisos que estaban sueltos en una columna**: los de la lectura de Mailchimp (Correo) van en la tarjeta «Secuencia de
+  envíos»; el resultado del guardado y las trabas de Reglas, en la tarjeta del botón «Guardar reglas»; los del estado de
+  cuotas en Por cuota, en la tarjeta «Variables»; el «Plan de campo sin fases» de Ritmo es un aviso con «Declarar fases»
+  a su derecha.
+- **Sub-vistas anteriores** (Ritmo diario, Recopiladores, Supervisión, Variables de control de Modelo y de Avance): el
+  rótulo, los chips y el selector son la cabecera de la tarjeta de contenido (`navegacion/SubvistaConRotulo.tsx`), a
+  sangre con su borde. Ya ninguna pestaña del modo deja una fila de cabecera sobre el fondo, salvo Reintentos (su
+  primera fila es la barra de `core/ColaDeInsistencia`, fuera de este perfil).
+- **Tablas anchas**: Respuestas junta «Público y encuesta» y lleva la fecha bajo el código; Personas junta «Canal y
+  cruce»; Por resolver junta «Público y canal» y «Respondió» (completitud y fecha). Con eso caben a 1440 en los dos
+  proyectos. Donde todavía no caben (1024), el desplazamiento queda en su marco y se señala
+  (`piezas/MarcoDesplazable.tsx`): sombra en el borde que esconde columnas y región enfocable con nombre.
+- **Paleta de públicos en Metas**: la barra y la leyenda del reparto usan `paletaPublicos` (diez tonos, uno por público,
+  los mismos de Correo y Por cuota) en vez de seis tonos por índice; con los diez públicos de Institucional ninguno se
+  repite. Con más de diez públicos la paleta vuelve a empezar: no se agrupa en «Otros» porque cada público tiene su
+  tarjeta y su meta editable.
+- **Contenedores por público, decisión por pestaña**:
+  - Metas: tarjeta por público (ronda 1) con el punto de su color delante del nombre y la barra del padrón en ese
+    color; el estado sigue en el borde lateral sólido y el chip.
+  - Correo: el punto del público en la secuencia y en la tarjeta de sus envíos. No se parte la secuencia en tarjetas:
+    es una matriz que compara públicos por posición del envío y en filas se lee mejor.
+  - Por resolver y Personas: punto de público en los filtros, en «Estado por público» y en la tabla. No se agrupan en
+    tarjetas: son colas por caso y por persona, y agruparlas por público escondería el orden por tipo y fecha.
+  - Barrido: un solo público tiene barrido en Contabilidad e Institucional no tiene; no hay grupo que separar.
+  - Equipo: lista responsables, no públicos.
+  - Ritmo: los colores del gráfico apilado son la paleta propia de capas (seis tonos y «Otros N»); mezclarla con la de
+    públicos daría dos colores al mismo público en la misma pantalla. Queda como está.
+  - Cruce: la llave, el cruce y la estrategia pasan de una columna con tres bloques a tres tarjetas apiladas, a su
+    alto natural.
+- **Insumos › Reglas**: dos columnas; la llave a la izquierda y «Qué cuenta» y «Alertas» apiladas a la derecha, cada
+  tarjeta a su alto natural (antes, tres columnas con huecos bajo las dos cortas).
+- **Leyendas (regla de Gonzalo para los tres modos, 2026-10-24)**: rótulos cortos sin «rótulo: comentario», sin
+  leyenda donde la serie ya está rotulada y centradas respecto a su tarjeta. Las de Barrido (barridos y efectivos),
+  Equipo (estado de los casos) y Por público (universo por estado) salieron de la cabecera y van centradas bajo lo que
+  leen; Ritmo, Metas y Por cuota centran la suya. El chip «Meta» de Resumen › Por público se quitó: la explicación va
+  una vez en el subtítulo («la marca vertical es la meta»).
+- **Sin vacío abajo**: la pestaña sin contenido toma su alto natural; la tabla de Equipo, la fuente elegida de Insumos ›
+  Fuentes y la columna de Insumos › Públicos dejan de estirarse hasta el pie cuando tienen pocas filas.
+- **Readiness**: Metas, Insumos › Públicos, Modelo › Cuotas y Avance › Por cuota publican `false` mientras leen el
+  estado de cuotas o el motor prepara el cruce (`navegacion/MarcaDeLectura.tsx`, declarado en `FALSE_TRANSITORIO` de
+  `readinessAnidada.contract.test.ts`); leído o en error, `true`. Las capturas ya no necesitan
+  `--post-click-wait-selector`.
 
 ## Preguntas surgidas en la implementación
 
