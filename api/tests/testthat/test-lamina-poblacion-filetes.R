@@ -22,3 +22,19 @@ test_that("población de cinco: el filete horizontal pasa por encima del panel i
   expect_lte(h$x0, inf$x + 0.01)
   expect_gte(h$x1, inf$x + inf$w - 0.01)
 })
+
+test_that("CCSS-30: población de seis lleva filete vertical entre los paneles de AMBAS filas", {
+  # El filete de abajo cae en la misma x que el de arriba y la deduplicación por `tipo + x` lo descartaba: la fila de
+  # abajo quedaba sin separadores. Se unen en uno continuo por columna, como en la grilla de cuatro.
+  geo <- .lam_poblacion_geo("p_slide_6_graficos_poblacion")
+  v <- Filter(function(f) identical(f$tipo, "v"), geo$filetes)
+  ys <- sort(unique(round(vapply(geo$paneles, function(p) p$y, 0), 2)))
+  expect_length(ys, 2L)
+  abajo <- Filter(function(p) round(p$y, 2) == ys[2], geo$paneles)
+  arriba <- Filter(function(p) round(p$y, 2) == ys[1], geo$paneles)
+  for (fila in list(arriba, abajo)) {
+    y0 <- fila[[1]]$y; y1 <- fila[[1]]$y + fila[[1]]$h
+    cubre <- vapply(v, function(f) f$y0 <= y0 + 0.01 && f$y1 >= y1 - 0.01, logical(1))
+    expect_gte(sum(cubre), length(fila) - 1L)
+  }
+})
