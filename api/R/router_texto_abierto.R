@@ -29,13 +29,15 @@ mount_texto_abierto <- function(pr) {
       session_get(sid)
       texto_abierto_diccionario_consultar(sid, base = base, variable = variable)
     })) |>
-    plumber::pr_put("/api/texto-abierto/diccionario", wrap_endpoint(function(req, res, base = NULL, variable = NULL, ...) {
-      # `...` porque plumber pasa los campos del cuerpo JSON como argumentos: sin él, `equivalencias` sería un
-      # argumento sin usar y el pedido moriría en E_INTERNAL. El cuerpo se lee entero de `req` (abajo).
+    plumber::pr_put("/api/texto-abierto/diccionario", wrap_endpoint(function(req, res, ...) {
+      # Sin formales `base`/`variable`: plumber pasa a la vez los de la query y los del cuerpo JSON como argumentos, y con
+      # `variable` en los dos el pedido moría en E_INTERNAL («matched by multiple actual arguments»). La query se lee de
+      # `req$argsQuery` y el cuerpo entero de `req` (abajo); la query gana.
       sid <- session_header(req)
       session_get(sid)
+      q <- req$argsQuery %||% list()
       cuerpo <- .txt_dic_router_cuerpo(req)
       dic <- if (is.list(cuerpo$diccionario)) cuerpo$diccionario else cuerpo[intersect(c("equivalencias", "excluir", "frases"), names(cuerpo))]
-      texto_abierto_diccionario_guardar(sid, base = base %||% cuerpo$base, variable = variable %||% cuerpo$variable, raw = dic)
+      texto_abierto_diccionario_guardar(sid, base = q$base %||% cuerpo$base, variable = q$variable %||% cuerpo$variable, raw = dic)
     }))
 }

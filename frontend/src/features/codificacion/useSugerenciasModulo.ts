@@ -2,7 +2,7 @@
 // «Otros, especifique» el texto no habla de los módulos del formulario. Un formulario sin módulos (E_CODIF_SUGERIR_SIN_
 // SECCIONES) es un vacío legítimo y no se avisa; cualquier otro error sí, con su causa.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../../api/core";
 import { apiCodifSugerenciasSeccion, type CodifSugerenciasSeccion } from "../../api/codificacion";
 
@@ -13,12 +13,18 @@ export type EstadoSugerencias =
   | { fase: "sin_modulos" }
   | { fase: "error"; mensaje: string };
 
-export function useSugerenciasModulo(variable: string, habilitado: boolean): EstadoSugerencias {
+/** `version` sube cuando cambia el diccionario de la pregunta (panel «Palabras»): la propuesta no se recalcula sola. */
+export function useSugerenciasModulo(variable: string, habilitado: boolean, version = 0): EstadoSugerencias {
   const [estado, setEstado] = useState<EstadoSugerencias>({ fase: "apagado" });
+  const ultimaVariable = useRef<string | null>(null);
   useEffect(() => {
-    if (!habilitado || !variable) { setEstado({ fase: "apagado" }); return; }
+    if (!habilitado || !variable) { ultimaVariable.current = null; setEstado({ fase: "apagado" }); return; }
     let vivo = true;
-    setEstado({ fase: "cargando" });
+    // Recalcular la misma pregunta (subió `version`) conserva la propuesta anterior mientras llega la nueva: volver a
+    // «cargando» desmontaría la vista entera, con el panel «Palabras» que pidió el recálculo.
+    const misma = ultimaVariable.current === variable;
+    ultimaVariable.current = variable;
+    setEstado((prev) => (misma && prev.fase === "lista" ? prev : { fase: "cargando" }));
     apiCodifSugerenciasSeccion(variable)
       .then((datos) => { if (vivo) setEstado(datos.modulos.length ? { fase: "lista", datos } : { fase: "sin_modulos" }); })
       .catch((e: unknown) => {
@@ -27,6 +33,6 @@ export function useSugerenciasModulo(variable: string, habilitado: boolean): Est
         setEstado({ fase: "error", mensaje: e instanceof Error ? e.message : "No se pudo leer la propuesta." });
       });
     return () => { vivo = false; };
-  }, [variable, habilitado]);
+  }, [variable, habilitado, version]);
   return estado;
 }
