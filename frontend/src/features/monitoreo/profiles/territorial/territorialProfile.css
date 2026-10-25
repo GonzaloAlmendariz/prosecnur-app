@@ -12423,12 +12423,6 @@
   font-size: 11px;
 }
 
-.mon-territorial-source-command > .pulso-button span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .mon-territorial-source-console.is-tab-filter {
   /* `minmax(0, 1fr)` deja que la fila baje por debajo de su contenido, que es
    * como el bloque de trabajo terminaba comprimido a 528px pidiendo 745px. Con
@@ -12438,7 +12432,7 @@
 }
 
 .mon-territorial-source-console.is-tab-filter .mon-territorial-source-command {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.48fr) minmax(146px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.48fr);
   min-height: 72px;
 }
 
@@ -14809,7 +14803,7 @@
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-command {
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.38fr) minmax(124px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.38fr);
   gap: 9px;
   min-height: 52px;
   border-radius: 12px;
@@ -14850,12 +14844,6 @@
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-top-metrics em {
   font-size: 10px;
-}
-
-.mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-command > .pulso-button {
-  min-height: 34px;
-  border-radius: 9px;
-  padding-inline: 10px;
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-status {
@@ -15144,7 +15132,7 @@
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-command {
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr) minmax(124px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
   gap: 10px;
   min-height: 62px;
   padding: 9px 11px;
@@ -15184,12 +15172,6 @@
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-top-metrics em {
   font-size: 10px;
-}
-
-.mon-territorial-source-console.is-tab-form .mon-territorial-source-command > .pulso-button {
-  min-height: 34px;
-  border-radius: 9px;
-  padding-inline: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-status {
@@ -16180,7 +16162,7 @@
 
 .mon-page .mon-territorial-route-workbench .mon-territorial-route-command {
   min-height: 56px;
-  grid-template-columns: minmax(240px, 0.74fr) minmax(420px, 1fr) auto;
+  grid-template-columns: minmax(240px, 0.74fr) minmax(420px, 1fr);
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -16206,13 +16188,6 @@
 
 .mon-page .mon-territorial-route-workbench .mon-territorial-route-command-facts strong {
   font-size: 13px;
-}
-
-.mon-page .mon-territorial-route-workbench .mon-territorial-route-command .pulso-button {
-  width: auto;
-  min-width: 144px;
-  justify-self: end;
-  white-space: nowrap;
 }
 
 .mon-page .mon-territorial-route-table-workspace {

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   ContactRound,
   Link2,
-  Loader2,
   MapPin,
   RefreshCw,
   Route,
@@ -16,9 +15,6 @@ import {
   Target,
 } from "lucide-react";
 import {
-  apiJobStatus,
-  apiMonitoreoSync,
-  type JobSnapshot,
   type MonitoreoConfig,
   type MonitoreoSource,
   type MonitoreoState,
@@ -244,35 +240,16 @@ function findQuotaForBlock(
   )) ?? null;
 }
 
-function jobProgressText(job: JobSnapshot | null) {
-  const progress = job?.progress;
-  if (!progress) return "";
-  if ("message" in progress && typeof progress.message === "string" && progress.message) return progress.message;
-  if ("phase" in progress && typeof progress.phase === "string" && progress.phase) return progress.phase;
-  return "";
-}
-
-function isTerminalJob(job: JobSnapshot | null) {
-  return job?.status === "done" || job?.status === "error" || job?.status === "cancelled";
-}
-
 function TerritorialModelWorkbenchImpl({
   pestanaActiva,
-  busy = false,
   phase,
   reports,
   state,
-  onError,
-  onReload,
 }: TerritorialModelWorkbenchProps) {
   const activeTab: TerritorialModelTab = isModelTab(pestanaActiva) ? pestanaActiva : "resumen";
   const config = state?.config ?? null;
   const sources = state?.sources ?? [];
   const koboSource = config ? koboSourceForPhase(sources, config, phase) : null;
-  const [syncing, setSyncing] = useState(false);
-  const [syncJob, setSyncJob] = useState<JobSnapshot | null>(null);
-  const [syncJobId, setSyncJobId] = useState("");
-  const syncJobReloadedRef = useRef("");
 
   const blocks = useMemo(() => routeBlocksFromReports(reports), [reports]);
   const titularBlocks = useMemo(() => blocks.filter((block) => block.tipo_manzana !== "reemplazo").sort(routeBlockComparator), [blocks]);
@@ -317,66 +294,6 @@ function TerritorialModelWorkbenchImpl({
     return selectedBlock;
   }, [inspectedBlockKey, selectedBlock, selectedRouteSet.routeBlocks]);
 
-  const notifyError = useCallback((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    onError?.(message);
-    return message;
-  }, [onError]);
-
-  useEffect(() => {
-    if (!syncJobId) return;
-    if (isTerminalJob(syncJob)) {
-      if (syncJob?.status === "done" && syncJobReloadedRef.current !== syncJobId) {
-        syncJobReloadedRef.current = syncJobId;
-        onReload();
-      }
-      return;
-    }
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const next = await apiJobStatus(syncJobId);
-        if (cancelled) return;
-        setSyncJob(next);
-        if (next.status === "done" && syncJobReloadedRef.current !== syncJobId) {
-          syncJobReloadedRef.current = syncJobId;
-          onReload();
-        }
-        if (next.status === "error" || next.status === "cancelled") {
-          setSyncJobId("");
-        }
-      } catch (error) {
-        if (!cancelled) {
-          notifyError(error);
-          setSyncJobId("");
-        }
-      }
-    };
-    void poll();
-    const timer = window.setInterval(() => { void poll(); }, 1400);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [notifyError, onReload, syncJob?.status, syncJobId]);
-
-  const syncKobo = useCallback(async () => {
-    if (!config || !koboSource?.id) return;
-    setSyncing(true);
-    try {
-      const result = await apiMonitoreoSync(config, [koboSource.id]);
-      setSyncJobId(result.job_id);
-      syncJobReloadedRef.current = "";
-      const first = await apiJobStatus(result.job_id).catch(() => null);
-      setSyncJob(first);
-      onReload();
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setSyncing(false);
-    }
-  }, [config, koboSource?.id, notifyError, onReload]);
-
   const activeSourceName = koboSource?.label || reports?.source_coherence?.asset_name || "Formulario Kobo activo";
   const activeAsset = koboSource?.asset_uid || reports?.source_coherence?.asset_uid || "sin asset";
   const activeVersion = reports?.source_coherence?.version_id || "sin versión";
@@ -420,28 +337,9 @@ function TerritorialModelWorkbenchImpl({
               <span><strong>{fmt(crossedDistricts)}</strong><em>distritos</em></span>
               <span><strong>{routeMeta == null ? "S/D" : fmt(routeMeta)}</strong><em>meta fase</em></span>
             </div>
-            <button type="button" className="pulso-button is-primary" onClick={() => { void syncKobo(); }} disabled={busy || syncing || !koboSource?.id}>
-              {syncing ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
-              <span>{phase === "pilot" ? "Sincronizar piloto" : "Sincronizar campo"}</span>
-            </button>
+            {/* «Sincronizar piloto/campo» vivía aquí: es «Traer todo de nuevo» del
+                «Actualizar ▾» de la barra del modo (L38). */}
           </section>
-
-          {syncJob ? (
-            <div className={`mon-territorial-route-sheet-strip ${syncJob.status === "error" ? "is-warning" : "is-ready"}`} aria-label="Estado de sincronización de Modelo">
-              <header>
-                <span><RefreshCw size={13} /> Job Kobo</span>
-                <strong>{syncJob.status}</strong>
-                <em>{jobProgressText(syncJob) || syncJob.id}</em>
-              </header>
-              <div className="mon-territorial-route-sheet-metrics">
-                <span className={syncJob.status === "done" ? "is-ready" : "is-warning"}><CheckCircle2 size={13} /><strong>{syncJob.status === "done" ? "OK" : "En curso"}</strong><em>estado</em><small>{syncJob.finished_at ? "finalizado" : "pendiente"}</small></span>
-                <span><ClipboardCheck size={13} /><strong>{syncJob.has_file_result ? "Sí" : "No"}</strong><em>archivo</em><small>{syncJob.result_filename || "sin resultado"}</small></span>
-              </div>
-              <div className="mon-territorial-route-sheet-actions">
-                <span className={syncJob.status === "done" ? "is-ready" : "is-warning"}>{syncJob.id}</span>
-              </div>
-            </div>
-          ) : null}
 
           {!reports ? (
             <div className="mon-territorial-route-map-placeholder">
