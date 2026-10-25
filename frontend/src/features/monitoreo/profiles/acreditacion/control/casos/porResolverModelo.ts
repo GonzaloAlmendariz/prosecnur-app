@@ -157,11 +157,23 @@ function coincide(candidato: MonitoreoAssistedReviewCandidate, consulta: string)
   return consulta.split(/\s+/).filter(Boolean).every((token) => pajar.includes(token));
 }
 
+/**
+ * El aviso del motor sin la explicación que encadena tras «;» (regla del modo:
+ * nada de explicaciones tras «;»). «…nombre compatible; revisa estos casos antes
+ * de publicar…» queda en «…nombre compatible.».
+ */
+export function avisoSinExplicacion(aviso: string): string {
+  const corte = aviso.indexOf(";");
+  if (corte < 0) return aviso;
+  const cabeza = aviso.slice(0, corte).trim();
+  return cabeza ? `${cabeza}.` : aviso;
+}
+
 export function modeloDeDecision(caso: MonitoreoInternalQueryCase, estado: EstadoDeDecision): ModeloDeDecision {
   const review = caso.assisted_review;
   const candidatos = Array.isArray(review?.candidates) ? review.candidates : [];
   const asignables = Array.isArray(review?.assignment_candidates) ? review.assignment_candidates : [];
-  const avisos = (Array.isArray(review?.warnings) ? review.warnings : []).map((aviso) => texto(aviso)).filter(Boolean);
+  const avisos = (Array.isArray(review?.warnings) ? review.warnings : []).map((aviso) => avisoSinExplicacion(texto(aviso))).filter(Boolean);
   const nombre = (candidato: MonitoreoAssistedReviewCandidate) => texto(candidato.person_label || candidato.case_key);
   const evidencia = unicos([...candidatos, ...asignables])
     .sort((a, b) => assistedCandidateEvidenceRank(a) - assistedCandidateEvidenceRank(b) || nombre(a).localeCompare(nombre(b), "es"));

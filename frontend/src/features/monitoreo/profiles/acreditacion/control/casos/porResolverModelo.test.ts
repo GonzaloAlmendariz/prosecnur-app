@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAssistedReviewCandidate, MonitoreoInternalQueryCase, MonitoreoInternalQueryIssue } from "../../../../../../api/client";
-import { filasDeCola, filtrarCola, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
+import { avisoSinExplicacion, filasDeCola, filtrarCola, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
 
 function candidato(parcial: Partial<MonitoreoAssistedReviewCandidate>): MonitoreoAssistedReviewCandidate {
   return {
@@ -96,5 +96,17 @@ describe("decisión del caso: las reglas de siempre", () => {
     const modelo = modeloDeDecision(base, { ...vacio, busqueda: "05" });
     expect(modelo.opciones).toEqual([]);
     expect(modelo.yaAsignadas.map((item) => item.candidate_id)).toEqual(["c-05"]);
+  });
+});
+
+describe("avisos del motor en el caso", () => {
+  it("se publican sin la explicación que encadenan tras «;»", () => {
+    const aviso = "Hay personas pendientes del universo con correo, código o nombre compatible; revisa estos casos antes de publicar la lista de no respuesta.";
+    expect(avisoSinExplicacion(aviso)).toBe("Hay personas pendientes del universo con correo, código o nombre compatible.");
+    expect(avisoSinExplicacion("El código declarado no coincide con el código de la persona encontrada por correo.")).toBe(
+      "El código declarado no coincide con el código de la persona encontrada por correo.",
+    );
+    const modelo = modeloDeDecision(caso({ assisted_review: { warnings: [aviso] } }), { seleccion: "", confirmado: false, nota: "", busqueda: "" });
+    expect(modelo.avisos).toEqual(["Hay personas pendientes del universo con correo, código o nombre compatible."]);
   });
 });

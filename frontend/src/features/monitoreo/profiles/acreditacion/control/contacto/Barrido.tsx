@@ -28,8 +28,19 @@ function FilaDelEmbudo({ etiqueta, valor, base, clase }: { etiqueta: string; val
   );
 }
 
-function Celda({ valor, rotulo, tono }: { valor: number | null; rotulo: string; tono: "acuerdo" | "diferencia" | "vacia" }) {
-  if (tono === "vacia" || valor == null) return <div className="acr-ct-matriz-celda is-vacia" aria-hidden="true" />;
+/** Por qué la esquina «sin efectiva × sin completa» no lleva cifra (C5). */
+const MOTIVO_FUERA_DEL_CRUCE = "La matriz cruza efectivas. Quien no tiene efectiva al teléfono ni completa en la plataforma no se cuenta aquí.";
+
+function Celda({ valor, rotulo, tono }: { valor: number | null; rotulo: string; tono: "acuerdo" | "diferencia" | "fuera" }) {
+  if (tono === "fuera" || valor == null) {
+    return (
+      <div className="acr-ct-matriz-celda is-fuera" title={MOTIVO_FUERA_DEL_CRUCE} data-vacio="legitimo">
+        <b className="acr-av-num" aria-hidden="true">—</b>
+        <span>{rotulo}</span>
+        <span className="pulso-sr-only">{MOTIVO_FUERA_DEL_CRUCE}</span>
+      </div>
+    );
+  }
   return (
     <div className={`acr-ct-matriz-celda is-${tono}`}>
       <b className="acr-av-num">{fmt(valor)}</b>
@@ -101,7 +112,7 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
                   <Celda valor={modelo.soloTelefono} rotulo="Efectiva solo al teléfono" tono="diferencia" />
                   <span className="acr-av-antetitulo" role="rowheader">Sin efectiva al teléfono</span>
                   <Celda valor={modelo.soloPlataforma} rotulo="Completa sin efectiva al teléfono" tono="diferencia" />
-                  <Celda valor={null} rotulo="" tono="vacia" />
+                  <Celda valor={null} rotulo="Fuera del cruce" tono="fuera" />
                 </div>
               ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae el cruce del barrido con la plataforma." descripcion="Sale de «Operación por responsable» al actualizar." />}
             </section>
