@@ -2496,8 +2496,8 @@ reporte_ppt_plan <- function(
     trimws(gsub("\\s+", " ", x, perl = TRUE))
   }
 
-  .nonblank_open_text_for_nube <- function(x) {
-    nzchar(.clean_open_text_for_nube(x))
+  .nonblank_open_text_for_nube <- function(x, filtrar = FALSE) {   # TXT-1: con filtro, sólo los comentarios con contenido
+    if (isTRUE(filtrar)) nzchar(.clean_open_text_for_nube(x)) & !.txt_no_respuesta(x) else nzchar(.clean_open_text_for_nube(x))
   }
 
   .clean_other_response_bullet <- function(x) {
@@ -3336,7 +3336,7 @@ reporte_ppt_plan <- function(
       df_base <- .filter_data(el$filtros %||% list(), source = ctx_var$source)
       if (!nrow(df_base) || !ctx_var$var %in% names(df_base)) return(NULL)
       keep <- .nonblank_open_text(df_base[[ctx_var$var]]) &
-        .nonblank_open_text_for_nube(df_base[[ctx_var$var]])
+        .nonblank_open_text_for_nube(df_base[[ctx_var$var]], filtrar = .txt_flag((el$overrides %||% list())$filtrar_no_respuestas %||% presets$nube_palabras$args$filtrar_no_respuestas))
       parent_var <- el$parent_var %||% NULL
       if (!is.null(parent_var) && is.character(parent_var) && nzchar(trimws(parent_var))) {
         ctx_parent <- tryCatch(.resolve_ref(parent_var, source = ctx_var$source, arg_name = "parent_var"), error = function(e) NULL)
@@ -3962,7 +3962,7 @@ reporte_ppt_plan <- function(
     }
 
     text_vals <- .reporte_plan_clean_chr(dsrc[[ctx$var]])
-    keep <- nzchar(text_vals) & .nonblank_open_text_for_nube(text_vals)
+    keep <- nzchar(text_vals) & (.txt_flag((el$overrides %||% list())$filtrar_no_respuestas %||% preset_args$filtrar_no_respuestas) | .nonblank_open_text_for_nube(text_vals))   # TXT-1: con filtro, el graficador cuenta quiénes escribieron algo
     parent_var <- el$parent_var %||% NULL
     if (!is.null(parent_var) && is.character(parent_var) && nzchar(trimws(parent_var))) {
       ctx_parent <- tryCatch(.resolve_ref(parent_var, source = ctx$source, arg_name = "parent_var"), error = function(e) NULL)
