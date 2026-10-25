@@ -149,7 +149,7 @@ export function construirEquipo(
   const sinAsignar = responsables.find((item) => item.sinAsignar);
   const libres = sinAsignar ? sinAsignar.asignados : 0;
   if (libres > 0) {
-    alertas.push({ clave: "sin-asignar", texto: "Casos sin asignar todavía; no cuentan como atraso", casos: libres, tono: "informa" });
+    alertas.push({ clave: "sin-asignar", texto: "Casos sin asignar todavía", casos: libres, tono: "informa" });
   }
 
   return {

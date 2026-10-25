@@ -42,7 +42,8 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <p className="acr-rs-total">
             <b className="acr-av-num">{fmt(respuestas.length)}</b>
-            <span className="acr-av-tenue">{`respuestas; ${fmt(cuentan)} cuentan en el avance`}</span>
+            <span className="acr-av-tenue">respuestas</span>
+            <span className="acr-av-chip is-avance" title="Respuestas que cuentan en el avance">{`${fmt(cuentan)} cuentan`}</span>
           </p>
           {FACETAS.map(({ id, rotulo }) => (
             <section key={id} className="acr-pr-grupo">

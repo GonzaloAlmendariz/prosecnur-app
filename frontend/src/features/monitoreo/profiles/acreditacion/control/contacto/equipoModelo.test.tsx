@@ -49,7 +49,7 @@ describe("Control › Equipo de acreditación", () => {
     expect(modelo.alertas.map((alerta) => [alerta.texto, alerta.casos, alerta.tono])).toEqual([
       ["Responsable 1 tiene 54 casos sin contestar, con 7.2 intentos en promedio", 54, "atencion"],
       ["Responsable 6 tiene el 25 % de sus casos sin barrer", 5, "atencion"],
-      ["Casos sin asignar todavía; no cuentan como atraso", 3, "informa"],
+      ["Casos sin asignar todavía", 3, "informa"],
     ]);
     // Con los umbrales por defecto del motor (20 casos o la mitad), Responsable 6 no alerta.
     const motor = construirEquipo(REPORTS, [], umbralesDelPerfil(null));
