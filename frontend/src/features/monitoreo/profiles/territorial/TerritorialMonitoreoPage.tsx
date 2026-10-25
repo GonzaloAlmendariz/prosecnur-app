@@ -1233,14 +1233,14 @@ function direccionPermitidaEnFase(phase: MonitoreoTerritorialPhase, direccion: D
  * Monta una dirección pública: su componente propio si ya lo tiene, o la vista
  * heredada que absorbe (`direccionTerritorial.ts`).
  */
-function renderPestana(
+export function renderPestana(
   direccion: DireccionTerritorial,
   reports: MonitoreoTerritorialDashboard | null,
   options: OpcionesDePestana = {},
 ) {
   if (esPestanaPropia(direccion)) {
     const clave = `${direccion.seccion}/${direccion.pestana}`;
-    if (clave === "avance/faltante") return <FaltantePorUmp reports={reports} />;
+    if (clave === "avance/faltante") return <FaltantePorUmp reports={options.cortes?.avance ?? reports} />;
     if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
     if (clave === "control/senales" && !direccion.panel) return <SenalesTab reports={reports} />;
     if (clave === "control/bandeja" && !direccion.panel) {
