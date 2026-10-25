@@ -271,9 +271,14 @@
     collected <- as.integer(.diseno_num(k$total, 0))
     alerts <- as.integer(.diseno_num(k$inconsistencies, 0))
   }
+  # El espejo heredado de un corte anterior (lo deja el sync hasta que
+  # Monitoreo re-espeja): la cifra no es del `monitoreo_last_cut` vigente.
+  regenerando_desde <- monitoreo_overview_facts_heredado_de(snap, .monitoreo_overview_facts_field(fam))
   list(
     family = fam,
     has_snapshot = .diseno_has_content(snap),
+    regenerando = nzchar(regenerando_desde),
+    regenerando_desde = regenerando_desde,
     collected = collected,
     valid = valid,
     target = target,
@@ -572,6 +577,7 @@
     ),
     monitoreo = safe(.overview_monitoreo_facts(s, protocol$monitoring_family),
                      list(family = "", has_snapshot = FALSE, collected = 0L, valid = 0L,
+                          regenerando = FALSE, regenerando_desde = "",
                           target = 0L, avance_pct = -1, alerts = 0L,
                           valid_label = "válidos", collected_label = "recolectados",
                           avance_label = "avance de campo", actors_count = 0L,
