@@ -472,6 +472,7 @@
 .mon-equipo {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -480,16 +481,20 @@
   line-height: 1.35;
 }
 
+/* Alto natural (Ronda 3, L10): con 6 operadores (RMS) la tabla dejaba media
+ * tarjeta vacía. Con muchos llega al alto de la rejilla y desplaza dentro. */
 .mon-equipo-tabla-panel {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
 .mon-equipo-tabla-panel .mon-ctl-tabla-marco {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
 }
 
 .mon-equipo-tabla-panel tbody tr {
@@ -533,8 +538,23 @@
 }
 
 .mon-equipo-llamados {
-  min-width: 150px;
+  min-width: 128px;
   white-space: nowrap;
+}
+
+/* Las columnas extremas toman el margen de la cabecera de la tarjeta (16 px):
+ * «Intentos por caso» quedaba a 7 px del borde derecho y la tabla desplazaba
+ * 6 px a lo ancho a 1440 (Ronda 3, L11). A 1024 manda el ajuste compacto. */
+@media (min-width: 1181px) {
+  .mon-equipo-tabla-panel .mon-ctl-tabla th:first-child,
+  .mon-equipo-tabla-panel .mon-ctl-tabla td:first-child {
+    padding-left: var(--pulso-space-4);
+  }
+
+  .mon-equipo-tabla-panel .mon-ctl-tabla th:last-child,
+  .mon-equipo-tabla-panel .mon-ctl-tabla td:last-child {
+    padding-right: var(--pulso-space-4);
+  }
 }
 
 .mon-equipo-llamados span {
@@ -736,11 +756,14 @@
   min-height: 0;
 }
 
+/* Las filas reparten el alto con tope de grosor (40 px), como Avance ›
+ * Cuotas: lo que sobra queda como aire al pie de la ficha, no entre filas
+ * (RMS: siete status a 54 px de distancia). */
 .mon-equipo-status ul {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  justify-content: space-evenly;
+  justify-content: flex-start;
   gap: 4px;
   margin: 0;
   padding: 0;
@@ -760,6 +783,9 @@
 }
 
 .mon-equipo-status li {
+  flex: 1 1 0;
+  min-height: 24px;
+  max-height: 40px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 72px 36px;
   gap: var(--pulso-space-2);
@@ -927,6 +953,12 @@
   margin: 0;
   padding: 0 var(--pulso-space-4) var(--pulso-space-3);
   list-style: none;
+}
+
+/* La nota va dentro de la tarjeta, alineada con la lista: sin margen se
+ * pegaba a los bordes de la tarjeta (Ronda 3, L10). */
+.mon-respuestas-reglas > .mon-nota {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-4);
 }
 
 .mon-respuestas-reglas li {
@@ -1190,6 +1222,17 @@
   font-size: 12px;
 }
 
+/* Con pocos casos, la tarjeta mide sus filas (sin hueco al pie). */
+.mon-avisos-por-revisar.is-pocos {
+  flex: none;
+  min-height: 0;
+}
+
+.mon-avisos-por-revisar.is-pocos .mon-avisos-por-revisar-marco {
+  flex: none;
+  overflow-y: visible;
+}
+
 .mon-avisos-por-revisar-marco {
   flex: 1 1 0;
   min-height: 0;
@@ -1413,12 +1456,15 @@
   color: var(--pulso-text-soft);
 }
 
+/* Alto natural (Ronda 3, L10): «Qué hacer» quedaba al pie con un hueco
+ * encima cuando el aviso nombra pocos casos. Con muchos, la ficha llega al
+ * alto de la rejilla y la lista de casos desplaza dentro. */
 .mon-avisos-ficha {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-height: 0;
-  height: 100%;
+  max-height: 100%;
   padding: var(--pulso-space-4);
   overflow: hidden;
 }
@@ -1436,7 +1482,7 @@
 
 .mon-avisos-afectados {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-height: 0;
