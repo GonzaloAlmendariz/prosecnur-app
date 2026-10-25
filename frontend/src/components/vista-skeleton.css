@@ -1,0 +1,114 @@
+/* =============================================================================
+   VistaSkeleton — silueta de la vista destino durante el warm start (L23)
+   =============================================================================
+   Se pinta también desde el chunk de arranque (BootGate), así que sólo usa
+   tokens que boot.css replica. El acento llega por `--module-accent*`
+   (moduleChromeVars) con el primario como respaldo. */
+
+.pulso-vista-skeleton {
+  --vista-sk-accent: var(--module-accent, var(--pulso-primary));
+  --vista-sk-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
+  --vista-sk-bloque: color-mix(in srgb, var(--pulso-surface-2) 82%, var(--pulso-border));
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px clamp(18px, 3vw, 32px);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pulso-sk {
+  display: block;
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--pulso-surface) 70%, transparent) 50%,
+      transparent 80%
+    )
+    0 0 / 220% 100% no-repeat,
+    var(--vista-sk-bloque);
+  animation: pulso-vista-sk-brillo 1.8s ease-in-out infinite;
+}
+
+.pulso-sk.is-titulo { width: min(260px, 60%); height: 18px; }
+.pulso-sk.is-linea { width: 72%; height: 12px; }
+.pulso-sk.is-linea.is-corta { width: 44%; }
+.pulso-sk.is-marca { width: 132px; height: 22px; }
+.pulso-sk.is-herramienta { width: 148px; height: 30px; border-radius: 10px; }
+.pulso-sk.is-pill { width: 92px; height: 30px; border-radius: 999px; }
+.pulso-sk.is-pill.is-activa { background-color: color-mix(in srgb, var(--vista-sk-accent-soft) 70%, var(--vista-sk-bloque)); }
+.pulso-sk.is-kpi { height: 64px; border-radius: 12px; }
+.pulso-sk.is-fila { height: 34px; border-radius: 9px; }
+.pulso-sk.is-anillo { width: 120px; aspect-ratio: 1; border-radius: 50%; align-self: center; }
+.pulso-sk.is-icono { width: 36px; height: 36px; border-radius: 10px; }
+
+.pulso-vista-skeleton-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-vista-skeleton-pills {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.pulso-vista-skeleton-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pulso-vista-skeleton-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pulso-vista-skeleton-panel,
+.pulso-vista-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.pulso-vista-skeleton-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-vista-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+@keyframes pulso-vista-sk-brillo {
+  from { background-position: 120% 0, 0 0; }
+  to { background-position: -120% 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-sk {
+    animation: none;
+  }
+}

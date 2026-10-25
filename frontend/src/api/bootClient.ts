@@ -63,7 +63,15 @@ export type BootWarmupPlan = {
   backend_modules: string[];
   frontend_modules: string[];
   reasons?: Record<string, string>;
+  /** Apertura anterior y fases conocidas (L23); se lee con `normalizarEstimacionWarmup`. */
+  estimacion?: unknown;
   profile?: Record<string, unknown>;
+};
+
+/** Arranque del job de warmup: además del job, la estimación de la apertura anterior (L23). */
+export type BootWarmupStart = BootJobStart & {
+  ultima_apertura?: unknown;
+  tareas_ms?: unknown;
 };
 
 function apiPath(path: string): string {
@@ -243,7 +251,7 @@ export async function bootApiProjectSave(path: string, projectName?: string) {
 }
 
 export async function bootApiProjectWarmup(options: { mode?: "full"; budget_ms?: number; modules?: string[] } = {}) {
-  return handle<BootJobStart>(
+  return handle<BootWarmupStart>(
     await apiFetch("/api/project/warmup", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

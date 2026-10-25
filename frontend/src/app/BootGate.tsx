@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { hrefSinParamDeProyecto } from "../lib/navegacion/direccion";
 import {
   AlertTriangle,
@@ -14,7 +14,17 @@ import {
   X,
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
-import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../lib/modules";
+import { PROSECNUR_ACTIVE_MODULES, PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
+import { VistaSkeleton } from "../components/VistaSkeleton";
+import { WarmupReloj, useAhora } from "./WarmupReloj";
+import {
+  TIEMPO_WARMUP_INICIAL,
+  duracionFase,
+  formatReloj,
+  normalizarEstimacionWarmup,
+  tiempoWarmupReducer,
+  type WarmupEstimacion,
+} from "./warmupTiempo";
 import {
   bootApiCreateSession,
   bootApiHealth,
@@ -60,10 +70,6 @@ type WarmupDisplayStep = {
   label: string;
   status: WarmupDisplayStepStatus;
   detail?: string;
-};
-type WarmupDisplayCopy = {
-  headline: string;
-  detail: string;
 };
 
 const BOOT_BUDGET_MS = 320000;
@@ -384,56 +390,12 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
     .replace(/\.\.\.$/, "...");
 }
 
-function friendlyWarmupDetail(raw: string | null | undefined, phase: GatePhase, progressPercent: number) {
-  if (phase === "loading") return "Abriendo el espacio de trabajo con la información preparada.";
-  const text = (raw ?? "").trim();
-  if (/acreditaci[oó]n/i.test(text)) {
-    return "Preparando fuentes, avance, consultas y seguimiento telefónico del proyecto.";
-  }
-  if (/leyendo fuentes|preparando fuente/i.test(text)) {
-    return "Leyendo las bases y fuentes que usará Monitoreo al entrar.";
-  }
-  if (/cache de mapa|cach[eé] de mapa|mapas/i.test(text)) {
-    return "Preparando mapas y puntos para que la vista territorial responda rápido.";
-  }
-  if (/hojas de ruta/i.test(text)) {
-    return "Ordenando rutas, manzanas y asignaciones de trabajo de campo.";
-  }
-  if (/avance|cuotas/i.test(text)) {
-    return "Calculando avance, cuotas y brechas para dejar los tableros listos.";
-  }
-  if (/validaci[oó]n|validaciones/i.test(text)) {
-    return "Revisando indicadores y casos que necesitan atención operativa.";
-  }
-  if (/consultas/i.test(text)) {
-    return "Preparando listas de revisión para que las pestañas abran sin recalcular.";
-  }
-  if (/tel[eé]fon/i.test(text)) {
-    return "Preparando contactos, seguimiento y resumen de llamadas.";
-  }
-  if (/seguimiento de campo/i.test(text)) {
-    return "Hidratando rutas, mapas, avance, validaciones y consultas del operativo.";
-  }
-  if (/seguimiento piloto/i.test(text)) {
-    return "Dejando listo el piloto para alternar de fase sin espera larga.";
-  }
-  if (/listo|completado/i.test(text) || progressPercent >= 96) {
-    return "Terminando de abrir la interfaz principal.";
-  }
-  if (progressPercent < 20) return "Leyendo el proyecto local y preparando la interfaz.";
-  if (progressPercent < 55) return "Ordenando información para los módulos principales.";
-  if (progressPercent < 85) return "Hidratando vistas que suelen tardar la primera vez.";
-  return "Acomodando los últimos datos antes de entrar.";
-}
-
-function friendlyWarmupCopy(raw: string | null | undefined, phase: GatePhase, progressPercent: number): WarmupDisplayCopy {
+function friendlyWarmupHeadline(raw: string | null | undefined, phase: GatePhase, progressPercent: number) {
+  if (phase === "loading") return "Abriendo";
   const headline = friendlyWarmupMessage(raw, phase);
-  return {
-    headline: phase === "warming" && headline === "Listo" && progressPercent < 98
-      ? "Terminando preparación"
-      : headline,
-    detail: friendlyWarmupDetail(raw, phase, progressPercent),
-  };
+  return phase === "warming" && headline === "Listo" && progressPercent < 98
+    ? "Terminando preparación"
+    : headline;
 }
 
 function friendlyTaskLabel(raw: string | null | undefined, fallback: string) {
@@ -442,25 +404,27 @@ function friendlyTaskLabel(raw: string | null | undefined, fallback: string) {
   return friendlyWarmupMessage(text.replace(/\.\.\.$/, ""), "warming");
 }
 
-function formatWarmupElapsed(ms: number | null | undefined) {
-  const value = Number(ms ?? 0);
-  if (!Number.isFinite(value) || value <= 0) return "";
-  if (value < 1000) return "menos de 1 s";
-  const seconds = Math.round(value / 1000);
-  if (seconds < 60) return `${seconds} s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest ? `${minutes} min ${rest} s` : `${minutes} min`;
-}
+/** Tiempo de cada fase (L23): el que tomó, o el que lleva si está en curso. */
+type RelojFases = { ahoraMs: number; inicios: Record<string, number> };
 
-function warmupStepDetail(status: WarmupDisplayStepStatus, elapsedMs?: number, error?: string) {
-  if (status === "running") return "En preparación";
+function warmupStepDetail(
+  status: WarmupDisplayStepStatus,
+  elapsedMs?: number,
+  error?: string,
+  tiempo?: { reloj: RelojFases; faseId: string },
+) {
   if (status === "pending") return "En espera";
   if (status === "skipped") return "No aplica a este proyecto";
   if (status === "timeout") return "Continuará al entrar";
   if (status === "error") return error ? "Requiere revisión" : "No se pudo preparar";
-  const elapsed = formatWarmupElapsed(elapsedMs);
-  return elapsed ? `Listo en ${elapsed}` : "Listo";
+  const duracion = duracionFase({
+    status,
+    elapsedMs,
+    inicioMs: tiempo ? tiempo.reloj.inicios[tiempo.faseId] : undefined,
+    ahoraMs: tiempo?.reloj.ahoraMs ?? 0,
+  });
+  if (status === "running") return duracion || "En curso";
+  return duracion || "Listo";
 }
 
 function warmupScopeLabel(scope: string, family = "") {
@@ -508,18 +472,10 @@ function warmupScopeSteps(task: BootWarmupTask): WarmupDisplayStep[] {
   });
 }
 
-function backendProgressDetail(progress: BootJobProgress | null) {
-  const percent = Number(progress?.percent);
+/** Clave de la fase de backend en curso: una por tarea del job. */
+function backendFaseId(progress: BootJobProgress | null) {
   const current = Number(progress?.current);
-  const total = Number(progress?.total);
-  const parts: string[] = [];
-  if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
-    parts.push(`${Math.max(0, Math.round(current))} de ${Math.round(total)} pasos`);
-  }
-  if (Number.isFinite(percent) && percent > 0) {
-    parts.push(`${Math.min(100, Math.max(1, Math.round(percent)))}%`);
-  }
-  return parts.length ? parts.join(" · ") : "En preparación";
+  return `backend-progress:${Number.isFinite(current) ? Math.round(current) : 0}`;
 }
 
 /* Frontend, backend y scopes de backend son tres fuentes independientes, pero
@@ -564,12 +520,14 @@ function warmupDisplaySteps({
   backendTasks,
   backendProgress,
   backendEnabled,
+  reloj,
 }: {
   projectPath: string | null;
   frontendModules: Record<string, WarmupModuleProgress>;
   backendTasks: BootWarmupTask[];
   backendProgress: BootJobProgress | null;
   backendEnabled: boolean;
+  reloj: RelojFases;
 }): WarmupDisplayStep[] {
   const steps: WarmupDisplayStep[] = [
     {
@@ -583,7 +541,10 @@ function warmupDisplaySteps({
     id: `frontend:${item.id}`,
     label: friendlyTaskLabel(item.label, "Preparando interfaz"),
     status: item.status as WarmupDisplayStepStatus,
-    detail: warmupStepDetail(item.status as WarmupDisplayStepStatus, item.elapsed_ms, item.error),
+    detail: warmupStepDetail(item.status as WarmupDisplayStepStatus, item.elapsed_ms, item.error, {
+      reloj,
+      faseId: `frontend:${item.id}`,
+    }),
   }));
   const backend = backendTasks.map((item) => ({
     id: `backend:${item.id || item.module}`,
@@ -601,7 +562,7 @@ function warmupDisplaySteps({
       id: "backend-progress",
       label: friendlyWarmupMessage(backendProgress?.message, "warming"),
       status: "running",
-      detail: backendProgressDetail(backendProgress),
+      detail: warmupStepDetail("running", undefined, undefined, { reloj, faseId: backendFaseId(backendProgress) }),
     });
   }
   steps.push({
@@ -682,6 +643,8 @@ export default function BootGate({ loadSuite }: BootGateProps) {
   const [deadlineReached, setDeadlineReached] = useState(false);
   const [warmupMessage, setWarmupMessage] = useState("Preparando proyecto local...");
   const [displayProgressPercent, setDisplayProgressPercent] = useState(0);
+  // Reloj del warm start (L23): inicio, estimación aprendida e inicio de cada fase.
+  const [tiempo, despacharTiempo] = useReducer(tiempoWarmupReducer, TIEMPO_WARMUP_INICIAL);
   const mountedRef = useRef(true);
   const suiteLoadRef = useRef<Promise<void> | null>(null);
   // Descarga del chunk de AppSuite (singleton). Se dispara en paralelo con el
@@ -784,6 +747,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       if (!mountedRef.current) return snap;
       const progress = snap.progress && "phase" in snap.progress ? snap.progress : null;
       setBackendProgress(progress);
+      if (progress && progress.phase !== "done") {
+        despacharTiempo({ tipo: "fase", id: backendFaseId(progress), ahoraMs: Date.now() });
+      }
       if (progress?.message) setWarmupMessage(progress.message);
       if (isWarmupResult(snap.result_data)) {
         setBackendTasks(snap.result_data.tasks);
@@ -812,6 +778,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     rememberBootProject(path);
     setActiveProjectPath(path);
     setPhase("warming");
+    despacharTiempo({ tipo: "iniciar", ahoraMs: Date.now() });
     setDeadlineReached(false);
     setBackgroundWarmup(false);
     setBackendProgress(null);
@@ -829,6 +796,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     const plan = visualQaWarmupModuleIds
       ? null
       : await (opts?.warmupPlanPromise ?? bootApiProjectWarmupPlan().catch(() => null));
+    despacharTiempo({ tipo: "estimar", estimacion: normalizarEstimacionWarmup(plan?.estimacion) });
     const rawPlannedFrontendModuleIds = visualQaWarmupModuleIds ??
       (Array.isArray(plan?.frontend_modules) && plan.frontend_modules.length
         ? plan.frontend_modules
@@ -851,6 +819,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
 
     const recordFrontendProgress = (progress: WarmupModuleProgress) => {
       if (!mountedRef.current) return;
+      if (progress.status === "running") {
+        despacharTiempo({ tipo: "fase", id: `frontend:${progress.id}`, ahoraMs: Date.now() });
+      }
       setFrontendModules((prev) => ({ ...prev, [progress.id]: progress }));
     };
 
@@ -863,7 +834,10 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     const backendPromise = skipBackendWarmup
       ? Promise.resolve(null)
       : bootApiProjectWarmup({ mode: "full", budget_ms: BOOT_BUDGET_MS, modules: plannedBackendModuleIds })
-        .then((job) => pollBackendWarmup(job.job_id))
+        .then((job) => {
+          despacharTiempo({ tipo: "estimar", estimacion: normalizarEstimacionWarmup(job) });
+          return pollBackendWarmup(job.job_id);
+        })
         .then(async (snapshot) => {
           if (
             backendCoveredFrontendIds.length &&
@@ -1107,13 +1081,16 @@ export default function BootGate({ loadSuite }: BootGateProps) {
   const progressPercent = isProgressPhase
     ? Math.max(1, displayProgressPercent, targetProgressPercent)
     : rawWarmupPercent;
-  const displayWarmupCopy = friendlyWarmupCopy(warmupMessage, phase, progressPercent);
+  const ahoraMs = useAhora(isProgressPhase);
+  const transcurridoMs = tiempo.inicioMs === null ? 0 : Math.max(0, ahoraMs - tiempo.inicioMs);
+  const warmupHeadline = friendlyWarmupHeadline(warmupMessage, phase, progressPercent);
   const displayWarmupSteps = warmupDisplaySteps({
     projectPath: activeProjectPath,
     frontendModules,
     backendTasks,
     backendProgress,
     backendEnabled: backendWarmupEnabled,
+    reloj: { ahoraMs, inicios: tiempo.inicios },
   });
   if (suite) {
     const Suite = suite;
@@ -1123,7 +1100,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         {backgroundWarmup && (
           <div className="boot-background-warmup" role="status">
             <span>{deadlineReached ? "Terminando preparación" : "Preparando"}</span>
-            <span>{progressPercent}%</span>
+            <span>{formatReloj(transcurridoMs)}</span>
           </div>
         )}
       </>
@@ -1138,12 +1115,14 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       data-boot-phase={phase}
       data-boot-progress={isWarmupPhase ? progressPercent : undefined}
     >
+      {isWarmupPhase ? <WarmupDestino /> : null}
       <section className={`boot-panel ${isWarmupPhase ? "boot-panel-warmup" : ""}`} aria-live="polite">
         {isWarmupPhase ? (
           <WarmupView
             projectPath={activeProjectPath}
-            message={displayWarmupCopy.headline}
-            detail={displayWarmupCopy.detail}
+            message={warmupHeadline}
+            transcurridoMs={transcurridoMs}
+            estimacion={tiempo.estimacion}
             progressPercent={progressPercent}
             steps={displayWarmupSteps}
           />
@@ -1505,16 +1484,41 @@ function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
   return null;
 }
 
+/** Silueta de la vista a la que se va a entrar, detrás del indicador (L23). */
+function destinoWarmup(pathname: string) {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const module = PROSECNUR_ACTIVE_MODULES.find((item) => item.to !== "/" && (path === item.to || path.endsWith(item.to)));
+  return module ?? null;
+}
+
+function WarmupDestino() {
+  const module = useMemo(
+    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
+    [],
+  );
+  return (
+    <div className="boot-warmup-destino" aria-hidden="true">
+      {module ? (
+        <VistaSkeleton variante="modulo" secciones={module.sections.length} style={moduleChromeVars(module)} />
+      ) : (
+        <VistaSkeleton variante="inicio" />
+      )}
+    </div>
+  );
+}
+
 function WarmupView({
   projectPath,
   message,
-  detail,
+  transcurridoMs,
+  estimacion,
   progressPercent,
   steps,
 }: {
   projectPath: string | null;
   message: string;
-  detail: string;
+  transcurridoMs: number;
+  estimacion: WarmupEstimacion;
   progressPercent: number;
   steps: WarmupDisplayStep[];
 }) {
@@ -1541,10 +1545,10 @@ function WarmupView({
         <div className="boot-progress">
           <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
           <h1>{message}</h1>
-          <p className="boot-progress-detail">{detail}</p>
+          <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
         </div>
       </div>
-      <div className="boot-warmup-steps" aria-label="Fases de preparación">
+      <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">
         {steps.map((step) => (
           <div className={`boot-warmup-step is-${step.status}`} key={step.id}>
             <span className="boot-step-icon" aria-hidden="true">

@@ -1,0 +1,118 @@
+/* =============================================================================
+   ModuleWarmupBoundary — warm start de un módulo con tiempo (Meta B, L23)
+   =============================================================================
+   La raíz `.pulso-module-warmup` (fondo, centrado, marca y titular) vive en
+   theme.css, congelado a crecimiento; aquí va lo nuevo: la silueta de la vista
+   destino detrás, la lámina del indicador y las fases con su duración. */
+
+.pulso-module-warmup {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pulso-module-warmup > .pulso-module-warmup-destino {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pulso-module-warmup-card {
+  width: min(560px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid var(--pulso-border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  backdrop-filter: blur(10px) saturate(1.05);
+  box-shadow: var(--pulso-shadow-high);
+}
+
+.pulso-module-warmup-fases {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.pulso-module-warmup-fase {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.pulso-module-warmup-fase strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-module-warmup .pulso-module-warmup-fase small {
+  max-width: none;
+  text-align: right;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-module-warmup-fase-icono {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-module-warmup-fase.is-running {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-module-warmup-fase.is-running .pulso-module-warmup-fase-icono {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-module-warmup-fase.is-ready .pulso-module-warmup-fase-icono {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-module-warmup-fase.is-error .pulso-module-warmup-fase-icono {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-module-warmup-spin {
+  animation: pulso-module-warmup-giro 0.9s linear infinite;
+}
+
+@keyframes pulso-module-warmup-giro {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-module-warmup-spin {
+    animation: none;
+  }
+}
