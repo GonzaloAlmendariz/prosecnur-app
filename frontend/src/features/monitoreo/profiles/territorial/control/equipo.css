@@ -316,3 +316,10 @@
   color: var(--pulso-text);
   font-size: 15px;
 }
+
+/* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
+ * queda pegada al borde de la tarjeta. */
+.mon-eq-tabla th:last-child,
+.mon-eq-tabla td:last-child {
+  padding-right: var(--pulso-space-4);
+}

@@ -16,7 +16,7 @@ export type ModeloMapeo = {
   roles: FilaDeRol[] | null;
   pendientes: number;
   filtro: { pregunta: string; valores: string[]; pasan: number | null; noPasan: number | null; base: number | null; proporcion: string } | null;
-  umbrales: Array<{ rotulo: string; valor: string }>;
+  umbrales: Array<{ rotulo: string; valor: string; ayuda?: string }>;
   distritos: Array<{ codigo: string; etiqueta: string; ubigeo: string; distrito: string; ok: boolean }>;
 };
 
@@ -61,7 +61,7 @@ export function construirMapeo(
     { rotulo: "Duración mínima", valor: segundosEnTexto(n(territorial.min_duration_seconds)) },
     // Regla de Gonzalo: el control de tiempo revisa las cortas; el umbral de las
     // largas es un dato, no una alerta.
-    { rotulo: "Duración larga desde, sin alerta", valor: segundosEnTexto(n(territorial.max_duration_seconds)) },
+    { rotulo: "Duración larga desde", valor: segundosEnTexto(n(territorial.max_duration_seconds)), ayuda: "Es un dato, no una alerta: la Bandeja sólo revisa las cortas" },
     { rotulo: "Edad a revisar desde", valor: `${fmt(territorial.high_age_review)} años` },
   ] : [];
 

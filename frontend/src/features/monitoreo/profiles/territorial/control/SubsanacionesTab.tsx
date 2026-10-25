@@ -53,7 +53,7 @@ function SubsanacionesTabImpl({
           <RotuloDePestana />
           <Scale size={20} aria-hidden="true" />
           <strong>Este corte no trae las subsanaciones del motor</strong>
-          <span>Actualiza la vista para pedir el corte de Consultas, que las calcula.</span>
+          <span title="El corte de Consultas es el que calcula las subsanaciones">«Actualizar» pide el corte de Consultas</span>
         </div>
       </section>
     );
@@ -92,7 +92,7 @@ function SubsanacionesTabImpl({
     setAviso(null);
     try {
       await onRevert(id, "Revertida desde Control › Subsanaciones");
-      setAviso({ tono: "ok", texto: "Subsanación revertida. El avance se recalculó." });
+      setAviso({ tono: "ok", texto: "Subsanación revertida y avance recalculado" });
       setPorRevertir(null);
     } catch (error) {
       setAviso({ tono: "error", texto: error instanceof Error ? error.message : String(error) });

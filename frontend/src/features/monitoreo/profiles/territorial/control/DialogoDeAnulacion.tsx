@@ -112,7 +112,7 @@ export function DialogoDeAnulacion({
           <span>Motivo (obligatorio)</span>
           <textarea value={motivo} rows={3} required onChange={(event) => setMotivo(event.currentTarget.value)} />
         </label>
-        <p className="mon-dlg-base">Queda en el historial con autor y fecha, y se puede revertir en Control › Anulaciones.</p>
+        <p className="mon-dlg-base" title="Queda en el historial con autor y fecha">Se revierte en Control › Anulaciones</p>
 
         {paso.tipo === "error" ? <p className="mon-dlg-error" role="alert">{paso.mensaje}</p> : null}
 

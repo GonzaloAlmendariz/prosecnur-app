@@ -12,6 +12,12 @@ export type CartografiaDelMapa = {
   cargando: boolean;
   /** Algún distrito no se pudo cargar; lo que llegó se dibuja igual. */
   incompleta: boolean;
+  /**
+   * Hay una UMP enfocada y sus calles y vecinas todavía no llegaron ni
+   * fallaron. La vista acercada no está lista mientras tanto: sin esto se
+   * marcaba lista con la manzana sola y la captura salía sin calles.
+   */
+  ricaPendiente: boolean;
 };
 
 /**
@@ -97,5 +103,6 @@ export function useCartografiaDelMapa(ubigeos: readonly string[], ubigeoEnfocado
     rica,
     cargando: Object.keys(enCurso).length > 0 || sinResolver,
     incompleta: Object.keys(fallidos).length > 0,
+    ricaPendiente: ubigeoEnfocado != null && !rica[ubigeoEnfocado] && !fallidos[`rica:${ubigeoEnfocado}`],
   };
 }
