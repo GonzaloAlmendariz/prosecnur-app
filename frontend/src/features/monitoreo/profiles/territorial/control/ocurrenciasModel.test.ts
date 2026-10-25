@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { construirOcurrencias } from "./ocurrenciasModel";
+import { motivosDeLaBarra, construirOcurrencias } from "./ocurrenciasModel";
 
 const CORTE = {
   field_occurrences: {
@@ -49,6 +49,15 @@ describe("Control › Ocurrencias", () => {
     expect(modelo.dias.map((dia) => dia.rotulo)).toEqual(["13/06", "14/06"]);
     expect(modelo.tasas.find((tramo) => tramo.rotulo === "10 a 20 %")?.umps).toBe(2);
     expect(modelo.medianaDeTasa).toBe(15);
+  });
+
+  it("la barra lleva cinco motivos y junta el resto en «Otros», sin repetir color", () => {
+    const motivos = Array.from({ length: 8 }, (_, indice) => ({ clave: `m${indice}`, rotulo: `Motivo ${indice}`, total: 10 - indice, proporcion: (10 - indice) / 100 }));
+    const barra = motivosDeLaBarra(motivos);
+    expect(barra).toHaveLength(6);
+    expect(barra[5]).toMatchObject({ clave: "otros", rotulo: "Otros 3 motivos", total: 5 + 4 + 3 });
+    expect(barra.reduce((suma, motivo) => suma + motivo.total, 0)).toBe(motivos.reduce((suma, motivo) => suma + motivo.total, 0));
+    expect(motivosDeLaBarra(motivos.slice(0, 6))).toHaveLength(6);
   });
 
   it("sin partes no hay ocurrencias", () => {

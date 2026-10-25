@@ -69,7 +69,7 @@ function CuotasTabImpl({
               </div>
             ))}
           </dl>
-          <h4 className="mon-mod-subtitulo">Plantilla por UMP · {fmt(modelo.entrevistasPorUmp)} entrevistas, marginales</h4>
+          <h4 className="mon-mod-subtitulo">Plantilla por UMP de {fmt(modelo.entrevistasPorUmp)} entrevistas</h4>
           <ul className="mon-mod-plantilla" data-qa-geometry-group="territorial-modelo-plantilla" data-qa-geometry-contract="equal">
             {modelo.plantilla.map((celda) => (
               <li key={`${celda.eje}-${celda.clave}`} className={`is-${celda.eje}`}>
@@ -79,7 +79,7 @@ function CuotasTabImpl({
             ))}
           </ul>
           <p className="mon-mod-base">
-            {fmt(modelo.conPlantilla)} manzanas usan esta plantilla{modelo.conOtra ? `; ${fmt(modelo.conOtra)} traen otra` : ""}.
+            {fmt(modelo.conPlantilla)} manzanas con esta plantilla{modelo.conOtra ? <span className="mon-ter-cuenta">{fmt(modelo.conOtra)} con otra</span> : null}
           </p>
         </section>
 
@@ -121,7 +121,7 @@ function CuotasTabImpl({
             </tfoot>
           </table>
         </div>
-        <p className="mon-mod-base">Sexo y edad son marginales: cada uno suma la meta del distrito por separado.</p>
+        <p className="mon-mod-base" title="Cada uno suma la meta del distrito por separado">Sexo y edad, marginales</p>
       </section>
     </section>
   );

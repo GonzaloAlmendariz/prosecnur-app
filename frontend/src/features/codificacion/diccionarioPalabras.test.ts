@@ -11,6 +11,7 @@ import {
   palabraExcluida,
   palabrasFrecuentes,
   reducirPalabras,
+  totalDelGrupo,
   type EstadoPalabras,
 } from "./diccionarioPalabras";
 
@@ -154,5 +155,22 @@ describe("filtrarPalabras", () => {
     expect(filtrarPalabras([ESTUDIANTES, DOCENTES], "estudiante").map((x) => x.clave)).toEqual(["estudiant"]);
     expect(filtrarPalabras([p("cafe", "café", 2)], "cafe")).toHaveLength(1);
     expect(filtrarPalabras([ESTUDIANTES, DOCENTES], "  ")).toHaveLength(2);
+  });
+});
+
+// TXT-18: un grupo unido muestra cuántas personas usan alguna de sus palabras (lo cuenta el backend, sin repetir
+// personas) y de dónde sale: «alumnos 6 + estudiantes 7».
+describe("totalDelGrupo", () => {
+  const g = { mostrar: "estudiantes", formas: ["alumnos", "estudiantes"] };
+  const conGrupo = (grupos: TextoAbiertoDiccionario["grupos"]) => ({ ...datos({ equivalencias: [g], excluir: [], frases: [] }), grupos });
+  it("toma las personas del grupo guardado y desglosa por palabra, de más a menos", () => {
+    const t = totalDelGrupo(g, conGrupo([{ mostrar: "Estudiantes", formas: ["estudiantes", "alumnos"], personas: 13 }]));
+    expect(t.personas).toBe(13);
+    expect(t.partes).toEqual([{ forma: "estudiantes", personas: 10 }, { forma: "alumnos", personas: 3 }]);
+  });
+  it("sin guardar (o con otras palabras) todavía no hay total", () => {
+    expect(totalDelGrupo(g, conGrupo([])).personas).toBeNull();
+    expect(totalDelGrupo(g, conGrupo([{ mostrar: "estudiantes", formas: ["alumnos"], personas: 3 }])).personas).toBeNull();
+    expect(totalDelGrupo(g, null).partes).toEqual([]);
   });
 });

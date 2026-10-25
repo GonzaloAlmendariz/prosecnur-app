@@ -173,6 +173,7 @@
 .mon-ter-variables {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  align-items: start;
   gap: var(--pulso-space-3);
 }
 
@@ -297,4 +298,23 @@
   flex: 1 1 auto;
   grid-auto-rows: minmax(18px, 1fr);
   align-content: stretch;
+}
+
+/* Conteo junto a un título («Lecturas de las fuentes 34»), en vez de pegarlo
+ * con «·». */
+.mon-ter-cuenta {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--pulso-space-2);
+  padding: 0 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.6;
+  text-transform: none;
+  vertical-align: 1px;
 }

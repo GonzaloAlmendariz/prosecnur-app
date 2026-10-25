@@ -77,7 +77,7 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
       <section className="mon-falt-panel mon-falt-cuotas" aria-labelledby="mon-falt-cuotas-titulo" data-qa-geometry-member="cuotas">
         <header className="mon-falt-cabecera">
           <h3 id="mon-falt-cuotas-titulo">Cuota de cada UMP</h3>
-          <span className="mon-falt-base">Manzana en uso. El signo indica subsanaciones recibidas o cedidas.</span>
+          <span className="mon-falt-base" title="El signo indica subsanaciones recibidas o cedidas">Manzana en uso</span>
           <span className="mon-falt-controles">
             <span className="mon-falt-segmentado" role="group" aria-label="Qué UMP mostrar">
               {(["pendientes", "subsanadas", "todas"] as const).map((clave) => (
@@ -133,8 +133,8 @@ function PanelDePendientes({
         {modelo.celdasFueraDeUso > 0 ? (
           <span className="mon-falt-base">
             {modelo.celdasFueraDeUso === 1
-              ? "Otra celda con déficit está en una manzana que la UMP ya no usa."
-              : `Otras ${fmt(modelo.celdasFueraDeUso)} celdas con déficit están en manzanas que la UMP ya no usa.`}
+              ? "1 celda más en una manzana sin usar"
+              : `${fmt(modelo.celdasFueraDeUso)} celdas más en manzanas sin usar`}
           </span>
         ) : null}
       </header>
@@ -204,7 +204,7 @@ function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
     <section className="mon-falt-panel mon-falt-calor" aria-labelledby="mon-falt-calor-titulo" data-qa-geometry-member="calor">
       <header className="mon-falt-cabecera">
         <h3 id="mon-falt-calor-titulo">Logrado frente a la cuota, por distrito</h3>
-        <span className="mon-falt-base">Base: {fmt(modelo.casosConSexoYEdad)} casos con sexo y edad</span>
+        <span className="mon-falt-base">{fmt(modelo.casosConSexoYEdad)} casos con sexo y edad</span>
       </header>
       <table className="mon-falt-calor-tabla">
         <thead>

@@ -54,6 +54,27 @@
   border-style: dashed;
   background: var(--pulso-surface);
 }
+/* TXT-17: un módulo partido agrupa sus subtemas (rótulo corto; el enunciado en el tooltip). */
+.pulso-cv2-modsug-banda-item.is-grupo {
+  flex-wrap: wrap;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--pulso-radius-card);
+}
+.pulso-cv2-modsug-banda-subtemas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pulso-cv2-modsug-banda-item.is-subtema {
+  gap: 6px;
+  background: var(--pulso-surface);
+}
+.pulso-cv2-modsug-banda-item.is-subtema .pulso-cv2-modsug-banda-modulo {
+  font-weight: var(--pulso-weight-medium);
+}
 .pulso-cv2-modsug-banda-modulo {
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
@@ -176,8 +197,9 @@
 @media (max-height: 820px) {
   .pulso-cv2-modsug-banda {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 6px 10px;
     margin-bottom: 8px;
     padding: 6px 10px;
   }
@@ -199,7 +221,7 @@
     color: var(--pulso-text-soft);
   }
   .pulso-cv2-modsug-banda-lista {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     flex-wrap: nowrap;
     min-width: 0;
     margin: 0;
@@ -209,8 +231,13 @@
   .pulso-cv2-modsug-banda-item {
     flex: 0 0 auto;
   }
+  .pulso-cv2-modsug-banda-item.is-grupo,
+  .pulso-cv2-modsug-banda-subtemas {
+    flex-wrap: nowrap;
+  }
+  /* El aviso de la última confirmación va en su propia línea: al lado de la lista la dejaba sin ancho (C4). */
   .pulso-cv2-modsug-banda-estado {
-    flex: 0 0 auto;
+    flex: 1 1 100%;
     margin: 0;
   }
 }

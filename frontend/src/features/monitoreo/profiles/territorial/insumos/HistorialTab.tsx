@@ -33,7 +33,7 @@ function HistorialTabImpl({
       <section className="mon-ins-panel" aria-labelledby="mon-ins-lecturas" data-qa-geometry-member="lecturas">
         <header className="mon-ins-cabecera is-inicio">
           <RotuloDePestana />
-          <h3 id="mon-ins-lecturas" className="mon-ins-titulo">Lecturas de las fuentes · {fmt(modelo.lecturas.length)}</h3>
+          <h3 id="mon-ins-lecturas" className="mon-ins-titulo">Lecturas de las fuentes <span className="mon-ter-cuenta">{fmt(modelo.lecturas.length)}</span></h3>
         </header>
         {modelo.lecturas.length ? (
           <div className="mon-ins-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Lecturas, con desplazamiento">
@@ -67,9 +67,9 @@ function HistorialTabImpl({
         )}
       </section>
 
-      <div className="mon-ins-derecha" data-qa-geometry-member="lateral" data-qa-geometry-group="territorial-insumos-historial-lateral" data-qa-geometry-contract="intrinsic">
+      <div className="mon-ins-derecha is-historial" data-qa-geometry-member="lateral" data-qa-geometry-group="territorial-insumos-historial-lateral" data-qa-geometry-contract="intrinsic">
         {modelo.serie.length > 1 ? (
-          <section className="mon-ins-panel" aria-labelledby="mon-ins-serie">
+          <section className="mon-ins-panel is-serie" aria-labelledby="mon-ins-serie">
             <h3 id="mon-ins-serie" className="mon-ins-titulo">Respuestas en cada lectura</h3>
             <svg className="mon-ins-serie-grande" viewBox={`0 0 ${modelo.serie.length * 10} 60`} preserveAspectRatio="none" role="img" aria-label={`De ${fmt(modelo.serie[0].respuestas)} a ${fmt(modelo.serie.at(-1)?.respuestas)} respuestas en ${fmt(modelo.serie.length)} lecturas`}>
               {modelo.serie.map((punto, indice) => (

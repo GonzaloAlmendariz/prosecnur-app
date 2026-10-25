@@ -3,7 +3,7 @@ import { Maximize2, Minus, Plus } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { fmt, nombreDeDistrito } from "../rotulos";
+import { enumerar, fmt, nombreDeDistrito } from "../rotulos";
 import {
   LIMA_DISTRICT_FEATURES,
   LIMA_MAP_HEIGHT,
@@ -28,7 +28,7 @@ const ROTULO_DE_ESTADO: Record<EstadoEnMapa, string> = {
   completa: "Completa",
   subsanada: "Subsanada",
   pendiente: "Celda pendiente",
-  "sin-usar": "Manzana sin usar",
+  "sin-usar": "Titular reemplazada",
 };
 
 const ACERCAMIENTOS = [1, 1.5, 2.25, 3.4];
@@ -67,6 +67,11 @@ function MapaTabImpl({
   const ubigeosActivos = useMemo(() => new Set(modelo.ubigeos.map(normalizeRouteBlockCode)), [modelo.ubigeos]);
   const distritos = useMemo(
     () => LIMA_DISTRICT_FEATURES.filter((feature) => ubigeosActivos.has(normalizeRouteBlockCode(feature.properties.ubigeo))),
+    [ubigeosActivos],
+  );
+  // Los demás distritos de Lima, tenues, para ubicar los de la muestra.
+  const contexto = useMemo(
+    () => LIMA_DISTRICT_FEATURES.filter((feature) => !ubigeosActivos.has(normalizeRouteBlockCode(feature.properties.ubigeo))),
     [ubigeosActivos],
   );
 
@@ -216,9 +221,14 @@ function MapaTabImpl({
                   </g>
                 </>
               ) : (
+                <>
+                <g className="mon-mapa-contexto" aria-hidden="true">
+                  {contexto.map((feature) => <path key={feature.properties.ubigeo} d={territorialDistrictPath(feature, proyeccion)} />)}
+                </g>
                 <g className="mon-mapa-distritos">
                   {distritos.map((feature) => <path key={feature.properties.ubigeo} d={territorialDistrictPath(feature, proyeccion)} />)}
                 </g>
+                </>
               )}
 
               <g className="mon-mapa-manzanas">
@@ -299,8 +309,8 @@ function MapaTabImpl({
             )}
           </span>
           <span className="mon-mapa-fuente">
-            Distritos PlanMet · manzanas INEI 2017{acercada?.calles.length ? " · calles OpenStreetMap" : ""}
-            {cartografia.incompleta ? " · cartografía incompleta" : ""}
+            Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}.
+            {cartografia.incompleta ? " La cartografía está incompleta." : ""}
           </span>
         </footer>
       </div>

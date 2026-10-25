@@ -1,5 +1,5 @@
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
+import { diaYMes, enumerar, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
 
 /**
  * Control › Anulaciones (territorial.md §3.12): qué quedó fuera del conteo por
@@ -125,5 +125,5 @@ export function resumenDeTarjeta(tarjeta: TarjetaDeAnulacion): string {
     tarjeta.validos != null ? `${fmt(tarjeta.validos)} con consentimiento` : "",
     tarjeta.umps != null ? `${fmt(tarjeta.umps)} UMP` : "",
   ].filter(Boolean);
-  return partes.join(" · ") || "Sin el detalle del impacto";
+  return enumerar(partes) || "Sin el detalle del impacto";
 }

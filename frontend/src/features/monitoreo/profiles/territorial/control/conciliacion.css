@@ -3,10 +3,19 @@
 
 .mon-con {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 0 var(--pulso-space-3);
   height: 100%;
+  min-height: 0;
+}
+
+/* Los dos paneles comparables, del mismo alto y ancho: el pie queda fuera del
+ * grupo para que no se mida como un tercer par. */
+.mon-con-paneles {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
   min-height: 0;
 }
 
@@ -31,7 +40,6 @@
 }
 
 .mon-con-panel {
-  grid-row: 2;
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
@@ -76,6 +84,38 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-con-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-1) 0 0;
+}
+
+.mon-con-cifras > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-con-cifras dt {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-con-cifras dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -190,7 +230,6 @@
 }
 
 .mon-con-pie {
-  grid-column: 1 / -1;
   grid-row: 3;
   margin-top: var(--pulso-space-3);
   display: flex;
@@ -206,15 +245,26 @@
   font-size: 13px;
 }
 
+/* Botón secundario, no un enlace subrayado (estándar §2: sin texto azul
+ * subrayado). */
 .mon-con-enlace {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--pulso-brand-navy);
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
   font: inherit;
+  font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
-  text-decoration: underline;
   cursor: pointer;
+}
+
+.mon-con-enlace:hover {
+  border-color: var(--pulso-brand-navy);
+  color: var(--pulso-brand-navy);
 }
 
 .mon-con-boton:focus-visible,
@@ -225,6 +275,10 @@
 }
 
 @media (max-width: 1100px) {
+  .mon-con-cifras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .mon-con-pendientes li {
     grid-template-columns: minmax(0, 1fr) auto;
   }

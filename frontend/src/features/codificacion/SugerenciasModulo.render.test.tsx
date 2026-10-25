@@ -69,3 +69,45 @@ describe("SugerenciasModuloBanda", () => {
     expect(html).toContain("Deshacer");
   });
 });
+
+// TXT-17: los subtemas de un módulo partido van agrupados bajo su módulo, con rótulo corto y el enunciado en el tooltip.
+describe("SugerenciasModuloBanda: subtemas", () => {
+  const RED = "¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?";
+  const REC = "¿Cómo valoras los recursos que ofrece la Facultad?";
+  const PADRE = "MÓDULO B. EXPERIENCIA UNIVERSITARIA";
+  const datos: CodifSugerenciasSeccion = {
+    variable: "coment", base: "", requiereConfirmacion: true,
+    modulos: [
+      { codigo: "10", seccion: "modulo_a", etiqueta: A.etiqueta, nTerminos: 1 },
+      { codigo: "20", seccion: "modulo_b", etiqueta: PADRE, nTerminos: 1 },
+      { codigo: "22", seccion: "redes", etiqueta: RED, nTerminos: 1, padre: "20", padreEtiqueta: PADRE },
+      { codigo: "25", seccion: "recursos", etiqueta: REC, nTerminos: 1, padre: "20", padreEtiqueta: PADRE },
+    ],
+    otro: { codigo: "80", etiqueta: "Otro" }, respuestas: [],
+    resumen: { escribieron: 0, conContenido: 0, conPropuesta: 0, candidatosOtro: 0, porModulo: {} },
+  };
+  const pRed = { codigo: "22", seccion: "redes", etiqueta: RED, padre: "20", padreEtiqueta: PADRE, puntaje: 2, palabras: ["redes"] };
+  const pRec = { codigo: "25", seccion: "recursos", etiqueta: REC, padre: "20", padreEtiqueta: PADRE, puntaje: 2, palabras: ["recursos"] };
+  const mapa = new Map([["x", entrada("x", [pRed])], ["y", entrada("y", [pRec])], ["z", entrada("z", [pRec, A])]]);
+  const html = renderToStaticMarkup(createElement(SugerenciasModuloBanda, { datos, mapa, grupos: [], ultima: null, onConfirmarModulo: noop, onDeshacer: noop }));
+
+  it("el módulo partido encabeza su grupo con el total, y sus subtemas van dentro con rótulo corto", () => {
+    expect(html).toContain("B · Experiencia universitaria");
+    expect(html).toMatch(/aria-label="Subtemas de B · Experiencia universitaria"/);
+    expect(html).toContain(">Redes sociales y plataformas<");
+    expect(html).toContain(">Recursos de la Facultad<");
+    expect(html).toContain("Confirmar las 2 respuestas sugeridas para B · Recursos de la Facultad");
+    expect(html).toContain("3 respuestas");
+  });
+
+  it("el enunciado entero no se pinta: queda en el tooltip", () => {
+    expect(html).not.toContain(`>${RED}<`);
+    expect(html).toContain(`title="${RED}"`);
+  });
+
+  it("el chip de la respuesta usa el rótulo corto", () => {
+    const fila = renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: entrada("x", [pRed]), grupos: [], onConfirmar: noop, onQuitar: noop }));
+    expect(fila).toContain("B · Redes sociales y plataformas");
+    expect(fila).not.toContain(`>${RED}<`);
+  });
+});

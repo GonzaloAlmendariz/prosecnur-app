@@ -1,5 +1,5 @@
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { fmtConSigno, nombreDeDistrito, numeroDeUmp } from "../rotulos";
+import { fmt, nombreDeDistrito, numeroDeUmp } from "../rotulos";
 
 /**
  * Control › Reportes UMP (territorial.md §3.10): una baldosa por UMP de la ruta,
@@ -40,7 +40,9 @@ function n(valor: unknown): number {
 
 export function textoDeDiferencia(diferencia: number | null): string {
   if (diferencia == null) return "Sin recibidas para comparar";
-  return diferencia === 0 ? "Cuadra" : `No cuadra · ${fmtConSigno(diferencia)}`;
+  if (diferencia === 0) return "Cuadra";
+  const cuantos = Math.abs(diferencia);
+  return `No cuadra: el parte declara ${fmt(cuantos)} ${diferencia > 0 ? "más" : "menos"} de lo recibido`;
 }
 
 export function construirReportes(

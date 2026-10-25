@@ -99,3 +99,17 @@ export function construirOcurrencias(reports: MonitoreoTerritorialDashboard | nu
     medianaDeTasa: mediana(tasasPorUmp),
   };
 }
+
+/**
+ * Los motivos de la barra apilada y su leyenda: los cinco más frecuentes y,
+ * si hay más, «Otros motivos» con la suma del resto. Con seis colores, un
+ * séptimo motivo repetía el color del primero y la leyenda lo callaba.
+ */
+export function motivosDeLaBarra(motivos: readonly Motivo[], colores = 6): Motivo[] {
+  if (motivos.length <= colores) return [...motivos];
+  const primeros = motivos.slice(0, colores - 1);
+  const resto = motivos.slice(colores - 1);
+  const total = resto.reduce((suma, motivo) => suma + motivo.total, 0);
+  const proporcion = resto.reduce((suma, motivo) => suma + motivo.proporcion, 0);
+  return [...primeros, { clave: "otros", rotulo: `Otros ${resto.length} motivos`, total, proporcion }];
+}
