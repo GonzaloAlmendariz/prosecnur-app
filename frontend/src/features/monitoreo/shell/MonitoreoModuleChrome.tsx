@@ -240,7 +240,11 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
       aria-label="Secciones de monitoreo"
       data-view-count={views.length}
     >
-      <GlidingTabList as="nav" mode="nav" activeKey={seccionActiva} className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
+      {/* `snapOnLayoutChange`: el rail cambia de layout tras la primera pintura
+          (entra una sección, crecen las insignias). Sin él, el indicador se
+          deslizaba 180 ms desde la píldora vieja y la vista se marcaba lista
+          con una píldora fantasma (Acreditación › Control, Telefónico › Cuotas). */}
+      <GlidingTabList as="nav" mode="nav" activeKey={seccionActiva} snapOnLayoutChange className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
         <ol className="pulso-phase-pill-list">
           {views.map((item, index) => {
             const selected = item.key === seccionActiva;

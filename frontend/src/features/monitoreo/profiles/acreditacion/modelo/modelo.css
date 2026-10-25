@@ -110,6 +110,14 @@
   flex-direction: column;
 }
 
+/* La lista y la cuota elegida toman su alto natural, con tope en la columna y
+ * dueñas de su scroll. Sin cuotas declaradas, «Metas por categoría» era un marco
+ * de 560 px con el aviso arriba y la lista dejaba 200 px vacíos al pie. */
+.acr-ps.is-cuotas > .acr-av-panel {
+  align-self: start;
+  max-height: 100%;
+}
+
 @media (max-width: 1200px), (max-height: 720px) {
   .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
 }
