@@ -365,6 +365,8 @@ errores_registrados <- function() {
     "E_BASE_VARIABLE_FORMULA_INVALIDA",                      "base_variables_formula.R",          "422",
     "E_BASE_VARIABLE_EN_USO",                                "base_variables_servicio.R",         "409",
     "E_CODIF_RESPUESTAS_CAMBIARON",                          "codificacion_readaptar.R",          "409",
+    "E_CODIF_INSTRUMENTO_ADAPTADO_SIN_CHOICES",              "codificacion_rotulos_adaptados.R",  "409",
+    "E_CODIF_ROTULOS_NO_ESCRITOS",                           "codificacion_rotulos_adaptados.R",  "500",
     "E_ANEXAR_BASE_SIN_DATOS",                              "carga_columnas_anexadas.R",       "409",
     "E_ANEXAR_CLAVE",                                       "carga_columnas_anexadas.R",       "422",
     "E_ANEXAR_SIN_COLUMNAS",                                "carga_columnas_anexadas.R",       "422",

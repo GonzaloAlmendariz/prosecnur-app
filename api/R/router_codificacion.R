@@ -2800,23 +2800,9 @@ mount_codificacion <- function(pr) {
       parent <- as.character(parsed$parent %||% "")
       grupos <- .mark_utf8(parsed$grupos)
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
-      if (is.null(grupos)) grupos <- list()
-      all_grupos <- codif_get(sid, "grupos_recod") %||% list()
-      all_grupos[[parent]] <- grupos
-      codif_set(sid, "grupos_recod", all_grupos)
-      # Also store summary for status calculation
-      recod <- codif_get(sid, "respuestas_recod") %||% list()
-      # cuenta respuestas distintas con grupo asignado
-      cod_set <- character(0)
-      for (g in grupos) {
-        for (t in g$respuestas %||% list()) {
-          cod_set <- c(cod_set, as.character(t))
-        }
-      }
-      recod[[parent]] <- as.list(unique(cod_set))
-      codif_set(sid, "respuestas_recod", recod)
-      list(ok = TRUE, parent = parent, n_grupos = length(grupos), n_codificadas = length(unique(cod_set)),
-           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+      # Guarda y, si la base ya está adaptada, lleva los rótulos renombrados al
+      # instrumento adaptado (codificacion_rotulos_adaptados.R, CCSS-TXT-24).
+      codificacion_grupos_guardar(sid, parent, grupos)
     })) |>
     plumber::pr_delete("/api/codificacion/pareja", wrap_endpoint(function(req, res, parent = NULL) {
       sid <- session_header(req)
