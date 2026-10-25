@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { CheckCircle2 } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { filasDeHoja } from "../../../telefonico/navegacion/bloques";
@@ -10,6 +10,7 @@ import "./cruce.css";
 import "./personas.css";
 import "./calidad.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 type PropsDeVista = {
   duraciones: DuracionFueraDeRango[];
@@ -54,7 +55,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
                 ))}
               </tbody>
             </table>
-          ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">{`Ninguna respuesta dura menos de ${duracionLegible(minimo)}.`}</Alert></div>}
+          ) : <VacioDeBloque icono={<CheckCircle2 size={15} />} titulo={`Ninguna respuesta dura menos de ${duracionLegible(minimo)}.`} descripcion="El umbral se edita en Insumos › Reglas." />}
         </div>
       </section>
       <section className="acr-av-panel acr-ps-respondieron" aria-label="Señales de consistencia" data-qa-geometry-capacity="owned">
@@ -73,7 +74,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
               </li>
             ))}
           </ul>
-        ) : <div className="acr-ct-cuerpo"><Alert kind="info">La hoja de alertas no trae señales activas.</Alert></div>}
+        ) : <VacioDeBloque icono={<CheckCircle2 size={15} />} titulo="La hoja de alertas no trae señales activas." />}
       </section>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { CalendarDays, GitMerge, Phone } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { pctConEspacio } from "../../../../core/formatoComun";
 import { fmt, normalizeSourceMatch } from "../../formato";
@@ -11,6 +11,7 @@ import { barridosAcumulados, construirBarridoDeAcreditacion, type ModeloDeBarrid
 import "../../avance/avance.css";
 import "./contacto.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 function porcentaje(parte: number, total: number) {
   return total > 0 ? pctConEspacio((parte / total) * 100) : "—";
@@ -74,16 +75,18 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
           <section className="acr-av-panel acr-ct-diario" aria-label="Casos por fecha de su último intento">
             <header className="acr-av-panel-cabecera">
               <h3>Casos por fecha de su último intento</h3>
-              <span className="acr-av-leyenda">
-                <span><i className="acr-av-punto is-parcial" aria-hidden="true" />Barridos</span>
-                <span><i className="acr-av-punto is-efectiva" aria-hidden="true" />Efectivos</span>
-              </span>
             </header>
             <div className="acr-ct-grafico" data-qa-geometry-capacity="owned">
               {categorias.length
                 ? <BarrasSuperpuestas categorias={categorias} tituloEje="Casos" etiqueta="Casos barridos y efectivos por fecha de su último intento" />
-                : <Alert kind="info">La hoja todavía no trae fechas de intento.</Alert>}
+                : <VacioDeBloque icono={<CalendarDays size={15} />} titulo="La hoja todavía no trae fechas de intento." descripcion="Se leen de la columna de fecha de la hoja de barrido al actualizar." />}
             </div>
+            {categorias.length ? (
+              <span className="acr-av-leyenda is-centrada">
+                <span><i className="acr-av-punto is-parcial" aria-hidden="true" />Barridos</span>
+                <span><i className="acr-av-punto is-efectiva" aria-hidden="true" />Efectivos</span>
+              </span>
+            ) : null}
           </section>
           <div className="acr-ct-columna">
             <section className="acr-av-panel" aria-label="Barrido y plataforma">
@@ -100,7 +103,7 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
                   <Celda valor={modelo.soloPlataforma} rotulo="Completa sin efectiva al teléfono" tono="diferencia" />
                   <Celda valor={null} rotulo="" tono="vacia" />
                 </div>
-              ) : <div className="acr-ct-cuerpo"><Alert kind="info">El corte no trae el cruce del barrido con la plataforma.</Alert></div>}
+              ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae el cruce del barrido con la plataforma." descripcion="Sale de «Operación por responsable» al actualizar." />}
             </section>
             {tarjeta && canales.length ? (
               <section className="acr-av-panel" aria-label={`Efectivas de ${tarjeta.actor} por canal`}>
@@ -179,9 +182,7 @@ export function Barrido({ reports, state }: { reports: MonitoreoAcreditacionRepo
   const fuentes = useResumenDelCorte((estado) => estado.fuentes);
   if (!modelo.padron) {
     return (
-      <div className="acr-ct is-vacio" data-vacio>
-        <Alert kind="info">El corte no trae la hoja de barrido. Se conecta en Insumos › Fuentes y se lee al actualizar.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Del padrón al cruce" icono={<Phone size={18} />} motivo="El corte no trae la hoja de barrido." descripcion="Se conecta en Insumos › Fuentes y se lee al actualizar." />
     );
   }
   return <BarridoVista modelo={modelo} tarjetas={avance?.tarjetas ?? []} fuentes={fuentes ?? []} />;

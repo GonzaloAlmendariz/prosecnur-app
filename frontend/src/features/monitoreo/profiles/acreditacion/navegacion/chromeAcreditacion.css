@@ -151,3 +151,13 @@
   gap: 6px var(--pulso-space-3);
   min-height: 26px;
 }
+
+/* Sub-vista anterior (SubvistaConRotulo): el rótulo y el selector son la
+ * cabecera de la tarjeta de contenido, a sangre con su borde, no una fila
+ * suelta sobre el fondo. */
+.is-acreditacion-profile .mon-workbench-content > .acr-subvista-cabecera {
+  flex: 0 0 auto;
+  margin: -6px -6px 0;
+  background: var(--pulso-surface);
+  border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
+}

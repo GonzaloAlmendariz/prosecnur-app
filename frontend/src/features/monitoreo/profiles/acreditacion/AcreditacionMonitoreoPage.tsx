@@ -66,6 +66,7 @@ import { corteCorto, estadoDelModo } from "../../core/barraComun";
 import { readinessDeAcreditacion, useLecturaCompleta, useNavegacionAcreditacion } from "./navegacion/useNavegacionAcreditacion";
 import { chipsDeCabecera, pestanaConLienzo, rotuloEnTarjeta } from "./navegacion/chipsDeCabecera";
 import { RotuloDePestanaContexto, RotuloEnBarra } from "./navegacion/rotuloDePestana";
+import { SubvistaConRotulo } from "./navegacion/SubvistaConRotulo";
 import { PorPublico } from "./avance/PorPublico";
 import { Resumen } from "./avance/Resumen";
 import { PorResolver } from "./control/casos/PorResolver";
@@ -17509,7 +17510,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           <RotuloDePestanaContexto.Provider value={conRotuloEnTarjeta ? rotuloDeAcreditacion({ seccion: nav.publica.seccion, pestana: nav.publica.pestana, activa: vistaActiva, chips: chipsDeCabecera(nav.publica, state, reports), onElegirVista: (vista) => navigateLocalTab(vista.seccion as MonitoreoSeccion, vista.pestana as AcreditacionLocalTabKey) }) : null}>
           {seccionCargando ? (
             <AcreditacionLoadingPanel view={seccionActiva} label={activeDef.label} />
-          ) : renderAcreditacionView(seccionActiva, reports, {
+          ) : <SubvistaConRotulo direccion={nav.publica}>{renderAcreditacionView(seccionActiva, reports, {
             activeSourceTab,
             activeModelTab,
             activeConsultaTab,
@@ -17531,7 +17532,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             savingAcreditacion,
             fuentesActivas: activeSources,
             fuentesRequeridas: sourceTotal,
-          })}
+          })}</SubvistaConRotulo>}
           </RotuloDePestanaContexto.Provider>
         </MonitoreoWorkbenchChrome>
       </PageFrame>

@@ -16,6 +16,7 @@ import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./insumos.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 
 /** El padrón de un público es un panel direccionable: `panel=publico&foco=<público>`. */
 export const PANEL_PADRON: PanelDeclarado = { id: "publico", label: "Padrón del público", clase: "inspector" };
@@ -138,6 +139,7 @@ export function Publicos({
 
   return (
     <div className="acr-ps is-publicos" data-qa-geometry-group="acreditacion-insumos-publicos" data-qa-geometry-contract="intrinsic">
+      <MarcaDeLectura leyendo={leyendoCuotas || Boolean(!cuotasDePrueba && estado?.preparando)} />
       <div className="acr-in-izquierda">
         <section className="acr-av-panel acr-ps-tabla" aria-label="Públicos del estudio">
           <CabeceraDeTarjeta primera>

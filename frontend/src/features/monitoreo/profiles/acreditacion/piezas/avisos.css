@@ -1,0 +1,150 @@
+/* Avisos, trabas y vacíos del perfil de acreditación (AvisoDeTarjeta.tsx).
+ * Una sola receta: el aviso vive en el cuerpo de su tarjeta con el mismo aire
+ * que el resto del contenido (12 px arriba, 16 px a los lados y abajo), y la
+ * pestaña sin contenido es una tarjeta que llena el área con el motivo al
+ * centro. Solo tokens. */
+
+.acr-aviso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-aviso + .acr-aviso {
+  padding-top: 0;
+}
+
+.acr-aviso > .pulso-alert {
+  margin: 0;
+}
+
+.acr-aviso-accion {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+/* Aviso con su acción: la acción a la derecha, en la misma fila. */
+.acr-aviso:has(> .acr-aviso-accion) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.acr-aviso.is-vacio .pulso-estado-vacio {
+  --module-accent: var(--pulso-module-monitoring);
+}
+
+/* Pestaña sin contenido: la tarjeta es la dueña del vacío (C3) y toma su
+ * alto natural; no estira un marco vacío hasta el pie (regla de Gonzalo: una
+ * tarjeta no deja vacío abajo). */
+.acr-sin-contenido {
+  display: flex;
+  flex-direction: column;
+}
+
+.acr-sin-contenido-tarjeta {
+  flex: 0 0 auto;
+}
+
+.acr-sin-contenido-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pulso-space-6) var(--pulso-space-5);
+}
+
+.acr-sin-contenido-cuerpo.is-error {
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.acr-sin-contenido-cuerpo .pulso-estado-vacio {
+  --module-accent: var(--pulso-module-monitoring);
+  width: min(520px, 100%);
+}
+
+.acr-sin-contenido-cuerpo .pulso-estado-vacio-descripcion {
+  max-width: 46ch;
+}
+
+/* Marco desplazable de una tabla (MarcoDesplazable.tsx): si la tabla no cabe,
+ * el borde que esconde columnas se oscurece apenas. */
+.acr-desplazable {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.acr-desplazable > .acr-pr-cola-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.acr-desplazable::before,
+.acr-desplazable::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.acr-desplazable::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--pulso-brand-navy) 14%, transparent), transparent);
+}
+
+.acr-desplazable::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--pulso-brand-navy) 14%, transparent), transparent);
+}
+
+.acr-desplazable:is([data-desborda="derecha"], [data-desborda="ambos"])::after,
+.acr-desplazable:is([data-desborda="izquierda"], [data-desborda="ambos"])::before {
+  opacity: 1;
+}
+
+.acr-desplazable > .acr-pr-cola-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acr-desplazable::before,
+  .acr-desplazable::after { transition: none; }
+}
+
+/* Celdas de dos líneas: lo principal arriba y el detalle en tono suave. */
+.acr-celda-doble {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.acr-celda-doble > small {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+.acr-celda-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+

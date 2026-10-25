@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Database, ExternalLink, Loader2 } from "lucide-react";
 import { Alert } from "../../../../../components/Alert";
 import { Switch } from "../../../../../components/Switch";
 import { apiMonitoreoCollectorsConfig, type MonitoreoInternalQueryTotal, type MonitoreoLinkCollector, type MonitoreoSource, type MonitoreoState } from "../../../../../api/client";
@@ -15,6 +15,7 @@ import "../avance/avance.css";
 import "../control/casos/porResolver.css";
 import "../control/casos/personas.css";
 import "./insumos.css";
+import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 type PropsDeVista = {
   sources: readonly MonitoreoSource[];
@@ -64,9 +65,12 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
   const conRecopiladores = elegida?.fuente.kind === "surveymonkey";
   if (!todas.length) {
     return (
-      <div className="acr-in-fuentes-vacio" data-vacio>
-        <Alert kind="info">El estudio todavía no tiene fuentes conectadas.</Alert>
-        {declaracion}
+      <div className="acr-in-fuentes acr-in-fuentes-vacio" data-vacio="legitimo">
+        <section className="acr-av-panel" aria-label="Fuentes del estudio">
+          <header className="acr-av-panel-cabecera"><h3>Fuentes</h3></header>
+          <VacioDeBloque icono={<Database size={15} />} titulo="El estudio todavía no tiene fuentes conectadas." descripcion="Cada encuesta se declara abajo; el padrón y el barrido, con «Conectar fuente»." />
+        </section>
+        {declaracion ? <section className="acr-av-panel acr-in-declaracion" aria-label="Declaración de las encuestas">{declaracion}</section> : null}
       </div>
     );
   }
