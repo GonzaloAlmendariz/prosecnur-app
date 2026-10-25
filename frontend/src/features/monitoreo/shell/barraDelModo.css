@@ -179,6 +179,11 @@
   right: 0;
   z-index: 30;
   display: grid;
+  width: min(340px, calc(100vw - 32px));
+  /* El menú crece con las fuentes del proyecto: con muchas, se desplaza él. */
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--pulso-space-1);
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
@@ -199,6 +204,10 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
+  /* Los nombres de encuesta son largos («Acreditación Contabilidad PUCP -
+   * Docentes Personalizado»): se parten en dos líneas, no se recortan. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button small {
@@ -207,13 +216,12 @@
   font-weight: var(--pulso-weight-medium);
 }
 
-.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista {
-  min-width: 260px;
-  max-width: min(360px, calc(100vw - 32px));
-  /* El menú crece con las fuentes del proyecto: con muchas, se desplaza él. */
-  max-height: min(70vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+/* Abierto, el menú tiene que pasar por encima de la mesa de trabajo, que es
+ * hermana posterior del chrome: se sube la capa del chrome, como hace la fila
+ * de fases de Procesamiento con su menú (theme.css). */
+.mon-module-chrome.is-barra-comun:has(.mon-modo-actualizar-lista) {
+  position: relative;
+  z-index: var(--pulso-z-flyout);
 }
 
 .mon-modo-actualizar-grupo {
