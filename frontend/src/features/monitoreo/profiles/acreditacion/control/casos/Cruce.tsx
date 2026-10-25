@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { GitMerge } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { useTamano } from "../../avance/graficosDeAvance";
@@ -7,6 +7,7 @@ import { COLUMNAS, conteoPor, dibujarFlujo, type EnlaceDeFlujo } from "./flujoDe
 import "../../avance/avance.css";
 import "./cruce.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 /** Rótulos que el motor publica con su nombre interno de etapa. */
 const ROTULO_DE_LLAVE: Record<string, string> = {
@@ -15,10 +16,14 @@ const ROTULO_DE_LLAVE: Record<string, string> = {
 
 function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: string; casos: number }> }) {
   const maximo = Math.max(1, ...filas.map((fila) => fila.casos));
+  const total = filas.reduce((suma, fila) => suma + fila.casos, 0);
   return (
-    <section className="acr-cr-lista" aria-label={titulo}>
-      <span className="acr-av-antetitulo">{titulo}</span>
+    <section className="acr-av-panel acr-cr-lista-tarjeta" aria-label={titulo}>
+      <header className="acr-av-panel-cabecera">
+        <h3>{titulo}{filas.length ? <span className="acr-av-tenue">{`${fmt(total)} casos`}</span> : null}</h3>
+      </header>
       {filas.length ? (
+        <div className="acr-cr-lista">
         <ul>
           {filas.map((fila) => (
             <li key={fila.rotulo}>
@@ -28,7 +33,8 @@ function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: strin
             </li>
           ))}
         </ul>
-      ) : <Alert kind="info">El corte no lo trae.</Alert>}
+        </div>
+      ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae esta lectura." descripcion="Se publica con el cruce del padrón al actualizar." />}
     </section>
   );
 }
@@ -97,9 +103,7 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
 
   if (!enlaces.length) {
     return (
-      <div className="acr-cr is-vacio" data-vacio>
-        <Alert kind="info">El corte todavía no trae el cruce del padrón con las respuestas.</Alert>
-      </div>
+      <PestanaSinContenido titulo="De la respuesta al avance" icono={<GitMerge size={18} />} motivo="El corte todavía no trae el cruce del padrón con las respuestas." descripcion="Se calcula al actualizar, con el padrón y las encuestas de cada público." />
     );
   }
   return (
@@ -117,12 +121,10 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
           <Diagrama enlaces={enlaces} />
         </div>
       </section>
-      <aside className="acr-av-panel acr-cr-derecha" aria-label="Llave y estrategia">
-        <div className="acr-cr-listas">
-          <Lista titulo="Llave usada" filas={llave} />
-          <Lista titulo="Cómo cruzó con el padrón" filas={cruce} />
-          <Lista titulo="Estrategia por canal" filas={estrategia} />
-        </div>
+      <aside className="acr-cr-derecha acr-cr-pila" aria-label="Llave y estrategia">
+        <Lista titulo="Llave usada" filas={llave} />
+        <Lista titulo="Cómo cruzó con el padrón" filas={cruce} />
+        <Lista titulo="Estrategia por canal" filas={estrategia} />
       </aside>
     </div>
   );

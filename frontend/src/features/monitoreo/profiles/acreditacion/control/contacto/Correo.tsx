@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { Download, Loader2, RefreshCw } from "lucide-react";
-import { Alert } from "../../../../../../components/Alert";
+import { Download, Loader2, Mail, RefreshCw } from "lucide-react";
 import type { MonitoreoMailchimpAudiencia, MonitoreoMailchimpEstado } from "../../../../../../api/monitoreoMailchimp";
 import { useFocoMonitoreo } from "../../../../useMonitoreoDireccion";
 import { corteCorto } from "../../../../core/barraComun";
@@ -12,8 +11,11 @@ import { descargarCsv } from "../casos/descargarCsv";
 import { campanas, csvDeInvalidos, rotuloDeColumna, secuenciaDeEnvios, tasasPorPublico } from "./correoModelo";
 import { useCorreoMailchimp } from "./useCorreoMailchimp";
 import "../../avance/avance.css";
+import "../../paletaPublicos.css";
 import "./contacto.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { AvisosDeTarjeta, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
+import { clasePublico, paletaDePublicos } from "../../paletaPublicos";
 
 type PropsDeVista = {
   estado: MonitoreoMailchimpEstado;
@@ -50,17 +52,21 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
   const titulos = new Map(estado.envios.map((envio) => [envio.campaign_id, envio.titulo || envio.campaign_id]));
   const invalidos = estado.invalidos.total ?? estado.invalidos.filas.length;
   const u = estado.umbrales;
+  const paleta = paletaDePublicos(estado.publicos.map((publico) => publico.actor));
   return (
     <div className="acr-co" data-qa-geometry-group="acreditacion-control-correo" data-qa-geometry-contract="intrinsic">
       <span hidden data-audit-ready={marcaReadiness("listo")} />
       <div className="acr-co-izquierda">
-        {aviso ? <Alert kind="info">{aviso}</Alert> : null}
-        {error ? <Alert kind="error">{error}</Alert> : null}
-        {estado.avisos.map((texto) => <Alert key={texto} kind="warn">{texto}</Alert>)}
         <section className="acr-av-panel" aria-label="Secuencia de envíos por público">
           <CabeceraDeTarjeta primera>
             <h3>Secuencia de envíos por público <span className="acr-av-tenue">Entregados y respuestas atribuidas, en el orden de envío de cada público</span></h3>
           </CabeceraDeTarjeta>
+          {/* Lo que la lectura de Mailchimp avisa va en la tarjeta que esa lectura llena. */}
+          <AvisosDeTarjeta avisos={[
+            ...(aviso ? [{ texto: aviso }] : []),
+            ...(error ? [{ kind: "error" as const, texto: error }] : []),
+            ...estado.avisos.map((texto) => ({ kind: "warn" as const, texto })),
+          ]} />
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla acr-co-matriz">
               <thead>
@@ -79,7 +85,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                   return (
                     <tr key={fila.publico.actor} className={activa ? "is-activa" : undefined}>
                       <th scope="row">
-                        <button type="button" className="acr-co-publico" aria-pressed={activa} onClick={() => onElegirPublico(fila.publico.actor)}>{fila.publico.actor}</button>
+                        <button type="button" className={`acr-co-publico ${clasePublico(paleta, fila.publico.actor)}`} aria-pressed={activa} onClick={() => onElegirPublico(fila.publico.actor)}><i className="mon-publico-punto" aria-hidden="true" />{fila.publico.actor}</button>
                       </th>
                       <td className="is-num">{cifra(fila.publico.universo)}</td>
                       <td className="is-num">{cifra(fila.publico.alcanzable)}</td>
@@ -102,9 +108,9 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
           </div>
         </section>
         {elegido ? (
-          <section className="acr-av-panel" aria-label={`Envíos a ${elegido.actor}`}>
+          <section className={`acr-av-panel acr-co-del-publico ${clasePublico(paleta, elegido.actor)}`} aria-label={`Envíos a ${elegido.actor}`}>
             <header className="acr-av-panel-cabecera">
-              <h3>{elegido.actor}</h3>
+              <h3><i className="mon-publico-punto" aria-hidden="true" />{elegido.actor}</h3>
               <span className="acr-co-chips">
                 <span className="acr-co-chip">{`Base alcanzable de ${cifra(elegido.alcanzable)}`}</span>
                 {elegido.efectivas != null ? <span className="acr-co-chip is-ok">{`${cifra(elegido.efectivas)} efectivas, el ${porcentaje(elegido.tasa_alcanzable)}`}</span> : null}
@@ -134,7 +140,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                   );
                 })}
               </div>
-            ) : <div className="acr-ct-cuerpo"><Alert kind="info">Este público todavía no recibe envíos.</Alert></div>}
+            ) : <VacioDeBloque icono={<Mail size={15} />} titulo="Este público todavía no recibe envíos." descripcion="La invitación aparece aquí cuando Mailchimp la registra." />}
           </section>
         ) : null}
         <section className="acr-av-panel" aria-label="Campañas">

@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { Pencil } from "lucide-react";
-import { Alert } from "../../../../../components/Alert";
+import { Pencil, Target } from "lucide-react";
 import type { MonitoreoCuota, MonitoreoCuotaPublico } from "../../../../../api/monitoreoCuotas";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { pctConEspacio } from "../../../core/formatoComun";
@@ -19,6 +18,8 @@ import "../control/casos/personas.css";
 import "../modelo/modelo.css";
 import "../insumos/insumos.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
+import { AvisosDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
+import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 
 type PropsDeVista = {
   publicos: readonly MonitoreoCuotaPublico[];
@@ -28,7 +29,8 @@ type PropsDeVista = {
   onElegir: (id: string) => void;
   onEditarEnModelo: (id: string) => void;
   onDefinirEnModelo: () => void;
-  avisos?: readonly string[];
+  /** Avisos del estado de cuotas: van en la tarjeta de la lista, que es lo que afectan. */
+  avisos?: ReadonlyArray<{ tono: "info" | "error"; texto: string }>;
 };
 
 export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onEditarEnModelo, onDefinirEnModelo, avisos = [] }: PropsDeVista) {
@@ -40,16 +42,20 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
   const franja = elegidaCuota ? franjaDeCuota(elegidaCuota, publicos) : null;
   if (!cuotas.length && !controles.length) {
     return (
-      <div className="acr-cr is-vacio" data-vacio>
-        <Alert kind="info">El estudio no tiene cuotas ni variables de control. Las cuotas se declaran en Modelo › Cuotas.</Alert>
-        <button type="button" className="acr-av-boton" onClick={onDefinirEnModelo}>Ir a Modelo › Cuotas</button>
-      </div>
+      <PestanaSinContenido
+        titulo="Variables"
+        icono={<Target size={18} />}
+        motivo="El estudio no tiene cuotas ni variables de control."
+        descripcion="Las cuotas se declaran en Modelo › Cuotas; las variables de control llegan con el corte."
+        accion={<button type="button" className="acr-av-boton" onClick={onDefinirEnModelo}>Ir a Modelo › Cuotas</button>}
+      />
     );
   }
   return (
     <div className="acr-ps acr-pc" data-qa-geometry-group="acreditacion-avance-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Variables">
         <CabeceraDeTarjeta primera><h3>Variables</h3></CabeceraDeTarjeta>
+        <AvisosDeTarjeta avisos={avisos.map((aviso) => ({ kind: aviso.tono, texto: aviso.texto }))} />
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {cuotas.length ? (
             <section className="acr-pr-grupo">
@@ -97,7 +103,6 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
         </div>
       </nav>
       <div className="acr-pc-derecha">
-        {avisos.map((aviso) => <Alert key={aviso} kind="info">{aviso}</Alert>)}
         {elegidaCuota && franja ? (
           <>
             <div className="acr-av-panel acr-pc-franja" data-qa-geometry-group="acreditacion-avance-cuotas-franja" data-qa-geometry-contract="equal">
@@ -139,13 +144,20 @@ export function PorCuota({ controles }: { controles: ReadonlyArray<Record<string
   const cuotas = estado?.cuotas ?? [];
   const variables = useMemo(() => variablesDeControl(controles, cuotas), [controles, cuotas]);
   if (!estado && !controles.length) {
-    return <div className="acr-cr is-vacio" data-vacio>{error ? <Alert kind="error">{error}</Alert> : <Alert kind="info">Leyendo las cuotas del estudio.</Alert>}</div>;
+    return (
+      <>
+        <MarcaDeLectura leyendo={!error} />
+        <PestanaSinContenido vacio={error ? "error" : "cargando"} titulo="Variables" icono={<Target size={18} />} motivo={error || "Leyendo las cuotas del estudio."} />
+      </>
+    );
   }
   const avisos = [
-    ...(estado?.preparando ? ["El motor está preparando el cruce del padrón; las cuotas aparecen al terminar."] : []),
-    ...(error ? [error] : []),
+    ...(estado?.preparando ? [{ tono: "info" as const, texto: "El motor está preparando el cruce del padrón; las cuotas aparecen al terminar." }] : []),
+    ...(error ? [{ tono: "error" as const, texto: error }] : []),
   ];
   return (
+    <>
+    <MarcaDeLectura leyendo={!error && (!estado || estado.preparando)} />
     <PorCuotaVista
       publicos={estado?.publicos ?? []}
       cuotas={cuotas}
@@ -156,5 +168,6 @@ export function PorCuota({ controles }: { controles: ReadonlyArray<Record<string
       onEditarEnModelo={(id) => escribirFoco(id, { seccion: "modelo", pestana: "cuotas", panel: null })}
       onDefinirEnModelo={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}
     />
+    </>
   );
 }

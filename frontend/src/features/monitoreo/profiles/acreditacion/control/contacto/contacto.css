@@ -375,6 +375,9 @@
 }
 
 .acr-co-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
   padding: 0;
   border: 0;
   background: transparent;
@@ -559,4 +562,15 @@
 .acr-co-izquierda > *,
 .acr-co-derecha > * {
   flex-shrink: 0;
+}
+
+/* Cada público con su tono (paletaPublicos): el punto delante del nombre en la
+ * secuencia y en la tarjeta de sus envíos. */
+.acr-co-del-publico .acr-av-panel-cabecera h3 {
+  align-items: center;
+}
+
+/* Equipo: la tabla de pocas filas toma su alto natural; sin vacío bajo ella. */
+.acr-ct.is-equipo > .acr-ct-equipo-tabla {
+  align-self: start;
 }

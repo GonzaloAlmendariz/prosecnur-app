@@ -49,10 +49,11 @@ describe("Control › Reintentos de acreditación", () => {
     expect(html).not.toMatch(/>[a-z0-9]+(_[a-z0-9]+)+</);
   });
 
-  it("un corte sin la cola invita a actualizar con un aviso del sistema", () => {
+  it("un corte sin la cola invita a actualizar con el vacío del sistema, dentro de su tarjeta", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter><Reintentos reports={corte(false)} state={null} /></MemoryRouter>,
     );
-    expect(html).toContain("pulso-alert");
+    expect(html).toContain("pulso-estado-vacio");
+    expect(html).toContain("acr-av-panel");
   });
 });

@@ -1468,3 +1468,15 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface-2);
 }
+
+/* Leyendas (regla de Gonzalo para los tres modos, 2026-10-24): rótulos cortos,
+ * sin «rótulo: comentario», centradas respecto a su tarjeta y bajo lo que leen. */
+.acr-av-leyenda.is-centrada {
+  justify-content: center;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-ri-leyenda,
+.acr-pc-leyenda {
+  justify-content: center;
+}

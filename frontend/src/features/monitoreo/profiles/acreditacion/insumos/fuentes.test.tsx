@@ -63,10 +63,11 @@ describe("Insumos › Fuentes", () => {
     expect(html).not.toMatch(/surveymonkey|google_sheets|weblink|universo|respuestas"/);
   });
 
-  it("sin fuentes avisa con el componente del sistema", () => {
+  it("sin fuentes avisa con el vacío del sistema, dentro de su tarjeta", () => {
     const html = renderToStaticMarkup(
       <FuentesVista sources={[]} borrador={[]} totales={null} foco={null} onElegir={() => {}} onIncluir={() => {}} onGuardar={() => {}} pendientes={false} guardando={false} />,
     );
-    expect(html).toContain("pulso-alert");
+    expect(html).toContain("pulso-estado-vacio");
+    expect(html).toContain("acr-av-panel");
   });
 });
