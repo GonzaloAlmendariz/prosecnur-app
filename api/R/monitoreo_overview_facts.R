@@ -257,17 +257,72 @@ monitoreo_aulas_overview_facts <- function(dashboard) {
 # servir. Devuelve list(snapshot = , changed = ) para que el caller persista
 # SOLO cuando de verdad cambio (evita churn innecesario de session_set en cada
 # carga del payload).
+#
+# Al reescribir el espejo se borra su marca de herencia (ver
+# `monitoreo_snapshot_inherit_overview_facts`): la cifra ya es del tablero que
+# se acaba de servir. Se borra aunque la cifra coincida con la heredada; si no,
+# Home se quedaria en «Actualizando» sobre una cifra que ya esta al dia.
 monitoreo_snapshot_refresh_overview_facts <- function(snapshot, dashboard, family, goals = NULL) {
   if (!is.list(snapshot)) return(list(snapshot = snapshot, changed = FALSE))
   field <- .monitoreo_overview_facts_field(family)
   if (is.null(field)) return(list(snapshot = snapshot, changed = FALSE))
   facts <- .monitoreo_overview_facts_for_family(dashboard, family, goals)
   if (is.null(facts)) return(list(snapshot = snapshot, changed = FALSE))
-  if (identical(snapshot[[field]] %||% NULL, facts)) {
+  heredado <- nzchar(monitoreo_overview_facts_heredado_de(snapshot, field))
+  if (!heredado && identical(snapshot[[field]] %||% NULL, facts)) {
     return(list(snapshot = snapshot, changed = FALSE))
   }
   snapshot[[field]] <- facts
+  snapshot <- .monitoreo_overview_facts_clear_heredado(snapshot, field)
   list(snapshot = snapshot, changed = TRUE)
+}
+
+# --- Espejo heredado de un corte anterior (Meta B, L20 · M6) -----------------
+#
+# Al terminar un sync, el snapshot nuevo nace sin `dashboard` y conserva los
+# `*_overview_facts` del corte previo para que Home no caiga a cero. Esa cifra
+# es del corte ANTERIOR mientras `synced_at` ya es el nuevo, asi que viaja
+# marcada: `snapshot$overview_facts_heredado[[campo]]` guarda el `synced_at` del
+# corte que la calculo. El overview la publica como `regenerando` y el refresco
+# de la familia la borra. Vive en el snapshot (persistible), asi que un .pulso
+# guardado en ese intervalo reabre diciendo lo mismo: la cifra sigue siendo la
+# del corte anterior hasta que alguien abra Monitoreo.
+.MONITOREO_OVERVIEW_FACTS_FIELDS <- c(
+  "territorial_overview_facts", "efectividad_overview_facts", "aulas_overview_facts"
+)
+
+# Corte de origen de la cifra heredada en `field`, o "" si el espejo es propio.
+monitoreo_overview_facts_heredado_de <- function(snapshot, field) {
+  if (!is.list(snapshot) || is.null(field) || !nzchar(field)) return("")
+  marcas <- snapshot$overview_facts_heredado
+  if (!is.list(marcas)) return("")
+  .monitoreo_scalar(marcas[[field]], "")
+}
+
+.monitoreo_overview_facts_clear_heredado <- function(snapshot, field) {
+  marcas <- snapshot$overview_facts_heredado
+  if (!is.list(marcas) || is.null(marcas[[field]])) return(snapshot)
+  marcas[[field]] <- NULL
+  # Sin marcas restantes se quita la clave entera: `list()` vacia no es NULL.
+  snapshot$overview_facts_heredado <- if (length(marcas)) marcas else NULL
+  snapshot
+}
+
+# Copia al snapshot nuevo los espejos del previo y los marca con el corte del
+# que vienen. Si el previo ya era heredado, se conserva su ORIGEN: dos syncs
+# seguidos sin abrir Monitoreo siguen mostrando la cifra del primero.
+monitoreo_snapshot_inherit_overview_facts <- function(snapshot, prev_snapshot) {
+  if (!is.list(snapshot) || !is.list(prev_snapshot)) return(snapshot)
+  marcas <- list()
+  prev_cut <- .monitoreo_scalar(prev_snapshot$synced_at, "")
+  for (field in .MONITOREO_OVERVIEW_FACTS_FIELDS) {
+    if (is.null(prev_snapshot[[field]])) next
+    snapshot[[field]] <- prev_snapshot[[field]]
+    origen <- monitoreo_overview_facts_heredado_de(prev_snapshot, field)
+    marcas[[field]] <- if (nzchar(origen)) origen else prev_cut
+  }
+  if (length(marcas)) snapshot$overview_facts_heredado <- marcas
+  snapshot
 }
 
 # Compat: el refresco territorial nombrado, que ya tenia llamadores y tests.
