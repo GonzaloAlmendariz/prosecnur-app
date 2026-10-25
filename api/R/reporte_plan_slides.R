@@ -2677,10 +2677,9 @@ p_citas <- function(var, citas_aprobadas = NULL, max_citas = 5L, titulo = NULL, 
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) .plan_spec_abort("`var` debe ser character(1) no vacio.")
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
-  ap <- trimws(as.character(unlist(citas_aprobadas %||% character(0))))
-  ap <- unique(ap[!is.na(ap) & nzchar(ap)])
+  ap <- .citas_aprobadas_normalizar(citas_aprobadas)   # ids sueltos u objetos {id, texto, sic} (texto_citas.R)
   mx <- suppressWarnings(as.integer(unlist(max_citas)[1])); if (is.na(mx)) mx <- 5L
-  el <- list(.element_type = "citas", var = trimws(var), citas_aprobadas = ap, max_citas = min(5L, max(3L, mx)),
+  el <- list(.element_type = "citas", var = trimws(var), citas_aprobadas = ap$ids, citas_ediciones = ap$ediciones, max_citas = min(5L, max(3L, mx)),
              var_persona = .ppt_norm_text1(var_persona, blank = NULL), title_slide = .ppt_norm_text1(titulo, blank = NULL),
              filtros = .ppt_norm_filters(filtros), overrides = overrides, base = base)
   class(el) <- c("ppt_element", "list")

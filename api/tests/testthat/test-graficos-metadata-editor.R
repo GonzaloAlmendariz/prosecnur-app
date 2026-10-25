@@ -122,7 +122,7 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
 test_that("p_dim_foda y la pieza de la dependencia salen del selector pero siguen registrados y renderizables; los demás quedan", {
   m <- .GRAFICADORES_META
   en <- vapply(m, function(x) x$en_selector, logical(1))
-  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta", "p_citas"))   # p_citas: entra con su tarjeta de aprobación (TXT-4, O3)
+  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta"))   # p_citas entró con sus candidatas (TXT-4, O3b)
   expect_true("p_dim_foda" %in% .graf_names())                            # el validador del plan lo sigue aceptando
   expect_true(exists("p_dim_foda", mode = "function"))
   reg <- .graficos_registry_payload()

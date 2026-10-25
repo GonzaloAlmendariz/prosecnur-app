@@ -46,7 +46,7 @@ test_that("p_citas está registrado: catálogo, salida nativa en la familia Text
   m <- .GRAFICADORES_META$p_citas
   expect_identical(m$familia_editor, "texto")
   expect_true(m$salida_nativa)
-  expect_false(m$en_selector)                    # O3: entra al selector con su tarjeta de aprobación
+  expect_true(m$en_selector)                     # O3b: en el selector, con GET /api/graficos/citas-candidatas
   nm <- vapply(m$args, `[[`, "", "name")
   expect_true(all(c("var", "citas_aprobadas", "max_citas", "filtros") %in% nm))
   expect_true(all(setdiff(nm, "overrides") %in% names(formals(p_citas))))

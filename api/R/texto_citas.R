@@ -144,11 +144,162 @@
   vapply(ids, function(i) digest::digest(paste0(semilla, ":", i), algo = "md5", serialize = FALSE), character(1), USE.NAMES = FALSE)
 }
 
+# ---------------------------------------------------------------------------
+# Edición del analista (TXT-8/9, O3b-a): recorte, corrección leve o [sic]. El motor nunca corrige solo.
+# ---------------------------------------------------------------------------
+#
+# `citas_aprobadas` acepta ids sueltos (el contrato de siempre) u objetos `{id, texto = NULL, sic = FALSE}`:
+#   - `texto` vale si es un RECORTE del original (fragmentos contiguos en su orden, «[…]» donde se quitó algo; sin «[…]»
+#     sólo se corta en límite de oración) o una CORRECCIÓN LEVE (la misma palabra con una tilde, una mayúscula o hasta
+#     dos letras cambiadas, en palabras de cuatro letras o más; nunca una palabra nueva), o las dos cosas. Si no, la
+#     lámina dibuja el original y lo avisa con la causa.
+#   - `sic = TRUE` dibuja el original con «[sic]» detrás de las palabras marcadas (`sic = ["pdoer"]` o `sic_palabras`)
+#     o, sin marcas, al final. Con `sic`, un `texto` sólo puede recortar: corregir y marcar [sic] a la vez se contradicen.
+
+.CITAS_FIN_ORACION <- "[.!?…][\"”»)]*$"
+
+#' Ids aprobados y ediciones del analista a partir de `citas_aprobadas` (ids, objetos o data.frame)
+#' @return Lista `ids` (en su orden, sin repetir) y `ediciones` (por id: `texto`, `sic`, `sic_palabras`).
+#' @keywords internal
+.citas_aprobadas_normalizar <- function(x) {
+  if (is.data.frame(x)) x <- lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE]))
+  if (is.null(x) || !length(x)) return(list(ids = character(0), ediciones = list()))
+  if (!is.list(x)) x <- as.list(x)
+  limpio <- function(v) { v <- trimws(as.character(unlist(v))); v[!is.na(v) & nzchar(v)] }
+  ids <- character(0); ed <- list()
+  for (it in x) {
+    if (!is.list(it) || is.null(names(it))) { ids <- c(ids, setdiff(unique(limpio(it)), ids)); next }
+    id <- limpio(it$id)[1]
+    if (is.na(id) || id %in% ids) next
+    ids <- c(ids, id)
+    tx <- limpio(it$texto)[1]
+    sic_raw <- unlist(it$sic)
+    palabras <- unique(c(if (is.character(sic_raw)) limpio(sic_raw), limpio(it$sic_palabras)))
+    sic <- length(palabras) > 0L || isTRUE(as.logical(sic_raw)[1])
+    if (!is.na(tx) || sic) ed[[id]] <- list(texto = if (is.na(tx)) NULL else .citas_compactar(tx), sic = sic, sic_palabras = palabras)
+  }
+  list(ids = ids, ediciones = ed)
+}
+
+.citas_elision_norm <- function(x) gsub("\\[\\s*(\\.\\.\\.|…)\\s*\\]", .CITAS_ELISION, x, perl = TRUE)
+.citas_nucleo <- function(w) gsub("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$", "", w, perl = TRUE)
+.citas_borde_ini <- function(w) sub("^([^\\p{L}\\p{N}]*).*$", "\\1", w, perl = TRUE)
+.citas_borde_fin <- function(w) if (!nzchar(.citas_nucleo(w))) "" else sub("^.*?([^\\p{L}\\p{N}]*)$", "\\1", w, perl = TRUE)
+
+#' Una palabra del original frente a la del analista: «igual», «correccion» o NA (no es la misma palabra)
+#'
+#' La primera palabra de un fragmento puede cambiar su mayúscula y su signo de apertura; la última, su puntuación final.
+#' @keywords internal
+.citas_comparar_palabra <- function(o, e, primero = FALSE, ultimo = FALSE) {
+  if (identical(o, e)) return("igual")
+  if (!primero && !identical(.citas_borde_ini(o), .citas_borde_ini(e))) return(NA_character_)
+  if (!ultimo && !identical(.citas_borde_fin(o), .citas_borde_fin(e))) return(NA_character_)
+  no <- .citas_nucleo(o); ne <- .citas_nucleo(e)
+  if (identical(no, ne) || (primero && identical(tolower(no), tolower(ne)))) return("igual")
+  if (!nzchar(no) || !nzchar(ne)) return(NA_character_)
+  if (identical(.txt_sin_tildes(tolower(no)), .txt_sin_tildes(tolower(ne)))) return("correccion")
+  if (nchar(no) >= 4L && as.numeric(utils::adist(tolower(no), tolower(ne)))[1] <= 2) return("correccion")
+  NA_character_
+}
+
+#' ¿Es la edición del analista un recorte o una corrección leve del original?
+#' @return Lista `ok`, `tipo` (subconjunto de «recorte», «correccion»), `texto` (el que se dibuja) y `motivo` si no.
+#' @keywords internal
+.citas_validar_edicion <- function(original, editado) {
+  o <- .citas_compactar(original)
+  e <- .citas_compactar(.citas_elision_norm(editado))
+  e <- trimws(gsub("^[\"“”«»]+\\s*|\\s*[\"“”«»]+$", "", e, perl = TRUE))
+  rechazo <- function(m) list(ok = FALSE, tipo = character(0), texto = o, motivo = m)
+  if (!nzchar(e)) return(rechazo("viene vacía"))
+  if (identical(e, o)) return(list(ok = TRUE, tipo = character(0), texto = o, motivo = ""))
+  ot <- strsplit(o, " ", fixed = TRUE)[[1]]
+  el <- "\\s*\\[…\\]\\s*"
+  ini_el <- grepl(paste0("^", el), e, perl = TRUE); fin_el <- grepl(paste0(el, "$"), e, perl = TRUE)
+  partes <- trimws(strsplit(e, el, perl = TRUE)[[1]])
+  partes <- partes[nzchar(.citas_nucleo(partes))]                                   # «[…].»: el signo suelto no es texto
+  if (!length(partes)) return(rechazo("no conserva ninguna palabra del comentario"))
+  pos <- 1L; ini <- NA_integer_; fin <- NA_integer_; cambios <- 0L; usadas <- 0L
+  for (k in seq_along(partes)) {
+    ft <- strsplit(partes[k], " ", fixed = TRUE)[[1]]; m <- length(ft); hallado <- FALSE
+    if (pos + m - 1L <= length(ot)) for (s in pos:(length(ot) - m + 1L)) {
+      r <- vapply(seq_len(m), function(j) .citas_comparar_palabra(ot[s + j - 1L], ft[j], primero = j == 1L, ultimo = j == m),
+                  character(1))
+      if (anyNA(r)) next
+      hallado <- TRUE; if (is.na(ini)) ini <- s
+      fin <- s + m - 1L; pos <- fin + 1L; cambios <- cambios + sum(r == "correccion"); usadas <- usadas + m
+      break
+    }
+    if (!hallado) {
+      clave <- function(w) .txt_sin_tildes(tolower(.citas_nucleo(w)))
+      nuevas <- setdiff(clave(ft), clave(ot)); nuevas <- nuevas[nzchar(nuevas)]
+      return(rechazo(if (length(nuevas)) sprintf("trae palabras que el comentario no tiene: «%s»", paste(head(nuevas, 3L), collapse = "», «"))
+                     else "cambia el orden de las palabras o más de dos letras de una"))
+    }
+  }
+  if (ini > 1L && !ini_el && !grepl(.CITAS_FIN_ORACION, ot[ini - 1L], perl = TRUE)) return(rechazo("empieza a media frase sin «[…]»"))
+  if (fin < length(ot) && !fin_el && !grepl(.CITAS_FIN_ORACION, ot[fin], perl = TRUE)) return(rechazo("termina a media frase sin «[…]»"))
+  if (cambios > max(1L, usadas %/% 3L)) return(rechazo(sprintf("corrige %d de %d palabras", cambios, usadas)))
+  recorte <- length(partes) > 1L || ini > 1L || fin < length(ot)
+  list(ok = TRUE, tipo = c(if (recorte) "recorte", if (cambios > 0L) "correccion"), texto = e, motivo = "")
+}
+
+#' «[sic]» detrás de las palabras marcadas o, sin marcas que estén en el texto, al final
+#' @return Lista `texto` y `no_encontradas` (las marcas que el texto no tiene).
+#' @keywords internal
+.citas_marcar_sic <- function(texto, palabras = character(0)) {
+  palabras <- unique(trimws(as.character(unlist(palabras)))); palabras <- palabras[!is.na(palabras) & nzchar(palabras)]
+  tk <- strsplit(texto, " ", fixed = TRUE)[[1]]
+  nuc <- tolower(.citas_nucleo(tk)); marcar <- logical(length(tk)); faltan <- character(0)
+  for (p in palabras) {
+    i <- which(nuc == tolower(.citas_nucleo(p)))
+    if (length(i)) marcar[i] <- TRUE else faltan <- c(faltan, p)
+  }
+  if (!any(marcar)) return(list(texto = paste(texto, "[sic]"), no_encontradas = faltan))
+  tk[marcar] <- sub("^([^\\p{L}\\p{N}]*)(.*?)([^\\p{L}\\p{N}]*)$", "\\1\\2 [sic]\\3", tk[marcar], perl = TRUE)
+  list(texto = paste(tk, collapse = " "), no_encontradas = faltan)
+}
+
+#' Aplica las ediciones del analista a las citas aprobadas que se dibujan
+#' @return Lista `elegidas` (texto, revisión y `ajuste`: «recorte», «correccion», «sic», «rechazada», unidos con «+»)
+#'   y `avisos`.
+#' @keywords internal
+.citas_aplicar_ediciones <- function(elegidas, ediciones, autores = NULL) {
+  avisos <- character(0)
+  for (i in seq_len(nrow(elegidas))) {
+    ed <- ediciones[[elegidas$id[i]]]
+    if (is.null(ed)) next
+    txt <- elegidas$texto[i]; aj <- character(0)
+    if (!is.null(ed$texto)) {
+      v <- .citas_validar_edicion(txt, ed$texto)
+      if (!v$ok) {
+        aj <- "rechazada"
+        avisos <- c(avisos, sprintf("La cita %d editada no es un recorte ni una corrección leve del comentario (%s): se dibuja el original.", i, v$motivo))
+      } else if (isTRUE(ed$sic) && "correccion" %in% v$tipo) {
+        avisos <- c(avisos, sprintf("La cita %d corrige palabras y a la vez pide «[sic]»: se dibuja el original con «[sic]».", i))
+      } else {
+        txt <- v$texto; aj <- v$tipo
+      }
+    }
+    if (isTRUE(ed$sic)) {
+      s <- .citas_marcar_sic(txt, ed$sic_palabras)
+      txt <- s$texto; aj <- c(aj, "sic")
+      if (length(s$no_encontradas)) avisos <- c(avisos, sprintf("La cita %d no tiene %s: «[sic]» va al final.", i,
+                                                                paste0("«", s$no_encontradas, "»", collapse = ", ")))
+    }
+    elegidas$texto[i] <- txt
+    elegidas$revision[i] <- .citas_revision(txt, autores = autores)
+    elegidas$ajuste[i] <- paste(aj, collapse = "+")
+  }
+  list(elegidas = elegidas, avisos = avisos)
+}
+
 #' Selecciona las citas de un comentario abierto
 #'
 #' @param textos Comentarios tal como vienen de la base (una fila por persona).
 #' @param personas Identificador de persona por fila (opcional; sin él, cada fila es una persona).
 #' @param aprobadas Ids aprobados por el analista (`citas_aprobadas`), en el orden en que se dibujan.
+#' @param ediciones Ediciones del analista por id (`.citas_aprobadas_normalizar()$ediciones`): recorte, corrección leve
+#'   o [sic]. Sólo se aplican a las aprobadas; el borrador va siempre con el texto original.
 #' @param equivalencias Grupos del diccionario de la pregunta: unen formas al puntuar; no cambian el texto.
 #' @return Lista: `candidatas` (data.frame id, texto, chars, puntaje, persona, revision, propuesta; en su orden),
 #'   `elegidas` (las que se dibujan), `borrador`, `base` (comentarios con contenido), `escribieron`, `faltantes`
@@ -156,7 +307,7 @@
 #' @keywords internal
 .citas_seleccionar <- function(textos, personas = NULL, aprobadas = NULL, min_chars = 40L, max_chars = 280L,
                                max_citas = 5L, min_citas = 3L, min_personas = 3L, solape = 0.6,
-                               semilla = .CITAS_SEMILLA, autores = NULL, equivalencias = NULL) {
+                               semilla = .CITAS_SEMILLA, autores = NULL, equivalencias = NULL, ediciones = NULL) {
   crudo <- as.character(textos); crudo[is.na(crudo)] <- ""
   if (is.null(personas)) personas <- seq_along(crudo)
   personas <- as.character(personas)
@@ -212,6 +363,11 @@
   borrador <- !length(hay)
   elegidas <- if (borrador) cand[cand$propuesta, , drop = FALSE] else cand[match(hay, cand$id), , drop = FALSE]
   rownames(elegidas) <- NULL
+  elegidas$ajuste <- rep("", nrow(elegidas))
+  if (!borrador && length(ediciones)) {
+    ap <- .citas_aplicar_ediciones(elegidas, ediciones, autores = autores)
+    elegidas <- ap$elegidas; avisos <- c(avisos, ap$avisos)
+  }
   if (borrador && nrow(elegidas)) {
     avisos <- c(avisos, sprintf("Citas sin aprobar: la lámina muestra %d %s como borrador. Apruébalas antes de entregar.",
                                 nrow(elegidas), if (nrow(elegidas) == 1L) "propuesta" else "propuestas"))
@@ -271,6 +427,54 @@
   list(alcanza = nrow(fr) >= min_frases, frases = as.integer(nrow(fr)))
 }
 
+#' Candidatas de citas para la tarjeta de aprobación (`GET /api/graficos/citas-candidatas`, O3b-a)
+#'
+#' Lee las fuentes de Gráficos (las del render: mismos comentarios, mismos ids) en la base pedida o, sin ella, en la
+#' ACTIVA; con varias bases y ninguna activa no adivina. Aplica el filtro del tema como la lámina (código por código en
+#' `<var>_recod`) y puntúa con el diccionario de la pregunta (TXT-6/7). No devuelve la persona de cada cita.
+#' @param filtros JSON de la query (objeto `{variable: valor}`) o lista ya parseada.
+#' @keywords internal
+citas_candidatas_payload <- function(sources, variable = NULL, base = NULL, base_activa = NULL, filtros = NULL,
+                                     var_persona = NULL) {
+  uno <- function(x) { v <- trimws(as.character(unlist(x %||% ""))[1]); if (is.na(v)) "" else v }
+  variable <- uno(variable); base <- uno(base)
+  if (!nzchar(variable)) stop_api(400, "E_CITAS_SIN_VARIABLE", "Falta la pregunta abierta ('variable').")
+  if (grepl("$", variable, fixed = TRUE)) { base <- sub("\\$.*$", "", variable); variable <- sub("^.*\\$", "", variable) }
+  bases <- names(sources$data_sources %||% list())
+  if (nzchar(base)) {
+    if (!base %in% bases) stop_api(404, "E_CITAS_BASE_NO_EXISTE", sprintf("La base '%s' no está entre las fuentes de Gráficos.", base))
+  } else {
+    activa <- uno(base_activa)
+    base <- if (nzchar(activa) && activa %in% bases) activa else if (length(bases) == 1L) bases else ""
+    if (!nzchar(base)) stop_api(400, "E_CITAS_SIN_BASE", "Hay varias bases y ninguna activa: indica 'base'.")
+  }
+  d <- sources$data_sources[[base]]
+  # La pregunta abierta, no su codificación: la cita es lo que escribió la persona.
+  if (grepl("_recod$", variable) && sub("_recod$", "", variable) %in% names(d)) variable <- sub("_recod$", "", variable)
+  if (!variable %in% names(d)) {
+    stop_api(404, "E_CITAS_VARIABLE_NO_EXISTE", sprintf("La base '%s' no tiene la pregunta '%s'.", base, variable))
+  }
+  d <- tryCatch({
+    f <- if (is.character(filtros)) { if (nzchar(uno(filtros))) jsonlite::fromJSON(uno(filtros), simplifyVector = FALSE) else list() } else filtros
+    sep <- .citas_separar_filtros(.ppt_norm_filters(f %||% list()))
+    .citas_filtro_codigos(.apply_named_filters(d, filters = sep$resto, arg_name = "filtros", mode = "strict"), sep$codigos)
+  }, error = function(e) {
+    if (inherits(e, "api_error")) stop(e)
+    stop_api(400, "E_CITAS_FILTRO_INVALIDO", paste("El filtro de las citas no se pudo aplicar:", conditionMessage(e)))
+  })
+  vp <- uno(var_persona)
+  dic <- .txt_dic_de_ctx(list(instrumento = sources$inst_sources[[base]], var = variable))
+  sel <- .citas_seleccionar(d[[variable]], personas = if (nzchar(vp) && vp %in% names(d)) d[[vp]] else NULL,
+                            equivalencias = dic$equivalencias)
+  cand <- sel$candidatas
+  list(ok = TRUE, base = base, variable = variable, comentarios = sel$base, escribieron = sel$escribieron,
+       diccionario = !.txt_dic_es_vacio(dic),
+       candidatas = lapply(seq_len(nrow(cand)), function(i) list(
+         id = cand$id[i], texto = cand$texto[i], chars = cand$chars[i], puntaje = cand$puntaje[i],
+         revision = cand$revision[i], propuesta = isTRUE(cand$propuesta[i]))),
+       avisos = I(sel$avisos[!grepl("^Citas sin aprobar", sel$avisos)]))   # el borrador es cosa de la lámina
+}
+
 # El constructor `p_citas()` vive con los demás en reporte_plan_slides.R.
 
 #' Renderer del motor: datos del elemento, filtro por código, selección y espec de la lámina
@@ -299,7 +503,7 @@
   # TXT-6/7: las equivalencias del diccionario de la pregunta, salvo que la lámina traiga las suyas (el plan gana).
   ov <- el$overrides %||% list()
   eq <- if ("equivalencias" %in% names(ov)) ov$equivalencias else .txt_dic_de_ctx(ctx)$equivalencias
-  sel <- .citas_seleccionar(d[[var]], personas = personas, aprobadas = el$citas_aprobadas, max_citas = el$max_citas %||% 5L,
+  sel <- .citas_seleccionar(d[[var]], personas = personas, aprobadas = el$citas_aprobadas, ediciones = el$citas_ediciones, max_citas = el$max_citas %||% 5L,
                             autores = ov$autores, equivalencias = eq)
   for (a in sel$avisos) .pulso_aviso(a)
   graficar_citas(sel)
@@ -327,7 +531,7 @@ graficar_citas <- function(seleccion) {
     ggplot2::theme_void()
   if (isTRUE(seleccion$borrador)) p <- p + ggplot2::labs(subtitle = "Citas sin aprobar (borrador)")
   attr(p, "pulso_espec") <- list(
-    version = "citas/1", tipo = "citas", citas = el[, intersect(c("id", "texto", "revision"), names(el)), drop = FALSE],
+    version = "citas/1", tipo = "citas", citas = el[, intersect(c("id", "texto", "revision", "ajuste"), names(el)), drop = FALSE],
     borrador = isTRUE(seleccion$borrador), base = seleccion$base, escribieron = seleccion$escribieron,
     candidatas = seleccion$candidatas, faltantes = seleccion$faltantes, avisos = seleccion$avisos)
   p
