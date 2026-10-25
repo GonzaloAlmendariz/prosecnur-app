@@ -183,10 +183,6 @@
    * con `min-width` toma su ancho. */
   min-width: min(320px, calc(100vw - 32px));
   max-width: min(360px, calc(100vw - 32px));
-  /* El menú crece con las fuentes del proyecto: con muchas, se desplaza él. */
-  max-height: min(70vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding: var(--pulso-space-1);
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
@@ -229,6 +225,18 @@
 
 .mon-modo-actualizar-grupo {
   display: grid;
+}
+
+/* Con muchas fuentes (13 en acred_conta) sólo esta lista desplaza; las
+ * acciones generales de arriba no se esconden bajo el scroll. */
+.mon-modo-actualizar-fuentes {
+  display: grid;
+  /* Las filas miden su contenido: con tope de alto, un grid `auto` las
+   * aplastaba a 32 px y partía las etiquetas de dos líneas (captura). */
+  grid-auto-rows: max-content;
+  max-height: min(45vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .mon-modo-actualizar-rotulo {

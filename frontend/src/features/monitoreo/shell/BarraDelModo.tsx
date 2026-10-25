@@ -107,8 +107,9 @@ export function IndicadoresDelModo({ indicadores }: { indicadores: readonly Indi
 }
 
 /**
- * El menú de «Actualizar ▾»: primero las fuentes, bajo «Por fuente», y después
- * «Traer todo de nuevo» y «Recalcular». Todo se apaga mientras corre un sync.
+ * El menú de «Actualizar ▾»: arriba «Traer todo de nuevo» y «Recalcular», las
+ * más usadas; debajo «Por fuente», que desplaza dentro de su grupo con tope de
+ * alto. Todo se apaga mientras corre un sync.
  */
 export function MenuDeActualizar({
   id,
@@ -152,14 +153,15 @@ export function MenuDeActualizar({
       ref={listaRef}
       onKeyDown={onKeyDown}
     >
+      {generales.map(item)}
+      {porFuente.length && generales.length ? <span role="separator" className="mon-modo-actualizar-separador" /> : null}
       {porFuente.length ? (
         <span role="group" aria-labelledby={`${id}-fuentes`} className="mon-modo-actualizar-grupo">
           <small id={`${id}-fuentes`} className="mon-modo-actualizar-rotulo">Por fuente</small>
-          {porFuente.map(item)}
+          {/* Sólo las fuentes desplazan: las acciones generales quedan a la vista. */}
+          <span className="mon-modo-actualizar-fuentes">{porFuente.map(item)}</span>
         </span>
       ) : null}
-      {porFuente.length && generales.length ? <span role="separator" className="mon-modo-actualizar-separador" /> : null}
-      {generales.map(item)}
     </span>
   );
 }
