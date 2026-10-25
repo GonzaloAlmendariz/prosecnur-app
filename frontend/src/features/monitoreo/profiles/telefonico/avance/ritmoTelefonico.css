@@ -62,12 +62,15 @@
   font-size: 14px;
 }
 
+/* Leyenda al pie del gráfico, centrada en la tarjeta: rótulos cortos. */
 .mon-cadencia-leyenda {
   display: flex;
+  flex: none;
   flex-wrap: wrap;
-  gap: var(--pulso-space-2) var(--pulso-space-3);
-  margin: 0 0 0 auto;
-  padding: 0;
+  justify-content: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) 0 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
   list-style: none;

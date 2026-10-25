@@ -182,8 +182,9 @@ export function Respuestas({
           </table>
           {!visibles.length ? <NotaDelModo tono="neutro" className="mon-respuestas-vacio">Ninguna efectiva cumple el filtro.</NotaDelModo> : null}
         </div>
-        <footer className="mon-equipo-pie">
-          {n(visibles.length)} de {n(modelo.envios.length)} efectivas. Marcar no excluye: decide el supervisor.
+        {/* Que marcar no excluye ya lo dice «Qué cuenta» (Aviso, no excluye): el pie sólo cuenta. */}
+        <footer className="mon-respuestas-pie">
+          {n(visibles.length)} de {n(modelo.envios.length)} efectivas
         </footer>
       </section>
     </div>

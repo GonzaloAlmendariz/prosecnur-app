@@ -62,10 +62,10 @@ export function EquipoMatriz({
           </tbody>
         </table>
       </div>
-      <footer className="mon-equipo-leyenda">
-        <span><i className="is-alta" aria-hidden="true" />12 puntos o más sobre la mediana del equipo</span>
-        <span><i className="is-baja" aria-hidden="true" />12 puntos o más por debajo</span>
-        <span>Mediana sobre operadores con {matriz.minimoParaComparar} casos o más</span>
+      {/* Leyenda de rótulos cortos y centrada; la regla de la mediana va una sola vez, en su tooltip. */}
+      <footer className="mon-equipo-leyenda" title={`12 puntos o más frente a la mediana del equipo, calculada sobre los operadores con ${matriz.minimoParaComparar} casos o más`}>
+        <span><i className="is-alta" aria-hidden="true" />Sobre la mediana</span>
+        <span><i className="is-baja" aria-hidden="true" />Bajo la mediana</span>
       </footer>
     </>
   );

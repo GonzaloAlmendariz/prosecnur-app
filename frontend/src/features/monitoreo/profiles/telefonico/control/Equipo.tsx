@@ -40,9 +40,9 @@ function TablaDeCarga({
             <th scope="col" className="is-num">Sin llamar</th>
             <th scope="col" className="is-num">Efect. hoja</th>
             <th scope="col" className="is-num">Efect. Kobo</th>
-            <th scope="col" className="is-num">Brecha</th>
+            <th scope="col" className="is-num" title="Efectivas de Kobo cruzadas al caso que la hoja no marca efectivas">Brecha</th>
             <th scope="col" className="is-num">Sin efectiva</th>
-            <th scope="col" className="is-num">Intentos por caso</th>
+            <th scope="col" className="is-num" title="Promedio de intentos entre sus casos que se pueden reintentar">Intentos por caso</th>
           </tr>
         </thead>
         <tbody>
@@ -204,12 +204,8 @@ export function Equipo({
         {panel.abierto ? (
           <EquipoMatriz matriz={modelo.matriz} elegido={elegido?.nombre ?? null} onElegir={(nombre) => escribirFoco(nombre)} />
         ) : (
-          <>
-            <TablaDeCarga modelo={modelo} elegido={elegido?.nombre ?? null} onElegir={(nombre) => escribirFoco(nombre)} />
-            <footer className="mon-equipo-pie">
-              Brecha: efectivas de Kobo cruzadas al caso que la hoja no marca efectivas. Intentos por caso: promedio entre sus casos que se pueden reintentar.
-            </footer>
-          </>
+          // Qué es «Brecha» e «Intentos por caso» va en el tooltip de su columna, no en un pie «rótulo: comentario».
+          <TablaDeCarga modelo={modelo} elegido={elegido?.nombre ?? null} onElegir={(nombre) => escribirFoco(nombre)} />
         )}
       </section>
       <FichaDelOperador operador={elegido} modelo={modelo} />

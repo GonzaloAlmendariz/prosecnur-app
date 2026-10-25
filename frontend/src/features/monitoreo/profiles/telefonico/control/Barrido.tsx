@@ -164,7 +164,6 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
             ) : (
               <p className="mon-barrido-vacio">Ningún caso llamado todavía.</p>
             )}
-            <NotaDelModo tono="neutro" className="mon-barrido-nota">La hoja guarda solo la fecha del último intento de cada caso.</NotaDelModo>
           </section>
           <section className="mon-ctl-panel mon-barrido-sin-llamar" aria-label="Sin llamar">
             <header className="mon-ctl-panel-cabecera">
@@ -193,8 +192,10 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
       </div>
 
       <section className="mon-ctl-panel mon-barrido-status" aria-label="Status del cliente">
-        <header className="mon-ctl-panel-cabecera">
+        {/* La explicación va una sola vez, en el subtítulo (y entera en su tooltip). */}
+        <header className="mon-ctl-panel-cabecera" title="La hoja guarda un status por caso, el del último intento: no guarda cada llamada, su hora ni el número marcado.">
           <span className="mon-ctl-antetitulo">Status del cliente</span>
+          <span>del último intento</span>
         </header>
         <div className="mon-barrido-status-lista">
           {modelo.status.length ? null : (
@@ -222,10 +223,6 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               </ul>
             </div>
           ))}
-          <NotaDelModo tono="info" className="mon-barrido-no-registra">
-            <strong>Lo que la hoja no registra.</strong> Un status por caso, el del último intento: la hoja no guarda cada
-            llamada, su hora ni el número marcado.
-          </NotaDelModo>
         </div>
         <footer className="mon-barrido-status-pie">
           <span className="mon-tel-chip">No barrido {n(modelo.sinLlamar)}</span>

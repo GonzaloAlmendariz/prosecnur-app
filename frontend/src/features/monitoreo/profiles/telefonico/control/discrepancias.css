@@ -4,6 +4,7 @@
 .mon-dsc {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -106,9 +107,6 @@
 
 .mon-dsc-aviso {
   flex: 1 1 100%;
-  margin: 0;
-  color: var(--pulso-success-fg);
-  font-size: 12px;
 }
 
 .mon-dsc-centro {
@@ -198,9 +196,12 @@
   color: var(--pulso-warn-fg);
 }
 
+/* La ficha del caso mide lo que pide: no deja un vacío al pie de la columna. */
 .mon-dsc-ficha {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  max-height: 100%;
   min-height: 0;
   overflow-y: auto;
 }
@@ -320,8 +321,13 @@
   .mon-dsc {
     flex: none;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     height: auto;
     min-height: auto;
+  }
+
+  .mon-dsc-ficha {
+    max-height: none;
   }
 
   /* Apiladas, las listas y la tabla tienen su alto propio y desplazan dentro. */

@@ -107,11 +107,6 @@ export function Ritmo({
           <RotuloDeTarjeta />
           <header className="mon-cadencia-cabecera">
             <strong>Efectivas de Kobo por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
-            <ul className="mon-cadencia-leyenda">
-              {series.map((serie, i) => <li key={serie}><i className={`is-serie-${i}`} />{serie}</li>)}
-              <li><i className="is-acumulado" />Acumulado</li>
-              {meta ? <li><i className="is-meta" />Meta {n(meta)}</li> : null}
-            </ul>
           </header>
           <TrazadoDeBarras
             tituloIzquierdo="Efectivas por día"
@@ -128,14 +123,18 @@ export function Ritmo({
               rotuloFinal: meta ? `${n(kobo.total)} de ${n(meta)}` : `${n(kobo.total)} acumuladas`,
             }}
           />
+          {/* Leyenda de rótulos cortos, centrada en la tarjeta. El acumulado y la
+            * meta ya van rotulados en el gráfico: no se repiten aquí. */}
+          {series.length > 1 ? (
+            <ul className="mon-cadencia-leyenda">
+              {series.map((serie, i) => <li key={serie}><i className={`is-serie-${i}`} />{serie}</li>)}
+            </ul>
+          ) : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-grafico is-hoja" aria-label="Llamados registrados en la hoja de barrido">
           <header className="mon-cadencia-cabecera">
             <strong>Llamados registrados en la hoja de barrido</strong>
-            <ul className="mon-cadencia-leyenda">
-              {FAMILIAS_DE_LLAMADA.map((familia) => <li key={familia}><i className={`is-${familia}`} />{ETIQUETA_DE_FAMILIA[familia]}</li>)}
-            </ul>
           </header>
           <TrazadoDeBarras
             bajo
@@ -153,7 +152,9 @@ export function Ritmo({
               };
             })}
           />
-
+          <ul className="mon-cadencia-leyenda">
+            {FAMILIAS_DE_LLAMADA.map((familia) => <li key={familia}><i className={`is-${familia}`} />{ETIQUETA_DE_FAMILIA[familia]}</li>)}
+          </ul>
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-calor" aria-label={`Efectivas por ${nombreDeSegmento} y día`} data-qa-geometry-capacity="owned">

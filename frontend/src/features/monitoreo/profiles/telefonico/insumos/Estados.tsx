@@ -185,6 +185,11 @@ export function Estados({
           ) : (
             <p>El corte no trae la cola de insistencia; actualiza para leer los intentos.</p>
           )}
+          {/* El aviso va dentro de la tarjeta de los intentos, que es de lo que habla. */}
+          <NotaDelModo tono="info" className="mon-insumos-nota-modo">
+            <strong>Sin regla de agotado.</strong> El supervisor decide cuándo dejar de insistir mirando intentos, status y
+            observación; el modo no declara casos agotados.
+          </NotaDelModo>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Color de cada familia">
@@ -207,10 +212,6 @@ export function Estados({
           </div>
         </section>
 
-        <NotaDelModo tono="info" className="mon-insumos-nota-modo">
-          <strong>Sin regla de agotado.</strong> El supervisor decide cuándo dejar de insistir mirando intentos, status y
-          observación; el modo no declara casos agotados.
-        </NotaDelModo>
       </div>
     </div>
   );
