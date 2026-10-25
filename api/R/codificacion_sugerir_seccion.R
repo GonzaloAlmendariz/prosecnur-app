@@ -3,7 +3,9 @@
 # Contrato:
 #   - Es una PROPUESTA. El motor no escribe grupos ni matrix_cases: el analista confirma en Codificación, igual que
 #     en el flujo híbrido de abiertas. Por eso es una función pura sobre (inst, data_df).
-#   - Un código por módulo, por decena en el orden del formulario (10, 20, 30…), y «otro» = 80. Sin jerarquía.
+#   - Un código por módulo, por decena en el orden del formulario (10, 20, 30…), y «otro» = 80. Un módulo que se
+#     lleva más de la mitad de las propuestas se parte en subtemas (TXT-11b: grupos formales, baterías y «general»),
+#     con códigos dentro de su decena (21–29 para el 20) y `padre`; los demás quedan en primer nivel.
 #   - El módulo de una pregunta es su grupo de primer nivel: `.section_map` da la sección más interna y aquí se sube
 #     a su raíz, para que un subgrupo («bloque_crianza» dentro de «modulo_a») hable por su módulo.
 #   - El vocabulario de un módulo son las raíces de contenido de la etiqueta del grupo, de sus preguntas y de las
@@ -55,6 +57,18 @@
   list(raiz = raiz, orden = unique(orden))
 }
 
+#' Texto que aporta una pregunta al vocabulario: su etiqueta y, si su lista no es una escala, sus opciones
+#'
+#' Una lista de opciones que usan tres preguntas o más es una escala (acuerdo, frecuencia): no describe el módulo.
+#' @keywords internal
+.codif_ss_texto_pregunta <- function(inst, nm, base_tipo, lista, usos_lista) {
+  txt <- .codif_var_label(inst, nm, "")
+  if (base_tipo %in% c("select_one", "select_multiple") && nzchar(lista) && usos_lista[[lista]] < 3L) {
+    txt <- c(txt, unname(as.character(.choices_lookup(inst, lista))))
+  }
+  txt
+}
+
 #' Textos que describen cada módulo: etiqueta del grupo, de sus preguntas y de sus opciones
 #'
 #' Devuelve `list(modulos = data.frame(seccion, etiqueta), textos = list(seccion -> character), de_variable)`.
@@ -78,12 +92,7 @@
     if (is.na(nm) || !nzchar(nm) || is.na(sec) || !nzchar(sec) || base_tipo[i] %in% .CODIF_SS_TIPOS_SIN_TEXTO) next
     mod <- unname(rg$raiz[sec]); if (is.na(mod)) next
     if (identical(nm, variable)) { de_variable <- mod; next }
-    txt <- .codif_var_label(inst, nm, "")
-    # Una lista de opciones que usan tres preguntas o más es una escala (acuerdo, frecuencia): no describe el módulo.
-    if (base_tipo[i] %in% c("select_one", "select_multiple") && nzchar(lista[i]) && usos_lista[[lista[i]]] < 3L) {
-      txt <- c(txt, unname(as.character(.choices_lookup(inst, lista[i]))))
-    }
-    textos[[mod]] <- c(textos[[mod]], txt)
+    textos[[mod]] <- c(textos[[mod]], .codif_ss_texto_pregunta(inst, nm, base_tipo[i], lista[i], usos_lista))
   }
   etiquetas <- vapply(rg$orden, function(g) .codif_ss_limpiar_etiqueta(.codif_var_label(inst, g, ""), g), character(1))
   for (g in rg$orden) textos[[g]] <- c(etiquetas[[g]], textos[[g]])
@@ -160,7 +169,157 @@
   out
 }
 
+#' Etiqueta de un subtema: la primera línea de su nota o de su grupo, sin marcado y recortada
+#' @keywords internal
+.codif_ss_recortar_etiqueta <- function(x, fallback, max_chars = 90L) {
+  x <- strsplit(as.character(x %||% ""), "\n", fixed = TRUE)[[1]]
+  x <- x[nzchar(trimws(x))]
+  x <- gsub("[_*]+", "", .codif_ss_limpiar_etiqueta(if (length(x)) x[[1]] else "", fallback))
+  x <- trimws(gsub("\\s+", " ", x, perl = TRUE))
+  if (!nzchar(x)) return(fallback)
+  if (nchar(x, type = "chars") <= max_chars) return(x)
+  corte <- substr(x, 1L, max_chars)
+  corte <- sub("\\s+\\S*$", "", corte, perl = TRUE)
+  paste0(corte, "…")
+}
+
+#' Etiqueta del subtema «general»: «MÓDULO B. EXPERIENCIA UNIVERSITARIA» → «Experiencia universitaria: preguntas generales»
+#' @keywords internal
+.codif_ss_etiqueta_general <- function(etiqueta_modulo) {
+  x <- sub("^(m[oó]dulo|secci[oó]n|bloque|parte)\\s+[a-z0-9]{1,2}\\s*[.:–—-]\\s*", "", trimws(etiqueta_modulo),
+           ignore.case = TRUE, perl = TRUE)
+  if (!nzchar(x)) return("Preguntas generales")
+  if (identical(x, toupper(x))) x <- paste0(substr(x, 1L, 1L), tolower(substr(x, 2L, nchar(x))))
+  paste0(x, ": preguntas generales")
+}
+
+#' Subtemas de un módulo: sus grupos formales, sus baterías y sus preguntas sueltas
+#'
+#' Recorre el módulo en el orden del formulario. Un grupo hijo (con lo que anide) es un subtema. Una batería es una
+#' nota (`note`, o un `enunciado_*`) directamente en el módulo, con las preguntas que la siguen hasta la próxima nota
+#' o grupo. Las preguntas sueltas fuera de batería y de grupo forman el subtema «general» del módulo. Un subtema sin
+#' preguntas con texto no entra. Devuelve una lista de `list(seccion, etiqueta, textos)`.
+#' @keywords internal
+.codif_ss_subtemas <- function(inst, modulo, variable, etiqueta_modulo = modulo) {
+  sv <- inst$survey
+  tipo <- as.character(sv$type %||% character(0)); tipo[is.na(tipo)] <- ""
+  nom <- as.character(sv$name %||% character(0)); nom[is.na(nom)] <- ""
+  base_tipo <- sub("\\s.*$", "", tipo)
+  lista <- if ("list_norm" %in% names(sv)) as.character(sv$list_norm) else rep("", nrow(sv))
+  lista[is.na(lista)] <- ""
+  usos_lista <- as.list(table(lista[base_tipo %in% c("select_one", "select_multiple") & nzchar(lista)]))
+  ini <- which(base_tipo %in% c("begin_group", "begin_repeat") & nom == modulo)
+  if (!length(ini)) return(list())
+  subs <- list(); n_preg <- list()
+  abrir <- function(clave, etiqueta) {
+    if (is.null(subs[[clave]])) { subs[[clave]] <<- list(seccion = clave, etiqueta = etiqueta, textos = character(0)); n_preg[[clave]] <<- 0L }
+    clave
+  }
+  general <- paste0(modulo, "__general")
+  prof <- 0L; en_grupo <- NULL; bateria <- NULL
+  for (i in seq.int(ini[[1]] + 1L, length.out = max(0L, length(tipo) - ini[[1]]))) {
+    bt <- base_tipo[[i]]
+    if (bt %in% c("begin_group", "begin_repeat")) {
+      prof <- prof + 1L
+      if (prof == 1L) {
+        en_grupo <- abrir(if (nzchar(nom[[i]])) nom[[i]] else sprintf("%s__grupo_%d", modulo, i),
+                          .codif_ss_recortar_etiqueta(.codif_var_label(inst, nom[[i]], ""), nom[[i]]))
+        bateria <- NULL
+      }
+      next
+    }
+    if (bt %in% c("end_group", "end_repeat")) {
+      if (prof == 0L) break
+      prof <- prof - 1L
+      if (prof == 0L) en_grupo <- NULL
+      next
+    }
+    nm <- nom[[i]]
+    if (!nzchar(nm) || identical(nm, variable)) next
+    if (prof == 0L && (bt == "note" || startsWith(tolower(nm), "enunciado_"))) {
+      bateria <- abrir(nm, .codif_ss_recortar_etiqueta(.codif_var_label(inst, nm, ""), nm))
+      next
+    }
+    if (bt == "note" || bt %in% .CODIF_SS_TIPOS_SIN_TEXTO) next
+    clave <- en_grupo %||% bateria %||% abrir(general, .codif_ss_etiqueta_general(etiqueta_modulo))
+    subs[[clave]]$textos <- c(subs[[clave]]$textos, .codif_ss_texto_pregunta(inst, nm, bt, lista[[i]], usos_lista))
+    n_preg[[clave]] <- n_preg[[clave]] + 1L
+  }
+  subs <- subs[vapply(names(subs), function(k) n_preg[[k]] > 0L, logical(1))]
+  unname(lapply(subs, function(x) { x$textos <- c(x$etiqueta, x$textos); x }))
+}
+
+#' Fusiona subtemas consecutivos, siempre el par vecino de menor vocabulario, hasta `max_subtemas`
+#' @keywords internal
+.codif_ss_fusionar_subtemas <- function(subs, vacias, max_subtemas = 9L) {
+  n_voc <- function(x) {
+    t <- .txt_sin_tildes(unlist(.txt_tokens(x$textos)))
+    length(unique(t[nchar(t, type = "chars") >= 3L & !t %in% vacias]))
+  }
+  while (length(subs) > max_subtemas) {
+    tam <- vapply(subs, n_voc, integer(1))
+    k <- which.min(utils::head(tam, -1L) + tam[-1L])
+    a <- subs[[k]]; b <- subs[[k + 1L]]
+    subs[[k]] <- list(seccion = a$seccion, etiqueta = paste(a$etiqueta, b$etiqueta, sep = " / "),
+                      textos = c(a$textos, b$textos))
+    subs[[k + 1L]] <- NULL
+  }
+  subs
+}
+
+#' Puntaje de cada unidad (módulo o subtema) para cada respuesta
+#'
+#' `textos_unidad` es una lista de vectores de texto por unidad. Devuelve `voc` (raíces por unidad) y `sel`: por
+#' respuesta, las unidades propuestas (`m`, `puntaje`, `palabras`) en orden de puntaje.
+#' @keywords internal
+.codif_ss_puntuar <- function(textos_unidad, textos_resp, no_resp, diccionario, min_puntaje, rel_max, max_propuestas) {
+  vacias <- unique(c(.txt_vacias_limpias(), .CODIF_SS_VACIAS_SUGERIR))
+  n <- length(textos_unidad)
+  tok_mod <- lapply(textos_unidad, function(x) unlist(.txt_tokens(x)))
+  tok_resp <- .txt_tokens(textos_resp)
+  voc <- unique(c(unlist(tok_mod), unlist(tok_resp)))
+  contenido <- voc[nchar(voc, type = "chars") >= 3L & !.txt_sin_tildes(voc) %in% vacias]
+  dic <- .codif_ss_diccionario(diccionario, tok_mod, tok_resp, contenido, vacias)
+  tok_mod <- dic$tok_mod; tok_resp <- dic$tok_resp
+  raiz <- if (length(voc)) .txt_raiz(voc, vocabulario = contenido, equivalencias = dic$mapa) else character(0)
+
+  voc_mod <- lapply(.codif_ss_raices(tok_mod, raiz, vacias), names)
+  # Una raíz que está en todas las unidades no distingue ninguna (con tres o más): se descarta.
+  voc_mod <- lapply(voc_mod, function(v) v[!v %in% c(.CODIF_SS_VACIAS_SUGERIR, dic$excluidas)])
+  df <- table(unlist(voc_mod))
+  if (n >= 3L) {
+    ubicuas <- names(df)[as.integer(df) >= n]
+    voc_mod <- lapply(voc_mod, function(v) v[!v %in% ubicuas])
+    df <- df[!names(df) %in% ubicuas]
+  }
+  idf <- log1p(n / as.numeric(df)); names(idf) <- names(df)
+  raices_resp <- .codif_ss_raices(tok_resp, raiz, vacias)
+  if (length(dic$excluidas)) raices_resp <- lapply(raices_resp, function(r) r[!names(r) %in% dic$excluidas])
+
+  sel <- lapply(seq_along(textos_resp), function(k) {
+    if (no_resp[[k]]) return(list())
+    rr <- raices_resp[[k]]
+    puntajes <- Filter(Negate(is.null), lapply(seq_len(n), function(m) {
+      comun <- intersect(names(rr), voc_mod[[m]])
+      if (!length(comun)) return(NULL)
+      w <- idf[comun]
+      list(m = m, puntaje = sum(w), palabras = unname(rr[comun[order(-w, comun)]]))
+    }))
+    if (!length(puntajes)) return(list())
+    p <- vapply(puntajes, `[[`, numeric(1), "puntaje")
+    ok <- p >= min_puntaje & p >= rel_max * max(p)
+    out <- puntajes[ok][order(-p[ok], vapply(puntajes[ok], `[[`, integer(1), "m"))]
+    utils::head(out, max(1L, as.integer(max_propuestas)))
+  })
+  list(voc = voc_mod, sel = sel, vacias = vacias)
+}
+
 #' Propuesta de módulo para cada respuesta de `variable`
+#'
+#' Si un módulo se lleva más de la mitad de las respuestas con propuesta y tiene dos subtemas o más
+#' (`.codif_ss_subtemas`), se parte: sus subtemas (hasta nueve, códigos `<módulo> + 1..9`, p. ej. 21–29 para el 20)
+#' compiten con los demás módulos, que quedan en primer nivel. El módulo partido sigue en `modulos`, y cada subtema
+#' trae `padre` (el código del módulo); sus propuestas, `padre` y `subtema`.
 #'
 #' @param inst instrumento (`leer_instrumento_xlsform`).
 #' @param data_df base con la variable de texto.
@@ -193,54 +352,45 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
   textos <- as.character(data_df[[variable]]); textos[is.na(textos)] <- ""
   filas <- which(nzchar(trimws(textos)))
   no_resp <- if (length(filas)) .txt_no_respuesta(textos[filas]) else logical(0)
-
-  vacias <- unique(c(.txt_vacias_limpias(), .CODIF_SS_VACIAS_SUGERIR))
-  tok_mod <- lapply(mods, function(g) unlist(.txt_tokens(tm$textos[[g]])))
-  tok_resp <- .txt_tokens(textos[filas])
-  voc <- unique(c(unlist(tok_mod), unlist(tok_resp)))
-  contenido <- voc[nchar(voc, type = "chars") >= 3L & !.txt_sin_tildes(voc) %in% vacias]
-  dic <- .codif_ss_diccionario(diccionario, tok_mod, tok_resp, contenido, vacias)
-  tok_mod <- dic$tok_mod; tok_resp <- dic$tok_resp
-  raiz <- if (length(voc)) .txt_raiz(voc, vocabulario = contenido, equivalencias = dic$mapa) else character(0)
-
-  voc_mod <- lapply(.codif_ss_raices(lapply(tok_mod, identity), raiz, vacias), names)
-  # Una raíz que está en todos los módulos no distingue ninguno (con tres módulos o más): se descarta.
-  voc_mod <- lapply(voc_mod, function(v) v[!v %in% c(.CODIF_SS_VACIAS_SUGERIR, dic$excluidas)])
-  df <- table(unlist(voc_mod))
-  if (length(mods) >= 3L) {
-    ubicuas <- names(df)[as.integer(df) >= length(mods)]
-    voc_mod <- lapply(voc_mod, function(v) v[!v %in% ubicuas])
-    df <- df[!names(df) %in% ubicuas]
+  puntuar <- function(textos_unidad) {
+    .codif_ss_puntuar(textos_unidad, textos[filas], no_resp, diccionario, min_puntaje, rel_max, max_propuestas)
   }
-  idf <- log1p(length(mods) / as.numeric(df)); names(idf) <- names(df)
-  raices_resp <- .codif_ss_raices(tok_resp, raiz, vacias)
-  if (length(dic$excluidas)) raices_resp <- lapply(raices_resp, function(r) r[!names(r) %in% dic$excluidas])
+
+  # Unidades de primer nivel: un módulo cada una.
+  unidades <- lapply(seq_along(mods), function(m) list(
+    codigo = codigos[[m]], seccion = mods[[m]], etiqueta = unname(tm$etiquetas[[mods[[m]]]]), padre = NULL,
+    textos = tm$textos[[mods[[m]]]]
+  ))
+  pz <- puntuar(lapply(unidades, `[[`, "textos"))
+
+  # TXT-11b: el módulo que se lleva más de la mitad de las propuestas se parte en subtemas.
+  con_prop1 <- sum(lengths(pz$sel) > 0L)
+  partidos <- character(0)
+  if (con_prop1 > 0L) {
+    n_mod <- vapply(seq_along(mods), function(m) sum(vapply(pz$sel, function(s) any(vapply(s, `[[`, integer(1), "m") == m), logical(1))), integer(1))
+    nuevas <- list()
+    for (m in seq_along(mods)) {
+      subs <- if (n_mod[[m]] * 2L > con_prop1) .codif_ss_subtemas(inst, mods[[m]], variable, unname(tm$etiquetas[[mods[[m]]]])) else list()
+      if (length(subs) < 2L) { nuevas <- c(nuevas, unidades[m]); next }
+      subs <- .codif_ss_fusionar_subtemas(subs, pz$vacias)
+      partidos <- c(partidos, codigos[[m]])
+      nuevas <- c(nuevas, lapply(seq_along(subs), function(j) list(
+        codigo = as.character(as.integer(codigos[[m]]) + j), seccion = subs[[j]]$seccion,
+        etiqueta = subs[[j]]$etiqueta, padre = codigos[[m]], textos = subs[[j]]$textos
+      )))
+    }
+    if (length(partidos)) { unidades <- nuevas; pz <- puntuar(lapply(unidades, `[[`, "textos")) }
+  }
 
   respuestas <- lapply(seq_along(filas), function(k) {
     i <- filas[[k]]
-    propuestas <- list()
-    if (!no_resp[[k]]) {
-      rr <- raices_resp[[k]]
-      puntajes <- lapply(seq_along(mods), function(m) {
-        comun <- intersect(names(rr), voc_mod[[m]])
-        if (!length(comun)) return(NULL)
-        w <- idf[comun]
-        o <- order(-w, comun)
-        list(m = m, puntaje = sum(w), palabras = unname(rr[comun[o]]))
-      })
-      puntajes <- Filter(Negate(is.null), puntajes)
-      if (length(puntajes)) {
-        p <- vapply(puntajes, `[[`, numeric(1), "puntaje")
-        tope <- max(p)
-        ok <- p >= min_puntaje & p >= rel_max * tope
-        sel <- puntajes[ok][order(-p[ok], vapply(puntajes[ok], `[[`, integer(1), "m"))]
-        sel <- utils::head(sel, max(1L, as.integer(max_propuestas)))
-        propuestas <- lapply(sel, function(s) list(
-          codigo = codigos[[s$m]], seccion = mods[[s$m]], etiqueta = unname(tm$etiquetas[[mods[[s$m]]]]),
-          puntaje = round(s$puntaje, 2), palabras = as.list(s$palabras)
-        ))
-      }
-    }
+    propuestas <- lapply(pz$sel[[k]], function(s) {
+      u <- unidades[[s$m]]
+      p <- list(codigo = u$codigo, seccion = u$seccion, etiqueta = u$etiqueta,
+                puntaje = round(s$puntaje, 2), palabras = as.list(s$palabras))
+      if (!is.null(u$padre)) { p$padre <- u$padre; p$subtema <- u$codigo }
+      p
+    })
     list(
       id_caso = .codif_matrix_case_id_for_row(data_df, i), fila = i, texto = textos[[i]],
       no_respuesta = isTRUE(no_resp[[k]]),
@@ -249,18 +399,31 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
     )
   })
 
+  # Lista de módulos: los de primer nivel y, tras un módulo partido, sus subtemas con `padre`.
+  n_terminos <- stats::setNames(lengths(pz$voc), vapply(unidades, `[[`, "", "codigo"))
+  modulos <- list()
+  for (m in seq_along(mods)) {
+    modulos[[length(modulos) + 1L]] <- list(
+      codigo = codigos[[m]], seccion = mods[[m]], etiqueta = unname(tm$etiquetas[[mods[[m]]]]),
+      n_terminos = if (codigos[[m]] %in% names(n_terminos)) unname(n_terminos[[codigos[[m]]]]) else
+        sum(n_terminos[vapply(unidades, function(u) identical(u$padre, codigos[[m]]), logical(1))])
+    )
+    for (u in Filter(function(u) identical(u$padre, codigos[[m]]), unidades)) {
+      modulos[[length(modulos) + 1L]] <- list(codigo = u$codigo, seccion = u$seccion, etiqueta = u$etiqueta,
+                                              padre = u$padre, n_terminos = unname(n_terminos[[u$codigo]]))
+    }
+  }
+
   con_prop <- vapply(respuestas, function(r) length(r$propuestas) > 0L, logical(1))
-  por_modulo <- stats::setNames(lapply(codigos, function(cd) {
-    sum(vapply(respuestas, function(r) any(vapply(r$propuestas, function(p) identical(p$codigo, cd), logical(1))), logical(1)))
-  }), codigos)
+  todos <- vapply(modulos, `[[`, "", "codigo")
+  por_modulo <- stats::setNames(lapply(todos, function(cd) {
+    sum(vapply(respuestas, function(r) any(vapply(r$propuestas, function(p) identical(p$codigo, cd) || identical(p$padre, cd), logical(1))), logical(1)))
+  }), todos)
   list(
     variable = variable,
     estado = "propuesta",
     requiere_confirmacion = TRUE,
-    modulos = lapply(seq_along(mods), function(m) list(
-      codigo = codigos[[m]], seccion = mods[[m]], etiqueta = unname(tm$etiquetas[[mods[[m]]]]),
-      n_terminos = length(voc_mod[[m]])
-    )),
+    modulos = modulos,
     otro = list(codigo = codigo_otro, etiqueta = "Otro"),
     respuestas = respuestas,
     resumen = list(
@@ -268,7 +431,8 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
       con_contenido = sum(!no_resp),
       con_propuesta = sum(con_prop),
       candidatos_otro = sum(vapply(respuestas, `[[`, logical(1), "candidato_otro")),
-      por_modulo = lapply(por_modulo, as.integer)
+      por_modulo = lapply(por_modulo, as.integer),
+      partidos = as.list(partidos)
     )
   )
 }
