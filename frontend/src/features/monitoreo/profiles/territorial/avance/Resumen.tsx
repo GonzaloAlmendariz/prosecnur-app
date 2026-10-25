@@ -135,9 +135,9 @@ function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () =
         </p>
       ) : modelo.motivos.length ? (
         <>
-          <ul className="mon-res-motivos">
+          <ul className="mon-res-motivos" data-qa-geometry-group="territorial-resumen-motivos" data-qa-geometry-contract="equal">
             {modelo.motivos.map((motivo) => (
-              <li key={motivo.clave}><span>{motivo.rotulo}</span><b>{fmt(motivo.casos)}</b></li>
+              <li key={motivo.clave} data-qa-geometry-member={motivo.clave}><span>{motivo.rotulo}</span><b>{fmt(motivo.casos)}</b></li>
             ))}
           </ul>
         </>

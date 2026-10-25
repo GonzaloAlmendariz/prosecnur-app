@@ -127,7 +127,18 @@ function MetasTabImpl({
           {fases.map((fase) => (
             <li key={fase.fase} className={`mon-mod-panel mon-mod-fase${fase.activa ? " is-activa" : ""}`}>
               <strong>{fase.nombre}{fase.activa ? <span className="mon-ter-chip is-ok">Activa</span> : null}</strong>
-              <span>{fase.detalle}</span>
+              {fase.cifras.length ? (
+                <dl className="mon-mod-parametros mon-mod-fase-cifras" data-qa-geometry-group={`territorial-modelo-fase-${fase.fase}`} data-qa-geometry-contract="equal">
+                  {fase.cifras.map((cifra) => (
+                    <div key={cifra.clave} data-qa-geometry-member={cifra.clave}>
+                      <dt>{cifra.rotulo}</dt>
+                      <dd className={cifra.ayuda ? "tiene-ayuda" : undefined} title={cifra.ayuda}>{cifra.valor}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <span>{fase.detalle}</span>
+              )}
               {fase.fecha ? <small>Última lectura {fase.fecha}</small> : null}
             </li>
           ))}
