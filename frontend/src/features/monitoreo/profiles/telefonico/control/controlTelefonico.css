@@ -851,6 +851,8 @@
 
   .mon-equipo-tabla-panel {
     max-height: 520px;
+    /* En columna, `align-self: start` la encogía a su tabla (78 px vacíos). */
+    align-self: stretch;
   }
 
   /* La cifra de llamados se queda; la barra cede para que las diez columnas
@@ -1644,6 +1646,8 @@
   .mon-avisos {
     display: flex;
     flex-direction: column;
+    /* El `align-items: start` de la rejilla encogía la tabla (144 px vacíos). */
+    align-items: stretch;
     height: auto;
   }
 
@@ -1688,49 +1692,9 @@
   min-height: 0;
 }
 
-.mon-tel-insistencia .mon-cola-barra {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--pulso-space-3);
-  min-height: 58px;
-  padding-left: var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.mon-tel-insistencia .mon-cola-barra > .mon-tel-rotulo {
-  flex: none;
-}
-
-.mon-tel-insistencia .mon-cola-barra > .mon-cola-filtros-marco {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* La barra ya va dentro de la tarjeta común: sin borde ni fondo propios. */
-.mon-tel-insistencia .mon-cola-filtros {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* Angosta: los filtros necesitan todo el ancho; el rótulo va arriba de ellos,
- * en la misma tarjeta. */
-@media (max-width: 1180px) {
-  .mon-tel-insistencia .mon-cola-barra {
-    flex-wrap: wrap;
-    row-gap: 0;
-    padding-top: var(--pulso-space-2);
-  }
-
-  .mon-tel-insistencia .mon-cola-barra > .mon-cola-filtros-marco {
-    flex-basis: 100%;
-    margin-left: calc(-1 * var(--pulso-space-4));
-  }
-}
+/* La tarjeta de rótulo y filtros (`.mon-cola-barra`) la pone la cola común
+ * (`core/colaDeInsistencia/colaDeInsistencia.css`): la comparte con
+ * Acreditación › Reintentos. */
 
 /* ---------- Respuestas › Salvedades (sub-vista) ----------
  * §2a-bis: la vista trae sus tarjetas; el explorador de casos de siempre, que

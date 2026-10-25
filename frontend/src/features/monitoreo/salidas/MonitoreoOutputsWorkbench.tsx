@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   AlertTriangle,
   Archive,
@@ -145,9 +145,22 @@ export type MonitoreoOutputsWorkbenchProps = {
    * Monitoreo): antetítulo sin píldora, el corte en una sola línea (los granos
    * ya van debajo, en el estado del corte) y «Incluir metas» como interruptor
    * simple. También quita el teñido de las tarjetas: el estado va en el borde
-   * lateral y en su chip. Opcional y aditiva: sólo la pasa Telefónico.
+   * lateral y en su chip.
+   *
+   * Cierre de QA (2026-10-25): es la forma de los tres modos de Monitoreo
+   * —telefónico, acreditación y territorial—, pasen o no la prop; el bloque
+   * «Listo» teñido de verde, el antetítulo en píldora y el título truncado
+   * eran de la forma anterior. Cursos-horario la conserva mientras su hoja
+   * (`aulasMonitoreo.css`) no se revise con captura.
    */
   variante?: "ficha";
+  /**
+   * El rótulo de la pestaña («AVANCE / Salidas»), para que encabece esta
+   * primera tarjeta en vez de flotar sobre ella sin contenedor (§2a-bis; QA
+   * final, Territorial › Avance › Salidas). Con rótulo, el antetítulo propio
+   * «Salidas del avance» sobra y no se pinta.
+   */
+  rotulo?: ReactNode;
 };
 
 function fmt(value: unknown, fallback = "0") {
@@ -637,7 +650,9 @@ export function MonitoreoOutputsWorkbench({
   onPublished,
   notaDeValidas,
   variante,
+  rotulo,
 }: MonitoreoOutputsWorkbenchProps) {
+  const ficha = variante === "ficha" || family !== "aulas";
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
   // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
@@ -1174,13 +1189,14 @@ export function MonitoreoOutputsWorkbench({
 
   return (
     <section
-      className={`mon-outputs-workbench${variante === "ficha" ? " mon-outputs-workbench--ficha" : ""} ${className}`}
+      className={`mon-outputs-workbench${ficha ? " mon-outputs-workbench--ficha" : ""} ${className}`}
       aria-label="Salidas de monitoreo"
     >
       <header className="mon-outputs-workbench__head">
-        {variante === "ficha" ? (
+        {ficha && rotulo ? <span className="mon-outputs-workbench__rotulo">{rotulo}</span> : null}
+        {ficha ? (
           <div>
-            <span className="mon-outputs-workbench__antetitulo">Salidas del avance</span>
+            {rotulo ? null : <span className="mon-outputs-workbench__antetitulo">Salidas del avance</span>}
             <strong>{copy.sheetsTitle}</strong>
             <small>{hasSnapshot && syncedAt ? `Corte del ${formatDate(syncedAt)}` : hasSnapshot ? "Corte sin fecha" : "Sin corte sincronizado"}</small>
           </div>

@@ -37,6 +37,38 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
+/* Con rótulo (`antesDeLosFiltros`): rótulo y filtros son UNA tarjeta, la
+ * primera de la pestaña (§2a-bis). Sin esto el rótulo de la pestaña flotaba
+ * sobre el fondo, sin contenedor (QA final, Acreditación › Reintentos). */
+.mon-cola-barra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 58px;
+  padding-left: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-cola-barra > * {
+  flex: none;
+}
+
+.mon-cola-barra > .mon-cola-filtros-marco {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Dentro de la tarjeta común la barra no repite borde ni fondo. */
+.mon-cola-barra .mon-cola-filtros {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
 /* Barra de filtros: una sola fila. Los anchos siguen al valor elegido
  * (`field-sizing`); si la barra no alcanza, el control de menor uso pasa a
  * «Más filtros» antes que partir la fila (Sede primero, luego Intentos y el
@@ -189,7 +221,10 @@
   }
 }
 
-@container cola-filtros (max-width: 1080px) {
+/* Peldaño medido (QA final, 1440): con el rótulo al lado la barra mide
+ * ~1.170 px y el interruptor quedaba montado sobre el borde. Intentos y el
+ * interruptor pasan al menú antes de no caber. */
+@container cola-filtros (max-width: 1240px) {
   .mon-cola-filtros > [data-prioridad="media"] {
     display: none;
   }
@@ -220,7 +255,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
+  /* Alto natural, como la ficha: el aire sobrante queda bajo la columna, no
+   * dentro de ella (C3, capacity-drift de la columna con 2 responsables). */
+  align-self: start;
   min-height: 0;
+  max-height: 100%;
 }
 
 .mon-cola-panel-cabecera {
@@ -230,9 +269,13 @@
   gap: var(--pulso-space-2);
 }
 
+/* Alto natural: con dos responsables la tarjeta termina bajo la segunda fila
+ * y «Sin asignar» la sigue pegado (antes la lista se estiraba y dejaba un
+ * hueco grande entre las filas y el pie). Con muchos, llega al alto de la
+ * columna y la lista desplaza dentro (C4). */
 .mon-cola-responsables {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
@@ -252,7 +295,7 @@
  * oculta sola) y un degradado al pie dice que sigue: un ítem cortado a media
  * línea sin esas dos señales se lee como el último. */
 .mon-cola-responsables-lista {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   margin: 0;
   padding: 0 0 var(--pulso-space-6);
@@ -831,6 +874,19 @@
  * barra de filtros en dos o tres filas, el documento desplaza (dueño:
  * `.mon-workbench-content`) y la cola conserva una ventana de 15 filas. */
 @media (max-width: 1180px) {
+  /* Angosta: los filtros necesitan todo el ancho; el rótulo va arriba de
+   * ellos, en la misma tarjeta. */
+  .mon-cola-barra {
+    flex-wrap: wrap;
+    row-gap: 0;
+    padding-top: var(--pulso-space-2);
+  }
+
+  .mon-cola-barra > .mon-cola-filtros-marco {
+    flex-basis: 100%;
+    margin-left: calc(-1 * var(--pulso-space-4));
+  }
+
   .mon-cola {
     height: auto;
     min-height: 100%;

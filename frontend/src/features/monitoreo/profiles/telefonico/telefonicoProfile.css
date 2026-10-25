@@ -279,6 +279,10 @@
 .mon-profile-canonical-shell .mon-acr-source-status-strip.is-phone,
 .mon-acr-source-status-strip.is-phone {
   grid-template-columns: minmax(0, 1fr) auto;
+  /* Neutra, como toda tarjeta de la ficha: la base heredada la teñía con un
+   * degradado del color del módulo (QA final, Insumos › Fuentes). */
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
 }
 
 .mon-acr-source-status-strip.is-phone > header {
