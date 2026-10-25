@@ -38,7 +38,7 @@
   e <- .CITAS_ELISION
   x <- gsub("https?://\\S+|www\\.\\S+", e, x, perl = TRUE, ignore.case = TRUE)
   x <- gsub("\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", e, x, perl = TRUE, ignore.case = TRUE)
-  x <- gsub("\\+?\\d[\\d\\s().-]{6,}\\d", e, x, perl = TRUE)
+  x <- .txt_borrar_telefonos(x, e)
   x <- gsub("\\[\u2026\\](\\s*\\[\u2026\\])+", e, x, perl = TRUE)                # dos borrados seguidos son uno
   x <- gsub("^[\"\u201C\u201D\u00AB\u00BB]+\\s*|\\s*[\"\u201C\u201D\u00AB\u00BB]+$", "", x, perl = TRUE)   # la lámina pone sus comillas
   trimws(gsub("\\s+", " ", x, perl = TRUE))
@@ -122,14 +122,19 @@
 }
 
 #' Raíces de contenido de cada comentario (las de la nube limpia), sin repetir
+#'
+#' `equivalencias` son las del diccionario de la pregunta (TXT-6/7): dos formas unidas por el usuario puntúan como una.
+#' Los términos excluidos no se aplican aquí: la cita es textual.
 #' @keywords internal
-.citas_raices <- function(textos, min_chars = 3L) {
+.citas_raices <- function(textos, min_chars = 3L, equivalencias = NULL) {
   tok <- .txt_tokens(textos)
   vacias <- .txt_vacias_limpias()
   es_cont <- function(t) nchar(t, type = "chars") >= min_chars & !.txt_sin_tildes(t) %in% vacias
   voc <- unique(unlist(tok))
   if (!length(voc)) return(lapply(tok, function(t) character(0)))
-  raiz <- .txt_raiz(voc, vocabulario = voc[es_cont(voc)])
+  cont <- voc[es_cont(voc)]
+  eqm <- .txt_dic_mapa(equivalencias, function(w) unname(.txt_raiz(w, vocabulario = cont)))
+  raiz <- .txt_raiz(voc, vocabulario = cont, equivalencias = as.list(eqm$mapa))
   lapply(tok, function(t) unique(unname(raiz[t[es_cont(t)]])))
 }
 
@@ -144,13 +149,14 @@
 #' @param textos Comentarios tal como vienen de la base (una fila por persona).
 #' @param personas Identificador de persona por fila (opcional; sin él, cada fila es una persona).
 #' @param aprobadas Ids aprobados por el analista (`citas_aprobadas`), en el orden en que se dibujan.
+#' @param equivalencias Grupos del diccionario de la pregunta: unen formas al puntuar; no cambian el texto.
 #' @return Lista: `candidatas` (data.frame id, texto, chars, puntaje, persona, revision, propuesta; en su orden),
 #'   `elegidas` (las que se dibujan), `borrador`, `base` (comentarios con contenido), `escribieron`, `faltantes`
 #'   (aprobadas que ya no están) y `avisos` para el analista.
 #' @keywords internal
 .citas_seleccionar <- function(textos, personas = NULL, aprobadas = NULL, min_chars = 40L, max_chars = 280L,
                                max_citas = 5L, min_citas = 3L, min_personas = 3L, solape = 0.6,
-                               semilla = .CITAS_SEMILLA, autores = NULL) {
+                               semilla = .CITAS_SEMILLA, autores = NULL, equivalencias = NULL) {
   crudo <- as.character(textos); crudo[is.na(crudo)] <- ""
   if (is.null(personas)) personas <- seq_along(crudo)
   personas <- as.character(personas)
@@ -160,7 +166,7 @@
   avisos <- character(0)
   vacio <- data.frame(id = character(), texto = character(), chars = integer(), puntaje = integer(), persona = character(),
                       revision = character(), propuesta = logical(), stringsAsFactors = FALSE)
-  raices <- .citas_raices(crudo[pool])
+  raices <- .citas_raices(crudo[pool], equivalencias = equivalencias)
   # Frecuencia por persona (sin ponderar) en los comentarios con contenido del tema o del total.
   por_raiz <- if (length(pool)) tapply(rep(personas[pool], lengths(raices)), unlist(raices), function(p) length(unique(p))) else integer(0)
   frecuentes <- names(por_raiz)[por_raiz >= min_personas]
@@ -274,6 +280,7 @@
 .render_citas <- function(el, preset_args = list()) {
   resolver <- dynGet(".resolve_ref", ifnotfound = NULL); filtrar <- dynGet(".filter_data", ifnotfound = NULL)
   sep <- .citas_separar_filtros(el$filtros %||% list())
+  ctx <- NULL
   if (is.function(resolver) && is.function(filtrar)) {
     ctx <- resolver(el$var, source = el$source %||% NULL, arg_name = "var")
     d <- filtrar(sep$resto, source = ctx$source); var <- ctx$var
@@ -289,8 +296,11 @@
   if (!var %in% names(d)) .plan_spec_abort(sprintf("Las citas piden «%s», que no está en la base.", var))
   vp <- el$var_persona %||% NULL
   personas <- if (!is.null(vp) && vp %in% names(d)) d[[vp]] else NULL
+  # TXT-6/7: las equivalencias del diccionario de la pregunta, salvo que la lámina traiga las suyas (el plan gana).
+  ov <- el$overrides %||% list()
+  eq <- if ("equivalencias" %in% names(ov)) ov$equivalencias else .txt_dic_de_ctx(ctx)$equivalencias
   sel <- .citas_seleccionar(d[[var]], personas = personas, aprobadas = el$citas_aprobadas, max_citas = el$max_citas %||% 5L,
-                            autores = (el$overrides %||% list())$autores)
+                            autores = ov$autores, equivalencias = eq)
   for (a in sel$avisos) .pulso_aviso(a)
   graficar_citas(sel)
 }

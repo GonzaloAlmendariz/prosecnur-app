@@ -725,6 +725,7 @@ estudio_remove_base <- function(sid, nombre) {
   if (!is.null(s$analitica_status_por_base)) s$analitica_status_por_base[[nombre]] <- NULL
   if (!is.null(s$graficos_config_por_base)) s$graficos_config_por_base[[nombre]] <- NULL
   if (!is.null(s$graficos_status_por_base)) s$graficos_status_por_base[[nombre]] <- NULL
+  if (!is.null(s$texto_abierto_diccionario)) s$texto_abierto_diccionario[[nombre]] <- NULL   # TXT-6/7
 
   # Re-espejar si quedan bases; sino, limpiar los campos legacy.
   remaining <- names(s$estudio$bases)
@@ -813,6 +814,7 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
   if (!is.null(s$graficos_status_por_base)) {
     s$graficos_status_por_base <- rename_key(s$graficos_status_por_base, nombre_actual, nombre_nuevo)
   }
+  if (!is.null(s$texto_abierto_diccionario)) s$texto_abierto_diccionario <- rename_key(s$texto_abierto_diccionario, nombre_actual, nombre_nuevo)
 
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
