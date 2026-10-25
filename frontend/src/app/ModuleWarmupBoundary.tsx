@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { apiJobStatus, apiProjectWarmup } from "../api/client";
+import { VistaSkeleton } from "../components/VistaSkeleton";
 import {
   PROSECNUR_ACTIVE_MODULES,
   moduleChromeVars,
   type ActiveProsecnurModuleMeta,
 } from "../lib/modules";
 import {
+  WARMUP_MODULES,
   markWarmupModulesComplete,
   warmupFrontendModules,
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
+import { WarmupReloj, useAhora } from "./WarmupReloj";
+import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
+import "./module-warmup.css";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -25,13 +31,61 @@ type ModuleWarmupProfile = {
   concurrency?: number;
 };
 
+/** Una fase del arranque del módulo, con su tiempo (L23). */
+type ModuleWarmupFase = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "ready" | "error";
+  inicioMs?: number;
+  elapsedMs?: number;
+};
+
 type ModuleWarmupState = {
   key: string;
   status: "idle" | "running" | "ready";
   percent: number;
   message: string;
+  inicioMs?: number;
+  fases?: ModuleWarmupFase[];
   error?: string;
 };
+
+const BACKEND_FASE_ID = "backend";
+const BACKEND_FASE_LABEL = "Datos del proyecto";
+
+function labelModuloFrontend(id: string) {
+  return WARMUP_MODULES.find((entry) => entry.id === id)?.label ?? id;
+}
+
+/** Fases iniciales: los módulos de interfaz del perfil y, si aplica, los datos. */
+function fasesIniciales(profile: ModuleWarmupProfile, conBackend: boolean): ModuleWarmupFase[] {
+  const fases: ModuleWarmupFase[] = profile.frontend.map((id) => ({
+    id,
+    label: labelModuloFrontend(id),
+    status: "pending",
+  }));
+  if (conBackend) fases.push({ id: BACKEND_FASE_ID, label: BACKEND_FASE_LABEL, status: "pending" });
+  return fases;
+}
+
+/** Aplica un avance a la fase `id`, anotando cuándo empezó a correr. */
+function avanzarFase(
+  fases: Map<string, ModuleWarmupFase>,
+  id: string,
+  cambio: { status: ModuleWarmupFase["status"]; elapsedMs?: number },
+) {
+  const previa = fases.get(id);
+  if (!previa) return;
+  const ahora = Date.now();
+  fases.set(id, {
+    ...previa,
+    status: cambio.status,
+    inicioMs: previa.inicioMs ?? (cambio.status === "running" ? ahora : undefined),
+    elapsedMs: cambio.elapsedMs ?? (cambio.status === "running" || previa.inicioMs === undefined
+      ? previa.elapsedMs
+      : ahora - previa.inicioMs),
+  });
+}
 
 const MODULE_WARMUP_BUDGET_MS = 60000;
 const HEAVY_MODULE_WARMUP_BUDGET_MS = 90000;
@@ -55,7 +109,7 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     moduleTo: "/procesamiento",
     frontend: ["procesamiento", "validacion"],
     backend: ["project", "validacion"],
-    messages: ["Revisando instrumento", "Preparando validacion", "Abriendo procesamiento"],
+    messages: ["Revisando instrumento", "Preparando validación", "Abriendo procesamiento"],
   },
   {
     key: "codificacion",
@@ -63,7 +117,7 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     moduleTo: "/procesamiento",
     frontend: ["procesamiento", "codificacion"],
     backend: ["project", "codificacion"],
-    messages: ["Leyendo preguntas", "Preparando codificacion", "Abriendo procesamiento"],
+    messages: ["Leyendo preguntas", "Preparando codificación", "Abriendo procesamiento"],
   },
   {
     key: "analitica",
@@ -71,15 +125,15 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     moduleTo: "/procesamiento",
     frontend: ["procesamiento", "analitica"],
     backend: ["project", "analitica"],
-    messages: ["Revisando mediciones", "Preparando analisis", "Abriendo procesamiento"],
+    messages: ["Revisando mediciones", "Preparando análisis", "Abriendo procesamiento"],
   },
   {
     key: "graficos",
-    title: "Graficos",
+    title: "Gráficos",
     moduleTo: "/procesamiento",
     frontend: ["procesamiento", "graficos", "graficos_datos", "plotly"],
     backend: ["project", "graficos"],
-    messages: ["Leyendo variables", "Preparando graficos", "Abriendo editor"],
+    messages: ["Leyendo variables", "Preparando gráficos", "Abriendo editor"],
     taskTimeoutMs: 22000,
   },
   {
@@ -115,11 +169,11 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
   },
   {
     key: "calc-muestra",
-    title: "Calculo de muestra",
+    title: "Cálculo de muestra",
     moduleTo: "/calc-muestra",
     frontend: ["calc_muestra"],
     backend: ["project", "calc_muestra"],
-    messages: ["Revisando marco", "Preparando calculo", "Abriendo modulo"],
+    messages: ["Revisando marco", "Preparando cálculo", "Abriendo módulo"],
   },
   {
     key: "material-campo",
@@ -127,7 +181,7 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     moduleTo: "/material-campo",
     frontend: ["material_campo"],
     backend: ["project", "monitoreo"],
-    messages: ["Leyendo agenda", "Preparando fichas", "Abriendo modulo"],
+    messages: ["Leyendo agenda", "Preparando fichas", "Abriendo módulo"],
   },
   {
     key: "dashboard",
@@ -222,10 +276,10 @@ function shouldSkipBackendWarmupForVisualQa() {
 }
 
 function profileMessage(profile: ModuleWarmupProfile, percent: number) {
-  if (percent >= 95) return "Abriendo modulo";
+  if (percent >= 95) return "Abriendo módulo";
   if (percent >= 62) return profile.messages[2] ?? profile.messages[0];
   if (percent >= 32) return profile.messages[1] ?? profile.messages[0];
-  return profile.messages[0] ?? "Preparando modulo";
+  return profile.messages[0] ?? "Preparando módulo";
 }
 
 function progressPercent(frontend: Map<string, WarmupModuleProgress>, backendDone: number, backendTotal: number) {
@@ -248,13 +302,7 @@ export function RouteLoadingFallback() {
   const location = useLocation();
   const profile = warmupProfileForPath(location.pathname);
   if (!profile) return null;
-  return (
-    <ModuleWarmupScreen
-      profile={profile}
-      percent={8}
-      message={profile.messages[0] ?? "Preparando modulo"}
-    />
-  );
+  return <ModuleWarmupScreen profile={profile} message={profile.messages[0] ?? "Preparando módulo"} />;
 }
 
 export default function ModuleWarmupBoundary({ children }: { children: ReactNode }) {
@@ -299,6 +347,7 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     }
 
     let cancelled = false;
+    const inicioMs = Date.now();
     const frontendProgress = new Map<string, WarmupModuleProgress>();
     for (const id of profile.frontend) {
       frontendProgress.set(id, { id, label: id, status: "pending" });
@@ -306,6 +355,9 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     let backendDone = 0;
     const skipBackendWarmup = shouldSkipBackendWarmupForVisualQa();
     const backendTotal = skipBackendWarmup ? 0 : profile.backend.length;
+    const fases = new Map<string, ModuleWarmupFase>(
+      fasesIniciales(profile, backendTotal > 0).map((fase) => [fase.id, fase]),
+    );
 
     const pushProgress = (message?: string) => {
       if (cancelled || runRef.current !== runId) return;
@@ -315,13 +367,17 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
         status: "running",
         percent,
         message: message ?? profileMessage(profile, percent),
+        inicioMs,
+        fases: Array.from(fases.values()),
       });
     };
 
+    if (backendTotal > 0) avanzarFase(fases, BACKEND_FASE_ID, { status: "running" });
     pushProgress(profile.messages[0]);
 
     const frontendPromise = warmupFrontendModules((progress) => {
       frontendProgress.set(progress.id, progress);
+      avanzarFase(fases, progress.id, { status: progress.status, elapsedMs: progress.elapsed_ms });
       pushProgress(progress.status === "running" ? progress.label : undefined);
     }, {
       concurrency: profile.concurrency ?? 2,
@@ -337,7 +393,12 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
       }).then(async (job) => {
         const done = await waitForWarmupJob(job.job_id);
         backendDone = done || backendTotal;
+        avanzarFase(fases, BACKEND_FASE_ID, { status: "ready" });
         pushProgress(profile.messages[2]);
+      }).catch((err: unknown) => {
+        avanzarFase(fases, BACKEND_FASE_ID, { status: "error" });
+        pushProgress();
+        throw err;
       })
       : Promise.resolve();
 
@@ -352,7 +413,7 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
         key: profile.key,
         status: "ready",
         percent: 100,
-        message: profile.messages[2] ?? "Abriendo modulo",
+        message: profile.messages[2] ?? "Abriendo módulo",
         error: rejected?.reason instanceof Error ? rejected.reason.message : undefined,
       });
     };
@@ -379,58 +440,88 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     return children;
   }
 
+  const propio = state.key === profile.key;
   return (
     <ModuleWarmupScreen
       profile={profile}
-      percent={state.key === profile.key ? state.percent : 1}
-      message={state.key === profile.key ? state.message : profile.messages[0]}
-      error={state.key === profile.key ? state.error : undefined}
+      message={propio ? state.message : profile.messages[0]}
+      inicioMs={propio ? state.inicioMs : undefined}
+      fases={propio ? state.fases : undefined}
+      error={propio ? state.error : undefined}
     />
   );
 }
 
+function FaseIcono({ status }: { status: ModuleWarmupFase["status"] }) {
+  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
+  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="pulso-module-warmup-spin" aria-hidden="true" />;
+  if (status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
+  return null;
+}
+
 function ModuleWarmupScreen({
   profile,
-  percent,
   message,
+  inicioMs,
+  fases,
   error,
 }: {
   profile: ModuleWarmupProfile;
-  percent: number;
   message: string;
+  inicioMs?: number;
+  fases?: ModuleWarmupFase[];
   error?: string;
 }) {
   const module = moduleForProfile(profile);
+  // Sin inicio del boundary (fallback de Suspense) el reloj cuenta desde que
+  // esta pantalla apareció.
+  const [montadoMs] = useState(() => Date.now());
+  const ahoraMs = useAhora(true);
+  const desde = inicioMs ?? montadoMs;
   return (
     <section
       className="pulso-module-warmup"
       style={module ? moduleChromeVars(module) : undefined}
       role="status"
       aria-live="polite"
+      data-module-warmup={profile.key}
     >
-      <div className="pulso-module-warmup-mark" aria-hidden="true">
-        <span />
-        <span />
-        <span />
+      <div className="pulso-module-warmup-destino" aria-hidden="true">
+        <VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />
       </div>
-      <div className="pulso-module-warmup-copy">
-        <p>{profile.title}</p>
-        <h2>{message || "Preparando modulo"}</h2>
-      </div>
-      <div className="pulso-module-warmup-progress">
-        <span>{Math.min(100, Math.max(1, Math.round(percent)))}%</span>
-        <div
-          className="pulso-module-warmup-track"
-          role="progressbar"
-          aria-label="Avance"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.min(100, Math.max(1, Math.round(percent)))}
-        >
-          <i style={{ width: `${Math.min(100, Math.max(1, Math.round(percent)))}%` }} />
+      <div className="pulso-module-warmup-card">
+        <div className="pulso-module-warmup-mark" aria-hidden="true">
+          <span />
+          <span />
+          <span />
         </div>
+        <div className="pulso-module-warmup-copy">
+          <p>{profile.title}</p>
+          <h2>{message || "Preparando módulo"}</h2>
+        </div>
+        <WarmupReloj transcurridoMs={Math.max(0, ahoraMs - desde)} estimacion={SIN_ESTIMACION} />
+        {fases?.length ? (
+          <ol className="pulso-module-warmup-fases" aria-label="Fases" aria-live="off">
+            {fases.map((fase) => (
+              <li className={`pulso-module-warmup-fase is-${fase.status}`} key={fase.id}>
+                <span className="pulso-module-warmup-fase-icono" aria-hidden="true">
+                  <FaseIcono status={fase.status} />
+                </span>
+                <strong>{fase.label}</strong>
+                <small>
+                  {duracionFase({
+                    status: fase.status,
+                    elapsedMs: fase.elapsedMs,
+                    inicioMs: fase.inicioMs,
+                    ahoraMs,
+                  }) || (fase.status === "pending" ? "En espera" : "")}
+                </small>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {error ? <small className="pulso-module-warmup-error">{error}</small> : null}
       </div>
-      {error ? <small>{error}</small> : null}
     </section>
   );
 }
