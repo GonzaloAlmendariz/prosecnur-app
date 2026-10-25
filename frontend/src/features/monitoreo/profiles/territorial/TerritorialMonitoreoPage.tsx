@@ -63,6 +63,7 @@ import {
   direccionInicial,
   direccionPedida,
   esPestanaPropia,
+  llevaRotuloEnLaPestana,
   esSeccionTerritorial,
   PANELES_DEL_PERFIL,
   panelesSuperpuestos,
@@ -1784,6 +1785,7 @@ export default function TerritorialMonitoreoPage() {
     [lecturaAvance?.meta, phase, state],
   );
   const lienzo = esPestanaPropia(direccion);
+  const sinCabecera = llevaRotuloEnLaPestana(direccion);
   const rotulo = useMemo(() => ({
     antetitulo: antetituloDePestana(direccion.seccion, direccion.pestana),
     titulo: pestanasRail.find((tab) => tab.key === direccion.pestana)?.label ?? direccion.pestana,
@@ -1863,7 +1865,7 @@ export default function TerritorialMonitoreoPage() {
         hasReportStatus
         scrollResetKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
         sinCalidadDeCampo={lienzo}
-        mainClassName={lienzo ? "sin-cabecera" : undefined}
+        mainClassName={sinCabecera ? "sin-cabecera" : undefined}
         rail={(
           <RailTerritorial
             seccion={direccion.seccion}
@@ -1873,7 +1875,7 @@ export default function TerritorialMonitoreoPage() {
             onCambioPestana={(pestana) => irA({ seccion: direccion.seccion, pestana, panel: null })}
           />
         )}
-        head={lienzo ? null : (
+        head={sinCabecera ? null : (
           <CabeceraTerritorial
             direccion={direccion}
             pestanas={pestanasRail}
