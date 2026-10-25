@@ -4,6 +4,7 @@ import { cruceDeLlave } from "../insumos/llaveModel";
 import { useMemo, useRef } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { BarraDelModo } from "../../../shell/BarraDelModo";
+import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import { fmt } from "../formato";
 import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
@@ -79,12 +80,20 @@ export function indicadoresDelModo(resumen: ResumenDelModoTelefonico): BarraDelM
   ];
 }
 
-/** Insignias de las píldoras: casos por revisar en Control y avance en Avance. */
-export function insigniasDelModo(resumen: ResumenDelModoTelefonico): Partial<Record<"control" | "avance", string>> {
-  const insignias: Partial<Record<"control" | "avance", string>> = {};
+/**
+ * Insignias de las píldoras: casos por revisar en Control y avance en Avance.
+ * El avance lleva su base (L20): las efectivas y la meta de Avance › Cuotas,
+ * el mismo par que su chip «423 de 400 efectivas».
+ */
+export function insigniasDelModo(resumen: ResumenDelModoTelefonico): Partial<Record<"control" | "avance", MetricaDeSeccion>> {
+  const insignias: Partial<Record<"control" | "avance", MetricaDeSeccion>> = {};
   if (resumen.porRevisar != null && resumen.porRevisar > 0) insignias.control = fmt(resumen.porRevisar);
   if (resumen.meta != null && resumen.meta > 0) {
-    insignias.avance = `${fmt(Math.round((resumen.efectivas / resumen.meta) * 100))} %`;
+    insignias.avance = {
+      valor: `${fmt(Math.round((resumen.efectivas / resumen.meta) * 100))} %`,
+      base: `${fmt(resumen.efectivas)}/${fmt(resumen.meta)}`,
+      lectura: `${fmt(resumen.efectivas)} efectivas de una meta de ${fmt(resumen.meta)}`,
+    };
   }
   return insignias;
 }
