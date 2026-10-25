@@ -647,6 +647,12 @@ graficar_barras_agrupadas <- function(
     }
   }
 
+  # Lámina 23 (R15): en un cruce la cabecera mide lo que su título, como en el comparativo; la declarada (1.25 in) dejaba
+  # el bloque arriba con un hueco bajo el título (graficador_barras_agrupadas_cruce.R).
+  if (.agrupadas_es_cruce(length(cols_porcentaje), comparativo_activo, orientacion, usar_canvas)) {
+    canvas_h_header_in <- .barras_comparativo_header(canvas_h_header_in, size_titulo)
+  }
+
   # validaciones
   if (!var_categoria %in% names(data)) stop("`var_categoria` no existe en `data`.", call. = FALSE)
   if (!var_n %in% names(data))         stop("`var_n` no existe en `data`.", call. = FALSE)

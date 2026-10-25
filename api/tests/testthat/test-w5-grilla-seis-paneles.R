@@ -50,8 +50,20 @@ test_that("CCSS-24: acotado a la grilla de seis; la de cinco (Arte, lámina 2) c
   cat5 <- .w5_cat(c("Contratado", "Jefe de Práctica", "Auxiliar", "Asociado", "Principal"), c(.42, .29, .17, .11, .02),
                   c(48, 33, 20, 13, 2))
   P5 <- .lam_poblacion_geo("p_slide_5_graficos_poblacion")$paneles
+  P5 <- Filter(function(p) p$w > 4.5, P5)   # las celdas anchas (la de Arte); las angostas sí pueden ir compactas
+  expect_gte(length(P5), 1L)
   for (p in P5) {
     g <- .lam_panel_geo(cat5, p$x, p$y, p$w, p$h, pregunta = "¿Cuál es su categoría académica?")
     expect_null(g$compacta)
   }
+})
+
+test_that("CCSS-24 (reabierto): con el título de tres líneas la grilla de seis baja sus paneles y las barras siguen nativas", {
+  # CCSS-25 corre los paneles hacia abajo y les quita alto: la celda ya no coincide con la geometría de `poblacion_6`.
+  madre <- .w5_cat(c("Hasta secundaria completa", "Superior técnica", "Universitaria", "Posgrado"),
+                   c(.24, .21, .39, .17), c(90, 80, 147, 61))
+  p <- .lam_poblacion_geo("p_slide_6_graficos_poblacion")$paneles[[5]]
+  g <- .lam_panel_geo(madre, p$x, p$y + 0.25, p$w, p$h - 0.25, pregunta = "Nivel educativo de la madre", publico = "378 respuestas")
+  expect_identical(g$tipo, "barras"); expect_true(isTRUE(g$cabe)); expect_true(isTRUE(g$compacta))
+  expect_gte(g$g, 0.15)
 })
