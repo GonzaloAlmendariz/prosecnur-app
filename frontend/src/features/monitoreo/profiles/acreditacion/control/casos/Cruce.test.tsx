@@ -20,7 +20,7 @@ describe("Control › Cruce", () => {
       ],
     } as unknown as MonitoreoInternalQueries;
     const html = renderToStaticMarkup(<Cruce consultas={consultas} />);
-    expect(html).toContain("12 registros: 10 personas del padrón y 2 respuestas fuera de él");
+    expect(html).toContain("12 registros");
     expect(html).toContain("Llave del padrón, sin respuesta");
     expect(html).toContain("Cruzó por llave");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);

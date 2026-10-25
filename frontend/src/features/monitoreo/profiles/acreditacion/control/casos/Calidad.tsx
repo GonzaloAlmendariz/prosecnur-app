@@ -32,7 +32,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
           <h3>Respuestas demasiado cortas <span className="acr-av-tenue">{`Se revisan las de menos de ${duracionLegible(minimo)}`}</span></h3>
         </CabeceraDeTarjeta>
         <div className="acr-cl-cifras is-dos" data-qa-geometry-group="acreditacion-calidad-cifras" data-qa-geometry-contract="equal">
-          <div className="acr-res-kpi" data-qa-geometry-member><small>{`A revisar: menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas.length)}</b></div>
+          <div className="acr-res-kpi" data-qa-geometry-member><small>{`Menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas.length)}</b></div>
           <div className="acr-res-kpi is-neutra" data-qa-geometry-member><small>{`Más de ${duracionLegible(maximo)}, no se revisan`}</small><b className="acr-av-num">{fmt(largas)}</b></div>
         </div>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">

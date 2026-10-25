@@ -51,7 +51,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
           </CabeceraDeTarjeta>
           {plan.length ? null : (
             <AvisoDeTarjeta accion={<button type="button" className="acr-av-boton" onClick={onDeclararFases}><CalendarRange size={14} aria-hidden="true" /> Declarar fases</button>}>
-              El plan de campo no tiene fases con fechas; sin ellas el gráfico no marca las etapas.
+              El plan de campo no tiene fases con fechas.
             </AvisoDeTarjeta>
           )}
           <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} />
