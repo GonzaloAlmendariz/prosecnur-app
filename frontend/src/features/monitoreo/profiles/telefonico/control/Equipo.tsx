@@ -8,6 +8,7 @@ import { EquipoMatriz } from "./EquipoMatriz";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import { construirEquipo, familiasDe, statusDe, type Equipo as Modelo, type OperadorDeEquipo } from "./equipoModel";
 import "./controlTelefonico.css";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 
 /** «Estados por operador» es una vista de la pestaña con dirección: `panel=estados`. */
 export const PANEL_ESTADOS: PanelDeclarado = { id: "estados", label: "Estados por operador", clase: "inspector" };
@@ -185,10 +186,13 @@ export function Equipo({
   const [foco, escribirFoco] = useFocoMonitoreo();
   const elegido = modelo.operadores.find((op) => op.nombre === foco) ?? modelo.operadores[0] ?? null;
   const equipo = resumenDeEquipo(modelo.operadores.map((op) => op.nombre));
+  const hayRotulo = useHayRotulo();
 
   return (
     <div className="mon-equipo" data-qa-geometry-group="telefonico-control-equipo" data-qa-geometry-contract="intrinsic">
       <section className="mon-ctl-panel mon-equipo-tabla-panel" aria-label="Rendimiento del equipo" {...panel.props}>
+        {/* §2a-bis: el rótulo de la pestaña, con sus chips, encabeza la tarjeta; debajo, su vista. */}
+        {hayRotulo ? <header className="mon-ctl-panel-cabecera mon-tel-cabecera-rotulo"><RotuloDePestana /></header> : null}
         <header className="mon-ctl-panel-cabecera">
           <b>{panel.abierto ? "Estados por operador" : "Carga por operador"}</b>
           <span>{equipo.etiqueta}</span>

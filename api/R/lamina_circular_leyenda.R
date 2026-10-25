@@ -45,6 +45,7 @@
 #' @keywords internal
 .lam_circular_leyenda_dibujar <- function(lz, espec, geo, cols) {
   azul <- .std_color("azul"); k <- length(espec$valores)
+  espec$cifras <- .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec))   # U5: «<1%» si redondea a 0 con casos
   y_ley <- geo$y0 + max(0, (geo$d - geo$fila * geo$per) / 2)
   lado <- min(0.17, geo$fila - 0.08)
   for (i in seq_len(k)) {

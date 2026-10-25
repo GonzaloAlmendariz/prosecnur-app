@@ -932,7 +932,7 @@
   snapshot <- s$monitoreo_snapshot %||% NULL
   # Unidad 3.1: token barato ANTES de anotar/normalizar; hit = derivados cacheados (monitoreo_state_cache.R).
   derived <- monitoreo_state_derived(sid, s, sources)
-  data <- derived$data; cfg <- derived$cfg; family <- derived$family
+  data <- derived$data; cfg <- .monitoreo_supervision_rondas_en_cfg(derived$cfg, s); family <- derived$family # rondas guardadas: monitoreo_supervision_rondas.R
   territorial_light_state <- identical(family, "territorial") && !isTRUE(include_reports)
   display_data <- derived$display_data
   if (isTRUE(include_reports) && identical(family, "territorial") && !identical(report_scope, "light")) {

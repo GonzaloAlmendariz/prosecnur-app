@@ -30,7 +30,9 @@ test_that("con bases distintas cada panel lleva la suya y el pie no las concaten
 test_that("con bases iguales va una sola «Base:» y los paneles no la repiten", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   x <- .bp_lams(list(a = p_slide_4_graficos(p_donut("x1"), p_donut("x2"), p_donut("x1"), p_donut("x2"), titulo = "Bases iguales")))[[1]]
-  expect_identical(paste(.bp_txt(x, "Base lamina"), collapse = ""), "Base: 120 respuestas")
+  # CCSS-15 (2026-10-24, cambio deliberado): sin sufijo declarado en el preset de base el pie es «Base: N» en todas las rutas
+  # (graficos_base_pie_forma.R); antes esta ruta agregaba «respuestas» por su cuenta.
+  expect_identical(paste(.bp_txt(x, "Base lamina"), collapse = ""), "Base: 120")
   expect_length(.bp_txt(x, "panel:base"), 0L)
 })
 

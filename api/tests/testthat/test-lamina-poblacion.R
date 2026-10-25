@@ -59,7 +59,8 @@ test_that("la lámina de población sólo lleva la base que declaró el analista
   base_de <- function(x) paste(xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]")), collapse = "")
   # G9 (2026-10-13): los cuatro paneles son del mismo público con el mismo n, así que su «120 respuestas» pasa a la
   # esquina de la lámina en vez de repetirse en cada panel.
-  expect_identical(base_de(lam[[1]]), "Base: 120 respuestas")
+  # CCSS-15 (2026-10-24, cambio deliberado): sin sufijo declarado, «Base: N» como las demás rutas (graficos_base_pie_forma.R).
+  expect_identical(base_de(lam[[1]]), "Base: 120")
   expect_identical(base_de(lam[[2]]), "Base: 120 autoridades")
   # Con la base oculta a propósito, la lámina no la escribe y cada panel conserva la suya.
   expect_identical(base_de(lam[[3]]), "")

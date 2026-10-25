@@ -1,11 +1,13 @@
 // Vista previa real de la lámina seleccionada (F6.1). No reimplementa debounce ni cancelación: usa
 // `crearCoordinadorPreviewLamina` (F6.0b.2), un coordinador por lámina para que «la imagen anterior» que se muestra
 // como desactualizada sea siempre de ESTA lámina y no de la que se miraba antes. Volver a una lámina sin cambios
-// responde al instante desde el coordinador. El render corre como job (`/preview-slide-job`, F6 §5.3): Plumber no queda
+// responde al instante desde el coordinador, también tras desmontar el visor: los coordinadores y lo ya dibujado viven
+// en un registro de módulo (U6, previewLaminaRegistro.ts). El render corre como job (`/preview-slide-job`, F6 §5.3): Plumber no queda
 // bloqueado y la vista muestra el progreso; si el backend no tiene la ruta, se cae al síncrono (`previewPorJob.ts`).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { getSession } from "../../../api/core";
 import { apiGraficosPreviewSlide, normalizePreviewFormas, type PreviewFormas, type Slide } from "../../../api/graficos";
 import { apiGraficosPreviewSlideJob } from "../../../api/graficosMiniaturas";
 import { apiJobCancel } from "../../../api/jobs";
@@ -17,6 +19,7 @@ import { usePlanStore } from "../store";
 import { estadoDeLamina, leerLaminaVisor, type LaminaVisor } from "./estadoLamina";
 import { useLaminasUi } from "./laminasStore";
 import { crearCargaPreviewPorJob, type ProgresoPreview } from "./miniaturas/previewPorJob";
+import { crearRegistroPreviewLaminas } from "./previewLaminaRegistro";
 
 /** Una sola instancia por app: recuerda si el backend tiene la ruta del job. */
 const cargarPreview = crearCargaPreviewPorJob({
@@ -25,6 +28,39 @@ const cargarPreview = crearCargaPreviewPorJob({
   poll: (jobId, onUpdate) => iniciarJobPoll(jobId, onUpdate),
   cancelar: apiJobCancel,
 });
+
+/**
+ * Lo que el cargador de un coordinador lee al disparar: el alcance vigente y quién escucha el progreso. Vive en el
+ * módulo porque el coordinador sobrevive al hook que lo creó (U6); el hook montado lo actualiza.
+ */
+const vivo: { alcance: string; onProgreso: ((slideId: string, p: ProgresoPreview) => void) | null } = { alcance: "active", onProgreso: null };
+
+/** Coordinadores por lámina y respuestas por clave, a nivel de módulo (U6, previewLaminaRegistro.ts). */
+const registro = crearRegistroPreviewLaminas((id, cache) => crearCoordinadorPreviewLamina((_clave, { signal }) => {
+  const slide = usePlanStore.getState().plan.slides.find((s) => s.id === id);
+  if (!slide) return Promise.reject(new Error("La lámina ya no está en el informe."));
+  return cargarPreview({
+    // El cargador lee la lámina vigente del plan al disparar (después del debounce), no la de un render.
+    slide,
+    config: buildGraficosConfigFromStore(),
+    options: {
+      include_images: false,
+      preview_quality: calidadParaPantalla(),
+      render_slide_preview: true,
+      preview_partes: true,
+      preview_formas: true,
+      ...(vivo.alcance === "consolidated" ? { scope: "consolidated" as const } : {}),
+    },
+    signal,
+    onProgreso: (p) => { if (!signal.aborted) vivo.onProgreso?.(id, p); },
+  });
+}, { cache }));
+
+// Lo dibujado deja de valer si cambia la sesión, la base activa o los datos que lee el motor.
+if (typeof window !== "undefined") {
+  for (const ev of ["pulso:session-changed", "pulso:session-lost", "pulso:project-closed", "pulso:active-base-changed",
+    "pulso:analitica-source-changed", "pulso:codif-source-changed"]) window.addEventListener(ev, () => registro.olvidar());
+}
 
 export type VistaPreviaLamina = {
   /** Fase del coordinador: inactiva, esperando (debounce), cargando, lista o error. */
@@ -40,55 +76,43 @@ export type VistaPreviaLamina = {
   formas: PreviewFormas | null;
 };
 
-type Coordinador = ReturnType<typeof crearCoordinadorPreviewLamina>;
-
 export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string | null, habilitada: boolean): VistaPreviaLamina {
   const { search } = useLocation();
   const scope = useGraficosReportScope(search);
+  const plan = usePlanStore((s) => s.plan);
   const presets = usePlanStore((s) => s.presets);
   const paletas = usePlanStore((s) => s.paletas);
+  const paletasVinculos = usePlanStore((s) => s.paletasVinculos);
+  const iconos = usePlanStore((s) => s.iconos);
+  const estiloCliente = usePlanStore((s) => s.estiloCliente);
   const overrides = usePlanStore((s) => s.overridesReusables);
+  const scopeRules = usePlanStore((s) => s.scopeRules);
   const registrarResumen = useLaminasUi((s) => s.registrarResumen);
   const registrarMiniatura = useLaminasUi((s) => s.registrarMiniatura);
-  const coordinadores = useRef(new Map<string, Coordinador>());
   const [estado, setEstado] = useState<EstadoPreviewLamina>({ estado: "inactiva" });
   const [intento, setIntento] = useState(0);
   const [progreso, setProgreso] = useState<ProgresoPreview | null>(null);
   // El progreso sólo se pinta si viene del coordinador de la lámina que se mira.
   const activa = useRef<string | null>(null);
   activa.current = slide && habilitada ? slide.id : null;
-  // El cargador vive con el coordinador de la lámina: lee el alcance vigente al disparar, no el de cuando se creó.
-  const alcance = useRef(scope);
-  alcance.current = scope;
+  vivo.alcance = scope;
+  useEffect(() => {
+    const oir = (id: string, p: ProgresoPreview) => { if (activa.current === id) setProgreso(p); };
+    vivo.onProgreso = oir;
+    return () => { if (vivo.onProgreso === oir) vivo.onProgreso = null; };
+  }, []);
 
-  // Lo que define la imagen: la lámina, el antetítulo que hereda del plan y el estilo global.
+  // Lo que define la imagen: la lámina, el antetítulo que hereda y lo del plan que no son láminas (estilo, paletas y
+  // sus vínculos, íconos, reglas por alcance). Las demás láminas no entran: editar otra no invalida ésta.
+  const planSinLaminas = useMemo(() => { const { slides: _s, ...resto } = plan; return resto; }, [plan]);
   const clave = useMemo(
-    () => (slide ? clavePreview({ slide, antetituloHeredado, presets, paletas, overrides, scope }) : ""),
-    [slide, antetituloHeredado, presets, paletas, overrides, scope],
+    () => (slide ? clavePreview({ slide, antetituloHeredado, presets, paletas, paletasVinculos, iconos, estiloCliente, overrides, scopeRules, planSinLaminas, scope }) : ""),
+    [slide, antetituloHeredado, presets, paletas, paletasVinculos, iconos, estiloCliente, overrides, scopeRules, planSinLaminas, scope],
   );
 
   useEffect(() => {
     if (!slide || !habilitada) { setEstado({ estado: "inactiva" }); return; }
-    let coord = coordinadores.current.get(slide.id);
-    if (!coord) {
-      const id = slide.id;
-      // El cargador lee la lámina vigente del plan al disparar (después del debounce), no la de este render.
-      coord = crearCoordinadorPreviewLamina((_clave, { signal }) => cargarPreview({
-        slide: usePlanStore.getState().plan.slides.find((s) => s.id === id) ?? slide,
-        config: buildGraficosConfigFromStore(),
-        options: {
-          include_images: false,
-          preview_quality: calidadParaPantalla(),
-          render_slide_preview: true,
-          preview_partes: true,
-          preview_formas: true,
-          ...(alcance.current === "consolidated" ? { scope: "consolidated" as const } : {}),
-        },
-        signal,
-        onProgreso: (p) => { if (activa.current === id && !signal.aborted) setProgreso(p); },
-      }));
-      coordinadores.current.set(slide.id, coord);
-    }
+    const coord = registro.coordinador(`${getSession() ?? ""}|${scope}`, slide.id);
     let vigente = true;
     const id = slide.id;
     void coord.solicitar(clave, (e) => {
@@ -102,13 +126,11 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
         if (primera) registrarMiniatura(id, primera);
       }
     });
-    const actual = coord;
-    return () => { vigente = false; actual.cancelar(); };
+    // Al salir se cancela lo pendiente; lo ya dibujado queda en el registro para la vuelta.
+    return () => { vigente = false; coord.cancelar(); };
     // `slide` entra por la clave: el cargador del coordinador lee el plan vigente al disparar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slide?.id, clave, habilitada, intento]);
-
-  useEffect(() => () => { for (const c of coordinadores.current.values()) c.cancelar(); }, []);
+  }, [slide?.id, clave, habilitada, intento, scope]);
 
   const respuesta = estado.estado === "lista" ? estado.respuesta : "anterior" in estado ? estado.anterior : undefined;
   const lamina = useMemo(() => (respuesta ? leerLaminaVisor(respuesta) : null), [respuesta]);
@@ -121,7 +143,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     progreso: estado.estado === "cargando" ? progreso : null,
     // Reintentar fuerza otra vuelta al backend: con la misma clave el coordinador devolvería la respuesta sin imagen.
     reintentar: () => {
-      if (slide) coordinadores.current.get(slide.id)?.olvidar();
+      if (slide) registro.coordinador(`${getSession() ?? ""}|${scope}`, slide.id).olvidar();
       setIntento((n) => n + 1);
     },
     formas,

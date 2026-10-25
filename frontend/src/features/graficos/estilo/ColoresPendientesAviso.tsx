@@ -12,6 +12,7 @@ import { usePlanStore } from "../store";
 import { coloresPendientes, conColoresCompletados, type ColorPendiente } from "./coloresPendientes";
 import { usePaletasRespuestas } from "./usePaletasRespuestas";
 import "./coloresPendientes.css";
+import { MOTIVO_COLORES_PENDIENTES } from "../exportarInformeRegla";
 
 export function useColoresPendientes(): { pendientes: ColorPendiente[]; completar: () => void } {
   const slides = usePlanStore((s) => s.plan.slides);
@@ -25,6 +26,8 @@ export function useColoresPendientes(): { pendientes: ColorPendiente[]; completa
 }
 
 const MAX_VISIBLES = 4;
+/** Lo citan los botones deshabilitados del menú «Exportar» (`aria-describedby`). */
+export const ID_COLORES_PENDIENTES = "graficos-colores-pendientes";
 
 export function ColoresPendientesAviso({ pendientes, onCompletar, onVer }: { pendientes: readonly ColorPendiente[]; onCompletar: () => void; onVer?: () => void }) {
   const navigate = useNavigate();
@@ -36,10 +39,10 @@ export function ColoresPendientesAviso({ pendientes, onCompletar, onVer }: { pen
     navigate({ pathname: loc.pathname, search: conNivel(searchConNivel(loc.search, "pestana", "laminas"), "foco", slideId) });
   };
   return (
-    <div className="pulso-cp" role="alert">
+    <div className="pulso-cp" id={ID_COLORES_PENDIENTES} role="status">
       <div className="pulso-cp-cabecera">
         <strong>Faltan colores en {laminas === 1 ? "1 lámina" : `${laminas} láminas`}</strong>
-        <span>Estos gráficos pintan cada respuesta con su color; complétalos para exportar.</span>
+        <span>{MOTIVO_COLORES_PENDIENTES.charAt(0).toUpperCase() + MOTIVO_COLORES_PENDIENTES.slice(1)}.</span>
       </div>
       <ul className="pulso-cp-lista">
         {pendientes.slice(0, MAX_VISIBLES).map((p) => (

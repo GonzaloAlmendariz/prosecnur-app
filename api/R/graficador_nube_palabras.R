@@ -11,6 +11,14 @@
 #' @param seed Semilla para el orden deterministico del layout.
 #' @param colores_palabras Paleta de colores para palabras.
 #' @param font_family Familia tipografica.
+#' @param filtrar_no_respuestas Si `TRUE`, quita los comentarios que no responden nada («-», «no», «ninguno»…) y el
+#'   ranking dice cuántos tienen contenido de cuántos escribieron algo. Apagado por defecto.
+#' @param lematizar Si `TRUE`, quita palabras vacías funcionales y de opinión, agrupa flexiones (plural y formas
+#'   verbales; no sinónimos), une las frases que usan tres personas o más y muestra la forma más frecuente.
+#' @param contar `"menciones"` (por defecto, apariciones) o `"personas"`: cada persona cuenta una vez por término,
+#'   sin ponderar.
+#' @param min_personas Con `contar = "personas"`, mínimo de personas para que un término entre a la nube.
+#' @param equivalencias Vector con nombre raíz → raíz para unir sinónimos de forma explícita. Por defecto, ninguno.
 #' @return Objeto `ggplot`.
 #' @family graficadores
 #' @export
@@ -33,6 +41,11 @@ graficar_nube_palabras <- function(
     color_subtitulo = .std_color("azul"),
     color_nota_pie = .std_color("azul"),
     mostrar_ranking = TRUE,
+    filtrar_no_respuestas = FALSE,
+    lematizar = FALSE,
+    contar = c("menciones", "personas"),
+    min_personas = 3,
+    equivalencias = NULL,
     ...
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
@@ -50,59 +63,20 @@ graficar_nube_palabras <- function(
   seed <- suppressWarnings(as.integer(seed[1]))
   if (!is.finite(seed) || is.na(seed)) seed <- 123L
 
-  clean_chr <- function(x) {
-    x <- as.character(x)
-    x[is.na(x)] <- ""
-    trimws(x)
-  }
+  # TXT-1 (plan-texto-abierto-ccss-2026-10-24): filtro de no respuestas, raíz y conteo por persona. Todo opcional y
+  # apagado: sin ellos la nube cuenta como siempre y las láminas ya hechas no cambian sus cifras.
+  filtrar_no_respuestas <- .txt_flag(filtrar_no_respuestas)
+  lematizar <- .txt_flag(lematizar)
+  contar <- if (identical(tolower(trimws(as.character(contar %||% "menciones")[1])), "personas")) "personas" else "menciones"
+  limpia <- lematizar || identical(contar, "personas")
 
-  normalize_text <- function(x) {
-    x <- clean_chr(x)
-    x <- gsub("https?://\\S+|www\\.\\S+", " ", x, perl = TRUE, ignore.case = TRUE)
-    x <- gsub("\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", " ", x, perl = TRUE, ignore.case = TRUE)
-    x <- gsub("\\+?\\d[\\d\\s().-]{6,}\\d", " ", x, perl = TRUE)
-    # Se conservan las tildes, como la nube del recetario («formación», «gestión»). Transliterar a ASCII fuera de un
-    # locale UTF-8 dejaba la tilde como un carácter que el filtro siguiente tomaba por separador: «gestión» salía
-    # «gesti» y «académico», «acad» y «emico».
-    x <- enc2utf8(x); x[is.na(x)] <- ""
-    x <- tolower(x)
-    x <- gsub("[^\\p{L}\\s]+", " ", x, perl = TRUE)
-    trimws(gsub("\\s+", " ", x, perl = TRUE))
-  }
-
-  stopwords_es <- c(
-    "ademas", "ahi", "al", "algo", "algunas", "algunos", "ante", "antes", "aqui",
-    "asi", "aun", "aunque", "cada", "casi", "como", "con", "contra", "cual",
-    "cuando", "de", "del", "desde", "donde", "dos", "el", "ella", "ellas",
-    "ellos", "en", "entre", "era", "eran", "eres", "es", "esa", "esas", "ese",
-    "eso", "esos", "esta", "estaba", "estan", "estar", "este", "esto", "estos",
-    "fue", "fueron", "ha", "han", "hasta", "hay", "la", "las", "le", "les",
-    "lo", "los", "mas", "me", "mi", "mis", "muy", "no", "nos", "nosotros",
-    "o", "otra", "otras", "otro", "otros", "para", "pero", "por", "porque",
-    "que", "se", "sea", "ser", "si", "sin", "sobre", "son", "su", "sus",
-    "tambien", "tan", "te", "tener", "tiene", "todo", "todos", "tu", "un",
-    "una", "unas", "uno", "unos", "y", "ya"
-  )
-
-  textos <- normalize_text(data[[var_texto]])
+  textos_crudos <- data[[var_texto]]
+  textos <- .txt_normalizar(textos_crudos)
   keep_text <- nzchar(textos)
+  if (filtrar_no_respuestas) keep_text <- keep_text & !.txt_no_respuesta(textos_crudos)
+  escribieron <- sum(nzchar(trimws(ifelse(is.na(textos_crudos), "", as.character(textos_crudos)))))
+  stopwords_es <- .txt_palabras_vacias("base")
   textos <- textos[keep_text]
-  if (!length(textos)) {
-    empty_df <- data.frame(x = 0.5, y = 0.5, label = "Sin respuestas abiertas para mostrar")
-    return(
-      ggplot2::ggplot(empty_df, ggplot2::aes(.data$x, .data$y, label = .data$label)) +
-        ggplot2::geom_text(family = font_family, color = color_subtitulo, size = 5) +
-        ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
-        ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie) +
-        ggplot2::theme_void(base_family = font_family) +
-        ggplot2::theme(
-          plot.title = ggplot2::element_text(color = color_titulo, size = size_titulo, face = "bold"),
-          plot.subtitle = ggplot2::element_text(color = color_subtitulo, size = size_subtitulo),
-          plot.caption = ggplot2::element_text(color = color_nota_pie, size = size_nota_pie, hjust = 0)
-        )
-    )
-  }
-
   weights <- rep(1, length(textos))
   if (!is.null(var_n) && is.character(var_n) && length(var_n) == 1L && var_n %in% names(data)) {
     weights_all <- suppressWarnings(as.numeric(data[[var_n]]))
@@ -110,22 +84,27 @@ graficar_nube_palabras <- function(
     weights <- weights_all[keep_text]
   }
 
-  tokens <- strsplit(textos, "\\s+", perl = TRUE)
-  token_df <- do.call(rbind, lapply(seq_along(tokens), function(i) {
-    tok <- tokens[[i]]
-    tok <- tok[nzchar(tok)]
-    tok <- tok[nchar(tok, type = "chars") >= min_chars]
-    tok <- tok[!chartr("áéíóúüñ", "aeiouun", tok) %in% stopwords_es]   # las palabras vacías se escriben sin tilde
-    if (!length(tok)) return(NULL)
-    data.frame(palabra = tok, n = rep(weights[i], length(tok)), stringsAsFactors = FALSE)
-  }))
+  if (limpia) {
+    words <- .txt_conteo_terminos(textos, pesos = weights, contar = contar, lematizar = lematizar, min_chars = min_chars,
+                                  min_personas = min_personas, equivalencias = equivalencias)
+  } else {
+    tokens <- strsplit(textos, "\\s+", perl = TRUE)
+    token_df <- do.call(rbind, lapply(seq_along(tokens), function(i) {
+      tok <- tokens[[i]]
+      tok <- tok[nzchar(tok)]
+      tok <- tok[nchar(tok, type = "chars") >= min_chars]
+      tok <- tok[!chartr("áéíóúüñ", "aeiouun", tok) %in% stopwords_es]   # las palabras vacías se escriben sin tilde
+      if (!length(tok)) return(NULL)
+      data.frame(palabra = tok, n = rep(weights[i], length(tok)), stringsAsFactors = FALSE)
+    }))
 
-  if (is.null(token_df) || !nrow(token_df)) {
-    token_df <- data.frame(palabra = textos, n = weights, stringsAsFactors = FALSE)
+    if (is.null(token_df) || !nrow(token_df)) {
+      token_df <- data.frame(palabra = textos, n = weights, stringsAsFactors = FALSE)
+    }
+
+    words <- stats::aggregate(n ~ palabra, data = token_df, FUN = sum, na.rm = TRUE)
+    words <- words[order(-words$n, words$palabra), , drop = FALSE]
   }
-
-  words <- stats::aggregate(n ~ palabra, data = token_df, FUN = sum, na.rm = TRUE)
-  words <- words[order(-words$n, words$palabra), , drop = FALSE]
   words <- utils::head(words, max_palabras)
   words <- words[nzchar(words$palabra), , drop = FALSE]
 
@@ -198,12 +177,15 @@ graficar_nube_palabras <- function(
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )
   # ADR 0093 (N6): la nube va en la lámina del recetario (antetítulo, título y pie nativos), a todo el ancho.
-  espec <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = "El tamaño crece con las menciones")
+  lectura <- if (identical(contar, "personas")) c("El tamaño crece con las personas que usan cada palabra", "Sin ponderar") else "El tamaño crece con las menciones"
+  espec <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = lectura)
   # G11 (lámina 101 del diseño): las diez palabras más dichas, con su conteo, junto a la nube y en piezas editables.
   if (!isFALSE(mostrar_ranking) && !identical(words$palabra, "Sin datos")) {
     top <- utils::head(words, 10L)
     espec$ranking <- list(palabras = as.character(top$palabra), n = as.numeric(top$n),
-                          respuestas = if (is.null(var_n)) length(textos) else NA_integer_)
+                          respuestas = if (is.null(var_n) || identical(contar, "personas")) length(textos) else NA_integer_)
+    if (identical(contar, "personas")) espec$ranking$unidad <- "personas"
+    if (filtrar_no_respuestas) { espec$ranking$escribieron <- as.integer(escribieron); espec$ranking$con_contenido <- length(textos) }
   }
   attr(p_out, "pulso_espec") <- espec
   p_out

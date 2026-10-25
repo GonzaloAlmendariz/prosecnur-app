@@ -44,7 +44,7 @@
   for (i in seq_len(k)) {
     yk <- y_ley + (i - 1) * geo$fila
     .lam_caja(lz, geo$xl, yk + 0.08, 0.17, 0.17, cols[i], nombre = "circular:cuadro")
-    .lam_txt(lz, espec$cifras[i], geo$xl + 0.24, yk, 0.75, 0.32, 14, azul, bold = TRUE, nombre = "circular:cifra")
+    .lam_txt(lz, .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec))[i], geo$xl + 0.24, yk, 0.75, 0.32, 14, azul, bold = TRUE, nombre = "circular:cifra")   # U5
     .lam_txt(lz, espec$rotulos[i], geo$xl + 0.95, yk + 0.02, geo$wl - 0.95, max(0.3, geo$fila - 0.04), geo$size %||% 11, azul, nombre = "circular:rotulo")
   }
   invisible(geo$y0 + geo$d)

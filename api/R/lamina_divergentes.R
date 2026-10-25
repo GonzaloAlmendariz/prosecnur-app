@@ -24,8 +24,8 @@
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
   # La columna especial se ensancha a lo que mide su cabecera, para no partir «Desconoce» (verificador de N6, ronda 3).
   hay_si <- any(C$lado == "sin_inf"); wsi <- if (hay_si) .lam_divergentes_wsi(C$rotulo[C$lado == "sin_inf"][1]) else 0
-  y0 <- yt + 0.3; fila <- min(0.74, (yf - y0 - 0.35) / max(1L, n)); g <- min(0.4, fila * 0.55)
-  xq <- ml + 0.1; wq <- .lam_divergentes_wq(espec$filas, fila); xa <- xq + wq + 0.25; wa <- W - mr - xa - wsi - 0.2
+  ar <- .lam_divergentes_area(espec$filas, yt, yf); y0 <- ar$y0; fila <- ar$fila; g <- ar$g   # L10-11 (lamina_divergentes_area.R)
+  xq <- ml + 0.1; wq <- ar$wq; xa <- xq + wq + 0.25; wa <- W - mr - xa - wsi - 0.2
   neu <- which(C$lado == "neu"); mitades <- if (length(neu)) rowSums(U[, neu, drop = FALSE]) / 2 else rep(0, n)
   # L10-4: la escala va del desacuerdo más largo al acuerdo más largo (antes reservaba 100 puntos a la derecha), con
   # el sitio de la suma de cada lado (0.8 in) fuera de las barras.
@@ -46,15 +46,16 @@
   .lam_caja(lz, xc - 0.006, y0 - 0.1, 0.012, n * fila + 0.15, azul, nombre = "divergentes:centro")
   for (i in seq_len(n)) {
     yb <- y0 + (i - 1) * fila + (fila - g) / 2
-    hp <- .lam_alto_txt(espec$filas[i], wq, 10.5, TRUE)
-    .lam_txt(lz, espec$filas[i], xq, yb + g / 2 - hp / 2, wq, hp, 10.5, azul, bold = TRUE, nombre = "divergentes:afirmacion")
+    hp <- .lam_alto_txt(espec$filas[i], wq, ar$size, TRUE)
+    .lam_txt(lz, espec$filas[i], xq, yb + g / 2 - hp / 2, wq, hp, ar$size, azul, bold = TRUE, nombre = "divergentes:afirmacion")
     mitad <- if (length(neu)) sum(U[i, neu]) / 2 else 0
     segs <- list()
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px)
     off <- mitad; for (k in neg) { segs[[length(segs) + 1L]] <- list(k = k, x = xc - (off + U[i, k]) * px, w = U[i, k] * px); off <- off + U[i, k] }
     off <- mitad; for (k in pos) { segs[[length(segs) + 1L]] <- list(k = k, x = xc + off * px, w = U[i, k] * px); off <- off + U[i, k] }
-    fin_chica <- -Inf   # fin de la última cifra chica dibujada en la fila
     segs <- segs[order(vapply(segs, `[[`, 0, "x"))]
+    # CCSS-14: si la colocación de siempre cruza codos, cada lado se reparte sin solaparse ni cruzar el centro (lamina_callouts_sin_solape.R).
+    cl_de <- .lam_callouts_divergentes(Filter(function(sg) U[i, sg$k] > 0 && sg$w < 0.45, segs), X[i, ], xc, xa, xa + wa)
     for (sg in segs) {
       if (U[i, sg$k] <= 0) next
       .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
@@ -65,16 +66,9 @@
         # codo hasta ella: entre filas no hay alto para dos niveles (verificador de N6, ronda 2).
         # Y nunca sobre la línea del centro, que atraviesa el aire entre filas: la cifra se queda entera de su lado y,
         # si de ese lado no cabe junto a la vecina, pasa al otro (verificador de N6, ronda 3).
-        wt <- .lam_ancho_tinta(X[i, sg$k], 10.5, TRUE); cs <- sg$x + sg$w / 2
-        cl <- max(cs, fin_chica + 0.06 + wt / 2)
-        if (abs(cl - xc) < wt / 2 + 0.05) {
-          cl <- if (cs < xc) xc - 0.05 - wt / 2 else xc + 0.05 + wt / 2
-          if (cl - wt / 2 < fin_chica + 0.06) cl <- xc + 0.05 + wt / 2
-        }
-        .lam_caja(lz, cs - 0.006, yb - 0.06, 0.012, 0.06, tenue, nombre = "divergentes:guia")
-        if (abs(cl - cs) > 0.01) .lam_caja(lz, min(cs, cl), yb - 0.066, abs(cl - cs), 0.012, tenue, nombre = "divergentes:guia")
+        cs <- sg$x + sg$w / 2; cl <- cl_de[[as.character(sg$k)]]
+        .lam_callout_guia(lz, cs, cl, yb, 0.06, yb - 0.066, identical(attr(cl_de, "reparto"), "nuevo"), tenue, nombre = "divergentes:guia")
         .lam_txt(lz, X[i, sg$k], cl - 0.3, yb - 0.3, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
-        fin_chica <- cl + wt / 2
       }
     }
     .lam_txt(lz, espec$cifras_pos[i], xc + (espec$total_pos[i] + mitad) * px + 0.08, yb + (g - 0.28) / 2, 0.7, 0.28, 11,

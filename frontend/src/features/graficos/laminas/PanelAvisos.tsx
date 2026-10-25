@@ -15,6 +15,7 @@ import { agruparAvisos as agruparPorLamina, type GrupoAvisos as GrupoPorLamina }
 import "../avisosExportacion/avisosExportacion.css";
 import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
 import { laBase } from "../relacionBases";
+import { MOTIVO_COLORES_PENDIENTES } from "../exportarInformeRegla";
 import "./panelAvisos.css";
 
 type Props = {
@@ -24,7 +25,7 @@ type Props = {
   onIr: (posicion: number) => void;
   /** Se abrió desde una capa que se cierra al abrirlo (el Inspector modal): el foco entra al panel. */
   enfocarAlAbrir?: boolean;
-  /** Láminas con respuestas sin color (bloquean «Exportar») y cómo completarlas; ausente, no se muestra. */
+  /** Láminas con respuestas sin color (bloquean «Exportar», P8) y cómo completarlas; ausente, no se muestra. */
   coloresPendientes?: { laminas: number; completar: () => void };
   /**
    * Preguntas que el motor lee de una base sin que el plan lo diga (`var-base-implicita`) y cómo dejarlo escrito en
@@ -62,8 +63,8 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
   const hayPlan = grupos.plan.length > 0;
   useEffect(() => { if (hayPlan) marcarVistos(); }, [hayPlan, marcarVistos]);
 
-  // Los colores que faltan bloquean el menú «Exportar»: el panel lo dice también, para no contradecirlo
-  // («Nada bloquea la exportación» mientras el menú no dejaba exportar; catálogo del recetario, 2026-10-14).
+  // Los colores que faltan bloquean «Exportar» (P8, exportarInformeRegla.ts): el panel lo dice con el mismo motivo y el
+  // mismo arreglo en un clic que el menú, para no contradecirlo (U9).
   const laminasSinColor = coloresPendientes?.laminas ?? 0;
   const previos = useAvisosExportacion((st) => st.previos);
   const ultimos = useAvisosExportacion((st) => st.motor);
@@ -76,6 +77,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
   const juntarBase = !!baseImplicita && baseImplicita.laminas > 0;
   const revisar = juntarBase ? grupos.revisar.filter((i) => i.code !== "var-base-implicita") : grupos.revisar;
   const totalRevisar = revisar.length + (juntarBase ? 1 : 0);
+  const totalBloquean = grupos.bloquean.length + (laminasSinColor ? 1 : 0);
   const fila = (i: ValidationIssue, k: number) => (
     <li key={`${i.code}-${i.slideId ?? ""}-${i.slotName ?? ""}-${k}`}>
       <span>{i.message}</span>
@@ -118,13 +120,13 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             </ul>
           </section>
         )}
-        <section className="pulso-f6-avisos-grupo is-bloquea" aria-label="Bloquean la exportación">
-          <h3>Bloquean la exportación <span>{grupos.bloquean.length + (laminasSinColor ? 1 : 0)}</span></h3>
-          {grupos.bloquean.length || laminasSinColor ? (
+        <section className={`pulso-f6-avisos-grupo${totalBloquean ? " is-bloquea" : ""}`} aria-label="Bloquean la exportación">
+          <h3>Bloquean la exportación <span>{totalBloquean}</span></h3>
+          {totalBloquean ? (
             <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">
               {laminasSinColor ? (
                 <li className="is-accion">
-                  <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: esos gráficos pintan cada respuesta con su color.</span>
+                  <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: {MOTIVO_COLORES_PENDIENTES}.</span>
                   <button type="button" className="pulso-f6-texto-boton" onClick={coloresPendientes?.completar}>Completar todos los colores</button>
                 </li>
               ) : null}

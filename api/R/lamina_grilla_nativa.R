@@ -28,8 +28,22 @@
 #' @keywords internal
 .lam_grilla_base <- function(declarada, els, rendered, migrada, base_auto) {
   if (!is.null(declarada)) return(list(base = declarada, solo = isTRUE(migrada)))
-  if (isTRUE(migrada) || .lam_grilla_bases_difieren(lapply(rendered, .lam_espec_de))) return(list(base = NULL, solo = TRUE))
+  especs <- lapply(rendered, .lam_espec_de)
+  if (isTRUE(migrada) || .lam_grilla_bases_difieren(especs)) return(list(base = NULL, solo = TRUE))
+  # L10-12 (lámina 48 de CCSS): cada cifra lleva su base debajo («10 de 20»); el pie dice sólo la base común de los
+  # gráficos. Juntar las notas de todas las piezas daba «Base: 136. Base: 397 respuestas».
+  cifras <- vapply(especs, function(e) !is.null(e) && .lam_es_cifra(e), TRUE)
+  if (any(cifras)) return(list(base = .lam_grilla_base_graficos(els[!cifras], especs[!cifras]), solo = TRUE))
   list(base = base_auto(els), solo = FALSE)
+}
+
+#' Base común de los gráficos de una lámina con cifras: sus notas, sin repetir la misma (`.lam_bases_sin_repetir`)
+#' @keywords internal
+.lam_grilla_base_graficos <- function(els, especs) {
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  notas <- unique(unlist(c(lapply(els, function(el) texto((el$overrides %||% list())$nota_pie)), lapply(especs, function(e) texto(e$nota)))))
+  notas <- .lam_bases_sin_repetir(notas)
+  if (length(notas)) paste(notas, collapse = ". ") else NULL
 }
 
 #' La lámina mixta de una grilla con su base resuelta (enganche de la rama `paneles_4`)

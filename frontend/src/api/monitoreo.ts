@@ -19,7 +19,9 @@ export type MonitoreoSourceRole =
   | "avance_interno"
   | "reporte_cliente"
   | "hoja_ruta"
-  | "ocurrencias_campo";
+  | "ocurrencias_campo"
+  /** Hoja de supervisión del telefónico: cada ronda se publica en su pestaña «Ronda N». */
+  | "supervision";
 
 export type MonitoreoIntegrationMode = "file" | "connected_read" | "controlled_write";
 
@@ -87,6 +89,10 @@ export type MonitoreoKoboAssetItem = {
   version_id?: string;
   date_modified: string | null;
   deployment_active: boolean;
+  /** Envíos del formulario, si el backend lo publica (Kobo: `deployment__submission_count`). */
+  submission_count?: number | null;
+  /** Último envío, si el backend lo publica (Kobo: `deployment__last_submission_time`). */
+  last_submission_time?: string | null;
 };
 
 export type MonitoreoKoboSurveyLink = {

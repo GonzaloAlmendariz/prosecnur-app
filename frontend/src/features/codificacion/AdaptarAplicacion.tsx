@@ -8,6 +8,7 @@ import { useSession } from "../../lib/SessionContext";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
 import { SinRecodificarAviso } from "./SinRecodificarAviso";
 import { AvisoBaseYaCodificada } from "./AvisoBaseYaCodificada";
+import { AvisoFuenteAplicar } from "./AvisoFuenteAplicar";
 import {
   type AplicarEntrada,
   aplicarCodificacion,
@@ -195,6 +196,9 @@ export function AdaptarAplicacionVista({
 
       {error && <Alert kind="error">{error}</Alert>}
 
+      {/* B1: Codificación leyó otro número de casos que el de la base. */}
+      <AvisoFuenteAplicar aviso={entrada.avisoFuente} />
+
       {/* ADR 0100, P1: las preguntas del catálogo que no se aplicaron y los
           textos que quedaron sin código. Sin nada que decir, no pinta. */}
       <AplicarOmitidasAviso
@@ -253,7 +257,7 @@ export function AdaptarAplicacionResumenVista({
   entrada: AplicarEntrada;
   onVerAvisos: () => void;
 }) {
-  const n = contarAvisos(entrada.avisos);
+  const n = contarAvisos(entrada.avisos) + (entrada.avisoFuente ? 1 : 0);
   if (!entrada.salida || n === 0) return null;
   return (
     <p className="pulso-codif-adaptar-resumen" data-testid="codificacion-adaptar-resumen">

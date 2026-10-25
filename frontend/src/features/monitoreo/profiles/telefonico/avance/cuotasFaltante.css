@@ -43,6 +43,16 @@
   overflow: hidden;
 }
 
+.mon-cuotas-tabla-cabecera {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
 .mon-cuotas-tabla {
   display: flex;
   flex: 1 1 auto;

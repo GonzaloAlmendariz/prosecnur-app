@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { apiMonitoreoState, type MonitoreoState } from "../../../../../api/client";
 import type { MonitoreoReportScope } from "../../types";
+import { observarCorte, useResumenDelCorte } from "../navegacion/resumenDelCorte";
 
 // Prefetch de scopes de fondo, extraído del page-file congelado
 // (AcreditacionMonitoreoPage.tsx). Copia por perfil deliberada: telefónico es
@@ -54,8 +55,12 @@ export function schedulePrefetchScopes(
       }).then((next) => {
         if (cacheEpoch !== refs.scopeCacheEpochRef.current) return null;
         refs.stateByScopeRef.current.set(scope, next);
+        // La barra del modo lee de aquí los casos y el avance aunque la
+        // sección a la vista no los traiga (revamp, G1).
+        observarCorte(next.dashboard?.acreditacion_reports, next.config?.goals ?? []);
         return next;
       }).catch(() => {
+        if (scope === "queries_summary") useResumenDelCorte.getState().marcarFalloDeCasos();
         if (cacheEpoch !== refs.scopeCacheEpochRef.current) return null;
         refs.warmedScopesRef.current.delete(scope);
         return null;

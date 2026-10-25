@@ -132,7 +132,8 @@ export function VisorLamina({
   };
 
   return (
-    <section className="pulso-f6-visor" aria-label="Visor de la lámina">
+    // Mientras el motor dibuja la vista previa pedida (U6), la vista no está lista: el QA espera la imagen, no la maqueta.
+    <section className="pulso-f6-visor" aria-label="Visor de la lámina" data-audit-ready={cargando && prepOk && verComoQueda ? "false" : "true"}>
       <header className="pulso-f6-visor-barra">
         <button
           type="button"

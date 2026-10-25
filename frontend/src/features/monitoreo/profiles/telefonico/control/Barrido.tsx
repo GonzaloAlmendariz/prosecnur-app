@@ -3,6 +3,7 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import type { Barrido as Modelo, FilaDeCategoria } from "./barridoModel";
+import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 
 function n(valor: number | null | undefined) {
@@ -65,10 +66,14 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
   const segmentoMinuscula = segmento.toLocaleLowerCase("es");
   const maximoFecha = Math.max(1, ...modelo.porFecha.map((item) => item.casos), modelo.otraFecha);
   const maximoSinLlamar = Math.max(1, ...modelo.categorias.map((fila) => fila.sinLlamar));
+  const hayRotulo = useHayRotulo();
   return (
     <div className="mon-barrido" data-qa-geometry-group="telefonico-control-barrido" data-qa-geometry-contract="intrinsic">
       <div className="mon-barrido-principal">
-        <section className="mon-ctl-panel mon-barrido-embudo" aria-label="Embudo del barrido">
+        <section className="mon-ctl-panel mon-barrido-embudo-panel" aria-label="Embudo del barrido">
+        {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
+        {hayRotulo ? <header className="mon-ctl-panel-cabecera mon-barrido-embudo-cabecera"><RotuloDePestana /></header> : null}
+        <div className="mon-barrido-embudo">
           <Tarjeta
             rotulo="Listado"
             valor={modelo.listado}
@@ -99,6 +104,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               ? `${n(modelo.porLlamarAsignados)} asignados y ${n(modelo.sinAsignar)} sin asignar`
               : `${porcentaje(modelo.listado ? (modelo.sinLlamar / modelo.listado) * 100 : null)} del listado`}
           />
+        </div>
         </section>
 
         <section className="mon-ctl-panel mon-barrido-matriz" aria-label={`Listado por ${segmentoMinuscula}`}>

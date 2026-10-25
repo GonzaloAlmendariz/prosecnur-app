@@ -205,6 +205,8 @@ function MapaDeCobertura({ actores, sources }: { actores: string[]; sources: Mon
   );
 }
 
+// ⚠ SIN MONTAR desde el 2026-10-23: Insumos › Fuentes (I2) lo reemplaza con el
+// maestro de fuentes por público (`insumos/Fuentes.tsx`). Mudanza, no borrado.
 export function FuentesResumen({
   sources,
   linkCollectors = [],
