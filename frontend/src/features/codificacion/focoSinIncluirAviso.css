@@ -1,0 +1,26 @@
+/* Aviso de Codificar sobre una pregunta que no está en «Preguntas para codificar» (TXT-10/16).
+ * C3: el vacío lo contiene `EstadoVacio`; este envoltorio sólo apila el aviso y su error, sin alto propio. */
+
+.pulso-cv2-foco-aviso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-cv2-foco-aviso-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-cv2-foco-aviso-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  line-height: 1.45;
+}

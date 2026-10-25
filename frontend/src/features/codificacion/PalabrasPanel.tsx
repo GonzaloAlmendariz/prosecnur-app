@@ -209,13 +209,40 @@ export function PalabrasCuerpo({ estado, despachar }: CuerpoProps) {
         {formatoConteo(datos.resumen.nPalabras)} {datos.resumen.nPalabras === 1 ? "palabra" : "palabras"} en{" "}
         {formatoConteo(datos.resumen.conContenido)} {datos.resumen.conContenido === 1 ? "comentario" : "comentarios"} con contenido.
       </p>
-      <GruposSeccion estado={estado} despachar={despachar} />
-      {/* Lo corto arriba (unidas, excluidas, frases) y la lista larga al final: las excluidas se ven aparte sin
-          recorrer cientos de palabras. */}
-      <ExcluidasSeccion estado={estado} despachar={despachar} />
-      <FrasesSeccion estado={estado} despachar={despachar} />
+      {/* TXT-15: la lista donde se decide qué unir o excluir va primero y se ve sin desplazar; lo ya decidido
+          (unidas, excluidas) y las frases quedan plegados debajo, con su cuenta en el resumen. */}
       <PalabrasSeccion estado={estado} despachar={despachar} />
+      <AjustesPlegados estado={estado} despachar={despachar} />
     </div>
+  );
+}
+
+function plural(n: number, uno: string, varios: string): string {
+  return `${formatoConteo(n)} ${n === 1 ? uno : varios}`;
+}
+
+function AjustesPlegados({ estado, despachar }: CuerpoProps) {
+  const nGrupos = estado.borrador.equivalencias.length;
+  const nExcluidas = estado.borrador.excluir.length;
+  const nFrases = frasesDelPanel(estado).length;
+  if (!nGrupos && !nExcluidas && !nFrases) return null;
+  const partes = [
+    nGrupos ? plural(nGrupos, "grupo", "grupos") : "",
+    nExcluidas ? plural(nExcluidas, "excluida", "excluidas") : "",
+    nFrases ? plural(nFrases, "frase", "frases") : "",
+  ].filter(Boolean);
+  return (
+    <details className="pulso-cv2-pal-ajustes" data-qa-geometry-member="ajustes">
+      <summary className="pulso-cv2-pal-ajustes-resumen">
+        <span className="pulso-cv2-pal-ajustes-titulo">Unidas, excluidas y frases</span>
+        <span className="pulso-cv2-col-count">{partes.join(" · ")}</span>
+      </summary>
+      <div className="pulso-cv2-pal-ajustes-cuerpo">
+        <GruposSeccion estado={estado} despachar={despachar} />
+        <ExcluidasSeccion estado={estado} despachar={despachar} />
+        <FrasesSeccion estado={estado} despachar={despachar} />
+      </div>
+    </details>
   );
 }
 
@@ -387,15 +414,19 @@ function FraseFila({ f, estado, despachar }: { f: FraseDetectada } & CuerpoProps
   );
 }
 
-function FrasesSeccion({ estado, despachar }: CuerpoProps) {
-  if (estado.lectura.fase !== "lista") return null;
+function frasesDelPanel(estado: EstadoPalabras): FraseDetectada[] {
+  if (estado.lectura.fase !== "lista") return [];
   const detectadas = estado.lectura.datos.frasesDetectadas;
   // Las fijadas o excluidas a mano que el servidor no detectó también se ven, para poder soltarlas.
   const propias = [...estado.borrador.frases, ...estado.borrador.excluir.filter((t) => t.includes(" "))]
     .filter((t, i, arr) => arr.findIndex((x) => claveTermino(x) === claveTermino(t)) === i)
     .filter((t) => !detectadas.some((d) => claveTermino(d.forma) === claveTermino(t)))
     .map((t): FraseDetectada => ({ clave: claveTermino(t), forma: t, personas: 0, fija: false, excluida: false }));
-  const frases = [...detectadas, ...propias];
+  return [...detectadas, ...propias];
+}
+
+function FrasesSeccion({ estado, despachar }: CuerpoProps) {
+  const frases = frasesDelPanel(estado);
   if (!frases.length) return null;
   return (
     <section className="pulso-cv2-pal-seccion" aria-labelledby="pulso-cv2-pal-frases" data-qa-geometry-member="frases">
