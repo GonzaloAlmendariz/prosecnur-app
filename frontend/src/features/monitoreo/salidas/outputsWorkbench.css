@@ -25,7 +25,7 @@
   min-width: 0;
 }
 
-.mon-outputs-workbench__head span,
+.mon-outputs-workbench__head span:not(.pulso-switch-thumb),
 .mon-outputs-card__head span {
   display: inline-flex;
   align-items: center;
@@ -1232,14 +1232,14 @@
   min-width: 0;
 }
 
-.mon-outputs-workbench__head span,
+.mon-outputs-workbench__head span:not(.pulso-switch-thumb),
 .mon-outputs-card__head span,
 .mon-outputs-audience-tabs span,
 .mon-outputs-diagnostics summary span {
   letter-spacing: 0;
 }
 
-.mon-outputs-workbench__head span {
+.mon-outputs-workbench__head span:not(.pulso-switch-thumb) {
   flex: 0 0 auto;
   min-height: 28px;
   border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 20%, var(--pulso-border));
@@ -1957,7 +1957,7 @@
   white-space: nowrap;
 }
 
-.mon-outputs-workbench--ficha .mon-outputs-targets-toggle span {
+.mon-outputs-workbench--ficha .mon-outputs-targets-toggle > span {
   display: inline;
   min-height: 0;
   padding: 0;
@@ -1989,4 +1989,17 @@
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
+}
+
+/* El botón del PDF de cliente va envuelto para que su `title` (el motivo del
+   bloqueo, dicho una sola vez arriba en el estado del corte) se vea aunque el
+   botón esté deshabilitado. El envoltorio ocupa la fila entera del grid de la
+   tarjeta y el botón lo llena. */
+.mon-outputs-action-motivo {
+  display: grid;
+  min-width: 0;
+}
+
+.mon-outputs-action-motivo > .mon-outputs-primary {
+  width: 100%;
 }
