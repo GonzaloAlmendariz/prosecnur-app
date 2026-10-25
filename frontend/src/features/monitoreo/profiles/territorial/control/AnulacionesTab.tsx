@@ -70,7 +70,7 @@ function AnulacionesTabImpl({
       <div className="mon-anu-izquierda" data-qa-geometry-member="resumen">
         <section className="mon-anu-panel" aria-labelledby="mon-anu-fuera">
           <RotuloDePestana />
-          <h3 id="mon-anu-fuera" className="mon-anu-titulo">{fmt(modelo.casosFuera)} casos fuera del conteo · {fmt(modelo.umpsAfectadas)} UMP</h3>
+          <h3 id="mon-anu-fuera" className="mon-anu-titulo">{fmt(modelo.casosFuera)} {modelo.casosFuera === 1 ? "caso fuera del conteo" : "casos fuera del conteo"} en {fmt(modelo.umpsAfectadas)} UMP</h3>
           <ul className="mon-anu-barras">
             {modelo.porDistrito.map((item) => (
               <li key={item.distrito}>

@@ -40,7 +40,11 @@ function PadronTabImpl({
             <div>
               <h3 id="mon-ins-padron" className="mon-ins-titulo">{modelo.archivo.nombre || "Padrón de aplicadores"}</h3>
               <span className="mon-ins-base">
-                {fmt(modelo.archivo.personas)} personas{modelo.archivo.formato ? ` · códigos ${modelo.archivo.formato}` : ""}{modelo.archivo.subido ? ` · subido ${modelo.archivo.subido}` : ""}
+                {[
+                  `${fmt(modelo.archivo.personas)} personas`,
+                  modelo.archivo.formato ? `códigos ${modelo.archivo.formato}` : "",
+                  modelo.archivo.subido ? `subido el ${modelo.archivo.subido}` : "",
+                ].filter(Boolean).join(", ")}
               </span>
             </div>
             <button type="button" className="mon-ins-boton" onClick={onReemplazar}>Reemplazar padrón…</button>
@@ -87,7 +91,7 @@ function PadronTabImpl({
       )}
 
       <aside className="mon-ins-panel mon-ins-lateral" aria-labelledby="mon-ins-fuera" data-qa-geometry-member="fuera">
-        <h3 id="mon-ins-fuera" className="mon-ins-titulo">Códigos fuera del padrón · {fmt(modelo.fueraDelPadron.length)}</h3>
+        <h3 id="mon-ins-fuera" className="mon-ins-titulo">Códigos fuera del padrón <span className="mon-ter-cuenta">{fmt(modelo.fueraDelPadron.length)}</span></h3>
         {modelo.fueraDelPadron.length ? (
           <ul className="mon-ins-lista">
             {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><code>{item.codigo}</code><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}

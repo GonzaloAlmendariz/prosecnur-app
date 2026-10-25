@@ -93,7 +93,11 @@ export function MapaDeMovimientos({
       <figcaption className="mon-sub-base">
         <span className="mon-sub-leyenda is-activo">Activos</span>
         <span className="mon-sub-leyenda is-sugerido">Sugerido</span>
-        {cartografia.cargando ? " · cargando la cartografía…" : dibujables.length < movimientos.length ? ` · ${fmt(movimientos.length - dibujables.length)} sin manzana en la cartografía` : ""}
+        {cartografia.cargando
+          ? <span>Cargando la cartografía…</span>
+          : dibujables.length < movimientos.length
+            ? <span>{fmt(movimientos.length - dibujables.length)} sin manzana en la cartografía</span>
+            : null}
       </figcaption>
     </figure>
   );

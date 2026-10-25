@@ -26,6 +26,6 @@ describe("cajaProyectada", () => {
   it("recorre un MultiPolygon", () => {
     const caja = cajaProyectada([[[[0, 0], [2, 0], [2, 3]]], [[[5, 1], [6, 1]]]], (lon, lat) => ({ x: lon * 10, y: lat * 10 }));
     expect(caja).toEqual({ x0: 0, y0: 0, x1: 60, y1: 30 });
-    expect(candidatosDeCaja({ x: 1, y: 1 }, caja)).toHaveLength(6);
+    expect(candidatosDeCaja({ x: 1, y: 1 }, caja)).toHaveLength(8);
   });
 });

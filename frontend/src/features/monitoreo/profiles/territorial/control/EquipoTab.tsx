@@ -60,7 +60,7 @@ function EquipoTabImpl({
         <header className="mon-eq-cabecera">
           <RotuloDePestana />
           <h3 id="mon-eq-titulo" className="pulso-sr-only">Equipo por código</h3>
-          <span className="mon-eq-base">{fmt(modelo.filas.length)} códigos; señales sobre los casos del corte</span>
+          <span className="mon-eq-base" title="Señales sobre los casos del corte">{fmt(modelo.filas.length)} códigos</span>
         </header>
         <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Equipo por código, con desplazamiento">
           <table className="mon-eq-tabla">
@@ -198,7 +198,7 @@ function InspectorDeCodigo({
       ) : null}
       <footer className="mon-eq-pie">
         {fila.anulado ? (
-          <p className="mon-eq-base">Su producción ya está anulada; se revierte en Control › Anulaciones.</p>
+          <p className="mon-eq-base" title="Se revierte en Control › Anulaciones">Producción anulada</p>
         ) : (
           <button type="button" className="mon-eq-boton is-peligro" onClick={onAnular}>Anular producción</button>
         )}
