@@ -20,3 +20,12 @@ test_that("GET /api/graficos/citas-candidatas responde por el wire y tipa sus er
   expect_identical(e$status, 400L)
   expect_identical(e$json$error$code, "E_CITAS_SIN_VARIABLE")
 })
+
+test_that("`?var=` es alias de `variable` y no muere por casar parcialmente con dos argumentos (TXT-19)", {
+  .http_contract_skip_if_unavailable()
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  r <- http_get(srv, "/api/graficos/citas-candidatas?var=region", sid = base$sid)
+  expect_identical(r$status, 200L)
+  expect_true(isTRUE(r$json$ok) || is.list(r$json$candidatas))
+})
