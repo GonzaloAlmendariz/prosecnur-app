@@ -1,0 +1,565 @@
+/* Avance › UMP (territorial.md §3.16 y §3.16b) y la ficha de UMP que también
+ * usa Avance › Mapa. La tabla llena el alto y desplaza dentro; la ficha va al
+ * costado del mapa o de la exploración. Escala 4/8/12/16/24. */
+
+.mon-umps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-umps-panel,
+.mon-ump-ficha,
+.mon-ump-historia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-umps-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.mon-umps-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-umps-segmentado {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-umps-segmentado button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-umps-segmentado button b {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-umps-segmentado button.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-umps-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  height: 32px;
+  margin-left: auto;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+.mon-umps-buscar input {
+  width: 220px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.mon-umps-buscar:focus-within,
+.mon-umps-boton:focus-visible,
+.mon-umps-segmentado button:focus-visible,
+.mon-umps-tabla th button:focus-visible,
+.mon-umps-tabla-marco:focus-visible,
+.mon-ump-cerrar:focus-visible,
+.mon-ump-enlace:focus-visible,
+.mon-ump-capitulo:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-umps-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-umps-boton:hover {
+  background: var(--pulso-surface-3);
+}
+
+.mon-umps-tabla-panel {
+  height: 100%;
+}
+
+.mon-umps-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-umps-tabla-marco::-webkit-scrollbar,
+.mon-ump-casos::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-umps-tabla-marco::-webkit-scrollbar-thumb,
+.mon-ump-casos::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-umps-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-umps-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-umps-tabla tbody th,
+.mon-umps-tabla tbody td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-umps-tabla th:first-child,
+.mon-umps-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-umps-tabla .is-num {
+  text-align: right;
+}
+
+.mon-umps-tabla td.is-falta {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-umps-tabla tbody th button {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-umps-tabla tbody th button:hover {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-umps-sin-filas {
+  color: var(--pulso-text-soft);
+}
+
+.mon-umps-avance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-umps-avance-barra {
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-umps-avance-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-brand-navy);
+}
+
+/* Ficha de la UMP. */
+.mon-ump-ficha-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-ump-ficha-cabecera > div {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-ump-ficha-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ump-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-cerrar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.mon-ump-estado {
+  align-self: flex-start;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-ump-estado.is-pendiente {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-ump-estado.is-subsanada {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-text);
+}
+
+.mon-ump-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-ump-cifras dt,
+.mon-ump-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-ump-cifras dd {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-cifras dd b {
+  color: var(--pulso-text);
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ump-cuota .mon-ter-variables {
+  margin-top: var(--pulso-space-2);
+}
+
+.mon-ump-sugerencia,
+.mon-ump-nota {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-ump-enlace {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-brand-navy);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mon-ump-casos {
+  display: grid;
+  gap: 0;
+  max-height: 240px;
+  margin: var(--pulso-space-2) 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ump-casos li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 64px auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-casos li b {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-ump-casos li.is-observacion b {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-ump-casos li.is-no-cuenta b {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ump-caso-cuando,
+.mon-ump-caso-gps {
+  color: var(--pulso-text-soft);
+}
+
+/* Historia de la UMP. */
+.mon-ump-historia-cabecera {
+  display: grid;
+  gap: 2px;
+}
+
+.mon-ump-curva {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mon-ump-curva-meta {
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.mon-ump-curva-trazo {
+  fill: none;
+  stroke: var(--pulso-brand-navy);
+  stroke-width: 2;
+}
+
+.mon-ump-curva-dia {
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+}
+
+.mon-ump-curva-eje {
+  fill: var(--pulso-text-soft);
+  font-size: 10.5px;
+}
+
+.mon-ump-curva-hito circle {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-brand-navy);
+  stroke-width: 1.5;
+}
+
+.mon-ump-curva-hito text {
+  fill: var(--pulso-brand-navy);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ump-curva-hito.is-elegido circle {
+  fill: var(--pulso-brand-navy);
+}
+
+.mon-ump-curva-hito.is-elegido text {
+  fill: var(--pulso-surface);
+}
+
+.mon-ump-capitulos {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ump-capitulo {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "numero texto cuota"
+    "numero tira tira";
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  width: 100%;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-ump-capitulo[aria-pressed="true"] {
+  border-color: var(--pulso-brand-navy);
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 45%, var(--pulso-surface));
+}
+
+.mon-ump-capitulo-numero {
+  grid-area: numero;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ump-capitulo-texto {
+  grid-area: texto;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-ump-capitulo-texto small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-capitulo-cuota {
+  grid-area: cuota;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-tira {
+  grid-area: tira;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.mon-ump-tira i {
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ump-tira i.is-observacion {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-ump-tira i.is-no-cuenta,
+.mon-ump-tira i.is-anulado-sin-consentimiento {
+  background: var(--pulso-border-strong);
+}
+
+.mon-ump-tira i.is-anulado-efectiva {
+  background: var(--pulso-danger-fg);
+}
+
+/* Vacío del modo. */
+.mon-umps-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-umps-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .mon-umps-buscar input {
+    width: 160px;
+  }
+}

@@ -1,0 +1,415 @@
+/* Avance › Mapa (territorial.md §3.15). Lienzo a todo el alto con su barra
+ * arriba y la leyenda abajo, en flujo: nada absoluto encima del mapa. Lateral
+ * de 380 px (340 a 1280; debajo del mapa en pantallas bajas). */
+
+.mon-mapa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-mapa-lienzo-panel,
+.mon-mapa-resumen {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-mapa-barra,
+.mon-mapa-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.mon-mapa-barra {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-mapa-pie {
+  justify-content: space-between;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mapa-titulo {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-mapa-segmentado {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-mapa-segmentado button {
+  height: 28px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-mapa-segmentado button.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-mapa-ir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mapa-ir select {
+  height: 30px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.mon-mapa-zoom {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+  margin-left: auto;
+}
+
+.mon-mapa-zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-mapa-zoom button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mon-mapa-segmentado button:focus-visible,
+.mon-mapa-zoom button:focus-visible,
+.mon-mapa-ir select:focus-visible,
+.mon-mapa-lista button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-mapa-lienzo {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.mon-mapa-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mon-mapa-vacio {
+  margin: auto;
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Contorno de distritos (PlanMet): relleno de superficie alterna y trazo
+ * marcado, para que el territorio se lea antes que los puntos. */
+.mon-mapa-distritos path {
+  fill: var(--pulso-surface-2);
+  stroke: var(--pulso-text-faint);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-mapa-rotulos text {
+  fill: var(--pulso-text-soft);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  font-size: 17px;
+  font-weight: var(--pulso-weight-semibold);
+  pointer-events: none;
+}
+
+.mon-mapa-calles path {
+  fill: none;
+  stroke: var(--pulso-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-mapa-vecinas path {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-mapa-punto,
+.mon-mapa-manzana {
+  stroke: var(--pulso-surface);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.mon-mapa-punto.is-completa,
+.mon-mapa-manzana.is-completa,
+.mon-mapa-punto.is-con-parte,
+.mon-mapa-manzana.is-con-parte {
+  fill: var(--pulso-brand-navy);
+}
+
+.mon-mapa-punto.is-subsanada,
+.mon-mapa-manzana.is-subsanada {
+  fill: var(--pulso-module-monitoring);
+}
+
+.mon-mapa-punto.is-pendiente,
+.mon-mapa-manzana.is-pendiente,
+.mon-mapa-punto.is-sin-parte,
+.mon-mapa-manzana.is-sin-parte {
+  fill: var(--pulso-warn-accent);
+}
+
+.mon-mapa-punto.is-sin-usar,
+.mon-mapa-manzana.is-sin-usar {
+  fill: none;
+  stroke: var(--pulso-text-soft);
+  stroke-width: 1.4;
+}
+
+.mon-mapa-manzana.is-elegida {
+  stroke: var(--pulso-text);
+  stroke-width: 2.5;
+}
+
+.mon-mapa-flecha line {
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-mapa-flecha marker path {
+  fill: var(--pulso-module-monitoring);
+}
+
+.mon-mapa-flecha text {
+  fill: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-mapa-leyenda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+}
+
+.mon-mapa-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.mon-mapa-leyenda .is-completa::before,
+.mon-mapa-leyenda .is-con-parte::before {
+  background: var(--pulso-brand-navy);
+}
+
+.mon-mapa-leyenda .is-subsanada::before {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-mapa-leyenda .is-pendiente::before,
+.mon-mapa-leyenda .is-sin-parte::before {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-mapa-leyenda .is-sin-usar::before {
+  border: 1.5px solid var(--pulso-text-soft);
+}
+
+/* Lateral: conteos o la ficha de la UMP. */
+.mon-mapa-lateral {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-mapa-lateral > * {
+  flex: 0 0 auto;
+}
+
+.mon-mapa-resumen {
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4);
+}
+
+.mon-mapa-conteos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-mapa-conteos > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-mapa-conteos dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mapa-conteos dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 22px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-mapa-conteos .is-pendiente {
+  border-color: var(--pulso-warn-border);
+}
+
+.mon-mapa-subtitulo {
+  margin: 0 0 var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-mapa-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mapa-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-mapa-lista button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-mapa-lista button:hover {
+  background: var(--pulso-surface-3);
+}
+
+.mon-mapa-lista span,
+.mon-mapa-lista small {
+  color: var(--pulso-text-soft);
+}
+
+.mon-mapa-lista small {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+@media (max-width: 1320px) {
+  .mon-mapa {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+/* Pantallas bajas (1024 × 600): el lateral pasa debajo del mapa con su propio
+ * desplazamiento y la barra compacta los rótulos. */
+@media (max-width: 1100px), (max-height: 700px) {
+  .mon-mapa {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(260px, 1fr) minmax(0, 34%);
+  }
+
+  .mon-mapa-ir > span,
+  .mon-mapa-zoom .is-texto {
+    font-size: 0;
+  }
+
+  .mon-mapa-zoom .is-texto svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* La ficha o los conteos llenan la columna: sin hueco bajo la tarjeta (C3). */
+.mon-mapa-lateral > :last-child {
+  flex-grow: 1;
+}

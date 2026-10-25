@@ -1,0 +1,270 @@
+/* Control › Señales (territorial.md §3.7). Dos histogramas pares arriba y la
+ * matriz por distrito abajo, que llena el alto y desplaza dentro. */
+
+.mon-sen {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-sen-histogramas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.mon-sen-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-sen-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.mon-sen-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-sen-base {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sen-barras {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-sen-barras li {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sen-rotulo {
+  color: var(--pulso-text-soft);
+}
+
+.mon-sen-barras b {
+  text-align: right;
+}
+
+.mon-sen-barra {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-sen-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-sen-barras .is-revision .mon-sen-barra i,
+.mon-sen-barras .is-corta .mon-sen-barra i,
+.mon-sen-leyenda .is-revision::before,
+.mon-sen-leyenda .is-corta::before {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-sen-barras .is-lejos .mon-sen-barra i,
+.mon-sen-barras .is-muy-corta .mon-sen-barra i,
+.mon-sen-leyenda .is-lejos::before,
+.mon-sen-leyenda .is-muy-corta::before {
+  background: var(--pulso-danger-fg);
+}
+
+.mon-sen-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-sen-leyenda .is-neutra::before {
+  background: var(--pulso-brand-navy);
+}
+
+.mon-sen-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.mon-sen-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-sen-tabla-marco::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-sen-tabla-marco::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-sen-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-sen-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sen-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-sen-tabla tbody th,
+.mon-sen-tabla tbody td,
+.mon-sen-tabla tfoot th,
+.mon-sen-tabla tfoot td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-sen-tabla tfoot th,
+.mon-sen-tabla tfoot td {
+  position: sticky;
+  bottom: 0;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-sen-tabla th:first-child,
+.mon-sen-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-sen-tabla .is-num {
+  text-align: right;
+}
+
+.mon-sen--vacio {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-sen-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-sen-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .mon-sen-histogramas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Pantallas bajas: barras más finas para que la matriz conserve su alto. */
+@media (max-height: 760px) {
+  .mon-sen-panel {
+    gap: var(--pulso-space-2);
+    padding: var(--pulso-space-3);
+  }
+
+  .mon-sen-barras {
+    gap: 2px;
+  }
+
+  .mon-sen-barras li {
+    grid-template-columns: 100px minmax(0, 1fr) 40px;
+    font-size: 11px;
+  }
+
+  .mon-sen-barra {
+    height: 7px;
+  }
+
+  .mon-sen-tabla-marco {
+    margin: 0 calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3));
+  }
+}
+
+/* Las filas de distritos se reparten el alto de su tarjeta (§2a, 1). */
+.mon-sen-tabla {
+  height: 100%;
+}
+
+/* Viewport bajo (1024 × 600): la pestaña desplaza entera con el dueño del
+ * área de trabajo; la matriz por distrito muestra sus filas en vez de quedar
+ * reducida a la cabecera y el total. */
+@media (max-height: 760px) {
+  .mon-sen {
+    flex: 0 0 auto;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mon-sen-tabla-marco {
+    overflow: visible;
+  }
+}

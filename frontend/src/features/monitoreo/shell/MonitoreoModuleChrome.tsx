@@ -321,6 +321,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
           contexto={
             <>
               <MonitoreoPathContext route={route} conHermanos={false} />
+              {barraDelModo.selector}
               <IndicadoresDelModo indicadores={barraDelModo.indicadores} />
             </>
           }

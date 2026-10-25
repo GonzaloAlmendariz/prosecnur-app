@@ -2759,6 +2759,23 @@ export type MonitoreoTerritorialProductionAnnulment = {
   impact?: MonitoreoTerritorialProductionAnnulmentImpact;
 };
 
+/**
+ * Una manzana con casos anulados, tal como la publica el motor
+ * (`.monitoreo_territorial_annulled_blocks_payload`). No es la forma de
+ * `impact.blocks`: los nombres son otros.
+ */
+export type MonitoreoTerritorialAnnulledBlock = {
+  block_id: string;
+  ump?: string;
+  manzana?: string;
+  district?: string;
+  zone?: string;
+  responsible?: string;
+  responses_annulled: number;
+  valid_annulled: number;
+  latest_activity?: string;
+};
+
 export type MonitoreoTerritorialProductionAnnulmentsPayload = {
   schema?: string;
   phase?: MonitoreoTerritorialPhase | string;
@@ -2782,7 +2799,7 @@ export type MonitoreoTerritorialProductionAnnulmentsPayload = {
   }>;
   entries?: MonitoreoTerritorialProductionAnnulment[];
   rows?: MonitoreoRow[];
-  affected_blocks?: MonitoreoTerritorialProductionAnnulmentImpact["blocks"];
+  affected_blocks?: MonitoreoTerritorialAnnulledBlock[];
 };
 
 export type MonitoreoTerritorialReconciliationBatchChange =

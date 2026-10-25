@@ -1,0 +1,15 @@
+import { describe, expect, it } from "vitest";
+import { cortesDePestana, scopesDePestana } from "./cortesDePestana";
+
+describe("cortesDePestana", () => {
+  it("Equipo pide consultas y validación", () => {
+    expect(scopesDePestana({ seccion: "control", pestana: "equipo", panel: null })).toEqual(["queries_summary", "validation_summary"]);
+  });
+  it("Conexiones pide avance y consultas", () => {
+    expect(cortesDePestana({ seccion: "insumos", pestana: "conexiones", panel: null })).toEqual(["avance", "consultas"]);
+  });
+  it("una vista heredada no pide cortes extra", () => {
+    expect(cortesDePestana({ seccion: "avance", pestana: "resumen", panel: "ritmo" })).toEqual([]);
+    expect(cortesDePestana({ seccion: "avance", pestana: "faltante", panel: null })).toEqual([]);
+  });
+});

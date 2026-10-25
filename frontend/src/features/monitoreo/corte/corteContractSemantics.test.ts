@@ -82,7 +82,12 @@ describe("máquina de estados visual", () => {
   });
 
   it("territorial da readiness a sus pestañas de Avance", () => {
-    expect(TERRITORIAL).toContain("estadoPestanaAvanceTerritorial");
+    // Con el esqueleto común el rail territorial se arma en su modelo propio.
+    const RAIL_TERRITORIAL = leer("profiles/territorial/navegacion/modeloDelRail.ts");
+    expect(TERRITORIAL).toContain("pestanasDelRail(");
+    expect(RAIL_TERRITORIAL).toContain("estadoDeAvance(");
+    expect(RAIL_TERRITORIAL).toContain("estadoVisual({");
+    expect(RAIL_TERRITORIAL).toContain("readinessDeSalidas(corte)");
   });
 });
 

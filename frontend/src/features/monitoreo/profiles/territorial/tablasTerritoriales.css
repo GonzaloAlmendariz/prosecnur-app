@@ -1,0 +1,300 @@
+/* Tablas de Territorial (estándar de ficha §2a-bis): la tabla vive dentro de
+ * su tarjeta, con la cabecera sobre la superficie alterna, filas de 42 px y
+ * cifras tabulares. Una sola regla para todas las pestañas, con el prefijo del
+ * perfil para ganarle a la hoja de cada pestaña sin depender del orden en que
+ * el bundle concatena el CSS. */
+
+.is-territorial-profile :is(
+  .mon-res-tabla,
+  .mon-falt-tabla,
+  .mon-umps-tabla,
+  .mon-ban-tabla,
+  .mon-ocu-tabla,
+  .mon-eq-tabla,
+  .mon-sen-tabla,
+  .mon-anu-tabla,
+  .mon-mod-tabla,
+  .mon-ins-tabla
+) {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.is-territorial-profile :is(
+  .mon-res-tabla,
+  .mon-falt-tabla,
+  .mon-umps-tabla,
+  .mon-ban-tabla,
+  .mon-ocu-tabla,
+  .mon-eq-tabla,
+  .mon-sen-tabla,
+  .mon-anu-tabla,
+  .mon-mod-tabla,
+  .mon-ins-tabla
+) thead th {
+  height: 36px;
+  padding-block: 0;
+  border-top: 1px solid var(--pulso-border);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-3);
+  vertical-align: middle;
+}
+
+.is-territorial-profile :is(
+  .mon-res-tabla,
+  .mon-falt-tabla,
+  .mon-umps-tabla,
+  .mon-ban-tabla,
+  .mon-ocu-tabla,
+  .mon-eq-tabla,
+  .mon-sen-tabla,
+  .mon-anu-tabla,
+  .mon-mod-tabla,
+  .mon-ins-tabla
+) > tbody > tr:not([class*="detalle"]) > :is(th, td) {
+  height: 42px;
+  padding-block: 4px;
+  vertical-align: middle;
+}
+
+.is-territorial-profile :is(
+  .mon-res-tabla,
+  .mon-falt-tabla,
+  .mon-umps-tabla,
+  .mon-ban-tabla,
+  .mon-ocu-tabla,
+  .mon-eq-tabla,
+  .mon-sen-tabla,
+  .mon-anu-tabla,
+  .mon-mod-tabla,
+  .mon-ins-tabla
+) > tbody > tr:hover > :is(th, td) {
+  background: var(--pulso-surface-2);
+}
+
+/* El estado de una fila va en chip, no en texto suelto de color. */
+.mon-ter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.mon-ter-chip.is-falta,
+.mon-ter-chip.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-ter-chip.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-ter-chip.is-error {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ter-chip.is-info {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-brand-navy);
+}
+
+/* Contorno del distrito como sello de la tarjeta de UMP (Gonzalo 2026-10-24:
+ * «contorno de distritos para territorial»). Cartografía PlanMet; la manzana
+ * de la UMP va como punto dentro del contorno cuando se sabe dónde está. */
+.mon-ter-silueta {
+  flex: none;
+  overflow: visible;
+}
+
+.mon-ter-silueta path {
+  fill: var(--pulso-surface-3);
+  stroke: var(--pulso-text-faint);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-ter-silueta circle {
+  fill: var(--pulso-brand-navy);
+  stroke: var(--pulso-surface);
+  stroke-width: 1.5;
+}
+
+.mon-ter-silueta.is-falta path {
+  fill: var(--pulso-warn-bg);
+  stroke: var(--pulso-warn-border);
+}
+
+.mon-ter-silueta.is-falta circle {
+  fill: var(--pulso-warn-fg);
+}
+
+.mon-ter-silueta.is-ok path {
+  fill: var(--pulso-success-bg);
+  stroke: var(--pulso-success-border);
+}
+
+.mon-ter-silueta.is-info path {
+  fill: var(--pulso-info-bg);
+  stroke: var(--pulso-primary-border);
+}
+
+.mon-ter-con-silueta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  white-space: nowrap;
+}
+
+.mon-ter-con-silueta > .mon-ter-silueta path {
+  stroke-width: 1.1;
+}
+
+/* Sub-tarjetas de cuota por variable (Sexo, Edad) de la tarjeta de UMP. */
+/* Columnas de al menos 230 px: en la ficha angosta las variables se apilan y
+ * ningún rótulo («Hombre», «60 o más») se recorta junto a su chip. */
+.mon-ter-variables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.mon-ter-variable {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.mon-ter-variable > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-ter-variable h5 {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-ter-variable > header > b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ter-variable ul {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ter-variable li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "rotulo cifra chip"
+    "barra barra barra";
+  align-items: center;
+  gap: 4px var(--pulso-space-2);
+  font-size: 12.5px;
+}
+
+.mon-ter-variable-rotulo {
+  grid-area: rotulo;
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+
+.mon-ter-variable-cifra {
+  grid-area: cifra;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ter-variable li > .mon-ter-chip {
+  grid-area: chip;
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+.mon-ter-variable-barra {
+  display: block;
+  grid-area: barra;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-ter-variable-barra > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-success-fg);
+}
+
+.mon-ter-variable li.is-falta .mon-ter-variable-barra > b {
+  background: var(--pulso-warn-fg);
+}
+
+/* Leyendas (Gonzalo, 2026-10-24): centradas respecto de su tarjeta y con
+ * rótulos cortos, sin «rótulo: comentario». En los pies de mapa la leyenda y
+ * la fuente van juntas al centro. */
+.is-territorial-profile :is(
+  .mon-res-leyenda,
+  .mon-ocu-leyenda,
+  .mon-exp-leyenda,
+  .mon-mapa-leyenda
+) {
+  display: flex;
+  justify-content: center;
+  margin-inline: 0;
+  text-align: center;
+}
+
+.is-territorial-profile :is(.mon-mapa-pie, .mon-exp-pie, .mon-mod-mapa-pie) {
+  justify-content: center;
+  column-gap: var(--pulso-space-6, 24px);
+  text-align: center;
+}
+
+.is-territorial-profile .mon-sub-mapa figcaption,
+.is-territorial-profile figcaption.mon-sub-base {
+  text-align: center;
+}
+
+/* Señales: sin leyenda (cada fila ya está rotulada); las filas del histograma
+ * reparten el alto de la tarjeta y la barra conserva su grosor de 10 px. */
+.is-territorial-profile .mon-sen-barras {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(18px, 1fr);
+  align-content: stretch;
+}

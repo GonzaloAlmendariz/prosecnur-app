@@ -180,6 +180,19 @@ export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | 
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cuotas, ritmo y entregas", icon: BarChart3 },
 ];
 
+/**
+ * Las cuatro secciones públicas del modo territorial (revamp, 2026-10-23;
+ * `docs/qa/revamp-monitoreo/territorial.md` §1). La página sigue montando por
+ * dentro las de `TERRITORIAL_WORKBENCH_VIEWS` y las traduce en
+ * `profiles/territorial/navegacion/direccionTerritorial.ts`.
+ */
+export const TERRITORIAL_SECCIONES_PUBLICAS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
+  { key: "insumos", label: "Insumos", shortLabel: "Insumos", desc: "Fuentes, mapeo, padrón e historial", icon: PlugZap },
+  { key: "modelo", label: "Modelo", shortLabel: "Modelo", desc: "Metas, muestra y cuotas", icon: Route },
+  { key: "control", label: "Control", shortLabel: "Control", desc: "Calidad, ocurrencias y correcciones", icon: ShieldAlert },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Faltante, resumen, mapa y salidas", icon: BarChart3 },
+];
+
 // Acreditación con el mismo esqueleto (`docs/qa/revamp-monitoreo/acreditacion.md`
 // §1): Control reúne el contacto declarado (correo, barrido) y los casos.
 export const ACREDITACION_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
@@ -234,6 +247,7 @@ export function seccionesPublicasDelModo(
   route: Pick<MonitoreoModoDefinicion, "family">,
 ): MonitoreoSeccionDefinicion<MonitoreoSeccionPublica>[] {
   if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
+  if (route.family === "territorial") return TERRITORIAL_SECCIONES_PUBLICAS;
   if (route.family === "acreditacion") return ACREDITACION_WORKBENCH_VIEWS;
   return seccionesDelModo(route);
 }

@@ -31,6 +31,7 @@ export function MonitoreoWorkbenchChrome({
   status = null,
   isTerritorial = false,
   perfil,
+  sinCalidadDeCampo = false,
   hasReportStatus = false,
   ariaLabel = "Mesa de trabajo de monitoreo",
   ariaLive = "off",
@@ -44,7 +45,7 @@ export function MonitoreoWorkbenchChrome({
 }: MonitoreoWorkbenchChromeProps) {
   const resolvedContentId = contentId ?? `monitoreo-${seccionActiva}-panel`;
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const muestraCalidad = SECCIONES_CON_CALIDAD_DE_CAMPO.has(seccionActiva);
+  const muestraCalidad = !sinCalidadDeCampo && SECCIONES_CON_CALIDAD_DE_CAMPO.has(seccionActiva);
   // Relee al cambiar de sección: es lo que refresca el bloque después de un
   // sync sin sumar una petición por render.
   const calidad = useCalidadDeCampo(muestraCalidad ? seccionActiva : "");

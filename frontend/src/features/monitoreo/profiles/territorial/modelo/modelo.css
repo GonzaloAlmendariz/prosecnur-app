@@ -1,0 +1,423 @@
+/* Modelo › Metas y muestra y Cuotas (territorial.md §3.5 y §3.5b). Columna de
+ * definición a la izquierda (desplaza dentro) y mapa o tabla a la derecha. */
+
+.mon-mod {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-mod-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-mod-izquierda > * {
+  flex: 0 0 auto;
+}
+
+.mon-mod-izquierda::-webkit-scrollbar,
+.mon-mod-tabla-marco::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-mod-izquierda::-webkit-scrollbar-thumb,
+.mon-mod-tabla-marco::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-mod-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-mod-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-mod-cabecera h3,
+.mon-mod-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-mod-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-mod-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mod-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-mod-tabla-marco {
+  max-height: 100%;
+  margin: 0 calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-mod-cuotas .mon-mod-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-mod-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-mod-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-mod-tabla tbody th,
+.mon-mod-tabla tbody td,
+.mon-mod-tabla tfoot th,
+.mon-mod-tabla tfoot td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-mod-tabla tfoot th,
+.mon-mod-tabla tfoot td {
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-mod-tabla th:first-child,
+.mon-mod-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-mod-tabla .is-num {
+  text-align: right;
+}
+
+.mon-mod-fases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-mod-fase {
+  gap: var(--pulso-space-1);
+  font-size: 13px;
+}
+
+.mon-mod-fase span,
+.mon-mod-fase small {
+  color: var(--pulso-text-soft);
+}
+
+.mon-mod-fase.is-activa {
+  border-color: var(--pulso-module-monitoring-border);
+}
+
+.mon-mod-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+  font-size: 13px;
+}
+
+.mon-mod-mapa {
+  min-height: 0;
+}
+
+.mon-mod-mapa > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-mod-mapa-lienzo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-surface-2);
+  border-radius: 10px;
+}
+
+.mon-mod-mapa-lienzo svg {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.mon-mod-mapa-distritos path {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Los nombres van encima de los puntos, con halo de superficie, y ubicados
+ * donde no pisan manzanas (`rotulosDelMapa.ts`). */
+.mon-mod-mapa-rotulos text {
+  fill: var(--pulso-text-soft);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  font-size: 22px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-mod-mapa-lienzo circle.is-titular {
+  fill: var(--pulso-brand-navy);
+}
+
+.mon-mod-mapa-lienzo circle.is-reemplazo {
+  fill: none;
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 1.5;
+}
+
+.mon-mod-mapa-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mod-mapa-pie .is-titular::before,
+.mon-mod-mapa-pie .is-reemplazo::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.mon-mod-mapa-pie .is-titular::before {
+  background: var(--pulso-brand-navy);
+}
+
+.mon-mod-mapa-pie .is-reemplazo::before {
+  border: 1.5px solid var(--pulso-module-monitoring);
+}
+
+.mon-mod-variables,
+.mon-mod-reglas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 13px;
+}
+
+.mon-mod-variables dt,
+.mon-mod-reglas dt {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-mod-variables code {
+  margin-left: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mod-variables dd,
+.mon-mod-reglas dd {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+/* Cada variable de cuota en su tarjeta, con su columna y sus categorías en
+ * chips; cada regla en su fila con el valor en chip (§2a-bis). */
+.mon-mod-variables {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.mon-mod-variables > div {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-mod-variables dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.mon-mod-reglas {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-mod-reglas div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 42px;
+  padding: 4px var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-mod-reglas div:first-child {
+  border-top: 0;
+}
+
+.mon-mod-plantilla {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-mod-plantilla li {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.mon-mod-plantilla li.is-sexo {
+  background: var(--pulso-surface-2);
+}
+
+.mon-mod-plantilla b {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-mod-boton:focus-visible,
+.mon-mod-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-mod--vacio {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mon-mod-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-mod-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .mon-mod-plantilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* La última tarjeta de la columna toma el alto sobrante (C3). */
+.mon-mod-izquierda > :last-child {
+  flex-grow: 1;
+}
+
+/* Modelo › Cuotas: arriba la definición y las reglas lado a lado; abajo la
+ * cuota por distrito a todo el ancho, con sus filas repartiendo el alto
+ * (§2a, 1: sin hueco al pie de ninguna columna). */
+@media (min-width: 1181px) {
+  .mon-mod.mon-mod-cuotas {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .mon-mod-cuotas > .mon-mod-izquierda {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .mon-mod-cuotas .mon-mod-tabla {
+    height: 100%;
+  }
+}
