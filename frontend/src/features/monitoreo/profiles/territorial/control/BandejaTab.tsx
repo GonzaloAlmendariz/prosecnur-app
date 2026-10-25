@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, type CSSProperties } from "react";
 import { Inbox, X } from "lucide-react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
@@ -16,6 +16,11 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./bandeja.css";
 
 type Vista = "bandeja" | "anulados";
+
+/** Cada lista del riel crece en proporción a sus filas, «Todos» incluido. */
+function filasDeLaLista(filas: number): CSSProperties {
+  return { "--filas": filas + 1 } as CSSProperties;
+}
 
 /**
  * Control › Bandeja (territorial.md §3.6): filtros por motivo y distrito a la
@@ -72,7 +77,7 @@ function BandejaTabImpl({
     >
       <aside className="mon-ban-panel mon-ban-filtros" aria-label="Filtros de la bandeja" data-qa-geometry-member="filtros" data-qa-geometry-group="territorial-bandeja-filtros" data-qa-geometry-contract="intrinsic">
         <h3 className="mon-ban-subtitulo">Motivo</h3>
-        <ul className="mon-ban-lista-filtros">
+        <ul className="mon-ban-lista-filtros" style={filasDeLaLista(modelo.filtros.length)}>
           <li>
             <button type="button" aria-pressed={!motivo} onClick={() => escribirFoco(null)}>
               <span>Todos</span><b>{fmt(modelo.casos.length)}</b>
@@ -87,7 +92,7 @@ function BandejaTabImpl({
           ))}
         </ul>
         <h3 className="mon-ban-subtitulo">Distrito</h3>
-        <ul className="mon-ban-lista-filtros">
+        <ul className="mon-ban-lista-filtros" style={filasDeLaLista(modelo.distritos.length)}>
           <li>
             <button type="button" aria-pressed={!distrito} onClick={() => setDistrito(null)}>
               <span>Todos</span><b>{fmt(modelo.casos.length)}</b>

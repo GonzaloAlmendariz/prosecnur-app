@@ -1,5 +1,6 @@
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { EstadoDelModo } from "../../../shell/BarraDelModo";
+import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import { fmt, pctEntero } from "../rotulos";
 
 /**
@@ -52,12 +53,24 @@ export function casosEnBandeja(reports: MonitoreoTerritorialDashboard | null | u
   return Array.isArray(casos) ? casos.length : null;
 }
 
+/**
+ * Insignias de las píldoras: casos en bandeja en Control y avance en Avance.
+ * El avance lleva su base (L20): los casos que cuentan y la meta, el mismo par
+ * de Avance › Resumen. A 1024 la insignia entera cede, como en los otros modos
+ * (`barraDelModo.css`), y la base sigue en el `title` y el nombre accesible.
+ */
 export function insigniasDelModo(
   avance: LecturaDelAvance,
   bandeja: number | null,
-): Partial<Record<"control" | "avance", string>> {
-  const insignias: Partial<Record<"control" | "avance", string>> = {};
+): Partial<Record<"control" | "avance", MetricaDeSeccion>> {
+  const insignias: Partial<Record<"control" | "avance", MetricaDeSeccion>> = {};
   if (bandeja != null && bandeja > 0) insignias.control = fmt(bandeja);
-  if (avance) insignias.avance = pctEntero(avance.cuentan, avance.meta);
+  if (avance) {
+    insignias.avance = {
+      valor: pctEntero(avance.cuentan, avance.meta),
+      base: `${fmt(avance.cuentan)}/${fmt(avance.meta)}`,
+      lectura: `${fmt(avance.cuentan)} casos que cuentan de una meta de ${fmt(avance.meta)}`,
+    };
+  }
   return insignias;
 }
