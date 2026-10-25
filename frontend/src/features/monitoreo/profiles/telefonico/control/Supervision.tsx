@@ -25,6 +25,13 @@ function n(valor: number) {
  * resultados; a la derecha, los casos sorteados con el resultado de la
  * rellamada si hay hoja de supervisión.
  */
+/** «2026-07-01» → «01/07», como el resto de fechas del perfil; otro formato pasa tal cual. */
+function fechaDeEnvio(valor: string | null | undefined) {
+  if (!valor) return "—";
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor);
+  return iso ? `${iso[3]}/${iso[2]}` : valor;
+}
+
 export function Supervision({
   reports,
   state,
@@ -140,7 +147,7 @@ export function Supervision({
             {repartoVisible.map((fila) => (
               <li key={fila.enumerador}>
                 <span className="mon-sup-nombre">
-                  {fila.enumerador}
+                  <span className="mon-sup-nombre-texto" title={fila.enumerador}>{fila.enumerador}</span>
                   {fila.minimo ? <em className="mon-sup-minimo" title="El caso existe por el mínimo de uno por enumerador">mínimo</em> : null}
                 </span>
                 <i className="mon-sup-barras" title={`${n(fila.efectivas)} efectivas; ${n(fila.casos)} ${fila.casos === 1 ? "caso sorteado" : "casos sorteados"}`}>
@@ -169,11 +176,11 @@ export function Supervision({
       <section className="mon-ctl-panel mon-sup-casos" aria-label="Casos sorteados" data-qa-geometry-capacity="owned">
         <header className="mon-ctl-panel-cabecera">
           <b>Casos sorteados</b>
-          <span>{actual != null ? `Ronda ${n(actual)}: ` : ""}{n(casosDeRonda.length)} para volver a llamar</span>
+          <span title="Para volver a llamar">{actual != null ? `Ronda ${n(actual)}, ` : ""}{n(casosDeRonda.length)} {casosDeRonda.length === 1 ? "caso" : "casos"}</span>
         </header>
         {modelo.hojaConectada ? null : (
           <NotaDelModo tono="neutro" className="mon-sup-casos-nota">
-            <span>Sin hoja de supervisión: el resultado de cada rellamada aparece cuando el proyecto la conecta.</span>
+            <span title="El resultado de cada rellamada aparece cuando el proyecto la conecta">Sin hoja de supervisión</span>
             {onIrAFuentes ? <button type="button" className="mon-sup-enlace" onClick={onIrAFuentes}>Conectar la hoja en Fuentes</button> : null}
           </NotaDelModo>
         )}
@@ -197,13 +204,14 @@ export function Supervision({
                   <td className="is-num is-compacta">{n(caso.n)}</td>
                   <th scope="row" className="is-compacta">{caso.codigo}</th>
                   {conProgres ? <td className="is-compacta">{caso.progres || "—"}</td> : null}
-                  <td>{caso.enumerador}</td>
+                  <td className="mon-sup-una-linea" title={caso.enumerador}>{caso.enumerador}</td>
                   <td className="is-compacta">{caso.categoria || "—"}</td>
-                  <td className="is-compacta">{caso.fechaKobo || "—"}</td>
+                  <td className="is-compacta" title={caso.fechaKobo || undefined}>{fechaDeEnvio(caso.fechaKobo)}</td>
                   <td>
                     {modelo.hojaConectada ? (
                       caso.resultado || caso.statusFinal ? (
                         <span className={`mon-sup-resultado${caso.coincide === "No" ? " is-no" : caso.coincide === "Sí" ? " is-si" : ""}`} title={caso.observacion || undefined}>
+                          {/* Dato, no explicación: resultado, status y si coincide (P7). */}
                           {[caso.resultado, caso.statusFinal].filter(Boolean).join(" · ")}
                           {caso.coincide ? ` (${caso.coincide === "Sí" ? "coincide" : "no coincide"})` : ""}
                         </span>

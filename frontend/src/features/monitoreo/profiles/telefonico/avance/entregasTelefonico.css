@@ -164,11 +164,6 @@
   background: var(--pulso-brand-navy);
 }
 
-.mon-entregas-hoja > footer {
-  padding-top: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-}
 
 
 
@@ -233,9 +228,6 @@
   white-space: normal;
 }
 
-.mon-entregas-cliente > .mon-entregas-pie-nota {
-  margin: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
-}
 
 .mon-entregas-ritmo .mon-nota {
   margin-top: var(--pulso-space-2);

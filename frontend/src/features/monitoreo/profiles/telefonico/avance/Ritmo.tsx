@@ -192,14 +192,21 @@ export function Ritmo({
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Promedio">
           <span className="mon-ctl-antetitulo">Promedio</span>
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
-          <p>{n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}{kobo.fechas.length ? ` (${fechaCorta(kobo.fechas[0])} a ${fechaCorta(ultimoKobo ?? kobo.fechas[0])})` : ""}{kobo.categorias.length > 1 ? `, en ${n(kobo.categorias.length)} ${nombreDeSegmento === "categoría" ? "categorías" : "valores"}` : ""}.</p>
+          <p
+            title={[
+              kobo.fechas.length ? `Del ${fechaCorta(kobo.fechas[0])} al ${fechaCorta(ultimoKobo ?? kobo.fechas[0])}` : "",
+              kobo.categorias.length > 1 ? `en ${n(kobo.categorias.length)} ${nombreDeSegmento === "categoría" ? "categorías" : "valores"}` : "",
+            ].filter(Boolean).join(", ") || undefined}
+          >
+            {n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}
+          </p>
           {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">
           <header className="mon-cadencia-cabecera">
+            {/* La meta cruzada ya va en la cabecera de la pestaña; aquí no se repite. */}
             <strong>Día a día</strong>
-            <span>{meta ? (resumen.metaCruzada ? `meta ${n(meta)} cruzada el ${fechaCorta(resumen.metaCruzada)}` : `meta ${n(meta)} sin cruzar`) : "sin meta declarada"}</span>
           </header>
           <div className="mon-cadencia-dia-a-dia-marco">
             <table className="mon-ctl-tabla">
@@ -217,7 +224,8 @@ export function Ritmo({
                     <th scope="row">{fechaCorta(iso)}</th>
                     <td className="is-num">{n(kobo.porFecha[iso] ?? 0)}</td>
                     <td className="is-num">{acumuladoAl(iso) != null ? n(acumuladoAl(iso) ?? 0) : "—"}</td>
-                    <td className="is-num">{n(hoja.totalPorFecha[iso] ?? 0)}</td>
+                    {/* Sin registro de la hoja ese día, la raya (como en Calendario), no un cero. */}
+                    <td className="is-num">{hoja.totalPorFecha[iso] ? n(hoja.totalPorFecha[iso]) : "—"}</td>
                   </tr>
                 ))}
               </tbody>

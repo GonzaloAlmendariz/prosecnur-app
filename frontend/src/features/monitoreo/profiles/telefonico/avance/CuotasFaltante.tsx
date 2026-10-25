@@ -207,10 +207,11 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
               <span> de {fmt(total.meta)}</span>
             </strong>
           )}
-          <span className="mon-cuotas-meta-nota is-num">
-            {sinMetas
-              ? "Sin metas declaradas: Avance mide cobertura del listado"
-              : `${fmt(total.efectivas)} efectivas, ${porcentaje(total.pct)}; ${notaTotal}`}
+          <span
+            className="mon-cuotas-meta-nota is-num"
+            title={sinMetas ? "Avance mide cobertura del listado" : `${porcentaje(total.pct)} de la meta`}
+          >
+            {sinMetas ? "Sin metas declaradas" : `${fmt(total.efectivas)} efectivas, ${notaTotal}`}
           </span>
           <div className="mon-cuotas-indicadores">
             <Indicador

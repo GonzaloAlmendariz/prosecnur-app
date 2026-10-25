@@ -158,7 +158,7 @@ export function Estados({
             <strong>Contar con el vocabulario del proyecto</strong>
             <span className={`mon-insumos-estado${encendidas ? " is-encendido" : ""}`}>{encendidas ? "Encendido" : "Apagado"}</span>
           </div>
-          <p>{encendidas ? "El motor cuenta cada status con su regla." : "Las cifras usan el vocabulario fijo del motor; se enciende por proyecto."}</p>
+          <p title={encendidas ? undefined : "Se enciende por proyecto"}>{encendidas ? "Cada status con su regla" : "Vocabulario fijo del motor"}</p>
           {sinRegla.valores ? (
             <div className="mon-insumos-aviso">
               <strong>{n(sinRegla.valores)} {sinRegla.valores === 1 ? "valor" : "valores"} sin regla, {n(sinRegla.casos)} {sinRegla.casos === 1 ? "caso" : "casos"}</strong>
@@ -171,7 +171,7 @@ export function Estados({
           <span className="mon-ctl-antetitulo">Intentos que registra la hoja</span>
           {enCola ? (
             <>
-              <p>{n(enCola)} casos en la cola de insistencia, según su columna Intentos, que es el total acumulado.</p>
+              <p title="Según la columna Intentos de la hoja, que es el total acumulado">{n(enCola)} casos en la cola</p>
               <ul className="mon-insumos-barras">
                 {intentos.map((tramo) => (
                   <li key={tramo.etiqueta}>
@@ -183,12 +183,11 @@ export function Estados({
               </ul>
             </>
           ) : (
-            <p>El corte no trae la cola de insistencia; actualiza para leer los intentos.</p>
+            <p title="Actualiza para leer los intentos">El corte no trae la cola de insistencia</p>
           )}
           {/* El aviso va dentro de la tarjeta de los intentos, que es de lo que habla. */}
           <NotaDelModo tono="info" className="mon-insumos-nota-modo">
-            <strong>Sin regla de agotado.</strong> El supervisor decide cuándo dejar de insistir mirando intentos, status y
-            observación; el modo no declara casos agotados.
+            <strong title="El supervisor decide cuándo dejar de insistir mirando intentos, status y observación">Sin regla de agotado</strong>
           </NotaDelModo>
         </section>
 

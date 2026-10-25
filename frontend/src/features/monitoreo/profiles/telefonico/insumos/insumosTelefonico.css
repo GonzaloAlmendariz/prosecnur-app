@@ -248,7 +248,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
 }
 
 .mon-estados-tabla tbody th,
@@ -510,6 +510,20 @@
   list-style: none;
 }
 
+/* «Un envío por CodPulso» y, a la derecha, cuántos quedan fuera: la cifra,
+ * no la frase; el detalle va en su tooltip. */
+.mon-llave-fuera li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-llave-fuera li > strong {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
 .mon-llave .mon-insumos-lateral {
   height: 100%;
 }
@@ -543,7 +557,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
 }
 
 .mon-llave-tabla tbody th,
@@ -780,7 +794,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
 }
 
 .mon-fuentes-tabla th:nth-child(1) { width: 200px; }

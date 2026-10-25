@@ -68,9 +68,9 @@ function TablaDeCarga({
           })}
           {modelo.sinAsignar ? (
             <tr className="is-sin-asignar">
-              <th scope="row">Sin asignar</th>
+              <th scope="row" title="Casos sin responsable en la hoja">Sin asignar</th>
               <td className="is-num">{n(modelo.sinAsignar.asignados)}</td>
-              <td>Casos sin responsable en la hoja</td>
+              <td className="is-num">—</td>
               <td className="is-num">{n(modelo.sinAsignar.asignados)}</td>
               <td className="is-num">0</td>
               <td className="is-num">{n(modelo.sinAsignar.efectivasKobo)}</td>

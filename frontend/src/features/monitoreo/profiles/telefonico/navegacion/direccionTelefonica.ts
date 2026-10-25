@@ -146,6 +146,18 @@ export function direccionDeVista(vista: { seccion: string; pestana: string }): D
   return direccionDeVista(ATERRIZAJE_TELEFONICO);
 }
 
+/**
+ * Marca de readiness de la pestaña activa (maqueta Meta B, L10): cada una de
+ * las 14 publica la suya —«monitoreo-telefonico-control-equipo»—, como
+ * Acreditación y Territorial, para que el QA sepa a qué vista llegó y no dé por
+ * lista otra que montó antes. Se arma con la dirección PÚBLICA: una vista
+ * interna oculta publica la de la pestaña que la sustituye.
+ */
+export function readinessDeTelefonico(seccion: string, pestana: string): string {
+  const publica = direccionDeVista({ seccion, pestana });
+  return `monitoreo-telefonico-${publica.seccion}-${publica.pestana}`;
+}
+
 /** Pestañas públicas de una sección, en orden y sin repetir. */
 export function pestanasDeSeccion(seccion: SeccionTelefonica): string[] {
   return [...new Set(TABLA.filter((item) => item.publica.seccion === seccion).map((item) => item.publica.pestana))];

@@ -104,7 +104,7 @@ export function MonitoreoOutputsReadiness({
            explica el porqué, que es de cada estudio; se dice el hecho, que es lo
            que esta superficie puede afirmar. */
         <p className="mon-outputs-readiness__sin-saltos">
-          Los tres granos traen la misma cifra: en este corte no se descarta ningún caso.
+          En este corte no se descarta ningún caso.
         </p>
       ) : null}
 
