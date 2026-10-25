@@ -119,12 +119,6 @@
   color: var(--pulso-danger-fg);
 }
 
-.mon-modo-estado.is-pendiente {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .mon-commandbar.is-barra-comun .mon-modo-actualizar {
   position: relative;
   display: inline-flex;
@@ -185,7 +179,6 @@
   right: 0;
   z-index: 30;
   display: grid;
-  min-width: 220px;
   padding: var(--pulso-space-1);
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
@@ -194,13 +187,52 @@
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button {
-  justify-content: flex-start;
-  height: var(--pulso-chrome-control-h);
-  padding: 0 var(--pulso-space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  height: auto;
+  min-height: var(--pulso-chrome-control-h);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
   border-radius: 8px;
   background: transparent;
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.mon-commandbar.is-barra-comun .mon-modo-actualizar-lista {
+  min-width: 260px;
+  max-width: min(360px, calc(100vw - 32px));
+  /* El menú crece con las fuentes del proyecto: con muchas, se desplaza él. */
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mon-modo-actualizar-grupo {
+  display: grid;
+}
+
+.mon-modo-actualizar-rotulo {
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-modo-actualizar-separador {
+  height: 1px;
+  margin: var(--pulso-space-1) var(--pulso-space-2);
+  background: var(--pulso-border);
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button:hover:not(:disabled) {

@@ -36,6 +36,8 @@ export function estadoDelModo({
   if (error) return { clave: "fallo", detalle: error };
   if (generationStatus === "failed" || generationStatus === "partial") return { clave: "fallo" };
   if (!hayEstado || cargando) return { clave: "preparando" };
-  if (pendienteDeRecalcular || generationStatus === "stale") return { clave: "pendiente" };
+  // Sin un quinto estado (§2a): el tablero aún no refleja los cambios, y el
+  // menú lo dice en «Recalcular».
+  if (pendienteDeRecalcular || generationStatus === "stale") return { clave: "preparando", detalle: "Hay cambios sin recalcular" };
   return { clave: "al-dia" };
 }
