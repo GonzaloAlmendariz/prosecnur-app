@@ -290,7 +290,7 @@ export function ResumenVista({
           <header className="acr-av-panel-cabecera">
             <h3>Por público <span className="acr-av-tenue">Rezagados primero; la marca vertical es la meta</span></h3>
           </header>
-          <ul className="acr-res-publicos-lista" data-qa-geometry-group="acreditacion-resumen-publicos" data-qa-geometry-contract="equal" data-qa-geometry-capacity="owned">
+          <ul className="acr-res-publicos-lista" data-qa-geometry-group="acreditacion-resumen-publicos" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
             {ordenadas.map((tarjeta) => (
               <PublicoEnBarra
                 key={tarjeta.id}

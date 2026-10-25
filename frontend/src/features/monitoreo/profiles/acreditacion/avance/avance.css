@@ -594,10 +594,18 @@
   background: var(--publico, var(--acr-efectiva));
 }
 
+/* El nombre envuelve antes que recortarse: «Estudiantes de posgrado CENTRUM»
+ * junto a su chip no cabe en una línea de la columna de 420 px. */
 .acr-res-publico-nombre {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
+  flex: 0 1 auto;
+  overflow-wrap: anywhere;
+  white-space: normal; /* el botón de la tesela hereda `nowrap` */
+}
+
+.acr-res-publico-nombre > .mon-publico-punto {
+  margin-right: 6px;
+  vertical-align: 1px;
 }
 
 .acr-res-publico-boton {
