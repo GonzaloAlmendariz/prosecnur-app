@@ -207,12 +207,27 @@
   border-radius: 10px;
 }
 
+/* El marco toma el alto de la tarjeta y el SVG lo llena: el encuadre se
+ * calcula con su proporción medida (`MapaDeLaMuestra.tsx`). */
+.mon-mod-mapa-marco {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
 .mon-mod-mapa-lienzo svg {
   display: block;
-  flex: 1 1 auto;
   width: 100%;
-  min-height: 0;
+  height: 100%;
 }
+
+/* Los demás distritos de Lima, tenues y sin rótulo, para ubicarse. */
+.mon-mod-mapa-contexto path {
+  fill: var(--pulso-surface-3);
+  stroke: var(--pulso-border);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
 
 .mon-mod-mapa-distritos path {
   fill: var(--pulso-surface);
@@ -246,6 +261,7 @@
 .mon-mod-mapa-pie {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   color: var(--pulso-text-soft);

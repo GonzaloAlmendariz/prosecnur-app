@@ -1,12 +1,13 @@
 import type { MonitoreoReportScope } from "../../types";
 import { esPestanaPropia, type DireccionTerritorial } from "./direccionTerritorial";
 
-export type CorteDePestana = "avance" | "validacion" | "consultas";
+export type CorteDePestana = "avance" | "validacion" | "consultas" | "ruta";
 
 export const SCOPE_DEL_CORTE: Record<CorteDePestana, MonitoreoReportScope> = {
   avance: "advance_summary",
   validacion: "validation_summary",
   consultas: "queries_summary",
+  ruta: "route_summary",
 };
 
 /**
@@ -24,6 +25,11 @@ const CORTES: Record<string, readonly CorteDePestana[]> = {
   "control/subsanaciones": ["consultas"],
   "control/reportes": ["consultas", "validacion"],
   "control/conciliacion": ["validacion"],
+  // Metas lee las manzanas de la ruta del corte de ruta: `advance_summary`
+  // también cubre la sección Modelo pero llega con `route_blocks` vacío, y si
+  // era el último aplicado la pestaña decía «Sin muestra de Hojas de ruta».
+  // El de avance dice qué reemplazos están en uso (mapa de la muestra).
+  "modelo/metas": ["ruta", "avance"],
   "modelo/cuotas": ["avance"],
   "insumos/conexiones": ["avance", "consultas"],
   "insumos/padron": ["validacion"],

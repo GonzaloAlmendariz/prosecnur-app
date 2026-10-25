@@ -16,10 +16,13 @@ import "./modelo.css";
  */
 function MetasTabImpl({
   reports,
+  avance = null,
   state,
   phase,
 }: {
   reports: MonitoreoTerritorialDashboard | null;
+  /** Corte de avance: dice qué reemplazos están en uso para el mapa. */
+  avance?: MonitoreoTerritorialDashboard | null;
   state: MonitoreoState | null;
   phase: MonitoreoTerritorialPhase;
 }) {
@@ -125,7 +128,7 @@ function MetasTabImpl({
 
       <section className="mon-mod-panel mon-mod-mapa" aria-labelledby="mon-mod-mapa" data-qa-geometry-member="mapa">
         <h3 id="mon-mod-mapa" className="mon-mod-titulo">Manzanas de la muestra</h3>
-        <MapaDeLaMuestra bloques={modelo.bloques} />
+        <MapaDeLaMuestra bloques={modelo.bloques} avance={avance} />
       </section>
     </section>
   );
