@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo, useState } from "react";
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { Switch } from "../../../../../components/Switch";
@@ -260,6 +260,27 @@ function TablaDeCuotas({
   foco: string | null;
   onFoco: (ump: string) => void;
 }) {
+  const filaAbierta = useRef<HTMLTableRowElement | null>(null);
+  const abiertaPorClick = useRef<string | null>(null);
+  const hayFilaEnFoco = foco != null && filas.some((fila) => fila.ump === foco);
+  // `foco` llega por la dirección (`&foco=7`): la fila se despliega y se lleva
+  // a la vista, también a 1024, donde la tabla queda bajo el pliegue (C4). Un
+  // click sobre una fila visible no desplaza. Espera dos cuadros porque el
+  // marco de la pestaña vuelve su scroll a cero en el mismo commit.
+  useEffect(() => {
+    if (!hayFilaEnFoco || foco === abiertaPorClick.current) return undefined;
+    let segundo = 0;
+    const primero = window.requestAnimationFrame(() => {
+      segundo = window.requestAnimationFrame(() => {
+        filaAbierta.current?.scrollIntoView({ block: "start", behavior: "auto" });
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(primero);
+      window.cancelAnimationFrame(segundo);
+    };
+  }, [foco, hayFilaEnFoco]);
+
   if (!filas.length) {
     return (
       <div className="mon-falt-vacio-tabla" data-qa-geometry-empty="legitimo">
@@ -287,14 +308,17 @@ function TablaDeCuotas({
             const abierta = foco === fila.ump;
             return (
               <Fragment key={fila.ump}>
-                <tr className={`is-${fila.estado}${abierta ? " is-abierta" : ""}`}>
+                <tr className={`is-${fila.estado}${abierta ? " is-abierta" : ""}`} ref={abierta ? filaAbierta : undefined}>
                   <th scope="row" className="is-ump">
                     <button
                       type="button"
                       aria-expanded={abierta}
                       aria-controls={`mon-falt-detalle-${fila.ump}`}
                       aria-label={`UMP ${fila.ump}: ${abierta ? "ocultar" : "ver"} el detalle de su cuota`}
-                      onClick={() => onFoco(fila.ump)}
+                      onClick={() => {
+                        abiertaPorClick.current = fila.ump;
+                        onFoco(fila.ump);
+                      }}
                     >
                       {abierta ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
                       {fila.ump}
