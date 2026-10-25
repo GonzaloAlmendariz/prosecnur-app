@@ -107,3 +107,24 @@ describe("todas las ramas del rail apuntan a una pestaña que existe", () => {
     expect(muertas, `ramas que no casan con ninguna pestaña: ${muertas.join(", ")}`).toEqual([]);
   });
 });
+
+/**
+ * Meta B, L21: mientras el proyecto se lee no hay tablero, y con `brechas` y
+ * `reemplazos` en cero Resumen, Reemplazos y Brechas se declaraban «listo»
+ * encima de «Preparando vista».
+ */
+describe("sin tablero el rail no mide", () => {
+  it("ninguna pestaña publica estado ni contador mientras carga", () => {
+    for (const seccion of ["modelo", "calidad", "consultas", "avance"]) {
+      for (const pestana of railDeAulas(seccion, null)) {
+        expect(pestana.estado, `${seccion}/${pestana.key}`).toBeUndefined();
+        expect(pestana.badge, `${seccion}/${pestana.key}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("con tablero vacío sí mide: el cero ya es un conteo", () => {
+    const d = { kpis: {}, brechas: [], reemplazos: [] } as unknown as MonitoreoAulasDashboard;
+    expect(railDeAulas("avance", d).find((p) => p.key === "resumen")?.estado).toBe("listo");
+  });
+});

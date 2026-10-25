@@ -162,6 +162,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
   "features/calcMuestra/universidad/definicion/ExploradorBasesTab.tsx":
     "`exploradorListo`: sólo mientras lee la base; error y marco son terminales en true (AD6)",
   "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx": "`loading` de la página",
+  "features/monitoreo/profiles/aulas/AulasTablasDeAvance.tsx":
+    "Avance › Salidas mientras lee las cinco tablas de su propio endpoint; con las tablas, su vacío o su error la marca desaparece",
   "features/monitoreo/profiles/territorial/TerritorialMonitoreoPage.tsx": "`activeLoading` de la página",
   "features/monitoreo/profiles/territorial/modelo/MapaDeLaMuestra.tsx":
     "carga de la cartografía de Hojas de ruta: termina cuando cada distrito se resuelve, haya llegado o fallado",
