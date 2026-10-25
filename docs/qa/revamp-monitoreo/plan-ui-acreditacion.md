@@ -460,6 +460,8 @@ contenedor, de coherencia visual, de espacios vacíos … contenedores por perfi
     sólido (cumple, faltan, sin meta) y el chip, y el color del público (el de Metas) en el punto y en la barra. No se
     hacen tarjetas completas: es un ranking de rezagados en la misma escala y diez tarjetas grandes en la columna de
     420 px romperían la comparación. «Esperan decisión por público» (Por resolver) lleva el punto del público.
+    El nombre envuelve antes que recortarse («Estudiantes de posgrado CENTRUM» junto a su chip), así que la lista
+    pasa a contrato `intrinsic`: una tesela de dos líneas no es deriva.
   - Avance › Salidas: sin tarjeta por público. Las salidas se publican por audiencia (Sheets del cliente e interno),
     por artefacto (PDF, producción) y por corte; ninguna se parte por público, y el cumplimiento por público ya está
     en Metas y en Resumen. Sí se aplicó la receta del modo a las tarjetas de salida compartidas: el estado del corte
