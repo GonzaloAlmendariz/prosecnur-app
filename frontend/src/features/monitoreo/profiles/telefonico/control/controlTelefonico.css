@@ -69,10 +69,6 @@
   white-space: nowrap;
 }
 
-.mon-barrido-no-registra {
-  margin-top: auto;
-}
-
 /* Un barrido que no empezó (RMS): cada panel dice su vacío en el sitio que
  * ocuparían sus datos, centrado en el alto que ese panel ya tiene. */
 .mon-barrido-vacio {
@@ -136,6 +132,7 @@
 .mon-barrido {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--pulso-space-3);
   height: 100%;
   min-height: 0;
@@ -365,16 +362,19 @@
   text-align: left;
 }
 
+/* Alto natural: la lista mide lo que pide y, si no cabe, desplaza dentro. */
 .mon-barrido-status {
   display: flex;
   flex-direction: column;
+  align-self: start;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
 .mon-barrido-status-lista {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: var(--pulso-space-4);
   min-height: 0;
@@ -458,6 +458,10 @@
     overflow: visible;
   }
 
+  .mon-barrido-status {
+    max-height: none;
+  }
+
   .mon-barrido-embudo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -496,9 +500,14 @@
   background: var(--pulso-surface-2);
 }
 
+/* La fila elegida: fondo y un borde lateral sólido en su primera celda (no
+ * una franja de sombra interior). */
 .mon-equipo-tabla-panel tbody tr.is-activo {
   background: var(--pulso-surface-3);
-  box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+}
+
+.mon-equipo-tabla-panel tbody tr.is-activo > th:first-child {
+  border-left: 3px solid var(--pulso-brand-navy);
 }
 
 .mon-equipo-tabla-panel tbody th button {
@@ -560,13 +569,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-equipo-pie {
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-border);
-  color: var(--pulso-text-faint);
-  font-size: 12px;
-}
-
 .mon-equipo-vistas {
   margin-left: auto;
 }
@@ -614,6 +616,7 @@
 .mon-equipo-leyenda {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--pulso-space-4);
   padding: var(--pulso-space-2) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
@@ -879,12 +882,20 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* El registro mide lo que piden sus filas (con un mínimo) y desplaza dentro
+ * si no cabe; el alto que no pide lo usa la duración, que crece. Con pocas
+ * efectivas por revisar la tarjeta no queda con un vacío al pie. */
 .mon-respuestas-medio {
   display: grid;
-  flex: none;
+  flex: 1 0 224px;
   grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
   gap: var(--pulso-space-3);
-  height: 224px;
+  min-height: 224px;
+}
+
+.mon-respuestas-medio > .mon-respuestas-duracion {
+  align-self: stretch;
 }
 
 .mon-respuestas-duracion,
@@ -910,12 +921,11 @@
 
 .mon-respuestas-reglas ul {
   display: flex;
-  flex: 1 1 auto;
+  flex: none;
   flex-direction: column;
-  justify-content: space-evenly;
-  gap: 6px;
+  gap: var(--pulso-space-3);
   margin: 0;
-  padding: 0 var(--pulso-space-4);
+  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
   list-style: none;
 }
 
@@ -945,14 +955,22 @@
 
 .mon-respuestas-registro {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
-  min-height: 0;
+  min-height: 160px;
   overflow: hidden;
 }
 
 .mon-respuestas-registro .mon-ctl-tabla-marco {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+}
+
+.mon-respuestas-pie {
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-respuestas-filtros {
@@ -1108,7 +1126,7 @@
 
   .mon-respuestas-medio {
     grid-template-columns: minmax(0, 1fr);
-    height: auto;
+    min-height: 0;
   }
 
   .mon-respuestas-duracion {
@@ -1116,7 +1134,7 @@
   }
 
   .mon-respuestas-registro {
-    height: 520px;
+    max-height: 520px;
   }
 
   .mon-respuestas-filtros {
@@ -1291,8 +1309,8 @@
   background: var(--pulso-info-bg);
 }
 
-.mon-avisos-tabla tbody tr.is-activo th {
-  box-shadow: inset 3px 0 0 var(--pulso-brand-navy);
+.mon-avisos-tabla tbody tr.is-activo > th:first-child {
+  border-left: 3px solid var(--pulso-brand-navy);
 }
 
 .mon-avisos .mon-avisos-causa {
@@ -1582,12 +1600,11 @@
 
 /* ---------- Insistencia: rótulo en la fila de la barra de filtros ---------- */
 
-/* La cola (core/) no recibe el rótulo: el envoltorio lo pone encima del
- * margen izquierdo de la barra de filtros, que pasa a ser la tarjeta común.
- * La cola conserva su columna propia (barra y cuerpo) y su dueño de scroll. */
+/* La cola común abre un hueco a la izquierda de su barra de filtros
+ * (`antesDeLosFiltros`); aquí la fila es una sola tarjeta: rótulo y filtros
+ * comparten borde y fondo. La barra mide lo que le queda (container query de
+ * la cola), así que sus filtros de menor uso pasan antes a «Más filtros». */
 .mon-tel-insistencia {
-  --mon-tel-rotulo-ancho: 168px;
-  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1599,23 +1616,26 @@
   min-height: 0;
 }
 
-.mon-tel-insistencia > .mon-tel-rotulo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  width: var(--mon-tel-rotulo-ancho);
-  height: 58px;
-  padding-left: var(--pulso-space-4);
-}
-
-.mon-tel-insistencia .mon-cola-filtros-marco {
+.mon-tel-insistencia .mon-cola-barra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-3);
   min-height: 58px;
-  padding-left: var(--mon-tel-rotulo-ancho);
+  padding-left: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-tel-insistencia .mon-cola-barra > .mon-tel-rotulo {
+  flex: none;
+}
+
+.mon-tel-insistencia .mon-cola-barra > .mon-cola-filtros-marco {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* La barra ya va dentro de la tarjeta común: sin borde ni fondo propios. */
@@ -1625,17 +1645,125 @@
   box-shadow: none;
 }
 
-/* Angosta: la barra necesita todo el ancho; el rótulo va arriba de ella, en
- * la misma tarjeta. */
+/* Angosta: los filtros necesitan todo el ancho; el rótulo va arriba de ellos,
+ * en la misma tarjeta. */
 @media (max-width: 1180px) {
-  .mon-tel-insistencia > .mon-tel-rotulo {
-    width: auto;
-    height: 48px;
+  .mon-tel-insistencia .mon-cola-barra {
+    flex-wrap: wrap;
+    row-gap: 0;
     padding-top: var(--pulso-space-2);
   }
 
-  .mon-tel-insistencia .mon-cola-filtros-marco {
-    padding-top: 48px;
-    padding-left: 0;
+  .mon-tel-insistencia .mon-cola-barra > .mon-cola-filtros-marco {
+    flex-basis: 100%;
+    margin-left: calc(-1 * var(--pulso-space-4));
+  }
+}
+
+/* ---------- Respuestas › Salvedades (sub-vista) ----------
+ * §2a-bis: la vista trae sus tarjetas; el explorador de casos de siempre, que
+ * era la tarjeta envolvente, queda sin marco propio para no anidar tarjetas. */
+
+.is-telefonico-profile .mon-case-explorer:has(> .mon-case-explorer-body > .mon-salvedades) {
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-case-explorer-body:has(> .mon-salvedades) {
+  overflow: visible;
+}
+
+.mon-salvedades {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-salvedades.is-vacia {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Alto natural: la lista mide sus filas y desplaza dentro si no cabe. */
+.mon-salvedades-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mon-salvedades-lista > .mon-ctl-tabla-marco {
+  flex: 0 1 auto;
+}
+
+.mon-salvedades-cabecera {
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-salvedades-cabecera > .mon-tel-chip {
+  margin-left: auto;
+}
+
+.mon-salvedades-tabla :is(th, td):first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-salvedades-tabla :is(th, td):last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+.mon-salvedades-tabla tbody tr.is-activo {
+  background: var(--pulso-surface-3);
+}
+
+.mon-salvedades-tabla tbody tr.is-activo > th:first-child {
+  border-left: 3px solid var(--pulso-brand-navy);
+}
+
+.mon-salvedades-codigo {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-salvedades-codigo:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-salvedades > .mon-query-detail {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+@media (max-width: 1180px) {
+  .mon-salvedades {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-salvedades-lista,
+  .mon-salvedades > .mon-query-detail {
+    max-height: none;
   }
 }

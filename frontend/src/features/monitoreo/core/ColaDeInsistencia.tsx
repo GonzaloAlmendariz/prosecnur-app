@@ -32,6 +32,7 @@ export function ColaDeInsistencia({
   reparto,
   corte,
   bajoLosResponsables,
+  antesDeLosFiltros,
 }: {
   casos: readonly CasoDeCola[];
   responsables: readonly ResponsableDeCola[];
@@ -41,6 +42,11 @@ export function ColaDeInsistencia({
   corte: string;
   /** Panel condicional bajo la lista de responsables (teléfonos por caso). */
   bajoLosResponsables?: ReactNode;
+  /**
+   * Opcional: lo que comparte fila con la barra de filtros, a su izquierda (el
+   * rótulo de la pestaña, §2a-bis). Sin él, la barra se monta igual que siempre.
+   */
+  antesDeLosFiltros?: ReactNode;
 }) {
   const filtros = useFiltrosDeCola((estado) => estado.filtros);
   const panel = usePanelDireccionable(PANEL_CASO);
@@ -52,16 +58,24 @@ export function ColaDeInsistencia({
   const elegido = (panel.abierto && foco ? casos.find((caso) => caso.codigo === foco) : null) ?? null;
   const enFicha = elegido ?? visibles[0] ?? null;
   const titulo = filtros.responsable ? `Cola de ${filtros.responsable}` : "Cola";
+  const filtrosDeCola = (
+    <FiltrosDeCola
+      responsables={unicos(casos.map((caso) => caso.responsable))}
+      resultados={unicos(casos.map((caso) => caso.status))}
+      cuotas={unicos(casos.map((caso) => caso.cuota))}
+      etiquetaCuota={columnas.categoria}
+      plataforma={columnas.plataforma}
+    />
+  );
 
   return (
     <div className="mon-cola" data-ficha-abierta={elegido ? "true" : "false"}>
-      <FiltrosDeCola
-        responsables={unicos(casos.map((caso) => caso.responsable))}
-        resultados={unicos(casos.map((caso) => caso.status))}
-        cuotas={unicos(casos.map((caso) => caso.cuota))}
-        etiquetaCuota={columnas.categoria}
-        plataforma={columnas.plataforma}
-      />
+      {antesDeLosFiltros ? (
+        <div className="mon-cola-barra">
+          {antesDeLosFiltros}
+          {filtrosDeCola}
+        </div>
+      ) : filtrosDeCola}
       <div className="mon-cola-cuerpo" data-qa-geometry-group="telefonico-control-insistencia" data-qa-geometry-contract="intrinsic">
         <div className="mon-cola-izquierda">
           <ResponsablesDeCola responsables={responsables} reparto={reparto} />

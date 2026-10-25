@@ -25,7 +25,7 @@ describe("rótulo de la pestaña", () => {
     expect(renderToStaticMarkup(<RotuloDePestana />)).toBe("");
   });
 
-  it("todas las pestañas del modo lo llevan dentro, salvo las sub-vistas que montan la vista anterior", () => {
+  it("todas las pestañas del modo lo llevan dentro, sub-vistas incluidas", () => {
     const pestanas = [
       ["insumos", "fuentes"], ["insumos", "llave"], ["insumos", "estados"], ["modelo", "cuotas"],
       ["control", "barrido"], ["control", "insistencia"], ["control", "equipo"], ["control", "discrepancias"],
@@ -37,8 +37,11 @@ describe("rótulo de la pestaña", () => {
       // Sin tarjeta envolvente: sus tarjetas van sobre el lienzo.
       expect(pestanaConLienzo({ seccion, pestana, panel: null }), `${seccion}/${pestana}`).toBe(true);
     }
-    expect(rotuloEnLaPestana({ seccion: "control", pestana: "respuestas", panel: "salvedades" })).toBe(false);
-    expect(rotuloEnLaPestana({ seccion: "modelo", pestana: "cuotas", panel: "calendario" })).toBe(false);
+    // Respuestas › Salvedades y Cuotas y calendario › Calendario ya no montan la
+    // vista anterior con la cabecera en fila propia (§2a-bis, ronda 2).
+    expect(rotuloEnLaPestana({ seccion: "control", pestana: "respuestas", panel: "salvedades" })).toBe(true);
+    expect(rotuloEnLaPestana({ seccion: "modelo", pestana: "cuotas", panel: "calendario" })).toBe(true);
+    expect(pestanaConLienzo({ seccion: "modelo", pestana: "cuotas", panel: "calendario" })).toBe(true);
     // «Estados por operador» es de la propia pestaña Equipo: conserva el rótulo.
     expect(rotuloEnLaPestana({ seccion: "control", pestana: "equipo", panel: "estados" })).toBe(true);
   });

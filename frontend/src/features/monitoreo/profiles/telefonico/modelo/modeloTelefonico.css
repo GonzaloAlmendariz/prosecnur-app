@@ -574,3 +574,247 @@
 .mon-metas-metas > .mon-metas-estado {
   margin: 0 var(--pulso-space-4) var(--pulso-space-3);
 }
+
+/* ---------- Calendario (sub-vista de Cuotas y calendario) ----------
+ * §2a-bis: el rótulo encabeza la primera tarjeta. Cada tarjeta toma su alto
+ * natural: el cronograma mide su formulario y los días miden sus filas (con
+ * muchas, la columna desplaza). */
+
+.mon-calendario {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-calendario .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-calendario-columna,
+.mon-calendario-lateral {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: var(--pulso-space-3);
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mon-calendario-columna > *,
+.mon-calendario-lateral > * {
+  flex: none;
+}
+
+.mon-calendario-cabecera {
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-calendario-guardar {
+  margin-left: auto;
+}
+
+.mon-calendario-formulario {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+}
+
+.mon-calendario-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mon-calendario-campo :is(input, select) {
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-calendario-campo :is(input, select):focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+/* Lo que el cronograma dice, en tres celdas hermanas con filete. */
+.mon-calendario-lectura {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 var(--pulso-space-4) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-calendario-lectura > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.mon-calendario-lectura > div + div {
+  border-left: 1px solid var(--pulso-border);
+}
+
+.mon-calendario-lectura dt {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mon-calendario-lectura dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-calendario-lectura > div > span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-calendario .is-tenue {
+  color: var(--pulso-text-faint);
+}
+
+.mon-calendario-estado {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.mon-calendario-tabla :is(th, td):first-child {
+  width: 1%;
+  padding-left: var(--pulso-space-4);
+  white-space: nowrap;
+}
+
+.mon-calendario-tabla :is(th, td):last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+.mon-calendario-tabla thead th.is-num {
+  text-align: right;
+}
+
+.mon-calendario-barra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-calendario-barra i {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-calendario-barra b {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-calendario-vacio {
+  margin: 0;
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.mon-calendario-dias > .mon-calendario-estado {
+  margin-top: var(--pulso-space-3);
+}
+
+.mon-calendario-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-calendario-cifra strong {
+  color: var(--pulso-text);
+  font-size: 32px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+}
+
+.mon-calendario-cifra span {
+  color: var(--pulso-text-soft);
+}
+
+.mon-calendario-datos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-2) 0 0;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-calendario-datos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-calendario-datos dt {
+  color: var(--pulso-text-soft);
+}
+
+.mon-calendario-datos dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+@media (max-width: 1400px) {
+  .mon-calendario-formulario {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 1024 × 600: una columna; el contenedor de la pestaña desplaza. */
+@media (max-width: 1180px) {
+  .mon-calendario {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-calendario-columna,
+  .mon-calendario-lateral {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .mon-calendario-formulario {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
