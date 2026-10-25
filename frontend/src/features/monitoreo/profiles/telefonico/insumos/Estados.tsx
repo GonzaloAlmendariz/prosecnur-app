@@ -4,6 +4,7 @@ import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "../../../estados/familiasDeLlamada";
 import type { AcreditacionFamiliaLlamada } from "../../../estados/familiasDeLlamada";
+import { PaletaDeFamilias } from "../../../estados/PaletaDeFamilias";
 import { useDeclaracionDeEstados } from "../../../estados/useDeclaracionDeEstados";
 import { FAMILIAS_DEL_CLIENTE } from "../control/familiasDelCliente";
 import { casosDeCola } from "../control/insistenciaModel";
@@ -193,22 +194,7 @@ export function Estados({
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Color de cada familia">
           <span className="mon-ctl-antetitulo">Color de cada familia</span>
-          <div className="mon-estados-colores">
-            {ACREDITACION_ORDEN_FAMILIAS.map((familia) => (
-              <label key={familia}>
-                <input
-                  type="color"
-                  value={declaracion.colorDe(familia)}
-                  onChange={(event) => {
-                    const elegido = event.currentTarget.value;
-                    declaracion.colorear(familia, elegido);
-                  }}
-                  aria-label={`Color de ${acreditacionEtiquetaDeFamilia(familia)}`}
-                />
-                <span>{acreditacionEtiquetaDeFamilia(familia)}</span>
-              </label>
-            ))}
-          </div>
+          <PaletaDeFamilias colorDe={declaracion.colorDe} colorear={declaracion.colorear} />
         </section>
 
       </div>
