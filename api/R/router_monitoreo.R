@@ -5814,9 +5814,10 @@ mount_monitoreo <- function(pr) {
 	          monitoreo_sync_apply_deferred(j$sid, j$result_data, sync_mode = sync_mode, report = complete_report)
 	        },
 	        # Cancelado, error del worker o kill: on_complete no corre y los tokens no pueden quedar en jobs/inputs (ADR 0005).
-	        on_cleanup = function(j) job_unlink_inputs(c(connection_tokens_path, sources_path, cfg_path))
+	        on_cleanup = function(j) job_unlink_inputs(c(connection_tokens_path, sources_path, cfg_path)),
+	        dedupe_key = "monitoreo.sync"  # un sync a la vez por sesión (M7, jobs_dedupe.R)
       )
-      list(ok = TRUE, job_id = job_id, kind = "monitoreo.sync")
+      job_respuesta_inicio(job_id, "monitoreo.sync")
     })) |>
     plumber::pr_post("/api/monitoreo/supervision/sample", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

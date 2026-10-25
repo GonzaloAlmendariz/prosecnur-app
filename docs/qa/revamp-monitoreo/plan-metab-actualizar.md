@@ -147,6 +147,42 @@ Qué se lee y escribe en Kobo, Sheets y SurveyMonkey no cambió.
 2. Con los cuatro modos en el hook, `estadoDelModo` de `profiles/territorial/navegacion/barraTerritorial.ts` se
    reemplaza por el de `core/barraComun.ts`.
 
+## M7 — Un sync a la vez también en el backend (hecha)
+
+Fila 14 de la auditoría de Meta B. El front ya apagaba «Actualizar» con `ocupado`, pero `job_submit` aceptaba un
+segundo job de sync de la misma sesión (dos pestañas, o la API llamada directo).
+
+- **Dónde vive.** `api/R/jobs_dedupe.R`, que es opt-in: `job_submit(..., dedupe_key = )`. Sin `dedupe_key`, ningún
+  job cambia (reportes, PDF, prewarm, mapa, publicación).
+- **Clave.** Sesión + `dedupe_key`. `POST /api/monitoreo/sync` usa `"monitoreo.sync"` y el sync async de hojas
+  (`POST /api/monitoreo/sheets/sync` con `async`) usa `"monitoreo.sheets_sync"`. No se separa por perfil ni por
+  `sync_mode`, porque todos escriben el mismo `monitoreo_snapshot` de la sesión. Las dos claves son distintas porque
+  el front lee cada resultado con su propio normalizador: devolverle un job de hojas a quien pidió un sync le
+  armaría un recibo equivocado.
+- **Respuesta.** Si la clave está ocupada, el endpoint responde 200 con el `JobStart` del job vivo y
+  `ya_en_curso: true` (sin 409). Los insumos del pedido repetido, tokens incluidos, se borran con su propio
+  `on_cleanup` (ADR 0005). Toda respuesta trae ahora `ya_en_curso` (`false` cuando lanza un job nuevo).
+- **Cuándo se libera.** La clave queda libre en cuatro casos:
+  - El job terminó, falló o se canceló: su status deja de ser `running`.
+  - Es huérfano: el proceso murió (`rx$is_alive()` es FALSE) y nadie lo consultó. Se cosecha con `job_poll`, que
+    aplica su resultado si lo hay, y se lanza el nuevo.
+  - Está colgado: sigue vivo, pero pasó el tope. Se cancela con `job_cancel`, que mata el proceso y corre su
+    `on_cleanup`, y se lanza el nuevo. El tope es de 30 min y se ajusta con
+    `options(prosecnurapp.jobs_dedupe_tope_secs = )`.
+- **Lo que queda fuera.** Un sync de hojas y uno principal pueden correr a la vez porque tienen claves distintas.
+  El front los lanza en serie (`lanzadorTerritorial.ts`), y los `on_complete` se aplican uno por uno en el hilo
+  único de Plumber, cada uno sobre el snapshot vigente. Tampoco entran las ocurrencias de campo de Territorial:
+  son una llamada síncrona, sin job.
+- **Front.** No necesita cambios. `lanzarPorDefecto` ya sigue el `job_id` que recibe con `esperarJobDeSync`. Con
+  `ya_en_curso`, la segunda pestaña se engancha al progreso del job que ya corre y su recibo muestra el resultado
+  de ese job. Pendiente opcional: agregar `ya_en_curso?: boolean` a `JobStart`/`AsyncJobStart` en
+  `frontend/src/api/` y avisar «Ya había una actualización en curso; se muestra su avance». No se tocó porque el
+  tipo no lo exige.
+- **Prueba.** `api/tests/testthat/test-jobs-dedupe-sync.R`. Usa `callr::r_bg` simulado, sin worker real ni
+  `R CMD INSTALL`, y llama al handler real de `POST /api/monitoreo/sync` en proceso. Cubre: dos POST en la misma
+  sesión, aislamiento entre sesiones, jobs sin clave, liberación por terminado, fallido o cancelado, huérfano,
+  tope, y el sync de hojas.
+
 ## Verificación
 
 - `pnpm -C frontend typecheck`, `make gate-front AREA=monitoreo`.
