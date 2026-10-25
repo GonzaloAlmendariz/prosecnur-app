@@ -338,3 +338,94 @@ encuestadores) y Avance › Distritos (contorno del distrito como sello). Decisi
 
 Pendiente: la tarjeta de UMP vive en el detalle de la cuota de cada UMP; una vista de «tarjetas de todas las UMP» en
 rejilla (como la lista antigua) no se dibujó porque Avance › UMP ya es la tabla de §3.16 y duplicaría la navegación.
+
+## Ronda 2 (2026-10-24): fix de cifras y mejora visual sostenida
+
+### Defecto C5 en Avance › Faltante por UMP (corregido)
+
+Síntoma: con la carga fresca, la UMP 7 dice «Falta 1» y «Cubre UMP 25, a 0.96 km». Tras una mutación que devuelve
+`validation_summary` (anular o revertir una anulación, descartar o restaurar una sospecha espacial), Faltante pasaba a
+«Falta 0» y «Cubre —», y no se corregía solo.
+
+Causa: `territorialReportsCoverSelection` acepta `validation_summary` para Avance a propósito (Resumen lo usa), así
+que el último estado aplicado (`rawReports`) le ganaba a la caché del corte de avance. Faltante era la única pestaña
+propia de Avance que no leía `options.cortes.avance` (Mapa, UMP y Cuotas sí), y `cortesDePestana.ts` no la declaraba.
+El corte de validación trae `operational_adjustments` vacío con `reason: "validation_scope"`, así que la falta salía
+de `missing_total` del bloque: 0. Origen: `9c47faba0` (T2).
+
+Corrección:
+- Faltante lee `options.cortes?.avance ?? reports` y declara `"avance/faltante": ["avance"]`. La página lo pide y no
+  marca la vista lista hasta tenerlo. `territorialReportsCoverSelection` no se toca.
+- `faltanteModel`: sin subsanaciones calculadas, la falta de la UMP sale de sus celdas (la variable que más debe,
+  porque sexo y edad reparten la misma cuota; sumarlas contaría dos veces) y nunca de un 0 que el corte no midió.
+  «Quién cubre» queda en «—» porque ese corte no lo midió.
+- Test: `avance/faltanteLeeElCorteDeAvance.test.tsx`, que renderiza la pestaña real (`renderPestana`) con el corte de
+  validación como último estado y el de avance en la caché.
+
+### Hallazgo para Gonzalo (sin arreglar)
+
+| # | Hallazgo | Dónde vive | Estado |
+|---|---|---|---|
+| H-3 | `casos-ump` tarda de 14 a 26 s la primera vez que se abre una UMP: arma un `validation_summary` completo y síncrono dentro del request, con una copia de la config sin anulaciones. Las siguientes UMP de la sesión salen de la caché. Opciones: precalentar la auditoría en el recorrido de fondo, moverla a un job `callr` con progreso, o reutilizar la auditoría del corte de validación ya cacheado y marcar las anuladas aparte. | `api/R/monitoreo_territorial_casos_ump.R:224-242` | Anotado |
+| H-4 | Conciliación dice «14 conciliados» en la cabecera de Códigos y lista 15 conciliaciones: el código escrito «P514» está conciliado con dos personas distintas (P198 y P524, en respuestas distintas), así que cuenta como un código y dos conciliaciones. Puede ser legítimo o un error de conciliación: decide coordinación. | `control/conciliacionModel.ts` | Anotado |
+
+### Modelo › Metas decía «Sin muestra de Hojas de ruta» (H11, corregido)
+
+Caso: ni (b) ni (c). Es una variante de (a): un vacío publicado como listo con un corte que no trae la muestra.
+`reportScopesForTerritorialView("modelo")` acepta `advance_summary`, y la cabecera del modo pide ese corte al entrar.
+Si llega último, pasa a ser el estado aplicado y Metas lee de él `route_blocks`. Sonda directa a
+`/api/monitoreo/state` sobre la misma copia de `acnurcg2.pulso`: `route_summary` trae `route_blocks 300` y
+`advance_summary` trae `route_blocks 0`. La ronda 1 (v3) lo esquivó por orden de llegada; el riesgo era anterior a
+`f680e38e7`.
+
+Corrección: Metas declara `"modelo/metas": ["ruta", "avance"]` y lee `options.cortes.ruta` (`route_summary` de la
+caché). Nunca cae a otro corte. Mientras el de ruta no llega, la pestaña muestra «Leyendo la muestra de Hojas de
+ruta…» con `aria-busy`, y la página no se marca lista porque le falta un corte declarado. Recapturas
+`terr-r2/m2`, `terr-r2/c` y `terr-r2/e`: el mapa sale pintado a 1440 y a 1024.
+
+### Mapa de la muestra (pedido de Gonzalo, `f680e38e7`)
+
+- Reemplazos: sólo se pintan los que están en uso. El criterio es el de Faltante: la manzana vigente de la UMP es de
+  tipo reemplazo y la UMP tiene su titular. La reserva se cuenta en el pie («146 de reserva sin usar»). En ACNURCG
+  quedan 4 en uso. Avance › Mapa deja de pintar la reserva; el anillo pasa a «Titular reemplazada».
+- Contexto: los demás distritos de Lima Metropolitana (`limaDistrictCoverage.json`) van tenues y sin rótulo, en Metas y
+  en Avance › Mapa.
+- Encuadre: se calcula con la proporción medida de la tarjeta, con margen parejo, y abarca a los vecinos.
+- Rótulos: dos candidatos más, encima y debajo de la caja del distrito. Los nombres ya no tapan puntos (Chorrillos y
+  San Martín de Porres).
+
+### Pasada visual de la ronda 2
+
+Maqueta consultada como vara (Meta B, `docs/qa/maqueta-remasterizacion-2026-10-10/maqueta/m/`): L18, L20, L28, L29,
+L26, L10, L21 y L38. Mandan los pedidos posteriores de Gonzalo: contenedores, rótulo en la barra, leyendas y nada de
+explicaciones tras «;». Todo booleano del perfil ya es switch (L26): el único es «Incluir reemplazos».
+
+| Pestaña | Antes (terr/v3, v5) | Después (terr-r2/e) |
+|---|---|---|
+| Avance › Faltante | 1024: 21 `overflow-x` en «Cubre»; subtítulo «Manzana en uso. El signo indica…» y «Otras 14 celdas…» | el chip de «Cubre» parte en dos líneas; «Manzana en uso» y «14 celdas más en manzanas sin usar», con la explicación en el tooltip |
+| Avance › Resumen | 1024: `scroll-unreachable` en Distritos; chip «Meta alcanzada el 23/06 · +95»; «Un caso puede tener dos motivos.»; «Cruzó la meta…» repetido | a 1024 la pestaña desplaza entera y ninguna tarjeta se encoge; chip «Meta alcanzada el 23/06» con el excedente en el tooltip; sin frases sueltas |
+| Avance › UMP (ficha e historia) | `equal-frame-drift` en las sub-tarjetas de cuota; tira de formularios sin contrato; capítulo desbordado a 1024; elegido teñido | sub-tarjetas a su alto natural; la tira es de átomos en línea; los capítulos parten línea; el elegido lleva borde, sin tinte |
+| Avance › Mapa | se pintaba la reserva; ficha con casos cortados (`scroll-unreachable`) y sexo «2, 30 años» | sólo los reemplazos en uso, Lima de contexto; casos que llenan la ficha; sexo con su rótulo (misma regla que el motor) |
+| Control › Señales | `capacity-drift` en las barras; «Base: … ; 289 sin distrito quedan fuera» | las celdas llenan su fila; base y mediana en chip, criterio en tooltip, «289 sin distrito» en conteo |
+| Control › Bandeja | «Esquema sin coordenadas: …», «(manzana …)», «· duró» | «A 26 m de su manzana», «manzana 0200», duración en su línea |
+| Control › Equipo | «N códigos; señales sobre los casos del corte», «Su producción ya está anulada; …» | «N códigos», «Producción anulada», con tooltip |
+| Control › Subsanaciones | 33 `capacity-drift` en chips; 1024: `scroll-unreachable` del historial; «Mz  · Varios» con la manzana vacía; historial con «·» y «→» | chips en línea; a 1024 dos columnas y la tercera debajo, un solo dueño; «manzana 0430, P132 · …» sin «Mz» vacío; «Aplicada: de la UMP 142 a la UMP 143, 1 caso de …, por …» |
+| Control › Anulaciones | «N casos fuera del conteo · M UMP» | «N casos fuera del conteo en M UMP» |
+| Control › Conciliación | `equal-frame-drift` y `equal-frame-width-drift` (el pie contaba como tercer par); cadenas «·»; enlace azul subrayado | el grupo son los dos paneles; cifras en celdas; pie «0 sospechas espaciales en cola» y botón secundario |
+| Control › Ocurrencias | `capacity-drift` en la barra; un 7.º motivo repetía color y la leyenda lo callaba; «Base: … · …. Las efectivas son…»; tabla con la tercera columna cortada | cinco motivos y «Otros N motivos»; «84 partes en 83 UMP» con la aclaración en tooltip; la tabla toma 1.9 fr y reparte el alto |
+| Control › Reportes | lateral con 363 px vacíos; 180 px vacíos sobre la leyenda; retícula sin contrato | distritos que se reparten el alto (contrato `equal`); lateral de alto natural; subtítulo sin «·» ni «:» |
+| Modelo › Metas | «Cómo se arma» con 64 px vacíos; «Campo · activa»; vacío falso (H11) | la tabla toma el alto; chip «Activa»; lee el corte de ruta |
+| Modelo › Cuotas | Reglas con 145 px vacíos; «Plantilla por UMP · 8 entrevistas, marginales» | cada regla en su tarjeta, repartiendo el alto; «Plantilla por UMP de 8 entrevistas» |
+| Insumos › Conexiones | lateral estirado con la acción al pie; última fuente con 160 px vacíos; «Kobo · Campo», «Desde Hojas de ruta · muestra de campo» | lateral y fuentes de alto natural, cifras en celdas; «Kobo de Campo», «Muestra de campo» |
+| Insumos › Mapeo | distritos con 164 px vacíos y sin contrato; «Falta: sin columna elegida»; «(dato, no se revisa)» | filas repartidas (contrato `equal`); chips «Sin columna» y «Columna ausente»; «Duración larga desde, sin alerta» |
+| Insumos › Padrón | «N personas · códigos … · subido …» | «N personas, códigos …, subido el …»; conteo en chip |
+| Insumos › Historial | «Otras acciones» con 529 px vacíos; «Lecturas de las fuentes · 34» | la serie toma el alto; conteo en chip |
+
+Pendientes que quedan:
+- Subsanaciones a 1024: las dos listas de arriba desplazan dentro de un tope de 460 px y la tarjeta del paquete queda
+  cortada a media altura hasta desplazar. No es una trampa de scroll (`scrollJails=0`), pero se lee apretado.
+- Avance › Mapa acercado: la readiness no espera la cartografía rica (calles y vecinas). En `terr-r2/c` la UMP 2 salió
+  sin calles y en `terr-r2/b` con calles. Hace falta decidir si la vista debe esperarlas.
+- Modelo › Metas a 1024: la tabla de meta por distrito desplaza en horizontal (Viviendas y Población) dentro de su
+  marco.
+- H-3 (`casos-ump` síncrono) y H-4 (P514 conciliado con dos personas): anotados arriba.
