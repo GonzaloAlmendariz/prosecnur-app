@@ -16,8 +16,12 @@ job_submit <- function(sid,
                        result_filename = NULL,
                        on_complete = NULL,
                        libpath = .libPaths(),
-                       on_cleanup = NULL) {
+                       on_cleanup = NULL,
+                       dedupe_key = NULL) {
   sess <- session_get(sid)
+  # Opt-in «uno a la vez» por (sesión, dedupe_key): si ya corre uno, se devuelve ése marcado (jobs_dedupe.R).
+  en_curso <- .jobs_dedupe_en_curso(sid, dedupe_key)
+  if (!is.null(en_curso)) return(.jobs_dedupe_reusar(en_curso, sid, kind, on_cleanup))
   jobs_dir <- file.path(sess$dir, "jobs")
   dir.create(jobs_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -194,6 +198,7 @@ job_submit <- function(sid,
     # .job_run_cleanup().
     on_cleanup = on_cleanup,
     cleaned = FALSE,
+    dedupe_key = if (.jobs_dedupe_clave_valida(dedupe_key)) dedupe_key else NULL,
     error = NULL
   )
   job_id
