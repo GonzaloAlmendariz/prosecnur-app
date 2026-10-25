@@ -575,3 +575,10 @@ ya no es la imagen de Faltante. `desplazamientoH=2`: la tabla de la Bandeja (264
 (58 px), las dos dentro de su marco. Para que «UMP 25, a 0.96 km» no se volviera óvalo a 1024, su celda tiene
 124 px de mínimo y el chip partido lleva esquinas de 10 px. La primera versión del riel (filas de hasta 48 px) dejaba
 `capacity-drift` de 27 y 11 px; con 56 px y el riel a 240 / 216 px desaparece.
+
+**Avance › Salidas, cabecera sin contenedor (corregido).** El workbench común de salidas acepta `rotulo`, y
+`TerritorialOutputsPanel` le pasa `<RotuloDePestana />`, que encabeza su primera tarjeta. La página ya no pinta
+`CabeceraTerritorial` en `avance/salidas`. Para eso hay una condición nueva, `llevaRotuloEnLaPestana`
+(`navegacion/direccionTerritorial.ts`, con test). No se usa `esPestanaPropia` porque también decide los cortes
+extra, y Salidas sigue sin pedir ninguno. Corrida `qafix-terr/salidas`, a 1440 y 1024: `ok=true issues=0
+geometryIssues=0`.
