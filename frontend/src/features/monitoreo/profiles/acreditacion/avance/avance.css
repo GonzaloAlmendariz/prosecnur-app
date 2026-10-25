@@ -566,22 +566,38 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: var(--pulso-space-2);
   min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
   overflow-y: auto;
   list-style: none;
   scrollbar-gutter: stable;
 }
 
+/* Una tesela por público (L9): el estado en el borde lateral sólido, como las
+ * tarjetas de Metas; el color del público en el punto y en la barra. */
 .acr-res-publico {
   display: flex;
   flex: none;
-  border-top: 1px solid var(--pulso-surface-3);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-left: 3px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
 }
 
-.acr-res-publico:first-child {
-  border-top: 0;
+.acr-res-publico.is-falta { border-left-color: var(--pulso-warn-fg); }
+.acr-res-publico.is-cumple { border-left-color: var(--pulso-success-fg); }
+
+.acr-res-publico .acr-av-pista > i {
+  background: var(--publico, var(--acr-efectiva));
+}
+
+.acr-res-publico-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .acr-res-publico-boton {
@@ -593,7 +609,7 @@
   align-items: stretch;
   width: 100%;
   min-width: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 0;
   background: transparent;
   color: inherit;
@@ -998,6 +1014,10 @@
 }
 
 .acr-ri-diario .acr-av-grafico {
+  /* `width: 100%` más el margen lateral desbordaba la tarjeta 2 × 16 px (8 px de
+     desplazamiento horizontal a 1024): en la columna flex se estira sin ancho. */
+  width: auto;
+  align-self: stretch;
   min-height: 280px;
   margin: var(--pulso-space-2) var(--pulso-space-4) 0;
 }
@@ -1480,3 +1500,25 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-leyenda {
   justify-content: center;
 }
+
+/* Avance › Salidas, L10: las tarjetas de salida de siempre (compartidas con los
+ * otros modos) siguen aquí la receta del modo. El estado del corte va en el
+ * borde lateral sólido y en su chip, sin fondo teñido; las tarjetas, sobre la
+ * superficie, sin degradado ni sombra interior. */
+.is-acreditacion-profile .acr-sa .mon-outputs-workbench__head,
+.is-acreditacion-profile .acr-sa .mon-outputs-card {
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness {
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-left: 4px solid var(--pulso-state-unchecked-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-listo { border-left-color: var(--pulso-state-ready-fg); }
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-bloqueado { border-left-color: var(--pulso-state-blocked-fg); }
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-parcial { border-left-color: var(--pulso-state-partial-fg); }
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-sin-configurar { border-left-color: var(--pulso-state-unset-fg); }

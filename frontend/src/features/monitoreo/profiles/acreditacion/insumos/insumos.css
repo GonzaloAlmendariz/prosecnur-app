@@ -19,8 +19,11 @@
 }
 
 .acr-in-nombre {
-  width: 100%;
-  min-width: 140px;
+  /* El nombre se lee entero («Estudiantes de posgrado CENTRUM»): el campo crece
+     con su texto y nunca queda más angosto que la celda. */
+  width: auto;
+  min-width: max(140px, 100%);
+  field-sizing: content;
   padding: 5px var(--pulso-space-2);
   border: 1px solid transparent;
   border-radius: 6px;
@@ -239,12 +242,34 @@
   flex-shrink: 0;
 }
 
-/* Insumos › Fuentes: el rótulo de la pestaña en la fila de la barra de lectura (§2a-bis). */
+/* Insumos › Fuentes: el rótulo de la pestaña en la fila de la barra de lectura
+ * (§2a-bis). La pestaña va sobre el lienzo desnudo, así que la barra es su
+ * propia tarjeta y la franja de lectura pierde su marco dentro de ella: un solo
+ * marco, como las tarjetas de Fuentes de abajo. */
 .acr-in-barra {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-2) var(--pulso-space-3);
   min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-5);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.is-acreditacion-profile .acr-in-barra .mon-acr-source-status-strip {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.is-acreditacion-profile .acr-in-barra .mon-acr-source-sync-actions {
+  justify-content: end;
+  background: transparent;
+  box-shadow: none;
 }
 
 .acr-in-barra > :last-child {

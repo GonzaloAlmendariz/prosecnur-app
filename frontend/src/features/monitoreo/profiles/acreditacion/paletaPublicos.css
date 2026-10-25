@@ -6,8 +6,12 @@
  * `--publico-suave` (fondo) y `--publico-texto` (texto con contraste AA sobre
  * superficie y sobre el fondo suave: se mezcla con --pulso-text). */
 
+/* El atributo casa la CLASE entera, al inicio o tras un espacio: un
+ * `[class*="es-publico-"]` suelto también casaba `acr-res-publico-boton` y le
+ * devolvía el gris a todo lo que colgaba de una tesela de Resumen. */
 .es-publico-neutro,
-[class*="es-publico-"] {
+[class^="es-publico-"],
+[class*=" es-publico-"] {
   --publico: var(--pulso-text-faint);
   --publico-suave: color-mix(in srgb, var(--publico) 12%, var(--pulso-surface));
   --publico-borde: color-mix(in srgb, var(--publico) 36%, var(--pulso-surface));

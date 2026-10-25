@@ -111,9 +111,18 @@
 }
 
 @media (max-width: 1200px), (max-height: 720px) {
-  .acr-ps { grid-template-columns: minmax(0, 1fr); }
+  /* Apiladas, las tarjetas toman su alto: con `height: 100%` la rejilla
+     repartía el alto del lienzo y las tablas de Calidad y Personas quedaban
+     sin filas visibles (C4). El desplazamiento es del workbench. */
+  .acr-ps {
+    flex: 0 0 auto; /* hijo del workbench flex: sin esto se encogía al alto del lienzo */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    height: auto;
+    min-height: 100%;
+  }
   .acr-ps-izquierda { grid-template-rows: auto; }
-  .acr-ps-tabla .acr-pr-cola-marco { max-height: 520px; }
+  .acr-ps-tabla .acr-pr-cola-marco { flex: 0 1 auto; max-height: 520px; }
 }
 
 /* Respuestas (Ctl9) reutiliza la grilla con facetas a 280 px. */
@@ -139,7 +148,10 @@
 }
 
 @media (max-width: 1200px), (max-height: 720px) {
-  .acr-ps.is-respuestas { grid-template-columns: minmax(0, 1fr); }
+  /* Las facetas siguen a la izquierda, como los filtros de Por resolver: apiladas
+     quedaban ARRIBA y el rótulo de la pestaña, que vive en la tarjeta de la
+     tabla, caía a la segunda tarjeta (§2a-bis). */
+  .acr-ps.is-respuestas { grid-template-columns: 220px minmax(0, 1fr); }
 }
 
 /* El buscador de Respuestas: su ejemplo («Respuesta, público o encuesta») cabe entero. */
