@@ -38,7 +38,9 @@
       if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) gris else azul
     hl <- .lam_alto_txt(lab[i], wl, pt)
     .lam_txt(lz, lab[i], ml, yc - hl / 2, wl, hl, pt, azul, align = "right", nombre = "lollipop:rotulo")
-    .lam_caja(lz, xs, yc - 0.012, max(0.002, xv - xs), 0.024, col, nombre = "lollipop:tallo")
+    # L10-8: el tallo es una línea de 0.024 in, no un rectángulo con contorno: el contorno se ajusta al píxel y el relleno
+    # no, y según la fila se veían dos trazos paralelos (láminas 38 y 66 del mazo V2 de CCSS).
+    .lam_linea(lz, xs, yc, max(xs + 0.002, xv), yc, col, pt = 0.024 * 72 + 0.25, nombre = "lollipop:tallo")   # el grosor visible de antes
     .lam_caja(lz, xv - 0.1, yc - 0.1, 0.2, 0.2, col, nombre = "lollipop:punto", geom = "ellipse")
     .lam_txt(lz, espec$cifras[i], xv + 0.14, yc - 0.15, 0.7, 0.3, 12, azul, bold = TRUE, nombre = "lollipop:cifra")
   }
