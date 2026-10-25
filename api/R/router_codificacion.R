@@ -3330,5 +3330,20 @@ mount_codificacion <- function(pr) {
         avisos_incompletos = as.list(diag_fallos),
         aviso_fuente = aviso_fuente
       )
+    })) |>
+    # TXT-3: propuesta de módulo del instrumento para un comentario abierto.
+    # Solo lectura: no escribe grupos; el analista confirma en Codificación.
+    # Lee la base pedida (`base`) o la activa, nunca la primera por omisión.
+    plumber::pr_get("/api/codificacion/sugerencias-seccion", wrap_endpoint(function(req, res, variable = NULL, base = NULL, secciones = NULL) {
+      sid <- session_header(req)
+      session_get(sid)
+      variable <- .codif_config_scalar(variable, "")
+      if (!nzchar(variable)) stop_api(400, "E_CODIF_SUGERIR_SIN_VARIABLE", "Falta 'variable' como query param.")
+      base <- .codif_config_scalar(base, "")
+      source <- if (nzchar(base)) .codif_matrix_selected_bases(sid, base)[[1]] else codif_source_active(sid)
+      secciones <- unlist(strsplit(.codif_config_scalar(secciones, ""), ",", fixed = TRUE), use.names = FALSE)
+      out <- codif_sugerir_seccion(codif_inst_cached(sid, source), codif_data_cached(sid, source), variable,
+                                   secciones = secciones)
+      c(list(ok = TRUE, base_name = source), out)
     }))
 }
