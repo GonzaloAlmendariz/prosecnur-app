@@ -18528,6 +18528,7 @@ function renderAcreditacionView(
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
         notaDeValidas={isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined}
+        variante={isPhoneOutputs ? "ficha" : undefined}
       />
     );
     // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.

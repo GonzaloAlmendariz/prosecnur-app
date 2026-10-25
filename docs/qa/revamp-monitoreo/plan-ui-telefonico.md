@@ -605,3 +605,56 @@ Pendiente, fuera del glob de esta ronda:
 - **Avance › Cuotas**: las filas de la tabla reparten el alto (134 px con 5 sedes en PDM). Es «el contenido usa el
   alto», pero se ve aireado; bajar a alto natural deja la columna izquierda más corta que la derecha. Decidir con
   Gonzalo.
+
+## Ronda 3 de mejora visual: pendientes de la ronda 2 y repaso L10/L11 (2026-10-24)
+
+Decisiones tomadas con el estándar (§2a-bis) sin volver a preguntar:
+
+- **Insistencia, ficha del caso** (`core/colaDeInsistencia/FichaDelCaso.tsx`, común con Acreditación › Reintentos): la
+  ficha toma su **alto natural** (`align-self: start; max-height: 100%`; con más datos que alto desplaza dentro).
+  «Lo que la hoja no registra» deja de ser una caja con `margin-top: auto` y pasa a ser un bloque más, en el flujo,
+  antes del pie. El aire sobrante queda bajo la tarjeta, en la rejilla. El sideover de 1024 no cambia. Vitest de
+  `profiles/acreditacion` en verde: el comportamiento de Reintentos no cambia.
+- **Avance › Cuotas**: las filas reparten el alto con tope de **112 px** (el cuerpo crece hasta `filas × 112`, con
+  `--mon-cuotas-filas`, que la página ya publicaba) y el Total las sigue pegado. Lo que sobra queda como aire inferior
+  parejo dentro de la tarjeta. En la columna derecha, «Listado por …» arranca bajo su título (antes iba
+  `space-evenly`) y la leyenda lo sigue: las dos columnas se alinean arriba.
+- **Entregas**: prop opcional y aditiva `variante="ficha"` en `MonitoreoOutputsWorkbench`, que sólo pasa
+  Telefónico. La cabecera de las salidas es una tarjeta más de la ficha: antetítulo sin píldora, título, «Corte del
+  27/07/26, 9:04 a. m.» en una línea (recibidas, procesables y válidas ya van debajo, en el estado del corte) e
+  «Incluir metas» como casilla simple; antes heredaba la píldora en versalitas del antetítulo por un selector
+  `__head span`. En la misma variante, el estado del corte y las tarjetas de PDF dejan de ir teñidos: borde lateral
+  sólido del estado y su chip. Acreditación, Territorial y Aulas no pasan la variante y se ven igual.
+
+Repaso transversal de las 14 pestañas con PDM y RMS ficticio:
+
+| Pestaña | Antes (tel-r2/b-*) | Después (tel-r3/a-*) |
+|---|---|---|
+| Insumos › Fuentes | sin hallazgos | sin cambios |
+| Insumos › Llave y filtros | tarjeta «Encuesta en Kobo» de la lateral en tres columnas: el nombre de la encuesta partía en seis líneas, la hora en dos y quedaba una celda vacía | a partir de 1181 px los datos van uno bajo otro; el nombre ocupa dos líneas y la hora una |
+| Insumos › Estados | RMS (11 valores): la tarjeta del vocabulario dejaba un hueco bajo la última fila | alto natural; con más valores llega al alto y la tabla desplaza dentro |
+| Modelo › Cuotas y calendario | sin hallazgos | sin cambios |
+| Control › Barrido | sin hallazgos | sin cambios |
+| Control › Insistencia | «Lo que la hoja no registra» flotando sobre un hueco | ficha de alto natural, la nota como bloque en el flujo |
+| Control › Equipo | «Intentos por caso» a 7 px del borde derecho y la tabla desplazaba 6 px a lo ancho (`desplazamientoH=1`); RMS: la tabla con media tarjeta vacía y los status de la ficha a 54 px de distancia | columnas extremas con 16 px (los de la cabecera de la tarjeta) y la barra de llamados a 128 px: `desplazamientoH=0`; tabla de alto natural; los status reparten el alto con tope de 40 px |
+| Control › Discrepancias | RMS (4 casos): la tabla y «Avisar al equipo» estiradas, con media tarjeta vacía y los botones al pie | las dos de alto natural; con PDM (204 casos) siguen llegando al alto y desplazan dentro |
+| Control › Respuestas | la nota «Se edita en Llave y filtros» pegada a los bordes de la tarjeta «Qué cuenta» | la nota con el margen de la lista, dentro de la tarjeta |
+| Control › Supervisión | sin hallazgos | sin cambios |
+| Control › Avisos | RMS: «Casos por revisar» estirada hasta el pie con dos filas; en la ficha, «Qué hacer» al pie con un hueco encima | con hasta ocho casos la tarjeta mide sus filas (`is-pocos`); la ficha toma su alto natural |
+| Avance › Cuotas | filas de 134 px (PDM) | filas con tope de 112 px, Total pegado, aire parejo al pie; lista de la derecha alineada arriba |
+| Avance › Ritmo | sin hallazgos | sin cambios |
+| Avance › Entregas | píldoras en versalitas, hora partida, estado del corte y tarjetas teñidos | cabecera §2a-bis, estado con borde lateral y chip, tarjetas sin teñir |
+
+Verificación: tsc 0; `make gate-front AREA=monitoreo` con 5,763 de 5,764: el único rojo es de Acreditación y está
+fuera de este glob (`componentesSinMontar` pide `acreditacion/navegacion/rotuloDePestana.tsx::EncabezadoDeTarjeta`;
+el de `ConsultasWorkbenchGeometryLayout` ya lo arregló `e444baccf`); vitest de `profiles/acreditacion` 366 de 366.
+Capturas `tel-r3/a-pdm` y `tel-r3/a-rms`: 34 cada una, todas distintas por md5, `ok=true`, `geometryIssues=0`,
+`desplazamientoH=0` (era 1 en PDM).
+
+Pendiente:
+
+- **Entregas, tarjeta del PDF**: repite en rojo el mismo bloqueo que ya dice el estado del corte («El corte quedó
+  desactualizado…»). Quitarlo es un cambio de contenido del workbench compartido, no de la cabecera; queda para
+  decidir con los tres modos.
+- **Avance › Cuotas y Control › Equipo**: el aire al pie es el que deja el tope de grosor. Si con 2–3 categorías se
+  ve demasiado, el tope es la palanca (112 px y 40 px).
