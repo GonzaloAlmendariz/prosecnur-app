@@ -77,3 +77,18 @@ test_that("la frase es un término propio y no le quita la persona a sus palabra
   expect_identical(unname(n["biblioteca"]), 4)                      # quien dice la frase usa la raíz
   expect_identical(unname(n["sociales"]), 3)
 })
+
+test_that("un plural nominal no se lleva al infinitivo (TXT-13: «prácticas pre» quedaba «practicar pre»)", {
+  # El plural va a su singular aunque el corpus traiga el infinitivo; y el singular que aparece con su plural es
+  # sustantivo, así que tampoco se vuelve verbo. El infinitivo y sus formas verbales siguen juntos.
+  r <- .txt_raiz(c("prácticas", "práctica", "practicar", "practicando"))
+  expect_identical(unname(r[1:2]), c("practica", "practica"))
+  expect_identical(unname(r[3:4]), c("practicar", "practicar"))
+  # Sin el singular en el corpus (la base de CCSS sólo trae «prácticas»), el plural tampoco se vuelve verbo.
+  expect_identical(unname(.txt_raiz(c("prácticas", "practicar"))[1]), "practica")
+  # La frase de la nube conserva el sustantivo.
+  fr <- .txt_frases(.txt_tokens(c("prácticas pre profesionales", "las prácticas pre", "prácticas pre y practicar",
+                                  "quiero practicar")), min_personas = 3)
+  expect_true("practica pre" %in% fr$clave)
+  expect_false(any(grepl("practicar pre", fr$clave, fixed = TRUE)))
+})

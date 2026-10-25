@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   CheckSquare,
@@ -20,6 +20,7 @@ import {
   type MarcaPrevia,
   RespuestaUnica,
 } from "../../api/client";
+import type { ModuloSugerible, PropuestaModulo } from "../../api/codificacion";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
@@ -28,6 +29,22 @@ import { grupoAccentColor } from "./codificacionGrupoColor";
 import { avisoMarcaPrevia } from "./marcasPrevias";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoVacio } from "../../components/EstadoVacio";
+import { SugerenciaModuloFila } from "./SugerenciaModuloFila";
+import { SugerenciasModuloBanda, type UltimaConfirmacion } from "./SugerenciasModuloBanda";
+import {
+  confirmarSugerencias,
+  deshacerConfirmacion,
+  podarCasosSugeridos,
+  quitarSugerencia,
+  rotuloModulo,
+  sugerenciasPorRespuesta,
+  type EntradaSugerida,
+  type RegistroConfirmacion,
+} from "./sugerenciasModulo";
+import { useSugerenciasModulo } from "./useSugerenciasModulo";
+import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
+import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
+import "./noRespuestas.css";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -85,6 +102,9 @@ export function RespuestasCodificador({ parent }: Props) {
   const [tipo, setTipo] = useState<string>("");
   const [smOtros, setSmOtros] = useState<{ dummy_col: string; n_otros_marcados: number } | null>(null);
   const [liveMsg, setLiveMsg] = useState("");
+  // TXT-3: la columna que se codifica (para pedir la propuesta de módulo) y la última confirmación masiva (deshacer).
+  const [colEfectiva, setColEfectiva] = useState("");
+  const [ultimaMasiva, setUltimaMasiva] = useState<{ registro: RegistroConfirmacion; aviso: UltimaConfirmacion } | null>(null);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -128,6 +148,7 @@ export function RespuestasCodificador({ parent }: Props) {
         }
         setGrupos(merged);
         setTipo(r.tipo);
+        setColEfectiva(r.col_efectiva || parent);
         setSmOtros(r.sm_otros ?? null);
         setSaveStatus("idle");
       } catch (e) {
@@ -145,7 +166,8 @@ export function RespuestasCodificador({ parent }: Props) {
     saveTimer.current = window.setTimeout(async () => {
       setSaveStatus("saving");
       try {
-        await apiCodifGrupos(parent, grupos);
+        // Un caso confirmado desde una sugerencia cuya respuesta ya salió del grupo deja de valer (sugerenciasModulo.ts).
+        await apiCodifGrupos(parent, podarCasosSugeridos(grupos));
         setSaveStatus("saved");
         announce("Cambios guardados.");
       } catch (e) {
@@ -158,6 +180,16 @@ export function RespuestasCodificador({ parent }: Props) {
   }, [grupos, parent, respuestas]);
 
   const esSM = tipo === "select_multiple" && !!smOtros;
+
+  // TXT-3: el módulo del formulario que se propone para cada comentario. Sólo en texto abierto y sólo como propuesta.
+  // TXT-6/7: guardar el diccionario de la pregunta (panel «Palabras») vuelve a pedir la propuesta.
+  const [versionDiccionario, setVersionDiccionario] = useState(0);
+  const alGuardarDiccionario = useCallback(() => setVersionDiccionario((v) => v + 1), []);
+  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas, versionDiccionario);
+  const mapaSugerencias = useMemo(
+    () => (sugerencias.fase === "lista" && respuestas ? sugerenciasPorRespuesta(sugerencias.datos, respuestas) : new Map<string, EntradaSugerida>()),
+    [sugerencias, respuestas],
+  );
 
   // Reverse map: texto_normalizado → grupos. En recodificación de
   // select_multiple una misma respuesta puede aportar a más de una categoría.
@@ -192,6 +224,12 @@ export function RespuestasCodificador({ parent }: Props) {
       return r.texto.toLowerCase().includes(q) || r.texto_normalizado.includes(q);
     });
   }, [respuestas, query]);
+
+  // TXT-12: las no respuestas («No», «.», «Ninguno»…) van aparte y al final, con el criterio del backend.
+  const tramos = useMemo(() => {
+    const claves = sugerencias.fase === "lista" && respuestas ? clavesNoRespuesta(sugerencias.datos, respuestas) : new Set<string>();
+    return separarNoRespuestas(visibleRespuestas, claves);
+  }, [sugerencias, respuestas, visibleRespuestas]);
 
   const codificadas = useMemo(() => asignaciones.size, [asignaciones]);
   const pendientes = (respuestas?.length ?? 0) - codificadas;
@@ -355,8 +393,38 @@ export function RespuestasCodificador({ parent }: Props) {
     );
   }
 
+  function confirmarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
+    const r = rotuloModulo(p.etiqueta);
+    setGrupos(confirmarSugerencias(grupos, { codigo: p.codigo, etiqueta: r.grupo }, [entrada]).grupos);
+    announce(`"${respuestaLabel(entrada.clave)}" confirmada en ${r.corto}.`);
+  }
+
+  function quitarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
+    const r = rotuloModulo(p.etiqueta);
+    setGrupos(quitarSugerencia(grupos, p.codigo, entrada.clave));
+    announce(`"${respuestaLabel(entrada.clave)}" quitada de ${r.corto}.`);
+  }
+
+  function confirmarModulo(m: ModuloSugerible, entradas: EntradaSugerida[]) {
+    if (!entradas.length) return;
+    const r = rotuloModulo(m.etiqueta);
+    const out = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
+    setGrupos(out.grupos);
+    setUltimaMasiva({ registro: out.registro, aviso: { modulo: r.corto, n: entradas.length } });
+    announce(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${entradas.length} respuestas`} en ${r.corto}.`);
+  }
+
+  function deshacerMasiva() {
+    if (!ultimaMasiva) return;
+    setGrupos(deshacerConfirmacion(grupos, ultimaMasiva.registro));
+    announce(`Se deshizo la confirmación en ${ultimaMasiva.aviso.modulo}.`);
+    setUltimaMasiva(null);
+  }
+
   if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
+  // En texto abierto se espera también la propuesta de módulo (o su error): la mesa se monta una vez y con sus chips.
+  if (tipo === "text" && (sugerencias.fase === "cargando" || sugerencias.fase === "apagado")) return <LoadingBlock variant="inline" label="Leyendo los módulos del formulario…" />;
 
   // Banda de KPIs: para SM el conteo es en CASOS reales (quienes marcaron
   // "Otros"); para el resto, en textos únicos. Tonos semánticos, no el accent
@@ -375,6 +443,74 @@ export function RespuestasCodificador({ parent }: Props) {
         { label: grupos.length === 1 ? "Grupo" : "Grupos", value: grupos.length, tone: "info" },
       ];
 
+  function filaRespuesta(r: RespuestaUnica) {
+    const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
+    const grupo = gruposAsignados[0];
+    const assigned = gruposAsignados.length > 0;
+    const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
+    const display = displayCodificacionValueLabel(r.texto, r.label);
+    const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
+    const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
+    const assignedIds = new Set(gruposAsignados.map((g) => g.id));
+    const checkboxLabel = esSM && activeGroup
+      ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
+      : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
+    return (
+      <div
+        key={r.texto_normalizado}
+        className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => toggleRespuesta(r.texto_normalizado)}
+          aria-label={checkboxLabel}
+        />
+        <div className="pulso-cv2-resp-main">
+          <div className="pulso-cv2-resp-text" title={display.title}>
+            {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
+            {display.label}
+          </div>
+          <div className="pulso-cv2-resp-meta">
+            <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
+            {r.variantes > 1 && <span>{r.variantes} variantes</span>}
+            {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
+            {mapaSugerencias.size > 0 && (
+              <SugerenciaModuloFila
+                entrada={mapaSugerencias.get(r.texto_normalizado)}
+                grupos={grupos}
+                onConfirmar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) confirmarPropuesta(e, p); }}
+                onQuitar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) quitarPropuesta(e, p); }}
+              />
+            )}
+          </div>
+        </div>
+        {esSM
+          ? grupos.length > 0 && (
+              <QuickAssignDropdown
+                mode="multi"
+                grupos={grupos}
+                asignados={assignedIds}
+                respuesta={display.label}
+                yaMarcadas={r.ya_marcadas}
+                frecuencia={r.frecuencia}
+                onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
+              />
+            )
+          : puedeAsignarRapidoSO && (
+              <QuickAssignDropdown
+                mode="single"
+                grupos={gruposDisponibles}
+                respuesta={display.label}
+                yaMarcadas={r.ya_marcadas}
+                frecuencia={r.frecuencia}
+                onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
+              />
+            )}
+      </div>
+    );
+  }
+
   return (
     <div
       className="pulso-codificacion-respuestas pulso-cv2-rc"
@@ -384,6 +520,12 @@ export function RespuestasCodificador({ parent }: Props) {
       <div className="pulso-cv2-rc-toolbar">
         <SaveStatusIndicator state={saveStatus} variant="badge" />
         <div className="pulso-cv2-rc-toolbar-spacer" />
+        {tipo === "text" && colEfectiva && (
+          <>
+            <PalabrasBoton />
+            <PalabrasPanel variable={colEfectiva} onGuardado={alGuardarDiccionario} />
+          </>
+        )}
         <button
           type="button"
           className="pulso-primary pulso-cv2-newgroup"
@@ -414,6 +556,24 @@ export function RespuestasCodificador({ parent }: Props) {
           ))}
         </div>
       </div>
+
+      {tipo === "text" && (
+        <div className="pulso-cv2-modsug-slot">
+          {sugerencias.fase === "lista" && (
+            <SugerenciasModuloBanda
+              datos={sugerencias.datos}
+              mapa={mapaSugerencias}
+              grupos={grupos}
+              ultima={ultimaMasiva?.aviso ?? null}
+              onConfirmarModulo={confirmarModulo}
+              onDeshacer={deshacerMasiva}
+            />
+          )}
+          {sugerencias.fase === "error" && (
+            <p className="pulso-cv2-modsug-banda-vacia" role="note">No se pudo proponer un módulo para estos comentarios: {sugerencias.mensaje}</p>
+          )}
+        </div>
+      )}
 
       {/* Split-view origen → destino. El destino (grupos) lleva superficie de
           acento del módulo para leerse como el lugar donde caen las respuestas. */}
@@ -464,65 +624,16 @@ export function RespuestasCodificador({ parent }: Props) {
             {visibleRespuestas.length === 0 && (
               <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
             )}
-            {visibleRespuestas.map((r) => {
-              const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
-              const grupo = gruposAsignados[0];
-              const assigned = gruposAsignados.length > 0;
-              const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
-              const display = displayCodificacionValueLabel(r.texto, r.label);
-              const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
-              const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
-              const assignedIds = new Set(gruposAsignados.map((g) => g.id));
-              const checkboxLabel = esSM && activeGroup
-                ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
-                : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
-              return (
-                <div
-                  key={r.texto_normalizado}
-                  className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleRespuesta(r.texto_normalizado)}
-                    aria-label={checkboxLabel}
-                  />
-                  <div className="pulso-cv2-resp-main">
-                    <div className="pulso-cv2-resp-text" title={display.title}>
-                      {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
-                      {display.label}
-                    </div>
-                    <div className="pulso-cv2-resp-meta">
-                      <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
-                      {r.variantes > 1 && <span>{r.variantes} variantes</span>}
-                      {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
-                    </div>
-                  </div>
-                  {esSM
-                    ? grupos.length > 0 && (
-                        <QuickAssignDropdown
-                          mode="multi"
-                          grupos={grupos}
-                          asignados={assignedIds}
-                          respuesta={display.label}
-                          yaMarcadas={r.ya_marcadas}
-                          frecuencia={r.frecuencia}
-                          onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
-                        />
-                      )
-                    : puedeAsignarRapidoSO && (
-                        <QuickAssignDropdown
-                          mode="single"
-                          grupos={gruposDisponibles}
-                          respuesta={display.label}
-                          yaMarcadas={r.ya_marcadas}
-                          frecuencia={r.frecuencia}
-                          onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
-                        />
-                      )}
-                </div>
-              );
-            })}
+            {tramos.conContenido.map(filaRespuesta)}
+            {tramos.noRespuestas.length > 0 && (
+              <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
+                <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
+                <span className="pulso-cv2-resp-tramo-n">
+                  {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como «No», «.» o «Ninguno»
+                </span>
+              </div>
+            )}
+            {tramos.noRespuestas.map(filaRespuesta)}
           </div>
         </section>
 

@@ -20,6 +20,31 @@
 #' @keywords internal
 .txt_sin_tildes <- function(x) chartr("áéíóúüñàèìòù", "aeiouunaeiou", x)
 
+#' Borra los teléfonos de un texto y deja `reemplazo` en su lugar (lo comparten la nube y las citas)
+#'
+#' Candidato: una cifra que empieza en «+», «(» o dígito y sigue con dígitos, espacios, puntos, guiones o paréntesis.
+#' Es teléfono si tiene de 7 a 15 dígitos (fijo de Lima, celular de 9, con +51), salvo que sea un rango de años
+#' («2025-2026», «1990 - 2000») o una lista de números cortos de uno o dos dígitos («10-15»). Un «+» delante siempre es
+#' teléfono si llega a 7 dígitos.
+#' @keywords internal
+.txt_borrar_telefonos <- function(x, reemplazo = " ") {
+  x <- as.character(x); x[is.na(x)] <- ""
+  patron <- "(?<![\\p{L}\\d])\\+?\\(?\\d[\\d\\s().-]{5,}\\d(?![\\p{L}\\d])"
+  es_tel <- function(m) {
+    grupos <- regmatches(m, gregexpr("\\d+", m, perl = TRUE))[[1]]
+    dig <- sum(nchar(grupos))
+    if (dig < 7L || dig > 15L) return(FALSE)
+    if (startsWith(m, "+")) return(TRUE)
+    if (all(grepl("^(19|20)\\d{2}$", grupos))) return(FALSE)       # rango o lista de años
+    if (all(nchar(grupos) <= 2L)) return(FALSE)                     # números cortos («10-15 20-25»)
+    TRUE
+  }
+  m <- gregexpr(patron, x, perl = TRUE)
+  hallados <- regmatches(x, m)
+  regmatches(x, m) <- lapply(hallados, function(v) as.character(ifelse(vapply(v, es_tel, logical(1)), reemplazo, v)))
+  x
+}
+
 #' Texto anonimizado y limpio: sin URL, correo ni teléfono, en minúsculas y sólo con letras
 #'
 #' Se conservan las tildes, como la nube del recetario («formación», «gestión»). Transliterar a ASCII fuera de un
@@ -32,7 +57,7 @@
   x <- trimws(x)
   x <- gsub("https?://\\S+|www\\.\\S+", " ", x, perl = TRUE, ignore.case = TRUE)
   x <- gsub("\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", " ", x, perl = TRUE, ignore.case = TRUE)
-  x <- gsub("\\+?\\d[\\d\\s().-]{6,}\\d", " ", x, perl = TRUE)
+  x <- .txt_borrar_telefonos(x, " ")
   x <- enc2utf8(x); x[is.na(x)] <- ""
   x <- tolower(x)
   x <- gsub("[^\\p{L}\\s]+", " ", x, perl = TRUE)
@@ -123,7 +148,7 @@
 
 #' Raíz de cada palabra: el singular, o el infinitivo cuando el corpus lo trae
 #'
-#' Sólo agrupa flexiones. Una forma verbal («mejoren», «mejoran») se une a su infinitivo si éste aparece en
+#' Sólo agrupa flexiones. Un plural nominal va a su singular, nunca al infinitivo (TXT-13). Una forma verbal («mejoren», «mejoran») se une a su infinitivo si éste aparece en
 #' `vocabulario`; si no, queda sola. El plural se lleva al singular («profesores» → «profesor», «veces» → «vez»).
 #' No une sinónimos (profesores ≠ docentes); para eso está `equivalencias`, un vector con nombre raíz → raíz.
 #' Devuelve las raíces sin tilde, en el orden de `x`.
@@ -143,6 +168,8 @@
     }
     NA_character_
   }
+  # Los participios plurales («mejorados», «atendidas») sí son formas del verbo.
+  verbo_participio <- function(p) if (grepl("(ados|adas|idos|idas)$", p)) verbo(p) else NA_character_
   singular <- function(p) {
     n <- nchar(p)
     if (n < 4L || grepl("(is|us)$", p)) return(p)
@@ -152,12 +179,16 @@
     if (grepl("[aeiou]s$", p)) return(sub("s$", "", p))
     p
   }
+  # Un plural nominal (-as/-os/-es que no es participio: ésos los toma `verbo`) va a su singular y no al infinitivo:
+  # «prácticas» es «práctica», no «practicar» (TXT-13). Y un singular que el corpus trae también en plural es
+  # sustantivo (sólo en -a/-o: «mejore» con «mejores» sigue siendo verbo): tampoco se vuelve verbo, para que «práctica» y «prácticas» queden juntas.
+  corpus <- unique(c(w, voc))
+  nominal <- function(p) grepl("(as|os|es)$", p) || (grepl("[ao]$", p) && paste0(p, "s") %in% corpus)
   r <- vapply(w, function(p) {
+    if (nominal(p) && is.na(verbo_participio(p))) return(singular(p))
     v <- verbo(p)
     if (!is.na(v)) return(v)
-    s <- singular(p)
-    if (!identical(s, p)) { v <- verbo(s); if (!is.na(v)) return(v) }
-    s
+    singular(p)
   }, character(1), USE.NAMES = FALSE)
   eq <- unlist(equivalencias %||% list())
   if (length(eq) && !is.null(names(eq))) {
@@ -227,9 +258,15 @@
 #' propio término con la lista de palabras vacías de siempre. Con `contar = "personas"` cada persona suma 1 por
 #' término (sin ponderar) y sólo quedan los términos que usan `min_personas` personas o más; con `"menciones"` se
 #' suman las apariciones, ponderadas por `pesos`. Devuelve `data.frame(palabra, n)` de mayor a menor.
+#'
+#' El diccionario de la pregunta (TXT-6/7, texto_abierto_diccionario.R): `equivalencias` (grupos `list(mostrar,
+#' formas)` o el vector raíz → raíz de antes) une formas y dibuja `mostrar`; `frases_fijas` se unen aunque no lleguen
+#' a 3 personas ni a `min_personas`; `excluir` saca términos, y uno de varias palabras se lleva sus palabras donde
+#' aparece.
 #' @keywords internal
 .txt_conteo_terminos <- function(textos, pesos = NULL, contar = c("menciones", "personas"), lematizar = FALSE,
-                                 min_chars = 3L, min_personas = 3L, equivalencias = NULL) {
+                                 min_chars = 3L, min_personas = 3L, equivalencias = NULL, excluir = NULL,
+                                 frases_fijas = NULL) {
   contar <- match.arg(contar)
   min_personas <- suppressWarnings(as.integer(min_personas[1])); if (is.na(min_personas) || min_personas < 1L) min_personas <- 3L
   pesos <- if (is.null(pesos)) rep(1, length(textos)) else as.numeric(pesos)
@@ -237,18 +274,48 @@
   tokens <- .txt_tokens(textos)
   vacias <- if (isTRUE(lematizar)) .txt_vacias_limpias() else .txt_palabras_vacias("base")
   es_contenido <- function(t) nchar(t, type = "chars") >= min_chars & !.txt_sin_tildes(t) %in% vacias
+  dic_activo <- length(equivalencias) > 0L || length(excluir) > 0L || length(frases_fijas) > 0L
   voc <- unique(unlist(tokens))
-  raiz <- if (isTRUE(lematizar) && length(voc)) .txt_raiz(voc, vocabulario = voc[es_contenido(voc)], equivalencias = equivalencias) else NULL
+  voc_cont <- voc[es_contenido(voc)]
+  pfx <- .txt_dic_patrones(frases_fijas); pex <- .txt_dic_patrones(excluir)
+  sueltos <- .txt_dic_termino(unlist(excluir %||% character(0))); sueltos <- sueltos[nzchar(sueltos) & !grepl(" ", sueltos, fixed = TRUE)]
+  voc_todo <- unique(c(voc, unlist(pfx$tokens), unlist(pex$tokens), unlist(.txt_tokens(sueltos))))
+  # Clave de cada palabra: la raíz con lematizar; sin él, la palabra (sin tilde si hay diccionario, para casar lo tecleado).
+  clave_de <- if (isTRUE(lematizar)) function(w) unname(.txt_raiz(w, vocabulario = voc_cont)) else if (dic_activo) function(w) .txt_sin_tildes(tolower(w)) else function(w) w
+  eqm <- .txt_dic_mapa(equivalencias, clave_de)
+  raiz <- if (!length(voc_todo)) NULL else if (isTRUE(lematizar)) .txt_raiz(voc_todo, vocabulario = voc_cont, equivalencias = as.list(eqm$mapa)) else if (dic_activo) {
+    k <- clave_de(voc_todo); m <- match(k, names(eqm$mapa)); k[!is.na(m)] <- unname(eqm$mapa[m[!is.na(m)]]); stats::setNames(k, voc_todo)
+  } else NULL
+  # La clave con que se compara un token contra un patrón: su raíz si es de contenido; si no, la palabra sin tilde.
+  clave_patron <- function(t) if (is.null(raiz)) .txt_sin_tildes(t) else ifelse(es_contenido(t), unname(raiz[t]), .txt_sin_tildes(t))
+  pfx_k <- lapply(pfx$tokens, clave_patron); pex_k <- lapply(pex$tokens, clave_patron)
+  o <- order(-lengths(pfx_k)); pfx_k <- pfx_k[o]; pfx_txt <- pfx$texto[o]
+  pex_k <- pex_k[order(-lengths(pex_k))]
+  fijas_claves <- if (length(pfx_k)) paste0("§", vapply(pfx_k, paste, "", collapse = " ")) else character(0)
+  excl_claves <- if (length(sueltos)) unique(unname(if (is.null(raiz)) clave_de(tolower(sueltos)) else raiz[unlist(.txt_tokens(sueltos))])) else character(0)
   # Una frase la usan tres personas o más (plan TXT-2), aunque la nube admita términos de menos personas.
-  frases <- if (isTRUE(lematizar)) .txt_frases(tokens, max(3L, min_personas), min_chars, vacias, equivalencias) else NULL
+  frases <- if (isTRUE(lematizar)) .txt_frases(tokens, max(3L, min_personas), min_chars, vacias, as.list(eqm$mapa)) else NULL
   fr_claves <- frases$clave %||% character(0)
   filas <- lapply(seq_along(tokens), function(i) {
     t <- tokens[[i]]; n <- length(t)
     if (!n) return(NULL)
     ok <- es_contenido(t)
     rz <- if (is.null(raiz)) t else unname(raiz[t])
+    kp <- if (length(pfx_k) || length(pex_k)) clave_patron(t) else NULL
     clave <- character(0); forma <- character(0); j <- 1L
     while (j <= n) {
+      if (length(pex_k)) {
+        hit <- .txt_dic_calza(kp, j, pex_k)
+        if (hit[2] > 0L) { j <- j + hit[2]; next }   # el término excluido se va con sus palabras
+      }
+      if (length(pfx_k)) {
+        hit <- .txt_dic_calza(kp, j, pfx_k)
+        if (hit[2] > 0L) {
+          idx <- j:(j + hit[2] - 1L)
+          clave <- c(clave, fijas_claves[hit[1]], rz[idx][ok[idx]]); forma <- c(forma, pfx_txt[hit[1]], t[idx][ok[idx]])
+          j <- j + hit[2]; next
+        }
+      }
       if (length(fr_claves) && ok[j]) {
         if (j <= n - 2L && ok[j + 2L]) {
           k3 <- paste(rz[j], t[j + 1L], rz[j + 2L])
@@ -266,15 +333,17 @@
     data.frame(persona = i, clave = clave, forma = forma, peso = pesos[i], stringsAsFactors = FALSE)
   })
   d <- do.call(rbind, filas)
+  if (!is.null(d) && length(excl_claves)) d <- d[!d$clave %in% excl_claves, , drop = FALSE]
   if (is.null(d) || !nrow(d)) return(vacio)
   if (identical(contar, "personas")) {
     n <- tapply(d$persona, d$clave, function(p) length(unique(p)))
-    n <- n[n >= min_personas]
+    n <- n[n >= min_personas | names(n) %in% fijas_claves]
   } else {
     n <- tapply(d$peso, d$clave, sum, na.rm = TRUE)
   }
   if (!length(n)) return(vacio)
-  palabra <- if (isTRUE(lematizar)) vapply(names(n), function(k) .txt_forma_frecuente(d$forma[d$clave == k]), character(1)) else names(n)
+  palabra <- if (isTRUE(lematizar) || dic_activo) vapply(names(n), function(k) .txt_forma_frecuente(d$forma[d$clave == k]), character(1)) else names(n)
+  if (length(eqm$mostrar)) { m <- match(names(n), names(eqm$mostrar)); palabra[!is.na(m)] <- unname(eqm$mostrar[m[!is.na(m)]]) }
   out <- data.frame(palabra = unname(palabra), n = as.numeric(n), stringsAsFactors = FALSE)
   out[order(-out$n, out$palabra), , drop = FALSE]
 }

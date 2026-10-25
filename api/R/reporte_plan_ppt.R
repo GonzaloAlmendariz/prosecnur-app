@@ -3986,7 +3986,7 @@ reporte_ppt_plan <- function(
       font_family = presets$base$args$font_family_ppt %||% presets$base$args$font_family %||% "Arial"
     )
 
-    args <- .merge_args(base_args, preset_args %||% list(), overrides)
+    args <- .merge_args(base_args, .txt_dic_args_nube(.txt_dic_de_ctx(ctx), preset_args, overrides), preset_args %||% list(), overrides)   # TXT-6/7: el diccionario de la pregunta; el plan gana
     fun <- graficar_nube_palabras
     args <- .keep_formals(fun, args)
     suppressWarnings(do.call(fun, args))
@@ -7855,8 +7855,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
-      if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
+      if (!isTRUE(solo_lista) && .lam_citas_aplica(p, slide)) doc <- .lam_citas_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_citas_aplica(p, slide)) {   # TXT-4: las citas y luego el compositor (lamina_citas.R)
         doc <- .add_slide_strict(doc, contract$layout)
         marco <- .lam_respaldo_marco(.lam_plantilla_estandar(opened_template_path) && !identical((slide$meta %||% list())$motor_nativo, FALSE), title_slide, subtitle_slide, ANTETITULOS[[i]], p)   # lamina_marco_respaldo.R; con el motor nativo apagado, la ruta anterior pura
         doc <- .lam_respaldo_titulo(doc, marco)

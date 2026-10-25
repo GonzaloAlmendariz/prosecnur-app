@@ -663,6 +663,18 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       ))}
     </>
   ),
+  // Citas representativas (TXT-4): tres citas, cada una con su comilla en el acento y dos líneas de texto.
+  p_citas: () => (
+    <>
+      {[0, 1, 2].map((i) => (
+        <g key={i}>
+          <Barra x={16} y={14 + i * 28} w={8} h={8} t="p" rx={2} />
+          <Rotulo x={32} y={14 + i * 28} w={110} />
+          <Rotulo x={32} y={22 + i * 28} w={80} />
+        </g>
+      ))}
+    </>
+  ),
   // Nube de palabras: el tamaño es la frecuencia (p100).
   // Con el ranking (maqueta, por defecto), la nube a la izquierda y las diez más dichas a la derecha.
   p_nube_palabras: (o) => o?.ranking ? (

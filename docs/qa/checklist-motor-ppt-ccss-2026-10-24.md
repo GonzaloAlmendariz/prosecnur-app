@@ -73,6 +73,8 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 
 ## Decisiones tomadas en el loop (para revisión de Gonzalo; él pidió no preguntar)
 
+- TXT-11, subtemas de la sugerencia de módulo: el formulario de CCSS no tiene subgrupos formales en el módulo B (sólo «laboral»). Los subtemas saldrán de las baterías del formulario (cada nota `enunciado_*` con sus preguntas) más los grupos formales, fusionados en orden hasta 9 (códigos 21–29), y sólo cuando un módulo se lleva más de la mitad. Sigue siendo una propuesta que el analista confirma. Alternativas: sólo grupos formales («laboral» + «B general»), o un mapa de subtemas declarado por el analista.
+
 - Exportar bloqueado por preguntas que existen en dos bases (QA de UI, 117 bloqueos en CCSS): la exportación resolverá igual que el motor y la vista previa; base principal por defecto con aviso no bloqueante y acción masiva para fijarla. Pendiente de implementar (oleada UI).
 
 - B1 se arregla aunque el plan de brechas lo tenía «sin decisión»: es un error silencioso de datos (N equivocado) y el arreglo sólo hace que Codificación lea la base actual, igual que Analítica. No cambia ninguna regla metodológica.

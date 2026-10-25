@@ -19,6 +19,9 @@ import { useDireccion } from "../../lib/navegacion/useDireccion";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { PulsoButton } from "../../components/PulsoButton";
+import { apiCodifMarcar } from "../../api/codificacion";
+import { resolverFocoCodificar } from "./focoCodificar";
+import { FocoSinIncluirAviso } from "./FocoSinIncluirAviso";
 
 type Props = {
   onBackToOrganizar: () => void;
@@ -70,16 +73,31 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
     [location.pathname, location.search, navigate],
   );
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await apiCodifPreguntasAbiertas();
-        setData(r.preguntas);
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    })();
+  const cargar = useCallback(async () => {
+    try {
+      const r = await apiCodifPreguntasAbiertas();
+      setData(r.preguntas);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }, []);
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  // TXT-10/16: incluir la pregunta del foco cuando no está en «Preguntas para codificar». Es la misma acción del
+  // interruptor de Preparar y sólo corre con el clic del analista.
+  const [inclusion, setInclusion] = useState<{ incluyendo: boolean; error: string }>({ incluyendo: false, error: "" });
+  const incluirFoco = useCallback(async (parent: string) => {
+    setInclusion({ incluyendo: true, error: "" });
+    try {
+      await apiCodifMarcar(parent, true);
+      await cargar();
+      // El foco puede haber venido por la columna de texto: la dirección queda en la pregunta.
+      setActiveParent(parent);
+      setInclusion({ incluyendo: false, error: "" });
+    } catch (e) {
+      setInclusion({ incluyendo: false, error: `No se pudo incluir «${parent}» en codificación: ${(e as Error).message}` });
+    }
+  }, [cargar, setActiveParent]);
 
   const marcadas = useMemo(() => {
     if (!data) return [];
@@ -88,7 +106,19 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
       .sort((a, b) => (a.q_order ?? 999999) - (b.q_order ?? 999999));
   }, [data]);
 
-  const activeParent = marcadas.some((p) => p.parent === foco) ? foco : marcadas[0]?.parent ?? null;
+  const resolucion = resolverFocoCodificar(data ?? [], marcadas, foco);
+  const activeParent = resolucion.tipo === "activa" ? resolucion.parent : null;
+  const aviso = resolucion.tipo === "sin-incluir" || resolucion.tipo === "no-existe"
+    ? (
+      <FocoSinIncluirAviso
+        resolucion={resolucion}
+        incluyendo={inclusion.incluyendo}
+        error={inclusion.error}
+        onIncluir={() => { if (resolucion.tipo === "sin-incluir") void incluirFoco(resolucion.pregunta.parent); }}
+        onVolver={onBackToOrganizar}
+      />
+    )
+    : null;
 
   const activeIdx = activeParent ? marcadas.findIndex((p) => p.parent === activeParent) : -1;
   const activePregunta = activeIdx >= 0 ? marcadas[activeIdx] : null;
@@ -104,6 +134,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
   if (!data) return <LoadingBlock label="Cargando preguntas marcadas…" />;
 
   if (marcadas.length === 0) {
+    if (aviso) return aviso;
     return (
       <>
         <span data-audit-ready="codificacion-codificar" hidden />
@@ -161,7 +192,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
 
       {/* Central */}
       <main className="pulso-codificacion-wizard-main">
-        {activePregunta ? (
+        {aviso ?? (activePregunta ? (
           <CodificadorPane
             p={activePregunta}
             canPrev={activeIdx > 0}
@@ -178,7 +209,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             titulo="Selecciona una pregunta"
             descripcion="Elige una pregunta del listado de la izquierda para empezar a codificar."
           />
-        )}
+        ))}
       </main>
     </div>
   );
