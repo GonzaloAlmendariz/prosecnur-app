@@ -67,9 +67,6 @@ export type TerritorialSourceConsoleProps = {
   busy?: boolean;
   onStateChange: (state: MonitoreoState) => void;
   onReload: () => void;
-  // Sync canónico de la página: encola el job y su progreso vive en el chrome
-  // (botones Avance/Todo con % real); la consola ya no corre un sync propio.
-  onSyncKobo: () => Promise<void> | void;
   onError?: (message: string) => void;
 };
 
@@ -292,7 +289,6 @@ function TerritorialSourceConsoleImpl({
   state,
   onError,
   onReload,
-  onSyncKobo,
   onStateChange,
 }: TerritorialSourceConsoleProps) {
   const config = state?.config;
@@ -457,20 +453,6 @@ function TerritorialSourceConsoleImpl({
       setSaving(false);
     }
   }, [config, notifyError, onStateChange, phase]);
-
-  const syncKobo = useCallback(async () => {
-    if (!config || !koboSource?.id) return;
-    setSaving(true);
-    setMessage("");
-    try {
-      await Promise.resolve(onSyncKobo());
-      setMessage(`Actualización ${phaseLabel(phase)} en cola.`);
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setSaving(false);
-    }
-  }, [config, koboSource?.id, notifyError, onSyncKobo, phase]);
 
   const toggleBatchRecommendation = useCallback((clientId: string) => {
     setSelectedBatchIds((current) => {
@@ -985,10 +967,8 @@ function TerritorialSourceConsoleImpl({
           <span><strong>{fmt(sourceReceivedCount)}</strong><em>locales</em></span>
           <span><strong>{sourceEffectiveCount == null ? "S/D" : fmt(sourceEffectiveCount)}</strong><em>pasan filtro</em></span>
         </div>
-        <button type="button" className="pulso-button is-primary" onClick={() => { void syncKobo(); }} disabled={saving || busy || !koboSource?.id}>
-          {saving ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-          <span>Actualizar {phaseLabel(phase)}</span>
-        </button>
+        {/* «Actualizar <fase>» vivía aquí: traer respuestas es del «Actualizar ▾»
+            de la barra del modo (L38), que lo ofrece en su menú. */}
       </section>
 
       {activeTab !== "form" && activePhaseHealth ? (
@@ -1197,10 +1177,6 @@ function TerritorialSourceConsoleImpl({
               <button type="button" className="pulso-button" onClick={() => { void inspectKobo(); }} disabled={saving || busy || !activeAssetUid}>
                 {saving ? <Loader2 size={14} className="pulso-spin" /> : <FileCheck2 size={14} />}
                 <span>Inspeccionar Kobo</span>
-              </button>
-              <button type="button" className="pulso-button is-primary" onClick={() => { void syncKobo(); }} disabled={saving || busy || !koboSource?.id}>
-                {saving ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-                <span>Sincronizar respuestas</span>
               </button>
             </div>
             {sourceCoherence?.drift?.length ? (

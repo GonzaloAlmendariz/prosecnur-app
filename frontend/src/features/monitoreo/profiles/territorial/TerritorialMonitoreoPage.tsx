@@ -29,18 +29,12 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  apiJobStatus,
-  apiMonitoreoSync,
   apiMonitoreoState,
-  apiMonitoreoTerritorialOccurrencesSync,
   apiMonitoreoTerritorialOperationalAdjustmentApply,
   apiMonitoreoTerritorialOperationalAdjustmentReset,
   apiMonitoreoTerritorialOperationalAdjustmentRevert,
   apiMonitoreoTerritorialPhase,
-  type JobSnapshot,
-  type MonitoreoSource,
   type MonitoreoState,
-  type MonitoreoSyncResult,
   type MonitoreoTerritorialDashboard,
   type MonitoreoTerritorialConfig,
   type MonitoreoTerritorialOperationalAdjustment,
@@ -112,7 +106,11 @@ import {
   territorialReportsCoverView,
   territorialSourceKeyFromState,
 } from "../../core/reportScopeCache";
-import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
+import { useActualizarDelModo } from "../../sync/useActualizarDelModo";
+import { TerritorialModuleChromeConSync } from "./sync/TerritorialModuleChromeConSync";
+import { territorialSyncActions, useTerritorialSyncStore } from "./sync/syncStore";
+import { ocurrenciasDeCampo, planTerritorialDeActualizar } from "./sync/planTerritorial";
+import { crearLanzadorTerritorial } from "./sync/lanzadorTerritorial";
 import type { MonitoreoReportScope } from "../types";
 import { TerritorialAdvanceWorkbench } from "./TerritorialAdvanceWorkbench";
 import { TerritorialDurationControl } from "./TerritorialDurationControl";
@@ -238,51 +236,6 @@ function scopesForPhase(phase: MonitoreoTerritorialPhase): MonitoreoReportScope[
 
 function viewAllowedInPhase(phase: MonitoreoTerritorialPhase, view: MonitoreoSeccion) {
   return phase === "pilot" ? view === "avance" : true;
-}
-
-function sourcePhase(source: MonitoreoSource | null | undefined): MonitoreoTerritorialPhase | "" {
-  const phase = source?.dimensions?.territorial_phase;
-  return phase === "pilot" || phase === "field" ? phase : "";
-}
-
-function activeTerritorialKoboSource(state: MonitoreoState | null, phase: MonitoreoTerritorialPhase) {
-  if (!state) return null;
-  const phaseSource = state.config?.territorial?.phase_sources?.[phase];
-  const sources = (state.sources ?? []).filter((source) => (
-    source.kind === "kobo" && source.role !== "ocurrencias_campo"
-  ));
-  return sources.find((source) => source.id && source.id === phaseSource?.source_id)
-    ?? sources.find((source) => source.asset_uid && source.asset_uid === phaseSource?.asset_uid)
-    ?? sources.find((source) => sourcePhase(source) === phase)
-    ?? sources.find((source) => source.enabled)
-    ?? sources[0]
-    ?? null;
-}
-
-function isTerminalJob<T>(job: JobSnapshot<T> | null): job is JobSnapshot<T> {
-  return job?.status === "done" || job?.status === "error" || job?.status === "cancelled";
-}
-
-function jobProgressPercent(job: JobSnapshot | null) {
-  const percent = Number(job?.progress && "percent" in job.progress ? job.progress.percent : null);
-  if (!Number.isFinite(percent)) return null;
-  return Math.max(0, Math.min(100, percent));
-}
-
-function jobProgressPhase(job: JobSnapshot | null) {
-  const progress = job?.progress;
-  return progress && "phase" in progress && typeof progress.phase === "string" ? progress.phase : undefined;
-}
-
-function jobProgressMessage(job: JobSnapshot | null) {
-  const progress = job?.progress;
-  return progress && "message" in progress && typeof progress.message === "string" ? progress.message : undefined;
-}
-
-function jobErrorMessage(job: JobSnapshot | null) {
-  const error = job?.error;
-  if (!error) return "";
-  return typeof error === "string" ? error : "";
 }
 
 function scopeForPhaseViewTab(
@@ -1115,7 +1068,6 @@ function renderView(
         state={options.state ?? null}
         onError={options.onError}
         onReload={options.onReload ?? noop}
-        onSyncKobo={options.onSyncKobo ?? noop}
         onStateChange={options.onStateChange ?? noop}
       />
     );
@@ -1372,9 +1324,6 @@ export default function TerritorialMonitoreoPage() {
   const scopeStateCacheRef = useRef(new Map<string, MonitoreoState>());
   const stateRef = useRef<MonitoreoState | null>(null);
   const direccionRef = useRef<DireccionTerritorial>(direccion);
-  const [chromeSyncJob, setChromeSyncJob] = useState<JobSnapshot<MonitoreoSyncResult> | null>(null);
-  const [chromeSyncJobId, setChromeSyncJobId] = useState("");
-  const chromeSyncReloadedRef = useRef("");
   const [pendingScopes, setPendingScopes] = useState<Set<string>>(() => new Set());
 
   const markScopePending = useCallback((key: string, pending: boolean) => {
@@ -1681,94 +1630,42 @@ export default function TerritorialMonitoreoPage() {
   const refreshCurrentView = useCallback(() => {
     void loadScope(preferredScope, seccionActiva, true);
   }, [seccionActiva, loadScope, preferredScope]);
-  const syncActiveTerritorialSource = useCallback(async (syncMode: "advance" | "full" = "advance") => {
-    if (!state?.config) {
-      setError("Abre un proyecto territorial antes de actualizar.");
-      return;
-    }
-    const source = activeTerritorialKoboSource(state, phase);
-    if (!source?.id) {
-      setError(`Define primero una fuente Kobo para ${phase === "field" ? "Campo" : "Piloto"}.`);
-      return;
-    }
-    setError("");
-    setChromeSyncJob(null);
-    setChromeSyncJobId("");
-    chromeSyncReloadedRef.current = "";
-    try {
-      const started = await apiMonitoreoSync(state.config, [source.id], { syncMode });
-      setChromeSyncJobId(started.job_id);
-      const first = await apiJobStatus<MonitoreoSyncResult>(started.job_id).catch(() => null);
-      setChromeSyncJob(first);
-    } catch (e) {
-      setChromeSyncJob(null);
-      setChromeSyncJobId("");
-      setError((e as Error).message);
-      throw e;
-    }
-  }, [phase, state]);
-  const syncAdvance = useCallback(async () => {
-    // El Avance también refresca las ocurrencias de campo si hay una fuente
-    // configurada (va a Kobo aparte). Fire-and-forget tolerante: si no hay token
-    // o fuente, no bloquea el avance; al terminar refresca la vista para tomar el
-    // snapshot nuevo de ocurrencias.
-    const fo = (state?.config?.territorial as { field_occurrences?: { source_id?: string; asset_uid?: string } } | undefined)?.field_occurrences;
-    if (fo && (fo.source_id || fo.asset_uid)) {
-      void apiMonitoreoTerritorialOccurrencesSync({ source_id: fo.source_id, asset_uid: fo.asset_uid })
-        .then(() => refreshCurrentView())
-        .catch(() => { /* sin token/fuente Kobo: el avance sigue igual */ });
-    }
-    await syncActiveTerritorialSource("advance");
-  }, [refreshCurrentView, state, syncActiveTerritorialSource]);
-  const syncField = useCallback(() => syncActiveTerritorialSource("full"), [syncActiveTerritorialSource]);
-  useEffect(() => {
-    if (!chromeSyncJobId) return;
-    if (isTerminalJob(chromeSyncJob)) {
-      if (chromeSyncJob.status === "done" && chromeSyncReloadedRef.current !== chromeSyncJobId) {
-        chromeSyncReloadedRef.current = chromeSyncJobId;
-        refreshCurrentView();
-      }
-      if (chromeSyncJob.status === "error") {
-        setError(jobErrorMessage(chromeSyncJob) || "La actualización territorial terminó con error.");
-      }
-      setChromeSyncJobId("");
-      return;
-    }
-
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const next = await apiJobStatus<MonitoreoSyncResult>(chromeSyncJobId);
-        if (cancelled) return;
-        setChromeSyncJob(next);
-        if (next.status === "done" && chromeSyncReloadedRef.current !== chromeSyncJobId) {
-          chromeSyncReloadedRef.current = chromeSyncJobId;
-          refreshCurrentView();
-          setChromeSyncJobId("");
-        } else if (next.status === "error") {
-          setError(jobErrorMessage(next) || "La actualización territorial terminó con error.");
-          setChromeSyncJobId("");
-        } else if (next.status === "cancelled") {
-          setChromeSyncJobId("");
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError((e as Error).message);
-          setChromeSyncJobId("");
-        }
-      }
-    };
-    void poll();
-    const timer = window.setInterval(() => { void poll(); }, 1400);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-    // Deps por status/id (patrón de TerritorialModelWorkbench): con el objeto
-    // `chromeSyncJob` en las deps, cada setChromeSyncJob(next) del tick
-    // desmontaba el intervalo y disparaba un poll inmediato extra, duplicando
-    // la cadencia real contra el Plumber mono-hilo.
-  }, [chromeSyncJob?.status, chromeSyncJobId, refreshCurrentView]);
+  // Control único «Actualizar ▾» (L38, fase 2 de M1): cuerpo, menú por fuente,
+  // paso N de M y recibo. Absorbe «Sincronizar respuestas» y «Actualizar <fase>»
+  // de la consola de fuentes y «Sincronizar piloto/campo» de Modelo.
+  const sincronizando = useTerritorialSyncStore((s) => s.syncing);
+  const recargarTrasActualizar = useCallback(async () => {
+    // Lo traído cambia los reportes de todos los cortes de esta fase y fuente
+    // (como una mutación): se invalidan en bloque y se relee el de la vista.
+    invalidateScopeStateForSource(phase, sourceKey);
+    const next = await loadScope(preferredScope, seccionActiva, true);
+    if (!next) throw new Error("No se pudo releer el tablero territorial.");
+  }, [invalidateScopeStateForSource, loadScope, phase, preferredScope, seccionActiva, sourceKey]);
+  const limpiarError = useCallback(() => setError(""), []);
+  const planDeActualizar = useMemo(() => planTerritorialDeActualizar({
+    sources: state?.sources ?? [],
+    config: state?.config?.territorial,
+    fase: phase,
+    deshabilitado: !state,
+    pendienteDeRecalcular: Boolean(state?.pending_regeneration),
+  }), [phase, state]);
+  const lanzarTerritorial = useMemo(
+    () => crearLanzadorTerritorial(ocurrenciasDeCampo(state?.sources ?? [], state?.config?.territorial)),
+    [state?.config?.territorial, state?.sources],
+  );
+  const actualizarDelModo = useActualizarDelModo({
+    familia: "territorial",
+    fuentes: state?.sources ?? [],
+    config: state?.config,
+    deshabilitado: !state,
+    acciones: territorialSyncActions,
+    recargar: recargarTrasActualizar,
+    alEmpezar: limpiarError,
+    alFallar: setError,
+    plan: planDeActualizar,
+    lanzar: lanzarTerritorial,
+  });
+  const traerTodo = actualizarDelModo.otrasActualizaciones?.find((accion) => accion.clave === "todo");
   const applyTerritorialPageState = useCallback((next: MonitoreoState) => {
     const withPhase = withTerritorialPhase(next, phase);
     // Invalidación selectiva (3.4f): una mutación territorial (ajuste
@@ -1878,13 +1775,10 @@ export default function TerritorialMonitoreoPage() {
     || activeScopePending
     || Boolean(state && activeNeedsReport && !reportReady && !error)
     || Boolean(state && scopesExtraFaltantes.length && !error);
-  const chromeSyncing = Boolean(chromeSyncJobId);
+  const chromeSyncing = sincronizando;
   const chromeBusy = activeLoading || mutationBusy || chromeSyncing;
   const chromeGeneratedAt = reports?.generated_at ?? state?.generated_at ?? state?.synced_at ?? "";
   const chromeGenerationStatus = error ? "failed" : reportReady ? "" : "stale";
-  const progresoDelSync = chromeSyncing
-    ? [jobProgressPhase(chromeSyncJob), jobProgressMessage(chromeSyncJob), jobProgressPercent(chromeSyncJob) != null ? `${Math.round(jobProgressPercent(chromeSyncJob) ?? 0)} %` : ""].filter(Boolean).join(" · ")
-    : undefined;
   const opcionesFase = useMemo(
     () => opcionesDeFase(state, phase, lecturaAvance?.meta ?? null),
     [lecturaAvance?.meta, phase, state],
@@ -1926,8 +1820,9 @@ export default function TerritorialMonitoreoPage() {
         data-audit-loading={activeLoading ? "true" : "false"}
         data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
       />
-      <MonitoreoModuleChrome
+      <TerritorialModuleChromeConSync
         routes={MONITOREO_MODOS}
+        cargando={loadingView === "initial" && !state}
         route={TERRITORIAL_ROUTE}
         routeSelected
         seccionActiva={direccion.seccion}
@@ -1953,24 +1848,8 @@ export default function TerritorialMonitoreoPage() {
           indicadores: [],
           corte: corteCorto(state?.synced_at),
           estado: estadoDelModo({ actualizando: chromeSyncing, cargando: loadingView === "initial", hayEstado: Boolean(state), error }),
-          progreso: progresoDelSync,
-          actualizar: {
-            etiqueta: "Actualizar",
-            titulo: "Traer las respuestas nuevas de Kobo y las ocurrencias, y recalcular",
-            disabled: !state || chromeBusy,
-            onElegir: () => { void syncAdvance().catch(() => undefined); },
-          },
-          otrasActualizaciones: [{
-            etiqueta: "Traer todo de nuevo",
-            titulo: "Volver a leer todas las respuestas Kobo de la fase activa",
-            disabled: !state || chromeBusy,
-            onElegir: () => { void syncField().catch(() => undefined); },
-          }, {
-            etiqueta: "Solo recalcular",
-            titulo: "Recalcular la vista con lo que ya está en el proyecto",
-            disabled: !state || chromeBusy,
-            onElegir: refreshCurrentView,
-          }],
+          actualizar: actualizarDelModo.actualizar,
+          otrasActualizaciones: actualizarDelModo.otrasActualizaciones,
         }}
         onCambioSeccion={(seccion) => {
           if (esSeccionTerritorial(seccion)) irA(direccionPermitidaEnFase(phase, direccionDeSeccion(seccion)));
@@ -2020,7 +1899,7 @@ export default function TerritorialMonitoreoPage() {
               onError: setError,
               onPublished: refreshCurrentView,
               onReload: refreshCurrentView,
-              onSyncKobo: syncField,
+              onSyncKobo: traerTodo && !traerTodo.disabled ? traerTodo.onElegir : undefined,
               onCambioPestana: changeLocalTab,
               onOpenValidationCase: openValidationCase,
               onOperationalAdjustmentApply: applyOperationalAdjustment,
@@ -2033,7 +1912,7 @@ export default function TerritorialMonitoreoPage() {
               state,
               irA,
               cortes,
-              onSyncAvance: () => { void syncAdvance().catch(() => undefined); },
+              onSyncAvance: actualizarDelModo.ejecutarPrincipal,
             })}
             </RotuloDePestanaProvider>
           )}
