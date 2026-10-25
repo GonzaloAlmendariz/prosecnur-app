@@ -573,6 +573,52 @@ atributo), L20 (una cifra con su base), L28 (tabla e inspector), L21, L26 y L10.
     motor (`detail` del caso).
   - La franja «Sheets · Kobo · Todo» de Insumos (auditoría, fila 11) es `components/SourceSyncActions.tsx`, compartido.
 
+## Cierre de QA (2026-10-25, defectos del QA visual final sobre `main` 2a1b4ed52)
+
+No es una ronda de diseño: solo se corrigen los defectos que encontró el QA independiente.
+
+- **Avance › Por público, curva del inspector sobre «Por canal» (C4).** Medido con un script propio: la caja del
+  gráfico era correcta (285 px), pero el SVG se dibujaba con el alto de un cuadro anterior (366 px). La caja se
+  achica cuando llegan los casos del público; el `ResizeObserver` avisaba antes de pintar, pero el `setState` se
+  pintaba un cuadro después y la vista ya estaba marcada lista. Ahora `useTamano` vuelve a dibujar en el mismo
+  cuadro (`flushSync`) y el SVG mide lo que su caja, que además recorta (`overflow: hidden`). Vale para todos los
+  gráficos del perfil.
+- **Píldora fantasma en la barra de secciones.** Diagnóstico: no había dos estados activos. Era el indicador
+  deslizante. En Institucional, al marcarse lista Control › Respuestas, el indicador seguía en x = 210 (la píldora
+  «Modelo»). El rail cambia de layout tras la primera pintura (entra una sección, crecen las insignias) y
+  `GlidingTabList` volvía a medir en el siguiente `requestAnimationFrame` y luego se deslizaba 180 ms. Se agregó
+  `snapOnLayoutChange` (opt-in, aditivo): un cambio de layout mide en el acto, pinta en el mismo cuadro y salta sin
+  transición. El aviso inicial del observador o una cifra que cambia sin mover nada no cuentan, así que la
+  transición al cambiar de sección sigue igual. Lo activa `MonitoreoModuleChrome` para todos los modos, porque el
+  dueño de Telefónico vio la misma píldora en Telefónico › Cuotas. Los demás consumidores de `GlidingTabList` no
+  cambian.
+- **Vacíos al pie (regla de altura).**
+  - Por resolver: los filtros toman su alto natural. A 1200 px o menos, el caso baja bajo la cola en su misma
+    columna y los filtros ocupan las dos filas. Antes, el caso iba a lo ancho debajo de todo y la fila de arriba
+    medía lo que los filtros, así que una cola de 2 casos dejaba unos 250 px vacíos. A 1440 la cola ya iba a su
+    alto natural; lo que queda bajo ella es fondo de página.
+  - Calidad: «Señales de consistencia» va a su alto natural, con tope en la columna.
+  - Por cuota y Modelo › Cuotas: la lista de variables o cuotas y la tarjeta de la cuota elegida («Metas por
+    categoría») van a su alto natural, con tope en la columna. El vacío sin cuotas sigue siendo legítimo (C5) y
+    ya no estira el marco.
+  - Ritmo: el gráfico diario usa el alto que sobra en su columna (`minmax(max-content, 1fr) auto`) y «Pulso del
+    campo» va a su alto natural.
+- **Aviso del caso tras «;».** El texto viene del motor (`monitoreo_acreditacion_cruce_escala.R`, fuera del
+  glob). El modelo del caso publica solo la primera cláusula (`avisoSinExplicacion`). La pista sigue clasificada
+  como «Evidencia secundaria», porque esa regla mira «correo» y «compatible». Pendiente fuera del glob: recortar
+  el texto en el motor.
+- **Barrido, celda vacía (C3/C5).** La esquina «sin efectiva al teléfono × sin completa» dice «—» y «Fuera del
+  cruce», con `data-vacio="legitimo"`. El motivo va en el tooltip y en texto para lector de pantalla. No se
+  calcula una cifra (padrón menos las otras tres) porque la operación por responsable no la publica y restar
+  supondría que las completas de la plataforma salen todas del padrón telefónico.
+- **Personas, nombres desalineados.** El botón del nombre heredaba el `justify-content: center` global de los
+  botones. Ahora arranca en el borde de la celda.
+- **Control › Reintentos** (pedido del coordinador, con la tarjeta de la cola común ya en `main`): el rótulo
+  entra en la tarjeta de filtros (`antesDeLosFiltros={<RotuloEnBarra />}`) y Reintentos sale de
+  `SIN_ROTULO_EN_TARJETA`. En una sola fila, a 1440 el rótulo con sus dos chips ocupaba 640 px y «Orden» y «Más
+  filtros» quedaban fuera de la tarjeta. Por eso, en este perfil, la barra pone el rótulo en su propia fila y los
+  filtros debajo, a todo el ancho, igual que la cola común hace bajo 1180 px.
+
 ## Preguntas surgidas en la implementación
 
 - **Redondeo de la meta (M1)**: la ficha dice meta = `ceiling(personas × cobertura)`; la app redondea al entero más
