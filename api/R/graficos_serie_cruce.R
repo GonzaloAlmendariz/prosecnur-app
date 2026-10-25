@@ -31,6 +31,8 @@
   }
   if (!is.null(k$max_series_con_cifras) && is.null(ov$max_series_con_cifras)) ov$max_series_con_cifras <- suppressWarnings(as.integer(k$max_series_con_cifras)[1])
   if (!is.null(k$valores_decimales) && is.null(ov$valores_decimales)) ov$valores_decimales <- .radar_mb_decimales(k$valores_decimales)
+  ov <- .ppt_slot_override(ov, "mostrar_significancia", k$mostrar_significancia, "bool")      # L10-9
+  ov <- .ppt_slot_override(ov, "significancia_alpha", k$significancia_alpha, "numero", min = 0)
   g <- if (is.null(grupos)) NULL else trimws(as.character(unlist(grupos)))
   el <- list(
     .element_type  = "serie_temporal",
@@ -128,15 +130,27 @@
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()), as.list(el$overrides %||% list()))
   datos <- .serie_cruce_datos(el$vars, el$corte, el$cruce, sources, filtros = el$filtros %||% list(), grupos = el$grupos)
   args_usuario$orden_periodos <- levels(datos$grupo)
+  # L10-9: con una sola serie la leyenda repite el título; se apaga salvo que la lámina la pida.
+  if (nlevels(datos$eje) == 1L && is.null((el$overrides %||% list())$mostrar_leyenda)) args_usuario$mostrar_leyenda <- FALSE
+  # L10-9: letras de significancia entre niveles, con la prueba de las tablas de cruces (graficos_serie_significancia.R).
+  sig <- .serie_sig_config(args_usuario)
+  args_usuario$mostrar_significancia <- NULL; args_usuario$significancia_alpha <- NULL
+  letras <- if (sig$activo) .serie_sig_letras(datos, el$vars, sources, el$cruce, alpha = sig$alpha) else NULL
+  if (!is.null(letras)) {
+    datos$sufijo <- letras$sufijo
+    if (is.null(args_usuario$nota_pie)) args_usuario$nota_pie <- .sig_nota_pie_del_grafico(letras$nota)
+  }
   base_args <- list(
     data = datos, var_eje = "eje", var_grupo = "grupo", var_valor = "valor", escala_valor = "proporcion_100",
     titulo = el$title_slide %||% NULL, subtitulo = el$corte_etiqueta %||% NULL,
-    orden_periodos = levels(datos$grupo), orden_series = levels(datos$eje)
+    orden_periodos = levels(datos$grupo), orden_series = levels(datos$eje),
+    var_sufijo = if (!is.null(letras)) "sufijo" else NULL
   )
   args <- utils::modifyList(base_args, args_usuario)
   args <- .keep_formals(graficar_serie_temporal, args, contexto = "graficar_serie_temporal")
   p <- do.call(graficar_serie_temporal, args)
   # Los casos por nivel van al pie de la lámina (canal de notas del motor), junto a la base.
   attr(p, "note_outside") <- .serie_cruce_nota(datos)
+  if (!is.null(letras)) p <- .sig_nota_a_lamina(p, letras$nota, args$nota_pie)   # la nota, sobre «Base:»
   p
 }

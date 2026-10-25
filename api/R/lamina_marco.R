@@ -30,6 +30,8 @@
 .lam_laminas_ggplot <- function(doc, p, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                 layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  # L10-9: la nota de la prueba de significancia (serie por niveles) va sobre «Base:», como en las demás láminas de cruce.
+  if (!is.null(.lam_nota_sig_de(p))) return(.lam_ggplot_con_nota_sig(doc, p, espec, titulo, ante, base, folio, sub, layout, master, por_lamina))
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der")
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   z <- espec$zona %||% c(dx = 0, dy = 0, dw = 0, dh = 0.1)

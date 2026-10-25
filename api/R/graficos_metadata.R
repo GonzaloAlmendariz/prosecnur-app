@@ -1918,6 +1918,13 @@
            descripcion = "Opcional. Pregunta ordinal de la misma base (ej. nivel curricular): un punto por nivel, en el orden del instrumento. Vacía, un punto por medición (base)."),
       list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Opcional, con un cruce. Los códigos del cruce en el orden del eje; vacío, todos los que tienen respuestas."),
+      # L10-9 (bandeja CCSS, 2026-10-24): la serie por nivel reemplaza a apiladas con letras; los cruces se muestran con su prueba.
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE,
+           descripcion = "Con un cruce: agrega a cada punto la letra de los niveles a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. La nota de la prueba va sobre la base."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005,
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
@@ -2184,7 +2191,14 @@
            )),
       list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
            descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado"),
+      # L10-10 (bandeja CCSS, 2026-10-24): con una pregunta como objetivo, la columna Top Two Box (graficos_heatmap_top2box.R).
+      # `via_overrides`: `p_dim_heatmap()` no los tiene como formales.
+      list(name = "top2box", label = "Columna Top Two Box", tipo_input = "bool", grupo = "valores", via_overrides = TRUE,
+           descripcion = "Con una pregunta como objetivo. Vacío: encendida si la escala es ordinal de cuatro o más puntos. Suma las categorías de «Categorías del Top 2 Box»; sin ellas se omite y se avisa."),
+      list(name = "top2box_labels", label = "Categorías del Top 2 Box", tipo_input = "categorias_escala", grupo = "valores",
+           via_overrides = TRUE, ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
+           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala.")
     ), .args_graf_comunes())
   ),
 
