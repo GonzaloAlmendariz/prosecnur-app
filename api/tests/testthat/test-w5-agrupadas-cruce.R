@@ -94,3 +94,14 @@ test_that("CCSS-7: una sola serie (perfil) y el comparativo no entran por la rut
                                  ancho = 12.51, alto = 5.51, exportar = "rplot")
   expect_null(attr(g, "pulso_barras_agrupadas_cruce"))
 })
+
+test_that("lámina 23 (R15): sin nota de significancia, el cruce usa el alto del cajón (la cabecera mide su título)", {
+  # La cabecera declarada (1.25 in) para un título de una línea de 16 pt dejaba 0.8 in vacías entre el título del gráfico y
+  # la primera barra; con la nota de significancia el hueco de abajo la disimulaba, sin ella el bloque se veía arriba.
+  d <- .w5_cruce_data(c("Menos de 30 minutos", "Entre 30 minutos y 1 hora", "Entre 1 hora y 1 hora y 30 minutos",
+                        "Entre una 1 hora y 30 minutos y 2 horas", "2 horas o más"),
+                      c(.21, .20, .25, .27, .08), c(.57, .26, .11, .03, .03))
+  ly <- attr(.w5_cruce(d), "pulso_barras_agrupadas_layout")
+  expect_gte(ly$h_panel_in, 4.0)   # antes 3.57
+  expect_lte(ly$h_total_in, 5.51 + 1e-6)
+})

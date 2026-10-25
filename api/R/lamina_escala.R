@@ -64,17 +64,14 @@
     xx <- xx + ws
   }
   if (length(peq)) {
-    cs <- vapply(peq, `[[`, 0, "c"); pos <- cs
-    for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + 0.46)
-    m <- length(pos); lim <- x + w - 0.12
-    if (pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - 0.46) }
+    cs <- vapply(peq, `[[`, 0, "c")   # CCSS-14: si la de siempre cruza codos, sin solaparse (lamina_callouts_sin_solape.R)
+    pos <- .lam_callouts_escala(cs, vapply(peq, `[[`, "", "v"), x, w)
     # N9: la caja de la cifra sube 0,28 in sobre el borde de la fila (antes 0,32): queda >= 0,075 in bajo la barra de la
     # fila de arriba (antes 0,04) con la misma fila (`aire_cifra_chica`) y la misma separación entre cifras.
     # N9b: la caja mide 0,22 in y acaba a la altura de la base del glifo (el texto lleva 0,05 in de margen superior y
     # desborda sin recorte); la guía (0,03 in) y su codo (a 0,04 in) quedan a 0,02 in por debajo de ella: ya no tocan el número.
     for (k in seq_along(peq)) {
-      .lam_caja(lz, cs[k] - 0.006, y - 0.03, 0.012, 0.03, tenue, nombre = "guia")
-      if (abs(pos[k] - cs[k]) > 0.01) .lam_caja(lz, min(cs[k], pos[k]), y - 0.04, abs(pos[k] - cs[k]), 0.012, tenue, nombre = "guia")
+      .lam_callout_guia(lz, cs[k], pos[k], y, 0.03, y - 0.04, identical(attr(pos, "reparto"), "nuevo"), tenue)   # CCSS-14
       .lam_txt(lz, peq[[k]]$v, pos[k] - 0.32, y - 0.28, 0.64, 0.22, .std_pt("cifra_fuera"), azul, bold = TRUE,
                align = "center", nombre = "cifra_fuera")
     }
