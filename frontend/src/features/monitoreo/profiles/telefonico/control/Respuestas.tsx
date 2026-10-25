@@ -90,9 +90,11 @@ export function Respuestas({
         <section className="mon-ctl-panel mon-respuestas-duracion" aria-label="Duración de las efectivas">
           <header className="mon-ctl-panel-cabecera">
             <b>Duración de las {n(modelo.envios.length)} efectivas</b>
-            <span className="mon-respuestas-mediana">
-              Mediana de {duracionLegible(modelo.mediana)}, entre el inicio y el fin
-              {modelo.largas ? `; ${n(modelo.largas)} ${modelo.largas === 1 ? "duró" : "duraron"} más de 2 h` : ""}
+            <span
+              className="mon-respuestas-mediana"
+              title={`Entre el inicio y el fin${modelo.largas ? `. ${n(modelo.largas)} ${modelo.largas === 1 ? "duró" : "duraron"} más de 2 h` : ""}`}
+            >
+              Mediana {duracionLegible(modelo.mediana)}
             </span>
           </header>
           <div className="mon-barrido-columnas mon-respuestas-histograma" role="img" aria-label={modelo.tramos.map((tramo) => `${tramo.etiqueta}: ${n(tramo.casos)}`).join(", ")}>

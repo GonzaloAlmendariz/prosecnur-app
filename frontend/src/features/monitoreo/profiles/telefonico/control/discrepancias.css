@@ -132,7 +132,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface);
+  background: var(--pulso-header-row);
 }
 
 .mon-dsc-tabla tr.is-activo {
@@ -161,13 +161,14 @@
   color: var(--pulso-warn-fg);
 }
 
-/* Qué pasa va en una línea mientras quepa; con nombres largos en Responsable y
- * Enumerador (PDM: «JORGE DEL SOLAR») la Decisión quedaba fuera del marco a
- * 1440, así que puede partirse en dos líneas con un ancho mínimo que evita la
- * columna de cuatro renglones de antes. La decisión nunca se parte. */
+/* Una fila por caso (Meta B, L28): Hoja, Kobo, Responsable y Enumerador van
+ * en una línea y lo que no cabe se corta con puntos suspensivos; el dato
+ * entero queda en el tooltip de la celda. La decisión nunca se parte. */
 .mon-dsc-una-linea {
-  min-width: 170px;
-  white-space: normal;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mon-dsc-decision {

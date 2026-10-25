@@ -166,7 +166,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--pulso-surface-2);
+  background: var(--pulso-header-row);
 }
 
 /* Relleno interno de la tarjeta en los bordes y columnas compactas a su
@@ -181,6 +181,14 @@
 
 .mon-sup-tabla .is-compacta {
   width: 1%;
+  white-space: nowrap;
+}
+
+/* Una fila por caso (Meta B, L28): el nombre no parte línea. */
+.mon-sup-una-linea {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

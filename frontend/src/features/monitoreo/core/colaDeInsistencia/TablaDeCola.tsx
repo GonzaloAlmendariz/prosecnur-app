@@ -84,9 +84,13 @@ export function TablaDeCola({
                   <b>{caso.intentos == null ? "—" : caso.intentos.toLocaleString("es-PE")}</b>
                   <i aria-hidden="true" style={{ width: `${((caso.intentos ?? 0) / maximo) * 100}%` }} />
                 </td>
-                <td className={`mon-cola-resultado ${tonoDeResultado(caso.status)}`}>{caso.status || "—"}</td>
-                <td className={caso.observacion ? "mon-cola-observacion" : "mon-cola-observacion is-vacia"}>
-                  {caso.observacion || "Sin observación"}
+                <td title={caso.status || undefined}>
+                  <span className={`mon-cola-resultado ${tonoDeResultado(caso.status)}`}>{caso.status || "—"}</span>
+                </td>
+                <td title={caso.observacion || undefined}>
+                  <span className={caso.observacion ? "mon-cola-observacion" : "mon-cola-observacion is-vacia"}>
+                    {caso.observacion || "Sin observación"}
+                  </span>
                 </td>
                 <td>
                   {columnas.telefono ? telefonoDelCaso(caso) || "—" : caso.cuota ? (
