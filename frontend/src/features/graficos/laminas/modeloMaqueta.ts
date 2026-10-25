@@ -40,6 +40,11 @@ export type RanuraMaqueta = {
   args: Record<string, unknown>;
   /** Bloques del gráfico (multiapiladas «Bloques»); uno solo en los demás. */
   bloques: { titulo: string | null; ttb: boolean }[];
+  /** El título que el plan declara para el gráfico (`titulo`, o el de sus overrides): el motor lo pone sobre el panel
+   *  (`title_slide`, CCSS-UI-2). `null` si no declara ninguno. */
+  tituloPanel: string | null;
+  /** La primera pregunta del gráfico tal como la escribe el plan (`var` o `base$var`); para pedir sus conteos. */
+  variable: string | null;
 };
 
 type Presets = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -53,7 +58,8 @@ export const COLOR_MAYOR = "#081F5C";
 export const COLOR_RESTO = "#8A93A8";
 export const COLOR_SEGUNDA = "#9DC3E6";
 
-export type OpcionMaqueta = { rotulo: string; color: string | null };
+/** `codigo`: el `name` de la opción en el instrumento (excluir_opciones lo escribe por código). */
+export type OpcionMaqueta = { rotulo: string; color: string | null; codigo?: string };
 /** `ttb`: la columna Top Two Box de ESA pregunta (en multi-apiladas cada bloque decide la suya). */
 export type PreguntaMaqueta = {
   titulo: string; opciones: OpcionMaqueta[]; ttb: boolean;
@@ -72,7 +78,7 @@ export function escalaDe(info: VarLike | undefined, colores: ColoresMaqueta | un
   const pal = res ? (colores?.paletas[res.clave] as Record<string, unknown> | undefined) : undefined;
   return choices.map((c) => {
     const v = pal?.[c.label];
-    return { rotulo: c.label, color: typeof v === "string" && v.trim() ? v.trim() : null };
+    return { rotulo: c.label, color: typeof v === "string" && v.trim() ? v.trim() : null, codigo: c.name };
   });
 }
 
@@ -126,6 +132,13 @@ export function tienePistasDeOrden(rotulos: readonly string[]): boolean {
   if (cuenta(/\b(bachiller|licenciad|magister|maestri|maestr|doctor|doctorado|posgrado|primaria|secundaria|tecnic|superior|inicial)/) >= 2) return true;
   if (cuenta(/\b(primer|segund|tercer|cuart|quint|sext|septim|setim|octav|noven|decim)/) >= 2) return true;
   return cuenta(/\b(nada|poco|algo|mucho|muy|totalmente|siempre|nunca|a veces|rara vez|bajo|medio|alto|acuerdo|desacuerdo|satisfech|insatisfech|malo|bueno|regular|excelente|pesimo|nivel|menos de|mas de|a mas)\b/) >= 2;
+}
+
+/** `titulo` del gráfico, con los overrides mandando (`el$overrides$titulo %||% el$title_slide`, lamina_compositor.R). */
+export function tituloDelGrafico(args: Readonly<Record<string, unknown>>): string | null {
+  const ov = (args.overrides && typeof args.overrides === "object" ? args.overrides : {}) as Record<string, unknown>;
+  for (const t of [ov.titulo, args.titulo]) if (typeof t === "string" && t.trim()) return t.trim();
+  return null;
 }
 
 function refsDe(v: unknown): string[] {
@@ -267,6 +280,8 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         twoBox,
         args: args as Record<string, unknown>,
         bloques,
+        tituloPanel: tituloDelGrafico(args as Record<string, unknown>),
+        variable: refs[0] ?? null,
       };
     });
 }

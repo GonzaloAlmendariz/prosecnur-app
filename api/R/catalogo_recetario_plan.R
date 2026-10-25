@@ -217,6 +217,8 @@
     cap("Preguntas abiertas", NULL, 7, "Palabras, frases y temas"),
     uno("Nube de palabras", .cr_g("p_nube_palabras", var = "egresados$comentario"), 101),
     uno("Nube de palabras con ranking", .cr_g("p_nube_palabras", var = "egresados$comentario", mostrar_ranking = TRUE), 102),
+    # TXT-4: sin página propia en el recetario; sin aprobadas sale como borrador y lo dice.
+    sl("p_slide_1_grafico", titulo = "Citas representativas (borrador, sin página del recetario)", grafico = .cr_g("p_citas", var = "egresados$comentario")),
     falta("Nube de frases", 103, "La nube cuenta palabras sueltas; las frases de dos y tres palabras no existen todavía."),
     falta("Pregunta abierta: frases y temas", 104, "Depende de la codificación de la pregunta abierta."),
 

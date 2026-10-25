@@ -2659,6 +2659,34 @@ p_nube_palabras <- function(
   el
 }
 
+#' @title Citas representativas de un comentario abierto (TXT-4; selección y lámina en texto_citas.R y lamina_citas.R)
+#'
+#' @param var Pregunta abierta («base$variable» en un informe multibase).
+#' @param citas_aprobadas Ids de las citas aprobadas por el analista, en el orden en que se dibujan. Vacío: la lámina
+#'   propone un borrador y lo dice.
+#' @param max_citas Cuántas citas como máximo (de 3 a 5).
+#' @param titulo Título opcional.
+#' @param filtros Filtros nombrados; un `<var>_recod` filtra por un código de Codificación (multicódigo incluido).
+#' @param overrides,base Como en los demás elementos (overrides admite `autores`: apellidos que no se marcan).
+#' @param var_persona Columna opcional con el id de persona, si una persona puede tener varias filas.
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_citas <- function(var, citas_aprobadas = NULL, max_citas = 5L, titulo = NULL, filtros = list(), overrides = list(),
+                    base = list(), var_persona = NULL) {
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) .plan_spec_abort("`var` debe ser character(1) no vacio.")
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
+  ap <- trimws(as.character(unlist(citas_aprobadas %||% character(0))))
+  ap <- unique(ap[!is.na(ap) & nzchar(ap)])
+  mx <- suppressWarnings(as.integer(unlist(max_citas)[1])); if (is.na(mx)) mx <- 5L
+  el <- list(.element_type = "citas", var = trimws(var), citas_aprobadas = ap, max_citas = min(5L, max(3L, mx)),
+             var_persona = .ppt_norm_text1(var_persona, blank = NULL), title_slide = .ppt_norm_text1(titulo, blank = NULL),
+             filtros = .ppt_norm_filters(filtros), overrides = overrides, base = base)
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
 #' @title KPI numerico
 #'
 #' @param var Variable base (opcional segun metrica).

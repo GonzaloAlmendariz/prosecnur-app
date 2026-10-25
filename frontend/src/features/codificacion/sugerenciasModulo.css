@@ -1,0 +1,216 @@
+/* Módulo sugerido de un comentario abierto (TXT-3). Una propuesta se ve como propuesta: borde punteado y sin relleno
+   hasta que el analista la confirma; confirmada, el tono del módulo y el check. */
+
+.pulso-cv2-modsug-banda {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px dashed var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+.pulso-cv2-modsug-banda-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.pulso-cv2-modsug-banda-head strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+.pulso-cv2-modsug-banda-head span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-modsug-banda-vacia {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-modsug-banda-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pulso-cv2-modsug-banda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 3px 2px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+.pulso-cv2-modsug-banda-item.is-sin {
+  padding: 6px 10px;
+  line-height: 16px;
+  border-style: dashed;
+  background: var(--pulso-surface);
+}
+.pulso-cv2-modsug-banda-modulo {
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+.pulso-cv2-modsug-banda-n {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-cv2-modsug-banda-accion,
+.pulso-cv2-modsug-deshacer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+.pulso-cv2-modsug-banda-accion:hover:not(:disabled),
+.pulso-cv2-modsug-deshacer:hover {
+  background: var(--pulso-primary-soft);
+}
+.pulso-cv2-modsug-banda-accion:disabled {
+  border-color: var(--pulso-border);
+  color: var(--pulso-text-soft);
+  cursor: default;
+}
+.pulso-cv2-modsug-banda-accion:focus-visible,
+.pulso-cv2-modsug-deshacer:focus-visible,
+.pulso-cv2-modsug-chip:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 1px;
+}
+.pulso-cv2-modsug-banda-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+/* En la fila de la respuesta */
+.pulso-cv2-modsug {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.pulso-cv2-modsug-eyebrow {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-modsug-item {
+  display: inline-flex;
+  min-width: 0;
+}
+.pulso-cv2-modsug-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 220px;
+  min-height: 20px;
+  padding: 0 7px 0 5px;
+  border: 1px dashed var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
+  cursor: pointer;
+}
+.pulso-cv2-modsug-chip:hover {
+  background: var(--pulso-primary-soft);
+}
+.pulso-cv2-modsug-chip.is-confirmada {
+  border-style: solid;
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+.pulso-cv2-modsug-chip-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-cv2-modsug-sin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 7px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-cv2-modsug-chip,
+  .pulso-cv2-modsug-banda-accion,
+  .pulso-cv2-modsug-deshacer {
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+}
+
+/* Pantallas bajas (1366x768, 1024x600): la mesa ya cede casi todo su alto a la cabecera, así que la banda va en una
+   sola fila y los módulos se desplazan en horizontal en vez de empujar la lista de respuestas fuera de la vista. */
+@media (max-height: 820px) {
+  .pulso-cv2-modsug-banda {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+  }
+  .pulso-cv2-modsug-banda-head {
+    flex: 0 0 auto;
+  }
+  /* El aviso completo sigue para lectores de pantalla; a la vista queda «· propuesta». */
+  .pulso-cv2-modsug-banda-head span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .pulso-cv2-modsug-banda-head strong::after {
+    content: " · propuesta";
+    font-weight: var(--pulso-weight-medium);
+    color: var(--pulso-text-soft);
+  }
+  .pulso-cv2-modsug-banda-lista {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .pulso-cv2-modsug-banda-item {
+    flex: 0 0 auto;
+  }
+  .pulso-cv2-modsug-banda-estado {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+}

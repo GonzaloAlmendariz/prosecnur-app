@@ -1887,3 +1887,106 @@
 .mon-outputs-readiness__granos small.mon-outputs-readiness__nota {
   color: var(--pulso-warn-fg);
 }
+
+/* Variante «ficha» (prop `variante="ficha"`, sólo Telefónico › Entregas):
+ * §2a-bis del estándar de Monitoreo. La cabecera es una tarjeta más de la
+ * ficha: antetítulo sin píldora, título y el corte en una línea, «Incluir
+ * metas» como casilla simple (antes heredaba la píldora en versalitas del
+ * antetítulo). Ninguna tarjeta va teñida: el estado del corte va en el borde
+ * lateral sólido y en su chip. Los demás modos no pasan la variante. */
+.mon-outputs-workbench--ficha .mon-outputs-workbench__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  min-height: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-workbench__head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-workbench__antetitulo {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-workbench__head strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-workbench__head small {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+  white-space: nowrap;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-targets-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-targets-toggle span {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0;
+  line-height: inherit;
+  text-transform: none;
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-readiness {
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-state-unchecked-fg);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-outputs-workbench--ficha .mon-outputs-readiness.is-listo { border-left-color: var(--pulso-state-ready-fg); }
+.mon-outputs-workbench--ficha .mon-outputs-readiness.is-bloqueado { border-left-color: var(--pulso-state-blocked-fg); }
+.mon-outputs-workbench--ficha .mon-outputs-readiness.is-parcial { border-left-color: var(--pulso-state-partial-fg); }
+.mon-outputs-workbench--ficha .mon-outputs-readiness.is-sin-configurar { border-left-color: var(--pulso-state-unset-fg); }
+
+.mon-outputs-workbench--ficha .mon-outputs-card {
+  border-color: var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}

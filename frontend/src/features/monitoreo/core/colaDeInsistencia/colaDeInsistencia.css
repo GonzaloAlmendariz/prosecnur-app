@@ -632,12 +632,16 @@
   font-size: 12px;
 }
 
-/* Ficha del caso. */
+/* Ficha del caso: alto natural (§2a-bis). La columna de la rejilla puede ser
+ * más alta que la ficha; el aire queda debajo de la tarjeta, no dentro. Con más
+ * datos que alto, la ficha desplaza dentro de sí (C4). */
 .mon-cola-ficha {
   position: relative;
   display: flex;
   flex-direction: column;
+  align-self: start;
   min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
 }
 
@@ -733,15 +737,9 @@
   font-style: normal;
 }
 
+/* El pie ya trae su raya: el último bloque no repite la suya. */
 .mon-cola-ficha-nota {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: auto var(--pulso-space-4) var(--pulso-space-3);
-  padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  background: var(--pulso-surface-2);
+  border-bottom: 0;
 }
 
 .mon-cola-ficha-nota p {

@@ -28,6 +28,13 @@
   overflow: hidden;
 }
 
+/* La cola toma su alto: con pocos casos no deja la tarjeta vacía hasta el pie;
+ * con muchos, el tope es su celda y la tabla desplaza dentro (C4). */
+.acr-pr-cola {
+  align-self: start;
+  max-height: 100%;
+}
+
 .acr-pr-filtros-cuerpo {
   display: flex;
   flex-direction: column;
