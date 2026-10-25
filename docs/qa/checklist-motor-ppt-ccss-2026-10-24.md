@@ -63,6 +63,9 @@ Estados: ✅ hecho y commiteado · 🟡 hecho sin commitear · 🔵 en curso · 
 
 ## Decisiones de Gonzalo que arrastramos
 
+- **CCSS-14/22 (bloqueado):** las cifras chicas de multiapiladas y divergentes que salen juntas arriba de la barra («1% 1%», «6% 5%», el gris del no sustantivo). El reparto sin solape ya está en el motor (`0a3133f60`, `lamina_callouts_sin_solape.R`), pero sólo entra cuando las guías se cruzan, porque aplicarlo siempre cambia 21 láminas del Arte aprobado (su par «2% 6%» sigue el mismo patrón). Decidir: ¿se acepta ese cambio en Arte para aplicarlo siempre?
+- Gonzalo decidió: el informe de CCSS va **sin significancia** (apagada en su plan; la de la serie queda opcional y apagada).
+
 - Revisión en PowerPoint y Word reales.
 - Hueco entre premisas de 1,27 y 1,29 cm en las láminas 33 y 42 de Arte.
 - Si se anonimiza una copia del `.pulso` de Arte para Renzo.
