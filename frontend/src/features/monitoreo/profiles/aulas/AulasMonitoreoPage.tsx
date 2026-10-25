@@ -101,6 +101,7 @@ import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import { railDeAulas } from "./railDeAulas";
+import { readinessDeAulas } from "./navegacion/readinessDeAulas";
 import {
   aulasFieldLabel,
   aulasFieldTitle,
@@ -2015,10 +2016,14 @@ export default function AulasMonitoreoPage() {
           Sólo `loading`, que es transitorio: un estudio que terminó de cargar y
           no tiene libro SÍ está listo —su vacío es legítimo y hay que poder
           auditarlo—, y declararlo «false» dejaría al runner esperando hasta el
-          timeout. */}
+          timeout.
+
+          Y lista, la marca es la DIRECCIÓN de la vista (Meta B, L10):
+          `monitoreo-aulas-<sección>-<pestaña>`. Con una sola marca para todo el
+          modo, una pestaña muda aterrizaba en la de al lado y salía aprobada. */}
       <span
         hidden
-        data-audit-ready={loading ? "false" : "monitoreo-aulas"}
+        data-audit-ready={loading ? "false" : readinessDeAulas(seccionActiva, pestanaActiva)}
         data-audit-has-dashboard={dashboard ? "true" : "false"}
       />
       <MonitoreoModuleChrome
@@ -2157,7 +2162,9 @@ export default function AulasMonitoreoPage() {
           statusAriaLabel="Última actualización del monitoreo"
           statusItems={[{
             label: "Última actualización",
-            value: state?.synced_at || "Sin actualización",
+            // Mientras se lee el proyecto no se sabe si hubo actualización: «Sin
+            // actualización» en ese tramo afirmaba algo que nadie había leído.
+            value: state?.synced_at || (loading && !state ? "Leyendo el proyecto…" : "Sin actualización"),
             ready: Boolean(state?.synced_at),
           }]}
           onCambioPestana={(key) => elegirPestana(seccionActiva, key)}
@@ -2278,6 +2285,8 @@ export default function AulasMonitoreoPage() {
                   fuentesActivas={activeSources}
                   fuentesDeclaradas={sourceTotal}
                   onIrAFuentes={() => setActiveView("fuentes")}
+                  lecturaFallida={!state && Boolean(error)}
+                  onReintentar={() => { void loadView(seccionActiva, true); }}
                 />
               ),
               registro: (

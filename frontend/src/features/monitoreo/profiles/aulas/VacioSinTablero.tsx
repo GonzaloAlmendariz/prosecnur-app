@@ -12,7 +12,7 @@
 // importa el plan desde el cálculo de muestra»—, que decía lo correcto en un
 // `title` que sólo se ve al pasar por encima.
 
-import { CalendarRange, RefreshCw } from "../../../../vendor/lucide-react";
+import { AlertCircle, CalendarRange, RefreshCw } from "../../../../vendor/lucide-react";
 import { contar } from "../../fuentes/vocabulario";
 import { VacioConSalida } from "../../core/VacioConSalida";
 import { fmt } from "./kpisDeAulas";
@@ -22,12 +22,32 @@ export function VacioSinTablero({
   fuentesActivas,
   fuentesDeclaradas,
   onIrAFuentes,
+  lecturaFallida = false,
+  onReintentar,
 }: {
   planImportado: boolean;
   fuentesActivas: number;
   fuentesDeclaradas: number;
   onIrAFuentes?: () => void;
+  /**
+   * La lectura del estado falló y no hay estado anterior (Meta B, L21). Sin
+   * esto el vacío decía «Falta importar el plan» debajo del error: con el
+   * estado en `null`, `planImportado` es `false` por no haber leído nada, no
+   * porque el plan falte.
+   */
+  lecturaFallida?: boolean;
+  onReintentar?: () => void;
 }) {
+  if (lecturaFallida) {
+    return (
+      <VacioConSalida
+        icon={AlertCircle}
+        titulo="No se pudo leer el monitoreo"
+        dato="Sin esa lectura no se sabe si falta el plan o el corte de campo."
+        accion={onReintentar ? { label: "Reintentar", onClick: onReintentar } : undefined}
+      />
+    );
+  }
   return (
     <VacioConSalida
       icon={planImportado ? RefreshCw : CalendarRange}
