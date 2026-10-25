@@ -26,6 +26,8 @@ import { normalizeSourceMatch } from "../formato";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
+import { clasePublico, paletaDePublicos, type PaletaDePublicos } from "../paletaPublicos";
+import "../paletaPublicos.css";
 
 function porcentaje(valor: number, total: number) {
   return total > 0 ? pctConEspacio((valor / total) * 100) : "—";
@@ -51,16 +53,22 @@ function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDi
   );
 }
 
-/** Una barra por público: efectivas sobre su padrón, con la marca de la meta. */
+/**
+ * Una tesela por público (L9): efectivas sobre su padrón con la marca de la
+ * meta. El color del público (el mismo de Metas) va en el punto y en la barra;
+ * el estado frente a la meta, en el borde lateral sólido y el chip.
+ */
 function PublicoEnBarra({
   tarjeta,
   ultimos,
   denso,
+  clase,
   onAbrir,
 }: {
   tarjeta: AcreditacionAdvanceCard;
   ultimos: number[];
   denso: boolean;
+  clase: string;
   onAbrir: () => void;
 }) {
   const conMeta = tieneMeta(tarjeta);
@@ -69,10 +77,10 @@ function PublicoEnBarra({
   const marca = conMeta && tarjeta.universe > 0 ? Math.min(100, (meta / tarjeta.universe) * 100) : null;
   const faltan = Math.max(0, meta - tarjeta.effective);
   return (
-    <li className={`acr-res-publico${denso ? " is-denso" : ""}`} data-qa-geometry-member>
+    <li className={`acr-res-publico ${clase} ${conMeta ? (faltan > 0 ? "is-falta" : "is-cumple") : "is-sin-meta"}${denso ? " is-denso" : ""}`} data-qa-geometry-member>
       <button type="button" className="acr-res-publico-boton" onClick={onAbrir} aria-label={`Ver ${tarjeta.actor} en Por público`}>
         <span className="acr-res-publico-linea">
-          <b className="acr-res-publico-nombre">{tarjeta.actor}</b>
+          <b className="acr-res-publico-nombre"><i className="mon-publico-punto" aria-hidden="true" />{tarjeta.actor}</b>
           {conMeta
             ? faltan > 0
               ? <span className="acr-av-chip is-falta">Faltan {fmt(faltan)}</span>
@@ -101,7 +109,7 @@ function PublicoEnBarra({
   );
 }
 
-function PorResolver({ casos, porPublico }: { casos: CasosDelCorte | null; porPublico: Array<{ actor: string; esperan: number }> }) {
+function PorResolver({ casos, porPublico, paleta }: { casos: CasosDelCorte | null; porPublico: Array<{ actor: string; esperan: number }>; paleta: PaletaDePublicos }) {
   const [, escribir] = useFocoMonitoreo();
   const abrir = () => escribir(null, { seccion: "control", pestana: "resolver", panel: null });
   const esperan = casos?.porTipo.filter((tipo) => tipo.grupo === "espera") ?? [];
@@ -138,8 +146,9 @@ function PorResolver({ casos, porPublico }: { casos: CasosDelCorte | null; porPu
               <span className="acr-av-antetitulo">Esperan decisión por público</span>
               <ul className="acr-res-resolver-lista is-publicos">
                 {porPublico.map((item) => (
-                  <li key={item.actor}>
+                  <li key={item.actor} className={clasePublico(paleta, item.actor)}>
                     <button type="button" onClick={abrir}>
+                      <i className="mon-publico-punto" aria-hidden="true" />
                       <span>{item.actor}</span>
                       <b className="acr-av-num">{fmt(item.esperan)}</b>
                     </button>
@@ -201,6 +210,7 @@ export function ResumenVista({
   const porPublico = useMemo(() => seriesPorPublico(diarioPorPublico), [diarioPorPublico]);
   const fechas14 = ultimos.dias.map((dia) => dia.fecha);
   const ordenadas = useMemo(() => rezagadosPrimero(tarjetas), [tarjetas]);
+  const paleta = useMemo(() => paletaDePublicos(tarjetas.map((tarjeta) => tarjeta.actor)), [tarjetas]);
   const denso = tarjetas.length > 6;
   const avance = totales.meta > 0 ? totales.efectivas / totales.meta : null;
 
@@ -286,13 +296,14 @@ export function ResumenVista({
                 key={tarjeta.id}
                 tarjeta={tarjeta}
                 denso={denso}
+                clase={clasePublico(paleta, tarjeta.actor)}
                 ultimos={enFechas(porPublico.get(normalizeSourceMatch(tarjeta.actor)), fechas14)}
                 onAbrir={() => escribir(tarjeta.actor, { seccion: "avance", pestana: "publicos", panel: "publico" })}
               />
             ))}
           </ul>
         </section>
-        <PorResolver casos={casos} porPublico={casosPorPublico} />
+        <PorResolver casos={casos} porPublico={casosPorPublico} paleta={paleta} />
       </div>
     </div>
   );

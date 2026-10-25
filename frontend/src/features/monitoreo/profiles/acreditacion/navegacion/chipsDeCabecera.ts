@@ -35,7 +35,7 @@ export function chipsDeCabecera(
 }
 
 /** Pestañas ya rediseñadas: traen sus propios paneles y piden el lienzo desnudo. */
-const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "avance/cuotas", "avance/ritmo", "avance/salidas", "control/correo", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad", "insumos/publicos", "insumos/reglas", "modelo/metas", "modelo/cuotas", "modelo/ventana"];
+const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "avance/cuotas", "avance/ritmo", "avance/salidas", "control/correo", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad", "insumos/publicos", "insumos/fuentes", "insumos/reglas", "modelo/metas", "modelo/cuotas", "modelo/ventana"];
 const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle", "variables"];
 
 /** Sub-vista que todavía monta la vista anterior dentro de la tarjeta de contenido. */
@@ -44,8 +44,9 @@ export function esSubvistaAnterior(direccion: DireccionAcreditacion): boolean {
 }
 
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
-  // Una sub-vista que todavía monta la vista anterior conserva la tarjeta.
-  if (esSubvistaAnterior(direccion)) return false;
+  // Una sub-vista que todavía monta la vista anterior pide el lienzo desnudo:
+  // su tarjeta la pone `SubvistaConRotulo`, a su alto natural y con un solo marco.
+  if (esSubvistaAnterior(direccion)) return true;
   return CON_LIENZO.includes(`${direccion.seccion}/${direccion.pestana}`);
 }
 
