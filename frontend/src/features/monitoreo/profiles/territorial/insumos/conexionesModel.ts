@@ -94,10 +94,10 @@ export function construirConexiones(
     ].filter((cifra): cifra is { rotulo: string; valor: string } => cifra != null);
     return {
       clave: fase,
-      titulo: `Kobo · ${NOMBRE_DE_FASE[fase]}`,
+      titulo: `Kobo de ${NOMBRE_DE_FASE[fase]}`,
       fase,
       activa: esActiva,
-      estado: esActiva ? estado.texto : `Fase no activa · ${estado.texto.toLowerCase()}`,
+      estado: esActiva ? estado.texto : `Fase no activa, ${estado.texto.toLowerCase()}`,
       tono: esActiva ? estado.tono : "inactiva",
       formulario: item?.asset_name || fuente?.survey_title || fuente?.label || "Sin formulario",
       cifras,
@@ -112,7 +112,7 @@ export function construirConexiones(
     const tablero = conPartes?.field_occurrences;
     tarjetas.push({
       clave: "ocurrencias",
-      titulo: "Kobo · Ocurrencias de campo",
+      titulo: "Kobo de ocurrencias de campo",
       fase: null,
       activa: false,
       estado: tablero?.summary ? "Al día" : "Sin partes en este corte",
@@ -131,7 +131,7 @@ export function construirConexiones(
     if (fuente.role !== "hoja_ruta") continue;
     tarjetas.push({
       clave: fuente.id,
-      titulo: "Hoja de ruta operativa · Sheets",
+      titulo: "Hoja de ruta operativa en Sheets",
       fase: null,
       activa: false,
       estado: fuente.enabled ? "Conectada" : "Sin conectar",

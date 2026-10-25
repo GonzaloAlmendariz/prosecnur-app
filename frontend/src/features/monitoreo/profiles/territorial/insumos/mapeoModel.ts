@@ -22,8 +22,8 @@ export type ModeloMapeo = {
 
 const ROTULO_DE_ESTADO: Record<EstadoDeRol, string> = {
   encontrada: "En la base",
-  "sin-mapear": "Falta: sin columna elegida",
-  ausente: "Falta: la columna no está en la base",
+  "sin-mapear": "Sin columna",
+  ausente: "Columna ausente",
 };
 
 function n(valor: unknown): number | null {
@@ -61,7 +61,7 @@ export function construirMapeo(
     { rotulo: "Duración mínima", valor: segundosEnTexto(n(territorial.min_duration_seconds)) },
     // Regla de Gonzalo: el control de tiempo revisa las cortas; el umbral de las
     // largas es un dato, no una alerta.
-    { rotulo: "Duración larga desde (dato, no se revisa)", valor: segundosEnTexto(n(territorial.max_duration_seconds)) },
+    { rotulo: "Duración larga desde, sin alerta", valor: segundosEnTexto(n(territorial.max_duration_seconds)) },
     { rotulo: "Edad a revisar desde", valor: `${fmt(territorial.high_age_review)} años` },
   ] : [];
 

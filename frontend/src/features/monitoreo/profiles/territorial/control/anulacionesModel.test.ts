@@ -34,7 +34,7 @@ describe("Control › Anulaciones", () => {
       ["P702 · Aplicador, producción completa", "produccion", "26/06 16:51"],
       ["Caso dcb2051a-123", "caso", "29/06"],
     ]);
-    expect(resumenDeTarjeta(modelo.activas[0])).toBe("311 casos · 88 con consentimiento · 13 UMP");
+    expect(resumenDeTarjeta(modelo.activas[0])).toBe("311 casos, 88 con consentimiento y 13 UMP");
     expect(resumenDeTarjeta(modelo.activas[1])).toBe("Sin el detalle del impacto");
     expect(modelo.revertidas).toBe(1);
   });

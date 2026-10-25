@@ -173,9 +173,16 @@
   font-size: 13px;
 }
 
-.mon-mod-fase span,
+.mon-mod-fase > span,
 .mon-mod-fase small {
   color: var(--pulso-text-soft);
+}
+
+/* La fase activa lleva su chip junto al nombre, no «· activa». */
+.mon-mod-fase strong {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
 }
 
 .mon-mod-fase.is-activa {
@@ -207,11 +214,25 @@
   border-radius: 10px;
 }
 
+/* El marco toma el alto de la tarjeta y el SVG lo llena: el encuadre se
+ * calcula con su proporción medida (`MapaDeLaMuestra.tsx`). */
+.mon-mod-mapa-marco {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
 .mon-mod-mapa-lienzo svg {
   display: block;
-  flex: 1 1 auto;
   width: 100%;
-  min-height: 0;
+  height: 100%;
+}
+
+/* Los demás distritos de Lima, tenues y sin rótulo, para ubicarse. */
+.mon-mod-mapa-contexto path {
+  fill: var(--pulso-surface-3);
+  stroke: var(--pulso-border);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
 }
 
 .mon-mod-mapa-distritos path {
@@ -246,6 +267,7 @@
 .mon-mod-mapa-pie {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   color: var(--pulso-text-soft);
@@ -418,6 +440,55 @@
   }
 
   .mon-mod-cuotas .mon-mod-tabla {
+    height: 100%;
+  }
+}
+
+/* Reglas en Cuotas (ronda 2): a 1440 comparten fila con las variables y
+ * dejaban 145 px vacíos al pie. Cada regla es su tarjeta y las dos se reparten
+ * el alto, con la pregunta arriba y el valor debajo. */
+@media (min-width: 1181px) {
+  .mon-mod-cuotas .mon-mod-reglas {
+    flex: 1 1 auto;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: var(--pulso-space-3);
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .mon-mod-cuotas .mon-mod-reglas div {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--pulso-space-2);
+    padding: var(--pulso-space-3) var(--pulso-space-4);
+    border: 1px solid var(--pulso-border);
+    border-radius: 10px;
+  }
+
+  .mon-mod-cuotas .mon-mod-reglas div:first-child {
+    border-top: 1px solid var(--pulso-border);
+  }
+}
+
+/* Metas (ronda 2): «Cómo se arma la muestra» mide lo que trae; el alto que
+ * sobra lo toma la tabla de meta por distrito, con sus filas repartidas
+ * (antes, 64 px vacíos al pie de la lista). */
+@media (min-width: 1181px) {
+  .mon-mod-metas .mon-mod-izquierda > :last-child {
+    flex-grow: 0;
+  }
+
+  .mon-mod-metas .mon-mod-izquierda > :first-child {
+    flex: 1 0 auto;
+  }
+
+  .mon-mod-metas .mon-mod-izquierda > :first-child .mon-mod-tabla-marco {
+    flex: 1 1 auto;
+  }
+
+  .mon-mod-metas .mon-mod-izquierda > :first-child .mon-mod-tabla {
     height: 100%;
   }
 }

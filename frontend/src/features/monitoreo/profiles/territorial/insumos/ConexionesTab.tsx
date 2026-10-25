@@ -43,7 +43,7 @@ function ConexionesTabImpl({
         <div className="mon-ins-panel mon-ins-vacio">
           <RotuloDePestana />
           <PlugZap size={20} aria-hidden="true" />
-          <strong>Sin formulario de campo · Kobo · fase Campo</strong>
+          <strong>Sin formulario de Kobo para la fase Campo</strong>
           <span>Conecta el formulario de Kobo de la fase para leer sus respuestas.</span>
           <button type="button" className="mon-ins-boton is-primario" onClick={onAdministrar}>Conectar Kobo</button>
         </div>
@@ -74,7 +74,7 @@ function ConexionesTabImpl({
         ))}
       </ul>
       <aside className="mon-ins-panel mon-ins-lateral" aria-labelledby="mon-ins-muestra" data-qa-geometry-member="muestra">
-        <h3 id="mon-ins-muestra" className="mon-ins-titulo">Desde Hojas de ruta · muestra de campo</h3>
+        <h3 id="mon-ins-muestra" className="mon-ins-titulo" title="Viene de Hojas de ruta">Muestra de campo</h3>
         <dl className="mon-ins-cifras">
           {modelo.muestra.map((cifra) => <div key={cifra.rotulo}><dt>{cifra.rotulo}</dt><dd>{cifra.valor}</dd></div>)}
         </dl>
@@ -125,7 +125,7 @@ function Fuente({
               <rect key={indice} x={indice * 10 + 1} width={8} y={40 - (valor / maximo) * 40} height={(valor / maximo) * 40} />
             ))}
           </svg>
-          <figcaption className="mon-ins-base">Respuestas en cada lectura · {tarjeta.serie.length} lecturas</figcaption>
+          <figcaption className="mon-ins-base">Respuestas en cada una de las {tarjeta.serie.length} lecturas</figcaption>
         </figure>
       ) : null}
       <footer className="mon-ins-acciones">

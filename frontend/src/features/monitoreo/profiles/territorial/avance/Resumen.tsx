@@ -76,11 +76,14 @@ function CifraConBase({ modelo }: { modelo: ModeloResumen }) {
       </svg>
       <div className="mon-res-cifra-texto">
         <p className="mon-res-cifra-numero"><b>{fmt(modelo.cuentan)}</b> / {fmt(modelo.meta)}</p>
-        <p className="mon-res-base">Cuentan para la meta, sobre la meta de la fase</p>
+        <p className="mon-res-base" title="Casos que cuentan para la meta, sobre la meta de la fase">Cuentan para la meta</p>
         {modelo.metaAlcanzada ? (
-          <span className="mon-res-chip is-ok">
+          <span
+            className="mon-res-chip is-ok"
+            title={modelo.metaAlcanzada.excedente > 0 ? `${fmt(modelo.metaAlcanzada.excedente)} por encima de la meta` : undefined}
+          >
             <Check size={13} aria-hidden="true" />
-            Meta alcanzada el {modelo.metaAlcanzada.fecha} · {fmtConSigno(modelo.metaAlcanzada.excedente)}
+            Meta alcanzada el {modelo.metaAlcanzada.fecha}
           </span>
         ) : (
           <span className="mon-res-chip">Faltan {fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta</span>
@@ -110,7 +113,7 @@ function Embudo({ modelo }: { modelo: ModeloResumen }) {
       {modelo.descuadre !== 0 ? (
         <p className="mon-res-nota">
           <Info size={14} aria-hidden="true" />
-          Recibidas menos anuladas no da lo que queda en el corte: {fmtConSigno(modelo.descuadre)} fuera de fase.
+          <span title="Recibidas menos anuladas no da lo que queda en el corte">{fmtConSigno(modelo.descuadre)} fuera de fase</span>
         </p>
       ) : null}
     </section>
@@ -121,12 +124,12 @@ function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () =
   const enObservacion = modelo.embudo.find((paso) => paso.clave === "observacion")?.valor ?? 0;
   return (
     <section className="mon-res-panel" aria-labelledby="mon-res-motivos-titulo">
-      <h3 id="mon-res-motivos-titulo" className="mon-res-titulo">Por qué {fmt(enObservacion)} están en observación</h3>
+      <h3 id="mon-res-motivos-titulo" className="mon-res-titulo" title="Un caso puede tener dos motivos">Por qué {fmt(enObservacion)} están en observación</h3>
       {modelo.motivos === null ? (
         <p className="mon-res-nota" data-qa-geometry-empty="desconexion">
           <Info size={14} aria-hidden="true" />
           <span>
-            El desglose por motivo se calcula caso por caso en Control.{" "}
+            Sin desglose en este corte.{" "}
             <button type="button" className="mon-res-enlace" onClick={onSenales}>Ver en Control › Señales</button>
           </span>
         </p>
@@ -137,7 +140,6 @@ function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () =
               <li key={motivo.clave}><span>{motivo.rotulo}</span><b>{fmt(motivo.casos)}</b></li>
             ))}
           </ul>
-          <p className="mon-res-base">Un caso puede tener dos motivos.</p>
         </>
       ) : (
         <p className="mon-res-base" data-qa-geometry-empty="legitimo">Ningún caso en observación.</p>
@@ -200,9 +202,6 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
             <span className="is-observacion">De ellas en observación</span>
             <span className="is-meta">Meta {fmt(modelo.meta)}</span>
           </span>
-      ) : null}
-      {modelo.metaAlcanzada ? (
-        <p className="mon-res-base">Cruzó la meta el {modelo.metaAlcanzada.fecha}, con {fmt(modelo.metaAlcanzada.acumulado)} que cuentan.</p>
       ) : null}
     </section>
   );

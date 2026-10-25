@@ -64,6 +64,10 @@ export function candidatosDeCaja(rotulo: Punto, caja: Caja | null): Punto[] {
     { x: centroX, y: centroY },
     { x: caja.x0 + (caja.x1 - caja.x0) * 0.3, y: centroY },
     { x: caja.x0 + (caja.x1 - caja.x0) * 0.7, y: centroY },
+    // Fuera de la caja, encima y debajo: cuando el distrito está lleno de
+    // manzanas, el nombre va a su borde en vez de tapar los puntos.
+    { x: centroX, y: caja.y0 - 6 },
+    { x: centroX, y: caja.y1 + 24 },
   ];
 }
 

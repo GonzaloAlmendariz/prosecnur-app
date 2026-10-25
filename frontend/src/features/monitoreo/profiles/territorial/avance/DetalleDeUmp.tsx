@@ -26,10 +26,9 @@ export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
   const avance = fila.meta > 0 ? Math.min(100, (fila.logrado / fila.meta) * 100) : 0;
   const ubicacion = [
     fila.distrito,
-    fila.zona ? `Zona ${fila.zona}` : "",
-    `Mz ${fila.manzana}`,
-    fila.reemplazo ? "Reemplazo" : "Titular",
-  ].filter(Boolean).join(" · ");
+    fila.zona ? `zona ${fila.zona}` : "",
+    `manzana ${fila.reemplazo ? "de reemplazo" : "titular"} ${fila.manzana}`,
+  ].filter(Boolean).join(", ");
   return (
     <article className={`mon-falt-detalle is-${fila.estado}`} aria-label={`Cuota de la UMP ${fila.ump}`}>
       <header className="mon-falt-detalle-cabecera">

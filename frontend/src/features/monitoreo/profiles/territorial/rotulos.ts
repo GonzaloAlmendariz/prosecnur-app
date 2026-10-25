@@ -143,3 +143,13 @@ export function fechaYHoraDeLima(raw: unknown): string {
   const dos = (valor: number) => String(valor).padStart(2, "0");
   return `${dos(lima.getUTCDate())}/${dos(lima.getUTCMonth() + 1)} ${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}`;
 }
+
+/**
+ * «a, b y c»: une datos en una frase en vez de pegarlos con «·» (estándar §2,
+ * escritura profesional). Ignora los vacíos.
+ */
+export function enumerar(partes: ReadonlyArray<string | null | undefined | false>): string {
+  const limpias = partes.map((parte) => (parte ? String(parte).trim() : "")).filter(Boolean);
+  if (limpias.length <= 1) return limpias[0] ?? "";
+  return `${limpias.slice(0, -1).join(", ")} y ${limpias.at(-1)}`;
+}

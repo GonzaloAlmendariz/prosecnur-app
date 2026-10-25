@@ -575,3 +575,42 @@
 .mon-res-distritos .mon-res-tabla {
   height: 100%;
 }
+
+/* 1024 × 600: la pestaña desplaza entera con el dueño del área de trabajo. Con
+ * dos desplazamientos propios (columna izquierda y tabla de distritos) el
+ * final de la tabla quedaba fuera de alcance. */
+@media (max-width: 1180px), (max-height: 700px) {
+  .mon-res {
+    height: auto;
+  }
+
+  .mon-res-izquierda,
+  .mon-res-tabla-marco {
+    overflow: visible;
+  }
+
+  .mon-res-tabla-marco {
+    overflow-x: auto;
+  }
+
+  .mon-res-distritos .mon-res-tabla {
+    height: auto;
+  }
+
+  /* Ninguna tarjeta se encoge por debajo de su contenido: si no, la de
+   * distritos se achicaba al alto de la columna izquierda y su tabla volvía a
+   * desplazar dentro. */
+  .mon-res-derecha > *,
+  .mon-res-izquierda > * {
+    flex-shrink: 0;
+  }
+
+  .mon-res-distritos {
+    min-height: auto;
+  }
+
+  .mon-res-tabla-marco {
+    flex: none;
+    overflow-y: hidden;
+  }
+}

@@ -45,7 +45,7 @@ describe("Control › Reportes UMP", () => {
     expect([modelo.conUnParte, modelo.conDosOMas, modelo.sinParte]).toEqual([1, 1, ["3"]]);
     const ump2 = modelo.distritos[0].baldosas[1];
     expect(ump2).toMatchObject({ partes: 2, efectivasDeclaradas: 49, recibidas: 9, diferencia: 40, intentos: 115 });
-    expect(textoDeDiferencia(ump2.diferencia)).toBe("No cuadra · +40");
+    expect(textoDeDiferencia(ump2.diferencia)).toBe("No cuadra: el parte declara 40 más de lo recibido");
     expect(textoDeDiferencia(modelo.distritos[0].baldosas[0].diferencia)).toBe("Cuadra");
     expect(modelo.noCuadran).toEqual({ total: 1, conMenos: 0, conMas: 1 });
   });

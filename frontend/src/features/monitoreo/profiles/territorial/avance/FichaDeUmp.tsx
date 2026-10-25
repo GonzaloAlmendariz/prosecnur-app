@@ -71,7 +71,7 @@ export function FichaDeUmp({
         {ficha.casos === null ? (
           <p className="mon-ump-base">Los casos llegan con el corte de Validación, que aún se está preparando.</p>
         ) : ficha.casos.length ? (
-          <ol className="mon-ump-casos" data-qa-geometry-capacity="owned">
+          <ol className="mon-ump-casos" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-ump-casos" data-qa-geometry-contract="intrinsic">
             {ficha.casos.map((caso) => (
               <li key={caso.id} className={`is-${caso.estado}`}>
                 <span className="mon-ump-caso-cuando">{caso.fecha}{caso.hora ? ` ${caso.hora}` : ""}</span>

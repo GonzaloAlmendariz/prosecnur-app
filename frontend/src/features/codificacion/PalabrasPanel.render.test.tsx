@@ -47,6 +47,9 @@ describe("PalabrasCuerpo", () => {
     expect(html).toContain("Se muestra como «estudiantes»");
     expect(html).toContain('aria-label="Deshacer el grupo «estudiantes»"');
     expect(html).toContain("13 personas");
+    // TXT-18: el total del grupo con su desglose, en «Palabras unidas» y en la fila de la palabra que lo muestra.
+    expect(html).toContain("estudiantes 11 + alumnos 3");
+    expect(html).toContain("13 personas en el grupo");
     expect(html).toContain("Palabras más frecuentes");
     expect(html).toContain("Palabras excluidas");
     expect(html).toContain('aria-label="Volver a contar «gracias»"');
