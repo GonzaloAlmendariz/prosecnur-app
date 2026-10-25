@@ -65,17 +65,18 @@ describe("la afordancia de sincronizar no puede discrepar de la acción", () => 
     ["acreditacion", resolve(__dirname, "..", "profiles", "acreditacion", "AcreditacionMonitoreoPage.tsx")],
   ] as const;
 
-  it.each(PERFILES)("%s apaga los dos botones con la misma cuenta que usa la acción", (label, ruta) => {
+  // Desde el control único «Actualizar ▾» (L38), la afordancia y la acción
+  // salen de la MISMA entrada de `sync/menuDeActualizar.ts`: `disabled` y
+  // `peticion` se calculan juntos con `fuentesSincronizables`, y la página ya
+  // no arma su propia lista de ids (ver `sync/menuDeActualizar.test.ts`).
+  it.each(PERFILES)("%s lanza los syncs sólo por el control común", (label, ruta) => {
     const fuenteTsx = readFileSync(ruta, "utf8");
 
-    expect(fuenteTsx, `${label}: la acción debe derivar sus ids del módulo compartido`)
-      .toContain('fuentesSincronizables(state?.sources ?? [], syncMode, route.family)');
-    expect(fuenteTsx, `${label}: el botón de «todo» debe apagarse sin fuentes`)
-      .toContain("syncDisabled={loading || sourceSyncing || sinFuentesFull}");
-    expect(fuenteTsx, `${label}: el botón de avance debe apagarse sin fuentes de respuesta`)
-      .toContain("advanceSyncDisabled={loading || sourceSyncing || sinFuentesAvance}");
-    // El camino de respaldo informa; no marca la vista como rota.
-    expect(fuenteTsx, `${label}: quedarse sin fuentes no es un fallo de la vista`)
-      .toContain('setActionStatus({ tone: "info", message: motivoSinFuentes(syncMode) });');
+    expect(fuenteTsx, `${label}: el control sale del hook compartido`)
+      .toContain("useActualizarDelModo({");
+    expect(fuenteTsx, `${label}: la barra usa sus acciones`)
+      .toContain("actualizar: actualizarDelModo.actualizar,");
+    expect(fuenteTsx, `${label}: la página no lanza un sync por su cuenta`)
+      .not.toMatch(/apiMonitoreoSync\(|apiMonitoreoSheetsSyncAsync\(/);
   });
 });
