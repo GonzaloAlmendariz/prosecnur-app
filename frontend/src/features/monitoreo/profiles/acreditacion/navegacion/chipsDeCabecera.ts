@@ -40,6 +40,9 @@ const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "
 
 /** Sub-vista que todavía monta la vista anterior dentro de la tarjeta de contenido. */
 export function esSubvistaAnterior(direccion: DireccionAcreditacion): boolean {
+  // Avance › Por cuota › Variables de control ya es vista del estándar (ronda 4):
+  // lleva su propia primera tarjeta con el rótulo.
+  if (direccion.seccion === "avance" && direccion.panel === "detalle") return false;
   return Boolean(direccion.panel && SUBVISTAS.includes(direccion.panel));
 }
 

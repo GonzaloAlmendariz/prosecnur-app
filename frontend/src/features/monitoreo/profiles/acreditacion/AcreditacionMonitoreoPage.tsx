@@ -83,6 +83,9 @@ import { Reglas } from "./insumos/reglas/Reglas";
 import { Ritmo } from "./avance/Ritmo";
 import { Salidas } from "./avance/Salidas";
 import { PorCuota } from "./avance/PorCuota";
+import { VariablesDeControl } from "./avance/VariablesDeControl";
+import { VacioDeBloque } from "./piezas/AvisoDeTarjeta";
+import type { FilaDeControl } from "./avance/variablesDeControlModelo";
 import { Correo } from "./control/contacto/Correo";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
@@ -1492,7 +1495,7 @@ function AcreditacionFieldSchedulePanel({
           <span className="mon-field-schedule-observado__label">Campo ejecutado</span>
           <strong>{campoObservado.semanas > draft.durationWeeks ? "Fuera del plan" : "Dentro del plan"}</strong>
           <span>{campoObservado.inicio} a {campoObservado.fin} · {countText(campoObservado.semanas, "semana", "semanas")} · {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta</span>
-          <em>{campoObservado.semanas > draft.durationWeeks ? `El plan declara ${countText(draft.durationWeeks, "semana", "semanas")}; el campo ya lleva ${campoObservado.semanas}.` : `El campo observado no supera las ${countText(draft.durationWeeks, "semana", "semanas")} declaradas.`}</em>
+          <em>{campoObservado.semanas > draft.durationWeeks ? `El campo lleva ${countText(campoObservado.semanas, "semana", "semanas")} y el plan declara ${draft.durationWeeks}.` : `El campo observado no supera las ${countText(draft.durationWeeks, "semana", "semanas")} declaradas.`}</em>
         </p>
       ) : <p className="mon-field-schedule-observado is-empty" role="note"><span className="mon-field-schedule-observado__label">Campo ejecutado</span><strong>Sin corte observado</strong><em>La comparación aparecerá cuando el corte tenga respuestas con fecha.</em></p>}
       <div className="mon-form mon-form--two" aria-label="Plan editable" data-qa-geometry-group="acreditacion-schedule-fields" data-qa-geometry-contract="intrinsic">
@@ -1630,7 +1633,6 @@ function AcreditacionModelWorkbench({
   }
 
   const canClose = Boolean(acreditacion.dashboard.cierre_habilitado || planRefuerzo.trim() || aprobarBrechas);
-  const cierreDisabled = saving || acreditacion.modo_trabajo === "cierre_campo" || !canClose;
   const strategyRows = (state?.config.strategy_phases ?? []).map((phase) => ({
     ID: phase.id || "sin_id",
     Estrato: phase.stratum || "Todo",
@@ -1794,30 +1796,6 @@ function AcreditacionModelWorkbench({
           </div>
           <DataTable rows={strategyRows} empty="No hay fases estratégicas configuradas." />
         </section>
-        <section className="mon-acr-model-close" aria-label="Cierre de acreditación">
-          <div>
-            <span>Cierre metodológico</span>
-            <input
-              value={planRefuerzo}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setPlanRefuerzo(event.target.value)}
-              placeholder="Plan de refuerzo o justificación de cierre"
-            />
-          </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={aprobarBrechas}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setAprobarBrechas(event.target.checked)}
-            />
-            Aprobación metodológica
-          </label>
-          <button type="button" disabled={cierreDisabled || !onCerrar} onClick={() => void onCerrar?.(planRefuerzo, aprobarBrechas)}>
-            <FileCheck2 size={14} />
-            {acreditacion.modo_trabajo === "cierre_campo" ? "Cierre marcado" : "Marcar cierre"}
-          </button>
-        </section>
         {actionStatus ? <span className={`mon-acr-model-action-status is-${actionStatus.tone}`}>{actionStatus.message}</span> : null}
       </div>
     );
@@ -1935,30 +1913,6 @@ function AcreditacionModelWorkbench({
                 {actionStatus ? <span className={`is-${actionStatus.tone}`}>{actionStatus.message}</span> : null}
               </div>
 
-              <section className="mon-acr-model-close" aria-label="Cierre de acreditación">
-                <div>
-                  <span>Cierre metodológico</span>
-                  <input
-                    value={planRefuerzo}
-                    disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-                    onChange={(event) => setPlanRefuerzo(event.target.value)}
-                    placeholder="Plan de refuerzo o justificación de cierre"
-                  />
-                </div>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={aprobarBrechas}
-                    disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-                    onChange={(event) => setAprobarBrechas(event.target.checked)}
-                  />
-                  Aprobación metodológica
-                </label>
-                <button type="button" disabled={cierreDisabled || !onCerrar} onClick={() => void onCerrar?.(planRefuerzo, aprobarBrechas)}>
-                  <FileCheck2 size={14} />
-                  {acreditacion.modo_trabajo === "cierre_campo" ? "Cierre marcado" : "Marcar cierre"}
-                </button>
-              </section>
 
               {Object.keys(selected.seguimiento.sub_cuotas_progreso).length ? (
                 <section className="mon-profile-panel">
@@ -5523,7 +5477,7 @@ function AcreditacionPhoneSupervisionBoard({
             {acreditacionQualityStatusLabel(model.highest)}
           </span>
           <strong>{timeControl.totalEffective ? "Control de tiempo y muestra" : "Sin producción efectiva"}</strong>
-          <p>Primero se revisa duración de efectivas Kobo; luego se define la muestra de supervisión por responsable.</p>
+          <p>Duración de las efectivas y muestra por responsable.</p>
         </div>
         <div className="mon-phone-supervision-metrics">
           <span className={timeControl.totalEffective ? "is-base" : "is-warning"}><em>Efectivas Kobo</em><strong>{formatMetric(timeControl.totalEffective)}</strong><small>pasan filtro</small></span>
@@ -13219,19 +13173,7 @@ type AcreditacionAdvanceSurveyRow = {
   states: Array<{ label: string; value: number }>;
 };
 
-type AcreditacionControlVariableRow = {
-  actor: string;
-  variable: string;
-  value: string;
-  universe: number;
-  effective: number;
-  partial: number;
-  refusals: number;
-  unanswered: number;
-  baseShare: number | null;
-  effectiveShare: number | null;
-  deltaPp: number | null;
-};
+type AcreditacionControlVariableRow = FilaDeControl;
 
 function formatPercentLabel(value: number | null | undefined) {
   return pctDecimal(value);
@@ -15693,167 +15635,6 @@ function controlVariableRows(
   }).sort((a, b) => a.actor.localeCompare(b.actor, "es") || a.variable.localeCompare(b.variable, "es") || a.value.localeCompare(b.value, "es", { numeric: true }));
 }
 
-/**
- * ¿Las categorías de esta variable son años?
- *
- * Se exige que TODAS lo sean: una sola categoría suelta como «Sin dato» no debe
- * decidir el orden del resto, pero tampoco convertir la serie en alfabética.
- */
-function esSerieDeAnios(rows: { value: string }[]) {
-  if (rows.length < 2) return false;
-  return rows.every((row) => /^(19|20)\d{2}$/.test(row.value.trim()));
-}
-
-function groupControlVariableRows(rows: AcreditacionControlVariableRow[]) {
-  const actorMap = new Map<string, Map<string, AcreditacionControlVariableRow[]>>();
-  rows.forEach((row) => {
-    const variables = actorMap.get(row.actor) ?? new Map<string, AcreditacionControlVariableRow[]>();
-    const values = variables.get(row.variable) ?? [];
-    values.push(row);
-    variables.set(row.variable, values);
-    actorMap.set(row.actor, variables);
-  });
-  return Array.from(actorMap.entries()).map(([actor, variables]) => ({
-    actor,
-    variables: Array.from(variables.entries()).map(([variable, variableRows]) => ({
-      variable,
-      // Una cohorte se lee en orden cronológico, no por tamaño: «2021, 2023,
-      // 2025, 2022» obliga a releer la columna para situarse. El resto de
-      // variables —categoría, área, dedicación— no tienen orden natural, así
-      // que ahí sigue mandando el peso en el universo.
-      rows: variableRows.sort((a, b) => (
-        esSerieDeAnios(variableRows)
-          ? a.value.localeCompare(b.value, "es", { numeric: true })
-          : b.universe - a.universe || a.value.localeCompare(b.value, "es", { numeric: true })
-      )),
-    })),
-  }));
-}
-
-function AcreditacionControlVariablesPanel({
-  reports,
-  fallbackRows,
-}: {
-  reports: MonitoreoAcreditacionReports | null | undefined;
-  fallbackRows?: Array<Record<string, unknown>>;
-}) {
-  const rows = controlVariableRows(reports, fallbackRows);
-  const groups = groupControlVariableRows(rows);
-  const totalVariables = groups.reduce((sum, group) => sum + group.variables.length, 0);
-  if (!rows.length) {
-    return (
-      <section className="pulso-panel mon-control-detail-panel" aria-label="Variables de control">
-        <header className="pulso-panel-header">
-          <div className="pulso-panel-heading">
-            <span className="pulso-panel-eyebrow">Variables de control</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><SlidersHorizontal size={16} /> Distribución del corte</span></h2>
-          </div>
-        </header>
-        <div className="mon-control-detail-brief">
-          <div>
-            <span>Lectura de representatividad</span>
-            <strong>Sin variables de control detectadas</strong>
-            <p>Cuando el corte incluya variables como año de egreso, dedicación o área, aparecerá la comparación entre universo y corte efectivo.</p>
-          </div>
-          <div className="mon-control-detail-legend" aria-label="Leyenda de variables de control">
-            <span className="is-base">Universo</span>
-            <span className="is-effective">Corte efectivo</span>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="pulso-panel mon-control-detail-panel" aria-label="Variables de control">
-      <header className="pulso-panel-header">
-        <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Variables de control</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><SlidersHorizontal size={16} /> Universo vs corte efectivo</span></h2>
-        </div>
-        <div className="pulso-panel-actions mon-control-detail-meta">
-          <span>{groups.length} actores</span>
-          <span>{totalVariables} variables</span>
-        </div>
-      </header>
-      <div className="mon-control-detail-brief">
-        <div>
-          <span>Lectura de representatividad</span>
-          <strong>Proporción esperada frente a proporción lograda</strong>
-          <p>Compara cuánto pesa cada categoría dentro del universo y cuánto pesa dentro de las efectivas del corte. No mide cobertura de la categoría, mide similitud de composición.</p>
-        </div>
-        <div className="mon-control-detail-legend" aria-label="Leyenda de variables de control">
-          <span className="is-base">Universo</span>
-          <span className="is-effective">Corte efectivo</span>
-          <span className="is-partial">Parciales</span>
-          <span className="is-refusals">Rechazos</span>
-        </div>
-      </div>
-      <div className="mon-control-detail-grid">
-        {groups.map((group) => (
-          <section key={group.actor} className="mon-control-actor-card">
-            <header>
-              <div>
-                <span>Actor</span>
-                <strong>{group.actor}</strong>
-              </div>
-              <em>{group.variables.length} variable{group.variables.length === 1 ? "" : "s"}</em>
-            </header>
-            {group.variables.map((variable) => (
-              <article key={`${group.actor}-${variable.variable}`} className="mon-control-variable-card">
-                <header>
-                  <div>
-                    <span>Variable de control</span>
-                    <strong>{variable.variable}</strong>
-                  </div>
-                  <em>{formatMetric(variable.rows.reduce((sum, row) => sum + row.universe, 0))} universo</em>
-                </header>
-                <div className="mon-control-variable-rows">
-                  {variable.rows.map((row) => (
-                    <AcreditacionControlVariableComparisonRow key={`${group.actor}-${variable.variable}-${row.value}`} row={row} />
-                  ))}
-                </div>
-              </article>
-            ))}
-          </section>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AcreditacionControlVariableComparisonRow({ row }: { row: AcreditacionControlVariableRow }) {
-  const basePct = row.baseShare;
-  const effectivePct = row.effectiveShare;
-  const delta = row.deltaPp;
-  const tone = delta == null || Math.abs(delta) <= 4 ? "steady" : delta > 0 ? "over" : "under";
-  return (
-    <div className={`mon-control-variable-row is-${tone}`}>
-      <div className="mon-control-variable-label">
-        <strong>{row.value}</strong>
-        <span>{formatMetric(row.effective)} efectivas · {formatMetric(row.universe)} en universo</span>
-      </div>
-      <div className="mon-control-variable-bars" aria-label={`${row.value}: ${formatPercentLabel(basePct)} del universo y ${formatPercentLabel(effectivePct)} del corte efectivo`}>
-        <span className="is-base">
-          <em>Universo</em>
-          <i style={{ "--control-pct": `${Math.max(1, Math.min(100, basePct ?? 0))}%` } as CSSProperties} />
-          <strong>{formatPercentLabel(basePct)}</strong>
-        </span>
-        <span className="is-effective">
-          <em>Corte</em>
-          <i style={{ "--control-pct": `${Math.max(1, Math.min(100, effectivePct ?? 0))}%` } as CSSProperties} />
-          <strong>{formatPercentLabel(effectivePct)}</strong>
-        </span>
-      </div>
-      <div className="mon-control-variable-kpis">
-        <span className="is-partial"><em>Parciales</em><strong>{formatMetric(row.partial)}</strong></span>
-        <span className="is-refusals"><em>Rechazos</em><strong>{formatMetric(row.refusals)}</strong></span>
-        <span className={`is-delta is-${tone}`}><em>Desvío</em><strong>{formatSignedPp(delta)}</strong></span>
-      </div>
-    </div>
-  );
-}
-
 function clientReportSheetsForPanel(client: MonitoreoAcreditacionReports["client_report"] | null | undefined) {
   if (!client) return [];
   const mainBlocks: MonitoreoReportBlock[] = [];
@@ -15948,36 +15729,11 @@ function reportPanelSheetTitle(sheet: MonitoreoReportSheet) {
   return sheet.title.replace(/\binterno\b/gi, "").replace(/\s{2,}/g, " ").trim();
 }
 
-function reportPanelSheetDescription(sheet: MonitoreoReportSheet) {
-  if (normalizeReportMatch(sheet.id) === "reporte" || normalizeReportMatch(sheet.id) === "resumen") {
-    return "Integra avance por actor, cortes diarios, distribución y brechas de respuesta en una sola lectura.";
-  }
-  if (normalizeReportMatch(sheet.id) === "avance_encuesta") {
-    return "Producción de respuestas por encuesta y canal para revisar qué plataformas aportan al avance.";
-  }
-  return sheet.description.replace(/\bProsecnur\b/gi, "").replace(/\binterno\b/gi, "").replace(/\s{2,}/g, " ").trim();
-}
-
-function reportPanelScopeLabel(scope: string) {
-  if (scope === "cliente") return "Reporte";
-  if (scope === "estudio") return "Corte del estudio";
-  return "Corte operativo";
-}
-
 function reportColumnDisplayLabel(column: string) {
   const normalized = normalizeReportMatch(column);
   if (normalized === "actor") return "Actor";
   if (normalized === "actores") return "Actores";
   return columnLabel(column);
-}
-
-function reportSheetTone(id: string) {
-  const key = normalizeReportMatch(id);
-  if (key.includes("alert")) return "risk";
-  if (key.includes("telefon")) return "phone";
-  if (key.includes("encuesta")) return "survey";
-  if (key.includes("reporte")) return "report";
-  return "summary";
 }
 
 function reportBlockTone(blockId: string, sheetId: string) {
@@ -15996,16 +15752,6 @@ function sheetTitleIcon(id: string) {
   if (key.includes("reporte")) return <FileCheck2 size={14} />;
   if (key.includes("encuesta")) return <BarChart3 size={14} />;
   return <ClipboardCheck size={14} />;
-}
-
-function buildReportSheetStats(sheet: MonitoreoReportSheet) {
-  const totalRows = sheet.blocks.reduce((sum, block) => sum + block.rows.length, 0);
-  const mainMetric = sheet.blocks.map(reportBlockMetric).find((metric) => metric.tone !== "neutral") ?? reportBlockMetric(sheet.blocks[0]);
-  return [
-    { label: "Bloques", value: fmt(sheet.blocks.length) },
-    { label: "Filas", value: fmt(totalRows) },
-    { label: mainMetric.label, value: mainMetric.value },
-  ];
 }
 
 function shortColumnLabel(column: string) {
@@ -16120,6 +15866,7 @@ function GsReportBlockTable({ sheet, block }: { sheet: MonitoreoReportSheet; blo
   );
 }
 
+/** Las tablas del reporte, bajo Variables de control: una tarjeta del estándar con sus pestañas. */
 function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacionReports | null | undefined }) {
   const sheets = useMemo(() => reportSheetsForPanel(reports), [reports]);
   const [activeId, setActiveId] = useState(sheets[0]?.id ?? "");
@@ -16129,127 +15876,56 @@ function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacio
     if (!sheets.some((sheet) => sheet.id === activeId)) setActiveId(sheets[0].id);
   }, [activeId, sheets]);
 
-  if (!reports || !activeSheet) {
-    return (
-      <section className="pulso-panel mon-gs-report-panel mon-gs-report-panel--avance" aria-label="Reporte de avance">
-        <header className="pulso-panel-header">
-          <div className="pulso-panel-heading">
-            <span className="pulso-panel-eyebrow">Lectura del avance</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><ClipboardCheck size={16} /> Reporte</span></h2>
-          </div>
-        </header>
-        <EmptyPanel title="Reporte sin bloques" detail="El corte todavía no trae las tablas de reporte para revisar detalle de avance." />
-      </section>
-    );
-  }
-
-  const totalRows = activeSheet.blocks.reduce((sum, block) => sum + block.rows.length, 0);
-  const reportStats = buildReportSheetStats(activeSheet);
-  const title = reportPanelSheetTitle(activeSheet);
-  const description = reportPanelSheetDescription(activeSheet);
+  const totalRows = activeSheet ? activeSheet.blocks.reduce((sum, block) => sum + block.rows.length, 0) : 0;
   return (
-    <section className="pulso-panel mon-gs-report-panel mon-gs-report-panel--avance" aria-label="Reporte de avance">
-      <header className="pulso-panel-header">
-        <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Lectura del avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><ClipboardCheck size={16} /> Reporte</span></h2>
-        </div>
-        <div className="pulso-panel-actions mon-gs-report-meta">
-          <span>Corte del estudio</span>
-          <span>{fmt(totalRows)} filas</span>
-          <span>{formatDate(reports.generated_at)}</span>
-        </div>
+    <section className="acr-av-panel acr-vc-reporte mon-gs-report-panel--avance" aria-label="Tablas del reporte">
+      <header className="acr-av-panel-cabecera">
+        <h3>
+          Tablas del reporte
+          {activeSheet ? <span className="acr-av-chip" title={reports?.generated_at ? `Corte ${formatDate(reports.generated_at)}` : undefined}>{`${fmt(totalRows)} filas`}</span> : null}
+        </h3>
       </header>
-      <div className={`mon-gs-report-brief is-${reportSheetTone(activeSheet.id)}`}>
-        <div className="mon-gs-report-brief-main">
-          <span className="mon-gs-report-chip">{sheetTitleIcon(activeSheet.id)} {reportPanelScopeLabel(activeSheet.scope)}</span>
-          <strong>{title}</strong>
-          <p>{description}</p>
-        </div>
-        <div className="mon-gs-report-brief-stats" aria-label="Indicadores del reporte">
-          {reportStats.map((stat) => (
-            <span key={stat.label}>
-              <em>{stat.label}</em>
-              <strong>{stat.value}</strong>
-            </span>
-          ))}
-        </div>
-      </div>
-      <GlidingTabList activeKey={activeSheet.id} className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
-        {sheets.map((sheet) => (
-          <button
-            key={sheet.id} id={`mon-gs-report-tab-${sheet.id}`}
-            type="button" role="tab"
-            data-gliding-key={sheet.id} aria-controls={`mon-gs-report-panel-${sheet.id}`}
-            aria-selected={sheet.id === activeSheet.id}
-            className={sheet.id === activeSheet.id ? "is-active" : ""}
-            onClick={() => setActiveId(sheet.id)}
-          >
-            {sheetTitleIcon(sheet.id)}
-            <span>{reportPanelSheetTitle(sheet)}</span>
-          </button>
-        ))}
-      </GlidingTabList>
-      <div className="mon-gs-report-body" data-report-sheet={activeSheet.id} role="tabpanel" id={`mon-gs-report-panel-${activeSheet.id}`} aria-labelledby={`mon-gs-report-tab-${activeSheet.id}`}>
-        <p>{description}</p>
-        <div className="mon-gs-report-blocks">
-          {activeSheet.blocks.map((block) => (
-            <GsReportBlockTable key={block.id} sheet={activeSheet} block={block} />
-          ))}
-        </div>
-      </div>
+      {!reports || !activeSheet ? (
+        <VacioDeBloque icono={<ClipboardCheck size={15} />} titulo="El corte todavía no trae las tablas del reporte." />
+      ) : (
+        <>
+          <GlidingTabList activeKey={activeSheet.id} className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
+            {sheets.map((sheet) => (
+              <button
+                key={sheet.id} id={`mon-gs-report-tab-${sheet.id}`}
+                type="button" role="tab"
+                data-gliding-key={sheet.id} aria-controls={`mon-gs-report-panel-${sheet.id}`}
+                aria-selected={sheet.id === activeSheet.id}
+                className={sheet.id === activeSheet.id ? "is-active" : ""}
+                onClick={() => setActiveId(sheet.id)}
+              >
+                {sheetTitleIcon(sheet.id)}
+                <span>{reportPanelSheetTitle(sheet)}</span>
+              </button>
+            ))}
+          </GlidingTabList>
+          <div className="mon-gs-report-body" data-report-sheet={activeSheet.id} role="tabpanel" id={`mon-gs-report-panel-${activeSheet.id}`} aria-labelledby={`mon-gs-report-tab-${activeSheet.id}`}>
+            <div className="mon-gs-report-blocks">
+              {activeSheet.blocks.map((block) => (
+                <GsReportBlockTable key={block.id} sheet={activeSheet} block={block} />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
+/** Avance › Por cuota › Variables de control (ronda 4): la vista del estándar con las tablas del reporte debajo. */
 function AcreditacionAdvanceDetailWorkbench({
   reports,
-  state,
-  actorRows,
   controlRows,
 }: {
   reports: MonitoreoAcreditacionReports;
-  state?: MonitoreoState | null;
-  actorRows: Array<Record<string, unknown>>;
   controlRows: Array<Record<string, unknown>>;
 }) {
-  const cards = useMemo(() => advanceCardsFromRows(actorRows, state?.config.goals ?? []), [actorRows, state?.config.goals]);
-  const totals = advanceTotals(cards);
-  const completionPct = safePercentValue(totals.effective, totals.universe);
-  const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
-  return (
-    <section className="pulso-panel mon-advance-panel" aria-label="Detalle canónico de avance">
-      <header className="pulso-panel-header">
-        <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><BarChart3 size={16} /> Reporte</span></h2>
-          <p className="pulso-panel-hint">Variables de control, tablas de reporte y lectura de composición.</p>
-        </div>
-        <div className="pulso-panel-actions mon-advance-meta">
-          <span>{fmt(state?.n_rows ?? totals.universe)} registros</span>
-          {generatedAt ? <span>{generatedAt}</span> : null}
-        </div>
-      </header>
-      <div className="mon-advance-hero">
-        <div className="mon-advance-hero-copy">
-          <span>Corte sincronizado</span>
-          <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Revisa si el corte efectivo conserva la composición esperada del universo y abre las tablas publicables del reporte. El mínimo por actor es interno y no viaja al reporte del cliente salvo que se pida.</p>
-        </div>
-        <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label="Variables" value={fmt(controlVariableRows(reports, controlRows).length)} hint="categorías de control" tone="target" />
-          <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${completionPct == null ? "S/D" : pct(completionPct)} del universo`} tone="ready" />
-          <AcreditacionAdvanceMetric label="Reporte" value={fmt(reportSheetsForPanel(reports).length)} hint="pestañas disponibles" />
-        </div>
-      </div>
-      <div className="mon-advance-tabbody">
-        <div className="mon-advance-detail-stack">
-          <AcreditacionControlVariablesPanel reports={reports} fallbackRows={controlRows} />
-          <AcreditacionGsReportsPanel reports={reports} />
-        </div>
-      </div>
-    </section>
-  );
+  return <VariablesDeControl filas={controlVariableRows(reports, controlRows)} reporte={<AcreditacionGsReportsPanel reports={reports} />} />;
 }
 
 function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; label: string }) {
@@ -16541,8 +16217,6 @@ function renderAcreditacionView(
     return (
       <AcreditacionAdvanceDetailWorkbench
         reports={reports}
-        state={options.state}
-        actorRows={actorRows as Array<Record<string, unknown>>}
         controlRows={controlRows as Array<Record<string, unknown>>}
       />
     );

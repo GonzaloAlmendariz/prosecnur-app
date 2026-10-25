@@ -20,7 +20,8 @@
 }
 
 .mon-cuotas,
-.mon-cuotas-panel {
+.mon-cuotas-panel,
+.mon-cuotas-detalle {
   --cuota-cumplida: var(--pulso-success-fg);
   --cuota-en-curso: var(--pulso-module-monitoring);
   --cuota-sin-avance: var(--pulso-warn-fg);
@@ -335,14 +336,53 @@
 }
 
 .mon-cuotas-detalle-titulo p {
-  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 4px 0 0;
   color: var(--pulso-text-soft);
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
 
-.mon-cuotas-detalle-titulo p strong {
-  color: var(--pulso-text);
+/* Chips de la cabecera del detalle: el avance con el color de su estado. */
+.mon-cuotas-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-cuotas-chip.es-cumplida {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-cuotas-chip.es-en_curso {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 70%, var(--pulso-text));
+}
+
+.mon-cuotas-chip.es-sin_avance {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cuotas-orden-rotulo {
+  margin-right: 4px;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .mon-cuotas-herramientas {
@@ -415,12 +455,13 @@
 }
 
 .mon-cuotas-leyenda {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 4px 12px;
   margin: 0;
-  padding: 0;
+  padding: 10px 0 4px;
   list-style: none;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
@@ -514,7 +555,6 @@
   inset-inline-start: 0;
   border-radius: 2px 0 0 2px;
   background: var(--cuota-tono);
-  transition: inline-size 220ms ease-out;
 }
 
 /* Pasarse de la meta: el relleno cruza la marca, del mismo verde de cumplida. */

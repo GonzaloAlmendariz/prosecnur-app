@@ -46,7 +46,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
         titulo="Variables"
         icono={<Target size={18} />}
         motivo="El estudio no tiene cuotas ni variables de control."
-        descripcion="Las cuotas se declaran en Modelo › Cuotas; las variables de control llegan con el corte."
+        descripcion="Las cuotas se declaran en Modelo › Cuotas."
         accion={<button type="button" className="acr-av-boton" onClick={onDefinirEnModelo}>Ir a Modelo › Cuotas</button>}
       />
     );
@@ -120,8 +120,8 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
               </div>
               <button type="button" className="acr-av-boton" onClick={() => onEditarEnModelo(elegidaCuota.id)}><Pencil size={14} aria-hidden="true" /> Editar en Modelo</button>
             </div>
-            <div className="acr-pc-detalle-cuota">
-              <AvanceCuotasDetalle key={elegidaCuota.id} cuota={elegidaCuota} paleta={paleta} onEditar={onEditarEnModelo} />
+            <div className="acr-av-panel acr-pc-detalle-cuota" data-qa-geometry-capacity="owned">
+              <AvanceCuotasDetalle key={elegidaCuota.id} cuota={elegidaCuota} paleta={paleta} />
             </div>
           </>
         ) : null}
