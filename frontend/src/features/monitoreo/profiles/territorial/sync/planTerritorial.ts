@@ -20,7 +20,7 @@ import type { EntradaDeActualizar, PlanDeActualizar } from "../../../sync/menuDe
 export type FaseTerritorial = MonitoreoTerritorialPhase;
 
 type ConfigTerritorial = {
-  phase_sources?: Partial<Record<FaseTerritorial, MonitoreoTerritorialPhaseSource>>;
+  phase_sources?: Partial<Record<FaseTerritorial, Partial<MonitoreoTerritorialPhaseSource>>>;
   field_occurrences?: Partial<MonitoreoFieldOccurrenceConfig>;
 };
 
