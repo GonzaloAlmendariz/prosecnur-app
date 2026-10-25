@@ -729,3 +729,29 @@ Pendiente, fuera del glob de esta ronda:
 - **El texto del bloqueo** («El corte quedó desactualizado desde la última sincronización; vuelve a sincronizar antes
   de publicar.») vive en `corte/corteContract.ts`; también encadena con «;».
 - Casillas del page-file congelado en vistas que el perfil ya no monta (ver arriba).
+
+## Cierre de QA (2026-10-25)
+
+Pasada de cierre sobre el QA visual independiente de `main` `2a1b4ed52` (informe
+`scratchpad/final/informe.md`). No es una ronda de diseño: solo se corrigen los
+defectos señalados. Recapturas en `scratchpad/qafix-tel/` (1440x1000, 1366x768 y
+1024x600, `--require-geometry --timeout-ms 420000`, mismas copias de `pdm`,
+`acred_conta` y `acnurcg2`).
+
+| # | Defecto | Dónde vive | Estado |
+|---|---|---|---|
+| 1a | Insumos › Fuentes: cabecera con degradado rosado | `telefonicoProfile.css` (`.mon-acr-source-status-strip.is-phone`: borde y superficie neutros) | corregido |
+| 1b | Encuesta sin cifra (C5) | `fuentes/eslabonesDelContrato.ts` (`efectivasDeLaEncuesta`: filas de `control_tiempo_kobo`, la misma cifra de Control › Respuestas, 424); sin bloque, la tarjeta dice «Sin conteo en este corte» | corregido |
+| 2a | Insumos › Estados a 1024: 232 px vacíos | `insumosTelefonico.css`: en columna flex, `align-self: start` encogía la tarjeta; a ≤1180 estira | corregido |
+| 2b | «Apagado» como chip | **decidido, no se cambia**: «Apagado» es un valor del vocabulario Status del cliente (teléfono apagado), no un booleano. En Estados es el nombre de la fila; el chip «Apagada» de Fuentes muestra el estado de una fuente que se cambia en «Cambiar conexión», no un interruptor | decidido |
+| 3 | Insistencia a 1440: el switch pisa el borde | `core/colaDeInsistencia/colaDeInsistencia.css`: el peldaño medio pasa de 1080 a 1240 px de barra (con el rótulo al lado la barra mide ~1.170); Intentos y el interruptor van a «Más filtros» antes de no caber | corregido |
+| 4 | Equipo (78 px) y Avisos (144 px) a 1024 | `controlTelefonico.css`: `align-self`/`align-items: stretch` a ≤1180 | corregido |
+| 5 | Avance › Cuotas: vacío bajo Total y bajo la leyenda | `cuotasFaltante.css`: sin faltante diario, tabla y columna derecha a alto natural (`max-height: 100%`, desplazan dentro con muchas filas). El aire sobrante queda bajo las tarjetas, no dentro | corregido |
+| 6 | Entregas: «Procesables 2,296 pasan el filtro» vs «424 pasan el filtro de efectiva» | `corte/corteContract.ts` + `corteAdapters.ts`: `procesableEtiqueta` por perfil. Confirmado en el modelo: en telefónico y acreditación el procesable es la suma de universos declarados por actor (2.296 personas por llamar, `corteAcreditacion`), no un filtro → «en el universo declarado». Territorial: `kpis.consentidas` → «con consentimiento». Cursos-horario: `filter_passed` → «en el filtro de aplicación». Los 424 son envíos de Kobo que pasan el filtro de efectiva (`control_tiempo_kobo`) | corregido |
+| 7 | Bloqueo del corte con frase tras «;» | `corte/corteContract.ts`: el bloqueo trae `mensaje` (hecho corto, «El corte está desactualizado.») y `accion` (tooltip de «Ir a la causa», «Vuelve a sincronizar antes de publicar»). Igual para `partial`, `failed`, desconocido, sin válidas y fuentes incompletas | corregido |
+| 8a | Salidas: bloque «Listo» teñido de verde | `salidas/MonitoreoOutputsWorkbench.tsx`: la forma «ficha» es la de los tres modos (telefónico, acreditación, territorial) pasen o no `variante`; el estado va en el borde lateral y el chip. Cursos-horario conserva la anterior hasta revisarse con captura | corregido |
+| 8b | Cabecera «Avance / Salidas» sin contenedor (Territorial) | El workbench acepta `rotulo` y lo pone en su primera tarjeta. **Falta el cableado en `profiles/territorial/**`** (fuera de este glob): pasar `rotulo={<RotuloDePestana />}` en `TerritorialOutputsPanel` y no pintar `CabeceraTerritorial` para avance/salidas | bloqueado (glob) |
+| 8c | Título truncado a 1024 | `outputsWorkbench.css`: título y corte parten línea en la ficha | corregido |
+| 8d | «INCLUIR METAS» en dos líneas | resuelto con la ficha: interruptor y rótulo en una línea, sin versalitas | corregido |
+| 9a | Reintentos: cabecera sin contenedor | `ColaDeInsistencia` ya recibe el rótulo (`antesDeLosFiltros`) y la tarjeta `.mon-cola-barra` pasa a la cola común. **Falta el cableado en `profiles/acreditacion/**`**: `antesDeLosFiltros={<RotuloEnBarra />}` en `Reintentos.tsx` y sacar `control/reintentos` de `SIN_ROTULO_EN_TARJETA` | bloqueado (glob) |
+| 9b | Riel Responsables: hueco entre 2 filas y «Sin asignar» | `colaDeInsistencia.css`: tarjeta y columna a alto natural; con muchos responsables la lista desplaza dentro. Telefónico › Insistencia sin cambio visible (15 responsables) | corregido |
