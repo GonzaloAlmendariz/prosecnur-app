@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 
 export type GlidingTabOrientation = "horizontal" | "vertical";
 export type GlidingNavigationMode = "tabs" | "nav";
@@ -45,8 +46,37 @@ export type GlidingTabListProps = Omit<HTMLAttributes<HTMLElement>, "children"> 
   itemSelector?: string;
   indicatorClassName?: string;
   onRovingKeyChange?: (serializedKey: string) => void;
+  /**
+   * Opt-in. Cuando el layout del rail cambia sin que cambie la selección (entra
+   * una píldora, crece una insignia), el indicador salta a su sitio en el mismo
+   * cuadro, sin transición. Sin esto se re-mide en el siguiente `requestAnimationFrame`
+   * y se desliza 180 ms desde la posición vieja: con el hilo ocupado, la vista
+   * se marcaba lista con el indicador todavía sobre otra píldora.
+   * La transición al cambiar de selección no cambia.
+   */
+  snapOnLayoutChange?: boolean;
   children: ReactNode;
 };
+
+/** Clases del indicador. Un salto de layout (`instant`) va sin transición. */
+export function glidingIndicatorClassName({
+  visible,
+  canAnimate,
+  instant = false,
+  indicatorClassName,
+}: {
+  visible: boolean;
+  canAnimate: boolean;
+  instant?: boolean;
+  indicatorClassName?: string;
+}): string {
+  return [
+    "pulso-gliding-tab-indicator",
+    visible ? "is-visible" : "",
+    canAnimate && !instant ? "is-motion-ready" : "",
+    indicatorClassName,
+  ].filter(Boolean).join(" ");
+}
 
 type IndicatorStyle = CSSProperties & {
   "--pulso-glide-x": string;
@@ -158,6 +188,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       itemSelector = DEFAULT_ITEM_SELECTOR,
       indicatorClassName,
       onRovingKeyChange,
+      snapOnLayoutChange = false,
       className,
       children,
       onKeyDown,
@@ -173,6 +204,10 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
     const [indicatorRadius, setIndicatorRadius] = useState("0px");
     const [visible, setVisible] = useState(false);
     const [canAnimate, setCanAnimate] = useState(false);
+    const [instant, setInstant] = useState(false);
+    const geometryRef = useRef<GlidingIndicatorGeometry | null>(null);
+    const snapOnLayoutChangeRef = useRef(snapOnLayoutChange);
+    snapOnLayoutChangeRef.current = snapOnLayoutChange;
     const rovingMode: GlidingNavigationMode | null =
       mode ?? (rootProps.role === "tablist" ? "tabs" : null);
 
@@ -198,7 +233,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
         return findActiveGlidingItem(items, activeKey);
       };
 
-      const measure = () => {
+      const measure = (fromLayout = false) => {
         measureFrame = 0;
         const activeItem = findActiveItem();
         if (!activeItem) {
@@ -211,6 +246,14 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
           activeItem.getBoundingClientRect(),
           root,
         );
+        if (snapOnLayoutChangeRef.current) {
+          // El aviso inicial del observador, o una insignia que cambia de cifra
+          // sin mover nada, no cuentan como salto: si no, cortarían la
+          // transición de la selección que acaba de empezar.
+          if (fromLayout && geometryRef.current && geometryEquals(geometryRef.current, nextGeometry)) return;
+          setInstant(fromLayout);
+        }
+        geometryRef.current = nextGeometry;
         const nextRadius = getComputedStyle(activeItem).borderRadius || "0px";
         setGeometry((current) => geometryEquals(current, nextGeometry) ? current : nextGeometry);
         setIndicatorRadius((current) => current === nextRadius ? current : nextRadius);
@@ -236,7 +279,14 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
 
       const scheduleMeasure = () => {
         if (measureFrame) window.cancelAnimationFrame(measureFrame);
-        measureFrame = window.requestAnimationFrame(measure);
+        measureFrame = 0;
+        // Con `snapOnLayoutChange`, los observadores miden en el acto y React
+        // pinta en el mismo cuadro (los observadores corren antes de pintar).
+        if (snapOnLayoutChangeRef.current) {
+          flushSync(() => measure(true));
+          return;
+        }
+        measureFrame = window.requestAnimationFrame(() => measure());
       };
 
       const resizeObserver = typeof ResizeObserver === "undefined"
@@ -349,12 +399,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       "--pulso-glide-height": `${geometry.height}px`,
       "--pulso-gliding-indicator-radius": indicatorRadius,
     };
-    const indicatorClasses = [
-      "pulso-gliding-tab-indicator",
-      visible ? "is-visible" : "",
-      canAnimate ? "is-motion-ready" : "",
-      indicatorClassName,
-    ].filter(Boolean).join(" ");
+    const indicatorClasses = glidingIndicatorClassName({ visible, canAnimate, instant, indicatorClassName });
 
     return (
       <Element

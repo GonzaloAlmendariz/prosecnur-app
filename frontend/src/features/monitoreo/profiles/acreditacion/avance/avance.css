@@ -295,16 +295,22 @@
 }
 
 /* Gráficos. */
+/* El gráfico no pinta fuera de su caja: el SVG mide lo que la caja, aunque el
+ * alto que usó para dibujar sea de un cuadro anterior (C4, «Efectivas
+ * acumuladas» del inspector se montaba sobre «Por canal»). */
 .acr-av-grafico {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .acr-av-grafico > svg {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .acr-av-eje,
@@ -1080,9 +1086,17 @@
 
 .acr-ri-izquierda {
   display: grid;
-  grid-template-rows: auto auto;
+  /* Lo que sobra de alto lo usa el gráfico diario; la tabla semanal queda a su
+   * alto natural (repartido parejo, dejaba 40 px vacíos bajo la tabla). */
+  grid-template-rows: minmax(max-content, 1fr) auto;
   gap: var(--pulso-space-3);
   min-width: 0;
+}
+
+/* «Pulso del campo» a su alto natural: estirada al pie de la columna dejaba
+ * 115 px vacíos bajo «Última efectiva por público». */
+.acr-ri > .acr-ri-pulso {
+  align-self: start;
 }
 
 .acr-ri-diario {
@@ -1316,6 +1330,13 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc .acr-pr-filtros {
   display: flex;
   flex-direction: column;
+}
+
+/* La lista de variables, a su alto natural con tope en la columna y dueña de
+ * su scroll, como el detalle de al lado: estirada dejaba 330 px vacíos al pie. */
+.acr-ps.acr-pc > .acr-pr-filtros {
+  align-self: start;
+  max-height: 100%;
 }
 
 .acr-pc-derecha {

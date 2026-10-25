@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { fmt } from "../formato";
 import { marcasDeEje, type DiaDeAvance } from "./avanceModelo";
 
@@ -35,7 +36,12 @@ export function useTamano<T extends HTMLElement>() {
     };
     medir();
     if (typeof ResizeObserver === "undefined") return undefined;
-    const observador = new ResizeObserver(medir);
+    // La caja cambia cuando llega algo que va al lado (los casos del público en
+    // su inspector). El observador corre antes de pintar, pero un setState común
+    // se pinta un cuadro después: ese cuadro dibujaba el SVG con el alto viejo
+    // sobre la sección siguiente, y la captura lo tomaba justo al marcarse lista.
+    // `flushSync` vuelve a dibujar en el mismo cuadro.
+    const observador = new ResizeObserver(() => flushSync(medir));
     observador.observe(nodo);
     return () => observador.disconnect();
   }, []);

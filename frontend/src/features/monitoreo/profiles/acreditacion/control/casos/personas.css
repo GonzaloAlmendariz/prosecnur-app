@@ -20,6 +20,15 @@
   min-width: 180px;
 }
 
+/* El nombre con su punto es un botón flex: el `justify-content: center` global
+ * de los botones lo centraba y cada público quedaba con su propia sangría.
+ * Todos arrancan en el borde de la celda, como «Todos los públicos». */
+.acr-ps-estados .acr-pub-nombre.acr-celda-publico {
+  display: flex;
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .acr-ps-barra {
   height: 8px;
   border-radius: 4px;

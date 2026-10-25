@@ -126,8 +126,16 @@
   color: var(--pulso-warn-fg);
 }
 
-.acr-ct-matriz-celda.is-vacia {
+/* La esquina sin efectiva en ninguno de los dos lados: no se cuenta, y lo dice
+ * con «—» y su motivo en el tooltip. Sin tinte, con borde. */
+.acr-ct-matriz-celda.is-fuera {
   border: 1px dashed var(--pulso-border);
+  color: var(--pulso-text-soft);
+  cursor: help;
+}
+
+.acr-ct-matriz-celda.is-fuera b {
+  color: var(--pulso-text-faint);
 }
 
 .acr-ct-derecha {
@@ -573,4 +581,19 @@
 /* Equipo: la tabla de pocas filas toma su alto natural; sin vacío bajo ella. */
 .acr-ct.is-equipo > .acr-ct-equipo-tabla {
   align-self: start;
+}
+
+/* Reintentos: el rótulo del perfil (antetítulo y dos chips) va en su fila y los
+ * filtros debajo, a todo el ancho, como la cola común hace bajo 1180 px. En una
+ * sola fila a 1440 el rótulo se comía 640 px y «Más filtros» quedaba fuera de la
+ * tarjeta (C4). */
+.mon-cola-barra:has(> .acr-enc-barra) {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-top: var(--pulso-space-2);
+}
+
+.mon-cola-barra:has(> .acr-enc-barra) > .mon-cola-filtros-marco {
+  flex-basis: 100%;
+  margin-left: calc(-1 * var(--pulso-space-4));
 }
