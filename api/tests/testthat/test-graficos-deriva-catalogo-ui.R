@@ -40,7 +40,10 @@ source("setup-load-all.R")
 #     leidos de `overrides$...` por el propio plan.
 #   iter_var / iter_level -> dashboard_dimensiones.R:148.
 .deriva_consumidos_por_el_plan <- c(
-  "mostrar_significancia", "significancia_alpha", "iter_var", "iter_level"
+  "mostrar_significancia", "significancia_alpha", "iter_var", "iter_level",
+  # p_dim_heatmap: la columna Top Two Box se lee de `overrides` (`via_overrides`) en `.heatmap_dim_o_pregunta`
+  # (graficos_heatmap_top2box.R, 8c3176b01); comprobado en el mazo CCSS (lámina 63).
+  "top2box", "top2box_labels"
 )
 
 # Nunca van a la UI por diseno: los rellena el plan o son mecanica del export.
@@ -64,10 +67,10 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 30 graficadores del registro resuelven, ninguno se salta", {
+test_that("los 31 graficadores del registro resuelven, ninguno se salta", {
   # 24 + p_cifra y p_mapa_resultado_distrital (F6), ambos con renderer graficar_* propio.
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 30L)
+  expect_length(gs, 31L)
   for (g in gs) {
     fn <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
     expect_true(is.function(fn), info = sprintf("%s no resuelve como el router lo resuelve", g$name))

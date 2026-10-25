@@ -47,6 +47,13 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Bloque x={6} y={15.75} w={6} h={3.75} />
     </>
   ),
+  // Citas representativas (TXT-4): comillas de apertura y dos líneas de texto.
+  p_citas: () => (
+    <>
+      <Acento><Bloque x={3.75} y={4.5} w={3} h={3.75} tono="pleno" /><Bloque x={8.25} y={4.5} w={3} h={3.75} tono="pleno" /></Acento>
+      <Trazo d="M3.75 13.5H20.25M3.75 18H15" />
+    </>
+  ),
   // Ranking con puntos (p72).
   p_lollipop: () => (
     <>

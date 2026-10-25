@@ -238,6 +238,12 @@
       "en_selector": true
     },
     {
+      "name": "p_citas",
+      "familia_editor": "texto",
+      "salida": "nativa",
+      "en_selector": false
+    },
+    {
       "name": "p_mapa_cobertura_territorial",
       "familia_editor": "territorio",
       "salida": "nativa",

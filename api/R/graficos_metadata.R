@@ -1404,6 +1404,27 @@
     ), .args_graf_comunes())
   ),
 
+  # TXT-4 (plan-texto-abierto-ccss-2026-10-24): citas representativas del comentario abierto, con aprobación del
+  # analista. Fuera del selector hasta que la tarjeta de aprobación exista (O3). Selección: texto_citas.R; lámina:
+  # lamina_citas.R.
+  p_citas = list(
+    titulo_humano = "Citas representativas",
+    descripcion   = "De tres a cinco comentarios textuales, sin atribución, elegidos por las palabras que más se repiten. Se dibujan los que apruebes.",
+    icono_ui      = "Quote",
+    categoria     = "text",
+    blueprint     = "quotes",
+    args = c(list(
+      list(name = "var", label = "Variable de texto", tipo_input = "variable", grupo = "datos",
+           descripcion = "Comentario abierto del que salen las citas."),
+      list(name = "citas_aprobadas", label = "Citas aprobadas", tipo_input = "codigos_list", grupo = "datos", default = list(),
+           descripcion = "Ids de las citas que apruebas, en el orden en que van. Sin ninguna, la lámina sale como borrador y lo dice."),
+      list(name = "max_citas", label = "Máximo de citas", tipo_input = "number", grupo = "valores", default = 5,
+           descripcion = "De tres a cinco por lámina."),
+      list(name = "var_persona", label = "Identificador de persona", tipo_input = "variable_opt", grupo = "avanzado",
+           descripcion = "Sólo si una persona tiene varias filas: así entra una cita por persona.")
+    ), .args_graf_comunes())
+  ),
+
   p_mapa_cobertura_territorial = list(
     titulo_humano = "Mapa de cobertura territorial",
     descripcion   = "Mapa distrital con zonas de aplicación. Disponible cuando el proyecto tiene Hojas de Ruta y Monitoreo territorial.",
@@ -2315,6 +2336,7 @@
   p_barras_apiladas = list("escalas", "nativa"),
   p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
   p_nube_palabras = list("texto", "nativa", condicion = "Sin el ranking de palabras, la nube va sola, dibujada dentro de una lámina estándar."),   # G11: lámina 101 del diseño
+  p_citas = list("texto", "nativa", condicion = "Sin citas aprobadas sale como borrador y lo dice en la lámina.", en_selector = FALSE),   # TXT-4; O3 la ofrece
   p_mapa_cobertura_territorial = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_pie = list("categorias", "nativa", condicion = "Sólo con dos o tres porciones; con más, sale por la ruta anterior."),
   p_donut = list("categorias", "nativa", condicion = "Sólo con dos porciones y sus frecuencias; si no, sale por la ruta anterior."),
@@ -2365,6 +2387,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_barras_apiladas = "barras_apiladas",
   p_barras_multiapiladas = "multi_apiladas",
   p_nube_palabras = "nube_palabras",
+  p_citas = "",
   p_mapa_cobertura_territorial = "",
   p_pie = "pie",
   p_donut = "donut",
