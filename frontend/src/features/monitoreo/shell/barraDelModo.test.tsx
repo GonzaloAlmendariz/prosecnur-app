@@ -11,7 +11,7 @@ const acciones: AccionDeActualizar[] = [
   { clave: "fuente:u", etiqueta: "Universo", detalle: "Google Sheets · universo", grupo: "fuentes", onElegir: nada },
   { clave: "fuente:k", etiqueta: "PDM Kobo", detalle: "Kobo · respuestas", grupo: "fuentes", onElegir: nada },
   { clave: "todo", etiqueta: "Traer todo de nuevo", onElegir: nada },
-  { clave: "recalcular", etiqueta: "Recalcular", detalle: "Sin traer nada", onElegir: nada },
+  { clave: "recalcular", etiqueta: "Recalcular", detalle: "Hay cambios sin recalcular", onElegir: nada },
 ];
 const barra = (estado: BarraDelModo["estado"]): BarraDelModo => ({
   indicadores: [],
@@ -60,18 +60,22 @@ describe("un sync a la vez", () => {
 describe("el menú de Actualizar", () => {
   const html = renderToStaticMarkup(<MenuDeActualizar id="m" acciones={acciones} ocupado={false} />);
 
-  it("agrupa las fuentes bajo «Por fuente» y separa las acciones generales", () => {
+  it("pone arriba Traer todo de nuevo y Recalcular, y debajo «Por fuente»", () => {
     expect(html).toContain('role="menu"');
     expect(html).toContain('role="group" aria-labelledby="m-fuentes"');
     expect(html).toContain(">Por fuente<");
     expect(html).toContain('role="separator"');
-    expect(html.indexOf("Universo")).toBeLessThan(html.indexOf("Traer todo de nuevo"));
+    // Las dos acciones más usadas van arriba; las fuentes, abajo y con su propio scroll.
     expect(html.indexOf("Traer todo de nuevo")).toBeLessThan(html.indexOf("Recalcular"));
+    expect(html.indexOf("Recalcular")).toBeLessThan(html.indexOf('role="separator"'));
+    expect(html.indexOf('role="separator"')).toBeLessThan(html.indexOf("Por fuente"));
+    expect(html).toMatch(/class="mon-modo-actualizar-fuentes"><button[^>]*role="menuitem"[^>]*><span>Universo/);
   });
 
   it("cada entrada es un botón real con su detalle", () => {
     expect((html.match(/<button type="button" role="menuitem"/g) ?? []).length).toBe(4);
     expect(html).toContain("<small>Google Sheets · universo</small>");
+    expect(html).toContain("<span>Recalcular</span><small>Hay cambios sin recalcular</small>");
     expect(html).not.toContain(">Todo<");
   });
 });
