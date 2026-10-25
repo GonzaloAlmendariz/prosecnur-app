@@ -1302,7 +1302,7 @@ export function renderPestana(
       );
     }
     if (clave === "modelo/metas" && !direccion.panel) {
-      return <MetasTab reports={options.cortes?.ruta ?? reports} avance={options.cortes?.avance ?? null} state={options.state ?? null} phase={options.phase ?? "field"} />;
+      return <MetasTab reports={options.cortes ? options.cortes.ruta ?? null : reports} avance={options.cortes?.avance ?? null} state={options.state ?? null} phase={options.phase ?? "field"} />;
     }
     if (clave === "modelo/cuotas") {
       return <CuotasTab reports={reports} state={options.state ?? null} avance={options.cortes?.avance ?? null} />;
