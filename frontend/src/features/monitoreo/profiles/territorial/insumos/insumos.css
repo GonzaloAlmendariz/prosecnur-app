@@ -1,0 +1,458 @@
+/* Insumos (territorial.md §3.1–3.4): Conexiones, Mapeo y filtro, Padrón e
+ * Historial. Columna principal y lateral; cada tabla es dueña de su scroll.
+ * `territorialProfile.css` está congelado: todo lo nuevo vive aquí. */
+
+.mon-ins {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-ins-mapeo {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.mon-ins-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-ins-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ins-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.mon-ins-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ins-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-ins-boton.is-primario {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-ins-boton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mon-ins-derecha,
+.mon-ins-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ins-derecha > *,
+.mon-ins-fuentes > * {
+  flex: 0 0 auto;
+}
+
+.mon-ins-lateral {
+  overflow: auto;
+}
+
+/* Tarjeta de fuente. */
+.mon-ins-fuente.is-activa {
+  border-color: var(--pulso-module-monitoring-border);
+}
+
+.mon-ins-fuente.is-inactiva {
+  opacity: 0.8;
+}
+
+.mon-ins-fuente-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-ins-fuente-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ins-estado {
+  flex: 0 0 auto;
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-ins-estado.is-ok {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-ins-estado.is-aviso {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-ins-estado.is-error {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ins-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-ins-cifras.is-fila {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.mon-ins-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-ins-cifras dd {
+  margin: 2px 0 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ins-serie {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+}
+
+.mon-ins-serie svg,
+.mon-ins-serie-grande {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+
+.mon-ins-serie-grande {
+  height: 120px;
+}
+
+.mon-ins-serie rect,
+.mon-ins-serie-grande rect {
+  fill: var(--pulso-brand-navy);
+}
+
+.mon-ins-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+/* Tablas. */
+.mon-ins-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-ins-tabla-marco::-webkit-scrollbar,
+.mon-ins-derecha::-webkit-scrollbar,
+.mon-ins-fuentes::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-ins-tabla-marco::-webkit-scrollbar-thumb,
+.mon-ins-derecha::-webkit-scrollbar-thumb,
+.mon-ins-fuentes::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-ins-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ins-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-ins-tabla tbody th,
+.mon-ins-tabla tbody td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+}
+
+.mon-ins-tabla th:first-child,
+.mon-ins-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-ins-tabla .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mon-ins-tabla tr.is-falta td:last-child,
+.mon-ins-tabla tr.is-aviso td:last-child,
+.mon-ins-lista li.is-falta {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-ins-tabla tr.is-error td:last-child {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-ins-tabla tr.is-anulado td,
+.mon-ins-tabla tr.is-sin-casos td {
+  color: var(--pulso-text-soft);
+}
+
+.mon-ins-tabla code,
+.mon-ins-lista code {
+  font-size: 12px;
+}
+
+/* Listas de Insumos como tabla dentro de su caja: filas de 36 px con
+ * divisores tenues (§2a-bis). */
+.mon-ins-lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  list-style: none;
+  font-size: 13px;
+}
+
+.mon-ins-lista > li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 36px;
+  padding: 4px var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ins-lista > li:first-child {
+  border-top: 0;
+}
+
+.mon-ins-lista > li.mon-ins-distrito {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  min-height: 42px;
+}
+
+.mon-ins-distrito-destino {
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.mon-ins-lista small {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ins-barra {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-ins-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-ins-boton:focus-visible,
+.mon-ins-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-ins--vacio .mon-ins-vacio,
+.mon-ins-vacio {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-ins-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+.mon-ins.mon-ins--vacio:not(.mon-ins-padron) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1280px) {
+  .mon-ins {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  }
+}
+
+/* 1024: el lateral pasa debajo y la pestaña desplaza entera con el dueño
+ * de desplazamiento del área de trabajo (No Scroll Jail): antes cada mitad
+ * desplazaba por su cuenta y las tarjetas de fuente quedaban cortadas. */
+@media (max-width: 1100px) {
+  .mon-ins,
+  .mon-ins-mapeo {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mon-ins-fuentes,
+  .mon-ins-derecha,
+  .mon-ins .mon-ins-lateral {
+    overflow: visible;
+  }
+
+  .mon-ins-serie {
+    display: none;
+  }
+}
+
+.mon-ins-derecha > :last-child {
+  flex-grow: 1;
+}
+
+.mon-ins-distrito-sello {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+}
+
+.mon-ins-lista-cifra {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+}
+
+/* Conexiones: el rótulo de la pestaña encabeza la primera tarjeta en su fila;
+ * el nombre de la fuente y su estado van debajo. */
+.mon-ins-fuente-cabecera:has(> .mon-ter-rotulo) {
+  flex-wrap: wrap;
+}
+
+.mon-ins-fuente-cabecera > .mon-ter-rotulo {
+  flex: 1 0 100%;
+  margin-inline-end: 0;
+}
+
+.mon-ins-fuente-cabecera > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Columnas a la misma altura (§2a, 2): la última fuente toma el alto que
+ * sobra; los laterales llegan al pie con su acción abajo. */
+.mon-ins-fuentes > :last-child {
+  flex-grow: 1;
+}
+
+.mon-ins .mon-ins-lateral {
+  align-self: stretch;
+}
+
+.mon-ins-lateral > .mon-ins-boton:last-child {
+  margin-top: auto;
+}
+
+/* Mapeo: las filas de roles se reparten el alto de su tarjeta. */
+.mon-ins-mapeo .mon-ins-tabla {
+  height: 100%;
+}
+
+.mon-ins-fuentes > li:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.mon-ins-fuentes > li:last-child > .mon-ins-fuente {
+  flex: 1 1 auto;
+}

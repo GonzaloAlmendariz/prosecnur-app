@@ -1,0 +1,460 @@
+/* Exploración de una UMP (territorial.md §3.16b). A la izquierda el mapa de la
+ * UMP y su historia; a la derecha (380 px) la tarjeta del caso, la ficha y los
+ * casos de la jornada. El mapa no lleva nada encima: barra y leyenda en flujo. */
+
+.mon-exp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-exp-principal,
+.mon-exp-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-exp-principal > *,
+.mon-exp-lateral > * {
+  flex: 0 0 auto;
+}
+
+.mon-exp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-exp-mapa-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.mon-exp-barra,
+.mon-exp-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.mon-exp-barra {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-exp-barra h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-exp-pie {
+  justify-content: space-between;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-exp-volver,
+.mon-ump-alternar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-ump-alternar[aria-pressed="true"] {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-exp-segmentado {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-exp-segmentado button {
+  height: 26px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-exp-segmentado button.is-active {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-exp-volver:focus-visible,
+.mon-ump-alternar:focus-visible,
+.mon-exp-segmentado button:focus-visible,
+.mon-exp-lista button:focus-visible,
+.mon-ump-marca:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-exp-lienzo {
+  display: flex;
+  height: clamp(280px, 46vh, 520px);
+  background: var(--pulso-surface-2);
+}
+
+.mon-exp-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mon-exp-vacio {
+  margin: auto;
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+.mon-exp-calles path {
+  fill: none;
+  stroke: var(--pulso-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-exp-vecinas path {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-exp-propias path {
+  stroke: var(--pulso-brand-navy);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-exp-propias .is-titular {
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface));
+}
+
+.mon-exp-propias .is-reemplazo {
+  fill: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-surface));
+  stroke-dasharray: 6 4;
+}
+
+.mon-exp-recorridos path {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-exp-punto {
+  cursor: pointer;
+}
+
+.mon-exp-punto circle {
+  stroke: var(--pulso-surface);
+  stroke-width: 1.5;
+}
+
+.mon-exp-punto text {
+  fill: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  pointer-events: none;
+}
+
+.mon-exp-punto.is-elegido circle {
+  stroke: var(--pulso-text);
+  stroke-width: 2.5;
+}
+
+/* Colores por capa: aplicadores, estado y cuota. */
+.mon-exp-punto.is-aplicador-0 circle,
+.mon-exp-recorridos .is-aplicador-0,
+.mon-exp-leyenda .is-aplicador-0::before {
+  fill: var(--pulso-brand-navy);
+  stroke: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+}
+
+.mon-exp-punto.is-aplicador-1 circle,
+.mon-exp-recorridos .is-aplicador-1,
+.mon-exp-leyenda .is-aplicador-1::before {
+  fill: var(--pulso-module-monitoring);
+  stroke: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-exp-punto.is-aplicador-2 circle,
+.mon-exp-recorridos .is-aplicador-2,
+.mon-exp-leyenda .is-aplicador-2::before {
+  fill: var(--pulso-warn-accent);
+  stroke: var(--pulso-warn-accent);
+  background: var(--pulso-warn-accent);
+}
+
+.mon-exp-punto.is-aplicador-3 circle,
+.mon-exp-recorridos .is-aplicador-3,
+.mon-exp-leyenda .is-aplicador-3::before {
+  fill: var(--pulso-success-fg);
+  stroke: var(--pulso-success-fg);
+  background: var(--pulso-success-fg);
+}
+
+.mon-exp-punto.is-cuenta circle,
+.mon-exp-leyenda .is-cuenta::before,
+.mon-exp-punto.is-mujer circle,
+.mon-exp-leyenda .is-mujer::before {
+  fill: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+}
+
+.mon-exp-punto.is-gps-fuera circle,
+.mon-exp-leyenda .is-gps-fuera::before,
+.mon-exp-punto.is-hombre circle,
+.mon-exp-leyenda .is-hombre::before {
+  fill: var(--pulso-warn-accent);
+  background: var(--pulso-warn-accent);
+}
+
+.mon-exp-punto.is-anulado-efectiva circle,
+.mon-exp-leyenda .is-anulado-efectiva::before {
+  fill: var(--pulso-danger-fg);
+  background: var(--pulso-danger-fg);
+}
+
+.mon-exp-punto.is-anulado-sin circle,
+.mon-exp-leyenda .is-anulado-sin::before,
+.mon-exp-punto.is-no-cuenta circle,
+.mon-exp-leyenda .is-no-cuenta::before,
+.mon-exp-punto.is-sin-dato circle,
+.mon-exp-leyenda .is-sin-dato::before {
+  fill: var(--pulso-text-soft);
+  background: var(--pulso-text-soft);
+}
+
+.mon-exp-leyenda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+}
+
+.mon-exp-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+/* Tarjeta del caso y lista de la jornada. */
+.mon-exp-caso header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-exp-caso h4 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-exp-caso dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0;
+}
+
+.mon-exp-caso dt {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-exp-caso dd {
+  margin: 2px 0 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-exp-estado {
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-exp-estado.is-observacion {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-exp-estado.is-no_cuenta,
+.mon-exp-estado.is-anulado_efectiva,
+.mon-exp-estado.is-anulado_sin_consentimiento {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-exp-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.mon-exp-lista button {
+  display: grid;
+  grid-template-columns: 28px 56px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: 6px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.mon-exp-lista button[aria-pressed="true"] {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+/* «Ver cada formulario»: marcas de la jornada sobre su horario. */
+.mon-ump-jornada {
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.mon-ump-jornada-eje {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: var(--pulso-space-1);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-ump-jornada-marcas {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ump-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.mon-ump-marca.sin-duracion {
+  width: 18px;
+}
+
+.mon-ump-marca.is-observacion {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-ump-marca.is-anulado_efectiva {
+  background: var(--pulso-danger-fg);
+}
+
+.mon-ump-marca.is-no_cuenta,
+.mon-ump-marca.is-anulado_sin_consentimiento {
+  background: var(--pulso-text-soft);
+}
+
+.mon-ump-marca[aria-pressed="true"] {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 1px;
+}
+
+@media (max-width: 1180px), (max-height: 700px) {
+  .mon-exp {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+
+  .mon-exp-lienzo {
+    height: clamp(240px, 52vh, 420px);
+  }
+}
+
+/* La última tarjeta de cada columna toma el alto que sobra: el vacío queda
+ * dentro de su tarjeta y no como hueco bajo la columna (C3). */
+.mon-exp-principal > :last-child,
+.mon-exp-lateral > :last-child {
+  flex-grow: 1;
+}

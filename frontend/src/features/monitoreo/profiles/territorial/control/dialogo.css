@@ -1,0 +1,136 @@
+/* P2 · Anular (territorial.md §3.6): diálogo modal nativo. El rojo de peligro
+ * es el token compartido; la pregunta 11 del diseño (rojo propio o carmesí)
+ * sigue abierta. */
+
+.mon-dlg {
+  width: min(480px, calc(100vw - 2 * var(--pulso-space-4)));
+  max-height: calc(100vh - 2 * var(--pulso-space-4));
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.mon-dlg::backdrop {
+  background: color-mix(in srgb, var(--pulso-text) 35%, transparent);
+}
+
+.mon-dlg-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+}
+
+.mon-dlg-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-dlg-cabecera h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-dlg-sujeto {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-dlg-impacto {
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-dlg-impacto ul {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-dlg-base {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-dlg-motivo {
+  display: grid;
+  gap: var(--pulso-space-1);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-dlg-motivo textarea {
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-regular);
+  resize: vertical;
+}
+
+.mon-dlg-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+}
+
+.mon-dlg-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.mon-dlg-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-dlg-boton.is-peligro {
+  border-color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-fg);
+  color: var(--pulso-surface);
+}
+
+.mon-dlg-boton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mon-dlg-boton:focus-visible,
+.mon-dlg-motivo textarea:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}

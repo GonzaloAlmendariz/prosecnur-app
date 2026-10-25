@@ -1,0 +1,404 @@
+/* Control › Subsanaciones (territorial.md §3.11): déficit · paquete sugerido ·
+ * aplicadas e historial. Cada columna desplaza dentro de su lista. */
+
+.mon-sub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-sub-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-sub-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.mon-sub-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-sub-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-sub-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sub-lista,
+.mon-sub-paquetes,
+.mon-sub-historial {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-sub-lista li,
+.mon-sub-paquetes li {
+  display: grid;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+/* Celda con déficit: contorno del distrito a la izquierda, UMP y faltas al lado. */
+.mon-sub-lista li {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--pulso-space-3);
+  align-items: center;
+}
+
+.mon-sub-lista li > .mon-ter-silueta {
+  grid-row: 1 / span 2;
+}
+
+.mon-sub-lista li > :not(.mon-ter-silueta) {
+  grid-column: 2;
+}
+
+.mon-sub-lista li.is-elegible {
+  border-color: var(--pulso-module-monitoring-border);
+}
+
+.mon-sub-ump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  font-size: 13px;
+}
+
+.mon-sub-ump span,
+.mon-sub-ump small {
+  color: var(--pulso-text-soft);
+}
+
+.mon-sub-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.mon-sub-chip {
+  padding: 2px 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-sub-paquetes li.is-enfocado {
+  border-color: var(--pulso-brand-navy);
+  box-shadow: 0 0 0 1px var(--pulso-brand-navy);
+}
+
+.mon-sub-ruta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 13px;
+}
+
+.mon-sub-nota {
+  display: grid;
+  gap: var(--pulso-space-1);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-sub-nota textarea {
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-regular);
+  resize: vertical;
+}
+
+.mon-sub-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-sub-boton.is-primario {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-sub-boton.is-peligro {
+  border-color: var(--pulso-danger-fg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-sub-boton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mon-sub-aviso {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.mon-sub-aviso.is-ok {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-sub-aviso.is-error {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-sub-mapa {
+  display: grid;
+  flex: 0 0 auto;
+  gap: var(--pulso-space-1);
+  margin: 0;
+}
+
+.mon-sub-mapa svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-sub-mapa-distritos path {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-sub-mapa line {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-sub-mapa line.is-activo {
+  stroke: var(--pulso-brand-navy);
+}
+
+.mon-sub-mapa line.is-sugerido {
+  stroke: var(--pulso-module-monitoring);
+  stroke-dasharray: 6 4;
+}
+
+.mon-sub-mapa marker path {
+  fill: var(--pulso-text-soft);
+}
+
+.mon-sub-leyenda::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin: 0 6px 0 var(--pulso-space-2);
+  vertical-align: 3px;
+  border-top: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-sub-leyenda.is-sugerido::before {
+  border-top: 2px dashed var(--pulso-module-monitoring);
+}
+
+.mon-sub-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sub-ya-rechazado {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}
+
+.mon-sub-historial li.is-rechazada > span {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-sub-distritos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.mon-sub-distritos li {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sub-historial li {
+  display: grid;
+  gap: 2px;
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-surface-3);
+  font-size: 12px;
+}
+
+.mon-sub-historial small {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sub-historial em {
+  color: var(--pulso-text-soft);
+}
+
+.mon-sub-historial li.is-revertida > span {
+  color: var(--pulso-text-soft);
+}
+
+.mon-sub-confirmar {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+}
+
+.mon-sub-lista::-webkit-scrollbar,
+.mon-sub-paquetes::-webkit-scrollbar,
+.mon-sub-historial::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-sub-lista::-webkit-scrollbar-thumb,
+.mon-sub-paquetes::-webkit-scrollbar-thumb,
+.mon-sub-historial::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-sub-boton:focus-visible,
+.mon-sub-nota textarea:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-sub--vacio {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mon-sub-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-sub-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .mon-sub {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+
+  .mon-sub > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Tercera columna: el mapa de movimientos llena el alto y las subsanaciones
+ * aplicadas van debajo con lo que traen (antes, media columna vacía). */
+.mon-sub-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-sub-derecha > .mon-sub-movimientos {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+.mon-sub-movimientos .mon-sub-mapa {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mon-sub-derecha > .mon-sub-aplicadas {
+  flex: 0 1 auto;
+  max-height: 55%;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.mon-sub-movimientos .mon-sub-mapa {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.mon-sub-movimientos .mon-sub-mapa svg {
+  height: 100%;
+  min-height: 200px;
+}

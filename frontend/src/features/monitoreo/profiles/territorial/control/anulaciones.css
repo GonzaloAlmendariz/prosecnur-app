@@ -1,0 +1,262 @@
+/* Control › Anulaciones (territorial.md §3.12): resumen y tarjetas a la
+ * izquierda (desplaza dentro), tabla de UMP afectadas a la derecha. */
+
+.mon-anu {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-anu-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-anu-izquierda > * {
+  flex: 0 0 auto;
+}
+
+.mon-anu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-anu-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-anu-base {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-anu-barras {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-anu-barras li {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-anu-barras b {
+  text-align: right;
+}
+
+.mon-anu-barra {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-anu-barra i {
+  display: block;
+  height: 100%;
+  background: var(--pulso-danger-fg);
+}
+
+.mon-anu-tarjetas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-anu-tarjeta {
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.mon-anu-tarjeta header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  font-size: 13px;
+}
+
+.mon-anu-tarjeta header small {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-anu-motivo {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.mon-anu-confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-anu-boton {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.mon-anu-boton.is-primario {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-anu-boton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mon-anu-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+}
+
+.mon-anu-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-anu-tabla-marco::-webkit-scrollbar,
+.mon-anu-izquierda::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mon-anu-tabla-marco::-webkit-scrollbar-thumb,
+.mon-anu-izquierda::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--pulso-border-strong);
+}
+
+.mon-anu-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-anu-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-anu-tabla tbody th,
+.mon-anu-tabla tbody td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-anu-tabla th:first-child,
+.mon-anu-tabla td:first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.mon-anu-tabla .is-num {
+  text-align: right;
+}
+
+.mon-anu-tabla td.is-fuera {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-anu-boton:focus-visible,
+.mon-anu-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-anu--vacio {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mon-anu-vacio {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.mon-anu-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1180px) {
+  .mon-anu {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  }
+
+  .mon-anu-barras li {
+    grid-template-columns: 120px minmax(0, 1fr) 40px;
+  }
+}
