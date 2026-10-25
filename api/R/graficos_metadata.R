@@ -1383,7 +1383,24 @@
            default = 3),
       # G11 (2026-10-13): la lámina 101 del diseño pone junto a la nube las diez palabras más dichas con su conteo.
       list(name = "mostrar_ranking", label = "Ranking de palabras", tipo_input = "bool", grupo = "valores", default = TRUE,
-           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones.")
+           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones."),
+      # TXT-1 (plan-texto-abierto-ccss-2026-10-24): la nube limpia del comentario final. Todo apagado por defecto para
+      # no cambiar las nubes ya hechas. `p_nube_palabras()` no los tiene como formales: viajan por overrides.
+      list(name = "filtrar_no_respuestas", label = "Quitar no respuestas", tipo_input = "bool", grupo = "filtro", default = FALSE,
+           via_overrides = TRUE,
+           descripcion = "Deja fuera «-», «no», «ninguno», «nada» y parecidos. El ranking dice cuántos comentarios tienen contenido de cuántos escribieron algo."),
+      list(name = "lematizar", label = "Agrupar flexiones", tipo_input = "bool", grupo = "filtro", default = FALSE,
+           via_overrides = TRUE,
+           descripcion = "Une plural y formas verbales de una palabra (no sinónimos), quita palabras de opinión como «considero» y une las frases que usan tres personas o más."),
+      list(name = "contar", label = "Contar", tipo_input = "choice", grupo = "valores", default = "menciones",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "menciones", label = "Menciones", hint = "Cada vez que aparece la palabra."),
+             list(value = "personas", label = "Personas", hint = "Cada persona cuenta una vez por palabra, sin ponderar.")),
+           descripcion = "Qué mide el tamaño de cada palabra y la cifra del ranking."),
+      list(name = "min_personas", label = "Mínimo de personas", tipo_input = "number", grupo = "filtro", default = 3,
+           via_overrides = TRUE,
+           descripcion = "Contando personas, sólo entran las palabras que usan al menos estas personas.")
     ), .args_graf_comunes())
   ),
 

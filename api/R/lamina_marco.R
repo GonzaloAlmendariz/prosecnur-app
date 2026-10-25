@@ -65,12 +65,17 @@
   lz <- .lam_lienzo()
   .lam_txt(lz, "Palabras más mencionadas", x0, y0, ancho, 0.30, 12, azul, bold = TRUE, nombre = "ranking:encabezado")
   resp <- suppressWarnings(as.integer(rk$respuestas)[1])
-  if (is.finite(resp) && !is.na(resp)) {
-    .lam_txt(lz, paste0(format(resp, big.mark = ","), if (resp == 1L) " respuesta abierta" else " respuestas abiertas"),
-             x0, y0 + 0.26, ancho, 0.26, 10, tenue, nombre = "ranking:respuestas")
-  }
+  # TXT-1: con el filtro de no respuestas, cuántos comentarios tienen contenido de cuántos escribieron algo.
+  cont <- suppressWarnings(as.integer(rk$con_contenido %||% NA)[1]); escr <- suppressWarnings(as.integer(rk$escribieron %||% NA)[1])
+  rotulo_resp <- if (!is.na(cont) && !is.na(escr)) {
+    paste0(format(cont, big.mark = ","), if (cont == 1L) " comentario con contenido" else " comentarios con contenido",
+           if (escr > cont) paste0(" (de ", format(escr, big.mark = ","), " que escribieron algo)") else "")
+  } else if (is.finite(resp) && !is.na(resp)) {
+    paste0(format(resp, big.mark = ","), if (resp == 1L) " respuesta abierta" else " respuestas abiertas")
+  } else NA_character_
+  if (!is.na(rotulo_resp)) .lam_txt(lz, rotulo_resp, x0, y0 + 0.26, ancho, 0.26, 10, tenue, nombre = "ranking:respuestas")
   wl <- 1.55; xl <- x0 + wl + 0.15; wmax <- max(0.5, ancho - wl - 0.15 - 0.8)
-  .lam_txt(lz, "menciones", xl, y0 + 0.42, 2, 0.24, 9, tenue, nombre = "ranking:menciones")
+  .lam_txt(lz, if (identical(rk$unidad, "personas")) "personas" else "menciones", xl, y0 + 0.42, 2, 0.24, 9, tenue, nombre = "ranking:menciones")
   nmax <- max(rk$n, na.rm = TRUE); if (!is.finite(nmax) || nmax <= 0) nmax <- 1
   for (i in seq_along(rk$palabras)) {
     y <- y0 + 0.61 + (i - 1L) * 0.42
