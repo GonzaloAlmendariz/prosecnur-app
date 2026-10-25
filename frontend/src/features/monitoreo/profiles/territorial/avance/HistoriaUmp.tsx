@@ -63,7 +63,7 @@ export function HistoriaUmp({
     <section className="mon-ump-historia" aria-labelledby="mon-ump-historia-titulo">
       <header className="mon-ump-historia-cabecera">
         <h4 id="mon-ump-historia-titulo" className="mon-ump-subtitulo">Historia de la UMP</h4>
-        <span className="mon-ump-base">Cuentan frente a la meta de {fmt(meta)}, día por día</span>
+        <span className="mon-ump-base">Meta de {fmt(meta)}</span>
         {jornada ? (
           <button type="button" className="mon-ump-alternar" aria-pressed={cadaFormulario} onClick={() => setCadaFormulario((valor) => !valor)}>
             Ver cada formulario
@@ -96,7 +96,7 @@ export function HistoriaUmp({
       {!historia.cuadra ? (
         <p className="mon-ump-nota">
           <Info size={14} aria-hidden="true" />
-          La curva termina en {fmt(capitulos.at(-1)?.cuentan ?? 0)} y el corte dice {fmt(historia.cuentanHoy)}: hay formularios sin fecha o fuera del corte.
+          <span title="Hay formularios sin fecha o fuera del corte">La curva termina en {fmt(capitulos.at(-1)?.cuentan ?? 0)} y el corte dice {fmt(historia.cuentanHoy)}</span>
         </p>
       ) : null}
       {cadaFormulario && jornada ? (
@@ -123,7 +123,7 @@ export function HistoriaUmp({
               {capitulo.formularios.length ? (
                 <span className="mon-ump-tira" role="img" aria-label={resumenDeLaTira(capitulo.formularios.map((item) => item.resultado))}>
                   {capitulo.formularios.map((formulario) => (
-                    <i key={formulario.id} className={`is-${formulario.resultado}`} title={ROTULO_DE_RESULTADO[formulario.resultado]} />
+                    <span key={formulario.id} className={`is-${formulario.resultado}`} title={ROTULO_DE_RESULTADO[formulario.resultado]} />
                   ))}
                 </span>
               ) : null}

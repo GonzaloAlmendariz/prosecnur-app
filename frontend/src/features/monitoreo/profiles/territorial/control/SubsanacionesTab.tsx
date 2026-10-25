@@ -4,7 +4,7 @@ import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdju
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { diaYMes, fmt } from "../rotulos";
 import { MapaDeMovimientos } from "./MapaDeMovimientos";
-import { ajusteParaAplicar, construirSubsanaciones, type PaqueteSugerido } from "./subsanacionesModel";
+import { ajusteParaAplicar, construirSubsanaciones, lugarDelPaquete, type PaqueteSugerido } from "./subsanacionesModel";
 import { useRechazos } from "./useRechazos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
@@ -124,7 +124,7 @@ function SubsanacionesTabImpl({
                   <b>UMP {item.ump}</b>
                   <span>{item.distrito}{item.manzana ? `, manzana ${item.manzana}` : ""}</span>
                 </div>
-                <span className="mon-sub-chips" data-qa-geometry-group={`territorial-subsanaciones-chips-${item.ump}-${item.manzana}`} data-qa-geometry-contract="intrinsic">
+                <span className="mon-sub-chips">
                   <span className={`mon-ter-chip ${item.elegible ? "is-info" : "is-aviso"}`}>{item.elegible ? "Con excedente compatible" : "Bloqueada"}</span>
                   {item.celdas.map((celda) => <span key={celda.texto} className="mon-sub-chip">Falta {fmt(celda.falta)}: {celda.texto}</span>)}
                 </span>
@@ -147,12 +147,12 @@ function SubsanacionesTabImpl({
             {sugerencias.map((paquete) => (
               <li key={paquete.id} className={String(foco ?? "").replace(/^UMP\s*/i, "") === paquete.destino.ump ? "is-enfocado" : ""}>
                 <div className="mon-sub-ruta">
-                  <span><b>UMP {paquete.origen.ump}</b> Mz {paquete.origen.manzana} · {paquete.origen.aplicador}</span>
+                  <span><b>UMP {paquete.origen.ump}</b> {lugarDelPaquete(paquete.origen)}</span>
                   <ArrowRight size={14} aria-label="cede a" />
-                  <span><b>UMP {paquete.destino.ump}</b> Mz {paquete.destino.manzana} · {paquete.destino.aplicador}</span>
+                  <span><b>UMP {paquete.destino.ump}</b> {lugarDelPaquete(paquete.destino)}</span>
                 </div>
                 <p className="mon-sub-base">
-                  {fmt(paquete.casos)} {paquete.casos === 1 ? "caso" : "casos"}: {paquete.movimientos.map((m) => m.celda).join(", ")} · {paquete.distancia}
+                  {fmt(paquete.casos)} {paquete.casos === 1 ? "caso" : "casos"}: {paquete.movimientos.map((m) => m.celda).join(", ")}, a {paquete.distancia}
                 </p>
                 {paquete.rechazo ? (
                   <p className="mon-sub-ya-rechazado">
@@ -186,7 +186,7 @@ function SubsanacionesTabImpl({
             ))}
           </ul>
         ) : (
-          <p className="mon-sub-base">El motor no encuentra excedente compatible para las celdas abiertas.</p>
+          <p className="mon-sub-base">Sin excedente compatible</p>
         )}
       </section>
 
@@ -194,7 +194,6 @@ function SubsanacionesTabImpl({
       <section className="mon-sub-panel mon-sub-movimientos" aria-labelledby="mon-sub-movimientos">
         <header className="mon-sub-cabecera">
           <h3 id="mon-sub-movimientos">Movimientos en el territorio</h3>
-          <span className="mon-sub-base">Activos y el paquete sugerido</span>
         </header>
         <MapaDeMovimientos activos={modelo.ajustesActivos} sugeridos={sugerencias.map((paquete) => paquete.ajuste)} />
       </section>
@@ -202,7 +201,7 @@ function SubsanacionesTabImpl({
       <section className="mon-sub-panel mon-sub-aplicadas" aria-labelledby="mon-sub-activas">
         <header className="mon-sub-cabecera">
           <h3 id="mon-sub-activas">Subsanaciones aplicadas</h3>
-          <span className="mon-sub-base">{fmt(modelo.activas)} activas · {fmt(modelo.revertidas)} revertidas · {fmt(modelo.rechazadas)} paquetes rechazados</span>
+          <span className="mon-sub-base">{fmt(modelo.activas)} activas, {fmt(modelo.revertidas)} revertidas y {fmt(modelo.rechazadas)} {modelo.rechazadas === 1 ? "paquete rechazado" : "paquetes rechazados"}</span>
         </header>
         {modelo.activasPorDistrito.length ? (
           <ul className="mon-sub-distritos">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { ajusteParaAplicar, construirSubsanaciones } from "./subsanacionesModel";
+import { ajusteParaAplicar, construirSubsanaciones, lugarDelPaquete } from "./subsanacionesModel";
 
 const CORTE = {
   operational_adjustments: {
@@ -44,14 +44,14 @@ describe("Control › Subsanaciones", () => {
     expect(modelo).toMatchObject({ activas: 1, revertidas: 1 });
     expect(modelo.activasPorDistrito).toEqual([{ distrito: "Ate", casos: 1 }]);
     expect(modelo.historial.map((item) => [item.cuando, item.estado])).toEqual([["03/07 20:22", "activa"], ["03/07 20:21", "revertida"]]);
-    expect(modelo.historial[0].texto).toBe("Aplicada · UMP 101 → UMP 107: 1 caso (mujer de 60 o más años) · coordinacion");
+    expect(modelo.historial[0].texto).toBe("Aplicada: de la UMP 101 a la UMP 107, 1 caso de mujer de 60 o más años, por coordinacion");
     expect(modelo.historial[0].nota).toBe("Cierra la 107");
     expect(modelo.idsActivos.has("x1")).toBe(true);
   });
 
   it("al aplicar manda la nota del coordinador, o una que diga qué se movió", () => {
     expect(ajusteParaAplicar(modelo.sugerencias[0], "  Lo revisé con campo ").note).toBe("Lo revisé con campo");
-    expect(ajusteParaAplicar(modelo.sugerencias[0], "").note).toBe("Aplicado desde Control › Subsanaciones: UMP 142 → UMP 143: 1 caso (hombre de 30 a 44 años).");
+    expect(ajusteParaAplicar(modelo.sugerencias[0], "").note).toBe("Aplicado desde Control › Subsanaciones: de la UMP 142 a la UMP 143, 1 caso de hombre de 30 a 44 años.");
   });
 
   it("un paquete ya rechazado se marca con su nota y el rechazo entra al historial", () => {
@@ -62,12 +62,17 @@ describe("Control › Subsanaciones", () => {
     const con = construirSubsanaciones(CORTE, [rechazo]);
     expect(con.sugerencias[0].rechazo?.nota).toBe("Campo dice que no");
     expect(con.rechazadas).toBe(1);
-    expect(con.historial[0]).toMatchObject({ cuando: "04/07 09:00", estado: "rechazada", nota: "Campo dice que no", texto: "Rechazada · UMP 142 → UMP 143: hombre de 30 a 44 años · coordinacion" });
+    expect(con.historial[0]).toMatchObject({ cuando: "04/07 09:00", estado: "rechazada", nota: "Campo dice que no", texto: "Rechazada: de la UMP 142 a la UMP 143, hombre de 30 a 44 años, por coordinacion" });
     expect(construirSubsanaciones(CORTE).sugerencias[0].rechazo).toBeNull();
   });
 
   it("un corte sin subsanaciones calculadas no se lee como «nada que subsanar»", () => {
     const sin = construirSubsanaciones({ operational_adjustments: { schema: "x", reason: "scope_sin_subsanaciones" } } as unknown as MonitoreoTerritorialDashboard);
     expect(sin.disponible).toBe(false);
+  });
+
+  it("el lugar del paquete omite la manzana que el motor no trae", () => {
+    expect(lugarDelPaquete({ ump: "144", manzana: "0430", aplicador: "P132 · Aplicadora" })).toBe("manzana 0430, P132 · Aplicadora");
+    expect(lugarDelPaquete({ ump: "2 sobrantes", manzana: "", aplicador: "Varios responsables" })).toBe("Varios responsables");
   });
 });

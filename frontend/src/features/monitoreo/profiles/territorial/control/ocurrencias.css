@@ -579,3 +579,63 @@
   font-weight: var(--pulso-weight-regular);
   line-height: 1;
 }
+
+/* Reportes UMP (ronda 2): las tarjetas de distrito se reparten el alto de la
+ * retícula y sus baldosas crecen con ellas, en vez de dejar 180 px vacíos
+ * sobre la leyenda; si no caben (1024), miden lo mínimo y la retícula
+ * desplaza. La lateral toma su alto natural. */
+.mon-rep-reticula {
+  align-content: stretch;
+  grid-auto-rows: minmax(min-content, 1fr);
+}
+
+.mon-rep-distrito {
+  display: flex;
+  flex-direction: column;
+}
+
+.mon-rep-baldosas {
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(40px, 1fr);
+}
+
+.mon-rep-baldosa {
+  height: 100%;
+  min-height: 40px;
+}
+
+.mon-rep-reticula-panel > .mon-ocu-leyenda {
+  justify-content: center;
+}
+
+.mon-rep > .mon-rep-lateral {
+  align-self: start;
+  max-height: 100%;
+}
+
+/* Ocurrencias (ronda 2): «Por distrito» toma el ancho que piden sus cuatro
+ * columnas de motivo (antes se cortaba la tercera y desplazaba en
+ * horizontal) y sus filas se reparten el alto de la tarjeta. */
+@media (min-width: 1181px) {
+  .mon-ocu-cuerpo {
+    grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
+  }
+
+  .mon-ocu-cuerpo > :first-child .mon-ocu-tabla {
+    height: 100%;
+  }
+}
+
+/* Que las cuatro columnas de motivo quepan a 1440: el motivo a 104 px en dos
+ * líneas y el distrito que parte línea si es largo. */
+@media (min-width: 1181px) {
+  .is-territorial-profile .mon-ocu-distritos .mon-ocu-tabla thead th.is-motivo {
+    width: 104px;
+    min-width: 104px;
+  }
+
+  .mon-ocu-distritos .mon-ocu-tabla tbody th {
+    max-width: 150px;
+    white-space: normal;
+  }
+}

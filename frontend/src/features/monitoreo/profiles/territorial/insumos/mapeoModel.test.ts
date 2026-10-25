@@ -39,8 +39,8 @@ describe("Insumos › Mapeo y filtro", () => {
   it("cada rol con su columna y si está en la base, con el motivo de la falta", () => {
     expect(modelo.roles?.map((rol) => [rol.rol, rol.columna, rol.estado, rol.rotuloDeEstado])).toEqual([
       ["Distrito", "Core/M5_district", "encontrada", "En la base"],
-      ["Sexo", "", "sin-mapear", "Falta: sin columna elegida"],
-      ["Edad", "Core/E1_age", "ausente", "Falta: la columna no está en la base"],
+      ["Sexo", "", "sin-mapear", "Sin columna"],
+      ["Edad", "Core/E1_age", "ausente", "Columna ausente"],
     ]);
     expect(modelo.pendientes).toBe(2);
   });
