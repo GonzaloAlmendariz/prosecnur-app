@@ -253,6 +253,16 @@ export function esPestanaPropia(direccion: DireccionTerritorial): boolean {
 }
 
 /**
+ * La pestaña pinta su propio rótulo y la página no pone `CabeceraTerritorial`.
+ * Son las pestañas propias más Avance › Salidas, cuyo workbench común lleva el
+ * rótulo en su primera tarjeta. No es `esPestanaPropia`: esa también decide
+ * qué cortes pide la pestaña, y Salidas no pide ninguno extra.
+ */
+export function llevaRotuloEnLaPestana(direccion: DireccionTerritorial): boolean {
+  return esPestanaPropia(direccion) || (direccion.seccion === "avance" && direccion.pestana === "salidas");
+}
+
+/**
  * Dirección pública que corresponde a una vista heredada, para los enlaces
  * internos que todavía nombran la clave vieja (`onCambioPestana("duracion")`
  * desde Geolocalización). Las marcadas `regreso: false` no reciben ese

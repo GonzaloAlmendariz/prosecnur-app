@@ -8,6 +8,7 @@ import {
   direccionPedida,
   direccionesPublicas,
   esPestanaPropia,
+  llevaRotuloEnLaPestana,
   pestanasDeSeccion,
   pideOtraDireccion,
   SECCIONES_TERRITORIALES,
@@ -136,5 +137,14 @@ describe("dirección pública del modo territorial", () => {
     expect(pideOtraDireccion(pedida("consultas", "registro"), activa)).toBe(false);
     expect(pideOtraDireccion(pedida("control", "equipo"), activa)).toBe(true);
     expect(pideOtraDireccion(pedida(null), activa)).toBe(false);
+  });
+});
+
+describe("rótulo dentro de la pestaña", () => {
+  it("Salidas lleva el rótulo en su tarjeta sin volverse pestaña propia (no pide cortes extra)", () => {
+    const salidas = { seccion: "avance", pestana: "salidas", panel: null } as const;
+    expect(llevaRotuloEnLaPestana(salidas)).toBe(true);
+    expect(esPestanaPropia(salidas)).toBe(false);
+    expect(llevaRotuloEnLaPestana(ATERRIZAJE_TERRITORIAL)).toBe(true);
   });
 });
