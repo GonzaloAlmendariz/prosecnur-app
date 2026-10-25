@@ -1943,6 +1943,9 @@ p_slide_6_graficos_poblacion <- function(
 #' @param invertir_barras,otros_al_final,normalizar_etiquetas Orden y rótulos de las categorías que la tarjeta de
 #'   Láminas escribe en el slot (O7c). Van a `overrides`; `NULL` hereda el preset (en la casa, `TRUE`, `TRUE` y
 #'   «ninguna»).
+#' @param temas_de_texto Para una múltiple que codifica un texto abierto en temas (p. ej. `coment_recod` de
+#'   `coment`): el nombre de ese texto. Con él, el % es sobre los comentarios con contenido, la base lo dice y los
+#'   subtemas de un módulo van bajo él (reporte_plan_temas_texto.R). `NULL` (por defecto): sin cambios.
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
@@ -1951,7 +1954,8 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
                                etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
                                forzar_ancho_max_eje_y = NULL, marcas_eje = NULL, invertir_barras = NULL,
-                               otros_al_final = NULL, normalizar_etiquetas = NULL, residuales_gris = NULL) {
+                               otros_al_final = NULL, normalizar_etiquetas = NULL, residuales_gris = NULL,
+                               temas_de_texto = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1990,6 +1994,8 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   overrides <- .ppt_slot_override(overrides, "residuales_gris", residuales_gris, "bool")   # residuales en gris: opción del gráfico, apagada por defecto
   overrides <- .ppt_slot_override(overrides, "normalizar_etiquetas", normalizar_etiquetas, "opcion",
                                   opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
+  # TXT-20: el texto abierto que se codificó en `var` (temas); apagado por defecto. reporte_plan_temas_texto.R
+  overrides <- .ppt_slot_override(overrides, "temas_de_texto", temas_de_texto, "texto")
 
   el <- list(
     .element_type = "barras_agrupadas",

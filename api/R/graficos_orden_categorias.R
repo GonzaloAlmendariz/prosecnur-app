@@ -98,7 +98,10 @@
 #' Pregunta (etiqueta de la variable) para los avisos
 #' @keywords internal
 .goc_pregunta <- function(inst, var) {
-  l <- inst$orders_list[[var]]$label %||% inst$var_labels[[var]] %||% var
+  # TXT-20: `var_labels` es un vector con nombres; `[[var]]` de un nombre ausente revienta («subscript out of bounds») y
+  # el aviso tapaba la causa real (la variable no está en la base). `[var]` da NA y cae al nombre.
+  vl <- unname(inst$var_labels[var]); if (!length(vl) || is.na(vl[[1]])) vl <- NULL
+  l <- inst$orders_list[[var]]$label %||% vl %||% var
   as.character(l)[1]
 }
 
