@@ -1,6 +1,7 @@
 import type { MonitoreoConfig, MonitoreoLastSheetsPublication } from "../../../../api/client";
 import type { MonitoreoCorte } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
+import { RotuloDePestana } from "./navegacion/RotuloDePestana";
 
 export type TerritorialOutputsPanelProps = {
   config?: Partial<MonitoreoConfig>;
@@ -30,6 +31,7 @@ export function TerritorialOutputsPanel({
       corte={corte}
       syncedAt={syncedAt}
       onPublished={onPublished}
+      rotulo={<RotuloDePestana />}
     />
   );
 }
