@@ -27,11 +27,17 @@
   # se unen en uno (antes se quedaba el primero y la lámina de cinco dejaba sin línea el panel de abajo a la derecha).
   claves <- vapply(filetes, function(f) paste(f$tipo, round(f$x %||% f$y, 2)), "")
   unidos <- filetes[!duplicated(claves)]
+  # Lo mismo en vertical (CCSS-30): el filete de la fila de abajo cae en la misma x que el de arriba y se descartaba; se
+  # unen en uno continuo por columna, como en la grilla de cuatro.
   for (k in seq_along(unidos)) {
-    if (!identical(unidos[[k]]$tipo, "h")) next
     mismos <- filetes[claves == claves[!duplicated(claves)][k]]
-    unidos[[k]]$x0 <- min(vapply(mismos, function(f) f$x0, 0))
-    unidos[[k]]$x1 <- max(vapply(mismos, function(f) f$x1, 0))
+    if (identical(unidos[[k]]$tipo, "h")) {
+      unidos[[k]]$x0 <- min(vapply(mismos, function(f) f$x0, 0))
+      unidos[[k]]$x1 <- max(vapply(mismos, function(f) f$x1, 0))
+    } else {
+      unidos[[k]]$y0 <- min(vapply(mismos, function(f) f$y0, 0))
+      unidos[[k]]$y1 <- max(vapply(mismos, function(f) f$y1, 0))
+    }
   }
   list(paneles = paneles, filetes = unidos)
 }
