@@ -46,6 +46,7 @@ preguntas P1–P6), lienzo «Revamp de Monitoreo · Acreditación», `estandar-d
 | A8 | Avance restante | Por cuota, Ritmo, Salidas y Cerrar campo | A1 | ◐ (las cuatro escritas; falta typecheck, gates y capturas) |
 | A9 | Contenedores (§2a-bis) | Cada unidad de lectura en su tarjeta; tablas con cabecera sobre superficie alternativa, filas de 42 px y cifras tabulares; el rótulo de la pestaña va en la primera tarjeta o en la fila de la barra, sin fila propia; Modelo › Metas como rejilla de tarjetas por público | A2–A8 | ☑ ronda 1 aprobada (16530c06d) |
 | A9b | Contenedores, ronda 2 | Avisos, trabas y vacíos dentro de su tarjeta con una sola receta; sub-vistas anteriores sin fila de cabecera; tablas que caben o desplazan señaladas; paleta de públicos en Metas y punto de público en las listas; readiness de las pestañas que leen el estado de cuotas | A9 | ◐ (ver nota A9b) |
+| A9d | Mejora sostenida, ronda 4 | Por público de Resumen con 4 y con 10 públicos (densidad cómoda y compacta), sin explicaciones encadenadas en las 21 pestañas, Avance › Por cuota y Variables de control al estándar, un solo camino para cerrar campo | A9c | ◐ (ver nota A9d) |
 
 ## A1: cómo se traduce cada pestaña mientras no tiene contenido propio
 
@@ -485,6 +486,92 @@ contenedor, de coherencia visual, de espacios vacíos … contenedores por perfi
   conserva la fila de rótulo; las dos viven en `core/colaDeInsistencia`, que trabaja Telefónico. Las teselas de
   duración de Supervisión (<2 min, <5 min, 5+ min) siguen con su fondo de estado: son de la vista anterior y no
   tienen un borde lateral que lo reemplace sin rehacerla.
+
+**A9d, ronda 4 (pedido de Gonzalo sobre Resumen › Por público y auditoría Meta B, filas 13 y 18).**
+
+Pedido textual: «sigues haciendo explicaciones innecesarias luego de puntos y comas, además esta tabla debe seguir
+viéndose bien cuando los actores no sean varios sino solo 4». Meta B consultada: L29 (densidad cómoda y compacta como
+atributo), L20 (una cifra con su base), L28 (tabla e inspector), L21, L26 y L10.
+
+- **Por público (Resumen)**:
+  - La cabecera es «Por público», sin subtítulo. «Rezagados primero» y «la marca vertical es la meta» van en el
+    `title` de la cabecera y de cada tesela.
+  - Cada tesela dice solo «N % de la meta». El porcentaje del universo y su padrón pasan al tooltip. Un público sin meta
+    dice «N % del universo (M personas)».
+  - La mini-serie de 14 días sale de la tesela: se montaba sobre la línea de cifras y ya vive en la columna «Últimos 14
+    días» de Avance › Por público.
+  - La densidad es un atributo: `data-density` en `.acr-res`. Es **cómoda** hasta seis públicos (tesela con pie, barra
+    de 8 px, cifra de 16 px) y **compacta** con más (nombre, cifra y barra).
+  - En cómoda, «Por público» y «Por resolver» toman al menos su alto natural y las teselas reparten parejo lo que
+    sobra (`minmax(max-content, 1fr) max-content`). Si la ventana no alcanza (1366 × 768), la página crece y desplaza el
+    workbench, no corta. En compacta, como en la ronda 3: la lista de públicos va primero y «Por resolver» lleva el
+    resto con su scroll. Se probó al revés (Por resolver a su alto natural) y con 10 públicos la lista quedaba en cuatro
+    teselas y media.
+  - «Esperan decisión por público» pasa de filas a chips con el punto del público. Así «Ya resueltos» cabe entero en
+    Contabilidad a 1440 × 1000; antes se cortaba al pie de la tarjeta.
+  - El chip de proyección se parte en dos: «Faltan N» y «≈ D días». El ritmo diario va en el tooltip.
+- **Repaso de las 21 pestañas** (barrido del DOM con `scratchpad/r4dom/textos.mjs`): se recortaron las frases
+  explicativas encadenadas con «;», «·» o «:».
+  - Modelo › Metas: el pie dice «N % del padrón», que es lo que mide su barra; «N % de la meta del estudio» pasa al
+    tooltip.
+  - Modelo › Ventana: «El campo lleva 9 semanas y el plan declara 1.»
+  - Equipo: «Casos sin asignar todavía».
+  - Por resolver › caso: «Descartada, fuera del avance».
+  - Cruce: «551 registros»; el desglose va en el tooltip.
+  - Respuestas: «1,277 respuestas» con el chip «418 cuentan».
+  - Ritmo: «El plan de campo no tiene fases con fechas.»
+  - Supervisión: «Duración de las efectivas y muestra por responsable.»
+  - Calidad: «Menos de 1 min».
+  - Fuentes: «Sin hoja de barrido (opcional).»; para qué sirve va en el tooltip.
+  - Por cuota (control): el chip «Sin meta» y «Máx. +1.3 pp».
+  - Se dejaron los pares de datos que no explican nada («Google Sheets · Padrón», «8 eventos · 5 reglas», «QR
+    presencial: pregunta de código PUCP») y las leyendas «rótulo: valor».
+- **Avance › Por cuota (auditoría, fila 18)**:
+  - **Barras vacías: defecto C5 real, no de captura.** El color de la barra (`--cuota-tono`) apunta a la paleta
+    `--cuota-*`, declarada solo en `.mon-cuotas` y `.mon-cuotas-panel`. Dentro de Por cuota el detalle cuelga de
+    `.acr-pc-detalle-cuota`, así que la variable no resolvía y el relleno salía transparente con cualquier dato. Ahora la
+    paleta se declara también en `.mon-cuotas-detalle`. Se retiró además `transition: inline-size` (L37: sin
+    transiciones de layout).
+  - El detalle va en su tarjeta, a su alto natural y con tope en la columna, dueño del scroll. Se decidió alto natural
+    y no estirado: es la doctrina de `SubvistaConRotulo` («el vacío bajo una vista corta es fondo de página»), y estirar
+    las categorías dejaba una tarjeta de 800 px con dos filas.
+  - Cabecera del detalle: chips «59.2 %» (con el color de su estado) y «0 de 3 categorías cumplidas», más «481 de
+    812». Cobertura y personas sin dato pasan al tooltip.
+  - Filas: «59.5 % de la meta»; la tasa sobre la base va en el tooltip.
+  - Cuenta: «3 categorías».
+  - Leyenda centrada debajo de la lista.
+  - «Editar metas» se quita del detalle dentro de Por cuota: duplicaba «Editar en Modelo» de la franja. En la vista
+    telefónica, `onEditar` sigue llegando y el botón sigue ahí.
+  - Composición sin meta: la leyenda pasa debajo y va centrada.
+- **Variables de control (`avance/cuotas&panel=detalle`)**: ahora es la vista del estándar `avance/VariablesDeControl.tsx`.
+  - Una tarjeta con el rótulo y el selector. La tabla tiene una fila de grupo por público y variable (con su punto de
+    color) y estas columnas: universo, efectivas, % del universo frente a % de las efectivas (dos barras), diferencia
+    (marcada desde 2 pp), parciales y rechazos.
+  - Debajo siguen las tablas del reporte (`AcreditacionGsReportsPanel`), ahora como tarjeta «Tablas del reporte»
+    con el chip de filas y sus pestañas Reporte / Encuestas. Se fueron su franja teñida con cifras en versalitas y los
+    dos párrafos que describían la hoja; sus cuatro ayudantes, sin uso, se borraron. Las tablas de cada bloque
+    (`GsReportBlockTable`) son las de siempre.
+  - Se fueron la tarjeta teñida «Corte sincronizado», los dos párrafos y las píldoras en versalitas.
+  - El agrupado y el orden cronológico de las cohortes salieron del page-file a `avance/variablesDeControlModelo.ts`,
+    con test de comportamiento. El test que leía el page-file como texto se retiró.
+  - La sub-vista deja de ser «anterior» en `chipsDeCabecera.ts` para no duplicar el rótulo.
+  - El page-file baja de 17,545 a 17,219 líneas.
+- **Marcar cierre heredado (auditoría, fila 13)**: queda un solo camino, el diálogo «Cerrar campo» de Avance › Salidas.
+  - Antes de quitar el botón se comprobó que hacía lo mismo: los dos llaman a `onCerrar(plan, aprobación)` →
+    `closeAcreditacion`.
+  - La regla de habilitado es la misma. `canClose = cierre_habilitado || plan || aprobación` equivale a
+    `puedeCerrar(!cierre_habilitado, plan, aprobación)`.
+  - Los dos se apagan con el estudio en cierre.
+  - Se quitaron las dos secciones `mon-acr-model-close` de `AcreditacionModelWorkbench`, que solo se montaban con el
+    modelo de componentes antiguo (`acreditacion.enabled`).
+- **Pendientes fuera de este glob**:
+  - Reintentos: «2 responsables con casos en cola; 5 por llamar…», «0 en cola; 3 sin llamar y sin responsable» y «95
+    casos: 2 con 10 intentos o más…». Viven en `core/colaDeInsistencia*`, de Telefónico.
+  - Fuentes: «N recopiladores usan este canal · M con excepción», en `fuentes/vocabulario.ts`.
+  - Salidas: «El corte quedó desactualizado…; vuelve a sincronizar antes de publicar.», en `corte/corteContract.ts`.
+  - Calidad: el detalle «N respuestas completas de … no cruzan con el universo base. Revisar candidatos…» viene del
+    motor (`detail` del caso).
+  - La franja «Sheets · Kobo · Todo» de Insumos (auditoría, fila 11) es `components/SourceSyncActions.tsx`, compartido.
 
 ## Preguntas surgidas en la implementación
 
