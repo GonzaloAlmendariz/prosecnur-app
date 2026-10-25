@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   CheckSquare,
@@ -42,6 +42,7 @@ import {
   type RegistroConfirmacion,
 } from "./sugerenciasModulo";
 import { useSugerenciasModulo } from "./useSugerenciasModulo";
+import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -179,7 +180,10 @@ export function RespuestasCodificador({ parent }: Props) {
   const esSM = tipo === "select_multiple" && !!smOtros;
 
   // TXT-3: el módulo del formulario que se propone para cada comentario. Sólo en texto abierto y sólo como propuesta.
-  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas);
+  // TXT-6/7: guardar el diccionario de la pregunta (panel «Palabras») vuelve a pedir la propuesta.
+  const [versionDiccionario, setVersionDiccionario] = useState(0);
+  const alGuardarDiccionario = useCallback(() => setVersionDiccionario((v) => v + 1), []);
+  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas, versionDiccionario);
   const mapaSugerencias = useMemo(
     () => (sugerencias.fase === "lista" && respuestas ? sugerenciasPorRespuesta(sugerencias.datos, respuestas) : new Map<string, EntradaSugerida>()),
     [sugerencias, respuestas],
@@ -440,6 +444,12 @@ export function RespuestasCodificador({ parent }: Props) {
       <div className="pulso-cv2-rc-toolbar">
         <SaveStatusIndicator state={saveStatus} variant="badge" />
         <div className="pulso-cv2-rc-toolbar-spacer" />
+        {tipo === "text" && colEfectiva && (
+          <>
+            <PalabrasBoton />
+            <PalabrasPanel variable={colEfectiva} onGuardado={alGuardarDiccionario} />
+          </>
+        )}
         <button
           type="button"
           className="pulso-primary pulso-cv2-newgroup"

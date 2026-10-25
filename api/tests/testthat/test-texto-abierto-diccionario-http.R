@@ -47,3 +47,14 @@ test_that("PUT y GET /api/texto-abierto/diccionario por el wire: guarda, devuelv
   e <- http_get(srv, "/api/texto-abierto/diccionario?variable=region&base=fantasma", sid = sid)
   expect_identical(e$json$error$code, "E_TXT_BASE_NO_EXISTE")
 })
+
+test_that("PUT con `variable` en la query y en el cuerpo a la vez no muere (la query gana)", {
+  # O5 lo encontró desde la UI: plumber pasaba las dos como argumentos y el handler caía en E_INTERNAL.
+  .http_contract_skip_if_unavailable()
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  body <- list(variable = "region", diccionario = list(equivalencias = list(), excluir = list("clara"), frases = list()))
+  r <- .dic_http_put(srv, "/api/texto-abierto/diccionario?variable=region", body, base$sid)
+  expect_identical(r$status, 200L)
+  expect_identical(r$json$diccionario$excluir, list("clara"))
+})
