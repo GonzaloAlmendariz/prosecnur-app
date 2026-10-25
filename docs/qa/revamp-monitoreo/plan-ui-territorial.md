@@ -429,3 +429,68 @@ Pendientes que quedan:
 - Modelo › Metas a 1024: la tabla de meta por distrito desplaza en horizontal (Viviendas y Población) dentro de su
   marco.
 - H-3 (`casos-ump` síncrono) y H-4 (P514 conciliado con dos personas): anotados arriba.
+
+## Ronda 3 (2026-10-25): pendientes de la ronda 2 y repaso L10/L11
+
+Decisiones tomadas con el estándar (§2a-bis) sin volver a preguntar:
+
+- **Metas, «Cómo se arma la muestra».** Deja de ser prosa con «;» y paréntesis. Cada parámetro es una celda con su
+  rótulo corto y su valor: UMP (Manzana titular), Selección (PPS por territorio), Entrevistas por UMP (8), Rango de
+  viviendas (1 a 8), Reemplazos por UMP (1) y Reparto de la meta (Por distrito). Lo que necesita explicación
+  («probabilidad proporcional al tamaño», «si la titular no rinde, se pasa a su reemplazo») va en el tooltip, con
+  subrayado punteado (`metasModel.ts`, con test que prohíbe «;», «:», «(» y «·» en los valores).
+- **Metas a 1024.** La columna de la tabla toma 1.6 fr frente al mapa (que se encuadra con su proporción medida),
+  las celdas se compactan y «Por UMP» y los nombres de distrito largos parten línea. La tabla ya no desplaza.
+- **Subsanaciones a 1024.** Causa del apretón: la pestaña era un hijo flexible del área de trabajo y su fila se
+  encogía a ~230 px aunque el tope fuera 460. Ahora (`flex: 0 0 auto`) mide lo que trae y desplaza entera; una columna:
+  déficit a todo el ancho en dos columnas de tarjetas (alto natural, sin `capacity-drift`), paquetes con la ruta a
+  la izquierda y nota y acciones a la derecha, y debajo el mapa y las aplicadas. Cada lista tiene un alto que cabe en
+  la ventana (`clamp(340px, 100vh − 180px, 560px)`).
+- **Mapa acercado.** `useCartografiaDelMapa` expone `ricaPendiente`. Avance › Mapa con `panel=ump` y la exploración de
+  Avance › UMP no se marcan listas hasta tener calles y vecinas (o saber que fallaron); mientras tanto el lienzo va
+  con `aria-busy` y el chip «Cargando calles». Se decidió esperar: la captura sin calles medía otra pantalla.
+- **Ocurrencias.** `rotuloCortoDeMotivo` (con test): quita el paréntesis y se queda con la primera alternativa
+  («Fuera de cuota», «Vivienda abandonada», «Hogar ausente», «No cumple criterios»); el texto del formulario va en el
+  `title`. Se quitó el `line-clamp`: ningún encabezado se recorta. La leyenda usa el mismo rótulo. A 1024 la tabla por
+  distrito va a todo el ancho con sus cuatro motivos (antes quedaban fuera, a la derecha) y Por día y la tasa por UMP
+  lado a lado debajo.
+- **Repaso L10/L11 (20 vistas, 1440 y 1024).** Vacíos de Ocurrencias, Reportes y Subsanaciones sin frase tras «;» ni
+  oración relativa; «Subsanación revertida y avance recalculado»; ficha de UMP «Preparando el corte de Validación…»
+  (`aria-busy`); «Parte fuera de la ruta: UMP 1437» con la explicación en el tooltip; «Duración larga desde» sin
+  «, sin alerta» (va al tooltip); «La cartografía está incompleta» y «N sin GPS» pasan a chip; el diálogo de anulación
+  dice «Se revierte en Control › Anulaciones». Última columna de Señales, Equipo, Ocurrencias y Anulaciones con 16 px
+  (antes 8 px contra el borde).
+
+| Pestaña | Antes (terr-r2/e) | Después (terr-r3/b) |
+|---|---|---|
+| Modelo › Metas | cinco viñetas con «;» y paréntesis; a 1024 la tabla desplazaba (Viviendas y Población) | seis parámetros rotulados con tooltip; a 1024 la tabla cabe |
+| Control › Subsanaciones | 1024: dos listas de ~230 px y el paquete cortado a media altura | una columna, déficit en dos columnas, paquete en dos mitades; `geometryIssues=0` (en `terr-r3/a` hubo un `capacity-drift`, corregido) |
+| Avance › Mapa (UMP 2) | readiness lista sin calles (`terr-r2/c`) | espera la cartografía rica; sale con calles en las dos medidas |
+| Avance › UMP (exploración) | misma carrera | misma espera |
+| Control › Ocurrencias | «Fuera de cuota (sexo,…» recortado con `line-clamp`; a 1024 los motivos fuera de vista | rótulos cortos enteros; a 1024 tabla a todo el ancho |
+| Control › Reportes | «UMP 1437 tiene parte pero no está en la ruta.» | «Parte fuera de la ruta: UMP 1437» |
+| Insumos › Mapeo | «Duración larga desde, sin alerta» | «Duración larga desde», aclaración en tooltip |
+| Control › Señales / Equipo | última columna a 8 px del borde | 16 px |
+| Demás pestañas | sin hallazgos nuevos | sin cambios |
+
+Corrida final: `terr-r3/b` (42 capturas, 42 distintas por md5) `ok=true issues=0 scrollJails=0 geometryIssues=0
+desplazamientoH=5` (Faltante 13 px, UMP, filtros y tabla de Bandeja, Equipo: tablas anchas legítimas; Metas ya no
+figura). `terr-r3/c` a 1024 × 1400 muestra Subsanaciones y Ocurrencias enteras.
+
+Incidente de medición: dos corridas parciales (`b-fallida.log`, `c-fallida.log`) se quedaron en `marca-en-false` 420 s
+en Reportes y en Subsanaciones como primera ruta: la API no respondió el corte pedido tras el arranque frío (sólo
+registró el estado ligero). Con el orden completo de rutas (Faltante primero) pasan todas. Parece costo del corte en
+frío (familia de H-3), no de esta ronda; queda anotado para la ronda 4.
+
+### Para la ronda 4 (la última de Territorial)
+
+- **Ocurrencias › Distritos y Ritmo** siguen montando la vista heredada (`TerritorialFieldOccurrencesWorkbench`): otra
+  cabecera, cadenas «·» en mayúsculas y rótulos partidos a media palabra («INCOMPLETA S SIN OCURRENCIA S»). Rehacerlas
+  como pestañas propias o, al menos, rótulos cortos sin partir palabras.
+- **Arranque frío con una ruta de corte pesado primero** (Reportes, Subsanaciones): la readiness espera más de 420 s.
+  Revisar con H-3 si el corte de Consultas se precalienta.
+- **Avance › Resumen**: «Por qué N están en observación» deja ~110 px vacíos entre la lista y el pie a 1440.
+- **Modelo › Metas, fases**: «1,594 en el corte y meta de 1,200, desde el 12/06» podría pasar a celdas como los
+  parámetros.
+- **Ficha de UMP**: la fila de caso parte «Hombre, 51 años» en dos líneas a 1440.
+- H-3 y H-4 siguen anotados arriba.
