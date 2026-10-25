@@ -183,6 +183,7 @@ export function Publicos({
                         <input
                           className="acr-in-nombre"
                           value={borrador.actor}
+                          size={Math.max(16, borrador.actor.length + 2)}
                           onChange={(event) => elenco.editar(borrador.key, { actor: event.currentTarget.value })}
                           onFocus={() => fila && escribirFoco(fila.publico, { panel: PANEL_PADRON.id })}
                           aria-label={`Nombre del público ${indice + 1}`}

@@ -987,6 +987,20 @@
   box-shadow: none;
 }
 
+/* L11: a 1024 las tres columnas del recopilador (260 + 260 + 360 px como
+ * mínimo) no caben en la tarjeta y los controles quedaban cortados contra el
+ * borde. En pantallas angostas los controles bajan a su propia fila. */
+@media (max-width: 1180px) {
+  .fuentes-encuestas-stack .mon-acr-collector-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .fuentes-encuestas-stack .mon-acr-collector-row > .mon-acr-collector-controls {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(78px, auto) repeat(3, minmax(0, 1fr));
+  }
+}
+
 /* ══ Fin Encuestas y recopiladores ══════════════════════════════════════════ */
 
 /* Insumos › Fuentes (A6): las fichas de declaración son un grupo de alturas

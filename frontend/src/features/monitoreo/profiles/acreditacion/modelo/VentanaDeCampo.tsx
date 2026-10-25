@@ -71,7 +71,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
           </div>
         ) : <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae respuestas con fecha." descripcion="La ventana de cada público aparece con las primeras respuestas." />}
       </section>
-      {editorDelPlan ? <section className="acr-av-panel acr-mo-editor" aria-label="Plan de campo">{editorDelPlan}</section> : null}
+      {editorDelPlan ? <section className="acr-av-panel acr-mo-editor acr-vista-anterior" aria-label="Plan de campo">{editorDelPlan}</section> : null}
     </div>
   );
 }
