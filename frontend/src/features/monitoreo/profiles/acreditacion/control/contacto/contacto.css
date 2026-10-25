@@ -126,8 +126,16 @@
   color: var(--pulso-warn-fg);
 }
 
-.acr-ct-matriz-celda.is-vacia {
+/* La esquina sin efectiva en ninguno de los dos lados: no se cuenta, y lo dice
+ * con «—» y su motivo en el tooltip. Sin tinte, con borde. */
+.acr-ct-matriz-celda.is-fuera {
   border: 1px dashed var(--pulso-border);
+  color: var(--pulso-text-soft);
+  cursor: help;
+}
+
+.acr-ct-matriz-celda.is-fuera b {
+  color: var(--pulso-text-faint);
 }
 
 .acr-ct-derecha {
