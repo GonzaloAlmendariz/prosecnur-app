@@ -38,9 +38,14 @@ export function chipsDeCabecera(
 const CON_LIENZO: readonly string[] = ["avance/resumen", "avance/publicos", "avance/cuotas", "avance/ritmo", "avance/salidas", "control/correo", "control/resolver", "control/reintentos", "control/barrido", "control/equipo", "control/cruce", "control/personas", "control/respuestas", "control/calidad", "insumos/publicos", "insumos/reglas", "modelo/metas", "modelo/cuotas", "modelo/ventana"];
 const SUBVISTAS: readonly string[] = ["ritmo", "recopiladores", "supervision", "detalle", "variables"];
 
+/** Sub-vista que todavía monta la vista anterior dentro de la tarjeta de contenido. */
+export function esSubvistaAnterior(direccion: DireccionAcreditacion): boolean {
+  return Boolean(direccion.panel && SUBVISTAS.includes(direccion.panel));
+}
+
 export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
   // Una sub-vista que todavía monta la vista anterior conserva la tarjeta.
-  if (direccion.panel && SUBVISTAS.includes(direccion.panel)) return false;
+  if (esSubvistaAnterior(direccion)) return false;
   return CON_LIENZO.includes(`${direccion.seccion}/${direccion.pestana}`);
 }
 
@@ -48,12 +53,15 @@ export function pestanaConLienzo(direccion: DireccionAcreditacion): boolean {
  * Pestañas que llevan el rótulo en su primera tarjeta en vez de una fila de
  * cabecera (§2a-bis). Reintentos conserva la fila: su primera fila es la barra
  * de filtros de la cola común (`core/ColaDeInsistencia`), que no recibe rótulo.
+ * Las sub-vistas anteriores lo llevan como cabecera de la tarjeta de contenido.
  */
 const SIN_ROTULO_EN_TARJETA: readonly string[] = ["control/reintentos"];
 
 export function rotuloEnTarjeta(direccion: DireccionAcreditacion): boolean {
   const clave = `${direccion.seccion}/${direccion.pestana}`;
   if (SIN_ROTULO_EN_TARJETA.includes(clave)) return false;
+  // La sub-vista anterior lleva el rótulo como cabecera de su tarjeta (SubvistaConRotulo).
+  if (esSubvistaAnterior(direccion)) return true;
   if (clave === "insumos/fuentes") return !direccion.panel;
   return pestanaConLienzo(direccion);
 }
