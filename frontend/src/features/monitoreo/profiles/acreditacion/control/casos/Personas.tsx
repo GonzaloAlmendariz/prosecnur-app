@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Download, Search } from "lucide-react";
-import { Alert } from "../../../../../../components/Alert";
+import { Download, Search, SearchX, Users } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { useFocoMonitoreo } from "../../../../useMonitoreoDireccion";
 import { fmt } from "../../formato";
@@ -21,6 +20,10 @@ import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
+import { MarcoDesplazable } from "../../piezas/MarcoDesplazable";
+import { clasePublico, paletaDePublicos } from "../../paletaPublicos";
+import "../../paletaPublicos.css";
 
 /** Estados que van como columna en «Estado por público»; los demás aparecen si hay. */
 const COLUMNAS_FIJAS: readonly EstadoDePersona[] = ["efectiva", "sin-respuesta", "parcial", "rechazo"];
@@ -40,7 +43,7 @@ function Barras({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: stri
             </li>
           ))}
         </ul>
-      ) : <Alert kind="info">Nadie de este público respondió todavía.</Alert>}
+      ) : <VacioDeBloque icono={<Users size={15} />} titulo="Nadie de este público respondió todavía." />}
     </section>
   );
 }
@@ -55,6 +58,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
   const casos = consultas.case_rollup?.length ? consultas.case_rollup : consultas.cases;
   const personas = useMemo(() => personasDe(casos), [casos]);
   const filas = useMemo(() => estadoPorPublico(personas), [personas]);
+  const paleta = useMemo(() => paletaDePublicos(personas.map((persona) => persona.publico)), [personas]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const publico = foco && filas.some((fila) => fila.publico === foco) ? foco : null;
   const [estado, setEstado] = useState<EstadoDePersona | null>(null);
@@ -71,9 +75,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
 
   if (!personas.length) {
     return (
-      <div className="acr-cr is-vacio" data-vacio>
-        <Alert kind="info">El corte todavía no trae el cruce del padrón persona por persona.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Estado por público" icono={<Users size={18} />} motivo="El corte todavía no trae el cruce del padrón persona por persona." descripcion="Aparece al actualizar, cuando cada público tiene su padrón conectado." />
     );
   }
 
@@ -95,7 +97,8 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
                 return (
                   <tr key={fila.publico ?? "todos"} className={activa ? "is-activa" : undefined}>
                     <th scope="row">
-                      <button type="button" className="acr-pub-nombre" aria-pressed={activa} onClick={() => elegir(fila.publico)}>
+                      <button type="button" className={`acr-pub-nombre${fila.publico ? ` acr-celda-publico ${clasePublico(paleta, fila.publico)}` : ""}`} aria-pressed={activa} onClick={() => elegir(fila.publico)}>
+                        {fila.publico ? <i className="mon-publico-punto" aria-hidden="true" /> : null}
                         {fila.publico ?? "Todos los públicos"}
                       </button>
                       <span className="acr-av-apilada acr-ps-barra" role="img" aria-label={columnas.map((clave) => `${ROTULO_DE_ESTADO[clave]}: ${fmt(fila.porEstado[clave])}`).join("; ")}>
@@ -138,7 +141,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
         </header>
-        <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
+        <MarcoDesplazable etiqueta="Personas del padrón">
           {vista.filas.length ? (
             <table className="acr-pub-tabla">
               <thead>
@@ -146,8 +149,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
                   <th scope="col">Llave</th>
                   <th scope="col">Público</th>
                   <th scope="col">Estado</th>
-                  <th scope="col">Canal</th>
-                  <th scope="col">Cómo cruzó</th>
+                  <th scope="col">Canal y cruce</th>
                   <th scope="col" className="is-num">Fecha</th>
                 </tr>
               </thead>
@@ -155,17 +157,21 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
                 {vista.filas.map((persona) => (
                   <tr key={persona.clave}>
                     <th scope="row" className="acr-av-num">{persona.llave}</th>
-                    <td>{persona.publico}</td>
+                    <td><span className={`acr-celda-publico ${clasePublico(paleta, persona.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{persona.publico}</span></td>
                     <td><span className="acr-ps-estado"><i className={`acr-av-punto is-${persona.estado}`} aria-hidden="true" />{ROTULO_DE_ESTADO[persona.estado]}</span></td>
-                    <td>{persona.canal || "—"}</td>
-                    <td>{persona.comoCruzo || "—"}</td>
+                    <td>
+                      <span className="acr-celda-doble">
+                        <span>{persona.canal || "—"}</span>
+                        {persona.comoCruzo ? <small>{persona.comoCruzo}</small> : null}
+                      </span>
+                    </td>
                     <td className="is-num">{persona.fecha ? fechaCorta(persona.fecha) : "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">Nadie coincide con estos filtros.</Alert></div>}
-        </div>
+          ) : <VacioDeBloque vacio="sin-coincidencias" icono={<SearchX size={15} />} titulo="Nadie coincide con estos filtros." descripcion="Quita el estado o el público elegido, o cambia la búsqueda." />}
+        </MarcoDesplazable>
         <footer className="acr-ps-pie">
           <span className="acr-av-tenue">{`${fmt(filtradas.length)} ${filtradas.length === 1 ? "persona" : "personas"}`}</span>
           <span className="acr-ps-paginas">

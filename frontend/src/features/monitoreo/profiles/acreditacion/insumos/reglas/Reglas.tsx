@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Loader2 } from "lucide-react";
-import { Alert } from "../../../../../../components/Alert";
+import { Check, Loader2, SlidersHorizontal } from "lucide-react";
 import { apiMonitoreoConfig, type MonitoreoConfig, type MonitoreoState } from "../../../../../../api/client";
 import { useResumenDelCorte } from "../../navegacion/resumenDelCorte";
 import { RotuloEnBarra } from "../../navegacion/rotuloDePestana";
@@ -20,6 +19,7 @@ import "../../avance/avance.css";
 import "../../modelo/modelo.css";
 import "../insumos.css";
 import "./reglas.css";
+import { AvisosDeTarjeta, PestanaSinContenido } from "../../piezas/AvisoDeTarjeta";
 
 type PropsDeVista = {
   config: MonitoreoConfig;
@@ -41,14 +41,19 @@ export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, gu
   const cambiado = hayCambios(config, borrador);
   return (
     <div className="acr-rg">
-      <div className="acr-av-panel acr-rg-barra">
-        <span className="acr-rg-barra-copia"><RotuloEnBarra /><span className="acr-av-tenue">Todo lo que cambia una cifra antes de contarla.</span></span>
-        <button type="button" className="acr-av-boton is-primario" onClick={onGuardar} disabled={guardando || !cambiado || problemas.length > 0}>
-          {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Guardar reglas
-        </button>
-      </div>
-      {mensaje ? <Alert kind={mensaje.tono === "error" ? "error" : "info"}>{mensaje.texto}</Alert> : null}
-      {cambiado && problemas.length ? <Alert kind="warn">{problemas.join(" ")}</Alert> : null}
+      <section className="acr-av-panel acr-rg-barra-tarjeta" aria-label="Reglas del estudio">
+        <div className="acr-rg-barra">
+          <span className="acr-rg-barra-copia"><RotuloEnBarra /><span className="acr-av-tenue">Todo lo que cambia una cifra antes de contarla.</span></span>
+          <button type="button" className="acr-av-boton is-primario" onClick={onGuardar} disabled={guardando || !cambiado || problemas.length > 0}>
+            {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Guardar reglas
+          </button>
+        </div>
+        {/* El resultado del guardado y las trabas viven en la tarjeta del botón que las provoca. */}
+        <AvisosDeTarjeta avisos={[
+          ...(mensaje ? [{ kind: mensaje.tono === "error" ? "error" as const : "info" as const, texto: mensaje.texto }] : []),
+          ...(cambiado && problemas.length ? [{ kind: "warn" as const, texto: problemas.join(" ") }] : []),
+        ]} />
+      </section>
       <div className="acr-rg-reticula" data-qa-geometry-group="acreditacion-insumos-reglas" data-qa-geometry-contract="intrinsic">
         <LlaveDeCruce
           padron={perfil?.key_rules?.universe_fields ?? []}
@@ -60,6 +65,7 @@ export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, gu
           onRespaldoNombre={(respaldoNombre) => onCambiar({ respaldoNombre })}
           bloqueada={guardando}
         />
+        <div className="acr-rg-columna">
         <QueCuentaComoEfectiva
           frases={frasesDeEfectiva(perfil)}
           duracionMinima={borrador.duracionMinima}
@@ -75,6 +81,7 @@ export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, gu
           onCambiar={(clave, valor) => onCambiar({ alertas: { ...borrador.alertas, [clave]: valor } })}
           bloqueada={guardando}
         />
+        </div>
       </div>
       {estadosDelBarrido ? <section className="acr-av-panel acr-rg-ancha" aria-label="Estados del barrido telefónico">{estadosDelBarrido}</section> : null}
       {eventos ? <section className="acr-av-panel acr-rg-ancha" aria-label="Eventos de contacto">{eventos}</section> : null}
@@ -113,7 +120,7 @@ export function Reglas({
   }, [firma]);
 
   if (!config || !borrador) {
-    return <div className="acr-cr is-vacio" data-vacio><Alert kind="info">Leyendo la configuración del proyecto.</Alert></div>;
+    return <PestanaSinContenido vacio="cargando" titulo="Reglas del estudio" icono={<SlidersHorizontal size={18} />} motivo="Leyendo la configuración del proyecto." />;
   }
 
   async function guardar() {

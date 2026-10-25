@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { CheckCircle2, Users } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { marcasDeEje } from "../../avance/avanceModelo";
@@ -10,6 +10,7 @@ import { construirEquipo, umbralesDelPerfil, type ModeloDeEquipo, type Responsab
 import "../../avance/avance.css";
 import "./contacto.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 const FAMILIAS: FamiliaDelCliente[] = ["efectiva", "reintentable", "terminal", "rechazo", "parcial", "sin-llamar"];
 
@@ -98,11 +99,6 @@ export function EquipoVista({ modelo }: { modelo: ModeloDeEquipo }) {
       <section className="acr-av-panel acr-ct-equipo-tabla" aria-label="Carga y resultado">
         <CabeceraDeTarjeta primera>
           <h3>Carga y resultado</h3>
-          <span className="acr-av-leyenda">
-            {FAMILIAS.filter((familia) => modelo.responsables.some((item) => item.familias[familia])).map((familia) => (
-              <span key={familia}><i className={`acr-av-punto is-familia-${familia}`} aria-hidden="true" />{ROTULO_DE_FAMILIA[familia]}</span>
-            ))}
-          </span>
         </CabeceraDeTarjeta>
         <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
           <table className="acr-pub-tabla">
@@ -144,6 +140,11 @@ export function EquipoVista({ modelo }: { modelo: ModeloDeEquipo }) {
             </tbody>
           </table>
         </div>
+        <span className="acr-av-leyenda is-centrada" aria-label="Estado de sus casos">
+          {FAMILIAS.filter((familia) => modelo.responsables.some((item) => item.familias[familia])).map((familia) => (
+            <span key={familia}><i className={`acr-av-punto is-familia-${familia}`} aria-hidden="true" />{ROTULO_DE_FAMILIA[familia]}</span>
+          ))}
+        </span>
         <footer className="acr-ct-pie" data-qa-geometry-group="acreditacion-equipo-totales" data-qa-geometry-contract="equal">
           <div className="acr-res-kpi" data-qa-geometry-member><small>Asignados</small><b className="acr-av-num">{fmt(modelo.total.asignados)}</b></div>
           <div className="acr-res-kpi" data-qa-geometry-member><small>Barridos</small><b className="acr-av-num">{fmt(modelo.total.barridos)}</b></div>
@@ -172,7 +173,7 @@ export function EquipoVista({ modelo }: { modelo: ModeloDeEquipo }) {
                 </li>
               ))}
             </ul>
-          ) : <div className="acr-ct-cuerpo"><Alert kind="info">Ningún responsable pasa los umbrales del perfil.</Alert></div>}
+          ) : <VacioDeBloque icono={<CheckCircle2 size={15} />} titulo="Ningún responsable pasa los umbrales del perfil." descripcion="Los umbrales se editan en Insumos › Reglas." />}
         </section>
       </div>
     </div>
@@ -189,9 +190,7 @@ export function Equipo({ reports, state }: { reports: MonitoreoAcreditacionRepor
   );
   if (!modelo.responsables.length) {
     return (
-      <div className="acr-ct is-vacio" data-vacio>
-        <Alert kind="info">El corte no trae responsables del barrido. Se leen de la hoja de barrido al actualizar.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Carga y resultado" icono={<Users size={18} />} motivo="El corte no trae responsables del barrido." descripcion="Se leen de la columna de responsable de la hoja de barrido al actualizar." />
     );
   }
   return <EquipoVista modelo={modelo} />;

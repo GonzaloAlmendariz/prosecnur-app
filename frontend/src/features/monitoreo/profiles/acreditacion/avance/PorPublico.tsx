@@ -135,11 +135,6 @@ export function PorPublicoVista({
         <section className="acr-av-panel acr-pub-estados" aria-label="Universo de cada público por estado">
           <header className="acr-av-panel-cabecera">
             <h3>Universo de cada público por estado</h3>
-            <span className="acr-av-leyenda">
-              {estadosDelUniverso(totales).map((estado) => (
-                <span key={estado.clave}><i className={`acr-av-punto is-${estado.clave}`} aria-hidden="true" />{estado.etiqueta}</span>
-              ))}
-            </span>
           </header>
           <ul className="acr-pub-estados-lista" data-qa-geometry-group="acreditacion-publicos-estados" data-qa-geometry-contract="equal" data-qa-geometry-capacity="owned">
             {filas.map((tarjeta) => {
@@ -164,6 +159,11 @@ export function PorPublicoVista({
               );
             })}
           </ul>
+          <span className="acr-av-leyenda is-centrada">
+            {estadosDelUniverso(totales).map((estado) => (
+              <span key={estado.clave}><i className={`acr-av-punto is-${estado.clave}`} aria-hidden="true" />{estado.etiqueta}</span>
+            ))}
+          </span>
         </section>
       </div>
       {enInspector ? (

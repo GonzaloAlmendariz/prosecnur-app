@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { CheckCircle2, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../../useMonitoreoDireccion";
@@ -13,6 +13,10 @@ import { useFiltrosPorResolver } from "./porResolverStore";
 import "../../avance/avance.css";
 import "./porResolver.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
+import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
+import { MarcoDesplazable } from "../../piezas/MarcoDesplazable";
+import { clasePublico, paletaDePublicos } from "../../paletaPublicos";
+import "../../paletaPublicos.css";
 
 /** El caso elegido es un panel direccionable: `panel=caso&foco=<response_id>`. */
 export const PANEL_CASO: PanelDeclarado = { id: "caso", label: "Caso por resolver", clase: "inspector" };
@@ -61,12 +65,11 @@ export function PorResolver({
   const elegida = panel.abierto && foco ? filas.find((fila) => fila.responseId === foco) ?? null : null;
   const enPanel = elegida ?? cola[0] ?? null;
   const tipoActual = resumen.porTipo.find((item) => item.tipo === tipo);
+  const paleta = useMemo(() => paletaDePublicos(filas.map((fila) => fila.publico)), [filas]);
 
   if (!filas.length) {
     return (
-      <div className="acr-pr is-vacio" data-vacio>
-        <Alert kind="info">Nada espera tu decisión: el corte no marca casos para revisar.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Casos por resolver" icono={<CheckCircle2 size={18} />} motivo="Nada espera tu decisión." descripcion="El corte no marca casos para revisar: toda respuesta cruzó con el padrón o se resolvió por regla." />
     );
   }
 
@@ -112,10 +115,11 @@ export function PorResolver({
                 <li key={item.publico}>
                   <button
                     type="button"
-                    className={filtros.publico === item.publico ? "is-activo" : undefined}
+                    className={`${clasePublico(paleta, item.publico)}${filtros.publico === item.publico ? " is-activo" : ""}`}
                     aria-pressed={filtros.publico === item.publico}
                     onClick={() => filtros.elegirPublico(item.publico)}
                   >
+                    <i className="mon-publico-punto" aria-hidden="true" />
                     <span>{item.publico}</span>
                     {item.esperan ? <b className="acr-av-num">{fmt(item.esperan)}</b> : null}
                   </button>
@@ -137,17 +141,15 @@ export function PorResolver({
             </span>
           </h3>
         </CabeceraDeTarjeta>
-        <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
+        <MarcoDesplazable etiqueta="Cola del tipo elegido">
           {cola.length ? (
             <table className="acr-pub-tabla acr-pr-tabla">
               <thead>
                 <tr>
                   <th scope="col">Respuesta</th>
-                  <th scope="col">Público</th>
-                  <th scope="col">Canal</th>
+                  <th scope="col">Público y canal</th>
                   <th scope="col">Llave</th>
-                  <th scope="col" className="is-num">Respondido</th>
-                  <th scope="col" className="is-num">Recibida</th>
+                  <th scope="col" className="is-num">Respondió</th>
                   <th scope="col">Estado</th>
                 </tr>
               </thead>
@@ -165,11 +167,19 @@ export function PorResolver({
                           {fila.responseId || "Sin identificador"}
                         </button>
                       </th>
-                      <td>{fila.publico}</td>
-                      <td>{fila.canal}</td>
+                      <td>
+                        <span className="acr-celda-doble">
+                          <span className={`acr-celda-publico ${clasePublico(paleta, fila.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{fila.publico}</span>
+                          <small>{fila.canal}</small>
+                        </span>
+                      </td>
                       <td className="acr-av-num">{fila.llave}</td>
-                      <td className="is-num">{fila.completitud}</td>
-                      <td className="is-num">{fila.fecha ? fechaCorta(fila.fecha) : "—"}</td>
+                      <td className="is-num">
+                        <span className="acr-celda-doble">
+                          <span>{fila.completitud}</span>
+                          <small>{fila.fecha ? fechaCorta(fila.fecha) : "Sin fecha"}</small>
+                        </span>
+                      </td>
                       <td>
                         {fila.decision
                           ? <span className={`acr-av-chip${fila.decision === "asignada" ? " is-cumple" : ""}`}>{ROTULO_DE_DECISION[fila.decision]}</span>
@@ -183,11 +193,9 @@ export function PorResolver({
               </tbody>
             </table>
           ) : (
-            <div className="acr-pr-cola-vacia" data-vacio>
-              <Alert kind="info">Este público no tiene casos de este tipo.</Alert>
-            </div>
+            <VacioDeBloque vacio="sin-coincidencias" icono={<SearchX size={15} />} titulo="Este público no tiene casos de este tipo." descripcion="Elige otro tipo o «Todos los públicos» a la izquierda." />
           )}
-        </div>
+        </MarcoDesplazable>
       </section>
 
       {enPanel ? (

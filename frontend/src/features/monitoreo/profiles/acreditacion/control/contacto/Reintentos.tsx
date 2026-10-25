@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { Alert } from "../../../../../../components/Alert";
+import { Repeat } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoSource, MonitoreoState } from "../../../../../../api/client";
 import { ColaDeInsistencia } from "../../../../core/ColaDeInsistencia";
 import { conDiasAlCorte } from "../../../../core/colaDeInsistenciaModel";
 import { estadoDeInsistencia, repartoDelEquipo } from "../../../telefonico/control/insistenciaModel";
 import { fmt } from "../../formato";
+import { PestanaSinContenido } from "../../piezas/AvisoDeTarjeta";
 
 /**
  * Plataforma de las respuestas del barrido, para rotular la efectiva en la
@@ -64,17 +65,18 @@ export function Reintentos({
 
   if (estado.clave === "sin-hoja") {
     return (
-      <div className="mon-cola-estado" aria-label="Reintentos">
-        <Alert kind="info">Ningún público tiene hoja de barrido conectada. Se conecta en Insumos › Fuentes.</Alert>
-      </div>
+      <PestanaSinContenido titulo="Cola de reintentos" icono={<Repeat size={18} />} motivo="Ningún público tiene hoja de barrido conectada." descripcion="Se conecta en Insumos › Fuentes; la cola se arma al actualizar." />
     );
   }
   if (estado.clave === "preparando") {
     return (
-      <div className="mon-cola-estado" aria-label="Reintentos" aria-live="polite">
-        <Alert kind="info">Este corte se calculó antes de que existiera la cola de reintentos. Actualizar la arma con la hoja de barrido actual.</Alert>
-        {onActualizar ? <button type="button" className="mon-cola-estado-accion" onClick={onActualizar}>Actualizar</button> : null}
-      </div>
+      <PestanaSinContenido
+        titulo="Cola de reintentos"
+        icono={<Repeat size={18} />}
+        motivo="Este corte se calculó antes de que existiera la cola de reintentos."
+        descripcion="Actualizar la arma con la hoja de barrido actual."
+        accion={onActualizar ? <button type="button" className="acr-av-boton" onClick={onActualizar}>Actualizar</button> : undefined}
+      />
     );
   }
   return (
