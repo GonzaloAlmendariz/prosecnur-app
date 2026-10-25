@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, pct } from "../rotulos";
-import { construirOcurrencias, motivosDeLaBarra, type ModeloOcurrencias } from "./ocurrenciasModel";
+import { construirOcurrencias, motivosDeLaBarra, rotuloCortoDeMotivo, type ModeloOcurrencias } from "./ocurrenciasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./ocurrencias.css";
 
@@ -22,7 +22,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
           <RotuloDePestana />
           <ClipboardList size={20} aria-hidden="true" />
           <strong>Sin partes de ocurrencias</strong>
-          <span>Los partes llegan del formulario de ocurrencias de campo; «Actualizar» trae los nuevos.</span>
+          <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
         </div>
       </section>
     );
@@ -67,7 +67,9 @@ function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
           ))}
         </span>
         <span className="mon-ocu-leyenda">
-          {barra.map((motivo, indice) => <span key={motivo.clave} className={`is-${indice}`}>{motivo.rotulo} {fmt(motivo.total)}</span>)}
+          {barra.map((motivo, indice) => (
+            <span key={motivo.clave} className={`is-${indice}`} title={`${motivo.rotulo}: ${fmt(motivo.total)}`}>{rotuloCortoDeMotivo(motivo.rotulo)} {fmt(motivo.total)}</span>
+          ))}
         </span>
       </div>
       <p className="mon-ocu-base" title="Las efectivas son las que declara el parte, no las que cuentan para la meta">{fmt(modelo.partes)} {modelo.partes === 1 ? "parte" : "partes"} en {fmt(modelo.umpsConParte)} UMP</p>
@@ -95,7 +97,7 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
                 const tono = Math.max(0, modelo.motivos.findIndex((motivo) => motivo.clave === columna.clave)) % 6;
                 return (
                   <th key={columna.clave} scope="col" className="is-num is-motivo" title={`${columna.rotulo}, por cada 100 intentos`}>
-                    <span className={`mon-ocu-motivo is-${tono}`}>{columna.rotulo}</span>
+                    <span className={`mon-ocu-motivo is-${tono}`}>{rotuloCortoDeMotivo(columna.rotulo)}</span>
                   </th>
                 );
               })}
