@@ -439,6 +439,51 @@ contenedor, de coherencia visual, de espacios vacíos … contenedores por perfi
   `readinessAnidada.contract.test.ts`); leído o en error, `true`. Las capturas ya no necesitan
   `--post-click-wait-selector`.
 
+**A9c, contenedores ronda 3 (pendientes de la ronda 2, contenedores por público y repaso de las 21 pestañas).**
+
+- **Avance › Ritmo a 1024** (`desplazamientoH` de 8 px en `mon-workbench-content--avance`): el gráfico de efectivas por
+  día tenía `width: 100%` más 16 px de margen a cada lado dentro de la columna flex de su tarjeta y la desbordaba
+  2 × 16 px. Ahora se estira sin ancho (`width: auto; align-self: stretch`).
+- **Un solo marco en las sub-vistas anteriores** (Ritmo diario, Recopiladores, Supervisión, Variables de control y
+  el detalle de Por cuota): `SubvistaConRotulo` arma UNA tarjeta (`acr-av-panel acr-subvista`) con el rótulo y el
+  selector como cabecera y la vista anterior como cuerpo (`acr-vista-anterior`), sobre el lienzo desnudo
+  (`pestanaConLienzo` ya es verdadero para ellas). Dentro, la vista anterior pierde su marco (borde, sombra,
+  degradado y radio de `.pulso-panel`, `.mon-phone-trend`, `.mon-acr-object-surface` y el bloque del plan de campo).
+  La misma clase limpia el editor del plan en Modelo › Ventana de campo, que tenía tarjeta dentro de tarjeta.
+- **Modelo › Variables sin vacío**: la tarjeta de la sub-vista toma su alto natural (antes la tarjeta de contenido
+  llegaba al pie) y la rejilla de actores alinea arriba: estirarlos dejaba hasta 70 px bajo los que no declaran
+  variable (era el `capacity-drift` de r2).
+- **Insumos › Públicos**: el campo del nombre crece con su texto (`field-sizing: content`, con `size` de respaldo) y
+  nunca es más angosto que la celda; «Estudiantes de posgrado Campus» y «… CENTRUM» se leen enteros.
+- **Contenedores por público (L9), decisión por pestaña**:
+  - Avance › Resumen, «Por público»: una tesela por público, con el estado frente a la meta en el borde lateral
+    sólido (cumple, faltan, sin meta) y el chip, y el color del público (el de Metas) en el punto y en la barra. No se
+    hacen tarjetas completas: es un ranking de rezagados en la misma escala y diez tarjetas grandes en la columna de
+    420 px romperían la comparación. «Esperan decisión por público» (Por resolver) lleva el punto del público.
+  - Avance › Salidas: sin tarjeta por público. Las salidas se publican por audiencia (Sheets del cliente e interno),
+    por artefacto (PDF, producción) y por corte; ninguna se parte por público, y el cumplimiento por público ya está
+    en Metas y en Resumen. Sí se aplicó la receta del modo a las tarjetas de salida compartidas: el estado del corte
+    va en el borde lateral y su chip, sin fondo teñido, y las tarjetas sin degradado.
+- **Selector de la paleta**: `[class*="es-publico-"]` casaba también `acr-res-publico-boton` y devolvía el gris a todo
+  lo que colgaba de la tesela. Ahora casa la clase entera (`[class^="es-publico-"]`, `[class*=" es-publico-"]`).
+- **Repaso L10/L11 (21 pestañas, 1440 y 1024)**:
+  - Insumos › Fuentes pasa al lienzo: la barra (rótulo, selector, cifras y acciones) es su propia tarjeta y la franja
+    de lectura pierde su marco y la banda blanca vacía entre las cifras y los botones. Antes había doble marco.
+  - Recopiladores a 1024: las tres columnas del recopilador (mínimo 880 px) no cabían y los controles quedaban
+    cortados contra el borde; por debajo de 1180 px los controles bajan a su fila.
+  - Supervisión: los bloques de la vista anterior ya no pintan el estado con un degradado de toda la tarjeta; va en
+    el borde lateral sólido (prioritaria, en curso, al día). Las teselas de cifras de Ritmo diario y del plan de campo
+    van sobre la superficie.
+  - Calidad y Personas a 1024: apiladas, la rejilla se encogía al alto del lienzo (`flex: 0 1 auto`) y las tablas
+    quedaban sin filas visibles (C4). Ahora toman su alto y desplaza el workbench.
+  - Respuestas a 1024: las facetas siguen a la izquierda (220 px), como los filtros de Por resolver; apiladas iban
+    arriba y el rótulo de la pestaña caía en la segunda tarjeta.
+  - Por resolver: la cola toma su alto (con el tope de su celda), sin tarjeta vacía hasta el pie con pocos casos.
+- **Pendiente fuera de este glob**: Control › Reintentos a 1024 deja la columna SurveyMonkey pegada al borde y
+  conserva la fila de rótulo; las dos viven en `core/colaDeInsistencia`, que trabaja Telefónico. Las teselas de
+  duración de Supervisión (<2 min, <5 min, 5+ min) siguen con su fondo de estado: son de la vista anterior y no
+  tienen un borde lateral que lo reemplace sin rehacerla.
+
 ## Preguntas surgidas en la implementación
 
 - **Redondeo de la meta (M1)**: la ficha dice meta = `ceiling(personas × cobertura)`; la app redondea al entero más
