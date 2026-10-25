@@ -44,8 +44,10 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   expect_null(e3$colores); expect_null(pie3$colores)
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, unidad_n = "estudiantes")),
                    "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
+  # 2026-10-25 (CCSS-8, lamina_barras_ancho.R): cambio deliberado de geometría, sin tocar colores, cifras ni orden. Las barras
+  # escalan al máximo × 1.15 y, con tres categorías, el bloque mide el 75 % del ancho útil y se centra. Arte: 0 distintas.
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
-                   "9d2563cff9c9ace53119fd482b518ff52d6457014670bc4d291de9119c8eb526")
+                   "c371afccd1e75ba1007eae0e439557b7fc0585e82ab5635993aa7eaf2f49eae3")
   # 2026-10-24 (loop motor PPT ↔ CCSS), cambios deliberados de geometría sin tocar colores: las barras usan el alto del área
   # (98e6690db), la dicotomía partida deja el mismo margen a ambos lados (7e10765b8) y la torta saca sus cifras chicas con
   # guía (9947637ce). Los hashes se rehicieron con esos tres; Arte salió idéntico en las tres oleadas.

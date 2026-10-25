@@ -74,7 +74,9 @@
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
   uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, .std_negrita_forzada("categorias"))) + 0.3))
-  list(size = size, fila = fila, g = g, wlab = wlab)
+  ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
+  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, .std_negrita_forzada("categorias"), previa = wlab); wlab <- r$wlab; size <- r$size
+  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, size))
 }
 
 #' ¿En qué forma cabe la categórica? Columnas (lámina 68), barras (lámina 73) o ninguna (`NA`)
@@ -118,11 +120,12 @@
     .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, hmax = min(3.4, (6.05 - 0.68 - yt) * 1.1), unidad_n = unidad_n)
   } else {
     geo <- .lam_barras_geo(espec); size <- geo$size; fila <- geo$fila; g <- geo$g; wlab <- geo$wlab
+    ag <- geo$ancho_geo; xb <- ml + (ag$dx %||% 0)
     if (!is.null(encabezado) && nzchar(encabezado)) {
-      .lam_txt(lz, encabezado, ml + wlab + 0.25, yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
+      .lam_txt(lz, encabezado, .lam_barras_ancho_x_encabezado(xb + wlab + 0.25, sub, titulo), yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
     }
     y0 <- yt + .lam_uso_area_arranque(length(espec$largos), fila, extra = if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)) 0.28 else 0)
-    .lam_barras_h(lz, espec, ml, y0, ancho, wlab = wlab, g = g, fila = fila, size = size)
+    .lam_barras_h(lz, espec, xb, y0, ag$w %||% ancho, wlab = wlab, g = g, fila = fila, size = size, escala = ag$escala)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:categorica")
   doc <- .lam_pie(doc, base, folio)
