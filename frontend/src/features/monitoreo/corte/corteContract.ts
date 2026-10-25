@@ -55,6 +55,16 @@ export type MonitoreoCorte = {
    * sí publican una meta.
    */
   metaEtiqueta: string;
+  /**
+   * **Qué mide el procesable en ESTE perfil**, dicho bajo la cifra.
+   *
+   * La tarjeta rotulaba siempre «pasan el filtro», y en telefónico y
+   * acreditación el procesable es la suma de universos declarados (2.296
+   * personas por llamar), no un filtro: a dos pestañas, Control › Respuestas
+   * dice «424 pasan el filtro de efectiva». Dos cifras distintas con casi el
+   * mismo rótulo (QA final, C5). Cada adaptador declara lo que su grano mide.
+   */
+  procesableEtiqueta: string;
   brecha: number | null;
   avancePct: number | null;
   cutAt: string;
@@ -72,6 +82,8 @@ export type MonitoreoCorteInput = {
   meta?: number | null;
   /** Cómo se llama esa cifra en este perfil. Por defecto, «meta». */
   metaEtiqueta?: string;
+  /** Qué mide el procesable en este perfil. Por defecto, «en el filtro de la fuente». */
+  procesableEtiqueta?: string;
   cutAt?: string | null;
   hasSnapshot?: boolean;
   generationStatus?: MonitoreoGenerationStatus | null;
@@ -150,6 +162,7 @@ export function construirCorte(input: MonitoreoCorteInput): MonitoreoCorte {
     oficial,
     meta,
     metaEtiqueta: input.metaEtiqueta || "meta",
+    procesableEtiqueta: input.procesableEtiqueta || "en el filtro de la fuente",
     brecha,
     avancePct,
     cutAt: input.cutAt || "",
@@ -179,7 +192,14 @@ export type MonitoreoBloqueoSalida = {
     | "SIN_VALIDAS"
     | "CORTE_INCOMPLETO"
     | "FUENTES_INCOMPLETAS";
+  /** El hecho, corto y sin explicación encadenada. */
   mensaje: string;
+  /**
+   * Lo que se hace al respecto. Va en el `title` del botón que lleva a la
+   * causa, no pegado al hecho tras un «;» (QA final: «…desde la última
+   * sincronización; vuelve a sincronizar antes de publicar»).
+   */
+  accion?: string;
   direccion?: string;
 };
 
@@ -210,21 +230,22 @@ export type MonitoreoSalidaReadiness = {
  * El bloqueo de al lado, `FUENTES_INCOMPLETAS`, ya nombra su causa con las dos
  * cifras; éste se había quedado en el «o».
  */
-function mensajeDeCorteIncompleto(estado: MonitoreoGenerationStatus): string {
+function bloqueoDeCorteIncompleto(estado: MonitoreoGenerationStatus): { mensaje: string; accion: string } {
   if (estado === "partial") {
-    return "La última sincronización terminó con errores, así que el corte está incompleto: revisa Fuentes antes de publicar.";
+    return { mensaje: "La última sincronización terminó con errores.", accion: "Revisa Fuentes antes de publicar" };
   }
   if (estado === "stale") {
-    return "El corte quedó desactualizado desde la última sincronización; vuelve a sincronizar antes de publicar.";
+    return { mensaje: "El corte está desactualizado.", accion: "Vuelve a sincronizar antes de publicar" };
   }
   if (estado === "failed") {
-    return "La generación del corte falló y no hay nada completo que publicar: vuelve a sincronizar desde Fuentes.";
+    return { mensaje: "La generación del corte falló.", accion: "Vuelve a sincronizar desde Fuentes" };
   }
   // Un estado que el contrato no conoce todavía. Se dice que no está completo
   // —que es lo comprobado— y se nombra el valor en vez de inventarle una causa.
-  return estado
-    ? `El corte no está completo (estado «${estado}»); vuelve a sincronizar antes de publicar.`
-    : "El corte todavía no está completo; vuelve a sincronizar antes de publicar.";
+  return {
+    mensaje: estado ? `El corte no está completo (estado «${estado}»).` : "El corte todavía no está completo.",
+    accion: "Vuelve a sincronizar antes de publicar",
+  };
 }
 
 export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadiness {
@@ -240,20 +261,22 @@ export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadin
     if (corte.oficial == null) {
       bloqueos.push({
         codigo: "OFICIAL_INDETERMINADO",
-        mensaje: "El avance oficial todavía no está determinado para este corte.",
+        mensaje: "El avance oficial no está determinado en este corte.",
+        accion: "Revisa de dónde sale la cifra oficial",
         direccion: corte.saltos.find((salto) => salto.a === "oficial")?.direccion ?? "seccion=avance&pestana=resumen",
       });
     } else if (corte.oficial === 0) {
       bloqueos.push({
         codigo: "SIN_VALIDAS",
-        mensaje: "El corte no tiene respuestas válidas: no hay nada defendible que publicar.",
+        mensaje: "El corte no tiene respuestas válidas.",
+        accion: "Revisa por qué ninguna respuesta cuenta",
         direccion: corte.saltos.find((salto) => salto.a === "oficial")?.direccion ?? "seccion=avance&pestana=resumen",
       });
     }
     if (corte.generationStatus !== "complete") {
       bloqueos.push({
         codigo: "CORTE_INCOMPLETO",
-        mensaje: mensajeDeCorteIncompleto(corte.generationStatus),
+        ...bloqueoDeCorteIncompleto(corte.generationStatus),
         direccion: "seccion=fuentes",
       });
     }
@@ -264,7 +287,8 @@ export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadin
       const faltan = corte.fuentes.requeridas - corte.fuentes.activas;
       bloqueos.push({
         codigo: "FUENTES_INCOMPLETAS",
-        mensaje: `Falta${faltan === 1 ? "" : "n"} ${faltan} de ${corte.fuentes.requeridas} fuentes del modelo: el conteo no cubre todo el estudio.`,
+        mensaje: `Falta${faltan === 1 ? "" : "n"} ${faltan} de ${corte.fuentes.requeridas} fuentes del modelo.`,
+        accion: "Conecta las fuentes que faltan para que el conteo cubra el estudio",
         direccion: "seccion=fuentes",
       });
     }
