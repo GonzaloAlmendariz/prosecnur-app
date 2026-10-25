@@ -113,3 +113,80 @@ test_that("TXT-23: subtemas rotulados «B · …» (como los deja Confirmar en C
     "C · Gobierno y gestión", "Total"))
   expect_equal(tab$n, c(1, 2, 2, 1, 1, 5))
 })
+
+# ---------------------------------------------------------------------------
+# TXT-26: jerarquía visual y rótulo del analista.
+#  - Con `temas_de_texto`, los temas de primer nivel (A, el módulo partido B, C…) van con rótulo en negrita y barra en
+#    el azul de la casa; los subtemas «B · …», con rótulo regular en el tono suave y barra en el azul medio del
+#    estándar. Cifras, orden, base y filas no cambian. Sin `temas_de_texto`, nada de esto.
+#  - El rótulo corto de `.codif_rotulo_corto_subtema` sólo se aplica a un enunciado de batería (con signos de
+#    pregunta o de más de 45 caracteres); un rótulo corto escrito por el analista sale entero.
+# ---------------------------------------------------------------------------
+
+.tt_estilo <- function(x, nombre) {
+  xml <- xml2::read_xml(x)
+  sp <- xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre))
+  y <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "./p:spPr/a:xfrm/a:off"), "y"))
+  sp <- sp[order(y)]
+  data.frame(
+    texto = trimws(xml2::xml_text(sp)),
+    negrita = vapply(sp, function(s) identical(xml2::xml_attr(xml2::xml_find_first(s, ".//a:rPr"), "b"), "1"), logical(1)),
+    color_txt = toupper(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:rPr/a:solidFill/a:srgbClr"), "val")),
+    relleno = toupper(xml2::xml_attr(xml2::xml_find_first(sp, "./p:spPr/a:solidFill/a:srgbClr"), "val")),
+    stringsAsFactors = FALSE
+  )
+}
+.tt_hex <- function(token) toupper(sub("^#", "", .std_color(token)))
+
+test_that("TXT-26: el rótulo corto del analista no se recorta; el enunciado de batería sí", {
+  expect_identical(.plan_tt_rotulo_subtema("B", "Hábitos de estudio y espacios"), "B · Hábitos de estudio y espacios")
+  expect_identical(.plan_tt_rotulo_subtema("B", "Uso de redes en semana de exámenes"),
+                   "B · Uso de redes en semana de exámenes")
+  expect_identical(
+    .plan_tt_rotulo_subtema("B", "¿Qué tan de acuerdo estás con las siguientes afirmaciones sobre la relación entre estudiantes y docentes?"),
+    "B · Relación entre estudiantes")
+  inst <- .tt_inst()
+  inst$orders_list$coment_recod$labels[2] <- "B · Hábitos de estudio y espacios"
+  tab <- .plan_tt_tabla(.tt_data(), "coment_recod", "coment", inst$orders_list, inst$survey)
+  expect_true("B · Hábitos de estudio y espacios" %in% tab$Opciones)
+})
+
+test_that("TXT-26: los temas de primer nivel destacan y los subtemas se subordinan, sin cambiar cifras", {
+  x <- .tt_lamina(p_barras_agrupadas("coment_recod", temas_de_texto = "coment",
+                                     overrides = list(orden_barras = "mayor_menor")))
+  rot <- .tt_estilo(x, "rotulo")
+  expect_identical(rot$texto, c("A. Información general", "B. Experiencia universitaria", "B · Como estudiante",
+                                "B · Relación entre estudiantes", "C. Gobierno y gestión"))
+  sub <- grepl("·", rot$texto)
+  expect_true(all(rot$negrita[!sub]))
+  expect_false(any(rot$negrita[sub]))
+  expect_true(all(rot$color_txt[sub] == .tt_hex("texto_suave")))
+  expect_true(all(rot$color_txt[!sub] == .tt_hex("azul")))
+  bar <- .tt_estilo(x, "barra")
+  expect_equal(nrow(bar), 5L)
+  expect_identical(bar$relleno[sub], rep(.tt_hex("azul_medio"), 2L))
+  expect_identical(bar$relleno[!sub], rep(.tt_hex("azul"), 3L))
+  expect_identical(.tt_formas(x, "cifra"), c("20%", "40%", "40%", "20%", "20%"))
+})
+
+test_that("TXT-26: sin temas_de_texto la múltiple no lleva jerarquía", {
+  x <- .tt_lamina(p_barras_agrupadas("coment_recod", overrides = list(orden_barras = "mayor_menor")))
+  bar <- .tt_estilo(x, "barra")
+  expect_false(.tt_hex("azul_medio") %in% bar$relleno)
+})
+
+test_that("TXT-26: con jerarquía, la lámina de temas mide sus rótulos con tinta para decidir si cabe en barras", {
+  rot <- c("A. Información general", "B. Experiencia universitaria", "B · Preguntas generales",
+           "B · Redes sociales y plataformas", "B · Herramientas de inteligencia artificial", "B · Como estudiante",
+           "B · Recursos de la Facultad", "B · Tu comodidad", "B · La relación", "B · Horarios de atención",
+           "B · Laboral", "C. Gobierno y gestión de la universidad", "D. Percepciones sobre educación",
+           "E. Perspectivas de futuro")
+  v <- c(18, 85, 10, 2, 2, 59, 20, 15, 20, 15, 18, 15, 18, 5) / 100
+  e <- preparar_categorica(rot, v, paste0(round(v * 100), "%"))
+  e2 <- .plan_tt_espec_jerarquia(e)
+  expect_identical(e2$jerarquia, ifelse(grepl("·", rot), "subtema", "tema"))
+  expect_identical(.lam_categorica_forma(e2, "barras"), "barras")
+  # Sin jerarquía (otra múltiple), la regla de siempre: no se toca.
+  expect_identical(.lam_categorica_forma(e, "barras"), .lam_categorica_forma(e, "barras"))
+  expect_null(.plan_tt_espec_jerarquia(e[setdiff(names(e), "rotulos")])$jerarquia)
+})

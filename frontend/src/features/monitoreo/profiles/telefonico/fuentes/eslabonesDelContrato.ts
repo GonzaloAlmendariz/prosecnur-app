@@ -12,6 +12,8 @@ import { enlaceDeFuente, nombreDeFuente } from "../../../fuentes/enlacesDeFuente
 import { fmt, formatDate } from "../formato";
 import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./camposDeFuente";
 import type { EslabonDeFuente } from "./modeloDeCadena";
+import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
+import { filasDeBloque } from "../navegacion/bloques";
 
 type Copia = { titulo: string; aporta: string; accion: string };
 
@@ -61,12 +63,26 @@ function eslabonDelSlot(
   };
 }
 
+/**
+ * Envíos de la encuesta que pasan el filtro de efectiva en el corte: las filas
+ * de `control_tiempo_kobo`, la misma cifra que Control › Respuestas y que «De
+ * dónde sale la cifra» en Avance › Cuotas. Es lo que el eslabón Encuesta dice
+ * aportar («respuestas que cuentan como efectivas») cuando la metadata de Kobo
+ * no trae el conteo de la fuente (QA final, C5: Universo y Barrido traían cifra
+ * y Encuesta no).
+ */
+export function efectivasDeLaEncuesta(reports: MonitoreoAcreditacionReports | null | undefined): number {
+  return filasDeBloque(reports, ["control_tiempo_kobo", "tiempos_kobo", "validacion_tiempos"]).length;
+}
+
 export function eslabonesDelContrato(
   contract: AcreditacionPhoneSourceContract,
   nRows: number,
   syncedAt?: string,
   /** Casos de la hoja de barrido en el corte, cuando la metadata de la fuente no trae conteo (RMS: universo y barrido son la misma hoja). */
   casosDelBarrido = 0,
+  /** Envíos que pasan el filtro de efectiva (`efectivasDeLaEncuesta`), cuando la fuente no trae conteo. */
+  efectivasDeEncuesta = 0,
 ): EslabonDeFuente[] {
   // Con universo y barrido en la misma hoja, el universo son los casos de esa
   // hoja; `n_rows` suma también las respuestas de Kobo (RMS ficticio: 1,163
@@ -76,6 +92,6 @@ export function eslabonesDelContrato(
   return [
     eslabonDelSlot(contract.universe, syncedAt, mismaHoja ? casosDelBarrido : nRows),
     eslabonDelSlot(contract.sweep, syncedAt, casosDelBarrido),
-    eslabonDelSlot(contract.platform, syncedAt),
+    eslabonDelSlot(contract.platform, syncedAt, efectivasDeEncuesta),
   ];
 }

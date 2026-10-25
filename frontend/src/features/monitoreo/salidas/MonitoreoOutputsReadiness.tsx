@@ -76,7 +76,7 @@ export function MonitoreoOutputsReadiness({
         <div>
           <dt>Procesables</dt>
           <dd>{fmt(corte.procesable)}</dd>
-          <small>pasan el filtro</small>
+          <small>{corte.procesableEtiqueta}</small>
         </div>
         <div className="is-oficial">
           <dt>Válidas</dt>
@@ -115,7 +115,7 @@ export function MonitoreoOutputsReadiness({
               <AlertTriangle size={13} />
               <span>{bloqueo.mensaje}</span>
               {bloqueo.direccion ? (
-                <button type="button" onClick={() => irA(bloqueo.direccion)}>
+                <button type="button" title={bloqueo.accion} onClick={() => irA(bloqueo.direccion)}>
                   Ir a la causa <ArrowRight size={12} />
                 </button>
               ) : null}

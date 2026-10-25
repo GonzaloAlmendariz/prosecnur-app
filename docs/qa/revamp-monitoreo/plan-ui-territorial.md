@@ -549,3 +549,29 @@ Pendientes que quedan (fuera del alcance de la ronda):
 - H-3 (`casos-ump` síncrono, backend) y H-4 (P514 conciliado con dos personas, decide coordinación), arriba.
 - Reportes › UMP y Reportes › Alertas siguen en la vista heredada; no estaban en la lista de esta ronda.
 - El botón único «Actualizar» (`components/**`, `core/**`) viene después.
+
+## Cierre de QA (2026-10-25)
+
+Pasada sobre los defectos que el QA visual independiente encontró en `main` `2a1b4ed52`
+(`acnurcg2.pulso`, 1440 × 1000 y 1024 × 600). No es una ronda de diseño.
+
+| Defecto | Decisión |
+|---|---|
+| Insignia de Avance «108 %» sin base | **Corregido.** `insigniasDelModo` (`navegacion/barraTerritorial.ts`) pasa `{ valor, base, lectura }`: «108 % \| 1,295/1,200», la misma lectura de `advance$validas / advance$meta` que Avance › Resumen («cuentan»). Test: `navegacion/barraTerritorial.test.ts`. |
+| La insignia desaparece a 1024 | **Decidido, comportamiento común.** `shell/barraDelModo.css` esconde la cápsula a ≤ 1180 px y la base a ≤ 1365 px en todos los modos de la barra común; Telefónico a 1024 tampoco la muestra. La cifra y su base siguen en el `title` y en el nombre accesible de la píldora. |
+| Bandeja: el riel recorta sus cifras a 1024 (C4) | **Corregido.** El botón global lleva `white-space: nowrap`; los filtros ahora parten línea («UMP iniciada incompleta» en dos) y la cifra no se corta. También pierden el bisel `inset` del botón global. |
+| Bandeja: ~230 px vacíos al pie del riel a 1440 | **Corregido.** Las filas reparten el alto del riel hasta 56 px (el contrato de Resumen); cada lista crece en proporción a sus filas. Con pocas filas el sobrante queda al pie: es el vacío legítimo de una lista corta (C2). |
+| Anulaciones: tarjeta de 330 px a 1024 (C3) | **Corregido.** `.mon-anu--vacio` perdía contra la regla de dos columnas del `@media`; ahora `.mon-anu.mon-anu--vacio`. Mismo defecto latente arreglado en `.mon-ban--vacio` y `.mon-res--vacio`. El vacío es legítimo (C5, ningún caso anulado). |
+| `&foco=7` a 1024 igual que Faltante (C4) | **Corregido.** La fila que llega por la dirección se despliega y se lleva a la vista (`scrollIntoView`, dos cuadros después del reinicio de scroll del marco; `scroll-margin-top` bajo la cabecera fija). Un click sobre una fila visible no desplaza. |
+| Cuotas: reglas «puede cambiar al subsanar» en chip «Sí» | **Decidido, el chip vale.** No es una opción editable: `sex_flexible` / `age_flexible` las deriva el motor (`monitoreo_engine.R`) de la forma de la cuota (marginal ⇒ flexible) y llegan en cada déficit. Un switch prometería un control que no existe. |
+
+Fuera del alcance (otros dueños): Avance › Salidas y el texto del aviso de corte (`salidas/**`, `corte/**`).
+Latente sin tocar: `.mon-ocu--vacio` y `.mon-sen--vacio` pierden sus filas ante el `@media` compacto, pero ahí el
+vacío sólo pasa a alto natural y no deja hueco lateral.
+
+Corrida `qafix-terr/despues` (copia de `acnurcg2.pulso`, 6 rutas × 1440 y 1024, `--require-geometry`): `ok=true
+issues=0 scrollJails=0 geometryIssues=0 geometryCoverageMisses=0`, 12 capturas y 12 md5 distintos; `foco=7` a 1024
+ya no es la imagen de Faltante. `desplazamientoH=2`: la tabla de la Bandeja (264 px) y la de Cuota de cada UMP
+(58 px), las dos dentro de su marco. Para que «UMP 25, a 0.96 km» no se volviera óvalo a 1024, su celda tiene
+124 px de mínimo y el chip partido lleva esquinas de 10 px. La primera versión del riel (filas de hasta 48 px) dejaba
+`capacity-drift` de 27 y 11 px; con 56 px y el riel a 240 / 216 px desaparece.

@@ -84,12 +84,18 @@
   paste0(toupper(letra), ". Todos sus temas")
 }
 
-#' Rótulo corto de un subtema: sin la letra del módulo y, si pasa de cuatro palabras, con la regla de
-#' `.codif_rotulo_corto_subtema`
+# TXT-26: un rótulo de más de estos caracteres (o con signos de pregunta) es un enunciado de batería, no un rótulo
+# escrito por el analista
+.PLAN_TT_MAX_ROTULO <- 45L
+
+#' Rótulo corto de un subtema: sin la letra del módulo y, si es el enunciado de una batería (signos de pregunta, o más
+#' de `.PLAN_TT_MAX_ROTULO` caracteres) de más de cuatro palabras, con la regla de `.codif_rotulo_corto_subtema`.
+#' Un rótulo corto que escribió el analista («Hábitos de estudio y espacios») sale entero (TXT-26).
 #' @keywords internal
 .plan_tt_rotulo_subtema <- function(letra, resto) {
   corto <- resto
-  if (length(strsplit(trimws(resto), "\\s+")[[1]]) > 4L) {
+  enunciado <- grepl("[\u00bf?]", resto, perl = TRUE) || nchar(trimws(resto), type = "chars") > .PLAN_TT_MAX_ROTULO
+  if (enunciado && length(strsplit(trimws(resto), "\\s+")[[1]]) > 4L) {
     r <- .codif_rotulo_corto_subtema(resto)
     if (nzchar(r)) corto <- r
   }
@@ -204,4 +210,34 @@
   unidad <- trimws(as.character(unlist(ov$unidad_base))[1])
   if (!length(unidad) || is.na(unidad) || !nzchar(unidad)) unidad <- .PLAN_TT_UNIDAD
   sprintf(formato %||% "Base: %s", paste(format(n, big.mark = ",", scientific = FALSE), unidad))
+}
+
+#' TXT-26: la jerarquía de la lámina de temas, en la especificación nativa
+#'
+#' `jerarquia` va alineada con `rotulos`: «subtema» para un «B · …» cuyo módulo tiene su propia fila («B. …»), «tema»
+#' para el resto (los módulos, partidos o no). Sin rótulos, la espec sale tal cual. La lámina la dibuja en
+#' `lamina_barras_jerarquia.R`; las cifras, el orden y las filas no cambian.
+#' @keywords internal
+.plan_tt_espec_jerarquia <- function(espec) {
+  rot <- as.character(espec$rotulos %||% character(0))
+  if (!is.list(espec) || !length(rot)) return(espec)
+  m <- regmatches(rot, regexec(.PLAN_TT_PATRON_LETRA, rot, perl = TRUE))
+  letra <- vapply(m, function(x) if (length(x) == 3L) toupper(x[2]) else "", character(1))
+  punto <- grepl("^\\s*[A-Za-z]\\s*\\.\\s", rot, perl = TRUE)
+  con_modulo <- unique(letra[nzchar(letra) & punto])
+  sub <- nzchar(letra) & !punto & letra %in% con_modulo
+  espec$jerarquia <- ifelse(sub, "subtema", "tema")
+  espec
+}
+
+#' Enganche del render de barras agrupadas: con `temas_de_texto` encendido y sin cruce, la espec del gráfico lleva la
+#' jerarquía; si no, el gráfico sale tal cual
+#' @keywords internal
+.plan_tt_con_jerarquia <- function(plot, overrides, cruce = NULL) {
+  if (is.null(.plan_tt_var(overrides))) return(plot)
+  if (!is.null(cruce) && length(cruce) && nzchar(trimws(as.character(cruce)[1]))) return(plot)
+  espec <- attr(plot, "pulso_espec", exact = TRUE)
+  if (is.null(espec) || !identical(espec$tipo, "categorica")) return(plot)
+  attr(plot, "pulso_espec") <- .plan_tt_espec_jerarquia(espec)
+  plot
 }

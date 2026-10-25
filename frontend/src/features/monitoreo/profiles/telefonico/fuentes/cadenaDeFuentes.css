@@ -121,6 +121,13 @@
   align-items: flex-end;
 }
 
+.mon-tel-cadena-cifra.is-vacia {
+  align-items: center;
+  min-height: 23px;
+  color: var(--pulso-text-faint);
+  font-size: 12.5px;
+}
+
 .mon-tel-cadena-cifra strong {
   font-size: 22px;
   line-height: 1.05;

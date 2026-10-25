@@ -48,12 +48,13 @@
   elegidas <- espec$resaltar %||% character(0)   # D1: las que el analista resalta mandan sobre «la mayor»
   for (k in seq_along(et)) {
     es_max <- if (length(elegidas)) et[k] %in% elegidas else isTRUE(espec$realce) && v[k] == max(v)
-    h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias"))   # tinta medida: la estimación por carácter subía el rótulo de una línea
-    .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
+    st <- .lam_jer_estilo(espec, k, if (!is.null(cols) && !length(elegidas)) cols[k])   # TXT-26: temas y subtemas (lamina_barras_jerarquia.R)
+    h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias") || isTRUE(st$bold))   # tinta medida: la estimación por carácter subía el rótulo de una línea
+    .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, st$color_rotulo %||% azul, bold = st$bold %||% es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    fill <- if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul
+    fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
@@ -73,8 +74,11 @@
   n <- max(1L, length(espec$largos))
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
   uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
-  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, .std_negrita_forzada("categorias"))) + 0.3))
-  list(size = size, fila = fila, g = g, wlab = wlab)
+  nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
+  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
+  ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
+  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab); wlab <- r$wlab; size <- r$size
+  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, size))
 }
 
 #' ¿En qué forma cabe la categórica? Columnas (lámina 68), barras (lámina 73) o ninguna (`NA`)
@@ -90,7 +94,7 @@
   wbox <- (ancho - 1.2) / k * 0.56 + 0.8
   cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, 12, TRUE) <= 0.62, TRUE))
   geo <- .lam_barras_geo(espec)
-  barras_ok <- geo$fila >= 0.26 && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, geo$wlab, geo$size) <= geo$fila + 0.02, TRUE))
+  barras_ok <- geo$fila >= 0.26 && all(.lam_jer_altos(espec, geo$wlab, geo$size) <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
   if (identical(preferida, "columnas") && cols_ok) return("columnas")
   if (barras_ok) return("barras")
   if (cols_ok) return("columnas")
@@ -118,11 +122,12 @@
     .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, hmax = min(3.4, (6.05 - 0.68 - yt) * 1.1), unidad_n = unidad_n)
   } else {
     geo <- .lam_barras_geo(espec); size <- geo$size; fila <- geo$fila; g <- geo$g; wlab <- geo$wlab
+    ag <- geo$ancho_geo; xb <- ml + (ag$dx %||% 0)
     if (!is.null(encabezado) && nzchar(encabezado)) {
-      .lam_txt(lz, encabezado, ml + wlab + 0.25, yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
+      .lam_txt(lz, encabezado, .lam_barras_ancho_x_encabezado(xb + wlab + 0.25, sub, titulo), yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
     }
     y0 <- yt + .lam_uso_area_arranque(length(espec$largos), fila, extra = if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)) 0.28 else 0)
-    .lam_barras_h(lz, espec, ml, y0, ancho, wlab = wlab, g = g, fila = fila, size = size)
+    .lam_barras_h(lz, espec, xb, y0, ag$w %||% ancho, wlab = wlab, g = g, fila = fila, size = size, escala = ag$escala)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:categorica")
   doc <- .lam_pie(doc, base, folio)
