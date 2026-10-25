@@ -1,0 +1,40 @@
+/* Reloj del warm start (L23). Lo usan BootGate y ModuleWarmupBoundary, así
+   que sólo toma tokens que boot.css también declara. */
+
+.pulso-warmup-reloj {
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 28px;
+}
+
+.pulso-warmup-reloj-item {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-width: 0;
+}
+
+.pulso-warmup-reloj dt {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy, 800);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-warmup-reloj dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: var(--pulso-weight-heavy, 800);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.pulso-warmup-reloj-item.is-restante dd,
+.pulso-warmup-reloj-item.is-anterior dd {
+  color: var(--pulso-text-soft);
+}
