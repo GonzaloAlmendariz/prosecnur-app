@@ -3986,7 +3986,7 @@ reporte_ppt_plan <- function(
       font_family = presets$base$args$font_family_ppt %||% presets$base$args$font_family %||% "Arial"
     )
 
-    args <- .merge_args(base_args, preset_args %||% list(), overrides)
+    args <- .merge_args(base_args, .txt_dic_args_nube(.txt_dic_de_ctx(ctx), preset_args, overrides), preset_args %||% list(), overrides)   # TXT-6/7: el diccionario de la pregunta; el plan gana
     fun <- graficar_nube_palabras
     args <- .keep_formals(fun, args)
     suppressWarnings(do.call(fun, args))

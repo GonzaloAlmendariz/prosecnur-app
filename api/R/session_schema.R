@@ -456,6 +456,7 @@ session_schema <- function() {
     "xlsform_state",               "literal", "persistible",    "router_xlsform_editor.R", "session_set", "legacy mono-formulario; load lo migra a xlsform_forms",
     "xlsform_forms",               "literal", "persistible",    "xlsform_forms.R",   "directa",     "colección multi-formulario del editor",
     "label_overrides",             "literal", "persistible",    "label_overrides.R", "session_set", "",
+    "texto_abierto_diccionario",   "literal", "persistible",    "texto_abierto_diccionario.R", "session_set", "diccionario del proyecto por base y pregunta abierta: equivalencias, excluir y frases (TXT-6/7); lo decide el usuario y lo leen nube, sugerencia y citas",
     "audit_project",               "literal", "persistible",    "audit_projects.R",  "session_set", "",
     "audit_project_sheets",        "literal", "persistible",    "audit_projects.R",  "session_set", "",
     "audit_reference",             "literal", "persistible",    "audit_reference.R", "session_set", "",

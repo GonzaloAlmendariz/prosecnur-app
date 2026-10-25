@@ -123,17 +123,57 @@
   })
 }
 
+#' El diccionario de la pregunta llevado al vocabulario de la sugerencia
+#'
+#' Devuelve el mapa de equivalencias (forma → raíz de `mostrar`), las raíces excluidas (términos de una palabra) y los
+#' tokens sin las apariciones de los términos excluidos de varias palabras, en el comentario y en los módulos.
+#' @keywords internal
+.codif_ss_diccionario <- function(diccionario, tok_mod, tok_resp, contenido, vacias) {
+  out <- list(mapa = list(), excluidas = character(0), tok_mod = tok_mod, tok_resp = tok_resp)
+  if (.txt_dic_es_vacio(diccionario)) return(out)
+  clave_de <- function(w) unname(.txt_raiz(w, vocabulario = contenido))
+  eqm <- .txt_dic_mapa(diccionario$equivalencias, clave_de)
+  out$mapa <- as.list(eqm$mapa)
+  excl <- .txt_dic_termino(unlist(diccionario$excluir %||% character(0)))
+  sueltos <- excl[nzchar(excl) & !grepl(" ", excl, fixed = TRUE)]
+  if (length(sueltos)) {
+    r <- clave_de(unlist(.txt_tokens(sueltos)))
+    m <- match(r, names(eqm$mapa)); r[!is.na(m)] <- unname(eqm$mapa[m[!is.na(m)]])
+    out$excluidas <- unique(r)
+  }
+  pex <- .txt_dic_patrones(excl)
+  if (length(pex$tokens)) {
+    clave_tok <- function(t) ifelse(nchar(t, type = "chars") >= 3L & !.txt_sin_tildes(t) %in% vacias, clave_de(t), .txt_sin_tildes(t))
+    pk <- lapply(pex$tokens, clave_tok); pk <- pk[order(-lengths(pk))]
+    quitar <- function(t) {
+      if (length(t) < 2L) return(t)
+      k <- clave_tok(t); keep <- rep(TRUE, length(t)); j <- 1L
+      while (j <= length(t)) {
+        hit <- .txt_dic_calza(k, j, pk)
+        if (hit[2] > 0L) { keep[j:(j + hit[2] - 1L)] <- FALSE; j <- j + hit[2] } else j <- j + 1L
+      }
+      t[keep]
+    }
+    out$tok_mod <- lapply(tok_mod, quitar)
+    out$tok_resp <- lapply(tok_resp, quitar)
+  }
+  out
+}
+
 #' Propuesta de módulo para cada respuesta de `variable`
 #'
 #' @param inst instrumento (`leer_instrumento_xlsform`).
 #' @param data_df base con la variable de texto.
 #' @param variable nombre de la columna a codificar (p. ej. `coment`).
 #' @param secciones grupos de primer nivel a usar como módulos; por defecto, los detectados.
+#' @param diccionario diccionario de la pregunta (TXT-6/7, texto_abierto_diccionario.R): sus equivalencias unen formas
+#'   en el comentario y en el vocabulario de los módulos; sus términos excluidos salen del vocabulario (uno de varias
+#'   palabras, con sus palabras). Por defecto, ninguno.
 #' @return lista con `modulos`, `otro`, `respuestas` (id_caso, texto, no_respuesta, candidato_otro, propuestas con
 #'   codigo/seccion/etiqueta/puntaje/palabras) y `resumen`. Nunca trae asignaciones: `estado = "propuesta"`.
 #' @keywords internal
 codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min_puntaje = 1, rel_max = 0.5,
-                                  max_propuestas = 3L) {
+                                  max_propuestas = 3L, diccionario = NULL) {
   variable <- trimws(as.character(variable %||% "")[1])
   if (is.na(variable) || !nzchar(variable)) {
     stop_api(400, "E_CODIF_SUGERIR_SIN_VARIABLE", "Falta la variable de texto a codificar.")
@@ -159,11 +199,13 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
   tok_resp <- .txt_tokens(textos[filas])
   voc <- unique(c(unlist(tok_mod), unlist(tok_resp)))
   contenido <- voc[nchar(voc, type = "chars") >= 3L & !.txt_sin_tildes(voc) %in% vacias]
-  raiz <- if (length(voc)) .txt_raiz(voc, vocabulario = contenido) else character(0)
+  dic <- .codif_ss_diccionario(diccionario, tok_mod, tok_resp, contenido, vacias)
+  tok_mod <- dic$tok_mod; tok_resp <- dic$tok_resp
+  raiz <- if (length(voc)) .txt_raiz(voc, vocabulario = contenido, equivalencias = dic$mapa) else character(0)
 
   voc_mod <- lapply(.codif_ss_raices(lapply(tok_mod, identity), raiz, vacias), names)
   # Una raíz que está en todos los módulos no distingue ninguno (con tres módulos o más): se descarta.
-  voc_mod <- lapply(voc_mod, function(v) v[!v %in% .CODIF_SS_VACIAS_SUGERIR])
+  voc_mod <- lapply(voc_mod, function(v) v[!v %in% c(.CODIF_SS_VACIAS_SUGERIR, dic$excluidas)])
   df <- table(unlist(voc_mod))
   if (length(mods) >= 3L) {
     ubicuas <- names(df)[as.integer(df) >= length(mods)]
@@ -172,6 +214,7 @@ codif_sugerir_seccion <- function(inst, data_df, variable, secciones = NULL, min
   }
   idf <- log1p(length(mods) / as.numeric(df)); names(idf) <- names(df)
   raices_resp <- .codif_ss_raices(tok_resp, raiz, vacias)
+  if (length(dic$excluidas)) raices_resp <- lapply(raices_resp, function(r) r[!names(r) %in% dic$excluidas])
 
   respuestas <- lapply(seq_along(filas), function(k) {
     i <- filas[[k]]

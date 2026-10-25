@@ -3343,7 +3343,7 @@ mount_codificacion <- function(pr) {
       source <- if (nzchar(base)) .codif_matrix_selected_bases(sid, base)[[1]] else codif_source_active(sid)
       secciones <- unlist(strsplit(.codif_config_scalar(secciones, ""), ",", fixed = TRUE), use.names = FALSE)
       out <- codif_sugerir_seccion(codif_inst_cached(sid, source), codif_data_cached(sid, source), variable,
-                                   secciones = secciones)
+                                   secciones = secciones, diccionario = .txt_dic_de(sid, source, variable))   # TXT-6/7
       c(list(ok = TRUE, base_name = source), out)
     }))
 }

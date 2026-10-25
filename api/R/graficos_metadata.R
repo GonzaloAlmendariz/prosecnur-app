@@ -1400,7 +1400,15 @@
            descripcion = "Qué mide el tamaño de cada palabra y la cifra del ranking."),
       list(name = "min_personas", label = "Mínimo de personas", tipo_input = "number", grupo = "filtro", default = 3,
            via_overrides = TRUE,
-           descripcion = "Contando personas, sólo entran las palabras que usan al menos estas personas.")
+           descripcion = "Contando personas, sólo entran las palabras que usan al menos estas personas."),
+      # TXT-6/7: por defecto rige el diccionario de la pregunta (Codificación › abiertas). Sin default a propósito: una
+      # lista que la lámina trae con algo dentro reemplaza la del proyecto; vacía, no la apaga.
+      list(name = "excluir_terminos", label = "Términos que no informan", tipo_input = "codigos_list", grupo = "filtro",
+           via_overrides = TRUE,
+           descripcion = "Salen de la nube y del ranking. Uno de varias palabras se lleva sus palabras. Vacío, rige el diccionario de la pregunta."),
+      list(name = "frases_fijas", label = "Frases fijas", tipo_input = "codigos_list", grupo = "filtro",
+           via_overrides = TRUE,
+           descripcion = "Se unen aunque no las usen tres personas. Vacío, rige el diccionario de la pregunta.")
     ), .args_graf_comunes())
   ),
 
