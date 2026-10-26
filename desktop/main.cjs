@@ -1093,7 +1093,7 @@ function htmlPage(title, body) {
       color-scheme: light;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #18211f;
-      background: #f7f4ee;
+      background: #f3f5f9;
     }
     body {
       margin: 0;
@@ -1863,7 +1863,7 @@ async function createWindow() {
     minHeight: 700,
     title: APP_NAME,
     icon: APP_ICON_PATH,
-    backgroundColor: "#f7f4ee",
+    backgroundColor: "#f3f5f9", // --pulso-bg: el primer frame ya es de la paleta (L32)
     show: false,
     webPreferences: {
       contextIsolation: true,
