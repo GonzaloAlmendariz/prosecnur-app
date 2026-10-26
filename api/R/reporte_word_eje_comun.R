@@ -83,6 +83,25 @@
   unname(comunes[as.character(cap)])
 }
 
+#' Los rótulos partidos para entrar en la columna común, o `NULL` si ni así caben
+#'
+#' Un rótulo mediano («Tiempo parcial por asignaturas (TPA)», Arte_v1-7) pasaba del umbral en una línea y quedaba con
+#' columna propia, desalineado del resto del capítulo. Se parte, hasta `max_lineas`, al ancho de la columna común (la
+#' relación inversa de `.word_rotulo_in()`); una premisa, que necesitaría más líneas, conserva su columna.
+#' @param rotulos Rótulos sin partir. @param pt Su tamaño de letra.
+#' @keywords internal
+.word_rotulos_a_columna <- function(rotulos, pt, comun = getOption("prosecnur.word_rotulo_comun"), max_lineas = 2L) {
+  comun <- suppressWarnings(as.numeric(comun %||% NA_real_)[1])
+  if (!is.finite(comun) || !.word_tiene_rotulos(rotulos)) return(NULL)
+  ancho <- floor((comun - 0.15) * 72 / (max(7.5, pt * 0.95) * 0.5))
+  if (ancho < 8L) return(NULL)
+  partes <- lapply(as.character(rotulos), function(r) strwrap(r, width = ancho))
+  if (any(lengths(partes) > max_lineas)) return(NULL)
+  out <- vapply(partes, paste, "", collapse = "\n")
+  if (.word_rotulo_in(out, pt) > comun + 1e-9) return(NULL)   # una palabra más larga que la columna no entra
+  out
+}
+
 #' ¿La figura tiene algún rótulo de fila? Sin ninguno no reserva columna ni define la común
 #' @keywords internal
 .word_tiene_rotulos <- function(rotulos) any(nzchar(trimws(gsub("\n", " ", as.character(rotulos)))), na.rm = TRUE)

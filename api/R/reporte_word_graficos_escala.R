@@ -116,6 +116,9 @@
   Ci <- espec$cifras[orden, , drop = FALSE]; Dw <- espec$dibujar[orden, , drop = FALSE]
   cat <- espec$categorias; k <- nrow(cat); nf <- nrow(F)
   lbw <- .word_escala_rotulos_fila(espec, envolver)   # orden, «(N)» y partición: reporte_word_eje_comun.R
+  pt_rot <- .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo")
+  # Un rótulo mediano se parte para entrar en la columna común del capítulo, si cabe en dos líneas; una premisa no.
+  if (.word_rotulo_in(lbw, pt_rot) > .WORD_ROTULO_CORTO_IN) lbw <- .word_rotulos_a_columna(gsub("\n", " ", lbw), pt_rot) %||% lbw
   hay_chicas <- any(A * 100 > 0 & A * 100 < .WORD_ESCALA_CABE_PCT & Dw)
   nl <- vapply(strsplit(lbw, "\n"), function(x) max(1L, length(x)), 1L)
   esp <- pmax(if (hay_chicas) 1.3 else 1, 0.55 + 0.34 * nl); tot <- sum(esp); ys <- tot - (cumsum(esp) - esp / 2) + 0.5
@@ -133,7 +136,6 @@
   pt_de <- function(x, rol) .word_pt(x, rol) * ggplot2::.pt
   col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
                             list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
-  pt_rot <- .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo")
   # Con rótulo corto, la columna común del capítulo; sin rótulo, ninguna: va a todo el ancho (reporte_word_eje_comun.R).
   xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = .word_escala_columna(.word_rotulo_in(lbw, pt_rot), lbw))
   k_in <- (xmax - xmin) / (.std_word("pagina", "ancho_util") - 0.3)   # unidades del eje por pulgada de figura

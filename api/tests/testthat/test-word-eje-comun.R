@@ -76,3 +76,19 @@ test_that("la columna común se calcula por capítulo", {
   expect_gt(cc[[2]], cc[[4]])                                                    # el perfil tiene su propia columna
   expect_identical(cc[[4]], cc[[5]])
 })
+
+# Gonzalo (2026-10-26), Arte_v1-7, Gráfico 2: «Tiempo parcial por asignaturas (TPA)» no se alineaba porque, en una línea,
+# pasaba del umbral de rótulo corto. Un rótulo mediano se parte (hasta dos líneas) para entrar en la columna común; sólo el
+# que ni así cabe (una premisa) conserva su columna.
+test_that("un rótulo mediano se parte en dos líneas para entrar en la columna común y se alinea", {
+  corta <- .wec_barras(c("Magíster", "Licenciado(a)", "Bachiller"))
+  pertenece <- .wec_barras(c("Departamento Académico", "Facultad"))
+  dedicacion <- .wec_barras(c("Tiempo parcial por asignaturas (TPA)", "Tiempo completo (TC)"))
+  comun <- .word_rotulo_comun(list(corta, pertenece, dedicacion))
+  withr::local_options(prosecnur.word_rotulo_comun = comun)
+  a_ref <- .wec_arranque_x0(.word_categorica(pertenece))
+  g <- .word_categorica(dedicacion)
+  expect_equal(.wec_arranque_x0(g), a_ref, tolerance = 0.03)
+  rot <- unlist(lapply(ggplot2::ggplot_build(g)$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
+  expect_true(any(grepl("\n", rot[grepl("asignaturas", rot)], fixed = TRUE)))   # se partió
+})
