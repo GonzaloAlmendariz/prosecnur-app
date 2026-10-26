@@ -31,6 +31,7 @@ import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 import { QueCompara, type BocetoQueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
+import { temasConClaveUnica } from "./multiapiladas/temasPublicos";
 import { useSugerenciasDeMatriz } from "./multiapiladas/useSugerenciasDeMatriz";
 import type { FuentesMatriz } from "./multiapiladas/sugerenciasMatriz";
 import { EstadoMultiapiladas } from "./multiapiladas/EstadoMultiapiladas";
@@ -355,7 +356,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
       cupo={cupoBarras(conteo)}
       pie={<ConteoBarrasMultiapiladas conteo={conteo} />}
       onChange={(next) => {
-        const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
+        const conClave = temasConClaveUnica(next);   // una clave repetida fundía dos temas en uno (temasPublicos.ts)
         onArgs({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
       }}
     />
@@ -565,7 +566,7 @@ function BlockEditor({
             nuevoTema={newTopic}
             cupo={cupo}
             onChange={(next) => {
-              const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
+              const conClave = temasConClaveUnica(next);   // una clave repetida fundía dos temas en uno (temasPublicos.ts)
               onChange({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
             }}
           />

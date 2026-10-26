@@ -6,6 +6,26 @@ import { parseVarRef } from "../useVariables";
 
 export type TemaPublicos = { key: string; title: string; vars: string[] };
 
+/** La clave de un tema como la guarda el plan: minúsculas, sólo letras, números y guion bajo. */
+export const claveTema = (texto: string): string => texto.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+
+/**
+ * Los temas con claves únicas y nunca vacías: la que falta o se repite toma la siguiente `tema_N` libre. Dos temas con la
+ * misma clave se guardaban como uno (el segundo pisaba al primero en `vars` y `titulos_grupo`): pasaba al agregar un tema
+ * después de quitar otro, porque el nuevo nacía con `tema_${cantidad + 1}`, una clave en uso (Renzo, Arte_v1-7).
+ */
+export function temasConClaveUnica<T extends { key: string }>(temas: readonly T[]): T[] {
+  const propias = temas.map((t) => claveTema(t.key ?? ""));
+  const usadas = new Set<string>();
+  let n = 0;
+  const libre = () => { do { n += 1; } while (usadas.has(`tema_${n}`) || propias.includes(`tema_${n}`)); return `tema_${n}`; };
+  return temas.map((t, i) => {
+    const clave = propias[i] && !usadas.has(propias[i]) ? propias[i] : libre();
+    usadas.add(clave);
+    return clave === t.key ? t : { ...t, key: clave };
+  });
+}
+
 /** El nombre de un público para leer («docentes» → «Docentes»); la clave interna no cambia. */
 export const nombrePublico = (p: string) => (p ? p.charAt(0).toUpperCase() + p.slice(1).replace(/_/g, " ") : p);
 
