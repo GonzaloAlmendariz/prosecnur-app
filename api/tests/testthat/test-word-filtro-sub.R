@@ -2,7 +2,8 @@ source("setup-load-all.R")
 
 # Arte_v1-6 (Gonzalo, 2026-10-26): la lámina con un Sí/No arriba y una escala abajo que depende de él salía en el Word como
 # UNA sola imagen (la composición del PowerPoint), con la escala aplastada, la leyenda encimada y «Top Two Box» cortado. En
-# el Word van como dos figuras: la pregunta filtro y la subpregunta, cuyo título dice a quiénes se les preguntó.
+# el Word van como dos figuras: la pregunta filtro y la subpregunta, cada una con su enunciado y su base (la de la
+# subpregunta, la de quienes la habilitan). El título no lleva un paréntesis armado por el motor.
 
 .wfs_fixture <- function() {
   src <- readLines(test_path("test-lamina-filtro-sub.R"))
@@ -11,7 +12,7 @@ source("setup-load-all.R")
   env$.fsub_fixture()
 }
 
-test_that("una lámina vertical con dependencia sale en el Word como dos figuras, la segunda con su público", {
+test_that("una lámina vertical con dependencia sale en el Word como dos figuras, la segunda con la base de quienes la habilitan", {
   fx <- .wfs_fixture()
   s <- list(id = "x", tipo = "p_slide_2_graficos_vertical", payload = list(titulo = "Intercambio",
     superior = list(graficador = "p_barras_agrupadas", args = list(var = "inter")),
@@ -27,5 +28,7 @@ test_that("una lámina vertical con dependencia sale en el Word como dos figuras
   expect_length(rotulos, 2L)
   expect_match(rotulos[1], "¿Ha participado en programas de intercambio?", fixed = TRUE)
   expect_match(rotulos[2], "Los intercambios fortalecen mis competencias", fixed = TRUE)
-  expect_match(rotulos[2], "(sólo quienes participaron)", fixed = TRUE)
+  expect_false(grepl("(", rotulos[2], fixed = TRUE))
+  n_hab <- sum(fx$df$inter == "1")
+  expect_true(any(grepl(sprintf("^Base: %d", n_hab), parrafos)), info = paste(parrafos, collapse = " | "))
 })
