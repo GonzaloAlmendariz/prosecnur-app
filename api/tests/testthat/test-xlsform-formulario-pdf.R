@@ -1807,7 +1807,12 @@ test_that("L16: el paginado no reserva DOS VECES el enunciado de la matriz", {
   fx <- .form_pdf_fixture_tenor(tenor)
   m <- formulario_pdf_build_model(fx$survey, fx$choices, fx$settings, options = fx$options)
   blk <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)[[1]]
-  alto <- .form_pdf_block_height(blk, width = 0.90)
+  # La reserva se mide sobre el MISMO dispositivo que dibuja (cairo con la fuente embebida, como las dos pasadas del
+  # render): medida sobre el device que hubiera quedado abierto, en el runner Linux daba otras métricas según el test
+  # anterior del shard y el cociente salía 2.02 (CI de 2026-10-26).
+  medir <- tempfile(fileext = ".pdf")
+  .form_fuente_dispositivo(medir)
+  alto <- tryCatch(.form_pdf_block_height(blk, width = 0.90), finally = { grDevices::dev.off(); unlink(medir) })
 
   tmp <- tempfile(fileext = ".pdf")
   reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
