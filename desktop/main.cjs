@@ -1092,7 +1092,7 @@ function htmlPage(title, body) {
     :root {
       color-scheme: light;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #18211f;
+      color: #17212f;
       background: #f3f5f9;
     }
     body {
@@ -1104,9 +1104,9 @@ function htmlPage(title, body) {
     main {
       width: min(520px, calc(100vw - 48px));
       padding: 28px;
-      border: 1px solid #d9d2c4;
+      border: 1px solid #e2e7f0;
       border-radius: 8px;
-      background: #fffdf8;
+      background: #ffffff;
       box-shadow: 0 18px 55px rgba(45, 38, 24, 0.12);
     }
     h1 {
@@ -1116,13 +1116,13 @@ function htmlPage(title, body) {
     }
     p {
       margin: 0;
-      color: #5f665f;
+      color: #474f5b;
       line-height: 1.5;
     }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 0.92em;
-      color: #39433f;
+      color: #17212f;
     }
   </style>
 </head>
