@@ -12,6 +12,21 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.9.5",
+    date: "2026-10-25",
+    highlights: [
+      "Monitoreo: Telefónico, Acreditación y Territorial se actualizan con un solo «Actualizar ▾», que indica el paso en curso (N de M) y al terminar deja un recibo con lo que trajo. Si ya hay una actualización en marcha, la nueva se une a ella en vez de repetirla.",
+      "Monitoreo: al abrir un proyecto, la pantalla de carga muestra el tiempo transcurrido, lo que falta según la apertura anterior y cada fase con su duración. La insignia de Avance y la tarjeta del Home dicen sobre qué base cuentan y marcan «Actualizando» mientras la cifra se recalcula.",
+      "Monitoreo telefónico: Supervisión guarda, numera y publica sus rondas en la hoja, y avisa si una pestaña «Ronda N» se borró. La hoja con bloques Muestra y Backup lado a lado se lee caso por caso, y el catálogo de Kobo ordena los formularios del más reciente al más antiguo, con búsqueda.",
+      "Monitoreo de acreditación y territorial: Resumen se lee igual con 4 que con 10 públicos y Por cuota rellena sus barras. El mapa de la muestra pinta solo los reemplazos en uso, y Faltante por UMP y Metas leen el corte de avance vigente.",
+      "Material de campo: el correo suma las secciones Destacado, Pasos, Fecha límite, Beneficios, Cita, Preguntas frecuentes, Contacto e «Imagen + texto». Cada bloque lleva estilo propio y sus fotos se recortan a 1:1, 4:3, 2:1 o 16:9. «Mis secciones» se guardan en el estudio y se importan de otro .pulso con sus fotos.",
+      "Codificación: el panel «Palabras» de una pregunta abierta une equivalencias (alumnos y estudiantes), excluye términos y fija frases, y ese diccionario viaja en el proyecto. La sugerencia propone el módulo del formulario de cada comentario y lo parte en subtemas cuando uno se lleva más de la mitad. Renombrar un grupo después de adaptar llega a los gráficos sin recodificar.",
+      "Gráficos: un comentario abierto sale como nube que cuenta personas, como lámina de temas por sección del formulario con los subtemas bajo su módulo, y como lámina de citas que el analista aprueba, recorta o marca con [sic].",
+      "Gráficos: el PowerPoint dibuja nativas la dona de lámina completa, el dumbbell, el lollipop, las divergentes, la tabla de calor con Top Two Box y la serie por niveles. Las opciones no sustantivas van en gris al final, cada panel lleva su base, la grilla de seis lleva sus separadores y los rótulos largos de las barras se parten en hasta tres líneas.",
+      "Correcciones: Gráficos ya no se cierra cuando la validación trae un solo aviso y la multiapilada con campos vacíos se dibuja. Una ficha técnica sin filas se avisa antes de exportar, y el aviso de una lámina que no se dibuja dice por qué.",
+    ],
+  },
+  {
     version: "0.9.4",
     date: "2026-10-23",
     highlights: [
