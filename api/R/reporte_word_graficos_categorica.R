@@ -53,6 +53,8 @@
 .word_g_barras <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   l <- .word_barras_rotulos(espec); p <- espec$largos * 100
+  # Un rótulo que no entra en la columna común del capítulo se parte para entrar, si cabe en dos líneas (reporte_word_eje_comun.R).
+  if (.word_rotulo_in(l, .word_barras_pt()) > .WORD_ROTULO_CORTO_IN) l <- .word_rotulos_a_columna(espec$rotulos, .word_barras_pt()) %||% l
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   gris <- resid & isTRUE(espec[["residuales_gris"]])   # gris sólo si el analista lo pide; el lugar y el «mayor» siguen usando `resid`
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
