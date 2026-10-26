@@ -1,7 +1,11 @@
 # Traspaso — Codificación de respuestas en imports de SurveyMonkey (2026-10-11)
 
 Tipo: Traspaso a otra sesión (prioridad alta)
-Estado: Abierto
+Estado: Histórico
+Consolidado en: [GOAL de la Meta B](goal-modernizacion-ui-2026-10-10.md)
+Fecha: 2026-10-11
+Autoridad: Gonzalo (motivo de urgencia del 2026-10-11)
+Nota (2026-10-26): los commits que la §1 da como «NO en `main`» ya están en main (b10bf18 entró por el PR #10 y lo de 51ebabf se rehízo y amplió después); el procedimiento de entrega de este traspaso ya no aplica.
 Origen: sesión de la Meta B (rama `meta-b-revamp`), revisión metodológica N4 y verificador
 Motivo de urgencia (Gonzalo, 2026-10-11): hay un estudio **en campo en SurveyMonkey ahora**;
 mañana su base tiene que adaptarse sin problemas a su XLSForm y a la lógica que viene de la

@@ -1,7 +1,9 @@
 # Checklist — Meta B, Vuelta 1: Carga (2026-10-11)
 
 Tipo: Checklist de vuelta
-Estado: Pausada por el dueño (2026-10-11 06:10): no se abren unidades nuevas
+Estado: Histórico
+Consolidado en: [GOAL de la Meta B](goal-modernizacion-ui-2026-10-10.md)
+Nota: pausada por el dueño el 2026-10-11 06:10 (no se abrieron unidades nuevas); lo que se rescató de esta vuelta y lo que queda por rehacer está en la bitácora del GOAL (rescate del 2026-10-26).
 Fecha: 2026-10-11
 Autoridad: GOAL `goal-modernizacion-ui-2026-10-10.md` (L3–L9) y maestro `remasterizacion-ui-2026-10-10.md` §7 «Vuelta 1 — Carga»; relevamiento de solo lectura del 2026-10-11
 
