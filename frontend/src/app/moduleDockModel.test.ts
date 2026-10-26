@@ -10,7 +10,7 @@ const OCHO = [
   "/calc-muestra",
   "/editor-xlsform",
   "/hojas-ruta",
-  "/recopiladores",
+  "/material-campo",
   "/monitoreo",
   "/procesamiento",
   "/tablero",
