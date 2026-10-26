@@ -183,6 +183,75 @@ segundo job de sync de la misma sesión (dos pestañas, o la API llamada directo
   sesión, aislamiento entre sesiones, jobs sin clave, liberación por terminado, fallido o cancelado, huérfano,
   tope, y el sync de hojas.
 
+## L33 parte 1 — la carpeta `sync/` de Telefónico y Acreditación (hecha)
+
+Auditoría de Meta B, fila 9: los dos page-files son un fork vivo y su chrome con sync estaba copiado en
+`profiles/telefonico/sync/` y `profiles/acreditacion/sync/`. Esta parte cubre solo esa carpeta.
+
+### Lo que se unió
+
+| Par | Diferencia encontrada con `diff` | Destino común |
+|---|---|---|
+| `AcreditacionModuleChromeConSync.tsx` | Solo un comentario («Telefónico»/«Acreditación») | `features/monitoreo/sync/ModuleChromeConSync.tsx`, con el componente renombrado a `ModuleChromeConSync` |
+| `sourceSyncStore.ts` | Ninguna | `features/monitoreo/sync/sourceSyncStore.ts`, con el tipo `AcreditacionSourceSyncProgress` renombrado a `SourceSyncProgress` |
+| `pollSourceSync.ts` | Solo comentarios | `features/monitoreo/sync/pollSourceSync.ts`, con el tipo `…ProgressUpdate` neutro e imports de `api/jobs` y `api/monitoreo` en vez del barrel |
+
+- Las dos páginas solo cambian dos rutas de import y el nombre del componente en el JSX y en un comentario.
+  Cada una mantiene su número de líneas (19 512 y 16 999), y `--audit` no reporta hallazgos.
+- **Un solo store para los dos perfiles.** Antes había dos instancias de zustand. Ahora hay una. Eso no cambia
+  el comportamiento: los dos perfiles nunca se montan a la vez, y cada raíz llama a `sourceSyncActions.finish()`
+  al desmontarse. Además, `useActualizarDelModo` corta el poll al desmontarse, así que ningún `report()` tardío
+  llega al otro perfil. Territorial conserva su propio `syncStore.ts`.
+- `pollSourceSync` de Acreditación no tenía consumidores; era código muerto. El de Telefónico lo usaba
+  **Aulas**. `AulasMonitoreoPage.tsx` ahora lo importa del común, y solo cambió esa línea.
+- Archivos borrados (6): `profiles/{telefonico,acreditacion}/sync/{AcreditacionModuleChromeConSync.tsx,
+  pollSourceSync.ts,sourceSyncStore.ts}`. Salieron 270 líneas y entraron 136, con lo que el balance neto es
+  −134. No se borró ningún test, porque esas carpetas no tenían.
+
+### Lo que no se unió y por qué
+
+- **`scopePrefetch.ts`** sigue copiado en los dos perfiles porque difiere en lógica real. El de Acreditación
+  alimenta `navegacion/resumenDelCorte` cuando recibe un scope (`observarCorte(dashboard.acreditacion_reports,
+  config.goals)`). Además, si falla `queries_summary`, marca el fallo de casos (`marcarFalloDeCasos()`). Telefónico
+  no hace ninguna de las dos cosas. Para unirlo habría que pasar hooks `alRecibir(scope, next)` y
+  `alFallar(scope)`, y eso toca comportamiento. Queda como candidato de la parte 2.
+- **`profiles/territorial/sync/pollSourceSync.ts`** es idéntico al común salvo en el nombre del tipo y los
+  comentarios. Su comentario todavía apunta a las rutas borradas. No se tocó porque está fuera del glob de esta
+  parte. Unirlo solo requiere cambiar un import en `TerritorialSourceConsole.tsx` y borrar el archivo.
+- **`esperarJobDeSync.ts`** es el mismo poll, pero conserva `step`/`steps`. Fusionarlo con `pollSourceSync`
+  cambiaría la forma del progreso que recibe Aulas, así que se deja aparte.
+
+### Propuesta de la parte 2 — los page-files
+
+Medición de esta rama: se toma cada declaración de primer nivel de `TelefonicoMonitoreoPage.tsx` (función,
+`const`, `type`) y se compara byte a byte con la del mismo nombre en `AcreditacionMonitoreoPage.tsx`. Resultado:
+515 declaraciones, 321 idénticas. La auditoría contó 393 de 471 funciones con otro criterio. El número operativo
+es el **cierre transitivo**: las idénticas que solo dependen de otras idénticas, y que por eso se pueden mover sin
+arrastrar nada del perfil. Son **242 declaraciones y unas 2 930 líneas por page-file**:
+
+| Grupo | Declaraciones | Líneas | Riesgo |
+|---|---:|---:|---|
+| Helpers puros de formato y rótulos (`format*`, `*Label`, porcentajes, fechas, plurales) | 49 | ~433 | Mínimo: puros, sin JSX ni estado. **Primer lote** |
+| Tipos compartidos | 26 | ~203 | Mínimo: van con el lote que los use |
+| Helpers puros de fuentes, canales y recopiladores | 29 | ~218 | Bajo. **Segundo lote** |
+| Helpers puros de casos, reconciliación y subsanación | 20 | ~199 | Bajo, pero cruzan con `scopePrefetch` y `resumenDelCorte` |
+| Helpers puros de teléfono y cuotas por día | 14 | ~170 | Bajo |
+| Helpers puros de modelo y metas | 12 | ~74 | Bajo |
+| Otros helpers puros | 60 | ~590 | Bajo; clasificar al moverlos |
+| Componentes idénticos en cierre (p. ej. `AcreditacionChannelSelectorMatrix` 371, `AcreditacionAssistedReviewBlock` 271, `AcreditacionSweepBaseWorkbench` 203, `AcreditacionPlatformRejectionEditor` 139, `AcreditacionReconciliacionView` 104) | 31 | ~1 030 | Medio: exigen captura antes y después de cada sección |
+
+Orden propuesto:
+
+1. Formato, rótulos y sus tipos van a `features/monitoreo/comun/formatoDelPerfil.ts`, con un Vitest de la tabla
+   de casos. Son unas 640 líneas menos por page-file.
+2. Fuentes, casos, teléfono y modelo, en módulos puros por tema dentro de `features/monitoreo/comun/`.
+3. Componentes, uno por archivo en `features/monitoreo/comun/`, de a una sección por commit y con captura de
+   la sección en los dos perfiles.
+
+Al terminar cada lote hay que bajar las líneas base de los dos page-files en `agentic/manifest.json`, para que
+el ahorro quede fijado. Las 99 declaraciones con el mismo nombre y cuerpo distinto no se tocan en la parte 2:
+son la divergencia real del fork.
+
 ## Verificación
 
 - `pnpm -C frontend typecheck`, `make gate-front AREA=monitoreo`.

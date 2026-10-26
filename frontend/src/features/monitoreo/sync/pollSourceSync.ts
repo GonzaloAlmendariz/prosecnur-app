@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useRef } from "react";
-import {
-  apiJobStatus,
-  type JobProgress as JobProgressData,
-  type MonitoreoSyncResult,
-} from "../../../../../api/client";
+import { apiJobStatus, type JobProgress as JobProgressData } from "../../../api/jobs";
+import type { MonitoreoSyncResult } from "../../../api/monitoreo";
 
-// Poll del job de sincronización de fuentes, extraído del page-file congelado
-// (TelefonicoMonitoreoPage.tsx). Copia por perfil deliberada: telefónico es un
-// fork vivo de acreditación y cada perfil diverge por separado; se conserva el
-// vocabulario Acreditacion* para que el diff contra el gemelo siga legible.
+// Poll del job de sincronización de fuentes, extraído de los page-files
+// congelados de Telefónico y Acreditación y común a los dos desde L33 parte 1
+// (Aulas también lo usa). Territorial mantiene su copia en
+// `profiles/territorial/sync/pollSourceSync.ts`. El control «Actualizar ▾»
+// usa `esperarJobDeSync.ts`, que además conserva `step`/`steps`.
 
-export type AcreditacionSourceSyncProgressUpdate = {
+export type SourceSyncProgressUpdate = {
   percent: number | null;
   phase: string;
   message: string;
@@ -41,7 +39,7 @@ function normalizeSourceSyncProgress(progress: JobProgressData | Record<string, 
 
 export async function waitForSourceSyncJob(
   jobId: string,
-  onProgress?: (progress: AcreditacionSourceSyncProgressUpdate) => void,
+  onProgress?: (progress: SourceSyncProgressUpdate) => void,
   isCancelled?: () => boolean,
 ) {
   for (let attempt = 0; attempt < 90; attempt += 1) {
@@ -73,7 +71,7 @@ export function useWaitForSourceSyncJob() {
     };
   }, []);
   return useCallback(
-    (jobId: string, onProgress?: (progress: AcreditacionSourceSyncProgressUpdate) => void) =>
+    (jobId: string, onProgress?: (progress: SourceSyncProgressUpdate) => void) =>
       waitForSourceSyncJob(jobId, onProgress, () => disposedRef.current),
     [],
   );
