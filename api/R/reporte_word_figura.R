@@ -53,6 +53,14 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
 .word_rotulo <- function(doc, n, titulo, etiqueta = "Gráfico") {
   num <- .word_estilo_id(doc, "Número de rótulo")
   titulo <- .word_rotulo_titulo(titulo)
+  # Sin número (`n = NA`): un ejemplo ilustrativo, como los de «Cómo leer este informe». Va como «Ejemplo: …» y SIN campo
+  # SEQ: Word renumera los SEQ en orden, así que no basta con saltarse el contador (Gonzalo, 2026-10-26: el ejemplo del
+  # Top Two Box salía como «Gráfico 1» y corría la numeración del informe; tampoco entra al índice de gráficos).
+  if (length(n) != 1L || is.na(n)) {
+    partes <- list(.word_run_estilo("Ejemplo", num))
+    if (nzchar(titulo)) partes[[2]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
+    return(officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico"))
+  }
   partes <- list(.word_run_estilo(paste0(etiqueta, " "), num), .word_run_seq(etiqueta, n, num))
   if (nzchar(titulo)) partes[[3]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
   officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico")

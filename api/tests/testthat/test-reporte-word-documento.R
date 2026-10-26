@@ -69,7 +69,7 @@ test_that("lo previo a la primera sección va en «Introducción» y «Cómo lee
   expect_lt(pos("Conocer la opinión"), pos("Cómo leer este informe"))
   expect_lt(pos("Cómo leer este informe"), pos("Perfil del encuestado"))
   expect_match(x, "1.1. Objetivo", fixed = TRUE)
-  expect_equal(res$figuras, 3L)                                  # 2 de «Cómo leer» + 1 del plan
+  expect_equal(res$figuras, 1L)                                  # sólo la del plan: los ejemplos de «Cómo leer» no se numeran (2026-10-26)
 })
 
 test_that("tipo oración en los casos del verificador: I+D+i, preguntas, numeración y siglas", {

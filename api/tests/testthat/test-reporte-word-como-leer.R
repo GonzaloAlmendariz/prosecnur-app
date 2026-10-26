@@ -8,7 +8,8 @@ test_that("«Cómo leer este informe» lleva Top y Bottom Two Box, las dos tabla
   x <- .wl_xml(doc)
   for (t in c("2.1. Top Two Box", "2.2. Bottom Two Box", "Redondeo del resto mayor", "Redacciones de la escala", "2.5. Cifras muy pequeñas",
               "método del resto mayor", "No he usado el servicio")) expect_match(x, t, fixed = TRUE)
-  expect_equal(unname(attr(doc, "siguientes")), c(4L, 4L))                      # 3 figuras y 3 tablas: los siguientes son 4 y 4
+  # Los ejemplos no consumen numeración (Gonzalo, 2026-10-26): el primer gráfico del estudio sigue siendo el 1.
+  expect_equal(unname(attr(doc, "siguientes")), c(1L, 1L))
   expect_match(x, 'w:fill="F3F5F8"', fixed = TRUE)                              # el recuadro
 })
 
@@ -17,7 +18,7 @@ test_that("sin Bottom Two Box ni resto mayor, el capítulo no lo nombra y el rec
   x <- .wl_xml(doc)
   expect_false(grepl("Bottom Two Box", x, fixed = TRUE))
   expect_match(x, "por separado (desde 0.5 sube)", fixed = TRUE)
-  expect_equal(unname(attr(doc, "siguientes")), c(3L, 4L))
+  expect_equal(unname(attr(doc, "siguientes")), c(1L, 1L))
 })
 
 test_that("las cifras del ejemplo de redondeo son las del recetario: el estándar suma 101 y el resto mayor 100", {
@@ -41,4 +42,14 @@ test_that("el Word recetario declara el redondeo que usa el informe, no siempre 
   expect_identical(.word_redondeo_documento(list(redondeo = "estandar"), pre(barras_apiladas = "reparto")), "estandar")   # lo pedido gana
   x <- .wl_xml(.word_como_leer(.word_documento_nuevo(), redondeo = "ambos"))
   expect_match(x, "Unos gráficos redondean cada cifra por separado", fixed = TRUE)
+})
+
+test_that("los ejemplos de «Cómo leer» se rotulan «Ejemplo» sin campo SEQ: el primer gráfico del estudio es el 1 (Arte, 2026-10-26)", {
+  # El ejemplo del Top Two Box salía como «Gráfico 1: Cómo se calcula el Top Two Box» y corría la numeración del informe.
+  x <- .wl_xml(.word_como_leer(.word_documento_nuevo(), numero = 2, redondeo = "resto_mayor"))
+  texto <- gsub("\\s+", " ", gsub("<[^>]+>", "", gsub("</w:r>", "", x)))   # el rótulo va en dos runs
+  expect_match(texto, "Ejemplo ?: Cómo se calcula el Top Two Box")
+  expect_false(grepl("SEQ", x, fixed = TRUE))
+  expect_false(grepl(">Gráfico <", x, fixed = TRUE))
+  expect_false(grepl(">Tabla <", x, fixed = TRUE))
 })

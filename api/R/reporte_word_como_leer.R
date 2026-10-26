@@ -98,8 +98,9 @@
       "el redondeo, las escalas, las cifras pequeñas, las bases chicas y la información faltante.")
     else .word_como_leer_apertura(secciones, con_bottom), variante = variante_apertura)
   fig <- function(doc, titulo, g, base = "Ejemplo ilustrativo. Fuente: PULSO PUCP 2026.") {
-    png <- .word_png(g, attr(g, "alto")); doc <- .word_figura(doc, figura, titulo, png, alto = attr(g, "alto"), base = base); figura <<- figura + 1L; doc }
-  tab <- function(doc, titulo, ft, base) { doc <- .word_tabla(doc, tabla, titulo, ft, base = base); tabla <<- tabla + 1L; doc }
+    # Los ejemplos del capítulo no se numeran (`NA`, .word_rotulo): el primer gráfico y la primera tabla del estudio son los 1.
+    png <- .word_png(g, attr(g, "alto")); .word_figura(doc, NA_integer_, titulo, png, alto = attr(g, "alto"), base = base) }
+  tab <- function(doc, titulo, ft, base) .word_tabla(doc, NA_integer_, titulo, ft, base = base)
   s <- 0L; sec <- function(doc, t) { s <<- s + 1L; .word_seccion(doc, t, paste0(numero, ".", s)) }
 
   if (lleva("top_two_box")) {
