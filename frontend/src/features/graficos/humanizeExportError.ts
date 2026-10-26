@@ -1,4 +1,5 @@
 import type { GraficadorRef, PlanJson } from "../../api/graficos";
+import { causaLlana } from "./causaLamina";
 import { ACCION_RECARGAR_BORRADOR, CODIGO_BORRADOR_STALE, MENSAJE_CONFLICTO_BORRADOR } from "./conflictoBorrador";
 import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 
@@ -47,10 +48,16 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
   const nombrada = h.slideRef ? null : laminaNombrada(causa, plan);
   if (nombrada) {
     const generico = h.message === MENSAJE_SIN_PATRON;
+    // Además de dónde, por qué: la causa del rechazo en lenguaje llano, si el mensaje del motor tiene forma conocida.
+    const porque = generico ? causaLlana(causa) : null;
     return {
       ...h,
-      message: generico ? `${nombrada.label}: su gráfico no se puede dibujar como está configurado, y el informe se detuvo ahí.` : h.message,
-      hint: generico ? "Ábrela y revisa su gráfico; en la tira de miniaturas aparece como «No se dibuja»." : h.hint,
+      message: generico
+        ? `${nombrada.label}: su gráfico no se puede dibujar ${porque ? `porque ${porque}` : "como está configurado"}, y el informe se detuvo ahí.`
+        : h.message,
+      hint: generico
+        ? `Ábrela y revisa ${porque ? "ese ajuste en " : ""}su gráfico; en la tira de miniaturas aparece como «No se dibuja».`
+        : h.hint,
       slideRef: nombrada,
       ...(detalle ? { detalle } : {}),
     };
