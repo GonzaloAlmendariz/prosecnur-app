@@ -116,7 +116,11 @@
                        fontface = .word_cara("cifras"), colour = vapply(col[d$cabe], .lam_texto_sobre, ""), family = "Arial")
   if (hay_chicas) g <- g + ggplot2::geom_text(data = d[!d$cabe, , drop = FALSE], ggplot2::aes(x = pmin(pmax(.data$xm, 3), 97), y = 1.25, label = .data$cif),
                                               size = .word_pt(8, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial")
-  g <- g + ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
+  # Sin rótulo de fila iba a todo el ancho; con la columna común del capítulo arranca donde las demás barras
+  # (reporte_word_eje_comun.R). Sin columna común, como siempre.
+  comun <- suppressWarnings(as.numeric(getOption("prosecnur.word_rotulo_comun") %||% NA_real_)[1])
+  x_min <- if (is.finite(comun)) .word_xmin(character(0), 9, 100, -4, ancho_in = comun) else 0
+  g <- g + ggplot2::scale_x_continuous(limits = c(x_min, 100), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(0, if (hay_chicas) 1.5 else 1), expand = c(0, 0)) + .word_tema()
   .word_fijar_alto_por_grosor(g, 1)   # N25: grosor común; el eje y ya trae el aire de las cifras chicas
 }
