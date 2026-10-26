@@ -106,8 +106,8 @@ import {
   type AcreditacionSourceTab,
 } from "./pestanasDeFuentes";
 import { useActualizarDelModo } from "../../sync/useActualizarDelModo";
-import { sourceSyncActions, useSourceSyncStore } from "./sync/sourceSyncStore";
-import { AcreditacionModuleChromeConSync } from "./sync/AcreditacionModuleChromeConSync";
+import { sourceSyncActions, useSourceSyncStore } from "../../sync/sourceSyncStore";
+import { ModuleChromeConSync } from "../../sync/ModuleChromeConSync";
 import { countText, fmt, formatDate, formatMetric, normalizeSourceMatch } from "./formato";
 import { EmptyPanel } from "./EmptyPanel";
 import {
@@ -19022,7 +19022,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
   // Aislamiento del sync (unidad 2.2): la raíz solo se suscribe a `syncing`
   // (dos flips por sync); el progreso por segundo vive en el store y lo
-  // consume únicamente AcreditacionModuleChromeConSync.
+  // consume únicamente ModuleChromeConSync.
   const sourceSyncing = useSourceSyncStore((s) => s.syncing);
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
@@ -19417,7 +19417,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
 
-        <AcreditacionModuleChromeConSync
+        <ModuleChromeConSync
           routes={[route]}
           cargando={loading && !state}
           route={route}
