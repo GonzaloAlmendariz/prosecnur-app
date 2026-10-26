@@ -137,7 +137,10 @@
   col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
                             list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
   # Con rótulo corto, la columna común del capítulo; sin rótulo, ninguna: va a todo el ancho (reporte_word_eje_comun.R).
-  xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = .word_escala_columna(.word_rotulo_in(lbw, pt_rot), lbw))
+  xmax <- if (ttb) col$xmax else 101
+  # Sin rótulo de fila la barra nace en 0, como el Sí/No: sin el mínimo de columna ni el desfase de rótulos que no tiene
+  # (Arte_v1-7, Gráficos 48 y 49).
+  xmin <- if (!.word_tiene_rotulos(lbw)) 0 else .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = .word_escala_columna(.word_rotulo_in(lbw, pt_rot), lbw))
   k_in <- (xmax - xmin) / (.std_word("pagina", "ancho_util") - 0.3)   # unidades del eje por pulgada de figura
   chicas <- d[!d$cabe, , drop = FALSE]
   if (nrow(chicas)) chicas <- do.call(rbind, lapply(split(chicas, chicas$y), function(g) {
