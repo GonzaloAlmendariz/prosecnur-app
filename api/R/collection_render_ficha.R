@@ -1398,9 +1398,13 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
     seq_along(compiled$pages)
   }
   orientation <- compiled$pages[[selected[[1]]]]$orientation %||% "portrait"
+  # La marca se evalúa ANTES de abrir el device: era una promesa que se resolvía con el PDF abierto y, si generarla
+  # abría y cerraba un png, R volvía al «siguiente» device de la lista y no al nuestro (CI de 0.9.5, PDF sin trailer).
+  force(brand_assets)
   .crf_open_device(path, device, orientation, dpi)
+  dev_propio <- grDevices::dev.cur()
   device_open <- TRUE
-  on.exit(if (device_open) grDevices::dev.off(), add = TRUE)
+  on.exit(if (device_open && dev_propio %in% grDevices::dev.list()) grDevices::dev.off(dev_propio), add = TRUE)
   draw_warnings <- list()
   links <- list()
   zones <- list()
@@ -1423,7 +1427,7 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
       zone
     }))
   }
-  grDevices::dev.off()
+  grDevices::dev.off(dev_propio)   # el propio por número: `dev.off()` cierra el actual, que puede ser otro
   device_open <- FALSE
   if (identical(device, "pdf") && length(links)) {
     pulso_pdf_add_link_annotations(path, links)
