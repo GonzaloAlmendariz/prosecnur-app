@@ -338,6 +338,40 @@ test_that("propone continuidad cuando faltan envíos", {
   expect_no_error(.validar_regla_custom(p))
 })
 
+test_that("continuidad no lee un id de servidor como secuencia (L21)", {
+  # El `_id` de Kobo es el identificador global del servidor: 1,283 envíos de
+  # un formulario quedan repartidos entre millones de ids de otros. Leído como
+  # correlativo publicaba «faltan 1.970.691 envíos» sobre 1,283 casos.
+  set.seed(21)
+  ids <- sort(sample(4.6e8:4.62e8, 1283))
+  d <- data.frame(`_id` = ids, check.names = FALSE)
+  expect_length(reglas_semilla_continuidad(d), 0L)
+})
+
+test_that("continuidad usa `_index` aunque la base también traiga `_id`", {
+  d <- data.frame(`_index` = c(1:5, 7:10), `_id` = c(9e8 + c(1:5, 7:10) * 37),
+                  check.names = FALSE)
+  props <- reglas_semilla_continuidad(d)
+  expect_length(props, 1L)
+  expect_identical(props[[1]]$semilla$columna, "_index")
+  expect_identical(unlist(props[[1]]$semilla$faltantes), 6L)
+})
+
+test_that("continuidad sigue viendo una pérdida masiva en `_index` (L21)", {
+  # Quedan 100 de 1,500 envíos numerados por la exportación: es justo lo que el
+  # criterio existe para avisar (descarga parcial o filtro sin registrar).
+  set.seed(1500)
+  d <- data.frame(`_index` = sort(sample(1:1500, 100)), check.names = FALSE)
+  props <- reglas_semilla_continuidad(d)
+  expect_length(props, 1L)
+  expect_identical(props[[1]]$semilla$columna, "_index")
+})
+
+test_that("continuidad no arma secuencias de millones aunque la columna se llame `_index`", {
+  d <- data.frame(`_index` = c(1, 2, 3, 5e6), check.names = FALSE)
+  expect_length(reglas_semilla_continuidad(d), 0L)
+})
+
 test_that("continuidad marca la fila anterior a cada hueco, y nunca el último caso", {
   # La anomalía no es de ninguna fila presente: son las que faltan. Se marca la
   # que precede al hueco, que es la información accionable.
