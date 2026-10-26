@@ -1188,7 +1188,7 @@
       }
     }
   }
-  errs <- c(errs, .plan_errores_indice(slides), .plan_errores_escalas(slides, inst_sources))   # graficos_plan_requisitos.R: lo que impide exportar
+  errs <- c(errs, .plan_errores_indice(slides), .plan_errores_tabla_tecnica(slides), .plan_errores_escalas(slides, inst_sources))   # graficos_plan_requisitos.R: lo que impide exportar
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
