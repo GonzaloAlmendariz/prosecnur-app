@@ -10,9 +10,15 @@ type Estado = {
   ponerPrevios: (avisos: readonly string[]) => void;
 };
 
+// Defensa: un aviso único de R llegaba como texto y `.filter` tumbaba la página entera; se conserva como un aviso.
+function comoLista(avisos: readonly string[] | string | null | undefined): string[] {
+  if (Array.isArray(avisos)) return avisos.filter(Boolean);
+  return typeof avisos === "string" && avisos ? [avisos] : [];
+}
+
 export const useAvisosExportacion = create<Estado>((set) => ({
   motor: [],
   previos: [],
-  ponerMotor: (avisos) => set({ motor: avisos.filter(Boolean) }),
-  ponerPrevios: (avisos) => set({ previos: avisos.filter(Boolean) }),
+  ponerMotor: (avisos) => set({ motor: comoLista(avisos) }),
+  ponerPrevios: (avisos) => set({ previos: comoLista(avisos) }),
 }));
