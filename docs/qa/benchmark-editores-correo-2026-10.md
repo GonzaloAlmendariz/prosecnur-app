@@ -1,5 +1,10 @@
 # Benchmark · editores de correo (2026-10)
 
+Tipo: Benchmark
+Estado: Vigente
+Fecha: 2026-10-23
+Autoridad: Gonzalo, GOAL del editor de correos profesional (ítem L0)
+
 GOAL `goal-editor-correos-profesional-2026-10-23.md`, ítem **L0**. Estudia cómo resuelven
 **Mailchimp (editor nuevo)**, **Beefree**, **Stripo** y **Unlayer** los temas del GOAL y decide qué
 copiamos, qué no y por qué. La regla que lo filtra todo: lo que copiamos tiene que salir como

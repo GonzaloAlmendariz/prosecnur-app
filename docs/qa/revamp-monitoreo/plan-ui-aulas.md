@@ -110,5 +110,5 @@ Pendientes (fuera del glob o de la tarea):
   `capacity-drift` de 4–5 px en la cabecera de «Aulas agendadas» (Agenda) y un desborde de la cabecera de «Respuestas
   que pide el plan» a 1024 × 600 (Resumen). Quedan para el rediseño visual. Falta una cardinalidad alta: no hay un
   `.pulso` de referencia anonimizado con monitoreo de aulas en curso.
-- Capturas: `/private/tmp/claude-501/-Users-gonzaloalmendariz-repos-Pulso-prosecnur-app/92de85d3-8d15-4d9f-bdeb-331f48bc5b03/scratchpad/aulas-m2/captura/`
-  (rama) y `/private/tmp/claude-501/-Users-gonzaloalmendariz-repos-Pulso-prosecnur-app/92de85d3-8d15-4d9f-bdeb-331f48bc5b03/scratchpad/aulas-m2/antes/` (`main`).
+- Capturas: la carpeta `aulas-m2/captura/` del scratchpad de la sesión
+  (rama) y `aulas-m2/antes/` del mismo scratchpad (`main`).

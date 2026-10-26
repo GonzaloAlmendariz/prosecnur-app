@@ -1,5 +1,10 @@
 # Plan M4 de Meta B: warm start con tiempo (L23)
 
+Tipo: Plan de implementación
+Estado: Vigente
+Fecha: 2026-10-25
+Autoridad: Gonzalo: «La auditoría de la Meta B es algo que todos los monitoreos deben tener»
+
 Fuente: auditoría de Meta B, fila 8 y brecha 4. Maqueta:
 `docs/qa/maqueta-remasterizacion-2026-10-10/maqueta/m/L23-warmstart.html`.
 El warm start es intencional: se mantiene y se explica mejor.

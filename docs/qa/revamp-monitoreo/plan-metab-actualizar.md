@@ -1,5 +1,10 @@
 # Meta B · M1 — control único «Actualizar ▾» (L38), paso N de M y recibo (L25)
 
+Tipo: Plan de implementación
+Estado: Vigente
+Fecha: 2026-10-25
+Autoridad: Gonzalo: «La auditoría de la Meta B es algo que todos los monitoreos deben tener»
+
 Origen: auditoría de la Meta B, filas 10, 11, 14 y 16 y brechas 1 y 3. Gonzalo: «La auditoría de la Meta B es algo
 que todos los monitoreos deben tener para que no perdamos ninguna funcionalidad propuesta allí». Norma:
 `estandar-de-ficha.md` §2a (píldora) y §2b (Actualizar explica, muestra el paso y deja recibo).

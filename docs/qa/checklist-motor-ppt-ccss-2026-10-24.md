@@ -1,5 +1,10 @@
 # Checklist — robustez del motor de Gráficos/PPT con CCSS Perfil 2026 (2026-10-24)
 
+Tipo: Checklist
+Estado: En curso
+Fecha: 2026-10-24
+Autoridad: Gonzalo; lo da por terminado sólo él
+
 Un solo checklist para los dos frentes que se unieron: **motor PPT** (esta sesión, lead) y **brechas del motor vistas en CCSS**
 (rama `claude/keen-diffie-8fc654`, integrada a `main`). Lo da por terminado sólo Gonzalo.
 

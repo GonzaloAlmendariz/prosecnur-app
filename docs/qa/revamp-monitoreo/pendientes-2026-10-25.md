@@ -1,6 +1,11 @@
 # Revamp de Monitoreo y Meta B — cierre de jornada y pendientes
 
-Fecha: 2026-10-25. Estado de `main`: `83762c038` (sin push). Autoridad: Gonzalo.
+Tipo: Cierre de jornada
+Estado: Vigente
+Fecha: 2026-10-25
+Autoridad: Gonzalo
+
+Estado de `main` al cerrar: `83762c038` (sin push).
 
 ## Lo que quedó en `main` hoy (validado)
 

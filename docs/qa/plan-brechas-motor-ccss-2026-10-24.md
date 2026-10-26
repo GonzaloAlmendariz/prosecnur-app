@@ -1,5 +1,10 @@
 # Plan — lo que CCSS Perfil 2026-II resolvió fuera del motor (2026-10-24)
 
+Tipo: Plan de implementación
+Estado: En curso
+Fecha: 2026-10-24
+Autoridad: Gonzalo pidió listar y planificar lo que CCSS resolvió fuera del motor
+
 - **Origen**: el 2026-10-24, al procesar CCSS Perfil del Estudiante 2026-II, la sesión resolvió fuera de la
   app, o con rodeos, cosas que el motor debería cubrir. Gonzalo pidió listarlas y planificarlas en otra sesión.
 - **Rama**: 8 (gobernar) para lo que pide decisión; 1 (construir) para el resto, todavía en fase de scope.
@@ -382,7 +387,7 @@ más reciente (`_agrup*` > `_recod` > original) usando el mapa padre → target 
 - Incluso con caché, `.analitica_context_usable` (`:2049-2072`) revalida la compatibilidad, y
   `.bases_normalize_report_context` (`helpers_bases.R:725-743`) corre sin memo.
 
-**Propuesta**. Primero medir sobre `CCSS2026_procesamiento_codificado_24-10.pulso` (copia en `tmp/`; el 8787 es del
+**Propuesta**. Primero medir sobre `CCSS2026_procesamiento_codificado_24-10.pulso` (sobre una copia local, fuera del repo; el 8787 es del
 usuario) con `Rprof` o tiempos por tramo: reparadores, contexto usable, normalización. Después: que
 detect-secciones lea solo el instrumento; memoizar el reparador de variantes y el caso «bloqueada».
 
@@ -616,7 +621,7 @@ primero; toda oleada termina en `verificador`; gate por área (`make gate-area A
 |---|---|---|---|---|---|
 | 0 | 8 | D1–D12 con Gonzalo; ADR nuevo de selección y depuración (D1–D4); enmienda al ADR 0100 (D6, D8) | lead | `docs/adrs/`, este plan | — |
 | 1 | 1 | **B0a** (prioridad 1) · **B1 + B13** | `autor-regresiones` (rojo de B0a, B1 y B13) → `backend-r` A (`orden_categorias.R`) · `backend-r` B (`codificacion_origen_vigente.R`, `router_codificacion.R` mínimo) | sin solape | `gate-area` analítica y codificación; regenerar Frecuencias y Cruces del `.pulso` de la muestra 400 y **leer las tablas** (A1, B3, B14, E2 en orden, 98/99 al final) |
-| 1b | 1 | **B10** (solo medir) | `diagnosticador-regresiones` (solo lectura) | `tmp/` | informe de tiempos por tramo |
+| 1b | 1 | **B10** (solo medir) | `diagnosticador-regresiones` (solo lectura) | copia local fuera del repo | informe de tiempos por tramo |
 | 1G | 1 | **G1 + G2** · **G5 + G8** (los cuatro que dan cifras o rótulos falsos en el mazo) | `autor-regresiones` → `backend-r` A (`router_graficos.R` `finalize_sources`, `graficos_consolidado.R`, `graficos_cifra.R`) · `backend-r` B (`graficos_orden_rangos.R`, `graficos_orden_categorias.R`, una función de «otro» compartida que usen `reporte_frecuencias.R` y `reporte_plan_opciones.R`) | sin solape; B toca `reporte_frecuencias.R` solo en la función de «otro» (B0b la toca después) | `gate-area` gráficos y analítica; test de contrato «Analítica y Gráficos ven las mismas columnas»; regenerar el mazo con A9 y B1 |
 | 1H | 1 | **G3 + G4** · **G6 + G7 + G9** | `backend-r` A (`reporte_plan_slides.R`, `graficos_metadata.R`, aviso de argumentos descartados en `router_graficos.R:175-210`) · `especialista-entregables` B (`lamina_mixtas.R`, `reporte_slides_composicion.R`, `lamina_titulo_alto.R`, nuevo `lamina_titulo_plantilla.R`, `graficador_barras_agrupadas.R`) | A y B tocan `router_graficos.R` en zonas distintas: solo A; B no lo toca | `gate-area` gráficos; `sync-agentic-os --audit` (congelado sin crecer); render del mazo y revisión visual lámina por lámina de las afectadas |
 | 2 | 1 | **B14 + B15** · **B2** | `backend-r` A (`base_variables_instrumento.R`, `carga_origen_externo.R`, `router_analitica.R:2242/2280`, `helpers_multibase.R`) · `backend-r` B (`carga_reemplazar_respuestas.R`, `carga_xlsx_repeats.R`) | sin solape; A comparte con B1 la regla de linaje (se congela en la oleada 1) | `gate-area` carga, base-variables y analítica; total → muestra con «Nueva versión» sin rehacer el proyecto; reabrir y preparar sin error |
@@ -649,7 +654,7 @@ manual en B2, sin títulos duplicados ni texto montado. Solo Gonzalo da por cerr
 - La oleada 1H se coordina con `motor-ppt`: G7 y G9 los cerró esa sesión en `main` (`7e10765b8`). G3, G4 (con el aviso de D13) y G6 siguen
   pendientes de la aprobación de 1H.
 
-- B10 se mide sobre una **copia** del `.pulso` en `tmp/`. No se toca el backend del 8787, que es del usuario.
+- B10 se mide sobre una **copia** del `.pulso` fuera del repo. No se toca el backend del 8787, que es del usuario.
 - La deduplicación de Monitoreo resuelve el padrón y después deduplica; el script deduplica y después cruza.
   Con el mismo código limpio dan lo mismo, pero el registro paso a paso no cuenta igual. Hay que cuadrarlo en B4.
 - B5: antes de tocar código, confirmar con el `.pulso` del caso si `factor_ponderacion` estaba en

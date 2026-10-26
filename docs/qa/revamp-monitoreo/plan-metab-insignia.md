@@ -1,5 +1,10 @@
 # Meta B · M3 — una sola lectura de avance con su base (L20)
 
+Tipo: Plan de implementación
+Estado: Vigente
+Fecha: 2026-10-25
+Autoridad: Gonzalo: «La auditoría de la Meta B es algo que todos los monitoreos deben tener»
+
 Origen: auditoría de la Meta B, fila 7 y brecha 7. Gonzalo: «La auditoría de la Meta B es algo que todos los
 monitoreos deben tener». Maqueta: `docs/qa/maqueta-remasterizacion-2026-10-10/maqueta/m/L20-avance-con-base.html`.
 De la maqueta se toma la función (la cifra con su denominador, Home lee el corte guardado), no su prosa con «·».
