@@ -57,6 +57,7 @@ import { useSession } from "../../lib/SessionContext";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import "./carga-v2.css";
 import "./carga-sources.css";
+import "./carga-scroll-corto.css";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
@@ -102,6 +103,9 @@ import {
 } from "./CargaMonitoringDiscovery";
 import { sourceInputCount, type ProcessingSourcesProfile } from "./CargaSourcesModel";
 import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
+import { CargaHidratando } from "./CargaHidratando";
+import { marcaReadinessCarga, resolverHidratacionCarga } from "./cargaHidratacion";
+import { useEstudioCarga } from "./useEstudioCarga";
 import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import {
   CARGA_REVISION_SIN_LEER,
@@ -238,7 +242,7 @@ function reviewReconciliationInfo(review: CargaReviewPayload): ReconciliacionInf
 }
 
 export default function CargaPage() {
-  const { sessionId, state, refresh } = useSession();
+  const { sessionId, state, refresh, error: errorSesion } = useSession();
   const cargaDireccion = useSeccion("procesamiento");
   const topologyIntent = useCargaStore((store) => store.topologyIntent);
   const setTopologyIntent = useCargaStore((store) => store.setTopologyIntent);
@@ -738,9 +742,6 @@ export default function CargaPage() {
     !!handoffStatus &&
     handoffStatus.detected &&
     !handoffStatus.already_promoted;
-  const studyLoadingBases = state?.n_bases ?? 0;
-  const studyLoadingBasesLabel = `${studyLoadingBases} base${studyLoadingBases === 1 ? "" : "s"}`;
-
   // ¿Está el usuario en modo multi-base? Dos formas de activarse:
   // 1) Demo/preset cargó ≥1 base real (Acreditación) → has_estudio
   //    true + n_bases ≥ 1 con nombres reales.
@@ -772,8 +773,20 @@ export default function CargaPage() {
       !(hasDefaultStudyBase)
     );
   // Payload del estudio — cargamos on-demand cuando entramos a modo
-  // multi-base para mostrar el BasesPanel con detalle de cada base.
-  const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
+  // multi-base para mostrar el BasesPanel con detalle de cada base. Mientras
+  // el estado de sesión o el estudio están en vuelo la página se hidrata: pinta
+  // silueta y no publica readiness (L4, `cargaHidratacion.ts`).
+  const {
+    estudio,
+    setEstudio,
+    estado: estadoEstudio,
+    reintentar: reintentarEstudio,
+  } = useEstudioCarga(isMultiBase, `${state?.n_bases ?? ""}|${state?.bases_nombres?.join(",") ?? ""}`);
+  const hidratacion = resolverHidratacionCarga({
+    hayEstadoSesion: state !== null, errorSesion: Boolean(errorSesion),
+    esMultiBase: isMultiBase,
+    estudio: estadoEstudio,
+  });
   const cargaBaseOptions = estudio ? Object.values(estudio.bases) : [];
   const topologyBases = cargaBaseOptions.filter(
     (base) => base.source_kind !== "kobo_repeat" && !base.parent_base,
@@ -1050,25 +1063,6 @@ export default function CargaPage() {
     if (!error) return;
     feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [error]);
-
-  useEffect(() => {
-    if (!isMultiBase) {
-      setEstudio(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const p = await apiEstudioGet();
-        if (!cancelled) setEstudio(p);
-      } catch {
-        // Si falla (ej. sesión recién creada sin estudio), el BasesPanel
-        // no se renderiza — volvemos a los UploadCards.
-        if (!cancelled) setEstudio(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [isMultiBase, state?.n_bases, state?.bases_nombres?.join(",")]);
 
   // Esquema single-base: instrumento único (comportamiento histórico intacto).
   useEffect(() => {
@@ -1357,11 +1351,12 @@ export default function CargaPage() {
       scrollOwner="panels"
       // La marca se escribe "false", no se omite: sin ella el runtime toma la
       // primera marca descendiente (la del panel de variables extra dice
-      // "true") y daba Revisión por lista mientras todavía leía.
+      // "true") y daba Revisión por lista mientras todavía leía. Mientras la
+      // página se hidrata tampoco hay marca (L4, `cargaHidratacion.ts`).
       auditReady={
         (isMultiBase && !estudio) || (activeCargaTab === "revision" && !revisionEstado.completa)
           ? "false"
-          : `carga-${activeCargaTab}`
+          : marcaReadinessCarga(hidratacion, activeCargaTab) || "false"
       }
     >
       {(busy || error || handoffMessage) && (
@@ -1460,7 +1455,7 @@ export default function CargaPage() {
                 />
               </CargaPlanOverview>
             ) : activeCargaTab === "fuentes" ? (
-              <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources">
+              <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources" data-qa-geometry-group="carga/fuentes" data-qa-geometry-contract="intrinsic">
               {sourcePlan}
               {/* Propuesta F (Gonzalo, 2026-10-11): con «Bases separadas», Fuentes es la lista de bases, sin número fijo;
                   «Agregar base» pregunta el origen y cada import entra como una base nueva. */}
@@ -1637,57 +1632,19 @@ export default function CargaPage() {
         </AdaptiveSplitView>
       )}
 
-      {isMultiBase && !estudio && (
-        <section
-          aria-label="Mesa de trabajo de varias bases"
-          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--top-only"
-        >
-          <div className="pulso-carga-content pulso-content-area">
-            <CargaReadinessBoard
-              hasXlsform={hasXlsform}
-              hasData={hasData}
-              pendingChoiceMapping={pendingChoiceMapping}
-              allReady={allReady}
-              isMultiBase={isMultiBase}
-              bases={state?.n_bases ?? 0}
-            />
-            <section className="pulso-carga-study-loading" aria-live="polite">
-              <span aria-hidden="true">
-                <Loader2 size={17} className="pulso-spin" />
-              </span>
-              <div>
-                <strong>Preparando mesa multibase</strong>
-                <p>
-                  Ordenando {studyLoadingBasesLabel} para mostrar formularios, respuestas
-                  y origen de cada fuente sin cambiar tus archivos.
-                </p>
-              </div>
-              <div className="pulso-carga-study-loading-map" aria-hidden="true">
-                <span>
-                  <Database size={12} />
-                  <strong>{studyLoadingBases}</strong>
-                  <small>bases</small>
-                </span>
-                <span>
-                  <FileSpreadsheet size={12} />
-                  <strong>{hasXlsform && hasData ? "listos" : "revisando"}</strong>
-                  <small>insumos</small>
-                </span>
-                <span>
-                  <ShieldCheck size={12} />
-                  <strong>{allReady ? "validable" : "pendiente"}</strong>
-                  <small>revisión</small>
-                </span>
-              </div>
-            </section>
-          </div>
-        </section>
+      {hidratacion.fase !== "lista" && (
+        <CargaHidratando
+          pestana={activeCargaTab}
+          hidratacion={hidratacion}
+          onCambiarPestana={goCargaWorkspaceTab}
+          onReintentar={hidratacion.fase === "error" && hidratacion.motivo === "sesion" ? () => void refresh() : reintentarEstudio}
+        />
       )}
 
       {/* Sección 1 — LOS DOS INSUMOS (single-base). Solo se muestra si
           NO estamos en modo multi-base. Si estamos en multi-base,
           BasesPanel ya cubre la carga de insumos. */}
-      {!isMultiBase && (
+      {!isMultiBase && hidratacion.fase === "lista" && (
       <>
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de carga"
@@ -1728,7 +1685,7 @@ export default function CargaPage() {
               />
             </CargaPlanOverview>
           ) : activeCargaTab === "fuentes" ? (
-            <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources">
+            <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources" data-qa-geometry-group="carga/fuentes" data-qa-geometry-contract="intrinsic">
           {sourcePlan}
           {sourceOriginTabs}
           {(resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy && (
@@ -2488,97 +2445,6 @@ function cargaBaseMeta(base: EstudioBase) {
   const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
   const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
   return `${base.nombre} · ${rows} filas · ${cols} columnas`;
-}
-
-function CargaReadinessBoard({
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
-  allReady,
-  isMultiBase,
-  bases,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
-  allReady: boolean;
-  isMultiBase: boolean;
-  bases: number;
-}) {
-  const reviewReady = allReady && !pendingChoiceMapping;
-  const headline = allReady
-    ? "Base lista para revisar"
-    : hasXlsform
-    ? "Falta conectar respuestas"
-    : "Prepara los insumos";
-  const detail = allReady
-    ? "El siguiente paso es auditar consistencia, filtros y reglas antes de producir resultados."
-    : hasXlsform
-    ? "El formulario ya define la estructura. Ahora carga o importa las respuestas."
-    : "Comienza con el formulario; luego Pulso habilita la carga de respuestas.";
-  const items = [
-    {
-      key: "form",
-      icon: FileSpreadsheet,
-      title: "Formulario",
-      meta: hasXlsform ? "Estructura disponible" : "Pendiente",
-      ready: hasXlsform,
-    },
-    {
-      key: "data",
-      icon: Database,
-      title: "Respuestas",
-      meta: hasData ? "Base conectada" : hasXlsform ? "Lista para cargar" : "Bloqueada",
-      ready: hasData,
-    },
-    {
-      key: "review",
-      icon: ShieldCheck,
-      title: "Revisión",
-      meta: pendingChoiceMapping ? "Mapeo pendiente" : reviewReady ? "Lista" : "En espera",
-      ready: reviewReady,
-      warning: pendingChoiceMapping,
-    },
-  ];
-
-  return (
-    <section className="pulso-carga-readiness" aria-label="Estado operativo de carga">
-      <div className="pulso-carga-readiness-main">
-        <span className="pulso-carga-readiness-icon" aria-hidden="true">
-          {allReady ? <CheckCircle2 size={20} /> : <Upload size={20} />}
-        </span>
-        <div>
-          <span className="pulso-carga-readiness-kicker">Preparación</span>
-          <strong>{headline}</strong>
-          <p>{detail}</p>
-        </div>
-      </div>
-
-      <div className="pulso-carga-readiness-grid">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.key}
-              className={`pulso-carga-readiness-card${item.ready ? " is-ready" : ""}${item.warning ? " is-warning" : ""}`}
-            >
-              <span aria-hidden="true">
-                <Icon size={16} />
-              </span>
-              <strong>{item.title}</strong>
-              <small>{item.meta}</small>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pulso-carga-entry-strip" aria-label="Modos de entrada">
-        <span><Upload size={13} /> Carga manual</span>
-        <span><CloudDownload size={13} /> Plataforma</span>
-        <span><ArrowRightLeft size={13} /> {isMultiBase ? `${bases} base${bases === 1 ? "" : "s"}` : "Una base"}</span>
-      </div>
-    </section>
-  );
 }
 
 // =====================================================================

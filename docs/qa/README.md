@@ -140,6 +140,10 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [GOAL — La app se siente de una sola generación (2026-10-10)](goal-modernizacion-ui-2026-10-10.md):
   vara, cola en seis oleadas, decisiones que esperan al dueño, ledger y
   trampas; el plan de acción del censo.
+- [Meta B · checklist de la vuelta 1: Carga (2026-10-11)](checklist-vuelta1-carga-2026-10-11.md):
+  histórico; lo que se rescató sobre main está en la bitácora del GOAL.
+- [Traspaso: codificación de respuestas en imports de SurveyMonkey (2026-10-11)](traspaso-codificacion-surveymonkey-2026-10-11.md):
+  histórico; sus commits ya están en main.
 - [Censo de la UI — estado, deuda y techo de modernización (2026-10-10)](censo-ui-2026-10-10.md):
   mapa módulo → modo → sección → pestaña → panel, madurez por módulo, la
   quinta dimensión (diálogos y flujos de Carga), cumplimiento de la v3,

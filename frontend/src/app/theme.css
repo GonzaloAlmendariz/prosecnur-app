@@ -754,7 +754,7 @@ a { color: var(--pulso-primary); }
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  max-width: min(328px, 32vw);
+  max-width: none;
   min-width: 0;
   margin: 0;
   padding: 3px;
@@ -973,8 +973,7 @@ a { color: var(--pulso-primary); }
     transform: translateY(-1px) scale(1.035);
   }
 
-  .pulso-module-tile:hover .pulso-module-tile-label,
-  .pulso-module-tile:focus-visible .pulso-module-tile-label {
+  .pulso-module-tile:hover .pulso-module-tile-label {
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
   }
@@ -2628,7 +2627,7 @@ a { color: var(--pulso-primary); }
   }
 
   .pulso-module-dock {
-    max-width: min(312px, 34vw);
+    max-width: none;
   }
 
   .pulso-phase-rail {
@@ -2695,8 +2694,8 @@ a { color: var(--pulso-primary); }
 
 @media (max-width: 1180px) {
   .pulso-module-dock {
-    width: min(354px, 42vw);
-    max-width: min(354px, 42vw);
+    width: auto;
+    max-width: none;
     overflow: visible;
   }
 
@@ -4609,7 +4608,7 @@ a { color: var(--pulso-primary); }
 
 :root[data-pulso-layout-mode="compact"] .pulso-module-dock,
 :root[data-pulso-layout-mode="short"] .pulso-module-dock {
-  max-width: min(312px, 34vw);
+  max-width: none;
 }
 
 :root[data-pulso-layout-mode="compact"] .pulso-phase-rail,
@@ -7576,8 +7575,7 @@ a { color: var(--pulso-primary); }
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
   }
 
   .pulso-module-current {
@@ -28735,7 +28733,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-app-header:has(.pulso-phase-rail) .pulso-module-dock {
-  max-width: min(300px, 29vw);
+  max-width: none;
   padding: 2px;
   border-radius: 13px;
 }

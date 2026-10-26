@@ -9,6 +9,7 @@ import {
   X,
 } from "../../../vendor/lucide-react";
 import { apiV2ExplorarVariables } from "../../../api/client";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type {
   ExploradorVariable,
   InstrumentoOperationalConfig,
@@ -107,7 +108,12 @@ export default function InstrumentoOperationalControls({
             <strong>Controles operativos</strong>
             <small>Define las fechas de campo y compara respuestas entre entrevistas.</small>
           </span>
-          <span className="pulso-operational-chips" aria-label="Estado de controles operativos">
+          <span
+            className="pulso-operational-chips"
+            aria-label="Estado de controles operativos"
+            data-qa-geometry-group="validacion/operativo-estado"
+            data-qa-geometry-contract="intrinsic"
+          >
             <StatusChip active={value.field_period.enabled} label={statusLabels.fieldPeriod} />
             <StatusChip active={value.duplicates.enabled} label={statusLabels.duplicates} />
             {dirty && <span className="pulso-operational-chip is-dirty">Cambios sin aplicar</span>}
@@ -298,19 +304,17 @@ function OperationalCard({
       <header>
         <span className="pulso-operational-card-icon">{icon}</span>
         <span><strong>{title}</strong><small>{description}</small></span>
-        <label className="pulso-operational-switch">
-          <input
-            type="checkbox"
-            checked={enabled}
-            disabled={disabled}
-            aria-label={`${enabled ? "Desactivar" : "Activar"} ${title}`}
-            aria-invalid={enabled && !!error}
-            aria-describedby={enabled && error ? errorId : undefined}
-            onChange={(event) => onToggle(event.target.checked)}
-          />
-          <span aria-hidden="true" />
-          <b>{enabled ? "Activo" : "Inactivo"}</b>
-        </label>
+        {/* K1 (L27): el switch del kit. Su nombre no cambia con el estado
+            (lo dice aria-checked); el error lo anuncia aria-describedby. */}
+        <PulsoSwitch
+          className="pulso-operational-switch"
+          label={enabled ? "Activo" : "Inactivo"}
+          ariaLabel={`Activar ${title}`}
+          checked={enabled}
+          disabled={disabled}
+          describedBy={enabled && error ? errorId : undefined}
+          onCheckedChange={onToggle}
+        />
       </header>
       <div className="pulso-operational-card-body" aria-disabled={!enabled}>
         <fieldset disabled={!enabled || disabled}>{children}</fieldset>
