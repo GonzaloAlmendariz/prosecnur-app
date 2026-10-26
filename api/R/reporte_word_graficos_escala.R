@@ -52,26 +52,26 @@
 
 #' Columnas Top Two Box y Bottom Two Box del Word, en unidades del eje x
 #'
-#' Con una sola columna (Top Two Box) se dibuja como en el recetario Word: cifra y rótulo centrados en x = 110 y el eje
-#' hasta 121 (figuras 13 y 47 de `propuesta-word.docx`). Con las dos, las posiciones fijas 110/124 del recetario Word
-#' encimaban los rótulos y cortaban «Bottom Two Box» en el borde (la figura 45 los perdía por el alto del eje). Aquí
-#' rige la geometría del recetario PPT (lámina 79 de `recetario-moderna.pptx`): cada columna tiene su ancho, el rótulo
+#' Rige la geometría del recetario PPT (lámina 79 de `recetario-moderna.pptx`): cada columna tiene su ancho, el rótulo
 #' va en una línea centrado sobre su cifra y la Bottom Two Box va a la derecha de la Top Two Box sin tocarla. Los
-#' anchos se miden en pulgadas y se pasan al eje con la misma relación que usa `.word_xmin()`, así que no dependen del
-#' largo de los rótulos de las filas.
+#' anchos se miden en PULGADAS y la columna termina en el margen derecho, así que el Top Two Box cae en el mismo lugar
+#' de la página en todas las figuras y las barras terminan juntas (Gonzalo, 2026-10-26: «el top two box debe finalizar
+#' cuando finaliza el margen derecho»; antes, con una sola columna, iba en x = 110 del eje y se corría según el largo de
+#' los rótulos de cada figura).
+#' @param ancho_rotulos Pulgadas de la columna de rótulos que de verdad se dibuja (la común del capítulo, la propia o 0).
+#' @param x_ini Donde empieza el eje tras la columna de rótulos: -4 con rótulos, 0 sin ellos.
 #' @return list(x1, x2, xmax, filete): centro de cada columna (x2 = NA sin Bottom Two Box), límite derecho del eje y fin
 #'   del filete de la fila Total.
 #' @keywords internal
-.word_columnas_box <- function(lbw, rotulos, cifras, pt_rotulo, pt_cifra, b2b = FALSE) {
-  if (!isTRUE(b2b)) return(list(x1 = 110, x2 = NA_real_, xmax = 121, filete = 116))
+.word_columnas_box <- function(ancho_rotulos, rotulos, cifras, pt_rotulo, pt_cifra, b2b = FALSE, x_ini = -4) {
   ancho <- function(i) max(.word_texto_in(rotulos[i], pt_rotulo), .word_texto_in(cifras[[i]], pt_cifra))
-  w1 <- ancho(1L); w2 <- ancho(2L)
-  aire <- 0.12; gap <- 0.16; pad <- 0.06                                            # pulgadas: tras la barra, entre columnas y al borde
-  c_in <- aire + w1 + gap + w2 + pad
-  util <- .std_word("pagina", "ancho_util") - 0.3 - .word_rotulo_in(lbw, .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo"))       # lo que mide de x = -4 a xmax (`.word_xmin`)
-  k <- 104 / max(util - c_in, 1)                                                     # unidades del eje por pulgada
-  list(x1 = 100 + (aire + w1 / 2) * k, x2 = 100 + (aire + w1 + gap + w2 / 2) * k, xmax = 100 + c_in * k,
-       filete = 100 + (c_in - pad) * k)
+  w1 <- ancho(1L); w2 <- if (isTRUE(b2b)) ancho(2L) else 0
+  aire <- 0.12; gap <- if (isTRUE(b2b)) 0.16 else 0                                  # pulgadas: a cada lado de la columna y entre columnas
+  c_in <- aire + w1 + gap + w2 + aire                    # centrada con aire a los dos lados; la columna termina en el margen derecho
+  util <- .std_word("pagina", "ancho_util") - 0.3 - ancho_rotulos                    # lo que mide de `x_ini` a xmax (`.word_xmin`)
+  k <- (100 - x_ini) / max(util - c_in, 1)                                           # unidades del eje por pulgada
+  list(x1 = 100 + (aire + w1 / 2) * k, x2 = if (isTRUE(b2b)) 100 + (aire + w1 + gap + w2 / 2) * k else NA_real_,
+       xmax = 100 + c_in * k, filete = 100 + (c_in - aire) * k)
 }
 
 #' Rótulos de fila partidos a `envolver` caracteres; con una envoltura ancha (>= 30) ninguno pasa de `.WORD_ESCALA_LINEAS_MAX`
@@ -134,13 +134,16 @@
   ttb <- !is.null(espec$box) && length(espec$box$cifras)
   b2b <- ttb && !is.null(espec$box2) && length(espec$box2$cifras)
   pt_de <- function(x, rol) .word_pt(x, rol) * ggplot2::.pt
-  col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
-                            list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
-  # Con rótulo corto, la columna común del capítulo; sin rótulo, ninguna: va a todo el ancho (reporte_word_eje_comun.R).
+  # Columna de rótulos: la común del capítulo si el rótulo es corto (reporte_word_eje_comun.R); sin rótulo, ninguna, y la
+  # barra nace en 0 como el Sí/No (Arte_v1-7, Gráficos 48 y 49).
+  con_rot <- .word_tiene_rotulos(lbw)
+  L_rot <- if (con_rot) .word_escala_columna(.word_rotulo_in(lbw, pt_rot), lbw) else 0
+  x_ini <- if (con_rot) -4 else 0
+  col <- .word_columnas_box(L_rot, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
+                            list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"),
+                            b2b = b2b, x_ini = x_ini)
   xmax <- if (ttb) col$xmax else 101
-  # Sin rótulo de fila la barra nace en 0, como el Sí/No: sin el mínimo de columna ni el desfase de rótulos que no tiene
-  # (Arte_v1-7, Gráficos 48 y 49).
-  xmin <- if (!.word_tiene_rotulos(lbw)) 0 else .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = .word_escala_columna(.word_rotulo_in(lbw, pt_rot), lbw))
+  xmin <- if (!con_rot) 0 else .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = L_rot)
   k_in <- (xmax - xmin) / (.std_word("pagina", "ancho_util") - 0.3)   # unidades del eje por pulgada de figura
   chicas <- d[!d$cabe, , drop = FALSE]
   if (nrow(chicas)) chicas <- do.call(rbind, lapply(split(chicas, chicas$y), function(g) {

@@ -24,7 +24,8 @@ test_that("la escala Word lee la espec: cifras dentro desde 7 %, las chicas arri
 test_that("con fila Total un filete la separa de los públicos", {
   g <- .word_g_escala(.we_espec(total = TRUE))
   b <- suppressWarnings(ggplot2::ggplot_build(g))
-  segs <- Filter(function(l) all(c("x", "xend") %in% names(l)) && any(l$xend == 116), b$data)
+  col <- attr(g, "columnas_box")   # el filete llega hasta el final de la columna Top Two Box (antes, x = 116 fijo)
+  segs <- Filter(function(l) all(c("x", "xend") %in% names(l)) && nrow(l) == 1L && l$xend > col$x1 && l$xend <= col$xmax, b$data)
   expect_length(segs, 1L)
 })
 
@@ -39,6 +40,13 @@ test_that("con fila Total un filete la separa de los públicos", {
   preparar_escala(d, "actor", "N", paste0("p", 1:5), setNames(rot, paste0("p", 1:5)), barra_extra_preset = "top2box",
                   top2box_labels = c("De acuerdo", "Muy de acuerdo"), columna_bottom2box = TRUE,
                   bottom2box_labels = c("Muy en desacuerdo", "En desacuerdo"), fila_total = total)
+}
+
+.we_espec_rotulos <- function(actores) {
+  rot <- c("Muy en desacuerdo", "En desacuerdo", "De acuerdo", "Muy de acuerdo", "SIN INF")
+  d <- data.frame(actor = actores, N = 100, p1 = .02, p2 = .06, p3 = .44, p4 = .46, p5 = .02)
+  preparar_escala(d, "actor", "N", paste0("p", 1:5), setNames(rot, paste0("p", 1:5)), barra_extra_preset = "top2box",
+                  top2box_labels = c("De acuerdo", "Muy de acuerdo"))
 }
 
 .we_extension <- function(g, x, texto, pt) {
@@ -70,10 +78,22 @@ test_that("con Top Two Box y Bottom Two Box los dos rótulos caben enteros y no 
   }
 })
 
-test_that("con sólo el Top Two Box la geometría es la del recetario Word (x = 110, eje hasta 121)", {
-  g <- .word_g_escala(.we_espec())
-  col <- attr(g, "columnas_box")
-  expect_equal(col$x1, 110); expect_true(is.na(col$x2)); expect_equal(col$xmax, 121)
+test_that("con sólo el Top Two Box la columna cae en el mismo lugar de la página y termina en el margen derecho", {
+  # Gonzalo (2026-10-26): «el top two box debe finalizar cuando finaliza el margen derecho» y la columna, centrada, lleva
+  # aire a los dos lados. Antes iba en x = 110 del eje (hasta 121) y se corría según el largo de los rótulos de cada figura.
+  pt_rot <- .word_pt(.WORD_ESCALA_PT$box_rotulo, "rotulo") * ggplot2::.pt
+  en_pulgadas <- function(g) {
+    col <- attr(g, "columnas_box"); sx <- ggplot2::ggplot_build(g)$layout$panel_params[[1]]$x.range
+    W <- .std_word("pagina", "ancho_util") - 0.3
+    c(centro = (col$x1 - sx[1]) / diff(sx) * W, borde = (col$xmax - sx[1]) / diff(sx) * W, W = W)
+  }
+  corto <- en_pulgadas(.word_g_escala(.we_espec()))
+  largo <- en_pulgadas(.word_g_escala(.we_espec_rotulos(c("Personal administrativo y de apoyo de la facultad de arte", "Egresados"))))
+  expect_equal(corto[["centro"]], largo[["centro"]], tolerance = 0.01)            # el mismo lugar con rótulos de distinto largo
+  expect_equal(corto[["borde"]], corto[["W"]], tolerance = 0.01)                   # la columna termina en el margen derecho
+  aire_der <- corto[["borde"]] - (corto[["centro"]] + .word_texto_in("Top Two Box", pt_rot) / 2)
+  expect_gt(aire_der, 0.08)                                                       # con aire a la derecha del rótulo
+  expect_true(is.na(attr(.word_g_escala(.we_espec()), "columnas_box")$x2))
 })
 
 # N7 (Renzo, informe Arte, 2026-10-22): con enunciados largos la columna de etiquetas era angosta (22 caracteres), cada
