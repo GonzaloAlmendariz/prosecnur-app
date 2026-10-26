@@ -24,7 +24,7 @@ vi.mock("../features/project/ProjectModulesContext", () => ({
       "calc-muestra",
       "editor-xlsform",
       "hojas-ruta",
-      "recopiladores",
+      "material-campo",
       "monitoreo",
       "dashboard",
     ],
