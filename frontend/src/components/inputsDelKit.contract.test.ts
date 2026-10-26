@@ -38,11 +38,11 @@ import { describe, expect, test } from "vitest";
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * Migrados por completo (L26 Analítica › Datos, L27 Cálculo de muestra › Marco,
- * Aulas y Salida, y Validación › Roles).
+ * Migrados por completo (L27 Cálculo de muestra › Marco, Aulas y Salida, y
+ * Validación › Roles). Analítica › Datos (L26) se migró en la rama del 10/10
+ * pero no entró en el rescate: main ya la había rehecho; queda por migrar.
  */
 const ARCHIVOS_MIGRADOS = [
-  "features/analitica/panes/DataReviewPane.tsx",
   "features/calcMuestra/universidad/aulas/AulasObjetivoTab.tsx",
   "features/calcMuestra/universidad/aulas/AulasRerandomizacionTab.tsx",
   "features/calcMuestra/universidad/aulas/DescuentoRepetidosControl.tsx",
@@ -64,25 +64,30 @@ const KIT = new Set([
 ]);
 
 /**
- * Casillas por archivo a fecha de 2026-10-11 (L27, segunda tanda: Cálculo de
- * muestra › Aulas/Salida y Validación), 85 en total (105 en L26; ImportSurveyMonkeyDialog bajó a 0 en L8). Solo baja.
+ * Casillas por archivo. En la rama del 2026-10-11 eran 85 (105 en L26, y
+ * L27 tanda 2 bajó Cálculo de muestra › Aulas/Salida y Validación). Al rescatar
+ * la rama sobre main (2026-10-26) la foto se tomó de nuevo sobre el árbol de
+ * hoy: 79 en 53 archivos. Solo baja.
  */
 const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/analitica/dimensiones/shared/CombinarVarsPanel.tsx": 1,
-  "features/analitica/panes/BasesPane.tsx": 2,
-  "features/analitica/panes/CodebookPane.tsx": 2,
-  "features/analitica/panes/CrucesPane.tsx": 3,
-  "features/analitica/panes/EnumeradoresPane.tsx": 2,
-  "features/analitica/panes/FrecuenciasPane.tsx": 2,
-  "features/analitica/panes/MultibaseTablasPane.tsx": 1,
-  "features/analitica/panes/PanelBasePane.tsx": 3,
+  "features/analitica/panes/CodebookPane.tsx": 1,
+  "features/analitica/panes/ComparativosLista.tsx": 2,
+  "features/analitica/panes/CrucesPane.tsx": 1,
+  "features/analitica/panes/EnumeradoresPane.tsx": 1,
   "features/carga/AcreditacionBatchPanel.tsx": 1,
-  "features/carga/BasesPanel.tsx": 8,
-  "features/carga/CargaPage.tsx": 1,
-  "features/carga/CargaUniverseFilter.tsx": 1,
+  "features/carga/ArmonizacionEscalaCompartida.tsx": 2,
+  "features/carga/ArmonizacionFilaEditor.tsx": 1,
+  "features/carga/BasesPanel.tsx": 3,
+  "features/carga/MapaBasesPanel.tsx": 1,
   "features/carga/ReconciliacionExtraDialog.tsx": 1,
+  "features/carga/fuentes/NuevaBaseFormularioPublicado.tsx": 1,
+  "features/carga/segmentos/SegmentoEnBase.tsx": 1,
+  "features/carga/variablesBase/AnexarColumnas.tsx": 1,
+  "features/carga/variablesBase/CalculadaEditor.tsx": 1,
+  "features/carga/variablesBase/ColumnasDeLaBase.tsx": 2,
   "features/codificacion/CodingConfigActions.tsx": 2,
-  "features/codificacion/PreguntasLanding.tsx": 1,
+  "features/codificacion/PalabrasPanel.tsx": 1,
   "features/codificacion/RespuestasCodificador.tsx": 1,
   "features/dashboard/curation/DashboardCurationGate.tsx": 2,
   "features/dashboard/customize/DashboardCustomizeDialog.tsx": 5,
@@ -92,26 +97,32 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/dashboard/tabs/DimensionesTab/index.tsx": 2,
   "features/dashboard/tabs/RelacionTab/index.tsx": 1,
   "features/dashboard/tabs/ResumenTab/FiltrosMultiRow.tsx": 2,
-  "features/graficos/CalculosEditor.tsx": 1,
-  "features/graficos/GraficosHeader.tsx": 2,
-  "features/graficos/MultiApiladasBuilder.tsx": 2,
-  "features/graficos/PaletasEditor.tsx": 2,
+  "features/graficos/SuggestedPlanButton.tsx": 1,
+  "features/graficos/compartir/PlanPortatilContenido.tsx": 1,
+  "features/graficos/compartir/SeccionesJsonContenido.tsx": 1,
+  "features/graficos/estilo/DialogoLinea.tsx": 3,
+  "features/graficos/laminas/brecha/BrechaEntreGrupos.tsx": 1,
+  "features/graficos/laminas/matriz/MatrizCuadrantes.tsx": 1,
+  "features/graficos/temasEquivalentes/EditorTemasEquivalentes.tsx": 1,
   "features/graficos/v2/timeline/SlidePicker.tsx": 1,
   "features/hojasRuta/HojasRutaPage.tsx": 1,
   "features/home/GlobalSettingsDialog.tsx": 1,
-  "features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 7,
+  "features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 5,
   "features/monitoreo/profiles/acreditacion/fuentes/ActoresDelEstudio.tsx": 1,
   "features/monitoreo/profiles/acreditacion/modelo/DistribucionPorActor.tsx": 1,
   "features/monitoreo/profiles/aulas/AulasFiltrosDeEfectiva.tsx": 1,
   "features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 7,
   "features/monitoreo/profiles/territorial/TerritorialQuotaConsistencyPanel.tsx": 1,
-  "features/monitoreo/salidas/MonitoreoOutputsWorkbench.tsx": 2,
   "features/recopiladores/AccessSection.tsx": 1,
-  "features/recopiladores/MaterialsSection.tsx": 1,
-  "features/xlsformEditor/canvas/FocusedWorkspace.tsx": 2,
+  "features/recopiladores/correos/ImportarSecciones.tsx": 1,
+  "features/recopiladores/editor/AjustesDelBloque.tsx": 1,
+  "features/xlsformEditor/choiceFilters/ListaFija.tsx": 1,
+  "features/xlsformEditor/choiceFilters/VistaEncuestado.tsx": 1,
   "features/xlsformEditor/inspector/BasicTab.tsx": 1,
   "features/xlsformEditor/inspector/MoreTab.tsx": 1,
   "features/xlsformEditor/shell/MatrizPulsoDialog.tsx": 1,
+  "features/xlsformEditor/shell/SmConexionSection.tsx": 1,
+  "features/xlsformEditor/shell/SmImportResumen.tsx": 1,
 };
 
 const CASILLA = /type=\{?["']checkbox["']\}?/g;
