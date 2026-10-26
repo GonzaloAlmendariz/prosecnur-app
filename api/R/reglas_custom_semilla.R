@@ -452,8 +452,10 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
   ))
 }
 
-# Columnas donde la plataforma numera los envíos de forma correlativa.
-.semilla_secuencia_candidatas <- c("_index", "_id", "index")
+# Columnas donde la plataforma numera los envíos de forma correlativa. `_id`
+# NO entra: en Kobo es el identificador global del servidor, compartido por
+# todos los formularios, y sus «huecos» son envíos de otras encuestas (L21).
+.semilla_secuencia_candidatas <- c("_index", "index")
 
 #' Proponer el criterio de continuidad de los envíos
 #'
@@ -478,6 +480,10 @@ reglas_semilla_continuidad <- function(data, reglas_existentes = list()) {
   seq_v <- suppressWarnings(as.numeric(data[[col]]))
   seq_v <- seq_v[is.finite(seq_v)]
   if (length(seq_v) < 2L) return(list())
+  # Red contra un id disfrazado de correlativo: con más de un millón de números
+  # faltantes no es una descarga parcial sino otra numeración, y armar la
+  # secuencia costaría un vector de ese tamaño por cada sugerencia (L21).
+  if ((max(seq_v) - min(seq_v) + 1) - length(seq_v) > 1e6) return(list())
   faltan <- setdiff(seq_len(max(seq_v)), seq_v)
   faltan <- faltan[faltan >= min(seq_v)]
   if (!length(faltan)) return(list())
