@@ -1411,14 +1411,32 @@ export async function apiGraficosPlanSugerido(
   return normalizeGraficosSuggestedPlan(raw);
 }
 
-export async function apiGraficosValidar(plan: PlanJson) {
-  return handle<{ ok: boolean; errors: string[]; warnings: string[]; n_slides: number }>(
+export type GraficosValidacion = { ok: boolean; errors: string[]; warnings: string[]; n_slides: number };
+
+/** Mensajes de texto de una lista de R: un solo mensaje llega como texto y una lista vacía como `{}`. */
+const mensajesApi = (value: unknown): string[] =>
+  arregloApi(value).filter((x) => x != null && typeof x !== "object").map(String).filter(Boolean);
+
+/** Respuesta de `/api/graficos/validar`: un aviso único llegaba como texto y la página reventaba en `.filter`. */
+export function normalizeGraficosValidacion(raw: unknown): GraficosValidacion {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    ok: Boolean(arregloApi(r.ok)[0]),
+    errors: mensajesApi(r.errors),
+    warnings: mensajesApi(r.warnings),
+    n_slides: Number(arregloApi(r.n_slides)[0] ?? 0) || 0,
+  };
+}
+
+export async function apiGraficosValidar(plan: PlanJson): Promise<GraficosValidacion> {
+  const raw = await handle<unknown>(
     await apiFetch("/api/graficos/validar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ plan }),
     })
   );
+  return normalizeGraficosValidacion(raw);
 }
 
 export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>, config?: unknown) {
