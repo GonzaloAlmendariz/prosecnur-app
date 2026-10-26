@@ -128,7 +128,7 @@ import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQ
 // la nota de ese archivo defiende la copia por perfil para lo que diverge entre
 // telefónico y acreditación (su vocabulario, sus fases), y esto no es eso — es
 // esperar a un job y leer su progreso, idéntico para cualquier familia.
-import { useWaitForSourceSyncJob } from "../telefonico/sync/pollSourceSync";
+import { useWaitForSourceSyncJob } from "../../sync/pollSourceSync";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
