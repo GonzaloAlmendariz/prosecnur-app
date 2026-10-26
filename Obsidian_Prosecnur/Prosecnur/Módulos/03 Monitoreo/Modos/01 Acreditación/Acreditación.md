@@ -56,30 +56,29 @@ Confirma que el estudio tiene declarados sus actores, que cada uno tiene encuest
 ```mermaid
 flowchart TD
     N["Acreditación"]
-    N --> C1["Fuentes de acreditación"]
+    N --> C1["Insumos de acreditación"]
     N --> C2["Modelo operativo de acreditación"]
-    N --> C3["Consultas de acreditación"]
-    N --> C4["Monitoreo telefónico de acreditación"]
-    N --> C5["Avance de acreditación"]
+    N --> C3["Control de acreditación"]
+    N --> C4["Avance de acreditación"]
 ```
+
+Desde el revamp de Monitoreo (2026-10-23) el modo sigue el esqueleto común Insumos · Modelo · Control · Avance. Las antiguas Fuentes, Consultas y Teléfono se repartieron entre Insumos y Control; ninguna capacidad se perdió.
 
 ## Guía de destinos
 
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
-| [[Fuentes de acreditación]] | Al montar el estudio, y cada vez que una cifra no cuadre | Declarar encuestas, universos por actor y recopiladores que cuentan | El paquete de entrada del que dependen todas las demás secciones |
-| [[Modelo operativo de acreditación]] | Cuando hay que fijar qué se espera de cada actor | Declarar metas y modalidades, el cronograma de campo y revisar la lectura de fuentes | El criterio contra el cual se juzga el avance |
-| [[Consultas de acreditación]] | Cuando hay que responder por un caso concreto | Revisar registro por registro el cruce con la base, los cruces efectivos y las subsanaciones | La evidencia caso a caso que sostiene la cifra |
-| [[Monitoreo telefónico de acreditación]] | Cuando parte del operativo se resuelve por llamada | Seguir el barrido, el ritmo diario, los responsables y la supervisión | El control de la operación telefónica |
-| [[Avance de acreditación]] | Para leer el estado del estudio y producir salidas | Revisar el resumen, las brechas por actor, los canales y exportar | El reporte del corte con su procedencia |
+| [[Insumos de acreditación]] | Al montar el estudio, y cada vez que una cifra no cuadre | Declarar públicos con su padrón, conectar fuentes y fijar las reglas de lectura y cruce | El paquete de entrada del que dependen todas las demás secciones |
+| [[Modelo operativo de acreditación]] | Cuando hay que fijar qué se espera de cada público | Declarar metas, cuotas por categoría y la ventana de campo | El criterio contra el cual se juzga el avance |
+| [[Control de acreditación]] | Mientras corre el campo y cuando hay que responder por un caso | Seguir el contacto declarado (correo, barrido, reintentos, equipo) y decidir los casos: por resolver, cruce, calidad, personas y respuestas | La evidencia caso a caso que sostiene la cifra |
+| [[Avance de acreditación]] | Para leer el estado del estudio y producir salidas | Revisar el resumen, quién se queda atrás, las cuotas, el ritmo y exportar | El reporte del corte con su procedencia |
 
 ## Recorrido recomendado
 
-1. **Fuentes de acreditación**, siempre primero al configurar: sin universo declarado, ninguna cifra posterior tiene denominador.
-2. **Modelo operativo de acreditación**, para fijar qué se espera de cada actor antes de medir si se cumplió.
-3. **Consultas de acreditación**, que es la sección crítica del modo: aquí ocurre el cruce caso por caso y es donde se establece el avance real. No es una consulta ocasional, es lo que sostiene la cifra.
-4. **Monitoreo telefónico de acreditación** si hay llamadas, para controlar la operación que alimenta parte de esas efectivas.
-5. **Avance de acreditación** al final, para leer y exportar. Sus salidas son las que conservan la procedencia del corte.
+1. **Insumos de acreditación**, siempre primero al configurar: sin padrón declarado, ninguna cifra posterior tiene denominador.
+2. **Modelo operativo de acreditación**, para fijar qué se espera de cada público antes de medir si se cumplió.
+3. **Control de acreditación**, que es donde ocurre el cruce caso por caso y se establece el avance real. No es una consulta ocasional: es lo que sostiene la cifra.
+4. **Avance de acreditación** al final, para leer y exportar. Sus salidas son las que conservan la procedencia del corte.
 
 En uso diario el orden se invierte: se entra por Avance, y se baja a la sección que explique la anomalía.
 

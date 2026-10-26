@@ -6,40 +6,35 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `monitoreo` · ruta `/monitoreo` · 112 direcciones.
+Módulo `monitoreo` · ruta `/monitoreo` · 95 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `monitoreo` | modulo | Monitoreo de campo | sí | a874c243 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
-| `monitoreo/acreditacion` | modo | Acreditación | sí | c3d35250 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
-| `monitoreo/acreditacion/fuentes` | seccion | Fuentes | sí | b99ffc5a | sí | [0045-monitoreo-actores-modelo-telefonia-explicita](../../adrs/0045-monitoreo-actores-modelo-telefonia-explicita.md) |
-| `monitoreo/acreditacion/fuentes/actores` | pestana | Actores | sí | 84e6e4d6 | sí | — |
-| `monitoreo/acreditacion/fuentes/fuentes` | pestana | Fuentes y universo | sí | a8dbc27b | sí | — |
-| `monitoreo/acreditacion/fuentes/recopiladores` | pestana | Recopiladores | sí | 0ca5a3fd | sí | — |
-| `monitoreo/acreditacion/modelo` | seccion | Modelo operativo | sí | ca46ab09 | sí | — |
-| `monitoreo/acreditacion/modelo/estructura` | pestana | Modelo operativo | sí | effd59cb | sí | — |
-| `monitoreo/acreditacion/modelo/distribucion` | pestana | Distribución | sí | 3e100f23 | sí | — |
-| `monitoreo/acreditacion/modelo/estrategias` | pestana | Cronograma | sí | 5a7220d6 | sí | — |
-| `monitoreo/acreditacion/consultas` | seccion | Consultas | sí | b5f15e2c | sí | — |
-| `monitoreo/acreditacion/consultas/plataforma` | pestana | Registros en plataforma | sí | 48baeb42 | sí | — |
-| `monitoreo/acreditacion/consultas/base` | pestana | Estado de la base | sí | e5cebac3 | sí | — |
-| `monitoreo/acreditacion/consultas/cruces` | pestana | Cruces efectivos | sí | 2795d26b | sí | — |
-| `monitoreo/acreditacion/consultas/subsanacion` | pestana | Subsanación | sí | 4b119884 | sí | — |
-| `monitoreo/acreditacion/telefonico` | seccion | Monitoreo telefónico | sí | 26f6cd7f | sí | — |
-| `monitoreo/acreditacion/telefonico/resumen` | pestana | Barrido + Kobo | sí | 700bff1f | sí | — |
-| `monitoreo/acreditacion/telefonico/estados` | pestana | Estados | sí | 1a66a58f | sí | — |
-| `monitoreo/acreditacion/telefonico/dia` | pestana | Ritmo diario | sí | 6cc3cf3e | sí | — |
-| `monitoreo/acreditacion/telefonico/incidencia` | pestana | Sin efectiva | sí | b89e690f | sí | — |
-| `monitoreo/acreditacion/telefonico/responsables` | pestana | Responsables | sí | 9fc57a47 | sí | — |
-| `monitoreo/acreditacion/telefonico/alertas` | pestana | Alertas reales | sí | 5a714eec | sí | — |
-| `monitoreo/acreditacion/telefonico/supervision` | pestana | Supervisión | sí | c1d05d91 | sí | — |
-| `monitoreo/acreditacion/avance` | seccion | Avance | sí | 846c69b0 | sí | — |
+| `monitoreo` | modulo | Monitoreo de campo | sí | 2d56112c | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/acreditacion` | modo | Acreditación | sí | 41aaf6c6 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/acreditacion/insumos` | seccion | Insumos | sí | e5d92915 | sí | [0045-monitoreo-actores-modelo-telefonia-explicita](../../adrs/0045-monitoreo-actores-modelo-telefonia-explicita.md) |
+| `monitoreo/acreditacion/insumos/publicos` | pestana | Públicos | sí | 3525e856 | sí | — |
+| `monitoreo/acreditacion/insumos/fuentes` | pestana | Fuentes | sí | 0d423cee | sí | — |
+| `monitoreo/acreditacion/insumos/reglas` | pestana | Reglas | sí | f1e9ff8b | sí | — |
+| `monitoreo/acreditacion/modelo` | seccion | Modelo | sí | 2de61bf2 | sí | — |
+| `monitoreo/acreditacion/modelo/metas` | pestana | Metas | sí | 9a513fce | sí | — |
+| `monitoreo/acreditacion/modelo/cuotas` | pestana | Cuotas | sí | 08a62cf3 | sí | — |
+| `monitoreo/acreditacion/modelo/ventana` | pestana | Ventana de campo | sí | e2ed83c6 | sí | — |
+| `monitoreo/acreditacion/control` | seccion | Control | sí | 5d68fe0d | sí | — |
+| `monitoreo/acreditacion/control/correo` | pestana | Correo | sí | 69615da8 | sí | — |
+| `monitoreo/acreditacion/control/barrido` | pestana | Barrido | sí | 9e77100a | sí | — |
+| `monitoreo/acreditacion/control/reintentos` | pestana | Reintentos | sí | 7f4701e2 | sí | — |
+| `monitoreo/acreditacion/control/equipo` | pestana | Equipo | sí | db9101be | sí | — |
+| `monitoreo/acreditacion/control/resolver` | pestana | Por resolver | sí | 44a1e399 | sí | — |
+| `monitoreo/acreditacion/control/cruce` | pestana | Cruce | sí | 59e03b92 | sí | — |
+| `monitoreo/acreditacion/control/calidad` | pestana | Calidad | sí | 23ca49cf | sí | — |
+| `monitoreo/acreditacion/control/personas` | pestana | Personas | sí | 491ef876 | sí | — |
+| `monitoreo/acreditacion/control/respuestas` | pestana | Respuestas | sí | 31c6bf3a | sí | — |
+| `monitoreo/acreditacion/avance` | seccion | Avance | sí | edc46778 | sí | — |
 | `monitoreo/acreditacion/avance/resumen` | pestana | Resumen | sí | e793c0e4 | sí | — |
-| `monitoreo/acreditacion/avance/actores` | pestana | Actores | sí | 84e608cd | sí | — |
-| `monitoreo/acreditacion/avance/cuotas` | pestana | Cuotas | sí | 282a8ceb | sí | — |
-| `monitoreo/acreditacion/avance/encuestas` | pestana | Encuestas | sí | 53f5358f | sí | — |
-| `monitoreo/acreditacion/avance/detalle` | pestana | Detalle | sí | 656721f3 | sí | — |
-| `monitoreo/acreditacion/avance/correo` | pestana | Correo | sí | 826416b4 | sí | — |
+| `monitoreo/acreditacion/avance/publicos` | pestana | Por público | sí | cd08f0d5 | sí | — |
+| `monitoreo/acreditacion/avance/cuotas` | pestana | Por cuota | sí | a557fb75 | sí | — |
+| `monitoreo/acreditacion/avance/ritmo` | pestana | Ritmo | sí | 435efdb7 | sí | — |
 | `monitoreo/acreditacion/avance/salidas` | pestana | Salidas | sí | 1033c0fd | sí | — |
 | `monitoreo/telefonico` | modo | Telefónico | sí | c76fe542 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/telefonico/insumos` | seccion | Insumos | sí | 26c95065 | sí | — |
@@ -60,42 +55,30 @@ Módulo `monitoreo` · ruta `/monitoreo` · 112 direcciones.
 | `monitoreo/telefonico/avance/cuotas` | pestana | Cuotas | sí | cd686fa4 | sí | — |
 | `monitoreo/telefonico/avance/ritmo` | pestana | Ritmo | sí | 49870960 | sí | — |
 | `monitoreo/telefonico/avance/entregas` | pestana | Entregas | sí | 133a0434 | sí | — |
-| `monitoreo/territorial` | modo | Territorial | sí | 300b6366 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
-| `monitoreo/territorial/fuentes` | seccion | Fuente | sí | 9b9a162c | sí | — |
-| `monitoreo/territorial/fuentes/form` | pestana | Formulario | sí | 55272360 | sí | — |
-| `monitoreo/territorial/fuentes/filter` | pestana | Filtro y distritos | sí | 2162404e | sí | — |
-| `monitoreo/territorial/fuentes/roster` | pestana | Encuestadores | sí | 03db2ae7 | sí | — |
-| `monitoreo/territorial/fuentes/reconciliation` | pestana | Reconciliación | sí | 6390678c | sí | — |
-| `monitoreo/territorial/fuentes/history` | pestana | Historial | sí | 8c8716e4 | sí | — |
-| `monitoreo/territorial/modelo` | seccion | UMPs | sí | 8023b682 | sí | — |
-| `monitoreo/territorial/modelo/variables` | pestana | Variables | sí | a61be7cc | sí | — |
-| `monitoreo/territorial/modelo/resumen` | pestana | Cobertura | sí | d1fac296 | sí | — |
-| `monitoreo/territorial/modelo/tabla` | pestana | Manzanas | sí | 2987e1b9 | sí | — |
-| `monitoreo/territorial/calidad` | seccion | Validación | sí | e8d9a291 | sí | — |
-| `monitoreo/territorial/calidad/geolocalizacion` | pestana | Geolocalización | sí | b12dd5b9 | sí | — |
-| `monitoreo/territorial/calidad/reconciliacion` | pestana | Reconciliación UMP | sí | 8ce6e296 | sí | — |
-| `monitoreo/territorial/calidad/duracion` | pestana | Duración de tiempo | sí | 71ef22b2 | sí | — |
-| `monitoreo/territorial/calidad/cuotas` | pestana | Cuotas | sí | 3ff903db | sí | — |
-| `monitoreo/territorial/calidad/anulacion` | pestana | Anulación | sí | 5f30e292 | sí | — |
-| `monitoreo/territorial/consultas` | seccion | Consultas internas | sí | 6b47d746 | sí | — |
-| `monitoreo/territorial/consultas/registro` | pestana | Registro | sí | 70513328 | sí | — |
-| `monitoreo/territorial/consultas/gps` | pestana | GPS con señal | sí | ec09a92f | sí | — |
-| `monitoreo/territorial/consultas/duracion` | pestana | Tiempo corto/muy corto | sí | 7229ec50 | sí | — |
-| `monitoreo/territorial/consultas/responsable` | pestana | Cruce responsable | sí | f719a231 | sí | — |
-| `monitoreo/territorial/consultas/subsanaciones` | pestana | Subsanaciones | sí | ebebf81c | sí | — |
-| `monitoreo/territorial/avance` | seccion | Avance territorial | sí | 28f80048 | sí | — |
+| `monitoreo/territorial` | modo | Territorial | sí | 83598929 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/territorial/insumos` | seccion | Insumos | sí | 54339db7 | sí | — |
+| `monitoreo/territorial/insumos/conexiones` | pestana | Conexiones | sí | 79f35d2d | sí | — |
+| `monitoreo/territorial/insumos/mapeo` | pestana | Mapeo y filtro | sí | 0945dff6 | sí | — |
+| `monitoreo/territorial/insumos/padron` | pestana | Padrón | sí | a2dbf1e4 | sí | — |
+| `monitoreo/territorial/insumos/historial` | pestana | Historial | sí | eff91dac | sí | — |
+| `monitoreo/territorial/modelo` | seccion | Modelo | sí | bdad0f0c | sí | — |
+| `monitoreo/territorial/modelo/metas` | pestana | Metas y muestra | sí | 948adfac | sí | — |
+| `monitoreo/territorial/modelo/cuotas` | pestana | Cuotas | sí | ee42a7fd | sí | — |
+| `monitoreo/territorial/control` | seccion | Control | sí | 51550d3f | sí | — |
+| `monitoreo/territorial/control/bandeja` | pestana | Bandeja | sí | fa92763e | sí | — |
+| `monitoreo/territorial/control/senales` | pestana | Señales | sí | 74816686 | sí | — |
+| `monitoreo/territorial/control/equipo` | pestana | Equipo | sí | c04f02f3 | sí | — |
+| `monitoreo/territorial/control/ocurrencias` | pestana | Ocurrencias | sí | 0258bd45 | sí | — |
+| `monitoreo/territorial/control/reportes` | pestana | Reportes UMP | sí | 487f9e07 | sí | — |
+| `monitoreo/territorial/control/subsanaciones` | pestana | Subsanaciones | sí | 464a2703 | sí | — |
+| `monitoreo/territorial/control/anulaciones` | pestana | Anulaciones | sí | 97a6727f | sí | — |
+| `monitoreo/territorial/control/conciliacion` | pestana | Conciliación | sí | da084e20 | sí | — |
+| `monitoreo/territorial/avance` | seccion | Avance | sí | 6a7006be | sí | — |
+| `monitoreo/territorial/avance/faltante` | pestana | Faltante por UMP | sí | 648e4901 | sí | — |
 | `monitoreo/territorial/avance/resumen` | pestana | Resumen | sí | cc7a2bdd | sí | — |
-| `monitoreo/territorial/avance/distritos` | pestana | Distritos | sí | affb4c7f | sí | — |
-| `monitoreo/territorial/avance/ump` | pestana | Mapa y UMP | sí | 22a98d46 | sí | — |
-| `monitoreo/territorial/avance/ritmo` | pestana | Ritmo diario | sí | 9354fa3f | sí | — |
+| `monitoreo/territorial/avance/mapa` | pestana | Mapa | sí | 377fd374 | sí | — |
+| `monitoreo/territorial/avance/umps` | pestana | UMP | sí | 19321559 | sí | — |
 | `monitoreo/territorial/avance/salidas` | pestana | Salidas | sí | f603ab57 | sí | — |
-| `monitoreo/territorial/ocurrencias` | seccion | Ocurrencias de campo | sí | 09491bff | sí | — |
-| `monitoreo/territorial/ocurrencias/states` | pestana | Resumen | sí | 85ac8780 | sí | — |
-| `monitoreo/territorial/ocurrencias/distritos` | pestana | Distritos | sí | e82a0637 | sí | — |
-| `monitoreo/territorial/ocurrencias/registro` | pestana | Reporte UMP | sí | 92c993cc | sí | — |
-| `monitoreo/territorial/ocurrencias/ump` | pestana | UMP | sí | 95a3d1c5 | sí | — |
-| `monitoreo/territorial/ocurrencias/alerts` | pestana | Alertas | sí | cdeb9918 | sí | — |
-| `monitoreo/territorial/ocurrencias/rhythm` | pestana | Ritmo | sí | 03e91859 | sí | — |
 | `monitoreo/aulas` | modo | Cursos-horario | sí | 05f54267 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/aulas/fuentes` | seccion | Fuentes | sí | e9621c44 | sí | — |
 | `monitoreo/aulas/modelo` | seccion | Agenda de cursos-horario | sí | 50043d56 | sí | — |

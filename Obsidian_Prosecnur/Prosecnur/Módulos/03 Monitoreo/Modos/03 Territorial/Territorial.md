@@ -64,33 +64,29 @@ Confirma que Hojas de ruta tiene un marco vigente para este estudio y que el for
 ```mermaid
 flowchart TD
     N["Territorial"]
-    N --> C1["Fuente territorial"]
-    N --> C2["UMPs territoriales"]
-    N --> C3["Validación territorial"]
-    N --> C4["Consultas internas territoriales"]
-    N --> C5["Avance territorial"]
-    N --> C6["Ocurrencias de campo"]
+    N --> C1["Insumos territoriales"]
+    N --> C2["Modelo territorial"]
+    N --> C3["Control territorial"]
+    N --> C4["Avance territorial"]
 ```
+
+Desde el revamp de Monitoreo (2026-10-23) el modo sigue el esqueleto común Insumos · Modelo · Control · Avance: las seis secciones anteriores (Fuente, UMPs, Validación, Consultas internas, Avance y Ocurrencias de campo) se reparten entre esas cuatro.
 
 ## Guía de destinos
 
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
-| [[Fuente territorial]] | Al montar el estudio y cuando una cifra no cuadre | Vincular Kobo, acotar distritos, mapear encuestadores y reconciliar códigos | El corte con procedencia y alcance definidos |
-| [[UMPs territoriales]] | Para saber qué se cubrió del plan | Revisar cobertura por zona y el detalle de manzanas | El estado del marco operativo |
-| [[Validación territorial]] | Antes de dar por buenas las respuestas | Revisar GPS, reconciliación espacial, duración, cuotas y anulaciones | Las respuestas que se pueden defender |
-| [[Consultas internas territoriales]] | Cuando hay que responder por un caso | Revisar registro, GPS, tiempos, responsables y subsanaciones | La evidencia caso a caso |
-| [[Avance territorial]] | Para leer el estado del campo y entregar | Revisar resumen, distritos, mapa, ritmo y salidas | El reporte del corte |
-| [[Ocurrencias de campo]] | Para entender por qué no se logró una entrevista | Revisar motivos de no efectividad por UMP y distrito | El esfuerzo documentado |
+| [[Insumos territoriales]] | Al montar el estudio y cuando una cifra no cuadre | Revisar conexiones, mapear columnas y filtro de efectivas, declarar el padrón y consultar el historial de lecturas | El corte con procedencia y alcance definidos |
+| [[Modelo territorial]] | Para saber qué hay que lograr | Leer la meta por distrito, la muestra de UMP, las fases y la cuota declarada | El plan contra el que se mide el campo |
+| [[Control territorial]] | Durante el campo, y cuando hay que responder por un caso | Revisar la bandeja, las señales de calidad, el equipo, las ocurrencias y las correcciones auditadas | Las respuestas que se pueden defender |
+| [[Avance territorial]] | Para leer el estado del campo y entregar | Revisar el faltante por UMP, el resumen, el mapa, las UMP y las salidas | El reporte del corte |
 
 ## Recorrido recomendado
 
-1. **Fuente territorial** al configurar: sin alcance ni encuestadores mapeados, todo lo demás se lee mal.
-2. **UMPs territoriales** para situar lo cubierto contra el plan.
-3. **Validación territorial** como control permanente durante el campo.
-4. **Consultas internas** cuando un caso concreto exija explicación.
-5. **Ocurrencias de campo** para documentar el esfuerzo donde no hubo entrevista.
-6. **Avance territorial** para leer y entregar.
+1. **Insumos territoriales** al configurar: sin alcance ni padrón mapeados, todo lo demás se lee mal.
+2. **Modelo territorial** para situar el plan: meta, muestra y cuota.
+3. **Control territorial** como control permanente durante el campo, y cuando un caso concreto exija explicación.
+4. **Avance territorial** para leer y entregar. El modo aterriza en Faltante por UMP.
 
 ## Cómo interpretar avance y estados
 

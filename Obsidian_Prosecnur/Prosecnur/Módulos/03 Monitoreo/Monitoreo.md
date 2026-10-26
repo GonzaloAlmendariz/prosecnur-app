@@ -13,7 +13,7 @@ fuentes:
   - "frontend/src/features/monitoreo/MonitoreoShell.tsx"
   - "frontend/src/features/monitoreo/MonitoreoModeChoice.tsx"
   - "frontend/src/features/monitoreo/useMonitoreoDireccion.ts"
-  - "frontend/src/features/monitoreo/components/SourceSyncActions.tsx"
+  - "frontend/src/features/monitoreo/sync/ModuleChromeConSync.tsx"
   - "frontend/src/api/monitoreo.ts"
   - "api/R/router_monitoreo.R"
   - "api/R/monitoreo_sync_incremental.R"
@@ -57,18 +57,18 @@ Confirma que las fuentes visibles pertenecen al mismo operativo y a la misma fec
 | [[Territorial]] | La operación se controla por distrito, UMP, manzana y encuestador | Reconciliar Kobo con el marco de Hojas de ruta y validar ubicación y tiempos | Un corte de campo por distrito, UMP y responsable |
 | [[Cursos-horario]] | La muestra selecciona sesiones de clase y hay que seguir su aplicación | Importar el plan, gobernar la agenda y cerrar con reemplazos justificados | Una agenda ejecutada y trazable por sesión |
 
-## Lo que los cuatro modos comparten
+## Lo que los modos comparten
 
-Aunque su vocabulario difiera, los cuatro se organizan igual y esa simetría ayuda a moverse entre ellos:
+Desde el revamp de Monitoreo (2026-10-23), Acreditación, Telefónico y Territorial comparten el mismo esqueleto de cuatro secciones, en el orden del operativo, y esa simetría ayuda a moverse entre ellos:
 
 | Sección | Qué hace en cualquier modo |
 |---|---|
-| **Fuentes** | Declara de dónde sale el corte |
-| **Modelo operativo** | Declara qué se espera: metas, cuotas, cronograma |
-| **Consultas** | Baja al caso individual y sostiene la cifra |
+| **Insumos** | Declara de dónde sale cada dato y con qué reglas se lee |
+| **Modelo** | Declara qué se espera: metas, cuotas, ventana o fases |
+| **Control** | Opera el campo y baja al caso individual que sostiene la cifra |
 | **Avance** | Lee el resultado y produce las entregas |
 
-Territorial añade **Ocurrencias de campo** para documentar el esfuerzo donde no hubo entrevista, y Telefónico convierte su sección de llamadas en el centro de gobierno diario.
+Lo propio de cada modo vive como pestañas dentro de esas secciones: el contacto (correo, barrido) en Control de Acreditación, las ocurrencias de campo en Control de Territorial. Cursos-horario conserva todavía su propia estructura de secciones.
 
 ## Cómo interpretar avance y estados
 
