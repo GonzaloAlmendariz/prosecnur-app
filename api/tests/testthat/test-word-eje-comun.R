@@ -35,3 +35,44 @@ test_that("sin ancho común, la escala se dibuja como siempre", {
   uno <- .wec_espec("")
   expect_lt(.wec_arranque(.word_g_escala(uno)), 0.5)
 })
+
+# Gonzalo (2026-10-26): «¿por qué las de barras agrupadas no están alineadas? también lo deberían estar». Las categóricas
+# del perfil y el Sí/No de una sola fila (sin rótulo, a todo el ancho) entran a la misma columna común, por capítulo.
+.wec_barras <- function(rotulos) {
+  p <- graficar_barras_categoricas(data.frame(cat = rotulos, n = seq_along(rotulos) * 10, pct = seq_along(rotulos) / sum(seq_along(rotulos))),
+                                   "cat", var_valor = "pct", var_n = "n", var_pct = "pct", modo_valor = "valor", formato_valor = "porcentaje")
+  attr(p, "pulso_espec")
+}
+.wec_arranque_x0 <- function(g) {   # pulgadas hasta x = 0 (donde nace la barra), sobre el ancho útil
+  lim <- ggplot2::ggplot_build(g)$layout$panel_params[[1]]$x.range
+  (0 - lim[1]) / (lim[2] - lim[1]) * .std_word("pagina", "ancho_util")
+}
+
+test_that("las barras categóricas de rótulo corto arrancan en la columna común; una categoría larga conserva la suya", {
+  cortas <- .wec_barras(c("Femenino", "Masculino")); otras <- .wec_barras(c("Estudiante de pregrado", "Egresado"))
+  larga <- .wec_barras(c("Docente a tiempo completo con dedicación exclusiva a la Facultad", "Otro"))
+  comun <- .word_rotulo_comun(list(cortas, otras, larga))
+  withr::local_options(prosecnur.word_rotulo_comun = comun)
+  expect_equal(.wec_arranque_x0(.word_categorica(cortas)), .wec_arranque_x0(.word_categorica(otras)), tolerance = 0.03)
+  expect_gt(.wec_arranque_x0(.word_categorica(larga)), .wec_arranque_x0(.word_categorica(otras)) + 0.3)
+})
+
+test_that("el Sí/No de una fila, sin rótulo, deja de ir a todo el ancho y arranca en la columna común", {
+  sino <- .wec_barras(c("Sí", "No"))
+  expect_true(isTRUE(.lam_es_dicotomia(sino)))
+  withr::local_options(prosecnur.word_rotulo_comun = NULL)
+  expect_lt(.wec_arranque_x0(.word_categorica(sino)), 0.05)                    # sin columna común: como siempre
+  withr::local_options(prosecnur.word_rotulo_comun = 1.09)
+  expect_gt(.wec_arranque_x0(.word_categorica(sino)), 1.0)
+})
+
+test_that("la columna común se calcula por capítulo", {
+  sec <- function(t) list(kind = "section", title = t, meta = list(word_heading_level = 1L))
+  fig <- function(es) list(kind = "chart", plot_word = structure(list(), pulso_espec = es))
+  rm <- list(sec("Perfil"), fig(.wec_barras(c("Departamento Académico", "Facultad"))), sec("Resultados"),
+             fig(.wec_espec(c("Docentes", "Estudiantes"))), fig(.wec_espec("")))
+  cc <- .word_rotulo_comun_por_capitulo(rm)
+  expect_length(cc, length(rm))
+  expect_gt(cc[[2]], cc[[4]])                                                    # el perfil tiene su propia columna
+  expect_identical(cc[[4]], cc[[5]])
+})

@@ -52,7 +52,7 @@
 #' @keywords internal
 .word_g_barras <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  l <- .word_envolver_holgado(espec$rotulos, 40); p <- espec$largos * 100
+  l <- .word_barras_rotulos(espec); p <- espec$largos * 100
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   gris <- resid & isTRUE(espec[["residuales_gris"]])   # gris sólo si el analista lo pide; el lugar y el «mayor» siguen usando `resid`
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
@@ -66,7 +66,8 @@
     ggplot2::geom_text(ggplot2::aes(x = .data$p + esc * 0.015, y = .data$y, label = .data$et), hjust = 0, size = .word_pt(9, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial") +
     ggplot2::geom_text(ggplot2::aes(x = -esc * 0.02, y = .data$y, label = .data$l, fontface = .word_cara("categorias", .data$negrita)), hjust = 1, size = .word_pt(9, "rotulo"),
                        colour = navy, family = "Arial", lineheight = 0.9) +
-    ggplot2::scale_x_continuous(limits = c(.word_xmin(l, 9 + .word_desplazo("rotulo"), esc), esc), expand = c(0, 0)) +
+    # Rótulo corto: la columna común del capítulo, como las escalas (reporte_word_eje_comun.R).
+    ggplot2::scale_x_continuous(limits = c(.word_xmin(l, .word_barras_pt(), esc, ancho_in = .word_escala_columna(.word_rotulo_in(l, .word_barras_pt()))), esc), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(if (marcas) -0.1 else 0.4, ps$tot + 0.6), expand = c(0, 0)) + .word_tema()
   # Marcas 0-25-50-75-100 % bajo las barras, como la variante «fiel» de g_barras (RG:91): opcionales con la escala de 0 a
   # 100 % (Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»).

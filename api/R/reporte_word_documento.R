@@ -143,8 +143,9 @@
     cap_titulo <<- "Cómo leer este informe"
     doc
   }
-  # Las apiladas y multiapiladas de rótulo corto arrancan las barras en el mismo punto de la página (reporte_word_eje_comun.R).
-  op_eje <- options(prosecnur.word_rotulo_comun = .word_rotulo_comun(lapply(render_meta, function(e) attr(e$plot_word, "pulso_espec"))))
+  # Las figuras de barras de rótulo corto arrancan en el mismo punto de la página, por capítulo (reporte_word_eje_comun.R).
+  comun_de <- .word_rotulo_comun_por_capitulo(render_meta)
+  op_eje <- options(prosecnur.word_rotulo_comun = NULL)
   on.exit(options(op_eje), add = TRUE)
   saltar <- integer(0)
   for (i in seq_along(render_meta)) {
@@ -202,6 +203,7 @@
     if (identical(e$etype, "ggplot_raw") && !nzchar(.word_txt1(e$title)) && is.null(attr(p, "pulso_espec"))) {
       avisar("Un dibujo sin título de la lámina ", i, " (íconos de identidad del PPT) no entra al Word como figura."); next }
     if (!inherits(p, "ggplot")) { avisar("El gráfico «", e$title %||% i, "» no tiene dibujo para el Word y se omite."); next }
+    options(prosecnur.word_rotulo_comun = comun_de[[i]])
     g <- tryCatch(.word_grafico(p), error = function(err) { avisar("El gráfico «", e$title %||% i, "» no se pudo dibujar: ", conditionMessage(err)); NULL })
     if (is.null(g)) next
     ancho <- attr(g, "ancho") %||% .std_word("pagina", "ancho_util")

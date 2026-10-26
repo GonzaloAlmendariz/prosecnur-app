@@ -1,10 +1,12 @@
-# Arranque común de las barras en las apiladas y multiapiladas del Word.
+# Arranque común de las barras en las figuras de barras del Word: apiladas, multiapiladas, agrupadas y el Sí/No.
 #
 # Gonzalo (2026-10-26): las figuras con el mismo tipo de rótulo de fila —los públicos de un perfil, «Docentes · Estudiantes
 # · Administrativos»— deben arrancar las barras en el mismo punto de la página. Cada escala medía su propia columna de
 # rótulos (`.word_xmin()`), así que la de un solo público, sin rótulo, arrancaba en el borde izquierdo y la de tres públicos
-# más a la derecha. El documento mide una vez la columna de todas sus escalas y las de rótulo corto (o sin rótulo) toman la
-# más ancha de ellas; las de rótulo largo (las premisas) conservan la suya, porque igualarlas a ellas comería la barra.
+# más a la derecha. El documento mide una vez la columna de sus figuras de barras y las de rótulo corto (o sin rótulo)
+# toman la más ancha de ellas; las de rótulo largo (las premisas) conservan la suya, porque igualarlas comería la barra.
+# Las agrupadas y el Sí/No de una fila entran igual («también lo deberían estar», Gonzalo, 2026-10-26). La columna es por
+# capítulo: las categorías del perfil no empujan a los públicos de los resultados, ni al revés.
 
 #' Hasta qué ancho (pulgadas) un rótulo de fila es «corto»: un público con sus casos, «Administrativos (14)», cabe holgado
 #' @keywords internal
@@ -33,15 +35,49 @@
   .word_rotulo_in(.word_escala_rotulos_fila(espec), .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo"))
 }
 
-#' Columna común de rótulos de las escalas cortas de un documento, o `NULL` si no hay ninguna
-#' @param especs Especs de las figuras del documento; las que no son escala se ignoran.
-#' @return Pulgadas: la columna más ancha entre las escalas de rótulo corto o sin rótulo.
+#' Rótulos de las barras categóricas del Word, partidos como los dibuja `.word_g_barras()`
+#' @keywords internal
+.word_barras_rotulos <- function(espec) .word_envolver_holgado(espec$rotulos, 40)
+
+#' Punto de los rótulos de las barras categóricas del Word
+#' @keywords internal
+.word_barras_pt <- function() 9 + .word_desplazo("rotulo")
+
+#' Columna de rótulos (pulgadas) de una figura de barras del Word, o `NA` si no tiene (o no es de barras)
+#'
+#' Escalas y barras categóricas; la dicotomía de una fila y el lollipop no reservan columna propia y no la definen.
+#' @keywords internal
+.word_columna_de <- function(espec) {
+  if (!is.list(espec)) return(NA_real_)
+  tipo <- as.character(espec$tipo %||% "")[1]
+  tryCatch({
+    if (identical(tipo, "escala") && NROW(espec$filas) > 0L) .word_escala_rotulo_in(espec)
+    else if (identical(tipo, "categorica") && !isTRUE(.lam_es_dicotomia(espec)) &&
+             !(identical(espec[["graficador"]], "lollipop") && identical(espec[["forma"]], "lollipop"))) {
+      .word_rotulo_in(.word_barras_rotulos(espec), .word_barras_pt())
+    } else NA_real_
+  }, error = function(err) NA_real_)
+}
+
+#' Columna común de rótulos de las figuras de barras cortas, o `NULL` si no hay ninguna
+#' @param especs Especs de las figuras (de un capítulo); las que no son de barras se ignoran.
+#' @return Pulgadas: la columna más ancha entre las de rótulo corto o sin rótulo.
 #' @keywords internal
 .word_rotulo_comun <- function(especs) {
-  es_escala <- function(e) is.list(e) && identical(as.character(e$tipo %||% "")[1], "escala") && NROW(e$filas) > 0L
-  L <- vapply(Filter(es_escala, especs), function(e) tryCatch(.word_escala_rotulo_in(e), error = function(err) NA_real_), 0)
+  L <- vapply(especs, .word_columna_de, 0)
   L <- L[is.finite(L) & L <= .WORD_ROTULO_CORTO_IN]
   if (!length(L)) NULL else max(L)
+}
+
+#' La columna común de cada entrada del documento según su capítulo (los separadores de nivel 1 abren capítulo)
+#' @param render_meta Entradas del documento, en orden.
+#' @return Lista del largo de `render_meta`: la columna común del capítulo de cada entrada, o `NULL`.
+#' @keywords internal
+.word_rotulo_comun_por_capitulo <- function(render_meta) {
+  cap <- cumsum(vapply(render_meta, function(e) identical(e$kind %||% "", "section") && .word_nivel_seccion(e$meta) <= 1L, logical(1)))
+  especs <- lapply(render_meta, function(e) if (identical(e$kind %||% "chart", "chart")) attr(e$plot_word, "pulso_espec"))
+  comunes <- lapply(split(especs, cap), .word_rotulo_comun)
+  unname(comunes[as.character(cap)])
 }
 
 #' La columna con que dibuja una escala: la común del documento si la suya es corta, o la suya
