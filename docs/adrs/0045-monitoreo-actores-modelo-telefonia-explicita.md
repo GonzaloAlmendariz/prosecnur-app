@@ -90,4 +90,4 @@ para mantener cada reparación falsable.
 
 ## Gobierna
 
-- `monitoreo/acreditacion/fuentes`
+- `monitoreo/acreditacion/insumos`
