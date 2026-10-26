@@ -92,3 +92,12 @@ test_that("un rótulo mediano se parte en dos líneas para entrar en la columna 
   rot <- unlist(lapply(ggplot2::ggplot_build(g)$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
   expect_true(any(grepl("\n", rot[grepl("asignaturas", rot)], fixed = TRUE)))   # se partió
 })
+
+# Gonzalo (2026-10-26), Arte_v1-7, Gráficos 48 y 49: las dos sin rótulo, pero la escala arrancaba un poco más adentro que
+# el Sí/No (reservaba el mínimo de columna y el desfase de los rótulos que no tiene). Sin rótulo, las dos nacen en 0.
+test_that("una escala sin rótulo arranca en el mismo punto que el Sí/No sin rótulo", {
+  withr::local_options(prosecnur.word_rotulo_comun = 1.09)
+  a_sino <- .wec_arranque_x0(.word_categorica(.wec_barras(c("Sí", "No"))))
+  a_escala <- .wec_arranque_x0(.word_g_escala(.wec_espec("")))
+  expect_equal(a_escala, a_sino, tolerance = 0.01)
+})
