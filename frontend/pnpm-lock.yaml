@@ -106,8 +106,8 @@ importers:
         specifier: ^5.2.0
         version: 5.2.0(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0))
       happy-dom:
-        specifier: ^20.14.6
-        version: 20.14.6
+        specifier: ^21.0.4
+        version: 21.0.4
       playwright:
         specifier: 1.60.0
         version: 1.60.0
@@ -119,7 +119,7 @@ importers:
         version: 6.4.5(@types/node@26.0.1)(lightningcss@1.32.0)
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@26.0.1)(happy-dom@20.14.6)(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0))
+        version: 4.1.8(@types/node@26.0.1)(happy-dom@21.0.4)(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0))
 
 packages:
 
@@ -1430,8 +1430,8 @@ packages:
     resolution: {integrity: sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q==}
     engines: {node: '>=6'}
 
-  happy-dom@20.14.6:
-    resolution: {integrity: sha512-5DDsf4QmEIlRL6NkCv/fxSjYHHkZceL/IaYQdJc2h3G7DRTEai++VTjbfL0LB9geW2VrA3+vrjF3Efx+OTtX0Q==}
+  happy-dom@21.0.4:
+    resolution: {integrity: sha512-tFm+GaLBgo6o0awHnvHaNoraVo27qJ+2tZEtZ+cIa08hXbeitrxAJajLI05hsUy/2/YTKcUjQYzHe5mCcraLBw==}
     engines: {node: '>=20.0.0'}
 
   html-to-image@1.11.13:
@@ -3084,7 +3084,7 @@ snapshots:
 
   get-nonce@1.0.1: {}
 
-  happy-dom@20.14.6:
+  happy-dom@21.0.4:
     dependencies:
       '@types/node': 26.0.1
       '@types/whatwg-mimetype': 3.0.2
@@ -3410,7 +3410,7 @@ snapshots:
       fsevents: 2.3.3
       lightningcss: 1.32.0
 
-  vitest@4.1.8(@types/node@26.0.1)(happy-dom@20.14.6)(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0)):
+  vitest@4.1.8(@types/node@26.0.1)(happy-dom@21.0.4)(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0)):
     dependencies:
       '@vitest/expect': 4.1.8
       '@vitest/mocker': 4.1.8(vite@6.4.5(@types/node@26.0.1)(lightningcss@1.32.0))
@@ -3434,7 +3434,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.0.1
-      happy-dom: 20.14.6
+      happy-dom: 21.0.4
     transitivePeerDependencies:
       - msw
 
