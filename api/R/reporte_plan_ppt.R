@@ -3672,7 +3672,7 @@ reporte_ppt_plan <- function(
       return(invisible(NULL))
     }
 
-    # --- ELEMENTO NORMAL ---
+    if (identical(etype, "filtro_subpregunta") && !is.null(pzs <- .word_filtro_sub_piezas(el, plot))) { for (pz in pzs) .push_render_meta_for_element(pz$el, pz$plot); return(invisible(NULL)) }   # el filtro y su subpregunta: dos figuras en el Word (reporte_word_filtro_sub.R); si no, ELEMENTO NORMAL
     title <- .word_titulo_una_pregunta(el, .word_title_for_element(el), function(ref, src) .word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src))))  # criterio B: una premisa, su enunciado (reporte_word_publico_barra.R)
 
     word_note <- .plot_note_from(plot, el$overrides$nota_pie %||% el$nota_pie %||% NULL)

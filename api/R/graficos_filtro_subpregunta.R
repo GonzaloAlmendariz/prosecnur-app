@@ -102,11 +102,15 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
 
 #' Render: el filtro con sus datos, la subpregunta con los que habilitan, y la espec que une las dos
 #' @keywords internal
-.render_filtro_subpregunta <- function(el, preset_args = list()) {
-  rend <- dynGet(".render_element", ifnotfound = NULL)
+#' Las dos piezas del filtro y su subpregunta: el gráfico del filtro y el dependiente con la base de quienes lo habilitan
+#'
+#' La comparten la lámina (que las une en una figura) y el Word (que las pone como dos figuras, reporte_word_filtro_sub.R).
+#' @return `list(el_f, el_s, ctx_f, ctx_s, niveles, codigos, gf, ov, resolver)`
+#' @keywords internal
+.fsub_elementos <- function(el) {
   resolver <- dynGet(".resolve_ref", ifnotfound = NULL)
   lista_de <- dynGet(".list_name_from_ctx", ifnotfound = NULL)
-  if (!is.function(rend) || !is.function(resolver) || !is.function(lista_de)) {
+  if (!is.function(resolver) || !is.function(lista_de)) {
     stop("El render no expone el motor de láminas.", call. = FALSE)
   }
   ctx_f <- resolver(el$filtro, arg_name = "filtro")
@@ -120,10 +124,10 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   ov <- el$overrides %||% list()
   # F1 (checklist-poblacion-y-filtro): el filtro también como torta o dona; la lámina lo une a la subpregunta con un conector.
   gf <- el$grafico_filtro %||% "auto"
-  p_f <- rend(if (!is.null(el$independiente)) el$independiente
-              else if (identical(gf, "torta")) p_pie(var = el$filtro, filtros = el$filtros, overrides = ov)
-              else if (identical(gf, "dona")) p_donut(var = el$filtro, filtros = el$filtros, overrides = ov)
-              else p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
+  el_f <- if (!is.null(el$independiente)) el$independiente
+          else if (identical(gf, "torta")) p_pie(var = el$filtro, filtros = el$filtros, overrides = ov)
+          else if (identical(gf, "dona")) p_donut(var = el$filtro, filtros = el$filtros, overrides = ov)
+          else p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov)
   filtros_sub <- el$filtros %||% list()
   filtros_sub[[ctx_f$var]] <- codigos
   # La escala hereda del preset la columna Top Two Box; esta lámina no tiene dónde declarar sus respuestas, así que sin
@@ -135,6 +139,17 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
     d <- el$dependiente; d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d
   } else if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
   else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
+  list(el_f = el_f, el_s = el_s, ctx_f = ctx_f, ctx_s = ctx_s, niveles = niveles, codigos = codigos, gf = gf, ov = ov,
+       resolver = resolver)
+}
+
+.render_filtro_subpregunta <- function(el, preset_args = list()) {
+  rend <- dynGet(".render_element", ifnotfound = NULL)
+  if (!is.function(rend)) stop("El render no expone el motor de láminas.", call. = FALSE)
+  pz <- .fsub_elementos(el)
+  ctx_f <- pz$ctx_f; ctx_s <- pz$ctx_s; niveles <- pz$niveles; codigos <- pz$codigos; gf <- pz$gf; ov <- pz$ov
+  resolver <- pz$resolver; el_s <- pz$el_s
+  p_f <- rend(pz$el_f)
   p_s <- rend(el_s)
   # F4: si hay quien respondió el dependiente sin haberlo habilitado, el salto del formulario no cuadra con los datos; esas
   # respuestas quedan fuera de la lámina y se dice cuántas.
