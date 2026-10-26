@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Palette, Search, Trash2, X } from "lucide-react";
+import { Palette, Search, Trash2 } from "lucide-react";
 import { IconAI } from "../../../lib/icons";
 import {
   apiDashboardPaletasListas,
   type DashboardChoiceList,
 } from "../../../api/client";
+import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
 import { EmptyState } from "../shared/EmptyState";
 import { useDashboardStore } from "../store";
 
@@ -88,7 +89,14 @@ const PRESETS = [
   },
 ];
 
-export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
+export function DashboardPalettesDialog({
+  onClose,
+  returnFocusTo,
+}: {
+  onClose: () => void;
+  /** Foco de vuelta si el disparador se desmontó (ítem del menú «Más acciones»). */
+  returnFocusTo?: RetornoDeFoco;
+}) {
   const paletas = useDashboardStore((s) => s.config.paletas_listas);
   const setPaletaLista = useDashboardStore((s) => s.setPaletaLista);
   const setColorEnPaletaLista = useDashboardStore((s) => s.setColorEnPaletaLista);
@@ -147,135 +155,137 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="dash-modal-backdrop" role="presentation">
-      <section
-        className="dash-modal dash-palette-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Paletas del dashboard"
-      >
-        <header className="dash-modal-head">
-          <div>
-            <h2>Paletas por lista</h2>
-            <p>Colores estéticos para las opciones del XLSForm.</p>
-          </div>
-          <button type="button" className="dash-icon-btn" onClick={onClose} aria-label="Cerrar">
-            <X size={15} />
-          </button>
-        </header>
+    <Dialog
+      open
+      onOpenChange={(abierto) => {
+        if (!abierto) onClose();
+      }}
+      size="lg"
+      alto="fijo"
+      flush
+      portalScope=".dashboard-scope"
+      closeOnOutside={false}
+      returnFocusTo={returnFocusTo}
+      className="dash-palette-dialog"
+      icon={<Palette size={18} />}
+      title="Paletas por lista"
+      subtitle="Colores estéticos para las opciones del XLSForm."
+    >
+      {loading && <EmptyState title="Cargando listas…" />}
+      {error && <EmptyState title="No se pudieron cargar las listas" subtitle={error} />}
+      {!loading && !error && listas.length === 0 && (
+        <EmptyState
+          title="No hay listas disponibles"
+          subtitle="Carga primero la fuente del dashboard."
+        />
+      )}
 
-        {loading && <EmptyState title="Cargando listas…" />}
-        {error && <EmptyState title="No se pudieron cargar las listas" subtitle={error} />}
-        {!loading && !error && listas.length === 0 && (
-          <EmptyState
-            title="No hay listas disponibles"
-            subtitle="Carga primero la fuente del dashboard."
-          />
-        )}
+      {!loading && !error && listas.length > 0 && activeList && (
+        <div className="dash-palette-layout">
+          <aside className="dash-palette-list" data-qa-geometry-capacity="owned">
+            <label className="dash-palette-search">
+              <Search size={13} aria-hidden="true" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar lista..."
+                aria-label="Buscar lista de opciones"
+              />
+            </label>
+            {filteredListas.map((lista) => {
+              const hasPalette = Object.keys(paletas[lista.list_name] ?? {}).length > 0;
+              return (
+                <button
+                  key={lista.list_name}
+                  type="button"
+                  className={`dash-palette-list-item ${lista.list_name === active ? "is-active" : ""}`}
+                  onClick={() => setActive(lista.list_name)}
+                >
+                  <code>{lista.list_name}</code>
+                  <span>{hasPalette ? "paleta" : lista.choices.length}</span>
+                </button>
+              );
+            })}
+            {filteredListas.length === 0 && (
+              <div className="dash-palette-list-empty">Sin coincidencias.</div>
+            )}
+          </aside>
 
-        {!loading && !error && listas.length > 0 && activeList && (
-          <div className="dash-palette-layout">
-            <aside className="dash-palette-list">
-              <label className="dash-palette-search">
-                <Search size={13} aria-hidden="true" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar lista..."
-                  aria-label="Buscar lista de opciones"
-                />
-              </label>
-              {filteredListas.map((lista) => {
-                const hasPalette = Object.keys(paletas[lista.list_name] ?? {}).length > 0;
+          <main className="dash-palette-main" data-qa-geometry-capacity="owned">
+            <div className="dash-palette-main-head">
+              <span className="dash-palette-icon"><Palette size={15} /></span>
+              <div>
+                <h3>{activeList.list_name}</h3>
+                <p>{activeList.choices.length} opciones</p>
+              </div>
+              {Object.keys(activePalette).length > 0 && (
+                <button
+                  type="button"
+                  className="dash-subtle-btn"
+                  onClick={() => removePaletaLista(activeList.list_name)}
+                >
+                  <Trash2 size={12} /> Vaciar
+                </button>
+              )}
+            </div>
+
+            <div className="dash-palette-presets">
+              <span><IconAI size={12} /> Predeterminadas</span>
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="dash-preset-btn"
+                  onClick={() => applyPreset(preset.colors)}
+                >
+                  <Swatches colors={preset.colors} />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <div
+              className="dash-palette-table"
+              data-qa-geometry-group="dash-palette-table"
+              data-qa-geometry-contract="intrinsic"
+            >
+              {activeList.choices.map((choice) => {
+                const color = activePalette[choice.label] ?? "";
                 return (
-                  <button
-                    key={lista.list_name}
-                    type="button"
-                    className={`dash-palette-list-item ${lista.list_name === active ? "is-active" : ""}`}
-                    onClick={() => setActive(lista.list_name)}
-                  >
-                    <code>{lista.list_name}</code>
-                    <span>{hasPalette ? "paleta" : lista.choices.length}</span>
-                  </button>
+                  <div key={choice.name} className="dash-palette-row">
+                    <code>{choice.name}</code>
+                    <span>{choice.label}</span>
+                    <input
+                      type="color"
+                      value={color || "#cccccc"}
+                      onChange={(e) =>
+                        setColorEnPaletaLista(activeList.list_name, choice.label, e.target.value)
+                      }
+                      aria-label={`Color de ${choice.label}`}
+                    />
+                    <input
+                      type="text"
+                      value={color}
+                      placeholder="#cccccc"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (/^#?[0-9a-fA-F]{0,6}$/.test(raw)) {
+                          setColorEnPaletaLista(
+                            activeList.list_name,
+                            choice.label,
+                            raw && !raw.startsWith("#") ? `#${raw}` : raw,
+                          );
+                        }
+                      }}
+                    />
+                  </div>
                 );
               })}
-              {filteredListas.length === 0 && (
-                <div className="dash-palette-list-empty">Sin coincidencias.</div>
-              )}
-            </aside>
-
-            <main className="dash-palette-main">
-              <div className="dash-palette-main-head">
-                <span className="dash-palette-icon"><Palette size={15} /></span>
-                <div>
-                  <h3>{activeList.list_name}</h3>
-                  <p>{activeList.choices.length} opciones</p>
-                </div>
-                {Object.keys(activePalette).length > 0 && (
-                  <button
-                    type="button"
-                    className="dash-subtle-btn"
-                    onClick={() => removePaletaLista(activeList.list_name)}
-                  >
-                    <Trash2 size={12} /> Vaciar
-                  </button>
-                )}
-              </div>
-
-              <div className="dash-palette-presets">
-                <span><IconAI size={12} /> Predeterminadas</span>
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className="dash-preset-btn"
-                    onClick={() => applyPreset(preset.colors)}
-                  >
-                    <Swatches colors={preset.colors} />
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="dash-palette-table">
-                {activeList.choices.map((choice) => {
-                  const color = activePalette[choice.label] ?? "";
-                  return (
-                    <div key={choice.name} className="dash-palette-row">
-                      <code>{choice.name}</code>
-                      <span>{choice.label}</span>
-                      <input
-                        type="color"
-                        value={color || "#cccccc"}
-                        onChange={(e) =>
-                          setColorEnPaletaLista(activeList.list_name, choice.label, e.target.value)
-                        }
-                        aria-label={`Color de ${choice.label}`}
-                      />
-                      <input
-                        type="text"
-                        value={color}
-                        placeholder="#cccccc"
-                        onChange={(e) => {
-                          const raw = e.target.value;
-                          if (/^#?[0-9a-fA-F]{0,6}$/.test(raw)) {
-                            setColorEnPaletaLista(
-                              activeList.list_name,
-                              choice.label,
-                              raw && !raw.startsWith("#") ? `#${raw}` : raw,
-                            );
-                          }
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </main>
-          </div>
-        )}
-      </section>
-    </div>
+            </div>
+          </main>
+        </div>
+      )}
+    </Dialog>
   );
 }
 

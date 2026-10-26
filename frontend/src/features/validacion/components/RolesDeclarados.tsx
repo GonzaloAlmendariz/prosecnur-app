@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
 import { textoCondicion } from "../casoValidoManualModel";
 
@@ -55,7 +56,12 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
   }
 
   return (
-    <section className="pulso-roles" data-audit-ready="validacion-roles">
+    <section
+      className="pulso-roles"
+      data-audit-ready="validacion-roles"
+      data-qa-geometry-group="validacion/roles"
+      data-qa-geometry-contract="intrinsic"
+    >
       <header className="pulso-roles-head">
         <KeyRound size={15} aria-hidden="true" focusable="false" />
         <div>
@@ -211,15 +217,15 @@ function RolBloque({
           {resumen ? <span className="pulso-rol-bloque-resumen">{resumen}</span> : null}
         </div>
         {!sinToggle && (
-          <label className="pulso-rol-bloque-toggle">
-            <input
-              type="checkbox"
-              checked={activo}
-              disabled={disabled}
-              onChange={(e) => onToggle(e.target.checked)}
-            />
-            <span>{activo ? "Declarado" : "Sin declarar"}</span>
-          </label>
+          <PulsoSwitch
+            size="sm"
+            className="pulso-rol-bloque-toggle"
+            label={activo ? "Declarado" : "Sin declarar"}
+            ariaLabel={`Declarar ${titulo}`}
+            checked={activo}
+            disabled={disabled}
+            onCheckedChange={onToggle}
+          />
         )}
       </div>
       {children}
@@ -249,7 +255,7 @@ function Sugerencias({
       <p className="pulso-rol-sugerencias-titulo">
         <Sparkles size={11} aria-hidden="true" focusable="false" /> {titulo}
       </p>
-      <ul>
+      <ul data-qa-geometry-group="validacion/roles-sugerencias" data-qa-geometry-contract="intrinsic">
         {items.map((it) => (
           <li key={it.clave} className={it.tono === "warn" ? "is-aviso" : undefined}>
             <div>

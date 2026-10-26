@@ -1,0 +1,124 @@
+/* Carga hidratando (remasterización L4, maqueta L04).
+   La silueta calca los altos de Fuentes hidratada para que al llegar los datos
+   no haya salto: franja del plan (~70 px), selector de origen, tarjeta del
+   estudio, carril de base materializada y fila de alta. Decorativa: recorta
+   lo que no cabe y no abre scroll propio (el dueño es .pulso-carga-scrollarea).
+   Solo tokens --pulso-*. */
+
+.pulso-carga-hidratando-cuerpo {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-3);
+  min-inline-size: 0;
+  padding-block-start: var(--pulso-space-3);
+}
+
+.pulso-carga-hidratando-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.pulso-carga-hidratando-estado strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-carga-hidratando-fuentes {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.pulso-carga-hidratando-plan,
+.pulso-carga-hidratando-estudio,
+.pulso-carga-hidratando-carril,
+.pulso-carga-hidratando-alta {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-inline-size: 0;
+  box-sizing: border-box;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-hidratando-plan { min-block-size: 70px; }
+.pulso-carga-hidratando-estudio { min-block-size: 80px; }
+.pulso-carga-hidratando-carril { min-block-size: 66px; }
+.pulso-carga-hidratando-alta { min-block-size: 72px; }
+
+.pulso-carga-hidratando-plan > .pulso-skeleton,
+.pulso-carga-hidratando-estudio > .pulso-skeleton,
+.pulso-carga-hidratando-carril > .pulso-skeleton {
+  flex: none;
+}
+
+.pulso-carga-hidratando-lineas {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-inline-size: 0;
+}
+
+.pulso-carga-hidratando-fila,
+.pulso-carga-hidratando-acciones,
+.pulso-carga-hidratando-origen {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-inline-size: 0;
+}
+
+.pulso-carga-hidratando-fila > .pulso-skeleton,
+.pulso-carga-hidratando-acciones > .pulso-skeleton {
+  flex: none;
+}
+
+.pulso-carga-hidratando-origen {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-hidratando-alta > .pulso-skeleton--fila {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+
+.pulso-carga-hidratando-alta > .pulso-skeleton--pastilla {
+  flex: none;
+}
+
+/* En compacto el carril apila sus acciones bajo el nombre, como la vista real. */
+@media (max-width: 1180px) {
+  .pulso-carga-hidratando-carril,
+  .pulso-carga-hidratando-alta {
+    flex-wrap: wrap;
+  }
+
+  .pulso-carga-hidratando-acciones {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+.pulso-carga-hidratando-vista {
+  min-block-size: 320px;
+}
+
+.pulso-carga-hidratando-error {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-3);
+  padding-block-start: var(--pulso-space-3);
+}

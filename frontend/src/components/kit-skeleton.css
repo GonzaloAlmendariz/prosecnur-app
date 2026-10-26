@@ -1,0 +1,473 @@
+/* Skeleton — espera con la silueta de la vista destino (remasterización L24).
+   Vara: maquetas L04 (Carga › Fuentes hidratando) y L23 (warm start) de
+   docs/qa/maqueta-remasterizacion-2026-10-10/.
+
+   Piezas (`.pulso-skeleton--<forma>`) y siluetas de vista completa
+   (`.pulso-skeleton-vista--<variante>`). La silueta ocupa la superficie que la
+   contiene y RECORTA lo que no cabe: es decorativa, no hay nada que alcanzar,
+   así que no abre un scroll propio (C4 no aplica a un hueco sin contenido).
+
+   Movimiento: el shimmer es uno de los dos loops permitidos (spinner y
+   skeleton). Constante → `linear`. Duración 1,4 s derivada del token de panel
+   (280 ms × 5) para no escribir literales de ms. Reduced motion: quieto.
+   Solo tokens --pulso-*. */
+
+.pulso-skeleton,
+.pulso-skeleton-vista {
+  --pulso-skeleton-shimmer-dur: calc(var(--motion-dur-panel) * 5);
+}
+
+/* --- Pieza ------------------------------------------------------------------ */
+
+.pulso-skeleton {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 12px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+}
+
+.pulso-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--pulso-surface) 75%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: pulso-skeleton-shimmer var(--pulso-skeleton-shimmer-dur) linear infinite;
+}
+
+@keyframes pulso-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.pulso-skeleton--texto { block-size: 12px; border-radius: 6px; }
+.pulso-skeleton--titulo { block-size: 18px; inline-size: 40%; border-radius: 6px; }
+.pulso-skeleton--fila { block-size: 38px; border-radius: var(--pulso-radius); }
+.pulso-skeleton--kpi { block-size: 54px; border-radius: var(--pulso-radius); }
+.pulso-skeleton--card { block-size: 96px; border-radius: var(--pulso-radius-card); }
+.pulso-skeleton--grafico { block-size: 220px; border-radius: var(--pulso-radius-card); }
+.pulso-skeleton--circulo {
+  flex: none;
+  inline-size: 104px;
+  block-size: 104px;
+  border-radius: 50%;
+}
+.pulso-skeleton--pastilla { border-radius: var(--pulso-radius-chip); }
+
+/* --- Silueta de vista ------------------------------------------------------- */
+
+.pulso-skeleton-vista {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+/* Geometría ajustable por quien monta la silueta, para calzar con la vista
+   real (Δ ≤ 2 px). Se declaran en un ANCESTRO (p. ej. .pulso-route-skeleton) y
+   aquí solo se leen con su valor por defecto: declararlas en la propia vista
+   taparía las del ancestro.
+     --pulso-skeleton-cabecera-alto   62px (TabHeading estándar)
+     --pulso-skeleton-banda-gap       12px entre banda y superficie
+     --pulso-skeleton-gutter          0 a la derecha de la superficie
+     --pulso-skeleton-principal-fin   0 a la derecha de la columna principal */
+.pulso-skeleton-vista-silueta {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-skeleton-banda-gap, var(--pulso-space-3));
+  box-sizing: border-box;
+  min-block-size: 0;
+  padding-inline-end: var(--pulso-skeleton-gutter, 0px);
+}
+
+/* Banda del módulo: geometría del patrón .pulso-command-bar (52 px). */
+.pulso-skeleton-banda {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  box-sizing: border-box;
+  block-size: 52px;
+  padding: 0 var(--pulso-space-3);
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-skeleton-banda-hueco {
+  flex: 1 1 0;
+}
+
+/* Barra de comandos de dos filas (Editor de formularios). */
+.pulso-skeleton-banda[data-skeleton-banda="comandos"] {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  block-size: var(--pulso-skeleton-banda-alto, 92px);
+  margin: var(--pulso-skeleton-banda-margen, 0);
+}
+
+.pulso-skeleton-banda-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+/* La superficie es el marco de la vista (el del PageFrame destino). */
+.pulso-skeleton-superficie {
+  display: flex;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-skeleton-rail-columna {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 56px;
+  border-right: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface-2) 86%, transparent);
+}
+
+.pulso-skeleton-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  box-sizing: border-box;
+  inline-size: 56px;
+  padding: var(--pulso-space-2) 0;
+  overflow: hidden;
+}
+
+/* Procesamiento: la pista mide 40 px y los 16 restantes son el gutter de la
+   columna (scrollbar-gutter: stable del .pulso-adaptive-rail real). */
+.pulso-skeleton-rail-columna[data-skeleton-rail="estrecho"] .pulso-skeleton-rail {
+  inline-size: 40px;
+}
+
+.pulso-skeleton-rail .pulso-skeleton-rail-tile {
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 8px;
+}
+
+.pulso-skeleton-vista-principal {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  margin-inline-end: var(--pulso-skeleton-principal-fin, 0px);
+}
+
+/* Cabecera de pestaña: TabHeading estándar (62 px) salvo que el destino diga
+   otro alto. */
+.pulso-skeleton-cabecera {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  box-sizing: border-box;
+  block-size: var(--pulso-skeleton-cabecera-alto, 62px);
+  padding: 6px 14px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-skeleton-cabecera .pulso-skeleton-cabecera-tile {
+  flex: none;
+  inline-size: 34px;
+  block-size: 34px;
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-skeleton-cabecera-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-inline-size: 0;
+}
+
+.pulso-skeleton-cabecera-chips {
+  display: flex;
+  flex: none;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-skeleton-vista-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-block-size: 0;
+  padding: var(--pulso-space-4) 18px;
+  overflow: hidden;
+}
+
+.pulso-skeleton-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 14px var(--pulso-space-4);
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-skeleton-filas,
+.pulso-skeleton-lineas {
+  display: grid;
+  gap: 6px;
+}
+
+.pulso-skeleton-lineas {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-skeleton-kpis {
+  display: grid;
+  grid-template-columns: repeat(var(--pulso-skeleton-kpis, 3), minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.pulso-skeleton-barra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+/* Piezas sueltas sobre el fondo de página (barra, franja de KPIs): un tono
+   más que el relleno de las piezas en panel, o desaparecen contra el fondo. */
+.pulso-skeleton-barra .pulso-skeleton,
+.pulso-skeleton-vista-cuerpo > .pulso-skeleton-kpis .pulso-skeleton {
+  background: color-mix(in srgb, var(--pulso-surface-3) 55%, var(--pulso-border));
+}
+
+/* Filas a su alto natural: si no caben, recorta el cuerpo (overflow hidden),
+   nunca se comprimen ni se montan unas sobre otras. */
+.pulso-skeleton-rejilla {
+  display: grid;
+  flex: none;
+  grid-auto-rows: max-content;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-skeleton-rejilla--workbench {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.pulso-skeleton-rejilla--tablero {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr);
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+
+.pulso-skeleton-resumen {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pulso-skeleton-resumen > .pulso-skeleton-lineas {
+  flex: 1 1 auto;
+}
+
+.pulso-skeleton-panel--tabla .pulso-skeleton--cabecera-tabla {
+  block-size: 30px;
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, var(--pulso-border));
+}
+
+.pulso-skeleton-documento {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  inline-size: min(100%, 760px);
+  margin-inline: auto;
+}
+
+/* Compacto: el panel lateral del banco y el tablero pasan a una columna. */
+@media (max-width: 1100px) {
+  .pulso-skeleton-rejilla--workbench,
+  .pulso-skeleton-rejilla--tablero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-skeleton-rejilla--tablero > .pulso-skeleton-panel:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+/* --- Usos del shell --------------------------------------------------------
+   El fallback de ruta conserva la clase `.pulso-module-warmup` A PROPÓSITO:
+   `estadoListo()` (lib/navegacion/runtime.ts) la lee como «warm start» y el
+   runner sigue esperando la readiness real. Sin ella, el skeleton respondería
+   `sin-marca-de-readiness` y el QA dejaría de esperar. Aquí se anula la
+   puesta en escena centrada del warm start: la silueta ocupa la superficie de
+   ruta ENTERA, que es exactamente el marco del PageFrame destino. */
+.pulso-module-warmup.pulso-route-skeleton {
+  display: flex;
+  flex-direction: column;
+  place-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Geometría por destino, medida contra la vista real (acnur_acg, 1440x1000 y
+   1024x600). `data-skeleton-destino` lo pone RouteLoadingFallback. */
+
+/* Procesamiento: rail de 40 + gutter 16; cabecera de panel de 66 px; la
+   columna principal deja 30 px a la derecha (gutter del split + del main). */
+.pulso-route-skeleton[data-skeleton-destino="procesamiento"] {
+  --pulso-skeleton-cabecera-alto: 66px;
+  --pulso-skeleton-principal-fin: 30px;
+}
+
+/* Monitoreo: el shell real quita el tope de ancho y deja 8 px de padding
+   (`.pulso-main:has(.mon-page)`). Mientras carga, el main tiene el skeleton y
+   no `.mon-page`: se replica aquí para que el marco no salte al montar. */
+.pulso-main:has(.pulso-route-skeleton[data-skeleton-destino="monitoreo"]),
+.pulso-main:has(.mon-shell-fallback) {
+  max-width: none;
+  padding: 8px;
+}
+/* `.mon-shell-fallback` es la segunda espera de Monitoreo (MonitoreoShell, ya
+   con el chunk cargado y el estado aún en camino). Sin esta línea el main
+   pasaba de 8 a 20 px al soltar el skeleton y volvía a 8 al montar `.mon-page`:
+   dos saltos. TEMPORAL hasta que ShellFallback adopte `SkeletonVista`
+   (fuera del alcance de L24: features/monitoreo). */
+
+.pulso-route-skeleton[data-skeleton-destino="monitoreo"] {
+  --pulso-skeleton-cabecera-alto: 84px;
+  --pulso-skeleton-banda-gap: var(--pulso-space-2);
+  --pulso-skeleton-gutter: 15px;
+}
+
+@media (max-height: 720px) {
+  .pulso-route-skeleton[data-skeleton-destino="monitoreo"] {
+    --pulso-skeleton-cabecera-alto: 41px;
+    --pulso-skeleton-banda-gap: var(--pulso-space-1);
+  }
+}
+
+/* Monitoreo ≥ ~1516 px: la command bar real (.mon-commandbar) se topa a
+   1500 px y se centra (monitoreoShell.css); la banda del skeleton, igual. */
+.pulso-route-skeleton[data-skeleton-destino="monitoreo"] .pulso-skeleton-banda {
+  inline-size: 100%;
+  max-inline-size: 1500px;
+  margin-inline: auto;
+}
+
+/* Editor de formularios: la barra de comandos real cambia de filas con el
+   ancho (xlsform-v2.css): una fila (52) por encima de 1520 px, dos (92) entre
+   1101 y 1520, tres (130) hasta 1100. Siempre 10 px por arriba. */
+.pulso-route-skeleton[data-skeleton-destino="formularios"] {
+  --pulso-skeleton-banda-alto: 52px;
+  --pulso-skeleton-banda-margen: 10px 12px 0;
+}
+
+@media (max-width: 1520px) {
+  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
+    --pulso-skeleton-banda-alto: 92px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
+    --pulso-skeleton-banda-alto: 130px;
+    --pulso-skeleton-banda-margen: 10px 8px 0;
+  }
+}
+
+/* Gap entre banda y cuerpo = gap del .pulso-page-frame real: 12 px, y 8 px
+   bajo las mismas condiciones que lo bajan en theme.css — viewport ≤ 1320 px
+   de ancho o ≤ 720 de alto, o densidad compacta/corta del layout. Aplica a
+   los destinos cuya banda es hija directa del PageFrame (Recopiladores y el
+   Editor); en Bitácora la banda vive dentro del cuerpo y el gap es fijo. */
+@media (max-width: 1320px), (max-height: 720px) {
+  .pulso-route-skeleton[data-skeleton-destino="seccion"],
+  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
+    --pulso-skeleton-banda-gap: var(--pulso-space-2);
+  }
+}
+
+:root[data-pulso-layout-density="compact"] .pulso-route-skeleton[data-skeleton-destino="seccion"],
+:root[data-pulso-layout-density="short"] .pulso-route-skeleton[data-skeleton-destino="seccion"],
+:root[data-pulso-layout-density="compact"] .pulso-route-skeleton[data-skeleton-destino="formularios"],
+:root[data-pulso-layout-density="short"] .pulso-route-skeleton[data-skeleton-destino="formularios"] {
+  --pulso-skeleton-banda-gap: var(--pulso-space-2);
+}
+
+/* Bitácora: la banda y el cuerpo reservan el gutter de scroll de 15 px. */
+.pulso-route-skeleton[data-skeleton-destino="bitacora"] {
+  --pulso-skeleton-gutter: 15px;
+}
+
+/* Decisión del lead (D4 aplicado a la espera): donde el cuerpo real
+   (.pulso-page-frame-body) no dibuja marco —Recopiladores, Bitácora— la
+   superficie del skeleton tampoco: solo quedan las piezas de la silueta. */
+.pulso-route-skeleton[data-skeleton-destino="seccion"] .pulso-skeleton-superficie,
+.pulso-route-skeleton[data-skeleton-destino="bitacora"] .pulso-skeleton-superficie {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* En la superficie de ruta la silueta no lleva marco propio: el marco es de la
+   superficie interior (.pulso-skeleton-superficie), como en la vista real. */
+.pulso-route-skeleton > .pulso-skeleton-vista {
+  background: transparent;
+}
+
+/* Bajo la pantalla de warm start: la vista destino, recortada a un alto que
+   deja el mensaje y el avance a la vista también en 1024x600. */
+.pulso-skeleton-vista--destino {
+  justify-self: stretch;
+  inline-size: min(100%, 1120px);
+  block-size: auto;
+  max-block-size: clamp(120px, 30vh, 340px);
+  margin-inline: auto;
+  -webkit-mask-image: linear-gradient(180deg, var(--pulso-surface) 70%, transparent);
+  mask-image: linear-gradient(180deg, var(--pulso-surface) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-skeleton::after {
+    animation: none;
+    display: none;
+  }
+}

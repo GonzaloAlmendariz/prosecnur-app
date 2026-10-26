@@ -1281,38 +1281,6 @@
   background: var(--cmv2-surface);
 }
 
-.cmv2-ch-grupos-toggle {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  cursor: pointer;
-}
-
-.cmv2-ch-grupos-toggle input {
-  margin-top: 2px;
-  width: 16px;
-  height: 16px;
-  flex: none;
-  accent-color: var(--cmv2-accent);
-}
-
-.cmv2-ch-grupos-toggle span {
-  display: grid;
-  gap: 1px;
-}
-
-.cmv2-ch-grupos-toggle strong {
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.cmv2-ch-grupos-toggle em {
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  font-style: normal;
-}
-
 .cmv2-ch-grupos-list {
   display: grid;
   gap: 7px;
@@ -1323,6 +1291,25 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* «Desde · Hasta»: un PulsoFieldRow (C1) que aquí no estira sus campos. */
+.pulso-field-row.cmv2-ch-grupos-rango {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.pulso-field-row.cmv2-ch-grupos-rango > .pulso-field {
+  flex: 0 0 auto;
+}
+
+.cmv2-ch-grupos-quitar {
+  margin-left: auto;
+}
+
+.cmv2-ch-grupos-agregar {
+  justify-self: start;
 }
 
 .cmv2-ch-grupos-tag {
@@ -1348,80 +1335,6 @@
 .cmv2-ch-grupos-tag i[data-grupo="G4"] { background: var(--cmv2-accent); }
 .cmv2-ch-grupos-tag i[data-grupo="G5"] { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }
 .cmv2-ch-grupos-tag i[data-grupo="G6"] { background: color-mix(in srgb, var(--cmv2-accent) 70%, var(--pulso-text)); }
-
-.cmv2-ch-grupos-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-}
-
-.cmv2-ch-grupos-field input {
-  width: 72px;
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 8px;
-  background: var(--cmv2-control-bg, var(--cmv2-surface));
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-ch-grupos-field input:focus-visible {
-  outline: 2px solid transparent;
-  border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 35%, transparent);
-}
-
-.cmv2-ch-grupos-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-left: auto;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 8px;
-  background: var(--cmv2-surface);
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-}
-
-.cmv2-ch-grupos-remove:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-ch-grupos-remove:not(:disabled):hover {
-    border-color: var(--pulso-danger-border, var(--cmv2-border-strong));
-    color: var(--pulso-danger-fg, var(--pulso-text));
-  }
-}
-
-.cmv2-ch-grupos-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: start;
-  height: 28px;
-  padding: 0 12px;
-  border: 1px dashed var(--cmv2-accent-border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--cmv2-accent-fg, var(--cmv2-accent));
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-ch-grupos-add:hover {
-    background: var(--cmv2-accent-soft);
-  }
-}
 
 /* Grupos añadidos (G5/G6) heredan el degradé del histograma. */
 .cmv2-marco-histo-bin[data-grupo="G5"] .cmv2-marco-histo-col i { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }

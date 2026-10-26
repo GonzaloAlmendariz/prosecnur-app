@@ -12,6 +12,7 @@
  * decidirlo. Los niveles se cuentan sobre el marco entero: el motor corta POR
  * ESTRATO, así que la cifra anticipa el riesgo y no predice el corte.
  */
+import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { variablesDeBalance } from "./variablesBalance";
 import "./variablesBalance.css";
 
@@ -40,23 +41,19 @@ export function VariablesBalanceControl({
           cuesta el sorteo, y el motor descarta las que no caben declarándolo en su aviso
         </span>
       </header>
-      <ul>
+      {/* K1 (L27): cada variable es un switch chico; la lista es de pares (C1). */}
+      <ul data-qa-geometry-group="aulas-variables-balance" data-qa-geometry-contract="equal">
         {variables.map((v) => (
           <li key={v.nombre} data-riesgo={v.niveles > NIVELES_RIESGO ? "" : undefined}>
-            <label>
-              <input
-                type="checkbox"
-                checked={v.enBalance}
-                onChange={(e) =>
-                  onChange(
-                    e.currentTarget.checked
-                      ? [...enBalance, v.nombre]
-                      : enBalance.filter((n) => n !== v.nombre),
-                  )
-                }
-              />
-              <b>{v.nombre}</b>
-            </label>
+            <PulsoSwitch
+              size="sm"
+              label={v.nombre}
+              ariaLabel={`Equilibrar el sorteo por ${v.nombre}`}
+              checked={v.enBalance}
+              onCheckedChange={(equilibra) =>
+                onChange(equilibra ? [...enBalance, v.nombre] : enBalance.filter((n) => n !== v.nombre))
+              }
+            />
             <span className="cmv2-vbal-niveles">
               {v.niveles.toLocaleString("es-PE")} {v.niveles === 1 ? "nivel" : "niveles"}
             </span>

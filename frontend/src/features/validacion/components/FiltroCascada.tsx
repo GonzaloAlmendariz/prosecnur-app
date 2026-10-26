@@ -6,6 +6,7 @@ import {
   type ExplorarFiltros,
   type FiltroRango,
 } from "../../../api/client";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
 
 // =============================================================================
@@ -368,6 +369,8 @@ function FiltroPicker({
       {!loading && !esRango && valores && valores.opciones.length > 0 && (
         <>
           <div
+            data-qa-geometry-group="validacion/filtro-valores"
+            data-qa-geometry-contract="equal"
             style={{
               maxHeight: 220,
               overflowY: "auto",
@@ -390,11 +393,7 @@ function FiltroPicker({
                   fontSize: 12,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={checked.has(op.code)}
-                  onChange={() => toggleVal(op.code)}
-                />
+                <PulsoSwitch size="sm" ariaLabel={op.label} checked={checked.has(op.code)} onCheckedChange={() => toggleVal(op.code)} />
                 <span style={{ flex: 1, color: "var(--pulso-text)" }}>{op.label}</span>
                 <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
                   n={op.n}

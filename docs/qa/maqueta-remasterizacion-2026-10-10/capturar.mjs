@@ -9,7 +9,8 @@ const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf
 const dir = "docs/qa/maqueta-remasterizacion-2026-10-10/maqueta";
 mkdirSync(`${dir}/despues`, { recursive: true });
 const pages = readdirSync(`${dir}/m`).filter((f) => f.endsWith(".html") && (!only || f.startsWith(only)));
-const browser = await chromium.launch();
+// En la nube no hay headless_shell propio: PW_CHROMIUM=/opt/pw-browsers/chromium (nunca `playwright install`).
+const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 const errores = [];

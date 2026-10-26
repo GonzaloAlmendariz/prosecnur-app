@@ -9,6 +9,9 @@
  * única vez "cuota de aulas por facultad" y "reemplazo (M1, M2…)".
  */
 import { CheckCircle2 } from "lucide-react";
+import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
+import { PulsoField } from "../../../../components/PulsoField";
+import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
@@ -214,24 +217,29 @@ export function AulasObjetivoTab({
           data-qa-geometry-group="aulas-objetivo-controles"
           data-qa-geometry-contract="intrinsic"
         >
-          <label className="cmv2-compact-field cmv2-classroom-field-wide">
-            <span>Modalidad</span>
-            <select
+          {/* Tres modalidades excluyentes: segmentado, no select (L27). */}
+          <PulsoField
+            label="Modalidad"
+            hint={modalidad.detail}
+            group
+            className="cmv2-classroom-field-wide"
+          >
+            <GlidingRadioGroup<(typeof UNIVERSITY_AULAS_MODALIDAD_OPTIONS)[number], CalcMuestraWorkspaceAulasModalidad>
               value={config.modalidad}
-              onChange={(e) => {
-                const nextModalidad = e.currentTarget.value as CalcMuestraWorkspaceAulasModalidad;
+              options={UNIVERSITY_AULAS_MODALIDAD_OPTIONS}
+              getOptionValue={(option) => option.id}
+              onValueChange={(nextModalidad) =>
                 updateConfig({
                   modalidad: nextModalidad,
                   require_in_person: nextModalidad !== "online_controlado",
-                });
-              }}
+                })
+              }
+              className="cmv2-aulas-modalidad"
+              aria-label="Modalidad"
             >
-              {UNIVERSITY_AULAS_MODALIDAD_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <em>{modalidad.detail}</em>
-          </label>
+              {(option) => option.label}
+            </GlidingRadioGroup>
+          </PulsoField>
           <CampoNumeroAulas
             rotulo="Mínimo por curso-horario"
             value={config.min_elegibles_aula}
@@ -285,32 +293,34 @@ export function AulasObjetivoTab({
             ayuda="Refuerzo de agenda; no cambia el N estadístico ni la muestra titular."
           />
         </div>
-        <label className="cmv2-classroom-toggle">
-          <input
-            type="checkbox"
-            checked={config.usar_grupos_tamano}
-            onChange={(e) => setUseSizeGroups(e.currentTarget.checked)}
-          />
-          <span>
-            <strong>Usar grupos de tamaño del curso-horario</strong>
-            <em>Recomendado cuando la selección puede sesgarse hacia cursos grandes.</em>
-          </span>
-        </label>
-        <label className="cmv2-classroom-toggle">
-          <input
-            type="checkbox"
-            checked={config.docente_unico !== false}
-            onChange={(e) => updateConfig({ docente_unico: e.currentTarget.checked })}
-          />
-          <span>
-            <strong>Docente único entre titulares</strong>
+        {/* K1 (L27): las dos decisiones del sorteo son switches del kit, cada
+            uno en su tarjeta; la lista declara su geometría (C1). */}
+        <div
+          className="cmv2-classroom-toggles"
+          data-qa-geometry-group="aulas-objetivo-decisiones"
+          data-qa-geometry-contract="equal"
+        >
+          <div className="cmv2-classroom-toggle">
+            <PulsoSwitch
+              label="Usar grupos de tamaño del curso-horario"
+              description={<em>Recomendado cuando la selección puede sesgarse hacia cursos grandes.</em>}
+              checked={config.usar_grupos_tamano}
+              onCheckedChange={setUseSizeGroups}
+            />
+          </div>
+          <div className="cmv2-classroom-toggle">
             {/* EF2 · «no molestar al docente»: un docente contactado dos veces
                 puede negarse a la segunda, y la selección no tiene vuelta
                 atrás. El ajuste es post-sorteo, en la misma celda, y queda
                 registrado en la selección (sacrificio declarado). */}
-            <em>Si un docente dicta dos cursos-horario sorteados, uno se intercambia por el mejor candidato de su misma celda; cada ajuste queda registrado.</em>
-          </span>
-        </label>
+            <PulsoSwitch
+              label="Docente único entre titulares"
+              description={<em>Si un docente dicta dos cursos-horario sorteados, uno se intercambia por el mejor candidato de su misma celda; cada ajuste queda registrado.</em>}
+              checked={config.docente_unico !== false}
+              onCheckedChange={(docenteUnico) => updateConfig({ docente_unico: docenteUnico })}
+            />
+          </div>
+        </div>
         {config.usar_grupos_tamano && (
           <div className="cmv2-classroom-groups" aria-label="Grupos de tamaño de curso-horario">
             {config.grupos_tamano.map((group) => (

@@ -46,11 +46,14 @@ describe("Carga workspace integration semantics", () => {
     expect(pageSource).toContain('titulo="Aún no hay datos de Carga para explorar"');
   });
 
-  it("publishes a stable QA readiness marker after the active topology loads", () => {
-    // Revisión además espera la lectura de la base elegida, y la marca se
-    // escribe "false" (omitirla dejaba que una marca descendiente dijera "true").
+  it("publishes a stable QA readiness marker only after the session, bases and Revisión load", () => {
+    // Revisión además espera la lectura de la base elegida, la marca se escribe
+    // "false" (omitirla dejaba que una marca descendiente dijera "true") y no hay
+    // marca mientras la página se hidrata (L4).
     expect(pageSource).toMatch(
-      /auditReady=\{\s*\(isMultiBase && !estudio\) \|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\? "false"\s*: `carga-\$\{activeCargaTab\}`\s*\}/u,
+      /auditReady=\{\s*\(isMultiBase && !estudio\) \|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\? "false"\s*: marcaReadinessCarga\(hidratacion, activeCargaTab\) \|\| "false"\s*\}/u,
     );
+    expect(pageSource).toContain("hayEstadoSesion: state !== null");
+    expect(pageSource).toContain('{!isMultiBase && hidratacion.fase === "lista" && (');
   });
 });
