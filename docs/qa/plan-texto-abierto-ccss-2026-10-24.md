@@ -1,5 +1,10 @@
 # Plan — análisis del discurso del comentario final (CCSS Perfil 2026, frente L11)
 
+Tipo: Plan de implementación
+Estado: En curso
+Fecha: 2026-10-24
+Autoridad: Gonzalo, vía la sesión del mazo CCSS: «análisis del discurso del comentario final»
+
 Pedido de Gonzalo (vía la sesión del mazo): «análisis del discurso del comentario final, organizado por las secciones del formulario».
 Variable `coment`. Diseño hecho en solo lectura sobre una copia del proyecto; cifras medidas el 2026-10-24.
 

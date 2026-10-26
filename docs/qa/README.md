@@ -106,6 +106,13 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Estándar de maqueta del revamp de Monitoreo](revamp-monitoreo/estandar-de-ficha.md): estándar común de las fichas del revamp.
 - [Plan de aplicación a la UI: Monitoreo telefónico](revamp-monitoreo/plan-ui-telefonico.md): plan de aplicación a la UI del perfil telefónico, T0 a T9.
 - [Procedimientos de campo respondidos por Gonzalo](revamp-monitoreo/procedimientos-respondidos.md): procedimientos de campo respondidos por Gonzalo; mandan sobre cualquier supuesto.
+- [Plan de aplicación a la UI: Monitoreo de acreditación](revamp-monitoreo/plan-ui-acreditacion.md): plan de aplicación a la UI del perfil acreditación.
+- [Plan de aplicación a la UI: Monitoreo territorial](revamp-monitoreo/plan-ui-territorial.md): plan de aplicación a la UI del perfil territorial.
+- [Plan de aplicación a la UI: Cursos-horario](revamp-monitoreo/plan-ui-aulas.md): Meta B en el perfil de cursos-horario.
+- [Meta B · M1: «Actualizar ▾» único](revamp-monitoreo/plan-metab-actualizar.md): control único con paso N de M y recibo.
+- [Meta B · M3: avance con su base](revamp-monitoreo/plan-metab-insignia.md): una sola lectura de avance con su base.
+- [Meta B · M4: warm start con tiempo](revamp-monitoreo/plan-metab-warmstart.md): tiempo transcurrido, restante y fases del arranque.
+- [Revamp de Monitoreo y Meta B: pendientes (2026-10-25)](revamp-monitoreo/pendientes-2026-10-25.md): cierre de jornada y lo que queda.
 
 ## En curso
 
@@ -228,6 +235,10 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Reglas del papel — numeración, saltos, condiciones y campos de control](reglas-papel-numeracion-saltos-2026-10-15.md): regla metodológica del motor de papel tras el corpus de instrumentos reales.
 - [Checklist — la matriz de equivalencias permite lo que propone la OIGD](checklist-matriz-equivalencias-oigd-2026-10-15.md): códigos y etiquetas estándar, agrupaciones, indicadores compuestos (ADR 0105) y la prueba real HSyVbG 2024–2026.
 - [Checklist: diagnóstico del motor de PPT](checklist-motor-ppt-diagnostico-2026-10-06.md): brecha contra las presentaciones de capacitación y plan; entregables en su carpeta.
+- [Checklist del motor PPT con CCSS Perfil 2026](checklist-motor-ppt-ccss-2026-10-24.md): motor, brechas y texto abierto con el mazo real de CCSS.
+- [Plan de brechas del motor vistas en CCSS](plan-brechas-motor-ccss-2026-10-24.md): lo que CCSS resolvió fuera del motor.
+- [Plan del análisis del comentario final de CCSS](plan-texto-abierto-ccss-2026-10-24.md): nube, temas por módulo y citas.
+- [Benchmark de editores de correo (2026-10)](benchmark-editores-correo-2026-10.md): Mailchimp, Beefree, Stripo y Unlayer frente al editor de correos.
 - [Checklist: comentarios de Gonzalo al recetario PPT moderno](checklist-recetario-comentarios-2026-10-07.md): 41 comentarios en 38 láminas.
 - [Inventario F6 — el editor frente a los motores nativos](inventario-f6-editor-2026-10-09.md): hechos del motor que sostienen la dirección de diseño.
 - [Inventario N7 — 22 tipos de lámina e identidad](inventario-n7-tipos-lamina-2026-10-09.md): orden de trabajo por uso real y gate del ADR 0093.
