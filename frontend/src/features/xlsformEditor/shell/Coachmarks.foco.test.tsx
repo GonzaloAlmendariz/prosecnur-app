@@ -6,7 +6,7 @@
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Coachmarks } from "./Coachmarks";
 import { siguienteFocoAtrapado } from "./coachmarkFocus";
 
@@ -16,7 +16,15 @@ let origen: HTMLButtonElement;
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  localStorage.clear();
+  // Node 25 trae su propio `localStorage` global (sin archivo, sin métodos) y
+  // tapa el de happy-dom: se reemplaza por un almacén en memoria por test.
+  const almacen = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => almacen.get(k) ?? null,
+    setItem: (k: string, v: string) => void almacen.set(k, String(v)),
+    removeItem: (k: string) => void almacen.delete(k),
+    clear: () => almacen.clear(),
+  });
   // Target del primer paso y elemento enfocado antes de que aparezca el tour.
   const tarjeta = document.createElement("div");
   tarjeta.className = "pulso-canvas-card";
@@ -33,6 +41,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   document.body.innerHTML = "";
+  vi.unstubAllGlobals();
 });
 
 function callout(): HTMLElement | null {
