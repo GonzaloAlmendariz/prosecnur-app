@@ -143,6 +143,9 @@
     cap_titulo <<- "Cómo leer este informe"
     doc
   }
+  # Las apiladas y multiapiladas de rótulo corto arrancan las barras en el mismo punto de la página (reporte_word_eje_comun.R).
+  op_eje <- options(prosecnur.word_rotulo_comun = .word_rotulo_comun(lapply(render_meta, function(e) attr(e$plot_word, "pulso_espec"))))
+  on.exit(options(op_eje), add = TRUE)
   saltar <- integer(0)
   for (i in seq_along(render_meta)) {
     if (i %in% saltar) next

@@ -27,8 +27,8 @@
 
 #' Margen izquierdo del eje según el rótulo más largo ya partido (`xmin_para()` del recetario)
 #' @keywords internal
-.word_xmin <- function(rotulos, pt, xmax, x0 = 0) {
-  L <- .word_rotulo_in(rotulos, pt)
+.word_xmin <- function(rotulos, pt, xmax, x0 = 0, ancho_in = NULL) {
+  L <- ancho_in %||% .word_rotulo_in(rotulos, pt)   # `ancho_in`: la columna común del documento (reporte_word_eje_comun.R)
   x0 - L * (xmax - x0) / (.std_word("pagina", "ancho_util") - 0.3 - L)
 }
 
@@ -115,15 +115,7 @@
   F <- espec$filas[orden, , drop = FALSE]; U <- espec$unidades[orden, , drop = FALSE]; A <- espec$anchos[orden, , drop = FALSE]
   Ci <- espec$cifras[orden, , drop = FALSE]; Dw <- espec$dibujar[orden, , drop = FALSE]
   cat <- espec$categorias; k <- nrow(cat); nf <- nrow(F)
-  rot_fila <- ifelse(is.na(F$rotulo) | !nzchar(F$rotulo), "", F$rotulo)
-  # «Casos junto al porcentaje»: el Word no lleva «N respuestas» por fila como la lámina; si el ajuste lo pide, el grupo
-  # dice sus casos en el rótulo («Administrativos (14)»).
-  nf_casos <- suppressWarnings(as.numeric(.espec_casos(F)))
-  if (.casos_junto_muestra(.espec_casos(espec$filas), espec$casos_junto) && any(is.finite(nf_casos))) {
-    con <- nzchar(rot_fila) & is.finite(nf_casos)
-    rot_fila[con] <- sprintf("%s (%d)", rot_fila[con], as.integer(round(nf_casos[con])))
-  }
-  lbw <- .word_escala_rotulos_envueltos(rot_fila, envolver)
+  lbw <- .word_escala_rotulos_fila(espec, envolver)   # orden, «(N)» y partición: reporte_word_eje_comun.R
   hay_chicas <- any(A * 100 > 0 & A * 100 < .WORD_ESCALA_CABE_PCT & Dw)
   nl <- vapply(strsplit(lbw, "\n"), function(x) max(1L, length(x)), 1L)
   esp <- pmax(if (hay_chicas) 1.3 else 1, 0.55 + 0.34 * nl); tot <- sum(esp); ys <- tot - (cumsum(esp) - esp / 2) + 0.5
@@ -141,7 +133,9 @@
   pt_de <- function(x, rol) .word_pt(x, rol) * ggplot2::.pt
   col <- .word_columnas_box(lbw, c(espec$box$rotulo %||% "", espec$box2$rotulo %||% ""),
                             list(espec$box$cifras, espec$box2$cifras), pt_de(.WORD_ESCALA_PT$box_rotulo, "rotulo"), pt_de(.WORD_ESCALA_PT$box_cifra, "cifra"), b2b = b2b)
-  xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo"), xmax, -4)
+  pt_rot <- .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo")
+  # Las escalas de rótulo corto arrancan en la columna común del documento (reporte_word_eje_comun.R); sin ella, la propia.
+  xmax <- if (ttb) col$xmax else 101; xmin <- .word_xmin(lbw, pt_rot, xmax, -4, ancho_in = .word_escala_columna(.word_rotulo_in(lbw, pt_rot)))
   k_in <- (xmax - xmin) / (.std_word("pagina", "ancho_util") - 0.3)   # unidades del eje por pulgada de figura
   chicas <- d[!d$cabe, , drop = FALSE]
   if (nrow(chicas)) chicas <- do.call(rbind, lapply(split(chicas, chicas$y), function(g) {
