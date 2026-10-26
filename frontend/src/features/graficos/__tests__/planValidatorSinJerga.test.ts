@@ -234,7 +234,9 @@ describe("errores de exportación: casos reescritos", () => {
   test("el motor nombra la lámina que falló: el aviso la nombra y lleva a ella (Arte, lámina 33)", () => {
     const crudo = "! in callr subprocess. Caused by error: ! Base 'docentes': Lámina 6 «Comparación por tema»: p_radar_tabla(modo='box'): no usar `var`.";
     const h = humanizeGraficosExportError(crudo, conGrupos);
-    expect(h.message).toBe("Lámina 6 · “Comparación por tema”: su gráfico no se puede dibujar como está configurado, y el informe se detuvo ahí.");
+    // Desde 2026-10-25 también dice por qué, sin el nombre de código del ajuste (causaLamina.ts).
+    expect(h.message).toBe("Lámina 6 · “Comparación por tema”: su gráfico no se puede dibujar porque lleva una variable suelta, que este tipo de gráfico no usa, y el informe se detuvo ahí.");
+    expect(h.message).not.toContain("`var`");
     expect(h.message).not.toContain("p_radar");
     expect(h.slideRef?.id).toBe("slide_grupos_7777");
     expect(h.detalle).toBe(crudo);
