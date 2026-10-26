@@ -37,10 +37,11 @@ const PRIMITIVA = new Set([
 const PRIMITIVA_RADIX = ["components/Dialog.tsx", "components/Sideover.tsx"];
 
 /**
- * `role="dialog"` por archivo a fecha de 2026-10-11, sin las primitivas: 56 en
- * total, antes 62 (61 consumidores + Popover). Bajaron 5: Reconciliación y los
- * tres diálogos del Dashboard migraron a `Dialog`; EscalaChip se mudó a
- * `Popover`, que no es Dialog sino la primitiva de clase popover. Solo baja.
+ * `role="dialog"` por archivo, sin las primitivas. En la rama del 2026-10-11
+ * eran 56 (antes 62): Reconciliación y los tres diálogos del Dashboard migraron
+ * a `Dialog` y EscalaChip se mudó a `Popover`. Al rescatar la rama sobre main
+ * (2026-10-26) la foto se tomó de nuevo sobre el árbol de hoy: 59 en 57
+ * archivos, con los overlays que main sumó en esas dos semanas. Solo baja.
  */
 const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "components/LogsPanel.tsx": 1,
@@ -52,10 +53,10 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/bitacora/vinculos/SelectorDeVinculo.tsx": 1,
   "features/calcMuestra/universidad/criterios/PresetCanonicoButton.tsx": 1,
   "features/carga/CargaPage.tsx": 1,
+  "features/carga/PreguntaCombobox.tsx": 1,
   "features/dashboard/shared/FullscreenWrapper.tsx": 1,
   "features/dashboard/tabs/DimensionesTab/index.tsx": 1,
   "features/graficos/ArgField.tsx": 1,
-  "features/graficos/DefaultsModal.tsx": 1,
   "features/graficos/ExportarInformeMenu.tsx": 1,
   "features/graficos/GraficosHeader.tsx": 3,
   "features/graficos/MultiApiladasBuilder.tsx": 1,
@@ -63,38 +64,43 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/graficos/PlanCoverageBadge.tsx": 1,
   "features/graficos/PlanHealthBadge.tsx": 1,
   "features/graficos/ShortcutsModal.tsx": 1,
-  "features/graficos/SlidePreview.tsx": 1,
   "features/graficos/SuggestedPlanButton.tsx": 1,
   "features/graficos/VariablePicker.tsx": 1,
   "features/graficos/VarsListPicker.tsx": 1,
   "features/graficos/laminas/EditorAmplio.tsx": 1,
-  "features/graficos/v2/shell/EstiloGlobalDialog.tsx": 1,
-  "features/graficos/v2/timeline/TimelinePanelV2.tsx": 1,
+  "features/graficos/laminas/guias/BotonGuias.tsx": 1,
   "features/home/CreditsDrawer.tsx": 1,
   "features/home/GlobalSettingsDialog.tsx": 1,
   "features/home/ModulePickerDialog.tsx": 1,
   "features/home/ReleaseNotesDrawer.tsx": 1,
+  "features/monitoreo/core/colaDeInsistencia/FiltrosDeCola.tsx": 1,
+  "features/monitoreo/core/superficieFlotante/SuperficieFlotante.tsx": 1,
   "features/monitoreo/fuentes/ConectarFuente.tsx": 1,
+  "features/monitoreo/profiles/acreditacion/AvanceCuotasPanel.tsx": 1,
   "features/monitoreo/profiles/aulas/AulasPopoverReemplazo.tsx": 1,
   "features/monitoreo/profiles/aulas/AulasPopoverRefuerzo.tsx": 1,
   "features/monitoreo/profiles/aulas/RegistroDeCampo.tsx": 1,
+  "features/monitoreo/profiles/telefonico/control/DialogoNuevaRonda.tsx": 1,
+  "features/monitoreo/profiles/telefonico/control/DialogoPublicarRonda.tsx": 1,
   "features/monitoreo/profiles/territorial/TerritorialFieldOccurrencesWorkbench.tsx": 1,
   "features/monitoreo/profiles/territorial/TerritorialOccurrencesSourceBar.tsx": 1,
   "features/monitoreo/profiles/territorial/TerritorialValidationGeoWorkbench.tsx": 1,
   "features/project/ProjectLifecycleDialog.tsx": 1,
+  "features/recopiladores/correos/AccionesDeSeccion.tsx": 1,
+  "features/recopiladores/correos/BibliotecaDeBloques.tsx": 1,
+  "features/recopiladores/correos/GuardarSeccion.tsx": 1,
+  "features/recopiladores/correos/MenuDeCampos.tsx": 1,
   "features/validacion/components/ContextLens.tsx": 1,
   "features/validacion/components/CrossBar.tsx": 1,
-  "features/xlsformEditor/XlsformEditorPage.tsx": 3,
   "features/xlsformEditor/canvas-graph/ConnectionConditionPicker.tsx": 1,
-  "features/xlsformEditor/canvas-graph/LogicCanvas.tsx": 1,
-  "features/xlsformEditor/choiceFilters/ChoiceFiltersView.tsx": 1,
+  "features/xlsformEditor/choiceFilters/NuevoFiltroDialogo.tsx": 1,
+  "features/xlsformEditor/kit/PanelMarca.tsx": 1,
+  "features/xlsformEditor/shell/AddElementMenu.tsx": 1,
   "features/xlsformEditor/shell/Coachmarks.tsx": 1,
-  "features/xlsformEditor/shell/ConfigurarPdfDialog.tsx": 1,
   "features/xlsformEditor/shell/DiagnosticsPopover.tsx": 1,
-  "features/xlsformEditor/shell/FormSimulator.tsx": 1,
-  "features/xlsformEditor/shell/FormSummaryView.tsx": 1,
   "features/xlsformEditor/shell/ImportSurveyMonkeyDialog.tsx": 1,
   "features/xlsformEditor/shell/MatrizPulsoDialog.tsx": 1,
+  "features/xlsformEditor/shell/SurveyMonkeyLogicPopup.tsx": 1,
 };
 
 const ROLE_DIALOG = /role=(?:"dialog"|'dialog'|\{\s*["']dialog["']\s*\})/g;
