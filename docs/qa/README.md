@@ -240,6 +240,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Checklist — la matriz de equivalencias permite lo que propone la OIGD](checklist-matriz-equivalencias-oigd-2026-10-15.md): códigos y etiquetas estándar, agrupaciones, indicadores compuestos (ADR 0105) y la prueba real HSyVbG 2024–2026.
 - [Checklist: diagnóstico del motor de PPT](checklist-motor-ppt-diagnostico-2026-10-06.md): brecha contra las presentaciones de capacitación y plan; entregables en su carpeta.
 - [Checklist del motor PPT con CCSS Perfil 2026](checklist-motor-ppt-ccss-2026-10-24.md): motor, brechas y texto abierto con el mazo real de CCSS.
+- [Checklist: el recetario al día con el motor](checklist-recetario-desfase-2026-10-26.md): unas 60 reglas del motor que el recetario, el estándar y el catálogo aún no reflejan.
 - [Plan de brechas del motor vistas en CCSS](plan-brechas-motor-ccss-2026-10-24.md): lo que CCSS resolvió fuera del motor.
 - [Plan del análisis del comentario final de CCSS](plan-texto-abierto-ccss-2026-10-24.md): nube, temas por módulo y citas.
 - [Benchmark de editores de correo (2026-10)](benchmark-editores-correo-2026-10.md): Mailchimp, Beefree, Stripo y Unlayer frente al editor de correos.
