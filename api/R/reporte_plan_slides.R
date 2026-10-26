@@ -2222,6 +2222,8 @@ p_barras_multiapiladas <- function(
     .plan_spec_abort("`prefijo_grupos` debe ser NULL o character(1).")
   }
 
+  # La UI guarda un opcional vacío como `{}`/`[]` (jsonlite: `list()`): es «sin cruce», no un error (Arte_v1-4).
+  if (is.list(cruces) && !length(cruces)) cruces <- NULL
   if (!is.null(cruces)) {
     if (!is.character(cruces) || length(cruces) != 1L || !nzchar(trimws(cruces))) {
       .plan_spec_abort("`cruces` debe ser NULL o character(1) no vacio.")
@@ -2253,6 +2255,8 @@ p_barras_multiapiladas <- function(
     if (!length(top2box_labels)) top2box_labels <- NULL
   }
   titulos_grupo <- .ppt_as_chr_vec(titulos_grupo, keep_names = TRUE)
+  # Igual que `top2box_labels`: el `{}` vacío que guarda la UI es «sin títulos», no un error (Arte_v1-4, lámina 8).
+  if (!is.null(titulos_grupo) && !length(titulos_grupo)) titulos_grupo <- NULL
   if (!is.null(titulos_grupo) && is.null(names(titulos_grupo)) &&
       any(grepl("=", titulos_grupo, fixed = TRUE))) {
     # El registry documenta el formato textual "clave=Titulo" (uno por
@@ -2306,6 +2310,9 @@ p_barras_multiapiladas <- function(
       if (!is.list(block)) {
         .plan_spec_abort("modo='multilista': cada bloque debe ser una lista.")
       }
+      # Los opcionales vacíos que guarda la UI (`"var": {}`, `"cruces": {}`, `"titulos_grupo": {}`) equivalen a no
+      # declararlos: se quitan y cada campo toma su valor por defecto (Arte_v1-4, lámina 8).
+      block <- block[!vapply(block, function(x) is.list(x) && !length(x), logical(1))]
 
       modo_block <- block[["modo", exact = TRUE]] %||% NULL
       if (!is.character(modo_block) || length(modo_block) != 1L || !nzchar(trimws(modo_block))) {
