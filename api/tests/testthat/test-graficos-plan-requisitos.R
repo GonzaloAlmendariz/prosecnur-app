@@ -54,3 +54,20 @@ test_that("la misma escala con otra caja, bloques separados y una pregunta por g
   # Sin instrumentos (el validador puro de siempre) no se juzga la escala.
   expect_true(.validar_plan_json(list(slides = list(.multi(modo = "var_cruce", vars = list(T = c("docentes$p1", "estudiantes$p1"))))))$ok)
 })
+
+test_that("una ficha técnica sin filas impide exportar con su motivo y su arreglo (Arte_v1-5, lámina 4)", {
+  # El job caía a mitad del mazo («`filas` debe contener al menos una fila con texto») aunque la validación diera ok.
+  vacia <- list(id = "s-ft", tipo = "p_slide_tabla_tecnica", payload = list(titulo = "FICHA TÉCNICA CUANTITATIVA", filas = "", pie = ""))
+  llena <- list(id = "s-ok", tipo = "p_slide_tabla_tecnica", payload = list(titulo = "Ficha", filas = "Universo: 115 docentes"))
+  errs <- .plan_errores_tabla_tecnica(list(llena, vacia))
+  expect_length(errs, 1L)
+  expect_match(errs, "^Lámina 2 · ")
+  expect_match(errs, "FICHA TÉCNICA CUANTITATIVA")
+  expect_match(errs, "no tiene filas", fixed = TRUE)
+  expect_false(grepl("`filas`|character", errs))
+  expect_length(.plan_errores_tabla_tecnica(list(llena)), 0L)
+
+  v <- .validar_plan_json(list(slides = list(vacia)))
+  expect_false(v$ok)
+  expect_true(any(grepl("no tiene filas", v$errors, fixed = TRUE)))
+})

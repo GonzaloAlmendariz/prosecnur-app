@@ -47,6 +47,29 @@
   errs
 }
 
+#' Errores que impiden exportar por una ficha técnica sin filas
+#'
+#' Las filas de la tabla técnica las escribe el analista (el motor sólo suma «Ponderación», lamina_ficha_ponderacion.R).
+#' Una lámina creada y no llenada hacía caer el job a mitad del mazo con «`filas` debe contener al menos una fila con
+#' texto» aunque la validación diera ok (Arte_v1-5, lámina 4). Se usa el mismo lector que el render.
+#' @param slides Láminas del plan JSON.
+#' @return `character()` de errores.
+#' @keywords internal
+.plan_errores_tabla_tecnica <- function(slides) {
+  errs <- character(0)
+  for (i in seq_along(slides)) {
+    s <- as.list(slides[[i]])
+    if (!identical(as.character(s$tipo %||% ""), "p_slide_tabla_tecnica")) next
+    filas <- (.as_json_list(s$payload) %||% list())$filas
+    vacia <- is.null(filas) || inherits(tryCatch(.ppt_parse_technical_table_rows(filas), error = function(e) e), "error")
+    if (vacia) {
+      errs <- c(errs, sprintf("%s: la tabla técnica no tiene filas. Escribe sus filas (criterio y detalle) o quita la lámina",
+                              .aviso_lamina(i, .aviso_titulo_payload(s))))
+    }
+  }
+  errs
+}
+
 # ---- Multiapiladas con escalas distintas ------------------------------------------------------------------------------
 #
 # Gonzalo (2026-10-14): «normalmente si es la misma pregunta, a pesar de ser diferente actor, van en la misma escala»;
