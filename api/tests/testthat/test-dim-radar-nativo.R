@@ -22,6 +22,8 @@ test_that("con tres ejes el radar por dimensiones sale nativo, como declara el r
 })
 
 test_that("con dos ejes sale como barras por la ruta anterior, que es su condición declarada", {
-  expect_identical(.dim_radar_estado(.dim_radar_fixture(2L)), "ruta_anterior")
+  # Con la plantilla estándar la ruta anterior lleva el marco del recetario (7e10765b8, lamina_marco_respaldo.R): el dibujo
+  # de barras va dentro del título, pie y folio del motor, que `.pptx_lamina_estado` llama «marco» (como en 00cf512ac).
+  expect_identical(.dim_radar_estado(.dim_radar_fixture(2L)), "marco")
   expect_match(.GRAFICADORES_META$p_dim_radar$salida_condicion, "menos de tres ejes", fixed = TRUE)
 })

@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + nueve de correo)", {
+test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + nueve de correo + cuatro de secciones)", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -71,7 +71,12 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-contacts",
     "/api/recopiladores/mail-contacts/perfil",
     "/api/recopiladores/mail-contacts/control",
-    "/api/recopiladores/mail-contacts/enlace"
+    "/api/recopiladores/mail-contacts/enlace",
+    # «Mis secciones» del correo viven en el estudio y se importan de otro .pulso (ADR 0113).
+    "/api/recopiladores/mail-sections",
+    "/api/recopiladores/mail-sections/delete",
+    "/api/recopiladores/mail-sections/import/peek",
+    "/api/recopiladores/mail-sections/import"
   ))
   expect_false(grepl("httr|curl|POST.*https|PATCH.*https|DELETE.*https", text, ignore.case = TRUE))
   expect_match(text, 'pr_get\\("/api/recopiladores/material-template"')

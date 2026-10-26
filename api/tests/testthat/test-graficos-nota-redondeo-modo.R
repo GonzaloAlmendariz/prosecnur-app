@@ -231,7 +231,8 @@ test_that("si_no_cierra en el mazo: nota en la lámina 33/33/33, no en la 50/50,
   expect_match(textos[[2]], "Base: 6", fixed = TRUE)
   # La torta 50/50 cierra: sin nota y con su Base intacta.
   expect_false(grepl("NOTA PROPIA", textos[[3]], fixed = TRUE))
-  expect_match(textos[[3]], "Base: 6 respuestas", fixed = TRUE)
+  # Una sola forma del pie en todas las rutas (CCSS-15, 67822ba19): «Base: N» sin sufijo si el preset no lo declara.
+  expect_match(textos[[3]], "Base: 6", fixed = TRUE)
 })
 
 test_that("la metadata del preset base declara modo y texto", {
