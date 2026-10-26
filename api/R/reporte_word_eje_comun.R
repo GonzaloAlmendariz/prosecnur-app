@@ -3,8 +3,9 @@
 # Gonzalo (2026-10-26): las figuras con el mismo tipo de rótulo de fila —los públicos de un perfil, «Docentes · Estudiantes
 # · Administrativos»— deben arrancar las barras en el mismo punto de la página. Cada escala medía su propia columna de
 # rótulos (`.word_xmin()`), así que la de un solo público, sin rótulo, arrancaba en el borde izquierdo y la de tres públicos
-# más a la derecha. El documento mide una vez la columna de sus figuras de barras y las de rótulo corto (o sin rótulo)
-# toman la más ancha de ellas; las de rótulo largo (las premisas) conservan la suya, porque igualarlas comería la barra.
+# más a la derecha. El documento mide una vez la columna de sus figuras de barras y las de rótulo corto toman la más ancha
+# de ellas; las de rótulo largo (las premisas) conservan la suya, porque igualarlas comería la barra. Una figura SIN rótulo
+# de fila no reserva columna y va a todo el ancho (Gonzalo: «si no tiene etiqueta, no tiene por qué reservar espacio»).
 # Las agrupadas y el Sí/No de una fila entran igual («también lo deberían estar», Gonzalo, 2026-10-26). La columna es por
 # capítulo: las categorías del perfil no empujan a los públicos de los resultados, ni al revés.
 
@@ -51,7 +52,9 @@
   if (!is.list(espec)) return(NA_real_)
   tipo <- as.character(espec$tipo %||% "")[1]
   tryCatch({
-    if (identical(tipo, "escala") && NROW(espec$filas) > 0L) .word_escala_rotulo_in(espec)
+    if (identical(tipo, "escala") && NROW(espec$filas) > 0L) {
+      if (!.word_tiene_rotulos(.word_escala_rotulos_fila(espec))) NA_real_ else .word_escala_rotulo_in(espec)
+    }
     else if (identical(tipo, "categorica") && !isTRUE(.lam_es_dicotomia(espec)) &&
              !(identical(espec[["graficador"]], "lollipop") && identical(espec[["forma"]], "lollipop"))) {
       .word_rotulo_in(.word_barras_rotulos(espec), .word_barras_pt())
@@ -80,9 +83,15 @@
   unname(comunes[as.character(cap)])
 }
 
-#' La columna con que dibuja una escala: la común del documento si la suya es corta, o la suya
+#' ¿La figura tiene algún rótulo de fila? Sin ninguno no reserva columna ni define la común
 #' @keywords internal
-.word_escala_columna <- function(propia, comun = getOption("prosecnur.word_rotulo_comun")) {
+.word_tiene_rotulos <- function(rotulos) any(nzchar(trimws(gsub("\n", " ", as.character(rotulos)))), na.rm = TRUE)
+
+#' La columna con que dibuja una figura de barras: la común del capítulo si la suya es corta y tiene rótulo, o la suya
+#' @param rotulos Rótulos de fila de la figura: sin ninguno, la figura no reserva columna (`NULL`: la suya, mínima).
+#' @keywords internal
+.word_escala_columna <- function(propia, rotulos = "x", comun = getOption("prosecnur.word_rotulo_comun")) {
+  if (!.word_tiene_rotulos(rotulos)) return(propia)
   comun <- suppressWarnings(as.numeric(comun %||% NA_real_)[1])
   if (is.finite(comun) && propia <= .WORD_ROTULO_CORTO_IN) max(propia, comun) else propia
 }

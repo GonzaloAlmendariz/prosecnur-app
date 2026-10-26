@@ -1,9 +1,8 @@
 source("setup-load-all.R")
 
 # Gonzalo (2026-10-26): en el Word las apiladas y multiapiladas con el mismo tipo de rótulo (los públicos de un perfil)
-# deben arrancar las barras en el mismo punto. La figura de un solo público, sin rótulo de fila, arrancaba en el borde
-# izquierdo y la de «Docentes · Estudiantes · Administrativos» más a la derecha: la página se veía desordenada. Las de
-# rótulo largo (las premisas) conservan su columna.
+# deben arrancar las barras en el mismo punto; las de rótulo largo (las premisas) conservan su columna. Una figura sin
+# rótulo de fila no reserva columna y va a todo el ancho («si no tiene etiqueta, no tiene por qué reservar espacio»).
 
 .wec_espec <- function(actores, N = rep(100, length(actores))) {
   rot <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF")
@@ -17,17 +16,20 @@ source("setup-load-all.R")
   (0 - lim[1]) / (lim[2] - lim[1]) * (.std_word("pagina", "ancho_util") - 0.3)
 }
 
-test_that("con el ancho común del documento, la figura de un público sin rótulo arranca donde la de tres públicos", {
+test_that("con la columna común, las figuras con rótulo corto arrancan juntas; la sin rótulo va a todo el ancho", {
   tres <- .wec_espec(c("Docentes", "Estudiantes", "Administrativos"))
+  dos <- .wec_espec(c("Docentes", "Estudiantes"))
   uno <- .wec_espec("")
   largo <- .wec_espec(c("Los propósitos de la Unidad están definidos con claridad y se difunden entre todos sus miembros", "Otra premisa"))
-  comun <- .word_rotulo_comun(list(tres, uno, largo))
+  comun <- .word_rotulo_comun(list(tres, dos, uno, largo))
   expect_equal(comun, .word_rotulo_in(.word_escala_rotulos_envueltos(c("Docentes", "Estudiantes", "Administrativos"), .WORD_ESCALA_ENVOLTURA),
                                       .WORD_ESCALA_PT$rotulo_fila + .word_desplazo("rotulo")))
+  expect_true(is.na(.word_columna_de(uno)))                              # sin rótulo no define la columna común
   withr::local_options(prosecnur.word_rotulo_comun = comun)
-  a_tres <- .wec_arranque(.word_g_escala(tres)); a_uno <- .wec_arranque(.word_g_escala(uno)); a_largo <- .wec_arranque(.word_g_escala(largo))
-  expect_equal(a_uno, a_tres, tolerance = 0.02)
-  expect_gt(a_largo, a_tres + 0.3)                     # la premisa larga conserva su columna, más ancha
+  a_tres <- .wec_arranque(.word_g_escala(tres)); a_dos <- .wec_arranque(.word_g_escala(dos)); a_largo <- .wec_arranque(.word_g_escala(largo))
+  expect_equal(a_dos, a_tres, tolerance = 0.02)
+  expect_lt(.wec_arranque(.word_g_escala(uno)), 0.5)                   # sin rótulo: todo el ancho, aun con columna común
+  expect_gt(a_largo, a_tres + 0.3)                                      # la premisa larga conserva su columna, más ancha
 })
 
 test_that("sin ancho común, la escala se dibuja como siempre", {
@@ -37,7 +39,7 @@ test_that("sin ancho común, la escala se dibuja como siempre", {
 })
 
 # Gonzalo (2026-10-26): «¿por qué las de barras agrupadas no están alineadas? también lo deberían estar». Las categóricas
-# del perfil y el Sí/No de una sola fila (sin rótulo, a todo el ancho) entran a la misma columna común, por capítulo.
+# del perfil entran a la misma columna común, por capítulo; el Sí/No de una fila no tiene rótulo y sigue a todo el ancho.
 .wec_barras <- function(rotulos) {
   p <- graficar_barras_categoricas(data.frame(cat = rotulos, n = seq_along(rotulos) * 10, pct = seq_along(rotulos) / sum(seq_along(rotulos))),
                                    "cat", var_valor = "pct", var_n = "n", var_pct = "pct", modo_valor = "valor", formato_valor = "porcentaje")
@@ -57,20 +59,18 @@ test_that("las barras categóricas de rótulo corto arrancan en la columna comú
   expect_gt(.wec_arranque_x0(.word_categorica(larga)), .wec_arranque_x0(.word_categorica(otras)) + 0.3)
 })
 
-test_that("el Sí/No de una fila, sin rótulo, deja de ir a todo el ancho y arranca en la columna común", {
+test_that("el Sí/No de una fila, sin rótulo, sigue a todo el ancho aunque el capítulo tenga columna común", {
   sino <- .wec_barras(c("Sí", "No"))
   expect_true(isTRUE(.lam_es_dicotomia(sino)))
-  withr::local_options(prosecnur.word_rotulo_comun = NULL)
-  expect_lt(.wec_arranque_x0(.word_categorica(sino)), 0.05)                    # sin columna común: como siempre
   withr::local_options(prosecnur.word_rotulo_comun = 1.09)
-  expect_gt(.wec_arranque_x0(.word_categorica(sino)), 1.0)
+  expect_lt(.wec_arranque_x0(.word_categorica(sino)), 0.05)
 })
 
 test_that("la columna común se calcula por capítulo", {
   sec <- function(t) list(kind = "section", title = t, meta = list(word_heading_level = 1L))
   fig <- function(es) list(kind = "chart", plot_word = structure(list(), pulso_espec = es))
   rm <- list(sec("Perfil"), fig(.wec_barras(c("Departamento Académico", "Facultad"))), sec("Resultados"),
-             fig(.wec_espec(c("Docentes", "Estudiantes"))), fig(.wec_espec("")))
+             fig(.wec_espec(c("Docentes", "Estudiantes"))), fig(.wec_espec(c("Docentes", "Administrativos"))))
   cc <- .word_rotulo_comun_por_capitulo(rm)
   expect_length(cc, length(rm))
   expect_gt(cc[[2]], cc[[4]])                                                    # el perfil tiene su propia columna
