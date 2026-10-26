@@ -1,6 +1,6 @@
 {
   "name": "prosecnur-desktop",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "private": true,
   "description": "Desktop shell for Prosecnur",
   "main": "main.cjs",
@@ -18,7 +18,7 @@
     "overrides": {
       "form-data": "^4.0.6",
       "tmp": "^0.2.6",
-      "undici": "^6.28.1",
+      "undici": "^6.29.1",
       "tar": "^7.5.21",
       "js-yaml@4": "^4.3.2",
       "brace-expansion@1": "^1.1.21",
@@ -39,7 +39,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^41.10.7",
+    "electron": "^42.11.18",
     "electron-builder": "^26.15.7"
   },
   "dependencies": {
