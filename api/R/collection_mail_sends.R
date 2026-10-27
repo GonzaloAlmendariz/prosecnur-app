@@ -315,3 +315,21 @@
     sprintf("El asunto es el mismo que en %s: Gmail los agrupa en un hilo y esconde lo repetido.",
             paste(nombres, collapse = ", ")))
 }
+
+# ---- nombre del envío en los archivos (L23) ------------------------------------
+
+#' Cómo se llama el envío en el nombre de un archivo exportado: `invitacion`,
+#' `recordatorio-N` por su ORDEN entre los recordatorios y `ultimo-recordatorio`
+#' para el último. El `send_id` no sirve: no se renumera al quitar un envío, y el
+#' último de Acreditación 2026 salía `recordatorio-6` siendo el quinto.
+#' @keywords internal
+.cmail_send_tag <- function(campaign, send) {
+  id <- .cmail_one(send$send_id) %||% ""
+  if (identical(.cmail_one(send$kind) %||% "invitacion", "invitacion")) return(.CMAIL_SEND_INVITATION)
+  recs <- Filter(function(s) identical(.cmail_one(s$kind), "recordatorio"), .cmail_sends_of(campaign %||% list()))
+  ids <- vapply(recs, function(s) .cmail_one(s$send_id) %||% "", "")
+  pos <- match(id, ids)
+  if (is.na(pos)) return(if (nzchar(id)) id else "recordatorio")
+  if (length(recs) > 1L && pos == length(recs)) return("ultimo-recordatorio")
+  sprintf("recordatorio-%d", pos)
+}

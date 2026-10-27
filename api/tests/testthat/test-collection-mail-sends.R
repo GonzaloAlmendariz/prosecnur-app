@@ -257,3 +257,19 @@ test_that("asunto repetido (L7): aviso si dos envíos dicen lo mismo; con asunto
   solo <- campaign; solo$sends <- solo$sends[1]
   expect_null(.cmail_subject_repeat_check(solo, inv, t))
 })
+
+test_that("el archivo nombra el envío por su orden y el último como «ultimo-recordatorio», no por su id (L23)", {
+  camp <- list(sends = list(
+    list(send_id = "invitacion", kind = "invitacion"),
+    list(send_id = "recordatorio-2", kind = "recordatorio"),
+    list(send_id = "recordatorio-4", kind = "recordatorio"),
+    list(send_id = "recordatorio-6", kind = "recordatorio")))
+  tag <- function(i) .cmail_send_tag(camp, camp$sends[[i]])
+  expect_identical(vapply(1:4, tag, ""), c("invitacion", "recordatorio-1", "recordatorio-2", "ultimo-recordatorio"))
+  # Con un solo recordatorio, es «recordatorio-1»; uno que no está guardado conserva su id.
+  uno <- list(sends = camp$sends[1:2])
+  expect_identical(.cmail_send_tag(uno, uno$sends[[2]]), "recordatorio-1")
+  expect_identical(.cmail_send_tag(camp, list(send_id = "recordatorio-9", kind = "recordatorio")), "recordatorio-9")
+  expect_identical(.cmail_export_name("egresados", .cmail_send_tag(camp, camp$sends[[4]]), "plantilla-mailchimp", stamp = "20261027-163743"),
+                   "egresados_ultimo-recordatorio_plantilla-mailchimp_20261027-163743.zip")
+})

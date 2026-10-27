@@ -691,12 +691,12 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
 
   stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
   if (completo) {
-    zip_name <- .cmail_export_name(slug, send$send_id, "mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
   } else {
     # Solo la plantilla: el entregable ES el ZIP importable, tal cual se verificó.
-    zip_name <- .cmail_export_name(slug, send$send_id, "plantilla-mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "plantilla-mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     file.copy(importable$path, zip_path, overwrite = TRUE)
   }
@@ -706,7 +706,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     stop_api(413, "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",
              "El paquete supera 5 MB (revisa el peso de las imágenes).", details = list(size_bytes = as.integer(size)))
   }
-  manifest_name <- .cmail_export_name(slug, send$send_id, "mailchimp_manifest", ext = "json")
+  manifest_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp_manifest", ext = "json")
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
 
