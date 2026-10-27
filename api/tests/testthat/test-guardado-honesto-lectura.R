@@ -78,3 +78,31 @@ test_that("sembrar la sugerencia de familias al leer no ensucia; editarla sí", 
   codif_set(sid, "familias_draft", list(rows = list(), source = "draft"))
   expect_true(isTRUE(session_get(sid)$project_dirty))
 })
+
+test_that("la preparación automática al montar Analítica no ensucia (POST preparar)", {
+  sid <- .l22_sesion_limpia()
+  on.exit(session_delete(sid), add = TRUE)
+
+  local_mocked_bindings(
+    .analitica_prepare_and_cache = function(sid) {
+      session_set_cache(sid, "analitica_prep_ok", TRUE)
+      list(rp_inst = list(), rp_data = data.frame(), data_sources = list(), inst_sources = list())
+    },
+    .analitica_multibase_available = function(sid) FALSE,
+    .package = "prosecnurapp"
+  )
+  pr <- mount_analitica(plumber::pr())
+  rutas <- pr$routes$api$analitica$preparar
+  rutas <- if (is.list(rutas) && !is.function(rutas$getFunc)) rutas else list(rutas)
+  preparar <- Filter(function(e) "POST" %in% e$verbs, rutas)[[1]]$getFunc()
+  req <- new.env(parent = emptyenv())
+  req$HTTP_X_PULSO_SESSION <- sid
+  res <- new.env(parent = emptyenv())
+  res$status <- 200L
+  res$setHeader <- function(...) invisible(NULL)
+
+  try(preparar(req, res), silent = TRUE)
+
+  expect_false(isTRUE(session_get(sid)$analitica_multibase_available))
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+})
