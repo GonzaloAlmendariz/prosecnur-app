@@ -9,7 +9,7 @@
 #' Claves de `meta` que el motor lee hoy (documentación del contrato; una clave desconocida se conserva igual)
 #' @keywords internal
 .SLIDE_META_CLAVES <- c("variante", "composicion", "iconos", "actores", "actores_iconos", "antetitulo", "nivel", "numero", "rotulo",
-                        "metodo", "motor_nativo", "word_heading_level", "dependencia")   # dependencia: graficos_dependencia.R
+                        "metodo", "motor_nativo", "word_heading_level", "dependencia", "notas")   # dependencia: graficos_dependencia.R; notas: lamina_notas_orador.R
 
 #' `meta` lista para el motor: las listas de escalares pasan a vectores y lo vacío se descarta
 #' @keywords internal
