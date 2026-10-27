@@ -40,6 +40,7 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
   { name: "p_slide_5_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_5_graficos_poblacion", en_selector: true },
   { name: "p_slide_6_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true },
   { name: "p_slide_cierre", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_estandar", categoria: "estructural", estandar: null, en_selector: false },
 ];
 
 export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [

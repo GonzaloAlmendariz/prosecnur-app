@@ -110,8 +110,23 @@
     lam("p_slide_redondeo", titulo = "Cómo se redondean las cifras", estilo = "Cómo leer: redondeo",
         uso = "hay cifras que no suman 100 % por el redondeo y conviene explicarlo una vez"),
 
-    # ---- 1. Perfil del encuestado ------------------------------------------------------------------------------------
-    cap("Perfil del encuestado", "numero", 1, "Quiénes respondieron la encuesta", "Capítulo con número grande", "abres un capítulo del informe"),
+    # ---- 1. Reglas de la identidad (P5) ------------------------------------------------------------------------------
+    # La constitución del motor: las láminas leen estandar_pulso.json (lamina_estandar.R), así que lo que muestran es lo
+    # que el motor pinta. Gonzalo, 2026-10-27: «el recetario es la fuente de verdad y la constitución».
+    cap("Reglas de la identidad", "numero", 1, "Los colores, su significado y la escala tipográfica del motor", "Capítulo con número grande",
+        "abres un capítulo del informe"),
+    lam("p_slide_estandar", parte = "respuestas", estilo = "Reglas: colores de las respuestas",
+        uso = "necesitas saber qué color lleva cada respuesta y por qué; es la paleta que el motor pone a una lista sin colores",
+        opciones = "parte = \"respuestas\""),
+    lam("p_slide_estandar", parte = "apoyo", estilo = "Reglas: colores de apoyo",
+        uso = "pintas públicos, barras de una serie, tablas de calor o mapas", opciones = "parte = \"apoyo\""),
+    lam("p_slide_estandar", parte = "colores", estilo = "Reglas: colores con nombre de la lámina",
+        uso = "diseñas una pieza nueva y necesitas el código exacto de un color del motor", opciones = "parte = \"colores\""),
+    lam("p_slide_estandar", parte = "tipografia", estilo = "Reglas: escala tipográfica",
+        uso = "necesitas el tamaño de cada texto de la lámina", opciones = "parte = \"tipografia\""),
+
+    # ---- 2. Perfil del encuestado ------------------------------------------------------------------------------------
+    cap("Perfil del encuestado", "numero", 2, "Quiénes respondieron la encuesta", "Capítulo con número grande", "abres un capítulo del informe"),
     subcap("Estudiantes", "barra", "Subcapítulo con barra", "el subcapítulo merece su propia lámina y una marca visible"),
     uno("Octavo y noveno ciclo concentran cada uno el 20 % de los estudiantes encuestados", "Nivel curricular del estudiante",
         .cr_g("p_barras_categoricas", var = "estudiantes$ciclo", formato_valor = "porcentaje_n"),
@@ -214,8 +229,8 @@
         estilo = "Base chica en cuatro paneles", uso = "los paneles tienen bases distintas y chicas: cada uno nombra la suya",
         pagina = "196–p197", opciones = "filtros por panel"),
 
-    # ---- 2. Experiencia universitaria --------------------------------------------------------------------------------
-    cap("Experiencia universitaria", "fondo", 2, "Misión, gestión de la Unidad y tutoría", "Capítulo con número de fondo", "abres un capítulo del informe"),
+    # ---- 3. Experiencia universitaria --------------------------------------------------------------------------------
+    cap("Experiencia universitaria", "fondo", 3, "Misión, gestión de la Unidad y tutoría", "Capítulo con número de fondo", "abres un capítulo del informe"),
     subcap("Misión y propósitos"),
     uno("Seis de cada diez estudiantes conocen la misión y los propósitos de la Facultad", "¿Conoce la misión y los propósitos de la Facultad?",
         .cr_g("p_donut", var = "estudiantes$conoce_mision"), "Dona", "una pregunta Sí/No que conviene leer como parte de un todo", 70),
@@ -262,8 +277,8 @@
         superior = g_ciclo, inferior = g_situacion,
         estilo = "Dos gráficos en vertical", uso = "dos gráficos anchos se leen uno debajo del otro"),
 
-    # ---- 3. Satisfacción con los servicios ---------------------------------------------------------------------------
-    cap("Satisfacción con los servicios", NULL, 3, "Atención, biblioteca, bienestar y salud", "Capítulo con rótulo", "abres un capítulo del informe"),
+    # ---- 4. Satisfacción con los servicios ---------------------------------------------------------------------------
+    cap("Satisfacción con los servicios", NULL, 4, "Atención, biblioteca, bienestar y salud", "Capítulo con rótulo", "abres un capítulo del informe"),
     uno("El 72 % de los estudiantes está satisfecho o muy satisfecho con la atención", NULL,
         .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general", overrides = list(top2box_labels = sat)),
         "Barra apilada de una pregunta", "una sola escala de un público; la pregunta encabeza la barra", 77),
@@ -284,8 +299,8 @@
               barra_extra = list("top2box"), top2box_labels = ttb),
         "Multiapiladas: públicos por tema con escala equivalente", "los públicos usan la misma escala con otra caja en las etiquetas y otros nombres de variable", 79),
 
-    # ---- 4. Comparación entre públicos -------------------------------------------------------------------------------
-    cap("Comparación entre públicos", "numero", 4, "Docentes, estudiantes y egresados frente a los mismos temas", "Capítulo con número grande", "abres un capítulo del informe"),
+    # ---- 5. Comparación entre públicos -------------------------------------------------------------------------------
+    cap("Comparación entre públicos", "numero", 5, "Docentes, estudiantes y egresados frente a los mismos temas", "Capítulo con número grande", "abres un capítulo del informe"),
     uno("Los egresados son los que menos desacuerdo expresan con la tutoría: 17 % frente a 25 % y 26 %", "La Unidad cuenta con servicios de tutoría académica.",
         .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = list(`Servicios de tutoría` = pub("tutoria")),
               barra_extra = list("top2box", "bottom2box"), top2box_labels = ttb, overrides = list(bottom2box_labels = btb)),
@@ -320,8 +335,8 @@
         .cr_g("p_radar", modo = "publicos", vars = comp_pub[1:3], corte = "3,4"),
         "Comparativo por criterio (radar con menos de cinco criterios)", "comparas públicos en menos de cinco criterios: el motor cambia el radar por un comparativo y avisa", 94),
 
-    # ---- 5. Competencias del perfil de egreso ------------------------------------------------------------------------
-    cap("Competencias del perfil de egreso", "fondo", 5, "Objetivos educacionales, competencias e índices", "Capítulo con número de fondo", "abres un capítulo del informe"),
+    # ---- 6. Competencias del perfil de egreso ------------------------------------------------------------------------
+    cap("Competencias del perfil de egreso", "fondo", 6, "Objetivos educacionales, competencias e índices", "Capítulo con número de fondo", "abres un capítulo del informe"),
     uno("El 83 % de los egresados considera útil el primer objetivo educacional", "¿Qué tan útil le resultó cada objetivo educacional en su trabajo?",
         .cr_g("p_barras_multiapiladas", modo = "var", vars = as.list(paste0("egresados$oe_", seq_along(.CR_OE))),
               barra_extra = list("top2box"), top2box_labels = c("Útil", "Totalmente útil")),
@@ -350,8 +365,8 @@
                                                          .CR_COMPETENCIAS[1:3]), corte = "3,4"),
         "Serie temporal con varias mediciones", "sigues varios temas a lo largo de tres o más mediciones", 90),
 
-    # ---- 6. Inserción laboral ----------------------------------------------------------------------------------------
-    cap("Inserción laboral", NULL, 6, "Situación laboral de los egresados", "Capítulo con rótulo", "abres un capítulo del informe"),
+    # ---- 7. Inserción laboral ----------------------------------------------------------------------------------------
+    cap("Inserción laboral", NULL, 7, "Situación laboral de los egresados", "Capítulo con rótulo", "abres un capítulo del informe"),
     uno("Tres de cada cuatro egresados están trabajando actualmente", NULL,
         .cr_g("p_dicotomica", var = "egresados$trabaja"), "Dicotómica", "una pregunta Sí/No de un público; la pregunta encabeza la barra", 76),
     uno("El 76 % de los egresados trabaja; el 24 % no", NULL,
@@ -387,8 +402,8 @@
         estilo = "Filtro al costado", uso = "el filtro Sí/No se lee al lado de su subpregunta", pagina = 193,
         opciones = "meta$dependencia (de, habilita)"),
 
-    # ---- 7. Propuestas de mejora -------------------------------------------------------------------------------------
-    cap("Propuestas de mejora", "numero", 7, "Lo que los egresados cambiarían de la carrera", "Capítulo con número grande", "abres un capítulo del informe"),
+    # ---- 8. Propuestas de mejora -------------------------------------------------------------------------------------
+    cap("Propuestas de mejora", "numero", 8, "Lo que los egresados cambiarían de la carrera", "Capítulo con número grande", "abres un capítulo del informe"),
     uno("Cuatro de cada diez egresados piden más herramientas digitales e inteligencia artificial", Q_MEJORAS,
         .cr_g("p_lollipop", var = "egresados$mejoras"), "Ranking con puntos de opción múltiple", "una pregunta de varias respuestas se ordena de mayor a menor", 72),
     uno("La actualización del plan de estudios es la segunda mejora más pedida, con 28 %", Q_MEJORAS,
@@ -404,8 +419,8 @@
         .cr_g("p_radar", modo = "sm", var = "egresados$mejoras"),
         "Radar de opción múltiple", "importa la forma del perfil de respuestas más que cada cifra", 93),
 
-    # ---- 8. Comentarios abiertos -------------------------------------------------------------------------------------
-    cap("Comentarios abiertos", "fondo", 8, "Lo que los egresados escribieron con sus palabras", "Capítulo con número de fondo", "abres un capítulo del informe"),
+    # ---- 9. Comentarios abiertos -------------------------------------------------------------------------------------
+    cap("Comentarios abiertos", "fondo", 9, "Lo que los egresados escribieron con sus palabras", "Capítulo con número de fondo", "abres un capítulo del informe"),
     uno("«Laboral» es la palabra más repetida en los comentarios, con 48 menciones", "¿Qué cambiaría de la carrera?",
         .cr_g("p_nube_palabras", var = "egresados$comentario"),
         "Nube de palabras y frases", "resumes una pregunta abierta sin codificar; cuenta palabras y frases de dos o tres palabras dichas por tres o más personas",
@@ -421,16 +436,16 @@
         .cr_g("p_citas", var = "egresados$comentario"),
         "Citas representativas", "ilustras un tema con frases textuales; sin citas aprobadas sale como borrador"),
 
-    # ---- 9. Territorio -----------------------------------------------------------------------------------------------
-    cap("Territorio", "numero", 9, "Resultados por distrito de residencia", "Capítulo con rótulo", "abres un capítulo del informe"),
+    # ---- 10. Territorio -----------------------------------------------------------------------------------------------
+    cap("Territorio", NULL, 10, "Resultados por distrito de residencia", "Capítulo con rótulo", "abres un capítulo del informe"),
     uno("San Isidro concentra la mayor satisfacción de los egresados (88 %) y el distrito de Lima, la menor (48 %)",
         "En general, ¿qué tan satisfecho está con la atención en la Unidad?",
         .cr_g("p_mapa_resultado_distrital", var = "egresados$satisf_general", cruces = "egresados$distrito",
               corte = "3,4", rotulo = "Satisfechos o muy satisfechos"),
         "Mapa de Lima por distrito", "un resultado se compara entre distritos de Lima", 107),
 
-    # ---- 10. Diferencias significativas ------------------------------------------------------------------------------
-    cap("Diferencias significativas", NULL, 10, "Qué diferencias entre grupos no son azar", "Capítulo con número grande", "abres un capítulo del informe"),
+    # ---- 11. Diferencias significativas ------------------------------------------------------------------------------
+    cap("Diferencias significativas", NULL, 11, "Qué diferencias entre grupos no son azar", "Capítulo con rótulo", "abres un capítulo del informe"),
     uno("Conocer la misión no difiere de forma significativa entre mujeres (61 %) y hombres (57 %)", "¿Conoce la misión y los propósitos de la Facultad?",
         .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision", cruces = "estudiantes$sexo", mostrar_significancia = TRUE),
         "Barras agrupadas con diferencias significativas", "comparas grupos y quieres decir qué diferencia es real", 111),
@@ -451,7 +466,7 @@
         estilo = "Texto corrido", uso = "el contenido es prosa o viñetas: conclusiones, recomendaciones"),
 
     # ---- Anexo: otras formas de las láminas de estructura -----------------------------------------------------------
-    cap("Anexo", NULL, 11, "Otras formas de portada, índice, objetivo y cierre", "Capítulo con rótulo", "abres los anexos del informe"),
+    cap("Anexo", NULL, 12, "Otras formas de portada, índice, objetivo y cierre", "Capítulo con rótulo", "abres los anexos del informe"),
     subcap("Portadas"),
     lam("p_slide_portada", titulo = "Estudio de percepción del servicio educativo", subtitulo = "Informe de resultados", fecha = "Octubre 2026",
         meta = list(variante = "izquierda"), estilo = "Portada alineada a la izquierda", uso = "el título es largo o la marca va a la izquierda",

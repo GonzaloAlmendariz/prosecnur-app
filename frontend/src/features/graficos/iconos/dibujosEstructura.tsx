@@ -479,6 +479,28 @@ function Redondeo({ d }: { d: D }) {
   );
 }
 
+/** Reglas de la identidad (lamina_estandar.R): filas de muestras de color con su regla a la derecha. */
+function Estandar({ d }: { d: D }) {
+  const fila = (y: number) => (
+    <>
+      <Renglon x={1.2} y={y} w={2.4} h={0.18} c="tinta" />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Caja key={i} x={1.2 + i * 1.45} y={y + 0.3} w={1.3} h={0.42} c={i === 0 ? "tinta" : i === 1 ? "acento" : "ilustracion"} rx={0.02} />
+      ))}
+      <Renglon x={8.9} y={y + 0.32} w={3.4} />
+      <Renglon x={8.9} y={y + 0.56} w={2.6} />
+    </>
+  );
+  return (
+    <>
+      <Cabecera titulo={d?.titulo} />
+      {fila(1.75)}
+      {fila(3.0)}
+      {fila(4.25)}
+    </>
+  );
+}
+
 /** ¿Hay dibujo de estructura para este tipo? */
 export function tieneDibujoEstructura(tipo: string): boolean {
   return tipo in DIBUJOS;
@@ -493,6 +515,7 @@ const DIBUJOS: Readonly<Record<string, (variante: string | null, d: D) => JSX.El
   p_slide_tabla_tecnica: (_v, d) => <FichaTecnica d={d} />,
   p_slide_top_two_box: (_v, d) => <TopTwoBox d={d} />,
   p_slide_redondeo: (_v, d) => <Redondeo d={d} />,
+  p_slide_estandar: (_v, d) => <Estandar d={d} />,
 };
 
 export function DibujoEstructura({ tipo, variante, datos }: { tipo: string; variante: string | null; datos?: D }): JSX.Element | null {

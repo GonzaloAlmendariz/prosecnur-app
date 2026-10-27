@@ -1028,6 +1028,35 @@
       list(name = "web",       label = "Web",       tipo_input = "string", grupo = "textos",
            descripcion = "Vacía para omitirla. Sin tocar, la de PULSO PUCP.")
     )
+  ),
+
+  # Reglas de la identidad (checklist-recetario-desfase-2026-10-26.md, P5): la constitución del motor dibujada desde
+  # estandar_pulso.json (lamina_estandar.R). Es del catálogo del recetario; no se ofrece en el selector.
+  p_slide_estandar = list(
+    titulo_humano = "Reglas de la identidad",
+    descripcion   = "Dibuja el estándar visual del motor tal como está declarado: paletas con su regla de uso, colores con nombre o la escala tipográfica.",
+    icono_ui      = "Palette",
+    categoria     = "estructural",
+    render_key    = "estandar",
+    en_selector   = FALSE,
+    blueprint     = list(
+      kind = "topTwo",
+      ppt_layout = "Title and Content",
+      structure_label = "Reglas de la identidad"
+    ),
+    slot_specs    = list(),
+    args = list(
+      list(name = "titulo", label = "Título", tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío para el de la parte."),
+      list(name = "parte", label = "Parte del estándar", tipo_input = "choice", grupo = "textos", default = "respuestas",
+           choices = list(
+             list(value = "respuestas", label = "Colores de las respuestas"),
+             list(value = "apoyo", label = "Colores de apoyo"),
+             list(value = "colores", label = "Colores de la lámina"),
+             list(value = "tipografia", label = "Escala tipográfica")
+           ),
+           descripcion = "Qué parte de estandar_pulso.json dibuja la lámina.")
+    )
   )
 )
 

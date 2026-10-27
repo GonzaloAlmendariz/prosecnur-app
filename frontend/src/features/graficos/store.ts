@@ -301,6 +301,7 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   // Sin título: el constructor trae el de la casa («CÓMO SE REDONDEAN LAS CIFRAS»).
   p_slide_redondeo:       {},
   p_slide_cierre:         { variante: "contraportada" },
+  p_slide_estandar:       { parte: "respuestas" },
 
   // ---- 1 gráfico ------------------------------------------------------
   p_slide_1_grafico:           { titulo: "", grafico: null, base: "", pie: "", etiqueta: "" },
@@ -935,6 +936,7 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_top_two_box:                  "Explicación Top Two Box",
   p_slide_redondeo:                     "Explicación del redondeo",
   p_slide_cierre:                       "Cierre",
+  p_slide_estandar:                     "Reglas de la identidad",
   p_slide_1_grafico:                    "Un gráfico",
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
   p_slide_grafico_texto_derecha:        "Gráfico + texto derecha",
@@ -973,6 +975,7 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_top_two_box:                  [],
   p_slide_redondeo:                     [],
   p_slide_cierre:                       [],
+  p_slide_estandar:                     [],
   p_slide_1_grafico:                    ["grafico"],
   p_slide_1_grafico_narrativo:          ["grafico"],
   p_slide_grafico_texto_derecha:        ["grafico"],

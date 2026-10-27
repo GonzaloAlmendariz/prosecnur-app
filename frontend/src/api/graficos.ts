@@ -33,6 +33,7 @@ export type SlideType =
   | "p_slide_top_two_box"
   | "p_slide_redondeo"
   | "p_slide_cierre"
+  | "p_slide_estandar"
   // 1 gráfico
   | "p_slide_1_grafico"
   | "p_slide_1_grafico_narrativo"

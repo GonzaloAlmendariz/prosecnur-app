@@ -931,6 +931,15 @@
   ),
 
   # ------------------------------------------------------------
+  # REGLAS DE LA IDENTIDAD: sin slots; la lámina dibuja el estándar
+  # (`.lam_laminas_estandar`, lamina_estandar.R).
+  # ------------------------------------------------------------
+  estandar = list(
+    layout = "Title and Content",
+    slots  = list()
+  ),
+
+  # ------------------------------------------------------------
   # OBJETIVO CON ICONO
   # body 1 = logo superior derecho (Google Shape;66;p47) — SKIP
   # body 2 = "Marcador de texto 11" (3.9, 1.9) 8.5x2.3 — TEXT
@@ -1583,6 +1592,16 @@
           msg <- paste0("`.validate_plan()`: cierre (i=", i, ") `", k, "` debe ser character(1) o NULL.")
           if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
         }
+      }
+      next
+    }
+
+    # REGLAS DE LA IDENTIDAD: la parte, si viene, es una de las cuatro
+    if (identical(stype, "estandar")) {
+      parte <- (s$slots %||% list())$parte
+      if (!is.null(parte) && !(is.character(parte) && length(parte) == 1L && parte %in% .ESTANDAR_PARTES)) {
+        msg <- paste0("`.validate_plan()`: estandar (i=", i, ") `parte` desconocida.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
       }
       next
     }

@@ -7474,6 +7474,7 @@ reporte_ppt_plan <- function(
       next
     }
 
+    if (identical(stype, "estandar")) { if (!isTRUE(solo_lista)) doc <- .lam_laminas_estandar(doc, slide$slots %||% list(), folio = length(doc) + 1L, ante = (slide$meta %||% list())$antetitulo %||% "Reglas de la identidad", layout = PPT_CONTRACT$estandar$layout, master = master, por_lamina = .add_partner_footer_logo)$doc; log_rows[[length(log_rows) + 1]] <- tibble::tibble(slide_i = i, slide_type = "estandar", element = NA_character_, var = NA_character_); next }   # lamina_estandar.R
     # ---- TEXT_SLIDE ----------------------------------------------------------
     if (identical(stype, "text_slide")) {
 

@@ -198,6 +198,12 @@
       "categoria": "estructural",
       "estandar": null,
       "en_selector": true
+    },
+    {
+      "name": "p_slide_estandar",
+      "categoria": "estructural",
+      "estandar": null,
+      "en_selector": false
     }
   ],
   "graficadores": [
