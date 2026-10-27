@@ -3947,7 +3947,8 @@ mount_analitica <- function(pr) {
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       ctx <- .analitica_prepare_and_cache(sid)
-      session_set(sid, "analitica_multibase_available", .analitica_multibase_available(sid))
+      # Se prepara al montar la pestaña: lo que deja es derivable, no una edición (L22).
+      session_set_cache(sid, "analitica_multibase_available", .analitica_multibase_available(sid))
       list(
         ok = TRUE,
         fuente = ctx$fuente,
