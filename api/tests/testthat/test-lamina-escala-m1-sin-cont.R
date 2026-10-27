@@ -2,6 +2,8 @@
 # Con `grosor_piso_cm` (N1) se quitó la tolerancia 1,15 de la partición y bloques de 6 barras de un solo público se
 # partían en «(cont.)». Ahora, con piso, se comprime el AIRE entre premisas (gap >= 0,12 in) y no la barra: 6 barras de
 # un solo público caben en una lámina si, con el grosor del piso y ese gap mínimo, entran en la franja; si no, se parte.
+# Contexto propio: sin piso global (lo da cada espec); no depende de lo que deje otro archivo del shard.
+withr::local_options(list(prosecnur.grosor_piso_cm = NULL))
 .m1_niv <- c(t1 = "Totalmente en desacuerdo", t2 = "En desacuerdo", t3 = "De acuerdo", t4 = "Totalmente de acuerdo")
 .m1_doc <- function() officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
 .m1_cola <- c(corta = "", media = " y que permiten desarrollar las actividades", larga = " y que permiten desarrollar con regularidad las actividades de enseñanza, investigación y vinculación con el entorno social del que forma parte la universidad en general")

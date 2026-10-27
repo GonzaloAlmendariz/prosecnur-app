@@ -22,7 +22,9 @@
 }
 
 # El estándar trae un piso de 1,12 cm (2026-10-26); esta suite mide la tabla de grosor y la geometría sin él.
-withr::local_options(prosecnur.grosor_piso_cm = 0, .local_envir = testthat::teardown_env())
+# A nivel de archivo (no teardown_env(), que sólo restaura al final de TODO test_dir y dejaba el 0 a los archivos
+# siguientes del shard: rompía test-lamina-escala-m1-sin-cont.R en el shard 4 de CI).
+withr::local_options(prosecnur.grosor_piso_cm = 0)
 
 test_that("el grosor dibujado sale de la tabla del estándar en todo el rango de filas", {
   skip_if_not_installed("cowplot")
