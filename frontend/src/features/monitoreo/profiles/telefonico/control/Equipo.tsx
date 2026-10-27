@@ -7,7 +7,10 @@ import { resumenDeEquipo } from "../conteoDeEquipo";
 import { EquipoMatriz } from "./EquipoMatriz";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import { construirEquipo, familiasDe, statusDe, type Equipo as Modelo, type OperadorDeEquipo } from "./equipoModel";
+import { ChipDeSeveridad } from "./NoBarridos";
+import { UMBRALES_NO_BARRIDO, construirNoBarridos, diasLegibles, type OperadorNoBarrido } from "./noBarridosModel";
 import "./controlTelefonico.css";
+import "./noBarridos.css";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 
 /** «Estados por operador» es una vista de la pestaña con dirección: `panel=estados`. */
@@ -85,7 +88,25 @@ function TablaDeCarga({
   );
 }
 
-function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | null; modelo: Modelo }) {
+/** Bloque «Sin barrer» de la ficha: cuántos casos asignados no tienen intento y desde cuándo. */
+function SinBarrer({ sinBarrer }: { sinBarrer: OperadorNoBarrido | null }) {
+  const atrasados = sinBarrer ? sinBarrer.graves + sinBarrer.avisos : 0;
+  return (
+    <section className="mon-equipo-bloque mon-equipo-sin-barrer" aria-label="Casos sin barrer">
+      <span className="mon-equipo-sin-barrer-titulo">
+        <span className="mon-ctl-antetitulo">Sin barrer</span>
+        {sinBarrer && sinBarrer.severidad !== "reciente" ? <ChipDeSeveridad severidad={sinBarrer.severidad} /> : null}
+      </span>
+      <dl className="mon-equipo-datos">
+        <div><dt>Casos asignados sin ningún intento</dt><dd>{n(sinBarrer?.casos.length ?? 0)}</dd></div>
+        <div><dt>{`Sin barrer hace ${UMBRALES_NO_BARRIDO.aviso} días o más`}</dt><dd>{n(atrasados)}</dd></div>
+        <div><dt>El más antiguo</dt><dd>{sinBarrer ? diasLegibles(sinBarrer.maxDias) : "—"}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
+function FichaDelOperador({ operador, modelo, sinBarrer }: { operador: OperadorDeEquipo | null; modelo: Modelo; sinBarrer: OperadorNoBarrido | null }) {
   if (!operador) {
     return (
       <aside className="mon-ctl-panel mon-equipo-ficha" aria-label="Ficha del operador">
@@ -118,6 +139,7 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
           <small>Kobo {n(operador.efectivasKobo)}</small>
         </span>
       </div>
+      <SinBarrer sinBarrer={sinBarrer} />
       {familias.length ? (
         <section className="mon-equipo-bloque" aria-label="Casos asignados por familia">
           <span className="mon-ctl-antetitulo">Casos asignados por familia</span>
@@ -182,6 +204,7 @@ export function Equipo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   const modelo = useMemo(() => construirEquipo({ reports, reglas: reglas ?? [] }), [reports, reglas]);
+  const noBarridos = useMemo(() => construirNoBarridos(reports, state?.synced_at), [reports, state?.synced_at]);
   const panel = usePanelDireccionable(PANEL_ESTADOS);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const elegido = modelo.operadores.find((op) => op.nombre === foco) ?? modelo.operadores[0] ?? null;
@@ -208,7 +231,11 @@ export function Equipo({
           <TablaDeCarga modelo={modelo} elegido={elegido?.nombre ?? null} onElegir={(nombre) => escribirFoco(nombre)} />
         )}
       </section>
-      <FichaDelOperador operador={elegido} modelo={modelo} />
+      <FichaDelOperador
+        operador={elegido}
+        modelo={modelo}
+        sinBarrer={noBarridos.clave === "lista" ? noBarridos.operadores.find((op) => op.nombre === elegido?.nombre) ?? null : null}
+      />
     </div>
   );
 }

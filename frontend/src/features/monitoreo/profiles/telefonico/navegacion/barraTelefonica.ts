@@ -143,7 +143,7 @@ export function chipsDeCabecera(
   if (clave === "control/barrido") return chipsDeBarrido(reports, state);
   if (clave === "control/equipo") return chipsDeEquipo(reports);
   if (clave === "control/respuestas") return chipsDeRespuestas(reports);
-  if (clave === "control/avisos") return chipsDeAvisos(reports);
+  if (clave === "control/avisos") return chipsDeAvisos(reports, state?.synced_at);
   if (clave === "avance/ritmo") return chipsDeRitmo(reports, state);
   if (clave === "insumos/llave") {
     const cruce = cruceDeLlave(construirRespuestas({ reports, segmento: "" }));
@@ -174,8 +174,8 @@ function chipsDeBarrido(reports: MonitoreoAcreditacionReports | null, state?: Mo
 }
 
 /** Cuántos avisos hay de cada nivel. */
-function chipsDeAvisos(reports: MonitoreoAcreditacionReports | null): string[] {
-  const { porNivel } = construirAvisos(reports);
+function chipsDeAvisos(reports: MonitoreoAcreditacionReports | null, corte?: string | null): string[] {
+  const { porNivel } = construirAvisos(reports, corte);
   const chip = (cantidad: number, uno: string, varios: string) => (cantidad ? [`${fmt(cantidad)} ${cantidad === 1 ? uno : varios}`] : []);
   return [...chip(porNivel.alta, "alto", "altos"), ...chip(porNivel.media, "medio", "medios"), ...chip(porNivel.baja, "bajo", "bajos")];
 }
