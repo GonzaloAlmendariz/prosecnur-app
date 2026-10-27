@@ -36,7 +36,9 @@
 }
 
 # El estándar trae un piso de 1,12 cm (2026-10-26); esta suite mide la tabla de grosor y la geometría sin él.
-withr::local_options(prosecnur.grosor_piso_cm = 0, .local_envir = testthat::teardown_env())
+# A nivel de archivo (no teardown_env(), que sólo restaura al final de TODO test_dir y dejaba el 0 a los archivos
+# siguientes del shard: rompía test-lamina-escala-m1-sin-cont.R en el shard 4 de CI).
+withr::local_options(prosecnur.grosor_piso_cm = 0)
 
 test_that("la cifra chica de la segunda fila queda al menos 0,075 in bajo la barra de arriba y dentro de su fila", {
   m <- .fcg_medir(.fcg_formas(.fcg_lam()$doc))
