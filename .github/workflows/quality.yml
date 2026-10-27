@@ -104,6 +104,11 @@ jobs:
         run: node scripts/debt-audit.mjs --check
 
       - name: Frontend typecheck
+        # El árbol ya no cabe en el tope por defecto de Node (~2 GB): el corte
+        # 0.9.6 murió con «JavaScript heap out of memory» a los 2,04 GB. Con
+        # 6 GB pasa y cabe en el runner estándar.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
       - name: Frontend tests
