@@ -114,16 +114,6 @@
   font-size: 12px;
 }
 
-.mon-metas-objetivo input {
-  width: 88px;
-  height: 30px;
-  padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 8px;
-  font: inherit;
-  text-align: right;
-}
-
 .mon-metas-confirmar {
   display: flex;
   align-items: center;
@@ -166,15 +156,10 @@
   vertical-align: middle;
 }
 
-.mon-metas-meta input {
-  width: 80px;
-  height: 32px;
-  padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 8px;
-  font: inherit;
-  font-weight: var(--pulso-weight-bold);
-  text-align: right;
+/* El campo de meta es el del kit (`PulsoInput numeric`, 88 px): aquí sólo
+ * se alinea a la derecha de su celda. */
+.mon-metas-meta .pulso-input {
+  margin-left: auto;
 }
 
 .mon-metas-barra {
