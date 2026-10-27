@@ -308,6 +308,7 @@ test_that("quién respondió: solo marcar sin Mailchimp guarda la marca y el tab
       if (identical(provider, "mailchimp")) stop("no debía pedir la clave de Mailchimp")
       "sm-token"
     },
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) .cct_responses(tok[c("ana@ejemplo.org", "carlos@ejemplo.org")],
                                                                    tok[["luz@ejemplo.org"]]),
     .mc_http = function(...) stop("no debía llamar a Mailchimp")
@@ -502,9 +503,10 @@ test_that("HTTP: contrato de las cuatro rutas con el serializador de producción
   expect_null(l$body$rows[[1]]$respondio)
   expect_true(isTRUE(l$body$rows[[1]]$tiene_enlace))
   expect_setequal(names(l$body$resumen), c("importados", "efectivos", "sin_correo", "correo_invalido", "repetidos",
-                                           "con_enlace", "respondieron", "leido_en", "enlace_url"))
+                                           "con_enlace", "respondieron", "leido_en", "enlace_url", "enlace_variable"))
   expect_null(l$body$resumen$respondieron)
   expect_identical(l$body$resumen$enlace_url, "https://es.surveymonkey.com/r/ABC")
+  expect_identical(l$body$resumen$enlace_variable, "t")
   expect_false("enlace_encuesta" %in% vapply(l$body$columnas, function(c) c$key, ""))
   expect_identical(vapply(l$body$columnas, function(c) c$label, ""), c("Carrera", "Sexo", "Sede"))
   q <- call_q("/api/recopiladores/mail-contacts", "campaign_id=egresados&estado=nada")

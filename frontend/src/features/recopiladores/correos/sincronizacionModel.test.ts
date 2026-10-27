@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeOpciones, normalizeResultado } from "../../../api/mailchimpSync";
-import { resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
+import { puedeActualizar, resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
 
 const base = normalizeResultado({
   recipients: 7, recipients_with_token: 7, responses: 5, completed: 4, partial: 1, without_token: 1,
@@ -16,8 +16,8 @@ describe("resumen de «Actualizar quién respondió»", () => {
     expect(r.lineas).toEqual([
       "En Mailchimp quedaron con la etiqueta «Respondió».",
       "1 persona dejó la encuesta a medias: sigue recibiendo recordatorios.",
-      "1 respuesta trae un token que no es de esta campaña.",
-      "1 respuesta entró sin token y no se puede atribuir.",
+      "1 respuesta llegó por un enlace que no es de esta campaña.",
+      "1 respuesta entró sin enlace personal y no se puede atribuir.",
     ]);
   });
 
@@ -59,5 +59,20 @@ describe("avisos del recordatorio", () => {
     const { avisosDeRecordatorio } = await import("./sincronizacionModel");
     expect(avisosDeRecordatorio("Prueba: Reacreditación", "prueba:  reacreditación", "")).toHaveLength(2);
     expect(avisosDeRecordatorio("Recordatorio: Prueba", "Prueba", "Le recordamos…")).toEqual([]);
+  });
+});
+
+describe("cuándo se puede actualizar quién respondió", () => {
+  const listo = { mailchimpListo: true, surveymonkeyConectado: true, encuesta: "528820204", audiencia: "lst1" };
+  it("la encuesta que no recibe la variable de la campaña bloquea; sin veredicto, no", () => {
+    expect(puedeActualizar({ ...listo, coincide: true })).toBe(true);
+    expect(puedeActualizar({ ...listo, coincide: null })).toBe(true);
+    expect(puedeActualizar({ ...listo, coincide: false })).toBe(false);
+  });
+  it("faltando una conexión, la encuesta o la audiencia, tampoco", () => {
+    expect(puedeActualizar({ ...listo, mailchimpListo: false, coincide: true })).toBe(false);
+    expect(puedeActualizar({ ...listo, surveymonkeyConectado: false, coincide: true })).toBe(false);
+    expect(puedeActualizar({ ...listo, encuesta: "", coincide: true })).toBe(false);
+    expect(puedeActualizar({ ...listo, audiencia: "", coincide: true })).toBe(false);
   });
 });

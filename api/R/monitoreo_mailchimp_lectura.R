@@ -7,8 +7,9 @@
 # encuesta, las bajas y las quejas; y de la audiencia, los correos que Mailchimp
 # ya dio por inválidos (`cleaned`).
 #
-# La persona se identifica por el token de su enlace personal (`?t=`), que
-# viaja en un campo de combinación: es la misma llave con la que Monitoreo
+# La persona se identifica por el token de su enlace personal (`?t=`, o la
+# variable que declare la campaña: collection_mail_enlace.R), que viaja en un
+# campo de combinación: es la misma llave con la que Monitoreo
 # cruza SurveyMonkey contra el universo. Los correos se usan solo en memoria
 # para unir la actividad con el destinatario (por `email_id`) y no se guardan
 # ni salen de aquí (ADR 0005, ADR 0112).
@@ -20,12 +21,19 @@
 
 .MCM_PAGINA <- 1000L
 
-# Token del enlace personal en cualquier texto: `?t=abc` o `&t=abc`.
+# Token del enlace personal en cualquier texto. Con `t` (`?t=abc` o `&t=abc`)
+# vale lo que traiga; con otro nombre (la campaña puede usar `id`), solo un valor
+# con la forma de los tokens que genera la app (10 letras o dígitos), para no
+# confundirlo con otro parámetro del enlace del recopilador (`lang=es`).
 .mcm_token <- function(texto) {
   texto <- as.character(texto %||% "")
-  m <- regmatches(texto, regexpr("[?&]t=([A-Za-z0-9_-]+)", texto))
-  if (!length(m)) return("")
-  sub("^[?&]t=", "", m[[1L]])
+  pares <- regmatches(texto, gregexpr("[?&][A-Za-z][A-Za-z0-9_]{0,29}=[A-Za-z0-9_-]+", texto))[[1L]]
+  if (!length(pares)) return("")
+  nombres <- sub("^[?&]([^=]+)=.*$", "\\1", pares)
+  valores <- sub("^[?&][^=]+=", "", pares)
+  if ("t" %in% nombres) return(valores[[match("t", nombres)]])
+  propios <- valores[grepl("^[A-Za-z0-9]{10}$", valores)]
+  if (length(propios)) propios[[1L]] else ""
 }
 
 .mcm_token_de_campos <- function(merge_fields) {

@@ -334,6 +334,7 @@ test_that("worker de «quién respondió»: se llama directo, escribe el avance 
   progress <- character()
   local_mocked_bindings(
     .connections_token_require = .mca_tokens,
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) list(data = lapply(seq_len(n), function(i)
       list(response_status = "completed", custom_variables = list(t = sprintf("tok%05d", i))))),
     .mc_http = function(method, url, key, body = NULL) {
@@ -359,6 +360,7 @@ test_that("worker: un error de Mailchimp viaja como error de dominio y uno técn
   .cmail_fx_import(sid, csv = paste("Apellidos y nombres,Correo,Enlace", "\"A, B\",a@ejemplo.org,https://x.org/r/A?t=tokaaa1", sep = "\n"))
   local_mocked_bindings(
     .connections_token_require = .mca_tokens,
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) list(data = list(list(response_status = "completed", custom_variables = list(t = "tokaaa1")))),
     .mc_http = function(...) list(status = 404L, body = list(detail = "The requested resource could not be found."), headers = list()),
     .mc_sleep = function(...) NULL

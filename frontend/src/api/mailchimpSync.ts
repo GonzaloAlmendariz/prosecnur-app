@@ -1,5 +1,6 @@
 // «Actualizar quién respondió» (Material de campo › Correos › Envíos).
-// SurveyMonkey dice quién completó la encuesta (variable `t`); el backend lo
+// SurveyMonkey dice quién completó la encuesta (la variable personalizada que
+// lleva el token: `t` por defecto, o la que declare la campaña); el backend lo
 // cruza con los destinatarios de la campaña y pone una etiqueta en la audiencia
 // de Mailchimp. Ninguna respuesta trae correos: solo conteos.
 
@@ -74,10 +75,39 @@ export function normalizeResultado(raw: unknown): ResultadoDeSincronizacion {
   };
 }
 
+/** ¿La encuesta recibe la variable con que la campaña genera los enlaces? */
+export type RevisionDeVariable = {
+  variable: string;
+  variables_encuesta: string[];
+  coincide: boolean;
+  /** Causa y arreglo, listos para mostrar. */
+  mensaje: string;
+};
+
+export function normalizeRevisionDeVariable(raw: unknown): RevisionDeVariable {
+  const r = isRecord(raw) ? raw : {};
+  // R entrega un vector de largo 1 como escalar y uno vacío como {}.
+  const variables = Array.isArray(r.variables_encuesta)
+    ? r.variables_encuesta
+    : typeof r.variables_encuesta === "string" ? [r.variables_encuesta] : [];
+  return {
+    variable: str(r.variable).trim() || "t",
+    variables_encuesta: variables.map(str).filter(Boolean),
+    coincide: r.coincide === true,
+    mensaje: str(r.mensaje).trim(),
+  };
+}
+
 const BASE = "/api/recopiladores/mail-sync";
 
 export async function apiOpcionesDeSincronizacion(): Promise<OpcionesDeSincronizacion> {
   return normalizeOpciones(await handle<unknown>(await apiFetch(`${BASE}/options`, { headers: headers() })));
+}
+
+export async function apiRevisarVariable(input: { campaign_id: string | null; survey_id: string }): Promise<RevisionDeVariable> {
+  const q = new URLSearchParams({ survey_id: input.survey_id });
+  if (input.campaign_id) q.set("campaign_id", input.campaign_id);
+  return normalizeRevisionDeVariable(await handle<unknown>(await apiFetch(`${BASE}/check?${q.toString()}`, { headers: headers() })));
 }
 
 /** Lo que responden las rutas que corren como job: `{ok, job_id}`. */

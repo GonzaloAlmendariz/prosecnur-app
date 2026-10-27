@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiCargarAudiencia,
   apiCrearBorrador,
+  apiRevisarVariable,
   apiSincronizarRespuestas,
   normalizeInicioDeJob,
+  normalizeRevisionDeVariable,
   normalizeResultadoDeAudiencia,
   normalizeResultadoDeBorrador,
 } from "../../../api/mailchimpSync";
@@ -93,6 +95,25 @@ describe("rutas de Mailchimp por API", () => {
     expect(r.recipient_count).toBe(8);
     expect(llamada(0).url).toMatch(/\/mail-sync\/campaign$/);
     expect(llamada(0).body).toEqual({ campaign_id: "c", send_id: "r1", list_id: "l", from_name: "PULSO", reply_to: "a@b.pe", exclude_tag: "Respondió" });
+  });
+
+  it("revisar la variable pregunta por la encuesta y la campaña, sin cuerpo", async () => {
+    fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({ ok: true, variable: "t", variables_encuesta: "id", coincide: false, mensaje: "La encuesta recibe la variable «id», no «t»." }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const r = await apiRevisarVariable({ campaign_id: "egresados", survey_id: "423872156" });
+    expect(r).toEqual({ variable: "t", variables_encuesta: ["id"], coincide: false, mensaje: "La encuesta recibe la variable «id», no «t»." });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toMatch(/\/mail-sync\/check\?survey_id=423872156&campaign_id=egresados$/);
+    expect(init.body).toBeUndefined();
+  });
+});
+
+describe("veredicto de la variable del token", () => {
+  it("lee el vector de R en sus tres formas y nunca afirma coincidencia sin un true", () => {
+    expect(normalizeRevisionDeVariable({ variable: "id", variables_encuesta: ["id", "t"], coincide: true, mensaje: " ok " }))
+      .toEqual({ variable: "id", variables_encuesta: ["id", "t"], coincide: true, mensaje: "ok" });
+    expect(normalizeRevisionDeVariable({ variables_encuesta: {}, coincide: "true" }))
+      .toEqual({ variable: "t", variables_encuesta: [], coincide: false, mensaje: "" });
+    expect(normalizeRevisionDeVariable(null).coincide).toBe(false);
   });
 });
 

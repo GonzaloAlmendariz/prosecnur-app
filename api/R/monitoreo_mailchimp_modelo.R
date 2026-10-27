@@ -251,7 +251,7 @@ monitoreo_mailchimp_modelo <- function(snapshot = list(), case_rollup = list(), 
   }
   sin_token <- sum(!nzchar(personas$llave))
   if (sin_token) {
-    avisos <- c(avisos, sprintf("%s destinatario%s sin enlace personal (?t=) en sus campos: no se pueden cruzar con el universo.",
+    avisos <- c(avisos, sprintf("%s destinatario%s sin enlace personal en sus campos: no se pueden cruzar con el universo.",
                                 format(sin_token, big.mark = ","), if (sin_token == 1L) "" else "s"))
   }
   if (!nrow(universo)) avisos <- c(avisos, "Monitoreo todavía no tiene el universo cruzado: sincroniza las fuentes para ver los públicos.")

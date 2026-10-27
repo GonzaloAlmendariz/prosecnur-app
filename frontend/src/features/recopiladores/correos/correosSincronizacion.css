@@ -45,6 +45,33 @@
   margin: 0;
 }
 
+/* ¿La encuesta recibe la variable del token? Verde si sí; si no, la causa y el
+   arreglo en el tono de advertencia, porque bloquea la actualización. */
+.rec-sync-variable {
+  align-items: flex-start;
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 8px;
+  color: var(--pulso-success-fg);
+  display: flex;
+  font-size: 12px;
+  gap: var(--pulso-space-1);
+  line-height: 1.45;
+  margin: 0;
+  padding: 6px 8px;
+}
+
+.rec-sync-variable > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.rec-sync-variable--falta {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
 .rec-sync-estado {
   align-items: center;
   color: var(--pulso-text-muted);

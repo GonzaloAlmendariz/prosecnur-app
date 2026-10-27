@@ -3,16 +3,23 @@
 # La campaña declara el enlace del recopilador (`https://`) y la app genera,
 # para cada contacto con correo válido, un token aleatorio de 10 caracteres
 # `[A-Za-z0-9]`, único en la campaña. El enlace personal es
-# `<recopilador>?t=<token>` (o `&t=` si el recopilador ya trae consulta) y se
+# `<recopilador>?<variable>=<token>` (o `&<variable>=` si el recopilador ya trae
+# consulta) y se
 # materializa como la columna `enlace_encuesta` («Enlace a la encuesta») de la
 # lista: así lo ven el mapeo, la vista previa, audiencia.csv y el cruce de
 # «quién respondió» (`.mc_token_of`, collection_mail_mailchimp.R) sin cambio de
 # formato.
 #
+# La variable es la variable personalizada de la encuesta de SurveyMonkey:
+# SurveyMonkey guarda un parámetro del enlace solo si se llama igual que una
+# variable declarada en la encuesta. Por eso el nombre se declara por campaña
+# (`t` por defecto; la encuesta puede usar `id` u otro) y se valida contra la
+# encuesta al sincronizar (`collection_mail_mailchimp_check`).
+#
 # Dónde vive (claves opcionales del store de la campaña, que viaja en
 # `files/contactos/<campaign_id>.rds`, collection_mail_contactos_pulso.R):
 #   tokens   named chr  correo normalizado (minúsculas) -> token
-#   enlace   list(url, generado_en)
+#   enlace   list(url, variable, generado_en)  (sin `variable`: `t`)
 #
 # El token es de la PERSONA: se indexa por correo normalizado. Reimportar la
 # lista conserva el token de quien ya estaba y genera uno solo para quien entra
@@ -22,7 +29,7 @@
 # repetirlo.
 #
 # Decisión sobre la forma del enlace: se acepta cualquier `https://` sin
-# espacios ni `t=` propio; si no es un recopilador web de SurveyMonkey
+# espacios ni la variable propia; si no es un recopilador web de SurveyMonkey
 # (`…surveymonkey.<tld>/r/<id>`) se genera igual y se devuelve un `aviso` que
 # dice la consecuencia (no se sabrá quién respondió) y el arreglo, sin jerga.
 
@@ -32,9 +39,29 @@
 .CMAIL_TOKEN_ALPHABET <- c(LETTERS, letters, 0:9)
 .CMAIL_ENLACE_URL_MAX <- 500L
 .CMAIL_SM_COLLECTOR_RE <- "^https://([a-z0-9-]+\\.)*surveymonkey\\.[a-z.]+/r/[A-Za-z0-9_-]+/?(\\?.*)?$"
+.CMAIL_ENLACE_VARIABLE_DEFAULT <- "t"
+.CMAIL_ENLACE_VARIABLE_RE <- "^[A-Za-z][A-Za-z0-9_]{0,29}$"
+
+# Normaliza y valida el nombre de la variable. NULL o vacío = la de siempre.
+.cmail_enlace_variable_check <- function(variable) {
+  value <- .cmail_one(as.list(variable %||% list(NA_character_)))
+  if (is.null(value) || is.na(value) || !nzchar(trimws(value))) return(.CMAIL_ENLACE_VARIABLE_DEFAULT)
+  value <- trimws(value)
+  if (!grepl(.CMAIL_ENLACE_VARIABLE_RE, value)) {
+    stop_api(422, "E_COLLECTION_MAIL_ENLACE_VARIABLE",
+             "La variable va como en SurveyMonkey: empieza con una letra y lleva solo letras, números o «_» (por ejemplo «t» o «id»).")
+  }
+  value
+}
+
+# Variable con que se generaron (o generarán) los enlaces de la campaña.
+.cmail_enlace_variable_of <- function(store) {
+  value <- .cmail_one(as.list((store$enlace %||% list())$variable %||% list(NA_character_)))
+  if (is.null(value) || is.na(value) || !nzchar(value)) .CMAIL_ENLACE_VARIABLE_DEFAULT else value
+}
 
 # Normaliza y valida el enlace del recopilador. Devuelve list(url, aviso).
-.cmail_enlace_url_check <- function(url) {
+.cmail_enlace_url_check <- function(url, variable = .CMAIL_ENLACE_VARIABLE_DEFAULT) {
   value <- .cmail_one(as.list(url %||% list(NA_character_)))
   bad <- function(msg) stop_api(422, "E_COLLECTION_MAIL_ENLACE_URL", msg)
   if (is.null(value) || !nzchar(trimws(value))) bad("Pega el enlace del recopilador (https://…).")
@@ -45,8 +72,8 @@
     bad("El enlace debe empezar con https:// y tener un dominio.")
   }
   if (grepl("#", value, fixed = TRUE)) bad("El enlace no puede llevar «#»: el token quedaría fuera de la consulta.")
-  if (grepl("[?&]t=", value)) {
-    bad("El enlace ya trae una variable t: pega el enlace del recopilador sin token; la app pone uno por persona.")
+  if (grepl(sprintf("[?&]%s=", variable), value)) {
+    bad(sprintf("El enlace ya trae la variable «%s»: pega el enlace del recopilador tal como lo da SurveyMonkey; la app agrega la de cada persona.", variable))
   }
   if (grepl(.CMAIL_EMAIL_LIKE_RE, value)) bad("El enlace no puede llevar una dirección de correo.")
   aviso <- if (!grepl(.CMAIL_SM_COLLECTOR_RE, value, ignore.case = TRUE)) {
@@ -55,16 +82,21 @@
   list(url = value, aviso = aviso)
 }
 
+# Variable con que se generaron los enlaces (o NA si aún no se generaron).
+.cmail_enlace_variable_saved <- function(store) {
+  if (is.na(.cmail_enlace_url_of(store))) NA_character_ else .cmail_enlace_variable_of(store)
+}
+
 # URL del recopilador con que se generaron los enlaces (o NA si aún no).
 .cmail_enlace_url_of <- function(store) {
   url <- .cmail_one(as.list((store$enlace %||% list())$url %||% list(NA_character_)))
   url %||% NA_character_
 }
 
-# `?t=` o `&t=` según la URL.
-.cmail_enlace_join <- function(url, token) {
+# `?<variable>=` o `&<variable>=` según la URL.
+.cmail_enlace_join <- function(url, token, variable = .CMAIL_ENLACE_VARIABLE_DEFAULT) {
   sep <- if (grepl("?", url, fixed = TRUE)) (if (grepl("[?&]$", url)) "" else "&") else "?"
-  paste0(url, sep, "t=", token)
+  paste0(url, sep, variable, "=", token)
 }
 
 # `n` tokens nuevos, distintos entre sí y de `taken`. Fuente criptográfica
@@ -116,7 +148,8 @@
 #' claves cuyo mapeo explícito no se toca).
 #' @return list(store, generados, conservados, total, mapeado).
 #' @keywords internal
-.cmail_enlace_apply <- function(store, url, template = NULL, keep_mapped = character(0)) {
+.cmail_enlace_apply <- function(store, url, template = NULL, keep_mapped = character(0),
+                                variable = .cmail_enlace_variable_of(store)) {
   ck <- .cmail_contact_keys(store)
   tokens <- store$tokens %||% stats::setNames(character(0), character(0))
   people <- unique(ck$key[ck$valid])
@@ -126,10 +159,11 @@
   if (length(missing)) tokens[missing] <- fresh
   links <- rep("", nrow(store$rows))
   has <- ck$valid & ck$key %in% names(tokens)
-  links[has] <- vapply(unname(tokens[ck$key[has]]), function(t) .cmail_enlace_join(url, t), "")
+  links[has] <- vapply(unname(tokens[ck$key[has]]), function(t) .cmail_enlace_join(url, t, variable), "")
   store$rows[[.CMAIL_ENLACE_COLUMN]] <- links
   store$tokens <- tokens
-  store$enlace <- list(url = url, generado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  store$enlace <- list(url = url, variable = variable,
+                       generado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
   mapped <- character(0)
   if (!is.null(template)) {
     for (k in setdiff(.cmail_enlace_target_keys(template), keep_mapped)) {
@@ -156,25 +190,27 @@
 }
 
 #' `PUT /api/recopiladores/mail-contacts/enlace`: declara el enlace del
-#' recopilador y genera los enlaces personales.
-#' @return list(ok, campaign_id, generados, conservados, total, campo, url, aviso, mapeado).
+#' recopilador (y la variable de la encuesta) y genera los enlaces personales.
+#' Sin `variable`, conserva la que ya tenía la campaña (`t` la primera vez).
+#' @return list(ok, campaign_id, generados, conservados, total, campo, url, variable, aviso, mapeado).
 #' @keywords internal
-collection_mail_enlace_put <- function(sid, campaign_id = NULL, url = NULL) {
+collection_mail_enlace_put <- function(sid, campaign_id = NULL, url = NULL, variable = NULL) {
   .cmail_contactos_assert_local()
   session <- session_get(sid)
   ct <- .cmail_campaign_template_for_session(session, campaign_id)
-  checked <- .cmail_enlace_url_check(url)
   store <- .cmail_recipients_load(session, ct$campaign_id)
+  variable <- if (is.null(variable)) .cmail_enlace_variable_of(store) else .cmail_enlace_variable_check(variable)
+  checked <- .cmail_enlace_url_check(url, variable)
   if (is.null(store)) {
     stop_api(409, "E_COLLECTION_MAIL_NO_RECIPIENTS", "Primero importa los contactos: el enlace es uno por persona.")
   }
-  res <- .cmail_enlace_apply(store, checked$url, ct$template)
+  res <- .cmail_enlace_apply(store, checked$url, ct$template, variable = variable)
   .cmail_recipients_save(session, ct$campaign_id, res$store)
   .cmail_contactos_touch(sid)
   .cmc_drop_nulls_deep(list(
     ok = TRUE, campaign_id = ct$campaign_id,
     generados = as.integer(res$generados), conservados = as.integer(res$conservados),
     total = as.integer(res$total), campo = .CMAIL_ENLACE_COLUMN, label = .CMAIL_ENLACE_LABEL,
-    url = checked$url, aviso = checked$aviso, mapeado = I(res$mapeado)
+    url = checked$url, variable = variable, aviso = checked$aviso, mapeado = I(res$mapeado)
   ))
 }
