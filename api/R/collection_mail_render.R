@@ -393,7 +393,7 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     '<meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="x-apple-disable-message-reformatting">',
     '<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">',
     sprintf("<title>%s</title>", htmltools::htmlEscape(subject)),
-    .cmail_justify_style(paste0(card, footer_rows)),
+    .cmail_justify_style(paste0(card, footer_rows), template$theme),
     # two_images se apila en teléfono (E1o, collection_mail_piezas.R).
     .cmail_stack_style(card),
     # Cajas de estilo propio a 12 px de los bordes en teléfono (collection_mail_box.R).

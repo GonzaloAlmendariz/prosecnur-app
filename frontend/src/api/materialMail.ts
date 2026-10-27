@@ -374,6 +374,8 @@ export type MailTheme = {
   /** Sin él, el de mejor contraste con `button_bg`. */
   button_text?: string;
   text_align?: MailTextAlign;
+  /** Con justificado: en el teléfono pasa a la izquierda (sin él) o sigue justificado. */
+  justify_phone?: "izquierda" | "justificado";
   onda?: MailOnda;
   /** Sin él, `button_bg`. */
   onda_color?: string;
@@ -1092,6 +1094,8 @@ export function normalizeMailTheme(value: unknown): MailTheme {
   const buttonText = color(theme.button_text);
   if (buttonText) out.button_text = buttonText;
   if (textAlign) out.text_align = textAlign;
+  const justifyPhone = oneOf(theme.justify_phone, ["izquierda", "justificado"] as const);
+  if (justifyPhone) out.justify_phone = justifyPhone;
   if (onda) out.onda = onda;
   const ondaColor = color(theme.onda_color);
   if (ondaColor) out.onda_color = ondaColor;

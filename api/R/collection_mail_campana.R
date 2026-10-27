@@ -11,6 +11,8 @@
 #   button_bg   "#rrggbb"  solo campaña; defecto #f9d53e (amarillo de la casa)
 #   button_text "#rrggbb"  solo campaña; defecto el de más contraste entre #0b1f3a y #ffffff
 #   text_align  "justify" | "left" | "center"     ambos estilos; defecto "justify"
+#   justify_phone "izquierda" | "justificado"     con justify: en teléfono el texto
+#               pasa a la izquierda (defecto, evita ríos) o sigue justificado
 #   onda        "ninguna" | "pie"                 solo campaña; defecto "ninguna"
 #   onda_color  "#rrggbb"  solo campaña; defecto button_bg
 #   width       560 | 600 | 640               ambos estilos; defecto 600 (E1p,
@@ -46,7 +48,8 @@
 .CMAIL_TEXT_ALIGNS <- c("justify", "left", "center")
 .CMAIL_ONDAS <- c("ninguna", "pie")
 .CMAIL_THEME_KEYS <- c("accent", "link", "band", "estilo", "page_bg", "button_bg", "button_text",
-                       "text_align", "onda", "onda_color", "width")
+                       "text_align", "justify_phone", "onda", "onda_color", "width")
+.CMAIL_JUSTIFY_PHONE <- c("izquierda", "justificado")
 .CMAIL_CAMPANA_BUTTON_BG <- "#f9d53e"
 .CMAIL_CAMPANA_BUTTON_INKS <- c("#0b1f3a", "#ffffff")
 .CMAIL_CAMPANA_PANEL_MIX <- 0.10
@@ -79,6 +82,7 @@
   enum("estilo", .CMAIL_ESTILOS, "bad_estilo", "El estilo del correo es sobrio o campana.")
   enum("text_align", .CMAIL_TEXT_ALIGNS, "bad_text_align", "La alineación del texto es justify, left o center.")
   enum("onda", .CMAIL_ONDAS, "bad_onda", "La onda es ninguna o pie.")
+  enum("justify_phone", .CMAIL_JUSTIFY_PHONE, "bad_justify_phone", "En el teléfono el justificado es izquierda o justificado.")
   for (k in c("page_bg", "button_bg", "button_text", "onda_color")) {
     if (!is.null(theme[[k]]) && !.cmail_hex_ok(.cmail_one(theme[[k]]))) add(k, "bad_color", sprintf("%s es #rrggbb.", k))
   }
@@ -171,8 +175,10 @@
   list(attr = "", cls = "", css = sprintf("text-align:%s;", align))
 }
 
-# Regla del `<head>`: solo si el cuerpo justifica algo.
-.cmail_justify_style <- function(body) {
+# Regla del `<head>`: solo si el cuerpo justifica algo y el tema no pide
+# justificado también en teléfono (`justify_phone = "justificado"`).
+.cmail_justify_style <- function(body, theme = NULL) {
+  if (identical(.cmail_one(theme$justify_phone), "justificado")) return("")
   if (!grepl(sprintf('class="%s[" ]', .CMAIL_JUSTIFY_CLASS), body)) return("")
   sprintf('<style type="text/css">@media only screen and (max-width:480px){.%s{text-align:left !important;}}</style>',
           .CMAIL_JUSTIFY_CLASS)
