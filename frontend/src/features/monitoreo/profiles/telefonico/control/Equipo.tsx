@@ -89,8 +89,11 @@ function TablaDeCarga({
 }
 
 /** Bloque «Sin barrer» de la ficha: cuántos casos asignados no tienen intento y desde cuándo. */
-function SinBarrer({ sinBarrer }: { sinBarrer: OperadorNoBarrido | null }) {
+function SinBarrer({ sinBarrer, disponible }: { sinBarrer: OperadorNoBarrido | null; disponible: boolean }) {
   const atrasados = sinBarrer ? sinBarrer.graves + sinBarrer.avisos : 0;
+  // Sin el bloque del motor no hay cifra: «—» y la causa, nunca un 0 que
+  // parezca medido (un backend anterior al seguimiento pintaba 0 a todos).
+  const cifra = (valor: number) => (disponible ? n(valor) : "—");
   return (
     <section className="mon-equipo-bloque mon-equipo-sin-barrer" aria-label="Casos sin barrer">
       <span className="mon-equipo-sin-barrer-titulo">
@@ -98,15 +101,18 @@ function SinBarrer({ sinBarrer }: { sinBarrer: OperadorNoBarrido | null }) {
         {sinBarrer && sinBarrer.severidad !== "reciente" ? <ChipDeSeveridad severidad={sinBarrer.severidad} /> : null}
       </span>
       <dl className="mon-equipo-datos">
-        <div><dt>Casos asignados sin ningún intento</dt><dd>{n(sinBarrer?.casos.length ?? 0)}</dd></div>
-        <div><dt>{`Sin barrer hace ${UMBRALES_NO_BARRIDO.aviso} días o más`}</dt><dd>{n(atrasados)}</dd></div>
+        <div><dt>Casos asignados sin ningún intento</dt><dd>{cifra(sinBarrer?.casos.length ?? 0)}</dd></div>
+        <div><dt>{`Sin barrer hace ${UMBRALES_NO_BARRIDO.aviso} días o más`}</dt><dd>{cifra(atrasados)}</dd></div>
         <div><dt>El más antiguo</dt><dd>{sinBarrer ? diasLegibles(sinBarrer.maxDias) : "—"}</dd></div>
       </dl>
+      {disponible ? null : (
+        <p className="mon-equipo-status-unico">Sin cálculo de atraso todavía: actualiza los datos para leer los casos sin barrer.</p>
+      )}
     </section>
   );
 }
 
-function FichaDelOperador({ operador, modelo, sinBarrer }: { operador: OperadorDeEquipo | null; modelo: Modelo; sinBarrer: OperadorNoBarrido | null }) {
+function FichaDelOperador({ operador, modelo, sinBarrer, sinBarrerDisponible }: { operador: OperadorDeEquipo | null; modelo: Modelo; sinBarrer: OperadorNoBarrido | null; sinBarrerDisponible: boolean }) {
   if (!operador) {
     return (
       <aside className="mon-ctl-panel mon-equipo-ficha" aria-label="Ficha del operador">
@@ -150,7 +156,7 @@ function FichaDelOperador({ operador, modelo, sinBarrer }: { operador: OperadorD
           <small>Kobo {n(operador.efectivasKobo)}</small>
         </span>
       </div>
-      <SinBarrer sinBarrer={sinBarrer} />
+      <SinBarrer sinBarrer={sinBarrer} disponible={sinBarrerDisponible} />
       {familias.length ? (
         <section className="mon-equipo-bloque" aria-label="Casos asignados por familia">
           <header className="mon-equipo-bloque-cabecera">
@@ -255,6 +261,7 @@ export function Equipo({
         operador={elegido}
         modelo={modelo}
         sinBarrer={noBarridos.clave === "lista" ? noBarridos.operadores.find((op) => op.nombre === elegido?.nombre) ?? null : null}
+        sinBarrerDisponible={noBarridos.clave === "lista"}
       />
     </div>
   );

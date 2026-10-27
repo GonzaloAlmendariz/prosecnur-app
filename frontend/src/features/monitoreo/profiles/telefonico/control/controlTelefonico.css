@@ -799,9 +799,13 @@
   box-shadow: inset 0 -3px 0 var(--pulso-resultado-efectiva);
 }
 
-.mon-equipo-cifras b {
-  /* Alineada con su rótulo: `.is-num` la llevaba a la derecha. */
+.mon-equipo .mon-equipo-cifras b.is-num {
+  /* Alineada con su rótulo: `.mon-equipo .is-num` la llevaba a la derecha
+   * y ganaba por especificidad a `.mon-equipo-cifras b`. */
   text-align: left;
+}
+
+.mon-equipo-cifras b {
   font-size: 22px;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
