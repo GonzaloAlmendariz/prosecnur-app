@@ -21,19 +21,20 @@
 
 .MCM_PAGINA <- 1000L
 
-# Token del enlace personal en cualquier texto. Con `t` (`?t=abc` o `&t=abc`)
-# vale lo que traiga; con otro nombre (la campaña puede usar `id`), solo un valor
-# con la forma de los tokens que genera la app (10 letras o dígitos), para no
-# confundirlo con otro parámetro del enlace del recopilador (`lang=es`).
+# Token del enlace personal en cualquier texto. Manda el valor con la forma de
+# los tokens que genera la app (10 letras o dígitos), en la variable que sea
+# (`t`, `id`…): así una `t` ajena del recopilador (`?t=1&id=<token>`) o otro
+# parámetro (`lang=es`) no se toma por la persona. Si no hay ninguno, vale la
+# `t` tal cual (enlaces importados con otra forma).
 .mcm_token <- function(texto) {
   texto <- as.character(texto %||% "")
   pares <- regmatches(texto, gregexpr("[?&][A-Za-z][A-Za-z0-9_]{0,29}=[A-Za-z0-9_-]+", texto))[[1L]]
   if (!length(pares)) return("")
   nombres <- sub("^[?&]([^=]+)=.*$", "\\1", pares)
   valores <- sub("^[?&][^=]+=", "", pares)
-  if ("t" %in% nombres) return(valores[[match("t", nombres)]])
   propios <- valores[grepl("^[A-Za-z0-9]{10}$", valores)]
-  if (length(propios)) propios[[1L]] else ""
+  if (length(propios)) return(propios[[1L]])
+  if ("t" %in% nombres) valores[[match("t", nombres)]] else ""
 }
 
 .mcm_token_de_campos <- function(merge_fields) {

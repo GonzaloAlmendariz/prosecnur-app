@@ -13,7 +13,9 @@ Contexto: las 6 encuestas de Acreditación Institucional 2026 declaran la variab
 
 Revisión del verificador (rechazo 1, corregido): Monitoreo › Correo (`.mcm_token`) leía solo `?t=` y dejaba sin llave a una campaña en `id`; ahora toma `t` o, con otro nombre, un valor con la forma de los tokens de la app. Dos mensajes con «token»/«?t=» reescritos; la variable se prellena aparte del enlace (pegar el enlace antes de cargar la lista no la devuelve a `t`); el bloqueo del botón vive en `puedeActualizar`, con test.
 
-Pendiente técnico: «Actualizar quién respondió» corre en un worker `callr` con el paquete instalado; hasta reinstalarlo usa el código anterior.
+Revisión del verificador (rechazo 2, corregido): con un recopilador que ya trae una `t` ajena y la campaña en `id` (`…?t=1&id=<token>`), Monitoreo tomaba «1» para todos; ahora manda el valor con la forma de los tokens de la app y la `t` solo cuenta si no hay ninguno. Fijado con un test de ese enlace en ambos lados. Queda una diferencia menor y visible: un enlace importado con `?id=` y un valor que no tiene la forma de la app se lee en «quién respondió» pero en Monitoreo cae a «sin enlace personal» (avisado, no silencioso).
+
+Paquete reinstalado el 2026-10-27 tras el commit: el worker de «Actualizar quién respondió» ya corre el código nuevo.
 
 Sin jerga en pantalla: la ayuda del campo no dice «token» ni «t=» (guardián de ContactosVista.test.tsx), y los mensajes del chequeo tampoco.
 

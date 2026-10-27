@@ -76,6 +76,8 @@ test_that("el token sale del enlace personal y sólo cuenta el clic en la encues
   expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?id=7ewf3g1ram"), "7ewf3g1ram")
   expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?lang=es&id=7ewf3g1ram"), "7ewf3g1ram")
   expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?lang=es"), "")
+  # El recopilador trae una `t` ajena y la campaña usa `id`: manda el token.
+  expect_identical(.mcm_token("https://es.surveymonkey.com/r/ABC?t=1&id=Ab3dE5gH9k"), "Ab3dE5gH9k")
   expect_identical(.mcm_token_de_campos(list(FNAME = "Ana", ENLACE = "https://x?t=abc123")), "abc123")
   expect_true(.mcm_clic_en_encuesta("*|HTML:ENLACE|*"))
   expect_true(.mcm_clic_en_encuesta("https://es.surveymonkey.com/r/ABC?t=x1"))
