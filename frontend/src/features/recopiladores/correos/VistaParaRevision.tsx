@@ -5,12 +5,24 @@
 import { useEffect, useId, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
-import { apiMailCampaigns, apiMailRevision, type MailCampaignSummary, type MailRevision } from "../../../api/materialMail";
+import {
+  apiMailCampaigns,
+  apiMailRevision,
+  type MailCampaignSummary,
+  type MailRevision,
+  type MailRevisionEnvio,
+} from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Download, Eye } from "../../../vendor/lucide-react";
 import "./correosExportar.css";
 
 const MAX = 6;
+// Los nombres de Gonzalo para los envíos: sin numerar los recordatorios.
+const ENVIOS: readonly { valor: MailRevisionEnvio; rotulo: string }[] = [
+  { valor: "primero", rotulo: "Primer correo" },
+  { valor: "recordatorio", rotulo: "Recordatorio" },
+  { valor: "ultimo", rotulo: "Último recordatorio" },
+];
 
 type Props = {
   /** La campaña abierta: entra marcada. */
@@ -21,6 +33,7 @@ export function VistaParaRevision({ campana }: Props) {
   const id = useId();
   const [campanas, setCampanas] = useState<MailCampaignSummary[]>([]);
   const [elegidas, setElegidas] = useState<string[]>(campana ? [campana] : []);
+  const [envio, setEnvio] = useState<MailRevisionEnvio>("primero");
   const [armando, setArmando] = useState(false);
   const [listo, setListo] = useState<MailRevision | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +51,7 @@ export function VistaParaRevision({ campana }: Props) {
   const armar = async () => {
     setArmando(true); setError(null); setListo(null);
     try {
-      setListo(await apiMailRevision({ campaign_ids: elegidas, titulo: "Correos para revisar" }));
+      setListo(await apiMailRevision({ campaign_ids: elegidas, titulo: "Correos para revisar", envio }));
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "No se pudo armar la vista.");
     } finally {
@@ -68,6 +81,20 @@ export function VistaParaRevision({ campana }: Props) {
           );
         })}
       </ul>
+      <fieldset className="rec-exp-revision-envio">
+        <legend>Envío</legend>
+        {ENVIOS.map((e) => (
+          <label key={e.valor}>
+            <input
+              type="radio"
+              name={`${id}-envio`}
+              checked={envio === e.valor}
+              onChange={() => { setEnvio(e.valor); setListo(null); }}
+            />
+            <span>{e.rotulo}</span>
+          </label>
+        ))}
+      </fieldset>
       <div className="rec-exp-revision-acciones">
         <PulsoButton variant="secondary" size="sm" disabled={!elegidas.length || armando} onClick={() => { void armar(); }}>
           {armando ? "Armando…" : `Armar la vista (${elegidas.length})`}

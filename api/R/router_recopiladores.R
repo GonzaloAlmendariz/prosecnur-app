@@ -253,7 +253,7 @@ mount_recopiladores <- function(pr) {
     plumber::pr_post("/api/recopiladores/mail-revision", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_revision(session_header(req), campaign_ids = body$campaign_ids,
-                               ejemplo = body$ejemplo, titulo = body$titulo)
+                               ejemplo = body$ejemplo, titulo = body$titulo, envio = body$envio)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

@@ -1811,7 +1811,16 @@ export async function apiMailPresets(): Promise<MailPresetsPayload> {
 /** Vista para revisión (L9): un HTML con los correos de las campañas elegidas, para quien aprueba. */
 export type MailRevision = { file_id: string; filename: string; size_bytes: number };
 
-export async function apiMailRevision(input: { campaign_ids: string[]; titulo?: string; ejemplo?: "femenino" | "masculino" }): Promise<MailRevision> {
+/** Qué envío de cada campaña muestra la vista para revisión (L17), sin numerar. */
+export const MAIL_REVISION_ENVIOS = ["primero", "recordatorio", "ultimo"] as const;
+export type MailRevisionEnvio = (typeof MAIL_REVISION_ENVIOS)[number];
+
+export async function apiMailRevision(input: {
+  campaign_ids: string[];
+  titulo?: string;
+  ejemplo?: "femenino" | "masculino";
+  envio?: MailRevisionEnvio;
+}): Promise<MailRevision> {
   const raw = await handleMail(await apiFetch(`${BASE}/mail-revision`, json("POST", input)));
   const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
   if (!file || !str(file.file_id)) throw contractError("la vista para revisión no devolvió el archivo.");

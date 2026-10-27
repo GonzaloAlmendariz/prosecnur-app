@@ -240,6 +240,31 @@
   gap: 8px;
 }
 
+/* Qué envío (L17): una fila de opciones, como la lista de campañas. */
+.rec-exp-revision-envio {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-exp-revision-envio legend {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.rec-exp-revision-envio label {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+}
+
 .rec-exp-revision-acciones {
   display: flex;
   flex-wrap: wrap;

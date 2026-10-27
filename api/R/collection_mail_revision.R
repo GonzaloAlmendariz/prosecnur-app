@@ -15,20 +15,35 @@
 
 .CMAIL_REVISION_ANCHOS <- c(computadora = 760L, celular = 390L)
 .CMAIL_REVISION_MAX <- 6L
+# Qué envío de cada campaña (L17), con los nombres de Gonzalo y sin numerar:
+# el primer correo, un recordatorio (el primero de ellos) o el último.
+.CMAIL_REVISION_ENVIOS <- c(primero = "Primer correo", recordatorio = "Recordatorio", ultimo = "Último recordatorio")
+
+#' El envío de la campaña que se muestra; sin recordatorios, el primer correo.
+#' @keywords internal
+.cmail_revision_envio <- function(campaign, envio) {
+  sends <- .cmail_sends_of(campaign)
+  recs <- Filter(function(s) identical(.cmail_one(s$kind), "recordatorio"), sends)
+  if (identical(envio, "recordatorio") && length(recs)) return(recs[[1L]]$send_id)
+  if (identical(envio, "ultimo") && length(recs)) return(recs[[length(recs)]]$send_id)
+  NULL
+}
 
 #' HTML del correo de una campaña, limpio, para la vista para revisión.
 #' @keywords internal
-.cmail_revision_correo <- function(session, campaign, ejemplo) {
+.cmail_revision_correo <- function(session, campaign, ejemplo, envio = "primero") {
   tpl <- .cmail_campaign_template_checked(campaign, strict = FALSE)
   attr(tpl, "problems") <- NULL
-  sp <- .cmail_send_pick(campaign, tpl, NULL)
+  sp <- .cmail_send_pick(campaign, tpl, .cmail_revision_envio(campaign, envio))
   ef <- .cmail_template_for_send(tpl, sp$send)
   images <- .cmail_images_resolve(session, ef)
   values <- .cmail_synthetic_values(ef, ejemplo)
   rendered <- collection_mail_render(ef, mode = "preview", dialect = .cmail_platform_of(campaign),
                                      values = values, images = images, marks = FALSE)
+  es_primero <- identical(.cmail_one(sp$send$kind) %||% "invitacion", "invitacion")
   list(nombre = .cmail_one(campaign$name) %||% .cmail_one(campaign$campaign_id), html = rendered$html,
-       subject = rendered$subject)
+       subject = rendered$subject,
+       envio = if (es_primero) .CMAIL_REVISION_ENVIOS[["primero"]] else .CMAIL_REVISION_ENVIOS[[envio]])
 }
 
 #' La página de revisión con los correos ya armados (list(nombre, html, subject)).
@@ -39,8 +54,8 @@
   fila <- function(vista) {
     ancho <- .CMAIL_REVISION_ANCHOS[[vista]]
     celdas <- vapply(correos, function(c) sprintf(
-      '<figure><figcaption>%s</figcaption><iframe class="%s" title="%s en %s" style="width:%dpx;height:900px" srcdoc="%s" onload="%s"></iframe></figure>',
-      esc(c$nombre), vista, esc(c$nombre), vista, ancho, htmltools::htmlEscape(c$html, attribute = TRUE), ajustar), "")
+      '<figure><figcaption style="max-width:%dpx">%s<small>%s</small><span>Asunto: %s</span></figcaption><iframe class="%s" title="%s en %s" style="width:%dpx;height:900px" srcdoc="%s" onload="%s"></iframe></figure>',
+      ancho, esc(c$nombre), esc(c$envio %||% ""), esc(c$subject %||% ""), vista, esc(c$nombre), vista, ancho, htmltools::htmlEscape(c$html, attribute = TRUE), ajustar), "")
     sprintf('<section class="fila"><h2 id="%s">%s</h2><div class="par">%s</div></section>',
             vista, if (identical(vista, "computadora")) "Computadora" else "Celular", paste(celdas, collapse = ""))
   }
@@ -61,7 +76,9 @@
     'h2{margin:0 0 12px;font-size:22px;color:var(--navy)}',
     '.par{display:grid;grid-auto-flow:column;grid-auto-columns:max-content;gap:28px;justify-content:center;overflow-x:auto}',
     'figure{margin:0;display:grid;gap:8px;justify-items:center;align-content:start}',
-    'figcaption{font-size:13px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.06em}',
+    'figcaption{display:grid;gap:2px;justify-items:center;text-align:center;font-size:13px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.06em}',
+    'figcaption small{font-size:12px;color:var(--ink);letter-spacing:.04em}',
+    'figcaption span{font-size:14px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0}',
     'iframe{display:block;border:1px solid var(--line);border-radius:10px;background:#fff}',
     'iframe.celular{border:8px solid #1b2438;border-radius:22px}',
     '</style></head><body>',
@@ -73,8 +90,9 @@
 #' Arma la vista para revisión de las campañas pedidas y la deja para descargar.
 #' @param campaign_ids ids de campaña (1 a 6), en el orden de las columnas.
 #' @param ejemplo "femenino" (Ana) o "masculino" (Luis).
+#' @param envio "primero", "recordatorio" o "ultimo" (L17).
 #' @keywords internal
-collection_mail_revision <- function(sid, campaign_ids, ejemplo = "femenino", titulo = NULL) {
+collection_mail_revision <- function(sid, campaign_ids, ejemplo = "femenino", titulo = NULL, envio = "primero") {
   session <- session_get(sid)
   ids <- as.character(unlist(campaign_ids %||% list(), use.names = FALSE))
   if (!length(ids) || length(ids) > .CMAIL_REVISION_MAX) {
@@ -89,7 +107,11 @@ collection_mail_revision <- function(sid, campaign_ids, ejemplo = "femenino", ti
   }
   ejemplo <- .cmail_one(ejemplo) %||% "femenino"
   if (!(ejemplo %in% names(.CMAIL_EJEMPLOS))) ejemplo <- "femenino"
-  correos <- lapply(ids, function(id) .cmail_revision_correo(session, por_id[[id]], ejemplo))
+  envio <- .cmail_one(envio) %||% "primero"
+  if (!(envio %in% names(.CMAIL_REVISION_ENVIOS))) {
+    stop_api(422, "E_COLLECTION_MAIL_REVISION", "El envío es «primero», «recordatorio» o «ultimo».")
+  }
+  correos <- lapply(ids, function(id) .cmail_revision_correo(session, por_id[[id]], ejemplo, envio))
   titulo <- .cmail_one(titulo) %||% "Correos para revisar"
   html <- .cmail_revision_pagina(titulo, correos)
   dir.create(file.path(session$dir, "downloads"), recursive = TRUE, showWarnings = FALSE)
@@ -97,5 +119,5 @@ collection_mail_revision <- function(sid, campaign_ids, ejemplo = "femenino", ti
   path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", nombre))
   writeLines(html, path, useBytes = TRUE)
   file <- .cmail_register_artifact(sid, path, "mail_revision", nombre, "revision", "text/html", "internal")
-  list(ok = TRUE, file = file, campaigns = as.list(ids), ejemplo = ejemplo)
+  list(ok = TRUE, file = file, campaigns = as.list(ids), ejemplo = ejemplo, envio = envio)
 }
