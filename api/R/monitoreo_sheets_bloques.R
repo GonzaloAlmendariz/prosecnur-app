@@ -18,8 +18,9 @@
 #     eso: que compartan fila no dice que uno reemplace al otro.
 #   - Las columnas propias de un bloque (p. ej. «¿Se reemplaza con el
 #     Backup?») quedan vacías en las filas de los demás.
-# Si no hay bloques, se lee exactamente igual que siempre
-# (`.monitoreo_values_to_dataframe`).
+# Si no hay bloques, se lee igual que siempre (`.monitoreo_values_to_dataframe`)
+# y, si la columna de origen tiene otro nombre, se le añade `Origen`
+# (monitoreo_sheets_origen.R).
 #
 # Quién lo llama: `monitoreo_sheets_read_source()` (monitoreo_engine.R,
 # congelado: sólo reemplaza su llamada). Gate: test-monitoreo-sheets-bloques.R.
@@ -144,7 +145,9 @@ monitoreo_sheets_bloques_dataframe <- function(values, header_row = 1L) {
   header <- trimws(filas[[header_row]])
   datos <- filas[(header_row + 1L):length(filas)]
   det <- .monitoreo_sheets_bloques_detectar(header, datos)
-  if (is.null(det)) return(legado())
+  # Un bloque: el origen puede venir en una columna con otro nombre
+  # («Muestra»: Muestra/Backup); monitoreo_sheets_origen.R lo reconoce.
+  if (is.null(det)) return(.monitoreo_sheets_origen_un_bloque(legado()))
   .monitoreo_bloques_apilar(header, datos, det)
 }
 
