@@ -38,8 +38,16 @@
 .cmail_contraction_check <- function(tpl) {
   hits <- .cmail_contracciones(tpl)
   if (!length(hits)) return(.cmail_check("contraction", "ok", 0L, "Sin «de el» ni «a el»."))
-  donde <- unique(vapply(hits, function(h) if (is.null(h$block_id)) h$prop else h$block_id, ""))
+  # Con los nombres del editor, nunca el id interno del bloque.
+  nombre <- function(h) {
+    if (identical(h$prop, "subject")) return("el asunto")
+    if (identical(h$prop, "preheader")) return("la vista previa")
+    if (identical(h$block_id, .CMAIL_OPENING_ID)) return("la apertura del envío")
+    "el cuerpo"
+  }
+  donde <- unique(vapply(hits, nombre, ""))
+  donde <- if (length(donde) > 1L) paste(paste(donde[-length(donde)], collapse = ", "), "y", donde[length(donde)]) else donde
   .cmail_check("contraction", "warning", length(hits),
-    sprintf("Dice «de el» o «a el» en %s: se escribe «del» y «al».", paste(donde, collapse = ", ")),
+    sprintf("Dice «de el» o «a el» en %s: se escribe «del» y «al».", donde),
     targets = lapply(Filter(function(h) !is.null(h$block_id), hits), function(h) .cmail_target(h$block_id, h$prop)))
 }
