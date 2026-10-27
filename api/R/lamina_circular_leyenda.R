@@ -51,7 +51,9 @@
   for (i in seq_len(k)) {
     col <- (i - 1L) %/% geo$per; fil <- (i - 1L) %% geo$per
     xc <- geo$xl + col * (geo$wcol + 0.15); yk <- y_ley + fil * geo$fila
-    .lam_caja(lz, xc, yk + (geo$fila - lado) / 2, lado, lado, cols[i], nombre = "circular:cuadro")
+    # El cuadro a la altura de la primera línea de la cifra (margen superior de 0.05 in de su caja), no al medio de la
+    # fila: con filas altas quedaba media fila más abajo que su texto (torta de seis porciones en dos gráficos, C3).
+    .lam_caja(lz, xc, yk + 0.05 + geo$size_cifra * 1.2 / 72 / 2 - lado / 2, lado, lado, cols[i], nombre = "circular:cuadro")
     .lam_txt(lz, espec$cifras[i], xc + 0.24 - 0.1, yk, geo$wcif + 0.2, geo$fila - 0.02, geo$size_cifra, azul, bold = TRUE,
              nombre = "circular:cifra")
     xr <- xc + 0.24 + geo$wcif

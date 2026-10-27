@@ -50,6 +50,10 @@
                                layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc,
                                rotulo_centro = NULL) {   # la torta no tiene centro: comparte la llamada con la dona
   force(folio)
+  if (!.lam_torta_cabe(espec)) {   # C3: más de tres porciones, como la dona grande sin hueco (lamina_circular_dona_grande.R)
+    return(.lam_laminas_dona_grande(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
+                                    layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
   azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   # El disco ocupa el 79.5 % de su caja de 4.4 in, como el coord_polar del recetario.
@@ -116,7 +120,8 @@
 #' @keywords internal
 .lam_circular_cabe <- function(espec) {
   k <- length(espec$valores)
-  if (identical(espec$forma, "pie")) return(k >= 2L && k <= 3L && all(.lam_ancho_tinta(espec$rotulos, 13, TRUE) <= 5.4))
+  # C3: la torta que no cabe en la lámina 69 va como la dona grande sin hueco, no a la imagen ggplot.
+  if (identical(espec$forma, "pie")) return(.lam_torta_cabe(espec) || .lam_dona_grande_cabe(espec))
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
   # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
   # centro debe caber en el hueco (≈ 1.8 in).
@@ -130,4 +135,11 @@
   k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
     .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
+}
+
+#' ¿Cabe la torta de la lámina 69: dos o tres porciones con el rótulo en una línea de 5.4 in?
+#' @keywords internal
+.lam_torta_cabe <- function(espec) {
+  k <- length(espec$valores)
+  k >= 2L && k <= 3L && all(.lam_ancho_tinta(espec$rotulos, 13, TRUE) <= 5.4)
 }
