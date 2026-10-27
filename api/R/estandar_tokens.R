@@ -81,6 +81,13 @@
   if (k <= length(base)) base[seq_len(k)] else grDevices::colorRampPalette(base[1:4])(k)
 }
 
+#' Semáforo del estándar como vector nombrado `c(rojo, ambar, verde)` (P10: uno solo para todo el motor)
+#' @keywords internal
+.std_semaforo <- function() {
+  p <- .std_valor("ppt", "paletas", "semaforo")
+  c(rojo = p$rojo, ambar = p$ambar, verde = p$verde)
+}
+
 #' Tamaño tipográfico PPT en puntos (`titulo`, `base`, `leyenda`, `cifra`...)
 #'
 #' Más el desplazamiento del perfil de letra del cliente (K13, graficos_estilo_cliente.R), que sólo fija el worker del

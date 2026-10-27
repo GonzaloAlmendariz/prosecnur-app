@@ -139,6 +139,18 @@ Formato: **fecha · decisión** — origen · token · ítem del checklist.
   lámina «Reglas de la identidad» del catálogo los dibuja tal cual (`p_slide_estandar`) — `ppt.paletas.*.uso`,
   `ppt.paletas.actores.rotulos`, `ppt.paletas.categorias.rotulos` · P5.
 
+- **2026-10-27 · Un solo semáforo**: el de Analítica › Dimensiones (rojo `#D84B55`, ámbar `#E0B44C`, verde `#3A9A5B`)
+  para todo el motor: chips del boxplot y de media y rango, comparativo Top Two Box y su tendencia, que tenían dos
+  semáforos propios — Gonzalo («usa el semáforo de Dimensiones como ppt.paletas.semaforo para todo») ·
+  `ppt.paletas.semaforo`, leído por `.std_semaforo()`; paridad con la Analítica y el dashboard en
+  `test-semaforo-estandar.R` y `semaforoEstandar.test.ts` · P10.
+- **2026-10-27 · El perfil «Acreditación · informe institucional» pinta con el estándar**: rampa Likert, series del
+  radar en `actores` y título en coral (antes la rampa, el ámbar y el rojo `#C00000` medidos sobre el mazo 2021) —
+  Gonzalo («alinea el perfil de acreditación 2021 al JSON») · `ppt.paletas.likert`, `ppt.paletas.actores`,
+  `ppt.colores.coral` · P9.
+- **2026-10-27 · Trinquete de colores**: en el motor de entregables cada literal hex es un token o una excepción
+  declarada con su motivo (`fixtures/hex_fuera_del_estandar.csv`, `test-hex-fuera-del-estandar.R`) · P8.
+
 ### Otros
 
 - **2026-10-23 · Radar de 5 a 8 criterios**; con menos, líneas y puntos — `51aafe5c8`, `fb148d02b` · por crear

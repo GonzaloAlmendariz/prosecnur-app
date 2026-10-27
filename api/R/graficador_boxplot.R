@@ -87,7 +87,7 @@ graficar_boxplot <- function(
     size_media        = 3.2,
     cortes_chip       = NULL,
     modo_semaforo     = c("grupos", "degradado"),
-    chip_colores      = c(rojo = "#C62828", ambar = "#EF6C00", verde = "#2E7D32"),
+    chip_colores      = .std_semaforo(),   # el semáforo del estándar (P10)
     chip_texto_color  = "#081F5C",
     chip_decimales    = 1,
     chip_sufijo       = "",
@@ -240,7 +240,7 @@ graficar_boxplot <- function(
   if (is.na(chip_sufijo)) chip_sufijo <- ""
 
   .resolve_chip_colores <- function(x) {
-    out <- c(rojo = "#C62828", ambar = "#EF6C00", verde = "#2E7D32")
+    out <- .std_semaforo()
     if (is.null(x) || !length(x)) return(out)
     x <- as.character(x)
     if (!is.null(names(x)) && any(nzchar(names(x)))) {

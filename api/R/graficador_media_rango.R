@@ -108,7 +108,7 @@ graficar_media_rango <- function(
     semaforo_gradiente_valores = NULL,
     semaforo_gradiente_limites = NULL,
     semaforo_gradiente_segmentos = 20L,
-    chip_colores      = c(rojo = "#C62828", ambar = "#EF6C00", verde = "#2E7D32"),
+    chip_colores      = .std_semaforo(),   # el semáforo del estándar (P10)
     chip_texto_color  = "#081F5C",
     chip_decimales    = 1,
     chip_sufijo       = "",
@@ -309,7 +309,7 @@ graficar_media_rango <- function(
   if (is.na(chip_sufijo)) chip_sufijo <- ""
 
   .resolve_chip_colores <- function(x) {
-    out <- c(rojo = "#C62828", ambar = "#EF6C00", verde = "#2E7D32")
+    out <- .std_semaforo()
     if (is.null(x) || !length(x)) return(out)
     x <- as.character(x)
     if (!is.null(names(x)) && any(nzchar(names(x)))) {

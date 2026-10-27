@@ -3746,7 +3746,7 @@ graficar_barras_apiladas <- function(
       umbrales = .t2b_umbrales_efectivos(
         barra_extra_semaforo, barra_extra_umbral_alto, barra_extra_umbral_medio
       ),
-      colores_semaforo = barra_extra_semaforo_colores %||% .T2B_SEMAFORO_COLORES,
+      colores_semaforo = barra_extra_semaforo_colores %||% .t2b_semaforo_colores(),
       color_encabezado = color_ejes,
       mostrar_tendencia = isTRUE(barra_extra_tendencia),
       tolerancia_pp = barra_extra_tolerancia_pp,

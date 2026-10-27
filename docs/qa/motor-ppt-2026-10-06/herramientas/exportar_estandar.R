@@ -51,6 +51,11 @@ paletas <- list(
   categorias = list(mayor = "#081F5C", resto = "#8E9DBD", residual = "#8A93A8",
                     rotulos = list(mayor = "La más elegida", resto = "Las demás", residual = "No sabe, Otros"),
                     uso = "Barras de una serie: la mayor en azul; las demás en el tono de apoyo; No sabe, Otros y similares al final en gris azulado."),
+  # El semáforo de Analítica › Dimensiones, el que ve el analista, para todo el motor: chips del boxplot y de media y
+  # rango, comparativo Top Two Box y su tendencia (Gonzalo, 2026-10-27, P10). Antes había tres semáforos distintos.
+  semaforo = list(rojo = "#D84B55", ambar = "#E0B44C", verde = "#3A9A5B",
+                  rotulos = list(rojo = "Bajo", ambar = "Medio", verde = "Alto"),
+                  uso = "Indicadores con umbral: bajo en rojo, medio en ámbar y alto en verde; la tendencia que sube va en verde y la que baja en rojo."),
   calor = list(desde = "#EEF2F8", hasta = "#2F4B7C", rango = c(80, 100),
                # Cinco tramos en vez de degradado (recetario_m3d.R:21-23, C30): todos pasan 4.5:1 con su texto.
                tramos = c("#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"),
