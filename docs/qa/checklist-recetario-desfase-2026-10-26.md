@@ -152,4 +152,54 @@ Columnas: **ADR** (decisión escrita) · **JSON** (token) · **Cat.** (lámina d
 
 | # | Ítem | Estado |
 |---|---|---|
-| C1 | Gramática única de títulos, subtítulos y notas en las láminas del catálogo | 🔵 |
+| C1 | Gramática única de títulos, subtítulos y notas en las láminas del catálogo | 🔵 (implementado, falta revisión de Gonzalo) |
+
+### C1: el catálogo como informe real (Gonzalo, 2026-10-26: «Como informe real»)
+
+Dónde vive: `api/R/catalogo_recetario_plan.R` (plan), `api/R/catalogo_recetario_datos.R` (dos variables nuevas sin
+sorteo), `api/R/lamina_notas_orador.R` (notas del orador en el motor, `meta$notas`).
+
+- **Antetítulo** = capítulo o subcapítulo temático de un informe (Perfil del encuestado, Experiencia universitaria,
+  Satisfacción con los servicios, Comparación entre públicos, Competencias del perfil de egreso, Inserción laboral,
+  Propuestas de mejora, Comentarios abiertos, Territorio, Diferencias significativas y Anexo). Desaparecen «Ajustes de las
+  escalas», «Hasta seis barras por lámina» y «Multiapiladas en sus cinco lecturas»: su contenido pasa a las notas.
+- **Título** = hallazgo de ejemplo leído del render (pdftotext del PPT), sin «(pNN)». En láminas que el motor parte en
+  dos, el hallazgo vale para las dos partes (sin cifras que sólo dibuja una).
+- **Pregunta** = subtítulo de la lámina (`subtitulo` de `p_slide_1_grafico`). Se omite donde el gráfico ya la encabeza
+  (dicotómica, apilada de un público, caja, media y rango, citas), para no escribirla dos veces.
+- **Base** = la del preset, sin teclear.
+- **Notas del orador**: `Estilo · Graficador · Opciones · Úsalo cuando · Referencia histórica` en todas las láminas.
+- **Cierre**: una contraportada al final; las otras cuatro variantes van en «Anexo › Cierres», cada una con su nota.
+- Decisión conservadora: las portadas, índices y objetivos alternativos van en un capítulo «Anexo» (un informe tiene una
+  sola portada).
+- Quitadas: «Torta con leyenda de cifras (p69)», «Peso en la satisfacción (p98)», «Conteos por año (p85)», «Mapas
+  territoriales de cobertura (p106, p108–p109)» (ver abajo) y «6 barras: dos preguntas por sexo», que era idéntica byte a
+  byte a «Preguntas por grupos».
+- Convertidas en láminas reales: p94 (radar con menos de cinco criterios → comparativo por criterio), p103 (la nube ya
+  cuenta frases de dos y tres palabras: la lámina de la nube lo dice en su nota) y p104 (temas de un texto codificado con
+  `temas_de_texto`, variable `egresados$comentario_temas`).
+- Nuevas del checklist: T1 (dona con tajadas chicas, `egresados$modalidad`). A4 (rótulo largo con columna acotada) y
+  N1 (no sustantivo «SIN INF» al final) ya los muestran «Ranking en barras» y todas las escalas; S3 (Sí/No de una fila),
+  la «Dicotómica».
+
+### Estilos que el motor aún no produce
+
+| Estilo | Página histórica | Por qué falta |
+|---|---|---|
+| Torta con leyenda de cifras («56 de 178») | p69 | La leyenda con cifra, rótulo y conteo es una propuesta del recetario. |
+| Peso en la satisfacción (regresión) | p98 | El motor no estima pesos; las escalas de los aspectos sí se grafican. |
+| Conteos por año con totales | p85 | La matriz de conteos con totales no existe como graficador. |
+| Mapas territoriales de cobertura | p106, p108–p109 | Necesitan el contexto territorial de Hojas de ruta y Monitoreo; se prueban con `acnur_acg`. |
+| Tabla de calor pregunta × cruce con Top Two Box (E9) | — | En un proyecto de varias bases sale «Sin datos»: `.heatmap_pc_espec` (graficos_heatmap_pregunta_cruce.R) llama a `.tab_freq(var)` sin la fuente y la base del elemento la busca como dimensión. Funciona con una sola base (CCSS). |
+| «<1%» (T4) | — | Con 178 egresados un caso es 0,56 % y redondea a 1 %; hace falta una base de más de 200 casos con una categoría de un caso. |
+
+### Pendientes vistos en el render del catálogo (no se tocaron)
+
+- Histograma de años: el rótulo de la mediana sale «Mediana: 2,021» (separador de miles en un año).
+- Multiapiladas de seis barras (3 + 3): la leyenda pisa la última barra (igual antes y después de C1; posible efecto del
+  piso de 1,12 cm, E3).
+- Capítulo con número grande (`variante = "numero"`) con dos cifras: el «10» se dibuja como «1» sobre «0»; el catálogo usa
+  el rótulo en el capítulo 10.
+- La base de la nube agrega «El tamaño crece con las menciones» y la de las cifras dice «Base: 172 respuestas»: dos formas
+  del pie que no salen del preset.
+- El editor del frontend: falta comprobar que conserva `meta$notas` al guardar una lámina (no se tocó en C1).
