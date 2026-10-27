@@ -42,14 +42,15 @@
 }
 
 #' Columna de rótulos de las pesas nativas: el ancho del recetario (2.8 in con diferencia, 2.2 sin ella) o, si algún
-#' rótulo pide más de dos líneas a 13 pt, el más angosto (hasta 1.6 in más) en que todos caben en dos
+#' rótulo pide más de dos líneas a 13 pt, el más angosto (hasta 1.6 in más) en que todos caben en dos; si ni así, el más
+#' angosto en que caben en tres (R3, graficos_rotulo_completo.R: el criterio va completo)
 #'
-#' `NA` si ni así caben: la lámina sigue por la ruta de respaldo.
+#' `NA` si ni así caben: la lámina recorta antes con aviso (`.lam_pesas_rotulos`) o sigue por la ruta de respaldo.
 #' @keywords internal
 .lam_pesas_ancho_rotulo <- function(rotulos, con_dif) {
   base <- if (isTRUE(con_dif)) 2.8 else 2.2
-  for (w in seq(base, base + 1.6, by = 0.2)) {
-    if (all(vapply(rotulos, function(x) .lam_lineas(x, w, 13, TRUE) <= 2L, TRUE))) return(w)
+  for (lineas in c(2L, .ROTULO_COMPLETO_LINEAS)) for (w in seq(base, .lam_pesas_ancho_max(con_dif), by = 0.2)) {
+    if (.lam_pesas_caben(rotulos, w, lineas)) return(w)
   }
   NA_real_
 }

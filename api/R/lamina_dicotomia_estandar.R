@@ -110,13 +110,14 @@
   d <- data.frame(x0 = c(0, p1), x1 = c(p1, 100), k = factor(rot, levels = rot), cif = cif)
   d$cabe <- (d$x1 - d$x0) >= .WORD_ESCALA_CABE_PCT; d$xm <- (d$x0 + d$x1) / 2         # regla de cifras chicas: encima por debajo de 7 %
   hay_chicas <- any(!d$cabe)
+  pub <- .word_sino_publico(espec)   # R2: el público a la izquierda, como la escala de una fila (reporte_word_publico_una_barra.R)
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0, ymax = 1, fill = .data$k)) +
     ggplot2::scale_fill_manual(values = stats::setNames(col, rot), labels = etq, name = NULL) +
     ggplot2::geom_text(data = d[d$cabe, , drop = FALSE], ggplot2::aes(x = .data$xm, y = 0.5, label = .data$cif), size = .word_pt(9, "cifra"),
                        fontface = .word_cara("cifras"), colour = vapply(col[d$cabe], .lam_texto_sobre, ""), family = "Arial")
   if (hay_chicas) g <- g + ggplot2::geom_text(data = d[!d$cabe, , drop = FALSE], ggplot2::aes(x = pmin(pmax(.data$xm, 3), 97), y = 1.25, label = .data$cif),
                                               size = .word_pt(8, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial")
-  g <- g + ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
+  g <- g + pub$capa + ggplot2::scale_x_continuous(limits = if (is.null(pub)) c(0, 100) else c(pub$xmin, pub$xmax), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(0, if (hay_chicas) 1.5 else 1), expand = c(0, 0)) + .word_tema()
   .word_fijar_alto_por_grosor(g, 1)   # N25: grosor común; el eje y ya trae el aire de las cifras chicas
 }
