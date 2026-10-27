@@ -115,7 +115,8 @@
 #' Grosor del par y cuerpo de la cifra de un cruce
 #'
 #' El par va pegado (grosor igual al dodge del comparativo, 0.86): el aire va entre categorías. La cifra baja hasta caber
-#' en el alto de su barra con el mismo margen del comparativo (72 %); con un piso de 8 pt. Si ni al piso cabe, la cifra va
+#' en el alto de su barra con el mismo margen del comparativo (72 %); con un piso de 8 pt, que también sube la que llega por
+#' debajo. Si ni al piso cabe, la cifra va
 #' fuera de la barra y en azul (`fuera = TRUE`).
 #' @return `list(dodge, grosor, size_mm, alto_barra_in, fuera)`.
 #' @keywords internal
@@ -131,6 +132,9 @@
   barra_in <- alto * frac_panel * d / (n * k)
   tope_mm <- barra_in * frac * 25.4
   min_mm <- minimo_pt * 25.4 / 72
+  # El piso rige también hacia arriba: con tres o más grupos la escala por número de series (× 0.85, × 0.70) dejaba la
+  # cifra bajo 8 pt aunque cupiera holgada en su barra (CCSS, 2026-10-27: 5.97 pt con cuatro grupos).
+  s <- max(s, min_mm)
   s2 <- if (s / 25.4 <= barra_in * frac) s else max(min_mm, tope_mm)
   list(dodge = d, grosor = d, size_mm = s2, alto_barra_in = barra_in, fuera = s2 / 25.4 > barra_in * frac + 1e-9)
 }

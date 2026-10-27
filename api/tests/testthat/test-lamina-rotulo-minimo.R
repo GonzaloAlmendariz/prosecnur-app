@@ -53,3 +53,30 @@ test_that("la composición le pasa al graficador el ancho real de su marcador, n
   expect_true(all(abs(w - 3.91) < 0.05), info = paste(round(w, 2), collapse = ", "))
   expect_equal(.composicion_ancho_slot(doc, list(slots = list(a = list(loc = list(width = 2.5)))), "a"), 2.5)
 })
+
+# Prueba de robustez con el mazo CCSS (2026-10-27): una agrupada de cruce con tres o más grupos (un Sí/No según nivel educativo,
+# cuatro grupos) iba por la ruta de respaldo con la cifra de cada barra a 5.97 pt. La escala por número de series
+# (`size_texto_barras * 0.70` con cuatro grupos) la bajaba del piso del estándar y `.agrupadas_cruce_par` sólo la acotaba
+# hacia abajo: si ya cabía en la barra la dejaba como venía. Ahora el cruce parte del piso (`cifra_minimo`, 8 pt).
+test_that("la cifra de una agrupada de cruce con cuatro grupos no baja del piso del estándar", {
+  df <- data.frame(categoria = c("Sí", "No"), N = 480, pct_1 = c(.10, .90), pct_2 = c(.29, .71), pct_3 = c(.47, .53),
+                   pct_4 = c(.67, .33), stringsAsFactors = FALSE)
+  g <- suppressMessages(suppressWarnings(graficar_barras_agrupadas(
+    data = df, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("pct_", 1:4),
+    etiquetas_series = c(pct_1 = "Hasta secundaria completa", pct_2 = "Superior técnica", pct_3 = "Universitaria", pct_4 = "Posgrado"),
+    usar_canvas = TRUE, orientacion = "horizontal", ancho = 12.5, alto = 6, exportar = "rplot")))
+  cr <- attr(g, "pulso_barras_agrupadas_cruce")
+  piso_mm <- .std_valor("ppt", "tipografia", "cifra_minimo") * 25.4 / 72
+  expect_gte(cr$size_cifra_mm, piso_mm - 1e-9)
+  # Con barras holgadas el piso cabe dentro: no hace falta sacarla.
+  expect_false(cr$cifra_fuera)
+})
+
+test_that("el piso del cruce sólo sube lo que estaba por debajo: dos grupos conservan su cuerpo", {
+  expect_equal(.agrupadas_cruce_par(3, 5, 2, 6)$size_mm, 3)
+  expect_equal(.agrupadas_cruce_par(2.1, 2, 4, 6)$size_mm, 8 * 25.4 / 72)
+  # Barra demasiado delgada para el piso: queda en el piso y se declara fuera (la cifra sale de la barra, no se encoge).
+  angosta <- .agrupadas_cruce_par(2.1, 12, 4, 3)
+  expect_equal(angosta$size_mm, 8 * 25.4 / 72)
+  expect_true(angosta$fuera)
+})
