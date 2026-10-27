@@ -121,11 +121,14 @@
 #' Piso de grosor de las barras de escala, en pulgadas (0 = sin piso)
 #'
 #' Lo fija `options(prosecnur.grosor_piso_cm = )`: el informe (`presets$base$args$grosor_piso_cm`, vía
-#' `.grosor_piso_fijar()`) o, durante una lámina, el slot (`espec$grosor_piso_cm`). Un valor ausente, no numérico o
-#' no positivo no es piso. Solo geometría: no toca grano ni denominadores.
+#' `.grosor_piso_fijar()`) o, durante una lámina, el slot (`espec$grosor_piso_cm`); sin ninguno, el token
+#' `ppt.grosor.piso_escala_cm` del estándar. Un 0 o un valor no numérico no es piso. Solo geometría.
 #' @keywords internal
 .std_piso_escala_in <- function() {
-  v <- suppressWarnings(as.numeric(getOption("prosecnur.grosor_piso_cm")))
+  # Sin declaración (ni del informe ni del slot) rige el piso del estándar: «las barras se ven muy delgadas» (Gonzalo,
+  # 2026-10-26) en todo proyecto que no lo declarara. Un 0 explícito lo sigue apagando.
+  op <- getOption("prosecnur.grosor_piso_cm")
+  v <- suppressWarnings(as.numeric(op %||% .std_valor("ppt", "grosor", "piso_escala_cm")))
   if (length(v) != 1L || !is.finite(v) || v <= 0) return(0)
   v / 2.54
 }

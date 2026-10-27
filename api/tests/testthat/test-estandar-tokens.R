@@ -28,6 +28,7 @@ test_that("las paletas del núcleo traen sus colores en orden", {
 })
 
 test_that("el grosor de barra sale de la tabla por número de filas, escalonado", {
+  withr::local_options(prosecnur.grosor_piso_cm = 0)   # la tabla cruda: sin el piso de 1,12 cm que el estándar trae
   expect_equal(.std_grosor(1, "escala_apilada"), 0.50)
   expect_equal(.std_grosor(3, "escala_apilada"), 0.48)
   expect_equal(.std_grosor(4, "escala_apilada"), 0.44)

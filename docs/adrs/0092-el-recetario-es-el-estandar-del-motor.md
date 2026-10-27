@@ -57,7 +57,11 @@ Formato: **fecha · decisión** — origen · token · ítem del checklist.
 - **2026-10-23 · Una sola «Barra extra» por gráfico** (Top Two Box, Bottom Two Box o conteos); el Word la hereda y
   `word_barra_extra` la cambia sólo allí — `5706e40c8` · contrato en `graficos_barra_extra.R` · E2.
 - **2026-10-23 · Piso de grosor de la barra de escala**: no baja de `grosor_piso_cm`; antes que apretar, la lámina se
-  parte — `51aafe5c8` · por crear `ppt.grosor.piso_escala_cm` · E3.
+  parte — `51aafe5c8` · `ppt.grosor.piso_escala_cm` · E3.
+- **2026-10-26 · El piso de 1,12 cm rige sin declararlo**: era opt-in por proyecto (Arte lo declaraba; el catálogo y
+  los proyectos nuevos no) y las apiladas por grupos salían delgadas (Gonzalo: «Las barras se ven muy delgadas cuando
+  pensé que ya habíamos solucionado eso en el motor actual»). El estándar trae 1,12 cm; `grosor_piso_cm = 0` lo
+  apaga — `ppt.grosor.piso_escala_cm` · E3.
 - **2026-10-23 · Hasta seis barras sin «(cont.)»**: se comprime el aire, no la barra — `51aafe5c8`, `7a301695b` · por
   crear `ppt.geometria.apretado.*` · E4.
 - **2026-10-23 · Cifra chica** a 0,28 in sobre la barra, ≥ 0,075 de la de arriba, caja de 0,22 — reemplaza

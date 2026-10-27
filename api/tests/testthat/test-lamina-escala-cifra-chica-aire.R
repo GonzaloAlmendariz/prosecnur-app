@@ -35,6 +35,9 @@
   list(holgura = holg[!is.na(holg)], cf = cf, seg = seg, guia = f[f$nombre == "guia" & f$w < 0.05, ])
 }
 
+# El estándar trae un piso de 1,12 cm (2026-10-26); esta suite mide la tabla de grosor y la geometría sin él.
+withr::local_options(prosecnur.grosor_piso_cm = 0, .local_envir = testthat::teardown_env())
+
 test_that("la cifra chica de la segunda fila queda al menos 0,075 in bajo la barra de arriba y dentro de su fila", {
   m <- .fcg_medir(.fcg_formas(.fcg_lam()$doc))
   expect_gt(length(m$holgura), 0)

@@ -18,11 +18,11 @@ en el render (PPT y Word). Lo da por terminado sólo Gonzalo.
 Estados: ⬜ pendiente · 🔵 en curso · ✅ hecho · ⛔ bloqueado (decisión de Gonzalo).
 Columnas: **ADR** (decisión escrita) · **JSON** (token) · **Cat.** (lámina del catálogo) · **Ref.** (pptx/docx de referencia).
 
-## Bloqueado: decisión pendiente
+## Decisiones
 
 | # | Pregunta | Estado |
 |---|---|---|
-| D1 | Los diseños de referencia (`recetario-moderna.pptx`, `propuesta-word.docx`) son a mano: ¿se actualizan, o el catálogo generado por el motor pasa a ser el recetario visual y los pptx/docx quedan como histórico? Mientras no se decida, la columna **Ref.** queda ⛔. | ⛔ |
+| D1 | Los diseños de referencia (`recetario-moderna.pptx`, `propuesta-word.docx`) quedan como histórico del diseño original; **el catálogo generado por el motor es el recetario** (Gonzalo, 2026-10-26: «Ok, el recetario ahora va a ser el catálogo»). La columna **Ref.** deja de exigirse. | ✅ decidido |
 
 ## 1. Escalas y Top Two Box
 
@@ -30,7 +30,7 @@ Columnas: **ADR** (decisión escrita) · **JSON** (token) · **Cat.** (lámina d
 |---|---|---|---|---|---|---|---|---|
 | E1 | Columna Top Two Box del Word en pulgadas, centrada con 0,12 in de aire, 0,16 entre Top y Bottom, termina en el margen derecho | 824e06338 | Word | `.word_columnas_box()` suelto | ✅ | ⬜ | ⬜ | ⛔ |
 | E2 | Una sola «Barra extra» (top2box, bottom2box, conteos); el Word la hereda y `word_barra_extra` la cambia | 5706e40c8 | Ambos | `graficos_barra_extra.R` | ✅ | — | ⬜ conteos | ⛔ |
-| E3 | Piso de grosor `grosor_piso_cm`: la barra no baja de ese grosor; la lámina se parte | 51aafe5c8 | PPT | `.std_piso_escala_in()`, no en JSON | ✅ | ⬜ | ⬜ | ⛔ |
+| E3 | Piso de grosor `grosor_piso_cm`: la barra no baja de ese grosor; la lámina se parte. Rige por defecto (1,12 cm) desde el 2026-10-26; 0 lo apaga | 51aafe5c8 | PPT | `ppt.grosor.piso_escala_cm` → `.std_piso_escala_in()` | ✅ | ✅ | ⬜ | ⛔ |
 | E4 | Evitar «(cont.)» comprimiendo el aire, no la barra (0,08 / 0,075 / apretado 0,03, TTB 0,25, franja +0,30): hasta seis barras | 51aafe5c8, 7a301695b | PPT | `lamina_escala_aire.R` suelto | ✅ | ⬜ | ⬜ | ⛔ |
 | E5 | Cifra chica sube 0,28 in, ≥ 0,075 de la barra de arriba, caja de 0,22 | 51aafe5c8 | PPT | `lamina_escala*.R` suelto; contradice `aire_cifra_chica = 0.36` | ✅ | ⬜ | ⬜ | ⛔ |
 | E6 | Cifras chicas vecinas repartidas sin solape, centradas, 0,12 in de aire; ninguna se omite | 0a3133f60 | PPT | `lamina_callouts_sin_solape.R`; contradice `reglas.cifras_chicas` (0,46) | ✅ | ⬜ | ⬜ | ⛔ |
@@ -148,4 +148,8 @@ Columnas: **ADR** (decisión escrita) · **JSON** (token) · **Cat.** (lámina d
 2. JSON: tokens nuevos y reglas de texto corregidas; el código los lee, sin cambiar ninguna salida (Arte 43/0 y el
    Word de Arte idéntico como gate).
 3. Catálogo: láminas que faltan y marcas «falta» desactualizadas (p94, p103, p104).
-4. Referencias pptx/docx: según D1.
+4. El catálogo presenta cada estilo con un lenguaje coherente (Gonzalo: el catálogo «usa un lenguaje que presenta el estilo de forma no coherente»): ítem C1.
+
+| # | Ítem | Estado |
+|---|---|---|
+| C1 | Gramática única de títulos, subtítulos y notas en las láminas del catálogo | 🔵 |

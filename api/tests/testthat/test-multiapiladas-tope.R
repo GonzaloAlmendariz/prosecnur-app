@@ -15,6 +15,7 @@ test_that("una multiapilada de siete barras avisa con la cifra y lo que hay que 
 })
 
 test_that("seis barras que se pasan por poco del alto útil no se parten en «(cont.)»", {
+  withr::local_options(prosecnur.grosor_piso_cm = 0)   # la tolerancia 1,15 es del camino sin piso (con piso, E3: se parte)
   premisas <- lapply(1:3, function(k) list(texto = paste("Tema", k), filas = list(list(i = 1L), list(i = 2L))))
   alto <- function(ps) 1.6 * length(ps)                                  # 4.8 in para seis barras: 6 % más que 4.52
   expect_length(.lam_escala_partir(premisas, disponible = 4.52, alto_fn = alto), 1L)
