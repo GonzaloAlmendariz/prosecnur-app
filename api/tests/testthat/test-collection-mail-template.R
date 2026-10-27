@@ -252,9 +252,11 @@ test_that("imagen a sangre bajo la franja de logos: llena la tarjeta y no deja r
                'height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>', fixed = TRUE)
 })
 
-test_that("banner: al menos 1200 px de ancho y forma de banner (4:3 a 2,4:1)", {
+test_that("banner: al menos 1200 px de ancho y forma de banner (4:3 a 3,4:1)", {
+  # 1200×450 (2,67:1) es la cabecera de Acreditación Institucional 2026 y 3000×1000 un banner bajo 3:1:
+  # pasan desde L4; 1200×300 (4:1) sigue siendo una tira, no un banner.
   for (dims in list(c(1201L, 810L, 1L), c(1200L, 600L, 1L), c(3201L, 1801L, 1L), c(1200L, 1300L, 0L),
-                    c(800L, 400L, 0L), c(3000L, 1000L, 0L))) {
+                    c(800L, 400L, 0L), c(3000L, 1000L, 1L), c(1200L, 450L, 1L), c(1200L, 300L, 0L))) {
     sid <- session_create()
     .cmail_fx_logo(sid, "banner-estudio.png", width = dims[[1]], height = dims[[2]])
     t <- .cmail_template_normalize(.cmail_preset_recuperacion())
