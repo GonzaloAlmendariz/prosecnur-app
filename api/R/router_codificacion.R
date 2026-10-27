@@ -2448,8 +2448,8 @@ mount_codificacion <- function(pr) {
           source = "suggestion",
           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         )
-        codif_set(sid, "familias_draft", draft, source = source)
-        codif_set(sid, "familias_generated", TRUE, source = source)
+        codif_set(sid, "familias_draft", draft, source = source, marcar = FALSE)
+        codif_set(sid, "familias_generated", TRUE, source = source, marcar = FALSE)
       }
       data_df <- codif_data_cached(sid, source)
       inst <- codif_inst_cached(sid, source)
@@ -2880,8 +2880,9 @@ mount_codificacion <- function(pr) {
         updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
       draft <- .codif_normalize_legacy_select_one_modes(sid, draft)
-      codif_set(sid, "familias_draft", draft)
-      codif_set(sid, "familias_generated", TRUE)
+      # Sembrar la sugerencia al leer no es editar (L22).
+      codif_set(sid, "familias_draft", draft, marcar = FALSE)
+      codif_set(sid, "familias_generated", TRUE, marcar = FALSE)
       list(ok = TRUE, rows = draft$rows, source = "suggestion", updated_at = draft$updated_at)
     })) |>
     plumber::pr_post("/api/codificacion/familias/draft", wrap_endpoint(function(req, res, ...) {
