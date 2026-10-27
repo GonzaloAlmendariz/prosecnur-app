@@ -179,7 +179,11 @@
   stroke-dasharray: 6 4;
 }
 
-.mon-exp-recorridos path {
+/* `[class]` sube la especificidad sobre `.mon-exp-recorridos .is-aplicador-N`,
+ * que pinta `fill` para los puntos y la leyenda: sin esto el recorrido salía
+ * como un polígono relleno en vez de una línea. */
+.mon-exp-recorridos path,
+.mon-exp-recorridos path[class] {
   fill: none;
   stroke-width: 1.6;
   stroke-dasharray: 4 3;
