@@ -207,6 +207,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
     if (!is.null(t$header$logo_ids)) t$header$logo_ids <- .cmail_strings(t$header$logo_ids) %||% t$header$logo_ids
   }
   t$fields <- if (is.null(t$fields)) list() else unname(t$fields)
+  if (!is.null(t$constants)) t$constants <- unname(t$constants)
   t$blocks <- if (is.null(t$blocks)) list() else unname(t$blocks)
   t$blocks <- lapply(t$blocks, function(b) {
     if (!is.list(b)) return(b)
@@ -261,7 +262,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(list(.cmail_problem("template.schema", "bad_schema", sprintf("Se esperaba '%s'.", COLLECTION_MAIL_TEMPLATE_SCHEMA))))
   }
   known_top <- c("schema", "template_id", "preset_id", "title", "revision", "template_sha256",
-                 "subject", "preheader", "theme", "header", "images", "fields", "blocks")
+                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "blocks")
   for (k in setdiff(names(template), known_top)) {
     add(list(.cmail_problem(paste0("template.", k), "unknown_key", sprintf("`%s` no pertenece al contrato.", k))))
   }
@@ -326,6 +327,10 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(.cmail_text_problems(f$label, paste0(path, ".label"), character(0), required = TRUE))
     add(.cmail_text_problems(f$fallback, paste0(path, ".fallback"), character(0)))
   }
+
+  # Datos fijos de la campaña (collection_mail_constantes.R): se usan como un campo.
+  add(.cmail_constants_problems(template, keys))
+  keys <- unique(c(keys, .cmail_constant_keys(template)))
 
   add(.cmail_text_problems(template$subject %||% "", "template.subject", keys))
   add(.cmail_text_problems(template$preheader %||% "", "template.preheader", keys))

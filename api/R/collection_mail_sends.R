@@ -179,7 +179,7 @@
 #' @return list(ok, sends, problems, warnings, seq).
 #' @keywords internal
 .cmail_sends_validate <- function(sends, template, previous = NULL, seq = 0L) {
-  keys <- vapply(template$fields %||% list(), function(f) as.character(f$key %||% ""), "")
+  keys <- .cmail_declared_keys(template)
   if (!is.list(sends) || !length(sends) || !is.null(names(sends))) {
     return(list(ok = FALSE, sends = list(), warnings = list(), seq = seq,
                 problems = list(.cmail_problem("sends", "not_list", "sends es una lista de 1 a 6 envíos; el primero es la invitación."))))
@@ -243,7 +243,9 @@
 #' del saludo (o al inicio), con la alineación del primer párrafo.
 #' @keywords internal
 .cmail_template_for_send <- function(tpl, send) {
-  if (is.null(send)) return(tpl)
+  # Los datos fijos de la campaña se escriben en el texto al final, también en lo
+  # que trae el envío (collection_mail_constantes.R).
+  if (is.null(send)) return(.cmail_constants_apply(tpl))
   t <- tpl
   if (!is.null(.cmail_opt_text(send$subject))) t$subject <- send$subject
   if (!is.null(.cmail_opt_text(send$preheader))) t$preheader <- send$preheader
@@ -257,7 +259,7 @@
     at <- which(types == "greeting")[1]
     t$blocks <- append(blocks, list(block), after = if (is.na(at)) 0L else at)
   }
-  t
+  .cmail_constants_apply(t)
 }
 
 #' Envío de un pedido: un borrador (`send`) o uno guardado (`send_id`; sin él, la invitación).
@@ -269,7 +271,7 @@
     id <- .cmail_one(send$send_id)
     kind <- .cmail_one(send$kind)
     invitation <- identical(id, .CMAIL_SEND_INVITATION) || identical(kind, "invitacion")
-    keys <- vapply(template$fields %||% list(), function(f) as.character(f$key %||% ""), "")
+    keys <- .cmail_declared_keys(template)
     pos <- if (!is.null(id)) match(id, vapply(sends, function(s) s$send_id, "")) else NA_integer_
     r <- .cmail_send_check(send, if (invitation) 1L else 2L, keys, if (is.na(pos)) length(sends) else pos - 1L)
     if (length(r$problems)) {
