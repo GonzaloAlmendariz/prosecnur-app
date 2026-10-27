@@ -1827,6 +1827,14 @@ export async function apiMailRevision(input: {
   return { file_id: str(file.file_id), filename: str(file.filename) || "revision.html", size_bytes: int(file.size_bytes, 0) };
 }
 
+/** «Textos en Word» (L13): asuntos, vistas previas y cuerpos de las campañas elegidas, para validar. */
+export async function apiMailTextosWord(input: { campaign_ids: string[]; titulo?: string }): Promise<MailRevision> {
+  const raw = await handleMail(await apiFetch(`${BASE}/mail-textos-word`, json("POST", input)));
+  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
+  if (!file || !str(file.file_id)) throw contractError("los textos en Word no devolvieron el archivo.");
+  return { file_id: str(file.file_id), filename: str(file.filename) || "textos.docx", size_bytes: int(file.size_bytes, 0) };
+}
+
 export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {
   return normalizeMailCampaigns(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, { headers: headers() })));
 }

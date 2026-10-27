@@ -255,6 +255,10 @@ mount_recopiladores <- function(pr) {
       collection_mail_revision(session_header(req), campaign_ids = body$campaign_ids,
                                ejemplo = body$ejemplo, titulo = body$titulo, envio = body$envio)
     })) |>
+    plumber::pr_post("/api/recopiladores/mail-textos-word", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_textos_word(session_header(req), campaign_ids = body$campaign_ids, titulo = body$titulo)
+    })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id,

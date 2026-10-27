@@ -8,12 +8,13 @@ import { downloadUrl } from "../../../api/core";
 import {
   apiMailCampaigns,
   apiMailRevision,
+  apiMailTextosWord,
   type MailCampaignSummary,
   type MailRevision,
   type MailRevisionEnvio,
 } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Download, Eye } from "../../../vendor/lucide-react";
+import { Download, Eye, FileText } from "../../../vendor/lucide-react";
 import "./correosExportar.css";
 
 const MAX = 6;
@@ -37,6 +38,9 @@ export function VistaParaRevision({ campana }: Props) {
   const [armando, setArmando] = useState(false);
   const [listo, setListo] = useState<MailRevision | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Textos en Word (L13): con las mismas campañas, en orden.
+  const [armandoWord, setArmandoWord] = useState(false);
+  const [word, setWord] = useState<MailRevision | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -46,6 +50,7 @@ export function VistaParaRevision({ campana }: Props) {
 
   const alternar = (cid: string) => {
     setListo(null);
+    setWord(null);
     setElegidas((xs) => (xs.includes(cid) ? xs.filter((x) => x !== cid) : xs.length < MAX ? [...xs, cid] : xs));
   };
   const armar = async () => {
@@ -56,6 +61,17 @@ export function VistaParaRevision({ campana }: Props) {
       setError(cause instanceof Error ? cause.message : "No se pudo armar la vista.");
     } finally {
       setArmando(false);
+    }
+  };
+
+  const armarWord = async () => {
+    setArmandoWord(true); setError(null); setWord(null);
+    try {
+      setWord(await apiMailTextosWord({ campaign_ids: elegidas, titulo: "Textos de los correos" }));
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo armar el Word.");
+    } finally {
+      setArmandoWord(false);
     }
   };
 
@@ -102,6 +118,16 @@ export function VistaParaRevision({ campana }: Props) {
         {listo ? (
           <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(listo.file_id)} download={listo.filename}>
             <Download size={14} aria-hidden /> Descargar
+          </a>
+        ) : null}
+      </div>
+      <div className="rec-exp-revision-acciones">
+        <PulsoButton variant="secondary" size="sm" disabled={!elegidas.length || armandoWord} onClick={() => { void armarWord(); }}>
+          <FileText size={14} aria-hidden /> {armandoWord ? "Armando…" : "Textos en Word"}
+        </PulsoButton>
+        {word ? (
+          <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(word.file_id)} download={word.filename}>
+            <Download size={14} aria-hidden /> Descargar Word
           </a>
         ) : null}
       </div>
