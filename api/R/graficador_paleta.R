@@ -33,7 +33,7 @@
 
 # Vocabulario de las escalas ordinales del recetario: cada paso no especial tiene que nombrar uno de estos ejes, y una
 # punta tiene que ser el polo negativo («Totalmente en desacuerdo», «Muy insatisfecho», «Nada útil»...).
-.PALETA_ESCALA_PASO <- "acuerdo|satisf|util|importante|bueno|malo|buena|mala|probable|frecuente|nunca|siempre|confia|confianza"
+.PALETA_ESCALA_PASO <- "acuerdo|satisf|util|importante|bueno|malo|buena|mala|probable|frecuente|nunca|siempre|confia|confianza|relacionad"
 .PALETA_ESCALA_NEGATIVO <- "desacuerdo|insatisf|nada|malo|mala|nunca|improbable|ningun"
 # Un paso neutro no tiene por qué nombrar el eje («Neutral / Regular») y lo especial incluye el «no usé» de los servicios.
 .PALETA_ESCALA_NEUTRO <- "neutral|regular|indiferente|^ni .* ni "

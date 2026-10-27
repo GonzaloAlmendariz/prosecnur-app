@@ -35,3 +35,8 @@ test_that("detecta escalas reales de los proyectos de referencia: neutro «Regul
   expect_null(.graficos_paleta_likert(c("1", "2", "3", "4")))                        # sólo números: no se adivina
   expect_null(.graficos_paleta_likert(c("Regular", "Bueno", "Excelente")))           # sin polo negativo
 })
+
+test_that("la relación del empleo con la carrera es una escala: el catálogo la pintaba a mano y el motor la dejaba en azules", {
+  rel <- c("Nada relacionado", "Poco relacionado", "Algo relacionado", "Relacionado", "Muy relacionado")
+  expect_identical(unname(.graficos_mk_palette(rel)), unname(.std_paleta("likert_neutro"))[1:5])
+})

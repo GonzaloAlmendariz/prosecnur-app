@@ -73,3 +73,14 @@ test_that("lo que el catálogo destaca en un ranking es un rótulo de la pregunt
     expect_true(all(g$args$resaltar %in% primeras), info = paste(primeras, collapse = ", "))
   }
 })
+
+test_that("el catálogo pinta con los colores del motor: Sí/No dicotómica, escalas Likert y nada en coral (ADR 0092)", {
+  p <- .cr_paletas()
+  expect_identical(toupper(unname(unlist(p$si_no))), toupper(unname(.std_paleta("dicotomica"))))
+  expect_identical(toupper(unname(unlist(p$relacion))), toupper(unname(.std_paleta("likert_neutro"))[1:5]))
+  todos <- toupper(unlist(p, use.names = FALSE))
+  expect_false(toupper(.std_color("coral")) %in% todos)                                  # el coral es de los títulos
+  esperados <- toupper(c(unlist(.std_paleta("likert")), unlist(.std_paleta("likert_neutro")), unlist(.std_paleta("dicotomica")),
+                         .lam_colores_pie(5)))
+  expect_true(all(todos %in% esperados))                                                 # ningún hex propio del catálogo
+})

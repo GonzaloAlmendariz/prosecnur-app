@@ -137,6 +137,22 @@ Columnas: **ADR** (decisión escrita) · **JSON** (token) · **Cat.** (lámina d
 | O7 | Marco del estándar en la ruta de respaldo; título de lienzo como panel | 7e10765b8 y otros | PPT | suelto | ⬜ | ⬜ | — | coincide |
 | O8 | Negrita por elemento y leyenda automática / una fila / dos filas | e68a546b5 | Ambos | `.NEGRITA_DEFECTO`, `.LEYENDA_MODOS` | ⬜ | ⬜ | ⬜ | — |
 
+## 12. Paleta (Gonzalo, 2026-10-27: «que el recetario sea fiel a lo que hacemos con el motor, incluyendo paleta de colores y todo»)
+
+Lo que hacemos, medido: el mazo entregado de ACRD Conta (`acrconta_mazo`) pinta Sí `#081F5C` y No `#9DC3E6` (la
+`dicotomica` del JSON) y las escalas con la rampa `likert`. El coral `#CA5651` sólo va en los títulos (recetario
+histórico, R3 de `recetario_m0.R`).
+
+| # | Hallazgo | Dónde vive | Estado |
+|---|---|---|---|
+| P1 | El catálogo escribía sus colores a mano: Sí/No y sexo en azul y coral, modalidad con `#6F86B8`/`#E9A19B`, la escala de relación forzada | `.cr_paletas()` en `catalogo_recetario.R`: ahora sale de `.graficos_paleta_likert`, la `dicotomica` y `.lam_colores_pie` | ✅ (26 láminas cambian; guard en `test-catalogo-recetario.R`) |
+| P2 | La escala «Nada relacionado … Muy relacionado» no se reconocía como escala: sin paleta, el motor la pintaba en azules | `.PALETA_ESCALA_PASO` (`graficador_paleta.R`) + «relacionad» | ✅ (test en `test-graficos-paleta-likert.R`) |
+| P3 | La app ofrece al analista una paleta categórica que no está en el JSON (`PULSO_PUCP_COLORS`: rojo `#CA5651`, verde `#85BB85`, amarillo `#EFD25E`…); para dos opciones propone primero azul + rojo, contra la `dicotomica` | `frontend/src/features/graficos/paletasSugeridas.ts` | ⛔ decisión: ¿manda el JSON o la de la app? |
+| P4 | El respaldo ggplot sin paleta usa `#0B4F8C, #2A9D8F, #E9C46A, #F4A261, #E76F51…` escritos en el código: mitad `actores`, mitad nada; Sí/No sale verde azulado, no la `dicotomica` que usan las láminas nativas | `base_pal` en `.graficos_mk_palette` (`graficador_paleta.R`) | ⛔ decisión (mismo eje que P3) |
+| P5 | El catálogo no muestra la paleta: el recetario histórico abría con «Reglas de la identidad» (colores y lo que significan, tipografía, retícula); el catálogo generado no tiene ese capítulo | `catalogo_recetario_plan.R`; haría falta un tipo de lámina que dibuje los tokens del JSON | ⛔ decisión |
+| P6 | El semáforo (`#D84B55/#E0B44C/#3A9A5B`) y el radar `okabe_ito` del catálogo coinciden con los defaults de Analítica › Dimensiones | `.cr_dimensiones_config()` | coincide |
+| P7 | `probar_pulso.R` deja las láminas de dimensiones (75–78) en «Sin datos» (igual antes y después de P1); `test-graficos-dimensiones-fuente.R` pasa por la ruta de la app | harness | ⬜ revisar el harness |
+
 ## Reglas de texto del JSON que ya no son ciertas
 
 `ppt.reglas.cifras_chicas` (E6), `ppt.reglas.base_chica` (S5), `ppt.reglas.orden_escala` (N2), `word.documento` (W2) y
