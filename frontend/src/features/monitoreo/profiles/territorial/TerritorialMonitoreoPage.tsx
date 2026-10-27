@@ -98,6 +98,7 @@ import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
+import { RecorridoTab } from "./control/RecorridoTab";
 import { UmpsTab } from "./avance/UmpsTab";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
@@ -1198,6 +1199,7 @@ export function renderPestana(
     if (clave === "avance/faltante") return <FaltantePorUmp reports={options.cortes?.avance ?? reports} />;
     if (clave === "avance/resumen" && !direccion.panel) return <ResumenTerritorial reports={reports} />;
     if (clave === "control/senales" && !direccion.panel) return <SenalesTab reports={reports} />;
+    if (clave === "control/recorrido") return <RecorridoTab validacion={options.cortes?.validacion ?? reports} />;
     if (clave === "control/bandeja" && !direccion.panel) {
       return <BandejaTab consultas={options.cortes?.consultas ?? reports} phase={options.phase ?? "field"} onStateChange={options.onStateChange} />;
     }

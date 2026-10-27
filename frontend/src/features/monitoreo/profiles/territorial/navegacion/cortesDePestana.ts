@@ -22,6 +22,7 @@ const CORTES: Record<string, readonly CorteDePestana[]> = {
   "avance/mapa": ["avance", "validacion"],
   "control/bandeja": ["consultas"],
   "control/equipo": ["consultas", "validacion"],
+  "control/recorrido": ["validacion"],
   "control/subsanaciones": ["consultas"],
   "control/reportes": ["consultas", "validacion"],
   "control/conciliacion": ["validacion"],

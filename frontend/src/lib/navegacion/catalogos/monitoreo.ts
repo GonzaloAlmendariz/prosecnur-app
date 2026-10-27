@@ -197,6 +197,7 @@ export const MONITOREO_PESTANAS = {
     control: [
       pestana("territorial", "control", "bandeja", "Bandeja", "Qué reviso hoy y qué decido", ListChecks),
       pestana("territorial", "control", "senales", "Señales", "Si la calidad es pareja", MapPin),
+      pestana("territorial", "control", "recorrido", "Recorrido", "Por dónde pasó cada aplicador", Route),
       pestana("territorial", "control", "equipo", "Equipo", "Quién produce cuánto", Users),
       pestana("territorial", "control", "ocurrencias", "Ocurrencias", "Por qué no se logra la entrevista", ClipboardCheck, "condicional"),
       pestana("territorial", "control", "reportes", "Reportes UMP", "Qué UMP no reporta o no cuadra", Table2, "condicional"),
