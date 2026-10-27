@@ -88,6 +88,21 @@
 .mon-ctl-tabla-marco {
   min-height: 0;
   overflow: auto;
+  /* Al soltar el scroll, la primera fila que asoma queda entera bajo la
+   * cabecera pegajosa, nunca cortada por ella (Gonzalo, 2026-10-27: «Elena
+   * Simulada» y su chip quedaban a medias bajo RESPONSABLE / MARCA). El
+   * relleno es el alto fijo de la cabecera. */
+  scroll-padding-top: var(--mon-ctl-cabecera-alto);
+  scroll-snap-type: y proximity;
+}
+
+.mon-ctl-tabla tbody > tr {
+  scroll-snap-align: start;
+}
+
+.mon-ctl-tabla-marco,
+.mon-ctl-tabla {
+  --mon-ctl-cabecera-alto: 34px;
 }
 
 /* Tabla de la casa (maqueta Meta B, L28/L29): celda de 12.5 px con cifras
@@ -112,6 +127,10 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  /* Alto fijo: es el que el marco reserva arriba al encajar las filas. */
+  box-sizing: border-box;
+  height: var(--mon-ctl-cabecera-alto);
+  padding-block: 0;
   border-top: 0;
   background: var(--pulso-header-row);
   color: var(--pulso-text-soft);
@@ -655,8 +674,16 @@
 }
 
 .mon-equipo-matriz thead th {
+  height: auto;
+  padding-block: 8px;
   white-space: normal;
   vertical-align: bottom;
+}
+
+/* La matriz parte sus cabeceras en dos líneas: su alto no es el fijo de la
+ * casa, así que no encaja filas (el relleno no coincidiría). */
+.mon-ctl-tabla-marco:has(> .mon-equipo-matriz) {
+  scroll-snap-type: none;
 }
 
 .mon-equipo-leyenda {
@@ -1086,14 +1113,35 @@
   color: var(--pulso-text-faint);
 }
 
-.mon-respuestas-buscar input {
+/* El campo vive dentro de la caja: sin borde, fondo, sombra ni relleno
+ * propios, también con foco. La regla global `input`/`input:focus` de
+ * theme.css le ponía relleno, degradado y un anillo de 3 px: una caja blanca
+ * que se salía de la de 32 px y un borde doble al enfocar (Gonzalo,
+ * 2026-10-27). El foco se marca una sola vez, en la caja. */
+.mon-respuestas-buscar > input[type="search"],
+.mon-respuestas-buscar > input[type="search"]:focus {
   width: 100%;
   min-width: 0;
+  height: 100%;
+  padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
+  box-shadow: none;
   color: var(--pulso-text);
   font: inherit;
   font-size: 12.5px;
+  outline: none;
+  appearance: none;
+}
+
+.mon-respuestas-buscar > input[type="search"]::-webkit-search-decoration {
+  appearance: none;
+}
+
+.mon-respuestas-buscar:focus-within {
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
   outline: none;
 }
 

@@ -1,10 +1,18 @@
 /* Avance › Cuotas del telefónico (ficha «Avance, Cuotas (aterrizaje)»).
+ *
+ * Prefijo `mon-tel-cuotas-` y no `mon-cuotas-` (2026-10-27): Acreditación
+ * declara `.mon-cuotas`, `.mon-cuotas > *`, `.mon-cuotas-categoria`,
+ * `.mon-cuotas-indicador`… sin acotar. En dev cada hoja llega sólo con su
+ * página y no se cruzaban; en el bundle conviven y la fila de cuotas pasaba a
+ * flex en fila: el chip «En curso» salía una letra por línea y «RENDIMIENTO»
+ * partido. Ver `cuotasSinColision.contract.test.ts`.
+ *
  * Grilla `minmax(0, 1fr) 360px` con separación de 12 px; las columnas llenan
  * el alto (estándar §2a, 1 y 2). A 1366 y 1280 la derecha baja a 320 px; a
  * 1024 × 600 baja bajo la tabla y desplaza el documento. */
 
-.mon-cuotas {
-  --mon-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px 64px 84px;
+.mon-tel-cuotas {
+  --mon-tel-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px 64px 84px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--pulso-space-3);
@@ -15,11 +23,11 @@
   line-height: 1.35;
 }
 
-.mon-cuotas .is-num {
+.mon-tel-cuotas .is-num {
   font-variant-numeric: tabular-nums;
 }
 
-.mon-cuotas-antetitulo {
+.mon-tel-cuotas-antetitulo {
   color: var(--pulso-text-faint);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
@@ -27,15 +35,15 @@
   text-transform: uppercase;
 }
 
-.mon-cuotas-tabla-panel,
-.mon-cuotas-panel {
+.mon-tel-cuotas-tabla-panel,
+.mon-tel-cuotas-panel {
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
 }
 
-.mon-cuotas-tabla-panel {
+.mon-tel-cuotas-tabla-panel {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -43,7 +51,7 @@
   overflow: hidden;
 }
 
-.mon-cuotas-tabla-cabecera {
+.mon-tel-cuotas-tabla-cabecera {
   display: flex;
   flex: none;
   flex-wrap: wrap;
@@ -53,49 +61,49 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 
-.mon-cuotas-tabla {
+.mon-tel-cuotas-tabla {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
 
-.mon-cuotas.has-diario .mon-cuotas-tabla {
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-tabla {
   flex: 0 0 auto;
 }
 
 /* Las filas reparten el alto con tope de grosor (112 px): el cuerpo crece
  * hasta `filas × 112` y el Total lo sigue pegado. Lo que sobra queda como aire
  * inferior parejo dentro de la tarjeta, no en una fila estirada (Ronda 3). */
-.mon-cuotas-cuerpo {
+.mon-tel-cuotas-cuerpo {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  max-height: calc(var(--mon-cuotas-filas, 1) * 112px);
+  max-height: calc(var(--mon-tel-cuotas-filas, 1) * 112px);
 }
 
-.mon-cuotas-fila {
+.mon-tel-cuotas-fila {
   display: grid;
-  grid-template-columns: var(--mon-cuotas-columnas);
+  grid-template-columns: var(--mon-tel-cuotas-columnas);
   gap: var(--pulso-space-3);
   align-items: center;
   padding: 0 18px;
   border-bottom: 1px solid var(--pulso-surface-3);
 }
 
-.mon-cuotas-cuerpo > .mon-cuotas-fila {
+.mon-tel-cuotas-cuerpo > .mon-tel-cuotas-fila {
   flex: 1 1 0;
   min-height: 88px;
   max-height: 112px;
 }
 
-.mon-cuotas.has-diario .mon-cuotas-cuerpo > .mon-cuotas-fila {
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-cuerpo > .mon-tel-cuotas-fila {
   flex: 0 0 auto;
-  min-height: 104px;
+  min-height: 80px;
 }
 
-.mon-cuotas-fila.is-cabecera {
+.mon-tel-cuotas-fila.is-cabecera {
   padding-block: var(--pulso-space-3);
   border-bottom-color: var(--pulso-border);
   background: var(--pulso-surface-2);
@@ -107,29 +115,30 @@
   white-space: nowrap;
 }
 
-.mon-cuotas-fila.is-total {
+.mon-tel-cuotas-fila.is-total {
   min-height: 64px;
   border-bottom: 0;
   background: var(--pulso-surface-2);
 }
 
-.mon-cuotas-fila .is-num {
+.mon-tel-cuotas-fila .is-num {
   text-align: right;
 }
 
-.mon-cuotas-categoria {
+.mon-tel-cuotas-categoria {
   display: flex;
   flex-direction: column;
   gap: 5px;
   min-width: 0;
 }
 
-.mon-cuotas-categoria b {
+.mon-tel-cuotas-categoria b {
   font-size: 13.5px;
 }
 
-.mon-cuotas-estado {
+.mon-tel-cuotas-estado {
   align-self: flex-start;
+  white-space: nowrap;
   padding: 3px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
@@ -137,70 +146,70 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.mon-cuotas-estado.is-cumple {
+.mon-tel-cuotas-estado.is-cumple {
   border-color: var(--pulso-success-border);
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
 }
 
-.mon-cuotas-estado.is-en-curso {
+.mon-tel-cuotas-estado.is-en-curso {
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
 }
 
-.mon-cuotas-faltan {
+.mon-tel-cuotas-faltan {
   font-size: 26px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.02em;
 }
 
-.mon-cuotas-faltan.is-falta,
-.mon-cuotas-grande.is-falta {
+.mon-tel-cuotas-faltan.is-falta,
+.mon-tel-cuotas-grande.is-falta {
   color: var(--pulso-module-monitoring);
 }
 
-.mon-cuotas-faltan.is-cumple,
-.mon-cuotas-grande.is-cumple {
+.mon-tel-cuotas-faltan.is-cumple,
+.mon-tel-cuotas-grande.is-cumple {
   color: var(--pulso-success-fg);
 }
 
-.mon-cuotas-barra {
+.mon-tel-cuotas-barra {
   position: relative;
   display: block;
   height: 30px;
 }
 
-.mon-cuotas-barra i {
+.mon-tel-cuotas-barra i {
   position: absolute;
   display: block;
 }
 
-.mon-cuotas-barra-pista,
-.mon-cuotas-barra-valor {
+.mon-tel-cuotas-barra-pista,
+.mon-tel-cuotas-barra-valor {
   top: 10px;
   left: 0;
   height: 10px;
   border-radius: 5px;
 }
 
-.mon-cuotas-barra-pista {
+.mon-tel-cuotas-barra-pista {
   right: 0;
   background: var(--pulso-bg-deep);
 }
 
-.mon-cuotas-barra-valor {
+.mon-tel-cuotas-barra-valor {
   background: var(--pulso-brand-navy);
 }
 
-.mon-cuotas-barra-meta {
+.mon-tel-cuotas-barra-meta {
   top: 4px;
   width: 2px;
   height: 22px;
   background: var(--pulso-module-monitoring);
 }
 
-.mon-cuotas-barra em {
+.mon-tel-cuotas-barra em {
   position: absolute;
   top: -6px;
   transform: translateX(-50%);
@@ -211,64 +220,64 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-cuotas-sobre {
+.mon-tel-cuotas-sobre {
   font-size: 15px;
   white-space: nowrap;
 }
 
-.mon-cuotas-sobre > span {
+.mon-tel-cuotas-sobre > span {
   color: var(--pulso-text-faint);
 }
 
-.mon-cuotas-pct {
+.mon-tel-cuotas-pct {
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
-.mon-cuotas-pct.is-cumple {
+.mon-tel-cuotas-pct.is-cumple {
   color: var(--pulso-success-fg);
 }
 
-.mon-cuotas-pct.is-total {
+.mon-tel-cuotas-pct.is-total {
   font-weight: var(--pulso-weight-heavy);
 }
 
-.mon-cuotas-rango,
-.mon-cuotas-sin-serie {
+.mon-tel-cuotas-rango,
+.mon-tel-cuotas-sin-serie {
   color: var(--pulso-text-faint);
   font-size: 12px;
   white-space: nowrap;
 }
 
-.mon-cuotas-acumulado {
+.mon-tel-cuotas-acumulado {
   display: block;
   width: 150px;
   height: 40px;
   overflow: visible;
 }
 
-.mon-cuotas-acumulado .is-area {
+.mon-tel-cuotas-acumulado .is-area {
   fill: var(--pulso-primary-soft);
 }
 
-.mon-cuotas-acumulado .is-linea {
+.mon-tel-cuotas-acumulado .is-linea {
   fill: none;
   stroke: var(--pulso-brand-navy);
   stroke-width: 1.6;
 }
 
-.mon-cuotas-acumulado .is-meta {
+.mon-tel-cuotas-acumulado .is-meta {
   stroke: var(--pulso-module-monitoring);
   stroke-dasharray: 3 3;
   stroke-width: 1;
 }
 
-.mon-cuotas-acumulado .is-marca {
+.mon-tel-cuotas-acumulado .is-marca {
   fill: var(--pulso-module-monitoring);
 }
 
 /* Faltante al cierre de cada día: ocupa el alto que la tabla deja libre. */
-.mon-cuotas-diario {
+.mon-tel-cuotas-diario {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -278,21 +287,21 @@
   border-top: 1px solid var(--pulso-border);
 }
 
-.mon-cuotas-diario-cabecera {
+.mon-tel-cuotas-diario-cabecera {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-3);
 }
 
-.mon-cuotas-diario-leyendas {
+.mon-tel-cuotas-diario-leyendas {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--pulso-space-1) var(--pulso-space-4);
 }
 
-.mon-cuotas-diario-leyenda {
+.mon-tel-cuotas-diario-leyenda {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -300,33 +309,37 @@
   font-size: 12px;
 }
 
-.mon-cuotas-diario-leyenda i {
+.mon-tel-cuotas-diario-leyenda i {
   width: 14px;
   height: 3px;
   border-radius: 2px;
-  background: var(--mon-cuotas-serie);
+  background: var(--mon-tel-cuotas-serie);
 }
 
-.mon-cuotas-diario .is-serie-0 {
-  --mon-cuotas-serie: var(--pulso-brand-navy);
+.mon-tel-cuotas-diario .is-serie-0 {
+  --mon-tel-cuotas-serie: var(--pulso-brand-navy);
 }
 
-.mon-cuotas-diario .is-serie-1 {
-  --mon-cuotas-serie: var(--pulso-accent-steel);
+.mon-tel-cuotas-diario .is-serie-1 {
+  --mon-tel-cuotas-serie: var(--pulso-accent-steel);
 }
 
-.mon-cuotas-diario .is-serie-2 {
-  --mon-cuotas-serie: var(--pulso-module-monitoring);
+.mon-tel-cuotas-diario .is-serie-2 {
+  --mon-tel-cuotas-serie: var(--pulso-module-monitoring);
 }
 
-.mon-cuotas-diario-lienzo {
+.mon-tel-cuotas-diario .is-serie-3 {
+  --mon-tel-cuotas-serie: var(--pulso-accent-amber);
+}
+
+.mon-tel-cuotas-diario-lienzo {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   margin: var(--pulso-space-6) var(--pulso-space-2) 22px 28px;
 }
 
-.mon-cuotas-diario-lienzo svg {
+.mon-tel-cuotas-diario-lienzo svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -334,20 +347,20 @@
   overflow: visible;
 }
 
-.mon-cuotas-diario-lienzo path {
+.mon-tel-cuotas-diario-lienzo path {
   fill: none;
-  stroke: var(--mon-cuotas-serie);
+  stroke: var(--mon-tel-cuotas-serie);
   stroke-width: 2.4;
 }
 
-.mon-cuotas-diario-guia {
+.mon-tel-cuotas-diario-guia {
   position: absolute;
   right: 0;
   left: 0;
   border-top: 1px solid var(--pulso-surface-3);
 }
 
-.mon-cuotas-diario-guia span {
+.mon-tel-cuotas-diario-guia span {
   position: absolute;
   left: -28px;
   width: 22px;
@@ -358,16 +371,16 @@
   text-align: right;
 }
 
-.mon-cuotas-diario-punto {
+.mon-tel-cuotas-diario-punto {
   position: absolute;
   width: 9px;
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
-  background: var(--mon-cuotas-serie);
+  background: var(--mon-tel-cuotas-serie);
 }
 
-.mon-cuotas-diario-punto b {
+.mon-tel-cuotas-diario-punto b {
   position: absolute;
   bottom: 10px;
   left: 50%;
@@ -378,17 +391,18 @@
   white-space: nowrap;
 }
 
-.mon-cuotas-diario-fecha {
+.mon-tel-cuotas-diario-fecha {
   position: absolute;
   top: 100%;
   transform: translate(-50%, 6px);
+  white-space: nowrap;
   color: var(--pulso-text-faint);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
 /* Columna derecha: tres paneles que llenan el alto. */
-.mon-cuotas-lado {
+.mon-tel-cuotas-lado {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
@@ -396,7 +410,7 @@
   min-height: 0;
 }
 
-.mon-cuotas-panel {
+.mon-tel-cuotas-panel {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-2);
@@ -404,26 +418,26 @@
   min-height: 0;
 }
 
-.mon-cuotas-grande {
+.mon-tel-cuotas-grande {
   font-size: 44px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
-.mon-cuotas-grande span {
+.mon-tel-cuotas-grande span {
   color: var(--pulso-text-faint);
   font-size: 16px;
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
 }
 
-.mon-cuotas-meta-nota {
+.mon-tel-cuotas-meta-nota {
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-cuotas-indicadores {
+.mon-tel-cuotas-indicadores {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--pulso-space-2) var(--pulso-space-3);
@@ -431,28 +445,28 @@
   border-top: 1px solid var(--pulso-surface-3);
 }
 
-.mon-cuotas-indicador {
+.mon-tel-cuotas-indicador {
   display: flex;
   flex-direction: column;
   min-width: 0;
   font-variant-numeric: tabular-nums;
 }
 
-.mon-cuotas-indicador b {
+.mon-tel-cuotas-indicador b {
   font-size: 16px;
 }
 
-.mon-cuotas-indicador > span:last-child {
+.mon-tel-cuotas-indicador > span:last-child {
   color: var(--pulso-text-faint);
   font-size: 11px;
 }
 
-.mon-cuotas-reparto {
+.mon-tel-cuotas-reparto {
   flex: 1 1 auto;
   gap: var(--pulso-space-3);
 }
 
-.mon-cuotas-titulo {
+.mon-tel-cuotas-titulo {
   display: flex;
   align-items: baseline;
   gap: var(--pulso-space-2);
@@ -462,7 +476,9 @@
 
 /* Columnas alineadas arriba: la lista arranca bajo su título y la leyenda la
  * sigue; el aire sobrante queda al pie de la tarjeta, como en la tabla. */
-.mon-cuotas-reparto-lista {
+/* Con el faltante diario al lado, la tarjeta llega al pie: las categorías se
+ * reparten su alto (con sus cifras debajo) en vez de dejar el hueco al fondo. */
+.mon-tel-cuotas-reparto-lista {
   display: flex;
   flex: 0 1 auto;
   flex-direction: column;
@@ -472,43 +488,43 @@
   overflow-y: auto;
 }
 
-.mon-cuotas-reparto-fila {
+.mon-tel-cuotas-reparto-fila {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.mon-cuotas-reparto-rotulo {
+.mon-tel-cuotas-reparto-rotulo {
   display: flex;
   align-items: baseline;
   gap: var(--pulso-space-2);
   font-size: 12.5px;
 }
 
-.mon-cuotas-reparto-rotulo > b {
+.mon-tel-cuotas-reparto-rotulo > b {
   flex: 0 1 auto;
   min-width: 0;
 }
 
-.mon-cuotas-reparto-rotulo > span {
+.mon-tel-cuotas-reparto-rotulo > span {
   flex: none;
   color: var(--pulso-text-faint);
   white-space: nowrap;
 }
 
-.mon-cuotas-reparto-rotulo > .is-derecha {
+.mon-tel-cuotas-reparto-rotulo > .is-derecha {
   margin-left: auto;
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
-.mon-cuotas-reparto-detalle {
+.mon-tel-cuotas-reparto-detalle {
   color: var(--pulso-text-soft);
   font-size: 12.5px;
   line-height: 1.45;
 }
 
-.mon-cuotas-reparto-barra {
+.mon-tel-cuotas-reparto-barra {
   display: flex;
   gap: 1px;
   height: 14px;
@@ -517,29 +533,29 @@
   background: var(--pulso-bg-deep);
 }
 
-.mon-cuotas-reparto-barra i,
-.mon-cuotas-leyenda i {
+.mon-tel-cuotas-reparto-barra i,
+.mon-tel-cuotas-leyenda i {
   display: block;
 }
 
-.mon-cuotas .is-efectivas {
+.mon-tel-cuotas .is-efectivas {
   background: var(--pulso-resultado-efectiva);
 }
 
-.mon-cuotas .is-rechazo {
+.mon-tel-cuotas .is-rechazo {
   background: var(--pulso-warn-fg);
 }
 
-.mon-cuotas .is-llamado {
+.mon-tel-cuotas .is-llamado {
   background: var(--pulso-warn-accent);
 }
 
-.mon-cuotas .is-sin-llamar {
+.mon-tel-cuotas .is-sin-llamar {
   background: var(--pulso-border-strong);
 }
 
 /* Leyenda de rótulos cortos, centrada en la tarjeta. */
-.mon-cuotas-leyenda {
+.mon-tel-cuotas-leyenda {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -548,46 +564,46 @@
   font-size: 11.5px;
 }
 
-.mon-cuotas-leyenda > span {
+.mon-tel-cuotas-leyenda > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.mon-cuotas-leyenda i {
+.mon-tel-cuotas-leyenda i {
   width: 10px;
   height: 10px;
   border-radius: 2px;
 }
 
-.mon-cuotas-cadena {
+.mon-tel-cuotas-cadena {
   justify-content: space-between;
 }
 
-.mon-cuotas-cadena-paso {
+.mon-tel-cuotas-cadena-paso {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 54px;
   gap: var(--pulso-space-2);
   align-items: center;
 }
 
-.mon-cuotas-cadena-paso > span {
+.mon-tel-cuotas-cadena-paso > span {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.mon-cuotas-cadena-paso > span > span {
+.mon-tel-cuotas-cadena-paso > span > span {
   color: var(--pulso-text-faint);
   font-size: 11.5px;
 }
 
-.mon-cuotas-cadena-paso strong {
+.mon-tel-cuotas-cadena-paso strong {
   font-size: 15px;
   text-align: right;
 }
 
-.mon-cuotas-vacio {
+.mon-tel-cuotas-vacio {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-2);
@@ -598,11 +614,11 @@
   background: var(--pulso-surface);
 }
 
-.mon-cuotas-vacio strong {
+.mon-tel-cuotas-vacio strong {
   font-size: 18px;
 }
 
-.mon-cuotas-vacio p {
+.mon-tel-cuotas-vacio p {
   margin: 0;
   color: var(--pulso-text-soft);
 }
@@ -613,27 +629,27 @@
  * al alto de la rejilla y desplazan dentro (C4); el aire, si sobra, queda
  * debajo de las tarjetas, no dentro. */
 @media (min-width: 1181px) {
-  .mon-cuotas:not(.has-diario) {
+  .mon-tel-cuotas:not(.has-diario) {
     align-items: start;
   }
 
-  .mon-cuotas:not(.has-diario) > .mon-cuotas-tabla-panel,
-  .mon-cuotas:not(.has-diario) > .mon-cuotas-lado {
+  .mon-tel-cuotas:not(.has-diario) > .mon-tel-cuotas-tabla-panel,
+  .mon-tel-cuotas:not(.has-diario) > .mon-tel-cuotas-lado {
     max-height: 100%;
   }
 
-  .mon-cuotas:not(.has-diario) .mon-cuotas-reparto {
+  .mon-tel-cuotas:not(.has-diario) .mon-tel-cuotas-reparto {
     flex: 0 1 auto;
   }
 }
 
 @media (max-width: 1400px) {
-  .mon-cuotas {
-    --mon-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 56px 72px;
+  .mon-tel-cuotas {
+    --mon-tel-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 56px 72px;
     grid-template-columns: minmax(0, 1fr) 320px;
   }
 
-  .mon-cuotas-acumulado {
+  .mon-tel-cuotas-acumulado {
     width: 120px;
   }
 }
@@ -641,47 +657,98 @@
 /* 1024 × 600: la columna derecha baja bajo la tabla y desplaza el documento
  * (el dueño del scroll es `.mon-workbench-content`). */
 @media (max-width: 1180px) {
-  .mon-cuotas {
-    --mon-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px 60px 72px;
+  .mon-tel-cuotas {
+    --mon-tel-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px 60px 72px;
     grid-template-columns: minmax(0, 1fr);
     height: max-content;
     min-height: max-content;
   }
 
-  .mon-cuotas-tabla-panel,
-  .mon-cuotas-tabla,
-  .mon-cuotas-cuerpo,
-  .mon-cuotas-lado,
-  .mon-cuotas-panel {
+  .mon-tel-cuotas-tabla-panel,
+  .mon-tel-cuotas-tabla,
+  .mon-tel-cuotas-cuerpo,
+  .mon-tel-cuotas-lado,
+  .mon-tel-cuotas-panel {
     min-height: max-content;
     overflow: visible;
   }
 
-  .mon-cuotas-acumulado {
+  .mon-tel-cuotas-acumulado {
     width: 128px;
   }
 
-  .mon-cuotas-cuerpo > .mon-cuotas-fila {
+  .mon-tel-cuotas-cuerpo > .mon-tel-cuotas-fila {
     flex: 0 0 auto;
     min-height: 72px;
   }
 
-  .mon-cuotas-lado {
+  .mon-tel-cuotas-lado {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .mon-cuotas-cadena {
+  .mon-tel-cuotas-cadena {
     grid-column: 1 / -1;
   }
 
-  .mon-cuotas-diario {
+  .mon-tel-cuotas-diario {
     min-height: 280px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mon-cuotas * {
+  .mon-tel-cuotas * {
     transition: none;
   }
+}
+
+/* Sin ninguna cuota cumplida no se pinta la columna «Cumplió»: la plantilla
+ * pierde esa pista (no basta con dejarla en cero, la celda siguiente la
+ * ocuparía). Va al final para ganar a las plantillas de cada ancho. */
+.mon-tel-cuotas.sin-cumplio {
+  --mon-tel-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px 84px;
+}
+
+@media (max-width: 1400px) {
+  .mon-tel-cuotas.sin-cumplio {
+    --mon-tel-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 72px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-tel-cuotas.sin-cumplio {
+    --mon-tel-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px 72px;
+  }
+}
+
+/* El listado crece hasta mostrar todas las categorías: con scroll interno
+ * escondía la cuarta a 1440 sin ninguna señal de que hubiera más. */
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto-lista {
+  flex: 1 0 auto;
+  justify-content: space-around;
+  overflow: visible;
+}
+
+/* Con el faltante diario la vista no se recorta para caber: llena el alto
+ * cuando sobra y, cuando no alcanza (1280 × 800), crece y desplaza el
+ * contenedor de la pestaña. Recortada, la tarjeta «Faltan» y el listado
+ * quedaban partidos al pie. */
+.mon-tel-cuotas.has-diario {
+  height: auto;
+  min-height: 100%;
+}
+
+.mon-tel-cuotas.has-diario > .mon-tel-cuotas-tabla-panel,
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-lado > * {
+  overflow: visible;
+}
+
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-lado > :not(.mon-tel-cuotas-reparto) {
+  flex: none;
+}
+
+/* El listado no se encoge por debajo de su contenido: si no cabe, la columna
+ * (y la fila de la rejilla) crece y la pestaña se desplaza. */
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto {
+  flex: 1 0 auto;
 }

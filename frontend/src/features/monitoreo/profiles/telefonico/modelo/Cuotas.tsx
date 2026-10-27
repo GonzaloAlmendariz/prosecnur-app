@@ -3,8 +3,9 @@ import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/n
 import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
+import { PulsoInput } from "../../../../../components/PulsoInput";
 import { NotaDelModo } from "../../../core/NotaDelModo";
-import { metasConProporcion, validarMetas, type FilaDeMeta } from "./cuotasModel";
+import { metasConProporcion, objetivoDesdeTexto, validarMetas, type FilaDeMeta } from "./cuotasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
@@ -134,14 +135,12 @@ export function Cuotas({
             <span>Meta frente al reparto proporcional al universo</span>
             <label className="mon-metas-objetivo">
               <span>Objetivo total</span>
-              <input
-                type="number"
-                min={0}
+              <PulsoInput
+                size="sm"
+                numeric
+                inputMode="numeric"
                 value={objetivoTotal ?? ""}
-                onChange={(event) => {
-                  const valor = event.currentTarget.value;
-                  onObjetivoTotal(valor ? Number(valor) : null);
-                }}
+                onChange={(event) => onObjetivoTotal(objetivoDesdeTexto(event.currentTarget.value))}
                 aria-label="Objetivo total"
               />
             </label>

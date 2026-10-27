@@ -21,6 +21,16 @@ function fecha(iso: string) {
   return Number.isNaN(t.getTime()) ? iso : t.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+/** Los datos de una ronda, en piezas que no se parten por dentro. */
+export function datosDeRonda(ronda: FilaDeRonda): string[] {
+  return [
+    `${n(ronda.casos)} casos${ronda.agregados ? ` (${n(ronda.agregados)} a mano)` : ""}`,
+    ronda.porcentaje != null ? `${pctConEspacio(ronda.porcentaje)} de ${n(ronda.universo)} efectivas` : `de ${n(ronda.universo)} efectivas`,
+    ...(ronda.generadaEl ? [fecha(ronda.generadaEl)] : []),
+    ...(ronda.semilla != null ? [`semilla ${ronda.semilla}`] : []),
+  ];
+}
+
 /**
  * Las rondas de supervisión, numeradas, con su estado (guardada, publicada y
  * en qué pestaña). La elegida filtra el reparto y los casos. «Nueva ronda» y
@@ -57,6 +67,10 @@ export function RondasDeSupervision({
   const sinGuardar = rondas.find((ronda) => !ronda.guardada) ?? null;
   const publicadas = rondas.filter((ronda) => ronda.publicadaEn).length;
   const avisosVisibles = lectura.avisos ?? avisos;
+  // Sin efectivas nuevas no hay de dónde sortear: el motor responde
+  // E_MONITOREO_SUPERVISION_SIN_NUEVAS. El botón se apaga y dice por qué.
+  const sinNuevas = !sinGuardar && nuevas === 0 && rondas.some((ronda) => ronda.guardada);
+  const motivoId = "mon-sup-rondas-motivo";
 
   const leerResultados = async () => {
     setLectura({ leyendo: true, recibo: "", avisos: lectura.avisos });
@@ -93,7 +107,11 @@ export function RondasDeSupervision({
         <RotuloDePestana />
         <span className="mon-sup-rondas-titulo">
           <b>Rondas</b>
-          <span>{nuevas != null ? `${n(nuevas)} efectivas nuevas desde la última` : ""}</span>
+          <span id={motivoId}>
+            {sinNuevas
+              ? "Sin efectivas nuevas desde la última ronda: la siguiente se habilita cuando entren más"
+              : nuevas != null ? `${n(nuevas)} efectivas nuevas desde la última` : ""}
+          </span>
         </span>
         <span className="mon-sup-rondas-acciones">
           {hojaConectada && publicadas ? (
@@ -102,7 +120,14 @@ export function RondasDeSupervision({
               <span>{lectura.leyendo ? "Leyendo…" : "Leer resultados"}</span>
             </button>
           ) : null}
-          <button type="button" className="mon-insumos-boton is-primario" onClick={onNueva} disabled={Boolean(sinGuardar)}>
+          <button
+            type="button"
+            className="mon-insumos-boton is-primario"
+            onClick={onNueva}
+            disabled={Boolean(sinGuardar) || sinNuevas}
+            aria-describedby={sinNuevas ? motivoId : undefined}
+            title={sinNuevas ? "No hay efectivas nuevas desde la última ronda" : undefined}
+          >
             <Plus size={14} /> Nueva ronda
           </button>
         </span>
@@ -129,12 +154,11 @@ export function RondasDeSupervision({
             <li key={ronda.numero} className={ronda.numero === actual ? "is-activa" : undefined}>
               <button type="button" className="mon-sup-ronda" aria-pressed={ronda.numero === actual} onClick={() => onElegir(ronda.numero)}>
                 <strong>Ronda {n(ronda.numero)}{ronda.guardada ? "" : " sin guardar"}</strong>
-                <small>
-                  {n(ronda.casos)} casos
-                  {ronda.agregados ? ` (${n(ronda.agregados)} a mano)` : ""}
-                  {ronda.porcentaje != null ? ` · ${pctConEspacio(ronda.porcentaje)} de ${n(ronda.universo)} efectivas` : ` · de ${n(ronda.universo)} efectivas`}
-                  {ronda.generadaEl ? ` · ${fecha(ronda.generadaEl)}` : ""}
-                  {ronda.semilla != null ? ` · semilla ${ronda.semilla}` : ""}
+                {/* Cada dato en su pieza: la línea se parte ENTRE datos y no se
+                  * sale de la tarjeta (Gonzalo, 2026-10-27: «semilla 2026…»
+                  * cruzaba el borde con la fecha de la ronda guardada). */}
+                <small className="mon-sup-ronda-datos">
+                  {datosDeRonda(ronda).map((dato) => <span key={dato}>{dato}</span>)}
                 </small>
                 <em className={ronda.lectura === "pestana_borrada" ? "is-borrada" : ronda.publicadaEn ? "is-publicada" : ronda.guardada ? "is-guardada" : "is-pendiente"}>
                   {ronda.lectura === "pestana_borrada"

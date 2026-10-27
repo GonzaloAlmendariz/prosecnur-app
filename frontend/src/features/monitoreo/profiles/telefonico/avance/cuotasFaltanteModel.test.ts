@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { seriesConCifraFinal } from "./FaltanteDiario";
 import { cadenaDeLaCifra, construirCuotasFaltante, llevaFaltanteDiario, type CuotaDeEntrada } from "./cuotasFaltanteModel";
 import { sinAsignarDesdeBloque } from "./entradaDeCuotas";
 
@@ -96,5 +97,19 @@ describe("Avance › Cuotas del telefónico", () => {
   it("la cadena no inventa pasos que el corte no trae", () => {
     expect(cadenaDeLaCifra({ recibidas: null, encuesta: "", pasanFiltro: 424, criterios: "Intro/Consent: Yes", unicas: 423 })
       .map((paso) => paso.valor)).toEqual([424, 423]);
+  });
+});
+
+describe("seriesConCifraFinal", () => {
+  it("salta la cifra que se montaría sobre la anterior en el eje", () => {
+    // RMS ficticio: 23, 11, 5 y 1 sobre un eje de 100; el 5 y el 1 caerían sobre el punto de encima.
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100)].sort()).toEqual([0, 1]);
+    expect([...seriesConCifraFinal([60, 30], 100)].sort()).toEqual([0, 1]);
+  });
+
+  it("mide la separación en píxeles del lienzo: lo que cabe a 1920 se salta a 1440", () => {
+    // Verificador, 2026-10-27: a 1440 el lienzo mide ~130 px y el 11 se montaba sobre el punto del 23.
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 330)].sort()).toEqual([0, 1]);
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 130)].sort()).toEqual([0]);
   });
 });
