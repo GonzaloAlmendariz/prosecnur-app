@@ -7,7 +7,7 @@ import {
   type MonitoreoTerritorialPhase,
 } from "../../../../../api/client";
 import { fmt } from "../rotulos";
-import { construirAnulaciones, resumenDeTarjeta } from "./anulacionesModel";
+import { construirAnulaciones, type TarjetaDeAnulacion } from "./anulacionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./anulaciones.css";
 
@@ -70,27 +70,43 @@ function AnulacionesTabImpl({
       <div className="mon-anu-izquierda" data-qa-geometry-member="resumen">
         <section className="mon-anu-panel" aria-labelledby="mon-anu-fuera">
           <RotuloDePestana />
-          <h3 id="mon-anu-fuera" className="mon-anu-titulo">{fmt(modelo.casosFuera)} {modelo.casosFuera === 1 ? "caso fuera del conteo" : "casos fuera del conteo"} en {fmt(modelo.umpsAfectadas)} UMP</h3>
-          <ul className="mon-anu-barras">
-            {modelo.porDistrito.map((item) => (
-              <li key={item.distrito}>
-                <span>{item.distrito}</span>
-                <span className="mon-anu-barra" aria-hidden="true"><i style={{ width: `${(item.casos / maximo) * 100}%` }} /></span>
-                <b>{fmt(item.casos)}</b>
-              </li>
-            ))}
-          </ul>
+          <h3 id="mon-anu-fuera" className="mon-anu-cifra">
+            <b>{fmt(modelo.casosFuera)}</b>
+            <span>{modelo.casosFuera === 1 ? "caso fuera del conteo" : "casos fuera del conteo"}</span>
+          </h3>
+          <p className="mon-anu-base">
+            En {fmt(modelo.umpsAfectadas)} UMP, por {fmt(modelo.activas.length)} {modelo.activas.length === 1 ? "anulación activa" : "anulaciones activas"}. No cuentan para la meta mientras sigan anulados.
+          </p>
+          {modelo.porDistrito.length ? (
+            <div className="mon-anu-distritos">
+              <span className="mon-anu-subtitulo">Por distrito</span>
+              <ul className="mon-anu-barras">
+                {modelo.porDistrito.map((item) => (
+                  <li key={item.distrito}>
+                    <span>{item.distrito}</span>
+                    <span className="mon-anu-barra" aria-hidden="true"><i style={{ width: `${(item.casos / maximo) * 100}%` }} /></span>
+                    <b>{fmt(item.casos)}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
         {error ? <p className="mon-anu-error" role="alert">{error}</p> : null}
-        <ul className="mon-anu-tarjetas" data-qa-geometry-group="territorial-anulaciones-tarjetas" data-qa-geometry-contract="equal">
+        <ul className="mon-anu-tarjetas" aria-label="Anulaciones activas" data-qa-geometry-group="territorial-anulaciones-tarjetas" data-qa-geometry-contract="equal">
           {modelo.activas.map((tarjeta) => (
             <li key={tarjeta.id} className="mon-anu-panel mon-anu-tarjeta">
               <header>
-                <strong>{tarjeta.titulo}</strong>
+                <span className="mon-anu-quien">
+                  <span className="mon-anu-alcance">{tarjeta.alcance === "caso" ? "Un caso" : "Producción completa"}</span>
+                  <strong>{tarjeta.quien}</strong>
+                </span>
                 <small>{tarjeta.cuando}</small>
               </header>
-              <span className="mon-anu-base">{resumenDeTarjeta(tarjeta)}</span>
-              {tarjeta.motivo ? <span className="mon-anu-motivo">«{tarjeta.motivo}»</span> : null}
+              <ImpactoDeTarjeta tarjeta={tarjeta} />
+              {tarjeta.motivo ? (
+                <p className="mon-anu-motivo"><span>Motivo</span>{tarjeta.motivo}</p>
+              ) : null}
               {porRevertir === tarjeta.id ? (
                 <span className="mon-anu-confirmar">
                   <span className="mon-anu-base">Los casos vuelven a contar.</span>
@@ -110,7 +126,10 @@ function AnulacionesTabImpl({
       </div>
 
       <section className="mon-anu-panel mon-anu-tabla-panel" aria-labelledby="mon-anu-umps" data-qa-geometry-member="umps">
-        <h3 id="mon-anu-umps" className="mon-anu-titulo">UMP afectadas</h3>
+        <header className="mon-anu-tabla-cabecera">
+          <h3 id="mon-anu-umps" className="mon-anu-titulo">UMP afectadas</h3>
+          <span className="mon-anu-base">Cuántos casos perdió cada UMP y cómo queda su cuota sin ellos</span>
+        </header>
         <div className="mon-anu-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="UMP afectadas, con desplazamiento">
           <table className="mon-anu-tabla">
             <thead>
@@ -118,9 +137,9 @@ function AnulacionesTabImpl({
                 <th scope="col">UMP</th>
                 <th scope="col">Manzana</th>
                 <th scope="col">Distrito</th>
-                <th scope="col" className="is-num">Anuladas</th>
+                <th scope="col" className="is-num">Casos anulados</th>
                 <th scope="col" className="is-num">Con consentimiento</th>
-                <th scope="col">Estado actual</th>
+                <th scope="col">Cuota hoy</th>
               </tr>
             </thead>
             <tbody>
@@ -131,7 +150,7 @@ function AnulacionesTabImpl({
                   <td>{item.distrito}</td>
                   <td className="is-num">{fmt(item.anuladas)}</td>
                   <td className="is-num">{fmt(item.validasAnuladas)}</td>
-                  <td className={item.estadoActual === "No está en la ruta" ? "is-fuera" : ""}>{item.estadoActual}</td>
+                  <td><span className={`mon-anu-estado is-${item.tono}`}>{item.estadoActual}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -139,6 +158,25 @@ function AnulacionesTabImpl({
         </div>
       </section>
     </section>
+  );
+}
+
+function ImpactoDeTarjeta({ tarjeta }: { tarjeta: TarjetaDeAnulacion }) {
+  const cifras = [
+    { rotulo: "Casos", valor: tarjeta.casos },
+    { rotulo: "Con consentimiento", valor: tarjeta.validos },
+    { rotulo: "UMP", valor: tarjeta.umps },
+  ];
+  if (cifras.every((cifra) => cifra.valor == null)) return <span className="mon-anu-base">Sin el detalle del impacto</span>;
+  return (
+    <dl className="mon-anu-impacto">
+      {cifras.map((cifra) => (
+        <div key={cifra.rotulo}>
+          <dt>{cifra.rotulo}</dt>
+          <dd>{cifra.valor == null ? "—" : fmt(cifra.valor)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

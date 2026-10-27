@@ -50,6 +50,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mon-anu-cifra {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text);
+}
+
+.mon-anu-cifra b {
+  color: var(--pulso-danger-fg);
+  font-size: 32px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.mon-anu-cifra span {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-anu-distritos {
+  display: grid;
+  gap: var(--pulso-space-2);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-anu-subtitulo {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .mon-anu-barras {
   display: grid;
   gap: var(--pulso-space-1);
@@ -84,8 +121,11 @@
   background: var(--pulso-danger-fg);
 }
 
+/* Mismo alto para todas: un nombre largo que salta de línea no descuadra la
+ * pila (contrato `equal` del grupo de tarjetas). */
 .mon-anu-tarjetas {
   display: grid;
+  grid-auto-rows: 1fr;
   gap: var(--pulso-space-2);
   margin: 0;
   padding: 0;
@@ -93,26 +133,82 @@
 }
 
 .mon-anu-tarjeta {
-  gap: var(--pulso-space-2);
+  gap: var(--pulso-space-3);
   padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-left: 3px solid var(--pulso-danger-fg);
 }
 
 .mon-anu-tarjeta header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: 13.5px;
+}
+
+.mon-anu-quien {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-anu-alcance {
+  color: var(--pulso-danger-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .mon-anu-tarjeta header small {
+  flex: 0 0 auto;
   color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-anu-impacto {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-anu-impacto div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-anu-impacto dt {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.mon-anu-impacto dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-anu-motivo {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.mon-anu-motivo span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-style: italic;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .mon-anu-confirmar {
@@ -223,9 +319,47 @@
   text-align: right;
 }
 
-.mon-anu-tabla td.is-fuera {
-  color: var(--pulso-warn-fg);
+/* Las cabeceras numéricas parten en dos líneas: en 1024 el ancho de «Con
+ * consentimiento» empujaba «Cuota hoy» fuera de la vista. */
+.mon-anu-tabla thead th.is-num {
+  white-space: normal;
+  min-width: 84px;
+}
+
+.mon-anu-tabla-cabecera {
+  display: grid;
+  gap: 2px;
+}
+
+.mon-anu-estado {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-anu-estado.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-anu-estado.is-info {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.mon-anu-estado.is-alerta {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
 }
 
 .mon-anu-boton:focus-visible,
@@ -261,6 +395,16 @@
 
   .mon-anu-barras li {
     grid-template-columns: 120px minmax(0, 1fr) 40px;
+  }
+
+  /* El distrito parte en dos líneas para que «Cuota hoy» quepa sin desplazar. */
+  .mon-anu-tabla tbody td:nth-child(3) {
+    min-width: 110px;
+    white-space: normal;
+  }
+
+  .mon-anu-tabla thead th.is-num {
+    min-width: 72px;
   }
 }
 
