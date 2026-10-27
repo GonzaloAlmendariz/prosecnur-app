@@ -1,24 +1,28 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import { fechaCorta } from "./cuotasFaltanteModel";
 import { fmt } from "../formato";
 
 const MAX_SERIES = 4;
 
+/** Alto que ocupa una cifra sobre su punto (10 px de despegue + 12 px de letra + aire). */
+const CIFRA_PX = 26;
+
 /**
  * Qué series llevan su cifra en el último día: de mayor a menor, se salta la
- * que caería a menos de un 7 % del eje de la anterior (5 y 1 sobre un eje de
- * 100 se montaban).
+ * que se montaría sobre el punto inmediatamente superior. La distancia se mide en
+ * píxeles del lienzo, no en unidades del eje: 23 y 11 sobre un eje de 100
+ * caben a 1920 y chocaban a 1440, con el lienzo más bajo.
  */
-export function seriesConCifraFinal(finales: readonly number[], tope: number): Set<number> {
+export function seriesConCifraFinal(finales: readonly number[], tope: number, altoPx = 300): Set<number> {
+  const separacion = tope * Math.max(0.07, CIFRA_PX / Math.max(1, altoPx));
   const orden = finales.map((valor, indice) => ({ valor, indice })).sort((a, b) => b.valor - a.valor);
   const con = new Set<number>();
-  let ultimo: number | null = null;
-  for (const { valor, indice } of orden) {
-    if (ultimo == null || ultimo - valor >= tope * 0.07) {
-      con.add(indice);
-      ultimo = valor;
-    }
-  }
+  // Se compara con el punto inmediatamente superior, lleve cifra o no: la
+  // cifra va encima de su punto y se montaría sobre ese punto vecino.
+  orden.forEach(({ valor, indice }, i) => {
+    if (i === 0 || orden[i - 1].valor - valor >= separacion) con.add(indice);
+  });
   return con;
 }
 
@@ -43,7 +47,19 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
   const maximo = Math.max(1, ...visibles.flatMap((serie) => serie.valores));
   const paso = pasoDelEje(maximo);
   const tope = Math.ceil(maximo / paso) * paso;
-  const conCifraFinal = seriesConCifraFinal(visibles.map((serie) => serie.valores.at(-1) ?? 0), tope);
+  const lienzo = useRef<HTMLDivElement>(null);
+  const [altoPx, setAltoPx] = useState(300);
+  useLayoutEffect(() => {
+    const nodo = lienzo.current;
+    if (!nodo) return undefined;
+    const medir = () => setAltoPx(nodo.getBoundingClientRect().height || 300);
+    medir();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const observador = new ResizeObserver(medir);
+    observador.observe(nodo);
+    return () => observador.disconnect();
+  }, []);
+  const conCifraFinal = seriesConCifraFinal(visibles.map((serie) => serie.valores.at(-1) ?? 0), tope, altoPx);
   const marcas = Array.from({ length: Math.round(tope / paso) + 1 }, (_, i) => i * paso);
   const x = (i: number) => (fechas.length === 1 ? 50 : 4 + (i / (fechas.length - 1)) * 92);
   const y = (valor: number) => 100 - (valor / tope) * 100;
@@ -53,7 +69,7 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
       <header className="mon-tel-cuotas-diario-cabecera">
         <span className="mon-tel-cuotas-antetitulo">Faltante al cierre de cada día</span>
       </header>
-      <div className="mon-tel-cuotas-diario-lienzo" role="img" aria-label={visibles.map((serie) => (
+      <div ref={lienzo} className="mon-tel-cuotas-diario-lienzo" role="img" aria-label={visibles.map((serie) => (
         `${serie.nombre}: ${serie.valores.map((valor, i) => `${fechaCorta(fechas[i])} ${fmt(valor)}`).join(", ")}`
       )).join(". ")}>
         {marcas.map((marca) => (
