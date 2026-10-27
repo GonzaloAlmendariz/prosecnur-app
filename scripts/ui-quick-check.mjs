@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { medirLectura } from "./ui-quick-check-lectura.mjs";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import net from "node:net";
@@ -1375,7 +1376,14 @@ async function runCaptures(opts, stack) {
   return results;
 }
 
-export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry, rootSelector = "" }) {
+export async function inspectDom(page, opciones) {
+  const medida = await inspectDomCajas(page, opciones);
+  // Rótulos partidos, texto fuera de su tarjeta y cabecera que tapa la primera
+  // fila: miden el texto, no las cajas (`ui-quick-check-lectura.mjs`).
+  return medida.alcanceAusente ? medida : { ...medida, ...(await medirLectura(page, { rootSelector: opciones.rootSelector || "" })) };
+}
+
+async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry, rootSelector = "" }) {
   return page.evaluate(async ({
     projectMode: wantsProject,
     geometryGroups: requestedGeometryGroups,
@@ -2522,6 +2530,9 @@ export function summarize(results, opts) {
   const derrames = results.flatMap((item) => item.derrames || []);
   const solapes = results.flatMap((item) => item.solapes || []);
   const desbordes = results.flatMap((item) => item.desbordes || []);
+  const rotulosPartidos = results.flatMap((item) => (item.rotulosPartidos || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  const textosFuera = results.flatMap((item) => (item.textosFuera || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  const cabecerasQueTapan = results.flatMap((item) => (item.cabecerasQueTapan || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
   const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
@@ -2590,6 +2601,12 @@ export function summarize(results, opts) {
     derrameDetalle: derrames.slice(0, 5),
     solapeDetalle: solapes.slice(0, 5),
     desbordeDetalle: desbordes.slice(0, 5),
+    rotulosPartidos: rotulosPartidos.length,
+    textosFuera: textosFuera.length,
+    cabecerasQueTapan: cabecerasQueTapan.length,
+    rotuloPartidoDetalle: rotulosPartidos.slice(0, 5),
+    textoFueraDetalle: textosFuera.slice(0, 5),
+    cabeceraQueTapaDetalle: cabecerasQueTapan.slice(0, 5),
     geometryGroups: geometryAudits.length,
     geometryIssues: geometryIssues.length,
     geometryCoverageMisses: geometryCoverageMisses.length,
@@ -2613,6 +2630,9 @@ export function summarize(results, opts) {
       derrames.length === 0 &&
       solapes.length === 0 &&
       desbordes.length === 0 &&
+      rotulosPartidos.length === 0 &&
+      textosFuera.length === 0 &&
+      cabecerasQueTapan.length === 0 &&
       geometryIssues.length === 0 &&
       geometryCoverageMisses.length === 0 &&
       globalOverflow.length === 0 &&
@@ -2721,10 +2741,19 @@ async function main() {
     for (const o of summary.solapeDetalle || []) {
       console.log(`[ui-quick-check] solape ${o.interseccion}: ${o.a?.selector || o.a?.tag || "?"} × ${o.b?.selector || o.b?.tag || "?"}`);
     }
+    for (const d of summary.rotuloPartidoDetalle || []) {
+      console.log(`[ui-quick-check] rótulo partido (${d.motivo}): «${d.texto}» → ${JSON.stringify(d.lineas)} en ${d.className || d.tag} · ${d.route}`);
+    }
+    for (const d of summary.textoFueraDetalle || []) {
+      console.log(`[ui-quick-check] texto fuera de su tarjeta ${d.seSale}px a la ${d.lado}: «${d.texto}» en ${d.contenedor?.className || "?"} · ${d.route}`);
+    }
+    for (const d of summary.cabeceraQueTapaDetalle || []) {
+      console.log(`[ui-quick-check] cabecera tapa ${d.tapa}px de la fila «${d.fila}» en ${d.className || d.tag} · ${d.route}`);
+    }
     for (const d of summary.routeDeviationDetalle || []) {
       console.log(`[ui-quick-check] ruta desviada: ${d.route} → ${d.finalUrl} (readiness=${d.readiness ?? "?"}) ${d.motivo}`);
     }
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} rotulosPartidos=${summary.rotulosPartidos} textosFuera=${summary.textosFuera} cabecerasQueTapan=${summary.cabecerasQueTapan} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();
