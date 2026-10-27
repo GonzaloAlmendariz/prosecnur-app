@@ -246,7 +246,8 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_mail_preview(session_header(req), mode = body$mode %||% "preview",
                               recipient_index = body$recipient_index, template = body$template,
-                              campaign_id = body$campaign_id, send_id = body$send_id, send = body$send)
+                              campaign_id = body$campaign_id, send_id = body$send_id, send = body$send,
+                              ejemplo = body$ejemplo)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

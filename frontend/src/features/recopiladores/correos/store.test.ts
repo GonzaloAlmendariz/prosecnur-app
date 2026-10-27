@@ -97,14 +97,19 @@ describe("store del editor de correos", () => {
     expect(st().borrador).toEqual(devuelta);
   });
 
-  test("siguiente persona da la vuelta y no se mueve sin lista", () => {
+  test("siguiente persona da la vuelta; sin lista alterna entre las dos personas de ejemplo (L8)", () => {
     st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    expect(st().ejemplo).toBe("femenino");
     st().siguientePersona();
     expect(st().persona).toBeNull();
+    expect(st().ejemplo).toBe("masculino");
+    st().siguientePersona();
+    expect(st().ejemplo).toBe("femenino");
     st().setDestinatarios(destinatarios(2));
     expect(st().persona).toBe(1);
     st().siguientePersona();
     expect(st().persona).toBe(2);
+    expect(st().ejemplo).toBe("femenino");
     st().siguientePersona();
     expect(st().persona).toBe(1);
   });

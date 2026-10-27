@@ -354,3 +354,19 @@ test_that("Mailchimp con scope plantilla: aunque haya lista, el saludo conserva 
   expect_match(html, "*|IF:SALUDO|**|SALUDO|**|ELSE:|*Estimado(a)*|END:IF|*", fixed = TRUE)
   expect_match(html, "*|IF:FNAME|*", fixed = TRUE)
 })
+
+test_that("persona de ejemplo (L8): Ana con «Estimada», Luis con «Estimado»; sin ejemplo, el respaldo como antes", {
+  t <- .cmail_template_normalize(.cmail_preset_invitacion_encuesta())
+  t$blocks[[1]]$trato$columna <- "Sexo"
+  expect_identical(.cmail_synthetic_values(t)$nombre, "Ana")
+  expect_null(.cmail_synthetic_values(t)$trato)
+  f <- .cmail_synthetic_values(t, "femenino"); m <- .cmail_synthetic_values(t, "masculino")
+  expect_identical(c(f$nombre, f$trato), c("Ana", "Estimada"))
+  expect_identical(c(m$nombre, m$trato), c("Luis", "Estimado"))
+  html <- collection_mail_render(t, mode = "preview", values = f)$html
+  expect_match(html, ">Estimada</span>", fixed = TRUE)
+  # Un saludo «igual para todos» no cambia de palabra.
+  t$blocks[[1]]$trato$modo <- "fijo"
+  expect_null(.cmail_synthetic_values(t, "femenino")$trato)
+  expect_null(.cmail_synthetic_values(t, "otro")$trato)
+})

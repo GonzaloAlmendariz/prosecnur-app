@@ -673,7 +673,8 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
           explicaciones={st.explicaciones}
           onExplicaciones={st.setExplicaciones}
           persona={persona ? { nombre: persona.nombre, ejemplo: persona.source === "synthetic" } : null}
-          puedeSiguientePersona={Boolean(totalPersonas)}
+          // Sin lista también se puede: alterna entre las dos personas de ejemplo (L8).
+          puedeSiguientePersona
           onSiguientePersona={st.siguientePersona}
           asunto={asuntoDelEnvio(envio, template)}
           onIrAlAsunto={() => { if (envio.subject?.trim()) irAPestana("envios"); else seleccionar(SOBRE); }}

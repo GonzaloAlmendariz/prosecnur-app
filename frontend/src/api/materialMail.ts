@@ -1893,12 +1893,15 @@ function conEnvio(body: Record<string, unknown>, pedido: MailSendPedido | null |
 export async function apiMailPreview(input: {
   mode: MailPreviewMode;
   recipient_index?: number | null;
+  /** Sin destinatarios: la persona de ejemplo (Ana o Luis) y su saludo (L8). */
+  ejemplo?: "femenino" | "masculino" | null;
   template?: MailTemplate | null;
   campaign_id?: string | null;
   envio?: MailSendPedido | null;
 }): Promise<MailPreview> {
   const body: Record<string, unknown> = conEnvio({ mode: input.mode }, input.envio);
   if (input.recipient_index) body.recipient_index = input.recipient_index;
+  else if (input.ejemplo) body.ejemplo = input.ejemplo;
   if (input.template) body.template = serializeMailTemplate(input.template);
   return normalizeMailPreview(await handleMail(await apiFetch(
     `${BASE}/mail-template/preview`,

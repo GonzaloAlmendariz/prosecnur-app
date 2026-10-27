@@ -121,6 +121,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
   onEscrito.current = opciones.onEscrito;
   const borrador = useCorreosStore((st) => st.borrador);
   const persona = useCorreosStore((st) => st.persona);
+  const ejemplo = useCorreosStore((st) => st.ejemplo);
   const carga = useCorreosStore((st) => st.carga);
   const destinatariosHuella = useCorreosStore((st) => (st.destinatarios
     ? `${st.destinatarios.imported_at ?? ""}|${JSON.stringify(st.destinatarios.mapping)}`
@@ -183,7 +184,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     const timer = window.setTimeout(() => {
       s.getState().vistaPreviaInicio();
       const envio = envioElegido(s.getState());
-      apiMailPreview({ mode: "preview", recipient_index: persona, template, campaign_id: s.getState().campana, envio: { send: envio } }).then(
+      apiMailPreview({ mode: "preview", recipient_index: persona, ejemplo: persona ? null : ejemplo, template, campaign_id: s.getState().campana, envio: { send: envio } }).then(
         (preview) => { if (vivo.current && turno === turnoVista.current) s.getState().vistaPreviaLista(preview); },
         (cause: unknown) => {
           if (!vivo.current || turno !== turnoVista.current) return;
@@ -197,7 +198,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       );
     }, ESPERA_VISTA_MS);
     return () => window.clearTimeout(timer);
-  }, [campana, carga, huella, huellaDelEnvio, persona, plataforma, refresco, s]);
+  }, [campana, carga, ejemplo, huella, huellaDelEnvio, persona, plataforma, refresco, s]);
 
   // Revisión del borrador: también depende de la lista de destinatarios.
   const revisar = useCallback(async (template: MailTemplate | null) => {
