@@ -135,7 +135,7 @@
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-info-bg) 45%, var(--pulso-surface));
   overflow: hidden;
 }
 
@@ -156,21 +156,22 @@
 /* Contorno de distritos (PlanMet): relleno de superficie alterna y trazo
  * marcado, para que el territorio se lea antes que los puntos. */
 .mon-mapa-distritos path {
-  fill: var(--pulso-surface-2);
-  stroke: var(--pulso-text-faint);
-  stroke-width: 1.4;
+  fill: var(--pulso-surface);
+  stroke: color-mix(in srgb, var(--pulso-brand-navy) 55%, var(--pulso-surface));
+  stroke-width: 1.6;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
 .mon-mapa-rotulos text {
-  fill: var(--pulso-text-soft);
+  fill: var(--pulso-text);
   paint-order: stroke;
   stroke: var(--pulso-surface);
-  stroke-width: 4px;
+  stroke-width: 5px;
   stroke-linejoin: round;
-  font-size: 17px;
-  font-weight: var(--pulso-weight-semibold);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.01em;
   pointer-events: none;
 }
 
@@ -197,16 +198,45 @@
   cursor: pointer;
 }
 
+/* Lo cerrado se ve, pero no grita: las completas van tenues para que la
+ * subsanada y, sobre todo, la pendiente se encuentren de un vistazo. */
 .mon-mapa-punto.is-completa,
 .mon-mapa-manzana.is-completa,
 .mon-mapa-punto.is-con-parte,
 .mon-mapa-manzana.is-con-parte {
-  fill: var(--pulso-brand-navy);
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 62%, var(--pulso-surface));
 }
 
 .mon-mapa-punto.is-subsanada,
 .mon-mapa-manzana.is-subsanada {
-  fill: var(--pulso-module-monitoring);
+  fill: var(--pulso-info-fg);
+}
+
+.mon-mapa-punto-grupo {
+  cursor: pointer;
+}
+
+.mon-mapa-punto-grupo:hover .mon-mapa-punto {
+  stroke: var(--pulso-text);
+  stroke-width: 2;
+}
+
+.mon-mapa-halo {
+  fill: color-mix(in srgb, var(--pulso-warn-accent) 22%, transparent);
+  stroke: var(--pulso-warn-accent);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-mapa-etiqueta {
+  fill: var(--pulso-warn-fg);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  pointer-events: none;
 }
 
 .mon-mapa-punto.is-pendiente,
@@ -248,10 +278,45 @@
 .mon-mapa-leyenda {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-1);
 }
 
-.mon-mapa-leyenda span::before {
+/* La leyenda filtra: cada estado es un botón que lo muestra u oculta. */
+.mon-mapa-leyenda button {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mon-mapa-leyenda button:hover {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.mon-mapa-leyenda button.is-apagado {
+  color: var(--pulso-text-faint);
+  text-decoration: line-through;
+}
+
+.mon-mapa-leyenda button.is-apagado::before {
+  opacity: 0.3;
+}
+
+.mon-mapa-leyenda button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.mon-mapa-leyenda button::before {
   content: "";
   display: inline-block;
   width: 10px;
@@ -263,11 +328,11 @@
 
 .mon-mapa-leyenda .is-completa::before,
 .mon-mapa-leyenda .is-con-parte::before {
-  background: var(--pulso-brand-navy);
+  background: color-mix(in srgb, var(--pulso-brand-navy) 62%, var(--pulso-surface));
 }
 
 .mon-mapa-leyenda .is-subsanada::before {
-  background: var(--pulso-module-monitoring);
+  background: var(--pulso-info-fg);
 }
 
 .mon-mapa-leyenda .is-pendiente::before,
@@ -326,8 +391,88 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mon-mapa-conteos .is-completa dt::before,
+.mon-mapa-conteos .is-subsanada dt::before,
+.mon-mapa-conteos .is-pendiente dt::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 0;
+}
+
+.mon-mapa-conteos .is-completa dt::before {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 62%, var(--pulso-surface));
+}
+
+.mon-mapa-conteos .is-subsanada dt::before {
+  background: var(--pulso-info-fg);
+}
+
+.mon-mapa-conteos .is-pendiente dt::before {
+  background: var(--pulso-warn-accent);
+}
+
 .mon-mapa-conteos .is-pendiente {
   border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.mon-mapa-distritos-lista {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-mapa-distritos-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(56px, 0.7fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 13px;
+}
+
+.mon-mapa-distrito-nombre {
+  overflow: hidden;
+  color: var(--pulso-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-mapa-distrito-barra {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-mapa-distrito-barra i {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.mon-mapa-distrito-barra .is-completa {
+  background: color-mix(in srgb, var(--pulso-brand-navy) 62%, var(--pulso-surface));
+}
+
+.mon-mapa-distrito-barra .is-subsanada {
+  background: var(--pulso-info-fg);
+}
+
+.mon-mapa-distrito-barra .is-pendiente {
+  background: var(--pulso-warn-accent);
+}
+
+.mon-mapa-distrito-cifra {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-mapa-subtitulo {
@@ -379,6 +524,14 @@
   color: var(--pulso-text-soft);
 }
 
+/* En el lateral angosto el distrito se recorta antes que pisar «Falta 1». */
+.mon-mapa-lista span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mon-mapa-lista small {
   color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
@@ -390,12 +543,12 @@
   }
 }
 
-/* Pantallas bajas (1024 × 600): el lateral pasa debajo del mapa con su propio
- * desplazamiento y la barra compacta los rótulos. */
+/* Pantallas chicas (1024 × 600): el lateral se angosta pero sigue al costado.
+ * Apilado dejaba al mapa en una franja de 190 px de alto donde no se leía
+ * nada; la barra compacta los rótulos. */
 @media (max-width: 1100px), (max-height: 700px) {
   .mon-mapa {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(260px, 1fr) minmax(0, 34%);
+    grid-template-columns: minmax(0, 1fr) 290px;
   }
 
   .mon-mapa-ir > span,
@@ -414,11 +567,144 @@
   flex-grow: 1;
 }
 
-/* Los demás distritos de Lima Metropolitana, tenues y sin rótulo. */
+/* Los demás distritos de Lima Metropolitana, tenues y sin rótulo: un gris
+ * apenas más oscuro que los de la muestra, que van en blanco. */
 .mon-mapa-contexto path {
-  fill: var(--pulso-surface-3);
+  fill: color-mix(in srgb, var(--pulso-text-faint) 14%, var(--pulso-surface));
   stroke: var(--pulso-border);
   stroke-width: 0.75;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
+}
+
+@media (max-width: 860px) {
+  .mon-mapa {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(260px, 1fr) minmax(0, 34%);
+  }
+}
+
+/* Vista de un distrito: en la general, cada distrito de la muestra invita a
+ * entrar; adentro, el resto de manzanas del distrito va tenue y las de la ruta
+ * son áreas del color de su estado. */
+.mon-mapa-distritos path.is-elegible {
+  cursor: pointer;
+  transition: fill 120ms ease;
+}
+
+.mon-mapa-distritos path.is-elegible:hover {
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 6%, var(--pulso-surface));
+}
+
+.mon-mapa-fondo path {
+  fill: color-mix(in srgb, var(--pulso-text-faint) 12%, var(--pulso-surface));
+  stroke: var(--pulso-border);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.mon-mapa-area {
+  stroke: var(--pulso-surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.mon-mapa-area:hover {
+  stroke: var(--pulso-text);
+  stroke-width: 2;
+}
+
+.mon-mapa-area.is-completa,
+.mon-mapa-area.is-con-parte {
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 62%, var(--pulso-surface));
+}
+
+.mon-mapa-area.is-subsanada {
+  fill: var(--pulso-info-fg);
+}
+
+.mon-mapa-area.is-pendiente,
+.mon-mapa-area.is-sin-parte {
+  fill: var(--pulso-warn-accent);
+  stroke: var(--pulso-warn-fg);
+  stroke-width: 2;
+}
+
+.mon-mapa-area.is-sin-usar {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-text-soft);
+  stroke-dasharray: 3 2;
+}
+
+/* Tooltip dentro del SVG (TooltipDelMapa.tsx): sin capa HTML encima. */
+.mon-mapa-tooltip {
+  pointer-events: none;
+}
+
+.mon-mapa-tooltip rect {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+  filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--pulso-brand-navy) 18%, transparent));
+}
+
+.mon-mapa-tooltip text {
+  fill: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-mapa-tooltip text.is-titulo {
+  fill: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Número de UMP sobre su área, en la vista de un distrito. */
+/* Insignia de UMP sobre su área: el componente fija radio, borde y letra en
+ * unidades del viewBox para que midan lo mismo en pantalla a cualquier zoom. */
+.mon-mapa-insignia circle {
+  stroke: var(--pulso-surface);
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--pulso-brand-navy) 30%, transparent));
+}
+
+.mon-mapa-insignia text {
+  fill: var(--pulso-surface);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-mapa-insignia.is-completa circle,
+.mon-mapa-insignia.is-con-parte circle {
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 72%, var(--pulso-surface));
+}
+
+.mon-mapa-insignia.is-subsanada circle {
+  fill: var(--pulso-info-fg);
+}
+
+.mon-mapa-insignia.is-pendiente circle,
+.mon-mapa-insignia.is-sin-parte circle {
+  fill: var(--pulso-warn-accent);
+}
+
+.mon-mapa-insignia.is-sin-usar circle {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-text-soft);
+}
+
+.mon-mapa-insignia.is-sin-usar text {
+  fill: var(--pulso-text-soft);
+}
+
+/* Zoom con la rueda y desplazamiento arrastrando (useZoomDelMapa). */
+.mon-mapa-svg {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.mon-mapa-svg.is-arrastrando {
+  cursor: grabbing;
 }
