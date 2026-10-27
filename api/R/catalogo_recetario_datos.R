@@ -35,6 +35,10 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
                             "Práctica en campo, talleres y laboratorios", "Rubros de alta demanda", "Vinculación docente con la industria",
                             "Orientación sobre perfiles profesionales", "Comunicación, liderazgo y habilidades blandas",
                             "Gestión de proyectos y finanzas", "Apoyo a la inserción laboral", "No sabe / Ninguna sugerencia"), sin_inf = FALSE),
+    # Dona con tajadas chicas y «<1%» (checklist-recetario-desfase T1, T4): una modalidad con un solo caso de 178.
+    .cr_escala("modalidad", c("Presencial", "Semipresencial", "A distancia", "Otra modalidad"), sin_inf = FALSE),
+    # Temas del comentario abierto, codificado por módulo (10, 20, …) como lo deja Codificación (p104, `temas_de_texto`).
+    data.frame(list_name = "temas_coment", name = as.character(names(.CR_TEMAS)), label = unname(.CR_TEMAS), stringsAsFactors = FALSE),
     # Mapa de Lima por distrito (p107): el código es el ubigeo, que es lo que el mapa reconoce.
     data.frame(list_name = "distrito", name = c("150101", "150122", "150130", "150131", "150132", "150103", "150117", "150140"),
                label = c("Lima", "Miraflores", "San Borja", "San Isidro", "San Juan de Lurigancho", "Ate", "Los Olivos", "Santiago de Surco"),
@@ -112,7 +116,9 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
       .cr_fila("integer", "anio_egreso", "Año de egreso"),                                # histograma (p81)
       .cr_fila("integer", "meses_empleo", "Meses hasta conseguir el primer empleo"),      # caja, media y rango (p83–p84)
       .cr_fila("select_one distrito", "distrito", "Distrito de residencia"),              # mapa por distrito (p107)
-      do.call(rbind, lapply(seq_along(.CR_OE), function(i) .cr_fila("select_one utilidad", paste0("oe_", i), .CR_OE[i])))  # p78
+      do.call(rbind, lapply(seq_along(.CR_OE), function(i) .cr_fila("select_one utilidad", paste0("oe_", i), .CR_OE[i]))),  # p78
+      .cr_fila("select_one modalidad", "modalidad", "¿En qué modalidad cursó la carrera?"),                    # dona con tajadas chicas (T1, T4)
+      .cr_fila("select_multiple temas_coment", "comentario_temas", "¿Qué cambiaría de la carrera? (temas)")   # temas del texto (p104)
     ),
     stop("Público desconocido: ", publico, call. = FALSE)
   )
@@ -148,6 +154,13 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
   "Más cursos de gestión y finanzas", "Conocimiento técnico más profundo", "Desarrollo de proyectos interdisciplinarios",
   "Mejorar la orientación sobre el campo laboral", "Más laboratorios y talleres prácticos"
 )
+
+# Temas del comentario (p104): módulos con código 10, 20, … y la frase de cada respuesta asignada a uno o dos temas.
+.CR_TEMAS <- c(`10` = "A. Plan de estudios", `20` = "B. Vínculo con el mercado laboral", `30` = "C. Habilidades blandas",
+               `40` = "D. Prácticas y proyectos", `50` = "E. Docentes")
+.CR_FRASE_TEMAS <- stats::setNames(
+  c("30", "10 20", "10", "40 20", "10", "20", "40", "40 20", "50", "30", "10", "10", "10", "40", "20", "40"),
+  .CR_FRASES)
 
 .cr_texto <- function(n, vacio = 0.25) {
   x <- sample(.CR_FRASES, n, replace = TRUE, prob = rev(seq_along(.CR_FRASES)))
@@ -202,6 +215,9 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
     d$distrito <- sample(c("150101", "150122", "150130", "150131", "150132", "150103", "150117", "150140"), n, replace = TRUE,
                          prob = c(0.1, 0.12, 0.1, 0.08, 0.2, 0.14, 0.14, 0.12))
     for (i in seq_along(.CR_OE)) d[[paste0("oe_", i)]] <- .cr_likert(n, nivel + c(1, -0.3, 0.8, 1.1)[i], sin_inf = 0.02)
+    # Sin sorteo: se derivan de lo ya generado y no mueven la secuencia aleatoria del resto del catálogo.
+    d$modalidad <- rep(1:4, c(n - 28L, 20L, 7L, 1L))
+    d$comentario_temas <- unname(.CR_FRASE_TEMAS[d$comentario])
   }
   d
 }

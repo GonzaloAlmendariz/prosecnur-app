@@ -54,7 +54,8 @@ catalogo_recetario_dir <- function() {
   c(lapply(stats::setNames(nm = c("acuerdo", "acuerdo_eg", "utilidad", "satisf")), pintar, colores = rampa4),
     lapply(stats::setNames(nm = c("acuerdo5", "relacion")), pintar, colores = rampa5),
     list(si_no = pintar("si_no", c("#081F5C", "#CA5651")),
-         sexo = pintar("sexo", c("#081F5C", "#CA5651"))))
+         sexo = pintar("sexo", c("#081F5C", "#CA5651")),
+         modalidad = pintar("modalidad", c("#081F5C", "#CA5651", "#6F86B8", "#E9A19B"))))
 }
 
 #' Siembra la sesión del catálogo: bases, estudio y plan
