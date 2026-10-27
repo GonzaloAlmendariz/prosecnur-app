@@ -144,6 +144,17 @@ const cierre: DibujoLamina = () => (
   </>
 );
 
+/** Reglas de la identidad: tres muestras de color en fila bajo el título. */
+const estandar: DibujoLamina = () => (
+  <>
+    <Marco />
+    <LineaTitulo />
+    <Acento><Bloque x={6.75} y={11.25} w={3} h={3} tono="pleno" /></Acento>
+    <Bloque x={10.5} y={11.25} w={3} h={3} />
+    <Bloque x={14.25} y={11.25} w={3} h={3} />
+  </>
+);
+
 const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_portada: portada,
   p_slide_objetivo_icono: objetivo,
@@ -153,6 +164,7 @@ const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_redondeo: redondeo,
   p_slide_seccion: seccion,
   p_slide_cierre: cierre,
+  p_slide_estandar: estandar,
 };
 
 /** Ícono propio (dibujado): 22 del estándar + 8 de estructura. */

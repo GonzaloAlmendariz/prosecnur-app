@@ -34,10 +34,10 @@ function slotsDelRegistro(): Record<string, string[]> {
   }));
 }
 
-describe("los 33 tipos del registro", () => {
-  it("el registro tiene 33 tipos y el catálogo versionado los lista todos", () => {
+describe("los 34 tipos del registro", () => {
+  it("el registro tiene 34 tipos y el catálogo versionado los lista todos", () => {
     const registro = slotsDelRegistro();
-    expect(Object.keys(registro)).toHaveLength(33);
+    expect(Object.keys(registro)).toHaveLength(34);
     expect([...nombres].sort()).toEqual(Object.keys(registro).sort());
   });
 
@@ -88,7 +88,7 @@ describe("los 33 tipos del registro", () => {
   it("cada tipo aparece en una sola intención", () => {
     const todos = INTENCIONES.flatMap((i) => i.tipos);
     expect(new Set(todos).size).toBe(todos.length);
-    expect(todos.length + TIPOS_FUERA_DEL_SELECTOR.size).toBe(33);
+    expect(todos.length + TIPOS_FUERA_DEL_SELECTOR.size).toBe(34);
   });
 
   it("cada tipo tiene composición dibujable: ranuras del estándar o dibujo de estructura", () => {

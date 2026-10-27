@@ -73,6 +73,8 @@ export const TIPOS_FUERA_DEL_SELECTOR: ReadonlySet<SlideType> = new Set<SlideTyp
   "p_slide_2_graficos_poblacion",
   "p_slide_3_graficos_poblacion",
   "p_slide_4_graficos_poblacion",
+  // Reglas de la identidad: la constitución del motor en el catálogo del recetario, no una lámina de informe.
+  "p_slide_estandar",
 ]);
 
 export function intencionDe(tipo: SlideType): IntencionLamina | null {
