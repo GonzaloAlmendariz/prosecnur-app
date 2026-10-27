@@ -337,11 +337,14 @@
 #' @param dialect "mailchimp" o "surveymonkey" (collection_mail_dialects.R).
 #' @param values list(nombre, fields = list(key = valor)) para preview.
 #' @param images salida de `.cmail_images_resolve()`.
+#' @param marks `FALSE` quita, en la vista previa, las marcas del editor (zonas y
+#'   el tinte de los campos): la vista para revisión (L9). Sin él, las lleva la
+#'   vista previa y no la exportación, como siempre.
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
 collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
                                    dialect = c("mailchimp", "surveymonkey"), values = list(), images = list(),
-                                   known = list()) {
+                                   known = list(), marks = NULL) {
   mode <- match.arg(mode)
   dialect <- match.arg(dialect)
   if (identical(mode, "mailchimp")) { mode <- "export"; dialect <- "mailchimp" }
@@ -352,7 +355,7 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     values = values,
     fields = .cmail_field_index(template),
     images = images,
-    marks = identical(mode, "preview"),
+    marks = if (is.logical(marks) && length(marks) == 1L) marks && identical(mode, "preview") else identical(mode, "preview"),
     # Lo que la audiencia exportada garantiza para TODA persona (`fname`,
     # `saludo`, `fields`): con eso el saludo y los campos salen planos, sin condicionales de Mailchimp
     # que el editor muestra crudas. Sin audiencia (scope «plantilla») no se

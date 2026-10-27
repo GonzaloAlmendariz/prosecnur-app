@@ -249,6 +249,12 @@ mount_recopiladores <- function(pr) {
                               campaign_id = body$campaign_id, send_id = body$send_id, send = body$send,
                               ejemplo = body$ejemplo)
     })) |>
+    # Vista para revisión (L9): HTML con los correos de las campañas elegidas, para quien aprueba.
+    plumber::pr_post("/api/recopiladores/mail-revision", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_revision(session_header(req), campaign_ids = body$campaign_ids,
+                               ejemplo = body$ejemplo, titulo = body$titulo)
+    })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id,

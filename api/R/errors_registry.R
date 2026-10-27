@@ -124,6 +124,7 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_TEMPLATE_INVALID",                    "collection_mail_template.R",        "422",
     "E_COLLECTION_MAIL_MODE",                                "collection_mail_export.R",          "422",
     "E_COLLECTION_MAIL_RECIPIENT_INDEX",                     "collection_mail_export.R",          "422",
+    "E_COLLECTION_MAIL_REVISION",                            "collection_mail_revision.R",        "422",
     "E_COLLECTION_MAIL_REVIEW_BLOCKING",                     "collection_mail_export.R",          "422",
     "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",                    "collection_mail_export.R",          "413",
     "E_COLLECTION_MAIL_NO_RECIPIENTS",                       "collection_mail_recipients.R",      "409",
