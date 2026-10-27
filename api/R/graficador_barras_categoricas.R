@@ -83,13 +83,9 @@
   )
 }
 
-.barras_categoricas_palette <- function(n) {
-  pal <- c(
-    "#CA5651", "#EFD25E", "#85BB85", "#70AD47", "#7594CC",
-    "#9688D3", "#E4A34C", "#BFBFBF", "#081F5C", "#D8D8D8"
-  )
-  rep(pal, length.out = max(0L, n))
-}
+# Sin colores propios, la paleta nominal del estándar (ADR 0092, «manda el JSON»): antes una lista con coral, verde,
+# amarillo, morado y naranja que ninguna lámina nativa dibuja.
+.barras_categoricas_palette <- function(n) .std_paleta_nominal(max(0L, n))
 
 .barras_categoricas_resolve_colors <- function(categorias, colores_categorias = NULL, paleta_colores = NULL) {
   categorias <- as.character(categorias)

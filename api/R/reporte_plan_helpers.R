@@ -318,9 +318,9 @@
   sections <- clean(sections)
   title <- as.character(title %||% "Contenido")[1]
   if (!nzchar(trimws(title))) title <- "Contenido"
-  title_color <- as.character(style$title_color %||% "#081F5C")[1]
+  title_color <- as.character(style$title_color %||% .std_color("azul"))[1]
   accent <- as.character(style$accent_color %||% "#0072BC")[1]
-  text_color <- as.character(style$text_color %||% "#081F5C")[1]
+  text_color <- as.character(style$text_color %||% .std_color("azul"))[1]
   title_size <- number("title_size", 24, min = 18)
   section_size <- number("section_size", 18, min = 16)
   number_size <- number("number_size", 18, min = 16)
@@ -582,7 +582,7 @@
   style$number_size <- sv("number_size", if (n <= 4L) 20 else 16)
   style$section_size <- sv("section_size", if (n <= 4L) 18 else 16)
   style$section_fill <- sv("section_fill", "#E7E7E7")
-  style$row_gap_color <- sv("row_gap_color", "#F2F2F2")
+  style$row_gap_color <- sv("row_gap_color", .std_color("fondo"))
   style$subtopic_heading <- sv("subtopic_heading", FALSE)
   style$subtopic_marker <- sv("subtopic_marker", "number_text")
   style$subtopic_row_height <- sn("subtopic_row_height", 0.76, min = 0.18)

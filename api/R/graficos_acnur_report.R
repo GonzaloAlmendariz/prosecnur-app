@@ -889,7 +889,7 @@
     title_color = "#0072BC",
     title_size = 24,
     table_height = 5.35,
-    text_color = "#081F5C",
+    text_color = .std_color("azul"),
     first_col_fill = "#E6F3F8",
     body_fill = "#FFFFFF",
     border_color = "#B9D7E5",
@@ -967,9 +967,9 @@
           acnur_two_column_index = TRUE,
           column_break = ceiling(length(page_sections) / 2),
           number_offset = idx[[1L]] - 1L,
-          title_color = "#081F5C",
+          title_color = .std_color("azul"),
           accent_color = "#0072BC",
-          text_color = "#081F5C",
+          text_color = .std_color("azul"),
           title_size = 24,
           section_size = 18
         )

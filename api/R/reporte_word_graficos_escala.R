@@ -109,8 +109,8 @@
 #' @return ggplot con atributos `alto` (in, ya sin el pie) y `filas`.
 #' @keywords internal
 .word_g_escala <- function(espec, envolver = .WORD_ESCALA_ENVOLTURA) {   # constantes: reporte_word_escala_fijados.R
-  navy <- .std_word("colores", "titulos"); gris <- "#8A93A8"; filete <- .std_word("colores", "filete")
-  verde <- .std_color("verde_top_two_box"); naranja <- "#B4541F"
+  navy <- .std_word("colores", "titulos"); gris <- .std_color("texto_tenue"); filete <- .std_word("colores", "filete")
+  verde <- .std_color("verde_top_two_box"); naranja <- .std_color("naranja_bottom_two_box")
   orden <- espec$orden$aplicado %||% seq_len(nrow(espec$filas))
   F <- espec$filas[orden, , drop = FALSE]; U <- espec$unidades[orden, , drop = FALSE]; A <- espec$anchos[orden, , drop = FALSE]
   Ci <- espec$cifras[orden, , drop = FALSE]; Dw <- espec$dibujar[orden, , drop = FALSE]

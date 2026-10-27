@@ -562,7 +562,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   d$eje <- factor(niveles[as.integer(datos$eje)], levels = rev(niveles))
   pal <- .std_paleta("actores")
   colores <- stats::setNames(rep_len(pal, nlevels(d$grupo)), levels(d$grupo))
-  navy <- "#062A63"
+  navy <- .std_color("azul")
   fuente <- "Arial"
   dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec)) dec <- 0L
   d$etiqueta <- .pulso_fmt_pct_half_up(d$valor, max(0L, min(3L, dec)), escala = 1)   # mitad hacia arriba, como la tabla
@@ -578,9 +578,9 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     ggplot2::theme_minimal(base_size = 11, base_family = fuente) +
     ggplot2::theme(
       panel.grid.major.y = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
-      panel.grid.major.x = ggplot2::element_line(colour = "#D9DCE3", linewidth = 0.3),
+      panel.grid.major.x = ggplot2::element_line(colour = .std_color("filete"), linewidth = 0.3),
       axis.text.y = ggplot2::element_text(colour = navy, face = "bold", size = 11),
-      axis.text.x = ggplot2::element_text(colour = "#6B7280", size = 9),
+      axis.text.x = ggplot2::element_text(colour = .std_color("texto_suave"), size = 9),
       plot.subtitle = ggplot2::element_text(colour = navy, face = "bold", size = 12),
       legend.position = "bottom", legend.text = ggplot2::element_text(colour = navy, size = 11),
       plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
@@ -1185,8 +1185,8 @@ p_radar_publicos <- function(
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
   }
-  navy <- "#062A63"
-  gris <- "#F2F2F2"
+  navy <- .std_color("azul")
+  gris <- .std_color("fondo")
 
   dec <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1])
   if (!is.finite(dec)) dec <- 0L

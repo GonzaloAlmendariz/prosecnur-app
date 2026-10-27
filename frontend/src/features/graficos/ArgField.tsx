@@ -5,6 +5,7 @@ import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XI
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugeridaEntry } from "../../api/client";
+import { ESTANDAR_NOMINAL, LIKERT_RECETARIO, paletaNominal } from "./paletasSugeridas";
 import { escalasParaSembrar, escalasParaVariable } from "./escalaDeVariable";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
@@ -2107,7 +2108,7 @@ function SeriesColorsField({
 
   function applySuggested() {
     const names = visibleRows.length > 0 ? visibleRows.map(([name]) => name) : ["Serie 1", "Serie 2", "Serie 3"];
-    const palette = ["#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF", "#E4A34C", "#7594CC", "#9688D3"];
+    const palette = paletaNominal(names.length).length ? paletaNominal(names.length) : [...ESTANDAR_NOMINAL.categorica];   // la del estándar, como el motor
     emit(names.map((name, i) => [name, palette[i % palette.length]] as [string, string]));
   }
 
@@ -3006,15 +3007,15 @@ function MultiFlag({
 // Presets generales — cubren los casos más comunes sin forzar al
 // analista a abrir el color wheel. Ordenados: neutros → primary → acento.
 const COLOR_PRESETS: { value: string; label: string }[] = [
-  { value: "#081F5C", label: "Pulso azul" },
-  { value: "#CA5651", label: "Pulso rojo" },
-  { value: "#85BB85", label: "Pulso verde" },
-  { value: "#EFD25E", label: "Pulso amarillo" },
-  { value: "#BFBFBF", label: "Pulso gris" },
-  { value: "#E4A34C", label: "Pulso naranja" },
-  { value: "#7594CC", label: "Pulso azul secundario" },
-  { value: "#9688D3", label: "Pulso morado" },
-  { value: "#D8D8D8", label: "Pulso gris secundario" },
+  // Los del estándar (estandar_pulso.json): sin coral, que va en los títulos (ADR 0092, «manda el JSON»).
+  { value: ESTANDAR_NOMINAL.categorica[0], label: "Azul institucional" },
+  { value: ESTANDAR_NOMINAL.dicotomica[1], label: "Celeste" },
+  { value: ESTANDAR_NOMINAL.categorica[1], label: "Azul medio" },
+  { value: ESTANDAR_NOMINAL.categorica[2], label: "Azul tenue" },
+  { value: ESTANDAR_NOMINAL.actores[1], label: "Verde azulado" },
+  { value: ESTANDAR_NOMINAL.actores[2], label: "Dorado" },
+  { value: LIKERT_RECETARIO.desacuerdoFuerte, label: "Naranja de la escala" },
+  { value: LIKERT_RECETARIO.sinInformacion, label: "Gris" },
   { value: "#000000", label: "Negro" },
   { value: "#222222", label: "Casi negro" },
   { value: "#555555", label: "Gris oscuro" },

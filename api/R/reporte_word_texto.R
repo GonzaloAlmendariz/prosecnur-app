@@ -39,7 +39,7 @@
     return(if (nzchar(intro)) .word_parr(doc, list(intro, 10.5, .std_word("colores", "texto")), despues = 10) else doc)
   }
   for (k in 1:2) doc <- officer::body_add_par(doc, "")
-  doc <- .word_parr(doc, list(as.character(n), 60, "#C9D3E6", TRUE), despues = 0, mantener = TRUE)
+  doc <- .word_parr(doc, list(as.character(n), 60, unlist(.std_paleta("calor")$tramos)[2], TRUE), despues = 0, mantener = TRUE)
   doc <- officer::body_add_par(doc, titulo, style = "heading 1")
   if (nzchar(intro)) doc <- .word_parr(doc, list(intro, 11.5, .std_word("colores", "texto")), antes = 4, despues = 12, mantener = length(secciones) > 0)
   if (length(secciones)) {

@@ -157,7 +157,7 @@
     sprintf(
       paste0('<text x="%.2f" y="%.2f" font-family="Arial, sans-serif" ',
              'font-size="%.0f" font-weight="bold" fill="%s"%s>%s</text>'),
-      x + 8, y + alto * 0.42, size, "#081F5C",
+      x + 8, y + alto * 0.42, size, .std_color("azul"),
       if (isTRUE(cursiva)) ' font-style="italic"' else "",
       .nresp_escape(texto)
     )
@@ -181,12 +181,12 @@
 .numero_respuestas_svg <- function(ejemplos = NULL, base_texto = NULL,
                                    style = list()) {
   ej <- .nresp_ejemplos_default(ejemplos)
-  blue <- .nresp_color(.nresp_estilo(style, "text_color", "#081F5C"), "#081F5C")
+  blue <- .nresp_color(.nresp_estilo(style, "text_color", .std_color("azul")), .std_color("azul"))
   accent <- .nresp_color(
     .nresp_estilo(style, "accent_color",
                   .nresp_estilo(style, "title_color", .std_color("coral"))), .std_color("coral"))
   verde <- .nresp_color(.nresp_estilo(style, "top_two_color", "#548135"), "#548135")
-  fondo <- .nresp_color(.nresp_estilo(style, "background_fill", "#F2F2F2"), "#F2F2F2")
+  fondo <- .nresp_color(.nresp_estilo(style, "background_fill", .std_color("fondo")), .std_color("fondo"))
   base_texto <- as.character(base_texto %||% "Base: 12 egresados")[1]
 
   bar_x <- 430
@@ -270,7 +270,7 @@
       publico = "Egresados",
       tramos = data.frame(
         pct = c(92, 8),
-        color = c("#9DC3E6", "#336699"),
+        color = c(.std_paleta("dicotomica")[2], "#336699"),
         etiqueta = c("Sí", "No"),
         label_color = c("#FFFFFF", "#FFFFFF"),
         stringsAsFactors = FALSE
@@ -281,9 +281,9 @@
       publico = "Egresados",
       tramos = data.frame(
         pct = c(42, 25, 33),
-        color = c("#FFD966", "#B7D7A8", "#70AD47"),
+        color = c("#FFD966", "#B7D7A8", .std_paleta("likert")[4]),
         etiqueta = c("En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
-        label_color = c("#081F5C", "#081F5C", "#081F5C"),
+        label_color = c(.std_color("azul"), .std_color("azul"), .std_color("azul")),
         stringsAsFactors = FALSE
       ),
       top_two = "58%",

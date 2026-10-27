@@ -76,7 +76,7 @@
   suma_est <- sum(u_est) / (10^decimales)
   suma_rep <- sum(u_rep) / (10^decimales)
 
-  navy <- fill(style$text_color %||% "#081F5C", "#081F5C")
+  navy <- fill(style$text_color %||% .std_color("azul"), .std_color("azul"))
   acento <- fill(style$accent_color %||% .std_color("coral"), .std_color("coral"))
   fondo <- fill(style$background_fill %||% "#FFFFFF", "#FFFFFF")
   suave <- fill(style$muted_color %||% "#5B6B8C", "#5B6B8C")
@@ -245,7 +245,7 @@
       doc,
       value = officer::fpar(
         officer::ftext(texto, prop = officer::fp_text(
-          color = as.character(helpers$style_value(style, "text_color", "#081F5C"))[1],
+          color = as.character(helpers$style_value(style, "text_color", .std_color("azul")))[1],
           font.size = helpers$style_num(style, "text_size", 13, min = 6),
           font.family = as.character(style$font_family)[1]
         )),

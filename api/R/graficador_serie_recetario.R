@@ -140,7 +140,7 @@
       legend.key.width = ggplot2::unit(1.1, "cm"),
       legend.margin = ggplot2::margin(t = 6),
       panel.grid = ggplot2::element_blank(),
-      panel.grid.major.y = ggplot2::element_line(colour = "#DCE1E8", linewidth = 0.35),
+      panel.grid.major.y = ggplot2::element_line(colour = .std_color("filete"), linewidth = 0.35),
       axis.text.y = ggplot2::element_text(size = 10, colour = .std_color("texto_tenue")),
       axis.text.x = ggplot2::element_text(size = 13, colour = .std_color("azul"), face = "bold"),
       plot.title = ggplot2::element_text(colour = color_titulo, size = size_titulo, face = cara("titulo"), hjust = 0.5),
