@@ -25,13 +25,19 @@
 # la regla (no una lectura del deck) para que la escala no tenga un hueco.
 .T2B_SEMAFORO_UMBRALES <- c(alto = 80, medio = 70)
 
-# Verde y ámbar son los del deck (`80C535`, `FFC000`). El rojo se toma del
-# mismo rosa que el deck usa para la flecha de caída, oscurecido lo justo para
-# que una cifra en 13 pt tenga contraste sobre fondo claro.
-.T2B_SEMAFORO_COLORES <- c(alto = "#80C535", medio = "#FFC000", bajo = "#C0504D")
+# Los colores son el semáforo del estándar (`ppt.paletas.semaforo`, el de Analítica › Dimensiones; P10): antes eran los
+# del deck 2021 (`80C535`, `FFC000` y un rojo `C0504D`). Funciones y no constantes: el estándar se lee en tiempo de
+# ejecución, no al instalar el paquete.
+.t2b_semaforo_colores <- function() {
+  s <- .std_semaforo()
+  c(alto = s[["verde"]], medio = s[["ambar"]], bajo = s[["rojo"]])
+}
 
-# Triángulo de tendencia: verde sube, rosa baja (los del deck).
-.T2B_TENDENCIA_COLORES <- c(sube = "#80C535", baja = "#DA8080")
+# Triángulo de tendencia: sube en el verde del semáforo, baja en su rojo.
+.t2b_tendencia_colores <- function() {
+  s <- .std_semaforo()
+  c(sube = s[["verde"]], baja = s[["rojo"]])
+}
 
 #' Normaliza el spec del comparativo contra las categorías reales de la lámina.
 #'
@@ -220,17 +226,17 @@
 #' @noRd
 .t2b_semaforo_color <- function(valores,
                                 umbrales = .T2B_SEMAFORO_UMBRALES,
-                                colores = .T2B_SEMAFORO_COLORES,
-                                color_neutro = "#7A7A7A") {
+                                colores = .t2b_semaforo_colores(),
+                                color_neutro = .std_color("texto_tenue")) {
   valores <- suppressWarnings(as.numeric(valores))
   alto  <- suppressWarnings(as.numeric(.t2b_pick(umbrales, "alto", 1L, .T2B_SEMAFORO_UMBRALES[["alto"]])))
   medio <- suppressWarnings(as.numeric(.t2b_pick(umbrales, "medio", 2L, .T2B_SEMAFORO_UMBRALES[["medio"]])))
   if (!is.finite(alto))  alto  <- .T2B_SEMAFORO_UMBRALES[["alto"]]
   if (!is.finite(medio)) medio <- .T2B_SEMAFORO_UMBRALES[["medio"]]
 
-  c_alto  <- as.character(.t2b_pick(colores, "alto",  1L, .T2B_SEMAFORO_COLORES[["alto"]]))
-  c_medio <- as.character(.t2b_pick(colores, "medio", 2L, .T2B_SEMAFORO_COLORES[["medio"]]))
-  c_bajo  <- as.character(.t2b_pick(colores, "bajo",  3L, .T2B_SEMAFORO_COLORES[["bajo"]]))
+  c_alto  <- as.character(.t2b_pick(colores, "alto",  1L, .t2b_semaforo_colores()[["alto"]]))
+  c_medio <- as.character(.t2b_pick(colores, "medio", 2L, .t2b_semaforo_colores()[["medio"]]))
+  c_bajo  <- as.character(.t2b_pick(colores, "bajo",  3L, .t2b_semaforo_colores()[["bajo"]]))
 
   out <- rep(color_neutro, length(valores))
   ok <- is.finite(valores)
@@ -281,7 +287,7 @@
                              size_encabezado = 9,
                              font_family = "Arial",
                              umbrales = .T2B_SEMAFORO_UMBRALES,
-                             colores_semaforo = .T2B_SEMAFORO_COLORES,
+                             colores_semaforo = .t2b_semaforo_colores(),
                              color_encabezado = "#000000",
                              color_rejilla = "#BFBFBF",
                              color_celda = "#FFFFFF",
@@ -426,7 +432,7 @@
 
   w <- .T2B_TRIANGULO_ANCHO_IN / w_total_in
   h <- .T2B_TRIANGULO_ALTO_IN / h_total_in
-  col <- as.character(.t2b_pick(.T2B_TENDENCIA_COLORES, direccion, 1L, "#7A7A7A"))
+  col <- as.character(.t2b_pick(.t2b_tendencia_colores(), direccion, 1L, .std_color("texto_tenue")))
   yy <- if (identical(direccion, "sube")) c(y + h, y, y) else c(y - h, y, y)
   cowplot::draw_grob(
     grid::polygonGrob(

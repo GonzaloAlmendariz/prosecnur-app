@@ -15,20 +15,19 @@
 # 62 de 91 a mano con `manualLayout`; el motor lo resuelve solo
 # (`.finalizar_estado_labels_apiladas`) y esa parte no se copia.
 
-# Rampa ordinal de cuatro pasos, medida sobre el deck 2021.
-.PRESET_ACRD_RAMPA <- c("#F4B183", "#FFD966", "#B0D597", "#8FC36B")
+# Rampa ordinal de cuatro pasos: la Likert del estándar (Gonzalo, 2026-10-27, P9: «alinea el perfil de acreditación
+# 2021 al JSON»). Antes la medida sobre el deck 2021 (`FFD966`, `B0D597`, `8FC36B`), que el estándar corrigió. Funciones
+# y no constantes: el estándar se lee en tiempo de ejecución, no al instalar el paquete.
+.preset_acrd_rampa <- function() unname(.std_paleta("likert"))[1:4]
 
 # Gris para las categorías que no son parte de la escala («SIN INF» y afines):
 # no pertenecen a la rampa y teñirlas de verde o naranja las mete en un orden
 # que no tienen.
-.PRESET_ACRD_FUERA_ESCALA <- "#BFBFBF"
+.preset_acrd_fuera_escala <- function() unname(.std_paleta("likert"))[5]
 
-# Series del radar, medidas sobre las láminas 16-17 del deck 2021 (`002060` y
-# `FFC000`). No salen de la rampa ordinal: en un radar las series son públicos,
-# no posiciones de una escala, así que un recorrido naranja → verde diría un
-# orden que ahí no existe. El tercer color extiende la pareja del deck para los
-# estudios que comparan tres públicos.
-.PRESET_ACRD_RADAR_SERIES <- c("#002060", "#FFC000", "#8FC36B")
+# Series del radar: los públicos del estándar (`actores`), como el radar nativo. No salen de la rampa ordinal: en un
+# radar las series son públicos, no posiciones de una escala. Antes, navy y ámbar del deck 2021 (`002060`, `FFC000`).
+.preset_acrd_radar_series <- function() unname(.std_paleta("actores"))[1:3]
 
 #' Normaliza una etiqueta para comparar: minúsculas, sin tildes, sin espacios
 #' de más. El instrumento escribe la misma categoría de varias formas
@@ -60,7 +59,7 @@
 .preset_acreditacion_colores <- function(etiquetas = NULL) {
   if (is.null(etiquetas) || !length(etiquetas)) {
     return(stats::setNames(
-      .PRESET_ACRD_RAMPA,
+      .preset_acrd_rampa(),
       c("Totalmente en desacuerdo", "En desacuerdo",
         "De acuerdo", "Totalmente de acuerdo")
     ))
@@ -78,7 +77,7 @@
   # mitad caiga al default y la rampa se rompa a media barra.
   if (all(is.na(pos)) && length(etiquetas) == 4L) pos <- seq_len(4L)
 
-  out <- ifelse(is.na(pos), .PRESET_ACRD_FUERA_ESCALA, .PRESET_ACRD_RAMPA[pos])
+  out <- ifelse(is.na(pos), .preset_acrd_fuera_escala(), .preset_acrd_rampa()[pos])
   stats::setNames(out, etiquetas)
 }
 
@@ -212,7 +211,7 @@ presets_acreditacion <- function(etiquetas = NULL) {
     size_titulo_slide = 24,
     bold_titulo_slide = TRUE,
     mayusculas_titulo_slide = TRUE,
-    color_titulo_slide = "#C00000"
+    color_titulo_slide = .std_color("coral")   # el coral de los títulos del estándar (antes el rojo #C00000 del deck 2021)
   )
 }
 
@@ -247,19 +246,16 @@ presets_acreditacion <- function(etiquetas = NULL) {
       "Línea visual del informe de acreditación: rampa ordinal naranja → verde,",
       "columna Top 2 Box, «SIN INF» fuera del denominador y la escala declarada",
       "una sola vez en su lámina en vez de repetirse en cada gráfico.",
-      "Medida sobre el informe consolidado 2021."
+      "Medida sobre el informe consolidado 2021 y alineada al estándar del recetario."
     ),
     icono_ui = "GraduationCap",
-    preview_colors = unname(c(.PRESET_ACRD_RAMPA, .PRESET_ACRD_FUERA_ESCALA)),
+    preview_colors = unname(c(.preset_acrd_rampa(), .preset_acrd_fuera_escala())),
     presets = list(
       base = .preset_acreditacion_slide(),
       barras_apiladas = estilo,
       multi_apiladas = estilo,
-      # El radar del deck usa navy y ámbar, no la paleta base del motor. Sin
-      # esto, la única diferencia real entre la lámina de radar del deck 2021 y
-      # la nuestra eran los colores de serie: el preset definía la rampa de la
-      # escala apilada y dejaba el radar a su suerte.
-      radar_tabla = list(colores_series = .PRESET_ACRD_RADAR_SERIES)
+      # El radar toma los públicos del estándar, como el nativo (P9).
+      radar_tabla = list(colores_series = .preset_acrd_radar_series())
     ),
     paletas = list(
       # La escala de 4 puntos con sus nombres canónicos. El match del motor
@@ -267,7 +263,7 @@ presets_acreditacion <- function(etiquetas = NULL) {
       acuerdo_4 = as.list(escala),
       # Dicotomías en escala de azules: el «No» de «¿Conoce el reglamento?» es
       # un dato, no una falta, y el rojo contra azul lo marca como mala.
-      dicotomia = list("Sí" = "#081F5C", "Si" = "#081F5C", "No" = .std_paleta("dicotomica")[2])
+      dicotomia = list("Sí" = .std_paleta("dicotomica")[1], "Si" = .std_paleta("dicotomica")[1], "No" = .std_paleta("dicotomica")[2])
     ),
     overrides_reusables = list(),
     scope_rules = list(

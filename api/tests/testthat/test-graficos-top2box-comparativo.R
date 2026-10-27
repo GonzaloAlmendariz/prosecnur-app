@@ -57,19 +57,19 @@ test_that("sin datos declarados no hay comparativo (la columna sigue simple)", {
 test_that("el semaforo corta en 80 y en 70, medido contra el deck 2021", {
   cols <- .t2b_semaforo_color(c(100, 80, 79, 70, 69, NA))
 
-  expect_equal(cols[1], .T2B_SEMAFORO_COLORES[["alto"]])   # 100
-  expect_equal(cols[2], .T2B_SEMAFORO_COLORES[["alto"]])   # 80 -> verde (limite inclusivo)
-  expect_equal(cols[3], .T2B_SEMAFORO_COLORES[["medio"]])  # 79 -> ambar
-  expect_equal(cols[4], .T2B_SEMAFORO_COLORES[["medio"]])  # 70 -> ambar
-  expect_equal(cols[5], .T2B_SEMAFORO_COLORES[["bajo"]])   # 69 -> rojo
+  expect_equal(cols[1], .t2b_semaforo_colores()[["alto"]])   # 100
+  expect_equal(cols[2], .t2b_semaforo_colores()[["alto"]])   # 80 -> verde (limite inclusivo)
+  expect_equal(cols[3], .t2b_semaforo_colores()[["medio"]])  # 79 -> ambar
+  expect_equal(cols[4], .t2b_semaforo_colores()[["medio"]])  # 70 -> ambar
+  expect_equal(cols[5], .t2b_semaforo_colores()[["bajo"]])   # 69 -> rojo
   # Sin dato no se emite juicio.
-  expect_false(cols[6] %in% unname(.T2B_SEMAFORO_COLORES))
+  expect_false(cols[6] %in% unname(.t2b_semaforo_colores()))
 })
 
 test_that("umbrales sin nombrar se leen por posicion sin abortar", {
   cols <- .t2b_semaforo_color(c(95, 85), umbrales = c(90, 60))
-  expect_equal(cols[1], .T2B_SEMAFORO_COLORES[["alto"]])
-  expect_equal(cols[2], .T2B_SEMAFORO_COLORES[["medio"]])
+  expect_equal(cols[1], .t2b_semaforo_colores()[["alto"]])
+  expect_equal(cols[2], .t2b_semaforo_colores()[["medio"]])
 })
 
 test_that("la tendencia distingue subida, caida y repeticion", {
@@ -193,7 +193,7 @@ test_that("el preset de acreditacion declara la separacion y la jerarquia del de
   expect_false(pre$mostrar_leyenda)
 
   # La rampa cierra en verde, no en azul marino.
-  expect_equal(unname(pre$colores_grupos[["Totalmente de acuerdo"]]), "#8FC36B")
+  expect_equal(unname(pre$colores_grupos[["Totalmente de acuerdo"]]), unname(.std_paleta("likert"))[4])   # P9: la Likert del estándar
 })
 
 test_that("presets_acreditacion() entrega un objeto que el plan PPT ya sabe leer", {
@@ -222,7 +222,7 @@ test_that("la paleta se ancla a la etiqueta real aunque cambien mayusculas o til
               "De acuerdo", "Totalmente de Acuerdo")
   cols <- .preset_acreditacion_colores(reales)
 
-  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_equal(unname(cols), .preset_acrd_rampa())
   expect_equal(names(cols), reales)  # se nombra como la lamina las va a mostrar
 })
 
@@ -231,25 +231,25 @@ test_that("una categoria fuera de la escala no entra a la rampa", {
     c("Totalmente en Desacuerdo", "En desacuerdo", "De acuerdo",
       "Totalmente de Acuerdo", "SIN INF")
   )
-  expect_equal(unname(cols[1:4]), .PRESET_ACRD_RAMPA)
-  expect_equal(unname(cols[["SIN INF"]]), .PRESET_ACRD_FUERA_ESCALA)
+  expect_equal(unname(cols[1:4]), .preset_acrd_rampa())
+  expect_equal(unname(cols[["SIN INF"]]), .preset_acrd_fuera_escala())
 })
 
 test_that("la escala de satisfaccion resuelve con la misma rampa", {
   cols <- .preset_acreditacion_colores(
     c("Nada satisfecho", "Poco satisfecho", "Satisfecho", "Muy satisfecho")
   )
-  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_equal(unname(cols), .preset_acrd_rampa())
 })
 
 test_that("cuatro etiquetas irreconocibles se asignan por posicion, no a medias", {
   cols <- .preset_acreditacion_colores(c("Nivel 1", "Nivel 2", "Nivel 3", "Nivel 4"))
-  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_equal(unname(cols), .preset_acrd_rampa())
 })
 
 test_that("sin etiquetas se devuelven los nombres canonicos", {
   cols <- .preset_acreditacion_colores(NULL)
-  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_equal(unname(cols), .preset_acrd_rampa())
   expect_true("Totalmente de acuerdo" %in% names(cols))
 })
 

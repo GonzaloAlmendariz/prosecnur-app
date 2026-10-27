@@ -123,6 +123,17 @@
         },
         "uso": "Barras de una serie: la mayor en azul; las demás en el tono de apoyo; No sabe, Otros y similares al final en gris azulado."
       },
+      "semaforo": {
+        "rojo": "#D84B55",
+        "ambar": "#E0B44C",
+        "verde": "#3A9A5B",
+        "rotulos": {
+          "rojo": "Bajo",
+          "ambar": "Medio",
+          "verde": "Alto"
+        },
+        "uso": "Indicadores con umbral: bajo en rojo, medio en ámbar y alto en verde; la tendencia que sube va en verde y la que baja en rojo."
+      },
       "calor": {
         "desde": "#EEF2F8",
         "hasta": "#2F4B7C",

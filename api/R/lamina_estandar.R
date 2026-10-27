@@ -6,7 +6,7 @@
 # `inst/estandar/estandar_pulso.json`: ningún color, tamaño ni regla se escribe aquí, así que la constitución no puede
 # desfasarse del motor. Cambiar un token del JSON cambia la lámina en la siguiente regeneración del catálogo.
 #
-# Cuatro partes: `respuestas` (las paletas de las respuestas), `apoyo` (públicos, barras de una serie, calor y mapas),
+# Cuatro partes: `respuestas` (las paletas de las respuestas), `apoyo` (públicos, semáforo, barras de una serie, calor y mapas),
 # `colores` (todos los colores con nombre de la lámina) y `tipografia` (la escala de tamaños).
 
 .ESTANDAR_PARTES <- c("respuestas", "apoyo", "colores", "tipografia")
@@ -48,8 +48,9 @@ p_slide_estandar <- function(titulo = NULL, parte = "respuestas", meta = list())
     return(list(grupo("Escala de cuatro pasos", pal("likert")), grupo("Escala de cinco pasos", pal("likert_neutro")),
                 grupo("Dos opciones", pal("dicotomica")), grupo("Categorías sin orden", pal("categorica"))))
   }
-  cat_ <- pal("categorias"); cal <- pal("calor"); mapa <- pal("mapa")
+  cat_ <- pal("categorias"); cal <- pal("calor"); mapa <- pal("mapa"); sem <- pal("semaforo")
   list(grupo("Públicos", pal("actores")),
+       grupo("Semáforo", sem, cols = c(sem$rojo, sem$ambar, sem$verde), rot = unlist(sem$rotulos[c("rojo", "ambar", "verde")])),
        grupo("Barras de una serie", cat_, cols = c(cat_$mayor, cat_$resto, cat_$residual),
              rot = unlist(cat_$rotulos[c("mayor", "resto", "residual")])),
        grupo("Tablas de calor", cal, cols = unlist(cal$tramos)),

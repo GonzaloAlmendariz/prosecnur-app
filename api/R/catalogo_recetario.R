@@ -34,7 +34,7 @@ catalogo_recetario_dir <- function() {
                          list(nombre = "fin", etiqueta = "Gestión financiera", vars = as.list(paste0("r100_comp_", c(4, 6)))),
                          list(nombre = "neg", etiqueta = "Visión empresarial", vars = list("r100_comp_5"))),
        indices = list(list(nombre = "comp", etiqueta = "Índice de competencias", subindices = list("tec", "fin", "neg"))),
-       semaforo = list(cortes = list(60L, 80L), colores = list(rojo = "#D84B55", ambar = "#E0B44C", verde = "#3A9A5B")),
+       semaforo = list(cortes = list(60L, 80L), colores = as.list(.std_semaforo())),   # el del estándar (P10)
        radar = list(paleta = "okabe_ito", min_ejes = 2L))
 }
 
