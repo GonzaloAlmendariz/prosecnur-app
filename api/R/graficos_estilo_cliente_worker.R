@@ -7,6 +7,7 @@
 # si hay algo; el worker lo aplica aquí y repone las opciones al salir (`on.exit(options(ec$previas), add = TRUE)`).
 #
 # - Avisos del resolver: salen tal cual al resultado del job (`.pulso_aviso`).
+# - Rótulo del Word (R1): `prosecnur.word_rotulo` (prefijo «Gráfico N° » y cursiva; reporte_word_rotulo.R), sólo en el Word.
 # - Letra K13: `prosecnur.letra_desplazo` (estandar_tokens.R la suma a los tokens de cada rol; piso de 8 pt en cifras).
 # - Negrita por elemento y modo de la leyenda (O8): `prosecnur.negrita` (estilo_negrita.R) y `prosecnur.leyenda`
 #   (leyenda_plan.R), sólo con lo que se aparta de hoy.
@@ -18,7 +19,8 @@
 #' @keywords internal
 .graficos_estilo_cliente_previas <- function() {
   list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo"), prosecnur.logos_cliente = getOption("prosecnur.logos_cliente"),
-       prosecnur.negrita = getOption("prosecnur.negrita"), prosecnur.leyenda = getOption("prosecnur.leyenda"))
+       prosecnur.negrita = getOption("prosecnur.negrita"), prosecnur.leyenda = getOption("prosecnur.leyenda"),
+       prosecnur.word_rotulo = getOption("prosecnur.word_rotulo"))
 }
 
 #' Argumento `estilo_cliente` para el job: `list(estilo_cliente = .)` si hay algo que aplicar, `list()` si no
@@ -47,6 +49,7 @@
   if (!length(estilo_cliente)) return(list(previas = previas, logos = list()))
   for (aviso in estilo_cliente$avisos %||% character(0)) .pulso_aviso(.ec_con_base(base, aviso))
   .graficos_estilo_cliente_aplicar_letra(estilo_cliente$letra)
+  if (identical(medio, "word") && length(estilo_cliente$rotulo_figura)) options(prosecnur.word_rotulo = estilo_cliente$rotulo_figura)   # R1 (reporte_word_rotulo.R)
   logos <- estilo_cliente$logos %||% list()
   if (identical(medio, "ppt")) {
     tpl <- as.character(template_pptx %||% "")[1]

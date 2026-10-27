@@ -13,7 +13,7 @@
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   a <- espec$a; b <- espec$b; n <- length(a); gr <- espec$grupos
   cols <- .word_colores_de_espec(espec, gr, c(T$navy, T$celeste)); cb_col <- if (isTRUE(attr(cols, "de_paleta")[2])) cols[2] else T$medio; cols <- as.vector(cols)
-  it <- .word_envolver_holgado(espec$rotulos, 34); pd <- .word_posiciones(it); y <- pd$y
+  it <- .word_rotulos_completos(espec$rotulos, 8.5 + .word_desplazo("rotulo")); pd <- .word_posiciones(it); y <- pd$y   # R3: completo, hasta 3 líneas, columna <= 40 %
   lim <- 100; lo <- floor(min(a, b, na.rm = TRUE) / 10) * 10 - 10; rng <- lim - lo
   xd <- lim + rng * 0.2; sep <- rng * 0.025; cerca <- abs(a - b) < rng * 0.12
   anios <- all(grepl("^[0-9]{4}$", gr))

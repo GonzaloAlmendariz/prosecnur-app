@@ -103,6 +103,7 @@
   # B55: los PNG de cada figura (y la copia que officer hace al insertarlos) viven en tempdir() hasta que print(doc)
   # empaqueta el docx; se borran al salir, también si algo falla antes.
   pngs_antes <- list.files(tempdir(), pattern = "\\.png$", full.names = TRUE)
+  on.exit(options(prosecnur.word_figura_en_curso = NULL), add = TRUE)
   on.exit(unlink(setdiff(list.files(tempdir(), pattern = "\\.png$", full.names = TRUE), pngs_antes)), add = TRUE)
   doc <- .word_documento_nuevo()
   # Portada sola en su página, con los logos en el encabezado de la primera página.
@@ -203,7 +204,7 @@
     if (identical(e$etype, "ggplot_raw") && !nzchar(.word_txt1(e$title)) && is.null(attr(p, "pulso_espec"))) {
       avisar("Un dibujo sin título de la lámina ", i, " (íconos de identidad del PPT) no entra al Word como figura."); next }
     if (!inherits(p, "ggplot")) { avisar("El gráfico «", e$title %||% i, "» no tiene dibujo para el Word y se omite."); next }
-    options(prosecnur.word_rotulo_comun = comun_de[[i]])
+    options(prosecnur.word_rotulo_comun = comun_de[[i]], prosecnur.word_figura_en_curso = sprintf("Gráfico %d «%s»", figura, .word_txt1(e$title)))   # avisos del dibujo (R3)
     g <- tryCatch(.word_grafico(p), error = function(err) { avisar("El gráfico «", e$title %||% i, "» no se pudo dibujar: ", conditionMessage(err)); NULL })
     if (is.null(g)) next
     ancho <- attr(g, "ancho") %||% .std_word("pagina", "ancho_util")

@@ -175,6 +175,7 @@
     }
     .negrita_validar_letra(l)   # O8: negrita por elemento y modo de la leyenda (estilo_negrita.R)
   }
+  .word_rotulo_validar_estilo(x$rotulo_figura)   # R1: prefijo y cursiva del rótulo del Word (reporte_word_rotulo.R)
   if (!is.null(x$logos)) {
     lg <- .as_json_list(x$logos)
     if (!.graficos_is_obj(lg)) .ec_bad("«estilo_cliente.logos» debe ser un objeto.")
@@ -200,7 +201,7 @@
 .graficos_estilo_cliente_validos <- function(x) {
   x <- .as_json_list(x)
   if (!.graficos_is_obj(x) || !length(x)) return(list())
-  for (k in intersect(names(x), c("version", "ambito", "letra", "logos"))) {
+  for (k in intersect(names(x), c("version", "ambito", "letra", "logos", "rotulo_figura"))) {
     ok <- tryCatch({ .graficos_estilo_cliente_validar(x[k]); TRUE }, api_error = function(e) {
       warning(sprintf("Se descartó «estilo_cliente.%s» guardado: %s", k, conditionMessage(e)), call. = FALSE)
       FALSE
@@ -537,6 +538,7 @@
   if (length(logos)) out$logos <- logos
   if (length(desplazos$ppt) || length(desplazos$word)) out$letra <- desplazos
   if (length(o8)) out$letra <- c(out$letra %||% list(ppt = numeric(0), word = numeric(0)), o8)
+  if (length(rf <- .word_rotulo_resolver(x$rotulo_figura))) out$rotulo_figura <- rf   # R1: sólo lo usa el Word
   if (length(avisos)) out$avisos <- avisos
   out
 }

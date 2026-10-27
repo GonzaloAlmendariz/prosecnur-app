@@ -33,7 +33,8 @@
   doc <- par("Rótulo de gráfico", officer::fp_par(text.align = "center", padding.top = 10, padding.bottom = 4, keep_with_next = TRUE, line_spacing = 1.15),
              ft(pt("rotulo"), txt))
   doc <- officer::docx_set_character_style(doc, style_id = .word_estilo_id(doc, "Número de rótulo"), style_name = "Número de rótulo",
-                                           base_on = "Default Paragraph Font", fp_t = ft(pt("rotulo"), navy, TRUE))
+                                           base_on = "Default Paragraph Font",   # R1: cursiva por identidad (reporte_word_rotulo.R)
+                                           fp_t = officer::fp_text(font.family = f, font.size = pt("rotulo"), color = navy, bold = TRUE, italic = isTRUE(.word_rotulo_conf()$cursiva)))
   doc <- par("Base y fuente", officer::fp_par(text.align = "center", padding.top = 2, padding.bottom = 10, line_spacing = 1.1), ft(pt("base"), suave))
   doc <- par("Base y fuente con lectura", officer::fp_par(text.align = "center", padding.top = 2, padding.bottom = 10, line_spacing = 1.1, keep_with_next = TRUE),
              ft(pt("base"), suave))

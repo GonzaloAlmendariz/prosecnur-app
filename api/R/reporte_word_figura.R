@@ -4,7 +4,8 @@
 #
 # recetario_word.R:28-66. Todo lo que pone el motor es un estilo o un campo de Word, para que la posedición se haga desde
 # Inicio > Estilos y la numeración se recalcule sola:
-#   - rótulo en una línea centrada «Gráfico N: título» (estilo de carácter «Número de rótulo», azul y negrita, con campo SEQ
+#   - rótulo en una línea centrada «Gráfico N° N: título» (estilo de carácter «Número de rótulo», azul, negrita y cursiva —R1,
+#     reporte_word_rotulo.R—, con campo SEQ
 #     en el número) dentro del estilo «Rótulo de gráfico»; con el SEQ, Word arma el índice de gráficos;
 #   - la imagen centrada, del ancho del texto y pegada a lo que sigue;
 #   - la base y la fuente centradas, sin la palabra «Nota»; si hay lectura, no se separan de ella;
@@ -47,8 +48,9 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
   trimws(gsub("[\u00A0\u2007\u202F]", " ", as.character(titulo[[1]])))
 }
 
-#' Rótulo de una figura o tabla: UNA línea centrada «Gráfico N: título», todo con el estilo de carácter «Número de rótulo»
-#' (azul y negrita); «Gráfico N» lleva el campo SEQ. Sin título queda solo «Gráfico N».
+#' Rótulo de una figura o tabla: UNA línea centrada «Gráfico N° N: título», todo con el estilo de carácter «Número de
+#' rótulo» (azul, negrita y cursiva; prefijo y cursiva en reporte_word_rotulo.R); el número lleva el campo SEQ. Sin título
+#' queda solo «Gráfico N° N».
 #' @keywords internal
 .word_rotulo <- function(doc, n, titulo, etiqueta = "Gráfico") {
   num <- .word_estilo_id(doc, "Número de rótulo")
@@ -61,7 +63,8 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
     if (nzchar(titulo)) partes[[2]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
     return(officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico"))
   }
-  partes <- list(.word_run_estilo(paste0(etiqueta, " "), num), .word_run_seq(etiqueta, n, num))
+  # R1: «Gráfico N° » + SEQ (identificador = etiqueta, el que pide el índice) (reporte_word_rotulo.R)
+  partes <- list(.word_run_estilo(.word_rotulo_prefijo(etiqueta), num), .word_run_seq(etiqueta, n, num))
   if (nzchar(titulo)) partes[[3]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
   officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico")
 }

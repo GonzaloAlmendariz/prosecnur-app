@@ -3684,7 +3684,7 @@ reporte_ppt_plan <- function(
     el_for_word$overrides$subtitulo <- NULL
     el_for_word$overrides$nota_pie  <- NULL
     el_for_word <- .word_ajustar_el(el_for_word, etype, word_image = presets$base$args$word_image %||% NULL)
-    p_word <- tryCatch(.render_element_impl(el_for_word), error = function(e) plot)
+    p_word <- .word_publico_marcar(tryCatch(.render_element_impl(el_for_word), error = function(e) plot), el)   # R2: el público a la izquierda (reporte_word_publico_una_barra.R)
 
     base <- tryCatch(
       .base_auto_from_element(el, sufijo_auto = suf, formato = fmt),

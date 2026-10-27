@@ -595,8 +595,8 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 .radar_mb_puntos <- function(datos, titulo = NULL, indicador = "", decimales = 0L, eje = NULL) {
   if (nlevels(datos$grupo) != 2L) return(.radar_mb_barras(datos, titulo = titulo, indicador = indicador, decimales = decimales))
   d <- data.frame(
-    eje = factor(.radar_mb_recortar_eje(levels(datos$eje))[as.integer(datos$eje)],
-                 levels = .radar_mb_recortar_eje(levels(datos$eje))),
+    eje = factor(.radar_mb_eje_completo(levels(datos$eje))[as.integer(datos$eje)],   # R3: el criterio va completo; lo envuelve
+                 levels = .radar_mb_eje_completo(levels(datos$eje))),                  # cada medio (graficos_rotulo_completo.R)
     grupo = factor(.radar_mb_capitalizar(as.character(datos$grupo)), levels = .radar_mb_capitalizar(levels(datos$grupo))),
     valor = datos$valor, n = if ("n" %in% names(datos)) datos$n else NA_real_, stringsAsFactors = FALSE)
   sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL

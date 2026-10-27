@@ -264,6 +264,7 @@
       if (identical(tp$lugar, "debajo")) ley_y <- yf - 0.35
     }
   }
+  espec$rotulos <- .lam_pesas_rotulos(espec$rotulos, con_dif, avisar = TRUE)   # R3: completos; recorte con aviso sólo si no caben en 3 líneas
   wrot0 <- .lam_pesas_ancho_rotulo(espec$rotulos, con_dif); if (!is.finite(wrot0)) wrot0 <- if (con_dif) 2.8 else 2.2   # L10-1
   xl <- ml + wrot0 + 0.2; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
   yb <- yt + 0.75; fila <- (yf - yb - 0.6) / k
@@ -406,9 +407,10 @@
       k <- length(espec$rotulos)
       tp <- .lam_pesas_tabla_plan(espec); if (!is.null(tp) && !identical(tp$lugar, "omitir")) yf <- tp$graf_y1   # la tabla debajo le quita alto
       fila <- (yf - yt - 0.75 - 0.6) / max(1L, k)
-      wrot <- .lam_pesas_ancho_rotulo(espec$rotulos, espec$mostrar_diferencia); extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
-      k >= 1L && k <= 12L && is.finite(wrot) && dos_lineas(espec$rotulos, wrot, 13) &&
-        all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, wrot, 13, TRUE), 0) + extra <= fila)
+      rot <- .lam_pesas_rotulos(espec$rotulos, espec$mostrar_diferencia)   # R3: hasta 3 líneas (graficos_rotulo_completo.R)
+      wrot <- .lam_pesas_ancho_rotulo(rot, espec$mostrar_diferencia); extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
+      k >= 1L && k <= 12L && is.finite(wrot) && .lam_pesas_caben(rot, wrot) &&
+        all(vapply(rot, function(x) .lam_alto_txt(x, wrot, 13, TRUE), 0) + extra <= fila)
     },
     serie2 = {
       x1h <- yt + 0.6; hy <- yf - x1h - 0.5; lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]
