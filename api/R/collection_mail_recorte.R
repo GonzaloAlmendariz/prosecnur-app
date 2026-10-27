@@ -163,6 +163,12 @@
     if (identical(type, "image") && !is.null(.cmail_mobile_ref(b))) usados_enteros <- c(usados_enteros, .cmail_mobile_ref(b))
     if (!(type %in% c(.CMAIL_PHOTO_TYPES, "image"))) next
     id <- .cmail_one(b$image_ref)
+    # Sin márgenes (collection_mail_ajuste_imagen.R): el bloque parte del archivo ajustado.
+    if (!is.null(id) && .cmail_trim_of(b) && !is.null(images[[id]])) {
+      tr <- .cmail_trim_apply_one(images, id)
+      images <- tr$images
+      if (!identical(tr$id, id)) { recortados <- c(recortados, id); id <- tr$id }
+    }
     img <- if (!is.null(id)) images[[id]] else NULL
     crop <- .cmail_crop_of(b)
     if (is.null(img) || is.null(crop) || is.null(img$path) || !file.exists(img$path) || !.cmail_size_ok(img$size)) {
@@ -188,7 +194,7 @@
 #' recorte si existe; si no, la original.
 #' @keywords internal
 .cmail_feature_img <- function(b, ctx) {
-  id <- as.character(.cmail_one(b$image_ref) %||% "")
+  id <- .cmail_block_source_id(b, ctx$images, as.character(.cmail_one(b$image_ref) %||% ""))
   img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
   crop <- .cmail_crop_of(b)
   if (is.null(crop) || !.cmail_size_ok(img$size)) return(list(img = img, crop = crop))

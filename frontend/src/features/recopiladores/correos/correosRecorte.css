@@ -60,3 +60,11 @@
     transition: none;
   }
 }
+
+/* «Quitar los márgenes de la imagen» (image_trim), sobre la proporción. */
+.rec-recorte-margenes {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}

@@ -42,7 +42,8 @@
 
 # Ancho mostrado de la imagen: el de la ranura, sin pasar el natural del archivo.
 .cmail_feature_shown <- function(b, img, width = .CMAIL_WIDTH) {
-  slot <- .cmail_feature_slot(.cmail_style(b, "layout", "izquierda"), width)
+  # Tres cuartos o la mitad de la ranura (collection_mail_ajuste_imagen.R).
+  slot <- as.integer(round(.cmail_feature_slot(.cmail_style(b, "layout", "izquierda"), width) * .cmail_image_size_factor(b)))
   if (!.cmail_size_ok(img$size)) return(slot)
   as.integer(min(slot, as.integer(img$size$width)))
 }
@@ -74,6 +75,9 @@
   } else if (!is.null(b$url)) {
     push("button_text", "missing_button_text", "Un enlace necesita el texto de su botón.")
   }
+  if (!is.null(b$image_trim) && !(is.logical(unlist(b$image_trim)) && length(unlist(b$image_trim)) == 1L)) {
+    push("image_trim", "bad_flag", "image_trim es verdadero o falso.")
+  }
   if (!is.null(b$button_color) && !.cmail_hex_ok(.cmail_one(b$button_color))) {
     push("button_color", "bad_button_color", "El color del botón es #rrggbb.")
   }
@@ -98,11 +102,12 @@
     return(.cmail_preview_hole(fit$width, fit$height, if (nzchar(alt)) alt else id, margin = ""))
   }
   # En teléfono llena el ancho sólo si su archivo da para eso: nunca se agranda una foto chica.
-  llena <- !.cmail_size_ok(img$size) || as.integer(img$size$width) >= .cmail_text_col(ctx$width %||% .CMAIL_WIDTH)
+  llena <- .cmail_image_size_factor(b) == 1 &&
+    (!.cmail_size_ok(img$size) || as.integer(img$size$width) >= .cmail_text_col(ctx$width %||% .CMAIL_WIDTH))
   # Sólo en la vista previa del editor: la foto entera, para encuadrar el recorte sobre ella.
   original <- if (isTRUE(ctx$marks) && !is.null(img$cropped_from)) ctx$images[[img$cropped_from]] else NULL
   osrc <- if (!is.null(original)) .cmail_image_src(original, ctx) else NULL
-  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s%s%s style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;">',
+  sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s%s%s style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px;margin:0 auto;">',
           .cmail_esc(src), fit$width, fit$height, .cmail_esc(alt), .cmail_prop(ctx, "alt"),
           if (llena) sprintf(' class="%s"', .CMAIL_FEATURE_IMG_CLASS) else "",
           if (!is.null(osrc)) sprintf(' data-pulso-original="%s"', .cmail_esc(osrc)) else "", fit$width)
@@ -163,7 +168,7 @@
   slot <- .cmail_feature_slot(layout, width)
   image <- .cmail_feature_image(b, ctx, slot)
   if (identical(layout, "arriba")) {
-    return(.cmail_column_table(sprintf('<tr><td style="padding:0 0 18px 0;line-height:0;font-size:0;">%s</td></tr><tr><td style="vertical-align:top;">%s</td></tr>',
+    return(.cmail_column_table(sprintf('<tr><td align="center" style="padding:0 0 18px 0;line-height:0;font-size:0;">%s</td></tr><tr><td style="vertical-align:top;">%s</td></tr>',
                                        image, text), padding = "8px 48px 20px 48px"))
   }
   gap <- .CMAIL_FEATURE_GAP

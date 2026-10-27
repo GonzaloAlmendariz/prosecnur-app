@@ -196,6 +196,16 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       opciones: [{ valor: "normal", rotulo: "Normal" }, { valor: "grande", rotulo: "Grande" }],
       defecto: "normal",
     },
+    {
+      clave: "image_size",
+      rotulo: "Tamaño de la imagen",
+      opciones: [
+        { valor: "completa", rotulo: "Completa" },
+        { valor: "tres_cuartos", rotulo: "Tres cuartos" },
+        { valor: "mitad", rotulo: "Mitad" },
+      ],
+      defecto: "completa",
+    },
   ],
   // Pasos (collection_mail_secciones.R): más de tres van siempre en lista.
   steps: [

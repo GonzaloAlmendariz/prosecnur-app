@@ -67,7 +67,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   callout      = c("title", "items", "variant", "box"),
   list         = c("items", "ordered", "box"),
   divider      = c("style", "size", "box"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "box"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "image_trim", "box"),
   signature    = c("closing", "name", "lines", "url", "box"),
   footer_legal = c("text", "address"),
   # Piezas gráficas (E1o): collection_mail_piezas.R.
@@ -76,7 +76,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   icon_text    = c("icon", "text", "box"),
   two_images   = c("left", "right", "alt_left", "alt_right", "box"),
   # Secciones (GOAL editor profesional): collection_mail_destacado.R.
-  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "button_size", "button_color", "layout", "align", "crop", "box", "guardado"),
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "button_size", "button_color", "layout", "align", "crop", "image_size", "image_trim", "box", "guardado"),
   # Resto del catálogo (L6): collection_mail_secciones.R.
   steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box", "guardado"),
   deadline     = c("eyebrow", "title", "text", "button_text", "url", "box", "guardado"),
@@ -528,6 +528,9 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   push <- function(code, prop, detail) out[[length(out) + 1L]] <<- .cmail_problem(paste0(path, ".", prop), code, detail)
   if (!.cmail_image_id_ok(.cmail_one(b$image_ref) %||% NA_character_)) {
     push("bad_image_ref", "image_ref", "La imagen nombra un archivo del proyecto: a-z, 0-9 y guiones (sin _).")
+  }
+  if (!is.null(b$image_trim) && !(is.logical(unlist(b$image_trim)) && length(unlist(b$image_trim)) == 1L)) {
+    push("bad_flag", "image_trim", "image_trim es verdadero o falso.")
   }
   alt <- .cmail_one(b$alt)
   decorative <- isTRUE(unlist(b$decorative))

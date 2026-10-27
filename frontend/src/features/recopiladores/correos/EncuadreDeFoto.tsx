@@ -36,8 +36,23 @@ export function EncuadreDeFoto({ block, vista, onEditarBloque }: Props) {
     cambiar({ x: recorte.x + d[0], y: recorte.y + d[1] }, `${block.block_id}.crop`);
   };
 
+  // Sin márgenes (collection_mail_ajuste_imagen.R): sólo el Destacado y la Imagen lo admiten.
+  const admiteAjuste = block.type === "feature" || block.type === "image";
+  const sinMargenes = admiteAjuste && block.image_trim === true;
+  const alternarMargenes = () => onEditarBloque((b) => {
+    if (b.type !== "feature" && b.type !== "image") return b;
+    const { image_trim: _previo, ...resto } = b;
+    return sinMargenes ? resto : { ...resto, image_trim: true };
+  }, `${block.block_id}.image_trim`);
+
   return (
     <div className="rec-recorte">
+      {admiteAjuste ? (
+        <label className="rec-recorte-margenes">
+          <input type="checkbox" checked={sinMargenes} onChange={alternarMargenes} />
+          <span>Quitar los márgenes de la imagen</span>
+        </label>
+      ) : null}
       <AjusteDeBloque
         ajuste={AJUSTE_DE_PROPORCION}
         valor={recorte.ratio}

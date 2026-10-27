@@ -102,6 +102,18 @@ describe("normalizeMailTemplate", () => {
     expect(raro.header).toEqual({ kind: "logos", logo_ids: ["pulso"], background: "dark" });
   });
 
+  test("el Destacado y la Imagen conservan el tamaño y el quitar márgenes; lo que no conoce se descarta", () => {
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, blocks: [
+      { block_id: "d", type: "feature", title: "Sorteo", image_ref: "p", alt: "P", image_size: "tres_cuartos", image_trim: true },
+      { block_id: "i", type: "image", image_ref: "p", alt: "P", image_trim: true },
+      { block_id: "x", type: "feature", title: "Otro", image_size: "enorme", image_trim: "si" },
+    ] });
+    expect(t.blocks[0]).toMatchObject({ image_size: "tres_cuartos", image_trim: true });
+    expect(t.blocks[1]).toMatchObject({ image_trim: true });
+    expect(t.blocks[2]).not.toHaveProperty("image_size");
+    expect(t.blocks[2]).not.toHaveProperty("image_trim");
+  });
+
   test("conserva `trae_logos` de cada imagen; ausente o ilegible queda sin dato", () => {
     const t = normalizeMailTemplate({
       ...PLANTILLA_R,

@@ -152,6 +152,8 @@ export type MailImageBlock = {
   crop?: MailCrop;
   /** Otra imagen para el celular (L12): bajo 480 px reemplaza a la de PC. */
   mobile_ref?: string;
+  /** Quita los márgenes blancos o transparentes del archivo (el render deriva el ajustado). */
+  image_trim?: boolean;
 };
 
 // ---- piezas gráficas (E1o) -------------------------------------------------------
@@ -189,6 +191,8 @@ export const MAIL_FEATURE_ALIGNS = ["left", "center"] as const;
 export type MailFeatureAlign = (typeof MAIL_FEATURE_ALIGNS)[number];
 export const MAIL_FEATURE_BUTTON_SIZES = ["normal", "grande"] as const;
 export type MailFeatureButtonSize = (typeof MAIL_FEATURE_BUTTON_SIZES)[number];
+export const MAIL_FEATURE_IMAGE_SIZES = ["completa", "tres_cuartos", "mitad"] as const;
+export type MailFeatureImageSize = (typeof MAIL_FEATURE_IMAGE_SIZES)[number];
 /** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
 export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9", "3:1"] as const;
 export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
@@ -211,6 +215,10 @@ export type MailFeatureBlock = {
   button_size?: MailFeatureButtonSize;
   /** Color propio del botón (#rrggbb); sin él, el del tema. La letra la elige el render por contraste. */
   button_color?: string;
+  /** Ancho de la imagen en su ranura: completa (sin él), tres cuartos o la mitad. */
+  image_size?: MailFeatureImageSize;
+  /** Quita los márgenes blancos o transparentes del archivo. */
+  image_trim?: boolean;
   /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
   crop?: MailCrop;
 };
@@ -942,6 +950,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
         ...(optStr(value.mobile_ref) !== undefined ? { mobile_ref: str(value.mobile_ref) } : {}),
+        ...(value.image_trim === true ? { image_trim: true } : {}),
       };
     }
     case "band": {
@@ -970,6 +979,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
       const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
       const align = oneOf(value.align, MAIL_FEATURE_ALIGNS);
       const buttonSize = oneOf(value.button_size, MAIL_FEATURE_BUTTON_SIZES);
+      const imageSize = oneOf(value.image_size, MAIL_FEATURE_IMAGE_SIZES);
       const buttonColor = typeof value.button_color === "string" && /^#[0-9a-fA-F]{6}$/.test(value.button_color)
         ? value.button_color.toLowerCase() : undefined;
       const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
@@ -981,6 +991,8 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(align ? { align } : {}),
         ...(buttonSize ? { button_size: buttonSize } : {}),
         ...(buttonColor ? { button_color: buttonColor } : {}),
+        ...(imageSize ? { image_size: imageSize } : {}),
+        ...(value.image_trim === true ? { image_trim: true } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }
