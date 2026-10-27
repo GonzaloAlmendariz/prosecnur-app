@@ -134,10 +134,15 @@
 #' Imágenes generadas por las piezas (íconos y ondas de ornamento), por id.
 #' @keywords internal
 .cmail_piezas_images <- function(template) {
-  pal <- .cmail_theme_palette(template, .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT, NULL)
+  accent <- .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
+  base <- .cmail_theme_palette(template, accent, NULL)
   out <- list()
   for (b in template$blocks %||% list()) {
     type <- .cmail_one(b$type) %||% ""
+    # Dentro de una caja el render lee la paleta de la caja (íconos blancos sobre
+    # el acento): el archivo del ZIP tiene que ser ese, no el del color general.
+    box <- .cmail_box_of(b)
+    pal <- if (is.null(box)) base else .cmail_box_ctx(box, list(pal = base, accent = accent))$pal
     if (type %in% c("icon_text", "benefits")) {
       # Los íconos de los beneficios (collection_mail_secciones.R) salen igual que el de icon_text.
       icons <- if (identical(type, "icon_text")) list(b$icon) else lapply(.cmail_entries_of(b), `[[`, "icon")
