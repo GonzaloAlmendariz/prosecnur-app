@@ -96,8 +96,14 @@ test_that("enlace: una variable mal escrita o repetida en el enlace se rechaza c
   # El enlace ya trae la variable que la app va a poner: se pide sin token.
   expect_identical(.vt_code(collection_mail_enlace_put(sid, "egresados", "https://es.surveymonkey.com/r/ABC?id=x", variable = "id")),
                    "E_COLLECTION_MAIL_ENLACE_URL")
-  # Una `t` ajena no estorba cuando la variable es otra.
+  # Una `t` ajena no estorba cuando la variable es otra: el enlace sale con las
+  # dos y tanto «quién respondió» como Monitoreo leen el de la persona.
   expect_identical(collection_mail_enlace_put(sid, "egresados", "https://es.surveymonkey.com/r/ABC?t=1", variable = "id")$variable, "id")
+  store <- .vt_store(sid)
+  tok <- store$tokens[["ana@ejemplo.org"]]
+  expect_identical(store$rows$enlace_encuesta[[1]], paste0("https://es.surveymonkey.com/r/ABC?t=1&id=", tok))
+  expect_identical(.mc_token_of(store$rows$enlace_encuesta[[1]], "id"), tok)
+  expect_identical(.mcm_token(store$rows$enlace_encuesta[[1]]), tok)
 })
 
 test_that("veredicto: dice la causa y el arreglo en cada dirección", {
