@@ -6992,9 +6992,9 @@ reporte_ppt_plan <- function(
   rendered   <- list()
   render_meta <- list()
 
-  ANTETITULOS <- .lam_antetitulos(plan); SECCIONES <- .lam_secciones_numeradas(plan)   # ADR 0093: capítulo vigente y número de cada separador
+  ANTETITULOS <- .lam_antetitulos(plan); SECCIONES <- .lam_secciones_numeradas(plan); NOTAS_ORADOR <- NULL   # ADR 0093: capítulo vigente y número de cada separador; notas: lamina_notas_orador.R
   for (i in seq_along(plan)) {
-    slide <- .lam_avisos_paso(plan, i, doc)  # K12b: avisos de líneas por lámina lógica (lamina_avisos_lineas.R)
+    doc <- .lam_notas_orador_aplicar(doc, NOTAS_ORADOR); slide <- .lam_avisos_paso(plan, i, doc); NOTAS_ORADOR <- .lam_notas_orador_marca(slide, doc)  # K12b: avisos de líneas por lámina lógica (lamina_avisos_lineas.R); C1: notas del orador
     if (!inherits(slide, "ppt_slide")) {
       .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
     }
@@ -9121,7 +9121,7 @@ reporte_ppt_plan <- function(
     .plan_input_abort("Tipo de slide no implementado: ", stype)
   }
 
-  log <- dplyr::bind_rows(log_rows); .lam_avisos_cierre(plan, doc)
+  doc <- .lam_notas_orador_aplicar(doc, NOTAS_ORADOR); log <- dplyr::bind_rows(log_rows); .lam_avisos_cierre(plan, doc)
 
   if (!isTRUE(solo_lista)) {
     print(doc, target = path_ppt)
