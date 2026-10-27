@@ -342,9 +342,26 @@
   vector-effect: non-scaling-stroke;
 }
 
-.mon-res-eje {
-  fill: var(--pulso-text-soft);
+.mon-res-lienzo {
+  min-width: 0;
+}
+
+.mon-res-eje-x {
+  position: relative;
+  display: block;
+  height: 18px;
+}
+
+.mon-res-eje-x b {
+  position: absolute;
+  top: 4px;
+  color: var(--pulso-text-soft);
   font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 /* Distritos: llena el alto sobrante y desplaza dentro con barra visible. */
