@@ -258,8 +258,8 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
                     <i key={tramo.clave} className={`is-${tramo.clave}`} style={{ width: `${tramo.ancho}%` }} />
                   ))}
                 </span>
-                {filas.length < 4 ? (
-                  // Con pocas categorías hay alto para decir las cifras de la barra.
+                {filas.length <= 4 ? (
+                  // Con hasta cuatro categorías hay alto para decir las cifras de la barra.
                   <span className="mon-tel-cuotas-reparto-detalle">{detalleDelReparto(fila)}</span>
                 ) : null}
               </div>

@@ -12,7 +12,7 @@
  * 1024 × 600 baja bajo la tabla y desplaza el documento. */
 
 .mon-tel-cuotas {
-  --mon-tel-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px var(--mon-tel-cuotas-cumplio, 64px) 84px;
+  --mon-tel-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px 64px 84px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--pulso-space-3);
@@ -100,7 +100,7 @@
 
 .mon-tel-cuotas.has-diario .mon-tel-cuotas-cuerpo > .mon-tel-cuotas-fila {
   flex: 0 0 auto;
-  min-height: 104px;
+  min-height: 80px;
 }
 
 .mon-tel-cuotas-fila.is-cabecera {
@@ -134,11 +134,6 @@
 
 .mon-tel-cuotas-categoria b {
   font-size: 13.5px;
-}
-
-/* Sin ninguna cuota cumplida, la columna «Cumplió» no se pinta. */
-.mon-tel-cuotas.sin-cumplio {
-  --mon-tel-cuotas-cumplio: 0px;
 }
 
 .mon-tel-cuotas-estado {
@@ -400,6 +395,7 @@
   position: absolute;
   top: 100%;
   transform: translate(-50%, 6px);
+  white-space: nowrap;
   color: var(--pulso-text-faint);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -480,6 +476,8 @@
 
 /* Columnas alineadas arriba: la lista arranca bajo su título y la leyenda la
  * sigue; el aire sobrante queda al pie de la tarjeta, como en la tabla. */
+/* Con el faltante diario al lado, la tarjeta llega al pie: las categorías se
+ * reparten su alto (con sus cifras debajo) en vez de dejar el hueco al fondo. */
 .mon-tel-cuotas-reparto-lista {
   display: flex;
   flex: 0 1 auto;
@@ -647,7 +645,7 @@
 
 @media (max-width: 1400px) {
   .mon-tel-cuotas {
-    --mon-tel-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px var(--mon-tel-cuotas-cumplio, 56px) 72px;
+    --mon-tel-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 56px 72px;
     grid-template-columns: minmax(0, 1fr) 320px;
   }
 
@@ -660,7 +658,7 @@
  * (el dueño del scroll es `.mon-workbench-content`). */
 @media (max-width: 1180px) {
   .mon-tel-cuotas {
-    --mon-tel-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px var(--mon-tel-cuotas-cumplio, 60px) 72px;
+    --mon-tel-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px 60px 72px;
     grid-template-columns: minmax(0, 1fr);
     height: max-content;
     min-height: max-content;
@@ -702,4 +700,46 @@
   .mon-tel-cuotas * {
     transition: none;
   }
+}
+
+/* Sin ninguna cuota cumplida no se pinta la columna «Cumplió»: la plantilla
+ * pierde esa pista (no basta con dejarla en cero, la celda siguiente la
+ * ocuparía). Va al final para ganar a las plantillas de cada ancho. */
+.mon-tel-cuotas.sin-cumplio {
+  --mon-tel-cuotas-columnas: 196px 76px minmax(0, 1fr) 86px 64px 150px 84px;
+}
+
+@media (max-width: 1400px) {
+  .mon-tel-cuotas.sin-cumplio {
+    --mon-tel-cuotas-columnas: 168px 64px minmax(0, 1fr) 80px 60px 120px 72px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-tel-cuotas.sin-cumplio {
+    --mon-tel-cuotas-columnas: 140px 52px minmax(0, 1fr) 84px 64px 128px 72px;
+  }
+}
+
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto-lista {
+  flex: 1 1 auto;
+  justify-content: space-around;
+}
+
+/* Con el faltante diario la vista no se recorta para caber: llena el alto
+ * cuando sobra y, cuando no alcanza (1280 × 800), crece y desplaza el
+ * contenedor de la pestaña. Recortada, la tarjeta «Faltan» y el listado
+ * quedaban partidos al pie. */
+.mon-tel-cuotas.has-diario {
+  height: auto;
+  min-height: 100%;
+}
+
+.mon-tel-cuotas.has-diario > .mon-tel-cuotas-tabla-panel,
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-lado > * {
+  overflow: visible;
+}
+
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-lado > :not(.mon-tel-cuotas-reparto) {
+  flex: none;
 }
