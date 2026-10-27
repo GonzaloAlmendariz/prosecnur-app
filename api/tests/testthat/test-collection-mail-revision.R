@@ -58,3 +58,21 @@ test_that("muestra un recordatorio o el último, sin numerarlos; sin recordatori
   code <- tryCatch({ collection_mail_revision(sid, ids, envio = "tercero"); NA_character_ }, api_error = function(e) e$code)
   expect_identical(code, "E_COLLECTION_MAIL_REVISION")
 })
+
+test_that("cada imagen en base64 va una sola vez en la página aunque se repita en vistas y campañas (L18)", {
+  png1 <- paste0("data:image/png;base64,", strrep("A", 4000), "&#10;", strrep("B", 76), "\n")
+  png2 <- paste0("data:image/jpeg;base64,", strrep("C", 3000))
+  correo <- function(n) list(nombre = n, subject = "Asunto", envio = "Primer correo",
+                             html = sprintf('<p>x</p><img src="%s" alt="a"><img src="%s" alt="b">', png1, png2))
+  im <- .cmail_revision_imagenes(list(correo("Uno"), correo("Dos")))
+  expect_length(im$mapa, 2L)
+  expect_identical(im$mapa[["i1"]], paste0("data:image/png;base64,", strrep("A", 4000), strrep("B", 76)))
+  expect_false(grepl("base64", im$correos[[2]]$html, fixed = TRUE))
+  expect_match(im$correos[[2]]$html, '<img data-cmail-img="i1" alt="a"><img data-cmail-img="i2" alt="b">', fixed = TRUE)
+  pagina <- .cmail_revision_pagina("T", list(correo("Uno"), correo("Dos")))
+  # Una vez en el mapa, no cuatro (2 campañas × 2 vistas).
+  expect_identical(lengths(regmatches(pagina, gregexpr(strrep("A", 4000), pagina, fixed = TRUE))), 1L)
+  expect_match(pagina, "var CMAIL_IMG=", fixed = TRUE)
+  # Sin imágenes, el mapa queda vacío y no falla.
+  expect_length(.cmail_revision_imagenes(list(list(nombre = "x", html = "<p>sin</p>")))$mapa, 0L)
+})

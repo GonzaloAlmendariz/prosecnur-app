@@ -46,11 +46,48 @@
        envio = if (es_primero) .CMAIL_REVISION_ENVIOS[["primero"]] else .CMAIL_REVISION_ENVIOS[[envio]])
 }
 
+#' Saca las imágenes en base64 de los correos y las deja una sola vez (L18).
+#'
+#' Cada correo trae sus imágenes como `data:` y se repiten en computadora y
+#' celular y entre campañas: las 6 campañas de Acreditación pesaban 6,4 MB por
+#' 5 imágenes distintas (670 KB). Cada `<img src="data:…">` pasa a
+#' `<img data-cmail-img="i3">` y la página lleva el mapa una vez; el `onload`
+#' de cada iframe las pone (un srcdoc es del mismo origen que su página).
+#' @keywords internal
+.cmail_revision_imagenes <- function(correos) {
+  mapa <- character(0)
+  re <- 'src="(data:image/[^"]+)"'
+  for (k in seq_along(correos)) {
+    h <- correos[[k]]$html
+    m <- gregexpr(re, h, perl = TRUE)
+    hallados <- regmatches(h, m)[[1]]
+    if (!length(hallados)) next
+    reemplazos <- vapply(hallados, function(x) {
+      # El render parte el base64 en líneas y las escribe `&#10;`: dentro del srcdoc
+      # se decodifican, en un string de JavaScript no.
+      uri <- gsub("\\s|&#1[03];", "", sub(re, "\\1", x, perl = TRUE), perl = TRUE)
+      pos <- match(uri, mapa)
+      if (is.na(pos)) {
+        mapa[[paste0("i", length(mapa) + 1L)]] <<- uri
+        pos <- length(mapa)
+      }
+      clave <- names(mapa)[[pos]]
+      sprintf('data-cmail-img="%s"', clave)
+    }, "", USE.NAMES = FALSE)
+    regmatches(h, m) <- list(reemplazos)
+    correos[[k]]$html <- h
+  }
+  list(correos = correos, mapa = as.list(mapa))
+}
+
 #' La página de revisión con los correos ya armados (list(nombre, html, subject)).
 #' @keywords internal
 .cmail_revision_pagina <- function(titulo, correos) {
   esc <- function(x) htmltools::htmlEscape(x)
-  ajustar <- "this.style.height=(this.contentDocument.documentElement.scrollHeight)+'px'"
+  im <- .cmail_revision_imagenes(correos)
+  correos <- im$correos
+  # Pone las imágenes del mapa y reajusta el alto cuando cada una termina de cargar.
+  ajustar <- "cmailListo(this)"
   fila <- function(vista) {
     ancho <- .CMAIL_REVISION_ANCHOS[[vista]]
     celdas <- vapply(correos, function(c) sprintf(
@@ -81,7 +118,11 @@
     'figcaption span{font-size:14px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0}',
     'iframe{display:block;border:1px solid var(--line);border-radius:10px;background:#fff}',
     'iframe.celular{border:8px solid #1b2438;border-radius:22px}',
-    '</style></head><body>',
+    '</style>',
+    '<script>var CMAIL_IMG=', jsonlite::toJSON(im$mapa, auto_unbox = TRUE), ';',
+    'function cmailListo(f){var d=f.contentDocument,alto=function(){f.style.height=d.documentElement.scrollHeight+"px"};',
+    'd.querySelectorAll("img[data-cmail-img]").forEach(function(i){i.addEventListener("load",alto);i.src=CMAIL_IMG[i.getAttribute("data-cmail-img")]||""});alto()}',
+    '</script></head><body>',
     sprintf('<header><div class="in"><h1>%s</h1><nav><a href="#computadora">Computadora</a><a href="#celular">Celular</a></nav></div></header>', esc(titulo)),
     '<main>', fila("computadora"), fila("celular"), '</main></body></html>'
   )
