@@ -40,9 +40,11 @@ test_that("validación: invitación primera, tope 6, ids del servidor, fechas, a
   # Invitación que no es la primera, o que falta.
   expect_true("invitation_first" %in% .cms_codes(.cmail_sends_validate(list(list(kind = "recordatorio")), t)))
   expect_true("invitation_first" %in% .cms_codes(.cmail_sends_validate(list(list(), list(send_id = "invitacion")), t)))
-  # Tope de 6.
-  seven <- c(list(list()), rep(list(list()), 6L))
-  expect_true("too_many_sends" %in% .cms_codes(.cmail_sends_validate(seven, t)))
+  # Tope de 10 (la invitación y 9 recordatorios; L7).
+  diez <- c(list(list()), rep(list(list()), 9L))
+  expect_false("too_many_sends" %in% .cms_codes(.cmail_sends_validate(diez, t)))
+  once <- c(list(list()), rep(list(list()), 10L))
+  expect_true("too_many_sends" %in% .cms_codes(.cmail_sends_validate(once, t)))
   # Fecha, audiencia, etiqueta, campo desconocido, html y enlace en el asunto.
   bad <- .cmail_sends_validate(list(
     list(audience = "sin_respuesta"),
@@ -232,4 +234,26 @@ test_that("recordatorio en Mailchimp: reminder_audience avisa con N, parcial blo
     errs <- vapply(Filter(function(x) x$status == "error", r$checks), `[[`, "", "code")
     fail(paste("la revisión del recordatorio no quedó lista:", paste(errs, collapse = ", ")))
   }
+})
+
+test_that("asunto repetido (L7): aviso si dos envíos dicen lo mismo; con asuntos distintos, en orden", {
+  t <- .cmail_template_normalize(.cmail_preset_invitacion_encuesta())
+  t$subject <- "Encuesta PUCP"
+  campaign <- list(campaign_id = "c", template = t, sends = list(
+    list(send_id = "invitacion", kind = "invitacion", label = "Invitación", audience = "todos"),
+    list(send_id = "recordatorio-1", kind = "recordatorio", label = "Recordatorio 1", audience = "ambos", subject = "Recordatorio: encuesta PUCP"),
+    list(send_id = "recordatorio-2", kind = "recordatorio", label = "Recordatorio 2", audience = "ambos", subject = "Recordatorio: encuesta PUCP")))
+  r2 <- campaign$sends[[3]]
+  chk <- .cmail_subject_repeat_check(campaign, r2, .cmail_template_for_send(t, r2))
+  expect_identical(chk$status, "warning")
+  expect_match(chk$detail, "Recordatorio 1", fixed = TRUE)
+  inv <- campaign$sends[[1]]
+  expect_identical(.cmail_subject_repeat_check(campaign, inv, .cmail_template_for_send(t, inv))$status, "ok")
+  # Un recordatorio sin asunto propio hereda el de la invitación: también se repite.
+  campaign$sends[[3]]$subject <- NULL
+  r2b <- campaign$sends[[3]]
+  expect_identical(.cmail_subject_repeat_check(campaign, r2b, .cmail_template_for_send(t, r2b))$status, "warning")
+  # Con una sola invitación no hay con qué comparar.
+  solo <- campaign; solo$sends <- solo$sends[1]
+  expect_null(.cmail_subject_repeat_check(solo, inv, t))
 })

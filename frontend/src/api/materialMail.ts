@@ -24,7 +24,7 @@
 // Plataforma, envíos e importación (E1j·E1k·E1l):
 //   - cada campaña sale para Mailchimp o SurveyMonkey (`platform`); pasar a
 //     SurveyMonkey olvida sus destinatarios (`recipients_purged`);
-//   - una campaña tiene de 1 a 6 envíos (`sends`): la invitación y sus
+//   - una campaña tiene de 1 a 10 envíos (`sends`): la invitación y sus
 //     recordatorios, con asunto, preheader y apertura propios. PUT
 //     mail-template guarda plantilla y envíos juntos; preview, review y export
 //     aceptan `send_id` (o `send`, un borrador);
@@ -523,6 +523,8 @@ export const MAIL_CHECK_CODES = [
   "sm_custom_limit",
   "send_dates",
   "reminder_audience",
+  // Dos envíos con el mismo asunto: Gmail los agrupa (L7).
+  "send_subject_repeated",
   "sm_link_field_empty",
   // Saludo por sexo (C8).
   "greeting_trato",

@@ -837,6 +837,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   sm_destination_mismatch: "Destino del enlace",
   send_dates: "Fechas de los envíos",
   reminder_audience: "A quién va el recordatorio",
+  send_subject_repeated: "Asunto distinto en cada envío",
   // Saludo por sexo (C8).
   greeting_trato: "Saludo según la persona",
   greeting_trato_word: "Palabra del saludo",

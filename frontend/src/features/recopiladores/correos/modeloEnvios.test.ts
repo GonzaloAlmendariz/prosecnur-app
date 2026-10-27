@@ -22,10 +22,10 @@ import {
 const INV: MailSend = { ...mailSendInvitation(), date: "2026-09-02" };
 
 describe("modeloEnvios", () => {
-  it("agrega recordatorios al final, sin fecha inventada, hasta 6 envíos", () => {
+  it("agrega recordatorios al final, sin fecha inventada, hasta 10 envíos", () => {
     let envios: MailSend[] = [INV];
     const ids: string[] = [];
-    for (let i = 0; i < 7; i += 1) {
+    for (let i = 0; i < MAX_ENVIOS + 1; i += 1) {
       const out = agregarRecordatorio(envios);
       envios = out.envios;
       if (out.sendId) ids.push(out.sendId);
@@ -33,7 +33,8 @@ describe("modeloEnvios", () => {
     expect(envios).toHaveLength(MAX_ENVIOS);
     expect(ids).toHaveLength(MAX_ENVIOS - 1);
     expect(envios[1]).toEqual({ send_id: ids[0], kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta" });
-    expect(envios.map((e) => e.label).slice(1)).toEqual(["Recordatorio 1", "Recordatorio 2", "Recordatorio 3", "Recordatorio 4", "Recordatorio 5"]);
+    expect(MAX_ENVIOS).toBe(10);
+    expect(envios.map((e) => e.label).slice(1)).toEqual(Array.from({ length: 9 }, (_, i) => `Recordatorio ${i + 1}`));
     expect(ids.every(esIdLocal)).toBe(true);
     // Sin la invitación, se pone la de fábrica primero.
     expect(agregarRecordatorio([]).envios[0].kind).toBe("invitacion");

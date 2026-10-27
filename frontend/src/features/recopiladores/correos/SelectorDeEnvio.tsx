@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import type { MailSend } from "../../../api/materialMail";
 import { Check, ChevronDown, Plus, Send } from "../../../vendor/lucide-react";
-import { ROTULO_DE_AUDIENCIA, marcaDeExportado, puedeAgregar, rotuloDeEnvio } from "./modeloEnvios";
+import { MAX_ENVIOS, ROTULO_DE_AUDIENCIA, marcaDeExportado, puedeAgregar, rotuloDeEnvio } from "./modeloEnvios";
 import "./correosEnvios.css";
 
 type Props = {
@@ -70,7 +70,7 @@ export function SelectorDeEnvio({ envios, activo, onElegir, onAgregar, onGestion
               type="button"
               className="rec-env-menu-accion"
               disabled={!puedeAgregar(envios)}
-              title={puedeAgregar(envios) ? undefined : "Una campaña tiene hasta 6 envíos"}
+              title={puedeAgregar(envios) ? undefined : `Una campaña tiene hasta ${MAX_ENVIOS} envíos`}
               onClick={() => { setAbierto(false); onAgregar(); }}
             >
               <Plus size={14} aria-hidden /> Recordatorio

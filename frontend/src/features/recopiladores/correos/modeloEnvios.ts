@@ -1,7 +1,7 @@
 // =============================================================================
 // modeloEnvios.ts — la invitación y sus recordatorios (ADR 0110, addendum E1k)
 // =============================================================================
-// Una campaña tiene de 1 a 6 envíos. El cuerpo del correo es común: cada envío
+// Una campaña tiene de 1 a 10 envíos. El cuerpo del correo es común: cada envío
 // cambia sólo su asunto, su preheader, su fecha prevista, a quién va y una
 // apertura propia («Le recordamos que aún puede responder…»). Aquí vive la
 // parte que se puede equivocar sin React:
@@ -20,7 +20,7 @@ import {
   type MailTemplate,
 } from "../../../api/materialMail";
 
-export const MAX_ENVIOS = 6;
+export const MAX_ENVIOS = 10;
 export const LARGO_ETIQUETA = 40;
 export const LARGO_APERTURA = 600;
 export const INVITACION = "invitacion";

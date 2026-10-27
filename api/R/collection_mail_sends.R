@@ -5,7 +5,7 @@
 # puede cambiar solo su asunto, su preheader y sumar una apertura; la plantilla
 # efectiva sale de `.cmail_template_for_send()` sin un segundo render.
 #
-# Modelo (`campaign.sends`, entre 1 y 6):
+# Modelo (`campaign.sends`, entre 1 y 10; antes 6, loop editor de correos L7: ~8 recordatorios en 4 semanas):
 #   { send_id, kind, label, date?, audience, subject?, preheader?, opening?, collector_label?,
 #     last_export_at?, last_export_platform? }   (las dos últimas, del servidor: ADR 0111 §8,
 #                                                 collection_mail_export_registro.R)
@@ -29,7 +29,7 @@
 #   invitación: es una lectura, no se escribe nada.
 
 .CMAIL_OPENING_ID <- "__apertura"
-.CMAIL_SENDS_MAX <- 6L
+.CMAIL_SENDS_MAX <- 10L
 .CMAIL_SEND_KEYS <- c("send_id", "kind", "label", "date", "audience", "subject", "preheader", "opening", "collector_label")
 .CMAIL_SEND_AUDIENCES <- c("sin_respuesta", "parcial", "ambos")
 .CMAIL_SEND_INVITATION <- "invitacion"
@@ -287,4 +287,31 @@
   stop_api(404, "E_COLLECTION_MAIL_SEND_NOT_FOUND", "El envío no existe en esta campaña.",
            details = list(send_id = if (grepl("^[a-z0-9-]{1,40}$", id)) id else NULL,
                           sends = as.list(vapply(sends, function(s) s$send_id, ""))))
+}
+
+# ---- asunto repetido (L7) ---------------------------------------------------------
+
+#' Aviso si el asunto efectivo de este envío es el de otro envío de la campaña:
+#' Gmail agrupa los dos en un hilo y esconde lo repetido tras «•••».
+#' `tpl` es la plantilla efectiva que se revisa (el borrador del editor con este
+#' envío aplicado): su asunto es el propio, y el asunto base que heredan los
+#' envíos sin asunto propio es el de ese borrador.
+#' @keywords internal
+.cmail_subject_repeat_check <- function(campaign, send, tpl) {
+  sends <- .cmail_sends_of(campaign %||% list())
+  if (is.null(send) || length(sends) < 2L || !is.list(tpl)) return(NULL)
+  limpio <- function(x) tolower(trimws(.cmail_one(x) %||% ""))
+  propio <- limpio(tpl$subject)
+  base_subject <- if (is.null(.cmail_opt_text(send$subject))) tpl$subject else campaign$template$subject %||% ""
+  escrito <- function(x) .cmail_constants_apply(list(subject = x, constants = tpl$constants))$subject
+  asunto <- function(s) limpio(escrito(.cmail_opt_text(s$subject) %||% base_subject))
+  otros <- Filter(function(s) !identical(.cmail_one(s$send_id), .cmail_one(send$send_id)), sends)
+  iguales <- Filter(function(s) nzchar(propio) && identical(asunto(s), propio), otros)
+  if (!length(iguales)) {
+    return(.cmail_check("send_subject_repeated", "ok", 0L, "El asunto no repite el de otro envío."))
+  }
+  nombres <- vapply(iguales, function(s) .cmail_one(s$label) %||% .cmail_one(s$send_id) %||% "", "")
+  .cmail_check("send_subject_repeated", "warning", length(iguales),
+    sprintf("El asunto es el mismo que en %s: Gmail los agrupa en un hilo y esconde lo repetido.",
+            paste(nombres, collapse = ", ")))
 }
