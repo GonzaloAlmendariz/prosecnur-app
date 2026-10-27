@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { ESTANDAR_NOMINAL } from "../../../../graficos/paletasSugeridas";
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
-const TOKENS = fs.readFileSync(path.resolve(AQUI, "../../../../../app/tokens.css"), "utf8");
+const TOKENS = fs.readFileSync(path.resolve(AQUI, "../../../../../app/tokens-publicos.css"), "utf8");
 
 describe("paleta de públicos", () => {
   it("los seis tokens repiten `paletas.actores` del estándar en su orden", () => {
