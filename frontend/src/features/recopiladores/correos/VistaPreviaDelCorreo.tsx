@@ -150,13 +150,15 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   const escala = escalaParaCaber(disponible, ancho);
   const estiloDelLienzo = pagina ? ({ "--rec-mail-pagina": pagina } as CSSProperties) : undefined;
 
-  // La hoja a todo el ancho cambia con el lienzo: el correo se recentra y la
-  // capa vuelve a medir sobre el mismo documento.
+  // Todo cambio de ancho de la hoja reflujea el correo sobre el mismo documento
+  // (la hoja a todo el ancho de campaña, o pasar de Escritorio a Teléfono, que
+  // carga a 375 px y suelta el ancho del escritorio después): la capa vuelve a
+  // medir. Sin esto, en sobrio las zonas quedaban con la geometría de 600 px.
   useEffect(() => {
-    if (!aTodoElAncho || !doc) return;
+    if (!doc) return;
     medidor.alRedimensionar();
     setMedida((m) => m + 1);
-  }, [aTodoElAncho, ancho, doc, medidor]);
+  }, [ancho, doc, medidor]);
 
   return (
     <section
