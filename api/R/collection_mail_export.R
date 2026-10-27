@@ -294,6 +294,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   push_send_dates()
   rep <- .cmail_subject_repeat_check(campaign, send, tpl)
   if (!is.null(rep)) push(rep)
+  push(.cmail_contraction_check(tpl))
   if (identical(send$kind, "recordatorio")) {
     n_valid <- NULL
     if (!identical(scope, "plantilla") && !is.null(campaign)) {

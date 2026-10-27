@@ -34,6 +34,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   send_dates: "Pon cada recordatorio después del envío anterior, en Envíos.",
   reminder_audience: "Elige a quién va el recordatorio en Envíos.",
   send_subject_repeated: "Cambia el asunto de este envío en Envíos.",
+  contraction: "Escribe «del» o «al». Si sale de un dato de la campaña, quita el artículo del valor o del texto.",
   greeting_trato: "Elige la columna de sexo de la lista en «Saludo según la persona».",
   greeting_trato_word: "Escribe en el saludo la palabra de respaldo, o cámbiala en «Saludo según la persona».",
   sm_trato_blank: "Importa en el recopilador el archivo de contactos que exporta la app: trae el saludo ya escrito.",
