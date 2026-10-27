@@ -340,6 +340,8 @@
 
 .mon-sup-ronda {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 2px var(--pulso-space-2);
   padding: 0;
@@ -358,6 +360,25 @@
   grid-column: 1 / -1;
   color: var(--pulso-text-soft);
   font-size: 12px;
+}
+
+/* Datos de la ronda: se parten entre piezas, nunca dentro, y nunca fuera de
+ * la tarjeta (el `button` global de theme.css trae `white-space: nowrap`). */
+.mon-sup-ronda-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.mon-sup-ronda-datos > span {
+  white-space: nowrap;
+}
+
+.mon-sup-ronda-datos > span + span::before {
+  margin-right: 6px;
+  content: "·";
 }
 
 .mon-sup-ronda em {

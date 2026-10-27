@@ -171,7 +171,6 @@ export function Discrepancias({
               <col className="is-hoja" />
               <col className="is-kobo" />
               <col className="is-responsable" />
-              <col className="is-enumerador" />
               <col className="is-decision" />
             </colgroup>
             <thead>
@@ -179,8 +178,10 @@ export function Discrepancias({
                 <th scope="col">CodPulso</th>
                 <th scope="col">Hoja</th>
                 <th scope="col">Kobo</th>
-                <th scope="col">Responsable</th>
-                <th scope="col" title="Enumerador del envío en Kobo">Enumerador</th>
+                {/* Responsable de la hoja y, debajo, el enumerador del envío en
+                  * Kobo: en dos columnas, a 1280 las dos cabeceras se salían de
+                  * su celda y los nombres quedaban en «Fabio In…». */}
+                <th scope="col" title="Responsable en la hoja y, debajo, enumerador del envío en Kobo">Responsable</th>
                 <th scope="col">Decisión</th>
               </tr>
             </thead>
@@ -196,9 +197,14 @@ export function Discrepancias({
                       que los encadene. La lectura completa va en el tooltip. */}
                   <td className="mon-dsc-una-linea" title={queDice(caso)}>{caso.sentido === "hoja_sin_kobo" ? "Efectivo" : caso.hojaDice || "Sin status"}</td>
                   <td className="mon-dsc-una-linea" title={queDice(caso)}>{caso.sentido === "hoja_sin_kobo" ? "Sin envío" : "Efectiva"}</td>
-                  <td className="mon-dsc-una-linea" title={caso.responsable}>{caso.responsable}</td>
-                  <td className={`mon-dsc-una-linea${caso.enumeradorDistinto ? " mon-dsc-distinto" : ""}`} title={caso.enumeradorDistinto ? `${caso.enumerador}, no es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros` : caso.enumerador || undefined}>
-                    {caso.enumerador || "—"}
+                  <td className="mon-dsc-quien">
+                    <span className="mon-dsc-una-linea" title={caso.responsable}>{caso.responsable || "—"}</span>
+                    <small
+                      className={`mon-dsc-una-linea${caso.enumeradorDistinto ? " mon-dsc-distinto" : ""}`}
+                      title={caso.enumeradorDistinto ? `${caso.enumerador}, no es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros` : caso.enumerador ? `Enumerador en Kobo: ${caso.enumerador}` : undefined}
+                    >
+                      Kobo: {caso.enumerador || "—"}
+                    </small>
                   </td>
                   <td>
                     <span className={`mon-dsc-decision is-${caso.sentido === "hoja_sin_kobo" ? "avisos" : caso.decision}`}>

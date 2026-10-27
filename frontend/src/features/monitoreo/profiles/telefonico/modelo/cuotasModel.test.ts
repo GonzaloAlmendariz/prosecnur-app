@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { metasConProporcion, validarMetas } from "./cuotasModel";
+import { metasConProporcion, objetivoDesdeTexto, validarMetas } from "./cuotasModel";
 
 // Las cinco sedes de ACNUR PDM con sus metas declaradas.
 const PDM = [
@@ -39,5 +39,16 @@ describe("Modelo › Cuotas del telefónico", () => {
     expect(textos).toContain("Las 3 metas suman 70 y el objetivo total declarado es 100.");
     expect(textos).toContain("1 categoría sin meta: C.");
     expect(textos).toContain("B tiene meta y no aparece en la hoja.");
+  });
+});
+
+describe("objetivoDesdeTexto", () => {
+  it("vacío es sin objetivo y un número se redondea; la basura no es objetivo", () => {
+    expect(objetivoDesdeTexto("")).toBeNull();
+    expect(objetivoDesdeTexto(" 400 ")).toBe(400);
+    expect(objetivoDesdeTexto("1,200")).toBe(1200);
+    expect(objetivoDesdeTexto("399.6")).toBe(400);
+    expect(objetivoDesdeTexto("-3")).toBeNull();
+    expect(objetivoDesdeTexto("abc")).toBeNull();
   });
 });

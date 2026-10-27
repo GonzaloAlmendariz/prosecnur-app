@@ -2,7 +2,7 @@ import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import { fechaCorta } from "./cuotasFaltanteModel";
 import { fmt } from "../formato";
 
-const MAX_SERIES = 3;
+const MAX_SERIES = 4;
 
 /** Paso «redondo» del eje: 1, 2 o 5 por potencia de diez, para ~4 marcas. */
 function pasoDelEje(maximo: number): number {
@@ -15,7 +15,7 @@ function pasoDelEje(maximo: number): number {
 
 /**
  * Faltante al cierre de cada día, una línea por categoría y la cifra en cada
- * punto. Acompaña a la tabla de cuotas cuando hay pocas categorías (menos de
+ * punto. Acompaña a la tabla de cuotas cuando hay pocas categorías (hasta
  * cuatro) y la tabla deja alto libre: es la misma lectura —cuánto falta— vista
  * en el tiempo.
  */
@@ -30,15 +30,15 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
   const y = (valor: number) => 100 - (valor / tope) * 100;
 
   return (
-    <section className="mon-cuotas-diario" aria-label={`Faltante al cierre de cada día por ${modelo.segmento.toLocaleLowerCase("es")}`}>
-      <header className="mon-cuotas-diario-cabecera">
-        <span className="mon-cuotas-antetitulo">Faltante al cierre de cada día</span>
+    <section className="mon-tel-cuotas-diario" aria-label={`Faltante al cierre de cada día por ${modelo.segmento.toLocaleLowerCase("es")}`}>
+      <header className="mon-tel-cuotas-diario-cabecera">
+        <span className="mon-tel-cuotas-antetitulo">Faltante al cierre de cada día</span>
       </header>
-      <div className="mon-cuotas-diario-lienzo" role="img" aria-label={visibles.map((serie) => (
+      <div className="mon-tel-cuotas-diario-lienzo" role="img" aria-label={visibles.map((serie) => (
         `${serie.nombre}: ${serie.valores.map((valor, i) => `${fechaCorta(fechas[i])} ${fmt(valor)}`).join(", ")}`
       )).join(". ")}>
         {marcas.map((marca) => (
-          <span key={marca} className="mon-cuotas-diario-guia" style={{ top: `${y(marca)}%` }}>
+          <span key={marca} className="mon-tel-cuotas-diario-guia" style={{ top: `${y(marca)}%` }}>
             <span>{fmt(marca)}</span>
           </span>
         ))}
@@ -55,21 +55,21 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
         {visibles.map((serie, indice) => serie.valores.map((valor, i) => (
           <span
             key={`${serie.clave}-${fechas[i]}`}
-            className={`mon-cuotas-diario-punto is-serie-${indice}`}
+            className={`mon-tel-cuotas-diario-punto is-serie-${indice}`}
             style={{ left: `${x(i)}%`, top: `${y(valor)}%` }}
           >
             <b>{fmt(valor)}</b>
           </span>
         )))}
         {fechas.map((fecha, i) => (
-          <span key={fecha} className="mon-cuotas-diario-fecha" style={{ left: `${x(i)}%` }}>{fechaCorta(fecha)}</span>
+          <span key={fecha} className="mon-tel-cuotas-diario-fecha" style={{ left: `${x(i)}%` }}>{fechaCorta(fecha)}</span>
         ))}
       </div>
       {/* Leyenda centrada en la tarjeta; con una sola serie, el título ya la nombra. */}
       {visibles.length > 1 ? (
-        <span className="mon-cuotas-diario-leyendas">
+        <span className="mon-tel-cuotas-diario-leyendas">
           {visibles.map((serie, indice) => (
-            <span key={serie.clave} className={`mon-cuotas-diario-leyenda is-serie-${indice}`}>
+            <span key={serie.clave} className={`mon-tel-cuotas-diario-leyenda is-serie-${indice}`}>
               <i aria-hidden="true" />
               {serie.nombre}
             </span>

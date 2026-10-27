@@ -44,6 +44,26 @@ describe("RondasDeSupervision", () => {
     expect(html).not.toContain("Publicar en el Sheets");
   });
 
+  it("sin efectivas nuevas «Nueva ronda» se apaga y dice por qué (Gonzalo, 2026-10-27)", () => {
+    const html = renderToStaticMarkup(
+      <RondasDeSupervision rondas={[RONDA(1)]} actual={1} proxima={2} nuevas={0}
+        onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} />,
+    ).replace(/<!-- -->/g, "");
+    const boton = /<button[^>]*>(?:(?!<\/button>).)*Nueva ronda<\/button>/.exec(html)?.[0] ?? "";
+    expect(boton).toContain('disabled=""');
+    expect(boton).toContain('aria-describedby="mon-sup-rondas-motivo"');
+    expect(html).toMatch(/id="mon-sup-rondas-motivo"[^>]*>Sin efectivas nuevas desde la última ronda/);
+    // Con nuevas, habilitado y sin motivo.
+    expect(lista([RONDA(1)])).not.toMatch(/disabled=""[^>]*>(?:(?!<\/button>).)*Nueva ronda/);
+  });
+
+  it("los datos de la ronda van en piezas que se parten entre sí, no dentro", () => {
+    const html = lista([RONDA(1, { casos: 9, universo: 360, porcentaje: null, semilla: 20261027 })]);
+    expect(html).toContain('class="mon-sup-ronda-datos"');
+    expect(html).toContain("<span>9 casos</span><span>de 360 efectivas</span>");
+    expect(html).toContain("<span>semilla 20261027</span>");
+  });
+
   it("con hoja y una ronda publicada ofrece leer resultados; marca la pestaña borrada y pinta el aviso", () => {
     const html = renderToStaticMarkup(
       <RondasDeSupervision rondas={[RONDA(1, { publicadaEn: "Ronda 1", lectura: "pestana_borrada" }), RONDA(2, { publicadaEn: "Ronda 2", lectura: "leida", leidaEl: "2026-10-24T09:00:00" })]}

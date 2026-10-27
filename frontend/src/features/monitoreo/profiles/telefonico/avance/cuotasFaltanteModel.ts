@@ -199,9 +199,13 @@ export function construirCuotasFaltante({
   };
 }
 
-/** Con menos de cuatro categorías la tabla deja alto libre: va el faltante diario. */
+/**
+ * Con hasta cuatro categorías la tabla deja alto libre: va el faltante diario.
+ * Era «menos de cuatro» y el RMS, con sus cuatro actores, dejaba media tarjeta
+ * vacía bajo el Total (Gonzalo, 2026-10-27).
+ */
 export function llevaFaltanteDiario(modelo: CuotasFaltante): boolean {
-  return modelo.filas.length > 0 && modelo.filas.length < 4 && modelo.faltanteDiario.fechas.length > 1
+  return modelo.filas.length > 0 && modelo.filas.length <= 4 && modelo.faltanteDiario.fechas.length > 1
     && modelo.faltanteDiario.series.length > 0;
 }
 
