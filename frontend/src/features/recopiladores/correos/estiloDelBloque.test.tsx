@@ -154,7 +154,7 @@ describe("sección Destacado en el editor (L5)", () => {
     expect(b).toMatchObject({ type: "feature", layout: "izquierda", box: { bg: "tinte" } });
     expect(b).not.toHaveProperty("image_ref");
     expect(propsDeTexto("feature")).toEqual(["eyebrow", "title", "text", "button_text", "url"]);
-    expect(ajustesDe(b).map((a) => a.opciones.map((o) => o.valor))).toEqual([["izquierda", "derecha", "arriba"], ["left", "center"]]);
+    expect(ajustesDe(b).map((a) => a.opciones.map((o) => o.valor))).toEqual([["izquierda", "derecha", "arriba"], ["left", "center"], ["normal", "grande"]]);
   });
 
   it("subir una foto le pone su id y el panel pide describirla", async () => {

@@ -187,6 +187,8 @@ export const MAIL_FEATURE_LAYOUTS = ["izquierda", "derecha", "arriba"] as const;
 export type MailFeatureLayout = (typeof MAIL_FEATURE_LAYOUTS)[number];
 export const MAIL_FEATURE_ALIGNS = ["left", "center"] as const;
 export type MailFeatureAlign = (typeof MAIL_FEATURE_ALIGNS)[number];
+export const MAIL_FEATURE_BUTTON_SIZES = ["normal", "grande"] as const;
+export type MailFeatureButtonSize = (typeof MAIL_FEATURE_BUTTON_SIZES)[number];
 /** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
 export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
 export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
@@ -205,6 +207,10 @@ export type MailFeatureBlock = {
   layout?: MailFeatureLayout;
   /** Texto y botón a la izquierda (sin él) o centrados. */
   align?: MailFeatureAlign;
+  /** Botón normal (sin él) o grande. */
+  button_size?: MailFeatureButtonSize;
+  /** Color propio del botón (#rrggbb); sin él, el del tema. La letra la elige el render por contraste. */
+  button_color?: string;
   /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
   crop?: MailCrop;
 };
@@ -955,6 +961,9 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
     case "feature": {
       const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
       const align = oneOf(value.align, MAIL_FEATURE_ALIGNS);
+      const buttonSize = oneOf(value.button_size, MAIL_FEATURE_BUTTON_SIZES);
+      const buttonColor = typeof value.button_color === "string" && /^#[0-9a-fA-F]{6}$/.test(value.button_color)
+        ? value.button_color.toLowerCase() : undefined;
       const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
       return {
         block_id, type, title: str(value.title),
@@ -962,6 +971,8 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...opcional("button_text"), ...opcional("url"),
         ...(layout ? { layout } : {}),
         ...(align ? { align } : {}),
+        ...(buttonSize ? { button_size: buttonSize } : {}),
+        ...(buttonColor ? { button_color: buttonColor } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }

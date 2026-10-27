@@ -1,7 +1,7 @@
 # collection_mail_destacado.R — la sección «Destacado con imagen» (`feature`;
 # GOAL editor de correos profesional, L5; maqueta aprobada SecDestacado).
 #
-#   feature { eyebrow?, title, text?, image_ref?, alt?, button_text?, url?, layout?, align?, box? }
+#   feature { eyebrow?, title, text?, image_ref?, alt?, button_text?, url?, button_size?, button_color?, layout?, align?, box? }
 #
 # Un antetítulo, un título, un texto y un botón opcionales junto a una foto. La
 # forma (`layout`) es cerrada: la imagen a la izquierda, a la derecha o arriba.
@@ -20,7 +20,11 @@
 #
 # **Alineación** (`align`, cerrada: left | center; sin ella, left): el
 # antetítulo, el título, el texto y el botón van a la izquierda o centrados en
-# su columna. La imagen no cambia: arriba ya ocupa todo el ancho. Con la imagen
+# su columna. La imagen no cambia: arriba ya ocupa todo el ancho.
+#
+# **Botón** (`button_size` normal | grande; `button_color` #rrggbb): el grande
+# lleva letra de 17 px y más relleno; con color propio, la letra es la de más
+# contraste entre blanco y el grafito de la casa. Sin ellos, el botón del tema. Con la imagen
 # a la derecha, la celda de la imagen va primero en el HTML y la fila se dibuja
 # de derecha a izquierda (`dir="rtl"`, cada celda vuelve a `ltr`): así, al
 # apilarse, la imagen también sube.
@@ -70,6 +74,9 @@
   } else if (!is.null(b$url)) {
     push("button_text", "missing_button_text", "Un enlace necesita el texto de su botón.")
   }
+  if (!is.null(b$button_color) && !.cmail_hex_ok(.cmail_one(b$button_color))) {
+    push("button_color", "bad_button_color", "El color del botón es #rrggbb.")
+  }
   out
 }
 
@@ -108,15 +115,21 @@
   if (is.null(text) || !nzchar(trimws(text))) return("")
   pal <- ctx$pal
   centro <- identical(.cmail_style(b, "align", "left"), "center")
+  grande <- identical(.cmail_style(b, "button_size", "normal"), "grande")
+  pad <- if (grande) "16px 36px" else "12px 22px"
+  font <- if (grande) "font-size:17px;line-height:22px;" else "font-size:15px;line-height:20px;"
+  color <- .cmail_one(b$button_color)
+  bg <- if (.cmail_hex_ok(color)) tolower(color) else pal$button_bg
+  fg <- if (.cmail_hex_ok(color)) .cmail_best_ink(bg, c("#ffffff", "#0b1f3a")) else pal$button_fg
   sprintf(paste0(
     '<table role="presentation"', if (centro) ' align="center"' else '',
     ' cellpadding="0" cellspacing="0" border="0" style="margin:6px ', if (centro) 'auto' else '0', ' 0 ', if (centro) 'auto' else '0', ';"><tr>',
-    '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:%s;mso-padding-alt:12px 22px;">',
-    '<a href="%s" target="_blank"%s style="display:inline-block;padding:12px 22px;border:1px solid %s;border-radius:%s;',
-    'font-family:%s;font-size:15px;line-height:20px;font-weight:bold;color:%s;text-decoration:none;">%s</a>',
+    '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:%s;mso-padding-alt:%s;">',
+    '<a href="%s" target="_blank"%s style="display:inline-block;padding:%s;border:1px solid %s;border-radius:%s;',
+    'font-family:%s;%sfont-weight:bold;color:%s;text-decoration:none;">%s</a>',
     '</td></tr></table>'
-  ), pal$button_bg, pal$button_bg, pal$button_radius, .cmail_url(b$url, ctx), .cmail_prop(ctx, "button_text"),
-  pal$button_bg, pal$button_radius, .CMAIL_FONT, pal$button_fg, .cmail_inline(text, ctx))
+  ), bg, bg, pal$button_radius, pad, .cmail_url(b$url, ctx), .cmail_prop(ctx, "button_text"),
+  pad, bg, pal$button_radius, .CMAIL_FONT, font, fg, .cmail_inline(text, ctx))
 }
 
 .cmail_feature_text <- function(b, ctx) {

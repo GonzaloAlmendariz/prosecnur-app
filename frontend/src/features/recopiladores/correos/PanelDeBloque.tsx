@@ -6,6 +6,7 @@ import { PropRow } from "../../xlsformEditor/kit";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, sigueAIdentidad, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
+import { ColorDelBoton } from "./ColorDelBoton";
 import { EstiloDelBloque, SelectorDeVista } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
@@ -391,6 +392,17 @@ export function PanelDeBloque({
           }}
         />
       )) : null}
+      {block.type === "feature" && block.button_text ? (
+        <ColorDelBoton
+          block={block}
+          theme={template.theme}
+          onColor={(color) => editar((b) => {
+            if (b.type !== "feature") return b;
+            const { button_color: _previo, ...resto } = b;
+            return color ? { ...resto, button_color: color } : resto;
+          }, `${block.block_id}.button_color`)}
+        />
+      ) : null}
       {tieneColor(block) ? (
         <ColorDePieza
           block={block}

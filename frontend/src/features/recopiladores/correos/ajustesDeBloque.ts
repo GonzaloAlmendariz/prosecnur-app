@@ -190,6 +190,12 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       defecto: "izquierda",
     },
     { clave: "align", rotulo: "Texto", opciones: [IZQUIERDA, CENTRADO], defecto: "left" },
+    {
+      clave: "button_size",
+      rotulo: "Botón",
+      opciones: [{ valor: "normal", rotulo: "Normal" }, { valor: "grande", rotulo: "Grande" }],
+      defecto: "normal",
+    },
   ],
   // Pasos (collection_mail_secciones.R): más de tres van siempre en lista.
   steps: [
