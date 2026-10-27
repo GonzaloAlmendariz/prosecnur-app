@@ -12,7 +12,10 @@ import {
 } from "./coloresGraficoModel";
 
 const REG_SERIE = [{ name: "vars", tipo_input: "variable" }, { name: "colores_series", tipo_input: "series_colors" }];
-const [AZUL, VERDE, AMARILLO, NARANJA, CORAL] = PALETA_RECETARIO.map((c) => c.hex);
+// Las tres primeras de la rampa nominal del estándar; coral y naranja son colores propios cualesquiera.
+const [AZUL, MEDIO, TENUE] = PALETA_RECETARIO.map((c) => c.hex);
+const NARANJA = "#F4A261";
+const CORAL = "#E76F51";
 const TEMAS = ["Acceso", "Trato", "Calidad"];
 
 describe("coloresDelGrafico", () => {
@@ -56,18 +59,18 @@ describe("coloresEfectivos (espejo de .graficos_mk_palette)", () => {
   it("sin decisiones: paleta del recetario por posición, todas «Del recetario»", () => {
     expect(coloresEfectivos(TEMAS, {})).toEqual([
       { nombre: "Acceso", hex: AZUL, origen: "recetario" },
-      { nombre: "Trato", hex: VERDE, origen: "recetario" },
-      { nombre: "Calidad", hex: AMARILLO, origen: "recetario" },
+      { nombre: "Trato", hex: MEDIO, origen: "recetario" },
+      { nombre: "Calidad", hex: TENUE, origen: "recetario" },
     ]);
   });
   it("con una decisión, las demás toman en orden los colores libres (mutante: conservar la posición)", () => {
     expect(coloresEfectivos(TEMAS, { Trato: CORAL }).map((c) => [c.hex, c.origen])).toEqual([
-      [AZUL, "recetario"], [CORAL, "propio"], [VERDE, "recetario"],
+      [AZUL, "recetario"], [CORAL, "propio"], [MEDIO, "recetario"],
     ]);
   });
   it("un color propio que ya es de la paleta no se repite en otra serie (mutante: no descontar los usados)", () => {
     const r = coloresEfectivos(TEMAS, { Calidad: AZUL });
-    expect(r.map((c) => c.hex)).toEqual([VERDE, AMARILLO, AZUL]);
+    expect(r.map((c) => c.hex)).toEqual([MEDIO, TENUE, AZUL]);
   });
   it("el preset del informe cuenta como heredado y lo propio manda (mutante: preset sobre propio)", () => {
     const r = coloresEfectivos(TEMAS, { Acceso: "#101010" }, { Acceso: "#202020", Trato: NARANJA });
@@ -76,6 +79,9 @@ describe("coloresEfectivos (espejo de .graficos_mk_palette)", () => {
   it("más series que la paleta y sin decisión: automático (mutante: inventar el color de la rampa)", () => {
     const muchos = Array.from({ length: 9 }, (_, i) => `T${i}`);
     expect(coloresEfectivos(muchos, {}).every((c) => c.hex === null)).toBe(true);
+  });
+  it("dos series toman la dicotómica, como el motor (mutante: la rampa sin mirar cuántas son)", () => {
+    expect(coloresEfectivos(["A", "B"], {}).map((c) => c.hex)).toEqual(["#081F5C", "#9DC3E6"]);
   });
   it("cero series: lista vacía", () => {
     expect(coloresEfectivos([], { X: AZUL })).toEqual([]);
@@ -87,13 +93,13 @@ describe("patchColor (ADR 0094: se guarda la decisión)", () => {
     expect(patchColor("colores_series", undefined, TEMAS, {}, "Trato", "#e76f51")).toEqual({ colores_series: { Trato: CORAL } });
   });
   it("elegir el color que ya le tocaba no guarda nada (mutante: guardar el default)", () => {
-    expect(patchColor("colores_series", undefined, TEMAS, {}, "Trato", VERDE.toLowerCase())).toEqual({ colores_series: null });
+    expect(patchColor("colores_series", undefined, TEMAS, {}, "Trato", MEDIO.toLowerCase())).toEqual({ colores_series: null });
   });
   it("el default se calcula sin la propia clave y con las demás decisiones (mutante: comparar contra la posición fija)", () => {
-    // Con Acceso en coral, a Trato le tocaría el azul (primer libre): elegir azul no es decisión; elegir verde sí.
+    // Con Acceso en coral, a Trato le tocaría el azul (primer libre): elegir azul no es decisión; elegir el azul medio sí.
     const actual = { Acceso: CORAL };
     expect(patchColor("colores_series", actual, TEMAS, {}, "Trato", AZUL)).toEqual({ colores_series: { Acceso: CORAL } });
-    expect(patchColor("colores_series", actual, TEMAS, {}, "Trato", VERDE)).toEqual({ colores_series: { Acceso: CORAL, Trato: VERDE } });
+    expect(patchColor("colores_series", actual, TEMAS, {}, "Trato", MEDIO)).toEqual({ colores_series: { Acceso: CORAL, Trato: MEDIO } });
   });
   it("«Volver al recetario» borra la clave y el arg cuando queda vacío (mutante: dejar {} o borrar todo)", () => {
     const actual = { Acceso: CORAL, Trato: "#101010" };
@@ -115,7 +121,7 @@ describe("patchColor (ADR 0094: se guarda la decisión)", () => {
 
 describe("nombreDeColor", () => {
   it("nombre de la paleta, código si es propio, «Automático» sin color", () => {
-    expect(nombreDeColor("#0b4f8c")).toBe("Azul");
+    expect(nombreDeColor("#081f5c")).toBe("Azul institucional");
     expect(nombreDeColor("#101010")).toBe("#101010");
     expect(nombreDeColor(null)).toBe("Automático");
   });

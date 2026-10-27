@@ -12,7 +12,7 @@ import {
   type MapaPaletas,
   type VinculosPaletas,
 } from "../paletasResolver";
-import { LIKERT_RECETARIO, PULSO_PUCP_COLORS, SUGERIDAS_PALETAS } from "../paletasSugeridas";
+import { ESTANDAR_NOMINAL, LIKERT_RECETARIO, PULSO_PUCP_COLORS, SUGERIDAS_PALETAS } from "../paletasSugeridas";
 
 export type ListaRespuestas = {
   list_name: string;
@@ -129,21 +129,23 @@ export function combinacionesPara(opciones: readonly string[]): Combinacion[] {
   return sugeridas.map((s) => ({ nombre: s.label.replace(/^Pulso\s+/, "").replace(/^./, (c) => c.toUpperCase()), colores: conGris(s.colors) }));
 }
 
-/** Muestras de la marca para elegir un color a mano, en el orden en que se suelen usar. */
+/** Muestras para elegir un color a mano: las del estándar, en el orden en que se suelen usar (sin coral: va en los títulos). */
 export const MUESTRAS_MARCA: ReadonlyArray<{ nombre: string; hex: string }> = [
-  { nombre: "Azul institucional", hex: PULSO_PUCP_COLORS.azul },
-  { nombre: "Azul claro", hex: PULSO_PUCP_COLORS.azulSecundario },
-  { nombre: "Rojo", hex: PULSO_PUCP_COLORS.rojo },
-  { nombre: "Naranja", hex: PULSO_PUCP_COLORS.naranja },
-  { nombre: "Amarillo", hex: PULSO_PUCP_COLORS.amarillo },
-  { nombre: "Verde", hex: PULSO_PUCP_COLORS.verde },
-  { nombre: "Morado", hex: PULSO_PUCP_COLORS.morado },
+  { nombre: "Azul institucional", hex: ESTANDAR_NOMINAL.categorica[0] },
+  { nombre: "Celeste", hex: ESTANDAR_NOMINAL.dicotomica[1] },
+  { nombre: "Azul medio", hex: ESTANDAR_NOMINAL.categorica[1] },
+  { nombre: "Azul tenue", hex: ESTANDAR_NOMINAL.categorica[2] },
+  { nombre: "Azul claro", hex: ESTANDAR_NOMINAL.categorica[3] },
+  { nombre: "Azul público", hex: ESTANDAR_NOMINAL.actores[0] },
+  { nombre: "Verde azulado", hex: ESTANDAR_NOMINAL.actores[1] },
+  { nombre: "Dorado", hex: ESTANDAR_NOMINAL.actores[2] },
   { nombre: "Desacuerdo fuerte", hex: LIKERT_RECETARIO.desacuerdoFuerte },
   { nombre: "Desacuerdo", hex: LIKERT_RECETARIO.desacuerdo },
+  { nombre: "Neutro", hex: LIKERT_RECETARIO.neutro },
   { nombre: "Acuerdo", hex: LIKERT_RECETARIO.acuerdo },
   { nombre: "Acuerdo fuerte", hex: LIKERT_RECETARIO.acuerdoFuerte },
+  { nombre: "Gris azulado", hex: ESTANDAR_NOMINAL.categorica[4] },
   { nombre: "Gris", hex: PULSO_PUCP_COLORS.gris },
-  { nombre: "Gris claro", hex: PULSO_PUCP_COLORS.grisSecundario },
 ];
 
 /**

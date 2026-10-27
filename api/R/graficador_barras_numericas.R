@@ -1256,9 +1256,8 @@ graficar_histograma <- function(
     # keyed por grupo, para no abortar scale_fill_manual.
     colores_grupos <- .graficos_mk_palette(niveles_grupo, pal_user = override_grupos)
   } else {
-    # Paleta interna fija (no es override del usuario): se recicla tal cual.
-    colores_grupos <- c("#06245C", "#9EC3E6", "#CA5651", "#70AD47", "#FFD966", "#7B5EA7")
-    colores_grupos <- stats::setNames(rep(colores_grupos, length.out = length(niveles_grupo)), niveles_grupo)
+    # Sin override: la nominal del estándar (antes una lista propia con coral y un celeste que no era el del estándar).
+    colores_grupos <- stats::setNames(.std_paleta_nominal(length(niveles_grupo)), niveles_grupo)
   }
   legend_text_gap_pt <- max(0, as.numeric(legend_text_gap %||% 0.12)) * 28.35
   legend_item_gap_pt <- max(0, as.numeric(legend_espaciado %||% 0.6)) * 28.35

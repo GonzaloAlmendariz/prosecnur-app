@@ -8,11 +8,12 @@ test_that("una escala de acuerdo o satisfacción sin paleta toma la Likert del e
   expect_identical(unname(p5), rev(unname(.std_paleta("likert_neutro"))[1:5]))      # el negativo al final: la rampa se invierte
 })
 
-test_that("lo que no es escala conserva la paleta categórica y la paleta del usuario siempre manda", {
-  base <- .graficos_mk_palette(c("Redes", "Amigo", "Otro"))
-  expect_identical(unname(base), c("#0B4F8C", "#2A9D8F", "#E9C46A"))
-  expect_identical(unname(.graficos_mk_palette(c("Sí", "No"))), c("#0B4F8C", "#2A9D8F"))
-  expect_identical(unname(.graficos_mk_palette(c("TD", "D", "A", "TA"))), c("#0B4F8C", "#2A9D8F", "#E9C46A", "#F4A261"))   # abreviada: no se adivina
+test_that("lo que no es escala toma la paleta nominal del estándar y la paleta del usuario siempre manda (P4, el JSON manda)", {
+  cat <- unname(.std_paleta("categorica"))
+  expect_identical(unname(.graficos_mk_palette(c("Redes", "Amigo", "Otro"))), cat[1:3])
+  expect_identical(unname(.graficos_mk_palette(c("Sí", "No"))), unname(.std_paleta("dicotomica")))      # como las láminas nativas
+  expect_identical(unname(.graficos_mk_palette(c("TD", "D", "A", "TA"))), cat[1:4])                      # abreviada: no se adivina
+  expect_length(unique(.graficos_mk_palette(paste0("c", 1:9))), 9L)                                       # más de cinco: interpola
   mia <- c(`Totalmente en desacuerdo` = "#111111", `En desacuerdo` = "#222222", `De acuerdo` = "#333333", `Totalmente de acuerdo` = "#444444")
   expect_identical(unname(.graficos_mk_palette(names(mia), mia)), unname(mia))
 })

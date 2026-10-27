@@ -108,7 +108,7 @@ test_that("una escala sin paleta toma la Likert del recetario, no la rampa que a
   # Mutante de la rampa vieja: ningún color de `approval`.
   expect_false(any(c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E") %in% out))
   # Lo que no es escala no cambia: dicotomía y categorías sin recorrido.
-  expect_identical(unname(.reporte_plan_pulso_palette_for_levels(c("Sí", "No"))), c("#081F5C", "#9EC3E6"))
+  expect_identical(unname(.reporte_plan_pulso_palette_for_levels(c("Sí", "No"))), unname(.std_paleta("dicotomica")))
   expect_identical(unname(.reporte_plan_pulso_palette_for_levels(c("Lima", "Arequipa", "Cusco"))[1]), "#081F5C")
 })
 

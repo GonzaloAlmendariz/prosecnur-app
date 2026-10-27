@@ -48,13 +48,13 @@ test_that("pie y donut no duplican la Base en el placeholder del slide", {
   )
 }
 
-test_that("el pie sin paleta usa la de la casa, no el hue de ggplot", {
+test_that("el pie sin paleta usa la del estándar (`.std_paleta_nominal`), no el hue de ggplot", {
   d <- .l7_pie_data()
   p <- graficar_pie(data = d, var_categoria = "categoria", var_pct = "pct",
                     usar_canvas = FALSE, exportar = "rplot")
   built <- ggplot2::ggplot_build(p)
   fills <- toupper(unique(stats::na.omit(unlist(lapply(built$data, function(l) l$fill)))))
-  expect_true("#0B4F8C" %in% fills)
+  expect_true(toupper(.std_color("azul")) %in% fills)
   expect_false("#F8766D" %in% fills)
 })
 

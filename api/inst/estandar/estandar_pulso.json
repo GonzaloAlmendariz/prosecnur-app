@@ -90,32 +90,50 @@
     "paletas": {
       "likert": {
         "colores": ["#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"],
-        "rotulos": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"]
+        "rotulos": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"],
+        "uso": "De lo negativo a lo positivo, siempre en ese orden. Lo negativo va en naranja, nunca en rojo; Sin información va al final y en gris."
       },
       "likert_neutro": {
-        "colores": ["#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47"]
+        "colores": ["#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47"],
+        "rotulos": ["Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo", "Totalmente de acuerdo"],
+        "uso": "La escala de cinco pasos lleva el punto neutro en gris, al centro."
       },
       "dicotomica": {
         "colores": ["#081F5C", "#9DC3E6"],
-        "rotulos": ["Sí", "No"]
+        "rotulos": ["Sí", "No"],
+        "uso": "Sí en azul oscuro y No en celeste, en todas las láminas; también cualquier lista de dos opciones."
+      },
+      "categorica": {
+        "colores": ["#081F5C", "#4F7FAF", "#8E9DBD", "#B9C5DC", "#8A93A8"],
+        "uso": "Categorías sin orden con más de dos opciones: la rampa de azules de la marca, de la más a la menos elegida."
       },
       "actores": {
-        "colores": ["#0B4F8C", "#2A9D8F", "#E9C46A", "#8E9DBD", "#081F5C", "#9DC3E6"]
+        "colores": ["#0B4F8C", "#2A9D8F", "#E9C46A", "#8E9DBD", "#081F5C", "#9DC3E6"],
+        "rotulos": ["Docentes", "Estudiantes", "Egresados", "Autoridades", "Administrativos", "Empleadores"],
+        "uso": "Cada público conserva su color en todo el informe; si el nombre ya está junto a la barra, no necesita color."
       },
       "categorias": {
         "mayor": "#081F5C",
         "resto": "#8E9DBD",
-        "residual": "#8A93A8"
+        "residual": "#8A93A8",
+        "rotulos": {
+          "mayor": "La más elegida",
+          "resto": "Las demás",
+          "residual": "No sabe, Otros"
+        },
+        "uso": "Barras de una serie: la mayor en azul; las demás en el tono de apoyo; No sabe, Otros y similares al final en gris azulado."
       },
       "calor": {
         "desde": "#EEF2F8",
         "hasta": "#2F4B7C",
         "rango": [80, 100],
-        "tramos": ["#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"]
+        "tramos": ["#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"],
+        "uso": "Tablas de calor: cinco tramos del claro al oscuro, todos legibles con su texto."
       },
       "mapa": {
         "clases": ["#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"],
-        "fuera": "#E2E6EC"
+        "fuera": "#E2E6EC",
+        "uso": "Mapas de cobertura: cuatro clases del claro al oscuro; lo que queda fuera del marco, en gris."
       }
     },
     "grosor": {

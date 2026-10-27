@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  ESTANDAR_NOMINAL,
   LIKERT_RECETARIO,
   PULSO_PUCP_COLORS,
   ROJO_FUERA_DE_RAMPA,
@@ -39,13 +43,23 @@ describe("paletas sugeridas", () => {
     expect(r6?.colors[2]).toBe(LIKERT_RECETARIO.neutro);
   });
 
-  it("las categóricas conservan el rojo institucional", () => {
-    // El arreglo es para las rampas: quitarlo de todas partes borraría el color
-    // de la casa de los gráficos que sí distinguen series sin orden.
-    const categoricas = todas.filter((p) => !p.ordinal);
-    expect(
-      categoricas.some((p) => p.colors.includes(ROJO_FUERA_DE_RAMPA)),
-    ).toBe(true);
+  it("ninguna paleta lleva el coral: va sólo en los títulos (estandar_pulso.json, reglas.coral)", () => {
+    const conCoral = todas.filter((p) => p.colors.some((c) => c.toUpperCase() === ROJO_FUERA_DE_RAMPA.toUpperCase()));
+    expect(conCoral.map((p) => `${p.n}: ${p.label}`)).toEqual([]);
+  });
+
+  it("las nominales son las del estándar: el JSON manda (Gonzalo, 2026-10-27)", () => {
+    const raiz = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+    const json = JSON.parse(readFileSync(resolve(raiz, "api/inst/estandar/estandar_pulso.json"), "utf8"));
+    const pal = json.ppt.paletas;
+    expect(ESTANDAR_NOMINAL.dicotomica).toEqual(pal.dicotomica.colores);
+    expect(ESTANDAR_NOMINAL.categorica).toEqual(pal.categorica.colores);
+    expect(ESTANDAR_NOMINAL.actores).toEqual(pal.actores.colores);
+    expect(LIKERT_RECETARIO.desacuerdoFuerte).toBe(pal.likert.colores[0]);
+    expect(LIKERT_RECETARIO.neutro).toBe(pal.likert_neutro.colores[2]);
+    // Lo que completa una lista de dos opciones sin colores es la dicotómica, como el mazo entregado de ACRD Conta.
+    expect(SUGERIDAS_PALETAS[2][0].colors).toEqual(pal.dicotomica.colores);
+    for (const n of [3, 5, 6]) expect(SUGERIDAS_PALETAS[n][0].colors[0]).toBe(pal.categorica.colores[0]);
   });
 
   it("ninguna paleta repite un color dentro de sí misma", () => {

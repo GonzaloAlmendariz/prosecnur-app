@@ -127,6 +127,18 @@ Formato: **fecha · decisión** — origen · token · ítem del checklist.
 - **2026-10-24 · Citas** sin atribución, con aprobación del analista; sin aprobadas sale como borrador —
   `c782ba495`, `896cebfa2` · por crear `ppt.citas.*` · X3.
 
+### Paleta
+
+- **2026-10-27 · Manda el JSON**: el catálogo, las sugerencias de la app y todo respaldo sin paleta pintan con las
+  paletas del estándar; el coral va sólo en los títulos — Gonzalo («el recetario es la fuente de verdad y la
+  constitución»; ante la pregunta, «manda el JSON») · `ppt.paletas.*`, `ppt.reglas.coral` · P1, P3, P4.
+- **2026-10-27 · Lista nominal sin paleta**: dos opciones, la dicotómica (Sí azul oscuro, No celeste, como el mazo
+  entregado de ACRD Conta); más, la rampa de azules — token nuevo `ppt.paletas.categorica`, leído por
+  `.std_paleta_nominal()` · P4.
+- **2026-10-27 · Cada paleta declara su regla de uso** (`uso`) y los públicos y roles de una serie sus rótulos; la
+  lámina «Reglas de la identidad» del catálogo los dibuja tal cual (`p_slide_estandar`) — `ppt.paletas.*.uso`,
+  `ppt.paletas.actores.rotulos`, `ppt.paletas.categorias.rotulos` · P5.
+
 ### Otros
 
 - **2026-10-23 · Radar de 5 a 8 criterios**; con menos, líneas y puntos — `51aafe5c8`, `fb148d02b` · por crear

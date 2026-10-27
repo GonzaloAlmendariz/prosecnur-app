@@ -19,9 +19,9 @@ describe("ListaColores", () => {
   it("cada muestra tiene nombre accesible y su color se lee en texto", () => {
     const html = pintar({});
     expect([...html.matchAll(/aria-label="Color de la serie “([^”]+)”"/g)].map((m) => m[1])).toEqual(["Acceso", "Trato"]);
-    expect(html).toContain("Azul, #0B4F8C");
-    expect(html).toContain("Verde azulado, #2A9D8F");
-    expect(html).toMatch(/type="color"[^>]*value="#0b4f8c"/);
+    expect(html).toContain("Azul institucional, #081F5C");   // dos series: la dicotómica del estándar, como el motor
+    expect(html).toContain("Celeste, #9DC3E6");
+    expect(html).toMatch(/type="color"[^>]*value="#081f5c"/);
   });
   it("sin decisiones: todo «Del recetario» y ningún «Volver al recetario»", () => {
     const html = pintar({});
