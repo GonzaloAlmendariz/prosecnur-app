@@ -1352,7 +1352,7 @@ codif_get <- function(sid, key, default = NULL, source = NULL) {
 }
 
 # Escribe un campo del state de codificación para la base activa.
-codif_set <- function(sid, key, value, source = NULL) {
+codif_set <- function(sid, key, value, source = NULL, marcar = TRUE) {
   s <- session_get(sid)
   src <- if (is.null(source)) codif_source_active(sid) else source
   if (is.null(s$codif_por_base)) s$codif_por_base <- list()
@@ -1361,7 +1361,9 @@ codif_set <- function(sid, key, value, source = NULL) {
   # "inst" y "data" son caches del XLSForm parseado y del dataframe adaptado
   # — se rederivan al abrir un .pulso desde el file_id, así que no son
   # cambios "user-visibles" que ameriten marcar dirty.
-  if (!(key %in% c("inst", "data"))) {
+  # `marcar = FALSE`: lo que se siembra al leer (la sugerencia de familias
+  # cuando la base aún no tiene borrador) se re-deriva y no es una edición (L22).
+  if (isTRUE(marcar) && !(key %in% c("inst", "data"))) {
     s <- .mark_project_dirty(s)
   }
   .session_env[[sid]] <- s
