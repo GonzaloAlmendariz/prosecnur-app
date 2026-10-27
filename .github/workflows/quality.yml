@@ -65,6 +65,11 @@ jobs:
   frontend:
     name: Frontend (typecheck, tests, build, audits)
     runs-on: ubuntu-24.04
+    # El árbol ya no cabe en el tope por defecto de Node (~2 GB): en el corte
+    # 0.9.6 murieron por «JavaScript heap out of memory» primero el typecheck
+    # y, con él arreglado, el build de producción. Con 6 GB pasan los dos.
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -104,11 +109,6 @@ jobs:
         run: node scripts/debt-audit.mjs --check
 
       - name: Frontend typecheck
-        # El árbol ya no cabe en el tope por defecto de Node (~2 GB): el corte
-        # 0.9.6 murió con «JavaScript heap out of memory» a los 2,04 GB. Con
-        # 6 GB pasa y cabe en el runner estándar.
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
       - name: Frontend tests

@@ -122,6 +122,10 @@ jobs:
           || (needs.precheck.outputs.skip_gate == 'true'
               && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
+    # El build del frontend necesita más que el tope por defecto de Node
+    # (~2 GB); sin esto muere por memoria, como en Quality (corte 0.9.6).
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -250,6 +254,10 @@ jobs:
           || (needs.precheck.outputs.skip_gate == 'true'
               && needs.quality.result == 'skipped'))
     runs-on: macos-26
+    # El build del frontend necesita más que el tope por defecto de Node
+    # (~2 GB); sin esto muere por memoria, como en Quality (corte 0.9.6).
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
