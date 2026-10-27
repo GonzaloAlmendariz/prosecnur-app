@@ -27,9 +27,9 @@ describe("dirección pública del modo territorial", () => {
     }
   });
 
-  it("declara las 19 pestañas del diseño", () => {
+  it("declara las 20 pestañas del diseño (Control › Recorrido, 2026-10-27)", () => {
     const total = SECCIONES_TERRITORIALES.reduce((suma, seccion) => suma + pestanasDeSeccion(seccion).length, 0);
-    expect(total).toBe(19);
+    expect(total).toBe(20);
   });
 
   it("sin dirección aterriza en Avance › Faltante por UMP", () => {

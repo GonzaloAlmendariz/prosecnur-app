@@ -1,0 +1,473 @@
+/* Control › Recorrido: el mapa de la jornada a la izquierda (barra arriba,
+ * leyenda abajo, en flujo) y la jornada en orden a la derecha. */
+
+.mon-rec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-rec-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-rec-barra,
+.mon-rec-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.mon-rec-barra {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-rec-pie {
+  justify-content: space-between;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-rec-campo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-rec-campo select {
+  max-width: 340px;
+  height: 30px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.mon-rec-dias {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.mon-rec-dias button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.mon-rec-dias button small {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.mon-rec-dias button.is-active {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-rec-dias button.is-active small {
+  color: color-mix(in srgb, var(--pulso-surface) 75%, transparent);
+}
+
+.mon-rec-campo select:focus-visible,
+.mon-rec-dias button:focus-visible,
+.mon-rec-lista button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-rec-lienzo {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-rec-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mon-rec-calles path {
+  fill: none;
+  stroke: var(--pulso-surface);
+  stroke-width: 6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-vecinas path {
+  fill: color-mix(in srgb, var(--pulso-text-faint) 10%, var(--pulso-surface));
+  stroke: var(--pulso-border);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-manzanas path {
+  fill: color-mix(in srgb, var(--pulso-brand-navy) 12%, var(--pulso-surface));
+  stroke: var(--pulso-brand-navy);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-manzanas path.is-reemplazo {
+  stroke-dasharray: 6 3;
+}
+
+.mon-rec-manzanas-rotulos text {
+  fill: var(--pulso-brand-navy);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  font-weight: var(--pulso-weight-bold);
+  pointer-events: none;
+}
+
+.mon-rec-enlaces line {
+  stroke-width: 1.4;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-camino {
+  fill: none;
+  stroke: var(--pulso-brand-navy);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-punto {
+  cursor: pointer;
+}
+
+.mon-rec-punto circle {
+  stroke: var(--pulso-surface);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-rec-punto text {
+  fill: var(--pulso-surface);
+  font-weight: var(--pulso-weight-bold);
+  pointer-events: none;
+}
+
+.mon-rec-punto.is-resaltado circle {
+  stroke: var(--pulso-text);
+  stroke-width: 2.5;
+}
+
+.mon-rec-punto:focus-visible {
+  outline: none;
+}
+
+/* Tramos de distancia a SU manzana, con los cortes de la observación GPS. */
+.mon-rec-punto.is-cerca circle,
+.mon-rec-leyenda .is-cerca::before,
+.mon-rec-numero.is-cerca {
+  fill: var(--pulso-success-fg);
+  background: var(--pulso-success-fg);
+}
+
+.mon-rec-punto.is-revision circle,
+.mon-rec-leyenda .is-revision::before,
+.mon-rec-numero.is-revision {
+  fill: var(--pulso-warn-accent);
+  background: var(--pulso-warn-accent);
+}
+
+.mon-rec-punto.is-lejos circle,
+.mon-rec-leyenda .is-lejos::before,
+.mon-rec-numero.is-lejos {
+  fill: var(--pulso-danger-fg);
+  background: var(--pulso-danger-fg);
+}
+
+.mon-rec-numero.is-sin-gps {
+  background: var(--pulso-text-faint);
+}
+
+.mon-rec-enlaces .is-cerca {
+  stroke: var(--pulso-success-fg);
+}
+
+.mon-rec-enlaces .is-revision {
+  stroke: var(--pulso-warn-accent);
+}
+
+.mon-rec-enlaces .is-lejos {
+  stroke: var(--pulso-danger-fg);
+}
+
+.mon-rec-leyenda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+}
+
+.mon-rec-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.mon-rec-leyenda .is-camino::before {
+  width: 16px;
+  height: 0;
+  border-top: 2.4px solid var(--pulso-brand-navy);
+  border-radius: 0;
+  vertical-align: 3px;
+}
+
+.mon-rec-lateral {
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  overflow: hidden;
+}
+
+.mon-rec-lateral-cabecera {
+  display: grid;
+  gap: 2px;
+}
+
+.mon-rec-lateral-cabecera h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-rec-base {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-rec-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.mon-rec-cifras div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-rec-cifras div.is-alerta {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.mon-rec-cifras dt {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.mon-rec-cifras dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-rec-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-rec-lista {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 2px;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-2));
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-rec-lista button {
+  display: grid;
+  grid-template-columns: 24px 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: 6px var(--pulso-space-2);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-rec-lista button:hover,
+.mon-rec-lista button.is-resaltado {
+  background: var(--pulso-surface-3);
+}
+
+.mon-rec-numero {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-rec-hora {
+  color: var(--pulso-text-soft);
+}
+
+.mon-rec-manzana {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-rec-distancia {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-rec-distancia.is-cerca {
+  color: var(--pulso-success-fg);
+}
+
+.mon-rec-distancia.is-revision {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-rec-distancia.is-lejos {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-rec-distancia.is-sin-gps {
+  color: var(--pulso-text-faint);
+}
+
+.mon-rec.mon-rec--vacio {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mon-rec-vacio {
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  height: 100%;
+  padding: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+
+.mon-rec-vacio strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+@media (max-width: 1100px), (max-height: 700px) {
+  .mon-rec {
+    grid-template-columns: minmax(0, 1fr) 290px;
+  }
+
+  .mon-rec-campo > span {
+    font-size: 0;
+  }
+
+  .mon-rec-campo select {
+    max-width: 220px;
+  }
+}
+
+.mon-rec-zoom {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+  margin-left: auto;
+}
+
+.mon-rec-zoom button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+
+.mon-rec-zoom button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mon-rec-zoom button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* Zoom con la rueda y desplazamiento arrastrando (useZoomDelMapa). */
+.mon-rec-svg {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.mon-rec-svg.is-arrastrando {
+  cursor: grabbing;
+}

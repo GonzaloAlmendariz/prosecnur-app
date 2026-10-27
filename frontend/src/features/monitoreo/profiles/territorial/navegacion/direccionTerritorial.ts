@@ -99,6 +99,9 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "bandeja", "duracion", v("consultas", "duracion"), { vista: "Duración" }),
   entrada("control", "senales", null, v("calidad", "geolocalizacion"), { vista: "GPS", propia: true }),
   entrada("control", "senales", "duracion", v("calidad", "duracion"), { vista: "Duración" }),
+  // Recorrido lee `response_audit` (GPS efectivo y distancia por formulario):
+  // la vista interna es la de Validación › Geolocalización, como Señales.
+  entrada("control", "recorrido", null, v("calidad", "geolocalizacion"), { propia: true, regreso: false }),
   entrada("control", "equipo", null, v("consultas", "responsable"), { propia: true }),
   entrada("control", "ocurrencias", null, v("ocurrencias", "states"), { vista: "Resumen", propia: true }),
   entrada("control", "ocurrencias", "distritos", v("ocurrencias", "distritos"), { vista: "Distritos", propia: true }),

@@ -78,6 +78,7 @@ function estadoDeAvance(
 const GRUPOS_DE_CONTROL: Record<string, string> = {
   bandeja: "Calidad",
   senales: "Calidad",
+  recorrido: "Calidad",
   equipo: "Calidad",
   ocurrencias: "Ocurrencias",
   reportes: "Ocurrencias",
