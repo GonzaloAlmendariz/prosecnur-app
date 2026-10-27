@@ -10,6 +10,8 @@ import { diaYMes, enumerar, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicado
 export type TarjetaDeAnulacion = {
   id: string;
   titulo: string;
+  /** Lo que identifica la anulación sin el alcance, que la tarjeta pinta aparte. */
+  quien: string;
   alcance: "produccion" | "caso";
   casos: number | null;
   validos: number | null;
@@ -26,7 +28,10 @@ export type UmpAnulada = {
   anuladas: number;
   validasAnuladas: number;
   estadoActual: string;
+  tono: TonoDeEstado;
 };
+
+export type TonoDeEstado = "ok" | "info" | "alerta" | "neutro";
 
 export type ModeloAnulaciones = {
   casosFuera: number;
@@ -62,6 +67,13 @@ const ESTADO_DE_UMP: Record<string, string> = {
   missing: "Sin casos",
 };
 
+function tonoDeEstado(estado: string): TonoDeEstado {
+  if (estado === "Completa") return "ok";
+  if (estado === "Completa con subsanación") return "info";
+  if (estado === "—") return "neutro";
+  return "alerta";
+}
+
 export function construirAnulaciones(reports: MonitoreoTerritorialDashboard | null | undefined): ModeloAnulaciones {
   const anulaciones = reports?.production_annulments;
   const filas = anulaciones?.rows ?? [];
@@ -76,11 +88,13 @@ export function construirAnulaciones(reports: MonitoreoTerritorialDashboard | nu
     .filter((entrada) => entrada.status === "active")
     .map((entrada) => {
       const caso = entrada.scope === "response";
+      const quien = caso
+        ? `Caso ${texto(entrada.response_label || entrada.response_id).slice(0, 12)}`
+        : rotuloDeAplicador(entrada.responsible_label || entrada.responsible_key);
       return {
         id: entrada.id,
-        titulo: caso
-          ? `Caso ${texto(entrada.response_label || entrada.response_id).slice(0, 12)}`
-          : `${rotuloDeAplicador(entrada.responsible_label || entrada.responsible_key)}, producción completa`,
+        titulo: caso ? quien : `${quien}, producción completa`,
+        quien,
         alcance: caso ? "caso" : "produccion",
         casos: n(entrada.impact?.responses_excluded),
         validos: n(entrada.impact?.valid_responses_excluded),
@@ -97,6 +111,7 @@ export function construirAnulaciones(reports: MonitoreoTerritorialDashboard | nu
   const umps: UmpAnulada[] = (anulaciones?.affected_blocks ?? []).map((bloque, indice) => {
     const ump = numeroDeUmp(bloque.ump);
     const estado = estadoPorUmp.get(ump);
+    const estadoActual = !conRuta ? "—" : estado == null ? "No está en la ruta" : ESTADO_DE_UMP[estado.toLowerCase()] ?? "En campo";
     return {
       clave: texto(bloque.block_id) || `bloque-${indice}`,
       ump,
@@ -104,7 +119,8 @@ export function construirAnulaciones(reports: MonitoreoTerritorialDashboard | nu
       distrito: texto(bloque.district) ? nombreDeDistrito(bloque.district) : "Sin distrito",
       anuladas: n(bloque.responses_annulled) ?? 0,
       validasAnuladas: n(bloque.valid_annulled) ?? 0,
-      estadoActual: !conRuta ? "—" : estado == null ? "No está en la ruta" : ESTADO_DE_UMP[estado.toLowerCase()] ?? "En campo",
+      estadoActual,
+      tono: tonoDeEstado(estadoActual),
     };
   });
 

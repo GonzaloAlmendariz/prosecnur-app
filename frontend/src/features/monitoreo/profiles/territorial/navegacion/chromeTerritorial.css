@@ -303,8 +303,13 @@
   flex-wrap: wrap;
 }
 
+/* `width`, no `flex-basis`: en una tarjeta en columna el 100% de la base es la
+ * ALTURA, y el rótulo se comía la tarjeta entera y echaba fuera al título
+ * (Control › Anulaciones). El ancho completo fuerza la fila propia en una
+ * cabecera en fila y no estira nada en una columna. */
 .mon-ter-rotulo:has(+ :is(h2, h3, h4):not(.pulso-sr-only)) {
-  flex: 1 0 100%;
+  flex: 0 0 auto;
+  width: 100%;
   margin-inline-end: 0;
 }
 
