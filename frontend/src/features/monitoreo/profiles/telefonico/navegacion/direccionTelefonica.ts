@@ -73,7 +73,9 @@ const TABLA: readonly Entrada[] = [
   entrada("insumos", "estados", null, { seccion: "fuentes", pestana: "sheets" }),
   entrada("modelo", "cuotas", null, { seccion: "modelo", pestana: "estructura" }, "Cuotas"),
   entrada("modelo", "cuotas", "calendario", { seccion: "modelo", pestana: "estrategias" }, "Calendario"),
-  entrada("control", "barrido", null, { seccion: "telefonico", pestana: "resumen" }),
+  entrada("control", "barrido", null, { seccion: "telefonico", pestana: "resumen" }, "Resumen"),
+  // Quién tiene casos asignados sin barrer y desde hace cuántos días.
+  entrada("control", "barrido", "no-barridos", { seccion: "telefonico", pestana: "no-barridos" }, "No barridos"),
   entrada("control", "insistencia", null, { seccion: "telefonico", pestana: "incidencia" }),
   entrada("control", "equipo", null, { seccion: "telefonico", pestana: "responsables" }),
   entrada("control", "discrepancias", null, { seccion: "consultas", pestana: "cruces" }),
@@ -287,5 +289,9 @@ export const PANELES_DEL_PERFIL: readonly string[] = [
 
 /** Vista interna de una dirección pública dicha como texto (los destinos de Avisos). */
 export function vistaDeDestino(seccion: string, pestana: string): VistaInterna | null {
-  return esSeccionTelefonica(seccion) ? vistaPrincipal(seccion, pestana) : null;
+  if (!esSeccionTelefonica(seccion)) return null;
+  // Un destino puede ser una sub-vista («no-barridos» de Barrido): se nombra por su panel.
+  return vistaPrincipal(seccion, pestana)
+    ?? TABLA.find((item) => item.publica.seccion === seccion && item.publica.panel === pestana)?.interna
+    ?? null;
 }

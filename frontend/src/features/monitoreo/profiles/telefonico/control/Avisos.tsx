@@ -30,12 +30,15 @@ function n(valor: number | null | undefined) {
  */
 export function Avisos({
   reports,
+  corte,
   onIrA,
 }: {
   reports: MonitoreoAcreditacionReports;
+  /** Corte (`synced_at`) contra el que se cuentan los días sin barrer. */
+  corte?: string | null;
   onIrA: (seccion: string, pestana: string) => void;
 }) {
-  const modelo = useMemo(() => construirAvisos(reports), [reports]);
+  const modelo = useMemo(() => construirAvisos(reports, corte), [reports, corte]);
   const destinos = useMemo(() => porDestino(modelo.avisos), [modelo.avisos]);
   const porRevisar = useMemo(() => casosPorRevisar(modelo.avisos), [modelo.avisos]);
   const [foco, escribirFoco] = useFocoMonitoreo();

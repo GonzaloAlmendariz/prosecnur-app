@@ -1232,6 +1232,7 @@
       efectivo = efectivo_mask, reintentable = reattempt_mask, quota_variable = quota_variable,
       quota_values = if (nzchar(quota_variable)) quota_value_columns[[quota_variable]] else NULL
     ), cfg, data, from_population = phone_from_population))
+    blocks <- c(blocks, .monitoreo_telefonico_no_barridos_blocks(phone, list(responsables = responsables, no_barrido = no_barrido_mask, dates = dates, keys = primary_keys, quota_variable = quota_variable, quota_values = if (nzchar(quota_variable)) quota_value_columns[[quota_variable]] else NULL), from_population = phone_from_population)) # monitoreo_telefonico_no_barridos.R
   }
   if (!isTRUE(standalone_phone)) {
     # Acreditación › Control › Reintentos (revamp A4): la misma cola sobre el barrido del estudio.
