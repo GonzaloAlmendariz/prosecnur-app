@@ -190,7 +190,7 @@ export type MailFeatureAlign = (typeof MAIL_FEATURE_ALIGNS)[number];
 export const MAIL_FEATURE_BUTTON_SIZES = ["normal", "grande"] as const;
 export type MailFeatureButtonSize = (typeof MAIL_FEATURE_BUTTON_SIZES)[number];
 /** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
-export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
+export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9", "3:1"] as const;
 export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
 export type MailCrop = { ratio?: MailCropRatio; x?: number; y?: number; zoom?: number };
 /** Sin `image_ref` sale sin imagen; con imagen, `alt` es obligatorio. */

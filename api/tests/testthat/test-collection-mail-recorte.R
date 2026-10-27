@@ -188,3 +188,17 @@ test_that("el aviso de peso no cuenta un original que su recorte reemplazó (no 
   # `.cmail_check` guarda `extra` como `items`.
   expect_false(any(vapply(pesadas, function(c) any(vapply(c$items, function(x) identical(x$id, "premio"), NA)), NA)))
 })
+
+test_that("3:1 (panorámica): el banner 1200×450 sale 1200×400 sin reescalar, con el centro vertical a elección", {
+  banner <- list(width = 1200, height = 450)
+  img <- function(...) list(block_id = "b", type = "image", image_ref = "premio", alt = "Banner", crop = list(ratio = "3:1", ...))
+  expect_identical(.cmail_crop_rect(banner, .cmail_crop_of(img())), list(x0 = 0L, y0 = 25L, w = 1200L, h = 400L))
+  # El centro del recorte que se hizo a mano para Acreditación (y = 236 de 450).
+  expect_identical(.cmail_crop_rect(banner, .cmail_crop_of(img(y = 236 / 450)))$y0, 36L)
+  foto <- .cmrc_jpeg(1200L, 450L)
+  entry <- .cmail_crop_file(foto, .cmail_crop_rect(banner, .cmail_crop_of(img())))
+  expect_identical(entry$size, list(width = 1200L, height = 400L))
+  expect_identical(dim(jpeg::readJPEG(entry$path))[1:2], c(400L, 1200L))
+  t <- .cmrc_tpl(list(img()))
+  expect_true(collection_mail_template_validate(t)$ok)
+})

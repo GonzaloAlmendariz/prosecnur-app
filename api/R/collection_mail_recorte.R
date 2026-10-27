@@ -26,7 +26,8 @@
 # de toda la resolución pesaba ~2 MB y bloqueaba el ZIP de Mailchimp: el
 # retrato se reduce antes a 2× lo que se muestra (`.CMAIL_PORTRAIT_PX`, 192 px).
 
-.CMAIL_CROP_RATIOS <- c(original = NA_real_, "1:1" = 1, "4:3" = 4 / 3, "2:1" = 2, "16:9" = 16 / 9)
+# «3:1»: panorámica, para un banner bajo (loop editor de correos, L3: el 1200×450 de la DAA a 1200×400).
+.CMAIL_CROP_RATIOS <- c(original = NA_real_, "1:1" = 1, "4:3" = 4 / 3, "2:1" = 2, "16:9" = 16 / 9, "3:1" = 3)
 .CMAIL_CROP_KEYS <- c("ratio", "x", "y", "zoom")
 .CMAIL_CROP_ZOOM_MAX <- 3
 

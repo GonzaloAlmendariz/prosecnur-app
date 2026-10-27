@@ -10,7 +10,7 @@ import { tieneFoto, type MailBlock, type MailBlockConFoto, type MailCrop, type M
 import type { Ajuste } from "./ajustesDeBloque";
 
 export const PROPORCION: Record<Exclude<MailCropRatio, "original">, number> = {
-  "1:1": 1, "4:3": 4 / 3, "2:1": 2, "16:9": 16 / 9,
+  "1:1": 1, "4:3": 4 / 3, "2:1": 2, "16:9": 16 / 9, "3:1": 3,
 };
 
 export const AJUSTE_DE_PROPORCION: Ajuste = {
@@ -23,6 +23,7 @@ export const AJUSTE_DE_PROPORCION: Ajuste = {
     { valor: "4:3", rotulo: "4:3" },
     { valor: "2:1", rotulo: "2:1" },
     { valor: "16:9", rotulo: "16:9" },
+    { valor: "3:1", rotulo: "3:1", ayuda: "panorámica, para un banner bajo" },
   ],
 };
 
