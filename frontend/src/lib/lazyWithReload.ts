@@ -51,6 +51,18 @@ export function lazyWithReload<Props>(
   });
 }
 
+// Para los `import()` que no pasan por `lazy` (el shell de Monitoreo resuelve
+// su perfil a mano): un build regenerado con la ventana abierta deja el índice
+// apuntando a chunks que ya no existen. Recarga una vez; si vuelve a fallar,
+// devuelve false y el llamador muestra el error.
+export function recargarSiElBuildCambio(error: unknown, moduleId: string): boolean {
+  return isDynamicImportLoadError(error) && scheduleOneShotReload(moduleId);
+}
+
+export function marcarCargaExitosa(moduleId: string): void {
+  clearReloadMarker(moduleId);
+}
+
 function scheduleOneShotReload(moduleId: string): boolean {
   if (typeof window === "undefined") return false;
 
