@@ -132,6 +132,8 @@ test_that("bloques con escalas distintas llevan una leyenda cada uno", {
 })
 
 test_that("si no cabe, se reparte por bloques enteros; un bloque solo que no cabe se parte y repite su título", {
+  # Sin piso: con él (el del estándar desde 2026-10-26) el motor evita el «(cont.)», que cubre test-lamina-multilista-m1-sin-cont.R
+  withr::local_options(prosecnur.grosor_piso_cm = 0)
   skip_if_not_installed("officer")
   skip_if_not_installed("cowplot")
   data <- .mlt_datos()

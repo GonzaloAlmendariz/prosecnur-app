@@ -1,6 +1,8 @@
 # N1 (Renzo, 2026-10-22): «barras muy delgadas». Decisión del usuario: piso de 1,12 cm (el grosor que la tabla del estándar
 # da con 6 barras) en las láminas de ESCALA de Arte; si con ese piso no caben, se parten. Se declara con `grosor_piso_cm`
-# (slot de la lámina o `presets$base$args` del informe); sin él, nada cambia. Las categóricas quedan fuera.
+# (slot de la lámina o `presets$base$args` del informe). Desde 2026-10-26 (Gonzalo: «las barras se ven muy delgadas cuando
+# pensé que ya habíamos solucionado eso en el motor actual») el piso del estándar (`ppt.grosor.piso_escala_cm`, 1,12 cm)
+# rige sin declaración; un 0 explícito lo apaga. Las categóricas quedan fuera.
 
 .niv_gp <- c(t1 = "Totalmente en desacuerdo", t2 = "En desacuerdo", t3 = "De acuerdo", t4 = "Totalmente de acuerdo", t5 = "SIN INF")
 .espec_gp <- function(n, largo = FALSE, base = 51) {
@@ -25,8 +27,15 @@
 .laminas_gp <- function(e) suppressMessages(.lam_laminas_escala(.doc_gp(), e, "Comunicación", folio = 1))
 PISO_CM <- 1.12
 
-test_that("sin piso nada cambia: el grosor es el de la tabla y las barras de 6 con cifras chicas siguen finas", {
-  expect_null(getOption("prosecnur.grosor_piso_cm"))
+test_that("sin declarar piso rige el del estándar: 6 barras no bajan de 1,12 cm", {
+  withr::local_options(prosecnur.grosor_piso_cm = NULL)
+  expect_equal(.std_valor("ppt", "grosor", "piso_escala_cm"), PISO_CM)
+  o <- .laminas_gp(.espec_gp(6))
+  expect_gte(min(.alto_seg_cm(o$doc)), PISO_CM - 0.005)
+})
+
+test_that("con piso 0 (apagado a propósito) el grosor es el de la tabla y las barras de 6 con cifras chicas siguen finas", {
+  withr::local_options(prosecnur.grosor_piso_cm = 0)
   expect_equal(.std_grosor(6, "escala_apilada"), 0.44)   # la tabla del estándar va en pulgadas (≈ 1,12 cm)
   expect_equal(.std_grosor(9, "escala_apilada"), 0.38)
   o <- .laminas_gp(.espec_gp(6))
@@ -69,8 +78,9 @@ test_that("el piso sube el grosor de escala y deja las categóricas como estaban
 test_that("con piso la partición no usa la tolerancia 1,15: 6 barras que se pasan por poco se parten", {
   e <- .espec_gp(6, largo = TRUE); pr <- .lam_escala_premisas(e)
   alto_6 <- function(p) 1.10 * .lam_escala_alto_util()          # pasa por 10 %: antes se compactaba
+  op <- options(prosecnur.grosor_piso_cm = 0); on.exit(options(op))   # 0 = sin piso (el estándar ya trae uno)
   expect_length(.lam_escala_partir(pr, alto_fn = alto_6), 1L)
-  op <- options(prosecnur.grosor_piso_cm = PISO_CM); on.exit(options(op))
+  options(prosecnur.grosor_piso_cm = PISO_CM)
   expect_gt(length(.lam_escala_partir(pr, alto_fn = alto_6)), 1L)
 })
 

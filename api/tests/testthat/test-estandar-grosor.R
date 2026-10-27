@@ -21,6 +21,9 @@
   )))
 }
 
+# El estándar trae un piso de 1,12 cm (2026-10-26); esta suite mide la tabla de grosor y la geometría sin él.
+withr::local_options(prosecnur.grosor_piso_cm = 0, .local_envir = testthat::teardown_env())
+
 test_that("el grosor dibujado sale de la tabla del estándar en todo el rango de filas", {
   skip_if_not_installed("cowplot")
   for (n in c(1, 2, 3, 5, 7, 9, 10, 12)) {

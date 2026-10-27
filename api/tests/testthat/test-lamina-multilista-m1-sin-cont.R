@@ -60,9 +60,10 @@ test_that("M1 multilista: «(cont.)» solo si el corte cae dentro de un bloque",
 })
 
 test_that("M1 multilista: sin piso nada cambia, ni forzando evitar_cont = TRUE", {
+  withr::local_options(prosecnur.grosor_piso_cm = 0)   # 0 apaga el piso que el estándar trae desde 2026-10-26
   for (ml in list(.ml1(c(2, "media"), c(2, "corta")), .ml1(c(4, "media"), c(4, "media")))) {
     ml$bloques <- lapply(ml$bloques, function(b) { b$espec$grosor_piso_cm <- NULL; b })
-    expect_null(getOption("prosecnur.grosor_piso_cm"))
+    expect_equal(.std_piso_escala_in(), 0)
     a <- .ml1_lam(ml)
     op <- options(prosecnur.evitar_cont = TRUE)
     b <- .ml1_lam(ml)
