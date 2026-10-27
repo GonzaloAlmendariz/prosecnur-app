@@ -11,6 +11,7 @@ import { alcanceDelPaqueteSM, conTratoPorSexo, esProblemaDelTrato, ofertaDelTrat
 import { mostrarInicioDelPanel, useConCajon } from "./anchoDelEditor";
 import { CajonDeBloques } from "./CajonDeBloques";
 import { MenuExportar } from "./MenuExportar";
+import { VistaParaRevision } from "./VistaParaRevision";
 import { ColumnaDeBloques } from "./ColumnaDeBloques";
 import {
   CABECERA,
@@ -655,6 +656,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                   onVerRevision={verRevisionDesdeExportar}
                 />
               )}
+              <VistaParaRevision campana={st.campana} />
             </MenuExportar>
           )}
           plataforma={dialecto}

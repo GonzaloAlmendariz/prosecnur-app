@@ -1800,6 +1800,16 @@ export async function apiMailPresets(): Promise<MailPresetsPayload> {
   return normalizeMailPresets(await handleMail(await apiFetch(`${BASE}/mail-presets`, { headers: headers() })));
 }
 
+/** Vista para revisión (L9): un HTML con los correos de las campañas elegidas, para quien aprueba. */
+export type MailRevision = { file_id: string; filename: string; size_bytes: number };
+
+export async function apiMailRevision(input: { campaign_ids: string[]; titulo?: string; ejemplo?: "femenino" | "masculino" }): Promise<MailRevision> {
+  const raw = await handleMail(await apiFetch(`${BASE}/mail-revision`, json("POST", input)));
+  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
+  if (!file || !str(file.file_id)) throw contractError("la vista para revisión no devolvió el archivo.");
+  return { file_id: str(file.file_id), filename: str(file.filename) || "revision.html", size_bytes: int(file.size_bytes, 0) };
+}
+
 export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {
   return normalizeMailCampaigns(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, { headers: headers() })));
 }

@@ -199,3 +199,55 @@
   display: inline-flex;
   gap: 2px;
 }
+
+/* Vista para revisión (L9), al pie del menú Exportar. */
+.rec-exp-revision {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.rec-exp-revision-titulo {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+  margin: 0;
+}
+
+.rec-exp-revision-ayuda {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  margin: 0;
+}
+
+.rec-exp-revision-lista {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.rec-exp-revision-lista label {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.rec-exp-revision-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-exp-revision-error {
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  margin: 0;
+}
