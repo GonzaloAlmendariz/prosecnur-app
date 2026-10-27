@@ -57,4 +57,12 @@ describe("Avance › Cuotas del telefónico: clases propias", () => {
     const regla = /\.mon-tel-cuotas-estado\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
     expect(regla).toMatch(/white-space:\s*nowrap/);
   });
+
+  it("sin «Cumplió» la plantilla pierde la pista: ocho columnas con ella, siete sin ella, en cada ancho", () => {
+    const css = fs.readFileSync(PROPIA, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const plantillas = [...css.matchAll(/(\.mon-tel-cuotas(?:\.sin-cumplio)?)\s*\{[^}]*--mon-tel-cuotas-columnas:\s*([^;]+);/g)]
+      .map((m) => ({ sin: m[1].includes("sin-cumplio"), pistas: m[2].replace(/minmax\([^)]*\)/g, "m").trim().split(/\s+/).length }));
+    expect(plantillas.filter((p) => !p.sin).map((p) => p.pistas)).toEqual([8, 8, 8]);
+    expect(plantillas.filter((p) => p.sin).map((p) => p.pistas)).toEqual([7, 7, 7]);
+  });
 });

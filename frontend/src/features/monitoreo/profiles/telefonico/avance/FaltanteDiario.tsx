@@ -4,6 +4,24 @@ import { fmt } from "../formato";
 
 const MAX_SERIES = 4;
 
+/**
+ * Qué series llevan su cifra en el último día: de mayor a menor, se salta la
+ * que caería a menos de un 7 % del eje de la anterior (5 y 1 sobre un eje de
+ * 100 se montaban).
+ */
+export function seriesConCifraFinal(finales: readonly number[], tope: number): Set<number> {
+  const orden = finales.map((valor, indice) => ({ valor, indice })).sort((a, b) => b.valor - a.valor);
+  const con = new Set<number>();
+  let ultimo: number | null = null;
+  for (const { valor, indice } of orden) {
+    if (ultimo == null || ultimo - valor >= tope * 0.07) {
+      con.add(indice);
+      ultimo = valor;
+    }
+  }
+  return con;
+}
+
 /** Paso «redondo» del eje: 1, 2 o 5 por potencia de diez, para ~4 marcas. */
 function pasoDelEje(maximo: number): number {
   if (maximo <= 4) return 1;
@@ -25,6 +43,7 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
   const maximo = Math.max(1, ...visibles.flatMap((serie) => serie.valores));
   const paso = pasoDelEje(maximo);
   const tope = Math.ceil(maximo / paso) * paso;
+  const conCifraFinal = seriesConCifraFinal(visibles.map((serie) => serie.valores.at(-1) ?? 0), tope);
   const marcas = Array.from({ length: Math.round(tope / paso) + 1 }, (_, i) => i * paso);
   const x = (i: number) => (fechas.length === 1 ? 50 : 4 + (i / (fechas.length - 1)) * 92);
   const y = (valor: number) => 100 - (valor / tope) * 100;
@@ -58,7 +77,10 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
             className={`mon-tel-cuotas-diario-punto is-serie-${indice}`}
             style={{ left: `${x(i)}%`, top: `${y(valor)}%` }}
           >
-            <b>{fmt(valor)}</b>
+            {/* Con más de dos series las cifras de cada día se montan: sólo
+              * la del último día lleva su número; el resto queda en el
+              * rótulo accesible del lienzo. */}
+            {i === fechas.length - 1 ? (conCifraFinal.has(indice) ? <b>{fmt(valor)}</b> : null) : visibles.length <= 2 ? <b>{fmt(valor)}</b> : null}
           </span>
         )))}
         {fechas.map((fecha, i) => (
