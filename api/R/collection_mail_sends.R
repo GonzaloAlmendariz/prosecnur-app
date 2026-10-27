@@ -319,9 +319,11 @@
 # ---- nombre del envío en los archivos (L23) ------------------------------------
 
 #' Cómo se llama el envío en el nombre de un archivo exportado: `invitacion`,
-#' `recordatorio-N` por su ORDEN entre los recordatorios y `ultimo-recordatorio`
-#' para el último. El `send_id` no sirve: no se renumera al quitar un envío, y el
-#' último de Acreditación 2026 salía `recordatorio-6` siendo el quinto.
+#' `recordatorio-N` por su ORDEN entre los recordatorios y `ultimo` para el
+#' último. El `send_id` no sirve: no se renumera al quitar un envío, y el último
+#' de Acreditación 2026 salía `recordatorio-6` siendo el quinto. `ultimo` y no
+#' `ultimo-recordatorio`: el nombre tiene tope de 80 y el largo cortaba el de la
+#' campaña («estudiantes-de-pregr»); además ordena detrás de los recordatorios.
 #' @keywords internal
 .cmail_send_tag <- function(campaign, send) {
   id <- .cmail_one(send$send_id) %||% ""
@@ -330,6 +332,6 @@
   ids <- vapply(recs, function(s) .cmail_one(s$send_id) %||% "", "")
   pos <- match(id, ids)
   if (is.na(pos)) return(if (nzchar(id)) id else "recordatorio")
-  if (length(recs) > 1L && pos == length(recs)) return("ultimo-recordatorio")
+  if (length(recs) > 1L && pos == length(recs)) return("ultimo")
   sprintf("recordatorio-%d", pos)
 }
