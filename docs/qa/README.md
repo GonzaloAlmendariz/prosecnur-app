@@ -264,6 +264,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 ### Corte 0.9.4: Monitoreo, Material de campo y entregables
 
 - [Checklist · Ajustes del bloque y campos por persona (2026-10-23)](checklist-ajustes-bloque-2026-10-23.md): alineación, tamaño y tono del bloque, y campos por persona en el editor de correos.
+- [Checklist · La variable del token no depende de que se llame `t` (2026-10-27)](checklist-variable-token-surveymonkey-2026-10-27.md): enlaces y sincronización de SurveyMonkey con la variable que declara cada encuesta (`t`, `id` u otra).
 - [Checklist — comparativos HSyVbG 2024-2026 (2026-10-22)](checklist-comparativos-hsyvbg-2026-10-22.md): indicaciones sobre los comparativos simple y de cruces de HSyVbG 2024-2026.
 - [Checklist · T2 metas por cuota + revisión visual de Correo (2026-10-22)](checklist-monitoreo-cuotas-y-revamp-correo-2026-10-22.md): metas por cuota (T2) y revisión visual de Avance › Correo.
 - [Checklist · Monitoreo telefónico para el ACNUR RMS 2026 (2026-10-22)](checklist-monitoreo-telefonico-rms-2026-10-22.md): llave proGres, Status configurable y reemplazos para el ACNUR RMS 2026.
