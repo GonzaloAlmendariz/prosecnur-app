@@ -2184,12 +2184,15 @@
       ctx$rp_inst <- ctx$inst_sources[[active]]
     }
   }
-  session_set(sid, "analitica_rp_inst", ctx$rp_inst)
-  session_set(sid, "analitica_rp_data", ctx$rp_data)
-  session_set(sid, "analitica_rp_inst_sources", ctx$inst_sources)
-  session_set(sid, "analitica_rp_data_sources", ctx$data_sources)
-  .analitica_status_set(sid, "analitica_prep_ok", TRUE)
-  session_set(sid, "analitica_fuente", .analitica_source_cache_key(sid, ctx$fuente))
+  # Todo lo de abajo se re-deriva de lo guardado: preparar al leer una pestaña
+  # no es una edición y no marca «sin guardar» (L22). Las mutaciones reales
+  # (cambiar la fuente, invalidar estados) siguen yendo por session_set().
+  session_set_cache(sid, "analitica_rp_inst", ctx$rp_inst)
+  session_set_cache(sid, "analitica_rp_data", ctx$rp_data)
+  session_set_cache(sid, "analitica_rp_inst_sources", ctx$inst_sources)
+  session_set_cache(sid, "analitica_rp_data_sources", ctx$data_sources)
+  .analitica_status_set(sid, "analitica_prep_ok", TRUE, cache = TRUE)
+  session_set_cache(sid, "analitica_fuente", .analitica_source_cache_key(sid, ctx$fuente))
   ctx
 }
 
@@ -2426,8 +2429,9 @@
   invisible(cfg)
 }
 
-.analitica_status_set <- function(sid, key, value = TRUE) {
-  session_set(sid, key, value)
+.analitica_status_set <- function(sid, key, value = TRUE, cache = FALSE) {
+  # `cache = TRUE`: el estado se re-deriva al preparar y no cuenta como edición.
+  if (isTRUE(cache)) session_set_cache(sid, key, value) else session_set(sid, key, value)
   active <- .analitica_scoped_base(sid)
   if (!nzchar(active)) return(invisible(value))
   s <- session_get(sid)
@@ -2437,7 +2441,11 @@
   if (is.null(current) || !is.list(current)) current <- list()
   current[[key]] <- value
   statuses[[active]] <- current
-  session_set(sid, "analitica_status_por_base", statuses)
+  if (isTRUE(cache)) {
+    session_set_cache(sid, "analitica_status_por_base", statuses)
+  } else {
+    session_set(sid, "analitica_status_por_base", statuses)
+  }
   invisible(value)
 }
 
