@@ -94,7 +94,7 @@ export function estiloDe(theme: MailTheme): EstiloEfectivo {
   };
 }
 
-type CambioDeEstilo = Partial<Record<"estilo" | "page_bg" | "button_bg" | "button_text" | "text_align" | "onda" | "onda_color", string | null>>;
+type CambioDeEstilo = Partial<Record<"estilo" | "page_bg" | "button_bg" | "button_text" | "text_align" | "justify_phone" | "onda" | "onda_color", string | null>>;
 
 /**
  * El tema con un cambio de estilo. `null` quita la clave. El valor por defecto
@@ -106,7 +106,7 @@ type CambioDeEstilo = Partial<Record<"estilo" | "page_bg" | "button_bg" | "butto
  */
 export function conEstilo(theme: MailTheme, cambio: CambioDeEstilo): MailTheme {
   const out: Record<string, unknown> = { ...theme };
-  const POR_DEFECTO: Record<string, string> = { estilo: "sobrio", text_align: "justify", onda: "ninguna" };
+  const POR_DEFECTO: Record<string, string> = { estilo: "sobrio", text_align: "justify", justify_phone: "izquierda", onda: "ninguna" };
   for (const [clave, valor] of Object.entries(cambio)) {
     if (valor === undefined) continue;
     if (valor === null || POR_DEFECTO[clave] === valor) delete out[clave];

@@ -226,6 +226,18 @@ export function EstiloDelCorreo({ theme, srcDelBanner, chequeos, onTema }: Props
         <span>Alineación del texto</span>
         <Segmented aria-label="Alineación del texto" size="sm" value={efectivo.alineacion} options={ALINEACIONES} onChange={(text_align) => editar({ text_align })} />
       </div>
+      {efectivo.alineacion === "justify" ? (
+        <div className="rec-mail-ajuste">
+          <span>En el celular</span>
+          <Segmented
+            aria-label="Alineación en el celular"
+            size="sm"
+            value={theme.justify_phone === "justificado" ? "justificado" : "izquierda"}
+            options={[{ value: "izquierda", label: "A la izquierda" }, { value: "justificado", label: "Justificado" }]}
+            onChange={(justify_phone) => editar({ justify_phone })}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

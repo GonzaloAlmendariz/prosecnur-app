@@ -311,3 +311,17 @@ test_that("vista previa en campaña: el dato de la persona se marca con subrayad
   pvs <- collection_mail_render(sobrio, "preview", values = list(nombre = "Ana"))$html
   expect_match(pvs, sprintf('data-pulso-field="nombre" style="background:%s;', .CMAIL_FIELD_TINT), fixed = TRUE)
 })
+
+test_that("justify_phone: con «justificado» el teléfono ya no pasa el texto a la izquierda; por defecto, sí", {
+  t <- .cmail_template_normalize(.cmail_preset_invitacion_encuesta())
+  t$theme$text_align <- "justify"
+  regla <- "text-align:left !important"
+  expect_match(collection_mail_render(t, mode = "export", dialect = "mailchimp")$html, regla, fixed = TRUE)
+  t$theme$justify_phone <- "justificado"
+  expect_true(collection_mail_template_validate(t)$ok)
+  html <- collection_mail_render(t, mode = "export", dialect = "mailchimp")$html
+  expect_false(grepl(regla, html, fixed = TRUE))
+  expect_match(html, "text-align:justify;", fixed = TRUE)
+  t$theme$justify_phone <- "a veces"
+  expect_true("bad_justify_phone" %in% vapply(collection_mail_template_validate(t)$problems, `[[`, "", "code"))
+})
