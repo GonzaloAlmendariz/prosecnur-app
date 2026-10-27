@@ -1,0 +1,12 @@
+/* tokens-publicos.css — un color por público o actor (estandar_pulso.json,
+ * `paletas.actores`; el mismo orden que ESTANDAR_NOMINAL.actores). Distingue
+ * perfiles, a diferencia de la rampa de azules `categorica`, pensada para
+ * opciones. Archivo propio porque tokens.css está congelado a crecimiento. */
+:root {
+  --pulso-publico-1: #0b4f8c;
+  --pulso-publico-2: #2a9d8f;
+  --pulso-publico-3: #e9c46a;
+  --pulso-publico-4: #8e9dbd;
+  --pulso-publico-5: #081f5c;
+  --pulso-publico-6: #9dc3e6;
+}
