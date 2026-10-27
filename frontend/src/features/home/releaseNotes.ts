@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.9.6",
+    date: "2026-10-27",
+    highlights: [
+      "Monitoreo telefónico: Control › Barrido › No barridos dice qué operador tiene casos asignados sin ningún intento y desde hace cuántos días, en aviso desde los 2 y grave desde los 4. Cada operador trae su lista de casos con código y cuota, y «Copiar para el equipo» arma el mensaje. El atraso también llega a Avisos y a la ficha del operador en Equipo.",
+      "Monitoreo telefónico: la hoja de barrido se lee igual con la muestra y el backup en columnas propias que en las mismas columnas, y reconoce sola la columna que dice «Muestra» o «Backup» aunque no se llame «Origen». Ningún caso se pierde: un origen vacío o mal escrito se conserva y se cuenta.",
+      "Monitoreo telefónico: Avance › Cuotas, Respuestas, Supervisión, Modelo y Discrepancias se ven igual en la app instalada que en desarrollo, sin rótulos partidos letra por letra ni textos fuera de su tarjeta. Ritmo y el faltante diario pintan cada actor con un color propio, y la ficha del operador en Equipo ordena sus cifras en bloques.",
+      "Material de campo: la variable del enlace personal se declara por campaña (t, id u otra) y la app avisa si la encuesta de SurveyMonkey no la recibe, en vez de marcar a todos como pendientes. La sección Destacado centra su texto y su botón, que puede ser grande y de color propio.",
+      "Gráficos: el Word rotula cada figura «Gráfico N° NN» en cursiva y alinea las barras de todas las figuras de un capítulo en la misma columna. En figuras de un solo público el nombre va a la izquierda, y los rótulos de líneas y puntos se leen completos.",
+      "Gráficos: la torta de lámina completa sale nativa con líneas guía, la cifra de un cruce de tres o más grupos no baja del tamaño legible y las respuestas no sustantivas nunca suman al Top ni al Bottom Two Box. El PowerPoint lleva las notas del orador de cada lámina y la app, el motor y el catálogo usan una sola paleta.",
+      "Correcciones: abrir el gráfico que depende de un Sí/No ya no congela la app, y un proyecto sólo se marca «sin guardar» tras un cambio real. La sugerencia de continuidad de Validación ya no lee el identificador global de Kobo como secuencia.",
+    ],
+  },
+  {
     version: "0.9.5",
     date: "2026-10-25",
     highlights: [
