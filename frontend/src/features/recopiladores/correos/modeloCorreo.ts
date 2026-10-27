@@ -1064,27 +1064,14 @@ export const ANCHO_DE_VISTA: Record<VistaDelCorreo, number> = {
 export type PaletaOscura = { papel: string; tinta: string; suave: string };
 
 /**
- * HTML para el `srcdoc` del iframe.
+ * HTML para el `srcdoc` del iframe: sin el margen del body, para medir su alto real.
  *
- * El modo oscuro se simula como lo hacen Apple Mail y Gmail con un correo que
- * no declara el suyo: los fondos claros pasan a oscuros y el texto a claro,
- * pero los colores de marca —la franja de la cabecera, el botón— se respetan.
- * Así se ve lo que de verdad importa: un logo oscuro sobre una cabecera clara
- * desaparece. También se quita el margen del body para medir su alto real.
+ * El modo oscuro ya no se simula con reglas por color fijo (dejaban un tinte
+ * claro con el texto claro encima): lo aplica `aplicarModoOscuro` (modoOscuro.ts,
+ * L21) sobre el documento ya cargado, decidiendo por luminancia.
  */
-export function htmlParaLaVista(html: string, vista: VistaDelCorreo, paleta?: PaletaOscura): string {
+export function htmlParaLaVista(html: string): string {
   const reglas = ["html,body{margin:0;overflow:hidden}"];
-  if (vista === "oscuro" && paleta) {
-    const { papel, tinta, suave } = paleta;
-    reglas.push(
-      `body,[bgcolor="#ffffff"],[style*="background-color:#ffffff"]{background-color:${papel}!important}`,
-      `[style*="background-color:#f5f6f9"],[bgcolor="#f3f3f3"],[style*="background-color:#f3f3f3"]{background-color:${suave}!important}`,
-      `p,li,ul,ol,td,span,strong{color:${tinta}!important}`,
-      `[style*="border:1px solid #d6d6d6"],[style*="border-bottom:1px solid #d6d6d6"]{border-color:${suave}!important}`,
-      // El texto del botón va sobre el acento: se queda claro.
-      `td[bgcolor] a{color:${tinta}!important}`,
-    );
-  }
   const estilo = `<style data-pulso-vista>${reglas.join("")}</style>`;
   return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${estilo}</head>`) : `${estilo}${html}`;
 }
