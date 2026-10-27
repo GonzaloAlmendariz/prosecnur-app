@@ -15,7 +15,9 @@ Revisión del verificador (rechazo 1, corregido): Monitoreo › Correo (`.mcm_to
 
 Revisión del verificador (rechazo 2, corregido): con un recopilador que ya trae una `t` ajena y la campaña en `id` (`…?t=1&id=<token>`), Monitoreo tomaba «1» para todos; ahora manda el valor con la forma de los tokens de la app y la `t` solo cuenta si no hay ninguno. Fijado con un test de ese enlace en ambos lados. Queda una diferencia menor y visible: un enlace importado con `?id=` y un valor que no tiene la forma de la app se lee en «quién respondió» pero en Monitoreo cae a «sin enlace personal» (avisado, no silencioso).
 
-Paquete reinstalado el 2026-10-27 tras el commit: el worker de «Actualizar quién respondió» ya corre el código nuevo.
+Paquete reinstalado el 2026-10-27 tras el commit: el worker de «Actualizar quién respondió» ya corre el código nuevo. Comprobado con el job real (solo marcar) contra Egresados Pregrado (528820204): con la campaña en `t` devuelve `E_COLLECTION_MAIL_SYNC_VARIABLE` con causa y arreglo; en `id` termina y lee la respuesta que hay (1 parcial, sin enlace personal).
+
+Verificador: APROBADO CON PENDIENTES sobre `56fb669b8` (3392 pass collection-mail, 328 pass monitoreo mailchimp, 1559 pass frontend, tsc limpio; mutaciones M1–M7 detectadas). Pendiente: ítem 4.
 
 Sin jerga en pantalla: la ayuda del campo no dice «token» ni «t=» (guardián de ContactosVista.test.tsx), y los mensajes del chequeo tampoco.
 
