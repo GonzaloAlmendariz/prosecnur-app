@@ -63,6 +63,7 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # «Actualizar quién respondió» y Mailchimp (jobs con avance). Faltaban en
     # esta lista cerrada desde que se montaron: el rojo era anterior a ADR 0112.
     "/api/recopiladores/mail-sync/options",
+    "/api/recopiladores/mail-sync/check",
     "/api/recopiladores/mail-sync",
     "/api/recopiladores/mail-sync/audience",
     "/api/recopiladores/mail-sync/campaign",
