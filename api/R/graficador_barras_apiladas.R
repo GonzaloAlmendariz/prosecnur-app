@@ -75,9 +75,9 @@
   if (!length(labels_map)) labels_map <- rep("", length(cols_porcentaje))
   labels_map[is.na(labels_map)] <- ""
 
-  keep <- !vapply(seq_along(cols_porcentaje), function(i) {
-    .is_special_box_choice(cols_porcentaje[i], labels_map[i])
-  }, logical(1))
+  keep <- !.graficos_no_sustantivos_box(  # graficos_no_sustantivos.R: el no sustantivo (9, 77, «No sé»…) nunca suma
+    cols_porcentaje, labels_map
+  )
 
   eligible <- cols_porcentaje[keep]
   if (!length(eligible)) eligible <- cols_porcentaje
