@@ -185,6 +185,8 @@ export type MailTwoImagesBlock = {
 /** «Destacado»: la imagen a la izquierda, a la derecha o arriba (`collection_mail_destacado.R`). */
 export const MAIL_FEATURE_LAYOUTS = ["izquierda", "derecha", "arriba"] as const;
 export type MailFeatureLayout = (typeof MAIL_FEATURE_LAYOUTS)[number];
+export const MAIL_FEATURE_ALIGNS = ["left", "center"] as const;
+export type MailFeatureAlign = (typeof MAIL_FEATURE_ALIGNS)[number];
 /** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
 export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
 export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
@@ -201,6 +203,8 @@ export type MailFeatureBlock = {
   button_text?: string;
   url?: string;
   layout?: MailFeatureLayout;
+  /** Texto y botón a la izquierda (sin él) o centrados. */
+  align?: MailFeatureAlign;
   /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
   crop?: MailCrop;
 };
@@ -950,12 +954,14 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
       return normalizeMailSection(value, block_id, type, { str, optStr, icon: (v) => oneOf(v, MAIL_ICONS), crop: normalizeMailCrop });
     case "feature": {
       const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
+      const align = oneOf(value.align, MAIL_FEATURE_ALIGNS);
       const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
       return {
         block_id, type, title: str(value.title),
         ...opcional("eyebrow"), ...opcional("text"), ...opcional("image_ref"), ...opcional("alt"),
         ...opcional("button_text"), ...opcional("url"),
         ...(layout ? { layout } : {}),
+        ...(align ? { align } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }

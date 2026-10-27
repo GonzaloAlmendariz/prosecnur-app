@@ -1,7 +1,7 @@
 # collection_mail_destacado.R — la sección «Destacado con imagen» (`feature`;
 # GOAL editor de correos profesional, L5; maqueta aprobada SecDestacado).
 #
-#   feature { eyebrow?, title, text?, image_ref?, alt?, button_text?, url?, layout?, box? }
+#   feature { eyebrow?, title, text?, image_ref?, alt?, button_text?, url?, layout?, align?, box? }
 #
 # Un antetítulo, un título, un texto y un botón opcionales junto a una foto. La
 # forma (`layout`) es cerrada: la imagen a la izquierda, a la derecha o arriba.
@@ -16,7 +16,11 @@
 #
 # **Teléfono.** Las dos columnas llevan la clase apilable de two_images
 # (`.CMAIL_STACK_CLASS`): bajo 480 px se ponen una debajo de otra, la imagen
-# siempre arriba y a todo el ancho (`.CMAIL_FEATURE_IMG_CLASS`). Con la imagen
+# siempre arriba y a todo el ancho (`.CMAIL_FEATURE_IMG_CLASS`).
+#
+# **Alineación** (`align`, cerrada: left | center; sin ella, left): el
+# antetítulo, el título, el texto y el botón van a la izquierda o centrados en
+# su columna. La imagen no cambia: arriba ya ocupa todo el ancho. Con la imagen
 # a la derecha, la celda de la imagen va primero en el HTML y la fila se dibuja
 # de derecha a izquierda (`dir="rtl"`, cada celda vuelve a `ltr`): así, al
 # apilarse, la imagen también sube.
@@ -103,8 +107,10 @@
   text <- .cmail_one(b$button_text)
   if (is.null(text) || !nzchar(trimws(text))) return("")
   pal <- ctx$pal
+  centro <- identical(.cmail_style(b, "align", "left"), "center")
   sprintf(paste0(
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:6px;"><tr>',
+    '<table role="presentation"', if (centro) ' align="center"' else '',
+    ' cellpadding="0" cellspacing="0" border="0" style="margin:6px ', if (centro) 'auto' else '0', ' 0 ', if (centro) 'auto' else '0', ';"><tr>',
     '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:%s;mso-padding-alt:12px 22px;">',
     '<a href="%s" target="_blank"%s style="display:inline-block;padding:12px 22px;border:1px solid %s;border-radius:%s;',
     'font-family:%s;font-size:15px;line-height:20px;font-weight:bold;color:%s;text-decoration:none;">%s</a>',
@@ -115,18 +121,19 @@
 
 .cmail_feature_text <- function(b, ctx) {
   pal <- ctx$pal
+  ta <- sprintf("text-align:%s;", .cmail_style(b, "align", "left"))
   eyebrow <- .cmail_one(b$eyebrow)
   text <- .cmail_one(b$text)
   paste0(
     if (!is.null(eyebrow) && nzchar(trimws(eyebrow))) sprintf(
-      '<p style="margin:0 0 8px 0;font-family:%s;font-size:12px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:bold;color:%s;"%s>%s</p>',
-      .CMAIL_FONT, pal$callout_title, .cmail_prop(ctx, "eyebrow"), .cmail_inline(eyebrow, ctx)) else "",
+      '<p style="margin:0 0 8px 0;%sfont-family:%s;font-size:12px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:bold;color:%s;"%s>%s</p>',
+      ta, .CMAIL_FONT, pal$callout_title, .cmail_prop(ctx, "eyebrow"), .cmail_inline(eyebrow, ctx)) else "",
     # El título en el color de los títulos de recuadro: el acento en Sobrio (o la tinta si no se lee).
-    sprintf('<p style="margin:0 0 10px 0;font-family:%s;font-size:22px;line-height:28px;font-weight:bold;color:%s;"%s>%s</p>',
-            .CMAIL_FONT, pal$callout_title, .cmail_prop(ctx, "title"), .cmail_inline(b$title, ctx)),
+    sprintf('<p style="margin:0 0 10px 0;%sfont-family:%s;font-size:22px;line-height:28px;font-weight:bold;color:%s;"%s>%s</p>',
+            ta, .CMAIL_FONT, pal$callout_title, .cmail_prop(ctx, "title"), .cmail_inline(b$title, ctx)),
     if (!is.null(text) && nzchar(trimws(text))) sprintf(
-      '<p style="margin:0 0 12px 0;font-family:%s;font-size:15px;line-height:23px;color:%s;"%s>%s</p>',
-      .CMAIL_FONT, pal$text, .cmail_prop(ctx, "text"), .cmail_inline(text, ctx, links = TRUE)) else "",
+      '<p style="margin:0 0 12px 0;%sfont-family:%s;font-size:15px;line-height:23px;color:%s;"%s>%s</p>',
+      ta, .CMAIL_FONT, pal$text, .cmail_prop(ctx, "text"), .cmail_inline(text, ctx, links = TRUE)) else "",
     .cmail_feature_button(b, ctx)
   )
 }
@@ -151,7 +158,8 @@
   img_cell <- sprintf('<td class="%s" dir="ltr" width="%d" valign="middle" style="width:%dpx;padding:%s;vertical-align:middle;line-height:0;font-size:0;">%s</td>',
                       .CMAIL_STACK_CLASS, slot, slot,
                       if (derecha) sprintf("0 0 0 %dpx", gap) else sprintf("0 %dpx 0 0", gap), image)
-  text_cell <- sprintf('<td class="%s" dir="ltr" valign="middle" style="vertical-align:middle;text-align:left;">%s</td>', .CMAIL_STACK_CLASS, text)
+  text_cell <- sprintf('<td class="%s" dir="ltr" valign="middle" style="vertical-align:middle;text-align:%s;">%s</td>', .CMAIL_STACK_CLASS,
+                       .cmail_style(b, "align", "left"), text)
   # La imagen siempre primero en el HTML; a la derecha, la fila va de derecha a izquierda.
   row <- sprintf('<tr><td><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"%s><tr>%s%s</tr></table></td></tr>',
                  if (derecha) ' dir="rtl"' else "", img_cell, text_cell)
