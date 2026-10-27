@@ -139,9 +139,9 @@
   ft <- flextable::font(ft, fontname = chr("font_family", font_family_default), part = "all")
   ft <- flextable::fontsize(ft, size = num("header_size", 11), part = "header")
   ft <- flextable::fontsize(ft, size = num("body_size", 11), part = "body")
-  ft <- flextable::color(ft, color = chr("text_blue", "#081F5C"), part = "all")
+  ft <- flextable::color(ft, color = chr("text_blue", .std_color("azul")), part = "all")
   ft <- flextable::bg(ft, bg = chr("header_fill", "#D8D8D8"), part = "header")
-  ft <- flextable::bg(ft, bg = chr("body_fill", "#F2F2F2"), part = "body")
+  ft <- flextable::bg(ft, bg = chr("body_fill", .std_color("fondo")), part = "body")
   ft <- flextable::bold(ft, bold = TRUE, part = "header")
   if (isTRUE(estilo$firstcol_bold %|N|% TRUE)) {
     ft <- flextable::bold(ft, j = 1, bold = TRUE, part = "body")

@@ -152,7 +152,7 @@ graficar_nube_palabras <- function(
   color_palabra <- if (length(colores_palabras)) rep_len(colores_palabras, n_words) else {
     cortes <- unique(stats::quantile(words$n, seq(0, 1, 0.25), names = FALSE))
     tramo <- if (length(cortes) > 1L) cut(words$n, breaks = cortes, include.lowest = TRUE, labels = FALSE) else rep(5L, n_words)
-    grDevices::colorRampPalette(c("#8EA3C6", .std_color("azul")))(5)[pmin(5L, pmax(1L, tramo))]
+    grDevices::colorRampPalette(c(.std_paleta("mapa")[2], .std_color("azul")))(5)[pmin(5L, pmax(1L, tramo))]
   }
 
   plot_df <- data.frame(

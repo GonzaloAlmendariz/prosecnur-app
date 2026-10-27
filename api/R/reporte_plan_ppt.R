@@ -402,9 +402,9 @@ reporte_ppt_plan <- function(
     } else {
       base_args$color_titulo_slide
     }
-    color <- color %||% "#CA5651"
+    color <- color %||% .std_color("coral")
     color <- as.character(color)[1]
-    if (is.na(color) || !nzchar(trimws(color))) color <- "#CA5651"
+    if (is.na(color) || !nzchar(trimws(color))) color <- .std_color("coral")
 
     align <- if (is_cover_title) "center" else "left"
     uppercase_title <- if (is_cover_title) {
@@ -460,7 +460,7 @@ reporte_ppt_plan <- function(
       officer::ftext(
         as.character(text)[1],
         prop = officer::fp_text(
-          color = base_args$color_nota_pie %||% "#081F5C",
+          color = base_args$color_nota_pie %||% .std_color("azul"),
           font.size = font_size,
           font.family = font_family,
           bold = FALSE
@@ -485,7 +485,7 @@ reporte_ppt_plan <- function(
       officer::ftext(
         as.character(text)[1],
         prop = officer::fp_text(
-          color = base_args$color_nota_pie %||% "#081F5C",
+          color = base_args$color_nota_pie %||% .std_color("azul"),
           font.size = font_size,
           font.family = font_family,
           bold = FALSE
@@ -848,9 +848,9 @@ reporte_ppt_plan <- function(
     # declara su 0.20 y no se entera.
     first_col_pct <- .style_num(style, "first_col_pct", 0.20, min = 0.02, max = 0.32)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
+    text_color <- as.character(.style_value(style, "text_color", .std_color("azul")))[1]
     first_col_fill <- as.character(.style_value(style, "first_col_fill", "#D8D8D8"))[1]
-    body_fill <- as.character(.style_value(style, "body_fill", "#F2F2F2"))[1]
+    body_fill <- as.character(.style_value(style, "body_fill", .std_color("fondo")))[1]
     # `757070` y no `BFBFBF`: es el gris con que el entregable aprobado declara
     # los cuatro lados de cada celda de su ficha tecnica, medido sobre el XML.
     # El claro se perdia sobre el relleno `F2F2F2` del cuerpo. Mismo valor que
@@ -1128,10 +1128,10 @@ reporte_ppt_plan <- function(
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     number_fill <- as.character(.style_value(style, "number_fill", .std_color("coral")))[1]
     section_fill <- as.character(.style_value(style, "section_fill", "#E7E7E7"))[1]
-    text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
+    text_color <- as.character(.style_value(style, "text_color", .std_color("azul")))[1]
     number_size <- .style_num(style, "number_size", 14, min = 7)
     section_size <- .style_num(style, "section_size", 13, min = 7)
-    row_gap_color <- as.character(.style_value(style, "row_gap_color", "#F2F2F2"))[1]
+    row_gap_color <- as.character(.style_value(style, "row_gap_color", .std_color("fondo")))[1]
 
     ft <- flextable::flextable(tbl)
     ft <- flextable::delete_part(ft, part = "header")
@@ -1373,7 +1373,7 @@ reporte_ppt_plan <- function(
     }
 
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
+    text_color <- as.character(.style_value(style, "subtopic_color", .std_color("azul")))[1]
     bullet_color <- as.character(.style_value(style, "subtopic_bullet_color", text_color))[1]
     badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", .std_color("coral"))))[1]
     badge_text_color <- as.character(.style_value(style, "subtopic_badge_text_color", "#FFFFFF"))[1]
@@ -1638,7 +1638,7 @@ reporte_ppt_plan <- function(
   }
 
   .indice_bulbs_base_svg <- function(style) {
-    background_fill <- .indice_sanitize_fill(.style_value(style, "background_fill", "#F2F2F2"))
+    background_fill <- .indice_sanitize_fill(.style_value(style, "background_fill", .std_color("fondo")))
     dark <- .indice_sanitize_fill(.style_value(style, "focos_cap_color", "#061B2A"), "#061B2A")
     fills <- as.character(style[["iconos_focos_fill"]] %||%
       c("#EFD25E", "#E4A34C", "#9688D3", "#7594CC", "#85BB85"))
@@ -1855,7 +1855,7 @@ reporte_ppt_plan <- function(
     if (!length(top_two_indices)) top_two_indices <- tail(seq_along(valores), min(2L, length(valores)))
 
     colors <- .top_two_parse_colors(style, length(valores))
-    blue <- .indice_sanitize_fill(.style_value(style, "text_color", "#081F5C"), "#081F5C")
+    blue <- .indice_sanitize_fill(.style_value(style, "text_color", .std_color("azul")), .std_color("azul"))
     accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", .std_color("coral"))), .std_color("coral"))
     brace_color <- .indice_sanitize_fill(.style_value(style, "brace_color", accent), accent)
     top_label_color <- .indice_sanitize_fill(.style_value(style, "top_label_color", accent), accent)
@@ -1863,7 +1863,7 @@ reporte_ppt_plan <- function(
       .style_value(style, "color_texto_porcentajes", .style_value(style, "svg_label_color", "#FFFFFF")),
       "#FFFFFF"
     )
-    background <- .indice_sanitize_fill(.style_value(style, "background_fill", "#F2F2F2"), "#F2F2F2")
+    background <- .indice_sanitize_fill(.style_value(style, "background_fill", .std_color("fondo")), .std_color("fondo"))
 
     style_num_any <- function(names, default) {
       for (nm in names) {
@@ -1999,7 +1999,7 @@ reporte_ppt_plan <- function(
     table_width <- .style_num(style, "subtopic_width", 6.85, min = 3)
     row_height <- .style_num(style, "subtopic_row_height", 0.27, min = 0.18)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
+    text_color <- as.character(.style_value(style, "subtopic_color", .std_color("azul")))[1]
     font_size <- .style_num(style, "subtopic_size", 10.6, min = 6)
 
     ft <- flextable::flextable(tbl)
@@ -3557,9 +3557,9 @@ reporte_ppt_plan <- function(
     }
     if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 16
 
-    color <- color %||% base_args$color_subtitulo %||% "#081F5C"
+    color <- color %||% base_args$color_subtitulo %||% .std_color("azul")
     color <- as.character(color)[1]
-    if (is.na(color) || !nzchar(trimws(color))) color <- "#081F5C"
+    if (is.na(color) || !nzchar(trimws(color))) color <- .std_color("azul")
 
     loc <- officer::ph_location(
       left = props$offx[[1]],
@@ -4183,7 +4183,7 @@ reporte_ppt_plan <- function(
       col_extra <- as.character(base_args$color_barra_extra %||% "")[1]
       if (is.na(col_extra)) col_extra <- ""
       col_extra <- trimws(col_extra)
-      if (!nzchar(col_extra) || identical(toupper(col_extra), "#081F5C")) {
+      if (!nzchar(col_extra) || identical(toupper(col_extra), .std_color("azul"))) {
         base_args$color_barra_extra <- .std_color("verde_top_two_box")
       }
 
@@ -6696,7 +6696,7 @@ reporte_ppt_plan <- function(
       brecha_cols = el$brecha_cols %||% FALSE,
       etiq_brecha_cols = el$etiq_brecha_cols %||% "Brecha",
       aplicar_gradiente_brecha = el$aplicar_gradiente_brecha %||% TRUE,
-      brecha_colores = el$brecha_colores %||% c(bajo = "#FFFFFF", alto = "#F4B183"),
+      brecha_colores = el$brecha_colores %||% c(bajo = "#FFFFFF", alto = .std_paleta("likert")[1]),
       brecha_cortes = el$brecha_cortes %||% c(0, 30),
       size_ejes_x = el$size_ejes_x %||% NULL,
       titulo_total_x = el$titulo_total_x %||% "Total",
@@ -7039,7 +7039,7 @@ reporte_ppt_plan <- function(
             doc,
             sub,
             contract$slots$subtitle,
-            color = base_args$color_subtitulo_portada %||% base_args$color_subtitulo %||% "#081F5C",
+            color = base_args$color_subtitulo_portada %||% base_args$color_subtitulo %||% .std_color("azul"),
             font_size = base_args$size_subtitulo_portada %||% base_args$size_subtitulo_slide %||% 16,
             font_family = base_args$font_family_subtitulo_portada %||% base_args$font_family_portada %||%
               base_args$font_family_ppt %||% base_args$font_family,
@@ -7136,7 +7136,7 @@ reporte_ppt_plan <- function(
           font_family_default <- presets$base$args$font_family_ppt %||%
             presets$base$args$font_family %||% "Arial"
           style$font_family <- style$font_family %||% font_family_default
-          background_fill <- as.character(.style_value(style, "background_fill", "#F2F2F2"))[1]
+          background_fill <- as.character(.style_value(style, "background_fill", .std_color("fondo")))[1]
 
           if (isTRUE(.style_value(style, "limpiar_panel_indice", TRUE))) {
             doc <- .add_indice_cover(
@@ -7171,7 +7171,7 @@ reporte_ppt_plan <- function(
           fit <- .indice_fit_layout(style, title_txt, secciones, subindices_df)
           style <- fit$style
           title_prop <- officer::fp_text(
-            color = as.character(.style_value(style, "title_color", "#081F5C"))[1],
+            color = as.character(.style_value(style, "title_color", .std_color("azul")))[1],
             font.size = fit$title_size,
             bold = TRUE,
             font.family = as.character(style$font_family)[1]
@@ -7392,7 +7392,7 @@ reporte_ppt_plan <- function(
           officer::ftext(
             body_text,
             prop = officer::fp_text(
-              color = as.character(.style_value(style, "text_color", "#081F5C"))[1],
+              color = as.character(.style_value(style, "text_color", .std_color("azul")))[1],
               font.size = .style_num(style, "text_size", 14.8, min = 8),
               bold = FALSE,
               font.family = as.character(style$font_family)[1]
@@ -7510,7 +7510,7 @@ reporte_ppt_plan <- function(
             officer::ftext(
               as.character(title_slide)[1],
               prop = officer::fp_text(
-                color = base_args$color_titulo_slide %||% "#CA5651",
+                color = base_args$color_titulo_slide %||% .std_color("coral"),
                 font.size = title_size,
                 bold = TRUE,
                 font.family = font_family
@@ -7542,7 +7542,7 @@ reporte_ppt_plan <- function(
         body_value <- .ppt_fpar_multilinea(
           as.character(txt)[1],
           prop = officer::fp_text(
-            color = base_args$color_nota_pie %||% "#081F5C",
+            color = base_args$color_nota_pie %||% .std_color("azul"),
             font.size = body_size,
             bold = FALSE,
             font.family = font_family
@@ -7599,7 +7599,7 @@ reporte_ppt_plan <- function(
         title_width <- .style_num(style, "title_width", contract$slots$title$loc$width, min = 1)
         title_height <- .style_num(style, "title_height", contract$slots$title$loc$height, min = 0.2)
         title_size <- .style_num(style, "title_size", 24, min = 8)
-        title_color <- as.character(.style_value(style, "title_color", "#CA5651"))[1]
+        title_color <- as.character(.style_value(style, "title_color", .std_color("coral")))[1]
         uppercase_title <- .style_value(
           style,
           "mayusculas_titulo",
@@ -7652,7 +7652,7 @@ reporte_ppt_plan <- function(
 
         if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
           footer_prop <- officer::fp_text(
-            color = as.character(.style_value(style, "footer_color", "#081F5C"))[1],
+            color = as.character(.style_value(style, "footer_color", .std_color("azul")))[1],
             font.size = .style_num(style, "footer_size", 10, min = 5),
             font.family = as.character(style$font_family)[1]
           )
@@ -7734,7 +7734,7 @@ reporte_ppt_plan <- function(
             officer::ftext(
               as.character(txt)[1],
               prop = officer::fp_text(
-                color = as.character(.style_value(style_obj, "text_color", "#081F5C"))[1],
+                color = as.character(.style_value(style_obj, "text_color", .std_color("azul")))[1],
                 font.size = .style_num(style_obj, "text_size", 20, min = 8),
                 font.family = as.character(
                   style_obj$font_family %||%

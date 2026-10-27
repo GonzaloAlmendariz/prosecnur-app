@@ -3252,7 +3252,7 @@ p_dim_heatmap <- function(
     brecha_cols = FALSE,
     etiq_brecha_cols = "Brecha",
     aplicar_gradiente_brecha = TRUE,
-    brecha_colores = c(bajo = "#FFFFFF", alto = "#F4B183"),
+    brecha_colores = c(bajo = "#FFFFFF", alto = .std_paleta("likert")[1]),
     brecha_cortes = c(0, 30),
     size_ejes_x = NULL,
     titulo_total_x = "Total",
@@ -3313,7 +3313,7 @@ p_dim_heatmap <- function(
   etiq_brecha_cols <- .ppt_norm_text1(etiq_brecha_cols, blank = "Brecha")
 
   brecha_colores <- as.character(brecha_colores)
-  if (!length(brecha_colores)) brecha_colores <- c(bajo = "#FFFFFF", alto = "#F4B183")
+  if (!length(brecha_colores)) brecha_colores <- c(bajo = "#FFFFFF", alto = .std_paleta("likert")[1])
 
   brecha_cortes <- suppressWarnings(as.numeric(brecha_cortes))
   brecha_cortes <- brecha_cortes[is.finite(brecha_cortes) & !is.na(brecha_cortes)]

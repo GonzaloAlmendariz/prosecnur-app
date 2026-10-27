@@ -58,7 +58,7 @@
   col <- rep(lk[5], length(cols_porcentaje))
   if (length(orden_neg)) col[orden_neg] <- grDevices::colorRampPalette(c(lk[2], lk[1]))(max(2L, length(orden_neg)))[seq_along(orden_neg)]
   if (length(orden_pos)) col[orden_pos] <- grDevices::colorRampPalette(c(lk[3], lk[4]))(max(2L, length(orden_pos)))[seq_along(orden_pos)]
-  col[lado == "neu"] <- "#D9D9D9"
+  col[lado == "neu"] <- .std_paleta("likert_neutro")[3]
   if (length(orden_neg) == 1L) col[orden_neg] <- lk[2]
   if (length(orden_pos) == 1L) col[orden_pos] <- lk[3]
   # ADR 0097: una paleta pinta por ETIQUETA (o por columna), nunca por posición; una sin nombres no dice de qué

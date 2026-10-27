@@ -117,9 +117,9 @@
     size_titulo_extra  = 12,
 
     # Navy sobre pasteles: es lo que permite bajar la saturación de la paleta.
-    color_texto_barras = "#002060",
-    color_ejes         = "#002060",
-    color_titulos_grupo = "#002060",
+    color_texto_barras = .std_valor("word", "colores", "titulos"),
+    color_ejes         = .std_valor("word", "colores", "titulos"),
+    color_titulos_grupo = .std_valor("word", "colores", "titulos"),
 
     # --- paleta -------------------------------------------------------------
     # Rampa ordinal naranja -> verde. El cierre en verde (y no en azul marino)
@@ -267,7 +267,7 @@ presets_acreditacion <- function(etiquetas = NULL) {
       acuerdo_4 = as.list(escala),
       # Dicotomías en escala de azules: el «No» de «¿Conoce el reglamento?» es
       # un dato, no una falta, y el rojo contra azul lo marca como mala.
-      dicotomia = list("Sí" = "#081F5C", "Si" = "#081F5C", "No" = "#9DC3E6")
+      dicotomia = list("Sí" = "#081F5C", "Si" = "#081F5C", "No" = .std_paleta("dicotomica")[2])
     ),
     overrides_reusables = list(),
     scope_rules = list(

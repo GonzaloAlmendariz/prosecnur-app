@@ -1470,7 +1470,7 @@ graficar_barras_apiladas <- function(
   decimales <- suppressWarnings(as.integer(decimales))
   if (length(decimales) < 1L || !is.finite(decimales[1]) || decimales[1] < 0L) decimales <- 0L else decimales <- decimales[1]
   size_texto_barras_peq <- size_texto_barras_peq %||% size_texto_barras
-  color_texto_barras_fuera <- color_texto_barras_fuera %||% color_ejes %||% "#081F5C"
+  color_texto_barras_fuera <- color_texto_barras_fuera %||% color_ejes %||% .std_color("azul")
   etiquetas_uniformes <- isTRUE(etiquetas_uniformes)
   repeler_etiquetas_peq <- isTRUE(repeler_etiquetas_peq)
   desplazamiento_max_etiquetas_peq <- suppressWarnings(as.numeric(desplazamiento_max_etiquetas_peq)[1])
@@ -1548,7 +1548,7 @@ graficar_barras_apiladas <- function(
   }
 
   pulso_azul  <- "#002768"
-  pulso_verde <- "#70AD47"
+  pulso_verde <- .std_paleta("likert")[4]
 
   # validaciones
   if (!var_categoria %in% names(data)) stop("`var_categoria` no existe en `data`.", call. = FALSE)

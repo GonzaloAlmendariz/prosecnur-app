@@ -156,7 +156,7 @@
       x = 0, y = 0,
       label = mensaje,
       size = 4.2,
-      colour = "#20324d"
+      colour = .std_color("azul")
     ) +
     ggplot2::theme_void()
 }

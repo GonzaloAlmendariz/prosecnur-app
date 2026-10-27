@@ -74,7 +74,7 @@
   # Marcas 0-25-50-75-100 % bajo las barras, como la variante «fiel» de g_barras (RG:91): opcionales con la escala de 0 a
   # 100 % (Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»).
   if (marcas) g <- g + ggplot2::annotate("text", x = seq(0, 100, 25), y = 0.15, label = paste0(seq(0, 100, 25), "%"), size = .word_pt(7.5, "rotulo"),
-                                         colour = "#A6A6A6", family = "Arial")
+                                         colour = .std_color("texto_tenue"), family = "Arial")
   attr(g, "filas") <- ps$tot
   .word_fijar_alto_por_grosor(g, 0.64)   # N25: grosor común; el eje y incluye las marcas
 }

@@ -50,7 +50,7 @@
   navy <- .std_word("colores", "titulos")
   M <- espec$valores; Mc <- espec$valores_crudos %||% M
   filas <- espec$filas; cols <- espec$columnas$rotulo; nf <- length(filas); nc <- length(cols)
-  rampa <- grDevices::colorRampPalette(c("#EEF2F8", "#2F4B7C"))(41)
+  rampa <- grDevices::colorRampPalette(c(unlist(.std_paleta("calor")$tramos)[1], .std_color("mapa_aplicada")))(41)
   d <- expand.grid(i = seq_len(nf), j = seq_len(nc)); d$v <- M[cbind(d$i, d$j)]; d$vc <- Mc[cbind(d$i, d$j)]
   d <- d[is.finite(d$v), , drop = FALSE]
   d$col <- rampa[pmin(41, pmax(1, round((d$vc - lo) / max(hi - lo, 1e-9) * 40) + 1))]   # el tramo lo decide el valor crudo
@@ -90,7 +90,7 @@
 .word_g_competencias <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   M <- .word_radar_pct(espec$valores); ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
-  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
+  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c(.std_paleta("actores")[1], .std_paleta("actores")[2], .std_paleta("actores")[3]), length(gr))
   o <- order(rowMeans(M)); lv <- ejes[o]
   d <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(c = factor(ejes, levels = lv), a = factor(gr[j], levels = gr), v = M[, j])))
   r <- data.frame(c = factor(ejes, levels = lv), mn = apply(M, 1, min), mx = apply(M, 1, max))
@@ -119,13 +119,13 @@
   # Los anillos los decide la espec (cada 5, 10 o 20 según el rango, .espec_radar): con piso 0 y anillos cada 5 eran 20
   # rótulos apilados (verificador de N8.9). Sin espec, cada 5 como el recetario con su piso de 80.
   anillos <- as.numeric(espec$anillos %||% seq(lo + 5, 100, 5)); anillos <- anillos[anillos > lo & anillos <= 100]
-  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
+  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c(.std_paleta("actores")[1], .std_paleta("actores")[2], .std_paleta("actores")[3]), length(gr))
   ring <- do.call(rbind, lapply(anillos, function(v) data.frame(r = v, x = rr(v) * cos(c(ang, ang[1])), y = rr(v) * sin(c(ang, ang[1])))))
   ser <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(a = gr[j], x = rr(M[c(seq_len(k), 1), j]) * cos(c(ang, ang[1])),
                                                                   y = rr(M[c(seq_len(k), 1), j]) * sin(c(ang, ang[1])))))
   ser$a <- factor(ser$a, levels = gr)
   lab <- data.frame(t = .word_envolver(ejes, 16), x = 1.2 * cos(ang), y = 1.13 * sin(ang), h = ifelse(abs(cos(ang)) < 0.15, 0.5, ifelse(cos(ang) > 0, 0, 1)))
-  g <- ggplot2::ggplot() + ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = "#D5D9DF", linewidth = 0.3) +
+  g <- ggplot2::ggplot() + ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = .std_color("filete"), linewidth = 0.3) +
     ggplot2::annotate("text", x = rr(anillos) * cos(pi / 2 - pi / k), y = rr(anillos) * sin(pi / 2 - pi / k), label = paste0(anillos, "%"),
                       size = .word_pt(7.5, "rotulo"), colour = T$gris, family = "Arial") +
     ggplot2::geom_path(data = ser, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a), linewidth = 0.9) +
@@ -156,7 +156,7 @@
   g <- .lam_mapa_gg(espec) +
     ggplot2::geom_point(data = ley, ggplot2::aes(.data$x, .data$y, colour = .data$k), alpha = 0) +
     ggplot2::scale_colour_manual(values = stats::setNames(ley_col, ley_rot), name = titulo, drop = FALSE) +
-    ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = ley_col, colour = "#B8C2D3"))) +
+    ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = ley_col, colour = .std_color("mapa_borde")))) +
     ggplot2::theme(legend.position = "right", legend.title = ggplot2::element_text(size = 8 + .word_desplazo("leyenda"), face = "bold", colour = T$gris, family = "Arial"),
                    legend.text = ggplot2::element_text(size = 8.5 + .word_desplazo("leyenda"), colour = navy, face = .word_cara("leyenda", FALSE), family = "Arial"), legend.justification = c(0, 0.5),
                    legend.box.spacing = ggplot2::unit(0.15, "in"), plot.margin = ggplot2::margin(4, 4, 4, 4))

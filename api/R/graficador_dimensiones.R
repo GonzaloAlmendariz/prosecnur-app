@@ -708,13 +708,13 @@
   if (!is.finite(size_chip) || is.na(size_chip) || size_chip <= 0) size_chip <- 3.2
   padding_chip <- suppressWarnings(as.numeric(extra_args$padding_texto_chip %||% 0.20)[1])
   if (!is.finite(padding_chip) || is.na(padding_chip) || padding_chip < 0) padding_chip <- 0.20
-  chip_texto_color <- .norm_text_color(extra_args$chip_texto_color, fallback = "#081F5C")
-  color_ejes_base <- .norm_text_color(extra_args$color_ejes, fallback = "#081F5C")
+  chip_texto_color <- .norm_text_color(extra_args$chip_texto_color, fallback = .std_color("azul"))
+  color_ejes_base <- .norm_text_color(extra_args$color_ejes, fallback = .std_color("azul"))
   color_ejes_x <- .norm_text_color(extra_args$color_ejes_x, fallback = color_ejes_base)
   color_ejes_y <- .norm_text_color(extra_args$color_ejes_y, fallback = color_ejes_base)
-  color_titulo <- .norm_text_color(extra_args$color_titulo, fallback = "#081F5C")
-  color_subtitulo <- .norm_text_color(extra_args$color_subtitulo, fallback = "#081F5C")
-  color_nota_pie <- .norm_text_color(extra_args$color_nota_pie, fallback = "#081F5C")
+  color_titulo <- .norm_text_color(extra_args$color_titulo, fallback = .std_color("azul"))
+  color_subtitulo <- .norm_text_color(extra_args$color_subtitulo, fallback = .std_color("azul"))
+  color_nota_pie <- .norm_text_color(extra_args$color_nota_pie, fallback = .std_color("azul"))
   font_family <- trimws(as.character(extra_args$font_family %||% "Arial")[1])
   if (!nzchar(font_family)) font_family <- "Arial"
   textos_negrita <- extra_args$textos_negrita %||% character(0)
@@ -1192,7 +1192,7 @@ graficar_heatmap_dimensiones <- function(
     brecha_cols = FALSE,
     etiq_brecha_cols = "Brecha",
     aplicar_gradiente_brecha = TRUE,
-    brecha_colores = c(bajo = "#FFFFFF", alto = "#F4B183"),
+    brecha_colores = c(bajo = "#FFFFFF", alto = .std_paleta("likert")[1]),
     brecha_cortes = c(0, 30),
     filtros = list(),
     iter_var = NULL,
@@ -1273,7 +1273,7 @@ graficar_heatmap_dimensiones <- function(
   nmbc <- names(brecha_colores %||% character(0))
   if (is.null(nmbc)) nmbc <- character(0)
   col_brecha_bajo <- if ("bajo" %in% nmbc) brecha_colores[["bajo"]] else if (length(brecha_colores) >= 1L) brecha_colores[1] else "#FFFFFF"
-  col_brecha_alto <- if ("alto" %in% nmbc) brecha_colores[["alto"]] else if (length(brecha_colores) >= 2L) brecha_colores[2] else "#F4B183"
+  col_brecha_alto <- if ("alto" %in% nmbc) brecha_colores[["alto"]] else if (length(brecha_colores) >= 2L) brecha_colores[2] else .std_paleta("likert")[1]
 
   brecha_cortes <- suppressWarnings(as.numeric(brecha_cortes))
   brecha_cortes <- brecha_cortes[is.finite(brecha_cortes) & !is.na(brecha_cortes)]
@@ -1291,7 +1291,7 @@ graficar_heatmap_dimensiones <- function(
     t <- pmax(0, pmin(1, as.numeric(t)))
     if (!is.finite(t) || is.na(t)) return(col_bajo)
     r0 <- .to_rgb(col_bajo, "#FFFFFF")
-    r1 <- .to_rgb(col_alto, "#F4B183")
+    r1 <- .to_rgb(col_alto, .std_paleta("likert")[1])
     rr <- round(r0 + (r1 - r0) * t)
     grDevices::rgb(rr[1], rr[2], rr[3], maxColorValue = 255)
   }
@@ -2726,7 +2726,7 @@ graficar_radar_tabla_dimensiones <- function(
   tg <- .dim_make_table_grob(
     tb,
     header_fill = extra_args$tabla_header_fill %||% "#062A63",
-    body_fill = extra_args$tabla_body_fill %||% "#F2F2F2",
+    body_fill = extra_args$tabla_body_fill %||% .std_color("fondo"),
     grid_col = extra_args$tabla_grid_col %||% "white",
     text_blue = extra_args$tabla_text_blue %||% "#062A63",
     font_family = extra_args$tabla_font_family %||% "Arial",

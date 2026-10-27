@@ -36,7 +36,7 @@
   navy <- .std_word("colores", "titulos")
   rot <- c("1  Totalmente en desacuerdo", "2  En desacuerdo", "3  De acuerdo", "4  Totalmente de acuerdo")
   x1 <- cumsum(pct); x0 <- x1 - pct; d <- data.frame(x0 = x0, x1 = x1, k = factor(rot, levels = rot), p = pct)
-  idx <- if (arriba) 3:4 else 1:2; col <- if (arriba) .WORD_TINTA$verde else "#B4541F"; nom <- if (arriba) "Top Two Box" else "Bottom Two Box"
+  idx <- if (arriba) 3:4 else 1:2; col <- if (arriba) .WORD_TINTA$verde else .std_color("naranja_bottom_two_box"); nom <- if (arriba) "Top Two Box" else "Bottom Two Box"
   a <- x0[idx[1]]; b <- x1[idx[2]]; s <- sum(pct[idx])
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1 + 0.05, ymin = 0, ymax = 1, fill = .data$k)) +
     ggplot2::scale_fill_manual(values = stats::setNames(unname(.std_paleta("likert"))[1:4], rot)) +

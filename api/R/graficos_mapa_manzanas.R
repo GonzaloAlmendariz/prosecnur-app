@@ -59,7 +59,7 @@
   n_ap <- sum(vapply(feats, function(f) f$id %in% mz$aplicadas, TRUE))
   n_en <- sum(vapply(feats, function(f) .mapa_chr1(f$zona, "") %in% zonas_ap, TRUE))
   list(capas = list(list(datos = manz, borde = "#D5DBE5", grosor = 0.08),
-                    list(datos = zonas, borde = "#8E9DBD", grosor = 0.2, sin_relleno = TRUE),
+                    list(datos = zonas, borde = .std_color("tenue"), grosor = 0.2, sin_relleno = TRUE),
                     list(datos = ap, borde = azul, grosor = 0.55, sin_relleno = TRUE)),
        caja = c(xmin = min(manz$x), xmax = max(manz$x), ymin = min(manz$y), ymax = max(manz$y)),
        cifra = list(valor = format(n_ap, big.mark = ","), rotulo = if (n_ap == 1) "manzana aplicada" else "manzanas aplicadas",

@@ -46,9 +46,9 @@ graficar_lollipop <- function(
     resaltar = NULL,
     residuales_gris = FALSE,   # residuales en gris (Word y lámina); apagado por defecto
 
-    color_punto = "#0B4F8C",
-    color_resalte = "#E76F51",
-    color_tallo = "#C7D2E0",
+    color_punto = .std_color("azul"),     # como la lámina nativa (lamina_lollipop.R): punto y tallo azules, resaltado en coral
+    color_resalte = .std_color("coral"),
+    color_tallo = .std_color("azul"),
     size_punto = 3.6,
     size_tallo = 0.9,
 

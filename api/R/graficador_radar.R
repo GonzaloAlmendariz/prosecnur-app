@@ -227,14 +227,14 @@ graficar_radar <- function(
     size_subtitulo  = 9,
     color_nota_pie  = "#004B8D",
     size_nota_pie   = 8,
-    color_leyenda   = "#004B8D",
+    color_leyenda   = .std_color("azul"),
     size_leyenda    = 8,
 
-    color_ejes = "#004B8D",
+    color_ejes = .std_color("azul"),
     size_ejes  = 10,
 
-    color_grilla = "#DDDDDD",
-    color_radios = "#DDDDDD",
+    color_grilla = .std_color("filete"),
+    color_radios = .std_color("filete"),
     color_fondo  = NA,
 
     # -------------------------------------------------------------------------
