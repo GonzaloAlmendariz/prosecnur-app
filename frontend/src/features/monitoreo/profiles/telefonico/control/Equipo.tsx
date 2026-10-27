@@ -99,20 +99,31 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
   const orden = FAMILIAS_DEL_CLIENTE.map((item) => item.id);
   const ordenadas = [...familias].sort((a, b) => orden.indexOf(a.familia) - orden.indexOf(b.familia));
   const estados = statusDe(modelo, operador.nombre);
+  const iniciales = operador.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]?.toLocaleUpperCase("es")).join("");
+  const casosEnStatus = estados.reduce((suma, item) => suma + item.casos, 0);
+  // §2a-bis: cada unidad de lectura en su tarjeta — cifras en baldosas, y
+  // familias, insistencia y status en bloques con su cabecera.
   return (
     <aside className="mon-ctl-panel mon-equipo-ficha" aria-label={`Ficha de ${operador.nombre}`}>
-      <span className="mon-equipo-ficha-titulo">
-        <span className="mon-ctl-antetitulo">Operador</span>
-        <b>{operador.nombre}</b>
-      </span>
-      <div className="mon-equipo-cifras">
-        <span><span className="mon-ctl-antetitulo">Asignados</span><b className="is-num">{n(operador.asignados)}</b></span>
+      <header className="mon-equipo-ficha-titulo">
+        <span className="mon-equipo-avatar" aria-hidden="true">{iniciales}</span>
         <span>
+          <span className="mon-ctl-antetitulo">Operador</span>
+          <b>{operador.nombre}</b>
+        </span>
+      </header>
+      <div className="mon-equipo-cifras">
+        <span className="mon-equipo-baldosa">
+          <span className="mon-ctl-antetitulo">Asignados</span>
+          <b className="is-num">{n(operador.asignados)}</b>
+          <small>casos de la hoja</small>
+        </span>
+        <span className="mon-equipo-baldosa">
           <span className="mon-ctl-antetitulo">Llamados</span>
           <b className="is-num">{n(operador.llamados)}</b>
-          <small>{pctConEspacio(operador.asignados ? (operador.llamados / operador.asignados) * 100 : null)}</small>
+          <small>{pctConEspacio(operador.asignados ? (operador.llamados / operador.asignados) * 100 : null)} de asignados</small>
         </span>
-        <span>
+        <span className="mon-equipo-baldosa is-efectiva">
           <span className="mon-ctl-antetitulo">Efectivas</span>
           <b className="is-num">{n(operador.efectivasHoja)}</b>
           <small>Kobo {n(operador.efectivasKobo)}</small>
@@ -120,7 +131,10 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
       </div>
       {familias.length ? (
         <section className="mon-equipo-bloque" aria-label="Casos asignados por familia">
-          <span className="mon-ctl-antetitulo">Casos asignados por familia</span>
+          <header className="mon-equipo-bloque-cabecera">
+            <span className="mon-ctl-antetitulo">Casos por familia</span>
+            <small>{n(total)} casos</small>
+          </header>
           <span className="mon-equipo-familias-barra" aria-hidden="true">
             {ordenadas.map((item) => (
               <i key={item.familia} className={`is-${item.familia}`} style={{ width: `${(item.casos / total) * 100}%` }} />
@@ -128,30 +142,36 @@ function FichaDelOperador({ operador, modelo }: { operador: OperadorDeEquipo | n
           </span>
           <dl className="mon-equipo-familias-leyenda">
             {ordenadas.map((item) => (
-              <div key={item.familia}><dt>{ETIQUETA.get(item.familia)}</dt><dd>{n(item.casos)}</dd></div>
+              <div key={item.familia} className={`is-${item.familia}`}>
+                <dt><i aria-hidden="true" />{ETIQUETA.get(item.familia)}</dt>
+                <dd>{n(item.casos)}</dd>
+              </div>
             ))}
           </dl>
         </section>
       ) : null}
       <section className="mon-equipo-bloque" aria-label="Insistencia y registro">
-        <span className="mon-ctl-antetitulo">Insistencia y registro</span>
+        <header className="mon-equipo-bloque-cabecera">
+          <span className="mon-ctl-antetitulo">Insistencia y registro</span>
+        </header>
         <dl className="mon-equipo-datos">
           <div><dt>Casos que se pueden reintentar</dt><dd>{n(operador.reintentables)}</dd></div>
           <div><dt>No contesta</dt><dd>{n(operador.noContesta)}</dd></div>
           <div><dt>Intentos por caso reintentable</dt><dd>{operador.promedioIntentos == null ? "—" : operador.promedioIntentos.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</dd></div>
           <div><dt>Sin efectiva entre los llamados</dt><dd>{pctConEspacio(operador.pctSinEfectiva)}</dd></div>
-          <div><dt>Efectivas en Kobo sin marcar en la hoja</dt><dd>{n(operador.brecha)}</dd></div>
+          <div className={operador.brecha ? "is-alerta" : undefined}><dt>Efectivas en Kobo sin marcar en la hoja</dt><dd>{n(operador.brecha)}</dd></div>
         </dl>
       </section>
       <section className="mon-equipo-bloque mon-equipo-status" aria-label="Status en la hoja">
-        <span className="mon-ctl-antetitulo">Status en la hoja</span>
-        {/* Con pocos status la lista va arriba: repartirla en el alto dejaba una
-          * sola barra al pie de un hueco (RMS: «No barrido 15»). */}
-        <ul className={estados.length < 4 ? "is-pocos" : undefined}>
+        <header className="mon-equipo-bloque-cabecera">
+          <span className="mon-ctl-antetitulo">Status en la hoja</span>
+          <small>{n(casosEnStatus)} casos</small>
+        </header>
+        <ul>
           {estados.map((item) => (
             <li key={item.status} className={`is-${item.familia}`}>
-              <span>
-                {item.status}
+              <span className="mon-equipo-status-nombre">
+                <span>{item.status}</span>
                 {item.porRegla ? <em className="mon-ctl-por-regla">{rotuloDeRegla(item.familia)}</em> : null}
               </span>
               <i aria-hidden="true"><b style={{ width: `${(item.casos / total) * 100}%` }} /></i>
