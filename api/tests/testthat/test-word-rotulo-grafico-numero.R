@@ -23,7 +23,7 @@ source("setup-load-all.R")
 
 test_that("por defecto el rótulo es «Gráfico N° 49: título», con el número como campo SEQ Gráfico", {
   r <- .wrn_docx(.word_rotulo(.word_documento_nuevo(), 49, "¿Conoce el reglamento?"))
-  expect_identical(.wrn_texto(r$x), "Gráfico N° 49: ¿Conoce el reglamento?")
+  expect_identical(.wrn_texto(r$x), "Gráfico N°\u00a049: ¿Conoce el reglamento?")   # C6: espacio duro entre «N°» y su número
   expect_match(.wrn_instr(r$x), "SEQ Gráfico \\* ARABIC", fixed = TRUE)   # el identificador del SEQ no cambia
   # el número visible está DENTRO del campo (entre separate y end), no como texto fijo
   campo <- xml2::xml_find_all(r$x, "//w:r[w:fldChar[@w:fldCharType='separate']]/following-sibling::w:r[1]/w:t", .wrn_ns)
@@ -43,7 +43,7 @@ test_that("todo el rótulo va en cursiva, sin perder negrita ni color, y todos s
 
 test_that("la tabla numerada sale «Tabla N° 2: …» con su SEQ Tabla", {
   r <- .wrn_docx(.word_rotulo(.word_documento_nuevo(), 2, "Ficha técnica", etiqueta = "Tabla"))
-  expect_identical(.wrn_texto(r$x), "Tabla N° 2: Ficha técnica")
+  expect_identical(.wrn_texto(r$x), "Tabla N°\u00a02: Ficha técnica")
   expect_match(.wrn_instr(r$x), "SEQ Tabla \\* ARABIC", fixed = TRUE)
 })
 

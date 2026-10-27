@@ -117,7 +117,7 @@ test_that("N4b: el rótulo es UNA línea «Gráfico N° N: título» en el estil
   ps <- xml2::xml_find_all(r$x, "//w:body/w:p", r$ns)
   expect_length(ps, 1L)
   expect_length(xml2::xml_find_all(ps[[1]], ".//w:br", r$ns), 0L)                           # una sola línea
-  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(ps[[1]], ".//w:t", r$ns)), collapse = ""), "Gráfico N\u00b0 7: ¿Qué tan satisfecho está?")   # R1: «N°» (test-word-rotulo-grafico-numero.R)
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(ps[[1]], ".//w:t", r$ns)), collapse = ""), "Gráfico N\u00b0\u00a07: ¿Qué tan satisfecho está?")   # R1: «N°» (test-word-rotulo-grafico-numero.R)
   expect_length(xml2::xml_find_all(ps[[1]], ".//w:i", r$ns), 0L)                            # sin cursiva DIRECTA: la lleva el estilo (R1)
   expect_match(paste(xml2::xml_text(xml2::xml_find_all(ps[[1]], ".//w:instrText", r$ns)), collapse = ""), "SEQ Gráfico", fixed = TRUE)
   nombre_de <- function(id) xml2::xml_attr(xml2::xml_find_first(r$st, sprintf("//w:style[@w:styleId='%s']/w:name", id), r$ns), "w:val", ns = r$ns)
@@ -131,14 +131,15 @@ test_that("N4b: el rótulo es UNA línea «Gráfico N° N: título» en el estil
   expect_identical(jc, "center")
   # título largo: sigue siendo un párrafo (el centrado lo parte en líneas, no se corta texto)
   largo <- paste(rep("palabra", 40), collapse = " ")
-  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo(largo)$x, "//w:t", r$ns)), collapse = ""), paste0("Gráfico N\u00b0 7: ", largo))
-  # título vacío (también el espacio duro de D-b): solo «Gráfico N», sin separador ni salto
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo(largo)$x, "//w:t", r$ns)), collapse = ""), paste0("Gráfico N\u00b0\u00a07: ", largo))
+  # título vacío (también el espacio duro de D-b): solo «Gráfico N», sin separador ni salto; «N°» y su número van
+  # unidos por un espacio duro (C6, texto_espacio_duro.R)
   for (vacio in list("", "\u00A0", NULL)) {
     rv <- rotulo(vacio)
-    expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rv$x, "//w:t", r$ns)), collapse = ""), "Gráfico N\u00b0 7")
+    expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rv$x, "//w:t", r$ns)), collapse = ""), "Gráfico N\u00b0\u00a07")
     expect_length(xml2::xml_find_all(rv$x, "//w:br", r$ns), 0L)
   }
-  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo("Resumen", "Tabla")$x, "//w:t", r$ns)), collapse = ""), "Tabla N\u00b0 7: Resumen")
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(rotulo("Resumen", "Tabla")$x, "//w:t", r$ns)), collapse = ""), "Tabla N\u00b0\u00a07: Resumen")
 })
 
 test_that("el alto de la figura sigue las filas del recetario y ningún texto baja de 8 pt", {

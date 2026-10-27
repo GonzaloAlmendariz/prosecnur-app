@@ -44,7 +44,7 @@ test_that("la dona nativa usa arcos, la cifra clave al centro y la lectura con l
   expect_match(paste(.ci_txt(xml, "dona:lectura"), collapse = ""), "172 estudiantes")
 })
 
-test_that("en la ruta real p_pie y p_donut salen nativos; con muchas porciones la torta sigue por la ruta anterior", {
+test_that("en la ruta real p_pie y p_donut salen nativos, también la torta de cinco porciones (C3: como la dona grande sin hueco)", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(s = rep(c("1", "2"), c(56, 122)), c5 = rep(c("a", "b", "c", "d", "e"), c(54, 44, 36, 26, 18)), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = c("s", "c5"), type = c("select_one sn", "select_one l5"), list_name = c("sn", "l5"), label = c("¿Tiene título?", "Cinco"),
@@ -58,7 +58,7 @@ test_that("en la ruta real p_pie y p_donut salen nativos; con muchas porciones l
   g <- function(k) xml2::xml_attr(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
   expect_true("prosecnur:grafico:torta" %in% g(1))
   expect_true("prosecnur:grafico:dona" %in% g(2))
-  expect_false(any(grepl("prosecnur:grafico", g(3))))
+  expect_true("prosecnur:grafico:torta" %in% g(3))
 })
 
 # ---- Hallazgos del verificador de N6 (ruta real con datos de borde) ----------

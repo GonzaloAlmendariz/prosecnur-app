@@ -11,6 +11,7 @@
 #' @keywords internal
 .lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE, leyenda = NULL) {
   g <- .std_geom; ml0 <- g("margen_izq_borde"); ml <- g("margen_izq"); yt <- g("titulo_y")
+  titulo <- .texto_espacio_duro(titulo); sub <- .texto_espacio_duro(sub)   # C6: «38 %» no se parte (texto_espacio_duro.R)
   if (isTRUE(avisar)) .lam_aviso_titulo(titulo, 10.4)  # K12b: un título de más de dos líneas se avisa (lamina_avisos_lineas.R)
   lz <- .lam_lienzo()
   .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
