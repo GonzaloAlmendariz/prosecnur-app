@@ -721,9 +721,12 @@
   }
 }
 
+/* El listado crece hasta mostrar todas las categorías: con scroll interno
+ * escondía la cuarta a 1440 sin ninguna señal de que hubiera más. */
 .mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto-lista {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   justify-content: space-around;
+  overflow: visible;
 }
 
 /* Con el faltante diario la vista no se recorta para caber: llena el alto
@@ -742,4 +745,10 @@
 
 .mon-tel-cuotas.has-diario .mon-tel-cuotas-lado > :not(.mon-tel-cuotas-reparto) {
   flex: none;
+}
+
+/* El listado no se encoge por debajo de su contenido: si no cabe, la columna
+ * (y la fila de la rejilla) crece y la pestaña se desplaza. */
+.mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto {
+  flex: 1 0 auto;
 }

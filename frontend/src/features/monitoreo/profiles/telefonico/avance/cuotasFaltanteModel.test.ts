@@ -102,8 +102,14 @@ describe("Avance › Cuotas del telefónico", () => {
 
 describe("seriesConCifraFinal", () => {
   it("salta la cifra que se montaría sobre la anterior en el eje", () => {
-    // RMS ficticio: 23, 11, 5 y 1 sobre un eje de 100; el 5 se pisaba con sus vecinos.
-    expect([...seriesConCifraFinal([23, 11, 5, 1], 100)].sort()).toEqual([0, 1, 3]);
+    // RMS ficticio: 23, 11, 5 y 1 sobre un eje de 100; el 5 y el 1 caerían sobre el punto de encima.
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100)].sort()).toEqual([0, 1]);
     expect([...seriesConCifraFinal([60, 30], 100)].sort()).toEqual([0, 1]);
+  });
+
+  it("mide la separación en píxeles del lienzo: lo que cabe a 1920 se salta a 1440", () => {
+    // Verificador, 2026-10-27: a 1440 el lienzo mide ~130 px y el 11 se montaba sobre el punto del 23.
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 330)].sort()).toEqual([0, 1]);
+    expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 130)].sort()).toEqual([0]);
   });
 });
