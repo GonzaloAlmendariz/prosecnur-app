@@ -317,19 +317,19 @@
 }
 
 .mon-tel-cuotas-diario .is-serie-0 {
-  --mon-tel-cuotas-serie: var(--pulso-brand-navy);
+  --mon-tel-cuotas-serie: var(--pulso-publico-1);
 }
 
 .mon-tel-cuotas-diario .is-serie-1 {
-  --mon-tel-cuotas-serie: var(--pulso-accent-steel);
+  --mon-tel-cuotas-serie: var(--pulso-publico-2);
 }
 
 .mon-tel-cuotas-diario .is-serie-2 {
-  --mon-tel-cuotas-serie: var(--pulso-module-monitoring);
+  --mon-tel-cuotas-serie: var(--pulso-publico-3);
 }
 
 .mon-tel-cuotas-diario .is-serie-3 {
-  --mon-tel-cuotas-serie: var(--pulso-accent-amber);
+  --mon-tel-cuotas-serie: var(--pulso-publico-4);
 }
 
 .mon-tel-cuotas-diario-lienzo {

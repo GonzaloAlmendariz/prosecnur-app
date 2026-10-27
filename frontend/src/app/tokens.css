@@ -444,6 +444,16 @@
   --pulso-accent-sky: #38bdf8;
   --pulso-accent-steel: #4f7cbf;
 
+  /* Un color por público o actor (estandar_pulso.json, `paletas.actores`; el
+   * mismo orden que ESTANDAR_NOMINAL.actores): distingue perfiles, a
+   * diferencia de la rampa de azules `categorica`, pensada para opciones. */
+  --pulso-publico-1: #0b4f8c;
+  --pulso-publico-2: #2a9d8f;
+  --pulso-publico-3: #e9c46a;
+  --pulso-publico-4: #8e9dbd;
+  --pulso-publico-5: #081f5c;
+  --pulso-publico-6: #9dc3e6;
+
   /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
   --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
                        inset 1px 0 0 rgba(255, 255, 255, 0.6);
