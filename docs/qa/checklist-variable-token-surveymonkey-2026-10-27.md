@@ -1,5 +1,10 @@
 # Checklist · La variable del token no depende de que se llame `t` (2026-10-27)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-27
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él da por terminado un ítem
+
 Pedido de Gonzalo (textual): «¿Y no se puede cambiar para que la app lea t o id de forma equitativa?» · «hazlo ahora en la app y deja todo sumamente limpio y pulcro; es más, hasta podemos hacer campañas de prueba de SurveyMonkey con los cuestionarios para ver si todo funciona bien».
 
 Contexto: las 6 encuestas de Acreditación Institucional 2026 declaran la variable personalizada `id`; la app generaba los enlaces siempre con `?t=` y leía solo `custom_variables$t`. SurveyMonkey guarda un parámetro del enlace solo si se llama igual que una variable declarada en la encuesta: con `?t=` hacia una encuesta con `id`, el token se pierde y nadie queda como «Respondió».

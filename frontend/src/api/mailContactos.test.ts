@@ -177,6 +177,8 @@ describe("normalizadores de contactos", () => {
   it("el resultado de generar enlaces completa el total si falta", () => {
     expect(normalizarEnlacesGenerados({ generados: 5, conservados: 307 })).toEqual({
       generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta", url: "", aviso: null, mapeado: [],
+      // Sin variable declarada, el enlace usa `t` (la de siempre).
+      variable: "t",
     });
     expect(normalizarEnlacesGenerados({
       ok: true, generados: 1, conservados: 0, total: 1, campo: "enlace_encuesta", label: "Enlace a la encuesta",

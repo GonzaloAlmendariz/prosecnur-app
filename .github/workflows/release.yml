@@ -231,7 +231,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stable-windows
-          retention-days: 7
+          # Lo consume el job de publicación de esta misma corrida y el instalador
+          # queda en el release: un día basta y no llena la cuota de Actions.
+          retention-days: 1
           if-no-files-found: error
           path: |
             dist.nosync/Prosecnur-Setup.exe
@@ -346,7 +348,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stable-macos
-          retention-days: 7
+          # Lo consume el job de publicación de esta misma corrida y el instalador
+          # queda en el release: un día basta y no llena la cuota de Actions.
+          retention-days: 1
           if-no-files-found: error
           path: |
             dist.nosync/mac-builder-output/*.dmg

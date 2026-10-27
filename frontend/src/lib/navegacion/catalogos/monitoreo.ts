@@ -407,6 +407,8 @@ export const MONITOREO_PESTANAS_INTERNAS_TELEFONICO = {
     responsables: pestana("telefonico", "telefonico", "responsables", "Responsables", "Equipo y carga", ContactRound),
     alertas: pestana("telefonico", "telefonico", "alertas", "Alertas reales", "Alertas reales", ShieldAlert),
     supervision: pestana("telefonico", "telefonico", "supervision", "Supervisión telefónica", "Control y muestra", ClipboardCheck),
+    // Control › Barrido › No barridos: casos asignados sin intento y su antigüedad.
+    noBarridos: pestana("telefonico", "telefonico", "no-barridos", "No barridos", "Casos sin barrer por antigüedad", Clock3),
   },
   avance: {
     resumen: pestana("telefonico", "avance", "resumen", "Diario", "Ritmo Kobo", BarChart3),

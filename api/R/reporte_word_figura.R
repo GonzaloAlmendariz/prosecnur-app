@@ -54,7 +54,7 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
 #' @keywords internal
 .word_rotulo <- function(doc, n, titulo, etiqueta = "Gráfico") {
   num <- .word_estilo_id(doc, "Número de rótulo")
-  titulo <- .word_rotulo_titulo(titulo)
+  titulo <- .texto_espacio_duro(.word_rotulo_titulo(titulo))   # C6: «38 %» y «N° 7» no se parten (texto_espacio_duro.R)
   # Sin número (`n = NA`): un ejemplo ilustrativo, como los de «Cómo leer este informe». Va como «Ejemplo: …» y SIN campo
   # SEQ: Word renumera los SEQ en orden, así que no basta con saltarse el contador (Gonzalo, 2026-10-26: el ejemplo del
   # Top Two Box salía como «Gráfico 1» y corría la numeración del informe; tampoco entra al índice de gráficos).
@@ -64,7 +64,7 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
     return(officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico"))
   }
   # R1: «Gráfico N° » + SEQ (identificador = etiqueta, el que pide el índice) (reporte_word_rotulo.R)
-  partes <- list(.word_run_estilo(.word_rotulo_prefijo(etiqueta), num), .word_run_seq(etiqueta, n, num))
+  partes <- list(.word_run_estilo(.texto_espacio_duro(.word_rotulo_prefijo(etiqueta)), num), .word_run_seq(etiqueta, n, num))
   if (nzchar(titulo)) partes[[3]] <- .word_run_estilo(paste0(.WORD_ROTULO_SEPARADOR, titulo), num)
   officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico")
 }

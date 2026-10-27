@@ -101,12 +101,14 @@
   background: var(--pulso-module-monitoring);
 }
 
-.mon-cadencia .is-serie-0 { background: var(--pulso-brand-navy); }
-.mon-cadencia .is-serie-1 { background: color-mix(in srgb, var(--pulso-brand-navy) 78%, var(--pulso-surface)); }
-.mon-cadencia .is-serie-2 { background: color-mix(in srgb, var(--pulso-brand-navy) 58%, var(--pulso-surface)); }
-.mon-cadencia .is-serie-3 { background: color-mix(in srgb, var(--pulso-brand-navy) 40%, var(--pulso-surface)); }
-.mon-cadencia .is-serie-4 { background: color-mix(in srgb, var(--pulso-brand-navy) 26%, var(--pulso-surface)); }
-.mon-cadencia .is-serie-5 { background: color-mix(in srgb, var(--pulso-brand-navy) 14%, var(--pulso-surface)); }
+/* Un color por actor con la paleta de públicos del estándar: la rampa de
+ * azules confundía Actualidad con Post-pandemia (Gonzalo, 2026-10-27). */
+.mon-cadencia .is-serie-0 { background: var(--pulso-publico-1); }
+.mon-cadencia .is-serie-1 { background: var(--pulso-publico-2); }
+.mon-cadencia .is-serie-2 { background: var(--pulso-publico-3); }
+.mon-cadencia .is-serie-3 { background: var(--pulso-publico-4); }
+.mon-cadencia .is-serie-4 { background: var(--pulso-publico-5); }
+.mon-cadencia .is-serie-5 { background: var(--pulso-publico-6); }
 
 .mon-cadencia .is-efectiva { background: var(--pulso-success-fg); }
 .mon-cadencia .is-parcial { background: color-mix(in srgb, var(--pulso-success-fg) 45%, var(--pulso-surface)); }
@@ -184,9 +186,14 @@
   font-size: 12px;
 }
 
+/* Como las tablas de Control: al soltar el scroll la fila queda entera bajo
+ * la cabecera pegajosa (el detector «cabecera tapa fila» la marcaba). */
 .mon-cadencia-dia-a-dia-marco {
+  --mon-ctl-cabecera-alto: 34px;
   max-height: 320px;
   overflow-y: auto;
+  scroll-padding-top: var(--mon-ctl-cabecera-alto);
+  scroll-snap-type: y proximity;
 }
 
 .mon-cadencia-dia-a-dia tr.is-pico th,

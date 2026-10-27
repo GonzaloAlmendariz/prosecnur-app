@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isDynamicImportLoadError, moduloConComponente } from "./lazyWithReload";
+import { isDynamicImportLoadError, moduloConComponente, recargarSiElBuildCambio } from "./lazyWithReload";
 
 describe("isDynamicImportLoadError", () => {
   test("detects Vite dynamic import failures", () => {
@@ -39,5 +39,11 @@ describe("moduloConComponente", () => {
     expect(moduloConComponente({ default: fn }, "X").default).toBe(fn);
     const memo = { $$typeof: Symbol.for("react.memo") };
     expect(moduloConComponente({ default: memo }, "X").default).toBe(memo);
+  });
+});
+
+describe("recargarSiElBuildCambio", () => {
+  test("un error ajeno a la carga del chunk no recarga", () => {
+    expect(recargarSiElBuildCambio(new Error("Cannot read properties of null"), "monitoreo-territorial")).toBe(false);
   });
 });

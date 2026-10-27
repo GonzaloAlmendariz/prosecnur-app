@@ -18431,11 +18431,11 @@ function renderAcreditacionView(
       />
     );
   }
-  if (view === "telefonico" && options.activePhoneTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
-    return <BarridoDeLaHoja reports={reports} state={options.state} cuotas={phoneQuotaCardsForDashboard(reports)} />; // Control › Barrido (T5).
+  if (view === "telefonico" && (options.activePhoneTab === "resumen" || options.activePhoneTab === "no-barridos") && isTelefonicoMonitoreoState(options.state)) {
+    return <BarridoDeLaHoja reports={reports} state={options.state} cuotas={phoneQuotaCardsForDashboard(reports)} vista={options.activePhoneTab} />; // Control › Barrido (T5) y su sub-vista No barridos.
   }
   if (view === "telefonico" && options.activePhoneTab === "alertas" && isTelefonicoMonitoreoState(options.state)) {
-    return <Avisos reports={reports} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
+    return <Avisos reports={reports} corte={options.state?.synced_at} onIrA={(seccion, pestana) => { const vista = vistaDeDestino(seccion, pestana); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Avisos (T6).
   }
   if (view === "telefonico" && options.activePhoneTab === "supervision" && isTelefonicoMonitoreoState(options.state)) {
     return <Supervision reports={reports} state={options.state} onStateChange={options.onStateChange} onIrAFuentes={() => { const vista = vistaDeDestino("insumos", "fuentes"); if (vista) options.onNavigateLocalTab?.(vista.seccion, vista.pestana as AcreditacionLocalTabKey); }} />; // Control › Supervisión (T9, rondas).

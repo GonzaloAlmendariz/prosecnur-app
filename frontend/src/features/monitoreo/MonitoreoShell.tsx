@@ -4,6 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { LoadingBlock } from "../../components/States";
 import { apiMonitoreoConfig, apiMonitoreoState, apiProjectOverview, type MonitoreoState } from "../../api/client";
 import { MODULE_TONES } from "../../lib/modules";
+import { marcarCargaExitosa, recargarSiElBuildCambio } from "../../lib/lazyWithReload";
 import { preloadMonitoreoFamily, normalizeMonitoreoFamily } from "./profiles/registry";
 import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./profiles/types";
 import { MonitoreoModeChoice } from "./MonitoreoModeChoice";
@@ -92,10 +93,15 @@ export default function MonitoreoShell() {
         setProfile(loaded);
         const pageModule = await loaded.loadPage();
         if (cancelled) return;
+        marcarCargaExitosa(`monitoreo-${family}`);
         setPage(() => pageModule.default);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError((e as Error).message);
+        if (cancelled) return;
+        // Con el build regenerado, la página se recarga y el fallback sigue
+        // montado mientras tanto; sólo un segundo fallo llega a la pantalla.
+        if (recargarSiElBuildCambio(e, `monitoreo-${family}`)) return;
+        setError((e as Error).message);
       });
 
     return () => {
