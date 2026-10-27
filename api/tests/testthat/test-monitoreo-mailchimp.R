@@ -71,6 +71,11 @@ test_that("el token sale del enlace personal y sólo cuenta el clic en la encues
   expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?t=7ewf3g1ram"), "7ewf3g1ram")
   expect_identical(.mcm_token("https://x/r?a=1&t=AB-12_cd&b=2"), "AB-12_cd")
   expect_identical(.mcm_token("sin enlace"), "")
+  # Campaña con la variable `id`: vale el token con la forma de los de la app,
+  # no otro parámetro del enlace del recopilador.
+  expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?id=7ewf3g1ram"), "7ewf3g1ram")
+  expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?lang=es&id=7ewf3g1ram"), "7ewf3g1ram")
+  expect_identical(.mcm_token("https://es.surveymonkey.com/r/GWB65HY?lang=es"), "")
   expect_identical(.mcm_token_de_campos(list(FNAME = "Ana", ENLACE = "https://x?t=abc123")), "abc123")
   expect_true(.mcm_clic_en_encuesta("*|HTML:ENLACE|*"))
   expect_true(.mcm_clic_en_encuesta("https://es.surveymonkey.com/r/ABC?t=x1"))

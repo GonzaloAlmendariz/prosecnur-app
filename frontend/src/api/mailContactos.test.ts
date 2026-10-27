@@ -237,11 +237,16 @@ describe("llamadas", () => {
     expect(init.method).toBe("PUT");
     expect(JSON.parse(String(init.body))).toEqual({ campaign_id: "egresados", variables: ["carrera", "sexo"] });
 
-    responder({ generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta" });
-    const enlaces = await apiMailContactosEnlace("egresados", "https://es.surveymonkey.com/r/ABC");
+    responder({ generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta", variable: "id" });
+    const enlaces = await apiMailContactosEnlace("egresados", "https://es.surveymonkey.com/r/ABC", "id");
     expect(enlaces.total).toBe(312);
+    expect(enlaces.variable).toBe("id");
     const [url, init2] = fetchMock.mock.calls.at(-1) as [string, RequestInit];
     expect(url).toContain("/api/recopiladores/mail-contacts/enlace");
-    expect(JSON.parse(String(init2.body))).toEqual({ campaign_id: "egresados", url: "https://es.surveymonkey.com/r/ABC" });
+    expect(JSON.parse(String(init2.body))).toEqual({ campaign_id: "egresados", url: "https://es.surveymonkey.com/r/ABC", variable: "id" });
+
+    // Sin variable en la respuesta (backend anterior) se lee `t`.
+    responder({ generados: 1, conservados: 0, total: 1, campo: "enlace_encuesta" });
+    expect((await apiMailContactosEnlace("egresados", "https://es.surveymonkey.com/r/ABC", "t")).variable).toBe("t");
   });
 });

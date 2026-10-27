@@ -14,7 +14,7 @@ import {
   apiMailContactosPerfil,
   filtrosComoJson,
 } from "../../../../api/mailContactos";
-import { columnasFiltradas, cruceVigente, filtrosSin, validarEnlace } from "./modeloContactos";
+import { columnasFiltradas, cruceVigente, filtrosSin, validarEnlace, validarVariable } from "./modeloContactos";
 import { useContactosStore } from "./store";
 
 export const POR_PAGINA = 50;
@@ -143,12 +143,17 @@ export function useContactos(campaignId: string | null): AccionesDeContactos {
     if (!id) return;
     const validacion = validarEnlace(st.enlace.url);
     if (!validacion.ok) {
-      st.enlaceFallo(validacion.motivo);
+      st.enlaceFallo(validacion.motivo, "url");
+      return;
+    }
+    const variable = validarVariable(st.enlace.variable);
+    if (!variable.ok) {
+      st.enlaceFallo(variable.motivo, "variable");
       return;
     }
     st.enlaceInicio();
     try {
-      const resultado = await apiMailContactosEnlace(id, validacion.url);
+      const resultado = await apiMailContactosEnlace(id, validacion.url, variable.variable);
       if (s.getState().campana === id) s.getState().enlaceListo(resultado);
     } catch (causa) {
       if (s.getState().campana === id) s.getState().enlaceFallo(mensajeDe(causa, "No se pudieron generar los enlaces."));

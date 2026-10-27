@@ -159,7 +159,8 @@
 
 .cmail_no_store_resumen <- function() {
   list(importados = 0L, efectivos = 0L, sin_correo = 0L, correo_invalido = 0L, repetidos = 0L,
-       con_enlace = 0L, respondieron = NA_integer_, leido_en = NA_character_, enlace_url = NA_character_)
+       con_enlace = 0L, respondieron = NA_integer_, leido_en = NA_character_, enlace_url = NA_character_,
+       enlace_variable = NA_character_)
 }
 
 .cmail_contact_resumen <- function(store, fr) {
@@ -172,9 +173,11 @@
     con_enlace = as.integer(sum(fr$efectivo & fr$tiene_enlace)),
     respondieron = if (fr$leidas) as.integer(sum(fr$efectivo & fr$respondio %in% TRUE)) else NA_integer_,
     leido_en = if (fr$leidas) as.character(store$lectura$leido_en %||% NA_character_) else NA_character_,
-    # El enlace del recopilador con que se generaron los enlaces (store$enlace,
-    # collection_mail_enlace.R); null si aún no se generaron.
-    enlace_url = .cmail_enlace_url_of(store)
+    # El enlace del recopilador y la variable de la encuesta con que se
+    # generaron los enlaces (store$enlace, collection_mail_enlace.R); null si
+    # aún no se generaron.
+    enlace_url = .cmail_enlace_url_of(store),
+    enlace_variable = .cmail_enlace_variable_saved(store)
   )
 }
 
@@ -324,7 +327,8 @@ collection_mail_contacts_perfil <- function(sid, campaign_id = NULL, filtros = N
   if (is.null(store)) {
     return(list(ok = TRUE, campaign_id = pick$campaign$campaign_id, cargados = FALSE, base = 0L,
                 control = as.list(.cmail_campaign_control(pick$campaign)), candidatas = list(), variables = list(),
-                cruce = NA, respuestas_leidas = FALSE, enlace_url = NA_character_))
+                cruce = NA, respuestas_leidas = FALSE, enlace_url = NA_character_,
+                enlace_variable = NA_character_))
   }
   fr <- .cmail_contact_frame(store)
   mask <- .cmail_contact_filter_mask(store, filtros)
@@ -356,7 +360,8 @@ collection_mail_contacts_perfil <- function(sid, campaign_id = NULL, filtros = N
     variables = lapply(control, function(k) .cmail_perfil_variable(store, k, base_idx, fr, labels[[k]])),
     cruce = cruce_out,
     respuestas_leidas = isTRUE(fr$leidas),
-    enlace_url = .cmail_enlace_url_of(store)
+    enlace_url = .cmail_enlace_url_of(store),
+    enlace_variable = .cmail_enlace_variable_saved(store)
   )
 }
 

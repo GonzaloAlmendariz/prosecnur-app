@@ -33,6 +33,7 @@ test_that("cruza tokens de respuestas completas con la campaña y etiqueta solo 
   calls <- list()
   local_mocked_bindings(
     .connections_token_require = .mc_fx_tokens,
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(survey_id, token, ...) .mc_fx_responses(),
     .mc_http = function(method, url, key, body = NULL) {
       calls[[length(calls) + 1L]] <<- list(method = method, url = url, body = body)
@@ -66,6 +67,7 @@ test_that("crea la etiqueta si la audiencia no la tiene", {
   creada <- NULL
   local_mocked_bindings(
     .connections_token_require = .mc_fx_tokens,
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) .mc_fx_responses(),
     .mc_http = function(method, url, key, body = NULL) {
       if (grepl("/segments\\?", url)) return(list(status = 200L, body = list(segments = list())))
@@ -87,6 +89,7 @@ test_that("cuenta a quien no está en la audiencia y reparte en lotes de 500", {
   lotes <- integer()
   local_mocked_bindings(
     .connections_token_require = .mc_fx_tokens,
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) list(data = lapply(seq_len(n), function(i)
       list(response_status = "completed", custom_variables = list(t = sprintf("tok%05d", i))))),
     .mc_http = function(method, url, key, body = NULL) {
@@ -110,6 +113,7 @@ test_that("dry_run cuenta sin tocar Mailchimp ni pedir su clave", {
       if (identical(provider, "mailchimp")) stop("no debía pedir la clave de Mailchimp")
       "sm-token"
     },
+    .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) .mc_fx_responses(),
     .mc_http = function(...) stop("no debía llamar a Mailchimp")
   )

@@ -2,13 +2,17 @@
 # Material de campo › Correos › «Actualizar quién respondió» (Mailchimp)
 #
 # Mailchimp no sabe quién terminó la encuesta: el enlace es un recopilador web
-# de SurveyMonkey con la variable `t` (token aleatorio por persona). Para que un
-# recordatorio llegue solo a quien no respondió, esta pieza:
+# de SurveyMonkey con una variable personalizada (`t` por defecto, o la que la
+# campaña declare: collection_mail_enlace.R) que lleva un token aleatorio por
+# persona. Para que un recordatorio llegue solo a quien no respondió, esta pieza:
 #
-#   1. lee las respuestas de la encuesta en SurveyMonkey (`custom_variables$t`);
-#   2. cruza cada token con los destinatarios de la campaña (el token va dentro
+#   1. comprueba que la encuesta declare esa variable: si no, SurveyMonkey
+#      descarta el token del enlace y nadie podría quedar como «Respondió»;
+#   2. lee las respuestas de la encuesta (`custom_variables`) y reconoce el
+#      token por su valor, cualquiera sea el nombre de la variable;
+#   3. cruza cada token con los destinatarios de la campaña (el token va dentro
 #      del enlace personal, `?t=...`, en alguno de sus campos);
-#   3. pone una etiqueta («Respondió» por defecto) a esos correos en la
+#   4. pone una etiqueta («Respondió» por defecto) a esos correos en la
 #      audiencia de Mailchimp, por su API.
 #
 # En Mailchimp, el recordatorio se envía al segmento «no tiene la etiqueta
@@ -157,12 +161,28 @@ mailchimp_api_lists <- function(key) {
   list(added = added, not_in_audience = not_found)
 }
 
-# Token de la variable `t` dentro de un texto con un enlace («…/r/ABC?t=xyz»).
-.mc_token_of <- function(x) {
+# Token de la variable (`t` por defecto) dentro de un texto con un enlace
+# («…/r/ABC?t=xyz»).
+.mc_token_of <- function(x, variable = .CMAIL_ENLACE_VARIABLE_DEFAULT) {
   x <- as.character(x %||% "")
-  m <- regmatches(x, regexpr("[?&]t=[A-Za-z0-9_-]{4,}", x))
+  m <- regmatches(x, regexpr(sprintf("[?&]%s=[A-Za-z0-9_-]{4,}", variable), x))
   if (!length(m)) return(NA_character_)
-  sub("^[?&]t=", "", m[[1]])
+  sub(sprintf("^[?&]%s=", variable), "", m[[1]])
+}
+
+# Token de una respuesta de SurveyMonkey: el valor de la variable de la campaña
+# si es un token de la campaña; si no, el de cualquier otra variable que lo sea
+# (la lectura no depende del nombre); si ninguno, el de la variable de la
+# campaña tal cual (cuenta como «de otra campaña»), o NA si no trae ninguno.
+.mc_response_token <- function(custom_variables, variable, known) {
+  cv <- custom_variables %||% list()
+  values <- vapply(cv, function(v) .mc_token_of(paste0("?t=", as.character(v %||% "")[1])), "")
+  if (!length(values)) return(NA_character_)
+  own <- if (variable %in% names(values)) values[[variable]] else NA_character_
+  if (!is.na(own) && own %in% known) return(own)
+  hit <- values[!is.na(values) & values %in% known]
+  if (length(hit)) return(unname(hit[[1]]))
+  own
 }
 
 # token → correo, a partir de los destinatarios importados en la campaña. El
@@ -172,12 +192,13 @@ mailchimp_api_lists <- function(key) {
   resolved <- .cmail_recipients_resolve(store, template)
   cols <- unlist(store$mapping$fields %||% list(), use.names = FALSE)
   generated <- store$tokens %||% character(0)
+  variable <- .cmail_enlace_variable_of(store)
   idx <- character()
   for (i in resolved$rows) {
     key <- tolower(resolved$email[[i]])
     if (key %in% names(generated)) { idx[[generated[[key]]]] <- key; next }
     for (col in cols) {
-      t <- .mc_token_of(store$rows[[col]][[i]])
+      t <- .mc_token_of(store$rows[[col]][[i]], variable)
       if (!is.na(t)) { idx[[t]] <- tolower(resolved$email[[i]]); break }
     }
   }
@@ -202,15 +223,17 @@ mailchimp_api_lists <- function(key) {
   store <- .cmail_recipients_load(session, ct$campaign_id)
   if (is.null(store)) {
     stop_api(409, "E_COLLECTION_MAIL_SYNC_NO_RECIPIENTS",
-             "Importa primero los destinatarios de la campaña: de ahí sale el token de cada persona.")
+             "Importa primero los destinatarios de la campaña: de ahí sale el enlace personal de cada uno.")
   }
   ti <- .mc_token_index(store, ct$template)
+  variable <- .cmail_enlace_variable_of(store)
   if (!length(ti$index)) {
     stop_api(409, "E_COLLECTION_MAIL_SYNC_NO_TOKENS",
-             "Ningún destinatario tiene un enlace con «?t=». Genera el enlace a la encuesta en Contactos o asocia a un campo la columna del enlace personal.")
+             "Ningún destinatario tiene su enlace personal a la encuesta. Genéralo en Contactos › Enlace personal o asocia a un campo la columna con el enlace de cada persona.")
   }
   list(
     campaign_id = ct$campaign_id, survey_id = survey_id, list_id = list_id, tag = tag, dry_run = isTRUE(dry_run),
+    variable = variable,
     index = ti$index, recipients = ti$recipients,
     sm_token = .connections_token_require("surveymonkey", sid),
     mc_key = if (!isTRUE(dry_run)) .connections_token_require("mailchimp", sid)
@@ -219,11 +242,16 @@ mailchimp_api_lists <- function(key) {
 
 .mc_sync_run <- function(input, report = function(...) invisible(NULL)) {
   force(input)
+  variable <- input$variable %||% .CMAIL_ENLACE_VARIABLE_DEFAULT
+  report("surveymonkey", percent = 2, message = "Revisando la encuesta en SurveyMonkey...")
+  verdict <- .mc_variable_verdict(variable, .mc_survey_variables(input$survey_id, input$sm_token))
+  if (!verdict$ok) stop_api(409, "E_COLLECTION_MAIL_SYNC_VARIABLE", verdict$mensaje)
   report("surveymonkey", percent = 5, message = "Leyendo las respuestas de SurveyMonkey...")
   responses <- tryCatch(sm_api_fetch_all_responses_bulk(input$survey_id, input$sm_token)$data,
                         error = function(e) stop_api(502, "E_MAILCHIMP_SYNC_SURVEYMONKEY", paste("No se pudieron leer las respuestas de SurveyMonkey:", conditionMessage(e))))
   st <- vapply(responses, function(r) as.character(r$response_status %||% "")[1], "")
-  tk <- vapply(responses, function(r) .mc_token_of(paste0("?t=", as.character(r$custom_variables$t %||% "")[1])), "")
+  known <- names(input$index)
+  tk <- vapply(responses, function(r) .mc_response_token(r$custom_variables, variable, known), "")
   completed <- st == "completed"
   has_token <- !is.na(tk)
   in_campaign <- has_token & tk %in% names(input$index)
@@ -351,6 +379,55 @@ collection_mail_mailchimp_sync_submit <- function(sid, campaign_id = NULL, surve
 .mc_sync_mark_hook <- function(sid, campaign_id, survey_id) {
   ctx <- list(campaign_id = campaign_id, survey_id = survey_id)
   function(j) .mc_sync_mark(sid, ctx, j$result_data)
+}
+
+# ---- ¿La encuesta recibe la variable de la campaña? ---------------------------
+
+# Nombres de las variables personalizadas que declara la encuesta.
+.mc_survey_variables <- function(survey_id, token) {
+  details <- tryCatch(sm_api_fetch_survey_details(survey_id, token),
+                      error = function(e) stop_api(502, "E_MAILCHIMP_SYNC_SURVEYMONKEY",
+                                                   paste("No se pudo leer la encuesta en SurveyMonkey:", conditionMessage(e))))
+  names(details$custom_variables %||% list()) %||% character(0)
+}
+
+# Veredicto puro: la variable de la campaña contra las de la encuesta. El
+# mensaje dice la causa y el arreglo, en las dos direcciones posibles.
+.mc_variable_verdict <- function(variable, survey_variables) {
+  survey_variables <- as.character(survey_variables %||% character(0))
+  if (variable %in% survey_variables) {
+    return(list(ok = TRUE, mensaje = sprintf("La encuesta usa la variable «%s»: se sabrá quién respondió.", variable)))
+  }
+  quote <- function(x) paste0("«", x, "»")
+  mensaje <- if (!length(survey_variables)) {
+    sprintf(paste("La encuesta no tiene la variable «%s», así que SurveyMonkey no guardaría a quién corresponde cada",
+                  "respuesta y nadie quedaría como «Respondió». En SurveyMonkey, agrégale una variable con el nombre «%s»."),
+            variable, variable)
+  } else {
+    otras <- if (length(survey_variables) == 1L) sprintf("la variable %s", quote(survey_variables))
+             else paste("las variables", paste(quote(survey_variables), collapse = " y "))
+    sprintf(paste("La encuesta usa %s, no «%s», así que SurveyMonkey no guardaría a quién corresponde cada respuesta.",
+                  "Escribe %s en Contactos › Enlace personal y genera de nuevo los enlaces, o cambia el nombre en",
+                  "SurveyMonkey a «%s»."),
+            otras, variable, quote(survey_variables[[1]]), variable)
+  }
+  list(ok = FALSE, mensaje = mensaje)
+}
+
+#' `GET /api/recopiladores/mail-sync/check`: ¿la encuesta elegida recibe la
+#' variable con que la campaña genera los enlaces? Se pregunta antes de enviar.
+#' @return list(ok, campaign_id, survey_id, variable, variables_encuesta, coincide, mensaje).
+#' @keywords internal
+collection_mail_mailchimp_check <- function(sid, campaign_id = NULL, survey_id) {
+  session <- session_get(sid)
+  ct <- .cmail_campaign_template_for_session(session, campaign_id)
+  survey_id <- trimws(as.character(survey_id %||% "")[1])
+  if (is.na(survey_id) || !nzchar(survey_id)) stop_api(422, "E_COLLECTION_MAIL_SYNC_INPUT", "Elige la encuesta de SurveyMonkey.")
+  variable <- .cmail_enlace_variable_of(.cmail_recipients_load(session, ct$campaign_id))
+  survey_variables <- .mc_survey_variables(survey_id, .connections_token_require("surveymonkey", sid))
+  verdict <- .mc_variable_verdict(variable, survey_variables)
+  list(ok = TRUE, campaign_id = ct$campaign_id, survey_id = survey_id, variable = variable,
+       variables_encuesta = I(survey_variables), coincide = verdict$ok, mensaje = verdict$mensaje)
 }
 
 #' Lo que la UI necesita para elegir: encuestas de SurveyMonkey y audiencias de

@@ -205,6 +205,11 @@ mount_recopiladores <- function(pr) {
     plumber::pr_get("/api/recopiladores/mail-sync/options", wrap_endpoint(function(req, res, ...) {
       collection_mail_mailchimp_options(session_header(req))
     })) |>
+    # ¿La encuesta recibe la variable con que la campaña genera los enlaces?
+    plumber::pr_get("/api/recopiladores/mail-sync/check", wrap_endpoint(function(req, res, campaign_id = NULL,
+                                                                          survey_id = NULL, ...) {
+      collection_mail_mailchimp_check(session_header(req), campaign_id = campaign_id, survey_id = survey_id)
+    })) |>
     # Job con avance: responde {ok, job_id}; el resultado se lee en /api/jobs/<id>.
     plumber::pr_post("/api/recopiladores/mail-sync", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
@@ -299,7 +304,8 @@ mount_recopiladores <- function(pr) {
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/mail-contacts/enlace", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_enlace_put(session_header(req), campaign_id = body$campaign_id, url = body$url)
+      collection_mail_enlace_put(session_header(req), campaign_id = body$campaign_id, url = body$url,
+                                 variable = body$variable)
     })) |>
     # Catálogo › Tipos (ADR 0109 E1a): los tipos de material y su miniatura,
     # compilada por el MISMO motor del PDF contra una unidad de prueba. Lectura

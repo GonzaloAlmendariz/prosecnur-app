@@ -17,9 +17,25 @@ export function resumenDeSincronizacion(r: ResultadoDeSincronizacion): { titulo:
   }
   if (r.not_in_audience) lineas.push(`${personas(r.not_in_audience)} ${uno(r.not_in_audience, "no está", "no están")} en esa audiencia de Mailchimp: ${uno(r.not_in_audience, "no se pudo", "no se pudieron")} etiquetar.`);
   if (r.partial) lineas.push(`${personas(r.partial)} ${uno(r.partial, "dejó la encuesta a medias: sigue", "dejaron la encuesta a medias: siguen")} recibiendo recordatorios.`);
-  if (r.from_other_campaign) lineas.push(`${n(r.from_other_campaign)} ${uno(r.from_other_campaign, "respuesta trae", "respuestas traen")} un token que no es de esta campaña.`);
-  if (r.without_token) lineas.push(`${n(r.without_token)} ${uno(r.without_token, "respuesta entró", "respuestas entraron")} sin token y no se ${uno(r.without_token, "puede", "pueden")} atribuir.`);
+  if (r.from_other_campaign) lineas.push(`${n(r.from_other_campaign)} ${uno(r.from_other_campaign, "respuesta llegó", "respuestas llegaron")} por un enlace que no es de esta campaña.`);
+  if (r.without_token) lineas.push(`${n(r.without_token)} ${uno(r.without_token, "respuesta entró", "respuestas entraron")} sin enlace personal y no se ${uno(r.without_token, "puede", "pueden")} atribuir.`);
   return { titulo, lineas };
+}
+
+/**
+ * «Actualizar quién respondió» se habilita con las conexiones, la encuesta y la
+ * audiencia elegidas, salvo que la encuesta ya se sepa que no recibe la variable
+ * de la campaña (`coincide === false`). Sin veredicto todavía no se bloquea: la
+ * sincronización vuelve a revisar y dice la causa.
+ */
+export function puedeActualizar(p: {
+  mailchimpListo: boolean;
+  surveymonkeyConectado: boolean;
+  encuesta: string;
+  audiencia: string;
+  coincide: boolean | null;
+}): boolean {
+  return p.mailchimpListo && p.surveymonkeyConectado && !!p.encuesta && !!p.audiencia && p.coincide !== false;
 }
 
 /** La condición del segmento que hay que elegir en Mailchimp, dicha como allá. */

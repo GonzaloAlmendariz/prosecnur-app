@@ -15,17 +15,19 @@ import { useCallback, useEffect, useId, useState } from "react";
 
 import {
   apiOpcionesDeSincronizacion,
+  apiRevisarVariable,
   apiSincronizarRespuestas,
   normalizeResultado,
   type OpcionesDeSincronizacion,
   type ResultadoDeSincronizacion,
+  type RevisionDeVariable,
 } from "../../../api/mailchimpSync";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { CheckCircle2, Loader2, RefreshCw } from "../../../vendor/lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "../../../vendor/lucide-react";
 import { MailchimpAvance } from "./MailchimpAvance";
 import { mensajeDeError } from "./mailchimpPorApiModel";
 import { esperarTrabajo, type AvanceDeTrabajo } from "./mailchimpTrabajo";
-import { PASOS_EN_MAILCHIMP, guardarEleccion, leerEleccion, resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
+import { PASOS_EN_MAILCHIMP, guardarEleccion, leerEleccion, puedeActualizar, resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
 import "./correosSincronizacion.css";
 
 type Props = {
@@ -47,6 +49,8 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
   const [avance, setAvance] = useState<AvanceDeTrabajo | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState<ResultadoDeSincronizacion | null>(null);
+  // La encuesta elegida, ¿recibe la variable del token? Se pregunta al elegirla.
+  const [revision, setRevision] = useState<{ encuesta: string; r: RevisionDeVariable } | null>(null);
   const trabajando = avance !== undefined;
   const opciones = incrustado?.opciones ?? propias;
   const audiencia = incrustado?.audiencia ?? audienciaPropia;
@@ -67,6 +71,18 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
   useEffect(() => { if (suelto) void cargar(); }, [cargar, suelto]);
   useEffect(() => { onEtiqueta?.(etiqueta.trim() || "Respondió"); }, [etiqueta, onEtiqueta]);
 
+  const smConectado = !!(incrustado?.opciones ?? propias)?.surveymonkey.connected;
+  useEffect(() => {
+    if (!encuesta || !smConectado) return;
+    let vigente = true;
+    apiRevisarVariable({ campaign_id: campana, survey_id: encuesta })
+      .then((r) => { if (vigente) setRevision({ encuesta, r }); })
+      // Sin veredicto no se afirma nada: la sincronización vuelve a revisar y dice la causa.
+      .catch(() => { if (vigente) setRevision(null); });
+    return () => { vigente = false; };
+  }, [campana, encuesta, smConectado]);
+  const revisionVigente = revision && revision.encuesta === encuesta ? revision.r : null;
+
   const sincronizar = async () => {
     setAvance(null); setError(""); setResultado(null);
     try {
@@ -84,7 +100,13 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
   const mc = opciones?.mailchimp;
   const sm = opciones?.surveymonkey;
   const mcListo = !!mc?.connected && !mc.error;
-  const listo = mcListo && !!sm?.connected && !!encuesta && !!audiencia;
+  const listo = puedeActualizar({
+    mailchimpListo: mcListo,
+    surveymonkeyConectado: !!sm?.connected,
+    encuesta,
+    audiencia,
+    coincide: revisionVigente ? revisionVigente.coincide : null,
+  });
   const resumen = resultado ? resumenDeSincronizacion(resultado) : null;
   const Titulo = incrustado ? "h6" : "h5";
 
@@ -144,6 +166,16 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
                 ))}
               </select>
             </label>
+          ) : null}
+          {revisionVigente ? (
+            <p
+              className={`rec-sync-variable${revisionVigente.coincide ? "" : " rec-sync-variable--falta"}`}
+              role="status"
+              data-testid="sync-variable"
+            >
+              {revisionVigente.coincide ? <CheckCircle2 size={14} aria-hidden /> : <AlertTriangle size={14} aria-hidden />}
+              <span>{revisionVigente.mensaje}</span>
+            </p>
           ) : null}
           <label className="rec-env-campo">
             <span className="rec-mail-campo-rotulo"><span>Etiqueta</span></span>

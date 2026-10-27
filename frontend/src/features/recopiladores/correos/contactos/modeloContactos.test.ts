@@ -24,11 +24,13 @@ import {
   totalesDelCruce,
   vacioDelPerfil,
   validarEnlace,
+  validarVariable,
 } from "./modeloContactos";
+import { prellenarEnlace } from "./store";
 
 const RESUMEN: ResumenDeContactos = {
   importados: 320, efectivos: 312, sin_correo: 3, correo_invalido: 2, repetidos: 3,
-  con_enlace: 0, respondieron: null, leido_en: null, enlace_url: null,
+  con_enlace: 0, respondieron: null, leido_en: null, enlace_url: null, enlace_variable: null,
 };
 
 const CARRERA: VariableDelPerfil = {
@@ -180,16 +182,25 @@ describe("enlace a la encuesta", () => {
   });
 
   it("el resultado dice cuántos, cuántos nuevos y cuántos se conservaron", () => {
-    expect(textoDelResultado({ generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta", url: "", aviso: null, mapeado: [] }))
+    expect(textoDelResultado({ generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta", url: "", variable: "t", aviso: null, mapeado: [] }))
       .toBe("Listo: 312 enlaces (5 nuevos, 307 conservados). Úsalos en el botón del correo con el campo «Enlace a la encuesta».");
-    expect(textoDelResultado({ generados: 1, conservados: 0, total: 1, campo: "enlace_encuesta", url: "", aviso: null, mapeado: [] }))
+    expect(textoDelResultado({ generados: 1, conservados: 0, total: 1, campo: "enlace_encuesta", url: "", variable: "t", aviso: null, mapeado: [] }))
       .toBe("Listo: 1 enlace (1 nuevo, 0 conservados). Úsalo en el botón del correo con el campo «Enlace a la encuesta».");
+  });
+
+  it("la variable va como en SurveyMonkey; vacía vale t", () => {
+    expect(validarVariable("")).toEqual({ ok: true, variable: "t" });
+    expect(validarVariable("  id ")).toEqual({ ok: true, variable: "id" });
+    expect(validarVariable("ref_2")).toEqual({ ok: true, variable: "ref_2" });
+    for (const mala of ["1t", "mi variable", "t=", "id&x", "a".repeat(31)]) {
+      expect(validarVariable(mala)).toMatchObject({ ok: false });
+    }
   });
 });
 
 describe("vacíos", () => {
   const perfil = (p: Partial<PerfilDeContactos>): PerfilDeContactos => ({
-    cargados: true, base: 312, control: ["carrera"], candidatas: [], variables: [], cruce: null, respuestas_leidas: false, enlace_url: null, ...p,
+    cargados: true, base: 312, control: ["carrera"], candidatas: [], variables: [], cruce: null, respuestas_leidas: false, enlace_url: null, enlace_variable: null, ...p,
   });
 
   it("cada vacío tiene su causa", () => {
@@ -251,5 +262,27 @@ describe("faceta vigente", () => {
     expect(facetaVigente(facetas, { sexo: ["F", "M"], carrera: ["Derecho"] }, "sexo")).toBe(faceta);
     expect(facetaVigente(facetas, { sexo: ["F"], carrera: ["Medicina"] }, "sexo")).toBeNull();
     expect(facetaVigente(facetas, { carrera: ["Derecho"] }, "sexo")).toBeNull();
+  });
+});
+
+describe("prellenado del enlace guardado", () => {
+  const vacio = {
+    url: "", variable: "t", tocado: false, variableTocada: false, generando: false, resultado: null, error: "", errorEn: null,
+  } as const;
+  const guardado = { enlace_url: "https://es.surveymonkey.com/r/ABC", enlace_variable: "id" };
+
+  it("trae el enlace y la variable de la campaña", () => {
+    expect(prellenarEnlace({ ...vacio }, guardado)).toEqual({ enlace: { ...vacio, url: guardado.enlace_url, variable: "id" } });
+  });
+
+  it("pegar el enlace antes de que cargue la lista no deja la variable en t", () => {
+    const pegado = { ...vacio, url: "https://es.surveymonkey.com/r/OTRO", tocado: true };
+    expect(prellenarEnlace(pegado, guardado)).toEqual({ enlace: { ...pegado, variable: "id" } });
+  });
+
+  it("lo que el usuario escribió en la variable no se pisa; sin nada guardado, no cambia nada", () => {
+    const escrita = { ...vacio, variable: "ref", variableTocada: true };
+    expect(prellenarEnlace(escrita, guardado)).toEqual({ enlace: { ...escrita, url: guardado.enlace_url } });
+    expect(prellenarEnlace({ ...vacio }, { enlace_url: null, enlace_variable: null })).toEqual({});
   });
 });

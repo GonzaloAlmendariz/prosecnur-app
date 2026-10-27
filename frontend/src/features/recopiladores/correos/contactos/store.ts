@@ -25,13 +25,19 @@ export type Carga = "inicial" | "cargando" | "lista" | "error";
 
 export type VistaDelCruce = "casos" | "fila";
 
-type EstadoDelEnlace = {
+export type EstadoDelEnlace = {
   url: string;
-  /** El usuario ya escribió en el campo: el enlace guardado no lo pisa. */
+  /** La variable personalizada de la encuesta que lleva el token (`t` por defecto). */
+  variable: string;
+  /** El usuario ya escribió en el campo del enlace: el guardado no lo pisa. */
   tocado: boolean;
+  /** Ídem para la variable: se prellena aparte, para no mandar `t` a una campaña en `id`. */
+  variableTocada: boolean;
   generando: boolean;
   resultado: EnlacesGenerados | null;
   error: string;
+  /** El campo que causó el error, para marcar ese y no el otro; `null` si vino del servidor. */
+  errorEn: "url" | "variable" | null;
 };
 
 /**
@@ -102,12 +108,27 @@ export type EstadoContactos = {
   controlListo: (control: string[]) => void;
   controlFallo: (mensaje: string) => void;
   setUrlDelEnlace: (url: string) => void;
+  setVariableDelEnlace: (variable: string) => void;
   enlaceInicio: () => void;
   enlaceListo: (resultado: EnlacesGenerados) => void;
-  enlaceFallo: (mensaje: string) => void;
+  enlaceFallo: (mensaje: string, campo?: "url" | "variable") => void;
 };
 
-const ENLACE_INICIAL: EstadoDelEnlace = { url: "", tocado: false, generando: false, resultado: null, error: "" };
+const ENLACE_INICIAL: EstadoDelEnlace = {
+  url: "", variable: "t", tocado: false, variableTocada: false, generando: false, resultado: null, error: "", errorEn: null,
+};
+
+// El enlace y la variable guardados prellenan cada uno su campo al recargar,
+// mientras nadie haya escrito en él.
+export function prellenarEnlace(
+  enlace: EstadoDelEnlace,
+  guardado: { enlace_url: string | null; enlace_variable: string | null },
+): { enlace: EstadoDelEnlace } | Record<string, never> {
+  const url = guardado.enlace_url && !enlace.tocado && !enlace.url ? guardado.enlace_url : null;
+  const variable = guardado.enlace_variable && !enlace.variableTocada ? guardado.enlace_variable : null;
+  if (url === null && (variable === null || variable === enlace.variable)) return {};
+  return { enlace: { ...enlace, ...(url !== null ? { url } : {}), ...(variable !== null ? { variable } : {}) } };
+}
 
 const INICIAL = {
   campana: null,
@@ -159,22 +180,16 @@ export const useContactosStore = create<EstadoContactos>((set, get) => ({
     perfil,
     perfilCarga: "lista",
     perfilError: "",
-    ...(perfil.enlace_url && !s.enlace.tocado && !s.enlace.url
-      ? { enlace: { ...s.enlace, url: perfil.enlace_url } }
-      : {}),
+    ...prellenarEnlace(s.enlace, perfil),
   })),
   perfilFallo: (perfilError) => set({ perfilCarga: "error", perfilError }),
   listaInicio: () => set({ listaCarga: "cargando", listaError: "" }),
   facetaLista: (columna, faceta) => set((s) => ({ facetas: { ...s.facetas, [columna]: faceta } })),
-  // El enlace del recopilador guardado prellena el campo al recargar, mientras
-  // nadie haya escrito en él.
   listaLista: (lista) => set((s) => ({
     lista,
     listaCarga: "lista",
     listaError: "",
-    ...(lista.resumen.enlace_url && !s.enlace.tocado && !s.enlace.url
-      ? { enlace: { ...s.enlace, url: lista.resumen.enlace_url } }
-      : {}),
+    ...prellenarEnlace(s.enlace, lista.resumen),
   })),
   listaFallo: (listaError) => set({ listaCarga: "error", listaError }),
   controlInicio: () => set({ guardandoControl: true, controlError: "" }),
@@ -186,8 +201,9 @@ export const useContactosStore = create<EstadoContactos>((set, get) => ({
     refresco: s.refresco + 1,
   })),
   controlFallo: (controlError) => set({ guardandoControl: false, controlError }),
-  setUrlDelEnlace: (url) => set((s) => ({ enlace: { ...s.enlace, url, tocado: true, error: "" } })),
-  enlaceInicio: () => set((s) => ({ enlace: { ...s.enlace, generando: true, error: "", resultado: null } })),
+  setUrlDelEnlace: (url) => set((s) => ({ enlace: { ...s.enlace, url, tocado: true, error: "", errorEn: null } })),
+  setVariableDelEnlace: (variable) => set((s) => ({ enlace: { ...s.enlace, variable, variableTocada: true, error: "", errorEn: null } })),
+  enlaceInicio: () => set((s) => ({ enlace: { ...s.enlace, generando: true, error: "", errorEn: null, resultado: null } })),
   enlaceListo: (resultado) => set((s) => ({ enlace: { ...s.enlace, generando: false, resultado }, refresco: s.refresco + 1 })),
-  enlaceFallo: (error) => set((s) => ({ enlace: { ...s.enlace, generando: false, error } })),
+  enlaceFallo: (error, campo) => set((s) => ({ enlace: { ...s.enlace, generando: false, error, errorEn: campo ?? null } })),
 }));

@@ -370,6 +370,20 @@ export function validarEnlace(crudo: string): ValidacionDeEnlace {
   return { ok: true, url };
 }
 
+export type ValidacionDeVariable = { ok: true; variable: string } | { ok: false; motivo: string };
+
+/**
+ * La variable personalizada de la encuesta en SurveyMonkey. Vacía vale `t`; la
+ * forma es la misma que acepta el backend (letra inicial, letras, números o «_»).
+ */
+export function validarVariable(cruda: string): ValidacionDeVariable {
+  const variable = cruda.trim() || "t";
+  if (!/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(variable)) {
+    return { ok: false, motivo: "Escribe la variable como en SurveyMonkey: empieza con una letra y lleva solo letras, números o «_» (por ejemplo «t» o «id»)." };
+  }
+  return { ok: true, variable };
+}
+
 /** «Listo: 312 enlaces (5 nuevos, 307 conservados). Úsalos en el botón…». */
 export function textoDelResultado(r: EnlacesGenerados): string {
   const nuevos = formatoConteoDe(r.generados, "nuevo");

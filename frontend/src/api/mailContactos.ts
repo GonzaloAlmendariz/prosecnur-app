@@ -7,7 +7,7 @@
 //   GET mail-contacts/perfil          tablero por variables de control
 //       ?campaign_id=&filtros=<JSON>&cruce=a,b
 //   PUT mail-contacts/control         {campaign_id, variables:[keys]} → {control}
-//   PUT mail-contacts/enlace          {campaign_id, url} → {generados, conservados, total, campo}
+//   PUT mail-contacts/enlace          {campaign_id, url, variable} → {generados, conservados, total, campo, variable}
 //
 // Vive aparte de `materialMail.ts` porque es un dominio propio: la lista ya no
 // es un insumo del correo sino una entidad que se mira por perfil.
@@ -60,6 +60,8 @@ export type ResumenDeContactos = {
   leido_en: string | null;
   /** El enlace del recopilador guardado en la campaña; `null` si aún no se generaron enlaces. */
   enlace_url: string | null;
+  /** La variable de SurveyMonkey con que se generaron los enlaces; `null` si aún no. */
+  enlace_variable: string | null;
 };
 
 export type PaginaDeContactos = {
@@ -126,6 +128,8 @@ export type PerfilDeContactos = {
   respuestas_leidas: boolean;
   /** El enlace del recopilador guardado; `null` si aún no se generaron enlaces. */
   enlace_url: string | null;
+  /** La variable de SurveyMonkey con que se generaron los enlaces; `null` si aún no. */
+  enlace_variable: string | null;
 };
 
 export type EnlacesGenerados = {
@@ -135,6 +139,8 @@ export type EnlacesGenerados = {
   campo: string;
   /** El enlace del recopilador tal como quedó guardado. */
   url: string;
+  /** La variable de SurveyMonkey que lleva el token (`t` por defecto). */
+  variable: string;
   /** Advertencia del backend (p. ej. el enlace no es de SurveyMonkey); se muestra tal cual. */
   aviso: string | null;
   /** Dónde quedó mapeado el campo en la plantilla. */
@@ -259,6 +265,7 @@ export function normalizarResumenDeContactos(valor: unknown): ResumenDeContactos
     respondieron: enteroONulo(r.respondieron),
     leido_en: textoONulo(r.leido_en),
     enlace_url: textoONulo(r.enlace_url)?.trim() || null,
+    enlace_variable: textoONulo(r.enlace_variable)?.trim() || null,
   };
 }
 
@@ -381,6 +388,7 @@ export function normalizarPerfilDeContactos(valor: unknown): PerfilDeContactos {
     cruce: normalizarCruce(r.cruce),
     respuestas_leidas: booleanoONulo(r.respuestas_leidas) === true,
     enlace_url: textoONulo(r.enlace_url)?.trim() || null,
+    enlace_variable: textoONulo(r.enlace_variable)?.trim() || null,
   };
 }
 
@@ -399,6 +407,7 @@ export function normalizarEnlacesGenerados(valor: unknown): EnlacesGenerados {
     total: entero(r.total, generados + conservados),
     campo: texto(r.campo) || "enlace_encuesta",
     url: texto(r.url),
+    variable: texto(r.variable).trim() || "t",
     aviso: textoONulo(r.aviso)?.trim() || null,
     mapeado: textos(r.mapeado),
   };
@@ -481,7 +490,7 @@ export async function apiMailContactosControl(campaignId: string, variables: rea
   return normalizarControl(await handle<unknown>(res));
 }
 
-export async function apiMailContactosEnlace(campaignId: string, url: string): Promise<EnlacesGenerados> {
-  const res = await apiFetch(`${BASE}/enlace`, json("PUT", { campaign_id: campaignId, url }));
+export async function apiMailContactosEnlace(campaignId: string, url: string, variable: string): Promise<EnlacesGenerados> {
+  const res = await apiFetch(`${BASE}/enlace`, json("PUT", { campaign_id: campaignId, url, variable }));
   return normalizarEnlacesGenerados(await handle<unknown>(res));
 }

@@ -1,6 +1,11 @@
 // Enlace personal a la encuesta (ADR 0112 §2): se pega el enlace del
 // recopilador de SurveyMonkey y la app arma uno propio para cada contacto
 // efectivo. Generar de nuevo conserva el de quien ya lo tenía.
+//
+// Lo que identifica a cada persona viaja en una variable de la encuesta:
+// SurveyMonkey lo guarda solo si se llama igual que la variable declarada allí
+// (`t` por defecto; hay encuestas con `id`). Por eso el nombre se escribe aquí.
+// La pantalla no usa jerga (ContactosVista.test.tsx › «sin jerga en pantalla»).
 
 import type { FormEvent } from "react";
 
@@ -19,6 +24,7 @@ type Props = {
 export function EnlaceDeEncuesta({ efectivos, conEnlace, onGenerar }: Props) {
   const enlace = useContactosStore((s) => s.enlace);
   const setUrl = useContactosStore((s) => s.setUrlDelEnlace);
+  const setVariable = useContactosStore((s) => s.setVariableDelEnlace);
   const sinEfectivos = efectivos === 0;
   const enviar = (event: FormEvent) => {
     event.preventDefault();
@@ -36,27 +42,45 @@ export function EnlaceDeEncuesta({ efectivos, conEnlace, onGenerar }: Props) {
       </h2>
       <p className="rec-contactos-nota">Cada persona recibe su propio enlace; así se sabe quién respondió.</p>
       <form className="rec-contactos-enlace-form" onSubmit={enviar}>
-        <label htmlFor="rec-contactos-enlace-url" className="rec-contactos-etiqueta">
-          Enlace del recopilador de SurveyMonkey
-        </label>
         <div className="rec-contactos-enlace-fila">
-          <input
-            id="rec-contactos-enlace-url"
-            type="url"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="https://es.surveymonkey.com/r/…"
-            value={enlace.url}
-            aria-invalid={enlace.error ? true : undefined}
-            aria-describedby={enlace.error ? "rec-contactos-enlace-error" : undefined}
-            onChange={(event) => setUrl(event.target.value)}
-          />
+          <label className="rec-contactos-enlace-campo rec-contactos-enlace-campo--url">
+            <span className="rec-contactos-etiqueta">Enlace del recopilador de SurveyMonkey</span>
+            <input
+              id="rec-contactos-enlace-url"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="https://es.surveymonkey.com/r/…"
+              value={enlace.url}
+              aria-invalid={enlace.errorEn === "url" ? true : undefined}
+              aria-describedby={enlace.errorEn === "url" ? "rec-contactos-enlace-error" : undefined}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+          </label>
+          <label className="rec-contactos-enlace-campo rec-contactos-enlace-campo--variable">
+            <span className="rec-contactos-etiqueta">Variable</span>
+            <input
+              id="rec-contactos-enlace-variable"
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={30}
+              placeholder="t"
+              value={enlace.variable}
+              aria-invalid={enlace.errorEn === "variable" ? true : undefined}
+              aria-describedby={enlace.errorEn === "variable" ? "rec-contactos-enlace-error rec-contactos-enlace-ayuda" : "rec-contactos-enlace-ayuda"}
+              onChange={(event) => setVariable(event.target.value)}
+            />
+          </label>
           <PulsoButton type="submit" variant="primary" size="sm" disabled={enlace.generando || sinEfectivos}>
             {enlace.generando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null}
             {enlace.generando ? "Generando…" : "Generar enlaces"}
           </PulsoButton>
         </div>
+        <p id="rec-contactos-enlace-ayuda" className="rec-contactos-enlace-ayuda">
+          La variable se llama igual que en la encuesta de SurveyMonkey («t» si no se cambió).
+        </p>
       </form>
       {enlace.error ? (
         <p id="rec-contactos-enlace-error" className="rec-contactos-error" role="alert">{enlace.error}</p>
