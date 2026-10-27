@@ -143,3 +143,26 @@ test_that("centrado: antetítulo, título, texto y botón van al centro; sin ali
   expect_true(collection_mail_template_validate(t)$ok)
   expect_true("bad_align" %in% .cmft_codes(.cmft_tpl(list(.cmft_feature(align = "justify")))))
 })
+
+test_that("botón grande y con color propio: 17 px y más relleno; la letra la elige el contraste; color y tamaño cerrados", {
+  arriba <- list(image_ref = "premio", alt = "Audífonos inalámbricos", layout = "arriba", align = "center")
+  normal <- .cmft_html(do.call(.cmft_feature, arriba))
+  expect_match(normal, "padding:12px 22px;", fixed = TRUE)
+  expect_match(normal, "font-size:15px;line-height:20px;font-weight:bold", fixed = TRUE)
+
+  amarillo <- .cmft_html(do.call(.cmft_feature, c(arriba, button_size = "grande", button_color = "#FFB000")))
+  expect_match(amarillo, "mso-padding-alt:16px 36px;", fixed = TRUE)
+  expect_match(amarillo, "padding:16px 36px;", fixed = TRUE)
+  expect_match(amarillo, "font-size:17px;line-height:22px;font-weight:bold;color:#0b1f3a;", fixed = TRUE)
+  expect_match(amarillo, 'bgcolor="#ffb000"', fixed = TRUE)
+
+  # Sobre un color oscuro la letra pasa a blanco.
+  oscuro <- .cmft_html(do.call(.cmft_feature, c(arriba, button_color = "#123456")))
+  expect_match(oscuro, "font-weight:bold;color:#ffffff;", fixed = TRUE)
+
+  t <- .cmft_tpl(list(do.call(.cmft_feature, c(arriba, button_size = "grande", button_color = "#ffb000"))),
+                 images = list(premio = list(alt = "Audífonos")))
+  expect_true(collection_mail_template_validate(t)$ok)
+  expect_true("bad_button_size" %in% .cmft_codes(.cmft_tpl(list(.cmft_feature(button_size = "enorme")))))
+  expect_true("bad_button_color" %in% .cmft_codes(.cmft_tpl(list(.cmft_feature(button_color = "amarillo")))))
+})
