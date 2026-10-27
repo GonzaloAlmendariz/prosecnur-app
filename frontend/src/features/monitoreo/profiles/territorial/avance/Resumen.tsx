@@ -157,7 +157,7 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
   const dias = modelo.ritmo;
   const ancho = 640;
   const alto = 180;
-  const margen = { arriba: 12, abajo: 22, izquierda: 8, derecha: 8 };
+  const margen = { arriba: 12, abajo: 4, izquierda: 8, derecha: 8 };
   const tope = Math.max(modelo.meta, dias.at(-1)?.acumulado ?? 0, 1);
   const topeDiario = Math.max(1, ...dias.map((dia) => dia.cuentan));
   const paso = dias.length ? (ancho - margen.izquierda - margen.derecha) / dias.length : 0;
@@ -174,33 +174,41 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
       </header>
       {dias.length ? (
         <div className="mon-res-grafico-marco">
-        <span className="mon-res-eje-titulo" aria-hidden="true">Acumulado que cuenta</span>
+        <span className="mon-res-eje-titulo" aria-hidden="true">Encuestas acumuladas</span>
         <span className="mon-res-eje-y" aria-hidden="true">
           {[tope, Math.round(tope / 2), 0].map((valor, indice) => (
             <b key={indice} style={{ top: `${(y(valor) / alto) * 100}%` }}>{fmt(valor)}</b>
           ))}
         </span>
+        <div className="mon-res-lienzo">
         <svg className="mon-res-grafico" viewBox={`0 0 ${ancho} ${alto}`} preserveAspectRatio="none" role="img" aria-label={descripcionDelRitmo(dias, modelo)}>
           {dias.map((dia, indice) => (
             <g key={dia.fecha}>
               <rect className="mon-res-barra" x={x(indice) - paso * 0.3} width={paso * 0.6} y={base - yDiario(dia.cuentan)} height={yDiario(dia.cuentan)} />
               <rect className="mon-res-barra is-observacion" x={x(indice) - paso * 0.3} width={paso * 0.6} y={base - yDiario(dia.observacion)} height={yDiario(dia.observacion)} />
-              {indice % cada === 0 ? <text className="mon-res-eje" x={x(indice)} y={alto - 6} textAnchor="middle">{dia.rotulo}</text> : null}
             </g>
           ))}
           {modelo.meta > 0 ? <line className="mon-res-meta" x1={margen.izquierda} x2={ancho - margen.derecha} y1={y(modelo.meta)} y2={y(modelo.meta)} /> : null}
           <path className="mon-res-linea" d={linea} />
         </svg>
+        {/* Las fechas van en HTML, como el eje Y: dentro del SVG estirado con
+         * preserveAspectRatio="none" el texto se ensanchaba con el panel. */}
+        <span className="mon-res-eje-x" aria-hidden="true">
+          {dias.map((dia, indice) => (indice % cada === 0 ? (
+            <b key={dia.fecha} style={{ left: `${(x(indice) / ancho) * 100}%` }}>{dia.rotulo}</b>
+          ) : null))}
+        </span>
+        </div>
         </div>
       ) : (
         <p className="mon-res-base" data-qa-geometry-empty="legitimo">Sin días con campo en el corte.</p>
       )}
       {dias.length ? (
           <span className="mon-res-leyenda">
-            <span className="is-acumulado">Acumulado que cuenta</span>
-            <span className="is-dia">Cuentan por día</span>
-            <span className="is-observacion">De ellas en observación</span>
-            <span className="is-meta">Meta {fmt(modelo.meta)}</span>
+            <span className="is-acumulado">Acumulado para la meta</span>
+            <span className="is-dia">Encuestas del día</span>
+            <span className="is-observacion">En observación</span>
+            <span className="is-meta">Meta ({fmt(modelo.meta)})</span>
           </span>
       ) : null}
     </section>
@@ -209,7 +217,7 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
 
 function descripcionDelRitmo(dias: readonly DiaDelRitmo[], modelo: ModeloResumen): string {
   const ultimo = dias.at(-1);
-  return `Ritmo del campo: ${fmt(dias.length)} días, ${fmt(ultimo?.acumulado ?? 0)} que cuentan acumuladas frente a la meta de ${fmt(modelo.meta)}.`;
+  return `Ritmo del campo: ${fmt(dias.length)} días, ${fmt(ultimo?.acumulado ?? 0)} encuestas acumuladas para la meta de ${fmt(modelo.meta)}.`;
 }
 
 function Tiras({ umps }: { umps: TirasDeUmp }) {
