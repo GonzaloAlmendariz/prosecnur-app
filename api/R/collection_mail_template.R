@@ -384,7 +384,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   } else {
     kind <- .cmail_one(header$kind)
     if (identical(kind, "logos")) {
-      for (k in setdiff(names(header), c("kind", "logo_ids", "background"))) {
+      for (k in setdiff(names(header), c("kind", "logo_ids", "background", "logo_tone", "divider"))) {
         add(list(.cmail_problem(paste0("template.header.", k), "unknown_key", sprintf("`%s` no pertenece a la cabecera.", k))))
       }
       ids <- .cmail_strings(header$logo_ids)
@@ -395,6 +395,13 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       bg <- .cmail_one(header$background %||% "light")
       if (is.null(bg) || !(bg %in% c("dark", "light"))) {
         add(list(.cmail_problem("template.header.background", "bad_background", "El fondo es dark o light.")))
+      }
+      # Logos en blanco y línea entre logos (collection_mail_logo_blanco.R).
+      if (!is.null(header$logo_tone) && !(isTRUE(.cmail_one(header$logo_tone) %in% .CMAIL_LOGO_TONES))) {
+        add(list(.cmail_problem("template.header.logo_tone", "bad_logo_tone", "logo_tone es original o blanco.")))
+      }
+      if (!is.null(header$divider) && !(is.logical(unlist(header$divider)) && length(unlist(header$divider)) == 1L)) {
+        add(list(.cmail_problem("template.header.divider", "bad_divider", "divider es verdadero o falso.")))
       }
     } else if (identical(kind, "banner")) {
       for (k in setdiff(names(header), c("kind", "image_ref"))) {

@@ -290,7 +290,15 @@ export function isOpaqueMailBlock(block: MailBlock): block is MailOpaqueBlock {
 }
 
 export type MailHeader =
-  | { kind: "logos"; logo_ids: string[]; background: "dark" | "light" }
+  | {
+      kind: "logos";
+      logo_ids: string[];
+      background: "dark" | "light";
+      /** Sólo con fondo oscuro: los logos salen en blanco (el render deriva cada PNG). */
+      logo_tone?: "original" | "blanco";
+      /** `false` quita la línea entre logos; sin él, la línea sigue. */
+      divider?: boolean;
+    }
   | { kind: "banner"; image_ref: string };
 
 /**
@@ -1015,10 +1023,13 @@ function normalizeHeader(value: unknown): MailHeader {
     return { kind: "banner", image_ref: str(value.image_ref) };
   }
   const raw = isRecord(value) ? value : {};
+  const tono = str(raw.logo_tone);
   return {
     kind: "logos",
     logo_ids: strings(raw.logo_ids),
     background: str(raw.background) === "dark" ? "dark" : "light",
+    ...(tono === "blanco" || tono === "original" ? { logo_tone: tono } : {}),
+    ...(raw.divider === false ? { divider: false } : {}),
   };
 }
 

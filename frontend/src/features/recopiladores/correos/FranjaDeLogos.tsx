@@ -15,6 +15,10 @@ type Props = {
   htmlDeLaVista: string | null;
   /** La franja no es la cabecera en uso (hay banner): se muestra atenuada. */
   enReserva: boolean;
+  /** Logos en blanco: se pinta lo que dibuja la vista previa (el derivado blanco), antes que el archivo subido. */
+  blancos?: boolean;
+  /** `false`: sin línea entre logos. */
+  conLinea?: boolean;
 };
 
 /**
@@ -25,7 +29,7 @@ type Props = {
  * pública. Lo último visto se recuerda, para que pasar al banner no deje la
  * franja en blanco.
  */
-export function FranjaDeLogos({ logoIds, images, fondo, acento, imagenesLocales, htmlDeLaVista, enReserva }: Props) {
+export function FranjaDeLogos({ logoIds, images, fondo, acento, imagenesLocales, htmlDeLaVista, enReserva, blancos = false, conLinea = true }: Props) {
   const vistos = useRef<Record<string, string>>({});
   const deLaVista = useMemo(() => logosDeLaVistaPrevia(htmlDeLaVista, logoIds), [htmlDeLaVista, logoIds]);
   vistos.current = { ...vistos.current, ...deLaVista };
@@ -41,10 +45,12 @@ export function FranjaDeLogos({ logoIds, images, fondo, acento, imagenesLocales,
       data-qa-geometry-contract="intrinsic"
     >
       {logoIds.map((id, i) => {
-        const src = imagenesLocales[id] ?? deLaVista[id] ?? vistos.current[id] ?? images[id]?.url;
+        const src = blancos
+          ? deLaVista[id] ?? vistos.current[id] ?? imagenesLocales[id] ?? images[id]?.url
+          : imagenesLocales[id] ?? deLaVista[id] ?? vistos.current[id] ?? images[id]?.url;
         return (
           <Fragment key={id}>
-            {i > 0 ? <span className="rec-mail-franja-vista-sep" aria-hidden /> : null}
+            {i > 0 ? <span className={`rec-mail-franja-vista-sep${conLinea ? "" : " is-sin-linea"}`} aria-hidden /> : null}
             {/* C1: los miembros son los logos, no los separadores; la caja de
                 cada uno abraza su imagen o su hueco. */}
             <span className="rec-mail-franja-vista-item" data-qa-geometry-member>

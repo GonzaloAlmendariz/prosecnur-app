@@ -95,6 +95,13 @@ describe("normalizeMailTemplate", () => {
     expect(t.header).toEqual({ kind: "banner", image_ref: "banner-mailing" });
   });
 
+  test("la franja conserva los logos en blanco y la falta de línea; un valor que no conoce se descarta", () => {
+    const conTodo = normalizeMailTemplate({ ...PLANTILLA_R, header: { kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "blanco", divider: false } });
+    expect(conTodo.header).toEqual({ kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "blanco", divider: false });
+    const raro = normalizeMailTemplate({ ...PLANTILLA_R, header: { kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "negro", divider: "no" } });
+    expect(raro.header).toEqual({ kind: "logos", logo_ids: ["pulso"], background: "dark" });
+  });
+
   test("conserva `trae_logos` de cada imagen; ausente o ilegible queda sin dato", () => {
     const t = normalizeMailTemplate({
       ...PLANTILLA_R,

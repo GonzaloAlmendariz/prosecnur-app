@@ -238,8 +238,10 @@
   divider <- if (dark) "#5a6a94" else .CMAIL_BORDER
   height <- if (dark) 46L else 40L
   ids <- as.character(unlist(h$logo_ids, use.names = FALSE))
+  blancos <- dark && identical(.cmail_one(h$logo_tone), "blanco")
+  con_linea <- !isFALSE(unlist(h$divider)[1])
   logos <- lapply(ids, function(id) {
-    img <- ctx$images[[id]]
+    img <- .cmail_header_logo(ctx, id, blancos)
     size <- img$size
     # El logo conserva su proporción: si a esta altura pasaría de 200 px de ancho, se achica la altura, nunca se
     # aplasta (un logo de 10:1 a 40 px de alto se veía deformado al cortarle el ancho).
@@ -259,9 +261,13 @@
   cells <- character(0)
   for (i in seq_along(logos)) {
     if (i > 1L) {
-      cells <- c(cells, sprintf(
+      cells <- c(cells, if (con_linea) sprintf(
         '<td%s valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;background-color:%s;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
         .cmail_class_attr(if (stack) .CMAIL_LOGO_DIV_CLASS else ""), height, divider, height
+      ) else sprintf(
+        # Sin línea, el mismo aire (36 px) para que los logos no se peguen.
+        '<td%s valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
+        .cmail_class_attr(if (stack) .CMAIL_LOGO_DIV_CLASS else ""), height, height
       ))
     }
     cell_class <- .cmail_class_attr(if (stack) .CMAIL_LOGO_CELL_CLASS else "", if (stack && i > 1L) .CMAIL_LOGO_NEXT_CLASS else "")
