@@ -4,6 +4,7 @@ import {
   TELEFONICO_VISIBLE_PHONE_TABS,
   localTabsForTelefonicoView,
 } from "./TelefonicoMonitoreoPage";
+import { TELEFONICO_SUBVISTAS_PHONE_TABS } from "./telefonicoBase";
 import { MONITOREO_MODOS } from "../../core/monitoreoRegistry";
 import type { MonitoreoState } from "../../../../api/monitoreo";
 
@@ -58,7 +59,8 @@ describe("localTabsForTelefonicoView — catálogo del perfil telefónico", () =
   });
 
   test("Teléfono coincide con la lista blanca de pestañas visibles", () => {
-    expect(keysFor("telefonico")).toEqual([...TELEFONICO_VISIBLE_PHONE_TABS]);
+    // Las sub-vistas (Barrido › No barridos) se eligen junto al rótulo, no en el rail.
+    expect(keysFor("telefonico")).toEqual(TELEFONICO_VISIBLE_PHONE_TABS.filter((tab) => !TELEFONICO_SUBVISTAS_PHONE_TABS.includes(tab)));
   });
 
   test("Avance coincide con la lista blanca de pestañas visibles", () => {

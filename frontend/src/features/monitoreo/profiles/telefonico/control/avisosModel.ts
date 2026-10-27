@@ -18,6 +18,7 @@ import { buildAcreditacionPhoneRealAlertModel, type AcreditacionQualityAlertItem
 import { filasDeBloque, filasDeHoja } from "../navegacion/bloques";
 import { llamadosPorFecha } from "./barridoModel";
 import { construirRespuestas, duracionLegible } from "./respuestasModel";
+import { atrasadosDe, construirNoBarridos, diasLegibles, UMBRALES_NO_BARRIDO } from "./noBarridosModel";
 
 type Fila = Record<string, unknown>;
 
@@ -140,7 +141,11 @@ export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valo
 /** La alerta del motor que «Efectivo en la hoja sin Kobo» reemplaza (`monitoreo_engine.R`). */
 export const ALERTA_VIEJA_EFECTIVO_SIN_KOBO = "efectivo_telefonico_sin_kobo";
 
-export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
+export function construirAvisos(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  /** Corte (`synced_at`) contra el que se cuentan los días sin barrer. */
+  corteIso?: string | null,
+): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
   const avisos: Aviso[] = [];
@@ -235,7 +240,7 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     });
   });
 
-  const deLosBloques = avisosDeLosBloques(reports);
+  const deLosBloques = avisosDeLosBloques(reports, corteIso);
   // «Efectivo en la hoja sin Kobo» sale de Discrepancias, con todos sus casos.
   // La alerta vieja del motor con la misma causa contaba sólo los conciliados
   // (RMS ficticio: 1 en Avisos y 2 en Discrepancias); si está la nueva, sale.
@@ -297,8 +302,13 @@ function siEsSi(valor: unknown) {
  * viajan. No se inventa nada: cada cifra sale de un bloque, y si es cero no hay
  * aviso.
  */
-export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null | undefined): Aviso[] {
+export function avisosDeLosBloques(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  corteIso?: string | null,
+): Aviso[] {
   const avisos: Aviso[] = [];
+  const sinBarrer = avisoDeNoBarridos(reports, corteIso);
+  if (sinBarrer) avisos.push(sinBarrer);
   const respuestas = construirRespuestas({ reports, segmento: "" });
   // El control de tiempo avisa de las CORTAS: pueden estar mal hechas o
   // inventadas. Una encuesta larga no es un problema y no genera aviso.
@@ -411,6 +421,47 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
     });
   }
   return avisos;
+}
+
+/**
+ * Casos asignados que siguen sin barrer pasado el umbral de aviso
+ * (`noBarridosModel.ts`): alta si alguno ya es grave, media si no. Se corrige
+ * avisando al operador desde Barrido, No barridos.
+ */
+export function avisoDeNoBarridos(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  corteIso?: string | null,
+): Aviso | null {
+  const modelo = construirNoBarridos(reports, corteIso);
+  if (modelo.clave !== "lista" || !modelo.totales.atrasados) return null;
+  const conAtraso = modelo.operadores.filter((operador) => atrasadosDe(operador).length);
+  const casos = conAtraso.flatMap((operador) => atrasadosDe(operador));
+  const peor = conAtraso[0];
+  const { aviso, grave } = UMBRALES_NO_BARRIDO;
+  return {
+    id: "casos-sin-barrer",
+    nivel: modelo.totales.graves ? "alta" : "media",
+    // El título dice lo que cuenta la cifra (todo lo que pasa el umbral de
+    // aviso); el nivel y el detalle dicen cuántos ya son graves.
+    titulo: `Casos asignados sin barrer hace ${aviso} días o más`,
+    detalle: [
+      modelo.totales.graves ? `${modelo.totales.graves.toLocaleString("es-PE")} con ${grave} días o más` : "",
+      peor && peor.maxDias != null ? `el más antiguo, de ${peor.nombre}: ${diasLegibles(peor.maxDias).toLowerCase()} sin ningún intento` : "",
+    ].filter(Boolean).join("; ").replace(/^./, (letra) => letra.toLocaleUpperCase("es")),
+    casos: casos.length,
+    unidad: "casos",
+    codigo: "no_barrido_atrasado",
+    destino: { etiqueta: "No barridos, en Barrido", direccion: { seccion: "control", pestana: "no-barridos" } },
+    donde: "",
+    fuente: "Hoja de barrido",
+    desglose: conAtraso.map((operador) => ({ etiqueta: operador.nombre, valor: atrasadosDe(operador).length })),
+    afectados: casos.map((caso) => ({
+      codigo: caso.codigo,
+      responsable: caso.responsable,
+      fecha: caso.referencia ?? "",
+      nota: `${diasLegibles(caso.dias)} sin barrer`,
+    })),
+  };
 }
 
 export type DestinoConCasos = {

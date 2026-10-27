@@ -133,6 +133,7 @@ export const ACREDITACION_PHONE_TABS = [
   INTERNAS.telefonico.responsables,
   INTERNAS.telefonico.alertas,
   INTERNAS.telefonico.supervision,
+  INTERNAS.telefonico.noBarridos,
 ] as const;
 export type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
 export const ACREDITACION_ADVANCE_TABS = [
@@ -152,6 +153,15 @@ export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = [
   INTERNAS.telefonico.alertas.key,
   // Control › Supervisión (T9).
   INTERNAS.telefonico.supervision.key,
+  // Control › Barrido › No barridos.
+  INTERNAS.telefonico.noBarridos.key,
+];
+/**
+ * Vistas internas que son sub-vistas de una pestaña pública (se eligen junto
+ * al rótulo, no en el rail): visibles, pero sin entrada propia en el rail.
+ */
+export const TELEFONICO_SUBVISTAS_PHONE_TABS: readonly AcreditacionPhoneTab[] = [
+  INTERNAS.telefonico.noBarridos.key,
 ];
 export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = [
   INTERNAS.avance.resumen.key,
