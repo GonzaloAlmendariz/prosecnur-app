@@ -1,0 +1,388 @@
+/* Control › Barrido › No barridos del telefónico. Mismo lenguaje que Barrido y
+ * Equipo: paneles de la casa, separación de 12 px, rótulos en versalitas,
+ * cifras tabulares y filas de 40 a 44 px. La severidad va en el borde lateral
+ * y en un chip, nunca en el color del texto suelto (estándar §2a-bis). */
+
+.mon-nb {
+  --nb-grave: var(--pulso-danger-fg);
+  --nb-aviso: var(--pulso-warn-accent);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mon-nb .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-nb-principal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-nb-rotulo {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* ---------- Cifras ---------- */
+
+.mon-nb-resumen {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.mon-nb-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+}
+
+.mon-nb-cifra {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-nb-cifra.is-grave {
+  border-left-color: var(--nb-grave);
+}
+
+.mon-nb-cifra.is-aviso {
+  border-left-color: var(--nb-aviso);
+}
+
+.mon-nb .mon-nb-cifra strong {
+  font-size: 26px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+  text-align: left;
+}
+
+.mon-nb-cifra-nota {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* ---------- Operadores ---------- */
+
+.mon-nb-operadores {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mon-nb-operadores-cabecera {
+  align-items: center;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-nb-operadores-cabecera > b {
+  flex: none;
+  white-space: nowrap;
+}
+
+.mon-nb-operadores-cabecera > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mon-nb-copia {
+  margin: var(--pulso-space-3) var(--pulso-space-4) 0;
+}
+
+.mon-nb-tabla th,
+.mon-nb-tabla td {
+  height: 42px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.mon-nb-tabla thead th {
+  height: 34px;
+}
+
+.mon-nb-tabla tbody tr > :first-child {
+  border-left: 3px solid transparent;
+}
+
+.mon-nb-tabla tbody tr.is-grave > :first-child {
+  border-left-color: var(--nb-grave);
+}
+
+.mon-nb-tabla tbody tr.is-aviso > :first-child {
+  border-left-color: var(--nb-aviso);
+}
+
+.mon-nb-tabla tbody th > button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-nb-tabla tbody th > button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.mon-nb-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.mon-nb-chip.is-grave {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-nb-chip.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* ---------- Botones ---------- */
+
+.mon-nb-boton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mon-nb-boton.is-primario:not(:disabled) {
+  border-color: var(--pulso-brand-navy);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+}
+
+.mon-nb-boton:disabled {
+  color: var(--pulso-text-faint);
+  cursor: default;
+}
+
+.mon-nb-boton:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+/* ---------- Ficha del operador ---------- */
+
+.mon-nb-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border-left: 3px solid var(--pulso-border-strong);
+}
+
+.mon-nb-ficha.is-grave {
+  border-left-color: var(--nb-grave);
+}
+
+.mon-nb-ficha.is-aviso {
+  border-left-color: var(--nb-aviso);
+}
+
+.mon-nb-ficha-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-nb-ficha-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-nb-ficha-titulo b {
+  font-size: 18px;
+}
+
+.mon-nb-ficha-vacia {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+/* Cifras de la ficha en filas rótulo y cifra, como la ficha de Equipo: a
+ * 340 px tres columnas en versalitas no caben sin partir el rótulo. */
+.mon-nb-ficha-cifras {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-nb-ficha-cifras > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-nb-ficha-cifras dt {
+  color: var(--pulso-text-soft);
+}
+
+.mon-nb .mon-nb-ficha-cifras dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+  white-space: nowrap;
+}
+
+.mon-nb-ficha-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-nb-ficha-alcance {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-nb-ficha-marco {
+  flex: 1 1 auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+/* La tabla de casos de la ficha: anchos declarados para que «Días» quede
+ * siempre dentro del marco; la cuota va bajo el código, entera. */
+.mon-nb-tabla-casos {
+  table-layout: fixed;
+}
+
+.mon-nb-tabla-casos col.is-desde {
+  width: 72px;
+}
+
+.mon-nb-tabla-casos col.is-dias {
+  width: 76px;
+}
+
+.mon-nb-tabla-casos tbody th,
+.mon-nb-tabla-casos tbody td {
+  height: 44px;
+}
+
+.mon-nb-caso {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mon-nb-caso small {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.25;
+}
+
+.mon-nb-dias {
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* ---------- Vacíos ---------- */
+
+.mon-nb-vacio {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mon-nb-vacio > :last-child {
+  flex: 1 1 auto;
+  margin: var(--pulso-space-4);
+}
+
+@media (max-width: 1400px) {
+  .mon-nb {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .mon-nb-cifras {
+    gap: var(--pulso-space-2);
+  }
+}
+
+/* 1024 × 600: una sola columna; el documento desplaza. */
+@media (max-width: 1180px) {
+  .mon-nb {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mon-nb-principal,
+  .mon-nb-operadores,
+  .mon-nb-ficha {
+    flex: none;
+  }
+
+  .mon-nb-cifras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Bloque «Sin barrer» en la ficha de Control › Equipo ---------- */
+
+.mon-equipo-sin-barrer-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-height: 22px;
+}

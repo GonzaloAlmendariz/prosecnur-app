@@ -81,7 +81,7 @@ describe("dirección pública del telefónico", () => {
   });
 
   it("los paneles de sub-vista son ids estables", () => {
-    expect(PANELES_DE_SUBVISTA).toEqual(["calendario", "salvedades"]);
+    expect(PANELES_DE_SUBVISTA).toEqual(["calendario", "no-barridos", "salvedades"]);
   });
 
   it("el rail toma nombre del catálogo público y la insignia de la vista que monta", () => {

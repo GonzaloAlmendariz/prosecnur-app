@@ -4,6 +4,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { segmentoDeCuotas } from "../avance/ritmoModel";
 import { Barrido } from "./Barrido";
 import { construirBarrido, type CuotaDeBarrido } from "./barridoModel";
+import { NoBarridos } from "./NoBarridos";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { Respuestas, type PasoDeLaCadena, type ReglaQueCuenta } from "./Respuestas";
 import { construirRespuestas, mermaDeRepetidos } from "./respuestasModel";
@@ -13,21 +14,28 @@ export function segmentoDelCorte(reports: MonitoreoAcreditacionReports | null | 
   return segmentoDeCuotas(reports);
 }
 
-/** Control › Barrido montado sobre el corte y el vocabulario del proyecto. */
+/**
+ * Control › Barrido montado sobre el corte y el vocabulario del proyecto. Su
+ * sub-vista «No barridos» (`panel=no-barridos`) se monta aquí también: la
+ * página llega con la vista interna y no crece por ella.
+ */
 export function BarridoDeLaHoja({
   reports,
   state,
   cuotas,
+  vista = "resumen",
 }: {
   reports: MonitoreoAcreditacionReports;
   state: MonitoreoState | null | undefined;
   cuotas: readonly CuotaDeBarrido[];
+  vista?: string;
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   const modelo = useMemo(
     () => construirBarrido({ reports, reglas: reglas ?? [], cuotas }),
     [reports, reglas, cuotas],
   );
+  if (vista === "no-barridos") return <NoBarridos reports={reports} state={state} />;
   return <Barrido modelo={modelo} segmento={rotuloDelSegmento(segmentoDelCorte(reports))} />;
 }
 
