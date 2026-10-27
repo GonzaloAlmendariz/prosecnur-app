@@ -375,7 +375,15 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
   }
   subject <- .cmail_plain(template$subject, ctx)
   preheader <- .cmail_plain(template$preheader, ctx)
-  body_rows <- vapply(template$blocks %||% list(), .cmail_block_html, "", ctx = ctx)
+  # Una caja «unida a la siguiente» (L10) avisa a la que sigue que va pegada arriba.
+  bloques <- template$blocks %||% list()
+  previa <- NULL
+  for (i in seq_along(bloques)) {
+    caja <- .cmail_box_of(bloques[[i]])
+    if (!is.null(caja) && identical(previa$join, "siguiente")) bloques[[i]]$.pegada_arriba <- TRUE
+    previa <- caja
+  }
+  body_rows <- vapply(bloques, .cmail_block_html, "", ctx = ctx)
   pal <- ctx$pal
   campana <- isTRUE(pal$campana)
   card <- paste0(

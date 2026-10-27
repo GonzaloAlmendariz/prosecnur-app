@@ -15,6 +15,7 @@ import {
   MAIL_BOX_CORNERS,
   MAIL_BOX_SPACINGS,
   MAIL_BOX_TEXTS,
+  MAIL_BOX_JOINS,
   isOpaqueMailBlock,
   type MailBlock,
   type MailBlockBox,
@@ -37,13 +38,13 @@ export const CONTRASTE_MINIMO = 4.5;
 
 /** La caja que el render dibuja cuando una clave falta (`.cmail_box_of`). */
 export const CAJA_POR_DEFECTO: Required<MailBlockBox> = {
-  bg: "papel", border: "ninguno", corners: "suaves", spacing: "normal", text: "auto",
+  bg: "papel", border: "ninguno", corners: "suaves", spacing: "normal", text: "auto", join: "no",
 };
 
 /** Con lo que arranca un bloque al darle estilo propio: el tinte se nota sin gritar. */
 export const CAJA_INICIAL: MailBlockBox = { bg: "tinte" };
 
-export type ClaveDeCaja = "border" | "corners" | "spacing" | "text";
+export type ClaveDeCaja = "border" | "corners" | "spacing" | "text" | "join";
 
 export function admiteCaja(block: MailBlock): boolean {
   return !isOpaqueMailBlock(block) && block.type !== "footer_legal";
@@ -199,11 +200,19 @@ export const AJUSTES_DE_CAJA: readonly (Ajuste & { clave: ClaveDeCaja })[] = [
       { valor: "blanco", rotulo: "Blanco" },
     ],
   },
+  {
+    clave: "join", rotulo: "Con la caja siguiente", defecto: CAJA_POR_DEFECTO.join,
+    opciones: [
+      { valor: "no", rotulo: "Separada" },
+      { valor: "siguiente", rotulo: "Unida", ayuda: "sin espacio entre las dos, se leen como una sola caja" },
+    ],
+  },
 ];
 
 // Las enumeraciones del contrato y las del inspector no pueden separarse.
 const ENUMS: Record<ClaveDeCaja, readonly string[]> = {
   border: MAIL_BOX_BORDERS, corners: MAIL_BOX_CORNERS, spacing: MAIL_BOX_SPACINGS, text: MAIL_BOX_TEXTS,
+  join: MAIL_BOX_JOINS,
 };
 export function ajustesAlineadosConElContrato(): boolean {
   return AJUSTES_DE_CAJA.every((a) => a.opciones.map((o) => o.valor).join() === ENUMS[a.clave].join());

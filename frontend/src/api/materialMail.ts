@@ -263,12 +263,15 @@ export const MAIL_BOX_BORDERS = ["ninguno", "fino", "acento"] as const;
 export const MAIL_BOX_CORNERS = ["rectas", "suaves", "redondas"] as const;
 export const MAIL_BOX_SPACINGS = ["compacto", "normal", "amplio"] as const;
 export const MAIL_BOX_TEXTS = ["auto", "tinta", "acento", "blanco"] as const;
+/** L10: «siguiente» pega la caja a la que sigue, sin hueco y con esquinas rectas donde se tocan. */
+export const MAIL_BOX_JOINS = ["no", "siguiente"] as const;
 export type MailBlockBox = {
   bg?: MailBoxBgName | string;
   border?: (typeof MAIL_BOX_BORDERS)[number];
   corners?: (typeof MAIL_BOX_CORNERS)[number];
   spacing?: (typeof MAIL_BOX_SPACINGS)[number];
   text?: (typeof MAIL_BOX_TEXTS)[number];
+  join?: (typeof MAIL_BOX_JOINS)[number];
 };
 /** Todo bloque admite caja salvo el pie legal, que no se dibuja como bloque. */
 export type MailBoxed = { box?: MailBlockBox };
@@ -879,9 +882,10 @@ export function normalizeMailBox(value: unknown): MailBlockBox | undefined {
   const corners = oneOf(value.corners, MAIL_BOX_CORNERS);
   const spacing = oneOf(value.spacing, MAIL_BOX_SPACINGS);
   const text = oneOf(value.text, MAIL_BOX_TEXTS);
+  const join = oneOf(value.join, MAIL_BOX_JOINS);
   const box: MailBlockBox = {
     ...(bg ? { bg } : {}), ...(border ? { border } : {}), ...(corners ? { corners } : {}),
-    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}),
+    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}), ...(join ? { join } : {}),
   };
   return box;
 }
