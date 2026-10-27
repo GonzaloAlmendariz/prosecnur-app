@@ -345,8 +345,12 @@ export type MailTemplate = {
   header: MailHeader;
   images: Record<string, MailImage>;
   fields: MailField[];
+  /** Datos fijos de la campaña (L6): `{{key}}` vale lo mismo para toda la campaña; el render lo escribe como texto. */
+  constants?: MailConstant[];
   blocks: MailBlock[];
 };
+
+export type MailConstant = { key: string; label: string; value: string };
 
 export type MailPreset = { preset_id: string; title: string; template: MailTemplate };
 
@@ -1142,6 +1146,11 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     blocks.push(block);
   }
   const theme = normalizeMailTheme(value.theme);
+  // Sin esto, guardar desde el editor borraría los datos de la campaña (el normalizador descarta lo que no conoce).
+  const constantes: MailConstant[] = list(value.constants)
+    .filter(isRecord)
+    .map((c) => ({ key: str(c.key), label: str(c.label), value: str(c.value) }))
+    .filter((c) => c.key);
   const presetId = optStr(value.preset_id);
   const title = optStr(value.title);
   const sha = optStr(value.template_sha256);
@@ -1158,6 +1167,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     header: normalizeHeader(value.header),
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),
+    ...(constantes.length ? { constants: constantes } : {}),
     blocks,
   };
 }

@@ -209,6 +209,8 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     return [
       { key: CAMPO_NOMBRE, label: "Nombre", ejemplo: ejemplo(persona?.nombre) },
       ...template.fields.map((f) => ({ key: f.key, label: f.label, ejemplo: ejemplo(persona?.fields[f.key]) })),
+      // Datos fijos de la campaña (L6): su ejemplo es su valor.
+      ...(template.constants ?? []).map((c) => ({ key: c.key, label: c.label, ejemplo: c.value || undefined })),
     ];
   }, [persona, template]);
   const textoDeCampo = useMemo(() => {
@@ -216,11 +218,12 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     return {
       rotuloDeCampo: (k: string) => porClave.get(k)?.label ?? rotuloDeClave(k),
       // Sin llaves ni etiquetas de plataforma: el chip se explica en palabras (#5).
-      ayudaDeCampo: (k: string) => `${porClave.get(k)?.label ?? rotuloDeClave(k)}: cambia con cada persona`,
+      ayudaDeCampo: (k: string) => `${porClave.get(k)?.label ?? rotuloDeClave(k)}: ${
+        template?.constants?.some((c) => c.key === k) ? "igual para toda la campaña" : "cambia con cada persona"}`,
       // N5: un campo que la campaña no declara sale en tono de error.
       campoValido: (k: string) => porClave.has(k),
     };
-  }, [camposDelMenu]);
+  }, [camposDelMenu, template]);
   useEffect(() => () => onCargando?.(false), [onCargando]);
 
   const editar = useCallback((update: (t: MailTemplate) => MailTemplate, grupo?: string) => st.editar(update, grupo), [st]);

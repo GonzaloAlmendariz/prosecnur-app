@@ -12,9 +12,9 @@ import { PATRON_CAMPO } from "./serializarTexto";
 /** Campos que existen en toda campaña. */
 export const CAMPOS_DE_SIEMPRE: readonly string[] = ["nombre"];
 
-/** Las claves que la campaña acepta. */
-export function clavesDeclaradas(template: Pick<MailTemplate, "fields">): Set<string> {
-  return new Set([...CAMPOS_DE_SIEMPRE, ...template.fields.map((f) => f.key)]);
+/** Las claves que la campaña acepta: las de cada persona y los datos fijos de la campaña (L6). */
+export function clavesDeclaradas(template: Pick<MailTemplate, "fields"> & Partial<Pick<MailTemplate, "constants">>): Set<string> {
+  return new Set([...CAMPOS_DE_SIEMPRE, ...template.fields.map((f) => f.key), ...(template.constants ?? []).map((c) => c.key)]);
 }
 
 function textosDe(valor: unknown, out: string[]): void {
@@ -31,7 +31,7 @@ function textosDe(valor: unknown, out: string[]): void {
  * que se mira) y no están declaradas, en el orden en que aparecen.
  */
 export function camposNoDeclarados(
-  template: Pick<MailTemplate, "fields" | "subject" | "preheader" | "header" | "blocks">,
+  template: Pick<MailTemplate, "fields" | "subject" | "preheader" | "header" | "blocks"> & Partial<Pick<MailTemplate, "constants">>,
   envio?: Pick<MailSend, "subject" | "preheader" | "opening"> | null,
 ): string[] {
   const textos: string[] = [];

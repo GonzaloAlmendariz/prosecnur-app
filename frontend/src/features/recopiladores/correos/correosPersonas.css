@@ -128,3 +128,25 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
 }
+
+/* Datos de la campaña (L6): nombre, valor, usos y quitar en una fila. */
+.rec-datos-campana-lista {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.rec-datos-campana-fila {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto auto;
+}
+
+.rec-datos-campana-usos {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
