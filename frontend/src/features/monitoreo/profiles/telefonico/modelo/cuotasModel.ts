@@ -85,3 +85,16 @@ export function validarMetas({
   }
   return out;
 }
+
+/**
+ * El objetivo total que deja el texto del campo: vacío es «sin objetivo»
+ * (`null`); un número no negativo se redondea; lo demás no es un objetivo y
+ * también deja `null`. El campo es de texto (`inputMode="numeric"`), sin las
+ * flechitas del `type=number`.
+ */
+export function objetivoDesdeTexto(texto: string): number | null {
+  const limpio = texto.replace(/[\s,]/g, "").trim();
+  if (!limpio) return null;
+  const numero = Number(limpio);
+  return Number.isFinite(numero) && numero >= 0 ? Math.round(numero) : null;
+}

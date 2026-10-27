@@ -26,12 +26,12 @@ function porcentaje(valor: number | null) {
 function BarraConMeta({ efectivas, meta, conRotulo }: { efectivas: number; meta: number | null; conRotulo: boolean }) {
   const tope = Math.max(meta ?? 0, efectivas, 1) * 1.08;
   return (
-    <span className="mon-cuotas-barra" aria-hidden="true">
-      <i className="mon-cuotas-barra-pista" />
-      <i className="mon-cuotas-barra-valor" style={{ width: `${(efectivas / tope) * 100}%` }} />
+    <span className="mon-tel-cuotas-barra" aria-hidden="true">
+      <i className="mon-tel-cuotas-barra-pista" />
+      <i className="mon-tel-cuotas-barra-valor" style={{ width: `${(efectivas / tope) * 100}%` }} />
       {meta != null ? (
         <>
-          <i className="mon-cuotas-barra-meta" style={{ left: `${(meta / tope) * 100}%` }} />
+          <i className="mon-tel-cuotas-barra-meta" style={{ left: `${(meta / tope) * 100}%` }} />
           {conRotulo ? <em style={{ left: `${(meta / tope) * 100}%` }}>meta</em> : null}
         </>
       ) : null}
@@ -41,7 +41,7 @@ function BarraConMeta({ efectivas, meta, conRotulo }: { efectivas: number; meta:
 
 /** Acumulado diario frente a la meta (línea punteada), 150 × 40. */
 function Acumulado({ puntos, meta, nombre }: { puntos: PuntoAcumulado[]; meta: number | null; nombre: string }) {
-  if (puntos.length < 2) return <span className="mon-cuotas-sin-serie">Sin serie diaria</span>;
+  if (puntos.length < 2) return <span className="mon-tel-cuotas-sin-serie">Sin serie diaria</span>;
   const ancho = 150;
   const alto = 40;
   const ultimo = puntos.at(-1)?.valor ?? 0;
@@ -57,7 +57,7 @@ function Acumulado({ puntos, meta, nombre }: { puntos: PuntoAcumulado[]; meta: n
   const marca = xy[alcanza >= 0 ? alcanza : xy.length - 1];
   return (
     <svg
-      className="mon-cuotas-acumulado"
+      className="mon-tel-cuotas-acumulado"
       viewBox={`0 0 ${ancho} ${alto}`}
       role="img"
       aria-label={`${nombre}: acumulado diario frente a la meta`}
@@ -70,24 +70,24 @@ function Acumulado({ puntos, meta, nombre }: { puntos: PuntoAcumulado[]; meta: n
   );
 }
 
-function FilaDeLaTabla({ fila }: { fila: FilaDeCuota }) {
+function FilaDeLaTabla({ fila, conCumplio }: { fila: FilaDeCuota; conCumplio: boolean }) {
   return (
-    <div className="mon-cuotas-fila" role="row">
-      <span role="rowheader" className="mon-cuotas-categoria">
+    <div className="mon-tel-cuotas-fila" role="row">
+      <span role="rowheader" className="mon-tel-cuotas-categoria">
         <b>{fila.nombre}</b>
-        <span className={`mon-cuotas-estado is-${fila.estado}`}>{ESTADO[fila.estado]}</span>
+        <span className={`mon-tel-cuotas-estado is-${fila.estado}`}>{ESTADO[fila.estado]}</span>
       </span>
-      <span role="cell" className={`mon-cuotas-faltan is-num${fila.faltan ? " is-falta" : fila.faltan === 0 ? " is-cumple" : ""}`}>
+      <span role="cell" className={`mon-tel-cuotas-faltan is-num${fila.faltan ? " is-falta" : fila.faltan === 0 ? " is-cumple" : ""}`}>
         {fila.faltan == null ? "—" : fmt(fila.faltan)}
       </span>
       <span role="cell"><BarraConMeta efectivas={fila.efectivas} meta={fila.meta} conRotulo /></span>
-      <span role="cell" className="mon-cuotas-sobre is-num">
+      <span role="cell" className="mon-tel-cuotas-sobre is-num">
         <b>{fmt(fila.efectivas)}</b>
         <span> / {fila.meta == null ? "—" : fmt(fila.meta)}</span>
       </span>
-      <span role="cell" className={`mon-cuotas-pct is-num${fila.estado === "cumple" ? " is-cumple" : ""}`}>{porcentaje(fila.pct)}</span>
+      <span role="cell" className={`mon-tel-cuotas-pct is-num${fila.estado === "cumple" ? " is-cumple" : ""}`}>{porcentaje(fila.pct)}</span>
       <span role="cell"><Acumulado puntos={fila.acumulado} meta={fila.meta} nombre={fila.nombre} /></span>
-      <span role="cell" className="is-num">{fila.cumplio ?? "—"}</span>
+      {conCumplio ? <span role="cell" className="is-num">{fila.cumplio ?? "—"}</span> : null}
       <span role="cell" className="is-num">{fmt(fila.sinLlamar)}</span>
     </div>
   );
@@ -95,8 +95,8 @@ function FilaDeLaTabla({ fila }: { fila: FilaDeCuota }) {
 
 function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle: string }) {
   return (
-    <span className="mon-cuotas-indicador">
-      <span className="mon-cuotas-antetitulo">{etiqueta}</span>
+    <span className="mon-tel-cuotas-indicador">
+      <span className="mon-tel-cuotas-antetitulo">{etiqueta}</span>
       <b>{valor}</b>
       <span>{detalle}</span>
     </span>
@@ -132,8 +132,8 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
   const hayRotulo = useHayRotulo();
   if (!filas.length) {
     return (
-      <section className="mon-cuotas-vacio" aria-label="Cuotas">
-        {hayRotulo ? <RotuloDePestana /> : <span className="mon-cuotas-antetitulo">Avance por cuota</span>}
+      <section className="mon-tel-cuotas-vacio" aria-label="Cuotas">
+        {hayRotulo ? <RotuloDePestana /> : <span className="mon-tel-cuotas-antetitulo">Avance por cuota</span>}
         <strong>Sin cuotas declaradas</strong>
         <p>Declara la variable de cuota y sus metas en Modelo, Cuotas y calendario.</p>
       </section>
@@ -141,6 +141,9 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
   }
   const sinMetas = total.meta == null;
   const conDiario = llevaFaltanteDiario(modelo);
+  // «Cumplió» sólo cuando alguna cuota llegó a su meta: una columna entera de
+  // «—» no dice nada (Gonzalo, 2026-10-27).
+  const conCumplio = Boolean(total.cumplio) || filas.some((fila) => Boolean(fila.cumplio));
   const notaTotal = total.cumplio
     ? `cumplida el ${total.cumplio}`
     : total.desde && total.hasta ? `del ${total.desde} al ${total.hasta}` : "sin serie diaria";
@@ -148,72 +151,72 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
 
   return (
     <div
-      className={`mon-cuotas${conDiario ? " has-diario" : ""}`}
+      className={`mon-tel-cuotas${conDiario ? " has-diario" : ""}${conCumplio ? "" : " sin-cumplio"}`}
       data-qa-geometry-group="telefonico-avance-cuotas"
       data-qa-geometry-contract="intrinsic"
-      style={{ "--mon-cuotas-filas": filas.length } as CSSProperties}
+      style={{ "--mon-tel-cuotas-filas": filas.length } as CSSProperties}
     >
-      <section className="mon-cuotas-tabla-panel" aria-label={`Cuánto falta por ${segmentoMinuscula}`}>
+      <section className="mon-tel-cuotas-tabla-panel" aria-label={`Cuánto falta por ${segmentoMinuscula}`}>
         {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
         {hayRotulo ? (
-          <header className="mon-cuotas-tabla-cabecera">
+          <header className="mon-tel-cuotas-tabla-cabecera">
             <RotuloDePestana />
             <b>Cuánto falta por {segmentoMinuscula}</b>
           </header>
         ) : null}
-        <div role="table" aria-label={`Cuotas por ${segmentoMinuscula}`} className="mon-cuotas-tabla">
-          <div role="row" className="mon-cuotas-fila is-cabecera">
+        <div role="table" aria-label={`Cuotas por ${segmentoMinuscula}`} className="mon-tel-cuotas-tabla">
+          <div role="row" className="mon-tel-cuotas-fila is-cabecera">
             <span role="columnheader">{segmento}</span>
             <span role="columnheader" className="is-num">Faltan</span>
             <span role="columnheader">Efectivas y meta</span>
             <span role="columnheader" className="is-num">Efect. / meta</span>
             <span role="columnheader" className="is-num">%</span>
             <span role="columnheader">Acumulado por día</span>
-            <span role="columnheader" className="is-num">Cumplió</span>
+            {conCumplio ? <span role="columnheader" className="is-num">Cumplió</span> : null}
             <span role="columnheader" className="is-num">Sin llamar</span>
           </div>
-          <div role="rowgroup" className="mon-cuotas-cuerpo">
-            {filas.map((fila) => <FilaDeLaTabla key={fila.clave} fila={fila} />)}
+          <div role="rowgroup" className="mon-tel-cuotas-cuerpo">
+            {filas.map((fila) => <FilaDeLaTabla key={fila.clave} fila={fila} conCumplio={conCumplio} />)}
           </div>
-          <div role="row" className="mon-cuotas-fila is-total">
+          <div role="row" className="mon-tel-cuotas-fila is-total">
             <span role="rowheader"><b>Total</b></span>
-            <span role="cell" className={`mon-cuotas-faltan is-num${total.faltan ? " is-falta" : total.faltan === 0 ? " is-cumple" : ""}`}>
+            <span role="cell" className={`mon-tel-cuotas-faltan is-num${total.faltan ? " is-falta" : total.faltan === 0 ? " is-cumple" : ""}`}>
               {total.faltan == null ? "—" : fmt(total.faltan)}
             </span>
             <span role="cell"><BarraConMeta efectivas={total.efectivas} meta={total.meta} conRotulo={false} /></span>
-            <span role="cell" className="mon-cuotas-sobre is-num">
+            <span role="cell" className="mon-tel-cuotas-sobre is-num">
               <b>{fmt(total.efectivas)}</b>
               <span> / {total.meta == null ? "—" : fmt(total.meta)}</span>
             </span>
-            <span role="cell" className="mon-cuotas-pct is-num is-total">{porcentaje(total.pct)}</span>
-            <span role="cell" className="mon-cuotas-rango">
+            <span role="cell" className="mon-tel-cuotas-pct is-num is-total">{porcentaje(total.pct)}</span>
+            <span role="cell" className="mon-tel-cuotas-rango">
               {total.desde && total.hasta ? `Del ${total.desde} al ${total.hasta}` : "—"}
             </span>
-            <span role="cell" className="is-num">{total.cumplio ?? "—"}</span>
+            {conCumplio ? <span role="cell" className="is-num">{total.cumplio ?? "—"}</span> : null}
             <span role="cell" className="is-num"><b>{fmt(total.sinLlamar)}</b></span>
           </div>
         </div>
         {conDiario ? <FaltanteDiario modelo={modelo} /> : null}
       </section>
 
-      <div className="mon-cuotas-lado">
-        <section className="mon-cuotas-panel mon-cuotas-meta" aria-label="Faltan para la meta">
-          <span className="mon-cuotas-antetitulo">{sinMetas ? "Efectivas" : "Faltan para la meta"}</span>
+      <div className="mon-tel-cuotas-lado">
+        <section className="mon-tel-cuotas-panel mon-tel-cuotas-meta" aria-label="Faltan para la meta">
+          <span className="mon-tel-cuotas-antetitulo">{sinMetas ? "Efectivas" : "Faltan para la meta"}</span>
           {sinMetas ? (
-            <strong className="mon-cuotas-grande is-num">{fmt(total.efectivas)}</strong>
+            <strong className="mon-tel-cuotas-grande is-num">{fmt(total.efectivas)}</strong>
           ) : (
-            <strong className={`mon-cuotas-grande is-num${total.faltan ? " is-falta" : " is-cumple"}`}>
+            <strong className={`mon-tel-cuotas-grande is-num${total.faltan ? " is-falta" : " is-cumple"}`}>
               {fmt(total.faltan)}
               <span> de {fmt(total.meta)}</span>
             </strong>
           )}
           <span
-            className="mon-cuotas-meta-nota is-num"
+            className="mon-tel-cuotas-meta-nota is-num"
             title={sinMetas ? "Avance mide cobertura del listado" : `${porcentaje(total.pct)} de la meta`}
           >
             {sinMetas ? "Sin metas declaradas" : `${fmt(total.efectivas)} efectivas, ${notaTotal}`}
           </span>
-          <div className="mon-cuotas-indicadores">
+          <div className="mon-tel-cuotas-indicadores">
             <Indicador
               etiqueta="Ritmo"
               valor={modelo.ritmo ? `${decimal(modelo.ritmo.porDia)} por día` : "—"}
@@ -233,21 +236,21 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
           </div>
         </section>
 
-        <section className="mon-cuotas-panel mon-cuotas-reparto" aria-label={`Listado por ${segmentoMinuscula}`}>
-          <span className="mon-cuotas-titulo">
-            <span className="mon-cuotas-antetitulo">Listado por {segmentoMinuscula}</span>
+        <section className="mon-tel-cuotas-panel mon-tel-cuotas-reparto" aria-label={`Listado por ${segmentoMinuscula}`}>
+          <span className="mon-tel-cuotas-titulo">
+            <span className="mon-tel-cuotas-antetitulo">Listado por {segmentoMinuscula}</span>
             <span className="is-num">{fmt(total.universo)} casos</span>
           </span>
-          <div className="mon-cuotas-reparto-lista">
+          <div className="mon-tel-cuotas-reparto-lista">
             {filas.map((fila) => (
-              <div key={fila.clave} className="mon-cuotas-reparto-fila is-num">
-                <span className="mon-cuotas-reparto-rotulo">
+              <div key={fila.clave} className="mon-tel-cuotas-reparto-fila is-num">
+                <span className="mon-tel-cuotas-reparto-rotulo">
                   <b>{fila.nombre}</b>
                   <span>{fmt(fila.universo)} casos</span>
                   <span className="is-derecha">{fmt(fila.sinLlamar)} sin llamar</span>
                 </span>
                 <span
-                  className="mon-cuotas-reparto-barra"
+                  className="mon-tel-cuotas-reparto-barra"
                   role="img"
                   aria-label={tramosDe(fila).map((tramo) => `${tramo.etiqueta}: ${fmt(tramo.valor)}`).join(", ")}
                 >
@@ -255,24 +258,24 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
                     <i key={tramo.clave} className={`is-${tramo.clave}`} style={{ width: `${tramo.ancho}%` }} />
                   ))}
                 </span>
-                {filas.length < 4 ? (
-                  // Con pocas categorías hay alto para decir las cifras de la barra.
-                  <span className="mon-cuotas-reparto-detalle">{detalleDelReparto(fila)}</span>
+                {filas.length <= 4 ? (
+                  // Con hasta cuatro categorías hay alto para decir las cifras de la barra.
+                  <span className="mon-tel-cuotas-reparto-detalle">{detalleDelReparto(fila)}</span>
                 ) : null}
               </div>
             ))}
           </div>
-          <span className="mon-cuotas-leyenda">
+          <span className="mon-tel-cuotas-leyenda">
             {TRAMOS.map((tramo) => (
               <span key={tramo.clave}><i className={`is-${tramo.clave}`} aria-hidden="true" />{tramo.etiqueta}</span>
             ))}
           </span>
         </section>
 
-        <section className="mon-cuotas-panel mon-cuotas-cadena" aria-label="De dónde sale la cifra">
-          <span className="mon-cuotas-antetitulo">De dónde sale la cifra</span>
+        <section className="mon-tel-cuotas-panel mon-tel-cuotas-cadena" aria-label="De dónde sale la cifra">
+          <span className="mon-tel-cuotas-antetitulo">De dónde sale la cifra</span>
           {cadena.map((paso) => (
-            <div key={paso.nombre} className="mon-cuotas-cadena-paso is-num">
+            <div key={paso.nombre} className="mon-tel-cuotas-cadena-paso is-num">
               <span>
                 <b>{paso.nombre}</b>
                 <span>{paso.detalle}</span>

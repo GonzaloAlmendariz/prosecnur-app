@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PulsoInput } from "../../../../components/PulsoInput";
 
 /**
  * El campo de meta de una cuota telefónica.
@@ -75,10 +76,13 @@ export function MetaCuotaInput({
   };
 
   return (
-    <input
-      type="number"
-      min={0}
-      step={1}
+    // Campo del kit (numérico, sin flechitas nativas y con el foco del sistema):
+    // el `<input type=number>` crudo mostraba las flechas del navegador y un
+    // borde de foco doble (Gonzalo, 2026-10-27). `metaConfirmada` ya descarta
+    // lo que no es un número, así que el tipo puede ser texto.
+    <PulsoInput
+      size="sm"
+      numeric
       inputMode="numeric"
       aria-label={ariaLabel}
       value={texto}

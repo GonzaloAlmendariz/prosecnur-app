@@ -100,16 +100,23 @@
   outline-offset: 2px;
 }
 
+/* Las dos acciones con el mismo ancho: en fila si caben, en columna pareja si
+ * no (Gonzalo, 2026-10-27: iban apiladas con anchos distintos). */
 .mon-dsc-acciones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
 }
 
+.mon-dsc-acciones > .mon-insumos-boton {
+  justify-content: center;
+  width: 100%;
+}
+
 .mon-dsc-aviso {
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
 }
 
 .mon-dsc-centro {
@@ -161,15 +168,31 @@
   color: var(--pulso-warn-fg);
 }
 
-/* Una fila por caso (Meta B, L28): Hoja, Kobo, Responsable y Enumerador van
- * en una línea y lo que no cabe se corta con puntos suspensivos; el dato
+/* Responsable de la hoja con el enumerador de Kobo debajo, como el código y
+ * su proGres. */
+.mon-dsc-quien > span,
+.mon-dsc-quien > small {
+  display: block;
+}
+
+.mon-dsc-quien > small {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.mon-dsc-quien > small.mon-dsc-distinto {
+  color: var(--pulso-warn-fg);
+}
+
+/* Una fila por caso (Meta B, L28): Hoja y Kobo van en una línea; Responsable
+ * lleva debajo el enumerador de Kobo. Lo que no cabe se corta con puntos suspensivos; el dato
  * entero queda en el tooltip de la celda. La decisión nunca se parte. */
 .mon-dsc-tabla {
   table-layout: fixed;
 }
 
 /* El código (con su proGres debajo), Kobo y la Decisión tienen ancho propio:
- * nunca se cortan. Hoja, Responsable y Enumerador se reparten el resto. */
+ * nunca se cortan. Hoja y Responsable (con su enumerador) se reparten el resto. */
 .mon-dsc-tabla col.is-codigo { width: 140px; }
 .mon-dsc-tabla col.is-kobo { width: 84px; }
 .mon-dsc-tabla col.is-decision { width: 172px; }

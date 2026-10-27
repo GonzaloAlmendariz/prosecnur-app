@@ -232,6 +232,15 @@
   width: 88px;
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
+  text-align: right;
+  appearance: textfield;
+}
+
+/* Sin las flechitas nativas: la cifra no queda pegada a ellas. */
+.pulso-input.is-numeric::-webkit-inner-spin-button,
+.pulso-input.is-numeric::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 /* ---------- PulsoSelect ---------- */
