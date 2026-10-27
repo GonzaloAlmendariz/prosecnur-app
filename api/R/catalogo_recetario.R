@@ -38,24 +38,24 @@ catalogo_recetario_dir <- function() {
        radar = list(paleta = "okabe_ito", min_ejes = 2L))
 }
 
-# Colores de las respuestas, como los dejaría el analista en Identidad › Colores de las respuestas: las escalas con la
-# rampa del recetario (SIN INF en gris) y las categóricas que se pintan por respuesta con la combinación principal de
-# la marca. Sin ellos la exportación se detiene en «Faltan colores», que no es lo que el catálogo viene a probar.
+# Colores de las respuestas, como los dejaría el analista en Identidad › Colores de las respuestas. El catálogo es la
+# constitución del motor (ADR 0092): ningún color sale de aquí, todos los dan las mismas funciones que usa el motor sin
+# paleta propia, leídas del estándar. Las escalas, la rampa Likert (`.graficos_paleta_likert`, SIN INF en gris); las de
+# dos opciones, la dicotómica (Sí en azul oscuro, No en celeste, como el mazo entregado de ACRD Conta); las demás, la
+# rampa de azules de las porciones (`.lam_colores_pie`). Las residuales van en el gris de la Likert. Sin paletas la
+# exportación desde la app se detiene en «Faltan colores», que no es lo que el catálogo viene a probar.
 .cr_paletas <- function() {
-  rampa4 <- c("#F4B183", "#FFD965", "#ADD493", "#70AD47")
-  rampa5 <- c("#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47")
-  gris <- "#BFBFBF"
   ch <- .catalogo_recetario_choices()
-  pintar <- function(lista, colores) {
+  gris <- unname(.std_paleta("likert"))[5]
+  pintar <- function(lista) {
     rot <- ch$label[ch$list_name == lista]
     sust <- setdiff(rot, c("SIN INF", "Prefiero no responder"))
-    as.list(stats::setNames(c(colores[seq_along(sust)], rep(gris, length(rot) - length(sust))), c(sust, setdiff(rot, sust))))
+    cols <- .graficos_paleta_likert(rot)
+    cols <- if (!is.null(cols)) cols[rot] else stats::setNames(c(.lam_colores_pie(length(sust)), rep(gris, length(rot) - length(sust))),
+                                                             c(sust, setdiff(rot, sust)))
+    as.list(cols)
   }
-  c(lapply(stats::setNames(nm = c("acuerdo", "acuerdo_eg", "utilidad", "satisf")), pintar, colores = rampa4),
-    lapply(stats::setNames(nm = c("acuerdo5", "relacion")), pintar, colores = rampa5),
-    list(si_no = pintar("si_no", c("#081F5C", "#CA5651")),
-         sexo = pintar("sexo", c("#081F5C", "#CA5651")),
-         modalidad = pintar("modalidad", c("#081F5C", "#CA5651", "#6F86B8", "#E9A19B"))))
+  lapply(stats::setNames(nm = c("acuerdo", "acuerdo_eg", "utilidad", "satisf", "acuerdo5", "relacion", "si_no", "sexo", "modalidad")), pintar)
 }
 
 #' Siembra la sesión del catálogo: bases, estudio y plan
