@@ -30,7 +30,7 @@
   icon_text = list(icon = c("calendario", "reloj", "candado", "sobre", "persona", "grupo",
                             "mapa", "check", "info", "alerta", "regalo", "enlace")),
   # Secciones (collection_mail_destacado.R).
-  feature = list(layout = c("izquierda", "derecha", "arriba")),
+  feature = list(layout = c("izquierda", "derecha", "arriba"), align = c("left", "center")),
   steps = list(layout = c("columnas", "lista"))
 )
 

@@ -122,3 +122,24 @@ test_that("en el correo entero: la foto entra a las imágenes de la plantilla y 
   sin <- collection_mail_render(.cmft_tpl(), "export", "mailchimp")$html
   expect_false(grepl("cmail-feature-img", sin, fixed = TRUE))
 })
+
+test_that("centrado: antetítulo, título, texto y botón van al centro; sin align todo sigue a la izquierda; align es cerrado", {
+  arriba <- list(image_ref = "premio", alt = "Audífonos inalámbricos", layout = "arriba")
+  centrado <- do.call(.cmft_feature, c(arriba, align = "center"))
+  html <- .cmft_html(centrado)
+  # Los tres párrafos (antetítulo, título y texto) llevan el centrado.
+  expect_equal(lengths(regmatches(html, gregexpr('<p style="margin:[^"]*text-align:center;', html, perl = TRUE))), 3L)
+  expect_match(html, '<table role="presentation" align="center"[^>]*style="margin:6px auto 0 auto;"', perl = TRUE)
+
+  izquierda <- .cmft_html(do.call(.cmft_feature, arriba))
+  expect_false(grepl("text-align:center", izquierda, fixed = TRUE))
+  expect_match(izquierda, 'style="margin:6px 0 0 0;"', fixed = TRUE)
+
+  # A un lado, la celda de texto también se centra.
+  lado <- .cmft_html(.cmft_feature(image_ref = "premio", alt = "Audífonos inalámbricos", align = "center"))
+  expect_match(lado, "vertical-align:middle;text-align:center;", fixed = TRUE)
+
+  t <- .cmft_tpl(list(centrado), images = list(premio = list(alt = "Audífonos")))
+  expect_true(collection_mail_template_validate(t)$ok)
+  expect_true("bad_align" %in% .cmft_codes(.cmft_tpl(list(.cmft_feature(align = "justify")))))
+})
