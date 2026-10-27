@@ -27,6 +27,12 @@ function* hojas(dir: string): Generator<string> {
 }
 
 describe("Avance › Cuotas del telefónico: clases propias", () => {
+  it("encuentra las hojas que revisa (si el recorrido deja de casar, los demás pasarían en verde sin mirar)", () => {
+    const fuentes = [...hojas(SRC)];
+    expect(fuentes.length).toBeGreaterThan(50);
+    expect(fuentes).toContain(PROPIA);
+  });
+
   it("ninguna otra hoja declara `.mon-tel-cuotas`", () => {
     const ajenas = [...hojas(SRC)].filter((p) => p !== PROPIA && /\.mon-tel-cuotas\b/.test(fs.readFileSync(p, "utf8")));
     expect(ajenas.map((p) => path.relative(SRC, p))).toEqual([]);
