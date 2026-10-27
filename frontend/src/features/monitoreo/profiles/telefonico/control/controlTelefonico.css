@@ -723,6 +723,13 @@
   overflow-y: auto;
 }
 
+/* Ningún bloque se encoge: con «Sin barrer» la ficha excede su alto y la
+ * franja de cifras (overflow hidden) cedía hasta desaparecer. La ficha
+ * desplaza dentro. */
+.mon-equipo-ficha > * {
+  flex: none;
+}
+
 .mon-equipo-ficha-titulo {
   display: flex;
   align-items: center;
@@ -793,6 +800,8 @@
 }
 
 .mon-equipo-cifras b {
+  /* Alineada con su rótulo: `.is-num` la llevaba a la derecha. */
+  text-align: left;
   font-size: 22px;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
