@@ -406,12 +406,6 @@
   levels <- levels[nzchar(levels)]
   if (!length(levels)) return(NULL)
 
-  main <- c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF",
-            "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
-  # Dicotomía sin recorrido (Sí/No, Conoce/No conoce): dos tonos del mismo azul.
-  # Rojo contra azul marca una como mala, y en «¿Conoce el reglamento?» el «No»
-  # es un dato, no una falta.
-  dicotomia <- c("#081F5C", "#9EC3E6")
 
   low_high_words <- paste(
     "nada", "poco", "bajo", "desacuerdo", "insatis", "malo",
@@ -423,12 +417,10 @@
 
   # ADR 0097 (P4a): una escala sin paleta toma la Likert del recetario, no la rampa que arrancaba en rojo.
   if (looks_like_scale && length(levels) >= 3L) return(.paleta_likert_recetario(levels))
-  pal <- if (length(levels) == 2L) {
-    dicotomia
-  } else {
-    main
-  }
-  stats::setNames(rep_len(pal, length(levels)), levels)
+  # Lo que no es escala toma la nominal del estándar (Gonzalo, 2026-10-27: el JSON manda): la dicotómica para dos (Sí/No,
+  # Conoce/No conoce, dos tonos del mismo azul: el «No» es un dato, no una falta) y la rampa de azules para más. Antes era
+  # una lista propia con el coral en la segunda categoría y un celeste #9EC3E6 que no era el del estándar.
+  stats::setNames(.std_paleta_nominal(length(levels)), levels)
 }
 
 #' Ajusta el aviso interno de opción múltiple sin restar altura a las barras.

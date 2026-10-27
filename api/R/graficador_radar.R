@@ -958,9 +958,9 @@ graficar_radar <- function(
     pal <- .graficos_mk_palette(as.character(grupos), pal_user = colores_series)
     if (!length(pal)) pal <- NULL
   } else {
-    # Sin override ni paleta de proyecto: paleta de la casa (navy/teal/...),
-    # no el hue_pal de ggplot — mismas series que agrupadas post-P9.
-    pal <- .graficos_mk_palette(as.character(grupos))
+    # Sin override ni paleta de proyecto: la de actores del estándar, la misma que las series del radar nativo
+    # (graficos_espec_radar.R), no el hue_pal de ggplot.
+    pal <- .graficos_mk_palette(as.character(grupos), pal_user = unname(.std_paleta("actores")))
     if (!length(pal)) pal <- NULL
   }
 

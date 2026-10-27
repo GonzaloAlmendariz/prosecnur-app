@@ -16,20 +16,24 @@
 // decisión, no el default; clave ausente = «Del recetario», presente = «Propio»; «Volver al recetario» borra la clave y
 // un mapa vacío borra el arg.
 
+import { ESTANDAR_NOMINAL, paletaNominal } from "../../paletasSugeridas";
+
 type Registro = Record<string, unknown>;
 
-/** Paleta base del motor (`base_pal` de `.graficos_mk_palette`, graficador_paleta.R), con un nombre legible por color. */
+/**
+ * Colores nominales del estándar con un nombre legible (estandar_pulso.json, `dicotomica` y `categorica`): lo que el motor
+ * pone a una serie sin color (`.std_paleta_nominal`, estandar_tokens.R; Gonzalo, 2026-10-27: «manda el JSON»).
+ */
 export const PALETA_RECETARIO: readonly { hex: string; nombre: string }[] = [
-  { hex: "#0B4F8C", nombre: "Azul" },
-  { hex: "#2A9D8F", nombre: "Verde azulado" },
-  { hex: "#E9C46A", nombre: "Amarillo" },
-  { hex: "#F4A261", nombre: "Naranja claro" },
-  { hex: "#E76F51", nombre: "Coral" },
-  { hex: "#7A9E9F", nombre: "Gris verdoso" },
-  { hex: "#6D597A", nombre: "Morado" },
-  { hex: "#5B8DEF", nombre: "Azul claro" },
+  { hex: ESTANDAR_NOMINAL.categorica[0], nombre: "Azul institucional" },
+  { hex: ESTANDAR_NOMINAL.categorica[1], nombre: "Azul medio" },
+  { hex: ESTANDAR_NOMINAL.categorica[2], nombre: "Azul tenue" },
+  { hex: ESTANDAR_NOMINAL.categorica[3], nombre: "Azul claro" },
+  { hex: ESTANDAR_NOMINAL.categorica[4], nombre: "Gris azulado" },
+  { hex: ESTANDAR_NOMINAL.dicotomica[1], nombre: "Celeste" },
 ];
-const BASE_PAL = PALETA_RECETARIO.map((c) => c.hex);
+/** La paleta base para `n` series, como `.graficos_mk_palette`: depende de cuántas son (dos, la dicotómica). */
+const basePal = (n: number): string[] => paletaNominal(Math.max(n, 2));
 
 export type ColoresDelGrafico = { arg: string; rotulo: string; nombres: (args: Readonly<Registro>) => string[] };
 
@@ -106,11 +110,11 @@ export function coloresEfectivos(
   const usados = nombres.map((n) => propios[n] ?? heredados[n] ?? null);
   const hayNombrados = Object.keys(propios).length > 0 || Object.keys(heredados).length > 0;
   if (!hayNombrados) {
-    const caben = nombres.length <= BASE_PAL.length;
-    return nombres.map((nombre, i) => ({ nombre, hex: caben ? BASE_PAL[i] : null, origen: "recetario" }));
+    const base = basePal(nombres.length);
+    return nombres.map((nombre, i) => ({ nombre, hex: base[i] ?? null, origen: "recetario" }));
   }
   const ocupados = new Set(usados.filter((c): c is string => c !== null));
-  const libres = BASE_PAL.filter((c) => !ocupados.has(c));
+  const libres = basePal(nombres.length).filter((c) => !ocupados.has(c));
   let k = 0;
   return nombres.map((nombre, i) => {
     const c = usados[i];

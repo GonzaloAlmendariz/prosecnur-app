@@ -10,8 +10,9 @@
 // naranja claro y el verificador del mazo lo exige (`rojo_en_rampa_max = 0`).
 // Las paletas evaluativas de aquí abrían en `rojo`, así que cada proyecto nuevo
 // nacía con el defecto y había que corregirlo lista por lista —23 en el mazo de
-// Contabilidad—. Las paletas CATEGÓRICAS son otra cosa: ahí el rojo es el color
-// institucional distinguiendo series sin orden, y se queda.
+// Contabilidad—. Las CATEGÓRICAS tampoco lo llevan: el coral va sólo en los
+// títulos y una lista sin orden toma la rampa de azules del estándar (Gonzalo,
+// 2026-10-27: «manda el JSON»).
 
 export type SugeridaPalette = {
   label: string;
@@ -58,39 +59,67 @@ export const LIKERT_RECETARIO = {
 } as const;
 const L = LIKERT_RECETARIO;
 
-/** El rojo institucional: legítimo en categóricas, prohibido en una rampa. */
+/** El coral de la casa: va en los títulos, nunca en un dato (estandar_pulso.json, `reglas.coral`). */
 export const ROJO_FUERA_DE_RAMPA = PULSO_PUCP_COLORS.rojo;
 
+// Las paletas nominales del estándar (estandar_pulso.json, `paletas`), que es la constitución del motor: Gonzalo,
+// 2026-10-27, «manda el JSON». Son las mismas que el motor pone a una lista sin paleta propia (`.std_paleta_nominal` en
+// estandar_tokens.R) y las que pinta el catálogo del recetario; `paletasSugeridas.test.ts` las compara con el JSON.
+export const ESTANDAR_NOMINAL = {
+  dicotomica: ["#081F5C", "#9DC3E6"],
+  // `categorica`; con seis y siete opciones, su interpolación de los cuatro azules (colorRampPalette del motor).
+  categorica: ["#081F5C", "#4F7FAF", "#8E9DBD", "#B9C5DC", "#8A93A8"],
+  categorica6: ["#081F5C", "#32588D", "#5B85B1", "#8197BA", "#9FADC9", "#B9C5DC"],
+  categorica7: ["#081F5C", "#2B4F85", "#4F7FAF", "#6E8EB6", "#8E9DBD", "#A3B1CC", "#B9C5DC"],
+  actores: ["#0B4F8C", "#2A9D8F", "#E9C46A", "#8E9DBD", "#081F5C", "#9DC3E6"],
+} as const;
+const N = ESTANDAR_NOMINAL;
+
+/** La paleta nominal para `n` opciones, como `.std_paleta_nominal` del motor; vacía pasadas las siete (el motor interpola). */
+export function paletaNominal(n: number): string[] {
+  if (n > 7) return [];
+  if (n <= 2) return [...N.dicotomica].slice(0, n);
+  if (n <= 5) return N.categorica.slice(0, n);
+  return n === 6 ? [...N.categorica6] : [...N.categorica7];
+}
+
+const AZULES = (n: number): SugeridaPalette => ({
+  label: "Pulso azules", description: "Categorías sin orden: la rampa de azules del estándar, de la más a la menos elegida.", colors: paletaNominal(n),
+});
+const ACTORES = (n: number): SugeridaPalette => ({
+  label: "Pulso públicos", description: "Un color por público que se conserva en todo el informe.", colors: N.actores.slice(0, n),
+});
+
+// La posición importa: la primera es la que completa una lista sin colores (`coloresParaCompletar`). Para cuatro
+// opciones va primero la rampa Likert, como antes; para las demás, la nominal del estándar.
 export const SUGERIDAS_PALETAS: PaletasPorCantidad = {
   2: [
-    { label: "Pulso principal", description: "Azul institucional y rojo principal.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo] },
+    { label: "Pulso dicotómica", description: "Sí en azul oscuro y No en celeste, en todas las láminas.", colors: [...N.dicotomica] },
     { label: "Pulso aprobación", description: "Contraste directo para dos estados evaluativos.", ordinal: true, colors: [L.desacuerdoFuerte, L.acuerdoFuerte] },
-    { label: "Pulso neutro", description: "Azul institucional con gris para categorías de soporte.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
+    ACTORES(2),
   ],
   3: [
-    { label: "Pulso principal", description: "Tres categorías con colores principales.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde] },
+    AZULES(3),
     { label: "Pulso semáforo", description: "De insatisfecho a satisfecho, sin rojo de juicio.", ordinal: true, colors: [...L.rampa3] },
-    { label: "Pulso frecuencias", description: "Azules y gris para frecuencias o distribución.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
+    ACTORES(3),
   ],
   4: [
     { label: "Pulso aprobación", description: "Rampa de cuatro pasos, de desacuerdo a acuerdo.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.acuerdo, L.acuerdoFuerte] },
-    { label: "Pulso principal", description: "Cuatro categorías con fuerte presencia institucional.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo] },
-    { label: "Pulso secundarios", description: "Soporte para categorías adicionales sin repetir principales.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario] },
+    AZULES(4),
+    ACTORES(4),
   ],
   5: [
-    { label: "Pulso principales", description: "La secuencia principal completa de la guía.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris] },
+    AZULES(5),
     { label: "Pulso Likert", description: "De desacuerdo a acuerdo, con gris para la categoría neutra.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.acuerdo, L.acuerdoFuerte, L.sinInformacion] },
-    { label: "Pulso secundarios", description: "Paleta secundaria para series o cortes extensos.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.blanco] },
+    ACTORES(5),
   ],
   6: [
-    { label: "Pulso extendida", description: "Principales más naranja secundario.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja] },
-    { label: "Pulso secundarios", description: "Categorías extra con secundarios y gris claro.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
+    AZULES(6),
+    ACTORES(6),
     { label: "Pulso aprobación", description: "Cinco pasos con el neutro gris al centro y «Sin información» al final.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.neutro, L.acuerdo, L.acuerdoFuerte, L.sinInformacion] },
   ],
   7: [
     { label: "Pulso aprobación", description: "Seis pasos del extremo bajo al alto y «Sin información» al final.", ordinal: true, colors: [...L.rampa6, L.sinInformacion] },
-    { label: "Pulso completa", description: "Principales y secundarios sin repetir blanco.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario] },
-    { label: "Pulso extendida", description: "Incluye morado y gris claro para más cortes.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado] },
-    { label: "Pulso neutra", description: "Más discreta para tablas y cortes con categorías auxiliares.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.rojo] },
+    AZULES(7),
   ],
 };

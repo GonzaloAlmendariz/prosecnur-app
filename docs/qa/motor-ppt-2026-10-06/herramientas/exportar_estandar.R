@@ -30,16 +30,33 @@ colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_su
                 mapa_aplicada = "#2F4B7C", mapa_medio = "#9FB1D1", mapa_fuera = "#E2E6EC", mapa_borde = "#B8C2D3",   # mapas, recetario_m3e.R:85
                 numero_fondo = "#DCE2EC", banda_clara = "#E3E7EF",   # separadores C y subcapítulo 3 (recetario-moderna.pptx, láminas 54 y 57)
                 fondo_destacado = "#F8E3E2")   # cuadrante destacado de la matriz de cuadrantes (lámina 91)
+# `uso` es la regla de cada paleta tal como la lee la lámina «Los colores y lo que significan» del catálogo
+# (lamina_estandar_paleta.R): la constitución dice el color y su regla en el mismo sitio (Gonzalo, 2026-10-27).
 paletas <- list(
-  likert = list(colores = c("#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"), rotulos = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")),
-  likert_neutro = list(colores = c("#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47")),
-  dicotomica = list(colores = c("#081F5C", "#9DC3E6"), rotulos = c("Sí", "No")),
-  actores = list(colores = c(Docentes = "#0B4F8C", Estudiantes = "#2A9D8F", Egresados = "#E9C46A", Autoridades = "#8E9DBD", Administrativos = "#081F5C", Empleadores = "#9DC3E6")),
-  categorias = list(mayor = "#081F5C", resto = "#8E9DBD", residual = "#8A93A8"),
+  likert = list(colores = c("#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"), rotulos = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"),
+                uso = "De lo negativo a lo positivo, siempre en ese orden. Lo negativo va en naranja, nunca en rojo; Sin información va al final y en gris."),
+  likert_neutro = list(colores = c("#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47"),
+                       rotulos = c("Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+                       uso = "La escala de cinco pasos lleva el punto neutro en gris, al centro."),
+  dicotomica = list(colores = c("#081F5C", "#9DC3E6"), rotulos = c("Sí", "No"),
+                    uso = "Sí en azul oscuro y No en celeste, en todas las láminas; también cualquier lista de dos opciones."),
+  # Lo que el motor pone a las porciones de más de dos categorías sin paleta propia (lamina_circulares.R, `.lam_colores_pie`)
+  # y lo que la app sugiere a una lista nominal (paletasSugeridas.ts): la rampa de azules de la marca (Gonzalo, 2026-10-27:
+  # «manda el JSON»).
+  categorica = list(colores = c("#081F5C", "#4F7FAF", "#8E9DBD", "#B9C5DC", "#8A93A8"),
+                    uso = "Categorías sin orden con más de dos opciones: la rampa de azules de la marca, de la más a la menos elegida."),
+  actores = list(colores = c(Docentes = "#0B4F8C", Estudiantes = "#2A9D8F", Egresados = "#E9C46A", Autoridades = "#8E9DBD", Administrativos = "#081F5C", Empleadores = "#9DC3E6"),
+                 rotulos = c("Docentes", "Estudiantes", "Egresados", "Autoridades", "Administrativos", "Empleadores"),
+                 uso = "Cada público conserva su color en todo el informe; si el nombre ya está junto a la barra, no necesita color."),
+  categorias = list(mayor = "#081F5C", resto = "#8E9DBD", residual = "#8A93A8",
+                    rotulos = list(mayor = "La más elegida", resto = "Las demás", residual = "No sabe, Otros"),
+                    uso = "Barras de una serie: la mayor en azul; las demás en el tono de apoyo; No sabe, Otros y similares al final en gris azulado."),
   calor = list(desde = "#EEF2F8", hasta = "#2F4B7C", rango = c(80, 100),
                # Cinco tramos en vez de degradado (recetario_m3d.R:21-23, C30): todos pasan 4.5:1 con su texto.
-               tramos = c("#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C")),
-  mapa = list(clases = c("#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"), fuera = "#E2E6EC"))
+               tramos = c("#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"),
+               uso = "Tablas de calor: cinco tramos del claro al oscuro, todos legibles con su texto."),
+  mapa = list(clases = c("#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"), fuera = "#E2E6EC",
+              uso = "Mapas de cobertura: cuatro clases del claro al oscuro; lo que queda fuera del marco, en gris."))
 grosor <- list(unidad = "in", nota = "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
   # Piso de grosor de la barra de escala en cm (ADR 0092, registro: rige sin declararlo; el informe lo cambia y 0 lo apaga).
   piso_escala_cm = 1.12,

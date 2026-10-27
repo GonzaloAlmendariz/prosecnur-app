@@ -68,6 +68,19 @@
   p
 }
 
+#' Colores de una lista nominal de `k` opciones sin paleta propia
+#'
+#' Dos opciones, la dicotómica; más, la rampa `categorica` y, pasadas sus cinco, su interpolación de los cuatro azules.
+#' Lo usan las porciones nativas (`.lam_colores_pie`) y el respaldo ggplot (`.graficos_mk_palette`): un solo criterio
+#' (Gonzalo, 2026-10-27: el JSON manda).
+#' @keywords internal
+.std_paleta_nominal <- function(k) {
+  k <- max(0L, as.integer(k))
+  if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
+  base <- unname(.std_paleta("categorica"))
+  if (k <= length(base)) base[seq_len(k)] else grDevices::colorRampPalette(base[1:4])(k)
+}
+
 #' Tamaño tipográfico PPT en puntos (`titulo`, `base`, `leyenda`, `cifra`...)
 #'
 #' Más el desplazamiento del perfil de letra del cliente (K13, graficos_estilo_cliente.R), que sólo fija el worker del

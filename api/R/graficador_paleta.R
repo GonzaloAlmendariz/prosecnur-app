@@ -96,22 +96,16 @@
     if (!length(pal_user)) pal_user <- NULL
   }
 
-  base_pal <- c(
-    "#0B4F8C", "#2A9D8F", "#E9C46A", "#F4A261",
-    "#E76F51", "#7A9E9F", "#6D597A", "#5B8DEF"
-  )
+  # Sin paleta, una lista nominal toma la del estándar (`.std_paleta_nominal`: dicotómica para dos, la rampa de azules para
+  # más), la misma que las porciones nativas. Antes era una lista propia, mitad `actores` y mitad nada (P4).
+  base_pal <- .std_paleta_nominal(max(length(levels_cat), 2L))
 
   if (is.null(pal_user) || !length(pal_user)) {
     # Una escala de acuerdo o satisfacción sin paleta guardada toma la Likert del recetario; el usuario puede elegir otra
     # (Gonzalo, 2026-10-09: «Por defecto, pero el usuairo aun tiene la posibilidad e selecionar su paleta»).
     lk <- .graficos_paleta_likert(levels_cat)
     if (!is.null(lk)) return(lk)
-    if (length(levels_cat) <= length(base_pal)) {
-      vals <- base_pal[seq_along(levels_cat)]
-    } else {
-      vals <- scales::hue_pal(h = c(200, 360), c = 70, l = 55)(length(levels_cat))
-    }
-    return(stats::setNames(vals, levels_cat))
+    return(stats::setNames(base_pal[seq_along(levels_cat)], levels_cat))
   }
 
   # OJO: `as.character()` sobre un vector nombrado BORRA los nombres. Hay que

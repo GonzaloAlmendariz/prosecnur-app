@@ -36,10 +36,8 @@
 .lam_colores_pie <- function(k, espec = NULL) {
   propios <- if (!is.null(espec)) .espec_colores_de(espec)
   if (length(propios) == k) return(propios)
-  if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
-  base <- c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue"))
   # Frente C: con más de cinco porciones el ciclo repetía el azul de la primera; se reparte la rampa de la marca.
-  if (k <= length(base)) base[seq_len(k)] else grDevices::colorRampPalette(base[1:4])(k)
+  .std_paleta_nominal(k)
 }
 
 #' Lámina de una torta con leyenda de cifras (lámina 69, recetario_m3a.R:20-31)
