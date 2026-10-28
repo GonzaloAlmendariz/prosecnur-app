@@ -137,6 +137,10 @@ function conteoActual(): Record<string, number> {
 describe("tablas del kit · L28", () => {
   const actual = conteoActual();
 
+  test("el barrido encuentra las tablas de la foto: si su filtro deja de casar, no puede quedar verde", () => {
+    expect(Object.keys(actual).length).toBeGreaterThan(50);
+  });
+
   test("ningún archivo suma tablas a mano ni aparece uno nuevo", () => {
     const regresiones = Object.entries(actual)
       .filter(([archivo, n]) => n > (SNAPSHOT_TABLAS[archivo] ?? 0))
