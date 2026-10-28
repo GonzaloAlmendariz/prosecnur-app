@@ -20,7 +20,7 @@ Dónde vive: **motor** (cambio en `api/R`, vale para todo informe), **proyecto**
 | G7 | 10 | «dice Ciencias Contables» (Años trabajando en la Unidad de Ciencias Contables) | proyecto (título heredado de Conta) | pendiente |
 | G8 | 12 | dicotómicas: cifras a 14 pt («ya lo subí») y «todo en color blanco» | motor (cifra de la Sí/No: tamaño y color) | pendiente |
 | G9 | 14, 39 | «muy pequeñas las barras»; «la premisa tiene tanto espacio, y las barras tan pequeñas» | motor | **hecho** `ae4552c26` (sin ensanche: 15,3 cm) |
-| G10 | 15, 34, 44, 46, 51, 52 | una lámina con una sola pregunta «¿tiene que estar sola? ¿no puede estar con el slide de arriba?»; juntar con la vecina del mismo tema | plan (juntar láminas con títulos distintos) o motor (fusión automática de vecinas) | **bloqueado**: decidir si se juntan a mano en el plan o si el motor fusiona solo |
+| G10 | 15, 34, 44, 46, 51, 52 | una lámina con una sola pregunta «¿tiene que estar sola? ¿no puede estar con el slide de arriba?»; juntar con la vecina del mismo tema | plan del proyecto Arte | decidido por Gonzalo (2026-10-28): «Las junto en el plan» — se juntan a mano en el plan; el motor no fusiona láminas |
 | G11 | 16, 48 | barras de un mismo tema más juntas y más separación entre preguntas («pareciera que todo pertenece a la misma pregunta») | motor (aire dentro del tema vs entre temas) | pendiente |
 | G12 | 16 | «mucho espacio al texto, más largas las barras» | motor | **hecho** `ae4552c26` |
 | G13 | 16 | Top Two Box más pegado a la barra | motor (columna del box) | pendiente |
