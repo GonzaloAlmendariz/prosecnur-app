@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { toast } from "../../components/toasterStore";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
-  Check,
   CheckCircle2,
   ChevronDown,
   Database,
@@ -274,7 +274,6 @@ function AnaliticaTemplateMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<"export" | "import" | null>(null);
-  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -297,7 +296,6 @@ function AnaliticaTemplateMenu({
 
   async function handleExport() {
     setError("");
-    setMsg("");
     setBusy("export");
     try {
       const payload = await onExport();
@@ -308,33 +306,30 @@ function AnaliticaTemplateMenu({
       a.download = `${filenamePrefix}_${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      setMsg(exportSuccessLabel);
+      toast.exito(exportSuccessLabel);
       setOpen(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(null);
-      window.setTimeout(() => setMsg(""), 2500);
     }
   }
 
   async function handleImport(file?: File) {
     if (!file) return;
     setError("");
-    setMsg("");
     setBusy("import");
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
       const okMsg = await onImport(parsed);
-      setMsg(okMsg ?? importSuccessLabel);
+      toast.exito(okMsg ?? importSuccessLabel);
       setOpen(false);
     } catch (e) {
       setError(`JSON inválido: ${(e as Error).message}`);
     } finally {
       setBusy(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      window.setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -389,12 +384,7 @@ function AnaliticaTemplateMenu({
         onChange={(e) => void handleImport(e.target.files?.[0])}
       />
 
-      {msg && (
-        <span role="status" className="pulso-analitica-template-feedback is-ok">
-          <Check size={11} />
-          {msg}
-        </span>
-      )}
+      {/* L25: el resultado de exportar o importar la plantilla es un toast; aquí queda sólo el error. */}
       {error && (
         <span role="alert" className="pulso-analitica-template-feedback is-error">
           <AlertCircle size={11} />
