@@ -139,7 +139,7 @@ export function Ritmo({
           <TrazadoDeBarras
             bajo
             tituloIzquierdo="Llamados por día"
-            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja" } : null}
+            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja", rotuloCorto: "Sin hoja" } : null}
             columnas={fechas.map((iso) => {
               const familias = hoja.porFecha[iso];
               const total = hoja.totalPorFecha[iso] ?? 0;

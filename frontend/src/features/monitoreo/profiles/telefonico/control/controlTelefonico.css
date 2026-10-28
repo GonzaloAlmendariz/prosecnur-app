@@ -985,6 +985,22 @@
   .mon-equipo {
     grid-template-columns: minmax(0, 1fr) 300px;
   }
+
+  /* Desde 1400 y no desde 1180: con el lateral al lado, de 1180 a 1400 es
+   * donde la tabla tiene MENOS ancho, y a 1280 «Intentos por caso» quedaba
+   * cortada contra el borde. La cifra de llamados se queda; la barra cede. */
+  .mon-equipo-llamados {
+    min-width: 0;
+  }
+
+  .mon-equipo-llamados i {
+    display: none;
+  }
+
+  .mon-equipo .mon-ctl-tabla th,
+  .mon-equipo .mon-ctl-tabla td {
+    padding-inline: var(--pulso-space-2);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -1004,20 +1020,6 @@
     align-self: stretch;
   }
 
-  /* La cifra de llamados se queda; la barra cede para que las diez columnas
-   * quepan sin desplazar a lo ancho. */
-  .mon-equipo-llamados {
-    min-width: 0;
-  }
-
-  .mon-equipo-llamados i {
-    display: none;
-  }
-
-  .mon-equipo .mon-ctl-tabla th,
-  .mon-equipo .mon-ctl-tabla td {
-    padding-inline: var(--pulso-space-2);
-  }
 }
 
 /* ---------- Respuestas ---------- */

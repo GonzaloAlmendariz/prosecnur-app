@@ -38,10 +38,13 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3);
 }
 
-/* Las dos gráficas reparten el alto que el mapa de calor no pide. */
+/* Las dos gráficas reparten el alto que el mapa de calor no pide, pero nunca
+ * bajan de lo que miden: con `flex-shrink` y el `min-height` explícito, a
+ * 1280×720 la tarjeta se encogía bajo su contenido y la siguiente tapaba el eje
+ * de fechas. Si no caben, desplaza la columna. */
 .mon-cadencia-columna > .mon-cadencia-grafico {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   flex-direction: column;
   min-height: 240px;
 }
@@ -194,6 +197,13 @@
   overflow-y: auto;
   scroll-padding-top: var(--mon-ctl-cabecera-alto);
   scroll-snap-type: y proximity;
+}
+
+/* Cuatro columnas en un lateral de 280–320 px: con el relleno de la tabla de la
+ * casa «Hoja» quedaba cortada contra el borde. */
+.mon-cadencia-dia-a-dia .mon-ctl-tabla th,
+.mon-cadencia-dia-a-dia .mon-ctl-tabla td {
+  padding-inline: 6px;
 }
 
 .mon-cadencia-dia-a-dia tr.is-pico th,

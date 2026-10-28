@@ -248,6 +248,23 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/* Una banda de uno o dos días no da ancho para el rótulo en horizontal: se
+ * partía letra a letra («registr / o»). Vertical y entero, de abajo arriba, y
+ * FUERA del flujo: en el flujo su alto estiraba la fila de la rejilla y
+ * descolgaba las barras de los demás días bajo el eje. */
+.mon-trazado-banda.is-angosta span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-height: calc(100% - 8px);
+  overflow: hidden;
+  padding: 9px 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+
 .mon-trazado-columnas > .mon-trazado-columna {
   grid-row: 1;
 }

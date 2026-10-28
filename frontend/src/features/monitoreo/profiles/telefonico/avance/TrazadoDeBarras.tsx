@@ -64,7 +64,8 @@ export function TrazadoDeBarras({
   derecho?: EjeDerecho | null;
   bajo?: boolean;
   /** Desde qué columna se sombrea una banda (por ejemplo, la hoja ya no registra). */
-  banda?: { desde: number; rotulo: string } | null;
+  /** `rotuloCorto` se usa cuando la banda mide uno o dos días (va en vertical). */
+  banda?: { desde: number; rotulo: string; rotuloCorto?: string } | null;
 }) {
   const izquierda = escalaDeEje(Math.max(0, ...columnas.map((columna) => columna.total)));
   const maximoDerecho = derecho
@@ -96,8 +97,15 @@ export function TrazadoDeBarras({
         ))}
         <div className="mon-trazado-columnas" style={{ gridTemplateColumns: columnasCss }}>
           {banda && banda.desde < columnas.length ? (
-            <div className="mon-trazado-banda" style={{ gridColumn: `${banda.desde + 1} / -1` }}>
-              <span>{banda.rotulo}</span>
+            <div
+              className={`mon-trazado-banda${columnas.length - banda.desde <= 2 ? " is-angosta" : ""}`}
+              style={{ gridColumn: `${banda.desde + 1} / -1` }}
+            >
+              {columnas.length - banda.desde <= 2 ? (
+                <span title={banda.rotulo}>{banda.rotuloCorto ?? banda.rotulo}</span>
+              ) : (
+                <span>{banda.rotulo}</span>
+              )}
             </div>
           ) : null}
           {columnas.map((columna, i) => {
