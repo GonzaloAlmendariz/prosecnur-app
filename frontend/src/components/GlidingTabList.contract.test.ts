@@ -102,11 +102,18 @@ describe("GlidingTabList navigation contract", () => {
       layout.indexOf("function SessionErrorChip("),
     );
 
-    expect(dock).toMatch(/<GlidingTabList[\s\S]*?mode="nav"/);
-    expect(dock).not.toMatch(/role="tablist"/);
-    expect(dock).not.toMatch(/role="tab"/);
-    expect(dock).not.toMatch(/aria-selected=/);
-    expect(dock).toMatch(/aria-current=\{active\s*\?\s*"page"\s*:\s*undefined\}/);
+    // Desde L15 el dock es el SectionPillbar del kit: la semántica de
+    // navegación (links + aria-current, sin tablist) se fija en él.
+    expect(dock).toMatch(/<SectionPillbar\b/);
+    expect(dock).not.toMatch(/role="tab/);
+    // Sin comentarios: el de cabecera nombra `role="tab"` para decir por qué no.
+    const pillbar = fs.readFileSync(path.join(srcDir, "components", "SectionPillbar.tsx"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(pillbar).toMatch(/<GlidingTabList[\s\S]*?mode="nav"/);
+    expect(pillbar).not.toMatch(/role="tablist"/);
+    expect(pillbar).not.toMatch(/role="tab"/);
+    expect(pillbar).not.toMatch(/aria-selected=/);
+    expect(pillbar).toMatch(/aria-current=\{activa\s*\?\s*"page"\s*:\s*undefined\}/);
   });
 
   test("the module switcher keeps links inside a semantic navigation list", () => {

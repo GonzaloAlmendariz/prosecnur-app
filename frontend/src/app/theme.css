@@ -3037,13 +3037,14 @@ a { color: var(--pulso-primary); }
     0 8px 18px color-mix(in srgb, var(--pulso-module-processing) 8%, transparent);
 }
 
-.pulso-processing-phase-item {
+/* L15: el rail del kit; :where() conserva la especificidad de antes. */
+:where(.pulso-processing-phase-dock) .pulso-phase-pill-item {
   position: relative;
   display: flex;
   height: 100%;
 }
 
-.pulso-processing-phase-link {
+:where(.pulso-processing-phase-dock) .pulso-phase-pill {
   min-width: 0;
   border: 0;
   font-weight: var(--pulso-weight-heavy);
@@ -3055,7 +3056,7 @@ a { color: var(--pulso-primary); }
   flex: 0 0 auto;
 }
 
-.pulso-processing-phase-link.is-done:not(.is-active) .pulso-processing-phase-number::after {
+:where(.pulso-processing-phase-dock) .pulso-phase-pill.is-done:not(.is-active) .pulso-processing-phase-number::after {
   content: "";
   position: absolute;
   right: -4px;
@@ -3067,14 +3068,14 @@ a { color: var(--pulso-primary); }
   background: var(--pulso-success-fg);
 }
 
-.pulso-processing-phase-link:focus-visible {
+:where(.pulso-processing-phase-dock) .pulso-phase-pill:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--pulso-module-processing-soft) 82%, transparent),
     0 8px 18px color-mix(in srgb, var(--pulso-module-processing) 14%, transparent);
 }
 
-.pulso-processing-phase-link .pulso-phase-pill-text {
+:where(.pulso-processing-phase-dock) .pulso-phase-pill .pulso-phase-pill-text {
   min-width: 0;
   max-width: none;
   overflow: visible;
