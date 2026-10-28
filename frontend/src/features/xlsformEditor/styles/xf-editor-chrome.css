@@ -219,6 +219,17 @@
 
 /* ── Estado del formulario (U10) ─────────────────────────────────────────── */
 
+/* El panel del Popover del kit sin su relleno: la cabecera y la lista llevan
+ * el suyo, y la lista es la que desplaza. */
+.pulso-popover.pulso-diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 80px));
+  padding: 0;
+  overflow: hidden;
+}
+
 .pulso-diagnostics-popover-step {
   border: 1px solid var(--pulso-warn-border, var(--pulso-border));
   background: var(--pulso-warn-bg, var(--pulso-surface-2));

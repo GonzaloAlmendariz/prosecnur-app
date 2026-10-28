@@ -17319,44 +17319,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-danger-bg);
 }
 
-@keyframes pulso-diagnostics-popover-in {
-  from { transform: translateY(-4px) scale(0.98); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-.pulso-diagnostics-popover {
-  position: fixed;
-  /* Se portalea a body y ancla bajo la barra de "avisos", que vive en el
-     commandbar dentro de `.pulso-page-frame-toolbar` (z-index 1000 +
-     transform). Con 700 el toolbar (Nuevo formulario / Importar / Exportar…)
-     se pintaba ENCIMA del popover. Sube por encima del chrome (igual que el
-     overlay del mapa y el ContextLens). */
-  z-index: 1400;
-  width: min(420px, calc(100vw - 24px));
-  max-height: min(560px, calc(100vh - 80px));
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
-  overflow: hidden;
-  animation: pulso-diagnostics-popover-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
-}
-.pulso-diagnostics-popover::before {
-  /* Triangulito tipo "globo de cómic" señalando al badge. */
-  content: "";
-  position: absolute;
-  top: -7px;
-  right: 18px;
-  width: 12px;
-  height: 12px;
-  background: white;
-  border-top: 1px solid var(--pulso-border);
-  border-left: 1px solid var(--pulso-border);
-  transform: rotate(45deg);
-}
-
 .pulso-diagnostics-popover-header {
   display: flex;
   align-items: flex-start;
@@ -27099,8 +27061,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-xlsform-frame .pulso-canvas-addbetween-menu,
 .pulso-add-element-menu,
-.pulso-xlsform-frame .pulso-more-views-menu,
-.pulso-diagnostics-popover {
+.pulso-xlsform-frame .pulso-more-views-menu {
   border-color: var(--xls-border);
   background: color-mix(in srgb, #ffffff 96%, transparent);
   box-shadow: var(--xls-shadow-popover);
