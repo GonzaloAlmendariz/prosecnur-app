@@ -45,14 +45,14 @@
 
 .cmv2-crc-card-strip span {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 /* Estado de la evidencia en el propio chip: absorbe la información que
    llevaba el `<select>` duplicado, sin sumar un segundo control. */
 .cmv2-crc-card-strip em {
   overflow: hidden;
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-semibold);
   text-overflow: ellipsis;
@@ -224,7 +224,7 @@
   border-radius: 50%;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -359,7 +359,7 @@
 
 .cmv2-i18b-anchor dt {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-i18b-anchor dd {
@@ -465,7 +465,7 @@
 
 .cmv2-i18b-cascade > footer {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 @media (max-width: 760px) {

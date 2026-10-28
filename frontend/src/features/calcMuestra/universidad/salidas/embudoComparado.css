@@ -97,7 +97,7 @@
   position: absolute;
   inset: 0;
   font-style: normal;
-  font-size: 8.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 9px;
   padding-inline-start: 4px;
   color: color-mix(in srgb, var(--pulso-text-muted) 70%, transparent);

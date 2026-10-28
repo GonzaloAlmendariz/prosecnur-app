@@ -137,7 +137,7 @@
 .cmv2-certeza-curva svg { width: 46px; height: 16px; display: block; margin: 0 auto; overflow: visible; }
 .cmv2-certeza-curva polyline { fill: none; stroke: var(--pulso-text-muted); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
 .cmv2-certeza-curva[data-plana] polyline { stroke: var(--pulso-danger-fg); }
-.cmv2-certeza-curva[data-plana] small { display: block; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--pulso-danger-fg); }
+.cmv2-certeza-curva[data-plana] small { display: block; font-size: var(--pulso-type-micro-size); letter-spacing: .04em; text-transform: uppercase; color: var(--pulso-danger-fg); }
 
 /* La acción donde aparece el hallazgo. Discreta: sólo asoma en las filas cuya
    brecha es positiva, que son las que piden algo. */
@@ -152,7 +152,7 @@
 /* Con cuántos sorteos se decidió el mínimo. En el ruido significa que el margen
    sobre el nivel exigido es menor que el error de muestreo: el veredicto no
    distingue cumplir de no cumplir. */
-.cmv2-certeza-corridas { display: block; font-size: 9px; color: var(--pulso-text-muted); white-space: nowrap; }
+.cmv2-certeza-corridas { display: block; font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); white-space: nowrap; }
 .cmv2-certeza-corridas[data-ruido] { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-medium); }
 
 /* El neto del motor, dicho sin competir con los tres KPI de arriba. */

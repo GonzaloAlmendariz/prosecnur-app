@@ -42,7 +42,7 @@
   justify-content: flex-end;
   gap: 4px 10px;
   margin: 0;
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -116,14 +116,14 @@
 .cmv2-tsr-counts dt,
 .cmv2-tsr-quantiles dt,
 .cmv2-tsr-means span {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-tsr-counts dd,
 .cmv2-tsr-quantiles dd { margin: 0; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .cmv2-tsr-counts dd { font-size: 15px; font-weight: var(--pulso-weight-semibold); }
-.cmv2-tsr-counts small { display: block; font-size: 8px; font-weight: var(--pulso-weight-regular); color: var(--pulso-text-muted); }
+.cmv2-tsr-counts small { display: block; font-size: var(--pulso-type-micro-size); font-weight: var(--pulso-weight-regular); color: var(--pulso-text-muted); }
 
 .cmv2-tsr-means {
   display: grid;
@@ -141,7 +141,7 @@
 
 .cmv2-tsr-means > div[data-secondary] { background: var(--pulso-surface-2); }
 .cmv2-tsr-means strong { font-size: 19px; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-.cmv2-tsr-means small { font-size: 9px; color: var(--pulso-text-muted); }
+.cmv2-tsr-means small { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 .cmv2-tsr-quantiles {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -166,7 +166,7 @@
 
 .cmv2-tsr-delta > span { flex-basis: 100%; color: var(--cmv2-accent-fg); font-weight: var(--pulso-weight-semibold); }
 .cmv2-tsr-delta strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-.cmv2-tsr-delta small { flex-basis: 100%; font-size: 9px; }
+.cmv2-tsr-delta small { flex-basis: 100%; font-size: var(--pulso-type-micro-size); }
 
 @media (max-width: 720px) {
   .cmv2-tsr-head { grid-template-columns: 1fr; }

@@ -48,7 +48,7 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   white-space: nowrap;

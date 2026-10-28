@@ -19,21 +19,8 @@ const FUERA_DE_ALCANCE = ["features/monitoreo/"];
 const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
-  "features/calcMuestra/motor/motor.css": 2,
-  "features/calcMuestra/universidad/aulas/presupuestoVisitas.css": 1,
   "features/calcMuestra/universidad/aulas/relato/relato.css": 3,
-  "features/calcMuestra/universidad/calculo/calculo.css": 1,
-  "features/calcMuestra/universidad/calculo/certezaCobertura.css": 2,
-  "features/calcMuestra/universidad/calculo/tasaFacultad.css": 1,
-  "features/calcMuestra/universidad/criterios/criterios.css": 1,
-  "features/calcMuestra/universidad/criterios/distribucionCategoria.css": 1,
   "features/calcMuestra/universidad/definicion/historicoEstudio.css": 8,
-  "features/calcMuestra/universidad/definicion/referenciaAsistencia.css": 3,
-  "features/calcMuestra/universidad/marco/criterioFacultadRadiografia.css": 5,
-  "features/calcMuestra/universidad/marco/criteriosI18b.css": 5,
-  "features/calcMuestra/universidad/marco/tipoSesionRadiografia.css": 5,
-  "features/calcMuestra/universidad/salidas/embudoComparado.css": 1,
-  "features/calcMuestra/universidad/shared/graficos/graficos.css": 1,
   "features/calcMuestra/universidad/universidad-base.css": 1,
   "features/graficos/estilo/estilo.css": 1,
   "features/graficos/graficadorPicker.css": 9,

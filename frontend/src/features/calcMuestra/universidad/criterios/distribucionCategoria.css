@@ -161,7 +161,7 @@
   content: attr(data-n);
   position: absolute;
   top: -12px;
-  font-size: 8.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-warn-fg, var(--pulso-text-muted));
   line-height: 1;

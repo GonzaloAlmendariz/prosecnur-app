@@ -87,7 +87,7 @@
 .cmv2-ref-asist-chain small,
 .cmv2-ref-asist-product small {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -187,7 +187,7 @@
 .cmv2-ref-asist-gradient > header small,
 .cmv2-ref-asist-degraded > header small {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -217,7 +217,7 @@
 .cmv2-ref-asist-gradient-grid small,
 .cmv2-ref-asist-gradient-grid span {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-asist-gradient-grid strong {

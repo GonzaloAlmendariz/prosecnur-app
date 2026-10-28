@@ -20,7 +20,7 @@
   color: var(--pulso-text);
 }
 .cmv2-graf-tasa-label em {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
