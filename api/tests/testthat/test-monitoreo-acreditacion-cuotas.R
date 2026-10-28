@@ -109,3 +109,30 @@ test_that("sin el cruce en caché, Cuotas y Correo responden «preparando» en v
   sid2 <- session_create()
   expect_identical(.mcm_case_rollup(sid2), list())
 })
+
+test_that("una columna donde cada persona tiene su propio valor es un identificador, no una variable de cuota", {
+  # Administrativos de ACRDCONTA: 16 personas, y N°, código, nombres, correo y
+  # celular traían 16 «categorías» cada uno; sólo «Área de trabajo» es cuota.
+  filas <- data.frame(
+    N = as.character(1:16),
+    Codigo = sprintf("2019%04d", 1:16),
+    email = sprintf("p%02d@pucp.edu.pe", 1:16),
+    Celular2 = c(sprintf("9%08d", 1:6), rep("", 10)),
+    Area = rep(c("Facultad", "Departamento"), each = 8),
+    stringsAsFactors = FALSE
+  )
+  variables <- vapply(prosecnurapp:::.mcu_variables(filas), `[[`, character(1), "variable")
+  expect_identical(variables, "Area")
+
+  # Un celular de reemplazo con un número repetido sigue siendo identificador.
+  egresados <- data.frame(
+    Celular2 = c(sprintf("9%08d", 1:20), "900000001"),
+    Ciclo = rep(c("2019-1", "2019-2", "2020-1"), 7),
+    stringsAsFactors = FALSE
+  )
+  expect_identical(vapply(prosecnurapp:::.mcu_variables(egresados), `[[`, character(1), "variable"), "Ciclo")
+
+  # Un público chico con categorías que no se repiten sigue ofreciéndolas.
+  chico <- data.frame(Facultad = c("Letras", "Ciencias", "Derecho"), stringsAsFactors = FALSE)
+  expect_identical(vapply(prosecnurapp:::.mcu_variables(chico), `[[`, character(1), "variable"), "Facultad")
+})

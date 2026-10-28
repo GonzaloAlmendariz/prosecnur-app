@@ -17,7 +17,7 @@ function Banda({ desde, hasta, inicio, total, clase }: { desde: string; hasta: s
 /**
  * Modelo › Ventana de campo (ficha M3): cuándo entra cada público. Las cifras
  * del campo, el plan declarado y la ventana real de cada público con su
- * intensidad diaria; debajo, el editor del plan de siempre.
+ * intensidad diaria; debajo, el plan de campo (`PlanDeCampo`).
  */
 export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVentana; editorDelPlan?: ReactNode }) {
   const { desde, hasta, diasDelCampo } = modelo;
@@ -71,7 +71,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
           </div>
         ) : <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae respuestas con fecha." descripcion="La ventana de cada público aparece con las primeras respuestas." />}
       </section>
-      {editorDelPlan ? <section className="acr-av-panel acr-mo-editor acr-vista-anterior" aria-label="Plan de campo">{editorDelPlan}</section> : null}
+      {editorDelPlan}
     </div>
   );
 }

@@ -76,6 +76,7 @@ import { Calidad } from "./control/casos/Calidad";
 import { Publicos } from "./insumos/Publicos";
 import { Metas } from "./modelo/Metas";
 import { Cuotas } from "./modelo/Cuotas";
+import { PlanDeCampo } from "./modelo/PlanDeCampo";
 import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
 import { Fuentes } from "./insumos/Fuentes";
 import { Reglas } from "./insumos/reglas/Reglas";
@@ -15888,7 +15889,7 @@ function renderAcreditacionView(
   if (view === "modelo" && options.activeModelTab === "estrategias" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Ventana de campo (A7).
     const clienteDelModelo = reports?.client_report;
     const ventana = construirVentana(clienteDelModelo?.actors ?? [], clienteDelModelo?.daily_general ?? [], clienteDelModelo?.daily_actor ?? [], options.state?.config?.strategy_phases ?? []);
-    return <VentanaDeCampo modelo={ventana} editorDelPlan={<AcreditacionModelWorkbench acreditacion={options.acreditacion} reports={reports} state={options.state} activeTab="estrategias" saving={Boolean(options.savingAcreditacion)} actionStatus={options.actionStatus ?? null} onSaveSeguimiento={options.onSaveSeguimiento} onCerrar={options.onCerrar} onStateChange={options.onStateChange} />} />;
+    return <VentanaDeCampo modelo={ventana} editorDelPlan={<PlanDeCampo config={options.state?.config ?? null} ventana={ventana} onStateChange={options.onStateChange} />} />;
   }
   if (view === "modelo") {
     return (

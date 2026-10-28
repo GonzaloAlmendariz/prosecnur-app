@@ -27,9 +27,11 @@
   min-height: 0;
 }
 
+/* La matriz se estira y la tarjeta de canales mide lo suyo: con el reparto al
+ * revés, «Efectivas de … por canal» quedaba en 114 de sus 193 px y se salía. */
 .acr-ct-columna {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--pulso-space-3);
   min-height: 0;
 }
@@ -90,7 +92,9 @@
 .acr-ct-matriz {
   display: grid;
   grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr);
-  grid-auto-rows: minmax(92px, 1fr);
+  /* La fila de cabeceras mide su texto; las de cifras se reparten el alto. */
+  grid-template-rows: auto;
+  grid-auto-rows: minmax(76px, 1fr);
   align-items: center;
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);

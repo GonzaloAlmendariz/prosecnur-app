@@ -6,10 +6,11 @@ import { apiMonitoreoCollectorsConfig, type MonitoreoInternalQueryTotal, type Mo
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { enlaceDeFuente } from "../../../fuentes/enlacesDeFuente";
 import { corteCorto } from "../../../core/barraComun";
-import { fmt } from "../formato";
+import { fmt, normalizeSourceMatch } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import type { AcreditacionCollectorRow } from "../AcreditacionSourcesModel";
 import { canalDeFuente } from "./publicosModelo";
+import { useEstadoDeCuotas } from "./useEstadoDeCuotas";
 import { firmaDeRecopiladores, fuentesPorPublico, recopiladoresDeLaFuente, type FuenteDelMaestro } from "./fuentesModelo";
 import "../avance/avance.css";
 import "../control/casos/porResolver.css";
@@ -30,6 +31,8 @@ type PropsDeVista = {
   mensaje?: { tono: "info" | "error"; texto: string } | null;
   /** Lo que se declara de cada encuesta (público y canal base), debajo. */
   declaracion?: ReactNode;
+  /** Personas de cada padrón por público (clave normalizada), para las fuentes sin contador. */
+  personasPorPublico?: ReadonlyMap<string, number> | null;
 };
 
 function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -57,8 +60,8 @@ function Cabecera({ elegida }: { elegida: FuenteDelMaestro }) {
   );
 }
 
-export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion }: PropsDeVista) {
-  const grupos = useMemo(() => fuentesPorPublico(sources, borrador), [sources, borrador]);
+export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion, personasPorPublico = null }: PropsDeVista) {
+  const grupos = useMemo(() => fuentesPorPublico(sources, borrador, personasPorPublico), [sources, borrador, personasPorPublico]);
   const todas = grupos.flatMap((grupo) => grupo.fuentes);
   const elegida = todas.find((item) => item.id === foco) ?? todas[0] ?? null;
   const recopiladores = elegida && elegida.papel === "respuestas" ? recopiladoresDeLaFuente(elegida.fuente, borrador, totales, sources) : [];
@@ -177,6 +180,11 @@ export function Fuentes({
 }) {
   const [foco, escribirFoco] = useFocoMonitoreo();
   const totales = useResumenDelCorte((estado) => estado.recopiladores);
+  const { estado: cuotas } = useEstadoDeCuotas();
+  const personasPorPublico = useMemo(() => {
+    if (!cuotas?.publicos.length) return null;
+    return new Map(cuotas.publicos.filter((item) => item.universo != null).map((item) => [normalizeSourceMatch(item.actor), Number(item.universo)]));
+  }, [cuotas]);
   const [borrador, setBorrador] = useState<MonitoreoLinkCollector[]>(linkCollectors);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "error"; texto: string } | null>(null);
@@ -224,6 +232,7 @@ export function Fuentes({
       guardando={guardando}
       mensaje={mensaje}
       declaracion={declaracion}
+      personasPorPublico={personasPorPublico}
     />
   );
 }

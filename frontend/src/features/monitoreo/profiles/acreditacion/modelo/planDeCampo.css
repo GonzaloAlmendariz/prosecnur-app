@@ -1,0 +1,112 @@
+/* Modelo › Ventana de campo › Plan de campo: plan, ejecutado y lectura en tres
+ * fichas iguales; debajo, el formulario en una fila. */
+
+.acr-plan-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-plan-comparacion {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.acr-plan-comparacion > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.acr-plan-comparacion > div.is-alerta {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.acr-plan-comparacion > div.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.acr-plan-comparacion dt {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.acr-plan-comparacion dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-plan-comparacion > div.is-alerta dd {
+  color: var(--pulso-warn-fg);
+}
+
+.acr-plan-comparacion > div.is-ok dd {
+  color: var(--pulso-success-fg);
+}
+
+.acr-plan-comparacion small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-plan-formulario {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.acr-plan-formulario label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-plan-formulario input,
+.acr-plan-formulario select {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-plan-formulario input:focus-visible,
+.acr-plan-formulario select:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.acr-plan-aviso {
+  margin: 0;
+  font-size: 12px;
+}
+
+.acr-plan-aviso.is-ok { color: var(--pulso-success-fg); }
+.acr-plan-aviso.is-error { color: var(--pulso-danger-fg); }
+.acr-plan-aviso.is-info { color: var(--pulso-text-soft); }
+
+@media (max-width: 1180px) {
+  .acr-plan-formulario { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .acr-plan-comparacion { grid-template-columns: minmax(0, 1fr); }
+  .acr-plan-formulario { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
