@@ -32,6 +32,8 @@ import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCor
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
+import { PANEL_CONTACTOS_VARIABLES } from "../../features/recopiladores/correos/contactos/panelesContactos";
+import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/panelesFiltros";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
@@ -209,6 +211,7 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_LOGICA_EXTERNA,
     PANEL_CATALOGOS,
     PANEL_LOGICA_SURVEYMONKEY,
+    PANEL_NUEVO_FILTRO,
   ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
   // Lista de campañas (ADR 0111): `?panel=nueva-campana` y
@@ -217,7 +220,13 @@ export const PANELES_POR_MODULO: Readonly<
   // del correo y sus paneles (ADR 0110 §2).
   // Aulas › Unidades: `?panel=rehacer-plan` confirma rehacer el plan (H26).
   // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
-  "material-campo": [...PANELES_CAMPANAS, ...PANELES_CORREOS, PANEL_REHACER_PLAN, PANEL_EDITOR_BLOQUE],
+  "material-campo": [
+    ...PANELES_CAMPANAS,
+    ...PANELES_CORREOS,
+    PANEL_CONTACTOS_VARIABLES,
+    PANEL_REHACER_PLAN,
+    PANEL_EDITOR_BLOQUE,
+  ],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {
