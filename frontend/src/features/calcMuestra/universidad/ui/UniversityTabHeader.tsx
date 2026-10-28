@@ -1,21 +1,28 @@
+import { TabHeading, type TabHeadingEstado } from "../../../../components/TabHeading";
+import type { GuideStatus } from "../../sharedCore";
 import type { CalcMuestraSidebarTab } from "../universidadTabs";
+
+// La cabecera de pestaña de Cálculo de muestra es el TabHeading del kit (L14),
+// la misma de Carga, Validación y Analítica. «Pendiente» no se declara: una
+// pestaña sin empezar no tiene estado que decir todavía.
+const ESTADO: Record<GuideStatus, TabHeadingEstado | undefined> = {
+  ready: "listo",
+  working: "parcial",
+  pending: undefined,
+};
 
 export function UniversityTabHeader({
   tab,
 }: {
   tab: CalcMuestraSidebarTab;
 }) {
-  const Icon = tab.icon;
-
   return (
-    <header className="cmv2-local-context" data-status={tab.status} aria-label={`Pestaña activa: ${tab.label}`}>
-      <span className="cmv2-local-context-icon" aria-hidden="true">
-        <Icon size={19} strokeWidth={1.8} />
-      </span>
-      <div className="cmv2-local-context-copy">
-        <h2 id="cmv2-active-local-title">{tab.label}</h2>
-        <p className="cmv2-local-context-detail">{tab.detail}</p>
-      </div>
-    </header>
+    <TabHeading
+      eyebrow="Cálculo de muestra"
+      titulo={tab.label}
+      icono={tab.icon}
+      estado={ESTADO[tab.status]}
+      detalle={tab.detail}
+    />
   );
 }
