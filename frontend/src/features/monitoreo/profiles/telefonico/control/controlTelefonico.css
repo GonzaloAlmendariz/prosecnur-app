@@ -192,6 +192,8 @@
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
+  /* Si las tarjetas no caben, desplaza la columna; ninguna se aplasta. */
+  overflow-y: auto;
 }
 
 .mon-barrido-embudo-panel {
@@ -250,11 +252,13 @@
   font-size: 12px;
 }
 
+/* El listado por segmento mide lo que sus filas: con `flex-shrink` y
+ * `min-height: 0`, a 1280×720 cedía todo su alto al gráfico de abajo y
+ * mostraba UNA de cuatro filas detrás de una caja que había que desplazar. */
 .mon-barrido-matriz {
   display: flex;
-  flex: 0 1 auto;
+  flex: none;
   flex-direction: column;
-  min-height: 0;
   overflow: hidden;
 }
 
