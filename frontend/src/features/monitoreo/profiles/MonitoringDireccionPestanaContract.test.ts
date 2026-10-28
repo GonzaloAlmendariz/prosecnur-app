@@ -24,7 +24,6 @@ import { describe, expect, test } from "vitest";
  */
 const profilesDir = path.dirname(fileURLToPath(import.meta.url));
 const perfiles = [
-  ["Aulas", "aulas/AulasMonitoreoPage.tsx"],
   ["Acreditación", "acreditacion/AcreditacionMonitoreoPage.tsx"],
   ["Telefónico", "telefonico/TelefonicoMonitoreoPage.tsx"],
 ] as const;
@@ -77,4 +76,23 @@ test("Territorial resuelve la dirección pedida entera, con su tabla de alias", 
   expect(llamadasA(arbol, "monitoreoDireccionDesdeParams")).toBeGreaterThan(0);
   expect(llamadasA(arbol, "direccionPedida")).toBeGreaterThan(0);
   expect(llamadasA(arbol, "pideOtraDireccion")).toBeGreaterThan(0);
+});
+
+/**
+ * Cursos-horario, igual que Territorial desde el revamp del esqueleto común
+ * (2026-10-23): la página guarda la dirección PÚBLICA y la resuelve con su
+ * tabla, alias incluidos (`?seccion=consultas&pestana=reemplazos` lleva a
+ * Modelo › Muestra). La lectura vive en `navegacion/useDireccionAulas.ts`, fuera
+ * de la página congelada.
+ */
+test("Cursos-horario resuelve la dirección pedida entera, con su tabla de alias", () => {
+  const hook = ast("aulas/navegacion/useDireccionAulas.ts");
+  expect(llamadasA(hook, "useMonitoreoDireccionTraducida")).toBe(1);
+  expect(llamadasA(hook, "monitoreoDireccionDesdeParams")).toBeGreaterThan(0);
+  expect(llamadasA(hook, "direccionPedida")).toBeGreaterThan(0);
+  expect(llamadasA(hook, "pideOtraDireccion")).toBeGreaterThan(0);
+  const pagina = ast("aulas/AulasMonitoreoPage.tsx");
+  expect(llamadasA(pagina, "useDireccionAulas")).toBe(1);
+  // La página no vuelve a sincronizar la URL por su cuenta.
+  expect(llamadasA(pagina, "useMonitoreoDireccion")).toBe(0);
 });

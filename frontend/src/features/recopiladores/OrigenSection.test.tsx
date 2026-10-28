@@ -98,7 +98,7 @@ describe("Origen bloqueado o vacío", () => {
     const html = pintar(origenDe({ fuente_intermedia_desfasada: true }));
     expect(html).toMatch(/disabled=""[^>]*aria-describedby="rec-origen-motivo"|aria-describedby="rec-origen-motivo"[^>]*disabled=""/);
     expect(html).toContain("Actualízala allí primero");
-    expect(html).toContain('href="/monitoreo?seccion=modelo"');
+    expect(html).toContain('href="/monitoreo?modo=aulas&amp;seccion=control&amp;pestana=agenda"');
   });
 
   it("sin plan: vacío con acción que lleva a la Lista, sin botón de actualizar", () => {

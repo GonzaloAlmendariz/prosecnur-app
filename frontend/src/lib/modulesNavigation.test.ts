@@ -270,11 +270,11 @@ describe("manifiesto primario de navegación", () => {
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Agenda de cursos-horario", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          // Esqueleto común desde el revamp (`docs/qa/revamp-monitoreo/aulas.md` §1).
+          { id: "insumos", label: "Insumos", to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "control", label: "Control", to: "/monitoreo?seccion=control", layoutPolicy: "viewport" },
           { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
         ],
       },
     ]);
@@ -358,8 +358,9 @@ describe("manifiesto primario de navegación", () => {
       // Territorial, Ocurrencias y Reportes UMP dependen de que el proyecto
       // declare el parte de ocurrencias de campo (territorial.md §3.9). En
       // Acreditación, el grupo Contacto de Control existe solo si el estudio
-      // declara el canal (`acreditacion.md` §1).
-    ).toEqual(["correo", "barrido", "reintentos", "equipo", "ocurrencias", "reportes"]);
+      // declara el canal (`acreditacion.md` §1). En Cursos-horario, Alumnos
+      // existe solo si el estudio pide el código del alumno (`aulas.md` §1).
+    ).toEqual(["correo", "barrido", "reintentos", "equipo", "ocurrencias", "reportes", "alumnos"]);
   });
 
   it("adjunta sin clonar los catálogos de Muestra, Procesamiento y Dashboard", () => {

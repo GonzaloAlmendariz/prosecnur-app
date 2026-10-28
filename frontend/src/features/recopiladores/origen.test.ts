@@ -120,7 +120,7 @@ describe("de dónde salen", () => {
   it("si manda Monitoreo, lleva a su agenda", () => {
     const o = origenDe({ fuente: { ...ORIGEN_CAMBIO_CRUDO.fuente, modulo: "monitoreo", origen: "monitoreo_aulas_plan" } });
     expect(tituloDeLaFuente(o)).toBe("Agenda de cursos-horario · Monitoreo");
-    expect(enlacesDeLaFuente(o).modulo?.to).toBe("/monitoreo?seccion=modelo");
+    expect(enlacesDeLaFuente(o).modulo?.to).toBe("/monitoreo?modo=aulas&seccion=control&pestana=agenda");
   });
 
   it("fecha corta y huella corta", () => {
@@ -176,7 +176,7 @@ describe("vigencia", () => {
     const a = accionActualizar(origenDe({ fuente_intermedia_desfasada: true }));
     expect(a?.deshabilitada).toBe(true);
     expect(a?.motivo).toContain("Monitoreo");
-    expect(a?.resolver?.to).toBe("/monitoreo?seccion=modelo");
+    expect(a?.resolver?.to).toBe("/monitoreo?modo=aulas&seccion=control&pestana=agenda");
   });
 
   it("sin plan no hay acción; sin fuente, deshabilitada", () => {

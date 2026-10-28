@@ -18,6 +18,7 @@ import { fmt } from "./kpisDeAulas";
 import { soloFacultad } from "./aulasPresentation";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
+import { hrefDeFichaDeAula } from "./navegacion/direccionAulas";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
 
 /**
@@ -301,8 +302,7 @@ export function AulasSeccionModelo({
           <AulasAgendaPorFacultad
             // El `href` se escribe aunque no haya callback: es la dirección
             // real de esa ficha, y sirve para copiarla o abrirla aparte.
-            hrefDeFicha={(codigo) =>
-              `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+            hrefDeFicha={hrefDeFichaDeAula}
             onVerFicha={verFichaDe ?? undefined}
             filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
             // El choque cita/horario de clase, desde las ventanas del MOTOR

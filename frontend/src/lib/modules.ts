@@ -3,7 +3,6 @@ import {
   Archive,
   BarChart3,
   CalendarDays,
-  CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
@@ -709,11 +708,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.fuentes },
-          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.modelo },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23). Las
+          // direcciones anteriores (`fuentes`, `calidad`, `consultas` y las
+          // pestañas viejas de `modelo` y `avance`) se leen como alias en
+          // `direccionAulas.ts`; nunca se escriben.
+          { id: "insumos", label: "Insumos", icon: PlugZap, to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.insumos },
+          { id: "modelo", label: "Modelo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.modelo },
+          { id: "control", label: "Control", icon: ShieldAlert, to: "/monitoreo?seccion=control", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.control },
           { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.avance },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.calidad },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.consultas },
         ],
       },
     ],

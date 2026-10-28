@@ -27,8 +27,8 @@ export type MonitoreoSeccion =
 /**
  * Secciones que se pueden NOMBRAR en la barra del modo: las de siempre más las
  * del esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23).
- * Hoy sólo Telefónico declara `insumos` y `control`; las páginas de los otros
- * modos siguen indexando por `MonitoreoSeccion` y no las ven.
+ * Las páginas siguen indexando por dentro sus vistas con `MonitoreoSeccion`
+ * y traducen la dirección pública en su `navegacion/direccion*.ts`.
  */
 export type MonitoreoSeccionPublica = MonitoreoSeccion | "insumos" | "control";
 export type PestanaModeloOperativo = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
@@ -223,6 +223,19 @@ export const AULAS_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cursos-horario aplicados, cuotas y brechas", icon: BarChart3 },
 ];
 
+/**
+ * Las cuatro secciones públicas del modo cursos-horario (revamp, 2026-10-23;
+ * `docs/qa/revamp-monitoreo/aulas.md` §1). La página sigue montando por dentro
+ * las de `AULAS_WORKBENCH_VIEWS` y las traduce en
+ * `profiles/aulas/navegacion/direccionAulas.ts`.
+ */
+export const AULAS_SECCIONES_PUBLICAS: MonitoreoSeccionDefinicion<"insumos" | "modelo" | "control" | "avance">[] = [
+  { key: "insumos", label: "Insumos", shortLabel: "Insumos", desc: "Fuentes, reglas y aplicadores", icon: PlugZap },
+  { key: "modelo", label: "Modelo", shortLabel: "Modelo", desc: "Metas y muestra", icon: ListChecks },
+  { key: "control", label: "Control", shortLabel: "Control", desc: "Agenda, campo y casos", icon: ShieldAlert },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Resumen, grupos, cursos-horario y salidas", icon: BarChart3 },
+];
+
 export const PESTANAS_MODELO_OPERATIVO: PestanaModeloOperativoDefinicion[] = [
   { key: "estructura", label: "Metas y modalidades", desc: "Por corte: meta y mecanismos", icon: Layers3 },
   { key: "casos", label: "Base de barrido", desc: "Responsables, intentos y estados", icon: ContactRound },
@@ -249,5 +262,6 @@ export function seccionesPublicasDelModo(
   if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
   if (route.family === "territorial") return TERRITORIAL_SECCIONES_PUBLICAS;
   if (route.family === "acreditacion") return ACREDITACION_WORKBENCH_VIEWS;
+  if (route.family === "aulas_universitarias") return AULAS_SECCIONES_PUBLICAS;
   return seccionesDelModo(route);
 }

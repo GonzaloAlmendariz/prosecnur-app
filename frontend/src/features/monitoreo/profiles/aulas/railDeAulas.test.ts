@@ -19,8 +19,9 @@ import { railDeAulas } from "./railDeAulas";
 const dashboard = (reemplazos: Array<Record<string, unknown>>) =>
   ({ kpis: {}, reemplazos } as unknown as MonitoreoAulasDashboard);
 
+// Reemplazos es hoy Modelo › Muestra (revamp del esqueleto común, 2026-10-23).
 const badgeDe = (d: MonitoreoAulasDashboard, key: string) =>
-  railDeAulas("consultas", d).find((p) => p.key === key)?.badge;
+  railDeAulas("modelo", d).find((p) => p.key === key)?.badge;
 
 describe("el badge de Reemplazos cuenta cadenas movidas", () => {
   it("no cuenta las filas de la lista, que son el plan entero", () => {
@@ -33,14 +34,14 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
       { sample_status: "agendada" },
       { sample_status: "sin_contactar" },
     ]);
-    expect(badgeDe(d, "reemplazos")).toBe("2");
+    expect(badgeDe(d, "muestra")).toBe("2");
   });
 
   it("sin ninguna movida no hay nada que revisar", () => {
     const d = dashboard([
       { sample_status: "en_reserva" }, { sample_status: "agendada" },
     ]);
-    const tab = railDeAulas("consultas", d).find((p) => p.key === "reemplazos");
+    const tab = railDeAulas("modelo", d).find((p) => p.key === "muestra");
     expect(tab?.badge).toBeUndefined();
     expect(tab?.estado).toBe("listo");
   });
@@ -52,7 +53,7 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
       { sample_status: "reemplazada por caída" },
       { sample_status: "reagendada" },
     ]);
-    expect(badgeDe(d, "reemplazos")).toBe("1");
+    expect(badgeDe(d, "muestra")).toBe("1");
   });
 });
 
@@ -67,7 +68,7 @@ describe("el badge de Registro cuenta lo que espera parte", () => {
    * cierre y en el resumen que va al cliente.
    */
   const conKpis = (kpis: Record<string, number>) =>
-    railDeAulas("calidad", { kpis } as unknown as MonitoreoAulasDashboard)
+    railDeAulas("control", { kpis } as unknown as MonitoreoAulasDashboard)
       .find((p) => p.key === "registro")?.badge;
 
   it("el universo son los titulares, no el plan con sus reservas", () => {
@@ -115,7 +116,7 @@ describe("todas las ramas del rail apuntan a una pestaña que existe", () => {
  */
 describe("sin tablero el rail no mide", () => {
   it("ninguna pestaña publica estado ni contador mientras carga", () => {
-    for (const seccion of ["modelo", "calidad", "consultas", "avance"]) {
+    for (const seccion of ["insumos", "modelo", "control", "avance"]) {
       for (const pestana of railDeAulas(seccion, null)) {
         expect(pestana.estado, `${seccion}/${pestana.key}`).toBeUndefined();
         expect(pestana.badge, `${seccion}/${pestana.key}`).toBeUndefined();
