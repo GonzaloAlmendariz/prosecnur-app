@@ -156,6 +156,9 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
     const yaReportados = new Set();
     for (const nodo of textos) {
       if (textosFuera.length >= TOPE) break;
+      // Lo que esconde un <details> cerrado tiene rectángulo pero no se pinta.
+      const padre = nodo.parentElement;
+      if (padre && typeof padre.checkVisibility === "function" && !padre.checkVisibility()) continue;
       const rango = document.createRange();
       rango.selectNodeContents(nodo);
       const r = rango.getBoundingClientRect();

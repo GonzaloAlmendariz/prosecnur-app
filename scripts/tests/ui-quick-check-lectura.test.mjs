@@ -103,6 +103,23 @@ test("texto fuera de su tarjeta: la línea que cruza el borde se marca; la que c
   assert.equal(textosFuera.some((item) => item.contenedor.className.includes("tarjeta-recorta")), false);
 });
 
+test("texto fuera de su tarjeta: lo que esconde un <details> cerrado no se pinta y no se marca; abierto y desbordado, sí", async () => {
+  // Chromium da rectángulo al texto de un <details> cerrado aunque no se pinte:
+  // así salían 10 «textos fuera» en Configuración › Conexiones (2026-10-28).
+  const { textosFuera } = await medir(`
+    <details class="cerrado" style="display:grid;border:1px solid #ccc;width:260px">
+      <summary>Configurar credencial</summary>
+      <label><span>Alias del perfil</span></label>
+    </details>
+    <details class="abierto-roto" open style="border:1px solid #ccc;width:260px">
+      <summary>Configurar credencial</summary>
+      <small style="white-space:nowrap">9 casos · de 360 efectivas · 27/10/2026 · semilla 20261027</small>
+    </details>
+  `);
+  assert.equal(textosFuera.some((item) => item.contenedor.className.includes("cerrado")), false);
+  assert.ok(textosFuera.some((item) => item.contenedor.className.includes("abierto-roto")));
+});
+
 test("cabecera tapa fila: tras desplazar, la tabla sin encaje deja una fila a medias; con encaje, no", async () => {
   const filas = Array.from({ length: 30 }, (_, i) => `<tr><td>Persona ${i}</td><td>Efectiva</td></tr>`).join("");
   const tabla = (clase, marco) => `
