@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Compass, Database } from "lucide-react";
+import { Compass, Database } from "../../vendor/lucide-react";
+import { TabHeading } from "../../components/TabHeading";
 import {
   apiEstudioActiveBaseSet,
   apiEstudioGet,
@@ -199,20 +200,26 @@ export default function ValidacionPage() {
             />
           ) : (
             <>
-              <header className="pulso-validacion-panel-head">
-                <span aria-hidden="true" className="pulso-validacion-panel-icon">
-                  <ActiveIcon size={17} />
-                </span>
-                <div className="pulso-validacion-panel-copy">
-                  <span className="pulso-section-eyebrow">Vista actual</span>
-                  <h2>{activeMeta.label}</h2>
-                  {activeMeta.description && <p>{activeMeta.description}</p>}
-                </div>
-                <span className="pulso-validacion-base-current">
-                  <Database size={12} />
-                  {displayBaseName}
-                </span>
-              </header>
+              {/* La cabecera del kit (L14), la misma de Carga: la base activa
+                  va en el control porque es un nombre, no una cifra. El
+                  envoltorio sólo la pega arriba del scroller; las bandas de cada
+                  pestaña se pegan debajo, a --pulso-validacion-head-h. */}
+              <div className="pulso-validacion-panel-head">
+              <TabHeading
+                eyebrow="Validación"
+                titulo={activeMeta.label}
+                icono={ActiveIcon}
+                detalle={activeMeta.description}
+                pestanaN={TABS.findIndex((tab) => tab.key === activeMeta.key) + 1}
+                pestanaDe={TABS.length}
+                control={(
+                  <span className="pulso-validacion-base-current">
+                    <Database size={12} aria-hidden="true" />
+                    {displayBaseName}
+                  </span>
+                )}
+              />
+              </div>
               <div className="pulso-validacion-panel-body">
                 {activeTab === "limpieza" && <LimpiezaTab />}
                 {activeTab === "instrumento" && <InstrumentoTab />}

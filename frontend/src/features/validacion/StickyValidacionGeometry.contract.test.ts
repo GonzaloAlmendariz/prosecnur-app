@@ -25,7 +25,7 @@ function bloque(selector: string): string {
 describe("Validación: el sticky de la pestaña no tapa el encabezado", () => {
   test("el scroller declara la altura del head y el offset derivado de ella", () => {
     const scroller = bloque(".pulso-validacion-content");
-    expect(scroller).toMatch(/--pulso-validacion-head-h:\s*48px/);
+    expect(scroller).toMatch(/--pulso-validacion-head-h:\s*62px/);
     expect(scroller).toMatch(
       /--pulso-validacion-sticky-top:\s*var\(--pulso-validacion-head-h\)/,
     );
