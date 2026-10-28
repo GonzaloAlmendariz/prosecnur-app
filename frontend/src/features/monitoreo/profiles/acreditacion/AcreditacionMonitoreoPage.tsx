@@ -264,6 +264,8 @@ import "../profilePage.css";
 import "./acreditacionTelefono.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { barridoDelResponsable, totalDeAsignadas } from "../barridoDelResponsable";
+import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, caseDuplicateLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
+export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -893,12 +895,6 @@ function platformQuestionLabel(variable: MonitoreoVariable) {
   if (directLabel && directLabel !== name) return directLabel;
   const [code, rawLabel] = name.split("__", 2);
   return rawLabel ? humanizeQuestionSlug(rawLabel) : code;
-}
-
-function compactSelectLabel(value: string, maxLength = 68) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function platformQuestionOptions(variables: MonitoreoVariable[]): PlatformRejectionQuestionOption[] {
@@ -2007,31 +2003,6 @@ function calendarWeekRangeLabel(startWeek: number | null | undefined, endWeek: n
   return `Semanas ${fmt(start)}-${fmt(end)}`;
 }
 
-function calendarWeekWindowLabel(phases: MonitoreoStrategyPhase[], fallbackEnd: number | null) {
-  const weeks = phases.flatMap((phase) => [
-    Number(phase.start_week),
-    Number(phase.end_week ?? phase.start_week),
-  ]).filter((week) => Number.isFinite(week) && week > 0);
-  if (weeks.length) {
-    const min = Math.min(...weeks);
-    const max = Math.max(...weeks);
-    return min === max ? `Semana ${fmt(min)}` : `Semanas ${fmt(min)}-${fmt(max)}`;
-  }
-  if (fallbackEnd && fallbackEnd > 0) return `Sugerido S1-S${fmt(fallbackEnd)}`;
-  return "Pendiente";
-}
-
-function calendarDateWindowLabel(phases: MonitoreoStrategyPhase[]) {
-  const dates = phases.flatMap((phase) => [
-    phase.start_date ?? "",
-    phase.end_date ?? phase.start_date ?? "",
-  ]).filter(Boolean).sort();
-  if (!dates.length) return "Por definir";
-  const start = dates[0];
-  const end = dates[dates.length - 1];
-  return start === end ? start : `${start} a ${end}`;
-}
-
 type AcreditacionCalendarPhaseDateState = "ready" | "partial" | "empty" | "invalid";
 
 type AcreditacionCalendarPhaseDateStatus = {
@@ -2133,37 +2104,12 @@ export function upsertAcreditacionFieldSchedulePhase(
   return phases.map((phase, index) => index === targetIndex ? nextPhase : phase);
 }
 
-function parseCalendarIsoDate(value: string | null | undefined) {
-  const match = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const date = new Date(year, month, day);
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-  return date;
-}
-
 function calendarAddDaysIso(value: string, days: number) {
   const date = parseCalendarIsoDate(value);
   if (!date) return "";
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return calendarIsoDate(next);
-}
-
-function calendarDateDiffDays(start: string, end: string) {
-  const startDate = parseCalendarIsoDate(start);
-  const endDate = parseCalendarIsoDate(end);
-  if (!startDate || !endDate) return null;
-  return Math.round((endDate.getTime() - startDate.getTime()) / CALENDAR_DAY_MS);
 }
 
 function formatCalendarDateLabel(value: string | null | undefined) {
@@ -2190,11 +2136,6 @@ function calendarPhaseWeekDurationDays(phase: MonitoreoStrategyPhase) {
   if (!Number.isFinite(startWeek) || startWeek <= 0) return 1;
   if (!Number.isFinite(endWeek) || endWeek < startWeek) return 7;
   return Math.max(1, endWeek - startWeek + 1) * 7;
-}
-
-function calendarDurationLabel(days: number | null) {
-  if (!days || days <= 0) return "Duración pendiente";
-  return days === 1 ? "1 día" : `${fmt(days)} días`;
 }
 
 function calendarReportExceptions(phase: MonitoreoStrategyPhase): MonitoreoStrategyReportException[] {
@@ -4196,15 +4137,6 @@ function statusValueOptions(variables: MonitoreoVariable[], statusVar: string, c
   ].map((value) => String(value ?? "").trim()).filter(Boolean)));
 }
 
-function prettyModelLabel(value: string) {
-  return String(value || "")
-    .replace(/_/g, " ")
-    .replace(/\bcompleted\b/i, "Completa")
-    .replace(/\bapproved\b/i, "Aprobada")
-    .replace(/\brejected\b/i, "Rechazo")
-    .replace(/\bpartial\b/i, "Parcial");
-}
-
 function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string): MonitoreoReportScope {
   if (requestedSection === "telefonico") return "phone_summary";
   if (requestedSection === "modelo" && profileFamily === "telefonico") return "phone_summary";
@@ -4336,27 +4268,6 @@ function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: st
   if (!row) return null;
   const value = rowNumber(row, ["Valor", "Casos", "Total"], NaN);
   return Number.isFinite(value) ? value : null;
-}
-
-function phonePercentLabel(value: number | null | undefined) {
-  return formatPercentLabel(value);
-}
-
-function phoneLooksLikeTechnicalSourceLabel(value: string) {
-  const key = normalizeSourceMatch(value);
-  if (!key) return false;
-  return (
-    key.includes("base de barrido")
-    || key.includes("base barrido")
-    || key.includes("barrido telefon")
-    || key.includes("_base")
-    || key.includes("_pdm")
-    || key.includes("spreadsheet")
-    || key.includes("google sheets")
-    || key.includes("kobotoolbox")
-    || key.includes("surveymonkey")
-    || /^\d+[_-]/.test(key)
-  );
 }
 
 function phoneCleanResponsibleDisplayName(value: string) {
@@ -5371,11 +5282,6 @@ function phoneAttemptBucketValue(row: Record<string, unknown>, bucket: Acreditac
   return bucket.candidates.reduce((sum, candidate) => sum + phoneAttemptValue(row, candidate), 0);
 }
 
-function phoneOpsPercent(value: number, total: number) {
-  if (!total || total <= 0) return 0;
-  return Math.max(0, Math.min(100, (value / total) * 100));
-}
-
 function phoneAttemptIntensity(avg: number | null) {
   if (avg == null) return { key: "unknown", label: "S/D insistencia" };
   if (avg >= 4) return { key: "high", label: "Insistencia alta" };
@@ -5423,10 +5329,6 @@ function phoneNoAnswerCaseFromRow(row: Record<string, unknown>, index: number, o
     dateLabel: phoneCaseDateLabel(row),
     intensity: phoneAttemptIntensity(attempts || null),
   };
-}
-
-function phoneAttemptCountLabel(value: number) {
-  return value === 1 ? "1 intento" : `${formatMetric(value)} intentos`;
 }
 
 function AcreditacionPhoneSupervisionBoard({
@@ -6555,23 +6457,6 @@ function uniqueDisplayValues(values: unknown[]) {
   return out;
 }
 
-function sourceProviderLabel(kind: MonitoreoSource["kind"]) {
-  if (kind === "google_sheets") return "Google Sheets";
-  if (kind === "surveymonkey") return "SurveyMonkey";
-  if (kind === "kobo") return "KoboToolbox";
-  return kind;
-}
-
-function sourceActorLabel(source: MonitoreoSource) {
-  return String(
-    source.dimensions?.actor
-    ?? source.dimensions?.carrera
-    ?? source.dimensions?.segmento
-    ?? source.dimensions?.unidad
-    ?? "",
-  ).trim() || "Sin actor";
-}
-
 function sourceChannelLabel(source: MonitoreoSource) {
   return acreditacionSourceChannel(source) || (source.kind === "google_sheets" ? "Base" : "Sin canal");
 }
@@ -6667,19 +6552,6 @@ function presetSourceStatus(sources: MonitoreoSource[]) {
   return "Inactiva";
 }
 
-function mostRecentSyncLabel(sources: MonitoreoSource[]) {
-  const stamps = sources
-    .map((source) => source.last_sync_at)
-    .filter((value): value is string => Boolean(value));
-  if (!stamps.length) return "Sin sync";
-  const sorted = stamps.sort((a, b) => {
-    const left = new Date(a).getTime();
-    const right = new Date(b).getTime();
-    return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
-  });
-  return formatDate(sorted[0]);
-}
-
 function sourceRowsForTable(sources: MonitoreoSource[], { phoneMode = false }: { phoneMode?: boolean } = {}) {
   return sources.map((source) => ({
     Fuente: source.label || source.id,
@@ -6723,21 +6595,6 @@ function sourceDimensionEntries(dimensions: Record<string, string> | undefined) 
   return Object.entries(dimensions ?? {})
     .filter(([, value]) => String(value ?? "").trim())
     .slice(0, 8);
-}
-
-function dimensionLabel(key: string) {
-  const labels: Record<string, string> = {
-    actor: "Actor",
-    carrera: "Carrera",
-    canal: "Canal",
-    channel: "Canal",
-    segmento: "Segmento",
-    servicio: "Servicio",
-    territorio: "Territorio",
-    sheet_name: "Pestaña",
-    survey_title: "Encuesta",
-  };
-  return labels[key] ?? key.replaceAll("_", " ");
 }
 
 function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>): MonitoreoSourcePayload {
@@ -6842,11 +6699,6 @@ function collectorDisplayName(item: MonitoreoSurveyMonkeyCollector | MonitoreoLi
   if (/^collector\s+/i.test(raw)) return raw.replace(/^collector/i, "Recopilador");
   if (/^colector\s+/i.test(raw)) return raw.replace(/^colector/i, "Recopilador");
   return raw;
-}
-
-function collectorNumber(value: unknown) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
 }
 
 function countFromRecord(record: Record<string, number> | undefined, keys: string[]) {
@@ -9993,28 +9845,6 @@ function caseResponseSortTime(item: MonitoreoInternalQueryCase) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
-export function caseResponseDateTimeLabel(item: MonitoreoInternalQueryCase) {
-  const rawDateTime = String(item.response_datetime || "").trim();
-  if (rawDateTime) {
-    const date = new Date(rawDateTime);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
-    }
-    return rawDateTime;
-  }
-  const rawDate = String(item.date || "").trim();
-  if (!rawDate) return "Sin fecha";
-  return formatInternalQueryDateLabel(rawDate);
-}
-
-export function caseResponseTimeDetailLabel(item: MonitoreoInternalQueryCase) {
-  const rawDateTime = String(item.response_datetime || "").trim();
-  if (!rawDateTime) return "Sin hora registrada";
-  const date = new Date(rawDateTime);
-  if (Number.isNaN(date.getTime())) return "Hora no normalizada";
-  return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
-}
-
 function comparePlatformCases(a: MonitoreoInternalQueryCase, b: MonitoreoInternalQueryCase) {
   return caseResponseSortTime(b) - caseResponseSortTime(a) ||
     String(b.response_row ?? "").localeCompare(String(a.response_row ?? ""), "es", { numeric: true }) ||
@@ -10086,39 +9916,6 @@ function caseIsAuditable(item: MonitoreoInternalQueryCase) {
   );
 }
 
-function explicitBoolean(value: unknown): boolean | null {
-  if (typeof value === "boolean") return value;
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (!normalized) return null;
-  if (["true", "1", "si", "sí", "yes", "cuenta", "cuenta en avance"].includes(normalized)) return true;
-  if (["false", "0", "no", "no cuenta", "no cuenta en avance"].includes(normalized)) return false;
-  return null;
-}
-
-function caseCountsInAdvance(item: MonitoreoInternalQueryCase): boolean | null {
-  const explicit = explicitBoolean(item.counts_in_advance);
-  if (explicit !== null) return explicit;
-  const status = String(item.duplicate_counting_status ?? "").toLowerCase();
-  if (status.includes("no cuenta")) return false;
-  if (status.includes("cuenta")) return true;
-  if (item.advancement === "effective") return true;
-  if (["partial", "refusal", "pending", "excluded"].includes(item.advancement)) return false;
-  return null;
-}
-
-function caseCountsLabel(item: MonitoreoInternalQueryCase) {
-  const counts = caseCountsInAdvance(item);
-  if (counts === true) return "Cuenta";
-  if (counts === false) return "No cuenta";
-  return "Revisar";
-}
-
-function caseDuplicateLabel(item: MonitoreoInternalQueryCase) {
-  const duplicateCount = Number(item.duplicate_count ?? item.duplicate_group_size ?? 0);
-  if (duplicateCount > 1) return item.duplicate_counting_status || `${fmt(duplicateCount)} respuestas`;
-  return item.duplicate_counting_status || "Sin duplicado";
-}
-
 function casePartialLabel(item: MonitoreoInternalQueryCase) {
   const answered = Number(item.partial_answered_questions ?? Number.NaN);
   const total = Number(item.partial_total_questions ?? Number.NaN);
@@ -10155,10 +9952,6 @@ type AcreditacionCaseKeyEvidenceRow = {
   value: string;
   tone: AcreditacionCaseKeyEvidenceTone;
 };
-
-function cleanCaseKeyText(value: unknown) {
-  return String(value ?? "").trim();
-}
 
 function caseKeyStrategyFallbackLabel(item: MonitoreoInternalQueryCase) {
   const key = normalizeCaseSearch([
@@ -10680,16 +10473,6 @@ function caseAuditRows(cases: MonitoreoInternalQueryCase[]) {
     Parcial: casePartialLabel(item),
     "Response ID": item.response_id || "",
   }));
-}
-
-function advancementLabel(value: string) {
-  if (value === "effective") return "Efectiva";
-  if (value === "included_review") return "Incluida auditada";
-  if (value === "partial") return "Parcial";
-  if (value === "refusal") return "Rechazo";
-  if (value === "pending") return "Sin respuesta";
-  if (value === "excluded") return "Excluida";
-  return value || "Revisión";
 }
 
 function AcreditacionCaseFilterChips({
@@ -12996,20 +12779,6 @@ type AcreditacionAdvanceSurveyRow = {
 
 type AcreditacionControlVariableRow = FilaDeControl;
 
-function formatPercentLabel(value: number | null | undefined) {
-  return pctDecimal(value);
-}
-
-function formatSignedPp(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })} pp`;
-}
-
-function normalizeReportMatch(value: unknown) {
-  return normalizeSourceMatch(value);
-}
-
 function reportBlockForSheet(
   reports: MonitoreoAcreditacionReports | null | undefined,
   sheetId: string,
@@ -13026,21 +12795,6 @@ function reportBlockForSheet(
 function reportBlockColumns(block: MonitoreoReportBlock | null | undefined) {
   if (!block) return [];
   return block.columns.length ? block.columns : Array.from(new Set(block.rows.flatMap((row) => Object.keys(row))));
-}
-
-function reportNumberValue(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  const parsed = Number(String(value ?? "").replace(/%/g, "").replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function reportPercentValue(value: unknown, column: string) {
-  const normalized = normalizeReportMatch(column);
-  if (!normalized.includes("avance") && !String(column).includes("%") && !normalized.includes("porcentaje") && !normalized.includes("del total") && !normalized.includes("ratio")) return null;
-  if (value == null || value === "") return null;
-  const parsed = reportNumberValue(value);
-  if (!Number.isFinite(parsed)) return null;
-  return Math.abs(parsed) <= 10 ? parsed * 100 : parsed;
 }
 
 function reportStateTone(value: string) {
@@ -13115,11 +12869,6 @@ const ACREDITACION_DAILY_HEADER_LABELS = new Set(["fecha", "echa", "dia", "día"
 function isAcreditacionDailyHeaderLabel(value: unknown) {
   const key = normalizeSourceMatch(value);
   return ACREDITACION_DAILY_HEADER_LABELS.has(key);
-}
-
-function normalizeAcreditacionDailyDateLabel(value: unknown) {
-  const text = String(value ?? "").trim();
-  return isAcreditacionNoDateLabel(text) ? ACREDITACION_DAILY_NO_DATE_LABEL : text;
 }
 
 export function dailyPointsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceDailyPoint[] {
@@ -13703,17 +13452,6 @@ function collectorDisplayLookupKey(sourceKey: string, collectorKey: string) {
   return `${sourceKey}\r${collectorKey}`;
 }
 
-function isTechnicalAcreditacionCollectorLabel(value: unknown) {
-  const text = String(value ?? "").trim();
-  if (!text) return false;
-  const key = normalizeSourceMatch(text);
-  return /^\d{6,}$/.test(text)
-    || /^[a-f0-9]{10,}$/i.test(text)
-    || /^(collector|colector|web|link)[-_]?\d+$/i.test(text)
-    || key === "web link"
-    || key === "weblink";
-}
-
 function acreditacionCollectorDisplayFromRow(row: AcreditacionCollectorRow) {
   return [
     row.alias,
@@ -13903,14 +13641,6 @@ function mechanismIcon(value: AcreditacionActorMechanism["modality"]) {
   if (value === "presencial") return ContactRound;
   if (value === "email") return Link2;
   return ListChecks;
-}
-
-function compactMechanismLabel(label: string) {
-  return String(label || "Fuente")
-    .replace(/\s+/g, " ")
-    .replace(/^respuestas?\s+/i, "")
-    .replace(/^base\s+/i, "Base ")
-    .trim();
 }
 
 function actorMechanismObserved(
@@ -15575,10 +15305,6 @@ function sheetTitleIcon(id: string) {
   return <ClipboardCheck size={14} />;
 }
 
-function shortColumnLabel(column: string) {
-  return column.replace(/^% del /i, "% ").replace(/^Avance /i, "").slice(0, 18);
-}
-
 function reportBlockMetric(block?: MonitoreoReportBlock) {
   if (!block || !block.rows.length) return { label: "Filas", value: "0", tone: "neutral" };
   const cols = reportBlockColumns(block);
@@ -15600,24 +15326,6 @@ function reportBlockMetric(block?: MonitoreoReportBlock) {
     return { label: shortColumnLabel(numericCol), value: fmt(total), tone: total > 0 ? "good" : "neutral" };
   }
   return { label: "Filas", value: fmt(block.rows.length), tone: "neutral" };
-}
-
-function formatReportCell(value: unknown, column: string) {
-  if (value == null || value === "") return "";
-  if (typeof value === "number") {
-    const normalized = normalizeReportMatch(column);
-    if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
-      const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return pctDecimal(pctValue);
-    }
-    return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
-  }
-  const text = String(value);
-  if (normalizeReportMatch(column).includes("fecha")) return text;
-  const normalized = normalizeReportMatch(text);
-  if (normalized === "no barridos") return "Por barrer";
-  if (normalized === "casos barridos") return "Barridos";
-  return text;
 }
 
 function ReportTableCell({ value, column, rowContext = "" }: { value: unknown; column: string; rowContext?: string }) {
