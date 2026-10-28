@@ -1,0 +1,217 @@
+/* ensayoPublicacion.css — diálogo «Revisar → Aplicar» de Salidas (L38). */
+
+.mon-ensayo {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mon-ensayo-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 14px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-ensayo-estado.is-error {
+  border-style: solid;
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ensayo-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.mon-ensayo-cifra {
+  display: grid;
+  gap: 2px;
+  padding: 12px 16px;
+  min-width: 0;
+}
+
+.mon-ensayo-cifra + .mon-ensayo-cifra {
+  border-left: 1px solid var(--pulso-border);
+}
+
+.mon-ensayo-cifra b {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.mon-ensayo-cifra span {
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+.mon-ensayo-cifra.is-borradas:not(.is-cero) b {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ensayo-cifra.is-cero b {
+  color: var(--pulso-text-faint);
+}
+
+.mon-ensayo-pestanas {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-ensayo-pestana {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.mon-ensayo-pestana.is-destructiva {
+  border-color: var(--pulso-danger-border);
+}
+
+.mon-ensayo-pestana__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mon-ensayo-pestana__cabeza b {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.mon-ensayo-pestana__linea,
+.mon-ensayo-pestana__clave {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.mon-ensayo-pestana__clave {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.mon-ensayo-pildora {
+  flex: none;
+  padding: 2px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
+
+.mon-ensayo-pildora.is-destructiva {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ensayo-pildora.is-se-crea,
+.mon-ensayo-pildora.is-cambia {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-ensayo-detalle summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+
+.mon-ensayo-detalle__cuerpo {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mon-ensayo-detalle__cuerpo h5 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.mon-ensayo-detalle__cuerpo ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.mon-ensayo-detalle__cuerpo li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  overflow-wrap: anywhere;
+}
+
+.mon-ensayo-detalle__cuerpo .is-borradas li {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-ensayo-celda s {
+  color: var(--pulso-text-faint);
+}
+
+.mon-ensayo-detalle__nota {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-ensayo-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  font-size: 12.5px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-ensayo-pie a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mon-ensayo-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.mon-ensayo-aviso.is-peligro {
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
+}
