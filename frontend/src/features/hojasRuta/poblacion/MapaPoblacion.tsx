@@ -1,4 +1,7 @@
 import { useMemo } from "react";
+// La secuencia de datos aún no entra por theme.css (@import junto a
+// tokens-formularios.css); mientras tanto la carga quien la usa.
+import "../../../app/tokens-datos.css";
 import districtCoverage from "../limaDistrictCoverage.json";
 import "./mapaPoblacion.css";
 

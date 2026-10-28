@@ -1,0 +1,12 @@
+/* tokens-datos.css — secuencia de datos de la dirección creativa v3 (§ Color:
+ * «Datos secuenciales: #DBE8FF → #7AA2F8 → #2457D6 → #002457»), en seis
+ * escalones para coropletas. Los datos no se pintan con el acento del módulo.
+ * Vive aparte porque tokens.css está congelado a crecimiento. Un solo tema. */
+:root {
+  --pulso-data-seq-0: #dbe8ff;
+  --pulso-data-seq-1: #aac4fb;
+  --pulso-data-seq-2: #7aa2f8;
+  --pulso-data-seq-3: #4f7ce7;
+  --pulso-data-seq-4: #2457d6;
+  --pulso-data-seq-5: #002457;
+}
