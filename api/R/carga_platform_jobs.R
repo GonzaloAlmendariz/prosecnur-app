@@ -46,7 +46,11 @@
   "sm_multibase_import_independent",
   "sm_multibase_refresh",
   # ADR 0102: la base nace del formulario publicado (descarga SurveyMonkey).
-  "formulario_publicado_sm"
+  "formulario_publicado_sm",
+  # L9 (Meta B, 2026-10-28): la base integrada y el paquete de .sav dejaban la
+  # app congelada mientras importaban; corren igual que los demás imports.
+  "multi_integrated_import",
+  "sav_bundle_import"
 )
 
 # Kinds de job que cuentan como import de plataforma para el guard de
@@ -200,6 +204,29 @@
       )
     },
     formulario_publicado_sm = carga_formulario_publicado_importar(sid, parsed),
+    multi_integrated_import = {
+      profile_id <- trimws(.mi_scalar(
+        parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId,
+        ""
+      ))
+      if (!nzchar(profile_id)) profile_id <- NULL
+      multi_integrated_import(
+        sid = sid,
+        guide_xlsform_file_id = .mi_scalar(parsed$guide_xlsform_file_id, ""),
+        origins = parsed$origins %||% list(),
+        origin_key_name = .mi_scalar(parsed$origin_key_name, "origen"),
+        base_name = .mi_scalar(parsed$base_name, "base_integrada"),
+        decisions = parsed$decisions %||% list(),
+        profile_id = profile_id
+      )
+    },
+    sav_bundle_import = sm_multibase_sav_bundle_import(
+      sid = sid,
+      file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
+      file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
+      missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn"),
+      expected_inspection_fingerprint = parsed$expected_inspection_fingerprint
+    ),
     stop_api(400, "E_CARGA_JOB_ACTION",
              sprintf("Import de plataforma no soportado en modo async: '%s'.", action))
   )
