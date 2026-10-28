@@ -29,6 +29,13 @@ describe("Insumos › Fuentes", () => {
     expect(grupos[1].fuentes[0].filas).toBe(1200);
   });
 
+  it("un padrón de Sheets sin contador toma las personas que cuenta Públicos", () => {
+    const padron: MonitoreoSource = { id: "pad2", kind: "google_sheets", label: "Administrativos", enabled: true, role: "universo", dimensions: { actor: "Administrativos" } };
+    expect(fuentesPorPublico([padron])[0].fuentes[0].filas).toBeNull();
+    const grupos = fuentesPorPublico([padron], [], new Map([["administrativos", 16]]));
+    expect(grupos[0].fuentes[0].filas).toBe(16);
+  });
+
   it("toma respuestas y efectivas del cruce, no del metadato de la plataforma", () => {
     const filas = recopiladoresDeLaFuente(fuentes[0], [], totales, fuentes);
     const faltantes = filas.find((item) => item.nombre === "Faltantes_presencial");

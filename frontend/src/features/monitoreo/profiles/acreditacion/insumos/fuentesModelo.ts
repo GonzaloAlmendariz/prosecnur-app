@@ -60,13 +60,24 @@ export function papelDe(fuente: MonitoreoSource): PapelDeFuente {
 
 const ORDEN_DE_PAPEL: Record<PapelDeFuente, number> = { padron: 0, respuestas: 1, barrido: 2 };
 
-export function fuentesPorPublico(fuentes: readonly MonitoreoSource[], recopiladores: MonitoreoLinkCollector[] = []): GrupoDeFuentes[] {
+/**
+ * `personasPorPublico` (clave normalizada → personas del padrón, de
+ * `/api/monitoreo/cuotas`) completa las filas de un padrón de Google Sheets,
+ * que no deja contador de lectura: sin él la fuente decía «—» mientras
+ * Insumos › Públicos contaba sus personas.
+ */
+export function fuentesPorPublico(
+  fuentes: readonly MonitoreoSource[],
+  recopiladores: MonitoreoLinkCollector[] = [],
+  personasPorPublico: ReadonlyMap<string, number> | null = null,
+): GrupoDeFuentes[] {
   const grupos = new Map<string, FuenteDelMaestro[]>();
   for (const fuente of fuentes) {
     const papel = papelDe(fuente);
     const publico = acreditacionSourceActor(fuente) || "Sin público";
     const leidas = Math.max(Number(fuente.sync_cursor?.fetched_count) || 0, Number(fuente.sync_cursor?.remote_total) || 0);
-    const filas = papel === "respuestas" ? acreditacionSourceResponseCount(fuente, recopiladores) : leidas;
+    const delPadron = papel === "padron" && !leidas ? personasPorPublico?.get(normalizeSourceMatch(publico)) ?? 0 : 0;
+    const filas = papel === "respuestas" ? acreditacionSourceResponseCount(fuente, recopiladores) : leidas || delPadron;
     const item: FuenteDelMaestro = {
       id: fuente.id,
       nombre: nombreDeFuente(fuente),
