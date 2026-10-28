@@ -6,7 +6,8 @@ import { buscarEnPaleta } from "../../lib/navegacion/paleta";
 import { panelAbiertoEn, searchConPanel } from "../../lib/navegacion/paneles";
 import { conModificador, nombreDeAtajo } from "../../lib/teclado";
 import { CornerDownLeft, Search } from "../../vendor/lucide-react";
-import { PANEL_PALETA } from "./panelesHome";
+import { PANEL_ATAJOS_APP, PANEL_PALETA } from "./panelesHome";
+import { AtajosDeLaApp } from "./AtajosDeLaApp";
 import { destinoDeAtajo, estaEscribiendo } from "./atajosDeModulos";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import "./paleta-de-comandos.css";
@@ -26,6 +27,15 @@ export function PaletaDeComandosHost() {
 
   useEffect(() => {
     function alTeclear(evento: globalThis.KeyboardEvent) {
+      // «?» (Mayús + /) fuera de un campo: la ayuda de atajos de la app. Gráficos tiene la suya y la atiende primero.
+      if (evento.key === "?" && !evento.metaKey && !evento.ctrlKey && !evento.altKey) {
+        if (estaEscribiendo(evento.target) || evento.defaultPrevented) return;
+        queueMicrotask(() => {
+          if (evento.defaultPrevented || panelAbiertoEn(window.location.search, PANEL_ATAJOS_APP)) return;
+          navigate({ pathname: location.pathname, search: searchConPanel(location.search, PANEL_ATAJOS_APP) }, { replace: true });
+        });
+        return;
+      }
       if (!conModificador(evento) || evento.altKey || evento.shiftKey || evento.defaultPrevented) return;
       // ⌘1…8: el módulo N del dock. Escribiendo en un campo no, y una vista que ya usa ⌘N (la Estructura de
       // Gráficos con ⌘1) lo atiende primero.
@@ -50,7 +60,13 @@ export function PaletaDeComandosHost() {
     return () => window.removeEventListener("keydown", alTeclear);
   }, [addedSlugs, location.pathname, location.search, navigate]);
 
-  return abierta ? <PaletaDeComandos /> : null;
+  const atajosAbiertos = panelAbiertoEn(location.search, PANEL_ATAJOS_APP);
+  return (
+    <>
+      {abierta ? <PaletaDeComandos /> : null}
+      {atajosAbiertos ? <AtajosDeLaApp /> : null}
+    </>
+  );
 }
 
 function PaletaDeComandos() {

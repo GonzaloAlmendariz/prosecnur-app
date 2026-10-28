@@ -25,3 +25,10 @@ export const PANEL_PALETA: PanelDeclarado = {
   label: "Ir a una vista",
   clase: "dialogo",
 };
+
+/** Atajos de la app (L30): tecla «?» fuera de un campo, o `?panel=atajos-app`. Gráficos conserva su propio «?». */
+export const PANEL_ATAJOS_APP: PanelDeclarado = {
+  id: "atajos-app",
+  label: "Atajos de teclado",
+  clase: "dialogo",
+};

@@ -65,6 +65,21 @@ describe("paleta de comandos · atajo", () => {
     expect(ruta).toBe("/carga");
   });
 
+  test("«?» abre la ayuda de atajos de la app; si una vista la atiende (Gráficos), gana la vista", async () => {
+    teclear({ key: "?", shiftKey: true });
+    await act(async () => { await Promise.resolve(); });
+    expect(busqueda).toContain("panel=atajos-app");
+  });
+
+  test("«?» atendido por la vista no abre la ayuda global", async () => {
+    const vista = (e: KeyboardEvent) => e.preventDefault();
+    window.addEventListener("keydown", vista);
+    teclear({ key: "?", shiftKey: true });
+    await act(async () => { await Promise.resolve(); });
+    window.removeEventListener("keydown", vista);
+    expect(busqueda).not.toContain("panel=atajos-app");
+  });
+
   test("Ctrl+1 abre el primer módulo del dock", async () => {
     teclear({ key: "1", ctrlKey: true });
     await act(async () => { await Promise.resolve(); });

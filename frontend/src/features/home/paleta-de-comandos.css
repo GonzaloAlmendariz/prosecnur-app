@@ -66,3 +66,35 @@
   font-size: var(--pulso-type-body-size);
   text-align: center;
 }
+
+/* Atajos de la app (L30). */
+.pulso-atajos-lista {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-atajos-fila {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: baseline;
+}
+
+.pulso-atajos-fila dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-atajos-fila kbd {
+  display: inline-block;
+  padding: 1px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
