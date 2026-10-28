@@ -50,7 +50,6 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/bitacora/canvas/ExploradorDeReferencias.tsx": 1,
   "features/bitacora/vinculos/SelectorDeVinculo.tsx": 1,
   "features/calcMuestra/universidad/criterios/PresetCanonicoButton.tsx": 1,
-  "features/carga/CargaPage.tsx": 1,
   "features/carga/PreguntaCombobox.tsx": 1,
   "features/dashboard/shared/FullscreenWrapper.tsx": 1,
   "features/dashboard/tabs/DimensionesTab/index.tsx": 1,

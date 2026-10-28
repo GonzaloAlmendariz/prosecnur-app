@@ -3,7 +3,7 @@ import type { CambiosDeRespuestas } from "../../api/estudio";
 import { RespuestasResumen, type DataPreview } from "./RespuestasResumen";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
-  Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
+  Database, FileSpreadsheet, FileWarning, Download, Loader2, RefreshCw, Search,
   Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
@@ -31,7 +31,6 @@ import {
   CargaMonitoreoHandoffStatus,
   CargaPlatformImportResult,
   CargaPlatformProvider,
-  ChoiceCodeMap,
   ChoiceCodeMapReview,
   ConnectionTokenState,
   CargaReviewPayload,
@@ -66,6 +65,7 @@ import { BasesPanel } from "./BasesPanel";
 import { InstrumentRevisionBindingNotice } from "./InstrumentRevisionBindingNotice";
 import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
+import { ChoiceMappingReviewDialog } from "./ChoiceMappingReviewDialog";
 import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
@@ -216,14 +216,6 @@ function markChoiceMappingConfirmed(preview: DataPreview | null): DataPreview | 
       },
     },
   };
-}
-
-function normalizedChoiceCode(value: string): string {
-  return String(value ?? "").replace(/^0+([0-9]+)$/, "$1");
-}
-
-function choiceMapChangedItems(map: ChoiceCodeMap) {
-  return map.mappings.filter((item) => normalizedChoiceCode(item.source_code) !== normalizedChoiceCode(item.xls_code));
 }
 
 function reviewReconciliationInfo(review: CargaReviewPayload): ReconciliacionInfo {
@@ -2568,158 +2560,6 @@ function ResumenStat({ label, value }: { label: string; value: number | string }
         {value}
       </strong>
     </div>
-  );
-}
-
-function ChoiceMappingReviewDialog({
-  review,
-  busy,
-  onClose,
-  onConfirm,
-}: {
-  review: ChoiceCodeMapReview;
-  busy: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-}) {
-  const needsConfirmation = review.requires_confirmation;
-  const changedCounts = review.maps.map((map) => choiceMapChangedItems(map).length);
-  const totalChangedOptions = changedCounts.reduce((sum, count) => sum + count, 0);
-  const allHighConfidence = review.maps.every((map) => map.high_confidence);
-  return (
-    <div className="pulso-choice-map-backdrop" role="presentation">
-      <div
-        className="pulso-choice-map-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="choice-map-title"
-      >
-        <div className="pulso-choice-map-head">
-          <span aria-hidden="true" className="pulso-choice-map-head-icon">
-            {needsConfirmation ? <ArrowRightLeft size={18} /> : <ShieldCheck size={18} />}
-          </span>
-          <div>
-            <p className="pulso-choice-map-kicker">
-              Preparación de respuestas
-            </p>
-            <h2 id="choice-map-title">
-              Usar mapeo recomendado
-            </h2>
-          </div>
-        </div>
-
-        <div className="pulso-choice-map-explain">
-          <Info size={16} />
-          <p>
-            Pulso detectó diferencias entre los códigos de origen y los valores finales del formulario. Las
-            etiquetas coinciden, pero algunos códigos no. Al confirmar, las respuestas se ajustan hacia el
-            formulario y las reglas usan ese mismo puente para interpretar C1, C2, C3.
-          </p>
-        </div>
-
-        <div className="pulso-choice-map-summary">
-          <div>
-            <span>Preguntas afectadas</span>
-            <strong>{review.maps.length}</strong>
-          </div>
-          <div>
-            <span>Opciones ajustadas</span>
-            <strong>{totalChangedOptions}</strong>
-          </div>
-          <div>
-            <span>Confianza</span>
-            <strong>{allHighConfidence ? "Alta" : "Requiere revisión"}</strong>
-          </div>
-        </div>
-
-        <p className="pulso-choice-map-guidance">
-          Revisa solo si algo te llama la atención. Si las etiquetas son las correctas, la acción esperada es usar el mapeo recomendado.
-        </p>
-
-        <div className="pulso-choice-map-list">
-          {review.maps.map((map, index) => (
-            <ChoiceMappingCard
-              key={`${map.variable}-${map.list_name}`}
-              map={map}
-              defaultOpen={!map.high_confidence || index === 0}
-            />
-          ))}
-        </div>
-
-        <div className="pulso-choice-map-actions">
-          <button
-            type="button"
-            className="pulso-choice-map-secondary"
-            onClick={onClose}
-            disabled={busy}
-          >
-            Cerrar y revisar luego
-          </button>
-          {needsConfirmation && (
-            <button
-              type="button"
-              className="pulso-choice-map-primary"
-              onClick={onConfirm}
-              disabled={busy}
-            >
-              <ShieldCheck size={15} />
-              Usar este mapeo
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChoiceMappingCard({ map, defaultOpen }: { map: ChoiceCodeMap; defaultOpen?: boolean }) {
-  const changedRows = choiceMapChangedItems(map);
-  const visibleRows = changedRows.length > 0 ? changedRows : map.mappings.slice(0, 4);
-  const unchangedRows = Math.max(0, map.mappings.length - changedRows.length);
-  return (
-    <details className="pulso-choice-map-card" open={defaultOpen}>
-      <summary className="pulso-choice-map-card-head">
-        <div>
-          <h3>
-            <code>{map.variable}</code> {map.label}
-          </h3>
-          <p>
-            {changedRows.length} ajuste(s) de código · {map.type === "select_multiple" ? "selección múltiple" : "selección única"} · lista <code>{map.list_name}</code>
-          </p>
-        </div>
-        <span className={`pulso-choice-map-confidence${map.high_confidence ? " is-high" : " is-review"}`}>
-          {map.high_confidence ? "Alta confianza" : "Revisar"}
-        </span>
-      </summary>
-
-      <div className="pulso-choice-map-table" role="table" aria-label={`Mapeo de ${map.variable}`}>
-        <div className="pulso-choice-map-row is-head" role="row">
-          <span role="columnheader">Código origen SM/SAV</span>
-          <span role="columnheader">Etiqueta detectada</span>
-          <span role="columnheader">Valor final del formulario</span>
-        </div>
-        {visibleRows.map((item, idx) => (
-          <div className="pulso-choice-map-row" role="row" key={`${item.source_code}-${item.xls_code}-${idx}`}>
-            <span role="cell">
-              <code>C{item.source_code}</code>
-            </span>
-            <span role="cell">
-              {item.source_label || item.xls_label}
-            </span>
-            <span role="cell">
-              <code>{item.xls_code}</code>
-              {item.xls_label && <em>{item.xls_label}</em>}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {unchangedRows > 0 && (
-        <p className="pulso-choice-map-more">
-          {unchangedRows} opción(es) ya coincidían o no necesitaban cambio.
-        </p>
-      )}
-    </details>
   );
 }
 
