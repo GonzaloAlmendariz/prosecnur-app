@@ -24,6 +24,7 @@ const TRANSVERSALES = [
   "src/app/cssConcatenable.contract.test.ts",      // orden de cascada al concatenar
   "src/app/auditReadyRoutes.contract.test.ts",     // readiness de las rutas
   "src/app/readinessAnidada.contract.test.ts",     // un false terminal que cuelga el QA
+  "src/app/chunksSinCiclos.contract.test.ts",      // dos chunks que se importan: TDZ sólo en el bundle
   "src/lib/modulesNavigation.test.ts",             // el registro y las rutas no divergen
 ];
 
