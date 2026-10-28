@@ -97,7 +97,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/calcMuestra/universidad/calculo/calculo.css": 4,
     "features/calcMuestra/universidad/definicion/definicion.css": 4,
     "features/calcMuestra/universidad/marco/marco.css": 6,
-    "features/calcMuestra/universidad/salidas/salidas.css": 7,
     "features/calcMuestra/universidad/ui/ui.css": 5,
     "features/home/home-v2.css": 2,
     "features/validacion/validacion-v2.css": 3,

@@ -94,14 +94,14 @@
     animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 25ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(3) { animation-delay: 50ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(4) { animation-delay: 75ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(5) { animation-delay: 100ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(6) { animation-delay: 125ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(7) { animation-delay: 150ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(8) { animation-delay: 175ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(n + 9) { animation-delay: 200ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 12ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(3) { animation-delay: 24ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(4) { animation-delay: 36ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(5) { animation-delay: 48ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(6) { animation-delay: 60ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(7) { animation-delay: 72ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(8) { animation-delay: 84ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(n + 9) { animation-delay: 90ms; }
 
   /* Mismos tiempos que .cmv2-uni-stagger (ui/ui.css); CifraFila no expone
      className, por eso el selector estructural. */
@@ -109,10 +109,10 @@
     animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 35ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(3) { animation-delay: 70ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(4) { animation-delay: 105ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(n + 5) { animation-delay: 140ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 25ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(3) { animation-delay: 50ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(4) { animation-delay: 75ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(n + 5) { animation-delay: 90ms; }
 
   /* Tablas de Resultados: fade simple, sin stagger por fila (son largas).
      Las tablas del Pase a Monitoreo quedan sin animación a propósito. */
