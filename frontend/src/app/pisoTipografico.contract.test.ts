@@ -19,7 +19,6 @@ const FUERA_DE_ALCANCE = ["features/monitoreo/"];
 const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
-  "components/ContextTabRail.css": 1,
   "features/calcMuestra/general/mesa.css": 2,
   "features/calcMuestra/motor/motor.css": 2,
   "features/calcMuestra/universidad/aulas/aporteTitulares.css": 1,
