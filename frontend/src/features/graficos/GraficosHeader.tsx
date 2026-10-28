@@ -1,3 +1,4 @@
+import { teclaMod } from "../../lib/teclado";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Rows3, Undo2, Redo2, PanelTopDashed, Ruler, SlidersHorizontal, X } from "lucide-react";
 import { ContextBar } from "../../components/ContextBar";
@@ -990,8 +991,7 @@ function UndoRedoButtons() {
   const future = usePlanStore((s) => s.future);
   const undo = usePlanStore((s) => s.undo);
   const redo = usePlanStore((s) => s.redo);
-  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-  const mod = isMac ? "⌘" : "Ctrl";
+  const mod = teclaMod();
   return (
     <div className="pulso-gv2-undo-redo">
       <button

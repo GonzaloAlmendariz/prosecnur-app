@@ -2,6 +2,7 @@
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
 
+import { nombreDeAtajo } from "../../../lib/teclado";
 import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
   AlertTriangle,
@@ -79,7 +80,6 @@ type Props = {
   formas?: PreviewFormas | null;
 };
 
-const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
 const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
   { valor: "ajustar", label: "Ajustar", factor: 1 },
@@ -139,7 +139,7 @@ export function VisorLamina({
           type="button"
           className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
           aria-pressed={estructuraAbierta}
-          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${MOD}1)`}
+          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${nombreDeAtajo("1")})`}
           onClick={onAlternarEstructura}
         >
           <ListTree size={15} aria-hidden="true" />
@@ -244,7 +244,7 @@ export function VisorLamina({
           ref={ajustesRef}
           className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
           aria-pressed={ajustesAbiertos}
-          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${MOD}.)`}
+          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${nombreDeAtajo(".")})`}
           aria-controls="pulso-f6-inspector"
           onClick={onAbrirAjustes}
         >

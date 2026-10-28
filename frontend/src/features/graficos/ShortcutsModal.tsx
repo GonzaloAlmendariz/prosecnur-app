@@ -1,3 +1,4 @@
+import { teclaMod } from "../../lib/teclado";
 import { Keyboard, X } from "../../vendor/lucide-react";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import { resolverPestanaGraficos, type GraficosTabId } from "./pestanaGraficos";
@@ -55,8 +56,7 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
 }
 
 export function ShortcutsModal({ onClose }: { onClose: () => void }) {
-  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-  const mod = isMac ? "⌘" : "Ctrl";
+  const mod = teclaMod();
   const pestana = resolverPestanaGraficos(useSeccion("procesamiento").pestana);
   const shortcuts = atajosDePestana(pestana, mod);
   const nota = pestana === "informe" ? " Los del Informe actúan con el foco en una tarjeta." : "";

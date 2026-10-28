@@ -5,6 +5,7 @@
 // en línea; la lógica vive una sola vez en `../compartir/`. En el informe compartido lo que escribe la base activa queda
 // deshabilitado con motivo (decisión 20); vaciar no, porque escribe en el borrador de ese informe.
 
+import { teclaMod } from "../../../lib/teclado";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { useLocation } from "react-router-dom";
 import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Undo2 } from "../../../vendor/lucide-react";
@@ -43,8 +44,7 @@ type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {
   onIrEditorAnterior?: () => void;
 };
 
-const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const MOD = esMac ? "⌘" : "Ctrl";
+const MOD = teclaMod();
 
 export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...exportar }: Props) {
   const { state } = useSession();
