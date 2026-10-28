@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonConfigurarCredenciales } from "./BotonConfigurarCredenciales";
 import {
   AlertTriangle, CheckCircle2, Cloud, Database, FileSpreadsheet, FileUp,
   FileText, GitMerge, Layers, Loader2, Plus, RefreshCw, Search, Trash2,
@@ -978,6 +979,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
               ))}
             </div>
           )}
+          <BotonConfigurarCredenciales sinToken={!smConnection?.has_token} />
         </div>
       )}
 

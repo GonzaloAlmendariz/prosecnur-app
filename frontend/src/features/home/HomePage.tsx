@@ -6,12 +6,10 @@ import { useSession } from "../../lib/SessionContext";
 import { coberturaGraficos } from "../graficos/coberturaBases";
 import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
-import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
-import { RELEASE_NOTES } from "./releaseNotes";
 import "./home-v2.css";
 
 // Home — menú principal de Prosecnur.
@@ -140,12 +138,6 @@ export default function HomePage() {
         onOpenSettings={panelConfiguracion.abrir}
       />
 
-      <GlobalSettingsDialog
-        open={panelConfiguracion.abierto}
-        notes={RELEASE_NOTES}
-        pulsoName={PULSO_FULL_NAME}
-        onClose={panelConfiguracion.cerrar}
-      />
     </div>
   );
 }

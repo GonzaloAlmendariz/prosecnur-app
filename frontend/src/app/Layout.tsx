@@ -13,6 +13,7 @@ import {
 } from "../lib/modules";
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
+import { ConfiguracionHost } from "../features/home/ConfiguracionHost";
 import { Toaster } from "../components/Toaster";
 import { TonoDePortales } from "../components/TonoDePortales";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
@@ -711,6 +712,7 @@ export default function Layout() {
         <div className="pulso-shell">{canvas}</div>
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
+      <ConfiguracionHost />
       {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
           módulo: heredan su acento desde lo que esto publica en <body>. */}
       <TonoDePortales modulo={activeModule} />

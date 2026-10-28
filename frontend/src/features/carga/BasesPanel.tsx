@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
+import { BotonConfigurarCredenciales } from "./BotonConfigurarCredenciales";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Cloud, Database, Download, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Mail,
   MessageCircle, PhoneCall, Plus, QrCode, RefreshCw, Route, Search, SlidersHorizontal,
@@ -5225,6 +5226,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               ))}
             </div>
           )}
+          <BotonConfigurarCredenciales sinToken={!smConnection?.has_token} />
         </div>
         <div className="pulso-sm-survey-picker">
           <label className="pulso-sm-search">

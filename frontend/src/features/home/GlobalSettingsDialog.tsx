@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { SettingsTab } from "./seccionesConfiguracion";
 import { createPortal } from "react-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import {
@@ -50,13 +51,15 @@ import {
 import type { HfSavedDestination, HfSavedToken } from "../project/types";
 import type { ReleaseNote } from "./releaseNotes";
 
-type SettingsTab = "appearance" | "connections" | "notes" | "credits";
+
 
 type GlobalSettingsDialogProps = {
   open: boolean;
   notes: ReleaseNote[];
   pulsoName: string;
   onClose: () => void;
+  /** Sección con la que abre; sin ella, Conexiones. */
+  seccionInicial?: SettingsTab | null;
 };
 
 type ProviderMeta = {
@@ -348,7 +351,7 @@ function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string
   return parts.join(" · ");
 }
 
-export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: GlobalSettingsDialogProps) {
+export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionInicial }: GlobalSettingsDialogProps) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>("connections");
   const [connections, setConnections] = useState<Record<ConnectionProvider, ConnectionTokenState>>(EMPTY_CONNECTIONS);
@@ -438,6 +441,11 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       window.removeEventListener("keydown", handler);
     };
   }, [open, onClose]);
+
+  // Después del efecto de apertura, que vuelve a Conexiones: así gana la sección del enlace.
+  useEffect(() => {
+    if (open && seccionInicial) setActiveTab(seccionInicial);
+  }, [open, seccionInicial]);
 
   if (!open) return null;
 
