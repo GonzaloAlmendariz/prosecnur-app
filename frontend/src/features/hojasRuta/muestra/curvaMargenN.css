@@ -1,0 +1,59 @@
+/* «Qué compra cada N» (CurvaMargenN.tsx). Datos en navy, nunca en el acento
+ * del módulo; el objetivo de margen es una referencia, en gris. */
+.hr-curva-n {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hr-curva-n figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.hr-curva-n figcaption strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hr-curva-n figcaption span,
+.hr-curva-alterna {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.hr-curva-n svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hr-curva-rejilla { stroke: var(--pulso-border); stroke-width: 1; }
+.hr-curva-eje { font-size: 11px; fill: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-curva-eje.is-rutas { font-size: 10.5px; }
+.hr-curva-objetivo { stroke: var(--pulso-text-soft); stroke-width: 1; stroke-dasharray: 4 4; }
+.hr-curva-objetivo-texto { font-size: 10.5px; font-weight: 700; fill: var(--pulso-text-soft); }
+.hr-curva-trazo { fill: none; stroke: var(--pulso-brand-navy); stroke-width: 2.4; }
+.hr-curva-guia { stroke: var(--pulso-text); stroke-width: 1; stroke-dasharray: 3 3; }
+.hr-curva-punto { fill: var(--pulso-brand-navy); stroke: var(--pulso-surface); stroke-width: 2; }
+.hr-curva-punto.is-alterno { fill: var(--pulso-surface); stroke: var(--pulso-brand-navy); }
+.hr-curva-caja { fill: var(--pulso-surface); stroke: var(--pulso-border); }
+.hr-curva-caja-titulo { font-size: 12.5px; font-weight: 800; fill: var(--pulso-text); }
+.hr-curva-caja-detalle { font-size: 11px; fill: var(--pulso-text-soft); }
+
+.hr-curva-alterna {
+  margin: 0;
+}
+
+.hr-curva-alterna strong {
+  color: var(--pulso-text);
+}
