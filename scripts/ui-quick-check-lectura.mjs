@@ -118,15 +118,14 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       });
       if (lineas.length < 2) continue;
       const letra = (indice) => caracteres[indice] && caracteres[indice].c !== " ";
-      const partida = lineas.find((linea, i) => {
-        const limpio = linea.texto.trim();
-        if (!limpio || limpio.length > 3) return false;
-        // ¿Esta línea empieza pegada al final de la anterior o termina pegada
-        // al inicio de la siguiente? Entonces está dentro de una palabra.
-        const pegadaAntes = i > 0 && letra(linea.desde) && letra(lineas[i - 1].hasta) && lineas[i - 1].hasta === linea.desde - 1;
-        const pegadaDespues = i < lineas.length - 1 && letra(linea.hasta) && letra(lineas[i + 1].desde) && lineas[i + 1].desde === linea.hasta + 1;
-        return pegadaAntes || pegadaDespues;
-      });
+      // Una línea que termina en letra y sigue pegada a la siguiente corta una
+      // palabra, mida lo que mida el pedazo: «Sin / registr / o en la / hoja»
+      // tiene menos líneas que palabras y ningún pedazo corto, y es igual de
+      // ilegible. El guionado automático parte con guion a propósito: no cuenta.
+      const guionado = st.hyphens === "auto";
+      const partida = guionado ? null : lineas.find((linea, i) => (
+        i < lineas.length - 1 && letra(linea.hasta) && letra(lineas[i + 1].desde) && lineas[i + 1].desde === linea.hasta + 1
+      ));
       if (lineas.length > palabras || partida) {
         rotulosPartidos.push({
           type: "rotulo-partido",

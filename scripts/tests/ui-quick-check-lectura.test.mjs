@@ -49,6 +49,20 @@ test("rótulo partido: el chip aplastado a una letra por línea y la palabra cor
   assert.match(chip.motivo, /más líneas que palabras/);
 });
 
+test("rótulo partido: una palabra cortada entre dos líneas largas se marca aunque haya menos líneas que palabras", async () => {
+  // Ritmo del telefónico, 2026-10-28: la banda de un día mostraba
+  // «Sin / registr / o en la / hoja». Cuatro líneas para cinco palabras y
+  // ningún pedazo de ≤ 3 letras: las dos reglas anteriores lo dejaban pasar.
+  const { rotulosPartidos } = await medir(`
+    <div style="width:44px"><span class="banda-cortada" style="overflow-wrap:anywhere">Sin registro en la hoja</span></div>
+    <div style="width:80px"><span class="banda-sana">Sin registro en la hoja</span></div>
+    <div style="width:44px"><span class="guionado-sano" lang="es" style="hyphens:auto">Sin registro en la hoja</span></div>
+  `);
+  assert.ok(marcado(rotulosPartidos, "banda-cortada"), "«registr / o» debió marcarse");
+  assert.equal(marcado(rotulosPartidos, "banda-sana"), false, "partir entre palabras es legítimo");
+  assert.equal(marcado(rotulosPartidos, "guionado-sano"), false, "el guionado automático parte con guion a propósito");
+});
+
 test("texto fuera de su tarjeta: la línea que cruza el borde se marca; la que cabe o se recorta, no", async () => {
   const { textosFuera } = await medir(`
     <ul style="list-style:none;padding:0;width:260px">
