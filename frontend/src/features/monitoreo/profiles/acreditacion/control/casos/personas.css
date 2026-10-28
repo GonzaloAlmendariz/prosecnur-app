@@ -13,11 +13,13 @@
   min-height: 0;
 }
 
+/* 150 y no 180: con 180 la tabla medía 523 px en una tarjeta de 518 y la fila
+ * elegida pintaba su fondo fuera del borde. */
 .acr-ps-estados th[scope="row"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 180px;
+  min-width: 150px;
 }
 
 /* El nombre con su punto es un botón flex: el `justify-content: center` global

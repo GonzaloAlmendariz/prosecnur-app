@@ -112,9 +112,9 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
             </tbody>
           </table>
         </section>
-        <section className="acr-av-panel acr-ps-respondieron" aria-label="Quienes respondieron">
+        <section className="acr-av-panel acr-ps-respondieron" aria-label="Quiénes respondieron">
           <header className="acr-av-panel-cabecera">
-            <h3>Quienes respondieron <span className="acr-av-tenue">{publico ?? "Todos los públicos"}</span></h3>
+            <h3>Quiénes respondieron <span className="acr-av-tenue">{publico ?? "Todos los públicos"}</span></h3>
           </header>
           <div className="acr-cr-listas">
             <Barras titulo="Por canal" filas={conRespuestaPor(delPublico, "canal")} />
