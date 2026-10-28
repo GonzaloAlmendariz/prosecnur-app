@@ -3713,6 +3713,11 @@
 }
 
 .hojas-ruta-pop-table thead tr:first-child th {
+  /* La segunda fila se pega en top: 35px; la primera medía ~33 (11 px × 1.25 +
+     18 de padding + 1 de borde) y sticky la bajaba 2 px sobre la primera fila
+     de datos sin desplazar nada. Mide lo que declara la segunda. */
+  box-sizing: border-box;
+  height: 35px;
   background: linear-gradient(180deg, #f7fbfa 0%, color-mix(in srgb, var(--module-accent) 6%, #fff) 100%);
   border-bottom-color: color-mix(in srgb, var(--module-accent-border) 28%, var(--pulso-border));
   color: var(--module-accent);
