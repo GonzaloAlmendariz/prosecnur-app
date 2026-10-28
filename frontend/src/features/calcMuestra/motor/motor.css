@@ -169,6 +169,24 @@
   border-left: none;
 }
 
+/* L18: los indicadores sin cifra no ocupan una casilla cada uno; se nombran
+   juntos en una línea que cruza la franja entera, sea cual sea la rejilla. */
+.rec-resumen-item.rec-resumen-vacios {
+  grid-column: 1 / -1;
+  border-left: none;
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.rec-resumen-item.rec-resumen-vacios:first-child {
+  border-top: none;
+}
+
+.rec-resumen-vacios strong {
+  font-size: inherit;
+  font-weight: 600;
+  white-space: normal;
+}
+
 .rec-resumen-item-icon {
   display: inline-flex;
   align-items: center;

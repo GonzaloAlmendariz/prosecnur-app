@@ -89,6 +89,12 @@ function renderSummary() {
 }
 
 function metric(html: string, label: string): string {
+  // L18: los indicadores sin cifra se juntan en la línea «Sin cifra todavía».
+  const vacios = html.indexOf('<div class="rec-resumen-item rec-resumen-vacios"');
+  if (vacios >= 0) {
+    const bloque = html.slice(vacios, html.indexOf("</div>", vacios) + "</div>".length);
+    if (bloque.includes(label)) return bloque;
+  }
   const labelIndex = html.indexOf(`<small>${label}</small>`);
   const start = html.lastIndexOf('<div class="rec-resumen-item"', labelIndex);
   const end = html.indexOf("</div>", labelIndex);
@@ -134,8 +140,9 @@ describe("ResumenDiseno bajo contrato I19", () => {
 
     const html = renderSummary();
 
-    expect(metric(html, "Muestra objetivo")).toContain("—");
-    expect(metric(html, "Sobremuestra operativa")).toContain("—");
+    // Sin cifra: «—» en su casilla o nombrado en la línea «Sin cifra todavía» (L18).
+    expect(metric(html, "Muestra objetivo")).toMatch(/—|Sin cifra todavía/);
+    expect(metric(html, "Sobremuestra operativa")).toMatch(/—|Sin cifra todavía/);
     expect(metric(html, "Muestra objetivo")).not.toContain("37");
     expect(metric(html, "Sobremuestra operativa")).not.toContain("44");
     expect(html).toContain(`data-result-state="${kind}"`);

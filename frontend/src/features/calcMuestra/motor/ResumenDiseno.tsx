@@ -3,6 +3,7 @@
  * del universo, la estimación viva de elegibles y las metas operativas del
  * diseño. Vive en el toolbar del módulo, no dentro de una pestaña.
  */
+import { separarIndicadoresVacios } from "./indicadoresVacios";
 import { useMemo, type ReactNode } from "react";
 import { BookOpenCheck, ClipboardCheck, RotateCcw, School, ShieldCheck, Sigma, Target, Users } from "lucide-react";
 import {
@@ -409,6 +410,8 @@ export function ResumenDiseno({
     },
   ];
 
+  const indicadores = separarIndicadoresVacios(metrics);
+
   return (
     <section
       className="rec-resumen-shell"
@@ -449,7 +452,7 @@ export function ResumenDiseno({
         data-qa-geometry-group="calc-muestra/resumen-diseno"
         data-qa-geometry-contract="equal"
       >
-        {metrics.map((metric) => (
+        {indicadores.conValor.map((metric) => (
           <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label}>
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
@@ -462,6 +465,16 @@ export function ResumenDiseno({
             </span>
           </div>
         ))}
+        {indicadores.vacios.length > 0 && (
+          <div className="rec-resumen-item rec-resumen-vacios" data-tone="operation">
+            <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
+            <span className="rec-resumen-item-copy">
+              <small>Sin cifra todavía</small>
+              <strong>{indicadores.vacios.map((metric) => metric.label).join(" · ")}</strong>
+              <span>{notaResultado}</span>
+            </span>
+          </div>
+        )}
       </div>
     </section>
   );
