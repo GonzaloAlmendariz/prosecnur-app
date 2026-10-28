@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BellOff, Clock, X } from "../../../vendor/lucide-react";
 
 import { EmptyState } from "../../../components/States";
@@ -28,10 +29,20 @@ export function CentroDeAvisos({
 }) {
   const hayAlgo = control.vencidos.length > 0 || control.proximos.length > 0;
 
+  // Panel lateral NO modal: el cronograma sigue usable detrás, así que no es un
+  // diálogo (L1) sino un <aside> con nombre. Escape lo cierra, como a cualquier
+  // panel; antes no.
+  useEffect(() => {
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape" && !evento.defaultPrevented) onCerrar();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [onCerrar]);
+
   return (
     <aside
       className="bit-avisos"
-      role="dialog"
       aria-label="Centro de avisos"
       data-audit-ready="bitacora-avisos"
     >
