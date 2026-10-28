@@ -281,10 +281,13 @@
 }
 
 .aulas-ch-tabla col.is-codigo { width: 92px; }
-.aulas-ch-tabla col.is-facultad { width: auto; }
+/* La facultad tiene ancho propio y la barra absorbe el resto: con la barra al
+ * 22 % y las fijas, a 1366 a la facultad le quedaban ~60 px y los nombres se
+ * partían letra a letra («Educa / ción»). */
+.aulas-ch-tabla col.is-facultad { width: 168px; }
 .aulas-ch-tabla col.is-cifra { width: 76px; }
 .aulas-ch-tabla col.is-pct { width: 80px; }
-.aulas-ch-tabla col.is-barra { width: 22%; }
+.aulas-ch-tabla col.is-barra { width: auto; }
 .aulas-ch-tabla col.is-lectura { width: 184px; }
 
 .aulas-ch-codigo {
@@ -566,7 +569,17 @@
     overflow: visible;
   }
 
+  /* Todo mide su contenido: con `min-height: 0` heredado del modo amplio, las
+   * filas `auto` de la rejilla se encogían bajo su contenido y la tabla se
+   * montaba sobre Titulares y Cobertura (1024x600). */
+  .aulas-ch-izquierda,
+  .aulas-ch-derecha,
   .aulas-ch-tabla-panel {
+    min-height: auto;
+  }
+
+  .aulas-ch-tabla-panel {
+    flex: none;
     max-height: none;
   }
 
