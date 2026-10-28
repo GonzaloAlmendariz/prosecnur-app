@@ -56,7 +56,8 @@ export type PulsoTableProps<T> = {
 /** A partir de cuántas filas se virtualiza: por debajo, pintarlas todas es más simple y igual de rápido. */
 export const PULSO_TABLE_UMBRAL_VIRTUAL = 80;
 
-export const PULSO_TABLE_ALTO_FILA: Record<PulsoTableDensidad, number> = { comoda: 36, compacta: 28 };
+/** Lo mismo que `--pulso-density-row` (app/tipografia.css): la virtualización necesita el número. */
+export const PULSO_TABLE_ALTO_FILA: Record<PulsoTableDensidad, number> = { comoda: 36, compacta: 30 };
 
 /** Ancho total declarado: la tabla mide eso y no se estira a costa de una columna. */
 export function anchoDeclarado<T>(columnas: readonly PulsoTableColumna<T>[]): number {
