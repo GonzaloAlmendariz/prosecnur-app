@@ -105,13 +105,13 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
               {enMatriz ? (
                 <div className="acr-ct-matriz" role="table" aria-label="Efectivas al teléfono frente a respuestas completas en la plataforma">
                   <span />
-                  <span className="acr-av-antetitulo" role="columnheader">Completa en la plataforma</span>
+                  <span className="acr-av-antetitulo" role="columnheader">Completa en plataforma</span>
                   <span className="acr-av-antetitulo" role="columnheader">Sin completa</span>
                   <span className="acr-av-antetitulo" role="rowheader">Efectiva al teléfono</span>
                   <Celda valor={modelo.conciliadas} rotulo="Conciliadas" tono="acuerdo" />
-                  <Celda valor={modelo.soloTelefono} rotulo="Efectiva solo al teléfono" tono="diferencia" />
+                  <Celda valor={modelo.soloTelefono} rotulo="Solo al teléfono" tono="diferencia" />
                   <span className="acr-av-antetitulo" role="rowheader">Sin efectiva al teléfono</span>
-                  <Celda valor={modelo.soloPlataforma} rotulo="Completa sin efectiva al teléfono" tono="diferencia" />
+                  <Celda valor={modelo.soloPlataforma} rotulo="Solo en la plataforma" tono="diferencia" />
                   <Celda valor={null} rotulo="Fuera del cruce" tono="fuera" />
                 </div>
               ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae el cruce del barrido con la plataforma." descripcion="Sale de «Operación por responsable» al actualizar." />}
@@ -172,8 +172,8 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
         </div>
         {acumulado.length > 1 ? (
           <div className="acr-ct-acumulado" data-qa-geometry-capacity="owned">
-            <span className="acr-av-antetitulo">Casos barridos, por fecha del último intento</span>
-            <AreaAcumulada serie={acumulado} meta={null} etiqueta="Casos barridos acumulados por fecha del último intento" />
+            <span className="acr-av-antetitulo">Casos barridos acumulados, por fecha del último intento</span>
+            <AreaAcumulada serie={acumulado} meta={null} tituloEje="Casos" etiqueta="Casos barridos acumulados por fecha del último intento" />
           </div>
         ) : null}
       </aside>
