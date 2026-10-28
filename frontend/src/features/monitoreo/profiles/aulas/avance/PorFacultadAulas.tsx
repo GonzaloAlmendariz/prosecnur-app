@@ -356,7 +356,11 @@ function LateralDeLaPestana({ lateral, etiquetaEje, enFoco }: { lateral: Lateral
   const { franja, rendimiento, consumo } = lateral;
   return (
     <>
-      <section className="aulas-pf-panel aulas-pf-franja" aria-label="Desenlaces de los titulares">
+      <section className="aulas-pf-panel aulas-pf-franja" aria-labelledby="aulas-pf-franja-titulo">
+        {/* Dos bases distintas para la misma palabra: aquí lo que el libro
+            DECLARA; en «Qué rindió», las aulas ya aplicadas según su procedencia.
+            Sin la base, «Refuerzos 5» y «Refuerzos 0» se leían como contradicción. */}
+        <Cabecera id="aulas-pf-franja-titulo" titulo="Desenlaces de los titulares" sub="lo que declara el libro" />
         <dl className="aulas-pf-cifras" data-qa-geometry-group="aulas-porfacultad-franja" data-qa-geometry-contract="equal">
           {franja.cifras.map((c) => (
             <div key={c.clave} title={c.titulo} data-qa-geometry-member={c.clave}>
@@ -368,7 +372,7 @@ function LateralDeLaPestana({ lateral, etiquetaEje, enFoco }: { lateral: Lateral
         {franja.vacio ? <Nota vacio={franja.vacio} /> : null}
       </section>
       <section className="aulas-pf-panel aulas-pf-rinde" aria-labelledby="aulas-pf-rinde-titulo">
-        <Cabecera id="aulas-pf-rinde-titulo" titulo="Qué rindió cada tipo de curso-horario" />
+        <Cabecera id="aulas-pf-rinde-titulo" titulo="Qué rindió cada tipo de curso-horario" sub="aulas ya aplicadas, por su procedencia" />
         {rendimiento.vacio ? <Nota vacio={rendimiento.vacio} /> : (
           <table className="aulas-pf-tabla is-rinde" aria-labelledby="aulas-pf-rinde-titulo" data-qa-geometry-capacity="owned">
             <colgroup>
