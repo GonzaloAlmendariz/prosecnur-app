@@ -18,7 +18,7 @@
    transparente ni quieta. */
 .pulso-skeleton,
 .pulso-skeleton-vista {
-  --pulso-skeleton-shimmer-dur: calc(var(--motion-dur-panel, 280ms) * 5);
+  --pulso-skeleton-shimmer-dur: calc(var(--motion-dur-panel) * 5);
 }
 
 /* --- Pieza ------------------------------------------------------------------ */
