@@ -163,7 +163,7 @@ import { instrumentActorLabel } from "./shell/formWorkflowView";
 import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
 import { EditorPestanas } from "./shell/EditorPestanas";
 import { usePestanaEditor } from "./shell/pestanaEditor";
-import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
+import { PANEL_CATALOGOS, PANEL_IMPORTAR_SURVEYMONKEY, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
 import { VistaCuestionario } from "./shell/VistaCuestionario";
 import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
@@ -328,12 +328,12 @@ export default function XlsformEditorPage() {
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
-  /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
-   *  legacy opcional; el flujo principal ya no pide archivo. */
-  const [smImportDialog, setSmImportDialog] = useState<
-    | { fileId?: string | null; fileName: string }
-    | null
-  >(null);
+  /** Importación SurveyMonkey vía API → panel direccionable. El .sav quedó
+   *  como ruta legacy; el flujo abre siempre sin archivo. */
+  const smImportPanel = usePanelDireccionable(PANEL_IMPORTAR_SURVEYMONKEY);
+  // El cierre tras importar llega después de varios `await`: lee la dirección vigente.
+  const smImportPanelRef = useRef(smImportPanel);
+  smImportPanelRef.current = smImportPanel;
   /** Diálogo del importador de "Matriz PULSO IAC-CINDA". Se abre cuando el
    *  backend detecta que el .xlsx subido es una matriz por audiencia en vez de
    *  un XLSForm normal. */
@@ -1426,7 +1426,7 @@ export default function XlsformEditorPage() {
     if (blockUntilRestoreDecision("traducir SurveyMonkey")) return;
     if (blockIfAtFormLimit()) return;
     resetMessages();
-    setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+    smImportPanel.abrir();
   }
 
   // Confirmación del diálogo de Matriz PULSO: por cada audiencia elegida pide al
@@ -1531,7 +1531,7 @@ export default function XlsformEditorPage() {
     surveyMonkeyChoiceOverrides?: Record<string, string[]>;
     surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
   }) {
-    const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    const fileName = payload.source.original_name ?? "SurveyMonkey API";
     const choiceCodeMaps = payload.surveyMonkeyChoiceCodeMaps ?? payload.workbook.surveyMonkeyLogic?.choice_code_maps ?? [];
     const workbookDraft = workbookWithSurveyMonkeyLogic(
       payload.workbook,
@@ -1552,7 +1552,7 @@ export default function XlsformEditorPage() {
       payload.surveyMonkeyChoiceOverrides ?? {},
       choiceCodeMaps,
     );
-    setSmImportDialog(null);
+    smImportPanelRef.current.cerrar();
     setHallazgos(payload.hallazgos);
     loadWorkbook(
       workbookWithLogic,
@@ -2989,14 +2989,14 @@ export default function XlsformEditorPage() {
       <ToastDeck items={toasts.items} onDismiss={toasts.dismiss} />
 
       {/* Diálogo de importación SurveyMonkey vía API. */}
-      {smImportDialog ? (
+      {smImportPanel.abierto ? (
         <ImportSurveyMonkeyDialog
-          fileId={smImportDialog.fileId}
-          fileName={smImportDialog.fileName}
-          onCancel={() => setSmImportDialog(null)}
+          fileId={null}
+          fileName="SurveyMonkey API"
+          onCancel={smImportPanel.cerrar}
           onComplete={onSurveyMonkeyImportComplete}
           onCampaignDeclared={({ formName }) => {
-            setSmImportDialog(null);
+            smImportPanel.cerrar();
             void refreshBackendFormIndex().catch(() => undefined);
             toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en «${formName}».`, durationMs: 6000 });
           }}

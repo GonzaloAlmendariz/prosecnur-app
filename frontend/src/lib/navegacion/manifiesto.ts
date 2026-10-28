@@ -37,7 +37,11 @@ import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/p
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
-import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "../../features/xlsformEditor/shell/panelesEditor";
+import {
+  PANEL_CATALOGOS,
+  PANEL_IMPORTAR_SURVEYMONKEY,
+  PANEL_LOGICA_SURVEYMONKEY,
+} from "../../features/xlsformEditor/shell/panelesEditor";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -212,6 +216,7 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_CATALOGOS,
     PANEL_LOGICA_SURVEYMONKEY,
     PANEL_NUEVO_FILTRO,
+    PANEL_IMPORTAR_SURVEYMONKEY,
   ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
   // Lista de campañas (ADR 0111): `?panel=nueva-campana` y
