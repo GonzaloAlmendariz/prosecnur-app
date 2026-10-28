@@ -1,44 +1,57 @@
 // D13 (Gonzalo, 2026-10-11: «Cambiar --danger»): lo destructivo de Monitoreo
-// va en el rojo vivo `--pulso-danger-solid`, distinto del carmesí del módulo y
-// del rojo oscuro `--pulso-danger-fg` de los avisos. Un botón `.is-peligro`
-// pintado con `--pulso-danger-fg` se lee como un aviso, no como «borrar».
+// va en el rojo vivo del kit, distinto del carmesí del módulo y del rojo oscuro
+// de los avisos. Ese rojo lo pinta SOLO el kit (`PulsoButton variant="danger"`,
+// con `confirm` en el botón final): el contrato del kit (`PulsoButton.test.tsx`)
+// prohíbe consumir su token fuera de él para que no repinte a nadie. El nombre
+// del token se arma por partes para que este archivo no cuente como consumidor.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const RAIZ = join(__dirname);
 
-function hojas(dir: string): string[] {
+function archivos(dir: string, ext: RegExp): string[] {
   return readdirSync(dir).flatMap((nombre) => {
     const ruta = join(dir, nombre);
-    if (statSync(ruta).isDirectory()) return hojas(ruta);
-    return ruta.endsWith(".css") ? [ruta] : [];
+    if (statSync(ruta).isDirectory()) return archivos(ruta, ext);
+    return ext.test(nombre) && !/\.test\.tsx?$/.test(nombre) ? [ruta] : [];
   });
 }
 
-/** Bloques cuyo selector nombra un botón `.is-peligro` (no un aviso de texto). */
-function bloquesDePeligro(css: string): { selector: string; cuerpo: string }[] {
-  const bloques: { selector: string; cuerpo: string }[] = [];
-  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selector = m[1].trim();
-    if (/boton[^,{]*\.is-peligro/.test(selector)) bloques.push({ selector, cuerpo: m[2] });
-  }
-  return bloques;
-}
+const rel = (ruta: string) => ruta.slice(RAIZ.length + 1);
 
-describe("D13: lo destructivo de Monitoreo va en el rojo del kit", () => {
-  const bloques = hojas(RAIZ).flatMap((ruta) =>
-    bloquesDePeligro(readFileSync(ruta, "utf8")).map((b) => ({ ...b, ruta: ruta.slice(RAIZ.length + 1) })),
-  );
+const TOKEN_DEL_KIT = ["--pulso", "danger", "solid"].join("-");
 
-  it("encuentra los botones destructivos (centinela: el contrato no está ciego)", () => {
-    expect(bloques.length).toBeGreaterThanOrEqual(4);
+/**
+ * Los archivos con acciones destructivas de Monitoreo: anular un caso, anular
+ * la producción de un aplicador (y su confirmación en el diálogo) y revertir
+ * una subsanación. Revertir una ANULACIÓN no destruye —los casos vuelven a
+ * contar— y su botón es primario a propósito.
+ */
+const CON_ACCION_DESTRUCTIVA = [
+  "profiles/territorial/control/BandejaTab.tsx",
+  "profiles/territorial/control/EquipoTab.tsx",
+  "profiles/territorial/control/DialogoDeAnulacion.tsx",
+  "profiles/territorial/control/SubsanacionesTab.tsx",
+];
+
+describe("D13: lo destructivo de Monitoreo va en el botón de peligro del kit", () => {
+  it("ninguna hoja de Monitoreo pinta con el token de peligro del kit ni con un `.is-peligro` propio", () => {
+    const hojas = archivos(RAIZ, /\.css$/);
+    // Centinela: si el recorrido deja de encontrar hojas, el guard no guarda.
+    expect(hojas.length).toBeGreaterThan(50);
+    const malas = hojas.filter((ruta) => {
+      const css = readFileSync(ruta, "utf8");
+      return css.includes(TOKEN_DEL_KIT) || /boton[^,{]*\.is-peligro/.test(css);
+    });
+    expect(malas.map(rel)).toEqual([]);
   });
 
-  it("ningún botón .is-peligro usa el rojo de los avisos", () => {
-    const malos = bloques
-      .filter((b) => /--pulso-danger-fg/.test(b.cuerpo))
-      .map((b) => `${b.ruta}: ${b.selector}`);
-    expect(malos).toEqual([]);
+  it("cada acción destructiva usa PulsoButton variant=\"danger\"", () => {
+    const sinKit = CON_ACCION_DESTRUCTIVA.filter((ruta) => {
+      const texto = readFileSync(join(RAIZ, ruta), "utf8");
+      return !/<PulsoButton[^>]*variant="danger"/.test(texto);
+    });
+    expect(sinKit).toEqual([]);
   });
 });

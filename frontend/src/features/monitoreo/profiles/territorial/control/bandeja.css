@@ -381,16 +381,6 @@
   cursor: pointer;
 }
 
-/* D13: lo destructivo va en el rojo vivo del kit, con ícono; el carmesí del
- * módulo y el rojo oscuro de los avisos no se confunden con «borrar». */
-.mon-ban-boton.is-peligro {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-color: var(--pulso-danger-solid);
-  color: var(--pulso-danger-solid);
-}
-
 .mon-ban-lista-filtros button:focus-visible,
 .mon-ban-segmentado button:focus-visible,
 .mon-ban-tabla tbody th button:focus-visible,

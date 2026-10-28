@@ -186,22 +186,6 @@
   color: var(--pulso-surface);
 }
 
-/* D13: lo destructivo va en el rojo vivo del kit, con ícono; el carmesí del
- * módulo y el rojo oscuro de los avisos no se confunden con «borrar». */
-.mon-sub-boton.is-peligro {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-color: var(--pulso-danger-solid);
-  color: var(--pulso-danger-solid);
-}
-
-/* «Confirmar reversión» es el botón final: relleno sólido. */
-.mon-sub-boton.is-peligro.is-final {
-  background: var(--pulso-danger-solid);
-  color: var(--pulso-surface);
-}
-
 .mon-sub-boton:disabled {
   cursor: default;
   opacity: 0.55;

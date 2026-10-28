@@ -9,6 +9,7 @@ import { useRechazos } from "./useRechazos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./subsanaciones.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
 
@@ -219,10 +220,10 @@ function SubsanacionesTabImpl({
                 {entrada.estado === "activa" && onRevert ? (
                   porRevertir === entrada.id ? (
                     <span className="mon-sub-confirmar">
-                      <button type="button" className="mon-sub-boton is-peligro is-final" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
+                      <PulsoButton variant="danger" confirm size="sm" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
                         {enCurso === entrada.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Undo2 size={14} aria-hidden="true" />}
                         Confirmar reversión
-                      </button>
+                      </PulsoButton>
                       <button type="button" className="mon-sub-boton" onClick={() => setPorRevertir(null)}>Cancelar</button>
                     </span>
                   ) : (

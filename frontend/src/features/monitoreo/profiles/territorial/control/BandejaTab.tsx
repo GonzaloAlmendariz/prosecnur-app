@@ -14,6 +14,7 @@ import {
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./bandeja.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 type Vista = "bandeja" | "anulados";
 
@@ -257,7 +258,7 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
       </section>
       <footer className="mon-ban-pie">
         {onAnular ? (
-          <button type="button" className="mon-ban-boton is-peligro" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular caso</button>
+          <PulsoButton variant="danger" size="sm" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular caso</PulsoButton>
         ) : (
           <p className="mon-ban-base" title="Sin identificador de respuesta no se puede anular desde aquí">Sin identificador de respuesta</p>
         )}

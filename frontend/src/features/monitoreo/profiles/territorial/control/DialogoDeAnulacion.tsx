@@ -10,6 +10,7 @@ import {
 import type { PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { cuerpoDelPedido, impactoEnFrases, textoDelBoton, type PedidoDeAnulacion } from "./anulacionModel";
 import "./dialogo.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 /** `panel=anular`: el diálogo es enlazable; el `foco` dice qué se anula. */
 export const PANEL_ANULAR: PanelDeclarado = { id: "anular", label: "Anular", clase: "dialogo" };
@@ -118,10 +119,10 @@ export function DialogoDeAnulacion({
 
         <footer className="mon-dlg-pie">
           <button type="button" className="mon-dlg-boton" onClick={() => dialogo.current?.close()}>Cancelar</button>
-          <button type="submit" className="mon-dlg-boton is-peligro" disabled={!puedeAplicar}>
+          <PulsoButton type="submit" variant="danger" confirm disabled={!puedeAplicar}>
             {paso.tipo === "aplicando" ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
             {textoDelBoton(pedido, casos)}
-          </button>
+          </PulsoButton>
         </footer>
       </form>
     </dialog>

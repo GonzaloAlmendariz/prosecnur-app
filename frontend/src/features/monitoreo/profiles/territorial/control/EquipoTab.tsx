@@ -8,6 +8,7 @@ import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { construirEquipo, type FilaDeEquipo } from "./equipoModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./equipo.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 /**
  * Control › Equipo (territorial.md §3.8): una fila por código de aplicador con
@@ -200,7 +201,7 @@ function InspectorDeCodigo({
         {fila.anulado ? (
           <p className="mon-eq-base" title="Se revierte en Control › Anulaciones">Producción anulada</p>
         ) : (
-          <button type="button" className="mon-eq-boton is-peligro" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular producción</button>
+          <PulsoButton variant="danger" size="sm" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular producción</PulsoButton>
         )}
       </footer>
     </aside>

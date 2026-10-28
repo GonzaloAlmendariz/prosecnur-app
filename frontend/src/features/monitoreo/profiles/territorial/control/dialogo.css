@@ -118,13 +118,6 @@
   cursor: pointer;
 }
 
-/* D13: relleno sólido sólo en el botón FINAL de una acción destructiva. */
-.mon-dlg-boton.is-peligro {
-  border-color: var(--pulso-danger-solid);
-  background: var(--pulso-danger-solid);
-  color: var(--pulso-surface);
-}
-
 .mon-dlg-boton:disabled {
   cursor: default;
   opacity: 0.55;
