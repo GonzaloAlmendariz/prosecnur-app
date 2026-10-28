@@ -453,7 +453,9 @@ export function ResumenDiseno({
         data-qa-geometry-contract="equal"
       >
         {indicadores.conValor.map((metric) => (
-          <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label}>
+          // Miembros explícitos: el contrato «equal» es entre tarjetas de cifra; la
+          // fila «Sin cifra todavía» va a lo ancho y no es una tarjeta par.
+          <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label} data-qa-geometry-member>
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
