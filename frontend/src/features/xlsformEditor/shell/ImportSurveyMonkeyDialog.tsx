@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "../../../vendor/lucide-react";
+import { CloudDownload } from "../../../vendor/lucide-react";
+import { Dialog } from "../../../components/Dialog";
 import { IconConditionalLogic } from "../../../lib/icons";
 import {
   apiXlsformEditorImportSurveyMonkeyWithLogic,
@@ -132,8 +132,6 @@ export function ImportSurveyMonkeyDialog({
   // Sólo la última encuesta conectada puede sugerir: una respuesta tardía de
   // otra encuesta no debe aparecer sobre la actual.
   const sugerenciaPedidaRef = useRef<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   function applySmTokenState(next: SurveyMonkeyTokenState) {
     setSmTokenState(next);
@@ -395,41 +393,6 @@ export function ImportSurveyMonkeyDialog({
     }
   }, [onCancel, pages.length, smFetchedSurveyId, smSurveyId, visualRules.length, wizardRules.length]);
 
-  // Un único sheet modal: Escape, Cancelar y la X pasan por la misma
-  // protección de descarte. El foco se limita al sheet y vuelve al disparador.
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        requestClose();
-        return;
-      }
-      if (e.key !== "Tab" || !sheetRef.current) return;
-      const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
-      ));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener("keydown", onKey);
-      previousFocus?.focus();
-    };
-  }, [requestClose]);
 
   const reglasText = [
     compileVisualLogicRules(visualRules),
@@ -538,39 +501,46 @@ export function ImportSurveyMonkeyDialog({
     return null;
   }
 
-  const dialog = (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="sm-import-title"
-      className="pulso-xf-smi-capa"
-      // Modal a pantalla completa: cubre también el chrome global del editor.
-      // Los menús del editor llegan a la capa 2300; este diálogo comparte esa
-      // capa y, al montarse después, queda como superficie activa.
-      style={{ zIndex: 2300 }}
-    >
-      {/* Sin cierre al hacer clic fuera: un clic accidental no debe tirar el
-          progreso. Se cierra con la X, Cancelar o Escape. */}
-      <div ref={sheetRef} className="pulso-xf-smi-hoja">
-        <header className="pulso-xf-smi-cabecera">
-          <div>
-            <h2 id="sm-import-title">Traducir encuesta de SurveyMonkey</h2>
-            <p>Crea un borrador editable a partir de la definición original de la encuesta.</p>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="pulso-xf-smi-icono"
-            onClick={requestClose}
-            aria-label="Cerrar importación de SurveyMonkey"
-          >
-            <X size={20} aria-hidden />
-          </button>
-        </header>
+  // Dialog del kit (L1): Escape, la X y Cancelar pasan por requestClose, que
+  // pide confirmar si hay progreso; con `open` controlado, si el usuario dice
+  // que no, la hoja sigue abierta. Sin cierre por click fuera: un click
+  // accidental no debe tirar el progreso. Foco atrapado y de vuelta los pone
+  // la primitiva. El menú «Agregar elemento» (2300) nunca está abierto a la vez.
+  const pie = !reviewOpen && !campanaSugerida?.declarando ? (
+    <>
+      <button type="button" onClick={requestClose} disabled={submitting}>
+        Cancelar
+      </button>
+      {visualPending ? (
+        <span className="pulso-xf-smi-pie-nota">Confirma o descarta la lógica visual pendiente.</span>
+      ) : null}
+      <button
+        type="button"
+        className="pulso-primary"
+        onClick={openReview}
+        disabled={!puedeRevisar}
+      >
+        {submitting ? "Preparando…" : "Revisar borrador"}
+      </button>
+    </>
+  ) : undefined;
 
-        {/* Único dueño del scroll del diálogo: ninguna sección interna se
-            desplaza por su cuenta. */}
-        <div className="pulso-xf-smi-cuerpo" data-qa-scroll-owner="dialog">
+  return (
+    <Dialog
+      open
+      onOpenChange={(abierto) => { if (!abierto) requestClose(); }}
+      size="lg"
+      closeOnOutside={false}
+      closeLabel="Cerrar importación de SurveyMonkey"
+      title="Traducir encuesta de SurveyMonkey"
+      subtitle="Crea un borrador editable a partir de la definición original de la encuesta."
+      icon={<CloudDownload size={16} aria-hidden="true" />}
+      className="pulso-xf-smi-hoja"
+      footer={pie}
+    >
+        {/* El cuerpo del Dialog es el único dueño del scroll: ninguna sección
+            interna se desplaza por su cuenta. */}
+        <div className="pulso-xf-smi-cuerpo">
           {error ? (
             <div className="pulso-xf-smi-error" role="alert">{error}</div>
           ) : null}
@@ -721,31 +691,8 @@ export function ImportSurveyMonkeyDialog({
           )}
         </div>
 
-        {!reviewOpen && !campanaSugerida?.declarando ? (
-          <footer className="pulso-xf-smi-pie">
-            <button type="button" onClick={requestClose} disabled={submitting}>
-              Cancelar
-            </button>
-            {visualPending ? (
-              <span className="pulso-xf-smi-pie-nota">Confirma o descarta la lógica visual pendiente.</span>
-            ) : null}
-            <button
-              type="button"
-              className="pulso-primary"
-              onClick={openReview}
-              disabled={!puedeRevisar}
-            >
-              {submitting ? "Preparando…" : "Revisar borrador"}
-            </button>
-          </footer>
-        ) : null}
-      </div>
-    </div>
+    </Dialog>
   );
-
-  // El PageFrame y la barra global crean contextos de apilado propios. El
-  // portal evita que el diálogo quede recortado o por debajo de ese chrome.
-  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
 export function CampanaSugeridaAviso({

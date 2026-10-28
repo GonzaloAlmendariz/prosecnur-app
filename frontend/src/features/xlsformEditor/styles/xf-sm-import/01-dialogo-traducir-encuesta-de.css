@@ -2,71 +2,18 @@
    Sólo tokens --pulso-*: el acento del módulo marca contexto, selección y
    foco; éxito, alerta y peligro no cambian con el módulo. */
 
-/* ── Capa y hoja ─────────────────────────────────────────────────────────── */
+/* ── Cuerpo ──────────────────────────────────────────────────────────────── */
 
-.pulso-xf-smi-capa {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--pulso-space-5);
-  background: color-mix(in srgb, var(--pulso-text) 45%, transparent);
-}
-
-.pulso-xf-smi-hoja {
-  width: min(980px, 100%);
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface-raised);
-  box-shadow: var(--pulso-shadow-high);
-}
-
-.pulso-xf-smi-cabecera {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-4);
-  padding: var(--pulso-space-4) var(--pulso-space-5);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-xf-smi-cabecera h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 18px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-xf-smi-cabecera p {
-  margin: 4px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-}
-
+/* Velo, hoja, cabecera, pie y scroll los pone el Dialog del kit (L1, size
+   lg = 980 px, el mismo ancho de antes). `.pulso-xf-smi-hoja` queda como
+   clase del contenido para anclar los controles de abajo. */
 .pulso-xf-smi-cuerpo {
-  flex: 1;
   min-height: var(--pulso-operational-min-dialog-body, 240px);
   display: grid;
   align-content: start;
   gap: var(--pulso-space-4);
-  padding: var(--pulso-space-5);
-  overflow-y: auto;
   color: var(--pulso-text);
   font-size: 14px;
-}
-
-.pulso-xf-smi-pie {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-  padding: var(--pulso-space-3) var(--pulso-space-5);
-  border-top: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
 }
 
 .pulso-xf-smi-pie-nota {
