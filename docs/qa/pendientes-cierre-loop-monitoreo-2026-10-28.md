@@ -1,5 +1,10 @@
 # Pendientes al cerrar el loop de Monitoreo y Aulas — 2026-10-28
 
+Tipo: Acta de cierre de loop
+Estado: Vigente
+Fecha: 2026-10-28
+Autoridad: Cierre dictado por Gonzalo; las fichas siguen en `revamp-monitoreo/aulas.md` y las líneas L* en `goal-modernizacion-ui-2026-10-10.md`
+
 Gonzalo detuvo el loop indefinido a las ~17:25 («vamos cerrando el reloj y
 dejándolo como está, anotando lo pendiente»). Esto queda tal como estaba: nada se
 mergeó ni se borró al cerrar. `main` local va **175 commits por delante de
