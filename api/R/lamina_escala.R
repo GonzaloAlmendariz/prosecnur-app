@@ -121,7 +121,7 @@
 }
 #' Alto del texto de una premisa, con la línea de su N si la lleva
 #' @keywords internal
-.lam_premisa_alto <- function(p, wp) .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE) + (if (is.null(p$nota)) 0 else 0.26)
+.lam_premisa_alto <- function(p, wp) .lam_alto_premisa_txt(p$texto, wp) + (if (is.null(p$nota)) 0 else 0.26)   # tinta real: lamina_escala_premisa_alto.R
 .lam_escala_geo <- function(premisas, wp, nb = NULL) {
   # `nb`: filas de la lámina entera cuando varios bloques la comparten (multilista); el grosor es por lámina.
   nb <- nb %||% sum(vapply(premisas, function(p) length(p$filas), 0))
@@ -359,7 +359,7 @@
     WB <- WB + (L$x_barra - x_bar)
   }
   for (i in seq_along(premisas)) {
-    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
+    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_premisa_txt(p$texto, wp); hn <- .lam_premisa_alto(p, wp)
     if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     if (un_tema) {
       if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))

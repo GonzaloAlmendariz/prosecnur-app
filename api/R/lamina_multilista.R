@@ -236,8 +236,8 @@
 .lam_multilista_cabe <- function(ml) {
   items <- .lam_multilista_items(ml)
   if (is.null(items)) return(FALSE)
-  .op_piso <- .grosor_piso_slot(items[[1]]$espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1
-  compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
+  .op_piso <- c(.grosor_piso_slot(items[[1]]$espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1
+  compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")); .lam_multilista_ensanche_fijar(items, compartida)   # lamina_escala_ensanche_justo.R
   partes <- .lam_multilista_planear(items, compartida)
   disp <- .lam_multilista_disponible(compartida)
   # M1: con piso, una parte que cabe con el aire en su mínimo también se compone en nativo (la tolerancia de 0,3 in sigue)
@@ -307,10 +307,10 @@
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   items <- .lam_multilista_items(ml)
-  .op_piso <- .grosor_piso_slot(items[[1]]$espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot (los bloques lo heredan)
+  .op_piso <- c(.grosor_piso_slot(items[[1]]$espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot (los bloques lo heredan); ensanche justo
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
-  compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
+  compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")); .lam_multilista_ensanche_fijar(items, compartida)
   partes <- .lam_multilista_planear(items, compartida)
   .lam_aviso_partes(titulo, lapply(items, `[[`, "premisas"), length(partes))  # K12b
   for (k in seq_along(partes)) {

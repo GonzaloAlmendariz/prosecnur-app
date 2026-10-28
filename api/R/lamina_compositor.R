@@ -54,10 +54,10 @@
   # El documento officer se modifica en sitio: un folio perezoso (`length(doc) + 1L`) se evaluaría después del
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
-  .op_piso <- .grosor_piso_slot(espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot
+  .op_piso <- c(.grosor_piso_slot(espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot; ensanche justo
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
-  premisas <- .lam_escala_premisas(espec)
+  premisas <- .lam_escala_premisas(espec); if (!.lam_escala_modo_filas(espec)) .lam_escala_ensanche_fijar(premisas, espec)   # lamina_escala_ensanche_justo.R
   # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
   en_filas <- .lam_escala_modo_filas(espec)
