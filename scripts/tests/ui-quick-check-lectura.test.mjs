@@ -120,6 +120,19 @@ test("texto fuera de su tarjeta: lo que esconde un <details> cerrado no se pinta
   assert.ok(textosFuera.some((item) => item.contenedor.className.includes("abierto-roto")));
 });
 
+test("rótulo partido: el rótulo aplastado dentro de un <details> cerrado no se marca; abierto, sí", async () => {
+  // Presets de DEFF de Hojas › Muestra: «Lige/ro» dentro de un details cerrado (2026-10-28).
+  const html = (abierto) => `
+    <details ${abierto ? "open" : ""} style="width:300px">
+      <summary>Ajustar supuestos</summary>
+      <div style="display:grid;grid-template-columns:repeat(4,28px)"><strong class="aplastado" style="min-width:0;overflow-wrap:anywhere">Conservador</strong></div>
+    </details>`;
+  const cerrado = await medir(html(false));
+  assert.equal(cerrado.rotulosPartidos.some((item) => item.texto === "Conservador"), false);
+  const abierto = await medir(html(true));
+  assert.ok(abierto.rotulosPartidos.some((item) => item.texto === "Conservador"));
+});
+
 test("cabecera tapa fila: tras desplazar, la tabla sin encaje deja una fila a medias; con encaje, no", async () => {
   const filas = Array.from({ length: 30 }, (_, i) => `<tr><td>Persona ${i}</td><td>Efectiva</td></tr>`).join("");
   const tabla = (clase, marco) => `

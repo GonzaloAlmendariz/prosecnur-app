@@ -30,6 +30,10 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       if (!(el instanceof Element)) return false;
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return false;
+      // Lo que esconde un <details> cerrado tiene rectángulo pero no se pinta:
+      // sin esto salían «textos fuera» en Conexiones y rótulos partidos en los
+      // presets de Hojas › Muestra que nadie ve.
+      if (typeof el.checkVisibility === "function" && !el.checkVisibility()) return false;
       let actual = el;
       while (actual instanceof Element) {
         const st = window.getComputedStyle(actual);
@@ -156,9 +160,6 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
     const yaReportados = new Set();
     for (const nodo of textos) {
       if (textosFuera.length >= TOPE) break;
-      // Lo que esconde un <details> cerrado tiene rectángulo pero no se pinta.
-      const padre = nodo.parentElement;
-      if (padre && typeof padre.checkVisibility === "function" && !padre.checkVisibility()) continue;
       const rango = document.createRange();
       rango.selectNodeContents(nodo);
       const r = rango.getBoundingClientRect();
