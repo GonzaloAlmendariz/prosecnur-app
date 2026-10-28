@@ -7802,7 +7802,7 @@
 
 .pulso-carga-workspace-header-kicker {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
   text-transform: uppercase;
@@ -7836,7 +7836,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1;
   white-space: nowrap;
@@ -8272,7 +8272,7 @@
 
 .pulso-carga-plan-metrics dt {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
   text-transform: uppercase;
@@ -8641,7 +8641,7 @@
 
 .pulso-carga-review-checks small {
   color: currentColor;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.2;
 }
 

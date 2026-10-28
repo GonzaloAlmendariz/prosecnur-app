@@ -48,8 +48,6 @@ const SNAPSHOT_BAJO_10PX: Record<string, number> = {
   "features/calcMuestra/universidad/salidas/embudoComparado.css": 1,
   "features/calcMuestra/universidad/shared/graficos/graficos.css": 1,
   "features/calcMuestra/universidad/universidad-base.css": 1,
-  "features/carga/carga-v2.css": 4,
-  "features/codificacion/codificacion-v2.css": 1,
   "features/graficos/estilo/estilo.css": 1,
   "features/graficos/graficadorPicker.css": 9,
   "features/graficos/v2/styles/editor-v2.css": 2,
