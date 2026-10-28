@@ -5101,17 +5101,7 @@ a { color: var(--pulso-primary); }
   font-size: 12px;
   line-height: 1.2;
 }
-.pulso-validacion-nav-copy span {
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  line-height: 1.25;
-  max-height: 0;
-  opacity: 0;
-  transition:
-    color var(--motion-dur-fast) ease,
-    max-height var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease;
-}
+
 .pulso-validacion-nav-item.is-active .pulso-validacion-nav-icon {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.24);
@@ -6990,17 +6980,7 @@ a { color: var(--pulso-primary); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pulso-codificacion-nav-copy span {
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  line-height: 1.25;
-  max-height: 0;
-  opacity: 0;
-  transition:
-    color var(--motion-dur-fast) ease,
-    max-height var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease;
-}
+
 .pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-icon {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.24);
@@ -13308,17 +13288,7 @@ h1.pulso-page-title {
   font-size: 11.5px;
   line-height: 1.2;
 }
-.pulso-analitica-nav-copy span {
-  display: block;
-  max-height: 0;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  line-height: 1.25;
-  opacity: 0;
-  transition:
-    max-height var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease;
-}
+
 .pulso-analitica-nav-item:hover:not(:disabled) .pulso-analitica-nav-copy span,
 .pulso-analitica-nav-item:focus-visible .pulso-analitica-nav-copy span,
 .pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy span {
@@ -20193,9 +20163,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 6px;
 }
 
-
-
-
 .home-proj-meta code {
   background: var(--pulso-surface-2);
   border: 1px solid var(--pulso-border);
@@ -21250,7 +21217,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   position: relative;
   z-index: 1;
 }
-
 
 .home-tile-card.is-soon {
   border-style: dashed;
@@ -24444,18 +24410,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-shrink: 0;
 }
 
-/* === AddBetween === */
-.pulso-canvas-addbetween {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 4px;
-  margin: -4px 0;
-  z-index: 5;
-  opacity: 0;
-  transition: opacity 120ms ease, height 120ms ease;
-}
 .pulso-canvas-addbetween:hover,
 .pulso-canvas-addbetween.is-open,
 .pulso-canvas-addbetween.is-always {
@@ -27211,12 +27165,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     var(--xls-shadow-hairline);
 }
 
-.pulso-xlsform-frame .pulso-canvas-addbetween {
-  transition:
-    opacity var(--motion-dur-fast) var(--motion-ease-out),
-    height var(--motion-dur-fast) var(--motion-ease-out);
-}
-
 .pulso-xlsform-frame .pulso-canvas-addbetween-trigger {
   background: rgba(255, 255, 255, 0.9);
   border-color: var(--xls-border-strong);
@@ -29172,18 +29120,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-main--processing .pulso-analitica-nav-copy strong {
   line-height: 1.08;
-}
-
-.pulso-main--processing .pulso-analitica-nav-copy span {
-  display: block;
-  max-height: 0;
-  color: var(--pulso-text-soft);
-  opacity: 0;
-  transform: translateY(-2px);
-  transition:
-    max-height var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease,
-    transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-main--processing .pulso-analitica-nav-item:hover:not(:disabled) .pulso-analitica-nav-copy span,

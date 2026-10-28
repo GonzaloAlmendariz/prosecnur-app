@@ -22,7 +22,7 @@ const LAYOUT = /\b(width|height|top|left|right|bottom|margin(?:-[a-z]+)?|padding
 
 const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number>> = {
   layout: {
-    "app/theme.css": 15,
+    "app/theme.css": 9,
     "features/calcMuestra/calcMuestra.css": 3,
     "features/calcMuestra/didactica/didactica.css": 1,
     "features/calcMuestra/motor/motor.css": 3,
