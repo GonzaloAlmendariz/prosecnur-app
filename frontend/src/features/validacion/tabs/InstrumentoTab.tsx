@@ -46,6 +46,7 @@ import PlotlyView from "../components/PlotlyView";
 import ReglaDrillPanel from "../components/ReglaDrillPanel";
 import RuleDetailPanel, { type RuleDetailInput } from "../components/RuleDetailPanel";
 import { ContextLens, RuleNarrative } from "../components/v2";
+import { useReglaDireccionable } from "./useReglaDireccionable";
 import type { ReglaLike, VariableHoverData } from "../components/v2";
 import RelationalRuleFamily, {
   type RelationalRuleView,
@@ -108,7 +109,8 @@ export default function InstrumentoTab() {
   // Regla cuyo panel de detalle (descripción + diagrama de flujo) está abierto.
   // Es distinto de `selectedRuleId` (que puede quedar en la primera regla por
   // defecto): sólo se setea al hacer click y gobierna la apertura del ContextLens.
-  const [detailRuleId, setDetailRuleId] = useState<string>("");
+  // La regla abierta vive en la dirección (?panel=regla&foco=<id>), no en estado local (L2).
+  const { detailRuleId, abrirRegla, cerrarRegla } = useReglaDireccionable();
   const [variablesExcluidas, setVariablesExcluidas] = useState<InstrumentoVariablesExcluidas | null>(null);
   const [variableQuery, setVariableQuery] = useState("");
   const [operationalConfig, setOperationalConfig] = useState<InstrumentoOperationalConfig>(
@@ -148,12 +150,16 @@ export default function InstrumentoTab() {
     }
   }, [baseNombre]);
 
+  // La regla abierta vive en la URL: se cierra sólo si la base cambió de
+  // verdad, no al montar (borraba el enlace directo) ni al refrescar.
+  const baseAnteriorRef = useRef(baseNombre);
   useEffect(() => {
     void refetchAll();
     // Reset local state al cambiar de base.
     setExportFileId(null);
     setDrill(null);
-    setDetailRuleId("");
+    if (baseAnteriorRef.current !== baseNombre) cerrarRegla();
+    baseAnteriorRef.current = baseNombre;
     setJobId(null);
     setMethodologyPackageJobId(null);
     setMethodologyPackageReadyJobId(null);
@@ -327,18 +333,11 @@ export default function InstrumentoTab() {
   // tabla de casos debajo; si no, sólo se muestra la explicación (funciona para
   // reglas no evaluadas / no aplicables / pull-data sin depender del drill).
   function onSelectRule(id: string) {
-    setSelectedRuleId(id);
-    setDetailRuleId(id);
-    const row = compactRules.find((r) => r.id === id);
-    if (row && (row.nInconsistencias ?? 0) > 0) {
-      void openDrill(id);
-    } else {
-      setDrill(null);
-    }
+    abrirRegla(id);
   }
 
   function closeDetail() {
-    setDetailRuleId("");
+    cerrarRegla();
     setDrill(null);
     setReglaDirty(false);
   }
@@ -393,6 +392,25 @@ export default function InstrumentoTab() {
     },
     [resultado, relationalMetaById],
   );
+
+  // Al abrir una regla —por clic o por enlace— se selecciona y, si tiene
+  // casos, se carga su drill. La ref evita volver a pedirlo cuando
+  // compactRules se recalcula con la misma regla abierta.
+  const reglaCargadaRef = useRef("");
+  useEffect(() => {
+    if (!detailRuleId) {
+      reglaCargadaRef.current = "";
+      return;
+    }
+    if (reglaCargadaRef.current === detailRuleId) return;
+    const row = compactRules.find((r) => r.id === detailRuleId);
+    if (!row) return;
+    reglaCargadaRef.current = detailRuleId;
+    setSelectedRuleId(detailRuleId);
+    if ((row.nInconsistencias ?? 0) > 0) void openDrill(detailRuleId);
+    else setDrill(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailRuleId, compactRules]);
 
   // Separamos las reglas por estado para que el usuario distinga visualmente:
   //   - "con casos" (estado correcta + n>0): donde hay trabajo real para hacer.
@@ -809,7 +827,16 @@ export default function InstrumentoTab() {
               </div>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          // C3: el panel abierto por enlace no queda en blanco; dice por qué.
+          <EmptyState
+            icon={<AlertTriangle size={20} />}
+            title={resultado ? "Esta regla no está en el resultado actual" : "Esta regla todavía no tiene resultado"}
+            hint={resultado
+              ? `No encontramos «${detailRuleId}» entre las reglas evaluadas de esta base.`
+              : "Corre la auditoría para ver su explicación y sus casos."}
+          />
+        )}
       </ContextLens>
 
       {busy && (

@@ -28,6 +28,7 @@ import {
 } from "../../features/home/panelesHome";
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
+import { PANELES_VALIDACION } from "../../features/validacion/panelesValidacion";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 import { PANELES_CODIFICACION } from "../../features/codificacion/panelesCodificacion";
 import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCorreos";
@@ -238,7 +239,7 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_NUEVO_FILTRO,
     PANEL_IMPORTAR_SURVEYMONKEY,
   ],
-  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
+  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_VALIDACION, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
   // Lista de campañas (ADR 0111): `?panel=nueva-campana` y
   // `?panel=campana-renombrar&foco=<campaña>`; borrar un correo es
   // `?panel=correo-campana-borrar`. La campaña de correo abierta: el inspector
