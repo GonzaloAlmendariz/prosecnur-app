@@ -46,6 +46,11 @@ export type SectionPillbarItem = {
    * bloquear la navegación esconde el problema en vez de explicarlo.
    */
   lockedReason?: string;
+  /**
+   * Una línea más para el tooltip y el lector de pantalla cuando la sección
+   * no está bloqueada («falta la base», «sección lista»).
+   */
+  nota?: string;
 };
 
 export type SectionPillbarProps = {
@@ -55,7 +60,10 @@ export type SectionPillbarProps = {
   progreso?: SectionPillbarProgreso;
   densidad?: "normal" | "compact";
   ariaLabel: string;
+  /** Clase de la píldora deslizante (GlidingTabList). */
   className?: string;
+  /** Clase del `<nav>`: ubicación en el chrome y tokens del módulo. */
+  navClassName?: string;
 };
 
 export function SectionPillbar({
@@ -66,12 +74,13 @@ export function SectionPillbar({
   densidad = "normal",
   ariaLabel,
   className,
+  navClassName,
 }: SectionPillbarProps) {
   if (items.length === 0) return null;
 
   return (
     <nav
-      className="pulso-phase-rail pulso-section-pillbar"
+      className={["pulso-phase-rail pulso-section-pillbar", navClassName].filter(Boolean).join(" ")}
       data-modulo={modulo}
       data-progreso={progreso}
       data-densidad={densidad}
@@ -99,9 +108,9 @@ export function SectionPillbar({
                   data-nav-shape="pill"
                   data-nav-state={activa ? "selected" : undefined}
                   aria-current={activa ? "page" : undefined}
-                  title={item.lockedReason ?? item.label}
+                  title={item.lockedReason ?? item.nota ?? item.label}
                   aria-label={
-                    item.lockedReason ? `${item.label}. ${item.lockedReason}` : undefined
+                    item.lockedReason || item.nota ? `${item.label}. ${item.lockedReason ?? item.nota}` : undefined
                   }
                   className={[
                     "pulso-phase-pill",

@@ -1519,7 +1519,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 800;
   letter-spacing: 0.2px;
   white-space: nowrap;

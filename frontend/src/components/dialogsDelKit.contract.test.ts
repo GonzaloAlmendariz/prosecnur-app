@@ -45,14 +45,11 @@ const PRIMITIVA_RADIX = ["components/Dialog.tsx", "components/Sideover.tsx"];
  */
 const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "components/LogsPanel.tsx": 1,
-  "features/analitica/dimensiones/confirmar-import/JsonImportPanel.tsx": 1,
   "features/bitacora/Calendar.tsx": 1,
   "features/bitacora/avisos/CentroDeAvisos.tsx": 1,
   "features/bitacora/canvas/ExploradorDeReferencias.tsx": 1,
-  "features/bitacora/portabilidad/PanelImportar.tsx": 1,
   "features/bitacora/vinculos/SelectorDeVinculo.tsx": 1,
   "features/calcMuestra/universidad/criterios/PresetCanonicoButton.tsx": 1,
-  "features/carga/CargaPage.tsx": 1,
   "features/carga/PreguntaCombobox.tsx": 1,
   "features/dashboard/shared/FullscreenWrapper.tsx": 1,
   "features/dashboard/tabs/DimensionesTab/index.tsx": 1,
@@ -91,12 +88,10 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/validacion/components/ContextLens.tsx": 1,
   "features/validacion/components/CrossBar.tsx": 1,
   "features/xlsformEditor/canvas-graph/ConnectionConditionPicker.tsx": 1,
-  "features/xlsformEditor/choiceFilters/NuevoFiltroDialogo.tsx": 1,
   "features/xlsformEditor/kit/PanelMarca.tsx": 1,
   "features/xlsformEditor/shell/AddElementMenu.tsx": 1,
   "features/xlsformEditor/shell/Coachmarks.tsx": 1,
   "features/xlsformEditor/shell/DiagnosticsPopover.tsx": 1,
-  "features/xlsformEditor/shell/ImportSurveyMonkeyDialog.tsx": 1,
   "features/xlsformEditor/shell/MatrizPulsoDialog.tsx": 1,
   "features/xlsformEditor/shell/SurveyMonkeyLogicPopup.tsx": 1,
 };

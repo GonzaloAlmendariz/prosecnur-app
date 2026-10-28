@@ -518,15 +518,6 @@
   }
 }
 
-@media (max-height: 700px) {
-  .pulso-xf-smi-hoja {
-    max-height: calc(100vh - 2 * var(--pulso-space-3));
-  }
-  .pulso-xf-smi-capa {
-    padding: var(--pulso-space-3);
-  }
-}
-
 /* «No entra al formulario» (H9): lo que la encuesta trae y el formulario no
  * importa, con su causa. Bloque intrínseco bajo el resumen; informa, no alarma. */
 .pulso-xf-smi-fuera {
