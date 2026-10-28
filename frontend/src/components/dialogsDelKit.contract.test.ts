@@ -45,7 +45,6 @@ const PRIMITIVA_RADIX = ["components/Dialog.tsx", "components/Sideover.tsx"];
  */
 const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "components/LogsPanel.tsx": 1,
-  "features/analitica/dimensiones/confirmar-import/JsonImportPanel.tsx": 1,
   "features/bitacora/Calendar.tsx": 1,
   "features/bitacora/avisos/CentroDeAvisos.tsx": 1,
   "features/bitacora/canvas/ExploradorDeReferencias.tsx": 1,

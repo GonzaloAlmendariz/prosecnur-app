@@ -1,5 +1,7 @@
-import { AlertCircle, Check, FileJson, Loader2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { AlertCircle, Check, FileJson, Loader2, Upload } from "../../../../vendor/lucide-react";
+import { Dialog } from "../../../../components/Dialog";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { ValidacionReporte } from "../../../../api/client";
 import { DimensionesConfig } from "../../store";
 import { useValidacionJson } from "./useValidacionJson";
@@ -8,8 +10,8 @@ import { useValidacionJson } from "./useValidacionJson";
 // usuario sube un JSON, vemos el reporte de validación, y deja al
 // usuario decidir "Continuar con coincidencias" o "Cancelar".
 //
-// Se monta como overlay sobre Step 1 — no es un drawer separado, es un
-// panel modal que toma el foco visual de la galería de plantillas.
+// Se monta como overlay sobre Step 1 con el Dialog del kit (L1): Escape,
+// click afuera, foco atrapado y de vuelta vienen de la primitiva.
 
 export function JsonImportPanel({
   open,
@@ -45,131 +47,62 @@ export function JsonImportPanel({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-label="Aplicar plantilla al instrumento"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "rgba(15, 23, 42, 0.45)",
-        backdropFilter: "blur(2px)",
-        animation: "pulso-lens-fade-in-kf var(--anim-dur-short) var(--anim-ease-smooth)",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
+    <Dialog
+      open
+      onOpenChange={(abierto) => { if (!abierto) handleClose(); }}
+      size="md"
+      title="Aplicar plantilla al instrumento"
+      icon={<FileJson size={16} aria-hidden="true" />}
+      footer={(
+        <>
+          <PulsoButton variant="secondary" size="md" onClick={handleClose}>Cancelar</PulsoButton>
+          <PulsoButton variant="primary" size="md" disabled={estado.kind !== "ok"} onClick={handleApply}>
+            Continuar con coincidencias
+          </PulsoButton>
+        </>
+      )}
     >
-      <div
-        style={{
-          background: "white",
-          borderRadius: 14,
-          width: "min(720px, 100%)",
-          maxHeight: "calc(100vh - 48px)",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "var(--pulso-shadow-high, 0 24px 48px rgba(0,0,0,0.18))",
-          animation: "pulso-lens-slide-in-kf var(--anim-dur-med) var(--anim-ease-expressive)",
-        }}
-      >
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--pulso-border)",
-          }}
-        >
-          <FileJson size={18} color="var(--pulso-primary)" />
-          <h3 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 700 }}>
-            Aplicar plantilla al instrumento
-          </h3>
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={handleClose}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {estado.kind === "idle" && (
+          <Dropzone
+            draggingOver={draggingOver}
+            setDraggingOver={setDraggingOver}
+            onFile={validar}
+            onClick={() => inputRef.current?.click()}
+          />
+        )}
+        {estado.kind === "loading" && (
+          <div
             style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              padding: 6,
-              borderRadius: 4,
+              padding: 32,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
               color: "var(--pulso-text-soft)",
             }}
           >
-            <X size={16} />
-          </button>
-        </header>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-          {estado.kind === "idle" && (
-            <Dropzone
-              draggingOver={draggingOver}
-              setDraggingOver={setDraggingOver}
-              onFile={validar}
-              onClick={() => inputRef.current?.click()}
-            />
-          )}
-          {estado.kind === "loading" && (
-            <div
-              style={{
-                padding: 32,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                color: "var(--pulso-text-soft)",
-              }}
-            >
-              <Loader2 size={26} className="pulso-spin" />
-              <span style={{ fontSize: 12 }}>Validando contra el instrumento…</span>
-            </div>
-          )}
-          {estado.kind === "error" && (
-            <ErrorPanel message={estado.message} onRetry={() => reset()} />
-          )}
-          {estado.kind === "ok" && <ReportePanel reporte={estado.reporte} />}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) validar(f);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-          />
-        </div>
-
-        <footer
-          style={{
-            padding: "14px 20px",
-            borderTop: "1px solid var(--pulso-border)",
-            display: "flex",
-            gap: 10,
-            justifyContent: "flex-end",
+            <Loader2 size={26} className="pulso-spin" />
+            <span style={{ fontSize: 12 }}>Validando contra el instrumento…</span>
+          </div>
+        )}
+        {estado.kind === "error" && (
+          <ErrorPanel message={estado.message} onRetry={() => reset()} />
+        )}
+        {estado.kind === "ok" && <ReportePanel reporte={estado.reporte} />}
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) validar(f);
+            if (inputRef.current) inputRef.current.value = "";
           }}
-        >
-          <button type="button" onClick={handleClose} style={{ padding: "6px 12px" }}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className="pulso-primary"
-            disabled={estado.kind !== "ok"}
-            onClick={handleApply}
-          >
-            Continuar con coincidencias
-          </button>
-        </footer>
+        />
       </div>
-    </div>
+    </Dialog>
   );
 }
 
