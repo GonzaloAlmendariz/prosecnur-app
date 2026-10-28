@@ -181,9 +181,14 @@
   border-top: none;
 }
 
-.rec-resumen-vacios strong {
-  font-size: inherit;
-  font-weight: 600;
+/* Los nombres no son cifras: van al tamaño del rótulo con método, en el tono del
+   texto y sin el acento del grupo, para que la línea no grite más que los
+   indicadores que sí tienen valor. */
+.rec-resumen .rec-resumen-item.rec-resumen-vacios strong {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
   white-space: normal;
 }
 
