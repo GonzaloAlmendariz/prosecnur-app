@@ -265,7 +265,9 @@ export function TabHeading({
       data-qa-geometry-group="tab-heading"
       data-qa-geometry-contract="intrinsic"
     >
-      <span className="pulso-tab-heading-icon" aria-hidden="true">
+      {/* Baldosa de alto fijo (34/26 px) con el glifo centrado: el aire bajo el
+          ícono es su forma, no capacidad inflada por datos. */}
+      <span className="pulso-tab-heading-icon" aria-hidden="true" data-qa-geometry-capacity="owned">
         <Icono size={compacta ? 14 : 17} />
       </span>
 
