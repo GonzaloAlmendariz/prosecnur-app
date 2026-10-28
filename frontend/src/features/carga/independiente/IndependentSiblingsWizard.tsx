@@ -1,7 +1,9 @@
 // Asistente de fuentes independientes de Carga (SurveyMonkey/Kobo): cada encuesta como su propia base.
 // Sale de BasesPanel.tsx en L6 (2026-10-28) sin cambio de comportamiento; el stepper llega en el paso 4.
 
-import { useEffect, useMemo, useState } from "react";
+import { StageStepper } from "../../../components/StageStepper";
+import { pasoVigente, pasosDelAsistente, type EstadoAsistente } from "./pasosAsistente";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BotonConfigurarCredenciales } from "../BotonConfigurarCredenciales";
 import { AlertTriangle, Check, CheckCircle2, Cloud, Database, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, Pencil, X as XIcon } from "lucide-react";
 import { apiCargaImportKoboIndependentAsync, apiCargaRefreshKoboIndependentAsync, apiConnectionTokenLoad, apiEstudioApplyIndependentTemplateLogic, apiEstudioProcessingSuggestions, apiEstudioPromoteIndependentSiblings, apiEstudioUpdateBaseMetadata, apiSurveyMonkeyMultibaseAudit, apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic, apiSurveyMonkeyMultibaseCollectors, apiSurveyMonkeyMultibaseImportIndependentAsync, apiSurveyMonkeyMultibaseListSurveys, apiSurveyMonkeyMultibaseRefreshAsync, apiSurveyMonkeyMultibaseRefreshPlan, apiSurveyMonkeyMultibaseWorkbookImport, apiSurveyMonkeyMultibaseWorkbookInspect, apiXlsformEditorSmInterpretRule, apiUpload, uploadKindForDataFile } from "../../../api/client";
@@ -617,6 +619,28 @@ export function IndependentSiblingsSurveyMonkeyWizard({
   const hasMonitoringSurveyMonkeyGroups = monitoringGroups.some((group) => group.platform === "surveymonkey");
   const hasMonitoringKoboGroups = monitoringGroups.some((group) => group.platform === "kobo");
   const monitoringKoboOnly = hasMonitoringKoboGroups && !hasMonitoringSurveyMonkeyGroups;
+  // Stepper (L6): el paso elegido vive en el store para sobrevivir a cambiar de pestaña.
+  const pasoElegido = useCargaStore((s) => s.smPasoIndependiente);
+  const setPasoElegido = useCargaStore((s) => s.setSmPasoIndependiente);
+  const estadoPasos: EstadoAsistente = {
+    hayReferencia: hasCanonicalReference,
+    hayFamilia: hasExistingIndependentBases,
+    muestraCatalogo: showSurveyCatalog,
+    hayAuditoria: !!audit || !!logicSync,
+  };
+  const paso = pasoVigente(pasoElegido, estadoPasos);
+  const pasos = pasosDelAsistente(estadoPasos);
+  // Lo que acaba de pasar lleva a su paso: una auditoría o una importación nueva, al de auditar;
+  // abrir el catálogo, al catálogo. Sólo en el flanco, para no pelear con un paso elegido a mano.
+  const hayResultado = !!audit || !!logicSync;
+  const resultadoPrevio = useRef(hayResultado);
+  const catalogoPrevio = useRef(showSurveyCatalog);
+  useEffect(() => {
+    if (hayResultado && !resultadoPrevio.current) setPasoElegido("auditar");
+    else if (showSurveyCatalog && !catalogoPrevio.current) setPasoElegido("catalogo");
+    resultadoPrevio.current = hayResultado;
+    catalogoPrevio.current = showSurveyCatalog;
+  }, [hayResultado, showSurveyCatalog, setPasoElegido]);
   const shouldShowSurveyMonkeyActions = showSurveyCatalog ||
     selectedInputs.length > 0 ||
     selectedMergeCampaignCount > 0 ||
@@ -1424,6 +1448,15 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
+      <StageStepper
+        stages={pasos}
+        currentStage={paso}
+        onStageChange={setPasoElegido}
+        ariaLabel="Pasos de las fuentes independientes"
+        className="pulso-sm-independent-stepper"
+      />
+      {paso === "referencia" && (
+        <>
       <div className={`pulso-sm-logic-reference${hasCanonicalReference ? "" : " is-missing"}`} aria-label="Formulario de referencia para reglas compartidas">
         <div className="pulso-sm-logic-reference-main">
           <span className="pulso-sm-logic-reference-icon" aria-hidden="true">
@@ -1620,6 +1653,10 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
+        </>
+      )}
+      {paso === "familia" && (
+        <>
       {hasExistingIndependentBases && (
         <div className="pulso-sm-family-config">
           <div className="pulso-sm-family-config-head">
@@ -2077,6 +2114,10 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
+        </>
+      )}
+      {paso === "catalogo" && (
+        <>
       {showSurveyCatalog && (
         <div className="pulso-integrated-sm">
         <div className="pulso-sm-token-strip">
@@ -2495,6 +2536,8 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
+        </>
+      )}
       {shouldShowSurveyMonkeyActions && (
         <div className="pulso-sm-multibase-actions">
           <button type="button" className="pulso-sm-secondary" disabled={!selectedInputs.length || !!busy || disabled} onClick={runAudit}>
@@ -2515,6 +2558,8 @@ export function IndependentSiblingsSurveyMonkeyWizard({
       {busy && <div className="pulso-sm-status"><Loader2 size={13} className="pulso-spin" /> {busy}</div>}
       {error && <ErrorBlock label="No se pudo completar la importación" detail={error} />}
 
+      {paso === "auditar" && (
+        <>
       {logicSync && (
         <div className={`pulso-sm-logic-sync${logicSync.ok === false ? " is-warning" : ""}`}>
           <div className="pulso-sm-logic-sync-head">
@@ -2600,6 +2645,8 @@ export function IndependentSiblingsSurveyMonkeyWizard({
           </div>
         );
       })()}
+        </>
+      )}
     </section>
   );
 }
