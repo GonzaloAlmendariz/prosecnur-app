@@ -8,8 +8,8 @@
  * Control explícito y explicado: nada se confirma ni se aplica al marco desde
  * aquí — cada variable conserva su flujo confirmar/descartar (ADR 0035).
  */
-import { useMemo, useState } from "react";
-import { Sparkles, TriangleAlert } from "lucide-react";
+import { useId, useMemo, useState } from "react";
+import { Sparkles, TriangleAlert } from "../../../../vendor/lucide-react";
 import type { CriteriosCatalogo, CriteriosSeleccionMarco } from "../../../../api/client";
 import { planPresetCanonico, type PresetCanonicoPlan } from "./presetCanonicoModel";
 
@@ -27,6 +27,7 @@ export function PresetCanonicoButton({
   onPrecargar: (plan: PresetCanonicoPlan) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const panelId = useId();
   const plan = useMemo(() => planPresetCanonico(catalogo, seleccion), [catalogo, seleccion]);
   const restrictivos = plan.items.filter((item) => item.restringe);
   const sinCambios = plan.pendientes.length === 0;
@@ -42,7 +43,7 @@ export function PresetCanonicoButton({
         type="button"
         className="cmv2-crit-preset-btn"
         aria-expanded={abierto}
-        aria-haspopup="dialog"
+        aria-controls={panelId}
         onClick={() => setAbierto((v) => !v)}
         title="Precarga el borrador con los criterios de inclusión que se acordaron para el estudio HST 2025 de PULSO PUCP; confirmas cada variable después"
       >
@@ -50,7 +51,10 @@ export function PresetCanonicoButton({
         Partir de los criterios de un estudio anterior (HST 2025)
       </button>
       {abierto ? (
-        <div className="cmv2-crit-preset-panel" role="dialog" aria-label="Precargar los criterios del estudio anterior HST 2025">
+        // Un panel que se despliega EN LÍNEA (disclosure), no un diálogo: no atrapa
+        // el foco ni flota. Antes se declaraba diálogo y le prometía al lector de
+        // pantalla un modal que no existía (L1).
+        <div id={panelId} className="cmv2-crit-preset-panel" role="region" aria-label="Precargar los criterios del estudio anterior HST 2025">
           <strong className="cmv2-crit-preset-title">Esto se precarga en el borrador</strong>
           <p className="cmv2-crit-preset-copy">
             Los criterios de inclusión que se acordaron para el estudio HST 2025 de PULSO PUCP
