@@ -40,11 +40,13 @@ import { PulsoButton } from "./PulsoButton";
 import { MoreHorizontal, type LucideIcon } from "../vendor/lucide-react";
 import "./kit-tab-heading.css";
 
-export type TabHeadingEstado = "listo" | "parcial" | "bloqueado";
+/** `atencion`: hay algo que pide una decisión (no es «a medias» ni «no se puede seguir»). */
+export type TabHeadingEstado = "listo" | "parcial" | "atencion" | "bloqueado";
 
 export const ETIQUETA_ESTADO_TAB: Readonly<Record<TabHeadingEstado, string>> = {
   listo: "Listo",
   parcial: "Parcial",
+  atencion: "Requiere atención",
   bloqueado: "Bloqueado",
 };
 

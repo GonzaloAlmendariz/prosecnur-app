@@ -110,7 +110,8 @@
   white-space: nowrap;
 }
 
-.pulso-tab-heading-estado[data-estado="parcial"] {
+.pulso-tab-heading-estado[data-estado="parcial"],
+.pulso-tab-heading-estado[data-estado="atencion"] {
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);

@@ -37,6 +37,7 @@ describe("TabHeading — render", () => {
   test.each([
     ["listo", "Listo"],
     ["parcial", "Parcial"],
+    ["atencion", "Requiere atención"],
     ["bloqueado", "Bloqueado"],
   ] as const)("estado %s se dice «%s»", (estado, palabra) => {
     const html = renderToStaticMarkup(
