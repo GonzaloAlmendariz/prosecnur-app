@@ -230,15 +230,20 @@ jobs:
             dist.nosync/Prosecnur-Setup.exe
             dist.nosync/Prosecnur-Windows-self-contained.zip
 
-      - name: Upload Windows stable payload
+      # El payload stable viaja al job `publish` por la caché de Actions y no
+      # como artefacto. En el corte 0.9.6 los dos builds terminaron verdes, pero
+      # `upload-artifact` falló con la cuota de almacenamiento de artefactos
+      # agotada: esa cuota se mide en GB-hora del ciclo de facturación y borrar
+      # artefactos no la libera hasta que GitHub la recalcula. La caché tiene su
+      # propio límite por repositorio y no cuenta para esa cuota. La clave lleva
+      # el run_id para que `publish` lea exactamente lo que construyó esta
+      # corrida. El paso solo restaura (sin coincidencia) y el guardado ocurre
+      # en el post-step, al final de un job que pasó la verificación de arriba.
+      - name: Upload Windows stable payload (caché de la corrida)
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          name: stable-windows
-          # Lo consume el job de publicación de esta misma corrida y el instalador
-          # queda en el release: un día basta y no llena la cuota de Actions.
-          retention-days: 1
-          if-no-files-found: error
+          key: stable-windows-${{ github.sha }}-${{ github.run_id }}
           path: |
             dist.nosync/Prosecnur-Setup.exe
             dist.nosync/Prosecnur-Windows-self-contained.zip
@@ -351,15 +356,15 @@ jobs:
           if-no-files-found: error
           path: dist.nosync/mac-builder-output/*.dmg
 
-      - name: Upload macOS stable payload
+      # Igual que Windows: caché de la corrida, no artefacto (cuota, corte
+      # 0.9.6). `publish` corre en Linux, y la caché de macOS se lee desde ahí
+      # porque ambos comprimen con zstd y GNU tar. Si esa lectura fallara, macOS
+      # sigue siendo best-effort: `publish` avisa y publica solo Windows.
+      - name: Upload macOS stable payload (caché de la corrida)
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          name: stable-macos
-          # Lo consume el job de publicación de esta misma corrida y el instalador
-          # queda en el release: un día basta y no llena la cuota de Actions.
-          retention-days: 1
-          if-no-files-found: error
+          key: stable-macos-${{ github.sha }}-${{ github.run_id }}
           path: |
             dist.nosync/mac-builder-output/*.dmg
 
@@ -393,22 +398,41 @@ jobs:
       - name: Checkout release notes
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # Windows es bloqueante: sin su caché exacta el job falla
+      # (`fail-on-cache-miss`) en vez de publicar un release incompleto.
       - name: Download Windows stable payload
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          name: stable-windows
-          path: artifacts/windows
+          key: stable-windows-${{ github.sha }}-${{ github.run_id }}
+          fail-on-cache-miss: true
+          path: |
+            dist.nosync/Prosecnur-Setup.exe
+            dist.nosync/Prosecnur-Windows-self-contained.zip
+            dist.nosync/latest.yml
 
-      # Solo se descarga si el build de macOS termino bien: si fallo, su
-      # artefacto no existe y la descarga romperia el release de Windows. Se
-      # expresa condicionando por el resultado del job, no tolerando el error del
-      # paso, que enmascararia tambien fallos de red o de permisos.
+      # Solo se restaura si el build de macOS termino bien: si fallo, su caché
+      # no existe. Se expresa condicionando por el resultado del job, no
+      # tolerando el error del paso, que enmascararia tambien fallos de red o de
+      # permisos. Una caché ausente deja la carpeta vacía y el aviso de abajo lo
+      # dice en el log.
       - name: Download macOS stable payload (best-effort)
         if: needs['build-mac'].result == 'success'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          name: stable-macos
-          path: artifacts/mac
+          key: stable-macos-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            dist.nosync/mac-builder-output/*.dmg
+
+      - name: Stage publication payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p artifacts/windows artifacts/mac
+          for f in Prosecnur-Setup.exe Prosecnur-Windows-self-contained.zip latest.yml; do
+            if [ -e "dist.nosync/$f" ]; then mv "dist.nosync/$f" artifacts/windows/; fi
+          done
+          for dmg in dist.nosync/mac-builder-output/*.dmg; do mv "$dmg" artifacts/mac/; done
 
       - name: Verify publication payload
         shell: bash
