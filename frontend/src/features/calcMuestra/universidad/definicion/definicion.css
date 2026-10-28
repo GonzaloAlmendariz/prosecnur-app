@@ -9,8 +9,7 @@
    (dirección §2) y un flujo vertical propio: el espacio ENTRE bloques de tema
    distinto (14-18px) siempre mayor que DENTRO de cada bloque. Las clases
    cmv2-university-* de estos paneles solo las consumen los tabs de Definición. */
-.cmv2-panel.cmv2-university-sources,
-.cmv2-panel.cmv2-eligibility-panel {
+.cmv2-panel.cmv2-university-sources {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -28,15 +27,9 @@
   box-shadow: none;
 }
 
-.cmv2-panel.cmv2-university-category-map {
-  padding: 16px 18px;
-}
-
 /* El gap del panel reemplaza los márgenes históricos de las piezas internas. */
 .cmv2-university-sources .cmv2-source-mode-grid,
-.cmv2-university-sources .cmv2-source-mode-note,
-.cmv2-university-sources .cmv2-source-binding-list,
-.cmv2-eligibility-panel > .cmv2-classroom-note {
+.cmv2-university-sources .cmv2-source-binding-list {
   margin-top: 0;
 }
 
@@ -87,8 +80,6 @@
 .cmv2-defi-form .cmv2-compact-field textarea,
 .cmv2-university-sources .cmv2-compact-field input,
 .cmv2-university-sources .cmv2-compact-field select,
-.cmv2-eligibility-panel .cmv2-compact-field input,
-.cmv2-university-category-map .cmv2-category-meaning input,
 .cmv2-defi-var-card select {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
@@ -370,8 +361,7 @@
 /* Menos cajas anidadas (dirección §1): dentro del mapa tintado y del flujo de
    elegibilidad, las etapas del FlujoVertical pierden el fondo de card y bajan
    el peso del borde — el panel es la superficie; la etapa, solo contorno. */
-.cmv2-defi-mapa .cmv2-uni-flujo-etapa,
-.cmv2-defi-eleg-flujo .cmv2-uni-flujo-etapa {
+.cmv2-defi-mapa .cmv2-uni-flujo-etapa {
   background: transparent;
   border-color: color-mix(in srgb, var(--cmv2-border) 60%, transparent);
 }
@@ -840,36 +830,6 @@
   font-size: 10.5px;
   color: var(--pulso-text);
   overflow-wrap: anywhere;
-}
-
-/* Franja de compatibilidad: puente "subir → mapear" antes de construir. */
-.cmv2-defi-compat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.45;
-}
-
-.cmv2-defi-compat svg {
-  flex: none;
-}
-
-.cmv2-defi-compat.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.cmv2-defi-compat.is-warn {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
 }
 
 /* CTA + su consecuencia juntos (proximidad, dirección §2): el hint acompaña al
@@ -1494,211 +1454,6 @@
 .cmv2-defi-var-confirm-all:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 18%, transparent);
-}
-
-/* --- Categorías: elegibilidad como estrella --------------------------------- */
-.cmv2-defi-eleg-layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.6fr);
-  gap: 16px;
-  align-items: start;
-}
-
-@media (max-width: 980px) {
-  .cmv2-defi-eleg-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-defi-eleg-flujo {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.cmv2-defi-motivos {
-  display: grid;
-  gap: 5px;
-}
-
-.cmv2-defi-motivos small {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-motivos-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cmv2-defi-motivos-list span {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.cmv2-defi-motivos-list span em {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-defi-criterios {
-  display: grid;
-  gap: 14px;
-}
-
-.cmv2-defi-cond {
-  display: grid;
-  gap: 6px;
-}
-
-/* Mismo eyebrow de sub-bloque que "Motivos principales": un solo estilo de
-   rótulo por nivel de jerarquía (dirección §8). */
-.cmv2-defi-cond > small {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cond-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.cmv2-defi-cond-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--cmv2-border-strong);
-  background: var(--cmv2-surface);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-  cursor: pointer;
-  transition:
-    border-color var(--motion-dur-fast, 120ms) ease,
-    background var(--motion-dur-fast, 120ms) ease,
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out, ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-defi-cond-chip:hover {
-    border-color: var(--cmv2-accent-border);
-  }
-}
-
-.cmv2-defi-cond-chip:active {
-  transform: scale(0.97);
-}
-
-.cmv2-defi-cond-chip[aria-pressed="true"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.cmv2-defi-cond-chip em {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cond-chip[aria-pressed="true"] em {
-  color: inherit;
-}
-
-.cmv2-defi-cond-hint {
-  margin: 0;
-  font-size: 10.5px;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-criterios-mins {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-}
-
-/* --- Categorías: buscador del master-detail --------------------------------- */
-/* El detalle se remonta con key por variable: entra con fade corto. La lista
-   izquierda ya anima su selección (background 160ms) desde calcMuestra.css. */
-@media (prefers-reduced-motion: no-preference) {
-  .cmv2-university-category-map .cmv2-category-detail-card {
-    animation: cmv2-defi-fade 150ms var(--cmv2-ease-out, ease-out) both;
-  }
-}
-
-.cmv2-defi-cat-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--cmv2-border-strong);
-  border-radius: 9px;
-  background: var(--cmv2-surface);
-}
-
-.cmv2-defi-cat-search svg {
-  flex: none;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cat-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  font-size: 12px;
-  color: var(--pulso-text);
-  padding: 2px 0;
-}
-
-.cmv2-defi-cat-search input:focus {
-  outline: none;
-}
-
-.cmv2-defi-cat-search:focus-within {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 1px;
-}
-
-.cmv2-defi-cat-meta {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-muted);
-}
-
-/* --- Categorías: pulido del master-detail (clases exclusivas de este tab) --- */
-/* Cifras de conteo siempre tabulares: no bailan al editar ni al filtrar. */
-.cmv2-university-category-map .cmv2-category-raw small,
-.cmv2-university-category-map .cmv2-category-variable-meta em,
-.cmv2-university-category-map .cmv2-category-pane-head strong {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Hover de fila del detalle: tinte suave de acento, solo con puntero fino;
-   la fila en edición conserva su tinte más fuerte de calcMuestra.css. */
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-university-category-map .cmv2-category-detail-row:hover {
-    background: color-mix(in srgb, var(--cmv2-accent-soft) 26%, transparent);
-  }
 }
 
 /* Opción secundaria: lectura de una selección ya trabajada (no es un escenario

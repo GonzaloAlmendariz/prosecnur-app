@@ -13,12 +13,6 @@
   align-content: start;
 }
 
-/* Los chips de término dentro de párrafos del marco no deben inflar la línea
-   (el button global trae min-height de control). */
-.cmv2-marco-when-pop .cmv2-uni-term {
-  min-height: 0;
-}
-
 .cmv2-marco-subhead {
   display: grid;
   gap: 2px;
@@ -147,52 +141,6 @@
   align-content: center;
   min-height: 84px;
   box-shadow: none;
-}
-
-/* Popover "¿universo vs población?" (mismo lenguaje que los "cuándo" de Definición) */
-.cmv2-marco-when {
-  border: none;
-  background: none;
-  padding: 0 2px;
-  font-size: inherit;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--cmv2-accent-fg);
-  cursor: help;
-  border-bottom: 1px dotted var(--cmv2-accent-border);
-  transition: color 120ms ease, border-bottom-color 120ms ease;
-}
-
-/* Mejora propia (affordance): el trigger de ayuda es interactivo pero no daba
-   feedback en hover; el subrayado se afirma y el color sube al acento. */
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-marco-when:hover {
-    color: var(--cmv2-accent);
-    border-bottom-style: solid;
-    border-bottom-color: var(--cmv2-accent);
-  }
-}
-
-.cmv2-marco-when:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
-  border-radius: 3px;
-}
-
-.cmv2-marco-when-pop {
-  display: grid;
-  gap: 6px;
-  max-width: 320px;
-}
-
-.cmv2-marco-when-pop strong {
-  font-size: 11.5px;
-  color: var(--cmv2-accent);
-}
-
-.cmv2-marco-when-pop p {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.5;
 }
 
 /* --- Población: bloque final "Estructura por controles" --------------------- */
@@ -368,29 +316,6 @@
   color: var(--pulso-text-muted);
 }
 
-/* --- Aulas: auditoría de excluidas ------------------------------------------ */
-.cmv2-marco-excluidas-mas {
-  margin: 0;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-marco-excluidas-vacio {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px dashed var(--cmv2-border);
-  border-radius: 10px;
-  font-size: 11.5px;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-marco-excluidas-vacio svg {
-  flex: none;
-  color: var(--pulso-warn-fg);
-}
-
 /* --- Consistencia: gauge del match base-catálogo ----------------------------- */
 .cmv2-marco-match-layout {
   display: grid;
@@ -442,65 +367,6 @@
   background: var(--cmv2-border-strong);
 }
 
-/* Ticks con mezcla del texto para que sigan legibles sobre el llenado pleno. */
-.cmv2-marco-gauge-tick {
-  position: absolute;
-  top: -3px;
-  bottom: -3px;
-  width: 0;
-  border-left: 1px dashed color-mix(in srgb, var(--pulso-text) 52%, transparent);
-}
-
-/* El tick mide 0 de ancho: la etiqueta se centra sobre él con transform y
-   white-space nowrap para que "70%" no se apile carácter a carácter. */
-.cmv2-marco-gauge-tick em {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-style: normal;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-marco-gauge-scale {
-  display: grid;
-  grid-template-columns: 70fr 20fr 10fr;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pulso-text-muted);
-  padding-top: 4px;
-}
-
-.cmv2-marco-gauge-scale span:nth-child(2) {
-  text-align: center;
-}
-
-.cmv2-marco-gauge-scale span:last-child {
-  text-align: right;
-}
-
-/* Mejora propia (contraste): la zona donde cayó el match toma el color del
-   tono, así la escala "revisar / aceptable / sólido" se lee de un vistazo. */
-.cmv2-marco-gauge[data-tone="danger"] .cmv2-marco-gauge-scale span:first-child {
-  color: var(--pulso-danger-fg);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-scale span:nth-child(2) {
-  color: var(--pulso-warn-fg);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-scale span:last-child {
-  color: var(--pulso-success-fg);
-  font-weight: var(--pulso-weight-bold);
-}
-
 /* --- Consistencia: reconciliación cuantitativa de las dos fuentes ----------- */
 .cmv2-marco-reconciliation {
   display: grid;
@@ -546,23 +412,6 @@
 .cmv2-marco-reconciliation span {
   color: var(--pulso-text-muted);
   font-size: 10.5px;
-}
-
-.cmv2-marco-relation-state {
-  margin: 0;
-  padding: 7px 10px;
-  border-left: 3px solid var(--pulso-success-border);
-  border-radius: 0 var(--pulso-radius) var(--pulso-radius) 0;
-  background: color-mix(in srgb, var(--pulso-success-bg) 38%, var(--cmv2-surface));
-  color: var(--pulso-success-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-marco-relation-state.is-review {
-  border-left-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 46%, var(--cmv2-surface));
-  color: var(--pulso-warn-fg);
 }
 
 .cmv2-frame-source-relation {
@@ -845,9 +694,7 @@
 
 /* --- Ritmo: 12px en grids densos, 16px ya aplicado entre cards hermanas. --- */
 .cmv2-marco-stack .cmv2-dashboard-chart-grid,
-.cmv2-marco-stack .cmv2-dashboard-intelligence,
-.cmv2-marco-stack .cmv2-dashboard-insights,
-.cmv2-marco-stack .cmv2-frame-source-grid {
+.cmv2-marco-stack .cmv2-dashboard-insights {
   gap: 12px;
 }
 
@@ -1107,28 +954,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Auditoría de aulas excluidas: columna numérica a la derecha con cifras
-   tabulares, motivo en tono atenuado y hover de fila solo con puntero fino. --- */
-.cmv2-marco-excluidas .cmv2-classroom-table th:nth-child(3),
-.cmv2-marco-excluidas .cmv2-classroom-table td:nth-child(3) {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-marco-excluidas .cmv2-classroom-table td:nth-child(4) {
-  color: var(--pulso-text-muted);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-marco-excluidas .cmv2-classroom-table tbody tr {
-    transition: background-color 120ms ease;
-  }
-
-  .cmv2-marco-excluidas .cmv2-classroom-table tbody tr:hover {
-    background: color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
-  }
-}
-
 /* --- Consistencia: hallazgos y ejemplos como agrupadores invisibles (los
    articles internos ya son cards; el contenedor pierde borde y fondo). --- */
 .cmv2-marco-consistencia .cmv2-frame-issue-list,
@@ -1145,23 +970,6 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
-}
-
-/* Advertencias del motor: de chip suelto a banner de ancho completo. */
-.cmv2-marco-consistencia .cmv2-frame-warning-list {
-  gap: 8px;
-}
-
-.cmv2-marco-consistencia .cmv2-frame-warning-list span {
-  flex: 1 1 100%;
-  justify-content: flex-start;
-  min-height: 0;
-  padding: 9px 12px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.45;
-  white-space: normal;
 }
 
 /* El vacío de "una sola base" respiraba en una columna muy angosta. */
@@ -2152,7 +1960,6 @@
   color: var(--pulso-text-muted);
 }
 
-.cmv2-chfp-global,
 .cmv2-chfp-facultades {
   display: grid;
   gap: 12px;
@@ -2667,23 +2474,6 @@
 }
 .cmv2-chfp-min-sug svg { flex: none; margin-top: 1px; color: var(--cmv2-accent-fg); }
 /* Sugerencia por facultad del tipo de sesión (P3): nudge, nunca auto-aplicada. */
-.cmv2-chfp-crit-sug {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 9px;
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--pulso-text-muted);
-}
-.cmv2-chfp-crit-sug svg { flex: none; color: var(--cmv2-accent-fg); }
-.cmv2-chfp-crit-sug-copy {
-  flex: 1 1 auto;
-  min-width: 0;
-  color: var(--pulso-text);
-}
 
 @media (max-width: 1024px) {
   /*
@@ -2883,17 +2673,6 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
-}
-
-.cmv2-explorador-niveles > summary {
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--cmv2-accent-fg);
-  cursor: pointer;
-  list-style: revert;
-}
-.cmv2-explorador-niveles[open] > summary {
-  margin-bottom: 6px;
 }
 
 .cmv2-explorador-card-badges {

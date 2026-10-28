@@ -421,7 +421,6 @@
   border-radius: 3px;
   background: var(--cmv2-accent-fg);
 }
-.cmv2-crit-item-tipo[data-checked="true"] .cmv2-crit-item-bar i,
 .cmv2-crit-tsf-tipo[data-checked="true"] .cmv2-crit-item-bar i { background: var(--cmv2-accent-fg); }
 .cmv2-crit-item-pct {
   flex: none;
@@ -754,7 +753,6 @@
   padding: 9px 0;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-exc-body { display: grid; gap: 8px; }
 
 .cmv2-crit-exc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 /* F24 · La fila pasó a tener dos hijos apilados —la línea de la facultad y sus
@@ -815,7 +813,6 @@
 }
 .cmv2-crit-exc-remove:hover { color: var(--pulso-danger-fg, var(--pulso-text)); }
 
-.cmv2-crit-exc-form { display: grid; gap: 8px; }
 .cmv2-crit-exc-cats-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .cmv2-crit-empty-note {
@@ -1021,22 +1018,6 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-.cmv2-crit-canon-btn {
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.cmv2-crit-canon-btn:hover {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 45%, var(--pulso-border));
-  color: var(--cmv2-accent-fg, var(--cmv2-accent));
 }
 
 /* --- Orden de jerarquía de tipos de docente (ADR 0035) --------------------- */
@@ -1471,32 +1452,6 @@
   .cmv2-crit-paso { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
 
-/* --- Aviso de calidad de condicion_curso (reunión 2026-07-15) ---------------
-   Línea de cobertura cuando "Sin condición" domina (≥ 30% de los CH): informa
-   y orienta; nada se auto-decide. */
-.cmv2-crit-cond-aviso {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 62%, var(--pulso-surface));
-  color: var(--pulso-warn-fg);
-}
-.cmv2-crit-cond-aviso svg {
-  flex: none;
-  margin-top: 2px;
-}
-.cmv2-crit-cond-aviso p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.cmv2-crit-cond-aviso strong {
-  font-weight: var(--pulso-weight-bold);
-}
-
 /* --- Preset explícito "Partir de los criterios HST 2025" --------------------
    Botón secundario junto a la acción principal; el panel es un dropdown local
    (no portado a body) con la mini-lista de lo que se precarga. */
@@ -1827,9 +1782,6 @@
 /* S1 · la radiografía del criterio vive dentro de la tarjeta que lo decide.
    Abierta mientras la variable está en edición, plegada cuando ya se confirmó:
    abrir las cinco a la vez empujaba los demás criterios fuera de pantalla. */
-
-
-
 
 /* T1 · la fuente concatena varios valores en una etiqueta: la pantalla lo dice
    en vez de esconderlo. El nombre del grupo manda; los valores agrupados van

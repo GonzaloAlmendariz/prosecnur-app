@@ -61,35 +61,6 @@
   min-height: 0;
 }
 
-/* --- Contenido de los popovers metodológicos -------------------------------- */
-.cmv2-aulas-chip-pop {
-  display: grid;
-  gap: 6px;
-  max-width: 340px;
-}
-
-.cmv2-aulas-chip-pop strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1.3;
-}
-
-.cmv2-aulas-chip-pop p {
-  margin: 0;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.cmv2-aulas-chip-pop .cmv2-uni-formula {
-  padding: 6px 8px;
-}
-
-.cmv2-aulas-chip-pop .cmv2-uni-term {
-  min-height: 0;
-}
-
 /* --- Reproducibilidad --------------------------------------------------------- */
 .cmv2-aulas-repro {
   display: grid;
@@ -127,109 +98,9 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.cmv2-aulas-cuota-fila {
-  display: grid;
-  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  padding: 4px 6px;
-  border-radius: 8px;
-}
-
-.cmv2-aulas-cuota-fila:nth-child(odd) {
-  background: var(--cmv2-surface);
-}
-
-@media (max-width: 900px) {
-  .cmv2-aulas-cuota-fila {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-aulas-cuota-facultad {
-  overflow: hidden;
-  color: var(--pulso-text);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-  text-overflow: ellipsis;
-}
-
-.cmv2-aulas-cuota-fila .cmv2-uni-flujo[data-orientacion="horizontal"] {
-  gap: 2px;
-}
-
-/* --- Método: tarjeta canónica única (elección + métricas + acción, QA H1) ---- */
-.cmv2-aulas-method-card {
-  position: relative;
-  display: grid;
-  align-content: start;
-  padding: 0;
-}
-
 .cmv2-aulas-stack .cmv2-classroom-method-grid,
 .cmv2-aulas-neff-layout > .cmv2-uni-cifra-fila {
   grid-auto-rows: 1fr;
-}
-
-.cmv2-aulas-method-pick {
-  display: block;
-  width: 100%;
-  min-height: 108px;
-  padding: 11px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  white-space: normal;
-  cursor: pointer;
-}
-
-/* Un solo elemento dominante por tarjeta (QA H8): el nombre humano manda; el
-   rol (eyebrow) acompaña en gris sin competir. */
-.cmv2-aulas-method-pick strong {
-  font-size: 13.5px;
-}
-
-.cmv2-aulas-method-reco {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  margin-top: 5px;
-  padding: 2px 8px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.cmv2-aulas-method-card .cmv2-classroom-quality-metrics {
-  padding: 0 11px;
-}
-
-.cmv2-aulas-method-card.is-recommended {
-  border-color: var(--cmv2-accent-border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), transparent),
-    color-mix(in srgb, var(--cmv2-accent-soft) 55%, var(--pulso-surface));
-}
-
-.cmv2-aulas-method-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 11px 11px;
-}
-
-.cmv2-aulas-method-foot .cmv2-aulas-method-formula {
-  margin: 0;
 }
 
 /*
@@ -264,117 +135,6 @@
   font-variant-numeric: tabular-nums;
 }
 .cmv2-method-comparator-body { padding: 10px 12px 12px; display: grid; gap: 12px; }
-
-.cmv2-aulas-method-formula {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  justify-self: start;
-  min-height: 0;
-  margin: 0 11px 10px;
-  padding: 2px 8px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  cursor: help;
-  transition:
-    background var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out);
-}
-
-@media (hover: hover) {
-  .cmv2-aulas-method-formula:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-    background: var(--cmv2-accent-soft);
-  }
-}
-
-.cmv2-aulas-method-formula[aria-expanded="true"] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-aulas-method-formula:active {
-  transform: scale(0.96);
-}
-
-/* --- Recta numérica del salto sistemático -------------------------------------- */
-.cmv2-aulas-recta {
-  display: grid;
-  gap: 4px;
-  padding: 11px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface);
-}
-
-.cmv2-aulas-recta-head strong {
-  display: block;
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-black);
-}
-
-.cmv2-aulas-recta-head small {
-  display: block;
-  margin-top: 2px;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.4;
-}
-
-.cmv2-aulas-recta svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.cmv2-aulas-recta-linea {
-  stroke: var(--cmv2-border-strong);
-  stroke-width: 1.5;
-}
-
-.cmv2-aulas-recta-tick {
-  stroke: var(--cmv2-border-strong);
-  stroke-width: 1;
-}
-
-.cmv2-aulas-recta-tick.is-salto {
-  stroke: var(--cmv2-accent-fg);
-  stroke-width: 2;
-}
-
-.cmv2-aulas-recta-punto {
-  fill: var(--cmv2-accent-soft);
-  stroke: var(--cmv2-accent-fg);
-  stroke-width: 1.6;
-}
-
-.cmv2-aulas-recta-flecha {
-  fill: var(--cmv2-accent-fg);
-}
-
-.cmv2-aulas-recta-etiqueta {
-  fill: var(--cmv2-accent-fg);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.cmv2-aulas-recta-eje {
-  fill: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-aulas-recta-eje.is-k {
-  fill: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-heavy);
-}
 
 /* --- Simulación: estabilidad de pesos e histograma π MC ------------------------ */
 .cmv2-aulas-neff {
@@ -596,8 +356,6 @@
 
 /* --- Grafo de repetidos (SVG movido, sin hex) ------------------------------------ */
 
-
-
 /* --- Auditoría: grid de fórmulas -------------------------------------------------- */
 .cmv2-aulas-formulas {
   display: grid;
@@ -711,27 +469,6 @@
   margin-top: 0;
 }
 
-/* Tarjetas de método: borde acento con transición de 150ms y elevación al
-   hover; la selección activa refuerza el borde. */
-.cmv2-classroom-method-card.cmv2-aulas-method-card {
-  transition:
-    border-color 150ms var(--motion-ease-out, ease-out),
-    background 150ms var(--motion-ease-out, ease-out),
-    box-shadow 150ms var(--motion-ease-out, ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out, ease-out);
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 42%, var(--pulso-border));
-}
-
-@media (hover: hover) {
-  .cmv2-classroom-method-card.cmv2-aulas-method-card:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 30%, var(--pulso-border));
-    box-shadow: 0 4px 14px -8px color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  }
-}
-
 /* "Sello" de reproducibilidad de Sustento técnico. */
 .cmv2-aulas-stack .cmv2-aulas-sello {
   border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--pulso-border));
@@ -795,27 +532,11 @@
 
 @media (prefers-reduced-motion: no-preference) {
   /* --- Objetivo: cascada de la traducción por facultad ----------------------- */
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila {
-    animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(3) { animation-delay: 30ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(4) { animation-delay: 60ms; }
-  /* L37: el escalonado para en 90 ms (censo de animaciones: hasta 4 × 30); el resto entra junto. */
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(n + 5) { animation-delay: 90ms; }
 
   /* PanelAvanzado: el body entra con slide-down + fade al abrir (details no
      anima height nativo; animar el contenido al montar es el camino limpio). */
   .cmv2-aulas-stack .cmv2-uni-avanzado[open] > .cmv2-uni-avanzado-body {
     animation: cmv2-aulas-desplegar 200ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  /* --- Método: ticks del salto sistemático en secuencia ("1 de cada k") ------ */
-  .cmv2-aulas-recta g[data-salto] {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: cmv2-aulas-tick-on 240ms var(--cmv2-ease-out, ease-out) both;
-    animation-delay: min(90ms, calc(var(--cmv2-salto-i, 0) * 25ms));
   }
 
   /* Callout de recomendación del motor: fade + scale(0.97). */
@@ -950,7 +671,6 @@
 
 /* --- Pie de la tabla de selección: contador honesto + "mostrar más" ----------
    Barra discreta: hairline superior, texto muted tabular y botón compacto. */
-
 
 /* =============================================================================
    Inspector de aula seleccionada (pestaña Aulas titulares).
@@ -1644,29 +1364,6 @@
   opacity: 0.85;
 }
 
-/* --- Comparar métodos: chip "fórmula" terciario, tarjeta activa radio-card --- */
-.cmv2-aulas-method-formula {
-  border-color: transparent;
-  background: transparent;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-aulas-method-pick:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  outline-offset: -2px;
-  border-radius: inherit;
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active {
-  box-shadow:
-    inset 3px 0 0 var(--cmv2-accent-fg),
-    inset 0 0 0 1px color-mix(in srgb, var(--cmv2-accent-border) 50%, transparent);
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active small {
-  color: var(--cmv2-accent-fg);
-}
-
 /* Tarjetas de resumen del comparador: métricas como mini stat-tiles y la
    Recomendada con tinte + filo (mismo lenguaje radio-card de la selección). */
 .cmv2-aulas-stack .cmv2-classroom-quality-metrics span {
@@ -1945,14 +1642,6 @@
   gap: 10px;
 }
 
-.cmv2-aulas-method-explainer {
-  margin-top: 10px;
-}
-
-.cmv2-aulas-method-explainer > .cmv2-aulas-recta {
-  margin: 10px;
-}
-
 /* El DOM mantiene la agrupación histórica para las regresiones, pero la ficha
    de evidencia (Motor/Preview, semilla y hashes) se presenta antes de fórmulas. */
 .cmv2-aulas-audit-main {
@@ -1981,9 +1670,6 @@
     min-width: 0;
   }
 
-  .cmv2-aulas-method-pick {
-    min-height: 96px;
-  }
 }
 
 @media (max-width: 640px) {
@@ -2214,7 +1900,6 @@
   color: var(--pulso-text-muted);
   font-size: 10.5px;
 }
-
 
 /* Ajuste frente al marco: barras pareadas (adios al «partido»), 2026-08-20. */
 .cmv2-profile-track.cmv2-profile-par {
