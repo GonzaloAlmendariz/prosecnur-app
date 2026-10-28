@@ -44,7 +44,6 @@ const PRIMITIVA_RADIX = ["components/Dialog.tsx", "components/Sideover.tsx"];
  * archivos, con los overlays que main sumó en esas dos semanas. Solo baja.
  */
 const SNAPSHOT_DIALOGOS: Record<string, number> = {
-  "components/LogsPanel.tsx": 1,
   "features/bitacora/Calendar.tsx": 1,
   "features/bitacora/avisos/CentroDeAvisos.tsx": 1,
   "features/bitacora/canvas/ExploradorDeReferencias.tsx": 1,

@@ -1,0 +1,73 @@
+/* LogsPanel sobre el Dialog del kit (L1). Sólo tokens --pulso-*. */
+
+.pulso-logs-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 20px;
+}
+
+.pulso-logs-filtro {
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pulso-logs-filtro[aria-pressed="true"] {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-logs-lista {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 12px 20px;
+  background: var(--pulso-surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.55;
+  color: var(--pulso-text);
+}
+
+.pulso-logs-vacio {
+  padding: 12px 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-logs-fila {
+  margin-bottom: 6px;
+}
+
+.pulso-logs-tenue {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-logs-nivel {
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-logs-fila[data-nivel="error"] .pulso-logs-nivel { color: var(--pulso-danger-fg); }
+.pulso-logs-fila[data-nivel="warn"] .pulso-logs-nivel { color: var(--pulso-warn-fg); }
+.pulso-logs-fila[data-nivel="info"] .pulso-logs-nivel { color: var(--pulso-info-fg); }
+
+.pulso-logs-mensaje,
+.pulso-logs-stack {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pulso-logs-stack {
+  margin-top: 4px;
+  padding-left: 14px;
+  color: var(--pulso-text-soft);
+}
