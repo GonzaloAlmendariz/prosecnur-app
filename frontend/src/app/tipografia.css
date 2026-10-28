@@ -42,6 +42,11 @@
   --pulso-density-cell-x: var(--pulso-space-3);
 }
 
+/* La compacta también llega sola desde la presentación elegida en
+   Configuración › Apariencia (lib/layoutPreference.ts escribe
+   data-pulso-layout-density en :root): no hace falta otro control. */
+:root[data-pulso-layout-density="compact"],
+:root[data-pulso-layout-density="short"],
 [data-density="compacta"] {
   --pulso-density-control: var(--pulso-control-height-sm);
   --pulso-density-row: 30px;

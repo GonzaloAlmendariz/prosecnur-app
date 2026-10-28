@@ -33,6 +33,16 @@ describe("tipografía por rol · L29", () => {
     expect(tamanos(css).length).toBeGreaterThanOrEqual(ROLES.length);
   });
 
+  test("la densidad compacta sigue a la presentación elegida, sin otro control", () => {
+    expect(css).toContain(':root[data-pulso-layout-density="compact"]');
+    expect(css).toContain(':root[data-pulso-layout-density="short"]');
+    const preferencia = fs.readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "lib", "layoutPreference.ts"),
+      "utf8",
+    );
+    expect(preferencia).toContain("root.dataset.pulsoLayoutDensity = meta.density");
+  });
+
   test("la app importa la escala", () => {
     const suite = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "AppSuite.tsx"), "utf8");
     expect(suite).toContain('import "./tipografia.css";');
