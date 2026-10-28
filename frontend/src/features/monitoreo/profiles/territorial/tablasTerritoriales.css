@@ -318,3 +318,18 @@
   text-transform: none;
   vertical-align: 1px;
 }
+
+/* «Cuota de cada UMP» y la tabla de UMP: la cabecera fija (36 px) tapaba media
+ * fila tras desplazar. El que desplaza es el MARCO (medido en el bundle,
+ * 2026-10-28), así que el encaje y el margen van en él. El margen es el alto
+ * exacto de la cabecera: con 37 px la fila anterior asomaba 1 px bajo ella. */
+.mon-falt-tabla-marco,
+.mon-umps-tabla-marco {
+  scroll-padding-top: 36px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-falt-tabla > tbody > tr,
+.mon-umps-tabla > tbody > tr {
+  scroll-snap-align: start;
+}
