@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { Skeleton } from "./Skeleton";
 import "./vista-skeleton.css";
 
 /**
@@ -10,6 +11,9 @@ import "./vista-skeleton.css";
  * - `modulo`: cabecera, barra de secciones, fila de cifras y dos paneles; la
  *   geometría común de las vistas de trabajo (p. ej. Monitoreo › Avance).
  * - `inicio`: cabecera del proyecto y la grilla de tarjetas del Home.
+ *
+ * Las piezas son el `Skeleton` del kit (un solo material y un solo brillo en
+ * la app); este archivo sólo decide la composición.
  */
 export type VistaSkeletonVariante = "modulo" | "inicio";
 
@@ -29,15 +33,15 @@ export function VistaSkeleton({
     return (
       <div className={clase} style={style} aria-hidden="true" data-vista-skeleton="inicio">
         <div className="pulso-vista-skeleton-head">
-          <i className="pulso-sk is-titulo" />
-          <i className="pulso-sk is-linea" />
+          <Skeleton className="pulso-sk is-titulo" />
+          <Skeleton className="pulso-sk is-linea" />
         </div>
         <div className="pulso-vista-skeleton-cards">
           {Array.from({ length: 8 }, (_, idx) => (
             <div className="pulso-vista-skeleton-card" key={idx}>
-              <i className="pulso-sk is-icono" />
-              <i className="pulso-sk is-linea" />
-              <i className="pulso-sk is-linea is-corta" />
+              <Skeleton className="pulso-sk is-icono" />
+              <Skeleton className="pulso-sk is-linea" />
+              <Skeleton className="pulso-sk is-linea is-corta" />
             </div>
           ))}
         </div>
@@ -48,31 +52,31 @@ export function VistaSkeleton({
   return (
     <div className={clase} style={style} aria-hidden="true" data-vista-skeleton="modulo">
       <div className="pulso-vista-skeleton-bar">
-        <i className="pulso-sk is-marca" />
+        <Skeleton className="pulso-sk is-marca" />
         <div className="pulso-vista-skeleton-pills">
           {Array.from({ length: pills }, (_, idx) => (
-            <i className={`pulso-sk is-pill${idx === 0 ? " is-activa" : ""}`} key={idx} />
+            <Skeleton className={`pulso-sk is-pill${idx === 0 ? " is-activa" : ""}`} key={idx} />
           ))}
         </div>
-        <i className="pulso-sk is-herramienta" />
+        <Skeleton className="pulso-sk is-herramienta" />
       </div>
       <div className="pulso-vista-skeleton-kpis">
         {Array.from({ length: 4 }, (_, idx) => (
-          <i className="pulso-sk is-kpi" key={idx} />
+          <Skeleton className="pulso-sk is-kpi" key={idx} />
         ))}
       </div>
       <div className="pulso-vista-skeleton-body">
         <div className="pulso-vista-skeleton-panel">
-          <i className="pulso-sk is-titulo" />
+          <Skeleton className="pulso-sk is-titulo" />
           {Array.from({ length: 6 }, (_, idx) => (
-            <i className="pulso-sk is-fila" key={idx} />
+            <Skeleton className="pulso-sk is-fila" key={idx} />
           ))}
         </div>
         <div className="pulso-vista-skeleton-panel">
-          <i className="pulso-sk is-titulo" />
-          <i className="pulso-sk is-anillo" />
-          <i className="pulso-sk is-linea" />
-          <i className="pulso-sk is-linea is-corta" />
+          <Skeleton className="pulso-sk is-titulo" />
+          <Skeleton className="pulso-sk is-anillo" />
+          <Skeleton className="pulso-sk is-linea" />
+          <Skeleton className="pulso-sk is-linea is-corta" />
         </div>
       </div>
     </div>

@@ -60,7 +60,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "components/kit-skeleton.css": 1,
     "components/recent-project-card.css": 1,
     "components/states.css": 1,
-    "components/vista-skeleton.css": 1,
     "features/analitica/analitica-v2.css": 3,
     "features/bitacora/cronograma.css": 1,
     "features/calcMuestra/calcMuestra.css": 1,

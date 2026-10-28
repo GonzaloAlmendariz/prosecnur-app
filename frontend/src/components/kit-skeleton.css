@@ -12,9 +12,13 @@
    (280 ms × 5) para no escribir literales de ms. Reduced motion: quieto.
    Solo tokens --pulso-*. */
 
+/* La pieza también se pinta desde el chunk de arranque (VistaSkeleton en
+   BootGate), donde boot.css no replica --motion-dur-panel, --pulso-surface-3 ni
+   los radios: cada uno lleva su respaldo para que la silueta no salga
+   transparente ni quieta. */
 .pulso-skeleton,
 .pulso-skeleton-vista {
-  --pulso-skeleton-shimmer-dur: calc(var(--motion-dur-panel) * 5);
+  --pulso-skeleton-shimmer-dur: calc(var(--motion-dur-panel, 280ms) * 5);
 }
 
 /* --- Pieza ------------------------------------------------------------------ */
@@ -27,7 +31,7 @@
   block-size: 12px;
   overflow: hidden;
   border-radius: 8px;
-  background: var(--pulso-surface-3);
+  background: var(--pulso-surface-3, color-mix(in srgb, var(--pulso-surface-2) 82%, var(--pulso-border)));
 }
 
 .pulso-skeleton::after {

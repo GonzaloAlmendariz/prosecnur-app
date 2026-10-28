@@ -21,21 +21,8 @@
   user-select: none;
 }
 
-.pulso-sk {
-  display: block;
-  border-radius: 8px;
-  background:
-    linear-gradient(
-      100deg,
-      transparent 20%,
-      color-mix(in srgb, var(--pulso-surface) 70%, transparent) 50%,
-      transparent 80%
-    )
-    0 0 / 220% 100% no-repeat,
-    var(--vista-sk-bloque);
-  animation: pulso-vista-sk-brillo 1.8s ease-in-out infinite;
-}
-
+/* Material y brillo: los de la pieza del kit (kit-skeleton.css, con
+   respaldos para el arranque). Aquí sólo la forma de cada hueco. */
 .pulso-sk.is-titulo { width: min(260px, 60%); height: 18px; }
 .pulso-sk.is-linea { width: 72%; height: 12px; }
 .pulso-sk.is-linea.is-corta { width: 44%; }
@@ -100,15 +87,4 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 14px;
-}
-
-@keyframes pulso-vista-sk-brillo {
-  from { background-position: 120% 0, 0 0; }
-  to { background-position: -120% 0, 0 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulso-sk {
-    animation: none;
-  }
 }
