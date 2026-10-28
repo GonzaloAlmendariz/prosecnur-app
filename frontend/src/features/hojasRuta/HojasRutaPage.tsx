@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useListaMuestraEnDireccion } from "./listaMuestraDireccion";
 import type { PointerEvent as ReactPointerEvent, SetStateAction } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, CircleHelp, Download, FileSpreadsheet, FileText, Info, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2, X } from "lucide-react";
@@ -6593,8 +6594,7 @@ export default function HojasRutaPage() {
   const setRouteHistory = useHojasRutaStore((s) => s.setRouteHistory);
   const mapSelectionMode = useHojasRutaStore((s) => s.mapSelectionMode);
   const setMapSelectionMode = useHojasRutaStore((s) => s.setMapSelectionMode);
-  const sampleListTab = useHojasRutaStore((s) => s.sampleListTab);
-  const setSampleListTab = useHojasRutaStore((s) => s.setSampleListTab);
+  const [sampleListTab, setSampleListTab] = useListaMuestraEnDireccion();
   const blockLayerMode = useHojasRutaStore((s) => s.blockLayerMode);
   const setBlockLayerMode = useHojasRutaStore((s) => s.setBlockLayerMode);
   const samplingInspectorCollapsed = useHojasRutaStore((s) => s.samplingInspectorCollapsed);
