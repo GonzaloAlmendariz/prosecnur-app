@@ -1,4 +1,5 @@
 import "./theme.css";
+import "./tipografia.css";
 /* Después de theme.css porque consume sus tokens. El orden entre estos dos es
  * lo único garantizado: el CSS de cada feature se importa lazy desde su
  * page-file, así que su posición en el bundle depende de qué ruta cargó
