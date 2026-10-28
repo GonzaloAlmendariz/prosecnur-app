@@ -99,8 +99,21 @@ export function CompositorDeFases({
     });
   }
 
+  // `?panel=avisos` se honra también con el cronograma vacío: el panel trae su
+  // propio vacío, y una dirección que no abre nada es verde por ausencia.
+  const centroDeAvisos = panelAvisos.abierto ? (
+    <div {...panelAvisos.props}>
+      <CentroDeAvisos
+        control={avisos}
+        catalogoFases={estado.catalogo_fases}
+        onCerrar={panelAvisos.cerrar}
+      />
+    </div>
+  ) : null;
+
   if (!sembrado && estado.plan.tasks.length === 0) {
     return (
+      <>
       <div className="bit-compositor-vacio" data-audit-ready="bitacora-cronograma-vacio">
         <strong>Arma el cronograma del estudio</strong>
 
@@ -169,6 +182,8 @@ export function CompositorDeFases({
           </button>
         </div>
       </div>
+      {centroDeAvisos}
+      </>
     );
   }
 
@@ -290,15 +305,7 @@ export function CompositorDeFases({
         ))}
       </div>
 
-      {panelAvisos.abierto && (
-        <div {...panelAvisos.props}>
-          <CentroDeAvisos
-            control={avisos}
-            catalogoFases={estado.catalogo_fases}
-            onCerrar={panelAvisos.cerrar}
-          />
-        </div>
-      )}
+      {centroDeAvisos}
     </div>
   );
 }
