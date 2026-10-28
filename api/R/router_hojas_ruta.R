@@ -250,19 +250,45 @@
   out
 }
 
+# Huella de las corridas SIN su ui_state: lo que cambia el proyecto. La página
+# persiste el workspace 600 ms después de cada cambio de UI (al hidratar, al
+# pasar de etapa, al desmontar) y antes cada persistencia marcaba «sin guardar»:
+# mirar Hojas › Muestra ensuciaba el proyecto (L22). La posición de la UI se
+# sigue guardando, pero sola no es una edición. Se compara por JSON porque el
+# ida y vuelta por el cliente cambia tipos (1L/1, vector/lista) sin cambiar nada.
+.hojas_ruta_runs_huella <- function(runs) {
+  if (!is.list(runs) || !length(runs)) return("")
+  sin_ui <- lapply(runs, function(run) {
+    if (is.list(run)) run$ui_state <- NULL
+    run
+  })
+  as.character(jsonlite::toJSON(sin_ui, auto_unbox = TRUE, digits = NA, null = "null", na = "null"))
+}
+
 .hojas_ruta_store_runs <- function(sid, runs, active_phase = "field", notice = NULL) {
   active_phase <- .hojas_ruta_phase_normalize(active_phase, default = "field")
   if (is.null(runs[[active_phase]])) active_phase <- "field"
   if (is.null(runs[[active_phase]])) active_phase <- names(runs)[[1]]
   active <- runs[[active_phase]]
   s <- session_get(sid)
+  previas <- s$hojas_ruta_runs
+  # Sin corridas previas y sin aviso de migración, esto es la corrida vacía por
+  # defecto que se siembra al leer: derivable, no una edición.
+  sembrada <- (!is.list(previas) || !length(previas)) && is.null(notice)
+  cambio_real <- !sembrada && (
+    !is.null(notice) ||
+      !identical(as.character(s$hojas_ruta_active_phase %||% ""), active_phase) ||
+      !identical(.hojas_ruta_runs_huella(previas), .hojas_ruta_runs_huella(runs))
+  )
   s$hojas_ruta_runs <- runs
   s$hojas_ruta_active_phase <- active_phase
   if (!is.null(notice)) s$hojas_ruta_phase_notice <- notice
   s$hojas_ruta_config <- active$config
   s$hojas_ruta_ui_state <- active$ui_state
   s$hojas_ruta_workspace_outputs <- active$workspace_outputs
-  s <- .mark_project_dirty(s)
+  if (cambio_real) {
+    s <- .mark_project_dirty(s, if (is.null(notice)) "hojas_ruta_runs" else "hojas_ruta_runs (corrida antigua migrada a Piloto)")
+  }
   .session_env[[sid]] <- s
   invisible(s)
 }
