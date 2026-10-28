@@ -67,7 +67,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   callout      = c("title", "items", "variant", "box"),
   list         = c("items", "ordered", "box"),
   divider      = c("style", "size", "box"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "box"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative", "crop", "mobile_ref", "image_trim", "box"),
   signature    = c("closing", "name", "lines", "url", "box"),
   footer_legal = c("text", "address"),
   # Piezas gráficas (E1o): collection_mail_piezas.R.
@@ -76,7 +76,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   icon_text    = c("icon", "text", "box"),
   two_images   = c("left", "right", "alt_left", "alt_right", "box"),
   # Secciones (GOAL editor profesional): collection_mail_destacado.R.
-  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "button_size", "button_color", "layout", "align", "crop", "box", "guardado"),
+  feature      = c("eyebrow", "title", "text", "image_ref", "alt", "button_text", "url", "button_size", "button_color", "layout", "align", "crop", "image_size", "image_trim", "box", "guardado"),
   # Resto del catálogo (L6): collection_mail_secciones.R.
   steps        = c("title", "entries", "layout", "image_ref", "alt", "crop", "box", "guardado"),
   deadline     = c("eyebrow", "title", "text", "button_text", "url", "box", "guardado"),
@@ -207,6 +207,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
     if (!is.null(t$header$logo_ids)) t$header$logo_ids <- .cmail_strings(t$header$logo_ids) %||% t$header$logo_ids
   }
   t$fields <- if (is.null(t$fields)) list() else unname(t$fields)
+  if (!is.null(t$constants)) t$constants <- unname(t$constants)
   t$blocks <- if (is.null(t$blocks)) list() else unname(t$blocks)
   t$blocks <- lapply(t$blocks, function(b) {
     if (!is.list(b)) return(b)
@@ -261,7 +262,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(list(.cmail_problem("template.schema", "bad_schema", sprintf("Se esperaba '%s'.", COLLECTION_MAIL_TEMPLATE_SCHEMA))))
   }
   known_top <- c("schema", "template_id", "preset_id", "title", "revision", "template_sha256",
-                 "subject", "preheader", "theme", "header", "images", "fields", "blocks")
+                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "blocks")
   for (k in setdiff(names(template), known_top)) {
     add(list(.cmail_problem(paste0("template.", k), "unknown_key", sprintf("`%s` no pertenece al contrato.", k))))
   }
@@ -327,6 +328,10 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(.cmail_text_problems(f$fallback, paste0(path, ".fallback"), character(0)))
   }
 
+  # Datos fijos de la campaña (collection_mail_constantes.R): se usan como un campo.
+  add(.cmail_constants_problems(template, keys))
+  keys <- unique(c(keys, .cmail_constant_keys(template)))
+
   add(.cmail_text_problems(template$subject %||% "", "template.subject", keys))
   add(.cmail_text_problems(template$preheader %||% "", "template.preheader", keys))
   add(.cmail_link_problems(template$subject, "template.subject", keys, FALSE))
@@ -384,7 +389,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   } else {
     kind <- .cmail_one(header$kind)
     if (identical(kind, "logos")) {
-      for (k in setdiff(names(header), c("kind", "logo_ids", "background"))) {
+      for (k in setdiff(names(header), c("kind", "logo_ids", "background", "logo_tone", "divider"))) {
         add(list(.cmail_problem(paste0("template.header.", k), "unknown_key", sprintf("`%s` no pertenece a la cabecera.", k))))
       }
       ids <- .cmail_strings(header$logo_ids)
@@ -395,6 +400,13 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       bg <- .cmail_one(header$background %||% "light")
       if (is.null(bg) || !(bg %in% c("dark", "light"))) {
         add(list(.cmail_problem("template.header.background", "bad_background", "El fondo es dark o light.")))
+      }
+      # Logos en blanco y línea entre logos (collection_mail_logo_blanco.R).
+      if (!is.null(header$logo_tone) && !(isTRUE(.cmail_one(header$logo_tone) %in% .CMAIL_LOGO_TONES))) {
+        add(list(.cmail_problem("template.header.logo_tone", "bad_logo_tone", "logo_tone es original o blanco.")))
+      }
+      if (!is.null(header$divider) && !(is.logical(unlist(header$divider)) && length(unlist(header$divider)) == 1L)) {
+        add(list(.cmail_problem("template.header.divider", "bad_divider", "divider es verdadero o falso.")))
       }
     } else if (identical(kind, "banner")) {
       for (k in setdiff(names(header), c("kind", "image_ref"))) {
@@ -521,6 +533,9 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   push <- function(code, prop, detail) out[[length(out) + 1L]] <<- .cmail_problem(paste0(path, ".", prop), code, detail)
   if (!.cmail_image_id_ok(.cmail_one(b$image_ref) %||% NA_character_)) {
     push("bad_image_ref", "image_ref", "La imagen nombra un archivo del proyecto: a-z, 0-9 y guiones (sin _).")
+  }
+  if (!is.null(b$image_trim) && !(is.logical(unlist(b$image_trim)) && length(unlist(b$image_trim)) == 1L)) {
+    push("bad_flag", "image_trim", "image_trim es verdadero o falso.")
   }
   alt <- .cmail_one(b$alt)
   decorative <- isTRUE(unlist(b$decorative))

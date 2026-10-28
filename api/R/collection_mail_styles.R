@@ -30,14 +30,15 @@
   icon_text = list(icon = c("calendario", "reloj", "candado", "sobre", "persona", "grupo",
                             "mapa", "check", "info", "alerta", "regalo", "enlace")),
   # Secciones (collection_mail_destacado.R).
-  feature = list(layout = c("izquierda", "derecha", "arriba"), align = c("left", "center"), button_size = c("normal", "grande")),
+  feature = list(layout = c("izquierda", "derecha", "arriba"), align = c("left", "center"), button_size = c("normal", "grande"),
+                 image_size = c("completa", "tres_cuartos", "mitad")),
   steps = list(layout = c("columnas", "lista"))
 )
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
                           "level", "style", "width", "bleed", "image_ref",
                           "decorative", "color", "height", "icon", "left", "right", "box", "layout", "crop", "guardado", "mobile_ref",
-                          "button_size", "button_color")
+                          "button_size", "button_color", "image_size", "image_trim")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(

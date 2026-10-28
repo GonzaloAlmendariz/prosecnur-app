@@ -11,8 +11,11 @@
 # (Contabilidad 2026: 1201 × 810; Derecho: 3201 × 1801). Mailchimp los escala a
 # 600 px: basta con que no sean más angostos que 1200 (nitidez en pantallas 2x)
 # y tengan forma de banner. El peso sigue avisando aparte.
+# El tope alto es 3,4:1 (loop editor de correos, L4): la cabecera de mailing de
+# Acreditación Institucional 2026 mide 1200 × 450 (2,67:1) y un banner bajo
+# recortado a 3:1 es una cabecera legítima; el render la escala sin deformarla.
 .CMAIL_BANNER_W_TOL <- 4L
-.CMAIL_BANNER_RATIO <- c(4 / 3, 2.4)
+.CMAIL_BANNER_RATIO <- c(4 / 3, 3.4)
 .CMAIL_BANNER_MAX_BYTES <- 1024L * 1024L
 
 .cmail_target <- function(block_id, prop = NULL) .cmc_drop_nulls_deep(list(block_id = block_id, prop = prop))
@@ -127,7 +130,7 @@
     } else if (as.integer(size$width) < .CMAIL_BANNER_W - .CMAIL_BANNER_W_TOL ||
                size$width / size$height < .CMAIL_BANNER_RATIO[[1]] || size$width / size$height > .CMAIL_BANNER_RATIO[[2]]) {
       .cmail_check("banner_size", "error", sprintf("%d×%d", as.integer(size$width), as.integer(size$height)),
-                   "El banner de mailing mide al menos 1200 px de ancho (lo ideal, 1200 × 600) y tiene forma de banner, entre 4:3 y 2,4:1.",
+                   "El banner de mailing mide al menos 1200 px de ancho (lo ideal, 1200 × 600) y tiene forma de banner, entre 4:3 y 3,4:1.",
                    targets = list(.cmail_target("__cabecera")))
     } else if (isTRUE(img$bytes > .CMAIL_BANNER_MAX_BYTES)) {
       .cmail_check("banner_size", "warning", as.integer(img$bytes), "El banner supera 1 MB; tarda en cargar.")

@@ -95,6 +95,25 @@ describe("normalizeMailTemplate", () => {
     expect(t.header).toEqual({ kind: "banner", image_ref: "banner-mailing" });
   });
 
+  test("la franja conserva los logos en blanco y la falta de línea; un valor que no conoce se descarta", () => {
+    const conTodo = normalizeMailTemplate({ ...PLANTILLA_R, header: { kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "blanco", divider: false } });
+    expect(conTodo.header).toEqual({ kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "blanco", divider: false });
+    const raro = normalizeMailTemplate({ ...PLANTILLA_R, header: { kind: "logos", logo_ids: ["pulso"], background: "dark", logo_tone: "negro", divider: "no" } });
+    expect(raro.header).toEqual({ kind: "logos", logo_ids: ["pulso"], background: "dark" });
+  });
+
+  test("el Destacado y la Imagen conservan el tamaño y el quitar márgenes; lo que no conoce se descarta", () => {
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, blocks: [
+      { block_id: "d", type: "feature", title: "Sorteo", image_ref: "p", alt: "P", image_size: "tres_cuartos", image_trim: true },
+      { block_id: "i", type: "image", image_ref: "p", alt: "P", image_trim: true },
+      { block_id: "x", type: "feature", title: "Otro", image_size: "enorme", image_trim: "si" },
+    ] });
+    expect(t.blocks[0]).toMatchObject({ image_size: "tres_cuartos", image_trim: true });
+    expect(t.blocks[1]).toMatchObject({ image_trim: true });
+    expect(t.blocks[2]).not.toHaveProperty("image_size");
+    expect(t.blocks[2]).not.toHaveProperty("image_trim");
+  });
+
   test("conserva `trae_logos` de cada imagen; ausente o ilegible queda sin dato", () => {
     const t = normalizeMailTemplate({
       ...PLANTILLA_R,

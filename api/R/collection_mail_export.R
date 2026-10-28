@@ -113,7 +113,12 @@
   if (is.null(template)) .collection_current(session) else .cmail_state_light(session)
 }
 
-.cmail_synthetic_values <- function(template) {
+# Persona de ejemplo (loop editor de correos, L8): sin lista, «Ver como» alterna
+# entre Ana (femenino) y Luis (masculino), y el saludo por sexo usa la palabra de
+# cada una en vez del respaldo «Estimado(a)». Sin `ejemplo`, Ana con el respaldo, como antes.
+.CMAIL_EJEMPLOS <- list(femenino = "Ana", masculino = "Luis")
+
+.cmail_synthetic_values <- function(template, ejemplo = NULL) {
   used_in_url <- unique(unlist(lapply(template$blocks %||% list(), function(b) {
     c(.cmail_tokens(.cmail_one(b$url) %||% ""))
   }), use.names = FALSE))
@@ -122,7 +127,15 @@
     key <- as.character(f$key)
     fields[[key]] <- if (key %in% used_in_url) "https://example.org/" else sprintf("[%s]", f$label %||% key)
   }
-  list(nombre = "Ana", fields = fields)
+  out <- list(nombre = "Ana", fields = fields)
+  sexo <- .cmail_one(ejemplo)
+  if (!is.null(sexo) && sexo %in% names(.CMAIL_EJEMPLOS)) {
+    out$nombre <- .CMAIL_EJEMPLOS[[sexo]]
+    saludo <- Filter(function(b) identical(.cmail_one(b$type), "greeting"), template$blocks %||% list())
+    tr <- if (length(saludo)) .cmail_trato_of(saludo[[1]]) else NULL
+    if (!is.null(tr) && identical(tr$modo, "por_sexo")) out$trato <- tr[[sexo]]
+  }
+  out
 }
 
 #' Vista previa del correo.
@@ -135,7 +148,7 @@
 #' @param send_id envío guardado (sin él, la invitación); `send` un borrador.
 #' @keywords internal
 collection_mail_preview <- function(sid, mode = "preview", recipient_index = NULL, template = NULL,
-                                    campaign_id = NULL, send_id = NULL, send = NULL) {
+                                    campaign_id = NULL, send_id = NULL, send = NULL, ejemplo = NULL) {
   mode <- .cmail_one(as.list(mode %||% list("preview"))) %||% "preview"
   if (!(mode %in% c("preview", "export", "mailchimp"))) {
     stop_api(422, "E_COLLECTION_MAIL_MODE", "mode es preview, export o mailchimp.")
@@ -148,7 +161,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   dialect <- if (identical(mode, "mailchimp")) "mailchimp" else work$platform
   images <- .cmail_images_resolve(session, tpl)
   recipient <- list(source = "synthetic", index = NULL)
-  values <- .cmail_synthetic_values(tpl)
+  values <- .cmail_synthetic_values(tpl, ejemplo)
   store <- if (!is.null(campaign)) .cmail_recipients_load(session, campaign$campaign_id)
   if (identical(mode, "preview") && !is.null(store) && !is.null(recipient_index)) {
     resolved <- .cmail_recipients_resolve(store, tpl)
@@ -279,6 +292,9 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   push(.cmail_accent_check(tpl))
   push <- .cmail_campana_checks(tpl, push)
   push_send_dates()
+  rep <- .cmail_subject_repeat_check(campaign, send, tpl)
+  if (!is.null(rep)) push(rep)
+  push(.cmail_contraction_check(tpl))
   if (identical(send$kind, "recordatorio")) {
     n_valid <- NULL
     if (!identical(scope, "plantilla") && !is.null(campaign)) {
@@ -675,12 +691,12 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
 
   stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
   if (completo) {
-    zip_name <- .cmail_export_name(slug, send$send_id, "mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
   } else {
     # Solo la plantilla: el entregable ES el ZIP importable, tal cual se verificó.
-    zip_name <- .cmail_export_name(slug, send$send_id, "plantilla-mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "plantilla-mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     file.copy(importable$path, zip_path, overwrite = TRUE)
   }
@@ -690,7 +706,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     stop_api(413, "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",
              "El paquete supera 5 MB (revisa el peso de las imágenes).", details = list(size_bytes = as.integer(size)))
   }
-  manifest_name <- .cmail_export_name(slug, send$send_id, "mailchimp_manifest", ext = "json")
+  manifest_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp_manifest", ext = "json")
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
 

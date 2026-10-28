@@ -217,3 +217,16 @@
   max-height: 240px;
   object-fit: contain;
 }
+
+/* Sin línea entre logos (header.divider = false): el mismo aire, sin el trazo. */
+.rec-mail-franja-vista-sep.is-sin-linea,
+.rec-mail-franja-vista.is-oscura .rec-mail-franja-vista-sep.is-sin-linea {
+  background: transparent;
+}
+
+/* Color de los logos y línea entre logos, bajo el título de la franja. */
+.rec-mail-franja-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

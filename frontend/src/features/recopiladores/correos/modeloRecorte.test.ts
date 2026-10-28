@@ -61,6 +61,12 @@ describe("recorte en un bloque Imagen", () => {
     expect(conRecorte(img(), { ratio: "4:3" })).toMatchObject({ crop: { ratio: "4:3" } });
   });
 
+  it("3:1 (panorámica): el banner 1200×450 da 1200×400, igual que en R", () => {
+    expect(rectDelRecorte({ width: 1200, height: 450 }, recorteDe(img({ crop: { ratio: "3:1" } })))).toEqual({ x0: 0, y0: 25, w: 1200, h: 400 });
+    expect(rectDelRecorte({ width: 1200, height: 450 }, recorteDe(img({ crop: { ratio: "3:1", y: 236 / 450 } })))?.y0).toBe(36);
+    expect(normalizeMailBlock({ block_id: "i", type: "image", image_ref: "p", alt: "P", crop: { ratio: "3:1" } })).toMatchObject({ crop: { ratio: "3:1" } });
+  });
+
   it("el normalizador conserva el crop de una Imagen", () => {
     expect(normalizeMailBlock({ block_id: "i", type: "image", image_ref: "p", alt: "P", crop: { ratio: "2:1", zoom: 1.5 } }))
       .toMatchObject({ crop: { ratio: "2:1", zoom: 1.5 } });

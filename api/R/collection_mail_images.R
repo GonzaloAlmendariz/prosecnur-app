@@ -186,7 +186,9 @@
   # con la misma regla: nunca pisan una imagen del autor.
   for (g in .cmail_piezas_images(template)) if (!(g$id %in% ids)) out[[g$id]] <- g
   # Las fotos de los Destacados, recortadas a su proporción (collection_mail_recorte.R).
-  .cmail_crop_apply(template, out)
+  out <- .cmail_crop_apply(template, out)
+  # Los logos de la franja oscura, en blanco (collection_mail_logo_blanco.R).
+  .cmail_logo_white_apply(template, out)
 }
 
 .cmail_image_placeholder <- function(id) {

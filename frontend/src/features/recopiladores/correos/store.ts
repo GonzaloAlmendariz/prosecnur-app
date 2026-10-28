@@ -130,6 +130,8 @@ export type EstadoCorreos = {
   vista: VistaDelCorreo;
   /** Posición (1..n) entre los destinatarios válidos; `null` = persona de ejemplo. */
   persona: number | null;
+  /** Sin lista, la persona de ejemplo (L8): Ana (femenino) o Luis (masculino). */
+  ejemplo: "femenino" | "masculino";
   destino: DestinoDelCampo | null;
   /** Imágenes subidas en esta sesión, para mostrarlas sin pedirlas otra vez. */
   imagenesLocales: Record<string, string>;
@@ -260,6 +262,7 @@ const INICIAL: EstadoCorreos = {
   vistaDelBloque: "contenido",
   vista: "escritorio",
   persona: null,
+  ejemplo: "femenino",
   destino: null,
   imagenesLocales: {},
   reducciones: {},
@@ -472,7 +475,8 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   setPersona: (persona) => set({ persona }),
   siguientePersona: () => set((s) => {
     const total = s.destinatarios?.counts?.valid ?? 0;
-    if (!total) return {};
+    // Sin lista, alterna entre las dos personas de ejemplo (L8).
+    if (!total) return { ejemplo: s.ejemplo === "femenino" ? "masculino" : "femenino" };
     return { persona: s.persona === null ? 1 : (s.persona % total) + 1 };
   }),
   setDestino: (destino) => set({ destino }),
