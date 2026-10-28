@@ -81,6 +81,32 @@ describe("HojasRuta navigation model", () => {
     );
   });
 
+  it("never falls back into Revisión: it is a control tab, not the end of the route", () => {
+    const sinMuestra = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?seccion=seleccion&pestana=revision",
+      sampleExists: false,
+      sampleOk: false,
+      sampleBlockCount: 0,
+      replacementCount: 0,
+    });
+    const reemplazosBloqueados = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?seccion=seleccion&pestana=reemplazos",
+      replacementCount: 0,
+    });
+    const revisionPedida = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?seccion=seleccion&pestana=revision",
+      revisionCount: 3,
+    });
+
+    expect(sinMuestra.activeDeliveryTab).not.toBe("revision");
+    expect(reemplazosBloqueados.activeDeliveryTab).toBe("titulares");
+    expect(revisionPedida.activeDeliveryTab).toBe("revision");
+    expect(revisionPedida.deliveryTabs.find((tab) => tab.key === "revision")?.count).toBe(3);
+  });
+
   it("uses the valid URL over persisted Zustand state", () => {
     const model = buildHojasRutaNavigation({
       ...READY_INPUT,

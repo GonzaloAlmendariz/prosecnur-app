@@ -235,6 +235,7 @@ describe("manifiesto de navegación", () => {
       "cuotas",
       "titulares",
       "reemplazos",
+      "revision",
     ]);
   });
 

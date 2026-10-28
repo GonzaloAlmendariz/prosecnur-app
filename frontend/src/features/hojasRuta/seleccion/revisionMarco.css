@@ -244,31 +244,6 @@
 .hr-revision-tira-eje span[data-extremo="inicio"] { transform: none; }
 .hr-revision-tira-eje span[data-extremo="fin"] { transform: translateX(-100%); }
 
-.hr-revision-distritos {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.hr-revision-distritos th {
-  text-align: left;
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--pulso-text-soft);
-  padding: 7px 6px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.hr-revision-distritos td {
-  padding: 7px 6px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.hr-revision-distritos [data-tipo="cifra"] {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .hr-revision-estado {
   display: inline-flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { HojasRutaDeliveryTab } from "../store";
-import type { GrupoRevision, RevisionMarco, TonoRevision } from "./revisionMarco";
+import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import type { DistritoRevision, GrupoRevision, RevisionMarco, TonoRevision } from "./revisionMarco";
 import "./revisionMarco.css";
 
 // Selección › Revisión: lo que conviene mirar antes de imprimir, con las
@@ -11,6 +12,23 @@ const ETIQUETA_TONO: Record<TonoRevision, string> = { error: "A corregir", aviso
 const VISIBLES = 6;
 
 const formato = (n: number) => n.toLocaleString("es-PE");
+
+const COLUMNAS_DISTRITO: readonly PulsoTableColumna<DistritoRevision>[] = [
+  { id: "distrito", encabezado: "Distrito", ancho: 150, celda: (d) => d.distrito, valor: (d) => d.distrito },
+  { id: "titulares", encabezado: "UMP", ancho: 52, tipo: "cifra", celda: (d) => formato(d.titulares), valor: (d) => d.titulares },
+  { id: "reemplazos", encabezado: "R", ancho: 44, tipo: "cifra", celda: (d) => formato(d.reemplazos), valor: (d) => d.reemplazos },
+  {
+    id: "revision",
+    encabezado: "Revisión",
+    ancho: 130,
+    celda: (d) => (
+      <span className="hr-revision-estado" data-tono={d.errores ? "error" : d.observaciones ? "aviso" : "ok"}>
+        {d.errores ? `${formato(d.errores)} a corregir` : d.observaciones ? `${formato(d.observaciones)} a revisar` : "Sin observaciones"}
+      </span>
+    ),
+    valor: (d) => d.errores * 1000 + d.observaciones,
+  },
+];
 
 function GrupoObservado({ grupo, onVer }: { grupo: GrupoRevision; onVer: (tab: HojasRutaDeliveryTab) => void }) {
   const [todas, setTodas] = useState(false);
@@ -121,25 +139,13 @@ export function RevisionContraMarco({
       </div>
       <aside className="hr-revision-evidencia" aria-label="Evidencia">
         <TiraDeViviendas revision={revision} />
-        <table className="hr-revision-distritos">
-          <thead>
-            <tr><th>Distrito</th><th data-tipo="cifra">UMP</th><th data-tipo="cifra">R</th><th>Revisión</th></tr>
-          </thead>
-          <tbody>
-            {revision.distritos.map((d) => (
-              <tr key={d.distrito}>
-                <td>{d.distrito}</td>
-                <td data-tipo="cifra">{formato(d.titulares)}</td>
-                <td data-tipo="cifra">{formato(d.reemplazos)}</td>
-                <td>
-                  <span className="hr-revision-estado" data-tono={d.errores ? "error" : d.observaciones ? "aviso" : "ok"}>
-                    {d.errores ? `${formato(d.errores)} a corregir` : d.observaciones ? `${formato(d.observaciones)} a revisar` : "Sin observaciones"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <PulsoTable
+          ariaLabel="Revisión por distrito"
+          densidad="compacta"
+          columnas={COLUMNAS_DISTRITO}
+          filas={revision.distritos}
+          idDeFila={(d) => d.distrito}
+        />
       </aside>
     </section>
   );

@@ -4,7 +4,7 @@ import { ContextTabRail, type ContextTabRailItem } from "../../../components/Con
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Sideover } from "../../../components/Sideover";
 import { TabHeading, type TabHeadingChip, type TabHeadingEstado } from "../../../components/TabHeading";
-import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
+import { PANEL_SALIDAS_SELECCION } from "./panelesSeleccion";
 import { Archive, BarChart3, MapPinned, ShieldAlert, Shuffle, type LucideIcon } from "../../../vendor/lucide-react";
 import type { HojasRutaDeliveryTab } from "../store";
 import type { HojasRutaNavigationTab } from "../hojasRutaNavigation";
@@ -16,12 +16,6 @@ import "./seleccionMesa.css";
 // prueba) son una columna propia en escritorio y, bajo 1280 px, un sideover
 // enlazable (`?panel=salidas`): antes se apilaban bajo la tabla y la dejaban en
 // dos filas y media a 1024×600 (C4).
-
-export const PANEL_SALIDAS_SELECCION: PanelDeclarado = {
-  id: "salidas",
-  label: "Salidas de la selección",
-  clase: "sideover",
-};
 
 export const HOJAS_SELECCION_ANCHO_COMPACTO = "(max-width: 1279px)";
 

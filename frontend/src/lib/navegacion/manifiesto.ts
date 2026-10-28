@@ -35,6 +35,7 @@ import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCor
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
+import { PANEL_SALIDAS_SELECCION } from "../../features/hojasRuta/seleccion/panelesSeleccion";
 import { PANEL_CONTACTOS_VARIABLES } from "../../features/recopiladores/correos/contactos/panelesContactos";
 import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/panelesFiltros";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
@@ -246,6 +247,8 @@ export const PANELES_POR_MODULO: Readonly<
   // del correo y sus paneles (ADR 0110 §2).
   // Aulas › Unidades: `?panel=rehacer-plan` confirma rehacer el plan (H26).
   // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
+  // Selección › salidas en sideover bajo 1280 px: `?seccion=seleccion&panel=salidas`.
+  "hojas-ruta": [PANEL_SALIDAS_SELECCION],
   "material-campo": [
     ...PANELES_CAMPANAS,
     ...PANELES_CORREOS,
