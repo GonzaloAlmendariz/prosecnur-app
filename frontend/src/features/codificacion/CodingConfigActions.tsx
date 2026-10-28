@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "../../components/toasterStore";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   AlertTriangle,
@@ -69,7 +70,6 @@ type MatrixMapVariable = CodifMatrixMap["bases"][number]["variables"][number];
 
 export function CodingConfigActions({ disabled = false, onImported }: Props) {
   const [busy, setBusy] = useState<Busy>(null);
-  const [message, setMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [map, setMap] = useState<CodifMatrixMap | null>(null);
@@ -261,7 +261,6 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
   async function exportConfig() {
     setBusy("export");
     setError("");
-    setMessage("");
     try {
       const bundle = await apiCodifExportJson();
       const { ok: _ok, suggested_filename: suggestedFilename, ...payload } = bundle;
@@ -273,12 +272,11 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       a.download = suggestedFilename || `prosecnur_codificacion_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(href);
-      setMessage(`JSON guardado: ${payload.variables.length} pregunta(s) o campo(s).`);
+      toast.exito(`JSON guardado: ${payload.variables.length} pregunta(s) o campo(s).`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(null);
-      window.setTimeout(() => setMessage(""), 3600);
     }
   }
 
@@ -293,11 +291,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       "export-client";
     setBusy(busyKey);
     setError("");
-    setMessage("");
     try {
       const out = await apiCodifMatricesExport(visibility, exportVariableNames, activeBase);
       window.open(downloadUrl(out.file_id), "_blank", "noopener,noreferrer");
-      setMessage(
+      toast.exito(
         visibility === "work"
           ? `Matriz de trabajo generada para ${activeBaseLabel}.`
           : visibility === "internal"
@@ -308,7 +305,6 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       setError((e as Error).message);
     } finally {
       setBusy(null);
-      window.setTimeout(() => setMessage(""), 3600);
     }
   }
 
@@ -346,7 +342,6 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
     if (!editingCase) return;
     setBusy("case-patch");
     setError("");
-    setMessage("");
     try {
       const result = await apiCodifMatricesCasePatch({
         base: editingCase.base,
@@ -358,8 +353,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       });
       setMap(result.map);
       setEditingCase(null);
-      setMessage(`Caso ${editingCase.id_caso} actualizado en ${activeBaseLabel}.`);
-      window.setTimeout(() => setMessage(""), 3600);
+      toast.exito(`Caso ${editingCase.id_caso} actualizado en ${activeBaseLabel}.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -374,8 +368,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       onClose={() => setDialogOpen(false)}
       onImported={() => {
         onImported?.();
-        setMessage("Matriz aplicada y registrada en el historial.");
-        window.setTimeout(() => setMessage(""), 3600);
+        toast.exito("Matriz aplicada y registrada en el historial.");
       }}
     />
   ) : null;
@@ -425,7 +418,6 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             className={`pulso-codificacion-config-button ${hasActiveMatrix ? "is-primary" : ""}`}
             onClick={() => {
               setError("");
-              setMessage("");
               setDialogOpen(true);
             }}
             disabled={disabled || busy !== null}
@@ -513,9 +505,9 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         </div>
       </div>
 
-      {(message || visibleError) && (
+      {/* L25: los resultados («Matriz aplicada…», «JSON guardado…») son toasts; aquí queda sólo el error, que no se va solo. */}
+      {visibleError && (
         <div className="pulso-codificacion-matrix-feedback" role="status" aria-live="polite" aria-atomic="true">
-          {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
           {visibleError && <span className="pulso-codificacion-config-feedback is-error">{visibleError}</span>}
         </div>
       )}
