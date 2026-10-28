@@ -325,7 +325,7 @@ export function ResumenDiseno({
       tone: "universe",
     },
     {
-      label: "Universo de cursos-horario",
+      label: "Universo de cursos‑horario", // U+2011: no se parte en el guion
       value: universoCursosHorario,
       // El periodo va en la nota de ESTA tarjeta porque es su base la que
       // define el catálogo. Cuando el año no cuadra con el del estudio se dice

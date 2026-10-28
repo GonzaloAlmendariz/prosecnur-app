@@ -35,6 +35,13 @@
   flex: 0 0 auto;
 }
 
+/* Y es un poco más ancho: su título lleva «cursos‑horario» (con guion no
+   separable), que a 11,5 px no cabe en 88 px y se partía en «horari / o». */
+.cmv2-muestra-flow-item:last-child .cmv2-muestra-flow-node {
+  flex-basis: calc(var(--cmv2-flow-node) + 16px);
+  width: calc(var(--cmv2-flow-node) + 16px);
+}
+
 /* --- Nodo: badge + etiqueta ------------------------------------------------- */
 .cmv2-muestra-flow-node {
   flex: 0 0 var(--cmv2-flow-node);
