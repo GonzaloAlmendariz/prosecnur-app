@@ -26,6 +26,8 @@ import {
 } from "../../../api/bitacora";
 import { Alert } from "../../../components/Alert";
 import { toast } from "../../../components/toasterStore";
+import { PANEL_REFERENCIAS } from "../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { CAMARA_INICIAL, type Camara } from "../../../lib/lienzo/camara";
 import {
   ordenDeLectura,
@@ -70,7 +72,11 @@ export function CanvasSection({
   const [error, setError] = useState<string | null>(null);
   const [camara, setCamara] = useState<Camara>(CAMARA_INICIAL);
   const [armandoConexion, setArmandoConexion] = useState(false);
-  const [eligiendoReferencia, setEligiendoReferencia] = useState(false);
+  const panelReferencias = usePanelDireccionable(PANEL_REFERENCIAS);
+  const eligiendoReferencia = panelReferencias.abierto;
+  // Insertar cierra el panel con la dirección vigente, no con la del render que creó el callback.
+  const panelReferenciasRef = useRef(panelReferencias);
+  panelReferenciasRef.current = panelReferencias;
   /** Qué cuadro tiene su abanico de ramas abierto. */
   const [ramificando, setRamificando] = useState<string | null>(null);
   /** Ids que acaban de nacer: llevan la animación de entrada un instante. */
@@ -155,7 +161,7 @@ export function CanvasSection({
       if (edges.length) s.setEdges([...s.edges, ...edges]);
       s.enfocar(colocados[0].id);
       s.seleccionar(new Set(colocados.map((n) => n.id)));
-      setEligiendoReferencia(false);
+      panelReferenciasRef.current.cerrar();
       toast.exito(
         colocados.length === 1 ? "Pieza en el lienzo" : `${colocados.length} piezas en el lienzo`,
         edges.length ? { detalle: `${edges.length} ${edges.length === 1 ? "conexión trazada" : "conexiones trazadas"}.` } : undefined,
@@ -566,7 +572,7 @@ export function CanvasSection({
           </button>
           <button
             type="button"
-            onClick={() => setEligiendoReferencia((v) => !v)}
+            onClick={panelReferencias.alternar}
             aria-expanded={eligiendoReferencia}
             title="Referenciar una parte de la app, un hito o una entrada"
           >
@@ -638,7 +644,7 @@ export function CanvasSection({
           <ExploradorDeReferencias
             estado={estado}
             onElegir={insertarReferencias}
-            onCerrar={() => setEligiendoReferencia(false)}
+            onCerrar={panelReferencias.cerrar}
           />
         )}
 

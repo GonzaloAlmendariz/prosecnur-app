@@ -203,6 +203,13 @@ export const PANEL_AVISOS: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** Bitácora › Canvas: elegir una parte de la app, un hito o una entrada para llevarla al lienzo. */
+export const PANEL_REFERENCIAS: PanelDeclarado = {
+  id: "referencias",
+  label: "Referenciar en el lienzo",
+  clase: "popover",
+};
+
 /** Importación del grafo con vista previa (ADR 0047). */
 export const PANEL_IMPORTAR: PanelDeclarado = {
   id: "importar",
@@ -216,7 +223,7 @@ export const PANELES_POR_MODULO: Readonly<
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION],
-  "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
+  "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR, PANEL_REFERENCIAS],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.
   // `?panel=catalogos`: el editor de listas; `?panel=logica-surveymonkey`: el borrador de saltos de SurveyMonkey.
