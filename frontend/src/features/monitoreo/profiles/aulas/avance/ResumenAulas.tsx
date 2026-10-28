@@ -194,12 +194,14 @@ function Acumuladas({ ritmo }: { ritmo: Ritmo }) {
               {ritmo.marcasY.map((m) => (
                 <span key={m.valor} style={{ top: `${m.y}%` }}>{m.texto}</span>
               ))}
+              <span className="aulas-res-eje-banda" style={{ top: `${(ritmo.bandaDia + 100) / 2}%` }}>Del día</span>
             </div>
             <div className="aulas-res-trazado">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={ritmo.aria}>
                 {ritmo.marcasY.map((m) => (
                   <line key={m.valor} x1="0" x2="100" y1={m.y} y2={m.y} className="aulas-res-guia" />
                 ))}
+                <line x1="0" x2="100" y1="100" y2="100" className="aulas-res-guia" />
                 {ritmo.dias.map((d) => (
                   <rect key={d.fecha} x={d.x - d.ancho / 2} y={d.yDia} width={d.ancho} height={100 - d.yDia} className="aulas-res-barra" />
                 ))}
@@ -213,10 +215,17 @@ function Acumuladas({ ritmo }: { ritmo: Ritmo }) {
                   {m.rotulo}, {fmt(m.valor)}
                 </span>
               ))}
+              {ritmo.dias.filter((d) => d.rotuloDia).map((d) => (
+                <span key={d.fecha} className="aulas-res-dia-cifra" style={{ left: `${d.x}%`, top: `${d.yDia}%` }}>
+                  {d.rotuloDia}
+                </span>
+              ))}
             </div>
           </div>
           <div className="aulas-res-eje-x" aria-hidden="true">
-            {ritmo.marcasX.map((x) => <span key={x}>{x}</span>)}
+            <div className="aulas-res-eje-x-pista">
+              {ritmo.marcasX.map((m) => <span key={m.texto} style={{ left: `${m.x}%` }}>{m.texto}</span>)}
+            </div>
           </div>
         </div>
       ) : (

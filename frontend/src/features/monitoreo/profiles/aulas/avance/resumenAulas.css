@@ -398,13 +398,42 @@
 }
 
 .aulas-res-eje-x {
-  display: flex;
-  justify-content: space-between;
   padding-left: 44px;
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Una fecha bajo cada barra (raleadas por el modelo), centrada en su x. */
+.aulas-res-eje-x-pista {
+  position: relative;
+  height: 1.3em;
+}
+
+.aulas-res-eje-x-pista span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+/* La cifra del día va sobre su barra: la banda tiene escala propia y la cifra
+ * es la que se lee, no la altura. */
+.aulas-res-dia-cifra {
+  position: absolute;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 3px));
+  pointer-events: none;
+}
+
+.aulas-res-eje-y .aulas-res-eje-banda {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
 }
 
 /* Por facultad o por nivel. */

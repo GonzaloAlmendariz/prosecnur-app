@@ -75,6 +75,8 @@ export type DiaDelGrafico = {
   ancho: number;
   yDia: number;
   yAcumulado: number;
+  /** Cifra que va sobre la barra del día; vacía cuando el día no tuvo efectivas. */
+  rotuloDia: string;
 };
 
 export type MetaDelGrafico = { clave: string; rotulo: string; valor: number; y: number };
@@ -89,8 +91,10 @@ export type Ritmo =
     metas: MetaDelGrafico[];
     /** Marcas del eje Y, de abajo arriba, con su altura en %. */
     marcasY: Array<{ valor: number; texto: string; y: number }>;
-    /** Primera, central y última fecha. */
-    marcasX: string[];
+    /** Fechas bajo las barras, raleadas para que quepan; la última siempre va. */
+    marcasX: Array<{ x: number; texto: string }>;
+    /** Dónde arranca, en % del lienzo, la banda de las barras del día. */
+    bandaDia: number;
     trazo: string;
     aria: string;
   };
@@ -302,6 +306,12 @@ function invarianteDe(dashboard: MonitoreoAulasDashboard | null, eje: EjeDelResu
   return { total, partes: lista, descuadre };
 }
 
+/** La curva acumulada ocupa de 0 a este % del alto; la banda del día, de BANDA_DIA a 100. */
+const ZONA_ACUMULADO = 66;
+const BANDA_DIA = 74;
+/** Fechas que entran bajo el gráfico sin pisarse en el ancho más angosto (1280). */
+const FECHAS_QUE_CABEN = 14;
+
 function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protagonista, metaOperativa: number | null): Ritmo {
   const ritmo = dashboard?.ritmo_diario ?? null;
   if (!ritmo || !Array.isArray(ritmo.dias)) {
@@ -325,31 +335,35 @@ function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protag
   if (metaOperativa != null && metaOperativa > (protagonista.muestra ?? 0)) {
     metas.push({ clave: "operativa", rotulo: "Meta operativa", valor: metaOperativa });
   }
-  const maximo = Math.max(
-    ...brutos.map((d) => Math.max(d.acumulado, d.validas)),
-    ...metas.map((m) => m.valor),
-  );
+  // Dos zonas en el mismo marco: arriba la curva acumulada con su eje y las
+  // metas; abajo, una banda con las barras del día a escala propia y su cifra
+  // encima. En una sola escala el mejor día (466) era el 11 % de 4,000 y las
+  // barras se leían como ruido al pie del gráfico.
+  const maximo = Math.max(...brutos.map((d) => d.acumulado), ...metas.map((m) => m.valor));
   const techo = techoDelEje(maximo);
+  const techoDia = techoDelEje(Math.max(1, ...brutos.map((d) => d.validas)));
   const n = brutos.length;
   const paso = 100 / n;
-  const y = (valor: number) => 100 - (100 * Math.max(0, valor)) / techo;
+  const y = (valor: number) => ZONA_ACUMULADO - (ZONA_ACUMULADO * Math.max(0, valor)) / techo;
+  const yDia = (valor: number) => 100 - ((100 - BANDA_DIA) * Math.max(0, valor)) / techoDia;
   const dias: DiaDelGrafico[] = brutos.map((d, i) => ({
     ...d,
     etiqueta: fechaCorta(d.fecha),
     x: paso * (i + 0.5),
     ancho: Math.min(paso * 0.62, 6),
-    yDia: y(d.validas),
+    yDia: yDia(d.validas),
     yAcumulado: y(d.acumulado),
+    rotuloDia: d.validas > 0 ? fmt(d.validas) : "",
   }));
   const trazo = dias.map((d, i) => `${i ? "L" : "M"}${d.x.toFixed(2)} ${d.yAcumulado.toFixed(2)}`).join(" ");
   const marcasY = [0, 1, 2, 3, 4].map((k) => {
     const valor = (techo * k) / 4;
     return { valor, texto: fmt(valor), y: y(valor) };
   });
-  const medio = dias[Math.floor((n - 1) / 2)];
-  const marcasX = n === 1 ? [dias[0].etiqueta] : n === 2
-    ? [dias[0].etiqueta, dias[1].etiqueta]
-    : [dias[0].etiqueta, medio.etiqueta, dias[n - 1].etiqueta];
+  const cada = Math.ceil(n / FECHAS_QUE_CABEN);
+  const marcasX = dias
+    .filter((_, i) => i === n - 1 || (i % cada === 0 && n - 1 - i >= cada))
+    .map((d) => ({ x: d.x, texto: d.etiqueta }));
 
   const diasConCampo = numeroONulo(ritmo.dias_con_campo) ?? brutos.filter((d) => d.validas > 0).length;
   const mejor = ritmo.mejor_dia && texto(ritmo.mejor_dia.fecha)
@@ -365,6 +379,7 @@ function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protag
     metas: metas.map((m) => ({ ...m, y: y(m.valor) })),
     marcasY,
     marcasX,
+    bandaDia: BANDA_DIA,
     trazo,
     aria: `Efectivas acumuladas por día: ${fmt(ultimo.acumulado)} al ${ultimo.etiqueta}, en ${dias1}` +
       (metas.length ? `; ${metas.map((m) => `${m.rotulo.toLocaleLowerCase("es")} de ${fmt(m.valor)}`).join(" y ")}` : ""),

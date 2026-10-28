@@ -188,11 +188,30 @@ describe("construirResumenAulas", () => {
     if (m.ritmo.tipo !== "serie") return;
     expect(m.ritmo.resumen).toBe("21 días con campo; el mejor, el 9 set con 466");
     expect(m.ritmo.metas.map((x) => [x.rotulo, x.valor, x.y])).toEqual([
-      ["Muestra", 2500, 37.5],
-      ["Meta operativa", 3750, 6.25],
+      ["Muestra", 2500, 24.75],
+      ["Meta operativa", 3750, 4.125],
     ]);
     expect(m.ritmo.marcasY.map((x) => x.texto)).toEqual(["0", "1,000", "2,000", "3,000", "4,000"]);
-    expect(m.ritmo.marcasX).toEqual(["7 set", "8 set", "1 oct"]);
+    // El 0 de la curva queda arriba de la banda del día: las dos zonas no se pisan.
+    expect(m.ritmo.marcasY[0].y).toBeLessThan(m.ritmo.bandaDia);
+  });
+
+  it("las barras del día van en su banda, a escala propia, con su cifra y su fecha", () => {
+    const m = construirResumenAulas(hsvg());
+    if (m.ritmo.tipo !== "serie") throw new Error("se esperaba serie");
+    const { dias, bandaDia, marcasX } = m.ritmo;
+    expect(dias.every((d) => d.yDia >= bandaDia && d.yDia <= 100)).toBe(true);
+    // El día más alto llena casi toda la banda: su barra se lee, no es ruido al pie.
+    const alto = dias.reduce((a, d) => (d.validas > a.validas ? d : a));
+    expect(alto.rotuloDia).toBe("2,661");
+    expect(100 - alto.yDia).toBeGreaterThan((100 - bandaDia) * 0.6);
+    expect(dias.find((d) => d.validas === 466)?.rotuloDia).toBe("466");
+    expect(dias.filter((d) => d.validas === 0).every((d) => d.rotuloDia === "")).toBe(true);
+    // Fechas bajo las barras: la primera y la última siempre, sin pasar de 14.
+    expect(marcasX[0].texto).toBe("7 set");
+    expect(marcasX[marcasX.length - 1].texto).toBe("1 oct");
+    expect(marcasX.length).toBeLessThanOrEqual(14);
+    expect(marcasX.every((x, i) => i === 0 || x.x > marcasX[i - 1].x)).toBe(true);
     expect(m.ritmo.trazo.startsWith("M")).toBe(true);
   });
 
