@@ -1,8 +1,7 @@
 // Notas de versión de Prosecnur — ubicación canónica.
 //
-// Se muestran en Configuración → Novedades (GlobalSettingsDialog) y en el
-// ReleaseNotesDrawer del Home; el BootGate chooser reusa el mismo diálogo
-// vía ChooserSettings. La entrada más reciente va PRIMERO.
+// Se muestran en Configuración → Novedades (GlobalSettingsDialog); el BootGate
+// chooser reusa el mismo diálogo vía ChooserSettings. La entrada más reciente va PRIMERO.
 
 export type ReleaseNote = {
   version: string;
