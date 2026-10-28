@@ -1,4 +1,4 @@
-import { projectRelTime } from "./ProjectLifecycleDialog";
+import { projectRelTime } from "./tiempoRelativo";
 import { areaDeMotivo, type MotivoSinGuardar } from "./modeloMotivosSinGuardar";
 import "./motivos-sin-guardar.css";
 
