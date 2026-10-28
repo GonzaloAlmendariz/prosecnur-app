@@ -1,7 +1,8 @@
 import { forwardRef, useRef, useState, type CSSProperties } from "react";
+import { accionVisible } from "./siguienteAccion";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
-import { MoreHorizontal, TriangleAlert } from "lucide-react";
+import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
 import type { ModuleCardView, ModuleCardViz } from "./moduleCardModel";
@@ -244,6 +245,17 @@ export const ModuleStatusCard = forwardRef<
             columnas con cifras grandes era ruido: es material de contexto y va
             como pie discreto, al estilo del pie de Finder. El CTA se fue
             porque la tarjeta entera ya es el botón. */}
+        {/* El renglón se reserva aunque no haya acción: así todas las tarjetas
+            miden lo mismo (contrato `equal` del grupo). */}
+        <span className="home-mc-siguiente" aria-hidden={accionVisible(view.action) ? undefined : true}>
+          {accionVisible(view.action) && (
+            <>
+              <ArrowRight size={12} aria-hidden="true" />
+              {accionVisible(view.action)}
+            </>
+          )}
+        </span>
+
         {view.facts.length > 0 && (
           <span className="home-mc-foot" aria-label={`Datos de ${cardTitle}`}>
             {view.facts.slice(0, 4).map((fact, index) => (

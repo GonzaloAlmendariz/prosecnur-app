@@ -1232,9 +1232,10 @@
 /* Piso de legibilidad, no altura de diseño: el alto real lo reparte
    grid-auto-rows. Con 8 módulos en 2 filas el piso debe caber en la mitad del
    área visible (544px a 1280x720), por eso `dense` baja a 232px. */
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 216px; }
-.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 208px; }
-.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 200px; }
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 238px; }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 230px; }
+/* +22 px desde L31: el renglón de la siguiente acción, reservado en todas. */
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 222px; }
 
 .home-mc-card:active { transform: scale(0.995); }
 
@@ -3163,4 +3164,19 @@
   font-size: 13px;
   line-height: 1.65;
   color: var(--pulso-text);
+}
+
+/* L31: la siguiente acción del módulo, cuando dice algo («Revisar alertas»,
+   «Continuar en Validación»). Va en el acento del módulo y sobre el pie. */
+.home-mc-siguiente {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 18px;
+  margin-top: var(--pulso-space-2);
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
 }
