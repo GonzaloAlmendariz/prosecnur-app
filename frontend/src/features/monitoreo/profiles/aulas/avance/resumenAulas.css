@@ -423,11 +423,16 @@
   min-width: 0;
 }
 
+/* Es un <button>: el `button` global del tema trae `align-items: center` y
+ * `white-space: nowrap`, que encogían cabeza y barra a su contenido (la barra
+ * medía 0 px) y montaban el nombre sobre el porcentaje. Se declaran aquí. */
 .aulas-res-tarjeta {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  align-items: stretch;
   justify-content: center;
+  white-space: normal;
   gap: 6px;
   min-width: 0;
   padding: var(--pulso-space-2) var(--pulso-space-3);
