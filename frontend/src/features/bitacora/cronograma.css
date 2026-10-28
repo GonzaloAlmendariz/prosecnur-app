@@ -156,6 +156,9 @@
 }
 
 .plan-commandbar-actions {
+  /* Siempre en la última pista: la barra maestra tiene tres zonas y el
+   * cronograma sólo dos hijos, así que sin esto las acciones caían al centro. */
+  grid-column: -2 / -1;
   justify-self: end;
   flex: 0 1 auto;
   gap: 2px;

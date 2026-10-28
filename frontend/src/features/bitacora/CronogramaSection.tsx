@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   Download,
   FileSpreadsheet,
   GanttChart,
@@ -273,8 +274,10 @@ export function CronogramaSection({
               construye acá (ADR 0047). El export sigue siendo el formato que el
               cliente espera, y el import rescata cronogramas ya hechos. */}
           <details className="plan-excel-menu">
-            <summary className="plan-button">
+            <summary className="plan-button" aria-label="Excel: importar, exportar o limpiar el cronograma">
+              <FileSpreadsheet size={15} aria-hidden="true" />
               <span>Excel</span>
+              <ChevronDown size={13} aria-hidden="true" className="plan-excel-flecha" />
             </summary>
             <div className="plan-excel-opciones">
               <label className="plan-button">

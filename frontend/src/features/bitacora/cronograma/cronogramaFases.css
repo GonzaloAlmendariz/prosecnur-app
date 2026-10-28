@@ -11,9 +11,21 @@
   position: relative;
   display: inline-flex;
   gap: var(--pulso-section-pill-gap);
-  padding: var(--pulso-chrome-pad);
-  border-radius: var(--pulso-chrome-radius);
+  padding: 3px;
+  border-radius: 9999px;
   background: var(--pulso-surface-2);
+}
+
+/* El conmutador lleva además `plan-command-side` (lo usa el contrato de
+ * semántica de pestañas como marcador). Esa clase le ponía un segundo marco con
+ * `overflow: hidden` encima del suyo y cortaba el borde de la pastilla activa. */
+.plan-vista-switch.plan-command-side {
+  min-height: 0;
+  padding: 3px;
+  border: 0;
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+  overflow: visible;
 }
 
 .plan-vista-boton {
@@ -25,7 +37,7 @@
   height: var(--pulso-section-pill-h);
   padding-inline: var(--pulso-section-pill-pad-x);
   border: 0;
-  border-radius: calc(var(--pulso-chrome-radius) - var(--pulso-chrome-pad));
+  border-radius: 9999px;
   background: transparent;
   color: var(--pulso-text-faint);
   font-size: 13px;
@@ -56,6 +68,15 @@
 .plan-excel-menu > summary {
   list-style: none;
   cursor: pointer;
+}
+
+.plan-excel-flecha {
+  color: var(--pulso-text-faint);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.plan-excel-menu[open] .plan-excel-flecha {
+  transform: rotate(180deg);
 }
 
 .plan-excel-menu > summary::-webkit-details-marker {
