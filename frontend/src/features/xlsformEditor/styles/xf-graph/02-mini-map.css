@@ -24,8 +24,10 @@
   transition: fill 140ms ease;
 }
 
+/* Llama la atención al colapsarse y después se queda quieta: un pulso sin fin
+ * sólo distrae (L37). */
 .pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
-  animation: pulso-graph-legend-attention 2.4s ease-in-out infinite;
+  animation: pulso-graph-legend-attention 2.4s ease-in-out 3;
   animation-delay: 1.5s;
 }
 

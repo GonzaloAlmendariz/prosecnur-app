@@ -1887,8 +1887,10 @@
    Bloques byte-idénticos; append: sin solape de selectores con el resto del archivo.
    ========================================================================= */
 
+/* El paso activo ya se distingue por su color: el pulso marca la llegada y
+ * se detiene (L37). */
 .pulso-stepper-pulse {
-  animation: pulso-stepper-pulse-kf 1800ms ease-out infinite;
+  animation: pulso-stepper-pulse-kf 1800ms ease-out 3;
 }
 
 .pulso-confetti-particle {
