@@ -167,6 +167,13 @@
   padding-left: var(--pulso-space-4);
 }
 
+/* En la tabla por sexo la facultad ocupa la primera celda con `rowSpan`: en la
+ * segunda fila de cada grupo el sexo pasa a ser `:first-child` y heredaba el
+ * margen del borde, 8 px más a la derecha que el de la fila de arriba. */
+.aulas-pf-tabla-marco .aulas-pf-tabla.is-sexo tbody tr:not(:first-child) > td:first-child {
+  padding-left: var(--pulso-space-2);
+}
+
 .aulas-pf-tabla-marco .aulas-pf-tabla :is(th, td):last-child {
   padding-right: var(--pulso-space-4);
 }
@@ -387,9 +394,12 @@
   margin: 0;
 }
 
+/* La cifra se apoya al pie: un rótulo de dos líneas («Caídos sin relevo»)
+ * bajaba la suya y las cuatro dejaban de leerse en una fila. */
 .aulas-pf-cifras > div {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--pulso-space-1);
   min-width: 0;
 }
