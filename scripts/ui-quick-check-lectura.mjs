@@ -17,11 +17,11 @@
 // Viven en su propio archivo porque `ui-quick-check.mjs` ya pasa las 2.700
 // líneas; `inspectDom` los llama y suma sus hallazgos al resultado.
 
-/** Corre los tres detectores en la página y devuelve sus hallazgos. */
+/** Corre los detectores de lectura en la página y devuelve sus hallazgos. */
 export async function medirLectura(page, { rootSelector = "" } = {}) {
   return page.evaluate(async ({ alcance }) => {
     const raiz = alcance ? document.querySelector(alcance) : document.body;
-    const vacio = { rotulosPartidos: [], textosFuera: [], cabecerasQueTapan: [] };
+    const vacio = { rotulosPartidos: [], textosFuera: [], cabecerasQueTapan: [], columnasOcultas: [] };
     if (!raiz) return vacio;
     const TOPE = 20;
     const NO_TEXTO = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "INPUT", "SELECT", "OPTION", "TEMPLATE", "SVG"]);
@@ -279,6 +279,44 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       }
     }
 
-    return { rotulosPartidos, textosFuera, cabecerasQueTapan };
+    // ── Columnas ocultas ────────────────────────────────────────────────────
+    //
+    // Una tabla más ancha que el ancestro que la recorta deja cabeceras fuera
+    // de la vista. `desplazamientoH` sólo mide los marcos de un grupo de
+    // geometría declarado, y en Equipo del telefónico a 1280 «Intentos por
+    // caso» quedaba detrás del borde con desplazamientoH=0. Se nombran las
+    // cabeceras que no se ven y se dice si el marco DESPLAZA (alcanzable,
+    // aunque en macOS la barra no se vea) o RECORTA (inalcanzable).
+    const columnasOcultas = [];
+    for (const tabla of raiz.querySelectorAll("table")) {
+      if (columnasOcultas.length >= TOPE) break;
+      if (!visible(tabla)) continue;
+      let marco = tabla.parentElement;
+      let stMarco = null;
+      while (marco && marco !== document.documentElement) {
+        stMarco = window.getComputedStyle(marco);
+        if (stMarco.overflowX !== "visible") break;
+        marco = marco.parentElement;
+      }
+      if (!marco || marco === document.documentElement || !stMarco) continue;
+      const rm = marco.getBoundingClientRect();
+      const borde = rm.left + marco.clientLeft + marco.clientWidth;
+      const fila = tabla.tHead?.rows[tabla.tHead.rows.length - 1] ?? tabla.rows[0];
+      if (!fila) continue;
+      const cabeceras = [...fila.cells]
+        .filter((celda) => celda.getBoundingClientRect().right - (marco.scrollLeft || 0) > borde + 2)
+        .map((celda) => (celda.textContent || "").replace(/\s+/g, " ").trim() || `columna ${celda.cellIndex + 1}`);
+      if (!cabeceras.length) continue;
+      columnasOcultas.push({
+        type: "columnas-ocultas",
+        ...describir(tabla),
+        cabeceras,
+        alcanzable: stMarco.overflowX === "auto" || stMarco.overflowX === "scroll",
+        oculto: Math.round(tabla.getBoundingClientRect().right - borde),
+        marco: describir(marco).className,
+      });
+    }
+
+    return { rotulosPartidos, textosFuera, cabecerasQueTapan, columnasOcultas };
   }, { alcance: rootSelector });
 }

@@ -63,6 +63,29 @@ test("rótulo partido: una palabra cortada entre dos líneas largas se marca aun
   assert.equal(marcado(rotulosPartidos, "guionado-sano"), false, "el guionado automático parte con guion a propósito");
 });
 
+test("columnas ocultas: una tabla más ancha que su marco nombra las cabeceras que no se ven, y distingue desplazar de recortar", async () => {
+  // Equipo del telefónico a 1280 (2026-10-28): «Intentos por caso» quedaba
+  // detrás del borde y desplazamientoH decía 0, porque sólo mide los marcos
+  // de un grupo de geometría declarado.
+  const tabla = (clase) => `
+    <table class="${clase}" style="border-collapse:collapse;white-space:nowrap">
+      <thead><tr><th>Operador</th><th>Asignados</th><th>Llamados</th><th>Sin efectiva</th><th>Intentos por caso</th></tr></thead>
+      <tbody><tr><td>Ana Prueba</td><td>73</td><td>73</td><td>17.8 %</td><td>1.9</td></tr></tbody>
+    </table>`;
+  const { columnasOcultas } = await medir(`
+    <div style="width:260px;overflow:auto">${tabla("tabla-desplaza")}</div>
+    <div style="width:260px;overflow:hidden">${tabla("tabla-recorta")}</div>
+    <div style="width:700px;overflow:auto">${tabla("tabla-cabe")}</div>
+  `);
+  const de = (clase) => columnasOcultas.find((item) => item.className.includes(clase));
+  assert.ok(de("tabla-desplaza"), "la tabla que desplaza debió informarse");
+  assert.equal(de("tabla-desplaza").alcanzable, true);
+  assert.ok(de("tabla-desplaza").cabeceras.includes("Intentos por caso"));
+  assert.ok(de("tabla-recorta"), "la tabla recortada debió marcarse");
+  assert.equal(de("tabla-recorta").alcanzable, false);
+  assert.equal(de("tabla-cabe"), undefined, "la que cabe no se informa");
+});
+
 test("texto fuera de su tarjeta: la línea que cruza el borde se marca; la que cabe o se recorta, no", async () => {
   const { textosFuera } = await medir(`
     <ul style="list-style:none;padding:0;width:260px">

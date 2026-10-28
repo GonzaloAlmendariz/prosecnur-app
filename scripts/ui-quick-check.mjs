@@ -1758,6 +1758,39 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       if (scrollJails.length >= 40) break;
     }
 
+    // ── Desborde hacia ARRIBA inalcanzable (L12) ───────────────────────────
+    //
+    // Un contenedor que centra en vertical (`justify-content: center` en una
+    // columna flex, `align-content: center` en un grid) reparte su desborde
+    // arriba y abajo. Lo de abajo se alcanza con scroll; lo de arriba queda
+    // ANTES del inicio del scroll y no se alcanza nunca. El detector de arriba
+    // no lo veía porque el ancestro sí tiene dueño de scroll: el Home a
+    // 1024×600 cortaba la primera fila de tarjetas con scrollJails=0 (censo
+    // 2026-10-10, hallazgo 15d). `safe center` es el arreglo en CSS.
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (scrollJails.length >= 40) break;
+      if (!isVisibleElement(el)) continue;
+      const style = window.getComputedStyle(el);
+      const columna = style.display.includes("flex") && style.flexDirection.startsWith("column");
+      const centra = (columna && style.justifyContent === "center") ||
+        (style.display.includes("grid") && style.alignContent === "center");
+      if (!centra) continue;
+      const caja = el.getBoundingClientRect();
+      if (caja.height < 40) continue;
+      const primero = Array.from(el.children).find((hijo) => isVisibleElement(hijo));
+      if (!primero) continue;
+      const arriba = Math.round(caja.top - primero.getBoundingClientRect().top);
+      if (arriba <= 2) continue;
+      scrollJails.push({
+        type: "scroll-jail-arriba",
+        ...describeEl(el),
+        overflowY: style.overflowY,
+        recorteArribaPx: arriba,
+        scrollOwner: nearestScrollableY(el) ? describeEl(nearestScrollableY(el)) : null,
+        rect: { x: Math.round(caja.x), y: Math.round(caja.y), width: Math.round(caja.width), height: Math.round(caja.height) },
+      });
+    }
+
     // ── Paneles aplastados: el contenido se pinta FUERA de su marco ─────────
     //
     // `scrollJails` sólo mira una lista fija de contenedores de layout, así que
@@ -2533,6 +2566,10 @@ export function summarize(results, opts) {
   const rotulosPartidos = results.flatMap((item) => (item.rotulosPartidos || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
   const textosFuera = results.flatMap((item) => (item.textosFuera || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
   const cabecerasQueTapan = results.flatMap((item) => (item.cabecerasQueTapan || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  // Tablas con cabeceras fuera de la vista. Desplazar es legítimo y sólo se
+  // informa; un marco que RECORTA las deja inalcanzables y eso sí falla.
+  const columnasOcultas = results.flatMap((item) => (item.columnasOcultas || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  const columnasRecortadas = columnasOcultas.filter((d) => !d.alcanzable);
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
   const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
@@ -2604,6 +2641,9 @@ export function summarize(results, opts) {
     rotulosPartidos: rotulosPartidos.length,
     textosFuera: textosFuera.length,
     cabecerasQueTapan: cabecerasQueTapan.length,
+    columnasOcultas: columnasOcultas.length,
+    columnasRecortadas: columnasRecortadas.length,
+    columnasOcultasDetalle: columnasOcultas.slice(0, 5),
     rotuloPartidoDetalle: rotulosPartidos.slice(0, 5),
     textoFueraDetalle: textosFuera.slice(0, 5),
     cabeceraQueTapaDetalle: cabecerasQueTapan.slice(0, 5),
@@ -2633,6 +2673,7 @@ export function summarize(results, opts) {
       rotulosPartidos.length === 0 &&
       textosFuera.length === 0 &&
       cabecerasQueTapan.length === 0 &&
+      columnasRecortadas.length === 0 &&
       geometryIssues.length === 0 &&
       geometryCoverageMisses.length === 0 &&
       globalOverflow.length === 0 &&
@@ -2753,7 +2794,7 @@ async function main() {
     for (const d of summary.routeDeviationDetalle || []) {
       console.log(`[ui-quick-check] ruta desviada: ${d.route} → ${d.finalUrl} (readiness=${d.readiness ?? "?"}) ${d.motivo}`);
     }
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} rotulosPartidos=${summary.rotulosPartidos} textosFuera=${summary.textosFuera} cabecerasQueTapan=${summary.cabecerasQueTapan} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} rotulosPartidos=${summary.rotulosPartidos} textosFuera=${summary.textosFuera} cabecerasQueTapan=${summary.cabecerasQueTapan} columnasOcultas=${summary.columnasOcultas} columnasRecortadas=${summary.columnasRecortadas} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();
