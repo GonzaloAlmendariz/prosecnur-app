@@ -2026,17 +2026,6 @@
   min-height: 420px;
 }
 
-.pulso-analitica-nav-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-}
-
-.pulso-data-review-command-chip.is-danger {
-  border-color: var(--pulso-danger-border);
-  color: var(--pulso-danger-fg);
-  background: var(--pulso-danger-bg);
-}
-
 .analitica-stat-label {
   display: block;
   margin-bottom: 3px;
@@ -2859,35 +2848,6 @@
   white-space: nowrap;
   color: var(--pulso-text-soft);
   font-size: 12px;
-}
-
-.pulso-analitica-nav-copy strong,
-.pulso-analitica-nav-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-
-.pulso-analitica-nav-copy span {
-  display: none;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  opacity: 1;
-  transition:
-    color var(--motion-dur-fast) ease,
-    opacity var(--motion-dur-fast) ease;
-}
-
-.pulso-analitica-nav-item:hover:not(:disabled) .pulso-analitica-nav-copy span,
-.pulso-analitica-nav-item:focus-visible .pulso-analitica-nav-copy span,
-.pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy span {
-  display: block;
-}
-
-.pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy strong,
-.pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy span {
-  color: #fff;
 }
 
 /* ── 10. Ronda de pulido (P-A5, P-M3, P-M12, P-B5) ─────────────────────── */
