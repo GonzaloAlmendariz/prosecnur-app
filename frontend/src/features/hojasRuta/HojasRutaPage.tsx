@@ -63,7 +63,7 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
-import { ChromeIndicator, ChromeIndicatorGroup, type ChromeIndicatorProps } from "../../components/ChromeIndicator";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
 import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
@@ -89,6 +89,7 @@ import "./avisosEnFila.css";
 import { SeleccionMesa } from "./seleccion/SeleccionMesa";
 import { chipsDeSeleccion } from "./seleccion/chipsDeSeleccion";
 import { RevisionContraMarco } from "./seleccion/RevisionContraMarco";
+import { indicadoresDecididos } from "./chrome/loDecidido";
 import { revisarSeleccion } from "./seleccion/revisionMarco";
 import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
 import { describirMarcoCartografia } from "./marcoCartografia";
@@ -1037,10 +1038,6 @@ function StatusPill({ ok, text, tone }: { ok?: boolean; text: string; tone?: Sta
 
 // Envoltorio delgado sobre el indicador compartido: acá solo vive la prioridad
 // con que cada dato cede cuando la banda aprieta.
-function HeaderSummaryPill({ label, value, prioridad }: { label: string; value: string; prioridad?: ChromeIndicatorProps["prioridad"] }) {
-  return <ChromeIndicator label={label} value={value} prioridad={prioridad} />;
-}
-
 function compactPhaseNotice(message: string) {
   const match = message.match(/corrida de ([\d.,]+)\s+entrevistas/i);
   if (match) return `Piloto guardado · ${match[1]} entrevistas`;
@@ -7733,20 +7730,24 @@ export default function HojasRutaPage() {
     </>
   ) : undefined;
 
+  const loDecidido = indicadoresDecididos({
+    distritos: selectedTerritories.length,
+    poblacion: selectedPopulation > 0 ? selectedPopulation : (frame?.poblacion ?? 0),
+    n: quota ? quota.total_asignado : null,
+    margen: sampleSizePreview?.margin_total_estimated ?? null,
+    titulares: sample ? selectedBlocks.length : null,
+    reemplazos: sample ? replacementBlocks.length : null,
+  });
   const chromeBar = frame?.ok ? (
     <ModuleCommandBar
       modulo="hojas-ruta"
       className="hojas-ruta-commandbar"
       ariaLabel="Contexto operativo de hojas de ruta"
       contexto={
-        <ChromeIndicatorGroup
-          ariaLabel="Resumen del marco"
-          resumen={`Base: ${frame.ok ? "cargada" : "pendiente"} · Distritos: ${formatNumber(selectedTerritories.length)} · Población: ${formatNumber(selectedPopulation > 0 ? selectedPopulation : (frame.poblacion ?? 0))} · Manzanas censales: ${formatNumber(selectedManzanas > 0 ? selectedManzanas : (frame.n_manzanas ?? 0))}`}
-        >
-          <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} prioridad="baja" />
-          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} prioridad="alta" />
-          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} prioridad="alta" />
-          <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} prioridad="media" />
+        <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={loDecidido.map((i) => i.detalle).join(" · ")}>
+          {loDecidido.map((i) => (
+            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.prioridad} onClick={() => selectStage(i.seccion)} />
+          ))}
         </ChromeIndicatorGroup>
       }
       secciones={
