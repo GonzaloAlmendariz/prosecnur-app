@@ -2031,20 +2031,6 @@
   opacity: 0.72;
 }
 
-.pulso-analitica-panel-copy h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 14px;
-  line-height: 1.15;
-}
-
-.pulso-analitica-panel-copy p {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.25;
-}
-
 .pulso-data-review-command-chip.is-danger {
   border-color: var(--pulso-danger-border);
   color: var(--pulso-danger-fg);
@@ -2904,16 +2890,6 @@
   color: #fff;
 }
 
-.pulso-analitica-panel-copy h2 {
-  font-size: 14px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-analitica-panel-copy p {
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
 /* ── 10. Ronda de pulido (P-A5, P-M3, P-M12, P-B5) ─────────────────────── */
 
 /* «Añadir…» es un PulsoButton secundario con `Plus`; dentro de una columna
@@ -3052,4 +3028,15 @@ label.analitica-control-card > input[type="checkbox"] ~ .analitica-control-icon 
 
 .pulso-analitica-frame .analitica-control-grid + .analitica-presentation-note {
   margin-top: var(--pulso-space-2);
+}
+
+/* L14: la línea «Cuentan todos los casos · Definir» va como banda bajo el
+   TabHeading, dentro del mismo bloque pegado. Vacía cuando no hay universo. */
+.pulso-analitica-universo-banda {
+  padding: 0 18px 8px 70px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-analitica-universo-banda:empty {
+  display: none;
 }

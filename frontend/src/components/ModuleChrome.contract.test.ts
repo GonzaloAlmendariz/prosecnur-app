@@ -211,7 +211,7 @@ const ES_ESTADO = /:hover|:focus-visible|\.is-active|aria-selected|aria-current/
  * misma banda es lo que hacía que la app se viera armada por partes.
  */
 const ALTURA_PROPIA_PENDIENTE = [
-  "app/theme.css :: .pulso-analitica-panel-head > .pulso-analitica-sourcebar--panel",
+  "app/theme.css :: .pulso-analitica-panel-head .pulso-tab-heading-control > .pulso-analitica-sourcebar--panel",
   "app/theme.css :: .pulso-analitica-sourcebar",
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-actions :where(button, label)",
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-actions > [role=\"status\"]",
