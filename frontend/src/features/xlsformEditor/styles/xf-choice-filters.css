@@ -533,41 +533,20 @@
 .xcf-sel__nada { padding: 8px; font-size: 12px; color: var(--pulso-text-muted); }
 
 /* ── Diálogo «Nuevo filtro» (portal: hereda el tono por tonoDePortales) ───── */
-.xcf-velo {
+/* El Dialog del kit monta en un portal fuera de .xcf: los tokens de la vista
+   se re-declaran en su clase (L1). Cabecera, pie y velo los pone el kit. */
+.xcf-dialogo-kit {
   --xcf-acento: var(--module-accent, var(--pulso-primary));
   --xcf-acento-suave: color-mix(in srgb, var(--xcf-acento) 8%, var(--pulso-surface));
   --xcf-acento-borde: color-mix(in srgb, var(--xcf-acento) 34%, var(--pulso-border));
   --xcf-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --xcf-t: 170ms;
-  position: fixed;
-  inset: 0;
-  z-index: 1600;
-  display: grid;
-  place-items: center;
-  padding: 24px 16px;
-  background: color-mix(in srgb, var(--pulso-text) 28%, transparent);
-  font-size: 13px;
-  color: var(--pulso-text);
-  animation: xcf-aparecer 170ms var(--motion-ease-out, ease) both;
 }
-.xcf-velo code { font-family: var(--xcf-mono); font-size: 11.5px; }
-.xcf-dialogo {
-  display: flex;
-  flex-direction: column;
-  width: min(640px, 100%);
-  max-height: calc(100dvh - 48px);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-popover);
-}
-.xcf-dialogo__cab { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; padding: 14px 18px 10px; border-bottom: 1px solid var(--pulso-border); }
-.xcf-dialogo__cab h2 { margin: 0; font-size: 15px; font-weight: var(--pulso-weight-semibold); }
+.xcf-dialogo-kit code { font-family: var(--xcf-mono); font-size: 11.5px; }
 .xcf-pasos { display: flex; gap: 12px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--pulso-text-faint); }
 .xcf-pasos .is-actual { color: var(--xcf-acento); font-weight: var(--pulso-weight-semibold); }
 .xcf-pasos .is-hecho { color: var(--pulso-text-soft); }
-.xcf-dialogo__cuerpo { display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 14px 18px; overflow-y: auto; }
-.xcf-dialogo__pie { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 18px 14px; border-top: 1px solid var(--pulso-border); }
+.xcf-dialogo-kit__cuerpo { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .xcf-llamado {
   display: flex;
   flex-wrap: wrap;
@@ -581,7 +560,6 @@
   font-size: 12.5px;
 }
 
-@keyframes xcf-aparecer { from { opacity: 0; } to { opacity: 1; } }
 
 /* ── Vacío ────────────────────────────────────────────────────────────────── */
 .xcf-vacio { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; flex: 1 1 auto; padding: 48px 24px; text-align: center; color: var(--pulso-text-muted); }
@@ -606,6 +584,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .xcf *,
-  .xcf-velo,
-  .xcf-velo * { transition: none !important; animation: none !important; }
+  .xcf-dialogo-kit * { transition: none !important; animation: none !important; }
 }

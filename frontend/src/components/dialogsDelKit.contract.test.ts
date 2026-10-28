@@ -91,7 +91,6 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/validacion/components/ContextLens.tsx": 1,
   "features/validacion/components/CrossBar.tsx": 1,
   "features/xlsformEditor/canvas-graph/ConnectionConditionPicker.tsx": 1,
-  "features/xlsformEditor/choiceFilters/NuevoFiltroDialogo.tsx": 1,
   "features/xlsformEditor/kit/PanelMarca.tsx": 1,
   "features/xlsformEditor/shell/AddElementMenu.tsx": 1,
   "features/xlsformEditor/shell/Coachmarks.tsx": 1,
