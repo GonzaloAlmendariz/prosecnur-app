@@ -452,26 +452,6 @@
   white-space: nowrap;
 }
 
-.bcanvas-ref-ir {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--pulso-nav-item-radius);
-  color: var(--module-accent, var(--pulso-text-faint));
-  text-decoration: none;
-}
-
-.bcanvas-ref-ir:hover {
-  background: var(--pulso-surface-3);
-}
-
-.bcanvas-ref-ir:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
-  outline-offset: 1px;
-}
-
 /* El recorte va en el CONTENIDO, no en la tarjeta.
  *
  * Con `overflow: hidden` en el nodo, las anclas —que sobresalen 4 px para poder
@@ -573,8 +553,7 @@
 /* Popover anclado, no un bloque en el flujo: si el selector empujara el lienzo,
  * abrirlo movería todos los nodos bajo el cursor y el marco de la superficie
  * cambiaría de tamaño según lo que el usuario está haciendo (C2). */
-.bcanvas-explorador,
-.bcanvas-selector {
+.bcanvas-explorador {
   position: absolute;
   z-index: 1400;
   inset-block-start: 6px;
@@ -598,12 +577,6 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-}
-
-.bcanvas-selector-cabecera {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .bcanvas-selector-busqueda {
@@ -633,63 +606,6 @@
   outline: none;
 }
 
-.bcanvas-selector-cabecera > button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: var(--pulso-nav-item-radius);
-  background: transparent;
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-}
-
-/* Columnas declaradas una vez y heredadas: el sello, el título y el contexto
- * caen en la misma x en toda la lista, mezcle piezas, hitos y entradas. */
-.bcanvas-selector-lista {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
-  row-gap: 2px;
-  column-gap: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.bcanvas-selector-lista li {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-}
-
-.bcanvas-selector-lista button {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: var(--pulso-radius);
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  text-align: start;
-  cursor: pointer;
-}
-
-.bcanvas-selector-lista button:hover {
-  background: var(--pulso-surface-3);
-}
-
-.bcanvas-selector-lista button:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
-  outline-offset: -2px;
-}
-
 .bcanvas-selector-sello {
   display: inline-flex;
   align-items: center;
@@ -704,12 +620,6 @@
 .bcanvas-selector-titulo {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bcanvas-selector-lista small {
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
   white-space: nowrap;
 }
 
@@ -764,13 +674,6 @@
   background: var(--pulso-surface-2);
   font: inherit;
   font-size: 11px;
-}
-
-/* El cursor del teclado se ve igual que el hover: quien navega con flechas ve
- * lo mismo que quien apunta con el ratón. */
-.bcanvas-selector-lista button[data-activo="true"] {
-  background: var(--pulso-surface-3);
-  box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary));
 }
 
 /* --- Explorador jerárquico ----------------------------------------------- */

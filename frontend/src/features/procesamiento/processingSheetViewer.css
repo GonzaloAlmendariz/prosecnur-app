@@ -1,11 +1,4 @@
-/* =========================================================================
-   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
-   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
-   ========================================================================= */
 
-.pulso-sheet-surface {
-  border-radius: var(--pulso-radius-panel);
-}
 
 .pulso-processing-sheet {
   --sheet-integer: #7c3aed;
@@ -677,23 +670,6 @@
   padding: 8px 12px;
 }
 
-.pulso-carga-header-controls {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.pulso-carga-view-tabs {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84), color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 32%, #fff 68%));
-}
-
-.pulso-carga-view-tabs button[aria-disabled="true"]:not(.is-active) {
-  opacity: 0.64;
-}
-
 .pulso-carga-base-shell {
   display: flex;
   flex: 1;
@@ -810,21 +786,15 @@
     width: 100%;
   }
 
-  .pulso-carga-header-controls,
   .pulso-carga-base-picker {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .pulso-carga-view-tabs,
   .pulso-carga-base-picker select {
     width: 100%;
   }
 
-  .pulso-carga-view-tabs button {
-    flex: 1;
-    justify-content: center;
-  }
 }
 
 /* ============================================================

@@ -1216,15 +1216,11 @@ input {
   }
 
   .boot-warmup-step,
-  .boot-step-icon,
-  .boot-button,
-  .boot-path-field input {
+.boot-step-icon,
+.boot-path-field input {
     transition: none;
   }
 
-  .boot-button:active:not(:disabled) {
-    transform: none;
-  }
 }
 
 .boot-background-warmup {
