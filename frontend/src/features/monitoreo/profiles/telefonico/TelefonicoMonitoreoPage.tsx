@@ -294,6 +294,7 @@ import type {
 import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, caseDuplicateLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
 import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, caseIsAuditable, casePrimaryEvidence, caseSecondaryEvidence, casePhoneAction, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
+import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
@@ -487,13 +488,6 @@ function phoneEffectiveFilterLabel(option: PhoneEffectiveFilterQuestionOption) {
   return option.label && option.label !== option.value ? `${option.label} (${option.value})` : option.value;
 }
 
-function preferredPhoneEffectiveValue(choices: string[]) {
-  return choices.find((choice) => ["yes", "si", "sí", "1", "true"].includes(normalizeSourceMatch(choice)))
-    ?? choices.find((choice) => normalizeSourceMatch(choice).includes("consent"))
-    ?? choices[0]
-    ?? "";
-}
-
 function phoneEffectiveFilterQuestionScore(option: PhoneEffectiveFilterQuestionOption) {
   const haystack = normalizeSourceMatch(`${option.value} ${option.label} ${option.type}`);
   if (haystack.includes("consent")) return 0;
@@ -638,13 +632,6 @@ function platformAnswerOptions(options: PlatformRejectionQuestionOption[], draft
   const choices = selected?.choices ?? [];
   const current = draft.answers.trim();
   return current && !choices.includes(current) ? [current, ...choices] : choices;
-}
-
-function splitListInput(value: string) {
-  return value
-    .split(/[,;\n]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function AcreditacionPlatformRejectionEditor({
@@ -2004,22 +1991,6 @@ function formatCalendarWeekdayLabel(value: string | null | undefined) {
   return date ? CALENDAR_WEEKDAY_FORMATTER.format(date).replace(".", "") : "";
 }
 
-function calendarPhaseDurationDays(phase: MonitoreoStrategyPhase) {
-  const start = phase.start_date ?? "";
-  const end = phase.end_date || start;
-  if (!start || !end) return null;
-  const diff = calendarDateDiffDays(start, end);
-  return diff != null && diff >= 0 ? diff + 1 : null;
-}
-
-function calendarPhaseWeekDurationDays(phase: MonitoreoStrategyPhase) {
-  const startWeek = Number(phase.start_week);
-  const endWeek = Number(phase.end_week ?? phase.start_week);
-  if (!Number.isFinite(startWeek) || startWeek <= 0) return 1;
-  if (!Number.isFinite(endWeek) || endWeek < startWeek) return 7;
-  return Math.max(1, endWeek - startWeek + 1) * 7;
-}
-
 function calendarReportScheduleRows(phase: MonitoreoStrategyPhase): AcreditacionCalendarReportRow[] {
   const defaultWeekday = normalizeCalendarReportWeekday(phase.client_report_weekday);
   const exceptions = calendarReportExceptions(phase);
@@ -2104,22 +2075,6 @@ function calendarPhaseDateRangeLabel(phase: MonitoreoStrategyPhase) {
   return "Sin fecha";
 }
 
-function calendarPhaseOverlapCount(phase: MonitoreoStrategyPhase, index: number, phases: MonitoreoStrategyPhase[]) {
-  const start = phase.start_date ?? "";
-  const end = phase.end_date || start;
-  if (!start || !end || calendarDateDiffDays(start, end) == null) return 0;
-  return phases.reduce((count, candidate, candidateIndex) => {
-    if (candidateIndex === index) return count;
-    const candidateStart = candidate.start_date ?? "";
-    const candidateEnd = candidate.end_date || candidateStart;
-    if (!candidateStart || !candidateEnd) return count;
-    const validCandidate = calendarDateDiffDays(candidateStart, candidateEnd);
-    if (validCandidate == null || validCandidate < 0) return count;
-    const overlaps = start <= candidateEnd && candidateStart <= end;
-    return overlaps ? count + 1 : count;
-  }, 0);
-}
-
 function calendarPhaseDateStatus(phase: MonitoreoStrategyPhase, index: number, phases: MonitoreoStrategyPhase[]): AcreditacionCalendarPhaseDateStatus {
   const start = phase.start_date ?? "";
   const end = phase.end_date ?? "";
@@ -2160,29 +2115,6 @@ function calendarPhaseDateStatus(phase: MonitoreoStrategyPhase, index: number, p
     durationLabel: "Pendiente",
     overlapCount,
   };
-}
-
-function calendarBasePhase(phases: MonitoreoStrategyPhase[]) {
-  return phases.find((phase) => parseCalendarIsoDate(phase.start_date));
-}
-
-function distributeCalendarDatesByWeek(phases: MonitoreoStrategyPhase[]) {
-  const basePhase = calendarBasePhase(phases);
-  const baseDate = basePhase?.start_date ?? "";
-  if (!basePhase || !baseDate) return null;
-  const baseWeek = Number(basePhase.start_week) > 0 ? Number(basePhase.start_week) : 1;
-  return phases.map((phase) => {
-    const startWeek = Number(phase.start_week) > 0 ? Number(phase.start_week) : baseWeek;
-    const endWeek = Number(phase.end_week ?? phase.start_week) >= startWeek ? Number(phase.end_week ?? phase.start_week) : startWeek;
-    const startOffset = Math.max(0, startWeek - baseWeek) * 7;
-    const durationDays = Math.max(1, endWeek - startWeek + 1) * 7;
-    const startDate = calendarAddDaysIso(baseDate, startOffset);
-    return {
-      ...phase,
-      start_date: startDate,
-      end_date: startDate ? calendarAddDaysIso(startDate, durationDays - 1) : phase.end_date,
-    };
-  });
 }
 
 function buildCalendarTimeline(phases: MonitoreoStrategyPhase[]) {
@@ -2291,40 +2223,6 @@ function AcreditacionFieldCalendarTimeline({ phases }: { phases: MonitoreoStrate
   );
 }
 
-function inferCalendarModality(channels: string[], sources: MonitoreoSource[]): MonitoreoStrategyPhase["modality"] {
-  const text = [...channels, ...sources.map((source) => source.label), ...sources.map((source) => source.role)]
-    .map(normalizeSourceMatch)
-    .join(" ");
-  const hits: MonitoreoStrategyPhase["modality"][] = [];
-  if (text.includes("telefon") || text.includes("phone") || text.includes("call")) hits.push("telefono");
-  if (text.includes("whatsapp") || text.includes("wa ")) hits.push("whatsapp");
-  if (text.includes("sms")) hits.push("sms");
-  if (text.includes("presencial") || text.includes("qr")) hits.push("presencial");
-  if (text.includes("correo") || text.includes("email") || text.includes("mail") || text.includes("survey") || text.includes("web")) hits.push("email");
-  const uniqueHits = Array.from(new Set(hits));
-  if (uniqueHits.length > 1) return "mixto";
-  return uniqueHits[0] ?? (channels.length > 1 ? "mixto" : "email");
-}
-
-function calendarGoalActor(goal: MonitoreoGoal, preferredKey: string) {
-  const filters = goal.filters ?? {};
-  const preferred = preferredKey ? filters[preferredKey] : "";
-  const fallback = Object.values(filters).find((value) => String(value ?? "").trim());
-  return String(preferred || fallback || "").trim();
-}
-
-function calendarGoalForActor(actor: string, goals: MonitoreoGoal[], preferredKey: string) {
-  const actorKey = normalizeSourceMatch(actor);
-  const goal = goals.find((item) => normalizeSourceMatch(calendarGoalActor(item, preferredKey)) === actorKey);
-  const meta = goal ? Number(goal.meta) : NaN;
-  return Number.isFinite(meta) && meta > 0 ? meta : null;
-}
-
-function calendarTargetRule(actor: string, meta: number | null) {
-  if (meta && meta > 0) return `Cubrir ${fmt(meta)} efectivas de ${actor}`;
-  return `Cubrir meta y faltantes de ${actor}`;
-}
-
 function calendarPhaseFromPlan(plan: AcreditacionCalendarActorPlan, index: number): MonitoreoStrategyPhase {
   return {
     id: `campo-${Date.now()}-${index}`,
@@ -2343,10 +2241,6 @@ function calendarPhaseFromPlan(plan: AcreditacionCalendarActorPlan, index: numbe
     attempts_var: "",
     outcome_var: "",
   };
-}
-
-function splitCalendarTokens(value: string) {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 const PHONE_QUOTA_ACTOR_FILTER_KEYS = new Set([
@@ -2380,10 +2274,6 @@ function phoneQuotaIsActorFilterKey(key: string) {
 
 function phoneQuotaGoalHasActor(goal: MonitoreoGoal) {
   return Object.keys(goal.filters ?? {}).some(phoneQuotaIsActorFilterKey);
-}
-
-function phoneQuotaGoalValue(goal: MonitoreoGoal, variable: string) {
-  return String(goal.filters?.[variable] ?? "").trim();
 }
 
 function phoneQuotaGoalTotal(goals: MonitoreoGoal[], variable: string) {
@@ -3777,22 +3667,6 @@ function AcreditacionStateRulesEditor({
   );
 }
 
-function statusValueOptions(variables: MonitoreoVariable[], statusVar: string, current: string[]) {
-  const variableValues = variables.find((variable) => variable.name === statusVar)?.values ?? [];
-  return Array.from(new Set([
-    ...current,
-    ...variableValues,
-    "completed",
-    "complete",
-    "valid",
-    "approved",
-    "submitted",
-    "rechazo",
-    "rejected",
-    "partial",
-  ].map((value) => String(value ?? "").trim()).filter(Boolean)));
-}
-
 function preferredGoalVariable(vars: string[]) {
   return vars.find((variable) => normalizeSourceMatch(variable).includes("actor"))
     ?? vars.find((variable) => normalizeSourceMatch(variable).includes("carrera"))
@@ -3952,11 +3826,6 @@ function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
   const actorKey = normalizeSourceMatch(actor);
   if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base} · ${actor}`;
   return base;
-}
-
-function phoneIsUnassignedResponsible(value: string) {
-  const key = normalizeSourceMatch(value);
-  return !key || key.includes("sin responsable") || key.includes("sin asignar") || key.includes("no asignad");
 }
 
 function phoneResponsibleMetrics(row: Record<string, unknown>) {
@@ -4634,13 +4503,6 @@ export function phoneQuotaRowsForPanel(rows: Array<Record<string, unknown>>): Ac
       || b.universe - a.universe
       || a.value.localeCompare(b.value, "es", { numeric: true })
     ));
-}
-
-function phoneQuotaStatusTone(status: string, gap: number | null) {
-  const key = normalizeSourceMatch(status);
-  if (key.includes("cumple") || key.includes("completa") || gap === 0) return "ready";
-  if (key.includes("sin meta")) return "base";
-  return "warning";
 }
 
 function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unknown>> }) {
@@ -6141,35 +6003,6 @@ function TelefonicoPendingOperationalTable({
   );
 }
 
-function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): MonitoreoReportBlock | null {
-  const phoneEffective = reportBlockForSheet(reports, "monitoreo_telefonico", "avance_efectivo_dia");
-  if (phoneEffective?.rows.length) return phoneEffective;
-
-  const summaryEffective = reportBlockForSheet(reports, "resumen", "avance_efectivo_dia");
-  if (summaryEffective?.rows.length) {
-    const columns = reportBlockColumns(summaryEffective);
-    const dateColumns = columns.filter((column) => {
-      const key = normalizeReportMatch(column);
-      return key && !["unidad", "actor", "estado", "estatus", "total"].includes(key);
-    });
-    const rows = dateColumns.map((column) => ({
-      Fecha: column,
-      Efectivas: summaryEffective.rows.reduce((sum, row) => sum + reportNumberValue(row[column]), 0),
-    })).filter((row) => row.Efectivas > 0);
-    if (rows.length) {
-      return {
-        id: "avance_efectivo_dia",
-        title: "Avance efectivo por día",
-        columns: ["Fecha", "Efectivas"],
-        rows,
-        note: "Corte diario consolidado desde el avance efectivo.",
-      };
-    }
-  }
-
-  return reportBlockForSheet(reports, "monitoreo_telefonico", "produccion_dia");
-}
-
 function phoneBooleanValue(row: Record<string, unknown>, keys: string[]) {
   const raw = phoneRowValue(row, keys, "");
   const key = normalizeCaseSearch(raw);
@@ -6749,19 +6582,6 @@ function renderPhoneView(
   return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} corte={corte} goals={goals} />;
 }
 
-function uniqueDisplayValues(values: unknown[]) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const value of values) {
-    const label = String(value ?? "").trim();
-    const key = normalizeSourceMatch(label);
-    if (!label || !key || key === "sin dato" || key === "sin actor" || seen.has(key)) continue;
-    seen.add(key);
-    out.push(label);
-  }
-  return out;
-}
-
 function sourceChannelLabel(source: MonitoreoSource) {
   return acreditacionSourceChannel(source) || (source.kind === "google_sheets" ? "Base" : "Sin canal");
 }
@@ -6773,32 +6593,6 @@ function sourceExternalId(source: MonitoreoSource) {
     sourceSheetField(source, "spreadsheet_id"),
     sourceSheetField(source, "sheet_name"),
   ].filter(Boolean).join(" / ") || source.id;
-}
-
-function isPlatformResponseSource(source: MonitoreoSource) {
-  return (source.kind === "surveymonkey" || source.kind === "kobo")
-    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id) || Boolean(source.asset_uid));
-}
-
-function isSurveyMonkeyResponseSource(source: MonitoreoSource) {
-  return source.kind === "surveymonkey"
-    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id));
-}
-
-function isKoboResponseSource(source: MonitoreoSource) {
-  return source.kind === "kobo"
-    && (source.role === "respuestas" || !source.role || Boolean(source.asset_uid));
-}
-
-function shortenMiddle(value: string, maxLength: number) {
-  if (value.length <= maxLength) return value;
-  const edge = Math.max(6, Math.floor((maxLength - 3) / 2));
-  return `${value.slice(0, edge)}...${value.slice(-edge)}`;
-}
-
-function sourceFlatField(source: MonitoreoSource, key: string) {
-  const value = (source as unknown as Record<string, unknown>)[key];
-  return String(value ?? "").trim();
 }
 
 function sourceSpreadsheetUrl(source: MonitoreoSource) {
@@ -6838,12 +6632,6 @@ function sourcesForPreset(sources: MonitoreoSource[], preset: AcreditacionSource
   return sources.filter((source) => source.kind === "google_sheets" && source.role === preset.role);
 }
 
-function presetSourceStatus(sources: MonitoreoSource[]) {
-  if (!sources.length) return "Pendiente";
-  if (sources.some((source) => source.enabled)) return "Lista";
-  return "Inactiva";
-}
-
 function sourceRowsForTable(sources: MonitoreoSource[], { phoneMode = false }: { phoneMode?: boolean } = {}) {
   return sources.map((source) => ({
     Fuente: source.label || source.id,
@@ -6873,20 +6661,6 @@ function sourcePackageRows(sources: MonitoreoSource[]) {
       "Ultimo sync": mostRecentSyncLabel(presetSources),
     };
   });
-}
-
-function cleanSourceDimensions(dimensions: Record<string, string | undefined>) {
-  return Object.fromEntries(
-    Object.entries(dimensions)
-      .map(([key, value]) => [key, String(value ?? "").trim()] as const)
-      .filter(([, value]) => value.length > 0),
-  );
-}
-
-function sourceDimensionEntries(dimensions: Record<string, string> | undefined) {
-  return Object.entries(dimensions ?? {})
-    .filter(([, value]) => String(value ?? "").trim())
-    .slice(0, 8);
 }
 
 function normalizeCollectorUse(value: unknown): MonitoreoCollectorUse {
@@ -7025,18 +6799,6 @@ function collectorTypeLabel(value: string) {
   if (normalized === "weblink" || normalized === "web_link" || normalized === "web link") return "Link abierto";
   if (normalized === "sms") return "SMS";
   return value || "Enlace";
-}
-
-function collectorDisplayName(item: MonitoreoSurveyMonkeyCollector | MonitoreoLinkCollector) {
-  const raw = String(item.collector_name || item.collector_id || "Recopilador").trim();
-  if (/^collector\s+/i.test(raw)) return raw.replace(/^collector/i, "Recopilador");
-  if (/^colector\s+/i.test(raw)) return raw.replace(/^colector/i, "Recopilador");
-  return raw;
-}
-
-function countFromRecord(record: Record<string, number> | undefined, keys: string[]) {
-  if (!record) return 0;
-  return keys.reduce((sum, key) => sum + collectorNumber(record[key]), 0);
 }
 
 function collectorConfigFromDiscovery(item: MonitoreoSurveyMonkeyCollector | MonitoreoLinkCollector): MonitoreoLinkCollector {
@@ -7440,28 +7202,12 @@ function AcreditacionChannelSelectorMatrix({
   );
 }
 
-function inferAcreditacionSurveyChannel(survey: SurveyMonkeyMultibaseListItem) {
-  const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
-  const institutionalActor = text.includes("docent") || text.includes("administr");
-  if (text.includes("correo") || text.includes("email") || text.includes("mail")) return "Correo";
-  if (text.includes("telefon")) return "Telefónico";
-  if (text.includes("presencial") || text.includes("qr")) return "Presencial (Ficha QR)";
-  if (institutionalActor && !text.includes("whatsapp") && !text.includes("sms")) return "Correo";
-  if (text.includes("whatsapp") || text.includes("sms") || text.includes("web") || text.includes("link") || text.includes("enlace")) return "Enlace personalizado (Whatsapp)";
-  if (text.includes("egresad")) return "Telefónico";
-  return "Correo";
-}
-
 function inferAcreditacionSurveyActor(survey: SurveyMonkeyMultibaseListItem) {
   const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
   const actor = ACREDITACION_DEFAULT_ACTORS.find((option) => (
     text.includes(normalizeSourceMatch(option))
   ));
   return actor ?? "Sin actor";
-}
-
-function surveyMonkeyDisplayTitle(survey: SurveyMonkeyMultibaseListItem) {
-  return survey.nickname || survey.title || survey.id;
 }
 
 function AcreditacionSourceStatusStrip({
@@ -10329,11 +10075,6 @@ function downloadRowsAsCsv(rows: Array<Record<string, unknown>>, filename: strin
   URL.revokeObjectURL(url);
 }
 
-function csvCell(value: unknown) {
-  const raw = value == null ? "" : String(value);
-  return `"${raw.replace(/"/g, "\"\"")}"`;
-}
-
 type AcreditacionCaseFilters = {
   search: string;
   actor: string;
@@ -11781,22 +11522,6 @@ function caseToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial
   return "muted";
 }
 
-function platformToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial" | "refusal" | "warning" | "muted" {
-  const response = internalCaseResponseStateValue(item);
-  if (response === "complete") return "effective";
-  if (response === "partial") return "partial";
-  if (response === "refusal") return "refusal";
-  if (response === "pending") return "muted";
-  return "warning";
-}
-
-function crossingToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial" | "refusal" | "warning" | "muted" {
-  const crossing = internalCaseCrossingValue(item);
-  if (crossing === "cruzo_llave" || crossing === "cruzo_correo") return "effective";
-  if (crossing === "sin_cruce" || crossing === "sin_llave") return "warning";
-  return "muted";
-}
-
 function issueToneValue(issue: MonitoreoInternalQueryIssue): "danger" | "warning" | "info" {
   const severity = normalizeCaseSearch(issue.severity);
   if (severity.includes("alta")) return "danger";
@@ -11860,21 +11585,6 @@ function acreditacionCaseBreakdownRows(
       };
     })
     .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
-}
-
-function acreditacionQueryDonutBackground(segments: Array<{ value: number; color: string }>) {
-  const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0);
-  if (!total) return "conic-gradient(#dbe2ec 0deg 360deg)";
-  let start = 0;
-  const parts = segments
-    .filter((segment) => segment.value > 0)
-    .map((segment) => {
-      const end = start + (segment.value / total) * 360;
-      const part = `${segment.color} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`;
-      start = end;
-      return part;
-    });
-  return `conic-gradient(${parts.join(", ")})`;
 }
 
 function AcreditacionConsultaStatusStrip({
@@ -14289,43 +13999,6 @@ function phoneKoboDailyPointsFromRows(rows: Array<Record<string, unknown>>): Acr
   });
 }
 
-function uniqueNormalizedKeys(values: unknown[]) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  values.forEach((value) => {
-    const key = normalizeSourceMatch(value);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    out.push(key);
-  });
-  return out;
-}
-
-function addAcreditacionDailyValue(
-  points: Map<string, AcreditacionAdvanceDailyPoint>,
-  date: string,
-  tone: ReturnType<typeof acreditacionSurveyStateTone>,
-  value: number,
-) {
-  if (!value) return;
-  const point = points.get(date) ?? { date, effective: 0, partial: 0, refusals: 0, total: 0 };
-  if (tone === "completed") point.effective += value;
-  if (tone === "partial") point.partial += value;
-  if (tone === "refusals") point.refusals += value;
-  point.total += value;
-  points.set(date, point);
-}
-
-function dailySeriesTotals(points: AcreditacionAdvanceDailyPoint[]) {
-  const totals = dailyPointTotals(points);
-  return {
-    completed: totals.effective,
-    partial: totals.partial,
-    refusals: totals.refusals,
-    total: totals.total,
-  };
-}
-
 function buildAcreditacionAdvanceDailySeries(
   reports: MonitoreoAcreditacionReports | null | undefined,
   blockId: string,
@@ -14768,10 +14441,6 @@ function groupAcreditacionCollectorsBySource(series: AcreditacionAdvanceDailySer
   return grouped;
 }
 
-function collectorDisplayLookupKey(sourceKey: string, collectorKey: string) {
-  return `${sourceKey}\r${collectorKey}`;
-}
-
 function acreditacionCollectorDisplayFromRow(row: AcreditacionCollectorRow) {
   return [
     row.alias,
@@ -14914,14 +14583,6 @@ function actorGoalHint(summary: ReturnType<typeof actorGoalSummary>) {
 function actorGoalTone(summary: ReturnType<typeof actorGoalSummary>): "base" | "target" | "ready" | "warning" {
   if (!summary.configured) return "target";
   return summary.gaps ? "warning" : "ready";
-}
-
-function sourceRoleForActor(source: MonitoreoSource) {
-  const role = normalizeSourceMatch(source.role);
-  const label = normalizeSourceMatch(source.label);
-  if (role.includes("universo") || role.includes("base")) return "Universo";
-  if (role.includes("barrido") || label.includes("barrido") || label.includes("telefon")) return "Barrido";
-  return "Respuestas";
 }
 
 function sourceModalityForActor(source: MonitoreoSource): AcreditacionActorMechanism["modality"] {
@@ -16047,28 +15708,6 @@ function AcreditacionChannelBadge({ channel }: { channel: string }) {
   );
 }
 
-function surveySourceForAcreditacionId(sourceId: string, sources: MonitoreoSource[]) {
-  const key = normalizeSourceMatch(sourceId);
-  if (!key) return null;
-  return sources.find((source) => normalizeSourceMatch(source.id) === key || normalizeSourceMatch(source.survey_id) === key) ?? null;
-}
-
-function surveySourceForAcreditacionTitle(title: string, sources: MonitoreoSource[]) {
-  const key = normalizeSourceMatch(title);
-  if (!key) return null;
-  return sources.find((source) => [
-    source.label,
-    source.survey_title,
-    source.dimensions?.survey_title,
-    source.survey_id,
-  ].some((value) => normalizeSourceMatch(value) === key))
-    ?? sources.find((source) => {
-      const label = normalizeSourceMatch(source.survey_title || source.dimensions?.survey_title || source.label);
-      return label && (label.includes(key) || key.includes(label));
-    })
-    ?? null;
-}
-
 function addAcreditacionSurveyState(row: AcreditacionAdvanceSurveyRow, label: string, value: number) {
   if (!value) return;
   const existing = row.states.find((item) => normalizeSourceMatch(item.label) === normalizeSourceMatch(label));
@@ -17049,15 +16688,6 @@ function reportSheetTone(id: string) {
   if (key.includes("encuesta")) return "survey";
   if (key.includes("reporte")) return "report";
   return "summary";
-}
-
-function sheetTitleIcon(id: string) {
-  const key = normalizeReportMatch(id);
-  if (key.includes("alert")) return <ShieldAlert size={14} />;
-  if (key.includes("telefon")) return <PhoneCall size={14} />;
-  if (key.includes("reporte")) return <FileCheck2 size={14} />;
-  if (key.includes("encuesta")) return <BarChart3 size={14} />;
-  return <ClipboardCheck size={14} />;
 }
 
 function buildReportSheetStats(sheet: MonitoreoReportSheet) {
