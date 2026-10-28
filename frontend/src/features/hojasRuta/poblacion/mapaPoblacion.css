@@ -1,0 +1,75 @@
+/* Población como mapa (MapaPoblacion.tsx). La secuencia de datos es la navy
+ * de la dirección creativa v3 (--pulso-data-seq-*); el acento del módulo no
+ * pinta datos. */
+.hr-mapa-poblacion {
+  --hr-seq-0: var(--pulso-data-seq-0);
+  --hr-seq-1: var(--pulso-data-seq-1);
+  --hr-seq-2: var(--pulso-data-seq-2);
+  --hr-seq-3: var(--pulso-data-seq-3);
+  --hr-seq-4: var(--pulso-data-seq-4);
+  --hr-seq-5: var(--pulso-data-seq-5);
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hr-mapa-poblacion svg {
+  width: 100%;
+  height: 260px;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-3);
+}
+
+.hr-mapa-poblacion-distrito {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.hr-mapa-poblacion-distrito[data-escalon="0"] { fill: var(--hr-seq-0); stroke: var(--hr-seq-4); }
+.hr-mapa-poblacion-distrito[data-escalon="1"] { fill: var(--hr-seq-1); stroke: var(--hr-seq-4); }
+.hr-mapa-poblacion-distrito[data-escalon="2"] { fill: var(--hr-seq-2); stroke: var(--hr-seq-4); }
+.hr-mapa-poblacion-distrito[data-escalon="3"] { fill: var(--hr-seq-3); stroke: var(--hr-seq-5); }
+.hr-mapa-poblacion-distrito[data-escalon="4"] { fill: var(--hr-seq-4); stroke: var(--hr-seq-5); }
+.hr-mapa-poblacion-distrito[data-escalon="5"] { fill: var(--hr-seq-5); stroke: var(--hr-seq-5); }
+
+.hr-mapa-poblacion-etiqueta text {
+  font-weight: 800;
+  fill: var(--pulso-text);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-linejoin: round;
+}
+
+.hr-mapa-poblacion-etiqueta text.is-valor {
+  font-weight: 700;
+  fill: var(--pulso-text-soft);
+}
+
+.hr-mapa-poblacion figcaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.hr-mapa-poblacion-escala {
+  display: inline-flex;
+}
+
+.hr-mapa-poblacion-escala span {
+  width: 20px;
+  height: 8px;
+}
+
+.hr-mapa-poblacion-escala span[data-escalon="0"] { background: var(--hr-seq-0); }
+.hr-mapa-poblacion-escala span[data-escalon="1"] { background: var(--hr-seq-1); }
+.hr-mapa-poblacion-escala span[data-escalon="2"] { background: var(--hr-seq-2); }
+.hr-mapa-poblacion-escala span[data-escalon="3"] { background: var(--hr-seq-3); }
+.hr-mapa-poblacion-escala span[data-escalon="4"] { background: var(--hr-seq-4); }
+.hr-mapa-poblacion-escala span[data-escalon="5"] { background: var(--hr-seq-5); }

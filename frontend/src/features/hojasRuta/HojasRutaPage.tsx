@@ -92,6 +92,7 @@ import { RevisionContraMarco } from "./seleccion/RevisionContraMarco";
 import { indicadoresDecididos } from "./chrome/loDecidido";
 import { computeMarginError, inverseStandardNormal } from "./muestra/margen";
 import { CurvaMargenN } from "./muestra/CurvaMargenN";
+import { MapaPoblacion } from "./poblacion/MapaPoblacion";
 import { revisarSeleccion } from "./seleccion/revisionMarco";
 import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
 import { describirMarcoCartografia } from "./marcoCartografia";
@@ -8047,6 +8048,7 @@ export default function HojasRutaPage() {
                     />
                   )}
                 >
+                  <MapaPoblacion territorios={selectedTerritoryRows} />
                   <IncludedDistrictTable territories={selectedTerritoryRows} />
                 </Panel>
               </div>

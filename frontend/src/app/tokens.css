@@ -124,6 +124,16 @@
    * antes #d68a00, el único doble ámbar del sistema (ADR 0038). */
   --pulso-warn-accent: #d97706;
 
+  /* SECUENCIA DE DATOS — la navy de la dirección creativa v3 (§ Color:
+   * «Datos secuenciales: #DBE8FF → #7AA2F8 → #2457D6 → #002457»), en seis
+   * escalones para coropletas. Los datos no se pintan con el acento del módulo. */
+  --pulso-data-seq-0: #dbe8ff;
+  --pulso-data-seq-1: #aac4fb;
+  --pulso-data-seq-2: #7aa2f8;
+  --pulso-data-seq-3: #4f7ce7;
+  --pulso-data-seq-4: #2457d6;
+  --pulso-data-seq-5: #002457;
+
   /* DESENLACES DE ENCUESTA — el mismo trio que `COLOR_RESULTADO` (TS), ahora
    * tambien desde CSS: habia **224 literales** de estos colores en seis hojas.
    * Centraliza, no recolorea. El porque y el guard, en
