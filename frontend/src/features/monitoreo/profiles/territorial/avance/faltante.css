@@ -874,3 +874,31 @@
 .mon-falt-tabla tbody tr.is-abierta {
   scroll-margin-top: 44px;
 }
+
+/* «Logrado frente a la cuota» a 1280: la columna «60 o más» quedaba cortada
+ * contra el borde de su tarjeta (62 px ocultos; detector de columnas ocultas,
+ * 2026-10-28). Hasta 1400 los distritos largos parten en dos líneas y las
+ * celdas pierden relleno lateral; ninguna columna se esconde. */
+@media (max-width: 1400px) {
+  .mon-falt-calor-tabla {
+    border-spacing: 2px;
+  }
+
+  .mon-falt-calor-tabla tbody th {
+    max-width: 118px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  /* La etiqueta con silueta es `nowrap` en todas las tablas territoriales;
+   * aquí el nombre parte junto a su silueta en vez de montarse sobre las celdas. */
+  .mon-falt-calor-tabla tbody th .mon-ter-con-silueta {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .mon-falt-calor-celda {
+    padding-inline: 2px;
+    font-size: 11.5px;
+  }
+}
