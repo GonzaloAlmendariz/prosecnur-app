@@ -301,7 +301,7 @@ button.xfh-regla__fila:focus-visible { outline: 2px solid var(--pulso-primary-fo
 .xfh-apariencias.is-dos { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 520px; }
 @container ficha (max-width: 700px) { .xfh-apariencias { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .xfh-apa {
-  display: grid; grid-template-rows: auto auto 1fr; align-content: start; gap: 4px; padding: 8px 8px 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-content: start; gap: 4px; padding: 8px 8px 12px; min-width: 0;
   border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); text-align: left;
   font: inherit; color: var(--pulso-text); cursor: pointer;
   transition: border-color var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out);
@@ -323,7 +323,7 @@ button.xfh-regla__fila:focus-visible { outline: 2px solid var(--pulso-primary-fo
 }
 .xfh-apa[aria-checked="true"] .xfh-apa__check { opacity: 1; transform: none; }
 .xfh-apa b { padding-inline: 4px; font-size: 13px; font-weight: 600; }
-.xfh-apa small { padding-inline: 4px; font-size: 12px; line-height: 1.4; color: var(--pulso-text-faint); }
+.xfh-apa small { padding-inline: 4px; font-size: 12px; line-height: 1.4; color: var(--pulso-text-faint); white-space: normal; overflow-wrap: anywhere; }
 .xfh-nota-imp {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
   padding: 10px 14px; border: 1px solid var(--pulso-border); border-radius: 10px; font-size: 12.5px; color: var(--pulso-text-soft);
