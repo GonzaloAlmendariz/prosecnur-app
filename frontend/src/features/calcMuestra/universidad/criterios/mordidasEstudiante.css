@@ -30,7 +30,7 @@
 
 .cmv2-mordidas-nombre small {
   flex: none;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   padding: 1px 6px;
   border-radius: var(--pulso-radius-chip);
   border: 1px solid var(--pulso-border);

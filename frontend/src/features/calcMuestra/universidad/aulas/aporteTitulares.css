@@ -41,7 +41,7 @@
   min-height: 2px;
 }
 .cmv2-aporte-bin > small {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   text-align: left;
   font-variant-numeric: tabular-nums;

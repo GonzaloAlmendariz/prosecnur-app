@@ -369,7 +369,7 @@
 
 .cmv2-dist-axis thead th {
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -385,7 +385,7 @@
 .cmv2-dist-axis tbody th small {
   margin-top: 2px;
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-regular);
 }
 

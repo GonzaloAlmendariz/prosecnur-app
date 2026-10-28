@@ -574,7 +574,7 @@
   background: var(--pulso-surface-2);
 }
 .cmv2-expb-chips dt {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -675,7 +675,7 @@
   background: var(--pulso-surface-2);
 }
 .cmv2-expb-cuantiles dt {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);

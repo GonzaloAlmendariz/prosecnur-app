@@ -103,7 +103,7 @@ export function criteriosMarcoDeEstudio(
     { concepto: "Modalidad", hoy: describeCategorias(by.modality) || NO, claveHistorica: "criterio_modalidad" },
     { concepto: "Tipo de sesión", hoy: describeCategorias(by.session_type) || NO, claveHistorica: "criterio_session_type" },
     { concepto: "Nivel del curso", hoy: describeNivel(sel.courseLevelRanges) || NO, claveHistorica: "criterio_nivel" },
-    { concepto: "Mínimo por curso-horario", hoy: describeMinimo(sel.minEligible as Record<string, unknown>) || NO, claveHistorica: "criterio_minimo" },
+    { concepto: "Mínimo por curso‑horario", hoy: describeMinimo(sel.minEligible as Record<string, unknown>) || NO, claveHistorica: "criterio_minimo" },
     {
       concepto: "Facultades excluidas",
       hoy: excluidas.length ? excluidas.join(", ") : "ninguna",

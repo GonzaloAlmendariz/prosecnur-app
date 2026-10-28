@@ -118,7 +118,7 @@ export function AulasObjetivoTab({
             <CifraMotor
               label="Escenario"
               value={model.aulasScenario === "e2" ? "P2 · por facultad" : "P1 · universidad"}
-              detalle="componente que manda en cursos-horario"
+              detalle="componente que manda en cursos‑horario"
             />
             <CifraMotor
               label="n objetivo"
@@ -241,7 +241,7 @@ export function AulasObjetivoTab({
             </GlidingRadioGroup>
           </PulsoField>
           <CampoNumeroAulas
-            rotulo="Mínimo por curso-horario"
+            rotulo="Mínimo por curso‑horario"
             value={config.min_elegibles_aula}
             min={1}
             step={1}

@@ -820,7 +820,7 @@
   border: 1px dashed var(--cmv2-border-strong);
   background: var(--cmv2-surface-raised);
   color: var(--pulso-text-muted);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   position: relative;
   margin-top: 10px;
@@ -838,7 +838,7 @@
 
 .cmv2-relato-cadena-vacia {
   margin-top: 8px;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 

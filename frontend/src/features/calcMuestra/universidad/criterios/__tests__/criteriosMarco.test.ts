@@ -33,7 +33,7 @@ describe("criterios del marco", () => {
   });
 
   it("el mínimo dice el general Y cuántas tienen el suyo", () => {
-    expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Mínimo por curso-horario"))
+    expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Mínimo por curso‑horario"))
       .toBe("15 elegibles · 2 facultades con mínimo propio");
   });
 

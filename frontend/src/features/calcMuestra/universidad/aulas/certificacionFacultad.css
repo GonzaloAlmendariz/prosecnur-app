@@ -128,7 +128,7 @@
    celda, nunca parte del veredicto de hoy. */
 .cmv2-cert-sexo-ref {
   display: block;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-style: italic;
   font-variant-numeric: tabular-nums;
@@ -140,7 +140,7 @@
    nunca en lugar del oficial. Ámbar cuando no llega a la cuota. */
 .cmv2-cert-calibrada {
   display: block;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-style: italic;
   font-variant-numeric: tabular-nums;

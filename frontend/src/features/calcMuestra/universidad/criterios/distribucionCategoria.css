@@ -199,7 +199,7 @@
   position: absolute;
   top: -2px;
   left: 4px;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-warn-fg, var(--pulso-text));
@@ -241,7 +241,7 @@
    derecha es preferible a una cifra ilegible. */
 .cmv2-dist-eje-corte b {
   white-space: nowrap;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
@@ -302,7 +302,7 @@
   background: var(--cmv2-border);
 }
 .cmv2-dist-cuantiles dt {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   line-height: 1.25;

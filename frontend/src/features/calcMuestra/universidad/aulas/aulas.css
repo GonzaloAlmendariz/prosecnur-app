@@ -569,7 +569,7 @@
 .cmv2-profile-dimension {
   margin: 10px 2px 2px;
   color: var(--cmv2-accent-fg);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;

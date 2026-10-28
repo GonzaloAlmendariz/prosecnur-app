@@ -207,7 +207,7 @@
 .cmv2-mtz-grupos th {
   padding: 8px 12px 4px;
   text-align: left;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: var(--pulso-weight-semibold);

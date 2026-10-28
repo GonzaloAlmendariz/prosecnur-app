@@ -315,7 +315,7 @@
 
 .cmv2-curva-rango small,
 .cmv2-curva-aulas small {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 

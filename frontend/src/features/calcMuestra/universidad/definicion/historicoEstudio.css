@@ -915,7 +915,7 @@
 
 .cmv2-hist-matriz-titular i {
   overflow: hidden;
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;

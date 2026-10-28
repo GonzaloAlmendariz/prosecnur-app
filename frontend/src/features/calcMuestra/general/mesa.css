@@ -245,7 +245,7 @@
 }
 
 .cmg-banda-cifras .cmv2-uni-cifra-label {
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.05em;
 }
 
@@ -1037,7 +1037,7 @@
   }
 
   .cmg-banda-cifras .cmv2-uni-cifra-label {
-    font-size: 9.5px;
+    font-size: var(--pulso-type-micro-size);
     letter-spacing: 0.04em;
   }
 
