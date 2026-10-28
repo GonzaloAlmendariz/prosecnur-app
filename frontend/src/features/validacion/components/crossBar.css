@@ -1,0 +1,6 @@
+/* CrossBar sobre el Popover del kit (L1): el panel trae su propio relleno por
+   bloque (búsqueda, sugerencias, lista), así que el del popover se anula. */
+.pulso-popover.pulso-crossbar-popover {
+  padding: 0;
+  overflow: hidden;
+}

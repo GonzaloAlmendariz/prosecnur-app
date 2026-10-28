@@ -17,8 +17,9 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { GitCompare, Search, X as XIcon } from "lucide-react";
+import { GitCompare, Search, X as XIcon } from "../../../vendor/lucide-react";
+import { Popover } from "../../../components/Popover";
+import "./crossBar.css";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
 
 export type CrossBarProps = {
@@ -42,9 +43,7 @@ export default function CrossBar({
   onChange,
   style,
 }: CrossBarProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Variables compatibles con cruce (excluye la propia y tipos no soportados).
   const compatibles = useMemo(() => {
@@ -82,18 +81,29 @@ export default function CrossBar({
 
   function handlePick(name: string) {
     onChange(name);
-    setOpen(false);
     setQuery("");
   }
+
+  // Popover del kit (L1): portal, posición, Escape y click fuera los pone él;
+  // aquí sólo el contenido. Se cierra solo al elegir (cerrarAlCambiar={cruzar}).
+  const panelCruce = (
+    <CrossPanel
+      query={query}
+      onQueryChange={setQuery}
+      suggestions={suggestions}
+      filtered={filtered}
+      cruzar={cruzar}
+      onPick={handlePick}
+    />
+  );
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", ...style }}>
       {!cruzar && (
+        <Popover
+          trigger={(
         <button
-          ref={triggerRef}
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
           aria-haspopup="dialog"
           style={{
             display: "inline-flex",
@@ -102,7 +112,7 @@ export default function CrossBar({
             padding: "7px 12px",
             borderRadius: "var(--pulso-radius-chip)",
             border: "1px dashed var(--pulso-primary-border)",
-            background: open ? "var(--pulso-primary-soft)" : "white",
+            background: "white",
             color: "var(--pulso-primary)",
             fontSize: 12,
             fontWeight: 700,
@@ -113,6 +123,16 @@ export default function CrossBar({
           <GitCompare size={13} />
           Cruzar con…
         </button>
+          )}
+          side="bottom"
+          align="start"
+          maxWidth={400}
+          className="pulso-crossbar-popover"
+          ariaLabel="Seleccionar variable de cruce"
+          cerrarAlCambiar={cruzar}
+        >
+          {panelCruce}
+        </Popover>
       )}
 
       {cruzar && crossedVar && (
@@ -144,10 +164,10 @@ export default function CrossBar({
           >
             {crossedVar.name}
           </code>
+          <Popover
+            trigger={(
           <button
-            ref={triggerRef}
-            type="button"
-            onClick={() => setOpen((v) => !v)}
+              type="button"
             title="Cambiar variable de cruce"
             style={{
               padding: "3px 8px",
@@ -162,6 +182,16 @@ export default function CrossBar({
           >
             Cambiar
           </button>
+            )}
+            side="bottom"
+            align="start"
+            maxWidth={400}
+            className="pulso-crossbar-popover"
+            ariaLabel="Seleccionar variable de cruce"
+            cerrarAlCambiar={cruzar}
+          >
+            {panelCruce}
+          </Popover>
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -196,18 +226,6 @@ export default function CrossBar({
         SO × SO (barras apiladas) · SO × SM (comparación por opción) · SO × NUM (boxplot)
       </span>
 
-      {open && triggerRef.current && (
-        <CrossPopover
-          anchorRect={triggerRef.current.getBoundingClientRect()}
-          onClose={() => setOpen(false)}
-          query={query}
-          onQueryChange={setQuery}
-          suggestions={suggestions}
-          filtered={filtered}
-          cruzar={cruzar}
-          onPick={handlePick}
-        />
-      )}
     </div>
   );
 }
@@ -215,9 +233,7 @@ export default function CrossBar({
 // -----------------------------------------------------------------------------
 // Popover portal con sugerencias + search + lista completa
 // -----------------------------------------------------------------------------
-function CrossPopover({
-  anchorRect,
-  onClose,
+function CrossPanel({
   query,
   onQueryChange,
   suggestions,
@@ -225,8 +241,6 @@ function CrossPopover({
   cruzar,
   onPick,
 }: {
-  anchorRect: DOMRect;
-  onClose: () => void;
   query: string;
   onQueryChange: (v: string) => void;
   suggestions: Array<ExploradorVariable & { seccion: string }>;
@@ -234,54 +248,17 @@ function CrossPopover({
   cruzar: string | null;
   onPick: (name: string) => void;
 }) {
-  const popoverRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
-
   useEffect(() => {
     searchRef.current?.focus();
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    }
-    function onClickOutside(e: MouseEvent) {
-      if (!popoverRef.current) return;
-      if (popoverRef.current.contains(e.target as Node)) return;
-      onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    // Timeout para dejar pasar el click que abrió el popover.
-    const t = window.setTimeout(() => {
-      window.addEventListener("mousedown", onClickOutside);
-    }, 0);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onClickOutside);
-      window.clearTimeout(t);
-    };
-  }, [onClose]);
+  }, []);
 
-  // Posicionamiento: debajo del trigger, alineado a la izquierda.
-  const top = anchorRect.bottom + 6;
-  const left = Math.max(12, Math.min(anchorRect.left, window.innerWidth - 420));
-
-  return createPortal(
+  return (
     <div
-      ref={popoverRef}
-      role="dialog"
-      aria-label="Seleccionar variable de cruce"
       style={{
-        position: "fixed",
-        top,
-        left,
         width: 400,
         maxHeight: 480,
-        zIndex: 90,
-        background: "var(--pulso-surface)",
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 12,
-        boxShadow: "var(--pulso-shadow-med)",
+        maxWidth: "100%",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -463,7 +440,6 @@ function CrossPopover({
           })
         )}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

@@ -84,7 +84,6 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/recopiladores/correos/BibliotecaDeBloques.tsx": 1,
   "features/recopiladores/correos/GuardarSeccion.tsx": 1,
   "features/recopiladores/correos/MenuDeCampos.tsx": 1,
-  "features/validacion/components/CrossBar.tsx": 1,
   "features/xlsformEditor/canvas-graph/ConnectionConditionPicker.tsx": 1,
   "features/xlsformEditor/kit/PanelMarca.tsx": 1,
   "features/xlsformEditor/shell/AddElementMenu.tsx": 1,
