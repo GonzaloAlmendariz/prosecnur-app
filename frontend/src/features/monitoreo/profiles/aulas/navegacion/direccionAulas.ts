@@ -115,7 +115,10 @@ const TABLA: readonly Entrada[] = [
   // A1 Resumen: contenido propio (`avance/ResumenAulas.tsx`). Sigue pidiendo
   // el corte de Avance; Cursos-horario conserva la vista heredada de Resumen.
   entrada("avance", "resumen", null, v("avance", "resumen"), { propia: true }),
-  entrada("avance", "porfacultad", null, v("avance", "cuotas")),
+  // A2 Por facultad (Por nivel): contenido propio (`avance/PorFacultadAulas.tsx`).
+  // Sigue pidiendo el corte de Avance › Metas; esa vista heredada queda en
+  // Modelo › Metas con sus mandos de meta y de tasa.
+  entrada("avance", "porfacultad", null, v("avance", "cuotas"), { propia: true }),
   // A3 Cursos-horario: los paneles de grano aula de Resumen y, de Efectividad,
   // «Cada curso-horario contra su propio margen».
   entrada("avance", "cursos", null, v("avance", "resumen"), { vista: "Cobertura", regreso: false }),
