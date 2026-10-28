@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PulsoSwitch } from "../../components/PulsoSwitch";
 import type { SettingsTab } from "./seccionesConfiguracion";
 import { createPortal } from "react-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -1503,15 +1504,13 @@ function ConnectionCard({
             )}
           </label>
           {supportsSession && (
-            <label className="home-connection-check">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(event) => onRememberChange(event.target.checked)}
-                disabled={busy != null}
-              />
-              <span>Recordar en este equipo</span>
-            </label>
+            <PulsoSwitch
+              size="sm"
+              label="Recordar en este equipo"
+              checked={remember}
+              onCheckedChange={onRememberChange}
+              disabled={busy != null}
+            />
           )}
         </div>
 

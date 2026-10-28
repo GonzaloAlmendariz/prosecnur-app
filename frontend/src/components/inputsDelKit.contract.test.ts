@@ -108,7 +108,6 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/graficos/temasEquivalentes/EditorTemasEquivalentes.tsx": 1,
   "features/graficos/v2/timeline/SlidePicker.tsx": 1,
   "features/hojasRuta/HojasRutaPage.tsx": 1,
-  "features/home/GlobalSettingsDialog.tsx": 1,
   "features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 5,
   "features/monitoreo/profiles/acreditacion/fuentes/ActoresDelEstudio.tsx": 1,
   "features/monitoreo/profiles/acreditacion/modelo/DistribucionPorActor.tsx": 1,
