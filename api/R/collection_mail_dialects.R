@@ -59,8 +59,10 @@
     conditional = function(cond, then_html, else_html) {
       sprintf("*|IF:%s|*%s*|ELSE:|*%s*|END:IF|*", cond, then_html, else_html)
     },
-    footer = function() c(
-      "*|LIST:ADDRESSLINE|*",
+    # Con dirección propia en el pie (`footer_legal.address`) no va la de la lista:
+    # Mailchimp la arma con «·» y «Peru» y saldría dos veces (Acreditación 2026).
+    footer = function(direccion_propia = FALSE) c(
+      if (!isTRUE(direccion_propia)) "*|LIST:ADDRESSLINE|*",
       '<a href="*|UNSUB|*" target="_blank" style="color:#555555;text-decoration:underline;">Dejar de recibir estos correos</a>'
     ),
     footer_preview = function() '<span style="text-decoration:underline;">Dejar de recibir estos correos</span>',
@@ -74,7 +76,7 @@
     },
     conditional = function(cond, then_html, else_html) then_html,
     # Texto del pie de las invitaciones de PULSO en SurveyMonkey.
-    footer = function() paste0(
+    footer = function(direccion_propia = FALSE) paste0(
       '<a href="[PrivacyLink]" target="_blank" style="color:#555555;text-decoration:underline;">Privacidad</a> | ',
       'Si desea darse de baja de esta encuesta, haga clic ',
       '<a href="[OptOutLink]" target="_blank" style="color:#555555;text-decoration:underline;">aquí</a>.'

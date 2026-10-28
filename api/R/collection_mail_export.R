@@ -285,9 +285,14 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     return(c(list(checks = checks), base, list(store = store, resolved = resolved)))
   }
 
-  footer_ok <- grepl("*|UNSUB|*", html, fixed = TRUE) && grepl("*|LIST:ADDRESSLINE|*", html, fixed = TRUE)
+  # La dirección vale la de la lista o la escrita en el pie (`footer_legal.address`).
+  pie <- Filter(function(b) identical(b$type, "footer_legal"), tpl$blocks %||% list())
+  direccion_propia <- length(pie) > 0L && !is.null(.cmail_one(pie[[1]]$address))
+  footer_ok <- grepl("*|UNSUB|*", html, fixed = TRUE) && (direccion_propia || grepl("*|LIST:ADDRESSLINE|*", html, fixed = TRUE))
   push(.cmail_check("footer_unsub", if (footer_ok) "ok" else "error", as.integer(footer_ok),
-                    if (footer_ok) "El pie lleva la baja (*|UNSUB|*) y la dirección de la lista." else "Falta *|UNSUB|* o *|LIST:ADDRESSLINE|* en el pie."))
+                    if (!footer_ok) "Falta *|UNSUB|* o la dirección (*|LIST:ADDRESSLINE|* o la del pie) en el pie."
+                    else if (direccion_propia) "El pie lleva la baja (*|UNSUB|*) y la dirección escrita en el pie."
+                    else "El pie lleva la baja (*|UNSUB|*) y la dirección de la lista."))
 
   push(.cmail_accent_check(tpl))
   push <- .cmail_campana_checks(tpl, push)

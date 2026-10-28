@@ -234,9 +234,14 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
     notas.add("Lado a lado en el escritorio; en el teléfono una va bajo la otra. Ninguna se estira.");
   }
   if (block.type === "footer_legal") {
-    lineas.push({ rotulo: "Baja y dirección", app: "lo agrega la app", plataforma: PIE[dialecto] });
+    // Con dirección escrita, Mailchimp no recibe la de la lista (la arma con «·» y «Peru»).
+    const propia = dialecto === "mailchimp" && !!block.address?.trim();
+    const pie = propia ? PIE.mailchimp.replace("*|LIST:ADDRESSLINE|*<br>", "") : PIE[dialecto];
+    lineas.push({ rotulo: propia ? "Baja" : "Baja y dirección", app: "lo agrega la app", plataforma: pie });
     notas.add(dialecto === "mailchimp"
-      ? "Mailchimp exige la dirección y el enlace de baja en todo correo: la app los agrega siempre."
+      ? propia
+        ? "Mailchimp exige la dirección y el enlace de baja: va la dirección escrita en el pie y la app agrega la baja."
+        : "Mailchimp exige la dirección y el enlace de baja en todo correo: la app los agrega siempre."
       : "SurveyMonkey exige el enlace de baja: la app lo agrega siempre.");
   }
   return { dialecto, plataforma, lineas, notas: [...notas] };

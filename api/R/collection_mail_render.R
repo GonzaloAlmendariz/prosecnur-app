@@ -300,7 +300,7 @@
     if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
   )
   d <- .cmail_dialect(ctx)
-  legal <- if (isTRUE(ctx$export)) d$footer() else d$footer_preview()
+  legal <- if (isTRUE(ctx$export)) d$footer(direccion_propia = !is.null(address)) else d$footer_preview()
   # Los enlaces del pie de la plataforma van en gris (#555555): sobre el fondo
   # de campaña, o el `page_bg` propio de sobrio (E1p), se pintan del tono del
   # pie, que sí llega a 4,5:1.
