@@ -7765,103 +7765,6 @@
 
 /* La pestaña activa se nombra en el workbench; el rail lateral permanece
  * icon-only y reserva sus palabras para tooltip/foco. */
-.pulso-carga-workspace-header {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-module-processing-border, var(--pulso-border));
-  border-radius: var(--pulso-radius-panel);
-  background: color-mix(
-    in srgb,
-    var(--pulso-module-processing-soft, var(--pulso-surface-2)) 62%,
-    var(--pulso-surface)
-  );
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.pulso-carga-workspace-header-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--pulso-module-processing-border, var(--pulso-border));
-  border-radius: 9px;
-  background: var(--pulso-surface);
-  color: var(--pulso-module-processing, var(--pulso-primary));
-}
-
-.pulso-carga-workspace-header-copy {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.pulso-carga-workspace-header-kicker {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-.pulso-carga-workspace-header-title {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pulso-carga-workspace-header-title h2,
-.pulso-carga-workspace-header-copy p {
-  margin: 0;
-}
-
-.pulso-carga-workspace-header-title h2 {
-  color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-}
-
-.pulso-carga-workspace-header-state {
-  min-height: 20px;
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.pulso-carga-workspace-header[data-workspace-state="ready"] .pulso-carga-workspace-header-state {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-carga-workspace-header[data-workspace-state="attention"] .pulso-carga-workspace-header-state {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-carga-workspace-header-copy p {
-  overflow: hidden;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* En Plan, el contexto ocupa la fila intrínseca y la superficie toma el resto.
  * Así la capacidad 0/1/pocas/muchas queda dentro de Cobertura. */
@@ -9016,10 +8919,6 @@
   .pulso-carga-plan-topology {
     gap: 8px;
     padding: 10px 12px;
-  }
-
-  .pulso-carga-workspace-header {
-    padding-block: 7px;
   }
 
   .pulso-carga-plan-roster li.is-empty {
