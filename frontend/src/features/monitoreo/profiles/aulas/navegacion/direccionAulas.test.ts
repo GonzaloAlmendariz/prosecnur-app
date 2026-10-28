@@ -8,6 +8,7 @@ import {
   direccionesPublicas,
   direccionInicial,
   direccionPedida,
+  esPestanaPropia,
   FICHA_DE_AULA,
   hrefDeFichaDeAula,
   PANELES_DE_SUBVISTA_AULAS,
@@ -194,6 +195,21 @@ describe("dirección pública del modo cursos-horario", () => {
     }
     // El inspector futuro (`panel=aula`) no es todavía una sub-vista.
     expect(PANELES_DE_SUBVISTA_AULAS).not.toContain("aula");
+  });
+
+  it("A3 Cursos-horario tiene contenido propio y conserva la vista heredada de Resumen como sub-vista", () => {
+    expect(esPestanaPropia(d("avance", "cursos"))).toBe(true);
+    expect(esPestanaPropia(d("avance", "cursos", "campo"))).toBe(false);
+    expect(subvistasDePestana("avance", "cursos")).toEqual([
+      { panel: null, etiqueta: "Contra su tasa" },
+      { panel: "campo", etiqueta: "Estado del campo" },
+    ]);
+    expect(vistaDeDireccion(d("avance", "cursos", "campo"))).toEqual({ seccion: "avance", pestana: "resumen" });
+    // «Contra su margen» se mudó: un enlace guardado con ese panel aterriza en
+    // A3, que contesta la misma pregunta, y la vista entera sigue en
+    // Rendimiento › Efectividad.
+    expect(direccionPedida(pedida("avance", "cursos", "efectividad"))).toEqual(d("avance", "cursos"));
+    expect(vistaDeDireccion(d("avance", "rendimiento", "efectividad"))).toEqual({ seccion: "avance", pestana: "efectividad" });
   });
 
   it("el enlace a la ficha de un curso-horario es la dirección pública", () => {

@@ -1,0 +1,587 @@
+/* Avance › Cursos-horario (aulas.md, ficha A3). Izquierda, la tabla de cada
+ * curso-horario contra su tasa prevista; derecha, 400 px con Titulares y la
+ * cobertura de lo esperado. Escala 4/8/12/16. Paleta de datos G10 sólo con
+ * tokens.
+ *
+ * Dos regímenes de desplazamiento (C4), uno por pantalla:
+ * - Escritorio amplio: la vista llena el alto que le da `.aulas-mon-view` (la
+ *   rejilla de relleno del perfil) y la tabla desplaza dentro de su marco, con
+ *   la cabecera fija. Con pocas filas el panel mide lo que trae.
+ * - Compacto (≤ 1180 px de ancho o ≤ 720 px de alto): la vista mide por
+ *   contenido y desplaza `.mon-profile-content`; la cabecera sigue fija contra
+ *   ese dueño. */
+
+.aulas-ch {
+  /* Alto REAL de la cabecera de la tabla. El encaje por fila lo usa como
+   * margen: con uno menor la cabecera tapa la fila al desplazar. La celda lo
+   * fija con `height` y su borde va en sombra para no sumar al alto. */
+  --aulas-ch-cabecera: 32px;
+  --aulas-ch-efectivas: var(--pulso-brand-navy);
+  --aulas-ch-prevista: var(--pulso-module-monitoring);
+  --aulas-ch-pista: var(--pulso-surface-3);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-3);
+  align-items: start;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-ch--vacio {
+  display: block;
+  height: auto;
+}
+
+.aulas-ch-izquierda,
+.aulas-ch-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* La columna de la tabla se queda el alto entero para que su marco pueda
+ * desplazar; el panel no se estira: mide su contenido hasta ese tope. */
+.aulas-ch-izquierda {
+  align-self: stretch;
+}
+
+/* La derecha mide lo que trae; si una pantalla baja no le alcanza, desplaza
+ * ella misma en vez de empujar el pie fuera de la vista. */
+.aulas-ch-derecha {
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.aulas-ch-derecha > * {
+  flex: 0 0 auto;
+}
+
+.aulas-ch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.aulas-ch-tabla-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.aulas-ch-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-ch-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-ch-sub {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-ch-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-ch-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.aulas-ch-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-ch-nota.is-aviso {
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-ch-nota svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.aulas-ch-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Chip del foco: es un botón, así que se le quita lo que hereda del global. */
+.aulas-ch-foco {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-height: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-module-monitoring-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-module-monitoring-soft);
+  box-shadow: none;
+  color: var(--pulso-module-monitoring);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: normal;
+  transform: none;
+}
+
+.aulas-ch-foco:hover {
+  background: var(--pulso-module-monitoring-soft);
+  box-shadow: none;
+  text-decoration: underline;
+  transform: none;
+}
+
+.aulas-ch-foco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.aulas-ch-leyenda {
+  display: inline-flex;
+  gap: var(--pulso-space-3);
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-ch-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.aulas-ch-leyenda span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.aulas-ch-leyenda .is-observada::before {
+  background: var(--aulas-ch-efectivas);
+}
+
+.aulas-ch-leyenda .is-prevista::before {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--aulas-ch-prevista);
+}
+
+/* La tabla. `table-layout: fixed` con `colgroup`: el ancho lo decide la
+ * columna, no el texto más largo de una celda. */
+.aulas-ch-tabla-marco {
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-2));
+  overflow: auto;
+  scroll-padding-top: var(--aulas-ch-cabecera);
+  scroll-snap-type: y proximity;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.aulas-ch-tabla-marco:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+.aulas-ch-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-ch-tabla tbody > tr {
+  scroll-snap-align: start;
+}
+
+.aulas-ch-tabla th,
+.aulas-ch-tabla td {
+  padding: 6px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.aulas-ch-tabla :is(th, td):first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+.aulas-ch-tabla :is(th, td):last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+.aulas-ch-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  height: var(--aulas-ch-cabecera);
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.aulas-ch-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.aulas-ch-tabla .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.aulas-ch-tabla col.is-codigo { width: 92px; }
+.aulas-ch-tabla col.is-facultad { width: auto; }
+.aulas-ch-tabla col.is-cifra { width: 76px; }
+.aulas-ch-tabla col.is-pct { width: 80px; }
+.aulas-ch-tabla col.is-barra { width: 22%; }
+.aulas-ch-tabla col.is-lectura { width: 184px; }
+
+.aulas-ch-codigo {
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.aulas-ch-codigo a {
+  border-radius: 3px;
+  color: var(--pulso-text);
+  text-decoration: none;
+}
+
+.aulas-ch-codigo a:hover {
+  color: var(--pulso-module-monitoring);
+  text-decoration: underline;
+}
+
+.aulas-ch-codigo a:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.aulas-ch-parte {
+  margin-left: var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* La barra de la tasa: la observada rellena, la prevista es una marca. */
+.aulas-ch-tasa {
+  position: relative;
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--aulas-ch-pista);
+}
+
+.aulas-ch-tasa .is-observada {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--aulas-ch-efectivas);
+}
+
+/* Más del 100 %: la barra se recorta en el borde y el corte se ve plano. */
+.aulas-ch-tasa .is-observada[data-desborda] {
+  border-radius: 5px 0 0 5px;
+  background: var(--pulso-danger-fg);
+}
+
+.aulas-ch-tasa .is-prevista {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--aulas-ch-prevista);
+}
+
+.aulas-ch-lectura {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+
+.aulas-ch-lectura[data-tono="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.aulas-ch-lectura[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-ch-lectura[data-tono="riesgo"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.aulas-ch-lectura[data-tono="info"] {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+/* Titulares: barra apilada, seis cifras y lo usado de la reserva. */
+.aulas-ch-apilada {
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--aulas-ch-pista);
+}
+
+.aulas-ch-apilada i {
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+.aulas-ch [data-estado="aplicado"] { --aulas-ch-estado: var(--pulso-resultado-efectiva); }
+.aulas-ch [data-estado="agendado"] { --aulas-ch-estado: var(--pulso-brand-navy); }
+.aulas-ch [data-estado="vencido"] { --aulas-ch-estado: var(--pulso-resultado-parcial); }
+.aulas-ch [data-estado="sin_agendar"] { --aulas-ch-estado: var(--pulso-resultado-pendiente); }
+.aulas-ch [data-estado="rechazado"] { --aulas-ch-estado: var(--pulso-resultado-rechazo); }
+.aulas-ch [data-estado="reemplazado"] { --aulas-ch-estado: var(--pulso-border-strong); }
+
+.aulas-ch-apilada i[data-estado],
+.aulas-ch-cifras dt i[data-estado] {
+  background: var(--aulas-ch-estado);
+}
+
+.aulas-ch-cifras,
+.aulas-ch-usados {
+  display: grid;
+  gap: var(--pulso-space-3) var(--pulso-space-2);
+  margin: 0;
+}
+
+.aulas-ch-cifras {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aulas-ch-usados {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La cifra se apoya al pie: rótulos de largo distinto comparten línea de base. */
+.aulas-ch-cifras > div,
+.aulas-ch-usados > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.aulas-ch-cifras dt,
+.aulas-ch-usados dt {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.aulas-ch-cifras dt i {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.aulas-ch-cifras dd,
+.aulas-ch-usados dd {
+  margin: 0;
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+}
+
+/* Cobertura de lo esperado: un tramo por fila contra el mayor. */
+.aulas-ch-tramos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-ch-tramos li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px 40px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-ch-tramos li:first-child {
+  border-top: 0;
+}
+
+.aulas-ch-tramos li b {
+  text-align: right;
+}
+
+.aulas-ch-tramos li.is-cero {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-ch-tramo-barra {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--aulas-ch-pista);
+}
+
+.aulas-ch-tramo-barra i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.aulas-ch-tramo-barra i[data-tono="ok"] { background: var(--pulso-success-fg); }
+.aulas-ch-tramo-barra i[data-tono="medio"] { background: color-mix(in srgb, var(--pulso-brand-navy) 55%, var(--pulso-surface)); }
+.aulas-ch-tramo-barra i[data-tono="aviso"] { background: var(--pulso-warn-accent); }
+
+/* S1: silueta de la misma pestaña mientras se prepara el corte. */
+.aulas-ch-silueta {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.aulas-ch-silueta.is-tabla {
+  justify-content: center;
+  min-height: 520px;
+}
+
+.aulas-ch-silueta.is-titulares {
+  min-height: 220px;
+}
+
+.aulas-ch-silueta.is-cobertura {
+  min-height: 240px;
+}
+
+.aulas-ch-preparando {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+/* Compacto: la vista mide por contenido y desplaza `.mon-profile-content`.
+ * Titulares y cobertura suben encima de la tabla, lado a lado: con 185 filas
+ * debajo, al final quedarían a seis mil píxeles. No tienen controles, así que
+ * el orden visual no altera el del foco. */
+@media (max-width: 1180px), (max-height: 720px) {
+  .mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .aulas-ch) {
+    flex: 0 0 auto;
+    grid-template-rows: auto;
+  }
+
+  .aulas-ch {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .aulas-ch-derecha {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    order: -1;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .aulas-ch-tabla-panel {
+    max-height: none;
+  }
+
+  .aulas-ch-tabla-marco {
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .aulas-ch-silueta.is-tabla {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 860px) {
+  .aulas-ch-derecha {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
