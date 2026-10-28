@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { Users, X } from "lucide-react";
+import { Ban, Users, X } from "lucide-react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -200,7 +200,7 @@ function InspectorDeCodigo({
         {fila.anulado ? (
           <p className="mon-eq-base" title="Se revierte en Control › Anulaciones">Producción anulada</p>
         ) : (
-          <button type="button" className="mon-eq-boton is-peligro" onClick={onAnular}>Anular producción</button>
+          <button type="button" className="mon-eq-boton is-peligro" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular producción</button>
         )}
       </footer>
     </aside>

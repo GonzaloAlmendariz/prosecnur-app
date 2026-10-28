@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, type CSSProperties } from "react";
-import { Inbox, X } from "lucide-react";
+import { Ban, Inbox, X } from "lucide-react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -257,7 +257,7 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
       </section>
       <footer className="mon-ban-pie">
         {onAnular ? (
-          <button type="button" className="mon-ban-boton is-peligro" onClick={onAnular}>Anular caso</button>
+          <button type="button" className="mon-ban-boton is-peligro" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular caso</button>
         ) : (
           <p className="mon-ban-base" title="Sin identificador de respuesta no se puede anular desde aquí">Sin identificador de respuesta</p>
         )}

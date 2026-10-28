@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { ArrowRight, Loader2, Scale } from "lucide-react";
+import { ArrowRight, Loader2, Scale, Undo2 } from "lucide-react";
 import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { diaYMes, fmt } from "../rotulos";
@@ -219,8 +219,8 @@ function SubsanacionesTabImpl({
                 {entrada.estado === "activa" && onRevert ? (
                   porRevertir === entrada.id ? (
                     <span className="mon-sub-confirmar">
-                      <button type="button" className="mon-sub-boton is-peligro" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
-                        {enCurso === entrada.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
+                      <button type="button" className="mon-sub-boton is-peligro is-final" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
+                        {enCurso === entrada.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Undo2 size={14} aria-hidden="true" />}
                         Confirmar reversión
                       </button>
                       <button type="button" className="mon-sub-boton" onClick={() => setPorRevertir(null)}>Cancelar</button>
