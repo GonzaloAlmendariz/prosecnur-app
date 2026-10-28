@@ -1,38 +1,4 @@
-/* =========================================================================
-   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
-   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
-   ========================================================================= */
 
-.pulso-carga-progress-steps li {
-  min-width: 0;
-  min-height: 28px;
-  display: inline-grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px 3px 4px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.58);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-carga-progress-steps li.is-ready {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 22%, transparent);
-  background: color-mix(in srgb, var(--pulso-success-bg) 76%, #ffffff);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-carga-progress-steps li.is-warning {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 26%, transparent);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, #ffffff);
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-carga-progress-steps li.is-ready .pulso-carga-progress-copy strong,
-.pulso-carga-progress-steps li.is-warning .pulso-carga-progress-copy strong {
-  color: currentColor;
-}
 
 .pulso-carga-content--multi > section,
 .pulso-carga-content--multi > .pulso-carga-scrollarea > section {
@@ -71,46 +37,6 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 6px 14px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 18%, transparent);
-}
-
-.pulso-multibase-toggle {
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface-2);
-  transition:
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-  flex-wrap: wrap;
-}
-
-.pulso-carga-commandbar .pulso-multibase-toggle.is-on {
-  border-color: transparent;
-  background: transparent;
-}
-
-.pulso-carga-commandbar .pulso-multibase-toggle-copy {
-  flex: 0 1 auto;
-  min-width: min(330px, 100%);
-}
-
-.pulso-carga-commandbar .pulso-multibase-toggle-title {
-  font-size: 12px;
-}
-
-.pulso-carga-commandbar .pulso-multibase-toggle-hint {
-  max-width: 520px;
-  font-size: 10.5px;
-}
-
-.pulso-multibase-toggle.is-on {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary-soft);
 }
 
 .pulso-monitoring-suggestions-head {
@@ -547,8 +473,7 @@
 }
 
 .pulso-multibase-study-action.is-primary,
-.pulso-base-row-button.is-primary,
-.pulso-normalized-export-actions button {
+.pulso-base-row-button.is-primary {
   border: 1px solid var(--carga-accent-border, var(--pulso-primary-border));
   background: #fff;
   color: var(--carga-accent, var(--pulso-primary));
@@ -563,7 +488,6 @@
 
 .pulso-multibase-study-action:active,
 .pulso-base-row-button:active,
-.pulso-normalized-export-actions button:active,
 .pulso-base-form-buttons button:active,
 .pulso-base-file-picker:active {
   transform: scale(0.97);
@@ -571,7 +495,6 @@
 
 .pulso-multibase-study-action:disabled,
 .pulso-base-row-button:disabled,
-.pulso-normalized-export-actions button:disabled,
 .pulso-base-form-buttons button:disabled {
   cursor: wait;
   opacity: 0.58;
@@ -580,8 +503,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .pulso-multibase-study-action.is-primary:not(:disabled):hover,
-  .pulso-base-row-button.is-primary:not(:disabled):hover,
-  .pulso-normalized-export-actions button:not(:disabled):hover {
+.pulso-base-row-button.is-primary:not(:disabled):hover {
     border-color: var(--carga-accent);
     background: var(--carga-accent);
     color: #fff;
@@ -593,29 +515,6 @@
     background: var(--pulso-danger-bg);
     color: var(--pulso-danger-fg);
   }
-}
-
-.pulso-normalized-export-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 7px 8px;
-  border: 1px solid var(--carga-accent-border, var(--pulso-primary-border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--carga-accent-soft, var(--pulso-primary-soft)) 72%, #fff 28%);
-}
-
-.pulso-normalized-export-actions > span {
-  color: var(--carga-accent, var(--pulso-primary));
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-normalized-export-actions button {
-  min-height: 26px;
-  padding: 5px 8px;
-  font-family: ui-monospace, monospace;
 }
 
 .pulso-base-row-button {
@@ -733,28 +632,6 @@
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
     opacity var(--motion-dur-fast) ease;
-}
-
-.pulso-multibase-toggle-copy {
-  flex: 1;
-  min-width: 220px;
-}
-
-.pulso-multibase-toggle-title {
-  font-size: 13px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-}
-
-.pulso-multibase-toggle.is-on .pulso-multibase-toggle-title {
-  color: var(--pulso-primary);
-}
-
-.pulso-multibase-toggle-hint {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  line-height: 1.45;
-  margin-top: 2px;
 }
 
 .pulso-upload-card::before {
@@ -1093,21 +970,6 @@
   opacity: 0.68;
 }
 
-/* En multibase, el acceso a Monitoreo es una decisión metodológica y no un
- * atajo frecuente: ambos nombres permanecen visibles para que la operación sea
- * deliberada incluso antes de hover/foco. */
-.pulso-carga-multibase-origin-tabs.pulso-compact-tabs .pulso-compact-tab {
-  flex-basis: auto;
-  gap: 6px;
-  justify-content: flex-start;
-}
-
-.pulso-carga-multibase-origin-tabs .pulso-carga-tab-label {
-  max-width: 126px;
-  opacity: 1;
-  transform: translateX(0);
-}
-
 .pulso-platform-provider-tabs.pulso-compact-tabs .pulso-compact-tab:is(:hover, :focus-visible, .is-active) .pulso-platform-provider-label {
   max-width: 112px;
 }
@@ -1255,26 +1117,6 @@
   font-variant-numeric: tabular-nums;
   font-size: 15px;
   line-height: 1.1;
-}
-
-.pulso-normalization-details {
-  grid-column: 1 / -1;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-normalization-details summary {
-  cursor: pointer;
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-normalization-details ul {
-  max-height: 120px;
-  overflow: auto;
-  margin: 4px 0 0;
-  padding-left: 18px;
 }
 
 .pulso-choice-map-inline {
@@ -1476,32 +1318,6 @@
   }
 }
 
-.pulso-column-details {
-  grid-column: 1 / -1;
-  margin-top: 2px;
-  font-size: 11px;
-}
-
-.pulso-column-details summary {
-  cursor: pointer;
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-column-details ul {
-  max-height: 180px;
-  overflow: auto;
-  margin: 6px 0 0;
-  padding: 0 0 0 18px;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.pulso-column-details code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.pulso-column-details em,
 .pulso-column-extra {
   color: var(--pulso-text-soft);
 }
@@ -1609,22 +1425,6 @@
 .pulso-carga-frame .pulso-processing-intake-plan-details > span {
   display: block;
   margin-top: 4px;
-}
-
-.pulso-carga-frame .pulso-processing-intake-machine-key {
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-muted);
-  font: 600 11px/1.2 var(--pulso-font-mono, ui-monospace, monospace);
-}
-
-.pulso-carga-frame .pulso-processing-intake-machine-key {
-  max-width: 190px;
-  padding: 4px 7px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pulso-carga-frame .pulso-processing-intake-feedback,
@@ -2976,7 +2776,6 @@
 .pulso-carga-frame .pulso-kobo-detected-primary,
 .pulso-carga-frame .pulso-kobo-detected-secondary,
 .pulso-carga-frame .pulso-choice-map-inline-button,
-.pulso-carga-frame .pulso-normalized-export-actions button,
 .pulso-carga-frame .pulso-monitoring-suggestions-actions button,
 .pulso-carga-frame .pulso-continue-cta-link {
   border-radius: 999px;
@@ -2996,7 +2795,6 @@
 .pulso-carga-frame .pulso-kobo-detected-primary:active:not(:disabled),
 .pulso-carga-frame .pulso-kobo-detected-secondary:active:not(:disabled),
 .pulso-carga-frame .pulso-choice-map-inline-button:active:not(:disabled),
-.pulso-carga-frame .pulso-normalized-export-actions button:active:not(:disabled),
 .pulso-carga-frame .pulso-monitoring-suggestions-actions button:active:not(:disabled),
 .pulso-carga-frame .pulso-continue-cta-link:active {
   transform: scale(0.97);
@@ -3007,22 +2805,6 @@
 .pulso-carga-frame .pulso-kobo-detected-primary,
 .pulso-carga-frame .pulso-continue-cta-link {
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
-}
-
-/* ── 4) Estados semánticos: readiness + progreso ───────────────────────── */
-
-.pulso-carga-frame .pulso-carga-progress-steps li.is-ready .pulso-carga-progress-node {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-  opacity: 1;
-}
-
-.pulso-carga-frame .pulso-carga-progress-steps li.is-warning .pulso-carga-progress-node {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  opacity: 1;
 }
 
 /* ── 5) Stats del resumen — números tabulares grandes ──────────────────── */
@@ -3041,13 +2823,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Detalle técnico (normalización, columnas) en mono gris suave */
-.pulso-carga-frame .pulso-normalization-details,
-.pulso-carga-frame .pulso-column-details {
-  color: var(--pulso-text-muted);
-}
-
-.pulso-carga-frame .pulso-column-details code,
 .pulso-carga-frame .pulso-choice-map-card code {
   color: var(--pulso-text-muted);
   font-size: 11px;
@@ -3523,16 +3298,6 @@
 }
 
 /* ── Selector de base del esquema (inspección multibase) ───────────────── */
-
-/* Encabezado de la inspección: aloja el selector de base cuya estructura se
-   muestra (madre↔hija). Ocupa el ancho completo del grid `.pulso-carga-inspection`. */
-.pulso-carga-inspection-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 10px;
-}
 
 .pulso-carga-esquema-base {
   display: flex;
@@ -4053,112 +3818,12 @@
   margin-bottom: 20px;
 }
 
-.pulso-upload-section-head {
-  margin-bottom: 0;
-}
-
-.pulso-carga-frame .pulso-carga-plan-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 390px);
-  align-items: center;
-  gap: 16px;
-  padding: 14px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
-}
-
-.pulso-carga-frame .pulso-carga-plan-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pulso-carga-frame .pulso-carga-plan-copy strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-}
-
-.pulso-carga-frame .pulso-carga-plan-copy p {
-  max-width: 58ch;
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-  line-height: 1.45;
-}
-
-.pulso-carga-frame .pulso-carga-plan-panel > .pulso-multibase-toggle {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-}
-
-@media (max-width: 1050px) {
-  .pulso-carga-frame .pulso-carga-plan-panel {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.pulso-carga-workspace-sidebar .pulso-carga-tab-label {
-  display: none;
-}
-
-.pulso-carga-view-tab {
-  --carga-view-state: var(--pulso-info-fg);
-}
-
-.pulso-carga-view-tab.is-ready {
-  --carga-view-state: var(--pulso-success-fg);
-}
-
-.pulso-carga-view-tab.is-pending {
-  --carga-view-state: var(--pulso-text-faint);
-}
-
-.pulso-sm-multibase-trigger:hover:not(:disabled) {
-  background: var(--pulso-primary-soft);
-  box-shadow: 0 0 0 4px var(--pulso-primary-ring);
-}
-
-.pulso-sm-multibase-trigger:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.pulso-sm-multibase-trigger:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.pulso-sm-multibase-panel.is-inline {
-  position: static;
-  width: 100%;
-  max-height: none;
-  margin: 0 0 14px;
-  box-shadow: var(--pulso-shadow-low);
-}
-
 .pulso-sm-multibase-kicker {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-}
-
-.pulso-sm-multibase-head h3 {
-  margin: 1px 0 2px;
-  color: var(--pulso-text);
-  font-size: 16px;
-  line-height: 1.22;
-}
-
-.pulso-sm-multibase-head p {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.4;
 }
 
 .pulso-sm-multibase-warning > .pulso-sm-refresh-result-copy {
@@ -4177,7 +3842,6 @@
   background: var(--pulso-danger-bg);
 }
 
-.pulso-sm-multibase-name select,
 .pulso-sm-scope-field select,
 .pulso-sm-target-field select,
 .pulso-sm-channel-select select,
@@ -4442,28 +4106,6 @@
   margin-bottom: 2px;
 }
 
-.pulso-platform-suggestion-status {
-  min-height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
-
-.pulso-platform-suggestion-status.is-ready {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
 .pulso-sm-workbook-import .pulso-sm-family-config-head > div:first-child {
   min-width: 0;
   display: grid;
@@ -4559,30 +4201,6 @@
   color: var(--pulso-text);
   font-size: 10.5px;
   font-weight: var(--pulso-weight-bold);
-}
-
-.pulso-sm-source-details summary {
-  width: fit-content;
-  list-style: none;
-  cursor: pointer;
-}
-
-.pulso-sm-source-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.pulso-sm-source-item-meta > span:not(.pulso-sm-channel-badge) {
-  display: inline-flex;
-  align-items: center;
-  min-height: 20px;
-  padding: 2px 6px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
 }
 
 .pulso-sm-existing-collectors {
@@ -5161,43 +4779,6 @@
   color: #6d28d9;
 }
 
-.pulso-sm-refresh-campaign .pulso-sm-extra-check {
-  align-items: flex-start;
-  min-width: 0;
-}
-
-.pulso-sm-refresh-campaign .pulso-sm-extra-check > span {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.pulso-sm-refresh-campaign .pulso-sm-extra-check strong {
-  min-width: 0;
-  color: var(--pulso-text);
-  font-size: 11px;
-  line-height: 1.25;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.pulso-sm-refresh-campaign .pulso-sm-extra-check small {
-  min-width: 0;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.25;
-  white-space: normal;
-}
-
-.pulso-sm-refresh-campaign .pulso-sm-channel-select {
-  min-width: 0;
-}
-
-.pulso-sm-refresh-campaign .pulso-sm-channel-select-control {
-  min-height: 32px;
-}
-
 .pulso-sm-scope-popover summary {
   min-height: 32px;
   display: inline-flex;
@@ -5301,20 +4882,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.pulso-sm-alias-warning {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  padding: 5px 8px;
-  border-radius: 999px;
-  color: var(--pulso-warn-fg);
-  background: var(--pulso-warn-bg);
-  border: 1px solid var(--pulso-warn-border);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-sm-scope-head {
@@ -5568,25 +5135,6 @@
   font-size: 10.5px;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
-}
-
-.pulso-sm-scope-checks {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 4px 6px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 7px;
-  background: #fff;
-}
-
-.pulso-sm-scope-checks input,
-.pulso-sm-extra-check input {
-  width: 13px;
-  height: 13px;
-  accent-color: var(--pulso-primary);
 }
 
 .pulso-sm-extra-sources {
@@ -5844,12 +5392,6 @@
   font-size: 10.5px;
 }
 
-.pulso-sm-company {
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border: 1px solid var(--pulso-primary-border);
-}
-
 .pulso-multibase-study-copy {
   min-width: 0;
   display: grid;
@@ -6031,11 +5573,6 @@
   white-space: nowrap;
 }
 
-.pulso-base-list {
-  display: grid;
-  gap: 9px;
-}
-
 .pulso-multibase-study-feedback {
   color: var(--pulso-text-soft);
   font-size: 11px;
@@ -6081,64 +5618,6 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.pulso-base-add-button {
-  width: fit-content;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 12px;
-  padding: 7px 13px;
-  border: 1px dashed color-mix(in srgb, var(--carga-accent-border, var(--pulso-primary-border)) 82%, var(--pulso-border));
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--carga-accent-soft, var(--pulso-primary-soft)) 56%, #fff));
-  color: var(--carga-accent, var(--pulso-primary));
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) ease,
-    background var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-base-add-button svg {
-  flex: 0 0 auto;
-}
-
-.pulso-base-add-button:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.pulso-base-add-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.56;
-  transform: none;
-}
-
-.pulso-base-add-button.is-limited {
-  border-style: solid;
-  color: var(--pulso-text-soft);
-  background: rgba(255, 255, 255, 0.72);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pulso-base-add-button:hover:not(:disabled) {
-    border-style: solid;
-    border-color: var(--carga-accent, var(--pulso-primary));
-    background: #fff;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.88),
-      0 7px 16px color-mix(in srgb, var(--carga-accent, var(--pulso-primary)) 10%, transparent);
-  }
 }
 
 .pulso-base-editor {
@@ -6607,19 +6086,12 @@
 }
 
 .pulso-integrated-field,
-.pulso-integrated-toolbar label,
-.pulso-integrated-guide-field,
 .pulso-integrated-manual {
   min-width: 0;
 }
 
-.pulso-integrated-field > span,
-.pulso-integrated-guide-field > span {
+.pulso-integrated-field > span {
   min-height: 14px;
-}
-
-.pulso-integrated-guide-field .pulso-sm-file {
-  justify-self: start;
 }
 
 .pulso-integrated-upload-guide {
@@ -6638,8 +6110,6 @@
   width: 100%;
 }
 
-.pulso-integrated-toolbar input,
-.pulso-integrated-toolbar select,
 .pulso-integrated-setup input,
 .pulso-integrated-setup select,
 .pulso-integrated-origin-row input,
@@ -7043,57 +6513,6 @@
   width: 100%;
 }
 
-.pulso-sm-subhead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--pulso-text);
-}
-
-.pulso-sm-subhead span {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-}
-
-.pulso-sm-wording-row span {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.pulso-sm-wording-row code {
-  font-size: 11px;
-  color: var(--pulso-primary);
-}
-
-.pulso-sm-wording-row small {
-  color: var(--pulso-text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-sm-blockers {
-  display: grid;
-  gap: 6px;
-}
-
-.pulso-sm-blockers div {
-  display: grid;
-  gap: 2px;
-  padding: 8px;
-  border-radius: 8px;
-  color: var(--pulso-danger-fg);
-  background: var(--pulso-danger-bg);
-  border: 1px solid var(--pulso-danger-border);
-}
-
-.pulso-sm-blockers span {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-}
-
 .pulso-upload-card-title {
   margin: 0;
   font-size: 14px;
@@ -7373,14 +6792,6 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.pulso-upload-normalizacion {
-  grid-column: 1 / -1;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-semibold);
-}
-
 .pulso-choice-map-inline-icon {
   display: inline-flex;
   color: var(--pulso-primary);
@@ -7435,21 +6846,6 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   border-top: 1px solid var(--pulso-border);
-}
-
-.pulso-upload-compat {
-  grid-column: 1 / -1;
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-upload-compat.is-ok {
-  color: var(--pulso-success-fg);
-}
-
-.pulso-upload-compat.is-bad {
-  color: var(--pulso-danger-fg);
 }
 
 /* Enlace de la base con la revisión publicada en el Editor. Vive bajo la
@@ -7614,17 +7010,6 @@
   color: var(--pulso-text);
 }
 
-.pulso-question-detail-choice-table li {
-  display: grid;
-  grid-template-columns: minmax(64px, auto) 1fr;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface);
-}
-
 .pulso-response-meta-list {
   display: flex;
   flex-direction: column;
@@ -7720,33 +7105,6 @@
   .pulso-calc-relations {
     grid-template-columns: 1fr;
   }
-}
-
-/* Fila del modo de estudio. Vive en el cuerpo y no en el chrome porque cambia el
- * modo del estudio y lleva copy explicativo: es operar, no navegar. Cuando estaba
- * en la banda, la subía de 52 a 125px. */
-.pulso-carga-study-mode {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--pulso-chrome-commandbar-gap);
-}
-
-/* Estado de insumos en su forma compacta: un chip en vez del medidor de tres
- * pasos. El detalle solo aparece cuando falta algo; con todo listo era 352px de
- * banda repitiendo lo que el rail de secciones ya marca como completado. */
-.pulso-carga-progress-meter.is-compact {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: var(--pulso-chrome-control-h);
-  padding: 0 11px 0 8px;
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-success-bg);
-}
-
-.pulso-carga-progress-meter.is-compact .pulso-carga-progress-node.is-ready {
-  color: var(--pulso-success-fg);
 }
 
 /* =========================================================================
