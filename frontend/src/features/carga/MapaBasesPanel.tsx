@@ -8,6 +8,7 @@
 // Reusa la cáscara del sideover de armonización (`pulso-armon*`): un único
 // dueño de scroll, el cuerpo del panel. La lógica vive en `mapaBasesModel`.
 
+import { PulsoSwitch } from "../../components/PulsoSwitch";
 import { useCallback, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
@@ -338,14 +339,12 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
           </p>
         </div>
         {todas.some((f) => f.incompleta) && (
-          <label className="pulso-mapa-filtro">
-            <input
-              type="checkbox"
-              checked={soloIncompletas}
-              onChange={(e) => setSoloIncompletas(e.currentTarget.checked)}
-            />
-            Sólo las que faltan en alguna base
-          </label>
+          <PulsoSwitch
+            size="sm"
+            label="Sólo las que faltan en alguna base"
+            checked={soloIncompletas}
+            onCheckedChange={setSoloIncompletas}
+          />
         )}
       </div>
       {todas.length === 0 ? (
