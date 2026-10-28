@@ -461,6 +461,13 @@
   min-width: 0;
 }
 
+/* Barra común: cada píldora mide lo suyo. Con columnas iguales, la insignia de
+ * Avance («146 % | 418/287»), que llega con el corte unos segundos después,
+ * ensanchaba las cuatro a la vez y la barra saltaba de 420 a 750 px. */
+.mon-commandbar.is-barra-comun .mon-section-rail .pulso-phase-pill-list {
+  grid-auto-columns: max-content;
+}
+
 :root[data-pulso-layout-mode="compact"] .mon-section-rail-wrap > .mon-section-rail.pulso-phase-pillbar,
 :root[data-pulso-layout-mode="short"] .mon-section-rail-wrap > .mon-section-rail.pulso-phase-pillbar {
   flex-basis: 100%;
