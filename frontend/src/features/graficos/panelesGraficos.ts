@@ -77,6 +77,13 @@ export const PANEL_PREVIA_WORD: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Atajos de teclado de Gráficos (tecla «?»): `?panel=atajos`. */
+export const PANEL_ATAJOS_GRAFICOS: PanelDeclarado = {
+  id: "atajos",
+  label: "Atajos de teclado",
+  clase: "dialogo",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
@@ -92,4 +99,5 @@ export const PANELES_GRAFICOS = [
   PANEL_PLAN_PORTATIL,
   PANEL_SECCIONES_JSON,
   PANEL_PREVIA_WORD,
+  PANEL_ATAJOS_GRAFICOS,
 ] as const satisfies readonly PanelDeclarado[];

@@ -13,7 +13,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { ResumenAvisosExportacion } from "./avisosExportacion/ResumenAvisosExportacion";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { PANEL_AVISOS_INFORME } from "./panelesGraficos";
+import { PANEL_ATAJOS_GRAFICOS, PANEL_AVISOS_INFORME } from "./panelesGraficos";
 import { useAvisosExportacion } from "./avisosExportacion/avisosExportacionStore";
 import { rotuloIrALamina } from "./avisosExportacion/avisosExportacionModel";
 import { LoadingBlock } from "../../components/States";
@@ -81,8 +81,8 @@ export default function GraficosPage() {
     useGraficosAutosave(reportScope);
   const dirty = usePlanStore((s) => s.dirty);
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
+  const panelAtajos = usePanelDireccionable(PANEL_ATAJOS_GRAFICOS);
+  useGraficosShortcuts({ onOpenHelp: panelAtajos.abrir });
   // Atajos V2: J/K (nav), / (búsqueda), V/T (modo), 1-4 (tabs)
   useShortcutsV2();
 
@@ -454,7 +454,7 @@ export default function GraficosPage() {
       )}
     </PageFrame>
 
-      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
+      {panelAtajos.abierto && <ShortcutsModal onClose={panelAtajos.cerrar} />}
     </>
     </GraficosReportScopeProvider>
   );

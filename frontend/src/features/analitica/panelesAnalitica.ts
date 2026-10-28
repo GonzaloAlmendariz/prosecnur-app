@@ -27,7 +27,19 @@ export const PANEL_UNIVERSO: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Analítica › Dimensiones, paso 1: confirmar una plantilla JSON de
+ * dimensiones contra el instrumento. `?panel=importar-dimensiones`; existe
+ * mientras el asistente está en su primer paso.
+ */
+export const PANEL_IMPORTAR_DIMENSIONES: PanelDeclarado = {
+  id: "importar-dimensiones",
+  label: "Confirmar plantilla de dimensiones",
+  clase: "dialogo",
+};
+
 export const PANELES_ANALITICA = [
   PANEL_VARIABLES_EXCLUIDAS,
   PANEL_UNIVERSO,
+  PANEL_IMPORTAR_DIMENSIONES,
 ] as const satisfies readonly PanelDeclarado[];
