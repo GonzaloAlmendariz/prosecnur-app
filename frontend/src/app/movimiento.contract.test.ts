@@ -62,6 +62,7 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/bitacora/cronograma.css": 1,
     "features/calcMuestra/calcMuestra.css": 1,
     "features/calcMuestra/didactica/didactica.css": 1,
+    // EXCEPCIÓN con motivo, no deuda: el bucle didáctico ES la explicación del método (cae al cuadro final con movimiento reducido).
     "features/calcMuestra/didactica/metodoGooEsquema.css": 12,
     "features/calcMuestra/universidad/aulas/relato/relato.css": 2,
     "features/calcMuestra/universidad/criterios/confirmadorCriterio.css": 1,
@@ -92,12 +93,14 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/analitica/analitica-v2.css": 2,
     "features/calcMuestra/calcMuestra.css": 3,
     "features/calcMuestra/didactica/metodoGooEsquema.css": 1,
+    // EXCEPCIÓN con motivo: su contrato propio E16/M9 fija pasos de 30–80 ms y barras ≤ 280 ms; no se baja sin cambiar M9.
     "features/calcMuestra/general/movimiento.css": 8,
     "features/calcMuestra/universidad/aulas/relato/relato.css": 1,
     "features/calcMuestra/universidad/calculo/calculo.css": 4,
     "features/calcMuestra/universidad/definicion/definicion.css": 4,
     "features/calcMuestra/universidad/marco/marco.css": 6,
     "features/calcMuestra/universidad/ui/ui.css": 5,
+    // EXCEPCIÓN con motivo: artefacto publicado, pendiente de la decisión D2 (GOAL L16-Dashboard); no se toca sin ella.
     "features/dashboard/tabs/DimensionesTab/dimensiones.css": 20,
     "features/home/home-v2.css": 2,
     "features/validacion/validacion-v2.css": 3,
