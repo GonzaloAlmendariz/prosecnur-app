@@ -3913,15 +3913,6 @@ a { color: var(--pulso-primary); }
 
 }
 
-.pulso-main--viewport .pulso-xlsform-frame .pulso-form-canvas-empty {
-  min-height: clamp(280px, calc(100dvh - 520px), 380px);
-  padding: 34px 20px;
-}
-
-.pulso-main--viewport .pulso-xlsform-frame .pulso-form-canvas-empty-text,
-.pulso-main--viewport .pulso-xlsform-frame .pulso-form-canvas-empty-text-secondary {
-  line-height: 1.45;
-}
 .pulso-page-frame-body > section:last-child,
 .pulso-page-frame-body .pulso-panel:last-child {
   margin-bottom: 0;
@@ -15320,8 +15311,6 @@ button.pulso-icon-danger:hover:not(:disabled) {
   cursor: grabbing;
 }
 
-body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-xlsform-canvas-panel,
-body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-xlsform-inspector-panel,
 body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-focus-workspace {
   pointer-events: none;
 }
@@ -15329,23 +15318,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-focus-workspace {
 body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not(.is-selected) {
   border-color: var(--xls-border, var(--pulso-border));
   box-shadow: 0 5px 16px rgba(15, 23, 42, 0.045);
-}
-
-body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-section-header:hover {
-  border-color: var(--xls-border, var(--pulso-border));
-  box-shadow: var(--xls-shadow-hairline, none);
-}
-
-body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween:hover {
-  height: 4px;
-  margin: -4px 0;
-  opacity: 0;
-}
-
-body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-trigger:hover {
-  background: white;
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
 }
 
 .pulso-outline-body {
@@ -15415,44 +15387,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-outline-row--repeat .pulso-outline-typeicon {
   color: #0f9f8f;
-}
-
-/* ── Fila de CIERRE de sección ─────────────────────────────────────────── */
-/* Lee como un marcador de límite arrastrable, no como una fila más: borde
- * superior punteado (la "costura" donde termina la sección) y un grip
- * siempre visible que anuncia que se puede reubicar. */
-.pulso-outline-closerow {
-  border-top: 1px dashed color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-border));
-}
-.pulso-outline-closerow .pulso-outline-title {
-  font-weight: var(--pulso-weight-bold);
-  color: color-mix(in srgb, var(--pulso-text) 62%, var(--pulso-text-soft));
-}
-/* El grip del cierre no espera al hover: la reubicación es su función
- * principal, así que se muestra afirmado y con tinte primario. */
-.pulso-outline-closerow .pulso-outline-grip {
-  opacity: 0.85;
-  color: var(--pulso-primary);
-}
-.pulso-outline-closerow:hover .pulso-outline-grip {
-  opacity: 1;
-  background: var(--pulso-primary-soft);
-}
-/* Guía vertical que ata visualmente el cierre a su sección. */
-.pulso-outline-closerow .pulso-outline-body::before {
-  content: "";
-  align-self: stretch;
-  width: 2px;
-  margin: 2px 6px 2px 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-primary) 22%, transparent);
-}
-
-.pulso-outline-required {
-  font-size: 12px;
-  color: var(--pulso-warn-fg);
-  font-weight: var(--pulso-weight-bold);
-  flex-shrink: 0;
 }
 
 /* Variante específica para "Ajustes del formulario" — sutilmente distinta
@@ -15529,15 +15463,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   transition: background 120ms ease, border-color 120ms ease;
 }
 
-/* Wrapper de la card + anchor de quickactions */
-.pulso-canvas-card-wrapper {
-  position: relative;
-}
-.pulso-canvas-quickactions-anchor {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
 .pulso-canvas-quickactions {
   display: inline-flex;
   align-items: center;
@@ -15957,35 +15882,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-question-detail-title strong {
   font-size: 13px;
 }
-.pulso-question-detail-choice-table {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  max-height: 280px;
-  overflow: auto;
-}
-.pulso-question-detail-choice-table code,
-.pulso-question-detail-logic-text code,
-.pulso-question-logic-map-center code,
-.pulso-question-logic-node code {
+
+.pulso-question-detail-logic-text code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.pulso-question-detail-choice-table code {
-  color: var(--pulso-text);
-  font-size: 11px;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 5px;
-  padding: 2px 6px;
-}
-.pulso-question-detail-choice-table span {
-  font-size: 12px;
-  color: var(--pulso-text);
-  line-height: 1.35;
-}
+
 .pulso-question-detail-empty {
   padding: 10px 12px;
   border: 1px dashed var(--pulso-border);
@@ -16027,78 +15928,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 6px;
   padding: 6px 7px;
 }
-.pulso-question-logic-map {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.75fr) minmax(0, 1fr);
-  gap: 10px;
-  align-items: stretch;
-}
-.pulso-question-logic-map-col,
-.pulso-question-logic-map-center {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.pulso-question-logic-map-col > strong {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.pulso-question-logic-map-center {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  min-height: 120px;
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: 10px;
-  background: var(--pulso-primary-soft);
-  padding: 12px;
-}
-.pulso-question-logic-map-center code {
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-heavy);
-  font-size: 12px;
-}
-.pulso-question-logic-map-center span {
-  color: var(--pulso-text);
-  font-size: 12px;
-  line-height: 1.35;
-}
-.pulso-question-logic-node {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface);
-}
-.pulso-question-logic-node span {
-  width: fit-content;
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: 999px;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
-}
-.pulso-question-logic-node code {
-  color: var(--pulso-text);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-}
-.pulso-question-logic-node em {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.35;
-  font-style: normal;
-}
+
 @media (max-width: 860px) {
-  .pulso-question-detail,
-  .pulso-question-logic-map {
+  .pulso-question-detail {
     grid-template-columns: 1fr;
   }
 }
@@ -16229,93 +16061,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-direction: column;
   gap: 12px;
 }
-.pulso-inspector-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-.pulso-inspector-header-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.pulso-inspector-header-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.pulso-inspector-header-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.pulso-inspector-header-meta strong {
-  font-size: 13px;
-  color: var(--pulso-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pulso-inspector-header-sub {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pulso-inspector-header-sub code {
-  font-family: ui-monospace, monospace;
-  background: var(--pulso-surface-2);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 10.5px;
-}
 
-.pulso-inspector-tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--pulso-border);
-  margin: 0 -2px;
-}
-.pulso-inspector-tab-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
-  border-radius: 6px 6px 0 0;
-}
-.pulso-inspector-tab-trigger:hover {
-  color: var(--pulso-text);
-  background: var(--pulso-surface-2);
-}
-.pulso-inspector-tab-trigger.is-active {
-  color: var(--pulso-primary);
-  border-bottom-color: var(--pulso-primary);
-}
-
-.pulso-inspector-tabpanel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 0;
-}
 .pulso-inspector-tab {
   display: flex;
   flex-direction: column;
@@ -16403,16 +16149,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin: 0;
 }
 
-.pulso-inspector-placeholder {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-  border: 1px dashed var(--pulso-border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  line-height: 1.5;
-}
-
 .pulso-inspector-media-fields {
   display: flex;
   min-width: 0;
@@ -16420,38 +16156,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 7px;
 }
 
-.pulso-inspector-coming {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(36, 87, 214, 0.05));
-  border: 1px solid rgba(79, 70, 229, 0.2);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.pulso-inspector-coming-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  color: rgb(79, 70, 229);
-  flex-shrink: 0;
-}
-.pulso-inspector-coming strong {
-  display: block;
-  font-size: 12.5px;
-  color: var(--pulso-text);
-  margin-bottom: 4px;
-}
-.pulso-inspector-empty-logic {
-  margin: 0;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  line-height: 1.5;
-}
 .pulso-inspector-logic-readout {
   display: flex;
   flex-direction: column;
@@ -16731,156 +16435,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
   color: var(--pulso-primary);
   font-weight: var(--pulso-weight-semibold);
-}
-
-/* ============================================================================
- * Template Gallery — esqueletos seed que el usuario puede cargar
- * ========================================================================= */
-.pulso-template-gallery {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.pulso-template-gallery-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 4px 2px;
-}
-.pulso-template-gallery-header svg {
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-.pulso-template-gallery-header strong {
-  display: block;
-  font-size: 14px;
-  color: var(--pulso-text);
-  margin-bottom: 2px;
-}
-.pulso-template-gallery-header span {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-.pulso-template-gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-.pulso-template-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px 18px 14px;
-  border-radius: 14px;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  cursor: pointer;
-  text-align: left;
-  overflow: hidden;
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-  animation: pulso-empty-home-in 360ms cubic-bezier(0.2, 0, 0, 1) both;
-}
-.pulso-template-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
-  border-color: var(--seed-accent);
-}
-.pulso-template-card-acc {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--seed-accent);
-}
-.pulso-template-card-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--pulso-surface-2);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.pulso-template-card-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pulso-template-card-meta strong {
-  font-size: 14px;
-  font-weight: var(--pulso-weight-heavy);
-  color: var(--pulso-text);
-  letter-spacing: -0.1px;
-}
-.pulso-template-card-meta p {
-  margin: 0;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  line-height: 1.5;
-}
-.pulso-template-card-highlights {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pulso-template-card-highlights li {
-  position: relative;
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-  padding-left: 14px;
-  line-height: 1.55;
-}
-.pulso-template-card-highlights li::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 7px;
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: var(--seed-accent);
-}
-.pulso-template-card-stats {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  padding-top: 6px;
-  border-top: 1px solid var(--pulso-border);
-  margin-top: auto;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ============================================================================
- * Indicador condicional en el outline + canvas
- * Reemplaza al emoji "👁" por un icono "conditional rules" inline.
- * `is-question` → trazo fino para no competir con el icono del tipo.
- * `is-section` → trazo más marcado: la condición rige a todo el bloque.
- * ========================================================================= */
-.pulso-outline-conditional {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 5px;
-  margin-left: 4px;
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.10));
-}
-.pulso-outline-conditional.is-section {
-  color: white;
-  background: var(--pulso-primary);
 }
 
 .pulso-canvas-card-conditional {
@@ -17823,12 +17377,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: var(--pulso-primary);
   color: var(--pulso-primary);
 }
-.pulso-graph-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--pulso-border);
-  margin: 0 4px;
-}
 
 /* Sección expandida — animación sutil al cambiar la altura del rect.
  * Como cambiamos la altura via re-layout (no via CSS height), el
@@ -17867,27 +17415,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.pulso-graph-detail-go {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 11px;
-  background: var(--pulso-primary);
-  color: white;
-  border: none;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-  transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
-  margin-top: 4px;
-}
-.pulso-graph-detail-go:hover {
-  background: var(--pulso-primary-hover, #1d4ed8);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
-}
 
 /* ============================================================================
  * Logic canvas — modo edición (F2-6)
@@ -17906,136 +17433,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-node-anchor:hover {
   filter: drop-shadow(0 0 4px rgba(36, 87, 214, 0.5));
-}
-
-.pulso-graph-edgepicker {
-  position: fixed;
-  z-index: 90;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
-  width: 320px;
-  max-width: calc(100vw - 24px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: pulso-stagger-in 160ms ease both;
-  /* offsets para que el popover quede debajo a la derecha del cursor */
-  transform: translate(8px, 8px);
-}
-.pulso-graph-edgepicker-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-.pulso-graph-edgepicker-header strong {
-  display: block;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--pulso-text-soft);
-  margin-bottom: 2px;
-}
-.pulso-graph-edgepicker-header span {
-  font-size: 11.5px;
-  color: var(--pulso-text);
-  display: inline-flex;
-  gap: 4px;
-}
-.pulso-graph-edgepicker-header code {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  padding: 1px 5px;
-  border-radius: 4px;
-  color: var(--pulso-primary);
-}
-.pulso-graph-edgepicker-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--pulso-text-soft);
-  border-radius: 5px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.pulso-graph-edgepicker-close:hover {
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-}
-.pulso-graph-edgepicker-empty {
-  padding: 16px 14px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-.pulso-graph-edgepicker-list {
-  list-style: none;
-  margin: 0;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.pulso-graph-edgepicker-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
-  width: 100%;
-  border: none;
-  background: transparent;
-  border-radius: 7px;
-  cursor: pointer;
-  text-align: left;
-  transition: background 120ms ease;
-}
-.pulso-graph-edgepicker-item:hover {
-  background: var(--pulso-surface-2);
-}
-.pulso-graph-edgepicker-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.10));
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-}
-.pulso-graph-edgepicker-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.pulso-graph-edgepicker-meta strong {
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-}
-.pulso-graph-edgepicker-meta span {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  line-height: 1.4;
-}
-.pulso-graph-edgepicker-replace {
-  font-style: normal;
-  color: var(--pulso-warn-fg, #b45309);
-  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ============================================================================
@@ -20763,11 +20160,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   pointer-events: none;
   animation: pulso-stagger-in 140ms ease both;
 }
-.pulso-graph-edge-label-prefix {
-  font-style: italic;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-}
+
 .pulso-graph-edge-label code {
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
@@ -20790,17 +20183,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
-.pulso-graph-detail-block-code {
-  font-family: ui-monospace, monospace;
-  font-size: 11.5px;
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  padding: 6px 8px;
-  color: var(--pulso-text);
-  word-break: break-all;
-  line-height: 1.4;
-}
+
 .pulso-graph-detail-list {
   list-style: none;
   margin: 0;
@@ -20808,24 +20191,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: flex;
   flex-direction: column;
   gap: 3px;
-}
-.pulso-graph-detail-link code {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-semibold);
-  flex-shrink: 0;
-}
-.pulso-graph-detail-link span {
-  color: var(--pulso-text-soft);
-  flex: 1;
-  min-width: 0;
-  /* Wrap natural en lugar de truncar — el card debe crecer en
-   * altura para mostrar la condición completa. */
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  line-height: 1.45;
 }
 
 /* ============================================================================
@@ -20903,15 +20268,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-.pulso-graph-toolbar-sep {
-  width: 1px;
-  height: 22px;
-  background: var(--pulso-border);
-  margin: 0 2px;
-}
-.pulso-graph-toolbar-segment button svg {
-  flex: 0 0 auto;
-}
 
 /* Card en estado dragging — sombra elevada. */
 .pulso-graph-node.is-dragging > rect {
@@ -20936,37 +20292,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 
 /* Bloques "Condición actual / Nueva condición" del step 2 (combiner). */
-
-/* Leyenda actualizada — ahora explica que el COLOR es la condición y
- * las flechas que comparten color comparten condición exacta. */
-.pulso-graph-legend-explainer {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.pulso-graph-legend-explainer li {
-  display: list-item;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--pulso-text-soft);
-  padding-left: 10px;
-  position: relative;
-}
-.pulso-graph-legend-explainer li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: var(--pulso-primary);
-  font-weight: var(--pulso-weight-bold);
-}
-.pulso-graph-legend-explainer li strong {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-semibold);
-}
 
 /* ============================================================================
  * Logic canvas — leyenda colapsable + estilos refinados (post review)
@@ -21015,15 +20340,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
  * usa en el JSX). Acotado a `-types` para NO golpear los <strong> inline
  * de la cabecera y los ejemplos — antes los forzaba a block+uppercase y
  * partía cada frase en dos líneas con una palabra en mayúsculas. */
-.pulso-graph-legend-types strong {
-  display: block;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--pulso-text-soft);
-  margin-top: 2px;
-}
+
 /* Énfasis inline dentro de la cabecera y los ejemplos: bold normal que
  * fluye con la frase. Resetea explícitamente display/text-transform por si
  * queda cascada de la regla legacy `-types` (block + uppercase), que
@@ -21037,22 +20354,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   text-transform: none;
   margin-top: 0;
   font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-}
-.pulso-graph-legend-types {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.pulso-graph-legend-types li {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
   color: var(--pulso-text);
 }
 
@@ -21132,19 +20433,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   text-transform: uppercase;
   color: var(--pulso-primary);
   line-height: 1.35;
-}
-
-/* Visual flow: src → tgt cards conectadas por flecha (deprecado —
- * ahora usamos `pulso-graph-edge-panel-block` con cards stack). */
-.pulso-graph-edge-panel-flow {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 8px;
-  align-items: stretch;
-  padding: 10px;
-  background: var(--pulso-surface-2);
-  border-radius: 9px;
-  border: 1px solid var(--pulso-border);
 }
 
 /* Bloques Origen / Destino — cada uno puede tener N cards. */
@@ -21515,14 +20803,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
 }
-.pulso-graph-edge-panel-btn-secondary {
-  background: white;
-  color: var(--pulso-text);
-  border: 1px solid var(--pulso-border);
-}
-.pulso-graph-edge-panel-btn-secondary:hover {
-  background: var(--pulso-surface-2);
-}
+
 /* Confirmación inline de borrado — ocupa el lugar de las acciones. */
 .pulso-graph-edge-panel-confirm {
   margin-top: auto;
@@ -22427,178 +21708,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   outline-offset: 2px;
 }
 
-/* === SectionHeader === */
-.pulso-canvas-section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(0, 36, 87, 0.04) 0%, rgba(0, 36, 87, 0.01) 100%);
-  border: 1px solid var(--pulso-border);
-  cursor: pointer;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-}
-.pulso-canvas-section-header:hover {
-  border-color: var(--pulso-primary-border);
-}
-.pulso-canvas-section-header.is-selected {
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 1px var(--pulso-primary);
-}
-/* Bloque repetible (begin_repeat): identidad naranja `--pulso-repeat-*` para
-   que se lea distinto de un grupo normal de un vistazo. */
-.pulso-canvas-section-header.is-repeat {
-  background: var(--pulso-repeat-bg);
-  border-color: var(--pulso-repeat-border);
-}
-.pulso-canvas-section-header.is-repeat .pulso-canvas-section-icon {
-  color: var(--pulso-repeat-accent);
-}
-.pulso-canvas-section-header.is-repeat.is-selected {
-  border-color: var(--pulso-repeat-accent);
-  box-shadow: 0 0 0 1px var(--pulso-repeat-accent);
-}
-.pulso-canvas-section-icon {
-  display: inline-flex;
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-}
-.pulso-canvas-section-title {
-  flex: 1;
-  margin: 0;
-  font-size: 15px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-  line-height: 1.3;
-  min-width: 0;
-}
-.pulso-canvas-section-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  flex-shrink: 0;
-}
-
-.pulso-canvas-addbetween:hover,
-.pulso-canvas-addbetween.is-open,
-.pulso-canvas-addbetween.is-always {
-  opacity: 1;
-  height: auto;
-  margin: 2px 0;
-}
-.pulso-canvas-addbetween-trigger:hover {
-  background: var(--pulso-primary);
-  color: white;
-  border-color: var(--pulso-primary);
-}
-.pulso-canvas-addbetween-trailing .pulso-canvas-addbetween-trigger {
-  padding: 8px 16px;
-  font-size: 13px;
-  border-style: solid;
-}
-.pulso-canvas-addbetween-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 36, 87, 0.12);
-  padding: 7px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 292px;
-  max-height: min(650px, calc(100dvh - 150px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  z-index: 50;
-}
-.pulso-canvas-addbetween-menu-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.62);
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  color: var(--pulso-text);
-  transition: background 120ms ease;
-}
-.pulso-canvas-addbetween-menu-item:hover {
-  background: var(--pulso-surface-2, rgba(0, 36, 87, 0.05));
-}
-.pulso-canvas-addbetween-menu-icon {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
-  color: var(--pulso-primary);
-}
-.pulso-canvas-addbetween-menu-item svg {
-  color: currentColor;
-}
-.pulso-canvas-addbetween-menu-item > span:not(.pulso-canvas-addbetween-menu-icon) {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.pulso-canvas-addbetween-menu-item strong {
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-}
-.pulso-canvas-addbetween-menu-item em {
-  font-style: normal;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  line-height: 1.4;
-}
-.pulso-canvas-addbetween-back:hover {
-  background: var(--pulso-surface-2, rgba(0, 36, 87, 0.05));
-  color: var(--pulso-text);
-}
-.pulso-canvas-addbetween-menu-item.is-primary {
-  background: var(--pulso-primary-soft);
-}
-.pulso-canvas-addbetween-menu-item.is-primary strong {
-  color: var(--pulso-primary);
-}
-.pulso-canvas-addbetween-menu-item.is-primary svg {
-  color: var(--pulso-primary);
-}
-
-.pulso-choice-edit-code:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--pulso-text);
-}
-.pulso-choice-edit-code:focus {
-  outline: none;
-  background: white;
-  border-color: var(--pulso-primary);
-  color: var(--pulso-text);
-}
-.pulso-choice-edit-code.needs-review {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, transparent);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 44%, #ffffff);
-  color: color-mix(in srgb, var(--pulso-warn-fg) 76%, #253149);
-}
-.pulso-listname-label {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  font-weight: var(--pulso-weight-semibold);
-}
-
 @keyframes pulso-coachmarks-fade-in {
   from {
     opacity: 0;
@@ -22674,23 +21783,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
 }
-.pulso-more-views-section-label {
-  display: block;
-  padding: 4px 10px 2px;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--pulso-text-soft);
-}
-.pulso-more-views-section-label + .pulso-more-views-item {
-  margin-top: 0;
-}
-.pulso-more-views-item + .pulso-more-views-section-label {
-  margin-top: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--pulso-border);
-}
+
 .pulso-more-views-item {
   display: flex;
   align-items: flex-start;
@@ -22707,52 +21800,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-more-views-item:hover {
   background: var(--pulso-surface-2, rgba(0, 36, 87, 0.05));
-}
-.pulso-more-views-switch.is-on {
-  background: var(--pulso-primary);
-}
-.pulso-more-views-tenor-input:focus {
-  outline: none;
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
-}
-.pulso-more-views-special-select:focus {
-  outline: none;
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
-}
-/* === Inspector técnico (sección colapsable) === */
-.pulso-inspector-advanced-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px dashed var(--pulso-border);
-  background: transparent;
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  transition: border-color 120ms ease, color 120ms ease;
-}
-.pulso-inspector-advanced-toggle:hover {
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
-}
-.pulso-inspector-advanced-toggle span {
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-}
-.pulso-inspector-advanced-body {
-  margin-top: 8px;
-  padding: 12px;
-  background: rgba(0, 36, 87, 0.02);
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 /* Aviso "obligatoria condicionada" — minimalista debajo del toggle.
@@ -23207,8 +22254,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding-top: 10px;
 }
 
-.pulso-xlsform-doc-meta,
-.pulso-xlsform-state-strip,
 .pulso-xlsform-history-controls {
   display: inline-flex;
   align-items: center;
@@ -23232,19 +22277,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   box-shadow: var(--xls-shadow-hairline);
   line-height: 1;
   white-space: nowrap;
-}
-
-.pulso-xlsform-history-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--xls-surface-soft);
-  border: 1px solid color-mix(in srgb, var(--xls-border) 78%, transparent);
-  color: var(--pulso-primary);
-  flex: 0 0 auto;
 }
 
 /* Geometría y material vienen del patrón maestro .pulso-command-bar; aquí solo
@@ -23279,68 +22311,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 3px 8px;
 }
 
-.pulso-xlsform-state-strip {
-  min-width: 0;
-  gap: 5px;
-}
-
-.pulso-xlsform-document-strip {
-  min-width: 0;
-  max-width: 100%;
-  min-height: 26px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 4px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
-}
-
-.pulso-xlsform-document-icon {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  border-radius: 7px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 82%, #ffffff 18%);
-  background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
-  color: var(--pulso-primary);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.pulso-xlsform-document-divider {
-  width: 1px;
-  align-self: stretch;
-  margin: 6px 1px;
-  background: color-mix(in srgb, var(--xls-border) 72%, transparent);
-}
-
-.pulso-xlsform-document-metric {
-  min-height: 22px;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  padding: 0 2px;
-  border-radius: 7px;
-  color: #5c6675;
-  font-size: 11.5px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.pulso-xlsform-document-metric.is-success {
-  background: transparent;
-  color: color-mix(in srgb, var(--pulso-success-fg) 82%, #263348 18%);
-}
-
-.pulso-xlsform-document-metric.is-warn {
-  background: transparent;
-  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, #263348 18%);
-}
-
 .pulso-xlsform-commandbar-group--modes {
   justify-content: center;
 }
@@ -23358,21 +22328,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-wrap: wrap;
 }
 
-/* Todo lo que produce una salida se agrupa contra el borde derecho. */
-.pulso-xlsform-commandbar-group--actions > .pulso-xf-export-cluster {
-  margin-inline-start: auto;
-}
-
-.pulso-xlsform-commandbar-kicker {
-  max-width: 190px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #263348;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
 .pulso-xlsform-toolbar-button {
   min-height: 27px;
   display: inline-flex;
@@ -23387,18 +22342,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-size: 12px;
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
-}
-
-.pulso-xlsform-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 10px;
-}
-
-.pulso-xlsform-frame .pulso-xlsform-summary-grid .pulso-card {
-  background: color-mix(in srgb, var(--xls-content) 94%, var(--pulso-primary) 6%);
-  border-color: var(--xls-border);
-  box-shadow: var(--xls-shadow-hairline);
 }
 
 .pulso-xlsform-frame .pulso-panel {
@@ -23462,28 +22405,20 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   }
 }
 
-.pulso-xlsform-canvas-panel,
-.pulso-xlsform-inspector-panel,
 .pulso-focus-workspace {
   background: var(--xls-content);
 }
 
-.pulso-xlsform-sidebar-panel .pulso-panel-header,
-.pulso-xlsform-canvas-panel .pulso-panel-header,
-.pulso-xlsform-inspector-panel .pulso-panel-header {
+.pulso-xlsform-sidebar-panel .pulso-panel-header {
   align-items: flex-start;
 }
 
-.pulso-xlsform-sidebar-panel .pulso-panel-title,
-.pulso-xlsform-canvas-panel .pulso-panel-title,
-.pulso-xlsform-inspector-panel .pulso-panel-title {
+.pulso-xlsform-sidebar-panel .pulso-panel-title {
   font-size: 13px;
   color: #1e293b;
 }
 
-.pulso-xlsform-sidebar-panel .pulso-panel-hint,
-.pulso-xlsform-canvas-panel .pulso-panel-hint,
-.pulso-xlsform-inspector-panel .pulso-panel-hint {
+.pulso-xlsform-sidebar-panel .pulso-panel-hint {
   font-size: 11.5px;
   line-height: 1.42;
 }
@@ -23782,27 +22717,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-focus-question-preview .pulso-canvas-card {
   margin: 0;
-}
-
-.pulso-xlsform-frame .pulso-focus-section-preview .pulso-canvas-section-header {
-  align-items: flex-start;
-  flex-wrap: wrap;
-  padding: 14px;
-}
-
-.pulso-xlsform-frame .pulso-focus-section-preview .pulso-canvas-section-title {
-  flex: 1 1 180px;
-  min-width: 180px;
-  white-space: normal;
-  word-break: normal;
-  overflow-wrap: anywhere;
-}
-
-.pulso-xlsform-frame .pulso-focus-section-preview .pulso-canvas-section-meta {
-  flex: 1 0 100%;
-  flex-wrap: wrap;
-  margin-left: 54px;
-  min-width: 0;
 }
 
 .pulso-focus-section-facts,
@@ -24819,12 +23733,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-weight: var(--pulso-weight-heavy);
 }
 
-.pulso-focus-overview .pulso-form-canvas {
-  min-height: 100%;
-  max-height: none;
-  padding: 0 2px 10px;
-}
-
 .pulso-focus-shared-list {
   display: flex;
   min-width: 0;
@@ -24981,14 +23889,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.pulso-outline-floating-overlay .pulso-outline-row.is-overlay {
-  border-color: var(--pulso-primary);
-  background: #fff;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--pulso-primary) 18%, transparent),
-    0 12px 26px rgba(15, 23, 42, 0.18);
-}
-
 /* Cabecera de sección/repeat dentro del editor — fondo tenue + hairline
    para que lea como encabezado de bloque (el override .pulso-xlsform-frame
    .pulso-outline-row pone fondo transparente, así que subimos especificidad). */
@@ -25000,26 +23900,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-xlsform-frame .pulso-outline-row--repeat:not(.is-active):not(.is-dragging) {
   background: color-mix(in srgb, #0f9f8f 5%, #fff);
   border-color: color-mix(in srgb, #0f9f8f 12%, transparent);
-}
-.pulso-xlsform-frame .pulso-outline-closerow:not(.is-active) {
-  background: color-mix(in srgb, var(--pulso-surface-2) 40%, #fff);
-}
-
-.pulso-outline-floating-overlay .pulso-outline-grip {
-  color: var(--pulso-primary);
-  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
-}
-
-.pulso-xlsform-frame .pulso-outline-drop-slot {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.pulso-xlsform-frame .pulso-outline-drop-slot-copy {
-  border-color: color-mix(in srgb, var(--pulso-primary) 38%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
 }
 
 .pulso-xlsform-frame .pulso-outline-title {
@@ -25118,27 +23998,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   color: var(--pulso-text-soft);
 }
 
-.pulso-xlsform-frame .pulso-outline-required,
-.pulso-xlsform-frame .pulso-outline-conditional {
-  flex: 0 0 auto;
-}
-
 .pulso-xlsform-frame .pulso-outline-code,
-.pulso-xlsform-frame .pulso-outline-boundary,
 .pulso-xlsform-frame .pulso-canvas-card-fieldname code,
-.pulso-xlsform-frame .pulso-canvas-section-name,
-.pulso-xlsform-frame .pulso-canvas-section-boundary,
-.pulso-xlsform-frame .pulso-inspector-header-sub code,
 .pulso-xlsform-frame .pulso-catalog-info-listname {
   background: color-mix(in srgb, #f3f5f8 88%, var(--pulso-primary) 4%);
   border: 1px solid rgba(15, 23, 42, 0.05);
   color: #526071;
-}
-
-.pulso-xlsform-frame .pulso-form-canvas {
-  max-height: min(72vh, 980px);
-  gap: 10px;
-  padding: 6px 4px 22px;
 }
 
 .pulso-xlsform-frame .pulso-canvas-card {
@@ -25191,9 +24056,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-xlsform-frame .pulso-canvas-card-typebadge,
 .pulso-xlsform-frame .pulso-canvas-card-position,
 .pulso-xlsform-frame .pulso-canvas-card-required,
-.pulso-xlsform-frame .pulso-canvas-card-conditional,
-.pulso-xlsform-frame .pulso-canvas-section-boundary,
-.pulso-xlsform-frame .pulso-canvas-section-conditional {
+.pulso-xlsform-frame .pulso-canvas-card-conditional {
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
@@ -25207,48 +24070,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   border-color: color-mix(in srgb, var(--type-accent, var(--pulso-primary)) 34%, var(--xls-border));
 }
 
-.pulso-xlsform-frame .pulso-canvas-section-header {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 249, 252, 0.92)),
-    var(--xls-content-soft);
-  border-color: var(--xls-border);
-  box-shadow: var(--xls-shadow-hairline);
-}
-
-.pulso-xlsform-frame .pulso-canvas-section-header.is-selected {
-  border-color: var(--pulso-primary-border);
-  box-shadow:
-    inset 3px 0 0 var(--pulso-primary),
-    var(--xls-shadow-hairline);
-}
-
-/* Bloque repetible dentro del frame del editor: gana al gradiente blanco del
-   header genérico con la identidad naranja `--pulso-repeat-*`. */
-.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat {
-  background: var(--pulso-repeat-bg);
-  border-color: var(--pulso-repeat-border);
-  box-shadow: var(--xls-shadow-hairline);
-}
-
-.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat.is-selected {
-  border-color: var(--pulso-repeat-accent);
-  box-shadow:
-    inset 3px 0 0 var(--pulso-repeat-accent),
-    var(--xls-shadow-hairline);
-}
-
-.pulso-xlsform-frame .pulso-canvas-addbetween-trigger {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: var(--xls-border-strong);
-  box-shadow: var(--xls-shadow-hairline);
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-xlsform-frame .pulso-canvas-addbetween-menu,
 .pulso-add-element-menu,
 .pulso-xlsform-frame .pulso-more-views-menu {
   border-color: var(--xls-border);
@@ -25339,29 +24160,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   cursor: pointer;
 }
 
-.pulso-add-element-menu-guidance {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.pulso-add-element-menu-guidance span {
-  min-width: 0;
-  padding: 8px 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-info-border) 44%, var(--xls-border));
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--pulso-info-bg) 34%, #ffffff);
-  color: color-mix(in srgb, var(--pulso-text-soft) 86%, var(--pulso-info-fg));
-  font-size: 10.6px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.32;
-}
-
-.pulso-add-element-menu-guidance strong {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-heavy);
-}
-
 .pulso-add-element-menu-tools {
   min-width: 0;
   display: grid;
@@ -25400,61 +24198,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   font-weight: var(--pulso-weight-bold);
 }
 
-.pulso-add-element-menu-filters {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.pulso-add-element-menu-filters button {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 8px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 80%, transparent);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.68);
-  color: #596679;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-add-element-menu-filters button span {
-  min-width: 18px;
-  padding: 2px 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, #eef2f8 82%, #ffffff);
-  color: #667386;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.pulso-add-element-menu-filters button:hover,
-.pulso-add-element-menu-filters button:focus-visible {
-  outline: none;
-  border-color: color-mix(in srgb, var(--pulso-primary) 22%, var(--xls-border));
-  color: var(--pulso-text);
-}
-
-.pulso-add-element-menu-filters button.is-active {
-  border-color: color-mix(in srgb, var(--pulso-primary) 34%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-primary-soft) 46%, #ffffff);
-  color: var(--pulso-primary);
-  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.08);
-}
-
 .pulso-add-element-menu-body {
   min-height: 0;
   display: grid;
@@ -25464,36 +24207,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   overflow: auto;
   overscroll-behavior: contain;
   padding: 1px 2px 14px;
-}
-
-.pulso-add-element-menu-group {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  gap: 7px;
-  padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 70%, transparent);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--xls-content-soft) 84%, #ffffff));
-}
-
-.pulso-add-element-menu-group.is-primary {
-  grid-column: 1 / -1;
-  border-color: color-mix(in srgb, var(--pulso-primary-border) 46%, var(--xls-border));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-primary-soft) 36%, #ffffff));
-}
-
-.pulso-add-element-menu-group-grid {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-}
-
-.pulso-add-element-menu-group.is-primary .pulso-add-element-menu-group-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (max-width: 1180px) {
@@ -25538,18 +24251,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   transform: translateY(-1px);
 }
 
-.pulso-add-element-menu-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--pulso-primary) 8%, white);
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-}
-
 @media (max-width: 900px) {
   .pulso-add-element-menu {
     inset: 52px 16px auto 16px;
@@ -25560,16 +24261,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
   }
 
-  .pulso-add-element-menu-guidance,
   .pulso-add-element-menu-tools,
-  .pulso-add-element-menu-body,
-  .pulso-add-element-menu-group.is-primary .pulso-add-element-menu-group-grid {
+.pulso-add-element-menu-body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .pulso-add-element-menu-filters {
-    justify-content: flex-start;
-  }
 }
 
 .pulso-xlsform-frame .pulso-inspector,
@@ -25577,42 +24273,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   gap: 10px;
 }
 
-.pulso-xlsform-frame .pulso-inspector-header,
 .pulso-xlsform-frame .pulso-context-panel-header {
   padding: 2px 2px 12px;
   border-bottom-color: var(--xls-border);
-}
-
-.pulso-xlsform-frame .pulso-inspector-tabs {
-  display: grid;
-  grid-auto-flow: column;
-  gap: 3px;
-  padding: 3px;
-  margin: 0;
-  border: 1px solid var(--xls-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, #eef1f6 82%, white 18%);
-}
-
-.pulso-xlsform-frame .pulso-inspector-tab-trigger {
-  justify-content: center;
-  min-width: 0;
-  min-height: 30px;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 7px;
-  font-size: 11.5px;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-xlsform-frame .pulso-inspector-tab-trigger.is-active {
-  color: #142033;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .pulso-xlsform-frame .pulso-inspector-block,
@@ -25626,8 +24289,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-xlsform-frame .pulso-inspector-field-label,
 .pulso-xlsform-frame .pulso-inspector-eyebrow-title,
-.pulso-xlsform-frame .pulso-catalog-info-label,
-.pulso-xlsform-frame .pulso-listname-label {
+.pulso-xlsform-frame .pulso-catalog-info-label {
   color: #536174;
 }
 
@@ -25767,8 +24429,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   white-space: nowrap;
 }
 
-.pulso-xlsform-frame .pulso-more-views-item,
-.pulso-xlsform-frame .pulso-canvas-addbetween-menu-item {
+.pulso-xlsform-frame .pulso-more-views-item {
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
@@ -25777,12 +24438,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 @media (hover: hover) and (pointer: fine) {
   .pulso-xlsform-frame .pulso-toolbar-button:hover:not(:disabled),
-  .pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled),
-  .pulso-xlsform-frame .pulso-xlsform-history-button:hover:not(:disabled),
-  .pulso-xlsform-frame .pulso-outline-row:hover:not(.is-dragging),
-  .pulso-add-element-menu-item:hover,
-  .pulso-xlsform-frame .pulso-more-views-item:hover,
-  .pulso-xlsform-frame .pulso-canvas-addbetween-menu-item:hover {
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-xlsform-history-button:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-outline-row:hover:not(.is-dragging),
+.pulso-add-element-menu-item:hover,
+.pulso-xlsform-frame .pulso-more-views-item:hover {
     border-color: var(--xls-border-strong);
     background: color-mix(in srgb, #ffffff 76%, var(--pulso-primary) 8%);
   }
@@ -25793,8 +24453,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 
   .pulso-xlsform-frame .pulso-sheets-tabs button:hover:not(.is-active),
-  .pulso-xlsform-frame .pulso-inspector-tab-trigger:hover:not(.is-active),
-  .pulso-xlsform-frame .pulso-mode-toggle button:hover:not(.is-on) {
+.pulso-xlsform-frame .pulso-mode-toggle button:hover:not(.is-on) {
     background: rgba(255, 255, 255, 0.58);
     color: var(--pulso-text);
   }
@@ -25855,20 +24514,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-logic-tree-actions {
     padding-left: 0;
-  }
-
-  .pulso-xlsform-document-strip {
-    width: 100%;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .pulso-xlsform-commandbar-kicker {
-    max-width: calc(100% - 36px);
-  }
-
-  .pulso-xlsform-document-divider {
-    display: none;
   }
 
   .pulso-xlsform-frame .pulso-mode-toggle {
