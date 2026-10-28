@@ -503,10 +503,18 @@
   color: var(--pulso-text-soft);
 }
 
+/* Al soltar el scroll, la primera fila que asoma queda entera bajo la cabecera
+ * pegajosa (28 px), nunca cortada por ella: el mismo encaje que Telefónico. */
 .mon-cola-tabla-marco {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  scroll-padding-top: 28px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-cola-tabla tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-cola-tabla {

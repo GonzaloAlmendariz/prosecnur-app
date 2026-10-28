@@ -104,11 +104,19 @@
   outline-offset: 1px;
 }
 
+/* Al soltar el scroll, la primera fila que asoma queda entera bajo la cabecera
+ * pegajosa (34 px), nunca cortada por ella: el mismo encaje que Telefónico. */
 .acr-pr-cola-marco {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable;
+  scroll-padding-top: 34px;
+  scroll-snap-type: y proximity;
+}
+
+.acr-pr-cola-marco tbody > tr {
+  scroll-snap-align: start;
 }
 
 .acr-pr-tabla td {
