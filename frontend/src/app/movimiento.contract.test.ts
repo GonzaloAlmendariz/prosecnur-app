@@ -90,7 +90,7 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
   },
   retardo: {
     "app/boot.css": 5,
-    "app/theme.css": 10,
+    "app/theme.css": 2,
     "components/recent-project-card.css": 3,
     "features/analitica/analitica-v2.css": 2,
     "features/calcMuestra/calcMuestra.css": 3,
