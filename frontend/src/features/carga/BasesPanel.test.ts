@@ -50,7 +50,7 @@ const basesPanelSource = fs.readFileSync(
 
 function independentWizardSource(): string {
   const start = basesPanelSource.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
-  const end = basesPanelSource.indexOf("\nfunction fileLabel", start);
+  const end = basesPanelSource.indexOf("\nfunction IntegratedHistoryPanel", start);
   expect(start).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(start);
   return basesPanelSource.slice(start, end);
