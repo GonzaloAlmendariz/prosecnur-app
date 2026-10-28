@@ -137,7 +137,7 @@ describe("V9 · la divisoria recorre la fila entera", () => {
     expect(css).toMatch(/\.cmg-tabla-desplazable \.cmv2-table tbody tr:last-child > th\[scope="row"\] \{\s*border-bottom: 0;/);
     // El gris de las celdas vive en calcMuestra.css: si cambia, esta regla debe seguirlo.
     const base = fs.readFileSync(path.join(__dirname, "..", "..", "calcMuestra.css"), "utf8");
-    expect(base).toMatch(/\.cmv2-table td,\s*\.cmv2-variable-map-table td \{\s*border-bottom-color: color-mix\(in srgb, var\(--cmv2-border\) 86%, var\(--cmv2-accent-border\) 14%\);/);
+    expect(base).toMatch(/\.cmv2-table td \{\s*border-bottom-color: color-mix\(in srgb, var\(--cmv2-border\) 86%, var\(--cmv2-accent-border\) 14%\);/);
   });
 });
 
