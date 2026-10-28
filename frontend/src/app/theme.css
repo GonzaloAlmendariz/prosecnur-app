@@ -20193,23 +20193,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 6px;
 }
 
-.home-proj-meta-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--pulso-status-empty);
-  flex-shrink: 0;
-}
 
-.home-proj-meta-dot.is-saved { background: #16a34a; position: relative; }
-/* Halo compositable: el pseudo-elemento pulsa con transform/opacity; animar box-shadow repintaba en CPU a perpetuidad en el reposo del Home. */
-.home-proj-meta-dot.is-saved::after {
-  content: ""; position: absolute; inset: 0; border-radius: 50%; background: #16a34a;
-  animation: home-dot-pulse 2.4s ease-out infinite;
-}
-.home-proj-meta-dot.is-dirty { background: #d97706; }
 
-@keyframes home-dot-pulse { 0% { transform: scale(1); opacity: 0.45; } 60%, 100% { transform: scale(3); opacity: 0; } }
 
 .home-proj-meta code {
   background: var(--pulso-surface-2);
@@ -21593,9 +21578,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     opacity: 0;
   }
   .home-wrap::before {
-    animation: none;
-  }
-  .home-proj-meta-dot.is-saved {
     animation: none;
   }
   .home-detail-cta:hover svg,
@@ -23229,17 +23211,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   opacity: 0.55;
   transition: transform 140ms ease, opacity 140ms ease;
-}
-.pulso-graph-edge-panel-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  animation: pulso-edge-panel-arrow-pulse 1.6s ease-in-out infinite;
-}
-@keyframes pulso-edge-panel-arrow-pulse {
-  0%, 100% { transform: translateX(0); opacity: 0.95; }
-  50%      { transform: translateX(2px); opacity: 1; }
 }
 
 /* Condición legible */

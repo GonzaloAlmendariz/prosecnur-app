@@ -55,7 +55,7 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
   infinitas: {
     "app/boot.css": 5,
     "app/module-warmup.css": 1,
-    "app/theme.css": 9,
+    "app/theme.css": 7,
     "components/bases-inspector.css": 1,
     "components/kit-skeleton.css": 1,
     "components/recent-project-card.css": 1,
