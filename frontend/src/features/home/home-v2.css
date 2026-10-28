@@ -1036,7 +1036,11 @@
      pocos módulos, media pantalla vacía debajo del bloque se leía como que
      faltaba algo. Centrado, el aire se lee como margen. */
   flex: 1 1 auto;
-  justify-content: center;
+  /* `safe`: cuando las tarjetas no caben (1024×600), el desborde va abajo,
+     donde el scroll de .home-suite lo alcanza. Con `center` a secas se
+     repartía arriba y la primera fila quedaba cortada sin forma de llegar a
+     ella (L12; censo 2026-10-10, hallazgo 15d). */
+  justify-content: safe center;
   min-height: 0;
   width: 100%;
   /* Llena el ancho disponible (solo el padding base del layout como margen);
