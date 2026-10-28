@@ -1,25 +1,21 @@
 // =============================================================================
-// ContextLens.tsx — panel lateral deslizable (reemplaza bubble modals)
+// ContextLens.tsx — panel lateral (o centrado) con pestañas internas opcionales
 // =============================================================================
-// Un solo patrón de overlay para toda la sección Validación:
-//   - Desliza desde la derecha con animación suave
-//   - Backdrop semitransparente con blur
-//   - Escape cierra, click en backdrop cierra
-//   - Focus trap básico
-//   - Tabs internas opcionales
-//   - No tapa toda la pantalla (permite ver origen del click)
+// Un solo patrón de overlay para lo que necesita más espacio que un hovercard
+// (Validación › Instrumento, Carga › Preguntas, Formularios › Catálogos).
 //
-// Reemplaza:
-//   - RuleBubbleModal en InstrumentoTab (pop modal flotante elegante pero ad hoc)
-//   - Render inline pesado de ReglaDrillPanel en LimpiezaTab
-//   - Futuros popups que requieran más espacio que un hovercard
+// Desde L1 monta las primitivas del kit: `placement="right"` es el Sideover y
+// `placement="center"` el Dialog. Velo, Escape, click fuera, foco atrapado y de
+// vuelta, portal y capa los ponen ellas; aquí sólo vive la API (anchos,
+// pestañas internas, acciones de cabecera), que no cambia para los consumidores.
 // =============================================================================
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { useCallback, useId, useState } from "react";
+import { Dialog } from "../../../components/Dialog";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { Sideover } from "../../../components/Sideover";
+import "./contextLens.css";
 
 export type ContextLensTab = {
   id: string;
@@ -60,12 +56,6 @@ export type ContextLensProps = {
   ariaLabel?: string;
 };
 
-const WIDTHS: Record<NonNullable<ContextLensProps["variant"]>, string> = {
-  standard: "min(640px, 92vw)",
-  wide: "min(960px, 94vw)",
-  full: "min(1180px, 96vw)",
-};
-
 export function contextLensTabA11y(contextLensId: string, index: number) {
   return {
     tabId: `${contextLensId}-tab-${index}`,
@@ -91,15 +81,6 @@ export default function ContextLens({
   const [internalActiveTab, setInternalActiveTab] = useState<string>(
     activeTabId ?? tabs?.[0]?.id ?? "",
   );
-  const [closing, setClosing] = useState(false);
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-  const onCloseRef = useRef(onClose);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
   const effectiveTab = activeTabId ?? internalActiveTab;
 
   const handleTab = useCallback(
@@ -110,232 +91,73 @@ export default function ContextLens({
     [onTabChange],
   );
 
-  const handleClose = useCallback(() => {
-    setClosing(true);
-    window.setTimeout(() => {
-      setClosing(false);
-      onCloseRef.current();
-    }, 220);
-  }, []);
-
-  // Manejo de Escape + focus trap básico + capturar focus al abrir
-  useEffect(() => {
-    if (!open) return;
-    previousFocusRef.current = document.activeElement as HTMLElement | null;
-    const timer = window.setTimeout(() => {
-      shellRef.current?.focus();
-    }, 50);
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleClose();
-      } else if (e.key === "Tab" && shellRef.current) {
-        // Focus trap mínimo: mantener tab dentro del shell
-        const focusables = shellRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (!focusables.length) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("keydown", onKey);
-      previousFocusRef.current?.focus();
-    };
-  }, [open, handleClose]);
-
-  if (!open && !closing) return null;
-
   const activeTab = tabs?.find((t) => t.id === effectiveTab) ?? tabs?.[0];
   const activeTabIndex = tabs?.findIndex((tab) => tab.id === activeTab?.id) ?? -1;
   const activeTabA11y = tabs && tabs.length > 1 && activeTabIndex >= 0
     ? contextLensTabA11y(contextLensId, activeTabIndex)
     : undefined;
 
-  const isCenter = placement === "center";
-  const animIn = isCenter ? "pulso-lens-fade-in" : "pulso-lens-slide-in";
-  const animOut = isCenter ? "pulso-lens-fade-out" : "pulso-lens-slide-out";
-
-  return createPortal(
-    <div
-      className={closing ? "" : "pulso-lens-backdrop"}
-      style={{
-        position: "fixed",
-        inset: 0,
-        // El overlay se portalea a document.body (hermano de la app). El
-        // PageFrame monta `.pulso-page-frame-toolbar` con z-index 1000 +
-        // transform (stacking context propio) y el MoreViewsMenu con 1200,
-        // así que con z-index 100 la barra "instrumento / Constructor /
-        // Hojas / Exportar" quedaba pintada ENCIMA del lens. Subimos por
-        // encima de ese chrome (mismo criterio que el overlay del mapa).
-        zIndex: 1400,
-        display: "flex",
-        justifyContent: isCenter ? "center" : "flex-end",
-        alignItems: isCenter ? "center" : "stretch",
-        padding: isCenter ? "32px 24px" : 0,
-        background: "rgba(15, 23, 42, 0.28)",
-        backdropFilter: "blur(3px)",
-        WebkitBackdropFilter: "blur(3px)",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
+  const barraPestanas = tabs && tabs.length > 1 ? (
+    <GlidingTabList
+      as="nav"
+      activeKey={effectiveTab}
+      className="pulso-lens-pestanas"
+      style={{ "--pulso-gliding-indicator-radius": "0px" } as CSSProperties}
+      role="tablist"
+      aria-label="Secciones del panel"
     >
-      <div
-        ref={shellRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={typeof title === "string" ? title : ariaLabel}
-        tabIndex={-1}
-        className={closing ? animOut : animIn}
-        style={{
-          width: WIDTHS[variant],
-          maxWidth: "100%",
-          height: isCenter ? "auto" : "100%",
-          maxHeight: isCenter ? "calc(100vh - 64px)" : "100%",
-          display: "flex",
-          flexDirection: "column",
-          background: "var(--pulso-surface)",
-          boxShadow: "var(--pulso-shadow-lens)",
-          border: isCenter ? "1px solid var(--pulso-border)" : undefined,
-          borderLeft: isCenter ? "1px solid var(--pulso-border)" : "1px solid var(--pulso-border)",
-          borderRadius: isCenter ? "var(--pulso-radius-lens)" : undefined,
-          borderTopLeftRadius: "var(--pulso-radius-lens)",
-          borderBottomLeftRadius: isCenter ? "var(--pulso-radius-lens)" : "var(--pulso-radius-lens)",
-          outline: "none",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            flexShrink: 0,
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--pulso-border)",
-            background:
-              "linear-gradient(180deg, var(--pulso-surface) 0%, var(--pulso-surface-2) 100%)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: "var(--pulso-text)",
-                  lineHeight: 1.35,
-                }}
-              >
-                {title}
-              </div>
-              {subtitle && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 12,
-                    color: "var(--pulso-text-soft)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {subtitle}
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              {actions}
-              <button
-                type="button"
-                aria-label="Cerrar panel"
-                onClick={handleClose}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  padding: 0,
-                  borderRadius: 999,
-                  background: "transparent",
-                  border: "1px solid var(--pulso-border)",
-                  color: "var(--pulso-text-soft)",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        </header>
+      {tabs.map((tab, index) => (
+        <TabButton
+          key={tab.id}
+          tab={tab}
+          tabA11y={contextLensTabA11y(contextLensId, index)}
+          active={tab.id === effectiveTab}
+          onClick={() => handleTab(tab.id)}
+        />
+      ))}
+    </GlidingTabList>
+  ) : null;
 
-        {/* Tabs (opcional) */}
-        {tabs && tabs.length > 1 && (
-          <GlidingTabList
-            as="nav"
-            activeKey={effectiveTab}
-            style={{
-              "--pulso-gliding-indicator-radius": "0px",
-              flexShrink: 0,
-              display: "flex",
-              gap: 2,
-              padding: "0 20px",
-              borderBottom: "1px solid var(--pulso-border)",
-              background: "var(--pulso-surface)",
-              overflowX: "auto",
-            } as CSSProperties}
-            role="tablist"
-            aria-label="Secciones del panel"
-          >
-            {tabs.map((tab, index) => {
-              const tabA11y = contextLensTabA11y(contextLensId, index);
-              return (
-                <TabButton
-                  key={tab.id}
-                  tab={tab}
-                  tabA11y={tabA11y}
-                  active={tab.id === effectiveTab}
-                  onClick={() => handleTab(tab.id)}
-                />
-              );
-            })}
-          </GlidingTabList>
-        )}
+  // Acciones de cabecera y pestañas internas van en la banda entre la cabecera
+  // y el cuerpo (el `stepper` de las primitivas).
+  const banda = actions || barraPestanas ? (
+    <div className="pulso-lens-banda">
+      {actions ? <div className="pulso-lens-acciones">{actions}</div> : null}
+      {barraPestanas}
+    </div>
+  ) : undefined;
 
-        {/* Content */}
-        <div
-          id={activeTabA11y?.panelId}
-          role={activeTabA11y ? "tabpanel" : undefined}
-          aria-labelledby={activeTabA11y?.tabId}
-          tabIndex={activeTabA11y ? 0 : undefined}
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "18px 20px",
-            background: "var(--pulso-surface)",
-          }}
-        >
-          {tabs ? activeTab?.content : children}
-        </div>
-      </div>
-    </div>,
-    document.body,
+  const cuerpo = (
+    <div
+      id={activeTabA11y?.panelId}
+      role={activeTabA11y ? "tabpanel" : undefined}
+      aria-labelledby={activeTabA11y?.tabId}
+      tabIndex={activeTabA11y ? 0 : undefined}
+      className="pulso-lens-cuerpo"
+    >
+      {tabs ? activeTab?.content : children}
+    </div>
+  );
+
+  const comun = {
+    open,
+    onOpenChange: (abierto: boolean) => {
+      if (!abierto) onClose();
+    },
+    title: title ?? ariaLabel,
+    subtitle,
+    stepper: banda,
+    flush: true,
+    closeLabel: "Cerrar panel",
+    className: `pulso-lens pulso-lens--${variant}`,
+  };
+
+  return placement === "center" ? (
+    <Dialog {...comun} size={variant === "standard" ? "md" : "lg"}>
+      {cuerpo}
+    </Dialog>
+  ) : (
+    <Sideover {...comun}>{cuerpo}</Sideover>
   );
 }
 

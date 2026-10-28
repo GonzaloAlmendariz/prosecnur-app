@@ -71,43 +71,15 @@
   }
 }
 
-/* Animación de slide-in para ContextLens (usar via className). */
+/* Entradas que reusan las vistas de Dimensiones (Analítica). El ContextLens ya
+   no las usa: monta el Sideover / Dialog del kit, que traen las suyas (L1). */
 @keyframes pulso-lens-slide-in-kf {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0); opacity: 1; }
 }
-@keyframes pulso-lens-slide-out-kf {
-  from { transform: translateX(0); opacity: 1; }
-  to   { transform: translateX(100%); opacity: 0; }
-}
-@keyframes pulso-lens-backdrop-in-kf {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.pulso-lens-slide-in {
-  animation: pulso-lens-slide-in-kf var(--motion-dur-panel) var(--motion-ease-drawer);
-}
-.pulso-lens-slide-out {
-  animation: pulso-lens-slide-out-kf var(--motion-dur-base) var(--motion-ease-in-out);
-}
-.pulso-lens-backdrop {
-  animation: pulso-lens-backdrop-in-kf var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-/* Variante center: fade + scale suave en lugar de slide lateral. */
 @keyframes pulso-lens-fade-in-kf {
   from { transform: scale(0.96); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
-}
-@keyframes pulso-lens-fade-out-kf {
-  from { transform: scale(1); opacity: 1; }
-  to   { transform: scale(0.98); opacity: 0; }
-}
-.pulso-lens-fade-in {
-  animation: pulso-lens-fade-in-kf var(--motion-dur-base) var(--motion-ease-out);
-}
-.pulso-lens-fade-out {
-  animation: pulso-lens-fade-out-kf var(--motion-dur-fast) var(--motion-ease-in-out);
 }
 
 /* Animación de fadeIn suave para hovercards. */
