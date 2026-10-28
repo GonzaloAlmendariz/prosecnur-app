@@ -1093,6 +1093,8 @@ body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso
   display: flex;
   flex: 0 0 auto;
   justify-content: flex-end;
+  /* Sin aire, el botón se montaba sobre el borde de la tarjeta de abajo. */
+  margin-bottom: var(--pulso-space-3);
 }
 
 .cmg-salida-acreditacion .cmg-reporte {

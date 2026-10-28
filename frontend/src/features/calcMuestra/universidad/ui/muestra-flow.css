@@ -9,7 +9,9 @@
 
 .cmv2-muestra-flow {
   --cmv2-flow-badge: 56px;
-  --cmv2-flow-node: 88px;
+  /* 100 px: a 88 los rótulos se partían en pedazos con huérfanas («qué
+     columna es / qué»); los conectores ceden el ancho, que les sobra. */
+  --cmv2-flow-node: 100px;
   min-width: 0;
   width: 100%;
 }
@@ -19,7 +21,9 @@
   align-items: flex-start;
   width: 100%;
   margin: 0;
-  padding: 2px 0 4px;
+  /* 18 px arriba: la pastilla «Lo siguiente» sube 13 px sobre el círculo y con
+     2 px cruzaba el borde de la tarjeta. */
+  padding: 18px 0 4px;
   list-style: none;
 }
 
@@ -33,13 +37,6 @@
 /* El último nodo no estira: cierra el recorrido sin dejar hueco a la derecha. */
 .cmv2-muestra-flow-item:last-child {
   flex: 0 0 auto;
-}
-
-/* Y es un poco más ancho: su título lleva «cursos‑horario» (con guion no
-   separable), que a 11,5 px no cabe en 88 px y se partía en «horari / o». */
-.cmv2-muestra-flow-item:last-child .cmv2-muestra-flow-node {
-  flex-basis: calc(var(--cmv2-flow-node) + 16px);
-  width: calc(var(--cmv2-flow-node) + 16px);
 }
 
 /* --- Nodo: badge + etiqueta ------------------------------------------------- */
@@ -131,6 +128,7 @@
   gap: 1px;
   text-align: center;
   line-height: 1.2;
+  text-wrap: balance;
 }
 
 .cmv2-muestra-flow-label strong {
@@ -192,7 +190,7 @@
 /* --- Compacto: convive con contenido (menos aire) -------------------------- */
 .cmv2-muestra-flow[data-compacto="true"] {
   --cmv2-flow-badge: 46px;
-  --cmv2-flow-node: 76px;
+  --cmv2-flow-node: 92px;
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-glyph {

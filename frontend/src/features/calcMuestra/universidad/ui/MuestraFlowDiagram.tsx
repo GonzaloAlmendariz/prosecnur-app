@@ -41,8 +41,9 @@ const NODES: Array<{ key: MuestraFlowNodeKey; title: string; subtitle: string }>
   { key: "variables", title: "Mapear variables", subtitle: "qué columna es qué" },
   { key: "marco", title: "Construir marco", subtitle: "N poblacional real" },
   { key: "calcular", title: "Calcular", subtitle: "n y cuotas" },
-  // U+2011 (guion no separable): «cursos-horario» no se parte en el guion en el rótulo angosto del flujo.
-  { key: "aulas", title: "Seleccionar cursos‑horario", subtitle: "qué cursos‑horario visitar" },
+  // U+2011 (guion no separable): «cursos-horario» no se parte en el guion. El subtítulo no repite el
+  // título: «qué cursos-horario visitar» no cabía y se apilaba en tres líneas.
+  { key: "aulas", title: "Seleccionar cursos‑horario", subtitle: "cuáles visitar" },
 ];
 
 /** Microcopy de la arista que LLEGA al nodo i+1 (5 flechas). */
