@@ -70,7 +70,9 @@ export function SelectorDeVinculo({
   }, [estado, origenTipo, origenId, yaEnlazados, texto]);
 
   return (
-    <div className="bit-selector" role="dialog" aria-label="Enlazar con">
+    // Se despliega en la fila, en el lugar del botón «Enlazar»: no flota ni
+    // atrapa el foco, así que es una región con nombre y no un diálogo (L1).
+    <div className="bit-selector" role="region" aria-label="Enlazar con">
       <div className="bit-selector-cabecera">
         <label className="bit-selector-busqueda">
           <Search size={13} aria-hidden="true" />
