@@ -25,7 +25,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "app/theme.css": 9,
     "features/calcMuestra/calcMuestra.css": 3,
     "features/calcMuestra/didactica/didactica.css": 1,
-    "features/calcMuestra/motor/motor.css": 3,
     "features/calcMuestra/motor/pestanas/cobertura.css": 1,
     "features/calcMuestra/universidad/aulas/perfilMuestra.css": 1,
     "features/calcMuestra/universidad/aulas/relato/relato.css": 2,
