@@ -1345,12 +1345,14 @@ export async function apiSurveyMonkeyMultibaseSavBundleInspect(payload: {
   return normalizeSavBundleInspection(raw);
 }
 
-export async function apiSurveyMonkeyMultibaseSavBundleImport(payload: {
+export type SurveyMonkeySavBundleImportPayload = {
   file_id: string;
   file_base_map: Record<string, string>;
   missing_required_policy: SurveyMonkeySavBundleMissingRequiredPolicy;
   expected_inspection_fingerprint: string;
-}) {
+};
+
+export async function apiSurveyMonkeyMultibaseSavBundleImport(payload: SurveyMonkeySavBundleImportPayload) {
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/sav-bundle/import", {
       method: "POST",
@@ -1358,6 +1360,22 @@ export async function apiSurveyMonkeyMultibaseSavBundleImport(payload: {
       body: JSON.stringify(payload),
     }),
   );
+  return normalizeSavBundleImport(raw, payload);
+}
+
+/** El import del paquete .sav como job en segundo plano (L9). */
+export async function apiSurveyMonkeyMultibaseSavBundleImportAsync(payload: SurveyMonkeySavBundleImportPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/surveymonkey/multibase/sav-bundle/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
+/** Respuesta del import del paquete .sav: la misma forma por el camino síncrono y por el job (L9). */
+export function normalizeSavBundleImport(raw: unknown, payload: Pick<SurveyMonkeySavBundleImportPayload, "file_id">) {
   const r = (raw ?? {}) as Record<string, unknown>;
   return {
     ok: Boolean(r.ok) as true,

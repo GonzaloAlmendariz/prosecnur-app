@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import { BotonConfigurarCredenciales } from "./BotonConfigurarCredenciales";
 import {
   AlertTriangle, CheckCircle2, Cloud, Database, FileSpreadsheet, FileUp,
@@ -11,7 +12,8 @@ import {
   apiMultiIntegratedDraftClear,
   apiMultiIntegratedDraftGet,
   apiMultiIntegratedDraftSave,
-  apiMultiIntegratedImport,
+  apiMultiIntegratedImportAsync,
+  normalizeMultiIntegratedImport,
   apiSurveyMonkeyMultibaseListSurveys,
   apiUpload,
   ConnectionTokenState,
@@ -809,7 +811,8 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
       const profileId = sourceMode === "surveymonkey"
         ? await loadSurveyMonkeyProfile()
         : "";
-      const result = await apiMultiIntegratedImport({
+      // L9: el import corre como job; el texto de `busy` dice en qué va en vez de congelar la app.
+      const start = await apiMultiIntegratedImportAsync({
         guide_xlsform_file_id: guideFileId,
         origin_key_name: originKeyName,
         origins,
@@ -817,6 +820,10 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
         decisions,
         profile_id: profileId || undefined,
       });
+      const raw = await esperarResultadoImport<{ ok: boolean }>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport("Importando base integrada", p)),
+      });
+      const result = normalizeMultiIntegratedImport(raw);
       setAudit(result.audit);
       await onImported(result.estudio);
       draftLoadedRef.current = false;
