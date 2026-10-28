@@ -88,6 +88,8 @@ import "./hojasRuta.css";
 import "./avisosEnFila.css";
 import { SeleccionMesa } from "./seleccion/SeleccionMesa";
 import { chipsDeSeleccion } from "./seleccion/chipsDeSeleccion";
+import { RevisionContraMarco } from "./seleccion/RevisionContraMarco";
+import { revisarSeleccion } from "./seleccion/revisionMarco";
 import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
 import { describirMarcoCartografia } from "./marcoCartografia";
 
@@ -6805,6 +6807,7 @@ export default function HojasRutaPage() {
   const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId && !manualReplacementJobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
   const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
+  const revisionMarco = useMemo(() => revisarSeleccion(selectedBlocks, replacementBlocks), [replacementBlocks, selectedBlocks]);
   const hojasRutaNavigation = useMemo(() => buildHojasRutaNavigation({
     search: location.search,
     persistedStage: activeStage,
@@ -6819,8 +6822,9 @@ export default function HojasRutaPage() {
     sampleOk: !!sample?.ok,
     sampleBlockCount: selectedBlocks.length,
     replacementCount: replacementBlocks.length,
+    revisionCount: revisionMarco.porRevisar,
     resultReady: !!result,
-  }), [activeStage, deliveryReviewTab, location.search, population?.ok, quota, replacementBlocks.length, result, sample, selectedBlocks.length, selectedTerritories.length]);
+  }), [activeStage, deliveryReviewTab, location.search, population?.ok, quota, replacementBlocks.length, result, revisionMarco.porRevisar, sample, selectedBlocks.length, selectedTerritories.length]);
   useRegisterModuleNavigationRuntime(
     loading || !config ? null : hojasRutaNavigation.runtime,
   );
@@ -8787,6 +8791,9 @@ export default function HojasRutaPage() {
                 <EmptyState icon={<BarChart3 size={18} />} title="Sin cuotas calculadas" hint="Calcula cuotas para revisar la asignacion." variant="inline" />
               ) : (
                 <>
+                          {currentDeliveryTab === "revision" && sample && (
+                            <RevisionContraMarco revision={revisionMarco} onVer={selectDeliveryReviewTab} />
+                          )}
                           {currentDeliveryTab === "cuotas" && (
                           <section className="hojas-ruta-delivery-section">
                             <div className="hojas-ruta-review-table-wrap is-delivery">

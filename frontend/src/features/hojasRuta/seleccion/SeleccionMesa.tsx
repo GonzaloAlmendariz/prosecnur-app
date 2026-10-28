@@ -5,7 +5,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { Sideover } from "../../../components/Sideover";
 import { TabHeading, type TabHeadingChip, type TabHeadingEstado } from "../../../components/TabHeading";
 import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
-import { Archive, BarChart3, MapPinned, Shuffle, type LucideIcon } from "../../../vendor/lucide-react";
+import { Archive, BarChart3, MapPinned, ShieldAlert, Shuffle, type LucideIcon } from "../../../vendor/lucide-react";
 import type { HojasRutaDeliveryTab } from "../store";
 import type { HojasRutaNavigationTab } from "../hojasRutaNavigation";
 import "./seleccionMesa.css";
@@ -29,12 +29,14 @@ const ICONO_PESTANA: Record<HojasRutaDeliveryTab, LucideIcon> = {
   cuotas: BarChart3,
   titulares: MapPinned,
   reemplazos: Shuffle,
+  revision: ShieldAlert,
 };
 
 const DETALLE_PESTANA: Record<HojasRutaDeliveryTab, string> = {
   cuotas: "Cuotas por perfil de la muestra",
   titulares: "UMP de campo con su manzana de referencia",
   reemplazos: "Reemplazos trazados a su UMP titular",
+  revision: "Cada UMP cruzada con las viviendas censales de su manzana",
 };
 
 /** Las pestañas de Selección como ítems del rail, con su conteo y su motivo si están deshabilitadas. */
@@ -42,7 +44,12 @@ export function itemsDelRail(tabs: readonly HojasRutaNavigationTab[]): ContextTa
   return tabs.map((tab) => ({
     key: tab.key,
     label: tab.label,
-    description: tab.disabled && tab.disabledReason ? tab.disabledReason : `${tab.count.toLocaleString("es-PE")} filas`,
+    description: tab.disabled && tab.disabledReason
+      ? tab.disabledReason
+      : tab.key === "revision"
+        ? (tab.count ? `${tab.count.toLocaleString("es-PE")} UMP por revisar` : "Sin observaciones")
+        : `${tab.count.toLocaleString("es-PE")} filas`,
+    badge: tab.key === "revision" && tab.count ? String(tab.count) : undefined,
     icon: ICONO_PESTANA[tab.key],
     disabled: tab.disabled,
   }));

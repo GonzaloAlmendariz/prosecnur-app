@@ -504,6 +504,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
             layoutPolicy: "viewport",
           },
+          {
+            // Cada UMP cruzada con las viviendas censales de su manzana.
+            id: "revision",
+            label: "Revisión",
+            icon: ShieldAlert,
+            to: "/hojas-ruta?seccion=seleccion&pestana=revision",
+            layoutPolicy: "viewport",
+          },
         ],
       },
     ],

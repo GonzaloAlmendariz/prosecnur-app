@@ -1,0 +1,294 @@
+/* Selección › Revisión (RevisionContraMarco.tsx). Dos regiones con su propio
+ * scroll: la lista de observaciones y la evidencia. Los tonos son semánticos
+ * (no cambian con el módulo) y los datos van en navy, nunca en el acento. */
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo > .hr-revision {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: var(--pulso-space-4, 16px);
+}
+
+.hr-revision-lista,
+.hr-revision-evidencia {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2, 8px);
+}
+
+.hr-revision-grupo {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.hr-revision-grupo[data-tono="error"] { border-color: var(--pulso-danger-border); }
+.hr-revision-grupo[data-tono="aviso"] { border-color: var(--pulso-warn-border); }
+
+.hr-revision-punto {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 900;
+  background: var(--pulso-brand-navy);
+}
+
+.hr-revision-grupo[data-tono="error"] .hr-revision-punto { background: var(--pulso-danger-solid); }
+.hr-revision-grupo[data-tono="aviso"] .hr-revision-punto { background: var(--pulso-warn-accent); }
+
+.hr-revision-grupo-copia {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hr-revision-tono {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.hr-revision-grupo[data-tono="error"] .hr-revision-tono { color: var(--pulso-danger-fg); }
+.hr-revision-grupo[data-tono="aviso"] .hr-revision-tono { color: var(--pulso-warn-fg); }
+
+.hr-revision-grupo-copia strong {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.hr-revision-grupo-copia p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.hr-revision-umps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.hr-revision-umps li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 12px;
+}
+
+.hr-revision-ump {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hr-revision-umps code {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hr-revision-cifra {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.hr-revision-acciones {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.hr-revision-acciones button {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--module-accent);
+}
+
+.hr-revision-acciones button:focus-visible {
+  outline: 2px solid var(--module-accent-border);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.hr-revision-vacio {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 12px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 12.5px;
+}
+
+/* Tira de viviendas: escala logarítmica, titular arriba y reemplazo abajo. */
+.hr-revision-tira {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hr-revision-tira figcaption {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.hr-revision-tira-rejilla {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  padding-right: 14px;
+}
+
+.hr-revision-tira-rotulo {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pulso-text-soft);
+}
+
+.hr-revision-tira-pista {
+  position: relative;
+  height: 26px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.hr-revision-tira-pista.is-referencia {
+  height: 16px;
+  border-bottom: 0;
+}
+
+.hr-revision-tira-ref {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  border-left: 1.5px dashed var(--pulso-danger-solid);
+}
+
+.hr-revision-tira-ref-texto {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--pulso-danger-fg);
+}
+
+.hr-revision-tira-punto {
+  position: absolute;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 999px;
+  border: 1.5px solid var(--pulso-surface);
+  box-sizing: border-box;
+}
+
+.hr-revision-tira-punto.is-titular { background: var(--pulso-module-routes); }
+.hr-revision-tira-punto.is-reemplazo { background: var(--pulso-brand-navy); }
+.hr-revision-tira-punto.is-corto { background: var(--pulso-danger-solid); }
+
+.hr-revision-tira-eje {
+  position: relative;
+  height: 16px;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-revision-tira-eje span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.hr-revision-tira-eje span[data-extremo="inicio"] { transform: none; }
+.hr-revision-tira-eje span[data-extremo="fin"] { transform: translateX(-100%); }
+
+.hr-revision-distritos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.hr-revision-distritos th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--pulso-text-soft);
+  padding: 7px 6px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.hr-revision-distritos td {
+  padding: 7px 6px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.hr-revision-distritos [data-tipo="cifra"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-revision-estado {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.hr-revision-estado[data-tono="error"] { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+.hr-revision-estado[data-tono="aviso"] { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+
+@media (max-width: 1279px) {
+  .hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo > .hr-revision {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 45%);
+  }
+}

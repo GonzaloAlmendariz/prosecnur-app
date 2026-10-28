@@ -38,6 +38,7 @@ describe("HojasRuta navigation model", () => {
       "cuotas",
       "titulares",
       "reemplazos",
+      "revision",
     ]);
   });
 
@@ -73,6 +74,7 @@ describe("HojasRuta navigation model", () => {
       { key: "cuotas", disabled: true },
       { key: "titulares", disabled: true },
       { key: "reemplazos", disabled: true },
+      { key: "revision", disabled: true },
     ]);
     expect(model.runtime.sectionStates.poblacion.lockedReason).toBe(
       "Confirma al menos un distrito.",

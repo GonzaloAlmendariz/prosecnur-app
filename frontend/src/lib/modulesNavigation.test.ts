@@ -179,7 +179,7 @@ describe("manifiesto primario de navegación", () => {
     expect(new Set(publishedRoutes).size).toBe(publishedRoutes.length);
   });
 
-  it("define las cinco etapas y los tres destinos subordinados de Selección", () => {
+  it("define las cinco etapas y los cuatro destinos subordinados de Selección", () => {
     const routes = PROSECNUR_MODULES.find(
       (module) => module.slug === "hojas-ruta",
     );
@@ -197,6 +197,7 @@ describe("manifiesto primario de navegación", () => {
       { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?seccion=seleccion&pestana=cuotas" },
       { id: "titulares", label: "Titulares", to: "/hojas-ruta?seccion=seleccion&pestana=titulares" },
       { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos" },
+      { id: "revision", label: "Revisión", to: "/hojas-ruta?seccion=seleccion&pestana=revision" },
     ]);
   });
 

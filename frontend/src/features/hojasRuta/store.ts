@@ -35,7 +35,7 @@ import type {
 export type HojasRutaMapLevel = HojasRutaUiState["map_level"];
 export type HojasRutaStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "seleccion";
 export type HojasRutaBlockLayerMode = "field" | "nse";
-export type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos";
+export type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos" | "revision";
 export type HojasRutaSampleListTab = "titulares" | "reemplazos";
 
 type Updater<T> = T | ((prev: T) => T);

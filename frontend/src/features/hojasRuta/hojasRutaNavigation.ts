@@ -42,6 +42,8 @@ export type HojasRutaNavigationInput = {
   sampleOk: boolean;
   sampleBlockCount: number;
   replacementCount: number;
+  /** UMP con observaciones de error o aviso en Revisión contra el marco. */
+  revisionCount?: number;
   resultReady: boolean;
 };
 
@@ -95,6 +97,7 @@ export const HOJAS_RUTA_DELIVERY_TAB_ORDER: readonly HojasRutaDeliveryTab[] = [
   "cuotas",
   "titulares",
   "reemplazos",
+  "revision",
 ];
 
 const STAGE_PRESENTATION: Record<
@@ -132,6 +135,7 @@ const DELIVERY_TAB_LABELS: Record<HojasRutaDeliveryTab, string> = {
   cuotas: "Cuotas",
   titulares: "Titulares",
   reemplazos: "Reemplazos",
+  revision: "Revisión",
 };
 
 function asStage(value: string | null): HojasRutaStage | null {
@@ -312,6 +316,15 @@ export function buildHojasRutaNavigation(
           ? "La muestra no tiene reemplazos."
           : undefined,
     },
+    {
+      key: "revision",
+      label: DELIVERY_TAB_LABELS.revision,
+      count: input.revisionCount ?? 0,
+      disabled: !input.sampleExists,
+      disabledReason: !input.sampleExists
+        ? "Selecciona primero las manzanas."
+        : undefined,
+    },
   ];
 
   const params = new URLSearchParams(
@@ -348,8 +361,10 @@ export function buildHojasRutaNavigation(
     }
   }
 
+  // Revisión es control, no un paso del recorrido: una pestaña bloqueada cae en
+  // la última del recorrido (Titulares o Reemplazos), nunca en Revisión.
   const fallbackDeliveryTab = lastEnabled(
-    deliveryTabs,
+    deliveryTabs.filter((tab) => tab.key !== "revision"),
     "cuotas",
   ) as HojasRutaDeliveryTab;
   const persistedTabEnabled = !deliveryTabs.find(
