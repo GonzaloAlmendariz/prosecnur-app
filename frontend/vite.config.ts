@@ -89,6 +89,15 @@ function manualChunks(id: string) {
   // así que el chunk propio no ahorraba nada y cerraba un segundo ciclo
   // (monitoreo-core ↔ monitoreo-shell) de la misma clase que dejó la app en
   // blanco. Cae en el catch-all de monitoreo y viaja con su núcleo.
+  // Hojas de formato que viven bajo telefonico/ pero que el núcleo compartido
+  // (core/*Comunes, L33) importa: si viajaran con su perfil, monitoreo-core
+  // importaría monitoreo-telefonico de vuelta y el arranque moría con un TDZ
+  // («Cannot access 'Al' before initialization», 2026-10-28). Lo vigila
+  // features/monitoreo/nucleoNoImportaPerfil.contract.test.ts.
+  if (
+    normalized.endsWith("/src/features/monitoreo/profiles/telefonico/formato.ts") ||
+    normalized.endsWith("/src/features/monitoreo/profiles/telefonico/avance/ritmoDiario.ts")
+  ) return "monitoreo-core";
   if (
     normalized.includes("/src/features/monitoreo/components/") ||
     normalized.includes("/src/features/monitoreo/core/") ||
