@@ -8,6 +8,7 @@ import {
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { Dialog } from "../../components/Dialog";
 import {
   CalendarDays,
   ChevronLeft,
@@ -759,7 +760,7 @@ function WeekView({
 }
 
 // --- Modal crear/editar -----------------------------------------------------
-function EventModal({
+export function EventModal({
   modal, onClose, onChange,
 }: {
   modal: NonNullable<ModalState>;
@@ -816,47 +817,17 @@ function EventModal({
   }
 
   return (
-    <div className="bcal-modal-backdrop" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="bcal-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="bcal-modal-head"><strong>{isEdit ? "Editar actividad" : "Nueva actividad"}</strong></div>
-        <label><span>Actividad</span>
-          <input value={activity} onChange={(e) => setActivity(e.target.value)} autoFocus />
-        </label>
-        <div className="plan-form-grid">
-          <label><span>Inicio</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          </label>
-          <label><span>Fin</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          </label>
-        </div>
-        <div className="plan-form-grid">
-          <label><span>Hora inicio</span>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          </label>
-          <label><span>Hora fin</span>
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-          </label>
-        </div>
-        {isEdit ? (
-          <label><span>Estado</span>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="planned">Planificado</option>
-              <option value="active">En curso</option>
-              <option value="done">Cumplido</option>
-              <option value="risk">Riesgo</option>
-              <option value="blocked">Bloqueado</option>
-            </select>
-          </label>
-        ) : (
-          <label><span>Categoría</span>
-            <select value={kind} onChange={(e) => setKind(e.target.value as PlanTrabajoTaskKind)}>
-              {KIND_OPTIONS.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
-            </select>
-          </label>
-        )}
-        {error && <Alert kind="error">{error}</Alert>}
-        <div className="bcal-modal-actions">
+    // Dialog del kit (L1): antes era un velo con aria-modal pero sin Escape ni
+    // foco atrapado. Mientras guarda o borra no se puede cerrar.
+    <Dialog
+      open
+      onOpenChange={(abierto) => { if (!abierto) onClose(); }}
+      dismissible={!busy}
+      size="sm"
+      title={isEdit ? "Editar actividad" : "Nueva actividad"}
+      bodyClassName="bcal-modal"
+      footer={(
+        <>
           {isEdit && (
             <button type="button" className="plan-icon-button" onClick={remove} disabled={busy} title="Eliminar" aria-label="Eliminar">
               <Trash2 size={15} />
@@ -868,8 +839,46 @@ function EventModal({
             {busy ? <Loader2 size={15} className="spin" /> : <Clock3 size={15} />}
             <span>{isEdit ? "Guardar" : "Crear"}</span>
           </button>
-        </div>
+        </>
+      )}
+    >
+      <label><span>Actividad</span>
+        <input value={activity} onChange={(e) => setActivity(e.target.value)} autoFocus />
+      </label>
+      <div className="plan-form-grid">
+        <label><span>Inicio</span>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </label>
+        <label><span>Fin</span>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </label>
       </div>
-    </div>
+      <div className="plan-form-grid">
+        <label><span>Hora inicio</span>
+          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        </label>
+        <label><span>Hora fin</span>
+          <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        </label>
+      </div>
+      {isEdit ? (
+        <label><span>Estado</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="planned">Planificado</option>
+            <option value="active">En curso</option>
+            <option value="done">Cumplido</option>
+            <option value="risk">Riesgo</option>
+            <option value="blocked">Bloqueado</option>
+          </select>
+        </label>
+      ) : (
+        <label><span>Categoría</span>
+          <select value={kind} onChange={(e) => setKind(e.target.value as PlanTrabajoTaskKind)}>
+            {KIND_OPTIONS.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
+          </select>
+        </label>
+      )}
+      {error && <Alert kind="error">{error}</Alert>}
+    </Dialog>
   );
 }

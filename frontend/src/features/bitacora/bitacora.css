@@ -733,32 +733,12 @@
 .bcal-tray-item.is-blocked { border-left-color: var(--pulso-danger-fg); }
 
 /* Modal de creación / edición */
-.bcal-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(8, 20, 40, 0.42);
-  backdrop-filter: blur(2px);
-}
-
+/* Modal de actividad: velo, caja, cabecera y pie los pone el Dialog del kit
+   (L1); aquí sólo el cuerpo. */
 .bcal-modal {
-  width: min(420px, 100%);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 16px;
-  padding: 18px;
-  background: var(--pulso-surface);
-  box-shadow: 0 24px 60px rgba(0, 20, 50, 0.28);
-}
-
-.bcal-modal-head strong {
-  font-size: 15px;
-  font-weight: var(--pulso-weight-heavy);
 }
 
 .bcal-modal label {
@@ -784,12 +764,6 @@
   outline: none;
   border-color: var(--module-accent-border, var(--pulso-primary-border));
   box-shadow: 0 0 0 3px var(--module-accent-soft, var(--pulso-primary-focus));
-}
-
-.bcal-modal-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .bcal-modal-spacer {
