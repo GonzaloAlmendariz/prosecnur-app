@@ -384,9 +384,11 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* A la izquierda: la curva acumulada arranca abajo y cruza las metas hacia la
+ * derecha, donde el rótulo tapaba su tramo final. */
 .aulas-res-meta-rotulo {
   position: absolute;
-  right: 8px;
+  left: 8px;
   padding: 0 4px;
   background: var(--pulso-surface);
   color: var(--pulso-module-monitoring);
