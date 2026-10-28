@@ -354,6 +354,23 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(workflow, /artifacts\/mac\/latest-mac\.yml/)
   assert.match(workflow, /needs: \[contract, precheck, quality, build-windows, build-mac\]/)
   assert.match(workflow, /fail_on_unmatched_files:\s*true/)
+  // Corte 0.9.6: los builds pasaron y el release murió al subir el payload
+  // («Artifact storage quota has been hit»). El payload stable viaja por la
+  // caché de la corrida; los artefactos quedan solo para el preview interno.
+  const stableUploads = workflow.match(
+    /- name: Upload (?:Windows|macOS) stable payload[\s\S]*?(?=\n\s*- name:|\n  [a-z-]+:\n)/g
+  ) ?? []
+  assert.equal(stableUploads.length, 2)
+  for (const step of stableUploads) {
+    assert.doesNotMatch(step, /upload-artifact/)
+    assert.match(step, /actions\/cache@/)
+    assert.match(step, /github\.run_id/)
+  }
+  assert.doesNotMatch(workflow, /download-artifact/)
+  const winDownload = workflow.match(
+    /- name: Download Windows stable payload[\s\S]*?(?=\n\s*- name:)/
+  )?.[0] ?? ''
+  assert.match(winDownload, /fail-on-cache-miss: true/)
 })
 
 test('precheck reusa Quality del mismo SHA sin abrir un canal sin gate', () => {
