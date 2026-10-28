@@ -78,11 +78,20 @@ export function motivoDe(caso: TerritorialInternalReviewCase): MotivoDeBandeja |
   return "registro";
 }
 
-/** «12:05» de segundos, o «—». */
+/**
+ * «12:05» de segundos, o «—». Desde una hora, horas y minutos con su unidad,
+ * «45:59 h»: un formulario abierto de un día para otro salía «2759:15», que no
+ * se lee como 46 horas. Mismo ancho que el minuto, para que la columna no parta
+ * la cifra; espacio no separable antes de la «h».
+ */
 export function minutosYSegundos(segundos: unknown): string {
   const valor = Number(segundos);
   if (segundos == null || !Number.isFinite(valor) || valor <= 0) return "—";
   const total = Math.round(valor);
+  if (total >= 3600) {
+    const minutos = Math.floor(total / 60);
+    return `${Math.floor(minutos / 60)}:${String(minutos % 60).padStart(2, "0")}\u00a0h`;
+  }
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
