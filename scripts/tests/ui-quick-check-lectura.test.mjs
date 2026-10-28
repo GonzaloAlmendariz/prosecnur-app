@@ -120,6 +120,19 @@ test("texto fuera de su tarjeta: lo que esconde un <details> cerrado no se pinta
   assert.ok(textosFuera.some((item) => item.contenedor.className.includes("abierto-roto")));
 });
 
+test("texto fuera de su tarjeta: lo oculto para lectores de pantalla (1 px recortado) no se marca; visible y desbordado, sí", async () => {
+  // Carga › Preguntas a 1024×600 esconde así su resumen «87 preguntas · 0 cálculos» (2026-10-28).
+  const { textosFuera } = await medir(`
+    <div class="solo-lector" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">
+      <span style="display:inline-flex;border:1px solid #ccc;width:20px"><strong>87</strong> <span>preguntas</span></span>
+    </div>
+    <div class="visible-roto">
+      <span style="display:inline-flex;border:1px solid #ccc;width:20px;white-space:nowrap"><strong>87</strong> <span>preguntas</span></span>
+    </div>
+  `);
+  assert.equal(textosFuera.length, 1);
+});
+
 test("rótulo partido: el rótulo aplastado dentro de un <details> cerrado no se marca; abierto, sí", async () => {
   // Presets de DEFF de Hojas › Muestra: «Lige/ro» dentro de un details cerrado (2026-10-28).
   const html = (abierto) => `

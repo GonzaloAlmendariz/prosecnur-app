@@ -38,6 +38,15 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       while (actual instanceof Element) {
         const st = window.getComputedStyle(actual);
         if (st.display === "none" || st.visibility === "hidden" || Number.parseFloat(st.opacity) === 0) return false;
+        // El patrón «sólo lectores de pantalla» (caja de 1 px recortada) tampoco
+        // se pinta y checkVisibility() no lo ve: Carga › Preguntas a 1024×600
+        // esconde así su resumen y salían «87 preguntas» fuera de su tarjeta.
+        if (/^rect\(\s*0(px)?[\s,]+0(px)?[\s,]+0(px)?[\s,]+0(px)?\s*\)$/.test(st.clip)) return false;
+        if (st.clipPath === "inset(50%)") return false;
+        if (st.overflow === "hidden") {
+          const caja = actual.getBoundingClientRect();
+          if (caja.width <= 1 && caja.height <= 1) return false;
+        }
         actual = actual.parentElement;
       }
       return true;
