@@ -2739,6 +2739,14 @@
   max-height: 330px;
 }
 
+/* Las tablas compactas de Muestra (N por distrito, ajustes, diagnóstico) tienen
+   5–6 columnas cortas y viven en media columna (~675 px a 1440): el piso de
+   760 px de la tabla general escondía «Estado» y «Margen de error/DEFF/
+   Fracción» detrás de un scroll horizontal. Miden lo que su contenido pide. */
+.hojas-ruta-review-table-wrap.is-compact .hojas-ruta-review-table {
+  min-width: 0;
+}
+
 .hojas-ruta-table-input {
   width: 96px;
   border: 1px solid var(--pulso-border);
