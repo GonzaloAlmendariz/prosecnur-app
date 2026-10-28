@@ -275,6 +275,7 @@ session_schema <- function() {
     "dir",                         "literal", "interna",        "session_store.R",   "bootstrap",   "tempdir; build_pulso lo excluye y load_pulso lo reescribe",
     "project_path",                "literal", "interna",        "session_store.R",   "bootstrap",   "exenta de dirty; build la excluye, load la setea",
     "project_dirty",               "literal", "interna",        "session_store.R",   "session_set", "exenta de dirty; build la excluye",
+    "project_dirty_reasons",       "literal", "interna",        "session_store.R",   "directa",      "motivos de project_dirty (L22); exenta de dirty; build la excluye",
     "project_last_saved_at",       "literal", "interna",        "session_store.R",   "bootstrap",   "exenta de dirty; build la excluye",
     "data_raw",                    "literal", "persistible",    "session_store.R",   "bootstrap",   "campo legacy pre-estudio; suele quedar NULL",
     "files",                       "literal", "persistible",    "io.R",              "session_set", "build recorta la copia persistida al subset de inputs referenciados",

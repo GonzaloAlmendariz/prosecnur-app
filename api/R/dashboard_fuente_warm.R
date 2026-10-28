@@ -94,6 +94,7 @@
       s_post <- session_get(sid, required = FALSE)
       if (!is.null(s_post)) {
         s_post$project_dirty <- FALSE
+        s_post$project_dirty_reasons <- NULL
         .session_env[[sid]] <- s_post
       }
     }

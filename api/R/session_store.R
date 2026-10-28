@@ -33,11 +33,45 @@ session_create <- function() {
 # Helper privado: marca la sesión como "dirty" si tiene un .pulso abierto.
 # Se llama desde todos los puntos que mutan estado relevante. NO marca si
 # project_path es NULL (modo efímero — no hay proyecto al que escribir).
-.mark_project_dirty <- function(s) {
-  if (!is.null(s$project_path) && nzchar(s$project_path)) {
-    s$project_dirty <- TRUE
+#
+# Además anota POR QUÉ (L22): `project_dirty_reasons` acumula una fila por
+# motivo distinto ({motivo, veces, primera, ultima}) para que el chip «sin
+# guardar» pueda decir qué cambió en vez de sólo que algo cambió. `motivo` es
+# la clave de sesión cuando la conoce session_set; si el llamador no lo da, el
+# nombre de la función que marcó (son ~70 sitios y nombrarlos uno a uno no
+# añade información que ese nombre no tenga ya).
+.PROJECT_DIRTY_REASONS_MAX <- 40L
+
+.mark_project_dirty <- function(s, motivo = NULL) {
+  if (is.null(s$project_path) || !nzchar(s$project_path)) return(s)
+  s$project_dirty <- TRUE
+  if (is.null(motivo) || !nzchar(motivo[[1]])) {
+    llamada <- sys.call(-1L)
+    motivo <- if (is.null(llamada)) "desconocido" else deparse(llamada[[1L]], nlines = 1L)
   }
+  motivo <- as.character(motivo[[1L]])
+  ahora <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  razones <- s$project_dirty_reasons %||% list()
+  previa <- razones[[motivo]]
+  razones[[motivo]] <- list(
+    motivo = motivo,
+    veces = as.integer((previa$veces %||% 0L) + 1L),
+    primera = previa$primera %||% ahora,
+    ultima = ahora
+  )
+  if (length(razones) > .PROJECT_DIRTY_REASONS_MAX) {
+    razones <- utils::tail(razones, .PROJECT_DIRTY_REASONS_MAX)
+  }
+  s$project_dirty_reasons <- razones
   s
+}
+
+# Lista de motivos lista para el cliente: la más reciente primero.
+.project_dirty_reasons_payload <- function(s) {
+  razones <- unname(s$project_dirty_reasons %||% list())
+  if (!length(razones)) return(list())
+  orden <- order(vapply(razones, function(r) as.character(r$ultima %||% ""), character(1)), decreasing = TRUE)
+  razones[orden]
 }
 
 session_get <- function(sid, required = TRUE) {
@@ -83,9 +117,9 @@ session_set <- function(sid, key, value) {
   # Marcar dirty EXCEPTO para keys internas del propio sistema de proyecto
   # (sino se entraría en bucle: setear project_dirty vuelve a marcar dirty) y
   # para las cachés que el save descarta siempre (session_schema.R).
-  if (!(key %in% c("project_path", "project_dirty", "project_last_saved_at",
-                   .session_schema_claves_sin_dirty()))) {
-    s <- .mark_project_dirty(s)
+  if (!(key %in% c("project_path", "project_dirty", "project_dirty_reasons",
+                   "project_last_saved_at", .session_schema_claves_sin_dirty()))) {
+    s <- .mark_project_dirty(s, key)
   }
   .session_env[[sid]] <- s
   invisible(value)
@@ -128,10 +162,10 @@ session_set_many <- function(sid, named_values) {
   s <- session_get(sid)
   s[keys] <- unname(named_values)
 
-  internal_keys <- c("project_path", "project_dirty", "project_last_saved_at",
-                     .session_schema_claves_sin_dirty())
+  internal_keys <- c("project_path", "project_dirty", "project_dirty_reasons",
+                     "project_last_saved_at", .session_schema_claves_sin_dirty())
   if (any(!keys %in% internal_keys)) {
-    s <- .mark_project_dirty(s)
+    s <- .mark_project_dirty(s, paste(sort(setdiff(keys, internal_keys)), collapse = " + "))
   }
 
   .session_env[[sid]] <- s

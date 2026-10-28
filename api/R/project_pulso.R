@@ -777,7 +777,9 @@
     n_questions = as.integer(legacy$n_questions %||% length(legacy$maps)),
     maps = legacy$maps
   )
-  s <- .mark_project_dirty(s)
+  # Deliberado (test-carga-review.R): migrar el mapa legacy al abrir es un cambio
+  # que hay que guardar. El motivo lo dice para que «sin guardar» no parezca falso.
+  s <- .mark_project_dirty(s, "choice_code_mapping (migrado al abrir un .pulso antiguo)")
   .session_env[[sid]] <- s
   legacy$maps
 }
@@ -848,6 +850,7 @@
         if (isTRUE(migrated_mapping$confirmed) && length(migrated_mapping$maps %||% list())) {
           base$choice_code_mapping <- migrated_mapping
           s$project_dirty <- isTRUE(s$project_dirty) || isTRUE(latest$project_dirty)
+          s$project_dirty_reasons <- latest$project_dirty_reasons %||% s$project_dirty_reasons
         }
         norm_ok <- TRUE
         data_norm <- tryCatch(
@@ -2584,6 +2587,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   s_clean$dir <- NULL                # tempdir cambia entre sesiones
   s_clean$project_path <- NULL        # lo setea el load
   s_clean$project_dirty <- NULL
+  s_clean$project_dirty_reasons <- NULL
   s_clean$project_last_saved_at <- NULL
   saveRDS(s_clean, file = file.path(stage_dir, "state.rds"),
           version = 3, compress = "xz")
@@ -2639,6 +2643,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   now_iso <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   s$project_path <- dest_path
   s$project_dirty <- FALSE
+  s$project_dirty_reasons <- NULL
   s$project_last_saved_at <- now_iso
   .session_env[[sid]] <- s
 
@@ -2743,6 +2748,7 @@ load_pulso <- function(src_path) {
   s_saved$dir <- new_sess$dir      # preservar tempdir nuevo
   s_saved$project_path <- normalizePath(src_path, mustWork = FALSE)
   s_saved$project_dirty <- FALSE
+  s_saved$project_dirty_reasons <- NULL
   s_saved$project_last_saved_at <- as.character(
     manifest$saved_at %||% format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
@@ -2810,6 +2816,7 @@ load_pulso <- function(src_path) {
   local({
     s_collection <- collection_state_migrate_legacy(session_get(new_sid))
     s_collection$project_dirty <- FALSE
+    s_collection$project_dirty_reasons <- NULL
     .session_env[[new_sid]] <- s_collection
   })
   .pulso_repair_multibase_variant_xlsforms(new_sid)
@@ -2853,6 +2860,7 @@ project_status <- function(sid) {
     name          = if (has) tools::file_path_sans_ext(basename(s$project_path))
                      else NA_character_,
     dirty         = isTRUE(s$project_dirty),
+    dirty_reasons = if (isTRUE(s$project_dirty)) .project_dirty_reasons_payload(s) else list(),
     last_saved_at = s$project_last_saved_at %||% NA_character_,
     contactos_campanas = .cmail_contactos_count(s)
   )
@@ -2865,6 +2873,7 @@ project_close <- function(sid) {
   s <- session_get(sid)
   s$project_path <- NULL
   s$project_dirty <- FALSE
+  s$project_dirty_reasons <- NULL
   s$project_last_saved_at <- NULL
   .session_env[[sid]] <- s
   invisible(TRUE)
