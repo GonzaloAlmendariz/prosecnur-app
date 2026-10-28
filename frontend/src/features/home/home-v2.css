@@ -2724,12 +2724,15 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff 28%);
 }
 
+/* Rótulo arriba y cifra debajo, botón a la derecha: en fila los tres no caben
+   en la tarjeta a 1024 px («Configurar / credencial» partido y «3 perfil…»). */
 .home-connection-details > summary {
   min-height: 36px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 1px;
   padding: 8px 10px;
   color: var(--pulso-primary);
   cursor: pointer;
@@ -2742,9 +2745,17 @@
   display: none;
 }
 
+.home-connection-details > summary > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-connection-details > summary::after {
   content: "Configurar...";
-  flex: 0 0 auto;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   min-height: 22px;
   display: inline-flex;
   align-items: center;
@@ -2762,8 +2773,8 @@
 }
 
 .home-connection-details > summary small {
+  grid-column: 1;
   min-width: 0;
-  margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-weight: var(--pulso-weight-bold);
