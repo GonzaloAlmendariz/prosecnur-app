@@ -37,7 +37,11 @@ import {
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
+import { apiMonitoreoPublicationSheetsRevisar } from "../../../api/monitoreoPublicarEnsayo";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { PANEL_REVISAR_PUBLICACION } from "../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { EnsayoPublicacionDialog, type EstadoEnsayo } from "./EnsayoPublicacionDialog";
 import { Switch } from "../../../components/Switch";
 import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
 import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
@@ -1099,19 +1103,56 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
-  const publishSheets = async () => {
-    if (!canPublishSheets) return;
+  // Revisar y Aplicar mandan el MISMO body: el backend arma el destino con el
+  // mismo helper en los dos, así que el ensayo describe lo que Aplicar escribe.
+  const publicationOptions = (audience: OutputAudience) => ({
+    audience,
+    includeTargets,
+    confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
+    ...publicationOperationalEvidence(audience),
+    ...(config ? { config } : {}),
+  });
+
+  // El mismo orden que `canPublishSheets`: se nombra la PRIMERA condición que
+  // falta, no una lista genérica que mezcle públicos.
+  const motivoSinPublicar = () => {
+    if (!hasSnapshot) return "Sincroniza un corte antes de publicar.";
+    if (sheetsClienteBloqueado) return "La salida a cliente todavía no está habilitada: revisa la preparación de Salidas.";
+    if (!activeTarget.trim()) return "Configura el spreadsheet destino.";
+    if (activeAudience === "internal" && !internalConfirmed) return "Confirma la salida interna para habilitar la publicación.";
+    return "Hay otra operación de Salidas en curso; espera a que termine y vuelve a revisar.";
+  };
+
+  const revisarPanel = usePanelDireccionable(PANEL_REVISAR_PUBLICACION);
+  const [ensayo, setEnsayo] = useState<EstadoEnsayo | null>(null);
+  const revisarSheets = async () => {
+    setEnsayo({ kind: "cargando" });
+    try {
+      const out = await apiMonitoreoPublicationSheetsRevisar(activeTarget.trim(), publicationOptions(activeAudience));
+      setEnsayo({ kind: "listo", ensayo: out });
+    } catch (e) {
+      setEnsayo({ kind: "error", message: (e as Error).message });
+    }
+  };
+  // Abrir el panel (por click o por `?panel=revisar-publicacion`) lanza el
+  // ensayo; cerrarlo lo descarta, para que reabrir siempre lea el libro de hoy.
+  useEffect(() => {
+    // Abierto por dirección sin poder publicar: dice por qué, no gira para siempre.
+    if (revisarPanel.abierto && ensayo === null) {
+      if (canPublishSheets) void revisarSheets();
+      else setEnsayo({ kind: "bloqueado", message: motivoSinPublicar() });
+    }
+    if (!revisarPanel.abierto && ensayo !== null) setEnsayo(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revisarPanel.abierto, ensayo, canPublishSheets]);
+
+  const publishSheets = async (): Promise<boolean> => {
+    if (!canPublishSheets) return false;
     const audience = activeAudience;
     setPublishing(audience);
     updateStatus(audience, { kind: "publishing", message: `Validando y actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
     try {
-      const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), {
-        audience,
-        includeTargets,
-        confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
-        ...publicationOperationalEvidence(audience),
-        ...(config ? { config } : {}),
-      });
+      const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), publicationOptions(audience));
       if (out.preflight) {
         setPreflights((current) => ({ ...current, [audience]: out.preflight ?? null }));
       }
@@ -1135,11 +1176,18 @@ export function MonitoreoOutputsWorkbench({
       });
       onPublished?.();
       window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+      return true;
     } catch (e) {
       updateStatus(audience, { kind: "error", message: (e as Error).message });
+      return false;
     } finally {
       setPublishing(null);
     }
+  };
+
+  const aplicarEnsayo = async () => {
+    const ok = await publishSheets();
+    if (ok) revisarPanel.cerrar();
   };
 
   // Antes decía solo "N registros", y ese N era la ingesta cruda: el usuario leía
@@ -1178,8 +1226,8 @@ export function MonitoreoOutputsWorkbench({
       ? `Publicando Sheets ${audienceLabel(activeAudience).toLowerCase()}`
       : `Validando salida ${audienceLabel(activeAudience).toLowerCase()}`
     : activeReady
-      ? `Actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
-      : `Publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
+      ? `Revisar y actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
+      : `Revisar y publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
   const operationalFiles = [
     { key: "template", label: "Plantilla", file: operationalReview?.files?.template },
     { key: "review_csv", label: "Revisión CSV", file: operationalReview?.files?.review_csv },
@@ -1719,8 +1767,8 @@ export function MonitoreoOutputsWorkbench({
               <button
                 type="button"
                 className={`mon-outputs-publish-button mon-outputs-action-progress${publishRunning ? " is-running" : ""}${activeStatus.kind === "success" ? " is-complete" : ""}`}
-                onClick={() => { void publishSheets(); }}
-                disabled={!canPublishSheets}
+                onClick={() => { setEnsayo(null); revisarPanel.abrir(); }}
+                disabled={!canPublishSheets || publishRunning}
                 style={{ "--mon-output-action-progress": `${publishProgress}%` } as CSSProperties}
               >
                 {publishing === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
@@ -1733,6 +1781,13 @@ export function MonitoreoOutputsWorkbench({
                 </a>
               ) : null}
             </div>
+            <EnsayoPublicacionDialog
+              destino={audienceLabel(activeAudience).toLowerCase()}
+              estado={ensayo ?? { kind: "cargando" }}
+              aplicando={publishing === activeAudience}
+              onAplicar={() => { void aplicarEnsayo(); }}
+              onReintentar={() => { void revisarSheets(); }}
+            />
             <div className={`mon-outputs-status is-${activeStatus.kind}`} role="status" aria-live="polite">
               <span>{activeStatus.message || (!hasSnapshot ? "Sincroniza un corte antes de publicar." : !activeTarget.trim() ? "Configura el spreadsheet destino." : activeAudience === "internal" && !internalConfirmed ? "Confirma la salida interna para habilitar la publicación." : activeReady ? "Publicación previa lista para actualizar." : "Lista para publicar.")}</span>
               {activePublished?.tabs.length ? <small>{activePublished.tabs.length} pestañas controladas</small> : null}

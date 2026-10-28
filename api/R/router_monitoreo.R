@@ -3047,35 +3047,17 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      if (is.null(snapshot) || !is.data.frame(snapshot$data)) {
-        stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar pestanas Prosecnur.")
-      }
-      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "internal")
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino.")
-      tabs <- .monitoreo_sheets_publish_payload(snapshot, cfg)
-      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = "monitoreo_sheet_publish_events",
-        event_extra = list(tabs = names(tabs)))
+      # El destino lo arma el mismo helper que su ensayo (monitoreo_publicar_ensayo.R).
+      d <- monitoreo_publicar_destino_interno(sid, session_get(sid), parsed)
+      monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
-      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
-      include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
-                                                          padron = s[["monitoreo_aulas_padron"]])
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
-      tabs <- .monitoreo_client_report_tabs_payload(model)
-      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = "monitoreo_client_report_sheet_events",
-        event_extra = list(tabs = names(tabs), include_targets = include_targets))
+      d <- monitoreo_publicar_destino_cliente(sid, session_get(sid), parsed)
+      monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
     })) |>
     plumber::pr_post("/api/monitoreo/publish", wrap_endpoint(function(req, res, ...) {
       stop_api(
@@ -3156,41 +3138,10 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/publication/sheets", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
-        stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el ejecutivo en Sheets.")
-      }
-      audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para publicar el ejecutivo en Sheets.")
-      bundle <- .monitoreo_publication_preflight_bundle(
-        sid,
-        s,
-        snapshot,
-        parsed,
-        audience = audience,
-        spreadsheet_id = spreadsheet_id
-      )
-      if (identical(bundle$preflight$status, "blocked")) {
-        stop_api(
-          409,
-          "E_MONITOREO_PREFLIGHT_BLOCKED",
-          "El preflight de entregables bloquea esta publicación.",
-          details = list(preflight = bundle$preflight)
-        )
-      }
-      tabs <- bundle$tabs
-      published <- monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = paste0("monitoreo_publication_sheet_events_", audience),
-        event_extra = list(
-          audience = audience,
-          tabs = names(tabs),
-          include_targets = bundle$include_targets,
-          confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
-          preflight = bundle$preflight$scorecard
-        ))
-      c(published, list(audience = audience, preflight = bundle$preflight))
+      d <- monitoreo_publicar_destino_publicacion(sid, session_get(sid), parsed)
+      published <- monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
+      c(published, list(audience = d$audience, preflight = d$preflight))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/pdf", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

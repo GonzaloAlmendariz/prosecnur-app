@@ -4778,7 +4778,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     if (nzchar(fallo_refresco)) {
       msg <- paste0(msg, " (y renovar el acceso tampoco funciono: ", fallo_refresco, ")")
     }
-    stop(msg, call. = FALSE)
+    stop(.monitoreo_google_http_error(msg, first$status_code))
   }
   parsed
 }

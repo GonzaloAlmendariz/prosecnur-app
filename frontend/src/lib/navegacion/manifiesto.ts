@@ -185,6 +185,17 @@ export const PANEL_REEMPLAZO_AULAS: PanelDeclarado = {
   clase: "popover",
 };
 
+/**
+ * Ensayo «Revisar → Aplicar» de Avance › Salidas a Google Sheets (Meta B, L38):
+ * dice qué filas se añaden, cambian y borran antes de escribir el libro.
+ * Abrirlo por `?panel=revisar-publicacion` lanza el ensayo; no escribe nada.
+ */
+export const PANEL_REVISAR_PUBLICACION: PanelDeclarado = {
+  id: "revisar-publicacion",
+  label: "Revisar publicación",
+  clase: "dialogo",
+};
+
 /** Centro de avisos del cronograma (ADR 0047). */
 export const PANEL_AVISOS: PanelDeclarado = {
   id: "avisos",
@@ -204,7 +215,7 @@ export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
-  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS],
+  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.

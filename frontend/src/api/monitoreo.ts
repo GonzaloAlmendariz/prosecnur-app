@@ -4837,7 +4837,7 @@ export async function apiMonitoreoPublicReport() {
   );
 }
 
-type MonitoreoPublicationRequestOptions = {
+export type MonitoreoPublicationRequestOptions = {
   audience?: "client" | "internal";
   includeTargets?: boolean;
   confirmedFullData?: boolean;
@@ -4846,7 +4846,7 @@ type MonitoreoPublicationRequestOptions = {
   operationalPackageReview?: MonitoreoTerritorialOperationalPackageReview | MonitoreoTerritorialOperationalPackageReviewResult | Record<string, unknown>;
 };
 
-function monitoreoPublicationRequestBody(spreadsheetId: string, options: MonitoreoPublicationRequestOptions = {}) {
+export function monitoreoPublicationRequestBody(spreadsheetId: string, options: MonitoreoPublicationRequestOptions = {}) {
   return {
     spreadsheet_id: spreadsheetId,
     audience: options.audience ?? "client",
