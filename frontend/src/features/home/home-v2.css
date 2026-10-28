@@ -166,8 +166,7 @@
 }
 
 /* Acción centrada al pie de la ficha. */
-.home-cinema .home-cinema-card.is-focused .home-cinema-cta,
-.home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+.home-cinema .home-cinema-card.is-focused .home-cinema-cta {
   margin-top: 5px;
   align-self: center;
   width: auto;
@@ -236,7 +235,6 @@
 .home-cinema-cta:active {
   transform: scale(0.97);
 }
-
 
 .home-cinema-dot::after {
   content: "";
@@ -326,34 +324,6 @@
   border-radius: 16px;
 }
 
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel {
-  height: 100%;
-  min-height: 246px;
-  max-height: none;
-  padding: 12px;
-  gap: 7px;
-  border-radius: 16px;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel h3,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel h3 {
-  font-size: 18px;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel-blurb,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel-blurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-feature-list,
-:root[data-pulso-layout-preset="compact"] .home-cinema-feature-list {
-  display: none;
-}
-
 :root[data-pulso-layout-preset="short"] .home-cinema {
   gap: 6px;
   padding: 10px 12px 8px;
@@ -384,38 +354,10 @@
   border-radius: 16px;
 }
 
-:root[data-pulso-layout-preset="short"] .home-cinema-panel {
-  min-height: 0;
-  max-height: 228px;
-  padding: 12px;
-  gap: 6px;
-  border-radius: 16px;
-}
-
 :root[data-pulso-layout-preset="short"] .home-cinema-card.is-focused .home-cinema-card-icon {
   width: 54px;
   height: 54px;
   border-radius: 16px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-card-title {
-  width: min(100%, 210px);
-  font-size: 17px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-panel h3 {
-  font-size: 18px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-panel-blurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-feature-list {
-  display: none;
 }
 
 /* Banda de alto medio: no es "short", pero ya no cabe la ficha roomy completa.
@@ -428,64 +370,8 @@
     min-height: 0;
   }
 
-  .home-cinema-panel,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel,
-  :root[data-pulso-layout-preset="portable"] .home-cinema-panel {
-    height: 100%;
-    min-height: 0;
-    max-height: none;
-    justify-content: center;
-    gap: 8px;
-    padding: 16px;
-  }
-
-  .home-cinema-panel > * {
-    width: min(100%, 520px);
-  }
-
-  .home-cinema-panel-icon,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 15px;
-  }
-
-  .home-cinema-panel-icon svg {
-    width: 30px;
-    height: 30px;
-  }
-
-  .home-cinema-panel h3,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel h3 {
-    font-size: 22px;
-    line-height: 1.08;
-  }
-
-  .home-cinema-panel-tagline {
-    font-size: 12.5px;
-    line-height: 1.28;
-  }
-
-  .home-cinema-panel-blurb,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel-blurb {
-    display: -webkit-box;
-    max-width: 520px;
-    font-size: 12px;
-    line-height: 1.38;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .home-cinema-feature-list,
-  :root[data-pulso-layout-preset="large"] .home-cinema-feature-list {
-    display: none;
-  }
-
   .home-cinema-cta,
-  :root[data-pulso-layout-preset="large"] .home-cinema-cta,
-  .home-cinema-soon,
-  :root[data-pulso-layout-preset="large"] .home-cinema-soon {
+:root[data-pulso-layout-preset="large"] .home-cinema-cta {
     margin-top: 4px;
   }
 
@@ -503,11 +389,6 @@
   .home-cinema-card.is-focused .home-cinema-card-icon svg {
     width: 40px;
     height: 40px;
-  }
-
-  .home-cinema-card-title {
-    width: min(100%, 230px);
-    font-size: 20px;
   }
 
   .home-cinema-card-blurb {
@@ -576,8 +457,7 @@
     line-height: 1.2;
   }
 
-  .home-cinema .home-cinema-card.is-focused .home-cinema-cta,
-  .home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+  .home-cinema .home-cinema-card.is-focused .home-cinema-cta {
     margin-top: 2px;
   }
 }
@@ -600,16 +480,6 @@
   animation: home-settings-dialog-in var(--motion-dur-panel) var(--motion-ease-productive) both;
 }
 
-.home-settings-head {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: linear-gradient(180deg, var(--pulso-surface), var(--pulso-surface-2));
-}
-
 .home-settings-icon {
   width: 36px;
   height: 36px;
@@ -620,60 +490,6 @@
   color: var(--pulso-primary);
   background: var(--pulso-primary-soft);
   border: 1px solid var(--pulso-primary-border);
-}
-
-.home-settings-head h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-primary);
-}
-
-.home-settings-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-
-.home-settings-tabs button {
-  min-height: 30px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 5px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--pulso-text-soft);
-  background: transparent;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-.home-settings-tabs button span {
-  min-width: 0;
-  padding: 1px 6px;
-  border-radius: 999px;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.home-settings-tabs button.is-active {
-  color: var(--pulso-primary);
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.home-settings-tabs button.is-active span {
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border-color: var(--pulso-primary-border);
 }
 
 .home-settings-body {
@@ -833,15 +649,6 @@
     max-height: calc(100vh - 20px);
   }
 
-  .home-settings-head {
-    padding: 14px;
-  }
-
-  .home-settings-tabs {
-    padding: 8px 14px;
-    overflow-x: auto;
-  }
-
   .home-settings-body {
     padding: 14px;
   }
@@ -887,28 +694,6 @@
   from { opacity: 0; transform: translateY(5px) scale(0.994); }
   to   { opacity: 1; transform: none; }
 }
-
-/* ── Panel de detalle — superficie glass de la base ────────────────────── */
-
-.home-wrap .home-cinema-panel {
-  background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 52%, transparent) 0 24%, transparent 58%),
-    color-mix(in srgb, var(--pulso-surface) 88%, transparent);
-  backdrop-filter: blur(10px) saturate(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(1.08);
-  border-color: color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-primary-border)) 62%, var(--pulso-border));
-  animation: homev2-panel-in 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-/* Lista de features del módulo enfocado — stagger sutil (máx 5 ítems) */
-.home-wrap .home-cinema-feature-list li {
-  animation: homev2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
-}
-
-.home-wrap .home-cinema-feature-list li:nth-child(2) { animation-delay: 35ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(3) { animation-delay: 70ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(4) { animation-delay: 105ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(n + 5) { animation-delay: 140ms; }
 
 /* Microcopy sobre párrafos: en alturas cortas la tarjeta no tiene espacio
    para el blurb (el grid lo recorta a media línea). Se oculta y el panel
@@ -993,8 +778,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-wrap .home-cinema-feature-list li,
-  .home-wrap .home-cinema-panel,
   .home-wrap .home-cinema-dot {
     animation: none !important;
   }
@@ -1050,50 +833,6 @@
   align-self: center;
 }
 
-/* Cabecera de una sola línea. El titular grande costaba ~65px de alto que las
-   tarjetas necesitan para caber sin scroll, y duplicaba el nombre que ya
-   muestra el chip del topbar. */
-.home-mission-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 2px;
-  min-width: 0;
-}
-
-.home-mission-id {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0 10px;
-  min-width: 0;
-}
-
-.home-mission-title {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  letter-spacing: -0.012em;
-}
-
-.home-mission-client {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  min-width: 0;
-  color: var(--pulso-text-faint);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-}
-
-.home-mission-meta-dot {
-  margin: 0 7px;
-  color: var(--pulso-text-faint);
-}
-
 /* --- Métricas headline: banda única con divisores hairline ------------ */
 .home-mission-metrics {
   display: grid;
@@ -1104,36 +843,6 @@
   overflow: hidden;
   background: var(--pulso-border);
   box-shadow: 0 1px 2px rgba(0, 36, 87, 0.04);
-}
-
-.home-mc-stat-tile {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  column-gap: 9px;
-  padding: 12px 16px;
-  background: var(--pulso-surface);
-}
-
-.home-mc-stat-tile > svg {
-  grid-row: 1 / span 2;
-  color: var(--pulso-text-soft);
-}
-
-.home-mc-stat-tile-value {
-  font-size: 18px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
-
-.home-mc-stat-tile-label {
-  color: var(--pulso-text-faint);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
@@ -1286,8 +995,7 @@
       0 1px 1px rgba(0, 36, 87, 0.05),
       0 10px 24px -8px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 30%, transparent);
   }
-  .home-mc-card:hover .home-mc-cta-arrow { transform: translateX(2px); }
-  .home-mc-card:hover .home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
+
 }
 
 .home-mc-head,
@@ -1753,7 +1461,6 @@
 }
 
 .home-mc-viz.is-phases .home-mc-stat > strong { font-size: 21px; }
-.home-mc-viz.is-phases .home-mc-stat-meta { flex-direction: row; align-items: baseline; gap: 8px; }
 
 /* --- Pie: línea de metadatos ------------------------------------------ */
 /* Material de contexto en una sola línea, al estilo del pie de Finder. Los
@@ -1799,57 +1506,6 @@
 }
 
 .home-mc-fact-dot { margin-right: 1px; color: var(--pulso-border-strong); }
-
-.home-mc-cta {
-  align-self: flex-start;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  transition: color var(--motion-dur-fast) ease;
-}
-
-.home-mc-cta-arrow {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  color: currentColor;
-  transition: transform var(--motion-dur-base) var(--motion-ease-out);
-}
-
-.home-mc-cta-arrow > svg { width: 13px; height: 13px; }
-
-/* --- Botón "agregar módulo" en la cabecera --------------------------- */
-.home-mission-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  height: 34px;
-  padding: 0 14px 0 12px;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
-}
-
-.home-mission-add-btn:hover {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-}
 
 /* --- Diálogo de confirmación (quitar módulo) ------------------------- */
 .home-confirm-backdrop {
@@ -2365,8 +2021,6 @@
 .home-cinema-card-features li:last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
-
-.home-footer-author:hover { color: var(--pulso-primary); }
 
 :root[data-pulso-layout-preset="short"] .home-cinema-deck-wrap {
   overflow: visible;
@@ -2968,20 +2622,6 @@
   color: var(--pulso-danger-fg);
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
-}
-
-.home-connection-check {
-  display: inline-flex !important;
-  grid-template-columns: none !important;
-  align-items: center;
-  gap: 7px !important;
-  color: var(--pulso-text-soft);
-  font-size: 11px !important;
-  font-weight: var(--pulso-weight-semibold) !important;
-}
-
-.home-connection-check input {
-  margin: 0;
 }
 
 .home-connection-actions {
