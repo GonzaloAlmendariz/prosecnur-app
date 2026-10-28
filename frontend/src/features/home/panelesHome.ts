@@ -18,3 +18,10 @@ export const PANEL_CONFIGURACION: PanelDeclarado = {
   clase: "dialogo",
   alias: [{ param: "settings" }],
 };
+
+/** Paleta de comandos (L30): ⌘K en macOS, Ctrl+K en Windows, o `?panel=paleta`. */
+export const PANEL_PALETA: PanelDeclarado = {
+  id: "paleta",
+  label: "Ir a una vista",
+  clase: "dialogo",
+};

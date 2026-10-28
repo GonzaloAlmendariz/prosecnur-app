@@ -23,6 +23,7 @@ import type { PanelDeclarado } from "./paneles";
 import {
   PANEL_CONFIGURACION,
   PANEL_MODULOS,
+  PANEL_PALETA,
 } from "../../features/home/panelesHome";
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
@@ -221,7 +222,7 @@ export const PANEL_IMPORTAR: PanelDeclarado = {
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
-  global: [PANEL_MODULOS, PANEL_CONFIGURACION],
+  global: [PANEL_MODULOS, PANEL_CONFIGURACION, PANEL_PALETA],
   monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR, PANEL_REFERENCIAS],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.

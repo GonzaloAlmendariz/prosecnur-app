@@ -14,6 +14,7 @@ import {
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import { ConfiguracionHost } from "../features/home/ConfiguracionHost";
+import { PaletaDeComandosHost } from "../features/home/PaletaDeComandos";
 import { Toaster } from "../components/Toaster";
 import { TonoDePortales } from "../components/TonoDePortales";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
@@ -713,6 +714,7 @@ export default function Layout() {
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
       <ConfiguracionHost />
+      <PaletaDeComandosHost />
       {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
           módulo: heredan su acento desde lo que esto publica en <body>. */}
       <TonoDePortales modulo={activeModule} />

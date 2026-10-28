@@ -1,0 +1,68 @@
+/* Paleta de comandos (L30). Tamaños por rol (app/tipografia.css). */
+
+.pulso-paleta-busqueda {
+  width: 100%;
+  height: var(--pulso-control-height-lg);
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-paleta-busqueda:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 1px;
+}
+
+.pulso-paleta-lista {
+  display: grid;
+  gap: 2px;
+  margin: var(--pulso-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(420px, 55vh);
+  overflow-y: auto;
+}
+
+.pulso-paleta-item {
+  display: flex;
+  gap: var(--pulso-space-3);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  cursor: pointer;
+}
+
+.pulso-paleta-item[aria-selected="true"] {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-paleta-item-nombre {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-paleta-item-ruta {
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-paleta-vacio {
+  margin: var(--pulso-space-4) 0 0;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-body-size);
+  text-align: center;
+}
