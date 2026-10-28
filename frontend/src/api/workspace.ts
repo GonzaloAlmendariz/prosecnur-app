@@ -22,6 +22,8 @@ export type ProjectStatus = {
   last_saved_at: string | null;
   /** Campañas de correo cuyos contactos viajan en el `.pulso` (ADR 0112 §5). Ausente en backends viejos. */
   contactos_campanas?: number;
+  /** Qué dejó el proyecto «sin guardar» (L22), lo más reciente primero. Ausente en backends viejos. */
+  dirty_reasons?: unknown;
 };
 
 export async function apiProjectStatus(): Promise<ProjectStatus> {

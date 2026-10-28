@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { copiarTexto } from "../../lib/portapapeles";
+import { MotivosSinGuardar } from "./MotivosSinGuardar";
+import type { MotivoSinGuardar } from "./modeloMotivosSinGuardar";
 
 export type ProjectLifecycleIntent = "manage" | "selector" | "appExit";
 
@@ -59,6 +61,7 @@ export default function ProjectLifecycleDialog({
   error,
   notice,
   contactosCampanas,
+  motivos = [],
   onCancel,
   onSave,
   onSaveAs,
@@ -72,6 +75,8 @@ export default function ProjectLifecycleDialog({
   lastSavedAt: string | null;
   /** Campañas de correo cuyos contactos viajan en el `.pulso`. */
   contactosCampanas?: number;
+  /** Qué dejó el proyecto «sin guardar» (L22). */
+  motivos?: readonly MotivoSinGuardar[];
   busy: boolean;
   action: ProjectLifecycleAction;
   error: string;
@@ -185,6 +190,7 @@ export default function ProjectLifecycleDialog({
               <span>{dirty ? "Cambios sin guardar" : `Guardado ${projectRelTime(lastSavedAt)}`}</span>
             </div>
             <p>{lead}</p>
+            {dirty ? <MotivosSinGuardar motivos={motivos} /> : null}
             {avisoDeContactos(contactosCampanas) ? (
               <p data-testid="proyecto-contactos" role="note">{avisoDeContactos(contactosCampanas)}.</p>
             ) : null}
