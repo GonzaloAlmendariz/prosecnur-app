@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Wrapper minimalista sobre plotly.js-dist-min cargado lazy. Vive en
 // `lib/` (neutral) para que Dashboard y Validación lo compartan sin
@@ -112,6 +112,11 @@ export function PlotlyChart({
   onReady?: (gd: HTMLElement) => void | (() => void);
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Readiness de RENDER (L11): la vista que contiene el gráfico no está lista
+  // hasta que Plotly lo dibujó. Antes la marca de la vista decía «lista» al
+  // montar y la captura salía con un recuadro en blanco. Un fallo de Plotly es
+  // un estado terminal clasificado, no un `false` que cuelga el QA.
+  const [dibujado, setDibujado] = useState<"false" | "true" | "vacio:grafico-con-error">("false");
   // Último spec efectivamente aplicado con Plotly.react sobre este div.
   const lastSpecRef = useRef<{
     data: PlotlyData[];
@@ -137,6 +142,7 @@ export function PlotlyChart({
         // Mismo spec con referencias nuevas: no relanzar Plotly.react.
         // Se re-attachea onReady igual que tras un re-plot (el teardown del
         // effect anterior ya corrió su cleanup).
+        setDibujado("true");
         cleanup = onReady?.(ref.current);
         return;
       }
@@ -182,8 +188,13 @@ export function PlotlyChart({
         // realmente quedó dibujado.
         lastSpecRef.current = { data, layout: layout ?? null, config: config ?? null };
         if (cancelled || !ref.current) return;
+        setDibujado("true");
         cleanup = onReady?.(ref.current);
+      }, () => {
+        if (!cancelled) setDibujado("vacio:grafico-con-error");
       });
+    }, () => {
+      if (!cancelled) setDibujado("vacio:grafico-con-error");
     });
     return () => {
       cancelled = true;
@@ -234,6 +245,7 @@ export function PlotlyChart({
     <div
       ref={ref}
       className="dash-plotly-chart"
+      data-audit-ready={dibujado}
       role="img"
       aria-label={ariaLabel}
       style={{ width: "100%", height, minHeight: height }}
