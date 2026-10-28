@@ -367,7 +367,8 @@
 /* Stagger de aparición sobre los elementos internos que Plotly genera —
  * barras, puntos del radar/FODA, labels del heatmap. Plotly usa una
  * <image> única para el heatmap (no celdas individuales), así que la
- * imagen entera fade-in y los labels stagger. */
+ * imagen entera fade-in y los labels stagger. El escalonado entero cabe en
+ * 90 ms (L37): lo que llega tarde se siente lento, no vivo. */
 @media (prefers-reduced-motion: no-preference) {
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer image {
     animation: dash-dim-fade-in-soft var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -378,43 +379,43 @@
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .points path {
     animation: dash-dim-cell-pop var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 1) { animation-delay: 200ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 2) { animation-delay: 220ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 3) { animation-delay: 240ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 4) { animation-delay: 260ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 5) { animation-delay: 280ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 6) { animation-delay: 300ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 7) { animation-delay: 320ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 8) { animation-delay: 340ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 1) { animation-delay: 30ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 2) { animation-delay: 38ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 3) { animation-delay: 46ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 4) { animation-delay: 54ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 5) { animation-delay: 62ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 6) { animation-delay: 70ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 7) { animation-delay: 78ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 8) { animation-delay: 86ms; }
 
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 1),
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 1) { animation-delay: 0ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 2),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 2) { animation-delay: 28ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 2) { animation-delay: 9ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 3),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 3) { animation-delay: 56ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 3) { animation-delay: 18ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 4),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 4) { animation-delay: 84ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 4) { animation-delay: 27ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 5),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 5) { animation-delay: 112ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 5) { animation-delay: 36ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 6),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 6) { animation-delay: 140ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 6) { animation-delay: 45ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 7),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 7) { animation-delay: 168ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 7) { animation-delay: 54ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 8),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 8) { animation-delay: 196ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 8) { animation-delay: 63ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 9),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 9) { animation-delay: 224ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 9) { animation-delay: 72ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 10),
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 10) { animation-delay: 252ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 10) { animation-delay: 81ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 1) { animation-delay: 0ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 2) { animation-delay: 60ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 3) { animation-delay: 120ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 4) { animation-delay: 180ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 5) { animation-delay: 240ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 6) { animation-delay: 300ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 7) { animation-delay: 360ms; }
-  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 8) { animation-delay: 420ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 2) { animation-delay: 12ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 3) { animation-delay: 24ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 4) { animation-delay: 36ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 5) { animation-delay: 48ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 6) { animation-delay: 60ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 7) { animation-delay: 72ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 8) { animation-delay: 84ms; }
 }
 
 @keyframes dash-dim-cell-pop {
