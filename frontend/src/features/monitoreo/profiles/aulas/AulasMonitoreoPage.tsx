@@ -91,13 +91,13 @@ import {
 import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
 import { useDireccionAulas } from "./navegacion/useDireccionAulas";
 import { esPestanaPropia, FICHA_DE_AULA, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
-import { ResumenAulas } from "./avance/ResumenAulas";
+import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
-import { railDeAulas } from "./railDeAulas";
+import { railDeAulas, rotuloDePestanaAulas } from "./railDeAulas";
 import { readinessDeAulas } from "./navegacion/readinessDeAulas";
 import {
   aulasFieldLabel,
@@ -1968,11 +1968,11 @@ export default function AulasMonitoreoPage() {
       onReintentar={() => { void loadView(seccionActiva, true); }}
     />
   );
-  // Las pestañas del revamp con contenido propio (lote 2): Avance › Resumen.
-  // Pinta también su silueta mientras carga (S1).
+  // Las pestañas del revamp con contenido propio (lote 2): Avance › Resumen y
+  // Por facultad. Pintan también su silueta mientras carga (S1).
   const propia = esPestanaPropia(direccion);
   const resumenPropio = propia
-    ? <ResumenAulas dashboard={dashboard} cargando={loading} vacioSinTablero={vacioSinTablero} />
+    ? <PestanaPropiaDeAulas direccion={direccion} dashboard={dashboard} cargando={loading} vacioSinTablero={vacioSinTablero} />
     : null;
 
   return (
@@ -2080,7 +2080,7 @@ export default function AulasMonitoreoPage() {
             eyebrow="Cursos-horario"
             title={activeDef.label}
             detail={activeDef.desc}
-            pestanaLabel={pestanaActivaLabel}
+            pestanaLabel={rotuloDePestanaAulas(direccion.seccion, direccion.pestana, dashboard) ?? pestanaActivaLabel}
             // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
             //
             // Está en la cabecera y no dentro de un panel porque ahí se movía con

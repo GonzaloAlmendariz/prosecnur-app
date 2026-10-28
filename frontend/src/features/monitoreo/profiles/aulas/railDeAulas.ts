@@ -156,6 +156,22 @@ function existeEnEsteEstudio(
   return true;
 }
 
+/**
+ * El rótulo que declara el eje del estudio, cuando la pestaña lo lleva: Avance ›
+ * «Por facultad» se llama «Por nivel» en un estudio cuya cuota es por nivel
+ * (aulas.md, A2: «el rótulo es el eje que declara el proyecto»). `null` cuando
+ * vale el del catálogo.
+ */
+export function rotuloDePestanaAulas(
+  seccion: string,
+  key: string,
+  dashboard: MonitoreoAulasDashboard | null,
+): string | null {
+  if (seccion !== "avance" || key !== "porfacultad") return null;
+  const etiqueta = String(dashboard?.avance_cuota?.eje?.etiqueta ?? "").trim();
+  return etiqueta ? `Por ${etiqueta.toLocaleLowerCase("es")}` : null;
+}
+
 export function railDeAulas(
   seccion: string,
   dashboard: MonitoreoAulasDashboard | null,
@@ -164,7 +180,7 @@ export function railDeAulas(
     .filter((pestana) => existeEnEsteEstudio(seccion, pestana.key, dashboard))
     .map((pestana) => ({
     key: pestana.key,
-    label: pestana.label,
+    label: rotuloDePestanaAulas(seccion, pestana.key, dashboard) ?? pestana.label,
     detail: pestana.detail,
     icon: pestana.icon,
     ...medidaDePestana(seccion, pestana.key, dashboard),

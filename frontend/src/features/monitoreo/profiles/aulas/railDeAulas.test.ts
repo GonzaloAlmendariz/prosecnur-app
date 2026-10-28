@@ -4,7 +4,7 @@ import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitor
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
-import { railDeAulas } from "./railDeAulas";
+import { railDeAulas, rotuloDePestanaAulas } from "./railDeAulas";
 
 /**
  * **Un badge es un número desnudo al lado de una etiqueta.**
@@ -127,5 +127,22 @@ describe("sin tablero el rail no mide", () => {
   it("con tablero vacío sí mide: el cero ya es un conteo", () => {
     const d = { kpis: {}, brechas: [], reemplazos: [] } as unknown as MonitoreoAulasDashboard;
     expect(railDeAulas("avance", d).find((p) => p.key === "resumen")?.estado).toBe("listo");
+  });
+});
+
+describe("el rótulo de Avance › Por facultad sigue al eje (A2)", () => {
+  const conEje = (etiqueta: string) => ({
+    kpis: {}, brechas: [], reemplazos: [], avance_cuota: { eje: { etiqueta } },
+  }) as unknown as MonitoreoAulasDashboard;
+
+  it("en un estudio por nivel se llama «Por nivel», en el rail y en la cabecera", () => {
+    expect(rotuloDePestanaAulas("avance", "porfacultad", conEje("Nivel"))).toBe("Por nivel");
+    expect(railDeAulas("avance", conEje("Nivel")).find((p) => p.key === "porfacultad")?.label).toBe("Por nivel");
+  });
+
+  it("sin eje declarado, o en otra pestaña, vale el rótulo del catálogo", () => {
+    expect(rotuloDePestanaAulas("avance", "porfacultad", null)).toBeNull();
+    expect(rotuloDePestanaAulas("avance", "resumen", conEje("Nivel"))).toBeNull();
+    expect(railDeAulas("avance", null).find((p) => p.key === "porfacultad")?.label).toBe("Por facultad");
   });
 });
