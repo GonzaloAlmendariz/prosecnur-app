@@ -243,7 +243,7 @@
     if (identical(.lam_estilo_dicotomia(espec), "barra_estandar")) {
       # La barra mide `geo$w` (el panel menos 0,8 in) y va centrada en el panel; su leyenda, en el mismo eje.
       return(.lam_dicotomia_estandar(lz, x + (w - geo$w) / 2, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, g = geo$g,
-                                     size = min(12, .std_pt("cifra")), cols = d$colores, x_ley = x, w_ley = w))
+                                     size = .std_pt("cifra"), cols = d$colores, x_ley = x, w_ley = w))   # G8: la cifra de la Sí/No a 14 pt, también en el panel
     }
     return(.lam_dicotomia(lz, x, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, size = geo$size, g = geo$g,
                           cols = d$colores))   # ADR 0097: la paleta del usuario de la escala o la categórica

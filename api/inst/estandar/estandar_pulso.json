@@ -25,8 +25,8 @@
         "x_actor": 3.6,
         "ancho_actor": 1.5,
         "x_barra": 5.2,
-        "ancho_barra": 6,
-        "x_top_two_box": 11.4
+        "ancho_barra": 6.3,
+        "x_top_two_box": 11.25
       },
       "cifra_pieza": {
         "valor_h": 0.62,

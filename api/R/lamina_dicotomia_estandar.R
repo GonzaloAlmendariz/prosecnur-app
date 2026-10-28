@@ -2,9 +2,9 @@
 #
 # El motor dibuja toda pregunta de dos opciones que reparte el 100 % como `dicotomia` (barra partida con cifras de 22/40
 # pt encima, `.lam_dicotomia`). Ese sigue siendo el defecto (estilo `partida`). El estilo `barra_estandar` es una barra
-# normal de 100 % partida en sus dos segmentos, con el porcentaje DENTRO de cada segmento (blanco sobre fondo oscuro; el
-# azul de la casa si el segmento es claro, `.lam_texto_sobre`), a tamaño estándar y con leyenda. En el Word, sin «(n)» ni
-# base: la leyenda nombra las opciones y nada más.
+# normal de 100 % partida en sus dos segmentos, con el porcentaje DENTRO de cada segmento (en blanco en los dos, G8 de
+# Arte 2026-10-28; fuera del segmento, el azul de la casa), a 14 pt (`.std_pt("cifra")`) y con leyenda. En el Word, sin
+# «(n)» ni base: la leyenda nombra las opciones y nada más.
 #
 # Cómo se elige (el slot gana al informe, el informe al defecto):
 #   - slot:    `overrides$estilo_dicotomia` del gráfico (`p_dicotomica(estilo = "barra_estandar")`), copiado a la espec;
@@ -85,7 +85,9 @@
   for (k in 1:2) {
     ancho_txt <- .lam_ancho_txt(cifras[k], size, TRUE) + 0.2
     if (seg[[k]][2] >= ancho_txt) {
-      .lam_txt(lz, cifras[k], seg[[k]][1], y + (g - hv) / 2, seg[[k]][2], hv, size, .lam_texto_sobre(cols[k]), bold = TRUE,
+      # G8 (Gabriela, Arte 2026-10-28: «mejor colocar todo en color blanco»): dentro de su segmento la cifra va en blanco
+      # en los dos, también sobre el celeste del «No», como Contabilidad; la que sale fuera conserva el azul legible.
+      .lam_txt(lz, cifras[k], seg[[k]][1], y + (g - hv) / 2, seg[[k]][2], hv, size, "#FFFFFF", bold = TRUE,
                align = "center", nombre = "barra:cifra")
     } else {
       # Segmento más angosto que su cifra: el porcentaje no cabe dentro, va sobre el segmento en el azul de la casa.

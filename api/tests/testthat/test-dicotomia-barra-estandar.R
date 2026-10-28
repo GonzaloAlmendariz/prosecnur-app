@@ -86,10 +86,10 @@ test_that("de punta a punta: el informe (presets) y el slot cambian la lámina; 
   expect_gte(max(.be_sz(.be_sp(base, "dicotomia:cifra"))), 24)
   expect_length(.be_sp(base, "barra:cifra"), 0L)
   slot <- render(p_dicotomica("qsn", estilo = "barra_estandar"))
-  .be_verificar_estandar(slot, c("FFFFFF", "081F5C"))   # paleta de la casa: el celeste lleva el azul (contraste), no blanco
+  .be_verificar_estandar(slot)   # G8 (Arte 2026-10-28): blanco en los dos segmentos, también sobre el celeste de la casa
   informe <- render(p_barras_agrupadas("qsn", overrides = list(orden_barras = "instrumento", invertir_barras = TRUE)),
                     presets = list(base = list(args = list(estilo_dicotomia = "barra_estandar"))))
-  .be_verificar_estandar(informe, c("FFFFFF", "081F5C"))
+  .be_verificar_estandar(informe)
   gana <- render(p_dicotomica("qsn", estilo = "partida"), presets = list(base = list(args = list(estilo_dicotomia = "barra_estandar"))))
   expect_length(.be_sp(gana, "dicotomia:cifra"), 2L)                                # el slot gana al informe
 })

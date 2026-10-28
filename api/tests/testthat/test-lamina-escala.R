@@ -33,16 +33,16 @@ test_that("once afirmaciones se parten en dos láminas de 5 y 6, como 221 y 222"
   expect_identical(unlist(lapply(partes, function(p) vapply(p, function(q) q$filas[[1]]$i, 0L))), e$orden$aplicado)
 })
 
-test_that("la batería ocupa las columnas del recetario: barra en 5.2 in de 6 in y Top Two Box en 11.4 in", {
+test_that("la batería ocupa las columnas del estándar: barra en 5.2 in de 6.3 in y Top Two Box en 11.25 in (G13)", {
   e <- .espec_bateria(5)
   o <- .lam_laminas_escala(.doc_vacio(), e, "Competencias", ante = "Perfil de egreso", base = "Base: 51 docentes", folio = 221)
   expect_identical(o$partes, 1L)
   seg <- .formas(o$doc, "segmento")
   inicio <- tapply(seg$x, round(seg$y, 3), min); fin <- tapply(seg$x + seg$w, round(seg$y, 3), max)
   expect_true(all(abs(inicio - 5.2) < 0.01))
-  expect_true(all(abs(fin - 11.2) < 0.01))
+  expect_true(all(abs(fin - 11.5) < 0.01))   # G13 (Gabriela, 2026-10-28): «más largas las barras»
   box <- .formas(o$doc, "box:cifra")
-  expect_true(all(abs(box$x - 11.4) < 0.01))
+  expect_true(all(abs(box$x - 11.25) < 0.01))   # G13: «el top two box más pegado a la barra»
   expect_identical(box$texto, unname(e$box$cifras[e$orden$aplicado]))
   # Una batería de un solo público va sin filetes entre premisas (Gonzalo, 2026-10-14: «en el caso que todas las
   # barras sean de un público es mejor no agregar líneas grises dividiéndolas»); con actores sí los lleva.
@@ -68,7 +68,7 @@ test_that("una afirmación con un público encabeza la lámina y la barra ocupa 
   seg <- .formas(o$doc, "segmento")
   L <- .std_geom("likert")
   expect_lt(abs(min(seg$x) - (L$x_premisa + 1.75)), 0.01)
-  expect_lt(abs(max(seg$x + seg$w) - (L$x_top_two_box - 0.25)), 0.01)
+  expect_lt(abs(max(seg$x + seg$w) - (L$x_top_two_box - 0.1)), 0.01)   # G13: la columna se acercó; la barra no se acorta
   expect_identical(.formas(o$doc, "pregunta")$texto, "Existen mecanismos periódicos")
   expect_identical(.formas(o$doc, "respuestas")$texto, "172 respuestas")
 })
@@ -137,7 +137,7 @@ test_that("con fila Total y Bottom Two Box las filas van bajo la pregunta, la To
   actores <- .formas(o$doc, "actor")
   expect_identical(actores$texto[order(actores$y)], c("Total", "Docentes", "Estudiantes"))
   expect_equal(nrow(.formas(o$doc, "filete:total")), 1L)
-  expect_identical(.formas(o$doc, "box2:rotulo")$texto, "Bottom Two Box")
+  expect_identical(.formas(o$doc, "box2:rotulo")$texto, "BOTTOM TWO BOX")   # G20: el rótulo de la lámina va en mayúsculas
   b2 <- .formas(o$doc, "box2:cifra"); b2 <- b2$texto[order(b2$y)]
   expect_identical(b2, unname(e$box2$cifras[e$orden$aplicado]))
   expect_identical(.formas(o$doc, "pregunta")$texto, "La Unidad cuenta con servicios de tutoría académica")

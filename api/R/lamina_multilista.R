@@ -134,7 +134,7 @@
 .lam_multilista_peq <- function(it) {
   L <- .std_geom("likert")
   ex <- .std_enunciado_extra_in()   # N10: el enunciado ancho le quita su ancho a la barra
-  WB <- (if (!is.null(it$espec$box$unidades)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3) - ex
+  WB <- (if (!is.null(it$espec$box$unidades) || isTRUE(it$espec$ancho_como_escala)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3) - ex
   any(vapply(it$premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(it$espec, fl$i), WB), TRUE)), TRUE))
 }
 
@@ -251,6 +251,7 @@
 #' @keywords internal
 .lam_multilista_bloques <- function(lz, items, compartida) {
   g_ <- .std_geom; L <- g_("likert")
+  items <- .lam_multilista_igualar_ancho(items)   # G17: con una escala con Top Two Box, la Sí/No mide lo que ella
   disp <- .lam_multilista_disponible(compartida)
   nb <- .lam_multilista_filas(items)
   centro_barras <- NULL
@@ -281,10 +282,14 @@
       .lam_txt(lz, it$subtitulo, g_("margen_izq"), y, w, hs, .std_pt("leyenda"), .std_color("texto_suave"), nombre = "bloque:subtitulo")
       y <- y + hs
     }
-    y <- y + (if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
+    # G19 (Gabriela, 2026-10-28: «a la altura del logo»): el primer bloque sin título arranca como la escala simple, con su
+    # rótulo Top Two Box 0,45 in sobre la franja (1,30 in, bajo el logo); el aire de la p144 es para caber bajo un título.
+    arriba <- k == 1L && is.null(it$titulo) && is.null(it$subtitulo) && !is.null(it$espec$box$unidades)
+    y <- y + (if (arriba) .LAM_MULTILISTA_AIRE else if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor,
-                              rotulo_sobre = .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()))
+                              rotulo_sobre = if (arriba) 0.45 else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
+                              extra_alto = if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0)   # G11: lo que soltó arriba va entre temas
     centro_barras <- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
     y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }

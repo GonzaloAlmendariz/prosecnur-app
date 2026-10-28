@@ -39,7 +39,8 @@
 #' @keywords internal
 .lam_escala_seg <- function(espec, i) {
   data.frame(ancho = as.numeric(espec$anchos[i, ]), cifra = as.character(espec$cifras[i, ]),
-             color = espec$categorias$color, dibujar = as.logical(espec$dibujar[i, ]), stringsAsFactors = FALSE)
+             color = espec$categorias$color, dibujar = as.logical(espec$dibujar[i, ]), blanca = .lam_escala_sino_blanca(espec),
+             stringsAsFactors = FALSE)   # G8: la Sí/No lleva sus cifras en blanco (lamina_sino_escala.R)
 }
 
 # ---- barra apilada y leyenda (recetario.R:143-180) ---------------------------
@@ -57,7 +58,7 @@
     if (ws > 0 && ws >= .lam_ancho_txt(seg$cifra[k], .std_pt("cifra"), TRUE) + 0.12) {
       wl <- max(ws, 0.7)
       .lam_txt(lz, seg$cifra[k], xx + ws / 2 - wl / 2, y + (h - 0.3) / 2, wl, 0.3, .std_pt("cifra"),
-               .lam_texto_sobre(seg$color[k]), bold = TRUE, align = "center", nombre = "cifra")
+               .lam_cifra_color_seg(seg, k), bold = TRUE, align = "center", nombre = "cifra")
     } else if (ws > 0) {
       peq[[length(peq) + 1L]] <- list(c = xx + ws / 2, v = seg$cifra[k])
     }
@@ -230,10 +231,12 @@
   centro <- function(dx) L$x_top_two_box + 0.75 - dx   # el centro de la columna de 1.5 in del estándar
   cols <- list()
   if (ttb) cols[[1]] <- list(caja = espec$box, color = .std_color("verde_top_two_box"), x = centro(paso) - wcol / 2,
-                             prefijo = "box", rotulo = espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+                             prefijo = "box", rotulo = .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX))
   if (btb) cols[[2]] <- list(caja = espec$box2, color = .std_color("naranja_bottom_two_box_texto"), x = centro(0) - wcol / 2,
-                             prefijo = "box2", rotulo = espec$box2$rotulo %||% "Bottom Two Box")
-  list(ancho_barra = L$ancho_barra - paso - extra, ancho_col = wcol, cols = cols)
+                             prefijo = "box2", rotulo = .lam_rotulo_box(espec$box2$rotulo %||% "Bottom Two Box"))
+  # G13: con las dos columnas la barra termina donde empieza la de la Top Two Box (la columna se acercó a la barra).
+  fin <- if (btb) min(L$x_barra + L$ancho_barra - paso, centro(paso) - wcol / 2 - 0.01) else L$x_barra + L$ancho_barra
+  list(ancho_barra = fin - L$x_barra - extra, ancho_col = wcol, cols = cols)
 }
 
 #' Dibuja un bloque de escala en el lienzo
@@ -251,11 +254,12 @@
 #'   cuenta, como siempre.
 #' @param rotulo_sobre Distancia del rótulo «Top Two Box» sobre la franja; la multilista lo acerca para caer en la
 #'   p144 del recetario. `NULL`: 0.45, la de siempre.
+#' @param extra_alto Alto que quien compone le cede al bloque para separar sus temas (multilista, G19/G11).
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
                                estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
-                               encabezar_tema = FALSE) {
+                               encabezar_tema = FALSE, extra_alto = 0) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -276,7 +280,7 @@
     alto_grupo <- ht + 1.15 + g + 1.0
     yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2)
     .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
-    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.25
+    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.1   # G13: la columna se acercó 0,15 in; la barra conserva su fin
     if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - (if (con_n) 0.18 else 0.15), 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
     if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, fl$i), g)
@@ -296,7 +300,7 @@
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   extra_gap <- rep(0, max(0L, length(premisas) - 1L))   # M1: aire extra por separación (donde una cifra chica pide más); 0 = el gap uniforme de siempre
-  WB <- if (ttb_col) cb$ancho_barra else W - MR - L$x_barra - 0.3
+  WB <- if (ttb_col || isTRUE(espec$ancho_como_escala)) cb$ancho_barra else W - MR - L$x_barra - 0.3   # G17: la Sí/No junto a una escala mide lo que ella
   altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
@@ -332,7 +336,7 @@
     peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
     if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36, .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
   }
-  y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
+  y <- y0   # G19 (Gabriela, 2026-10-28): el bloque arranca bajo el título, a la altura del logo; ya no se centra en la franja
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
   hr <- if (length(cb$cols) > 1L) 0.1 else 0
   for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
@@ -358,9 +362,16 @@
     x_bar <- L$x_premisa + w_act + 0.2
     WB <- WB + (L$x_barra - x_bar)
   }
+  # G11/G19 (lamina_escala_temas.R): filas del tema juntas, el aire que sueltan va entre temas; el bloque no crece.
+  lab_alto <- function(fl) if (!nzchar(fl$actor)) 0 else (if (con_n) 0.51 else 0.3) + 0.04 +
+    (max(1L, .lam_lineas_tinta(fl$actor, w_act, .std_pt("actor"), TRUE)) - 1L) * .std_pt("actor") * 1.2 / 72
+  ta <- .lam_escala_temas_aire(vapply(premisas, function(p) .lam_premisa_alto(p, wp), 0), vapply(premisas, function(p) length(p$filas), 0),
+                               fila, g, gap + extra_gap, lapply(premisas, function(p) vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)),
+                               piso_lab = vapply(premisas, function(p) max(vapply(p$filas, lab_alto, 0)), 0), extra = extra_alto)
+  y <- y + ta$pad; tot <- ta$alto; altos <- vapply(seq_along(premisas), function(i) max(.lam_premisa_alto(premisas[[i]], wp), length(premisas[[i]]$filas) * ta$filas[i]), 0)
   for (i in seq_along(premisas)) {
-    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_premisa_txt(p$texto, wp); hn <- .lam_premisa_alto(p, wp)
-    if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
+    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_premisa_txt(p$texto, wp); hn <- .lam_premisa_alto(p, wp); fila <- ta$filas[i]
+    if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - ta$gaps[i - 1L] / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     if (un_tema) {
       if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
         .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% 0.45), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
@@ -389,7 +400,7 @@
                                             w = wcol, prefijo = cc$prefijo)
       yf <- yf + fila
     }
-    y <- y + a + gap + (if (i <= length(extra_gap)) extra_gap[i] else 0)
+    y <- y + a + (if (i < length(premisas)) ta$gaps[i] else 0)
   }
   fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
   if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
@@ -426,7 +437,7 @@
   }
   for (k in seq_along(cols)) {
     xc <- xb + wb + 0.1 + (k - 1) * wcol
-    .lam_txt(lz, cols[[k]]$b$rotulo, xc - 0.1, yh, wcol + 0.2, 0.26, .std_pt("rotulo_top_two_box"), cols[[k]]$color,
+    .lam_txt(lz, .lam_rotulo_box(cols[[k]]$b$rotulo), xc - 0.1, yh, wcol + 0.2, 0.26, .std_pt("rotulo_top_two_box"), cols[[k]]$color,
              bold = TRUE, align = "center", nombre = if (k == 1) "box:rotulo" else "box2:rotulo")
   }
   yy <- yh + 0.3

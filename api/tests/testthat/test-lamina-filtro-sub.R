@@ -42,9 +42,11 @@ test_that("p192: filtro dicotómico arriba y la subpregunta abajo, con la base d
   skip_if_not_installed("officer")
   r <- .fsub_render(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"))
   expect_true("prosecnur:grafico:filtro_sub" %in% r$nombres)
-  expect_true("llave" %in% r$nombres)
+  expect_false("llave" %in% r$nombres)                         # G15 (Arte 2026-10-28): sin corchete con la subpregunta debajo
   n_si <- sum(r$fx$df$inter == "1")
   expect_true(any(grepl(sprintf("Sólo los %d que respondieron «Sí»", n_si), r$textos, fixed = TRUE)), info = paste(r$textos, collapse = " | "))
+  expect_true(sprintf("N = %d", n_si) %in% r$textos)          # G16: la base encima de la barra, como Contabilidad
+  expect_false("panel:base" %in% r$nombres)                    # y ya no en gris bajo la premisa
   expect_true(any(grepl("Los intercambios fortalecen mis competencias", r$textos, fixed = TRUE)))
 })
 
@@ -252,7 +254,7 @@ test_that("F5: la escala dependiente de una fila lleva su columna Top Two Box", 
   sub <- r$fx$df$util[!is.na(r$fx$df$util)]
   # La columna suma lo que se ve en la barra: los dos segmentos ya redondeados.
   esperado <- sprintf("%d%%", sum(round(100 * c(mean(sub == "3"), mean(sub == "4")))))
-  expect_true("Top Two Box" %in% r$textos, info = paste(r$textos, collapse = " | "))
+  expect_true("TOP TWO BOX" %in% r$textos, info = paste(r$textos, collapse = " | "))
   expect_true(esperado %in% r$por_nombre("box:cifra"), info = paste(r$por_nombre("box:cifra"), collapse = " | "))
 })
 

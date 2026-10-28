@@ -356,6 +356,13 @@
   list(doc = por_lamina(doc), partes = 1L)
 }
 
+#' Tamaño del rótulo («Informe consolidado») de la portada que va sobre la plantilla, cuando no cabe la del recetario
+#'
+#' G1 (Gabriela Palacios, Arte 2026-10-28: «informe consolidado en letra 20»). Lo lee la portada de plantilla de
+#' `reporte_plan_ppt.R` como último recurso: el `size_subtitulo_portada` de un perfil (ACNUR, 22) sigue ganando.
+#' @keywords internal
+.lam_portada_rotulo_plantilla_pt <- function() 20
+
 #' Variante de portada del recetario: «centrada» (23, por defecto), «izquierda» (24) o «banda» (25)
 #' @keywords internal
 .lam_portada_variante <- function(variante) {

@@ -11,26 +11,26 @@ Dónde vive: **motor** (cambio en `api/R`, vale para todo informe), **proyecto**
 
 | # | Lám. REV | Comentario (textual, resumido) | Dónde vive | Estado |
 |---|---|---|---|---|
-| G1 | 1 | «informe consolidado en letra 20» | motor (portada: rótulo bajo el título) | pendiente |
+| G1 | 1 | «informe consolidado en letra 20» | motor (portada: rótulo bajo el título) | **hecho**: el rótulo de la portada por plantilla sale a 20 pt (`.lam_portada_rotulo_plantilla_pt`); ya no hereda el 16 de las láminas de texto, el `size_subtitulo_portada` de un perfil sigue mandando |
 | G2 | 4 | «entre población y universo, solo dejar población, se ve muy repetitivo» | proyecto (ficha técnica) o motor (filas de la ficha) | pendiente |
 | G3 | 6 | agregar la lámina de redondeo y la del número de respuestas, «que se coloca arribita, al lado derecho» | plan + motor (lámina de N como en Conta) | pendiente |
 | G4 | 8, 9, 10 | «mejor colocar aquí género, en vez de sexo» | proyecto (título del gráfico) | ya sale «¿Cuál es su género?» en el mazo de hoy; «Sexo» está en las láminas de perfil rehechas a mano del `_REV` |
 | G5 | 8 | «no binario, género fluido y agénero van juntos, todo como "No binario"» | proyecto (recodificación) — decisión metodológica | pendiente |
 | G6 | 9 | «hay un número por aquí abajo, suelto» (un «2» sobre la barra de Magíster) | motor (rótulo de perfil) | no se reproduce: el perfil del docente de hoy (lám. 5) no lo trae; el `_REV` tiene las láminas de perfil rehechas a mano |
 | G7 | 10 | «dice Ciencias Contables» (Años trabajando en la Unidad de Ciencias Contables) | proyecto (título heredado de Conta) | pendiente |
-| G8 | 12 | dicotómicas: cifras a 14 pt («ya lo subí») y «todo en color blanco» | motor (cifra de la Sí/No: tamaño y color) | pendiente |
+| G8 | 12 | dicotómicas: cifras a 14 pt («ya lo subí») y «todo en color blanco» | motor (cifra de la Sí/No: tamaño y color) | **hecho**: cifras de la Sí/No en blanco a 14 pt dentro de cada segmento (la que sale fuera queda azul; SIN INF conserva su color). Revisar contraste del blanco sobre el celeste en PowerPoint |
 | G9 | 14, 39 | «muy pequeñas las barras»; «la premisa tiene tanto espacio, y las barras tan pequeñas» | motor | **hecho** `ae4552c26` (sin ensanche: 15,3 cm) |
 | G10 | 15, 34, 44, 46, 51, 52 | una lámina con una sola pregunta «¿tiene que estar sola? ¿no puede estar con el slide de arriba?»; juntar con la vecina del mismo tema | plan del proyecto Arte | decidido por Gonzalo (2026-10-28): «Las junto en el plan» — se juntan a mano en el plan; el motor no fusiona láminas |
-| G11 | 16, 48 | barras de un mismo tema más juntas y más separación entre preguntas («pareciera que todo pertenece a la misma pregunta») | motor (aire dentro del tema vs entre temas) | pendiente |
+| G11 | 16, 48 | barras de un mismo tema más juntas y más separación entre preguntas («pareciera que todo pertenece a la misma pregunta») | motor (aire dentro del tema vs entre temas) | **hecho**: aire dentro del tema 0,14 in y lo liberado va a las fronteras entre temas (`.lam_escala_temas_aire`). Lám. 13 no se junta más: todas sus filas llevan cifra chica |
 | G12 | 16 | «mucho espacio al texto, más largas las barras» | motor | **hecho** `ae4552c26` |
-| G13 | 16 | Top Two Box más pegado a la barra | motor (columna del box) | pendiente |
+| G13 | 16 | Top Two Box más pegado a la barra | motor (columna del box) | **hecho**: `ancho_barra` 6,3 y `x_top_two_box` 11,25; hueco barra–cifra 0,29 in (Conta 0,33) |
 | G14 | 20, 21 | la segunda barra más arriba y la leyenda un poco más abajo, que no se vean pegadas | motor (reparto vertical y aire de la leyenda) | pendiente |
-| G15 | 30 | «no es necesario el corchete, se ve mal» (dicotomía con dependiente) | motor (lámina dicotomía partida) | pendiente |
-| G16 | 30 | «ese n 77 ahí no se lee, mejor como estaba antes, encima de la barra» | motor (N de la base chica) | pendiente |
-| G17 | 32, 35, 41 | «las barras tienen que tener el mismo largo» (Sí/No y escala en la misma lámina; ver Contabilidad) | motor (ancho de la Sí/No compartida = el de la escala) | pendiente |
+| G15 | 30 | «no es necesario el corchete, se ve mal» (dicotomía con dependiente) | motor (lámina dicotomía partida) | **hecho**: sin llave en la disposición «abajo» |
+| G16 | 30 | «ese n 77 ahí no se lee, mejor como estaba antes, encima de la barra» | motor (N de la base chica) | **hecho**: «N = 77» en cursiva encima del extremo derecho de la barra; el pie conserva la base |
+| G17 | 32, 35, 41 | «las barras tienen que tener el mismo largo» (Sí/No y escala en la misma lámina; ver Contabilidad) | motor (ancho de la Sí/No compartida = el de la escala) | **hecho**: la Sí/No que comparte lámina con una escala con Top Two Box mide el ancho de la escala (láms. 28, 31, 37) |
 | G18 | 42 | competencias de salida: «así como la he puesto aquí se ve mejor, por favor editar la de abajo» | motor (radar/lollipop con tabla) — ver su edición | pendiente |
-| G19 | 49, 59 | «aquí está muy abajo»; «mucho hueco arriba, que los gráficos estén centrados, a la altura del logo» | motor (centrado vertical del bloque) | pendiente |
-| G20 | 59 | «el top two box en mayúscula, como siempre lo hemos colocado» | motor (rótulo «TOP TWO BOX», como Conta) | pendiente |
+| G19 | 49, 59 | «aquí está muy abajo»; «mucho hueco arriba, que los gráficos estén centrados, a la altura del logo» | motor (centrado vertical del bloque) | **hecho** (lectura vertical): el bloque arranca arriba, rótulo del box a 1,30 in como Conta. Por confirmar con Gabriela si «a la altura del logo» era el borde derecho |
+| G20 | 59 | «el top two box en mayúscula, como siempre lo hemos colocado» | motor (rótulo «TOP TWO BOX», como Conta) | **hecho**: «TOP TWO BOX» / «BOTTOM TWO BOX» en mayúsculas en la lámina (escala, multilista y filtro); la espec y el Word conservan «Top Two Box» |
 
 ## Notas
 

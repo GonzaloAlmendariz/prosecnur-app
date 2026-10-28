@@ -7040,7 +7040,7 @@ reporte_ppt_plan <- function(
             sub,
             contract$slots$subtitle,
             color = base_args$color_subtitulo_portada %||% base_args$color_subtitulo %||% .std_color("azul"),
-            font_size = base_args$size_subtitulo_portada %||% base_args$size_subtitulo_slide %||% 16,
+            font_size = base_args$size_subtitulo_portada %||% .lam_portada_rotulo_plantilla_pt(),   # G1: 20 pt (size_subtitulo_slide es de las láminas de texto)
             font_family = base_args$font_family_subtitulo_portada %||% base_args$font_family_portada %||%
               base_args$font_family_ppt %||% base_args$font_family,
             bold = TRUE,

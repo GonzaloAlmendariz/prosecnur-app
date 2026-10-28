@@ -87,7 +87,7 @@ test_that("la multilista sale nativa, con los títulos de bloque y sin guías de
   expect_false(grepl(sub("#", "", .GUIA_COL), xml, ignore.case = TRUE))
   expect_false(grepl("FF00FF", xml, ignore.case = TRUE))
   # Las filas en el orden del plan; una sola leyenda (los dos bloques usan la misma escala); Top Two Box por bloque.
-  expect_equal(sum(textos == "Top Two Box"), 2L)
+  expect_equal(sum(textos == "TOP TWO BOX"), 2L)   # G20: mayúsculas en la lámina
   expect_equal(sum(textos == "Totalmente de acuerdo"), 1L)
 })
 
