@@ -1113,6 +1113,16 @@ export function MonitoreoOutputsWorkbench({
     ...(config ? { config } : {}),
   });
 
+  // El mismo orden que `canPublishSheets`: se nombra la PRIMERA condición que
+  // falta, no una lista genérica que mezcle públicos.
+  const motivoSinPublicar = () => {
+    if (!hasSnapshot) return "Sincroniza un corte antes de publicar.";
+    if (sheetsClienteBloqueado) return "La salida a cliente todavía no está habilitada: revisa la preparación de Salidas.";
+    if (!activeTarget.trim()) return "Configura el spreadsheet destino.";
+    if (activeAudience === "internal" && !internalConfirmed) return "Confirma la salida interna para habilitar la publicación.";
+    return "Hay otra operación de Salidas en curso; espera a que termine y vuelve a revisar.";
+  };
+
   const revisarPanel = usePanelDireccionable(PANEL_REVISAR_PUBLICACION);
   const [ensayo, setEnsayo] = useState<EstadoEnsayo | null>(null);
   const revisarSheets = async () => {
@@ -1130,7 +1140,7 @@ export function MonitoreoOutputsWorkbench({
     // Abierto por dirección sin poder publicar: dice por qué, no gira para siempre.
     if (revisarPanel.abierto && ensayo === null) {
       if (canPublishSheets) void revisarSheets();
-      else setEnsayo({ kind: "error", message: "Todavía no se puede publicar: sincroniza un corte, configura el spreadsheet destino y, en la salida interna, confírmala." });
+      else setEnsayo({ kind: "bloqueado", message: motivoSinPublicar() });
     }
     if (!revisarPanel.abierto && ensayo !== null) setEnsayo(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps

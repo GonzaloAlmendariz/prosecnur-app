@@ -21,7 +21,9 @@ import "./ensayoPublicacion.css";
 export type EstadoEnsayo =
   | { kind: "cargando" }
   | { kind: "listo"; ensayo: EnsayoPublicacion }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  /** Falta algo que el ensayo no puede resolver (corte, destino, confirmación): sin reintento. */
+  | { kind: "bloqueado"; message: string };
 
 type Props = {
   destino: string;
@@ -144,6 +146,11 @@ export function EnsayoPublicacionDialog({ destino, estado, aplicando, onAplicar,
         <div className="mon-ensayo-estado" role="status">
           <Loader2 size={18} className="pulso-spin" />
           <span>Leyendo el libro destino para compararlo…</span>
+        </div>
+      ) : estado.kind === "bloqueado" ? (
+        <div className="mon-ensayo-estado is-bloqueado" role="status">
+          <AlertTriangle size={18} />
+          <span>{estado.message}</span>
         </div>
       ) : estado.kind === "error" ? (
         <div className="mon-ensayo-estado is-error" role="alert">

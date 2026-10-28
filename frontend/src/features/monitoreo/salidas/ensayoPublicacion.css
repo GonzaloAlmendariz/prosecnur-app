@@ -16,6 +16,13 @@
   color: var(--pulso-text-muted);
 }
 
+.mon-ensayo-estado.is-bloqueado {
+  border-style: solid;
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
 .mon-ensayo-estado.is-error {
   border-style: solid;
   border-color: var(--pulso-danger-border);
