@@ -293,6 +293,7 @@ import type {
 } from "./telefonicoBase";
 import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, caseDuplicateLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
 import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, caseIsAuditable, casePrimaryEvidence, caseSecondaryEvidence, casePhoneAction, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
+import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
@@ -10366,10 +10367,6 @@ function normalizeCaseSearch(value: unknown) {
     .trim();
 }
 
-function caseIdentity(item: MonitoreoInternalQueryCase) {
-  return item.response_id || item.case_key || `${item.actor}-${item.response_row}-${item.person_label}`;
-}
-
 function caseMatchesFilters(item: MonitoreoInternalQueryCase, filters: AcreditacionCaseFilters) {
   return filterInternalQueryCases([item], {
     search: filters.search,
@@ -10396,36 +10393,6 @@ function consultaFiltersForTab(filters: AcreditacionCaseFilters, tab: Acreditaci
   return filters;
 }
 
-function countCaseOptions(
-  cases: MonitoreoInternalQueryCase[],
-  valueForCase: (item: MonitoreoInternalQueryCase) => string,
-  labelForValue: (value: string) => string = (value) => value,
-  order: string[] = [],
-) {
-  const counts = new Map<string, number>();
-  cases.forEach((item) => {
-    const value = valueForCase(item);
-    if (!value) return;
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  });
-  return Array.from(counts.entries())
-    .map(([value, count]) => ({ value, label: labelForValue(value), count }))
-    .sort((a, b) => {
-      const aIndex = order.indexOf(a.value);
-      const bIndex = order.indexOf(b.value);
-      if (aIndex !== -1 || bIndex !== -1) return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-      return a.label.localeCompare(b.label, "es");
-    });
-}
-
-function caseChannelValue(item: MonitoreoInternalQueryCase) {
-  return item.channel || "";
-}
-
-function caseSourceValue(item: MonitoreoInternalQueryCase) {
-  return item.source_label || item.source_id || item.base_source || "";
-}
-
 function telefonicoCaseActorValue(item: MonitoreoInternalQueryCase) {
   const value = String(item.actor ?? "").trim();
   if (!value) return "";
@@ -10446,18 +10413,6 @@ function telefonicoBaseLocationLabel(value: string) {
   if (value === "sin_llave") return "Sin CodPulso";
   if (value === "sin_cruce" || value === "no_cruzo") return "Fuera de base";
   return internalCaseCrossingLabel(value);
-}
-
-function caseCollectorValue(item: MonitoreoInternalQueryCase) {
-  return internalQueryCollectorValue(item) || item.collector_id || "";
-}
-
-function caseToneClass(item: MonitoreoInternalQueryCase) {
-  const response = internalCaseResponseStateValue(item);
-  if (response === "complete") return "is-effective";
-  if (response === "partial") return "is-partial";
-  if (response === "refusal") return "is-refusal";
-  return "is-muted";
 }
 
 function caseHasPlatformResponse(item: MonitoreoInternalQueryCase) {
@@ -10885,15 +10840,6 @@ export function caseKeyTraceSummary(item: MonitoreoInternalQueryCase) {
 
 type AcreditacionSubsanacionGuideTone = "ready" | "warning" | "blocked" | "done";
 
-function assistedReviewCandidateCountForCase(item: MonitoreoInternalQueryCase) {
-  const seen = new Set<string>();
-  [...(item.assisted_review?.candidates ?? []), ...(item.assisted_review?.assignment_candidates ?? [])].forEach((candidate) => {
-    const id = cleanCaseKeyText(candidate.candidate_id || candidate.case_key || candidate.base_record || candidate.person_label);
-    if (id) seen.add(id);
-  });
-  return seen.size;
-}
-
 export function acreditacionSubsanacionCaseGuide(item: MonitoreoInternalQueryCase | null) {
   if (!item) {
     return {
@@ -10968,16 +10914,6 @@ export function acreditacionSubsanacionCaseGuide(item: MonitoreoInternalQueryCas
     primaryAction: "Revisar sin incluir",
     steps: ["Leer estado", "Revisar evidencia", "Mantener fuera del avance"],
   };
-}
-
-function caseNeedsReconciliationReview(item: MonitoreoInternalQueryCase) {
-  return (
-    caseCountsInAdvance(item) !== true ||
-    Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 ||
-    internalCaseResponseStateValue(item) === "partial" ||
-    Boolean(casePhoneAction(item)) ||
-    Boolean(String(item.issue_type || "").trim())
-  );
 }
 
 function assistedReviewFlagTruthy(value: unknown) {
@@ -14353,14 +14289,6 @@ function phoneKoboDailyPointsFromRows(rows: Array<Record<string, unknown>>): Acr
   });
 }
 
-function acreditacionSurveyStateTone(state: string): "completed" | "partial" | "refusals" | "pending" {
-  const key = normalizeSourceMatch(state);
-  if (key.includes("completa") || key.includes("efectiva") || key.includes("valida")) return "completed";
-  if (key.includes("parcial")) return "partial";
-  if (key.includes("rechazo") || key.includes("rechaz")) return "refusals";
-  return "pending";
-}
-
 function uniqueNormalizedKeys(values: unknown[]) {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -14770,13 +14698,6 @@ function buildAcreditacionDailyCollectorSeriesFromRows(
     };
   }).filter((item) => item.total > 0 || item.completed > 0)
     .sort((a, b) => b.total - a.total || (a.collector ?? "").localeCompare(b.collector ?? "", "es"));
-}
-
-function caseDailyTone(item: MonitoreoInternalQueryCase): ReturnType<typeof acreditacionSurveyStateTone> {
-  if (item.advancement === "effective") return "completed";
-  if (item.advancement === "partial") return "partial";
-  if (item.advancement === "refusal") return "refusals";
-  return acreditacionSurveyStateTone(item.platform_state);
 }
 
 function buildAcreditacionDailyCollectorSeriesFromInternalQueries(
