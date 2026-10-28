@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { conModificador } from "../../../lib/teclado";
 import type { CanvasArista, CanvasNodo } from "../../../api/bitacora";
 import {
   ajustarAContenido,
@@ -263,7 +264,8 @@ export function LienzoViewport({
     if (event.button !== 0) return;
     event.stopPropagation();
     viewportRef.current?.focus();
-    const siguiente = alternarSeleccion(seleccion, id, event.shiftKey || event.metaKey);
+    // Mayús o el modificador del sistema suman a la selección: ⌘ en macOS, Ctrl en Windows.
+    const siguiente = alternarSeleccion(seleccion, id, event.shiftKey || conModificador(event));
     seleccionar(siguiente);
     enfocar(id);
 

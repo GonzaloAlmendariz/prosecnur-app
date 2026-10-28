@@ -15,6 +15,7 @@
 //   cuerpo del diálogo es el único dueño y la vista toma su alto natural.
 // - C3/C5: sin ítems en el informe, el informe lo dice (nada se descartó).
 
+import { nombreDeAtajo } from "./atajosDelEditor";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useId, useLayoutEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
@@ -232,7 +233,7 @@ export function PieDeImportacion({
       {problemaAsunto ? <p id={`${ids}-asunto`} className="rec-camp-nueva-problema" role="status">{problemaAsunto}</p> : null}
       {error ? <p className="rec-camp-mensaje is-error" role="alert">{error}</p> : null}
       {activa && conCambios ? (
-        <p className="rec-camp-nueva-nota">«{activa.name}» tiene cambios sin guardar: reemplazar su plantilla los deja en el historial (⌘Z).</p>
+        <p className="rec-camp-nueva-nota">«{activa.name}» tiene cambios sin guardar: reemplazar su plantilla los deja en el historial ({nombreDeAtajo("Z")}).</p>
       ) : null}
       {activa && activa.platform !== plataforma ? (
         <p className="rec-camp-nueva-nota">

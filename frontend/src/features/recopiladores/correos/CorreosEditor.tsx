@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { nombreDeAtajo } from "./atajosDelEditor";
 import { tieneFoto, type MailBlock, type MailGreetingBlock, type MailPlatform, type MailPreset, type MailTemplate } from "../../../api/materialMail";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
@@ -463,7 +464,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
           st.reemplazarPorImportada(t, importId);
           const sinAlt = cabeceraSinAlt(t);
           st.setPedirAlt(sinAlt);
-          st.setAviso({ tono: "info", texto: "La plantilla se reemplazó por el correo importado. Guarda para conservarla; ⌘Z la deshace." });
+          st.setAviso({ tono: "info", texto: `La plantilla se reemplazó por el correo importado. Guarda para conservarla; ${nombreDeAtajo("Z")} la deshace.` });
           // Una cabecera sin descripción se pide en el acto, en Identidad.
           ir({ panel: sinAlt ? PANEL_CORREO_IDENTIDAD.id : null });
         }}
