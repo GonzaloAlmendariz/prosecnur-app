@@ -170,11 +170,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El marco es el que desplaza: encaja por fila con un margen igual al alto de
+ * la cabecera fija, 36 px (medido en el bundle: la fija la regla de tabla del
+ * kit). Sin él la cabecera tapaba 21 px de la fila al desplazar (28/10). */
 .mon-ban-tabla-marco {
+  --mon-ban-cabecera: 36px;
   flex: 1 1 auto;
   min-height: 0;
   margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
   overflow: auto;
+  scroll-padding-top: var(--mon-ban-cabecera);
+  scroll-snap-type: y proximity;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
@@ -438,4 +444,8 @@
   .mon-ban-tabla.is-casos col.is-distrito { width: 150px; }
   .mon-ban-tabla.is-casos col.is-motivo { width: 170px; }
   .mon-ban-tabla.is-casos col.is-cifra { width: 84px; }
+}
+
+.mon-ban-tabla > tbody > tr {
+  scroll-snap-align: start;
 }
