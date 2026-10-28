@@ -1,0 +1,544 @@
+/* Avance › Resumen de Cursos-horario (aulas.md, ficha A1). Arriba, columna
+ * izquierda de 400 px con la cifra y las partes del invariante, y el gráfico a
+ * la derecha estirado al alto de esa columna; abajo, las tarjetas por grupo del
+ * eje. Altura intrínseca: el scroll es de `.mon-profile-content`, el dueño
+ * declarado del perfil. Escala 4/8/12/16. */
+
+/* La vista del perfil es una rejilla de una fila `minmax(0, 1fr)` que estira la
+ * tabla de cada pestaña; esta pestaña mide por contenido, igual que las
+ * secciones apiladas, y deja el desplazamiento al contenedor. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .aulas-res) {
+  flex: 0 0 auto;
+  grid-template-rows: auto;
+}
+
+.aulas-res {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-res-arriba {
+  display: grid;
+  grid-template-columns: 400px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.aulas-res-izquierda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.aulas-res-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.aulas-res-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-res-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-res-sub {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-res-rotulo,
+.aulas-res-secundarios dt {
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.aulas-res-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-res-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-res-nota svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.aulas-res-nota.is-aviso {
+  color: var(--pulso-warn-fg);
+}
+
+/* Cifra protagonista. */
+.aulas-res-cifra-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.aulas-res-anillo {
+  flex: 0 0 112px;
+  width: 112px;
+  height: 112px;
+}
+
+.aulas-res-anillo circle {
+  fill: none;
+  stroke-width: 12;
+}
+
+.aulas-res-anillo-fondo {
+  stroke: var(--pulso-surface-3);
+}
+
+.aulas-res-anillo-valor {
+  stroke: var(--pulso-brand-navy);
+  stroke-linecap: round;
+}
+
+.aulas-res-anillo text {
+  fill: var(--pulso-text);
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.aulas-res-cifra-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.aulas-res-cifra-numero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.aulas-res-cifra-numero b {
+  font-size: 40px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.aulas-res-cifra-numero span {
+  color: var(--pulso-text-faint);
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-res-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-res-chip[data-tono="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.aulas-res-chip[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-res-secundarios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.aulas-res-secundarios div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aulas-res-secundarios dd {
+  margin: 0;
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* De las efectivas a la cuota. */
+.aulas-res-lista {
+  display: grid;
+  margin: 0;
+}
+
+.aulas-res-lista div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: 6px 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-res-lista div:first-child {
+  border-top: 0;
+}
+
+.aulas-res-lista dt {
+  min-width: 0;
+}
+
+.aulas-res-lista dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.aulas-res-lista .is-principal dt {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.aulas-res-lista .is-cero dd {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Efectivas acumuladas. */
+.aulas-res-leyenda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-res-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.aulas-res-leyenda .is-acumulado::before {
+  height: 2px;
+  vertical-align: 3px;
+  background: var(--pulso-brand-navy);
+}
+
+.aulas-res-leyenda .is-dia::before {
+  background: var(--pulso-publico-6);
+}
+
+.aulas-res-leyenda .is-meta::before {
+  height: 0;
+  border-top: 2px dashed var(--pulso-module-monitoring);
+  vertical-align: 3px;
+}
+
+.aulas-res-ritmo {
+  min-height: 0;
+}
+
+.aulas-res-grafico {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 220px;
+}
+
+.aulas-res-grafico--vacio {
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+}
+
+.aulas-res-lienzo {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 180px;
+  padding: 10px 0 2px;
+}
+
+.aulas-res-eje-y {
+  position: relative;
+}
+
+.aulas-res-eje-y span {
+  position: absolute;
+  right: 8px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.aulas-res-trazado {
+  position: relative;
+  min-width: 0;
+}
+
+.aulas-res-trazado svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.aulas-res-guia {
+  stroke: var(--pulso-surface-3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aulas-res-barra {
+  fill: var(--pulso-publico-6);
+  opacity: 0.75;
+}
+
+.aulas-res-linea {
+  fill: none;
+  stroke: var(--pulso-brand-navy);
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.aulas-res-meta {
+  stroke: var(--pulso-module-monitoring);
+  stroke-dasharray: 6 5;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.aulas-res-meta-rotulo {
+  position: absolute;
+  right: 8px;
+  padding: 0 4px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-monitoring);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+  transform: translateY(calc(-100% - 2px));
+}
+
+.aulas-res-eje-x {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 44px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Por facultad o por nivel. */
+.aulas-res-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-res-tarjetas li {
+  display: flex;
+  min-width: 0;
+}
+
+.aulas-res-tarjeta {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aulas-res-tarjeta:hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+}
+
+.aulas-res-tarjeta[aria-pressed="true"] {
+  border-color: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.aulas-res-tarjeta:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.aulas-res-tarjeta-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-res-tarjeta-cabeza b:first-child {
+  min-width: 0;
+}
+
+.aulas-res-tarjeta-cabeza .aulas-res-num {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.aulas-res-tarjeta-lectura {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-res-tarjeta-barra {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--pulso-surface-3);
+}
+
+.aulas-res-tarjeta-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--pulso-text-faint);
+}
+
+.aulas-res-tarjeta[data-tono="ok"] .aulas-res-tarjeta-barra i {
+  background: var(--pulso-success-fg);
+}
+
+.aulas-res-tarjeta[data-tono="aviso"] .aulas-res-tarjeta-barra i {
+  background: var(--pulso-warn-accent);
+}
+
+/* S1: silueta de la misma pestaña mientras se prepara el corte. */
+.aulas-res-silueta-bloque {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.aulas-res-silueta-bloque.is-cifra {
+  justify-content: center;
+  min-height: 200px;
+}
+
+.aulas-res-silueta-bloque.is-partes {
+  min-height: 260px;
+}
+
+.aulas-res-silueta-bloque.is-grafico {
+  min-height: 472px;
+}
+
+.aulas-res-silueta-bloque.is-grupos {
+  min-height: 220px;
+}
+
+.aulas-res-preparando {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+/* Compacto: la columna izquierda deja de ser fija y el gráfico baja. */
+@media (max-width: 1180px) {
+  .aulas-res-arriba {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aulas-res-izquierda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aulas-res-silueta-bloque.is-grafico {
+    min-height: 260px;
+  }
+}
