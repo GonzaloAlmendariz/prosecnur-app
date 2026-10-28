@@ -9,9 +9,10 @@
  * principal y las demás cuelgan de ella como sub-vista con `panel`, igual que
  * en Territorial y Telefónico.
  *
- * Este lote es sólo navegación: ninguna pestaña tiene todavía contenido
- * propio, así que todas montan la vista heredada. Cuando una lo tenga, la
- * entrada gana `propia` como en `direccionTerritorial.ts`.
+ * Las pestañas que ya tienen contenido propio llevan `propia`, como en
+ * `direccionTerritorial.ts`: la página monta su componente nuevo y `interna`
+ * sigue decidiendo qué corte del motor se pide. Las demás montan la vista
+ * heredada.
  *
  * Las direcciones de la arquitectura anterior (Fuentes, Agenda, Validación,
  * Consultas y Avance) se LEEN como alias y nunca se escriben: quien navega
@@ -52,6 +53,8 @@ type Entrada = {
    * enlace interno la pide por su clave vieja. `false` la saca de ese regreso.
    */
   regreso?: false;
+  /** La pestaña tiene contenido propio (revamp, lote 2 en adelante). */
+  propia?: boolean;
 };
 
 function entrada(
@@ -109,7 +112,9 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "brechas", "refuerzos", v("consultas", "refuerzos"), { vista: "Refuerzos" }),
   entrada("control", "alumnos", null, v("calidad", "alumnos")),
   // Avance.
-  entrada("avance", "resumen", null, v("avance", "resumen")),
+  // A1 Resumen: contenido propio (`avance/ResumenAulas.tsx`). Sigue pidiendo
+  // el corte de Avance; Cursos-horario conserva la vista heredada de Resumen.
+  entrada("avance", "resumen", null, v("avance", "resumen"), { propia: true }),
   entrada("avance", "porfacultad", null, v("avance", "cuotas")),
   // A3 Cursos-horario: los paneles de grano aula de Resumen y, de Efectividad,
   // «Cada curso-horario contra su propio margen».
@@ -281,6 +286,14 @@ export function vistasMontadas(): VistaInternaAulas[] {
 /** Todos los alias declarados, para los contratos. */
 export function aliasDeLectura(): Record<string, DireccionAulas> {
   return { ...ALIAS };
+}
+
+/**
+ * ¿La dirección ya tiene su contenido propio? Se mira la sub-vista exacta, como
+ * en Territorial.
+ */
+export function esPestanaPropia(direccion: DireccionAulas): boolean {
+  return Boolean((entradaDe(direccion) ?? entradaDe(d(direccion.seccion, direccion.pestana)))?.propia);
 }
 
 /** ¿La pestaña tiene sub-vistas que elegir? */

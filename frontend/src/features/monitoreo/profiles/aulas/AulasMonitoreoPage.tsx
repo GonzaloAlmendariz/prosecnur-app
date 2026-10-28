@@ -90,7 +90,8 @@ import {
   modoIdDesdeFamily, AULAS_SECCIONES_PUBLICAS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
 import { useDireccionAulas } from "./navegacion/useDireccionAulas";
-import { FICHA_DE_AULA, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
+import { esPestanaPropia, FICHA_DE_AULA, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
+import { ResumenAulas } from "./avance/ResumenAulas";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
@@ -1957,6 +1958,23 @@ export default function AulasMonitoreoPage() {
     }
   }, [activeSources, state?.config, esperarSyncDeFuentes]);
 
+  const vacioSinTablero = (
+    <VacioSinTablero
+      planImportado={imported}
+      fuentesActivas={activeSources}
+      fuentesDeclaradas={sourceTotal}
+      onIrAFuentes={() => irAVista("fuentes")}
+      lecturaFallida={!state && Boolean(error)}
+      onReintentar={() => { void loadView(seccionActiva, true); }}
+    />
+  );
+  // Las pestañas del revamp con contenido propio (lote 2): Avance › Resumen.
+  // Pinta también su silueta mientras carga (S1).
+  const propia = esPestanaPropia(direccion);
+  const resumenPropio = propia
+    ? <ResumenAulas dashboard={dashboard} cargando={loading} vacioSinTablero={vacioSinTablero} />
+    : null;
+
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
       {/* **La marca dice «false» mientras la vista carga.**
@@ -2132,14 +2150,14 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand
+          {propia ? null : <AulasKpiBand
             dashboard={dashboard}
             seccion={seccionActiva}
             pestana={pestanaActiva}
             facultadEnFoco={facultadDeLaCabecera}
             cargando={loading}
             onIr={(clave) => elegirPestana(seccionActiva, clave)}
-          />
+          />}
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"
@@ -2185,8 +2203,8 @@ export default function AulasMonitoreoPage() {
               </div>
             ) : null}
             {loading ? (
-              <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
-            ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
+              resumenPropio ?? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
+            ) : resumenPropio ? resumenPropio : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
               // Salidas se muestra aunque no haya dashboard: el workbench declara
               // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
               // pestaña muda.
@@ -2239,16 +2257,7 @@ export default function AulasMonitoreoPage() {
                   traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
                 />
               ),
-              vacioSinTablero: (
-                <VacioSinTablero
-                  planImportado={imported}
-                  fuentesActivas={activeSources}
-                  fuentesDeclaradas={sourceTotal}
-                  onIrAFuentes={() => irAVista("fuentes")}
-                  lecturaFallida={!state && Boolean(error)}
-                  onReintentar={() => { void loadView(seccionActiva, true); }}
-                />
-              ),
+              vacioSinTablero,
               registro: (
                 <RegistroDeCampo
                   // Del TABLERO, no de la config: el plan dejo de viajar ahi y
