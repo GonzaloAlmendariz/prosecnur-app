@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import {
+  MODULOS_NO_REFERENCIABLES,
   ancestrosDe,
   aplanarArbol,
   arbolDeLaApp,
@@ -28,7 +29,8 @@ describe("arbolDeLaApp", () => {
   });
 
   it("no pierde las pestañas", () => {
-    const declaradas = PROSECNUR_MODULES.flatMap((m) => [
+    // Bitácora no se referencia a sí misma (MODULOS_NO_REFERENCIABLES): sus pestañas no entran al árbol.
+    const declaradas = PROSECNUR_MODULES.filter((m) => !MODULOS_NO_REFERENCIABLES.includes(m.slug)).flatMap((m) => [
       ...m.sections.flatMap((s) => s.tabs ?? []),
       ...(m.modos ?? []).flatMap((modo) => modo.sections.flatMap((s) => s.tabs ?? [])),
     ]).length;

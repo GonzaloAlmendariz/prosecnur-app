@@ -273,6 +273,12 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: CalendarDays,
         to: "/bitacora?seccion=calendario",
         layoutPolicy: "viewport",
+        // L19: mes y semana eran un useState del calendario; ahora son su dirección. Las dibuja el
+        // selector de la propia vista (no hay rail en Bitácora), así que no se duplica navegación.
+        tabs: [
+          { id: "mes", label: "Mes", icon: CalendarDays, to: "/bitacora?seccion=calendario&pestana=mes", layoutPolicy: "viewport" },
+          { id: "semana", label: "Semana", icon: CalendarDays, to: "/bitacora?seccion=calendario&pestana=semana", layoutPolicy: "viewport" },
+        ],
       },
       {
         id: "canvas",

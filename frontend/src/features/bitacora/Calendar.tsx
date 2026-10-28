@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -25,6 +26,7 @@ import {
   type PlanTrabajoTask,
   type PlanTrabajoTaskKind,
 } from "../../api/client";
+import { useSeccion } from "../../lib/navegacion/useDireccion";
 import { Alert } from "../../components/Alert";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import {
@@ -148,7 +150,14 @@ export function Calendar({
   const tasks = state.plan.tasks ?? [];
   const { events, undated } = useMemo(() => buildEvents(tasks), [tasks]);
 
-  const [view, setView] = useState<CalendarView>("month");
+  // L19: la vista vive en la dirección (`?pestana=mes|semana`), no en un useState: se puede enlazar y el QA la alcanza.
+  const navegacion = useSeccion("diseno-estudio");
+  const view: CalendarView = navegacion.pestana === "semana" ? "week" : "month";
+  const irANavegacion = navegacion.irA;
+  const setView = useCallback(
+    (next: CalendarView) => irANavegacion("pestana", next === "week" ? "semana" : "mes", { replace: true }),
+    [irANavegacion],
+  );
   const [cursor, setCursor] = useState<Date>(() => {
     if (events.length) {
       const earliest = events.reduce((min, ev) => (ev.start < min ? ev.start : min), events[0].start);
