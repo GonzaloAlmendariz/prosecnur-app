@@ -85,6 +85,9 @@ import type {
   HojasRutaStage,
 } from "./store";
 import "./hojasRuta.css";
+import "./avisosEnFila.css";
+import { SeleccionMesa } from "./seleccion/SeleccionMesa";
+import { chipsDeSeleccion } from "./seleccion/chipsDeSeleccion";
 import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
 import { describirMarcoCartografia } from "./marcoCartografia";
 
@@ -8495,254 +8498,22 @@ export default function HojasRutaPage() {
           )}
 
           {currentStage === "seleccion" && (
-            <div className="hojas-ruta-stage-shell is-delivery-stage">
-              <div className="hojas-ruta-delivery-layout">
-                <div className="hojas-ruta-delivery-main">
-                  <Panel title="Revisión final" eyebrow="Antes de generar">
-                    {!quota ? (
-                      <EmptyState icon={<BarChart3 size={18} />} title="Sin cuotas calculadas" hint="Calcula cuotas para revisar la asignacion." variant="inline" />
-                    ) : (
-                      <div className="hojas-ruta-delivery-review">
-                        <div className="hojas-ruta-delivery-summary">
-                          <MiniMetric label="Cuotas asignadas" value={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)}`} />
-                          <MiniMetric label="Manzanas" value={sample ? formatNumber(sample.n_blocks) : "0"} />
-                          <MiniMetric label="Entrevistas" value={sample ? formatNumber(sample.total_entrevistas) : "0"} />
-                          <MiniMetric label="Reemplazos" value={sample ? formatNumber(sample.n_replacement_blocks ?? 0) : "0"} />
-                        </div>
-
-                        {quotaAlerts.length ? (
-                          <HojasRutaNoticeTray
-                            alerts={quotaAlerts}
-                            dismissed={dismissedDeliveryAlerts}
-                            onDismiss={(key) => setDismissedDeliveryAlerts((prev) => prev.includes(key) ? prev : [...prev, key])}
-                          />
-                        ) : (
-                          <div className="hojas-ruta-sample-plain-card is-success">
-                            <strong>Sin alertas bloqueantes</strong>
-                            <span>La asignación de cuotas y manzanas está lista para generar entregables.</span>
-                          </div>
-                        )}
-                        <GlidingTabList activeKey={currentDeliveryTab} mode="tabs" className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
-                          {deliveryReviewTabs.map((tab) => (
-                            <button
-                              key={tab.key}
-                              id={hojasDeliveryReviewTabId(tab.key)}
-                              type="button"
-                              role="tab"
-                              data-gliding-key={tab.key}
-                              /* Pestaña real con su tabpanel, así que conserva
-                               * `role="tab"` y `aria-selected`. Adopta los
-                               * estados compartidos para que su hover, su activo
-                               * y su foco sean los del resto de la app. */
-                              data-nav-item=""
-                              data-nav-shape="pill"
-                              data-nav-state={currentDeliveryTab === tab.key ? "selected" : undefined}
-                              aria-selected={currentDeliveryTab === tab.key}
-                              aria-controls={HOJAS_DELIVERY_REVIEW_PANEL_ID}
-                              className={currentDeliveryTab === tab.key ? "is-active" : ""}
-                              disabled={tab.disabled}
-                              onClick={() => selectDeliveryReviewTab(tab.key)}
-                            >
-                              {tab.label}
-                              <span>{formatNumber(tab.count)}</span>
-                            </button>
-                          ))}
-                        </GlidingTabList>
-
-                        <div
-                          id={HOJAS_DELIVERY_REVIEW_PANEL_ID}
-                          role="tabpanel"
-                          aria-labelledby={hojasDeliveryReviewTabId(currentDeliveryTab)}
-                          tabIndex={0}
-                        >
-                          {currentDeliveryTab === "cuotas" && (
-                          <section className="hojas-ruta-delivery-section">
-                            <div className="hojas-ruta-section-title">
-                              <strong>Cuotas por perfil</strong>
-                              <span>Primeras filas para una revisión rápida.</span>
-                            </div>
-                            <div className="hojas-ruta-review-table-wrap is-delivery">
-                              <table className="hojas-ruta-review-table is-delivery-table is-quota-table">
-                                <colgroup>
-                                  {quotaColumns.map((column) => (
-                                    <col key={column} style={{ width: quotaColumnWidth(column, quotaColumns) }} />
-                                  ))}
-                                </colgroup>
-                                <thead>
-                                  <tr>
-                                    {quotaColumns.map((h) => (
-                                      <th key={h}>{h}</th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {quota.table.slice(0, 16).map((row, i) => (
-                                    <tr key={i}>
-                                      {quotaColumns.map((c) => {
-                                        const value = row[c];
-                                        return (
-                                          <td key={c} className={reviewCellClass(c, value)}>
-                                            {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
-                                          </td>
-                                        );
-                                      })}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </section>
-                          )}
-
-                          {currentDeliveryTab === "titulares" && sample && (
-                          <section className="hojas-ruta-delivery-section">
-                              <div className="hojas-ruta-section-title">
-                                <strong>UMPs de campo</strong>
-                              <span>UMPs titulares seleccionadas por la muestra aleatoria, con ID de manzana como referencia.</span>
-                              </div>
-                              <div className="hojas-ruta-review-table-wrap is-delivery">
-                                <table className="hojas-ruta-review-table is-delivery-table is-block-table">
-                                  <colgroup>
-                                    <col className="is-district" />
-                                    <col className="is-route" />
-                                    <col className="is-block-id" />
-                                    <col className="is-zone" />
-                                    <col className="is-nse" />
-                                  <col className="is-households" />
-                                  <col className="is-interviews" />
-                                  <col className="is-method" />
-                                </colgroup>
-                                <thead>
-                                  <tr>
-                                    {["Distrito", "UMP", "ID manzana", "Zona", "NSE", "Viviendas", "Entrevistas", "Método"].map((h) => (
-                                      <th key={h}>{h}</th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {selectedBlocksPage.rows.map((b) => (
-                                    <tr key={b.id_manzana}>
-                                      <td className="is-strong">{b.distrito}</td>
-                                      <td className="is-code" title={b.id_manzana}>{operationalRouteCode(b, "titular")}</td>
-                                      <td className="is-code">{b.id_manzana}</td>
-                                      <td className="is-code">{b.zona}</td>
-                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
-                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                      <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
-                                      <td>{methodLabel(b.metodo)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                            <DeliveryTablePager
-                              total={selectedBlocks.length}
-                              page={selectedBlocksPage.safePage}
-                              pageCount={selectedBlocksPage.pageCount}
-                              start={selectedBlocksPage.start}
-                              end={selectedBlocksPage.end}
-                              label="titulares"
-                              onPageChange={setDeliveryBlocksPage}
-                            />
-                          </section>
-                          )}
-
-                          {currentDeliveryTab === "reemplazos" && (
-                          sample && replacementBlocks.length ? (
-                            <section className="hojas-ruta-delivery-section">
-                              <div className="hojas-ruta-section-title">
-                                <strong>UMPs de reemplazo</strong>
-                                <span>Reemplazos R trazados a su UMP titular, zona origen y rango operativo.</span>
-                              </div>
-                              <div className="hojas-ruta-review-table-wrap is-delivery">
-                                <table className="hojas-ruta-review-table is-delivery-table is-replacement-table">
-                                  <colgroup>
-                                    <col className="is-district" />
-                                    <col className="is-route" />
-                                    <col className="is-block-id" />
-                                    <col className="is-zone" />
-                                    <col className="is-nse" />
-                                    <col className="is-replaces" />
-                                    <col className="is-range" />
-                                    <col className="is-households" />
-                                    <col className="is-method" />
-                                  </colgroup>
-                                  <thead>
-                                    <tr>
-                                      {["Distrito", "R", "ID manzana", "Zona", "NSE", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
-                                        <th key={h}>{h}</th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {replacementBlocksPage.rows.map((b) => (
-                                      <tr key={`replacement:${b.id_manzana}`}>
-                                        <td className="is-strong">{b.distrito}</td>
-                                        <td className="is-code" title={b.id_manzana}>{operationalRouteCode(b, "reemplazo")}</td>
-                                        <td className="is-code">{b.id_manzana}</td>
-                                        <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
-                                        <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
-                                        <td className="is-code">{replacementTargetLabel(b)}</td>
-                                        <td className="is-code">{replacementRangeLabel(b)}</td>
-                                        <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                        <td>{methodLabel(b.metodo)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                              <DeliveryTablePager
-                                total={replacementBlocks.length}
-                                page={replacementBlocksPage.safePage}
-                                pageCount={replacementBlocksPage.pageCount}
-                                start={replacementBlocksPage.start}
-                                end={replacementBlocksPage.end}
-                                label="reemplazos"
-                                onPageChange={setDeliveryReplacementsPage}
-                              />
-                            </section>
-                          ) : (
-                            <div className="hojas-ruta-block-list-empty">
-                              Esta corrida no tiene manzanas de reemplazo configuradas.
-                            </div>
-                          )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </Panel>
-
-                  <JobProgress<HojasRutaJobResult>
-                    label="Generando hojas de ruta"
-                    jobId={jobId}
-                    onDone={(data) => {
-                      setResult(data);
-                      setJobId(null);
-                    }}
-                    onError={(msg) => {
-                      setError(msg);
-                      setJobId(null);
-                    }}
-                    onCancelled={() => setJobId(null)}
-                  />
-
-                  <JobProgress<HojasRutaManualReplacementResult>
-                    label="Generando PDF de reemplazos"
-                    jobId={manualReplacementJobId}
-                    onDone={(data) => {
-                      setManualReplacementResult(data);
-                      setManualReplacementJobId(null);
-                      if (data.file_id) window.open(downloadUrl(data.file_id), "_blank", "noopener,noreferrer");
-                    }}
-                    onError={(msg) => {
-                      setError(msg);
-                      setManualReplacementJobId(null);
-                    }}
-                    onCancelled={() => setManualReplacementJobId(null)}
-                  />
-                </div>
-
-                <aside className="hojas-ruta-delivery-side">
+            <SeleccionMesa
+              pestana={currentDeliveryTab}
+              pestanas={deliveryReviewTabs}
+              onPestana={selectDeliveryReviewTab}
+              panelId={HOJAS_DELIVERY_REVIEW_PANEL_ID}
+              tabId={hojasDeliveryReviewTabId}
+              estado={!quota ? undefined : quotaAlerts.length ? "atencion" : "listo"}
+              chips={chipsDeSeleccion(quota, sample)}
+              avisos={quota && quotaAlerts.length ? (
+                <HojasRutaNoticeTray
+                  alerts={quotaAlerts}
+                  dismissed={dismissedDeliveryAlerts}
+                  onDismiss={(key) => setDismissedDeliveryAlerts((prev) => prev.includes(key) ? prev : [...prev, key])}
+                />
+              ) : null}
+              salidas={<>
                   <Panel title="Paquete de entrega" eyebrow="ZIP final">
                     <div className="hojas-ruta-delivery-checklist">
                       <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} dist.`} />
@@ -8953,9 +8724,36 @@ export default function HojasRutaPage() {
                       )}
                     </div>
                   </Panel>
-                </aside>
-              </div>
+</>}
+              trabajos={<>
+                  <JobProgress<HojasRutaJobResult>
+                    label="Generando hojas de ruta"
+                    jobId={jobId}
+                    onDone={(data) => {
+                      setResult(data);
+                      setJobId(null);
+                    }}
+                    onError={(msg) => {
+                      setError(msg);
+                      setJobId(null);
+                    }}
+                    onCancelled={() => setJobId(null)}
+                  />
 
+                  <JobProgress<HojasRutaManualReplacementResult>
+                    label="Generando PDF de reemplazos"
+                    jobId={manualReplacementJobId}
+                    onDone={(data) => {
+                      setManualReplacementResult(data);
+                      setManualReplacementJobId(null);
+                      if (data.file_id) window.open(downloadUrl(data.file_id), "_blank", "noopener,noreferrer");
+                    }}
+                    onError={(msg) => {
+                      setError(msg);
+                      setManualReplacementJobId(null);
+                    }}
+                    onCancelled={() => setManualReplacementJobId(null)}
+                  />
               {(result || routeWorkbook) && (
                 <Panel title="Entregables generados" eyebrow="Descargas recientes">
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -8983,7 +8781,155 @@ export default function HojasRutaPage() {
                   </div>
                 </Panel>
               )}
-            </div>
+</>}
+            >
+              {!quota ? (
+                <EmptyState icon={<BarChart3 size={18} />} title="Sin cuotas calculadas" hint="Calcula cuotas para revisar la asignacion." variant="inline" />
+              ) : (
+                <>
+                          {currentDeliveryTab === "cuotas" && (
+                          <section className="hojas-ruta-delivery-section">
+                            <div className="hojas-ruta-review-table-wrap is-delivery">
+                              <table className="hojas-ruta-review-table is-delivery-table is-quota-table">
+                                <colgroup>
+                                  {quotaColumns.map((column) => (
+                                    <col key={column} style={{ width: quotaColumnWidth(column, quotaColumns) }} />
+                                  ))}
+                                </colgroup>
+                                <thead>
+                                  <tr>
+                                    {quotaColumns.map((h) => (
+                                      <th key={h}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {quota.table.slice(0, 16).map((row, i) => (
+                                    <tr key={i}>
+                                      {quotaColumns.map((c) => {
+                                        const value = row[c];
+                                        return (
+                                          <td key={c} className={reviewCellClass(c, value)}>
+                                            {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                          )}
+
+                          {currentDeliveryTab === "titulares" && sample && (
+                          <section className="hojas-ruta-delivery-section">
+                              <div className="hojas-ruta-review-table-wrap is-delivery">
+                                <table className="hojas-ruta-review-table is-delivery-table is-block-table">
+                                  <colgroup>
+                                    <col className="is-district" />
+                                    <col className="is-route" />
+                                    <col className="is-block-id" />
+                                    <col className="is-zone" />
+                                    <col className="is-nse" />
+                                  <col className="is-households" />
+                                  <col className="is-interviews" />
+                                  <col className="is-method" />
+                                </colgroup>
+                                <thead>
+                                  <tr>
+                                    {["Distrito", "UMP", "ID manzana", "Zona", "NSE", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                      <th key={h}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {selectedBlocksPage.rows.map((b) => (
+                                    <tr key={b.id_manzana}>
+                                      <td className="is-strong">{b.distrito}</td>
+                                      <td className="is-code" title={b.id_manzana}>{operationalRouteCode(b, "titular")}</td>
+                                      <td className="is-code">{b.id_manzana}</td>
+                                      <td className="is-code">{b.zona}</td>
+                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
+                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                      <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
+                                      <td>{methodLabel(b.metodo)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <DeliveryTablePager
+                              total={selectedBlocks.length}
+                              page={selectedBlocksPage.safePage}
+                              pageCount={selectedBlocksPage.pageCount}
+                              start={selectedBlocksPage.start}
+                              end={selectedBlocksPage.end}
+                              label="titulares"
+                              onPageChange={setDeliveryBlocksPage}
+                            />
+                          </section>
+                          )}
+
+                          {currentDeliveryTab === "reemplazos" && (
+                          sample && replacementBlocks.length ? (
+                            <section className="hojas-ruta-delivery-section">
+                              <div className="hojas-ruta-review-table-wrap is-delivery">
+                                <table className="hojas-ruta-review-table is-delivery-table is-replacement-table">
+                                  <colgroup>
+                                    <col className="is-district" />
+                                    <col className="is-route" />
+                                    <col className="is-block-id" />
+                                    <col className="is-zone" />
+                                    <col className="is-nse" />
+                                    <col className="is-replaces" />
+                                    <col className="is-range" />
+                                    <col className="is-households" />
+                                    <col className="is-method" />
+                                  </colgroup>
+                                  <thead>
+                                    <tr>
+                                      {["Distrito", "R", "ID manzana", "Zona", "NSE", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
+                                        <th key={h}>{h}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {replacementBlocksPage.rows.map((b) => (
+                                      <tr key={`replacement:${b.id_manzana}`}>
+                                        <td className="is-strong">{b.distrito}</td>
+                                        <td className="is-code" title={b.id_manzana}>{operationalRouteCode(b, "reemplazo")}</td>
+                                        <td className="is-code">{b.id_manzana}</td>
+                                        <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
+                                        <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
+                                        <td className="is-code">{replacementTargetLabel(b)}</td>
+                                        <td className="is-code">{replacementRangeLabel(b)}</td>
+                                        <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                        <td>{methodLabel(b.metodo)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <DeliveryTablePager
+                                total={replacementBlocks.length}
+                                page={replacementBlocksPage.safePage}
+                                pageCount={replacementBlocksPage.pageCount}
+                                start={replacementBlocksPage.start}
+                                end={replacementBlocksPage.end}
+                                label="reemplazos"
+                                onPageChange={setDeliveryReplacementsPage}
+                              />
+                            </section>
+                          ) : (
+                            <div className="hojas-ruta-block-list-empty">
+                              Esta corrida no tiene manzanas de reemplazo configuradas.
+                            </div>
+                          )
+                          )}
+                </>
+              )}
+            </SeleccionMesa>
           )}
         </>
       )}

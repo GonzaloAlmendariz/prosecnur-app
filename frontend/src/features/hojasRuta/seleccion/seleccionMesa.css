@@ -1,0 +1,106 @@
+/* Selección como mesa del kit (SeleccionMesa.tsx).
+ *
+ * Un solo dueño de scroll por región: la tabla de la pestaña activa, con la
+ * cabecera pegada arriba. La pila anterior (shell con scroll → panel con
+ * scroll → tabla) dejaba dos filas y media visibles a 1024×600 (C4). Los
+ * selectores llevan `.hojas-ruta-frame` para ganarle a las reglas heredadas de
+ * `.is-delivery-stage` en hojasRuta.css sin depender del orden de carga. */
+
+.hojas-ruta-frame .pulso-page-frame-body--fill > .hojas-ruta-stage-shell.hr-seleccion {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.hojas-ruta-frame .hr-seleccion > .hr-seleccion-split {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-mesa {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: var(--pulso-space-4, 16px);
+}
+
+.hojas-ruta-frame .hr-seleccion[data-compacto="true"] .hr-seleccion-mesa {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-trabajo {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3, 12px);
+  padding: var(--pulso-space-3, 12px) var(--pulso-space-4, 16px);
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-avisos {
+  flex: 0 0 auto;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo:focus-visible {
+  box-shadow: 0 0 0 2px var(--module-accent-border);
+  border-radius: 12px;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo > .hojas-ruta-delivery-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2, 8px);
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo .hojas-ruta-review-table-wrap.is-delivery {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-cuerpo .hojas-ruta-review-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.hojas-ruta-frame .hr-seleccion .hr-seleccion-salidas {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3, 12px);
+  padding-right: 2px;
+}
+
+.hr-seleccion-salidas > .pulso-panel {
+  margin-bottom: 0;
+}
+
+/* En el sideover el dueño del scroll es el propio sideover. */
+.hr-seleccion-salidas.is-sideover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3, 12px);
+}
