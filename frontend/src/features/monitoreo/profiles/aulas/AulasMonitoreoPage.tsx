@@ -87,15 +87,11 @@ import {
   pestanasDeMonitoreo,
 } from "../../../../lib/navegacion/catalogos/monitoreo";
 import {
-  modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
-import {
-  monitoreoPestanaDesdeParams,
-  monitoreoSeccionDesdeParams,
-  pestanaInicialDeSeccion,
-  seccionInicialMonitoreo,
-  useFocoMonitoreo,
-  useMonitoreoDireccion,
-} from "../../useMonitoreoDireccion";
+  modoIdDesdeFamily, AULAS_SECCIONES_PUBLICAS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
+import { useDireccionAulas } from "./navegacion/useDireccionAulas";
+import { FICHA_DE_AULA, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
+import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
@@ -132,20 +128,15 @@ import { useWaitForSourceSyncJob } from "../../sync/pollSourceSync";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
-// Avance es la única sección con pestañas: el resto siguen siendo hojas del
-// árbol. «Salidas» es donde vive la publicación a Sheets del perfil (ADR 0019).
-// Todas las secciones con pestañas, no sólo Avance: es la misma gramática que
-// usan telefónico y acreditación (módulo → modo → sección → pestaña → panel).
+// Las pestañas PÚBLICAS del modo (Insumos, Modelo, Control, Avance), con la
+// misma gramática que telefónico, acreditación y territorial (módulo → modo →
+// sección → pestaña → panel). «Salidas» es donde vive la publicación a Sheets
+// del perfil (ADR 0019).
 const AULAS_PESTANAS = MONITOREO_PESTANAS.aulas as Record<string, ReadonlyArray<{ key: string; label: string }>>;
 
-/** Pestañas de una sección; vacío cuando la sección es una hoja del árbol. */
-function pestanasDe(seccion: MonitoreoSeccion) {
+/** Pestañas de una sección pública. */
+function pestanasDe(seccion: string) {
   return AULAS_PESTANAS[seccion] ?? [];
-}
-
-/** Primera pestaña de la sección, que es donde se aterriza. */
-function primeraPestana(seccion: MonitoreoSeccion) {
-  return pestanasDe(seccion)[0]?.key ?? "";
 }
 
 
@@ -490,8 +481,7 @@ export function DataTable({
                           ? (
                             <CodigoEnCelda
                               valor={String(row[column] ?? "")}
-                              hrefDeFicha={(codigo) =>
-                                `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+                              hrefDeFicha={hrefDeFichaDeAula}
                               onVerFicha={onVerFicha ?? undefined}
                             />
                           )
@@ -1091,57 +1081,21 @@ function renderAulasView({
 
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS));
-  // Una pestaña activa POR SECCIÓN: volver a una sección la reencuentra donde
-  // se dejó, en vez de reiniciarla.
-  const [pestanaPorSeccion, setPestanaPorSeccion] = useState<Record<string, string>>(() => {
-    const inicial = seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS);
-    const mapa: Record<string, string> = {};
-    for (const def of AULAS_WORKBENCH_VIEWS) {
-      const claves = pestanasDe(def.key).map((item) => item.key);
-      if (!claves.length) continue;
-      mapa[def.key] = pestanaInicialDeSeccion(def.key, inicial, claves[0], claves);
-    }
-    return mapa;
-  });
-  const pestanaActiva = pestanaPorSeccion[seccionActiva] ?? primeraPestana(seccionActiva);
+  // La dirección PÚBLICA (Insumos, Modelo, Control, Avance) es el estado; la
+  // vista heredada que se monta —`seccionActiva` y `pestanaActiva`, que deciden
+  // el corte y lo que se pinta— se deriva de ella. Las direcciones viejas se
+  // leen como alias. Ver `navegacion/direccionAulas.ts`.
+  const { direccion, seccionActiva, pestanaActiva, irA, irASeccion, irAPestana: irAPestanaPublica, irAVista } = useDireccionAulas();
   // El nombre de la pestaña activa, para el encabezado. Sale del mismo registro
   // que dibuja el rail, así que no puede desincronizarse con lo que se ve.
-  const pestanaActivaLabel = pestanasDe(seccionActiva).find((p) => p.key === pestanaActiva)?.label ?? "";
-  const elegirPestana = (seccion: MonitoreoSeccion, clave: string) =>
-    setPestanaPorSeccion((prev) => ({ ...prev, [seccion]: clave }));
-
-  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, "aulas", {
-    onSeccionPedida: (seccion) => {
-      setActiveView(seccion);
-      // La pestaña de la URL se aplica AQUÍ, junto con su sección. Al cambiar
-      // de sección, la pestaña activa pasa a ser la recordada para esa sección
-      // y se publica en la URL, pisando la pedida: `?seccion=consultas&
-      // pestana=reemplazos` aterrizaba en `brechas` si esa era la última vista.
-      // La vista quedaba alcanzable por clic y no por dirección, que es
-      // justamente lo que el contrato v3 prohíbe.
-      // Se exige que la SECCIÓN de la URL coincida con la que se activa: eso
-      // distingue «vengo de una dirección» de «vengo de un clic», donde la URL
-      // todavía trae la pestaña de la sección anterior. Aquí el clic de sección
-      // no pasa por este callback, pero depender de eso es suponer quién
-      // dispara qué; la condición lo hace explícito y es la misma en los cuatro
-      // perfiles.
-      if (monitoreoSeccionDesdeParams(window.location.search) !== seccion) return;
-      const pedida = monitoreoPestanaDesdeParams(window.location.search);
-      if (pedida && pestanasDe(seccion).some((item) => item.key === pedida)) {
-        elegirPestana(seccion, pedida);
-      }
-    },
-    onPestanaPedida: (pestana, seccion) => {
-      if (pestanasDe(seccion as MonitoreoSeccion).some((item) => item.key === pestana)) {
-        elegirPestana(seccion as MonitoreoSeccion, pestana);
-      }
-    },
-  });
+  const pestanaActivaLabel = pestanasDe(direccion.seccion).find((p) => p.key === direccion.pestana)?.label ?? "";
+  // Las vistas heredadas piden otra de las suyas por su clave vieja: se
+  // traduce a la dirección pública que la monta.
+  const elegirPestana = (seccion: MonitoreoSeccion, clave: string) => irAVista(seccion, clave);
   useRegistrarPestanasMonitoreo(
     "aulas",
-    seccionActiva,
-    pestanasDeMonitoreo("aulas", seccionActiva),
+    direccion.seccion,
+    pestanasDeMonitoreo("aulas", direccion.seccion),
   );
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -1179,8 +1133,8 @@ export default function AulasMonitoreoPage() {
   const [guardandoCriterio, setGuardandoCriterio] = useState(false);
 
   const activeDef = useMemo(
-    () => AULAS_WORKBENCH_VIEWS.find((item) => item.key === seccionActiva) ?? AULAS_WORKBENCH_VIEWS[0],
-    [seccionActiva],
+    () => AULAS_SECCIONES_PUBLICAS.find((item) => item.key === direccion.seccion) ?? AULAS_SECCIONES_PUBLICAS[0],
+    [direccion.seccion],
   );
   const dashboard = dashboardFromState(state);
   // **La clave del eje de cuotas del estudio, leída del motor.**
@@ -1922,13 +1876,13 @@ export default function AulasMonitoreoPage() {
       const result = await apiMonitoreoAulasImportFromCalcMuestra();
       setState(result.state);
       // El monolito aterrizaba en la agenda tras importar; se conserva.
-      setActiveView("modelo");
+      irAVista("modelo");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setMutating(false);
     }
-  }, []);
+  }, [irAVista]);
 
   const syncField = useCallback(async () => {
     setMutating(true);
@@ -2023,14 +1977,14 @@ export default function AulasMonitoreoPage() {
           modo, una pestaña muda aterrizaba en la de al lado y salía aprobada. */}
       <span
         hidden
-        data-audit-ready={loading ? "false" : readinessDeAulas(seccionActiva, pestanaActiva)}
+        data-audit-ready={loading ? "false" : readinessDeAulas(direccion.seccion, direccion.pestana)}
         data-audit-has-dashboard={dashboard ? "true" : "false"}
       />
       <MonitoreoModuleChrome
         routes={[AULAS_ROUTE]}
         route={AULAS_ROUTE}
         routeSelected
-        seccionActiva={seccionActiva}
+        seccionActiva={direccion.seccion}
         saving={busy}
         syncedAt={state?.synced_at ?? ""}
         generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
@@ -2051,7 +2005,7 @@ export default function AulasMonitoreoPage() {
         advanceSyncLabel="Avance"
         advanceSyncTitle={advanceTitle}
         onSyncAdvance={() => {
-          if (seccionActiva !== "avance") setActiveView("avance");
+          if (direccion.seccion !== "avance") irASeccion("avance");
           void loadView("avance", true);
         }}
         syncDisabled={busy || !imported}
@@ -2059,7 +2013,7 @@ export default function AulasMonitoreoPage() {
         syncTitle={refreshTitle}
         onSyncAll={() => { void syncField(); }}
         onCambioSeccion={(view) => {
-          if (view !== seccionActiva) setActiveView(view);
+          if (view !== direccion.seccion) irASeccion(view);
         }}
       />
 
@@ -2084,9 +2038,10 @@ export default function AulasMonitoreoPage() {
         className="is-aulas"
         mainClassName="mon-profile-workbench"
         contentClassName={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}
+        contentId={`monitoreo-${direccion.seccion}-panel`}
         contentRole="tabpanel"
-        contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
-        scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
+        contentAriaLabelledBy={`monitoreo-${direccion.seccion}-tab-${direccion.pestana}`}
+        scrollResetKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
         head={
           /* Aulas era el ÚNICO de los cuatro perfiles con `head={null}`, y el
             componente existe justo para lo que a aulas le faltaba: su propio
@@ -2126,8 +2081,13 @@ export default function AulasMonitoreoPage() {
             //
             // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
             // quitarlo vuelve a Resumen, que es de donde salió.
-            control={mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (
-              <AulasSelectorDeFoco
+            //
+            // Al lado, el selector de sub-vistas de una pestaña que absorbe
+            // varias vistas heredadas (Control › Calidad: Controles, Base de
+            // control, Respuestas abiertas).
+            control={tieneSubvistas(direccion) || mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (<>
+              <SubvistasDeAulas direccion={direccion} onElegir={(panel) => irA({ ...direccion, panel })} />
+              {mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? <AulasSelectorDeFoco
                 // El eje desde las filas del avance; carrera y sexo desde
                 // `avance_cuota.composicion`, que el motor publica YA ordenado
                 // por población — reordenarlos aquí haría bailar la lista con
@@ -2140,22 +2100,22 @@ export default function AulasMonitoreoPage() {
                 foco={foco}
                 onFoco={cambiarFoco}
                 eje={ejeDeclarado}
-              />
-            ) : undefined}
+              /> : null}
+            </>) : undefined}
           />
           )
         }
         rail={(
           <MonitoreoWorkbenchRail
-          pestanaActiva={pestanaActiva}
+          pestanaActiva={direccion.pestana}
           activeSection={{ label: activeDef.label, desc: activeDef.desc ?? "Vista operativa", icon: activeDef.icon }}
-          seccionActiva={seccionActiva}
+          seccionActiva={direccion.seccion}
           ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
           className="is-aulas"
           emptyDetail={activeDef.desc ?? "Vista operativa"}
           iconOnlyTabs
-          localTabs={railDeAulas(seccionActiva, dashboard)}
-          modeCountLabel={contar(pestanasDe(seccionActiva).length || 1, "pestaña", "pestañas")}
+          localTabs={railDeAulas(direccion.seccion, dashboard)}
+          modeCountLabel={contar(pestanasDe(direccion.seccion).length || 1, "pestaña", "pestañas")}
           routeLabel="Cursos-horario"
           routeSectionLabel="Cursos-horario · sección"
           routeShortLabel="Cursos-horario"
@@ -2167,7 +2127,7 @@ export default function AulasMonitoreoPage() {
             value: state?.synced_at || (loading && !state ? "Leyendo el proyecto…" : "Sin actualización"),
             ready: Boolean(state?.synced_at),
           }]}
-          onCambioPestana={(key) => elegirPestana(seccionActiva, key)}
+          onCambioPestana={(key) => irAPestanaPublica(direccion.seccion, key)}
         />
         )}
       >
@@ -2284,7 +2244,7 @@ export default function AulasMonitoreoPage() {
                   planImportado={imported}
                   fuentesActivas={activeSources}
                   fuentesDeclaradas={sourceTotal}
-                  onIrAFuentes={() => setActiveView("fuentes")}
+                  onIrAFuentes={() => irAVista("fuentes")}
                   lecturaFallida={!state && Boolean(error)}
                   onReintentar={() => { void loadView(seccionActiva, true); }}
                 />
@@ -2419,7 +2379,7 @@ export default function AulasMonitoreoPage() {
               // aquí convertiría a este archivo en el séptimo lector, que es lo
               // que el contrato de `lectoresDeDireccion` impide.
               verFichaDe: (codigo: string) => {
-                escribirFoco(`aula:${codigo}`, { seccion: "consultas", pestana: "ficha" });
+                escribirFoco(`aula:${codigo}`, FICHA_DE_AULA);
               },
               // El umbral de duración sospechosa: el motor lo aceptaba desde
               // siempre y no había dónde ponerlo.

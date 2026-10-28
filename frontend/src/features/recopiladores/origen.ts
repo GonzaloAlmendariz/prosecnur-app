@@ -23,7 +23,7 @@ export const DIRECCION_SELECCION_CALC = "/calc-muestra?modo=opinion-universitari
 export const DIRECCION_ENTREGA_CALC =
   "/calc-muestra?modo=opinion-universitaria&seccion=salidas&pestana=salidas-monitoreo";
 /** La agenda de cursos-horario de Monitoreo, cuando es la fuente que manda. */
-export const DIRECCION_AGENDA_MONITOREO = "/monitoreo?seccion=modelo";
+export const DIRECCION_AGENDA_MONITOREO = "/monitoreo?modo=aulas&seccion=control&pestana=agenda";
 
 function n(valor: number): string {
   return valor.toLocaleString("es-PE");

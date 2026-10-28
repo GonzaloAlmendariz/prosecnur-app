@@ -186,7 +186,8 @@ describe("semántica de navegación de Monitoreo", () => {
       nRows: 0,
       hasSnapshot: false,
     }));
-    const sourceLink = html.match(/<a[^>]*data-view-key="fuentes"[^>]*>/)?.[0];
+    // Cursos-horario abre por Insumos desde el revamp del esqueleto común.
+    const sourceLink = html.match(/<a[^>]*data-view-key="insumos"[^>]*>/)?.[0];
 
     expect(sourceLink).toBeDefined();
     expect(sourceLink).not.toContain("href=");
