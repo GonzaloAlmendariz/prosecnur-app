@@ -49,7 +49,12 @@ monitoreo_cuotas_universo <- function(data, campos_llave = character(0)) {
 }
 
 # Columnas de la base de un público que sirven como cuota: entre 2 y 150
-# categorías, sin contar la llave ni las columnas técnicas.
+# categorías, sin contar la llave ni las columnas técnicas. Una columna donde
+# casi cada persona tiene su propio valor (N°, código, nombre, correo, celular)
+# es un identificador aunque quepa en el rango: en un público de 16 personas
+# tiene 16 «categorías». «Casi» es el 90 %: el celular de reemplazo de
+# Egresados traía 21 números con uno repetido. Con 5 valores o menos no se
+# puede distinguir de una categoría que no se repite, y se deja.
 .mcu_variables <- function(filas, columna_llave = "") {
   tecnicas <- grepl("^\\.|^dim_|^cv_", names(filas)) | names(filas) %in% c(columna_llave, "Token", "token")
   out <- list()
@@ -58,6 +63,7 @@ monitoreo_cuotas_universo <- function(data, campos_llave = character(0)) {
     valores <- valores[!is.na(valores) & nzchar(valores)]
     if (!length(valores)) next
     n <- length(unique(valores))
+    if (length(valores) > 5L && n >= 0.9 * length(valores)) next
     if (n >= 2L && n <= .MCU_MAX_CATEGORIAS) out[[length(out) + 1L]] <- list(variable = col, categorias = n)
   }
   out
