@@ -3,6 +3,8 @@ import { TabHeading } from "../../components/TabHeading";
 import { UniversoAnalisis } from "./UniversoAnalisis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
+import { toast } from "../../components/toasterStore";
+import { pestanaPedidaNoDisponible } from "./pestanaNoDisponible";
 import {
   BarChart2,
   Database,
@@ -120,6 +122,22 @@ export default function AnaliticaPage() {
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
+
+  // Una dirección que pide una pestaña que este estudio no ofrece (p. ej.
+  // Multibase con una sola base) no aterriza muda en Datos: se corrige la URL
+  // y se dice por qué (L10).
+  const noDisponible = state != null ? pestanaPedidaNoDisponible(raw, REPORTES, reportes) : null;
+  useEffect(() => {
+    if (!noDisponible) return;
+    const params = new URLSearchParams(location.search);
+    params.delete(PARAMS_DIRECCION.pestana);
+    params.delete("reporte");
+    const search = params.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+    toast.info(`«${noDisponible.label}» no está en este estudio`, {
+      detalle: "Se ofrece cuando el estudio tiene varias bases. Te dejamos en Datos.",
+    });
+  }, [noDisponible, location.pathname, location.search, navigate]);
 
   // Readiness del QA visual a nivel de sección. Analítica solo la declaraba en
   // una pestaña suelta (Orden de categorías), así que cualquier proyecto que
