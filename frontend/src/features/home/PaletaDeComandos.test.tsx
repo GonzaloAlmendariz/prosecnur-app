@@ -5,15 +5,23 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../../lib/modules";
+
+vi.mock("../project/ProjectModulesContext", () => ({
+  useProjectModules: () => ({ addedSlugs: PROSECNUR_PRIMARY_ACTIVE_MODULES.map((m) => m.slug) }),
+}));
 import { PaletaDeComandosHost } from "./PaletaDeComandos";
 
 let host: HTMLDivElement;
 let root: Root;
 let busqueda = "";
+let ruta = "";
 
 function Espia() {
-  busqueda = useLocation().search;
+  const location = useLocation();
+  busqueda = location.search;
+  ruta = location.pathname;
   return null;
 }
 
@@ -46,6 +54,21 @@ describe("paleta de comandos · atajo", () => {
   test("K sola no la abre", () => {
     teclear({});
     expect(busqueda).not.toContain("panel=paleta");
+  });
+
+  test("⌘N/Ctrl+N no navega si una vista lo atiende después en la misma ronda", async () => {
+    const vista = (e: KeyboardEvent) => e.preventDefault();
+    window.addEventListener("keydown", vista);
+    teclear({ key: "1", ctrlKey: true });
+    await act(async () => { await Promise.resolve(); });
+    window.removeEventListener("keydown", vista);
+    expect(ruta).toBe("/carga");
+  });
+
+  test("Ctrl+1 abre el primer módulo del dock", async () => {
+    teclear({ key: "1", ctrlKey: true });
+    await act(async () => { await Promise.resolve(); });
+    expect(ruta).toBe(PROSECNUR_PRIMARY_ACTIVE_MODULES[0].to);
   });
 
   test("si un editor ya atendió el atajo, la paleta no se abre encima", () => {

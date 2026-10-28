@@ -7,6 +7,8 @@ import { panelAbiertoEn, searchConPanel } from "../../lib/navegacion/paneles";
 import { conModificador, nombreDeAtajo } from "../../lib/teclado";
 import { CornerDownLeft, Search } from "../../vendor/lucide-react";
 import { PANEL_PALETA } from "./panelesHome";
+import { destinoDeAtajo, estaEscribiendo } from "./atajosDeModulos";
+import { useProjectModules } from "../project/ProjectModulesContext";
 import "./paleta-de-comandos.css";
 
 // Paleta de comandos (L30): ⌘K en macOS, Ctrl+K en Windows. Vive en el Layout,
@@ -20,10 +22,24 @@ export function PaletaDeComandosHost() {
   const location = useLocation();
   const navigate = useNavigate();
   const abierta = panelAbiertoEn(location.search, PANEL_PALETA);
+  const { addedSlugs } = useProjectModules();
 
   useEffect(() => {
     function alTeclear(evento: globalThis.KeyboardEvent) {
-      if (evento.key.toLowerCase() !== "k" || !conModificador(evento) || evento.altKey || evento.shiftKey) return;
+      if (!conModificador(evento) || evento.altKey || evento.shiftKey || evento.defaultPrevented) return;
+      // ⌘1…8: el módulo N del dock. Escribiendo en un campo no, y una vista que ya usa ⌘N (la Estructura de
+      // Gráficos con ⌘1) lo atiende primero.
+      const modulo = destinoDeAtajo(evento.key, addedSlugs);
+      if (modulo) {
+        if (estaEscribiendo(evento.target)) return;
+        // Se decide al terminar la ronda de listeners: si una vista también escucha ⌘N en window (Gráficos con
+        // ⌘1), gana ella sin importar quién se registró antes.
+        queueMicrotask(() => {
+          if (!evento.defaultPrevented) navigate(modulo.to);
+        });
+        return;
+      }
+      if (evento.key.toLowerCase() !== "k") return;
       // Un editor que ya usa ⌘K (el enlace en el editor de correos) lo atiende primero: no se le pisa.
       if (evento.defaultPrevented) return;
       evento.preventDefault();
@@ -32,7 +48,7 @@ export function PaletaDeComandosHost() {
     }
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
-  }, [location.pathname, location.search, navigate]);
+  }, [addedSlugs, location.pathname, location.search, navigate]);
 
   return abierta ? <PaletaDeComandos /> : null;
 }
