@@ -191,8 +191,8 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
   );
 }
 
-/** Área del acumulado de un público, con eje Y. */
-export function AreaAcumulada({ serie, meta, etiqueta }: { serie: readonly DiaDeAvance[]; meta: number | null; etiqueta: string }) {
+/** Área del acumulado de un público, con eje Y. `tituloEje` nombra lo que se acumula (por defecto, efectivas). */
+export function AreaAcumulada({ serie, meta, etiqueta, tituloEje = "Efectivas" }: { serie: readonly DiaDeAvance[]; meta: number | null; etiqueta: string; tituloEje?: string }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 40;
   const arriba = 24;
@@ -210,7 +210,7 @@ export function AreaAcumulada({ serie, meta, etiqueta }: { serie: readonly DiaDe
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
       {ancho > 0 && alto > 0 && n ? (
         <svg width={ancho} height={alto} aria-hidden="true">
-          <text className="acr-av-eje-titulo" x={0} y={10}>Efectivas</text>
+          <text className="acr-av-eje-titulo" x={0} y={10}>{tituloEje}</text>
           {marcas.map((valor) => (
             <g key={valor}>
               <line className="acr-av-reticula" x1={izquierda} x2={izquierda + w} y1={y(valor)} y2={y(valor)} />
