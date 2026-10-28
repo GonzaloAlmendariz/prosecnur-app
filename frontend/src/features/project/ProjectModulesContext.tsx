@@ -152,6 +152,23 @@ export function ProjectModulesProvider({ children }: { children: ReactNode }) {
     void load();
   }, [load, pathname, sessionId]);
 
+  // L31 · Home vivo: con el Home a la vista, lo que cambia la sesión (una
+  // importación que termina, un sync de Monitoreo, una base nueva) se ve sin
+  // salir y volver. Los eventos llegan en ráfagas: se juntan en una recarga.
+  useEffect(() => {
+    if (!sessionId || pathname !== "/") return undefined;
+    let espera: ReturnType<typeof setTimeout> | null = null;
+    const alCambiar = () => {
+      if (espera) clearTimeout(espera);
+      espera = setTimeout(() => void load(), 400);
+    };
+    window.addEventListener("pulso:session-changed", alCambiar);
+    return () => {
+      window.removeEventListener("pulso:session-changed", alCambiar);
+      if (espera) clearTimeout(espera);
+    };
+  }, [load, pathname, sessionId]);
+
   /**
    * Los módulos que el homepage enseña: los que el proyecto curó **más los que
    * tienen trabajo dentro**.
