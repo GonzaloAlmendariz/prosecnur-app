@@ -542,19 +542,6 @@ select[aria-invalid="true"] {
 
 a { color: var(--pulso-primary); }
 
-.pulso-card {
-  background: var(--pulso-surface);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--pulso-border-strong));
-  border-radius: var(--pulso-radius-card);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    var(--pulso-shadow-low);
-  transition:
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
 :where(
   .pulso-page-frame,
   .pulso-page-frame-header,
@@ -708,14 +695,6 @@ a { color: var(--pulso-primary); }
       transparent
     );
   opacity: 0.85;
-}
-
-.pulso-module-switcher-label {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: var(--pulso-text-faint);
 }
 
 .pulso-module-dock {
@@ -971,18 +950,6 @@ a { color: var(--pulso-primary); }
   box-shadow:
     0 0 0 3px var(--pulso-primary-focus),
     0 9px 18px color-mix(in srgb, var(--module-accent) 18%, transparent);
-}
-
-.pulso-module-current {
-  max-width: 96px;
-  color: var(--pulso-primary);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0;
-  line-height: 1.1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pulso-module-switcher:focus-within {
@@ -1264,119 +1231,6 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-success-fg);
   border-color: color-mix(in srgb, var(--pulso-success-fg) 24%, var(--pulso-success-border));
   background: color-mix(in srgb, var(--pulso-success-bg) 58%, #fff 42%);
-}
-
-.pulso-project-chip-chevron {
-  flex: 0 0 auto;
-  color: var(--pulso-text-faint);
-  opacity: 0.8;
-}
-
-.pulso-project-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 260px;
-  max-width: min(420px, calc(100vw - 32px));
-  display: grid;
-  gap: 4px;
-  padding: 7px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 72%, var(--pulso-border-strong));
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 249, 253, 0.92)),
-    var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-popover);
-  z-index: 121;
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
-  transform-origin: top right;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .pulso-project-menu {
-    animation: pulso-popover-in-kf var(--motion-dur-fast) var(--motion-ease-out) both;
-  }
-}
-
-.pulso-project-menu-head {
-  display: grid;
-  gap: 7px;
-  margin-bottom: 4px;
-  padding: 9px 10px 10px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-project-menu-head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.pulso-project-menu-label {
-  color: var(--pulso-text-faint);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pulso-project-menu-copy {
-  min-height: 24px;
-  gap: 4px;
-  padding: 3px 7px;
-  border-radius: 7px;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-project-menu-path {
-  color: var(--pulso-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10.5px;
-  line-height: 1.45;
-  word-break: break-all;
-}
-
-.pulso-project-menu-item {
-  width: 100%;
-  min-height: 32px;
-  justify-content: flex-start;
-  gap: 9px;
-  padding: 7px 9px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  text-align: left;
-}
-
-.pulso-project-menu-item:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--pulso-primary-soft) 72%, #fff 28%);
-  color: var(--pulso-primary);
-}
-
-.pulso-project-menu-item-label {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.pulso-project-menu-shortcut {
-  color: var(--pulso-text-faint);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.pulso-project-menu-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 119;
 }
 
 .pulso-project-confirm-scrim {
@@ -1843,13 +1697,6 @@ a { color: var(--pulso-primary); }
   overflow: visible;
 }
 
-.pulso-phase-separator {
-  width: 1px;
-  height: 28px;
-  flex: 0 0 auto;
-  background: linear-gradient(180deg, transparent, var(--pulso-border-strong), transparent);
-}
-
 .pulso-sibling-switcher {
   position: fixed;
   left: 20px;
@@ -1872,8 +1719,7 @@ a { color: var(--pulso-primary); }
   backdrop-filter: saturate(1.18) blur(18px);
   -webkit-backdrop-filter: saturate(1.18) blur(18px);
 }
-.pulso-sibling-switcher-top,
-.pulso-sibling-switcher-status {
+.pulso-sibling-switcher-top {
   display: flex;
   align-items: center;
   min-width: 0;
@@ -1980,45 +1826,7 @@ a { color: var(--pulso-primary); }
 .pulso-sibling-trigger-progress {
   display: none;
 }
-.pulso-sibling-switcher-status {
-  gap: 4px;
-  overflow: visible;
-  flex-wrap: wrap;
-}
-.pulso-sibling-switcher-status span,
-.pulso-sibling-switcher-status em {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--pulso-text-faint);
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
-.pulso-sibling-switcher-status span::before,
-.pulso-sibling-switcher-status em::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  flex: 0 0 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-border-strong) 70%, white);
-}
-.pulso-sibling-switcher-status span.is-done {
-  color: color-mix(in srgb, var(--pulso-success-fg) 72%, var(--pulso-text));
-}
-.pulso-sibling-switcher-status span.is-done::before {
-  background: var(--pulso-success-fg);
-}
-.pulso-sibling-switcher-status em {
-  margin-left: auto;
-  color: var(--pulso-primary);
-}
-.pulso-sibling-switcher-status em::before {
-  background: var(--pulso-primary);
-}
+
 .pulso-sibling-menu {
   z-index: 1300;
   width: min(264px, calc(100vw - 40px));
@@ -2141,22 +1949,6 @@ a { color: var(--pulso-primary); }
 }
 .pulso-main--processing .pulso-sibling-trigger-copy small {
   display: none;
-}
-.pulso-main--processing .pulso-sibling-switcher-status {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 3px;
-}
-.pulso-main--processing .pulso-sibling-switcher-status span {
-  justify-content: center;
-  gap: 3px;
-  font-size: 10px;
-}
-.pulso-main--processing .pulso-sibling-switcher-status em {
-  grid-column: 1 / -1;
-  justify-content: center;
-  margin-left: 0;
-  font-size: 10px;
 }
 
 @media (max-height: 700px) {
@@ -2441,8 +2233,7 @@ a { color: var(--pulso-primary); }
   z-index: 2;
 }
 
-.pulso-phase-pill-label,
-.pulso-phase-pill-label-hover {
+.pulso-phase-pill-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -2451,30 +2242,8 @@ a { color: var(--pulso-primary); }
   transition: transform var(--motion-dur-panel) var(--motion-ease-out);
 }
 
-.pulso-phase-pill-label-hover {
-  display: none;
-}
-
 .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-label {
   transform: none;
-}
-
-.pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-label-hover {
-  transform: none;
-}
-
-.pulso-phase-pill-number {
-  min-width: 19px;
-  height: 19px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1320px) {
@@ -2485,12 +2254,6 @@ a { color: var(--pulso-primary); }
   .pulso-phase-pill {
     font-size: 12px;
   }
-}
-
-.pulso-phase-pill-label-hover .pulso-phase-pill-number {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #fff;
 }
 
 /* Active: pill se queda con bg primary y color blanco (sin hover-circle). */
@@ -2508,23 +2271,6 @@ a { color: var(--pulso-primary); }
   transform: scale(0.985);
 }
 
-.pulso-phase-pill.is-active .pulso-phase-pill-number {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #fff;
-}
-
-.pulso-phase-pill.is-active .pulso-phase-pill-label-hover {
-  display: none;
-}
-
-/* Done: número con tinte primary-soft (cuando NO está active). */
-.pulso-phase-pill.is-done:not(.is-active) .pulso-phase-pill-number {
-  background: var(--pulso-primary-soft);
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
-}
-
 /* Blocked: fase navegable, pero con prerequisito explícito en tooltip/label. */
 .pulso-phase-pill.is-blocked:not(.is-active) {
   color: var(--pulso-warn-fg);
@@ -2534,12 +2280,6 @@ a { color: var(--pulso-primary); }
 .pulso-phase-pill.is-blocked:not(.is-active):hover {
   background: var(--pulso-warn-bg);
   box-shadow: inset 0 0 0 1px var(--pulso-warn-border);
-}
-
-.pulso-phase-pill.is-blocked .pulso-phase-pill-number {
-  background: var(--pulso-warn-bg);
-  border-color: var(--pulso-warn-border);
-  color: var(--pulso-warn-fg);
 }
 
 /* Disabled. El color y la atenuación los pone `app/nav-states.css` para todo item
@@ -2554,15 +2294,9 @@ a { color: var(--pulso-primary); }
   pointer-events: none;
 }
 
-.pulso-phase-pill.is-disabled .pulso-phase-pill-number {
-  background: #edf0f6;
-  border-color: transparent;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pulso-phase-pill-circle,
-  .pulso-phase-pill-label,
-  .pulso-phase-pill-label-hover {
+.pulso-phase-pill-label {
     transition: none;
   }
   .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-circle {
@@ -2606,10 +2340,6 @@ a { color: var(--pulso-primary); }
     justify-content: center;
     margin-inline: auto;
     overflow: visible;
-  }
-
-  .pulso-phase-separator {
-    display: none;
   }
 
   .pulso-phase-pillbar {
@@ -3467,154 +3197,6 @@ a { color: var(--pulso-primary); }
   min-height: 0;
 }
 
-.pulso-tab-strip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex: 0 1 auto;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  width: fit-content;
-  min-width: 0;
-  max-width: 100%;
-  padding: 3px;
-  border: 1px solid var(--pulso-material-border);
-  border-radius: var(--pulso-radius-chip);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(247, 249, 253, 0.74)),
-    var(--pulso-material-bg-strong);
-  box-shadow: var(--pulso-material-shadow);
-  backdrop-filter: blur(14px) saturate(1.08);
-  -webkit-backdrop-filter: blur(14px) saturate(1.08);
-  scrollbar-width: none;
-}
-
-.pulso-tab-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.pulso-tab-strip--bar {
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-  gap: 0;
-  padding: 0;
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.pulso-tab-chip {
-  flex: 0 0 auto;
-  min-width: 0;
-  max-width: min(240px, 54vw);
-  min-height: var(--pulso-control-height-md);
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  padding: 5px 13px;
-  border: none;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text);
-  cursor: pointer;
-  opacity: 1;
-  text-align: center;
-  transform-origin: center;
-  transition:
-    background var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-.pulso-tab-chip.is-last {
-  border-right: none;
-}
-.pulso-tab-chip:hover:not(.is-disabled):not(.is-active) {
-  background: var(--pulso-surface);
-  color: var(--pulso-primary);
-}
-.pulso-tab-strip--segmented .pulso-tab-chip:active:not(.is-disabled) {
-  transform: scale(0.97);
-}
-.pulso-tab-chip.is-active {
-  background: var(--pulso-primary);
-  color: white;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 12px rgba(0, 36, 87, 0.22);
-}
-/* Variante segmented (pill gv2): activo primary sólido con sombra corta */
-.pulso-tab-strip--segmented .pulso-tab-chip.is-active {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 2px 8px rgba(0, 36, 87, 0.18);
-}
-.pulso-tab-chip.is-active:hover {
-  background: var(--pulso-primary);
-  color: white;
-}
-.pulso-tab-chip.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-.pulso-tab-chip-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-tab-chip-label svg {
-  flex: 0 0 auto;
-}
-
-.pulso-tab-chip-desc {
-  display: none;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  letter-spacing: 0.2px;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pulso-tab-chip.is-active .pulso-tab-chip-desc {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.pulso-tab-strip--bar .pulso-tab-chip {
-  flex: 1 1 0;
-  min-width: 140px;
-  align-items: flex-start;
-  padding: 11px 15px;
-  border-right: 1px solid var(--pulso-border);
-  border-radius: 0;
-  background: var(--pulso-surface);
-  text-align: left;
-}
-
-.pulso-tab-strip--bar .pulso-tab-chip-desc {
-  display: block;
-}
-
-.pulso-tab-strip--bar .pulso-tab-chip.is-last {
-  border-right: none;
-}
-
-.pulso-tab-strip--bar .pulso-tab-chip.is-active {
-  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.18);
-}
-
 .pulso-stepper {
   --pulso-stepper-accent: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 82%, #001b33 18%);
   --pulso-stepper-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
@@ -3879,10 +3461,6 @@ a { color: var(--pulso-primary); }
   margin-bottom: 8px;
 }
 
-.pulso-main--viewport .pulso-xlsform-frame .pulso-card {
-  padding: 12px 14px !important;
-}
-
 .pulso-main--viewport .pulso-xlsform-frame .pulso-builder-grid {
   gap: 12px !important;
   grid-template-columns: minmax(260px, 0.36fr) minmax(520px, 1fr) !important;
@@ -4040,8 +3618,7 @@ a { color: var(--pulso-primary); }
   -webkit-backdrop-filter: none;
 }
 
-.pulso-context-bar--material,
-.pulso-command-bar--material {
+.pulso-context-bar--material {
   backdrop-filter: blur(10px) saturate(1.08);
   -webkit-backdrop-filter: blur(10px) saturate(1.08);
 }
@@ -4105,38 +3682,6 @@ a { color: var(--pulso-primary); }
   }
 }
 
-.pulso-command-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 1 auto;
-  flex-wrap: wrap;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.pulso-icon-button {
-  width: var(--pulso-control-height-md);
-  height: var(--pulso-control-height-md);
-  min-width: var(--pulso-control-height-md);
-  min-height: var(--pulso-control-height-md);
-  padding: 0;
-  border-radius: var(--pulso-radius-chip);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pulso-pill-button {
-  min-height: var(--pulso-control-height-md);
-  border-radius: var(--pulso-radius-chip);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
-
 .pulso-split-view {
   min-height: 0;
   min-width: 0;
@@ -4148,24 +3693,6 @@ a { color: var(--pulso-primary); }
   overflow: hidden;
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
-}
-
-.pulso-sidebar {
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  background: color-mix(in srgb, var(--pulso-surface-2) 86%, transparent);
-  border-right: 1px solid var(--pulso-border);
-}
-
-/* Estado del rail de pestañas (ADR 0044). Vive en su propia línea porque el
- * título del rail es identidad fija: cuando el estado ocupaba ese slot, cada
- * sección de Procesamiento se llamaba distinto según cómo estuviera. */
-.pulso-sidebar-head-status {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-medium);
-  line-height: 1.3;
 }
 
 .pulso-content-area {
@@ -4207,15 +3734,6 @@ a { color: var(--pulso-primary); }
   border-right: 1px solid var(--pulso-border);
 }
 
-.pulso-adaptive-rail > .pulso-sidebar.pulso-sidebar {
-  height: 100%;
-  min-height: 0;
-  overflow: visible;
-  border-right: 0;
-  border-bottom: 0;
-  background: transparent;
-}
-
 .pulso-adaptive-main {
   min-width: 0;
   min-height: var(--pulso-operational-min-panel);
@@ -4238,29 +3756,6 @@ a { color: var(--pulso-primary); }
 .pulso-page-frame--scroll-panels .pulso-adaptive-main > .pulso-content-area,
 .pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-content-area {
   min-height: 0;
-}
-
-.pulso-scroll-host {
-  min-width: 0;
-  min-height: var(--pulso-operational-min-panel);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.pulso-scroll-host--list {
-  min-height: var(--pulso-operational-min-list);
-}
-
-.pulso-scroll-host--media {
-  min-height: var(--pulso-operational-min-media);
-}
-
-.pulso-dialog-body-scroll {
-  min-height: var(--pulso-operational-min-dialog-body);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
 @media (max-width: 1180px) {
@@ -4539,11 +4034,6 @@ a { color: var(--pulso-primary); }
   overflow: visible;
 }
 
-:root[data-pulso-layout-mode="compact"] .pulso-phase-separator,
-:root[data-pulso-layout-mode="short"] .pulso-phase-separator {
-  display: none;
-}
-
 :root[data-pulso-layout-mode="compact"] .pulso-phase-pillbar,
 :root[data-pulso-layout-mode="short"] .pulso-phase-pillbar {
   width: fit-content;
@@ -4608,12 +4098,6 @@ a { color: var(--pulso-primary); }
     grid-column: 3;
     justify-self: end;
     margin-left: 0;
-  }
-
-  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-separator,
-  :root[data-pulso-layout-mode="compact"] .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-separator,
-  :root[data-pulso-layout-mode="short"] .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-separator {
-    display: block;
   }
 
   .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pillbar,
@@ -4773,17 +4257,6 @@ a { color: var(--pulso-primary); }
   display: none;
 }
 
-.pulso-popover-surface,
-.pulso-sheet-surface {
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  box-shadow: var(--pulso-shadow-high);
-}
-
-.pulso-popover-surface {
-  border-radius: var(--pulso-radius-card);
-}
-
 /* Validación · command bar, split view y navegación lateral */
 .pulso-validacion-frame .pulso-page-frame-toolbar {
   margin-top: 10px;
@@ -4853,15 +4326,7 @@ a { color: var(--pulso-primary); }
   flex: 1 1 auto;
   min-height: 0;
 }
-.pulso-regla-execution-switch span {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: white;
-  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.18);
-  transform: translateX(0);
-  transition: transform 120ms ease;
-}
+
 .pulso-regla-execution-copy strong,
 .pulso-regla-execution-copy small {
   overflow: hidden;
@@ -6917,10 +6382,6 @@ a { color: var(--pulso-primary); }
     overflow: visible;
   }
 
-  .pulso-module-current {
-    max-width: 140px;
-  }
-
   .pulso-module-tile-label {
     display: none;
   }
@@ -6932,10 +6393,6 @@ a { color: var(--pulso-primary); }
     justify-content: center;
     gap: 0;
     margin-inline: auto;
-  }
-
-  .pulso-phase-separator {
-    display: none;
   }
 
   .pulso-phase-pillbar {
@@ -7014,16 +6471,6 @@ a { color: var(--pulso-primary); }
   .pulso-split-view {
     display: flex;
     flex-direction: column;
-  }
-
-  .pulso-sidebar {
-    border-right: none;
-    border-bottom: 1px solid var(--pulso-border);
-  }
-
-  .pulso-main--processing .pulso-sidebar {
-    flex: 0 0 auto;
-    max-height: min(34dvh, 300px);
   }
 
   .pulso-main--processing .pulso-split-view > .pulso-content-area {
@@ -7112,10 +6559,6 @@ a { color: var(--pulso-primary); }
     width: auto;
   }
 
-  .pulso-sibling-switcher-status {
-    flex-wrap: wrap;
-  }
-
   .pulso-sibling-menu {
     width: calc(100vw - 20px);
   }
@@ -7131,11 +6574,6 @@ a { color: var(--pulso-primary); }
 
   .pulso-module-switcher {
     flex-basis: 100%;
-  }
-
-  .pulso-module-switcher-label,
-  .pulso-module-current {
-    display: none;
   }
 
   .pulso-validacion-panel-head {
@@ -7290,15 +6728,7 @@ h1.pulso-page-title {
   margin: 0 0 20px 0;
   max-width: 780px;
 }
-.pulso-section-title {
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-  margin: 0 0 8px 0;
-  color: var(--pulso-text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+
 .pulso-section-eyebrow {
   font-size: 11px;
   text-transform: uppercase;
@@ -9830,8 +9260,7 @@ h1.pulso-page-title {
   white-space: nowrap;
 }
 .pulso-multibase-study-action,
-.pulso-base-row-button,
-.pulso-normalized-export-actions button {
+.pulso-base-row-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -10193,16 +9622,13 @@ h1.pulso-page-title {
 .pulso-integrated-history-row small {
   grid-column: 2;
 }
-.pulso-integrated-setup,
-.pulso-integrated-toolbar {
+.pulso-integrated-setup {
   display: grid;
   grid-template-columns: minmax(320px, 1.45fr) minmax(170px, 0.72fr) minmax(260px, 1fr);
   gap: 12px;
   align-items: end;
 }
-.pulso-integrated-field,
-.pulso-integrated-toolbar label,
-.pulso-integrated-guide-field {
+.pulso-integrated-field {
   display: grid;
   gap: 6px;
   color: var(--pulso-text-soft);
@@ -10393,8 +9819,7 @@ h1.pulso-page-title {
   min-width: 0;
   gap: 3px;
 }
-.pulso-upload-remove,
-.pulso-demo-chip-remove {
+.pulso-upload-remove {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -10409,8 +9834,7 @@ h1.pulso-page-title {
   border-color: var(--pulso-border);
   color: var(--pulso-text-soft);
 }
-.pulso-upload-remove:hover:not(:disabled),
-.pulso-demo-chip-remove:hover:not(:disabled) {
+.pulso-upload-remove:hover:not(:disabled) {
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
@@ -10803,12 +10227,6 @@ h1.pulso-page-title {
   padding: 5px 8px;
   font-weight: var(--pulso-weight-heavy);
 }
-.pulso-data-review-restore-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
 
 .pulso-data-review-options {
   border-top: 1px solid var(--pulso-border);
@@ -10888,141 +10306,6 @@ h1.pulso-page-title {
   border-color: color-mix(in srgb, var(--pulso-warn-fg) 28%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-warn-bg) 55%, #fff);
   color: var(--pulso-text);
-}
-
-.pulso-demo-section {
-  margin-bottom: 20px;
-  padding: 12px 14px;
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-}
-.pulso-demo-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.pulso-demo-section.is-loading .pulso-demo-header {
-  margin-bottom: 0;
-}
-.pulso-demo-header-icon {
-  color: var(--pulso-text-soft);
-  flex-shrink: 0;
-}
-.pulso-demo-eyebrow {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--pulso-text-soft);
-}
-.pulso-demo-copy {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  line-height: 1.5;
-}
-.pulso-demo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
-}
-.pulso-demo-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: #fff;
-  transition:
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease;
-}
-.pulso-demo-chip.is-active {
-  border-color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
-}
-.pulso-demo-chip.is-disabled {
-  opacity: 0.45;
-}
-.pulso-demo-chip-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-primary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.pulso-demo-chip.is-active .pulso-demo-chip-icon {
-  background: #fff;
-  border: 1px solid var(--pulso-primary-border);
-}
-.pulso-demo-chip-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  color: inherit;
-}
-.pulso-demo-chip-body:hover:not(:disabled) {
-  background: transparent;
-  border-color: transparent;
-}
-.pulso-demo-chip-body:disabled {
-  opacity: 1;
-}
-.pulso-demo-chip.is-active .pulso-demo-chip-body {
-  cursor: default;
-}
-.pulso-demo-chip.is-disabled .pulso-demo-chip-body {
-  cursor: not-allowed;
-}
-.pulso-demo-chip-title,
-.pulso-demo-chip-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pulso-demo-chip-title {
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-.pulso-demo-chip.is-active .pulso-demo-chip-title {
-  color: var(--pulso-primary);
-}
-.pulso-demo-chip-meta {
-  font-size: 10px;
-  color: var(--pulso-text-soft);
-}
-.pulso-demo-chip-remove {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  padding: 3px 8px;
-  border-radius: 6px;
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
-}
-.pulso-demo-chip-arrow {
-  flex-shrink: 0;
-  color: var(--pulso-text-soft);
-}
-.pulso-demo-chip.is-disabled .pulso-demo-chip-arrow {
-  opacity: 0.3;
 }
 
 .pulso-continue-cta {
@@ -11214,16 +10497,15 @@ h1.pulso-page-title {
   }
 
   .pulso-sm-survey-picker,
-  .pulso-sm-survey-list,
-  .pulso-sm-audit-table,
-  .pulso-multi-strategy,
-  .pulso-integrated-setup,
-  .pulso-integrated-sourcebar,
-  .pulso-integrated-toolbar,
-  .pulso-integrated-history-head,
-  .pulso-integrated-history-summary,
-  .pulso-integrated-history-files,
-  .pulso-integrated-history-grid {
+.pulso-sm-survey-list,
+.pulso-sm-audit-table,
+.pulso-multi-strategy,
+.pulso-integrated-setup,
+.pulso-integrated-sourcebar,
+.pulso-integrated-history-head,
+.pulso-integrated-history-summary,
+.pulso-integrated-history-files,
+.pulso-integrated-history-grid {
     grid-template-columns: 1fr;
   }
   .pulso-integrated-history-metrics {
@@ -11329,9 +10611,7 @@ h1.pulso-page-title {
   .pulso-upload-remove {
     padding-inline: 8px;
   }
-  .pulso-demo-grid {
-    grid-template-columns: 1fr;
-  }
+
   .pulso-continue-cta {
     align-items: flex-start;
   }
@@ -11514,38 +10794,7 @@ h1.pulso-page-title {
   flex-wrap: wrap;
   margin-left: auto;
 }
-.pulso-active-base-control {
-  min-width: 188px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  box-sizing: border-box;
-  padding: 4px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--pulso-text-soft);
-}
-.pulso-active-base-control .pulso-section-eyebrow {
-  margin: 0;
-  font-size: 10px;
-  white-space: nowrap;
-}
-.pulso-active-base-control select {
-  min-width: 0;
-  min-height: 30px;
-  flex: 1 1 auto;
-  border: 0;
-  background-color: transparent;
-  color: var(--pulso-text);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  box-shadow: none;
-}
-.pulso-active-base-control select:focus {
-  background-color: #fff;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
+
 .pulso-analitica-shell {
   grid-template-columns: minmax(166px, 184px) minmax(0, 1fr);
   min-height: 0;
@@ -12186,12 +11435,7 @@ h1.pulso-page-title {
 .pulso-data-review-panel .pulso-panel-heading {
   flex-basis: min(240px, 100%);
 }
-.pulso-data-review-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  white-space: nowrap;
-}
+
 .pulso-data-review-panel > .pulso-panel-hint {
   max-width: 760px;
   margin-bottom: 6px;
@@ -12206,38 +11450,7 @@ h1.pulso-page-title {
   flex-wrap: wrap;
   min-width: 0;
 }
-.pulso-data-review-command-chip {
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--pulso-text);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-  white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
-.pulso-data-review-command-button {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-.pulso-data-review-empty-note {
-  padding: 11px 12px;
-  border: 1px dashed color-mix(in srgb, var(--pulso-border) 74%, var(--pulso-module-processing-border));
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--pulso-module-processing-soft) 16%, #fff);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.35;
-}
+
 .pulso-data-review-workbench > .pulso-loading-block {
   flex: 1 1 auto;
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 46%, var(--pulso-border) 54%);
@@ -12301,13 +11514,6 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
-.pulso-data-review-detect-button {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   white-space: nowrap;
 }
 
@@ -15079,11 +14285,6 @@ h1.pulso-page-title {
     flex-basis: auto;
   }
 
-  .pulso-active-base-control {
-    width: 100%;
-    min-width: 0;
-  }
-
   .pulso-analitica-source-switch {
     display: grid;
     grid-template-columns: 1fr;
@@ -16049,17 +15250,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border: 1px solid var(--pulso-border);
   color: var(--pulso-primary);
   flex-shrink: 0;
-}
-
-/* ============================================================================
- * Inspector v2 — tabs (Básico/Apariencia/Más/Lógica)
- * Reemplaza al QuestionInspector legacy. Refuerza la regla del revamp:
- * el catálogo se ASIGNA acá, se EDITA en el ContextLens de catálogos.
- * ========================================================================= */
-.pulso-inspector {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .pulso-inspector-tab {
@@ -21200,416 +20390,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   50%      { box-shadow: 0 4px 22px rgba(36, 87, 214, 0.42); }
 }
 
-/* ============================================================================
- * Modo toggle Constructor / Hojas
- * Segmented control en el header del Panel "Espacio de construcción".
- * ========================================================================= */
-.pulso-mode-toggle {
-  display: inline-flex;
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  padding: 2px;
-  gap: 2px;
-}
-.pulso-mode-toggle button {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text-soft);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
-}
-.pulso-mode-toggle button:hover {
-  color: var(--pulso-text);
-}
-.pulso-mode-toggle button.is-on {
-  background: white;
-  color: var(--pulso-text);
-  box-shadow: var(--pulso-shadow-soft);
-}
-
-/* ============================================================================
- * SheetsView — vista por hojas (modo Excel) del XLSForm.
- * ========================================================================= */
-.pulso-sheets-view {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-.pulso-sheets-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-bottom: 1px solid var(--pulso-border);
-  padding-bottom: 0;
-  width: 100%;
-}
-.pulso-sheets-tabs button {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 140ms ease, border-color 140ms ease;
-  font-family: inherit;
-}
-.pulso-sheets-tabs button:hover {
-  color: var(--pulso-text);
-}
-.pulso-sheets-tabs button.is-active {
-  color: var(--pulso-primary);
-  border-bottom-color: var(--pulso-primary);
-}
-.pulso-sheets-tab-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-}
-.pulso-sheets-tab-name code {
-  padding: 2px 5px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--pulso-border) 38%, #ffffff);
-  color: var(--pulso-text-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-.pulso-sheets-tabs button.is-active .pulso-sheets-tab-name code {
-  background: color-mix(in srgb, var(--pulso-primary) 12%, #ffffff);
-  color: var(--pulso-primary-strong, var(--pulso-primary));
-}
-.pulso-sheets-tab-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 18px;
-  padding: 0 6px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  border-radius: 9px;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-}
-.pulso-sheets-tabs button.is-active .pulso-sheets-tab-count {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-}
-.pulso-sheets-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.pulso-sheets-guide {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 9px;
-  align-items: flex-start;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 248, 252, 0.84)),
-    color-mix(in srgb, var(--pulso-primary) 5%, white);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-sheets-guide.is-active {
-  border-color: color-mix(in srgb, #b7791f 30%, var(--pulso-border));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 251, 235, 0.52)),
-    color-mix(in srgb, #f59e0b 7%, white);
-}
-
-.pulso-sheets-guide.is-active svg {
-  color: #b7791f;
-}
-
-.pulso-sheets-guide svg {
-  margin-top: 1px;
-  color: var(--pulso-primary);
-}
-
-.pulso-sheets-guide strong,
-.pulso-sheets-guide span {
-  display: block;
-}
-
-.pulso-sheets-guide strong {
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-sheets-guide span {
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 1.35;
-}
-.pulso-sheets-newcol {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.pulso-sheets-newcol input {
-  font-size: 12px;
-  padding: 6px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  width: 280px;
-  font-family: ui-monospace, monospace;
-}
-.pulso-sheets-newcol input:focus {
-  outline: 2px solid var(--pulso-primary-soft);
-  outline-offset: -2px;
-  border-color: var(--pulso-primary);
-}
-.pulso-sheets-btn {
-  appearance: none;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 140ms ease, border-color 140ms ease;
-}
-.pulso-sheets-btn:hover:not(:disabled) {
-  background: var(--pulso-surface-2);
-  border-color: var(--pulso-primary);
-}
-.pulso-sheets-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.pulso-sheets-btn-danger {
-  color: var(--pulso-danger, #dc2626);
-}
-
-.pulso-sheets-advanced-toggle {
-  color: color-mix(in srgb, var(--pulso-primary) 82%, #1f2937 18%);
-}
-
-.pulso-sheets-meta {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-  font-variant-numeric: tabular-nums;
-}
-.pulso-sheets-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  max-height: calc(100vh - 280px);
-  background: white;
-}
-.pulso-sheets-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-}
-.pulso-sheets-table {
-  border-collapse: separate;
-  border-spacing: 0;
-  width: 100%;
-  font-size: 12px;
-}
-.pulso-sheets-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--pulso-surface-2);
-  border-bottom: 1px solid var(--pulso-border);
-  padding: 7px 10px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text-soft);
-  font-family: ui-monospace, monospace;
-  text-transform: lowercase;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-
-.pulso-sheets-column-head {
-  display: inline-flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-  line-height: 1.1;
-}
-
-.pulso-sheets-column-head > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--pulso-text);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
-
-.pulso-sheets-column-head small {
-  display: inline-flex;
-  color: color-mix(in srgb, var(--pulso-text-soft) 80%, white);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.pulso-sheets-column-head small code {
-  display: inline-flex;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 2px 5px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.64);
-  color: inherit;
-  font-family: ui-monospace, monospace;
-}
-
-.pulso-sheets-column-head.is-extension > span {
-  color: #925314;
-}
-
-.pulso-sheets-column-head.is-extension small code {
-  border-color: color-mix(in srgb, #f59e0b 20%, transparent);
-  background: color-mix(in srgb, #f59e0b 8%, white);
-}
-
-.pulso-sheets-column-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 15px;
-  padding: 0 5px;
-  border: 1px solid color-mix(in srgb, #b7791f 38%, transparent);
-  border-radius: 5px;
-  background: color-mix(in srgb, #f59e0b 12%, white);
-  color: #9a5b13;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-sheets-table tbody td {
-  border-bottom: 1px solid var(--pulso-border);
-  padding: 4px 6px;
-  vertical-align: top;
-}
-.pulso-sheets-table tbody tr:hover {
-  background: rgba(36, 87, 214, 0.025);
-}
-.pulso-sheets-actions-col {
-  width: 84px;
-  background: var(--pulso-surface-2);
-  position: sticky;
-  left: 0;
-  z-index: 1;
-}
-.pulso-sheets-table thead th.pulso-sheets-actions-col {
-  z-index: 3;
-}
-.pulso-sheets-row-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.pulso-sheets-row-actions > div {
-  display: inline-flex;
-  gap: 1px;
-}
-.pulso-sheets-row-num {
-  font-size: 10.5px;
-  color: var(--pulso-text-soft);
-  font-variant-numeric: tabular-nums;
-  min-width: 20px;
-  font-weight: var(--pulso-weight-bold);
-}
-.pulso-sheets-row-actions button {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 3px;
-  border-radius: 3px;
-  cursor: pointer;
-  color: var(--pulso-text-soft);
-  display: inline-flex;
-}
-.pulso-sheets-row-actions button:hover:not(:disabled) {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-}
-.pulso-sheets-row-actions button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.pulso-sheets-row-actions .pulso-sheets-btn-danger:hover {
-  background: rgba(220, 38, 38, 0.10);
-  color: var(--pulso-danger, #dc2626);
-}
-
-/* Cell input: borderless en estado inactivo, border al focus. */
-.pulso-sheets-cell {
-  appearance: none;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 4px 7px;
-  font-size: 12px;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  color: var(--pulso-text);
-  width: 100%;
-  min-width: 100px;
-  transition: border-color 100ms ease, background 100ms ease;
-  resize: vertical;
-  line-height: 1.45;
-}
-.pulso-sheets-cell.is-expression {
-  font-family: ui-monospace, monospace;
-  font-size: 11.5px;
-  color: var(--pulso-primary);
-}
-.pulso-sheets-cell:hover {
-  background: var(--pulso-surface-2);
-}
-.pulso-sheets-cell:focus {
-  outline: none;
-  background: white;
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
-}
-.pulso-sheets-cell.is-multiline {
-  min-height: 40px;
-  white-space: pre-wrap;
-}
-
 /* Editor WYSIWYG: contenteditable que muestra siempre el formato
    visualmente — no hay toggle. */
 .pulso-md-editor {
@@ -22459,222 +21239,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   margin-bottom: 0;
 }
 
-.pulso-focus-workspace-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--xls-border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 253, 0.9)),
-    var(--xls-toolbar);
-}
-
-.pulso-focus-title-cluster {
-  display: flex;
-  align-items: flex-start;
-  min-width: 0;
-  gap: 10px;
-}
-
-.pulso-focus-title-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
-  border-radius: 10px;
-  color: var(--pulso-primary);
-  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
-}
-
-.pulso-focus-title-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pulso-focus-title-copy h3 {
-  max-width: min(720px, 100%);
-  margin: 0;
-  overflow: hidden;
-  color: #142033;
-  font-size: 18px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0;
-  line-height: 1.18;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-focus-title-copy p {
-  margin: 0;
-  overflow: hidden;
-  color: #667386;
-  font-size: 12px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-focus-status-strip {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.pulso-focus-status-chip {
-  min-width: 0;
-  max-width: 190px;
-  min-height: 26px;
-  display: inline-grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-  padding: 4px 7px 4px 5px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 88%, transparent);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.68);
-  color: #536174;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-.pulso-focus-status-icon {
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  background: #ffffff;
-  color: currentColor;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
-}
-
-.pulso-focus-status-chip strong,
-.pulso-focus-status-chip small {
-  overflow: hidden;
-  line-height: 1.05;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-focus-status-chip strong {
-  color: #172136;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-status-chip small {
-  color: #667386;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.pulso-focus-workspace-controls {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pulso-focus-mode-toggle {
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--xls-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, #eef1f6 82%, white 18%);
-}
-
-.pulso-focus-mode-toggle button,
-.pulso-focus-tabs button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  gap: 6px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #5c6675;
-  font-weight: var(--pulso-weight-bold);
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-focus-mode-toggle button {
-  min-height: 28px;
-  padding: 5px 10px;
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
-.pulso-focus-mode-toggle button.is-on,
-.pulso-focus-tabs button.is-active {
-  background: #ffffff;
-  color: #142033;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 12px rgba(15, 23, 42, 0.07);
-}
-
-.pulso-focus-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pulso-focus-danger-action {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--pulso-danger-border);
-  border-radius: var(--xls-radius-control);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-focus-workspace-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  padding: 12px;
-  background:
-    linear-gradient(180deg, rgba(248, 250, 253, 0.82), rgba(255, 255, 255, 0.94)),
-    var(--xls-content);
-}
-
-.pulso-focused-node-layout,
-.pulso-focus-settings-layout {
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(330px, 0.82fr) minmax(360px, 1fr);
-  gap: 12px;
-}
-
-.pulso-focus-preview-pane,
 .pulso-focus-config-pane {
   min-width: 0;
   min-height: 0;
@@ -22683,49 +21247,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 12px;
   background: var(--xls-content);
   box-shadow: var(--xls-shadow-hairline);
-}
-
-.pulso-focus-preview-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-}
-
-.pulso-focus-pane-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--xls-border);
-}
-
-.pulso-focus-pane-head strong {
-  color: #253149;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-question-preview,
-.pulso-focus-section-preview {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pulso-focus-question-preview .pulso-canvas-card {
-  margin: 0;
-}
-
-.pulso-focus-section-facts,
-.pulso-focus-settings-summary,
-.pulso-focus-structure-summary,
-.pulso-focus-catalog-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
 }
 
 .pulso-focus-fact {
@@ -22847,40 +21368,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   scroll-padding-top: 64px;
 }
 
-.pulso-focus-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
-  gap: 3px;
-  padding: 8px;
-  border-bottom: 1px solid var(--xls-border);
-  background: color-mix(in srgb, #f4f6fa 92%, white 8%);
-}
-
-.pulso-focus-tabs button {
-  min-height: 32px;
-  padding: 5px 7px;
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.pulso-focus-config-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-  scroll-padding-top: 64px;
-  padding: 12px;
-}
-
-.pulso-focus-tab-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pulso-focus-rule-context,
 .pulso-focus-validation {
   display: flex;
   min-width: 0;
@@ -22888,240 +21375,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   gap: 8px;
 }
 
-/* Encabezado de sección de Reglas: distingue Visibilidad (cuándo aparece) de
-   Validación (qué se acepta) — dos conceptos que antes se leían iguales. */
-.pulso-focus-rule-section-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding-bottom: 9px;
-  margin-bottom: 1px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-focus-rule-section-head strong {
-  display: block;
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.01em;
-  color: #1f2a44;
-}
-
-.pulso-focus-rule-section-head small {
-  display: block;
-  margin-top: 1px;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-focus-rule-section-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  flex: none;
-}
-
-.pulso-focus-rule-context {
-  padding: 10px;
-  border: 1px solid var(--xls-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--xls-content-soft) 76%, #ffffff 24%);
-}
-
-/* El contexto de reglas reparte sus tarjetas en fila cuando caben.
- *
- * Colgaba de `@media (min-width: 1120px)` y de
- * `:has(.pulso-focus-tabs button.is-active:nth-child(3))`, que contaba HIJOS:
- * el primero de `.pulso-focus-tabs` es el indicador deslizante (lo pinta
- * `GlidingTabList` antes de los botones), así que el selector señalaba
- * Respuesta —donde este bloque ni siquiera se monta— y la regla nunca llegó
- * a aplicarse en Reglas, que es su pestaña.
- *
- * No hace falta ninguna condición que la reemplace. Acotarla por pestaña
- * sobraba: `.pulso-focus-rule-context` solo se monta en Reglas. Y el media
- * query no decía nada útil, porque el panel mide ~600 px con cualquier
- * viewport de la matriz. Con `wrap` y una base de 260 px la fila se resuelve
- * sola, y con una sola tarjeta esta crece al ancho completo en vez de dejar
- * media columna vacía —que era lo que producía el `auto-fit` con la cabecera
- * abarcando todas las columnas—. */
-.pulso-focus-rule-context {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: stretch;
-}
-
-.pulso-focus-rule-card {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-
-.pulso-focus-rule-context-head {
-  display: flex;
-  flex: 1 1 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.pulso-focus-rule-context-head strong {
-  color: #445066;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-rule-card,
-.pulso-focus-validation-card,
-.pulso-focus-data-note,
-.pulso-focus-soft-empty {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  gap: 8px;
-  border: 1px solid var(--xls-border);
-  border-radius: 9px;
-  background: #ffffff;
-  color: var(--pulso-text);
-}
-
-.pulso-focus-rule-card {
-  padding: 9px 10px;
-}
-
-.pulso-focus-rule-card svg,
-.pulso-focus-validation-card svg,
-.pulso-focus-data-note svg,
-.pulso-focus-soft-empty svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--pulso-primary);
-}
-
-.pulso-focus-rule-card > div,
-.pulso-focus-validation-card > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.pulso-focus-rule-card span,
-.pulso-focus-validation-card span {
-  color: #667386;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
-}
-
-.pulso-focus-rule-card strong,
-.pulso-focus-validation-card strong {
-  color: #1f2a3d;
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.35;
-}
-
-.pulso-focus-rule-list {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 2px;
-}
-
-.pulso-focus-rule-item {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 88%, transparent);
-  border-radius: 9px;
-  background: color-mix(in srgb, #ffffff 86%, var(--xls-content-soft) 14%);
-}
-
-.pulso-focus-rule-item-index {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
-  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149); /* AA en texto chico sobre soft (patrón del scope) */
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-rule-item-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pulso-focus-rule-item-copy > strong {
-  display: -webkit-box;
-  overflow: hidden;
-  color: #253149;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.28;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.pulso-focus-rule-values {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.pulso-focus-rule-values span {
-  max-width: 100%;
-  padding: 3px 7px;
-  border: 1px solid var(--xls-border);
-  border-radius: 999px;
-  background: #ffffff;
-  color: #253149;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-  text-transform: none;
-}
-
-.pulso-focus-rule-card.is-muted,
-.pulso-focus-validation-card.is-empty,
-.pulso-focus-soft-empty {
-  background: color-mix(in srgb, var(--xls-content-soft) 84%, #ffffff 16%);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-focus-rule-card.is-muted span,
-.pulso-focus-soft-empty span {
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.45;
-  text-transform: none;
-}
-
-.pulso-focus-rule-card.is-technical,
-.pulso-focus-validation-card:has(details) {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg, #a16207) 32%, var(--xls-border));
-}
-
-.pulso-focus-rule-card details,
-.pulso-focus-validation-card details,
 .pulso-inspector-conditional-required-rule details {
   margin-top: 2px;
 }
 
-.pulso-focus-rule-card summary,
-.pulso-focus-validation-card summary,
 .pulso-inspector-conditional-required-rule summary {
   color: var(--pulso-text-soft);
   cursor: pointer;
@@ -23129,8 +21386,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   font-weight: var(--pulso-weight-bold);
 }
 
-.pulso-focus-rule-card code,
-.pulso-focus-validation-card code,
 .pulso-inspector-conditional-required-rule details code {
   display: block;
   margin-top: 4px;
@@ -23142,46 +21397,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   font-size: 11px;
   line-height: 1.45;
   word-break: break-word;
-}
-
-.pulso-focus-validation-card {
-  padding: 10px;
-}
-
-.pulso-focus-validation-message-status {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 24px minmax(0, 1fr);
-  align-items: flex-start;
-  gap: 7px;
-  padding: 8px 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-warn-fg) 18%, var(--xls-border));
-  border-radius: 9px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 235, 0.7)),
-    color-mix(in srgb, var(--pulso-warn-bg) 25%, #ffffff);
-  color: color-mix(in srgb, var(--pulso-warn-fg) 80%, #253149);
-}
-
-.pulso-focus-validation-message-status span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pulso-focus-validation-message-status strong {
-  color: #253149;
-  font-size: 11.8px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-}
-
-.pulso-focus-validation-message-status small {
-  color: var(--pulso-text-soft);
-  font-size: 10.7px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
 }
 
 .pulso-focus-guided-validation {
@@ -23201,171 +21416,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   line-height: 1.35;
 }
 
-.pulso-focus-required-message-block {
-  border: 1px solid var(--xls-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--xls-content-soft) 72%, #ffffff 28%);
-  padding: 9px 11px;
-}
-
 .pulso-focus-custom-validation {
   padding: 10px;
   border: 1px solid var(--xls-border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--xls-content-soft) 72%, #ffffff 28%);
-}
-
-.pulso-focus-regex-shortcuts {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 8px;
-  margin: 10px 0;
-  padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 15%, var(--xls-border));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
-}
-
-.pulso-focus-regex-shortcuts-head {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pulso-focus-regex-shortcuts-head strong {
-  color: #1f2a3d;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-}
-
-.pulso-focus-regex-shortcuts-head small {
-  color: var(--pulso-text-soft);
-  font-size: 10.8px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.35;
-}
-
-.pulso-focus-regex-shortcut-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
-  gap: 7px;
-  min-width: 0;
-}
-
-.pulso-focus-regex-shortcut {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  align-items: flex-start;
-  padding: 8px;
-  border: 1px solid var(--xls-border);
-  border-radius: 9px;
-  background: #ffffff;
-  color: var(--pulso-text);
-  text-align: left;
-}
-
-.pulso-focus-regex-shortcut-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.pulso-focus-regex-shortcut-copy strong {
-  display: block;
-  max-width: 100%;
-  min-width: 0;
-  color: #1f2a3d;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.pulso-focus-regex-shortcut-copy small,
-.pulso-focus-regex-shortcut-copy em {
-  display: block;
-  max-width: 100%;
-  min-width: 0;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.pulso-focus-regex-shortcut-copy em {
-  color: color-mix(in srgb, var(--pulso-primary) 72%, #253149);
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-regex-shortcut code {
-  justify-self: start;
-  max-width: 76px;
-  padding: 3px 5px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
-  color: var(--pulso-primary);
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  overflow-wrap: anywhere;
-}
-
-.pulso-focus-note-authoring-head strong {
-  color: #1f2a3d;
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-}
-
-.pulso-focus-note-preset-copy strong {
-  display: block;
-  max-width: 100%;
-  min-width: 0;
-  color: #1f2a3d;
-  font-size: 11.8px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.pulso-focus-note-preset-copy small,
-.pulso-focus-note-preset-copy em {
-  display: block;
-  max-width: 100%;
-  min-width: 0;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.pulso-focus-note-preset code {
-  grid-column: 2;
-  justify-self: start;
-  padding: 2px 5px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
-  color: var(--pulso-primary);
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter {
@@ -23546,35 +21601,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   gap: 8px;
 }
 
-.pulso-focus-message-presets {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--pulso-success-bg) 34%, #ffffff);
-}
-
-.pulso-focus-required-message-checks span {
-  display: inline-flex;
-  max-width: 100%;
-  min-height: 24px;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border: 1px solid var(--xls-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #667386;
-  font-size: 10.4px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
 .pulso-focus-repeat-builder button {
   min-height: 32px;
   padding: 6px 9px;
@@ -23591,191 +21617,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   opacity: 0.48;
 }
 
-.pulso-focus-constraint-message-guidance span {
-  color: var(--pulso-text-soft);
-  font-size: 10.7px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.35;
-}
-
-.pulso-focus-media-field-head > span {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
-  color: var(--pulso-primary);
-}
-
-.pulso-focus-media-examples button {
-  max-width: 100%;
-  min-width: 0;
-  cursor: pointer;
-  padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
-  color: color-mix(in srgb, var(--pulso-primary) 82%, #253149);
-  font-size: 10.2px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  text-align: left;
-}
-
-.pulso-focus-media-examples button.is-clear {
-  border-color: color-mix(in srgb, var(--pulso-danger-fg) 16%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-danger-bg) 38%, #ffffff);
-  color: var(--pulso-danger-fg);
-}
-
-.pulso-focus-presentation-badges span {
-  max-width: 100%;
-  padding: 3px 7px;
-  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--pulso-info-fg);
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  overflow-wrap: anywhere;
-}
-
-.pulso-focus-data-note,
-.pulso-focus-soft-empty {
-  padding: 10px;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.pulso-focus-select-data-guide-grid span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 12%, var(--xls-border));
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.pulso-focus-name-checks span {
-  display: inline-flex;
-  max-width: 100%;
-  min-height: 24px;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border: 1px solid var(--xls-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #667386;
-  font-size: 10.4px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.pulso-focus-name-suggestions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
-  gap: 7px;
-  min-width: 0;
-}
-
-.pulso-focus-name-suggestions button {
-  width: 100%;
-  min-width: 0;
-  min-height: 34px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px;
-  align-items: center;
-  padding: 7px 8px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 17%, var(--xls-border));
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--pulso-primary);
-  text-align: left;
-  overflow: hidden;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-focus-name-suggestions button:disabled {
-  cursor: default;
-  opacity: 0.54;
-}
-
-.pulso-focus-name-suggestions code {
-  display: block;
-  max-width: 100%;
-  min-width: 0;
-  color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
-  font-family: ui-monospace, monospace;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.pulso-focus-name-suggestions span {
-  color: #667386;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-shared-list {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.pulso-focus-shared-list button,
-.pulso-focus-link-action {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: 5px 8px;
-  border: 1px solid var(--xls-border);
-  border-radius: 7px;
-  background: var(--xls-content);
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  text-align: left;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-focus-link-action {
-  align-self: flex-start;
-  color: var(--pulso-primary);
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .pulso-focus-mode-toggle button:hover:not(.is-on),
-  .pulso-focus-tabs button:hover:not(.is-active),
   .pulso-focus-validation-presets button:hover,
-  .pulso-focus-message-presets button:hover,
-  .pulso-focus-name-suggestions button:hover:not(:disabled),
-  .pulso-focus-choice-filter-suggestion:hover,
-  .pulso-focus-shared-list button:hover,
-  .pulso-focus-link-action:hover {
+.pulso-focus-choice-filter-suggestion:hover {
     border-color: var(--xls-border-strong);
     background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
     color: var(--pulso-primary);
@@ -23783,27 +21627,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 @media (max-width: 1180px) {
-  .pulso-focused-node-layout,
-  .pulso-focus-settings-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-auto-rows: max-content;
-    align-content: start;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
 
-  .pulso-focus-preview-pane,
   .pulso-focus-config-pane {
     overflow: visible;
   }
 
-  /* En una sola columna el layout exterior es el único dueño del scroll.
-     Dejar además un body interno de apenas 24 px obligaba a dos gestos de
-     scroll para llegar a los campos de configuración. */
-  .pulso-focus-config-body {
-    flex: 0 0 auto;
-    overflow: visible;
-  }
 }
 
 @media (max-width: 900px) {
@@ -23815,38 +21643,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   /* El apilado del header y el ancho del título se rigen por el ANCHO DE LA
      COLUMNA, no del viewport: viven en xlsform-v2.css como @container. */
 
-  .pulso-focus-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.pulso-xlsform-frame .pulso-mode-toggle {
-  padding: 3px;
-  border-radius: 10px;
-  border-color: var(--xls-border);
-  background: color-mix(in srgb, #ffffff 68%, var(--pulso-primary) 8%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
-}
-
-.pulso-xlsform-frame .pulso-mode-toggle button {
-  min-width: 94px;
-  min-height: 28px;
-  padding: 5px 12px;
-  border-radius: 7px;
-  color: #5c6675;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-xlsform-frame .pulso-mode-toggle button.is-on {
-  background: #ffffff;
-  color: #142033;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 12px rgba(15, 23, 42, 0.07);
 }
 
 .pulso-xlsform-frame .pulso-outline-row {
@@ -23971,14 +21767,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 
 .pulso-xlsform-frame .pulso-outline-grip:active:not(.is-decor),
 .pulso-xlsform-frame .pulso-outline-actions .pulso-icon:active:not(:disabled),
-.pulso-xlsform-frame .pulso-mode-toggle button:active:not(.is-on),
-.pulso-xlsform-frame .pulso-focus-mode-toggle button:active:not(.is-on),
-.pulso-xlsform-frame .pulso-focus-tabs button:active:not(.is-active),
-.pulso-xlsform-frame .pulso-focus-danger-action:active:not(:disabled),
-.pulso-xlsform-frame .pulso-focus-link-action:active:not(:disabled),
 .pulso-xlsform-frame .pulso-focus-validation-presets button:active:not(:disabled),
-.pulso-xlsform-frame .pulso-focus-message-presets button:active:not(:disabled),
-.pulso-xlsform-frame .pulso-focus-name-suggestions button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-focus-choice-filter-suggestion:active:not(:disabled),
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled),
@@ -24268,7 +22057,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 }
 
-.pulso-xlsform-frame .pulso-inspector,
 .pulso-xlsform-frame .pulso-context-panel {
   gap: 10px;
 }
@@ -24309,73 +22097,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   box-shadow: var(--xls-ring);
 }
 
-.pulso-xlsform-frame .pulso-sheets-view {
-  gap: 12px;
-  padding: 12px;
-}
-
-.pulso-xlsform-frame .pulso-sheets-tabs {
-  width: auto;
-  align-self: flex-start;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--xls-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, #eef1f6 84%, white 16%);
-}
-
-.pulso-xlsform-frame .pulso-sheets-tabs button {
-  min-height: 30px;
-  padding: 5px 11px;
-  border: 0;
-  border-radius: 7px;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  color: #667386;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-xlsform-frame .pulso-sheets-tabs button.is-active {
-  background: #ffffff;
-  color: var(--pulso-primary);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.pulso-xlsform-frame .pulso-sheets-toolbar {
-  padding: 8px;
-  border: 1px solid var(--xls-border);
-  border-radius: 12px;
-  background: var(--xls-content-soft);
-}
-
-.pulso-xlsform-frame .pulso-sheets-table-wrap {
-  border-color: var(--xls-border);
-  border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.pulso-xlsform-frame .pulso-sheets-table thead th {
-  background: #f2f4f8;
-  color: #536174;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.pulso-xlsform-frame .pulso-sheets-table tbody tr:hover {
-  background: color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
-}
-
-.pulso-xlsform-frame .pulso-sheets-cell {
-  border-radius: 6px;
-  transition:
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
-    color var(--motion-dur-fast) var(--motion-ease-out);
-}
 @keyframes pulso-xls-popover-in {
   from {
     opacity: 0;
@@ -24437,8 +22158,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pulso-xlsform-frame .pulso-toolbar-button:hover:not(:disabled),
-.pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled),
+  .pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled),
 .pulso-xlsform-frame .pulso-xlsform-history-button:hover:not(:disabled),
 .pulso-xlsform-frame .pulso-outline-row:hover:not(.is-dragging),
 .pulso-add-element-menu-item:hover,
@@ -24452,11 +22172,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.075);
   }
 
-  .pulso-xlsform-frame .pulso-sheets-tabs button:hover:not(.is-active),
-.pulso-xlsform-frame .pulso-mode-toggle button:hover:not(.is-on) {
-    background: rgba(255, 255, 255, 0.58);
-    color: var(--pulso-text);
-  }
 }
 
 @media (max-width: 1180px) {
@@ -24492,13 +22207,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     flex-wrap: wrap;
   }
 
-  .pulso-xlsform-frame .pulso-mode-toggle {
-    width: auto;
-  }
-
-  .pulso-xlsform-frame .pulso-mode-toggle button {
-    flex: 1 1 0;
-  }
 }
 
 @media (max-width: 720px) {
@@ -24516,9 +22224,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     padding-left: 0;
   }
 
-  .pulso-xlsform-frame .pulso-mode-toggle {
-    width: 100%;
-  }
 }
 /* Analítica polish pass: clearer command surface and report rail. */
 .pulso-analitica-frame .pulso-page-frame-toolbar {
@@ -25231,10 +22936,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   max-width: min(520px, 43vw);
 }
 
-.pulso-app-header:has(.pulso-phase-rail) .pulso-phase-separator {
-  height: 24px;
-}
-
 .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pillbar {
   --pill-h: 29px;
   --pill-pad-x: 10px;
@@ -25254,12 +22955,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   padding-inline: clamp(7px, 0.62vw, var(--pill-pad-x));
 }
 
-.pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill-number {
-  min-width: 17px;
-  height: 17px;
-  font-size: 10px;
-}
-
 .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-circle {
   background: color-mix(in srgb, var(--processing-phase-soft) 78%, #ffffff);
 }
@@ -25272,12 +22967,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     inset 0 -7px 12px rgba(0, 0, 0, 0.075),
     0 5px 13px color-mix(in srgb, var(--processing-phase-accent) 25%, transparent);
-}
-
-.pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill.is-done:not(.is-active) .pulso-phase-pill-number {
-  background: color-mix(in srgb, var(--processing-phase-soft) 78%, #ffffff);
-  border-color: color-mix(in srgb, var(--processing-phase-border) 78%, #ffffff);
-  color: var(--processing-phase-accent);
 }
 
 .pulso-app-header:has(.pulso-phase-rail) .pulso-app-header-actions {

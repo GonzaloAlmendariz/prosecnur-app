@@ -217,7 +217,6 @@ const ALTURA_PROPIA_PENDIENTE = [
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-actions > [role=\"status\"]",
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-icon",
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-option",
-  "app/theme.css :: .pulso-codificacion-commandbar",
   "app/theme.css :: .pulso-context-bar-divider",
   "features/analitica/analitica-v2.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-option-icon",
   "features/bitacora/logbook.css :: .diseno-commandbar",
@@ -295,18 +294,13 @@ describe("geometría del chrome", () => {
  * la persigue por nombre.
  */
 const SUPRIME_HOVER_PENDIENTE = [
-  "app/theme.css :: .pulso-analitica-nav-item:hover:not(:disabled):not(.is-active)",
   "app/theme.css :: .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill.is-active, .pulso-app-header:has(.pulso-phase-ra...",
   "app/theme.css :: .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is...",
   "app/theme.css :: .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:not(.is-active):not(:hover):not(:focus-visible) ...",
-  "app/theme.css :: .pulso-focus-mode-toggle button:hover:not(.is-on), .pulso-focus-tabs button:hover:not(.is-active), .pulso-f...",
   "app/theme.css :: .pulso-main--processing :is( .pulso-validacion-nav-item:hover:not(:disabled):not(.is-active), .pulso-codifi...",
   "app/theme.css :: .pulso-phase-pill.is-blocked:not(.is-active):hover",
   "app/theme.css :: .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-circle",
   "app/theme.css :: .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-label",
-  "app/theme.css :: .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-label-hover",
-  "app/theme.css :: .pulso-tab-chip:hover:not(.is-disabled):not(.is-active)",
-  "app/theme.css :: .pulso-xlsform-frame .pulso-sheets-tabs button:hover:not(.is-active), .pulso-xlsform-frame .pulso-inspector...",
   "features/bitacora/cronograma.css :: .plan-rail-item:hover:not(.is-active)",
   "features/calcMuestra/calcMuestra.css :: .cmv2-section-local-tab:hover:not(.is-active)",
   "features/calcMuestra/calcMuestra.css :: .cmv2-section-local-tabs.is-guided .cmv2-section-local-tab.is-pending:not(.is-active):hover",
@@ -367,12 +361,8 @@ describe("estados de navegación", () => {
    * arregló y lo dejó comentado en su CSS.
    */
   const FONDO_SIN_COLOR_PENDIENTE = [
-    "app/theme.css :: .pulso-analitica-nav-item:hover:not(:disabled)",
-    "app/theme.css :: .pulso-analitica-nav-item:hover:not(:disabled):not(.is-active)",
     "app/theme.css :: .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is...",
-    "app/theme.css :: .pulso-codificacion-nav-item:hover:not(:disabled)",
     "app/theme.css :: .pulso-phase-pill.is-blocked:not(.is-active):hover",
-    "app/theme.css :: .pulso-validacion-nav-item:hover:not(:disabled)",
     "features/bitacora/cronograma.css :: .plan-rail-item:hover:not(.is-active)",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-picker-rail .pulso-gv2-picker-tab:hover",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-preset-nav-item:hover",
@@ -431,8 +421,6 @@ describe("estados de navegación", () => {
 
   /** Estados de navegación con color crudo en vez de acento del módulo. */
   const HEX_CRUDO_PENDIENTE = [
-    "app/theme.css :: .pulso-focus-mode-toggle button.is-on, .pulso-focus-tabs button.is-active",
-    "app/theme.css :: .pulso-xlsform-frame .pulso-inspector-tab-trigger.is-active",
     "features/hojasRuta/hojasRuta.css :: .hojas-ruta-delivery-tabs button.is-active span",
     "features/hojasRuta/hojasRuta.css :: .hojas-ruta-frame :is( .hojas-ruta-phase-tabs button.is-active, .hojas-ruta-map-layer-toggle button.is-acti...",
     "features/hojasRuta/hojasRuta.css :: .hojas-ruta-sample-tabs button.is-active span",
