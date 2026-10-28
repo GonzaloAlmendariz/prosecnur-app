@@ -1,65 +1,11 @@
 /* Importación del mapa del estudio (ADR 0047). Solo tokens `--pulso-*`. */
 
-.bport-fondo {
-  position: fixed;
-  inset: 0;
-  z-index: 1400;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  /* Velo de vidrio en vez de un scrim oscuro: `--pulso-surface-2` cambia con
-   * el tema, así que esto funciona en claro y en oscuro sin un hex propio. Un
-   * token de scrim habría que agregarlo a `theme.css`, que está congelado a
-   * crecimiento. */
-  background: color-mix(in srgb, var(--pulso-surface-2) 76%, transparent);
-  backdrop-filter: saturate(1.2) blur(8px);
-  -webkit-backdrop-filter: saturate(1.2) blur(8px);
-}
-
+/* El velo, la caja, la cabecera y el pie los pone el Dialog del kit (L1);
+   aquí sólo el cuerpo. */
 .bport {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(520px, 92vw);
-  max-height: min(680px, 86vh);
-  padding: 16px;
-  overflow-y: auto;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-high);
-}
-
-.bport-cabecera {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.bport-cabecera h2 {
-  flex: 1 1 auto;
-  margin: 0;
-  font-size: 15px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-
-.bport-cabecera button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: var(--pulso-nav-item-radius);
-  background: transparent;
-  color: var(--pulso-text-faint);
-  cursor: pointer;
-}
-
-.bport-cabecera button:hover {
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text);
 }
 
 .bport-elegir {
@@ -236,53 +182,4 @@
   margin: 0;
   font-size: 11.5px;
   color: var(--pulso-text-soft);
-}
-
-.bport-pie {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-block-start: auto;
-  padding-block-start: 4px;
-}
-
-.bport-pie button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--pulso-control-height-lg);
-  padding-inline: 13px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-control-weight);
-  cursor: pointer;
-}
-
-.bport-pie button:hover:not(:disabled) {
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text);
-}
-
-.bport-pie .is-primario {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary);
-  color: var(--pulso-on-primary);
-}
-
-.bport-pie .is-primario:hover:not(:disabled) {
-  background: var(--pulso-primary-hover);
-  color: var(--pulso-on-primary);
-}
-
-.bport-pie button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.bport-pie button:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
-  outline-offset: 1px;
 }

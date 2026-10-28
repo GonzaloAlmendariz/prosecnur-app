@@ -5,7 +5,6 @@ import {
   FileUp,
   Plus,
   RefreshCw,
-  X,
 } from "../../../vendor/lucide-react";
 
 import {
@@ -14,6 +13,8 @@ import {
   type BitacoraEstado,
   type BitacoraImportRevision,
 } from "../../../api/bitacora";
+import { Dialog } from "../../../components/Dialog";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { toast } from "../../../components/toasterStore";
 import "./portabilidad.css";
 
@@ -93,27 +94,32 @@ export function PanelImportar({
   }, [documento, onCerrar, onImportado, revision]);
 
   return (
-    <div
-      className="bport-fondo"
-      role="presentation"
-      // Click afuera y Escape cierran: es un diálogo, y quedarse encerrado en
-      // una vista previa que no se aplicó no le sirve a nadie.
-      onClick={(event) => { if (event.target === event.currentTarget) onCerrar(); }}
-      onKeyDown={(event) => { if (event.key === "Escape") onCerrar(); }}
+    // Dialog del kit (L1): Escape, click afuera, foco atrapado y de vuelta.
+    // Click afuera sí cierra: quedarse encerrado en una vista previa que no se
+    // aplicó no le sirve a nadie.
+    <Dialog
+      open
+      onOpenChange={(abierto) => { if (!abierto) onCerrar(); }}
+      size="sm"
+      title="Importar mapa del estudio"
+      icon={<FileUp size={16} aria-hidden="true" />}
+      className="bport-dialogo"
+      bodyClassName="bport"
+      footer={(
+        <>
+          <PulsoButton variant="secondary" size="md" onClick={onCerrar}>Cancelar</PulsoButton>
+          <PulsoButton
+            variant="primary"
+            size="md"
+            disabled={!revision?.aplicable || trabajando}
+            onClick={() => void aplicar()}
+          >
+            <CheckCheck size={14} aria-hidden="true" />
+            <span>{trabajando ? "Importando…" : "Importar"}</span>
+          </PulsoButton>
+        </>
+      )}
     >
-    <div
-      className="bport"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Importar mapa del estudio"
-    >
-      <header className="bport-cabecera">
-        <h2>Importar mapa del estudio</h2>
-        <button type="button" onClick={onCerrar} aria-label="Cerrar">
-          <X size={15} />
-        </button>
-      </header>
-
       <input
         ref={entradaRef}
         type="file"
@@ -200,23 +206,7 @@ export function PanelImportar({
           </p>
         </div>
       )}
-
-      <footer className="bport-pie">
-        <button type="button" onClick={onCerrar}>
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="is-primario"
-          disabled={!revision?.aplicable || trabajando}
-          onClick={() => void aplicar()}
-        >
-          <CheckCheck size={14} />
-          <span>{trabajando ? "Importando…" : "Importar"}</span>
-        </button>
-      </footer>
-    </div>
-    </div>
+    </Dialog>
   );
 }
 
