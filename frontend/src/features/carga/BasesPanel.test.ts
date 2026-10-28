@@ -48,12 +48,15 @@ const basesPanelSource = fs.readFileSync(
   "utf8",
 );
 
+/** El asistente vive en su archivo desde L6: se lee desde su declaración hasta el final. */
 function independentWizardSource(): string {
-  const start = basesPanelSource.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
-  const end = basesPanelSource.indexOf("\nfunction IntegratedHistoryPanel", start);
+  const source = fs.readFileSync(
+    fileURLToPath(new URL("./independiente/IndependentSiblingsWizard.tsx", import.meta.url)),
+    "utf8",
+  );
+  const start = source.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
   expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return basesPanelSource.slice(start, end);
+  return source.slice(start);
 }
 
 describe("BasesPanel integrated history helpers", () => {

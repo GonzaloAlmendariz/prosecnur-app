@@ -78,7 +78,9 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/carga/AcreditacionBatchPanel.tsx": 1,
   "features/carga/ArmonizacionEscalaCompartida.tsx": 2,
   "features/carga/ArmonizacionFilaEditor.tsx": 1,
-  "features/carga/BasesPanel.tsx": 3,
+  // L6: las 3 casillas de BasesPanel se fueron con el asistente independiente y su auditoría.
+  "features/carga/independiente/IndependentSiblingsWizard.tsx": 2,
+  "features/carga/independiente/SmDecisionSuite.tsx": 1,
   "features/carga/MapaBasesPanel.tsx": 1,
   "features/carga/ReconciliacionExtraDialog.tsx": 1,
   "features/carga/fuentes/NuevaBaseFormularioPublicado.tsx": 1,
