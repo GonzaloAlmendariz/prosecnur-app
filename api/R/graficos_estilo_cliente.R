@@ -175,6 +175,7 @@
     }
     .negrita_validar_letra(l)   # O8: negrita por elemento y modo de la leyenda (estilo_negrita.R)
   }
+  .ec_antetitulo_seccion_validar(x$antetitulo_seccion)   # nombre de la sección sobre el título (lamina_antetitulo_seccion.R)
   .word_rotulo_validar_estilo(x$rotulo_figura)   # R1: prefijo y cursiva del rótulo del Word (reporte_word_rotulo.R)
   if (!is.null(x$logos)) {
     lg <- .as_json_list(x$logos)
@@ -201,7 +202,7 @@
 .graficos_estilo_cliente_validos <- function(x) {
   x <- .as_json_list(x)
   if (!.graficos_is_obj(x) || !length(x)) return(list())
-  for (k in intersect(names(x), c("version", "ambito", "letra", "logos", "rotulo_figura"))) {
+  for (k in intersect(names(x), c("version", "ambito", "letra", "logos", "rotulo_figura", "antetitulo_seccion"))) {
     ok <- tryCatch({ .graficos_estilo_cliente_validar(x[k]); TRUE }, api_error = function(e) {
       warning(sprintf("Se descartó «estilo_cliente.%s» guardado: %s", k, conditionMessage(e)), call. = FALSE)
       FALSE
@@ -539,6 +540,7 @@
   if (length(desplazos$ppt) || length(desplazos$word)) out$letra <- desplazos
   if (length(o8)) out$letra <- c(out$letra %||% list(ppt = numeric(0), word = numeric(0)), o8)
   if (length(rf <- .word_rotulo_resolver(x$rotulo_figura))) out$rotulo_figura <- rf   # R1: sólo lo usa el Word
+  if (isTRUE(unlist(x$antetitulo_seccion))) out$antetitulo_seccion <- TRUE   # sólo lo usa el PPT; apagado no viaja
   if (length(avisos)) out$avisos <- avisos
   out
 }

@@ -43,6 +43,7 @@ import {
 } from "./modeloEstilo";
 import { SeccionLetra } from "./SeccionLetra";
 import { SeccionLegibilidad } from "./SeccionLegibilidad";
+import { SeccionAntetitulo } from "./SeccionAntetitulo";
 import { IconosEditor } from "../IconosEditor";
 import { ColoresRespuestas } from "./ColoresRespuestas";
 import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
@@ -259,6 +260,7 @@ export default function PestanaEstilo() {
             />}
             {/* O8: negrita por elemento y modo de leyenda, para todo el informe. */}
             {sub === "letra" && !motivoPieza && <SeccionLegibilidad estilo={estilo} onCambiar={cambiar} />}
+            {sub === "letra" && !motivoPieza && <SeccionAntetitulo estilo={estilo} onCambiar={cambiar} />}
 
             {/* Los íconos del cliente (lámina de objetivo y capítulos) se suben aquí; la población no lleva ícono. */}
             {sub === "iconos" && (

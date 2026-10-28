@@ -65,6 +65,7 @@ test_that("en la ruta real p_slide_2_graficos con dos apiladas sale nativa y con
 })
 
 test_that("en la ruta real p_slide_2_graficos_vertical sale nativa, apilada, con el antetítulo de su sección (lámina 142)", {
+  withr::local_options(prosecnur.lam_antetitulo_seccion = TRUE)   # modo activado (lamina_antetitulo_seccion.R)
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   niveles <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo")
   dat <- data.frame(p1 = rep(niveles, c(4, 10, 40, 46)), p2 = rep(niveles, c(10, 20, 30, 40)), stringsAsFactors = FALSE)

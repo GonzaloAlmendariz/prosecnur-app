@@ -275,8 +275,8 @@
 
 #' La lámina de la vista previa con el antetítulo que hereda, salvo que ya fije uno o sea un separador
 #' @keywords internal
-.preview_con_antetitulo <- function(slide, plan_slides) {
-  if (identical(as.character(slide$tipo %||% "")[1], "p_slide_seccion")) return(slide)
+.preview_con_antetitulo <- function(slide, plan_slides, seccion = .lam_antetitulo_seccion_activo()) {
+  if (identical(as.character(slide$tipo %||% "")[1], "p_slide_seccion") || !isTRUE(seccion)) return(slide)   # apagada por defecto: lamina_antetitulo_seccion.R
   meta <- (slide$payload %||% list())$meta %||% list()
   if (!is.null(meta$antetitulo)) return(slide)
   ante <- .preview_antetitulo_vigente(plan_slides, slide$id)

@@ -96,12 +96,12 @@
       vigente <<- as.character(t)[1]
       # Subcapítulo sin lámina (G8, recetario 58): su primera lámina lo anuncia con «n.m  Título».
       info <- secciones[[k]]
-      anuncio <<- if (identical(info$variante, "sin_lamina")) paste0(info$numero, "  ", vigente) else NULL
+      anuncio <<- if (identical(info$variante, "sin_lamina") && .lam_antetitulo_seccion_activo()) paste0(info$numero, "  ", vigente) else NULL
       return(as.character((slide$meta %||% list())$antetitulo %||% vigente)[1])
     }
     propio <- (slide$meta %||% list())$antetitulo
     if (is.null(propio) && !is.null(anuncio)) { a <- anuncio; anuncio <<- NULL; return(a) }
-    as.character(propio %||% vigente)[1]
+    as.character(propio %||% if (.lam_antetitulo_seccion_activo()) vigente else NA_character_)[1]   # lamina_antetitulo_seccion.R
   }, character(1))
 }
 

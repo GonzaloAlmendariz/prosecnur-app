@@ -106,6 +106,7 @@
                                                    template_id = delivery$template_id)
   list(
     plan_slides = cfg$plan$slides %||% list(),
+    antetitulo_seccion = isTRUE(unlist(.graficos_estilo_cliente_validos(cfg$estilo_cliente)$antetitulo_seccion)),
     scope = if (isTRUE(fuentes$consolidado)) "consolidated" else "active_base",
     base = if (isTRUE(fuentes$consolidado)) "" else .graficos_active_base_name(sid),
     data_sources = fuentes$data_sources,
@@ -148,7 +149,7 @@
 #' @keywords internal
 .graficos_preview_lamina_ctx <- function(comun, slide, folio_pedido = NULL) {
   # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
-  slide <- .preview_con_antetitulo(slide, comun$plan_slides)
+  slide <- .preview_con_antetitulo(slide, comun$plan_slides, isTRUE(comun$antetitulo_seccion))
   # G2: un índice sin capítulos escritos los toma de los separadores del plan; el mini-plan no los tiene y caía a la
   # lámina antigua de cinco focos, distinta de la que exporta.
   slide <- .preview_con_capitulos(slide, comun$plan_slides)

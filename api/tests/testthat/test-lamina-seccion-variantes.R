@@ -49,6 +49,7 @@ test_that("cada versión del separador dibuja lo suyo", {
 })
 
 test_that("subcapítulo sin lámina: no agrega lámina y la siguiente lo anuncia en coral (recetario 58)", {
+  withr::local_options(prosecnur.lam_antetitulo_seccion = TRUE)   # modo activado (lamina_antetitulo_seccion.R)
   expect_identical(.lam_seccion_variante("sin_lamina", "subcapitulo"), "sin_lamina")
   plan <- list(p_slide_seccion("Características institucionales"),
                p_slide_seccion("Misión y propósitos", meta = list(nivel = "subcapitulo", variante = "sin_lamina")),
