@@ -346,7 +346,12 @@
   min-width: 0;
 }
 
+/* Fuera de flujo: con `viewBox` cuadrado y un alto en % que no resuelve, el
+ * SVG tomaba su proporción intrínseca 1:1 y medía lo mismo que su ancho
+ * (~830 px a 1440), más alto que la columna que debía acompañar. */
 .aulas-res-trazado svg {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -459,6 +464,7 @@
 }
 
 .aulas-res-tarjeta-cabeza b:first-child {
+  flex: 1 1 0;
   min-width: 0;
 }
 
