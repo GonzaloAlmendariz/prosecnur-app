@@ -1442,11 +1442,14 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   height: 28px;
 }
 
+/* Centrado sobre la escala: en la esquina izquierda quedaba montado sobre el «0». */
 .acr-pc-eje-titulo {
   position: absolute;
   top: 0;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
 }
 
 .acr-pc-marca {
