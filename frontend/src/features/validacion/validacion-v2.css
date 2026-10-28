@@ -515,51 +515,6 @@
   gap: 8px;
 }
 
-.pulso-operational-value-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 168px;
-  overflow: auto;
-}
-
-.pulso-operational-value-list label {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 7px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface);
-  cursor: pointer;
-}
-
-.pulso-operational-value-list label.is-selected {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary-soft);
-}
-
-.pulso-operational-value-list label > span {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.pulso-operational-value-list strong {
-  overflow: hidden;
-  color: var(--pulso-text);
-  font-size: 10.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-operational-value-list small,
-.pulso-operational-value-list b {
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-}
-
 .pulso-operational-fixed-policy {
   display: flex;
   align-items: flex-start;
@@ -1005,50 +960,8 @@
   animation: pulso-hovercard-in-kf var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-validacion-status-pill.is-done {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 24%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-success-bg) 72%, white);
-  color: var(--pulso-success-fg);
-}
-
 .pulso-validacion-shell.is-empty {
   min-height: 420px;
-}
-
-.pulso-validacion-nav-item:hover:not(:disabled) .pulso-validacion-nav-copy span,
-.pulso-validacion-nav-item:focus-visible .pulso-validacion-nav-copy span,
-.pulso-validacion-nav-item.is-active .pulso-validacion-nav-copy span {
-  max-height: 14px;
-  opacity: 1;
-}
-
-.pulso-validacion-nav-item.is-active .pulso-validacion-nav-copy strong,
-.pulso-validacion-nav-item.is-active .pulso-validacion-nav-copy span {
-  color: #fff;
-}
-
-.pulso-validacion-panel-copy h2 {
-  flex: 0 0 auto;
-  margin: 0;
-  max-width: min(240px, 42vw);
-  color: var(--pulso-text);
-  font-size: 13.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-validacion-panel-copy p {
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pulso-criterios-tab {
