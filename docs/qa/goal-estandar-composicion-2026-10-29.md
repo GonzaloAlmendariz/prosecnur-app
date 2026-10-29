@@ -128,7 +128,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☑ la maqueta dibuja el radar solo en sm/box |
 | W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☑ Gonzalo (2026-10-29) «Sí, que los reciba»: `graficos_consolidado_start` pasa el estilo del cliente a su job y el runner lo aplica; fuera el bloqueo en Estilo |
 | W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☑ la tabla dice íconos sólo al PPT |
-| W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☐ |
+| W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☑ tipo propio «Radar» (`radar_solo`) sin ajustes de tabla |
 | W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☑ romanos (`sonRomanos`) y residuales anclados con Ninguna/Ninguno; mismas respuestas que el motor en 5 casos |
 | W9 | Metadata «Subtítulo (solo Word)» del separador | el PPT lo dibuja (`seccion:subtitulo`) | ☑ «Subtítulo», en PPT y Word salvo el separador de plantilla |
 | W10 | Ficha de `p_tabla`: «En rojo bajo X %» | la tabla nativa no pinta rojo; el Word sí (ruta anterior) | ☑ la maqueta no pinta rojo y el ajuste dice «sólo en el Word» |

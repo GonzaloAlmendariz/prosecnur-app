@@ -18,8 +18,12 @@ describe("ajustes del Word", () => {
       s({ grafico: { graficador: "p_radar", args: { modo: "publicos" } } }),
       s({ grafico: { graficador: "p_radar", args: { modo: "var" } } }),
     ]);
-    expect(tipos).toEqual(["radar_publicos", "radar_tabla"]);
+    // Los demás modos tampoco: el motor apaga su tabla (p_radar_split.R) y el Word dibuja sólo el radar (.word_g_radar).
+    expect(tipos).toEqual(["radar_publicos", "radar_solo"]);
     expect(AJUSTES_WORD.radar_publicos ?? []).toHaveLength(0);
+    expect(AJUSTES_WORD.radar_solo ?? []).toHaveLength(0);
+    // La tabla (p_tabla) sí sigue en «Radar + tabla»: su Word es el gráfico de la ruta anterior, que los lee.
+    expect(tiposDelInforme([s({ grafico: { graficador: "p_tabla", args: {} } })])).toEqual(["radar_tabla"]);
   });
 
   // Mata: dejar ofrecido o sin avisar un decimal del Word que pisa Reglas (O2), o tipo_pie / bins (O3).
