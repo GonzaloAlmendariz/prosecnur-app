@@ -159,3 +159,80 @@
   .hfp_text(format(Sys.Date(), "%d/%m/%Y"), R, 0.03, 8, tk$soft, just = c("right", "center"))
   invisible(TRUE)
 }
+
+# ---------- Textos sobre el mapa ----------
+
+#' Textos con halo blanco, en una sola llamada por pasada.
+#'
+#' Los nombres de calle, los números de manzana y el de la zona se montaban
+#' sobre líneas y rellenos y se leían a medias. El halo —el mismo texto en
+#' blanco corrido ocho veces `halo_pt` alrededor— los despega de lo que hay
+#' debajo. Vectorizado: nueve llamadas por capa, no nueve por etiqueta.
+#' @keywords internal
+.hojas_ruta_mapa_textos <- function(label, x, y, rot = 0, size = 6, face = "plain", col = "#111111",
+                                    halo_pt = 0.8) {
+  if (!length(label)) return(invisible(FALSE))
+  n <- length(label)
+  rep_n <- function(v) if (length(v) == 1L) rep(v, n) else v
+  rot <- rep_n(rot); size <- rep_n(size); face <- rep_n(face); col <- rep_n(col)
+  if (halo_pt > 0) {
+    ang <- seq(0, 2 * pi, length.out = 9)[-9]
+    for (a in ang) {
+      grid::grid.text(label, x = grid::unit(x, "npc") + grid::unit(cos(a) * halo_pt, "pt"),
+                      y = grid::unit(y, "npc") + grid::unit(sin(a) * halo_pt, "pt"), rot = rot,
+                      gp = grid::gpar(fontsize = size, fontface = face, col = "#ffffff"))
+    }
+  }
+  grid::grid.text(label, x = x, y = y, rot = rot, gp = grid::gpar(fontsize = size, fontface = face, col = col))
+  invisible(TRUE)
+}
+
+#' Números de zona: el de la UMP en navy y grande, los vecinos en gris, todos
+#' con halo y dibujados al final para que nada los tape. Si el número de la
+#' zona cae sobre la manzana asignada, se corre al punto libre de la zona más
+#' cercano a su centro.
+#'
+#' @param seleccion caja proyectada de la manzana asignada (`x0, x1, y0, y1`) o NULL.
+#' @keywords internal
+.hojas_ruta_mapa_rotulos_zona <- function(zone_outlines, zona_actual, project, seleccion = NULL,
+                                          tk = pulso_pdf_tokens()) {
+  for (zone in zone_outlines) {
+    center <- .hojas_ruta_pdf_projected_center(zone$rings, project)
+    if (is.null(center) || center[["x"]] < 0.04 || center[["x"]] > 0.96 ||
+        center[["y"]] < 0.04 || center[["y"]] > 0.96) next
+    actual <- identical(as.character(zone$zona %||% ""), as.character(zona_actual %||% ""))
+    cx <- center[["x"]]
+    cy <- center[["y"]]
+    if (actual && !is.null(seleccion)) {
+      libre <- .hojas_ruta_mapa_punto_libre(zone$rings, project, c(cx, cy), seleccion)
+      if (!is.null(libre)) { cx <- libre[[1]]; cy <- libre[[2]] }
+    }
+    .hojas_ruta_mapa_textos(as.character(zone$zona %||% ""), cx, cy,
+                            size = if (actual) 17 else 11, face = "bold",
+                            col = if (actual) tk$navy else tk$faint, halo_pt = if (actual) 1.6 else 1.1)
+  }
+  invisible(TRUE)
+}
+
+# Punto dentro de la zona, fuera de la manzana asignada (con margen para el
+# número) y lejos del borde del mapa, lo más cerca posible de `centro`. NULL si
+# el centro ya está libre o no hay otro lugar.
+.hojas_ruta_mapa_punto_libre <- function(rings, project, centro, seleccion, mx = 0.055, my = 0.03) {
+  libre <- function(x, y) {
+    !(x > seleccion[["x0"]] - mx & x < seleccion[["x1"]] + mx &
+        y > seleccion[["y0"]] - my & y < seleccion[["y1"]] + my) &
+      x > 0.06 & x < 0.94 & y > 0.05 & y < 0.95
+  }
+  if (libre(centro[[1]], centro[[2]])) return(NULL)
+  proy <- lapply(rings, function(r) { p <- project(r); cbind(p$x, p$y) })
+  todo <- do.call(rbind, proy)
+  if (is.null(todo) || !nrow(todo)) return(NULL)
+  gx <- seq(min(todo[, 1]), max(todo[, 1]), length.out = 24)
+  gy <- seq(min(todo[, 2]), max(todo[, 2]), length.out = 24)
+  cand <- expand.grid(x = gx, y = gy)
+  ok <- .hojas_ruta_mapa_dentro(cand$x, cand$y, proy) & libre(cand$x, cand$y)
+  if (!any(ok)) return(NULL)
+  cand <- cand[ok, , drop = FALSE]
+  i <- which.min((cand$x - centro[[1]])^2 + (cand$y - centro[[2]])^2)
+  c(cand$x[[i]], cand$y[[i]])
+}

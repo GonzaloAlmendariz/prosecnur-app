@@ -7868,23 +7868,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       }
     }
 
-    for (zone in zone_outlines) {
-      center <- .hojas_ruta_pdf_projected_center(zone$rings, project)
-      if (is.null(center) || center[["x"]] < 0.04 || center[["x"]] > 0.96 ||
-          center[["y"]] < 0.04 || center[["y"]] > 0.96) next
-      current <- identical(as.character(zone$zona %||% ""), as.character(block$zona %||% ""))
-      grid::grid.text(
-        as.character(zone$zona %||% ""),
-        x = center[["x"]], y = center[["y"]],
-        gp = grid::gpar(
-          fontsize = if (current) 18 else 12.5,
-          fontface = "bold",
-          col = if (current) "#0072ce" else "#0072ceaa"
-        )
-      )
-    }
   }
 
+  seleccion <- NULL
   for (feature in visible_features) {
     if (!identical(as.character(feature$id %||% ""), selected_id)) next
     for (ring in feature$rings) {
@@ -7893,6 +7879,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         x = p$x, y = p$y, default.units = "npc",
         gp = grid::gpar(fill = "#cfe8ff", col = "#003f88", lwd = 1.75)
       )
+      seleccion <- c(x0 = min(p$x, seleccion[["x0"]]), x1 = max(p$x, seleccion[["x1"]]),
+                     y0 = min(p$y, seleccion[["y0"]]), y1 = max(p$y, seleccion[["y1"]]))
     }
   }
 
@@ -7900,18 +7888,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   if (isTRUE(has_reference_map)) {
     block_labels <- block_labels[vapply(block_labels, function(label) isTRUE(label$selected), logical(1))]
   }
-  for (label in block_labels) {
-    grid::grid.text(
-      label$label,
-      x = label$x,
-      y = label$y,
-      gp = grid::gpar(
-        fontsize = label$fontsize,
-        fontface = if (isTRUE(label$selected)) "bold" else "plain",
-        col = if (isTRUE(label$selected)) "#003f88" else if (isTRUE(label$in_zone)) "#111111" else "#707070"
-      )
-    )
-  }
+  sel_l <- vapply(block_labels, function(l) isTRUE(l$selected), logical(1))
+  zon_l <- vapply(block_labels, function(l) isTRUE(l$in_zone), logical(1))
+  .hojas_ruta_mapa_textos(vapply(block_labels, function(l) as.character(l$label), ""),
+                          vapply(block_labels, `[[`, 0, "x"), vapply(block_labels, `[[`, 0, "y"),
+                          size = vapply(block_labels, function(l) as.numeric(l$fontsize), 0),
+                          face = ifelse(sel_l, "bold", "plain"),
+                          col = ifelse(sel_l, "#003f88", ifelse(zon_l, "#111111", "#707070")), halo_pt = 0.6)
 
   if (!isTRUE(has_reference_map)) {
     street_label_key <- paste(
@@ -7935,21 +7918,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       }
       labels
     })
-    if (length(street_labels)) {
-      for (label in street_labels) {
-        grid::grid.text(
-          label$name,
-          x = label$x,
-          y = label$y,
-          rot = label$angle,
-          gp = grid::gpar(
-            fontsize = label$fontsize,
-            fontface = if (isTRUE(label$major)) "bold" else "plain",
-            col = "#111111"
-          )
-        )
-      }
-    }
+    .hojas_ruta_mapa_textos(vapply(street_labels, function(l) as.character(l$name), ""),
+                            vapply(street_labels, `[[`, 0, "x"), vapply(street_labels, `[[`, 0, "y"),
+                            rot = vapply(street_labels, function(l) as.numeric(l$angle), 0),
+                            size = vapply(street_labels, function(l) as.numeric(l$fontsize), 0),
+                            face = ifelse(vapply(street_labels, function(l) isTRUE(l$major), logical(1)), "bold", "plain"),
+                            halo_pt = 0.8)
+    # Números de zona al final, con halo: antes la manzana asignada los tapaba.
+    .hojas_ruta_mapa_rotulos_zona(zone_outlines, block$zona, project, seleccion)
   }
 
   # Referencias sólo dentro de la zona: fuera de ella distraen, no orientan.
