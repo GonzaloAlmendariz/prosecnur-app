@@ -1,4 +1,4 @@
-import type { HojasRutaAgeRange } from "../../../../api/hojasRuta";
+import type { HojasRutaAgeRange, HojasRutaAgeRangeMode } from "../../../../api/hojasRuta";
 
 /**
  * Rangos de edad de Población (U6). El backend descarta en silencio un rango
@@ -55,3 +55,18 @@ export function agregarRango(rangos: readonly HojasRutaAgeRange[]): HojasRutaAge
   const cierre = ultimo.max ?? ultimo.min + 9;
   return [...rangos.slice(0, -1), rango(ultimo.min, cierre), rango(Math.min(110, cierre + 1), null)];
 }
+
+/** Rangos de R con el tope abierto ("NA") como null; conservan el id que puso el motor (las celdas se cruzan por él). */
+export const conTopeAbierto = (rangos: readonly HojasRutaAgeRange[]): HojasRutaAgeRange[] =>
+  rangos.map((r) => ({ ...r, min: Number(r.min), max: typeof r.max === "number" && Number.isFinite(r.max) ? r.max : null }));
+
+/** Rangos que vienen de R, rehechos como manuales para editarlos a mano (id y rótulo nuevos). */
+export const rangosLimpios = (rangos: readonly HojasRutaAgeRange[]): HojasRutaAgeRange[] =>
+  rangos.map((r) => rango(Number(r.min), typeof r.max === "number" && Number.isFinite(r.max) ? r.max : null));
+
+export const CORTES: ReadonlyArray<readonly [Exclude<HojasRutaAgeRangeMode, "manual">, string]> = [
+  ["terciles", "Terciles"],
+  ["cuartiles", "Cuartiles"],
+  ["quintiles", "Quintiles"],
+  ["deciles", "Deciles"],
+];

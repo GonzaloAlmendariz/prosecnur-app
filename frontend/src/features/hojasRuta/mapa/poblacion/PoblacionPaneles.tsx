@@ -2,11 +2,12 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { Table2, Users } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaAgeRange, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
+import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { useLienzoHojasRuta } from "../store";
 import type { ResumenMatriz } from "./matriz";
 
-import { agregarRango, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos } from "./rangos";
+import { agregarRango, CORTES, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos, rangosLimpios } from "./rangos";
+import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 
 /**
  * Población en la página del lienzo (U6). La estructura edita los rangos de
@@ -18,10 +19,26 @@ import { agregarRango, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—");
 
-type EstructuraProps = { rangosConfig: readonly HojasRutaAgeRange[]; matriz: ResumenMatriz; bloqueado: boolean };
+type EstructuraProps = { rangosConfig: readonly HojasRutaAgeRange[]; config: HojasRutaIntegratedConfig; matriz: ResumenMatriz; bloqueado: boolean };
 
-export function PoblacionEstructura({ rangosConfig, matriz, bloqueado }: EstructuraProps) {
+const MODOS = [["manual", "Manual"], ["cortes", "Por cortes"]] as const;
+const BASES = [["selected", "Distritos elegidos"], ["frame", "Todo el marco"]] as const;
+
+/** Modo y base en vista: el borrador si lo hay, si no lo guardado (B28). */
+export function useModoRangos(config: HojasRutaIntegratedConfig) {
+  const { cortesBorrador, setCortesBorrador } = useLienzoHojasRuta();
+  const modoGuardado = config.age_range_mode ?? "manual";
+  const baseGuardada = config.age_range_scope ?? "selected";
+  const modo = cortesBorrador?.modo ?? modoGuardado;
+  const base = cortesBorrador?.base ?? baseGuardada;
+  const fijar = (m: HojasRutaAgeRangeMode, b: HojasRutaAgeRangeScope) => setCortesBorrador(m === modoGuardado && b === baseGuardada ? null : { modo: m, base: b });
+  return { modo, base, fijar, pendiente: modo !== modoGuardado || base !== baseGuardada, deshacer: () => setCortesBorrador(null) };
+}
+
+export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }: EstructuraProps) {
   const { rangosBorrador, setRangosBorrador } = useLienzoHojasRuta();
+  const { modo, base, fijar, pendiente } = useModoRangos(config);
+  const enCortes = modo !== "manual";
   const rangos = rangosBorrador ?? [...rangosConfig];
   const problemas = problemasDeRangos(rangos);
   const editar = (i: number, campo: "min" | "max", texto: string) => {
@@ -35,8 +52,27 @@ export function PoblacionEstructura({ rangosConfig, matriz, bloqueado }: Estruct
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
           <h2>Rangos de edad</h2>
-          <small>{rangos.length} rangos</small>
+          <small>{rangos.length} rangos{matriz.vigente ? ` · ${fmt(matriz.total)} personas` : ""}</small>
         </div>
+        <GlidingRadioGroup
+          value={enCortes ? "cortes" : "manual"}
+          options={MODOS}
+          getOptionValue={(o) => o[0]}
+          onValueChange={(v) => {
+            if (v === "manual") {
+              fijar("manual", base);
+              if (enCortes) setRangosBorrador(rangosLimpios(rangos));
+            } else {
+              fijar("cuartiles", base);
+              setRangosBorrador(null);
+            }
+          }}
+          className="hr-muestra-opciones"
+          aria-label="Cómo se arman los rangos"
+          getOptionProps={() => ({ disabled: bloqueado })}
+        >
+          {(o) => <span>{o[1]}</span>}
+        </GlidingRadioGroup>
         {matriz.vigente ? (
           <div className="hr-edad-regla" role="img" aria-label="Peso de cada rango en la población objetivo">
             {rangos.map((r, i) => (
@@ -50,6 +86,56 @@ export function PoblacionEstructura({ rangosConfig, matriz, bloqueado }: Estruct
           <p className="hr-mapa-nota">Sin calcular con estos rangos: el peso de cada uno aparece al calcular la matriz.</p>
         )}
       </div>
+      {enCortes ? (
+        <div className="hr-mapa-ins-cuerpo">
+          <div className="hr-muestra-grupo">
+            <small>Cortes</small>
+            <div className="hr-mapa-chips" role="group" aria-label="Cortes">
+              {CORTES.map(([id, etiqueta]) => (
+                <button key={id} type="button" className="hr-mapa-zona" aria-pressed={modo === id} data-estado={modo === id ? "todo" : undefined} disabled={bloqueado} onClick={() => fijar(id, base)}>
+                  <span>{etiqueta}</span>
+                </button>
+              ))}
+            </div>
+            <small>Base de los cortes</small>
+            <GlidingRadioGroup value={base} options={BASES} getOptionValue={(o) => o[0]} onValueChange={(b) => fijar(modo, b)} className="hr-muestra-opciones" aria-label="Base de los cortes" getOptionProps={() => ({ disabled: bloqueado })}>
+              {(o) => <span>{o[1]}</span>}
+            </GlidingRadioGroup>
+            <p className="hr-mapa-nota">Cada rango reúne la misma parte de la población de 18 años o más; el motor pone los cortes con la edad simple del censo.</p>
+          </div>
+          {pendiente || !matriz.vigente ? (
+            <p className="hr-mapa-nota">Los cortes aparecen al calcular la matriz.</p>
+          ) : (
+            <ul className="hr-edad-lista">
+              {rangos.map((r, i) => (
+                <li key={`${i}-${r.id}`} className="is-fija">
+                  <i data-tono={Math.min(5, Math.round((i / Math.max(1, rangos.length - 1)) * 5))} />
+                  <b>{r.label}</b>
+                  <span className="hr-edad-peso">
+                    <b>{fmt(matriz.pesoPorRango[i])}</b>
+                    <small>{pct(matriz.pesoPorRango[i], matriz.total)}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!pendiente && matriz.vigente ? (
+            <div className="hr-mapa-acciones">
+              <PulsoButton
+                variant="secondary"
+                size="sm"
+                disabled={bloqueado}
+                onClick={() => {
+                  fijar("manual", base);
+                  setRangosBorrador(rangosLimpios(rangos));
+                }}
+              >
+                Editar estos rangos a mano
+              </PulsoButton>
+            </div>
+          ) : null}
+        </div>
+      ) : (
       <div className="hr-mapa-ins-cuerpo">
         {problemas.map((p) => (
           <p key={p.texto} className="hr-mapa-aviso">{p.texto}</p>
@@ -106,12 +192,14 @@ export function PoblacionEstructura({ rangosConfig, matriz, bloqueado }: Estruct
           </div>
         </section>
       </div>
+      )}
     </>
   );
 }
 
 type InspectorProps = {
   config: HojasRutaIntegratedConfig;
+  rangosConfig: readonly HojasRutaAgeRange[];
   matriz: ResumenMatriz;
   poblacionDistritos: number;
   bloqueado: boolean;
@@ -120,11 +208,12 @@ type InspectorProps = {
   onGuardarYCalcular: (cambios: Partial<HojasRutaIntegratedConfig>) => void;
 };
 
-export function PoblacionInspector({ config, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, onGuardarYCalcular }: InspectorProps) {
+export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, onGuardarYCalcular }: InspectorProps) {
   const { rangosBorrador, setRangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
-  const rangos = rangosBorrador ?? config.age_ranges;
-  const cambiaron = firmaRangos(rangos) !== firmaRangos(config.age_ranges);
-  const conProblemas = problemasDeRangos(rangos).length > 0;
+  const { modo, base, pendiente, deshacer } = useModoRangos(config);
+  const rangos = rangosBorrador ?? rangosConfig;
+  const cambiaron = pendiente || firmaRangos(rangos) !== firmaRangos(rangosConfig);
+  const conProblemas = modo === "manual" && problemasDeRangos(rangos).length > 0;
   const sexo = config.subquota_var !== "ninguna";
 
   return (
@@ -148,10 +237,10 @@ export function PoblacionInspector({ config, matriz, poblacionDistritos, bloquea
         ) : null}
       </div>
       <footer className="hr-mapa-pie">
-        <PulsoButton variant="secondary" disabled={!cambiaron || guardando} onClick={() => setRangosBorrador(null)}>
+        <PulsoButton variant="secondary" disabled={!cambiaron || guardando} onClick={() => { setRangosBorrador(null); deshacer(); }}>
           Deshacer
         </PulsoButton>
-        <PulsoButton variant="primary" disabled={bloqueado || guardando || conProblemas || (!cambiaron && matriz.vigente)} onClick={() => onGuardarYCalcular({ age_ranges: rangos, age_range_mode: "manual" })}>
+        <PulsoButton variant="primary" disabled={bloqueado || guardando || conProblemas || (!cambiaron && matriz.vigente)} onClick={() => onGuardarYCalcular(modo === "manual" ? { age_ranges: [...rangos], age_range_mode: "manual", age_range_scope: base } : { age_range_mode: modo, age_range_scope: base })}>
           {guardando ? "Calculando…" : "Calcular la matriz"}
         </PulsoButton>
       </footer>

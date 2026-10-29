@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { HojasRutaAgeRange } from "../../../api/hojasRuta";
+import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope } from "../../../api/hojasRuta";
 import type { BorradorSorteo } from "./manzanas/sorteo";
 import type { BorradorMuestra } from "./muestra/desdeConfig";
 import type { CapaLienzo } from "./lienzo/LienzoMapa";
@@ -18,6 +18,9 @@ type EstadoLienzo = {
   /** Rangos de edad en edición; `null` = los de la configuración. */
   rangosBorrador: HojasRutaAgeRange[] | null;
   setRangosBorrador: (next: HojasRutaAgeRange[] | null) => void;
+  /** Modo de los rangos (manual o cortes) y su base, sin aplicar hasta calcular la matriz (B28). */
+  cortesBorrador: { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null;
+  setCortesBorrador: (next: { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null) => void;
   /** Parche sobre la configuración de Muestra; `null` = sin cambios. */
   muestraBorrador: BorradorMuestra | null;
   setMuestraBorrador: (next: BorradorMuestra | null) => void;
@@ -53,12 +56,13 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
   setBorrador: (borrador) => set({ borrador }),
   setRangosBorrador: (rangosBorrador) => set({ rangosBorrador }),
+  setCortesBorrador: (cortesBorrador) => set({ cortesBorrador }),
   setMuestraBorrador: (muestraBorrador) => set({ muestraBorrador }),
   setSorteoBorrador: (sorteoBorrador) => set({ sorteoBorrador }),
   setDibujoArea: (dibujoArea) => set({ dibujoArea }),

@@ -32,6 +32,7 @@ import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
 import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
+import { conTopeAbierto } from "./poblacion/rangos";
 import { MuestraCajon } from "./muestra/MuestraCajon";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
@@ -68,7 +69,7 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada, cajon } = useSeleccionDireccion();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
@@ -121,13 +122,14 @@ export default function HojasRutaMapaPage() {
         await apiHojasRutaPopulationPreview(config);
         setEstado(await apiHojasRutaState());
         setRangosBorrador(null);
+        setCortesBorrador(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "No se pudo calcular la población");
       } finally {
         setGuardando(false);
       }
     },
-    [estado, fase, setRangosBorrador],
+    [estado, fase, setRangosBorrador, setCortesBorrador],
   );
 
 
@@ -158,7 +160,9 @@ export default function HojasRutaMapaPage() {
   const salidas = estado?.workspace_outputs;
   // Las cuotas que el sorteo usó viajan en sample.quota: respaldo para corridas sorteadas sin outputs.quota.
   const cuotas = salidas?.quota ?? salidas?.sample?.quota ?? null;
-  const rangosVista = rangosBorrador ?? estado?.integrated_config.age_ranges ?? [];
+  // Con cortes poblacionales (B28) los rangos los pone el motor en la config; el tope abierto llega como "NA".
+  const rangosConfig = useMemo(() => conTopeAbierto(estado?.integrated_config.age_ranges ?? []), [estado]);
+  const rangosVista = rangosBorrador ?? rangosConfig;
   const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const configMuestra = useMemo(() => (estado ? aplicarBorrador(estado.integrated_config, muestraBorrador) : null), [estado, muestraBorrador]);
   const tamano = useMemo(() => (configMuestra && estado ? calcularTamano(entradaDesdeConfig(configMuestra, estado.territories)) : null), [configMuestra, estado]);
@@ -513,7 +517,7 @@ export default function HojasRutaMapaPage() {
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
-            <PoblacionEstructura rangosConfig={estado.integrated_config.age_ranges} matriz={matriz} bloqueado={bloqueado} />
+            <PoblacionEstructura rangosConfig={rangosConfig} config={estado.integrated_config} matriz={matriz} bloqueado={bloqueado} />
           ) : (
           <>
           <header className="hr-mapa-cab">
@@ -571,7 +575,7 @@ export default function HojasRutaMapaPage() {
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
         {enMuestra ? <MuestraCajon cuotas={cuotas} /> : null}
-        {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={estado.integrated_config.age_ranges} sexo={estado.integrated_config.subquota_var !== "ninguna"} zonas={zonas} /> : null}
+        {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={rangosConfig} sexo={estado.integrated_config.subquota_var !== "ninguna"} zonas={zonas} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (
             <SeleccionInspector
@@ -611,6 +615,7 @@ export default function HojasRutaMapaPage() {
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}
+              rangosConfig={rangosConfig}
               matriz={matriz}
               poblacionDistritos={territorios.reduce((a, t) => a + t.poblacion, 0)}
               bloqueado={bloqueado}

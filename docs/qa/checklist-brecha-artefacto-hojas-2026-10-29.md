@@ -36,7 +36,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B25 | Estructura | bug · medio (C4) | El scroll de la estructura pasa entre secciones (Territorio abre en 1869 px) | `key` por sección en `.hr-mapa-estructura` (verificado: 1500 → 0) | ☑ |
 | B26 | Territorio 1024 | peor · bajo | Detalle del catálogo parte en 2 líneas («mz»); «Lima y Callao · 50 distritos» también | Territorio | ☐ |
 | B27 | Territorio | falta · bajo | Fila «Cartografía: Lima 2017 · Callao 2019» | Territorio | ☐ |
-| B28 | Población | falta · alto | Modo «Cortes poblacionales» (Manual/Cortes); total de personas junto a los rangos | `poblacion/PoblacionPaneles.tsx` | ☐ |
+| B28 | Población | falta · alto | Modo «Cortes poblacionales» (Manual/Cortes); total de personas junto a los rangos | Manual / Por cortes (terciles a deciles, base elegidos o marco) con borrador hasta «Calcular la matriz»; los cortes los pone el motor (`age_range_mode`); «Editar estos rangos a mano»; total de personas en el encabezado | ☑ |
 | B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | la matriz va al cajón (767342b07): personas H/M por rango o distribución %, descarga CSV; agrupar filas por distrito, provincia o zona de Lima (`agruparFilas` en `poblacion/matriz.ts`; zona censal no: el INEI viene por distrito) | ☑ |
 | B30 | Población | peor · bajo | «De la poblaci…» truncado; 76.8 % vs 77 %; el segmento 60+ pierde su % | Población | ☐ |
 | B31 | Población | — | La app trae tope del último rango y «Calcular la matriz» | — | — |

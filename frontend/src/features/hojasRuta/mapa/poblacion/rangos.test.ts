@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { agregarRango, editarRango, firmaRangos, idRango, PRESETS_EDAD, problemasDeRangos, rango } from "./rangos";
+import { agregarRango, conTopeAbierto, editarRango, firmaRangos, idRango, PRESETS_EDAD, problemasDeRangos, rango, rangosLimpios } from "./rangos";
 
 describe("rangos de edad", () => {
   test("el id sigue la regla de R", () => {
@@ -27,5 +27,15 @@ describe("rangos de edad", () => {
     expect(firmaRangos(base)).toBe("18-29|30-");
     // el «NA» con que R guarda el tope abierto cuenta como abierto
     expect(firmaRangos([{ id: "60", label: "60+", min: 60, max: "NA" as unknown as null }])).toBe("60-");
+  });
+});
+
+describe("rangos que vienen del motor", () => {
+  test("conTopeAbierto conserva el id del motor y vuelve null el tope NA", () => {
+    const r = conTopeAbierto([{ id: "cuartiles_53_", label: "53+", min: 53, max: "NA" as unknown as null }]);
+    expect(r[0]).toEqual({ id: "cuartiles_53_", label: "53+", min: 53, max: null });
+  });
+  test("rangosLimpios los rehace como manuales para editarlos", () => {
+    expect(rangosLimpios([{ id: "cuartiles_18_27", label: "18-27", min: 18, max: 27 }])[0].id).toBe("18_27");
   });
 });
