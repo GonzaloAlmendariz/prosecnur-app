@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
+import type { HojasRutaAlert, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
@@ -50,10 +50,15 @@ type InspectorProps = {
   bloqueado: boolean;
   guardando: boolean;
   hayMuestra: boolean;
+  /** Avisos del último tamaño calculado en R (ADR 0116 y otros); no se recalculan con el borrador. */
+  avisosServidor?: readonly HojasRutaAlert[];
   onGuardar: () => void;
 };
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, onGuardar }: InspectorProps) {
+// Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
+const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
+
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador } = useLienzoHojasRuta();
   const s = config.sample_size;
   const ruta = config.entrevistas_por_manzana;
@@ -88,6 +93,10 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           </div>
           {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
           {!r.multiploDeRuta ? <p className="hr-mapa-aviso">El N no es múltiplo de {ruta} entrevistas por ruta</p> : null}
+          {avisosServidor.filter((a) => a.level !== "info" && !AVISOS_YA_DICHOS.test(a.code)).map((a) => (
+            <p key={a.code} className="hr-mapa-aviso">{a.message}</p>
+          ))}
+          {muestraBorrador && avisosServidor.some((a) => !AVISOS_YA_DICHOS.test(a.code)) ? <p className="hr-mapa-nota">Estos avisos son del último cálculo guardado: se recalculan al guardar.</p> : null}
           {excedidos ? <p className="hr-mapa-aviso">{excedidos} distrito{excedidos > 1 ? "s superan" : " supera"} su margen objetivo</p> : null}
         </section>
 
