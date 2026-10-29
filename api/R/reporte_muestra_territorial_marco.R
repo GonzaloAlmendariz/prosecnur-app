@@ -172,7 +172,12 @@
       territorio <- territorio[territorio$ubigeo %in% ubigeos, , drop = FALSE]
       ap <- hojas_ruta_marco_elegible_aplicar(territorio, completos, puntos = puntos,
                                               excluidas_piloto = cfg$excluded_titular_ids %||% list())
-      .hojas_ruta_me_nse_por_distrito(territorio, ap$criterio, puntos)
+      # Candado: el marco recalculado debe reproducir los conteos de la muestra
+      # (también detecta un cambio de cartografía que `hash_marco` no ve).
+      if (!.reporte_mt_conteos_coinciden(ap$por_distrito, por_distrito)) {
+        nse_marco_cambio <- TRUE
+        NULL
+      } else .hojas_ruta_me_nse_por_distrito(territorio, ap$criterio, puntos)
     }, error = function(e) {
       # Igual que la decisión: un fallo no se presenta como falta de datos.
       message("[reporte-decisional] no se pudo calcular el perfil NSE de lo excluido: ", conditionMessage(e))
@@ -188,9 +193,21 @@
       NULL
     })
   } else NULL
+  bdf <- if (length(bloques)) .hojas_ruta_rows_df(bloques) else data.frame()
+  ent_b <- if (nrow(bdf) && "entrevistas" %in% names(bdf)) .hojas_ruta_me_num(bdf$entrevistas) else numeric(0)
+  vis_b <- if (nrow(bdf) && "visitas_esperadas" %in% names(bdf)) .hojas_ruta_me_num(bdf$visitas_esperadas) else numeric(0)
+  muestra <- if (nrow(bdf)) list(
+    rutas = nrow(bdf),
+    entrevistas = sum(ent_b),
+    k = sort(unique(ent_b[ent_b > 0])),
+    visitas = if (length(vis_b)) range(vis_b[vis_b > 0]) else NULL,
+    respuesta = sample$salto_sobre_visitas$respuesta %||% NULL,
+    ocupacion = sample$salto_sobre_visitas$ocupacion %||% NULL
+  ) else NULL
   list(
     estado_muestra = estado_muestra,
     config_cambio = config_cambio,
+    muestra = muestra,
     ubigeos = as.list(ubigeos),
     marco = marco,
     decision_cobertura = if (is.null(decision)) NULL else decision[c("exigida", "huella", "vigente")],
@@ -203,6 +220,21 @@
     nse_fallo = nse_fallo,
     nse_marco_cambio = nse_marco_cambio
   )
+}
+
+# ¿El marco recalculado reproduce los conteos de la muestra? Compara elegible, área,
+# mínimo y piloto, en manzanas y en población, distrito por distrito.
+.reporte_mt_conteos_coinciden <- function(recalculado, muestra) {
+  clave <- function(filas) {
+    filas <- Filter(is.list, filas %||% list())
+    u <- vapply(filas, function(f) as.character(f$ubigeo), character(1))
+    v <- lapply(filas, function(f) unlist(lapply(c("elegible", "excluida_area", "excluida_minimo", "excluida_piloto"), function(c) {
+      c(.reporte_mt_num(f[[c]]$manzanas), .reporte_mt_num(f[[c]]$poblacion))
+    })))
+    stats::setNames(v, u)[order(u)]
+  }
+  a <- clave(recalculado); b <- clave(muestra)
+  identical(names(a), names(b)) && all(vapply(names(a), function(u) isTRUE(all.equal(a[[u]], b[[u]], tolerance = 1e-9)), logical(1)))
 }
 
 # ---------- Modelo: marco elegible y cobertura ----------
@@ -258,7 +290,7 @@
 
 .reporte_mt_supuestos_marco <- function() c(
   "El tamaño de muestra y las cuotas se calculan sobre la población INEI 2017 completa de cada distrito, no sobre el marco elegible.",
-  "Una calibración posterior a los totales INEI completos supone que, dentro de cada celda de edad y sexo, la población excluida se parece a la cubierta.",
+  "Una calibración posterior a los totales INEI completos, por marginales de edad y de sexo (raking), supone que dentro de cada categoría de edad y de sexo la población excluida se parece a la cubierta.",
   "La concentración de lo excluido en un nivel socioeconómico todavía no exige una decisión de cobertura: su umbral no está fijado. El perfil NSE de lo excluido se publica para que pueda evaluarse."
 )
 
@@ -421,7 +453,7 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
   nota_nse <- if (!hay_exclusion) {
     "El marco elegible no excluyó población por área ni por mínimo de viviendas; no hay perfil de lo excluido que comparar."
   } else if (is.null(nse) && isTRUE(insumos$nse_marco_cambio)) {
-    "El perfil socioeconómico de lo excluido no se publica: el marco de manzanas INEI cambió después del sorteo y ya no describe esta muestra."
+    "El perfil socioeconómico de lo excluido no se publica: el marco de manzanas INEI o su cartografía cambiaron después del sorteo y ya no reproducen los conteos de esta muestra."
   } else if (is.null(nse) && isTRUE(insumos$nse_fallo)) {
     "El perfil socioeconómico de lo excluido no pudo calcularse al generar este informe."
   } else if (is.null(nse)) {
@@ -488,7 +520,7 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
 
 #' Decisiones de diseño, parámetros y cálculo del tamaño (secciones heredadas,
 #' corregidas para que digan lo que hace el motor).
-reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decision_log = NULL, territorios = list()) {
+reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decision_log = NULL, territorios = list(), muestra = NULL) {
   pr <- .reporte_mt_params(config)
   cfg <- pr$cfg; ss <- pr$ss; k <- pr$k
   pps <- !identical(cfg$sampling_method, "sistematico")
@@ -561,6 +593,12 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
     sprintf("Tamaño de muestra: %s entrevistas completas, redondeado hacia arriba a un múltiplo de %d entrevistas por ruta para que cada ruta sea completa.",
             .reporte_mt_int(n_total), k)
   } else "El cálculo del tamaño de muestra todavía no se ha ejecutado."
+  # A1: la muestra sorteada debe sumar el n del cálculo.
+  aviso_tamano <- if (!is.null(n_total) && !is.null(muestra$entrevistas) &&
+                      abs(.reporte_mt_num(muestra$entrevistas) - .reporte_mt_num(n_total)) > 0.5) {
+    sprintf("La muestra sorteada no coincide con este tamaño: tiene %s rutas titulares que suman %s entrevistas, frente a las %s del cálculo. El tamaño o la muestra deben actualizarse antes de ir a campo.",
+            .reporte_mt_int(muestra$rutas), .reporte_mt_int(muestra$entrevistas), .reporte_mt_int(n_total))
+  } else NULL
   filas <- Filter(is.list, sp$district_rows %||% list())
   por_distrito <- if (length(filas)) data.frame(
     Distrito = vapply(filas, function(f) .reporte_mt_nombre_distrito(as.character(f$ubigeo), as.character(f$distrito %||% ""), territorios), character(1)),
@@ -571,8 +609,21 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
       m <- .reporte_mt_margen_p05(ss, f$poblacion, f$n_used, as.character(f$ubigeo))
       if (is.na(m)) "-" else sprintf("± %.1f pp", 100 * m)
     }, character(1)),
+    `Objetivo` = vapply(filas, function(f) sprintf("± %.1f pp", 100 * .hojas_ruta_margin_district_for(ss, as.character(f$ubigeo))), character(1)),
     check.names = FALSE, stringsAsFactors = FALSE
   ) else NULL
+  # A3: distritos cuyo margen nominal pasa el objetivo por distrito.
+  sobre <- Filter(Negate(is.null), lapply(filas, function(f) {
+    m <- .reporte_mt_margen_p05(ss, f$poblacion, f$n_used, as.character(f$ubigeo))
+    obj <- .hojas_ruta_margin_district_for(ss, as.character(f$ubigeo))
+    if (is.na(m) || m <= obj + 1e-9) return(NULL)
+    sprintf("%s (± %.1f pp frente a ± %.1f pp)", .reporte_mt_nombre_distrito(as.character(f$ubigeo), as.character(f$distrito %||% ""), territorios), 100 * m, 100 * obj)
+  }))
+  aviso_margen_distrito <- if (length(sobre)) {
+    sprintf("%s el margen de error objetivo por distrito: %s. Las estimaciones de %s tienen menos precisión que la declarada.",
+            if (length(sobre) == 1L) "Un distrito supera" else sprintf("%d distritos superan", length(sobre)),
+            paste(unlist(sobre), collapse = "; "), if (length(sobre) == 1L) "ese distrito" else "esos distritos")
+  } else NULL
   nota_tecnica <- c(
     sprintf("El efecto de diseño se integra en la fórmula del tamaño%s.", if (fpc) ", junto con la corrección por población finita" else "; no se aplica corrección por población finita"),
     sprintf("La distribución de las entrevistas entre distritos es %s.", reparto),
@@ -580,8 +631,9 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
     sprintf("El tamaño total es múltiplo de %d entrevistas por ruta, de modo que cada ruta es completa.", k)
   )
   list(decisiones = decisiones, parametros = parametros, formula_intro = formula_intro, formula = formula,
-       tamano = tamano, por_distrito = por_distrito, nota_tecnica = nota_tecnica,
-       nota_cuotas = "En campo, cada ruta aplica las cuotas como totales por sexo y por edad, sin cruces; la tabla siguiente muestra la matriz de referencia de la que salen esos totales.")
+       tamano = tamano, aviso_tamano = aviso_tamano, por_distrito = por_distrito,
+       aviso_margen_distrito = aviso_margen_distrito, nota_tecnica = nota_tecnica,
+       nota_cuotas = "Las cuotas se controlan como totales por sexo y por edad de cada distrito, sin cruces entre sexo y edad. Cada total suma las entrevistas del distrito, y en campo se reparte entre sus rutas.")
 }
 
 # ---------- Modelo: margen ----------
@@ -624,8 +676,7 @@ reporte_mt_margen_modelo <- function(config, territorios = list(), sample_size_p
         if (nzchar(as.character(icc$fuente %||% ""))) as.character(icc$fuente),
         if (nzchar(as.character(icc$fecha %||% ""))) .reporte_mt_fecha(icc$fecha)
       )
-      resultante <- .reporte_mt_num(icc$deff_resultante, NA_real_)
-      if (abs(deff - deff_k) > 0.005 || (!is.na(resultante) && abs(resultante - deff) > 0.005)) {
+      if (!identical(.reporte_mt_dec(deff), .reporte_mt_dec(deff_k))) {
         aviso_icc <- sprintf("El DEFF aplicado al tamaño (%s) no coincide con el que resulta de este ICC con las %d entrevistas por ruta actuales (%s): el tamaño debe recalcularse.",
                              .reporte_mt_dec(deff), k, .reporte_mt_dec(deff_k))
       }
@@ -643,7 +694,12 @@ reporte_mt_margen_modelo <- function(config, territorios = list(), sample_size_p
     sprintf("Los siguientes distritos tienen un DEFF propio que prevalece sobre el general: %s.",
             paste(vapply(overrides, function(u) .reporte_mt_nombre_distrito(u, "", territorios), character(1)), collapse = ", "))
   } else NULL
+  supuestos <- c(
+    "El margen es nominal: la selección de personas dentro de la manzana es por cuotas, no probabilística, de modo que el margen describe la precisión que tendría un diseño probabilístico del mismo tamaño y efecto de diseño.",
+    if (identical(fuente, "icc_biblioteca") && is.list(icc)) sprintf("El efecto de diseño supone que la correlación intraclase medida en «%s» se traslada a este estudio con su propio número de entrevistas por ruta.", as.character(icc$estudio %||% icc$id %||% "un estudio previo"))
+  )
   list(
+    supuestos = supuestos,
     margen = margen,
     margen_numerico = margen_numerico,
     procedencia = procedencia,
@@ -656,7 +712,7 @@ reporte_mt_margen_modelo <- function(config, territorios = list(), sample_size_p
 # ---------- Modelo: no respuesta y plan de campo ----------
 
 #' Modelo de la sección «Plan de campo y no respuesta» (ADR 0116 §1, U14).
-reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_campo = NULL, plan_fecha = NULL, plan_fallo = FALSE) {
+reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_campo = NULL, plan_fecha = NULL, plan_fallo = FALSE, muestra = NULL) {
   pr <- .reporte_mt_params(config)
   ss <- pr$ss; k <- pr$k
   r <- .reporte_mt_num(ss$response_rate, 0.9)
@@ -677,7 +733,7 @@ reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_camp
   )
   if (!is.null(vis$visitas_planificadas)) {
     supuestos <- rbind(supuestos, data.frame(
-      Supuesto = c("Contactos esperados en todo el estudio, N / r", "Visitas planificadas en todo el estudio, suma de ceil(k / (r · e)) por ruta"),
+      Supuesto = c("Contactos esperados en todo el estudio, n / r", "Visitas planificadas según el tamaño calculado, suma de ceil(k / (r · e)) por ruta"),
       Valor = c(.reporte_mt_int(vis$contactos_esperados), .reporte_mt_int(vis$visitas_planificadas)),
       stringsAsFactors = FALSE
     ))
@@ -692,7 +748,7 @@ reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_camp
     su <- hojas_ruta_plan_campo_supuestos(plan_campo$supuestos %||% list())
     costo_declarado <- (su$costo_por_entrevista + su$costo_por_jornada + su$costo_por_km) > 0
     resumen <- data.frame(
-      Concepto = c("Rutas", "Entrevistas", "Visitas planificadas (visitas esperadas de cada ruta)", "Encuestadores", "Visitas por jornada",
+      Concepto = c("Rutas", "Entrevistas", "Visitas esperadas de las rutas sorteadas", "Encuestadores", "Visitas por jornada",
                    "Jornadas-encuestador equivalentes", "Días de campo", "Recorrido estimado entre rutas",
                    if (costo_declarado) "Costo estimado"),
       Valor = c(.reporte_mt_int(res$rutas), .reporte_mt_int(res$entrevistas), .reporte_mt_int(res$visitas),
@@ -710,7 +766,31 @@ reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_camp
       `Días consecutivos` = vapply(largas, function(j) as.character(as.integer(j$jornadas_equivalentes %||% 1L)), character(1)),
       check.names = FALSE, stringsAsFactors = FALSE
     ) else NULL
+    # A2: las rutas sorteadas llevan las visitas con que se sortearon; si sus supuestos
+    # difieren de los de la config actual, se muestran los de la muestra.
+    supuestos_plan <- NULL
+    aviso_supuestos <- NULL
+    if (!is.null(muestra)) {
+      r_m <- muestra$respuesta; e_m <- muestra$ocupacion; k_m <- muestra$k; v_m <- muestra$visitas
+      txt_k <- if (length(k_m)) paste(unique(range(k_m)), collapse = " a ") else "-"
+      txt_v <- if (length(v_m)) paste(unique(v_m), collapse = " a ") else "-"
+      difiere <- (!is.null(r_m) && abs(.reporte_mt_num(r_m) - r) > 1e-9) ||
+        (!is.null(e_m) && abs(.reporte_mt_num(e_m) - e) > 1e-9) ||
+        (length(k_m) && !identical(as.numeric(k_m), as.numeric(k))) ||
+        (length(v_m) && !identical(as.numeric(unique(v_m)), as.numeric(v)))
+      if (difiere) {
+        supuestos_plan <- data.frame(
+          Supuesto = c("Tasa de respuesta (r)", "Ocupación y elegibilidad (e)", "Entrevistas por ruta (k)", "Visitas esperadas por ruta"),
+          `Rutas sorteadas` = c(if (is.null(r_m)) "No registrada" else .reporte_mt_pct(r_m, 0L), if (is.null(e_m)) "No registrada" else .reporte_mt_pct(e_m, 0L), txt_k, txt_v),
+          `Configuración actual` = c(.reporte_mt_pct(r, 0L), .reporte_mt_pct(e, 0L), as.character(k), as.character(v)),
+          check.names = FALSE, stringsAsFactors = FALSE
+        )
+        aviso_supuestos <- "Las rutas sorteadas se dimensionaron con supuestos distintos de los de la configuración actual. El plan de campo usa las visitas esperadas de las rutas sorteadas:"
+      }
+    }
     plan <- list(
+      supuestos_plan = supuestos_plan,
+      aviso_supuestos = aviso_supuestos,
       frase = paste0(
         if (!is.null(plan_fecha)) sprintf("Plan de campo registrado el %s. ", .reporte_mt_fecha(plan_fecha)) else "",
         "Las rutas se agrupan en jornadas de un encuestador por cercanía dentro de cada distrito, con la capacidad de una jornada medida en visitas esperadas. Una ruta que no cabe en una jornada no se parte: va completa con el mismo encuestador en días consecutivos y cuenta como varias jornadas equivalentes."
@@ -730,13 +810,84 @@ reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_camp
   list(intro = intro, supuestos = supuestos, regla = HOJAS_RUTA_REGLA_NO_RESPUESTA, plan = plan, sin_plan = sin_plan)
 }
 
+# ---------- Modelo: cuotas ----------
+
+#' Cuotas por distrito como totales por sexo y totales por rango de edad (revisión
+#' metodológica de U16): lo mismo que reparte `hojas_ruta_cuotas_por_ficha()`. La
+#' tabla sexo × edad va completa sólo como anexo de referencia para Monitoreo.
+reporte_mt_cuotas_modelo <- function(quota = NULL, territorios = list(), sample_size_preview = NULL) {
+  cells <- .hojas_ruta_rows_df(quota$cells %||% list())
+  if (!nrow(cells) || !all(c("ubigeo", "cuota") %in% names(cells))) return(list(sexo = NULL, edad = NULL, anexo = NULL, aviso_n = NULL))
+  cells$cuota <- .hojas_ruta_me_num(cells$cuota)
+  cells$ubigeo <- as.character(cells$ubigeo)
+  ubigeos <- unique(cells$ubigeo)
+  nombre <- function(u) {
+    desde_terr <- .reporte_mt_nombre_distrito(u, "", territorios)
+    if (!identical(desde_terr, u)) return(desde_terr)
+    d <- if ("territorio" %in% names(cells)) as.character(cells$territorio[cells$ubigeo == u][1]) else ""
+    if (nzchar(d)) .reporte_mt_titulo(d) else u
+  }
+  total_u <- function(u) .reporte_mt_int(sum(cells$cuota[cells$ubigeo == u]))
+  edad_col <- if ("rango_edad" %in% names(cells)) "rango_edad" else if ("rango_id" %in% names(cells)) "rango_id" else NULL
+  sexo <- if ("sexo" %in% names(cells)) {
+    niveles <- intersect(c("Hombre", "Mujer"), unique(as.character(cells$sexo)))
+    niveles <- c(niveles, setdiff(unique(as.character(cells$sexo)), niveles))
+    df <- data.frame(Distrito = vapply(ubigeos, nombre, character(1)), check.names = FALSE, stringsAsFactors = FALSE, row.names = NULL)
+    for (nv in niveles) df[[if (nv == "Hombre") "Hombres" else if (nv == "Mujer") "Mujeres" else nv]] <-
+      vapply(ubigeos, function(u) .reporte_mt_int(sum(cells$cuota[cells$ubigeo == u & cells$sexo == nv])), character(1))
+    df$Total <- vapply(ubigeos, total_u, character(1))
+    df
+  } else NULL
+  edad <- if (!is.null(edad_col)) {
+    rangos <- unique(as.character(cells[[edad_col]]))
+    df <- data.frame(Distrito = vapply(ubigeos, nombre, character(1)), check.names = FALSE, stringsAsFactors = FALSE, row.names = NULL)
+    for (rg in rangos) df[[rg]] <- vapply(ubigeos, function(u) .reporte_mt_int(sum(cells$cuota[cells$ubigeo == u & cells[[edad_col]] == rg])), character(1))
+    df$Total <- vapply(ubigeos, total_u, character(1))
+    df
+  } else NULL
+  anexo <- if (!is.null(edad_col) && "sexo" %in% names(cells)) {
+    rangos <- unique(as.character(cells[[edad_col]]))
+    claves <- unique(cells[c("ubigeo", "sexo")])
+    df <- data.frame(Distrito = vapply(claves$ubigeo, nombre, character(1)), Sexo = as.character(claves$sexo),
+                     check.names = FALSE, stringsAsFactors = FALSE, row.names = NULL)
+    for (rg in rangos) df[[rg]] <- vapply(seq_len(nrow(claves)), function(i) .reporte_mt_int(sum(cells$cuota[cells$ubigeo == claves$ubigeo[i] & cells$sexo == claves$sexo[i] & cells[[edad_col]] == rg])), character(1))
+    df
+  } else NULL
+  # Cada total debe sumar el n del distrito que fija el cálculo del tamaño.
+  difieren <- Filter(Negate(is.null), lapply(Filter(is.list, sample_size_preview$district_rows %||% list()), function(f) {
+    u <- as.character(f$ubigeo)
+    if (!u %in% ubigeos) return(NULL)
+    q <- sum(cells$cuota[cells$ubigeo == u]); n <- .reporte_mt_num(f$n_used)
+    if (abs(q - n) < 0.5) return(NULL)
+    sprintf("%s (cuota %s, tamaño %s)", nombre(u), .reporte_mt_int(q), .reporte_mt_int(n))
+  }))
+  aviso_n <- if (length(difieren)) {
+    sprintf("La cuota no suma el tamaño calculado en %s: %s. Las cuotas deben recalcularse con el tamaño vigente.",
+            if (length(difieren) == 1L) "un distrito" else sprintf("%d distritos", length(difieren)), paste(unlist(difieren), collapse = "; "))
+  } else NULL
+  list(sexo = sexo, edad = edad, anexo = anexo, aviso_n = aviso_n,
+       nota_anexo = "Referencia para Monitoreo: matriz completa de sexo por rango de edad de cada distrito, de la que salen los totales. Sus celdas no son cuotas de campo: no se controlan los cruces.")
+}
+
+.reporte_mt_titulo <- function(x) {
+  x <- as.character(x %||% "")
+  if (!nzchar(x) || x != toupper(x)) return(x)
+  palabras <- strsplit(tolower(x), " ", fixed = TRUE)[[1]]
+  menores <- c("de", "del", "la", "las", "los", "y", "el")
+  paste(vapply(seq_along(palabras), function(i) {
+    w <- palabras[i]
+    if (i > 1L && w %in% menores) w else paste0(toupper(substr(w, 1, 1)), substr(w, 2, nchar(w)))
+  }, character(1)), collapse = " ")
+}
+
 #' Modelo de las secciones que la plantilla pinta.
-reporte_mt_secciones_modelo <- function(config, sample_size_preview = NULL, insumos = NULL, territorios = list(), decision_log = NULL) {
+reporte_mt_secciones_modelo <- function(config, sample_size_preview = NULL, insumos = NULL, territorios = list(), decision_log = NULL, quota = NULL) {
   insumos <- insumos %||% list()
   list(
     marco = reporte_mt_marco_modelo(insumos, territorios),
-    diseno = reporte_mt_diseno_modelo(config, sample_size_preview, decision_log, territorios),
+    diseno = reporte_mt_diseno_modelo(config, sample_size_preview, decision_log, territorios, insumos$muestra),
     margen = reporte_mt_margen_modelo(config, territorios, sample_size_preview),
-    plan = reporte_mt_plan_modelo(config, sample_size_preview, insumos$plan_campo, insumos$plan_fecha, insumos$plan_fallo)
+    plan = reporte_mt_plan_modelo(config, sample_size_preview, insumos$plan_campo, insumos$plan_fecha, insumos$plan_fallo, insumos$muestra),
+    cuotas = reporte_mt_cuotas_modelo(quota, territorios, sample_size_preview)
   )
 }

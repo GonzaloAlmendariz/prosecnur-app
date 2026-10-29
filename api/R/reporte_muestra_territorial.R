@@ -68,7 +68,7 @@ reporte_muestra_territorial <- function(config,
     sample_size_preview = sample_size_preview,
     quota               = quota,
     decision_log        = decision_log,
-    secciones_marco     = reporte_mt_secciones_modelo(config, sample_size_preview, insumos_marco, territorios, decision_log)
+    secciones_marco     = reporte_mt_secciones_modelo(config, sample_size_preview, insumos_marco, territorios, decision_log, quota)
   )
   path_rds <- file.path(tmp_root, "bundle_muestra_territorial.rds")
   saveRDS(bundle, file = path_rds, version = 3)

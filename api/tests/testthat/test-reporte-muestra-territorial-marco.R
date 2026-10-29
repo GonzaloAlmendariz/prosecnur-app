@@ -39,6 +39,9 @@
   )
 }
 
+.u16_frame_mock <- function() data.frame(id_manzana = c("M1", "M9"), ubigeo = "150101", distrito = "Lima",
+                                         viviendas = c(20, 1), poblacion = c(80, 40), stringsAsFactors = FALSE)
+
 .u16_config <- function(fuente = "legado", deff = 1.5, icc = NULL, k = 5L) {
   ss <- list(design_effect = deff, design_effect_fuente = fuente, response_rate = 0.5, ocupacion = 0.8,
              confidence_level = 0.95, margin = 0.05)
@@ -158,7 +161,8 @@ test_that("plan: visitas ceil(k/(r·e)) y con margen; regla de no respuesta; pla
 
 test_that("el router calcula los insumos desde la sesión: bitácora, decisión vigente, plan y NSE", {
   cr <- .u16_criterios(areas = FALSE)
-  filas <- .u16_filas()
+  # La muestra guarda los conteos que el marco recalculado reproduce (candado del NSE).
+  filas <- hojas_ruta_marco_elegible_aplicar(.u16_frame_mock(), cr)$por_distrito
   sid <- session_create()
   .hojas_ruta_ensure_runs(sid)
   s <- session_get(sid)
@@ -180,7 +184,7 @@ test_that("el router calcula los insumos desde la sesión: bitácora, decisión 
   .session_env[[sid]] <- s
   local_mocked_bindings(
     hojas_ruta_marco_elegible_puntos = function(ubigeo) data.frame(id_manzana = c("M1", "M9"), lon = c(-77.03, -77.0), lat = c(-12.04, -12.0), nse_nivel = c("B", "C")),
-    hojas_ruta_inei_frame = function(...) data.frame(id_manzana = c("M1", "M9"), ubigeo = "150101", distrito = "Lima", viviendas = c(20, 1), poblacion = c(80, 4))
+    hojas_ruta_inei_frame = function(...) .u16_frame_mock()
   )
   active <- .hojas_ruta_active_run(sid)
   ins <- .reporte_mt_insumos_sesion(sid, active, hojas_ruta_integrada_normalize_config(active$run$config), active$run$workspace_outputs$sample)
@@ -191,7 +195,9 @@ test_that("el router calcula los insumos desde la sesión: bitácora, decisión 
   expect_identical(ins$plan_fecha, "2026-10-21T09:00:00-0500")
   expect_identical(ins$estado_muestra, "declarado")
   expect_false(ins$config_cambio)
-  expect_identical(ins$nse_por_distrito[[1]]$excluida$C, 4)
+  expect_identical(ins$nse_por_distrito[[1]]$excluida$C, 40)
+  expect_false(ins$nse_marco_cambio)
+  expect_identical(ins$muestra$entrevistas, 5)
   m <- reporte_mt_marco_modelo(ins)
   expect_match(m$estado$`Decisión de cobertura`[1], "^Decisión registrada \\(20/10/2026, redefinir")
   # El payload del worker no lleva polígonos.
@@ -384,4 +390,109 @@ test_that("margen nominal numérico, DEFF con dos decimales y FPC coherente entr
   expect_false(grepl("Random walk|aleatorias dentro de cada manzana|dentro de cada conglomerado", txt))
   expect_match(txt, "Cuotas de totales por sexo y por edad, sin cruces")
   expect_match(txt, "no probabilístico dentro de ella")
+})
+
+# ---------- Segunda vuelta de la revisión metodológica de U16 ----------
+
+.u16_sesion_nse <- function(por_distrito, hash_marco = NULL, env = parent.frame()) {
+  cr <- .u16_criterios(areas = FALSE)
+  marco_tmp <- withr::local_tempfile(fileext = ".csv", .local_envir = env)
+  writeLines(c("id_manzana,ubigeo", "M1,150101"), marco_tmp)
+  local_mocked_bindings(
+    hojas_ruta_marco_elegible_puntos = function(ubigeo) data.frame(id_manzana = c("M1", "M9"), lon = c(-77.03, -77.0), lat = c(-12.04, -12.0), nse_nivel = c("B", "C")),
+    hojas_ruta_inei_frame = function(...) .u16_frame_mock(),
+    hojas_ruta_inei_frame_path = function(...) marco_tmp,
+    .env = env
+  )
+  sample <- list(marco_elegible = list(criterios = cr, por_distrito = por_distrito, por_area = list(), hash_marco = hash_marco),
+                 blocks = list(list(id_manzana = "M1", ubigeo = "150101", entrevistas = 5)))
+  .u16_sesion(cr, sample)
+}
+
+test_that("NSE: se publica si el marco recalculado reproduce la muestra; si cambió el archivo o los conteos, no", {
+  cr <- .u16_criterios(areas = FALSE)
+  filas <- hojas_ruta_marco_elegible_aplicar(.u16_frame_mock(), cr)$por_distrito
+  ok <- .u16_sesion_nse(filas)
+  expect_false(ok$nse_marco_cambio)
+  expect_false(is.null(ok$nse_por_distrito))
+  # Rama hash_marco: el archivo del marco no es el del sorteo.
+  hash <- .u16_sesion_nse(filas, hash_marco = "hash-del-sorteo")
+  expect_true(hash$nse_marco_cambio)
+  expect_null(hash$nse_por_distrito)
+  expect_match(reporte_mt_marco_modelo(hash)$nota_nse, "cambiaron después del sorteo")
+  # Candado: mismo archivo, pero los conteos no se reproducen (p. ej. cambió la cartografía).
+  otra <- filas; otra[[1]]$excluida_minimo$poblacion <- 39
+  cand <- .u16_sesion_nse(otra)
+  expect_true(cand$nse_marco_cambio)
+  expect_null(cand$nse_por_distrito)
+  expect_false(.reporte_mt_conteos_coinciden(filas, otra))
+  expect_true(.reporte_mt_conteos_coinciden(filas, filas))
+})
+
+test_that("cuotas: sólo totales por sexo y por edad que suman el n del distrito; el anexo trae todas las celdas", {
+  rangos <- c("18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+  cells <- do.call(c, lapply(c("150101", "150120", "150122"), function(u) do.call(c, lapply(c("Hombre", "Mujer"), function(sx) {
+    lapply(seq_along(rangos), function(i) list(territorio = "LIMA", ubigeo = u, sexo = sx, rango_edad = rangos[i], rango_id = i, cuota = i + if (sx == "Mujer") 1 else 0))
+  }))))
+  expect_gt(length(cells), 30L)
+  terr <- list(list(ubigeo = "150101", distrito = "Lima"), list(ubigeo = "150120", distrito = "Magdalena del Mar"), list(ubigeo = "150122", distrito = "Miraflores"))
+  q <- reporte_mt_cuotas_modelo(list(cells = cells), terr)
+  # Hombres 1..6 = 21, mujeres 2..7 = 27, total 48 por distrito.
+  expect_identical(q$sexo$Hombres, rep("21", 3)); expect_identical(q$sexo$Mujeres, rep("27", 3))
+  expect_identical(q$sexo$Total, rep("48", 3))
+  expect_identical(names(q$edad), c("Distrito", rangos, "Total"))
+  expect_identical(q$edad$`18-24`, rep("3", 3))
+  expect_identical(sum(as.numeric(unlist(q$edad[1, rangos]))), 48)
+  expect_identical(nrow(q$anexo), 6L)
+  expect_identical(sum(as.numeric(unlist(q$anexo[rangos]))), 3 * 48)
+  expect_match(q$nota_anexo, "Referencia para Monitoreo")
+  expect_identical(q$sexo$Distrito, c("Lima", "Magdalena del Mar", "Miraflores"))
+  expect_null(q$aviso_n)
+  sp <- list(district_rows = list(list(ubigeo = "150101", n_used = 48), list(ubigeo = "150120", n_used = 50)))
+  q2 <- reporte_mt_cuotas_modelo(list(cells = cells), terr, sp)
+  expect_match(q2$aviso_n, "^La cuota no suma el tamaño calculado en un distrito: Magdalena del Mar \\(cuota 48, tamaño 50\\)")
+})
+
+test_that("A1: la muestra sorteada que no suma el n del cálculo se avisa", {
+  cfg <- .u16_config()
+  d <- reporte_mt_diseno_modelo(cfg, list(n_used = 400), muestra = list(rutas = 9, entrevistas = 45))
+  expect_match(d$aviso_tamano, "tiene 9 rutas titulares que suman 45 entrevistas, frente a las 400 del cálculo")
+  expect_null(reporte_mt_diseno_modelo(cfg, list(n_used = 400), muestra = list(rutas = 80, entrevistas = 400))$aviso_tamano)
+  p <- reporte_mt_plan_modelo(cfg, list(visitas = list(contactos_esperados = 800, visitas_planificadas = 1040)))
+  expect_true("Contactos esperados en todo el estudio, n / r" %in% p$supuestos$Supuesto)
+  expect_true(any(grepl("^Visitas planificadas según el tamaño calculado", p$supuestos$Supuesto)))
+})
+
+test_that("A3: el distrito cuyo margen nominal pasa el objetivo por distrito se avisa", {
+  cfg <- .u16_config("legado", 1.24)
+  cfg$sample_size$margin_district <- 0.10
+  sp <- list(n_used = 400, district_rows = list(
+    list(ubigeo = "150101", distrito = "Lima", poblacion = 268352, n_used = 330),
+    list(ubigeo = "150120", distrito = "Magdalena del Mar", poblacion = 54656, n_used = 70)))
+  d <- reporte_mt_diseno_modelo(cfg, sp)
+  expect_identical(d$por_distrito$Objetivo, rep("± 10.0 pp", 2))
+  expect_match(d$aviso_margen_distrito, "^Un distrito supera el margen de error objetivo por distrito: Magdalena del Mar \\(± 13.0 pp frente a ± 10.0 pp\\)")
+  expect_false(grepl("Lima", d$aviso_margen_distrito))
+})
+
+test_that("A2: un plan sobre rutas sorteadas con otros supuestos muestra los de la muestra", {
+  cfg <- .u16_config(k = 5L)
+  bloques <- list(list(id_manzana = "M1", ubigeo = "150101", distrito = "Lima", entrevistas = 5, visitas_esperadas = 7))
+  plan <- hojas_ruta_plan_campo(bloques, list(), puntos = data.frame(id_manzana = "M1", lon = -77, lat = -12))
+  q <- reporte_mt_plan_modelo(cfg, NULL, plan, muestra = list(rutas = 1, entrevistas = 5, k = 5, visitas = c(7, 7), respuesta = 0.9, ocupacion = 0.8))
+  expect_match(q$plan$aviso_supuestos, "supuestos distintos")
+  expect_identical(q$plan$supuestos_plan$`Rutas sorteadas`, c("90 %", "80 %", "5", "7"))
+  expect_identical(q$plan$supuestos_plan$`Configuración actual`, c("50 %", "80 %", "5", "13"))
+  igual <- reporte_mt_plan_modelo(cfg, NULL, plan, muestra = list(k = 5, visitas = c(13, 13), respuesta = 0.5, ocupacion = 0.8))
+  expect_null(igual$plan$supuestos_plan)
+  expect_match(q$plan$resumen$Concepto[3], "Visitas esperadas de las rutas sorteadas")
+})
+
+test_that("supuestos del margen: nominal por cuotas y, con ICC, el traslado declarado", {
+  icc <- list(id = "hsvg-2025", estudio = "HSVG 2025", icc = 0.06, unidad_conglomerado = "ruta", escala = "proporcion", conglomerados = 142, k_ruta = 5L, deff_resultante = 1.24)
+  m <- reporte_mt_margen_modelo(.u16_config("icc_biblioteca", 1.24, icc = icc))
+  expect_length(m$supuestos, 2L)
+  expect_match(m$supuestos[1], "por cuotas, no probabilística")
+  expect_match(m$supuestos[2], "«HSVG 2025» se traslada")
+  expect_null(m$aviso_icc)
 })
