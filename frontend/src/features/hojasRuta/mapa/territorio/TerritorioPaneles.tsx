@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { TerritorioGraficos } from "./TerritorioGraficos";
-import { MapPinned, X } from "../../../../vendor/lucide-react";
+import { MapPinned, Minus, Plus, X } from "../../../../vendor/lucide-react";
+import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -9,6 +10,8 @@ import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
+
+const FILTRO = [["todos", "Todos"], ["elegidos", "Elegidos"]] as const;
 
 /**
  * Territorio en la página del lienzo (ADR 0114 §2, U5). La estructura es el
@@ -56,7 +59,10 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
           </small>
         </div>
         <input className="hr-mapa-buscar" type="search" aria-label="Buscar distrito" placeholder="Buscar distrito o ubigeo" value={busquedaDistrito} onChange={(e) => setBusquedaDistrito(e.target.value)} />
-        <PulsoSwitch label="Solo los elegidos" size="sm" checked={soloElegidos} onCheckedChange={setSoloElegidos} count={borrador.length} />
+        <GlidingRadioGroup value={soloElegidos ? "elegidos" : "todos"} options={FILTRO} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloElegidos(v === "elegidos")} className="hr-muestra-opciones" aria-label="Qué distritos ver">
+          {(o) => <span>{o[0] === "elegidos" ? `${o[1]} · ${borrador.length}` : `${o[1]} · ${territorios.length}`}</span>}
+        </GlidingRadioGroup>
+        <h3 className="hr-mapa-subtitulo">Zonas de Lima</h3>
         <div className="hr-mapa-zonas" role="group" aria-label="Zonas de Lima">
           {zonas.map((z) => {
             const n = z.ubigeos.filter((u) => borrador.includes(u)).length;
@@ -79,10 +85,10 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
         <div className="hr-mapa-acciones">
           {/* Sólo sobre lo que se ve, con su número: nada se elige ni se quita a ciegas. */}
           <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !filtrado || !visiblesFuera} title={filtrado ? undefined : "Filtra por zona o busca para agregar varios a la vez"} onClick={() => setBorrador(agregarVarios(borrador, visibles.map((t) => t.ubigeo)))}>
-            {filtrado && visiblesFuera ? `Agregar ${visiblesFuera} visible${visiblesFuera === 1 ? "" : "s"}` : "Agregar visibles"}
+            <Plus size={13} aria-hidden /> {filtrado && visiblesFuera ? `Agregar ${visiblesFuera} visible${visiblesFuera === 1 ? "" : "s"}` : "Agregar visibles"}
           </PulsoButton>
           <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !visiblesDentro} onClick={() => setBorrador(borrador.filter((u) => !visibles.some((t) => t.ubigeo === u)))}>
-            {visiblesDentro ? `Quitar ${visiblesDentro} visible${visiblesDentro === 1 ? "" : "s"}` : "Quitar visibles"}
+            <Minus size={13} aria-hidden /> {visiblesDentro ? `Quitar ${visiblesDentro} visible${visiblesDentro === 1 ? "" : "s"}` : "Quitar visibles"}
           </PulsoButton>
         </div>
       </div>
