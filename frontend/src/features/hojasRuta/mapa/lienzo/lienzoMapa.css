@@ -134,6 +134,8 @@
 .hr-lienzo-rampa i:last-child { border-radius: 0 3px 3px 0; }
 @media (max-width: 1100px) {
   .hr-lienzo-miga { max-width: min(200px, calc(100% - 24px)); }
+  /* B26: angosto, la miga dice sólo dónde está; la instrucción no cabe junto a las capas. */
+  .hr-lienzo-miga-ayuda { display: none; }
   .hr-lienzo-leyenda { display: none; }
 }
 

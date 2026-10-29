@@ -125,7 +125,7 @@
 .hr-mapa-zona[data-estado="todo"] { border-color: var(--pulso-module-routes); background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); }
 .hr-mapa-zona:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
 .hr-mapa-zona:disabled { opacity: 0.5; cursor: not-allowed; }
-.hr-mapa-acciones { display: flex; gap: 6px; }
+.hr-mapa-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
 .hr-mapa-acciones > * { flex: 1; }
 .hr-mapa-catalogo { padding: 0 8px 12px; }
 .hr-mapa-catalogo h3 { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 6px 0 0; padding: 8px 6px 6px; background: var(--pulso-surface); font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
@@ -424,7 +424,8 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-graf { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
 .hr-graf-titulo { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-graf-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.hr-graf-barras li { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 44px; align-items: center; gap: 8px; font-size: 12px; }
+.hr-graf-barras li { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 3px 8px; font-size: 12px; }
+.hr-graf-barras .hr-graf-nombre { grid-column: 1 / -1; }
 .hr-graf-nombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text); font-weight: 600; }
 .hr-graf-pista { height: 8px; border-radius: 4px; background: var(--pulso-surface-2); overflow: hidden; }
 .hr-graf-pista i { display: block; height: 100%; border-radius: 4px; }
@@ -531,3 +532,11 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 /* B18: con el cajón abierto, escala, zoom y leyenda suben por encima de él (46 % + margen); antes los tapaba a 1024. */
 .hr-mapa:has(> .hr-sel-cajon) .hr-lienzo-pie,
 .hr-mapa:has(> .hr-sel-cajon) .hr-lienzo-leyenda { bottom: calc(46% + 20px); }
+
+/* B26: a 1024 el detalle del catálogo cabe en una línea («mz») y los nombres largos de la gráfica van sobre su barra. */
+.hr-corto { display: none; }
+@media (max-width: 1279px) {
+  /* «manzanas» sigue para el lector de pantalla; «mz» es sólo visual (aria-hidden). */
+  .hr-largo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .hr-corto { display: inline; }
+}

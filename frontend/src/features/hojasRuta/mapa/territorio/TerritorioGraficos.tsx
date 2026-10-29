@@ -45,7 +45,7 @@ export function TerritorioGraficos({ elegidos, confirmados, viviendasPorNse }: P
             const color = tonoCss(i);
             return (
               <li key={t.ubigeo}>
-                <span className="hr-graf-nombre">{nombreDistrito(t.distrito)}</span>
+                <span className="hr-graf-nombre" title={nombreDistrito(t.distrito)}>{nombreDistrito(t.distrito)}</span>
                 <span className="hr-graf-pista"><i style={{ width: `${(t.poblacion / max) * 100}%`, background: color }} /></span>
                 <span className="hr-graf-valor">{pct(t.poblacion / total)}</span>
               </li>

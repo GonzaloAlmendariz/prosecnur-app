@@ -107,7 +107,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                         <strong>{nombreDistrito(t.distrito)}</strong>
                         <small>
                           {cambio ? <em>{cambio} · </em> : null}
-                          {enMiles(t.poblacion)} hab. · {fmt(t.manzanas)} manzanas
+                          {enMiles(t.poblacion)} hab. · {fmt(t.manzanas)} <span className="hr-largo">manzanas</span><span className="hr-corto" aria-hidden="true">mz</span>
                         </small>
                       </span>
                       <PulsoSwitch
