@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { JobProgress } from "../../../../components/JobProgress";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -71,6 +71,13 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
   const nav = useSeccion("hojas-ruta");
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<string[]>([]);
+  // B45: abrir Salidas desde la ficha de una UMP la deja marcada para el reemplazo puntual.
+  useEffect(() => {
+    if (nav.panel === PANEL_SALIDAS_SELECCION.id && nav.foco) {
+      const foco = nav.foco;
+      setElegidas((l) => (l.includes(foco) ? l : [...l, foco]));
+    }
+  }, [nav.panel, nav.foco]);
   const [porTitular, setPorTitular] = useState(1);
   const [politica, setPolitica] = useState<HojasRutaReplacementPolicy>(config.replacement_policy ?? "alternate_zone_same_district");
   const [preferencia, setPreferencia] = useState<HojasRutaRandomPreference>("balanced");

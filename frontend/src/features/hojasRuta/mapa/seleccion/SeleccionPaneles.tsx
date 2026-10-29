@@ -9,6 +9,7 @@ import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
+import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { HojaVista } from "./HojaVista";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
@@ -97,6 +98,7 @@ type InspectorProps = {
 
 export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
+  const nav = useSeccion("hojas-ruta");
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
     const observaciones = revision.grupos.filter((g) => g.umps.some((u) => u.idManzana === titular.id_manzana || suyos.some((r) => r.id_manzana === u.idManzana)));
@@ -141,18 +143,30 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           <section className="hr-muestra-grupo" aria-label="Reemplazos en orden">
             <h3>Reemplazos en orden</h3>
             {suyos.length ? (
-              <ol className="hr-sel-reemplazos">
-                {suyos.map((r) => (
-                  <li key={r.id_manzana}>
-                    <strong>{codigoDeUmp(r)}</strong>
-                    <span>Zona {r.zona} · {fmt(r.viviendas)} viv. · NSE {nse(r)}</span>
-                  </li>
-                ))}
-              </ol>
+              <>
+                <p className="hr-mapa-nota">Si la titular no completa su ruta, se pasa a la primera; si tampoco, a la siguiente, en este orden.</p>
+                <ol className="hr-sel-reemplazos">
+                  {suyos.map((r) => (
+                    <li key={r.id_manzana}>
+                      <strong>{codigoDeUmp(r)} · Mz {String(r.id_manzana).slice(-4)}</strong>
+                      <span>Zona {r.zona} · {fmt(r.viviendas)} viv. · NSE {nse(r)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
             ) : (
               <p className="hr-mapa-nota">Esta ruta no tiene reemplazos sorteados.</p>
             )}
           </section>
+          {/* B45: desde la ficha, a lo que se hace con esta UMP. El reemplazo puntual abre Salidas con ella marcada. */}
+          <div className="hr-mapa-acciones">
+            <PulsoButton variant="secondary" size="sm" title="Pedir reemplazos nuevos para esta titular sin tocar el sorteo" onClick={() => nav.irA("panel", "salidas")}>
+              Reemplazo puntual
+            </PulsoButton>
+            <PulsoButton variant="secondary" size="sm" onClick={() => setCajon("titulares")}>
+              Tablas
+            </PulsoButton>
+          </div>
         </div>
         {/* `salidas` va PRIMERO en el pie de las dos vistas: misma posición en el árbol, así React no
             lo vuelve a montar al abrir o cerrar la ficha y no se pierde un ZIP en curso. El CSS lo
