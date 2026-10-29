@@ -1436,3 +1436,29 @@ export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | 
     await apiFetch("/api/hojas-ruta/bitacora", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ accion, resumen, detalle }) }),
   );
 }
+
+// ---------- Vista previa de la hoja y hoja del día (U15) ----------
+
+export type HojasRutaArchivoGenerado = { file_id: string; filename: string; formato: "png" | "pdf" };
+
+export function normalizarArchivo(raw: unknown, formatoPorDefecto: "png" | "pdf"): HojasRutaArchivoGenerado & Record<string, unknown> {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const f = comoTexto(o.formato);
+  return { ...o, file_id: comoTexto(o.file_id), filename: comoTexto(o.filename), formato: f === "png" || f === "pdf" ? f : formatoPorDefecto };
+}
+
+/** La ficha de una UMP de la muestra guardada (titular o reemplazo); tarda unos segundos. */
+export async function apiHojasRutaFichaUmp(idManzana: string, formato: "png" | "pdf" = "png") {
+  return normalizarArchivo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/ficha-ump", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ id_manzana: idManzana, formato }) })),
+    formato,
+  );
+}
+
+/** La hoja del día de una jornada del plan de campo, en PDF. */
+export async function apiHojasRutaHojaDia(jornada: string, supuestos?: HojasRutaPlanSupuestos) {
+  return normalizarArchivo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/hoja-dia", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ jornada, ...(supuestos ? { supuestos } : {}) }) })),
+    "pdf",
+  );
+}

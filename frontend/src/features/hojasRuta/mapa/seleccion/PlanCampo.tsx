@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { apiHojasRutaPlanCampo, normalizarPlanSupuestos, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
+import { downloadUrl } from "../../../../api/core";
+import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 
 /**
@@ -16,6 +17,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
   const [plan, setPlan] = useState<HojasRutaPlanCampo | null>(null);
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
   const [error, setError] = useState("");
+  const [hoja, setHoja] = useState<string | null>(null);
   const cambiado = JSON.stringify(s) !== JSON.stringify(normalizarPlanSupuestos(guardados));
   const campo = (k: keyof Omit<HojasRutaPlanSupuestos, "moneda">, etiqueta: string, sufijo?: string) => (
     <label className="hr-muestra-campo">
@@ -60,6 +62,20 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
               <li key={j.id}>
                 <strong>{j.id}</strong>
                 <span>{nombreDistrito(j.distrito)} · {j.rutas.length} ruta{j.rutas.length === 1 ? "" : "s"} · {fmt(j.visitas)} visitas · {fmt(j.km, 1)} km</span>
+                <button
+                  type="button"
+                  className="hr-plan-hoja"
+                  disabled={hoja != null}
+                  onClick={() => {
+                    setHoja(j.id);
+                    apiHojasRutaHojaDia(j.id, s)
+                      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+                      .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
+                      .finally(() => setHoja(null));
+                  }}
+                >
+                  {hoja === j.id ? "Generando…" : "Hoja del día"}
+                </button>
               </li>
             ))}
           </ul>

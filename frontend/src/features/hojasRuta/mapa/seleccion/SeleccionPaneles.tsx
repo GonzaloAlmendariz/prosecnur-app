@@ -8,6 +8,7 @@ import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
+import { HojaVista } from "./HojaVista";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
 /**
@@ -114,6 +115,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
               <b>{g.titulo}.</b> {g.detalle}
             </p>
           ))}
+          <HojaVista idManzana={titular.id_manzana} />
           <section className="hr-muestra-grupo" aria-label="Reemplazos en orden">
             <h3>Reemplazos en orden</h3>
             {suyos.length ? (
