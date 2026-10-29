@@ -274,7 +274,9 @@ graficar_dumbbell <- function(
          cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
          diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), " ", etiqueta_brecha),
          mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha, sentido_diferencia = sentido,
-         grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), colores_cifra = colores_cifra,
+         # Con su nombre: el Word casa el color por público (`.word_colores_de_espec`); sin él caía al azul/celeste y el
+         # mismo público salía de otro color que en el PPT (Arte, competencias, 2026-10-28).
+         grupos = niveles_grupo, colores = stats::setNames(unname(colores[niveles_grupo]), niveles_grupo), colores_cifra = colores_cifra,
          leyenda = unname(etiquetas_leyenda),
          n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
   }, error = function(e) NULL)

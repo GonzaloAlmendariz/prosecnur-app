@@ -110,6 +110,10 @@ test_that("torta/dona: cada porción toma su color por rótulo y el resto conser
 
 test_that("pesas: los dos grupos toman su color por rótulo; sin paleta, navy y celeste con la cifra de la segunda en azul medio", {
   e <- .wcp_pesas(); T <- .WORD_TINTA; gr <- as.character(e$grupos)
+  # El motor ya trae los colores de cada público con su nombre: el Word los usa, como el PPT (Arte, 2026-10-28).
+  expect_identical(names(e$colores), gr)
+  expect_setequal(unique(.wcp_capa(.word_g_pesas(e), 2L)$colour), unname(e$colores))
+  e$colores <- NULL   # una espec sin colores: el respaldo del Word
   g0 <- .word_g_pesas(e)
   p0 <- .wcp_capa(g0, 2L)
   expect_setequal(unique(p0$colour), c(T$navy, T$celeste))
