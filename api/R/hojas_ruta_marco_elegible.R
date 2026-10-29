@@ -310,7 +310,8 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
     sel <- which(area_de == k)
     list(id = areas[[k]]$id, motivo = areas[[k]]$motivo, manzanas = length(sel), viviendas = sum(viv[sel]), poblacion = sum(pob[sel]))
   })
-  for (a in por_area) if (n && a$manzanas == 0L) {
+  fuera <- vapply(alertas, function(a) if (identical(a$code, "W_EXCLUDED_AREA_OUTSIDE")) as.character(a$area %||% "") else "", character(1))
+  for (a in por_area) if (n && a$manzanas == 0L && !a$id %in% fuera) {
     alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
       "W_EXCLUDED_AREA_EMPTY", sprintf("El área «%s» no toca ninguna manzana de los distritos elegidos.", a$id), area = a$id
     )
@@ -399,7 +400,15 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   pob <- .hojas_ruta_me_num(territorio$poblacion)
   unname(lapply(split(seq_len(nrow(territorio)), as.character(territorio$ubigeo)), function(ix) {
     sumar <- function(sel) as.list(tapply(pob[sel], factor(niv[sel], levels = sort(unique(niv))), sum, default = 0))
-    list(ubigeo = as.character(territorio$ubigeo[ix[1]]), elegible = sumar(ix[criterio[ix] == "elegible"]), excluida = sumar(ix[criterio[ix] != "elegible"]))
+    # Lo excluido se separa por criterio: el piloto no es un sesgo de cobertura del marco.
+    list(
+      ubigeo = as.character(territorio$ubigeo[ix[1]]),
+      elegible = sumar(ix[criterio[ix] == "elegible"]),
+      excluida = sumar(ix[criterio[ix] %in% c("area", "minimo")]),
+      excluida_area = sumar(ix[criterio[ix] == "area"]),
+      excluida_minimo = sumar(ix[criterio[ix] == "minimo"]),
+      excluida_piloto = sumar(ix[criterio[ix] == "piloto"])
+    )
   }))
 }
 
@@ -480,10 +489,13 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   ajustada <- any(is.na(m) | m <= 0)
   m[is.na(m) | m <= 0] <- 1
   total <- sum(m)
-  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "igual_probabilidad" else "pps"
+  # El sistemático del motor arranca con runif(1, min = 1, max = step) (engine ~4587):
+  # el arranque no cubre un intervalo completo y hay manzanas con π = 0. Mientras ese
+  # defecto del motor congelado no se corrija, π no es reconstruible y no se publica.
+  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "sistematico_no_reconstruible" else "pps"
   pis <- vapply(ids, function(id) {
     if (identical(regla, "censo_de_la_zona")) return(1)
-    if (identical(regla, "igual_probabilidad")) return(n / N)
+    if (identical(regla, "sistematico_no_reconstruible")) return(NA_real_)
     mi <- m[match(id, as.character(df_z$id_manzana))]
     if (is.na(mi) || total <= 0) NA_real_ else min(1, n * mi / total)
   }, numeric(1), USE.NAMES = FALSE)
@@ -500,7 +512,11 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
 #' Si la config actual trae otros criterios, se avisa y se usan los de la muestra.
 hojas_ruta_marco_elegible_de_la_muestra <- function(config, sample) {
   criterios <- sample$marco_elegible$criterios %||% NULL
-  if (is.null(criterios)) return(list(config = config, alertas = list()))
+  if (is.null(criterios)) {
+    # Una muestra anterior al ADR 0115 se sorteó sobre todo el marco: sus reemplazos también.
+    if (!length(sample$blocks %||% list())) return(list(config = config, alertas = list()))
+    criterios <- list(declarado = FALSE)
+  }
   guardado <- hojas_ruta_marco_elegible_normalizar(criterios)
   actual <- config$marco_elegible %||% hojas_ruta_marco_elegible_normalizar(NULL)
   claves <- c("declarado", "minimo_viviendas", "areas_excluidas")
@@ -564,7 +580,7 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   con_areas <- length(cfg$marco_elegible$areas_excluidas %||% list()) > 0L
   ap <- hojas_ruta_marco_elegible_aplicar(territorio, cfg$marco_elegible, excluidas_piloto = cfg$excluded_titular_ids %||% list())
   vistos <- vapply(resultado$alerts %||% list(), function(a) paste(a$code %||% "", a$message %||% ""), character(1))
-  for (a in avisos_marco) {
+  for (a in c(avisos_marco, ap$alertas)) {
     clave <- paste(a$code %||% "", a$message %||% "")
     if (!clave %in% vistos) {
       resultado$alerts <- c(resultado$alerts %||% list(), list(a))
@@ -586,7 +602,8 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
     por_distrito = ap$por_distrito,
     por_zona = ap$por_zona,
     por_area = ap$por_area,
-    perdidas_sumadas = as.integer(perdidas)
+    # La segunda pasada no suma, pero conserva lo que la primera aportó.
+    perdidas_sumadas = as.integer(resultado$marco_elegible$perdidas_sumadas %||% perdidas)
   )
   resultado
 }

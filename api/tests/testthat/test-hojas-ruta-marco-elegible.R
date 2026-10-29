@@ -236,8 +236,10 @@ test_that("π sigue la regla del sorteo: censo de zona, igual probabilidad en si
   censo <- .hojas_ruta_me_pi(df_z, c("a", "b", "c", "d"), "viviendas", "pps")
   expect_identical(censo$regla_pi, "censo_de_la_zona")
   expect_true(all(vapply(censo$seleccionadas, `[[`, numeric(1), "pi") == 1))
+  # El sistemático del motor deja manzanas con π = 0 (arranque runif(1, 1, step)): no se publica un π falso.
   sis <- .hojas_ruta_me_pi(df_z, c("a", "c"), "viviendas", "sistematico")
-  expect_identical(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
+  expect_identical(sis$regla_pi, "sistematico_no_reconstruible")
+  expect_true(all(is.na(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"))))
   pps <- .hojas_ruta_me_pi(df_z, c("b", "c"), "viviendas", "pps")
   expect_true(pps$medida_ajustada)
   expect_identical(pps$medida_total, 42)
@@ -255,6 +257,10 @@ test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avi
   expect_length(igual$alertas, 0)
   sin <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list())
   expect_identical(sin$config$marco_elegible$minimo_viviendas, 5L)
+  # Una muestra sorteada antes del ADR (con bloques y sin marco) usa el marco legacy y avisa.
+  vieja <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list(blocks = list(list(id_manzana = "x"))))
+  expect_false(vieja$config$marco_elegible$declarado)
+  expect_identical(vieja$alertas[[1]]$code, "W_ELIGIBILITY_DIFFERS_FROM_SAMPLE")
 })
 
 test_that("D3: en Campo real la vista previa descuenta el piloto y sigue repartiendo como el sorteo", {
@@ -347,6 +353,7 @@ test_that("D7: completar suma sobre `unassigned` del motor, marca la muestra inc
   expect_false(una$ok)
   dos <- hojas_ruta_marco_elegible_completar(una, vacio)
   expect_identical(dos$unassigned, una$unassigned)
+  expect_identical(dos$marco_elegible$perdidas_sumadas, 80L)
   e <- Filter(function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), dos$alerts)
   expect_length(e, 1)
   expect_match(e[[1]]$message, sprintf("^%d entrevista", una$unassigned))
@@ -359,4 +366,15 @@ test_that("D7: el NSE de lo excluido se mide en población por distrito", {
   lima <- Filter(function(d) identical(d$ubigeo, "150101"), nse)[[1]]
   expect_identical(lima$excluida[["3 Medio"]], 150)
   expect_identical(lima$excluida[["2 Medio alto"]], 45)
+})
+
+test_that("re-revisión: los avisos calculados al aplicar llegan a la muestra, sin duplicar fuera/vacía", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  cfg <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "lejos", poligono = list(c(-76.70, -12.40), c(-76.69, -12.40), c(-76.69, -12.41))))))
+  comp <- hojas_ruta_marco_elegible_completar(s, cfg)
+  codigos <- vapply(comp$alerts, `[[`, character(1), "code")
+  expect_true("W_EXCLUDED_AREA_EMPTY" %in% codigos)
+  afuera <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "afuera", poligono = list(c(-70, -15), c(-69.9, -15), c(-69.9, -15.1))))))
+  codigos2 <- vapply(hojas_ruta_marco_elegible_completar(s, afuera)$alerts, `[[`, character(1), "code")
+  expect_false("W_EXCLUDED_AREA_EMPTY" %in% codigos2)
 })
