@@ -8899,6 +8899,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     )[[1]]
   }
   route_ops <- .hojas_ruta_route_operational_values(block, config)
+  route_ops <- .hojas_ruta_vp_ops_sobre_visitas(route_ops, block)  # U15 / ADR 0116: salto sobre visitas
   constante <- as.integer(route_ops$constante_salto)
   esquina <- as.character(route_ops$esquina_coordenada %||% route_ops$esquina_inicio)
   recorrido <- as.character(route_ops$sentido_recorrido)
@@ -9013,6 +9014,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   .hojas_ruta_pdf_text("C. Selección de casas / domicilios", 0.085, 0.435,
                        fontsize = 10, fontface = "bold")
   .hojas_ruta_draw_systematic_diagram(esquina, recorrido, arranque, constante)
+  .hojas_ruta_vp_franja_no_respuesta(block)  # U15 / ADR 0116: visitas esperadas y regla
   constante_label <- if (identical(modo_seleccion, "Sin constante de salto")) {
     "Deshabilitada"
   } else if (identical(modo_seleccion, "Barrido completo")) {
