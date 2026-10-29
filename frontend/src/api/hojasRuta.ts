@@ -1181,7 +1181,8 @@ export function normalizarMarcoElegible(raw: unknown): HojasRutaMarcoElegible {
 export function normalizarMarcoElegiblePreview(raw: unknown): HojasRutaMarcoElegiblePreview {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const cobertura = (lista: unknown) =>
-    (esArreglo(lista) ? lista : []).map((c): HojasRutaCoberturaMarco => {
+    // R puede mandarla como objeto con claves (una lista con nombres): se aceptan las dos formas.
+    (esArreglo(lista) ? lista : lista && typeof lista === "object" ? Object.values(lista) : []).map((c): HojasRutaCoberturaMarco => {
       const r = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
       const cob = typeof r.cobertura_poblacion === "number" && Number.isFinite(r.cobertura_poblacion) ? r.cobertura_poblacion : null;
       return {

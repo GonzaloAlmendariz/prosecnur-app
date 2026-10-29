@@ -4,7 +4,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
@@ -31,6 +31,9 @@ import { calcularTamano } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
+import { MarcoElegiblePanel } from "./manzanas/MarcoElegiblePanel";
+import { cierraEnPrimero, MARCO_NUEVO } from "./manzanas/marcoElegible";
+import { proyectarLonLat } from "./lienzo/camara";
 import { revisarSeleccion } from "../seleccion/revisionMarco";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
@@ -55,7 +58,7 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, umpEnfocada, setUmpEnfocada, soloPorRevisar, busquedaUmp, cajon } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, umpEnfocada, setUmpEnfocada, soloPorRevisar, busquedaUmp, cajon, dibujoArea, setDibujoArea } = useLienzoHojasRuta();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
   const enMuestra = nav.seccion === "muestra";
@@ -170,6 +173,33 @@ export default function HojasRutaMapaPage() {
   // Manzanas: R guarda la configuración y la muestra al sortear; el sorteo se
   // anota después en el historial del proyecto (ui_state.route_history).
   const configSorteo = useMemo(() => (estado ? aplicarSorteo(estado.integrated_config, sorteoBorrador) : null), [estado, sorteoBorrador]);
+
+  // Marco elegible (ADR 0115): vista previa sin guardar, con espera para no
+  // pedirla en cada tecla. Una corrida legacy ve lo que cambiaría al adoptarlo.
+  const [vistaMarco, setVistaMarco] = useState<HojasRutaMarcoElegiblePreview | null>(null);
+  const [cargandoMarco, setCargandoMarco] = useState(false);
+  const firmaMarco = configSorteo && enManzanas && configSorteo.territorios.length ? JSON.stringify([configSorteo.territorios, configSorteo.marco_elegible ?? null, configSorteo.replacements_per_titular, configSorteo.entrevistas_por_manzana]) : "";
+  useEffect(() => {
+    if (!firmaMarco || !configSorteo) return undefined;
+    let vivo = true;
+    setCargandoMarco(true);
+    const t = window.setTimeout(() => {
+      const me = configSorteo.marco_elegible?.declarado ? configSorteo.marco_elegible : MARCO_NUEVO;
+      apiHojasRutaMarcoElegiblePreview({ ...configSorteo, marco_elegible: me })
+        .then((v) => vivo && setVistaMarco(v))
+        .catch(() => vivo && setVistaMarco(null))
+        .finally(() => vivo && setCargandoMarco(false));
+    }, 400);
+    return () => {
+      vivo = false;
+      window.clearTimeout(t);
+    };
+    // la firma resume lo que cambia la vista previa; configSorteo entero cambiaría en cada render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaMarco]);
+  // Con una corrida legacy la vista previa describe la adopción, no el estado actual: no se pinta como vigente.
+  const marcoDeclarado = configSorteo?.marco_elegible?.declarado === true;
+  const zonasCortas = useMemo(() => new Set(marcoDeclarado ? (vistaMarco?.capacidad ?? []).filter((z) => z.falta).map((z) => `${z.ubigeo}|${z.zona}`) : []), [vistaMarco, marcoDeclarado]);
   const sortear = useCallback(
     async (config: HojasRutaIntegratedConfig) => {
       if (!estado) return;
@@ -274,11 +304,49 @@ export default function HojasRutaMapaPage() {
         }
         return;
       }
-      if (enManzanas) dibujarReemplazosMundo(ctx, u, reemplazos);
+      if (enManzanas) {
+        // Zonas que no alcanzan con el marco elegible: borde ámbar, sin relleno.
+        if (zonasCortas.size) {
+          ctx.strokeStyle = u.colores.aviso;
+          ctx.lineWidth = 2.2 * u.px;
+          for (const d of distritos) for (const z of d.zonas) if (zonasCortas.has(`${d.ubigeo}|${z.codigo}`)) ctx.stroke(u.trazo(z));
+        }
+        // Áreas excluidas: trama tenue del módulo y borde punteado, nunca rojo.
+        const anillo = (pts: readonly [number, number][]) => {
+          const p = new Path2D();
+          pts.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+          return p;
+        };
+        for (const a of configSorteo?.marco_elegible?.areas_excluidas ?? []) {
+          const p = anillo(a.poligono.map(([lon, lat]) => proyectarLonLat(lon, lat)));
+          p.closePath();
+          ctx.globalAlpha = 0.14;
+          ctx.fillStyle = u.colores.acento;
+          ctx.fill(p);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = u.colores.acento;
+          ctx.lineWidth = 1.6 * u.px;
+          ctx.setLineDash([6 * u.px, 4 * u.px]);
+          ctx.stroke(p);
+          ctx.setLineDash([]);
+        }
+        if (dibujoArea?.length) {
+          ctx.strokeStyle = u.colores.texto;
+          ctx.lineWidth = 1.8 * u.px;
+          ctx.stroke(anillo(dibujoArea));
+          ctx.fillStyle = u.colores.texto;
+          for (const [x, y] of dibujoArea) {
+            ctx.beginPath();
+            ctx.arc(x, y, 4 * u.px, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        dibujarReemplazosMundo(ctx, u, reemplazos);
+      }
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea],
   );
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
@@ -334,7 +402,7 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
@@ -370,7 +438,12 @@ export default function HojasRutaMapaPage() {
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
           alClic={
-            enSeleccion
+            enManzanas && dibujoArea
+              ? (punto, u) => {
+                  // Un clic cerca del primer vértice no agrega otro: el área ya cerró y espera su motivo.
+                  if (!cierraEnPrimero(dibujoArea, punto, 12 / u.camara.s)) setDibujoArea([...dibujoArea, punto]);
+                }
+              : enSeleccion
               ? ([x, y]) => {
                   const m = manzanaEnPunto(titulares.map((t) => t.manzana), x, y);
                   if (m) setUmpEnfocada(m.id === umpEnfocada ? null : m.id);
@@ -404,6 +477,15 @@ export default function HojasRutaMapaPage() {
               viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
               manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
               listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
+              marcoElegible={
+                <MarcoElegiblePanel
+                  marco={configSorteo.marco_elegible}
+                  vista={vistaMarco}
+                  cargando={cargandoMarco}
+                  deshabilitado={bloqueado || guardando}
+                  onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}
+                />
+              }
               bloqueado={bloqueado}
               guardando={guardando}
               onSortear={() => void sortear(configSorteo)}

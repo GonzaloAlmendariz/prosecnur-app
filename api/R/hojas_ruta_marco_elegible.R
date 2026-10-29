@@ -234,7 +234,8 @@ hojas_ruta_marco_elegible_puntos <- function(ubigeo) {
   grupo <- do.call(paste, c(frame[claves], sep = "|"))
   viv <- .hojas_ruta_me_num(frame$viviendas)
   pob <- .hojas_ruta_me_num(frame$poblacion)
-  lapply(split(seq_len(nrow(frame)), factor(grupo, levels = unique(grupo))), function(ix) {
+  # unname: una lista con nombres sale como objeto en el JSON, y el cliente espera un arreglo.
+  unname(lapply(split(seq_len(nrow(frame)), factor(grupo, levels = unique(grupo))), function(ix) {
     cuenta <- function(sel) list(manzanas = length(sel), viviendas = sum(viv[sel]), poblacion = sum(pob[sel]))
     elegible <- ix[criterio[ix] == "elegible"]
     total <- cuenta(ix)
@@ -251,7 +252,7 @@ hojas_ruta_marco_elegible_puntos <- function(ubigeo) {
     )
     if (identical(por, "zona")) fila$zona <- as.character(frame$zona[ix[1]])
     fila
-  })
+  }))
 }
 
 #' Aplica el marco elegible a un marco ya filtrado por territorio (ADR 0115 §1-§2).

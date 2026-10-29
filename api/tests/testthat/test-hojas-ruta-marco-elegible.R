@@ -109,6 +109,9 @@ test_that("conservación: elegibles más excluidas es el marco, por distrito y p
     }
   }
   expect_length(r$por_zona, 3)
+  # Sin nombres: en el JSON tienen que salir como arreglos, no como objetos.
+  expect_null(names(r$por_distrito))
+  expect_null(names(r$por_zona))
 })
 
 test_that("la cobertura es NA cuando el distrito no tiene población, no una división por cero", {

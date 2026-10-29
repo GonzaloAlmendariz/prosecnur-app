@@ -143,7 +143,8 @@
 .hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
 .hr-mapa-cifras div { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-right: 1px solid var(--pulso-border); }
 .hr-mapa-cifras div:last-child { border-right: 0; }
-.hr-mapa-cifras small { font-size: 10.5px; font-weight: 700; color: var(--pulso-text-soft); }
+.hr-mapa-cifras small { font-size: 10.5px; font-weight: 700; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-mapa-cifras div { min-width: 0; }
 .hr-mapa-cifras strong { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .hr-mapa-pasos { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
 .hr-mapa-cambios h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
@@ -327,3 +328,21 @@
 /* El disparador de Salidas va primero en el árbol (no se remonta) y a la derecha en pantalla. */
 .hr-sel-pie > :first-child { order: 9; }
 .hr-sorteo-historial em[data-otro] { color: var(--pulso-text-soft); font-weight: 600; }
+
+/* Marco elegible (U11d, ADR 0115): áreas, dibujo, zonas cortas y cobertura */
+.hr-me-areas, .hr-me-zonas, .hr-me-cobertura { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hr-me-areas li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border: 1px dashed var(--pulso-border-strong); border-radius: 9px; }
+.hr-me-areas strong { display: block; font-size: 12px; }
+.hr-me-areas small { display: block; font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-me-dibujo { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-me-motivos { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
+.hr-me-cortas { display: flex; flex-direction: column; gap: 6px; }
+.hr-me-zonas li { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-me-cobertura li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; padding: 6px 8px; border-radius: 9px; }
+.hr-me-cobertura strong { font-size: 12.5px; }
+.hr-me-cobertura span { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-me-cobertura small { grid-column: 1 / -1; font-size: 11px; color: var(--pulso-text-soft); }
+.hr-me-cobertura li[data-tono="ambar"] span { color: var(--pulso-warn-fg); }
+.hr-me-cobertura li[data-tono="decision"] span { color: var(--pulso-danger-fg); }
+.hr-me-dibujo .hr-mapa-acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.hr-me-dibujo .hr-mapa-acciones > :last-child { grid-column: 1 / -1; }

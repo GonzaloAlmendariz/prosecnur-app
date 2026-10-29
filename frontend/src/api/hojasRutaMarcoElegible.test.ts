@@ -32,5 +32,8 @@ describe("normalizador del marco elegible (ADR 0115)", () => {
     expect(p.por_distrito[0].total).toEqual({ manzanas: 3, viviendas: 0, poblacion: 0 });
     expect(p.nse).toEqual({ elegible: { "3 Medio": 5 }, excluida: { "S/D": 2 } });
     expect(p.capacidad.map((c) => c.falta)).toEqual(["titulares", null]);
+    // Una lista con nombres de R llega como objeto: también vale.
+    const comoObjeto = normalizarMarcoElegiblePreview({ por_distrito: { "150102": { ubigeo: "150102", cobertura_poblacion: 0.9 } } });
+    expect(comoObjeto.por_distrito.map((d) => d.ubigeo)).toEqual(["150102"]);
   });
 });

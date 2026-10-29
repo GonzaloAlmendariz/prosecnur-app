@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import type { HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
+import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
+import { tonoCobertura } from "./marcoElegible";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
@@ -63,12 +65,14 @@ type InspectorProps = {
   viviendas: number;
   manzanas: number;
   listoParaSortear: boolean;
+  /** El bloque del marco elegible (ADR 0115): va antes del método porque decide sobre qué se sortea. */
+  marcoElegible?: ReactNode;
   bloqueado: boolean;
   guardando: boolean;
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, bloqueado, guardando, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, bloqueado, guardando, onSortear }: InspectorProps) {
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
@@ -101,6 +105,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           </ol>
         )}
         {!listoParaSortear ? <p className="hr-mapa-aviso">Primero calcula el tamaño en Muestra: el sorteo reparte ese N en rutas de {ruta} entrevistas.</p> : null}
+
+        {marcoElegible}
 
         <section className="hr-muestra-grupo" aria-label="Método">
           <h3>Método</h3>
@@ -184,12 +190,14 @@ type EstructuraProps = {
   territorios: readonly string[];
   /** N vigente (entrevistas del sorteo actual), o null si no hay. */
   nFinal: number | null;
+  /** Cobertura del marco elegible por distrito (vista previa); vacía si no hay. */
+  cobertura?: readonly HojasRutaCoberturaMarco[];
   bloqueado: boolean;
   guardando: boolean;
   onUsar: (s: HojasRutaRouteSnapshot) => void;
 };
 
-export function ManzanasEstructura({ muestra, historial, territorios, nFinal, bloqueado, guardando, onUsar }: EstructuraProps) {
+export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar }: EstructuraProps) {
   const porDistrito = new Map<string, { distrito: string; titulares: number; entrevistas: number; reemplazos: number }>();
   for (const b of muestra?.blocks ?? []) {
     const f = porDistrito.get(b.ubigeo) ?? { distrito: b.distrito, titulares: 0, entrevistas: 0, reemplazos: 0 };
@@ -230,6 +238,20 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, bl
         ) : (
           <p className="hr-mapa-vacio">Todavía no hay manzanas sorteadas. Sortea desde el panel de la derecha.</p>
         )}
+        {cobertura.some((c) => c.cobertura_poblacion != null && c.cobertura_poblacion < 1) ? (
+          <section className="hr-muestra-grupo" aria-label="Cobertura del marco elegible">
+            <h3>Cobertura del marco</h3>
+            <ul className="hr-me-cobertura">
+              {cobertura.map((c) => (
+                <li key={c.ubigeo} data-tono={tonoCobertura(c)}>
+                  <strong>{nombreDistrito(c.distrito)}</strong>
+                  <span>{c.cobertura_poblacion == null ? "—" : `${(c.cobertura_poblacion * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`}</span>
+                  <small>{fmt(c.elegible.manzanas)} de {fmt(c.total.manzanas)} manzanas</small>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <section className="hr-muestra-grupo" aria-label="Historial de ruteos">
           <h3>Historial de ruteos</h3>
           {historial.length ? (
