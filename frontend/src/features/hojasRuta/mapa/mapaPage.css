@@ -571,3 +571,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-margen-curva text.hr-margen-curva-objetivo-texto { fill: var(--pulso-module-routes); font-weight: 700; }
 .hr-margen-curva-linea { fill: none; stroke: var(--pulso-brand-navy); stroke-width: 2; }
 .hr-margen-curva-punto { fill: var(--pulso-brand-navy); stroke: var(--pulso-surface); stroke-width: 1.5; }
+/* B51: la fuente del dato, en un recuadro con su ícono. */
+.hr-mapa-fuente { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); font-size: 11.5px; line-height: 1.4; color: var(--pulso-text-soft); }
+.hr-mapa-fuente svg { flex: none; margin-top: 1px; color: var(--pulso-text-soft); }

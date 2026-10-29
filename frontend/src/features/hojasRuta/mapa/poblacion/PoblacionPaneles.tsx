@@ -1,5 +1,5 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { Table2, Users } from "../../../../vendor/lucide-react";
+import { Info, Table2, Users } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
@@ -226,7 +226,10 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
           <div title="Parte de la población de los distritos elegidos que entra en los rangos de edad"><small>Del total</small><strong>{matriz.vigente ? pct(matriz.total, poblacionDistritos) : "—"}</strong></div>
           <div><small>Celdas</small><strong>{config.territorios.length * rangos.length * (sexo ? 2 : 1)}</strong></div>
         </div>
-        <p className="hr-mapa-nota">Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</p>
+        <p className="hr-mapa-fuente">
+          <Info size={14} aria-hidden />
+          <span>Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</span>
+        </p>
         <h3 className="hr-mapa-subtitulo">Matriz</h3>
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
