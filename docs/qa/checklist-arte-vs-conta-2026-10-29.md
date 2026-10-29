@@ -25,9 +25,9 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 
 | # | Diferencia | Conta | Arte hoy | ¿Va? | Estado |
 |---|---|---|---|---|---|
-| 11 | Sí/No + escala con 2 filas: grosor | 0,71 in | 0,50 in | ☑ (Gonzalo) | ☐ |
-| 12 | Sí/No + escala: aire barra–leyenda | 0,43 / 0,56 in | 0,24 in | ☑ (Gonzalo) | ☐ |
-| 13 | Lámina 25 (Sí/No + escala): alto vacío abajo | — | 1,24 in vacías | ☑ (Gonzalo) | ☐ |
+| 11 | Sí/No + escala con 2 filas: grosor | 0,71 in | 0,50 in | ☑ (Gonzalo) | ☑ 0,71 in (`composicion.filtro.conta_grosor`, lamina_filtro_sub_conta.R) |
+| 12 | Sí/No + escala: aire barra–leyenda | 0,43 / 0,56 in | 0,24 in | ☑ (Gonzalo) | ☑ 0,45 in en las dos leyendas |
+| 13 | Lámina 25 (Sí/No + escala): alto vacío abajo | — | 1,24 in vacías | ☑ (Gonzalo) | ☑ arranca en 1,90 y va 2,78 in de barra a barra, como la 34 de Conta |
 | 14 | Rótulo del público con un solo público | se muestra | lám. 25 lo omite, lám. 29 lo muestra | evaluar (Gonzalo) | ☐ |
 | 15 | Multilista: subtítulo del bloque («DOCENTES») | 18 pt azul | 12,5 pt gris | ☑ (Gonzalo) | ☑ es el subtítulo de público de la lámina: 18 pt azul (`tipografia.subtitulo`, lamina_compositor.R) |
 | 16 | Multilista: preguntas en negrita | normal | negrita | ☑ (Gonzalo) | ☑ en Conta (láms. 26, 27, 33, 42) la lámina por público lleva las preguntas sin negrita y las demás con negrita; el motor hace lo mismo (`negrita` en `.lam_bloque_escala`) |

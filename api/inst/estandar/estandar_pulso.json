@@ -218,7 +218,11 @@
         "grosor": 0.42,
         "grosor_bateria": 0.32,
         "aire_sub": 0.75,
-        "aire_sub_bateria": 0.5
+        "aire_sub_bateria": 0.5,
+        "conta_grosor": 0.71,
+        "conta_aire_leyenda": 0.45,
+        "conta_y": 0.25,
+        "conta_paso": 2.78
       },
       "filas": {
         "ancho_rotulo": 1.8,

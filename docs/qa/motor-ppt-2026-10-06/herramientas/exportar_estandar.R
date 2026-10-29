@@ -92,7 +92,9 @@ composicion <- list(unidad = "in",
     rotulo_box_sobre = 0.4,          # el rótulo TOP TWO BOX sobre la barra de la subpregunta
     cifra_pt = 26, cifra_pt_bateria = 20,   # cifras de la dicotomía filtro; con una batería abajo, compacta
     grosor = 0.42, grosor_bateria = 0.32,   # grosor de esa dicotomía
-    aire_sub = 0.75, aire_sub_bateria = 0.5),   # de la dicotomía a la subpregunta
+    aire_sub = 0.75, aire_sub_bateria = 0.5,   # de la dicotomía a la subpregunta
+    # Como Conta (su lámina 34, lamina_filtro_sub_conta.R): barra de 0,71, leyenda a 0,45 de su barra, 2,78 de barra a barra
+    conta_grosor = 0.71, conta_aire_leyenda = 0.45, conta_y = 0.25, conta_paso = 2.78),
   filas = list(                      # la escala en filas, con Total o Bottom Two Box (recetario, lámina 77)
     ancho_rotulo = 1.8,              # columna de los rótulos de fila
     lineas_max = 2),                 # premisas de a lo más estas líneas en esa columna pueden ir en filas

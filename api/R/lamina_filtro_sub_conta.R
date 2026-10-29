@@ -17,7 +17,7 @@
 #' @keywords internal
 .lam_filtro_sub_como_conta <- function(lz, espec, d, s, n_encima = NULL, publico_f = NULL) {
   g_ <- .std_geom; L <- g_("likert"); W <- g_("ancho")
-  azul <- .std_color("azul"); g <- .std_grosor(1L, "escala_apilada")
+  azul <- .std_color("azul"); g <- .std_comp("filtro", "conta_grosor"); al <- .std_comp("filtro", "conta_aire_leyenda")
   xb <- L$x_barra; cb <- .lam_escala_columnas_box(s); wb <- cb$ancho_barra
   # El rótulo corto del analista («Participaron», p192) va en la columna del público, como «Docentes» en Contabilidad.
   rot <- trimws(as.character(espec$rotulo %||% "")[1]); con_rot <- !is.na(rot) && nzchar(rot)
@@ -32,16 +32,15 @@
     hp + hn
   }
   # Sí/No: barra apilada con las cifras en blanco dentro (G8) y su leyenda centrada en la lámina.
-  y1 <- g_("zona_datos_y0") + 0.6
+  y1 <- g_("zona_datos_y0") + .std_comp("filtro", "conta_y")
   hp1 <- fila(espec$pregunta_filtro, y1, nota = publico_f)
   lg <- d$largos[1:2]
   seg <- data.frame(ancho = lg / sum(lg), cifra = d$cifras[1:2], color = d$colores[1:2], dibujar = lg > 0, blanca = TRUE,
                     stringsAsFactors = FALSE)
   .lam_barra_apilada(lz, xb, y1, wb, seg, g)
-  .lam_leyenda(lz, y1 + g + .std_comp("escala", "aire_leyenda_fila"), d$rotulos[1:2], d$colores[1:2], centrar_en = W / 2)
-  # La escala dependiente, con el aire de Contabilidad entre las dos filas (~2,8 in de barra a barra en su lámina 34;
-  # aquí 2,5 para dejarle sitio al pie).
-  y2 <- max(y1 + 2.5, y1 + g / 2 + hp1 / 2 + 1.2)
+  .lam_leyenda(lz, y1 + g + al, d$rotulos[1:2], d$colores[1:2], centrar_en = W / 2)
+  # La escala dependiente, con el aire de Contabilidad entre las dos filas (2,78 in de barra a barra en su lámina 34).
+  y2 <- max(y1 + .std_comp("filtro", "conta_paso"), y1 + g / 2 + hp1 / 2 + 1.2)
   fila(espec$pregunta_sub, y2, actor = if (con_rot) rot)
   desde <- length(lz$cajas)
   .lam_barra_apilada(lz, xb, y2, wb, .lam_escala_seg(s, 1L), g)
@@ -52,6 +51,6 @@
     .lam_etiqueta_box(lz, s, cc$x, y2, g, 1L, con_n = FALSE, caja = cc$caja, color = cc$color, w = cb$ancho_col, prefijo = cc$prefijo)
   }
   ley <- s$leyenda %||% seq_len(NROW(s$categorias))   # la leyenda de la escala, como en toda lámina de escala
-  .lam_leyenda(lz, y2 + g + .std_comp("escala", "aire_leyenda_fila"), s$categorias$rotulo[ley], s$categorias$color[ley], centrar_en = W / 2)
-  invisible(y2 + g + 0.45)
+  .lam_leyenda(lz, y2 + g + al, s$categorias$rotulo[ley], s$categorias$color[ley], centrar_en = W / 2)
+  invisible(y2 + g + al)
 }
