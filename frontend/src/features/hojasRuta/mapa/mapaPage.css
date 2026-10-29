@@ -574,3 +574,17 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 /* B51: la fuente del dato, en un recuadro con su ícono. */
 .hr-mapa-fuente { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); font-size: 11.5px; line-height: 1.4; color: var(--pulso-text-soft); }
 .hr-mapa-fuente svg { flex: none; margin-top: 1px; color: var(--pulso-text-soft); }
+
+/* Botones secundarios del lienzo: neutros (borde gris fino, texto en tinta). El tono del módulo
+ * queda para la acción principal (sólido) y para lo elegido (relleno tenue): así no compiten. */
+.hr-mapa .pulso-button--secondary,
+.hr-mapa-frame .pulso-button--secondary { color: var(--pulso-text); border-color: var(--pulso-border-strong); background: var(--pulso-surface); }
+.hr-mapa .pulso-button--secondary:hover:not(:disabled),
+.hr-mapa-frame .pulso-button--secondary:hover:not(:disabled) { background: var(--pulso-surface-2); border-color: var(--pulso-border-strong); color: var(--pulso-text); }
+.hr-mapa .pulso-button--secondary:disabled,
+.hr-mapa-frame .pulso-button--secondary:disabled { color: var(--pulso-text-soft); border-color: var(--pulso-border); }
+/* Tarjetas de método: el elegido con el mismo relleno tenue que el resto de lo elegido, sin recuadro de color. */
+.hr-sorteo-metodos.pulso-gliding-tab-list { --pulso-gliding-indicator-bg: var(--pulso-module-routes-soft); --pulso-gliding-indicator-border: transparent; --pulso-gliding-indicator-shadow: none; }
+.hr-sorteo-metodos.pulso-gliding-tab-list > button { border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); color: var(--pulso-text); }
+.hr-sorteo-metodos.pulso-gliding-tab-list > button[aria-checked="true"] { border-color: transparent; background: transparent; }
+.hr-sorteo-metodos.pulso-gliding-tab-list > button:hover:not(:disabled):not([aria-checked="true"]) { background: var(--pulso-surface-2); }
