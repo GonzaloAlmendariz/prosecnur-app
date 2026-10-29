@@ -475,3 +475,10 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-parecido-tabla li i { width: 10px; height: 10px; border-radius: 3px; }
 .hr-parecido-tabla li b { text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
 .hr-parecido-tabla li[data-lejos] span, .hr-parecido-tabla li[data-lejos] b:last-child { color: var(--pulso-warn-fg); font-weight: 800; }
+
+/* Atajos del mínimo de viviendas (B38) */
+.hr-me-atajos { display: flex; flex-wrap: wrap; gap: 6px; }
+.hr-me-atajos button { border: 1px solid var(--pulso-border); border-radius: 999px; background: var(--pulso-surface); color: var(--pulso-text-soft); font: inherit; font-size: 11.5px; font-weight: 700; padding: 3px 10px; cursor: pointer; }
+.hr-me-atajos button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-module-routes-border); }
+.hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: var(--pulso-module-routes-border); color: var(--pulso-text); }
+.hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }

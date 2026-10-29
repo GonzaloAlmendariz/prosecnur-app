@@ -24,9 +24,11 @@ type Props = {
   cargando: boolean;
   deshabilitado: boolean;
   onCambiar: (me: HojasRutaMarcoElegible) => void;
+  /** Entrevistas por ruta: el atajo «una ruta completa» usa este mínimo (B38). */
+  ruta?: number;
 };
 
-export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCambiar }: Props) {
+export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCambiar, ruta = 0 }: Props) {
   const { dibujoArea, setDibujoArea } = useLienzoHojasRuta();
   const [form, setForm] = useState<FormularioArea>(FORM_VACIO);
   // ADR 0115 §4: con 10 % o más de población excluida en un distrito, el equipo decide y queda registrado (U17).
@@ -93,6 +95,12 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
           <PulsoButton variant="icon" size="sm" aria-label="Una vivienda menos" disabled={deshabilitado || me.minimo_viviendas <= 0} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas - 1 })}>−</PulsoButton>
           <input type="number" min={0} aria-label="Mínimo de viviendas por manzana" value={me.minimo_viviendas} disabled={deshabilitado} onChange={(e) => e.target.value !== "" && onCambiar({ ...me, minimo_viviendas: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
           <PulsoButton variant="icon" size="sm" aria-label="Una vivienda más" disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas + 1 })}>+</PulsoButton>
+        </span>
+        <span className="hr-me-atajos" role="group" aria-label="Mínimos frecuentes">
+          <button type="button" aria-pressed={me.minimo_viviendas === 1} disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: 1 })}>1 · con viviendas</button>
+          {ruta > 1 ? (
+            <button type="button" aria-pressed={me.minimo_viviendas === ruta} disabled={deshabilitado} title={`Saca las manzanas con menos viviendas que las ${ruta} entrevistas de una ruta`} onClick={() => onCambiar({ ...me, minimo_viviendas: ruta })}>{ruta} · una ruta completa</button>
+          ) : null}
         </span>
         <span className="hr-mapa-nota">
           {vista ? `Salen ${fmt(excluidasMinimo)} manzanas${sinConteo ? `, ${fmt(sinConteo)} de ellas sin conteo en el censo` : ""}.` : cargando ? "Calculando…" : ""}

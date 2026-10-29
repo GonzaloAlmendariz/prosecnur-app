@@ -598,6 +598,7 @@ export default function HojasRutaMapaPage() {
                   cargando={cargandoMarco}
                   deshabilitado={bloqueado || guardando}
                   onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}
+                  ruta={configSorteo.entrevistas_por_manzana}
                 />
               }
               bloqueado={bloqueado}
