@@ -9,6 +9,7 @@ import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { normalizarPlanSupuestos, type HojasRutaAlert, type HojasRutaIntegratedConfig, type HojasRutaPlanSupuestos, type HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
 import { costoEstimado } from "./costo";
 import { nombreDistrito } from "../nombres";
+import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
@@ -348,7 +349,10 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
         {r.filas.map((f) => (
           <li key={f.ubigeo}>
             <div className="hr-muestra-rep-cab">
-              <strong>{nombreDistrito(f.distrito)}</strong>
+              <strong className="hr-muestra-rep-nombre">
+                <i style={{ background: tonoCss(config.territorios.indexOf(f.ubigeo)) }} aria-hidden="true" />
+                {nombreDistrito(f.distrito)}
+              </strong>
               {porDistrito ? (
                 <input
                   type="number"
