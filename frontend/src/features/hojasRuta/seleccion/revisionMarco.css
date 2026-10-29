@@ -45,7 +45,7 @@
   background: var(--pulso-brand-navy);
 }
 
-.hr-revision-grupo[data-tono="error"] .hr-revision-punto { background: var(--pulso-danger-solid); }
+.hr-revision-grupo[data-tono="error"] .hr-revision-punto { background: var(--pulso-danger-fg); }
 .hr-revision-grupo[data-tono="aviso"] .hr-revision-punto { background: var(--pulso-warn-accent); }
 
 .hr-revision-grupo-copia {
@@ -199,7 +199,7 @@
   position: absolute;
   top: -4px;
   bottom: -4px;
-  border-left: 1.5px dashed var(--pulso-danger-solid);
+  border-left: 1.5px dashed var(--pulso-danger-fg);
 }
 
 .hr-revision-tira-ref-texto {
@@ -225,7 +225,7 @@
 
 .hr-revision-tira-punto.is-titular { background: var(--pulso-module-routes); }
 .hr-revision-tira-punto.is-reemplazo { background: var(--pulso-brand-navy); }
-.hr-revision-tira-punto.is-corto { background: var(--pulso-danger-solid); }
+.hr-revision-tira-punto.is-corto { background: var(--pulso-danger-fg); }
 
 .hr-revision-tira-eje {
   position: relative;

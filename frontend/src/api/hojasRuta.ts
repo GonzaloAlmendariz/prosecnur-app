@@ -1039,3 +1039,74 @@ export function hojasRutaReporteDecisionalUrl(opts: { inline?: boolean } = {}): 
   const qs = params.toString();
   return apiPath(`/api/hojas-ruta/reporte-decisional/descargar${qs ? `?${qs}` : ""}`);
 }
+
+// ---------- Geometría compacta para el lienzo (ADR 0114 §7) ----------
+
+/** Manzana: id, viviendas, zona, NSE (0 sin dato · 1 Alto … 5 Bajo) y anillos en metros (x1,y1,x2,y2…). */
+export type HojasRutaGeometriaManzana = {
+  id: string;
+  viviendas: number;
+  zona: string;
+  nse: 0 | 1 | 2 | 3 | 4 | 5;
+  anillos: number[][];
+};
+
+/** Vía mayor: rango 2 troncal o primaria, 1 secundaria; nombre vacío si no tiene. */
+export type HojasRutaGeometriaVia = { rango: 1 | 2; nombre: string; lineas: number[][] };
+
+export type HojasRutaGeometriaZona = { codigo: string; anillos: number[][] };
+
+export type HojasRutaGeometria = {
+  ok: boolean;
+  version: string;
+  ubigeo: string;
+  nombre: string;
+  /** [xmin, ymin, xmax, ymax] en metros. */
+  bbox: [number, number, number, number];
+  manzanas: HojasRutaGeometriaManzana[];
+  vias: HojasRutaGeometriaVia[];
+  zonas: HojasRutaGeometriaZona[];
+};
+
+const esArreglo = Array.isArray;
+const comoNumero = (v: unknown, defecto = 0) => (typeof v === "number" && Number.isFinite(v) ? v : defecto);
+const comoTexto = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
+const anillosValidos = (v: unknown, minimo: number): number[][] =>
+  esArreglo(v)
+    ? v.filter((r): r is number[] => esArreglo(r) && r.length >= minimo && r.every((n) => typeof n === "number"))
+    : [];
+
+/**
+ * Normaliza la respuesta cruda de `/api/hojas-ruta/geometria`. Descarta en
+ * silencio sólo lo que no se puede dibujar (anillos con menos de tres puntos,
+ * líneas con menos de dos); el resto llega con valores por defecto explícitos.
+ */
+export function normalizarGeometriaHojasRuta(raw: unknown): HojasRutaGeometria {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const bbox = esArreglo(o.bbox) && o.bbox.length === 4 ? (o.bbox.map((n) => comoNumero(n)) as [number, number, number, number]) : ([0, 0, 0, 0] as [number, number, number, number]);
+  const manzanas = (esArreglo(o.manz) ? o.manz : []).flatMap((m): HojasRutaGeometriaManzana[] => {
+    if (!esArreglo(m)) return [];
+    const anillos = anillosValidos(m[4], 6);
+    const nse = comoNumero(m[3]);
+    if (!anillos.length) return [];
+    return [{ id: comoTexto(m[0]), viviendas: Math.max(0, comoNumero(m[1])), zona: comoTexto(m[2]), nse: (nse >= 0 && nse <= 5 ? Math.round(nse) : 0) as HojasRutaGeometriaManzana["nse"], anillos }];
+  });
+  const vias = (esArreglo(o.calles) ? o.calles : []).flatMap((c): HojasRutaGeometriaVia[] => {
+    if (!esArreglo(c)) return [];
+    const lineas = anillosValidos(c[2], 4);
+    return lineas.length ? [{ rango: comoNumero(c[0]) >= 2 ? 2 : 1, nombre: comoTexto(c[1]), lineas }] : [];
+  });
+  const zonas = (esArreglo(o.zonas) ? o.zonas : []).flatMap((z): HojasRutaGeometriaZona[] => {
+    if (!esArreglo(z)) return [];
+    const anillos = anillosValidos(z[1], 6);
+    return anillos.length ? [{ codigo: comoTexto(z[0]), anillos }] : [];
+  });
+  return { ok: o.ok === true && manzanas.length > 0, version: comoTexto(o.version), ubigeo: comoTexto(o.ubigeo), nombre: comoTexto(o.nombre), bbox, manzanas, vias, zonas };
+}
+
+export async function apiHojasRutaGeometria(ubigeo: string): Promise<HojasRutaGeometria> {
+  const params = new URLSearchParams({ ubigeo });
+  return normalizarGeometriaHojasRuta(
+    await handle<unknown>(await apiFetch(`/api/hojas-ruta/geometria?${params.toString()}`)),
+  );
+}

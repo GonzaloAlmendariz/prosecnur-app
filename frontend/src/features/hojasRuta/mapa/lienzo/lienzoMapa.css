@@ -1,0 +1,89 @@
+/* Lienzo cartográfico de Hojas de ruta (ADR 0114 §1). El Canvas ocupa la región
+ * entera; la escala y el zoom flotan abajo a la derecha. Sólo tokens. */
+
+.hr-lienzo {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--pulso-mapa-fondo);
+}
+
+.hr-lienzo-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hr-lienzo-canvas[data-arrastrando="true"] {
+  cursor: grabbing;
+}
+
+.hr-lienzo-pie {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.hr-lienzo-escala {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+
+.hr-lienzo-escala::before {
+  content: attr(data-rotulo);
+}
+
+.hr-lienzo-escala::after {
+  content: "";
+  display: block;
+  width: var(--lienzo-escala, 70px);
+  height: 5px;
+  border: 1.5px solid var(--pulso-text-soft);
+  border-top: 0;
+}
+
+.hr-lienzo-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.hr-lienzo-zoom button {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.hr-lienzo-zoom button:hover {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-3);
+}
+
+.hr-lienzo-zoom button:focus-visible {
+  outline: 2px solid var(--pulso-module-routes-border);
+}

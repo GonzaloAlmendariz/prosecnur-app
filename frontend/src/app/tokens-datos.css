@@ -10,3 +10,26 @@
   --pulso-data-seq-4: #2457d6;
   --pulso-data-seq-5: #002457;
 }
+
+/* Lienzo cartográfico de Hojas de ruta (ADR 0114). El Canvas lee estos tokens
+ * con getComputedStyle: el mapa no lleva hex propios. NSE con los mismos tonos
+ * que la leyenda vigente del módulo (Alto violeta … Bajo rojo). */
+:root {
+  --pulso-mapa-fondo: #f7f8fa;
+  --pulso-mapa-distrito: #e6eaf0;
+  --pulso-mapa-distrito-borde: #bcc5d1;
+  --pulso-mapa-manzana: #dde2ea;
+  --pulso-mapa-manzana-lejos: #c9d1dc;
+  --pulso-mapa-manzana-borde: #cdd4de;
+  --pulso-mapa-zona: #b9c2cf;
+  --pulso-mapa-via: #ffffff;
+  --pulso-mapa-via-borde: #cfd6e0;
+  --pulso-mapa-reemplazo: #c4ccd8;
+  --pulso-mapa-reemplazo-borde: #6b7686;
+  --pulso-nse-0: #94a3b8;
+  --pulso-nse-1: #7c3aed;
+  --pulso-nse-2: #2563eb;
+  --pulso-nse-3: #0f766e;
+  --pulso-nse-4: #d97706;
+  --pulso-nse-5: #dc2626;
+}
