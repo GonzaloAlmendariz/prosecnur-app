@@ -307,3 +307,24 @@ test_that("D4: sin cartografía se usa la lat/lon del marco, y lo que queda sin 
   aviso <- Filter(function(a) identical(a$code, "W_ELIGIBILITY_NO_GEOMETRY"), sin$alertas)
   expect_identical(aviso[[1]]$manzanas, 1L)
 })
+
+test_that("(c) Campo real desde el piloto escribe el marco explícito y avisa si el piloto era legacy", {
+  legacy <- hojas_ruta_marco_elegible_para_campo(NULL)
+  expect_true(legacy$marco$declarado)
+  expect_identical(legacy$marco$minimo_viviendas, 1L)
+  expect_identical(legacy$alertas[[1]]$code, "W_FRAME_DIFFERS_PILOT_FIELD")
+  declarado <- hojas_ruta_marco_elegible_para_campo(list(minimo_viviendas = 2, areas_excluidas = list(me_area())))
+  expect_identical(declarado$marco$minimo_viviendas, 2L)
+  expect_length(declarado$marco$areas_excluidas, 1)
+  expect_length(declarado$alertas, 0)
+  cfg <- .hojas_ruta_field_config_from_pilot(list(territorios = list("150102")))
+  expect_true(cfg$marco_elegible$declarado)
+  expect_identical(cfg$marco_elegible$minimo_viviendas, 1L)
+})
+
+test_that("(d) adoptar el marco elegible avisa una vez; seguir con él no", {
+  a <- hojas_ruta_marco_elegible_aviso_adopcion(NULL, list(minimo_viviendas = 1))
+  expect_identical(a[[1]]$code, "W_FRAME_CHANGED_BY_ELIGIBILITY")
+  expect_length(hojas_ruta_marco_elegible_aviso_adopcion(list(minimo_viviendas = 1), list(minimo_viviendas = 2)), 0)
+  expect_length(hojas_ruta_marco_elegible_aviso_adopcion(NULL, NULL), 0)
+})

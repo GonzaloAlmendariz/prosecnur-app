@@ -208,6 +208,8 @@
   cfg$n_mode <- defaults$n_mode
   cfg$n_por_distrito <- defaults$n_por_distrito
   cfg$sample_size_mode <- defaults$sample_size_mode
+  # ADR 0115: Campo real escribe el marco elegible explícito (mínimo 1 si el piloto era legacy).
+  cfg$marco_elegible <- hojas_ruta_marco_elegible_para_campo(cfg$marco_elegible)$marco
   cfg
 }
 
@@ -672,7 +674,10 @@ mount_hojas_ruta <- function(pr) {
         .hojas_ruta_workspace_outputs_for_field_from_pilot(pilot$workspace_outputs)
       )
       .hojas_ruta_store_runs(sid, runs, "field")
-      .hojas_ruta_state_payload(sid)
+      payload <- .hojas_ruta_state_payload(sid)
+      aviso_marco <- hojas_ruta_marco_elegible_para_campo(hojas_ruta_integrada_normalize_config(pilot$config)$marco_elegible)$alertas
+      if (length(aviso_marco)) payload$alerts <- c(payload$alerts %||% list(), aviso_marco)
+      payload
     })) |>
     plumber::pr_post("/api/hojas-ruta/preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -750,11 +755,15 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       active <- .hojas_ruta_active_run(sid)
+      marco_anterior <- active$run$config$marco_elegible %||% NULL
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       effective_cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       result <- hojas_ruta_sample_preview_integrado(effective_cfg)
       # ADR 0115 §3, §5: nada de n perdida en silencio, y π y hashes del marco elegible.
-      avisos_marco <- attr(hojas_ruta_marco_elegible_normalizar((parsed$config %||% parsed)$marco_elegible), "alertas")
+      avisos_marco <- c(
+        attr(hojas_ruta_marco_elegible_normalizar((parsed$config %||% parsed)$marco_elegible), "alertas"),
+        hojas_ruta_marco_elegible_aviso_adopcion(marco_anterior, cfg$marco_elegible)
+      )
       result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result

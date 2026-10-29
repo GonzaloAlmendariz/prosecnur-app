@@ -555,3 +555,34 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   )
   resultado
 }
+
+#' El marco elegible de una corrida de Campo real creada desde el piloto (ADR 0115,
+#' Consecuencias y §5 Fases). Campo real siempre escribe el objeto explícito: si el
+#' piloto ya lo tenía declarado, se copia tal cual (mismas áreas y mínimo); si era
+#' legacy, Campo real adopta el mínimo 1 y se avisa que los dos marcos difieren,
+#' porque sus probabilidades no son comparables y las bases no se juntan sin decirlo.
+hojas_ruta_marco_elegible_para_campo <- function(marco_piloto = NULL) {
+  me <- hojas_ruta_marco_elegible_normalizar(marco_piloto)
+  if (isTRUE(me$declarado)) return(list(marco = me, alertas = list()))
+  nuevo <- hojas_ruta_marco_elegible_normalizar(list(declarado = TRUE, minimo_viviendas = HOJAS_RUTA_ME_MINIMO_NUEVO, areas_excluidas = list()))
+  list(
+    marco = nuevo,
+    alertas = list(.hojas_ruta_me_alerta(
+      "W_FRAME_DIFFERS_PILOT_FIELD",
+      "La piloto se sorteó sobre todas las manzanas y Campo real usa el marco elegible (mínimo 1 vivienda): sus probabilidades no son comparables y las dos bases no se juntan sin declararlo."
+    ))
+  )
+}
+
+#' Aviso de adopción (ADR 0115, Consecuencias): una corrida que pasa de legacy a
+#' marco declarado cambia su marco, así que la misma semilla ya no repite la
+#' muestra anterior. Se avisa una vez, en el sorteo que la adopta.
+hojas_ruta_marco_elegible_aviso_adopcion <- function(marco_anterior = NULL, marco_nuevo = NULL) {
+  antes <- hojas_ruta_marco_elegible_normalizar(marco_anterior)
+  ahora <- hojas_ruta_marco_elegible_normalizar(marco_nuevo)
+  if (isTRUE(antes$declarado) || !isTRUE(ahora$declarado)) return(list())
+  list(.hojas_ruta_me_alerta(
+    "W_FRAME_CHANGED_BY_ELIGIBILITY",
+    sprintf("Este sorteo adopta el marco elegible (mínimo %d vivienda(s), %d área(s) excluida(s)): con la misma semilla ya no se repite la muestra anterior.", ahora$minimo_viviendas, length(ahora$areas_excluidas))
+  ))
+}
