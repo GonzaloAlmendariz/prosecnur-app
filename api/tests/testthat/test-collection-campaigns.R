@@ -52,7 +52,7 @@ test_that("proyecto vacío: sin campañas, tipos con aulas y correo disponibles 
   expect_true(tipos$aulas$disponible)
   expect_true(tipos$correo$disponible)
   expect_false(tipos$territorial$disponible)
-  expect_identical(tipos$territorial$motivo, "Requiere leer las UMP de Hojas de ruta")
+  expect_identical(tipos$territorial$motivo, "Primero envía la muestra desde Hojas de ruta")
   # La virtual `correo-1` no es tarjeta, y leer no escribe nada.
   expect_null(session_get(sid)$material_campaigns)
 })
@@ -446,4 +446,154 @@ test_that("registrar la exportación no pisa el registro de artefactos de la ses
   files <- session_get(sid)$files
   for (a in res$artifacts) expect_true(file.exists(files[[a$file_id]]$path))
   expect_false(is.null(.cmail_sends_of(.cmail_campaigns_of(session_get(sid)$collection_state)$campaigns[[1]])[[1]]$last_export_at))
+})
+
+# ---- campaña territorial sobre el envío de Hojas de ruta (ADR 0118, F1) ----
+
+.mct_habilitar_territorial <- function(env = parent.frame()) {
+  local_mocked_bindings(.mcamp_territorial_habilitada = function() TRUE, .env = env)
+}
+
+test_that("territorial: el motivo dice que falta el envío y, enviado, sigue no disponible mientras no se habilite", {
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
+  expect_false(tipos$territorial$disponible)
+  expect_identical(tipos$territorial$motivo, "Primero envía la muestra desde Hojas de ruta")
+  hojas_ruta_enviar(sid)
+  tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
+  expect_false(tipos$territorial$disponible)
+  expect_identical(tipos$territorial$motivo, "Requiere leer las UMP de Hojas de ruta")
+  # Con la constante en FALSE crear responde como antes.
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima")),
+                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  expect_false(.MCAMP_TERRITORIAL_HABILITADA)
+})
+
+test_that("territorial habilitada: exige envío en la fase, es única y se proyecta con su estado", {
+  .mct_habilitar_territorial()
+  sid <- .hre_session(pilot = .hre_sample(prefijo = "1501990010")); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima")),
+                   "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO")
+  expect_identical(.mct_status(collection_campaign_create(sid, "territorial", "UMP Lima")), 409L)
+  hojas_ruta_enviar(sid, "pilot")
+  # Hay envío en pilot, no en field (la activa).
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima")),
+                   "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO")
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima", fase = "ensayo")),
+                   "E_COLLECTION_CAMPAIGN_INVALID")
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima", fase = "pilot", actor = "X")),
+                   "E_COLLECTION_CAMPAIGN_INVALID")
+  r <- collection_campaign_create(sid, "territorial", "UMP Lima", fase = "pilot", expected_registry_revision = 0L)
+  expect_identical(r$campaign$id, "territorial.principal")
+  expect_identical(r$campaign$ref, list(store = "hojas_ruta_envio", fase = "pilot"))
+  expect_identical(r$campaign$estado$titulares, 2L)
+  expect_identical(r$campaign$estado$reemplazos, 1L)
+  expect_false(r$campaign$estado$stale)
+  expect_match(r$campaign$estado$enviado_at, "^\\d{4}-")
+  entry <- session_get(sid)$material_campaigns$campaigns[[1]]
+  expect_identical(entry$ref, list(store = "hojas_ruta_envio", fase = "pilot"))
+  expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "Otra", fase = "pilot")),
+                   "E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA")
+  tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
+  expect_false(tipos$territorial$disponible)
+  expect_identical(tipos$territorial$motivo, "El proyecto ya tiene su campaña territorial.")
+})
+
+test_that("territorial: se renombra y archiva; sin campaña y sin habilitar sigue no disponible", {
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", name = "X")),
+                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  local({
+    .mct_habilitar_territorial()
+    expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", name = "X")),
+                     "E_COLLECTION_CAMPAIGN_NOT_FOUND")
+    hojas_ruta_enviar(sid)
+    collection_campaign_create(sid, "territorial", "UMP Lima")
+  })
+  # Existe: se edita aun con la constante en FALSE.
+  r <- collection_campaign_meta_put(sid, "territorial.principal", name = "UMP Lima Norte", archived = TRUE,
+                                    expected_registry_revision = 1L)
+  expect_identical(r$campaign$name, "UMP Lima Norte")
+  expect_true(r$campaign$archived)
+  expect_identical(r$campaign$ref$fase, "field")
+  noop <- collection_campaign_meta_put(sid, "territorial.principal", archived = TRUE, expected_registry_revision = 2L)
+  expect_true(noop$noop)
+  expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", actor = "X")),
+                   "E_COLLECTION_CAMPAIGN_INVALID")
+})
+
+test_that("unidades territoriales: proyección pura de la foto de la fase de la campaña, con stale", {
+  .mct_habilitar_territorial()
+  sid <- .hre_session(pilot = .hre_sample(prefijo = "1501990010")); on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar(sid, "pilot")
+  hojas_ruta_enviar(sid, "field")
+  collection_campaign_create(sid, "territorial", "UMP piloto", fase = "pilot")
+  s <- session_get(sid); s$project_dirty <- FALSE; s$project_dirty_reasons <- NULL; .session_env[[sid]] <- s
+  antes <- session_get(sid)
+
+  u <- collection_territorial_unidades(sid, "territorial.principal")
+  expect_identical(session_get(sid), antes)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  expect_identical(u$fase, "pilot")
+  expect_identical(u$source, "ump_territorial_v1")
+  expect_length(u$units, 3L)
+  ids <- vapply(u$units, `[[`, "", "unit_id")
+  # La foto del piloto, no la fase activa (field).
+  expect_true(all(startsWith(ids, "1501990010")))
+  expect_identical(vapply(u$units, `[[`, "", "role"), c("titular", "titular", "reemplazo"))
+  expect_identical(vapply(u$units, `[[`, "", "label"), c("UMP 1", "UMP 2", "R 1"))
+  expect_identical(unique(vapply(u$units, `[[`, "", "unit_type")), "territorial_ump")
+  expect_true(is.na(u$units[[1]]$titular_id))
+  expect_identical(u$units[[3]]$titular_id, "150199001001")
+  expect_identical(u$units[[1]]$rango_fin, 5L)
+  expect_identical(u$units[[1]]$viviendas, 120L)
+  expect_identical(u$units[[1]]$distrito, "Lima")
+  expect_identical(u$sample_fingerprint, session_get(sid)$hojas_ruta_runs$pilot$envio$sample_fingerprint)
+  expect_false(u$stale)
+
+  # Cambiar la muestra del campo no toca la campaña del piloto; re-sortear el piloto (forzado) la vuelve stale.
+  s <- session_get(sid)
+  s$hojas_ruta_runs$pilot$workspace_outputs$sample <- .hre_sample(prefijo = "1501990010", viviendas = 7L)
+  .session_env[[sid]] <- s
+  u2 <- collection_territorial_unidades(sid, "territorial.principal")
+  expect_true(u2$stale)
+  expect_identical(u2$units[[1]]$viviendas, 120L)
+  g <- collection_campaigns_get(sid)
+  terr <- Find(function(c) identical(c$tipo, "territorial"), g$campaigns)
+  expect_true(terr$estado$stale)
+
+  expect_identical(.mct_code(collection_territorial_unidades(sid, "aulas.principal")), "E_COLLECTION_CAMPAIGN_NOT_FOUND")
+})
+
+test_that("unidades territoriales: si la foto desaparece (campo recreado desde la piloto) es 409, no lista vacía", {
+  .mct_habilitar_territorial()
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar(sid)
+  collection_campaign_create(sid, "territorial", "UMP Lima")
+  s <- session_get(sid)
+  s$hojas_ruta_runs$field <- .hojas_ruta_run_normalize(list(pilot_exclusion_mode = "ignore"), "field")
+  .session_env[[sid]] <- s
+  expect_identical(.mct_code(collection_territorial_unidades(sid, "territorial.principal")),
+                   "E_COLLECTION_TERRITORIAL_SIN_FUENTE")
+  expect_identical(.mct_status(collection_territorial_unidades(sid, "territorial.principal")), 409L)
+  terr <- Find(function(c) identical(c$tipo, "territorial"), collection_campaigns_get(sid)$campaigns)
+  expect_identical(terr$estado$titulares, 0L)
+  expect_true(terr$estado$stale)
+})
+
+test_that("HTTP: GET de unidades territoriales y POST con fase", {
+  .mct_habilitar_territorial()
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar(sid)
+  pr <- mount_recopiladores(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+  c1 <- .hre_call(pr, sid, "POST", "/api/recopiladores/campaigns",
+                  .hre_json(list(tipo = "territorial", name = "UMP Lima", fase = "field")))
+  expect_identical(c1$status, 200L, info = substr(c1$raw, 1, 600))
+  expect_identical(c1$body$campaign$ref$fase, "field")
+  u <- .hre_call(pr, sid, "GET", "/api/recopiladores/campaigns/territorial/unidades", query = "id=territorial.principal")
+  expect_identical(u$status, 200L, info = substr(u$raw, 1, 600))
+  expect_length(u$body$units, 3L)
+  expect_identical(u$body$units[[3]]$role, "reemplazo")
+  no <- .hre_call(pr, sid, "GET", "/api/recopiladores/campaigns/territorial/unidades", query = "id=territorial.otra")
+  expect_identical(no$status, 404L)
 })

@@ -175,6 +175,12 @@ errores_registrados <- function() {
     "E_COLLECTION_CAMPAIGN_AULAS_UNICA",                     "collection_campaigns.R",            "409",
     "E_COLLECTION_CAMPAIGN_STALE",                           "collection_campaigns.R",            "409",
     "E_COLLECTION_CAMPAIGN_INVALID",                         "collection_campaigns.R",            "422",
+    # Campaña territorial sobre el envío de Hojas de ruta (ADR 0118, F1).
+    "E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA",               "collection_campaigns_territorial.R", "409",
+    "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO",           "collection_campaigns_territorial.R", "409",
+    "E_COLLECTION_TERRITORIAL_SIN_FUENTE",                   "collection_campaigns_territorial.R", "409",
+    "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
+    "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
     # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
     "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
     "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",

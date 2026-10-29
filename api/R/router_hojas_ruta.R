@@ -245,6 +245,8 @@
     locked = if (identical(role, "pilot")) TRUE else isTRUE(run$locked),
     role = role
   )
+  # ADR 0118 §3: la foto enviada a Material viaja con el run (lista cerrada: sin esto se borra al guardar).
+  out$envio <- .hojas_ruta_envio_normalize(run[["envio"]])
   if (identical(role, "field")) {
     out$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
       run$pilot_exclusion_mode %||% run$pilotExclusionMode,
@@ -558,7 +560,8 @@
       integrated_config = cfg,
       ui_state = ui_state,
       workspace_outputs = workspace_outputs,
-      runs = s$hojas_ruta_runs %||% list(),
+      runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
+      envio_meta = hojas_ruta_envio_meta(active$run),
       active_phase = active$phase,
       phase_notice = s$hojas_ruta_phase_notice %||% NULL,
       frame_meta = frame_meta,
@@ -578,7 +581,8 @@
     integrated_config = cfg,
     ui_state = ui_state,
     workspace_outputs = workspace_outputs,
-    runs = s$hojas_ruta_runs %||% list(),
+    runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
+    envio_meta = hojas_ruta_envio_meta(active$run),
     active_phase = active$phase,
     phase_notice = s$hojas_ruta_phase_notice %||% NULL,
     frame_meta = frame_meta,
@@ -662,7 +666,7 @@ mount_hojas_ruta <- function(pr) {
         ui_state = run$ui_state,
         workspace_outputs = run$workspace_outputs,
         active_phase = active$phase,
-        runs = session_get(sid)$hojas_ruta_runs %||% list()
+        runs = .hojas_ruta_runs_publicos(session_get(sid)$hojas_ruta_runs)
       )
     })) |>
     plumber::pr_post("/api/hojas-ruta/phase", wrap_endpoint(function(req, res, ...) {

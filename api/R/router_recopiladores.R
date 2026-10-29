@@ -132,7 +132,13 @@ mount_recopiladores <- function(pr) {
                                  platform = body$platform, preset_id = body$preset_id, template = body$template,
                                  import_id = body$import_id,
                                  expected_state_revision = body$expected_state_revision,
-                                 expected_registry_revision = body$expected_registry_revision)
+                                 expected_registry_revision = body$expected_registry_revision,
+                                 fase = body$fase)
+    })) |>
+    # Unidades de la campaña territorial: la foto enviada desde Hojas de ruta
+    # (ADR 0118 §3). Lectura pura.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/unidades", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_unidades(session_header(req), id)
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

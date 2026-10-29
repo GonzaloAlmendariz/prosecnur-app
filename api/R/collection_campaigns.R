@@ -196,13 +196,14 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   list(set = set, campaigns = Filter(function(c) .mcamp_correo_visible(c, set), set$campaigns))
 }
 
-.mcamp_tipos <- function(aulas_hit, n_correo) {
+.mcamp_tipos <- function(aulas_hit, n_correo, territorial_tipo = list(tipo = "territorial", disponible = FALSE,
+                                                                      motivo = .MCAMP_TERRITORIAL_MOTIVO)) {
   list(
     if (is.null(aulas_hit)) list(tipo = "aulas", disponible = TRUE)
     else list(tipo = "aulas", disponible = FALSE,
               motivo = if (isTRUE(aulas_hit$entry$archived)) "El proyecto ya tiene su campaña de aulas (archivada): reábrela."
                        else "El proyecto ya tiene su campaña de aulas."),
-    list(tipo = "territorial", disponible = FALSE, motivo = .MCAMP_TERRITORIAL_MOTIVO),
+    territorial_tipo,
     if (n_correo < .CMAIL_CAMPAIGNS_MAX) list(tipo = "correo", disponible = TRUE)
     else list(tipo = "correo", disponible = FALSE,
               motivo = sprintf("Un proyecto admite hasta %d campañas de correo.", .CMAIL_CAMPAIGNS_MAX))
@@ -214,13 +215,15 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   state <- .mcamp_state(s)
   reg <- .mcamp_registry(s)
   aulas <- .mcamp_aulas_entry(s, state, reg)
+  territorial <- .mcamp_territorial_entry(reg)
   correo <- .mcamp_correo_visibles(state)
   campaigns <- c(
     if (!is.null(aulas)) list(.mcamp_aulas_public(s, state, aulas)),
+    if (!is.null(territorial)) list(.mcamp_territorial_public(s, territorial)),
     lapply(correo$campaigns, function(c) .mcamp_correo_public(s, c, correo$set))
   )
-  list(state = state, reg = reg, aulas = aulas, correo = correo, campaigns = campaigns,
-       tipos = .mcamp_tipos(aulas, length(correo$set$campaigns)))
+  list(state = state, reg = reg, aulas = aulas, territorial = territorial, correo = correo, campaigns = campaigns,
+       tipos = .mcamp_tipos(aulas, length(correo$set$campaigns), .mcamp_territorial_tipo(s, territorial)))
 }
 
 #' Campañas del proyecto (ADR 0111): GET /api/recopiladores/campaigns.
@@ -311,13 +314,20 @@ collection_campaigns_get <- function(sid) {
 #'
 #' `correo` delega en `collection_mail_campaign_create` (revisión de
 #' collection_state); `aulas` escribe la entrada del registro (una sola por
-#' proyecto); `territorial` no está disponible hasta E2.
+#' proyecto); `territorial` (ADR 0118) crea `territorial.principal` sobre el
+#' envío de Hojas de ruta de `fase`, sólo con la campaña habilitada (F2).
 #' @keywords internal
 collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform = NULL, preset_id = NULL,
                                        template = NULL, import_id = NULL, expected_state_revision = NULL,
-                                       expected_registry_revision = NULL) {
+                                       expected_registry_revision = NULL, fase = NULL) {
   tipo <- .mcamp_tipo_arg(tipo)
-  if (identical(tipo, "territorial")) .mcamp_territorial_stop()
+  if (identical(tipo, "territorial")) {
+    if (!.mcamp_territorial_habilitada()) .mcamp_territorial_stop()
+    return(.mcamp_territorial_create(sid, name, fase,
+                                     list(actor = actor, platform = platform, preset_id = preset_id,
+                                          template = template, import_id = import_id),
+                                     expected_registry_revision))
+  }
   if (identical(tipo, "correo")) {
     created <- collection_mail_campaign_create(sid, expected_revision = expected_state_revision, name = name,
                                                actor = actor, preset_id = preset_id, platform = platform,
@@ -359,8 +369,10 @@ collection_campaign_meta_put <- function(sid, id, name = NULL, actor = NULL, pla
                                          expected_state_revision = NULL, expected_registry_revision = NULL) {
   id <- .mcamp_id_arg(id)
   tipo <- sub("\\..*$", "", id)
-  if (identical(tipo, "territorial")) .mcamp_territorial_stop()
   l <- .mcamp_list(session_get(sid))
+  if (identical(tipo, "territorial") && is.null(l$territorial) && !.mcamp_territorial_habilitada()) {
+    .mcamp_territorial_stop()
+  }
   .mcamp_find_or_stop(l, id)
   if (identical(tipo, "correo")) {
     if (!is.null(archived)) {
@@ -372,18 +384,19 @@ collection_campaign_meta_put <- function(sid, id, name = NULL, actor = NULL, pla
                                       platform = platform)
     return(.mcamp_response(sid, id))
   }
-  # aulas
+  # aulas y territorial: entradas del registro
   .mcamp_assert_registry_revision(l$reg, expected_registry_revision)
   if (!is.null(actor) || !is.null(platform)) {
     stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "actor y platform solo aplican a campañas de correo.")
   }
-  entry <- l$aulas$entry
+  hit <- if (identical(tipo, "territorial")) l$territorial else l$aulas
+  entry <- hit$entry
   next_entry <- entry
   if (!is.null(name)) next_entry$name <- .cmail_campaign_text(name, "name", 1L, 80L)
   if (!is.null(archived)) next_entry$archived <- .mcamp_bool_arg(archived, "archived")
   next_entry$archived <- isTRUE(next_entry$archived)
   if (is.null(next_entry$ref)) next_entry$ref <- list(store = "collection_state")
-  if (isTRUE(l$aulas$persisted) && identical(next_entry, entry)) {
+  if (isTRUE(hit$persisted) && identical(next_entry, entry)) {
     out <- .mcamp_response(sid, id)
     out$noop <- TRUE
     return(out)

@@ -9,6 +9,8 @@ Fecha: 2026-10-29
 Enmienda: ADR 0114 §3 (paneles de Selección) y §5 (el envío a Material). Activa: ADR 0108 §8 etapa E2 y ADR 0111
 (campaña `territorial`).
 
+Enmienda: ADR 0108 §1 (criterio "misma muestra, fingerprint igual").
+
 ## Contexto
 
 En el lienzo de Hojas de ruta (ADR 0114) la sección Selección abría un panel `salidas` que hacía dos trabajos
@@ -59,6 +61,10 @@ La ficha de la UMP en Selección deja la miniatura y lleva «Ver en Material» (
 fecha. `ump_territorial_v1` lee **esa foto**, nunca la muestra viva: Material no ve un re-sorteo hasta que se
 reenvía, y si la muestra cambió, Hojas lo dice («La muestra cambió desde el envío del 29/10: reenvía») y Material
 marca su lista `stale` (ADR 0108 §1). Reenviar no borra material ya generado; lo marca como de otra huella.
+
+Material y Monitoreo usan la misma función de huella (`.hojas_ruta_sample_fingerprint`, sobre la identidad de
+cada bloque más la semilla y el algoritmo del sorteo, nunca sobre la muestra entera); si no coinciden, Material
+muestra `stale`. En F1 Monitoreo sigue leyendo la muestra viva.
 
 ### 4. Direcciones en Material
 

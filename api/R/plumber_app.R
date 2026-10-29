@@ -124,6 +124,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_hojas_ruta_bitacora(pr)
     pr <- mount_hojas_ruta_vista_previa(pr)   # U15: ficha de una UMP y hoja del día
     pr <- mount_hojas_ruta_cuotas(pr)         # cuotas por ficha sin re-sortear
+    pr <- mount_hojas_ruta_envio(pr)          # ADR 0118: foto de la muestra para Material de campo
     pr <- mount_calc_muestra(pr)
     pr <- mount_calc_muestra_general(pr)
     pr <- mount_plan_trabajo(pr)
