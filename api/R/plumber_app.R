@@ -120,6 +120,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_hojas_ruta_marco_elegible(pr)
     pr <- mount_hojas_ruta_icc(pr)
     pr <- mount_hojas_ruta_semillas(pr)
+    pr <- mount_hojas_ruta_plan_campo(pr)
     pr <- mount_calc_muestra(pr)
     pr <- mount_calc_muestra_general(pr)
     pr <- mount_plan_trabajo(pr)
