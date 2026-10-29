@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarMarcoElegible, normalizarMarcoElegiblePreview } from "./hojasRuta";
+import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas } from "./hojasRuta";
 
 describe("normalizador del marco elegible (ADR 0115)", () => {
   it("sin datos es una corrida legacy: no declarado, mínimo 0, sin áreas", () => {
@@ -35,5 +35,14 @@ describe("normalizador del marco elegible (ADR 0115)", () => {
     // Una lista con nombres de R llega como objeto: también vale.
     const comoObjeto = normalizarMarcoElegiblePreview({ por_distrito: { "150102": { ubigeo: "150102", cobertura_poblacion: 0.9 } } });
     expect(comoObjeto.por_distrito.map((d) => d.ubigeo)).toEqual(["150102"]);
+  });
+});
+
+describe("normalizador de comparar semillas (U13)", () => {
+  it("descarta filas sin semilla y deja en null las métricas que R mandó como NA", () => {
+    const r = normalizarSemillasComparadas({ semillas: [{ semilla: 2017, actual: true, titulares: 10, por_revisar: 1, cercania_km: "NA" }, { titulares: 3 }] });
+    expect(r).toHaveLength(1);
+    expect(r[0].actual).toBe(true);
+    expect(r[0].cercania_km).toBeNull();
   });
 });

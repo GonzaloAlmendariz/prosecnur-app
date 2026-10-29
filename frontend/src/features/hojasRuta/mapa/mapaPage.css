@@ -360,3 +360,14 @@
 .hr-icc-lista strong { font-size: 12px; }
 .hr-icc-lista small { font-size: 11px; color: var(--pulso-text-soft); }
 .hr-icc-lista small.hr-icc-motivo { color: var(--pulso-warn-fg); }
+
+/* Comparar semillas (U13) */
+.hr-semillas { display: flex; flex-direction: column; gap: 8px; }
+.hr-semillas-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.hr-semillas-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 9px; border: 1px solid var(--pulso-border); }
+.hr-semillas-lista li[data-actual] { background: var(--pulso-surface-2); }
+.hr-semillas-lista span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hr-semillas-lista strong { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.hr-semillas-lista em { font-style: normal; font-weight: 600; color: var(--pulso-text-soft); }
+.hr-semillas-lista small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-semillas-lista b { color: var(--pulso-text); }

@@ -1302,3 +1302,42 @@ export async function apiHojasRutaIccAplicar(config: Partial<HojasRutaIntegrated
     await apiFetch("/api/hojas-ruta/icc/aplicar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, id }) }),
   );
 }
+
+// ---------- Comparar semillas (U13) ----------
+
+export type HojasRutaSemillaComparada = {
+  semilla: number;
+  actual: boolean;
+  titulares: number;
+  por_revisar: number;
+  por_revisar_pct: number | null;
+  mediana_viviendas: number | null;
+  nse_distancia: number | null;
+  cercania_km: number | null;
+  sin_asignar: number;
+};
+
+const numONull = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+export function normalizarSemillasComparadas(raw: unknown): HojasRutaSemillaComparada[] {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return (esArreglo(o.semillas) ? o.semillas : []).flatMap((x): HojasRutaSemillaComparada[] => {
+    const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const semilla = comoNumero(r.semilla, Number.NaN);
+    if (!Number.isFinite(semilla)) return [];
+    return [{
+      semilla, actual: r.actual === true, titulares: comoNumero(r.titulares), por_revisar: comoNumero(r.por_revisar),
+      por_revisar_pct: numONull(r.por_revisar_pct), mediana_viviendas: numONull(r.mediana_viviendas),
+      nse_distancia: numONull(r.nse_distancia), cercania_km: numONull(r.cercania_km), sin_asignar: comoNumero(r.sin_asignar),
+    }];
+  });
+}
+
+/** Sorteos en seco con otras semillas; no guarda nada. */
+export async function apiHojasRutaCompararSemillas(config: Partial<HojasRutaIntegratedConfig>, nuevas = 2): Promise<HojasRutaSemillaComparada[]> {
+  return normalizarSemillasComparadas(
+    await handle<unknown>(
+      await apiFetch("/api/hojas-ruta/sample-preview/comparar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, nuevas }) }),
+    ),
+  );
+}

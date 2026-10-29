@@ -3,6 +3,7 @@ import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
 import { tonoCobertura } from "./marcoElegible";
+import { CompararSemillas } from "./CompararSemillas";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
@@ -130,6 +131,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
             </span>
             <span className="hr-mapa-nota">La misma semilla con los mismos parámetros repite el sorteo.</span>
           </div>
+          {listoParaSortear ? <CompararSemillas config={config} deshabilitado={ed} onUsar={(seed) => cambiar({ seed })} /> : null}
         </section>
 
         <section className="hr-muestra-grupo" aria-label="Recorrido en campo">
