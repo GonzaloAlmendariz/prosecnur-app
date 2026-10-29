@@ -571,16 +571,18 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   por_zona <- identical(cfg$row_var, "zona")
   en <- function(df, u, z = NULL) as.character(df$ubigeo) == u & (is.null(z) | as.character(df$zona) == (z %||% ""))
   for (d in rep$distritos) {
+    # ADR 0120: con tope, la medida de la π es la del distrito también en la rama zona.
+    cfg_d <- .hojas_ruta_sorteo_cfg_distrito(cfg, frame[en(frame, d$ubigeo), , drop = FALSE])
     pi_d <- if (!por_zona) {
       ids_d <- if (nrow(bloques)) as.character(bloques$id_manzana[en(bloques, d$ubigeo)]) else character(0)
-      .hojas_ruta_me_pi(frame[en(frame, d$ubigeo), , drop = FALSE], ids_d, cfg, "distrito")
+      .hojas_ruta_me_pi(frame[en(frame, d$ubigeo), , drop = FALSE], ids_d, cfg_d, "distrito")
     }
     for (z in d$zonas) {
       sel <- if (nrow(bloques)) en(bloques, d$ubigeo, z$zona) else logical(0)
       ids <- if (any(sel)) as.character(bloques$id_manzana[sel]) else character(0)
       df_z <- frame[en(frame, d$ubigeo, z$zona), , drop = FALSE]
-      pi_z <- if (por_zona) .hojas_ruta_me_pi(df_z, ids, cfg, "zona") else c(pi_d[c("regla_pi", "probability_source", "ambito", "medida_total_ambito")], list(
-        manzanas_sin_medida = as.integer(sum(.hojas_ruta_sorteo_medida(df_z, cfg) <= 0)),
+      pi_z <- if (por_zona) .hojas_ruta_me_pi(df_z, ids, cfg_d, "zona") else c(pi_d[intersect(c("regla_pi", "probability_source", "ambito", "medida_total_ambito", "tope_medida", "tope_percentil", "manzanas_topadas"), names(pi_d))], list(
+        manzanas_sin_medida = as.integer(sum(.hojas_ruta_sorteo_medida(df_z, cfg_d) <= 0)),
         seleccionadas = Filter(function(x) x$id_manzana %in% ids, pi_d$seleccionadas)
       ))
       zonas[[length(zonas) + 1L]] <- c(list(ubigeo = d$ubigeo, zona = z$zona, rutas = z$rutas, manzanas = nrow(df_z), sorteadas = length(ids)), pi_z)
@@ -592,7 +594,7 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   con_areas <- length(cfg$marco_elegible$areas_excluidas %||% list()) > 0L
   ap <- hojas_ruta_marco_elegible_aplicar(territorio, cfg$marco_elegible, excluidas_piloto = cfg$excluded_titular_ids %||% list())
   vistos <- vapply(resultado$alerts %||% list(), function(a) paste(a$code %||% "", a$message %||% ""), character(1))
-  for (a in c(avisos_marco, ap$alertas)) {
+  for (a in c(avisos_marco, ap$alertas, Filter(Negate(is.null), list(.hojas_ruta_sorteo_aviso_tope(cfg))))) {
     clave <- paste(a$code %||% "", a$message %||% "")
     if (!clave %in% vistos) {
       resultado$alerts <- c(resultado$alerts %||% list(), list(a))
@@ -605,7 +607,7 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
     criterios = cfg$marco_elegible,
     medida = medida,
     algoritmo_sorteo = resultado$algoritmo_sorteo %||% HOJAS_RUTA_ALGORITMO_SORTEO_V1,
-    pi_aproximacion = "pps_sistematico_distrito: n_d * M_i / M_d con certezas por iteración (π exacta del sistemático; medida NA o <= 0 da π = 0); igual_probabilidad_distrito: lo mismo con M_i = 1; *_zona: igual dentro de la zona, dado su número de rutas. La varianza del sistemático se aproxima (pares con π_ij = 0).",
+    pi_aproximacion = "pps_sistematico_distrito: n_d * M_i / M_d con certezas por iteración (π exacta del sistemático; medida NA o <= 0 da π = 0); igual_probabilidad_distrito: lo mismo con M_i = 1; pps_tope_distrito: lo mismo con M'_i = min(M_i, p95 de M en el distrito) (ADR 0120); *_zona: igual dentro de la zona, dado su número de rutas. La varianza del sistemático se aproxima (pares con π_ij = 0).",
     zonas = zonas,
     hash_marco = if (nzchar(ruta_marco) && file.exists(ruta_marco)) digest::digest(file = ruta_marco, algo = "sha256") else NA_character_,
     hash_criterios = .hojas_ruta_me_hash(cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")]),
