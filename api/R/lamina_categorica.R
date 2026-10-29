@@ -73,7 +73,7 @@
   g_ <- .std_geom; yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   n <- max(1L, length(espec$largos))
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
-  uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
+  uf <- .lam_uso_area_fila(n, yf - yt - .LAM_USO_AREA$reserva); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
   nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
   ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho

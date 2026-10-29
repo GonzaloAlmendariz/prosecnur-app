@@ -74,7 +74,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | D9 | `yf` asignado y no leído | cat:115 | ☑ fuera |
 | D10 | `k` asignado y no leído en `.lam_circular_cabe` | circ:122 | ☑ fuera |
 | D11 | parámetros `x`, `y` de `.lam_panel_barras_compactas` | cat:342, mix:206 | ☑ fuera |
-| D12 | defaults `g = 0.34`, `fila = 0.66` que nadie usa | pan:28 | ☐ |
+| D12 | defaults `g = 0.34`, `fila = 0.66` | pan:28 | ☒ no es muerto: los usa test-lamina-panel-rotulo-box.R |
 
 ### Duplican una llave que ya existe
 
@@ -85,8 +85,8 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | U3 ☑ | 34 pt cifra destacada | mix:300, circ:71, circ:101 | `tipografia.cifra_destacada` |
 | U4 ☑ | 13 pt pregunta del panel | pan:13-14, mix:159, cat:280 | `tipografia.pregunta` |
 | U5 ☑ | 12 pt rótulos de categoría (llave nueva `tipografia.rotulo_categoria`) | cat:30, 95; mix:185, 202; circ:102, 136 | `tipografia.actor` |
-| U6 | pila de cifra de la torta 0,62/0,3/0,26 | circ:71-75 | `geometria.cifra_pieza` (casi igual) |
-| U7 | reserva 0,45 bajo las barras | cat:76 | `.LAM_USO_AREA$reserva` |
+| U6 ☒ | pila de cifra de la torta 0,62/0,3/0,26 | circ:71-75 | `geometria.cifra_pieza` (casi igual): pieza distinta (lám. 69 vs `cifra()` de 21-22), 0,01 in; no se unifica |
+| U7 ☑ | reserva 0,45 bajo las barras | cat:76 | `.LAM_USO_AREA$reserva` |
 
 ### Dos mecanismos para una decisión
 
@@ -104,8 +104,8 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 - F1 **pregunta a Gonzalo**: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
   pero el 85 % del ancho fue decisión deliberada (6ec72b494, defecto 3 de la v3 de Renzo). Arte hoy no tiene Sí/No sola. Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
 - F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
-- F3 Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
-- F4 Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
+- F3 ☒ decidido (N5 de Gonzalo: «en PPT está bien»; el Word siempre apila; Arte usa `barra_estandar` por config). Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
+- F4 ☒ no contradice: lámina de dos columnas (disco y lectura), la leyenda va con su columna, como la del panel (N16). Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
 - F5 **bloqueado, decide Gonzalo**: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
   reporte_plan_opciones.R:436). Lo pidió el recetario p72 (CCSS-9b, CCSS-19) y lo guardan 5 tests: avisa que
   en opción múltiple los porcentajes no suman 100. No es un rótulo de eje genérico; quitarlo contradice esa decisión.
@@ -118,5 +118,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑, U1–U5 ☑ (geometría idéntica). Siguen D12, U6, U7, F3, F4; F1 y F5 esperan a Gonzalo |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2, U1–U5, U7 ☑ (geometría idéntica); D12, U6, F3, F4 cerrados sin cambio, con su porqué. Quedan los dos mecanismos dobles (abajo) y F1, F5 que esperan a Gonzalo |
 | E6 cierre: gate amplio y commit | ☐ |
