@@ -377,7 +377,7 @@
 
 /* Plan de campo (U14) */
 .hr-plan-jornadas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.hr-plan-jornadas li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
+.hr-plan-jornadas li { display: grid; grid-template-columns: 10px 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
 .hr-plan-jornadas strong { font-variant-numeric: tabular-nums; }
 .hr-plan-jornadas span { color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 
@@ -387,7 +387,6 @@
 /* Vista previa de la hoja y hoja del día (U15) */
 .hr-hoja-img { display: block; border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; background: var(--pulso-surface); }
 .hr-hoja-img img { display: block; width: 100%; height: auto; }
-.hr-plan-jornadas li { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; }
 .hr-plan-hoja { border: 0; background: transparent; color: var(--pulso-module-routes); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .hr-plan-hoja:disabled { color: var(--pulso-text-soft); cursor: default; }
 
@@ -426,3 +425,8 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-graf-leyenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .hr-graf-leyenda b { margin-left: auto; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .hr-graf-nota { margin: 0; font-size: 11px; line-height: 1.4; color: var(--pulso-text-soft); }
+
+/* Plan por día y encuestador (B20) */
+.hr-plan-dia { display: flex; flex-direction: column; gap: 4px; }
+.hr-plan-dia h4 { margin: 4px 0 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-plan-enc { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }

@@ -121,6 +121,16 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
   }
   eq <- vapply(jornadas, function(j) as.integer(j$jornadas_equivalentes %||% 1L), integer(1))
   n_j <- sum(eq)
+  # Calendario (brecha B20): cada jornada va al encuestador que se libera primero, en
+  # el orden del plan (cercanía dentro del distrito); una ruta que excede la jornada
+  # ocupa días seguidos del MISMO encuestador.
+  libre <- rep(1L, s$encuestadores)
+  for (i in seq_along(jornadas)) {
+    e <- which.min(libre)
+    jornadas[[i]]$encuestador <- as.integer(e)
+    jornadas[[i]]$dia <- as.integer(libre[e])
+    libre[e] <- libre[e] + eq[i]
+  }
   km <- sum(vapply(jornadas, `[[`, numeric(1), "km"))
   total_entrevistas <- sum(entrevistas)
   largas <- Filter(function(j) isTRUE(j$excede_jornada), jornadas)
@@ -141,7 +151,8 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
       visitas = as.integer(sum(visitas)),
       jornadas = as.integer(n_j),
       # Una ruta de 3 jornadas exige al menos 3 días seguidos de la misma persona.
-      dias = as.integer(max(ceiling(n_j / s$encuestadores), if (length(eq)) max(eq) else 0L)),
+      # El calendario manda: días hasta que termina el último encuestador.
+      dias = as.integer(if (length(eq)) max(libre) - 1L else 0L),
       km = round(km, 1),
       costo = round((total_entrevistas * s$costo_por_entrevista + n_j * s$costo_por_jornada + km * s$costo_por_km) * (1 + s$supervision_pct / 100), 2)
     )

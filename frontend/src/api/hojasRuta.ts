@@ -1383,6 +1383,8 @@ export type HojasRutaJornada = {
   id: string; ubigeo: string; distrito: string; rutas: string[]; visitas: number; km: number;
   /** La ruta no cabe en una jornada: va entera, con el mismo encuestador varios días. */
   excede_jornada: boolean; jornadas_equivalentes: number;
+  /** Calendario (B20): encuestador 1..n y día en que empieza la jornada. */
+  encuestador: number; dia: number;
 };
 
 export type HojasRutaPlanCampo = {
@@ -1421,6 +1423,7 @@ export function normalizarPlanCampo(raw: unknown): HojasRutaPlanCampo {
       return {
         id: comoTexto(x.id), ubigeo: comoTexto(x.ubigeo), distrito: comoTexto(x.distrito), rutas: (esArreglo(x.rutas) ? x.rutas : []).map(comoTexto), visitas: comoNumero(x.visitas), km: comoNumero(x.km),
         excede_jornada: x.excede_jornada === true, jornadas_equivalentes: Math.max(1, comoNumero(x.jornadas_equivalentes) || 1),
+        encuestador: Math.max(1, comoNumero(x.encuestador) || 1), dia: Math.max(1, comoNumero(x.dia) || 1),
       };
     }),
     resumen: { rutas: comoNumero(r.rutas), entrevistas: comoNumero(r.entrevistas), visitas: comoNumero(r.visitas), jornadas: comoNumero(r.jornadas), dias: comoNumero(r.dias), km: comoNumero(r.km), costo: comoNumero(r.costo) },

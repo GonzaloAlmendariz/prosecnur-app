@@ -93,3 +93,20 @@ test_that("los costos por defecto son los del artefacto y la supervisión se sum
   p <- hojas_ruta_plan_campo(bloques, list(), puntos = puntos)
   expect_equal(p$resumen$costo, round(1 * 145 * 1.15, 2))
 })
+
+
+test_that("el calendario asigna encuestador y día; la ruta larga ocupa días seguidos del mismo encuestador (B20)", {
+  bloques <- c(list(pc_bloque("L", "150101", 0, 0, visitas = 70, entrevistas = 8)),
+               lapply(letters[1:4], function(i) pc_bloque(i, "150101", 0, 0, visitas = 30, entrevistas = 8)))
+  puntos <- data.frame(id_manzana = c("L", letters[1:4]), lon = -77 + (0:4) * 0.001, lat = -12, nse_nivel = "S/D")
+  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30, encuestadores = 2), puntos = puntos)
+  enc <- vapply(p$jornadas, `[[`, integer(1), "encuestador")
+  dia <- vapply(p$jornadas, `[[`, integer(1), "dia")
+  larga <- Find(function(j) isTRUE(j$excede_jornada), p$jornadas)
+  # Nadie hace dos jornadas el mismo día.
+  ocupado <- unlist(lapply(p$jornadas, function(j) paste(j$encuestador, seq.int(j$dia, length.out = j$jornadas_equivalentes))))
+  expect_false(anyDuplicated(ocupado) > 0)
+  expect_identical(larga$jornadas_equivalentes, 3L)
+  expect_identical(p$resumen$dias, as.integer(max(dia + vapply(p$jornadas, `[[`, integer(1), "jornadas_equivalentes") - 1L)))
+  expect_true(all(enc %in% 1:2))
+})

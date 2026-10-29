@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaWorkspaceOutputs, SelectedBlock } from "../../../../api/hojasRuta";
+import { porDia } from "./PlanCampo";
 import { alternarId, candidatasDeReemplazo, listoParaEntregar, pasosDeEntrega, pesoLegible } from "./salidas";
 
 const t = (id: string, hoja: number, distrito: string, zona: string) => ({ id_manzana: id, hoja_num: hoja, distrito, zona, tipo_manzana: "titular" }) as unknown as SelectedBlock;
@@ -38,4 +39,11 @@ describe("salidas de la selección", () => {
     expect(pesoLegible(2048)).toBe("2 KB");
     expect(pesoLegible(3 * 1024 * 1024)).toBe("3 MB");
   });
+});
+
+
+it("el plan se agrupa por día y, dentro del día, por encuestador (B20)", () => {
+  const j = (id: string, dia: number, encuestador: number) => ({ id, ubigeo: "1", distrito: "d", rutas: ["a"], visitas: 10, km: 1, excede_jornada: false, jornadas_equivalentes: 1, encuestador, dia });
+  const dias = porDia([j("J03", 2, 1), j("J02", 1, 2), j("J01", 1, 1)]);
+  expect(dias.map(([d, js]) => [d, js.map((x) => x.id)])).toEqual([[1, ["J01", "J02"]], [2, ["J03"]]]);
 });
