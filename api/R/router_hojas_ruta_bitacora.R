@@ -21,6 +21,16 @@ mount_hojas_ruta_bitacora <- function(pr) {
       if (is.list(detalle$marco_elegible) && is.list(detalle$marco_elegible$areas_excluidas)) {
         detalle$marco_elegible <- hojas_ruta_bitacora_detalle_marco(detalle$marco_elegible)
       }
+      # La huella y los distritos los pone el servidor: lo que mande el cliente no
+      # decide qué marco quedó cubierto (ADR 0115 §4, enmienda U17).
+      if (identical(accion, "decision_cobertura")) {
+        est <- .hojas_ruta_decision_cobertura_sesion(sid)
+        detalle$marco_hash <- est$huella
+        # Los distritos que el servidor ve en la muestra guardada, más los que el equipo
+        # nombró al decidir (puede decidir antes de volver a sortear).
+        del_cliente <- vapply(Filter(is.list, detalle$distritos %||% list()), function(d) as.character(d$ubigeo %||% ""), character(1))
+        detalle$ubigeos <- as.list(unique(c(vapply(est$exigida, `[[`, character(1), "ubigeo"), del_cliente[nzchar(del_cliente)])))
+      }
       entrada <- hojas_ruta_bitacora_registrar(sid, accion, parsed$resumen, detalle)
       list(ok = TRUE, entrada = entrada)
     }))

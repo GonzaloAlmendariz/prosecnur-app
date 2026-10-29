@@ -42,3 +42,62 @@ test_that("vigente: la más reciente con la misma huella que cubre los distritos
   expect_null(hojas_ruta_decision_cobertura_vigente(b, "h2", c("a")))
   expect_null(hojas_ruta_decision_cobertura_vigente(list(), "h1", c("a")))
 })
+
+.sesion_con_muestra <- function(por_distrito, me, fase = "field") {
+  sid <- session_create()
+  .hojas_ruta_ensure_runs(sid)
+  s <- session_get(sid)
+  run <- s$hojas_ruta_runs[[fase]] %||% s$hojas_ruta_runs$field
+  run$config$marco_elegible <- me
+  run$workspace_outputs$sample <- list(marco_elegible = list(por_distrito = por_distrito))
+  s$hojas_ruta_runs[[fase]] <- run
+  s$hojas_ruta_active_phase <- fase
+  .session_env[[sid]] <- s
+  sid
+}
+.me_min <- function(m) list(declarado = TRUE, minimo_viviendas = m, areas_excluidas = list())
+
+test_that("emitir a campo sin decisión da 409; con la decisión registrada pasa; cambiar el mínimo vuelve al 409", {
+  sid <- .sesion_con_muestra(list(.fila_cob("150132", 10000, minimo = 1240)), .me_min(10L))
+  on.exit(session_delete(sid), add = TRUE)
+  err <- tryCatch(.hojas_ruta_exigir_decision_cobertura(sid), api_error = function(e) e)
+  expect_identical(err$code, "E_COVERAGE_DECISION_REQUIRED")
+  expect_identical(err$status, 409)
+  expect_match(err$message, "12,4 %")
+  # Anotar desde el router: la huella la pone el servidor aunque el cliente mande otra.
+  pr <- mount_hojas_ruta_bitacora(plumber::pr())
+  post <- Find(function(e) identical(e$verbs, "POST"), unlist(pr$endpoints, recursive = FALSE))
+  body <- list(accion = "decision_cobertura", resumen = "Se acepta", detalle = list(decision = "aceptar", marco_hash = "falsa"))
+  post$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid, bodyRaw = charToRaw(enc2utf8(jsonlite::toJSON(body, auto_unbox = TRUE)))), res = plumber:::PlumberResponse$new())
+  d <- session_get(sid)$hojas_ruta_bitacora[[1]]$detalle
+  expect_false(identical(d$marco_hash, "falsa"))
+  expect_identical(unlist(d$ubigeos), "150132")
+  expect_silent(.hojas_ruta_exigir_decision_cobertura(sid))
+  s <- session_get(sid); s$hojas_ruta_runs$field$config$marco_elegible <- .me_min(12L); .session_env[[sid]] <- s
+  expect_error(.hojas_ruta_exigir_decision_cobertura(sid), class = "api_error")
+})
+
+test_that("la piloto no se bloquea, bajo el umbral no se bloquea, y un distrito nuevo sobre el umbral sí", {
+  sid <- .sesion_con_muestra(list(.fila_cob("a", 1000, area = 500)), .me_min(10L), fase = "pilot")
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  if (!is.null(s$hojas_ruta_runs$pilot)) expect_silent(.hojas_ruta_exigir_decision_cobertura(sid))
+  sid2 <- .sesion_con_muestra(list(.fila_cob("a", 1000, area = 99)), .me_min(10L))
+  on.exit(session_delete(sid2), add = TRUE)
+  expect_silent(.hojas_ruta_exigir_decision_cobertura(sid2))
+  b <- list(list(id = 1L, accion = "decision_cobertura", detalle = list(marco_hash = hojas_ruta_marco_elegible_huella(.me_min(10L)), ubigeos = list("a"))))
+  est <- hojas_ruta_decision_cobertura_estado(list(.fila_cob("a", 1000, area = 200), .fila_cob("b", 1000, area = 300)), .me_min(10L), b)
+  expect_null(est$vigente)
+  est2 <- hojas_ruta_decision_cobertura_estado(list(.fila_cob("a", 1000, area = 200)), .me_min(10L), b)
+  expect_identical(est2$vigente, 1L)
+})
+
+test_that("la muestra lleva el estado y el aviso W_COVERAGE_DECISION_MISSING, sin duplicarlo", {
+  r <- list(alerts = list(), marco_elegible = list(por_distrito = list(.fila_cob("a", 1000, area = 150))))
+  r <- hojas_ruta_decision_cobertura_en_muestra(r, .me_min(10L), list())
+  r <- hojas_ruta_decision_cobertura_en_muestra(r, .me_min(10L), list())
+  expect_identical(sum(vapply(r$alerts, function(a) identical(a$code, "W_COVERAGE_DECISION_MISSING"), logical(1))), 1L)
+  expect_length(r$marco_elegible$decision_cobertura$exigida, 1)
+  sin <- hojas_ruta_decision_cobertura_en_muestra(list(alerts = list()), .me_min(10L), list())
+  expect_length(sin$alerts, 0)
+})

@@ -794,6 +794,8 @@ mount_hojas_ruta <- function(pr) {
       result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
       # ADR 0116 §1: el salto que imprime la hoja se calcula sobre visitas, no sobre entrevistas.
       result <- hojas_ruta_tamano_extras_salto_muestra(result, effective_cfg)
+      # ADR 0115 §4 (enmienda U17): estado de la decisión de cobertura; el sorteo no se bloquea.
+      result <- hojas_ruta_decision_cobertura_en_muestra(result, effective_cfg$marco_elegible, session_get(sid)$hojas_ruta_bitacora)
       if (any(vapply(avisos_marco, function(a) identical(a$code, "W_FRAME_CHANGED_BY_ELIGIBILITY"), logical(1)))) {
         .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", hojas_ruta_bitacora_detalle_marco(cfg$marco_elegible), origen = parsed$origen)
       }
@@ -818,6 +820,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       out_path <- tempfile(fileext = ".pdf")
       summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
       out_name <- sprintf(
@@ -902,6 +905,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       outputs <- .hojas_ruta_workspace_outputs_normalize(
         .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
       )
@@ -993,6 +997,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       outputs <- .hojas_ruta_workspace_outputs_normalize(
         .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
       )
@@ -1025,6 +1030,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% NULL
 
       cfg_path <- job_save_rds(sid, "hojas_ruta_config", cfg)
