@@ -10,8 +10,8 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 |---|---|---|---|---|---|
 | B0 | Selección › ficha | bug · alto | «Ver la hoja de ruta» deja el proyecto «sin guardar» (`.register_output_file` escribe `files`) | `api/R/router_hojas_ruta_vista_previa.R` (`.hojas_ruta_vp_registrar`) | ☑ (ficha y hoja del día; test) |
 | B1 | Barra superior | falta · alto | Zona de acciones: nombre, fase Piloto/Campo real con su regla, Bitácora con contador, «N por revisar», «Enviar a Material» | `HojasRutaMapaPage.tsx` (`acciones`/`estado` del ModuleCommandBar); Material deshabilitado hasta U19 | ☑ |
-| B2 | Indicadores | peor · medio (C5) | Población muestra el total, no la objetivo (2.39 M); sin formato compacto; orden distinto; UMP sin «R» | `HojasRutaMapaPage.tsx` | ☐ |
-| B3 | Secciones | peor · medio (a11y) | Las 5 pastillas llevan `aria-current="page"` (NavLink ignora la query) | chrome de secciones | ☐ |
+| B2 | Indicadores | peor · medio (C5) | Población muestra el total, no la objetivo (2.39 M); sin formato compacto; orden distinto; UMP sin «R» | `chrome/loDecidido.ts` (`poblacionObjetivo`, compacto, orden del recorrido) | ☑ |
+| B3 | Secciones | peor · medio (a11y) | Las 5 pastillas llevan `aria-current="page"` (NavLink ignora la query) | `components/SectionPillbar.tsx` usa `Link`; la activa la decide el llamador | ☑ |
 | B4 | Indicadores 1024 | peor · bajo | A 1024 esconde 2 de 4; el artefacto esconde los 4 y deja acciones | chrome | ☐ |
 | B5 | Secciones | — | Barra superior en vez de rail (D1); sin «Entrega» ni «Avance» (D2) | — | — |
 | B6 | Mapa | falta · alto | Cápsula de miga arriba a la izquierda (orientación + instrucción) | `lienzo/flotantes.tsx` → `LienzoMapa` prop `miga` | ☑ |
@@ -51,7 +51,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B40 | Manzanas | peor · medio | Filas de distrito 16 px sin punto ni cifra a la derecha; historial abajo y truncado | Manzanas | ☐ |
 | B41 | Manzanas | — | La app trae historial real, exclusiones de piloto y comparar semillas | — | — |
 | B42 | Selección | peor · alto | Filas de ruta: insignia numerada con color, código de manzana, dos líneas, viviendas a la derecha | `seleccion/SeleccionPaneles.tsx`, `rutas.ts` | ☐ |
-| B43 | Selección | peor · medio (C5) | «Solo por revisar 12» vs «Por revisar 14» | Selección | ☐ |
+| B43 | Selección | peor · medio (C5) | «Solo por revisar 12» vs «Por revisar 14» | dos medidas distintas: rutas (12) y UMP observadas incl. reemplazos (14); el inspector ahora dice «UMP observadas» | ☑ |
 | B44 | Ficha UMP | peor · alto | Cabecera con insignia, eyebrow y título; chevrons arriba; 0 viviendas en rojo con barra | `SeleccionPaneles.tsx` | ☐ |
 | B45 | Ficha UMP | falta · medio | «Reemplazo puntual» y «Tablas» en la ficha; ayuda de orden; R con código de manzana | `SeleccionPaneles.tsx` | ☐ |
 | B46 | Ficha UMP | peor · medio | La hoja como miniatura ilegible; modal grande con «Imprimir» | `HojaVista.tsx` | ☐ |

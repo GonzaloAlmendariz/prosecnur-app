@@ -159,7 +159,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         <div className="hr-mapa-cifras">
           <div><small>Titulares</small><strong>{fmt(totales.titulares)}</strong></div>
           <div><small>Reemplazos</small><strong>{fmt(totales.reemplazos)}</strong></div>
-          <div><small>Por revisar</small><strong>{fmt(revision.porRevisar)}</strong></div>
+          <div title="Titulares y reemplazos con alguna observación. «Por revisar» en la lista y la barra cuenta rutas: una ruta con su titular o algún reemplazo observado."><small>UMP observadas</small><strong>{fmt(revision.porRevisar)}</strong></div>
         </div>
         {revision.grupos.length ? (
           revision.grupos.map((g) => (

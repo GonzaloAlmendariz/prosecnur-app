@@ -8,7 +8,7 @@
  *
  * Tres decisiones que el componente impone y el marcado copiado no podía:
  *
- * - **Es navegación, no un tablist.** Cada sección es un `<NavLink>` con
+ * - **Es navegación, no un tablist.** Cada sección es un `<Link>` con
  *   `aria-current="page"`. Un `role="tab"` sobre rutas es una promesa falsa al
  *   lector de pantalla —no hay `tabpanel` que le corresponda— y además dejaría
  *   estas píldoras bajo la regla `!important` de `aria-selected` que impide el
@@ -24,7 +24,7 @@
  * por nueve contract tests. Esto lo envuelve; no lo reescribe.
  */
 
-import { NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { GlidingTabList } from "./GlidingTabList";
 import type { ProsecnurModuleSlug } from "../lib/modules";
@@ -56,6 +56,10 @@ export type SectionPillbarItem = {
 export type SectionPillbarProps = {
   modulo: ProsecnurModuleSlug;
   items: readonly SectionPillbarItem[];
+  /**
+   * La sección activa la decide el llamador, no la ruta: con secciones en la query
+   * (`?seccion=`) un `NavLink` marcaba `aria-current` en TODAS (brecha B3).
+   */
   seccionActiva: string | null;
   progreso?: SectionPillbarProgreso;
   densidad?: "normal" | "compact";
@@ -101,7 +105,7 @@ export function SectionPillbar({
             const texto = densidad === "compact" ? (item.shortLabel ?? item.label) : item.label;
             return (
               <li key={item.id} className="pulso-phase-pill-item">
-                <NavLink
+                <Link
                   to={item.href}
                   data-gliding-key={item.id}
                   data-nav-item=""
@@ -127,7 +131,7 @@ export function SectionPillbar({
                       <span className="pulso-phase-pill-text">{texto}</span>
                     </span>
                   </span>
-                </NavLink>
+                </Link>
               </li>
             );
           })}

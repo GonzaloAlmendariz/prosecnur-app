@@ -281,6 +281,7 @@ export default function HojasRutaMapaPage() {
   const decidido = indicadoresDecididos({
     distritos: confirmados.length,
     poblacion: territorios.reduce((a, t) => a + t.poblacion, 0),
+    poblacionObjetivo: matriz.vigente ? matriz.total : null,
     n: cuotas?.total_asignado ?? null,
     margen: salidas?.sample_size_preview?.margin_total_estimated ?? null,
     titulares: salidas?.sample ? salidas.sample.blocks.length : null,
