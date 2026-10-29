@@ -222,7 +222,7 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
       <div className="hr-mapa-ins-cuerpo">
         <div className="hr-mapa-cifras">
           <div><small>Objetivo</small><strong>{matriz.vigente ? `${(matriz.total / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : "—"}</strong></div>
-          <div><small>De la población</small><strong>{matriz.vigente ? pct(matriz.total, poblacionDistritos) : "—"}</strong></div>
+          <div title="Parte de la población de los distritos elegidos que entra en los rangos de edad"><small>Del total</small><strong>{matriz.vigente ? pct(matriz.total, poblacionDistritos) : "—"}</strong></div>
           <div><small>Celdas</small><strong>{config.territorios.length * rangos.length * (sexo ? 2 : 1)}</strong></div>
         </div>
         <p className="hr-mapa-nota">Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</p>
