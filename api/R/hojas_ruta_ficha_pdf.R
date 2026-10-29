@@ -466,7 +466,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   param_h <- bloque_h / 4  # la columna cierra a la altura del panel del esquema
   params <- list(
     c("Esquina de inicio", sel$esquina, if (nzchar(sel$esquina_nombre)) sel$esquina_nombre else ""),
-    c("Sentido del recorrido", sel$sentido, sel$sentido_nombre),
+    # Por lo que es, no por el código que sortea el motor («1»/«2»).
+    c("Sentido", if (nzchar(sel$sentido_nombre)) sprintf("Recorrido %s", sel$sentido_nombre) else sel$sentido, ""),
     c("Casa de inicio", as.character(sel$inicio), ""),
     c("Constante de salto", if (sel$sin_salto) "–" else as.character(sel$salto),
       if (sel$sin_salto) "deshabilitada" else if (sel$barrido) "barrido completo" else
@@ -477,7 +478,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     p <- params[[i]]
     if (i %% 2 == 1) .hfp_rect(px, yy, pw, param_h, fill = tk$tbl_zebra, col = NA)
     .hfp_text(toupper(p[[1]]), px + 0.012, yy - 0.014, 6.4, tk$soft, "bold", spacing = 0.6)
-    .hfp_text(p[[2]], px + 0.012, yy - param_h * 0.58, 16, tk$navy, "bold")
+    .hfp_text(p[[2]], px + 0.012, yy - param_h * 0.58, if (nchar(p[[2]]) > 3) 14 else 16, tk$navy, "bold")
     if (nzchar(p[[3]])) .hfp_text(p[[3]], px + 0.06, yy - param_h * 0.58, 8.6, tk$ink)
     .hfp_line(px, R, yy - param_h, col = tk$tbl_frame, lwd = pesos$fila)
   }
