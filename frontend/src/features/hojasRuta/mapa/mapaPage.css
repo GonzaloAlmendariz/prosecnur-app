@@ -154,3 +154,44 @@
   .hr-mapa-cifras div { padding: 8px 9px; }
 }
 .hr-mapa-cifras strong { white-space: nowrap; }
+
+/* Población (U6): regla de pesos, editor de rangos y matriz */
+.hr-mapa-nota { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--pulso-text-soft); }
+.hr-edad-regla { display: flex; height: 42px; gap: 2px; border-radius: 10px; overflow: hidden; }
+.hr-edad-regla span { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 7px; }
+.hr-edad-regla b { font-size: 11.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-edad-regla small { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+[data-tono="0"] { --hr-tono: var(--pulso-data-seq-0); --hr-tinta: var(--pulso-text); }
+[data-tono="1"] { --hr-tono: var(--pulso-data-seq-1); --hr-tinta: var(--pulso-text); }
+[data-tono="2"] { --hr-tono: var(--pulso-data-seq-2); --hr-tinta: var(--pulso-text); }
+[data-tono="3"] { --hr-tono: var(--pulso-data-seq-3); --hr-tinta: var(--pulso-surface); }
+[data-tono="4"] { --hr-tono: var(--pulso-data-seq-4); --hr-tinta: var(--pulso-surface); }
+[data-tono="5"] { --hr-tono: var(--pulso-data-seq-5); --hr-tinta: var(--pulso-surface); }
+.hr-edad-regla span[data-tono] { background: var(--hr-tono); color: var(--hr-tinta); }
+.hr-edad-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
+.hr-edad-lista li { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--pulso-border); }
+.hr-edad-lista li:last-child { border-bottom: 0; }
+.hr-edad-lista li > i { align-self: stretch; margin: -7px 0; background: var(--hr-tono); }
+.hr-edad-campos { display: grid; grid-template-columns: 54px auto 54px; align-items: center; gap: 6px; font-size: 12px; color: var(--pulso-text-soft); }
+.hr-edad-campos input { box-sizing: border-box; width: 100%; height: 30px; padding: 0 6px; border: 1px solid var(--pulso-border); border-radius: 8px; text-align: center; font: inherit; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); background: var(--pulso-surface); }
+.hr-edad-campos input:focus { outline: 2px solid var(--pulso-module-routes-border); border-color: var(--pulso-module-routes); }
+.hr-edad-abierto { all: unset; box-sizing: border-box; cursor: pointer; height: 30px; display: grid; place-items: center; border: 1px dashed var(--pulso-border-strong); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--pulso-text); }
+.hr-edad-abierto:hover:not(:disabled) { border-color: var(--pulso-module-routes); color: var(--pulso-module-routes); }
+.hr-edad-abierto:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+.hr-edad-peso { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.hr-edad-peso b { font-size: 12.5px; font-weight: 800; }
+.hr-edad-peso small { font-size: 10.5px; color: var(--pulso-text-soft); }
+.hr-mapa-presets h3 { margin: 0 0 5px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-mapa-presets .hr-mapa-zona { width: auto; padding: 0 10px; }
+.hr-mapa-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.hr-mapa-tabla th, .hr-mapa-tabla td { padding: 5px 6px; border-bottom: 1px solid var(--pulso-border); text-align: right; white-space: nowrap; }
+.hr-mapa-tabla thead th { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); background: var(--pulso-surface-2); }
+.hr-mapa-tabla tbody th { text-align: left; font-weight: 700; }
+.hr-mapa-tabla-caja { overflow-x: auto; border: 1px solid var(--pulso-border); border-radius: 11px; }
+.hr-mapa-tabla-caja:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+.hr-mapa-tabla tr:last-child th, .hr-mapa-tabla tr:last-child td { border-bottom: 0; }
+@media (max-width: 1279px) {
+  .hr-edad-lista li { grid-template-columns: 4px minmax(0, 1fr) auto; }
+  .hr-edad-peso { display: none; }
+  .hr-edad-campos { grid-template-columns: 48px auto 48px; }
+}

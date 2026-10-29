@@ -159,6 +159,9 @@ export function LienzoMapa({
     pedido: 0,
     reposo: 0 as ReturnType<typeof setTimeout> | 0,
     arrastre: null as null | { x: number; y: number; camara: Camara; movio: boolean },
+    /** El último encuadre pedido y si el usuario movió la cámara después. */
+    objetivo: null as EncuadreLienzo | null,
+    manual: false,
   });
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
   const props = useRef({ distritos, capa, colorManzana, dibujarFondo, dibujarMundo, dibujarPantalla, alClic, alMover });
@@ -334,6 +337,7 @@ export function LienzoMapa({
       lienzo.width = Math.max(1, Math.round(r.width * e.dpr));
       lienzo.height = Math.max(1, Math.round(r.height * e.dpr));
       e.baseSucia = true;
+      if (e.objetivo && !e.manual) e.camara = encuadre(e.objetivo.caja, e.tamano, e.objetivo.pad ?? 0.1);
       pintar();
     };
     medir();
@@ -357,6 +361,8 @@ export function LienzoMapa({
   useEffect(() => {
     if (!encuadreObjetivo) return;
     const e = estado.current;
+    e.objetivo = encuadreObjetivo;
+    e.manual = false;
     const hacer = () => volar(encuadre(encuadreObjetivo.caja, e.tamano, encuadreObjetivo.pad ?? 0.1), encuadreObjetivo.animar !== false);
     if (e.tamano.w) hacer();
     else requestAnimationFrame(hacer);
@@ -386,6 +392,7 @@ export function LienzoMapa({
           e.arrastre.movio = true;
           lienzo.dataset.arrastrando = "true";
           e.vuelo = 0;
+          e.manual = true;
           e.camara = arrastre(e.arrastre.camara, dx, dy);
           marcarInteraccion();
           pintar();
@@ -407,6 +414,7 @@ export function LienzoMapa({
       ev.preventDefault();
       e.vuelo = 0;
       const [x, y] = local(ev);
+      e.manual = true;
       e.camara = zoomRueda(e.camara, e.tamano, x, y, ev.deltaY, ev.deltaMode, ev.ctrlKey);
       marcarInteraccion();
       pintar();
@@ -427,6 +435,7 @@ export function LienzoMapa({
 
   const zoomBoton = (factor: number) => {
     const e = estado.current;
+    e.manual = true;
     volar({ ...e.camara, s: e.camara.s * factor }, true);
   };
 

@@ -4,7 +4,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaState, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
@@ -23,6 +23,8 @@ import { useLienzoHojasRuta } from "./store";
 import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
 import { zonasDeLima } from "./territorio/zonasLima";
+import { resumirMatriz } from "./poblacion/matriz";
+import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
 import "./mapaPage.css";
 
 /**
@@ -43,8 +45,9 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador } = useLienzoHojasRuta();
   const enTerritorio = nav.seccion === "territorio";
+  const enPoblacion = nav.seccion === "poblacion";
 
   useEffect(() => {
     let vivo = true;
@@ -79,6 +82,27 @@ export default function HojasRutaMapaPage() {
     [estado, fase, setBorrador],
   );
 
+  // Población: guardar los cambios de configuración y recalcular la matriz.
+  // El backend borra tamaño, cuotas y muestra al recalcular la población.
+  const guardarYCalcularPoblacion = useCallback(
+    async (cambios: Partial<HojasRutaIntegratedConfig>) => {
+      if (!estado) return;
+      setGuardando(true);
+      try {
+        const config = { ...estado.integrated_config, ...cambios };
+        await apiHojasRutaPersistWorkspace(config, estado.ui_state, {}, fase);
+        await apiHojasRutaPopulationPreview(config);
+        setEstado(await apiHojasRutaState());
+        setRangosBorrador(null);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo calcular la población");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [estado, fase, setRangosBorrador],
+  );
+
   // Geometría de cada distrito confirmado, de a uno: la primera lectura de un
   // distrito cuesta segundos en el backend y no conviene pedirlas todas juntas.
   useEffect(() => {
@@ -104,6 +128,8 @@ export default function HojasRutaMapaPage() {
   const distritos = useMemo(() => confirmados.map((u) => geometrias[u]).filter((d): d is PiezasDistrito => Boolean(d)), [confirmados, geometrias]);
   const territorios = useMemo(() => (estado?.territories ?? []).filter((t) => confirmados.includes(t.ubigeo)), [estado, confirmados]);
   const salidas = estado?.workspace_outputs;
+  const rangosVista = rangosBorrador ?? estado?.integrated_config.age_ranges ?? [];
+  const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const entrevistasPorRuta = estado?.integrated_config.entrevistas_por_manzana ?? 0;
 
   const titulares = useMemo<TitularEnMapa[]>(() => {
@@ -133,6 +159,10 @@ export default function HojasRutaMapaPage() {
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) =>
       dibujarContornos(ctx, u, contornos, (c) => {
         const conf = confirmados.includes(c.ubigeo);
+        if (enPoblacion && conf && matriz.vigente) {
+          const max = Math.max(...Object.values(matriz.porUbigeo), 1);
+          return { relleno: u.colores.densidad[Math.min(6, 1 + Math.floor(((matriz.porUbigeo[c.ubigeo] ?? 0) / max) * 5.99))], borde: u.colores.distritoBorde, grosor: 1.3 };
+        }
         if (!enTerritorio) return { relleno: conf ? u.colores.distrito : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
         const enB = borrador.includes(c.ubigeo);
         return {
@@ -142,7 +172,7 @@ export default function HojasRutaMapaPage() {
           punteado: enB && !conf,
         };
       }),
-    [confirmados, borrador, enTerritorio],
+    [confirmados, borrador, enTerritorio, enPoblacion, matriz],
   );
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
@@ -159,27 +189,27 @@ export default function HojasRutaMapaPage() {
         }
         return;
       }
-      dibujarTitularesMundo(ctx, u, titulares, null);
+      if (!enPoblacion) dibujarTitularesMundo(ctx, u, titulares, null);
     },
-    [enTerritorio, borrador, distritoBajoCursor, titulares],
+    [enPoblacion, enTerritorio, borrador, distritoBajoCursor, titulares],
   );
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
-      if (!enTerritorio) dibujarTitularesPantalla(ctx, u, titulares, null, null);
+      if (!enTerritorio && !enPoblacion) dibujarTitularesPantalla(ctx, u, titulares, null, null);
       const visibles = enTerritorio ? contornos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
-      if (u.camara.s < 0.09 || enTerritorio) {
+      if (u.camara.s < 0.09 || enTerritorio || enPoblacion) {
         dibujarRotulosDistrito(
           ctx,
           u,
           visibles.map((c) => {
             const enB = borrador.includes(c.ubigeo), conf = confirmados.includes(c.ubigeo);
-            const detalle = enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : undefined;
+            const detalle = enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo` : undefined;
             return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: u.colores.acento };
           }),
         );
       }
     },
-    [titulares, confirmados, borrador, enTerritorio],
+    [titulares, confirmados, borrador, enTerritorio, enPoblacion, matriz],
   );
 
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
@@ -213,6 +243,8 @@ export default function HojasRutaMapaPage() {
         <section className="hr-mapa-estructura" aria-label="Distritos del estudio">
           {enTerritorio && estado ? (
             <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
+          ) : enPoblacion && estado ? (
+            <PoblacionEstructura rangosConfig={estado.integrated_config.age_ranges} matriz={matriz} bloqueado={bloqueado} />
           ) : (
           <>
           <header className="hr-mapa-cab">
@@ -237,7 +269,7 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          distritos={distritos}
+          distritos={enPoblacion ? [] : distritos}
           capa="manzanas"
           encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
@@ -254,7 +286,17 @@ export default function HojasRutaMapaPage() {
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
-          {enTerritorio && estado ? (
+          {enPoblacion && estado ? (
+            <PoblacionInspector
+              config={estado.integrated_config}
+              matriz={matriz}
+              poblacionDistritos={territorios.reduce((a, t) => a + t.poblacion, 0)}
+              bloqueado={bloqueado}
+              guardando={guardando}
+              hayMuestra={Boolean(salidas?.sample_size_preview || salidas?.sample)}
+              onGuardarYCalcular={(c) => void guardarYCalcularPoblacion(c)}
+            />
+          ) : enTerritorio && estado ? (
             <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} />
           ) : (
             <>
