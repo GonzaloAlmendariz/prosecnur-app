@@ -3171,7 +3171,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
   allocation_mode <- .hojas_ruta_scalar(x$allocation_mode, "proportional")
   if (!allocation_mode %in% .hojas_ruta_allocation_modes()) allocation_mode <- "proportional"
   enforce_district <- .hojas_ruta_bool(x$enforce_district_floor, TRUE)
-  list(
+  c(list( # ADR 0116: + ocupacion, design_effect_fuente, icc_aplicado
     confidence_level = .hojas_ruta_prop(x$confidence_level, 0.95, min = 0.5, max = 0.999),
     margin_total = .hojas_ruta_prop(x$margin_total, 0.05, min = 0.001, max = 0.5),
     margin_district = .hojas_ruta_prop(x$margin_district, 0.10, min = 0.001, max = 0.8),
@@ -3183,11 +3183,11 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     enforce_district_floor = enforce_district,
     response_rate = .hojas_ruta_prop(x$response_rate, 0.90, min = 0.01, max = 1),
     apply_fpc = .hojas_ruta_bool(x$apply_fpc, TRUE)
-  )
+  ), hojas_ruta_tamano_extras_normalizar(x))
 }
 
 .hojas_ruta_design_effect_for <- function(params, ubigeo = NULL) {
-  base <- max(0.1, as.numeric(params$design_effect %||% 1.5))
+  base <- max(0.1, as.numeric(params$design_effect %||% .hojas_ruta_design_effect_default())) # ADR 0116 §3: el mismo defecto que el normalizador
   if (is.null(ubigeo) || !nzchar(as.character(ubigeo))) return(base)
   overrides <- params$design_effect_overrides %||% list()
   key <- as.character(ubigeo)
