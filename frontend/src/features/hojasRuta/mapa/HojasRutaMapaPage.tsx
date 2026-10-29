@@ -520,7 +520,7 @@ export default function HojasRutaMapaPage() {
           {enTerritorio && estado ? (
             <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
           ) : enSeleccion && estado ? (
-            <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} />
+            <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} confirmados={confirmados} />
           ) : enManzanas && estado ? (
             <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} />
           ) : enMuestra && configMuestra && tamano ? (

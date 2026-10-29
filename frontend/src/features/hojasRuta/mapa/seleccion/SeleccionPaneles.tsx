@@ -3,13 +3,13 @@ import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
+import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { HojaVista } from "./HojaVista";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
@@ -29,9 +29,13 @@ const nse = (b: SelectedBlock) => {
 };
 const rango = (b: SelectedBlock) => (Number(b.rango_inicio) > 0 && Number(b.rango_fin) >= Number(b.rango_inicio) ? `${fmt(Number(b.rango_inicio))} a ${fmt(Number(b.rango_fin))}` : `${fmt(b.entrevistas)}`);
 
-type EstructuraProps = { grupos: readonly GrupoRutas[]; total: number; observadas: number };
+type EstructuraProps = { grupos: readonly GrupoRutas[]; total: number; observadas: number   /** Orden de confirmación de los distritos: el punto de cada grupo lleva su tono del mapa (B57). */
+  confirmados?: readonly string[];
+};
 
-export function SeleccionEstructura({ grupos, total, observadas }: EstructuraProps) {
+const FILTRO_RUTAS = [["todas", "Todas"], ["revisar", "Por revisar"]] as const;
+
+export function SeleccionEstructura({ grupos, total, observadas, confirmados = [] }: EstructuraProps) {
   const { soloPorRevisar, setSoloPorRevisar, busquedaUmp, setBusquedaUmp } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada } = useSeleccionDireccion();
   const visibles = grupos.reduce((a, g) => a + g.filas.length, 0);
@@ -43,13 +47,18 @@ export function SeleccionEstructura({ grupos, total, observadas }: EstructuraPro
           <small>{visibles === total ? `${fmt(total)} titulares` : `${fmt(visibles)} de ${fmt(total)}`}</small>
         </div>
         <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="Buscar UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
-        <PulsoSwitch label="Solo por revisar" size="sm" checked={soloPorRevisar} onCheckedChange={setSoloPorRevisar} count={observadas} />
+        <GlidingRadioGroup value={soloPorRevisar ? "revisar" : "todas"} options={FILTRO_RUTAS} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloPorRevisar(v === "revisar")} className="hr-muestra-opciones" aria-label="Qué rutas ver">
+          {(o) => <span>{o[0] === "revisar" ? `${o[1]} · ${fmt(observadas)}` : `${o[1]} · ${fmt(total)}`}</span>}
+        </GlidingRadioGroup>
       </div>
       <div className="hr-mapa-catalogo">
         {grupos.map((g) => (
           <section key={g.ubigeo} aria-label={nombreDistrito(g.distrito)}>
             <h3>
-              {nombreDistrito(g.distrito)}
+              <span className="hr-sel-grupo-nombre">
+                <i style={{ background: tonoCss(confirmados.indexOf(g.ubigeo)) }} aria-hidden="true" />
+                {nombreDistrito(g.distrito)}
+              </span>
               <span>{fmt(g.filas.length)}</span>
             </h3>
             <ul className="hr-sel-rutas">

@@ -549,3 +549,4 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 
 /* Los interruptores del lienzo van en el color del módulo (Gonzalo), no en el navy del kit. */
 .hr-mapa { --pulso-switch-accent: var(--pulso-module-routes); --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-module-routes) 22%, transparent); }
+.hr-sel-grupo-nombre { display: inline-flex; align-items: center; gap: 7px; } .hr-sel-grupo-nombre i { width: 9px; height: 9px; border-radius: 50%; }

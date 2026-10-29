@@ -64,7 +64,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B54 | Muestra › inspector | falta · medio | Curva del margen total según N bajo «Margen de error» | `margenTotalParaN` (mismo motor) | ☐ |
 | B55 | Manzanas › estructura | peor · medio | Historial de ruteos al final; en el artefacto, arriba («Ruteos · N en este proyecto») | `ManzanasEstructura` | ☐ |
 | B56 | Manzanas › inspector | peor · medio | Secciones sin el orden del trabajo: el artefacto numera «1 · Método», «2 · Carga de la ruta», «3 · Manzanas elegibles» | `ManzanasInspector` | ☐ |
-| B57 | Selección › estructura | peor · medio | Filtro «Solo por revisar» como interruptor; en el artefacto, segmentado «Todas · N / Por revisar · N»; grupos de distrito sin su punto de color | `SeleccionEstructura` | ☐ |
+| B57 | Selección › estructura | peor · medio | Filtro «Solo por revisar» como interruptor; en el artefacto, segmentado «Todas · N / Por revisar · N»; grupos de distrito sin su punto de color | segmentado «Todas · 150 / Por revisar · 12» (filtra 150 → 12 → 150) y punto con el tono del distrito en cada grupo | ☑ |
 | B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).
