@@ -269,9 +269,15 @@ export default function HojasRutaMapaPage() {
   const titularEnfocada = enSeleccion && umpEnfocada ? bloquesTitulares.find((b) => b.id_manzana === umpEnfocada) ?? null : null;
   const reemplazosEnfocados = useMemo<PiezaManzana[]>(() => (titularEnfocada ? reemplazosDe(titularEnfocada.id_manzana, bloquesReemplazos).flatMap((b) => manzanaPorId.get(b.id_manzana) ?? []) : []), [titularEnfocada, bloquesReemplazos, manzanaPorId]);
   const cajaEnfocada = useMemo(() => {
+    // B12: el foco va a la MANZANA, a nivel de calle (sus vecinas y las vías alrededor);
+    // los reemplazos, a menudo en otra zona, se ven al alejar y en la ficha.
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
-    return m ? unirCajas([m.caja, ...reemplazosEnfocados.map((x) => x.caja)]) : null;
-  }, [titularEnfocada, manzanaPorId, reemplazosEnfocados]);
+    return m ? m.caja : null;
+  }, [titularEnfocada, manzanaPorId]);
+  const centroEnfocado = useMemo(() => {
+    const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
+    return m ? m.centro : null;
+  }, [titularEnfocada, manzanaPorId]);
 
   const reemplazos = useMemo<PiezaManzana[]>(() => {
     const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
@@ -525,8 +531,9 @@ export default function HojasRutaMapaPage() {
           leyenda={leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
+          anclaZoom={centroEnfocado}
           controles={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : cajaEnfocada ? { caja: cajaEnfocada, pad: 0.6, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}

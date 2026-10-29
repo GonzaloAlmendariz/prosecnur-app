@@ -92,6 +92,8 @@ type Props = {
   leyenda?: ReactNode;
   /** Controles arriba a la derecha (selector de capas, brecha B7). */
   controles?: ReactNode;
+  /** Punto del mundo al que se acercan «+» y «−» (la UMP enfocada); sin él, el centro. */
+  anclaZoom?: readonly [number, number] | null;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -155,6 +157,7 @@ export function LienzoMapa({
   miga,
   leyenda,
   controles,
+  anclaZoom = null,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -449,7 +452,8 @@ export function LienzoMapa({
   const zoomBoton = (factor: number) => {
     const e = estado.current;
     e.manual = true;
-    volar({ ...e.camara, s: e.camara.s * factor }, true);
+    // Con una UMP enfocada, «+» acerca a ella y no al centro del lienzo (B12).
+    volar({ ...e.camara, ...(anclaZoom ? { x: anclaZoom[0], y: anclaZoom[1] } : {}), s: e.camara.s * factor }, true);
   };
 
   return (
