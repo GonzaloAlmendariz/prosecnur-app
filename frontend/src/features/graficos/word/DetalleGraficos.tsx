@@ -11,7 +11,7 @@ import { usePlanStore } from "../store";
 import { usePresetsMetadata } from "../usePresetsMetadata";
 import { decisionesSinFijados } from "../wordFijado";
 import { conModoInforme, esModoInforme, leerModoInforme, MODOS_MULTI_INFORME } from "./modeloMultiWord";
-import { AJUSTES_WORD, ajustesSobrantes, sinSobrantes, tiposDelInforme, type AjusteWord } from "./ajustesWord";
+import { AJUSTES_WORD, ROTULOS_TIPO_PROPIOS, ajustesSobrantes, sinSobrantes, tiposDelInforme, type AjusteWord } from "./ajustesWord";
 
 const registro = (v: unknown): Record<string, Record<string, unknown>> =>
   v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, Record<string, unknown>>) : {};
@@ -59,7 +59,7 @@ export function DetalleGraficos() {
   const conAjustes = tipos.filter((t) => (AJUSTES_WORD[t] ?? []).length > 0);
   const iguales = tipos.filter((t) => !(AJUSTES_WORD[t] ?? []).length);
   const ocultar = ocultarEtiquetaSiTitulo(wPresets, referencia);
-  const nombreTipo = (t: string) => presetsByName[t]?.titulo_humano ?? t;
+  const nombreTipo = (t: string) => ROTULOS_TIPO_PROPIOS[t] ?? presetsByName[t]?.titulo_humano ?? t;
   const meta = (t: string, arg: string) => presetsByName[t]?.args.find((a) => a.name === arg);
   const cambiar = (tipo: string, arg: string, v: unknown) =>
     setWPresets({ ...wPresets, chart_presets: { ...chartPresets, [tipo]: { ...(chartPresets[tipo] ?? {}), [arg]: v } } });

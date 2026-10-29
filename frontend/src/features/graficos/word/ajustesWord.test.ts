@@ -12,6 +12,15 @@ describe("ajustes del Word", () => {
       s("p_slide_portada", { titulo: "x" }),
     ])).toEqual(["pie", "barras_apiladas"]);
   });
+  it("el radar entre públicos no es el «Radar + tabla»: no le ofrece letra, negrita ni rojo (su tabla del Word es la nativa)", () => {
+    const s = (payload: Record<string, unknown>) => ({ id: "x", tipo: "p_slide_1_grafico", payload }) as unknown as Slide;
+    const tipos = tiposDelInforme([
+      s({ grafico: { graficador: "p_radar", args: { modo: "publicos" } } }),
+      s({ grafico: { graficador: "p_radar", args: { modo: "var" } } }),
+    ]);
+    expect(tipos).toEqual(["radar_publicos", "radar_tabla"]);
+    expect(AJUSTES_WORD.radar_publicos ?? []).toHaveLength(0);
+  });
 
   // Mata: dejar ofrecido o sin avisar un decimal del Word que pisa Reglas (O2), o tipo_pie / bins (O3).
   it("decimales, método, tipo de torta y bins nunca son ajustes del Word; sí se avisan si estaban guardados", () => {
