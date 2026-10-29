@@ -93,13 +93,13 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain('class="pulso-lista-partes" role="group" aria-label="Piezas de la identidad"');
   });
 
-  // L2 (2026-10-14): en el compartido sólo logos y letra dicen por qué no; colores e íconos se ajustan.
-  it("en el informe compartido los logos no se ajustan y dicen por qué", () => {
+  // Gonzalo (2026-10-29): el PowerPoint del compartido recibe logos y letra (graficos_consolidado_start), así que se
+  // ajustan también ahí; antes la pieza decía por qué no.
+  it("en el informe compartido los logos se ajustan", () => {
     const html = pintar("?pestana=identidad&scope=consolidado");
-    expect(html).toContain("El PowerPoint del informe compartido todavía sale con los logos y la letra de la plantilla");
-    expect(html).toContain('role="status"');
+    expect(html).not.toContain("todavía sale con los logos y la letra de la plantilla");
     expect(html).toContain('data-audit-ready="graficos-estilo"');
-    expect(html).not.toContain("Subir PNG");
+    expect(html).toContain("Subir PNG");
   });
 
   it("en el informe compartido los colores de las respuestas sí se ajustan", () => {

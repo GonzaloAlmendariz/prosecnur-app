@@ -18,7 +18,6 @@ import {
 import { useSession } from "../../../lib/SessionContext";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
-import { motivoPiezaNoDisponible } from "./disponibilidadEstilo";
 import { useEstiloUi } from "./estiloUiStore";
 import {
   conAmbito,
@@ -85,7 +84,6 @@ export default function PestanaEstilo() {
   const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
-  const motivoPieza = motivoPiezaNoDisponible(scope, sub);
   const { state } = useSession();
   const prepOk = !!state?.analitica_prep_ok;
 
@@ -203,15 +201,9 @@ export default function PestanaEstilo() {
           <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="region" aria-labelledby={`${PREFIJO_PIEZA}-${sub}`}
             data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
-            {/* QA del Informe (2026-10-15): el motivo es una sección más del grupo, no un <p> suelto (capacity-drift). */}
-            {motivoPieza ? (
-              <section className="pulso-f6-estilo-seccion" data-qa-geometry-member>
-                <p className="pulso-f6-estilo-ayuda" role="status">{motivoPieza}</p>
-              </section>
-            ) : null}
             {/* D3: la línea visual vive en Identidad (antes en Reglas); su biblioteca llega con ID3. */}
             {sub === "linea" && <SeccionLineaVisual aplicada={lineaId} />}
-            {sub === "logos" && !motivoPieza && (<>
+            {sub === "logos" && (<>
 
             <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-logos-titulo" data-qa-geometry-member>
               <header className="pulso-f6-estilo-seccion-cabecera">
@@ -244,7 +236,7 @@ export default function PestanaEstilo() {
             </section>
             </>)}
 
-            {sub === "letra" && !motivoPieza && <SeccionLetra
+            {sub === "letra" && <SeccionLetra
               paso={paso}
               procedenciaPaso={procedenciaPaso(decisiones)}
               pasoRol={(rol) => pasoEfectivoRol(estilo, ref, rol)}
@@ -259,8 +251,8 @@ export default function PestanaEstilo() {
               onSinLetra={() => cambiar(sinLetra)}
             />}
             {/* O8: negrita por elemento y modo de leyenda, para todo el informe. */}
-            {sub === "letra" && !motivoPieza && <SeccionLegibilidad estilo={estilo} onCambiar={cambiar} />}
-            {sub === "letra" && !motivoPieza && <SeccionAntetitulo estilo={estilo} onCambiar={cambiar} />}
+            {sub === "letra" && <SeccionLegibilidad estilo={estilo} onCambiar={cambiar} />}
+            {sub === "letra" && <SeccionAntetitulo estilo={estilo} onCambiar={cambiar} />}
 
             {/* Los íconos del cliente (lámina de objetivo y capítulos) se suben aquí; la población no lleva ícono. */}
             {sub === "iconos" && (

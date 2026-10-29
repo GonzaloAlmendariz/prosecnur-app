@@ -648,9 +648,12 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
 
 graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
                                              template_pptx, template_id, result_path,
-                                             progress_path = NULL) {
+                                             progress_path = NULL, estilo_cliente = list()) {
   .pkg_fn <- function(name) get(name, envir = asNamespace("prosecnurapp"), inherits = FALSE)
   report <- .pkg_fn("job_progress_writer")(progress_path)
+  # Logos y letra del cliente (graficos_estilo_cliente_worker.R), igual que el PPT de cada base (graficos_jobs.R).
+  ec <- .pkg_fn(".graficos_estilo_cliente_iniciar")(estilo_cliente, "ppt", template_pptx)
+  on.exit(options(ec$previas), add = TRUE)
   recipe <- readRDS(recipe_path)
   data_sources <- readRDS(data_path)
   inst_sources <- readRDS(inst_path)
@@ -691,6 +694,7 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
     auto_otros_slides = recipe$auto_otros_slides,
     mensajes_progreso = FALSE
   )
+  .pkg_fn(".graficos_estilo_cliente_cerrar_ppt")(ec, rebuilt)
   report("export", percent = 96, message = "Registrando PPT y procedencia...")
   # D8/H42: la receta se respeta tal cual —congelarla es el punto—, pero el
   # resultado declara si el suelo con el que se construyo sigue siendo el
@@ -825,7 +829,7 @@ graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expec
       recipe_path = recipe_path,
       template_pptx = template,
       template_id = delivery$template_id
-    ),
+    ) |> c(.graficos_estilo_cliente_arg(sid, preflight$config, "ppt")),   # D5: logos y letra del cliente, como /ppt de cada base
     result_filename = .export_filename(sid, "informe_consolidado", "pptx"),
     on_complete = function(job) {
       .graficos_consolidado_register_artifacts(job$sid, job$result_path, job$result_data)
