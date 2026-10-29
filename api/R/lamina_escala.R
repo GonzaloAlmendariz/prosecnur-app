@@ -348,6 +348,10 @@
     }
     f_ <- min(2.0, 0.93 * disp / tot); fila <- fila * f_; gap <- gap * f_
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
+  } else if (llenar && tot <= disp) {   # ítems 4–5: el texto manda el alto y la barra engrosa sin que la lámina crezca
+    tot_con <- function(d) sum(vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * (fila + d)), 0)) + gap * (length(premisas) - 1) + sum(extra_gap)
+    dg <- .lam_escala_engrosar_busca(g, sum(vapply(premisas, function(p) length(p$filas), 0)), function(d) tot_con(d) <= min(disp, .lam_escala_alto_llenar(y0)))
+    g <- g + dg; fila <- fila + dg; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   } else if (tot > disp) {   # M1: hasta seis barras se compactan para caber en vez de partirse (`.lam_escala_partir`)
     f_ <- disp / tot
     if (.std_evitar_cont()) {   # M1 con piso: cede el aire hasta su mínimo (lamina_escala_aire.R); la barra no baja del piso

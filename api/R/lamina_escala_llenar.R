@@ -48,6 +48,19 @@
   max(0, min(.lam_grosor_holgado(nb) - g, sobra / nb))
 }
 
+#' El mayor engrosamiento que todavía cabe, midiendo lo que de verdad crece la lámina
+#'
+#' `sobra / nb` supone que cada barra crece entera; cuando el alto de una pregunta lo manda su texto, sus barras engrosan
+#' sin que la fila crezca (ítems 4–5 de checklist-arte-vs-conta: Arte salía en 0,44 in con 4–6 filas, Conta en 0,51–0,59).
+#' @param cabe Función `function(dg)` que dice si la lámina cabe con la barra `dg` más gruesa.
+#' @keywords internal
+.lam_escala_engrosar_busca <- function(g, nb, cabe) {
+  tope <- .lam_grosor_holgado(nb) - g
+  if (nb < 1 || !is.finite(tope) || tope <= 0) return(0)
+  for (dg in rev(seq(0, tope, by = 0.01))) if (isTRUE(cabe(dg))) return(dg)
+  0
+}
+
 #' Cuánto bajar el bloque para centrarlo en la lámina con lo que sigue sobrando tras engrosar y separar temas
 #'
 #' «Los gráficos donde sólo hay un tema o un solo gráfico […] no los centras en la diapositiva» (Gonzalo, 2026-10-28). El

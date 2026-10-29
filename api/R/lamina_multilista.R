@@ -314,7 +314,7 @@
   if (!apretar && f >= 1) {
     fin_de <- function(...) componer(.lam_lienzo(), ..., sin_tope = TRUE) - .std_comp("multilista", "gap_bloques")
     sobra <- meta - fin_de()
-    dg <- .lam_escala_engrosar(gr$grosor, nb, sobra)
+    dg <- .lam_escala_engrosar_busca(gr$grosor, nb, function(d) fin_de(dg = d) <= meta)   # lo que de verdad crece (ítems 4–5)
     sobra <- meta - fin_de(dg = dg)
     temas <- vapply(items, function(it) max(0L, length(it$premisas) - 1L), 0L)
     fronteras <- sum(temas) + length(items) - 1L
