@@ -136,3 +136,11 @@
   .hr-lienzo-miga { max-width: min(200px, calc(100% - 24px)); }
   .hr-lienzo-leyenda { display: none; }
 }
+
+/* Selector de capas arriba a la derecha (brecha B7, artefacto .hm-capsula[data-capa]) */
+.hr-lienzo-controles { top: 12px; right: 12px; padding: 3px; }
+.hr-lienzo-capas { display: inline-flex; gap: 2px; }
+.hr-lienzo-capas button { all: unset; cursor: pointer; display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--pulso-text-soft); white-space: nowrap; }
+.hr-lienzo-capas button:hover { color: var(--pulso-text); }
+.hr-lienzo-capas button[aria-pressed="true"] { background: var(--pulso-surface-3); color: var(--pulso-text); }
+.hr-lienzo-capas button:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }

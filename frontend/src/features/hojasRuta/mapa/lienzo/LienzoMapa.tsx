@@ -90,6 +90,8 @@ type Props = {
   miga?: ReactNode;
   /** Leyenda abajo a la izquierda: qué significa cada color de la sección (brecha B8). */
   leyenda?: ReactNode;
+  /** Controles arriba a la derecha (selector de capas, brecha B7). */
+  controles?: ReactNode;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -152,6 +154,7 @@ export function LienzoMapa({
   className,
   miga,
   leyenda,
+  controles,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -454,6 +457,7 @@ export function LienzoMapa({
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
       {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
       {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
+      {controles ? <div className="hr-lienzo-capsula hr-lienzo-controles">{controles}</div> : null}
       <div className="hr-lienzo-pie">
         <div ref={escalaRef} className="hr-lienzo-escala" aria-hidden="true" />
         <div className="hr-lienzo-zoom" role="group" aria-label="Zoom del mapa">
