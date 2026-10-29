@@ -1,0 +1,107 @@
+/* Hojas de ruta con el mapa como lienzo (ADR 0114 §1): estructura · lienzo ·
+ * inspector bajo la top bar. Cada región es dueña de su scroll (No Scroll
+ * Jail); el lienzo no se desplaza, se navega. Sólo tokens. */
+
+.hr-mapa {
+  --hr-mapa-estructura: 288px;
+  --hr-mapa-inspector: 344px;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--hr-mapa-estructura) minmax(0, 1fr) var(--hr-mapa-inspector);
+  border: 1px solid var(--pulso-border);
+  border-radius: 16px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.hr-mapa-estructura,
+.hr-mapa-inspector {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.hr-mapa-estructura { border-right: 1px solid var(--pulso-border); }
+.hr-mapa-inspector { border-left: 1px solid var(--pulso-border); }
+
+.hr-mapa-cab {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 16px 10px;
+}
+
+.hr-mapa-cab h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hr-mapa-cab small {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.hr-mapa-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hr-mapa-lista li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 8px;
+  border-radius: 9px;
+}
+
+.hr-mapa-lista strong {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.hr-mapa-lista small {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-mapa-vacio {
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.hr-mapa-filas {
+  margin: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.hr-mapa-filas div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 12.5px;
+}
+
+.hr-mapa-filas div:last-child { border-bottom: 0; }
+.hr-mapa-filas dt { color: var(--pulso-text-soft); }
+.hr-mapa-filas dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1279px) {
+  .hr-mapa {
+    --hr-mapa-estructura: 220px;
+    --hr-mapa-inspector: 284px;
+  }
+}

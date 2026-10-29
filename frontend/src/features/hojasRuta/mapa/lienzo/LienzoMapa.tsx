@@ -71,6 +71,8 @@ type Props = {
   encuadreObjetivo?: EncuadreLienzo | null;
   /** Relleno de una manzana según el estado de la sección; `null` deja el de la capa. */
   colorManzana?: (manzana: PiezaManzana, lejos: boolean) => string | null;
+  /** Lo que va debajo de las manzanas, dentro de la capa base (contornos de distritos). */
+  dibujarFondo?: (ctx: CanvasRenderingContext2D, util: UtilLienzo) => void;
   /** Lo que la sección dibuja en coordenadas de mundo (metros). */
   dibujarMundo?: (ctx: CanvasRenderingContext2D, util: UtilLienzo) => void;
   /** Lo que la sección dibuja en coordenadas de pantalla (rótulos, pastillas). */
@@ -132,6 +134,7 @@ export function LienzoMapa({
   capa,
   encuadreObjetivo,
   colorManzana,
+  dibujarFondo,
   dibujarMundo,
   dibujarPantalla,
   alClic,
@@ -158,8 +161,8 @@ export function LienzoMapa({
     arrastre: null as null | { x: number; y: number; camara: Camara; movio: boolean },
   });
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
-  const props = useRef({ distritos, capa, colorManzana, dibujarMundo, dibujarPantalla, alClic, alMover });
-  props.current = { distritos, capa, colorManzana, dibujarMundo, dibujarPantalla, alClic, alMover };
+  const props = useRef({ distritos, capa, colorManzana, dibujarFondo, dibujarMundo, dibujarPantalla, alClic, alMover });
+  props.current = { distritos, capa, colorManzana, dibujarFondo, dibujarMundo, dibujarPantalla, alClic, alMover };
 
   const util = useCallback((): UtilLienzo => {
     const e = estado.current;
@@ -196,6 +199,7 @@ export function LienzoMapa({
     ctx.fillRect(0, 0, t.w, t.h);
     ctx.setTransform(dpr * c.s, 0, 0, dpr * c.s, dpr * (t.w / 2 - c.x * c.s), dpr * (t.h / 2 - c.y * c.s));
     const vista = cajaVisible(c, t);
+    props.current.dibujarFondo?.(ctx, util());
 
     const manzanasVisibles = ds.flatMap((d) => visibles(d.manzanas, vista));
     for (const m of manzanasVisibles) {
@@ -235,7 +239,7 @@ export function LienzoMapa({
     e.snap = { ...c, ...t };
     e.baseSucia = false;
     e.costoBase = performance.now() - t0;
-  }, []);
+  }, [util]);
 
   const dibujar = useCallback(() => {
     const e = estado.current;
@@ -342,7 +346,7 @@ export function LienzoMapa({
   useEffect(() => {
     estado.current.baseSucia = true;
     pintar();
-  }, [distritos, capa, colorManzana, version, pintar]);
+  }, [distritos, capa, colorManzana, dibujarFondo, version, pintar]);
 
   // Lo dibujado encima depende de la sección: basta repintar
   useEffect(() => {

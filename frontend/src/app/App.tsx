@@ -69,9 +69,10 @@ const GraficosPage = lazyWithReload(
   () => import("../features/graficos/GraficosPage"),
   "GraficosPage",
 );
+// La entrada elige entre la página vieja y la del lienzo (interruptor del ADR 0114 §8).
 const HojasRutaPage = lazyWithReload(
-  () => import("../features/hojasRuta/HojasRutaPage"),
-  "HojasRutaPage",
+  () => import("../features/hojasRuta/mapa/HojasRutaEntrada"),
+  "HojasRutaEntrada",
 );
 const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),
