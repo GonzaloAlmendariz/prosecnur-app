@@ -54,7 +54,7 @@
   g_ <- .std_geom; L <- g_("likert"); ex <- .std_enunciado_extra_in()
   L$x_barra <- L$x_barra + ex; L$ancho_barra <- L$ancho_barra - ex
   cb <- .lam_escala_columnas_box(espec, ex)
-  WB <- if (!is.null(espec$box$unidades)) cb$ancho_barra else g_("ancho") - g_("margen_der") - L$x_barra - 0.3
+  WB <- cb$ancho_barra   # la barra que se dibuja (toda barra mide lo mismo, con o sin box); antes medía la vieja de ~7,5 in
   vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE)
 }
 .lam_escala_hay_chica <- function(espec, premisas) any(.lam_escala_chica_por_premisa(espec, premisas))
