@@ -4,7 +4,7 @@ import { Loader2, Mail, RefreshCw } from "../../../../vendor/lucide-react";
 import { fechaCompleta, haceCuanto } from "./avanceCorreoMatriz";
 import { type AvanceDeLectura, cifra, nombreAudiencia, porcentaje } from "./avanceCorreoModelo";
 
-// Cabecera compacta de Avance › Correo: título, audiencia, frescura de la
+// Cabecera compacta de Control › Correo: título, audiencia, frescura de la
 // lectura y la acción primaria con su progreso dentro del propio botón. Sin
 // tarjeta-envoltorio: es la cabeza del panel.
 
@@ -52,7 +52,7 @@ export function AvanceCorreoCabecera({
       <div className="mon-correo-cabecera-titulo">
         <span className="mon-correo-cabecera-icono" aria-hidden><Mail size={16} /></span>
         <div>
-          <span className="mon-correo-versalita">Avance</span>
+          <span className="mon-correo-versalita">Control</span>
           <h2 id={idTitulo}>Correo</h2>
         </div>
       </div>

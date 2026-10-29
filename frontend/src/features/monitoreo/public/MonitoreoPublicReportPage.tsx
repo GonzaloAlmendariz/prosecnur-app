@@ -169,7 +169,7 @@ export default function MonitoreoPublicReportPage({ artifact }: { artifact: Publ
   }
 
   const title = artifact.title || payload.accreditation?.title || "Reporte de avance";
-  const family = payload.profile.family === "territorial" ? "Territorial" : "Acreditacion";
+  const family = payload.profile.family === "territorial" ? "Territorial" : "Acreditación";
 
   return (
     <section className="mon-public-page" data-public-artifact="monitoreo">
