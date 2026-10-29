@@ -34,6 +34,7 @@ import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
 import { conTopeAbierto } from "./poblacion/rangos";
 import { MuestraCajon } from "./muestra/MuestraCajon";
+import { useBarraAngosta } from "./useBarraAngosta";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
@@ -455,6 +456,7 @@ export default function HojasRutaMapaPage() {
       ? [{ id: "revisar", label: `${porRevisarTotal} por revisar`, tone: "warn" as const, detail: "UMP con observaciones contra el marco: ábrelas en Selección.", onSelect: () => navegar(`${location.pathname}?seccion=seleccion`) }]
       : []),
   ];
+  const barraAngosta = useBarraAngosta();
   const accionesChrome = [
     {
       id: "bitacora",
@@ -469,7 +471,6 @@ export default function HojasRutaMapaPage() {
     {
       id: "material",
       label: "Enviar a Material",
-      shortLabel: "Material",
       icon: Send,
       kind: "secondary" as const,
       rank: 2 as const,
@@ -483,10 +484,13 @@ export default function HojasRutaMapaPage() {
       modulo="hojas-ruta"
       className="hojas-ruta-commandbar"
       ariaLabel="Contexto operativo de hojas de ruta"
+      densidad={barraAngosta ? "compact" : "normal"}
       contexto={
         <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={decidido.map((i) => i.detalle).join(" · ")}>
           {decidido.map((i) => (
-            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
+            // B4: el lienzo lleva fase, revisión, bitácora y Material en la barra; bajo 1080 px de barra
+            // los indicadores ceden todos (como en el artefacto) para que secciones y acciones no se monten.
+            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.prioridad === "alta" ? "media" : i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
           ))}
         </ChromeIndicatorGroup>
       }
