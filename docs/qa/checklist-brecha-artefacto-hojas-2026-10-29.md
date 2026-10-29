@@ -37,7 +37,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B26 | Territorio 1024 | peor · bajo | Detalle del catálogo parte en 2 líneas («mz»); «Lima y Callao · 50 distritos» también | Territorio | ☐ |
 | B27 | Territorio | falta · bajo | Fila «Cartografía: Lima 2017 · Callao 2019» | Territorio | ☐ |
 | B28 | Población | falta · alto | Modo «Cortes poblacionales» (Manual/Cortes); total de personas junto a los rangos | `poblacion/PoblacionPaneles.tsx` | ☐ |
-| B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | la matriz va al cajón: personas H/M por rango o distribución %, descarga CSV; agrupar filas ☐ | ◐ |
+| B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | la matriz va al cajón (767342b07): personas H/M por rango o distribución %, descarga CSV; agrupar filas por distrito, provincia o zona de Lima (`agruparFilas` en `poblacion/matriz.ts`; zona censal no: el INEI viene por distrito) | ☑ |
 | B30 | Población | peor · bajo | «De la poblaci…» truncado; 76.8 % vs 77 %; el segmento 60+ pierde su % | Población | ☐ |
 | B31 | Población | — | La app trae tope del último rango y «Calcular la matriz» | — | — |
 | B32 | Muestra | falta · alto | «Repartir según población», «Mínimos» y Escenarios guardables | `muestra/MuestraPaneles.tsx` | ☐ |
@@ -63,7 +63,7 @@ Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalid
 
 ## Pausa (2026-10-29)
 
-Pausado por Gonzalo; retomado por turnos. B17 Muestra, B35 y el color de Población (tonos por distrito en vez de la rampa azul; rangos de edad en el naranja del módulo, sin franja) quedaron verificados en pantalla y commiteados. B29: falta agrupar filas.
+Pausado por Gonzalo; retomado por turnos. B17 Muestra, B35 y el color de Población (tonos por distrito en vez de la rampa azul; rangos de edad en el naranja del módulo, sin franja) quedaron verificados en pantalla y commiteados. B29 cerrado con agrupar filas.
 
 ## Lo aprendido
 

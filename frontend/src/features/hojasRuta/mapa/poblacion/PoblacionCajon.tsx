@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable } from "../../../../components/PulsoTable";
@@ -5,7 +6,7 @@ import { Download, X } from "../../../../vendor/lucide-react";
 import type { HojasRutaAgeRange } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
-import type { FilaMatriz, ResumenMatriz } from "./matriz";
+import { agruparFilas, type AgruparFilas, type FilaMatriz, type GrupoDeZona, type ResumenMatriz } from "./matriz";
 
 /**
  * Cajón inferior de Población (brecha B17/B29): la matriz distrito × rango de
@@ -14,15 +15,18 @@ import type { FilaMatriz, ResumenMatriz } from "./matriz";
  */
 
 const PESTANAS = [["matriz", "Personas"], ["pct", "Distribución %"]] as const;
+const AGRUPAR = [["distrito", "Distrito"], ["provincia", "Provincia"], ["zona", "Zona"]] as const;
+const ENCABEZADO: Record<AgruparFilas, string> = { distrito: "Distrito", provincia: "Provincia", zona: "Zona" };
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—");
 const enRango = (f: FilaMatriz, i: number) => (f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0);
 
-function descargarCsv(matriz: ResumenMatriz, rangos: readonly HojasRutaAgeRange[], sexo: boolean) {
-  const cab = ["Distrito", "Ubigeo", ...rangos.flatMap((r) => (sexo ? [`${r.label} H`, `${r.label} M`] : [r.label])), "Total"];
-  const filas = matriz.filas.map((f) => [
-    nombreDistrito(f.territorio),
-    f.ubigeo,
+function descargarCsv(filasCsv: readonly FilaMatriz[], por: AgruparFilas, rangos: readonly HojasRutaAgeRange[], sexo: boolean) {
+  const distrito = por === "distrito";
+  const cab = [ENCABEZADO[por], ...(distrito ? ["Ubigeo"] : []), ...rangos.flatMap((r) => (sexo ? [`${r.label} H`, `${r.label} M`] : [r.label])), "Total"];
+  const filas = filasCsv.map((f) => [
+    distrito ? nombreDistrito(f.territorio) : f.territorio,
+    ...(distrito ? [f.ubigeo] : []),
     ...rangos.flatMap((_, i) => (sexo ? [f.porRango[i]?.H ?? 0, f.porRango[i]?.M ?? 0] : [enRango(f, i)])).map((n) => Math.round(n)),
     Math.round(f.total),
   ]);
@@ -36,11 +40,14 @@ function descargarCsv(matriz: ResumenMatriz, rangos: readonly HojasRutaAgeRange[
   URL.revokeObjectURL(url);
 }
 
-type Props = { matriz: ResumenMatriz; rangos: readonly HojasRutaAgeRange[]; sexo: boolean };
+type Props = { matriz: ResumenMatriz; rangos: readonly HojasRutaAgeRange[]; sexo: boolean; zonas: readonly GrupoDeZona[] };
 
-export function PoblacionCajon({ matriz, rangos, sexo }: Props) {
+export function PoblacionCajon({ matriz, rangos, sexo, zonas }: Props) {
   const { cajonPoblacion: vista, setCajonPoblacion } = useLienzoHojasRuta();
+  const [por, setPor] = useState<AgruparFilas>("distrito");
   if (!vista || !matriz.vigente) return null;
+  const filas = agruparFilas(matriz.filas, por, zonas);
+  const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : f.territorio);
   const columnasRango = rangos.flatMap((r, i) =>
     vista === "pct"
       ? [{ id: `r${i}`, encabezado: r.label, ancho: 88, tipo: "cifra" as const, celda: (f: FilaMatriz) => pct(enRango(f, i), f.total), valor: (f: FilaMatriz) => (f.total ? enRango(f, i) / f.total : 0) }]
@@ -58,7 +65,10 @@ export function PoblacionCajon({ matriz, rangos, sexo }: Props) {
           {(o) => <span>{o[1]}</span>}
         </GlidingRadioGroup>
         <span className="hr-sel-cajon-acciones">
-          <PulsoButton variant="secondary" size="sm" onClick={() => descargarCsv(matriz, rangos, sexo)}>
+          <GlidingRadioGroup value={por} options={AGRUPAR} getOptionValue={(o) => o[0]} onValueChange={setPor} className="hr-muestra-opciones hr-cajon-agrupar" aria-label="Agrupar filas por">
+            {(o) => <span>{o[1]}</span>}
+          </GlidingRadioGroup>
+          <PulsoButton variant="secondary" size="sm" onClick={() => descargarCsv(filas, por, rangos, sexo)}>
             <Download size={14} aria-hidden /> CSV
           </PulsoButton>
           <PulsoButton variant="icon" size="sm" aria-label="Cerrar la matriz" onClick={() => setCajonPoblacion(null)}>
@@ -71,11 +81,11 @@ export function PoblacionCajon({ matriz, rangos, sexo }: Props) {
         densidad="compacta"
         altoMaximo={280}
         columnas={[
-          { id: "distrito", encabezado: "Distrito", ancho: 160, celda: (f: FilaMatriz) => nombreDistrito(f.territorio), valor: (f: FilaMatriz) => f.territorio },
+          { id: "distrito", encabezado: ENCABEZADO[por], ancho: 160, celda: nombre, valor: (f: FilaMatriz) => f.territorio },
           ...columnasRango,
           { id: "total", encabezado: vista === "pct" ? "Peso" : "Total", ancho: 96, tipo: "cifra" as const, celda: (f: FilaMatriz) => <b>{vista === "pct" ? pct(f.total, matriz.total) : fmt(f.total)}</b>, valor: (f: FilaMatriz) => f.total },
         ]}
-        filas={matriz.filas}
+        filas={filas}
         idDeFila={(f) => f.ubigeo}
       />
     </section>

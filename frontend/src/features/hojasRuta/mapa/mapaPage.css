@@ -485,3 +485,5 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: var(--pulso-module-routes-border); color: var(--pulso-text); }
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
 .hr-sel-cajon-titulo { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
+.hr-sel-cajon > header { flex-wrap: wrap; }
+.hr-sel-cajon > header .hr-cajon-agrupar { width: 270px; flex: none; }

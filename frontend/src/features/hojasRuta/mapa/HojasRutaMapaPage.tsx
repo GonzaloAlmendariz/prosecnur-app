@@ -571,7 +571,7 @@ export default function HojasRutaMapaPage() {
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
         {enMuestra ? <MuestraCajon cuotas={cuotas} /> : null}
-        {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={estado.integrated_config.age_ranges} sexo={estado.integrated_config.subquota_var !== "ninguna"} /> : null}
+        {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={estado.integrated_config.age_ranges} sexo={estado.integrated_config.subquota_var !== "ninguna"} zonas={zonas} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (
             <SeleccionInspector

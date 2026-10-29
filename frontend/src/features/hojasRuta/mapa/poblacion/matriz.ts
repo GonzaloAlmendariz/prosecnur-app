@@ -36,3 +36,29 @@ export function resumirMatriz(poblacion: PopulationPlan | null | undefined, rang
   const lista = [...filas.values()];
   return { vigente: lista.length > 0, pesoPorRango: peso, total: peso.reduce((a, b) => a + b, 0), porUbigeo: Object.fromEntries(lista.map((f) => [f.ubigeo, f.total])), filas: lista };
 }
+
+export type AgruparFilas = "distrito" | "provincia" | "zona";
+export type GrupoDeZona = { etiqueta: string; ubigeos: readonly string[] };
+
+/**
+ * Agrupa las filas de la matriz (brecha B29) sumando sus celdas. La población
+ * INEI viene por distrito: provincia sale del ubigeo (07 = Callao) y zona de
+ * las zonas usuales de Lima; un distrito que no cae en ninguna va a «Otros».
+ */
+export function agruparFilas(filas: readonly FilaMatriz[], por: AgruparFilas, zonas: readonly GrupoDeZona[] = []): FilaMatriz[] {
+  if (por === "distrito") return [...filas];
+  const grupoDe = (f: FilaMatriz) =>
+    por === "provincia" ? (f.ubigeo.startsWith("07") ? "Callao" : "Lima") : zonas.find((z) => z.ubigeos.includes(f.ubigeo))?.etiqueta ?? "Otros";
+  const grupos = new Map<string, FilaMatriz>();
+  for (const f of filas) {
+    const clave = grupoDe(f);
+    const g = grupos.get(clave) ?? { ubigeo: clave, territorio: clave, porRango: f.porRango.map(() => ({ H: 0, M: 0 })), total: 0 };
+    f.porRango.forEach((c, i) => {
+      g.porRango[i].H += c.H;
+      g.porRango[i].M += c.M;
+    });
+    g.total += f.total;
+    grupos.set(clave, g);
+  }
+  return [...grupos.values()];
+}
