@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas, normalizarPlanCampo, normalizarPlanSupuestos } from "./hojasRuta";
+import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas, normalizarPlanCampo, normalizarPlanSupuestos, normalizarBitacora } from "./hojasRuta";
 
 describe("normalizador del marco elegible (ADR 0115)", () => {
   it("sin datos es una corrida legacy: no declarado, mínimo 0, sin áreas", () => {
@@ -55,5 +55,12 @@ describe("normalizador del plan de campo (U14)", () => {
     const p = normalizarPlanCampo({ jornadas: [{ id: "J01", rutas: ["a", "b"], visitas: 20 }], resumen: { jornadas: 1, dias: 1 } });
     expect(p.jornadas[0].rutas).toEqual(["a", "b"]);
     expect(p.resumen.costo).toBe(0);
+  });
+});
+
+describe("normalizador de la bitácora (U17)", () => {
+  it("descarta entradas sin resumen y conserva el orden", () => {
+    const b = normalizarBitacora({ entradas: [{ id: 2, accion: "sorteo", resumen: "Sorteo" }, { id: 1 }] });
+    expect(b.map((e) => e.id)).toEqual([2]);
   });
 });

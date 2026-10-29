@@ -1397,3 +1397,27 @@ export async function apiHojasRutaPlanCampo(supuestos: HojasRutaPlanSupuestos): 
     await handle<unknown>(await apiFetch("/api/hojas-ruta/plan-campo", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ supuestos }) })),
   );
 }
+
+// ---------- Bitácora de decisiones (U17) ----------
+
+export type HojasRutaBitacoraEntrada = { id: number; fecha: string; fase: string; accion: string; resumen: string; detalle: Record<string, unknown> };
+
+export function normalizarBitacora(raw: unknown): HojasRutaBitacoraEntrada[] {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return (esArreglo(o.entradas) ? o.entradas : []).flatMap((e): HojasRutaBitacoraEntrada[] => {
+    const x = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
+    if (!comoTexto(x.resumen)) return [];
+    return [{ id: comoNumero(x.id), fecha: comoTexto(x.fecha), fase: comoTexto(x.fase), accion: comoTexto(x.accion), resumen: comoTexto(x.resumen), detalle: (x.detalle && typeof x.detalle === "object" ? x.detalle : {}) as Record<string, unknown> }];
+  });
+}
+
+export async function apiHojasRutaBitacora(): Promise<HojasRutaBitacoraEntrada[]> {
+  return normalizarBitacora(await handle<unknown>(await apiFetch("/api/hojas-ruta/bitacora")));
+}
+
+/** Desde la interfaz sólo se anotan decisiones de cobertura (ADR 0115 §4) y notas. */
+export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | "nota", resumen: string, detalle: Record<string, unknown> = {}) {
+  return handle<{ ok: boolean }>(
+    await apiFetch("/api/hojas-ruta/bitacora", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ accion, resumen, detalle }) }),
+  );
+}

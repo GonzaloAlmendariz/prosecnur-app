@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import type { HojasRutaMarcoElegible, HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
+import { apiHojasRutaBitacoraAnotar, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { aLonLat, faltaEnArea, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
@@ -29,6 +29,10 @@ type Props = {
 export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCambiar }: Props) {
   const { dibujoArea, setDibujoArea } = useLienzoHojasRuta();
   const [form, setForm] = useState<FormularioArea>(FORM_VACIO);
+  // ADR 0115 §4: con 10 % o más de población excluida en un distrito, el equipo decide y queda registrado (U17).
+  const [decision, setDecision] = useState<"" | "redefinir" | "aceptar">("");
+  const [justificacion, setJustificacion] = useState("");
+  const [decidido, setDecidido] = useState("");
   const declarado = marco?.declarado === true;
   const sumar = (k: "manzanas" | "poblacion", campo: "total" | "elegible" | "excluida_minimo" | "excluida_area") => (vista?.por_distrito ?? []).reduce((a, d) => a + d[campo][k], 0);
   const totalPob = sumar("poblacion", "total");
@@ -144,9 +148,43 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
         </div>
       ) : null}
       {decisiones.length ? (
-        <p className="hr-mapa-aviso">
-          {decisiones.map((d) => nombreDistrito(d.distrito)).join(", ")} {decisiones.length === 1 ? "pierde" : "pierden"} el 10 % o más de su población: antes de sortear, el equipo decide si redefine la población objetivo o lo acepta con justificación.
-        </p>
+        <div className="hr-me-decision">
+          <p className="hr-mapa-aviso">
+            {decisiones.map((d) => nombreDistrito(d.distrito)).join(", ")} {decisiones.length === 1 ? "pierde" : "pierden"} el 10 % o más de su población: antes de sortear, el equipo decide si redefine la población objetivo o lo acepta con justificación.
+          </p>
+          {decidido ? (
+            <p className="hr-mapa-nota">Registrado en la bitácora: {decidido}</p>
+          ) : (
+            <>
+              <div className="hr-mapa-acciones">
+                <PulsoButton variant={decision === "redefinir" ? "primary" : "secondary"} size="sm" onClick={() => setDecision("redefinir")}>Redefinir la población objetivo</PulsoButton>
+                <PulsoButton variant={decision === "aceptar" ? "primary" : "secondary"} size="sm" onClick={() => setDecision("aceptar")}>Aceptar con justificación</PulsoButton>
+              </div>
+              {decision ? (
+                <>
+                  <input className="hr-mapa-buscar" aria-label="Justificación de la decisión" placeholder={decision === "redefinir" ? "Cómo se redefine (p. ej., hogares fuera de zonas de riesgo)" : "Por qué se acepta la pérdida de cobertura"} value={justificacion} onChange={(e) => setJustificacion(e.target.value)} />
+                  <PulsoButton
+                    variant="secondary"
+                    size="sm"
+                    disabled={!justificacion.trim()}
+                    onClick={() => {
+                      const resumen = `${decision === "redefinir" ? "Se redefine la población objetivo" : "Se acepta la pérdida de cobertura"} en ${decisiones.map((d) => nombreDistrito(d.distrito)).join(", ")}: ${justificacion.trim()}`;
+                      apiHojasRutaBitacoraAnotar("decision_cobertura", resumen, {
+                        decision,
+                        distritos: decisiones.map((d) => ({ ubigeo: d.ubigeo, cobertura_poblacion: d.cobertura_poblacion })),
+                        marco_elegible: me,
+                      })
+                        .then(() => setDecidido(resumen))
+                        .catch((e: unknown) => setDecidido(`no se pudo registrar (${e instanceof Error ? e.message : "error"})`));
+                    }}
+                  >
+                    Registrar la decisión
+                  </PulsoButton>
+                </>
+              ) : null}
+            </>
+          )}
+        </div>
       ) : null}
     </section>
   );

@@ -24,6 +24,7 @@ import { Archive } from "../../../../vendor/lucide-react";
 import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { nombreDistrito } from "../nombres";
 import { PlanCampo } from "./PlanCampo";
+import { BitacoraSeccion } from "./BitacoraSeccion";
 import { alternarId, candidatasDeReemplazo, listoParaEntregar, pasosDeEntrega, pesoLegible } from "./salidas";
 
 /**
@@ -207,6 +208,8 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: 
             </a>
           ) : null}
         </section>
+
+        <BitacoraSeccion />
 
         <section className="hr-muestra-grupo" aria-label="PDF de prueba">
           <h3>PDF de prueba</h3>

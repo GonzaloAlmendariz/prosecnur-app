@@ -377,3 +377,13 @@
 .hr-plan-jornadas li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
 .hr-plan-jornadas strong { font-variant-numeric: tabular-nums; }
 .hr-plan-jornadas span { color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+
+/* Bitácora (U17) */
+.hr-bitacora { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; }
+.hr-bitacora li { padding: 7px 9px; border-radius: 9px; background: var(--pulso-surface-2); }
+.hr-bitacora span { display: flex; justify-content: space-between; gap: 8px; }
+.hr-bitacora strong { font-size: 12px; }
+.hr-bitacora small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; }
+.hr-bitacora p { margin: 2px 0 0; font-size: 11.5px; color: var(--pulso-text); }
+.hr-bitacora-nota { height: auto; padding: 8px 10px; resize: vertical; }
+.hr-me-decision { display: flex; flex-direction: column; gap: 6px; }

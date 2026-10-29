@@ -81,7 +81,7 @@ enlaces:
 | Tablas (cajón) | — (pestaña) | `?seccion=seleccion&pestana=<titulares\|reemplazos\|cuotas>` (ver la enmienda abajo) |
 | Hoja de ruta de una UMP | `dialogo` | `?seccion=seleccion&panel=hoja&foco=<id_manzana>` |
 | Hoja del día de un encuestador | `dialogo` | `?seccion=seleccion&panel=hoja-dia&foco=<n>` |
-| Bitácora de decisiones | `dialogo` | `&panel=bitacora` |
+| Bitácora de decisiones | sección de `salidas` hasta U20 | `?seccion=seleccion&panel=salidas` (luego `&panel=bitacora`) |
 | Informe de diseño muestral | `dialogo` | `&panel=informe` |
 | Envío a Material | `dialogo` | `&panel=envio` |
 
@@ -95,6 +95,10 @@ La UMP fijada en Selección es `&foco=<id_manzana>`.
   pestaña `revision` no abre cajón, porque la revisión vive en el inspector;
 - `foco` queda **solo** para la UMP;
 - `salidas` es el único panel de Selección y se abre sobre lo que haya (cajón o ficha).
+
+*Enmienda de U17.* Mientras la página clásica sea la de por defecto, el QA recorre `PANELES_POR_MODULO` sobre ella,
+y un `?panel=bitacora` que solo existe en el lienzo abriría nada. La bitácora vive como sección del panel `salidas`,
+que ya está declarado y montado en las dos páginas. Pasa a panel propio con el retiro de la página clásica (U20).
 
 Implementado con `useFoco` (`lib/navegacion/useFoco.ts`) y `useSeleccionDireccion` (`mapa/seleccion/`), con
 `replace` para no llenar el historial. La matriz poblacional y el reparto de Muestra no usan cajón: viven en su
