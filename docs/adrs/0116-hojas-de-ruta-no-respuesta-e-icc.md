@@ -3,7 +3,7 @@
 Estado: Aceptado (revisión metodológica del 2026-10-29: «aprobado con cambios»; los 12 cambios obligatorios están
 incorporados)
 
-Implementacion: Pendiente (unidad U12 de `docs/qa/plan-revamp-hojas-mapa-2026-10-29.md`)
+Implementacion: Parcial (U12: 3944b2595, 1df09dac2, 85d904afe, af12a6128 y la revisión de implementación; el salto sobre visitas en la hoja impresa, la regla ante la no respuesta y el registro de disposiciones quedan para U14/U15/U18)
 
 Fecha: 2026-10-29
 
@@ -62,10 +62,12 @@ Hechos que condicionan la decisión:
 - **Contactos esperados** = `N / r` y **visitas planificadas** = `Σ_rutas ceil(k_b / r)`. Se publican los dos. Con
   un N que no es múltiplo de k, se usa el `k_b` de cada ruta.
 - **Capacidad de manzana.** La manzana alcanza si:
-  - con salto automático o apagado, `V·e ≥ v_cap`;
+  - con salto automático o apagado, `V ≥ v_cap`;
   - con salto manual `s`, `V ≥ s·v_cap`.
 
-  `v_cap` es el percentil 90 de la binomial negativa de visitas hasta lograr k completas, con `v_cap ≥ ceil(k / r)`.
+  `v_cap` es el percentil 90 de la binomial negativa de visitas hasta lograr k completas, con probabilidad de éxito
+  `r·e` y `v_cap ≥ ceil(k / (r·e))`. *Enmienda de implementación (revisión A2):* `v_cap` ya cuenta las visitas a
+  viviendas desocupadas, así que la ocupación no se vuelve a descontar sobre `V`.
   La media falla en la mitad de las rutas. El aviso de la revisión contra el marco usa ese umbral, y el inspector del
   marco elegible (ADR 0115) lo muestra como referencia, sin imponerlo.
 - **Rutas sin reemplazo.** Con `replacements_per_titular = 0`, la no respuesta de la UMP sí reduce las completas. El
@@ -123,9 +125,11 @@ proyecto se pueda reproducir sin la biblioteca, la entrada aplicada **se copia**
 
 - Se agrega `sample_size.design_effect_fuente ∈ {legado, por_declarar, manual, icc_biblioteca}`.
 - Un config sin el campo es `legado` y su N no cambia. Un proyecto nuevo nace en `por_declarar`.
-- Con k > 1 y fuente `legado` o `por_declarar`, el motor emite `W_DEFF_IGNORES_CLUSTERING`. Todo margen publicado se
-  rotula «margen bajo MAS, no incluye conglomerado».
-- Con k = 1, el DEFF es 1 exacto y no hay aviso. Un DEFF manual menor que 1 con k > 1 genera aviso.
+- Con k > 1, fuente `legado` o `por_declarar` y **DEFF ≤ 1**, el motor emite `W_DEFF_IGNORES_CLUSTERING` y todo margen
+  publicado se rotula «margen bajo MAS, no incluye conglomerado». *Enmienda de implementación:* un `legado` con DEFF
+  mayor que 1 sí incluye algo del conglomerado en el número; rotularlo así sería falso. Su procedencia desconocida se
+  declara como aviso informativo en la ficha técnica (U15).
+- Con k = 1 no hay aviso de conglomerado. El DEFF no se fuerza a 1, porque puede incluir el efecto de los pesos. Un DEFF manual menor que 1 con k > 1 genera aviso.
 - El respaldo de `.hojas_ruta_design_effect_for` se alinea con el valor por defecto del normalizador.
 
 ## Consecuencias
@@ -138,9 +142,11 @@ proyecto se pueda reproducir sin la biblioteca, la entrada aplicada **se copia**
   unidades de conglomeración ni escalas.
 - El aviso «menos viviendas que entrevistas» se vuelve más estricto (`v_cap`). Aparecerán más rutas «a revisar», y es
   correcto.
-- Cambia `contacts_suggested`. Hay que migrar sus consumidores: `test-hojas-ruta-engine.R` ~321,
-  `HojasRutaPage.tsx` ~5475 (congelado: solo lectura del campo nuevo), `motorTamano.ts` ~167, el golden
-  `tamanoMuestra.golden.json` y `src/api/hojasRuta.ts`.
+- *Enmienda de implementación:* `contacts_suggested` se **conserva** (es `ceil(N / r)`, los contactos esperados), y
+  las visitas planificadas se agregan aparte en `visitas`. Así ningún lector actual cambia. El espejo `motorTamano.ts`
+  y su golden se extienden con las visitas en U14/U15.
+- Con un ICC aplicado, el DEFF sigue al k actual: si cambian las entrevistas por ruta, se recalcula
+  `1 + (k − 1)·ICC` (revisión A1). Si el DEFF se edita después de aplicarlo, la procedencia pasa a `manual`.
 
 ## Cumplimiento
 

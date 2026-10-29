@@ -36,6 +36,13 @@ hojas_ruta_tamano_extras_normalizar <- function(x = NULL) {
   e <- min(1, max(0.05, e))
   icc <- if (nuevo) NULL else x$icc_aplicado
   if (!is.null(icc) && !isTRUE(hojas_ruta_icc_validar(icc)$ok)) icc <- NULL
+  # A1: si el DEFF se editó después de aplicar el ICC (también desde la página clásica),
+  # ya no sale de la biblioteca: pasa a manual y se suelta la entrada.
+  if (!is.null(icc) && !nuevo && !is.null(x$design_effect) && !is.null(icc$deff_resultante) &&
+      abs(.hojas_ruta_te_num(x$design_effect) - .hojas_ruta_te_num(icc$deff_resultante)) > 1e-6) {
+    icc <- NULL
+    fuente <- "manual"
+  }
   if (identical(fuente, "icc_biblioteca") && is.null(icc)) fuente <- "manual"
   list(ocupacion = e, design_effect_fuente = fuente, icc_aplicado = icc)
 }
@@ -69,7 +76,9 @@ hojas_ruta_salto_visitas <- function(viviendas, visitas) {
 hojas_ruta_capacidad_manzana <- function(viviendas, k, r, e = 1, modo = "auto", salto_manual = 1L) {
   v_cap <- hojas_ruta_visitas_cap(k, r, e)
   V <- max(0, .hojas_ruta_te_num(viviendas, 0))
-  necesita <- if (identical(modo, "manual")) max(1, as.integer(salto_manual)) * v_cap else v_cap / max(1e-6, e)
+  # v_cap ya cuenta las visitas a viviendas desocupadas (éxito con probabilidad r·e):
+  # no se vuelve a dividir entre e (revisión metodológica de U12, A2).
+  necesita <- if (identical(modo, "manual")) max(1, as.integer(salto_manual)) * v_cap else v_cap
   list(alcanza = V >= necesita - 1e-9, v_cap = v_cap, necesita = necesita)
 }
 
@@ -193,6 +202,20 @@ hojas_ruta_icc_biblioteca_guardar <- function(entrada, ruta = hojas_ruta_icc_bib
   dir.create(dirname(ruta), recursive = TRUE, showWarnings = FALSE)
   writeLines(as.character(jsonlite::toJSON(c(actuales, list(entrada)), auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)), ruta, useBytes = TRUE)
   invisible(c(actuales, list(entrada)))
+}
+
+#' A1: con un ICC aplicado, el DEFF sigue al k actual de la ruta. Si k cambió desde
+#' que se aplicó, se recalcula `1 + (k − 1)·ICC` y se actualiza la copia.
+hojas_ruta_icc_reconciliar <- function(sample_size, k) {
+  icc <- sample_size$icc_aplicado
+  if (!identical(sample_size$design_effect_fuente, "icc_biblioteca") || is.null(icc)) return(sample_size)
+  k <- max(1L, as.integer(k))
+  if (identical(as.integer(icc$k_ruta %||% NA_integer_), k)) return(sample_size)
+  deff <- round(1 + (k - 1) * .hojas_ruta_te_num(icc$icc), 4)
+  sample_size$design_effect <- deff
+  sample_size$icc_aplicado$k_ruta <- k
+  sample_size$icc_aplicado$deff_resultante <- deff
+  sample_size
 }
 
 # ---------- Posproceso del tamaño (router /sample-size-preview) ----------

@@ -740,6 +740,8 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # ADR 0116 §2: un ICC aplicado recalcula el DEFF con el k actual antes de calcular el N.
+      cfg$sample_size <- hojas_ruta_icc_reconciliar(cfg$sample_size, .hojas_ruta_route_size(cfg))
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)

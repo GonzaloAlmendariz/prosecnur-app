@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
-import { aplicarBorrador, deffPorIcc, pasoDeRutas } from "./desdeConfig";
+import { aplicarBorrador, deffPorIcc, pasoDeRutas, reconciliarIcc } from "./desdeConfig";
 
 const config = {
   sample_size_mode: "external_district",
@@ -30,4 +30,12 @@ test("el − y + del N mueven rutas enteras", () => {
 test("la guía ICC da el DEFF de la ruta", () => {
   expect(deffPorIcc(8, 0.05)).toBe(1.35);
   expect(deffPorIcc(8, 0.015)).toBe(1.11);
+});
+
+test("ICC aplicado: el DEFF se recalcula con el k actual de la ruta (ADR 0116, revisión A1)", () => {
+  const ss = { design_effect: 1.42, design_effect_fuente: "icc_biblioteca", icc_aplicado: { id: "x", icc: 0.06, k_ruta: 8, deff_resultante: 1.42 } } as never;
+  const r = reconciliarIcc(ss, 4);
+  expect(r.design_effect).toBe(1.18);
+  expect(r.icc_aplicado?.k_ruta).toBe(4);
+  expect(reconciliarIcc(ss, 8)).toBe(ss);
 });

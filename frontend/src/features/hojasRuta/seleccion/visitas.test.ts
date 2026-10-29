@@ -18,10 +18,17 @@ describe("visitas de una ruta (ADR 0116, espejo de R)", () => {
     expect(visitasCap(8, { respuesta: 1 })).toBe(8);
   });
 
-  it("una manzana alcanza con V·e ≥ v_cap", () => {
+  it("una manzana alcanza con V ≥ v_cap(r·e), sin descontar la ocupación dos veces; con salto manual, V ≥ s·v_cap", () => {
     expect(alcanzaManzana(21, 8, { respuesta: 0.5 })).toBe(true);
     expect(alcanzaManzana(20, 8, { respuesta: 0.5 })).toBe(false);
-    expect(alcanzaManzana(21, 8, { respuesta: 0.5, ocupacion: 0.5 })).toBe(false);
+    expect(alcanzaManzana(14, 8, { respuesta: 0.9, ocupacion: 0.8 })).toBe(true);
+    expect(alcanzaManzana(13, 8, { respuesta: 0.9, ocupacion: 0.8 })).toBe(false);
+    expect(alcanzaManzana(21, 8, { respuesta: 0.5, modoSalto: "manual", saltoManual: 2 })).toBe(false);
+    expect(alcanzaManzana(42, 8, { respuesta: 0.5, modoSalto: "manual", saltoManual: 2 })).toBe(true);
+  });
+
+  it("estable con respuesta muy baja y k grande (R: 200 + qnbinom(.9, 200, .01) = 21823)", () => {
+    expect(visitasCap(200, { respuesta: 0.01 })).toBe(21823);
   });
 
   it("con supuestos la revisión mide en visitas y no dice que la ruta sigue por las vecinas", () => {

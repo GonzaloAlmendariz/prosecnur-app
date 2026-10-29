@@ -47,8 +47,10 @@ test_that("el salto se calcula sobre visitas y la capacidad depende del modo de 
   expect_true(hojas_ruta_capacidad_manzana(v_cap, 8, 0.5)$alcanza)
   expect_false(hojas_ruta_capacidad_manzana(v_cap, 8, 0.5, modo = "manual", salto_manual = 2)$alcanza)
   expect_true(hojas_ruta_capacidad_manzana(2 * v_cap, 8, 0.5, modo = "manual", salto_manual = 2)$alcanza)
-  # Con ocupación 0,5 hacen falta el doble de viviendas.
-  expect_false(hojas_ruta_capacidad_manzana(v_cap, 8, 0.5, e = 0.5)$alcanza)
+  # Con ocupación < 1, v_cap ya cuenta las visitas a desocupadas: no se divide otra vez entre e.
+  expect_identical(hojas_ruta_visitas_cap(8, 0.9, 0.8), 14L)
+  expect_true(hojas_ruta_capacidad_manzana(14, 8, 0.9, e = 0.8)$alcanza)
+  expect_false(hojas_ruta_capacidad_manzana(13, 8, 0.9, e = 0.8)$alcanza)
 })
 
 test_that("contactos esperados N/r y visitas planificadas por ruta, también con N no múltiplo de k", {
@@ -159,4 +161,42 @@ test_that("HTTP: la biblioteca de ICC se lee, se guarda y se aplica sin guardar 
   expect_equal(ok$sample_size$design_effect, 1.42)
   no <- ep("POST", "/api/hojas-ruta/icc/aplicar")$getFunc()(req = req(list(config = cfg, id = "aula")), res = res())
   expect_identical(no$error$code %||% no$code %||% "", "E_ICC_NOT_APPLICABLE")
+})
+
+test_that("A1: el DEFF de un ICC aplicado sigue al k actual, y editarlo a mano lo vuelve manual", {
+  ss <- hojas_ruta_icc_aplicar(.hojas_ruta_normalize_sample_size(list(design_effect = 1)), te_icc(), k = 8)$sample_size
+  con4 <- hojas_ruta_icc_reconciliar(ss, 4)
+  expect_equal(con4$design_effect, 1.18)
+  expect_identical(con4$icc_aplicado$k_ruta, 4L)
+  expect_identical(con4$design_effect_fuente, "icc_biblioteca")
+  # Editar el DEFF después de aplicar (p. ej. desde la página clásica) suelta el ICC.
+  editado <- ss
+  editado$design_effect <- 2
+  n <- .hojas_ruta_normalize_sample_size(editado)
+  expect_identical(n$design_effect_fuente, "manual")
+  expect_null(n$icc_aplicado)
+  expect_equal(n$design_effect, 2)
+})
+
+test_that("el N y el margen no cambian con la tasa de respuesta", {
+  cfg <- function(r) list(territorios = list("150102"), sample_size_mode = "calculator", entrevistas_por_manzana = 8, max_per_manzana = 8,
+                          sample_size = list(design_effect = 1.3, response_rate = r))
+  base <- hojas_ruta_sample_size_preview(cfg(1))
+  for (r in c(0.5, 0.9)) {
+    otro <- hojas_ruta_sample_size_preview(cfg(r))
+    expect_identical(otro$n_used, base$n_used)
+    expect_identical(otro$margin_total_estimated, base$margin_total_estimated)
+  }
+})
+
+test_that("la procedencia del DEFF y el ICC aplicado sobreviven a guardar y abrir (state.rds)", {
+  ss <- hojas_ruta_icc_aplicar(.hojas_ruta_normalize_sample_size(list(design_effect = 1)), te_icc(), k = 8)$sample_size
+  cfg <- hojas_ruta_integrada_normalize_config(list(territorios = list("150102"), entrevistas_por_manzana = 8, sample_size = ss))
+  rds <- tempfile(fileext = ".rds")
+  on.exit(unlink(rds), add = TRUE)
+  saveRDS(cfg, rds)
+  vuelta <- hojas_ruta_integrada_normalize_config(readRDS(rds))
+  expect_identical(vuelta$sample_size$design_effect_fuente, "icc_biblioteca")
+  expect_equal(vuelta$sample_size$design_effect, 1.42)
+  expect_identical(vuelta$sample_size$icc_aplicado$id, "acnur-2025")
 })

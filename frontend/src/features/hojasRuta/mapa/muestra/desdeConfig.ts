@@ -20,8 +20,21 @@ export function aplicarBorrador(config: HojasRutaIntegratedConfig, b: BorradorMu
     entrevistas_por_manzana: porRuta,
     max_per_manzana: porRuta,
     n_mode: (b.sample_size_mode ?? config.sample_size_mode) === "external_district" ? "por_distrito" : "total",
-    sample_size: { ...config.sample_size, ...b.sample_size },
+    sample_size: reconciliarIcc({ ...config.sample_size, ...b.sample_size }, porRuta),
   };
+}
+
+/**
+ * ADR 0116 §2 (revisión de U12, A1): con un ICC aplicado, el DEFF sigue al k actual de
+ * la ruta. Espejo de `hojas_ruta_icc_reconciliar` en R.
+ */
+export function reconciliarIcc(ss: HojasRutaSampleSizeConfig, k: number): HojasRutaSampleSizeConfig {
+  const icc = ss.icc_aplicado;
+  if (ss.design_effect_fuente !== "icc_biblioteca" || !icc || !icc.id) return ss;
+  const kk = Math.max(1, Math.round(k));
+  if (icc.k_ruta === kk) return ss;
+  const deff = Math.round((1 + (kk - 1) * icc.icc) * 10000) / 10000;
+  return { ...ss, design_effect: deff, icc_aplicado: { ...icc, k_ruta: kk, deff_resultante: deff } };
 }
 
 /** Sumar o restar rutas enteras: el paso del − y + del N es una ruta. */
