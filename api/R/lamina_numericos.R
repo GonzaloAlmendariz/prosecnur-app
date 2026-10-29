@@ -268,6 +268,7 @@
   wrot0 <- .lam_pesas_ancho_rotulo(espec$rotulos, con_dif); if (!is.finite(wrot0)) wrot0 <- if (con_dif) 2.8 else 2.2   # L10-1
   xl <- ml + wrot0 + 0.2; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
   yb <- yt + 0.75; fila <- (yf - yb - 0.6) / k
+  tp <- .lam_pesas_tabla_alinear(tp, yb, fila)   # la tabla al costado ocupa el alto del gráfico, fila con fila (lamina_tabla_costado.R)
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
   doc <- officer::add_slide(doc, layout = layout, master = master)

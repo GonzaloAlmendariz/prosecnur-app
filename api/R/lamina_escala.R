@@ -261,11 +261,12 @@
 #' @param extra_alto Alto que quien compone le cede al bloque para separar sus temas (multilista, G19/G11).
 #' @param llenando La lámina aprovecha su alto (lamina_escala_llenar.R); `NULL`: si el bloque es la lámina entera.
 #' @param desplazar Cuánto bajar el bloque para centrarlo (`.lam_escala_centrar()`).
+#' @param con_rotulo_box `FALSE` cuando otro bloque de la lámina ya escribió el rótulo «TOP TWO BOX» (uno por lámina, como Conta).
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
                                estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
-                               encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0) {
+                               encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0, con_rotulo_box = TRUE) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -351,7 +352,7 @@
   y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
   hr <- if (length(cb$cols) > 1L) 0.1 else 0
-  for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
+  if (isTRUE(con_rotulo_box)) for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
                                bold = TRUE, align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
   ytop <- y
   # El filete separa los bloques de actores de cada tema; con un solo público cada premisa es una barra y la línea

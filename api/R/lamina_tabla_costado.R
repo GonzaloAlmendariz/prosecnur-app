@@ -163,3 +163,19 @@
   list(left = d$x, top = d$y, width = d$w, height = d$h, lugar = d$lugar, ws = med$ws,
        graf_w = d$graf_x1 - caja$x0, graf_h = d$graf_y1 - caja$y0)
 }
+
+#' Alinea la tabla al costado con las filas del gráfico de líneas y puntos
+#'
+#' Gonzalo, 2026-10-28 («puede ocupar mejor el alto en el PPT»): la tabla de cuatro competencias ocupaba la mitad de
+#' arriba con filas de 0,5 in y el gráfico, a su lado, todo el alto con filas de ~1 in. Al costado, el encabezado queda a
+#' la altura del eje y cada fila de la tabla a la altura de los puntos de su criterio. Si la fila del gráfico es más baja
+#' que la que pide el texto de la tabla, la tabla queda como estaba.
+#' @param tp Plan de la tabla (`.lam_pesas_tabla_plan()`). @param yb Borde superior de la primera fila del gráfico.
+#' @param fila Alto de cada fila del gráfico.
+#' @keywords internal
+.lam_pesas_tabla_alinear <- function(tp, yb, fila) {
+  if (is.null(tp) || !identical(tp$lugar, "costado") || !is.finite(fila) || fila < (tp$med$need %||% tp$fila)) return(tp)
+  k <- round((tp$h - tp$h_enc) / tp$fila)
+  tp$fila <- fila; tp$y <- yb - tp$h_enc; tp$h <- tp$h_enc + k * fila
+  tp
+}

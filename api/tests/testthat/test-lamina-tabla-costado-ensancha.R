@@ -37,3 +37,14 @@ test_that("criterios cortos: la tabla va al costado con la columna de siempre", 
   expect_identical(d$lugar, "costado")
   expect_equal(d$med$ws[1], .LAM_TABLA_COSTADO$col1)
 })
+
+test_that("la tabla al costado ocupa el alto del gráfico: encabezado al nivel del eje y una fila por cada fila de puntos", {
+  tp <- .lam_pesas_tabla_plan(.tc_espec(c("Creación", "Representación", "Comunicación visual", "Experimentación")))
+  yb <- 2.1; fila <- 1.0
+  al <- .lam_pesas_tabla_alinear(tp, yb, fila)
+  expect_equal(al$y + al$h_enc, yb)                       # el cuerpo de la tabla arranca donde la primera fila del gráfico
+  expect_equal(al$fila, fila); expect_equal(al$h, al$h_enc + 4 * fila)
+  # una fila de gráfico más baja que la que pide el texto: la tabla no se toca
+  expect_identical(.lam_pesas_tabla_alinear(tp, yb, 0.2), tp)
+  expect_null(.lam_pesas_tabla_alinear(NULL, yb, fila))
+})

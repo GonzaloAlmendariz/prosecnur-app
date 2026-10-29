@@ -298,7 +298,10 @@
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire + dg, grosor = gr$grosor + dg,
                               rotulo_sobre = if (arriba) 0.45 else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
                               extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
-                              llenando = sin_tope)   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
+                              llenando = sin_tope,   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
+                              # Un bloque sin título continúa al de arriba: no repite el rótulo «TOP TWO BOX» si otro ya lo puso (Conta,
+                              # láms. 22 y 24); un bloque con su propio título es un panel aparte y lleva el suyo (recetario p144).
+                              con_rotulo_box = !is.null(it$titulo) || !any(vapply(items[seq_len(k - 1L)], function(i) !is.null(i$espec$box$unidades), TRUE)))
     centro_barras <<- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
     y <- fin + (if (k < length(items)) entre else 0) + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
