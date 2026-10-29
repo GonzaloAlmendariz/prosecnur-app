@@ -26,7 +26,7 @@ export function costoEstimado(nPorDistrito: readonly number[], k: number, sv: Su
     visitas,
     jornadas,
     dias: Math.ceil(jornadas / Math.max(1, plan.encuestadores)),
-    costo: Math.round(entrevistas * plan.costo_por_entrevista + jornadas * plan.costo_por_jornada),
+    costo: Math.round((entrevistas * plan.costo_por_entrevista + jornadas * plan.costo_por_jornada) * (1 + (plan.supervision_pct ?? 0) / 100)),
     tieneCostos: plan.costo_por_entrevista > 0 || plan.costo_por_jornada > 0,
   };
 }

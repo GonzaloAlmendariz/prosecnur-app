@@ -29,7 +29,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B18 | Cajón | peor · medio (C2) | Ancho limitado al lienzo; pestañas sin `aria-selected` ni activa visible; «×» texto; desborde 8/284 px; tapa zoom a 1024 | `.hr-sel-cajon` | ☐ |
 | B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | `seleccion/SalidasPanel.tsx` | ☐ |
 | B20 | Plan de campo | falta · alto | Lista por día y encuestador con color y «Hoja del día»; cifras derivadas; mapa por encuestador | `seleccion/PlanCampo.tsx` | ☐ |
-| B21 | Plan / Muestra | peor · alto (C5) | Costos arrancan en 0 → sin costo estimado; Muestra no muestra la tarjeta de costo | `PlanCampo.tsx`, `muestra/costo.ts`, `HOJAS_RUTA_PLAN_DEFAULTS` | ☐ |
+| B21 | Plan / Muestra | peor · alto (C5) | Costos arrancan en 0 → sin costo estimado; Muestra no muestra la tarjeta de costo | defaults del artefacto (S/ 145 por jornada = 120 pago + 25 movilidad, 15 % supervisión) en R y cliente, rotulados como supuestos | ☑ |
 | B22 | Salidas | falta · medio | Botón «Ver el informe» (U16), «Enviar a Material», conteos del paquete, sugeridas para reemplazo puntual | `SalidasPanel.tsx` | ☐ |
 | B23 | Bitácora | — (C5 legítimo) | Vacía en proyectos previos a U17: decirlo en la UI | `BitacoraSeccion.tsx` | ☐ |
 | B24 | Territorio | peor · medio | Filtro como segmentado «Todos/Elegidos»; íconos en Agregar/Quitar; rótulo «ZONAS DE LIMA» | `territorio/TerritorioPaneles.tsx` | ☐ |

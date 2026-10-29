@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { downloadUrl } from "../../../../api/core";
-import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
+import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, PLAN_SUPUESTOS_POR_DEFECTO, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 
 /**
@@ -45,7 +45,11 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
         {campo("costo_por_entrevista", "Costo por entrevista", s.moneda)}
         {campo("costo_por_jornada", "Costo por jornada", s.moneda)}
         {campo("costo_por_km", "Movilidad por km", s.moneda)}
+        {campo("supervision_pct", "Supervisión y coordinación", "%")}
       </div>
+      {JSON.stringify({ ...s, encuestadores: 0, visitas_por_jornada: 0 }) === JSON.stringify({ ...PLAN_SUPUESTOS_POR_DEFECTO, encuestadores: 0, visitas_por_jornada: 0 }) ? (
+        <p className="hr-mapa-nota">Costos por defecto: {s.moneda} 120 de pago y {s.moneda} 25 de movilidad por jornada, y 15 % de supervisión. Edítalos con los del estudio; el informe los publica.</p>
+      ) : null}
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
       {plan ? (
         <>

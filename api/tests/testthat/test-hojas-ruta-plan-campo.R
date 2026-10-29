@@ -28,7 +28,7 @@ test_that("las jornadas respetan la capacidad de visitas y siguen la cercanía d
 test_that("una ruta que no cabe en una jornada va entera, cuenta como varias y pide días seguidos (revisión U15)", {
   bloques <- list(pc_bloque("a", "150101", 0, 0, visitas = 70, entrevistas = 8))
   puntos <- data.frame(id_manzana = "a", lon = -77, lat = -12, nse_nivel = "S/D")
-  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30, encuestadores = 4, costo_por_entrevista = 10, costo_por_jornada = 100), puntos = puntos)
+  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30, encuestadores = 4, costo_por_entrevista = 10, costo_por_jornada = 100, supervision_pct = 0), puntos = puntos)
   expect_length(p$jornadas, 1)
   expect_true(p$jornadas[[1]]$excede_jornada)
   expect_identical(p$jornadas[[1]]$jornadas_equivalentes, 3L)
@@ -81,4 +81,15 @@ test_that("los supuestos del plan sobreviven a la normalización del ui_state", 
   expect_identical(ui$plan_campo$encuestadores, 6L)
   expect_equal(ui$plan_campo$costo_por_jornada, 120)
   expect_identical(.hojas_ruta_ui_state_normalize(list())$plan_campo$encuestadores, 4L)
+})
+
+
+test_that("los costos por defecto son los del artefacto y la supervisión se suma al total (brecha B21)", {
+  s <- hojas_ruta_plan_campo_supuestos(list())
+  expect_equal(c(s$costo_por_jornada, s$supervision_pct), c(145, 15))
+  expect_equal(hojas_ruta_plan_campo_supuestos(list(supervision_pct = 300))$supervision_pct, 100)
+  bloques <- list(pc_bloque("a", "150101", 0, 0, visitas = 20, entrevistas = 8))
+  puntos <- data.frame(id_manzana = "a", lon = -77, lat = -12, nse_nivel = "S/D")
+  p <- hojas_ruta_plan_campo(bloques, list(), puntos = puntos)
+  expect_equal(p$resumen$costo, round(1 * 145 * 1.15, 2))
 })

@@ -1374,6 +1374,8 @@ export type HojasRutaPlanSupuestos = {
   costo_por_entrevista: number;
   costo_por_jornada: number;
   costo_por_km: number;
+  /** Supervisión y coordinación, en % sobre el total (B21). */
+  supervision_pct: number;
   moneda: string;
 };
 
@@ -1391,7 +1393,9 @@ export type HojasRutaPlanCampo = {
   alertas: { code: string; message: string }[];
 };
 
-export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 0, costo_por_km: 0, moneda: "S/" };
+// Los del artefacto aprobado y de HOJAS_RUTA_PLAN_DEFAULTS en R (B21): S/ 120 de pago
+// más S/ 25 de movilidad por jornada, y 15 % de supervisión. Supuestos editables.
+export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 145, costo_por_km: 0, supervision_pct: 15, moneda: "S/" };
 
 export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -1399,9 +1403,10 @@ export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
   return {
     encuestadores: Math.max(1, Math.round(comoNumero(o.encuestadores, d.encuestadores))),
     visitas_por_jornada: Math.max(1, Math.round(comoNumero(o.visitas_por_jornada, d.visitas_por_jornada))),
-    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, 0)),
-    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, 0)),
-    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, 0)),
+    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, d.costo_por_entrevista)),
+    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, d.costo_por_jornada)),
+    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, d.costo_por_km)),
+    supervision_pct: Math.min(100, Math.max(0, comoNumero(o.supervision_pct, d.supervision_pct))),
     moneda: comoTexto(o.moneda) || d.moneda,
   };
 }

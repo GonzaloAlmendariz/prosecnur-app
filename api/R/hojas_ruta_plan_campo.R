@@ -9,12 +9,16 @@
 # titular más al oeste de cada distrito), no del azar. No cambia la muestra ni la
 # guarda; los supuestos viven en `ui_state$plan_campo` (no en la config del motor).
 
+# Costos por defecto (brecha B21, los del artefacto aprobado): S/ 120 de pago al
+# encuestador más S/ 25 de movilidad por jornada, y 15 % de supervisión y
+# coordinación sobre el total. Son supuestos editables: la interfaz los rotula así.
 HOJAS_RUTA_PLAN_DEFAULTS <- list(
   encuestadores = 4L,
   visitas_por_jornada = 30L,
   costo_por_entrevista = 0,
-  costo_por_jornada = 0,
+  costo_por_jornada = 145,
   costo_por_km = 0,
+  supervision_pct = 15,
   moneda = "S/"
 )
 
@@ -28,9 +32,10 @@ hojas_ruta_plan_campo_supuestos <- function(x = list()) {
   list(
     encuestadores = as.integer(num(x$encuestadores, HOJAS_RUTA_PLAN_DEFAULTS$encuestadores, 1)),
     visitas_por_jornada = as.integer(num(x$visitas_por_jornada, HOJAS_RUTA_PLAN_DEFAULTS$visitas_por_jornada, 1)),
-    costo_por_entrevista = num(x$costo_por_entrevista, 0),
-    costo_por_jornada = num(x$costo_por_jornada, 0),
-    costo_por_km = num(x$costo_por_km, 0),
+    costo_por_entrevista = num(x$costo_por_entrevista, HOJAS_RUTA_PLAN_DEFAULTS$costo_por_entrevista),
+    costo_por_jornada = num(x$costo_por_jornada, HOJAS_RUTA_PLAN_DEFAULTS$costo_por_jornada),
+    costo_por_km = num(x$costo_por_km, HOJAS_RUTA_PLAN_DEFAULTS$costo_por_km),
+    supervision_pct = min(100, num(x$supervision_pct, HOJAS_RUTA_PLAN_DEFAULTS$supervision_pct)),
     moneda = as.character(x$moneda %||% HOJAS_RUTA_PLAN_DEFAULTS$moneda)[1]
   )
 }
@@ -138,7 +143,7 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
       # Una ruta de 3 jornadas exige al menos 3 días seguidos de la misma persona.
       dias = as.integer(max(ceiling(n_j / s$encuestadores), if (length(eq)) max(eq) else 0L)),
       km = round(km, 1),
-      costo = round(total_entrevistas * s$costo_por_entrevista + n_j * s$costo_por_jornada + km * s$costo_por_km, 2)
+      costo = round((total_entrevistas * s$costo_por_entrevista + n_j * s$costo_por_jornada + km * s$costo_por_km) * (1 + s$supervision_pct / 100), 2)
     )
   )
 }
