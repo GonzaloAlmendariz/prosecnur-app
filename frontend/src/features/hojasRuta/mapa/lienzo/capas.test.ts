@@ -78,3 +78,14 @@ describe("identidad por distrito y rótulos sin pérdidas (B9, B10)", () => {
     expect(arriba.find((p) => p.clave === "b")!.dy).toBeGreaterThan(0);
   });
 });
+
+import { tonoCss, tonoGenerado } from "./tonos";
+
+describe("tonos de distrito sin repetir (pedido de Gonzalo: 20 distritos)", () => {
+  test("los 8 primeros son tokens y del noveno en adelante se generan distintos", () => {
+    const veinte = Array.from({ length: 20 }, (_, i) => tonoCss(i));
+    expect(veinte.slice(0, 8).every((t) => t.startsWith("var(--pulso-mapa-tono-"))).toBe(true);
+    expect(new Set(veinte).size).toBe(20);
+    expect(tonoGenerado(8)).toMatch(/^hsl\(/);
+  });
+});

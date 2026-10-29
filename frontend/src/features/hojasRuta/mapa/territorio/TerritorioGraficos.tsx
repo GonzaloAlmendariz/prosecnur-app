@@ -1,4 +1,5 @@
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
+import { tonoCss } from "../lienzo/tonos";
 import { nombreDistrito } from "../nombres";
 
 /**
@@ -8,15 +9,13 @@ import { nombreDistrito } from "../nombres";
  * su tono de identidad (B9) en el orden de confirmación.
  */
 
-// Nombres literales: el contrato de tokens no lee nombres armados.
-const TONOS = ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"];
 export const NSE: [number, string, string][] = [
-  [1, "Alto", "--pulso-nse-1"],
-  [2, "Medio alto", "--pulso-nse-2"],
-  [3, "Medio", "--pulso-nse-3"],
-  [4, "Medio bajo", "--pulso-nse-4"],
-  [5, "Bajo", "--pulso-nse-5"],
-  [0, "Sin dato", "--pulso-nse-0"],
+  [1, "Alto", "--pulso-nse-seq-1"],
+  [2, "Medio alto", "--pulso-nse-seq-2"],
+  [3, "Medio", "--pulso-nse-seq-3"],
+  [4, "Medio bajo", "--pulso-nse-seq-4"],
+  [5, "Bajo", "--pulso-nse-seq-5"],
+  [0, "Sin dato", "--pulso-nse-seq-0"],
 ];
 
 export const pct = (x: number) =>
@@ -43,7 +42,7 @@ export function TerritorioGraficos({ elegidos, confirmados, viviendasPorNse }: P
         <ul className="hr-graf-barras">
           {orden.map((t) => {
             const i = confirmados.indexOf(t.ubigeo);
-            const color = i >= 0 ? `var(${TONOS[i % TONOS.length]})` : "var(--pulso-module-routes)";
+            const color = tonoCss(i);
             return (
               <li key={t.ubigeo}>
                 <span className="hr-graf-nombre">{nombreDistrito(t.distrito)}</span>

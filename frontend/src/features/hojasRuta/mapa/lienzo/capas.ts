@@ -12,6 +12,7 @@
  */
 
 import { proyectarLonLat, type Caja } from "./camara";
+import { tonoGenerado } from "./tonos";
 import { cajaDe, type Pieza, type PiezaManzana } from "./piezas";
 import type { UtilLienzo } from "./LienzoMapa";
 
@@ -191,8 +192,9 @@ export function mezclar(a: string, b: string, t: number): string {
   return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Tono del distrito confirmado en la posición `indice` (cicla si hay más de ocho). */
-export const tonoDistrito = (u: UtilLienzo, indice: number) => (u.colores.tonos?.length ? u.colores.tonos[Math.max(0, indice) % u.colores.tonos.length] : u.colores.acento);
+/** Tono del distrito confirmado en la posición `indice`; desde el noveno, generado (no se repite). */
+export const tonoDistrito = (u: UtilLienzo, indice: number) =>
+  indice < 0 ? u.colores.acento : indice < (u.colores.tonos?.length ?? 0) ? u.colores.tonos[indice] : tonoGenerado(indice);
 
 // ---------- Rótulos con anticolisión ----------
 

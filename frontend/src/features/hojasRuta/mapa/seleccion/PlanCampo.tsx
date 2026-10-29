@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { tonoCss } from "../lienzo/tonos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { downloadUrl } from "../../../../api/core";
 import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, PLAN_SUPUESTOS_POR_DEFECTO, type HojasRutaJornada, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
@@ -12,8 +13,6 @@ import { nombreDistrito } from "../nombres";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("es-PE", { maximumFractionDigits: d });
 
-// Un color por encuestador (B20), de la misma paleta de identidad que el lienzo.
-const TONO_ENCUESTADOR = ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"];
 const DIAS_VISIBLES = 5;
 
 /** Las jornadas agrupadas por el día en que empiezan, en orden de encuestador. */
@@ -85,7 +84,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
               <ul className="hr-plan-jornadas">
                 {js.map((j) => (
                   <li key={j.id}>
-                    <i className="hr-plan-enc" style={{ background: `var(${TONO_ENCUESTADOR[(j.encuestador - 1) % TONO_ENCUESTADOR.length]})` }} aria-hidden="true" />
+                    <i className="hr-plan-enc" style={{ background: tonoCss(j.encuestador - 1) }} aria-hidden="true" />
                     <strong>Enc. {j.encuestador}</strong>
                     <span>
                       {j.id} · {nombreDistrito(j.distrito)} · {j.rutas.length === 1 ? "1 UMP" : `${j.rutas.length} UMP`} · {fmt(j.visitas)} visitas

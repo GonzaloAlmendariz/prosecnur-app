@@ -121,7 +121,7 @@ function leerColores(): ColoresLienzo {
     error: v("--pulso-danger-fg"),
     // la densidad arranca en blanco para «sin viviendas» y sigue la secuencia de datos
     densidad: ["--pulso-surface", "--pulso-data-seq-0", "--pulso-data-seq-1", "--pulso-data-seq-2", "--pulso-data-seq-3", "--pulso-data-seq-4", "--pulso-data-seq-5"].map(v),
-    nse: [0, 1, 2, 3, 4, 5].map((i) => v(`--pulso-nse-${i}`)),
+    nse: ["--pulso-nse-seq-0", "--pulso-nse-seq-1", "--pulso-nse-seq-2", "--pulso-nse-seq-3", "--pulso-nse-seq-4", "--pulso-nse-seq-5"].map(v),
     tonos: ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"].map(v),
   };
 }

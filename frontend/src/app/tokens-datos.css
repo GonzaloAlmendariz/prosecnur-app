@@ -36,14 +36,28 @@
 
 /* Identidad por distrito en el lienzo de Hojas de ruta (brecha B9): el distrito
  * confirmado N toma el tono N (en el orden de confirmación), en el relleno y en la
- * franja de su rótulo. Los mismos ocho del artefacto aprobado. */
+ * franja de su rótulo. Los ocho del artefacto, con el ocre cambiado por índigo para no
+ * confundirse con la escala naranja del NSE. Del noveno en adelante el tono se genera
+ * (lienzo/tonos.ts) para que ningún distrito repita color. */
 :root {
   --pulso-mapa-tono-0: #7aa2f8;
   --pulso-mapa-tono-1: #2457d6;
   --pulso-mapa-tono-2: #9a7bd8;
   --pulso-mapa-tono-3: #3aa7a0;
-  --pulso-mapa-tono-4: #d59a3a;
+  --pulso-mapa-tono-4: #5a5fc7;
   --pulso-mapa-tono-5: #6b7686;
   --pulso-mapa-tono-6: #c46a8a;
   --pulso-mapa-tono-7: #5b9b4a;
+}
+
+/* NSE como escala de INTENSIDAD naranja (pedido de Gonzalo): se distingue de la
+ * paleta categórica de los distritos. Alto = más intenso, Bajo = más claro;
+ * 0 = sin dato, en gris. */
+:root {
+  --pulso-nse-seq-0: #cbd5e1;
+  --pulso-nse-seq-1: #7c2d12;
+  --pulso-nse-seq-2: #c2410c;
+  --pulso-nse-seq-3: #f97316;
+  --pulso-nse-seq-4: #fdba74;
+  --pulso-nse-seq-5: #fed7aa;
 }
