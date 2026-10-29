@@ -254,11 +254,12 @@ hojas_ruta_tamano_extras_completar <- function(resultado, config) {
 # ---------- Salto sobre visitas en la muestra (ADR 0116 §1) ----------
 
 # Protocolo único ante la no respuesta (ADR 0116 §1): lo imprimen la ficha de la
-# UMP y la hoja del día. Registro formal, una oración por paso.
+# UMP y la hoja del día. Formal pero llano —lo lee cualquier encuestador, no un
+# estadístico—: nada de «salto sistemático» ni «elegible». Una oración por paso.
 HOJAS_RUTA_REGLA_NO_RESPUESTA <- paste(
-  "Si la vivienda no responde, está desocupada o no es elegible, continúe con el salto sistemático.",
-  "Agotada la manzana, realice una segunda pasada por las viviendas no visitadas.",
-  "Si la cuota de la hoja continúa incompleta, prosiga en la manzana de reemplazo asignada a la ruta."
+  "Si en la vivienda no responden, está desocupada o no vive nadie del perfil del estudio, pase a la siguiente que indica el salto.",
+  "Si termina la vuelta a la manzana sin completar la cuota, dé una segunda vuelta por las viviendas que no visitó.",
+  "Si aún falta completar la cuota, continúe en las manzanas aledañas (las de al lado), en el orden del esquema (1 a 8), con el mismo sentido y el mismo salto."
 )
 
 # Recalcula el salto de una tabla de manzanas sobre visitas, con la misma semilla y

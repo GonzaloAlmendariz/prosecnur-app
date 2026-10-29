@@ -128,7 +128,7 @@ test_that("una ficha sin visitas esperadas sale sin ese dato y sin fallar", {
   expect_false(grepl("Visitas esperadas", txt, fixed = TRUE))
   # Sin regla en la manzana (muestra anterior a U14a), el protocolo canónico.
   expect_match(txt, "Procedimiento ante la no respuesta", fixed = TRUE)
-  expect_match(txt, "segunda pasada", fixed = TRUE)
+  expect_match(txt, "segunda vuelta", fixed = TRUE)
   m <- hojas_ruta_ficha_modelo(b, NULL, sm$config)
   expect_identical(m$procedimiento$pasos, .hojas_ruta_vp_regla_pasos(HOJAS_RUTA_REGLA_NO_RESPUESTA))
   expect_match(txt, "Ficha de trabajo de campo", fixed = TRUE)

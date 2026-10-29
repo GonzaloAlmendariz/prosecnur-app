@@ -82,7 +82,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   } else if (barrido) {
     "1 · barrido completo"
   } else {
-    sprintf("%d · una de cada %d casas", salto, salto)
+    sprintf("%d · uno de cada %d hogares", salto, salto)
   }
 
   m <- .hojas_ruta_reference_quota_marginals(block, config)
@@ -92,7 +92,6 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     sub("^([0-9]+)\\+$", "\\1 a más", lab)
   }, character(1))
 
-  visitas <- .hojas_ruta_vp_visitas(block)
   year <- format(Sys.Date(), "%Y")
   list(
     encabezado = list(
@@ -141,7 +140,6 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     # manzana o, en una muestra anterior a U14a, el canónico. La hoja del día
     # imprime el mismo texto.
     procedimiento = list(
-      visitas = visitas,
       pasos = .hojas_ruta_vp_regla_pasos({
         regla <- .hojas_ruta_vp_regla(block)
         if (nzchar(regla)) regla else HOJAS_RUTA_REGLA_NO_RESPUESTA
@@ -486,12 +484,12 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   gap <- 0.022
   y <- .hfp_cuota_matriz(L, y, W, cu, tk, pesos)
 
-  # --- C. Selección de casas ------------------------------------------------
+  # --- C. Selección de hogares ----------------------------------------------
   y <- y - 0.026
   sel <- modelo$seleccion
-  .hfp_seccion("C", "Selección de casas", L, y, W, tk)
+  .hfp_seccion("C", "Selección de hogares", L, y, W, tk)
   y <- y - 0.016
-  bloque_h <- if (isTRUE(enc$es_reemplazo)) 0.28 else 0.31  # el aviso del reemplazo ocupa arriba
+  bloque_h <- if (isTRUE(enc$es_reemplazo)) 0.262 else 0.295  # el aviso del reemplazo ocupa arriba
   esq_w <- 0.47 * W
   .hfp_rect(L, y, esq_w, bloque_h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
   .hfp_text("ESQUEMA DEL RECORRIDO", L + 0.014, y - 0.014, 6.4, tk$soft, "bold", spacing = 0.8)
@@ -521,10 +519,10 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     c("Esquina de inicio", sel$esquina, if (nzchar(sel$esquina_nombre)) sel$esquina_nombre else ""),
     # Por lo que es, no por el código que sortea el motor («1»/«2»).
     c("Sentido", if (nzchar(sel$sentido_nombre)) sprintf("Recorrido %s", sel$sentido_nombre) else sel$sentido, ""),
-    c("Casa de inicio", as.character(sel$inicio), ""),
+    c("Hogar de inicio", as.character(sel$inicio), ""),
     c("Constante de salto", if (sel$sin_salto) "–" else as.character(sel$salto),
       if (sel$sin_salto) "deshabilitada" else if (sel$barrido) "barrido completo" else
-        sprintf("una de cada %d casas", sel$salto))
+        sprintf("uno de cada %d hogares", sel$salto))
   )
   for (i in seq_along(params)) {
     yy <- y - (i - 1) * param_h
@@ -628,8 +626,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   y - alto
 }
 
-# Procedimiento ante la no respuesta (ADR 0116 §1). Las visitas esperadas van
-# como un dato al costado del título.
+# Procedimiento ante la no respuesta (ADR 0116 §1). Sin las visitas esperadas:
+# son un dato de planificación, no una instrucción para quien está en campo.
 .hfp_procedimiento <- function(pr, x, y, w, tk, pesos) {
   body <- 8.2
   line_h <- 0.0135
@@ -639,10 +637,6 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   grid::grid.rect(x = x, y = y, width = 0.005, height = h, just = c("left", "top"),
                   gp = grid::gpar(fill = tk$navy, col = NA))
   .hfp_text("Procedimiento ante la no respuesta", x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
-  if (!is.na(pr$visitas)) {
-    .hfp_text(sprintf("Visitas esperadas: %d", pr$visitas), x + w - 0.014, y - 0.015, 8.2, tk$soft,
-              just = c("right", "center"))
-  }
   yy <- y - 0.032
   for (i in seq_along(lineas)) {
     .hfp_text(sprintf("%d.", i), x + 0.018, yy, body, tk$navy, "bold")
