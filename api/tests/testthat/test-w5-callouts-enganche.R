@@ -47,7 +47,9 @@ test_that("CCSS-14 escala: un par sin cruce («1% ⌐1%») conserva la colocaci�
   seg <- f[f$nombre == "segmento", ]; seg <- seg[order(seg$x), ]
   cf <- f[f$nombre == "cifra_fuera", ]; cf <- cf[order(cf$x), ]
   cs <- seg$x[1:2] + seg$w[1:2] / 2
-  expect_equal(cf$x + cf$w / 2, c(cs[1], cs[1] + 0.46), tolerance = 0.01)
+  # La segunda se separa lo que miden las dos más 0,08 in (antes un 0,46 fijo: «un pequeño error en ese 2 % y su rama»).
+  sep <- sum(.lam_ancho_tinta(c("1%", "1%"), .std_pt("cifra_fuera"), TRUE)) / 2 + 0.08
+  expect_equal(cf$x + cf$w / 2, c(cs[1], cs[1] + sep), tolerance = 0.01)
 })
 
 test_that("CCSS-14 divergentes: tres cifras chicas del lado del acuerdo sin cruzar codos ni la línea del centro", {

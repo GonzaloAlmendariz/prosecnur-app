@@ -53,7 +53,7 @@ test_that("la guía de la cifra chica mide a lo más 0,055 in y la caja no la cr
   expect_true(all(vapply(seq_len(nrow(m$cf)), function(i) m$cf$y[i] + m$cf$h[i] <= min(m$seg$y[m$seg$y > m$cf$y[i]]) + 1e-6, TRUE)))
 })
 
-test_that("no cambia lo que no se pidió: aire de la fila, separación de 0,46 in entre cifras y grosor", {
+test_that("no cambia lo que no se pidió: aire de la fila, separación entre cifras sin solaparse y grosor", {
   expect_equal(.std_geom("aire_cifra_chica"), 0.36)
   m <- .fcg_medir(.fcg_formas(.fcg_lam()$doc))
   ys <- round(m$seg$y, 3); fila <- sort(unique(ys))
@@ -62,7 +62,8 @@ test_that("no cambia lo que no se pidió: aire de la fila, separación de 0,46 i
   expect_gte(unname(diff(fila)[1]), unname(m$seg$h[1] + 0.36) - 1e-3)
   expect_lte(unname(diff(fila)[1]) - unname(m$seg$h[1]), max(0.36, .std_comp("llenar", "aire_publicos_max")) + 1e-3)
   c1 <- m$cf[round(m$cf$y, 2) == round(min(m$cf$y), 2), ]
-  if (nrow(c1) > 1) expect_gte(min(diff(sort(c1$x))), 0.46 - 1e-3)
+  # Las cifras vecinas no se pisan: se separan lo que miden más 0,08 in (antes 0,46 fijo).
+  if (nrow(c1) > 1) { cc <- c1[order(c1$x), ]; expect_true(all(diff(cc$x + cc$w / 2) >= 0.08)) }
 })
 
 # N9b (Renzo, 2026-10-22, captura de un «3 %» sobre el último segmento): la guía vertical tocaba el número. Tras N9 la

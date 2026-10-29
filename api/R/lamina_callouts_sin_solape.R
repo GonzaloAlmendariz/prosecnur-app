@@ -94,11 +94,14 @@
 #' Centros de las cifras chicas de una barra apilada (lamina_escala.R): la colocación de siempre si no choca; si no, la nueva
 #' @keywords internal
 .lam_callouts_escala <- function(cs, textos, x, w, size = .std_pt("cifra_fuera")) {
-  pos <- cs
-  for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + 0.46)
-  m <- length(pos); lim <- x + w - 0.12
-  if (m && pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - 0.46) }
   anchos <- .lam_ancho_tinta(textos, size, TRUE)
+  # Dos cifras vecinas se separan lo que miden más un aire, no un 0,46 in fijo: dos «2%» (0,26 in) quedaban a 0,46 y la
+  # guía de la segunda cruzaba un tramo largo (Gonzalo, 2026-10-29: «un pequeño error en ese 2 % y su rama»).
+  sep <- function(k) (anchos[k - 1L] + anchos[k]) / 2 + 0.08
+  pos <- cs
+  for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + sep(k))
+  m <- length(pos); lim <- x + w - 0.12
+  if (m && pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - sep(k + 1L)) }
   if (!.lam_callouts_chocan(cs, pos, anchos)) return(pos)
   structure(.lam_callouts_sin_solape(cs, anchos, x - 0.15, x + w + 0.15), reparto = "nuevo")
 }
