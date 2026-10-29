@@ -133,16 +133,7 @@
 #' @keywords internal
 .lam_leyenda_panel <- function(lz, y, labels, cols, centro, x0, x1) {
   plan <- .leyenda_avisar(attr(.lam_leyenda_filas(labels, x1 - x0), "plan"))
-  for (r in seq_along(plan$filas)) {
-    x <- .leyenda_x_fila(plan$totales[r], centro, x0, x1)
-    for (i in plan$filas[[r]]) {
-      .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[i], nombre = "leyenda:cuadro")
-      .lam_txt(lz, labels[i], x + 0.12, y, plan$anchos[i] + 0.3, 0.3, plan$size, .std_color("azul"), nombre = "leyenda:texto")
-      x <- x + plan$items[i] + plan$gaps[r]
-    }
-    y <- y + 0.3
-  }
-  invisible(y)
+  invisible(.lam_leyenda_dibujar(lz, plan, y, labels, cols, centro, x0, x1))   # lamina_escala.R
 }
 
 #' Geometría de un panel mixto: lo que dibuja y con qué medidas, y si cabe

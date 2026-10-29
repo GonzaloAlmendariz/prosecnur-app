@@ -95,7 +95,8 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 - ☑ Alto de la pregunta del panel: `.lam_lineas` al dibujar (pan:13) y `.lam_ancho_tinta` al reservar (mix:159). Medido:
   la reserva quedaba una línea corta en 12 de 369 preguntas de las muestras a 6 in y 64 a 4 in. Ahora una sola cuenta,
   `.lam_panel_lineas` (corte por palabras sobre la tinta), para dibujar, reservar y el encabezado del Sí/No.
-- Leyenda del panel copiada de `.lam_leyenda` (mix:134-146).
+- ☑ Leyenda del panel copiada de `.lam_leyenda` (mix:134-146): el bucle que dibuja las filas es uno solo,
+  `.lam_leyenda_dibujar` (lamina_escala.R); cada leyenda conserva lo suyo (límites, plan, tope sobre la base). Geometría idéntica.
 - Grosor de la escala en panel: tres reglas (pan:81, mix:221, pan:137) y ninguna lee `.std_grosor`; piso 0,24 in contra
   `grosor.piso_escala_cm` 1,12 cm.
 - Columna del box: `columna_top_two_box` = 1 (pan, mix) contra `composicion.escala.columna_box` = 1,5.

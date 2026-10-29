@@ -100,17 +100,24 @@
   .leyenda_avisar(plan)
   k <- length(plan$filas)
   if (k > 1L) y <- min(y, g("base_y") - 0.02 - 0.3 * k)
-  for (r in seq_len(k)) {
-    idx <- plan$filas[[r]]
-    x <- .leyenda_x_fila(plan$totales[r], centrar_en, ml, fin)
-    for (i in idx) {
+  .lam_leyenda_dibujar(lz, plan, y, labels, cols, centrar_en, ml, fin)
+  invisible(lz)
+}
+
+#' Dibuja las filas de un plan de leyenda (`.lam_leyenda_plan`): cuadro y texto por respuesta, cada fila centrada en
+#' `centro` sin salir de `x0`..`x1`. La comparten la leyenda de la lámina y la del panel; devuelve el y bajo la última fila.
+#' @keywords internal
+.lam_leyenda_dibujar <- function(lz, plan, y, labels, cols, centro, x0, x1) {
+  for (r in seq_along(plan$filas)) {
+    x <- .leyenda_x_fila(plan$totales[r], centro, x0, x1)
+    for (i in plan$filas[[r]]) {
       .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[i], nombre = "leyenda:cuadro")
       .lam_txt(lz, labels[i], x + 0.12, y, plan$anchos[i] + 0.3, 0.3, plan$size, .std_color("azul"), nombre = "leyenda:texto")
       x <- x + plan$items[i] + plan$gaps[r]
     }
     y <- y + 0.3
   }
-  invisible(lz)
+  y
 }
 
 # ---- geometría del bloque (recetario.R:224-236) ------------------------------
