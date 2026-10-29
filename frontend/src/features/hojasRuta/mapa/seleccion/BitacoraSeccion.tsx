@@ -25,12 +25,19 @@ const ACCION: Record<string, string> = {
   nota: "Nota",
 };
 
+/** Vacía no siempre significa «sin decisiones»: un proyecto con muestra es anterior a la bitácora (U17). */
+export const mensajeBitacoraVacia = (conDecisionesPrevias: boolean) =>
+  conDecisionesPrevias
+    ? "Este proyecto se diseñó antes de que existiera la bitácora: sus decisiones previas no quedaron registradas. Desde ahora, cada sorteo, cambio de tamaño o de marco elegible deja aquí su rastro."
+    : "Todavía no hay decisiones registradas. Cada sorteo, cambio de tamaño o de marco elegible deja aquí su rastro.";
+
 const cuando = (iso: string) => {
   const d = new Date(iso.replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 };
 
-export function BitacoraSeccion() {
+/** `conDecisionesPrevias`: el proyecto ya tiene muestra; si la bitácora está vacía, es anterior a ella (B23). */
+export function BitacoraSeccion({ conDecisionesPrevias = false }: { conDecisionesPrevias?: boolean } = {}) {
   const [entradas, setEntradas] = useState<HojasRutaBitacoraEntrada[] | null>(null);
   const [error, setError] = useState("");
   const [nota, setNota] = useState("");
@@ -50,7 +57,11 @@ export function BitacoraSeccion() {
       <h3>Bitácora de decisiones</h3>
       {error ? <p className="hr-bitacora-aviso">{error}</p> : null}
       {entradas === null && !error ? <p className="hr-bitacora-vacio">Leyendo la bitácora…</p> : null}
-      {entradas && !entradas.length ? <p className="hr-bitacora-vacio">Todavía no hay decisiones registradas. Cada sorteo, cambio de tamaño o de marco elegible deja aquí su rastro.</p> : null}
+      {entradas && !entradas.length ? (
+        <p className="hr-bitacora-vacio">
+          {mensajeBitacoraVacia(conDecisionesPrevias)}
+        </p>
+      ) : null}
       {entradas?.length ? (
         <ol className="hr-bitacora">
           {entradas.slice(0, 30).map((e) => (

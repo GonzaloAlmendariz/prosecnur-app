@@ -245,7 +245,7 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
           ) : null}
         </section>
 
-        <BitacoraSeccion />
+        <BitacoraSeccion conDecisionesPrevias={Boolean(muestra)} />
 
         <section className="hr-muestra-grupo" aria-label="PDF de prueba">
           <h3>PDF de prueba</h3>
