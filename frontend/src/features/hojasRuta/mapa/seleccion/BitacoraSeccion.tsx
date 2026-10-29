@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaBitacora, apiHojasRutaBitacoraAnotar, type HojasRutaBitacoraEntrada } from "../../../../api/hojasRuta";
+import "./bitacora.css";
 
 /**
  * Bitácora de decisiones (U17) dentro de las salidas de Selección. Va aquí y no en
  * un `?panel=bitacora` propio mientras la página clásica sea la de por defecto: el
  * QA recorre los paneles declarados sobre esa página, y uno que sólo existe en el
- * lienzo abriría nada (ADR 0114 §3, enmienda de U17).
+ * lienzo abriría nada (ADR 0114 §3, enmienda de U17). Se monta en las dos páginas
+ * (el panel de salidas del lienzo y el de la mesa clásica), así que trae su CSS.
  */
 
 const ACCION: Record<string, string> = {
@@ -46,10 +48,11 @@ export function BitacoraSeccion() {
     void leer();
   }, []);
   return (
-    <section className="hr-muestra-grupo" aria-label="Bitácora de decisiones">
+    <section className="hr-muestra-grupo hr-bitacora-seccion" aria-label="Bitácora de decisiones">
       <h3>Bitácora de decisiones</h3>
-      {error ? <p className="hr-mapa-aviso">{error}</p> : null}
-      {entradas && !entradas.length ? <p className="hr-mapa-nota">Todavía no hay decisiones registradas. Cada sorteo, cambio de tamaño o de marco elegible deja aquí su rastro.</p> : null}
+      {error ? <p className="hr-bitacora-aviso">{error}</p> : null}
+      {entradas === null && !error ? <p className="hr-bitacora-vacio">Leyendo la bitácora…</p> : null}
+      {entradas && !entradas.length ? <p className="hr-bitacora-vacio">Todavía no hay decisiones registradas. Cada sorteo, cambio de tamaño o de marco elegible deja aquí su rastro.</p> : null}
       {entradas?.length ? (
         <ol className="hr-bitacora">
           {entradas.slice(0, 30).map((e) => (
@@ -63,7 +66,7 @@ export function BitacoraSeccion() {
           ))}
         </ol>
       ) : null}
-      <textarea className="hr-mapa-buscar hr-bitacora-nota" aria-label="Nota para la bitácora" placeholder="Anota una decisión o un acuerdo con el equipo" value={nota} onChange={(ev) => setNota(ev.target.value)} rows={2} />
+      <textarea className="hr-bitacora-nota" aria-label="Nota para la bitácora" placeholder="Anota una decisión o un acuerdo con el equipo" value={nota} onChange={(ev) => setNota(ev.target.value)} rows={2} />
       <PulsoButton
         variant="secondary"
         size="sm"

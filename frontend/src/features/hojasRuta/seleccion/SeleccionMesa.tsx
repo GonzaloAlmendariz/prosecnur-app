@@ -8,6 +8,7 @@ import { PANEL_SALIDAS_SELECCION } from "./panelesSeleccion";
 import { Archive, BarChart3, MapPinned, ShieldAlert, Shuffle, type LucideIcon } from "../../../vendor/lucide-react";
 import type { HojasRutaDeliveryTab } from "../store";
 import type { HojasRutaNavigationTab } from "../hojasRutaNavigation";
+import { BitacoraSeccion } from "../mapa/seleccion/BitacoraSeccion";
 import "./seleccionMesa.css";
 
 // Selección como mesa del kit: rail de pestañas a la izquierda, la cabecera
@@ -141,7 +142,7 @@ export function SeleccionMesa({
                     </PulsoButton>
                   )}
                 >
-                  <div className="hr-seleccion-salidas is-sideover">{salidas}</div>
+                  <div className="hr-seleccion-salidas is-sideover">{salidas}<BitacoraSeccion /></div>
                 </Sideover>
               ) : undefined}
             />
@@ -158,7 +159,7 @@ export function SeleccionMesa({
             {trabajos}
           </div>
           {compacto ? null : (
-            <aside className="hr-seleccion-salidas" aria-label="Salidas de la selección">{salidas}</aside>
+            <aside className="hr-seleccion-salidas" aria-label="Salidas de la selección">{salidas}<BitacoraSeccion /></aside>
           )}
         </div>
       </AdaptiveSplitView>

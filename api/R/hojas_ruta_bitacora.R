@@ -138,3 +138,29 @@ hojas_ruta_bitacora_detalle_marco <- function(me) {
     }
   )
 }
+
+# Acciones cuyo resumen es texto libre del equipo (y no una frase armada por el motor).
+HOJAS_RUTA_BITACORA_TEXTO_LIBRE <- c("nota", "decision_cobertura")
+
+#' Los textos de la bitácora como data.frame, para que el gate de PII los escanee.
+hojas_ruta_bitacora_textos <- function(estado) {
+  b <- Filter(is.list, estado$hojas_ruta_bitacora %||% list())
+  if (!length(b)) return(data.frame(resumen = character(0), stringsAsFactors = FALSE))
+  data.frame(resumen = vapply(b, function(e) as.character(e$resumen %||% ""), character(1)), stringsAsFactors = FALSE)
+}
+
+#' Retira el texto libre de la bitácora antes de que un .pulso salga del equipo
+#' (anonimizador, ADR 0043): el resumen de notas y decisiones de cobertura se
+#' reemplaza y su detalle conserva sólo la decisión y el marco resumido.
+hojas_ruta_bitacora_anonimizar <- function(estado) {
+  b <- estado$hojas_ruta_bitacora
+  if (!is.list(b) || !length(b)) return(estado)
+  estado$hojas_ruta_bitacora <- lapply(b, function(e) {
+    if (!is.list(e) || !as.character(e$accion %||% "") %in% HOJAS_RUTA_BITACORA_TEXTO_LIBRE) return(e)
+    e$resumen <- if (identical(e$accion, "nota")) "Nota retirada al anonimizar." else "Decisión de cobertura (justificación retirada al anonimizar)."
+    d <- if (is.list(e$detalle)) e$detalle else list()
+    e$detalle <- d[intersect(names(d), c("decision", "marco_elegible"))]
+    e
+  })
+  estado
+}

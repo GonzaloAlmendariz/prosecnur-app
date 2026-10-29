@@ -214,6 +214,10 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   logos <- .pulso_anon_logos_neutralizar(estado, file.path(stage, "files"), sal = sal)
   estado <- logos$estado
 
+  # Las notas y justificaciones de la bitácora de Hojas de ruta son texto libre:
+  # pueden nombrar personas o lugares. Se retiran (ADR 0115 §4, enmienda U17).
+  estado <- hojas_ruta_bitacora_anonimizar(estado)
+
   saveRDS(.pulso_anon_lista_como_state(estado, envuelto$era_env), state_path)
 
   # Marca de procedencia en el manifest: un fixture publicado debe declarar que
@@ -469,6 +473,9 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     s <- readRDS(state_path)
     envuelto <- .pulso_anon_state_como_lista(s)
     .pulso_anon_walk_dataframes(envuelto$datos, registrar, ruta = "state")
+    # La bitácora de Hojas de ruta es una lista de entradas, no un data.frame: el
+    # recorrido de arriba no la ve. Su texto libre se escanea igual.
+    registrar(hojas_ruta_bitacora_textos(envuelto$datos), "state$hojas_ruta_bitacora")
     # **El padrón de aulas no es un data.frame**, así que el recorrido de arriba
     # pasa de largo por él: es una lista de listas con códigos de alumno reales
     # (la única clave del proyecto que los guarda sin subrogar, ver

@@ -142,3 +142,19 @@ test_that("HTTP: una decisión con el marco entero guarda sólo su resumen", {
   expect_false(any(grepl("anillos", names(unlist(d)))))
   expect_identical(d$decision, "aceptar")
 })
+
+test_that("el anonimizador retira el texto libre y el gate de PII lo escanea", {
+  estado <- list(hojas_ruta_bitacora = list(
+    list(id = 1L, accion = "nota", resumen = "Llamar a Rosa al 987654321", detalle = list(quien = "Rosa")),
+    list(id = 2L, accion = "decision_cobertura", resumen = "Se acepta: lo dijo jperez@pucp.edu.pe", detalle = list(decision = "aceptar", extra = "x")),
+    list(id = 3L, accion = "sorteo", resumen = "Sorteo pps con semilla 2017", detalle = list(seed = 2017L))
+  ))
+  textos <- hojas_ruta_bitacora_textos(estado)
+  expect_identical(nrow(textos), 3L)
+  a <- hojas_ruta_bitacora_anonimizar(estado)$hojas_ruta_bitacora
+  expect_false(any(grepl("Rosa|987654321|jperez", vapply(a, `[[`, character(1), "resumen"))))
+  expect_identical(names(a[[1]]$detalle), character(0))
+  expect_identical(a[[2]]$detalle, list(decision = "aceptar"))
+  expect_identical(a[[3]]$resumen, "Sorteo pps con semilla 2017")
+  expect_identical(hojas_ruta_bitacora_anonimizar(list(x = 1)), list(x = 1))
+})
