@@ -171,6 +171,9 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           </div>
           <Opciones etiqueta="Dónde buscar el reemplazo" valor={config.replacement_policy} opciones={POLITICAS} onCambio={(replacement_policy) => cambiar({ replacement_policy })} deshabilitado={ed || reemplazos === 0} />
         </section>
+        {avisosDelSorteo(muestra).map((a) => (
+          <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
+        ))}
         {muestra && cambios.length ? <p className="hr-mapa-aviso">Sortear de nuevo reemplaza las titulares y reemplazos actuales. El sorteo anterior queda en el historial.</p> : null}
       </div>
       <footer className="hr-mapa-pie">
@@ -183,6 +186,15 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
       </footer>
     </>
   );
+}
+
+/**
+ * Avisos que el servidor adjunta al sorteo (n sin asignar, marco elegible, decisión de
+ * cobertura): se pintan junto al botón que los produjo. Sólo los que piden algo al
+ * equipo; los informativos ya tienen su lugar en el inspector.
+ */
+export function avisosDelSorteo(muestra: HojasRutaSamplePreview | null) {
+  return (muestra?.alerts ?? []).filter((a) => a.level !== "info" && /^[WE]_/.test(a.code ?? "")).slice(0, 4);
 }
 
 type EstructuraProps = {

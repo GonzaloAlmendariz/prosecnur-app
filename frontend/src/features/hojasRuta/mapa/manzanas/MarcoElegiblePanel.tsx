@@ -166,7 +166,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
       {decisiones.length ? (
         <div className="hr-me-decision">
           <p className="hr-mapa-aviso">
-            {decisiones.map((d) => nombreDistrito(d.distrito)).join(", ")} {decisiones.length === 1 ? "pierde" : "pierden"} el 10 % o más de su población: antes de sortear, el equipo decide si redefine la población objetivo o lo acepta con justificación.
+            {decisiones.map((d) => nombreDistrito(d.distrito)).join(", ")} {decisiones.length === 1 ? "pierde" : "pierden"} el 10 % o más de su población. Sortear sigue libre, pero antes de generar las hojas de campo el equipo decide si redefine la población objetivo o lo acepta con justificación.
           </p>
           {decidido ? (
             <p className="hr-mapa-nota">Registrado en la bitácora: {decidido}</p>

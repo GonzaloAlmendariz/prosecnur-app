@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview } from "../../../../api/hojasRuta";
+import { avisosDelSorteo } from "./ManzanasPaneles";
 import { acotarReemplazos, aplicarSorteo, cambiosDeSorteo, conInstantanea, instantaneaDeSorteo, MAX_HISTORIAL, mismoTerritorio, otraSemilla, parametrosDeSorteo, saltoVistaPrevia } from "./sorteo";
 
 const config = {
@@ -103,4 +104,15 @@ describe("volver a un ruteo", () => {
     expect(mismoTerritorio(["a", "b"], ["b", "a"])).toBe(true);
     expect(mismoTerritorio(["a"], ["a", "b"])).toBe(false);
   });
+});
+
+
+it("los avisos del sorteo que piden algo al equipo se muestran (U17: decisión de cobertura)", () => {
+  const muestra = { alerts: [
+    { level: "warn", code: "W_COVERAGE_DECISION_MISSING", message: "6 distritos pierden…" },
+    { level: "info", code: "I_X", message: "informativo" },
+    { level: "error", code: "E_UNASSIGNED_INTERVIEWS", message: "12 sin asignar" },
+  ] } as never;
+  expect(avisosDelSorteo(muestra).map((a) => a.code)).toEqual(["W_COVERAGE_DECISION_MISSING", "E_UNASSIGNED_INTERVIEWS"]);
+  expect(avisosDelSorteo(null)).toEqual([]);
 });

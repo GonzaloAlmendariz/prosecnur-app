@@ -4,7 +4,8 @@ import { JobProgress } from "../../../../components/JobProgress";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { Sideover } from "../../../../components/Sideover";
-import { downloadUrl } from "../../../../api/core";
+import { ApiError, downloadUrl } from "../../../../api/core";
+import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import {
   apiHojasRutaGenerate,
   apiHojasRutaManualReplacementsPdf,
@@ -42,6 +43,8 @@ type Trabajo = "" | "zip" | "excel" | "puntuales" | "prueba";
 type Estado = {
   ocupado: Trabajo;
   error: string;
+  /** Código E_* del último error, para ofrecer el camino que lo resuelve. */
+  codigo: string;
   jobZip: string | null;
   jobPuntuales: string | null;
   zip: HojasRutaJobResult | null;
@@ -49,7 +52,7 @@ type Estado = {
   puntuales: HojasRutaManualReplacementResult | null;
   prueba: HojasRutaRandomPdfResult | null;
 };
-const INICIAL: Estado = { ocupado: "", error: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null, prueba: null };
+const INICIAL: Estado = { ocupado: "", error: "", codigo: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null, prueba: null };
 
 type Props = {
   config: HojasRutaIntegratedConfig;
@@ -61,6 +64,7 @@ type Props = {
 
 export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: Props) {
   const [e, setE] = useState<Estado>(INICIAL);
+  const nav = useSeccion("hojas-ruta");
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<string[]>([]);
   const [porTitular, setPorTitular] = useState(1);
@@ -73,12 +77,15 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: 
   const { filas, coincidencias } = candidatasDeReemplazo(muestra?.blocks ?? [], busqueda, elegidas);
 
   async function correr<T>(trabajo: Trabajo, f: () => Promise<T>, listo: (r: T) => Partial<Estado>) {
-    setE((s) => ({ ...s, ocupado: trabajo, error: "" }));
+    setE((s) => ({ ...s, ocupado: trabajo, error: "", codigo: "" }));
     try {
       const r = await f();
       setE((s) => ({ ...s, ocupado: "", ...listo(r) }));
     } catch (err: unknown) {
-      setE((s) => ({ ...s, ocupado: "", error: err instanceof Error ? err.message : "No se pudo generar el archivo" }));
+      // ApiError añade « · E_CODIGO» al mensaje: el código va aparte y el texto queda limpio.
+      const codigo = err instanceof ApiError ? err.code : "";
+      const mensaje = err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar el archivo";
+      setE((s) => ({ ...s, ocupado: "", error: mensaje, codigo }));
     }
   }
 
@@ -95,7 +102,16 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: 
       }
     >
       <div className="hr-salidas">
-        {e.error ? <p className="hr-mapa-aviso">{e.error}</p> : null}
+        {e.error ? (
+          <div className="hr-mapa-aviso" role="alert">
+            <p className="hr-salidas-error">{e.error}</p>
+            {e.codigo === "E_COVERAGE_DECISION_REQUIRED" ? (
+              <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "manzanas")}>
+                Ir al marco elegible
+              </PulsoButton>
+            ) : null}
+          </div>
+        ) : null}
 
         <section className="hr-muestra-grupo" aria-label="Paquete de entrega">
           <h3>Paquete de entrega</h3>
