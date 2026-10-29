@@ -410,7 +410,10 @@
   # La apilada mide con su propia geometría: los bloques van uno bajo otro (verificador de N2).
   if (identical(tipo, "p_slide_2_graficos_vertical")) return(isTRUE(.lam_vertical_geo(especs)$cabe))
   disp <- (.std_geom("leyenda_y") - 0.1) - (.std_geom("zona_datos_y0") + 0.8)
-  all(vapply(especs, function(e) disp / NROW(e$filas) >= 0.24 + 0.36, TRUE))
+  # Cada fila pide el piso de panel (0,66 cm, como Contabilidad) más el aire de una cifra chica: con 6 públicos, el tope
+  # de un estudio, cabe (0,645 in por fila); con más, la lámina va por la ruta anterior.
+  piso_fila <- .std_piso_panel_in() + .std_geom("aire_cifra_chica")
+  all(vapply(especs, function(e) disp / NROW(e$filas) >= piso_fila, TRUE))
 }
 
 #' La rama `slide_2` del motor, en nativo (enganche de `reporte_ppt_plan`)

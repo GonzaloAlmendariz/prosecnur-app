@@ -26,3 +26,9 @@ test_that("con muchos públicos la barra del panel se queda en el piso de 0,66 c
   expect_gt(length(h), 0)
   expect_gte(min(h), 0.66 / 2.54 - 1e-3)
 })
+
+test_that("la lámina de dos paneles es nativa hasta 6 públicos (el tope de un estudio); con 7 va por la ruta anterior", {
+  gg <- function(n) structure(list(), class = "ggplot", pulso_espec = .pp_espec(n))
+  expect_true(.lam_compositor_aplica_paneles(list(gg(6), gg(6))))
+  expect_false(.lam_compositor_aplica_paneles(list(gg(7), gg(6))))
+})
