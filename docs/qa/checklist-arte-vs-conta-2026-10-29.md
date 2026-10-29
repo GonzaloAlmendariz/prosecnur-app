@@ -48,9 +48,9 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 |---|---|---|---|---|---|
 | 22 | Barrita azul a la izquierda del título | no | sí | ☐ (no se entendió: mostrar) (Gonzalo) | ☐ |
 | 23 | Número de página | no | sí | ☒ (se queda el folio) (Gonzalo) | ☐ |
-| 24 | «Base:» | 10 pt normal, x 0,45, y 7,12 | 10 pt negrita, x 0,59, y 6,94 | ☑ (Gonzalo) | ☐ |
+| 24 | «Base:» | 10 pt normal, x 0,45, y 7,12 | 10 pt negrita, x 0,59, y 6,94 | ☑ (Gonzalo) | ☑ 10 pt normal, tinta en 0,45/7,12 (`composicion.pie`); el folio en la misma línea |
 | 25 | Título: inicio | x 0,45 in | x 0,59 in | ☐ | ☐ |
-| 26 | Portada: color del título, orden de fecha y «Por encargo» | título azul | título rojo, orden invertido | ☑ (Gonzalo) | ☐ |
+| 26 | Portada: color del título, orden de fecha y «Por encargo» | título azul | título rojo, orden invertido | ☑ (Gonzalo) | ☑ título azul y encargo sobre la fecha (lamina_portada_plantilla.R); confirmar en PowerPoint |
 | 27 | Separadores | título rojo 40 pt | número 110 pt + regla + título azul 30 pt | ☐ | ☐ |
-| 28 | Lámina de cierre | sí | no | ☑ (Gonzalo) | ☐ |
+| 28 | Lámina de cierre | sí | no | ☑ (Gonzalo) | ◐ el motor ya la tiene (`p_slide_cierre`, «Contraportada»); falta añadirla al final del plan de Arte |
 | 29 | Índice anuncia «Metodología y ficha técnica» que no está en el mazo | — | sí | ☒ (se ignora) (Gonzalo) | ☐ |

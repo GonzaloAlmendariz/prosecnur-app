@@ -29,15 +29,15 @@
   .lam_agrupar(doc, lz, nombre = "prosecnur:titulo")
 }
 
-#' Pie de la lámina: base en negrita y folio a la derecha
+#' Pie de la lámina: base en peso normal y folio a la derecha
 #' @keywords internal
 .lam_pie <- function(doc, base, folio) {
   g <- .std_geom; lz <- .lam_lienzo()
   # La vista previa arma un mini-plan de una lámina y la corre a su lugar en el plan (K2, graficos_preview_lamina.R).
   desplazo <- getOption("prosecnur.lam_folio_desplazo", 0L)
   if (!is.null(folio) && desplazo != 0L) folio <- folio + desplazo
-  if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, g("margen_izq"), g("base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = TRUE, nombre = "Base lamina")
-  if (!is.null(folio)) .lam_txt(lz, as.character(folio), g("ancho") - g("margen_der") - 0.6, g("base_y"), 0.6, 0.3, .std_pt("base"),
+  if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, .std_comp("pie", "base_x"), .std_comp("pie", "base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = isTRUE(.std_comp("pie", "base_negrita")), nombre = "Base lamina")   # ítem 24: como Conta (composicion.pie del estándar)
+  if (!is.null(folio)) .lam_txt(lz, as.character(folio), g("ancho") - g("margen_der") - 0.6, .std_comp("pie", "base_y"), 0.6, 0.3, .std_pt("base"),   # en la línea de «Base:»
                                 .std_color("texto_suave"), align = "right", nombre = "Folio lamina")
   .lam_agrupar(doc, lz, nombre = "prosecnur:pie")
 }

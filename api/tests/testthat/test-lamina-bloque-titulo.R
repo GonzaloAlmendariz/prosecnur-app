@@ -40,7 +40,7 @@ test_that("la lámina por la ruta anterior lleva barra de acento, antetítulo, f
   c <- .bt_cajas(.bt_render(.bt_agrupada()))
   expect_true(all(c("titulo:barra", "Antetitulo lamina", "Titulo lamina", "Base lamina", "Folio lamina") %in% c$nombre), info = paste(c$nombre, collapse = " | "))
   expect_equal(c$texto[c$nombre == "Antetitulo lamina"], "PERFIL SOCIODEMOGRÁFICO")
-  expect_equal(c$x[c$nombre == "Base lamina"], .std_geom("margen_izq"), tolerance = 0.01)
+  expect_equal(c$x[c$nombre == "Base lamina"], .std_comp("pie", "base_x"), tolerance = 0.01)   # ítem 24 Arte vs Conta: la caja de Conta, no el margen
   expect_equal(c$x[c$nombre == "Titulo lamina"], .std_geom("margen_izq"), tolerance = 0.01)
   expect_false(any(grepl("^prosecnur:slide_1:(base|right)$", c$nombre)))   # ya no rellena los marcadores de pie
 })

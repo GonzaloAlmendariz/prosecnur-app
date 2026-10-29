@@ -121,6 +121,7 @@ composicion <- list(unidad = "in",
     aire_fila = 0.06,                # aire mínimo entre dos barras
     aire_titulo = 0.18,              # de la pregunta (o su público) a la primera barra
     margen_inf = 0.03),              # bajo la última barra
+  pie = list(base_x = 0.35, base_y = 7.06, base_negrita = FALSE),   # «Base:» y folio como Conta (tinta en 0,45/7,12; ítem 24)
   llenar = list(                     # la lámina con alto de sobra (lamina_escala_llenar.R)
     aire_leyenda = 0.45,             # Conta 0,3–0,75
     aire_entre_temas_max = 1.0,      # Conta: mediana 0,74; 1,1–1,4 con pocas barras

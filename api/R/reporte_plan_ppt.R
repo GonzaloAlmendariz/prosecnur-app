@@ -402,7 +402,7 @@ reporte_ppt_plan <- function(
     } else {
       base_args$color_titulo_slide
     }
-    color <- color %||% .std_color("coral")
+    color <- color %||% .lam_portada_titulo_color_defecto(is_cover_title, opened_template_path)   # ítem 26: portada azul (lamina_portada_plantilla.R)
     color <- as.character(color)[1]
     if (is.na(color) || !nzchar(trimws(color))) color <- .std_color("coral")
 
@@ -7041,10 +7041,10 @@ reporte_ppt_plan <- function(
           )
         }
         if (!is.null(dt) && nzchar(trimws(dt))) {
-          doc <- .ph_with_strict(doc, dt, contract$slots$date)
+          doc <- .ph_with_strict(doc, .lam_portada_fecha_valor(dt, opened_template_path), .lam_portada_slot_plantilla(contract$slots$date, "date", opened_template_path))   # ítem 26: orden de Conta
         }
         if (!is.null(stx) && nzchar(trimws(stx))) {
-          doc <- .ph_with_strict(doc, stx, contract$slots$subtexto)
+          doc <- .ph_with_strict(doc, .lam_portada_encargo_valor(stx, opened_template_path), .lam_portada_slot_plantilla(contract$slots$subtexto, "subtexto", opened_template_path))
         }
       }
 

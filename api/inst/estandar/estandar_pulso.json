@@ -270,6 +270,11 @@
         "aire_titulo": 0.18,
         "margen_inf": 0.03
       },
+      "pie": {
+        "base_x": 0.35,
+        "base_y": 7.06,
+        "base_negrita": false
+      },
       "llenar": {
         "aire_leyenda": 0.45,
         "aire_entre_temas_max": 1,
