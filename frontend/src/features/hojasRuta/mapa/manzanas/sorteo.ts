@@ -15,6 +15,8 @@ export const CAMPOS_SORTEO = [
   "route_jump_manual",
   "replacements_per_titular",
   "replacement_policy",
+  // ADR 0115: el marco elegible viaja con el sorteo y se guarda al sortear.
+  "marco_elegible",
 ] as const;
 
 export type BorradorSorteo = Partial<Pick<HojasRutaIntegratedConfig, (typeof CAMPOS_SORTEO)[number]>>;
@@ -39,7 +41,8 @@ export function aplicarSorteo(config: HojasRutaIntegratedConfig, b: BorradorSort
 /** Campos del borrador que de verdad difieren de la configuración guardada. */
 export function cambiosDeSorteo(config: HojasRutaIntegratedConfig, b: BorradorSorteo | null): Array<(typeof CAMPOS_SORTEO)[number]> {
   if (!b) return [];
-  return CAMPOS_SORTEO.filter((k) => k in b && String(b[k]) !== String(config[k]));
+  // JSON y no String(): `marco_elegible` es un objeto y String() lo daría siempre por igual.
+  return CAMPOS_SORTEO.filter((k) => k in b && JSON.stringify(b[k] ?? null) !== JSON.stringify(config[k] ?? null));
 }
 
 export const acotarReemplazos = (n: number) => Math.min(MAX_REEMPLAZOS, Math.max(0, Math.round(Number.isFinite(n) ? n : 1)));

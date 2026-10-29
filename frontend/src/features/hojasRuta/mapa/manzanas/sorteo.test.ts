@@ -40,6 +40,12 @@ describe("borrador del sorteo", () => {
     expect(aplicarSorteo(config, b).sampling_method).toBe("sistematico");
   });
 
+  it("el marco elegible cuenta como cambio por su contenido, no por ser un objeto", () => {
+    const con = { ...config, marco_elegible: { declarado: true, minimo_viviendas: 1, areas_excluidas: [] } } as HojasRutaIntegratedConfig;
+    expect(cambiosDeSorteo(con, { marco_elegible: { declarado: true, minimo_viviendas: 1, areas_excluidas: [] } })).toEqual([]);
+    expect(cambiosDeSorteo(con, { marco_elegible: { declarado: true, minimo_viviendas: 2, areas_excluidas: [] } })).toEqual(["marco_elegible"]);
+  });
+
   it("los reemplazos quedan entre 0 y 10 enteros", () => {
     expect(acotarReemplazos(-2)).toBe(0);
     expect(acotarReemplazos(2.6)).toBe(3);

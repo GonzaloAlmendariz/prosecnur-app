@@ -99,8 +99,8 @@ export function escalaGrafica(s: number, minPx = 70): { metros: number; px: numb
  * (contornos de distritos) encaje con la geometría compacta.
  */
 export const ORIGEN_LONLAT = { lon: -76.99, lat: -12.03 } as const;
-const KX = 111320 * Math.cos((ORIGEN_LONLAT.lat * Math.PI) / 180);
-const KY = 110540;
+export const KX = 111320 * Math.cos((ORIGEN_LONLAT.lat * Math.PI) / 180);
+export const KY = 110540;
 export function proyectarLonLat(lon: number, lat: number): [number, number] {
   // «+ 0» convierte el −0 del origen en 0
   return [Math.round((lon - ORIGEN_LONLAT.lon) * KX) + 0, Math.round(-(lat - ORIGEN_LONLAT.lat) * KY) + 0];

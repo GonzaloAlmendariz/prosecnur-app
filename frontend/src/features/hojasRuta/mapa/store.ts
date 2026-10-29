@@ -25,6 +25,9 @@ type EstadoLienzo = {
   /** Parámetros del sorteo en edición; `null` = los guardados. */
   sorteoBorrador: BorradorSorteo | null;
   setSorteoBorrador: (next: BorradorSorteo | null) => void;
+  /** Vértices (en el mundo del lienzo) del área que se está dibujando; `null` = no se dibuja. */
+  dibujoArea: [number, number][] | null;
+  setDibujoArea: (v: [number, number][] | null) => void;
   /** Selección: la titular enfocada en el mapa y la ficha. */
   umpEnfocada: string | null;
   setUmpEnfocada: (id: string | null) => void;
@@ -42,7 +45,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, umpEnfocada: null, soloPorRevisar: false, busquedaUmp: "", cajon: null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, umpEnfocada: null, soloPorRevisar: false, busquedaUmp: "", cajon: null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -50,6 +53,7 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setRangosBorrador: (rangosBorrador) => set({ rangosBorrador }),
   setMuestraBorrador: (muestraBorrador) => set({ muestraBorrador }),
   setSorteoBorrador: (sorteoBorrador) => set({ sorteoBorrador }),
+  setDibujoArea: (dibujoArea) => set({ dibujoArea }),
   setUmpEnfocada: (umpEnfocada) => set({ umpEnfocada }),
   setSoloPorRevisar: (soloPorRevisar) => set({ soloPorRevisar }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
