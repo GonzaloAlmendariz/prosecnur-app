@@ -13,17 +13,22 @@
 #' tinta por el ancho y quedaba una línea corta en 64 de 369 preguntas de las muestras a 4 in: el gráfico arrancaba
 #' bajo la última línea de la pregunta.
 #' @keywords internal
-.lam_panel_lineas <- function(texto, w) .lam_lineas_tinta(texto, w, .std_pt("pregunta"), TRUE)
+.lam_panel_lineas <- function(texto, w, size = .std_pt("pregunta")) .lam_lineas_tinta(texto, w, size, TRUE)
 
 #' Encabezado de panel: la pregunta en negrita y, debajo, su base en gris
+#'
+#' @param size,align Tamaño y alineación de la pregunta. Por defecto la del recetario (13 pt a la izquierda); las láminas
+#'   mixtas y de perfil la piden a 16 pt y centrada sobre su panel, como Contabilidad (lamina_perfil_panel.R, ítem 20).
+#'   La caja crece con el tamaño (0.3 in la primera línea y 0.22 cada una más, a 13 pt).
 #' @keywords internal
-.lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL) {
-  nl <- .lam_panel_lineas(texto, w)
-  .lam_txt(lz, texto, x, y, w, 0.3 + 0.22 * (nl - 1), .std_pt("pregunta"), .std_color("azul"), bold = TRUE, nombre = "panel:pregunta")
+.lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL, size = .std_pt("pregunta"), align = "left") {
+  nl <- .lam_panel_lineas(texto, w, size); k <- size / .std_pt("pregunta")
+  alto <- (0.3 + 0.22 * (nl - 1)) * k
+  .lam_txt(lz, texto, x, y, w, alto, size, .std_color("azul"), bold = TRUE, align = align, nombre = "panel:pregunta")
   if (!is.null(base) && nzchar(base)) {
-    .lam_txt(lz, base, x, y + 0.26 + 0.22 * (nl - 1), w, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "panel:base")
+    .lam_txt(lz, base, x, y + alto - 0.04, w, 0.26, .std_pt("n"), .std_color("texto_tenue"), align = align, nombre = "panel:base")
   }
-  invisible(y + 0.3 + 0.22 * (nl - 1) + (if (!is.null(base) && nzchar(base)) 0.26 else 0))
+  invisible(y + alto + (if (!is.null(base) && nzchar(base)) 0.26 else 0))
 }
 
 .lam_separador_v <- function(lz, x, y0, y1) .lam_caja(lz, x, y0, 0.008, y1 - y0, .std_color("filete"), nombre = "separador")

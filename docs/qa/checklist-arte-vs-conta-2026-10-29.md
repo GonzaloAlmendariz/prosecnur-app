@@ -37,9 +37,9 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 
 | # | Diferencia | Conta | Arte hoy | ¿Va? | Estado |
 |---|---|---|---|---|---|
-| 18 | Grosor de barra en los paneles | 0,69–0,99 cm | 0,41–0,58 cm (bajo el piso de 0,66 cm) | ☑ (Gonzalo) | ☐ |
-| 19 | Tamaño de las categorías | 13 pt | 11 pt y 12 pt en la misma lámina | ☑ (Gonzalo) | ☐ |
-| 20 | Títulos de panel | 16 pt centrados | 13 pt a la izquierda | ☑ (Gonzalo) | ☐ |
+| 18 | Grosor de barra en los paneles | 0,69–0,99 cm | 0,41–0,58 cm (bajo el piso de 0,66 cm) | ☑ (Gonzalo) | ◐ nativos ≥ 0,66 cm, un grosor por lámina (`composicion.perfil`, lamina_perfil_panel.R). Por decidir: 2 paneles de respaldo bajo el piso (lám. 5 «categoría académica» 0,50 cm; lám. 6 «año y ciclo» 0,45 cm) |
+| 19 | Tamaño de las categorías | 13 pt | 11 pt y 12 pt en la misma lámina | ☑ (Gonzalo) | ☑ 13 pt en todos los nativos (baja medio punto sólo si así quedan más paneles nativos) |
+| 20 | Títulos de panel | 16 pt centrados | 13 pt a la izquierda | ☑ (Gonzalo) | ☑ 16 pt centrados |
 | 21 | Ícono de personas y nota «Los porcentajes están redondeados…» | sí | no | ☒ (Gonzalo) | ☐ |
 
 ## Plantilla y plan

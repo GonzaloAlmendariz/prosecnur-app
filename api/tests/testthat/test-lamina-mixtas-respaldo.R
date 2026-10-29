@@ -45,8 +45,12 @@ test_that("el respaldo de un panel de cinco categorías lleva las cifras y el gr
   expect_equal(nrow(barras), 5L); expect_equal(nrow(cifras), 5L)
   # tamaño de la cifra == el de los nativos (±0,5 pt)
   expect_true(all(abs(cifras$sz - min(tail(nat_cifras$sz, 4))) <= 0.5))
-  # grosor == el del panel hermano de cinco categorías (±0,03 in)
-  expect_true(all(abs(barras$h - median(tail(nat_barras$h, 4))) <= 0.03))
+  # grosor == el de los paneles nativos de la lámina (±0,03 in) mientras deje aire entre barras: con el estilo de la lámina
+  # (checklist-arte-vs-conta, ítem 18) la barra nativa es de 0,66 cm o más y en la caja del respaldo el paso entre filas
+  # puede no alcanzar; entonces la barra es la del paso menos el aire (`composicion.perfil.aire_fila`), nunca más gruesa.
+  paso <- min(diff(sort(barras$y + barras$h / 2)))
+  esperado <- min(median(tail(nat_barras$h, 4)), max(0.7 * paso, paso - .std_comp("perfil", "aire_fila")))
+  expect_true(all(abs(barras$h - esperado) <= 0.03))
   # la cifra va fuera del extremo de su barra, sin montarse sobre ella
   for (i in seq_len(nrow(cifras))) {
     b <- barras[which.min(abs((barras$y + barras$h / 2) - (cifras$y[i] + cifras$h[i] / 2))), ]

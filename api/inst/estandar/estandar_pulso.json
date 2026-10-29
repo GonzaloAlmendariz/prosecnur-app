@@ -256,6 +256,15 @@
         "aire_ttb": 0.25,
         "extra_franja": 0.3
       },
+      "perfil": {
+        "titulo_pt": 16,
+        "rotulo_pt": [13, 12.5, 12, 11.5, 11],
+        "grosor_max_cm": 0.99,
+        "grosor_frac": 0.7,
+        "aire_fila": 0.06,
+        "aire_titulo": 0.18,
+        "margen_inf": 0.03
+      },
       "llenar": {
         "aire_leyenda": 0.45,
         "aire_entre_temas_max": 1,
