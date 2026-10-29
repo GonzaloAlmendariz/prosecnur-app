@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaAlert, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
+import { normalizarPlanSupuestos, type HojasRutaAlert, type HojasRutaIntegratedConfig, type HojasRutaPlanSupuestos, type HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
+import { costoEstimado } from "./costo";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
@@ -52,13 +53,15 @@ type InspectorProps = {
   hayMuestra: boolean;
   /** Avisos del último tamaño calculado en R (ADR 0116 y otros); no se recalculan con el borrador. */
   avisosServidor?: readonly HojasRutaAlert[];
+  /** U14: supuestos guardados del plan de campo, para el costo estimado. */
+  planSupuestos?: HojasRutaPlanSupuestos;
   onGuardar: () => void;
 };
 
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], planSupuestos, onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador } = useLienzoHojasRuta();
   const s = config.sample_size;
   const ruta = config.entrevistas_por_manzana;
@@ -91,6 +94,18 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <div><small>Peor distrito</small><strong data-aviso={excedidos > 0 || undefined}>{pct(peor)}</strong></div>
             <div><small>Contactos</small><strong>{fmt(r.contactos)}</strong></div>
           </div>
+          {(() => {
+            const c = costoEstimado(r.filas.map((f) => f.nUsado), ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 }, normalizarPlanSupuestos(planSupuestos));
+            const plan = normalizarPlanSupuestos(planSupuestos);
+            return (
+              <p className="hr-mapa-nota hr-muestra-costo">
+                {c.tieneCostos ? <b>Costo estimado: {plan.moneda} {fmt(c.costo)}</b> : null}
+                {c.tieneCostos ? " · " : ""}
+                {fmt(c.visitas)} visitas · {fmt(c.jornadas)} jornadas · {fmt(c.dias)} días con {plan.encuestadores} encuestadores
+                {c.tieneCostos ? "" : ". Define los costos en Selección › Salidas para estimarlo."}
+              </p>
+            );
+          })()}
           {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
           {!r.multiploDeRuta ? <p className="hr-mapa-aviso">El N no es múltiplo de {ruta} entrevistas por ruta</p> : null}
           {avisosServidor.filter((a) => a.level !== "info" && !AVISOS_YA_DICHOS.test(a.code)).map((a) => (
