@@ -24,8 +24,11 @@
   overscroll-behavior: contain;
 }
 
-.hr-mapa-estructura { border-right: 1px solid var(--pulso-border); }
-.hr-mapa-inspector { border-left: 1px solid var(--pulso-border); }
+/* Posición explícita: el cajón de Selección se monta sobre la celda del lienzo
+   y, sin esto, el auto-placement empujaría al lienzo y al inspector. */
+.hr-mapa-estructura { grid-column: 1; grid-row: 1; border-right: 1px solid var(--pulso-border); }
+.hr-mapa > .hr-mapa-lienzo { grid-column: 2; grid-row: 1; }
+.hr-mapa-inspector { grid-column: 3; grid-row: 1; border-left: 1px solid var(--pulso-border); }
 
 .hr-mapa-cab {
   display: flex;
@@ -268,3 +271,36 @@
 .hr-sorteo-historial strong { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-sorteo-historial small { display: block; font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-sorteo-historial em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--pulso-module-routes); }
+
+/* Selección (U9): rutas por distrito, ficha de la UMP y cajón de tablas */
+.hr-mapa-catalogo .hr-sel-rutas li { display: block; padding: 0; }
+.hr-mapa-catalogo .hr-sel-rutas li:hover { background: transparent; }
+.hr-sel-rutas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 10px auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
+.hr-sel-rutas button:hover { background: var(--pulso-surface-2); }
+.hr-sel-rutas button[aria-pressed="true"] { background: var(--pulso-surface-2); box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
+.hr-sel-rutas i { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }
+.hr-sel-rutas [data-estado="aviso"] i { background: var(--pulso-warn-fg); }
+.hr-sel-rutas [data-estado="error"] i { background: var(--pulso-danger-fg); }
+.hr-sel-rutas strong { font-size: 12.5px; white-space: nowrap; }
+.hr-sel-rutas small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.hr-sel-rutas em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--pulso-warn-fg); white-space: nowrap; }
+.hr-sel-rutas [data-estado="error"] em { color: var(--pulso-danger-fg); }
+.hr-sel-estado { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
+.hr-sel-estado[data-estado="aviso"] { color: var(--pulso-warn-fg); }
+.hr-sel-estado[data-estado="error"] { color: var(--pulso-danger-fg); }
+.hr-sel-reemplazos { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; counter-reset: r; }
+.hr-sel-reemplazos li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 8px; border: 1px dashed var(--pulso-border); }
+.hr-sel-reemplazos strong { font-size: 12px; white-space: nowrap; }
+.hr-sel-reemplazos span { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-sel-grupo { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px solid var(--pulso-border); }
+.hr-sel-grupo strong { font-size: 12.5px; }
+.hr-sel-grupo small { font-size: 11px; color: var(--pulso-text-soft); }
+.hr-sel-grupo[data-estado="aviso"] > strong { color: var(--pulso-warn-fg); }
+.hr-sel-grupo[data-estado="error"] > strong { color: var(--pulso-danger-fg); }
+.hr-sel-cajon { grid-column: 2; grid-row: 1; align-self: end; z-index: 3; margin: 0 12px 12px; max-height: 46%; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--pulso-border); border-radius: 14px; background: var(--pulso-surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--pulso-text) 14%, transparent); }
+.hr-sel-cajon > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hr-sel-cajon > header .hr-muestra-opciones { width: min(360px, 100%); }
+.hr-sel-cajon .hr-mapa-tabla-caja { min-height: 0; flex: 1; overflow: auto; }
+.hr-sel-cajon tbody tr { cursor: pointer; }
+.hr-sel-cajon tbody tr:hover { background: var(--pulso-surface-2); }

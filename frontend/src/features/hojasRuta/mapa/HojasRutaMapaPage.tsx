@@ -31,6 +31,9 @@ import { calcularTamano } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo } from "./manzanas/sorteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
+import { revisarSeleccion } from "../seleccion/revisionMarco";
+import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
+import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import "./mapaPage.css";
 
 /**
@@ -51,11 +54,12 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, umpEnfocada, setUmpEnfocada, soloPorRevisar, busquedaUmp } = useLienzoHojasRuta();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
   const enMuestra = nav.seccion === "muestra";
   const enManzanas = nav.seccion === "manzanas";
+  const enSeleccion = nav.seccion === "seleccion";
 
   useEffect(() => {
     let vivo = true;
@@ -197,16 +201,29 @@ export default function HojasRutaMapaPage() {
     }
   }, [estado, setSorteoBorrador]);
 
+  // Selección: la revisión contra el marco decide el tono de cada ruta.
+  const bloquesTitulares = useMemo(() => salidas?.sample?.blocks ?? [], [salidas]);
+  const bloquesReemplazos = useMemo(() => salidas?.sample?.replacement_blocks ?? [], [salidas]);
+  const revision = useMemo(() => revisarSeleccion(bloquesTitulares, bloquesReemplazos), [bloquesTitulares, bloquesReemplazos]);
+  const estados = useMemo(() => estadosPorTitular(bloquesTitulares, bloquesReemplazos, revision), [bloquesTitulares, bloquesReemplazos, revision]);
+  const grupos = useMemo(() => rutasPorDistrito(bloquesTitulares, bloquesReemplazos, estados, { soloPorRevisar, busqueda: busquedaUmp }), [bloquesTitulares, bloquesReemplazos, estados, soloPorRevisar, busquedaUmp]);
+  const manzanaPorId = useMemo(() => new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const))), [distritos]);
+
   const titulares = useMemo<TitularEnMapa[]>(() => {
-    const bloques = salidas?.sample?.blocks ?? [];
-    const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
-    return bloques.flatMap((b, i) => {
-      const manzana = porId.get(b.id_manzana);
+    return bloquesTitulares.flatMap((b, i) => {
+      const manzana = manzanaPorId.get(b.id_manzana);
       if (!manzana) return [];
-      const estadoUmp = b.viviendas <= 0 ? "error" : b.viviendas <= entrevistasPorRuta ? "aviso" : "ok";
+      const tono = estados.get(b.id_manzana);
+      const estadoUmp = enSeleccion ? (tono === "error" ? "error" : tono === "aviso" ? "aviso" : "ok") : b.viviendas <= 0 ? "error" : b.viviendas <= entrevistasPorRuta ? "aviso" : "ok";
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
-  }, [salidas, distritos, entrevistasPorRuta]);
+  }, [bloquesTitulares, manzanaPorId, entrevistasPorRuta, estados, enSeleccion]);
+  const titularEnfocada = enSeleccion && umpEnfocada ? bloquesTitulares.find((b) => b.id_manzana === umpEnfocada) ?? null : null;
+  const reemplazosEnfocados = useMemo<PiezaManzana[]>(() => (titularEnfocada ? reemplazosDe(titularEnfocada.id_manzana, bloquesReemplazos).flatMap((b) => manzanaPorId.get(b.id_manzana) ?? []) : []), [titularEnfocada, bloquesReemplazos, manzanaPorId]);
+  const cajaEnfocada = useMemo(() => {
+    const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
+    return m ? unirCajas([m.caja, ...reemplazosEnfocados.map((x) => x.caja)]) : null;
+  }, [titularEnfocada, manzanaPorId, reemplazosEnfocados]);
 
   const reemplazos = useMemo<PiezaManzana[]>(() => {
     const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
@@ -261,13 +278,14 @@ export default function HojasRutaMapaPage() {
         return;
       }
       if (enManzanas) dibujarReemplazosMundo(ctx, u, reemplazos);
-      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, null);
+      if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
+      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, borrador, distritoBajoCursor, titulares, reemplazos],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada],
   );
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
-      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, null, null);
+      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : []);
       const visibles = enTerritorio ? contornos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
       if (u.camara.s < 0.09 || enTerritorio || enPoblacion || enMuestra) {
         dibujarRotulosDistrito(
@@ -282,7 +300,7 @@ export default function HojasRutaMapaPage() {
         );
       }
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, matriz, tamano],
+    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano],
   );
 
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
@@ -316,6 +334,8 @@ export default function HojasRutaMapaPage() {
         <section className="hr-mapa-estructura" aria-label="Distritos del estudio">
           {enTerritorio && estado ? (
             <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
+          ) : enSeleccion && estado ? (
+            <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} />
           ) : enManzanas && estado ? (
             <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} bloqueado={bloqueado} guardando={guardando} onUsar={(h) => void usarRuteo(h)} />
           ) : enMuestra && configMuestra && tamano ? (
@@ -348,12 +368,17 @@ export default function HojasRutaMapaPage() {
           ariaLabel="Mapa del territorio del estudio"
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa="manzanas"
-          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : cajaEnfocada ? { caja: cajaEnfocada, pad: 0.6, clave: `ump:${umpEnfocada}`, animar: true } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
           alClic={
-            enTerritorio && !bloqueado
+            enSeleccion
+              ? ([x, y]) => {
+                  const m = manzanaEnPunto(titulares.map((t) => t.manzana), x, y);
+                  if (m) setUmpEnfocada(m.id === umpEnfocada ? null : m.id);
+                }
+              : enTerritorio && !bloqueado
               ? ([x, y]) => {
                   const d = distritoEnPunto(contornos, x, y);
                   if (d) setBorrador(borrador.includes(d.ubigeo) ? borrador.filter((u) => u !== d.ubigeo) : [...borrador, d.ubigeo]);
@@ -362,8 +387,18 @@ export default function HojasRutaMapaPage() {
           }
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
+        {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={salidas?.quota ?? null} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
-          {enManzanas && estado && configSorteo ? (
+          {enSeleccion && estado ? (
+            <SeleccionInspector
+              titular={titularEnfocada}
+              estado={titularEnfocada ? estados.get(titularEnfocada.id_manzana) ?? "ok" : "ok"}
+              reemplazos={bloquesReemplazos}
+              revision={revision}
+              totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
+              onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
+            />
+          ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector
               guardada={estado.integrated_config}
               config={configSorteo}
