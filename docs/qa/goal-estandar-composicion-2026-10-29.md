@@ -129,7 +129,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☐ verificar el camino del consolidado |
 | W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☐ |
 | W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☐ |
-| W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☐ réplica desfasada |
+| W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☑ romanos (`sonRomanos`) y residuales anclados con Ninguna/Ninguno; mismas respuestas que el motor en 5 casos |
 | W9 | Metadata «Subtítulo (solo Word)» del separador | el PPT lo dibuja (`seccion:subtitulo`) | ☐ |
 | W10 | Ficha de `p_tabla`: «En rojo bajo X %» | la tabla nativa no pinta rojo | ☐ |
 | W11 | Metadata del default de multiapiladas en Word: regla vieja | criterio B (reporte_word_multi_modos.R) | ☐ |
