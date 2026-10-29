@@ -28,6 +28,8 @@ import { describeScale, evaluateScaleCompat, scaleKeyOf, type ScaleTone, type Sc
 import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
+import { leerTwoBox } from "./laminas/tarjetaGrafico/twoBox";
+import { usePlanStore } from "./store";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 import { QueCompara, type BocetoQueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
@@ -141,6 +143,7 @@ const INTENTS: {
 ];
 
 export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props) {
+  const presets = usePlanStore((s) => s.presets);
   const { variables, multi, sources, loading } = useVariables();
   // Un estudio de bases hermanas expone una sola fuente mientras editas por
   // base: el modo multi-fuente existe, pero vive en el informe compartido.
@@ -235,7 +238,9 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
         // Un bloque sembrado con lo que ya había: "Combinar bloques" con un
         // solo bloque es exactamente la lectura anterior, así que la ida es
         // reversible y no hay nada que volver a elegir.
-        bloques: existing.length ? existing : [blockFromArgs(args, carriedVars, carriedCruce)],
+        // La barra que la lámina MOSTRABA (efectiva: declarada o heredada del estilo/recetario), no sólo la declarada: en
+        // «Bloques» un bloque sin barra declarada sale sin ella (twoBox.ts, `heredado`), así que se declara (D1).
+        bloques: existing.length ? existing : [blockFromArgs(args, carriedVars, carriedCruce, leerTwoBox("p_barras_multiapiladas", args, presets)?.valor)],
         vars: null,
         var: null,
         cruces: null,

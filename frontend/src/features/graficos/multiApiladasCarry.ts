@@ -11,7 +11,7 @@
 // mirando primero los campos del modo actual y, si están vacíos, el primer
 // bloque de `multilista` — que es donde quedan al pasar por Combinar.
 
-import { barraExtraDeTarjeta } from "./barraExtra";
+import { barraExtraDeTarjeta, type BarraExtra } from "./barraExtra";
 
 type Args = Record<string, unknown>;
 
@@ -63,9 +63,9 @@ export function carryCruce(args: Args): string {
  * Bloque inicial de `multilista` sembrado con la lectura actual, para que
  * pasar a "Combinar bloques" conserve lo elegido en vez de empezar vacío.
  */
-export function blockFromArgs(args: Args, vars: string[], cruce: string): Args {
+export function blockFromArgs(args: Args, vars: string[], cruce: string, efectiva?: BarraExtra): Args {
   const modo = typeof args.modo === "string" ? args.modo : "var";
-  const box = boxDeLaLamina(args);
+  const box = boxDeLaLamina(args, efectiva);
   if (modo === "cruce") {
     return { modo: "cruce", var: vars[0] ?? "", cruces: cruce, ...box };
   }
@@ -80,9 +80,10 @@ export function blockFromArgs(args: Args, vars: string[], cruce: string): Args {
  * conserve: sin esto el bloque 1 salía sin su Top Two Box y había que volver a elegir sus categorías (unión de láminas,
  * 2026-10-29).
  */
-function boxDeLaLamina(args: Args): Args {
+function boxDeLaLamina(args: Args, efectiva?: BarraExtra): Args {
   const out: Args = {};
-  const be = barraExtraDeTarjeta(args);
+  // La declarada en la lámina; si no declara, la que mostraba por herencia (el estilo del informe o el recetario).
+  const be = barraExtraDeTarjeta(args) ?? (efectiva === false ? undefined : efectiva);
   if (be !== undefined) out.barra_extra = be === false ? false : [...be];
   for (const k of ["top2box_labels", "bottom2box_labels"] as const) {
     const v = args[k];
