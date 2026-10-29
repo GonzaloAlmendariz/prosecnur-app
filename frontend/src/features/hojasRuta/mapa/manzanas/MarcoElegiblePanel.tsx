@@ -33,6 +33,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
   const [decision, setDecision] = useState<"" | "redefinir" | "aceptar">("");
   const [justificacion, setJustificacion] = useState("");
   const [decidido, setDecidido] = useState("");
+  const [errorDecision, setErrorDecision] = useState("");
   const declarado = marco?.declarado === true;
   const sumar = (k: "manzanas" | "poblacion", campo: "total" | "elegible" | "excluida_minimo" | "excluida_area") => (vista?.por_distrito ?? []).reduce((a, d) => a + d[campo][k], 0);
   const totalPob = sumar("poblacion", "total");
@@ -172,14 +173,18 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
                       apiHojasRutaBitacoraAnotar("decision_cobertura", resumen, {
                         decision,
                         distritos: decisiones.map((d) => ({ ubigeo: d.ubigeo, cobertura_poblacion: d.cobertura_poblacion })),
-                        marco_elegible: me,
+                        marco_elegible: { minimo_viviendas: me.minimo_viviendas, areas_excluidas: me.areas_excluidas.length },
                       })
-                        .then(() => setDecidido(resumen))
-                        .catch((e: unknown) => setDecidido(`no se pudo registrar (${e instanceof Error ? e.message : "error"})`));
+                        .then(() => {
+                          setErrorDecision("");
+                          setDecidido(resumen);
+                        })
+                        .catch((e: unknown) => setErrorDecision(`No se pudo registrar la decisión: ${e instanceof Error ? e.message : "error"}. Vuelve a intentarlo.`));
                     }}
                   >
                     Registrar la decisión
                   </PulsoButton>
+                  {errorDecision ? <p className="hr-mapa-aviso" role="alert">{errorDecision}</p> : null}
                 </>
               ) : null}
             </>

@@ -125,3 +125,20 @@ test_that("el detalle del marco resume la decisión sin polígonos, y el margen 
   expect_identical(.hojas_ruta_bitacora_margen(0.028), "±2.8 %")
   expect_true("campo_desde_piloto" %in% HOJAS_RUTA_BITACORA_ACCIONES)
 })
+
+test_that("HTTP: una decisión con el marco entero guarda sólo su resumen", {
+  pr <- mount_hojas_ruta_bitacora(plumber::pr())
+  post <- Find(function(e) identical(e$verbs, "POST"), unlist(pr$endpoints, recursive = FALSE))
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  body <- list(accion = "decision_cobertura", resumen = "Se acepta", detalle = list(
+    decision = "aceptar",
+    marco_elegible = list(declarado = TRUE, minimo_viviendas = 5L, areas_excluidas = list(list(motivo = "inaccesible", anillos = list(list(c(1, 2))))))
+  ))
+  r <- list(HTTP_X_PULSO_SESSION = sid, bodyRaw = charToRaw(enc2utf8(jsonlite::toJSON(body, auto_unbox = TRUE))))
+  post$getFunc()(req = r, res = plumber:::PlumberResponse$new())
+  d <- session_get(sid)$hojas_ruta_bitacora[[1]]$detalle
+  expect_identical(d$marco_elegible$areas_excluidas, 1L)
+  expect_false(any(grepl("anillos", names(unlist(d)))))
+  expect_identical(d$decision, "aceptar")
+})

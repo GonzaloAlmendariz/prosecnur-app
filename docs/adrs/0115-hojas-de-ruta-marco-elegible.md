@@ -173,6 +173,25 @@ otras zonas del distrito en proporción a la medida elegible. Nunca se redistrib
 - Con **10 % o más** en un distrito, o con lo excluido concentrado en un NSE, se exige una **decisión registrada**
   antes de sortear: (a) redefinir la población objetivo en el informe, o (b) aceptar con justificación. Nunca es
   automático, y la decisión queda en la bitácora (U17).
+- **Enmienda U17 (2026-10-29), la bitácora de Hojas de ruta.** «La bitácora» de este ADR es una clave propia de la
+  sesión, `s$hojas_ruta_bitacora`, persistible (censada en `session_schema.R`), escrita sólo por
+  `hojas_ruta_bitacora.R`. Cada entrada lleva `id`, `fecha`, `fase` (la activa al anotar), `accion`, `resumen` y
+  `detalle`. Reglas:
+  - **Vocabulario cerrado** (`HOJAS_RUTA_BITACORA_ACCIONES`): una acción desconocida se rechaza. Desde la interfaz
+    sólo se anotan `decision_cobertura` y `nota`; el resto lo anotan los endpoints que mutan (territorio, población,
+    tamaño, sorteo, adopción del marco, reemplazos puntuales, `campo_desde_piloto` como separador de generación).
+  - **Retención**: las 500 entradas más recientes. Sin versión de esquema: una clave ausente se lee como lista vacía.
+  - **No es decisión lo que no se aplicó**: un cálculo con `origen = "restauracion"` (warm start o hidratación que
+    rehacen salidas al abrir el proyecto) no anota, y una piloto bloqueada tampoco (su config se descarta). Una
+    entrada igual a la última de la misma acción y fase no se repite.
+  - **El detalle es un resumen**: para el marco elegible, mínimo, número de áreas, motivos y una huella; nunca los
+    polígonos. Las notas y justificaciones son texto libre y pasan por el anonimizador antes de que un `.pulso` vaya
+    a proyectos de referencia (ADR 0043).
+  - **No son entradas de la Bitácora del proyecto** (`s$diseno_estudio_bitacora`, ADR 0027/0047/0108). Aquélla es la
+    narrativa del estudio, escrita a mano y con su propio esquema versionado; ésta es el rastro que el motor deja de
+    cada decisión del diseño muestral, por fase, para el informe de diseño (U16). Mezclarlas obligaría a la
+    Bitácora del proyecto a filtrar ruido automático y a su migración a conocer un vocabulario ajeno. Si más
+    adelante la Bitácora del proyecto quiere mostrarla, la lee por `GET /api/hojas-ruta/bitacora`; no la copia.
 - El sorteo y las salidas llevan `sample.marco_elegible`: criterios, conteos, reparto por zona y las sumas de
   verificación del §5.
 - El informe de diseño muestral (U16) publica la frase «La muestra representa a los hogares de manzanas con al
