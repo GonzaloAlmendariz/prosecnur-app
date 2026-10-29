@@ -173,9 +173,13 @@ test_that("paridad: la vista previa reparte por zona exactamente las titulares q
   b <- .hojas_ruta_rows_df(s$blocks)
   sorteadas <- table(as.character(b$zona))
   p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
-  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(min(z$rutas, z$manzanas), z$zona)))
-  expect_identical(as.integer(sorteadas[names(previstas)]), as.integer(previstas))
-  expect_identical(sum(previstas), as.integer(s$n_blocks))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  # ADR 0117: con un sistemático por distrito la zona recibe ⌊Σπ⌋ o ⌈Σπ⌉ rutas.
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
+  expect_true(all(names(sorteadas) %in% names(previstas)))
+  expect_equal(sum(previstas), s$n_blocks, tolerance = 0.05)
   # Con el mínimo activo ninguna titular cae en una manzana sin viviendas.
   expect_true(all(as.numeric(b$viviendas) >= 1))
 })
@@ -231,20 +235,39 @@ test_that("POST /api/hojas-ruta/marco-elegible/preview está montado, pide distr
 
 # ---------- Revisión de la implementación (D1, D2) ----------
 
-test_that("π sigue la regla del sorteo: censo de zona, igual probabilidad en sistemático, medida ≤ 0 pesa 1", {
-  df_z <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
-  censo <- .hojas_ruta_me_pi(df_z, c("a", "b", "c", "d"), "viviendas", "pps")
-  expect_identical(censo$regla_pi, "censo_de_la_zona")
-  expect_true(all(vapply(censo$seleccionadas, `[[`, numeric(1), "pi") == 1))
-  # El sistemático del motor deja manzanas con π = 0 (arranque runif(1, 1, step)): no se publica un π falso.
-  sis <- .hojas_ruta_me_pi(df_z, c("a", "c"), "viviendas", "sistematico")
-  expect_identical(sis$regla_pi, "sistematico_no_reconstruible")
-  expect_true(all(is.na(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"))))
-  pps <- .hojas_ruta_me_pi(df_z, c("b", "c"), "viviendas", "pps")
-  expect_true(pps$medida_ajustada)
-  expect_identical(pps$medida_total, 42)
-  # La manzana sin viviendas se sorteó con peso 1: su π no es 0.
-  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(2 * 10 / 42, 2 * 1 / 42))
+test_that("π sigue la fórmula del sorteo (ADR 0117): n·M_i/ΣM con certezas, M ≤ 0 da 0, igual probabilidad en sistemático", {
+  df <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
+  pps <- .hojas_ruta_me_pi(df, c("a", "b"), list(sampling_method = "pps", measure_var = "viviendas"))
+  expect_identical(pps$regla_pi, "pps_sistematico_distrito")
+  expect_identical(pps$probability_source, "formula")
+  expect_identical(pps$medida_total_ambito, 40)
+  expect_identical(pps$ambito, "distrito")
+  expect_identical(pps$manzanas_sin_medida, 2L)
+  # n = 2 con dos manzanas de medida > 0: las dos son certeza.
+  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(1, 1))
+  uno <- .hojas_ruta_me_pi(df, "a", list(sampling_method = "pps", measure_var = "viviendas"), "zona")
+  expect_identical(uno$regla_pi, "pps_sistematico_zona")
+  expect_equal(uno$seleccionadas[[1]]$pi, 30 / 40)
+  sis <- .hojas_ruta_me_pi(df, c("a", "c"), list(sampling_method = "sistematico", measure_var = "viviendas"))
+  expect_identical(sis$regla_pi, "igual_probabilidad_distrito")
+  expect_equal(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
+})
+
+test_that("el sorteo sistemático da a cada manzana π = n/N, sin repetir ni quedarse corto", {
+  # El arranque runif(1, 1, step) dejaba manzanas con π = 0 (N = 9, n = 3: π = .5, .5, 0, ...).
+  cfg <- list(sampling_method = "sistematico")
+  veces <- 20000L
+  for (caso in list(c(N = 9L, n = 3L), c(N = 10L, n = 4L), c(N = 7L, n = 3L))) {
+    N <- caso[["N"]]
+    n <- caso[["n"]]
+    df <- data.frame(ubigeo = "150101", zona = "001", manzana = sprintf("%03d", seq_len(N)),
+                     id_manzana = sprintf("m%02d", seq_len(N)), stringsAsFactors = FALSE)
+    set.seed(2017L)
+    sorteos <- replicate(veces, .hojas_ruta_sample_indices(df, n, cfg), simplify = FALSE)
+    expect_true(all(lengths(sorteos) == n), info = sprintf("N = %d, n = %d", N, n))
+    pi_hat <- tabulate(unlist(sorteos), nbins = N) / veces
+    expect_true(all(abs(pi_hat - n / N) < 0.02), info = sprintf("N = %d, n = %d: π = %s", N, n, paste(round(pi_hat, 3), collapse = ", ")))
+  }
 })
 
 test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avisan si cambió", {
@@ -272,8 +295,10 @@ test_that("D3: en Campo real la vista previa descuenta el piloto y sigue reparti
   p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
   expect_identical(sum(vapply(p$por_distrito, function(d) d$excluida_piloto$manzanas, integer(1))), 3L)
   sorteadas <- table(as.character(.hojas_ruta_rows_df(s$blocks)$zona))
-  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(min(z$rutas, z$manzanas), z$zona)))
-  expect_identical(as.integer(sorteadas[names(previstas)]), as.integer(previstas))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
 })
 
 test_that("D5: el sorteo guarda el resumen por criterio y no pierde el aviso de un área descartada", {
@@ -377,4 +402,21 @@ test_that("re-revisión: los avisos calculados al aplicar llegan a la muestra, s
   afuera <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "afuera", poligono = list(c(-70, -15), c(-69.9, -15), c(-69.9, -15.1))))))
   codigos2 <- vapply(hojas_ruta_marco_elegible_completar(s, afuera)$alerts, `[[`, character(1), "code")
   expect_false("W_EXCLUDED_AREA_EMPTY" %in% codigos2)
+})
+
+test_that("ADR 0117: la capacidad publica como falta sólo lo que falta con ⌊E⌋ rutas; lo que falta con ⌈E⌉ es posible y lleva su probabilidad", {
+  sin_reemplazo <- me_cfg_ancon(replacements_per_titular = 0)
+  p <- hojas_ruta_marco_elegible_preview(sin_reemplazo, puntos = me_sin_puntos)
+  # Sin reemplazos y con π ≤ 1 por manzana, ninguna zona puede quedarse sin titulares.
+  expect_false(any(vapply(p$capacidad, function(z) !is.na(z$falta %||% NA), logical(1))))
+  expect_false("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(p$alerts, `[[`, character(1), "code"))
+  pareado <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "paired_by_titular_zone"), puntos = me_sin_puntos)
+  for (z in pareado$capacidad) {
+    r_min <- floor(z$rutas + 1e-9)
+    if (!is.na(z$falta %||% NA)) expect_true(z$manzanas < r_min * 4, info = z$zona)
+    if (!is.na(z$falta_posible %||% NA)) expect_true(z$probabilidad_falta > 0 && z$probabilidad_falta < 1, info = z$zona)
+  }
+  # Con reemplazo en otra zona la capacidad de la zona no cuenta reemplazos.
+  otra <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "alternate_zone_same_district"), puntos = me_sin_puntos)
+  expect_true(all(vapply(otra$capacidad, function(z) z$necesita == ceiling(z$rutas - 1e-9), logical(1))))
 })

@@ -4585,13 +4585,11 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     ord <- order(df$ubigeo, df$zona, df$manzana, df$id_manzana)
     if (n_blocks >= length(ord)) return(ord)
     step <- length(ord) / n_blocks
-    start <- stats::runif(1, min = 1, max = step)
-    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step))
+    start <- stats::runif(1, min = 0, max = step)  # arranque en un intervalo completo: π = n/N
+    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step) + 1L)
     return(ord[unique(pos)])
   }
-  prob <- df[[cfg$measure_var]]
-  prob[is.na(prob) | prob <= 0] <- 1
-  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = prob)
+  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = .hojas_ruta_sorteo_medida(df, cfg))  # M <= 0 no sale (ADR 0117)
 }
 
 .hojas_ruta_stable_bucket <- function(seed, id, salt, n) {
@@ -4984,7 +4982,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
   manual_cfg <- cfg
   manual_cfg$replacements_per_titular <- count
   report("replacement", percent = 25, message = "Seleccionando manzanas de reemplazo...")
-  assignment <- .hojas_ruta_assign_replacements(selected, frame, manual_cfg, selected_ids)
+  assignment <- .hojas_ruta_assign_replacements(selected, .hojas_ruta_sorteo_candidatos(frame, manual_cfg), manual_cfg, selected_ids)
   blocking <- Filter(function(x) identical(x$level, "error"), assignment$alerts %||% list())
   if (length(blocking)) {
     stop(as.character(blocking[[1]]$message %||% "No se pudieron generar reemplazos puntuales."), call. = FALSE)
@@ -5476,61 +5474,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     route_total <- as.integer(n_district / route_size)
     if (route_total <= 0L) next
 
-    zone_value_cols <- unique(c(cfg$measure_var, "poblacion", "viviendas"))
-    zone_frame <- stats::aggregate(
-      district_frame[zone_value_cols],
-      by = district_frame[c("ubigeo", "distrito", "zona")],
-      FUN = sum,
-      na.rm = TRUE
-    )
-    zone_frame <- zone_frame[order(zone_frame$zona), , drop = FALSE]
-    if (identical(cfg$row_var, "zona")) {
-      zone_quota <- stats::aggregate(
-        cells$cuota[cells$ubigeo == ubigeo],
-        by = list(zona = sub("^[^-]+-", "", as.character(cells$territorio[cells$ubigeo == ubigeo]))),
-        FUN = sum,
-        na.rm = TRUE
-      )
-      names(zone_quota)[2] <- "n"
-      zone_frame <- merge(zone_frame, zone_quota, by = "zona", all.x = TRUE)
-      zone_frame$n[is.na(zone_frame$n)] <- 0L
-      zone_routes <- as.integer(zone_frame$n / route_size)
-    } else {
-      zone_routes <- .hojas_ruta_allocate_integer(zone_frame[[cfg$measure_var]], route_total)
-    }
-
-    for (j in seq_len(nrow(zone_frame))) {
-      n_routes <- as.integer(zone_routes[[j]])
-      if (is.na(n_routes) || n_routes <= 0L) next
-      zona <- as.character(zone_frame$zona[[j]])
-      df_z <- district_frame[as.character(district_frame$zona) == zona, , drop = FALSE]
-      if (!nrow(df_z)) {
-        unassigned_total <- unassigned_total + n_routes * route_size
-        next
-      }
-      n_blocks <- n_routes
-      if (n_blocks > nrow(df_z)) {
-        alerts[[length(alerts) + 1L]] <- list(
-          level = "warn",
-          code = "W_FRAME_INSUFFICIENT",
-          message = sprintf(
-            "%s zona %s requiere %d ruta(s), pero el marco contiene %d manzana(s).",
-            as.character(zone_frame$distrito[[j]]), zona, n_blocks, nrow(df_z)
-          )
-        )
-        unassigned_total <- unassigned_total + as.integer((n_blocks - nrow(df_z)) * route_size)
-        n_blocks <- nrow(df_z)
-      }
-      idx <- .hojas_ruta_sample_indices(df_z, n_blocks, cfg)
-      selected <- df_z[idx, , drop = FALSE]
-      selected$territorio_muestral <- paste(ubigeo, zona, sep = "-")
-      selected$metodo <- cfg$sampling_method
-      selected$orden_seleccion <- seq_len(nrow(selected))
-      selected$entrevistas <- as.integer(rep(route_size, nrow(selected)))
-      selected$medida_tamano <- selected[[cfg$measure_var]]
-      selected$tipo_manzana <- "titular"
-      blocks[[length(blocks) + 1L]] <- selected
-    }
+    # ADR 0117: un sistemático PPS por distrito (o por zona con cuota por zona); v1
+    # repartía rutas entre zonas con mayor resto determinista y dejaba zonas con π = 0.
+    sorteo <- .hojas_ruta_sorteo_titulares_distrito(district_frame, cells, ubigeo, n_district, route_size, cfg)
+    if (nrow(sorteo$blocks)) blocks[[length(blocks) + 1L]] <- sorteo$blocks
+    alerts <- c(alerts, sorteo$alertas)
+    unassigned_total <- unassigned_total + sorteo$sin_asignar
   }
 
   blocks_df <- if (length(blocks)) do.call(rbind, blocks) else data.frame()
@@ -5540,7 +5489,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   } else {
     character(0)
   }
-  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, frame, cfg, selected_ids)
+  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, .hojas_ruta_sorteo_candidatos(frame, cfg), cfg, selected_ids)
   replacement_blocks_df <- replacement_assignment$blocks
   replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
   replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)
@@ -5599,6 +5548,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     quota = quota,
     method = cfg$sampling_method,
     seed = seed,
+    algoritmo_sorteo = HOJAS_RUTA_ALGORITMO_SORTEO,
     blocks = .hojas_ruta_df_rows(blocks_public),
     replacement_blocks = .hojas_ruta_df_rows(replacement_public),
     n_blocks = as.integer(nrow(blocks_public)),

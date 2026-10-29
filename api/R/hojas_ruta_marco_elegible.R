@@ -344,10 +344,10 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
 
 #' Rutas por distrito y zona sobre el marco elegible, con la misma regla que el sorteo.
 #'
-#' Replica el reparto de `hojas_ruta_sample_preview_integrado` (engine ~5470-5500)
-#' sin tocar el motor congelado: `route_total = n %/% ruta`; las rutas se reparten
-#' por zona con `.hojas_ruta_allocate_integer` sobre la medida, o salen de la cuota
-#' por zona cuando `row_var = "zona"`. Además devuelve las n que el sorteo descarta
+#' Replica el reparto del sorteo (ADR 0117, `hojas_ruta_sorteo_pps.R`):
+#' `route_total = n %/% ruta`; con un sistemático por distrito las rutas de una zona
+#' no son fijas y `rutas` es su esperanza, Σπ de sus manzanas (el sorteo le da
+#' ⌊Σπ⌋ o ⌈Σπ⌉); con `row_var = "zona"` salen de la cuota por zona. Además devuelve las n que el sorteo descarta
 #' sin aviso (distrito sin manzanas elegibles, zona con cuota y sin manzanas). El
 #' test de paridad compara este reparto con las titulares que sortea el motor.
 .hojas_ruta_me_reparto <- function(frame, cells, cfg) {
@@ -384,13 +384,14 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
       zf$n[is.na(zf$n)] <- 0L
       zr <- as.integer(zf$n / ruta)
     } else {
-      zr <- .hojas_ruta_allocate_integer(zf[[medida]], rutas)
+      pi <- .hojas_ruta_sorteo_pi(.hojas_ruta_sorteo_medida(df, cfg), rutas)
+      zr <- round(as.numeric(tapply(pi, factor(as.character(df$zona), levels = as.character(zf$zona)), sum, default = 0)), 2)
     }
     manzanas <- vapply(as.character(zf$zona), function(z) sum(as.character(df$zona) == z), integer(1))
     distritos[[ubigeo]] <- list(
       ubigeo = ubigeo, distrito = as.character(zf$distrito[[1]]), entrevistas = n, rutas = rutas,
       zonas = lapply(seq_len(nrow(zf)), function(j) list(
-        zona = as.character(zf$zona[[j]]), rutas = as.integer(zr[[j]]), manzanas = as.integer(manzanas[[j]]),
+        zona = as.character(zf$zona[[j]]), rutas = if (identical(cfg$row_var, "zona")) as.integer(zr[[j]]) else zr[[j]], manzanas = as.integer(manzanas[[j]]),
         medida_total = as.numeric(zf[[medida]][[j]])
       ))
     )
@@ -446,17 +447,41 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
   alertas <- ap$alertas
   capacidad <- list()
+  # Sólo el reemplazo pareado sale de la misma zona; el de otra zona se mide contra el distrito.
+  pareado <- identical(cfg$replacement_policy, "paired_by_titular_zone")
   for (d in rep$distritos) {
+    if (!pareado && reemplazos > 0L) {
+      m_d <- sum(vapply(d$zonas, function(z) as.integer(z$manzanas), integer(1)))
+      if (m_d < d$rutas * (1L + reemplazos)) {
+        alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+          "W_ZONE_SHORT_BEFORE_DRAW",
+          sprintf("%s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular en el distrito (%d de %d manzanas).", d$distrito, d$rutas, reemplazos, m_d, d$rutas * (1L + reemplazos)),
+          ubigeo = d$ubigeo, zona = NA_character_, falta = "reemplazos"
+        )
+      }
+    }
     for (z in d$zonas) {
-      if (z$rutas <= 0L) next
-      necesita <- z$rutas * (1L + reemplazos)
-      falta <- if (z$manzanas < z$rutas) "titulares" else if (z$manzanas < necesita) "reemplazos" else NA_character_
-      capacidad[[length(capacidad) + 1L]] <- list(ubigeo = d$ubigeo, distrito = d$distrito, zona = z$zona, rutas = z$rutas, manzanas = z$manzanas, necesita = necesita, falta = falta)
+      if (z$rutas <= 0) next
+      # Con el sistemático por distrito `rutas` es una esperanza E: la zona recibe ⌊E⌋ o
+      # ⌈E⌉ (este último con probabilidad E - ⌊E⌋). Falta sólo lo que falta con ⌊E⌋; lo
+      # que falta únicamente con ⌈E⌉ se publica como posible, con su probabilidad.
+      r_max <- as.integer(ceiling(z$rutas - 1e-9))
+      r_min <- as.integer(floor(z$rutas + 1e-9))
+      por_ruta <- 1L + if (pareado) reemplazos else 0L
+      necesita <- r_max * por_ruta
+      faltaria <- function(r) if (z$manzanas < r) "titulares" else if (z$manzanas < r * por_ruta) "reemplazos" else NA_character_
+      falta <- faltaria(r_min)
+      posible <- if (is.na(falta) && r_max > r_min) faltaria(r_max) else NA_character_
+      capacidad[[length(capacidad) + 1L]] <- list(
+        ubigeo = d$ubigeo, distrito = d$distrito, zona = z$zona, rutas = z$rutas, manzanas = z$manzanas, necesita = necesita, falta = falta,
+        falta_posible = posible, probabilidad_falta = if (!is.na(falta)) 1 else if (!is.na(posible)) round(z$rutas - r_min, 2) else 0
+      )
+      rutas_z <- r_min
       if (!is.na(falta)) {
         alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
           "W_ZONE_SHORT_BEFORE_DRAW",
-          if (identical(falta, "titulares")) sprintf("%s zona %s necesitará %d ruta(s) y sólo tiene %d manzana(s) elegible(s).", d$distrito, z$zona, z$rutas, z$manzanas)
-          else sprintf("%s zona %s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular dentro de la zona (%d de %d manzanas).", d$distrito, z$zona, z$rutas, reemplazos, z$manzanas, necesita),
+          if (identical(falta, "titulares")) sprintf("%s zona %s necesitará %d ruta(s) y sólo tiene %d manzana(s) elegible(s).", d$distrito, z$zona, rutas_z, z$manzanas)
+          else sprintf("%s zona %s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular dentro de la zona (%d de %d manzanas).", d$distrito, z$zona, rutas_z, reemplazos, z$manzanas, rutas_z * por_ruta),
           ubigeo = d$ubigeo, zona = z$zona, falta = falta
         )
       }
@@ -481,36 +506,6 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
     por_area = ap$por_area,
     capacidad = capacidad,
     alerts = alertas
-  )
-}
-
-#' π de las titulares de una zona con la misma regla que `.hojas_ruta_sample_indices`
-#' (engine ~4581): con el método sistemático cada manzana tiene la misma
-#' probabilidad (π = n_z/N_z); en PPS la medida que es NA o ≤ 0 pesa 1, igual que
-#' en el sorteo, y π ≈ n_z·M_i/ΣM_z. Si se sortearon todas las manzanas de la
-#' zona (el motor capó a `nrow`), π = 1.
-.hojas_ruta_me_pi <- function(df_z, ids, medida, metodo) {
-  N <- nrow(df_z)
-  n <- length(ids)
-  m <- if (N) suppressWarnings(as.numeric(df_z[[medida]])) else numeric(0)
-  ajustada <- any(is.na(m) | m <= 0)
-  m[is.na(m) | m <= 0] <- 1
-  total <- sum(m)
-  # El sistemático del motor arranca con runif(1, min = 1, max = step) (engine ~4587):
-  # el arranque no cubre un intervalo completo y hay manzanas con π = 0. Mientras ese
-  # defecto del motor congelado no se corrija, π no es reconstruible y no se publica.
-  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "sistematico_no_reconstruible" else "pps"
-  pis <- vapply(ids, function(id) {
-    if (identical(regla, "censo_de_la_zona")) return(1)
-    if (identical(regla, "sistematico_no_reconstruible")) return(NA_real_)
-    mi <- m[match(id, as.character(df_z$id_manzana))]
-    if (is.na(mi) || total <= 0) NA_real_ else min(1, n * mi / total)
-  }, numeric(1), USE.NAMES = FALSE)
-  list(
-    regla_pi = regla,
-    medida_total = total,
-    medida_ajustada = ajustada,
-    seleccionadas = lapply(seq_along(ids), function(i) list(id_manzana = ids[[i]], medida = m[match(ids[[i]], as.character(df_z$id_manzana))], pi = pis[[i]]))
   )
 }
 
@@ -571,15 +566,25 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   medida <- cfg$measure_var
   bloques <- .hojas_ruta_rows_df(resultado$blocks %||% list())
   zonas <- list()
-  for (d in rep$distritos) for (z in d$zonas) {
-    sel <- if (nrow(bloques)) as.character(bloques$ubigeo) == d$ubigeo & as.character(bloques$zona) == z$zona else logical(0)
-    n_z <- sum(sel)
-    df_z <- frame[as.character(frame$ubigeo) == d$ubigeo & as.character(frame$zona) == z$zona, , drop = FALSE]
-    ids <- if (n_z) as.character(bloques$id_manzana[sel]) else character(0)
-    zonas[[length(zonas) + 1L]] <- c(
-      list(ubigeo = d$ubigeo, zona = z$zona, rutas = z$rutas, manzanas = nrow(df_z), sorteadas = n_z),
-      .hojas_ruta_me_pi(df_z, ids, medida, cfg$sampling_method)
-    )
+  # ADR 0117: π con la fórmula del sorteo en su ámbito (el distrito, o la zona si la
+  # cuota viene por zona); se publica agrupado por zona.
+  por_zona <- identical(cfg$row_var, "zona")
+  en <- function(df, u, z = NULL) as.character(df$ubigeo) == u & (is.null(z) | as.character(df$zona) == (z %||% ""))
+  for (d in rep$distritos) {
+    pi_d <- if (!por_zona) {
+      ids_d <- if (nrow(bloques)) as.character(bloques$id_manzana[en(bloques, d$ubigeo)]) else character(0)
+      .hojas_ruta_me_pi(frame[en(frame, d$ubigeo), , drop = FALSE], ids_d, cfg, "distrito")
+    }
+    for (z in d$zonas) {
+      sel <- if (nrow(bloques)) en(bloques, d$ubigeo, z$zona) else logical(0)
+      ids <- if (any(sel)) as.character(bloques$id_manzana[sel]) else character(0)
+      df_z <- frame[en(frame, d$ubigeo, z$zona), , drop = FALSE]
+      pi_z <- if (por_zona) .hojas_ruta_me_pi(df_z, ids, cfg, "zona") else c(pi_d[c("regla_pi", "probability_source", "ambito", "medida_total_ambito")], list(
+        manzanas_sin_medida = as.integer(sum(.hojas_ruta_sorteo_medida(df_z, cfg) <= 0)),
+        seleccionadas = Filter(function(x) x$id_manzana %in% ids, pi_d$seleccionadas)
+      ))
+      zonas[[length(zonas) + 1L]] <- c(list(ubigeo = d$ubigeo, zona = z$zona, rutas = z$rutas, manzanas = nrow(df_z), sorteadas = length(ids)), pi_z)
+    }
   }
   # D5: el resumen por distrito y zona (por criterio) y los avisos del marco van con la muestra.
   territorio <- hojas_ruta_inei_frame(cfg$frame_source)
@@ -599,7 +604,8 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   resultado$marco_elegible <- list(
     criterios = cfg$marco_elegible,
     medida = medida,
-    pi_aproximacion = "pps: n_z * M_i / sum(M_z), aproximación del sorteo secuencial sin reemplazo (medida NA o <= 0 pesa 1, como en el sorteo); igual_probabilidad: n_z / N_z; censo_de_la_zona: 1",
+    algoritmo_sorteo = resultado$algoritmo_sorteo %||% HOJAS_RUTA_ALGORITMO_SORTEO_V1,
+    pi_aproximacion = "pps_sistematico_distrito: n_d * M_i / M_d con certezas por iteración (π exacta del sistemático; medida NA o <= 0 da π = 0); igual_probabilidad_distrito: lo mismo con M_i = 1; *_zona: igual dentro de la zona, dado su número de rutas. La varianza del sistemático se aproxima (pares con π_ij = 0).",
     zonas = zonas,
     hash_marco = if (nzchar(ruta_marco) && file.exists(ruta_marco)) digest::digest(file = ruta_marco, algo = "sha256") else NA_character_,
     hash_criterios = .hojas_ruta_me_hash(cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")]),
