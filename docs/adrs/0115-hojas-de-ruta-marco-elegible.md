@@ -256,7 +256,9 @@ manzanas con `poblacion = 0, viviendas > 0`:
 
 - `viviendas` cuenta viviendas particulares, incluidas las desocupadas. No está verificado en el script de
   construcción del marco.
-- La ruta continúa en manzanas contiguas cuando la manzana no alcanza.
+- ~~La ruta continúa en manzanas contiguas cuando la manzana no alcanza.~~ *Corregido por el
+  [ADR 0116](0116-hojas-de-ruta-no-respuesta-e-icc.md):* el motor no continúa a la manzana contigua; al agotarse la
+  manzana se pasa al reemplazo pareado de la titular, y la capacidad de una manzana se mide en visitas (`v_cap`).
 - El piloto y el campo no se juntan en el análisis.
 
 ## Hallazgos fuera del alcance
