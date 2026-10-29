@@ -594,6 +594,7 @@ errores_registrados <- function() {
     "E_GRAFICOS_SHARE_ZIP",                                  "graficos_share.R",                  "500",
     "E_HF_CREATE_FAILED",                                    "dashboard_publish.R",               "indirecto",
     "E_HF_PUSH_FAILED",                                      "dashboard_publish.R",               "indirecto",
+    "E_ICC_NOT_APPLICABLE",                                  "router_hojas_ruta_icc.R",           "409",
     "E_INCOMPLETE_SOURCE",                                   "dashboard_source.R",                "400",
     "E_INSTRUMENT_REVISION_COMMIT_FAILED",                   "xlsform_revisions.R",               "500",
     "E_INTERNAL",                                            "errors.R",                          "500",

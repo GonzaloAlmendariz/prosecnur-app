@@ -171,7 +171,10 @@ hojas_ruta_icc_aplicar <- function(sample_size, entrada, k) {
        distritos_con_override = names(sample_size$design_effect_overrides %||% list()))
 }
 
+# PROSECNUR_HOJAS_RUTA_ICC redirige la biblioteca (los tests no tocan la del usuario).
 hojas_ruta_icc_biblioteca_ruta <- function() {
+  otra <- Sys.getenv("PROSECNUR_HOJAS_RUTA_ICC", "")
+  if (nzchar(otra)) return(otra)
   file.path(tools::R_user_dir("prosecnur", "data"), "hojas_ruta", "icc.json")
 }
 
@@ -190,4 +193,37 @@ hojas_ruta_icc_biblioteca_guardar <- function(entrada, ruta = hojas_ruta_icc_bib
   dir.create(dirname(ruta), recursive = TRUE, showWarnings = FALSE)
   writeLines(as.character(jsonlite::toJSON(c(actuales, list(entrada)), auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)), ruta, useBytes = TRUE)
   invisible(c(actuales, list(entrada)))
+}
+
+# ---------- Posproceso del tamaño (router /sample-size-preview) ----------
+
+#' Agrega al resultado de `hojas_ruta_sample_size_preview` lo del ADR 0116 sin tocar
+#' el motor: visitas por ruta y su tope, contactos esperados y visitas planificadas,
+#' procedencia del DEFF, si el margen incluye el conglomerado y los avisos.
+#' `contacts_suggested` se conserva tal cual para sus lectores actuales.
+hojas_ruta_tamano_extras_completar <- function(resultado, config) {
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  ss <- cfg$sample_size
+  k <- .hojas_ruta_route_size(cfg)
+  r <- as.numeric(ss$response_rate)
+  e <- as.numeric(ss$ocupacion %||% 1)
+  n_por_distrito <- vapply(resultado$district_rows %||% list(), function(f) as.numeric(f$n_used %||% 0), numeric(1))
+  cv <- hojas_ruta_contactos_y_visitas(n_por_distrito, k, r, e)
+  resultado$visitas <- list(
+    entrevistas_por_ruta = as.integer(k),
+    respuesta = r,
+    ocupacion = e,
+    por_ruta = hojas_ruta_visitas_por_ruta(k, r, e),
+    tope_90 = hojas_ruta_visitas_cap(k, r, e),
+    contactos_esperados = cv$contactos_esperados,
+    visitas_planificadas = cv$visitas_planificadas
+  )
+  resultado$design_effect_fuente <- ss$design_effect_fuente
+  resultado$icc_aplicado <- ss$icc_aplicado
+  resultado$margen_incluye_conglomerado <- hojas_ruta_margen_incluye_conglomerado(ss, k)
+  vistos <- vapply(resultado$alerts %||% list(), function(a) as.character(a$code %||% ""), character(1))
+  for (a in hojas_ruta_tamano_extras_avisos(ss, k, cfg$replacements_per_titular)) {
+    if (!a$code %in% vistos) resultado$alerts <- c(resultado$alerts %||% list(), list(a))
+  }
+  resultado
 }

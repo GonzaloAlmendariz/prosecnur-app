@@ -115,3 +115,48 @@ test_that("la biblioteca local guarda, reemplaza por id y lee", {
   expect_length(b, 2)
   expect_equal(Filter(function(e) e$id == "acnur-2025", b)[[1]]$icc, 0.07)
 })
+
+test_that("el posproceso del tamaño agrega visitas, procedencia y avisos sin tocar el N ni contacts_suggested", {
+  cfg <- list(territorios = list("150102"), n_objetivo = 80, sample_size_mode = "external_total", n_mode = "total",
+              entrevistas_por_manzana = 8, max_per_manzana = 8, replacements_per_titular = 0,
+              sample_size = list(design_effect = 1, response_rate = 0.5))
+  base <- hojas_ruta_sample_size_preview(cfg)
+  r <- hojas_ruta_tamano_extras_completar(base, cfg)
+  expect_identical(r$n_used, base$n_used)
+  expect_identical(r$contacts_suggested, base$contacts_suggested)
+  expect_identical(r$visitas$por_ruta, 16L)
+  expect_equal(r$visitas$contactos_esperados, base$n_used / 0.5)
+  expect_identical(r$design_effect_fuente, "legado")
+  expect_false(r$margen_incluye_conglomerado)
+  codigos <- vapply(r$alerts, `[[`, character(1), "code")
+  expect_true(all(c("W_DEFF_IGNORES_CLUSTERING", "W_UMP_NONRESPONSE_UNCOVERED") %in% codigos))
+})
+
+test_that("HTTP: la biblioteca de ICC se lee, se guarda y se aplica sin guardar la config", {
+  ruta <- tempfile(fileext = ".json")
+  old <- Sys.getenv("PROSECNUR_HOJAS_RUTA_ICC", unset = NA_character_)
+  Sys.setenv(PROSECNUR_HOJAS_RUTA_ICC = ruta)
+  on.exit({ unlink(ruta); if (is.na(old)) Sys.unsetenv("PROSECNUR_HOJAS_RUTA_ICC") else Sys.setenv(PROSECNUR_HOJAS_RUTA_ICC = old) }, add = TRUE)
+  expect_true(grepl("mount_hojas_ruta_icc(pr)", paste(deparse(body(build_plumber_app)), collapse = " "), fixed = TRUE))
+  pr <- mount_hojas_ruta_icc(plumber::pr())
+  eps <- unlist(pr$endpoints, recursive = FALSE)
+  ep <- function(verbo, ruta) Find(function(e) identical(e$verbs, verbo) && identical(e$path, ruta), eps)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  req <- function(body = NULL) {
+    r <- list(HTTP_X_PULSO_SESSION = sid)
+    if (!is.null(body)) r$bodyRaw <- charToRaw(enc2utf8(jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")))
+    r
+  }
+  res <- function() plumber:::PlumberResponse$new()
+  expect_true(ep("POST", "/api/hojas-ruta/icc")$getFunc()(req = req(list(entrada = te_icc())), res = res())$ok)
+  expect_true(ep("POST", "/api/hojas-ruta/icc")$getFunc()(req = req(list(entrada = te_icc(id = "aula", unidad_conglomerado = "aula"))), res = res())$ok)
+  lista <- ep("GET", "/api/hojas-ruta/icc")$getFunc()(req = req(), res = res())
+  expect_length(lista$entradas, 2)
+  expect_false(Filter(function(e) e$id == "aula", lista$entradas)[[1]]$aplicable$ok)
+  cfg <- list(territorios = list("150102"), entrevistas_por_manzana = 8, max_per_manzana = 8)
+  ok <- ep("POST", "/api/hojas-ruta/icc/aplicar")$getFunc()(req = req(list(config = cfg, id = "acnur-2025")), res = res())
+  expect_equal(ok$sample_size$design_effect, 1.42)
+  no <- ep("POST", "/api/hojas-ruta/icc/aplicar")$getFunc()(req = req(list(config = cfg, id = "aula")), res = res())
+  expect_identical(no$error$code %||% no$code %||% "", "E_ICC_NOT_APPLICABLE")
+})

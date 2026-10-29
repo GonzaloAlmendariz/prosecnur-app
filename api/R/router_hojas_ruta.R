@@ -743,6 +743,8 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)
+      # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
+      result <- hojas_ruta_tamano_extras_completar(result, cfg)
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(sample_size_preview = result),
