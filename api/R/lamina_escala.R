@@ -294,7 +294,7 @@
       .lam_txt(lz, cc$caja$cifras[fl$i], cc$x - 0.1, yb + g / 2 - 0.3, wcol + 0.1, 0.6, 28, cc$color, bold = TRUE, align = "center",
                nombre = paste0(cc$prefijo, ":cifra"))
     }
-    .lam_leyenda(lz, yb + g + 0.55, labels, cols, centrar_en = xb + wb / 2)
+    .lam_leyenda(lz, yb + g + .std_comp("escala", "aire_leyenda_solo"), labels, cols, centrar_en = xb + wb / 2)
     return(invisible(yb + g))
   }
 

@@ -38,7 +38,7 @@
   seg <- data.frame(ancho = lg / sum(lg), cifra = d$cifras[1:2], color = d$colores[1:2], dibujar = lg > 0, blanca = TRUE,
                     stringsAsFactors = FALSE)
   .lam_barra_apilada(lz, xb, y1, wb, seg, g)
-  .lam_leyenda(lz, y1 + g + 0.17, d$rotulos[1:2], d$colores[1:2], centrar_en = W / 2)
+  .lam_leyenda(lz, y1 + g + .std_comp("escala", "aire_leyenda_fila"), d$rotulos[1:2], d$colores[1:2], centrar_en = W / 2)
   # La escala dependiente, con el aire de Contabilidad entre las dos filas (~2,8 in de barra a barra en su lámina 34;
   # aquí 2,5 para dejarle sitio al pie).
   y2 <- max(y1 + 2.5, y1 + g / 2 + hp1 / 2 + 1.2)
@@ -52,6 +52,6 @@
     .lam_etiqueta_box(lz, s, cc$x, y2, g, 1L, con_n = FALSE, caja = cc$caja, color = cc$color, w = cb$ancho_col, prefijo = cc$prefijo)
   }
   ley <- s$leyenda %||% seq_len(NROW(s$categorias))   # la leyenda de la escala, como en toda lámina de escala
-  .lam_leyenda(lz, y2 + g + 0.17, s$categorias$rotulo[ley], s$categorias$color[ley], centrar_en = W / 2)
+  .lam_leyenda(lz, y2 + g + .std_comp("escala", "aire_leyenda_fila"), s$categorias$rotulo[ley], s$categorias$color[ley], centrar_en = W / 2)
   invisible(y2 + g + 0.45)
 }

@@ -100,8 +100,7 @@
 # Alto de la leyenda bajo un bloque (el cuadro baja 0.07 y el texto mide 0.3, más el aire hasta el bloque que sigue).
 .LAM_MULTILISTA_LEYENDA <- 0.5
 # La leyenda compartida va 0.15 in bajo la última barra (p144: barras hasta 6.11 in, leyenda en 6.26 in); el fin del
-# bloque es el fondo de la fila, 0.06 in bajo la barra.
-.LAM_MULTILISTA_AIRE_LEYENDA <- 0.15 - 0.06
+# bloque es el fondo de la fila, 0.06 in bajo la barra: `ppt.composicion.escala.aire_leyenda_multilista` = 0,09.
 
 .lam_multilista_ancho <- function() .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
 
@@ -328,9 +327,9 @@
   y <- componer(lz, dg = dg, entre = entre, extra = extra, sin_tope = !apretar && f >= 1, bajar = bajar)   # lo que sigue sobrando: centrado
   if (compartida) {
     e <- items[[1]]$espec; ley <- e$leyenda
-    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
+    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + .std_comp("escala", "aire_leyenda_apretada"))   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
              else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .std_comp("llenar", "aire_leyenda"))   # llena: 0,45 in, como Conta
-             else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
+             else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .std_comp("escala", "aire_leyenda_multilista"))
     .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
   }

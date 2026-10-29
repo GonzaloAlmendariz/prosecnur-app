@@ -74,6 +74,10 @@ composicion <- list(unidad = "in",
     aire_tema = 0.14,                # entre las barras de un mismo tema, borde a borde (Conta 0,10–0,35)
     aire_entre_temas_max = 0.9,      # tope del aire entre temas cuando la lámina no llena su alto
     aire_leyenda = 0.3,              # de la última barra (o premisa) a la leyenda
+    aire_leyenda_multilista = 0.09,  # del final del último bloque a la leyenda compartida (el bloque acaba 0,06 bajo su barra)
+    aire_leyenda_apretada = 0.12,    # lo mismo en la lámina apretada (M1), que no tiene sitio para más
+    aire_leyenda_fila = 0.17,        # de la barra a su leyenda cuando cada fila lleva la suya (Sí/No con escala, como Conta)
+    aire_leyenda_solo = 0.55,        # de la barra a la leyenda en la lámina de una sola afirmación (recetario 216)
     rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
     columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
   llenar = list(                     # la lámina con alto de sobra (lamina_escala_llenar.R)

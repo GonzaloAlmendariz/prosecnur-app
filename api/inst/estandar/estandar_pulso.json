@@ -198,6 +198,10 @@
         "aire_tema": 0.14,
         "aire_entre_temas_max": 0.9,
         "aire_leyenda": 0.3,
+        "aire_leyenda_multilista": 0.09,
+        "aire_leyenda_apretada": 0.12,
+        "aire_leyenda_fila": 0.17,
+        "aire_leyenda_solo": 0.55,
         "rotulo_box_sobre": 0.45,
         "columna_box": 1.5,
         "columna_box_con_btb": 1.25
