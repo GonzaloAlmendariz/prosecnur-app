@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -74,9 +75,11 @@ type InspectorProps = {
   totales: { titulares: number; reemplazos: number; entrevistas: number };
   /** Ir a la ruta anterior (−1) o siguiente (1) de la lista visible. */
   onVecina: (paso: 1 | -1) => void;
+  /** El disparador de las salidas (sideover `?panel=salidas`); va en el pie de las dos vistas. */
+  salidas?: ReactNode;
 };
 
-export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina }: InspectorProps) {
+export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useLienzoHojasRuta();
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
@@ -125,8 +128,9 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           </section>
         </div>
         <footer className="hr-mapa-pie">
-          <PulsoButton variant="secondary" onClick={() => onVecina(-1)}>Anterior</PulsoButton>
-          <PulsoButton variant="secondary" onClick={() => onVecina(1)}>Siguiente</PulsoButton>
+          <PulsoButton variant="secondary" aria-label="Ruta anterior" onClick={() => onVecina(-1)}>‹</PulsoButton>
+          <PulsoButton variant="secondary" aria-label="Ruta siguiente" onClick={() => onVecina(1)}>›</PulsoButton>
+          {salidas}
         </footer>
       </>
     );
@@ -166,6 +170,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         <PulsoButton variant="secondary" disabled={!totales.titulares} onClick={() => setCajon("titulares")}>
           Ver las tablas
         </PulsoButton>
+        {salidas}
       </footer>
     </>
   );

@@ -16,6 +16,11 @@ export type GrupoRutas = { ubigeo: string; distrito: string; filas: FilaRuta[] }
 const PESO: Record<EstadoRuta, number> = { error: 3, aviso: 2, info: 1, ok: 0 };
 const peor = (a: EstadoRuta, b: EstadoRuta): EstadoRuta => (PESO[b] > PESO[a] ? b : a);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("es-PE");
+/** Cada palabra de la búsqueda (ya normalizada) tiene que aparecer, en cualquier orden. */
+const coincideTodo = (texto: string, q: string) => {
+  const t = normalizar(texto);
+  return q.split(/\s+/).every((p) => t.includes(p));
+};
 
 export const porRevisar = (e: EstadoRuta) => e === "error" || e === "aviso";
 
@@ -49,7 +54,7 @@ export function rutasPorDistrito(
     const estado = estados.get(t.id_manzana) ?? "ok";
     if (filtro.soloPorRevisar && !porRevisar(estado)) continue;
     const codigo = codigoDeUmp(t);
-    if (q && !normalizar(`${codigo} ${t.zona} ${t.id_manzana} ${t.distrito}`).includes(q)) continue;
+    if (q && !coincideTodo(`${codigo} ${t.zona} ${t.id_manzana} ${t.distrito}`, q)) continue;
     const g = grupos.get(t.ubigeo) ?? { ubigeo: t.ubigeo, distrito: t.distrito, filas: [] };
     g.filas.push({ id: t.id_manzana, codigo, numero: Number(t.hoja_num ?? t.orden_seleccion ?? 0), zona: t.zona, viviendas: Number(t.viviendas || 0), entrevistas: Number(t.entrevistas || 0), estado, reemplazos: cuantos.get(t.id_manzana) ?? 0 });
     grupos.set(t.ubigeo, g);

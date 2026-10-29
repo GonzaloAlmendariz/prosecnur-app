@@ -34,6 +34,7 @@ import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPanele
 import { revisarSeleccion } from "../seleccion/revisionMarco";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
+import { SalidasPanel } from "./seleccion/SalidasPanel";
 import "./mapaPage.css";
 
 /**
@@ -397,6 +398,7 @@ export default function HojasRutaMapaPage() {
               revision={revision}
               totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
+              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} />}
             />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector

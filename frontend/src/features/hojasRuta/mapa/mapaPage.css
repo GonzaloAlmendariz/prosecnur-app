@@ -304,3 +304,23 @@
 .hr-sel-cajon .hr-mapa-tabla-caja { min-height: 0; flex: 1; overflow: auto; }
 .hr-sel-cajon tbody tr { cursor: pointer; }
 .hr-sel-cajon tbody tr:hover { background: var(--pulso-surface-2); }
+
+/* Salidas de Selección (U10), dentro del sideover ?panel=salidas */
+.hr-salidas { display: flex; flex-direction: column; gap: 14px; }
+.hr-salidas .hr-muestra-grupo:first-of-type { border-top: 0; padding-top: 0; }
+.hr-salidas-pasos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.hr-salidas-pasos li { display: grid; grid-template-columns: 10px minmax(0, 1fr); column-gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; }
+.hr-salidas-pasos i { grid-row: 1 / span 2; width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-border-strong); }
+.hr-salidas-pasos li[data-ok] i { background: var(--pulso-module-routes); }
+.hr-salidas-pasos strong { font-size: 12px; }
+.hr-salidas-pasos small { font-size: 11px; color: var(--pulso-text-soft); }
+.hr-salidas-acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hr-salidas-archivo { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border-radius: 10px; background: var(--pulso-surface-2); color: var(--pulso-text); text-decoration: none; }
+.hr-salidas-archivo:hover { box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
+.hr-salidas-archivo strong { font-size: 12.5px; color: var(--pulso-module-routes); }
+.hr-salidas-archivo small { font-size: 11px; color: var(--pulso-text-soft); }
+.hr-salidas-filas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow: auto; }
+.hr-salidas-filas li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 9px; }
+.hr-salidas-filas li:hover { background: var(--pulso-surface-2); }
+.hr-salidas-filas strong { display: block; font-size: 12.5px; }
+.hr-salidas-filas small { display: block; font-size: 11px; color: var(--pulso-text-soft); }
