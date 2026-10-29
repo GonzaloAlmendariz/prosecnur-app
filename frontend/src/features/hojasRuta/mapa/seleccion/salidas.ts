@@ -53,7 +53,8 @@ export function conteosDelPaquete(titulares: readonly SelectedBlock[], reemplazo
     titulares: titulares.length,
     distritos: new Set(titulares.map((b) => b.ubigeo)).size,
     reemplazos: reemplazos.length,
-    zonas: new Set(titulares.map((b) => `${b.ubigeo}|${b.zona}`)).size,
+    // El ZIP trae una hoja por zona con alguna ruta: titular o reemplazo.
+    zonas: new Set([...titulares, ...reemplazos].map((b) => `${b.ubigeo}|${b.zona}`)).size,
   };
 }
 
