@@ -25,7 +25,7 @@
   .lam_txt(lz, titulo, ml, yt + 0.06, 10.4, 0.5, .std_pt("titulo"), .std_color("coral"), bold = TRUE, nombre = "Titulo lamina")
   # P8: un título de dos o más líneas empuja el subtítulo lo que miden las líneas de más (lamina_titulo_alto.R).
   baja <- (max(1L, .lam_lineas_tinta(trimws(as.character(titulo %||% "")[1]), 10.4, .std_pt("titulo"), TRUE)) - 1L) * .std_pt("titulo") * 1.2 / 72
-  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55 + baja, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")
+  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55 + baja, 10.4, 0.4, .std_pt("subtitulo"), .std_color("azul"), nombre = "Subtitulo lamina")   # 18 pt azul, como Conta
   .lam_agrupar(doc, lz, nombre = "prosecnur:titulo")
 }
 
@@ -70,7 +70,8 @@
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
     bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L, titulo_lamina = titulo,
-                                                            encabezar_tema = length(premisas) == 1L, desplazar = desplazar)
+                                                            encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
+                                                            negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
     if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
     doc <- .lam_pie(doc, if (en_filas) base else .lam_base_de_parte_escala(base, espec, partes, k), if (is.null(folio)) NULL else folio + k - 1L)

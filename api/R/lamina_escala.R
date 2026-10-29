@@ -283,11 +283,12 @@
 #' @param llenando La lámina aprovecha su alto (lamina_escala_llenar.R); `NULL`: si el bloque es la lámina entera.
 #' @param desplazar Cuánto bajar el bloque para centrarlo (`.lam_escala_centrar()`).
 #' @param con_rotulo_box `FALSE` cuando otro bloque de la lámina ya escribió el rótulo «TOP TWO BOX» (uno por lámina, como Conta).
+#' @param negrita Preguntas en negrita; `FALSE` en la lámina por público (con subtítulo DOCENTES, ESTUDIANTES…), como Conta.
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
                                estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
-                               encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0, con_rotulo_box = TRUE) {
+                               encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0, con_rotulo_box = TRUE, negrita = TRUE) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -412,9 +413,9 @@
     if (un_tema) {
       if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
         .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% .std_comp("escala", "rotulo_box_sobre")), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
-                 bold = TRUE, nombre = "premisa")
+                 bold = negrita, nombre = "premisa")
     } else {
-      .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wpp, hp, .std_pt("pregunta"), azul, bold = TRUE, align = "center", nombre = "premisa")   # centrada en su columna, como Contabilidad
+      .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wpp, hp, .std_pt("pregunta"), azul, bold = negrita, align = "center", nombre = "premisa")   # centrada en su columna, como Contabilidad
       if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                                      nombre = "premisa:n")
     }

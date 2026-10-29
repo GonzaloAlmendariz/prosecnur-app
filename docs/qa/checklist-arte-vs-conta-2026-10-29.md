@@ -29,9 +29,9 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 | 12 | Sí/No + escala: aire barra–leyenda | 0,43 / 0,56 in | 0,24 in | ☑ (Gonzalo) | ☐ |
 | 13 | Lámina 25 (Sí/No + escala): alto vacío abajo | — | 1,24 in vacías | ☑ (Gonzalo) | ☐ |
 | 14 | Rótulo del público con un solo público | se muestra | lám. 25 lo omite, lám. 29 lo muestra | evaluar (Gonzalo) | ☐ |
-| 15 | Multilista: subtítulo del bloque («DOCENTES») | 18 pt azul | 12,5 pt gris | ☑ (Gonzalo) | ☐ |
-| 16 | Multilista: preguntas en negrita | normal | negrita | ☑ (Gonzalo) | ☐ |
-| 17 | Lámina 29 queda con una sola pregunta al partir la 28 | — | resto vacío | ☑ (Gonzalo) | ☐ |
+| 15 | Multilista: subtítulo del bloque («DOCENTES») | 18 pt azul | 12,5 pt gris | ☑ (Gonzalo) | ☑ es el subtítulo de público de la lámina: 18 pt azul (`tipografia.subtitulo`, lamina_compositor.R) |
+| 16 | Multilista: preguntas en negrita | normal | negrita | ☑ (Gonzalo) | ☑ en Conta (láms. 26, 27, 33, 42) la lámina por público lleva las preguntas sin negrita y las demás con negrita; el motor hace lo mismo (`negrita` en `.lam_bloque_escala`) |
+| 17 | Lámina 29 queda con una sola pregunta al partir la 28 | — | resto vacío | ☑ (Gonzalo) | **decisión del plan**: la 29 no es la 28 partida; es otra pregunta (Sí/No de estudiantes) en su propia lámina. Se une a la 28 como bloque desde la app («Bloques», como la 39+40) |
 
 ## Motor: perfil (paneles)
 

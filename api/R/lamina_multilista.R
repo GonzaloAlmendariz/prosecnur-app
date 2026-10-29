@@ -251,7 +251,7 @@
 
 #' Dibuja los bloques de una lámina, de arriba abajo, con una leyenda compartida o una por bloque
 #' @keywords internal
-.lam_multilista_bloques <- function(lz, items, compartida) {
+.lam_multilista_bloques <- function(lz, items, compartida, negrita = TRUE) {
   g_ <- .std_geom
   disp <- .lam_multilista_disponible()
   nb <- .lam_multilista_filas(items)
@@ -295,7 +295,7 @@
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire + dg, grosor = gr$grosor + dg,
                               rotulo_sobre = if (arriba) .std_comp("escala", "rotulo_box_sobre") else .std_comp("multilista", "rotulo_box_sobre") - (.std_comp("multilista", "aire_ttb") - .lam_multilista_aire_ttb()),
                               extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .std_comp("multilista", "aire_titulo") else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
-                              llenando = sin_tope,   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
+                              llenando = sin_tope, negrita = negrita,   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
                               # Un bloque sin título continúa al de arriba: no repite el rótulo «TOP TWO BOX» si otro ya lo puso (Conta,
                               # láms. 22 y 24); un bloque con su propio título es un panel aparte y lleva el suyo (recetario p144).
                               con_rotulo_box = !is.null(it$titulo) || !any(vapply(items[seq_len(k - 1L)], function(i) !is.null(i$espec$box$unidades), TRUE)))
@@ -354,7 +354,8 @@
     cont_ <- k > 1 && (!.std_evitar_cont() || isTRUE(partes[[k]][[1]]$continua))
     doc <- .lam_titulo(doc, if (cont_) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
-    .lam_multilista_bloques(lz, partes[[k]], .lam_multilista_compartida_parte(partes[[k]], compartida))
+    .lam_multilista_bloques(lz, partes[[k]], .lam_multilista_compartida_parte(partes[[k]], compartida),
+                            negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:multilista")
     doc <- .lam_pie(doc, .lam_base_de_parte_multilista(base, partes, k), if (is.null(folio)) NULL else folio + k - 1L)   # N15: el pie de la parte, solo sus públicos
     doc <- por_lamina(doc)
