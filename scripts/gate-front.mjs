@@ -26,6 +26,13 @@ const TRANSVERSALES = [
   "src/app/readinessAnidada.contract.test.ts",     // un false terminal que cuelga el QA
   "src/app/chunksSinCiclos.contract.test.ts",      // dos chunks que se importan: TDZ sólo en el bundle
   "src/lib/modulesNavigation.test.ts",             // el registro y las rutas no divergen
+  // Ratchets del kit: escanean todo el árbol y CI los corre con `pnpm test`.
+  // Fuera de aquí, un gate de área daba verde con una tabla a mano que el CI
+  // sí rechazaba (revisión de la fase 3 del lienzo de Hojas de ruta, 2026-10-29).
+  "src/components/tablasDelKit.contract.test.ts",  // una <table> a mano en vez de PulsoTable
+  "src/components/inputsDelKit.contract.test.ts",  // una casilla o un input fuera del kit
+  "src/components/dialogsDelKit.contract.test.ts", // un overlay que no es Dialog/Sideover
+  "src/components/estadosDelKit.contract.test.ts", // un vacío o un error dibujado a mano
 ];
 
 const area = process.argv[2] ?? "";
