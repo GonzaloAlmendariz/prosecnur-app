@@ -80,7 +80,7 @@
 #' @keywords internal
 .lam_filtro_sub_barra_geo <- function(s, rotulo, x, w) {
   wl <- if (!is.null(rotulo) && nzchar(rotulo)) min(w * 0.3, max(1, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2)) else 0
-  wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
+  wbox <- if (!is.null(s$box$unidades)) .std_comp("filtro", "columna_box") else 0
   list(x = x + wl, w = w - wl - wbox, wl = wl, wbox = wbox)
 }
 
@@ -122,13 +122,13 @@
   if (wbox > 0) {
     verde <- .std_color("verde_top_two_box")
     rot <- .lam_rotulo_box(s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
-    # En una línea (a 12 pt «TOP TWO BOX» no cabe en la columna de 1,3 in, y la barra no cede: mide lo que la del filtro). La
+    # En una línea (a 12 pt «TOP TWO BOX» no cabe en la columna del filtro, 1,3 in, y la barra no cede: mide lo que la del filtro). La
     # caja crece, centrada sobre su cifra; lo que no pasa del margen derecho es la tinta, no la caja (invisible).
     tinta <- .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE)
     wr <- max(wbox - 0.05, tinta + 0.35)
     xc <- min(x + wb + 0.05 + (wbox - 0.05) / 2, .std_geom("ancho") - .std_geom("margen_der") - tinta / 2)
     xr <- xc - wr / 2
-    .lam_txt(lz, rot, xr, yb - 0.4, wr, 0.26, .std_pt("rotulo_top_two_box"),
+    .lam_txt(lz, rot, xr, yb - .std_comp("filtro", "rotulo_box_sobre"), wr, 0.26, .std_pt("rotulo_top_two_box"),
              verde, bold = TRUE, align = "center", nombre = "box:rotulo")
     .lam_etiqueta_box(lz, s, x + wb + 0.05, yb, h, 1L, con_n = FALSE, color = verde, w = wbox - 0.05)
   }
@@ -187,9 +187,9 @@
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
     # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
     bateria <- identical(s$tipo, "escala") && NROW(s$filas) > 1L
-    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = if (bateria) 20 else 26,
-                             g = if (bateria) 0.32 else 0.42, cols = d$colores)
-    y2 <- yb_fin + (if (bateria) 0.5 else 0.75)
+    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = .std_comp("filtro", if (bateria) "cifra_pt_bateria" else "cifra_pt"),
+                             g = .std_comp("filtro", if (bateria) "grosor_bateria" else "grosor"), cols = d$colores)
+    y2 <- yb_fin + .std_comp("filtro", if (bateria) "aire_sub_bateria" else "aire_sub")
     # G16 (Gabriela: «ese n 77 ahí no se lee, mejor como estaba antes, encima de la barra»): con la escala de una barra la
     # base va como «N = 77» sobre su extremo derecho (Contabilidad, lamina_filtro_sub_n.R), no en gris bajo la premisa.
     n_encima <- if (una_barra && !isTRUE(espec$base_en_titulo)) .lam_filtro_sub_n_texto(espec)

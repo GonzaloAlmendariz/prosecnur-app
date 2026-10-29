@@ -81,7 +81,15 @@ composicion <- list(unidad = "in",
     aire_leyenda_fila = 0.17,        # de la barra a su leyenda cuando cada fila lleva la suya (Sí/No con escala, como Conta)
     aire_leyenda_solo = 0.55,        # de la barra a la leyenda en la lámina de una sola afirmación (recetario 216)
     rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
+    primera_chica = 0.18,            # alto de la primera barra bajo el bloque si su cifra chica sube (medio paso de 0,24 + 0,06):
+                                     # la cifra no se acerca al rótulo de la columna Top Two Box
     columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
+  filtro = list(                     # pregunta filtro y subpregunta (lamina_filtro_sub.R; PPT 23 de Renzo, p193)
+    columna_box = 1.3,               # columna Top Two Box de la barra del filtro y de la subpregunta
+    rotulo_box_sobre = 0.4,          # el rótulo TOP TWO BOX sobre la barra de la subpregunta
+    cifra_pt = 26, cifra_pt_bateria = 20,   # cifras de la dicotomía filtro; con una batería abajo, compacta
+    grosor = 0.42, grosor_bateria = 0.32,   # grosor de esa dicotomía
+    aire_sub = 0.75, aire_sub_bateria = 0.5),   # de la dicotomía a la subpregunta
   filas = list(                      # la escala en filas, con Total o Bottom Two Box (recetario, lámina 77)
     ancho_rotulo = 1.8,              # columna de los rótulos de fila
     lineas_max = 2),                 # premisas de a lo más estas líneas en esa columna pueden ir en filas

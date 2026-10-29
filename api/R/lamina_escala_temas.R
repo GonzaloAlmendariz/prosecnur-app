@@ -9,9 +9,7 @@
 
 # El aire dentro de un tema y su tope entre temas viven en el estándar (`ppt.composicion.escala`: aire_tema,
 # aire_entre_temas_max).
-# Altura de la primera barra bajo el inicio del bloque cuando su cifra chica sube: la del paso natural (aire 0,24 in),
-# para que la cifra no se acerque al rótulo de la columna Top Two Box.
-.LAM_TEMA_PRIMERA_CHICA <- 0.24 / 2 + 0.06
+# La altura de la primera barra cuando su cifra chica sube también: `ppt.composicion.escala.primera_chica`.
 
 #' Compacta las filas de cada tema y pasa el aire a la separación entre temas (G11/G19)
 #'
@@ -50,7 +48,7 @@
   }
   v <- geo(rep(fila, n)); w <- geo(filas)
   pad <- 0
-  if (isTRUE(as.logical(chica[[1]])[1])) pad <- max(0, min(v$primera[1], .LAM_TEMA_PRIMERA_CHICA) - w$primera[1])
+  if (isTRUE(as.logical(chica[[1]])[1])) pad <- max(0, min(v$primera[1], .std_comp("escala", "primera_chica")) - w$primera[1])
   if (n == 1L) {
     # Una sola pregunta y la lámina llena su alto (lamina_escala_llenar.R): no hay otro tema con el que confundirla, así que
     # sus públicos se reparten el alto como en Contabilidad (paso de 1,4–1,5 in con tres públicos), con un aire de a lo más
