@@ -3,7 +3,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
-import { acotarReemplazos, cambiosDeSorteo, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
+import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
 
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
@@ -180,12 +180,16 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
 type EstructuraProps = {
   muestra: HojasRutaSamplePreview | null;
   historial: readonly HojasRutaRouteSnapshot[];
+  /** Territorio confirmado hoy: un ruteo de otro territorio no se ofrece para repetir. */
+  territorios: readonly string[];
+  /** N vigente (entrevistas del sorteo actual), o null si no hay. */
+  nFinal: number | null;
   bloqueado: boolean;
   guardando: boolean;
   onUsar: (s: HojasRutaRouteSnapshot) => void;
 };
 
-export function ManzanasEstructura({ muestra, historial, bloqueado, guardando, onUsar }: EstructuraProps) {
+export function ManzanasEstructura({ muestra, historial, territorios, nFinal, bloqueado, guardando, onUsar }: EstructuraProps) {
   const porDistrito = new Map<string, { distrito: string; titulares: number; entrevistas: number; reemplazos: number }>();
   for (const b of muestra?.blocks ?? []) {
     const f = porDistrito.get(b.ubigeo) ?? { distrito: b.distrito, titulares: 0, entrevistas: 0, reemplazos: 0 };
@@ -234,10 +238,12 @@ export function ManzanasEstructura({ muestra, historial, bloqueado, guardando, o
                 <li key={h.id} data-vigente={vigente(h) || undefined}>
                   <span>
                     <strong>{h.label}</strong>
-                    <small>{metodoDe(h.method)} · semilla {h.seed} · {fmt(h.n_replacement_blocks)} reemplazos</small>
+                    <small>{metodoDe(h.method)} · semilla {h.seed} · {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? ` · con N ${fmt(h.n_final)}` : ""}</small>
                   </span>
                   {vigente(h) ? (
                     <em>En uso</em>
+                  ) : !mismoTerritorio(h.territories, territorios) ? (
+                    <em data-otro title="Se sorteó con otros distritos: repetirlo hoy daría otra muestra">Otro territorio</em>
                   ) : (
                     <PulsoButton variant="secondary" size="sm" disabled={bloqueado || guardando} onClick={() => onUsar(h)}>
                       Usar

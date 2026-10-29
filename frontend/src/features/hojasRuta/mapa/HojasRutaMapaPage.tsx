@@ -29,7 +29,7 @@ import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPa
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
-import { aplicarSorteo, conInstantanea, instantaneaDeSorteo } from "./manzanas/sorteo";
+import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
 import { revisarSeleccion } from "../seleccion/revisionMarco";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
@@ -142,6 +142,8 @@ export default function HojasRutaMapaPage() {
   const distritos = useMemo(() => confirmados.map((u) => geometrias[u]).filter((d): d is PiezasDistrito => Boolean(d)), [confirmados, geometrias]);
   const territorios = useMemo(() => (estado?.territories ?? []).filter((t) => confirmados.includes(t.ubigeo)), [estado, confirmados]);
   const salidas = estado?.workspace_outputs;
+  // Las cuotas que el sorteo usó viajan en sample.quota: respaldo para corridas sorteadas sin outputs.quota.
+  const cuotas = salidas?.quota ?? salidas?.sample?.quota ?? null;
   const rangosVista = rangosBorrador ?? estado?.integrated_config.age_ranges ?? [];
   const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const configMuestra = useMemo(() => (estado ? aplicarBorrador(estado.integrated_config, muestraBorrador) : null), [estado, muestraBorrador]);
@@ -176,7 +178,7 @@ export default function HojasRutaMapaPage() {
         const muestra = await apiHojasRutaSamplePreview(config);
         const nuevo = await apiHojasRutaState();
         const foto = instantaneaDeSorteo(muestra, muestra.config, new Date(), `ruta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-        await apiHojasRutaPersistWorkspace(nuevo.integrated_config, { ...nuevo.ui_state, route_history: conInstantanea(nuevo.ui_state?.route_history ?? [], foto) }, nuevo.workspace_outputs, fase);
+        await apiHojasRutaPersistWorkspace(nuevo.integrated_config, { ...nuevo.ui_state, route_history: conInstantanea(nuevo.ui_state?.route_history ?? [], foto) }, { ...nuevo.workspace_outputs, quota: muestra.quota ?? nuevo.workspace_outputs?.quota ?? null }, fase);
         setEstado(await apiHojasRutaState());
         setSorteoBorrador(null);
       } catch (e: unknown) {
@@ -187,20 +189,14 @@ export default function HojasRutaMapaPage() {
     },
     [estado, fase, setSorteoBorrador],
   );
-  // Volver a un ruteo: misma semilla y parámetros, R lo repite tal cual.
-  const usarRuteo = useCallback(async (h: HojasRutaRouteSnapshot) => {
+  // Volver a un ruteo: sólo sus parámetros de sorteo sobre la configuración
+  // vigente (N, rangos y territorio siguen siendo los de hoy). Con el mismo
+  // territorio y el mismo N, R repite el sorteo; si cambiaron, la estructura
+  // no ofrece «Usar» (sortearía otra cosa).
+  const usarRuteo = useCallback((h: HojasRutaRouteSnapshot) => {
     if (!estado) return;
-    setGuardando(true);
-    try {
-      await apiHojasRutaSamplePreview({ ...h.config, territorios: estado.integrated_config.territorios });
-      setEstado(await apiHojasRutaState());
-      setSorteoBorrador(null);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "No se pudo recuperar el ruteo");
-    } finally {
-      setGuardando(false);
-    }
-  }, [estado, setSorteoBorrador]);
+    void sortear(aplicarSorteo(estado.integrated_config, parametrosDeSorteo(h.config)));
+  }, [estado, sortear]);
 
   // Selección: la revisión contra el marco decide el tono de cada ruta.
   const bloquesTitulares = useMemo(() => salidas?.sample?.blocks ?? [], [salidas]);
@@ -234,7 +230,7 @@ export default function HojasRutaMapaPage() {
   const decidido = indicadoresDecididos({
     distritos: confirmados.length,
     poblacion: territorios.reduce((a, t) => a + t.poblacion, 0),
-    n: salidas?.quota?.total_asignado ?? null,
+    n: cuotas?.total_asignado ?? null,
     margen: salidas?.sample_size_preview?.margin_total_estimated ?? null,
     titulares: salidas?.sample ? salidas.sample.blocks.length : null,
     reemplazos: salidas?.sample ? salidas.sample.replacement_blocks.length : null,
@@ -338,7 +334,7 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} bloqueado={bloqueado} guardando={guardando} onUsar={(h) => void usarRuteo(h)} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
@@ -388,7 +384,7 @@ export default function HojasRutaMapaPage() {
           }
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
-        {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={salidas?.quota ?? null} /> : null}
+        {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (
             <SeleccionInspector

@@ -177,7 +177,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
         <PulsoButton variant="secondary" disabled={!muestraBorrador || guardando} onClick={() => setMuestraBorrador(null)}>
           Deshacer
         </PulsoButton>
-        <PulsoButton variant="primary" disabled={!muestraBorrador || bloqueado || guardando || !r.multiploDeRuta} onClick={onGuardar}>
+        <PulsoButton variant="primary" disabled={!muestraBorrador || bloqueado || guardando || !r.multiploDeRuta || !r.filas.length || !(ruta > 0)} onClick={onGuardar}>
           {guardando ? "Calculando…" : "Guardar y calcular"}
         </PulsoButton>
       </footer>
@@ -216,10 +216,11 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
         </div>
         <div className="hr-mapa-cifras">
           <div><small>Entrevistas</small><strong>{fmt(r.nUsado)}</strong></div>
-          <div><small>Rutas</small><strong>{fmt(Math.floor(r.nUsado / ruta))}</strong></div>
+          <div><small>Rutas</small><strong>{ruta > 0 ? fmt(Math.floor(r.nUsado / ruta)) : "—"}</strong></div>
           <div><small>Peor margen</small><strong>{pct(peor)}</strong></div>
         </div>
       </div>
+      {!r.filas.length ? <p className="hr-mapa-vacio">Sin distritos confirmados: elígelos en Territorio y calcula la población para repartir la muestra.</p> : null}
       <ul className="hr-muestra-reparto">
         {r.filas.map((f) => (
           <li key={f.ubigeo}>

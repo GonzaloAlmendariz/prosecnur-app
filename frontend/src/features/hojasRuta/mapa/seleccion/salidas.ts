@@ -12,7 +12,7 @@ export function pasosDeEntrega(distritos: number, salidas: HojasRutaWorkspaceOut
   return [
     { id: "territorio", label: "Territorio", ok: distritos > 0, detalle: distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "Sin distritos" },
     { id: "poblacion", label: "Población", ok: Boolean(salidas?.population?.ok), detalle: salidas?.population?.ok ? "Calculada" : "Pendiente" },
-    { id: "cuotas", label: "Cuotas", ok: Boolean(salidas?.quota?.ok), detalle: salidas?.quota?.ok ? "Listas" : "Pendientes" },
+    { id: "cuotas", label: "Cuotas", ok: Boolean((salidas?.quota ?? salidas?.sample?.quota)?.ok), detalle: (salidas?.quota ?? salidas?.sample?.quota)?.ok ? "Listas" : "Pendientes" },
     { id: "manzanas", label: "Manzanas", ok: Boolean(salidas?.sample?.ok), detalle: salidas?.sample?.ok ? `${salidas.sample.n_blocks} titulares` : "Sin sorteo" },
   ];
 }

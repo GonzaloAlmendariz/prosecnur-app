@@ -22,6 +22,16 @@ export type BorradorSorteo = Partial<Pick<HojasRutaIntegratedConfig, (typeof CAM
 export const MAX_REEMPLAZOS = 10;
 export const MAX_HISTORIAL = 8;
 
+/** Sólo los parámetros del sorteo de una configuración (para volver a un ruteo del historial). */
+export function parametrosDeSorteo(config: Partial<HojasRutaIntegratedConfig>): BorradorSorteo {
+  const out: BorradorSorteo = {};
+  for (const k of CAMPOS_SORTEO) if (config[k] !== undefined) Object.assign(out, { [k]: config[k] });
+  return out;
+}
+
+/** Un ruteo del historial se puede repetir sólo con el mismo territorio. */
+export const mismoTerritorio = (a: readonly string[], b: readonly string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
+
 export function aplicarSorteo(config: HojasRutaIntegratedConfig, b: BorradorSorteo | null): HojasRutaIntegratedConfig {
   return b ? { ...config, ...b } : config;
 }

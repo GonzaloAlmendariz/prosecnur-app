@@ -324,3 +324,6 @@
 .hr-salidas-filas li:hover { background: var(--pulso-surface-2); }
 .hr-salidas-filas strong { display: block; font-size: 12.5px; }
 .hr-salidas-filas small { display: block; font-size: 11px; color: var(--pulso-text-soft); }
+/* El disparador de Salidas va primero en el árbol (no se remonta) y a la derecha en pantalla. */
+.hr-sel-pie > :first-child { order: 9; }
+.hr-sorteo-historial em[data-otro] { color: var(--pulso-text-soft); font-weight: 600; }

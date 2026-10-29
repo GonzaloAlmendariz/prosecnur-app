@@ -1,9 +1,12 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
+import { PulsoTable } from "../../../../components/PulsoTable";
 import type { HojasRutaAgeRange, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import type { ResumenMatriz } from "./matriz";
+
+type FilaMatriz = ResumenMatriz["filas"][number];
 import { agregarRango, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos } from "./rangos";
 
 /**
@@ -139,26 +142,18 @@ export function PoblacionInspector({ config, matriz, poblacionDistritos, bloquea
         <p className="hr-mapa-nota">Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</p>
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
-          <div className="hr-mapa-tabla-caja" tabIndex={0} aria-label="Matriz poblacional">
-          <table className="hr-mapa-tabla">
-            <thead>
-              <tr>
-                <th>Distrito</th>
-                {rangos.map((r) => <th key={r.id}>{r.label}</th>)}
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matriz.filas.map((f) => (
-                <tr key={f.ubigeo}>
-                  <th>{nombreDistrito(f.territorio)}</th>
-                  {f.porRango.map((c, i) => <td key={i}>{fmt(c.H + c.M)}</td>)}
-                  <td><b>{fmt(f.total)}</b></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
+          <PulsoTable
+            ariaLabel="Matriz poblacional"
+            densidad="compacta"
+            altoMaximo={320}
+            columnas={[
+              { id: "distrito", encabezado: "Distrito", ancho: 140, celda: (f: FilaMatriz) => nombreDistrito(f.territorio), valor: (f: FilaMatriz) => f.territorio },
+              ...rangos.map((r, i) => ({ id: `r${i}`, encabezado: r.label, ancho: 78, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0), valor: (f: FilaMatriz) => (f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0) })),
+              { id: "total", encabezado: "Total", ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => <b>{fmt(f.total)}</b>, valor: (f: FilaMatriz) => f.total },
+            ]}
+            filas={matriz.filas}
+            idDeFila={(f) => f.ubigeo}
+          />
         ) : null}
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
+import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
@@ -127,10 +128,13 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             )}
           </section>
         </div>
-        <footer className="hr-mapa-pie">
+        {/* `salidas` va PRIMERO en el pie de las dos vistas: misma posición en el árbol, así React no
+            lo vuelve a montar al abrir o cerrar la ficha y no se pierde un ZIP en curso. El CSS lo
+            lleva a la derecha. */}
+        <footer className="hr-mapa-pie hr-sel-pie">
+          {salidas}
           <PulsoButton variant="secondary" aria-label="Ruta anterior" onClick={() => onVecina(-1)}>‹</PulsoButton>
           <PulsoButton variant="secondary" aria-label="Ruta siguiente" onClick={() => onVecina(1)}>›</PulsoButton>
-          {salidas}
         </footer>
       </>
     );
@@ -164,13 +168,13 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         ) : totales.titulares ? (
           <p className="hr-mapa-nota">Ninguna observación: cada ruta tiene viviendas suficientes en el marco.</p>
         ) : null}
-        <p className="hr-mapa-nota">Toca una ruta en el mapa o en la lista para ver su ficha.</p>
+        {totales.titulares ? <p className="hr-mapa-nota">Toca una ruta en el mapa o en la lista para ver su ficha.</p> : <p className="hr-mapa-aviso">Sin sorteo: sortea las manzanas en la sección Manzanas para revisar las rutas.</p>}
       </div>
-      <footer className="hr-mapa-pie">
+      <footer className="hr-mapa-pie hr-sel-pie">
+        {salidas}
         <PulsoButton variant="secondary" disabled={!totales.titulares} onClick={() => setCajon("titulares")}>
           Ver las tablas
         </PulsoButton>
-        {salidas}
       </footer>
     </>
   );
@@ -178,12 +182,31 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
 
 const PESTANAS: ReadonlyArray<readonly [CajonSeleccion, string]> = [["titulares", "Titulares"], ["reemplazos", "Reemplazos"], ["cuotas", "Cuotas"]];
 
+type Celda = Record<string, string | number | null>;
+const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 150, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
+const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[] => [
+  COL_DISTRITO,
+  { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
+  { id: "manzana", encabezado: "Manzana", ancho: 150, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
+  ...(reemplazos ? [{ id: "titular", encabezado: "Reemplaza a", ancho: 100, celda: (b: SelectedBlock) => (b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"), valor: (b: SelectedBlock) => Number(b.titular_hoja_num ?? 0) }] : []),
+  { id: "zona", encabezado: "Zona", ancho: 76, celda: (b) => b.zona, valor: (b) => b.zona },
+  { id: "nse", encabezado: "NSE", ancho: 80, celda: (b) => nse(b), valor: (b) => nse(b) },
+  { id: "viviendas", encabezado: "Viviendas", ancho: 90, tipo: "cifra", celda: (b) => fmt(b.viviendas), valor: (b) => Number(b.viviendas || 0) },
+  { id: "encuestas", encabezado: "Encuestas", ancho: 96, tipo: "cifra", celda: (b) => rango(b), valor: (b) => Number(b.rango_inicio ?? 0) },
+];
+const COLUMNAS_CUOTA: PulsoTableColumna<Celda & { _i: number }>[] = [
+  { id: "distrito", encabezado: "Distrito", ancho: 170, celda: (c) => nombreDistrito(String(c.territorio ?? "")), valor: (c) => String(c.territorio ?? "") },
+  { id: "edad", encabezado: "Edad", ancho: 100, celda: (c) => String(c.rango_edad ?? ""), valor: (c) => String(c.rango_edad ?? "") },
+  { id: "sexo", encabezado: "Sexo", ancho: 90, celda: (c) => String(c.sexo ?? "Total"), valor: (c) => String(c.sexo ?? "Total") },
+  { id: "cuota", encabezado: "Cuota", ancho: 80, tipo: "cifra", celda: (c) => fmt(Number(c.cuota ?? 0)), valor: (c) => Number(c.cuota ?? 0) },
+];
+
 type CajonProps = { titulares: readonly SelectedBlock[]; reemplazos: readonly SelectedBlock[]; cuotas: QuotaPlan | null };
 
 export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
-  const { cajon, setCajon, setUmpEnfocada } = useLienzoHojasRuta();
+  const { cajon, setCajon, umpEnfocada, setUmpEnfocada } = useLienzoHojasRuta();
   if (!cajon) return null;
-  const celdas = cuotas?.cells ?? [];
+  const titularDe = new Map(reemplazos.map((r) => [r.id_manzana, r.titular_id_manzana ?? null]));
   return (
     <section className="hr-sel-cajon" aria-label="Tablas de la selección">
       <header>
@@ -192,50 +215,21 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
         </GlidingRadioGroup>
         <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>×</PulsoButton>
       </header>
-      <div className="hr-mapa-tabla-caja" tabIndex={0} aria-label={`Tabla de ${cajon}`}>
-        <table className="hr-mapa-tabla">
-          {cajon === "cuotas" ? (
-            <>
-              <thead><tr><th>Distrito</th><th>Edad</th><th>Sexo</th><th>Cuota</th></tr></thead>
-              <tbody>
-                {celdas.map((c, i) => (
-                  <tr key={i}>
-                    <th>{nombreDistrito(String(c.territorio ?? ""))}</th>
-                    <td>{String(c.rango_edad ?? "")}</td>
-                    <td>{String(c.sexo ?? "Total")}</td>
-                    <td><b>{fmt(Number(c.cuota ?? 0))}</b></td>
-                  </tr>
-                ))}
-              </tbody>
-            </>
-          ) : (
-            <>
-              <thead>
-                <tr>
-                  <th>Distrito</th><th>{cajon === "titulares" ? "UMP" : "R"}</th><th>Manzana</th>{cajon === "reemplazos" ? <th>Reemplaza a</th> : null}<th>Zona</th><th>NSE</th><th>Viviendas</th><th>Encuestas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(cajon === "titulares" ? titulares : reemplazos).map((b) => {
-                  const idTitular = cajon === "titulares" ? b.id_manzana : b.titular_id_manzana ?? null;
-                  return (
-                    <tr key={b.id_manzana} onClick={() => idTitular && setUmpEnfocada(idTitular)}>
-                      <th>{nombreDistrito(b.distrito)}</th>
-                      <td>{codigoDeUmp(b)}</td>
-                      <td>{b.id_manzana}</td>
-                      {cajon === "reemplazos" ? <td>{b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"}</td> : null}
-                      <td>{b.zona}</td>
-                      <td>{nse(b)}</td>
-                      <td>{fmt(b.viviendas)}</td>
-                      <td>{rango(b)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </>
-          )}
-        </table>
-      </div>
+      {cajon === "cuotas" ? (
+        <PulsoTable ariaLabel="Cuotas" densidad="compacta" altoMaximo={280} columnas={COLUMNAS_CUOTA} filas={(cuotas?.cells ?? []).map((c, _i) => ({ ...c, _i }))} idDeFila={(c) => String(c._i)} vacio="Sin cuotas calculadas." />
+      ) : (
+        <PulsoTable
+          ariaLabel={cajon === "titulares" ? "Titulares" : "Reemplazos"}
+          densidad="compacta"
+          altoMaximo={280}
+          columnas={COLUMNAS_BLOQUE(cajon === "reemplazos")}
+          filas={cajon === "titulares" ? titulares : reemplazos}
+          idDeFila={(b) => b.id_manzana}
+          seleccionada={cajon === "titulares" ? umpEnfocada : null}
+          onSeleccionar={(id) => setUmpEnfocada(cajon === "titulares" ? id : titularDe.get(id) ?? null)}
+          vacio={cajon === "reemplazos" && titulares.length ? "Este sorteo no tiene reemplazos: se sorteó con 0 por titular." : "Todavía no hay sorteo."}
+        />
+      )}
     </section>
   );
 }

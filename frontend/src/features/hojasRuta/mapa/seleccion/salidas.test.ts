@@ -13,6 +13,9 @@ describe("salidas de la selección", () => {
     const llena = pasosDeEntrega(2, { population: { ok: true }, quota: { ok: true }, sample: { ok: true, n_blocks: 3 } } as unknown as HojasRutaWorkspaceOutputs);
     expect(listoParaEntregar(llena)).toBe(true);
     expect(llena[3].detalle).toBe("3 titulares");
+    // Un sorteo trae sus cuotas en sample.quota aunque outputs.quota esté vacío.
+    const soloSorteo = pasosDeEntrega(2, { population: { ok: true }, quota: null, sample: { ok: true, n_blocks: 3, quota: { ok: true } } } as unknown as HojasRutaWorkspaceOutputs);
+    expect(listoParaEntregar(soloSorteo)).toBe(true);
   });
 
   it("las elegidas van primero; sin búsqueda no se lista el resto", () => {

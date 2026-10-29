@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview } from "../../../../api/hojasRuta";
-import { acotarReemplazos, aplicarSorteo, cambiosDeSorteo, conInstantanea, instantaneaDeSorteo, MAX_HISTORIAL, otraSemilla, saltoVistaPrevia } from "./sorteo";
+import { acotarReemplazos, aplicarSorteo, cambiosDeSorteo, conInstantanea, instantaneaDeSorteo, MAX_HISTORIAL, mismoTerritorio, otraSemilla, parametrosDeSorteo, saltoVistaPrevia } from "./sorteo";
 
 const config = {
   sampling_method: "pps",
@@ -80,5 +80,21 @@ describe("historial de ruteos", () => {
     expect(nuevo[0].id).toBe("n");
     expect(nuevo.filter((h) => h.seed === 3)).toHaveLength(1);
     expect(nuevo).toHaveLength(MAX_HISTORIAL);
+  });
+});
+
+describe("volver a un ruteo", () => {
+  it("toma sólo los parámetros del sorteo, nunca el N ni el territorio viejos", () => {
+    const vieja = { ...config, seed: 99, sampling_method: "sistematico", n_objetivo: 30, territorios: ["150101"] } as unknown as HojasRutaIntegratedConfig;
+    const p = parametrosDeSorteo(vieja);
+    expect(p).toMatchObject({ seed: 99, sampling_method: "sistematico" });
+    expect(p).not.toHaveProperty("n_objetivo");
+    expect(p).not.toHaveProperty("territorios");
+    expect(aplicarSorteo(config, p).n_objetivo).toBe(16);
+  });
+
+  it("sólo se repite con el mismo territorio, en cualquier orden", () => {
+    expect(mismoTerritorio(["a", "b"], ["b", "a"])).toBe(true);
+    expect(mismoTerritorio(["a"], ["a", "b"])).toBe(false);
   });
 });
