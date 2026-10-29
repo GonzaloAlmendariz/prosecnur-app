@@ -222,6 +222,7 @@ export { default as Play } from "lucide-react/dist/esm/icons/play.mjs";
 export { default as PlugZap } from "lucide-react/dist/esm/icons/plug-zap.mjs";
 export { default as Plus } from "lucide-react/dist/esm/icons/plus.mjs";
 export { default as Power } from "lucide-react/dist/esm/icons/power.mjs";
+export { default as Printer } from "lucide-react/dist/esm/icons/printer.mjs";
 export { default as QrCode } from "lucide-react/dist/esm/icons/qr-code.mjs";
 export { default as Quote } from "lucide-react/dist/esm/icons/quote.mjs";
 export { default as Radar } from "lucide-react/dist/esm/icons/radar.mjs";

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { downloadUrl } from "../../../../api/core";
+import { Printer } from "../../../../vendor/lucide-react";
 import { apiHojasRutaFichaUmp } from "../../../../api/hojasRuta";
 
 /**
@@ -31,7 +32,13 @@ export function HojaVista({ idManzana }: { idManzana: string }) {
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja"))
       .finally(() => setCargando(false));
   };
-  const descargar = () => {
+  // B46: el PDF se abre en una pestaña propia, donde se lee a tamaño real y se imprime con el
+  // visor del navegador. (El modal del artefacto espera decisión: ADR 0114 §3, enmienda U17.)
+  const abrirPdf = () => {
+    if (pdf) {
+      window.open(pdf, "_blank", "noopener,noreferrer");
+      return;
+    }
     apiHojasRutaFichaUmp(idManzana, "pdf")
       .then((r) => {
         setPdf(downloadUrl(r.file_id));
@@ -52,13 +59,14 @@ export function HojaVista({ idManzana }: { idManzana: string }) {
       {cargando ? <p className="hr-mapa-nota">Generando la hoja… tarda unos segundos por el mapa.</p> : null}
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
       {png ? (
-        <a href={png} target="_blank" rel="noopener noreferrer" className="hr-hoja-img">
+        <a href={png} target="_blank" rel="noopener noreferrer" className="hr-hoja-img" title="Ver la hoja en grande">
           <img src={png} alt="Vista previa de la hoja de ruta de esta UMP" />
         </a>
       ) : null}
+      {png ? <p className="hr-mapa-nota">Toca la hoja para verla en grande.</p> : null}
       <div className="hr-mapa-acciones">
-        <PulsoButton variant="secondary" size="sm" disabled={cargando} onClick={descargar}>
-          {pdf ? "Descargar otra vez" : "Descargar PDF"}
+        <PulsoButton variant="primary" size="sm" disabled={cargando} onClick={abrirPdf}>
+          <Printer size={13} aria-hidden /> Imprimir o descargar
         </PulsoButton>
         <PulsoButton variant="secondary" size="sm" onClick={() => setAbierta(false)}>
           Cerrar
