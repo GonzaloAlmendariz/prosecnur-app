@@ -21,7 +21,7 @@
       "aire_cifra_chica": 0.36,
       "likert": {
         "x_premisa": 0.495,
-        "ancho_premisa": 3.3,
+        "ancho_premisa": 3,
         "x_actor": 3.6,
         "ancho_actor": 1.5,
         "x_barra": 5.2,
@@ -74,7 +74,7 @@
       "filete": "#D5D9DF",
       "cebra": "#E9ECF1",
       "fondo": "#F2F2F2",
-      "verde_top_two_box": "#4E9438",
+      "verde_top_two_box": "#70AD47",
       "naranja_bottom_two_box": "#B4541F",
       "naranja_bottom_two_box_texto": "#A44A1F",
       "azul_medio": "#4F7FAF",

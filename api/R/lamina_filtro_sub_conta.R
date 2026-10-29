@@ -25,7 +25,7 @@
   fila <- function(texto, yb, nota = NULL, actor = NULL) {   # la premisa a la izquierda, centrada con su barra
     hp <- .lam_alto_premisa_txt(texto, wp); hn <- if (is.null(nota)) 0 else 0.26
     yt <- yb + g / 2 - (hp + hn) / 2
-    .lam_txt(lz, texto, L$x_premisa, yt, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
+    .lam_txt(lz, texto, L$x_premisa, yt, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, align = "center", nombre = "premisa")   # centrada, como Contabilidad
     if (!is.null(nota)) .lam_txt(lz, nota, L$x_premisa, yt + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     if (!is.null(actor)) .lam_txt(lz, actor, L$x_actor, yb + g / 2 - 0.15, L$x_barra - L$x_actor - 0.1, 0.3, .std_pt("actor"), azul,
                                   bold = TRUE, align = "right", nombre = "escala:rotulo_fila")

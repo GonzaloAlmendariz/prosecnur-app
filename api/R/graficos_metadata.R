@@ -4171,7 +4171,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
+    color_barra_extra        = "#70AD47",  # ADR 0092: verde_top_two_box del estándar (Conta, 2026-10-29)
 
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0.03,
@@ -4270,7 +4270,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     legend_gap_npc           = 0.012,
 
     color_texto_barras       = "white",
-    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
+    color_barra_extra        = "#70AD47",  # ADR 0092: verde_top_two_box del estándar (Conta, 2026-10-29)
     # Mismo criterio que en apiladas: la columna extra de una multiapilada es
     # el Top 2 Box. `mostrar_barra_extra` lo enciende el plan con `top2box` o
     # el propio preset; el preset del indicador tiene que estar puesto para que

@@ -21,7 +21,8 @@
 
 test_that("con piso, la escala que se partiría cabe en una lámina con el ensanche mínimo, no con el tope", {
   withr::local_options(prosecnur.grosor_piso_cm = 1.12, prosecnur.ancho_enunciado_extra_in = NULL, prosecnur.evitar_cont = NULL)
-  e <- .espec_ej(5L); p <- .lam_escala_premisas(e)
+  # Enunciado largo: con un solo público la pregunta ya toma el aire hasta su rótulo (como Conta), y la corta cabe sola.
+  e <- .espec_ej(5L, paste(.TXT_EJ, "y de los cursos de la especialidad")); p <- .lam_escala_premisas(e)
   expect_identical(.lam_escala_partes_con(p, e, 0), 2L)          # sin ensanche se parte
   ex <- .lam_escala_ensanche_justo(p, e)
   expect_gt(ex, 0); expect_lt(ex, .LAM_ENSANCHE_JUSTO_TOPE_IN)  # lo justo, no el 1,2 in de N10

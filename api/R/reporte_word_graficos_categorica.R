@@ -8,7 +8,7 @@
 # barras agrupadas es mejor que por defecto vayan de 0 a 100%»).
 
 .WORD_TINTA <- list(navy = "#081F5C", tenue = "#8E9DBD", gris = "#8A93A8", celeste = "#9DC3E6", medio = "#4F7FAF",
-                    verde = "#4E9438", coral = "#CA5651")
+                    verde = "#70AD47", coral = "#CA5651")
 
 #' Tema de las figuras Word del recetario (`tema_w()`): vacío, Arial, leyenda abajo a 8 pt
 #'

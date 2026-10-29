@@ -12,7 +12,7 @@ XC <- ML; AC <- W - MR - ML
 geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_izq = ML, margen_der = MR, titulo_y = 0.355,
              zona_datos_y0 = 1.65, zona_datos_y1 = 6.42, contenido_y1 = 6.72, leyenda_y = 6.42, base_y = 6.88,
              ancho_contenido = r3(AC), separacion_paneles = 0.5, columna_top_two_box = 1.0, aire_cifra_chica = 0.36,
-             likert = list(x_premisa = ML, ancho_premisa = 3.3, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.2, x_top_two_box = 11.5),
+             likert = list(x_premisa = ML, ancho_premisa = 3.0, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.2, x_top_two_box = 11.5),
              # K15: la cifra de las láminas de composición es la pieza `cifra()` (recetario_piezas.R:51-56): valor de 0.62,
              # rótulo debajo (0.3), detalle en +0.9 (0.26); ocupa 1.15 y sus separadores van de y + 0.05 a y + 1.2 (p171).
              cifra_pieza = list(valor_h = 0.62, rotulo_dy = 0.62, rotulo_h = 0.3, detalle_dy = 0.9, detalle_h = 0.26, alto = 1.15, separador_dy = 0.05))
@@ -26,7 +26,7 @@ tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 1
                        portada_encargo_izquierda = 16, portada_fecha_izquierda = 14, portada_encargo_banda = 15, portada_fecha_banda = 13,
                        fuente = "Arial")
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
-                cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#4E9438", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
+                cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#70AD47", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
                 azul_rango = "#B9C5DC",   # caja del 50 % central (boxplot) y barra del rango (media y rango), recetario_m3b.R
                 anillo_radar = "#C9CED8",   # anillos del radar, recetario_m3c.R:82
                 mapa_aplicada = "#2F4B7C", mapa_medio = "#9FB1D1", mapa_fuera = "#E2E6EC", mapa_borde = "#B8C2D3",   # mapas, recetario_m3e.R:85

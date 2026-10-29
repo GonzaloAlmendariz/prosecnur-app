@@ -130,7 +130,24 @@
 }
 #' Alto del texto de una premisa, con la línea de su N si la lleva
 #' @keywords internal
-.lam_premisa_alto <- function(p, wp) .lam_alto_premisa_txt(p$texto, wp) + (if (is.null(p$nota)) 0 else 0.26)   # tinta real: lamina_escala_premisa_alto.R
+.lam_premisa_alto <- function(p, wp) .lam_alto_premisa_txt(p$texto, .lam_premisa_ancho_de(p, wp)) + (if (is.null(p$nota)) 0 else 0.26)
+
+#' Ancho de la columna de UNA pregunta: el de la lámina, sin pasar de donde empieza la tinta del rótulo de su público
+#'
+#' Como Contabilidad: la columna es angosta (3,0 in) cuando la pregunta tiene varios públicos, porque su bloque de barras le
+#' da alto para varias líneas; con un solo público su fila mide una barra, y la pregunta toma el aire hasta 0,15 in antes
+#' de la tinta de su rótulo. Así «Gestión y planificación» de Arte cabe en una lámina (Gonzalo, 2026-10-29: «No, en una»).
+#' @keywords internal
+.lam_premisa_ancho_de <- function(p, wp) {
+  act <- vapply(p$filas %||% list(), function(f) as.character(f$actor %||% "")[1], "")
+  act <- act[nzchar(act)]
+  if (!length(act)) return(wp)
+  L <- .std_geom("likert")
+  tinta <- max(.lam_ancho_tinta(act, .std_pt("actor"), TRUE))
+  lim <- L$x_actor + .std_enunciado_extra_in() + L$ancho_actor - 0.1 - tinta - 0.15 - L$x_premisa
+  # Como Conta: con un solo público la pregunta toma el aire hasta su rótulo; con varios, la columna común.
+  if (length(p$filas) == 1L) max(wp, lim) else min(wp, max(lim, 2))
+}   # tinta real: lamina_escala_premisa_alto.R
 .lam_escala_geo <- function(premisas, wp, nb = NULL) {
   # `nb`: filas de la lámina entera cuando varios bloques la comparten (multilista); el grosor es por lámina.
   nb <- nb %||% sum(vapply(premisas, function(p) length(p$filas), 0))
@@ -390,14 +407,14 @@
                                tope_entre = if (llenando) .std_comp("llenar", "aire_entre_temas_max") else .std_comp("escala", "aire_entre_temas_max"), repartir = llenando)
   y <- y + ta$pad; tot <- ta$alto; altos <- vapply(seq_along(premisas), function(i) max(.lam_premisa_alto(premisas[[i]], wp), length(premisas[[i]]$filas) * ta$filas[i]), 0)
   for (i in seq_along(premisas)) {
-    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_premisa_txt(p$texto, wp); hn <- .lam_premisa_alto(p, wp); fila <- ta$filas[i]
+    p <- premisas[[i]]; a <- altos[i]; wpp <- .lam_premisa_ancho_de(p, wp); hp <- .lam_alto_premisa_txt(p$texto, wpp); hn <- .lam_premisa_alto(p, wp); fila <- ta$filas[i]
     if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - ta$gaps[i - 1L] / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     if (un_tema) {
       if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
         .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% .std_comp("escala", "rotulo_box_sobre")), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
                  bold = TRUE, nombre = "premisa")
     } else {
-      .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
+      .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wpp, hp, .std_pt("pregunta"), azul, bold = TRUE, align = "center", nombre = "premisa")   # centrada en su columna, como Contabilidad
       if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                                      nombre = "premisa:n")
     }
