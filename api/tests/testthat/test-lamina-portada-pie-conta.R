@@ -50,8 +50,8 @@ test_that("la portada de plantilla lleva el título azul y el encargo (18 pt) ar
   expect_identical(xml2::xml_text(enc), "Por encargo de la Facultad de Arte y Diseño PUCP")
   expect_identical(xml2::xml_text(fecha), "Octubre, 2026")
   expect_lt(.pc_off(enc)[["y"]], .pc_off(fecha)[["y"]])                            # el orden de Conta
-  expect_equal(unname(.pc_off(enc)), unname(.LAM_PORTADA_PLANTILLA_ENCARGO[c("left", "top")]), tolerance = 0.005)
-  expect_equal(unname(.pc_off(fecha)), unname(.LAM_PORTADA_PLANTILLA_FECHA[c("left", "top")]), tolerance = 0.005)
+  expect_equal(unname(.pc_off(enc)), unname(.lam_portada_caja("encargo")[c("left", "top")]), tolerance = 0.005)
+  expect_equal(unname(.pc_off(fecha)), unname(.lam_portada_caja("fecha")[c("left", "top")]), tolerance = 0.005)
   expect_identical(xml2::xml_attr(xml2::xml_find_first(enc, ".//a:rPr"), "sz"), "1800")
   expect_identical(xml2::xml_attr(xml2::xml_find_first(enc, ".//a:pPr"), "algn"), "ctr")
   expect_identical(xml2::xml_attr(xml2::xml_find_first(fecha, ".//a:pPr"), "algn"), "r")      # la fecha, a la derecha de su caja

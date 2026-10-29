@@ -275,6 +275,22 @@
         "base_y": 7.06,
         "base_negrita": false
       },
+      "portada_plantilla": {
+        "encargo": {
+          "left": 3.3,
+          "top": 5.5,
+          "width": 6.75,
+          "height": 0.56
+        },
+        "fecha": {
+          "left": 9.17,
+          "top": 6.21,
+          "width": 3.06,
+          "height": 0.4
+        },
+        "encargo_pt": 18,
+        "fecha_pt": 18
+      },
       "llenar": {
         "aire_leyenda": 0.45,
         "aire_entre_temas_max": 1,

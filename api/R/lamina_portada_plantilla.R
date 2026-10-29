@@ -14,16 +14,12 @@
 # Sólo aplica a la plantilla estándar de PULSO: las portadas de cliente (ACNUR) tienen su propia composición y se
 # respetan, igual que en `.lam_plantilla_estandar`.
 #
-# PENDIENTE DEL LEAD: las cajas y el 18 pt son del estándar (`ppt.geometria`/`ppt.tipografia` de estandar_pulso.json
-# y exportar_estandar.R); quedan aquí como constantes con nombre porque esos archivos se editan en paralelo.
+# Las cajas (pulgadas) y los tamaños de Conta viven en el estándar, `composicion.portada_plantilla`.
 
-# Cajas de Conta (pulgadas: izquierda, arriba, ancho, alto), medidas sobre el mazo aprobado de Contabilidad.
-.LAM_PORTADA_PLANTILLA_ENCARGO <- c(left = 3.30, top = 5.50, width = 6.75, height = 0.56)
-.LAM_PORTADA_PLANTILLA_FECHA <- c(left = 9.17, top = 6.21, width = 3.06, height = 0.40)
-# Tamaños de Conta: el encargo a 18 pt; la fecha, los 18 pt del placeholder `dt` del layout (se repiten porque el
-# párrafo se escribe con alineación propia y officer no deja el tamaño heredado al lado de un color explícito).
-.LAM_PORTADA_PLANTILLA_ENCARGO_PT <- 18
-.LAM_PORTADA_PLANTILLA_FECHA_PT <- 18
+#' Caja de Conta del encargo o de la fecha de la portada de plantilla, como `c(left, top, width, height)`
+#' @keywords internal
+.lam_portada_caja <- function(cual) unlist(.std_comp("portada_plantilla", cual))[c("left", "top", "width", "height")]
+
 # Los placeholders del layout «Title Slide» de plantilla_16_9.pptx: con `ph_xml` el texto sigue heredando su estilo
 # aunque la caja vaya por coordenadas (ver `.ph_with_strict`).
 .LAM_PORTADA_PLANTILLA_PH <- c(date = '<p:ph type="dt" idx="11"/>', subtexto = '<p:ph type="body" sz="quarter" idx="12"/>')
@@ -42,7 +38,7 @@
 #' @keywords internal
 .lam_portada_slot_plantilla <- function(spec, clave, plantilla = NULL) {
   if (!.lam_plantilla_estandar(plantilla) || !clave %in% names(.LAM_PORTADA_PLANTILLA_PH)) return(spec)
-  caja <- if (identical(clave, "date")) .LAM_PORTADA_PLANTILLA_FECHA else .LAM_PORTADA_PLANTILLA_ENCARGO
+  caja <- .lam_portada_caja(if (identical(clave, "date")) "fecha" else "encargo")
   spec$loc <- as.list(caja)
   spec$ph_xml <- .LAM_PORTADA_PLANTILLA_PH[[clave]]
   spec
@@ -55,14 +51,14 @@
 #' `font.size`, y el encargo se quedaba en los 12 pt del layout.
 #' @keywords internal
 .lam_portada_encargo_valor <- function(texto, plantilla = NULL) {
-  .lam_portada_parrafo(texto, plantilla, .LAM_PORTADA_PLANTILLA_ENCARGO_PT, "center")
+  .lam_portada_parrafo(texto, plantilla, .std_comp("portada_plantilla", "encargo_pt"), "center")
 }
 
 #' Valor de la fecha de la portada de plantilla: alineada a la derecha de su caja como Conta (el layout la deja a la
 #' izquierda), a los 18 pt del placeholder `dt`; en otra plantilla, el texto tal cual
 #' @keywords internal
 .lam_portada_fecha_valor <- function(texto, plantilla = NULL) {
-  .lam_portada_parrafo(texto, plantilla, .LAM_PORTADA_PLANTILLA_FECHA_PT, "right")
+  .lam_portada_parrafo(texto, plantilla, .std_comp("portada_plantilla", "fecha_pt"), "right")
 }
 
 #' Párrafo de la portada de plantilla con tamaño, azul y alineación explícitos (sólo en la plantilla estándar)
