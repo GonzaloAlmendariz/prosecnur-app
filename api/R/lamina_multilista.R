@@ -324,6 +324,13 @@
     } else if (sobra > 0.05) {
       extra <- rep(sobra, length(items))   # una sola pregunta: el alto se lo reparten sus públicos (lamina_escala_temas.R)
     }
+  } else {
+    # Justa o apretada: si el texto de las preguntas manda el alto de sus filas, la barra engrosa sin que la lámina crezca
+    # (Renzo, 2026-10-29: «aquí se vuelve a ver pequeño, compararlo con los otros», Gestión y planificación de Arte).
+    fin0 <- function(...) componer(.lam_lienzo(), ..., sin_tope = FALSE); base <- fin0()
+    # con leyenda propia, la última va a `aire_leyenda` de su barra y no pasa de su piso: ese alto también se puede usar
+    tope <- if (compartida) base else max(base, .lam_piso_leyenda() + .std_comp("multilista", "alto_leyenda") + .std_comp("multilista", "gap_bloques") - .std_comp("escala", "aire_leyenda"))
+    dg <- .lam_escala_engrosar_busca(gr$grosor, nb, function(d) fin0(dg = d) <= tope + 0.005)
   }
   bajar <- if (!apretar && f >= 1) .lam_escala_centrar(fin_de(dg = dg, entre = entre, extra = extra) - (if (compartida) 0 else .std_comp("multilista", "alto_leyenda"))) else 0
   y <- componer(lz, dg = dg, entre = entre, extra = extra, sin_tope = !apretar && f >= 1, bajar = bajar)   # lo que sigue sobrando: centrado
