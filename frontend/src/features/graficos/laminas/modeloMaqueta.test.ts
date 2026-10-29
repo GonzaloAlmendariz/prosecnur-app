@@ -66,6 +66,19 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(r.twoBox.ttb).toBe(true);
   });
 
+  it("un bloque Sí/No con el Top Two Box encendido no lo dibuja: no tiene «dos mejores» (como el motor)", () => {
+    const vars = [
+      { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },
+      { name: "p12", source: "docentes", label: "Definidos", list_name: "ac", choices: ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"].map((l, i) => ({ name: String(i + 1), label: l })) },
+    ] as never[];
+    const s = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", barra_extra: ["top2box"], bloques: [
+      { vars: { t: ["docentes$p11"] } },
+      { vars: { t: ["docentes$p12"] } },
+    ] } });
+    const [r] = ranurasDeMaqueta(s, vars);
+    expect(r.preguntas.map((q) => [q.titulo, q.ttb])).toEqual([["¿Conoce?", false], ["Definidos", true]]);
+  });
+
   it("cada pregunta trae su escala con los colores de su lista y se dice si comparten escala", () => {
     const vars = [
       { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },

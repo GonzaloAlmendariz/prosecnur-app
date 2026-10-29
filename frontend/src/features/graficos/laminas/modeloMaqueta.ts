@@ -154,7 +154,8 @@ export function nombreBase(source: string): string {
   return t ? t[0].toLocaleUpperCase("es") + t.slice(1) : source;
 }
 
-type Grupo = { titulo: string | null; refs: string[]; ttb?: boolean; bloque: number; cruce: string | null };
+/** `etiquetas`: las categorías del Top Two Box que declara su bloque (`top2box_labels`), si las declara. */
+type Grupo = { titulo: string | null; refs: string[]; ttb?: boolean; etiquetas?: string[]; bloque: number; cruce: string | null };
 
 /** Todas las preguntas (`var` o `base$var`) que dibuja un gráfico, en el orden en que salen. */
 export function preguntasDelGrafico(args: Record<string, unknown>): string[] {
@@ -184,7 +185,9 @@ function gruposDe(args: Record<string, unknown>, bloque = 0, lamina?: BarraExtra
     return args.bloques.flatMap((b, i) => {
       if (!b || typeof b !== "object") return [];
       const ttb = ttbDeBloque(b, lamina);
-      return gruposDe(b as Record<string, unknown>, i).map((g) => ({ ...g, ttb }));
+      const lab = (b as Record<string, unknown>).top2box_labels;
+      const etiquetas = Array.isArray(lab) ? lab.filter((x): x is string => typeof x === "string") : undefined;
+      return gruposDe(b as Record<string, unknown>, i).map((g) => ({ ...g, ttb, etiquetas }));
     });
   }
   const cruce = cruceDe(args);
@@ -252,7 +255,8 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         const filas = g.cruce ? Math.max(1, cruceInfo?.choices?.length ?? 2) : Math.max(1, g.refs.length);
         const opciones = escalaDe(iv, colores);
         return {
-          titulo, opciones, ttb: g.ttb ?? twoBoxEnPregunta(twoBox.ttb, twoBox.etiquetas, opciones), bases: bases.length > 1 ? basesQ.map(nombreBase) : [],
+          // El bloque enciende su columna, pero la pregunta decide si sale: un Sí/No no tiene «dos mejores» (motor, `.box_decidir`).
+          titulo, opciones, ttb: twoBoxEnPregunta(g.ttb ?? twoBox.ttb, g.etiquetas ?? twoBox.etiquetas, opciones), bases: bases.length > 1 ? basesQ.map(nombreBase) : [],
           bloque: g.bloque, filas, cruce: g.cruce ? cleanInferredVariableTitle(cruceInfo?.label) ?? parseVarRef(g.cruce).name : null,
         };
       });
