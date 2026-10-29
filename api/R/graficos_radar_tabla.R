@@ -6,19 +6,21 @@
 #
 # CONTRATO
 #   `tabla` (choice, por tarjeta): `auto` | `si` | `no`.
-#     - `auto` (defecto; ausente = auto): lo de siempre. Tabla junto al radar con la forma radar; SIN tabla con líneas y
-#       puntos o barras.
+#     - `auto` (defecto; ausente = auto): tabla junto al radar y junto a las líneas y puntos (los comparativos de ejes;
+#       Gonzalo, 2026-10-28: «faltan las tablas en los gráficos comparativos de ejes, tanto en el PPT como en el Word»);
+#       SIN tabla con barras.
 #     - `si`: tabla en cualquiera de las tres formas.
 #     - `no`: nunca.
 #   Alias viejo: `mostrar_tabla` TRUE -> `auto`, FALSE -> `no`. Se lee en el constructor y en la migración del plan
 #   (`.graficos_migrar_radar_tabla`, llamada por `.graficos_migrar_plan`), que reescribe una vez y deja el plan sin la
 #   clave vieja; `mostrar_tabla` queda en la metadata como `heredado`.
-#   `word_tabla` (bool, solo-Word, defecto FALSE = no va): no hereda `tabla`. TRUE inserta una tabla nativa de Word,
-#   centrada y ENCIMA de la figura (reporte_word_tabla_grafico.R); el gráfico del Word no la pinta dentro de la imagen.
+#   `word_tabla` (bool, solo-Word): TRUE la pone siempre; sin marcar sigue a `tabla` (la misma regla que el PPT). Para que
+#   no vaya en ninguno, `tabla = "no"`. Es una tabla nativa de Word, centrada y ENCIMA de la figura (reporte_word_tabla_grafico.R); el gráfico del Word
+#   no la pinta dentro de la imagen.
 #
 #   Contenido: lo que reporta el indicador del gráfico (para Arte, «% De acuerdo + Totalmente de acuerdo»): una fila por
 #   criterio, una columna por público, con los decimales del gráfico y las mismas cifras redondeadas que sus etiquetas.
-#   Encabezado de la primera columna: `tabla_titulo` si se declaró; si no, el nombre del indicador (`corte_etiqueta`).
+#   Encabezado de la primera columna: `tabla_titulo`, que escribe el analista; sin él la celda queda vacía y se avisa.
 #
 # DÓNDE VIVE QUÉ
 #   - Este archivo: normalización, contenido y adjunto de la tabla a la forma dibujada.
@@ -67,7 +69,7 @@
 #' @param dibuja `radar`, `puntos` o `barras`.
 #' @keywords internal
 .radar_mb_tabla_procede <- function(modo, dibuja) {
-  identical(modo, "si") || (identical(modo, "auto") && identical(dibuja, "radar"))
+  identical(modo, "si") || (identical(modo, "auto") && dibuja %in% c("radar", "puntos"))
 }
 
 #' La tabla de cifras que acompaña a una forma sin radar y la que va al Word
@@ -214,4 +216,10 @@
     .pulso_aviso(.aviso_en_lamina("la tabla de datos no tiene encabezado en su primera columna; escríbelo en «Encabezado de la primera columna»."))
   }
   invisible(NULL)
+}
+
+#' ¿El Word lleva su tabla nativa? Con `word_tabla` marcada, siempre; sin marcar, la misma regla que el PPT
+#' @keywords internal
+.radar_mb_word_tabla_procede <- function(el, dibuja) {
+  isTRUE(.radar_mb_word_tabla(el[["word_tabla"]])) || .radar_mb_tabla_procede(.radar_mb_tabla_modo_el(el), dibuja)
 }

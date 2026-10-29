@@ -1064,7 +1064,7 @@ p_radar_publicos <- function(
   info_tabla <- function() { .radar_mb_avisar_sin_encabezado(el)
     .radar_mb_tabla_cifras(datos, res$decimales, el$corte_etiqueta, el$tabla_titulo %||% "", el$tabla_encabezados %||% list()) }
   if (isTRUE(el[[".word_render"]])) {
-    return(if (isTRUE(el[["word_tabla"]])) .radar_mb_word_adjuntar(g, info_tabla()) else g)
+    return(if (.radar_mb_word_tabla_procede(el, dibuja)) .radar_mb_word_adjuntar(g, info_tabla()) else g)
   }
   modo_tabla <- .radar_mb_tabla_modo_el(el)
   if (identical(modo_tabla, "no")) return(g)
