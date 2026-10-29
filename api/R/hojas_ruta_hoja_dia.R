@@ -14,9 +14,10 @@
 
 HOJAS_RUTA_DISPOSICIONES <- c("Completa", "Rechazo", "Ausente", "Desocupada", "No elegible")
 
-# Columnas de visita de la grilla: las esperadas más dos de holgura para la
-# segunda pasada, con tope para que la casilla siga siendo marcable.
-HOJAS_RUTA_HD_HOLGURA <- 2L
+# Columnas de visita de la grilla: las visitas con margen del ADR 0116 (`visitas_cap`,
+# percentil 90 de la binomial negativa, que ya cubre la segunda pasada), todas numeradas
+# —Monitoreo necesita el ordinal de la visita—, con tope para que la casilla siga
+# siendo marcable. Las que pasan las esperadas se sombrean como reserva.
 HOJAS_RUTA_HD_MAX_COLUMNAS <- 30L
 
 .hojas_ruta_hd_int <- function(x) {
@@ -63,8 +64,9 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
   titulares <- .hojas_ruta_rows_df(sample$blocks %||% list())
   reemplazos <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
   ids_jornada <- as.character(unlist(j$rutas))
-  # Una ruta que no cabe en una jornada ocupa varias: se dice qué parte es ésta.
-  apariciones <- unlist(lapply(plan$jornadas, function(x) as.character(unlist(x$rutas))))
+  ss <- if (is.list(cfg$sample_size)) cfg$sample_size else list()
+  r_resp <- suppressWarnings(as.numeric(ss$response_rate %||% 0.9)[1]); if (is.na(r_resp) || r_resp <= 0) r_resp <- 0.9
+  e_ocup <- suppressWarnings(as.numeric(ss$ocupacion %||% 1)[1]); if (is.na(e_ocup) || e_ocup <= 0) e_ocup <- 1
   # Puntos interiores de las manzanas del distrito (los mismos que ordenan el plan):
   # ubican las rutas en el mapa cuando la muestra no trae lat/lon, y dan el contexto.
   pts <- .hojas_ruta_hd_puntos(puntos, j$ubigeo)
@@ -82,12 +84,6 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
     k <- max(1L, .hojas_ruta_hd_int(block$entrevistas %||% cfg$entrevistas_por_manzana %||% 1L), na.rm = TRUE)
     regla <- .hojas_ruta_vp_regla(block)
     if (nzchar(regla)) reglas <<- c(reglas, regla)
-    n_partes <- sum(apariciones == id)
-    parte <- if (n_partes > 1L) {
-      con_ruta <- which(vapply(plan$jornadas, function(x) id %in% as.character(unlist(x$rutas)), logical(1)))
-      esta <- which(vapply(plan$jornadas, function(x) identical(x$id, j$id), logical(1)))
-      match(esta, con_ruta)
-    } else 1L
     repl <- if (nrow(reemplazos) && "titular_id_manzana" %in% names(reemplazos)) {
       reemplazos[as.character(reemplazos$titular_id_manzana) == id, , drop = FALSE]
     } else reemplazos[0, , drop = FALSE]
@@ -99,10 +95,7 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
                 .hojas_ruta_hd_txt(rb$zona, "-"), .hojas_ruta_hd_txt(rb$manzana, "-"))
       }, character(1))
     } else character(0)
-    base_visitas <- if (n_partes > 1L) {
-      # La parte de esta jornada: lo que el plan le asignó.
-      .hojas_ruta_hd_int(j$visitas)
-    } else if (!is.na(visitas)) visitas else k
+    cap_v <- as.integer(hojas_ruta_visitas_cap(k, r_resp, e_ocup))
     list(
       orden = i,
       id_manzana = id,
@@ -120,9 +113,12 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
       rango_inicio = .hojas_ruta_hd_int(block$rango_inicio),
       rango_fin = .hojas_ruta_hd_int(block$rango_fin),
       reemplazos = as.list(repl_codigos),
-      parte = as.integer(parte),
-      partes = as.integer(n_partes),
-      columnas = as.integer(min(HOJAS_RUTA_HD_MAX_COLUMNAS, max(1L, base_visitas) + HOJAS_RUTA_HD_HOLGURA)),
+      # La ruta va entera aunque no quepa en la jornada: sigue al día siguiente.
+      excede_jornada = isTRUE(j$excede_jornada),
+      jornadas_equivalentes = as.integer(j$jornadas_equivalentes %||% 1L),
+      visitas_cap = cap_v,
+      columnas = as.integer(min(HOJAS_RUTA_HD_MAX_COLUMNAS, max(1L, cap_v))),
+      truncada = cap_v > HOJAS_RUTA_HD_MAX_COLUMNAS,
       lat = .hojas_ruta_hd_coord(block$lat, pts$lat[match(id, as.character(pts$id_manzana))]),
       lon = .hojas_ruta_hd_coord(block$lon, pts$lon[match(id, as.character(pts$id_manzana))])
     )
@@ -258,9 +254,10 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
   # Título de la ruta
   titulo <- sprintf("%d · %s · Zona %s · Mz %s", r$orden, r$codigo, r$zona, r$manzana)
   .hojas_ruta_hd_txt_at(titulo, x0, top - 0.008, 8.4, tk$navy, "bold")
-  meta <- sprintf("Meta: %d completas%s%s", r$entrevistas,
+  meta <- sprintf("Meta: %d completas%s%s%s", r$entrevistas,
                   if (!is.na(r$visitas_esperadas)) sprintf(" · %d visitas esperadas", r$visitas_esperadas) else "",
-                  if (r$partes > 1L) sprintf(" · parte %d de %d", r$parte, r$partes) else "")
+                  if (isTRUE(r$excede_jornada)) sprintf(" · %d jornadas, mismo encuestador", r$jornadas_equivalentes) else "",
+                  if (isTRUE(r$truncada)) sprintf(" · grilla hasta %d de %d visitas", r$columnas, r$visitas_cap) else "")
   .hojas_ruta_hd_txt_at(meta, x0 + w, top - 0.008, 7.2, tk$soft, just = c("right", "center"))
   y <- top - 0.020
   filas <- c("Visita", "Vivienda N°", HOJAS_RUTA_DISPOSICIONES)
@@ -280,9 +277,13 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
   # Encabezados de visita y total
   for (cidx in seq_len(n)) {
     xc <- x0 + etiqueta_w + (cidx - 0.5) * col_w
-    holgura <- cidx > n - HOJAS_RUTA_HD_HOLGURA
-    .hojas_ruta_hd_txt_at(if (holgura) "+" else as.character(cidx), xc, y - fila_h / 2, 6.6,
-                          if (holgura) tk$soft else tk$ink, "bold", just = c("center", "center"))
+    reserva <- !is.na(r$visitas_esperadas) && cidx > r$visitas_esperadas
+    if (reserva) {
+      grid::grid.rect(x = xc, y = y - fila_h, width = col_w, height = alto - fila_h, just = c("center", "top"),
+                      gp = grid::gpar(col = NA, fill = tk$canvas))
+    }
+    .hojas_ruta_hd_txt_at(as.character(cidx), xc, y - fila_h / 2, 6.6,
+                          if (reserva) tk$soft else tk$ink, "bold", just = c("center", "center"))
     for (i in 3:length(filas)) {
       .hojas_ruta_hd_casilla(xc, y - (i - 0.5) * fila_h, min(col_w * 0.48, 0.016), geo, tk$tbl_frame)
     }
@@ -365,7 +366,7 @@ hojas_ruta_hoja_dia_pdf <- function(m, out_pdf, fecha = Sys.Date()) {
   .hojas_ruta_hd_txt_at("Rutas en orden de visita", margen, y, 10.5, tk$navy, "bold")
   y <- y - 0.016
   cols <- c("#", "UMP", "Zona · Mz", "Viv.", "Entrev.", "Visitas esp.", "Salto", "Inicio", "Encuestas", "Reemplazo")
-  anchos <- c(0.030, 0.090, 0.120, 0.050, 0.060, 0.080, 0.050, 0.110, 0.080, 0)
+  anchos <- c(0.030, 0.085, 0.110, 0.045, 0.060, 0.080, 0.075, 0.110, 0.075, 0)
   anchos[length(anchos)] <- ancho - sum(anchos)
   xs <- margen + c(0, cumsum(anchos))
   # La tabla se aprieta si la jornada trae muchas rutas, hasta un mínimo legible.
@@ -432,11 +433,12 @@ hojas_ruta_hoja_dia_pdf <- function(m, out_pdf, fecha = Sys.Date()) {
 
   # --- Registro de visitas, una grilla por ruta ---
   .hojas_ruta_hd_txt_at("Registro de visitas", margen, y, 10.5, tk$navy, "bold")
+  # La instrucción va en su propia línea: junto al título se le montaba encima.
   .hojas_ruta_hd_txt_at(
-    "Anote la vivienda y marque una sola disposición por visita. Las columnas «+» son para la segunda pasada.",
-    derecha, y, 6.8, tk$soft, just = c("right", "center")
+    "Anote la vivienda y marque una sola disposición por visita. Columnas sombreadas: reserva por si hacen falta más visitas (incluye la segunda pasada).",
+    margen, y - 0.013, 6.8, tk$soft
   )
-  y <- y - 0.014
+  y <- y - 0.027
   fondo <- 0.080
   paginas_multiples <- FALSE
   # Con pocas rutas sobra hoja: las filas crecen (hasta 0,023) para marcar con

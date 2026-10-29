@@ -25,13 +25,31 @@ test_that("las jornadas respetan la capacidad de visitas y siguen la cercanía d
   expect_gt(p$resumen$km, 0)
 })
 
-test_that("una ruta que no cabe en una jornada ocupa varias, y el costo suma entrevistas, jornadas y km", {
+test_that("una ruta que no cabe en una jornada va entera, cuenta como varias y pide días seguidos (revisión U15)", {
   bloques <- list(pc_bloque("a", "150101", 0, 0, visitas = 70, entrevistas = 8))
   puntos <- data.frame(id_manzana = "a", lon = -77, lat = -12, nse_nivel = "S/D")
-  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30, costo_por_entrevista = 10, costo_por_jornada = 100), puntos = puntos)
+  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30, encuestadores = 4, costo_por_entrevista = 10, costo_por_jornada = 100), puntos = puntos)
+  expect_length(p$jornadas, 1)
+  expect_true(p$jornadas[[1]]$excede_jornada)
+  expect_identical(p$jornadas[[1]]$jornadas_equivalentes, 3L)
+  expect_identical(p$jornadas[[1]]$visitas, 70L)
   expect_identical(p$resumen$jornadas, 3L)
-  expect_identical(p$resumen$visitas, 70L)
+  # Con 4 encuestadores bastaría 1 día, pero la ruta es de una sola persona: 3 días.
+  expect_identical(p$resumen$dias, 3L)
   expect_equal(p$resumen$costo, 8 * 10 + 3 * 100)
+  expect_identical(p$alertas[[1]]$code, "W_PLAN_RUTA_EXCEDE_JORNADA")
+  expect_match(p$alertas[[1]]$message, "ruta a")
+})
+
+test_that("una ruta justo en la capacidad no excede, y sin rutas el resumen es cero", {
+  bloques <- list(pc_bloque("a", "150101", 0, 0, visitas = 30, entrevistas = 8))
+  puntos <- data.frame(id_manzana = "a", lon = -77, lat = -12, nse_nivel = "S/D")
+  p <- hojas_ruta_plan_campo(bloques, list(visitas_por_jornada = 30), puntos = puntos)
+  expect_false(p$jornadas[[1]]$excede_jornada)
+  expect_length(p$alertas, 0)
+  v <- hojas_ruta_plan_campo(list(), list())
+  expect_identical(v$resumen$jornadas, 0L)
+  expect_length(v$alertas, 0)
 })
 
 test_that("es determinista y los supuestos se acotan", {

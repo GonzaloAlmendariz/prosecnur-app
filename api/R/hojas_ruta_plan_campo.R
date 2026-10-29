@@ -64,7 +64,7 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
   s <- hojas_ruta_plan_campo_supuestos(supuestos)
   b <- .hojas_ruta_rows_df(bloques %||% list())
   vacio <- list(ok = TRUE, supuestos = s, jornadas = list(),
-                resumen = list(rutas = 0L, entrevistas = 0L, visitas = 0L, jornadas = 0L, dias = 0L, km = 0, costo = 0))
+                alertas = list(), resumen = list(rutas = 0L, entrevistas = 0L, visitas = 0L, jornadas = 0L, dias = 0L, km = 0, costo = 0))
   if (!nrow(b)) return(vacio)
   if (is.null(puntos)) {
     puntos <- do.call(rbind, c(
@@ -83,25 +83,25 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
     sel <- which(as.character(b$ubigeo) == u)
     orden <- sel[.hojas_ruta_plan_orden(lon[sel], lat[sel])]
     actual <- list(rutas = character(0), visitas = 0, km = 0, ultima = NA_integer_)
-    cerrar <- function() {
+    cerrar <- function(equivalentes = 1L) {
       if (length(actual$rutas)) {
         jornadas[[length(jornadas) + 1L]] <<- list(
           id = sprintf("J%02d", length(jornadas) + 1L), ubigeo = u, distrito = as.character(b$distrito[sel[1]]),
-          rutas = as.list(actual$rutas), visitas = as.integer(actual$visitas), km = round(actual$km, 2)
+          rutas = as.list(actual$rutas), visitas = as.integer(actual$visitas), km = round(actual$km, 2),
+          excede_jornada = equivalentes > 1L, jornadas_equivalentes = as.integer(equivalentes)
         )
       }
       actual <<- list(rutas = character(0), visitas = 0, km = 0, ultima = NA_integer_)
     }
     for (i in orden) {
       v <- visitas[i]
-      # Una ruta que no cabe en una jornada ocupa varias jornadas enteras.
+      # Una ruta que no cabe en una jornada NO se parte: su recorrido sistemático es uno
+      # solo y termina al lograr las k completas, así que va entera, con un mismo
+      # encuestador en días consecutivos, y cuenta como varias jornadas equivalentes.
       if (v > cap) {
         cerrar()
-        partes <- ceiling(v / cap)
-        for (p in seq_len(partes)) {
-          actual <- list(rutas = as.character(b$id_manzana[i]), visitas = min(cap, v - (p - 1) * cap), km = 0, ultima = i)
-          cerrar()
-        }
+        actual <- list(rutas = as.character(b$id_manzana[i]), visitas = v, km = 0, ultima = i)
+        cerrar(equivalentes = as.integer(ceiling(v / cap)))
         next
       }
       if (actual$visitas + v > cap) cerrar()
@@ -114,19 +114,29 @@ hojas_ruta_plan_campo <- function(bloques, supuestos = list(), puntos = NULL) {
     }
     cerrar()
   }
-  n_j <- length(jornadas)
+  eq <- vapply(jornadas, function(j) as.integer(j$jornadas_equivalentes %||% 1L), integer(1))
+  n_j <- sum(eq)
   km <- sum(vapply(jornadas, `[[`, numeric(1), "km"))
   total_entrevistas <- sum(entrevistas)
+  largas <- Filter(function(j) isTRUE(j$excede_jornada), jornadas)
+  alertas <- lapply(largas, function(j) list(
+    code = "W_PLAN_RUTA_EXCEDE_JORNADA", severity = "warning",
+    message = sprintf("La ruta %s pide %d visitas y no cabe en una jornada de %d: va entera, con el mismo encuestador %d días seguidos. Sube las visitas por jornada o baja las entrevistas por ruta.",
+                      as.character(unlist(j$rutas))[1], j$visitas, cap, j$jornadas_equivalentes),
+    ruta = as.character(unlist(j$rutas))[1]
+  ))
   list(
     ok = TRUE,
     supuestos = s,
     jornadas = jornadas,
+    alertas = alertas,
     resumen = list(
       rutas = nrow(b),
       entrevistas = as.integer(total_entrevistas),
       visitas = as.integer(sum(visitas)),
       jornadas = as.integer(n_j),
-      dias = as.integer(ceiling(n_j / s$encuestadores)),
+      # Una ruta de 3 jornadas exige al menos 3 días seguidos de la misma persona.
+      dias = as.integer(max(ceiling(n_j / s$encuestadores), if (length(eq)) max(eq) else 0L)),
       km = round(km, 1),
       costo = round(total_entrevistas * s$costo_por_entrevista + n_j * s$costo_por_jornada + km * s$costo_por_km, 2)
     )

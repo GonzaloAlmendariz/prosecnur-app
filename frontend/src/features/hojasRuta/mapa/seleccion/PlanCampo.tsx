@@ -61,7 +61,10 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
             {plan.jornadas.slice(0, 12).map((j) => (
               <li key={j.id}>
                 <strong>{j.id}</strong>
-                <span>{nombreDistrito(j.distrito)} · {j.rutas.length} ruta{j.rutas.length === 1 ? "" : "s"} · {fmt(j.visitas)} visitas · {fmt(j.km, 1)} km</span>
+                <span>
+                  {nombreDistrito(j.distrito)} · {j.rutas.length} ruta{j.rutas.length === 1 ? "" : "s"} · {fmt(j.visitas)} visitas
+                  {j.excede_jornada ? ` · no cabe en una jornada: ${j.jornadas_equivalentes} días seguidos, mismo encuestador` : ` · ${fmt(j.km, 1)} km`}
+                </span>
                 <button
                   type="button"
                   className="hr-plan-hoja"

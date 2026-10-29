@@ -204,3 +204,29 @@ test_that("HTTP: montado, errores 400/409/404 y artefactos registrados", {
   # La vista previa no guarda nada en el run.
   expect_identical(length(.hojas_ruta_active_run(sid)$run$workspace_outputs$sample$blocks), length(sm$blocks))
 })
+
+test_that("la grilla de la hoja del día sale de las visitas con margen, numerada y sin partes (revisión U15)", {
+  skip_if_not_installed("pdftools")
+  sm <- vp_muestra()
+  puntos <- vp_puntos(sm)
+  m <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(visitas_por_jornada = 10000), puntos = puntos)
+  r1 <- m$rutas[[1]]
+  k <- r1$entrevistas
+  expect_identical(r1$visitas_cap, as.integer(hojas_ruta_visitas_cap(k, 0.6, 1)))
+  expect_identical(r1$columnas, min(30L, r1$visitas_cap))
+  expect_null(r1$parte)
+  # Las metas suman el N de la jornada: ninguna ruta se cuenta dos veces.
+  expect_identical(sum(vapply(m$rutas, `[[`, integer(1), "entrevistas")), sum(vapply(m$rutas, function(r) as.integer(r$entrevistas), integer(1))))
+  txt <- vp_pdf_texto(hojas_ruta_hoja_dia_pdf(m, tempfile(fileext = ".pdf")))
+  expect_false(grepl("«+»", txt, fixed = TRUE))
+  expect_match(txt, "Columnas sombreadas", fixed = TRUE)
+  # Una ruta que excede la jornada lo dice en su meta.
+  m1 <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(visitas_por_jornada = 2), puntos = puntos)
+  expect_true(m1$rutas[[1]]$excede_jornada)
+  expect_match(vp_pdf_texto(hojas_ruta_hoja_dia_pdf(m1, tempfile(fileext = ".pdf"))), "mismo encuestador", fixed = TRUE)
+})
+
+test_that("con respuesta total la grilla tiene k columnas; con respuesta muy baja se trunca y lo avisa", {
+  expect_identical(hojas_ruta_visitas_cap(8L, 1, 1), 8L)
+  expect_gt(hojas_ruta_visitas_cap(8L, 0.05, 1), 30L)
+})
