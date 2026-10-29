@@ -29,6 +29,10 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   m
 }
 
+#' Candidatas a reemplazo: en PPS sólo las de medida > 0, como las titulares (el
+#' sorteo de reemplazos imputaba peso 1 a M ≤ 0 y sacaba manzanas sin viviendas).
+.hojas_ruta_sorteo_candidatos <- function(df, cfg) df[.hojas_ruta_sorteo_medida(df, cfg) > 0, , drop = FALSE]
+
 #' π de cada manzana: n·M_i/ΣM con certezas por iteración, Σπ = n. M = 0 da π = 0;
 #' si n alcanza a todas las manzanas con M > 0, todas son certeza.
 .hojas_ruta_sorteo_pi <- function(m, n) {

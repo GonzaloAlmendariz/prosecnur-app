@@ -4589,9 +4589,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step) + 1L)
     return(ord[unique(pos)])
   }
-  prob <- df[[cfg$measure_var]]
-  prob[is.na(prob) | prob <= 0] <- 1
-  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = prob)
+  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = .hojas_ruta_sorteo_medida(df, cfg))  # M <= 0 no sale (ADR 0117)
 }
 
 .hojas_ruta_stable_bucket <- function(seed, id, salt, n) {
@@ -4984,7 +4982,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
   manual_cfg <- cfg
   manual_cfg$replacements_per_titular <- count
   report("replacement", percent = 25, message = "Seleccionando manzanas de reemplazo...")
-  assignment <- .hojas_ruta_assign_replacements(selected, frame, manual_cfg, selected_ids)
+  assignment <- .hojas_ruta_assign_replacements(selected, .hojas_ruta_sorteo_candidatos(frame, manual_cfg), manual_cfg, selected_ids)
   blocking <- Filter(function(x) identical(x$level, "error"), assignment$alerts %||% list())
   if (length(blocking)) {
     stop(as.character(blocking[[1]]$message %||% "No se pudieron generar reemplazos puntuales."), call. = FALSE)
@@ -5491,7 +5489,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   } else {
     character(0)
   }
-  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, frame, cfg, selected_ids)
+  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, .hojas_ruta_sorteo_candidatos(frame, cfg), cfg, selected_ids)
   replacement_blocks_df <- replacement_assignment$blocks
   replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
   replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)

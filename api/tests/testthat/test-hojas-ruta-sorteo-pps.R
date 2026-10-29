@@ -186,3 +186,19 @@ test_that("una muestra sin firma es v1 y avisa por distrito cuánto quedó sin p
   expect_false("W_SAMPLE_DRAWN_WITH_V1" %in% codigos)
   expect_identical("W_ZONE_QUOTA_EXCLUDES_ZONES" %in% codigos, "W_ZONE_QUOTA_EXCLUDES_ZONES" %in% vapply(z$alerts, `[[`, character(1), "code"))
 })
+
+test_that("los reemplazos PPS tampoco salen de manzanas sin viviendas (ADR 0117 §3); el sistemático sí las admite", {
+  base <- list(territorios = list("150102"), n_objetivo = 80, sample_size_mode = "external_total", n_mode = "total",
+               entrevistas_por_manzana = 8, max_per_manzana = 8, replacements_per_titular = 3)
+  for (politica in c("paired_by_titular_zone", "alternate_zone_same_district")) {
+    viv <- unlist(lapply(c(2017, 7, 99), function(semilla) {
+      s <- hojas_ruta_sample_preview_integrado(c(base, list(seed = semilla, replacement_policy = politica)))
+      suppressWarnings(as.numeric(.hojas_ruta_rows_df(s$replacement_blocks)$viviendas))
+    }))
+    expect_gt(length(viv), 0)
+    expect_true(all(!is.na(viv) & viv > 0), info = politica)
+  }
+  sin <- data.frame(id_manzana = c("a", "b"), viviendas = c(0, NA))
+  expect_identical(nrow(.hojas_ruta_sorteo_candidatos(sin, list(sampling_method = "pps", measure_var = "viviendas"))), 0L)
+  expect_identical(nrow(.hojas_ruta_sorteo_candidatos(sin, list(sampling_method = "sistematico", measure_var = "viviendas"))), 2L)
+})

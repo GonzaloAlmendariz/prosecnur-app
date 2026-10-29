@@ -75,7 +75,7 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
 - La vista previa del marco elegible publica en `capacidad[*].rutas` la **esperanza** de rutas por zona (Σπ, con
   dos decimales), no un entero. La capacidad de la zona se compara contra ⌈rutas⌉.
 - `hojas_ruta_engine.R` se achica: el reparto por zonas sale del motor congelado. Su línea base baja a 10 226.
-- Los reemplazos (`.hojas_ruta_sample_indices`) no cambian. La π publicada es la de las titulares según el
+- Los reemplazos se siguen sorteando con `.hojas_ruta_sample_indices`, sin manzanas de medida ≤ 0 (ver abajo). La π publicada es la de las titulares según el
   diseño.
 - **Pendiente.** Con `row_var = "zona"`, la propia cuota (`.hojas_ruta_finalize_quota_cells`) reparte rutas entre
   zonas con el mismo mayor resto determinista, así que las zonas que la cuota deja en 0 tienen π = 0. En Lima
@@ -83,8 +83,10 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
   la cuota y no se toca aquí, pero **se avisa**: cada sorteo con cuota por zona, y cada muestra v1 con cuota por
   zona al cargarse, recibe `W_ZONE_QUOTA_EXCLUDES_ZONES`. El aviso da el porcentaje de viviendas del marco
   elegible del distrito en zonas sin cuota y nombra la causa, que es la cuota y no el sorteo.
-- Los reemplazos en PPS (`.hojas_ruta_sample_indices`) todavía imputan peso 1 a la medida NA o ≤ 0, así que
-  pueden salir manzanas con 0 viviendas. Ya pasaba antes; queda pendiente alinearlo con §3.
+- Los reemplazos en PPS siguen §3. Sus candidatas son sólo las manzanas con medida > 0
+  (`.hojas_ruta_sorteo_candidatos`, en el sorteo y en los reemplazos puntuales), y `.hojas_ruta_sample_indices`
+  ya no imputa peso 1 a la medida NA o ≤ 0. Antes salían manzanas con 0 viviendas, que en campo no sirven. La
+  capacidad de reemplazo de una zona (`E_REPLACEMENT_ZONE_INSUFFICIENT`) cuenta sólo esas candidatas.
 
 ## Cumplimiento
 
