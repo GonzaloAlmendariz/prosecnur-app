@@ -228,7 +228,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     }
     case "p_tabla": {
       const u = entero(v("umbral_rojo_pct"));
-      if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }
+      // La tabla nativa del PPT no pinta rojo (.lam_tabla_ttb); sólo el Word, que dibuja el gráfico de la ruta anterior
+      // (sin renderer «tabla» en reporte_word_graficos_despacho.R). La maqueta es la lámina: sin rojo, y el ajuste lo dice.
+      if (u) ajustes.push(`En rojo bajo ${u} %, sólo en el Word`);
       break;
     }
     default:
