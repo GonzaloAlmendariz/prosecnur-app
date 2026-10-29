@@ -19,6 +19,7 @@ import {
   contornosDeCobertura,
   dibujarContornos,
   dibujarReemplazosMundo,
+  dibujarNombresFuera,
   dibujarRotulosDistrito,
   dibujarTitularesMundo,
   dibujarTitularesPantalla,
@@ -414,6 +415,7 @@ export default function HojasRutaMapaPage() {
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : []);
       const visibles = enTerritorio ? contornos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
+      if (enTerritorio) dibujarNombresFuera(ctx, u, contornos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
       if (u.camara.s < 0.09 || enTerritorio || enPoblacion || enMuestra) {
         dibujarRotulosDistrito(
           ctx,
@@ -553,7 +555,7 @@ export default function HojasRutaMapaPage() {
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaLima ? { caja: confirmados.length && caja ? caja : cajaLima, pad: confirmados.length ? 0.14 : 0.03, clave: `territorio:${confirmados.join(",")}` } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}

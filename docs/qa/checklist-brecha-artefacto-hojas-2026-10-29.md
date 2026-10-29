@@ -19,7 +19,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B8 | Mapa | falta · alto | Leyenda por sección | `lienzo/flotantes.tsx` → `LienzoMapa` prop `leyenda` (se oculta bajo 1100 px, como el artefacto) | ☑ |
 | B9 | Mapa | peor · alto | Paleta de identidad por distrito (relleno, franja del rótulo); rótulos de Territorio sin población | tokens `--pulso-mapa-tono-0..7`, `tonoDistrito`/`mezclar` en `lienzo/capas.ts` | ☑ |
 | B10 | Mapa | peor · alto | Anticolisión pierde rótulos (4/6 a 1440, 3/6 a 1024) y monta otros | `elegirRotulos` corre el rótulo con guía, dentro de la franja libre | ☑ (6/6 a 1440 y 1024) |
-| B11 | Mapa | peor · medio | Encuadre de Territorio con mucho blanco; sin nombres en gris de los distritos fuera | `lienzo/` | ☐ |
+| B11 | Mapa | peor · medio | Encuadre de Territorio con mucho blanco; sin nombres en gris de los distritos fuera | Territorio encuadra los distritos confirmados (pad 0.14; Lima entera si no hay) y `dibujarNombresFuera` en `lienzo/capas.ts` escribe en gris a los vecinos, sin caja y sin montarse | ☑ |
 | B12 | Mapa | peor · alto | Foco de UMP no llega a calle (100 m) ni dibuja la manzana; «Acercar» no centra en la UMP | foco encuadra sólo la manzana (pad 2.2) y `anclaZoom` en `LienzoMapa` | ☑ |
 | B13 | Mapa | peor · bajo | Fondo #f7f8fa vs #fafbff; encuadrar es «⤢» texto, no ícono | `--pulso-mapa-fondo: #fafbff` (sólo lo usa el lienzo) e ícono `Maximize2` con título en «Encuadrar» | ☑ |
 | B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |

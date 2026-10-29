@@ -229,6 +229,28 @@ export function elegirRotulos(
 export type RotuloDistrito = { ubigeo: string; nombre: string; detalle?: string; x: number; y: number; tono: string };
 
 /** Rótulos de distrito. Con más de ocho van compactos (sólo el nombre). */
+/**
+ * Nombres en gris de los distritos que no están en el estudio (brecha B11): orientan
+ * sin competir con los rótulos de los elegidos. Sin caja ni desplazamiento: el que
+ * choca con otro simplemente no se escribe.
+ */
+export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo, nombres: readonly { clave: string; nombre: string; x: number; y: number }[]) {
+  ctx.font = "600 10.5px -apple-system, system-ui, sans-serif";
+  const medidos = nombres
+    .map((n) => {
+      const [x, y] = u.aPantalla(n.x, n.y);
+      return { clave: n.clave, nombre: n.nombre, x, y, w: ctx.measureText(n.nombre).width + 6, h: 14 };
+    })
+    .filter((m) => m.x > 30 && m.y > 60 && m.x < u.tamano.w - 30 && m.y < u.tamano.h - 50);
+  const libres = new Set(elegirRotulos(medidos, 6, false).map((c) => c.clave));
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = u.colores.suave;
+  ctx.globalAlpha = 0.75;
+  for (const m of medidos) if (libres.has(m.clave)) ctx.fillText(m.nombre, m.x, m.y);
+  ctx.globalAlpha = 1;
+}
+
 export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLienzo, rotulos: readonly RotuloDistrito[]) {
   const compactos = rotulos.length > 8;
   const medidos = rotulos.map((r) => {
