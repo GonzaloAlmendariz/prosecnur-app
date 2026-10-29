@@ -866,6 +866,9 @@ mount_hojas_ruta <- function(pr) {
       if (is.null(sample_override) || !is.list(sample_override)) {
         stop_api(409, "E_NO_SAMPLE", "Primero genera una seleccion de manzanas antes de pedir reemplazos puntuales.")
       }
+      # ADR 0115 §5: los reemplazos puntuales salen del marco elegible con el que se sorteó.
+      marco_muestra <- hojas_ruta_marco_elegible_de_la_muestra(cfg, sample_override)
+      cfg <- marco_muestra$config
       titular_ids <- .hojas_ruta_chr_vec(
         parsed$titular_ids %||%
           parsed$titularIds %||%
@@ -937,7 +940,7 @@ mount_hojas_ruta <- function(pr) {
           )
         }
       )
-      list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf")
+      list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf", alerts = marco_muestra$alertas)
     })) |>
     plumber::pr_post("/api/hojas-ruta/route-workbook", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

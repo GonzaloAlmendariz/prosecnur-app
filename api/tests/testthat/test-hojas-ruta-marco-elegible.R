@@ -225,3 +225,31 @@ test_that("POST /api/hojas-ruta/marco-elegible/preview está montado, pide distr
   expect_true("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(ok$alerts, `[[`, character(1), "code"))
   expect_null(session_get(sid)$hojas_ruta_workspace_outputs$sample)
 })
+
+# ---------- Revisión de la implementación (D1, D2) ----------
+
+test_that("π sigue la regla del sorteo: censo de zona, igual probabilidad en sistemático, medida ≤ 0 pesa 1", {
+  df_z <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
+  censo <- .hojas_ruta_me_pi(df_z, c("a", "b", "c", "d"), "viviendas", "pps")
+  expect_identical(censo$regla_pi, "censo_de_la_zona")
+  expect_true(all(vapply(censo$seleccionadas, `[[`, numeric(1), "pi") == 1))
+  sis <- .hojas_ruta_me_pi(df_z, c("a", "c"), "viviendas", "sistematico")
+  expect_identical(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
+  pps <- .hojas_ruta_me_pi(df_z, c("b", "c"), "viviendas", "pps")
+  expect_true(pps$medida_ajustada)
+  expect_identical(pps$medida_total, 42)
+  # La manzana sin viviendas se sorteó con peso 1: su π no es 0.
+  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(2 * 10 / 42, 2 * 1 / 42))
+})
+
+test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avisan si cambió", {
+  muestra <- list(marco_elegible = list(criterios = list(declarado = TRUE, minimo_viviendas = 1L, areas_excluidas = list())))
+  cfg <- hojas_ruta_integrada_normalize_config(me_cfg_ancon(marco_elegible = list(minimo_viviendas = 5)))
+  r <- hojas_ruta_marco_elegible_de_la_muestra(cfg, muestra)
+  expect_identical(r$config$marco_elegible$minimo_viviendas, 1L)
+  expect_identical(r$alertas[[1]]$code, "W_ELIGIBILITY_DIFFERS_FROM_SAMPLE")
+  igual <- hojas_ruta_marco_elegible_de_la_muestra(hojas_ruta_integrada_normalize_config(me_cfg_ancon()), muestra)
+  expect_length(igual$alertas, 0)
+  sin <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list())
+  expect_identical(sin$config$marco_elegible$minimo_viviendas, 5L)
+})

@@ -417,6 +417,53 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   )
 }
 
+#' π de las titulares de una zona con la misma regla que `.hojas_ruta_sample_indices`
+#' (engine ~4581): con el método sistemático cada manzana tiene la misma
+#' probabilidad (π = n_z/N_z); en PPS la medida que es NA o ≤ 0 pesa 1, igual que
+#' en el sorteo, y π ≈ n_z·M_i/ΣM_z. Si se sortearon todas las manzanas de la
+#' zona (el motor capó a `nrow`), π = 1.
+.hojas_ruta_me_pi <- function(df_z, ids, medida, metodo) {
+  N <- nrow(df_z)
+  n <- length(ids)
+  m <- if (N) suppressWarnings(as.numeric(df_z[[medida]])) else numeric(0)
+  ajustada <- any(is.na(m) | m <= 0)
+  m[is.na(m) | m <= 0] <- 1
+  total <- sum(m)
+  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "igual_probabilidad" else "pps"
+  pis <- vapply(ids, function(id) {
+    if (identical(regla, "censo_de_la_zona")) return(1)
+    if (identical(regla, "igual_probabilidad")) return(n / N)
+    mi <- m[match(id, as.character(df_z$id_manzana))]
+    if (is.na(mi) || total <= 0) NA_real_ else min(1, n * mi / total)
+  }, numeric(1), USE.NAMES = FALSE)
+  list(
+    regla_pi = regla,
+    medida_total = total,
+    medida_ajustada = ajustada,
+    seleccionadas = lapply(seq_along(ids), function(i) list(id_manzana = ids[[i]], medida = m[match(ids[[i]], as.character(df_z$id_manzana))], pi = pis[[i]]))
+  )
+}
+
+#' El marco elegible con el que se sorteó una muestra (ADR 0115 §5): los
+#' reemplazos puntuales posteriores salen de ese marco, no de la config actual.
+#' Si la config actual trae otros criterios, se avisa y se usan los de la muestra.
+hojas_ruta_marco_elegible_de_la_muestra <- function(config, sample) {
+  criterios <- sample$marco_elegible$criterios %||% NULL
+  if (is.null(criterios)) return(list(config = config, alertas = list()))
+  guardado <- hojas_ruta_marco_elegible_normalizar(criterios)
+  actual <- config$marco_elegible %||% hojas_ruta_marco_elegible_normalizar(NULL)
+  claves <- c("declarado", "minimo_viviendas", "areas_excluidas")
+  alertas <- list()
+  if (!identical(.hojas_ruta_me_hash(guardado[claves]), .hojas_ruta_me_hash(actual[claves]))) {
+    alertas[[1]] <- .hojas_ruta_me_alerta(
+      "W_ELIGIBILITY_DIFFERS_FROM_SAMPLE",
+      "El marco elegible cambió después del sorteo: los reemplazos salen del marco con el que se sorteó la muestra."
+    )
+  }
+  config$marco_elegible <- guardado
+  list(config = config, alertas = alertas)
+}
+
 #' Posproceso del sorteo con marco elegible (ADR 0115 §3, §5).
 #'
 #' Suma a `E_UNASSIGNED_INTERVIEWS` las n que el motor descarta sin aviso y deja
@@ -444,10 +491,11 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
   for (d in rep$distritos) for (z in d$zonas) {
     sel <- if (nrow(bloques)) as.character(bloques$ubigeo) == d$ubigeo & as.character(bloques$zona) == z$zona else logical(0)
     n_z <- sum(sel)
-    m_i <- if (n_z) as.numeric(bloques[[medida]][sel]) else numeric(0)
-    zonas[[length(zonas) + 1L]] <- list(
-      ubigeo = d$ubigeo, zona = z$zona, medida_total = z$medida_total, sorteadas = n_z,
-      seleccionadas = if (n_z) lapply(seq_len(n_z), function(i) list(id_manzana = as.character(bloques$id_manzana[sel][i]), medida = m_i[i], pi = if (z$medida_total > 0) min(1, n_z * m_i[i] / z$medida_total) else NA_real_)) else list()
+    df_z <- frame[as.character(frame$ubigeo) == d$ubigeo & as.character(frame$zona) == z$zona, , drop = FALSE]
+    ids <- if (n_z) as.character(bloques$id_manzana[sel]) else character(0)
+    zonas[[length(zonas) + 1L]] <- c(
+      list(ubigeo = d$ubigeo, zona = z$zona, rutas = z$rutas, manzanas = nrow(df_z), sorteadas = n_z),
+      .hojas_ruta_me_pi(df_z, ids, medida, cfg$sampling_method)
     )
   }
   ruta_marco <- tryCatch(hojas_ruta_inei_frame_path(cfg$frame_source), error = function(e) "")
@@ -455,7 +503,7 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
   resultado$marco_elegible <- list(
     criterios = cfg$marco_elegible,
     medida = medida,
-    pi_aproximacion = "n_z * M_i / sum(M_z): sorteo PPS secuencial sin reemplazo",
+    pi_aproximacion = "pps: n_z * M_i / sum(M_z), aproximación del sorteo secuencial sin reemplazo (medida NA o <= 0 pesa 1, como en el sorteo); igual_probabilidad: n_z / N_z; censo_de_la_zona: 1",
     zonas = zonas,
     hash_marco = if (nzchar(ruta_marco) && file.exists(ruta_marco)) digest::digest(file = ruta_marco, algo = "sha256") else NA_character_,
     hash_criterios = .hojas_ruta_me_hash(cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")]),
