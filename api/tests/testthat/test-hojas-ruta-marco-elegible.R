@@ -204,3 +204,24 @@ test_that("el posproceso deja lo necesario para reconstruir π por zona y verifi
   expect_identical(otra$hash_criterios, me$hash_criterios)
   expect_identical(otra$hash_elegibles_por_distrito, me$hash_elegibles_por_distrito)
 })
+
+# ---------- HTTP (ADR 0115 §3) ----------
+
+test_that("POST /api/hojas-ruta/marco-elegible/preview está montado, pide distritos y no guarda nada", {
+  expect_true(grepl("mount_hojas_ruta_marco_elegible(pr)", paste(deparse(body(build_plumber_app)), collapse = " "), fixed = TRUE))
+  pr <- mount_hojas_ruta_marco_elegible(plumber::pr())
+  ep <- Find(function(e) identical(e$verbs, "POST"), unlist(pr$endpoints, recursive = FALSE))
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  llamar <- function(body) ep$getFunc()(
+    req = list(HTTP_X_PULSO_SESSION = sid, bodyRaw = charToRaw(enc2utf8(jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")))),
+    res = plumber:::PlumberResponse$new()
+  )
+  sin <- llamar(list(config = list(territorios = list())))
+  expect_identical(sin$error$code %||% sin$code %||% "", "E_NO_TERRITORY")
+  ok <- llamar(list(config = me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1e6))))
+  expect_true(isTRUE(ok$ok))
+  expect_identical(ok$marco_elegible$minimo_viviendas, 1000000L)
+  expect_true("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(ok$alerts, `[[`, character(1), "code"))
+  expect_null(session_get(sid)$hojas_ruta_workspace_outputs$sample)
+})

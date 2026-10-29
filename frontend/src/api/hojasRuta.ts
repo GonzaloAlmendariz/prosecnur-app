@@ -94,6 +94,8 @@ export type HojasRutaIntegratedConfig = {
   sample_size_mode: SampleSizeMode;
   sample_size: HojasRutaSampleSizeConfig;
   excluded_titular_ids?: string[];
+  /** Marco elegible del run (ADR 0115). Ausente = corrida legacy: el marco no se depura. */
+  marco_elegible?: HojasRutaMarcoElegible;
   random_preference?: HojasRutaRandomPreference;
 };
 
@@ -1108,5 +1110,114 @@ export async function apiHojasRutaGeometria(ubigeo: string): Promise<HojasRutaGe
   const params = new URLSearchParams({ ubigeo });
   return normalizarGeometriaHojasRuta(
     await handle<unknown>(await apiFetch(`/api/hojas-ruta/geometria?${params.toString()}`)),
+  );
+}
+
+// ---------- Marco elegible (ADR 0115) ----------
+
+export type HojasRutaMotivoExclusion = "inseguridad" | "no_residencial" | "inaccesible" | "otro";
+
+export type HojasRutaAreaExcluida = {
+  id: string;
+  motivo: HojasRutaMotivoExclusion;
+  detalle: string;
+  /** Obligatorias con `inseguridad` e `inaccesible`. */
+  fuente?: string;
+  fecha_evidencia?: string;
+  /** Anillo cerrado en lon/lat WGS84. */
+  poligono: [number, number][];
+  creada?: string;
+};
+
+export type HojasRutaMarcoElegible = { declarado: boolean; minimo_viviendas: number; areas_excluidas: HojasRutaAreaExcluida[] };
+
+export type HojasRutaConteoMarco = { manzanas: number; viviendas: number; poblacion: number };
+
+export type HojasRutaCoberturaMarco = {
+  ubigeo: string;
+  distrito: string;
+  zona?: string;
+  total: HojasRutaConteoMarco;
+  elegible: HojasRutaConteoMarco;
+  excluida_area: HojasRutaConteoMarco;
+  excluida_minimo: HojasRutaConteoMarco;
+  excluida_minimo_sin_conteo: number;
+  sin_geometria: number;
+  /** `null` cuando el distrito o la zona no tienen población. */
+  cobertura_poblacion: number | null;
+};
+
+export type HojasRutaCapacidadZona = { ubigeo: string; distrito: string; zona: string; rutas: number; manzanas: number; necesita: number; falta: "titulares" | "reemplazos" | null };
+
+export type HojasRutaMarcoElegiblePreview = {
+  ok: boolean;
+  marco_elegible: HojasRutaMarcoElegible;
+  por_distrito: HojasRutaCoberturaMarco[];
+  por_zona: HojasRutaCoberturaMarco[];
+  nse: { elegible: Record<string, number>; excluida: Record<string, number> };
+  capacidad: HojasRutaCapacidadZona[];
+  alerts: HojasRutaAlert[];
+};
+
+const MOTIVOS_EXCLUSION: readonly HojasRutaMotivoExclusion[] = ["inseguridad", "no_residencial", "inaccesible", "otro"];
+
+function normalizarConteoMarco(raw: unknown): HojasRutaConteoMarco {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return { manzanas: Math.max(0, comoNumero(o.manzanas)), viviendas: Math.max(0, comoNumero(o.viviendas)), poblacion: Math.max(0, comoNumero(o.poblacion)) };
+}
+
+export function normalizarMarcoElegible(raw: unknown): HojasRutaMarcoElegible {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const areas = (esArreglo(o.areas_excluidas) ? o.areas_excluidas : []).flatMap((a): HojasRutaAreaExcluida[] => {
+    const r = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+    const motivo = comoTexto(r.motivo) as HojasRutaMotivoExclusion;
+    const poligono = (esArreglo(r.poligono) ? r.poligono : []).flatMap((p): [number, number][] => (esArreglo(p) && p.length >= 2 ? [[comoNumero(p[0]), comoNumero(p[1])]] : []));
+    if (!MOTIVOS_EXCLUSION.includes(motivo) || poligono.length < 4) return [];
+    return [{ id: comoTexto(r.id), motivo, detalle: comoTexto(r.detalle), fuente: comoTexto(r.fuente) || undefined, fecha_evidencia: comoTexto(r.fecha_evidencia) || undefined, poligono, creada: comoTexto(r.creada) || undefined }];
+  });
+  return { declarado: o.declarado === true, minimo_viviendas: Math.max(0, Math.round(comoNumero(o.minimo_viviendas))), areas_excluidas: areas };
+}
+
+export function normalizarMarcoElegiblePreview(raw: unknown): HojasRutaMarcoElegiblePreview {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const cobertura = (lista: unknown) =>
+    (esArreglo(lista) ? lista : []).map((c): HojasRutaCoberturaMarco => {
+      const r = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+      const cob = typeof r.cobertura_poblacion === "number" && Number.isFinite(r.cobertura_poblacion) ? r.cobertura_poblacion : null;
+      return {
+        ubigeo: comoTexto(r.ubigeo), distrito: comoTexto(r.distrito), zona: r.zona === undefined ? undefined : comoTexto(r.zona),
+        total: normalizarConteoMarco(r.total), elegible: normalizarConteoMarco(r.elegible),
+        excluida_area: normalizarConteoMarco(r.excluida_area), excluida_minimo: normalizarConteoMarco(r.excluida_minimo),
+        excluida_minimo_sin_conteo: Math.max(0, comoNumero(r.excluida_minimo_sin_conteo)), sin_geometria: Math.max(0, comoNumero(r.sin_geometria)),
+        cobertura_poblacion: cob,
+      };
+    });
+  const perfil = (x: unknown): Record<string, number> => Object.fromEntries(Object.entries((x && typeof x === "object" ? x : {}) as Record<string, unknown>).map(([k, v]) => [k, Math.max(0, comoNumero(esArreglo(v) ? v[0] : v))]));
+  const nse = (o.nse && typeof o.nse === "object" ? o.nse : {}) as Record<string, unknown>;
+  const capacidad = (esArreglo(o.capacidad) ? o.capacidad : []).map((c): HojasRutaCapacidadZona => {
+    const r = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+    const falta = comoTexto(r.falta);
+    return { ubigeo: comoTexto(r.ubigeo), distrito: comoTexto(r.distrito), zona: comoTexto(r.zona), rutas: comoNumero(r.rutas), manzanas: comoNumero(r.manzanas), necesita: comoNumero(r.necesita), falta: falta === "titulares" || falta === "reemplazos" ? falta : null };
+  });
+  return {
+    ok: o.ok === true,
+    marco_elegible: normalizarMarcoElegible(o.marco_elegible),
+    por_distrito: cobertura(o.por_distrito),
+    por_zona: cobertura(o.por_zona),
+    nse: { elegible: perfil(nse.elegible), excluida: perfil(nse.excluida) },
+    capacidad,
+    alerts: (esArreglo(o.alerts) ? o.alerts : []) as HojasRutaAlert[],
+  };
+}
+
+export async function apiHojasRutaMarcoElegiblePreview(config: Partial<HojasRutaIntegratedConfig>): Promise<HojasRutaMarcoElegiblePreview> {
+  return normalizarMarcoElegiblePreview(
+    await handle<unknown>(
+      await apiFetch("/api/hojas-ruta/marco-elegible/preview", {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ config }),
+      }),
+    ),
   );
 }
