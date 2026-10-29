@@ -21,7 +21,7 @@
 #' @keywords internal
 .lam_mixta_geo <- function(tipo) {
   g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); ancho <- W - ml - g_("margen_der")
-  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1"); gap <- 0.5
+  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1"); gap <- g_("separacion_paneles")
   col2 <- (ancho - gap) / 2; xr <- ml + col2 + gap; xm <- ml + col2 + gap / 2
   P <- function(x, y, w, h) list(x = x, y = y, w = w, h = h)
   switch(tipo,
@@ -156,7 +156,7 @@
   alto <- h >= 3.5; fin <- y + h
   # Líneas de la pregunta con el ancho real del texto (systemfonts): la estimación por carácter partía en dos
   # una pregunta que cabe en una (verificador de N3, lámina 152).
-  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (max(1, ceiling(.lam_ancho_tinta(pregunta, 13, TRUE) / (w - 0.1))) - 1) else 0
+  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (max(1, ceiling(.lam_ancho_tinta(pregunta, .std_pt("pregunta"), TRUE) / (w - 0.1))) - 1) else 0
   con_pub <- !is.null(publico) && nzchar(publico)
   rd <- receta$dicotomia
   wd <- if (isTRUE(rd$ancho_pleno)) w else w - 0.8
@@ -297,7 +297,7 @@
     p1 <- P[[fila[1]]]; pn <- P[[fila[length(fila)]]]
     # Las láminas de composición del recetario (21 y 22) dibujan la pieza `cifra()` con su tamaño y su calle (K15).
     b <- .lam_cifras_banda(lz, pulso_cifras(lapply(especs[fila], `[[`, "item")), p1$x, p1$y, pn$x + pn$w - p1$x,
-                           size = geo$cifras$valor_pt %||% (if (length(fila) == 1L) 34 else NULL),
+                           size = geo$cifras$valor_pt %||% (if (length(fila) == 1L) .std_pt("cifra_destacada") else NULL),
                            pieza = if (!is.null(geo$cifras)) .std_valor("ppt", "geometria", "cifra_pieza"), calle = geo$cifras$calle)
     iconos <- c(iconos, b$iconos); fines[fila] <- p1$y + b$alto
   }

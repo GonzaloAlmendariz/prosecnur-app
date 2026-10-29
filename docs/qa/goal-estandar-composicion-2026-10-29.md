@@ -80,10 +80,10 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 
 | # | Literal | Dónde | Llave |
 |---|---|---|---|
-| U1 | 0,5 entre columnas de la mixta | mix:24 | `geometria.separacion_paneles` |
-| U2 | 0,36 aire de cifra chica | pan:81 | `geometria.aire_cifra_chica` |
-| U3 | 34 pt cifra destacada | mix:300, circ:71, circ:101 | `tipografia.cifra_destacada` |
-| U4 | 13 pt pregunta del panel | pan:13-14, mix:159, cat:280 | `tipografia.pregunta` |
+| U1 ☑ | 0,5 entre columnas de la mixta | mix:24 | `geometria.separacion_paneles` |
+| U2 ☑ | 0,36 aire de cifra chica | pan:81 | `geometria.aire_cifra_chica` |
+| U3 ☑ | 34 pt cifra destacada | mix:300, circ:71, circ:101 | `tipografia.cifra_destacada` |
+| U4 ☑ | 13 pt pregunta del panel | pan:13-14, mix:159, cat:280 | `tipografia.pregunta` |
 | U5 | 12 pt rótulos de categoría | cat:30, 95; mix:185, 202; circ:102, 136 | `tipografia.actor` |
 | U6 | pila de cifra de la torta 0,62/0,3/0,26 | circ:71-75 | `geometria.cifra_pieza` (casi igual) |
 | U7 | reserva 0,45 bajo las barras | cat:76 | `.LAM_USO_AREA$reserva` |
@@ -101,7 +101,8 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 
 ### Contradicen las reglas ya cerradas en la escala
 
-- F1 Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
+- F1 **pregunta a Gonzalo**: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
+  pero el 85 % del ancho fue decisión deliberada (6ec72b494, defecto 3 de la v3 de Renzo). Arte hoy no tiene Sí/No sola. Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
 - F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
 - F3 Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
 - F4 Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
@@ -117,5 +118,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑. Siguen D12, U1–U7, F1, F3, F4; F5 bloqueado |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑, U1–U4 ☑ (geometría idéntica). Siguen D12, U5–U7, F3, F4; F1 y F5 esperan a Gonzalo |
 | E6 cierre: gate amplio y commit | ☐ |

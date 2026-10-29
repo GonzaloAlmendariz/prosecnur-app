@@ -10,8 +10,8 @@
 #' Encabezado de panel: la pregunta en negrita y, debajo, su base en gris
 #' @keywords internal
 .lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL) {
-  nl <- .lam_lineas(texto, w, 13, TRUE)
-  .lam_txt(lz, texto, x, y, w, 0.3 + 0.22 * (nl - 1), 13, .std_color("azul"), bold = TRUE, nombre = "panel:pregunta")
+  nl <- .lam_lineas(texto, w, .std_pt("pregunta"), TRUE)
+  .lam_txt(lz, texto, x, y, w, 0.3 + 0.22 * (nl - 1), .std_pt("pregunta"), .std_color("azul"), bold = TRUE, nombre = "panel:pregunta")
   if (!is.null(base) && nzchar(base)) {
     .lam_txt(lz, base, x, y + 0.26 + 0.22 * (nl - 1), w, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "panel:base")
   }
@@ -84,7 +84,7 @@
     # Recetario: g 0.46 y fila 0.9 con cuatro públicos; con más filas la fila se acorta para caber sobre la
     # leyenda, y la barra nunca baja de 0.24 in.
     disp <- (g_("leyenda_y") - 0.1) - (y0 + 0.5 + 0.3)
-    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(0.24, min(0.46, fila - 0.36))
+    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(0.24, min(0.46, fila - .std_geom("aire_cifra_chica")))
     .lam_likert_panel(lz, e, r$x, y0 + 0.5, r$w, filas, g = g, fila = fila)
   }
   if (length(ranuras) >= 2L) {
