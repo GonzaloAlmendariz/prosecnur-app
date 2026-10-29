@@ -1307,7 +1307,7 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
     distributor = manifest$distributor %||% "Plataforma Nacional de Datos Georreferenciados GeoPeru / IDEP",
     source_url = manifest$source_url %||% "https://visor.geoperu.gob.pe/?layers=1207",
     download_url = manifest$download_url %||% "https://descargas.geoperu.gob.pe/peru_estrato_nacional_.zip",
-    year = as.integer(manifest$year %||% 2026L),
+    year = as.integer(manifest$anio_dato %||% manifest$year %||% 2017L),
     version = manifest$version %||% HOJAS_RUTA_NSE_INEI_VERSION,
     coverage = manifest$coverage %||% "Lima Metropolitana y Callao",
     rows = as.integer(manifest$rows %||% manifest$packaged_records %||% if (isTRUE(load_data) && ok) nrow(nse) else 0L),
