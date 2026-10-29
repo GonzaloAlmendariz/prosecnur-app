@@ -15,11 +15,11 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 | 3 | Hueco entre el rótulo del público y la barra | ~0,53 in | 0,20 in | ☑ (Gonzalo: «ambos», aire y la lámina en una) | ☑ rótulo a 3,45 in (≈0,35 in de tinta a la barra); con un público la pregunta llega a 0,08 in de su rótulo. Mazo 52, «Gestión y planificación» en una |
 | 4 | Grosor de barra con 4 a 6 filas | 0,51–0,59 in | 0,44–0,47 in | ☑ (Gonzalo) | ☐ |
 | 5 | Dos láminas de 4 filas con grosor distinto | — | 0,58 y 0,44 in | ☑ (Gonzalo) | ☐ |
-| 6 | Uso del alto: la última barra y la leyenda bajan | barra hasta 6,36, leyenda 6,78 in | barra hasta 5,99, leyenda 6,63 in | evaluar (Gonzalo) | ☐ |
-| 7 | Cuadrito de la leyenda | 0,11 × 0,08 in | 0,15 × 0,15 in | evaluar (Gonzalo) | ☐ |
+| 6 | Uso del alto: la última barra y la leyenda bajan | barra hasta 6,36, leyenda 6,78 in | barra hasta 5,99, leyenda 6,63 in | evaluar (Gonzalo) | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
+| 7 | Cuadrito de la leyenda | 0,11 × 0,08 in | 0,15 × 0,15 in | evaluar (Gonzalo) | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
 | 8 | Verde del Top Two Box | 70AD47 | 4E9438 | ☑ (Gonzalo) | ☑ `verde_top_two_box` y los dos `color_barra_extra` del recetario, también en Word |
-| 9 | Cifras chicas (< 5 %) | en la fila, 14 pt | encima de la barra, 12 pt, con guía (decisión anterior) | evaluar (Gonzalo) | ☐ |
-| 10 | «N = …» de una pregunta con menos casos | — | encima del extremo derecho | ☑ (Gonzalo): a un costado de la barra; si no cabe, un poco más atrás | ☐ |
+| 9 | Cifras chicas (< 5 %) | en la fila, 14 pt | encima de la barra, 12 pt, con guía (decisión anterior) | evaluar (Gonzalo) | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
+| 10 | «N = …» de una pregunta con menos casos | — | encima del extremo derecho | ☑ (Gonzalo): «si hay un número saliendo justo al final puede ir un poco más a la izquierda pero sin ir encima» | ☑ el N se corre a la izquierda de la cifra chica, a su altura; sube sólo si no hay sitio (lamina_filtro_sub_n.R) |
 
 ## Motor: Sí/No y multilista
 
@@ -28,10 +28,10 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 | 11 | Sí/No + escala con 2 filas: grosor | 0,71 in | 0,50 in | ☑ (Gonzalo) | ☑ 0,71 in (`composicion.filtro.conta_grosor`, lamina_filtro_sub_conta.R) |
 | 12 | Sí/No + escala: aire barra–leyenda | 0,43 / 0,56 in | 0,24 in | ☑ (Gonzalo) | ☑ 0,45 in en las dos leyendas |
 | 13 | Lámina 25 (Sí/No + escala): alto vacío abajo | — | 1,24 in vacías | ☑ (Gonzalo) | ☑ arranca en 1,90 y va 2,78 in de barra a barra, como la 34 de Conta |
-| 14 | Rótulo del público con un solo público | se muestra | lám. 25 lo omite, lám. 29 lo muestra | evaluar (Gonzalo) | ☐ |
+| 14 | Rótulo del público con un solo público | se muestra | lám. 25 lo omite, lám. 29 lo muestra | evaluar (Gonzalo) | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
 | 15 | Multilista: subtítulo del bloque («DOCENTES») | 18 pt azul | 12,5 pt gris | ☑ (Gonzalo) | ☑ es el subtítulo de público de la lámina: 18 pt azul (`tipografia.subtitulo`, lamina_compositor.R) |
 | 16 | Multilista: preguntas en negrita | normal | negrita | ☑ (Gonzalo) | ☑ en Conta (láms. 26, 27, 33, 42) la lámina por público lleva las preguntas sin negrita y las demás con negrita; el motor hace lo mismo (`negrita` en `.lam_bloque_escala`) |
-| 17 | Lámina 29 queda con una sola pregunta al partir la 28 | — | resto vacío | ☑ (Gonzalo) | **decisión del plan**: la 29 no es la 28 partida; es otra pregunta (Sí/No de estudiantes) en su propia lámina. Se une a la 28 como bloque desde la app («Bloques», como la 39+40) |
+| 17 | Lámina 29 queda con una sola pregunta al partir la 28 | — | resto vacío | ☑ (Gonzalo) | ☑ la 28 ya traía el Sí/No como bloque 2 y el motor lo dejaba solo al partir. Ahora la última parte no queda con una barra sola: baja la última pregunta del bloque de arriba, sin «(cont.)» (lamina_multilista_sin_sola.R) |
 
 ## Motor: perfil (paneles)
 
@@ -46,11 +46,11 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 
 | # | Diferencia | Conta | Arte hoy | ¿Va? | Estado |
 |---|---|---|---|---|---|
-| 22 | Barrita azul a la izquierda del título | no | sí | ☐ (no se entendió: mostrar) (Gonzalo) | ☐ |
+| 22 | Barrita azul a la izquierda del título | no | sí | ☐ (no se entendió: mostrar) (Gonzalo) | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
 | 23 | Número de página | no | sí | ☒ (se queda el folio) (Gonzalo) | ☐ |
 | 24 | «Base:» | 10 pt normal, x 0,45, y 7,12 | 10 pt negrita, x 0,59, y 6,94 | ☑ (Gonzalo) | ☑ 10 pt normal, tinta en 0,45/7,12 (`composicion.pie`); el folio en la misma línea |
-| 25 | Título: inicio | x 0,45 in | x 0,59 in | ☐ | ☐ |
+| 25 | Título: inicio | x 0,45 in | x 0,59 in | ☐ | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
 | 26 | Portada: color del título, orden de fecha y «Por encargo» | título azul | título rojo, orden invertido | ☑ (Gonzalo) | ☑ título azul y encargo sobre la fecha (lamina_portada_plantilla.R); confirmar en PowerPoint |
-| 27 | Separadores | título rojo 40 pt | número 110 pt + regla + título azul 30 pt | ☐ | ☐ |
+| 27 | Separadores | título rojo 40 pt | número 110 pt + regla + título azul 30 pt | ☐ | ☒ descartado (Gonzalo, 2026-10-29: «todas descartadas menos la 17») |
 | 28 | Lámina de cierre | sí | no | ☑ (Gonzalo) | ☑ contraportada (`p_slide_cierre`) al final del plan, en `Arte_v1-10_con_cierre.pulso` (el v1-9 queda intacto); mazo de 53 |
 | 29 | Índice anuncia «Metodología y ficha técnica» que no está en el mazo | — | sí | ☒ (se ignora) (Gonzalo) | ☐ |

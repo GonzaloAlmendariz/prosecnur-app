@@ -93,7 +93,7 @@ test_that("M1 multilista: un bloque que ya no comparte lámina con otra escala u
   expect_gt(.lam_multilista_alto_f(items[1], FALSE, 0), disp)                      # con leyenda propia no cabe (4,92 vs 4,62)
   expect_lte(.lam_multilista_alto_f(items[1], TRUE, 0), disp)                      # con leyenda de la lámina sí (4,42)
   o <- .ml1_lam(ml)
-  expect_identical(o$partes, 2L)                                                   # el bloque de 5 + el Sí/No
+  expect_identical(o$partes, 2L)                                                   # el bloque de 5 + el Sí/No, que no queda solo (ítem 17)
   expect_false(any(vapply(seq_len(o$partes), function(i) grepl("(cont.)", .ml1_texto(o$doc, i), fixed = TRUE), TRUE)))
   # apagado (N1 puro): como antes, se parte el bloque de 5 y la segunda lámina continúa
   options(prosecnur.evitar_cont = FALSE)

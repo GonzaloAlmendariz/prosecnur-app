@@ -228,8 +228,11 @@
       trozos[[length(trozos) + 1L]] <- t
     }
   }
-  .lam_escala_partir(trozos, disp, alto_fn = function(x) .lam_multilista_alto(x, comp_de(x)),
-                     aire_min_fn = function(x) .lam_multilista_alto_min(x, comp_de(x)))
+  partes <- .lam_escala_partir(trozos, disp, alto_fn = function(x) .lam_multilista_alto(x, comp_de(x)),
+                               aire_min_fn = function(x) .lam_multilista_alto_min(x, comp_de(x)))
+  # Ítem 17: la última lámina no queda con una barra sola (lamina_multilista_sin_sola.R)
+  .lam_multilista_sin_barra_sola(partes, function(x) .lam_multilista_alto(x, comp_de(x)) <= disp ||
+                                   (comprime && .lam_multilista_alto_min(x, comp_de(x)) <= disp))
 }
 
 #' ¿La multilista se compone en nativo? Cada bloque trae una escala sin fila Total ni Bottom Two Box, y cada
