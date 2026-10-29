@@ -6,6 +6,10 @@ import { MapPinned } from "../../../../vendor/lucide-react";
  * el usuario y qué puede hacer; la leyenda, qué significa cada color de la sección.
  * Los colores salen de los mismos tokens que pinta el lienzo.
  */
+// La misma secuencia que pinta la población en el lienzo (nombres literales: el
+// contrato de tokens no lee nombres armados).
+const RAMPA = ["--pulso-data-seq-0", "--pulso-data-seq-1", "--pulso-data-seq-2", "--pulso-data-seq-3", "--pulso-data-seq-4", "--pulso-data-seq-5"];
+
 export type SeccionLienzo = "territorio" | "poblacion" | "muestra" | "manzanas" | "seleccion";
 
 export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { distrito: string; ump: string } | null): ReactNode {
@@ -35,7 +39,7 @@ export function leyendaLienzo(seccion: SeccionLienzo, opciones: { zonasCortas?: 
       <>
         <span>Población objetivo</span>
         <span className="hr-lienzo-rampa" aria-hidden="true">
-          {[0, 1, 2, 3, 4, 5].map((i) => <i key={i} style={{ background: `var(--pulso-data-seq-${i})` }} />)}
+          {RAMPA.map((t) => <i key={t} style={{ background: `var(${t})` }} />)}
         </span>
         <span>menos → más</span>
       </>
