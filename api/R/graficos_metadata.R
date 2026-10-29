@@ -1371,7 +1371,7 @@
       # N1 (Renzo, 2026-10-22): piso de grosor de la barra de escala; con piso la lámina se parte en vez de adelgazar.
       list(name = "grosor_piso_cm", label = "Grosor mínimo de barra (cm)", tipo_input = "number", grupo = "valores",
            min = 0, max = 3, step = 0.01,
-           descripcion = "Las barras de la escala no bajan de este grosor; si no caben, la lámina se parte en dos. Vacío hereda el del informe; 0 lo quita."),
+           descripcion = "Las barras de la escala no bajan de este grosor: si no caben, primero se acorta el aire entre ellas y sólo después la lámina se parte. Con alto de sobra, la barra engrosa por encima de este mínimo. Vacío hereda el del informe; 0 lo quita."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
