@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
 import { EscenariosMuestra } from "./EscenariosMuestra";
+import { MargenCurva } from "./MargenCurva";
 import { repartoMinimos, repartoPorPoblacion } from "./repartos";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -193,6 +194,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <Atajos valores={[3, 4, 5]} actual={s.margin_total} deshabilitado={ed} etiqueta="Margen total" onElegir={(v) => cambiarS({ margin_total: v })} />
             <Atajos valores={[8, 10, 15]} actual={s.margin_district} deshabilitado={ed} etiqueta="Margen por distrito" onElegir={(v) => cambiarS({ margin_district: v })} />
           </div>
+          {margenPara ? <MargenCurva margenPara={margenPara} nUsado={r.nUsado} objetivo={s.margin_total} porRuta={ruta} /> : null}
           {config.sample_size_mode === "calculator" ? (
             <Opciones etiqueta="El margen por distrito es…" valor={s.enforce_district_floor ? "requisito" : "maximo"} deshabilitado={ed} opciones={[["requisito", "Un requisito"], ["maximo", "Solo un máximo"]] as const} onCambio={(v) => cambiarS({ enforce_district_floor: v === "requisito" })} />
           ) : null}

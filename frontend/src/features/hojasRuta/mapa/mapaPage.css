@@ -564,3 +564,10 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-costo-supuestos { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--pulso-module-routes); }
 .hr-muestra-costo-supuestos:hover { text-decoration: underline; }
 .hr-muestra-costo-supuestos:focus-visible { outline: 2px solid var(--pulso-module-routes-border); border-radius: 4px; }
+.hr-margen-curva { width: 100%; height: auto; display: block; }
+.hr-margen-curva text { font-size: 9px; fill: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-margen-curva-guia { stroke: var(--pulso-border); stroke-width: 1; }
+.hr-margen-curva-objetivo { stroke: var(--pulso-module-routes); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.hr-margen-curva text.hr-margen-curva-objetivo-texto { fill: var(--pulso-module-routes); font-weight: 700; }
+.hr-margen-curva-linea { fill: none; stroke: var(--pulso-brand-navy); stroke-width: 2; }
+.hr-margen-curva-punto { fill: var(--pulso-brand-navy); stroke: var(--pulso-surface); stroke-width: 1.5; }
