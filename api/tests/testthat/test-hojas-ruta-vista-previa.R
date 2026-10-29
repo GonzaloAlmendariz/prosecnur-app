@@ -230,3 +230,14 @@ test_that("con respuesta total la grilla tiene k columnas; con respuesta muy baj
   expect_identical(hojas_ruta_visitas_cap(8L, 1, 1), 8L)
   expect_gt(hojas_ruta_visitas_cap(8L, 0.05, 1), 30L)
 })
+
+test_that("registrar la vista previa no deja el proyecto «sin guardar» (brecha B0)", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid); s$project_path <- tempfile(fileext = ".pulso"); s$project_dirty <- FALSE; .session_env[[sid]] <- s
+  f <- tempfile(fileext = ".png"); writeBin(as.raw(1:10), f)
+  meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_ficha_ump", f, "ficha.png")
+  expect_true(nzchar(meta$file_id))
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  expect_false(is.null(session_get(sid)$files[[meta$file_id]]))
+})
