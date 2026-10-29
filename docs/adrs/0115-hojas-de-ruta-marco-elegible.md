@@ -3,7 +3,7 @@
 Estado: Aceptado (revisión metodológica del 2026-10-29: «aprobado con cambios»; los 13 cambios obligatorios están
 incorporados)
 
-Implementacion: Pendiente (unidad U11 de `docs/qa/plan-revamp-hojas-mapa-2026-10-29.md`)
+Implementacion: En curso (U11: backend 55df3d685, 50c150143, 14bae4f28; interfaz 08d56b355, b9256aded; revisión metodológica de la implementación D1–D7 en 21afc2e9f, ebf23f8b5, a9016f9c2, 6acf2b36c y siguientes)
 
 Fecha: 2026-10-29
 
@@ -135,11 +135,21 @@ que es justo lo que el informe tiene que contar.
 - **Por distrito y por zona:** manzanas, viviendas y población del marco completo y del elegible, con su cobertura
   en %. Si la población del distrito es 0, la cobertura es NA y no hay división por cero.
 - **Capacidad por zona:** manzanas elegibles frente a `rutas × (1 + reemplazos_por_titular)`, con el reparto
-  calculado **con la misma función que usa el sorteo**, no con una copia.
+  que usa el sorteo.
+
+  *Enmienda de implementación (2026-10-29, revisión metodológica D6).* El reparto vive en el bucle de
+  `hojas_ruta_sample_preview_integrado`, dentro del motor congelado, y no es una función que se pueda llamar sola.
+  Extraerlo exigiría hacer crecer el motor mucho más que los dos enganches del §2. Por eso
+  `.hojas_ruta_me_reparto` lo **replica** con los mismos helpers (`.hojas_ruta_route_size`,
+  `.hojas_ruta_allocate_integer`, el `merge` por zona con `row_var = "zona"`). La equivalencia no se supone: la
+  fija un test de paridad contra sorteos reales, tanto en el caso base como en Campo real con exclusiones del piloto.
+  Si el motor cambia su reparto, ese test se pone rojo. La paridad con `row_var = "zona"` queda pendiente.
 - **`W_ZONE_SHORT_BEFORE_DRAW`** por cada zona que no alcanza. El aviso distingue si faltan titulares o solo
   reemplazos.
-- Las alertas de normalización (polígono inválido o fuera del territorio, motivo desconocido, falta de fuente) y el
-  conteo de manzanas que cruza cada borde.
+- Las alertas de normalización (polígono inválido o fuera del territorio, motivo desconocido, falta de fuente), lo
+  que saca cada área (manzanas, viviendas, población) y el aviso de un área que no toca ninguna manzana de los
+  distritos elegidos. *Pendiente:* contar las manzanas que **cruzan** cada borde, que exige la geometría completa de
+  cada manzana y no sólo su punto interior.
 
 `hojas_ruta_marco_elegible_completar` recorre, después del sorteo, la cuota por distrito y por zona frente a lo
 asignado. **Si un distrito o una zona con cuota se queda sin manzanas elegibles, su n se suma a

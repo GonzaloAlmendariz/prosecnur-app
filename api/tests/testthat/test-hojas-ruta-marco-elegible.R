@@ -328,3 +328,35 @@ test_that("(d) adoptar el marco elegible avisa una vez; seguir con él no", {
   expect_length(hojas_ruta_marco_elegible_aviso_adopcion(list(minimo_viviendas = 1), list(minimo_viviendas = 2)), 0)
   expect_length(hojas_ruta_marco_elegible_aviso_adopcion(NULL, NULL), 0)
 })
+
+test_that("D7: cada área cuenta lo que saca y un área que no toca nada se avisa", {
+  lejos <- me_area(id = "lejos", poligono = list(c(-76.80, -12.20), c(-76.79, -12.20), c(-76.79, -12.21)))
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 0, areas_excluidas = list(me_area(), lejos)))
+  r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  expect_identical(vapply(r$por_area, `[[`, integer(1), "manzanas"), c(2L, 0L))
+  expect_identical(r$por_area[[1]]$poblacion, 195)
+  avisos <- Filter(function(a) identical(a$code, "W_EXCLUDED_AREA_EMPTY"), r$alertas)
+  expect_identical(avisos[[1]]$area, "lejos")
+})
+
+test_that("D7: completar suma sobre `unassigned` del motor, marca la muestra incompleta y es idempotente", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  vacio <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1e6))
+  una <- hojas_ruta_marco_elegible_completar(s, vacio)
+  expect_identical(una$unassigned, as.integer(s$unassigned) + 80L)
+  expect_false(una$ok)
+  dos <- hojas_ruta_marco_elegible_completar(una, vacio)
+  expect_identical(dos$unassigned, una$unassigned)
+  e <- Filter(function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), dos$alerts)
+  expect_length(e, 1)
+  expect_match(e[[1]]$message, sprintf("^%d entrevista", una$unassigned))
+})
+
+test_that("D7: el NSE de lo excluido se mide en población por distrito", {
+  territorio <- me_frame()
+  crit <- c("area", "minimo", "minimo", "area", "elegible", "elegible")
+  nse <- .hojas_ruta_me_nse_por_distrito(territorio, crit, me_puntos)
+  lima <- Filter(function(d) identical(d$ubigeo, "150101"), nse)[[1]]
+  expect_identical(lima$excluida[["3 Medio"]], 150)
+  expect_identical(lima$excluida[["2 Medio alto"]], 45)
+})

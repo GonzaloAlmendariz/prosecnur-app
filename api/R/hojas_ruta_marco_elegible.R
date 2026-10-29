@@ -268,6 +268,7 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   n <- nrow(frame)
   criterio <- rep("elegible", n)
   sin_geo <- rep(FALSE, n)
+  area_de <- rep(NA_integer_, n)
   areas <- me$areas_excluidas %||% list()
   minimo <- as.integer(me$minimo_viviendas %||% 0L)
   if (n && length(areas)) {
@@ -290,7 +291,7 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
       for (k in seq_along(anillos)) {
         cj <- cajas[[k]]
         if (lon[i] < cj[1] || lon[i] > cj[2] || lat[i] < cj[3] || lat[i] > cj[4]) next
-        if (.hojas_ruta_me_punto_en_anillo(lon[i], lat[i], anillos[[k]])) { criterio[i] <- "area"; break }
+        if (.hojas_ruta_me_punto_en_anillo(lon[i], lat[i], anillos[[k]])) { criterio[i] <- "area"; area_de[i] <- k; break }
       }
     }
   }
@@ -302,6 +303,18 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   if (n && length(piloto)) criterio[criterio == "elegible" & as.character(frame$id_manzana) %in% piloto] <- "piloto"
   sin_conteo <- if ("match_level" %in% names(frame)) as.character(frame$match_level) %in% "sin_conteo_redatam" & viv == 0 else rep(FALSE, n)
   alertas <- attr(me, "alertas") %||% list()
+  # D7: lo que saca cada área, para la lista del informe (U16); un área que no toca
+  # ninguna manzana de los distritos elegidos se avisa (dibujada fuera del territorio).
+  pob <- .hojas_ruta_me_num(frame$poblacion)
+  por_area <- lapply(seq_along(areas), function(k) {
+    sel <- which(area_de == k)
+    list(id = areas[[k]]$id, motivo = areas[[k]]$motivo, manzanas = length(sel), viviendas = sum(viv[sel]), poblacion = sum(pob[sel]))
+  })
+  for (a in por_area) if (n && a$manzanas == 0L) {
+    alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+      "W_EXCLUDED_AREA_EMPTY", sprintf("El área «%s» no toca ninguna manzana de los distritos elegidos.", a$id), area = a$id
+    )
+  }
   if (length(areas) && any(sin_geo)) {
     alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
       "W_ELIGIBILITY_NO_GEOMETRY",
@@ -314,6 +327,7 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
     criterio = criterio,
     por_distrito = .hojas_ruta_me_resumir(frame, criterio, sin_conteo, sin_geo, "ubigeo"),
     por_zona = if ("zona" %in% names(frame)) .hojas_ruta_me_resumir(frame, criterio, sin_conteo, sin_geo, "zona") else list(),
+    por_area = por_area,
     alertas = alertas
   )
 }
@@ -376,6 +390,19 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   list(ruta = ruta, distritos = distritos, perdidas = perdidas)
 }
 
+# Población por nivel NSE, por distrito, de lo elegible y de lo excluido (D7: la
+# concentración de lo excluido en un NSE se mide en población, no en manzanas).
+.hojas_ruta_me_nse_por_distrito <- function(territorio, criterio, puntos) {
+  if (!nrow(territorio)) return(list())
+  niv <- puntos$nse_nivel[match(as.character(territorio$id_manzana), puntos$id_manzana)]
+  niv[is.na(niv) | !nzchar(niv) | niv %in% c("NA", "NaN")] <- "S/D"
+  pob <- .hojas_ruta_me_num(territorio$poblacion)
+  unname(lapply(split(seq_len(nrow(territorio)), as.character(territorio$ubigeo)), function(ix) {
+    sumar <- function(sel) as.list(tapply(pob[sel], factor(niv[sel], levels = sort(unique(niv))), sum, default = 0))
+    list(ubigeo = as.character(territorio$ubigeo[ix[1]]), elegible = sumar(ix[criterio[ix] == "elegible"]), excluida = sumar(ix[criterio[ix] != "elegible"]))
+  }))
+}
+
 # Perfil NSE (conteo de manzanas por nivel) de un subconjunto.
 .hojas_ruta_me_perfil_nse <- function(ids, puntos) {
   niv <- puntos$nse_nivel[match(ids, puntos$id_manzana)]
@@ -434,6 +461,8 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
     por_distrito = ap$por_distrito,
     por_zona = ap$por_zona,
     nse = list(elegible = .hojas_ruta_me_perfil_nse(elegibles, puntos), excluida = .hojas_ruta_me_perfil_nse(excluidas, puntos)),
+    nse_poblacion_por_distrito = .hojas_ruta_me_nse_por_distrito(territorio, ap$criterio, puntos),
+    por_area = ap$por_area,
     capacidad = capacidad,
     alerts = alertas
   )
@@ -501,11 +530,15 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
   frame <- .hojas_ruta_filter_frame(cfg)
   rep <- .hojas_ruta_me_reparto(frame, .hojas_ruta_rows_df(resultado$quota$cells %||% list()), cfg)
   perdidas <- sum(vapply(rep$perdidas, function(p) as.integer(p$entrevistas), integer(1)))
+  # Idempotente: si la muestra ya pasó por aquí, no se vuelve a sumar.
+  if (!is.null(resultado$marco_elegible$perdidas_sumadas)) perdidas <- 0L
   if (perdidas > 0L) {
     alertas <- resultado$alerts %||% list()
     k <- which(vapply(alertas, function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), logical(1)))
-    previas <- if (length(k)) as.integer(sub("^(\\d+).*$", "\\1", alertas[[k[1]]]$message)) else 0L
-    total <- (if (is.na(previas)) 0L else previas) + perdidas
+    # El total sale del campo `unassigned` del motor, no del texto del mensaje.
+    total <- as.integer(resultado$unassigned %||% 0L) + perdidas
+    resultado$unassigned <- total
+    resultado$ok <- FALSE
     nueva <- list(level = "error", code = "E_UNASSIGNED_INTERVIEWS",
                   message = sprintf("%d entrevista(s) no pudieron asignarse con los limites actuales.", total),
                   sin_manzanas_elegibles = rep$perdidas)
@@ -551,7 +584,9 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
     # La exclusión por área depende de la cartografía: su firma por distrito, sólo si hay áreas.
     firma_cartografia = if (con_areas) lapply(stats::setNames(nm = unique(as.character(territorio$ubigeo))), function(u) tryCatch(.hojas_ruta_geometria_firma(u), error = function(e) NA_character_)) else NULL,
     por_distrito = ap$por_distrito,
-    por_zona = ap$por_zona
+    por_zona = ap$por_zona,
+    por_area = ap$por_area,
+    perdidas_sumadas = as.integer(perdidas)
   )
   resultado
 }
