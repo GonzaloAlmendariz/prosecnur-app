@@ -201,7 +201,9 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   list(
     regla_pi = regla,
     probability_source = "formula",
-    medida_total = sum(m),
+    # M del ámbito del sorteo (el distrito, o la zona con cuota por zona), no de la zona.
+    ambito = ambito,
+    medida_total_ambito = sum(m),
     manzanas_sin_medida = as.integer(sum(m <= 0)),
     certezas = as.integer(sum(pi >= 1 - 1e-9)),
     seleccionadas = lapply(seq_along(ids), function(k) list(id_manzana = as.character(ids[[k]]), medida = m[i[[k]]], pi = pi[i[[k]]]))
@@ -219,6 +221,19 @@ hojas_ruta_sorteo_aviso_v1 <- function(sample) {
   codigos <- vapply(sample$alerts %||% list(), function(a) as.character(a$code %||% ""), character(1))
   sample$algoritmo_sorteo <- HOJAS_RUTA_ALGORITMO_SORTEO_V1
   if (any(c("W_SAMPLE_DRAWN_WITH_V1", "W_ZONE_QUOTA_EXCLUDES_ZONES") %in% codigos)) return(sample)
+  # El estado no se guarda en un GET (marcaría el proyecto como modificado), así que el
+  # aviso se recalcula al cargar; lo caro (leer el marco) se memoriza por muestra.
+  clave <- digest::digest(list(sample$config, sample$seed, sample$quota$cells, length(sample$blocks)), algo = "xxhash64")
+  nuevas <- .hojas_ruta_sorteo_memo[[clave]] %||% .hojas_ruta_sorteo_avisos_v1(sample)
+  assign(clave, nuevas, envir = .hojas_ruta_sorteo_memo)
+  # Al frente: el panel del sorteo muestra sólo los primeros avisos y éste no puede quedar fuera.
+  sample$alerts <- c(nuevas, sample$alerts %||% list())
+  sample
+}
+
+.hojas_ruta_sorteo_memo <- new.env(parent = emptyenv())
+
+.hojas_ruta_sorteo_avisos_v1 <- function(sample) {
   cfg <- hojas_ruta_integrada_normalize_config(sample$config %||% list())
   frame <- .hojas_ruta_filter_frame(cfg)
   cells <- .hojas_ruta_rows_df(sample$quota$cells %||% list())
@@ -245,10 +260,9 @@ hojas_ruta_sorteo_aviso_v1 <- function(sample) {
       nuevas[[length(nuevas) + 1L]] <- .hojas_ruta_sorteo_alerta(
         "warn", "W_SAMPLE_DRAWN_WITH_V1",
         sprintf("%s: esta muestra se sorteó con un reparto por zonas que dejó sin probabilidad de salir al %s %% de las viviendas del marco elegible del distrito; vuelve a sortear antes de salir a campo.", nombre, format(round(pct, 1), nsmall = 1)),
-        ubigeo = u, viviendas_sin_probabilidad_pct = round(pct, 1), fuerte = TRUE
+        ubigeo = u, viviendas_sin_probabilidad_pct = round(pct, 1)
       )
     }
   }
-  sample$alerts <- c(sample$alerts %||% list(), nuevas)
-  sample
+  nuevas
 }

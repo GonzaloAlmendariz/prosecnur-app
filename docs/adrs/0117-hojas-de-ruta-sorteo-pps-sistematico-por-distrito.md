@@ -72,8 +72,20 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
 ## Consecuencias
 
 - La misma semilla da otra muestra. Las muestras v1 guardadas conservan sus manzanas y su aviso.
-- La vista previa del marco elegible publica en `capacidad[*].rutas` la **esperanza** de rutas por zona (Σπ, con
-  dos decimales), no un entero. La capacidad de la zona se compara contra ⌈rutas⌉.
+- La vista previa del marco elegible publica en `capacidad[*].rutas` la **esperanza** E de rutas por zona (Σπ,
+  con dos decimales), no un entero. La zona recibe ⌊E⌋ o ⌈E⌉ rutas, así que `falta` (y su
+  `W_ZONE_SHORT_BEFORE_DRAW`) se calcula con ⌊E⌋. Lo que sólo falta si le tocan ⌈E⌉ rutas se publica en
+  `falta_posible`, con `probabilidad_falta` = E − ⌊E⌋. Compararlo todo contra ⌈E⌉ marcaba como corta una zona con
+  E = 0,05.
+- Sólo el reemplazo pareado (`paired_by_titular_zone`) se mide contra las manzanas de la zona. El de otra zona
+  (`alternate_zone_same_district`, que es el valor por defecto) se mide contra el distrito: rutas × (1 + r).
+- En `marco_elegible.zonas[*]` la medida es la del ámbito del sorteo. Se publica como `medida_total_ambito`
+  junto con `ambito` (`distrito` o `zona`); antes se llamaba `medida_total`, que en la rama distrito era M_d y no
+  la medida de la zona.
+- El aviso v1 va **al frente** de `alerts`, porque el panel del sorteo (`avisosDelSorteo`) muestra sólo los
+  primeros cuatro. Ya no lleva un campo `fuerte`, que nadie leía.
+- El aviso v1 no se persiste: guardarlo en un GET de estado marcaría el proyecto como modificado. Se recalcula
+  al cargar, y lo caro (leer el marco) queda memorizado por muestra en `.hojas_ruta_sorteo_memo`.
 - `hojas_ruta_engine.R` se achica: el reparto por zonas sale del motor congelado. Su línea base baja a 10 226.
 - Los reemplazos se siguen sorteando con `.hojas_ruta_sample_indices`, sin manzanas de medida ≤ 0 (ver abajo). La π publicada es la de las titulares según el
   diseño.

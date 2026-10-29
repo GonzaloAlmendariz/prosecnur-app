@@ -240,7 +240,8 @@ test_that("π sigue la fórmula del sorteo (ADR 0117): n·M_i/ΣM con certezas, 
   pps <- .hojas_ruta_me_pi(df, c("a", "b"), list(sampling_method = "pps", measure_var = "viviendas"))
   expect_identical(pps$regla_pi, "pps_sistematico_distrito")
   expect_identical(pps$probability_source, "formula")
-  expect_identical(pps$medida_total, 40)
+  expect_identical(pps$medida_total_ambito, 40)
+  expect_identical(pps$ambito, "distrito")
   expect_identical(pps$manzanas_sin_medida, 2L)
   # n = 2 con dos manzanas de medida > 0: las dos son certeza.
   expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(1, 1))
@@ -401,4 +402,21 @@ test_that("re-revisión: los avisos calculados al aplicar llegan a la muestra, s
   afuera <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "afuera", poligono = list(c(-70, -15), c(-69.9, -15), c(-69.9, -15.1))))))
   codigos2 <- vapply(hojas_ruta_marco_elegible_completar(s, afuera)$alerts, `[[`, character(1), "code")
   expect_false("W_EXCLUDED_AREA_EMPTY" %in% codigos2)
+})
+
+test_that("ADR 0117: la capacidad publica como falta sólo lo que falta con ⌊E⌋ rutas; lo que falta con ⌈E⌉ es posible y lleva su probabilidad", {
+  sin_reemplazo <- me_cfg_ancon(replacements_per_titular = 0)
+  p <- hojas_ruta_marco_elegible_preview(sin_reemplazo, puntos = me_sin_puntos)
+  # Sin reemplazos y con π ≤ 1 por manzana, ninguna zona puede quedarse sin titulares.
+  expect_false(any(vapply(p$capacidad, function(z) !is.na(z$falta %||% NA), logical(1))))
+  expect_false("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(p$alerts, `[[`, character(1), "code"))
+  pareado <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "paired_by_titular_zone"), puntos = me_sin_puntos)
+  for (z in pareado$capacidad) {
+    r_min <- floor(z$rutas + 1e-9)
+    if (!is.na(z$falta %||% NA)) expect_true(z$manzanas < r_min * 4, info = z$zona)
+    if (!is.na(z$falta_posible %||% NA)) expect_true(z$probabilidad_falta > 0 && z$probabilidad_falta < 1, info = z$zona)
+  }
+  # Con reemplazo en otra zona la capacidad de la zona no cuenta reemplazos.
+  otra <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "alternate_zone_same_district"), puntos = me_sin_puntos)
+  expect_true(all(vapply(otra$capacidad, function(z) z$necesita == ceiling(z$rutas - 1e-9), logical(1))))
 })

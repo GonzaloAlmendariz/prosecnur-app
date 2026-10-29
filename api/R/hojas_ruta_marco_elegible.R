@@ -447,19 +447,41 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
   alertas <- ap$alertas
   capacidad <- list()
+  # Sólo el reemplazo pareado sale de la misma zona; el de otra zona se mide contra el distrito.
+  pareado <- identical(cfg$replacement_policy, "paired_by_titular_zone")
   for (d in rep$distritos) {
+    if (!pareado && reemplazos > 0L) {
+      m_d <- sum(vapply(d$zonas, function(z) as.integer(z$manzanas), integer(1)))
+      if (m_d < d$rutas * (1L + reemplazos)) {
+        alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+          "W_ZONE_SHORT_BEFORE_DRAW",
+          sprintf("%s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular en el distrito (%d de %d manzanas).", d$distrito, d$rutas, reemplazos, m_d, d$rutas * (1L + reemplazos)),
+          ubigeo = d$ubigeo, zona = NA_character_, falta = "reemplazos"
+        )
+      }
+    }
     for (z in d$zonas) {
       if (z$rutas <= 0) next
-      # Con el sistemático por distrito `rutas` es una esperanza: la zona recibe hasta ⌈rutas⌉.
-      rutas_z <- as.integer(ceiling(z$rutas - 1e-9))
-      necesita <- rutas_z * (1L + reemplazos)
-      falta <- if (z$manzanas < rutas_z) "titulares" else if (z$manzanas < necesita) "reemplazos" else NA_character_
-      capacidad[[length(capacidad) + 1L]] <- list(ubigeo = d$ubigeo, distrito = d$distrito, zona = z$zona, rutas = z$rutas, manzanas = z$manzanas, necesita = necesita, falta = falta)
+      # Con el sistemático por distrito `rutas` es una esperanza E: la zona recibe ⌊E⌋ o
+      # ⌈E⌉ (este último con probabilidad E - ⌊E⌋). Falta sólo lo que falta con ⌊E⌋; lo
+      # que falta únicamente con ⌈E⌉ se publica como posible, con su probabilidad.
+      r_max <- as.integer(ceiling(z$rutas - 1e-9))
+      r_min <- as.integer(floor(z$rutas + 1e-9))
+      por_ruta <- 1L + if (pareado) reemplazos else 0L
+      necesita <- r_max * por_ruta
+      faltaria <- function(r) if (z$manzanas < r) "titulares" else if (z$manzanas < r * por_ruta) "reemplazos" else NA_character_
+      falta <- faltaria(r_min)
+      posible <- if (is.na(falta) && r_max > r_min) faltaria(r_max) else NA_character_
+      capacidad[[length(capacidad) + 1L]] <- list(
+        ubigeo = d$ubigeo, distrito = d$distrito, zona = z$zona, rutas = z$rutas, manzanas = z$manzanas, necesita = necesita, falta = falta,
+        falta_posible = posible, probabilidad_falta = if (!is.na(falta)) 1 else if (!is.na(posible)) round(z$rutas - r_min, 2) else 0
+      )
+      rutas_z <- r_min
       if (!is.na(falta)) {
         alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
           "W_ZONE_SHORT_BEFORE_DRAW",
           if (identical(falta, "titulares")) sprintf("%s zona %s necesitará %d ruta(s) y sólo tiene %d manzana(s) elegible(s).", d$distrito, z$zona, rutas_z, z$manzanas)
-          else sprintf("%s zona %s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular dentro de la zona (%d de %d manzanas).", d$distrito, z$zona, rutas_z, reemplazos, z$manzanas, necesita),
+          else sprintf("%s zona %s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular dentro de la zona (%d de %d manzanas).", d$distrito, z$zona, rutas_z, reemplazos, z$manzanas, rutas_z * por_ruta),
           ubigeo = d$ubigeo, zona = z$zona, falta = falta
         )
       }
@@ -557,7 +579,7 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos
       sel <- if (nrow(bloques)) en(bloques, d$ubigeo, z$zona) else logical(0)
       ids <- if (any(sel)) as.character(bloques$id_manzana[sel]) else character(0)
       df_z <- frame[en(frame, d$ubigeo, z$zona), , drop = FALSE]
-      pi_z <- if (por_zona) .hojas_ruta_me_pi(df_z, ids, cfg, "zona") else c(pi_d[c("regla_pi", "probability_source", "medida_total")], list(
+      pi_z <- if (por_zona) .hojas_ruta_me_pi(df_z, ids, cfg, "zona") else c(pi_d[c("regla_pi", "probability_source", "ambito", "medida_total_ambito")], list(
         manzanas_sin_medida = as.integer(sum(.hojas_ruta_sorteo_medida(df_z, cfg) <= 0)),
         seleccionadas = Filter(function(x) x$id_manzana %in% ids, pi_d$seleccionadas)
       ))

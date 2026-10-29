@@ -174,6 +174,15 @@ test_that("una muestra sin firma es v1 y avisa por distrito cuánto quedó sin p
   expect_true(a[[1]]$viviendas_sin_probabilidad_pct > 0)
   expect_match(a[[1]]$message, "vuelve a sortear antes de salir a campo")
   expect_match(a[[1]]$message, "marco elegible del distrito")
+  # Va al frente (el panel corta a los primeros avisos) y no trae campos que nadie lee.
+  expect_identical(avisada$alerts[[1]]$code, "W_SAMPLE_DRAWN_WITH_V1")
+  expect_null(a[[1]]$fuerte)
+  # Lo caro se memoriza: la segunda carga de la misma muestra no vuelve a leer el marco.
+  segunda <- with_mocked_bindings(
+    hojas_ruta_sorteo_aviso_v1(v1),
+    .hojas_ruta_sorteo_avisos_v1 = function(sample) stop("recalculó")
+  )
+  expect_identical(segunda$alerts, avisada$alerts)
   expect_identical(avisada$blocks, v1$blocks)
   # Idempotente: no se repite.
   expect_length(Filter(function(x) identical(x$code, "W_SAMPLE_DRAWN_WITH_V1"), hojas_ruta_sorteo_aviso_v1(avisada)$alerts), 1)
