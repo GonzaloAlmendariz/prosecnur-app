@@ -250,3 +250,59 @@ hojas_ruta_tamano_extras_completar <- function(resultado, config) {
   }
   resultado
 }
+
+# ---------- Salto sobre visitas en la muestra (ADR 0116 §1) ----------
+
+HOJAS_RUTA_REGLA_NO_RESPUESTA <- paste(
+  "Si la vivienda no responde, está desocupada o no es elegible: siga con el salto.",
+  "Al agotar la manzana, haga una segunda pasada por las viviendas no visitadas.",
+  "Si aun así no completa, pase al reemplazo de la ruta."
+)
+
+# Recalcula el salto de una tabla de manzanas sobre visitas, con la misma semilla y
+# los mismos cubos estables que el motor para la vivienda de inicio.
+.hojas_ruta_te_salto_tabla <- function(tabla, cfg, r, e) {
+  bloques <- .hojas_ruta_rows_df(tabla %||% list())
+  if (!nrow(bloques)) return(tabla)
+  modo <- as.character(cfg$route_jump_mode %||% "auto")
+  seed <- as.integer(cfg$seed %||% 2017L)
+  filas <- lapply(seq_len(nrow(bloques)), function(i) {
+    b <- as.list(bloques[i, , drop = FALSE])
+    b[] <- lapply(b, function(x) x[[1]])
+    k <- max(1L, suppressWarnings(as.integer(b$entrevistas %||% cfg$entrevistas_por_manzana %||% 1L)), na.rm = TRUE)
+    V <- max(0L, suppressWarnings(as.integer(b$viviendas %||% 0L)), na.rm = TRUE)
+    v <- hojas_ruta_visitas_por_ruta(k, r, e)
+    b$visitas_esperadas <- v
+    b$regla_no_respuesta <- HOJAS_RUTA_REGLA_NO_RESPUESTA
+    if (identical(modo, "auto")) {
+      raw <- if (v > 0) V / v else NA_real_
+      constante <- max(1L, as.integer(floor(raw)))
+      if (!is.finite(constante) || is.na(constante)) constante <- 1L
+      id <- as.character(b$id_manzana %||% b$manzana %||% b$orden_seleccion %||% "")
+      inicio <- if (constante > 1L) .hojas_ruta_stable_bucket(seed, id, "start_dwelling", constante) else 1L
+      b$constante_salto <- constante
+      b$salto_operativo <- constante
+      b$constante_salto_raw <- raw
+      b$constante_salto_formula <- sprintf("K=%s/%s visitas (v = ceil(%s/(%s·%s))); operativo=floor(K)", V, v, k, format(r), format(e))
+      b$vivienda_inicio <- as.integer(inicio)
+      b$domicilio_inicio <- as.integer(inicio)
+      b$modo_seleccion_vivienda <- if (V <= v || constante <= 1L) "Barrido completo" else "Sistematico por casa/domicilio"
+    }
+    b
+  })
+  filas
+}
+
+#' El salto automático de la muestra se calcula sobre visitas, `floor(V / v)` con
+#' `v = ceil(k / (r·e))`, en vez de `floor(V / k)` del motor, que supone respuesta total.
+#' Cada manzana lleva además sus visitas esperadas y la regla ante la no respuesta, que
+#' la hoja de ruta imprime. Titulares y reemplazos.
+hojas_ruta_tamano_extras_salto_muestra <- function(resultado, config) {
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  r <- as.numeric(cfg$sample_size$response_rate %||% 0.9)
+  e <- as.numeric(cfg$sample_size$ocupacion %||% 1)
+  resultado$blocks <- .hojas_ruta_te_salto_tabla(resultado$blocks, cfg, r, e)
+  resultado$replacement_blocks <- .hojas_ruta_te_salto_tabla(resultado$replacement_blocks, cfg, r, e)
+  resultado$salto_sobre_visitas <- list(respuesta = r, ocupacion = e, modo = as.character(cfg$route_jump_mode %||% "auto"))
+  resultado
+}

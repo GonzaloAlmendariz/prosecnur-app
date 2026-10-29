@@ -200,3 +200,21 @@ test_that("la procedencia del DEFF y el ICC aplicado sobreviven a guardar y abri
   expect_equal(vuelta$sample_size$design_effect, 1.42)
   expect_identical(vuelta$sample_size$icc_aplicado$id, "acnur-2025")
 })
+
+test_that("el salto de la muestra se calcula sobre visitas, con la regla ante la no respuesta", {
+  cfg <- list(territorios = list("150102"), n_objetivo = 80, sample_size_mode = "external_total", n_mode = "total",
+              entrevistas_por_manzana = 8, max_per_manzana = 8, seed = 2017, replacements_per_titular = 1,
+              route_jump_mode = "auto", sample_size = list(response_rate = 0.5, ocupacion = 1))
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  r <- hojas_ruta_tamano_extras_salto_muestra(s, cfg)
+  b <- .hojas_ruta_rows_df(r$blocks)
+  expect_true(all(b$visitas_esperadas == 16L))
+  expect_true(all(b$salto_operativo == pmax(1L, floor(as.numeric(b$viviendas) / 16))))
+  expect_true(all(nzchar(b$regla_no_respuesta)))
+  rep <- .hojas_ruta_rows_df(r$replacement_blocks)
+  expect_true(all(rep$visitas_esperadas == 16L))
+  # Con salto manual no se toca la constante elegida.
+  man <- utils::modifyList(cfg, list(route_jump_mode = "manual", route_jump_manual = 3))
+  sm <- hojas_ruta_tamano_extras_salto_muestra(hojas_ruta_sample_preview_integrado(man), man)
+  expect_true(all(.hojas_ruta_rows_df(sm$blocks)$salto_operativo == 3L))
+})

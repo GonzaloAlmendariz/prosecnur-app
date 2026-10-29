@@ -769,6 +769,8 @@ mount_hojas_ruta <- function(pr) {
         hojas_ruta_marco_elegible_aviso_adopcion(marco_anterior, cfg$marco_elegible)
       )
       result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
+      # ADR 0116 §1: el salto que imprime la hoja se calcula sobre visitas, no sobre entrevistas.
+      result <- hojas_ruta_tamano_extras_salto_muestra(result, effective_cfg)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>
