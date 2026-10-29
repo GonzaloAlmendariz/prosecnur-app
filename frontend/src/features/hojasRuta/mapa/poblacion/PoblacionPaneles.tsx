@@ -1,14 +1,11 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { Users } from "../../../../vendor/lucide-react";
+import { Table2, Users } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import { PulsoTable } from "../../../../components/PulsoTable";
 import type { HojasRutaAgeRange, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
-import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import type { ResumenMatriz } from "./matriz";
 
-type FilaMatriz = ResumenMatriz["filas"][number];
 import { agregarRango, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos } from "./rangos";
 
 /**
@@ -124,7 +121,7 @@ type InspectorProps = {
 };
 
 export function PoblacionInspector({ config, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, onGuardarYCalcular }: InspectorProps) {
-  const { rangosBorrador, setRangosBorrador } = useLienzoHojasRuta();
+  const { rangosBorrador, setRangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
   const rangos = rangosBorrador ?? config.age_ranges;
   const cambiaron = firmaRangos(rangos) !== firmaRangos(config.age_ranges);
   const conProblemas = problemasDeRangos(rangos).length > 0;
@@ -142,18 +139,9 @@ export function PoblacionInspector({ config, matriz, poblacionDistritos, bloquea
         <p className="hr-mapa-nota">Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</p>
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
-          <PulsoTable
-            ariaLabel="Matriz poblacional"
-            densidad="compacta"
-            altoMaximo={320}
-            columnas={[
-              { id: "distrito", encabezado: "Distrito", ancho: 140, celda: (f: FilaMatriz) => nombreDistrito(f.territorio), valor: (f: FilaMatriz) => f.territorio },
-              ...rangos.map((r, i) => ({ id: `r${i}`, encabezado: r.label, ancho: 78, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0), valor: (f: FilaMatriz) => (f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0) })),
-              { id: "total", encabezado: "Total", ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => <b>{fmt(f.total)}</b>, valor: (f: FilaMatriz) => f.total },
-            ]}
-            filas={matriz.filas}
-            idDeFila={(f) => f.ubigeo}
-          />
+          <PulsoButton variant="secondary" onClick={() => setCajonPoblacion(cajonPoblacion ? null : "matriz")} aria-pressed={Boolean(cajonPoblacion)}>
+            <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz · ${matriz.filas.length} distritos`}
+          </PulsoButton>
         ) : null}
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null

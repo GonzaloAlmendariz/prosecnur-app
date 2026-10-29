@@ -32,6 +32,7 @@ import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
 import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
+import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano } from "./muestra/motorTamano";
@@ -571,6 +572,7 @@ export default function HojasRutaMapaPage() {
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
+        {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={estado.integrated_config.age_ranges} sexo={estado.integrated_config.subquota_var !== "ninguna"} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (
             <SeleccionInspector

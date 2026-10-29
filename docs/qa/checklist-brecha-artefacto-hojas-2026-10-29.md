@@ -25,7 +25,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |
 | B15 | Inspector | peor · medio | Rótulos de sección (LO ELEGIDO, MARCO TERRITORIAL, RESULTADO, MATRIZ) | Territorio, Población | ☐ |
 | B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `muestra/MuestraPaneles.tsx` | ☐ |
-| B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | `seleccion/SeleccionPaneles.tsx` | ☐ |
+| B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | Población ☑ (`poblacion/PoblacionCajon.tsx`, `cajonPoblacion` en el store); Muestra ☐ | ◐ |
 | B18 | Cajón | peor · medio (C2) | Ancho limitado al lienzo; pestañas sin `aria-selected` ni activa visible; «×» texto; desborde 8/284 px; tapa zoom a 1024 | `.hr-sel-cajon` | ☐ |
 | B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | `seleccion/SalidasPanel.tsx` | ☐ |
 | B20 | Plan de campo | falta · alto | Lista por día y encuestador con color y «Hoja del día»; cifras derivadas; mapa por encuestador | calendario en `hojas_ruta_plan_campo` (encuestador, día), lista por día en `PlanCampo.tsx`; FALTA el mapa coloreado por encuestador y verlo en vivo | ◐ |
@@ -37,7 +37,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B26 | Territorio 1024 | peor · bajo | Detalle del catálogo parte en 2 líneas («mz»); «Lima y Callao · 50 distritos» también | Territorio | ☐ |
 | B27 | Territorio | falta · bajo | Fila «Cartografía: Lima 2017 · Callao 2019» | Territorio | ☐ |
 | B28 | Población | falta · alto | Modo «Cortes poblacionales» (Manual/Cortes); total de personas junto a los rangos | `poblacion/PoblacionPaneles.tsx` | ☐ |
-| B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | `PoblacionPaneles.tsx` | ☐ |
+| B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | la matriz va al cajón: personas H/M por rango o distribución %, descarga CSV; agrupar filas ☐ | ◐ |
 | B30 | Población | peor · bajo | «De la poblaci…» truncado; 76.8 % vs 77 %; el segmento 60+ pierde su % | Población | ☐ |
 | B31 | Población | — | La app trae tope del último rango y «Calcular la matriz» | — | — |
 | B32 | Muestra | falta · alto | «Repartir según población», «Mínimos» y Escenarios guardables | `muestra/MuestraPaneles.tsx` | ☐ |

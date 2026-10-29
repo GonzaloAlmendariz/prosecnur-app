@@ -297,6 +297,7 @@
 .hr-sel-cajon { grid-column: 2; grid-row: 1; align-self: end; z-index: 3; margin: 0 12px 12px; max-height: 46%; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--pulso-border); border-radius: 14px; background: var(--pulso-surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--pulso-text) 14%, transparent); }
 .hr-sel-cajon > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .hr-sel-cajon > header .hr-muestra-opciones { width: min(360px, 100%); }
+.hr-sel-cajon-acciones { display: inline-flex; align-items: center; gap: 6px; }
 .hr-sel-cajon .hr-mapa-tabla-caja { min-height: 0; flex: 1; overflow: auto; }
 .hr-sel-cajon tbody tr { cursor: pointer; }
 .hr-sel-cajon tbody tr:hover { background: var(--pulso-surface-2); }
