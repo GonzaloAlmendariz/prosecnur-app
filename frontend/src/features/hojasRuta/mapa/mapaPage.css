@@ -280,16 +280,8 @@
 .hr-mapa-catalogo .hr-sel-rutas li { display: block; padding: 0; }
 .hr-mapa-catalogo .hr-sel-rutas li:hover { background: transparent; }
 .hr-sel-rutas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 10px auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
 .hr-sel-rutas button:hover { background: var(--pulso-surface-2); }
 .hr-sel-rutas button[aria-pressed="true"] { background: var(--pulso-surface-2); box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
-.hr-sel-rutas i { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }
-.hr-sel-rutas [data-estado="aviso"] i { background: var(--pulso-warn-fg); }
-.hr-sel-rutas [data-estado="error"] i { background: var(--pulso-danger-fg); }
-.hr-sel-rutas strong { font-size: 12.5px; white-space: nowrap; }
-.hr-sel-rutas small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.hr-sel-rutas em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--pulso-warn-fg); white-space: nowrap; }
-.hr-sel-rutas [data-estado="error"] em { color: var(--pulso-danger-fg); }
 .hr-sel-estado { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
 .hr-sel-estado[data-estado="aviso"] { color: var(--pulso-warn-fg); }
 .hr-sel-estado[data-estado="error"] { color: var(--pulso-danger-fg); }
@@ -430,3 +422,17 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-plan-dia { display: flex; flex-direction: column; gap: 4px; }
 .hr-plan-dia h4 { margin: 4px 0 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-plan-enc { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Filas de ruta como en el artefacto (brecha B42, .hm-fila): insignia numerada por
+   estado, «Zona · Mz» con los reemplazos en pips y las viviendas a la derecha. */
+.hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
+.hr-sel-num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pulso-surface); background: var(--pulso-module-routes); }
+.hr-sel-rutas [data-estado="aviso"] .hr-sel-num { background: var(--pulso-warn-accent); }
+.hr-sel-rutas [data-estado="error"] .hr-sel-num { background: var(--pulso-danger-fg); }
+.hr-sel-copia { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-sel-copia strong { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-sel-copia small { font-size: 11px; color: var(--pulso-text-soft); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hr-sel-pips { display: inline-flex; gap: 2px; }
+.hr-sel-pips i { width: 5px; height: 5px; border-radius: 999px; background: var(--pulso-border-strong); }
+.hr-sel-cifra { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); white-space: nowrap; }
+@media (max-width: 1100px) { .hr-sel-rotulo { display: none; } .hr-sel-copia strong { font-size: 12px; } .hr-sel-cifra { font-size: 11px; } .hr-sel-rutas button { column-gap: 6px; padding: 6px; } }

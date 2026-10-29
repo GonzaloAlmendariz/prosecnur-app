@@ -54,13 +54,23 @@ export function SeleccionEstructura({ grupos, total, observadas }: EstructuraPro
             <ul className="hr-sel-rutas">
               {g.filas.map((f) => (
                 <li key={f.id}>
-                  <button type="button" aria-pressed={f.id === umpEnfocada} data-estado={f.estado} onClick={() => setUmpEnfocada(f.id === umpEnfocada ? null : f.id)}>
-                    <i aria-hidden="true" />
-                    <strong>{f.codigo}</strong>
-                    <small>
-                      Zona {f.zona} · {fmt(f.viviendas)} viv.{f.reemplazos ? ` · ${f.reemplazos} R` : ""}
-                    </small>
-                    {porRevisar(f.estado) ? <em>{ETIQUETA[f.estado]}</em> : null}
+                  <button
+                    type="button"
+                    aria-pressed={f.id === umpEnfocada}
+                    data-estado={f.estado}
+                    aria-label={`${f.codigo}, zona ${f.zona}, manzana ${f.id.slice(-4)}, ${fmt(f.viviendas)} viviendas${porRevisar(f.estado) ? `, ${ETIQUETA[f.estado]}` : ""}`}
+                    title={porRevisar(f.estado) ? ETIQUETA[f.estado] : undefined}
+                    onClick={() => setUmpEnfocada(f.id === umpEnfocada ? null : f.id)}
+                  >
+                    <span className="hr-sel-num" aria-hidden="true">{f.numero || "–"}</span>
+                    <span className="hr-sel-copia">
+                      <strong><span className="hr-sel-rotulo">Zona </span>{f.zona} · Mz {f.id.slice(-4)}</strong>
+                      <small>
+                        <span className="hr-sel-pips" aria-hidden="true">{Array.from({ length: Math.min(f.reemplazos, 6) }, (_, i) => <i key={i} />)}</span>
+                        {f.reemplazos === 1 ? "1 reempl." : `${f.reemplazos} reempl.`}
+                      </small>
+                    </span>
+                    <span className="hr-sel-cifra">{fmt(f.viviendas)} viv.</span>
                   </button>
                 </li>
               ))}
