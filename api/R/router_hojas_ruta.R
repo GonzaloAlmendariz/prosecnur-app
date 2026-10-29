@@ -754,7 +754,8 @@ mount_hojas_ruta <- function(pr) {
       effective_cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       result <- hojas_ruta_sample_preview_integrado(effective_cfg)
       # ADR 0115 §3, §5: nada de n perdida en silencio, y π y hashes del marco elegible.
-      result <- hojas_ruta_marco_elegible_completar(result, effective_cfg)
+      avisos_marco <- attr(hojas_ruta_marco_elegible_normalizar((parsed$config %||% parsed)$marco_elegible), "alertas")
+      result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>

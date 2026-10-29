@@ -276,6 +276,13 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
     }
     ix <- match(as.character(frame$id_manzana), as.character(puntos$id_manzana))
     lon <- puntos$lon[ix]; lat <- puntos$lat[ix]
+    # D4: si la manzana no cruza con la cartografía, la lat/lon del propio marco (el
+    # `inei2017_official` las trae en todas sus filas; el `current` no).
+    if (all(c("lon", "lat") %in% names(frame))) {
+      falta <- is.na(lon) | is.na(lat)
+      lon[falta] <- suppressWarnings(as.numeric(frame$lon[falta]))
+      lat[falta] <- suppressWarnings(as.numeric(frame$lat[falta]))
+    }
     sin_geo <- is.na(lon) | is.na(lat)
     anillos <- lapply(areas, function(a) .hojas_ruta_me_matriz(a$poligono))
     cajas <- lapply(anillos, function(m) c(range(m[, 1]), range(m[, 2])))
@@ -294,12 +301,20 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   piloto <- unique(as.character(unlist(excluidas_piloto, use.names = FALSE)))
   if (n && length(piloto)) criterio[criterio == "elegible" & as.character(frame$id_manzana) %in% piloto] <- "piloto"
   sin_conteo <- if ("match_level" %in% names(frame)) as.character(frame$match_level) %in% "sin_conteo_redatam" & viv == 0 else rep(FALSE, n)
+  alertas <- attr(me, "alertas") %||% list()
+  if (length(areas) && any(sin_geo)) {
+    alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+      "W_ELIGIBILITY_NO_GEOMETRY",
+      sprintf("%d manzana(s) no tienen ubicación en la cartografía ni en el marco: las áreas excluidas no las alcanzan y se quedan en el marco.", sum(sin_geo)),
+      manzanas = as.integer(sum(sin_geo))
+    )
+  }
   list(
     frame = frame[criterio == "elegible", , drop = FALSE],
     criterio = criterio,
     por_distrito = .hojas_ruta_me_resumir(frame, criterio, sin_conteo, sin_geo, "ubigeo"),
     por_zona = if ("zona" %in% names(frame)) .hojas_ruta_me_resumir(frame, criterio, sin_conteo, sin_geo, "zona") else list(),
-    alertas = attr(me, "alertas") %||% list()
+    alertas = alertas
   )
 }
 
@@ -476,10 +491,11 @@ hojas_ruta_marco_elegible_de_la_muestra <- function(config, sample) {
 #' Suma a `E_UNASSIGNED_INTERVIEWS` las n que el motor descarta sin aviso y deja
 #' en `resultado$marco_elegible` lo necesario para reconstruir π ≈ n_z·M_i/ΣM_z
 #' por zona y verificar que el marco no cambió (hashes). No vuelve a sortear.
-hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
-  # Los avisos de normalización (área descartada, polígono fuera) viajan como atributo
-  # del objeto normalizado en esta misma petición; se rescatan antes de re-normalizar.
-  avisos_marco <- attr(config$marco_elegible, "alertas") %||% list()
+hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL, avisos = list()) {
+  # Los avisos de normalización (área descartada, polígono fuera) sólo existen al
+  # normalizar el cuerpo CRUDO: `.hojas_ruta_effective_config_for_phase` re-normaliza
+  # una config ya limpia y los pierde. El router los pasa explícitos en `avisos`.
+  avisos_marco <- c(avisos %||% list(), attr(config$marco_elegible, "alertas") %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(config %||% resultado$config %||% list())
   avisos_marco <- c(avisos_marco, attr(cfg$marco_elegible, "alertas") %||% list())
   frame <- .hojas_ruta_filter_frame(cfg)

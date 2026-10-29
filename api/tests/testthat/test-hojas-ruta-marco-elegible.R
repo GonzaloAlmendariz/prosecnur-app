@@ -284,3 +284,26 @@ test_that("D5: el sorteo guarda el resumen por criterio y no pierde el aviso de 
   # Las rutas previstas por zona viajan con π.
   expect_true(all(vapply(me$zonas, function(z) is.numeric(z$rutas) || is.integer(z$rutas), logical(1))))
 })
+
+test_that("D5: el aviso de un área descartada llega aunque la config se re-normalice por la fase", {
+  crudo <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(list(id = "sin-fuente", motivo = "inseguridad", poligono = list(c(-77.18, -11.77), c(-77.17, -11.77), c(-77.17, -11.78))))))
+  limpia <- hojas_ruta_integrada_normalize_config(hojas_ruta_integrada_normalize_config(crudo))
+  expect_length(attr(limpia$marco_elegible, "alertas"), 0)
+  avisos <- attr(hojas_ruta_marco_elegible_normalizar(crudo$marco_elegible), "alertas")
+  comp <- hojas_ruta_marco_elegible_completar(hojas_ruta_sample_preview_integrado(limpia), limpia, avisos = avisos)
+  expect_true("W_EXCLUDED_AREA_DISCARDED" %in% vapply(comp$alerts, `[[`, character(1), "code"))
+})
+
+test_that("D4: sin cartografía se usa la lat/lon del marco, y lo que queda sin ubicación se avisa", {
+  f <- me_frame()
+  f$lon <- c(NA, NA, NA, NA, NA, "-77.005")
+  f$lat <- c(NA, NA, NA, NA, NA, "-12.055")
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 0, areas_excluidas = list(me_area())))
+  r <- hojas_ruta_marco_elegible_aplicar(f, me, puntos = me_puntos)
+  # m6 no estaba en la cartografía, pero su lat/lon del marco cae dentro del área.
+  expect_identical(r$criterio[6], "area")
+  expect_false("W_ELIGIBILITY_NO_GEOMETRY" %in% vapply(r$alertas, `[[`, character(1), "code"))
+  sin <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  aviso <- Filter(function(a) identical(a$code, "W_ELIGIBILITY_NO_GEOMETRY"), sin$alertas)
+  expect_identical(aviso[[1]]$manzanas, 1L)
+})
