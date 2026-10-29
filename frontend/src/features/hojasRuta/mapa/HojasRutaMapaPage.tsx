@@ -625,7 +625,7 @@ export default function HojasRutaMapaPage() {
               onGuardarYCalcular={(c) => void guardarYCalcularPoblacion(c)}
             />
           ) : enTerritorio && estado ? (
-            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} viviendasPorNse={viviendasPorNse} />
+            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} viviendasPorNse={viviendasPorNse} marcoMeta={estado.frame_meta} />
           ) : (
             <>
               <header className="hr-mapa-cab">

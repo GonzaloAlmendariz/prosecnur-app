@@ -5,7 +5,7 @@ import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
+import type { HojasRutaTerritory, TerritorialFrameMeta } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { agregarVarios, alternar, cambios } from "./borrador";
@@ -143,9 +143,11 @@ type InspectorProps = {
   onConfirmar: (ubigeos: string[]) => void;
   /** Viviendas por nivel NSE de las manzanas cargadas de lo elegido (gráfica de perfil). */
   viviendasPorNse?: Record<number, number> | null;
+  /** `frame_meta` del estado: de dónde salen marco y cartografía (B27). */
+  marcoMeta?: TerritorialFrameMeta | null;
 };
 
-export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null }: InspectorProps) {
+export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null, marcoMeta = null }: InspectorProps) {
   const { borrador: b, distritoBajoCursor, setBorrador } = useLienzoHojasRuta();
   const borrador = b ?? [...confirmados];
   const { agrega, quita, pendiente } = cambios(confirmados, borrador);
@@ -212,6 +214,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             <div><dt>Manzanas censales</dt><dd>{fmt(bajo.manzanas)}</dd></div>
           </dl>
         ) : null}
+        <MarcoTerritorial meta={marcoMeta} />
         {pendiente ? (
           <section className="hr-mapa-cambios" aria-label="Cambios sin confirmar">
             <h3>Cambios sin confirmar</h3>
@@ -238,5 +241,28 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
         </PulsoButton>
       </footer>
     </>
+  );
+}
+
+/**
+ * Marco territorial (brecha B27): cobertura, año del marco de manzanas y año de la
+ * cartografía de cada provincia, tal como los declara el motor en `frame_meta`.
+ */
+function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
+  if (!meta) return null;
+  const fuentes = meta.block_cartography?.sources ?? {};
+  const cartografia = (["lima", "callao"] as const)
+    .map((k) => (fuentes[k]?.year ? `${k === "lima" ? "Lima" : "Callao"} ${fuentes[k].year}` : ""))
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <section className="hr-muestra-grupo" aria-label="Marco territorial">
+      <h3>Marco territorial</h3>
+      <dl className="hr-mapa-filas">
+        <div><dt>Cobertura</dt><dd>{meta.coverage || "—"}{meta.n_distritos ? ` · ${meta.n_distritos} distritos` : ""}</dd></div>
+        <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
+        <div><dt>Cartografía</dt><dd>{cartografia || "—"}</dd></div>
+      </dl>
+    </section>
   );
 }
