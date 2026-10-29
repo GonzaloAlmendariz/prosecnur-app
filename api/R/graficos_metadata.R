@@ -462,8 +462,8 @@
     args = list(
       list(name = "titulo",             label = "Título de la sección", tipo_input = "string",   grupo = "textos",
            descripcion = "Nombre del bloque que empieza (ej. 'Satisfacción con el servicio')."),
-      list(name = "subtitulo",          label = "Subtítulo (solo Word)", tipo_input = "string",  grupo = "textos",
-           descripcion = "La plantilla PPT no tiene espacio para subtítulo en el separador; este texto solo aparece en el export a Word."),
+      list(name = "subtitulo",          label = "Subtítulo", tipo_input = "string",  grupo = "textos",
+           descripcion = "Línea bajo el título del separador, en el PPT y en el Word. Sólo el separador de plantilla (el que sale cuando el título no cabe en el nativo) no la lleva."),
       list(name = "introduccion_word",  label = "Intro (solo Word)",    tipo_input = "textarea", grupo = "textos",
            descripcion = "Párrafo introductorio que solo aparece en el export a Word, no en PPT.")
     )
