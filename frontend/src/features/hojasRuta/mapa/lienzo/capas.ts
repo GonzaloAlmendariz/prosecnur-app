@@ -80,19 +80,31 @@ export type TitularEnMapa = { id: string; numero: number; estado: EstadoTitular;
 /** La escala por debajo de la cual una manzana es un punto y no una forma. */
 export const ESCALA_PUNTOS = 0.22;
 
-export const colorTitular = (u: UtilLienzo, estado: EstadoTitular) => (estado === "error" ? u.colores.error : estado === "aviso" ? u.colores.aviso : u.colores.acento);
+/**
+ * Color de la titular. Sobre las capas Viviendas y NSE (`contraste`) el tono del módulo se
+ * pierde entre los rellenos naranjas; la titular sin observación pasa a tinta oscura
+ * (pedido de Gonzalo: «no se distinguen las manzanas seleccionadas»).
+ */
+export const colorTitular = (u: UtilLienzo, estado: EstadoTitular, contraste = false) =>
+  estado === "error" ? u.colores.error : estado === "aviso" ? u.colores.aviso : contraste ? u.colores.texto : u.colores.acento;
 
 /** Rellenos de las titulares en coordenadas de mundo. */
-export function dibujarTitularesMundo(ctx: CanvasRenderingContext2D, u: UtilLienzo, titulares: readonly TitularEnMapa[], enfocada: string | null) {
+export function dibujarTitularesMundo(ctx: CanvasRenderingContext2D, u: UtilLienzo, titulares: readonly TitularEnMapa[], enfocada: string | null, contraste = false) {
   const cerca = u.camara.s > 0.35;
   for (const t of titulares) {
     const trazo = u.trazo(t.manzana);
+    if (contraste) {
+      // Halo blanco bajo el contorno: separa la titular del relleno de la capa.
+      ctx.strokeStyle = u.colores.via;
+      ctx.lineWidth = 4 * u.px;
+      ctx.stroke(trazo);
+    }
     ctx.globalAlpha = cerca ? 0.72 : 1;
-    ctx.fillStyle = colorTitular(u, t.estado);
+    ctx.fillStyle = colorTitular(u, t.estado, contraste);
     ctx.fill(trazo);
     ctx.globalAlpha = 1;
-    if (cerca) {
-      ctx.strokeStyle = colorTitular(u, t.estado);
+    if (cerca || contraste) {
+      ctx.strokeStyle = colorTitular(u, t.estado, contraste);
       ctx.lineWidth = 1.6 * u.px;
       ctx.stroke(trazo);
     }
@@ -150,6 +162,7 @@ export function dibujarTitularesPantalla(
   enfocada: string | null,
   bajoCursor: string | null,
   reemplazos: readonly PiezaManzana[] = [],
+  contraste = false,
 ) {
   const puntos = u.camara.s < ESCALA_PUNTOS;
   const { w, h } = u.tamano;
@@ -157,13 +170,13 @@ export function dibujarTitularesPantalla(
     const [x, y] = u.aPantalla(t.manzana.centro[0], t.manzana.centro[1]);
     if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue;
     const esFoco = t.id === enfocada;
-    const color = colorTitular(u, t.estado);
+    const color = colorTitular(u, t.estado, contraste);
     if (puntos) {
       ctx.beginPath();
-      ctx.arc(x, y, esFoco ? 6 : 4, 0, Math.PI * 2);
+      ctx.arc(x, y, esFoco ? 6 : contraste ? 5 : 4, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.lineWidth = esFoco ? 2.5 : 1.5;
+      ctx.lineWidth = esFoco ? 2.5 : contraste ? 2 : 1.5;
       ctx.strokeStyle = esFoco ? u.colores.texto : u.colores.via;
       ctx.stroke();
     }

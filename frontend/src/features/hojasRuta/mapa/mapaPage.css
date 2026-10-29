@@ -116,8 +116,9 @@
 .hr-mapa-cab-titulo small { flex: none; white-space: nowrap; }
 .hr-mapa-buscar { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 9px; font: inherit; font-size: 12.5px; color: var(--pulso-text); background: var(--pulso-surface); }
 .hr-mapa-buscar:focus { outline: 2px solid var(--pulso-module-routes-border); border-color: var(--pulso-module-routes); }
-.hr-mapa-zonas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
-.hr-mapa-zona { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 28px; padding: 0 8px; border: 1px solid var(--pulso-border); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+.hr-mapa-zonas { display: flex; flex-wrap: wrap; gap: 4px; }
+.hr-mapa-zonas .hr-mapa-zona { flex: 1 1 auto; gap: 8px; }
+.hr-mapa-zona { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 28px; padding: 0 7px; min-width: 0; border: 1px solid var(--pulso-border); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
 .hr-mapa-zona span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-mapa-zona b { flex: none; font-size: 10.5px; font-variant-numeric: tabular-nums; }
 .hr-mapa-zona:hover:not(:disabled) { border-color: var(--pulso-border-strong); color: var(--pulso-text); }
@@ -131,8 +132,12 @@
 .hr-mapa-catalogo h3 { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 6px 0 0; padding: 8px 6px 6px; background: var(--pulso-surface); font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-mapa-catalogo h3 span { letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .hr-mapa-catalogo ul { list-style: none; margin: 0; padding: 0; }
-.hr-mapa-catalogo li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 9px; }
-.hr-mapa-catalogo li:hover { background: var(--pulso-surface-2); }
+.hr-mapa-catalogo li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent); }
+.hr-mapa-catalogo li:last-child { border-bottom: 0; }
+.hr-mapa-catalogo-tono { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--pulso-border); }
+.hr-mapa-catalogo-tono[data-estado="entra"] { box-shadow: inset 0 0 0 2px var(--pulso-module-routes); }
+.hr-mapa-catalogo-tono[data-estado="sale"] { opacity: 0.35; }
+.hr-mapa-catalogo li:hover { background: var(--pulso-surface-2); border-radius: 8px; }
 .hr-mapa-catalogo-copia { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .hr-mapa-catalogo-copia strong { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
 .hr-mapa-catalogo li[data-elegido="false"] strong { font-weight: 600; color: var(--pulso-text-soft); }
@@ -158,7 +163,6 @@
 .hr-mapa-pie { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--pulso-border); }
 .hr-mapa-pie > * { flex: 1; }
 @media (max-width: 1279px) {
-  .hr-mapa-zonas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hr-mapa-cifras strong { font-size: 14px; }
   .hr-mapa-cifras div { padding: 8px 9px; }
 }
@@ -295,7 +299,7 @@
 .hr-sorteo-historial em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--pulso-module-routes); }
 
 /* Selección (U9): rutas por distrito, ficha de la UMP y cajón de tablas */
-.hr-mapa-catalogo .hr-sel-rutas li { display: block; padding: 0; }
+.hr-mapa-catalogo .hr-sel-rutas li { display: block; padding: 0; border-bottom: 0; }
 .hr-mapa-catalogo .hr-sel-rutas li:hover { background: transparent; }
 .hr-sel-rutas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .hr-sel-rutas button:hover { background: var(--pulso-surface-2); }
@@ -542,3 +546,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 }
 .hr-mapa-subtitulo { margin: 2px 0 -4px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-salidas-sugeridas { display: flex; flex-direction: column; gap: 6px; } .hr-salidas-sugeridas > small { font-size: 11px; font-weight: 700; color: var(--pulso-warn-fg); }
+
+/* Los interruptores del lienzo van en el color del módulo (Gonzalo), no en el navy del kit. */
+.hr-mapa { --pulso-switch-accent: var(--pulso-module-routes); --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-module-routes) 22%, transparent); }

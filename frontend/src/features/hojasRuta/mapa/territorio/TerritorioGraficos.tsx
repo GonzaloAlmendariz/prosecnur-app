@@ -10,12 +10,12 @@ import { nombreDistrito } from "../nombres";
  */
 
 export const NSE: [number, string, string][] = [
-  [1, "Alto", "--pulso-nse-seq-1"],
-  [2, "Medio alto", "--pulso-nse-seq-2"],
-  [3, "Medio", "--pulso-nse-seq-3"],
-  [4, "Medio bajo", "--pulso-nse-seq-4"],
-  [5, "Bajo", "--pulso-nse-seq-5"],
-  [0, "Sin dato", "--pulso-nse-seq-0"],
+  [1, "Alto", "--pulso-nse-1"],
+  [2, "Medio alto", "--pulso-nse-2"],
+  [3, "Medio", "--pulso-nse-3"],
+  [4, "Medio bajo", "--pulso-nse-4"],
+  [5, "Bajo", "--pulso-nse-5"],
+  [0, "Sin dato", "--pulso-nse-0"],
 ];
 
 export const pct = (x: number) =>

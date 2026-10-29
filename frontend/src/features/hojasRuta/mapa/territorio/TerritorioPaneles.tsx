@@ -8,6 +8,7 @@ import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaTerritory, TerritorialFrameMeta } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
+import { tonoCss } from "../lienzo/tonos";
 import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
 
@@ -109,6 +110,8 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                   const cambio = enBorrador !== confirmados.includes(t.ubigeo) ? (enBorrador ? "se agrega" : "se quita") : null;
                   return (
                     <li key={t.ubigeo} data-elegido={enBorrador} data-enfocado={distritoEnfocado === t.ubigeo || undefined}>
+                      {/* El punto lleva el color del distrito en el mapa; uno por agregar va en contorno. */}
+                      <i className="hr-mapa-catalogo-tono" aria-hidden="true" data-estado={confirmados.includes(t.ubigeo) ? (enBorrador ? "dentro" : "sale") : enBorrador ? "entra" : undefined} style={confirmados.includes(t.ubigeo) ? { background: tonoCss(confirmados.indexOf(t.ubigeo)) } : undefined} />
                       <span className="hr-mapa-catalogo-copia" role="button" tabIndex={0} title="Ver su ficha" onClick={() => setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo))}>
                         <strong>{nombreDistrito(t.distrito)}</strong>
                         <small>

@@ -120,9 +120,9 @@ function leerColores(): ColoresLienzo {
     acento: v("--pulso-module-routes"),
     aviso: v("--pulso-warn-accent"),
     error: v("--pulso-danger-fg"),
-    // la densidad arranca en blanco para «sin viviendas» y sigue la secuencia de datos
-    densidad: ["--pulso-surface", "--pulso-data-seq-0", "--pulso-data-seq-1", "--pulso-data-seq-2", "--pulso-data-seq-3", "--pulso-data-seq-4", "--pulso-data-seq-5"].map(v),
-    nse: ["--pulso-nse-seq-0", "--pulso-nse-seq-1", "--pulso-nse-seq-2", "--pulso-nse-seq-3", "--pulso-nse-seq-4", "--pulso-nse-seq-5"].map(v),
+    // la densidad arranca en blanco para «sin viviendas» y sigue la intensidad naranja; el NSE es categórico
+    densidad: ["--pulso-surface", "--pulso-mapa-viv-1", "--pulso-mapa-viv-2", "--pulso-mapa-viv-3", "--pulso-mapa-viv-4", "--pulso-mapa-viv-5", "--pulso-mapa-viv-6"].map(v),
+    nse: ["--pulso-nse-0", "--pulso-nse-1", "--pulso-nse-2", "--pulso-nse-3", "--pulso-nse-4", "--pulso-nse-5"].map(v),
     tonos: ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"].map(v),
   };
 }

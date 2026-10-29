@@ -40,8 +40,8 @@ export function SelectorCapa({ capa, onCapa }: { capa: CapaLienzo; onCapa: (c: C
 
 // Escalones de viviendas (nivelDensidad: 0, <12, <24, <48, <96, <192, 192+) y niveles NSE
 // (el código va al revés: 1 = Alto … 5 = Bajo; 0 = sin dato). Nombres literales de tokens.
-const RAMPA_VIVIENDAS = ["--pulso-surface", "--pulso-data-seq-0", "--pulso-data-seq-1", "--pulso-data-seq-2", "--pulso-data-seq-3", "--pulso-data-seq-4", "--pulso-data-seq-5"];
-const NSE: [string, string][] = [["Alto", "--pulso-nse-seq-1"], ["Medio alto", "--pulso-nse-seq-2"], ["Medio", "--pulso-nse-seq-3"], ["Medio bajo", "--pulso-nse-seq-4"], ["Bajo", "--pulso-nse-seq-5"], ["Sin dato", "--pulso-nse-seq-0"]];
+const RAMPA_VIVIENDAS = ["--pulso-surface", "--pulso-mapa-viv-1", "--pulso-mapa-viv-2", "--pulso-mapa-viv-3", "--pulso-mapa-viv-4", "--pulso-mapa-viv-5", "--pulso-mapa-viv-6"];
+const NSE: [string, string][] = [["Alto", "--pulso-nse-1"], ["Medio alto", "--pulso-nse-2"], ["Medio", "--pulso-nse-3"], ["Medio bajo", "--pulso-nse-4"], ["Bajo", "--pulso-nse-5"], ["Sin dato", "--pulso-nse-0"]];
 
 export function leyendaLienzo(seccion: SeccionLienzo, opciones: { zonasCortas?: boolean; areas?: boolean; capa?: CapaLienzo } = {}): ReactNode {
   const acento = "var(--pulso-module-routes)";
