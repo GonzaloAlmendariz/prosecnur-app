@@ -8,6 +8,7 @@ import { tonoCobertura } from "./marcoElegible";
 import { CompararSemillas } from "./CompararSemillas";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
+import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
 
 /**
@@ -79,6 +80,7 @@ type InspectorProps = {
 
 export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, bloqueado, guardando, onSortear }: InspectorProps) {
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
+  const nav = useSeccion("hojas-ruta");
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
   const ruta = Math.max(1, config.entrevistas_por_manzana || 1);
@@ -123,7 +125,20 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               </>
             )}
           </GlidingRadioGroup>
+        </section>
+
+        <section className="hr-muestra-grupo" aria-label="Carga de la ruta">
+          <h3>Carga de la ruta</h3>
           <Opciones etiqueta="Ponderar manzanas por" valor={config.measure_var} opciones={PESOS} onCambio={(measure_var) => cambiar({ measure_var })} deshabilitado={ed} />
+          <div className="hr-sorteo-ruta">
+            <span>
+              <b>{ruta} encuestas por ruta</b>
+              <small>Se define en Muestra</small>
+            </span>
+            <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "muestra")}>
+              Cambiar
+            </PulsoButton>
+          </div>
           <div className="hr-muestra-campo">
             <small>Semilla</small>
             <span className="hr-sorteo-semilla">

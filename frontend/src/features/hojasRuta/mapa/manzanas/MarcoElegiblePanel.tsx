@@ -80,9 +80,24 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
             Adoptarlo saca <b>{fmt(excluidasMinimo)}</b> manzanas sin viviendas registradas{sinConteo ? ` (${fmt(sinConteo)} por falta de conteo en el censo)` : ""} y cubre el {cubierta == null ? "—" : pct(cubierta)} de la población.
           </p>
         ) : cargando ? <p className="hr-mapa-nota">Calculando lo que cambiaría…</p> : null}
-        <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => onCambiar(MARCO_NUEVO)}>
-          Adoptar el marco elegible
-        </PulsoButton>
+        <div className="hr-mapa-acciones">
+          <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => onCambiar(MARCO_NUEVO)}>
+            Adoptar el marco elegible
+          </PulsoButton>
+          {/* B39: dibujar a la vista. Declara el marco sólo con el área: mínimo 0, no saca manzanas sin viviendas. */}
+          <PulsoButton
+            variant="secondary"
+            size="sm"
+            disabled={deshabilitado}
+            title="Declara el marco elegible sólo con las áreas que dibujes; no saca manzanas por viviendas"
+            onClick={() => {
+              onCambiar({ declarado: true, minimo_viviendas: 0, areas_excluidas: [] });
+              setDibujoArea([]);
+            }}
+          >
+            Dibujar un área a excluir
+          </PulsoButton>
+        </div>
       </section>
     );
   }
@@ -164,7 +179,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
             </div>
           </div>
         ) : (
-          <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => setDibujoArea([])}>Dibujar un área</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => setDibujoArea([])}>Dibujar un área a excluir</PulsoButton>
         )}
       </div>
 
