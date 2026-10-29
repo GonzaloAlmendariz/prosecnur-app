@@ -42,3 +42,24 @@ test_that("cambiar la configuración sí ensucia y lo nombra", {
   expect_true(isTRUE(s$project_dirty))
   expect_identical(names(s$project_dirty_reasons), "hojas_ruta_runs")
 })
+
+test_that("un .pulso anterior a marco_elegible no queda «sin guardar» al re-guardar su misma config", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  # La config como la guardaba una versión vieja: sin marco_elegible ni campos de no respuesta.
+  vieja <- activa$run$config
+  vieja$marco_elegible <- NULL
+  vieja$sample_size$visitas_cap <- NULL
+  s <- session_get(sid)
+  s$hojas_ruta_runs[[activa$phase]]$config <- vieja
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_save_run(sid, activa$phase, config = vieja)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  # Un cambio de verdad sí ensucia.
+  otra <- vieja
+  otra$seed <- as.integer(otra$seed %||% 1L) + 1L
+  .hojas_ruta_save_run(sid, activa$phase, config = otra)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+})

@@ -263,7 +263,14 @@
 .hojas_ruta_runs_huella <- function(runs) {
   if (!is.list(runs) || !length(runs)) return("")
   sin_ui <- lapply(runs, function(run) {
-    if (is.list(run)) run$ui_state <- NULL
+    if (is.list(run)) {
+      run$ui_state <- NULL
+      # La config se compara normalizada: un .pulso anterior a una clave nueva
+      # (marco_elegible, los campos de no respuesta de sample_size) la recibe con su
+      # valor por defecto al primer guardado, y eso es migración derivable, no una
+      # edición que deba marcar el proyecto «sin guardar».
+      if (is.list(run$config)) run$config <- hojas_ruta_integrada_normalize_config(run$config)
+    }
     run
   })
   as.character(jsonlite::toJSON(sin_ui, auto_unbox = TRUE, digits = NA, null = "null", na = "null"))
