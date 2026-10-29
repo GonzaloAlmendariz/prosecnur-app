@@ -267,3 +267,14 @@ test_that("en una lámina multilista todas las barras tienen el mismo grosor y c
   # El rótulo «Top Two Box» del bloque 1 (p144: 1.95), sin mover la primera barra.
   expect_lte(abs(min(f$y[f$nombre == "box:rotulo"]) - 1.95), tol)
 })
+
+test_that("un título de bloque que repite su única premisa no se escribe dos veces (Arte, lám. 14)", {
+  e <- list(tipo = "escala")
+  pr <- list(list(texto = "¿Qué tan satisfecho(a) se encuentra con las asesorías?"))
+  local_mocked_bindings(.lam_escala_premisas = function(espec) pr, .lam_escala_en_filas = function(e) FALSE)
+  e$filas <- data.frame(x = 1)
+  it <- .lam_multilista_items(list(bloques = list(list(espec = e, titulo = "¿Qué tan satisfecho(a) se encuentra con las asesorías?"))))
+  expect_length(it, 1L); expect_null(it[[1]]$titulo)
+  it2 <- .lam_multilista_items(list(bloques = list(list(espec = e, titulo = "Asesorías de matrícula"))))
+  expect_identical(it2[[1]]$titulo, "Asesorías de matrícula")
+})

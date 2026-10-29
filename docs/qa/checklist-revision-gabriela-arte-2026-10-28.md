@@ -44,3 +44,12 @@ Dónde vive: **motor** (cambio en `api/R`, vale para todo informe), **proyecto**
   marcado: la Sí/No sola medía 7,52 in frente a 6,3 de la escala (Conta: todas ~6,1) → ahora mide como la escala; el rótulo
   TOP TWO BOX iba a 10 pt (Conta 12) → 12. Abierto, por decidir con Gonzalo: el grosor de la barra no crece con pocas filas
   (Conta 0,70 con 2 filas … 0,47 con 6; Arte 0,44 siempre).
+- Segunda corrección contra Contabilidad (2026-10-28, a pedido de Gonzalo: «el título del top two box ahora se está metiendo
+  en las barras»; «una separación como de 4 centímetros»; «los gráficos donde solo hay un tema no los centras»), medido lámina
+  por lámina en los dos mazos (`conta_audit/temas.py`, `vert.py` del scratchpad):
+  - Horizontal: barra hasta 11,4 in (Conta 11,43), cifra del box centrada a 0,85 in del fin de la barra (Conta 0,86), rótulo
+    a 0,27 in tras la barra (Conta 0,33) y dentro del margen; toda barra (Sí/No o escala, con o sin box) mide lo mismo.
+  - Vertical: grosor que crece con el alto que sobra (Conta 0,71 con 2 barras … 0,51 con 6); aire entre temas a lo más
+    1,0 in (Conta 0,6–0,9; 1,1–1,4 con pocas barras); públicos de una sola pregunta a 0,65 in (Conta 0,65–0,84); leyenda a
+    0,45 in (Conta 0,3–0,75); lo que sigue sobrando, centrado. La partición no cambia: 57 láminas.
+  - Lámina 26 (filtro con su escala) compuesta como la 34 de Conta: Sí/No apilada, «N = 77» sin tocar el rótulo.

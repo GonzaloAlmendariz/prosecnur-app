@@ -228,7 +228,11 @@
   L <- .std_geom("likert")
   ttb <- !is.null(espec$box$unidades); btb <- ttb && !is.null(espec$box2$unidades)
   paso <- if (btb) 1.25 else 0; wcol <- if (btb) 1.25 else 1.5
-  centro <- function(dx) L$x_top_two_box + 0.75 - dx   # el centro de la columna de 1.5 in del estándar
+  # El centro de la columna de 1.5 in del estándar. La tinta del rótulo de más a la derecha no pasa el margen: a 12 pt
+  # «BOTTOM TWO BOX» mide 1,53 in.
+  rot_der <- .lam_rotulo_box(if (btb) espec$box2$rotulo %||% "Bottom Two Box" else espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+  tope <- .std_geom("ancho") - .std_geom("margen_der") - .lam_ancho_tinta(rot_der, .std_pt("rotulo_top_two_box"), TRUE) / 2
+  centro <- function(dx) min(L$x_top_two_box + 0.75, tope) - dx
   cols <- list()
   if (ttb) cols[[1]] <- list(caja = espec$box, color = .std_color("verde_top_two_box"), x = centro(paso) - wcol / 2,
                              prefijo = "box", rotulo = .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX))
@@ -255,11 +259,13 @@
 #' @param rotulo_sobre Distancia del rótulo «Top Two Box» sobre la franja; la multilista lo acerca para caer en la
 #'   p144 del recetario. `NULL`: 0.45, la de siempre.
 #' @param extra_alto Alto que quien compone le cede al bloque para separar sus temas (multilista, G19/G11).
+#' @param llenando La lámina aprovecha su alto (lamina_escala_llenar.R); `NULL`: si el bloque es la lámina entera.
+#' @param desplazar Cuánto bajar el bloque para centrarlo (`.lam_escala_centrar()`).
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
                                estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
-                               encabezar_tema = FALSE, extra_alto = 0) {
+                               encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -271,6 +277,8 @@
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
   con_n <- isTRUE(espec$mostrar_respuestas)   # M10 / N3b: «Respuestas por público»; apagado por defecto, switcher opcional por gráfico
   y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
+  llenar <- is.null(estirar) && is.null(aire) && is.null(grosor) && isTRUE(leyenda)   # la lámina es este bloque: aprovecha su alto
+  llenando <- llenando %||% llenar
 
   # Con Bottom Two Box la afirmación sola no encabeza: si es corta va en filas (lámina 97, `.lam_escala_modo_filas`) y
   # si es larga, en el bloque de premisas (láminas 221/222), como la batería (decisión «2c»).
@@ -300,7 +308,7 @@
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   extra_gap <- rep(0, max(0L, length(premisas) - 1L))   # M1: aire extra por separación (donde una cifra chica pide más); 0 = el gap uniforme de siempre
-  WB <- if (ttb_col || isTRUE(espec$ancho_como_escala)) cb$ancho_barra else W - MR - L$x_barra - 0.3   # G17: la Sí/No junto a una escala mide lo que ella
+  WB <- cb$ancho_barra   # G17 y Conta: toda barra mide lo mismo, con o sin columna Top Two Box, sea Sí/No o escala (Gonzalo, 2026-10-28)
   altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
@@ -311,7 +319,11 @@
     fila <- fila * estirar; gap <- gap * estirar
     if (estirar < 1 && .std_evitar_cont()) { mn <- aire_mn(); fila <- max(mn$fila, fila); gap <- max(mn$gap, gap); extra_gap <- pmax(0, mn$gaps - gap) }   # M1: la multilista comprime
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
-  } else if (tot < 0.88 * disp) {   # pocas filas: se reparte el alto, el grosor no cambia
+  } else if (tot < 0.88 * disp) {   # pocas filas: la barra engrosa hacia la de Contabilidad con lo que sobra y se reparte el alto
+    if (llenar) {   # lamina_escala_llenar.R: la partición ya se decidió con el grosor del estándar
+      dg <- .lam_escala_engrosar(g, sum(vapply(premisas, function(p) length(p$filas), 0)), .lam_escala_alto_llenar(y0) - tot)
+      g <- g + dg; fila <- fila + dg; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
+    }
     f_ <- min(2.0, 0.93 * disp / tot); fila <- fila * f_; gap <- gap * f_
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   } else if (tot > disp) {   # M1: hasta seis barras se compactan para caber en vez de partirse (`.lam_escala_partir`)
@@ -336,7 +348,7 @@
     peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
     if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36, .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
   }
-  y <- y0   # G19 (Gabriela, 2026-10-28): el bloque arranca bajo el título, a la altura del logo; ya no se centra en la franja
+  y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
   hr <- if (length(cb$cols) > 1L) 0.1 else 0
   for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
@@ -367,7 +379,9 @@
     (max(1L, .lam_lineas_tinta(fl$actor, w_act, .std_pt("actor"), TRUE)) - 1L) * .std_pt("actor") * 1.2 / 72
   ta <- .lam_escala_temas_aire(vapply(premisas, function(p) .lam_premisa_alto(p, wp), 0), vapply(premisas, function(p) length(p$filas), 0),
                                fila, g, gap + extra_gap, lapply(premisas, function(p) vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)),
-                               piso_lab = vapply(premisas, function(p) max(vapply(p$filas, lab_alto, 0)), 0), extra = extra_alto)
+                               piso_lab = vapply(premisas, function(p) max(vapply(p$filas, lab_alto, 0)), 0),
+                               extra = extra_alto + (if (llenar) max(0, .lam_escala_alto_llenar(y0) - tot) else 0),
+                               tope_entre = if (llenando) .LAM_LLENAR_ENTRE_MAX else .LAM_TEMA_AIRE_ENTRE_MAX, repartir = llenando)
   y <- y + ta$pad; tot <- ta$alto; altos <- vapply(seq_along(premisas), function(i) max(.lam_premisa_alto(premisas[[i]], wp), length(premisas[[i]]$filas) * ta$filas[i]), 0)
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_premisa_txt(p$texto, wp); hn <- .lam_premisa_alto(p, wp); fila <- ta$filas[i]
@@ -403,7 +417,7 @@
     y <- y + a + (if (i < length(premisas)) ta$gaps[i] else 0)
   }
   fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
-  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_BASE - 0.32, ytop + tot + 0.3), labels, cols, centrar_en = .std_geom("ancho") / 2)   # centrada a la lámina; G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
+  if (isTRUE(leyenda)) .lam_leyenda(lz, min(.lam_piso_leyenda(), ytop + tot + (if (llenando) .LAM_LLENAR_AIRE_LEYENDA else 0.3)), labels, cols, centrar_en = .std_geom("ancho") / 2)   # centrada a la lámina; G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
   invisible(structure(ytop + tot, centro_barras = x_bar + WB / 2))   # N16: la multilista centra su leyenda compartida con este eje
 }
 

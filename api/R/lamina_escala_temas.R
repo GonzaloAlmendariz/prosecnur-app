@@ -27,11 +27,14 @@
 #' @param piso_lab Alto mínimo del paso de fila de cada premisa para que el rótulo del público (y sus respuestas) quepa.
 #' @param holgura Holgura de la cifra chica con la barra de arriba (`.lam_holgura_chica()`).
 #' @param extra Alto adicional que quien compone le cede al bloque (el aire que soltó arriba, G19); solo va entre temas.
+#' @param tope_entre Tope del aire entre temas (`.LAM_LLENAR_ENTRE_MAX` cuando la lámina llena su alto).
+#' @param repartir Con una sola pregunta, sus públicos se reparten `extra` (la lámina llena su alto).
 #' @return `list(filas, gaps, pad, alto)`: paso de fila por premisa, separación por frontera, aire extra sobre la
 #'   primera premisa y alto total (nunca mayor que el de entrada más `extra`).
 #' @keywords internal
 .lam_escala_temas_aire <- function(hn, nf, fila, g, gaps, chica, piso_lab = rep(0, length(hn)),
-                                   holgura = .lam_holgura_chica(), extra = 0) {
+                                   holgura = .lam_holgura_chica(), extra = 0, tope_entre = .LAM_TEMA_AIRE_ENTRE_MAX,
+                                   repartir = FALSE) {
   n <- length(hn)
   gaps <- rep_len(as.numeric(gaps), max(0L, n - 1L))
   alto0 <- sum(pmax(hn, nf * fila)) + sum(gaps)
@@ -52,7 +55,16 @@
   v <- geo(rep(fila, n)); w <- geo(filas)
   pad <- 0
   if (isTRUE(as.logical(chica[[1]])[1])) pad <- max(0, min(v$primera[1], .LAM_TEMA_PRIMERA_CHICA) - w$primera[1])
-  if (n == 1L) return(list(filas = filas, gaps = gaps, pad = pad, alto = w$a + pad))
+  if (n == 1L) {
+    # Una sola pregunta y la lámina llena su alto (lamina_escala_llenar.R): no hay otro tema con el que confundirla, así que
+    # sus públicos se reparten el alto como en Contabilidad (paso de 1,4–1,5 in con tres públicos), con un aire de a lo más
+    # `.LAM_LLENAR_AIRE_PUBLICOS` entre barras.
+    if (isTRUE(repartir) && extra > 0 && nf[1] > 1) {
+      f1 <- max(filas[1], min(g + .LAM_LLENAR_AIRE_PUBLICOS, (max(w$a[1], nf[1] * filas[1]) + extra) / nf[1]))
+      return(list(filas = f1, gaps = gaps, pad = pad, alto = max(hn[1], nf[1] * f1) + pad))
+    }
+    return(list(filas = filas, gaps = gaps, pad = pad, alto = w$a + pad))
+  }
   # Cada frontera conserva al menos el aire que tenía entre barras (la cifra chica de la primera barra del tema que sigue
   # no se acerca a la de arriba) y recibe por partes iguales lo que los temas soltaron.
   idx <- seq_len(n - 1L)
@@ -63,7 +75,7 @@
   nuevos <- base + reparte
   # Tope: el aire entre temas no pasa de `.LAM_TEMA_AIRE_ENTRE_MAX` salvo que ya fuera mayor; el sobrante queda abajo.
   entre <- (w$a[idx] - w$ultima[idx]) + nuevos + w$primera[idx + 1L]
-  tope <- pmax(antes, .LAM_TEMA_AIRE_ENTRE_MAX)
+  tope <- pmax(antes, tope_entre)
   nuevos <- nuevos - pmax(0, entre - tope)
   list(filas = filas, gaps = nuevos, pad = pad, alto = sum(w$a) + sum(nuevos) + pad)
 }

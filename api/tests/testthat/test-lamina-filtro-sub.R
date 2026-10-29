@@ -224,13 +224,15 @@ test_that("F4: el conteo lee filtros de selección múltiple y dependientes de v
        por_nombre = function(nm) xml2::xml_text(formas[xml2::xml_attr(xml2::xml_find_first(formas, ".//p:cNvPr"), "name") == nm]))
 }
 
-test_that("F5: el pie lleva las dos bases y el filtro dicotómico sus casos en el rótulo", {
+test_that("F5: el pie lleva las dos bases y el filtro dicotómico es una barra apilada con su leyenda Sí/No", {
   skip_if_not_installed("officer")
   r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"),
                        base = "Base: 120 estudiantes")
   n_si <- sum(r$fx$df$inter == "1")
   expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí»", n_si))
-  expect_true(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
+  # Como Contabilidad: sin «Sí (77)» sobre la barra; los casos van en el pie y en el «N = 77» del dependiente.
+  expect_false(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
+  expect_true(all(c("Sí", "No") %in% r$textos), info = paste(r$textos, collapse = " | "))
 })
 
 test_that("F5: quien arma la lámina dice quiénes son, y la frase llega del meta de la dependencia", {

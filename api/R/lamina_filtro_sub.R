@@ -169,7 +169,12 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
 
-  if (dico && identical(espec$disposicion, "abajo")) {
+  una_barra_c <- sub_nativo && identical(s$tipo, "escala") && NROW(s$filas) == 1L
+  if (dico && identical(espec$disposicion, "abajo") && una_barra_c) {
+    # La Sí/No y su escala de una barra van como Contabilidad: dos filas de escala del estándar (lamina_filtro_sub_conta.R).
+    .lam_filtro_sub_como_conta(lz, espec, .lam_filtro_sub_dico(f), s, n_encima = if (!isTRUE(espec$base_en_titulo)) .lam_filtro_sub_n_texto(espec),
+                               publico_f = publico(espec$n_filtro))
+  } else if (dico && identical(espec$disposicion, "abajo")) {
     # p192: la dicotomía a todo el ancho y la subpregunta debajo. G15 (Gabriela, Arte 2026-10-28: «no es necesario el
     # corchete, se ve mal»): sin la llave que bajaba de lo que habilita al título; lo dice el «N = 77» y el pie.
     d <- .lam_filtro_sub_dico(f)

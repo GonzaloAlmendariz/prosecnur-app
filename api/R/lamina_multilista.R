@@ -134,7 +134,7 @@
 .lam_multilista_peq <- function(it) {
   L <- .std_geom("likert")
   ex <- .std_enunciado_extra_in()   # N10: el enunciado ancho le quita su ancho a la barra
-  WB <- (if (!is.null(it$espec$box$unidades) || isTRUE(it$espec$ancho_como_escala)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3) - ex
+  WB <- L$ancho_barra - ex   # toda barra mide lo mismo, como en `.lam_bloque_escala` (Conta)
   any(vapply(it$premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(it$espec, fl$i), WB), TRUE)), TRUE))
 }
 
@@ -195,7 +195,11 @@
   if (!all(ok)) return(NULL)
   lapply(bloques, function(b) {
     texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
-    list(espec = b$espec, titulo = texto(b$titulo), subtitulo = texto(b$subtitulo), premisas = .lam_escala_premisas(b$espec))
+    pr <- .lam_escala_premisas(b$espec); tit <- texto(b$titulo)
+    # Un título de bloque que repite su única premisa no se escribe dos veces (Arte lám. 14): la premisa ya lo dice.
+    norm <- function(x) tolower(gsub("[[:space:][:punct:]]+", "", x %||% ""))
+    if (!is.null(tit) && length(pr) == 1L && identical(norm(tit), norm(pr[[1]]$texto))) tit <- NULL
+    list(espec = b$espec, titulo = tit, subtitulo = texto(b$subtitulo), premisas = pr)
   })
 }
 
@@ -269,7 +273,11 @@
   # M1 con piso: si no caben, el aire cede hasta su mínimo (la barra no baja del piso); `.lam_bloque_escala` aplica los pisos
   if (total > disp && .std_evitar_cont()) f <- .lam_multilista_factor_compresion(items, compartida, disp)
   gr <- dec$decidir(f)
-  w <- .lam_multilista_ancho(); y <- g_("zona_datos_y0")
+  w <- .lam_multilista_ancho()
+  # Compone los bloques; `dg` engrosa la barra (y su fila), `entre` separa bloques y `extra` reparte aire entre los temas
+  # de cada bloque (lamina_escala_llenar.R). Devuelve la `y` del final del último bloque.
+  componer <- function(lz, dg = 0, entre = 0, extra = rep(0, length(items)), sin_tope = FALSE, bajar = 0) {
+  y <- g_("zona_datos_y0") + bajar
   for (k in seq_along(items)) {
     it <- items[[k]]
     if (!is.null(it$titulo)) {
@@ -287,17 +295,41 @@
     arriba <- k == 1L && is.null(it$titulo) && is.null(it$subtitulo) && !is.null(it$espec$box$unidades)
     y <- y + (if (arriba) .LAM_MULTILISTA_AIRE else if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
-                              leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor,
+                              leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire + dg, grosor = gr$grosor + dg,
                               rotulo_sobre = if (arriba) 0.45 else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
-                              extra_alto = if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0)   # G11: lo que soltó arriba va entre temas
-    centro_barras <- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
-    y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
+                              extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
+                              llenando = sin_tope)   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
+    centro_barras <<- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
+    y <- fin + (if (k < length(items)) entre else 0) + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
+  y
+  }
+  # La lámina aprovecha su alto como Contabilidad (lamina_escala_llenar.R): con alto de sobra, la barra engrosa hacia su
+  # grosor y el resto va entre temas y bloques, no bajo el último. Nada cambia si la lámina viene justa o apretada.
+  dg <- 0; entre <- 0; extra <- rep(0, length(items))
+  meta <- .lam_piso_leyenda() - .LAM_LLENAR_AIRE_LEYENDA - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)
+  if (!apretar && f >= 1) {
+    fin_de <- function(...) componer(.lam_lienzo(), ..., sin_tope = TRUE) - .LAM_MULTILISTA_GAP
+    sobra <- meta - fin_de()
+    dg <- .lam_escala_engrosar(gr$grosor, nb, sobra)
+    sobra <- meta - fin_de(dg = dg)
+    temas <- vapply(items, function(it) max(0L, length(it$premisas) - 1L), 0L)
+    fronteras <- sum(temas) + length(items) - 1L
+    if (sobra > 0.05 && fronteras > 0) {
+      # Entre bloques, como entre temas: a lo más lo que deja `.LAM_LLENAR_ENTRE_MAX` (Conta), no todo el sobrante.
+      parte <- sobra / fronteras; entre <- min(parte, .LAM_LLENAR_ENTRE_MAX - .LAM_MULTILISTA_GAP); extra <- parte * temas
+    } else if (sobra > 0.05) {
+      extra <- rep(sobra, length(items))   # una sola pregunta: el alto se lo reparten sus públicos (lamina_escala_temas.R)
+    }
+  }
+  bajar <- if (!apretar && f >= 1) .lam_escala_centrar(fin_de(dg = dg, entre = entre, extra = extra) - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)) else 0
+  y <- componer(lz, dg = dg, entre = entre, extra = extra, sin_tope = !apretar && f >= 1, bajar = bajar)   # lo que sigue sobrando: centrado
   if (compartida) {
     e <- items[[1]]$espec; ley <- e$leyenda
     con_ttb <- any(vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE))
     fin_bloque <- if (con_ttb) L$x_top_two_box + 0.75 else g_("ancho") - g_("margen_der") - 0.3
-    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, g_("base_y") - 0.33, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
+    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
+             else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .LAM_LLENAR_AIRE_LEYENDA)   # llena: 0,45 in, como Conta
              else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
     .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras

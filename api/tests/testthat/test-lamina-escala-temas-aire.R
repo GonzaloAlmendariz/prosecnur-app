@@ -61,9 +61,11 @@ test_that("en la lámina: el aire dentro del tema es menor que entre temas y el 
   dentro <- b$aire[c(1, 2, 4, 5)]; entre <- b$aire[3]
   expect_true(all(abs(dentro - .LAM_TEMA_AIRE) < 1e-3))
   expect_gt(entre, 3 * max(dentro))
-  # Arriba: el rótulo de la columna queda 0,45 in sobre el inicio de la franja (zona de datos + 0,1), no centrado.
+  # Arriba: el rótulo de la columna queda 0,45 in sobre el inicio de la franja (zona de datos + 0,1); una lámina que ya
+  # llena su alto sólo baja lo poco que le sobra al centrarse (lamina_escala_llenar.R).
   rot <- f[f$nombre == "box:rotulo", ]
-  expect_equal(rot$y, .std_geom("zona_datos_y0") + 0.1 - 0.45, tolerance = 1e-3)
+  expect_gte(rot$y, .std_geom("zona_datos_y0") + 0.1 - 0.45 - 1e-3)
+  expect_lt(rot$y, .std_geom("zona_datos_y0") + 0.1 - 0.45 + 0.1)
   expect_lt(min(b$y), .std_geom("zona_datos_y0") + 0.1 + 0.4)
   # Nada sale de la franja de datos (la leyenda incluida) ni de la lámina.
   gr <- f[!grepl("lamina", f$nombre), ]   # sin el pie (base y folio) ni el título
@@ -77,13 +79,16 @@ test_that("la columna Top Two Box se acerca y la barra se alarga; el rótulo va 
   o <- suppressMessages(.lam_laminas_escala(.gta_doc(), e, "Formulación", folio = 1))
   f <- .gta_formas(o$doc); b <- .gta_barras(f); L <- .std_geom("likert")
   expect_equal(b$fin, L$x_barra + L$ancho_barra, tolerance = 0.01)
-  expect_equal(b$fin, 11.5, tolerance = 0.01)
+  expect_equal(b$fin, 11.4, tolerance = 0.01)   # Contabilidad: la barra termina en 11,43 in
   cif <- f[f$nombre == "box:cifra", ]
-  expect_equal(unique(round(cif$x + cif$w / 2, 3)), 12.0, tolerance = 1e-3)
-  # La cifra del box (14 pt, centrada) queda a menos de 0,4 in del fin de la barra y no la pisa.
+  expect_equal(unique(round(cif$x + cif$w / 2, 3)), 12.25, tolerance = 1e-3)
+  # La cifra del box (14 pt, centrada) queda donde la pone Contabilidad (~0,65 in de tinta tras la barra), y el rótulo
+  # no se mete sobre la barra (Gonzalo, 2026-10-28: «el top two box ahora se está metiendo en las barras»).
   tinta <- max(.lam_ancho_tinta(cif$texto, .std_pt("cifra"), TRUE))
-  hueco <- (12.0 - tinta / 2) - b$fin
-  expect_gt(hueco, 0.1); expect_lt(hueco, 0.4)
+  hueco <- (12.25 - tinta / 2) - b$fin
+  expect_gt(hueco, 0.45); expect_lt(hueco, 0.8)
+  rot <- f[f$nombre == "box:rotulo", ]
+  expect_gte(min(rot$x + rot$w / 2) - .lam_ancho_tinta("TOP TWO BOX", .std_pt("rotulo_top_two_box"), TRUE) / 2 - b$fin, 0.25)
   expect_identical(unique(f$texto[f$nombre == "box:rotulo"]), "TOP TWO BOX")
   # La especificación (la que leen el Word y la UI) conserva su rótulo.
   expect_identical(e$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX, "Top Two Box")
