@@ -255,13 +255,16 @@ nse_path <- write_csv_gz(nse, ARCHIVO_NSE)
 
 carto_dir <- file.path(out_dir, "cartografia", DIR_MANZANAS)
 dir.create(carto_dir, recursive = TRUE, showWarnings = FALSE)
+# Mismo esquema de propiedades que la cartografía de Lima (PlanMet): el engine lee ID_MANZANA,
+# NOMBDIST, NOMBPROV, NOMBDEP, FTE_MZNA y AREA_M2, y enriquece por ID_MANZANA = id del marco.
 props <- data.frame(
-  IDMANZANA = x$id_manzana_norm,
-  id_manzana_norm = x$id_manzana_norm,
+  ID_MANZANA = x$id_manzana_norm,
   UBIGEO = x$ubigeo,
-  NOMBDPTO = x$NOM_DPTO,
+  NOMBDEP = x$NOM_DPTO,
   NOMBPROV = x$NOM_PROV,
   NOMBDIST = x$NOM_DIST,
+  FTE_MZNA = "INEI - CENSO 2017",
+  AREA_M2 = round(area, 1),
   CODZONA = substr(x$cartografia_id, 7L, 9L),
   SUFZONA = substr(x$cartografia_id, 10L, 11L),
   CODMZNA = substr(x$cartografia_id, 12L, 14L),
@@ -274,7 +277,7 @@ capa <- sf::st_sf(props, geometry = sf::st_geometry(x))
 carto_files <- character(0)
 for (ub in sort(unique(capa$UBIGEO))) {
   part <- capa[capa$UBIGEO == ub, ]
-  part <- part[order(part$IDMANZANA), ]
+  part <- part[order(part$ID_MANZANA), ]
   path <- file.path(carto_dir, paste0(ub, ".geojson"))
   sf::st_write(part, path, quiet = TRUE, delete_dsn = TRUE,
                layer_options = c("COORDINATE_PRECISION=6", "RFC7946=NO", "WRITE_NAME=NO"))
@@ -356,13 +359,98 @@ provincias <- lapply(sort(unique(prov_cod)), function(pc) {
     distritos = as.list(dist),
     cobertura = cobertura_provincia(pc, dist),
     capas = list(
-      manzanas = capa_meta(file.path("cartografia", DIR_MANZANAS), "INEI - CENSO 2017 (GeoPeru/IDEP)", VERSION_MANZANAS,
-                           carto_md5[paste0(dist, ".geojson.gz")], patron = "<ubigeo>.geojson.gz"),
+      manzanas = c(list(perfil = "ciudades"),
+                   capa_meta(file.path("cartografia", DIR_MANZANAS), "INEI - CENSO 2017 (GeoPeru/IDEP)", VERSION_MANZANAS,
+                             carto_md5[paste0(dist, ".geojson.gz")], patron = "<ubigeo>.geojson.gz")),
       marco = capa_meta(ARCHIVO_MARCO, FUENTE_MARCO, VERSION_MARCO, marco_md5, filtro = "ubigeo"),
       nse = capa_meta(ARCHIVO_NSE, FUENTE_NSE, VERSION_NSE, nse_md5, filtro = "ubigeo")
     )
   )
 })
+
+# Lima y Callao ya están empaquetados (ADR 0114/0115): el registro los describe sin tocar sus
+# archivos. `perfil` dice qué perfil de cartografía del engine usa cada provincia; las ciudades
+# usan `ciudades`. La cobertura se mide igual que en las ciudades: población REDATAM 2017 del
+# marco oficial frente a la población REDATAM 2017 del distrito y la censada CPV 2025.
+registro_lima_callao <- function() {
+  base <- script_dir
+  oficial <- utils::read.csv(file.path(base, "inei2017_lima_callao_manzanas_oficial.csv.gz"),
+                             colClasses = c(ubigeo = "character"))
+  nse_manifest <- jsonlite::read_json(file.path(base, "nse_geoperu_inei_lima_callao_manzanas.json"))
+  marco_manifest <- jsonlite::read_json(file.path(base, "cartografia_manzanas_inei2017_lima_callao.json"))
+  defs <- list(
+    list(codigo = "1501", departamento = "LIMA", provincia = "LIMA", perfil = "lima",
+         dir = "manzanas_lima_2017", manifest = "cartografia_manzanas_lima_2017.json", anio = 2017L),
+    list(codigo = "0701", departamento = "CALLAO", provincia = "CALLAO", perfil = "callao",
+         dir = "manzanas_callao_2019", manifest = "cartografia_manzanas_callao_2019.json", anio = 2019L)
+  )
+  marco_md5 <- md5s(file.path(base, "inei2017_lima_callao_manzanas_oficial.csv.gz"))
+  nse_md5 <- md5s(file.path(base, "nse_geoperu_inei_lima_callao_manzanas.csv.gz"))
+  lapply(defs, function(def) {
+    dist <- sort(unique(oficial$ubigeo[substr(oficial$ubigeo, 1L, 4L) == def$codigo]))
+    for (ub in dist) {
+      pob <- tryCatch(parse_population(fetch_redatam_table(ub, "Manzana.NMANZ", "Poblacio.SEXO"), ub),
+                      error = function(e) stop("REDATAM falló en ", ub, ": ", conditionMessage(e), call. = FALSE))
+      cobertura_dist <<- rbind(cobertura_dist, data.frame(
+        ubigeo = ub,
+        pob17_redatam = sum(pob$poblacion, na.rm = TRUE),
+        pob17_en_capa = sum(oficial$poblacion[oficial$ubigeo == ub], na.rm = TRUE),
+        pob25 = cpv25$pob25[match(ub, cpv25$ubigeo)],
+        viv25 = cpv25$viv25[match(ub, cpv25$ubigeo)]
+      ))
+    }
+    carto_manifest <- jsonlite::read_json(file.path(base, def$manifest))
+    carto_dir <- file.path(base, "cartografia", def$dir)
+    carto <- file.path(carto_dir, paste0(dist, ".geojson.gz"))
+    carto <- carto[file.exists(carto)]
+    list(
+      codigo = def$codigo,
+      departamento = def$departamento,
+      provincia = def$provincia,
+      distritos = as.list(dist),
+      cobertura = cobertura_provincia(def$codigo, dist),
+      capas = list(
+        manzanas = c(list(ruta = file.path("cartografia", def$dir), patron = "<ubigeo>.geojson.gz", perfil = def$perfil,
+                          fuente = carto_manifest$source, anio_dato = def$anio,
+                          descargado = substr(carto_manifest$packaged_at, 1L, 10L),
+                          version = carto_manifest$version %||% def$dir),
+                     list(checksums = md5s(carto))),
+        marco = list(ruta = "inei2017_lima_callao_manzanas_oficial.csv.gz", filtro = "ubigeo",
+                     fuente = "INEI CPV 2017 (Informacion Digital Urbano Censal)", anio_dato = 2017L,
+                     descargado = substr(marco_manifest$packaged_at, 1L, 10L),
+                     version = marco_manifest$version, checksums = marco_md5),
+        nse = list(ruta = "nse_geoperu_inei_lima_callao_manzanas.csv.gz", filtro = "ubigeo",
+                   fuente = nse_manifest$source, anio_dato = as.integer(nse_manifest$anio_dato),
+                   descargado = nse_manifest$descargado, version = nse_manifest$version, checksums = nse_md5)
+      )
+    )
+  })
+}
+
+provincias <- c(registro_lima_callao(), provincias)
+provincias <- provincias[order(vapply(provincias, function(p) p$codigo, character(1)))]
+
+# Manifiesto de la cartografía de ciudades, con el mismo esquema que los de Lima: el engine lee
+# de aquí cuántos distritos y manzanas hay sin abrir cada GeoJSON.
+conteo_carto <- table(capa$UBIGEO)
+jsonlite::write_json(list(
+  id = "inei2017-blocks-ciudades",
+  version = VERSION_MANZANAS,
+  schema_version = 1L,
+  provider = "Instituto Nacional de Estadistica e Informatica (INEI)",
+  source = "INEI - CENSO 2017, capa peru_estrato_nacional_ (GeoPeru/IDEP)",
+  year = ANIO_DATO,
+  anio_dato = ANIO_DATO,
+  descargado = DESCARGADO,
+  coverage = "Ciudades principales (ADR 0119, niveles 1 y 2)",
+  geometry = "poligono_manzana",
+  spatial_reference = "EPSG:4326 / WGS84",
+  compression = "gzip_por_distrito",
+  packaged_districts = length(conteo_carto),
+  packaged_blocks = as.integer(sum(conteo_carto)),
+  packaged_at = DESCARGADO,
+  counts_by_district = as.list(stats::setNames(as.integer(conteo_carto), names(conteo_carto)))
+), file.path(out_dir, "cartografia_manzanas_inei2017_ciudades.json"), auto_unbox = TRUE, pretty = TRUE)
 
 registro <- list(
   schema_version = 1L,
@@ -372,13 +460,13 @@ registro <- list(
   umbrales = NIVELES,
   provincias = provincias
 )
-jsonlite::write_json(registro, file.path(out_dir, "territorios_ciudades.json"),
+jsonlite::write_json(registro, file.path(out_dir, "territorios.json"),
                      auto_unbox = TRUE, pretty = TRUE)
 
 resumen <- list(
   manzanas = nrow(marco),
   distritos = length(unique(marco$ubigeo)),
-  provincias = length(provincias),
+  provincias = sum(vapply(provincias, function(p) p$capas$manzanas$perfil == "ciudades", logical(1))),
   con_conteo = sum(marco$match_level == "id_manzana_norm"),
   sin_conteo = sum(marco$match_level != "id_manzana_norm"),
   viviendas = sum(marco$viviendas),
@@ -387,6 +475,7 @@ resumen <- list(
   niveles = as.list(table(vapply(provincias, function(p) p$cobertura$nivel, character(1)))),
   distritos_redatam_fallidos = as.list(fallidos)
 )
-jsonlite::write_json(resumen, file.path(out_dir, "resumen_build_ciudades.json"), auto_unbox = TRUE, pretty = TRUE)
+# El resumen es diagnóstico de la corrida: va a la caché, no al paquete.
+jsonlite::write_json(resumen, file.path(cache_dir, "resumen_build_ciudades.json"), auto_unbox = TRUE, pretty = TRUE)
 print(utils::str(resumen))
 if (length(fallidos)) quit(status = 2L)

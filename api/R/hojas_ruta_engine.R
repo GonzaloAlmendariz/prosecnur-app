@@ -1081,9 +1081,8 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
 
 .hojas_ruta_cartografia_profile_for_ubigeo <- function(ubigeo) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
-  if (grepl("^1501[0-9]{2}$", ubigeo)) return(.hojas_ruta_cartografia_profile("lima"))
-  if (grepl("^0701[0-9]{2}$", ubigeo)) return(.hojas_ruta_cartografia_profile("callao"))
-  NULL
+  # ADR 0119 §2: la cobertura sale del registro territorios.json, no de un patrón de ubigeo.
+  .hojas_ruta_perfil_cartografia_registro(ubigeo)
 }
 
 .hojas_ruta_packaged_geojson_stats <- function(dir, manifest_path = NULL) {
@@ -1905,7 +1904,7 @@ hojas_ruta_block_map_preview <- function(ubigeo, limit = 1200L, refresh = FALSE,
     alerts[[length(alerts) + 1L]] <- list(
       level = "warn",
       code = "W_CARTOGRAPHY_UNSUPPORTED_COVERAGE",
-      message = "La cartografia local de manzanas esta empaquetada para Lima Metropolitana y Callao."
+      message = "El distrito no esta en el registro de territorios de Hojas de ruta: no hay cartografia local de sus manzanas."
     )
     return(list(
       ok = FALSE,

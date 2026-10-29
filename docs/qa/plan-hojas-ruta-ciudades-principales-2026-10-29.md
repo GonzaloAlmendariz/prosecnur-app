@@ -52,6 +52,10 @@ Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-
 - **La cobertura varía dentro de una provincia**: en Cusco, San Jerónimo capta 50 % y el Cercado 93 %. Por eso el
   registro la publica por distrito.
 
+- **La geometría de ciudades usa el esquema de propiedades de Lima** (`ID_MANZANA`, `FTE_MZNA`, `AREA_M2`…): el
+  engine normaliza y enriquece por `ID_MANZANA` = `id_manzana` del marco. Con otro esquema, el id salía vacío.
+- **Empaquetar no basta para sortear**: el engine solo lee el marco y el NSE de Lima. Eso es el ítem 7b (B2).
+
 ## Checklist
 
 | # | Ítem | Dónde vive | Responsable | Estado |
@@ -60,11 +64,12 @@ Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-
 | 1 | Definir la lista de ciudades | ADR 0119 §1 | Gonzalo | hecho — niveles 1 y 2: 25 provincias (Cusco y Tarapoto incluidas); el builder calcula el nivel |
 | 2 | Script reproducible de insumos (incluye CPV 2025 por distrito): capa GeoPeru, SAV de ciudades, REDATAM 2017 por manzana para los distritos que falten, CPV 2025 por distrito con traducción `27→1501` | `api/inst/hojas_ruta/build_inei2017_ciudades.R` + `redatam2017_manzana.R` (nuevos) | backend-r | hecho — 26→25 provincias, 92 057 manzanas, salida determinista (dos corridas, 120 archivos idénticos) |
 | 3 | Corregir la ruta por defecto del Drive en los scripts de build existentes | `api/inst/hojas_ruta/build_inei2017_*.R` | backend-r | hecho |
-| 4 | Registro `territorios.json` y lector; migrar Lima y Callao sin tocar sus archivos | `api/R/hojas_ruta_territorios.R` (nuevo) + `api/inst/hojas_ruta/territorios.json` | backend-r | pendiente |
-| 5 | Reemplazar los regex `^1501` / `^0701` por consultas al registro | `hojas_ruta_engine.R` (sin crecer) | backend-r | pendiente |
+| 4 | Registro `territorios.json` y lector; migrar Lima y Callao sin tocar sus archivos | `api/R/hojas_ruta_territorios.R` (nuevo) + `api/inst/hojas_ruta/territorios.json` | backend-r | hecho — `territorios.json` con 27 provincias (Lima y Callao + 25), lector en `api/R/hojas_ruta_territorios.R`; Lima y Callao conservan sus archivos y perfiles |
+| 5 | Reemplazar los regex `^1501` / `^0701` por consultas al registro | `hojas_ruta_engine.R` (sin crecer) | backend-r | hecho — `.hojas_ruta_cartografia_profile_for_ubigeo` consulta el registro; el engine no creció |
 | 6 | `anio_dato` y `descargado` obligatorios; corregir `year: 2026` del NSE GeoPeru | manifiestos en `api/inst/hojas_ruta/` | backend-r | hecho — NSE con `anio_dato: 2017`; el engine lee `anio_dato` y cae en 2017, no en 2026 |
-| 7 | Empaquetar las ciudades: manzanas (6 decimales, salida determinista), marco 2017, NSE con `sin_estrato`, zonas derivadas de `IDMZ18`, calles OSM (Geofabrik Perú) | `api/inst/hojas_ruta/cartografia/*` | backend-r | pendiente |
-| 8 | Tests de contrato del ADR 0119 (registro↔archivos, `anio_dato`, `sin_estrato`) | `test-hojas-ruta-anio-dato.R` (verde) + `test-hojas-ruta-territorios.R` (rojo hasta la oleada B) | autor-regresiones | hecho — 4 tests en rojo, sin commitear |
+| 7 | Empaquetar las ciudades: manzanas (6 decimales, salida determinista), marco 2017, NSE con `sin_estrato`, zonas derivadas de `IDMZ18`, calles OSM (Geofabrik Perú) | `api/inst/hojas_ruta/cartografia/*` | backend-r | hecho (parcial) — manzanas, marco 2017 y NSE de 25 provincias en el paquete (~11 MB, `api/inst/hojas_ruta` pasa de 68 a 77 MB); salida determinista. Faltan zonas derivadas y calles OSM de las ciudades (opcionales en el registro) |
+| 8 | Tests de contrato del ADR 0119 (registro↔archivos, `anio_dato`, `sin_estrato`) | `test-hojas-ruta-anio-dato.R` (verde) + `test-hojas-ruta-territorios.R` (rojo hasta la oleada B) | autor-regresiones | hecho — `test-hojas-ruta-territorios.R` en verde (5 tests) |
+| 7b | **B2 — el engine carga marco y NSE de las ciudades**: `hojas_ruta_inei_frame` y `hojas_ruta_nse_inei` suman los archivos del registro; cambian contratos (`n_distritos == 50` en `test-hojas-ruta-engine.R`, la lista de territorios que lee el selector), así que va junto con el ítem 9 y revisión de `guardian-contratos` | `api/R/hojas_ruta_territorios.R` + cargadores | backend-r | pendiente — hoy una ciudad muestra su cartografía, pero no se puede sortear |
 | 9 | Front: el selector de territorio y el encuadre del mapa salen del registro, no de `limaDistrictCoverage.json`; se muestra el año del dato | `frontend/src/features/hojasRuta/` | frontend-react | pendiente |
 | 10 | `sin_estrato` con color y conteo propios en el mapa y en las salidas | front + PDF de hojas | frontend-react / especialista-entregables | pendiente |
 | 11 | QA visual con una ciudad fuera de Lima (Arequipa) en la matriz de viewports | `make ui-quick-check` / `/ver-ui` | qa-visual-desktop | pendiente |

@@ -644,9 +644,12 @@ test_that("cartografia de manzanas declara Lima 2017 y Callao 2019 locales", {
 })
 
 test_that("cartografia de manzanas no consulta internet por defecto", {
+  # 150199 no existe: desde el ADR 0119 la cobertura sale del registro de territorios, así que
+  # un distrito fuera del registro se rechaza antes de buscar archivo local o fuente remota.
   out <- hojas_ruta_block_map_preview("150199", limit = 10, refresh = TRUE)
   expect_false(out$ok)
-  expect_true(any(vapply(out$alerts, function(x) identical(x$code, "W_BLOCK_MAP_NOT_PACKAGED_LOCAL"), logical(1))))
+  expect_identical(out$returned, 0L)
+  expect_true(any(vapply(out$alerts, function(x) identical(x$code, "W_CARTOGRAPHY_UNSUPPORTED_COVERAGE"), logical(1))))
 })
 
 test_that("cartografia de zonas se deriva de manzanas locales", {
