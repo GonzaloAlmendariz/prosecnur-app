@@ -245,17 +245,25 @@
   border-radius: 7px;
 }
 
+/* El ancho de cada tramo es su proporción (flexGrow sobre base 0). El relleno
+   lateral va solo en los tramos que llevan cifra: en uno vacío fijaba 12 px
+   mínimos y un 0.0 % se dibujaba como un tramo visible. */
 .acr-av-apilada > span {
   display: flex;
+  flex-basis: 0;
   align-items: center;
   min-width: 3px;
-  padding: 0 6px;
+  padding: 0;
   overflow: hidden;
   color: var(--pulso-surface);
   font-size: 11px;
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.acr-av-apilada > span:not(:empty) {
+  padding: 0 6px;
 }
 
 .acr-av-apilada > .is-efectiva,

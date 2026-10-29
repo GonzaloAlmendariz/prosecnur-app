@@ -48,6 +48,20 @@ export function useTamano<T extends HTMLElement>() {
   return [ref, tamano] as const;
 }
 
+/**
+ * Una barra es un día: su ancho no crece porque falten días. Repartir el ancho
+ * entre los días que hay hacía que el primer día de campo ocupara el gráfico
+ * entero y se leyera como un bloque. Las vistas de «últimos 14 días» reservan
+ * sus 14 casillas; las de todo el campo ponen un tope al ancho de cada día.
+ */
+export const DIAS_DE_LA_VENTANA = 14;
+export const PASO_MAXIMO_POR_DIA = 44;
+
+/** Ancho de la casilla de un día: `ranuras` reserva una ventana fija; `tope` limita el ancho cuando la ventana es todo el campo. */
+export function anchoPorDia(ancho: number, dias: number, { ranuras = 1, tope = Infinity }: { ranuras?: number; tope?: number } = {}): number {
+  return Math.min(tope, ancho / Math.max(1, ranuras, dias));
+}
+
 /** Hasta `cuantas` etiquetas de fecha repartidas, siempre con la primera y la última. */
 function indicesDeFecha(total: number, cuantas: number): number[] {
   if (total <= cuantas) return Array.from({ length: total }, (_, indice) => indice);
@@ -159,7 +173,7 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
   const h = Math.max(0, alto - arriba - abajo);
   const marcas = marcasDeEje(Math.max(1, ...dias.map((dia) => dia.efectivas)));
   const maximo = marcas.at(-1) ?? 1;
-  const paso = w / Math.max(1, dias.length);
+  const paso = anchoPorDia(w, dias.length, { ranuras: DIAS_DE_LA_VENTANA });
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
   return (
     <div ref={ref} className="acr-av-grafico is-compacto" role="img" aria-label={etiqueta}>
@@ -184,7 +198,9 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
             />
           ))}
           <text className="acr-av-eje" x={izquierda} y={alto - 4}>{fechaCorta(dias[0].fecha)}</text>
-          <text className="acr-av-eje" x={izquierda + w} y={alto - 4} textAnchor="end">{fechaCorta(dias.at(-1)?.fecha ?? "")}</text>
+          {dias.length > 1 ? (
+            <text className="acr-av-eje" x={izquierda + dias.length * paso} y={alto - 4} textAnchor="end">{fechaCorta(dias.at(-1)?.fecha ?? "")}</text>
+          ) : null}
         </svg>
       ) : null}
     </div>
@@ -293,11 +309,11 @@ export function BarrasSuperpuestas({
 }
 
 /** Miniatura de barras dentro de una celda o una fila: sin ejes, con su lectura en `aria-label`. */
-export function Minibarras({ valores, etiqueta }: { valores: readonly number[]; etiqueta: string }) {
+export function Minibarras({ valores, etiqueta, ranuras = DIAS_DE_LA_VENTANA }: { valores: readonly number[]; etiqueta: string; ranuras?: number }) {
   const maximo = Math.max(1, ...valores);
   const ancho = 84;
   const alto = 18;
-  const paso = ancho / Math.max(1, valores.length);
+  const paso = anchoPorDia(ancho, valores.length, { ranuras });
   return (
     <svg className="acr-av-minibarras" width={ancho} height={alto} role="img" aria-label={etiqueta}>
       <line className="acr-av-minibarras-base" x1={0} x2={ancho} y1={alto - 0.5} y2={alto - 0.5} />
@@ -336,7 +352,7 @@ export function BarrasApiladas({
   const marcas = marcasDeEje(Math.max(1, ...totales) * 1.05);
   const maximo = marcas.at(-1) ?? 1;
   const n = fechas.length;
-  const paso = w / Math.max(1, n);
+  const paso = anchoPorDia(w, n, { tope: PASO_MAXIMO_POR_DIA });
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
   const posicion = new Map(fechas.map((fecha, indice) => [fecha, indice]));
   const xDeFecha = (fecha: string, final: boolean) => {
@@ -387,7 +403,7 @@ export function BarrasApiladas({
               </g>
             );
           })}
-          {indicesDeFecha(n, Math.max(2, Math.min(10, Math.floor(w / 80)))).map((indice) => (
+          {indicesDeFecha(n, Math.max(2, Math.min(10, Math.floor((n * paso) / 80)))).map((indice) => (
             <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={indice === 0 ? "start" : indice === n - 1 ? "end" : "middle"}>
               {fechaCorta(fechas[indice])}
             </text>
