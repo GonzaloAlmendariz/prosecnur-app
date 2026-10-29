@@ -174,7 +174,7 @@
 #' compartida va bajo el último bloque y a lo más en `leyenda_y - 0.15` (p144: 6.26 in); las leyendas propias van
 #' dentro del cromo de cada bloque. Con esta franja caben los dos bloques de dos filas del ejemplo p144.
 #' @keywords internal
-.lam_multilista_disponible <- function(compartida) {
+.lam_multilista_disponible <- function() {
   (.std_geom("leyenda_y") - 0.15) - .std_geom("zona_datos_y0")
 }
 
@@ -206,7 +206,7 @@
 #' @return Lista de láminas; cada una, lista de bloques.
 #' @keywords internal
 .lam_multilista_planear <- function(items, compartida) {
-  disp <- .lam_multilista_disponible(compartida)
+  disp <- .lam_multilista_disponible()
   trozos <- list()
   comprime <- .std_evitar_cont()   # M1 con piso (lamina_escala_aire.R): el aire cede hasta su mínimo antes de partir
   comp_de <- function(x) .lam_multilista_compartida_parte(x, compartida)   # M1: la leyenda de una lámina con una sola escala es una
@@ -238,7 +238,7 @@
   .op_piso <- c(.grosor_piso_slot(items[[1]]$espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1
   compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")); .lam_multilista_ensanche_fijar(items, compartida)   # lamina_escala_ensanche_justo.R
   partes <- .lam_multilista_planear(items, compartida)
-  disp <- .lam_multilista_disponible(compartida)
+  disp <- .lam_multilista_disponible()
   # M1: con piso, una parte que cabe con el aire en su mínimo también se compone en nativo (la tolerancia de 0,3 in sigue)
   all(vapply(partes, function(pp) .lam_multilista_alto(pp, .lam_multilista_compartida_parte(pp, compartida)) <= disp + 0.3 ||
                (.std_evitar_cont() && .lam_multilista_alto_min(pp, .lam_multilista_compartida_parte(pp, compartida)) <= disp), TRUE))
@@ -250,7 +250,7 @@
 #' @keywords internal
 .lam_multilista_bloques <- function(lz, items, compartida) {
   g_ <- .std_geom
-  disp <- .lam_multilista_disponible(compartida)
+  disp <- .lam_multilista_disponible()
   nb <- .lam_multilista_filas(items)
   centro_barras <- NULL
   # M1 apretado (lamina_escala_aire.R): solo si la alternativa era partir; la franja llega 0,30 in más abajo y la leyenda se pega a la barra

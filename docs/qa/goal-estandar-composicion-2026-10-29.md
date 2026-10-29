@@ -67,7 +67,7 @@ aire_leyenda 0,30/0,45 · leyenda_piso 0,32 · rotulo_box_sobre 0,45 · columna_
 |---|---|
 | E1 inventario de la familia escala | ☑ este documento |
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
-| E3 quitar lo muerto D1–D7 y corregir S1–S3 | ◐ D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in). Quedan D5, D7, S2 |
+| E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
 | E5 resto de familias | ☐ |
 | E6 cierre: gate amplio y commit | ☐ |

@@ -22,7 +22,6 @@
 #' @param gaps Separación entre premisas que decidió el bloque (una por frontera, con el aire extra de las cifras chicas).
 #' @param chica Lista, por premisa, de un lógico por barra: `TRUE` si alguna cifra de esa barra sube sobre ella.
 #' @param piso_lab Alto mínimo del paso de fila de cada premisa para que el rótulo del público (y sus respuestas) quepa.
-#' @param holgura Holgura de la cifra chica con la barra de arriba (`.lam_holgura_chica()`).
 #' @param extra Alto adicional que quien compone le cede al bloque (el aire que soltó arriba, G19); solo va entre temas.
 #' @param tope_entre Tope del aire entre temas (`.std_comp("llenar", "aire_entre_temas_max")` cuando la lámina llena su alto).
 #' @param repartir Con una sola pregunta, sus públicos se reparten `extra` (la lámina llena su alto).
@@ -30,9 +29,9 @@
 #'   primera premisa y alto total (nunca mayor que el de entrada más `extra`).
 #' @keywords internal
 .lam_escala_temas_aire <- function(hn, nf, fila, g, gaps, chica, piso_lab = rep(0, length(hn)),
-                                   holgura = .lam_holgura_chica(), extra = 0, tope_entre = .std_comp("escala", "aire_entre_temas_max"),
+                                   extra = 0, tope_entre = .std_comp("escala", "aire_entre_temas_max"),
                                    repartir = FALSE) {
-  n <- length(hn)
+  n <- length(hn); holgura <- .lam_holgura_chica()
   gaps <- rep_len(as.numeric(gaps), max(0L, n - 1L))
   alto0 <- sum(pmax(hn, nf * fila)) + sum(gaps)
   sin_cambio <- list(filas = rep(fila, n), gaps = gaps, pad = 0, alto = alto0)

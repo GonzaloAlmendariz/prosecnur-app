@@ -142,7 +142,7 @@
 #' @keywords internal
 .lam_multilista_apretar <- function(items, compartida) {
   if (!.std_evitar_cont()) return(FALSE)
-  disp <- .lam_multilista_disponible(compartida)
+  disp <- .lam_multilista_disponible()
   .lam_multilista_alto(items, compartida) > disp &&   # lo que cabe al natural conserva su geometría
     .lam_multilista_alto_f(items, compartida, 0) > disp &&
     .lam_multilista_alto_apretado(items, compartida) <= disp + .std_comp("apretada", "extra_franja")
