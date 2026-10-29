@@ -109,7 +109,7 @@ hojas_ruta_bitacora_detalle_marco <- function(me) {
     minimo_viviendas = as.integer(me$minimo_viviendas %||% 0L),
     areas_excluidas = length(areas),
     motivos = as.list(unique(vapply(areas, function(a) as.character(a$motivo %||% ""), character(1)))),
-    hash = digest::digest(me, algo = "xxhash64")
+    hash = hojas_ruta_marco_elegible_huella(me)
   )
 }
 
