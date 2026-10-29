@@ -4736,9 +4736,9 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   has_multi <- !is.na(replacement_order) & replacement_order > 0L &
     !is.na(replacement_total) & replacement_total > 1L
   has_titular_id <- !is.na(titular_id) & nzchar(titular_id)
-  base <- rep("Remplazo", n)
+  base <- rep("Reemplazo", n)
   base[has_multi] <- sprintf(
-    "Remplazo %d/%d",
+    "Reemplazo %d/%d",
     replacement_order[has_multi],
     replacement_total[has_multi]
   )

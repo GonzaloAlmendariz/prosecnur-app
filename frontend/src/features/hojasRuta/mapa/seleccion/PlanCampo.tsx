@@ -55,8 +55,11 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
             <div><small>Costo</small><strong>{plan.supuestos.moneda} {fmt(plan.resumen.costo)}</strong></div>
           </div>
           <p className="hr-mapa-nota">
-            {fmt(plan.resumen.rutas)} rutas, {fmt(plan.resumen.visitas)} visitas esperadas y unos {fmt(plan.resumen.km, 1)} km entre titulares. Cada jornada es un día de un encuestador, con titulares cercanas del mismo distrito.
+            {fmt(plan.resumen.rutas)} rutas, {fmt(plan.resumen.visitas)} visitas esperadas y unos {fmt(plan.resumen.km, 1)} km entre titulares. Cada jornada es un día de un encuestador, con titulares cercanas del mismo distrito. Se llena con las visitas esperadas, que son un promedio: cerca de la mitad de las jornadas se pasará un poco.
           </p>
+          {plan.alertas.slice(0, 3).map((a) => (
+            <p key={a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
+          ))}
           <ul className="hr-plan-jornadas">
             {plan.jornadas.slice(0, 12).map((j) => (
               <li key={j.id}>

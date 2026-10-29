@@ -55,6 +55,12 @@ describe("normalizador del plan de campo (U14)", () => {
     const p = normalizarPlanCampo({ jornadas: [{ id: "J01", rutas: ["a", "b"], visitas: 20 }], resumen: { jornadas: 1, dias: 1 } });
     expect(p.jornadas[0].rutas).toEqual(["a", "b"]);
     expect(p.resumen.costo).toBe(0);
+    expect(p.jornadas[0].excede_jornada).toBe(false);
+    expect(p.jornadas[0].jornadas_equivalentes).toBe(1);
+    expect(p.alertas).toEqual([]);
+    const largo = normalizarPlanCampo({ jornadas: [{ id: "J01", rutas: ["a"], visitas: 70, excede_jornada: true, jornadas_equivalentes: 3 }], alertas: [{ code: "W_PLAN_RUTA_EXCEDE_JORNADA", message: "La ruta a…" }, {}] });
+    expect(largo.jornadas[0].jornadas_equivalentes).toBe(3);
+    expect(largo.alertas).toEqual([{ code: "W_PLAN_RUTA_EXCEDE_JORNADA", message: "La ruta a…" }]);
   });
 });
 

@@ -940,7 +940,7 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos en otra zon
   expect_equal(as.integer(paired$rango_fin_replacement), as.integer(paired$rango_fin_titular))
   expect_equal(as.integer(paired$titular_rango_inicio), as.integer(paired$rango_inicio_titular))
   expect_equal(as.integer(paired$titular_rango_fin), as.integer(paired$rango_fin_titular))
-  expect_true(all(grepl("^Remplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+  expect_true(all(grepl("^Reemplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
 })
 
 test_that("reemplazos en otra zona hacen fallback advertido a la zona titular", {
@@ -983,7 +983,7 @@ test_that("reemplazos en otra zona hacen fallback advertido a la zona titular", 
   expect_true(isTRUE(replacements$replacement_fallback[[1]]))
   expect_equal(replacements$rango_inicio[[1]], blocks$rango_inicio[[1]])
   expect_equal(replacements$rango_fin[[1]], blocks$rango_fin[[1]])
-  expect_equal(replacements$replacement_label[[1]], "Remplazo de A [Encuestas 1 a 6]")
+  expect_equal(replacements$replacement_label[[1]], "Reemplazo de A [Encuestas 1 a 6]")
 })
 
 test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titular", {
@@ -1004,9 +1004,9 @@ test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titu
   replacements <- .hojas_ruta_apply_replacement_route_ranges(replacements, titulars)
   expect_equal(replacements$replacement_total, c(2L, 1L, 2L))
   expect_equal(replacements$replacement_label, c(
-    "Remplazo 2/2 de A [Encuestas 7 a 12]",
-    "Remplazo de B [Encuestas 1 a 6]",
-    "Remplazo 1/2 de A [Encuestas 7 a 12]"
+    "Reemplazo 2/2 de A [Encuestas 7 a 12]",
+    "Reemplazo de B [Encuestas 1 a 6]",
+    "Reemplazo 1/2 de A [Encuestas 7 a 12]"
   ))
 
   ordered <- .hojas_ruta_order_replacements(replacements)
@@ -1066,7 +1066,7 @@ test_that("reemplazos puntuales generan PDF unificado para titulares seleccionad
   expect_true(qpdf::pdf_length(out_pdf) >= res$n_replacement_blocks)
   replacements <- .hojas_ruta_rows_df(res$replacement_blocks)
   expect_equal(replacements$replacement_total, c(2L, 2L))
-  expect_true(all(grepl("^Remplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+  expect_true(all(grepl("^Reemplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
   expect_equal(as.character(replacements$titular_id_manzana), rep(titular_id, 2))
   replacement_codes <- vapply(seq_len(nrow(replacements)), function(i) {
     row <- as.list(replacements[i, , drop = FALSE])

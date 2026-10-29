@@ -1387,6 +1387,8 @@ export type HojasRutaPlanCampo = {
   supuestos: HojasRutaPlanSupuestos;
   jornadas: HojasRutaJornada[];
   resumen: { rutas: number; entrevistas: number; visitas: number; jornadas: number; dias: number; km: number; costo: number };
+  /** Avisos del plan (p. ej. W_PLAN_RUTA_EXCEDE_JORNADA). */
+  alertas: { code: string; message: string }[];
 };
 
 export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 0, costo_por_km: 0, moneda: "S/" };
@@ -1417,6 +1419,10 @@ export function normalizarPlanCampo(raw: unknown): HojasRutaPlanCampo {
       };
     }),
     resumen: { rutas: comoNumero(r.rutas), entrevistas: comoNumero(r.entrevistas), visitas: comoNumero(r.visitas), jornadas: comoNumero(r.jornadas), dias: comoNumero(r.dias), km: comoNumero(r.km), costo: comoNumero(r.costo) },
+    alertas: (esArreglo(o.alertas) ? o.alertas : []).flatMap((a) => {
+      const x = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+      return comoTexto(x.message) ? [{ code: comoTexto(x.code), message: comoTexto(x.message) }] : [];
+    }),
   };
 }
 

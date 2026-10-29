@@ -463,7 +463,7 @@ function shortManzanaId(value: unknown) {
 }
 
 function replacementRangeLabel(block: Partial<HojasRutaSamplePreview["replacement_blocks"][number]> | null | undefined) {
-  if (!block) return "Remplazo";
+  if (!block) return "Reemplazo";
   const explicit = String(block.replacement_label ?? "").trim();
   if (explicit && !LEGACY_REPLACEMENT_LABEL_RE.test(explicit)) return explicit;
   const start = Number(block.rango_inicio ?? block.titular_rango_inicio ?? 0);
@@ -475,7 +475,7 @@ function replacementRangeLabel(block: Partial<HojasRutaSamplePreview["replacemen
     && replacementOrder > 0
     && Number.isFinite(replacementTotal)
     && replacementTotal > 1;
-  const base = `${hasMultipleReplacements ? `Remplazo ${formatNumber(replacementOrder)}/${formatNumber(replacementTotal)}` : "Remplazo"}${manzanaId ? ` de ${manzanaId}` : ""}`;
+  const base = `${hasMultipleReplacements ? `Reemplazo ${formatNumber(replacementOrder)}/${formatNumber(replacementTotal)}` : "Reemplazo"}${manzanaId ? ` de ${manzanaId}` : ""}`;
   if (Number.isFinite(start) && start > 0 && Number.isFinite(end) && end >= start) {
     return `${base} [Encuestas ${formatNumber(start)} a ${formatNumber(end)}]`;
   }
