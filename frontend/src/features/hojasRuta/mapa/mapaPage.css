@@ -40,7 +40,7 @@
 .hr-mapa-cab h2 {
   margin: 0;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .hr-mapa-cab small {
@@ -116,20 +116,22 @@
 .hr-mapa-cab-titulo small { flex: none; white-space: nowrap; }
 .hr-mapa-buscar { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 9px; font: inherit; font-size: 12.5px; color: var(--pulso-text); background: var(--pulso-surface); }
 .hr-mapa-buscar:focus { outline: 2px solid var(--pulso-module-routes-border); border-color: var(--pulso-module-routes); }
-.hr-mapa-zonas { display: flex; flex-wrap: wrap; gap: 4px; }
-.hr-mapa-zonas .hr-mapa-zona { flex: 1 1 auto; gap: 8px; }
-.hr-mapa-zona { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 28px; padding: 0 7px; min-width: 0; border: 1px solid var(--pulso-border); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+.hr-mapa-zonas { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 5px; }
+.hr-mapa-zonas .hr-mapa-zona { gap: 8px; }
+/* Vocabulario de fichas del lienzo: blanco con borde fino; elegida = relleno tenue del módulo, sin anillo. */
+.hr-mapa-zona { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 28px; padding: 0 10px; min-width: 0; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); font-size: 12px; font-weight: 600; color: var(--pulso-text); transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
 .hr-mapa-zona span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hr-mapa-zona b { flex: none; font-size: 10.5px; font-variant-numeric: tabular-nums; }
-.hr-mapa-zona:hover:not(:disabled) { border-color: var(--pulso-border-strong); color: var(--pulso-text); }
-.hr-mapa-zona[data-estado="parte"] { border-color: var(--pulso-module-routes-border); color: var(--pulso-module-routes); }
-.hr-mapa-zona[data-estado="todo"] { border-color: var(--pulso-module-routes); background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); }
-.hr-mapa-zona:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+.hr-mapa-zona b { flex: none; font-size: 11px; font-weight: 500; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-mapa-zona:hover:not(:disabled) { background: var(--pulso-surface-2); }
+.hr-mapa-zona[data-estado="parte"] { border-color: var(--pulso-module-routes-border); }
+.hr-mapa-zona[data-estado="todo"], .hr-mapa-zona[aria-pressed="true"] { border-color: transparent; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); }
+.hr-mapa-zona[data-estado="todo"] b, .hr-mapa-zona[aria-pressed="true"] b { color: var(--pulso-module-routes); }
+.hr-mapa-zona:focus-visible { outline: 2px solid var(--pulso-module-routes-border); outline-offset: 1px; }
 .hr-mapa-zona:disabled { opacity: 0.5; cursor: not-allowed; }
 .hr-mapa-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
 .hr-mapa-acciones > * { flex: 1; }
 .hr-mapa-catalogo { padding: 0 8px 12px; }
-.hr-mapa-catalogo h3 { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 6px 0 0; padding: 8px 6px 6px; background: var(--pulso-surface); font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-mapa-catalogo h3 { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 6px 0 0; padding: 8px 6px 6px; background: var(--pulso-surface); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-mapa-catalogo h3 span { letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .hr-mapa-catalogo ul { list-style: none; margin: 0; padding: 0; }
 .hr-mapa-catalogo li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent); }
@@ -142,20 +144,19 @@
 .hr-mapa-catalogo-copia strong { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
 .hr-mapa-catalogo li[data-elegido="false"] strong { font-weight: 600; color: var(--pulso-text-soft); }
 .hr-mapa-catalogo-copia small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
-.hr-mapa-catalogo-copia em { font-style: normal; font-weight: 800; color: var(--pulso-module-routes); }
+.hr-mapa-catalogo-copia em { font-style: normal; font-weight: 700; color: var(--pulso-module-routes); }
 .hr-mapa-ins-cuerpo { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
 /* Las tarjetas no se encogen: si el contenido no cabe, el cuerpo hace scroll (C2).
    Sin esto, una tarjeta con overflow:hidden se aplastaba y cortaba sus cifras. */
 .hr-mapa-ins-cuerpo > * { flex-shrink: 0; }
 .hr-mapa-ins-cuerpo .hr-mapa-filas { margin: 0; }
-.hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
-.hr-mapa-cifras div { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-right: 1px solid var(--pulso-border); }
-.hr-mapa-cifras div:last-child { border-right: 0; }
-.hr-mapa-cifras small { font-size: 10.5px; font-weight: 700; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.hr-mapa-cifras div { display: flex; flex-direction: column; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-mapa-cifras small { font-size: 10.5px; font-weight: 600; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-mapa-cifras div { min-width: 0; }
-.hr-mapa-cifras strong { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-mapa-cifras strong { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
 .hr-mapa-pasos { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
-.hr-mapa-cambios h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-mapa-cambios h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-mapa-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .hr-mapa-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--pulso-module-routes-border); background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font-size: 11.5px; font-weight: 700; }
 .hr-mapa-chip[data-tipo="quita"] { border-color: var(--pulso-border-strong); background: var(--pulso-surface-2); color: var(--pulso-text-soft); text-decoration: line-through; }
@@ -172,7 +173,7 @@
 .hr-mapa-nota { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--pulso-text-soft); }
 .hr-edad-regla { display: flex; height: 42px; gap: 2px; border-radius: 10px; overflow: hidden; }
 .hr-edad-regla span { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 7px; }
-.hr-edad-regla b { font-size: 11.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-edad-regla b { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* B30: a 1024 la estructura es angosta; la regla gana espacio en vez de cortar los rótulos. */
 @media (max-width: 1279px) { .hr-edad-regla span { padding: 0 3px; } .hr-edad-regla b { font-size: 10.5px; } .hr-edad-regla small { font-size: 10px; } }
 .hr-edad-regla small { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -195,13 +196,13 @@
 .hr-edad-abierto:hover:not(:disabled) { border-color: var(--pulso-module-routes); color: var(--pulso-module-routes); }
 .hr-edad-abierto:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
 .hr-edad-peso { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
-.hr-edad-peso b { font-size: 12.5px; font-weight: 800; }
+.hr-edad-peso b { font-size: 12.5px; font-weight: 700; }
 .hr-edad-peso small { font-size: 10.5px; color: var(--pulso-text-soft); }
-.hr-mapa-presets h3 { margin: 0 0 5px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-mapa-presets h3 { margin: 0 0 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-mapa-presets .hr-mapa-zona { width: auto; padding: 0 10px; }
 .hr-mapa-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .hr-mapa-tabla th, .hr-mapa-tabla td { padding: 5px 6px; border-bottom: 1px solid var(--pulso-border); text-align: right; white-space: nowrap; }
-.hr-mapa-tabla thead th { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); background: var(--pulso-surface-2); }
+.hr-mapa-tabla thead th { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); background: var(--pulso-surface-2); }
 .hr-mapa-tabla tbody th { text-align: left; font-weight: 700; }
 .hr-mapa-tabla-caja { overflow-x: auto; border: 1px solid var(--pulso-border); border-radius: 11px; }
 .hr-mapa-tabla-caja:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
@@ -214,13 +215,13 @@
 
 /* Muestra (U7b): motor en el inspector y reparto en la estructura */
 .hr-muestra-resultado { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: var(--pulso-surface-2); }
-.hr-muestra-resultado > small { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-resultado > small { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-muestra-resultado > strong { font-size: 30px; font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .hr-muestra-resultado > span { font-size: 12px; color: var(--pulso-text-soft); margin-bottom: 6px; }
-.hr-muestra-resultado .hr-mapa-cifras { background: var(--pulso-surface); }
+.hr-muestra-resultado .hr-mapa-cifras { background: transparent; }
 .hr-mapa-cifras strong[data-aviso] { color: var(--pulso-warn-fg); }
 .hr-muestra-campo { display: flex; flex-direction: column; gap: 6px; }
-.hr-muestra-campo > small { font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+.hr-muestra-campo > small { font-size: 11.5px; font-weight: 600; color: var(--pulso-text-soft); }
 /* B16: segmentado de verdad — riel tenue, píldora blanca que se desliza y texto activo en el tono del módulo. */
 .hr-muestra-opciones {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
@@ -240,28 +241,28 @@
 .hr-muestra-numero span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); pointer-events: none; }
 .hr-muestra-numero input { padding-right: 32px; }
 .hr-muestra-pasos { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; }
-.hr-muestra-pasos input { height: 38px; text-align: center; font-size: 18px; font-weight: 800; }
+.hr-muestra-pasos input { height: 38px; text-align: center; font-size: 18px; font-weight: 700; }
 .hr-muestra-grupo { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
-.hr-muestra-grupo h3 { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-grupo h3 { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-muestra-dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .hr-muestra-guia { display: flex; flex-direction: column; gap: 6px; padding: 9px 10px; border-radius: 10px; background: var(--pulso-surface-2); }
 .hr-muestra-guia small { font-size: 11.5px; color: var(--pulso-text-soft); }
 .hr-muestra-guia .hr-mapa-zona { width: auto; padding: 0 9px; }
 .hr-muestra-alts { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
-.hr-muestra-alts button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; }
-.hr-muestra-alts button:hover:not(:disabled) { border-color: var(--pulso-brand-navy); }
-.hr-muestra-alts button[aria-pressed="true"] { border-color: var(--pulso-module-routes-border); background: var(--pulso-module-routes-soft); }
+.hr-muestra-alts button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); transition: background-color 120ms ease; }
+.hr-muestra-alts button:hover:not(:disabled) { background: var(--pulso-surface-2); }
+.hr-muestra-alts button[aria-pressed="true"] { border-color: transparent; background: var(--pulso-module-routes-soft); }
 .hr-muestra-alts button:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
 .hr-muestra-alts small { font-size: 10.5px; line-height: 1.25; font-weight: 700; color: var(--pulso-text-soft); }
-.hr-muestra-alts b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.hr-muestra-formula summary { cursor: pointer; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); padding: 4px 0 8px; }
+.hr-muestra-alts b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hr-muestra-formula summary { cursor: pointer; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); padding: 4px 0 8px; }
 /* B36: la lista crece entera; el único scroll es el de la estructura (No Scroll Jail). */
 .hr-muestra-reparto { list-style: none; margin: 0; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .hr-muestra-reparto li { display: flex; flex-direction: column; gap: 6px; padding: 9px 8px; border-radius: 10px; }
 .hr-muestra-reparto li:hover { background: var(--pulso-surface-2); }
 .hr-muestra-rep-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .hr-muestra-rep-cab strong { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hr-muestra-rep-cab b { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-muestra-rep-cab b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hr-muestra-rep-cab input { width: 78px; height: 28px; text-align: right; }
 .hr-muestra-barra { position: relative; height: 6px; border-radius: 999px; background: var(--pulso-surface-3); }
 .hr-muestra-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--pulso-brand-navy); }
@@ -291,7 +292,7 @@
 .hr-sorteo-dist-copia strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-sorteo-distritos small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-sorteo-dist-cifra { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.hr-sorteo-dist-cifra b { font-size: 15px; font-weight: 800; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-sorteo-dist-cifra b { font-size: 15px; font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .hr-sorteo-historial li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border-radius: 10px; }
 .hr-sorteo-historial li[data-vigente] { background: var(--pulso-surface-2); }
 .hr-sorteo-historial strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
@@ -358,7 +359,7 @@
 .hr-me-zonas li { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-me-cobertura li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; padding: 6px 8px; border-radius: 9px; }
 .hr-me-cobertura strong { font-size: 12.5px; }
-.hr-me-cobertura span { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-me-cobertura span { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hr-me-cobertura small { grid-column: 1 / -1; font-size: 11px; color: var(--pulso-text-soft); }
 .hr-me-cobertura li[data-tono="ambar"] span { color: var(--pulso-warn-fg); }
 .hr-me-cobertura li[data-tono="decision"] span { color: var(--pulso-danger-fg); }
@@ -367,7 +368,7 @@
 
 /* No respuesta e ICC (U12d, ADR 0116) */
 .hr-muestra-mas { color: var(--pulso-warn-fg); }
-.hr-muestra-visitas { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-muestra-visitas { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hr-icc { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: var(--pulso-surface-2); }
 .hr-icc-cab { display: flex; align-items: center; justify-content: space-between; }
 .hr-icc-cab small { font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
@@ -411,12 +412,12 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 
 /* Cabecera del inspector (brecha B14, artefacto .hm-ins-cab) */
 .hr-ins-cab { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--pulso-border); }
-.hr-ins-icono { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--pulso-module-routes); color: var(--pulso-surface); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-ins-icono { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--pulso-module-routes); color: var(--pulso-surface); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hr-ins-icono[data-estado="aviso"] { background: var(--pulso-warn-accent); }
 .hr-ins-icono[data-estado="error"] { background: var(--pulso-danger-fg); }
 .hr-ins-textos { min-width: 0; }
-.hr-ins-sobre { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hr-ins-titulo { margin: 2px 0 0; font-size: 14px; font-weight: 800; line-height: 1.25; color: var(--pulso-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.hr-ins-sobre { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-ins-titulo { margin: 2px 0 0; font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--pulso-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .hr-ins-derecha { display: inline-flex; align-items: center; gap: 4px; }
 .hr-ins-pasos { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--pulso-border); border-radius: 9px; }
 .hr-ins-pasos button { all: unset; cursor: pointer; width: 26px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--pulso-text-soft); }
@@ -426,7 +427,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 
 /* Gráficas preliminares del inspector de Territorio */
 .hr-graf { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
-.hr-graf-titulo { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-graf-titulo { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-graf-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .hr-graf-barras li { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 3px 8px; font-size: 12px; }
 .hr-graf-barras .hr-graf-nombre { grid-column: 1 / -1; }
@@ -444,13 +445,13 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 
 /* Plan por día y encuestador (B20) */
 .hr-plan-dia { display: flex; flex-direction: column; gap: 4px; }
-.hr-plan-dia h4 { margin: 4px 0 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-plan-dia h4 { margin: 4px 0 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-plan-enc { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
 /* Filas de ruta como en el artefacto (brecha B42, .hm-fila): insignia numerada por
    estado, «Zona · Mz» con los reemplazos en pips y las viviendas a la derecha. */
 .hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
-.hr-sel-num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pulso-surface); background: var(--pulso-module-routes); }
+.hr-sel-num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-surface); background: var(--pulso-module-routes); }
 .hr-sel-rutas [data-estado="aviso"] .hr-sel-num { background: var(--pulso-warn-accent); }
 .hr-sel-rutas [data-estado="error"] .hr-sel-num { background: var(--pulso-danger-fg); }
 .hr-sel-copia { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -465,7 +466,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
    Superficie blanca, sin franja lateral ni tarjetas dentro de la tarjeta. */
 .hr-ter-ficha { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); box-shadow: 0 4px 14px color-mix(in srgb, var(--pulso-text) 6%, transparent); }
 .hr-ter-ficha-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.hr-ter-ficha-cab strong { display: block; font-size: 15px; font-weight: 800; color: var(--pulso-text); }
+.hr-ter-ficha-cab strong { display: block; font-size: 15px; font-weight: 700; color: var(--pulso-text); }
 .hr-ter-ficha-cab small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--pulso-text-soft); }
 .hr-ter-cerrar { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--pulso-text-soft); cursor: pointer; }
 .hr-ter-cerrar:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
@@ -474,11 +475,10 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-ter-ficha-cifras div { min-width: 0; padding: 0 10px; border-left: 1px solid var(--pulso-border); }
 .hr-ter-ficha-cifras div:first-child { padding-left: 0; border-left: 0; }
 .hr-ter-ficha-cifras dt { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
-.hr-ter-ficha-cifras dd { margin: 2px 0 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }
+.hr-ter-ficha-cifras dd { margin: 2px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }
 .hr-ter-ficha-nota { margin: 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-soft); }
 .hr-mapa-catalogo li[data-enfocado] { background: var(--pulso-module-routes-soft); border-radius: 9px; }
 .hr-mapa-catalogo-copia[role="button"] { cursor: pointer; }
-.hr-mapa-zona[aria-pressed="true"] { background: var(--pulso-module-routes-soft); box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
 
 /* Ocupación de la ruta en la ficha de UMP (brecha B44) */
 .hr-mapa-cifras strong[data-tono="error"] { color: var(--pulso-danger-fg); }
@@ -498,13 +498,13 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-parecido-tabla li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 48px 48px; align-items: center; gap: 8px; padding: 2px 0; color: var(--pulso-text-soft); }
 .hr-parecido-tabla li i { width: 10px; height: 10px; border-radius: 3px; }
 .hr-parecido-tabla li b { text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
-.hr-parecido-tabla li[data-lejos] span, .hr-parecido-tabla li[data-lejos] b:last-child { color: var(--pulso-warn-fg); font-weight: 800; }
+.hr-parecido-tabla li[data-lejos] span, .hr-parecido-tabla li[data-lejos] b:last-child { color: var(--pulso-warn-fg); font-weight: 700; }
 
 /* Atajos del mínimo de viviendas (B38) */
 .hr-me-atajos { display: flex; flex-wrap: wrap; gap: 6px; }
-.hr-me-atajos button { border: 1px solid var(--pulso-border); border-radius: 999px; background: var(--pulso-surface); color: var(--pulso-text-soft); font: inherit; font-size: 11.5px; font-weight: 700; padding: 3px 10px; cursor: pointer; }
-.hr-me-atajos button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-module-routes-border); }
-.hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: var(--pulso-module-routes-border); color: var(--pulso-text); }
+.hr-me-atajos button { border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); color: var(--pulso-text); font: inherit; font-size: 12px; font-weight: 600; height: 28px; padding: 0 10px; cursor: pointer; }
+.hr-me-atajos button:hover:not(:disabled) { background: var(--pulso-surface-2); }
+.hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: transparent; color: var(--pulso-module-routes); }
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
 .hr-sel-cajon-titulo { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
 .hr-sel-cajon > header { flex-wrap: wrap; }
@@ -513,7 +513,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-edad-lista li.is-fija > b { font-size: 13px; font-weight: 700; }
 .hr-mapa-cab--pila .hr-mapa-cab-titulo { flex-wrap: wrap; row-gap: 2px; }
 .hr-muestra-escenarios { display: flex; flex-direction: column; gap: 8px; margin: 4px 8px 14px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
-.hr-muestra-escenarios h3 { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-escenarios h3 { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-muestra-escenarios h3 small { font-weight: 700; letter-spacing: 0; }
 .hr-muestra-escenarios ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
 .hr-muestra-escenarios li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--pulso-border); }
@@ -544,7 +544,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
   .hr-largo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .hr-corto { display: inline; }
 }
-.hr-mapa-subtitulo { margin: 2px 0 -4px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-mapa-subtitulo { margin: 2px 0 -4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-salidas-sugeridas { display: flex; flex-direction: column; gap: 6px; } .hr-salidas-sugeridas > small { font-size: 11px; font-weight: 700; color: var(--pulso-warn-fg); }
 
 /* Los interruptores del lienzo van en el color del módulo (Gonzalo), no en el navy del kit. */
@@ -558,8 +558,8 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-mapa-estructura .hr-muestra-grupo[aria-label="Historial de ruteos"] { border-top: 0; padding-top: 0; }
 .hr-muestra-costo-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); }
 .hr-muestra-costo-card > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.hr-muestra-costo-card small { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
-.hr-muestra-costo-card strong { font-size: 18px; font-weight: 800; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-muestra-costo-card small { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-costo-card strong { font-size: 18px; font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .hr-muestra-costo-card em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-muestra-costo-supuestos { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--pulso-module-routes); }
 .hr-muestra-costo-supuestos:hover { text-decoration: underline; }
