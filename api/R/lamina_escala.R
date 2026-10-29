@@ -135,7 +135,7 @@
 #' Ancho de la columna de UNA pregunta: el de la lámina, sin pasar de donde empieza la tinta del rótulo de su público
 #'
 #' Como Contabilidad: la columna es angosta (3,0 in) cuando la pregunta tiene varios públicos, porque su bloque de barras le
-#' da alto para varias líneas; con un solo público su fila mide una barra, y la pregunta toma el aire hasta 0,15 in antes
+#' da alto para varias líneas; con un solo público su fila mide una barra, y la pregunta toma el aire hasta 0,08 in antes
 #' de la tinta de su rótulo. Así «Gestión y planificación» de Arte cabe en una lámina (Gonzalo, 2026-10-29: «No, en una»).
 #' @keywords internal
 .lam_premisa_ancho_de <- function(p, wp) {
@@ -144,7 +144,7 @@
   if (!length(act)) return(wp)
   L <- .std_geom("likert")
   tinta <- max(.lam_ancho_tinta(act, .std_pt("actor"), TRUE))
-  lim <- L$x_actor + .std_enunciado_extra_in() + L$ancho_actor - 0.1 - tinta - 0.15 - L$x_premisa
+  lim <- L$x_actor + .std_enunciado_extra_in() + L$ancho_actor - 0.1 - tinta - 0.08 - L$x_premisa
   # Como Conta: con un solo público la pregunta toma el aire hasta su rótulo; con varios, la columna común.
   if (length(p$filas) == 1L) max(wp, lim) else min(wp, max(lim, 2))
 }   # tinta real: lamina_escala_premisa_alto.R

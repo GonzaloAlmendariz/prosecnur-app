@@ -11,8 +11,8 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 | # | Diferencia | Conta | Arte hoy | ¿Va? | Estado |
 |---|---|---|---|---|---|
 | 1 | Preguntas (eje Y) centradas | centradas | a la izquierda | ☑ (Gonzalo) | ☑ premisa con `align = "center"` (lamina_escala.R, lamina_filtro_sub_conta.R) |
-| 2 | Ancho de la columna de preguntas | 2,70 in | 3,30 in (4,46 sin columna de público) | ☑ (Gonzalo) | ☑ 3,0 in con dos o más públicos; con uno solo la pregunta toma el aire hasta 0,15 in antes de su rótulo, como Conta (`.lam_premisa_ancho_de`). «Gestión y planificación» queda en una lámina (52) |
-| 3 | Hueco entre el rótulo del público y la barra | ~0,53 in | 0,20 in | ☑ (Gonzalo) | **bloqueado**: con el rótulo en 3,45 o 3,25 in (0,25–0,45 in de aire) «Gestión y planificación» vuelve a partirse (53). Decidir: aire como Conta o la lámina en una |
+| 2 | Ancho de la columna de preguntas | 2,70 in | 3,30 in (4,46 sin columna de público) | ☑ (Gonzalo) | ☑ 3,0 in con dos o más públicos; con uno solo la pregunta toma el aire hasta 0,08 in antes de su rótulo, como Conta (`.lam_premisa_ancho_de`). «Gestión y planificación» queda en una lámina (52) |
+| 3 | Hueco entre el rótulo del público y la barra | ~0,53 in | 0,20 in | ☑ (Gonzalo: «ambos», aire y la lámina en una) | ☑ rótulo a 3,45 in (≈0,35 in de tinta a la barra); con un público la pregunta llega a 0,08 in de su rótulo. Mazo 52, «Gestión y planificación» en una |
 | 4 | Grosor de barra con 4 a 6 filas | 0,51–0,59 in | 0,44–0,47 in | ☑ (Gonzalo) | ☐ |
 | 5 | Dos láminas de 4 filas con grosor distinto | — | 0,58 y 0,44 in | ☑ (Gonzalo) | ☐ |
 | 6 | Uso del alto: la última barra y la leyenda bajan | barra hasta 6,36, leyenda 6,78 in | barra hasta 5,99, leyenda 6,63 in | evaluar (Gonzalo) | ☐ |
