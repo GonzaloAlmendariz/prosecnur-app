@@ -125,7 +125,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W1 | Interruptor «Tabla de datos en el Word» apagado por defecto; escribía `overrides.word_tabla` | lee el argumento `word_tabla`; sin marcar sigue a «Tabla de datos» (`.radar_mb_word_tabla_procede`) | ☑ dedf6c94a, visto en la app (lám. 36 de Arte: encendido y bloqueado con su porqué) |
 | W2 | Ayuda de «Tabla de datos»: «con Líneas y puntos, elige Sí» | Automática ya la pone con líneas y puntos (`.radar_mb_tabla_procede`) | ☑ e9d40f66f |
 | W3 | Ayuda del encabezado: «Vacío: Tema» | vacío queda vacío y avisa | ☑ e9d40f66f |
-| W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☐ |
+| W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☑ la maqueta dibuja el radar solo en sm/box |
 | W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☐ verificar el camino del consolidado |
 | W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☐ |
 | W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☐ |

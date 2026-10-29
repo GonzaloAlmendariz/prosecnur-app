@@ -48,3 +48,11 @@ describe("maqueta del radar entre públicos", () => {
     expect(radar(6, { mostrar_tabla: false }).glifo.tabla).toBe(false);
   });
 });
+
+describe("maqueta del radar en los otros modos", () => {
+  it.each(["sm", "box"])("modo %s: el radar solo, sin tabla (el motor la apaga, p_radar_split.R)", (modo) => {
+    const s = { id: "s", tipo: "p_slide_1_grafico", payload: { titulo: "T", grafico: { graficador: "p_radar", args: { modo, vars: criterios(5) } } } } as unknown as Slide;
+    const f = fichaDeRanura(ranurasDeMaqueta(s, VARS, {})[0], "Radar");
+    expect(f.glifo.tabla).toBe(false);
+  });
+});

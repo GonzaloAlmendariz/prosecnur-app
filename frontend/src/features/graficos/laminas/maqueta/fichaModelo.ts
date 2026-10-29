@@ -184,8 +184,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       break;
     case "p_radar": {
       // Entre públicos manda lo que el motor dibuja de verdad (formaRadar.ts): con menos de 5 criterios, líneas y puntos y
-      // sin tabla. En los demás modos, el radar con su tabla. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
-      if (v("modo") !== "publicos") { glifo.tabla = true; break; }
+      // sin tabla. En los demás modos, el radar solo: el motor apaga su tabla (`mostrar_tabla_derecha = FALSE`,
+      // p_radar_split.R) y la lámina lo centra. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
+      if (v("modo") !== "publicos") { glifo.tabla = false; break; }
       const tabla = v("tabla") ?? (v("mostrar_tabla") === false ? "no" : undefined);
       const f = formaEfectivaRadar({ forma: v("forma"), fallback_pocos: v("fallback_pocos"), tabla, nCriterios: criteriosDelRadar(args) });
       glifo.formaRadar = f.forma;
