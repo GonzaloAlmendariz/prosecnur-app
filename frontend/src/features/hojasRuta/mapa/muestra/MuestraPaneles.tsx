@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Calculator } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -79,9 +81,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
 
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>Tamaño y reparto</h2>
-      </header>
+      <InspectorCabecera icono={Calculator} sobre="Muestra" titulo="Tamaño y reparto" />
       <div className="hr-mapa-ins-cuerpo">
         <section className="hr-muestra-resultado" aria-label="Resultado">
           <small>N final</small>

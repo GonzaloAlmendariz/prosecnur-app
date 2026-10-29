@@ -22,7 +22,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B11 | Mapa | peor · medio | Encuadre de Territorio con mucho blanco; sin nombres en gris de los distritos fuera | `lienzo/` | ☐ |
 | B12 | Mapa | peor · alto | Foco de UMP no llega a calle (100 m) ni dibuja la manzana; «Acercar» no centra en la UMP | `lienzo/LienzoMapa.tsx` | ☐ |
 | B13 | Mapa | peor · bajo | Fondo #f7f8fa vs #fafbff; encuadrar es «⤢» texto, no ícono | `lienzo/lienzoMapa.css` | ☐ |
-| B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `*Paneles.tsx`, `mapaPage.css` | ☐ |
+| B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |
 | B15 | Inspector | peor · medio | Rótulos de sección (LO ELEGIDO, MARCO TERRITORIAL, RESULTADO, MATRIZ) | Territorio, Población | ☐ |
 | B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `muestra/MuestraPaneles.tsx` | ☐ |
 | B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | `seleccion/SeleccionPaneles.tsx` | ☐ |

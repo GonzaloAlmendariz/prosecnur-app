@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Shuffle } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
@@ -85,9 +87,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
 
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>Sorteo de manzanas</h2>
-      </header>
+      <InspectorCabecera icono={Shuffle} sobre="Manzanas" titulo={muestra ? `${muestra.blocks.length} UMP sorteadas` : "Sorteo de manzanas"} />
       <div className="hr-mapa-ins-cuerpo">
         {muestra ? (
           <section className="hr-muestra-resultado" aria-label="Sorteo vigente">

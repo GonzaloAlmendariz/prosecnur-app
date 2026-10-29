@@ -1,4 +1,6 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { Users } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { PulsoTable } from "../../../../components/PulsoTable";
 import type { HojasRutaAgeRange, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
@@ -130,9 +132,7 @@ export function PoblacionInspector({ config, matriz, poblacionDistritos, bloquea
 
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>Población objetivo</h2>
-      </header>
+      <InspectorCabecera icono={Users} sobre="Población" titulo="Población objetivo" />
       <div className="hr-mapa-ins-cuerpo">
         <div className="hr-mapa-cifras">
           <div><small>Objetivo</small><strong>{matriz.vigente ? `${(matriz.total / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : "—"}</strong></div>

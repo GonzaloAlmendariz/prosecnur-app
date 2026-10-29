@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { MapPinned } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
@@ -140,9 +142,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
 
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>{elegidos.length ? `${elegidos.length} distrito${elegidos.length === 1 ? "" : "s"} elegido${elegidos.length === 1 ? "" : "s"}` : "Elige los distritos del estudio"}</h2>
-      </header>
+      <InspectorCabecera icono={MapPinned} sobre="Territorio" titulo={elegidos.length ? `${elegidos.length} distrito${elegidos.length === 1 ? "" : "s"} elegido${elegidos.length === 1 ? "" : "s"}` : "Elige los distritos del estudio"} />
       <div className="hr-mapa-ins-cuerpo">
         {!elegidos.length ? (
           <ol className="hr-mapa-pasos">

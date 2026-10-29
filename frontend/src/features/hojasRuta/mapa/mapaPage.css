@@ -391,3 +391,18 @@
 /* Error de Salidas con su camino de salida (U17: decisión de cobertura). */
 div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .hr-salidas-error { margin: 0; }
+
+/* Cabecera del inspector (brecha B14, artefacto .hm-ins-cab) */
+.hr-ins-cab { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--pulso-border); }
+.hr-ins-icono { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--pulso-module-routes); color: var(--pulso-surface); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-ins-icono[data-estado="aviso"] { background: var(--pulso-warn-accent); }
+.hr-ins-icono[data-estado="error"] { background: var(--pulso-danger-fg); }
+.hr-ins-textos { min-width: 0; }
+.hr-ins-sobre { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-ins-titulo { margin: 2px 0 0; font-size: 14px; font-weight: 800; line-height: 1.25; color: var(--pulso-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.hr-ins-derecha { display: inline-flex; align-items: center; gap: 4px; }
+.hr-ins-pasos { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--pulso-border); border-radius: 9px; }
+.hr-ins-pasos button { all: unset; cursor: pointer; width: 26px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--pulso-text-soft); }
+.hr-ins-pasos button:hover { background: var(--pulso-surface-3); color: var(--pulso-text); }
+.hr-ins-pasos button:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }
+@media (max-width: 1100px) { .hr-ins-cab { padding: 12px; gap: 10px; } }

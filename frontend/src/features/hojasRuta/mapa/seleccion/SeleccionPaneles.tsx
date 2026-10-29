@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -90,12 +92,21 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
     const observaciones = revision.grupos.filter((g) => g.umps.some((u) => u.idManzana === titular.id_manzana || suyos.some((r) => r.id_manzana === u.idManzana)));
     return (
       <>
-        <header className="hr-mapa-cab">
-          <h2>
-            {codigoDeUmp(titular)} · {nombreDistrito(titular.distrito)}
-          </h2>
-          <PulsoButton variant="icon" size="sm" aria-label="Cerrar la ficha" onClick={() => setUmpEnfocada(null)}>×</PulsoButton>
-        </header>
+        <InspectorCabecera
+          marca={codigoDeUmp(titular).replace(/^UMP\s*/, "")}
+          estado={estado === "error" ? "error" : estado === "aviso" ? "aviso" : "ok"}
+          sobre={`UMP titular · ${nombreDistrito(titular.distrito)}`}
+          titulo={`Zona ${titular.zona} · Manzana ${String(titular.id_manzana).slice(-4)}`}
+          derecha={
+            <>
+              <span className="hr-ins-pasos">
+                <button type="button" aria-label="Ruta anterior" onClick={() => onVecina(-1)}><ChevronUp size={14} /></button>
+                <button type="button" aria-label="Ruta siguiente" onClick={() => onVecina(1)}><ChevronDown size={14} /></button>
+              </span>
+              <PulsoButton variant="icon" size="sm" aria-label="Cerrar la ficha" onClick={() => setUmpEnfocada(null)}><X size={14} /></PulsoButton>
+            </>
+          }
+        />
         <div className="hr-mapa-ins-cuerpo">
           <span className="hr-sel-estado" data-estado={estado}>{ETIQUETA[estado]}</span>
           <div className="hr-mapa-cifras">
@@ -137,17 +148,13 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             lleva a la derecha. */}
         <footer className="hr-mapa-pie hr-sel-pie">
           {salidas}
-          <PulsoButton variant="secondary" aria-label="Ruta anterior" onClick={() => onVecina(-1)}>‹</PulsoButton>
-          <PulsoButton variant="secondary" aria-label="Ruta siguiente" onClick={() => onVecina(1)}>›</PulsoButton>
         </footer>
       </>
     );
   }
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>Revisión contra el marco</h2>
-      </header>
+      <InspectorCabecera icono={ListChecks} sobre="Selección" titulo="Revisión contra el marco" />
       <div className="hr-mapa-ins-cuerpo">
         <div className="hr-mapa-cifras">
           <div><small>Titulares</small><strong>{fmt(totales.titulares)}</strong></div>
