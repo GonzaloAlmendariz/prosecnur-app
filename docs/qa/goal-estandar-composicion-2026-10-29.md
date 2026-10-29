@@ -102,11 +102,12 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 ### Contradicen las reglas ya cerradas en la escala
 
 - F1 Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
-- F2 «Top Two Box» de los paneles sin mayúsculas (pan:33 no pasa por `.lam_rotulo_box()`); div:39 a 10,5 pt.
+- F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
 - F3 Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
 - F4 Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
-- F5 Encabezado genérico «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
-  reporte_plan_opciones.R:436).
+- F5 **bloqueado, decide Gonzalo**: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
+  reporte_plan_opciones.R:436). Lo pidió el recetario p72 (CCSS-9b, CCSS-19) y lo guardan 5 tests: avisa que
+  en opción múltiple los porcentajes no suman 100. No es un rótulo de eje genérico; quitarlo contradice esa decisión.
 
 ## Tablero
 
@@ -116,5 +117,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). Siguen D12, U1–U7, F1–F5 |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑. Siguen D12, U1–U7, F1, F3, F4; F5 bloqueado |
 | E6 cierre: gate amplio y commit | ☐ |

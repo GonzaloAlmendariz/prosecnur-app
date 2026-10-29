@@ -30,8 +30,14 @@
   verde <- .std_color("verde_top_two_box")
   wttb <- if (ttb_col) .std_geom("columna_top_two_box") else 0
   xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - wttb - (if (ttb_col) 0.1 else 0)
-  if (ttb_col) .lam_txt(lz, espec$box$rotulo, x + w - wttb - 0.1, y - 0.05, wttb + 0.2, 0.24, .std_pt("rotulo_top_two_box"), verde,
-                        bold = TRUE, align = "center", nombre = "box:rotulo")
+  if (ttb_col) {
+    # En mayúsculas, como en la escala de lámina entera; la caja crece con la tinta (más sus márgenes internos) para que
+    # «TOP TWO BOX» quepa en una línea, siempre centrada sobre la columna de cifras.
+    rot <- .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+    wr <- max(wttb + 0.2, .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE) + 0.25)
+    .lam_txt(lz, rot, x + w - wttb / 2 - wr / 2, y - 0.05, wr, 0.24, .std_pt("rotulo_top_two_box"), verde,
+             bold = TRUE, align = "center", nombre = "box:rotulo")
+  }
   yy <- y + 0.3
   if (any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE)) && fila - g < .std_geom("aire_cifra_chica")) {
     fila <- g + .std_geom("aire_cifra_chica")
