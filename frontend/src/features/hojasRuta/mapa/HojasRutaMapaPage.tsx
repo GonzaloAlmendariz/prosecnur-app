@@ -9,7 +9,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPlanSupuestos, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
@@ -35,6 +35,7 @@ import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
 import { conTopeAbierto } from "./poblacion/rangos";
 import { MuestraCajon } from "./muestra/MuestraCajon";
+import { normalizarEnvioMeta } from "../../../api/materialTerritorial";
 import { useBarraAngosta } from "./useBarraAngosta";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
@@ -188,16 +189,11 @@ export default function HojasRutaMapaPage() {
   }, [estado, configMuestra, fase, setMuestraBorrador]);
   const entrevistasPorRuta = estado?.integrated_config.entrevistas_por_manzana ?? 0;
 
-  // U14: los supuestos del plan van al ui_state. Se mandan las salidas actuales: un
-  // persist sin ellas manda {} y borra población, tamaño, cuotas y muestra.
   const releerEstado = useCallback(async () => {
     setEstado(await apiHojasRutaState());
   }, []);
-  const guardarPlanCampo = useCallback(async (supuestos: HojasRutaPlanSupuestos) => {
-    if (!estado) return;
-    await apiHojasRutaPersistWorkspace(estado.integrated_config, { ...estado.ui_state, plan_campo: supuestos }, estado.workspace_outputs ?? {}, fase);
-    setEstado(await apiHojasRutaState());
-  }, [estado, fase]);
+  // ADR 0118 F3: el plan por encuestador se arma en Material; aquí sólo el envío.
+  const envio = useMemo(() => normalizarEnvioMeta(estado?.envio_meta), [estado]);
 
   // Manzanas: R guarda la configuración y la muestra al sortear; el sorteo se
   // anota después en el historial del proyecto (ui_state.route_history).
@@ -474,12 +470,14 @@ export default function HojasRutaMapaPage() {
     },
     {
       id: "material",
-      label: "Enviar a Material",
+      label: envio ? (envio.desactualizado ? "Reenviar a Material" : "En Material") : "Enviar a Material",
       icon: Send,
       kind: "secondary" as const,
       rank: 2 as const,
-      disabled: true,
-      title: "Llega con la entrega a Recopiladores: las hojas pasarán a Material de campo.",
+      disabled: !salidas?.sample,
+      title: envio ? (envio.desactualizado ? "La muestra cambió desde el envío: reenvíala" : "La muestra está enviada a Material de campo") : "Envía la muestra a Material de campo, que produce las fichas y el paquete",
+      // ADR 0118 F3: abre «Entrega», donde se envía y se enlaza la campaña territorial.
+      onSelect: () => navegar(`${location.pathname}?seccion=seleccion&panel=salidas`),
     },
   ];
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
@@ -588,13 +586,14 @@ export default function HojasRutaMapaPage() {
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (
             <SeleccionInspector
+              enviada={Boolean(envio)}
               titular={titularEnfocada}
               estado={titularEnfocada ? estados.get(titularEnfocada.id_manzana) ?? "ok" : "ok"}
               reemplazos={bloquesReemplazos}
               revision={revision}
               totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
-              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} planSupuestos={estado.ui_state?.plan_campo} onGuardarPlan={guardarPlanCampo} onCuotasRepartidas={releerEstado} />}
+              salidas={<SalidasPanel salidas={salidas} envio={envio} onCambio={releerEstado} />}
             />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector

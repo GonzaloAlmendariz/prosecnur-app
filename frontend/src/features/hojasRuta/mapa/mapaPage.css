@@ -401,8 +401,6 @@
 .hr-me-decision { display: flex; flex-direction: column; gap: 6px; }
 
 /* Vista previa de la hoja y hoja del día (U15) */
-.hr-hoja-img { display: block; border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; background: var(--pulso-surface); }
-.hr-hoja-img img { display: block; width: 100%; height: auto; }
 .hr-plan-hoja { border: 0; background: transparent; color: var(--pulso-module-routes); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .hr-plan-hoja:disabled { color: var(--pulso-text-soft); cursor: default; }
 
@@ -588,3 +586,10 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-sorteo-metodos.pulso-gliding-tab-list > button { border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); color: var(--pulso-text); }
 .hr-sorteo-metodos.pulso-gliding-tab-list > button[aria-checked="true"] { border-color: transparent; background: transparent; }
 .hr-sorteo-metodos.pulso-gliding-tab-list > button:hover:not(:disabled):not([aria-checked="true"]) { background: var(--pulso-surface-2); }
+/* «Entrega» (ADR 0118 F3) */
+.hr-entrega-estado { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--pulso-surface-2); font-size: 12px; color: var(--pulso-text-soft); }
+.hr-entrega-estado strong { font-size: 13px; color: var(--pulso-text); }
+.hr-entrega[data-estado="desactualizado"] .hr-entrega-estado { background: var(--pulso-warn-soft, var(--pulso-surface-2)); }
+.hr-entrega[data-estado="desactualizado"] .hr-entrega-estado strong { color: var(--pulso-warn-fg); }
+.hr-entrega-enlace { align-self: center; font-size: 12.5px; font-weight: 600; color: var(--pulso-module-routes); text-decoration: none; }
+.hr-entrega-enlace:hover { text-decoration: underline; }

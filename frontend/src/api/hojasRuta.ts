@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, apiPath, handle, headers, SESSION_KEY } from "./core";
+import { normalizarEnvioMeta, type EnvioMeta } from "./materialTerritorial";
 import type { JobStart } from "./jobs";
 
 // ---------- Hojas de ruta para campo ----------
@@ -726,6 +727,8 @@ export type HojasRutaReporteDecisionalMeta = {
 
 export type HojasRutaState = {
   ok: boolean;
+  /** ADR 0118 F1: envío a Material de la fase activa (normalizar con `normalizarEnvioMeta`). */
+  envio_meta?: unknown;
   has_data: boolean;
   cache_dir: string;
   config: HojasRutaConfig;
@@ -1470,6 +1473,15 @@ export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | 
 // ---------- Cuotas por hoja sin re-sortear ----------
 
 export type HojasRutaCuotasRepartidas = { resumen: { ubigeo: string; distrito: string; hombres: number; mujeres: number }[] };
+
+/**
+ * «Enviar a Material» (ADR 0118 §3): el servidor copia la muestra vigente de la fase
+ * activa como foto con huella. Devuelve el `envio_meta` resultante.
+ */
+export async function apiHojasRutaEnviar(): Promise<EnvioMeta | null> {
+  const r = await handle<{ envio_meta?: unknown }>(await apiFetch("/api/hojas-ruta/envio", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
+  return normalizarEnvioMeta(r.envio_meta);
+}
 
 /** Reparte la cuota de sexo y edad de cada distrito entre las hojas de la muestra guardada (mismas manzanas). */
 export async function apiHojasRutaCuotasPorFicha(): Promise<HojasRutaCuotasRepartidas> {

@@ -133,9 +133,9 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
                     {fmt(c.jornadas)} jornadas · {fmt(c.dias)} días con {plan.encuestadores} encuestadores
                     {c.tieneCostos && r.nUsado ? ` · ${plan.moneda} ${fmt(c.costo / r.nUsado)} por entrevista` : ""}
                   </em>
-                  <em>Con promedios por ruta: el plan por encuestador, que agrupa titulares cercanas, lo afina.</em>
+                  <em>Con promedios por ruta: el plan por encuestador de Material de campo, que agrupa titulares cercanas, lo afina.</em>
                 </span>
-                <button type="button" className="hr-muestra-costo-supuestos" onClick={() => nav.irA("seccion", "seleccion")} title="Los supuestos y el plan por encuestador están en Selección › Salidas">
+                <button type="button" className="hr-muestra-costo-supuestos" onClick={() => nav.irA("seccion", "seleccion")} title="Los supuestos y el plan por encuestador se arman en Material de campo › Entrega, después de enviar la muestra">
                   Supuestos
                 </button>
               </div>

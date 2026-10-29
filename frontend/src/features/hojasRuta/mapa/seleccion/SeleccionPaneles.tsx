@@ -11,7 +11,8 @@ import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
-import { HojaVista } from "./HojaVista";
+import { Link } from "react-router-dom";
+import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
 /**
@@ -101,11 +102,13 @@ type InspectorProps = {
   totales: { titulares: number; reemplazos: number; entrevistas: number };
   /** Ir a la ruta anterior (−1) o siguiente (1) de la lista visible. */
   onVecina: (paso: 1 | -1) => void;
-  /** El disparador de las salidas (sideover `?panel=salidas`); va en el pie de las dos vistas. */
+  /** El disparador de la entrega (sideover `?panel=salidas`); va en el pie de las dos vistas. */
   salidas?: ReactNode;
+  /** ¿La muestra ya se envió a Material? Entonces la ficha enlaza su hoja allá. */
+  enviada?: boolean;
 };
 
-export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas }: InspectorProps) {
+export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
   const nav = useSeccion("hojas-ruta");
   if (titular) {
@@ -148,7 +151,14 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
               <b>{g.titulo}.</b> {g.detalle}
             </p>
           ))}
-          <HojaVista idManzana={titular.id_manzana} />
+          {/* ADR 0118 F3: la hoja grande y su impresión viven en Material de campo (módulo encargado). */}
+          {enviada ? (
+            <Link className="hr-entrega-enlace" to={`${HREF_CAMPANA_TERRITORIAL}&panel=hoja&foco=${encodeURIComponent(titular.id_manzana)}`}>
+              Ver la hoja en Material de campo
+            </Link>
+          ) : (
+            <p className="hr-mapa-nota">La hoja de esta ruta se ve e imprime en Material de campo, después de enviar la muestra desde «Entrega».</p>
+          )}
           <section className="hr-muestra-grupo" aria-label="Reemplazos en orden">
             <h3>Reemplazos en orden</h3>
             {suyos.length ? (

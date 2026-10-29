@@ -1,126 +1,85 @@
-import { useEffect, useState } from "react";
-import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
-import { JobProgress } from "../../../../components/JobProgress";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { Sideover } from "../../../../components/Sideover";
-import { ApiError, downloadUrl } from "../../../../api/core";
+import { ApiError } from "../../../../api/core";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
-import {
-  apiHojasRutaCuotasPorFicha,
-  apiHojasRutaGenerate,
-  muestraConCuotasRepartidas,
-  apiHojasRutaManualReplacementsPdf,
-  apiHojasRutaRandomPdf,
-  apiHojasRutaRouteWorkbook,
-  type HojasRutaIntegratedConfig,
-  type HojasRutaJobResult,
-  type HojasRutaManualReplacementResult,
-  type HojasRutaRandomPdfResult,
-  type HojasRutaRandomPreference,
-  type HojasRutaReplacementPolicy,
-  type HojasRutaWorkbookResult,
-  type HojasRutaPlanSupuestos,
-  type HojasRutaWorkspaceOutputs,
-} from "../../../../api/hojasRuta";
-import { Archive } from "../../../../vendor/lucide-react";
+import { apiHojasRutaCuotasPorFicha, apiHojasRutaEnviar, muestraConCuotasRepartidas, type HojasRutaWorkspaceOutputs } from "../../../../api/hojasRuta";
+import type { EnvioMeta } from "../../../../api/materialTerritorial";
+import { Send } from "../../../../vendor/lucide-react";
 import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
-import { nombreDistrito } from "../nombres";
-import { PlanCampo } from "./PlanCampo";
 import { BitacoraSeccion } from "./BitacoraSeccion";
-import { alternarId, candidatasDeReemplazo, conteosDelPaquete, listoParaEntregar, pasosDeEntrega, pesoLegible, sugeridasParaReemplazo } from "./salidas";
 import { InformeDiseno } from "./InformeDiseno";
-import { codigoDeUmp } from "../../seleccion/revisionMarco";
 
 /**
- * Salidas de Selección en la página del lienzo (U10), en el sideover
- * direccionable `?panel=salidas`: ZIP de fichas con progreso, Excel operativo,
- * reemplazos puntuales (filas con interruptor) y PDF de prueba. Ninguna de las
- * cuatro cambia la selección guardada: sólo producen archivos.
+ * «Entrega» de Selección (ADR 0118 §2, F3), en el sideover direccionable `?panel=salidas`
+ * (conserva su id: está declarado y lo recorre el QA). Hojas de ruta diseña y Material de
+ * campo produce: aquí sólo se envía la muestra (una foto con huella), se ve si quedó
+ * desactualizada, se enlaza la campaña territorial y viven lo que es del diseño —el
+ * informe y la bitácora—. Fichas, hojas de zona, paquete, plan por encuestador y
+ * reemplazos puntuales se generan en Material.
  */
 
-const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
-const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
-const PREFERENCIAS = [["balanced", "Balanceado"], ["population", "Alta población"], ["urban", "Urbana compacta"]] as const;
+export const HREF_CAMPANA_TERRITORIAL = "/material-campo?modo=territorial&campana=territorial.principal&seccion=unidades&pestana=lista";
 
-type Trabajo = "" | "zip" | "excel" | "puntuales" | "prueba" | "cuotas";
-type Estado = {
-  ocupado: Trabajo;
-  error: string;
-  /** Código E_* del último error, para ofrecer el camino que lo resuelve. */
-  codigo: string;
-  jobZip: string | null;
-  jobPuntuales: string | null;
-  zip: HojasRutaJobResult | null;
-  excel: HojasRutaWorkbookResult | null;
-  puntuales: HojasRutaManualReplacementResult | null;
-  prueba: HojasRutaRandomPdfResult | null;
+const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
+const fecha = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(d.getDate())}/${dos(d.getMonth() + 1)}/${d.getFullYear()} ${dos(d.getHours())}:${dos(d.getMinutes())}`;
 };
-const INICIAL: Estado = { ocupado: "", error: "", codigo: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null, prueba: null };
 
 type Props = {
-  config: HojasRutaIntegratedConfig;
   salidas: HojasRutaWorkspaceOutputs | null | undefined;
-  /** U14: supuestos guardados del plan de campo y cómo guardarlos (sin tocar las salidas). */
-  planSupuestos?: HojasRutaPlanSupuestos;
-  onGuardarPlan?: (s: HojasRutaPlanSupuestos) => Promise<void>;
-  /** Tras repartir las cuotas por distrito, la página relee el estado. */
-  onCuotasRepartidas?: () => Promise<void>;
+  /** `envio_meta` de la fase activa (F1): null si nunca se envió. */
+  envio: EnvioMeta | null;
+  /** Tras enviar o repartir cuotas, la página relee el estado. */
+  onCambio?: () => Promise<void>;
 };
 
-export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, onCuotasRepartidas }: Props) {
-  const [e, setE] = useState<Estado>(INICIAL);
+export function SalidasPanel({ salidas, envio, onCambio }: Props) {
   const nav = useSeccion("hojas-ruta");
-  const [busqueda, setBusqueda] = useState("");
-  const [elegidas, setElegidas] = useState<string[]>([]);
-  // B45: abrir Salidas desde la ficha de una UMP la deja marcada para el reemplazo puntual.
-  useEffect(() => {
-    if (nav.panel === PANEL_SALIDAS_SELECCION.id && nav.foco) {
-      const foco = nav.foco;
-      setElegidas((l) => (l.includes(foco) ? l : [...l, foco]));
-    }
-  }, [nav.panel, nav.foco]);
-  const [porTitular, setPorTitular] = useState(1);
-  const [politica, setPolitica] = useState<HojasRutaReplacementPolicy>(config.replacement_policy ?? "alternate_zone_same_district");
-  const [preferencia, setPreferencia] = useState<HojasRutaRandomPreference>("balanced");
+  const [ocupado, setOcupado] = useState<"" | "envio" | "cuotas">("");
+  const [error, setError] = useState("");
+  const [codigo, setCodigo] = useState("");
   const muestra = salidas?.sample ?? null;
-  const pasos = pasosDeEntrega(config.territorios.length, salidas);
-  const listo = listoParaEntregar(pasos);
-  const corriendo = Boolean(e.jobZip || e.jobPuntuales) || e.ocupado !== "";
-  const { filas, coincidencias } = candidatasDeReemplazo(muestra?.blocks ?? [], busqueda, elegidas);
-  const paquete = conteosDelPaquete(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []);
-  const sugeridas = sugeridasParaReemplazo(muestra?.blocks ?? []);
 
-  async function correr<T>(trabajo: Trabajo, f: () => Promise<T>, listo: (r: T) => Partial<Estado>) {
-    setE((s) => ({ ...s, ocupado: trabajo, error: "", codigo: "" }));
+  async function correr(trabajo: "envio" | "cuotas", f: () => Promise<unknown>) {
+    setOcupado(trabajo);
+    setError("");
+    setCodigo("");
     try {
-      const r = await f();
-      setE((s) => ({ ...s, ocupado: "", ...listo(r) }));
+      await f();
+      await onCambio?.();
     } catch (err: unknown) {
-      // ApiError añade « · E_CODIGO» al mensaje: el código va aparte y el texto queda limpio.
-      const codigo = err instanceof ApiError ? err.code : "";
-      const mensaje = err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar el archivo";
-      setE((s) => ({ ...s, ocupado: "", error: mensaje, codigo }));
+      setCodigo(err instanceof ApiError ? err.code : "");
+      setError(err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo completar");
+    } finally {
+      setOcupado("");
     }
   }
+
+  const estado = !envio ? "nunca" : envio.desactualizado ? "desactualizado" : "al-dia";
 
   return (
     <Sideover
       panel={PANEL_SALIDAS_SELECCION}
-      title="Salidas de la selección"
-      subtitle="ZIP de fichas, Excel operativo, reemplazos puntuales y PDF de prueba"
-      icon={<Archive size={16} />}
+      title="Entrega"
+      subtitle="Envía la muestra a Material de campo, que produce las fichas, las hojas de zona y el paquete"
+      icon={<Send size={16} />}
       trigger={
         <PulsoButton variant="primary" disabled={!muestra}>
-          <Archive size={14} aria-hidden="true" /> Salidas
+          <Send size={14} aria-hidden="true" /> Entrega
         </PulsoButton>
       }
     >
       <div className="hr-salidas">
-        {e.error ? (
+        {error ? (
           <div className="hr-mapa-aviso" role="alert">
-            <p className="hr-salidas-error">{e.error}</p>
-            {e.codigo === "E_COVERAGE_DECISION_REQUIRED" ? (
+            <p className="hr-salidas-error">{error}</p>
+            {codigo === "E_COVERAGE_DECISION_REQUIRED" ? (
               <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "manzanas")}>
                 Ir al marco elegible
               </PulsoButton>
@@ -131,179 +90,43 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
         {muestra && !muestraConCuotasRepartidas(muestra.blocks) ? (
           <div className="hr-mapa-aviso" role="status">
             <p className="hr-salidas-error">
-              Las hojas de esta muestra piden la mitad de hombres y la mitad de mujeres, y la misma edad en todos los distritos. Repártelas según la cuota de cada distrito: las manzanas y su orden no cambian.
+              Las hojas de esta muestra piden la mitad de hombres y la mitad de mujeres, y la misma edad en todos los distritos. Repártelas según la cuota de cada distrito antes de enviar: las manzanas y su orden no cambian.
             </p>
-            <PulsoButton
-              variant="secondary"
-              size="sm"
-              disabled={corriendo}
-              onClick={() => void correr("cuotas", () => apiHojasRutaCuotasPorFicha(), () => ({})).then(() => onCuotasRepartidas?.())}
-            >
-              {e.ocupado === "cuotas" ? "Repartiendo…" : "Repartir cuotas por distrito"}
+            <PulsoButton variant="secondary" size="sm" disabled={ocupado !== ""} onClick={() => void correr("cuotas", () => apiHojasRutaCuotasPorFicha())}>
+              {ocupado === "cuotas" ? "Repartiendo…" : "Repartir cuotas por distrito"}
             </PulsoButton>
           </div>
         ) : null}
 
-        <section className="hr-muestra-grupo" aria-label="Paquete de entrega">
-          <h3>Paquete de entrega</h3>
-          <ul className="hr-salidas-pasos">
-            {pasos.map((p) => (
-              <li key={p.id} data-ok={p.ok || undefined}>
-                <i aria-hidden="true" />
-                <strong>{p.label}</strong>
-                <small>{p.detalle}</small>
-              </li>
-            ))}
-          </ul>
-          <p className="hr-mapa-nota">
-            {muestra
-              ? `${fmt(paquete.titulares)} fichas de titulares en ${fmt(paquete.distritos)} carpeta${paquete.distritos === 1 ? "" : "s"} por distrito, ${fmt(paquete.reemplazos)} de reemplazo, ${fmt(paquete.zonas)} hoja${paquete.zonas === 1 ? "" : "s"} por zona, el Excel operativo y los metadatos del marco.`
-              : "Un PDF por manzana titular separado por distrito, los de reemplazo, la hoja por zona, el Excel operativo y los metadatos del marco."}
-          </p>
-          <div className="hr-salidas-acciones">
-            <PulsoButton variant="primary" disabled={!listo || corriendo} onClick={() => void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
-              {e.ocupado === "zip" ? "Preparando…" : "Generar ZIP"}
-            </PulsoButton>
-            <PulsoButton
-              variant="secondary"
-              disabled={!listo || corriendo}
-              onClick={() =>
-                void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
-                  window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
-                  return { excel: r };
-                })
-              }
-            >
-              {e.ocupado === "excel" ? "Creando…" : "Excel operativo"}
-            </PulsoButton>
-          </div>
-          <JobProgress<HojasRutaJobResult>
-            label="Generando las hojas de ruta"
-            jobId={e.jobZip}
-            onDone={(r) => setE((s) => ({ ...s, zip: r, jobZip: null }))}
-            onError={(msg) => setE((s) => ({ ...s, error: msg, jobZip: null }))}
-            onCancelled={() => setE((s) => ({ ...s, jobZip: null }))}
-          />
-          {e.zip ? (
-            <a className="hr-salidas-archivo" href={downloadUrl(e.zip.file_id)}>
-              <strong>Descargar ZIP</strong>
-              <small>{fmt(e.zip.n_pdfs)} PDF · {fmt(e.zip.total_entrevistas)} entrevistas · {pesoLegible(e.zip.size)}</small>
-            </a>
-          ) : null}
-          {e.excel ? (
-            <a className="hr-salidas-archivo" href={downloadUrl(e.excel.file_id)}>
-              <strong>Descargar Excel</strong>
-              <small>{fmt(e.excel.n_blocks)} titulares · {fmt(e.excel.n_replacement_blocks)} reemplazos · {pesoLegible(e.excel.size)}</small>
-            </a>
-          ) : null}
-          <p className="hr-mapa-nota">Si cambias la muestra o el sorteo, estos archivos quedan desactualizados: vuelve a generarlos.</p>
-        </section>
-
-        {onGuardarPlan ? <PlanCampo guardados={planSupuestos} deshabilitado={!muestra || corriendo} onGuardar={onGuardarPlan} /> : null}
-
-        <section className="hr-muestra-grupo" aria-label="Reemplazos puntuales">
-          <h3>Reemplazos puntuales</h3>
-          <p className="hr-mapa-nota">Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo.</p>
-          {sugeridas.length ? (
-            <div className="hr-salidas-sugeridas">
-              <small>Sin viviendas en el marco: conviene revisarlas</small>
-              <div className="hr-mapa-chips">
-                {sugeridas.slice(0, 8).map((id) => {
-                  const b = muestra?.blocks.find((x) => x.id_manzana === id);
-                  return (
-                    <button key={id} type="button" className="hr-mapa-zona" aria-pressed={elegidas.includes(id)} data-estado={elegidas.includes(id) ? "todo" : undefined} disabled={corriendo} onClick={() => setElegidas((l) => alternarId(l, id))}>
-                      <span>{b ? codigoDeUmp(b) : id}</span>
-                    </button>
-                  );
-                })}
-                {sugeridas.length > 8 ? <span className="hr-mapa-nota">y {fmt(sugeridas.length - 8)} más</span> : null}
-              </div>
-            </div>
-          ) : null}
-          <input className="hr-mapa-buscar" type="search" aria-label="Buscar titular" placeholder="Buscar UMP, distrito o zona" value={busqueda} disabled={!muestra || corriendo} onChange={(ev) => setBusqueda(ev.target.value)} />
-          {filas.length ? (
-            <ul className="hr-salidas-filas">
-              {filas.map((f) => (
-                <li key={f.id}>
-                  <span>
-                    <strong>{f.codigo}</strong>
-                    <small>{nombreDistrito(f.distrito)} · zona {f.zona}</small>
-                  </span>
-                  <PulsoSwitch size="sm" ariaLabel={`${f.elegida ? "Quitar" : "Pedir reemplazos para"} ${f.codigo}`} checked={f.elegida} disabled={corriendo} onCheckedChange={() => setElegidas((l) => alternarId(l, f.id))} />
-                </li>
-              ))}
-            </ul>
+        <section className="hr-muestra-grupo hr-entrega" aria-label="Envío a Material de campo" data-estado={estado}>
+          <h3>Envío a Material de campo</h3>
+          {estado === "nunca" ? (
+            <p className="hr-mapa-nota">
+              La muestra todavía no se envió. Al enviarla, Material de campo recibe una foto de las {muestra ? fmt(muestra.blocks.length) : "—"} titulares y sus reemplazos, y desde ahí se generan las fichas, las hojas de zona, el paquete y el plan por encuestador.
+            </p>
           ) : (
-            <p className="hr-mapa-nota">{busqueda.trim() ? `Ninguna titular coincide con «${busqueda}».` : "Busca la titular que falló para pedirle reemplazos."}</p>
+            <div className="hr-entrega-estado">
+              <strong>{estado === "desactualizado" ? "La muestra cambió desde el envío" : "Enviada"}</strong>
+              <span>
+                {fmt(envio?.n_titulares ?? 0)} titulares y {fmt(envio?.n_reemplazos ?? 0)} reemplazos{envio?.enviado_at ? ` · ${fecha(envio.enviado_at)}` : ""}
+              </span>
+              {estado === "desactualizado" ? <span>Material no genera material mientras no la reenvíes: saldría de una muestra distinta de la enviada.</span> : null}
+            </div>
           )}
-          {coincidencias > 12 ? <p className="hr-mapa-nota">Se muestran 12 de {fmt(coincidencias)}: afina la búsqueda.</p> : null}
-          <div className="hr-muestra-campo">
-            <small>Reemplazos por titular</small>
-            <span className="hr-muestra-pasos">
-              <PulsoButton variant="icon" size="sm" aria-label="Uno menos" disabled={corriendo || porTitular <= 1} onClick={() => setPorTitular((n) => Math.max(1, n - 1))}>−</PulsoButton>
-              <input type="number" min={1} max={10} aria-label="Reemplazos por titular" value={porTitular} disabled={corriendo} onChange={(ev) => setPorTitular(Math.min(10, Math.max(1, Math.round(Number(ev.target.value) || 1))))} />
-              <PulsoButton variant="icon" size="sm" aria-label="Uno más" disabled={corriendo || porTitular >= 10} onClick={() => setPorTitular((n) => Math.min(10, n + 1))}>+</PulsoButton>
-            </span>
+          <div className="hr-salidas-acciones">
+            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== ""} onClick={() => void correr("envio", () => apiHojasRutaEnviar())}>
+              <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
+            </PulsoButton>
+            {envio ? (
+              <Link className="hr-entrega-enlace" to={HREF_CAMPANA_TERRITORIAL}>
+                Abrir en Material de campo
+              </Link>
+            ) : null}
           </div>
-          <div className="hr-muestra-campo">
-            <small>Dónde buscarlos</small>
-            <GlidingRadioGroup value={politica} options={POLITICAS} getOptionValue={(o) => o[0]} onValueChange={setPolitica} className="hr-muestra-opciones" aria-label="Dónde buscar los reemplazos puntuales" getOptionProps={() => ({ disabled: corriendo })}>
-              {(o) => <span>{o[1]}</span>}
-            </GlidingRadioGroup>
-          </div>
-          <PulsoButton
-            variant="secondary"
-            disabled={!muestra || !elegidas.length || corriendo}
-            onClick={() => muestra && void correr("puntuales", () => apiHojasRutaManualReplacementsPdf({ ...config, replacement_policy: politica }, muestra, elegidas, porTitular), (r) => ({ jobPuntuales: r.job_id, puntuales: null }))}
-          >
-            {elegidas.length ? `PDF de reemplazos para ${elegidas.length} titular${elegidas.length === 1 ? "" : "es"}` : "Elige al menos una titular"}
-          </PulsoButton>
-          <JobProgress<HojasRutaManualReplacementResult>
-            label="Generando los reemplazos puntuales"
-            jobId={e.jobPuntuales}
-            onDone={(r) => {
-              setE((s) => ({ ...s, puntuales: r, jobPuntuales: null }));
-              if (r.file_id) window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
-            }}
-            onError={(msg) => setE((s) => ({ ...s, error: msg, jobPuntuales: null }))}
-            onCancelled={() => setE((s) => ({ ...s, jobPuntuales: null }))}
-          />
-          {e.puntuales ? (
-            <a className="hr-salidas-archivo" href={downloadUrl(e.puntuales.file_id)}>
-              <strong>Descargar PDF</strong>
-              <small>{fmt(e.puntuales.n_replacement_blocks)} reemplazos para {fmt(e.puntuales.n_titulars)} titulares</small>
-            </a>
-          ) : null}
         </section>
 
         <InformeDiseno deshabilitado={!muestra} />
         <BitacoraSeccion conDecisionesPrevias={Boolean(muestra)} />
-
-        <section className="hr-muestra-grupo" aria-label="PDF de prueba">
-          <h3>PDF de prueba</h3>
-          <p className="hr-mapa-nota">Una hoja al azar para revisar el formato antes de entregar.</p>
-          <GlidingRadioGroup value={preferencia} options={PREFERENCIAS} getOptionValue={(o) => o[0]} onValueChange={setPreferencia} className="hr-muestra-opciones" aria-label="Qué manzana sortear para la prueba" getOptionProps={() => ({ disabled: corriendo })}>
-            {(o) => <span>{o[1]}</span>}
-          </GlidingRadioGroup>
-          <PulsoButton
-            variant="secondary"
-            disabled={corriendo}
-            onClick={() =>
-              void correr("prueba", () => apiHojasRutaRandomPdf(config, preferencia), (r) => {
-                window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
-                return { prueba: r };
-              })
-            }
-          >
-            {e.ocupado === "prueba" ? "Generando…" : "Abrir un PDF de prueba"}
-          </PulsoButton>
-          {e.prueba ? (
-            <a className="hr-salidas-archivo" href={downloadUrl(e.prueba.file_id)}>
-              <strong>Abrir el último</strong>
-              <small>{nombreDistrito(e.prueba.distrito)} · zona {e.prueba.zona} · manzana {e.prueba.manzana}</small>
-            </a>
-          ) : null}
-        </section>
       </div>
     </Sideover>
   );
