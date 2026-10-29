@@ -70,12 +70,14 @@ type InspectorProps = {
   listoParaSortear: boolean;
   /** El bloque del marco elegible (ADR 0115): va antes del método porque decide sobre qué se sortea. */
   marcoElegible?: ReactNode;
+  /** «¿Se parece al marco?» (B38): NSE del marco frente al de la muestra. */
+  parecido?: ReactNode;
   bloqueado: boolean;
   guardando: boolean;
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, bloqueado, guardando, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, bloqueado, guardando, onSortear }: InspectorProps) {
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
@@ -105,6 +107,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
             <li>Revísalas en Selección</li>
           </ol>
         )}
+        {muestra ? parecido : null}
         {!listoParaSortear ? <p className="hr-mapa-aviso">Primero calcula el tamaño en Muestra: el sorteo reparte ese N en rutas de {ruta} entrevistas.</p> : null}
 
         {marcoElegible}

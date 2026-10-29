@@ -46,7 +46,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B35 | Muestra | falta · medio | Pie «Ver cuotas / Ir al sorteo» | `MuestraPaneles.tsx` | ☐ |
 | B36 | Muestra 1024 | peor · medio | Lista de reparto con scroll anidado (deuda compartida con el artefacto) | `.hr-muestra-reparto` | ☐ |
 | B37 | Muestra | — | La app suma ocupación, visitas P90, aviso MAS, FPC | — | — |
-| B38 | Manzanas | falta · alto | «¿Se parece al marco?» (NSE marco vs muestra); deslizador del mínimo con atajos; cifras Elegibles/Fuera/Viviendas | `manzanas/ManzanasPaneles.tsx`, `MarcoElegiblePanel.tsx` | ☐ |
+| B38 | Manzanas | falta · alto | «¿Se parece al marco?» (NSE marco vs muestra); deslizador del mínimo con atajos; cifras Elegibles/Fuera/Viviendas | «¿Se parece al marco?» ☑ (`manzanas/ParecidoAlMarco.tsx`); deslizador y cifras ☐ | ◐ |
 | B39 | Manzanas | falta · medio | Fila «Carga de la ruta»; «Dibujar un área a excluir» visible | Manzanas | ☐ |
 | B40 | Manzanas | peor · medio | Filas de distrito 16 px sin punto ni cifra a la derecha; historial abajo y truncado | Manzanas | ☐ |
 | B41 | Manzanas | — | La app trae historial real, exclusiones de piloto y comparar semillas | — | — |

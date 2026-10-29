@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
 import { BookOpenText, Send } from "../../../vendor/lucide-react";
 import { apiHojasRutaBitacora } from "../../../api/hojasRuta";
 import { codigoDeUmp } from "../seleccion/revisionMarco";
@@ -391,6 +392,17 @@ export default function HojasRutaMapaPage() {
     for (const d of cargados) for (const m of d.manzanas) out[m.nse] = (out[m.nse] ?? 0) + Math.max(0, m.viviendas);
     return out;
   }, [distritos, borrador]);
+  // B38: NSE del marco (viviendas de los distritos confirmados) y de la muestra (UMP titulares).
+  const perfilNseMarco = useMemo(() => {
+    const out: Record<number, number> = {};
+    for (const d of distritos) if (confirmados.includes(d.ubigeo)) for (const m of d.manzanas) out[m.nse] = (out[m.nse] ?? 0) + Math.max(0, m.viviendas);
+    return Object.keys(out).length ? out : null;
+  }, [distritos, confirmados]);
+  const perfilNseMuestra = useMemo(() => {
+    const out: Record<number, number> = {};
+    for (const t of titulares) if (t.manzana) out[t.manzana.nse] = (out[t.manzana.nse] ?? 0) + 1;
+    return Object.keys(out).length ? out : null;
+  }, [titulares]);
   // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
@@ -578,6 +590,7 @@ export default function HojasRutaMapaPage() {
               viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
               manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
               listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
+              parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} />}
               marcoElegible={
                 <MarcoElegiblePanel
                   marco={configSorteo.marco_elegible}

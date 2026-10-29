@@ -10,7 +10,7 @@ import { nombreDistrito } from "../nombres";
 
 // Nombres literales: el contrato de tokens no lee nombres armados.
 const TONOS = ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"];
-const NSE: [number, string, string][] = [
+export const NSE: [number, string, string][] = [
   [1, "Alto", "--pulso-nse-1"],
   [2, "Medio alto", "--pulso-nse-2"],
   [3, "Medio", "--pulso-nse-3"],
@@ -19,7 +19,7 @@ const NSE: [number, string, string][] = [
   [0, "Sin dato", "--pulso-nse-0"],
 ];
 
-const pct = (x: number) =>
+export const pct = (x: number) =>
   x > 0 && x < 0.001 ? "<0.1 %" : `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: x < 0.1 ? 1 : 0 })} %`;
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
