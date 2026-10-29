@@ -7,6 +7,7 @@ import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRoute
 import { tonoCobertura } from "./marcoElegible";
 import { CompararSemillas } from "./CompararSemillas";
 import { nombreDistrito } from "../nombres";
+import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
@@ -258,12 +259,18 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
           <ul className="hr-sorteo-distritos">
             {filas.map(([u, f]) => (
               <li key={u}>
-                <strong>{nombreDistrito(f.distrito)}</strong>
-                <span>
-                  <b>{fmt(f.titulares)}</b> titulares · {fmt(f.entrevistas)} entr.
-                  
+                {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
+                <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
+                <span className="hr-sorteo-dist-copia">
+                  <strong>{nombreDistrito(f.distrito)}</strong>
+                  <small>
+                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? ` · ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
+                  </small>
                 </span>
-                {f.reemplazos ? <small>{fmt(f.reemplazos)} reemplazo{f.reemplazos === 1 ? "" : "s"} de respaldo</small> : null}
+                <span className="hr-sorteo-dist-cifra">
+                  <b>{fmt(f.titulares)}</b>
+                  <small>UMP</small>
+                </span>
               </li>
             ))}
           </ul>
