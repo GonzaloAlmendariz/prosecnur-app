@@ -67,7 +67,7 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
    distrito, el aviso `W_SAMPLE_DRAWN_WITH_V1`, que dice qué porcentaje de las viviendas del marco elegible quedó
    sin probabilidad y pide volver a sortear antes de salir a campo. **Nunca se vuelve a sortear en silencio.**
    Con cuota por zona, v1 y v2 cubren lo mismo, porque lo que queda fuera lo deja la cuota y no el sorteo. Por
-   eso una muestra v1 con cuota por zona no pide volver a sortear: recibe el aviso de la cuota (Pendiente).
+   eso una muestra v1 con cuota por zona no pide volver a sortear: recibe el aviso de la cuota vieja (ver «Cuota por zona al azar»).
 
 ## Consecuencias
 
@@ -89,12 +89,19 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
 - `hojas_ruta_engine.R` se achica: el reparto por zonas sale del motor congelado. Su línea base baja a 10 226.
 - Los reemplazos se siguen sorteando con `.hojas_ruta_sample_indices`, sin manzanas de medida ≤ 0 (ver abajo). La π publicada es la de las titulares según el
   diseño.
-- **Pendiente.** Con `row_var = "zona"`, la propia cuota (`.hojas_ruta_finalize_quota_cells`) reparte rutas entre
-  zonas con el mismo mayor resto determinista, así que las zonas que la cuota deja en 0 tienen π = 0. En Lima
-  eso es entre el 27 % y el 67 % de las viviendas del marco elegible de un distrito. Esa decisión es de diseño de
-  la cuota y no se toca aquí, pero **se avisa**: cada sorteo con cuota por zona, y cada muestra v1 con cuota por
-  zona al cargarse, recibe `W_ZONE_QUOTA_EXCLUDES_ZONES`. El aviso da el porcentaje de viviendas del marco
-  elegible del distrito en zonas sin cuota y nombra la causa, que es la cuota y no el sorteo.
+- **Cuota por zona al azar (resuelto 2026-10-29, decisión de Gonzalo: «repartir al azar»).** Antes, con
+  `row_var = "zona"`, la propia cuota (`.hojas_ruta_finalize_quota_cells`) repartía las rutas entre zonas con el
+  mayor resto determinista de `.hojas_ruta_allocate_integer`: las zonas que quedaban en 0 tenían π = 0 con
+  cualquier semilla, entre el 27 % y el 67 % de las viviendas del marco elegible de un distrito de Lima. Ahora la
+  cuota reparte con redondeo aleatorio controlado (`.hojas_ruta_cuota_zona_rutas`, en
+  `hojas_ruta_cuota_zona_aleatoria.R`): cada zona recibe ⌊x_z⌋ o ⌈x_z⌉ rutas, con x_z = R·P_z/ΣP y E = x_z, y el
+  total del distrito es exactamente R. Las fracciones se resuelven con un sistemático de paso 1 sobre las zonas en
+  su orden, con arranque uniforme tomado de la semilla del proyecto y del distrito en un generador local, que no
+  consume el flujo del sorteo. Toda zona con población > 0 tiene probabilidad positiva de recibir ruta.
+  Consecuencias: la cuota por zona cambia con la semilla, y una misma semilla da siempre la misma cuota. Al
+  sortear ya no se emite `W_ZONE_QUOTA_EXCLUDES_ZONES`. El aviso se conserva sólo al cargar una muestra v1 con
+  cuota por zona, porque su cuota sí dejaba zonas en 0. Una muestra v2 con cuota por zona sorteada antes de este
+  cambio, en la rama del mismo día, no recibe aviso: no hay ninguna en proyectos reales.
 - Los reemplazos en PPS siguen §3. Sus candidatas son sólo las manzanas con medida > 0
   (`.hojas_ruta_sorteo_candidatos`, en el sorteo y en los reemplazos puntuales), y `.hojas_ruta_sample_indices`
   ya no imputa peso 1 a la medida NA o ≤ 0. Antes salían manzanas con 0 viviendas, que en campo no sirven. La
@@ -115,7 +122,8 @@ mecanismo. Además, PPS imputaba peso 1 a la medida NA o ≤ 0.
     - medida en 0 o NA en todo el distrito.
   - La misma semilla da la misma muestra.
   - En la rama zona, asignadas + sin ruta = cuota.
-  - Las zonas sin cuota se avisan con su causa, y el redondeo no da la ruta extra a una zona sin fracción.
+  - Al sortear con cuota por zona no se avisan zonas sin probabilidad; el aviso de la cuota vieja sigue nombrando su causa, y el redondeo no da la ruta extra a una zona sin fracción.
+  - La cuota por zona al azar: ⌊x⌋ o ⌈x⌉, E = x dentro de 4·SE, total exacto, toda zona con población recibe ruta alguna vez, reproducible y sin tocar el flujo aleatorio; control positivo con el mayor resto determinista. En el motor, la zona que recibe cuota cambia con la semilla (mutante con la regla vieja: falla).
   - El aviso de v1 sale y es idempotente, y con cuota por zona no pide volver a sortear.
   - Control de escala: una π un 30 % más alta no pasa el arnés.
 - `test-hojas-ruta-marco-elegible.R`:

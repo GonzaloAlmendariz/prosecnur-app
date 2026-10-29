@@ -3913,7 +3913,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
         weights <- vapply(domains, function(domain) {
           sum(cells$poblacion[idx & route_domain == domain], na.rm = TRUE)
         }, numeric(1))
-        route_counts <- .hojas_ruta_allocate_integer(weights, n_ubigeo / route_size)
+        route_counts <- .hojas_ruta_cuota_zona_rutas(weights, n_ubigeo %/% route_size, cfg$seed %||% 2017L, ubigeo)
         for (j in seq_along(domains)) {
           assign_domain(idx & route_domain == domains[[j]], route_counts[[j]] * route_size)
         }
@@ -3940,7 +3940,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
         weights <- vapply(domains, function(domain) {
           sum(cells$poblacion[district_idx & route_domain == domain], na.rm = TRUE)
         }, numeric(1))
-        route_counts <- .hojas_ruta_allocate_integer(weights, district_routes)
+        route_counts <- .hojas_ruta_cuota_zona_rutas(weights, district_routes, cfg$seed %||% 2017L, districts[[j]])
         for (z in seq_along(domains)) {
           assign_domain(
             district_idx & route_domain == domains[[z]],

@@ -141,7 +141,7 @@ test_that("con cuota por zona: el redondeo es aleatorio controlado y asignadas +
   expect_true(all(r >= floor(x) & r <= ceiling(x)))
 })
 
-test_that("con cuota por zona, las zonas sin cuota se avisan con su causa: la cuota, no el sorteo", {
+test_that("con cuota por zona, sortear no avisa zonas sin probabilidad: la cuota ya las reparte al azar", {
   df <- sorteo_fixture()
   df <- df[df$ubigeo == "150101", , drop = FALSE]
   zonas <- sort(unique(df$zona))
@@ -149,14 +149,52 @@ test_that("con cuota por zona, las zonas sin cuota se avisan con su causa: la cu
   cells <- data.frame(ubigeo = "150101", territorio = paste0("150101-", zonas), cuota = cuotas, stringsAsFactors = FALSE)
   set.seed(9L)
   s <- .hojas_ruta_sorteo_titulares_distrito(df, cells, "150101", sum(cuotas), 8L, sorteo_cfg(row_var = "zona"))
-  a <- Filter(function(x) identical(x$code, "W_ZONE_QUOTA_EXCLUDES_ZONES"), s$alertas)
-  expect_length(a, 1)
+  expect_false("W_ZONE_QUOTA_EXCLUDES_ZONES" %in% vapply(s$alertas, `[[`, character(1), "code"))
+  # El aviso sigue disponible para las muestras viejas y nombra la causa.
+  a <- .hojas_ruta_sorteo_aviso_cuota_zona(df, zonas, as.integer(cuotas / 8), "150101", "Distrito")
   esperado <- 100 * sum(df$viviendas[!df$zona %in% zonas[1:10]]) / sum(df$viviendas)
-  expect_equal(a[[1]]$viviendas_sin_probabilidad_pct, round(esperado, 1))
-  expect_match(a[[1]]$message, "cuota por zona")
-  expect_false(grepl("vuelve a sortear", a[[1]]$message))
+  expect_equal(a$viviendas_sin_probabilidad_pct, round(esperado, 1))
+  expect_match(a$message, "cuota por zona")
   # El redondeo nunca da una ruta extra a una zona sin fracción, aunque sea la última.
   expect_identical(.hojas_ruta_sorteo_rutas_por_zona(c(12, 12, 0), 8L)[[3]], 0L)
+})
+
+test_that("la cuota por zona reparte las rutas al azar: ⌊x⌋ o ⌈x⌉, E = x, total exacto y reproducible", {
+  pob <- c(5000, 300, 120, 80, 2400, 40, 900, 15, 0, 610)
+  x <- 7 * pob / sum(pob)
+  r <- vapply(seq_len(4000L), function(semilla) .hojas_ruta_cuota_zona_rutas(pob, 7L, semilla, "150101"), integer(length(pob)))
+  expect_true(all(colSums(r) == 7L))
+  expect_true(all(r >= floor(x + 1e-9) & r <= ceiling(x - 1e-9)))
+  # Esperanza = x_z (4·SE de una Bernoulli por zona).
+  se <- sqrt(pmax(x - floor(x), 1e-9) * (1 - (x - floor(x))) / 4000)
+  expect_true(all(abs(rowMeans(r) - x) <= 4 * se + 1e-9))
+  # Toda zona con población recibe ruta alguna vez; la de población 0, nunca.
+  expect_true(all(rowSums(r[pob > 0, , drop = FALSE]) > 0))
+  expect_true(all(r[pob == 0, ] == 0L))
+  # Control positivo del arnés: el mayor resto determinista deja zonas en 0 siempre.
+  expect_true(any(.hojas_ruta_allocate_integer(pob, 7L)[pob > 0] == 0L))
+  # Reproducible y sin consumir el flujo aleatorio del sorteo.
+  expect_identical(.hojas_ruta_cuota_zona_rutas(pob, 7L, 2017L, "150101"), .hojas_ruta_cuota_zona_rutas(pob, 7L, 2017L, "150101"))
+  set.seed(5L); antes <- stats::runif(1)
+  set.seed(5L); invisible(.hojas_ruta_cuota_zona_rutas(pob, 7L, 2017L, "150101")); despues <- stats::runif(1)
+  expect_identical(antes, despues)
+  expect_identical(.hojas_ruta_cuota_zona_rutas(numeric(0), 3L, 1L, "x"), integer(0))
+  expect_identical(.hojas_ruta_cuota_zona_rutas(pob, 0L, 1L, "x"), integer(length(pob)))
+})
+
+test_that("con cuota por zona, toda zona del distrito puede recibir cuota según la semilla", {
+  base <- list(territorios = list("150102"), n_objetivo = 80, sample_size_mode = "external_total", n_mode = "total",
+               entrevistas_por_manzana = 8, max_per_manzana = 8, row_var = "zona", replacements_per_titular = 1)
+  zonas_con_cuota <- function(semilla) {
+    cfg <- hojas_ruta_integrada_normalize_config(c(base, list(seed = semilla)))
+    cells <- .hojas_ruta_quota_cells(.hojas_ruta_filter_frame(cfg), cfg)
+    expect_equal(sum(cells$cuota), 80)
+    unique(as.character(cells$territorio[cells$cuota > 0]))
+  }
+  vistas <- lapply(1:60, zonas_con_cuota)
+  expect_identical(zonas_con_cuota(7L), zonas_con_cuota(7L))
+  # Con la regla vieja salían siempre las mismas zonas; ahora la semilla las mueve.
+  expect_gt(length(unique(unlist(vistas))), length(vistas[[1]]))
 })
 
 test_that("una muestra sin firma es v1 y avisa por distrito cuánto quedó sin probabilidad, sin re-sortear", {
@@ -193,7 +231,11 @@ test_that("una muestra sin firma es v1 y avisa por distrito cuánto quedó sin p
   z_v1$alerts <- Filter(function(x) !identical(x$code, "W_ZONE_QUOTA_EXCLUDES_ZONES"), z$alerts)
   codigos <- vapply(hojas_ruta_sorteo_aviso_v1(z_v1)$alerts, `[[`, character(1), "code")
   expect_false("W_SAMPLE_DRAWN_WITH_V1" %in% codigos)
-  expect_identical("W_ZONE_QUOTA_EXCLUDES_ZONES" %in% codigos, "W_ZONE_QUOTA_EXCLUDES_ZONES" %in% vapply(z$alerts, `[[`, character(1), "code"))
+  # Al sortear ya no se avisa (la cuota reparte al azar); al cargarla como v1, sí, si su cuota dejó zonas en 0.
+  expect_false("W_ZONE_QUOTA_EXCLUDES_ZONES" %in% vapply(z$alerts, `[[`, character(1), "code"))
+  hay_ceros <- any(vapply(split(z$quota$cells, vapply(z$quota$cells, function(c) as.character(c$territorio), character(1))),
+                          function(g) sum(vapply(g, function(c) as.numeric(c$cuota), numeric(1))) <= 0, logical(1)))
+  if (hay_ceros) expect_true("W_ZONE_QUOTA_EXCLUDES_ZONES" %in% codigos)
 })
 
 test_that("los reemplazos PPS tampoco salen de manzanas sin viviendas (ADR 0117 §3); el sistemático sí las admite", {

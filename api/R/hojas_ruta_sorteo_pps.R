@@ -109,10 +109,10 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   100 * sum(viv[as.character(df$zona) %in% sin_ruta]) / sum(viv)
 }
 
-#' Con cuota por zona, la cuota misma (`.hojas_ruta_finalize_quota_cells`) reparte
-#' rutas entre zonas con mayor resto determinista: las zonas con cuota 0 tienen
-#' π = 0 en cualquier sorteo. No es un defecto del sorteo y volver a sortear no lo
-#' corrige, así que el aviso nombra la causa (ADR 0117, Pendiente).
+#' Muestras v1 con cuota por zona: aquella cuota repartía rutas entre zonas con
+#' mayor resto determinista y las zonas con cuota 0 tenían π = 0 en cualquier
+#' sorteo. La cuota actual reparte al azar (ADR 0117 §5), así que el aviso sólo
+#' sale al cargar una muestra vieja y nombra la causa.
 .hojas_ruta_sorteo_aviso_cuota_zona <- function(df, zonas, rutas, ubigeo, distrito) {
   pct <- .hojas_ruta_sorteo_pct_sin_ruta(df, zonas, rutas)
   if (pct <= 0) return(NULL)
@@ -156,9 +156,9 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
     zonas <- sort(unique(as.character(district_frame$zona)))
     n_z <- zq$n[match(zonas, zq$zona)]
     n_z[is.na(n_z)] <- 0
+    # Una zona sin rutas en esta cuota ya no tiene π = 0: la cuota las reparte al
+    # azar (hojas_ruta_cuota_zona_aleatoria.R), así que no se avisa al sortear.
     rutas <- .hojas_ruta_sorteo_rutas_por_zona(n_z, route_size)
-    aviso <- .hojas_ruta_sorteo_aviso_cuota_zona(district_frame, zonas, rutas, ubigeo, distrito)
-    if (!is.null(aviso)) alertas[[length(alertas) + 1L]] <- aviso
     resto <- as.integer(round(sum(n_z) - sum(rutas) * route_size))
     partes <- lapply(seq_along(zonas)[rutas > 0L], function(j) {
       sortear(district_frame[as.character(district_frame$zona) == zonas[[j]], , drop = FALSE], rutas[[j]], sprintf("%s zona %s", distrito, zonas[[j]]))
