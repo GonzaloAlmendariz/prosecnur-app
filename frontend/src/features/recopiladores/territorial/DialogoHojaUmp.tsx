@@ -1,0 +1,100 @@
+// La hoja de ruta de una UMP en grande, con «Imprimir o descargar» (ADR 0118 §1,
+// brecha B46). Panel direccionable `?panel=hoja&foco=<id_manzana>` sobre
+// Territorial › Unidades; cerrar quita sólo el panel y deja la UMP resaltada.
+//
+// Contrato de Superficie: diálogo `lg` de alto fijo (C2): el cuerpo es dueño
+// del vacío mientras se genera, del error y de la imagen, con su scroll (C4).
+
+import { useEffect, useState } from "react";
+
+import { downloadUrl } from "../../../api/core";
+import { apiHojasRutaFichaUmp } from "../../../api/hojasRuta";
+import type { UnidadTerritorial } from "../../../api/materialTerritorial";
+import { Dialog } from "../../../components/Dialog";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { FileText, Loader2, Printer } from "../../../vendor/lucide-react";
+import { PANEL_HOJA_UMP } from "./panelesTerritorial";
+
+type Estado = { png: string | null; pdf: string | null; cargando: boolean; error: string };
+const INICIAL: Estado = { png: null, pdf: null, cargando: false, error: "" };
+
+function mensaje(e: unknown, porDefecto: string): string {
+  return e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : porDefecto;
+}
+
+export function DialogoHojaUmp({ unidad, stale }: { unidad: UnidadTerritorial | null; stale: boolean }) {
+  const { abierto } = usePanelDireccionable(PANEL_HOJA_UMP);
+  const [e, setE] = useState<Estado>(INICIAL);
+  const id = unidad?.unit_id ?? null;
+
+  // Abrir (o cambiar de UMP con el diálogo abierto) genera la vista previa.
+  useEffect(() => {
+    setE(INICIAL);
+    if (!abierto || !id) return;
+    let vivo = true;
+    setE({ ...INICIAL, cargando: true });
+    apiHojasRutaFichaUmp(id, "png")
+      .then((r) => {
+        if (!vivo) return;
+        const url = downloadUrl(r.file_id);
+        setE({ ...INICIAL, png: r.formato === "png" ? url : null, pdf: r.formato === "pdf" ? url : null });
+      })
+      .catch((err: unknown) => { if (vivo) setE({ ...INICIAL, error: mensaje(err, "No se pudo generar la hoja.") }); });
+    return () => { vivo = false; };
+  }, [abierto, id]);
+
+  const imprimir = () => {
+    if (e.pdf) {
+      window.open(e.pdf, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!id) return;
+    apiHojasRutaFichaUmp(id, "pdf")
+      .then((r) => {
+        const url = downloadUrl(r.file_id);
+        setE((s) => ({ ...s, pdf: url }));
+        window.open(url, "_blank", "noopener,noreferrer");
+      })
+      .catch((err: unknown) => setE((s) => ({ ...s, error: mensaje(err, "No se pudo generar el PDF.") })));
+  };
+
+  return (
+    <Dialog
+      panel={PANEL_HOJA_UMP}
+      size="lg"
+      alto="fijo"
+      icon={<FileText size={16} />}
+      title={unidad ? `Hoja de ruta · ${unidad.label}` : "Hoja de ruta"}
+      subtitle={unidad ? [unidad.distrito, unidad.zona ? `zona ${unidad.zona}` : "", unidad.manzana ? `manzana ${unidad.manzana}` : ""].filter(Boolean).join(" · ") : undefined}
+      bodyClassName="rec-terr-hoja-cuerpo"
+      footer={(
+        <PulsoButton variant="primary" size="sm" disabled={!unidad || e.cargando} onClick={imprimir}>
+          <Printer size={14} aria-hidden /> Imprimir o descargar
+        </PulsoButton>
+      )}
+    >
+      {!unidad ? (
+        <EstadoVacio
+          icono={<FileText size={20} />}
+          titulo="Esa UMP no está en la muestra enviada"
+          descripcion="Elige una UMP de la lista para ver su hoja."
+        />
+      ) : null}
+      {unidad && stale ? (
+        <p className="rec-terr-nota">La muestra cambió en Hojas de ruta desde el envío: la hoja se arma con la muestra vigente.</p>
+      ) : null}
+      {e.cargando ? (
+        <p className="rec-terr-nota rec-terr-generando"><Loader2 size={14} className="pulso-spin" aria-hidden /> Generando la hoja… tarda unos segundos por el mapa.</p>
+      ) : null}
+      {e.error ? <p className="rec-terr-error" role="alert">{e.error}</p> : null}
+      {e.png ? (
+        <img className="rec-terr-hoja-img" src={e.png} alt={`Hoja de ruta de ${unidad?.label ?? "la UMP"}`} />
+      ) : null}
+      {!e.png && e.pdf && !e.cargando ? (
+        <p className="rec-terr-nota">La vista previa salió en PDF: ábrela con «Imprimir o descargar».</p>
+      ) : null}
+    </Dialog>
+  );
+}

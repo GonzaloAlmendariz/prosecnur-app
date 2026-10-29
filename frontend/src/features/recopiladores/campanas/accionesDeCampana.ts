@@ -27,7 +27,8 @@ export function accionesDeCampana(
   contexto: { fuente: FuenteDelRegistro | null; correos: number },
 ): AccionDeCampana[] {
   const conRegistro = contexto.fuente === "registro";
-  if (campana.tipo === "aulas") {
+  // Aulas y territorial (ADR 0118): una por proyecto, se archivan en vez de borrarse.
+  if (campana.tipo === "aulas" || campana.tipo === "territorial") {
     if (campana.archived) {
       return [{ id: "reabrir", label: "Reabrir", motivo: conRegistro ? null : SIN_REGISTRO, peligrosa: false }];
     }

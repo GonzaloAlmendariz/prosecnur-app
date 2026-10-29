@@ -20,8 +20,18 @@ import { NOMBRE_DE_PLATAFORMA } from "../correos/dialectos";
 export const ID_CAMPANA_AULAS = "aulas.principal";
 export const NOMBRE_CAMPANA_AULAS = "Campo en aulas";
 
-/** El motivo de `territorial` hasta que exista E2 (`ump_territorial_v1`). */
+/** El motivo de `territorial` en un backend sin la campaña habilitada (respaldo derivado). */
 export const MOTIVO_TERRITORIAL = "Requiere leer las UMP de Hojas de ruta";
+
+/** La única campaña territorial del proyecto (ADR 0118 §1). */
+export const ID_CAMPANA_TERRITORIAL = "territorial.principal";
+export const NOMBRE_CAMPANA_TERRITORIAL = "Campo territorial";
+
+/** Cómo se dice cada fase de Hojas de ruta a quien elige la foto. */
+export const ROTULO_DE_FASE: Readonly<Record<"pilot" | "field", string>> = {
+  pilot: "Piloto",
+  field: "Campo real",
+};
 
 export const ROTULO_DEL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Campo en aulas",
@@ -165,8 +175,11 @@ export function conCorreosVivos(registro: RegistroDeCampanas, correos: readonly 
 export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMaterial, registryRevision: number | null): RegistroDeCampanas {
   const existe = registro.campaigns.some((c) => c.id === campana.id);
   const campaigns = existe ? registro.campaigns.map((c) => (c.id === campana.id ? campana : c)) : [...registro.campaigns, campana];
-  const tipos = campana.tipo === "aulas"
-    ? registro.tipos.map((t) => (t.tipo === "aulas" ? { ...t, disponible: false, motivo: t.motivo ?? "El proyecto ya tiene su campaña de aulas." } : t))
+  const unica = campana.tipo === "aulas"
+    ? "El proyecto ya tiene su campaña de aulas."
+    : campana.tipo === "territorial" ? "El proyecto ya tiene su campaña territorial." : null;
+  const tipos = unica
+    ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: t.motivo ?? unica } : t))
     : registro.tipos;
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };
 }
@@ -223,7 +236,7 @@ export type ResumenDeTarjeta = {
 };
 
 /** «20/10»: día y mes con dos cifras, sin depender del ICU del entorno. */
-function fechaCorta(iso: string): string | null {
+export function fechaCorta(iso: string): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   const dos = (n: number) => String(n).padStart(2, "0");
@@ -304,6 +317,30 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
       tono: todos ? "listo" : "activo",
       avance: null,
       hechos,
+    };
+  }
+  if (campana.tipo === "territorial") {
+    if (!estado || estado.tipo !== "territorial") {
+      return { estado: "Sin muestra enviada", tono: "neutral", avance: null, hechos: ["Envía la muestra desde Hojas de ruta"], cifras: [], envios: [] };
+    }
+    const cuando = estado.enviado_at ? fechaCorta(estado.enviado_at) : null;
+    // Sin fecha de envío la foto ya no está: no hay unidades que pintar.
+    if (!cuando) {
+      return { estado: "Sin muestra enviada", tono: "aviso", avance: null, hechos: [`Vuelve a enviar la muestra de ${ROTULO_DE_FASE[estado.fase].toLowerCase()} desde Hojas de ruta`], cifras: [], envios: [] };
+    }
+    return {
+      estado: estado.stale ? "Desactualizada" : "Muestra recibida",
+      tono: estado.stale ? "aviso" : "activo",
+      avance: null,
+      cifras: [
+        { valor: estado.titulares, rotulo: "titulares" },
+        { valor: estado.reemplazos, rotulo: "reemplazos" },
+      ],
+      envios: [],
+      hechos: [
+        `${ROTULO_DE_FASE[estado.fase]} · enviada el ${cuando}`,
+        ...(estado.stale ? ["La muestra cambió en Hojas de ruta: reenvíala"] : []),
+      ],
     };
   }
   return { estado: "No disponible", tono: "neutral", avance: null, hechos: [], cifras: [], envios: [] };

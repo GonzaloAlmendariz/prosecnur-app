@@ -234,10 +234,11 @@ test_that("aulas es única: POST con plan proyectado o con entrada guardada es 4
                    "E_COLLECTION_CAMPAIGN_INVALID")
 })
 
-test_that("territorial no disponible; tipo fuera del registro es 422; id inexistente 404", {
+test_that("territorial sin envío no se crea; tipo fuera del registro es 422; id inexistente 404", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  # Habilitada (F2 del ADR 0118): sin muestra enviada desde Hojas de ruta, 409.
   expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Arequipa")),
-                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+                   "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO")
   expect_identical(.mct_status(collection_campaign_create(sid, "territorial", "UMP Arequipa")), 409L)
   expect_identical(.mct_code(collection_campaign_create(sid, "presencial", "X")), "E_COLLECTION_CAMPAIGN_TIPO")
   expect_identical(.mct_code(collection_campaign_create(sid, NULL, "X")), "E_COLLECTION_CAMPAIGN_TIPO")
@@ -246,7 +247,7 @@ test_that("territorial no disponible; tipo fuera del registro es 422; id inexist
   expect_identical(.mct_code(collection_campaign_meta_put(sid, "Aulas.Principal", name = "X")),
                    "E_COLLECTION_CAMPAIGN_NOT_FOUND")
   expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.x", name = "X")),
-                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+                   "E_COLLECTION_CAMPAIGN_NOT_FOUND")
 })
 
 test_that("archivar aulas proyectada la persiste, no borra el plan y se puede reabrir", {
@@ -423,7 +424,7 @@ test_that("HTTP: GET/POST/PUT con el serializador de producción", {
   t <- .cmail_fx_call(pr, sid, "POST", "/api/recopiladores/campaigns",
                       .cmail_fx_json(list(tipo = "territorial", name = "UMP")))
   expect_identical(t$status, 409L)
-  expect_identical(t$body$error$code %||% t$body$code, "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  expect_identical(t$body$error$code %||% t$body$code, "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO")
 
   u <- .cmail_fx_call(pr, sid, "PUT", "/api/recopiladores/campaigns/meta",
                       .cmail_fx_json(list(id = "aulas.principal", archived = TRUE,
@@ -454,7 +455,25 @@ test_that("registrar la exportación no pisa el registro de artefactos de la ses
   local_mocked_bindings(.mcamp_territorial_habilitada = function() TRUE, .env = env)
 }
 
-test_that("territorial: el motivo dice que falta el envío y, enviado, sigue no disponible mientras no se habilite", {
+# El interruptor sigue existiendo: apagado, el tipo vuelve a no disponible.
+.mct_deshabilitar_territorial <- function(env = parent.frame()) {
+  local_mocked_bindings(.mcamp_territorial_habilitada = function() FALSE, .env = env)
+}
+
+test_that("territorial habilitada en F2: sin envío no está disponible; enviado, sí", {
+  expect_true(.MCAMP_TERRITORIAL_HABILITADA)
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
+  expect_false(tipos$territorial$disponible)
+  expect_identical(tipos$territorial$motivo, "Primero envía la muestra desde Hojas de ruta")
+  hojas_ruta_enviar(sid)
+  tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
+  expect_true(tipos$territorial$disponible)
+  expect_null(tipos$territorial$motivo)
+})
+
+test_that("territorial apagada: el motivo dice que falta el envío y, enviado, sigue no disponible", {
+  .mct_deshabilitar_territorial()
   sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
   tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
   expect_false(tipos$territorial$disponible)
@@ -463,10 +482,9 @@ test_that("territorial: el motivo dice que falta el envío y, enviado, sigue no 
   tipos <- setNames(collection_campaigns_get(sid)$tipos, c("aulas", "territorial", "correo"))
   expect_false(tipos$territorial$disponible)
   expect_identical(tipos$territorial$motivo, "Requiere leer las UMP de Hojas de ruta")
-  # Con la constante en FALSE crear responde como antes.
+  # Apagada, crear responde como antes de F2.
   expect_identical(.mct_code(collection_campaign_create(sid, "territorial", "UMP Lima")),
                    "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
-  expect_false(.MCAMP_TERRITORIAL_HABILITADA)
 })
 
 test_that("territorial habilitada: exige envío en la fase, es única y se proyecta con su estado", {
@@ -501,8 +519,11 @@ test_that("territorial habilitada: exige envío en la fase, es única y se proye
 
 test_that("territorial: se renombra y archiva; sin campaña y sin habilitar sigue no disponible", {
   sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
-  expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", name = "X")),
-                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  local({
+    .mct_deshabilitar_territorial()
+    expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", name = "X")),
+                     "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  })
   local({
     .mct_habilitar_territorial()
     expect_identical(.mct_code(collection_campaign_meta_put(sid, "territorial.principal", name = "X")),
@@ -510,7 +531,8 @@ test_that("territorial: se renombra y archiva; sin campaña y sin habilitar sigu
     hojas_ruta_enviar(sid)
     collection_campaign_create(sid, "territorial", "UMP Lima")
   })
-  # Existe: se edita aun con la constante en FALSE.
+  # Existe: se edita aun con el interruptor apagado.
+  .mct_deshabilitar_territorial()
   r <- collection_campaign_meta_put(sid, "territorial.principal", name = "UMP Lima Norte", archived = TRUE,
                                     expected_registry_revision = 1L)
   expect_identical(r$campaign$name, "UMP Lima Norte")

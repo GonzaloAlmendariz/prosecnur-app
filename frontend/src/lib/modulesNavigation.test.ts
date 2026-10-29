@@ -298,14 +298,22 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
       {
+        // ADR 0118 §4: la campaña territorial, sobre la foto que envía Hojas de ruta.
+        id: "territorial",
+        sections: [
+          { id: "unidades", to: "/material-campo?modo=territorial&seccion=unidades", tabs: ["/material-campo?modo=territorial&seccion=unidades&pestana=lista"] },
+          { id: "catalogo", to: "/material-campo?modo=territorial&seccion=catalogo", tabs: ["/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas"] },
+          { id: "paquetes", to: "/material-campo?modo=territorial&seccion=paquetes", tabs: ["/material-campo?modo=territorial&seccion=paquetes&pestana=armado"] },
+          { id: "entrega", to: "/material-campo?modo=territorial&seccion=entrega", tabs: ["/material-campo?modo=territorial&seccion=entrega&pestana=plan"] },
+        ],
+      },
+      {
         id: "correo",
         sections: [
           { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor", "/material-campo?modo=correo&seccion=correo&pestana=contactos"] },
         ],
       },
     ]);
-    // `territorial` no se declara hasta E2: aparece deshabilitado en «Nueva campaña».
-    expect(material?.modos?.some((modo) => modo.id === "territorial")).toBe(false);
   });
 
   it("adjunta a Monitoreo las mismas pestañas del catálogo canónico", () => {

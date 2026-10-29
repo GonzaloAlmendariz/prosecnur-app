@@ -23,6 +23,8 @@ import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPOR
 import { useCorreosStore } from "../correos/store";
 import { useCampanas, type AccionesDeCampanas } from "../correos/useCampanas";
 import { RecopiladoresShell } from "../RecopiladoresShell";
+import { CampanaTerritorialShell } from "../territorial/CampanaTerritorialShell";
+import type { FaseTerritorial } from "../../../api/materialTerritorial";
 import { accionesDeCampana, type IdDeAccion } from "./accionesDeCampana";
 import { CabeceraDeCampana } from "./CabeceraDeCampana";
 import { CampanaCorreoShell } from "./CampanaCorreoShell";
@@ -172,7 +174,9 @@ export function MaterialCampoShell() {
       setAviso({
         tono: "ok",
         texto: archivar
-          ? `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
+          ? campana.tipo === "territorial"
+            ? `«${campana.name}» se archivó: sale de la lista sin tocar la muestra enviada. Se reabre desde «Archivadas».`
+            : `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
           : `«${campana.name}» volvió a la lista.`,
       });
       if (archivar && direccion?.campana === campana.id) aLaLista();
@@ -180,7 +184,7 @@ export function MaterialCampoShell() {
   }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, reg]);
 
   const guardarNombre = useCallback(async (campana: CampanaMaterial, cambio: { name: string; actor: string; platform?: MailPlatform }): Promise<Resultado> => {
-    if (campana.tipo === "aulas") {
+    if (campana.tipo === "aulas" || campana.tipo === "territorial") {
       const out = await reg.cambiarAulas(campana.id, { name: cambio.name });
       if (!out.ok) return out;
     } else {
@@ -212,6 +216,13 @@ export function MaterialCampoShell() {
       return { ok: true };
     }
     const out = await reg.crearAulas(name);
+    if (!out.ok) return out;
+    navigate(hrefDeCampana(out.campana));
+    return { ok: true };
+  }, [navigate, reg]);
+
+  const crearTerritorial = useCallback(async (name: string, fase: FaseTerritorial | null): Promise<Resultado> => {
+    const out = await reg.crearTerritorial(name, fase);
     if (!out.ok) return out;
     navigate(hrefDeCampana(out.campana));
     return { ok: true };
@@ -267,6 +278,15 @@ export function MaterialCampoShell() {
     );
   }
 
+  if (vista?.vista === "campana" && vista.modo === "territorial") {
+    return (
+      <>
+        <CampanaTerritorialShell key={vista.campana.id} campana={vista.campana} cabecera={cabecera} />
+        {dialogosComunes}
+      </>
+    );
+  }
+
   if (vista?.vista === "campana" && vista.modo === "correo") {
     return (
       <>
@@ -310,6 +330,7 @@ export function MaterialCampoShell() {
             miniaturas={miniaturas}
             ocupado={reg.ocupado || ocupadoCorreos}
             onCrearAulas={crearAulas}
+            onCrearTerritorial={crearTerritorial}
             onCrearCorreo={crearCorreo}
             onImportar={(platform) => {
               setPlataformaImportar(platform);

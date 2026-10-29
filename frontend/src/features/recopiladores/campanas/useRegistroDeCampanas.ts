@@ -132,7 +132,30 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
-  /** Renombra, archiva o reabre la campaña de aulas (las de correo se renombran por su engine). */
+  /** Crea la campaña territorial (una por proyecto) sobre la foto enviada en `fase` (ADR 0118). */
+  const crearTerritorial = useCallback(async (name: string, fase: "pilot" | "field" | null): Promise<ResultadoDelRegistro> => {
+    setOcupado(true);
+    try {
+      const out = await apiMaterialCampanaCrear({
+        tipo: "territorial",
+        name: name.trim(),
+        ...(fase ? { fase } : {}),
+        expected_registry_revision: delBackend?.registry_revision ?? null,
+      });
+      if (!out) return { ok: false, mensaje: "Esta versión del backend no registra campañas territoriales." };
+      poner(out.campaign, out.registry_revision);
+      return { ok: true, campana: out.campaign };
+    } catch (causa) {
+      return fallo(causa, "No se pudo crear la campaña territorial.");
+    } finally {
+      if (vivo.current) setOcupado(false);
+    }
+  }, [delBackend?.registry_revision, fallo, poner]);
+
+  /**
+   * Renombra, archiva o reabre una campaña del registro: aulas o territorial
+   * (las de correo se renombran por su engine).
+   */
   const cambiarAulas = useCallback(async (id: string, cambio: { name?: string; archived?: boolean }): Promise<ResultadoDelRegistro> => {
     setOcupado(true);
     try {
@@ -152,7 +175,7 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
-  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, cambiarAulas, marcarExportacion };
+  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, crearTerritorial, cambiarAulas, marcarExportacion };
 }
 
 export type RegistroVivo = ReturnType<typeof useRegistroDeCampanas>;

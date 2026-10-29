@@ -63,7 +63,20 @@ export type EstadoCampanaCorreo = {
   envios_detalle: EnvioDeCampana[];
 };
 
-export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo;
+/** La campaña territorial (ADR 0118): la foto que envió Hojas de ruta en su fase. */
+export type EstadoCampanaTerritorial = {
+  tipo: "territorial";
+  titulares: number;
+  reemplazos: number;
+  /** La muestra viva de la fase ya no es la enviada (o la foto ya no está). */
+  stale: boolean;
+  /** ISO del envío, o `null` si la foto no está. */
+  enviado_at: string | null;
+  /** `pilot` o `field`: fijada al crear la campaña (`ref.fase`). */
+  fase: "pilot" | "field";
+};
+
+export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial;
 
 export type CampanaMaterial = {
   id: string;
@@ -160,8 +173,19 @@ function normalizarEnvio(valor: unknown): EnvioDeCampana | null {
   };
 }
 
-function normalizarEstado(tipo: TipoDeCampana, valor: unknown): EstadoCampana | null {
+function normalizarEstado(tipo: TipoDeCampana, valor: unknown, ref?: unknown): EstadoCampana | null {
   if (!esRegistro(valor)) return null;
+  if (tipo === "territorial") {
+    const fase = esRegistro(ref) ? texto(ref.fase) : "";
+    return {
+      tipo,
+      titulares: entero(valor.titulares),
+      reemplazos: entero(valor.reemplazos),
+      stale: logico(valor.stale),
+      enviado_at: textoONulo(valor.enviado_at),
+      fase: fase === "pilot" ? "pilot" : "field",
+    };
+  }
   if (tipo === "aulas") {
     return {
       tipo,
@@ -216,7 +240,7 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
     archived: logico(valor.archived),
     persisted: logico(valor.persisted),
     ref: refDe(valor.ref, id, tipo),
-    estado: normalizarEstado(tipo, valor.estado),
+    estado: normalizarEstado(tipo, valor.estado, valor.ref),
   };
 }
 
@@ -328,6 +352,8 @@ export type NuevaCampana = {
   platform?: MailPlatform;
   preset_id?: string | null;
   import_id?: string | null;
+  /** Sólo territorial: de qué fase de Hojas de ruta se lee la foto. */
+  fase?: "pilot" | "field";
   expected_state_revision?: number | null;
   expected_registry_revision?: number | null;
 };
@@ -370,6 +396,8 @@ const AVISO_DEL_REGISTRO: Readonly<Record<string, string>> = {
   E_COLLECTION_CAMPAIGN_TIPO: "Ese tipo de campaña no existe.",
   E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE: "Ese tipo de campaña todavía no se puede crear en este proyecto.",
   E_COLLECTION_CAMPAIGN_AULAS_UNICA: "El proyecto ya tiene su campaña de aulas: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA: "El proyecto ya tiene su campaña territorial: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO: "Esa fase no tiene una muestra enviada: envíala desde Hojas de ruta.",
   E_COLLECTION_CAMPAIGN_STALE: "Otro cambio se guardó antes. Se volvió a leer la lista de campañas.",
   E_COLLECTION_STATE_STALE: "Otro cambio del módulo se guardó antes. Se volvió a leer la lista de campañas.",
   E_COLLECTION_CAMPAIGN_INVALID: "Ese cambio no aplica a este tipo de campaña.",

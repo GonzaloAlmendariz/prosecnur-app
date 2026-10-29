@@ -35,6 +35,7 @@ import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCor
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
+import { PANELES_TERRITORIAL } from "../../features/recopiladores/territorial/panelesTerritorial";
 import { PANEL_SALIDAS_SELECCION } from "../../features/hojasRuta/seleccion/panelesSeleccion";
 import { PANEL_CONTACTOS_VARIABLES } from "../../features/recopiladores/correos/contactos/panelesContactos";
 import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/panelesFiltros";
@@ -256,6 +257,8 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_CONTACTOS_VARIABLES,
     PANEL_REHACER_PLAN,
     PANEL_EDITOR_BLOQUE,
+    // Territorial › Unidades (ADR 0118 §4): `?panel=hoja&foco=<id_manzana>`, la hoja de la UMP en grande.
+    ...PANELES_TERRITORIAL,
   ],
 };
 

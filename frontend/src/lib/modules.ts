@@ -544,8 +544,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     // ADR 0111: el módulo aterriza en la lista de campañas y el MODO es el tipo
     // de la campaña abierta (`?modo=aulas&campana=aulas.principal`). La sección
     // de primer nivel es la lista: es el landing, como «Monitoreo» lo es de su
-    // módulo. `territorial` no se declara hasta E2: en «Nueva campaña» aparece
-    // deshabilitado con su motivo.
+    // módulo. `territorial` (ADR 0118, F2) se abre cuando Hojas de ruta envió su
+    // muestra; antes aparece deshabilitado en «Nueva campaña» con su motivo.
     sections: [
       {
         id: "campanas",
@@ -616,6 +616,57 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             layoutPolicy: "viewport",
             tabs: [
               { id: "traspaso", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
+        // ADR 0118 §1 y §4: la campaña territorial lee la foto de la muestra que
+        // Hojas de ruta envió (`ump_territorial_v1`). Sin Accesos: la UMP se
+        // recorre con la hoja impresa. El traspaso a Monitoreo no aplica todavía
+        // (Monitoreo territorial sigue leyendo la muestra viva, ADR 0118 §3).
+        id: "territorial",
+        label: "Territorial",
+        sections: [
+          {
+            id: "unidades",
+            label: "Unidades",
+            icon: ClipboardList,
+            to: "/material-campo?modo=territorial&seccion=unidades",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "lista", label: "Lista", icon: ClipboardList, to: "/material-campo?modo=territorial&seccion=unidades&pestana=lista", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "catalogo",
+            label: "Catálogo",
+            icon: IconTemplate,
+            to: "/material-campo?modo=territorial&seccion=catalogo",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "fichas", label: "Ficha por UMP", icon: FileText, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", layoutPolicy: "viewport" },
+              { id: "zonas", label: "Hoja de zona", icon: MapPinned, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "paquetes",
+            label: "Paquetes",
+            icon: Archive,
+            to: "/material-campo?modo=territorial&seccion=paquetes",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "armado", label: "Armado", icon: Archive, to: "/material-campo?modo=territorial&seccion=paquetes&pestana=armado", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=territorial&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "plan", label: "Plan de campo", icon: CalendarDays, to: "/material-campo?modo=territorial&seccion=entrega&pestana=plan", layoutPolicy: "viewport" },
             ],
           },
         ],

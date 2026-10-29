@@ -6,11 +6,11 @@
 # la fase activa: la fase queda fijada en `ref$fase` al crearla. Si la muestra
 # viva de esa fase ya no tiene la huella de la foto, la lista sale `stale`.
 #
-# `.MCAMP_TERRITORIAL_HABILITADA` se pasa a TRUE en F2, cuando el frontend sepa
-# pintarla; mientras sea FALSE el tipo sigue no disponible y crear responde como
-# antes. Se lee por función para que los tests puedan forzarla.
+# `.MCAMP_TERRITORIAL_HABILITADA` quedó en TRUE en F2 (el frontend ya pinta la
+# campaña). En FALSE el tipo vuelve a no disponible y crear responde como antes;
+# se lee por función para que los tests puedan forzar los dos lados.
 
-.MCAMP_TERRITORIAL_HABILITADA <- FALSE
+.MCAMP_TERRITORIAL_HABILITADA <- TRUE
 .MCAMP_TERRITORIAL_ID <- "territorial.principal"
 .MCAMP_TERRITORIAL_SIN_ENVIO <- "Primero envía la muestra desde Hojas de ruta"
 .MCAMP_TERRITORIAL_SOURCE <- "ump_territorial_v1"

@@ -38,8 +38,10 @@ export function resumenDelInicio(campanas: readonly CampanaMaterial[] | undefine
   const listas = resumenes.every(({ r }) => r.tono === "listo");
   const correos = visibles.filter((c) => c.tipo === "correo").length;
   const deAulas = visibles.some((c) => c.tipo === "aulas");
+  const territorial = visibles.some((c) => c.tipo === "territorial");
   const partes = [
     ...(deAulas ? ["campo en aulas"] : []),
+    ...(territorial ? ["campo territorial"] : []),
     ...(correos ? [`${correos} ${correos === 1 ? "correo" : "correos"}`] : []),
   ];
   return {
