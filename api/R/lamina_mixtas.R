@@ -154,9 +154,8 @@
 #' @keywords internal
 .lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL) {
   alto <- h >= 3.5; fin <- y + h
-  # Líneas de la pregunta con el ancho real del texto (systemfonts): la estimación por carácter partía en dos
-  # una pregunta que cabe en una (verificador de N3, lámina 152).
-  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (max(1, ceiling(.lam_ancho_tinta(pregunta, .std_pt("pregunta"), TRUE) / (w - 0.1))) - 1) else 0
+  # Las mismas líneas que dibuja `.lam_panel_titulo` (lamina_paneles.R): corte por palabras sobre la tinta.
+  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (.lam_panel_lineas(pregunta, w) - 1) else 0
   con_pub <- !is.null(publico) && nzchar(publico)
   rd <- receta$dicotomia
   wd <- if (isTRUE(rd$ancho_pleno)) w else w - 0.8

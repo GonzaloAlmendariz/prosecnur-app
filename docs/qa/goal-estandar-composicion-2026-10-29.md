@@ -92,7 +92,9 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 
 - Rectángulos de la mixta: literales de `.lam_mixta_geo` (mix:30-76) contra las ranuras de `ppt.tipos_lamina`, con valores
   distintos (2mas1, 1mas2, paneles_4); sólo corona, tira, 5 y 6 leen el JSON.
-- Alto de la pregunta del panel: `.lam_lineas` al dibujar (pan:13) y `.lam_ancho_tinta` al reservar (mix:159).
+- ☑ Alto de la pregunta del panel: `.lam_lineas` al dibujar (pan:13) y `.lam_ancho_tinta` al reservar (mix:159). Medido:
+  la reserva quedaba una línea corta en 12 de 369 preguntas de las muestras a 6 in y 64 a 4 in. Ahora una sola cuenta,
+  `.lam_panel_lineas` (corte por palabras sobre la tinta), para dibujar, reservar y el encabezado del Sí/No.
 - Leyenda del panel copiada de `.lam_leyenda` (mix:134-146).
 - Grosor de la escala en panel: tres reglas (pan:81, mix:221, pan:137) y ninguna lee `.std_grosor`; piso 0,24 in contra
   `grosor.piso_escala_cm` 1,12 cm.
@@ -118,5 +120,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2, U1–U5, U7 ☑ (geometría idéntica); D12, U6, F3, F4 cerrados sin cambio, con su porqué. Quedan los dos mecanismos dobles (abajo) y F1, F5 que esperan a Gonzalo |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2, U1–U5, U7 ☑ (geometría idéntica); D12, U6, F3, F4 cerrados sin cambio, con su porqué. Pregunta del panel ☑. Quedan los demás mecanismos dobles (abajo) y F1, F5 que esperan a Gonzalo |
 | E6 cierre: gate amplio y commit | ☐ |

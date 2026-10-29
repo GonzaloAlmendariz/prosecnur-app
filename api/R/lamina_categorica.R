@@ -277,7 +277,7 @@
     # (`.LAM_DICOTOMIA_UNICA_FRAC` de la lámina, sin pasar del margen izquierdo del estándar simétrico); el enunciado se alinea
     # al borde izquierdo de la barra y la leyenda va centrada a toda la lámina.
     W <- g_("ancho"); wb <- .lam_dicotomia_unica_ancho(); xb <- (W - wb) / 2
-    hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_lineas(pregunta, wb, .std_pt("pregunta"), TRUE) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
+    hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_panel_lineas(pregunta, wb) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
     bloque <- hp + (if (hp > 0) 0.25 else 0) + 0.5 + 0.12 + 0.3
     yp <- yt + max(0, (g_("contenido_y1") - yt - bloque) / 2)
     if (hp > 0) .lam_panel_titulo(lz, xb, yp, wb, pregunta, publico)

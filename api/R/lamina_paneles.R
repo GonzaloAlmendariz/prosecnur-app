@@ -7,10 +7,18 @@
 # (recetario_m2.R:9-16, lámina 133): cada panel lleva su pregunta encima, su Likert
 # compacto debajo, un filete vertical entre columnas y UNA leyenda para la lámina.
 
+#' Líneas que compone la pregunta de un panel de ancho `w`: una sola cuenta para dibujarla y para reservar su alto
+#'
+#' Corte por palabras sobre la tinta (`.lam_lineas_tinta`), como PowerPoint. La reserva de `.lam_panel_geo` dividía la
+#' tinta por el ancho y quedaba una línea corta en 64 de 369 preguntas de las muestras a 4 in: el gráfico arrancaba
+#' bajo la última línea de la pregunta.
+#' @keywords internal
+.lam_panel_lineas <- function(texto, w) .lam_lineas_tinta(texto, w, .std_pt("pregunta"), TRUE)
+
 #' Encabezado de panel: la pregunta en negrita y, debajo, su base en gris
 #' @keywords internal
 .lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL) {
-  nl <- .lam_lineas(texto, w, .std_pt("pregunta"), TRUE)
+  nl <- .lam_panel_lineas(texto, w)
   .lam_txt(lz, texto, x, y, w, 0.3 + 0.22 * (nl - 1), .std_pt("pregunta"), .std_color("azul"), bold = TRUE, nombre = "panel:pregunta")
   if (!is.null(base) && nzchar(base)) {
     .lam_txt(lz, base, x, y + 0.26 + 0.22 * (nl - 1), w, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "panel:base")
