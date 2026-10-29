@@ -2,7 +2,7 @@
 
 Estado: Aceptado (decisión de Gonzalo, 2026-10-29; visto bueno al resumen: «ok»)
 
-Implementación: Pendiente (fases F1–F3 abajo)
+Implementación: F1 ccef864ca (envío con huella, fuente territorial) · F2 f8d86dd9c (Material › campaña territorial) + F2b 0c97c8cad (con la foto desactualizada Material no genera) · F3 62f9e94cf («Entrega» en Hojas y retiro de lo mudado). Pendiente: mapa por encuestador en Entrega › Plan, entrada de bitácora del envío, y que los motores lean la foto en vez de la muestra viva (hoy lo garantiza el bloqueo de F2b).
 
 Fecha: 2026-10-29
 
