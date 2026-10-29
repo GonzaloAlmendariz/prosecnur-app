@@ -1,0 +1,241 @@
+/**
+ * Capas de dominio sobre el lienzo de Hojas de ruta (ADR 0114 §1–§2). Son
+ * funciones que la sección pasa a `LienzoMapa` por `dibujarMundo` y
+ * `dibujarPantalla`; lo que decide qué se dibuja (anticolisión, contornos) es
+ * puro y tiene test.
+ *
+ * Reglas de Gonzalo que esto encarna:
+ * - la titular es la protagonista: va con el acento del módulo, y en rojo o
+ *   ámbar sólo cuando ELLA tiene un problema;
+ * - los reemplazos son contingencia: gris, borde punteado, numerados en orden,
+ *   sin líneas que los unan a la titular (no son un recorrido).
+ */
+
+import { proyectarLonLat, type Caja } from "./camara";
+import { cajaDe, type Pieza, type PiezaManzana } from "./piezas";
+import type { UtilLienzo } from "./LienzoMapa";
+
+// ---------- Contornos de los distritos (Territorio, y fondo en las demás) ----------
+
+export type ContornoDistrito = Pieza & {
+  ubigeo: string;
+  nombre: string;
+  provincia: string;
+  rotulo: [number, number];
+};
+
+type CoberturaCruda = {
+  features?: Array<{
+    properties?: { ubigeo?: string; distrito?: string; provincia?: string; label_lon?: number; label_lat?: number };
+    geometry?: { type?: string; coordinates?: unknown };
+  }>;
+};
+
+const anilloLonLat = (r: unknown): number[] =>
+  Array.isArray(r) ? r.flatMap((p) => (Array.isArray(p) && p.length >= 2 ? proyectarLonLat(Number(p[0]), Number(p[1])) : [])) : [];
+
+/** Contornos proyectados de la cobertura de Lima y Callao (`limaDistrictCoverage.json`). */
+export function contornosDeCobertura(cobertura: CoberturaCruda): ContornoDistrito[] {
+  return (cobertura.features ?? []).flatMap((f) => {
+    const g = f.geometry ?? {};
+    const coords = Array.isArray(g.coordinates) ? g.coordinates : [];
+    const exteriores = g.type === "Polygon" ? [coords[0]] : g.type === "MultiPolygon" ? coords.map((poly) => (Array.isArray(poly) ? poly[0] : null)) : [];
+    const anillos = exteriores.map(anilloLonLat).filter((r) => r.length >= 6);
+    if (!anillos.length) return [];
+    const p = f.properties ?? {};
+    const caja = cajaDe(anillos);
+    const rotulo: [number, number] =
+      typeof p.label_lon === "number" && typeof p.label_lat === "number"
+        ? proyectarLonLat(p.label_lon, p.label_lat)
+        : [(caja[0] + caja[2]) / 2, (caja[1] + caja[3]) / 2];
+    return [{ ubigeo: String(p.ubigeo ?? ""), nombre: String(p.distrito ?? ""), provincia: String(p.provincia ?? ""), anillos, caja, rotulo }];
+  });
+}
+
+export type EstiloContorno = { relleno: string | null; borde: string; grosor: number; punteado?: boolean };
+
+export function dibujarContornos(ctx: CanvasRenderingContext2D, u: UtilLienzo, contornos: readonly ContornoDistrito[], estilo: (c: ContornoDistrito) => EstiloContorno | null) {
+  for (const c of contornos) {
+    const e = estilo(c);
+    if (!e) continue;
+    const t = u.trazo(c);
+    if (e.relleno) {
+      ctx.fillStyle = e.relleno;
+      ctx.fill(t);
+    }
+    ctx.strokeStyle = e.borde;
+    ctx.lineWidth = e.grosor * u.px;
+    ctx.setLineDash(e.punteado ? [5 * u.px, 3 * u.px] : []);
+    ctx.stroke(t);
+    ctx.setLineDash([]);
+  }
+}
+
+// ---------- Titulares y reemplazos ----------
+
+export type EstadoTitular = "ok" | "aviso" | "error";
+export type TitularEnMapa = { id: string; numero: number; estado: EstadoTitular; manzana: PiezaManzana };
+
+/** La escala por debajo de la cual una manzana es un punto y no una forma. */
+export const ESCALA_PUNTOS = 0.22;
+
+export const colorTitular = (u: UtilLienzo, estado: EstadoTitular) => (estado === "error" ? u.colores.error : estado === "aviso" ? u.colores.aviso : u.colores.acento);
+
+/** Rellenos de las titulares en coordenadas de mundo. */
+export function dibujarTitularesMundo(ctx: CanvasRenderingContext2D, u: UtilLienzo, titulares: readonly TitularEnMapa[], enfocada: string | null) {
+  const cerca = u.camara.s > 0.35;
+  for (const t of titulares) {
+    const trazo = u.trazo(t.manzana);
+    ctx.globalAlpha = cerca ? 0.72 : 1;
+    ctx.fillStyle = colorTitular(u, t.estado);
+    ctx.fill(trazo);
+    ctx.globalAlpha = 1;
+    if (cerca) {
+      ctx.strokeStyle = colorTitular(u, t.estado);
+      ctx.lineWidth = 1.6 * u.px;
+      ctx.stroke(trazo);
+    }
+  }
+  const f = enfocada ? titulares.find((t) => t.id === enfocada) : null;
+  if (f) {
+    ctx.strokeStyle = u.colores.texto;
+    ctx.lineWidth = 2.4 * u.px;
+    ctx.stroke(u.trazo(f.manzana));
+  }
+}
+
+/** Reemplazos de la titular enfocada: discretos y sin líneas hacia ella. */
+export function dibujarReemplazosMundo(ctx: CanvasRenderingContext2D, u: UtilLienzo, reemplazos: readonly PiezaManzana[]) {
+  for (const m of reemplazos) {
+    const trazo = u.trazo(m);
+    ctx.fillStyle = u.colores.reemplazo;
+    ctx.fill(trazo);
+    ctx.strokeStyle = u.colores.reemplazoBorde;
+    ctx.lineWidth = 1.2 * u.px;
+    ctx.setLineDash([3 * u.px, 2 * u.px]);
+    ctx.stroke(trazo);
+    ctx.setLineDash([]);
+  }
+}
+
+export function pastilla(ctx: CanvasRenderingContext2D, x: number, y: number, texto: string, o: { fondo: string; tinta: string; fuerte?: boolean; borde?: string }) {
+  ctx.font = `800 ${o.fuerte ? 12 : 10.5}px -apple-system, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const w = Math.max(o.fuerte ? 26 : 20, ctx.measureText(texto).width + 10);
+  const h = o.fuerte ? 20 : 17;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fillStyle = o.fondo;
+  ctx.shadowColor = "rgba(15, 23, 42, 0.18)";
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  if (o.borde) {
+    ctx.lineWidth = o.fuerte ? 2 : 1;
+    ctx.strokeStyle = o.borde;
+    ctx.stroke();
+  }
+  ctx.fillStyle = o.tinta;
+  ctx.fillText(texto, x, y + 0.5);
+}
+
+/** Puntos y números de las titulares, y las pastillas R1…Rn, en coordenadas de pantalla. */
+export function dibujarTitularesPantalla(
+  ctx: CanvasRenderingContext2D,
+  u: UtilLienzo,
+  titulares: readonly TitularEnMapa[],
+  enfocada: string | null,
+  bajoCursor: string | null,
+  reemplazos: readonly PiezaManzana[] = [],
+) {
+  const puntos = u.camara.s < ESCALA_PUNTOS;
+  const { w, h } = u.tamano;
+  for (const t of titulares) {
+    const [x, y] = u.aPantalla(t.manzana.centro[0], t.manzana.centro[1]);
+    if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue;
+    const esFoco = t.id === enfocada;
+    const color = colorTitular(u, t.estado);
+    if (puntos) {
+      ctx.beginPath();
+      ctx.arc(x, y, esFoco ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = esFoco ? 2.5 : 1.5;
+      ctx.strokeStyle = esFoco ? u.colores.texto : u.colores.via;
+      ctx.stroke();
+    }
+    if (!puntos || esFoco || t.id === bajoCursor) {
+      pastilla(ctx, x, y - (puntos ? 14 : 0), String(t.numero), { fondo: color, tinta: u.colores.via, fuerte: esFoco, borde: esFoco ? u.colores.texto : undefined });
+    }
+  }
+  if (!puntos) {
+    reemplazos.forEach((m, i) => {
+      const [x, y] = u.aPantalla(m.centro[0], m.centro[1]);
+      pastilla(ctx, x, y, `R${i + 1}`, { fondo: u.colores.via, tinta: u.colores.suave, borde: u.colores.reemplazoBorde });
+    });
+  }
+}
+
+// ---------- Rótulos con anticolisión ----------
+
+export type CandidatoRotulo = { clave: string; x: number; y: number; w: number; h: number };
+
+/**
+ * Elige qué rótulos dibujar sin que se pisen, en el orden recibido (el primero
+ * gana). Un rótulo que choca se descarta; no se desplaza, porque un rótulo
+ * movido termina señalando el distrito vecino.
+ */
+export function elegirRotulos(candidatos: readonly CandidatoRotulo[], margen = 4): CandidatoRotulo[] {
+  const puestos: CandidatoRotulo[] = [];
+  for (const c of candidatos) {
+    const choca = puestos.some((p) => Math.abs(p.x - c.x) * 2 < p.w + c.w + margen * 2 && Math.abs(p.y - c.y) * 2 < p.h + c.h + margen * 2);
+    if (!choca) puestos.push(c);
+  }
+  return puestos;
+}
+
+export type RotuloDistrito = { ubigeo: string; nombre: string; detalle?: string; x: number; y: number; tono: string };
+
+/** Rótulos de distrito. Con más de ocho van compactos (sólo el nombre). */
+export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLienzo, rotulos: readonly RotuloDistrito[]) {
+  const compactos = rotulos.length > 8;
+  const medidos = rotulos.map((r) => {
+    ctx.font = "800 12px -apple-system, system-ui, sans-serif";
+    const w1 = ctx.measureText(r.nombre).width;
+    ctx.font = "600 11px -apple-system, system-ui, sans-serif";
+    const w2 = !compactos && r.detalle ? ctx.measureText(r.detalle).width : 0;
+    const [x, y] = u.aPantalla(r.x, r.y);
+    return { r, x, y, w: Math.max(w1, w2) + 24, h: compactos || !r.detalle ? 22 : 38 };
+  });
+  const dentro = medidos.filter((m) => m.x > 20 && m.y > 16 && m.x < u.tamano.w - 20 && m.y < u.tamano.h - 16);
+  const elegidos = new Set(elegirRotulos(dentro.map((m) => ({ clave: m.r.ubigeo, x: m.x, y: m.y, w: m.w, h: m.h }))).map((c) => c.clave));
+  for (const m of dentro) {
+    if (!elegidos.has(m.r.ubigeo)) continue;
+    const { x, y, w, h } = m;
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, y - h / 2, w, h, compactos ? 7 : 10);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.shadowColor = "rgba(15, 23, 42, 0.16)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = m.r.tono;
+    ctx.fillRect(x - w / 2 + 8, y - h / 2 + 6, 3, h - 12);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "800 12px -apple-system, system-ui, sans-serif";
+    ctx.fillStyle = u.colores.texto;
+    const conDetalle = !compactos && m.r.detalle;
+    ctx.fillText(m.r.nombre, x + 4, conDetalle ? y - 7 : y + 0.5);
+    if (conDetalle && m.r.detalle) {
+      ctx.font = "600 11px -apple-system, system-ui, sans-serif";
+      ctx.fillStyle = u.colores.suave;
+      ctx.fillText(m.r.detalle, x + 4, y + 8);
+    }
+  }
+}
+
+export type { Caja };

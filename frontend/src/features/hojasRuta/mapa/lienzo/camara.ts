@@ -85,3 +85,16 @@ export function escalaGrafica(s: number, minPx = 70): { metros: number; px: numb
   const metros = [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((m) => m * s >= minPx) ?? 10000;
   return { metros, px: metros * s, rotulo: metros >= 1000 ? `${metros / 1000} km` : `${metros} m` };
 }
+
+/**
+ * Lon/lat → metros del mundo, con el mismo origen y los mismos factores que
+ * `.hojas_ruta_geometria_proyectar()` en R, para que lo que llega en lon/lat
+ * (contornos de distritos) encaje con la geometría compacta.
+ */
+export const ORIGEN_LONLAT = { lon: -76.99, lat: -12.03 } as const;
+const KX = 111320 * Math.cos((ORIGEN_LONLAT.lat * Math.PI) / 180);
+const KY = 110540;
+export function proyectarLonLat(lon: number, lat: number): [number, number] {
+  // «+ 0» convierte el −0 del origen en 0
+  return [Math.round((lon - ORIGEN_LONLAT.lon) * KX) + 0, Math.round(-(lat - ORIGEN_LONLAT.lat) * KY) + 0];
+}
