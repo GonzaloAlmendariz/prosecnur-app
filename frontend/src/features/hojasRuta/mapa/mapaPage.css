@@ -170,17 +170,18 @@
 .hr-edad-regla span { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 7px; }
 .hr-edad-regla b { font-size: 11.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-edad-regla small { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-[data-tono="0"] { --hr-tono: var(--pulso-data-seq-0); --hr-tinta: var(--pulso-text); }
-[data-tono="1"] { --hr-tono: var(--pulso-data-seq-1); --hr-tinta: var(--pulso-text); }
-[data-tono="2"] { --hr-tono: var(--pulso-data-seq-2); --hr-tinta: var(--pulso-text); }
-[data-tono="3"] { --hr-tono: var(--pulso-data-seq-3); --hr-tinta: var(--pulso-surface); }
-[data-tono="4"] { --hr-tono: var(--pulso-data-seq-4); --hr-tinta: var(--pulso-surface); }
-[data-tono="5"] { --hr-tono: var(--pulso-data-seq-5); --hr-tinta: var(--pulso-surface); }
+/* Rangos de edad: tintes del tono del módulo, de claro a intenso (no la rampa azul de datos). */
+[data-tono="0"] { --hr-tono: color-mix(in srgb, var(--pulso-module-routes) 14%, var(--pulso-surface)); --hr-tinta: var(--pulso-text); }
+[data-tono="1"] { --hr-tono: color-mix(in srgb, var(--pulso-module-routes) 28%, var(--pulso-surface)); --hr-tinta: var(--pulso-text); }
+[data-tono="2"] { --hr-tono: color-mix(in srgb, var(--pulso-module-routes) 44%, var(--pulso-surface)); --hr-tinta: var(--pulso-text); }
+[data-tono="3"] { --hr-tono: color-mix(in srgb, var(--pulso-module-routes) 62%, var(--pulso-surface)); --hr-tinta: var(--pulso-text); }
+[data-tono="4"] { --hr-tono: color-mix(in srgb, var(--pulso-module-routes) 80%, var(--pulso-surface)); --hr-tinta: var(--pulso-surface); }
+[data-tono="5"] { --hr-tono: var(--pulso-module-routes); --hr-tinta: var(--pulso-surface); }
 .hr-edad-regla span[data-tono] { background: var(--hr-tono); color: var(--hr-tinta); }
 .hr-edad-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
-.hr-edad-lista li { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--pulso-border); }
+.hr-edad-lista li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 8px 7px 10px; border-bottom: 1px solid var(--pulso-border); }
 .hr-edad-lista li:last-child { border-bottom: 0; }
-.hr-edad-lista li > i { align-self: stretch; margin: -7px 0; background: var(--hr-tono); }
+.hr-edad-lista li > i { width: 10px; height: 10px; border-radius: 3px; background: var(--hr-tono); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text) 10%, transparent); }
 .hr-edad-campos { display: grid; grid-template-columns: 54px auto 54px; align-items: center; gap: 6px; font-size: 12px; color: var(--pulso-text-soft); }
 .hr-edad-campos input { box-sizing: border-box; width: 100%; height: 30px; padding: 0 6px; border: 1px solid var(--pulso-border); border-radius: 8px; text-align: center; font: inherit; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); background: var(--pulso-surface); }
 .hr-edad-campos input:focus { outline: 2px solid var(--pulso-module-routes-border); border-color: var(--pulso-module-routes); }
@@ -483,3 +484,4 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-me-atajos button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-module-routes-border); }
 .hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: var(--pulso-module-routes-border); color: var(--pulso-text); }
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
+.hr-sel-cajon-titulo { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }

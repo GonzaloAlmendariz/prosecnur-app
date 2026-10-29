@@ -8,6 +8,7 @@ import { normalizarPlanSupuestos, type HojasRutaAlert, type HojasRutaIntegratedC
 import { costoEstimado } from "./costo";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
+import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
 import type { ResultadoTamano } from "./motorTamano";
 import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
@@ -64,7 +65,8 @@ type InspectorProps = {
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
 export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], planSupuestos, onGuardar }: InspectorProps) {
-  const { muestraBorrador, setMuestraBorrador } = useLienzoHojasRuta();
+  const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
+  const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
   const ruta = config.entrevistas_por_manzana;
   const cambiar = (b: BorradorMuestra) => setMuestraBorrador({ ...muestraBorrador, ...b, sample_size: { ...muestraBorrador?.sample_size, ...b.sample_size } });
@@ -219,12 +221,26 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
         {muestraBorrador && hayMuestra ? <p className="hr-mapa-aviso">Guardar recalcula el tamaño y descarta las cuotas y el sorteo actual.</p> : null}
       </div>
       <footer className="hr-mapa-pie">
-        <PulsoButton variant="secondary" disabled={!muestraBorrador || guardando} onClick={() => setMuestraBorrador(null)}>
-          Deshacer
-        </PulsoButton>
-        <PulsoButton variant="primary" disabled={!muestraBorrador || bloqueado || guardando || !r.multiploDeRuta || !r.filas.length || !(ruta > 0)} onClick={onGuardar}>
-          {guardando ? "Calculando…" : "Guardar y calcular"}
-        </PulsoButton>
+        {muestraBorrador ? (
+          <>
+            <PulsoButton variant="secondary" disabled={guardando} onClick={() => setMuestraBorrador(null)}>
+              Deshacer
+            </PulsoButton>
+            <PulsoButton variant="primary" disabled={bloqueado || guardando || !r.multiploDeRuta || !r.filas.length || !(ruta > 0)} onClick={onGuardar}>
+              {guardando ? "Calculando…" : "Guardar y calcular"}
+            </PulsoButton>
+          </>
+        ) : (
+          // B35: sin cambios pendientes, el pie lleva a lo que sigue.
+          <>
+            <PulsoButton variant="secondary" disabled={!hayMuestra} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
+              {cajonMuestra ? "Ocultar cuotas" : "Ver cuotas"}
+            </PulsoButton>
+            <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", "manzanas")}>
+              Ir al sorteo
+            </PulsoButton>
+          </>
+        )}
       </footer>
     </>
   );

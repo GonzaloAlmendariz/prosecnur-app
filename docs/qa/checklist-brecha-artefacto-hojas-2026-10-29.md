@@ -25,7 +25,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |
 | B15 | Inspector | peor · medio | Rótulos de sección (LO ELEGIDO, MARCO TERRITORIAL, RESULTADO, MATRIZ) | Territorio, Población | ☐ |
 | B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `muestra/MuestraPaneles.tsx` | ☐ |
-| B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | Población ☑ (`poblacion/PoblacionCajon.tsx`, `cajonPoblacion` en el store); Muestra ☐ | ◐ |
+| B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | Población ☑ 767342b07; Muestra ☑ (`muestra/MuestraCajon.tsx`: cuotas por distrito con totales por rango y sexo) | ☑ |
 | B18 | Cajón | peor · medio (C2) | Ancho limitado al lienzo; pestañas sin `aria-selected` ni activa visible; «×» texto; desborde 8/284 px; tapa zoom a 1024 | `.hr-sel-cajon` | ☐ |
 | B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | `seleccion/SalidasPanel.tsx` | ☐ |
 | B20 | Plan de campo | falta · alto | Lista por día y encuestador con color y «Hoja del día»; cifras derivadas; mapa por encuestador | calendario en `hojas_ruta_plan_campo` (encuestador, día), lista por día en `PlanCampo.tsx`; FALTA el mapa coloreado por encuestador y verlo en vivo | ◐ |
@@ -43,7 +43,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B32 | Muestra | falta · alto | «Repartir según población», «Mínimos» y Escenarios guardables | `muestra/MuestraPaneles.tsx` | ☐ |
 | B33 | Muestra | falta · medio | Paso a paso de la ruta; atajos de margen; rótulos del DEFF; interruptor de inflar por no respuesta | `MuestraPaneles.tsx` | ☐ |
 | B34 | Muestra | falta · medio | Alternativas sin su margen; ICC medidos a la vista | `MuestraPaneles.tsx`, `IccPanel.tsx` | ☐ |
-| B35 | Muestra | falta · medio | Pie «Ver cuotas / Ir al sorteo» | `MuestraPaneles.tsx` | ☐ |
+| B35 | Muestra | falta · medio | Pie «Ver cuotas / Ir al sorteo» | `MuestraPaneles.tsx`: sin cambios pendientes el pie lleva a las cuotas y al sorteo | ☑ |
 | B36 | Muestra 1024 | peor · medio | Lista de reparto con scroll anidado (deuda compartida con el artefacto) | `.hr-muestra-reparto` | ☐ |
 | B37 | Muestra | — | La app suma ocupación, visitas P90, aviso MAS, FPC | — | — |
 | B38 | Manzanas | falta · alto | «¿Se parece al marco?» (NSE marco vs muestra); deslizador del mínimo con atajos; cifras Elegibles/Fuera/Viviendas | «¿Se parece al marco?» ☑ (`manzanas/ParecidoAlMarco.tsx`); deslizador y cifras ☐ | ◐ |
@@ -63,7 +63,7 @@ Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalid
 
 ## Pausa (2026-10-29)
 
-Pausado por Gonzalo. Quedó a medias y sin commitear (falta verlo en pantalla y el typecheck): B17 Muestra (`muestra/MuestraCajon.tsx`, pie «Ver cuotas / Ir al sorteo» = B35) y el cambio de color de Población (tonos por distrito en vez de la rampa azul; rangos de edad en naranja del módulo, sin franja). B29: falta agrupar filas.
+Pausado por Gonzalo; retomado por turnos. B17 Muestra, B35 y el color de Población (tonos por distrito en vez de la rampa azul; rangos de edad en el naranja del módulo, sin franja) quedaron verificados en pantalla y commiteados. B29: falta agrupar filas.
 
 ## Lo aprendido
 

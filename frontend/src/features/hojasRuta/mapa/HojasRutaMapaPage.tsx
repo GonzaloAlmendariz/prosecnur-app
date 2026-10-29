@@ -32,6 +32,7 @@ import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
 import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
+import { MuestraCajon } from "./muestra/MuestraCajon";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
@@ -303,13 +304,10 @@ export default function HojasRutaMapaPage() {
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) =>
       dibujarContornos(ctx, u, contornos, (c) => {
         const conf = confirmados.includes(c.ubigeo);
-        if (enPoblacion && conf && matriz.vigente) {
-          const max = Math.max(...Object.values(matriz.porUbigeo), 1);
-          return { relleno: u.colores.densidad[Math.min(6, 1 + Math.floor(((matriz.porUbigeo[c.ubigeo] ?? 0) / max) * 5.99))], borde: u.colores.distritoBorde, grosor: 1.3 };
-        }
         // B9: cada distrito confirmado lleva su tono, en el orden de confirmación.
+        // Población también: su cifra va en el rótulo, no en una rampa de color.
         const tono = tonoDistrito(u, confirmados.indexOf(c.ubigeo));
-        if (enMuestra && conf) return { relleno: mezclar(u.colores.distrito, tono, 0.42), borde: u.colores.distritoBorde, grosor: 1.3 };
+        if ((enMuestra || enPoblacion) && conf) return { relleno: mezclar(u.colores.distrito, tono, 0.42), borde: u.colores.distritoBorde, grosor: 1.3 };
         if (!enTerritorio) return { relleno: conf ? mezclar(u.colores.distrito, tono, 0.22) : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
         const enB = borrador.includes(c.ubigeo);
         return {
@@ -319,7 +317,7 @@ export default function HojasRutaMapaPage() {
           punteado: enB && !conf,
         };
       }),
-    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, matriz],
+    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra],
   );
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
@@ -572,6 +570,7 @@ export default function HojasRutaMapaPage() {
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
+        {enMuestra ? <MuestraCajon cuotas={cuotas} /> : null}
         {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={estado.integrated_config.age_ranges} sexo={estado.integrated_config.subquota_var !== "ninguna"} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {enSeleccion && estado ? (

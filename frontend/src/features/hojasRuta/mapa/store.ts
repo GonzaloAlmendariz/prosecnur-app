@@ -40,6 +40,9 @@ type EstadoLienzo = {
   /** Cajón inferior de Población (brecha B17/B29): la matriz entera, fuera del inspector. */
   cajonPoblacion: "matriz" | "pct" | null;
   setCajonPoblacion: (v: "matriz" | "pct" | null) => void;
+  /** Cajón inferior de Muestra (B17): las cuotas por distrito, rango y sexo. */
+  cajonMuestra: boolean;
+  setCajonMuestra: (v: boolean) => void;
   setCapaMapa: (capa: CapaLienzo) => void;
   busquedaUmp: string;
   setBusquedaUmp: (texto: string) => void;
@@ -50,7 +53,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -62,6 +65,7 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setSoloPorRevisar: (soloPorRevisar) => set({ soloPorRevisar }),
   setCapaMapa: (capaMapa) => set({ capaMapa }),
   setCajonPoblacion: (cajonPoblacion) => set({ cajonPoblacion }),
+  setCajonMuestra: (cajonMuestra) => set({ cajonMuestra }),
   setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
