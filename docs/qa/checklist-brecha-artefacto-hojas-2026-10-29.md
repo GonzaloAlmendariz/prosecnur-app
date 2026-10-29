@@ -61,6 +61,10 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).
 
+## Pausa (2026-10-29)
+
+Pausado por Gonzalo. Quedó a medias y sin commitear (falta verlo en pantalla y el typecheck): B17 Muestra (`muestra/MuestraCajon.tsx`, pie «Ver cuotas / Ir al sorteo» = B35) y el cambio de color de Población (tonos por distrito en vez de la rampa azul; rangos de edad en naranja del módulo, sin franja). B29: falta agrupar filas.
+
 ## Lo aprendido
 
 - El artefacto se sirve con un server con hilos y `charset=utf-8`; `python -m http.server` a secas rompe los fetch y los acentos.
