@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { codigoDeUmp } from "../seleccion/revisionMarco";
+import { leyendaLienzo, migaLienzo, type SeccionLienzo } from "./lienzo/flotantes";
 import { useLocation } from "react-router-dom";
 import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
@@ -446,6 +448,8 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
+          miga={migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null)}
+          leyenda={leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0 })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa="manzanas"
           encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : cajaEnfocada ? { caja: cajaEnfocada, pad: 0.6, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}

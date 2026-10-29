@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import "../../../../app/tokens-datos.css";
 import "./lienzoMapa.css";
 import {
@@ -84,6 +84,10 @@ type Props = {
   version?: number;
   ariaLabel: string;
   className?: string;
+  /** Cápsula arriba a la izquierda: dónde está el usuario y qué puede hacer (brecha B6). */
+  miga?: ReactNode;
+  /** Leyenda abajo a la izquierda: qué significa cada color de la sección (brecha B8). */
+  leyenda?: ReactNode;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -143,6 +147,8 @@ export function LienzoMapa({
   version = 0,
   ariaLabel,
   className,
+  miga,
+  leyenda,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -443,6 +449,8 @@ export function LienzoMapa({
   return (
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
+      {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
+      {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
       <div className="hr-lienzo-pie">
         <div ref={escalaRef} className="hr-lienzo-escala" aria-hidden="true" />
         <div className="hr-lienzo-zoom" role="group" aria-label="Zoom del mapa">

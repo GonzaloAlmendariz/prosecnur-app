@@ -14,9 +14,9 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B3 | Secciones | peor · medio (a11y) | Las 5 pastillas llevan `aria-current="page"` (NavLink ignora la query) | chrome de secciones | ☐ |
 | B4 | Indicadores 1024 | peor · bajo | A 1024 esconde 2 de 4; el artefacto esconde los 4 y deja acciones | chrome | ☐ |
 | B5 | Secciones | — | Barra superior en vez de rail (D1); sin «Entrega» ni «Avance» (D2) | — | — |
-| B6 | Mapa | falta · alto | Cápsula de miga arriba a la izquierda (orientación + instrucción) | `lienzo/LienzoMapa.tsx` | ☐ |
+| B6 | Mapa | falta · alto | Cápsula de miga arriba a la izquierda (orientación + instrucción) | `lienzo/flotantes.tsx` → `LienzoMapa` prop `miga` | ☑ |
 | B7 | Mapa | falta · alto | Selector de capas Manzanas · Viviendas · NSE (hoy `capa="manzanas"` fijo) | `HojasRutaMapaPage.tsx:450`, `lienzo/capas.ts` | ☐ |
-| B8 | Mapa | falta · alto | Leyenda por sección | `lienzo/` | ☐ |
+| B8 | Mapa | falta · alto | Leyenda por sección | `lienzo/flotantes.tsx` → `LienzoMapa` prop `leyenda` (se oculta bajo 1100 px, como el artefacto) | ☑ |
 | B9 | Mapa | peor · alto | Paleta de identidad por distrito (relleno, franja del rótulo); rótulos de Territorio sin población | `lienzo/capas.ts` | ☐ |
 | B10 | Mapa | peor · alto | Anticolisión pierde rótulos (4/6 a 1440, 3/6 a 1024) y monta otros | `lienzo/` rótulos | ☐ |
 | B11 | Mapa | peor · medio | Encuadre de Territorio con mucho blanco; sin nombres en gris de los distritos fuera | `lienzo/` | ☐ |
