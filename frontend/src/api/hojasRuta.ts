@@ -834,6 +834,27 @@ export async function apiHojasRutaWarmupTargets(options: { maxUbigeos?: number }
   );
 }
 
+/**
+ * Cuerpo de /api/hojas-ruta/workspace. Sin `outputs` la clave no viaja y el backend
+ * conserva las salidas guardadas; antes viajaba `{}` y las borraba todas (revisión de
+ * la fase 3 del lienzo, M1). Mandar `{}` explícito sigue limpiándolas a propósito.
+ */
+export function cuerpoPersistWorkspace(
+  config: Partial<HojasRutaIntegratedConfig>,
+  uiState: Partial<HojasRutaUiState>,
+  outputs?: Partial<HojasRutaWorkspaceOutputs>,
+  phase?: HojasRutaPhase,
+  pilotExclusionMode?: HojasRutaPilotExclusionMode,
+) {
+  return {
+    config,
+    ui_state: uiState,
+    ...(outputs !== undefined ? { workspace_outputs: outputs } : {}),
+    ...(phase ? { phase } : {}),
+    ...(pilotExclusionMode ? { pilot_exclusion_mode: pilotExclusionMode } : {}),
+  };
+}
+
 export async function apiHojasRutaPersistWorkspace(
   config: Partial<HojasRutaIntegratedConfig>,
   uiState: Partial<HojasRutaUiState>,
@@ -845,13 +866,7 @@ export async function apiHojasRutaPersistWorkspace(
     await apiFetch("/api/hojas-ruta/workspace", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        config,
-        ui_state: uiState,
-        workspace_outputs: outputs ?? {},
-        ...(phase ? { phase } : {}),
-        ...(pilotExclusionMode ? { pilot_exclusion_mode: pilotExclusionMode } : {}),
-      }),
+      body: JSON.stringify(cuerpoPersistWorkspace(config, uiState, outputs, phase, pilotExclusionMode)),
     }),
   );
 }

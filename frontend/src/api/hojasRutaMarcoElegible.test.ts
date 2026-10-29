@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas, normalizarPlanCampo, normalizarPlanSupuestos, normalizarBitacora } from "./hojasRuta";
+import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas, normalizarPlanCampo, normalizarPlanSupuestos, normalizarBitacora, cuerpoPersistWorkspace } from "./hojasRuta";
 
 describe("normalizador del marco elegible (ADR 0115)", () => {
   it("sin datos es una corrida legacy: no declarado, mínimo 0, sin áreas", () => {
@@ -62,5 +62,15 @@ describe("normalizador de la bitácora (U17)", () => {
   it("descarta entradas sin resumen y conserva el orden", () => {
     const b = normalizarBitacora({ entradas: [{ id: 2, accion: "sorteo", resumen: "Sorteo" }, { id: 1 }] });
     expect(b.map((e) => e.id)).toEqual([2]);
+  });
+});
+
+describe("cuerpo de /workspace (revisión de fase 3, M1)", () => {
+  it("sin salidas no manda la clave: el backend conserva las guardadas", () => {
+    expect(cuerpoPersistWorkspace({}, {})).not.toHaveProperty("workspace_outputs");
+  });
+  it("con {} explícito sí las limpia, y con salidas las manda", () => {
+    expect(cuerpoPersistWorkspace({}, {}, {})).toHaveProperty("workspace_outputs", {});
+    expect(cuerpoPersistWorkspace({}, {}, { sample: null }, "field")).toMatchObject({ workspace_outputs: { sample: null }, phase: "field" });
   });
 });
