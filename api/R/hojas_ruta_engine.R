@@ -8950,7 +8950,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     lineheight = 1.1
   )
 
-  .hojas_ruta_pdf_text("B. Cuotas de sexo y edad", 0.085, 0.605,
+  .hojas_ruta_pdf_text("B. Cuota de esta hoja: total por sexo y por edad", 0.085, 0.605,
                        fontsize = 10, fontface = "bold")
   quota_data <- .hojas_ruta_reference_quota_data(block, quota_table, config)
   q_cols <- ncol(quota_data)
