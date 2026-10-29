@@ -5005,7 +5005,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
@@ -5557,47 +5557,18 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   blocks_df <- .hojas_ruta_add_operational_values(blocks_df, cfg)
   replacement_blocks_df <- .hojas_ruta_add_operational_values(replacement_blocks_df, cfg)
-  # Cuota de edad coordinada por distrito -> manzana. Se calcula una sola vez,
-  # con todas las manzanas del distrito a la vista, y se persiste por manzana
-  # para que tanto el PDF de la hoja de ruta como la validacion de cuotas del
-  # monitoreo lean el mismo target (ambos pasan por
-  # .hojas_ruta_reference_quota_marginals, que prefiere este valor). Sin esto,
-  # cada manzana redondea 8 casos por separado y colapsa al mismo vector.
-  if (nrow(blocks_df) && "ubigeo" %in% names(blocks_df) && nrow(cells) &&
-      all(c("ubigeo", "rango_id", "cuota") %in% names(cells))) {
-    defs_deal <- cfg$age_ranges
-    if (!length(defs_deal)) defs_deal <- .hojas_ruta_age_defs_default()
-    age_ids <- vapply(defs_deal, function(d) .hojas_ruta_scalar(d$id, ""), character(1))
-    cells_cuota <- suppressWarnings(as.numeric(cells$cuota))
-    cells_cuota[is.na(cells_cuota)] <- 0
-    cells_ubigeo <- as.character(cells$ubigeo)
-    cells_rango <- as.character(cells$rango_id)
-    ent_all <- suppressWarnings(as.integer(blocks_df$entrevistas))
-    ent_all[is.na(ent_all)] <- 0L
-    edad_totals_col <- rep("", nrow(blocks_df))
-    for (u in unique(as.character(blocks_df$ubigeo))) {
-      rows_u <- which(as.character(blocks_df$ubigeo) == u)
-      if (!length(rows_u)) next
-      cell_u <- cells_ubigeo == u
-      totals_u <- vapply(age_ids, function(id) {
-        sum(cells_cuota[cell_u & cells_rango == id], na.rm = TRUE)
-      }, numeric(1))
-      mat <- .hojas_ruta_deal_age_quota(totals_u, ent_all[rows_u])
-      edad_totals_col[rows_u] <- apply(mat, 1L, function(r) paste(as.integer(r), collapse = ","))
-    }
-    blocks_df$cuota_edad_totals <- edad_totals_col
-    if (nrow(replacement_blocks_df) && "titular_id_manzana" %in% names(replacement_blocks_df)) {
-      m <- match(as.character(replacement_blocks_df$titular_id_manzana),
-                 as.character(blocks_df$id_manzana))
-      replacement_blocks_df$cuota_edad_totals <- ifelse(is.na(m), "", edad_totals_col[m])
-    }
-  }
+  # Cuotas de edad y de sexo coordinadas por distrito -> ficha, persistidas por manzana:
+  # el PDF y las metas de Monitoreo leen el mismo valor (hojas_ruta_cuotas_por_ficha.R).
+  cuotas_ficha <- hojas_ruta_cuotas_por_ficha(blocks_df, replacement_blocks_df, cells, cfg)
+  blocks_df <- cuotas_ficha$blocks
+  replacement_blocks_df <- cuotas_ficha$replacements
+  alerts <- c(alerts, cuotas_ficha$alertas)
   blocks_public <- blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5609,7 +5580,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
@@ -7488,15 +7459,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   stored_age <- .hojas_ruta_parse_edad_totals(block$cuota_edad_totals %||% NULL, length(defs))
   if (!is.null(stored_age) && sum(stored_age) == entrevistas) age_totals <- stored_age
 
-  hombre_total <- entrevistas %/% 2L
-  mujer_total <- entrevistas %/% 2L
-  if (entrevistas %% 2L == 1L) {
-    if (sum(sex_pop, na.rm = TRUE) > 0 && sex_pop[["Mujer"]] > sex_pop[["Hombre"]]) {
-      mujer_total <- mujer_total + 1L
-    } else {
-      hombre_total <- hombre_total + 1L
-    }
-  }
+  sexo <- .hojas_ruta_cuota_sexo_de_ficha(block, entrevistas, sex_pop)
+  hombre_total <- sexo[[1]]
+  mujer_total <- sexo[[2]]
   list(
     defs = defs,
     age_totals = as.integer(age_totals),
