@@ -4,7 +4,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaState, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaState, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
@@ -19,6 +19,10 @@ import {
   type TitularEnMapa,
 } from "./lienzo/capas";
 import { nombreDistrito } from "./nombres";
+import { useLienzoHojasRuta } from "./store";
+import { distritoEnPunto } from "./territorio/puntoEnDistrito";
+import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
+import { zonasDeLima } from "./territorio/zonasLima";
 import "./mapaPage.css";
 
 /**
@@ -29,6 +33,7 @@ import "./mapaPage.css";
  */
 
 const contornos = contornosDeCobertura(cobertura as Parameters<typeof contornosDeCobertura>[0]);
+const zonas = zonasDeLima(contornos);
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(n);
 
 export default function HojasRutaMapaPage() {
@@ -37,6 +42,9 @@ export default function HojasRutaMapaPage() {
   const [estado, setEstado] = useState<HojasRutaState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
+  const [guardando, setGuardando] = useState(false);
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor } = useLienzoHojasRuta();
+  const enTerritorio = nav.seccion === "territorio";
 
   useEffect(() => {
     let vivo = true;
@@ -49,6 +57,27 @@ export default function HojasRutaMapaPage() {
   }, []);
 
   const confirmados = useMemo(() => estado?.integrated_config.territorios ?? [], [estado]);
+  const borrador = useMemo(() => borradorCrudo ?? confirmados, [borradorCrudo, confirmados]);
+  const fase = estado?.active_phase ?? "field";
+  const bloqueado = Boolean(estado?.runs?.[fase]?.locked);
+
+  const confirmarTerritorio = useCallback(
+    async (ubigeos: string[]) => {
+      if (!estado) return;
+      setGuardando(true);
+      try {
+        // Sin salidas: cambiar el territorio invalida población, tamaño, cuotas y muestra.
+        await apiHojasRutaPersistWorkspace({ ...estado.integrated_config, territorios: ubigeos }, { ...estado.ui_state, draft_territories: ubigeos }, {}, fase);
+        setEstado(await apiHojasRutaState());
+        setBorrador(null);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo confirmar el territorio");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [estado, fase, setBorrador],
+  );
 
   // Geometría de cada distrito confirmado, de a uno: la primera lectura de un
   // distrito cuesta segundos en el backend y no conviene pedirlas todas juntas.
@@ -98,31 +127,59 @@ export default function HojasRutaMapaPage() {
   });
 
   const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? unirCajas(contornos.map((c) => c.caja)), [confirmados]);
+  const cajaLima = useMemo(() => unirCajas(contornos.map((c) => c.caja)), []);
 
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) =>
-      dibujarContornos(ctx, u, contornos, (c) => ({
-        relleno: confirmados.includes(c.ubigeo) ? u.colores.distrito : u.colores.fondo,
-        borde: u.colores.distritoBorde,
-        grosor: confirmados.includes(c.ubigeo) ? 1.3 : 0.8,
-      })),
-    [confirmados],
+      dibujarContornos(ctx, u, contornos, (c) => {
+        const conf = confirmados.includes(c.ubigeo);
+        if (!enTerritorio) return { relleno: conf ? u.colores.distrito : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
+        const enB = borrador.includes(c.ubigeo);
+        return {
+          relleno: enB ? u.colores.distrito : u.colores.fondo,
+          borde: enB !== conf ? u.colores.acento : u.colores.distritoBorde,
+          grosor: enB !== conf ? 2 : enB ? 1.3 : 0.8,
+          punteado: enB && !conf,
+        };
+      }),
+    [confirmados, borrador, enTerritorio],
   );
-  const dibujarMundo = useCallback((ctx: CanvasRenderingContext2D, u: UtilLienzo) => dibujarTitularesMundo(ctx, u, titulares, null), [titulares]);
+  const dibujarMundo = useCallback(
+    (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      if (enTerritorio) {
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = u.colores.acento;
+        for (const c of contornos) if (borrador.includes(c.ubigeo)) ctx.fill(u.trazo(c));
+        ctx.globalAlpha = 1;
+        const bajo = distritoBajoCursor ? contornos.find((c) => c.ubigeo === distritoBajoCursor) : null;
+        if (bajo) {
+          ctx.strokeStyle = u.colores.texto;
+          ctx.lineWidth = 2 * u.px;
+          ctx.stroke(u.trazo(bajo));
+        }
+        return;
+      }
+      dibujarTitularesMundo(ctx, u, titulares, null);
+    },
+    [enTerritorio, borrador, distritoBajoCursor, titulares],
+  );
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
-      dibujarTitularesPantalla(ctx, u, titulares, null, null);
-      if (u.camara.s < 0.09) {
+      if (!enTerritorio) dibujarTitularesPantalla(ctx, u, titulares, null, null);
+      const visibles = enTerritorio ? contornos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
+      if (u.camara.s < 0.09 || enTerritorio) {
         dibujarRotulosDistrito(
           ctx,
           u,
-          contornos
-            .filter((c) => confirmados.includes(c.ubigeo))
-            .map((c) => ({ ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1], tono: u.colores.acento })),
+          visibles.map((c) => {
+            const enB = borrador.includes(c.ubigeo), conf = confirmados.includes(c.ubigeo);
+            const detalle = enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : undefined;
+            return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: u.colores.acento };
+          }),
         );
       }
     },
-    [titulares, confirmados],
+    [titulares, confirmados, borrador, enTerritorio],
   );
 
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
@@ -154,6 +211,10 @@ export default function HojasRutaMapaPage() {
       <span hidden data-audit-ready={estado || error ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
         <section className="hr-mapa-estructura" aria-label="Distritos del estudio">
+          {enTerritorio && estado ? (
+            <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
+          ) : (
+          <>
           <header className="hr-mapa-cab">
             <h2>{seccionActual?.label ?? "Hojas de ruta"}</h2>
             <small>{confirmados.length ? `${confirmados.length} distrito${confirmados.length === 1 ? "" : "s"}` : "Sin distritos confirmados"}</small>
@@ -170,29 +231,46 @@ export default function HojasRutaMapaPage() {
             ))}
             {!territorios.length ? <li className="hr-mapa-vacio">{error ?? (estado ? "Confirma los distritos del estudio en Territorio." : "Leyendo el estudio…")}</li> : null}
           </ul>
+          </>
+          )}
         </section>
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
           distritos={distritos}
           capa="manzanas"
-          encuadreObjetivo={caja ? { caja, pad: 0.08, clave: confirmados.join(",") || "lima", animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaLima ? { caja: cajaLima, pad: 0.03, clave: "territorio" } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
+          alClic={
+            enTerritorio && !bloqueado
+              ? ([x, y]) => {
+                  const d = distritoEnPunto(contornos, x, y);
+                  if (d) setBorrador(borrador.includes(d.ubigeo) ? borrador.filter((u) => u !== d.ubigeo) : [...borrador, d.ubigeo]);
+                }
+              : undefined
+          }
+          alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
-        <section className="hr-mapa-inspector" aria-label="Lo decidido">
-          <header className="hr-mapa-cab">
-            <h2>Lo decidido</h2>
-          </header>
-          <dl className="hr-mapa-filas">
-            {decidido.map((i) => (
-              <div key={i.id}>
-                <dt>{i.label}</dt>
-                <dd>{i.value}</dd>
-              </div>
-            ))}
-          </dl>
+        <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
+          {enTerritorio && estado ? (
+            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} />
+          ) : (
+            <>
+              <header className="hr-mapa-cab">
+                <h2>Lo decidido</h2>
+              </header>
+              <dl className="hr-mapa-filas">
+                {decidido.map((i) => (
+                  <div key={i.id}>
+                    <dt>{i.label}</dt>
+                    <dd>{i.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
         </section>
       </div>
     </PageFrame>
