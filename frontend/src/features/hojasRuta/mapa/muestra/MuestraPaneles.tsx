@@ -122,13 +122,22 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           {(() => {
             const c = costoEstimado(r.filas.map((f) => f.nUsado), ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 }, normalizarPlanSupuestos(planSupuestos));
             const plan = normalizarPlanSupuestos(planSupuestos);
+            // B53: el costo es una tarjeta, como en el artefacto, con el acceso a sus supuestos.
             return (
-              <p className="hr-mapa-nota hr-muestra-costo">
-                {c.tieneCostos ? <b>Costo estimado: {plan.moneda} {fmt(c.costo)}</b> : null}
-                {c.tieneCostos ? " · " : ""}
-                {fmt(c.visitas)} visitas · {fmt(c.jornadas)} jornadas · {fmt(c.dias)} días con {plan.encuestadores} encuestadores
-                {c.tieneCostos ? "" : ". Define los costos en Selección › Salidas para estimarlo."}
-              </p>
+              <div className="hr-muestra-costo-card">
+                <span>
+                  <small>Costo aproximado del campo</small>
+                  <strong>{c.tieneCostos ? `${plan.moneda} ${fmt(c.costo)}` : "Sin costos"}</strong>
+                  <em>
+                    {fmt(c.jornadas)} jornadas · {fmt(c.dias)} días con {plan.encuestadores} encuestadores
+                    {c.tieneCostos && r.nUsado ? ` · ${plan.moneda} ${fmt(c.costo / r.nUsado)} por entrevista` : ""}
+                  </em>
+                  <em>Con promedios por ruta: el plan por encuestador, que agrupa titulares cercanas, lo afina.</em>
+                </span>
+                <button type="button" className="hr-muestra-costo-supuestos" onClick={() => nav.irA("seccion", "seleccion")} title="Los supuestos y el plan por encuestador están en Selección › Salidas">
+                  Supuestos
+                </button>
+              </div>
             );
           })()}
           {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
