@@ -1,6 +1,6 @@
 # ADR 0118: Hojas de ruta diseña; Material de campo produce lo que va a campo
 
-Estado: Propuesto (decisión de Gonzalo, 2026-10-29; pendiente su visto bueno al resumen antes de implementar)
+Estado: Aceptado (decisión de Gonzalo, 2026-10-29; visto bueno al resumen: «ok»)
 
 Implementación: Pendiente (fases F1–F3 abajo)
 
