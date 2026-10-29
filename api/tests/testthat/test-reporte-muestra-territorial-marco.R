@@ -209,3 +209,22 @@ test_that("render real del HTML: las dos secciones salen en el archivo, en UTF-8
   expect_false(grepl("Prosecnur", html, fixed = TRUE))
   expect_false(grepl("W_COVERAGE|W_PLAN|E_COVERAGE", html))
 })
+
+test_that("un fallo al calcular la decisión o el NSE no se publica como falta de datos (guardian U16 I1)", {
+  filas <- list(list(ubigeo = "150103", distrito = "ATE", total = list(poblacion = 1000), elegible = list(poblacion = 850),
+                     excluida_area = list(poblacion = 100), excluida_minimo = list(poblacion = 50), excluida_piloto = list(poblacion = 0)))
+  ins <- list(marco = list(criterios = list(declarado = TRUE, minimo_viviendas = 5L, areas_excluidas = list()), por_distrito = filas, por_area = list()),
+              decision_cobertura = NULL, bitacora = list(), decision_fallo = TRUE, nse_fallo = TRUE)
+  m <- reporte_mt_marco_modelo(ins, list())
+  txt <- paste(unlist(m$estado), collapse = " ")
+  expect_false(grepl("Sin decisión registrada", txt, fixed = TRUE))
+  expect_match(txt, "No pudo verificarse", fixed = TRUE)
+  expect_match(m$nota_nse, "no pudo calcularse", fixed = TRUE)
+  ins$decision_fallo <- FALSE; ins$nse_fallo <- FALSE
+  m2 <- reporte_mt_marco_modelo(ins, list())
+  expect_match(paste(unlist(m2$estado), collapse = " "), "Sin decisión registrada", fixed = TRUE)
+  expect_false(grepl("no trae el nivel NSE", m2$nota_nse %||% "", fixed = TRUE))
+  # vigente con forma inesperada no rompe el worker (M2).
+  ins$decision_cobertura <- list(exigida = list(), vigente = list(1, 2))
+  expect_silent(reporte_mt_marco_modelo(ins, list()))
+})

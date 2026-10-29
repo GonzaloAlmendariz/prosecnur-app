@@ -84,7 +84,14 @@
   )
   bitacora <- Filter(function(e) is.list(e) && identical(e$accion, "decision_cobertura"),
                      session_get(sid)$hojas_ruta_bitacora %||% list())
-  decision <- tryCatch(.hojas_ruta_decision_cobertura_sesion(sid), error = function(e) NULL)
+  # Un fallo al calcular la decisión NO es «sin decisión»: se marca para que el
+  # informe diga que no pudo verificarse, y la causa va a stderr.
+  decision_fallo <- FALSE
+  decision <- tryCatch(.hojas_ruta_decision_cobertura_sesion(sid), error = function(e) {
+    message("[reporte-decisional] no se pudo calcular la decisión de cobertura: ", conditionMessage(e))
+    decision_fallo <<- TRUE
+    NULL
+  })
 
   bloques <- sample$blocks %||% list()
   ubigeos <- unique(as.character(unlist(cfg$territorios %||% list(), use.names = FALSE)))
@@ -101,6 +108,7 @@
     )), error = function(e) NULL)
   }
   nse <- NULL
+  nse_fallo <- necesita_nse && is.null(puntos)
   if (necesita_nse && !is.null(puntos)) {
     nse <- tryCatch({
       territorio <- hojas_ruta_inei_frame(cfg$frame_source)
@@ -108,7 +116,12 @@
       ap <- hojas_ruta_marco_elegible_aplicar(territorio, completos, puntos = puntos,
                                               excluidas_piloto = cfg$excluded_titular_ids %||% list())
       .hojas_ruta_me_nse_por_distrito(territorio, ap$criterio, puntos)
-    }, error = function(e) NULL)
+    }, error = function(e) {
+      # Igual que la decisión: un fallo no se presenta como falta de datos.
+      message("[reporte-decisional] no se pudo calcular el perfil NSE de lo excluido: ", conditionMessage(e))
+      nse_fallo <<- TRUE
+      NULL
+    })
   }
   plan <- if (necesita_plan) {
     tryCatch(hojas_ruta_plan_campo(bloques, supuestos, puntos = puntos), error = function(e) NULL)
@@ -118,7 +131,9 @@
     decision_cobertura = if (is.null(decision)) NULL else decision[c("exigida", "huella", "vigente")],
     bitacora = bitacora,
     plan_campo = plan,
-    nse_por_distrito = nse
+    nse_por_distrito = nse,
+    decision_fallo = decision_fallo,
+    nse_fallo = nse_fallo
   )
 }
 
@@ -189,7 +204,7 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
   # se sabe qué distritos la exigen, no si alguna sigue vigente.
   if (is.null(est)) est <- list(exigida = hojas_ruta_marco_elegible_requiere_decision(filas), vigente = NULL)
   entrada <- NULL
-  if (!is.null(est$vigente) && !is.na(est$vigente)) {
+  if (length(est$vigente) == 1L && !is.na(suppressWarnings(as.integer(est$vigente)))) {
     for (e in bitacora) if (identical(as.integer(e$id %||% NA_integer_), as.integer(est$vigente))) entrada <- e
   }
   areas_decl <- criterios$areas_excluidas %||% list()
@@ -219,6 +234,10 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
     }, character(1)),
     check.names = FALSE, stringsAsFactors = FALSE, row.names = NULL
   )
+  if (isTRUE(insumos$decision_fallo)) {
+    sin <- estado$`Decisión de cobertura` == "Sin decisión registrada"
+    estado$`Decisión de cobertura`[sin] <- "No pudo verificarse al generar el informe"
+  }
 
   frases <- vapply(ubigeos, function(u) {
     f <- fila_de(u)
@@ -289,8 +308,10 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
   }
   hay_exclusion <- any(vapply(filas, function(f) .reporte_mt_num(f$excluida_area$poblacion) + .reporte_mt_num(f$excluida_minimo$poblacion) > 0, logical(1)))
   nse <- if (length(nse_rows)) do.call(rbind, nse_rows) else NULL
-  nota_nse <- if (is.null(nse) && hay_exclusion) {
-    "El perfil socioeconómico de lo excluido no está disponible: la cartografía de los distritos no trae el nivel NSE de sus manzanas."
+  nota_nse <- if (is.null(nse) && hay_exclusion && isTRUE(insumos$nse_fallo)) {
+    "El perfil socioeconómico de lo excluido no pudo calcularse al generar este informe."
+  } else if (is.null(nse) && hay_exclusion) {
+    "El perfil socioeconómico de lo excluido no está disponible para estos distritos."
   } else if (!hay_exclusion) {
     "El marco elegible no excluyó población por área ni por mínimo de viviendas; no hay perfil de lo excluido que comparar."
   } else NULL
