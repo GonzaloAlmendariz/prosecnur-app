@@ -1,3 +1,4 @@
+import { alcanzaManzana, type SupuestosVisitas } from "./visitas";
 import type { SelectedBlock } from "../../../api/hojasRuta";
 
 // Revisión contra el marco: cada UMP sorteada cruzada con las viviendas
@@ -106,7 +107,12 @@ function titularDe(block: SelectedBlock, titulares: Map<string, SelectedBlock>):
   return block.titular_id_manzana ? titulares.get(block.titular_id_manzana) : undefined;
 }
 
-export function revisarSeleccion(titulares: readonly SelectedBlock[], reemplazos: readonly SelectedBlock[]): RevisionMarco {
+/**
+ * Con `supuestos` (respuesta y ocupación, ADR 0116) una manzana «corta» es la que no alcanza para las
+ * visitas del 90 % de las rutas; sin ellos se compara con las entrevistas, como antes.
+ */
+export function revisarSeleccion(titulares: readonly SelectedBlock[], reemplazos: readonly SelectedBlock[], supuestos?: SupuestosVisitas): RevisionMarco {
+  const corta = (viv: number, ent: number) => (supuestos ? !alcanzaManzana(viv, ent, supuestos) : viv < ent);
   const porId = new Map(titulares.map((b) => [b.id_manzana, b]));
   const medianaPorDistrito = new Map<string, number>();
   const agrupado = new Map<string, number[]>();
@@ -139,8 +145,8 @@ export function revisarSeleccion(titulares: readonly SelectedBlock[], reemplazos
     const viv = numero(b.viviendas);
     const ent = numero(b.entrevistas);
     if (viv === 0) agregar("titular-sin-viviendas", ump(b));
-    else if (viv < ent) agregar("titular-corta", ump(b));
-    else if (viv === ent) agregar("titular-sin-margen", ump(b));
+    else if (corta(viv, ent)) agregar("titular-corta", ump(b));
+    else if (!supuestos && viv === ent) agregar("titular-sin-margen", ump(b));
     const med = medianaPorDistrito.get(b.ubigeo) ?? 0;
     if (med > 0 && viv > FACTOR_ATIPICA * med) agregar("titular-atipica", ump(b));
     if (reemplazos.length && !conReemplazo.has(b.id_manzana)) agregar("titular-sin-reemplazo", ump(b));
@@ -150,14 +156,19 @@ export function revisarSeleccion(titulares: readonly SelectedBlock[], reemplazos
     const ent = numero(titular?.entrevistas ?? r.entrevistas);
     const viv = numero(r.viviendas);
     if (viv === 0) agregar("reemplazo-sin-viviendas", ump(r, ent, titular));
-    else if (viv < ent) agregar("reemplazo-corto", ump(r, ent, titular));
+    else if (corta(viv, ent)) agregar("reemplazo-corto", ump(r, ent, titular));
   }
 
   const DEF: Record<TipoObservacion, { tono: TonoRevision; titulo: (n: number) => string; detalle: string }> = {
     "titular-sin-viviendas": { tono: "error", titulo: (n) => n === 1 ? "1 UMP titular no tiene viviendas" : `${n} UMP titulares no tienen viviendas`, detalle: "La manzana figura con 0 viviendas en el censo: el equipo llegaría a un lugar sin hogares." },
     "reemplazo-sin-viviendas": { tono: "error", titulo: (n) => n === 1 ? "1 reemplazo no tiene viviendas" : `${n} reemplazos no tienen viviendas`, detalle: "Si la titular no completa, el reemplazo lleva al equipo a una manzana sin hogares." },
-    "titular-corta": { tono: "aviso", titulo: (n) => n === 1 ? "1 UMP tiene menos viviendas que entrevistas" : `${n} UMP tienen menos viviendas que entrevistas`, detalle: "La ruta tendrá que seguir por manzanas vecinas para completar sus entrevistas." },
-    "reemplazo-corto": { tono: "aviso", titulo: (n) => n === 1 ? "1 reemplazo tiene menos viviendas que entrevistas" : `${n} reemplazos tienen menos viviendas que entrevistas`, detalle: "Si se activa, la ruta del reemplazo tendrá que seguir por manzanas vecinas." },
+    // ADR 0116: al agotar la manzana no se sigue por las vecinas; se pasa al reemplazo pareado.
+    "titular-corta": supuestos
+      ? { tono: "aviso", titulo: (n) => n === 1 ? "1 UMP no alcanza para sus visitas" : `${n} UMP no alcanzan para sus visitas`, detalle: `Con la respuesta y la ocupación supuestas, la manzana se agota antes de completar la ruta: el equipo pasará al reemplazo.` }
+      : { tono: "aviso", titulo: (n) => n === 1 ? "1 UMP tiene menos viviendas que entrevistas" : `${n} UMP tienen menos viviendas que entrevistas`, detalle: "La manzana se agota antes de completar la ruta: el equipo pasará al reemplazo." },
+    "reemplazo-corto": supuestos
+      ? { tono: "aviso", titulo: (n) => n === 1 ? "1 reemplazo no alcanza para sus visitas" : `${n} reemplazos no alcanzan para sus visitas`, detalle: "Si se activa, el reemplazo también se agotaría antes de completar la ruta." }
+      : { tono: "aviso", titulo: (n) => n === 1 ? "1 reemplazo tiene menos viviendas que entrevistas" : `${n} reemplazos tienen menos viviendas que entrevistas`, detalle: "Si se activa, el reemplazo también se agotaría antes de completar la ruta." },
     "titular-sin-margen": { tono: "aviso", titulo: (n) => n === 1 ? "1 UMP tiene tantas viviendas como entrevistas" : `${n} UMP tienen tantas viviendas como entrevistas`, detalle: "No queda margen para rechazos ni viviendas desocupadas dentro de la manzana." },
     "titular-atipica": { tono: "info", titulo: (n) => n === 1 ? "1 UMP es atípica por su tamaño" : `${n} UMP son atípicas por su tamaño`, detalle: `Tienen más de ${FACTOR_ATIPICA} veces las viviendas de la mediana de su distrito. El PPS las favorece; conviene fijar por dónde empieza la ruta.` },
     "titular-sin-reemplazo": { tono: "aviso", titulo: (n) => n === 1 ? "1 UMP no tiene reemplazo" : `${n} UMP no tienen reemplazo`, detalle: "Si la titular no completa, no hay manzana prevista para seguir." },

@@ -231,7 +231,9 @@ export default function HojasRutaMapaPage() {
   // Selección: la revisión contra el marco decide el tono de cada ruta.
   const bloquesTitulares = useMemo(() => salidas?.sample?.blocks ?? [], [salidas]);
   const bloquesReemplazos = useMemo(() => salidas?.sample?.replacement_blocks ?? [], [salidas]);
-  const revision = useMemo(() => revisarSeleccion(bloquesTitulares, bloquesReemplazos), [bloquesTitulares, bloquesReemplazos]);
+  // ADR 0116: la revisión mide la capacidad de cada manzana en visitas, con la respuesta y la ocupación del estudio.
+  const supuestosVisitas = useMemo(() => (estado ? { respuesta: estado.integrated_config.sample_size.response_rate, ocupacion: estado.integrated_config.sample_size.ocupacion ?? 1 } : undefined), [estado]);
+  const revision = useMemo(() => revisarSeleccion(bloquesTitulares, bloquesReemplazos, supuestosVisitas), [bloquesTitulares, bloquesReemplazos, supuestosVisitas]);
   const estados = useMemo(() => estadosPorTitular(bloquesTitulares, bloquesReemplazos, revision), [bloquesTitulares, bloquesReemplazos, revision]);
   const grupos = useMemo(() => rutasPorDistrito(bloquesTitulares, bloquesReemplazos, estados, { soloPorRevisar, busqueda: busquedaUmp }), [bloquesTitulares, bloquesReemplazos, estados, soloPorRevisar, busquedaUmp]);
   const manzanaPorId = useMemo(() => new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const))), [distritos]);

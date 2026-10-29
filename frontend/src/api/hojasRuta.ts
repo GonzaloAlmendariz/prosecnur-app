@@ -65,7 +65,15 @@ export type HojasRutaSampleSizeConfig = {
   enforce_district_floor?: boolean;
   response_rate: number;
   apply_fpc: boolean;
+  /** ADR 0116: tasa de ocupación y elegibilidad de viviendas (e), por defecto 1. */
+  ocupacion?: number;
+  /** De dónde sale el DEFF: `legado` (guardado antes), `por_declarar` (nuevo), `manual` o `icc_biblioteca`. */
+  design_effect_fuente?: HojasRutaDeffFuente;
+  /** La entrada de la biblioteca de ICC aplicada, copiada para reconstruir el DEFF sin la biblioteca. */
+  icc_aplicado?: HojasRutaIccEntrada | null;
 };
+
+export type HojasRutaDeffFuente = "legado" | "por_declarar" | "manual" | "icc_biblioteca";
 
 export type HojasRutaIntegratedConfig = {
   frame_source: HojasRutaFrameSource;
@@ -434,6 +442,10 @@ export type HojasRutaSampleSizePreview = {
   enforce_district_floor: boolean;
   n_used: number;
   contacts_suggested: number;
+  /** ADR 0116: la no respuesta suma visitas, no entrevistas. */
+  visitas?: HojasRutaVisitas;
+  design_effect_fuente?: HojasRutaDeffFuente;
+  margen_incluye_conglomerado?: boolean;
   margin_total_estimated: number | null;
   margin_total_target: number;
   district_rows: HojasRutaSampleSizeDistrictRow[];
@@ -1222,5 +1234,71 @@ export async function apiHojasRutaMarcoElegiblePreview(config: Partial<HojasRuta
         body: JSON.stringify({ config }),
       }),
     ),
+  );
+}
+
+// ---------- No respuesta e ICC (ADR 0116) ----------
+
+export type HojasRutaVisitas = {
+  entrevistas_por_ruta: number;
+  respuesta: number;
+  ocupacion: number;
+  por_ruta: number;
+  tope_90: number;
+  contactos_esperados: number;
+  visitas_planificadas: number;
+};
+
+export type HojasRutaIccEntrada = {
+  id: string;
+  estudio?: string;
+  indicador?: string;
+  escala?: "proporcion" | "continua" | string;
+  unidad_conglomerado?: string;
+  definicion_conglomerado?: string;
+  estimador?: string;
+  icc: number;
+  icc_ic95?: [number, number];
+  m_medio?: number;
+  conglomerados?: number;
+  fecha?: string;
+  fuente?: string;
+  k_ruta?: number;
+  deff_resultante?: number;
+};
+
+export type HojasRutaIccAplicable = { ok: boolean; motivo: string; avisos?: HojasRutaAlert[] };
+
+function normalizarIccEntrada(raw: unknown): (HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable }) | null {
+  const o = (raw && typeof raw === "object" ? raw : null) as Record<string, unknown> | null;
+  if (!o || !comoTexto(o.id)) return null;
+  const ap = (o.aplicable && typeof o.aplicable === "object" ? o.aplicable : {}) as Record<string, unknown>;
+  const ic = esArreglo(o.icc_ic95) && o.icc_ic95.length === 2 ? ([comoNumero(o.icc_ic95[0]), comoNumero(o.icc_ic95[1])] as [number, number]) : undefined;
+  return {
+    id: comoTexto(o.id), estudio: comoTexto(o.estudio), indicador: comoTexto(o.indicador), escala: comoTexto(o.escala),
+    unidad_conglomerado: comoTexto(o.unidad_conglomerado), definicion_conglomerado: comoTexto(o.definicion_conglomerado),
+    estimador: comoTexto(o.estimador), icc: comoNumero(o.icc, Number.NaN), icc_ic95: ic,
+    m_medio: comoNumero(o.m_medio, Number.NaN), conglomerados: comoNumero(o.conglomerados, Number.NaN),
+    fecha: comoTexto(o.fecha), fuente: comoTexto(o.fuente),
+    aplicable: { ok: ap.ok === true, motivo: comoTexto(ap.motivo), avisos: (esArreglo(ap.avisos) ? ap.avisos : []) as HojasRutaAlert[] },
+  };
+}
+
+export async function apiHojasRutaIcc(): Promise<Array<HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable }>> {
+  const r = await handle<{ entradas?: unknown }>(await apiFetch("/api/hojas-ruta/icc"));
+  return (esArreglo(r?.entradas) ? r.entradas : []).flatMap((e) => normalizarIccEntrada(e) ?? []);
+}
+
+export async function apiHojasRutaIccGuardar(entrada: HojasRutaIccEntrada): Promise<HojasRutaIccAplicable> {
+  const r = await handle<{ aplicable?: HojasRutaIccAplicable }>(
+    await apiFetch("/api/hojas-ruta/icc", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ entrada }) }),
+  );
+  return r.aplicable ?? { ok: false, motivo: "" };
+}
+
+/** Devuelve el `sample_size` con el DEFF recalculado; no guarda nada. */
+export async function apiHojasRutaIccAplicar(config: Partial<HojasRutaIntegratedConfig>, id: string) {
+  return handle<{ ok: boolean; sample_size: HojasRutaSampleSizeConfig; alerts: HojasRutaAlert[]; distritos_con_override: string[] }>(
+    await apiFetch("/api/hojas-ruta/icc/aplicar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, id }) }),
   );
 }
