@@ -40,17 +40,46 @@ population    <- bundle$population %||% NULL
 sample_size   <- bundle$sample_size_preview %||% NULL
 quota         <- bundle$quota %||% NULL
 decisiones    <- bundle$decision_log %||% list()
+# U16: modelo ya redactado en R (reporte_muestra_territorial_marco.R); aquí sólo se pinta.
+secciones     <- bundle$secciones_marco %||% list()
+sec_marco     <- secciones$marco %||% list()
+sec_margen    <- secciones$margen %||% list()
+sec_plan      <- secciones$plan %||% list()
 
 pulsoazul    <- "#1F3864"
 
 tabla_pulso <- function(df, caption = NULL, col.names = NULL, col_align = NULL) {
   if (is.null(col.names)) col.names <- names(df)
-  k <- kable(df, caption = caption, col.names = col.names,
-             align = col_align, format.args = list(big.mark = ",")) |>
+  # Columnas de cifras a la derecha; texto a la izquierda.
+  if (is.null(col_align)) {
+    col_align <- vapply(df, function(x) {
+      v <- sub("^[A-Z]{1,3}[/$]? ", "", as.character(x))
+      if (is.numeric(x) || all(v == "-" | grepl("^[0-9][-0-9.,% ]*( km)?$", v))) "r" else "l"
+    }, character(1))
+  }
+  if (knitr::is_latex_output()) {
+    # En PDF la tabla no sale del margen: LaTeX directo (no longtable de pandoc),
+    # columnas de texto largo con ancho fijo y escala al ancho de la página.
+    k <- kable(df, format = "latex", booktabs = TRUE, caption = caption,
+               col.names = col.names, align = col_align, linesep = "",
+               format.args = list(big.mark = ",")) |>
+      kable_styling(latex_options = c("HOLD_position", "scale_down"), position = "left") |>
+      row_spec(0, bold = TRUE, color = "white", background = pulsoazul)
+    largos <- which(vapply(df, function(x) max(c(0, nchar(as.character(x))), na.rm = TRUE), numeric(1)) > 35)
+    for (j in largos) k <- column_spec(k, j, width = if (length(largos) > 1L) "4cm" else "6.5cm")
+    return(k)
+  }
+  kable(df, caption = caption, col.names = col.names,
+        align = col_align, format.args = list(big.mark = ",")) |>
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
                   full_width = FALSE, position = "left") |>
     row_spec(0, bold = TRUE, color = "white", background = pulsoazul)
-  k
+}
+
+parrafos <- function(...) {
+  x <- unlist(list(...), use.names = FALSE)
+  x <- x[nzchar(x)]
+  if (length(x)) cat(paste0(x, collapse = "\n\n"), "\n\n")
 }
 
 fmt_pct <- function(x, dec = 2) {
@@ -93,6 +122,9 @@ El reporte expone:
 4. Que parametros estadisticos se aplicaron y por que.
 5. Cual es el tamano muestral resultante y como se distribuye en cuotas
    por edad, sexo y zona.
+6. Qué población representa el marco elegible y qué decisiones de
+   cobertura se registraron.
+7. Cómo se absorbe la no respuesta y cómo se organiza el trabajo de campo.
 
 # 2. Universo y territorio
 
@@ -131,7 +163,75 @@ if (!is.null(population) && length(population) > 0L) {
 }
 ```
 
-# 3. Decisiones metodologicas
+# 3. Marco elegible y cobertura
+
+```{r marco-intro, results='asis'}
+parrafos(sec_marco$frase_general)
+```
+
+```{r marco-cobertura}
+if (!is.null(sec_marco$cobertura)) {
+  tabla_pulso(sec_marco$cobertura, caption = "Cobertura del marco elegible por distrito")
+}
+```
+
+```{r marco-frases, results='asis'}
+if (length(sec_marco$frases_distrito)) {
+  cat("## Población representada\n\n")
+  parrafos(sec_marco$frases_distrito)
+}
+```
+
+```{r marco-areas-titulo, results='asis'}
+if (!is.null(sec_marco$areas)) cat("## Áreas excluidas\n\n")
+```
+
+```{r marco-areas}
+if (!is.null(sec_marco$areas)) {
+  tabla_pulso(sec_marco$areas, caption = "Áreas excluidas del marco y su motivo")
+}
+```
+
+```{r marco-decisiones-titulo, results='asis'}
+if (!is.null(sec_marco$estado)) cat("## Decisión de cobertura\n\n")
+```
+
+```{r marco-estado}
+if (!is.null(sec_marco$estado)) {
+  tabla_pulso(sec_marco$estado, caption = "Estado de la decisión de cobertura por distrito")
+}
+```
+
+```{r marco-sin-decision, results='asis'}
+if (isTRUE(sec_marco$declarado) && is.null(sec_marco$decisiones)) {
+  parrafos("No hay una decisión de cobertura registrada para este marco.")
+}
+```
+
+```{r marco-decisiones}
+if (!is.null(sec_marco$decisiones)) {
+  tabla_pulso(sec_marco$decisiones, caption = "Decisión de cobertura registrada")
+}
+```
+
+```{r marco-nse-titulo, results='asis'}
+if (isTRUE(sec_marco$declarado)) {
+  cat("## Perfil socioeconómico de lo excluido\n\n")
+  parrafos(sec_marco$nota_nse)
+}
+```
+
+```{r marco-nse}
+if (!is.null(sec_marco$nse)) {
+  tabla_pulso(sec_marco$nse, caption = "Población excluida por nivel NSE frente a la población elegible")
+}
+```
+
+```{r marco-piloto, results='asis'}
+parrafos(sec_marco$nota_piloto)
+```
+
+# 4. Decisiones metodologicas
 
 ```{r decisiones-metodologicas}
 defaults_metodologicos <- list(
@@ -162,7 +262,7 @@ tabla_pulso(df_m,
             col.names = c("Decision", "Valor", "Justificacion"))
 ```
 
-# 4. Parametros estadisticos
+# 5. Parametros estadisticos
 
 ```{r parametros-tabla}
 ss <- config$sample_size %||% list()
@@ -189,7 +289,7 @@ tabla_pulso(df_params,
             col.names = c("Parametro", "Valor"))
 ```
 
-# 5. Calculo del tamano muestral
+# 6. Calculo del tamano muestral
 
 Se aplica la formula clasica con correccion por poblacion finita (FPC)
 y ajuste por efecto de diseno:
@@ -220,7 +320,13 @@ if (!is.null(sample_size) && length(sample_size) > 0L) {
 }
 ```
 
-# 6. Distribucion de cuotas
+## Margen de error y efecto de diseño
+
+```{r margen, results='asis'}
+parrafos(sec_margen$margen, sec_margen$procedencia, sec_margen$nota_overrides, sec_margen$alcance)
+```
+
+# 7. Distribucion de cuotas
 
 ```{r cuotas-detalle}
 if (!is.null(quota) && length(quota) > 0L) {
@@ -246,7 +352,44 @@ if (!is.null(quota) && length(quota) > 0L) {
 }
 ```
 
-# 7. Registro de ajustes
+# 8. Plan de campo y no respuesta
+
+```{r plan-intro, results='asis'}
+parrafos(sec_plan$intro)
+```
+
+```{r plan-supuestos}
+if (!is.null(sec_plan$supuestos)) {
+  tabla_pulso(sec_plan$supuestos, caption = "Supuestos de no respuesta y visitas por ruta")
+}
+```
+
+```{r plan-regla, results='asis'}
+if (length(sec_plan$regla)) {
+  cat("## Regla ante la no respuesta\n\n")
+  cat("> ", sec_plan$regla, "\n\n", sep = "")
+}
+cat("## Plan de campo\n\n")
+parrafos(sec_plan$sin_plan, sec_plan$plan$frase)
+```
+
+```{r plan-resumen}
+if (!is.null(sec_plan$plan$resumen)) {
+  tabla_pulso(sec_plan$plan$resumen, caption = "Resumen del plan de campo")
+}
+```
+
+```{r plan-largas-nota, results='asis'}
+parrafos(sec_plan$plan$nota_largas)
+```
+
+```{r plan-largas}
+if (!is.null(sec_plan$plan$rutas_largas)) {
+  tabla_pulso(sec_plan$plan$rutas_largas, caption = "Rutas que exceden una jornada")
+}
+```
+
+# 9. Registro de ajustes
 
 ```{r ajustes-tabla}
 a <- decisiones$ajustes %||% list()
@@ -264,7 +407,7 @@ if (length(a) > 0L) {
 }
 ```
 
-# 8. Nota tecnica
+# 10. Nota tecnica
 
 El calculo aplica la formula clasica con correccion por poblacion
 finita e integra el efecto de diseno (deff) en la formula misma.
@@ -278,6 +421,5 @@ maneja al menos una hoja de ruta completa (eliminando fracciones).
 
 ---
 
-*Reporte generado por Prosecnur - Calculo de muestra territorial. Esta
-version usa el estado actual del modulo Hojas de Ruta; cualquier edicion
-posterior requiere regenerar el reporte.*
+*Este reporte refleja el estado del diseño muestral al momento de su
+generación; cualquier cambio posterior en el diseño requiere regenerarlo.*

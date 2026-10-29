@@ -1121,6 +1121,10 @@ mount_hojas_ruta <- function(pr) {
         territorios_all
       }
 
+      # U16: bitácora, decisión de cobertura, plan y NSE se calculan aquí; el
+      # worker callr no lee la sesión.
+      insumos_marco <- .reporte_mt_insumos_sesion(sid, active, cfg, outputs$sample %||% list())
+
       ext <- if (formato == "pdf") "pdf" else "html"
       filename <- sprintf("reporte_muestra_territorial.%s", ext)
 
@@ -1153,7 +1157,8 @@ mount_hojas_ruta <- function(pr) {
           sample_size_preview = outputs$sample_size_preview,
           quota               = outputs$quota,
           decision_log        = NULL,
-          formato             = formato
+          formato             = formato,
+          insumos_marco       = insumos_marco
         ),
         result_filename = filename,
         on_complete = on_complete
