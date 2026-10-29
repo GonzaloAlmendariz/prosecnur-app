@@ -64,7 +64,8 @@ HOJAS_RUTA_ME_MINIMO_NUEVO <- 1L
 #' atributo `alertas`; nunca falla.
 hojas_ruta_marco_elegible_normalizar <- function(x = NULL) {
   alertas <- list()
-  if (is.null(x) || !is.list(x) || !length(x)) {
+  # Idempotente: un objeto ya normalizado como legacy (`declarado = FALSE`) sigue legacy.
+  if (is.null(x) || !is.list(x) || !length(x) || isFALSE(as.logical(x$declarado %||% NA))) {
     out <- list(declarado = FALSE, minimo_viviendas = 0L, areas_excluidas = list())
     attr(out, "alertas") <- alertas
     return(out)
@@ -294,4 +295,171 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL) {
     por_zona = if ("zona" %in% names(frame)) .hojas_ruta_me_resumir(frame, criterio, sin_conteo, sin_geo, "zona") else list(),
     alertas = attr(me, "alertas") %||% list()
   )
+}
+
+# ---------- Reparto, vista previa y posproceso del sorteo (ADR 0115 §3, §5) ----------
+
+#' Rutas por distrito y zona sobre el marco elegible, con la misma regla que el sorteo.
+#'
+#' Replica el reparto de `hojas_ruta_sample_preview_integrado` (engine ~5470-5500)
+#' sin tocar el motor congelado: `route_total = n %/% ruta`; las rutas se reparten
+#' por zona con `.hojas_ruta_allocate_integer` sobre la medida, o salen de la cuota
+#' por zona cuando `row_var = "zona"`. Además devuelve las n que el sorteo descarta
+#' sin aviso (distrito sin manzanas elegibles, zona con cuota y sin manzanas). El
+#' test de paridad compara este reparto con las titulares que sortea el motor.
+.hojas_ruta_me_reparto <- function(frame, cells, cfg) {
+  ruta <- .hojas_ruta_route_size(cfg)
+  if (!nrow(cells)) return(list(ruta = ruta, distritos = list(), perdidas = list()))
+  por_distrito <- stats::aggregate(cells$cuota, by = list(ubigeo = as.character(cells$ubigeo)), FUN = sum, na.rm = TRUE)
+  names(por_distrito)[2] <- "n"
+  distritos <- list()
+  perdidas <- list()
+  medida <- cfg$measure_var
+  for (i in seq_len(nrow(por_distrito))) {
+    ubigeo <- as.character(por_distrito$ubigeo[[i]])
+    n <- as.integer(por_distrito$n[[i]])
+    if (is.na(n) || n <= 0L) next
+    rutas <- as.integer(n / ruta)
+    df <- frame[as.character(frame$ubigeo) == ubigeo, , drop = FALSE]
+    if (!nrow(df)) {
+      if (rutas > 0L) perdidas[[length(perdidas) + 1L]] <- list(ubigeo = ubigeo, zona = NA_character_, entrevistas = rutas * ruta, causa = "distrito_sin_manzanas")
+      next
+    }
+    if (rutas <= 0L) next
+    cols <- unique(c(medida, "poblacion", "viviendas"))
+    zf <- stats::aggregate(df[cols], by = df[c("ubigeo", "distrito", "zona")], FUN = sum, na.rm = TRUE)
+    zf <- zf[order(zf$zona), , drop = FALSE]
+    if (identical(cfg$row_var, "zona")) {
+      sel <- cells$ubigeo == ubigeo
+      zq <- stats::aggregate(cells$cuota[sel], by = list(zona = sub("^[^-]+-", "", as.character(cells$territorio[sel]))), FUN = sum, na.rm = TRUE)
+      names(zq)[2] <- "n"
+      for (z in setdiff(zq$zona, zf$zona)) {
+        r <- as.integer(zq$n[zq$zona == z] / ruta)
+        if (r > 0L) perdidas[[length(perdidas) + 1L]] <- list(ubigeo = ubigeo, zona = z, entrevistas = r * ruta, causa = "zona_sin_manzanas")
+      }
+      zf <- merge(zf, zq, by = "zona", all.x = TRUE)
+      zf$n[is.na(zf$n)] <- 0L
+      zr <- as.integer(zf$n / ruta)
+    } else {
+      zr <- .hojas_ruta_allocate_integer(zf[[medida]], rutas)
+    }
+    manzanas <- vapply(as.character(zf$zona), function(z) sum(as.character(df$zona) == z), integer(1))
+    distritos[[ubigeo]] <- list(
+      ubigeo = ubigeo, distrito = as.character(zf$distrito[[1]]), entrevistas = n, rutas = rutas,
+      zonas = lapply(seq_len(nrow(zf)), function(j) list(
+        zona = as.character(zf$zona[[j]]), rutas = as.integer(zr[[j]]), manzanas = as.integer(manzanas[[j]]),
+        medida_total = as.numeric(zf[[medida]][[j]])
+      ))
+    )
+  }
+  list(ruta = ruta, distritos = distritos, perdidas = perdidas)
+}
+
+# Perfil NSE (conteo de manzanas por nivel) de un subconjunto.
+.hojas_ruta_me_perfil_nse <- function(ids, puntos) {
+  niv <- puntos$nse_nivel[match(ids, puntos$id_manzana)]
+  niv[is.na(niv) | !nzchar(niv) | niv %in% c("NA", "NaN")] <- "S/D"
+  as.list(table(niv))
+}
+
+.hojas_ruta_me_hash <- function(x) digest::digest(x, algo = "sha256", serialize = TRUE)
+
+#' Vista previa del marco elegible sin sortear (ADR 0115 §3-§4).
+#'
+#' Cobertura por distrito y zona, perfil NSE de lo excluido frente a lo elegible,
+#' capacidad de cada zona frente a `rutas × (1 + reemplazos)` con el mismo reparto
+#' del sorteo, y las alertas `W_ZONE_SHORT_BEFORE_DRAW`.
+hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  me <- cfg$marco_elegible
+  territorio <- hojas_ruta_inei_frame(cfg$frame_source)
+  territorio <- territorio[territorio$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  if (is.null(puntos)) puntos <- do.call(rbind, c(list(data.frame(id_manzana = character(0), lon = numeric(0), lat = numeric(0), nse_nivel = character(0))), lapply(unique(as.character(territorio$ubigeo)), hojas_ruta_marco_elegible_puntos)))
+  ap <- hojas_ruta_marco_elegible_aplicar(territorio, me, puntos = puntos)
+  quota <- hojas_ruta_quota_preview_integrado(cfg)
+  rep <- .hojas_ruta_me_reparto(ap$frame, .hojas_ruta_rows_df(quota$cells), cfg)
+  reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
+  alertas <- ap$alertas
+  capacidad <- list()
+  for (d in rep$distritos) {
+    for (z in d$zonas) {
+      if (z$rutas <= 0L) next
+      necesita <- z$rutas * (1L + reemplazos)
+      falta <- if (z$manzanas < z$rutas) "titulares" else if (z$manzanas < necesita) "reemplazos" else NA_character_
+      capacidad[[length(capacidad) + 1L]] <- list(ubigeo = d$ubigeo, distrito = d$distrito, zona = z$zona, rutas = z$rutas, manzanas = z$manzanas, necesita = necesita, falta = falta)
+      if (!is.na(falta)) {
+        alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+          "W_ZONE_SHORT_BEFORE_DRAW",
+          if (identical(falta, "titulares")) sprintf("%s zona %s necesitará %d ruta(s) y sólo tiene %d manzana(s) elegible(s).", d$distrito, z$zona, z$rutas, z$manzanas)
+          else sprintf("%s zona %s alcanza para sus %d titulares, pero no para %d reemplazo(s) por titular dentro de la zona (%d de %d manzanas).", d$distrito, z$zona, z$rutas, reemplazos, z$manzanas, necesita),
+          ubigeo = d$ubigeo, zona = z$zona, falta = falta
+        )
+      }
+    }
+  }
+  for (p in rep$perdidas) {
+    alertas[[length(alertas) + 1L]] <- .hojas_ruta_me_alerta(
+      "W_ZONE_SHORT_BEFORE_DRAW",
+      sprintf("%s: %d entrevista(s) no tendrán manzanas elegibles%s.", p$ubigeo, p$entrevistas, if (is.na(p$zona)) "" else sprintf(" en la zona %s", p$zona)),
+      ubigeo = p$ubigeo, zona = p$zona, falta = "titulares", entrevistas = p$entrevistas
+    )
+  }
+  elegibles <- as.character(ap$frame$id_manzana)
+  excluidas <- setdiff(as.character(territorio$id_manzana), elegibles)
+  list(
+    ok = TRUE,
+    marco_elegible = me,
+    por_distrito = ap$por_distrito,
+    por_zona = ap$por_zona,
+    nse = list(elegible = .hojas_ruta_me_perfil_nse(elegibles, puntos), excluida = .hojas_ruta_me_perfil_nse(excluidas, puntos)),
+    capacidad = capacidad,
+    alerts = alertas
+  )
+}
+
+#' Posproceso del sorteo con marco elegible (ADR 0115 §3, §5).
+#'
+#' Suma a `E_UNASSIGNED_INTERVIEWS` las n que el motor descarta sin aviso y deja
+#' en `resultado$marco_elegible` lo necesario para reconstruir π ≈ n_z·M_i/ΣM_z
+#' por zona y verificar que el marco no cambió (hashes). No vuelve a sortear.
+hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
+  cfg <- hojas_ruta_integrada_normalize_config(config %||% resultado$config %||% list())
+  frame <- .hojas_ruta_filter_frame(cfg)
+  rep <- .hojas_ruta_me_reparto(frame, .hojas_ruta_rows_df(resultado$quota$cells %||% list()), cfg)
+  perdidas <- sum(vapply(rep$perdidas, function(p) as.integer(p$entrevistas), integer(1)))
+  if (perdidas > 0L) {
+    alertas <- resultado$alerts %||% list()
+    k <- which(vapply(alertas, function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), logical(1)))
+    previas <- if (length(k)) as.integer(sub("^(\\d+).*$", "\\1", alertas[[k[1]]]$message)) else 0L
+    total <- (if (is.na(previas)) 0L else previas) + perdidas
+    nueva <- list(level = "error", code = "E_UNASSIGNED_INTERVIEWS",
+                  message = sprintf("%d entrevista(s) no pudieron asignarse con los limites actuales.", total),
+                  sin_manzanas_elegibles = rep$perdidas)
+    if (length(k)) alertas[[k[1]]] <- nueva else alertas[[length(alertas) + 1L]] <- nueva
+    resultado$alerts <- alertas
+  }
+  medida <- cfg$measure_var
+  bloques <- .hojas_ruta_rows_df(resultado$blocks %||% list())
+  zonas <- list()
+  for (d in rep$distritos) for (z in d$zonas) {
+    sel <- if (nrow(bloques)) as.character(bloques$ubigeo) == d$ubigeo & as.character(bloques$zona) == z$zona else logical(0)
+    n_z <- sum(sel)
+    m_i <- if (n_z) as.numeric(bloques[[medida]][sel]) else numeric(0)
+    zonas[[length(zonas) + 1L]] <- list(
+      ubigeo = d$ubigeo, zona = z$zona, medida_total = z$medida_total, sorteadas = n_z,
+      seleccionadas = if (n_z) lapply(seq_len(n_z), function(i) list(id_manzana = as.character(bloques$id_manzana[sel][i]), medida = m_i[i], pi = if (z$medida_total > 0) min(1, n_z * m_i[i] / z$medida_total) else NA_real_)) else list()
+    )
+  }
+  ruta_marco <- tryCatch(hojas_ruta_inei_frame_path(cfg$frame_source), error = function(e) "")
+  elegibles_por_distrito <- lapply(split(as.character(frame$id_manzana), as.character(frame$ubigeo)), function(ids) .hojas_ruta_me_hash(sort(ids)))
+  resultado$marco_elegible <- list(
+    criterios = cfg$marco_elegible,
+    medida = medida,
+    pi_aproximacion = "n_z * M_i / sum(M_z): sorteo PPS secuencial sin reemplazo",
+    zonas = zonas,
+    hash_marco = if (nzchar(ruta_marco) && file.exists(ruta_marco)) digest::digest(file = ruta_marco, algo = "sha256") else NA_character_,
+    hash_criterios = .hojas_ruta_me_hash(cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")]),
+    hash_elegibles_por_distrito = elegibles_por_distrito
+  )
+  resultado
 }

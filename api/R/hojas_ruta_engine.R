@@ -3619,6 +3619,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     age_ranges = age_ranges,
     sample_size_mode = sample_size_mode,
     sample_size = sample_size,
+    marco_elegible = hojas_ruta_marco_elegible_normalizar(config$marco_elegible), # ADR 0115
     excluded_titular_ids = as.list(unique(.hojas_ruta_chr_vec(
       config$excluded_titular_ids %||%
         config$excludedTitularIds %||%
@@ -3632,6 +3633,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
   frame <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame[frame$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  frame <- hojas_ruta_marco_elegible_aplicar(frame, cfg$marco_elegible)$frame # ADR 0115: antes del piloto
   excluded_ids <- unique(as.character(unlist(cfg$excluded_titular_ids %||% list(), use.names = FALSE)))
   excluded_ids <- excluded_ids[nzchar(excluded_ids)]
   if (length(excluded_ids) && "id_manzana" %in% names(frame)) {
