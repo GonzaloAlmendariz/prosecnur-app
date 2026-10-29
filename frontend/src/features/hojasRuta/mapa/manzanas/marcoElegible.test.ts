@@ -41,6 +41,9 @@ describe("marco elegible en el lienzo", () => {
     expect(tonoCobertura(cobertura(0.94))).toBe("ambar");
     expect(tonoCobertura(cobertura(0.9))).toBe("decision");
     expect(tonoCobertura(cobertura(null))).toBe("ok");
+    // La piloto no cuenta: 15 % fuera por piloto y 4 % por el marco es «ok».
+    const conPiloto = { cobertura_poblacion: 0.81, total: { poblacion: 1000 }, excluida_area: { poblacion: 0 }, excluida_minimo: { poblacion: 40 }, excluida_piloto: { poblacion: 150 } } as unknown as HojasRutaCoberturaMarco;
+    expect(tonoCobertura(conPiloto)).toBe("ok");
   });
 
   it("un clic cerca del primer vértice cierra el área", () => {

@@ -1444,6 +1444,33 @@ export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | 
   );
 }
 
+// ---------- Decisión de cobertura (ADR 0115 §4, enmienda U17) ----------
+
+export type HojasRutaDecisionCobertura = {
+  fase: string;
+  /** Distritos que pierden 10 % o más de su población con el marco elegible. */
+  exigida: { ubigeo: string; distrito: string; excluida: number }[];
+  huella: string;
+  /** Id de la entrada de la bitácora que la cubre, o null si falta. */
+  vigente: number | null;
+};
+
+export function normalizarDecisionCobertura(raw: unknown): HojasRutaDecisionCobertura {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const exigida = (Array.isArray(o.exigida) ? o.exigida : []).flatMap((x) => {
+    const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const excluida = Number(d.excluida);
+    return comoTexto(d.ubigeo) ? [{ ubigeo: comoTexto(d.ubigeo), distrito: comoTexto(d.distrito), excluida: Number.isFinite(excluida) ? excluida : 0 }] : [];
+  });
+  const v = Number(o.vigente);
+  return { fase: comoTexto(o.fase) || "field", exigida, huella: comoTexto(o.huella), vigente: o.vigente == null || !Number.isFinite(v) ? null : v };
+}
+
+/** Estado de la decisión para el marco del run activo, según la muestra guardada. */
+export async function apiHojasRutaDecisionCobertura() {
+  return normalizarDecisionCobertura(await handle<unknown>(await apiFetch("/api/hojas-ruta/decision-cobertura", { headers: headers() })));
+}
+
 // ---------- Vista previa de la hoja y hoja del día (U15) ----------
 
 export type HojasRutaArchivoGenerado = { file_id: string; filename: string; formato: "png" | "pdf" };

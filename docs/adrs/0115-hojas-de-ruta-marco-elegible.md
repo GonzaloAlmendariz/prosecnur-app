@@ -192,6 +192,26 @@ otras zonas del distrito en proporción a la medida elegible. Nunca se redistrib
     cada decisión del diseño muestral, por fase, para el informe de diseño (U16). Mezclarlas obligaría a la
     Bitácora del proyecto a filtrar ruido automático y a su migración a conocer un vocabulario ajeno. Si más
     adelante la Bitácora del proyecto quiere mostrarla, la lee por `GET /api/hojas-ruta/bitacora`; no la copia.
+- **Enmienda U17 (2026-10-29), cuándo se exige la decisión** (revisión metodológica: aprobado con supuestos).
+  «Antes de sortear» pasa a **«antes de emitir a campo»**: el sorteo sigue libre, porque también sirve para explorar
+  (comparar semillas, ver el mapa); exigir la decisión ahí obligaría a decidir por trámite.
+  - **Umbral, en R** (`hojas_ruta_marco_elegible_requiere_decision`): un distrito la exige si su población excluida
+    por área + mínimo llega al 10 % (tolerancia 1e-9). Lo que excluye la piloto no cuenta; un distrito sin población
+    no la exige. El front usa el mismo criterio para teñir.
+  - **Huella**: JSON canónico del marco normalizado (`hojas_ruta_marco_elegible_huella`), para que guardar y abrir no
+    la invaliden. Al anotar `decision_cobertura` el servidor escribe `marco_hash` y `ubigeos`; lo que mande el
+    cliente como huella se ignora.
+  - **Vigencia**: la decisión más reciente, de cualquier fase, con la misma huella y que cubra todos los distritos
+    que hoy la exigen. La invalidan cambiar el mínimo, crear, editar o borrar un área, o sumar un distrito sobre el
+    umbral; no la invalidan la semilla, el N, las cuotas ni quitar un distrito.
+  - **Dónde muerde**: `/generate`, `/route-workbook`, `/random-pdf` y `/manual-replacements-pdf` responden
+    `409 E_COVERAGE_DECISION_REQUIRED` en fase de campo, con los ubigeos y la huella en `details`. La piloto queda
+    exenta. El sorteo lleva `marco_elegible.decision_cobertura` y, si falta, `W_COVERAGE_DECISION_MISSING`.
+    `GET /api/hojas-ruta/decision-cobertura` da el estado para la interfaz.
+  - **Supuestos**: (a) «lo excluido concentrado en un NSE» no tiene umbral fijado y no exige decisión todavía; la
+    propuesta de la revisión —un nivel con 50 % o más de lo excluido y al menos 1,5 veces su peso en lo elegible—
+    espera la decisión del coordinador. (b) El momento del gate se movió del sorteo a la emisión. (c) Una decisión
+    tomada en la piloto vale para campo si el marco es el mismo.
 - El sorteo y las salidas llevan `sample.marco_elegible`: criterios, conteos, reparto por zona y las sumas de
   verificación del §5.
 - El informe de diseño muestral (U16) publica la frase «La muestra representa a los hogares de manzanas con al

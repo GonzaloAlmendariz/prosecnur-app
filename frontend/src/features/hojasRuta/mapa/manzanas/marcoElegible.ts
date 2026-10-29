@@ -60,10 +60,17 @@ export function nuevaArea(f: FormularioArea, vertices: readonly [number, number]
 
 export type TonoCobertura = "ok" | "ambar" | "decision";
 
-/** ADR 0115 §4: ámbar sobre 5 % de población excluida; con 10 % o más se exige una decisión registrada. */
+/**
+ * ADR 0115 §4: ámbar sobre 5 % de población excluida; con 10 % o más se exige una
+ * decisión registrada. Cuenta lo que excluye el marco (área + mínimo), no la piloto:
+ * mismo criterio que `hojas_ruta_marco_elegible_requiere_decision` en R.
+ */
 export function tonoCobertura(c: HojasRutaCoberturaMarco): TonoCobertura {
   if (c.cobertura_poblacion == null) return "ok";
-  const excluida = 1 - c.cobertura_poblacion;
+  const total = c.total?.poblacion ?? 0;
+  const excluida = total > 0 && c.excluida_area && c.excluida_minimo
+    ? (c.excluida_area.poblacion + c.excluida_minimo.poblacion) / total
+    : 1 - c.cobertura_poblacion;
   return excluida >= 0.1 - 1e-9 ? "decision" : excluida > 0.05 + 1e-9 ? "ambar" : "ok";
 }
 

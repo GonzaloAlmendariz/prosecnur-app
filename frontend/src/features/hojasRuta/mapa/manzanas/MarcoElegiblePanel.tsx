@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { apiHojasRutaBitacoraAnotar, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
+import { apiHojasRutaBitacoraAnotar, apiHojasRutaDecisionCobertura, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { aLonLat, faltaEnArea, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
@@ -34,6 +34,21 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
   const [justificacion, setJustificacion] = useState("");
   const [decidido, setDecidido] = useState("");
   const [errorDecision, setErrorDecision] = useState("");
+  // La vigencia la decide el servidor (huella del marco guardado): al montar se lee, y
+  // un cambio del marco en el borrador obliga a decidir de nuevo (ADR 0115 §4, enmienda U17).
+  const huellaBorrador = JSON.stringify(marco ?? null);
+  useEffect(() => {
+    let vivo = true;
+    setDecidido("");
+    apiHojasRutaDecisionCobertura()
+      .then((d) => {
+        if (vivo && d.vigente != null && d.exigida.length) setDecidido(`decisión vigente para este marco (entrada ${d.vigente} de la bitácora).`);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [huellaBorrador]);
   const declarado = marco?.declarado === true;
   const sumar = (k: "manzanas" | "poblacion", campo: "total" | "elegible" | "excluida_minimo" | "excluida_area") => (vista?.por_distrito ?? []).reduce((a, d) => a + d[campo][k], 0);
   const totalPob = sumar("poblacion", "total");

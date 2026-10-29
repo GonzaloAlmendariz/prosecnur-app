@@ -8,6 +8,11 @@ mount_hojas_ruta_bitacora <- function(pr) {
       sid <- session_header(req)
       list(ok = TRUE, entradas = hojas_ruta_bitacora_leer(sid, fase))
     })) |>
+    plumber::pr_get("/api/hojas-ruta/decision-cobertura", wrap_endpoint(function(req, res) {
+      # Estado de la decisión de cobertura para el marco del run activo (ADR 0115 §4).
+      sid <- session_header(req)
+      c(list(ok = TRUE), .hojas_ruta_decision_cobertura_sesion(sid))
+    })) |>
     plumber::pr_post("/api/hojas-ruta/bitacora", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
