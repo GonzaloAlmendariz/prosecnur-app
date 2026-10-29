@@ -15,7 +15,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B4 | Indicadores 1024 | peor · bajo | A 1024 esconde 2 de 4; el artefacto esconde los 4 y deja acciones | chrome | ☐ |
 | B5 | Secciones | — | Barra superior en vez de rail (D1); sin «Entrega» ni «Avance» (D2) | — | — |
 | B6 | Mapa | falta · alto | Cápsula de miga arriba a la izquierda (orientación + instrucción) | `lienzo/flotantes.tsx` → `LienzoMapa` prop `miga` | ☑ |
-| B7 | Mapa | falta · alto | Selector de capas Manzanas · Viviendas · NSE (hoy `capa="manzanas"` fijo) | `HojasRutaMapaPage.tsx:450`, `lienzo/capas.ts` | ☐ |
+| B7 | Mapa | falta · alto | Selector de capas Manzanas · Viviendas · NSE (hoy `capa="manzanas"` fijo) | `SelectorCapa` en `lienzo/flotantes.tsx`, `capaMapa` en el store | ☑ |
 | B8 | Mapa | falta · alto | Leyenda por sección | `lienzo/flotantes.tsx` → `LienzoMapa` prop `leyenda` (se oculta bajo 1100 px, como el artefacto) | ☑ |
 | B9 | Mapa | peor · alto | Paleta de identidad por distrito (relleno, franja del rótulo); rótulos de Territorio sin población | tokens `--pulso-mapa-tono-0..7`, `tonoDistrito`/`mezclar` en `lienzo/capas.ts` | ☑ |
 | B10 | Mapa | peor · alto | Anticolisión pierde rótulos (4/6 a 1440, 3/6 a 1024) y monta otros | `elegirRotulos` corre el rótulo con guía, dentro de la franja libre | ☑ (6/6 a 1440 y 1024) |
@@ -56,6 +56,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B45 | Ficha UMP | falta · medio | «Reemplazo puntual» y «Tablas» en la ficha; ayuda de orden; R con código de manzana | `SeleccionPaneles.tsx` | ☐ |
 | B46 | Ficha UMP | peor · medio | La hoja como miniatura ilegible; modal grande con «Imprimir» | `HojaVista.tsx` | ☐ |
 | B47 | Selección | — | La app trae revisión contra el marco más rica, ficha real y `?foco=` | — | — |
+| B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).
 

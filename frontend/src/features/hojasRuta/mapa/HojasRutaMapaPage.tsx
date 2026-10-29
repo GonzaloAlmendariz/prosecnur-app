@@ -366,6 +366,16 @@ export default function HojasRutaMapaPage() {
     },
     [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea],
   );
+  // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
+  // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
+  const viviendasPorNse = useMemo(() => {
+    const elegidos = new Set(borrador);
+    const cargados = distritos.filter((d) => elegidos.has(d.ubigeo));
+    if (!cargados.length) return null;
+    const out: Record<number, number> = {};
+    for (const d of cargados) for (const m of d.manzanas) out[m.nse] = (out[m.nse] ?? 0) + Math.max(0, m.viviendas);
+    return out;
+  }, [distritos, borrador]);
   // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
@@ -527,7 +537,7 @@ export default function HojasRutaMapaPage() {
               onGuardarYCalcular={(c) => void guardarYCalcularPoblacion(c)}
             />
           ) : enTerritorio && estado ? (
-            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} />
+            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} viviendasPorNse={viviendasPorNse} />
           ) : (
             <>
               <header className="hr-mapa-cab">

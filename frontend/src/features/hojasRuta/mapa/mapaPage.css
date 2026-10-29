@@ -406,3 +406,20 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-ins-pasos button:hover { background: var(--pulso-surface-3); color: var(--pulso-text); }
 .hr-ins-pasos button:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }
 @media (max-width: 1100px) { .hr-ins-cab { padding: 12px; gap: 10px; } }
+
+/* Gráficas preliminares del inspector de Territorio */
+.hr-graf { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.hr-graf-titulo { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-graf-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hr-graf-barras li { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 44px; align-items: center; gap: 8px; font-size: 12px; }
+.hr-graf-nombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text); font-weight: 600; }
+.hr-graf-pista { height: 8px; border-radius: 4px; background: var(--pulso-surface-2); overflow: hidden; }
+.hr-graf-pista i { display: block; height: 100%; border-radius: 4px; }
+.hr-graf-valor { text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); font-weight: 700; }
+.hr-graf-apilada { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--pulso-surface-2); }
+.hr-graf-apilada i { display: block; min-width: 2px; }
+.hr-graf-leyenda { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; font-size: 11.5px; color: var(--pulso-text-soft); }
+.hr-graf-leyenda li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.hr-graf-leyenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.hr-graf-leyenda b { margin-left: auto; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-graf-nota { margin: 0; font-size: 11px; line-height: 1.4; color: var(--pulso-text-soft); }

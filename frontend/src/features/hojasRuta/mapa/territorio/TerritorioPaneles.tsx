@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { TerritorioGraficos } from "./TerritorioGraficos";
 import { MapPinned } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -127,9 +128,11 @@ type InspectorProps = {
   bloqueado: boolean;
   guardando: boolean;
   onConfirmar: (ubigeos: string[]) => void;
+  /** Viviendas por nivel NSE de las manzanas cargadas de lo elegido (gráfica de perfil). */
+  viviendasPorNse?: Record<number, number> | null;
 };
 
-export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar }: InspectorProps) {
+export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null }: InspectorProps) {
   const { borrador: b, distritoBajoCursor, setBorrador } = useLienzoHojasRuta();
   const borrador = b ?? [...confirmados];
   const { agrega, quita, pendiente } = cambios(confirmados, borrador);
@@ -181,6 +184,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             {confirmados.length ? <p className="hr-mapa-aviso">Al confirmar se recalculan la población, la muestra y las cuotas, y se descarta el sorteo actual.</p> : null}
           </section>
         ) : null}
+        <TerritorioGraficos elegidos={elegidos} confirmados={confirmados} viviendasPorNse={viviendasPorNse} />
         <dl className="hr-mapa-filas" aria-label="Marco territorial">
           <div><dt>Cobertura</dt><dd>Lima y Callao · {territorios.length} distritos</dd></div>
           <div><dt>Manzanas</dt><dd>INEI 2017</dd></div>
