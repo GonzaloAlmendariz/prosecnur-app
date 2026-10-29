@@ -16,7 +16,7 @@ export type SeccionLienzo = "territorio" | "poblacion" | "muestra" | "manzanas" 
 export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { distrito: string; ump: string } | null): ReactNode {
   const icono = <MapPinned size={14} aria-hidden="true" />;
   if (seccion === "seleccion" && foco) return <>{icono} <b>{foco.distrito}</b> · {foco.ump}</>;
-  if (seccion === "territorio") return <>{icono} <b>Lima y Callao</b> · clic en un distrito para elegirlo</>;
+  if (seccion === "territorio") return <>{icono} <b>Lima y Callao</b> · clic en un distrito para ver su ficha</>;
   return <>{icono} <b>Lima</b> · {distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"}</>;
 }
 

@@ -56,6 +56,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B45 | Ficha UMP | falta · medio | «Reemplazo puntual» y «Tablas» en la ficha; ayuda de orden; R con código de manzana | `SeleccionPaneles.tsx` | ☐ |
 | B46 | Ficha UMP | peor · medio | La hoja como miniatura ilegible; modal grande con «Imprimir» | `HojaVista.tsx` | ☐ |
 | B47 | Selección | — | La app trae revisión contra el marco más rica, ficha real y `?foco=` | — | — |
+| B49 | Territorio | pedido de Gonzalo · alto | Clic en un distrito = ver su ficha, no elegirlo; zonas (Norte, Este…) filtran, no eligen; agregar/quitar sólo sobre lo visible y con su número; elegir sólo con los interruptores | `territorio/TerritorioPaneles.tsx`, `store.ts` (`zonaFiltro`, `distritoEnfocado`), clic del lienzo | ☑ |
 | B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).

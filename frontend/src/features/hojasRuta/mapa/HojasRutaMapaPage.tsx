@@ -65,7 +65,7 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada, cajon } = useSeleccionDireccion();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
@@ -317,6 +317,12 @@ export default function HojasRutaMapaPage() {
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       if (enTerritorio) {
 
+        const enfocadoC = distritoEnfocado ? contornos.find((c) => c.ubigeo === distritoEnfocado) : null;
+        if (enfocadoC) {
+          ctx.strokeStyle = u.colores.acento;
+          ctx.lineWidth = 3 * u.px;
+          ctx.stroke(u.trazo(enfocadoC));
+        }
         const bajo = distritoBajoCursor ? contornos.find((c) => c.ubigeo === distritoBajoCursor) : null;
         if (bajo) {
           ctx.strokeStyle = u.colores.texto;
@@ -367,7 +373,7 @@ export default function HojasRutaMapaPage() {
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
@@ -534,10 +540,11 @@ export default function HojasRutaMapaPage() {
                   const m = manzanaEnPunto(titulares.map((t) => t.manzana), x, y);
                   if (m) setUmpEnfocada(m.id === umpEnfocada ? null : m.id);
                 }
-              : enTerritorio && !bloqueado
+              : enTerritorio
               ? ([x, y]) => {
+                  // Clic = ver su ficha, no elegirlo: elegir es con los interruptores.
                   const d = distritoEnPunto(contornos, x, y);
-                  if (d) setBorrador(borrador.includes(d.ubigeo) ? borrador.filter((u) => u !== d.ubigeo) : [...borrador, d.ubigeo]);
+                  setDistritoEnfocado(d && d.ubigeo !== distritoEnfocado ? d.ubigeo : null);
                 }
               : undefined
           }

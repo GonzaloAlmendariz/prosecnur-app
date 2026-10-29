@@ -7,7 +7,7 @@ import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
-import { agregarVarios, alternar, alternarZona, cambios } from "./borrador";
+import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
 
 /**
@@ -28,13 +28,19 @@ type EstructuraProps = {
 };
 
 export function TerritorioEstructura({ territorios, confirmados, zonas, bloqueado }: EstructuraProps) {
-  const { borrador: b, busquedaDistrito, soloElegidos, setBorrador, setBusquedaDistrito, setSoloElegidos } = useLienzoHojasRuta();
+  const { borrador: b, busquedaDistrito, soloElegidos, setBorrador, setBusquedaDistrito, setSoloElegidos, zonaFiltro, setZonaFiltro, distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
   const borrador = b ?? [...confirmados];
   const q = normalizar(busquedaDistrito.trim());
+  // Las zonas FILTRAN la lista; elegir es sólo con los interruptores (pedido de Gonzalo:
+  // los atajos que seleccionaban en bloque eran «demasiado inclusivos o destructivos»).
+  const zona = zonas.find((z) => z.id === zonaFiltro) ?? null;
   const visibles = useMemo(
-    () => territorios.filter((t) => (!q || normalizar(t.distrito).includes(q) || t.ubigeo.includes(q)) && (!soloElegidos || borrador.includes(t.ubigeo))),
-    [territorios, q, soloElegidos, borrador],
+    () => territorios.filter((t) => (!q || normalizar(t.distrito).includes(q) || t.ubigeo.includes(q)) && (!soloElegidos || borrador.includes(t.ubigeo)) && (!zona || zona.ubigeos.includes(t.ubigeo))),
+    [territorios, q, soloElegidos, borrador, zona],
   );
+  const filtrado = Boolean(q || zona || soloElegidos);
+  const visiblesFuera = visibles.filter((t) => !borrador.includes(t.ubigeo)).length;
+  const visiblesDentro = visibles.filter((t) => borrador.includes(t.ubigeo)).length;
   const grupos = [
     { id: "LIMA", etiqueta: "Lima Metropolitana" },
     { id: "CALLAO", etiqueta: "Callao" },
@@ -60,9 +66,9 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                 type="button"
                 className="hr-mapa-zona"
                 data-estado={n === z.ubigeos.length ? "todo" : n ? "parte" : undefined}
-                disabled={bloqueado}
-                title={`${z.etiqueta}: ${z.ubigeos.length} distritos`}
-                onClick={() => setBorrador(alternarZona(borrador, z.ubigeos))}
+                aria-pressed={zonaFiltro === z.id}
+                title={`Ver los ${z.ubigeos.length} distritos de ${z.etiqueta} (no los elige)`}
+                onClick={() => setZonaFiltro(zonaFiltro === z.id ? null : z.id)}
               >
                 <span>{z.etiqueta}</span>
                 <b>{n ? `${n}/${z.ubigeos.length}` : z.ubigeos.length}</b>
@@ -71,11 +77,12 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
           })}
         </div>
         <div className="hr-mapa-acciones">
-          <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !visibles.length} onClick={() => setBorrador(agregarVarios(borrador, visibles.map((t) => t.ubigeo)))}>
-            {q ? "Agregar los que coinciden" : "Agregar todos"}
+          {/* Sólo sobre lo que se ve, con su número: nada se elige ni se quita a ciegas. */}
+          <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !filtrado || !visiblesFuera} title={filtrado ? undefined : "Filtra por zona o busca para agregar varios a la vez"} onClick={() => setBorrador(agregarVarios(borrador, visibles.map((t) => t.ubigeo)))}>
+            {filtrado && visiblesFuera ? `Agregar ${visiblesFuera} visible${visiblesFuera === 1 ? "" : "s"}` : "Agregar visibles"}
           </PulsoButton>
-          <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !borrador.length} onClick={() => setBorrador([])}>
-            Quitar todos
+          <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !visiblesDentro} onClick={() => setBorrador(borrador.filter((u) => !visibles.some((t) => t.ubigeo === u)))}>
+            {visiblesDentro ? `Quitar ${visiblesDentro} visible${visiblesDentro === 1 ? "" : "s"}` : "Quitar visibles"}
           </PulsoButton>
         </div>
       </div>
@@ -95,8 +102,8 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                   const enBorrador = borrador.includes(t.ubigeo);
                   const cambio = enBorrador !== confirmados.includes(t.ubigeo) ? (enBorrador ? "se agrega" : "se quita") : null;
                   return (
-                    <li key={t.ubigeo} data-elegido={enBorrador}>
-                      <span className="hr-mapa-catalogo-copia">
+                    <li key={t.ubigeo} data-elegido={enBorrador} data-enfocado={distritoEnfocado === t.ubigeo || undefined}>
+                      <span className="hr-mapa-catalogo-copia" role="button" tabIndex={0} title="Ver su ficha" onClick={() => setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo))}>
                         <strong>{nombreDistrito(t.distrito)}</strong>
                         <small>
                           {cambio ? <em>{cambio} · </em> : null}
@@ -140,7 +147,9 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
   const elegidos = borrador.map((u) => porUbigeo.get(u)).filter((t): t is HojasRutaTerritory => Boolean(t));
   const suma = (k: "poblacion" | "viviendas" | "manzanas") => elegidos.reduce((a, t) => a + t[k], 0);
   const marco = territorios.reduce((a, t) => a + t.poblacion, 0);
-  const bajo = distritoBajoCursor ? porUbigeo.get(distritoBajoCursor) : undefined;
+  const { distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
+  const enfocado = distritoEnfocado ? porUbigeo.get(distritoEnfocado) : undefined;
+  const bajo = distritoBajoCursor && distritoBajoCursor !== distritoEnfocado ? porUbigeo.get(distritoBajoCursor) : undefined;
   const nombre = (u: string) => nombreDistrito(porUbigeo.get(u)?.distrito ?? u);
 
   return (
@@ -166,6 +175,31 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             </dl>
           </>
         )}
+        {enfocado ? (
+          <section className="hr-ter-ficha" aria-label={`Ficha de ${nombreDistrito(enfocado.distrito)}`}>
+            <header>
+              <strong>{nombreDistrito(enfocado.distrito)}</strong>
+              <small>{enfocado.provincia === "CALLAO" ? "Callao" : "Lima"} · ubigeo {enfocado.ubigeo}</small>
+              <button type="button" className="hr-ter-cerrar" aria-label="Cerrar la ficha" onClick={() => setDistritoEnfocado(null)}>×</button>
+            </header>
+            <div className="hr-mapa-cifras">
+              <div><small>Población</small><strong>{enMiles(enfocado.poblacion)}</strong></div>
+              <div><small>Viviendas</small><strong>{enMiles(enfocado.viviendas)}</strong></div>
+              <div><small>Manzanas</small><strong>{fmt(enfocado.manzanas)}</strong></div>
+            </div>
+            <dl className="hr-mapa-filas">
+              <div><dt>Del marco de Lima y Callao</dt><dd>{marco ? `${((enfocado.poblacion / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
+              <div><dt>Viviendas por manzana</dt><dd>{enfocado.manzanas ? (enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}</dd></div>
+            </dl>
+            <PulsoSwitch
+              label={borrador.includes(enfocado.ubigeo) ? "En el estudio" : "Fuera del estudio"}
+              size="sm"
+              checked={borrador.includes(enfocado.ubigeo)}
+              disabled={bloqueado}
+              onCheckedChange={() => setBorrador(alternar(borrador, enfocado.ubigeo))}
+            />
+          </section>
+        ) : null}
         {bajo ? (
           <dl className="hr-mapa-filas" aria-label="Distrito bajo el cursor">
             <div><dt>{nombreDistrito(bajo.distrito)}</dt><dd>{bajo.ubigeo}</dd></div>
