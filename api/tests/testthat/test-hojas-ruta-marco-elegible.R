@@ -236,15 +236,32 @@ test_that("π sigue la regla del sorteo: censo de zona, igual probabilidad en si
   censo <- .hojas_ruta_me_pi(df_z, c("a", "b", "c", "d"), "viviendas", "pps")
   expect_identical(censo$regla_pi, "censo_de_la_zona")
   expect_true(all(vapply(censo$seleccionadas, `[[`, numeric(1), "pi") == 1))
-  # El sistemático del motor deja manzanas con π = 0 (arranque runif(1, 1, step)): no se publica un π falso.
+  # En sistemático π no depende de la medida: n_z/N_z para todas.
   sis <- .hojas_ruta_me_pi(df_z, c("a", "c"), "viviendas", "sistematico")
-  expect_identical(sis$regla_pi, "sistematico_no_reconstruible")
-  expect_true(all(is.na(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"))))
+  expect_identical(sis$regla_pi, "igual_probabilidad")
+  expect_equal(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
   pps <- .hojas_ruta_me_pi(df_z, c("b", "c"), "viviendas", "pps")
   expect_true(pps$medida_ajustada)
   expect_identical(pps$medida_total, 42)
   # La manzana sin viviendas se sorteó con peso 1: su π no es 0.
   expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(2 * 10 / 42, 2 * 1 / 42))
+})
+
+test_that("el sorteo sistemático da a cada manzana π = n/N, sin repetir ni quedarse corto", {
+  # El arranque runif(1, 1, step) dejaba manzanas con π = 0 (N = 9, n = 3: π = .5, .5, 0, ...).
+  cfg <- list(sampling_method = "sistematico")
+  veces <- 20000L
+  for (caso in list(c(N = 9L, n = 3L), c(N = 10L, n = 4L), c(N = 7L, n = 3L))) {
+    N <- caso[["N"]]
+    n <- caso[["n"]]
+    df <- data.frame(ubigeo = "150101", zona = "001", manzana = sprintf("%03d", seq_len(N)),
+                     id_manzana = sprintf("m%02d", seq_len(N)), stringsAsFactors = FALSE)
+    set.seed(2017L)
+    sorteos <- replicate(veces, .hojas_ruta_sample_indices(df, n, cfg), simplify = FALSE)
+    expect_true(all(lengths(sorteos) == n), info = sprintf("N = %d, n = %d", N, n))
+    pi_hat <- tabulate(unlist(sorteos), nbins = N) / veces
+    expect_true(all(abs(pi_hat - n / N) < 0.02), info = sprintf("N = %d, n = %d: π = %s", N, n, paste(round(pi_hat, 3), collapse = ", ")))
+  }
 })
 
 test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avisan si cambió", {

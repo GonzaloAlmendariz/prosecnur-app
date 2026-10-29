@@ -4585,8 +4585,8 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     ord <- order(df$ubigeo, df$zona, df$manzana, df$id_manzana)
     if (n_blocks >= length(ord)) return(ord)
     step <- length(ord) / n_blocks
-    start <- stats::runif(1, min = 1, max = step)
-    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step))
+    start <- stats::runif(1, min = 0, max = step)  # arranque en un intervalo completo: π = n/N
+    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step) + 1L)
     return(ord[unique(pos)])
   }
   prob <- df[[cfg$measure_var]]

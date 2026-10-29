@@ -489,13 +489,12 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   ajustada <- any(is.na(m) | m <= 0)
   m[is.na(m) | m <= 0] <- 1
   total <- sum(m)
-  # El sistemático del motor arranca con runif(1, min = 1, max = step) (engine ~4587):
-  # el arranque no cubre un intervalo completo y hay manzanas con π = 0. Mientras ese
-  # defecto del motor congelado no se corrija, π no es reconstruible y no se publica.
-  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "sistematico_no_reconstruible" else "pps"
+  # El sistemático arranca con runif(1, 0, step) (engine ~4587): cada manzana cae en
+  # la muestra con probabilidad 1/step = n_z/N_z.
+  regla <- if (n >= N && N > 0) "censo_de_la_zona" else if (identical(metodo, "sistematico")) "igual_probabilidad" else "pps"
   pis <- vapply(ids, function(id) {
     if (identical(regla, "censo_de_la_zona")) return(1)
-    if (identical(regla, "sistematico_no_reconstruible")) return(NA_real_)
+    if (identical(regla, "igual_probabilidad")) return(n / N)
     mi <- m[match(id, as.character(df_z$id_manzana))]
     if (is.na(mi) || total <= 0) NA_real_ else min(1, n * mi / total)
   }, numeric(1), USE.NAMES = FALSE)
