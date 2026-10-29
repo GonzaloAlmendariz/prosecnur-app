@@ -7952,7 +7952,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     }
   }
 
-  referencias <- .hojas_ruta_mapa_dibujar_referencias(block$ubigeo, map_bbox, project, render_ctx)
+  # Referencias sólo dentro de la zona: fuera de ella distraen, no orientan.
+  zona_rings <- unlist(lapply(Filter(function(z) identical(as.character(z$zona %||% ""), as.character(block$zona %||% "")),
+                                     zone_outlines), `[[`, "rings"), recursive = FALSE)
+  referencias <- .hojas_ruta_mapa_dibujar_referencias(block$ubigeo, map_bbox, project, render_ctx, zona = zona_rings)
   grid::popViewport()
   grid::grid.rect(x = map_x + map_w / 2, y = map_y + map_h / 2, width = map_w, height = map_h,
                   gp = grid::gpar(fill = NA, col = "black", lwd = 0.7))

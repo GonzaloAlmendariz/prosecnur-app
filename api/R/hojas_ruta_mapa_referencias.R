@@ -65,20 +65,46 @@
   invisible(TRUE)
 }
 
-#' Dibuja las referencias que caen en el mapa. Llamar dentro del viewport del mapa.
+# Punto en polígono (par-impar), vectorizado sobre los puntos.
+.hojas_ruta_mapa_dentro <- function(lon, lat, rings) {
+  dentro <- rep(FALSE, length(lon))
+  for (r in rings) {
+    r <- as.matrix(r)
+    r <- r[stats::complete.cases(r), , drop = FALSE]
+    n <- nrow(r)
+    if (n < 3L) next
+    en_este <- rep(FALSE, length(lon))
+    j <- n
+    for (i in seq_len(n)) {
+      xi <- r[i, 1]; yi <- r[i, 2]; xj <- r[j, 1]; yj <- r[j, 2]
+      cruza <- ((yi > lat) != (yj > lat)) & (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)
+      en_este <- xor(en_este, cruza)
+      j <- i
+    }
+    dentro <- xor(dentro, en_este)
+  }
+  dentro
+}
+
+#' Dibuja las referencias que caen en la zona. Llamar dentro del viewport del mapa.
+#'
+#' Sólo las de adentro de la zona: con todas las del recuadro, en zonas angostas
+#' la mayoría caía sobre manzanas que no se visitan y distraía.
 #'
 #' @param project proyección lon/lat -> npc del viewport del mapa.
 #' @param bbox caja visible (`min_lon`, `max_lon`, `min_lat`, `max_lat`).
+#' @param zona anillos (lon/lat) de la zona; si viene vacío, vale el recuadro.
 #' @param maximo tope de íconos por mapa.
 #' @return tipos dibujados (para la leyenda).
 #' @keywords internal
 .hojas_ruta_mapa_dibujar_referencias <- function(ubigeo, bbox, project, render_ctx = NULL,
-                                                 maximo = 24L, separacion = 0.03) {
+                                                 zona = list(), maximo = 24L, separacion = 0.03) {
   refs <- .hojas_ruta_mapa_referencias(ubigeo, render_ctx)
   if (!nrow(refs)) return(character(0))
   dentro <- refs$lon >= bbox[["min_lon"]] & refs$lon <= bbox[["max_lon"]] &
     refs$lat >= bbox[["min_lat"]] & refs$lat <= bbox[["max_lat"]]
   refs <- refs[dentro, , drop = FALSE]
+  if (nrow(refs) && length(zona)) refs <- refs[.hojas_ruta_mapa_dentro(refs$lon, refs$lat, zona), , drop = FALSE]
   if (!nrow(refs)) return(character(0))
   refs <- refs[order(match(refs$tipo, names(.hojas_ruta_mapa_referencia_tipos))), , drop = FALSE]
   p <- project(cbind(refs$lon, refs$lat))

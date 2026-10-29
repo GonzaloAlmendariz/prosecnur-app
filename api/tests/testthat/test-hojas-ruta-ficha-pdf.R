@@ -95,8 +95,8 @@ test_that("la ficha no dibuja «Reemplazo N» alrededor de la manzana ni usa el 
     expect_match(txt, "Mujeres", fixed = TRUE)
     if (identical(tipo, "reemplazo")) expect_match(txt, "Reemplaza a la UMP 1", fixed = TRUE)
   }
-  # El esquema solo, en todas las esquinas y sentidos: nunca nombra un reemplazo
-  # (el reemplazo real es otra manzana sorteada) ni a las manzanas vecinas.
+  # El esquema solo, en todas las esquinas y sentidos: dibuja las aledañas pero
+  # nunca las llama reemplazo (el reemplazo real es otra manzana sorteada).
   for (esq in as.character(1:4)) for (sen in c("1", "2")) {
     pdf <- tempfile(fileext = ".pdf")
     grDevices::pdf(pdf, width = 8.27, height = 11.69)
@@ -108,7 +108,8 @@ test_that("la ficha no dibuja «Reemplazo N» alrededor de la manzana ni usa el 
     grDevices::dev.off()
     txt <- paste(pdftools::pdf_text(pdf), collapse = "\n")
     expect_false(grepl("reemplazo", txt, ignore.case = TRUE), info = paste(esq, sen))
-    expect_match(txt, "INICIO", fixed = TRUE)
+    # Las ocho aledañas, numeradas en el orden en que se siguen.
+    for (k in 1:8) expect_match(txt, sprintf("\\b%d\\b", k), info = paste(esq, sen, k))
   }
   expect_false(file.exists(file.path(test_path("..", "..", "inst", "hojas_ruta", "assets"),
                                      "graficoMsistematico.png")))
@@ -117,7 +118,7 @@ test_that("la ficha no dibuja «Reemplazo N» alrededor de la manzana ni usa el 
                                                           fixed = TRUE)), logical(1))))
 })
 
-test_that("una ficha sin visitas esperadas sale sin ese bloque y sin fallar", {
+test_that("una ficha sin visitas esperadas sale sin ese dato y sin fallar", {
   skip_if_not_installed("pdftools")
   sm <- hfp_muestra()
   b <- hfp_bloque(sm); b$visitas_esperadas <- NULL; b$regla_no_respuesta <- NULL
@@ -125,6 +126,6 @@ test_that("una ficha sin visitas esperadas sale sin ese bloque y sin fallar", {
   .hojas_ruta_draw_integrated_pdf_page1(b, data.frame(), list(), sm$config, pdf)
   txt <- paste(pdftools::pdf_text(pdf), collapse = "\n")
   expect_false(grepl("Visitas esperadas", txt, fixed = TRUE))
-  expect_false(grepl("Ante la no respuesta", txt, fixed = TRUE))
+  expect_match(txt, "Procedimiento", fixed = TRUE)
   expect_match(txt, "Ficha de trabajo de campo", fixed = TRUE)
 })

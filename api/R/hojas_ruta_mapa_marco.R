@@ -18,12 +18,12 @@
   L <- 0.035
   R <- 0.97
   es_reemplazo <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
-  territorio <- toupper(paste(.hojas_ruta_title_case(block$departamento %||% ""),
-                              .hojas_ruta_title_case(block$provincia %||% ""), sep = " · "))
+  territorio <- toupper(paste(.hojas_ruta_ficha_nombre(block$departamento %||% ""),
+                              .hojas_ruta_ficha_nombre(block$provincia %||% ""), sep = " · "))
   .hfp_text(territorio, L, 0.962, 7.4, tk$soft, "bold", spacing = 1.2)
   .hfp_text("Mapa de zona", L, 0.935, 17, tk$navy, "bold")
   .hfp_text(sprintf("%s  ·  Zona %s  ·  Manzana %s  ·  UBIGEO %s",
-                    .hojas_ruta_title_case(block$distrito %||% ""), as.character(block$zona %||% ""),
+                    .hojas_ruta_ficha_nombre(block$distrito %||% ""), as.character(block$zona %||% ""),
                     as.character(block$manzana %||% ""), as.character(block$ubigeo %||% "")),
             L, 0.905, 9.5, tk$ink)
   chip_w <- R - 0.84
@@ -59,7 +59,7 @@
 .hojas_ruta_mapa_ubicacion <- function(block, x, w, top, tk = pulso_pdf_tokens()) {
   .hojas_ruta_mapa_rotulo("Ubicación de campo", x, top, w, tk)
   filas <- list(
-    c("Distrito", .hojas_ruta_title_case(block$distrito %||% "")),
+    c("Distrito", .hojas_ruta_ficha_nombre(block$distrito %||% "")),
     c("Zona", as.character(block$zona %||% "")),
     c("Manzana", as.character(block$manzana %||% "")),
     c("Viviendas", format(as.integer(block$viviendas %||% 0L), big.mark = ",")),
@@ -72,11 +72,15 @@
   y <- top - 0.022
   fila_h <- 0.026
   for (i in seq_along(filas)) {
-    if (i %% 2 == 1) .hfp_rect(x, y, w, fila_h, fill = tk$tbl_zebra, col = NA)
+    # Un valor que no cabe junto a su rótulo («San Juan de Lurigancho») baja a
+    # una segunda línea de la misma fila en vez de montarse sobre el rótulo.
+    largo <- nchar(filas[[i]][[2]]) > 13L
+    h <- if (largo) fila_h * 1.75 else fila_h
+    if (i %% 2 == 1) .hfp_rect(x, y, w, h, fill = tk$tbl_zebra, col = NA)
     .hfp_text(filas[[i]][[1]], x + 0.006, y - fila_h / 2, 7.6, tk$soft)
-    .hfp_text(filas[[i]][[2]], x + w - 0.006, y - fila_h / 2, 8.4, tk$ink, "bold",
-              just = c("right", "center"))
-    y <- y - fila_h
+    .hfp_text(filas[[i]][[2]], x + w - 0.006, y - if (largo) h - fila_h / 2 + 0.002 else fila_h / 2,
+              8.4, tk$ink, "bold", just = c("right", "center"))
+    y <- y - h
   }
   # El ID INEI completo no entra en una fila: va debajo, en su propia línea.
   id <- as.character(block$id_manzana %||% "")

@@ -16,11 +16,11 @@
 #   - `.hojas_ruta_ficha_dibujar()` decide CÓMO se ve, con la capa Pulso PDF
 #     (`pulso_pdf_theme.R`).
 #
-# El esquema de la sección C explica SÓLO el recorrido de la manzana sorteada:
-# por qué esquina se entra, en qué sentido se da la vuelta y cada cuántas casas
-# se visita. El esquema anterior rodeaba la manzana de «Reemplazo 1…8» y en
-# campo se leía como el reemplazo real, que es otra manzana sorteada y a menudo
-# de otra zona. Las manzanas de alrededor no se dibujan ni se nombran.
+# El esquema de la sección C explica el recorrido: por qué esquina se entra, en
+# qué sentido se da la vuelta, cada cuántas casas se visita y, si la manzana se
+# agota, en qué orden se sigue por las ocho aledañas. El esquema anterior las
+# llamaba «Reemplazo 1…8» y en campo se leían como el reemplazo real, que es
+# otra manzana sorteada y a menudo de otra zona: ahora son «aledañas».
 
 # ---------- Modelo ----------
 
@@ -38,6 +38,13 @@
   if (!length(v) || is.na(v[[1]])) default else v[[1]]
 }
 
+# Nombre de lugar en español: «San Juan de Lurigancho», no «San Juan De
+# Lurigancho» (`tools::toTitleCase` sigue reglas del inglés).
+.hojas_ruta_ficha_nombre <- function(x) {
+  out <- .hojas_ruta_title_case(x)
+  gsub("(?<=\\S) (De|Del|La|Las|Los|Y|E)(?= )", " \\L\\1", out, perl = TRUE)
+}
+
 .hojas_ruta_ficha_txt <- function(x) {
   v <- as.character(x %||% "")
   if (!length(v) || is.na(v[[1]])) "" else trimws(v[[1]])
@@ -50,7 +57,7 @@
 #'   la cuota de la hoja sale de `cuota_sexo_totals`/`cuota_edad_totals` del
 #'   bloque, vía `.hojas_ruta_reference_quota_marginals`).
 #' @param config Configuración de la muestra.
-#' @return lista con `encabezado`, `datos`, `cuota`, `seleccion` y `no_respuesta`.
+#' @return lista con `encabezado`, `datos`, `cuota`, `seleccion` y `procedimiento`.
 #' @keywords internal
 hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) {
   block <- block %||% list()
@@ -94,13 +101,13 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
       es_reemplazo = es_reemplazo,
       reemplaza = reemplaza,
       encuestas = sprintf("Encuestas %d a %d", start, end),
-      distrito = .hojas_ruta_title_case(block$distrito %||% ""),
+      distrito = .hojas_ruta_ficha_nombre(block$distrito %||% ""),
       zona = .hojas_ruta_ficha_txt(block$zona),
       manzana = .hojas_ruta_ficha_txt(block$manzana),
       ubigeo = .hojas_ruta_ficha_txt(block$ubigeo),
       territorio = paste(
-        .hojas_ruta_title_case(block$departamento %||% ""),
-        .hojas_ruta_title_case(block$provincia %||% ""),
+        .hojas_ruta_ficha_nombre(block$departamento %||% ""),
+        .hojas_ruta_ficha_nombre(block$provincia %||% ""),
         sep = " · "
       ),
       rango = c(start, end)
@@ -130,10 +137,13 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
       barrido = barrido,
       sin_salto = sin_salto
     ),
-    no_respuesta = list(
+    procedimiento = list(
       visitas = visitas,
-      entrevistas = .hojas_ruta_ficha_int(block$entrevistas),
-      pasos = .hojas_ruta_vp_regla_pasos(.hojas_ruta_vp_regla(block))
+      pasos = c(
+        if (barrido) "Si una vivienda no responde, pase a la siguiente." else
+          "Si una vivienda no responde, siga con el salto.",
+        "Si la manzana se agota, siga en las manzanas aledañas en orden (1 a 8), con el mismo sentido y el mismo salto."
+      )
     )
   )
 }
@@ -254,46 +264,75 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   }, numeric(2)))
 }
 
-#' Dibuja el esquema del recorrido de la manzana sorteada: esquina de entrada,
-#' sentido de la vuelta y las casas que se visitan según el salto.
+# Aledañas en el orden en que se recorren si la manzana se agota: desde el norte
+# y en sentido horario. Es el orden del esquema de siempre; lo que cambia es el
+# nombre —antes «Reemplazo 1…8», que en campo se confundía con el reemplazo
+# real, otra manzana sorteada—. `c(fila, columna)`, fila -1 = norte.
+.hfp_aledanas <- list(c(-1, 0), c(-1, 1), c(0, 1), c(1, 1), c(1, 0), c(1, -1), c(0, -1), c(-1, -1))
+
+#' Dibuja el esquema del recorrido: la manzana sorteada al centro con su esquina
+#' de entrada, el sentido de la vuelta y las casas que se visitan según el salto;
+#' alrededor, las ocho manzanas aledañas numeradas en el orden en que se sigue.
 #'
-#' Ilustrativo: dibuja hasta 20 casas, no la manzana real. Nunca rotula
-#' manzanas vecinas.
+#' Ilustrativo: dibuja 20 casas, no la manzana real.
 #' @keywords internal
 .hojas_ruta_ficha_esquema_recorrido <- function(sel, x, y, w, h, tk = pulso_pdf_tokens(),
                                                 aspecto = 8.27 / 11.69) {
   horario <- !identical(sel$sentido, "2")
-  # Cuadrado real en la hoja: en npc el alto se corrige por el aspecto de página.
-  lado <- min(w * 0.56, h * 0.6 / aspecto)
+  calle <- 0.034            # ancho de calle (npc en x)
+  calle_y <- calle * aspecto
+  asoma <- 0.34             # fracción de cada aledaña que entra en el esquema
+  lado <- min((w * 0.96 - 2 * calle) / (1 + 2 * asoma),
+              (h * 0.96 / aspecto - 2 * calle) / (1 + 2 * asoma))
   sx <- lado
   sy <- lado * aspecto
   x0 <- x + (w - sx) / 2
-  y0 <- y - (h - sy) / 2 + 0.006
+  y0 <- y - (h - sy) / 2
+  ax <- lado * asoma
+  ay <- ax * aspecto
 
-  # Calles: una banda tenue alrededor de la manzana.
-  pad_x <- 0.03
-  pad_y <- pad_x * aspecto
-  .hfp_rect(x0 - pad_x, y0 + pad_y, sx + 2 * pad_x, sy + 2 * pad_y,
+  # Calles y aledañas.
+  .hfp_rect(x0 - calle - ax, y0 + calle_y + ay, sx + 2 * (calle + ax), sy + 2 * (calle_y + ay),
             fill = tk$canvas, col = NA)
-  .hfp_rect(x0, y0, sx, sy, fill = "#ffffff", col = tk$navy, lwd = 1.1)
+  for (k in seq_along(.hfp_aledanas)) {
+    f <- .hfp_aledanas[[k]][[1]]
+    cc <- .hfp_aledanas[[k]][[2]]
+    cx0 <- c(x0 - calle - ax, x0, x0 + sx + calle)[cc + 2]
+    cw <- if (cc == 0) sx else ax
+    cy0 <- c(y0 + calle_y + ay, y0, y0 - sy - calle_y)[f + 2]
+    ch <- if (f == 0) sy else ay
+    .hfp_rect(cx0, cy0, cw, ch, fill = "#e4e4e4", col = "#b5b5b5", lwd = 0.5)
+    .hfp_text(as.character(k), cx0 + cw / 2, cy0 - ch / 2, 9, tk$ink, "bold",
+              just = c("center", "center"))
+  }
+
+  # Manzana sorteada.
+  .hfp_rect(x0, y0, sx, sy, fill = "#ffffff", col = tk$navy, lwd = 1.3)
   .hfp_text("MANZANA", x0 + sx / 2, y0 - sy / 2, 6.6, tk$soft, "bold",
             just = c("center", "center"), spacing = 0.8)
 
   # Casas: puntos sobre el perímetro (por dentro), desde la esquina de inicio.
   n <- 20L
-  inset_x <- 0.012
+  inset_x <- 0.011
   inset_y <- inset_x * aspecto
   ts <- (seq_len(n) - 0.5) / n
   pts <- .hfp_perimetro(ts, sel$esquina, horario, x0 + inset_x, y0 - inset_y,
                         sx - 2 * inset_x, sy - 2 * inset_y)
   salto <- max(1L, as.integer(sel$salto %||% 1L))
   inicio <- max(1L, as.integer(sel$inicio %||% 1L))
+  # Con un salto que no cabe en 20 casas (p. ej. 103 desde la 95) el patrón se
+  # dibuja comprimido —la primera visitada en la casa 1 del dibujo, cada 4—, pero
+  # los números que se imprimen son los reales: 95, 198, 301.
+  cabe <- isTRUE(sel$barrido) || inicio + 2L * salto <= n
+  paso_ilus <- if (cabe) salto else 4L
+  inicio_ilus <- if (cabe) inicio else 1L
   visitada <- if (isTRUE(sel$barrido)) rep(TRUE, n) else
-    (seq_len(n) >= inicio) & ((seq_len(n) - inicio) %% salto == 0L)
+    (seq_len(n) >= inicio_ilus) & ((seq_len(n) - inicio_ilus) %% paso_ilus == 0L)
   if (any(!visitada)) .hfp_casa(pts[!visitada, 1], pts[!visitada, 2], FALSE, tk)
   if (any(visitada)) .hfp_casa(pts[visitada, 1], pts[visitada, 2], TRUE, tk)
   # Número de casa en las primeras visitadas (hasta tres) para leer el salto.
   idx <- utils::head(which(visitada), 3L)
+  numero <- if (cabe) idx else inicio + (seq_along(idx) - 1L) * salto
   cx <- x0 + sx / 2
   cy <- y0 - sy / 2
   for (i in idx) {
@@ -301,40 +340,34 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     dy <- (pts[i, 2] - cy) / aspecto
     nrm <- sqrt(dx^2 + dy^2)
     if (!is.finite(nrm) || nrm == 0) next
-    .hfp_text(as.character(i), pts[i, 1] - dx / nrm * 0.016, pts[i, 2] - dy / nrm * 0.016 * aspecto,
-              6.4, tk$navy, "bold", just = c("center", "center"))
+    .hfp_text(as.character(numero[[match(i, idx)]]), pts[i, 1] - dx / nrm * 0.015,
+              pts[i, 2] - dy / nrm * 0.015 * aspecto, 6.4, tk$navy, "bold", just = c("center", "center"))
   }
 
-  # Sentido: una flecha por lado, por fuera y sobre la calle, empezando en la
-  # esquina de inicio; así el sentido se lee en cualquier tramo, no sólo al final.
-  out_x <- pad_x * 0.5
+  # Sentido: una flecha por lado, al medio de la calle.
+  out_x <- calle * 0.5
   out_y <- out_x * aspecto
   for (t0 in c(0, 0.25, 0.5, 0.75)) {
-    tramo <- .hfp_perimetro(seq(t0 + 0.03, t0 + 0.21, length.out = 20), sel$esquina, horario,
+    tramo <- .hfp_perimetro(seq(t0 + 0.05, t0 + 0.2, length.out = 20), sel$esquina, horario,
                             x0 - out_x, y0 + out_y, sx + 2 * out_x, sy + 2 * out_y)
     grid::grid.lines(x = tramo[, 1], y = tramo[, 2],
-                     arrow = grid::arrow(angle = 24, length = grid::unit(6.5, "pt"), type = "closed"),
-                     gp = grid::gpar(col = tk$navy, fill = tk$navy, lwd = if (t0 == 0) 2 else 1.3))
+                     arrow = grid::arrow(angle = 24, length = grid::unit(6, "pt"), type = "closed"),
+                     gp = grid::gpar(col = tk$navy, fill = tk$navy, lwd = if (t0 == 0) 1.9 else 1.3))
   }
 
-  # Esquinas numeradas, fuera de la calle; la de inicio resaltada.
+  # Esquinas numeradas en los cruces de calle; la de inicio, rellena.
   for (k in 1:4) {
     p <- .hfp_esquina_xy(k, x0, y0, sx, sy)
     ox <- if (p[1] > x0 + sx / 2) 1 else -1
     oy <- if (p[2] > y0 - sy / 2) 1 else -1
-    px <- p[1] + ox * (pad_x + 0.014)
-    py <- p[2] + oy * (pad_y + 0.014 * aspecto)
+    px <- p[1] + ox * calle / 2
+    py <- p[2] + oy * calle_y / 2
     es_inicio <- identical(as.character(k), as.character(sel$esquina))
-    grid::grid.circle(x = px, y = py, r = grid::unit(if (es_inicio) 8.5 else 7, "pt"),
+    grid::grid.circle(x = px, y = py, r = grid::unit(if (es_inicio) 7.5 else 6.5, "pt"),
                       gp = grid::gpar(fill = if (es_inicio) tk$navy else "#ffffff",
-                                      col = if (es_inicio) tk$navy else tk$tbl_frame, lwd = 0.8))
-    .hfp_text(as.character(k), px, py, if (es_inicio) 9.5 else 8,
-              if (es_inicio) "#ffffff" else tk$soft, "bold", just = c("center", "center"))
-    if (es_inicio) {
-      # Hacia adentro: hacia afuera se sale del panel.
-      .hfp_text("INICIO", px - ox * 0.02, py, 6.6, tk$navy, "bold",
-                just = c(if (ox > 0) "right" else "left", "center"), spacing = 0.8)
-    }
+                                      col = tk$navy, lwd = 0.8))
+    .hfp_text(as.character(k), px, py, if (es_inicio) 9 else 7.6,
+              if (es_inicio) "#ffffff" else tk$navy, "bold", just = c("center", "center"))
   }
   # Rosa mínima: norte arriba, en la fila del rótulo del panel.
   nx <- x + w - 0.016
@@ -456,21 +489,26 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   sel <- modelo$seleccion
   .hfp_seccion("C", "Selección de casas", L, y, W, tk)
   y <- y - 0.016
-  bloque_h <- 0.262
+  bloque_h <- if (isTRUE(enc$es_reemplazo)) 0.28 else 0.31  # el aviso del reemplazo ocupa arriba
   esq_w <- 0.47 * W
   .hfp_rect(L, y, esq_w, bloque_h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
   .hfp_text("ESQUEMA DEL RECORRIDO", L + 0.014, y - 0.014, 6.4, tk$soft, "bold", spacing = 0.8)
   .hojas_ruta_ficha_esquema_recorrido(sel, L, y - 0.026, esq_w, bloque_h - 0.056, tk, aspecto)
   ley_y <- y - bloque_h + 0.016
   # Leyenda centrada bajo el esquema; en barrido no hay casas que se salten.
-  items <- if (isTRUE(sel$barrido)) list(list("Visita", TRUE)) else
-    list(list("Visita", TRUE), list("Salto", FALSE))
-  item_w <- 0.075
-  lx <- L + esq_w / 2 - item_w * length(items) / 2
+  items <- c(list(list("Inicio", function(xx) {
+      grid::grid.circle(x = xx, y = ley_y, r = grid::unit(4.5, "pt"), gp = grid::gpar(fill = tk$navy, col = tk$navy))
+    }, 0.06), list("Visita", function(xx) .hfp_casa(xx, ley_y, TRUE, tk), 0.06)),
+    if (!isTRUE(sel$barrido)) list(list("Salto", function(xx) .hfp_casa(xx, ley_y, FALSE, tk), 0.06)),
+    list(list("Aledañas, en orden", function(xx) {
+      .hfp_rect(xx - 0.008, ley_y + 0.005, 0.013, 0.01, fill = "#e4e4e4", col = "#b5b5b5", lwd = 0.5)
+    }, 0.12)))
+  total_w <- sum(vapply(items, `[[`, numeric(1), 3L))
+  lx <- L + esq_w / 2 - total_w / 2
   for (it in items) {
-    .hfp_casa(lx + 0.01, ley_y, it[[2]], tk)
-    .hfp_text(it[[1]], lx + 0.02, ley_y, 7.6, tk$soft)
-    lx <- lx + item_w
+    it[[2]](lx + 0.008)
+    .hfp_text(it[[1]], lx + 0.02, ley_y, 7.4, tk$soft)
+    lx <- lx + it[[3]]
   }
 
   # Parámetros a la derecha del esquema.
@@ -491,19 +529,22 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     p <- params[[i]]
     if (i %% 2 == 1) .hfp_rect(px, yy, pw, param_h, fill = tk$tbl_zebra, col = NA)
     .hfp_text(toupper(p[[1]]), px + 0.012, yy - 0.014, 6.4, tk$soft, "bold", spacing = 0.6)
-    .hfp_text(p[[2]], px + 0.012, yy - param_h * 0.58, if (nchar(p[[2]]) > 3) 14 else 16, tk$navy, "bold")
-    if (nzchar(p[[3]])) .hfp_text(p[[3]], px + 0.06, yy - param_h * 0.58, 8.6, tk$ink)
+    tam <- if (nchar(p[[2]]) > 4) 14 else 16
+    .hfp_text(p[[2]], px + 0.012, yy - param_h * 0.58, tam, tk$navy, "bold")
+    if (nzchar(p[[3]])) {
+      # El descriptor arranca donde termina el valor, no en una x fija: «103» es ancho.
+      ancho <- grid::convertWidth(grid::grobWidth(grid::textGrob(p[[2]], gp = grid::gpar(fontsize = tam, fontface = "bold"))),
+                                  "npc", valueOnly = TRUE)
+      .hfp_text(p[[3]], px + 0.012 + max(0.048, ancho + 0.016), yy - param_h * 0.58, 8.6, tk$ink)
+    }
     .hfp_line(px, R, yy - param_h, col = tk$tbl_frame, lwd = pesos$fila)
   }
   .hfp_line(px, R, y, col = tk$navy, lwd = pesos$bloque)
   y <- y - bloque_h
 
-  # --- Visitas esperadas y no respuesta (ADR 0116) ------------------------
-  nr <- modelo$no_respuesta
-  if (!is.na(nr$visitas) || length(nr$pasos)) {
-    y <- y - 0.016
-    .hfp_dibujar_no_respuesta(nr, L, y, W, tk, pesos)
-  }
+  # --- Procedimiento: lo que no dice el esquema, en dos líneas ---------------
+  y <- y - 0.016
+  .hfp_procedimiento(modelo$procedimiento, L, y, W, tk, pesos)
 
   # --- Pie Pulso: logo · ruta · fecha --------------------------------------
   .hfp_line(L, R, 0.058, col = tk$line, lwd = 0.7)
@@ -585,50 +626,29 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   y - alto
 }
 
-.hfp_dibujar_no_respuesta <- function(nr, x, y, w, tk, pesos) {
-  gap <- 0.022
-  tiene_v <- !is.na(nr$visitas)
-  vis_w <- if (tiene_v) 0.30 * w else 0
-  reg_x <- x + if (tiene_v) vis_w + gap else 0
-  reg_w <- x + w - reg_x
-  body <- 7.8
-  line_h <- 0.0128
-  lineas <- lapply(nr$pasos, function(p) .form_pdf_wrap_fit(p, reg_w - 0.05, fontsize = body))
-  nota <- if (!is.na(nr$entrevistas)) {
-    sprintf("Viviendas que se espera tocar para lograr %d entrevistas completas. El salto ya las considera.",
-            nr$entrevistas)
-  } else {
-    "Viviendas que se espera tocar para completar la ruta. El salto ya las considera."
+# Procedimiento: qué hacer si una vivienda no responde y si la manzana se
+# agota. Las visitas esperadas (ADR 0116) van como un dato al costado del título.
+.hfp_procedimiento <- function(pr, x, y, w, tk, pesos) {
+  body <- 8.2
+  line_h <- 0.0135
+  lineas <- lapply(pr$pasos, function(p) .form_pdf_wrap_fit(p, w - 0.06, fontsize = body))
+  h <- 0.03 + sum(lengths(lineas)) * line_h + max(0L, length(lineas) - 1L) * 0.004 + 0.006
+  .hfp_rect(x, y, w, h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
+  grid::grid.rect(x = x, y = y, width = 0.005, height = h, just = c("left", "top"),
+                  gp = grid::gpar(fill = tk$navy, col = NA))
+  .hfp_text("Procedimiento", x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
+  if (!is.na(pr$visitas)) {
+    .hfp_text(sprintf("Visitas esperadas: %d", pr$visitas), x + w - 0.014, y - 0.015, 8.2, tk$soft,
+              just = c("right", "center"))
   }
-  nota_l <- if (tiene_v) .form_pdf_wrap_fit(nota, vis_w - 0.03, fontsize = 7.8) else character(0)
-  h_reg <- 0.03 + sum(lengths(lineas)) * line_h + max(0L, length(lineas) - 1L) * 0.005 + 0.008
-  h_vis <- 0.03 + length(nota_l) * line_h + 0.008
-  h <- max(h_reg, h_vis)
-  if (tiene_v) {
-    .hfp_rect(x, y, vis_w, h, fill = tk$canvas, col = NA)
-    grid::grid.rect(x = x, y = y, width = 0.005, height = h, just = c("left", "top"),
-                    gp = grid::gpar(fill = tk$navy, col = NA))
-    .hfp_text(sprintf("Visitas esperadas: %d", nr$visitas), x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
-    yy <- y - 0.034
-    for (l in nota_l) {
-      .hfp_text(l, x + 0.018, yy, 7.8, tk$ink)
+  yy <- y - 0.032
+  for (i in seq_along(lineas)) {
+    .hfp_text(sprintf("%d.", i), x + 0.018, yy, body, tk$navy, "bold")
+    for (l in lineas[[i]]) {
+      .hfp_text(l, x + 0.034, yy, body, tk$ink)
       yy <- yy - line_h
     }
-  }
-  if (length(lineas)) {
-    .hfp_rect(reg_x, y, reg_w, h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
-    grid::grid.rect(x = reg_x, y = y, width = 0.005, height = h, just = c("left", "top"),
-                    gp = grid::gpar(fill = tk$navy, col = NA))
-    .hfp_text("Ante la no respuesta", reg_x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
-    yy <- y - 0.034
-    for (i in seq_along(lineas)) {
-      .hfp_text(sprintf("%d.", i), reg_x + 0.018, yy, body, tk$navy, "bold")
-      for (l in lineas[[i]]) {
-        .hfp_text(l, reg_x + 0.036, yy, body, tk$ink)
-        yy <- yy - line_h
-      }
-      yy <- yy - 0.005
-    }
+    yy <- yy - 0.004
   }
   invisible(h)
 }
