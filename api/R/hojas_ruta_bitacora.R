@@ -62,6 +62,13 @@ hojas_ruta_bitacora_registrar <- function(sid, accion, resumen, detalle = list()
   s <- session_get(sid)
   previas <- Filter(is.list, s$hojas_ruta_bitacora %||% list())
   fase <- fase %||% as.character(s$hojas_ruta_active_phase %||% "field")
+  # Idempotente con la última: la página clásica recalcula seguido y no debe llenar la
+  # bitácora de copias de la misma decisión.
+  ultima <- if (length(previas)) previas[[length(previas)]] else NULL
+  if (!is.null(ultima) && identical(ultima$accion, accion) && identical(ultima$resumen, .hojas_ruta_bitacora_texto(resumen)) &&
+      identical(as.character(ultima$fase %||% ""), as.character(fase))) {
+    return(invisible(ultima))
+  }
   siguiente <- 1L + max(c(0L, vapply(previas, function(e) as.integer(e$id %||% 0L), integer(1))))
   entrada <- hojas_ruta_bitacora_entrada(accion, resumen, detalle, fase, id = siguiente)
   todas <- c(previas, list(entrada))
@@ -83,5 +90,18 @@ hojas_ruta_bitacora_resumen_sorteo <- function(resultado, config) {
     as.integer(resultado$n_blocks %||% 0L),
     as.integer(resultado$n_replacement_blocks %||% 0L),
     if (isTRUE(me$declarado)) sprintf("marco elegible: mínimo %d vivienda(s), %d área(s)", as.integer(me$minimo_viviendas), length(me$areas_excluidas %||% list())) else "todo el marco 2017"
+  )
+}
+
+#' Registra sin tumbar al llamador: la bitácora acompaña a un endpoint que ya hizo
+#' su trabajo (sortear, calcular), y un fallo al anotarla no debe deshacerlo. El
+#' error va a stderr para no perderlo.
+.hojas_ruta_bitacora_intentar <- function(sid, accion, resumen, detalle = list()) {
+  tryCatch(
+    hojas_ruta_bitacora_registrar(sid, accion, resumen, detalle),
+    error = function(e) {
+      message("[hojas-ruta/bitacora] no se pudo registrar «", accion, "»: ", conditionMessage(e))
+      NULL
+    }
   )
 }

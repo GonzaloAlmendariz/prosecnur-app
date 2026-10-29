@@ -69,3 +69,15 @@ test_that("HTTP: se lee y desde la interfaz sólo se anotan decisiones de cobert
   lista <- ep("GET")$getFunc()(req = req(), res = plumber:::PlumberResponse$new())
   expect_length(lista$entradas, 1)
 })
+
+test_that("una entrada idéntica a la última no se repite, y el router está registrado en la app", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_bitacora_registrar(sid, "tamano_calculado", "N = 1.200", fase = "field")
+  hojas_ruta_bitacora_registrar(sid, "tamano_calculado", "N = 1.200", fase = "field")
+  hojas_ruta_bitacora_registrar(sid, "tamano_calculado", "N = 1.208", fase = "field")
+  expect_length(hojas_ruta_bitacora_leer(sid), 2)
+  expect_true(grepl("mount_hojas_ruta_bitacora(pr)", paste(deparse(body(build_plumber_app)), collapse = " "), fixed = TRUE))
+  # Un fallo al anotar no tumba al llamador.
+  expect_null(.hojas_ruta_bitacora_intentar(sid, "inventada", "x"))
+})

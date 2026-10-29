@@ -639,6 +639,12 @@ mount_hojas_ruta <- function(pr) {
         workspace_outputs = workspace_outputs,
         pilot_exclusion_mode = parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode
       )
+      # U17: un cambio de territorio queda en la bitácora.
+      antes <- sort(as.character(unlist(current$territorios %||% list(), use.names = FALSE)))
+      ahora <- sort(as.character(unlist(cfg$territorios %||% list(), use.names = FALSE)))
+      if (length(ahora) && !identical(antes, ahora)) {
+        .hojas_ruta_bitacora_intentar(sid, "territorio_confirmado", sprintf("Territorio: %d distrito(s).", length(ahora)), list(ubigeos = as.list(ahora), antes = as.list(antes)))
+      }
       list(
         ok = TRUE,
         integrated_config = run$config,
@@ -697,6 +703,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_population_preview_integrado(cfg)
+      .hojas_ruta_bitacora_intentar(sid, "poblacion_calculada", sprintf("Población objetivo: %s personas en %d rango(s) de edad.", format(round(as.numeric(result$total_poblacion %||% 0)), big.mark = ","), length(cfg$age_ranges %||% list())))
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(population = result),
@@ -749,6 +756,11 @@ mount_hojas_ruta <- function(pr) {
       result <- hojas_ruta_sample_size_preview(cfg)
       # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
       result <- hojas_ruta_tamano_extras_completar(result, cfg)
+      .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", sprintf(
+        "Tamaño: N = %d, margen total ±%.1f %%, DEFF %s (%s).",
+        as.integer(result$n_used %||% 0L), 100 * as.numeric(result$margin_total_estimated %||% NA), format(cfg$sample_size$design_effect),
+        as.character(cfg$sample_size$design_effect_fuente %||% "legado")
+      ), list(icc_aplicado = cfg$sample_size$icc_aplicado))
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(sample_size_preview = result),
@@ -773,6 +785,10 @@ mount_hojas_ruta <- function(pr) {
       result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
       # ADR 0116 §1: el salto que imprime la hoja se calcula sobre visitas, no sobre entrevistas.
       result <- hojas_ruta_tamano_extras_salto_muestra(result, effective_cfg)
+      if (any(vapply(avisos_marco, function(a) identical(a$code, "W_FRAME_CHANGED_BY_ELIGIBILITY"), logical(1)))) {
+        .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", list(marco_elegible = cfg$marco_elegible))
+      }
+      .hojas_ruta_bitacora_intentar(sid, "sorteo", hojas_ruta_bitacora_resumen_sorteo(result, effective_cfg), list(seed = result$seed, n_blocks = result$n_blocks))
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>
@@ -958,6 +974,7 @@ mount_hojas_ruta <- function(pr) {
           )
         }
       )
+      .hojas_ruta_bitacora_intentar(sid, "reemplazos_puntuales", sprintf("Reemplazos puntuales para %d titular(es), %d por titular.", length(titular_ids), as.integer(replacements_per_titular)), list(titulares = as.list(titular_ids)))
       list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf", alerts = marco_muestra$alertas)
     })) |>
     plumber::pr_post("/api/hojas-ruta/route-workbook", wrap_endpoint(function(req, res, ...) {
