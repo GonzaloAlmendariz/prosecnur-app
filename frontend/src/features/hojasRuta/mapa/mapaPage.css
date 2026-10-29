@@ -139,6 +139,9 @@
 .hr-mapa-catalogo-copia small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-mapa-catalogo-copia em { font-style: normal; font-weight: 800; color: var(--pulso-module-routes); }
 .hr-mapa-ins-cuerpo { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+/* Las tarjetas no se encogen: si el contenido no cabe, el cuerpo hace scroll (C2).
+   Sin esto, una tarjeta con overflow:hidden se aplastaba y cortaba sus cifras. */
+.hr-mapa-ins-cuerpo > * { flex-shrink: 0; }
 .hr-mapa-ins-cuerpo .hr-mapa-filas { margin: 0; }
 .hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
 .hr-mapa-cifras div { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-right: 1px solid var(--pulso-border); }

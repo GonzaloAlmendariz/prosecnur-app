@@ -19,7 +19,8 @@ const NSE: [number, string, string][] = [
   [0, "Sin dato", "--pulso-nse-0"],
 ];
 
-const pct = (x: number) => `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: x < 0.1 ? 1 : 0 })} %`;
+const pct = (x: number) =>
+  x > 0 && x < 0.001 ? "<0.1 %" : `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: x < 0.1 ? 1 : 0 })} %`;
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
 type Props = {
