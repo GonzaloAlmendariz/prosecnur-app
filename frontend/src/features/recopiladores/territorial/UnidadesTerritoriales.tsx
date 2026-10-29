@@ -36,7 +36,7 @@ export function AvisoDesactualizada({ enviadoAt }: { enviadoAt: string | null })
     <div className="rec-terr-aviso" role="status">
       <AlertTriangle size={15} aria-hidden />
       <p>
-        La muestra cambió en Hojas de ruta desde el envío{cuando ? ` del ${cuando}` : ""}: reenvía desde Hojas de ruta.{" "}
+        La muestra cambió en Hojas de ruta desde el envío{cuando ? ` del ${cuando}` : ""}. Mientras no se reenvíe, aquí no se genera material: saldría de una muestra distinta de la enviada.{" "}
         <Link to={HREF_REENVIO}>Ir a Hojas de ruta</Link>
       </p>
     </div>

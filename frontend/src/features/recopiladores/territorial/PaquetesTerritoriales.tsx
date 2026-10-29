@@ -132,13 +132,13 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar }: Props) {
               : "Hojas de ruta no tiene una muestra guardada con la que armar el paquete."}
           </p>
           <div className="rec-terr-fila">
-            <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
+            <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
               <Archive size={14} aria-hidden /> {e.ocupado === "zip" ? "Preparando…" : "Generar ZIP"}
             </PulsoButton>
             <PulsoButton
               variant="secondary"
               size="sm"
-              disabled={!config || !listo || corriendo}
+              disabled={!config || !listo || corriendo || unidades.stale}
               onClick={() => config && void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
                 window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
                 return { excel: r };
@@ -225,7 +225,7 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar }: Props) {
           <PulsoButton
             variant="secondary"
             size="sm"
-            disabled={!config || !muestra || !elegidas.length || corriendo}
+            disabled={!config || !muestra || !elegidas.length || corriendo || unidades.stale}
             onClick={() => config && muestra && void correr("puntuales", () => apiHojasRutaManualReplacementsPdf({ ...config, replacement_policy: politica }, muestra, elegidas, porTitular), (r) => ({ jobPuntuales: r.job_id, puntuales: null }))}
           >
             {elegidas.length ? `PDF de reemplazos para ${elegidas.length} titular${elegidas.length === 1 ? "" : "es"}` : "Elige al menos una titular"}

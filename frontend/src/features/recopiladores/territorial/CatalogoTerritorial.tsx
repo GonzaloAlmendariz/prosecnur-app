@@ -87,10 +87,10 @@ function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritoriales; hoj
               }))}
             />
           </div>
-          <PulsoButton variant="secondary" size="sm" disabled={!elegida || ocupado !== ""} onClick={verPng}>
+          <PulsoButton variant="secondary" size="sm" disabled={!elegida || ocupado !== "" || unidades.stale} onClick={verPng}>
             {ocupado === "png" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null} Ver la ficha
           </PulsoButton>
-          <PulsoButton variant="primary" size="sm" disabled={!elegida || ocupado !== ""} onClick={abrirPdf}>
+          <PulsoButton variant="primary" size="sm" disabled={!elegida || ocupado !== "" || unidades.stale} onClick={abrirPdf}>
             <Printer size={14} aria-hidden /> {ocupado === "pdf" ? "Generando…" : "Abrir el PDF"}
           </PulsoButton>
         </div>
@@ -113,7 +113,7 @@ function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritoriales; hoj
           {(o) => <span>{o[1]}</span>}
         </GlidingRadioGroup>
         <div className="rec-terr-fila">
-          <PulsoButton variant="secondary" size="sm" disabled={!hojas || ocupado !== ""} onClick={alAzar}>
+          <PulsoButton variant="secondary" size="sm" disabled={!hojas || ocupado !== "" || unidades.stale} onClick={alAzar}>
             {ocupado === "azar" ? "Generando…" : "Abrir un PDF de prueba"}
           </PulsoButton>
           {azar ? <span className="rec-terr-nota">Última: {azar}</span> : null}
