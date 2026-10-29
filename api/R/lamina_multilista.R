@@ -152,14 +152,14 @@
   peq <- any(vapply(items, .lam_multilista_peq, TRUE))
   sin_aire <- vapply(items, function(it) .lam_escala_alto(it$premisas, nb), 0)
   filas <- vapply(items, function(it) sum(vapply(it$premisas, function(p) length(p$filas), 0)), 0)
-  aire0 <- if (peq) max(0, 0.34 - (fila0 - g0)) else 0
+  aire0 <- if (peq) max(0, .std_aire_chica() - (fila0 - g0)) else 0
   con_aire <- sin_aire + filas * aire0
   if (aire0 > 0 && fijo + sum(con_aire) > disp) aire0 <- 0   # sólo si cabe, como en la escala simple
   list(natural = if (aire0 > 0) con_aire else sin_aire, aire0 = aire0,
        decidir = function(f) {
-         aire <- if (aire0 > 0) max(0, 0.34 - (fila0 * f - g0)) else 0
+         aire <- if (aire0 > 0) max(0, .std_aire_chica() - (fila0 * f - g0)) else 0
          fila <- fila0 * f + aire
-         list(aire = aire, grosor = if (peq && fila - g0 < 0.36) max(0.24, fila - 0.36, .std_piso_escala_in()) else g0)   # N1: piso
+         list(aire = aire, grosor = if (peq && fila - g0 < .std_aire_chica()) max(0.24, fila - .std_aire_chica(), .std_piso_escala_in()) else g0)   # N1: piso
        })
 }
 

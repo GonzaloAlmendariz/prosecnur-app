@@ -331,7 +331,7 @@
     }
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   }
-  nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, 0.34 - (fila - g))
+  nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, .std_aire_chica() - (fila - g))
   if (!is.null(aire)) {   # lo decidió la lámina (multilista)
     if (aire > 0) { fila <- fila + aire; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap) }
   } else if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
@@ -341,7 +341,7 @@
     g <- grosor
   } else {
     peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
-    if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36, .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
+    if (peq && fila - g < .std_aire_chica()) g <- max(0.24, fila - .std_aire_chica(), .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
   }
   y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
