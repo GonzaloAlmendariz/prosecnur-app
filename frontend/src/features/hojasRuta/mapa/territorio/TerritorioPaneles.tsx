@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { TerritorioGraficos } from "./TerritorioGraficos";
-import { MapPinned } from "../../../../vendor/lucide-react";
+import { MapPinned, X } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -177,27 +177,25 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
         )}
         {enfocado ? (
           <section className="hr-ter-ficha" aria-label={`Ficha de ${nombreDistrito(enfocado.distrito)}`}>
-            <header>
-              <strong>{nombreDistrito(enfocado.distrito)}</strong>
-              <small>{enfocado.provincia === "CALLAO" ? "Callao" : "Lima"} · ubigeo {enfocado.ubigeo}</small>
-              <button type="button" className="hr-ter-cerrar" aria-label="Cerrar la ficha" onClick={() => setDistritoEnfocado(null)}>×</button>
+            <header className="hr-ter-ficha-cab">
+              <div>
+                <strong>{nombreDistrito(enfocado.distrito)}</strong>
+                <small>{enfocado.provincia === "CALLAO" ? "Callao" : "Lima"} · {enfocado.ubigeo} · {borrador.includes(enfocado.ubigeo) ? "en el estudio" : "fuera del estudio"}</small>
+              </div>
+              <button type="button" className="hr-ter-cerrar" aria-label="Cerrar la ficha" onClick={() => setDistritoEnfocado(null)}><X size={14} /></button>
             </header>
-            <div className="hr-mapa-cifras">
-              <div><small>Población</small><strong>{enMiles(enfocado.poblacion)}</strong></div>
-              <div><small>Viviendas</small><strong>{enMiles(enfocado.viviendas)}</strong></div>
-              <div><small>Manzanas</small><strong>{fmt(enfocado.manzanas)}</strong></div>
-            </div>
-            <dl className="hr-mapa-filas">
-              <div><dt>Del marco de Lima y Callao</dt><dd>{marco ? `${((enfocado.poblacion / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
-              <div><dt>Viviendas por manzana</dt><dd>{enfocado.manzanas ? (enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}</dd></div>
+            <dl className="hr-ter-ficha-cifras">
+              <div><dt>Población</dt><dd>{enMiles(enfocado.poblacion)}</dd></div>
+              <div><dt>Viviendas</dt><dd>{enMiles(enfocado.viviendas)}</dd></div>
+              <div><dt>Manzanas</dt><dd>{fmt(enfocado.manzanas)}</dd></div>
             </dl>
-            <PulsoSwitch
-              label={borrador.includes(enfocado.ubigeo) ? "En el estudio" : "Fuera del estudio"}
-              size="sm"
-              checked={borrador.includes(enfocado.ubigeo)}
-              disabled={bloqueado}
-              onCheckedChange={() => setBorrador(alternar(borrador, enfocado.ubigeo))}
-            />
+            <p className="hr-ter-ficha-nota">
+              {marco ? `${((enfocado.poblacion / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % del marco de Lima y Callao` : null}
+              {enfocado.manzanas ? ` · ${(enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 })} viviendas por manzana` : null}
+            </p>
+            <PulsoButton variant="secondary" size="sm" disabled={bloqueado} onClick={() => setBorrador(alternar(borrador, enfocado.ubigeo))}>
+              {borrador.includes(enfocado.ubigeo) ? "Quitar del estudio" : "Agregar al estudio"}
+            </PulsoButton>
           </section>
         ) : null}
         {bajo ? (
