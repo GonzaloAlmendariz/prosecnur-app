@@ -109,7 +109,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 
 ### Contradicen las reglas ya cerradas en la escala
 
-- F1 **pregunta a Gonzalo**: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
+- F1 ☑ Gonzalo (2026-10-29): «Sí, como C» — la Sí/No sola con barra estándar sale como fila de escala por la multilista de un bloque (lamina_dicotomia_como_escala.R), igual que Conta y la lám. 47 de Arte; fuera el bloque al 85 %. Antes: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
   pero el 85 % del ancho fue decisión deliberada (6ec72b494, defecto 3 de la v3 de Renzo). Arte hoy no tiene Sí/No sola. Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
 - F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
 - F3 ☒ decidido (N5 de Gonzalo: «en PPT está bien»; el Word siempre apila; Arte usa `barra_estandar` por config). Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.

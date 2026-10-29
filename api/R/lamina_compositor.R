@@ -341,7 +341,8 @@
                                   publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
                                   folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
                                   por_lamina = por_lamina,
-                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"))$doc)
+                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"),
+                                  actor = .crc_mayuscula_inicial(base_var))$doc)   # rótulo de fila de la Sí/No como escala
   }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
