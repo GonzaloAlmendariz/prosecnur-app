@@ -137,13 +137,15 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
       barrido = barrido,
       sin_salto = sin_salto
     ),
+    # El protocolo ante la no respuesta es uno solo (ADR 0116 §1): el que trae la
+    # manzana o, en una muestra anterior a U14a, el canónico. La hoja del día
+    # imprime el mismo texto.
     procedimiento = list(
       visitas = visitas,
-      pasos = c(
-        if (barrido) "Si una vivienda no responde, pase a la siguiente." else
-          "Si una vivienda no responde, siga con el salto.",
-        "Si la manzana se agota, siga en las manzanas aledañas en orden (1 a 8), con el mismo sentido y el mismo salto."
-      )
+      pasos = .hojas_ruta_vp_regla_pasos({
+        regla <- .hojas_ruta_vp_regla(block)
+        if (nzchar(regla)) regla else HOJAS_RUTA_REGLA_NO_RESPUESTA
+      })
     )
   )
 }
@@ -542,7 +544,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   .hfp_line(px, R, y, col = tk$navy, lwd = pesos$bloque)
   y <- y - bloque_h
 
-  # --- Procedimiento: lo que no dice el esquema, en dos líneas ---------------
+  # --- Procedimiento ante la no respuesta ------------------------------------
   y <- y - 0.016
   .hfp_procedimiento(modelo$procedimiento, L, y, W, tk, pesos)
 
@@ -626,8 +628,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   y - alto
 }
 
-# Procedimiento: qué hacer si una vivienda no responde y si la manzana se
-# agota. Las visitas esperadas (ADR 0116) van como un dato al costado del título.
+# Procedimiento ante la no respuesta (ADR 0116 §1). Las visitas esperadas van
+# como un dato al costado del título.
 .hfp_procedimiento <- function(pr, x, y, w, tk, pesos) {
   body <- 8.2
   line_h <- 0.0135
@@ -636,7 +638,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   .hfp_rect(x, y, w, h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
   grid::grid.rect(x = x, y = y, width = 0.005, height = h, just = c("left", "top"),
                   gp = grid::gpar(fill = tk$navy, col = NA))
-  .hfp_text("Procedimiento", x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
+  .hfp_text("Procedimiento ante la no respuesta", x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
   if (!is.na(pr$visitas)) {
     .hfp_text(sprintf("Visitas esperadas: %d", pr$visitas), x + w - 0.014, y - 0.015, 8.2, tk$soft,
               just = c("right", "center"))

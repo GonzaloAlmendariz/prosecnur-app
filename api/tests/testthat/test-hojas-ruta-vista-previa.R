@@ -53,9 +53,10 @@ test_that("la ficha encuentra titular y reemplazo, e imprime visitas esperadas y
   expect_gt(file.size(out$path), 1000)
   txt <- vp_pdf_texto(out$path)
   expect_match(txt, sprintf("Visitas esperadas: %d", tit$visitas_esperadas), fixed = TRUE)
-  # La ficha resume el procedimiento (la regla completa va en la hoja del día).
-  expect_match(txt, "Procedimiento", fixed = TRUE)
-  expect_match(txt, "manzanas aledañas", fixed = TRUE)
+  # La ficha imprime el protocolo único ante la no respuesta, como la hoja del día.
+  expect_match(txt, "Procedimiento ante la no respuesta", fixed = TRUE)
+  expect_match(txt, "segunda pasada", fixed = TRUE)
+  expect_match(txt, "manzana de reemplazo", fixed = TRUE)
 
   png_out <- hojas_ruta_ficha_ump(sm, f_r, tempfile(fileext = ".png"), "png")
   expect_identical(png_out$formato, "png")
