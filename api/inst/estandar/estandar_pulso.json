@@ -192,6 +192,49 @@
         }
       ]
     },
+    "composicion": {
+      "unidad": "in",
+      "escala": {
+        "aire_tema": 0.14,
+        "aire_entre_temas_max": 0.9,
+        "aire_leyenda": 0.3,
+        "rotulo_box_sobre": 0.45,
+        "columna_box": 1.5,
+        "columna_box_con_btb": 1.25
+      },
+      "llenar": {
+        "aire_leyenda": 0.45,
+        "aire_entre_temas_max": 1,
+        "aire_publicos_max": 0.65,
+        "piso_leyenda": 0.32,
+        "grosor": [
+          {
+            "filas_hasta": 2,
+            "grosor": 0.7
+          },
+          {
+            "filas_hasta": 3,
+            "grosor": 0.66
+          },
+          {
+            "filas_hasta": 4,
+            "grosor": 0.58
+          },
+          {
+            "filas_hasta": 6,
+            "grosor": 0.51
+          },
+          {
+            "filas_hasta": 9,
+            "grosor": 0.38
+          },
+          {
+            "filas_hasta": 999,
+            "grosor": 0.32
+          }
+        ]
+      }
+    },
     "reglas": {
       "leyenda": "centrada en todo el bloque, incluida la columna Top Two Box; en mapas, al lado y centrada en vertical",
       "cifras_chicas": "si no caben en su segmento suben con una guía, separadas 0.46 in entre sí; la fila gana aire_cifra_chica",

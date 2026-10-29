@@ -67,6 +67,22 @@ grosor <- list(unidad = "in", nota = "por número de filas de la lámina; la bar
   piso_escala_cm = 1.12,
   escala_apilada = list(list(filas_hasta = 2, grosor = 0.50), list(filas_hasta = 3, grosor = 0.48), list(filas_hasta = 6, grosor = 0.44), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32)),
   categorias = list(list(filas_hasta = 3, grosor = 0.26), list(filas_hasta = 6, grosor = 0.28), list(filas_hasta = 7, grosor = 0.30), list(filas_hasta = 999, grosor = 0.32)))
+# Composición de las láminas de escala (Sí/No, multilista, filtro): las medidas que el motor decide y que se midieron sobre
+# el informe de Contabilidad del motor anterior (GOAL docs/qa/goal-estandar-composicion-2026-10-29.md). Todo en pulgadas.
+composicion <- list(unidad = "in",
+  escala = list(
+    aire_tema = 0.14,                # entre las barras de un mismo tema, borde a borde (Conta 0,10–0,35)
+    aire_entre_temas_max = 0.9,      # tope del aire entre temas cuando la lámina no llena su alto
+    aire_leyenda = 0.3,              # de la última barra (o premisa) a la leyenda
+    rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
+    columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
+  llenar = list(                     # la lámina con alto de sobra (lamina_escala_llenar.R)
+    aire_leyenda = 0.45,             # Conta 0,3–0,75
+    aire_entre_temas_max = 1.0,      # Conta: mediana 0,74; 1,1–1,4 con pocas barras
+    aire_publicos_max = 0.65,        # públicos de una sola pregunta (Conta 0,65–0,84)
+    piso_leyenda = 0.32,             # la leyenda de una fila no baja de base_y menos esto
+    grosor = list(list(filas_hasta = 2, grosor = 0.70), list(filas_hasta = 3, grosor = 0.66), list(filas_hasta = 4, grosor = 0.58),
+                  list(filas_hasta = 6, grosor = 0.51), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32))))
 reglas <- list(
   leyenda = "centrada en todo el bloque, incluida la columna Top Two Box; en mapas, al lado y centrada en vertical",
   cifras_chicas = "si no caben en su segmento suben con una guía, separadas 0.46 in entre sí; la fila gana aire_cifra_chica",
@@ -141,7 +157,7 @@ word <- list(
                 "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"))
 
 est <- list(version = "2026.10", fuente = c("docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx", "docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx"),
-            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, reglas = reglas, tipos_lamina = tipos), word = word)
+            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, composicion = composicion, reglas = reglas, tipos_lamina = tipos), word = word)
 dir.create("api/inst/estandar", showWarnings = FALSE, recursive = TRUE)
 salida <- commandArgs(trailingOnly = TRUE)[1]
 if (is.na(salida)) salida <- "api/inst/estandar/estandar_pulso.json"

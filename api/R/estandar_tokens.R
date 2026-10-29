@@ -197,6 +197,13 @@
 #' @keywords internal
 .std_aire_chica <- function() .std_geom("aire_cifra_chica")
 
+#' Medida de composición del estándar (`ppt.composicion`): `.std_comp("escala", "aire_tema")`
+#'
+#' Las decisiones de composición de las láminas de escala, medidas sobre Contabilidad (GOAL estándar de composición,
+#' 2026-10-29), viven con nombre en el JSON y no como constantes sueltas en cada archivo.
+#' @keywords internal
+.std_comp <- function(...) .std_valor("ppt", "composicion", ...)
+
 #' Tipo de lámina del estándar por id (`p_slide_1_grafico`...), con sus ranuras
 #' @keywords internal
 .std_tipo_lamina <- function(id) {

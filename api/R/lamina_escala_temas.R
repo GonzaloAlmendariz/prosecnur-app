@@ -7,11 +7,8 @@
 # pasa a la separación entre temas. Solo geometría: no toca cifras, denominadores, orden ni colores, y el bloque nunca
 # crece (el alto que planearon la partición y la multilista sigue siendo una cota).
 
-# Aire entre las barras de un mismo tema (borde a borde) cuando ninguna cifra chica sube entre ellas, en pulgadas.
-.LAM_TEMA_AIRE <- 0.14
-# Tope del aire entre temas (de la última barra de un tema a la primera del siguiente) cuando sobra alto: lo que pase
-# de aquí queda bajo el bloque, no en medio. Un aire que ya era mayor no se recorta.
-.LAM_TEMA_AIRE_ENTRE_MAX <- 0.9
+# El aire dentro de un tema y su tope entre temas viven en el estándar (`ppt.composicion.escala`: aire_tema,
+# aire_entre_temas_max).
 # Altura de la primera barra bajo el inicio del bloque cuando su cifra chica sube: la del paso natural (aire 0,24 in),
 # para que la cifra no se acerque al rótulo de la columna Top Two Box.
 .LAM_TEMA_PRIMERA_CHICA <- 0.24 / 2 + 0.06
@@ -27,13 +24,13 @@
 #' @param piso_lab Alto mínimo del paso de fila de cada premisa para que el rótulo del público (y sus respuestas) quepa.
 #' @param holgura Holgura de la cifra chica con la barra de arriba (`.lam_holgura_chica()`).
 #' @param extra Alto adicional que quien compone le cede al bloque (el aire que soltó arriba, G19); solo va entre temas.
-#' @param tope_entre Tope del aire entre temas (`.LAM_LLENAR_ENTRE_MAX` cuando la lámina llena su alto).
+#' @param tope_entre Tope del aire entre temas (`.std_comp("llenar", "aire_entre_temas_max")` cuando la lámina llena su alto).
 #' @param repartir Con una sola pregunta, sus públicos se reparten `extra` (la lámina llena su alto).
 #' @return `list(filas, gaps, pad, alto)`: paso de fila por premisa, separación por frontera, aire extra sobre la
 #'   primera premisa y alto total (nunca mayor que el de entrada más `extra`).
 #' @keywords internal
 .lam_escala_temas_aire <- function(hn, nf, fila, g, gaps, chica, piso_lab = rep(0, length(hn)),
-                                   holgura = .lam_holgura_chica(), extra = 0, tope_entre = .LAM_TEMA_AIRE_ENTRE_MAX,
+                                   holgura = .lam_holgura_chica(), extra = 0, tope_entre = .std_comp("escala", "aire_entre_temas_max"),
                                    repartir = FALSE) {
   n <- length(hn)
   gaps <- rep_len(as.numeric(gaps), max(0L, n - 1L))
@@ -44,7 +41,7 @@
   # caja más su holgura, nunca menos que el `aire_cifra_chica` del estándar). Nunca más que el que ya tenía: si el bloque venía apretado, se queda como estaba.
   pide <- vapply(seq_len(n), function(i) {
     ch <- as.logical(chica[[i]]); interior <- length(ch) > 1L && any(ch[-1L])
-    if (interior) max(0.28 + holgura, .std_aire_chica()) else max(.LAM_TEMA_AIRE, piso_lab[i] - g)
+    if (interior) max(0.28 + holgura, .std_aire_chica()) else max(.std_comp("escala", "aire_tema"), piso_lab[i] - g)
   }, 0)
   filas <- g + pmin(fila - g, pide)
   # Geometría de una premisa: arriba de su primera barra y abajo de la última, desde el borde de la premisa.
@@ -58,9 +55,9 @@
   if (n == 1L) {
     # Una sola pregunta y la lámina llena su alto (lamina_escala_llenar.R): no hay otro tema con el que confundirla, así que
     # sus públicos se reparten el alto como en Contabilidad (paso de 1,4–1,5 in con tres públicos), con un aire de a lo más
-    # `.LAM_LLENAR_AIRE_PUBLICOS` entre barras.
+    # `.std_comp("llenar", "aire_publicos_max")` entre barras.
     if (isTRUE(repartir) && extra > 0 && nf[1] > 1) {
-      f1 <- max(filas[1], min(g + .LAM_LLENAR_AIRE_PUBLICOS, (max(w$a[1], nf[1] * filas[1]) + extra) / nf[1]))
+      f1 <- max(filas[1], min(g + .std_comp("llenar", "aire_publicos_max"), (max(w$a[1], nf[1] * filas[1]) + extra) / nf[1]))
       return(list(filas = f1, gaps = gaps, pad = pad, alto = max(hn[1], nf[1] * f1) + pad))
     }
     return(list(filas = filas, gaps = gaps, pad = pad, alto = w$a + pad))
@@ -73,7 +70,7 @@
   reparte <- (alto0 + max(0, extra) - sum(w$a) - pad - sum(base)) / (n - 1L)
   if (!is.finite(reparte) || reparte < 0) return(sin_cambio)
   nuevos <- base + reparte
-  # Tope: el aire entre temas no pasa de `.LAM_TEMA_AIRE_ENTRE_MAX` salvo que ya fuera mayor; el sobrante queda abajo.
+  # Tope: el aire entre temas no pasa de `.std_comp("escala", "aire_entre_temas_max")` salvo que ya fuera mayor; el sobrante queda abajo.
   entre <- (w$a[idx] - w$ultima[idx]) + nuevos + w$primera[idx + 1L]
   tope <- pmax(antes, tope_entre)
   nuevos <- nuevos - pmax(0, entre - tope)

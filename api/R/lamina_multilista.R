@@ -295,7 +295,7 @@
     y <- y + (if (arriba) .LAM_MULTILISTA_AIRE else if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire + dg, grosor = gr$grosor + dg,
-                              rotulo_sobre = if (arriba) 0.45 else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
+                              rotulo_sobre = if (arriba) .std_comp("escala", "rotulo_box_sobre") else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
                               extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
                               llenando = sin_tope,   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
                               # Un bloque sin título continúa al de arriba: no repite el rótulo «TOP TWO BOX» si otro ya lo puso (Conta,
@@ -309,7 +309,7 @@
   # La lámina aprovecha su alto como Contabilidad (lamina_escala_llenar.R): con alto de sobra, la barra engrosa hacia su
   # grosor y el resto va entre temas y bloques, no bajo el último. Nada cambia si la lámina viene justa o apretada.
   dg <- 0; entre <- 0; extra <- rep(0, length(items))
-  meta <- .lam_piso_leyenda() - .LAM_LLENAR_AIRE_LEYENDA - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)
+  meta <- .lam_piso_leyenda() - .std_comp("llenar", "aire_leyenda") - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)
   if (!apretar && f >= 1) {
     fin_de <- function(...) componer(.lam_lienzo(), ..., sin_tope = TRUE) - .LAM_MULTILISTA_GAP
     sobra <- meta - fin_de()
@@ -318,8 +318,8 @@
     temas <- vapply(items, function(it) max(0L, length(it$premisas) - 1L), 0L)
     fronteras <- sum(temas) + length(items) - 1L
     if (sobra > 0.05 && fronteras > 0) {
-      # Entre bloques, como entre temas: a lo más lo que deja `.LAM_LLENAR_ENTRE_MAX` (Conta), no todo el sobrante.
-      parte <- sobra / fronteras; entre <- min(parte, .LAM_LLENAR_ENTRE_MAX - .LAM_MULTILISTA_GAP); extra <- parte * temas
+      # Entre bloques, como entre temas: a lo más lo que deja `.std_comp("llenar", "aire_entre_temas_max")` (Conta), no todo el sobrante.
+      parte <- sobra / fronteras; entre <- min(parte, .std_comp("llenar", "aire_entre_temas_max") - .LAM_MULTILISTA_GAP); extra <- parte * temas
     } else if (sobra > 0.05) {
       extra <- rep(sobra, length(items))   # una sola pregunta: el alto se lo reparten sus públicos (lamina_escala_temas.R)
     }
@@ -329,7 +329,7 @@
   if (compartida) {
     e <- items[[1]]$espec; ley <- e$leyenda
     y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
-             else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .LAM_LLENAR_AIRE_LEYENDA)   # llena: 0,45 in, como Conta
+             else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .std_comp("llenar", "aire_leyenda"))   # llena: 0,45 in, como Conta
              else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
     .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras

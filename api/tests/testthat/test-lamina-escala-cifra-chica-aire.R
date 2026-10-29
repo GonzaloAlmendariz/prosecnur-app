@@ -60,7 +60,7 @@ test_that("no cambia lo que no se pidió: aire de la fila, separación de 0,46 i
   # El aire de la fila es al menos el de la cifra chica; con alto de sobra la lámina lo usa (lamina_escala_llenar.R,
   # Gonzalo 2026-10-28), sin pasar el aire de Contabilidad entre públicos de una pregunta.
   expect_gte(unname(diff(fila)[1]), unname(m$seg$h[1] + 0.36) - 1e-3)
-  expect_lte(unname(diff(fila)[1]) - unname(m$seg$h[1]), max(0.36, .LAM_LLENAR_AIRE_PUBLICOS) + 1e-3)
+  expect_lte(unname(diff(fila)[1]) - unname(m$seg$h[1]), max(0.36, .std_comp("llenar", "aire_publicos_max")) + 1e-3)
   c1 <- m$cf[round(m$cf$y, 2) == round(min(m$cf$y), 2), ]
   if (nrow(c1) > 1) expect_gte(min(diff(sort(c1$x))), 0.46 - 1e-3)
 })

@@ -47,7 +47,7 @@
   .lam_barra_apilada(lz, xb, y2, wb, .lam_escala_seg(s, 1L), g)
   if (!is.null(n_encima)) .lam_n_encima_barra(lz, n_encima, xb + wb, y2, desde = desde)
   for (cc in cb$cols) {
-    .lam_txt(lz, cc$rotulo, cc$x, y2 - 0.45, cb$ancho_col, 0.26, .std_pt("rotulo_top_two_box"), cc$color, bold = TRUE,
+    .lam_txt(lz, cc$rotulo, cc$x, y2 - .std_comp("escala", "rotulo_box_sobre"), cb$ancho_col, 0.26, .std_pt("rotulo_top_two_box"), cc$color, bold = TRUE,
              align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
     .lam_etiqueta_box(lz, s, cc$x, y2, g, 1L, con_n = FALSE, caja = cc$caja, color = cc$color, w = cb$ancho_col, prefijo = cc$prefijo)
   }

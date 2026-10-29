@@ -31,12 +31,12 @@ test_that("el helper junta las filas de cada tema, pasa el aire a la separación
   g <- 0.44; fila <- g + 0.5
   r <- .lam_escala_temas_aire(hn = c(0.6, 0.6), nf = c(3, 3), fila = fila, g = g, gaps = 0.5,
                               chica = list(rep(FALSE, 3), rep(FALSE, 3)))
-  expect_equal(r$filas - g, rep(.LAM_TEMA_AIRE, 2))
+  expect_equal(r$filas - g, rep(.std_comp("escala", "aire_tema"), 2))
   alto0 <- 2 * 3 * fila + 0.5
   expect_lte(r$alto, alto0 + 1e-9)
   # Aire entre temas (última barra de uno a primera del otro): antes fila - g + gap; ahora mayor, hasta el tope.
-  expect_gt(r$gaps + .LAM_TEMA_AIRE, (fila - g) + 0.5)
-  expect_lte(r$gaps + .LAM_TEMA_AIRE, max((fila - g) + 0.5, .LAM_TEMA_AIRE_ENTRE_MAX) + 1e-9)
+  expect_gt(r$gaps + .std_comp("escala", "aire_tema"), (fila - g) + 0.5)
+  expect_lte(r$gaps + .std_comp("escala", "aire_tema"), max((fila - g) + 0.5, .std_comp("escala", "aire_entre_temas_max")) + 1e-9)
 })
 
 test_that("una cifra chica entre barras del mismo tema conserva su aire; un bloque apretado no se toca", {
@@ -44,7 +44,7 @@ test_that("una cifra chica entre barras del mismo tema conserva su aire; un bloq
   r <- .lam_escala_temas_aire(hn = c(0.6, 0.6), nf = c(3, 3), fila = g + 0.6, g = g, gaps = 0.3,
                               chica = list(c(FALSE, TRUE, FALSE), rep(FALSE, 3)))
   expect_equal(r$filas[1] - g, max(0.28 + .lam_holgura_chica(), .std_aire_chica()))
-  expect_equal(r$filas[2] - g, .LAM_TEMA_AIRE)
+  expect_equal(r$filas[2] - g, .std_comp("escala", "aire_tema"))
   # Venía con menos aire del que pediría la cifra chica: se queda como estaba (nunca se abre la fila).
   r2 <- .lam_escala_temas_aire(hn = c(0.6, 0.6), nf = c(3, 3), fila = g + 0.24, g = g, gaps = 0.26,
                                chica = list(c(FALSE, TRUE, TRUE), c(TRUE, TRUE, TRUE)))
@@ -59,7 +59,7 @@ test_that("en la lámina: el aire dentro del tema es menor que entre temas y el 
   f <- .gta_formas(o$doc); b <- .gta_barras(f)
   expect_length(b$y, 6L)
   dentro <- b$aire[c(1, 2, 4, 5)]; entre <- b$aire[3]
-  expect_true(all(abs(dentro - .LAM_TEMA_AIRE) < 1e-3))
+  expect_true(all(abs(dentro - .std_comp("escala", "aire_tema")) < 1e-3))
   expect_gt(entre, 3 * max(dentro))
   # Arriba: el rótulo de la columna queda 0,45 in sobre el inicio de la franja (zona de datos + 0,1); una lámina que ya
   # llena su alto sólo baja lo poco que le sobra al centrarse (lamina_escala_llenar.R).

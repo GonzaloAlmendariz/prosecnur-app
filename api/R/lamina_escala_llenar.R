@@ -14,36 +14,28 @@
 # Sólo se usa el alto que SOBRA en la lámina ya partida: el grosor crece hacia el de Contabilidad y el resto va entre
 # temas. La partición y el número de láminas no cambian (se decide antes, con el grosor del estándar).
 
-#' Grosor de Contabilidad por número de barras de la lámina (in)
+#' Grosor de Contabilidad por número de barras de la lámina (in), del estándar (`ppt.composicion.llenar.grosor`)
 #' @keywords internal
 .lam_grosor_holgado <- function(nb) {
-  tabla <- list(c(2, 0.70), c(3, 0.66), c(4, 0.58), c(6, 0.51), c(9, 0.38))
-  for (t in tabla) if (nb <= t[1]) return(t[2])
-  0.32
+  for (t in .std_comp("llenar", "grosor")) if (nb <= t$filas_hasta) return(t$grosor)
+  .std_comp("llenar", "grosor")[[length(.std_comp("llenar", "grosor"))]]$grosor
 }
 
-# Aire máximo entre las barras de los públicos de una sola pregunta cuando la lámina llena su alto (Conta: 0,65–0,84 in).
-.LAM_LLENAR_AIRE_PUBLICOS <- 0.65
-# Tope del aire entre temas cuando la lámina llena su alto (Conta: mediana 0,74 in, 0,6–1,2 en láminas de pocas barras).
-# Gonzalo, 2026-10-28: «está bien que haya una separación entre temáticas, pero veo una separación como de 4 centímetros».
-.LAM_LLENAR_ENTRE_MAX <- 1.0
-
-# Aire entre la última barra (o el texto de la última premisa) y la leyenda cuando la lámina tiene alto de sobra.
-.LAM_LLENAR_AIRE_LEYENDA <- 0.45
+# Los aires de la lámina que llena su alto (leyenda, entre temas, entre públicos) viven en `ppt.composicion.llenar`.
 
 #' Piso de la leyenda de una fila: `base_y - 0,32` (el tope de `.lam_leyenda`), menos lo que reserve el pie
 #'
 #' La nota de significancia reserva su alto sobre «Base:» (`prosecnur.lam_reserva_pie`, lamina_nota_significancia.R):
 #' `leyenda_y` ya lo descuenta, `base_y` no, y la leyenda que bajaba hasta su piso pisaba la nota.
 #' @keywords internal
-.lam_piso_leyenda <- function() .std_geom("base_y") - 0.32 - getOption("prosecnur.lam_reserva_pie", 0)
+.lam_piso_leyenda <- function() .std_geom("base_y") - .std_comp("llenar", "piso_leyenda") - getOption("prosecnur.lam_reserva_pie", 0)
 
 #' Alto disponible para el bloque de una lámina de escala que llena su alto: hasta la leyenda en su piso
 #'
-#' La leyenda de una fila baja hasta `base_y - 0,32` (`.lam_leyenda`); el bloque termina `.LAM_LLENAR_AIRE_LEYENDA` antes.
+#' La leyenda de una fila baja hasta `base_y - 0,32` (`.lam_leyenda`); el bloque termina `.std_comp("llenar", "aire_leyenda")` antes.
 #' @keywords internal
 .lam_escala_alto_llenar <- function(y0) {
-  .lam_piso_leyenda() - .LAM_LLENAR_AIRE_LEYENDA - y0
+  .lam_piso_leyenda() - .std_comp("llenar", "aire_leyenda") - y0
 }
 
 #' Cuánto engrosar la barra con el alto que sobra: hacia el grosor de Contabilidad, sin pasarlo
@@ -63,5 +55,5 @@
 #' @param fin `y` donde termina el bloque compuesto sin desplazar. @return Desplazamiento (in, >= 0).
 #' @keywords internal
 .lam_escala_centrar <- function(fin) {
-  max(0, (.lam_piso_leyenda() - .LAM_LLENAR_AIRE_LEYENDA - fin) / 2)
+  max(0, (.lam_piso_leyenda() - .std_comp("llenar", "aire_leyenda") - fin) / 2)
 }
