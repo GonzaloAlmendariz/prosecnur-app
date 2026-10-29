@@ -25,7 +25,11 @@ export function BarraExtraBloque({ block, laminaArgs, categorias, onChange }: Pr
   const heredado: BarraExtra = leerTwoBox("p_barras_multiapiladas", laminaArgs, presets)?.valor ?? false;
   const propio = barraExtraDeBloque(block);
   const valor = propio ?? heredado;
-  const cambiar = (v: BarraExtra) => onChange({ barra_extra: mismaBarraExtra(v, heredado) ? null : v === false ? false : [...v] });
+  // Si la barra del bloque venía en sus `overrides` (así la deja el motor), se limpia ahí al decidirla: si no, al apagarla
+  // (o igualarla a la de la lámina) la de `overrides` la volvía a encender.
+  const enOverrides = !!block.overrides && typeof block.overrides === "object" && "barra_extra" in (block.overrides as Registro);
+  const fijar = (barra: BarraExtra | null) => onChange(enOverrides ? { barra_extra: barra, overrides: { barra_extra: null } } : { barra_extra: barra });
+  const cambiar = (v: BarraExtra) => fijar(mismaBarraExtra(v, heredado) ? null : v === false ? false : [...v]);
   return (
     <BarraExtraControl
       qa="barra-extra-bloque"
@@ -38,7 +42,7 @@ export function BarraExtraBloque({ block, laminaArgs, categorias, onChange }: Pr
       onEtiquetas={(caja, etiquetas) => onChange({ [caja === "top2box" ? "top2box_labels" : "bottom2box_labels"]: etiquetas })}
       bottomBloqueado={opcionesActivas(valor).includes("bottom2box") ? undefined : NOTA_BOTTOM_NO_NATIVO}
       heredada={propio === undefined ? "Este bloque usa la barra extra de la lámina." : undefined}
-      restablecer={propio !== undefined && !mismaBarraExtra(propio, heredado) ? { rotulo: "Usar la de la lámina", onClick: () => onChange({ barra_extra: null }) } : undefined}
+      restablecer={propio !== undefined && !mismaBarraExtra(propio, heredado) ? { rotulo: "Usar la de la lámina", onClick: () => fijar(null) } : undefined}
     />
   );
 }
