@@ -24,7 +24,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B13 | Mapa | peor · bajo | Fondo #f7f8fa vs #fafbff; encuadrar es «⤢» texto, no ícono | `lienzo/lienzoMapa.css` | ☐ |
 | B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |
 | B15 | Inspector | peor · medio | Rótulos de sección (LO ELEGIDO, MARCO TERRITORIAL, RESULTADO, MATRIZ) | Territorio, Población | ☐ |
-| B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `muestra/MuestraPaneles.tsx` | ☐ |
+| B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `.hr-muestra-opciones` en `mapaPage.css`: riel tenue con píldora blanca que se desliza y texto activo en el tono del módulo; sin borde por opción; a 1024 nada se corta. Aplica también a Población y a los cajones. El DEFF queda como fichas con rótulo (B33): cuatro nombres no caben en un segmentado de 260 px | ☑ |
 | B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | Población ☑ 767342b07; Muestra ☑ (`muestra/MuestraCajon.tsx`: cuotas por distrito con totales por rango y sexo) | ☑ |
 | B18 | Cajón | peor · medio (C2) | Ancho limitado al lienzo; pestañas sin `aria-selected` ni activa visible; «×» texto; desborde 8/284 px; tapa zoom a 1024 | `.hr-sel-cajon` | ☐ |
 | B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | `seleccion/SalidasPanel.tsx` | ☐ |
