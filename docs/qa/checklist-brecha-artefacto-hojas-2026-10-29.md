@@ -27,8 +27,8 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `.hr-muestra-opciones` en `mapaPage.css`: riel tenue con píldora blanca que se desliza y texto activo en el tono del módulo; sin borde por opción; a 1024 nada se corta. Aplica también a Población y a los cajones. El DEFF queda como fichas con rótulo (B33): cuatro nombres no caben en un segmentado de 260 px | ☑ |
 | B17 | Cajón | falta · alto | Cajón también desde Población («Ver matriz») y Muestra («Ver cuotas») | Población ☑ 767342b07; Muestra ☑ (`muestra/MuestraCajon.tsx`: cuotas por distrito con totales por rango y sexo) | ☑ |
 | B18 | Cajón | peor · medio (C2) | Ancho limitado al lienzo; pestañas sin `aria-selected` ni activa visible; «×» texto; desborde 8/284 px; tapa zoom a 1024 | `.hr-sel-cajon` alto fijo 46 % y escala/zoom/leyenda suben encima (`:has`): a 1024 el zoom pasó de quedar bajo el cajón a 8 px sobre él; «×» → ícono; pestañas son radios con `aria-checked` y activa visible (B16); el único desborde es el scroll horizontal legítimo de la tabla. Ancho: se queda en el lienzo (no tapa el inspector) | ☑ |
-| B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | `seleccion/SalidasPanel.tsx` | ☐ |
-| B20 | Plan de campo | falta · alto | Lista por día y encuestador con color y «Hoja del día»; cifras derivadas; mapa por encuestador | calendario en `hojas_ruta_plan_campo` (encuestador, día), lista por día en `PlanCampo.tsx`; FALTA el mapa coloreado por encuestador y verlo en vivo | ◐ |
+| B19 | Salidas | peor · alto | Sideover con velo tapa el mapa; en el artefacto es sección con mapa por encuestador | ⛔ DECISIÓN: el artefacto hace de Salidas una sección; el ADR 0114 §3 (y D1/D2 del plan) la dejaron como `?panel=salidas` dentro de Selección. Pasarla a sección cambia el manifiesto de navegación (`lib/modules.ts`) y el contrato de paneles: lo decide Gonzalo | ⛔ |
+| B20 | Plan de campo | falta · alto | Lista por día y encuestador con color y «Hoja del día»; cifras derivadas; mapa por encuestador | calendario en `hojas_ruta_plan_campo` (encuestador, día), lista por día en `PlanCampo.tsx`; FALTA el mapa coloreado por encuestador y verlo en vivo. ⛔ verlo en vivo exige relanzar el backend 8841 (arrancó 07:09, antes de ba01007bf) y eso deja sin sesión las pestañas de Gonzalo: espera su OK; el mapa por encuestador depende además de B19 | ◐ ⛔ |
 | B21 | Plan / Muestra | peor · alto (C5) | Costos arrancan en 0 → sin costo estimado; Muestra no muestra la tarjeta de costo | defaults del artefacto (S/ 145 por jornada = 120 pago + 25 movilidad, 15 % supervisión) en R y cliente, rotulados como supuestos | ☑ |
 | B22 | Salidas | falta · medio | Botón «Ver el informe» (U16), «Enviar a Material», conteos del paquete, sugeridas para reemplazo puntual | ☑ «Ver el informe» (`seleccion/InformeDiseno.tsx`: job del motor → abre el HTML; verificado: 200, «Propuesta muestral territorial - 6 distritos»); ☑ conteos del paquete («150 fichas en 6 carpetas, 150 de reemplazo, 149 hojas por zona») y ☑ sugeridas sin viviendas (UMP 71) en `salidas.ts` con test. ⛔ «Enviar a Material» espera U19 (E2 de Recopiladores) | ◐ |
 | B23 | Bitácora | — (C5 legítimo) | Vacía en proyectos previos a U17: decirlo en la UI | `mensajeBitacoraVacia` en `BitacoraSeccion.tsx` (con test): si el proyecto ya tiene muestra y la bitácora está vacía, dice que es anterior a ella y que desde ahora registra; verificado en acnur_acg | ☑ |
@@ -60,6 +60,10 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).
+
+## Lo que queda (2026-10-29, tarde)
+
+Sólo quedan ítems que exigen una decisión de Gonzalo: B19 (Salidas sección vs panel), B20 (relanzar el backend para ver el calendario por encuestador; mapa por encuestador ligado a B19), B22 «Enviar a Material» (U19) y el modal de B46 (contrato de paneles).
 
 ## Pausa (2026-10-29)
 
