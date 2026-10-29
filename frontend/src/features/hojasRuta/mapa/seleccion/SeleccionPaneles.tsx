@@ -235,7 +235,9 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
         <GlidingRadioGroup value={cajon} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajon} className="hr-muestra-opciones" aria-label="Tabla">
           {(o) => <span>{o[1]}</span>}
         </GlidingRadioGroup>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>×</PulsoButton>
+        <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>
+          <X size={14} aria-hidden />
+        </PulsoButton>
       </header>
       {cajon === "cuotas" ? (
         <PulsoTable ariaLabel="Cuotas" densidad="compacta" altoMaximo={280} columnas={COLUMNAS_CUOTA} filas={(cuotas?.cells ?? []).map((c, _i) => ({ ...c, _i }))} idDeFila={(c) => String(c._i)} vacio="Sin cuotas calculadas." />
