@@ -178,6 +178,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
               </div>
               {decision ? (
                 <>
+                  <p className="hr-mapa-nota">La justificación se publica tal cual en el informe de diseño muestral que recibe el cliente.</p>
                   <input className="hr-mapa-buscar" aria-label="Justificación de la decisión" placeholder={decision === "redefinir" ? "Cómo se redefine (p. ej., hogares fuera de zonas de riesgo)" : "Por qué se acepta la pérdida de cobertura"} value={justificacion} onChange={(e) => setJustificacion(e.target.value)} />
                   <PulsoButton
                     variant="secondary"
