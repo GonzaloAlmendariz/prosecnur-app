@@ -501,3 +501,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-escenarios li strong { font-size: 12.5px; }
 .hr-muestra-escenarios li small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-muestra-escenarios li small.hr-muestra-escenario-actual { font-weight: 700; color: var(--pulso-module-routes); }
+.hr-muestra-deff .hr-mapa-zona { display: inline-flex; align-items: baseline; gap: 5px; }
+.hr-muestra-deff .hr-mapa-zona b { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.hr-muestra-atajos { margin-top: -4px; }

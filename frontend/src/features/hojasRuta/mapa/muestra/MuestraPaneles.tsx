@@ -37,6 +37,24 @@ function Opciones<V extends string | number>({ etiqueta, valor, opciones, onCamb
   );
 }
 
+const DEFF_TIPICOS = [[1, "Sin ajuste"], [1.2, "Ligero"], [1.5, "Territorial"], [2, "Conservador"]] as const;
+
+/** Atajos de margen (B33): valores usuales en un clic; el campo de arriba sigue aceptando cualquiera. */
+function Atajos({ valores, actual, etiqueta, onElegir, deshabilitado }: { valores: readonly number[]; actual: number; etiqueta: string; onElegir: (v: number) => void; deshabilitado?: boolean }) {
+  return (
+    <div className="hr-mapa-chips hr-muestra-atajos" role="group" aria-label={`Atajos de ${etiqueta.toLowerCase()}`}>
+      {valores.map((v) => {
+        const activo = Math.abs(actual * 100 - v) < 1e-6;
+        return (
+          <button key={v} type="button" className="hr-mapa-zona" aria-pressed={activo} data-estado={activo ? "todo" : undefined} disabled={deshabilitado} onClick={() => onElegir(v / 100)}>
+            <span>±{v} %</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Numero({ etiqueta, valor, sufijo, min, max, paso, onCambio, ayuda, deshabilitado }: { etiqueta: string; valor: number; sufijo?: string; min?: number; max?: number; paso?: number; onCambio: (v: number) => void; ayuda?: ReactNode; deshabilitado?: boolean }) {
   return (
     <label className="hr-muestra-campo">
@@ -142,7 +160,15 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           <p className="hr-mapa-nota">El N sale de los márgenes y supuestos de abajo, redondeado a rutas completas.</p>
         )}
 
-        <Numero etiqueta="Encuestas por ruta (por manzana)" valor={ruta} min={1} paso={1} deshabilitado={ed} onCambio={(v) => cambiar({ entrevistas_por_manzana: Math.max(1, Math.round(v)) })} ayuda={r.multiploDeRuta ? `N compatible: ${fmt(r.nUsado)} = ${fmt(Math.floor(r.nUsado / ruta))} × ${ruta}` : `El N debe ser múltiplo de ${ruta}`} />
+        <div className="hr-muestra-campo">
+          <small>Encuestas por ruta (por manzana)</small>
+          <span className="hr-muestra-pasos">
+            <PulsoButton variant="secondary" size="sm" disabled={ed || ruta <= 1} aria-label="Una encuesta menos por ruta" onClick={() => cambiar({ entrevistas_por_manzana: Math.max(1, ruta - 1) })}>−</PulsoButton>
+            <input type="number" value={ruta} min={1} step={1} disabled={ed} onChange={(e) => e.target.value !== "" && Number(e.target.value) >= 1 && cambiar({ entrevistas_por_manzana: Math.round(Number(e.target.value)) })} aria-label="Encuestas por ruta" />
+            <PulsoButton variant="secondary" size="sm" disabled={ed} aria-label="Una encuesta más por ruta" onClick={() => cambiar({ entrevistas_por_manzana: ruta + 1 })}>+</PulsoButton>
+          </span>
+          <span className="hr-mapa-nota">{r.multiploDeRuta ? `N compatible: ${fmt(r.nUsado)} = ${fmt(Math.floor(r.nUsado / ruta))} × ${ruta}` : `El N debe ser múltiplo de ${ruta}`}</span>
+        </div>
 
         <section className="hr-muestra-grupo" aria-label="Margen de error">
           <h3>Margen de error que quieres lograr</h3>
@@ -150,6 +176,10 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           <div className="hr-muestra-dos">
             <Numero etiqueta="Margen total" sufijo="%" valor={Math.round(s.margin_total * 1000) / 10} min={0.1} max={50} paso={0.5} deshabilitado={ed} onCambio={(v) => cambiarS({ margin_total: Math.min(0.5, Math.max(0.001, v / 100)) })} />
             <Numero etiqueta="Margen por distrito" sufijo="%" valor={Math.round(s.margin_district * 1000) / 10} min={0.1} max={80} paso={0.5} deshabilitado={ed} onCambio={(v) => cambiarS({ margin_district: Math.min(0.8, Math.max(0.001, v / 100)) })} />
+          </div>
+          <div className="hr-muestra-dos">
+            <Atajos valores={[3, 4, 5]} actual={s.margin_total} deshabilitado={ed} etiqueta="Margen total" onElegir={(v) => cambiarS({ margin_total: v })} />
+            <Atajos valores={[8, 10, 15]} actual={s.margin_district} deshabilitado={ed} etiqueta="Margen por distrito" onElegir={(v) => cambiarS({ margin_district: v })} />
           </div>
           {config.sample_size_mode === "calculator" ? (
             <Opciones etiqueta="El margen por distrito es…" valor={s.enforce_district_floor ? "requisito" : "maximo"} deshabilitado={ed} opciones={[["requisito", "Un requisito"], ["maximo", "Solo un máximo"]] as const} onCambio={(v) => cambiarS({ enforce_district_floor: v === "requisito" })} />
@@ -170,7 +200,17 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
               <span className="hr-mapa-nota">hasta {visitasCap(ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 })} en el 90 % de las rutas, para {ruta} entrevistas</span>
             </div>
           </div>
-          <Opciones etiqueta="Efecto de diseño (DEFF)" valor={s.design_effect} deshabilitado={ed} opciones={[[1, "1,0"], [1.2, "1,2"], [1.5, "1,5"], [2, "2,0"]] as const} onCambio={(v) => cambiarS({ design_effect: v, design_effect_fuente: "manual", icc_aplicado: null })} />
+          <div className="hr-muestra-campo">
+            <small>Efecto de diseño (DEFF)</small>
+            <div className="hr-mapa-chips hr-muestra-deff" role="group" aria-label="Efecto de diseño (DEFF)">
+              {DEFF_TIPICOS.map(([v, rotulo]) => (
+                <button key={v} type="button" className="hr-mapa-zona" aria-pressed={s.design_effect === v} data-estado={s.design_effect === v ? "todo" : undefined} disabled={ed} onClick={() => cambiarS({ design_effect: v, design_effect_fuente: "manual", icc_aplicado: null })}>
+                  <span>{rotulo}</span>
+                  <b>{String(v.toFixed(1)).replace(".", ",")}</b>
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="hr-mapa-nota">
             {s.design_effect_fuente === "icc_biblioteca" && s.icc_aplicado
               ? `Desde un estudio previo: ICC ${String(s.icc_aplicado.icc).replace(".", ",")} de ${s.icc_aplicado.estudio || s.icc_aplicado.id} con ${ruta} por ruta.`
