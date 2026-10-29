@@ -77,3 +77,30 @@ test_that("la entrega dibuja todas las fichas, distrito por distrito, e informa 
   expect_identical(dibujadas, c("070106", "070106", "150110", "150110"))
   expect_identical(avance, 1:4)
 })
+
+test_that("las referencias del mapa salen del contexto OSM y sólo con los tipos que sirven en campo", {
+  refs <- .hojas_ruta_mapa_referencias("150110")
+  expect_gt(nrow(refs), 0L)
+  expect_true(all(refs$tipo %in% names(.hojas_ruta_mapa_referencia_tipos)))
+  expect_true(all(c("salud", "colegio") %in% refs$tipo))
+  expect_identical(nrow(.hojas_ruta_mapa_referencias("999999")), 0L)
+})
+
+test_that("la cara 2 lleva el marco Pulso y su leyenda nombra sólo lo que el mapa dibujó", {
+  skip_if_not_installed("pdftools")
+  cfg <- list(n_objetivo = 12, territorios = "150110", sampling_method = "pps", seed = 3,
+              entrevistas_por_manzana = 6, replacements_per_titular = 1)
+  sm <- hojas_ruta_sample_preview_integrado(cfg)
+  b <- sm$blocks[[1]]
+  ctx <- .hojas_ruta_render_context(sm)
+  pdf <- tempfile(fileext = ".pdf")
+  expect_true(isTRUE(.hojas_ruta_draw_context_map_pdf(b, sm$config, pdf, render_ctx = ctx)))
+  txt <- paste(pdftools::pdf_text(pdf), collapse = "\n")
+  expect_match(txt, "Mapa de zona", fixed = TRUE)
+  expect_match(txt, "Ubicación de campo", fixed = TRUE)
+  expect_match(txt, "Contexto distrital", fixed = TRUE)
+  expect_match(txt, "Manzana asignada", fixed = TRUE)
+  urbano <- .hojas_ruta_pdf_context_features(b$ubigeo, c(min_lon = -180, max_lon = 180, min_lat = -90, max_lat = 90),
+                                             render_ctx = ctx)
+  if (!length(urbano$polygons)) expect_false(grepl("Parque", txt, fixed = TRUE))
+})

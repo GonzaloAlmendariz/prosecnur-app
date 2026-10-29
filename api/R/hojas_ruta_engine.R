@@ -7745,20 +7745,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "white", col = NA))
 
-  .hojas_ruta_draw_reference_logo(x = 0.06, y = 0.945, height = 0.052,
-                                   paper_w = 11.69, paper_h = 8.27)
-  is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
-  grid::grid.text(
-    sprintf("Mapa de zona · %s", .hojas_ruta_operational_code(block)),
-    x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
-  )
-  grid::grid.text(
-    sprintf("%s · UBIGEO %s · Zona %s · Manzana %s",
-            .hojas_ruta_title_case(block$distrito), block$ubigeo, block$zona, block$manzana),
-    x = 0.5, y = 0.918, gp = grid::gpar(fontsize = 10, col = "#3a3a3a")
-  )
-  grid::grid.lines(x = c(0.06, 0.96), y = c(0.895, 0.895),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
+  .hojas_ruta_mapa_cabecera(block)  # marco de la cara 2: hojas_ruta_mapa_marco.R
 
   map_x <- 0.035
   map_y <- 0.072
@@ -7826,6 +7813,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   sp <- vapply(neighbor_features, .hojas_ruta_pdf_feature_without_population, logical(1))[an$feature]
   .hojas_ruta_mapa_poligonos(an$p, fill = ifelse(sp, "#eeeeee", "#f7f7f7"), col = "#c8c8c8", lwd = 0.16)
   for (p in an$p[sp]) .hojas_ruta_draw_no_population_texture(p, density = 0.011)
+  hay_sin_poblacion <- any(sp)
   others <- Filter(function(f) !identical(as.character(f$id %||% ""), selected_id), visible_features)
   an <- .hojas_ruta_mapa_anillos(others, project)
   sp <- vapply(others, .hojas_ruta_pdf_feature_without_population, logical(1))[an$feature]
@@ -7834,6 +7822,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                              col = ifelse(sp, "#9a9a9a", ifelse(iz, "#333333", "#b8b8b8")),
                              lwd = ifelse(sp, 0.24, ifelse(iz, 0.30, 0.18)))
   for (p in an$p[sp]) .hojas_ruta_draw_no_population_texture(p, density = 0.010)
+  hay_sin_poblacion <- hay_sin_poblacion || any(sp)
 
   # Solo nombres viales: las geometrías de calles/avenidas se usan para ubicar
   # etiquetas, pero no se dibujan líneas viales visibles.
@@ -7963,46 +7952,22 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     }
   }
 
+  referencias <- .hojas_ruta_mapa_dibujar_referencias(block$ubigeo, map_bbox, project, render_ctx)
   grid::popViewport()
   grid::grid.rect(x = map_x + map_w / 2, y = map_y + map_h / 2, width = map_w, height = map_h,
                   gp = grid::gpar(fill = NA, col = "black", lwd = 0.7))
 
   side_x <- 0.84
   side_w <- 0.13
-  .hojas_ruta_pdf_text("UBICACIÓN DE CAMPO", side_x, 0.86,
-                       fontsize = 8.5, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.847, 0.847),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-  details <- list(
-    list("Distrito", .hojas_ruta_title_case(block$distrito)),
-    list("Zona",     as.character(block$zona %||% "")),
-    list("Manzana",  as.character(block$manzana %||% "")),
-    list("ID",       as.character(block$id_manzana %||% "")),
-    list("Viviendas", format(as.integer(block$viviendas %||% 0L), big.mark = ",")),
-    list("Entrevistas", format(as.integer(block$entrevistas %||% 0L), big.mark = ","))
-  )
-  detail_y <- 0.83
-  for (d in details) {
-    value <- as.character(d[[2]])
-    long_value <- nchar(value) > 17L
-    grid::grid.text(d[[1]], x = side_x, y = detail_y + if (long_value) 0.007 else 0, just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 7.5, fontface = "bold", col = "#3a3a3a"))
-    grid::grid.text(value, x = side_x + side_w, y = detail_y - if (long_value) 0.012 else 0,
-                    just = c("right", "center"),
-                    gp = grid::gpar(fontsize = if (long_value) 6.2 else 7.5, col = "black"))
-    detail_y <- detail_y - if (long_value) 0.040 else 0.026
-  }
+  .hojas_ruta_mapa_ubicacion(block, side_x, side_w, top = 0.855)
 
   mini_x <- side_x
   mini_y <- 0.40
   mini_w <- side_w
   mini_h <- 0.19
-  .hojas_ruta_pdf_text("CONTEXTO DISTRITAL", side_x, mini_y + mini_h + 0.018,
-                       fontsize = 8.5, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(mini_y + mini_h + 0.005, mini_y + mini_h + 0.005),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
+  .hojas_ruta_mapa_rotulo("Contexto distrital", side_x, mini_y + mini_h + 0.018, side_w)
   grid::grid.rect(x = mini_x + mini_w / 2, y = mini_y + mini_h / 2, width = mini_w, height = mini_h,
-                  gp = grid::gpar(fill = "white", col = "#9a9a9a", lwd = 0.5))
+                  gp = grid::gpar(fill = "white", col = "#c3ccdb", lwd = 0.5))
   if (!is.null(ctx_block)) {
     district_context_all <- tryCatch(
       .hojas_ruta_pdf_district_context_features(block$ubigeo),
@@ -8070,9 +8035,6 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       list(mini_ring), inset, inset, 1 - 2 * inset, 1 - 2 * inset,
       paper_w = mini_w * 11.69, paper_h = mini_h * 8.27, pad = 0
     ), tol = 0.0015)
-    visible_block <- ctx_block$all[vapply(ctx_block$all, function(feature) {
-      .hojas_ruta_bbox_intersects(feature$bbox %||% .hojas_ruta_bbox_from_rings(feature$rings), mini_bbox)
-    }, logical(1))]
     # Capa 1: municipios vecinos rellenos para que el contexto distrital no
     # quede flotando sobre blanco.
     if (length(district_context_mini)) {
@@ -8095,9 +8057,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         }
       }
     }
-    # Capa 2: vecindario urbano del distrito activo en gris claro.
-    .hojas_ruta_mapa_poligonos(.hojas_ruta_mapa_anillos(visible_block, mini_project)$p,
-                               fill = "#ececec", col = "#cccccc", lwd = 0.12)
+    # Sin manzanas ni calles: a ~4 cm sólo se leen distritos y zonas.
     # Capa 3: limites distritales solidos, como fronteras politicas.
     if (length(district_context_mini)) {
       ordered_districts <- district_context_mini[order(vapply(district_context_mini, function(feature) {
@@ -8138,7 +8098,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       label_count <- 0L
       for (district in district_context_mini) {
         active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
-        if (!active && label_count >= 7L) next
+        if (active || label_count >= 7L) next  # el activo ya está en la cabecera y tapaba la zona
         lon <- suppressWarnings(as.numeric(district$label_lon %||% NA_real_))
         lat <- suppressWarnings(as.numeric(district$label_lat %||% NA_real_))
         if (!is.finite(lon) || !is.finite(lat) ||
@@ -8191,13 +8151,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         )
       }
     }
-    # Capa 6: zona del block actual rellena en celeste con borde azul.
-    zone_ids <- if (!is.null(ctx_zone$zone_features)) {
-      vapply(ctx_zone$zone_features, function(f) as.character(f$id %||% ""), character(1))
-    } else character(0)
-    en_zona <- Filter(function(f) as.character(f$id %||% "") %in% zone_ids, visible_block)
-    .hojas_ruta_mapa_poligonos(.hojas_ruta_mapa_anillos(en_zona, mini_project)$p,
-                               fill = "#cfe8ff", col = NA)
+    # Capa 6: la zona de la UMP rellena en celeste (su contorno, no sus manzanas).
+    zona_actual <- Filter(function(z) identical(as.character(z$zona %||% ""), as.character(block$zona %||% "")),
+                          zone_outlines_mini)
+    .hojas_ruta_mapa_poligonos(.hojas_ruta_mapa_anillos(zona_actual, mini_project)$p, fill = "#cfe8ff", col = NA)
     # Capa 7: limite poligonal de la zona seleccionada en azul intenso.
     for (zone in zone_outlines_mini) {
       if (!identical(as.character(zone$zona %||% ""), as.character(block$zona %||% ""))) next
@@ -8214,71 +8171,16 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     grid::popViewport()
   }
 
-  legend_top <- 0.345
-  legend_text_x <- side_x + 0.028
-  legend_icon_x <- side_x + 0.011
-  legend_item <- function(label, y, col = "#2f2f2f", fontsize = 7.05) {
-    grid::grid.text(label, x = legend_text_x, y = y,
-                    just = c("left", "center"),
-                    gp = grid::gpar(fontsize = fontsize, col = col))
-  }
-  legend_line <- function(y, col, lwd = 1, lty = "solid") {
-    grid::grid.lines(
-      x = c(side_x + 0.003, side_x + 0.020),
-      y = c(y, y),
-      gp = grid::gpar(col = col, lwd = lwd, lty = lty, lineend = "round")
-    )
-  }
-  legend_box <- function(y, fill, col, lwd = 0.55, hatch_col = NULL) {
-    grid::grid.rect(x = legend_icon_x, y = y, width = 0.0155, height = 0.0155,
-                    gp = grid::gpar(fill = fill, col = col, lwd = lwd))
-    if (!is.null(hatch_col)) {
-      for (k in 0:3) {
-        grid::grid.lines(
-          x = c(legend_icon_x - 0.007 + k * 0.0049, legend_icon_x - 0.001 + k * 0.0049),
-          y = c(y - 0.0068, y + 0.0068),
-          gp = grid::gpar(col = hatch_col, lwd = 0.22)
-        )
-      }
-    }
-  }
-  .hojas_ruta_pdf_text("LEYENDA", side_x, legend_top,
-                       fontsize = 8.1, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(legend_top - 0.012, legend_top - 0.012),
-                   gp = grid::gpar(col = "#2b2b2b", lwd = 0.38))
-
-  y <- legend_top - 0.031
-  legend_box(y, fill = "#d8ecff", col = "#003f88", lwd = 0.85)
-  legend_item("Manzana asignada", y, col = "#111111")
-
-  y <- y - 0.023
-  legend_line(y, col = "#083f88", lwd = 1.95)
-  legend_item("Límite de zona", y)
-
-  y <- y - 0.023
-  legend_line(y, col = "#111111", lwd = 0.95)
-  legend_item("Límite distrital", y)
-
-  y <- y - 0.023
-  legend_line(y, col = "#d7191c", lwd = 0.75)
-  legend_item("Otras zonas INEI", y)
-
-  y <- y - 0.023
-  legend_box(y, fill = "#edf7e9", col = "#7fae73", lwd = 0.42, hatch_col = "#62a65a")
-  legend_item("Parque / plaza / agua", y)
-
-  y <- y - 0.023
-  legend_box(y, fill = "#f1f1f1", col = "#9a9a9a", lwd = 0.42, hatch_col = "#9a9a9a")
-  legend_item("Sin población", y)
-
-  grid::grid.lines(x = c(0.06, 0.96), y = c(0.05, 0.05),
-                   gp = grid::gpar(col = "#888888", lwd = 0.4))
-  grid::grid.text("Pulso PUCP · Mapa de zona",
-                  x = 0.06, y = 0.035, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),
-                  x = 0.96, y = 0.035, just = c("right", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
+  dibuja_contornos <- !isTRUE(has_reference_map)
+  .hojas_ruta_mapa_leyenda(c(
+    limite_distrital = dibuja_contornos && length(district_boundaries) > 0L,
+    otras_zonas = dibuja_contornos && any(vapply(zone_outlines, function(z) {
+      !identical(as.character(z$zona %||% ""), as.character(block$zona %||% ""))
+    }, logical(1))),
+    sin_poblacion = hay_sin_poblacion,
+    parque = length(urban_context$polygons %||% list()) > 0L
+  ), side_x, side_w, top = 0.345, referencias = referencias)
+  .hojas_ruta_mapa_pie(block)
   invisible(TRUE)
 }
 

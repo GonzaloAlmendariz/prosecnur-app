@@ -59,16 +59,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   end <- .hojas_ruta_ficha_int(block$rango_fin %||% block$entrevistas, start)
   es_reemplazo <- identical(.hojas_ruta_ficha_txt(block$tipo_manzana), "reemplazo")
   codigo <- .hojas_ruta_operational_code(block)
-  reemplaza <- ""
-  if (es_reemplazo) {
-    reemplaza <- .hojas_ruta_ficha_txt(block$replacement_label)
-    if (!nzchar(reemplaza) ||
-        grepl("^Reemplazo( [0-9]+ de [0-9]+)?( de [0-9]+ a [0-9]+)?$", reemplaza)) {
-      reemplaza <- .hojas_ruta_replacement_range_label(
-        start, end, block$replacement_order, block$replacement_total, block$titular_id_manzana
-      )[[1]]
-    }
-  }
+  reemplaza <- if (es_reemplazo) .hojas_ruta_ficha_reemplaza(block, start, end) else ""
 
   ops <- .hojas_ruta_route_operational_values(block, config)
   ops <- .hojas_ruta_vp_ops_sobre_visitas(ops, block)  # U15 / ADR 0116: salto sobre visitas
@@ -145,6 +136,28 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
       pasos = .hojas_ruta_vp_regla_pasos(.hojas_ruta_vp_regla(block))
     )
   )
+}
+
+# Aviso del reemplazo: a qué UMP reemplaza, con su zona, su manzana y sus
+# encuestas. Sin los datos del titular, cae a la etiqueta que trae el bloque.
+.hojas_ruta_ficha_reemplaza <- function(block, start, end) {
+  ump <- .hojas_ruta_ficha_int(block$titular_hoja_num %||% block$titular_orden_seleccion)
+  zona <- .hojas_ruta_ficha_txt(block$titular_zona)
+  manzana <- .hojas_ruta_short_block_label(.hojas_ruta_ficha_txt(block$titular_id_manzana))
+  if (!is.na(ump)) {
+    partes <- c(sprintf("Reemplaza a la UMP %d", ump),
+                if (nzchar(zona)) sprintf("Zona %s", zona),
+                if (nzchar(manzana)) sprintf("Manzana %s", manzana),
+                sprintf("Encuestas %d a %d", start, end))
+    return(paste(partes, collapse = "  ·  "))
+  }
+  etiqueta <- .hojas_ruta_ficha_txt(block$replacement_label)
+  if (!nzchar(etiqueta) || grepl("^Reemplazo( [0-9]+ de [0-9]+)?( de [0-9]+ a [0-9]+)?$", etiqueta)) {
+    etiqueta <- .hojas_ruta_replacement_range_label(
+      start, end, block$replacement_order, block$replacement_total, block$titular_id_manzana
+    )[[1]]
+  }
+  sprintf("Reemplaza a la manzana %s", sub("^Reemplazo de ", "", etiqueta))
 }
 
 # ---------- Imágenes ----------
@@ -374,7 +387,7 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     .hfp_rect(L, y, W, 0.026, fill = "#ffffff", col = tk$ink, lwd = 0.8)
     grid::grid.rect(x = L, y = y, width = 0.006, height = 0.026, just = c("left", "top"),
                     gp = grid::gpar(fill = tk$ink, col = NA))
-    .hfp_text(sprintf("Reemplaza a la manzana %s", sub("^Reemplazo de ", "", enc$reemplaza)),
+    .hfp_text(enc$reemplaza,
               L + 0.016, y - 0.013, 8.4, tk$ink, "bold")
     y <- y - 0.034
   }

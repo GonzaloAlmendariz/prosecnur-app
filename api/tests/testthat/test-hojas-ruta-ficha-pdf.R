@@ -93,7 +93,7 @@ test_that("la ficha no dibuja «Reemplazo N» alrededor de la manzana ni usa el 
     expect_match(txt, "CONSTANTE DE SALTO", fixed = TRUE)
     expect_match(txt, "Hombres", fixed = TRUE)
     expect_match(txt, "Mujeres", fixed = TRUE)
-    if (identical(tipo, "reemplazo")) expect_match(txt, "Reemplaza a la manzana", fixed = TRUE)
+    if (identical(tipo, "reemplazo")) expect_match(txt, "Reemplaza a la UMP 1", fixed = TRUE)
   }
   # El esquema solo, en todas las esquinas y sentidos: nunca nombra un reemplazo
   # (el reemplazo real es otra manzana sorteada) ni a las manzanas vecinas.
