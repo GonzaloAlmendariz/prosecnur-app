@@ -80,25 +80,21 @@
 }
 
 # ---- geometría ---------------------------------------------------------------
+# Los números de abajo viven en el estándar (`ppt.composicion.multilista`); aquí queda de dónde salen.
 
 # Aire entre un bloque y el título del siguiente: recetario p144, la última barra del primer bloque termina en
 # 3.69 in y el título del segundo empieza en 4.02 in (0.33). El alto de un bloque se mide hasta el fondo de su
 # última fila, que queda 0.06 in bajo la barra (`.lam_bloque_escala`), así que aquí van 0.27.
-.LAM_MULTILISTA_GAP <- 0.27
 # Del título del bloque a su primera fila: con columna Top Two Box su rótulo cabe en medio (p144: título 1.60,
 # rótulo 1.95, barra 2.53, con una cifra chica encima: 0.93 del título a la barra). Aquí, con cifras chicas,
 # 0.317 + 0.35 + 0.24 = 0.907; sin ellas, 0.317 + 0.35 + 0.18 = 0.847. Sin la columna, sólo el aire del texto.
-.LAM_MULTILISTA_AIRE_TTB <- 0.35
 # El rótulo Top Two Box, sobre la franja del bloque: la p144 lo pone en 1.95 con el título en 1.60 (0.35 bajo el
 # título). Aquí la franja empieza en 1.65 + 0.317 + 0.35 = 2.317 y el rótulo va 0.37 sobre ella: 1.947. La escala
 # simple lo deja 0.45 sobre su franja.
-.LAM_MULTILISTA_ROTULO_TTB <- 0.37
 # Grosor de barra (ficha p143: 0.30 in; ejemplo p144: 0.40 in): manda el token por filas de la lámina
 # (`.std_grosor`) y la regla de cifras chicas, decididos una vez por lámina en `.lam_multilista_grosor`. El título
 # del primer bloque arranca en `zona_datos_y0` (1.65 in; p144: 1.60).
-.LAM_MULTILISTA_AIRE <- 0.1
 # Alto de la leyenda bajo un bloque (el cuadro baja 0.07 y el texto mide 0.3, más el aire hasta el bloque que sigue).
-.LAM_MULTILISTA_LEYENDA <- 0.5
 # La leyenda compartida va 0.15 in bajo la última barra (p144: barras hasta 6.11 in, leyenda en 6.26 in); el fin del
 # bloque es el fondo de la fila, 0.06 in bajo la barra: `ppt.composicion.escala.aire_leyenda_multilista` = 0,09.
 
@@ -124,8 +120,8 @@
 #' @keywords internal
 .lam_multilista_cromo <- function(it, compartida) {
   .lam_multilista_alto_titulo(it) +
-    (if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE) +
-    (if (isTRUE(compartida)) 0 else .LAM_MULTILISTA_LEYENDA)
+    (if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .std_comp("multilista", "aire_titulo")) +
+    (if (isTRUE(compartida)) 0 else .std_comp("multilista", "alto_leyenda"))
 }
 
 #' ¿Alguna barra del bloque tiene una cifra que no cabe en su segmento (sube con guía)?
@@ -169,7 +165,7 @@
 .lam_multilista_alto <- function(items, compartida) {
   nb <- .lam_multilista_filas(items)
   sum(vapply(items, function(it) .lam_multilista_cromo(it, compartida) + .lam_escala_alto(it$premisas, nb), 0)) +
-    .LAM_MULTILISTA_GAP * (length(items) - 1L)
+    .std_comp("multilista", "gap_bloques") * (length(items) - 1L)
 }
 
 #' Franja vertical de los bloques: desde la zona de datos hasta `leyenda_y - 0.15`
@@ -259,9 +255,9 @@
   centro_barras <- NULL
   # M1 apretado (lamina_escala_aire.R): solo si la alternativa era partir; la franja llega 0,30 in más abajo y la leyenda se pega a la barra
   apretar <- .lam_multilista_apretar(items, compartida)
-  if (apretar) { op_ap <- options(prosecnur.lam_apretado = TRUE); on.exit(options(op_ap), add = TRUE); disp <- disp + .LAM_APRETADO_EXTRA_FRANJA }
+  if (apretar) { op_ap <- options(prosecnur.lam_apretado = TRUE); on.exit(options(op_ap), add = TRUE); disp <- disp + .std_comp("apretada", "extra_franja") }
   cromo <- vapply(items, .lam_multilista_cromo, 0, compartida = compartida)
-  fijo <- sum(cromo) + .LAM_MULTILISTA_GAP * (length(items) - 1L)
+  fijo <- sum(cromo) + .std_comp("multilista", "gap_bloques") * (length(items) - 1L)
   dec <- .lam_multilista_grosor(items, nb, disp, fijo)
   natural <- dec$natural
   # Pocas filas: se reparte el alto con el mismo factor en todos los bloques, con el tope de la escala simple
@@ -291,26 +287,26 @@
     # G19 (Gabriela, 2026-10-28: «a la altura del logo»): el primer bloque sin título arranca como la escala simple, con su
     # rótulo Top Two Box 0,45 in sobre la franja (1,30 in, bajo el logo); el aire de la p144 es para caber bajo un título.
     arriba <- k == 1L && is.null(it$titulo) && is.null(it$subtitulo) && !is.null(it$espec$box$unidades)
-    y <- y + (if (arriba) .LAM_MULTILISTA_AIRE else if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .LAM_MULTILISTA_AIRE)
+    y <- y + (if (arriba) .std_comp("multilista", "aire_titulo") else if (!is.null(it$espec$box$unidades)) .lam_multilista_aire_ttb() else .std_comp("multilista", "aire_titulo"))
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
                               leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire + dg, grosor = gr$grosor + dg,
-                              rotulo_sobre = if (arriba) .std_comp("escala", "rotulo_box_sobre") else .LAM_MULTILISTA_ROTULO_TTB - (.LAM_MULTILISTA_AIRE_TTB - .lam_multilista_aire_ttb()),
-                              extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .LAM_MULTILISTA_AIRE else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
+                              rotulo_sobre = if (arriba) .std_comp("escala", "rotulo_box_sobre") else .std_comp("multilista", "rotulo_box_sobre") - (.std_comp("multilista", "aire_ttb") - .lam_multilista_aire_ttb()),
+                              extra_alto = (if (arriba) .lam_multilista_aire_ttb() - .std_comp("multilista", "aire_titulo") else 0) + extra[k],   # G11: lo que soltó arriba va entre temas
                               llenando = sin_tope,   # al llenar, en todas las pasadas: si no, el sobrante se cuenta dos veces
                               # Un bloque sin título continúa al de arriba: no repite el rótulo «TOP TWO BOX» si otro ya lo puso (Conta,
                               # láms. 22 y 24); un bloque con su propio título es un panel aparte y lleva el suyo (recetario p144).
                               con_rotulo_box = !is.null(it$titulo) || !any(vapply(items[seq_len(k - 1L)], function(i) !is.null(i$espec$box$unidades), TRUE)))
     centro_barras <<- attr(fin, "centro_barras", exact = TRUE) %||% centro_barras
-    y <- fin + (if (k < length(items)) entre else 0) + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
+    y <- fin + (if (k < length(items)) entre else 0) + (if (compartida) 0 else .std_comp("multilista", "alto_leyenda")) + .std_comp("multilista", "gap_bloques")
   }
   y
   }
   # La lámina aprovecha su alto como Contabilidad (lamina_escala_llenar.R): con alto de sobra, la barra engrosa hacia su
   # grosor y el resto va entre temas y bloques, no bajo el último. Nada cambia si la lámina viene justa o apretada.
   dg <- 0; entre <- 0; extra <- rep(0, length(items))
-  meta <- .lam_piso_leyenda() - .std_comp("llenar", "aire_leyenda") - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)
+  meta <- .lam_piso_leyenda() - .std_comp("llenar", "aire_leyenda") - (if (compartida) 0 else .std_comp("multilista", "alto_leyenda"))
   if (!apretar && f >= 1) {
-    fin_de <- function(...) componer(.lam_lienzo(), ..., sin_tope = TRUE) - .LAM_MULTILISTA_GAP
+    fin_de <- function(...) componer(.lam_lienzo(), ..., sin_tope = TRUE) - .std_comp("multilista", "gap_bloques")
     sobra <- meta - fin_de()
     dg <- .lam_escala_engrosar(gr$grosor, nb, sobra)
     sobra <- meta - fin_de(dg = dg)
@@ -318,18 +314,18 @@
     fronteras <- sum(temas) + length(items) - 1L
     if (sobra > 0.05 && fronteras > 0) {
       # Entre bloques, como entre temas: a lo más lo que deja `.std_comp("llenar", "aire_entre_temas_max")` (Conta), no todo el sobrante.
-      parte <- sobra / fronteras; entre <- min(parte, .std_comp("llenar", "aire_entre_temas_max") - .LAM_MULTILISTA_GAP); extra <- parte * temas
+      parte <- sobra / fronteras; entre <- min(parte, .std_comp("llenar", "aire_entre_temas_max") - .std_comp("multilista", "gap_bloques")); extra <- parte * temas
     } else if (sobra > 0.05) {
       extra <- rep(sobra, length(items))   # una sola pregunta: el alto se lo reparten sus públicos (lamina_escala_temas.R)
     }
   }
-  bajar <- if (!apretar && f >= 1) .lam_escala_centrar(fin_de(dg = dg, entre = entre, extra = extra) - (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA)) else 0
+  bajar <- if (!apretar && f >= 1) .lam_escala_centrar(fin_de(dg = dg, entre = entre, extra = extra) - (if (compartida) 0 else .std_comp("multilista", "alto_leyenda"))) else 0
   y <- componer(lz, dg = dg, entre = entre, extra = extra, sin_tope = !apretar && f >= 1, bajar = bajar)   # lo que sigue sobrando: centrado
   if (compartida) {
     e <- items[[1]]$espec; ley <- e$leyenda
-    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + .std_comp("escala", "aire_leyenda_apretada"))   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
-             else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .std_comp("llenar", "aire_leyenda"))   # llena: 0,45 in, como Conta
-             else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .std_comp("escala", "aire_leyenda_multilista"))
+    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .std_comp("apretada", "extra_franja"), .lam_piso_leyenda() - 0.01, y - .std_comp("multilista", "gap_bloques") + .std_comp("escala", "aire_leyenda_apretada"))   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
+             else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .std_comp("multilista", "gap_bloques") + .std_comp("llenar", "aire_leyenda"))   # llena: 0,45 in, como Conta
+             else min(g_("leyenda_y") - 0.15, y - .std_comp("multilista", "gap_bloques") + .std_comp("escala", "aire_leyenda_multilista"))
     .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
   }

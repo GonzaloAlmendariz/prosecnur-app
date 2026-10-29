@@ -80,6 +80,16 @@ composicion <- list(unidad = "in",
     aire_leyenda_solo = 0.55,        # de la barra a la leyenda en la lámina de una sola afirmación (recetario 216)
     rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
     columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
+  multilista = list(                 # varios bloques en una lámina (lamina_multilista.R; recetario p144)
+    gap_bloques = 0.27,              # del fondo de un bloque al título del siguiente (p144: 0,33 desde la barra)
+    aire_titulo = 0.1,               # del título del bloque a su primera fila, sin columna Top Two Box
+    aire_ttb = 0.35,                 # lo mismo con columna Top Two Box: su rótulo cabe en medio
+    rotulo_box_sobre = 0.37,         # el rótulo TOP TWO BOX sobre la franja de un bloque con título (p144)
+    alto_leyenda = 0.5),             # alto de la leyenda propia de un bloque, con su aire al siguiente
+  apretada = list(                   # la lámina que sólo cabe con el aire en su mínimo (M1, lamina_escala_aire.R)
+    holgura_chica = 0.03,            # de la cifra chica a la barra de arriba (0,075 en la lámina normal)
+    aire_ttb = 0.25,                 # del título del bloque a su primera fila con Top Two Box
+    extra_franja = 0.30),            # lo que la franja de datos baja hacia el pie
   llenar = list(                     # la lámina con alto de sobra (lamina_escala_llenar.R)
     aire_leyenda = 0.45,             # Conta 0,3–0,75
     aire_entre_temas_max = 1.0,      # Conta: mediana 0,74; 1,1–1,4 con pocas barras

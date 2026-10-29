@@ -206,6 +206,18 @@
         "columna_box": 1.5,
         "columna_box_con_btb": 1.25
       },
+      "multilista": {
+        "gap_bloques": 0.27,
+        "aire_titulo": 0.1,
+        "aire_ttb": 0.35,
+        "rotulo_box_sobre": 0.37,
+        "alto_leyenda": 0.5
+      },
+      "apretada": {
+        "holgura_chica": 0.03,
+        "aire_ttb": 0.25,
+        "extra_franja": 0.3
+      },
       "llenar": {
         "aire_leyenda": 0.45,
         "aire_entre_temas_max": 1,
