@@ -509,6 +509,8 @@ export type SelectedBlock = {
   constante_salto_unidad?: string;
   constante_salto_modo?: HojasRutaRouteJumpMode | string;
   salto_operativo?: number;
+  /** Visitas esperadas de la ruta (ADR 0116 §1), si la muestra se sorteó con el salto sobre visitas. */
+  visitas_esperadas?: number;
   modo_seleccion_vivienda?: string;
   nse_codigo?: string | number | null;
   nse_nivel?: string | null;

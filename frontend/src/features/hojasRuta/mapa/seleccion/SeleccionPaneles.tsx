@@ -120,10 +120,11 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         <div className="hr-mapa-ins-cuerpo">
           <span className="hr-sel-estado" data-estado={estado}>{ETIQUETA[estado]}</span>
           <div className="hr-mapa-cifras">
-            <div><small>Viviendas</small><strong>{fmt(titular.viviendas)}</strong></div>
+            <div><small>Viviendas</small><strong data-tono={titular.viviendas === 0 ? "error" : titular.viviendas <= titular.entrevistas ? "aviso" : undefined}>{fmt(titular.viviendas)}</strong></div>
             <div><small>Entrevistas</small><strong>{fmt(titular.entrevistas)}</strong></div>
             <div><small>Salto</small><strong>{(titular.salto_operativo ?? titular.constante_salto) ? `1 de ${titular.salto_operativo ?? titular.constante_salto}` : "Sin salto"}</strong></div>
           </div>
+          <OcupacionRuta viviendas={titular.viviendas} visitas={titular.visitas_esperadas ?? titular.entrevistas} />
           <dl className="hr-mapa-filas">
             <div><dt>Manzana</dt><dd>{titular.id_manzana}</dd></div>
             <div><dt>Zona</dt><dd>{titular.zona}</dd></div>
@@ -252,5 +253,22 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Cuánto de la manzana visita la ruta (brecha B44, artefacto .hm-ocupa): visitas
+ * esperadas sobre viviendas. Sin viviendas, en rojo: no hay a quién visitar.
+ */
+function OcupacionRuta({ viviendas, visitas }: { viviendas: number; visitas: number }) {
+  const ocupa = viviendas > 0 ? Math.min(1, visitas / viviendas) : 1;
+  const tono = viviendas === 0 ? "error" : visitas >= viviendas ? "aviso" : undefined;
+  return (
+    <div className="hr-ocupa">
+      <div className="hr-ocupa-barra"><i data-tono={tono} style={{ width: `${Math.max(2, ocupa * 100)}%` }} /></div>
+      <small data-tono={tono}>
+        {viviendas === 0 ? "Sin viviendas que visitar" : visitas >= viviendas ? `La ruta pide ${visitas} visitas y la manzana tiene ${viviendas} viviendas: se barre entera` : `La ruta visita ${Math.round(ocupa * 100)} % de las viviendas`}
+      </small>
+    </div>
   );
 }

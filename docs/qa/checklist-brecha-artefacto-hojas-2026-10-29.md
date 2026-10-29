@@ -52,7 +52,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B41 | Manzanas | — | La app trae historial real, exclusiones de piloto y comparar semillas | — | — |
 | B42 | Selección | peor · alto | Filas de ruta: insignia numerada con color, código de manzana, dos líneas, viviendas a la derecha | `seleccion/SeleccionPaneles.tsx` (`.hr-sel-num/-copia/-cifra`); a 1024 sin «Zona» (1 de 150 con elipsis) | ☑ |
 | B43 | Selección | peor · medio (C5) | «Solo por revisar 12» vs «Por revisar 14» | dos medidas distintas: rutas (12) y UMP observadas incl. reemplazos (14); el inspector ahora dice «UMP observadas» | ☑ |
-| B44 | Ficha UMP | peor · alto | Cabecera con insignia, eyebrow y título; chevrons arriba; 0 viviendas en rojo con barra | `SeleccionPaneles.tsx` | ☐ |
+| B44 | Ficha UMP | peor · alto | Cabecera con insignia, eyebrow y título; chevrons arriba; 0 viviendas en rojo con barra | `InspectorCabecera` (B14) + `OcupacionRuta` en `SeleccionPaneles.tsx` (variante roja sin titular de 0 viviendas en acnur_acg para verla) | ☑ |
 | B45 | Ficha UMP | falta · medio | «Reemplazo puntual» y «Tablas» en la ficha; ayuda de orden; R con código de manzana | `SeleccionPaneles.tsx` | ☐ |
 | B46 | Ficha UMP | peor · medio | La hoja como miniatura ilegible; modal grande con «Imprimir» | `HojaVista.tsx` | ☐ |
 | B47 | Selección | — | La app trae revisión contra el marco más rica, ficha real y `?foco=` | — | — |
