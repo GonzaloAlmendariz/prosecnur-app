@@ -126,7 +126,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W2 | Ayuda de «Tabla de datos»: «con Líneas y puntos, elige Sí» | Automática ya la pone con líneas y puntos (`.radar_mb_tabla_procede`) | ☑ e9d40f66f |
 | W3 | Ayuda del encabezado: «Vacío: Tema» | vacío queda vacío y avisa | ☑ e9d40f66f |
 | W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☑ la maqueta dibuja el radar solo en sm/box |
-| W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☐ verificar el camino del consolidado |
+| W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☑ verificado: llegan al PPT de cada base, pero `graficos_consolidado_start` no los pasa a su job; el bloqueo es correcto y el motivo ahora lo dice |
 | W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☐ |
 | W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☐ |
 | W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☑ romanos (`sonRomanos`) y residuales anclados con Ninguna/Ninguno; mismas respuestas que el motor en 5 casos |

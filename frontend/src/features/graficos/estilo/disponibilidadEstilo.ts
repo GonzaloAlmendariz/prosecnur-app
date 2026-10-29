@@ -1,14 +1,15 @@
 // Qué piezas de Identidad se pueden ajustar y su vista previa. Puro: la pestaña y GraficosPage lo consultan.
 //
 // L2 del rediseño (2026-10-14): Identidad ya no se deshabilita entera en el informe compartido. Los colores de las
-// respuestas y los íconos viven en el plan y el PPT compartido los usa; sólo logos y letra —que hoy aplica únicamente
-// el Word, y el compartido no exporta Word (`GraficosPage.onExport`)— dicen por qué no se ajustan ahí. Cuando logos y
-// letra lleguen al PPT (ID9, decisión D5) este motivo desaparece.
+// respuestas y los íconos viven en el plan y el PPT compartido los usa; sólo logos y letra dicen por qué no se ajustan
+// ahí. Ya llegan al PPT de cada base (D5: `.graficos_estilo_cliente_arg(sid, cfg, "ppt")` en /api/graficos/ppt), pero el
+// PPT del compartido (`graficos_consolidado_start`, graficos_consolidado.R) todavía no los recibe y sale con los de la
+// plantilla; el compartido tampoco exporta Word. Cuando el compartido los pase a su job, este motivo desaparece.
 
 import type { GraficosReportScope } from "../reportScope";
 
 export const MOTIVO_ESTILO_EN_COMPARTIDO =
-  "Los logos y la letra hoy sólo se aplican al Word, y el informe compartido todavía no sale en Word. Ajústalos desde cada base.";
+  "El PowerPoint del informe compartido todavía sale con los logos y la letra de la plantilla. Ajústalos desde cada base.";
 
 export type PiezaIdentidad = "linea" | "logos" | "letra" | "iconos" | "colores";
 

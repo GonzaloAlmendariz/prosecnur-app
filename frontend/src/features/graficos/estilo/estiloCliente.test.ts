@@ -321,8 +321,8 @@ describe("Disponibilidad · consolidado y vista previa", () => {
   it("en el compartido colores e íconos se ajustan; logos y letra dicen por qué no", () => {
     expect(motivoPiezaNoDisponible("consolidated", "colores")).toBeNull();
     expect(motivoPiezaNoDisponible("consolidated", "iconos")).toBeNull();
-    expect(motivoPiezaNoDisponible("consolidated", "logos")).toMatch(/Word/);
-    expect(motivoPiezaNoDisponible("consolidated", "letra")).toMatch(/Word/);
+    expect(motivoPiezaNoDisponible("consolidated", "logos")).toMatch(/PowerPoint del informe compartido/);
+    expect(motivoPiezaNoDisponible("consolidated", "letra")).toMatch(/PowerPoint del informe compartido/);
     for (const pieza of ["logos", "letra", "iconos", "colores"] as const) expect(motivoPiezaNoDisponible("active", pieza)).toBeNull();
   });
 
