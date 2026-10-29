@@ -86,7 +86,7 @@ export function evaluateScaleCompat(
     return {
       tone: "error",
       label: "Escalas distintas",
-      message: `Estas preguntas no comparten una escala compatible: ${escalas}. Usa Combinar bloques si necesitas mezclar escalas.`,
+      message: `Estas preguntas no comparten una escala compatible: ${escalas}. Usa la pestaña Bloques si necesitas mezclar escalas.`,
     };
   }
   const first = found.find(Boolean);
