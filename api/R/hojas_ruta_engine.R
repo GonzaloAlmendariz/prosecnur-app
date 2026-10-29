@@ -8066,10 +8066,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       x = mini_x + mini_w / 2, y = mini_y + mini_h / 2,
       width = mini_w, height = mini_h, clip = "on"
     ))
-    mini_project <- .hojas_ruta_project_rings_paper(
+    mini_project <- .hojas_ruta_mapa_adelgazar(.hojas_ruta_project_rings_paper(  # ~0,06 mm de grilla
       list(mini_ring), inset, inset, 1 - 2 * inset, 1 - 2 * inset,
       paper_w = mini_w * 11.69, paper_h = mini_h * 8.27, pad = 0
-    )
+    ), tol = 0.0015)
     visible_block <- ctx_block$all[vapply(ctx_block$all, function(feature) {
       .hojas_ruta_bbox_intersects(feature$bbox %||% .hojas_ruta_bbox_from_rings(feature$rings), mini_bbox)
     }, logical(1))]
@@ -9800,6 +9800,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
   report_pdf_progress <- function(stage, current, total, message) {
     report(stage, current = current, total = total, percent = pdf_percent(), message = message)
   }
+  tareas <- list()  # fichas de titulares y reemplazos; se dibujan juntas (hojas_ruta_entrega_fichas.R)
   for (i in seq_len(total_pdfs)) {
     block <- as.list(blocks[i, , drop = FALSE])
     block[] <- lapply(block, function(x) x[[1]])
@@ -9819,23 +9820,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     if (rel_pdf %in% used_names) rel_pdf <- sub("\\.pdf$", sprintf("_%03d.pdf", i), rel_pdf)
     used_names <- c(used_names, rel_pdf)
     out_pdf <- file.path(stage, rel_pdf)
-    report_pdf_progress(
-      "pdf",
-      current = i - 1L,
-      total = total_pdfs,
-      message = sprintf("Generando titular %d de %d (%s)", i, total_pdfs,
-                        .hojas_ruta_title_case(block$distrito %||% ""))
-    )
-    .hojas_ruta_draw_integrated_pdf(block, qdom, sample$frame_meta, sample$config, out_pdf,
-                                    render_ctx = render_ctx)
-    completed_pdf_units <- completed_pdf_units + 1L
-    report_pdf_progress(
-      "pdf",
-      current = i,
-      total = total_pdfs,
-      message = sprintf("Titular %d de %d listo (%s)", i, total_pdfs,
-                        .hojas_ruta_title_case(block$distrito %||% ""))
-    )
+    tareas[[length(tareas) + 1L]] <- list(block = block, qdom = qdom, out_pdf = out_pdf)
     pdf_files <- c(pdf_files, out_pdf)
     archive_files <- c(archive_files, rel_pdf)
     route_report[[length(route_report) + 1L]] <- .hojas_ruta_delivery_report_row(
@@ -9876,23 +9861,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
       if (rel_pdf %in% used_names) rel_pdf <- sub("\\.pdf$", sprintf("_R%03d.pdf", i), rel_pdf)
       used_names <- c(used_names, rel_pdf)
       out_pdf <- file.path(stage, rel_pdf)
-      report_pdf_progress(
-        "replacement-pdf",
-        current = i - 1L,
-        total = total_replacement_pdfs,
-        message = sprintf("Generando reemplazo %d de %d (%s)", i, total_replacement_pdfs,
-                          .hojas_ruta_title_case(block$distrito %||% ""))
-      )
-      .hojas_ruta_draw_integrated_pdf(block, qdom, sample$frame_meta, sample$config, out_pdf,
-                                      render_ctx = render_ctx)
-      completed_pdf_units <- completed_pdf_units + 1L
-      report_pdf_progress(
-        "replacement-pdf",
-        current = i,
-        total = total_replacement_pdfs,
-        message = sprintf("Reemplazo %d de %d listo (%s)", i, total_replacement_pdfs,
-                          .hojas_ruta_title_case(block$distrito %||% ""))
-      )
+      tareas[[length(tareas) + 1L]] <- list(block = block, qdom = qdom, out_pdf = out_pdf)
       replacement_pdf_files <- c(replacement_pdf_files, out_pdf)
       archive_files <- c(archive_files, rel_pdf)
       route_report[[length(route_report) + 1L]] <- .hojas_ruta_delivery_report_row(
@@ -9902,6 +9871,11 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
       )
     }
   }
+  .hojas_ruta_entrega_fichas(tareas, sample, render_ctx, function(hechas, total) {
+    completed_pdf_units <<- hechas
+    report_pdf_progress("pdf", current = hechas, total = total,
+                        message = sprintf("Fichas de manzana: %d de %d listas", hechas, total))
+  })
   if (nrow(zone_summary)) {
     for (i in seq_len(nrow(zone_summary))) {
       zone_row <- as.list(zone_summary[i, , drop = FALSE])

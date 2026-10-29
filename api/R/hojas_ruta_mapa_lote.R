@@ -35,12 +35,65 @@
 }
 
 #' Anillos proyectados de una lista de features, con el índice de su feature.
+#'
+#' Si `project` viene de `.hojas_ruta_mapa_adelgazar()`, proyecta y adelgaza
+#' todos los anillos de la capa en una sola operación vectorizada: anillo por
+#' anillo eran miles de llamadas en R por mapa.
 #' @keywords internal
 .hojas_ruta_mapa_anillos <- function(features, project, transform = NULL) {
   if (!length(features)) return(list(p = list(), feature = integer(0)))
+  base <- attr(project, "base")
+  if (is.null(transform) && is.function(base)) {
+    rings <- lapply(features, function(f) f$rings %||% list())
+    feature <- rep.int(seq_along(features), lengths(rings))
+    rings <- unlist(rings, recursive = FALSE)
+    if (!length(rings)) return(list(p = list(), feature = integer(0)))
+    rings <- lapply(rings, as.matrix)
+    largo <- vapply(rings, nrow, integer(1))
+    id <- rep.int(seq_along(rings), largo)
+    p <- base(do.call(rbind, rings))
+    tol <- attr(project, "tol")
+    kx <- round(p$x / tol)
+    ky <- round(p$y / tol)
+    n <- length(kx)
+    nuevo_anillo <- c(TRUE, id[-1L] != id[-n])
+    cambia <- c(TRUE, (kx[-1L] != kx[-n]) | (ky[-1L] != ky[-n]))
+    corto <- largo[id] < 4L  # como en el adelgazado por anillo: no se tocan
+    keep <- nuevo_anillo | cambia | corto
+    keep[is.na(keep)] <- TRUE
+    xs <- split(p$x[keep], factor(id[keep], levels = seq_along(rings)))
+    ys <- split(p$y[keep], factor(id[keep], levels = seq_along(rings)))
+    return(list(p = unname(Map(function(x, y) list2DF(list(x = x, y = y)), xs, ys)),
+                feature = feature))
+  }
   por_feature <- lapply(features, function(f) {
     lapply(f$rings %||% list(), function(r) project(if (is.null(transform)) r else transform(r)))
   })
   list(p = unlist(por_feature, recursive = FALSE),
        feature = rep.int(seq_along(features), lengths(por_feature)))
+}
+
+#' Envuelve una proyección para que adelgace los anillos a la resolución de impresión.
+#'
+#' El minimapa distrital mide ~4 cm de ancho y recibía el distrito entero manzana
+#' por manzana: ~260 000 de los ~288 000 vértices de cada mapa, casi todos a
+#' menos de un punto de impresión del anterior. Cada vértice se ajusta a una
+#' grilla de `tol` (npc del viewport donde se dibuja) y se descartan los
+#' consecutivos que caen en la misma celda. El error máximo es `tol / 2`; con el
+#' `tol` del minimapa queda bajo un punto a 300 ppp. Una manzana más chica que
+#' la tolerancia queda con uno o dos vértices: un trazo de menos de un punto.
+#' @keywords internal
+.hojas_ruta_mapa_adelgazar <- function(project, tol) {
+  f <- function(ring) {
+    p <- project(ring)
+    n <- length(p$x)
+    if (n < 4L) return(p)
+    kx <- round(p$x / tol)
+    ky <- round(p$y / tol)
+    keep <- c(TRUE, (kx[-1L] != kx[-n]) | (ky[-1L] != ky[-n]))
+    keep[is.na(keep)] <- TRUE
+    if (all(keep)) return(p)
+    list2DF(list(x = p$x[keep], y = p$y[keep]))
+  }
+  structure(f, base = project, tol = tol)
 }
