@@ -90,9 +90,9 @@
     .lam_panel_titulo(lz, r$x, y0, r$w, preguntas[[k]])
     filas <- e$orden$aplicado
     # Recetario: g 0.46 y fila 0.9 con cuatro públicos; con más filas la fila se acorta para caber sobre la
-    # leyenda, y la barra nunca baja de 0.24 in.
+    # leyenda, y la barra nunca baja del piso de panel (`ppt.grosor.piso_panel_cm`, 0,66 cm como Contabilidad).
     disp <- (g_("leyenda_y") - 0.1) - (y0 + 0.5 + 0.3)
-    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(0.24, min(0.46, fila - .std_geom("aire_cifra_chica")))
+    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(.std_piso_panel_in(), min(0.46, fila - .std_geom("aire_cifra_chica")))
     .lam_likert_panel(lz, e, r$x, y0 + 0.5, r$w, filas, g = g, fila = fila)
   }
   if (length(ranuras) >= 2L) {

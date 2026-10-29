@@ -152,6 +152,7 @@
       "unidad": "in",
       "nota": "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
       "piso_escala_cm": 1.12,
+      "piso_panel_cm": 0.66,
       "escala_apilada": [
         {
           "filas_hasta": 2,
