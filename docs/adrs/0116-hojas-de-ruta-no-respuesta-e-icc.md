@@ -56,7 +56,10 @@ Hechos que condicionan la decisión:
   - `e` es la tasa de ocupación y elegibilidad de viviendas: por defecto 1, declarable, porque el censo cuenta también
     las desocupadas.
   - La hoja de ruta incluye la regla ante la no respuesta: continuar con el salto; al agotar la manzana, segunda
-    pasada por las viviendas no visitadas; después, el reemplazo.
+    pasada por las viviendas no visitadas; después, las manzanas aledañas en el orden del esquema (1 a 8), con el
+    mismo sentido y el mismo salto. *Enmienda (Gonzalo, 2026-10-29):* el tercer paso eran «el reemplazo»; el
+    procedimiento de campo es seguir por las aledañas, no pasar a otra manzana sorteada. El texto vive en
+    `HOJAS_RUTA_REGLA_NO_RESPUESTA` y lo imprimen la ficha y la hoja del día; va en lenguaje llano.
 - **El N no cambia con r.** Inflarlo produciría más entrevistas completas que las diseñadas, y la precisión se
   calcula sobre las completas.
 - **Contactos esperados** = `N / r` y **visitas planificadas** = `Σ_rutas ceil(k_b / r)`. Se publican los dos. Con

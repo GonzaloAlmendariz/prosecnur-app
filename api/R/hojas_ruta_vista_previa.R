@@ -1,14 +1,13 @@
 # Vista previa de la hoja de ruta de una UMP (U15, ADR 0116 §1).
 #
-# Reutiliza el motor de la ficha (`.hojas_ruta_draw_integrated_pdf`, congelado en
-# hojas_ruta_engine.R) sobre la muestra GUARDADA del run activo, y le suma lo que
-# el ADR 0116 pide que la hoja imprima: las visitas esperadas de la ruta y la regla
-# ante la no respuesta. El renderer congelado sólo lleva dos enganches («U15 /
-# ADR 0116»): uno que respeta el salto ya calculado sobre visitas y otro que dibuja
-# la franja de esta capa en los costados del esquema de recorrido.
+# Reutiliza el motor de la ficha (`.hojas_ruta_draw_integrated_pdf`; la página 1
+# vive en hojas_ruta_ficha_pdf.R) sobre la muestra GUARDADA del run activo. Lo que
+# el ADR 0116 pide que la hoja imprima —las visitas esperadas de la ruta y la regla
+# ante la no respuesta— lo leen de aquí `hojas_ruta_ficha_modelo()` y el salto
+# sobre visitas (`.hojas_ruta_vp_ops_sobre_visitas`).
 #
 # Muestras sorteadas antes de U14a no traen `visitas_esperadas` ni
-# `regla_no_respuesta`: la ficha sale igual que antes, sin franja y sin fallar.
+# `regla_no_respuesta`: la ficha sale sin ese bloque y sin fallar.
 
 # ---------- Enganches del renderer congelado ----------
 
@@ -70,70 +69,6 @@
   pasos[nzchar(pasos)]
 }
 
-#' Franja de la ficha: visitas esperadas (izquierda) y regla ante la no respuesta
-#' (derecha), en los costados del esquema de recorrido de la sección C.
-#'
-#' El esquema ocupa x 0,36–0,64 e y 0,215–0,41 de la hoja; los costados estaban
-#' vacíos. Dibuja sólo lo que la manzana trae.
-#' @keywords internal
-.hojas_ruta_vp_franja_no_respuesta <- function(block) {
-  visitas <- .hojas_ruta_vp_visitas(block)
-  pasos <- .hojas_ruta_vp_regla_pasos(.hojas_ruta_vp_regla(block))
-  if (is.na(visitas) && !length(pasos)) return(invisible(FALSE))
-  borde <- grid::gpar(col = "#888888", lwd = 0.5, fill = NA)
-  tinta <- "#1f1f1f"
-  suave <- "#4a4a4a"
-  top <- 0.392
-  sangria <- 0.014
-  k <- suppressWarnings(as.integer(.hojas_ruta_vp_scalar(block, "entrevistas") %||% NA_integer_))
-  nota <- if (length(k) && !is.na(k)) {
-    sprintf("Viviendas que se espera tocar para lograr %d entrevistas completas. El salto ya las considera.", k)
-  } else {
-    "Viviendas que se espera tocar para completar la ruta. El salto ya las considera."
-  }
-  lineas_nota <- if (is.na(visitas)) character(0) else .form_pdf_wrap_fit(nota, 0.255 - 0.024, fontsize = 7)
-  lineas_pasos <- lapply(pasos, function(p) .form_pdf_wrap_fit(p, 0.26 - 0.024 - sangria, fontsize = 7))
-  h_nota <- 0.024 + 0.012 + length(lineas_nota) * 0.0118 + 0.006
-  h_pasos <- 0.024 + 0.012 + sum(lengths(lineas_pasos)) * 0.0118 + max(0L, length(pasos) - 1L) * 0.005 + 0.006
-  if (!is.na(visitas)) {
-    x0 <- 0.085; w <- 0.255
-    lineas <- lineas_nota
-    h <- h_nota
-    grid::grid.rect(x = x0, y = top, width = w, height = h, just = c("left", "top"), gp = borde)
-    grid::grid.rect(x = x0, y = top, width = w, height = 0.024, just = c("left", "top"),
-                    gp = grid::gpar(col = NA, fill = "#ededed"))
-    grid::grid.text(sprintf("Visitas esperadas: %d", visitas), x = x0 + 0.012, y = top - 0.012,
-                    just = c("left", "center"), gp = grid::gpar(fontsize = 9.5, fontface = "bold", col = tinta))
-    y <- top - 0.024 - 0.012
-    for (l in lineas) {
-      grid::grid.text(l, x = x0 + 0.012, y = y, just = c("left", "center"), gp = grid::gpar(fontsize = 7, col = suave))
-      y <- y - 0.0118
-    }
-  }
-  if (length(pasos)) {
-    x0 <- 0.66; w <- 0.26
-    lineas <- lineas_pasos
-    h <- h_pasos
-    grid::grid.rect(x = x0, y = top, width = w, height = h, just = c("left", "top"), gp = borde)
-    grid::grid.rect(x = x0, y = top, width = w, height = 0.024, just = c("left", "top"),
-                    gp = grid::gpar(col = NA, fill = "#ededed"))
-    grid::grid.text("Ante la no respuesta", x = x0 + 0.012, y = top - 0.012, just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 9.5, fontface = "bold", col = tinta))
-    y <- top - 0.024 - 0.012
-    for (i in seq_along(lineas)) {
-      grid::grid.text(sprintf("%d.", i), x = x0 + 0.012, y = y, just = c("left", "center"),
-                      gp = grid::gpar(fontsize = 7, fontface = "bold", col = tinta))
-      for (l in lineas[[i]]) {
-        grid::grid.text(l, x = x0 + 0.012 + sangria, y = y, just = c("left", "center"),
-                        gp = grid::gpar(fontsize = 7, col = tinta))
-        y <- y - 0.0118
-      }
-      y <- y - 0.005
-    }
-  }
-  invisible(TRUE)
-}
-
 # ---------- Búsqueda en la muestra guardada ----------
 
 #' Muestra guardada del run activo de una sesión, o NULL si no hay rutas.
@@ -185,6 +120,21 @@ hojas_ruta_vp_buscar_bloque <- function(sample, id_manzana) {
   NULL
 }
 
+# El contexto de render guarda la cartografía ya leída y procesada (calles,
+# manzanas, contornos), que es estática, y un índice del marco de la muestra. La
+# vista previa pide una ficha por clic: construirlo en cada pedido releía el JSON
+# de calles del distrito cada vez (~5 s). Se reusa mientras el marco sea el mismo.
+.hojas_ruta_vp_ctx_cache <- new.env(parent = emptyenv())
+
+.hojas_ruta_vp_render_context <- function(sample) {
+  frame <- sample$frame %||% NULL
+  prev <- .hojas_ruta_vp_ctx_cache$ultimo
+  if (!is.null(prev) && identical(prev$frame, frame)) return(prev$ctx)
+  ctx <- .hojas_ruta_render_context(sample)
+  .hojas_ruta_vp_ctx_cache$ultimo <- list(frame = frame, ctx = ctx)
+  ctx
+}
+
 #' Ficha de una UMP desde una muestra: PDF completo (ficha + mapa de contexto,
 #' como en la entrega) o PNG de la primera página.
 #'
@@ -207,7 +157,7 @@ hojas_ruta_ficha_ump <- function(sample, found, out_path, formato = c("png", "pd
   }
   meta <- sample$frame_meta %||% list()
   if (identical(formato, "pdf")) {
-    ctx <- render_ctx %||% .hojas_ruta_render_context(sample)
+    ctx <- render_ctx %||% .hojas_ruta_vp_render_context(sample)
     .hojas_ruta_draw_integrated_pdf(block, qdom, meta, cfg, out_path, render_ctx = ctx)
     return(list(path = out_path, formato = "pdf"))
   }
@@ -220,7 +170,9 @@ hojas_ruta_ficha_ump <- function(sample, found, out_path, formato = c("png", "pd
     file.copy(pdf_tmp, pdf_out, overwrite = TRUE)
     return(list(path = pdf_out, formato = "pdf"))
   }
-  bitmap <- pdftools::pdf_render_page(pdf_tmp, page = 1L, dpi = 144, numeric = TRUE)
+  # Bitmap crudo (sin `numeric = TRUE`): pasarlo a doble y transponerlo costaba
+  # más que rasterizar la página.
+  bitmap <- pdftools::pdf_render_page(pdf_tmp, page = 1L, dpi = 144)
   png::writePNG(bitmap, out_path)
   list(path = out_path, formato = "png")
 }

@@ -35,7 +35,7 @@ vp_sin_visitas <- function(sm) {
 
 vp_pdf_texto <- function(path) paste(pdftools::pdf_text(path), collapse = "\n")
 
-test_that("la ficha encuentra titular y reemplazo, e imprime visitas esperadas y la regla", {
+test_that("la ficha encuentra titular y reemplazo, e imprime visitas esperadas y el procedimiento", {
   skip_if_not_installed("pdftools")
   sm <- vp_muestra()
   expect_true(isTRUE(sm$ok))
@@ -52,9 +52,14 @@ test_that("la ficha encuentra titular y reemplazo, e imprime visitas esperadas y
   expect_true(file.exists(out$path))
   expect_gt(file.size(out$path), 1000)
   txt <- vp_pdf_texto(out$path)
-  expect_match(txt, sprintf("Visitas esperadas: %d", tit$visitas_esperadas), fixed = TRUE)
-  expect_match(txt, "Ante la no respuesta", fixed = TRUE)
-  expect_match(txt, "segunda pasada", fixed = TRUE)
+  # Las visitas esperadas no van en la ficha (Gonzalo): son de planificación.
+  expect_false(grepl("Visitas esperadas", txt, fixed = TRUE))
+  # La ficha imprime el protocolo único ante la no respuesta, como la hoja del día.
+  expect_match(txt, "Procedimiento ante la no respuesta", fixed = TRUE)
+  expect_match(txt, "segunda vuelta", fixed = TRUE)
+  expect_match(txt, "manzanas aledañas", fixed = TRUE)
+  expect_false(grepl("manzana de reemplazo", txt, fixed = TRUE))
+  expect_false(grepl("sistemático|elegible", txt))
 
   png_out <- hojas_ruta_ficha_ump(sm, f_r, tempfile(fileext = ".png"), "png")
   expect_identical(png_out$formato, "png")
