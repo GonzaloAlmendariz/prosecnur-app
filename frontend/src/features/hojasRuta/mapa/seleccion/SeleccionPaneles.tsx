@@ -6,7 +6,8 @@ import { PulsoTable, type PulsoTableColumna } from "../../../../components/Pulso
 import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
-import { useLienzoHojasRuta, type CajonSeleccion } from "../store";
+import { useLienzoHojasRuta } from "../store";
+import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
 /**
@@ -27,7 +28,8 @@ const rango = (b: SelectedBlock) => (Number(b.rango_inicio) > 0 && Number(b.rang
 type EstructuraProps = { grupos: readonly GrupoRutas[]; total: number; observadas: number };
 
 export function SeleccionEstructura({ grupos, total, observadas }: EstructuraProps) {
-  const { umpEnfocada, setUmpEnfocada, soloPorRevisar, setSoloPorRevisar, busquedaUmp, setBusquedaUmp } = useLienzoHojasRuta();
+  const { soloPorRevisar, setSoloPorRevisar, busquedaUmp, setBusquedaUmp } = useLienzoHojasRuta();
+  const { umpEnfocada, setUmpEnfocada } = useSeleccionDireccion();
   const visibles = grupos.reduce((a, g) => a + g.filas.length, 0);
   return (
     <>
@@ -81,7 +83,7 @@ type InspectorProps = {
 };
 
 export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas }: InspectorProps) {
-  const { setUmpEnfocada, setCajon } = useLienzoHojasRuta();
+  const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
     const observaciones = revision.grupos.filter((g) => g.umps.some((u) => u.idManzana === titular.id_manzana || suyos.some((r) => r.id_manzana === u.idManzana)));
@@ -204,7 +206,7 @@ const COLUMNAS_CUOTA: PulsoTableColumna<Celda & { _i: number }>[] = [
 type CajonProps = { titulares: readonly SelectedBlock[]; reemplazos: readonly SelectedBlock[]; cuotas: QuotaPlan | null };
 
 export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
-  const { cajon, setCajon, umpEnfocada, setUmpEnfocada } = useLienzoHojasRuta();
+  const { cajon, setCajon, umpEnfocada, setUmpEnfocada } = useSeleccionDireccion();
   if (!cajon) return null;
   const titularDe = new Map(reemplazos.map((r) => [r.id_manzana, r.titular_id_manzana ?? null]));
   return (

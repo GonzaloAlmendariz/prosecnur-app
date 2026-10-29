@@ -8,8 +8,6 @@ import type { BorradorMuestra } from "./muestra/desdeConfig";
  * eligiendo y no se guarda hasta confirmar. Lo duro (territorios confirmados,
  * salidas del motor) vive en el backend.
  */
-export type CajonSeleccion = "titulares" | "reemplazos" | "cuotas";
-
 type EstadoLienzo = {
   /** Distritos en borrador; `null` = igual a los confirmados (no hay cambios). */
   borrador: string[] | null;
@@ -28,16 +26,10 @@ type EstadoLienzo = {
   /** Vértices (en el mundo del lienzo) del área que se está dibujando; `null` = no se dibuja. */
   dibujoArea: [number, number][] | null;
   setDibujoArea: (v: [number, number][] | null) => void;
-  /** Selección: la titular enfocada en el mapa y la ficha. */
-  umpEnfocada: string | null;
-  setUmpEnfocada: (id: string | null) => void;
   soloPorRevisar: boolean;
   setSoloPorRevisar: (v: boolean) => void;
   busquedaUmp: string;
   setBusquedaUmp: (texto: string) => void;
-  /** Cajón de tablas bajo el mapa; `null` = cerrado. */
-  cajon: CajonSeleccion | null;
-  setCajon: (c: CajonSeleccion | null) => void;
   setBorrador: (next: string[] | null) => void;
   setBusquedaDistrito: (texto: string) => void;
   setSoloElegidos: (valor: boolean) => void;
@@ -45,7 +37,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, umpEnfocada: null, soloPorRevisar: false, busquedaUmp: "", cajon: null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "" };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -54,10 +46,8 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setMuestraBorrador: (muestraBorrador) => set({ muestraBorrador }),
   setSorteoBorrador: (sorteoBorrador) => set({ sorteoBorrador }),
   setDibujoArea: (dibujoArea) => set({ dibujoArea }),
-  setUmpEnfocada: (umpEnfocada) => set({ umpEnfocada }),
   setSoloPorRevisar: (soloPorRevisar) => set({ soloPorRevisar }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
-  setCajon: (cajon) => set({ cajon }),
   setBusquedaDistrito: (busquedaDistrito) => set({ busquedaDistrito }),
   setSoloElegidos: (soloElegidos) => set({ soloElegidos }),
   setDistritoBajoCursor: (distritoBajoCursor) => set((s) => (s.distritoBajoCursor === distritoBajoCursor ? s : { distritoBajoCursor })),

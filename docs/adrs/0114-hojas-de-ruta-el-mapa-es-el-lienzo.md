@@ -78,14 +78,27 @@ enlaces:
 
 | Panel | Clase | Dirección |
 |---|---|---|
-| Tablas (cajón) | `inspector` | `&panel=tablas&foco=<matriz\|proporcional\|cuotas\|reparto\|titulares\|reemplazos>` |
+| Tablas (cajón) | — (pestaña) | `?seccion=seleccion&pestana=<titulares\|reemplazos\|cuotas>` (ver la enmienda abajo) |
 | Hoja de ruta de una UMP | `dialogo` | `?seccion=seleccion&panel=hoja&foco=<id_manzana>` |
 | Hoja del día de un encuestador | `dialogo` | `?seccion=seleccion&panel=hoja-dia&foco=<n>` |
 | Bitácora de decisiones | `dialogo` | `&panel=bitacora` |
 | Informe de diseño muestral | `dialogo` | `&panel=informe` |
 | Envío a Material | `dialogo` | `&panel=envio` |
 
-La UMP fijada en Selección es `&foco=<id_manzana>`. Los paneles se declaran en `PANELES_POR_MODULO` y se abren con
+La UMP fijada en Selección es `&foco=<id_manzana>`.
+
+*Enmienda de implementación (2026-10-29, revisión de contratos de la fase 3, I3 e I4).* `foco` tenía dos significados
+(la UMP y la tabla del cajón), y la ficha y el cajón abiertos a la vez no cabían en una URL. Además solo existe un
+`?panel=` a la vez, así que `tablas` y `salidas` se excluían. Queda así:
+
+- la tabla del cajón es la **pestaña** que el manifiesto ya declara (`&pestana=titulares|reemplazos|cuotas`); la
+  pestaña `revision` no abre cajón, porque la revisión vive en el inspector;
+- `foco` queda **solo** para la UMP;
+- `salidas` es el único panel de Selección y se abre sobre lo que haya (cajón o ficha).
+
+Implementado con `useFoco` (`lib/navegacion/useFoco.ts`) y `useSeleccionDireccion` (`mapa/seleccion/`), con
+`replace` para no llenar el historial. La matriz poblacional y el reparto de Muestra no usan cajón: viven en su
+inspector y estructura. Los paneles se declaran en `PANELES_POR_MODULO` y se abren con
 `usePanelDireccionable`, nunca con un `useState` suelto.
 
 ### 4. Las etapas no bloquean la entrada
