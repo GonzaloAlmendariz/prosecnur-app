@@ -20,6 +20,8 @@ import {
   dibujarTitularesMundo,
   dibujarTitularesPantalla,
   type TitularEnMapa,
+  mezclar,
+  tonoDistrito,
 } from "./lienzo/capas";
 import { nombreDistrito } from "./nombres";
 import { useLienzoHojasRuta } from "./store";
@@ -294,11 +296,13 @@ export default function HojasRutaMapaPage() {
           const max = Math.max(...Object.values(matriz.porUbigeo), 1);
           return { relleno: u.colores.densidad[Math.min(6, 1 + Math.floor(((matriz.porUbigeo[c.ubigeo] ?? 0) / max) * 5.99))], borde: u.colores.distritoBorde, grosor: 1.3 };
         }
-        if (enMuestra && conf) return { relleno: u.colores.densidad[2], borde: u.colores.distritoBorde, grosor: 1.3 };
-        if (!enTerritorio) return { relleno: conf ? u.colores.distrito : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
+        // B9: cada distrito confirmado lleva su tono, en el orden de confirmación.
+        const tono = tonoDistrito(u, confirmados.indexOf(c.ubigeo));
+        if (enMuestra && conf) return { relleno: mezclar(u.colores.distrito, tono, 0.42), borde: u.colores.distritoBorde, grosor: 1.3 };
+        if (!enTerritorio) return { relleno: conf ? mezclar(u.colores.distrito, tono, 0.22) : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
         const enB = borrador.includes(c.ubigeo);
         return {
-          relleno: enB ? u.colores.distrito : u.colores.fondo,
+          relleno: enB && conf ? mezclar(u.colores.distrito, tono, 0.42) : enB ? mezclar(u.colores.distrito, u.colores.acento, 0.3) : u.colores.fondo,
           borde: enB !== conf ? u.colores.acento : u.colores.distritoBorde,
           grosor: enB !== conf ? 2 : enB ? 1.3 : 0.8,
           punteado: enB && !conf,
@@ -309,10 +313,7 @@ export default function HojasRutaMapaPage() {
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       if (enTerritorio) {
-        ctx.globalAlpha = 0.22;
-        ctx.fillStyle = u.colores.acento;
-        for (const c of contornos) if (borrador.includes(c.ubigeo)) ctx.fill(u.trazo(c));
-        ctx.globalAlpha = 1;
+
         const bajo = distritoBajoCursor ? contornos.find((c) => c.ubigeo === distritoBajoCursor) : null;
         if (bajo) {
           ctx.strokeStyle = u.colores.texto;
@@ -365,6 +366,8 @@ export default function HojasRutaMapaPage() {
     },
     [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea],
   );
+  // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
+  const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : []);
@@ -376,13 +379,14 @@ export default function HojasRutaMapaPage() {
           visibles.map((c) => {
             const enB = borrador.includes(c.ubigeo), conf = confirmados.includes(c.ubigeo);
             const fila = enMuestra ? tamano?.filas.find((f) => f.ubigeo === c.ubigeo) : undefined;
-            const detalle = fila ? `${fmt(fila.nUsado)} entr. · ±${((fila.margen ?? 0) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo` : undefined;
-            return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: u.colores.acento };
+            const detalle = fila ? `${fmt(fila.nUsado)} entr. · ±${((fila.margen ?? 0) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo`
+              : enTerritorio && habitantes.get(c.ubigeo) ? `${fmt(habitantes.get(c.ubigeo) ?? 0)} hab.` : undefined;
+            return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: conf ? tonoDistrito(u, confirmados.indexOf(c.ubigeo)) : u.colores.acento };
           }),
         );
       }
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano],
+    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes],
   );
 
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);

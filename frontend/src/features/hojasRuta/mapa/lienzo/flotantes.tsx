@@ -28,8 +28,8 @@ export function leyendaLienzo(seccion: SeccionLienzo, opciones: { zonasCortas?: 
   if (seccion === "territorio") {
     return (
       <>
-        <span>{muestra(`color-mix(in srgb, ${acento} 22%, var(--pulso-mapa-distrito))`)}En el estudio</span>
-        <span>{muestra("var(--pulso-mapa-distrito)", acento, true)}Se agrega</span>
+        <span>{muestra("color-mix(in srgb, var(--pulso-mapa-tono-0) 42%, var(--pulso-mapa-distrito))")}En el estudio</span>
+        <span>{muestra(`color-mix(in srgb, ${acento} 30%, var(--pulso-mapa-distrito))`, acento, true)}Se agrega</span>
         <span>{muestra("var(--pulso-mapa-fondo)", acento)}Se quita</span>
       </>
     );
@@ -45,7 +45,7 @@ export function leyendaLienzo(seccion: SeccionLienzo, opciones: { zonasCortas?: 
       </>
     );
   }
-  if (seccion === "muestra") return <span>{muestra("var(--pulso-data-seq-1)", "var(--pulso-mapa-distrito-borde)")}Distritos del estudio</span>;
+  if (seccion === "muestra") return <span>Cada distrito del estudio lleva su color</span>;
   if (seccion === "manzanas") {
     return (
       <>

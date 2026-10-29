@@ -33,3 +33,17 @@
   --pulso-nse-4: #d97706;
   --pulso-nse-5: #dc2626;
 }
+
+/* Identidad por distrito en el lienzo de Hojas de ruta (brecha B9): el distrito
+ * confirmado N toma el tono N (en el orden de confirmación), en el relleno y en la
+ * franja de su rótulo. Los mismos ocho del artefacto aprobado. */
+:root {
+  --pulso-mapa-tono-0: #7aa2f8;
+  --pulso-mapa-tono-1: #2457d6;
+  --pulso-mapa-tono-2: #9a7bd8;
+  --pulso-mapa-tono-3: #3aa7a0;
+  --pulso-mapa-tono-4: #d59a3a;
+  --pulso-mapa-tono-5: #6b7686;
+  --pulso-mapa-tono-6: #c46a8a;
+  --pulso-mapa-tono-7: #5b9b4a;
+}
