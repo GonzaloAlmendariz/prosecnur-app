@@ -182,7 +182,7 @@
     g <- min(.std_grosor(n, "categorias"), fila * 0.7)
     tope <- min(2.6, w * 0.45)
     nb <- .std_negrita_forzada("categorias")   # O8a: con «todas en negrita» el rótulo se mide con su negrita
-    size <- if (max(.lam_ancho_tinta(espec$rotulos, 12, nb)) + 0.3 > tope) 11 else 12
+    size <- if (max(.lam_ancho_tinta(espec$rotulos, .std_pt("rotulo_categoria"), nb)) + 0.3 > tope) 11 else .std_pt("rotulo_categoria")
     wlab <- min(tope, max(rb$wlab %||% 1.2, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
     # Alto con la tinta medida: la estimación por carácter partía en dos «Secretario(a) académico(a)», que en la
     # lámina 193 del recetario cabe en una línea, y mandaba la cuadrícula entera a la ruta anterior.
@@ -199,7 +199,7 @@
     if (w_c >= 6 && n <= 8L) {
       ybase <- y + h - 0.42; techo <- y + 0.55 + dy + 0.72
       paso <- (w_c - 1.2) / n
-      rot_ok <- all(vapply(espec$rotulos, function(r) .lam_alto_tinta(r, paso * 0.56 + 0.8, 12, TRUE) <= 0.42, TRUE))
+      rot_ok <- all(vapply(espec$rotulos, function(r) .lam_alto_tinta(r, paso * 0.56 + 0.8, .std_pt("rotulo_categoria"), TRUE) <= 0.42, TRUE))
       return(list(tipo = "columnas", x0 = x_c + 0.6, ybase = ybase, wv = w_c - 1.2, hmax = ybase - techo,
                   cabe = ybase - techo >= 0.6 && rot_ok))
     }

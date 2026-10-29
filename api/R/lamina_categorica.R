@@ -27,7 +27,7 @@
       .lam_txt(lz, sprintf("%s %s", format(as.integer(nk), big.mark = ","), unidad_n), xk - 0.4, ybase - hk - 0.68,
                wcol + 0.8, 0.26, .std_pt("n"), tenue, align = "center", nombre = "n")
     }
-    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, 12, TRUE)), 12,
+    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, .std_pt("rotulo_categoria"), TRUE)), .std_pt("rotulo_categoria"),
              azul, bold = TRUE, align = "center", nombre = "rotulo")
   }
   invisible(lz)
@@ -36,7 +36,7 @@
 #' Barras horizontales de una serie: rótulo a la derecha, barra y cifra; la mayor en navy y negrita y el resto
 #' tenue cuando la especificación pide realce
 #' @keywords internal
-.lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = 12, escala = NULL) {
+.lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = .std_pt("rotulo_categoria"), escala = NULL) {
   v <- espec$largos; et <- espec$rotulos
   # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
   escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
@@ -92,7 +92,7 @@
   k <- length(espec$largos); if (!k) return(NA_character_)
   g_ <- .std_geom; ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")
   wbox <- (ancho - 1.2) / k * 0.56 + 0.8
-  cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, 12, TRUE) <= 0.62, TRUE))
+  cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, .std_pt("rotulo_categoria"), TRUE) <= 0.62, TRUE))
   geo <- .lam_barras_geo(espec)
   barras_ok <- geo$fila >= 0.26 && all(.lam_jer_altos(espec, geo$wlab, geo$size) <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
   if (identical(preferida, "columnas") && cols_ok) return("columnas")

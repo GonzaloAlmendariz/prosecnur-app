@@ -99,7 +99,7 @@
   f <- espec$valores / sum(espec$valores); acum <- c(0, cumsum(f))
   for (i in seq_len(k)) if (f[i] > 0) .lam_sector(lz, cx, cy, r, acum[i], acum[i + 1], cols[i], arco = TRUE, borde_pt = 2.4, nombre = "dona:porcion")
   .lam_txt(lz, espec$cifras[1], xd, cy - 0.45, d, 0.66, .std_pt("cifra_destacada"), azul, bold = TRUE, align = "center", nombre = "dona:cifra")
-  .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, 12, azul, align = "center", nombre = "dona:rotulo")
+  .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, .std_pt("rotulo_categoria"), azul, align = "center", nombre = "dona:rotulo")
   # Lectura con filete coral (narrativa del recetario): «De N <unidad>, n1 <rótulo 1> y n2 (p2) <rótulo 2>».
   if (all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) && k == 2L) {
     .lam_caja(lz, 6.9, yt + 1.05, 0.05, 2.5, .std_color("coral"), nombre = "dona:filete")
@@ -132,7 +132,7 @@
 .lam_dona_recetario_cabe <- function(espec) {
   k <- length(espec$valores)
   k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
-    .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
+    .lam_ancho_tinta(espec$rotulos[1], .std_pt("rotulo_categoria")) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
 }
 

@@ -17,6 +17,8 @@ geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_
              # rótulo debajo (0.3), detalle en +0.9 (0.26); ocupa 1.15 y sus separadores van de y + 0.05 a y + 1.2 (p171).
              cifra_pieza = list(valor_h = 0.62, rotulo_dy = 0.62, rotulo_h = 0.3, detalle_dy = 0.9, detalle_h = 0.26, alto = 1.15, separador_dy = 0.05))
 tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
+                       # Rótulo de cada categoría en barras, columnas y circulares (el `actor` es el público de la escala).
+                       rotulo_categoria = 12,
                        base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 12,
                        # Piso de las cifras tras el paso de letra del cliente (K13 en el PPT, como `grafico_minimo` en el Word) y la
                        # portada del recetario (lámina 23 y sus variantes 24 «izquierda» y 25 «banda», lamina_identidad.R).

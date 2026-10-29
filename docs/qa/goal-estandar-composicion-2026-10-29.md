@@ -84,7 +84,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | U2 ☑ | 0,36 aire de cifra chica | pan:81 | `geometria.aire_cifra_chica` |
 | U3 ☑ | 34 pt cifra destacada | mix:300, circ:71, circ:101 | `tipografia.cifra_destacada` |
 | U4 ☑ | 13 pt pregunta del panel | pan:13-14, mix:159, cat:280 | `tipografia.pregunta` |
-| U5 | 12 pt rótulos de categoría | cat:30, 95; mix:185, 202; circ:102, 136 | `tipografia.actor` |
+| U5 ☑ | 12 pt rótulos de categoría (llave nueva `tipografia.rotulo_categoria`) | cat:30, 95; mix:185, 202; circ:102, 136 | `tipografia.actor` |
 | U6 | pila de cifra de la torta 0,62/0,3/0,26 | circ:71-75 | `geometria.cifra_pieza` (casi igual) |
 | U7 | reserva 0,45 bajo las barras | cat:76 | `.LAM_USO_AREA$reserva` |
 
@@ -118,5 +118,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑, U1–U4 ☑ (geometría idéntica). Siguen D12, U5–U7, F3, F4; F1 y F5 esperan a Gonzalo |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). F2 ☑, U1–U5 ☑ (geometría idéntica). Siguen D12, U6, U7, F3, F4; F1 y F5 esperan a Gonzalo |
 | E6 cierre: gate amplio y commit | ☐ |
