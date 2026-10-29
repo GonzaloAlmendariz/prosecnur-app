@@ -1141,6 +1141,8 @@ export type HojasRutaCoberturaMarco = {
   elegible: HojasRutaConteoMarco;
   excluida_area: HojasRutaConteoMarco;
   excluida_minimo: HojasRutaConteoMarco;
+  /** Titulares del piloto (Campo real), contadas aparte de los criterios del marco. */
+  excluida_piloto: HojasRutaConteoMarco;
   excluida_minimo_sin_conteo: number;
   sin_geometria: number;
   /** `null` cuando el distrito o la zona no tienen población. */
@@ -1188,7 +1190,7 @@ export function normalizarMarcoElegiblePreview(raw: unknown): HojasRutaMarcoEleg
       return {
         ubigeo: comoTexto(r.ubigeo), distrito: comoTexto(r.distrito), zona: r.zona === undefined ? undefined : comoTexto(r.zona),
         total: normalizarConteoMarco(r.total), elegible: normalizarConteoMarco(r.elegible),
-        excluida_area: normalizarConteoMarco(r.excluida_area), excluida_minimo: normalizarConteoMarco(r.excluida_minimo),
+        excluida_area: normalizarConteoMarco(r.excluida_area), excluida_minimo: normalizarConteoMarco(r.excluida_minimo), excluida_piloto: normalizarConteoMarco(r.excluida_piloto),
         excluida_minimo_sin_conteo: Math.max(0, comoNumero(r.excluida_minimo_sin_conteo)), sin_geometria: Math.max(0, comoNumero(r.sin_geometria)),
         cobertura_poblacion: cob,
       };

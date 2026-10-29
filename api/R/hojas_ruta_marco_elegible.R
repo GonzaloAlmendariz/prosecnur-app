@@ -246,6 +246,7 @@ hojas_ruta_marco_elegible_puntos <- function(ubigeo) {
       elegible = cuenta(elegible),
       excluida_area = cuenta(ix[criterio[ix] == "area"]),
       excluida_minimo = cuenta(ix[criterio[ix] == "minimo"]),
+      excluida_piloto = cuenta(ix[criterio[ix] == "piloto"]),
       excluida_minimo_sin_conteo = sum(criterio[ix] == "minimo" & sin_conteo[ix]),
       sin_geometria = sum(sin_geo[ix]),
       cobertura_poblacion = if (total$poblacion > 0) sum(pob[elegible]) / total$poblacion else NA_real_
@@ -262,7 +263,7 @@ hojas_ruta_marco_elegible_puntos <- function(ubigeo) {
 #' entrada y el resumen por distrito y por zona. `puntos` (id_manzana, lon, lat,
 #' nse_nivel) se puede pasar para no leer la cartografía; si falta y hay áreas,
 #' se lee por distrito.
-hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL) {
+hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, excluidas_piloto = character(0)) {
   me <- if (is.null(me) || is.null(me$declarado)) hojas_ruta_marco_elegible_normalizar(me) else me
   n <- nrow(frame)
   criterio <- rep("elegible", n)
@@ -288,6 +289,10 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL) {
   }
   viv <- .hojas_ruta_me_num(frame$viviendas)
   if (n && minimo > 0L) criterio[criterio == "elegible" & viv < minimo] <- "minimo"
+  # Tercer criterio (ADR 0115 §1): las titulares del piloto, sólo entre las que siguen
+  # elegibles; el motor las quita después, así que aquí sólo las cuenta la vista previa.
+  piloto <- unique(as.character(unlist(excluidas_piloto, use.names = FALSE)))
+  if (n && length(piloto)) criterio[criterio == "elegible" & as.character(frame$id_manzana) %in% piloto] <- "piloto"
   sin_conteo <- if ("match_level" %in% names(frame)) as.character(frame$match_level) %in% "sin_conteo_redatam" & viv == 0 else rep(FALSE, n)
   list(
     frame = frame[criterio == "elegible", , drop = FALSE],
@@ -376,7 +381,8 @@ hojas_ruta_marco_elegible_preview <- function(config = list(), puntos = NULL) {
   territorio <- hojas_ruta_inei_frame(cfg$frame_source)
   territorio <- territorio[territorio$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
   if (is.null(puntos)) puntos <- do.call(rbind, c(list(data.frame(id_manzana = character(0), lon = numeric(0), lat = numeric(0), nse_nivel = character(0))), lapply(unique(as.character(territorio$ubigeo)), hojas_ruta_marco_elegible_puntos)))
-  ap <- hojas_ruta_marco_elegible_aplicar(territorio, me, puntos = puntos)
+  # D3: en Campo real también salen las titulares del piloto, como en el sorteo.
+  ap <- hojas_ruta_marco_elegible_aplicar(territorio, me, puntos = puntos, excluidas_piloto = cfg$excluded_titular_ids %||% list())
   quota <- hojas_ruta_quota_preview_integrado(cfg)
   rep <- .hojas_ruta_me_reparto(ap$frame, .hojas_ruta_rows_df(quota$cells), cfg)
   reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
@@ -471,7 +477,11 @@ hojas_ruta_marco_elegible_de_la_muestra <- function(config, sample) {
 #' en `resultado$marco_elegible` lo necesario para reconstruir π ≈ n_z·M_i/ΣM_z
 #' por zona y verificar que el marco no cambió (hashes). No vuelve a sortear.
 hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
+  # Los avisos de normalización (área descartada, polígono fuera) viajan como atributo
+  # del objeto normalizado en esta misma petición; se rescatan antes de re-normalizar.
+  avisos_marco <- attr(config$marco_elegible, "alertas") %||% list()
   cfg <- hojas_ruta_integrada_normalize_config(config %||% resultado$config %||% list())
+  avisos_marco <- c(avisos_marco, attr(cfg$marco_elegible, "alertas") %||% list())
   frame <- .hojas_ruta_filter_frame(cfg)
   rep <- .hojas_ruta_me_reparto(frame, .hojas_ruta_rows_df(resultado$quota$cells %||% list()), cfg)
   perdidas <- sum(vapply(rep$perdidas, function(p) as.integer(p$entrevistas), integer(1)))
@@ -499,6 +509,19 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
       .hojas_ruta_me_pi(df_z, ids, medida, cfg$sampling_method)
     )
   }
+  # D5: el resumen por distrito y zona (por criterio) y los avisos del marco van con la muestra.
+  territorio <- hojas_ruta_inei_frame(cfg$frame_source)
+  territorio <- territorio[territorio$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  con_areas <- length(cfg$marco_elegible$areas_excluidas %||% list()) > 0L
+  ap <- hojas_ruta_marco_elegible_aplicar(territorio, cfg$marco_elegible, excluidas_piloto = cfg$excluded_titular_ids %||% list())
+  vistos <- vapply(resultado$alerts %||% list(), function(a) paste(a$code %||% "", a$message %||% ""), character(1))
+  for (a in avisos_marco) {
+    clave <- paste(a$code %||% "", a$message %||% "")
+    if (!clave %in% vistos) {
+      resultado$alerts <- c(resultado$alerts %||% list(), list(a))
+      vistos <- c(vistos, clave)
+    }
+  }
   ruta_marco <- tryCatch(hojas_ruta_inei_frame_path(cfg$frame_source), error = function(e) "")
   elegibles_por_distrito <- lapply(split(as.character(frame$id_manzana), as.character(frame$ubigeo)), function(ids) .hojas_ruta_me_hash(sort(ids)))
   resultado$marco_elegible <- list(
@@ -508,7 +531,11 @@ hojas_ruta_marco_elegible_completar <- function(resultado, config = NULL) {
     zonas = zonas,
     hash_marco = if (nzchar(ruta_marco) && file.exists(ruta_marco)) digest::digest(file = ruta_marco, algo = "sha256") else NA_character_,
     hash_criterios = .hojas_ruta_me_hash(cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")]),
-    hash_elegibles_por_distrito = elegibles_por_distrito
+    hash_elegibles_por_distrito = elegibles_por_distrito,
+    # La exclusión por área depende de la cartografía: su firma por distrito, sólo si hay áreas.
+    firma_cartografia = if (con_areas) lapply(stats::setNames(nm = unique(as.character(territorio$ubigeo))), function(u) tryCatch(.hojas_ruta_geometria_firma(u), error = function(e) NA_character_)) else NULL,
+    por_distrito = ap$por_distrito,
+    por_zona = ap$por_zona
   )
   resultado
 }

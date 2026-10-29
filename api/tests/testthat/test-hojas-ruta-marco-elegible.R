@@ -105,7 +105,7 @@ test_that("conservación: elegibles más excluidas es el marco, por distrito y p
   r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
   for (fila in c(r$por_distrito, r$por_zona)) {
     for (k in c("manzanas", "viviendas", "poblacion")) {
-      expect_identical(fila$elegible[[k]] + fila$excluida_area[[k]] + fila$excluida_minimo[[k]], fila$total[[k]])
+      expect_identical(fila$elegible[[k]] + fila$excluida_area[[k]] + fila$excluida_minimo[[k]] + fila$excluida_piloto[[k]], fila$total[[k]])
     }
   }
   expect_length(r$por_zona, 3)
@@ -255,4 +255,32 @@ test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avi
   expect_length(igual$alertas, 0)
   sin <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list())
   expect_identical(sin$config$marco_elegible$minimo_viviendas, 5L)
+})
+
+test_that("D3: en Campo real la vista previa descuenta el piloto y sigue repartiendo como el sorteo", {
+  base <- me_cfg_ancon()
+  piloto_ids <- as.character(.hojas_ruta_rows_df(hojas_ruta_sample_preview_integrado(base)$blocks)$id_manzana)[1:3]
+  cfg <- me_cfg_ancon(excluded_titular_ids = as.list(piloto_ids), seed = 99)
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_false(any(as.character(.hojas_ruta_rows_df(s$blocks)$id_manzana) %in% piloto_ids))
+  p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
+  expect_identical(sum(vapply(p$por_distrito, function(d) d$excluida_piloto$manzanas, integer(1))), 3L)
+  sorteadas <- table(as.character(.hojas_ruta_rows_df(s$blocks)$zona))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(min(z$rutas, z$manzanas), z$zona)))
+  expect_identical(as.integer(sorteadas[names(previstas)]), as.integer(previstas))
+})
+
+test_that("D5: el sorteo guarda el resumen por criterio y no pierde el aviso de un área descartada", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  crudo <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(list(id = "sin-fuente", motivo = "inseguridad", poligono = list(c(-77.18, -11.77), c(-77.17, -11.77), c(-77.17, -11.78))))))
+  comp <- hojas_ruta_marco_elegible_completar(s, crudo)
+  expect_true("W_EXCLUDED_AREA_DISCARDED" %in% vapply(comp$alerts, `[[`, character(1), "code"))
+  me <- comp$marco_elegible
+  expect_length(me$por_distrito, 1)
+  expect_identical(me$por_distrito[[1]]$excluida_minimo$manzanas, me$por_distrito[[1]]$total$manzanas - me$por_distrito[[1]]$elegible$manzanas)
+  expect_true(length(me$por_zona) > 1)
+  # Sin áreas válidas no hay firma de cartografía que guardar.
+  expect_null(me$firma_cartografia)
+  # Las rutas previstas por zona viajan con π.
+  expect_true(all(vapply(me$zonas, function(z) is.numeric(z$rutas) || is.integer(z$rutas), logical(1))))
 })
