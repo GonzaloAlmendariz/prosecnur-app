@@ -121,7 +121,14 @@
   if (!is.null(n_encima)) .lam_n_encima_barra(lz, n_encima, x + wb, yb, desde = desde)   # G16: «N = 77» sobre el extremo derecho
   if (wbox > 0) {
     verde <- .std_color("verde_top_two_box")
-    .lam_txt(lz, .lam_rotulo_box(s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX), x + wb + 0.05, yb - 0.4, wbox - 0.05, 0.26, .std_pt("rotulo_top_two_box"),
+    rot <- .lam_rotulo_box(s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+    # En una línea (a 12 pt «TOP TWO BOX» no cabe en la columna de 1,3 in, y la barra no cede: mide lo que la del filtro). La
+    # caja crece, centrada sobre su cifra; lo que no pasa del margen derecho es la tinta, no la caja (invisible).
+    tinta <- .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE)
+    wr <- max(wbox - 0.05, tinta + 0.35)
+    xc <- min(x + wb + 0.05 + (wbox - 0.05) / 2, .std_geom("ancho") - .std_geom("margen_der") - tinta / 2)
+    xr <- xc - wr / 2
+    .lam_txt(lz, rot, xr, yb - 0.4, wr, 0.26, .std_pt("rotulo_top_two_box"),
              verde, bold = TRUE, align = "center", nombre = "box:rotulo")
     .lam_etiqueta_box(lz, s, x + wb + 0.05, yb, h, 1L, con_n = FALSE, color = verde, w = wbox - 0.05)
   }
