@@ -52,7 +52,9 @@ export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
 export const AYUDA_TABLA =
-  "Con Líneas y puntos o Barras comparativas, elige “Sí” para ver la tabla; si no cabe al costado va debajo y, si tampoco, se omite con aviso.";
+  "Automática la pone junto al radar y a las líneas y puntos; con Barras comparativas, elige “Sí”. Si no cabe al costado va debajo y, si tampoco, se omite con aviso.";
+// Sin encabezado de fábrica (motor, graficos_radar_tabla.R): vacío queda vacío y el informe avisa.
+export const AYUDA_TABLA_TITULO = "Lo escribe el analista. Vacío, la celda queda vacía y el informe avisa.";
 export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como Sin encuestas y la lámina lo avisa.";
 export const AYUDA_CORTES = "Tres cortes dan cuatro clases. Vacío: 55, 65 y 75.";
@@ -160,7 +162,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   eje_pocos_min: { rotulo: "Desde (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
   eje_pocos_max: { rotulo: "Hasta (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
   tabla: { rotulo: "Tabla de datos", ayuda: AYUDA_TABLA, estricto: true, soloEn: ["p_radar"] },
-  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: Tema.", estricto: true, soloEn: ["p_radar"] },
+  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: AYUDA_TABLA_TITULO, estricto: true, soloEn: ["p_radar"] },
   eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
   objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
