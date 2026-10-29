@@ -46,7 +46,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B35 | Muestra | falta · medio | Pie «Ver cuotas / Ir al sorteo» | `MuestraPaneles.tsx`: sin cambios pendientes el pie lleva a las cuotas y al sorteo | ☑ |
 | B36 | Muestra 1024 | peor · medio | Lista de reparto con scroll anidado (deuda compartida con el artefacto) | `.hr-muestra-reparto` crece entera (`flex-shrink: 0`, sin overflow propio): a 1024×600 pasaba de una ventana de 86 px sobre 484 a un solo scroll, el de la estructura; a 1440 no hay scroll | ☑ |
 | B37 | Muestra | — | La app suma ocupación, visitas P90, aviso MAS, FPC | — | — |
-| B38 | Manzanas | falta · alto | «¿Se parece al marco?» (NSE marco vs muestra); deslizador del mínimo con atajos; cifras Elegibles/Fuera/Viviendas | «¿Se parece al marco?» ☑ (`manzanas/ParecidoAlMarco.tsx`); deslizador y cifras ☐ | ◐ |
+| B38 | Manzanas | falta · alto | «¿Se parece al marco?» (NSE marco vs muestra); deslizador del mínimo con atajos; cifras Elegibles/Fuera/Viviendas | «¿Se parece al marco?» ☑ c2f4b7788; atajos del mínimo ☑ 2f57d7efc; cifras ☑ en `manzanas/MarcoElegiblePanel.tsx`: Elegibles «de N manzanas», Fuera desglosado (mínimo · áreas · piloto), Viviendas % en elegibles; cobertura de población en la nota. Verificado contra la vista previa del motor en acnur_acg: 30,127 + 8,866 + 0 + 6 = 38,999; 838,686 / 839,193 viviendas = 99.9 % | ☑ |
 | B39 | Manzanas | falta · medio | Fila «Carga de la ruta»; «Dibujar un área a excluir» visible | Manzanas | ☐ |
 | B40 | Manzanas | peor · medio | Filas de distrito 16 px sin punto ni cifra a la derecha; historial abajo y truncado | Manzanas | ☐ |
 | B41 | Manzanas | — | La app trae historial real, exclusiones de piloto y comparar semillas | — | — |

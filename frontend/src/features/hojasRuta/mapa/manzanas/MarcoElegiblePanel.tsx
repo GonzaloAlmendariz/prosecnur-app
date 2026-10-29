@@ -52,11 +52,18 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
     };
   }, [huellaBorrador]);
   const declarado = marco?.declarado === true;
-  const sumar = (k: "manzanas" | "poblacion", campo: "total" | "elegible" | "excluida_minimo" | "excluida_area") => (vista?.por_distrito ?? []).reduce((a, d) => a + d[campo][k], 0);
+  const sumar = (k: "manzanas" | "viviendas" | "poblacion", campo: "total" | "elegible" | "excluida_minimo" | "excluida_area") => (vista?.por_distrito ?? []).reduce((a, d) => a + d[campo][k], 0);
   const totalPob = sumar("poblacion", "total");
   const excluidasMinimo = sumar("manzanas", "excluida_minimo");
   const sinConteo = (vista?.por_distrito ?? []).reduce((a, d) => a + d.excluida_minimo_sin_conteo, 0);
   const cubierta = totalPob ? sumar("poblacion", "elegible") / totalPob : null;
+  // «Fuera» = total − elegibles; se desglosa para que cuadre con «Salen N» (sólo el mínimo) y con el piloto.
+  const piloto = (vista?.por_distrito ?? []).reduce((a, d) => a + (d.excluida_piloto?.manzanas ?? 0), 0);
+  const motivosFuera = [
+    excluidasMinimo ? `${fmt(excluidasMinimo)} por el mínimo` : "",
+    sumar("manzanas", "excluida_area") ? `${fmt(sumar("manzanas", "excluida_area"))} por áreas` : "",
+    piloto ? `${fmt(piloto)} del piloto` : "",
+  ].filter(Boolean).join(" · ") || "manzanas";
   const cortas = (vista?.capacidad ?? []).filter((z) => z.falta);
   const decisiones = (vista?.por_distrito ?? []).filter((d) => tonoCobertura(d) === "decision");
   const vertices = dibujoArea ?? [];
@@ -84,11 +91,13 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
   return (
     <section className="hr-muestra-grupo" aria-label="Marco elegible">
       <h3>Marco elegible</h3>
-      <div className="hr-mapa-cifras">
-        <div><small>Manzanas</small><strong>{vista ? fmt(sumar("manzanas", "elegible")) : "—"}</strong></div>
-        <div><small>Población</small><strong>{cubierta == null ? "—" : pct(cubierta)}</strong></div>
-        <div><small>Áreas</small><strong>{me.areas_excluidas.length}</strong></div>
+      {/* B38: cada cifra dice sobre qué base se cuenta; todas salen de la vista previa del motor (por distrito). */}
+      <div className="hr-mapa-cifras hr-me-cifras">
+        <div><small>Elegibles</small><strong>{vista ? fmt(sumar("manzanas", "elegible")) : "—"}</strong><span>{vista ? `de ${fmt(sumar("manzanas", "total"))} manzanas` : ""}</span></div>
+        <div><small>Fuera</small><strong>{vista ? fmt(sumar("manzanas", "total") - sumar("manzanas", "elegible")) : "—"}</strong><span>{vista ? motivosFuera : "manzanas"}</span></div>
+        <div><small>Viviendas</small><strong>{vista && sumar("viviendas", "total") ? pct(sumar("viviendas", "elegible") / sumar("viviendas", "total")) : "—"}</strong><span>en manzanas elegibles</span></div>
       </div>
+      {vista ? <p className="hr-mapa-nota">Cubre el {cubierta == null ? "—" : pct(cubierta)} de la población de los distritos del estudio.</p> : null}
       <div className="hr-muestra-campo">
         <small>Mínimo de viviendas por manzana</small>
         <span className="hr-muestra-pasos">
