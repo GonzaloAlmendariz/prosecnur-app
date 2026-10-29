@@ -201,9 +201,10 @@ test_that("salto sin actores: la fila con menos respuestas que su público dice 
   # Sólo esa fila: las que cuadran con su base (120) no se anotan.
   expect_equal(sum(grepl("^N = ", textos)), 1L)
   expect_false("N = 120" %in% textos)
-  # La anotación va con su premisa (la de a3).
-  nota <- regmatches(xml, gregexpr('name="premisa:n".*?</p:sp>', xml))[[1]]
+  # La anotación va con su barra, en azul, como el «N = 77» de la lámina de filtro (G16; Gonzalo, 2026-10-29).
+  nota <- regmatches(xml, gregexpr('name="filtro_sub:n".*?</p:sp>', xml))[[1]]
   expect_length(nota, 1L)
+  expect_match(nota, toupper(sub("#", "", .std_color("azul"))), ignore.case = TRUE)
   # El Word da esa misma base para la variable.
   expect_true("Base: 80" %in% sub("\\s*respuestas$", "", .mlt_word_textos(d)))
 })

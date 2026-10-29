@@ -3139,7 +3139,7 @@ reporte_ppt_plan <- function(
 
     if (length(srcs_used) == 1L) {
       src <- srcs_used[1]
-      first_ref <- refs[match(src, vapply(ctxs, `[[`, character(1), "source"))]
+      first_ref <- .base_ref_de_mayor_n(refs[vapply(ctxs, `[[`, character(1), "source") == src], function(r) .tab_freq(r, filtros = filtros, source = src))   # la de mayor N (reporte_plan_base_mayor.R)
 
       # Si el reporte completo usa multiples BBDD, la base automatica debe
       # rotularse por fuente (igual que en PPT), incluso cuando el grafico
@@ -3174,8 +3174,8 @@ reporte_ppt_plan <- function(
     parts <- character(0)
     alguna_reducida <- FALSE
     for (src in srcs_used) {
-      idx <- which(vapply(ctxs, `[[`, character(1), "source") == src)[1]
-      ref_src <- refs[idx]
+      idx <- which(vapply(ctxs, `[[`, character(1), "source") == src)[1]; ref_src <- .base_ref_de_mayor_n(refs[vapply(ctxs, `[[`, character(1), "source") == src], function(r) .tab_freq(r, filtros = filtros, source = src))   # la de mayor N
+
       ctx_ref <- tryCatch(.resolve_ref(ref_src, source = src, arg_name = "var"), error = function(e) NULL)
       excluir_src <- if (is.null(ctx_ref)) excluir_opciones else .exclusion_for_ctx(ctx_ref, excluir_opciones)
       tab <- .tab_freq(ref_src, filtros = filtros, source = src)

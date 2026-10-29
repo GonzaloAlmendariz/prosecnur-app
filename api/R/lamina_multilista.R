@@ -48,11 +48,14 @@
 #' lámina (`bases_publico`, la misma que recibía el graficador en la ruta anterior). Sólo cuando todas las variables
 #' del bloque son de un mismo público: las filas de la espec no dicen de qué variable salen, así que con públicos
 #' mezclados no se puede saber la base de cada una y no se anota (una anotación de menos, nunca una equivocada).
-#' Con actores no se marca nada: cada barra ya nombra sus respuestas.
+#' Con actores, igual (Gonzalo, 2026-10-29, opción A «como Conta»): un bloque de un solo público con menos casos que la
+#' base de la lámina lleva su «N = …»; el pie dice la base mayor. Antes no se marcaba porque «cada barra nombra sus
+#' respuestas», y eso sólo pasa con «Respuestas por público» encendido: al unir dos láminas, el N del bloque menor
+#' desaparecía (la base de la lámina salía del primer bloque).
 #' @keywords internal
 .lam_multilista_nota_n <- function(espec, fuentes, bases_publico) {
   f <- espec$filas
-  if (!NROW(f) || !all(is.na(f$grupo_id))) return(espec)
+  if (!NROW(f)) return(espec)
   fuente <- unique(fuentes[!is.na(fuentes)])
   if (length(fuente) != 1L || !length(bases_publico) || !fuente %in% names(bases_publico)) return(espec)
   espec$filas$n_nota <- .n_barra_procede(.espec_casos(f), bases_publico[[fuente]])   # casos contra casos (F6)

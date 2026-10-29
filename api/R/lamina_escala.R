@@ -25,11 +25,12 @@
   for (k in unique(claves)) {
     ii <- idx[claves == k]
     texto <- if (con_actor) (f$grupo_titulo[ii[1]] %||% f$grupo_id[ii[1]]) else f$rotulo[ii[1]]
-    filas <- lapply(ii, function(i) list(i = i, actor = if (con_actor) f$rotulo[i] else "", valid = .espec_casos(f)[i]))
-    # Sin actores, una fila marcada con `n_nota` (salto de cuestionario, lo decide quien compone: hoy la multilista)
-    # lleva su N bajo la premisa con el rótulo de la ruta anterior, «N = 80». Con actores cada barra ya dice sus
-    # respuestas.
-    nota <- if (!con_actor && isTRUE(f$n_nota[ii[1]])) .n_barra_texto(.espec_casos(f)[ii[1]]) else NULL
+    # Una fila marcada con `n_nota` (salto de cuestionario, lo decide quien compone: hoy la multilista) lleva su «N = 80»
+    # en azul, encima del extremo derecho de su barra (G16, como la lámina de filtro: Gonzalo, 2026-10-29). No cuando la
+    # barra ya dice sus respuestas («Respuestas por público»).
+    n_de <- function(i) if (isTRUE(f$n_nota[i]) && !isTRUE(espec$mostrar_respuestas)) .n_barra_texto(.espec_casos(f)[i]) else NULL
+    filas <- lapply(ii, function(i) list(i = i, actor = if (con_actor) f$rotulo[i] else "", valid = .espec_casos(f)[i], n = n_de(i)))
+    nota <- NULL
     out[[length(out) + 1L]] <- list(texto = texto, filas = filas, nota = nota)
   }
   out
@@ -414,7 +415,9 @@
         if (con_n) .lam_txt(lz, respuestas(fl$valid), x_act - 0.4, yb + g / 2, w_act + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                             align = "right", nombre = "respuestas")
       }
+      antes_barra <- length(lz$cajas)
       .lam_barra_apilada(lz, x_bar, yb, WB, .lam_escala_seg(espec, fl$i), g)
+      if (!is.null(fl$n)) .lam_n_encima_barra(lz, fl$n, x_bar + WB, yb, desde = antes_barra)   # lamina_filtro_sub_n.R
       for (cc in cb$cols) .lam_etiqueta_box(lz, espec, cc$x, yb, g, fl$i, con_n = hay_chica, caja = cc$caja, color = cc$color,
                                             w = wcol, prefijo = cc$prefijo)
       yf <- yf + fila
