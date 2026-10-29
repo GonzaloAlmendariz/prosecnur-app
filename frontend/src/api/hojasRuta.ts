@@ -1309,7 +1309,7 @@ function normalizarIccEntrada(raw: unknown): (HojasRutaIccEntrada & { aplicable:
 }
 
 export async function apiHojasRutaIcc(): Promise<Array<HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable }>> {
-  const r = await handle<{ entradas?: unknown }>(await apiFetch("/api/hojas-ruta/icc"));
+  const r = await handle<{ entradas?: unknown }>(await apiFetch("/api/hojas-ruta/icc", { headers: headers() }));
   return (esArreglo(r?.entradas) ? r.entradas : []).flatMap((e) => normalizarIccEntrada(e) ?? []);
 }
 
@@ -1434,7 +1434,7 @@ export function normalizarBitacora(raw: unknown): HojasRutaBitacoraEntrada[] {
 }
 
 export async function apiHojasRutaBitacora(): Promise<HojasRutaBitacoraEntrada[]> {
-  return normalizarBitacora(await handle<unknown>(await apiFetch("/api/hojas-ruta/bitacora")));
+  return normalizarBitacora(await handle<unknown>(await apiFetch("/api/hojas-ruta/bitacora", { headers: headers() })));
 }
 
 /** Desde la interfaz sólo se anotan decisiones de cobertura (ADR 0115 §4) y notas. */

@@ -13,6 +13,12 @@ mount_hojas_ruta_plan_campo <- function(pr) {
       if (is.null(muestra) || !length(muestra$blocks %||% list())) {
         stop_api(409, "E_NO_SAMPLE", "Primero sortea las manzanas: el plan de campo se arma sobre las rutas.")
       }
-      hojas_ruta_plan_campo(muestra$blocks, parsed$supuestos %||% list())
+      plan <- hojas_ruta_plan_campo(muestra$blocks, parsed$supuestos %||% list())
+      su <- plan$supuestos
+      .hojas_ruta_bitacora_intentar(sid, "plan_supuestos", sprintf(
+        "Plan de campo: %d encuestador(es), %d visitas por jornada → %d jornadas, %d días.",
+        as.integer(su$encuestadores), as.integer(su$visitas_por_jornada), as.integer(plan$resumen$jornadas), as.integer(plan$resumen$dias)
+      ), list(supuestos = su), origen = parsed$origen)
+      plan
     }))
 }

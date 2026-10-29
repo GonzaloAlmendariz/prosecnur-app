@@ -179,7 +179,7 @@ otras zonas del distrito en proporción a la medida elegible. Nunca se redistrib
   `detalle`. Reglas:
   - **Vocabulario cerrado** (`HOJAS_RUTA_BITACORA_ACCIONES`): una acción desconocida se rechaza. Desde la interfaz
     sólo se anotan `decision_cobertura` y `nota`; el resto lo anotan los endpoints que mutan (territorio, población,
-    tamaño, sorteo, adopción del marco, reemplazos puntuales, `campo_desde_piloto` como separador de generación).
+    tamaño (con el ICC aplicado en su detalle), sorteo, adopción del marco, reemplazos puntuales, plan de campo, `campo_desde_piloto` como separador de generación).
   - **Retención**: las 500 entradas más recientes. Sin versión de esquema: una clave ausente se lee como lista vacía.
   - **No es decisión lo que no se aplicó**: un cálculo con `origen = "restauracion"` (warm start o hidratación que
     rehacen salidas al abrir el proyecto) no anota, y una piloto bloqueada tampoco (su config se descarta). Una

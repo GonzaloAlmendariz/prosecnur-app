@@ -7,17 +7,15 @@
 # recorren así. Cada entrada dice la fase en la que se tomó.
 #
 # El vocabulario de acciones es cerrado: una acción desconocida se rechaza en
-# vez de guardarse con un nombre que nadie va a reconocer después.
+# vez de guardarse con un nombre que nadie va a reconocer después. Cada acción tiene
+# un productor: el ICC aplicado queda en el detalle de «tamano_calculado».
 
 HOJAS_RUTA_BITACORA_ACCIONES <- c(
   "territorio_confirmado",
   "poblacion_calculada",
   "tamano_calculado",
-  "icc_aplicado",
   "marco_elegible_adoptado",
-  "marco_elegible_cambiado",
   "sorteo",
-  "ruteo_restaurado",
   "decision_cobertura",
   "plan_supuestos",
   "reemplazos_puntuales",

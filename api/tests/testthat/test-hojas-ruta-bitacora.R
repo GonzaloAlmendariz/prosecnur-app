@@ -158,3 +158,10 @@ test_that("el anonimizador retira el texto libre y el gate de PII lo escanea", {
   expect_identical(a[[3]]$resumen, "Sorteo pps con semilla 2017")
   expect_identical(hojas_ruta_bitacora_anonimizar(list(x = 1)), list(x = 1))
 })
+
+test_that("cada acción del vocabulario tiene quien la emita", {
+  fuentes <- paste(unlist(lapply(list.files(test_path("../../R"), pattern = "\\.R$", full.names = TRUE), readLines, warn = FALSE)), collapse = "\n")
+  for (a in setdiff(HOJAS_RUTA_BITACORA_ACCIONES, c("decision_cobertura", "nota"))) {
+    expect_true(grepl(sprintf("_intentar\\(sid, \"%s\"", a), fuentes), info = a)
+  }
+})
