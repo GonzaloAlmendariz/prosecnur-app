@@ -208,7 +208,7 @@
   ley <- espec$leyenda; filas_ley <- if (isTRUE(leyenda)) .lam_leyenda_filas(espec$categorias$rotulo[ley], w) else list()
   n_ley <- length(filas_ley); ley_cabe <- !isTRUE(leyenda) || isTRUE(attr(filas_ley, "plan")$cabe)
   disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.15 + 0.3 * n_ley else 0.35)
-  fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(0.24, round(fila * 0.58, 2))
+  fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(.std_piso_panel_in(), round(fila * 0.58, 2))   # piso de panel: 0,66 cm, como Contabilidad
   altos <- vapply(rot, function(r) .lam_alto_txt(r, wlab, size_lab, TRUE), 0)
   list(tipo = "escala", filas = filas, y0 = y0, fila = fila, g = g, wlab = wlab, size_lab = size_lab, ttb = ttb,
        cabe = fila >= 0.4 && all(altos <= fila + 0.05) && ley_cabe)   # la leyenda no sale del panel (O8b)

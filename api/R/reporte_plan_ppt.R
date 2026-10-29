@@ -5474,17 +5474,8 @@ reporte_ppt_plan <- function(
       }
     }
 
-    # Detectar si la variable es select_multiple -> agregar subtitulo destacado.
-    if (is.null(overrides$subtitulo)) {
-      ctx_v <- tryCatch(.resolve_ref(var, arg_name = "var"), error = function(e) NULL)
-      if (!is.null(ctx_v) && !is.null(ctx_v$survey) && all(c("type", "name") %in% names(ctx_v$survey))) {
-        mask <- !is.na(ctx_v$survey$name) & ctx_v$survey$name == ctx_v$var
-        tps  <- unique(stats::na.omit(ctx_v$survey$type[mask]))
-        if (any(grepl("^select_multiple(\\s|$)", tps))) {
-          overrides <- .ppt_multiple_choice_notice_overrides(overrides)
-        }
-      }
-    }
+    # La opción múltiple ya no lleva subtítulo de fábrica («% de encuestados que marcó cada opción»; Gonzalo,
+    # 2026-10-29): si el analista escribe uno, sale el suyo.
 
     if (!exists("graficar_barras_agrupadas", mode = "function", inherits = TRUE)) {
       stop("No existe `graficar_barras_agrupadas()` en el entorno/paquete.", call. = FALSE)

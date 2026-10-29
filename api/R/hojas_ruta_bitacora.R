@@ -20,6 +20,7 @@ HOJAS_RUTA_BITACORA_ACCIONES <- c(
   "plan_supuestos",
   "reemplazos_puntuales",
   "campo_desde_piloto",
+  "cuotas_recalculadas",
   "nota"
 )
 HOJAS_RUTA_BITACORA_MAX <- 500L

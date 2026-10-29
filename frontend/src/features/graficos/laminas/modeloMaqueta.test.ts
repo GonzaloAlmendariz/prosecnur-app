@@ -132,3 +132,24 @@ describe("barra extra por bloque: bloque > lámina > preset", () => {
     expect(ttbDeBloque({}, undefined)).toBe(false);
   });
 });
+
+describe("tienePistasDeOrden: la misma regla que .goc_pistas_orden del motor", () => {
+  it("números romanos, solos o con «ciclo», cuentan como orden (graficos_orden_romanos.R)", async () => {
+    const { tienePistasDeOrden, sonRomanos } = await import("./modeloMaqueta");
+    expect(tienePistasDeOrden(["VI", "VII", "VIII", "IX"])).toBe(true);
+    expect(tienePistasDeOrden(["Ciclo I", "Ciclo II", "Ciclo X"])).toBe(true);
+    expect(sonRomanos(["IIII", "V"])).toBe(false);            // mal escrito: la ida y vuelta lo descarta
+    expect(sonRomanos(["Mi casa", "Vivo solo"])).toBe(false);
+  });
+  it("los residuales van anclados al inicio, con Ninguna/Ninguno, como .CATEGORIAS_RESIDUALES", async () => {
+    const { tienePistasDeOrden } = await import("./modeloMaqueta");
+    // «Ninguno» es residual: no hace de segunda etiqueta con cifra.
+    expect(tienePistasDeOrden(["1 hijo", "Ninguno"])).toBe(false);
+    // «Hay otro modo» no empieza por «Otro»: cuenta como etiqueta (antes el «otro» suelto la tiraba).
+    expect(tienePistasDeOrden(["Más de 3 años", "Hay otro modo 2"])).toBe(true);
+  });
+  it("una escala en romanos con Top Two Box encendido y sin categorías: la maqueta lo muestra para que la tarjeta avise", async () => {
+    const { twoBoxEnPregunta } = await import("./modeloMaqueta");
+    expect(twoBoxEnPregunta(true, undefined, ["Ciclo I", "Ciclo II", "Ciclo III"].map((rotulo) => ({ rotulo })))).toBe(true);
+  });
+});

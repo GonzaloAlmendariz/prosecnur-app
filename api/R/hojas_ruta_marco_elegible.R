@@ -308,7 +308,14 @@ hojas_ruta_marco_elegible_aplicar <- function(frame, me = NULL, puntos = NULL, e
   pob <- .hojas_ruta_me_num(frame$poblacion)
   por_area <- lapply(seq_along(areas), function(k) {
     sel <- which(area_de == k)
-    list(id = areas[[k]]$id, motivo = areas[[k]]$motivo, manzanas = length(sel), viviendas = sum(viv[sel]), poblacion = sum(pob[sel]))
+    # U16 (revisión metodológica): qué distritos toca cada área, para que el informe
+    # cuente las áreas de cada distrito y no las del estudio entero.
+    ub <- as.character(frame$ubigeo[sel])
+    por_distrito <- unname(lapply(split(sel, factor(ub, levels = unique(ub))), function(ix) {
+      list(ubigeo = as.character(frame$ubigeo[ix[1]]), manzanas = length(ix), poblacion = sum(pob[ix]))
+    }))
+    list(id = areas[[k]]$id, motivo = areas[[k]]$motivo, manzanas = length(sel), viviendas = sum(viv[sel]), poblacion = sum(pob[sel]),
+         por_distrito = por_distrito)
   })
   fuera <- vapply(alertas, function(a) if (identical(a$code, "W_EXCLUDED_AREA_OUTSIDE")) as.character(a$area %||% "") else "", character(1))
   for (a in por_area) if (n && a$manzanas == 0L && !a$id %in% fuera) {

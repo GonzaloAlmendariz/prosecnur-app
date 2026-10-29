@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide-react";
+import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -52,13 +54,23 @@ export function SeleccionEstructura({ grupos, total, observadas }: EstructuraPro
             <ul className="hr-sel-rutas">
               {g.filas.map((f) => (
                 <li key={f.id}>
-                  <button type="button" aria-pressed={f.id === umpEnfocada} data-estado={f.estado} onClick={() => setUmpEnfocada(f.id === umpEnfocada ? null : f.id)}>
-                    <i aria-hidden="true" />
-                    <strong>{f.codigo}</strong>
-                    <small>
-                      Zona {f.zona} · {fmt(f.viviendas)} viv.{f.reemplazos ? ` · ${f.reemplazos} R` : ""}
-                    </small>
-                    {porRevisar(f.estado) ? <em>{ETIQUETA[f.estado]}</em> : null}
+                  <button
+                    type="button"
+                    aria-pressed={f.id === umpEnfocada}
+                    data-estado={f.estado}
+                    aria-label={`${f.codigo}, zona ${f.zona}, manzana ${f.id.slice(-4)}, ${fmt(f.viviendas)} viviendas${porRevisar(f.estado) ? `, ${ETIQUETA[f.estado]}` : ""}`}
+                    title={porRevisar(f.estado) ? ETIQUETA[f.estado] : undefined}
+                    onClick={() => setUmpEnfocada(f.id === umpEnfocada ? null : f.id)}
+                  >
+                    <span className="hr-sel-num" aria-hidden="true">{f.numero || "–"}</span>
+                    <span className="hr-sel-copia">
+                      <strong><span className="hr-sel-rotulo">Zona </span>{f.zona} · Mz {f.id.slice(-4)}</strong>
+                      <small>
+                        <span className="hr-sel-pips" aria-hidden="true">{Array.from({ length: Math.min(f.reemplazos, 6) }, (_, i) => <i key={i} />)}</span>
+                        {f.reemplazos === 1 ? "1 reempl." : `${f.reemplazos} reempl.`}
+                      </small>
+                    </span>
+                    <span className="hr-sel-cifra">{fmt(f.viviendas)} viv.</span>
                   </button>
                 </li>
               ))}
@@ -90,19 +102,29 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
     const observaciones = revision.grupos.filter((g) => g.umps.some((u) => u.idManzana === titular.id_manzana || suyos.some((r) => r.id_manzana === u.idManzana)));
     return (
       <>
-        <header className="hr-mapa-cab">
-          <h2>
-            {codigoDeUmp(titular)} · {nombreDistrito(titular.distrito)}
-          </h2>
-          <PulsoButton variant="icon" size="sm" aria-label="Cerrar la ficha" onClick={() => setUmpEnfocada(null)}>×</PulsoButton>
-        </header>
+        <InspectorCabecera
+          marca={codigoDeUmp(titular).replace(/^UMP\s*/, "")}
+          estado={estado === "error" ? "error" : estado === "aviso" ? "aviso" : "ok"}
+          sobre={`UMP titular · ${nombreDistrito(titular.distrito)}`}
+          titulo={`Zona ${titular.zona} · Manzana ${String(titular.id_manzana).slice(-4)}`}
+          derecha={
+            <>
+              <span className="hr-ins-pasos">
+                <button type="button" aria-label="Ruta anterior" onClick={() => onVecina(-1)}><ChevronUp size={14} /></button>
+                <button type="button" aria-label="Ruta siguiente" onClick={() => onVecina(1)}><ChevronDown size={14} /></button>
+              </span>
+              <PulsoButton variant="icon" size="sm" aria-label="Cerrar la ficha" onClick={() => setUmpEnfocada(null)}><X size={14} /></PulsoButton>
+            </>
+          }
+        />
         <div className="hr-mapa-ins-cuerpo">
           <span className="hr-sel-estado" data-estado={estado}>{ETIQUETA[estado]}</span>
           <div className="hr-mapa-cifras">
-            <div><small>Viviendas</small><strong>{fmt(titular.viviendas)}</strong></div>
+            <div><small>Viviendas</small><strong data-tono={titular.viviendas === 0 ? "error" : titular.viviendas <= titular.entrevistas ? "aviso" : undefined}>{fmt(titular.viviendas)}</strong></div>
             <div><small>Entrevistas</small><strong>{fmt(titular.entrevistas)}</strong></div>
             <div><small>Salto</small><strong>{(titular.salto_operativo ?? titular.constante_salto) ? `1 de ${titular.salto_operativo ?? titular.constante_salto}` : "Sin salto"}</strong></div>
           </div>
+          <OcupacionRuta viviendas={titular.viviendas} visitas={titular.visitas_esperadas ?? titular.entrevistas} />
           <dl className="hr-mapa-filas">
             <div><dt>Manzana</dt><dd>{titular.id_manzana}</dd></div>
             <div><dt>Zona</dt><dd>{titular.zona}</dd></div>
@@ -137,22 +159,18 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             lleva a la derecha. */}
         <footer className="hr-mapa-pie hr-sel-pie">
           {salidas}
-          <PulsoButton variant="secondary" aria-label="Ruta anterior" onClick={() => onVecina(-1)}>‹</PulsoButton>
-          <PulsoButton variant="secondary" aria-label="Ruta siguiente" onClick={() => onVecina(1)}>›</PulsoButton>
         </footer>
       </>
     );
   }
   return (
     <>
-      <header className="hr-mapa-cab">
-        <h2>Revisión contra el marco</h2>
-      </header>
+      <InspectorCabecera icono={ListChecks} sobre="Selección" titulo="Revisión contra el marco" />
       <div className="hr-mapa-ins-cuerpo">
         <div className="hr-mapa-cifras">
           <div><small>Titulares</small><strong>{fmt(totales.titulares)}</strong></div>
           <div><small>Reemplazos</small><strong>{fmt(totales.reemplazos)}</strong></div>
-          <div><small>Por revisar</small><strong>{fmt(revision.porRevisar)}</strong></div>
+          <div title="Titulares y reemplazos con alguna observación. «Por revisar» en la lista y la barra cuenta rutas: una ruta con su titular o algún reemplazo observado."><small>UMP observadas</small><strong>{fmt(revision.porRevisar)}</strong></div>
         </div>
         {revision.grupos.length ? (
           revision.grupos.map((g) => (
@@ -235,5 +253,22 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Cuánto de la manzana visita la ruta (brecha B44, artefacto .hm-ocupa): visitas
+ * esperadas sobre viviendas. Sin viviendas, en rojo: no hay a quién visitar.
+ */
+function OcupacionRuta({ viviendas, visitas }: { viviendas: number; visitas: number }) {
+  const ocupa = viviendas > 0 ? Math.min(1, visitas / viviendas) : 1;
+  const tono = viviendas === 0 ? "error" : visitas >= viviendas ? "aviso" : undefined;
+  return (
+    <div className="hr-ocupa">
+      <div className="hr-ocupa-barra"><i data-tono={tono} style={{ width: `${Math.max(2, ocupa * 100)}%` }} /></div>
+      <small data-tono={tono}>
+        {viviendas === 0 ? "Sin viviendas que visitar" : visitas >= viviendas ? `La ruta pide ${visitas} visitas y la manzana tiene ${viviendas} viviendas: se barre entera` : `La ruta visita ${Math.round(ocupa * 100)} % de las viviendas`}
+      </small>
+    </div>
   );
 }

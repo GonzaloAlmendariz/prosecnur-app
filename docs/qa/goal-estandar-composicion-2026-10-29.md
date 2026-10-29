@@ -109,12 +109,12 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 
 ### Contradicen las reglas ya cerradas en la escala
 
-- F1 **pregunta a Gonzalo**: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
+- F1 ☑ Gonzalo (2026-10-29): «Sí, como C» — la Sí/No sola con barra estándar sale como fila de escala por la multilista de un bloque (lamina_dicotomia_como_escala.R), igual que Conta y la lám. 47 de Arte; fuera el bloque al 85 %. Antes: Conta dibuja el Sí/No solo al largo de la escala (lám. 7: 5,43→11,32 in ≈ 5,9; lám. 34 ≈ 5,5),
   pero el 85 % del ancho fue decisión deliberada (6ec72b494, defecto 3 de la v3 de Renzo). Arte hoy no tiene Sí/No sola. Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
 - F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
 - F3 ☒ decidido (N5 de Gonzalo: «en PPT está bien»; el Word siempre apila; Arte usa `barra_estandar` por config). Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
 - F4 ☒ no contradice: lámina de dos columnas (disco y lectura), la leyenda va con su columna, como la del panel (N16). Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
-- F5 **bloqueado, decide Gonzalo**: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
+- F5 ☑ Gonzalo (2026-10-29): «Sí» — fuera el encabezado de fábrica de opción múltiple y también el de temas de texto abierto («% de comentarios con contenido que toca cada tema»); sólo sale el que escriba el analista. Antes: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
   reporte_plan_opciones.R:436). Lo pidió el recetario p72 (CCSS-9b, CCSS-19) y lo guardan 5 tests: avisa que
   en opción múltiple los porcentajes no suman 100. No es un rótulo de eje genérico; quitarlo contradice esa decisión.
 
@@ -125,14 +125,14 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W1 | Interruptor «Tabla de datos en el Word» apagado por defecto; escribía `overrides.word_tabla` | lee el argumento `word_tabla`; sin marcar sigue a «Tabla de datos» (`.radar_mb_word_tabla_procede`) | ☑ dedf6c94a, visto en la app (lám. 36 de Arte: encendido y bloqueado con su porqué) |
 | W2 | Ayuda de «Tabla de datos»: «con Líneas y puntos, elige Sí» | Automática ya la pone con líneas y puntos (`.radar_mb_tabla_procede`) | ☑ e9d40f66f |
 | W3 | Ayuda del encabezado: «Vacío: Tema» | vacío queda vacío y avisa | ☑ e9d40f66f |
-| W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☐ |
-| W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☐ verificar el camino del consolidado |
-| W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☐ |
-| W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☐ |
-| W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☐ réplica desfasada |
-| W9 | Metadata «Subtítulo (solo Word)» del separador | el PPT lo dibuja (`seccion:subtitulo`) | ☐ |
-| W10 | Ficha de `p_tabla`: «En rojo bajo X %» | la tabla nativa no pinta rojo | ☐ |
-| W11 | Metadata del default de multiapiladas en Word: regla vieja | criterio B (reporte_word_multi_modos.R) | ☐ |
+| W4 | La maqueta dibuja radar con tabla en los modos `sm`/`box` (fichaModelo.ts:186) | `p_radar_split.R:113` fuerza `mostrar_tabla_derecha = FALSE` | ☑ la maqueta dibuja el radar solo en sm/box |
+| W5 | Estilo del informe conjunto: «logos y letra sólo al Word» (disponibilidadEstilo.ts) | ya llegan al PPT (lamina_logos_cliente.R, worker de estilo) | ☑ Gonzalo (2026-10-29) «Sí, que los reciba»: `graficos_consolidado_start` pasa el estilo del cliente a su job y el runner lo aplica; fuera el bloqueo en Estilo |
+| W6 | «A qué salida llega»: íconos al Word (PiezasIdentidad.tsx:19) | ningún reporte_word_* dibuja íconos | ☑ la tabla dice íconos sólo al PPT |
+| W7 | Ajustes Word «Radar + tabla» para `p_radar` sm/box | esa tabla no existe en el Word del radar | ☑ tipo propio «Radar» (`radar_solo`) sin ajustes de tabla |
+| W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☑ romanos (`sonRomanos`) y residuales anclados con Ninguna/Ninguno; mismas respuestas que el motor en 5 casos |
+| W9 | Metadata «Subtítulo (solo Word)» del separador | el PPT lo dibuja (`seccion:subtitulo`) | ☑ «Subtítulo», en PPT y Word salvo el separador de plantilla |
+| W10 | Ficha de `p_tabla`: «En rojo bajo X %» | la tabla nativa no pinta rojo; el Word sí (ruta anterior) | ☑ la maqueta no pinta rojo y el ajuste dice «sólo en el Word» |
+| W11 | Metadata del default de multiapiladas en Word: regla vieja | criterio B (reporte_word_multi_modos.R) | ☑ el hint describe el criterio B, como la tarjeta |
 
 ## Tablero
 
@@ -144,4 +144,5 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | E4 UI de Gráficos contra el motor | ◐ columna Top Two Box de la maqueta en un bloque Sí/No (la pregunta decide, con las categorías de su bloque, como `.box_decidir`); ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
 | E5 resto de familias | ☑ inventario arriba; D8–D11 fuera (geometría idéntica). F2, U1–U5, U7 ☑ (geometría idéntica); D12, U6, F3, F4 cerrados sin cambio, con su porqué. Pregunta del panel y leyenda ☑; divergente, columna del box y mixtas medidos sin cambio. Queda el grosor de la escala en panel (pregunta) y F1, F5 que esperan a Gonzalo |
 | E6 cierre: gate amplio y commit | ☑ gate R de lámina, gráficos, estándar, dicotomía, leyenda, radar, graficador, torta, dona y lollipop más contratos transversales: 13501 pass, 0 fail (2026-10-29); gate-front graficos 2239/2240, el rojo es ajeno (inputsDelKit, recopiladores/correos) |
-| Abierto | Tres decisiones de Gonzalo: F5 encabezado de opción múltiple, F1 largo del Sí/No solo, grosor de escala en panel (piso 0,24 in contra 1,12 cm) |
+| Decisiones de Gonzalo (2026-10-29) | F5 «Sí» ☑ 68bbfabb7; F1 «como C» (fila de escala, como Conta) ☑; grosor en panel «0,66 cm, como Conta» ☑ `ppt.grosor.piso_panel_cm` |
+| Dos paneles con muchos públicos | ☒ no es defecto: el tope de un estudio son 6 públicos (Gonzalo) y con 6 cabe (0,645 in por fila contra 0,62 de mínimo); con 7 o más el compositor ya la manda a la ruta anterior (`.lam_compositor_aplica_paneles`). El render de 9 se saltó esa revisión. Lo desfasado era el 0,24 de la revisión: ahora lee el piso de panel |

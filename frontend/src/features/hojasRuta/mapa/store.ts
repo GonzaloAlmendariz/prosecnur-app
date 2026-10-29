@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { HojasRutaAgeRange } from "../../../api/hojasRuta";
 import type { BorradorSorteo } from "./manzanas/sorteo";
 import type { BorradorMuestra } from "./muestra/desdeConfig";
+import type { CapaLienzo } from "./lienzo/LienzoMapa";
 
 /**
  * Estado efímero de la página del lienzo (ADR 0114): lo que el usuario va
@@ -28,6 +29,15 @@ type EstadoLienzo = {
   setDibujoArea: (v: [number, number][] | null) => void;
   soloPorRevisar: boolean;
   setSoloPorRevisar: (v: boolean) => void;
+  /** Territorio: zona de Lima que filtra la lista (no selecciona). */
+  zonaFiltro: string | null;
+  setZonaFiltro: (zona: string | null) => void;
+  /** Territorio: distrito cuya ficha se ve en el inspector (clic en el mapa; no selecciona). */
+  distritoEnfocado: string | null;
+  setDistritoEnfocado: (ubigeo: string | null) => void;
+  /** Capa de las manzanas en Territorio, Manzanas y Selección (brecha B7). */
+  capaMapa: CapaLienzo;
+  setCapaMapa: (capa: CapaLienzo) => void;
   busquedaUmp: string;
   setBusquedaUmp: (texto: string) => void;
   setBorrador: (next: string[] | null) => void;
@@ -37,7 +47,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "" };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -47,6 +57,9 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setSorteoBorrador: (sorteoBorrador) => set({ sorteoBorrador }),
   setDibujoArea: (dibujoArea) => set({ dibujoArea }),
   setSoloPorRevisar: (soloPorRevisar) => set({ soloPorRevisar }),
+  setCapaMapa: (capaMapa) => set({ capaMapa }),
+  setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
+  setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
   setBusquedaDistrito: (busquedaDistrito) => set({ busquedaDistrito }),
   setSoloElegidos: (soloElegidos) => set({ soloElegidos }),

@@ -27,10 +27,13 @@ source("setup-load-all.R")
   e$estilo_dicotomia <- estilo
   e
 }
-# Lo que hace barra_estandar sobre cualquier lienzo: sin cifra grande, valor blanco dentro de su segmento, leyenda.
+# Lo que hace barra_estandar sobre cualquier lienzo: sin cifra grande, valor blanco dentro de su segmento, leyenda. A
+# lámina completa la Sí/No sale como fila de escala (Gonzalo, 2026-10-29), con las piezas de la escala («cifra»,
+# «segmento»); en el panel mixto, con las de la barra estándar («barra:cifra», «barra:segmento»).
 .be_verificar_estandar <- function(xml, colores = c("FFFFFF", "FFFFFF")) {
   expect_length(.be_sp(xml, "dicotomia:cifra"), 0L)
   val <- .be_sp(xml, "barra:cifra"); seg <- .be_sp(xml, "barra:segmento")
+  if (!length(val)) { val <- .be_sp(xml, "cifra"); seg <- .be_sp(xml, "segmento") }
   expect_length(val, 2L); expect_length(seg, 2L)
   expect_true(all(.be_sz(val) < 24))
   expect_identical(.be_col(val), colores)

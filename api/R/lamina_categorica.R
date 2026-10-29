@@ -105,7 +105,7 @@
 #'
 #' Barras: la geometría de la lámina 73 del recetario (recetario_m3a.R:98-101): fila = (6.72 − 1.65 − 0.45) / n
 #' con un tope de 0.62 in, barra = mín(0.42, fila × 0.62), rótulo de hasta 6.3 in (11 pt si los rótulos son largos)
-#' y, en selección múltiple, el encabezado «% de encuestados que marcó cada opción».
+#' y el encabezado que escriba el analista (el motor no pone uno de fábrica).
 #' @keywords internal
 .lam_laminas_categorica <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                     forma = c("columnas", "barras"), unidad_n = "respuestas", encabezado = NULL,
@@ -249,42 +249,31 @@
     paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
 }
 
-#' Ancho (in) de la barra de una lámina con UNA sola pregunta Sí/No: la fracción del lienzo, acotada por márgenes simétricos
-#' @keywords internal
-.LAM_DICOTOMIA_UNICA_FRAC <- 0.85
-.lam_dicotomia_unica_ancho <- function() {
-  W <- .std_geom("ancho"); min(.LAM_DICOTOMIA_UNICA_FRAC * W, W - 2 * max(.std_geom("margen_izq"), .std_geom("margen_der")))
-}
 
 #' Lámina de una dicotomía a todo el ancho (lámina 74 del recetario, recetario_graficos2.R:20-25)
 #'
 #' La pregunta encabeza el panel con su público («176 egresados») y la barra partida va debajo, con cifras
-#' de 40 pt y 0.7 in de grosor.
+#' de 40 pt y 0.7 in de grosor. Con el estilo `barra_estandar` la Sí/No sale como una fila de escala
+#' (lamina_dicotomia_como_escala.R); `actor` es su rótulo de fila.
 #' @keywords internal
 .lam_laminas_dicotomia <- function(doc, espec, titulo, ante = NULL, pregunta = NULL, publico = NULL, base = NULL,
                                    folio = NULL, sub = NULL, layout = "Graficos2", master = "Office Theme",
-                                   por_lamina = function(doc) doc, vertical = FALSE) {
+                                   por_lamina = function(doc) doc, vertical = FALSE, actor = NULL) {
   force(folio)
+  if (identical(.lam_estilo_dicotomia(espec), "barra_estandar")) {
+    # Una sola pregunta Sí/No se dibuja como una fila de escala, como Contabilidad y Arte (lamina_dicotomia_como_escala.R).
+    # «Respuestas por público» encendido (el compositor sólo arma `publico` entonces): la escala dice el N de su barra.
+    e <- .lam_dicotomia_como_escala(espec, pregunta, actor); e$mostrar_respuestas <- !is.null(publico) && nzchar(publico)
+    return(.lam_laminas_multilista(doc, list(bloques = list(list(espec = e))), titulo, ante = ante, base = base,
+                               folio = folio, sub = sub, layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0")
   d <- .lam_dicotomia_datos(espec)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   y <- yt + 1.1
-  est <- identical(.lam_estilo_dicotomia(espec), "barra_estandar")
-  if (est) {
-    # Una sola pregunta Sí/No: el bloque (enunciado, barra, leyenda) se centra en la lámina y la barra aprovecha el ancho
-    # (`.LAM_DICOTOMIA_UNICA_FRAC` de la lámina, sin pasar del margen izquierdo del estándar simétrico); el enunciado se alinea
-    # al borde izquierdo de la barra y la leyenda va centrada a toda la lámina.
-    W <- g_("ancho"); wb <- .lam_dicotomia_unica_ancho(); xb <- (W - wb) / 2
-    hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_panel_lineas(pregunta, wb) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
-    bloque <- hp + (if (hp > 0) 0.25 else 0) + 0.5 + 0.12 + 0.3
-    yp <- yt + max(0, (g_("contenido_y1") - yt - bloque) / 2)
-    if (hp > 0) .lam_panel_titulo(lz, xb, yp, wb, pregunta, publico)
-    y <- yp + hp + (if (hp > 0) 0.25 else 0)
-    .lam_dicotomia_estandar(lz, xb, y, wb, d$rotulos, d$cifras, d$largos, d$n, g = 0.5, size = .std_pt("cifra"), cols = d$colores,
-                            x_ley = ml, w_ley = ancho, centro_ley = W / 2)
-  } else if (isTRUE(vertical)) {
+  if (isTRUE(vertical)) {
     if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
     .lam_dicotomia_vertical(lz, ml + 0.4, y, g_("contenido_y1") - y - 0.15, d$rotulos, d$cifras, d$largos, d$n,
                             size = 40, cols = d$colores)

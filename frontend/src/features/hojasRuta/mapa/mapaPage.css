@@ -139,6 +139,9 @@
 .hr-mapa-catalogo-copia small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-mapa-catalogo-copia em { font-style: normal; font-weight: 800; color: var(--pulso-module-routes); }
 .hr-mapa-ins-cuerpo { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+/* Las tarjetas no se encogen: si el contenido no cabe, el cuerpo hace scroll (C2).
+   Sin esto, una tarjeta con overflow:hidden se aplastaba y cortaba sus cifras. */
+.hr-mapa-ins-cuerpo > * { flex-shrink: 0; }
 .hr-mapa-ins-cuerpo .hr-mapa-filas { margin: 0; }
 .hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
 .hr-mapa-cifras div { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-right: 1px solid var(--pulso-border); }
@@ -277,16 +280,8 @@
 .hr-mapa-catalogo .hr-sel-rutas li { display: block; padding: 0; }
 .hr-mapa-catalogo .hr-sel-rutas li:hover { background: transparent; }
 .hr-sel-rutas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 10px auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
 .hr-sel-rutas button:hover { background: var(--pulso-surface-2); }
 .hr-sel-rutas button[aria-pressed="true"] { background: var(--pulso-surface-2); box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
-.hr-sel-rutas i { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }
-.hr-sel-rutas [data-estado="aviso"] i { background: var(--pulso-warn-fg); }
-.hr-sel-rutas [data-estado="error"] i { background: var(--pulso-danger-fg); }
-.hr-sel-rutas strong { font-size: 12.5px; white-space: nowrap; }
-.hr-sel-rutas small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.hr-sel-rutas em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--pulso-warn-fg); white-space: nowrap; }
-.hr-sel-rutas [data-estado="error"] em { color: var(--pulso-danger-fg); }
 .hr-sel-estado { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
 .hr-sel-estado[data-estado="aviso"] { color: var(--pulso-warn-fg); }
 .hr-sel-estado[data-estado="error"] { color: var(--pulso-danger-fg); }
@@ -374,7 +369,7 @@
 
 /* Plan de campo (U14) */
 .hr-plan-jornadas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.hr-plan-jornadas li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
+.hr-plan-jornadas li { display: grid; grid-template-columns: 10px 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
 .hr-plan-jornadas strong { font-variant-numeric: tabular-nums; }
 .hr-plan-jornadas span { color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 
@@ -384,10 +379,106 @@
 /* Vista previa de la hoja y hoja del día (U15) */
 .hr-hoja-img { display: block; border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; background: var(--pulso-surface); }
 .hr-hoja-img img { display: block; width: 100%; height: auto; }
-.hr-plan-jornadas li { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; }
 .hr-plan-hoja { border: 0; background: transparent; color: var(--pulso-module-routes); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .hr-plan-hoja:disabled { color: var(--pulso-text-soft); cursor: default; }
 
 /* Error de Salidas con su camino de salida (U17: decisión de cobertura). */
 div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .hr-salidas-error { margin: 0; }
+
+/* Cabecera del inspector (brecha B14, artefacto .hm-ins-cab) */
+.hr-ins-cab { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--pulso-border); }
+.hr-ins-icono { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--pulso-module-routes); color: var(--pulso-surface); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-ins-icono[data-estado="aviso"] { background: var(--pulso-warn-accent); }
+.hr-ins-icono[data-estado="error"] { background: var(--pulso-danger-fg); }
+.hr-ins-textos { min-width: 0; }
+.hr-ins-sobre { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-ins-titulo { margin: 2px 0 0; font-size: 14px; font-weight: 800; line-height: 1.25; color: var(--pulso-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.hr-ins-derecha { display: inline-flex; align-items: center; gap: 4px; }
+.hr-ins-pasos { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--pulso-border); border-radius: 9px; }
+.hr-ins-pasos button { all: unset; cursor: pointer; width: 26px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--pulso-text-soft); }
+.hr-ins-pasos button:hover { background: var(--pulso-surface-3); color: var(--pulso-text); }
+.hr-ins-pasos button:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }
+@media (max-width: 1100px) { .hr-ins-cab { padding: 12px; gap: 10px; } }
+
+/* Gráficas preliminares del inspector de Territorio */
+.hr-graf { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.hr-graf-titulo { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-graf-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hr-graf-barras li { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 44px; align-items: center; gap: 8px; font-size: 12px; }
+.hr-graf-nombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text); font-weight: 600; }
+.hr-graf-pista { height: 8px; border-radius: 4px; background: var(--pulso-surface-2); overflow: hidden; }
+.hr-graf-pista i { display: block; height: 100%; border-radius: 4px; }
+.hr-graf-valor { text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); font-weight: 700; }
+.hr-graf-apilada { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--pulso-surface-2); }
+.hr-graf-apilada i { display: block; min-width: 2px; }
+.hr-graf-leyenda { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; font-size: 11.5px; color: var(--pulso-text-soft); }
+.hr-graf-leyenda li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.hr-graf-leyenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.hr-graf-leyenda b { margin-left: auto; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-graf-nota { margin: 0; font-size: 11px; line-height: 1.4; color: var(--pulso-text-soft); }
+
+/* Plan por día y encuestador (B20) */
+.hr-plan-dia { display: flex; flex-direction: column; gap: 4px; }
+.hr-plan-dia h4 { margin: 4px 0 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-plan-enc { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Filas de ruta como en el artefacto (brecha B42, .hm-fila): insignia numerada por
+   estado, «Zona · Mz» con los reemplazos en pips y las viviendas a la derecha. */
+.hr-sel-rutas button { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; }
+.hr-sel-num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pulso-surface); background: var(--pulso-module-routes); }
+.hr-sel-rutas [data-estado="aviso"] .hr-sel-num { background: var(--pulso-warn-accent); }
+.hr-sel-rutas [data-estado="error"] .hr-sel-num { background: var(--pulso-danger-fg); }
+.hr-sel-copia { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-sel-copia strong { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-sel-copia small { font-size: 11px; color: var(--pulso-text-soft); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hr-sel-pips { display: inline-flex; gap: 2px; }
+.hr-sel-pips i { width: 5px; height: 5px; border-radius: 999px; background: var(--pulso-border-strong); }
+.hr-sel-cifra { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); white-space: nowrap; }
+@media (max-width: 1100px) { .hr-sel-rotulo { display: none; } .hr-sel-copia strong { font-size: 12px; } .hr-sel-cifra { font-size: 11px; } .hr-sel-rutas button { column-gap: 6px; padding: 6px; } }
+
+/* Territorio: ficha del distrito enfocado (clic en el mapa o en su nombre) y zonas como filtro.
+   Superficie blanca, sin franja lateral ni tarjetas dentro de la tarjeta. */
+.hr-ter-ficha { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); box-shadow: 0 4px 14px color-mix(in srgb, var(--pulso-text) 6%, transparent); }
+.hr-ter-ficha-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.hr-ter-ficha-cab strong { display: block; font-size: 15px; font-weight: 800; color: var(--pulso-text); }
+.hr-ter-ficha-cab small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--pulso-text-soft); }
+.hr-ter-cerrar { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--pulso-text-soft); cursor: pointer; }
+.hr-ter-cerrar:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.hr-ter-cerrar:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+.hr-ter-ficha-cifras { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hr-ter-ficha-cifras div { min-width: 0; padding: 0 10px; border-left: 1px solid var(--pulso-border); }
+.hr-ter-ficha-cifras div:first-child { padding-left: 0; border-left: 0; }
+.hr-ter-ficha-cifras dt { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ter-ficha-cifras dd { margin: 2px 0 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }
+.hr-ter-ficha-nota { margin: 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-soft); }
+.hr-mapa-catalogo li[data-enfocado] { background: var(--pulso-module-routes-soft); border-radius: 9px; }
+.hr-mapa-catalogo-copia[role="button"] { cursor: pointer; }
+.hr-mapa-zona[aria-pressed="true"] { background: var(--pulso-module-routes-soft); box-shadow: inset 0 0 0 1.5px var(--pulso-module-routes); }
+
+/* Ocupación de la ruta en la ficha de UMP (brecha B44) */
+.hr-mapa-cifras strong[data-tono="error"] { color: var(--pulso-danger-fg); }
+.hr-mapa-cifras strong[data-tono="aviso"] { color: var(--pulso-warn-fg); }
+.hr-ocupa { display: flex; flex-direction: column; gap: 4px; }
+.hr-ocupa-barra { height: 6px; border-radius: 3px; background: var(--pulso-surface-2); overflow: hidden; }
+.hr-ocupa-barra i { display: block; height: 100%; border-radius: 3px; background: var(--pulso-module-routes); }
+.hr-ocupa-barra i[data-tono="aviso"] { background: var(--pulso-warn-accent); }
+.hr-ocupa-barra i[data-tono="error"] { background: var(--pulso-danger-fg); }
+.hr-ocupa small { font-size: 11px; color: var(--pulso-text-soft); }
+.hr-ocupa small[data-tono="error"] { color: var(--pulso-danger-fg); font-weight: 700; }
+
+/* «¿Se parece al marco?» (B38) */
+.hr-parecido-fila { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 8px; }
+.hr-parecido-fila small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; }
+.hr-parecido-tabla { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; }
+.hr-parecido-tabla li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 48px 48px; align-items: center; gap: 8px; padding: 2px 0; color: var(--pulso-text-soft); }
+.hr-parecido-tabla li i { width: 10px; height: 10px; border-radius: 3px; }
+.hr-parecido-tabla li b { text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-parecido-tabla li[data-lejos] span, .hr-parecido-tabla li[data-lejos] b:last-child { color: var(--pulso-warn-fg); font-weight: 800; }
+
+/* Atajos del mínimo de viviendas (B38) */
+.hr-me-atajos { display: flex; flex-wrap: wrap; gap: 6px; }
+.hr-me-atajos button { border: 1px solid var(--pulso-border); border-radius: 999px; background: var(--pulso-surface); color: var(--pulso-text-soft); font: inherit; font-size: 11.5px; font-weight: 700; padding: 3px 10px; cursor: pointer; }
+.hr-me-atajos button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-module-routes-border); }
+.hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: var(--pulso-module-routes-border); color: var(--pulso-text); }
+.hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }

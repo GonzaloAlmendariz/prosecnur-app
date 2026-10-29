@@ -22,7 +22,7 @@ test_that("G8: la barra_estandar lleva la cifra en blanco en los dos segmentos, 
   e <- preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"))
   e$colores <- c(`Sí` = "#081F5C", No = "#9DC3E6"); e$estilo_dicotomia <- "barra_estandar"
   xml <- .ra_xml(.lam_laminas_dicotomia(.ra_doc(), e, "Trabaja")$doc)
-  cif <- .ra_sp(xml, "barra:cifra")
+  cif <- .ra_sp(xml, "cifra")   # a lámina completa sale como fila de escala (Gonzalo, 2026-10-29)
   expect_identical(.ra_col(cif), c("FFFFFF", "FFFFFF"))
   expect_equal(as.numeric(.ra_rpr(cif, "sz")) / 100, rep(.std_pt("cifra"), 2))
   otros <- list(preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%")),

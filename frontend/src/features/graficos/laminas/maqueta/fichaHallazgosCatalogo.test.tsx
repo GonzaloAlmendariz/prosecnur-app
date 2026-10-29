@@ -118,7 +118,7 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     ["p_radar", { var: "estudiantes$p1", modo: "publicos" }, { var: "estudiantes$p1", modo: "publicos", tabla: "no" }, "Sin tabla de datos"],
     ["p_radar", { var: "estudiantes$p1", modo: "publicos" }, { var: "estudiantes$p1", modo: "publicos", mostrar_tabla: false }, "Sin tabla de datos"],
     ["p_dim_heatmap", { objetivo: "idx" }, { objetivo: "idx", incluir_total: true }, "Columna Total"],
-    ["p_tabla", { vars: ["estudiantes$p1"] }, { vars: ["estudiantes$p1"], umbral_rojo_pct: 50 }, "En rojo bajo 50 %"],
+    
     ["p_matriz_cuadrantes", { temas: { T: ["estudiantes$p1"] } }, { temas: { T: ["estudiantes$p1"] }, destacado: "abajo_der" }, "Destacado abajo a la derecha"],
   ];
   it.each(casos)("%s: el ajuste cambia el dibujo y se nombra", (g, antes, despues, nombre) => {
@@ -126,6 +126,12 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     expect(ficha(d).ajustes).toContain(nombre);
     expect(ficha(a).ajustes).not.toContain(nombre);
     expect(dibujo(d)).not.toBe(dibujo(a));
+  });
+
+  it("tabla con umbral rojo: la lámina no lo pinta (tabla nativa) y el ajuste dice que sólo va en el Word", () => {
+    const a = slide("p_tabla", { vars: ["estudiantes$p1"] }), d = slide("p_tabla", { vars: ["estudiantes$p1"], umbral_rojo_pct: 50 });
+    expect(ficha(d).ajustes).toContain("En rojo bajo 50 %, sólo en el Word");
+    expect(dibujo(d)).toBe(dibujo(a));   // el dibujo de la lámina no cambia
   });
 
   it("la dona nombra la respuesta y la frase de su centro (recetario p70)", () => {

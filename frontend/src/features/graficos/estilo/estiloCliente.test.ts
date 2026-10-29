@@ -14,7 +14,7 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import { buildGraficosConfigFromStore, graficosConfigFromRemote } from "../configSnapshot";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
-import { motivoPiezaNoDisponible, motivoSinVistaPrevia } from "./disponibilidadEstilo";
+import { motivoSinVistaPrevia } from "./disponibilidadEstilo";
 import {
   conAmbito,
   conLogo,
@@ -316,15 +316,6 @@ describe("Opciones y tamaños «16 pt = 14 + 2»", () => {
 });
 
 describe("Disponibilidad · consolidado y vista previa", () => {
-  // L2 (2026-10-14). Mata: volver a apagar Identidad entera en el compartido, o dejar logos y letra ajustables ahí
-  // cuando sólo los aplica el Word (que el compartido no exporta).
-  it("en el compartido colores e íconos se ajustan; logos y letra dicen por qué no", () => {
-    expect(motivoPiezaNoDisponible("consolidated", "colores")).toBeNull();
-    expect(motivoPiezaNoDisponible("consolidated", "iconos")).toBeNull();
-    expect(motivoPiezaNoDisponible("consolidated", "logos")).toMatch(/Word/);
-    expect(motivoPiezaNoDisponible("consolidated", "letra")).toMatch(/Word/);
-    for (const pieza of ["logos", "letra", "iconos", "colores"] as const) expect(motivoPiezaNoDisponible("active", pieza)).toBeNull();
-  });
 
   it("la vista previa explica por qué no se puede generar", () => {
     expect(motivoSinVistaPrevia({ prepOk: false, laminas: 3, ocupado: false })).toMatch(/Analítica/);

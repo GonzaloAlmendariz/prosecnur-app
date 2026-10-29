@@ -67,6 +67,9 @@ paletas <- list(
 grosor <- list(unidad = "in", nota = "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
   # Piso de grosor de la barra de escala en cm (ADR 0092, registro: rige sin declararlo; el informe lo cambia y 0 lo apaga).
   piso_escala_cm = 1.12,
+  # Piso de la barra de escala dentro de un panel (media lámina), en cm: el mínimo de Contabilidad (lám. 18, 19 y 21:
+  # 0,66 cm). El de la escala, 1,12 cm, no cabe en media lámina (Gonzalo, 2026-10-29: «0,66 cm, como Conta»).
+  piso_panel_cm = 0.66,
   escala_apilada = list(list(filas_hasta = 2, grosor = 0.50), list(filas_hasta = 3, grosor = 0.48), list(filas_hasta = 6, grosor = 0.44), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32)),
   categorias = list(list(filas_hasta = 3, grosor = 0.26), list(filas_hasta = 6, grosor = 0.28), list(filas_hasta = 7, grosor = 0.30), list(filas_hasta = 999, grosor = 0.32)))
 # Composición de las láminas de escala (Sí/No, multilista, filtro): las medidas que el motor decide y que se midieron sobre

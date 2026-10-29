@@ -323,11 +323,12 @@
                                     layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
-    # Ranking con puntos (lámina 72); en selección múltiple lleva el encabezado del recetario.
+    # Ranking con puntos (lámina 72). El encabezado sobre los puntos lo escribe el analista; el motor no pone uno de
+    # fábrica (Gonzalo, 2026-10-29: «% de encuestados que marcó cada opción» deja de salir por defecto).
     # La nota del recorte («Se muestran 5 de 12 categorías.») va siempre en el pie, junto a la base.
     return(.lam_laminas_lollipop(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                  base = paste(c(texto(base), texto(pie), texto(espec$nota_recorte)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
-                                 encabezado = espec$encabezado %||% (if (sum(espec$valores) > 1.02) "% de encuestados que marcó cada opción" else NULL),
+                                 encabezado = espec$encabezado,
                                  layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
@@ -340,7 +341,8 @@
                                   publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
                                   folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
                                   por_lamina = por_lamina,
-                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"))$doc)
+                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"),
+                                  actor = .crc_mayuscula_inicial(base_var))$doc)   # rótulo de fila de la Sí/No como escala
   }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
@@ -352,7 +354,7 @@
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
                                    sub = texto(subtitulo), forma = forma, unidad_n = unidad,
-                                   encabezado = .plan_tt_encabezado(el_plot) %||% (if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL),   # TXT-20
+                                   encabezado = .plan_tt_encabezado(el_plot),   # TXT-20; sin encabezado de fábrica en opción múltiple (Gonzalo, 2026-10-29)
                                    layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
@@ -408,7 +410,10 @@
   # La apilada mide con su propia geometría: los bloques van uno bajo otro (verificador de N2).
   if (identical(tipo, "p_slide_2_graficos_vertical")) return(isTRUE(.lam_vertical_geo(especs)$cabe))
   disp <- (.std_geom("leyenda_y") - 0.1) - (.std_geom("zona_datos_y0") + 0.8)
-  all(vapply(especs, function(e) disp / NROW(e$filas) >= 0.24 + 0.36, TRUE))
+  # Cada fila pide el piso de panel (0,66 cm, como Contabilidad) más el aire de una cifra chica: con 6 públicos, el tope
+  # de un estudio, cabe (0,645 in por fila); con más, la lámina va por la ruta anterior.
+  piso_fila <- .std_piso_panel_in() + .std_geom("aire_cifra_chica")
+  all(vapply(especs, function(e) disp / NROW(e$filas) >= piso_fila, TRUE))
 }
 
 #' La rama `slide_2` del motor, en nativo (enganche de `reporte_ppt_plan`)

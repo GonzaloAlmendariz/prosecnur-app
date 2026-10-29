@@ -8,3 +8,11 @@ test("la decisión de cobertura se normaliza: vigente null, distritos sin ubigeo
   expect(normalizarDecisionCobertura({ vigente: 3 }).vigente).toBe(3);
   expect(normalizarDecisionCobertura(null)).toEqual({ fase: "field", exigida: [], huella: "", vigente: null });
 });
+
+import { muestraConCuotasRepartidas } from "./hojasRuta";
+
+test("una muestra sin cuota de sexo repartida se detecta (pide 4/4 en todas)", () => {
+  expect(muestraConCuotasRepartidas([{ cuota_sexo_totals: "3,5" }, { cuota_sexo_totals: "4,4" }])).toBe(true);
+  expect(muestraConCuotasRepartidas([{ cuota_sexo_totals: "3,5" }, {}])).toBe(false);
+  expect(muestraConCuotasRepartidas([])).toBe(true);
+});

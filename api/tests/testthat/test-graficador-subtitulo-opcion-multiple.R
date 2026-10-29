@@ -18,7 +18,7 @@ test_that("el subtitulo de la apilada nace en italica, como en agrupadas", {
 
 test_that("el aviso de opcion multiple pide italica y alto para dos textos", {
   ov <- .ppt_multiple_choice_notice_overrides()
-  expect_equal(ov$subtitulo, "% de encuestados que marcó cada opción")
+  expect_null(ov$subtitulo)   # sin texto de fábrica (Gonzalo, 2026-10-29); el estilo queda para el del analista
   expect_equal(ov$face_subtitulo, "bold")   # como el encabezado de la nativa (CCSS-19)
   expect_equal(ov$color_subtitulo, .std_color("texto_suave"))
   # Ya no fuerza separacion cero: ese era el lever equivocado y superponia los

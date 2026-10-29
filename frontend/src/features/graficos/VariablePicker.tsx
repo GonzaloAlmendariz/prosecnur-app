@@ -14,6 +14,9 @@ type Props = {
   allowEmpty?: boolean;
   /** Sin el rótulo de la base en el disparador: donde la fila ya dice de qué público es (tarjetas por público). */
   ocultarBase?: boolean;
+  /** Base en la que abre el buscador mientras no hay pregunta elegida: la fila de un público abre en la suya (antes abría
+   *  en la primera base del estudio y, desde la fila de Estudiantes, buscaba en Docentes). */
+  fuenteInicial?: string;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -31,7 +34,7 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial,
 }: Props) {
   const { sources, multi, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
@@ -47,7 +50,7 @@ export default function VariablePicker({
   const parsed = useMemo(() => parseVarRef(value), [value]);
   const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
   const sourceKey = sources.map((source) => source.name).join("\u001F");
-  const firstSourceName = sources[0]?.name ?? null;
+  const firstSourceName = (fuenteInicial && sources.some((source) => source.name === fuenteInicial) ? fuenteInicial : sources[0]?.name) ?? null;
   const valueSource = parsed.source && sources.some((source) => source.name === parsed.source)
     ? parsed.source
     : null;

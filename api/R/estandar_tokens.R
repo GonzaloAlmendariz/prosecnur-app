@@ -153,6 +153,13 @@
   v / 2.54
 }
 
+#' Piso de la barra de escala dentro de un panel (media lámina), en pulgadas: `ppt.grosor.piso_panel_cm`
+#'
+#' El mínimo de Contabilidad (0,66 cm). No lo cambia el piso del informe ni del slot: ese es el de la escala a lámina
+#' entera, que en media lámina no cabe.
+#' @keywords internal
+.std_piso_panel_in <- function() .std_valor("ppt", "grosor", "piso_panel_cm") / 2.54
+
 #' Fija el piso del slot mientras se compone su lámina (gana al del informe; 0 lo quita); NULL no toca nada
 #' @return Las opciones anteriores, para `on.exit(options(...))`.
 #' @keywords internal

@@ -70,7 +70,7 @@ describe("evaluateScaleCompat", () => {
     expect(verdict.tone).toBe("error");
     expect(verdict.message).toContain("Sí / No");
     expect(verdict.message).toContain("Totalmente de acuerdo");
-    expect(verdict.message).toContain("Combinar bloques");
+    expect(verdict.message).toContain("pestaña Bloques");   // como se llama la pestaña (D4)
   });
 
   it("no opina sin preguntas ni con variables ausentes", () => {

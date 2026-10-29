@@ -119,18 +119,50 @@ export function twoBoxEnPregunta(activa: boolean, etiquetas: readonly string[] |
   return etiquetas.some((e) => escala.has(normalizarRotulo(e)));
 }
 
-const RESIDUALES_ORDEN = /no sabe|no responde|no aplica|sin inf|prefiero no|ns\/nr|otro/i;
+/** `.CATEGORIAS_RESIDUALES` del motor (graficos_espec_categorica.R): anclado al inicio, como allí. */
+const RESIDUALES_ORDEN = /^(Otro|Otros|No sabe|Ninguna|Ninguno|Prefiero no)/i;
+const PREFIJO_ROMANO = "(ciclo|nivel|grado|semestre|año|ano|curso|modulo|módulo)";
+const RE_ROMANO = new RegExp(`^(${PREFIJO_ROMANO}\\s+)?([ivx]+)(\\s+${PREFIJO_ROMANO})?$`);
+const VALORES_ROMANOS: Record<string, number> = { i: 1, v: 5, x: 10 };
+function romanoAEntero(r: string): number {
+  let total = 0;
+  for (let k = 0; k < r.length; k++) {
+    const v = VALORES_ROMANOS[r[k]], sig = VALORES_ROMANOS[r[k + 1]] ?? 0;
+    total += v < sig ? -v : v;
+  }
+  return total;
+}
+function enteroARomano(n: number): string {
+  const tabla: [number, string][] = [[10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"]];
+  let out = "";
+  for (const [v, r] of tabla) while (n >= v) { out += r; n -= v; }
+  return out;
+}
+/** Port de `.goc_pistas_romanos` (graficos_orden_romanos.R): todas son un romano de I a XXX bien escrito, solo o con
+ *  «ciclo», «nivel», «grado»…; al menos dos. */
+export function sonRomanos(rotulos: readonly string[]): boolean {
+  const e = rotulos.map((x) => x.trim().toLowerCase()).filter(Boolean);
+  if (e.length < 2) return false;
+  return e.every((x) => {
+    const m = RE_ROMANO.exec(x);
+    if (!m) return false;
+    const n = romanoAEntero(m[3]);
+    return n >= 1 && n <= 30 && enteroARomano(n) === m[3];
+  });
+}
 /**
  * ¿Las respuestas tienen un orden propio? Port de `.goc_pistas_orden` (api/R/graficos_orden_categorias.R): cifras,
- * grados académicos, ordinales o palabras de gradación. Las residuales no cuentan.
+ * grados académicos, ordinales, números romanos o palabras de gradación. Las residuales no cuentan.
  */
 export function tienePistasDeOrden(rotulos: readonly string[]): boolean {
-  const t = rotulos.filter((e) => e && e.trim() && !RESIDUALES_ORDEN.test(e)).map((e) => e.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  const utiles = rotulos.filter((e) => e && e.trim() && !RESIDUALES_ORDEN.test(e));
+  const t = utiles.map((e) => e.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
   if (t.length < 2) return false;
   if (t.filter((e) => /[0-9]/.test(e)).length / t.length >= 0.5) return true;
   const cuenta = (re: RegExp) => t.filter((e) => re.test(e)).length;
   if (cuenta(/\b(bachiller|licenciad|magister|maestri|maestr|doctor|doctorado|posgrado|primaria|secundaria|tecnic|superior|inicial)/) >= 2) return true;
   if (cuenta(/\b(primer|segund|tercer|cuart|quint|sext|septim|setim|octav|noven|decim)/) >= 2) return true;
+  if (sonRomanos(utiles)) return true;   // «VI», «VII», «Ciclo IX»
   return cuenta(/\b(nada|poco|algo|mucho|muy|totalmente|siempre|nunca|a veces|rara vez|bajo|medio|alto|acuerdo|desacuerdo|satisfech|insatisfech|malo|bueno|regular|excelente|pesimo|nivel|menos de|mas de|a mas)\b/) >= 2;
 }
 

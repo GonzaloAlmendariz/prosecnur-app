@@ -159,7 +159,9 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   // P20: la matriz de equivalencias sugiere el público vacío; se carga una vez y sólo si hay públicos que comparar.
   const matriz = useSugerenciasDeMatriz(multi && sources.length > 1 && (intent === "publicos_tema" || intent === "combinar"));
   const issues = validateArgs(args, variables, multi);
-  const scale = scaleSummary(refs, variables, multi);
+  // En «Bloques» cada bloque tiene su escala y la revisa en su editor (ScaleInline): comparar las preguntas de TODOS los
+  // bloques entre sí daba «no comparten una escala» justo en el modo que existe para mezclarlas (unión de láminas, D4).
+  const scale = intent === "combinar" ? null : scaleSummary(refs, variables, multi);
   // Tope de seis barras (multiapiladas/topeBarras.ts): el conteo va junto a la lista y frena el «agregar».
   const conteo = conteoBarrasMultiapiladas(args);
 
@@ -1020,9 +1022,9 @@ export function validateArgs(args: Record<string, unknown>, variables: VarWithSo
   const intent = detectIntent(args);
   const issues: ValidationIssue[] = [];
   const refs = refsForIntent(args);
-  const scale = scaleSummary(refs, variables, multi);
-  if (scale.tone === "error") issues.push({ kind: "error", message: scale.message });
-  if (scale.tone === "warning") issues.push({ kind: "warning", message: scale.message });
+  const scale = intent === "combinar" ? null : scaleSummary(refs, variables, multi);   // por bloque, no entre bloques (D4)
+  if (scale?.tone === "error") issues.push({ kind: "error", message: scale.message });
+  if (scale?.tone === "warning") issues.push({ kind: "warning", message: scale.message });
 
   if (intent === "comparar" && asStringArray(args.vars).length === 0) {
     issues.push({ kind: "error", message: "Selecciona al menos una pregunta." });

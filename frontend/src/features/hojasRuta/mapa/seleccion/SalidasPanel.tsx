@@ -7,7 +7,9 @@ import { Sideover } from "../../../../components/Sideover";
 import { ApiError, downloadUrl } from "../../../../api/core";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import {
+  apiHojasRutaCuotasPorFicha,
   apiHojasRutaGenerate,
+  muestraConCuotasRepartidas,
   apiHojasRutaManualReplacementsPdf,
   apiHojasRutaRandomPdf,
   apiHojasRutaRouteWorkbook,
@@ -39,7 +41,7 @@ const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Numb
 const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
 const PREFERENCIAS = [["balanced", "Balanceado"], ["population", "Alta población"], ["urban", "Urbana compacta"]] as const;
 
-type Trabajo = "" | "zip" | "excel" | "puntuales" | "prueba";
+type Trabajo = "" | "zip" | "excel" | "puntuales" | "prueba" | "cuotas";
 type Estado = {
   ocupado: Trabajo;
   error: string;
@@ -60,9 +62,11 @@ type Props = {
   /** U14: supuestos guardados del plan de campo y cómo guardarlos (sin tocar las salidas). */
   planSupuestos?: HojasRutaPlanSupuestos;
   onGuardarPlan?: (s: HojasRutaPlanSupuestos) => Promise<void>;
+  /** Tras repartir las cuotas por distrito, la página relee el estado. */
+  onCuotasRepartidas?: () => Promise<void>;
 };
 
-export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: Props) {
+export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, onCuotasRepartidas }: Props) {
   const [e, setE] = useState<Estado>(INICIAL);
   const nav = useSeccion("hojas-ruta");
   const [busqueda, setBusqueda] = useState("");
@@ -110,6 +114,22 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: 
                 Ir al marco elegible
               </PulsoButton>
             ) : null}
+          </div>
+        ) : null}
+
+        {muestra && !muestraConCuotasRepartidas(muestra.blocks) ? (
+          <div className="hr-mapa-aviso" role="status">
+            <p className="hr-salidas-error">
+              Las hojas de esta muestra piden la mitad de hombres y la mitad de mujeres, y la misma edad en todos los distritos. Repártelas según la cuota de cada distrito: las manzanas y su orden no cambian.
+            </p>
+            <PulsoButton
+              variant="secondary"
+              size="sm"
+              disabled={corriendo}
+              onClick={() => void correr("cuotas", () => apiHojasRutaCuotasPorFicha(), () => ({})).then(() => onCuotasRepartidas?.())}
+            >
+              {e.ocupado === "cuotas" ? "Repartiendo…" : "Repartir cuotas por distrito"}
+            </PulsoButton>
           </div>
         ) : null}
 

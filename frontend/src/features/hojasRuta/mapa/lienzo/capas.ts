@@ -12,6 +12,7 @@
  */
 
 import { proyectarLonLat, type Caja } from "./camara";
+import { tonoGenerado } from "./tonos";
 import { cajaDe, type Pieza, type PiezaManzana } from "./piezas";
 import type { UtilLienzo } from "./LienzoMapa";
 
@@ -178,6 +179,23 @@ export function dibujarTitularesPantalla(
   }
 }
 
+// ---------- Identidad por distrito (B9) ----------
+
+/** Mezcla dos colores hex (`t` = peso de `b`). Un color que no es hex devuelve `a`. */
+export function mezclar(a: string, b: string, t: number): string {
+  const hex = (c: string) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(c.trim());
+    return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null;
+  };
+  const x = hex(a), y = hex(b);
+  if (!x || !y) return a;
+  return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Tono del distrito confirmado en la posición `indice`; desde el noveno, generado (no se repite). */
+export const tonoDistrito = (u: UtilLienzo, indice: number) =>
+  indice < 0 ? u.colores.acento : indice < (u.colores.tonos?.length ?? 0) ? u.colores.tonos[indice] : tonoGenerado(indice);
+
 // ---------- Rótulos con anticolisión ----------
 
 export type CandidatoRotulo = { clave: string; x: number; y: number; w: number; h: number };
@@ -187,11 +205,23 @@ export type CandidatoRotulo = { clave: string; x: number; y: number; w: number; 
  * gana). Un rótulo que choca se descarta; no se desplaza, porque un rótulo
  * movido termina señalando el distrito vecino.
  */
-export function elegirRotulos(candidatos: readonly CandidatoRotulo[], margen = 4): CandidatoRotulo[] {
-  const puestos: CandidatoRotulo[] = [];
+export function elegirRotulos(
+  candidatos: readonly CandidatoRotulo[],
+  margen = 4,
+  desplazar = false,
+  /** Franja vertical donde un rótulo corrido puede quedar (fuera de la miga y del pie). */
+  limites: { arriba: number; abajo: number } = { arriba: -Infinity, abajo: Infinity },
+): (CandidatoRotulo & { dy: number })[] {
+  const puestos: (CandidatoRotulo & { dy: number })[] = [];
+  const choca = (c: CandidatoRotulo, dy: number) =>
+    puestos.some((p) => Math.abs(p.x - c.x) * 2 < p.w + c.w + margen * 2 && Math.abs(p.y + p.dy - (c.y + dy)) * 2 < p.h + c.h + margen * 2);
   for (const c of candidatos) {
-    const choca = puestos.some((p) => Math.abs(p.x - c.x) * 2 < p.w + c.w + margen * 2 && Math.abs(p.y - c.y) * 2 < p.h + c.h + margen * 2);
-    if (!choca) puestos.push(c);
+    // Con pocos rótulos (cada uno es un distrito del estudio) ninguno se pierde: se
+    // corre arriba o abajo y el dibujo lo une a su punto con una guía (B10).
+    const pasos = desplazar ? [0, 1, -1, 2, -2, 3, -3, 4, -4] : [0];
+    const cabe = (d: number) => d === 0 || (c.y + d - c.h / 2 >= limites.arriba && c.y + d + c.h / 2 <= limites.abajo);
+    const dy = pasos.map((k) => k * (c.h + margen * 2)).find((d) => cabe(d) && !choca(c, d));
+    if (dy !== undefined) puestos.push({ ...c, dy });
   }
   return puestos;
 }
@@ -210,10 +240,25 @@ export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLie
     return { r, x, y, w: Math.max(w1, w2) + 24, h: compactos || !r.detalle ? 22 : 38 };
   });
   const dentro = medidos.filter((m) => m.x > 20 && m.y > 16 && m.x < u.tamano.w - 20 && m.y < u.tamano.h - 16);
-  const elegidos = new Set(elegirRotulos(dentro.map((m) => ({ clave: m.r.ubigeo, x: m.x, y: m.y, w: m.w, h: m.h }))).map((c) => c.clave));
+  const elegidos = new Map(elegirRotulos(dentro.map((m) => ({ clave: m.r.ubigeo, x: m.x, y: m.y, w: m.w, h: m.h })), 4, !compactos, { arriba: 52, abajo: u.tamano.h - 52 }).map((c) => [c.clave, c.dy]));
   for (const m of dentro) {
-    if (!elegidos.has(m.r.ubigeo)) continue;
-    const { x, y, w, h } = m;
+    const dy = elegidos.get(m.r.ubigeo);
+    if (dy === undefined) continue;
+    const { x, w, h } = m;
+    const y = m.y + dy;
+    if (dy !== 0) {
+      // Guía al punto del distrito: el rótulo corrido no debe señalar al vecino.
+      ctx.strokeStyle = m.r.tono;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, m.y);
+      ctx.lineTo(x, dy > 0 ? y - h / 2 : y + h / 2);
+      ctx.stroke();
+      ctx.fillStyle = m.r.tono;
+      ctx.beginPath();
+      ctx.arc(x, m.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.beginPath();
     ctx.roundRect(x - w / 2, y - h / 2, w, h, compactos ? 7 : 10);
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";

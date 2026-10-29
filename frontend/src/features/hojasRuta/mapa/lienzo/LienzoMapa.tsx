@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import "../../../../app/tokens-datos.css";
 import "./lienzoMapa.css";
 import {
@@ -50,6 +50,8 @@ export type ColoresLienzo = {
   error: string;
   densidad: string[];
   nse: string[];
+  /** Identidad por distrito (B9), en el orden de confirmación. */
+  tonos: string[];
 };
 
 export type UtilLienzo = {
@@ -84,6 +86,14 @@ type Props = {
   version?: number;
   ariaLabel: string;
   className?: string;
+  /** Cápsula arriba a la izquierda: dónde está el usuario y qué puede hacer (brecha B6). */
+  miga?: ReactNode;
+  /** Leyenda abajo a la izquierda: qué significa cada color de la sección (brecha B8). */
+  leyenda?: ReactNode;
+  /** Controles arriba a la derecha (selector de capas, brecha B7). */
+  controles?: ReactNode;
+  /** Punto del mundo al que se acercan «+» y «−» (la UMP enfocada); sin él, el centro. */
+  anclaZoom?: readonly [number, number] | null;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -111,7 +121,8 @@ function leerColores(): ColoresLienzo {
     error: v("--pulso-danger-fg"),
     // la densidad arranca en blanco para «sin viviendas» y sigue la secuencia de datos
     densidad: ["--pulso-surface", "--pulso-data-seq-0", "--pulso-data-seq-1", "--pulso-data-seq-2", "--pulso-data-seq-3", "--pulso-data-seq-4", "--pulso-data-seq-5"].map(v),
-    nse: [0, 1, 2, 3, 4, 5].map((i) => v(`--pulso-nse-${i}`)),
+    nse: ["--pulso-nse-seq-0", "--pulso-nse-seq-1", "--pulso-nse-seq-2", "--pulso-nse-seq-3", "--pulso-nse-seq-4", "--pulso-nse-seq-5"].map(v),
+    tonos: ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"].map(v),
   };
 }
 
@@ -143,6 +154,10 @@ export function LienzoMapa({
   version = 0,
   ariaLabel,
   className,
+  miga,
+  leyenda,
+  controles,
+  anclaZoom = null,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -437,12 +452,16 @@ export function LienzoMapa({
   const zoomBoton = (factor: number) => {
     const e = estado.current;
     e.manual = true;
-    volar({ ...e.camara, s: e.camara.s * factor }, true);
+    // Con una UMP enfocada, «+» acerca a ella y no al centro del lienzo (B12).
+    volar({ ...e.camara, ...(anclaZoom ? { x: anclaZoom[0], y: anclaZoom[1] } : {}), s: e.camara.s * factor }, true);
   };
 
   return (
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
+      {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
+      {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
+      {controles ? <div className="hr-lienzo-capsula hr-lienzo-controles">{controles}</div> : null}
       <div className="hr-lienzo-pie">
         <div ref={escalaRef} className="hr-lienzo-escala" aria-hidden="true" />
         <div className="hr-lienzo-zoom" role="group" aria-label="Zoom del mapa">

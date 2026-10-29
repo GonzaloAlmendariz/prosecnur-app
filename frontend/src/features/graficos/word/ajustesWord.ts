@@ -27,7 +27,12 @@ const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 // del documento (reporte_word_tabla_grafico.R), que sigue a «Tabla de datos» y no lee letra, negrita ni rojo de
 // `radar_tabla`. Ofrecerle esos tres ajustes era prometer algo que no sale; va con los que salen como en su lámina.
 export const TIPO_RADAR_PUBLICOS = "radar_publicos";
-export const ROTULOS_TIPO_PROPIOS: Readonly<Record<string, string>> = { [TIPO_RADAR_PUBLICOS]: "Radar entre públicos" };
+// Lo mismo con el radar de los demás modos (`sm`, `box`): el motor apaga su tabla (p_radar_split.R) y el Word dibuja sólo
+// el radar (`.word_g_radar`), así que tampoco le tocan los ajustes de la tabla.
+export const TIPO_RADAR_SOLO = "radar_solo";
+export const ROTULOS_TIPO_PROPIOS: Readonly<Record<string, string>> = {
+  [TIPO_RADAR_PUBLICOS]: "Radar entre públicos", [TIPO_RADAR_SOLO]: "Radar",
+};
 
 /** Los tipos de gráfico (preset) que usa el informe, en el orden en que aparecen. */
 export function tiposDelInforme(slides: readonly Slide[]): string[] {
@@ -38,7 +43,7 @@ export function tiposDelInforme(slides: readonly Slide[]): string[] {
       const ref = payload[slot];
       const g = esObjeto(ref) && typeof ref.graficador === "string" ? ref.graficador : "";
       const args = esObjeto(ref) && esObjeto(ref.args) ? ref.args : {};
-      const tipo = g === "p_radar" && args.modo === "publicos" ? TIPO_RADAR_PUBLICOS : g ? graficadorToPresetType(g) : null;
+      const tipo = g === "p_radar" ? (args.modo === "publicos" ? TIPO_RADAR_PUBLICOS : TIPO_RADAR_SOLO) : g ? graficadorToPresetType(g) : null;
       if (tipo && !vistos.includes(tipo)) vistos.push(tipo);
     }
   }

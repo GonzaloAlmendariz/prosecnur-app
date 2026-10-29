@@ -10,13 +10,14 @@ export type { ClavePieza } from "./modeloPiezasIdentidad";
 /** Prefijo de los ids de fila: el detalle cita `${PREFIJO_PIEZA}-${pieza}` en `aria-labelledby`. */
 export const PREFIJO_PIEZA = "f6-id-pieza";
 
-/** Qué pieza llega a qué salida. ID9 (d589311b3): logos y letra llegan también al PPT (decisión D5). */
+/** Qué pieza llega a qué salida. ID9 (d589311b3): logos y letra llegan también al PPT (decisión D5). Los íconos sólo al
+ *  PPT: ningún reporte_word_*.R los dibuja y la lámina de íconos no entra al Word (reporte_word_documento.R). */
 export const SALIDAS: readonly { clave: ClavePieza; titulo: string; ppt: boolean; word: boolean }[] = [
   { clave: "linea", titulo: "Línea visual", ppt: true, word: true },
   { clave: "colores", titulo: "Colores", ppt: true, word: true },
   { clave: "logos", titulo: "Logos", ppt: true, word: true },
   { clave: "letra", titulo: "Letra", ppt: true, word: true },
-  { clave: "iconos", titulo: "Íconos", ppt: true, word: true },
+  { clave: "iconos", titulo: "Íconos", ppt: true, word: false },
 ];
 
 type Props = { piezas: readonly ParteDeLista<ClavePieza>[]; actual: ClavePieza; onElegir: (k: ClavePieza) => void; idPanel: string };

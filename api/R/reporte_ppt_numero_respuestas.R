@@ -111,8 +111,26 @@
 
 
 #' Leyenda horizontal de cuadros con su texto
+#'
+#' Centrada en `centro` (la lámina entera, como toda leyenda; Gonzalo, 2026-10-22) y, si no cabe en `ancho_max`, en dos
+#' filas: con las cinco respuestas de una escala real arrancaba en una x fija y se salía por la derecha.
 #' @keywords internal
-.nresp_leyenda <- function(x, y, items, size = 15, color = "#081F5C") {
+.nresp_leyenda <- function(x, y, items, size = 15, color = "#081F5C", centro = NULL, ancho_max = .NRESP_W - 40) {
+  item_w <- function(i) size * 1.6 + nchar(items$etiqueta[[i]]) * size * 0.54
+  n <- nrow(items)
+  if (!is.null(centro) && n > 0L) {
+    ws <- vapply(seq_len(n), item_w, 0)
+    filas <- if (sum(ws) <= ancho_max || n < 2L) list(seq_len(n)) else {
+      k <- which.min(abs(cumsum(ws) - sum(ws) / 2)); list(seq_len(k), seq.int(k + 1L, n))
+    }
+    out <- character(0)
+    for (f in seq_along(filas)) {
+      ii <- filas[[f]]
+      sub <- items[ii, , drop = FALSE]
+      out <- c(out, .nresp_leyenda(centro - sum(ws[ii]) / 2, y + (f - 1L) * size * 1.5, sub, size, color))
+    }
+    return(paste(out, collapse = ""))
+  }
   cursor <- x
   piezas <- character(0)
   for (i in seq_len(nrow(items))) {
@@ -178,6 +196,18 @@
 #' @param style Estilo de la lamina.
 #' @return Ruta del SVG.
 #' @keywords internal
+#' Centro (unidades del lienzo) de la columna del Top Two Box: la de la lámina de escala llevada a esta escala
+#'
+#' En la lámina la barra termina en `x_barra + ancho_barra` y la columna del box arranca 0,1 in después y mide
+#' `columna_box` (1,5 in); el lienzo mide `.NRESP_W` unidades para 13,18 in.
+#' @keywords internal
+.nresp_columna_box_centro <- function(bar_x, bar_w) {
+  u <- .NRESP_W / 13.18
+  L <- .std_geom("likert")
+  hueco <- L$x_top_two_box - (L$x_barra + L$ancho_barra)
+  bar_x + bar_w + (hueco + .std_comp("escala", "columna_box") / 2) * u
+}
+
 .numero_respuestas_svg <- function(ejemplos = NULL, base_texto = NULL,
                                    style = list()) {
   ej <- .nresp_ejemplos_default(ejemplos)
@@ -221,18 +251,22 @@
     ))
     # Barra y leyenda
     piezas <- c(piezas, .nresp_barra(bar_x, y, bar_w, bar_h, e$tramos, blue))
-    piezas <- c(piezas, .nresp_leyenda(bar_x + 80, ley_y, e$tramos))
+    piezas <- c(piezas, .nresp_leyenda(bar_x + 80, ley_y, e$tramos, centro = .NRESP_W / 2))
 
     if (!is.null(e$top_two)) {
+      # Como la columna del box de la lámina de escala (Gonzalo, 2026-10-29: «me gusta como tiene mapeada la lámina de
+      # gestión y desarrollo del cuerpo académico»): rótulo y cifra centrados sobre la misma columna, que arranca al
+      # filo de la barra. Antes los dos arrancaban en la misma x y el rótulo, más ancho, quedaba corrido.
+      cx <- .nresp_columna_box_centro(bar_x, bar_w)
       piezas <- c(piezas, sprintf(
-        paste0('<text x="%.2f" y="%.2f" font-family="Arial, sans-serif" ',
+        paste0('<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" ',
                'font-size="16" font-weight="bold" fill="%s">TOP TWO BOX</text>'),
-        bar_x + bar_w + 26, y - 32, verde
+        cx, y - 32, verde
       ))
       piezas <- c(piezas, sprintf(
-        paste0('<text x="%.2f" y="%.2f" font-family="Arial, sans-serif" ',
-               'font-size="20" font-weight="bold" fill="%s">%s</text>'),
-        bar_x + bar_w + 26, y + bar_h / 2 + 8, verde, e$top_two
+        paste0('<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" ',
+               'font-size="19" font-weight="bold" fill="%s">%s</text>'),
+        cx, y + bar_h / 2 + 7, verde, e$top_two
       ))
     }
     if (!is.null(e$nota_n)) {

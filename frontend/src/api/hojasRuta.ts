@@ -509,6 +509,8 @@ export type SelectedBlock = {
   constante_salto_unidad?: string;
   constante_salto_modo?: HojasRutaRouteJumpMode | string;
   salto_operativo?: number;
+  /** Visitas esperadas de la ruta (ADR 0116 §1), si la muestra se sorteó con el salto sobre visitas. */
+  visitas_esperadas?: number;
   modo_seleccion_vivienda?: string;
   nse_codigo?: string | number | null;
   nse_nivel?: string | null;
@@ -1374,6 +1376,8 @@ export type HojasRutaPlanSupuestos = {
   costo_por_entrevista: number;
   costo_por_jornada: number;
   costo_por_km: number;
+  /** Supervisión y coordinación, en % sobre el total (B21). */
+  supervision_pct: number;
   moneda: string;
 };
 
@@ -1381,6 +1385,8 @@ export type HojasRutaJornada = {
   id: string; ubigeo: string; distrito: string; rutas: string[]; visitas: number; km: number;
   /** La ruta no cabe en una jornada: va entera, con el mismo encuestador varios días. */
   excede_jornada: boolean; jornadas_equivalentes: number;
+  /** Calendario (B20): encuestador 1..n y día en que empieza la jornada. */
+  encuestador: number; dia: number;
 };
 
 export type HojasRutaPlanCampo = {
@@ -1391,7 +1397,9 @@ export type HojasRutaPlanCampo = {
   alertas: { code: string; message: string }[];
 };
 
-export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 0, costo_por_km: 0, moneda: "S/" };
+// Los del artefacto aprobado y de HOJAS_RUTA_PLAN_DEFAULTS en R (B21): S/ 120 de pago
+// más S/ 25 de movilidad por jornada, y 15 % de supervisión. Supuestos editables.
+export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 145, costo_por_km: 0, supervision_pct: 15, moneda: "S/" };
 
 export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -1399,9 +1407,10 @@ export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
   return {
     encuestadores: Math.max(1, Math.round(comoNumero(o.encuestadores, d.encuestadores))),
     visitas_por_jornada: Math.max(1, Math.round(comoNumero(o.visitas_por_jornada, d.visitas_por_jornada))),
-    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, 0)),
-    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, 0)),
-    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, 0)),
+    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, d.costo_por_entrevista)),
+    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, d.costo_por_jornada)),
+    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, d.costo_por_km)),
+    supervision_pct: Math.min(100, Math.max(0, comoNumero(o.supervision_pct, d.supervision_pct))),
     moneda: comoTexto(o.moneda) || d.moneda,
   };
 }
@@ -1416,6 +1425,7 @@ export function normalizarPlanCampo(raw: unknown): HojasRutaPlanCampo {
       return {
         id: comoTexto(x.id), ubigeo: comoTexto(x.ubigeo), distrito: comoTexto(x.distrito), rutas: (esArreglo(x.rutas) ? x.rutas : []).map(comoTexto), visitas: comoNumero(x.visitas), km: comoNumero(x.km),
         excede_jornada: x.excede_jornada === true, jornadas_equivalentes: Math.max(1, comoNumero(x.jornadas_equivalentes) || 1),
+        encuestador: Math.max(1, comoNumero(x.encuestador) || 1), dia: Math.max(1, comoNumero(x.dia) || 1),
       };
     }),
     resumen: { rutas: comoNumero(r.rutas), entrevistas: comoNumero(r.entrevistas), visitas: comoNumero(r.visitas), jornadas: comoNumero(r.jornadas), dias: comoNumero(r.dias), km: comoNumero(r.km), costo: comoNumero(r.costo) },
@@ -1455,6 +1465,27 @@ export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | 
   return handle<{ ok: boolean }>(
     await apiFetch("/api/hojas-ruta/bitacora", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ accion, resumen, detalle }) }),
   );
+}
+
+// ---------- Cuotas por hoja sin re-sortear ----------
+
+export type HojasRutaCuotasRepartidas = { resumen: { ubigeo: string; distrito: string; hombres: number; mujeres: number }[] };
+
+/** Reparte la cuota de sexo y edad de cada distrito entre las hojas de la muestra guardada (mismas manzanas). */
+export async function apiHojasRutaCuotasPorFicha(): Promise<HojasRutaCuotasRepartidas> {
+  const r = await handle<{ resumen?: unknown }>(await apiFetch("/api/hojas-ruta/cuotas-por-ficha", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
+  return {
+    resumen: (esArreglo(r.resumen) ? r.resumen : []).map((x) => {
+      const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+      return { ubigeo: comoTexto(d.ubigeo), distrito: comoTexto(d.distrito), hombres: comoNumero(d.hombres), mujeres: comoNumero(d.mujeres) };
+    }),
+  };
+}
+
+/** ¿La muestra trae las cuotas por sexo repartidas por distrito? (las anteriores al reparto piden 4/4 en todas). */
+export function muestraConCuotasRepartidas(blocks: readonly unknown[] | undefined): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every((b) => b != null && typeof b === "object" && /^\d+,\d+$/.test(comoTexto((b as Record<string, unknown>).cuota_sexo_totals)));
 }
 
 // ---------- Decisión de cobertura (ADR 0115 §4, enmienda U17) ----------

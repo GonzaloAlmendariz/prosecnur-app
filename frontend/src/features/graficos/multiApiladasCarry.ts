@@ -11,6 +11,8 @@
 // mirando primero los campos del modo actual y, si están vacíos, el primer
 // bloque de `multilista` — que es donde quedan al pasar por Combinar.
 
+import { barraExtraDeTarjeta } from "./barraExtra";
+
 type Args = Record<string, unknown>;
 
 function stringArray(value: unknown): string[] {
@@ -63,11 +65,28 @@ export function carryCruce(args: Args): string {
  */
 export function blockFromArgs(args: Args, vars: string[], cruce: string): Args {
   const modo = typeof args.modo === "string" ? args.modo : "var";
+  const box = boxDeLaLamina(args);
   if (modo === "cruce") {
-    return { modo: "cruce", var: vars[0] ?? "", cruces: cruce };
+    return { modo: "cruce", var: vars[0] ?? "", cruces: cruce, ...box };
   }
   if (modo === "var_cruce" && cruce) {
-    return { modo: "var_cruce", vars, cruces: cruce };
+    return { modo: "var_cruce", vars, cruces: cruce, ...box };
   }
-  return { modo: "var", vars };
+  return { modo: "var", vars, ...box };
+}
+
+/**
+ * La barra extra y las categorías de sus boxes que traía la lámina, para que el bloque sembrado al pasar a «Bloques» las
+ * conserve: sin esto el bloque 1 salía sin su Top Two Box y había que volver a elegir sus categorías (unión de láminas,
+ * 2026-10-29).
+ */
+function boxDeLaLamina(args: Args): Args {
+  const out: Args = {};
+  const be = barraExtraDeTarjeta(args);
+  if (be !== undefined) out.barra_extra = be === false ? false : [...be];
+  for (const k of ["top2box_labels", "bottom2box_labels"] as const) {
+    const v = args[k];
+    if (Array.isArray(v) && v.length) out[k] = [...v];
+  }
+  return out;
 }

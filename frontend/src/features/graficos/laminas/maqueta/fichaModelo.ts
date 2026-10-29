@@ -184,8 +184,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       break;
     case "p_radar": {
       // Entre públicos manda lo que el motor dibuja de verdad (formaRadar.ts): con menos de 5 criterios, líneas y puntos y
-      // sin tabla. En los demás modos, el radar con su tabla. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
-      if (v("modo") !== "publicos") { glifo.tabla = true; break; }
+      // sin tabla. En los demás modos, el radar solo: el motor apaga su tabla (`mostrar_tabla_derecha = FALSE`,
+      // p_radar_split.R) y la lámina lo centra. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
+      if (v("modo") !== "publicos") { glifo.tabla = false; break; }
       const tabla = v("tabla") ?? (v("mostrar_tabla") === false ? "no" : undefined);
       const f = formaEfectivaRadar({ forma: v("forma"), fallback_pocos: v("fallback_pocos"), tabla, nCriterios: criteriosDelRadar(args) });
       glifo.formaRadar = f.forma;
@@ -227,7 +228,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     }
     case "p_tabla": {
       const u = entero(v("umbral_rojo_pct"));
-      if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }
+      // La tabla nativa del PPT no pinta rojo (.lam_tabla_ttb); sólo el Word, que dibuja el gráfico de la ruta anterior
+      // (sin renderer «tabla» en reporte_word_graficos_despacho.R). La maqueta es la lámina: sin rojo, y el ajuste lo dice.
+      if (u) ajustes.push(`En rojo bajo ${u} %, sólo en el Word`);
       break;
     }
     default:

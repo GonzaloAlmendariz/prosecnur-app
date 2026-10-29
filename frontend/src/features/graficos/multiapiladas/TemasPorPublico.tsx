@@ -101,7 +101,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
                 <div className="pulso-mapi-pregunta">
                   {sugerida && <ChipSugerencia s={sugerida} publico={p} variables={variables} onAplicar={() => aplicar([sugerida])} />}
                   {sinCupo ? <span className="pulso-mapi-sin-cupo">Ya hay {MAX_BARRAS_MULTIAPILADAS} barras.</span> : (
-                  <VariablePicker value={ref || null} allowEmpty ocultarBase placeholder="Elegir pregunta…" filter={filtroTipo}
+                  <VariablePicker value={ref || null} allowEmpty ocultarBase fuenteInicial={p} placeholder="Elegir pregunta…" filter={filtroTipo}
                                   onChange={(v) => {
                                     const actualizado = conRef(tema, publicos, p, v);
                                     // Sin nombre todavía, el tema toma la etiqueta de su primera pregunta: es el nombre que el analista escribiría.

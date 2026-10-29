@@ -90,3 +90,23 @@ test_that("un color invalido cae al de respaldo en vez de romper el SVG", {
   expect_false(grepl("no-es-un-color", svg, fixed = TRUE))
   expect_true(grepl("#081F5C", svg, fixed = TRUE))
 })
+
+test_that("el Top Two Box va centrado en su columna y una leyenda de cinco respuestas no se sale del lienzo", {
+  az <- .std_color("azul")
+  e2 <- list(enunciado = "El reglamento es pertinente.", publico = "Docentes",
+             tramos = data.frame(pct = c(3, 8, 75, 9, 5), color = c("#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"),
+                                 etiqueta = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF"),
+                                 label_color = rep(az, 5), stringsAsFactors = FALSE),
+             top_two = "84%", nota_n = "N = 77")
+  svg <- paste(readLines(.numero_respuestas_svg(ejemplos = list(e2), base_texto = "Base: 115 docentes")), collapse = "")
+  # Rótulo y cifra del box: el mismo x y centrados (antes arrancaban en la misma x, alineados a la izquierda).
+  x_rot <- as.numeric(sub('.*<text x="([0-9.]+)"[^>]*>TOP TWO BOX<.*', "\\1", svg))
+  x_cif <- as.numeric(sub('.*<text x="([0-9.]+)"[^>]*>84%<.*', "\\1", svg))
+  expect_equal(x_rot, x_cif)
+  expect_match(svg, 'text-anchor="middle"[^>]*>TOP TWO BOX<')
+  # La leyenda: su último texto termina dentro del lienzo (ancho estimado como lo estima la propia leyenda).
+  m <- regmatches(svg, gregexpr('<text x="([0-9.]+)"[^>]*font-size="15"[^>]*>([^<]+)</text>', svg))[[1]]
+  xs <- as.numeric(sub('<text x="([0-9.]+)".*', "\\1", m)); tx <- sub('.*>([^<]+)</text>', "\\1", m)
+  expect_lte(max(xs + nchar(tx) * 15 * 0.54), .NRESP_W)
+  expect_gte(min(xs), 0)
+})
