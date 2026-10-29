@@ -210,6 +210,27 @@
         "ancho_rotulo": 1.8,
         "lineas_max": 2
       },
+      "tabla_costado": {
+        "col1": 2.2,
+        "col": 1.15,
+        "fila": 0.5,
+        "fila_min": 0.4,
+        "hueco": 0.3,
+        "hueco_v": 0.2,
+        "min_graf_w": 3.6,
+        "dy": 0.6,
+        "cuerpo_pt": 13,
+        "enc_pt": 11,
+        "relleno_pt": 12
+      },
+      "tabla_general": {
+        "col1": 2.2,
+        "col": 1.15,
+        "fila": 0.42,
+        "cuerpo_pt": 12,
+        "enc_pt": 11,
+        "relleno_pt": 14
+      },
       "multilista": {
         "gap_bloques": 0.27,
         "aire_titulo": 0.1,

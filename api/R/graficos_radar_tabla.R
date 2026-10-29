@@ -137,7 +137,7 @@
   }
   df <- .radar_mb_tabla_df(info)
   if (!(is.list(espec) && identical(espec$tipo, "pesas"))) dibuja <- "barras"   # con otro numero de publicos que dos, las lineas y puntos caen a barras
-  M <- .LAM_TABLA_COSTADO_GENERAL
+  M <- .lam_tabla_m("tabla_general")
   .tabla_nativa_adjuntar(g, df, estilo = list(
     font_family = "Arial", body_size = M$cuerpo_pt, header_size = M$enc_pt, lugar_auto = TRUE,
     ancho_col1_in = M$col1, alto_fila = M$fila, tabla_dibuja = dibuja,
