@@ -46,12 +46,20 @@ export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
           <figcaption>Lámina con tus colores</figcaption>
           <span className="pulso-f6-muestra-lamina">
             <span className="pulso-f6-muestra-lamina-ante" />
-            <span className="pulso-f6-muestra-lamina-titulo">{datos.respuestas.length ? datos.respuestas.slice(0, 2).join(" / ") + "…" : "Una escala del informe"}</span>
+            {/* El título es un esqueleto, como el antetítulo: las respuestas van en su leyenda, no se hacen pasar por título. */}
+            <span className="pulso-f6-muestra-lamina-titulo" aria-hidden="true" />
             {BARRAS.map((fila, i) => (
               <span key={i} className="pulso-f6-muestra-barra" data-muestra-barra>
                 {fila.slice(0, n).map((v, k) => <i key={k} style={{ flexGrow: v, background: colores[k] }} className={colores[k] ? "" : `is-tono-${k}`} />)}
               </span>
             ))}
+            {datos.respuestas.length ? (
+              <span className="pulso-f6-muestra-leyenda">
+                {datos.respuestas.slice(0, n).map((r, k) => (
+                  <span key={k}><i style={{ background: colores[k] }} className={colores[k] ? "" : `is-tono-${k}`} />{r}</span>
+                ))}
+              </span>
+            ) : null}
           </span>
         </figure>
         <figure className="pulso-f6-muestra-pieza" data-qa-geometry-member>

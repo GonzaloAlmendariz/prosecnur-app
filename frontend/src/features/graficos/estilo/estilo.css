@@ -1015,8 +1015,13 @@
 }
 
 .pulso-f6-muestra-ppt-titulo {
+  /* Un título largo (el de Arte tiene 160 caracteres) no sube hasta los logos: a lo más cuatro líneas, como cabe en la portada. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
   color: var(--pulso-surface);
-  font-size: 6.4cqw;
+  font-size: 5.4cqw;
   font-weight: 700;
   line-height: 1.12;
 }
@@ -1041,13 +1046,30 @@
 }
 
 .pulso-f6-muestra-lamina-titulo {
-  overflow: hidden;
-  color: var(--pulso-text);
-  font-size: 5cqw;
-  font-weight: 700;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  width: 55cqw;
+  height: 3.4cqw;
+  border-radius: 1px;
+  background: var(--pulso-text-soft);
 }
+
+.pulso-f6-muestra-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6cqw 2.4cqw;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 2.6cqw;
+  line-height: 1.2;
+}
+
+.pulso-f6-muestra-leyenda span { display: inline-flex; align-items: center; gap: 0.8cqw; white-space: nowrap; }
+.pulso-f6-muestra-leyenda i { display: block; width: 2cqw; height: 2cqw; }
+.pulso-f6-muestra-leyenda i.is-tono-0 { background: color-mix(in srgb, var(--pulso-primary) 25%, var(--pulso-surface)); }
+.pulso-f6-muestra-leyenda i.is-tono-1 { background: color-mix(in srgb, var(--pulso-primary) 45%, var(--pulso-surface)); }
+.pulso-f6-muestra-leyenda i.is-tono-2 { background: color-mix(in srgb, var(--pulso-primary) 65%, var(--pulso-surface)); }
+.pulso-f6-muestra-leyenda i.is-tono-3 { background: color-mix(in srgb, var(--pulso-primary) 85%, var(--pulso-surface)); }
+.pulso-f6-muestra-leyenda i.is-tono-4 { background: var(--pulso-border-strong); }
 
 .pulso-f6-muestra-barra {
   display: flex;
@@ -1106,6 +1128,10 @@
 }
 
 .pulso-f6-muestra-word-titulo {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;   /* el título largo no se sale de la página de muestra */
+  overflow: hidden;
   margin-bottom: 30%;
   color: var(--pulso-primary);
   font-size: 4.4cqw;
