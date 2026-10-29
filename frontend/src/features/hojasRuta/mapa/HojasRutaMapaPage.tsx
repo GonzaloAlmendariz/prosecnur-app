@@ -4,7 +4,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPlanSupuestos, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
@@ -169,6 +169,14 @@ export default function HojasRutaMapaPage() {
     }
   }, [estado, configMuestra, fase, setMuestraBorrador]);
   const entrevistasPorRuta = estado?.integrated_config.entrevistas_por_manzana ?? 0;
+
+  // U14: los supuestos del plan van al ui_state. Se mandan las salidas actuales: un
+  // persist sin ellas manda {} y borra población, tamaño, cuotas y muestra.
+  const guardarPlanCampo = useCallback(async (supuestos: HojasRutaPlanSupuestos) => {
+    if (!estado) return;
+    await apiHojasRutaPersistWorkspace(estado.integrated_config, { ...estado.ui_state, plan_campo: supuestos }, estado.workspace_outputs ?? {}, fase);
+    setEstado(await apiHojasRutaState());
+  }, [estado, fase]);
 
   // Manzanas: R guarda la configuración y la muestra al sortear; el sorteo se
   // anota después en el historial del proyecto (ui_state.route_history).
@@ -469,7 +477,7 @@ export default function HojasRutaMapaPage() {
               revision={revision}
               totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
-              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} />}
+              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} planSupuestos={estado.ui_state?.plan_campo} onGuardarPlan={guardarPlanCampo} />}
             />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector

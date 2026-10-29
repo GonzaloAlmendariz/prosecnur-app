@@ -371,3 +371,9 @@
 .hr-semillas-lista em { font-style: normal; font-weight: 600; color: var(--pulso-text-soft); }
 .hr-semillas-lista small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-semillas-lista b { color: var(--pulso-text); }
+
+/* Plan de campo (U14) */
+.hr-plan-jornadas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hr-plan-jornadas li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 5px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; }
+.hr-plan-jornadas strong { font-variant-numeric: tabular-nums; }
+.hr-plan-jornadas span { color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }

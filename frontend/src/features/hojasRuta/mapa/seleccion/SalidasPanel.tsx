@@ -17,11 +17,13 @@ import {
   type HojasRutaRandomPreference,
   type HojasRutaReplacementPolicy,
   type HojasRutaWorkbookResult,
+  type HojasRutaPlanSupuestos,
   type HojasRutaWorkspaceOutputs,
 } from "../../../../api/hojasRuta";
 import { Archive } from "../../../../vendor/lucide-react";
 import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { nombreDistrito } from "../nombres";
+import { PlanCampo } from "./PlanCampo";
 import { alternarId, candidatasDeReemplazo, listoParaEntregar, pasosDeEntrega, pesoLegible } from "./salidas";
 
 /**
@@ -48,9 +50,15 @@ type Estado = {
 };
 const INICIAL: Estado = { ocupado: "", error: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null, prueba: null };
 
-type Props = { config: HojasRutaIntegratedConfig; salidas: HojasRutaWorkspaceOutputs | null | undefined };
+type Props = {
+  config: HojasRutaIntegratedConfig;
+  salidas: HojasRutaWorkspaceOutputs | null | undefined;
+  /** U14: supuestos guardados del plan de campo y cómo guardarlos (sin tocar las salidas). */
+  planSupuestos?: HojasRutaPlanSupuestos;
+  onGuardarPlan?: (s: HojasRutaPlanSupuestos) => Promise<void>;
+};
 
-export function SalidasPanel({ config, salidas }: Props) {
+export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan }: Props) {
   const [e, setE] = useState<Estado>(INICIAL);
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<string[]>([]);
@@ -138,6 +146,8 @@ export function SalidasPanel({ config, salidas }: Props) {
           ) : null}
           <p className="hr-mapa-nota">Si cambias la muestra o el sorteo, estos archivos quedan desactualizados: vuelve a generarlos.</p>
         </section>
+
+        {onGuardarPlan ? <PlanCampo guardados={planSupuestos} deshabilitado={!muestra || corriendo} onGuardar={onGuardarPlan} /> : null}
 
         <section className="hr-muestra-grupo" aria-label="Reemplazos puntuales">
           <h3>Reemplazos puntuales</h3>

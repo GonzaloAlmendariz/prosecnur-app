@@ -104,7 +104,9 @@
       ui$map_selection_mode %||% ui$mapSelectionMode,
       FALSE
     ),
-    route_history = route_history
+    route_history = route_history,
+    # U14: supuestos del plan de campo (lista cerrada: sin esta línea se perderían al guardar).
+    plan_campo = hojas_ruta_plan_campo_supuestos(ui$plan_campo %||% list())
   )
 }
 

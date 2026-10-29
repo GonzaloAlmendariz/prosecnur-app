@@ -117,6 +117,8 @@ export type HojasRutaUiState = {
   map_level: "distritos" | "zonas" | "manzanas";
   map_selection_mode: boolean;
   route_history: HojasRutaRouteSnapshot[];
+  /** U14: supuestos del plan de campo. */
+  plan_campo?: HojasRutaPlanSupuestos;
 };
 
 export type TerritorialFrameMeta = {
@@ -1339,5 +1341,59 @@ export async function apiHojasRutaCompararSemillas(config: Partial<HojasRutaInte
     await handle<unknown>(
       await apiFetch("/api/hojas-ruta/sample-preview/comparar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, nuevas }) }),
     ),
+  );
+}
+
+// ---------- Plan de campo (U14) ----------
+
+export type HojasRutaPlanSupuestos = {
+  encuestadores: number;
+  visitas_por_jornada: number;
+  costo_por_entrevista: number;
+  costo_por_jornada: number;
+  costo_por_km: number;
+  moneda: string;
+};
+
+export type HojasRutaJornada = { id: string; ubigeo: string; distrito: string; rutas: string[]; visitas: number; km: number };
+
+export type HojasRutaPlanCampo = {
+  supuestos: HojasRutaPlanSupuestos;
+  jornadas: HojasRutaJornada[];
+  resumen: { rutas: number; entrevistas: number; visitas: number; jornadas: number; dias: number; km: number; costo: number };
+};
+
+export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 0, costo_por_km: 0, moneda: "S/" };
+
+export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const d = PLAN_SUPUESTOS_POR_DEFECTO;
+  return {
+    encuestadores: Math.max(1, Math.round(comoNumero(o.encuestadores, d.encuestadores))),
+    visitas_por_jornada: Math.max(1, Math.round(comoNumero(o.visitas_por_jornada, d.visitas_por_jornada))),
+    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, 0)),
+    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, 0)),
+    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, 0)),
+    moneda: comoTexto(o.moneda) || d.moneda,
+  };
+}
+
+export function normalizarPlanCampo(raw: unknown): HojasRutaPlanCampo {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const r = (o.resumen && typeof o.resumen === "object" ? o.resumen : {}) as Record<string, unknown>;
+  return {
+    supuestos: normalizarPlanSupuestos(o.supuestos),
+    jornadas: (esArreglo(o.jornadas) ? o.jornadas : []).map((j) => {
+      const x = (j && typeof j === "object" ? j : {}) as Record<string, unknown>;
+      return { id: comoTexto(x.id), ubigeo: comoTexto(x.ubigeo), distrito: comoTexto(x.distrito), rutas: (esArreglo(x.rutas) ? x.rutas : []).map(comoTexto), visitas: comoNumero(x.visitas), km: comoNumero(x.km) };
+    }),
+    resumen: { rutas: comoNumero(r.rutas), entrevistas: comoNumero(r.entrevistas), visitas: comoNumero(r.visitas), jornadas: comoNumero(r.jornadas), dias: comoNumero(r.dias), km: comoNumero(r.km), costo: comoNumero(r.costo) },
+  };
+}
+
+/** Arma el plan sobre la muestra guardada; no guarda nada. */
+export async function apiHojasRutaPlanCampo(supuestos: HojasRutaPlanSupuestos): Promise<HojasRutaPlanCampo> {
+  return normalizarPlanCampo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/plan-campo", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ supuestos }) })),
   );
 }

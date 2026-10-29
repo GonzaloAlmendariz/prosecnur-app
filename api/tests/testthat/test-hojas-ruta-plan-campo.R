@@ -57,3 +57,10 @@ test_that("HTTP: el plan pide una muestra, está montado y no guarda nada", {
   sin <- llamar(list(supuestos = list()))
   expect_identical(sin$error$code %||% sin$code %||% "", "E_NO_SAMPLE")
 })
+
+test_that("los supuestos del plan sobreviven a la normalización del ui_state", {
+  ui <- .hojas_ruta_ui_state_normalize(list(plan_campo = list(encuestadores = 6, costo_por_jornada = 120)))
+  expect_identical(ui$plan_campo$encuestadores, 6L)
+  expect_equal(ui$plan_campo$costo_por_jornada, 120)
+  expect_identical(.hojas_ruta_ui_state_normalize(list())$plan_campo$encuestadores, 4L)
+})

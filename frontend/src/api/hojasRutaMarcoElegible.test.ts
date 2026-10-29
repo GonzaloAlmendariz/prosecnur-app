@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas } from "./hojasRuta";
+import { normalizarMarcoElegible, normalizarMarcoElegiblePreview, normalizarSemillasComparadas, normalizarPlanCampo, normalizarPlanSupuestos } from "./hojasRuta";
 
 describe("normalizador del marco elegible (ADR 0115)", () => {
   it("sin datos es una corrida legacy: no declarado, mínimo 0, sin áreas", () => {
@@ -44,5 +44,16 @@ describe("normalizador de comparar semillas (U13)", () => {
     expect(r).toHaveLength(1);
     expect(r[0].actual).toBe(true);
     expect(r[0].cercania_km).toBeNull();
+  });
+});
+
+describe("normalizador del plan de campo (U14)", () => {
+  it("acota los supuestos y completa los que faltan", () => {
+    expect(normalizarPlanSupuestos({ encuestadores: 0, costo_por_km: -2 })).toMatchObject({ encuestadores: 1, visitas_por_jornada: 30, costo_por_km: 0, moneda: "S/" });
+  });
+  it("lee jornadas y resumen aunque falten campos", () => {
+    const p = normalizarPlanCampo({ jornadas: [{ id: "J01", rutas: ["a", "b"], visitas: 20 }], resumen: { jornadas: 1, dias: 1 } });
+    expect(p.jornadas[0].rutas).toEqual(["a", "b"]);
+    expect(p.resumen.costo).toBe(0);
   });
 });
