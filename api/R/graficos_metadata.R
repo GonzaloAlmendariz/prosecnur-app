@@ -1384,7 +1384,7 @@
       # (`w_presets$chart_options$multiapiladas_word`). Sólo lo lee el Word (reporte_word_multi_modos.R).
       list(name = "word_multiapiladas", label = "En el Word", tipo_input = "choice", grupo = "word", default = "",
            choices = list(
-             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, por actor y escala: junta los temas seguidos con los mismos públicos y la misma escala."),
+             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, por pregunta: una figura por pregunta, con una fila por actor; un mismo actor con varias preguntas va en una sola figura, con las preguntas en el eje."),
              list(value = "un_grafico", label = "Un gráfico", hint = "La lámina entera en una sola figura, con sus temas dentro."),
              list(value = "por_tema", label = "Por tema", hint = "Una figura por tema."),
              list(value = "por_barra", label = "Por barra", hint = "Una figura por barra, con el título del tema y el de la barra.")),

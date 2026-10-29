@@ -132,7 +132,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 | W8 | `tienePistasDeOrden` (modeloMaqueta.ts:122) | `.goc_pistas_orden` suma romanos y ancla los residuales (incluye Ninguno) | ☑ romanos (`sonRomanos`) y residuales anclados con Ninguna/Ninguno; mismas respuestas que el motor en 5 casos |
 | W9 | Metadata «Subtítulo (solo Word)» del separador | el PPT lo dibuja (`seccion:subtitulo`) | ☑ «Subtítulo», en PPT y Word salvo el separador de plantilla |
 | W10 | Ficha de `p_tabla`: «En rojo bajo X %» | la tabla nativa no pinta rojo; el Word sí (ruta anterior) | ☑ la maqueta no pinta rojo y el ajuste dice «sólo en el Word» |
-| W11 | Metadata del default de multiapiladas en Word: regla vieja | criterio B (reporte_word_multi_modos.R) | ☐ |
+| W11 | Metadata del default de multiapiladas en Word: regla vieja | criterio B (reporte_word_multi_modos.R) | ☑ el hint describe el criterio B, como la tarjeta |
 
 ## Tablero
 
