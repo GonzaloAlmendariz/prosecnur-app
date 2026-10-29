@@ -99,8 +99,11 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
   `.lam_leyenda_dibujar` (lamina_escala.R); cada leyenda conserva lo suyo (límites, plan, tope sobre la base). Geometría idéntica.
 - Grosor de la escala en panel: tres reglas (pan:81, mix:221, pan:137) y ninguna lee `.std_grosor`; piso 0,24 in contra
   `grosor.piso_escala_cm` 1,12 cm.
-- Columna del box: `columna_top_two_box` = 1 (pan, mix) contra `composicion.escala.columna_box` = 1,5.
-- Encaje de la divergente: `.lam_divergentes_cabe` (10,5 pt, 4,5 in) contra `.lam_divergentes_area` (12/11,5/11 pt).
+- ☒ Columna del box: `columna_top_two_box` = 1 (pan, mix) contra `composicion.escala.columna_box` = 1,5. No es doble: el
+  panel mide media lámina y la escala la entera; son dos llaves para dos contextos, cada una con consumidor.
+- ☒ Encaje de la divergente: `.lam_divergentes_cabe` (10,5 pt, 4,5 in) contra `.lam_divergentes_area` (12/11,5/11 pt).
+  Medido: en 1–8 filas × 1–5 líneas no hay caso en que `cabe` acepte y la fila de `area` no contenga la afirmación (las
+  alturas saltan por línea entera y la tolerancia de 0,06 in absorbe la diferencia). No se unifica.
 
 ### Contradicen las reglas ya cerradas en la escala
 
