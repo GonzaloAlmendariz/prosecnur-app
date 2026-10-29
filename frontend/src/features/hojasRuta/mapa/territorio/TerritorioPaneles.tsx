@@ -172,6 +172,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
           </ol>
         ) : (
           <>
+            <h3 className="hr-mapa-subtitulo">Lo elegido</h3>
             <div className="hr-mapa-cifras">
               <div><small>Población</small><strong>{enMiles(suma("poblacion"))}</strong></div>
               <div><small>Viviendas</small><strong>{enMiles(suma("viviendas"))}</strong></div>

@@ -220,12 +220,14 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
     <>
       <InspectorCabecera icono={Users} sobre="Población" titulo="Población objetivo" />
       <div className="hr-mapa-ins-cuerpo">
+        <h3 className="hr-mapa-subtitulo">Resultado</h3>
         <div className="hr-mapa-cifras">
           <div><small>Objetivo</small><strong>{matriz.vigente ? `${(matriz.total / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : "—"}</strong></div>
           <div title="Parte de la población de los distritos elegidos que entra en los rangos de edad"><small>Del total</small><strong>{matriz.vigente ? pct(matriz.total, poblacionDistritos) : "—"}</strong></div>
           <div><small>Celdas</small><strong>{config.territorios.length * rangos.length * (sexo ? 2 : 1)}</strong></div>
         </div>
         <p className="hr-mapa-nota">Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</p>
+        <h3 className="hr-mapa-subtitulo">Matriz</h3>
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
           <PulsoButton variant="secondary" onClick={() => setCajonPoblacion(cajonPoblacion ? null : "matriz")} aria-pressed={Boolean(cajonPoblacion)}>
