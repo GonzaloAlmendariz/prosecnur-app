@@ -57,6 +57,14 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B46 | Ficha UMP | peor · medio | La hoja como miniatura ilegible; modal grande con «Imprimir» | ☑ vista grande en pestaña e «Imprimir o descargar» (c56fb2de0). DECIDIDO por Gonzalo: la hoja grande con «Imprimir» va al módulo encargado, Material de campo (`panel=hoja`, ADR 0118); no se hace modal en Hojas | ⛔ espera visto bueno del ADR 0118 |
 | B47 | Selección | — | La app trae revisión contra el marco más rica, ficha real y `?foco=` | — | — |
 | B49 | Territorio | pedido de Gonzalo · alto | Clic en un distrito = ver su ficha, no elegirlo; zonas (Norte, Este…) filtran, no eligen; agregar/quitar sólo sobre lo visible y con su número; elegir sólo con los interruptores | `territorio/TerritorioPaneles.tsx`, `store.ts` (`zonaFiltro`, `distritoEnfocado`), clic del lienzo | ☑ |
+| B50 | Población › cajón | falta · medio | Descarga «Excel» de la matriz (hoy CSV armado en el navegador) | usar `POST /api/hojas-ruta/population-export` del motor | ☐ |
+| B51 | Población › inspector | peor · bajo | La fuente (INEI 2017, C5P41 × sexo) como nota suelta; en el artefacto, recuadro con ícono | `PoblacionPaneles.tsx` | ☐ |
+| B52 | Muestra › estructura | peor · bajo | Filas del reparto sin el punto de color del distrito | `MuestraEstructura` + `tonoCss` | ☐ |
+| B53 | Muestra › inspector | peor · medio | Costo estimado como nota; en el artefacto, tarjeta «Costo estimado del campo» con «Supuestos» | `MuestraPaneles.tsx` | ☐ |
+| B54 | Muestra › inspector | falta · medio | Curva del margen total según N bajo «Margen de error» | `margenTotalParaN` (mismo motor) | ☐ |
+| B55 | Manzanas › estructura | peor · medio | Historial de ruteos al final; en el artefacto, arriba («Ruteos · N en este proyecto») | `ManzanasEstructura` | ☐ |
+| B56 | Manzanas › inspector | peor · medio | Secciones sin el orden del trabajo: el artefacto numera «1 · Método», «2 · Carga de la ruta», «3 · Manzanas elegibles» | `ManzanasInspector` | ☐ |
+| B57 | Selección › estructura | peor · medio | Filtro «Solo por revisar» como interruptor; en el artefacto, segmentado «Todas · N / Por revisar · N»; grupos de distrito sin su punto de color | `SeleccionEstructura` | ☐ |
 | B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
 Geometría C1–C3: DEBT (falta `ui-quick-check --require-geometry` y cardinalidad baja).
