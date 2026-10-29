@@ -137,6 +137,10 @@
   }
   out <- .cmail_marks_html(out)
   for (i in seq_along(anchors)) out <- sub(sprintf("\u0005%d\u0005", i), anchors[[i]], out, fixed = TRUE)
+  # `.cmail_esc` escapa con `attribute = TRUE`: el salto ya llega como `&#10;`
+  # (el saludo en dos líneas de Acreditación 2026 salía en una sola).
+  out <- gsub("&#13;", "", out, fixed = TRUE)
+  out <- gsub("&#10;", "<br>", out, fixed = TRUE)
   out <- gsub("\n", "<br>", out, fixed = TRUE)
   keys <- .cmail_tokens(out)
   for (k in keys) {
