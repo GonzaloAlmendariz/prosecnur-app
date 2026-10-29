@@ -97,9 +97,12 @@
     j <- match(clave, crudos)
     if (!is.na(j)) nombres[j] <- as.character(encabezados[[clave]])
   }
+  # Sin encabezado de fábrica (Gonzalo, 2026-10-28): lo escribe el analista («TOP TWO BOX», «Competencia»…); vacío queda
+  # vacío y `.radar_mb_avisar_sin_encabezado()` lo dice.
   enc <- trimws(as.character(titulo_tema %||% "")[1])
-  if (is.na(enc) || !nzchar(enc)) enc <- trimws(as.character(indicador %||% "")[1])
-  if (is.na(enc) || !nzchar(enc)) enc <- "Tema"
+  # Vacío se escribe como un espacio: la tabla nativa (PPT y Word, flextable) nombra sus columnas por este texto y una
+  # columna sin nombre la rompe. Se ve igual de vacía.
+  if (is.na(enc) || !nzchar(enc)) enc <- " "
   list(encabezado = enc, ejes = ejes, grupos = nombres, cifras = cifras, decimales = dec)
 }
 
@@ -197,4 +200,18 @@
     plan$slides[[i]]$payload <- .rt_migrar_payload(s$payload)
   }
   plan
+}
+
+#' Avisa que la tabla de datos va sin encabezado en su primera columna
+#'
+#' El motor no inventa ese encabezado: «Tema» o el nombre del indicador eran relleno. Si el analista no lo escribe, la
+#' celda queda vacía y se dice dónde se escribe.
+#' @param el Elemento del plan (lee `tabla_titulo`).
+#' @keywords internal
+.radar_mb_avisar_sin_encabezado <- function(el) {
+  enc <- trimws(as.character(el$tabla_titulo %||% "")[1])
+  if (is.na(enc) || !nzchar(enc)) {
+    .pulso_aviso(.aviso_en_lamina("la tabla de datos no tiene encabezado en su primera columna; escríbelo en «Encabezado de la primera columna»."))
+  }
+  invisible(NULL)
 }

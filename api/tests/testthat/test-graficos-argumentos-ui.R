@@ -1569,7 +1569,7 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # 41 laminas (`.PPT_ROTULO_TOP_TWO_BOX`). Buscar «Top 2 Box» sobre ese mismo
   # entregable devolvia 0 columnas cuando tiene 40, que es lo que motivo el
   # cambio de forma.
-  expect_true(grepl(.PPT_ROTULO_TOP_TWO_BOX, xml, fixed = TRUE))
+  expect_true(grepl(toupper(.PPT_ROTULO_TOP_TWO_BOX), xml, fixed = TRUE))   # la lámina lo escribe en mayúsculas (G20)
   expect_false(grepl("N =", xml, fixed = TRUE))
   # La selección múltiple se anuncia como en la lámina 73 del recetario (ADR 0093): el encabezado sobre las
   # barras, no el aviso «Pregunta de opción múltiple» que el gráfico ggplot ponía de subtítulo.

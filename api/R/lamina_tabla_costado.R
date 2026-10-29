@@ -106,11 +106,24 @@
 .lam_pesas_tabla_plan <- function(espec) {
   t <- espec[["tabla"]]
   if (!is.list(t) || !length(t$ejes)) return(NULL)
-  k <- length(t$ejes)
-  med <- .lam_tabla_costado_medidas(t$ejes, t$grupos, t$encabezado)
-  d <- .lam_tabla_costado_decidir(k, med, .lam_pesas_caja(), min_graf_w = .LAM_TABLA_COSTADO$min_graf_w + 3.4,
-                                  min_graf_h = 1.35 + 0.45 * k)
-  d$med <- med
+  k <- length(t$ejes); caja <- .lam_pesas_caja(); min_w <- .LAM_TABLA_COSTADO$min_graf_w + 3.4
+  decidir <- function(M) {
+    med <- .lam_tabla_costado_medidas(t$ejes, t$grupos, t$encabezado, M = M)
+    d <- .lam_tabla_costado_decidir(k, med, caja, min_graf_w = min_w, min_graf_h = 1.35 + 0.45 * k, M = M)
+    d$med <- med
+    d
+  }
+  d <- decidir(.LAM_TABLA_COSTADO)
+  # G18 (Gabriela, 2026-10-28): seis competencias de dos o tres líneas no cabían de alto y la tabla se omitía. Si al
+  # gráfico le sobra ancho, la columna de criterios se ensancha lo justo para caber (de 0,1 en 0,1 in): menos líneas por
+  # fila, sin bajar la letra, y el resto del ancho sigue siendo del gráfico.
+  if (!identical(d$lugar, "costado")) {
+    sobra <- (caja$x1 - caja$x0) - .LAM_TABLA_COSTADO$hueco - min_w - sum(d$med$ws[-1L])
+    for (c1 in seq(.LAM_TABLA_COSTADO$col1 + 0.1, sobra, by = 0.1)[seq_len(max(0L, floor((sobra - .LAM_TABLA_COSTADO$col1) / 0.1)))]) {
+      d2 <- decidir(utils::modifyList(.LAM_TABLA_COSTADO, list(col1 = c1)))
+      if (identical(d2$lugar, "costado")) { d <- d2; break }
+    }
+  }
   d
 }
 

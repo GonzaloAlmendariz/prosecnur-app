@@ -7,8 +7,8 @@
 #
 # G17 («las barras tienen que tener el mismo largo… no puede quedar la barra en tamaño distinto que la de abajo»): en una
 # lámina que junta una Sí/No con una escala con Top Two Box, la Sí/No no llega hasta la columna del box: mide y arranca
-# como la barra de la escala (`.std_geom("likert")$x_barra` y `$ancho_barra`, leídos del token). Sola en su lámina conserva
-# su ancho casi completo.
+# como la barra de la escala (`.std_geom("likert")$x_barra` y `$ancho_barra`, leídos del token). Sola en su lámina mide lo
+# mismo (Gonzalo, 2026-10-28: en Contabilidad toda barra mide igual, ~6,1 in, haya o no box en la lámina).
 #
 # Las funciones de aquí son puras; el cableado vive en `.lam_escala_seg`, `.lam_barra_apilada` y `.lam_bloque_escala`
 # (lamina_escala.R) y en `.lam_multilista_bloques` (lamina_multilista.R).
@@ -29,14 +29,13 @@
   if (isTRUE(seg$blanca[k])) "#FFFFFF" else .lam_texto_sobre(seg$color[k])
 }
 
-#' Marca las Sí/No de una lámina que también lleva una escala con Top Two Box: su barra mide la de la escala (G17)
+#' Marca las Sí/No de la lámina para que su barra mida la de la escala (G17), haya o no una escala con box al lado
 #'
 #' @param items Bloques de UNA lámina (`.lam_multilista_items`), cada uno con su `espec`.
 #' @return Los mismos bloques; las Sí/No sin box, con `espec$ancho_como_escala = TRUE`.
 #' @keywords internal
 .lam_multilista_igualar_ancho <- function(items) {
   con_box <- vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE)
-  if (!any(con_box)) return(items)
   for (k in which(!con_box)) if (isTRUE(.lam_dicotomia_es_sino(items[[k]]$espec))) items[[k]]$espec$ancho_como_escala <- TRUE
   items
 }

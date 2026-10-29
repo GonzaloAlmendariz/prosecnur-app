@@ -150,7 +150,7 @@
   if (length(idx) > 2L) llave <- sub("dos ", "", llave, fixed = TRUE)
   .lam_txt(lz, llave, (x3 + x4) / 2 - 2, yb - 0.85, 4, 0.3, 12, verde, bold = TRUE, align = "center", nombre = "ttb:llave_rotulo")
   xt <- xb + wb + 0.35; wt <- W - mr - xt
-  .lam_txt(lz, "Top Two Box", xt, yb - 0.5, wt, 0.3, 13, verde, bold = TRUE, align = "center", nombre = "ttb:rotulo")
+  .lam_txt(lz, .lam_rotulo_box("Top Two Box"), xt, yb - 0.5, wt, 0.3, 13, verde, bold = TRUE, align = "center", nombre = "ttb:rotulo")
   .lam_txt(lz, paste0(.pulso_fmt_half_up(sum(v[idx]), 0), "%"), xt, yb - 0.12, wt, 0.75, 44, verde, bold = TRUE, align = "center", nombre = "ttb:cifra")
   .lam_txt(lz, paste(paste0(.pulso_fmt_half_up(v[idx], 0), "%"), collapse = " + "), xt, yb + 0.7, wt, 0.32, 14, verde, align = "center", nombre = "ttb:suma")
   .lam_leyenda(lz, yb + g + 0.45, trimws(paste0(et, "  ", rot)), pal, centrar_en = xb + wb / 2)

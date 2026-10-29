@@ -297,7 +297,7 @@
     e <- items[[1]]$espec; ley <- e$leyenda
     con_ttb <- any(vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE))
     fin_bloque <- if (con_ttb) L$x_top_two_box + 0.75 else g_("ancho") - g_("margen_der") - 0.3
-    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, y - .LAM_MULTILISTA_GAP - 0.02)   # apretado: pegada a la última barra
+    y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, g_("base_y") - 0.33, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
              else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
     .lam_leyenda(lz, y_ley, e$categorias$rotulo[ley], e$categorias$color[ley],
                  centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras

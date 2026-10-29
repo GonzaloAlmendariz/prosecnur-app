@@ -139,10 +139,13 @@ test_that("por defecto el eje de líneas y puntos se acerca a los datos y los co
   expect_equal(e, c(80, 100))
 })
 
-test_that("el eje por defecto avisa en el subtítulo que no empieza en 0, y solo entonces", {
-  expect_match(attr(.radar_mb_puntos(.rc_datos_altos(), indicador = "Bien"), "pulso_espec")$titulo_eje, "Eje desde 80 %", fixed = TRUE)
-  g0 <- .radar_mb_puntos(.rc_datos_altos(), indicador = "Bien", eje = list(tipo = "0-100"))
-  expect_false(grepl("Eje desde", attr(g0, "pulso_espec")$titulo_eje %||% "", fixed = TRUE))
+test_that("líneas y puntos no llevan rótulo sobre el eje: ni el indicador ni «Eje desde» (lo dicen las marcas del eje)", {
+  # Gonzalo, 2026-10-28: «% De acuerdo + … · Eje desde 60 %» era relleno y repetía el eje.
+  for (eje in list(NULL, list(tipo = "0-100"))) {
+    g <- .radar_mb_puntos(.rc_datos_altos(), indicador = "Bien", eje = eje)
+    expect_null(attr(g, "pulso_espec")$titulo_eje)
+  }
+  expect_null(.radar_mb_barras(.rc_datos_altos(), indicador = "Bien")$labels$subtitle)
 })
 
 test_that("eje_pocos = '0-100' da el eje completo y 'personalizado' respeta mínimo y máximo", {

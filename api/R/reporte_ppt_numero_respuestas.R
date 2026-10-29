@@ -270,7 +270,7 @@
       publico = "Egresados",
       tramos = data.frame(
         pct = c(92, 8),
-        color = c(.std_paleta("dicotomica")[2], "#336699"),
+        color = .std_paleta("dicotomica")[1:2],   # Sí azul oscuro y No celeste, como en todas las láminas
         etiqueta = c("Sí", "No"),
         label_color = c("#FFFFFF", "#FFFFFF"),
         stringsAsFactors = FALSE

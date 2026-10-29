@@ -67,10 +67,14 @@ test_that("default auto: el radar lleva tabla y las líneas y puntos o barras NO
 
 test_that("tabla = si lleva la tabla en radar, líneas y puntos y barras; tabla = no, en ninguna", {
   for (forma in c("radar", "puntos", "barras")) {
-    r <- .rt_render(6L, forma = forma, tabla = "si")
+    r <- .rt_render(6L, forma = forma, tabla = "si", tabla_titulo = "TOP TWO BOX")
     expect_identical(.rt_forma(r$g), forma, info = forma)
     expect_true(.rt_con_tabla(r$g), info = forma)
     expect_length(r$avisos, 0L)
+    # sin encabezado declarado, la tabla sale igual y el informe lo dice (no hay encabezado de fábrica)
+    sin <- .rt_render(6L, forma = forma, tabla = "si")
+    expect_true(.rt_con_tabla(sin$g), info = forma)
+    expect_true(any(grepl("no tiene encabezado en su primera columna", sin$avisos, fixed = TRUE)), info = forma)
     expect_false(.rt_con_tabla(.rt_render(6L, forma = forma, tabla = "no")$g), info = forma)
   }
   expect_error(p_radar(modo = "publicos", vars = .rt_vars(4L), corte = "3,4", tabla = "quizá"), "tabla")
@@ -141,7 +145,7 @@ test_that("contenido: lo que reporta el indicador, con los decimales y las cifra
   r <- .rt_render(4L, forma = "puntos", tabla = "si", valores_decimales = 1)
   t <- attr(r$g, "pulso_espec")[["tabla"]]
   esp <- attr(r$g, "pulso_espec")
-  expect_identical(t$encabezado, "% Bien + Muy bien")                              # el nombre del indicador
+  expect_identical(t$encabezado, " ")                                              # sin encabezado de fábrica (ni el indicador)
   expect_identical(t$grupos, c("Docentes", "Estudiantes"))
   expect_identical(t$ejes, paste("Tema", 1:4))
   # mismas cifras redondeadas que las etiquetas del gráfico (espec$cifras_a / cifras_b)
@@ -158,7 +162,7 @@ test_that("contenido: lo que reporta el indicador, con los decimales y las cifra
   # barras: las etiquetas de las barras llevan los mismos decimales que la tabla
   rb <- .rt_render(4L, forma = "barras", tabla = "si", valores_decimales = 1)
   tb <- .tabla_nativa_de(rb$g)$tabla
-  expect_identical(names(tb)[1], "% Bien + Muy bien"); expect_identical(names(tb)[-1], c("Docentes", "Estudiantes"))
+  expect_identical(names(tb)[1], " "); expect_identical(names(tb)[-1], c("Docentes", "Estudiantes"))
   etq <- ggplot2::ggplot_build(rb$g)$plot$data$etiqueta
   expect_true(all(unlist(tb[, -1]) %in% etq))
 })
@@ -222,7 +226,7 @@ test_that("lámina de líneas y puntos con tabla: nativa al costado, gráfico m�
   tbl <- xml2::xml_find_all(xml, "//a:tbl")
   expect_length(tbl, 1L)
   celdas <- xml2::xml_text(xml2::xml_find_all(tbl, ".//a:tc"))
-  expect_identical(celdas[1:3], c("% Bien + Muy bien", "Docentes", "Estudiantes"))
+  expect_identical(celdas[1:3], c(" ", "Docentes", "Estudiantes"))
   expect_identical(celdas[4:6], c("Tema 1", e$cifras_a[1], e$cifras_b[1]))
   off <- xml2::xml_find_first(xml, "//p:graphicFrame[.//a:tbl]/p:xfrm/a:off")
   x_tab <- as.numeric(xml2::xml_attr(off, "x")) / 914400
@@ -279,7 +283,7 @@ test_that("word_tabla TRUE: tabla nativa de Word, centrada y ENCIMA de la figura
     jc <- xml2::xml_attr(xml2::xml_find_first(x, "//w:tbl/w:tblPr/w:jc", .rt_ns), "w:val", ns = .rt_ns)
     expect_identical(jc, "center", info = forma)
     celdas <- xml2::xml_text(xml2::xml_find_all(x, "//w:tbl//w:tc", .rt_ns))
-    expect_identical(celdas[1:3], c("% Bien + Muy bien", "Docentes", "Estudiantes"), info = forma)
+    expect_identical(celdas[1:3], c(" ", "Docentes", "Estudiantes"), info = forma)
     expect_match(celdas[5], "^[0-9]+\\.[0-9]%$")
     # rótulo, tabla y figura juntos: keep-with-next en el rótulo (estilo), en las filas y en la imagen
     expect_false(inherits(xml2::xml_find_first(x, "//w:tbl//w:tr[last()]//w:keepNext", .rt_ns), "xml_missing"))

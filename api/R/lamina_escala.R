@@ -403,7 +403,7 @@
     y <- y + a + (if (i < length(premisas)) ta$gaps[i] else 0)
   }
   fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
-  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = .std_geom("ancho") / 2)   # el usuario: la leyenda va centrada a todo el placeholder (la lámina), no a las barras
+  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_BASE - 0.32, ytop + tot + 0.3), labels, cols, centrar_en = .std_geom("ancho") / 2)   # centrada a la lámina; G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
   invisible(structure(ytop + tot, centro_barras = x_bar + WB / 2))   # N16: la multilista centra su leyenda compartida con este eje
 }
 

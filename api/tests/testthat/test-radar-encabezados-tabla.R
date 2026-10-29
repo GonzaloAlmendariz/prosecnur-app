@@ -5,7 +5,7 @@ test_that("los publicos salen capitalizados en el encabezado", {
   tabla <- data.frame(tema = "x", docentes = 1, estudiantes = 2, egresados = 3)
   expect_equal(
     .radar_mb_nombres_tabla(tabla),
-    c("Tema", "Docentes", "Estudiantes", "Egresados")
+    c("", "Docentes", "Estudiantes", "Egresados")   # sin encabezado de fábrica: lo escribe el analista
   )
 })
 
@@ -33,7 +33,7 @@ test_that("un encabezado declarado a mano sale literal", {
   tabla <- data.frame(tema = "x", docentes = 1)
   expect_equal(
     .radar_mb_nombres_tabla(tabla, encabezados = list(docentes = "docentes (n=51)")),
-    c("Tema", "docentes (n=51)")
+    c("", "docentes (n=51)")
   )
 })
 

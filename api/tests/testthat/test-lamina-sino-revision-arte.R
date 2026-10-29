@@ -46,14 +46,14 @@ test_that("G8: la Sí/No como escala marca en blanco sus dos opciones propias, n
   expect_identical(.lam_cifra_color_seg(seg2, 3L), .lam_texto_sobre(seg2$color[3]))
 })
 
-test_that("G17: con una escala con Top Two Box en la lámina, la Sí/No se marca para medir como ella; sola, no", {
+test_that("G17: la Sí/No mide como la barra de la escala, con o sin escala con Top Two Box en la lámina (como Conta)", {
   sino <- list(espec = .ra_sino())
   escala <- list(espec = list(tipo = "escala", box = list(unidades = c("t3", "t4"))))
   r <- .lam_multilista_igualar_ancho(list(escala, sino))
   expect_true(isTRUE(r[[2]]$espec$ancho_como_escala))
   expect_null(r[[1]]$espec$ancho_como_escala)
-  expect_null(.lam_multilista_igualar_ancho(list(sino))[[1]]$espec$ancho_como_escala)
-  expect_null(.lam_multilista_igualar_ancho(list(sino, sino))[[2]]$espec$ancho_como_escala)
+  expect_true(isTRUE(.lam_multilista_igualar_ancho(list(sino))[[1]]$espec$ancho_como_escala))
+  expect_true(isTRUE(.lam_multilista_igualar_ancho(list(sino, sino))[[2]]$espec$ancho_como_escala))
 })
 
 test_that("G1: la portada de plantilla pone «Informe consolidado» a 20 pt", {

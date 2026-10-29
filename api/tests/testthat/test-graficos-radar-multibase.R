@@ -366,7 +366,8 @@ test_that("el encabezado de la tabla se escribe a mano y las columnas se renombr
 
   # El indicador NO entra en la celda: metido ahi se comia media tabla, y ademas
   # hace falta aunque la tabla este apagada. Va al subtitulo del grafico.
-  expect_equal(.radar_mb_nombres_tabla(tabla)[1], "Tema")
+  expect_equal(.radar_mb_nombres_tabla(tabla)[1], "")   # sin «Tema» de fábrica
+  expect_equal(.radar_mb_nombres_tabla(tabla, "TOP TWO BOX")[1], "TOP TWO BOX")
   expect_equal(.radar_mb_capturar_args(d, indicador = "De acuerdo + Totalmente de Acuerdo")$subtitulo,
                "% De acuerdo + Totalmente de Acuerdo")
   expect_null(.radar_mb_capturar_args(d)$subtitulo)

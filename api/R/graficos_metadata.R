@@ -2127,7 +2127,7 @@
            descripcion = "Pone en el Word una tabla nativa con las cifras del indicador, centrada y encima del gráfico. Por defecto no va y no depende de «Tabla de datos». La lámina del PPT no cambia."),
       list(name = "tabla_titulo", label = "Encabezado de la primera columna", tipo_input = "string", grupo = "datos",
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Vacío = «Tema». El nombre del indicador no va aquí sino en el subtítulo del gráfico, donde se lee aunque la tabla esté apagada."),
+           descripcion = "Lo escribe el analista (por ejemplo, «TOP TWO BOX»). Vacío, la celda queda vacía y el informe avisa."),
       list(name = "tabla_encabezados", label = "Nombres de las columnas", tipo_input = "base_labels", grupo = "datos",
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "Una caja por base del estudio. Lo que dejes vacío conserva el nombre técnico con el que llega («docentes», «egresados»)."),
@@ -4217,7 +4217,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     size_texto_barras_peq    = 4.92,
     size_leyenda             = 12,
     size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
-    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
+    size_titulo_extra        = 12,  # ADR 0092: rótulo «Top Two Box»; 12 como Contabilidad (token rotulo_top_two_box)
     # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
     ancho_max_eje_y          = 34,
     prefijo_barra_extra      = "",
@@ -4278,7 +4278,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     barra_extra_preset       = "top2box",
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
-    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
+    size_titulo_extra        = 12,  # ADR 0092: rótulo «Top Two Box»; 12 como Contabilidad (token rotulo_top_two_box)
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     size_ejes                = 12,
