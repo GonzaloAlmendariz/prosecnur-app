@@ -15,7 +15,7 @@
  * con getComputedStyle: el mapa no lleva hex propios. NSE con los mismos tonos
  * que la leyenda vigente del módulo (Alto violeta … Bajo rojo). */
 :root {
-  --pulso-mapa-fondo: #f7f8fa;
+  --pulso-mapa-fondo: #fafbff;
   --pulso-mapa-distrito: #e6eaf0;
   --pulso-mapa-distrito-borde: #bcc5d1;
   --pulso-mapa-manzana: #dde2ea;

@@ -1,3 +1,4 @@
+import { Maximize2 } from "../../../../vendor/lucide-react";
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import "../../../../app/tokens-datos.css";
 import "./lienzoMapa.css";
@@ -472,8 +473,9 @@ export function LienzoMapa({
               type="button"
               aria-label="Encuadrar"
               onClick={() => volar(encuadre(encuadreObjetivo.caja, estado.current.tamano, encuadreObjetivo.pad ?? 0.1, encuadreObjetivo.tapadoAbajo), true)}
+              title="Encuadrar lo que importa en esta sección"
             >
-              ⤢
+              <Maximize2 size={13} aria-hidden />
             </button>
           ) : null}
         </div>

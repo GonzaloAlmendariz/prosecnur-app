@@ -21,7 +21,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B10 | Mapa | peor · alto | Anticolisión pierde rótulos (4/6 a 1440, 3/6 a 1024) y monta otros | `elegirRotulos` corre el rótulo con guía, dentro de la franja libre | ☑ (6/6 a 1440 y 1024) |
 | B11 | Mapa | peor · medio | Encuadre de Territorio con mucho blanco; sin nombres en gris de los distritos fuera | `lienzo/` | ☐ |
 | B12 | Mapa | peor · alto | Foco de UMP no llega a calle (100 m) ni dibuja la manzana; «Acercar» no centra en la UMP | foco encuadra sólo la manzana (pad 2.2) y `anclaZoom` en `LienzoMapa` | ☑ |
-| B13 | Mapa | peor · bajo | Fondo #f7f8fa vs #fafbff; encuadrar es «⤢» texto, no ícono | `lienzo/lienzoMapa.css` | ☐ |
+| B13 | Mapa | peor · bajo | Fondo #f7f8fa vs #fafbff; encuadrar es «⤢» texto, no ícono | `--pulso-mapa-fondo: #fafbff` (sólo lo usa el lienzo) e ícono `Maximize2` con título en «Encuadrar» | ☑ |
 | B14 | Inspector | peor · alto | Cabecera: ícono 40 px en tono de módulo, eyebrow versalitas, título | `mapa/InspectorCabecera.tsx` en los 5 `*Paneles.tsx` + ficha UMP | ☑ |
 | B15 | Inspector | peor · medio | Rótulos de sección (LO ELEGIDO, MARCO TERRITORIAL, RESULTADO, MATRIZ) | Territorio: «Lo elegido» y «Marco territorial» (B27); Población: «Resultado» y «Matriz» (`.hr-mapa-subtitulo`) | ☑ |
 | B16 | Muestra | peor · medio | Lógica del N, Confianza y DEFF como botones sueltos, no segmentado | `.hr-muestra-opciones` en `mapaPage.css`: riel tenue con píldora blanca que se desliza y texto activo en el tono del módulo; sin borde por opción; a 1024 nada se corta. Aplica también a Población y a los cajones. El DEFF queda como fichas con rótulo (B33): cuatro nombres no caben en un segmentado de 260 px | ☑ |
