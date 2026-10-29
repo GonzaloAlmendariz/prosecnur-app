@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaIcc, apiHojasRutaIccAplicar, type HojasRutaIccAplicable, type HojasRutaIccEntrada, type HojasRutaIntegratedConfig, type HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
 
@@ -6,38 +6,33 @@ import { apiHojasRutaIcc, apiHojasRutaIccAplicar, type HojasRutaIccAplicable, ty
  * «Desde un estudio previo» (U12d, ADR 0116 §2): la biblioteca local de ICC. Solo se
  * aplica un ICC medido con la ruta como conglomerado y sobre una proporción; el DEFF
  * se recalcula con el k de este estudio. Aplicar cambia el borrador, no guarda.
+ * Está a la vista desde que se entra a Muestra (brecha B34).
  */
 
 type Entrada = HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable };
 const num = (n: number | undefined, d = 3) => (n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("es-PE", { maximumFractionDigits: d }));
 
 export function IccPanel({ config, deshabilitado, onAplicar }: { config: HojasRutaIntegratedConfig; deshabilitado: boolean; onAplicar: (ss: HojasRutaSampleSizeConfig) => void }) {
-  const [abierto, setAbierto] = useState(false);
   const [entradas, setEntradas] = useState<Entrada[] | null>(null);
   const [error, setError] = useState("");
   const [aplicando, setAplicando] = useState<string | null>(null);
   const k = config.entrevistas_por_manzana;
-  const abrir = () => {
-    setAbierto(true);
-    setError("");
+  // B34: la biblioteca se lee al entrar, a la vista; ya no espera a un botón.
+  useEffect(() => {
+    let vivo = true;
     apiHojasRutaIcc()
-      .then(setEntradas)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo leer la biblioteca de ICC"));
-  };
-  if (!abierto) {
-    return (
-      <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={abrir}>
-        Desde un estudio previo
-      </PulsoButton>
-    );
-  }
+      .then((e) => vivo && setEntradas(e))
+      .catch((e: unknown) => vivo && setError(e instanceof Error ? e.message : "No se pudo leer la biblioteca de ICC"));
+    return () => {
+      vivo = false;
+    };
+  }, []);
   const aplicables = (entradas ?? []).filter((e) => e.aplicable.ok);
   const mayor = aplicables.reduce<Entrada | null>((a, e) => (!a || e.icc > a.icc ? e : a), null);
   return (
     <div className="hr-icc">
       <div className="hr-icc-cab">
         <small>ICC medidos en estudios anteriores</small>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar la biblioteca de ICC" onClick={() => setAbierto(false)}>×</PulsoButton>
       </div>
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
       {entradas == null && !error ? <p className="hr-mapa-nota">Leyendo la biblioteca…</p> : null}
@@ -65,7 +60,6 @@ export function IccPanel({ config, deshabilitado, onAplicar }: { config: HojasRu
                   apiHojasRutaIccAplicar(config, e.id)
                     .then((r) => {
                       onAplicar(r.sample_size);
-                      setAbierto(false);
                     })
                     .catch((err: unknown) => setError(err instanceof Error ? err.message : "No se pudo aplicar el ICC"))
                     .finally(() => setAplicando(null));

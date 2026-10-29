@@ -79,12 +79,14 @@ type InspectorProps = {
   /** U14: supuestos guardados del plan de campo, para el costo estimado. */
   planSupuestos?: HojasRutaPlanSupuestos;
   onGuardar: () => void;
+  /** Margen total que daría otro N con los supuestos en vista (B34). */
+  margenPara?: (n: number) => number | null;
 };
 
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], planSupuestos, onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], planSupuestos, margenPara, onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
@@ -244,6 +246,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
               <button key={l} type="button" aria-pressed={n === r.nUsado} disabled={ed} onClick={() => cambiar({ sample_size_mode: "external_total", n_objetivo: n })}>
                 <small>{l}</small>
                 <b>{fmt(n)}</b>
+                {margenPara ? <span>{pct(margenPara(n))}</span> : null}
               </button>
             ))}
           </div>

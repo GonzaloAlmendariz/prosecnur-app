@@ -37,7 +37,7 @@ import { MuestraCajon } from "./muestra/MuestraCajon";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
-import { calcularTamano } from "./muestra/motorTamano";
+import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
@@ -165,7 +165,8 @@ export default function HojasRutaMapaPage() {
   const rangosVista = rangosBorrador ?? rangosConfig;
   const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const configMuestra = useMemo(() => (estado ? aplicarBorrador(estado.integrated_config, muestraBorrador) : null), [estado, muestraBorrador]);
-  const tamano = useMemo(() => (configMuestra && estado ? calcularTamano(entradaDesdeConfig(configMuestra, estado.territories)) : null), [configMuestra, estado]);
+  const entradaTamano = useMemo(() => (configMuestra && estado ? entradaDesdeConfig(configMuestra, estado.territories) : null), [configMuestra, estado]);
+  const tamano = useMemo(() => (entradaTamano ? calcularTamano(entradaTamano) : null), [entradaTamano]);
 
   // Muestra: guardar los parámetros y recalcular el tamaño en R. La población
   // se conserva; tamaño, cuotas y muestra se recalculan.
@@ -611,7 +612,7 @@ export default function HojasRutaMapaPage() {
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
-            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} planSupuestos={estado?.ui_state?.plan_campo} onGuardar={() => void guardarMuestra()} />
+            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} planSupuestos={estado?.ui_state?.plan_campo} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}

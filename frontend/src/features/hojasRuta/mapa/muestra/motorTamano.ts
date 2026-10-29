@@ -102,6 +102,14 @@ export function repartirPorModo(poblacion: readonly number[], n: number, modo: M
   return f.map((x, i) => x + extra[i]);
 }
 
+/**
+ * Margen total que daría otro N con los mismos supuestos (brecha B34): la misma
+ * fórmula de `margenCon` sobre la población total, para comparar alternativas.
+ */
+export function margenTotalParaN(e: EntradaTamano, n: number): number | null {
+  return calcularTamano({ ...e, modo: "external_total", nTotal: n, nPorDistrito: {} }).margenTotal;
+}
+
 export function calcularTamano(e: EntradaTamano): ResultadoTamano {
   const P = e.parametros;
   const ruta = Math.max(1, Math.trunc(e.porRuta));
