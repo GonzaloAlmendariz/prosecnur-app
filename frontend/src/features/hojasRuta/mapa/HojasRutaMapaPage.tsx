@@ -485,7 +485,8 @@ export default function HojasRutaMapaPage() {
     <PageFrame className="hojas-ruta-frame hr-mapa-frame" bodyMode="fill" scrollOwner="panels" layout="canvas" density="compact" headerMode="sr-only" title="Hojas de ruta" chrome={chrome}>
       <span hidden data-audit-ready={estado || error ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
-        <section className="hr-mapa-estructura" aria-label="Distritos del estudio">
+        {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
+        <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">
           {enTerritorio && estado ? (
             <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
           ) : enSeleccion && estado ? (

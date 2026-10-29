@@ -33,7 +33,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B22 | Salidas | falta · medio | Botón «Ver el informe» (U16), «Enviar a Material», conteos del paquete, sugeridas para reemplazo puntual | `SalidasPanel.tsx` | ☐ |
 | B23 | Bitácora | — (C5 legítimo) | Vacía en proyectos previos a U17: decirlo en la UI | `BitacoraSeccion.tsx` | ☐ |
 | B24 | Territorio | peor · medio | Filtro como segmentado «Todos/Elegidos»; íconos en Agregar/Quitar; rótulo «ZONAS DE LIMA» | `territorio/TerritorioPaneles.tsx` | ☐ |
-| B25 | Estructura | bug · medio (C4) | El scroll de la estructura pasa entre secciones (Territorio abre en 1869 px) | `.hr-mapa-estructura` | ☐ |
+| B25 | Estructura | bug · medio (C4) | El scroll de la estructura pasa entre secciones (Territorio abre en 1869 px) | `key` por sección en `.hr-mapa-estructura` (verificado: 1500 → 0) | ☑ |
 | B26 | Territorio 1024 | peor · bajo | Detalle del catálogo parte en 2 líneas («mz»); «Lima y Callao · 50 distritos» también | Territorio | ☐ |
 | B27 | Territorio | falta · bajo | Fila «Cartografía: Lima 2017 · Callao 2019» | Territorio | ☐ |
 | B28 | Población | falta · alto | Modo «Cortes poblacionales» (Manual/Cortes); total de personas junto a los rangos | `poblacion/PoblacionPaneles.tsx` | ☐ |
