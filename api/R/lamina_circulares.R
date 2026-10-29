@@ -119,7 +119,6 @@
 #' de 5.5 in); la dona, hasta 4 porciones con su leyenda bajo el disco.
 #' @keywords internal
 .lam_circular_cabe <- function(espec) {
-  k <- length(espec$valores)
   # C3: la torta que no cabe en la lámina 69 va como la dona grande sin hueco, no a la imagen ggplot.
   if (identical(espec$forma, "pie")) return(.lam_torta_cabe(espec) || .lam_dona_grande_cabe(espec))
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las

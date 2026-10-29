@@ -61,6 +61,53 @@ aire_fila 0,24 · gap_premisas 0,26/0,08 · aire_tema 0,14 · aire_entre_temas_m
 aire_leyenda 0,30/0,45 · leyenda_piso 0,32 · rotulo_box_sobre 0,45 · columna_box 1,5 (y 1,25 con BTB) · grosor_holgado
 (tabla Conta) · margen_bloque 0,1/0,15 · tabla_costado (col1, col, fila, hueco…).
 
+## E5 — inventario de las demás familias (2026-10-29)
+
+Abreviaturas: cat `lamina_categorica.R`, mix `lamina_mixtas.R`, pan `lamina_paneles.R`, dest `lamina_dicotomia_estandar.R`,
+circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_comp()`.
+
+### Muerto (V2)
+
+| # | Qué | Dónde | Estado |
+|---|---|---|---|
+| D8 | `.lam_panel_en_grilla` sin llamadores | cat:366 | ☑ fuera |
+| D9 | `yf` asignado y no leído | cat:115 | ☑ fuera |
+| D10 | `k` asignado y no leído en `.lam_circular_cabe` | circ:122 | ☑ fuera |
+| D11 | parámetros `x`, `y` de `.lam_panel_barras_compactas` | cat:342, mix:206 | ☑ fuera |
+| D12 | defaults `g = 0.34`, `fila = 0.66` que nadie usa | pan:28 | ☐ |
+
+### Duplican una llave que ya existe
+
+| # | Literal | Dónde | Llave |
+|---|---|---|---|
+| U1 | 0,5 entre columnas de la mixta | mix:24 | `geometria.separacion_paneles` |
+| U2 | 0,36 aire de cifra chica | pan:81 | `geometria.aire_cifra_chica` |
+| U3 | 34 pt cifra destacada | mix:300, circ:71, circ:101 | `tipografia.cifra_destacada` |
+| U4 | 13 pt pregunta del panel | pan:13-14, mix:159, cat:280 | `tipografia.pregunta` |
+| U5 | 12 pt rótulos de categoría | cat:30, 95; mix:185, 202; circ:102, 136 | `tipografia.actor` |
+| U6 | pila de cifra de la torta 0,62/0,3/0,26 | circ:71-75 | `geometria.cifra_pieza` (casi igual) |
+| U7 | reserva 0,45 bajo las barras | cat:76 | `.LAM_USO_AREA$reserva` |
+
+### Dos mecanismos para una decisión
+
+- Rectángulos de la mixta: literales de `.lam_mixta_geo` (mix:30-76) contra las ranuras de `ppt.tipos_lamina`, con valores
+  distintos (2mas1, 1mas2, paneles_4); sólo corona, tira, 5 y 6 leen el JSON.
+- Alto de la pregunta del panel: `.lam_lineas` al dibujar (pan:13) y `.lam_ancho_tinta` al reservar (mix:159).
+- Leyenda del panel copiada de `.lam_leyenda` (mix:134-146).
+- Grosor de la escala en panel: tres reglas (pan:81, mix:221, pan:137) y ninguna lee `.std_grosor`; piso 0,24 in contra
+  `grosor.piso_escala_cm` 1,12 cm.
+- Columna del box: `columna_top_two_box` = 1 (pan, mix) contra `composicion.escala.columna_box` = 1,5.
+- Encaje de la divergente: `.lam_divergentes_cabe` (10,5 pt, 4,5 in) contra `.lam_divergentes_area` (12/11,5/11 pt).
+
+### Contradicen las reglas ya cerradas en la escala
+
+- F1 Barras de largo distinto: Sí/No de lámina entera ≈ 11,3 in, partida ≈ 12,1, en panel `w − 0,8`, apilada ≈ 9,7.
+- F2 «Top Two Box» de los paneles sin mayúsculas (pan:33 no pasa por `.lam_rotulo_box()`); div:39 a 10,5 pt.
+- F3 Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
+- F4 Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
+- F5 Encabezado genérico «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
+  reporte_plan_opciones.R:436).
+
 ## Tablero
 
 | Etapa | Estado |
@@ -69,5 +116,5 @@ aire_leyenda 0,30/0,45 · leyenda_piso 0,32 · rotulo_box_sobre 0,45 · columna_
 | E2 bloque `ppt.composicion` + accesor `.std_comp()`; sustituir literales (V3) | ◐ escala, multilista, apretada, llenar, filas, tablas: 67769cc73, 6f6ec2d87, 3217e8155, e79c599b1, 4731bd1c3 (geometría idéntica). Queda `.LAM_TEMA_PRIMERA_CHICA` y los literales de cifras chicas, «solo» y filtro |
 | E3 quitar lo muerto D1–D7 y corregir S1–S3 | ☑ D5 y D7 en este commit; D1–D4, D6 en f24d862b8; S1 en 3215d1eac (test que falla con la versión vieja); S3 en 96e2a8395 (0,34→0,36, máx 0,06 in); S2 en e7109da7c (geometría idéntica) |
 | E4 UI de Gráficos contra el motor | ◐ ayuda de «Grosor mínimo» (f03bf8e3b); tabla y antetítulo de la maqueta (3c23b698c). Lección: la réplica de una regla del motor en el front se desfasa sola |
-| E5 resto de familias | ☐ |
+| E5 resto de familias | ◐ inventario arriba; D8–D11 fuera (geometría idéntica). Siguen D12, U1–U7, F1–F5 |
 | E6 cierre: gate amplio y commit | ☐ |

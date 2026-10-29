@@ -112,7 +112,7 @@
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio); forma <- match.arg(forma)
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der")
-  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
+  yt <- g_("zona_datos_y0")
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -336,10 +336,10 @@
 #' Aquí se prueban, antes de caer, filas que usan todo el alto del panel (piso 0.20 in), barras del 70 % de la fila y
 #' rótulos a 11, 10.5 o 10 pt con su columna hasta el 55 % del panel. Sólo para celdas chicas sin receta propia.
 #' @param barras La geometría que no cupo (`.lam_panel_geo`).
-#' @param fin Borde inferior del panel. @param x,y,w,h El panel.
+#' @param fin Borde inferior del panel. @param w,h Ancho y alto del panel.
 #' @return La geometría compacta si cabe; si no, `NULL` (y el panel sigue a su ruta anterior).
 #' @keywords internal
-.lam_panel_barras_compactas <- function(espec, barras, fin, w, h, x = NULL, y = NULL) {
+.lam_panel_barras_compactas <- function(espec, barras, fin, w, h) {
   if (!is.list(barras) || isTRUE(barras$cabe) || !is.null(barras$receta) || !is.finite(h) || h >= 2.5 || w >= 6) return(NULL)
   # Acotado a las celdas ANGOSTAS (hasta 4.5 in, un tercio de lámina), donde el respaldo de columnas se aplasta. No a una
   # geometría fija: con un título de tres líneas (CCSS-25) la grilla de seis baja sus paneles y la celda deja de coincidir
@@ -361,10 +361,3 @@
   NULL
 }
 
-#' ¿El panel es una celda de la grilla `tipo` (`.lam_mixta_geo`)? Misma comparación que `.lam_circular_d_grilla`
-#' @keywords internal
-.lam_panel_en_grilla <- function(x, y, w, h, tipo = "poblacion_6") {
-  if (is.null(x) || is.null(y)) return(FALSE)
-  P <- tryCatch(.lam_mixta_geo(tipo)$paneles, error = function(e) NULL)
-  length(P) > 0L && any(vapply(P, function(p) abs(p$x - x) < 1e-3 && abs(p$y - y) < 1e-3 && abs(p$w - w) < 1e-3 && abs(p$h - h) < 1e-3, TRUE))
-}
