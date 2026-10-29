@@ -46,3 +46,19 @@ export function pesoLegible(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toLocaleString("es-PE", { maximumFractionDigits: 1 })} MB`;
 }
+
+/** Lo que trae el paquete antes de generarlo (brecha B22), contado sobre la muestra. */
+export function conteosDelPaquete(titulares: readonly SelectedBlock[], reemplazos: readonly SelectedBlock[]): { titulares: number; distritos: number; reemplazos: number; zonas: number } {
+  return {
+    titulares: titulares.length,
+    distritos: new Set(titulares.map((b) => b.ubigeo)).size,
+    reemplazos: reemplazos.length,
+    zonas: new Set(titulares.map((b) => `${b.ubigeo}|${b.zona}`)).size,
+  };
+}
+
+/**
+ * Titulares que conviene revisar para un reemplazo puntual (B22): las que el marco
+ * registra sin viviendas. Es una sugerencia; quien decide es el equipo de campo.
+ */
+export const sugeridasParaReemplazo = (titulares: readonly SelectedBlock[]) => titulares.filter((b) => Number(b.viviendas || 0) === 0).map((b) => b.id_manzana);

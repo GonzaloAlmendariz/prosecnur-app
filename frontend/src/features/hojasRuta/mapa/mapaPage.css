@@ -541,3 +541,4 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
   .hr-corto { display: inline; }
 }
 .hr-mapa-subtitulo { margin: 2px 0 -4px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-salidas-sugeridas { display: flex; flex-direction: column; gap: 6px; } .hr-salidas-sugeridas > small { font-size: 11px; font-weight: 700; color: var(--pulso-warn-fg); }

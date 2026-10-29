@@ -28,7 +28,9 @@ import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { nombreDistrito } from "../nombres";
 import { PlanCampo } from "./PlanCampo";
 import { BitacoraSeccion } from "./BitacoraSeccion";
-import { alternarId, candidatasDeReemplazo, listoParaEntregar, pasosDeEntrega, pesoLegible } from "./salidas";
+import { alternarId, candidatasDeReemplazo, conteosDelPaquete, listoParaEntregar, pasosDeEntrega, pesoLegible, sugeridasParaReemplazo } from "./salidas";
+import { InformeDiseno } from "./InformeDiseno";
+import { codigoDeUmp } from "../../seleccion/revisionMarco";
 
 /**
  * Salidas de Selección en la página del lienzo (U10), en el sideover
@@ -86,6 +88,8 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
   const listo = listoParaEntregar(pasos);
   const corriendo = Boolean(e.jobZip || e.jobPuntuales) || e.ocupado !== "";
   const { filas, coincidencias } = candidatasDeReemplazo(muestra?.blocks ?? [], busqueda, elegidas);
+  const paquete = conteosDelPaquete(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []);
+  const sugeridas = sugeridasParaReemplazo(muestra?.blocks ?? []);
 
   async function correr<T>(trabajo: Trabajo, f: () => Promise<T>, listo: (r: T) => Partial<Estado>) {
     setE((s) => ({ ...s, ocupado: trabajo, error: "", codigo: "" }));
@@ -151,7 +155,11 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
               </li>
             ))}
           </ul>
-          <p className="hr-mapa-nota">Un PDF por manzana titular separado por distrito, los de reemplazo, la hoja por zona, el Excel operativo y los metadatos del marco.</p>
+          <p className="hr-mapa-nota">
+            {muestra
+              ? `${fmt(paquete.titulares)} fichas de titulares en ${fmt(paquete.distritos)} carpeta${paquete.distritos === 1 ? "" : "s"} por distrito, ${fmt(paquete.reemplazos)} de reemplazo, ${fmt(paquete.zonas)} hoja${paquete.zonas === 1 ? "" : "s"} por zona, el Excel operativo y los metadatos del marco.`
+              : "Un PDF por manzana titular separado por distrito, los de reemplazo, la hoja por zona, el Excel operativo y los metadatos del marco."}
+          </p>
           <div className="hr-salidas-acciones">
             <PulsoButton variant="primary" disabled={!listo || corriendo} onClick={() => void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
               {e.ocupado === "zip" ? "Preparando…" : "Generar ZIP"}
@@ -196,6 +204,22 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
         <section className="hr-muestra-grupo" aria-label="Reemplazos puntuales">
           <h3>Reemplazos puntuales</h3>
           <p className="hr-mapa-nota">Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo.</p>
+          {sugeridas.length ? (
+            <div className="hr-salidas-sugeridas">
+              <small>Sin viviendas en el marco: conviene revisarlas</small>
+              <div className="hr-mapa-chips">
+                {sugeridas.slice(0, 8).map((id) => {
+                  const b = muestra?.blocks.find((x) => x.id_manzana === id);
+                  return (
+                    <button key={id} type="button" className="hr-mapa-zona" aria-pressed={elegidas.includes(id)} data-estado={elegidas.includes(id) ? "todo" : undefined} disabled={corriendo} onClick={() => setElegidas((l) => alternarId(l, id))}>
+                      <span>{b ? codigoDeUmp(b) : id}</span>
+                    </button>
+                  );
+                })}
+                {sugeridas.length > 8 ? <span className="hr-mapa-nota">y {fmt(sugeridas.length - 8)} más</span> : null}
+              </div>
+            </div>
+          ) : null}
           <input className="hr-mapa-buscar" type="search" aria-label="Buscar titular" placeholder="Buscar UMP, distrito o zona" value={busqueda} disabled={!muestra || corriendo} onChange={(ev) => setBusqueda(ev.target.value)} />
           {filas.length ? (
             <ul className="hr-salidas-filas">
@@ -252,6 +276,7 @@ export function SalidasPanel({ config, salidas, planSupuestos, onGuardarPlan, on
           ) : null}
         </section>
 
+        <InformeDiseno deshabilitado={!muestra} />
         <BitacoraSeccion conDecisionesPrevias={Boolean(muestra)} />
 
         <section className="hr-muestra-grupo" aria-label="PDF de prueba">
