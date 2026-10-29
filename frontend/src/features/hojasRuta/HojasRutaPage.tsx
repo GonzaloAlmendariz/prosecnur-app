@@ -6612,16 +6612,16 @@ export default function HojasRutaPage() {
         && !savedOutputs.sample_size_preview
         && uiState.active_stage === "muestra";
       if (!restoredPopulation && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion && (restoredConfig.territorios ?? []).length > 0) {
-        restoredPopulation = await apiHojasRutaPopulationPreview(restoredConfig).catch(() => null);
+        restoredPopulation = await apiHojasRutaPopulationPreview(restoredConfig, "restauracion").catch(() => null);
       }
       if (!fieldNeedsFreshSamplePlan && !restoredSampleSizePreview && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.muestra && (restoredConfig.territorios ?? []).length > 0) {
-        restoredSampleSizePreview = await apiHojasRutaSampleSizePreview(restoredConfig).catch(() => null);
+        restoredSampleSizePreview = await apiHojasRutaSampleSizePreview(restoredConfig, "restauracion").catch(() => null);
       }
       if (!restoredQuota && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && restoredSampleSizePreview?.ok) {
         restoredQuota = await apiHojasRutaQuotaPreview(restoredConfig).catch(() => null);
       }
       if (!restoredSample && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && restoredQuota?.ok) {
-        restoredSample = await apiHojasRutaSamplePreview(restoredConfig).catch(() => null);
+        restoredSample = await apiHojasRutaSamplePreview(restoredConfig, "restauracion").catch(() => null);
       }
       setState(s);
       setRuns(nextRuns);

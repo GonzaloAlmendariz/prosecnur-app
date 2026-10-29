@@ -253,16 +253,16 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   let sample = plan.outputs.sample ?? null;
 
   if (!population && fullDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion) {
-    population = await api.apiHojasRutaPopulationPreview(plan.config).catch(() => null);
+    population = await api.apiHojasRutaPopulationPreview(plan.config, "restauracion").catch(() => null);
   }
   if (!sampleSize && fullDepth >= HOJAS_RUTA_STAGE_ORDER.muestra) {
-    sampleSize = await api.apiHojasRutaSampleSizePreview(plan.config).catch(() => null);
+    sampleSize = await api.apiHojasRutaSampleSizePreview(plan.config, "restauracion").catch(() => null);
   }
   if (!quota && fullDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && (sampleSize as { ok?: boolean } | null)?.ok) {
     quota = await api.apiHojasRutaQuotaPreview(plan.config).catch(() => null);
   }
   if (!sample && fullDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && (quota as { ok?: boolean } | null)?.ok) {
-    sample = await api.apiHojasRutaSamplePreview(plan.config).catch(() => null);
+    sample = await api.apiHojasRutaSamplePreview(plan.config, "restauracion").catch(() => null);
   }
 
   return {

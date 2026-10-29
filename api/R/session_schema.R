@@ -428,6 +428,7 @@ session_schema <- function() {
     "hojas_ruta_ui_state",         "literal", "persistible",    "router_hojas_ruta.R", "session_set", "",
     "hojas_ruta_workspace_outputs", "literal", "persistible",   "router_hojas_ruta.R", "session_set", "",
     "hojas_ruta_reporte_decisional", "literal", "persistible",  "router_hojas_ruta.R", "session_set", "",
+    "hojas_ruta_bitacora",         "literal", "persistible",    "hojas_ruta_bitacora.R", "directa",   "U17/ADR 0115 §4: entradas fechadas por fase, vocabulario cerrado, tope de 500 (las más recientes), sin versión; detalle sin polígonos",
     "hojas_ruta_ok",               "literal", "cache_stripped", "router_hojas_ruta.R", "session_set", "los PDFs/ZIP se regeneran desde hojas_ruta_config + marco INEI local",
 
     # --- Cálculo de muestra ---

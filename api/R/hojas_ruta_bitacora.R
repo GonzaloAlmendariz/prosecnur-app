@@ -21,6 +21,7 @@ HOJAS_RUTA_BITACORA_ACCIONES <- c(
   "decision_cobertura",
   "plan_supuestos",
   "reemplazos_puntuales",
+  "campo_desde_piloto",
   "nota"
 )
 HOJAS_RUTA_BITACORA_MAX <- 500L
@@ -62,11 +63,12 @@ hojas_ruta_bitacora_registrar <- function(sid, accion, resumen, detalle = list()
   s <- session_get(sid)
   previas <- Filter(is.list, s$hojas_ruta_bitacora %||% list())
   fase <- fase %||% as.character(s$hojas_ruta_active_phase %||% "field")
-  # Idempotente con la última: la página clásica recalcula seguido y no debe llenar la
-  # bitácora de copias de la misma decisión.
-  ultima <- if (length(previas)) previas[[length(previas)]] else NULL
-  if (!is.null(ultima) && identical(ultima$accion, accion) && identical(ultima$resumen, .hojas_ruta_bitacora_texto(resumen)) &&
-      identical(as.character(ultima$fase %||% ""), as.character(fase))) {
+  # Idempotente con la última de la MISMA acción y fase: la página clásica recalcula
+  # seguido, y alternar población → tamaño → población con la misma config no es
+  # una decisión nueva.
+  misma <- Filter(function(e) identical(e$accion, accion) && identical(as.character(e$fase %||% ""), as.character(fase)), previas)
+  ultima <- if (length(misma)) misma[[length(misma)]] else NULL
+  if (!is.null(ultima) && identical(ultima$resumen, .hojas_ruta_bitacora_texto(resumen))) {
     return(invisible(ultima))
   }
   siguiente <- 1L + max(c(0L, vapply(previas, function(e) as.integer(e$id %||% 0L), integer(1))))
@@ -93,10 +95,41 @@ hojas_ruta_bitacora_resumen_sorteo <- function(resultado, config) {
   )
 }
 
+# El margen para el resumen del tamaño: «sin estimar» en vez de «±NA %».
+.hojas_ruta_bitacora_margen <- function(m) {
+  m <- suppressWarnings(as.numeric(m %||% NA)[1])
+  if (is.na(m)) "sin estimar" else sprintf("±%.1f %%", 100 * m)
+}
+
+#' Resumen del marco elegible para el detalle de una entrada: lo que se decidió, sin
+#' los polígonos de las áreas (crecerían el state.rds con cada entrada).
+hojas_ruta_bitacora_detalle_marco <- function(me) {
+  me <- if (is.list(me)) me else list()
+  areas <- me$areas_excluidas %||% list()
+  list(
+    declarado = isTRUE(me$declarado),
+    minimo_viviendas = as.integer(me$minimo_viviendas %||% 0L),
+    areas_excluidas = length(areas),
+    motivos = as.list(unique(vapply(areas, function(a) as.character(a$motivo %||% ""), character(1)))),
+    hash = digest::digest(me, algo = "xxhash64")
+  )
+}
+
+#' ¿Toca anotar? No cuando el cálculo es una restauración (warm start o hidratación
+#' que rehacen salidas al abrir: no es una decisión del usuario) ni cuando la fase
+#' activa es una piloto bloqueada (save_run descarta su config: nada se aplicó).
+.hojas_ruta_bitacora_anota <- function(sid, origen = NULL) {
+  if (identical(as.character(origen %||% "")[1], "restauracion")) return(FALSE)
+  s <- session_get(sid)
+  fase <- as.character(s$hojas_ruta_active_phase %||% "field")
+  !(identical(fase, "pilot") && isTRUE(s$hojas_ruta_runs$pilot$locked))
+}
+
 #' Registra sin tumbar al llamador: la bitácora acompaña a un endpoint que ya hizo
 #' su trabajo (sortear, calcular), y un fallo al anotarla no debe deshacerlo. El
 #' error va a stderr para no perderlo.
-.hojas_ruta_bitacora_intentar <- function(sid, accion, resumen, detalle = list()) {
+.hojas_ruta_bitacora_intentar <- function(sid, accion, resumen, detalle = list(), origen = NULL) {
+  if (!.hojas_ruta_bitacora_anota(sid, origen)) return(invisible(NULL))
   tryCatch(
     hojas_ruta_bitacora_registrar(sid, accion, resumen, detalle),
     error = function(e) {

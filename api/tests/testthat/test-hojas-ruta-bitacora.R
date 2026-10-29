@@ -81,3 +81,47 @@ test_that("una entrada idéntica a la última no se repite, y el router está re
   # Un fallo al anotar no tumba al llamador.
   expect_null(.hojas_ruta_bitacora_intentar(sid, "inventada", "x"))
 })
+
+test_that("deduplica contra la última de la misma acción y fase, aunque se intercalen otras", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_bitacora_registrar(sid, "poblacion_calculada", "Población: 100", fase = "field")
+  hojas_ruta_bitacora_registrar(sid, "tamano_calculado", "N = 1.200", fase = "field")
+  hojas_ruta_bitacora_registrar(sid, "poblacion_calculada", "Población: 100", fase = "field")
+  expect_length(session_get(sid)$hojas_ruta_bitacora, 2)
+  hojas_ruta_bitacora_registrar(sid, "poblacion_calculada", "Población: 100", fase = "pilot")
+  expect_length(session_get(sid)$hojas_ruta_bitacora, 3)
+})
+
+test_that("una restauración o una piloto bloqueada no anotan ni ensucian el proyecto", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$project_path <- tempfile(fileext = ".pulso")
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_bitacora_intentar(sid, "sorteo", "Sorteo", origen = "restauracion")
+  expect_length(session_get(sid)$hojas_ruta_bitacora %||% list(), 0)
+  s <- session_get(sid)
+  s$hojas_ruta_active_phase <- "pilot"
+  s$hojas_ruta_runs <- list(pilot = list(locked = TRUE))
+  .session_env[[sid]] <- s
+  .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", "N = 1.200")
+  expect_length(session_get(sid)$hojas_ruta_bitacora %||% list(), 0)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  s$hojas_ruta_runs$pilot$locked <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", "N = 1.200")
+  expect_length(session_get(sid)$hojas_ruta_bitacora, 1)
+})
+
+test_that("el detalle del marco resume la decisión sin polígonos, y el margen ausente se lee", {
+  me <- list(declarado = TRUE, minimo_viviendas = 10L, areas_excluidas = list(list(motivo = "inseguridad", anillos = list(list(c(1, 2), c(3, 4))))))
+  d <- hojas_ruta_bitacora_detalle_marco(me)
+  expect_identical(d$areas_excluidas, 1L)
+  expect_identical(d$motivos, list("inseguridad"))
+  expect_false(any(grepl("anillos", names(unlist(d)))))
+  expect_identical(.hojas_ruta_bitacora_margen(NA), "sin estimar")
+  expect_identical(.hojas_ruta_bitacora_margen(0.028), "±2.8 %")
+  expect_true("campo_desde_piloto" %in% HOJAS_RUTA_BITACORA_ACCIONES)
+})

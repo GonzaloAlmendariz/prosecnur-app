@@ -921,12 +921,19 @@ export async function apiHojasRutaQuotaPreview(config: Partial<HojasRutaIntegrat
   );
 }
 
-export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaIntegratedConfig>) {
+/**
+ * Quién pide el cálculo. «restauracion» es el warm start o la hidratación que rehacen
+ * salidas que faltan al abrir el proyecto: el servidor calcula igual pero no lo anota
+ * en la bitácora, porque no es una decisión del usuario (U17, revisión de contratos).
+ */
+export type HojasRutaOrigenCalculo = "restauracion";
+
+export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<PopulationPlan>(
     await apiFetch("/api/hojas-ruta/population-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }
@@ -941,22 +948,22 @@ export async function apiHojasRutaPopulationExport(config: Partial<HojasRutaInte
   );
 }
 
-export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>) {
+export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<HojasRutaSampleSizePreview>(
     await apiFetch("/api/hojas-ruta/sample-size-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }
 
-export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegratedConfig>) {
+export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<HojasRutaSamplePreview>(
     await apiFetch("/api/hojas-ruta/sample-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }

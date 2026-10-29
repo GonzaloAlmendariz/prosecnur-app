@@ -682,6 +682,8 @@ mount_hojas_ruta <- function(pr) {
         .hojas_ruta_workspace_outputs_for_field_from_pilot(pilot$workspace_outputs)
       )
       .hojas_ruta_store_runs(sid, runs, "field")
+      # Separador de generación: las entradas de campo anteriores son de la corrida descartada.
+      .hojas_ruta_bitacora_intentar(sid, "campo_desde_piloto", sprintf("Campo real creado desde la piloto (%s).", mode))
       payload <- .hojas_ruta_state_payload(sid)
       aviso_marco <- hojas_ruta_marco_elegible_para_campo(hojas_ruta_integrada_normalize_config(pilot$config)$marco_elegible)$alertas
       if (length(aviso_marco)) payload$alerts <- c(payload$alerts %||% list(), aviso_marco)
@@ -703,7 +705,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_population_preview_integrado(cfg)
-      .hojas_ruta_bitacora_intentar(sid, "poblacion_calculada", sprintf("Población objetivo: %s personas en %d rango(s) de edad.", format(round(as.numeric(result$total_poblacion %||% 0)), big.mark = ","), length(cfg$age_ranges %||% list())))
+      .hojas_ruta_bitacora_intentar(sid, "poblacion_calculada", sprintf("Población objetivo: %s personas en %d rango(s) de edad.", format(round(as.numeric(result$total_poblacion %||% 0)), big.mark = ","), length(cfg$age_ranges %||% list())), origen = parsed$origen)
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(population = result),
@@ -757,10 +759,10 @@ mount_hojas_ruta <- function(pr) {
       # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
       result <- hojas_ruta_tamano_extras_completar(result, cfg)
       .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", sprintf(
-        "Tamaño: N = %d, margen total ±%.1f %%, DEFF %s (%s).",
-        as.integer(result$n_used %||% 0L), 100 * as.numeric(result$margin_total_estimated %||% NA), format(cfg$sample_size$design_effect),
+        "Tamaño: N = %d, margen total %s, DEFF %s (%s).",
+        as.integer(result$n_used %||% 0L), .hojas_ruta_bitacora_margen(result$margin_total_estimated), format(cfg$sample_size$design_effect %||% 1),
         as.character(cfg$sample_size$design_effect_fuente %||% "legado")
-      ), list(icc_aplicado = cfg$sample_size$icc_aplicado))
+      ), list(icc_aplicado = cfg$sample_size$icc_aplicado), origen = parsed$origen)
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(sample_size_preview = result),
@@ -786,9 +788,9 @@ mount_hojas_ruta <- function(pr) {
       # ADR 0116 §1: el salto que imprime la hoja se calcula sobre visitas, no sobre entrevistas.
       result <- hojas_ruta_tamano_extras_salto_muestra(result, effective_cfg)
       if (any(vapply(avisos_marco, function(a) identical(a$code, "W_FRAME_CHANGED_BY_ELIGIBILITY"), logical(1)))) {
-        .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", list(marco_elegible = cfg$marco_elegible))
+        .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", hojas_ruta_bitacora_detalle_marco(cfg$marco_elegible), origen = parsed$origen)
       }
-      .hojas_ruta_bitacora_intentar(sid, "sorteo", hojas_ruta_bitacora_resumen_sorteo(result, effective_cfg), list(seed = result$seed, n_blocks = result$n_blocks))
+      .hojas_ruta_bitacora_intentar(sid, "sorteo", hojas_ruta_bitacora_resumen_sorteo(result, effective_cfg), list(seed = result$seed, n_blocks = result$n_blocks), origen = parsed$origen)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>
