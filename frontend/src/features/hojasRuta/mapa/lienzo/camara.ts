@@ -36,12 +36,19 @@ export function cajaVisible(c: Camara, t: Tamano): Caja {
   return [x0, y0, x1, y1];
 }
 
-/** Cámara que encuadra una caja con un margen relativo `pad` por lado. */
-export function encuadre(caja: Caja, t: Tamano, pad = 0.1): Camara {
+/**
+ * Cámara que encuadra una caja con un margen relativo `pad` por lado.
+ * `tapadoAbajo` (0–0,9) es la fracción del alto que cubre algo encima del
+ * lienzo (el cajón de tablas): la caja se encuadra en lo que queda visible.
+ */
+export function encuadre(caja: Caja, t: Tamano, pad = 0.1, tapadoAbajo = 0): Camara {
+  const f = Math.max(0, Math.min(0.9, tapadoAbajo));
+  const visible = t.h * (1 - f);
   const w = Math.max(1, caja[2] - caja[0]);
   const h = Math.max(1, caja[3] - caja[1]);
-  const s = Math.min(t.w / (w * (1 + pad * 2)), t.h / (h * (1 + pad * 2)));
-  return { x: (caja[0] + caja[2]) / 2, y: (caja[1] + caja[3]) / 2, s: acotarEscala(Math.min(s, ESCALA_ENCUADRE_MAX)) };
+  const s = acotarEscala(Math.min(t.w / (w * (1 + pad * 2)), visible / (h * (1 + pad * 2)), ESCALA_ENCUADRE_MAX));
+  // El centro de la caja va al centro de la franja visible, no al del lienzo.
+  return { x: (caja[0] + caja[2]) / 2, y: (caja[1] + caja[3]) / 2 + (t.h - visible) / 2 / s, s };
 }
 
 /**

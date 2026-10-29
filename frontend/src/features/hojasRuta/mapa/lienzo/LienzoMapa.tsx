@@ -62,7 +62,8 @@ export type UtilLienzo = {
   trazo: (pieza: Pieza) => Path2D;
 };
 
-export type EncuadreLienzo = { caja: Caja; pad?: number; clave: string; animar?: boolean };
+/** `tapadoAbajo`: fracción del alto que tapa algo superpuesto (el cajón de Selección). */
+export type EncuadreLienzo = { caja: Caja; pad?: number; clave: string; animar?: boolean; tapadoAbajo?: number };
 
 type Props = {
   distritos: readonly PiezasDistrito[];
@@ -363,7 +364,7 @@ export function LienzoMapa({
     const e = estado.current;
     e.objetivo = encuadreObjetivo;
     e.manual = false;
-    const hacer = () => volar(encuadre(encuadreObjetivo.caja, e.tamano, encuadreObjetivo.pad ?? 0.1), encuadreObjetivo.animar !== false);
+    const hacer = () => volar(encuadre(encuadreObjetivo.caja, e.tamano, encuadreObjetivo.pad ?? 0.1, encuadreObjetivo.tapadoAbajo), encuadreObjetivo.animar !== false);
     if (e.tamano.w) hacer();
     else requestAnimationFrame(hacer);
     // la caja viaja con la clave: re-encuadrar por cada render la haría saltar
@@ -451,7 +452,7 @@ export function LienzoMapa({
             <button
               type="button"
               aria-label="Encuadrar"
-              onClick={() => volar(encuadre(encuadreObjetivo.caja, estado.current.tamano, encuadreObjetivo.pad ?? 0.1), true)}
+              onClick={() => volar(encuadre(encuadreObjetivo.caja, estado.current.tamano, encuadreObjetivo.pad ?? 0.1, encuadreObjetivo.tapadoAbajo), true)}
             >
               ⤢
             </button>

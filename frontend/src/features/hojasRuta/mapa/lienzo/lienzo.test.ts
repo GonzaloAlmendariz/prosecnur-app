@@ -22,6 +22,14 @@ describe("cámara del lienzo", () => {
     expect(encuadre([0, 0, 2, 2], T).s).toBe(ESCALA_ENCUADRE_MAX);
   });
 
+  test("con algo tapando abajo, encuadra la caja en la franja visible de arriba", () => {
+    const c = encuadre([0, 0, 1000, 500], T, 0.1, 0.5);
+    const [, yArriba] = aPantalla(c, T, 0, 0);
+    const [, yAbajo] = aPantalla(c, T, 0, 500);
+    expect(yAbajo).toBeLessThanOrEqual(T.h * 0.5 + 1e-6);
+    expect((yArriba + yAbajo) / 2).toBeCloseTo(T.h * 0.25, 6);
+  });
+
   test("la rueda deja fijo el punto bajo el cursor y respeta los límites", () => {
     const c = { x: 0, y: 0, s: 0.1 };
     const antes = aMundo(c, T, 650, 120);
