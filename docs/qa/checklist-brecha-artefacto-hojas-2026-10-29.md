@@ -40,7 +40,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B29 | Población | peor · alto (C2) | Matriz recortada en el inspector; faltan agrupar filas, columnas, «Ver matriz» y Excel | la matriz va al cajón (767342b07): personas H/M por rango o distribución %, descarga CSV; agrupar filas por distrito, provincia o zona de Lima (`agruparFilas` en `poblacion/matriz.ts`; zona censal no: el INEI viene por distrito) | ☑ |
 | B30 | Población | peor · bajo | «De la poblaci…» truncado; 76.8 % vs 77 %; el segmento 60+ pierde su % | Población | ☐ |
 | B31 | Población | — | La app trae tope del último rango y «Calcular la matriz» | — | — |
-| B32 | Muestra | falta · alto | «Repartir según población», «Mínimos» y Escenarios guardables | `muestra/MuestraPaneles.tsx` | ☐ |
+| B32 | Muestra | falta · alto | «Repartir según población», «Mínimos» y Escenarios guardables | `muestra/repartos.ts` (mismo `repartirPorModo` que el motor, en rutas completas) + `muestra/EscenariosMuestra.tsx` (guardar, aplicar como borrador, quitar; viven mientras el proyecto está abierto) | ☑ |
 | B33 | Muestra | falta · medio | Paso a paso de la ruta; atajos de margen; rótulos del DEFF; interruptor de inflar por no respuesta | `MuestraPaneles.tsx` | ☐ |
 | B34 | Muestra | falta · medio | Alternativas sin su margen; ICC medidos a la vista | `MuestraPaneles.tsx`, `IccPanel.tsx` | ☐ |
 | B35 | Muestra | falta · medio | Pie «Ver cuotas / Ir al sorteo» | `MuestraPaneles.tsx`: sin cambios pendientes el pie lleva a las cuotas y al sorteo | ☑ |

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope } from "../../../api/hojasRuta";
 import type { BorradorSorteo } from "./manzanas/sorteo";
 import type { BorradorMuestra } from "./muestra/desdeConfig";
+import type { EscenarioMuestra } from "./muestra/repartos";
 import type { CapaLienzo } from "./lienzo/LienzoMapa";
 
 /**
@@ -45,6 +46,9 @@ type EstadoLienzo = {
   setCajonPoblacion: (v: "matriz" | "pct" | null) => void;
   /** Cajón inferior de Muestra (B17): las cuotas por distrito, rango y sexo. */
   cajonMuestra: boolean;
+  /** Escenarios de tamaño guardados para comparar (B32); viven mientras el proyecto está abierto. */
+  escenariosMuestra: EscenarioMuestra[];
+  setEscenariosMuestra: (v: EscenarioMuestra[]) => void;
   setCajonMuestra: (v: boolean) => void;
   setCapaMapa: (capa: CapaLienzo) => void;
   busquedaUmp: string;
@@ -56,7 +60,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -70,6 +74,7 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setCapaMapa: (capaMapa) => set({ capaMapa }),
   setCajonPoblacion: (cajonPoblacion) => set({ cajonPoblacion }),
   setCajonMuestra: (cajonMuestra) => set({ cajonMuestra }),
+  setEscenariosMuestra: (escenariosMuestra) => set({ escenariosMuestra }),
   setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),

@@ -490,3 +490,14 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-edad-lista li.is-fija { grid-template-columns: 10px minmax(0, 1fr) auto; }
 .hr-edad-lista li.is-fija > b { font-size: 13px; font-weight: 700; }
 .hr-mapa-cab--pila .hr-mapa-cab-titulo { flex-wrap: wrap; row-gap: 2px; }
+.hr-muestra-escenarios { display: flex; flex-direction: column; gap: 8px; margin: 4px 8px 14px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.hr-muestra-escenarios h3 { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-escenarios h3 small { font-weight: 700; letter-spacing: 0; }
+.hr-muestra-escenarios ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--pulso-border); border-radius: 11px; overflow: hidden; }
+.hr-muestra-escenarios li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--pulso-border); }
+.hr-muestra-escenarios li:last-child { border-bottom: 0; }
+.hr-muestra-escenarios li[data-actual] { background: color-mix(in srgb, var(--pulso-module-routes) 8%, var(--pulso-surface)); }
+.hr-muestra-escenarios li > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hr-muestra-escenarios li strong { font-size: 12.5px; }
+.hr-muestra-escenarios li small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-muestra-escenarios li small.hr-muestra-escenario-actual { font-weight: 700; color: var(--pulso-module-routes); }

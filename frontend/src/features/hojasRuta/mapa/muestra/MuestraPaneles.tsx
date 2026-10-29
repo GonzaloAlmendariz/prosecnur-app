@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import { Calculator } from "../../../../vendor/lucide-react";
+import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
+import { EscenariosMuestra } from "./EscenariosMuestra";
+import { repartoMinimos, repartoPorPoblacion } from "./repartos";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -267,6 +269,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
     setMuestraBorrador({ ...muestraBorrador, n_por_distrito: n });
     return true;
   };
+  const ponerTodos = (n: Record<string, number>) => setMuestraBorrador({ ...muestraBorrador, n_por_distrito: { ...config.n_por_distrito, ...n } });
   const peor = r.filas.length ? Math.max(...r.filas.map((f) => f.margen ?? 0)) : null;
 
   return (
@@ -280,6 +283,22 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
           <div><small>Rutas</small><strong>{ruta > 0 ? fmt(Math.floor(r.nUsado / ruta)) : "—"}</strong></div>
           <div><small>Peor margen</small><strong>{pct(peor)}</strong></div>
         </div>
+        {porDistrito && r.filas.length ? (
+          <div className="hr-mapa-acciones">
+            <PulsoButton
+              variant="secondary"
+              size="sm"
+              disabled={bloqueado || !(r.nUsado > 0)}
+              title="Reparte el N actual según la asignación elegida, en rutas completas"
+              onClick={() => ponerTodos(repartoPorPoblacion(r.filas, r.nUsado, ruta, config.sample_size.allocation_mode ?? "proportional"))}
+            >
+              <Shuffle size={13} aria-hidden /> Repartir según población
+            </PulsoButton>
+            <PulsoButton variant="secondary" size="sm" disabled={bloqueado} title="Pone en cada distrito su mínimo para el margen objetivo" onClick={() => ponerTodos(repartoMinimos(r.filas, ruta))}>
+              Mínimos
+            </PulsoButton>
+          </div>
+        ) : null}
       </div>
       {!r.filas.length ? <p className="hr-mapa-vacio">Sin distritos confirmados: elígelos en Territorio y calcula la población para repartir la muestra.</p> : null}
       <ul className="hr-muestra-reparto">
@@ -314,6 +333,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
         ))}
       </ul>
       {porDistrito ? <p className="hr-mapa-nota hr-muestra-pie">Puedes pegar una columna desde Excel o Sheets sobre el primer campo.</p> : null}
+      <EscenariosMuestra config={config} resultado={r} bloqueado={bloqueado} />
     </>
   );
 }
