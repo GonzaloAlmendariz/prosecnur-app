@@ -4,15 +4,16 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import cobertura from "../limaDistrictCoverage.json";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
-import { piezasDeGeometria, unirCajas, type PiezasDistrito } from "./lienzo/piezas";
+import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
 import {
   contornosDeCobertura,
   dibujarContornos,
+  dibujarReemplazosMundo,
   dibujarRotulosDistrito,
   dibujarTitularesMundo,
   dibujarTitularesPantalla,
@@ -28,6 +29,8 @@ import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPa
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
+import { aplicarSorteo, conInstantanea, instantaneaDeSorteo } from "./manzanas/sorteo";
+import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
 import "./mapaPage.css";
 
 /**
@@ -48,10 +51,11 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
   const enMuestra = nav.seccion === "muestra";
+  const enManzanas = nav.seccion === "manzanas";
 
   useEffect(() => {
     let vivo = true;
@@ -156,6 +160,43 @@ export default function HojasRutaMapaPage() {
   }, [estado, configMuestra, fase, setMuestraBorrador]);
   const entrevistasPorRuta = estado?.integrated_config.entrevistas_por_manzana ?? 0;
 
+  // Manzanas: R guarda la configuración y la muestra al sortear; el sorteo se
+  // anota después en el historial del proyecto (ui_state.route_history).
+  const configSorteo = useMemo(() => (estado ? aplicarSorteo(estado.integrated_config, sorteoBorrador) : null), [estado, sorteoBorrador]);
+  const sortear = useCallback(
+    async (config: HojasRutaIntegratedConfig) => {
+      if (!estado) return;
+      setGuardando(true);
+      try {
+        const muestra = await apiHojasRutaSamplePreview(config);
+        const nuevo = await apiHojasRutaState();
+        const foto = instantaneaDeSorteo(muestra, muestra.config, new Date(), `ruta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        await apiHojasRutaPersistWorkspace(nuevo.integrated_config, { ...nuevo.ui_state, route_history: conInstantanea(nuevo.ui_state?.route_history ?? [], foto) }, nuevo.workspace_outputs, fase);
+        setEstado(await apiHojasRutaState());
+        setSorteoBorrador(null);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo sortear las manzanas");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [estado, fase, setSorteoBorrador],
+  );
+  // Volver a un ruteo: misma semilla y parámetros, R lo repite tal cual.
+  const usarRuteo = useCallback(async (h: HojasRutaRouteSnapshot) => {
+    if (!estado) return;
+    setGuardando(true);
+    try {
+      await apiHojasRutaSamplePreview({ ...h.config, territorios: estado.integrated_config.territorios });
+      setEstado(await apiHojasRutaState());
+      setSorteoBorrador(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo recuperar el ruteo");
+    } finally {
+      setGuardando(false);
+    }
+  }, [estado, setSorteoBorrador]);
+
   const titulares = useMemo<TitularEnMapa[]>(() => {
     const bloques = salidas?.sample?.blocks ?? [];
     const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
@@ -166,6 +207,11 @@ export default function HojasRutaMapaPage() {
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
   }, [salidas, distritos, entrevistasPorRuta]);
+
+  const reemplazos = useMemo<PiezaManzana[]>(() => {
+    const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
+    return (salidas?.sample?.replacement_blocks ?? []).flatMap((b) => porId.get(b.id_manzana) ?? []);
+  }, [salidas, distritos]);
 
   const decidido = indicadoresDecididos({
     distritos: confirmados.length,
@@ -214,9 +260,10 @@ export default function HojasRutaMapaPage() {
         }
         return;
       }
+      if (enManzanas) dibujarReemplazosMundo(ctx, u, reemplazos);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, null);
     },
-    [enMuestra, enPoblacion, enTerritorio, borrador, distritoBajoCursor, titulares],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, borrador, distritoBajoCursor, titulares, reemplazos],
   );
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
@@ -269,6 +316,8 @@ export default function HojasRutaMapaPage() {
         <section className="hr-mapa-estructura" aria-label="Distritos del estudio">
           {enTerritorio && estado ? (
             <TerritorioEstructura territorios={estado.territories} confirmados={confirmados} zonas={zonas} bloqueado={bloqueado} />
+          ) : enManzanas && estado ? (
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} bloqueado={bloqueado} guardando={guardando} onUsar={(h) => void usarRuteo(h)} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
@@ -314,7 +363,19 @@ export default function HojasRutaMapaPage() {
           alMover={enTerritorio ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
-          {enMuestra && configMuestra && tamano ? (
+          {enManzanas && estado && configSorteo ? (
+            <ManzanasInspector
+              guardada={estado.integrated_config}
+              config={configSorteo}
+              muestra={salidas?.sample ?? null}
+              viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
+              manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
+              listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
+              bloqueado={bloqueado}
+              guardando={guardando}
+              onSortear={() => void sortear(configSorteo)}
+            />
+          ) : enMuestra && configMuestra && tamano ? (
             <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
