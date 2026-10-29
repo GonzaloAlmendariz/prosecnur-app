@@ -15,7 +15,7 @@ https://claude.ai/artifact/RE6A3fibXXzeKMUEX28ZfX, versión 8) y su checklist
 
 | # | Decisión | Opciones | Decidido |
 |---|---|---|---|
-| D1 | Dónde viven las seis secciones | (a) En la barra superior, como manda el ADR 0042 y como hacen todos los módulos; el lienzo gana el ancho del rail. (b) En un rail lateral como en el prototipo, con un ADR nuevo que reemplace al 0042 para este módulo | **(a) Barra superior** |
+| D1 | Dónde viven las secciones | (a) En la barra superior, como manda el ADR 0042 y como hacen todos los módulos; el lienzo gana el ancho del rail. (b) En un rail lateral como en el prototipo, con un ADR nuevo que reemplace al 0042 para este módulo | **(a) Barra superior** |
 | D2 | Dónde vive el Avance de campo (A1, A2) | (a) En Monitoreo territorial, que ya lee `hojas_ruta_runs` y tiene su mapa; Hojas enlaza. (b) Como sección «Campo» de Hojas que lee de Monitoreo | **(a) En Monitoreo**; Hojas enlaza |
 | D3 | Las etapas bloqueadas (decisión pendiente del brief original) | Bloquear en duro, como hoy, o dejar entrar a cualquier sección y mostrar qué falta | **Entrar y ver qué falta** |
 | D4 | El filtro del marco, las exclusiones y el N inflado cambian el diseño muestral | Sí, con revisión metodológica y su ADR | **ADR + revisión metodológica** |
@@ -28,7 +28,7 @@ Cada unidad es un commit. «Dueño» es el agente que implementa; las revisiones
 
 | U | Qué | Dueño | Gate |
 |---|---|---|---|
-| U0 | **ADR 0114 «Hojas de ruta: el mapa es el lienzo»**, que fija: secciones (según D1), las cinco regiones (barra, estructura, lienzo, inspector, cajón), el contrato de datos de la geometría compacta, el límite con Monitoreo (D2) y Material (E2), y el marco elegible (D4). Registro de secciones en `lib/modules.ts` (`sorteo` reemplaza a `manzanas`, que queda como alias leído; `entrega` vuelve como sección; los alias viejos se leen y nunca se escriben) | lead + `guardian-contratos` | tests de contrato de navegación (`auditReadyRoutes`, `uiQuickCheckNavigation`, `modulesNavigation`) |
+| U0 | **ADR 0114 «Hojas de ruta: el mapa es el lienzo»**, que fija: secciones (según D1), las cinco regiones (barra, estructura, lienzo, inspector, cajón), el contrato de datos de la geometría compacta, el límite con Monitoreo (D2) y Material (E2), y el marco elegible (D4). Las secciones e ids **no cambian** (ADR 0108 §5): «Entrega» no vuelve, y sus salidas, el plan de campo, el informe y el envío viven en el panel `salidas` de Selección. Los paneles nuevos quedan en el ADR y se declaran en `PANELES_POR_MODULO` recién en U4, cuando se montan (un panel declarado sin superficie haría que el QA abra algo inexistente) | lead | documental: no toca código |
 
 ### Fase 1 · El lienzo cartográfico (3 unidades)
 
@@ -53,9 +53,9 @@ Cada una conecta los endpoints que ya existen; ninguna inventa cálculo en el fr
 | U5 | Territorio | Mapa de los 50 distritos, clic agrega o quita, catálogo con interruptores y buscador, zonas de Lima, borrador frente a confirmados, «Confirmar selección» con la consecuencia dicha, arranque vacío | `frontend-react` |
 | U6 | Población | Editor de rangos (peso por rango, aviso de huecos y solapes, presets), cortes por terciles a deciles, sexo, agrupar filas, matriz y proporcional en el cajón, Excel | `frontend-react` |
 | U7 | Muestra | Inspector con el motor completo (tres lógicas del N, márgenes, p, DEFF con guía ICC, respuesta, asignación, FPC, ajustes, alternativas, «¿De dónde sale?»), reparto por distrito editable y pegable, cuotas en el cajón. **Espejo TS + test de contrato contra R** en `acnur_acg` y `hsvg2026` | `frontend-react` + `autor-regresiones` (contrato) |
-| U8 | Sorteo | Método con diagrama, ponderar, semilla con «Otra», esquina, salto con K de vista previa, reemplazos 0–10 y su política, historial de ruteos | `frontend-react` |
+| U8 | Manzanas (sorteo) | Método con diagrama, ponderar, semilla con «Otra», esquina, salto con K de vista previa, reemplazos 0–10 y su política, historial de ruteos | `frontend-react` |
 | U9 | Selección | Rutas por distrito con «por revisar», ficha de la UMP con reemplazos en orden, revisión contra el marco, tablas de titulares, reemplazos y cuotas en el cajón | `frontend-react` |
-| U10 | Entrega | ZIP con progreso, Excel operativo, reemplazos puntuales en filas con interruptor, PDF de prueba | `frontend-react` |
+| U10 | Selección › panel `salidas` | ZIP con progreso, Excel operativo, reemplazos puntuales en filas con interruptor, PDF de prueba | `frontend-react` |
 
 Revisión de fase: `qa-visual-desktop` (matriz de 5 viewports) + `guardian-contratos` + `verificador`.
 
