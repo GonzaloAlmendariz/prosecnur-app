@@ -80,6 +80,9 @@ composicion <- list(unidad = "in",
     aire_leyenda_solo = 0.55,        # de la barra a la leyenda en la lámina de una sola afirmación (recetario 216)
     rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
     columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
+  filas = list(                      # la escala en filas, con Total o Bottom Two Box (recetario, lámina 77)
+    ancho_rotulo = 1.8,              # columna de los rótulos de fila
+    lineas_max = 2),                 # premisas de a lo más estas líneas en esa columna pueden ir en filas
   multilista = list(                 # varios bloques en una lámina (lamina_multilista.R; recetario p144)
     gap_bloques = 0.27,              # del fondo de un bloque al título del siguiente (p144: 0,33 desde la barra)
     aire_titulo = 0.1,               # del título del bloque a su primera fila, sin columna Top Two Box

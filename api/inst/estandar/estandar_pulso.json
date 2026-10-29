@@ -206,6 +206,10 @@
         "columna_box": 1.5,
         "columna_box_con_btb": 1.25
       },
+      "filas": {
+        "ancho_rotulo": 1.8,
+        "lineas_max": 2
+      },
       "multilista": {
         "gap_bloques": 0.27,
         "aire_titulo": 0.1,

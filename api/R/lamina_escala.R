@@ -424,7 +424,7 @@
 #' su rótulo a la derecha, la barra y las cifras de los box. La fila Total va primera, con un filete bajo su
 #' barra y 0.22 in de aire. Grosor de la tabla estándar y aire para las cifras chicas.
 #' @keywords internal
-.lam_filas_box <- function(lz, espec, filas, x, y, w, pregunta = NULL, wlab = 1.8, g = NULL, fila = NULL) {
+.lam_filas_box <- function(lz, espec, filas, x, y, w, pregunta = NULL, wlab = .std_comp("filas", "ancho_rotulo"), g = NULL, fila = NULL) {
   azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   naranja <- .std_color("naranja_bottom_two_box_texto")
   cols <- Filter(Negate(is.null), list(
@@ -484,32 +484,30 @@
 
 # Líneas que admite el rótulo de una premisa en la columna de la forma en filas (decisión «2c» de Gonzalo)
 #
-# Se mide con `.lam_lineas_tinta` en la columna de rótulos de esa forma (`.LAM_ESCALA_FILAS_WLAB`, 1.8 in) y a la
+# Se mide con `.lam_lineas_tinta` en la columna de rótulos de esa forma (`ppt.composicion.filas.ancho_rotulo`, 1.8 in; el corte es `filas.lineas_max`) y a la
 # letra del rótulo (`.std_pt("actor")`, 12 pt). Lo dibujado en el recetario fija el corte: en la lámina 97 la
 # premisa más larga, «Claridad de la información», compone dos líneas en esa columna y el cuadro del recetario le
 # da justo dos (0.5 in); las seis premisas de las láminas 221/222 componen de siete a trece líneas ahí (de tres a
 # siete en la columna de premisas de 3.3 in a 13 pt). Con tres líneas (0.7 in) el rótulo ya pasa el alto de una fila
 # de cuatro (0.64 in) y la estira (`.lam_filas_paso`): deja de ser la lámina 97.
-.LAM_ESCALA_FILAS_LINEAS_MAX <- 2L
-.LAM_ESCALA_FILAS_WLAB <- 1.8
 
 #' ¿Todas las premisas caben en la columna de rótulos de la forma en filas?
 #'
 #' Sólo sin actores: con ellos el rótulo de la fila es el público y la premisa encabeza su bloque; esa espec sigue
 #' en el bloque de premisas y actores como hasta ahora. Sin filas, `FALSE` (la misma conducta de antes).
 #' @keywords internal
-.lam_escala_premisas_cortas <- function(espec, umbral = .LAM_ESCALA_FILAS_LINEAS_MAX) {
+.lam_escala_premisas_cortas <- function(espec, umbral = .std_comp("filas", "lineas_max")) {
   f <- espec$filas
   if (!NROW(f) || !all(is.na(f$grupo_id))) return(FALSE)
   rot <- as.character(f$rotulo); rot[is.na(rot)] <- ""
-  all(.lam_lineas_tinta(rot, .LAM_ESCALA_FILAS_WLAB, .std_pt("actor"), TRUE) <= umbral)
+  all(.lam_lineas_tinta(rot, .std_comp("filas", "ancho_rotulo"), .std_pt("actor"), TRUE) <= umbral)
 }
 
 #' ¿La lámina de un gráfico se compone en filas o en el bloque de premisas?
 #'
 #' En filas con la fila Total, que el recetario separa con su filete bajo la pregunta (lámina 79). Con Bottom Two
 #' Box la forma depende del largo de las premisas (decisión «2c»): si todas caben en
-#' `.LAM_ESCALA_FILAS_LINEAS_MAX` líneas de la columna de rótulos de la forma en filas, van en filas con las dos
+#' `ppt.composicion.filas.lineas_max` líneas de la columna de rótulos de la forma en filas, van en filas con las dos
 #' columnas de box (lámina 97); si alguna es más larga, van en el bloque de premisas (láminas 221/222), donde la
 #' segunda columna sólo resta ancho a la barra (`.lam_escala_columnas_box`) y la partición, los altos de fila, la
 #' línea de respuestas y los casos bajo la cifra son los de sin ella. Esa columna de 1.8 in no mide el alto de una
@@ -529,7 +527,7 @@
 #' El rótulo va en una columna de ancho fijo; si pide más líneas de las que caben en la fila, la fila crece en vez
 #' de dejar que el rótulo invada la de al lado.
 #' @keywords internal
-.lam_filas_paso <- function(espec, i, fila, wlab = 1.8) {
+.lam_filas_paso <- function(espec, i, fila, wlab = .std_comp("filas", "ancho_rotulo")) {
   max(fila, .lam_alto_txt(espec$filas$rotulo[i], wlab, .std_pt("actor"), TRUE))
 }
 
@@ -538,7 +536,7 @@
 #' Geometría de una parte en filas: grosor por el número de filas, aire para las cifras chicas
 #' @keywords internal
 .lam_filas_geo <- function(espec, filas) {
-  g_ <- .std_geom; w <- g_("ancho") - g_("margen_izq") - g_("margen_der"); wlab <- 1.8
+  g_ <- .std_geom; w <- g_("ancho") - g_("margen_izq") - g_("margen_der"); wlab <- .std_comp("filas", "ancho_rotulo")
   ncol <- sum(!is.null(espec$box$unidades), !is.null(espec$box2$unidades))
   wb <- w - wlab - 0.12 - ncol * 1.25 - (if (ncol) 0.15 else 0)
   g <- .std_grosor(length(filas), "escala_apilada")
