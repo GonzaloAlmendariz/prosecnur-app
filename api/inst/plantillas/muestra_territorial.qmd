@@ -18,7 +18,7 @@ execute:
   warning: false
   message: false
 params:
-  titulo: "Calculo muestral territorial"
+  titulo: "Cálculo muestral territorial"
   bundle_path: ""
 ---
 
@@ -43,6 +43,7 @@ decisiones    <- bundle$decision_log %||% list()
 # U16: modelo ya redactado en R (reporte_muestra_territorial_marco.R); aquí sólo se pinta.
 secciones     <- bundle$secciones_marco %||% list()
 sec_marco     <- secciones$marco %||% list()
+sec_diseno    <- secciones$diseno %||% list()
 sec_margen    <- secciones$margen %||% list()
 sec_plan      <- secciones$plan %||% list()
 
@@ -82,16 +83,7 @@ parrafos <- function(...) {
   if (length(x)) cat(paste0(x, collapse = "\n\n"), "\n\n")
 }
 
-fmt_pct <- function(x, dec = 2) {
-  if (is.null(x) || is.na(x)) return("-")
-  sprintf(paste0("%.", dec, "f%%"), x * 100)
-}
-fmt_int <- function(x) {
-  if (is.null(x) || is.na(x)) return("-")
-  format(x, big.mark = ",", scientific = FALSE)
-}
-
-# Helpers para tablas que vienen como lista de listas (workspace_outputs).
+# Tablas que vienen como lista de listas (workspace_outputs).
 .rows_to_df <- function(rows) {
   if (is.null(rows) || length(rows) == 0L) return(NULL)
   if (is.data.frame(rows)) return(tibble::as_tibble(rows))
@@ -105,26 +97,29 @@ fmt_int <- function(x) {
   names(out) <- cols
   tibble::as_tibble(as.data.frame(out, stringsAsFactors = FALSE))
 }
+rotulos <- c(ubigeo = "Ubigeo", distrito = "Distrito", provincia = "Provincia", region = "Región",
+             poblacion = "Población", manzanas = "Manzanas", zona = "Zona", edad = "Edad",
+             sexo = "Sexo", manzana = "Manzana", cuota = "Cuota", n = "n", objetivo = "Objetivo")
+rotular <- function(cols) ifelse(cols %in% names(rotulos), rotulos[cols], cols)
 ```
 
-# 1. Proposito
+# 1. Propósito
 
-Este reporte documenta el calculo muestral para un estudio de tipo
-**territorial / por hogares**, bajo un diseno probabilistico por
-conglomerados con la manzana censal como unidad primaria de muestreo
-(UPM).
+Este reporte documenta el diseño muestral de un estudio territorial por
+hogares: un diseño por conglomerados con la manzana censal como unidad
+primaria de muestreo (UPM), probabilístico hasta la manzana y con selección
+de personas por cuotas dentro de ella.
 
 El reporte expone:
 
-1. Que distritos integran el universo de estudio.
-2. Cual es la composicion poblacional usada como referencia.
-3. Que decisiones metodologicas estructuran el diseno.
-4. Que parametros estadisticos se aplicaron y por que.
-5. Cual es el tamano muestral resultante y como se distribuye en cuotas
-   por edad, sexo y zona.
-6. Qué población representa el marco elegible y qué decisiones de
+1. Qué distritos integran el universo de estudio.
+2. Qué población representa el marco elegible y qué decisiones de
    cobertura se registraron.
-7. Cómo se absorbe la no respuesta y cómo se organiza el trabajo de campo.
+3. Qué decisiones metodológicas estructuran el diseño.
+4. Qué parámetros estadísticos se aplicaron.
+5. Cuál es el tamaño de muestra resultante, su margen nominal y cómo se
+   distribuye en cuotas.
+6. Cómo se absorbe la no respuesta y cómo se organiza el trabajo de campo.
 
 # 2. Universo y territorio
 
@@ -132,7 +127,7 @@ El reporte expone:
 n_territorios <- length(territorios)
 ```
 
-El universo del estudio esta conformado por los distritos seleccionados
+El universo del estudio está conformado por los distritos seleccionados
 desde el marco INEI. Se incluyeron **`r n_territorios`** territorios.
 
 ```{r territorios-tabla}
@@ -143,22 +138,19 @@ if (n_territorios > 0L) {
                              "poblacion", "manzanas"), names(df_terr))
     if (length(cols_show) == 0L) cols_show <- names(df_terr)[seq_len(min(4, ncol(df_terr)))]
     tabla_pulso(df_terr[, cols_show, drop = FALSE],
-                caption = "Territorios incluidos en el universo")
-  } else {
-    cat("_Sin detalle de territorios._\n")
+                caption = "Territorios incluidos en el universo",
+                col.names = rotular(cols_show))
   }
-} else {
-  cat("_Sin territorios configurados._\n")
 }
 ```
 
-```{r poblacion-resumen}
+```{r poblacion-resumen, results='asis'}
+if (n_territorios == 0L) parrafos("No hay territorios configurados.")
 if (!is.null(population) && length(population) > 0L) {
   df_pop <- .rows_to_df(population$cells %||% population)
-  if (!is.null(df_pop) && nrow(df_pop) > 0L) {
-    total_pop <- if ("poblacion" %in% names(df_pop)) sum(df_pop$poblacion, na.rm = TRUE) else NA
-    cat(sprintf("Poblacion estimada total: **%s** personas, distribuidas en %d celdas (edad x sexo x zona).\n",
-                fmt_int(total_pop), nrow(df_pop)))
+  if (!is.null(df_pop) && nrow(df_pop) > 0L && "poblacion" %in% names(df_pop)) {
+    parrafos(sprintf("Población de referencia: **%s** personas, distribuidas en %d celdas de edad, sexo y zona.",
+                     format(sum(df_pop$poblacion, na.rm = TRUE), big.mark = ",", scientific = FALSE), nrow(df_pop)))
   }
 }
 ```
@@ -166,12 +158,12 @@ if (!is.null(population) && length(population) > 0L) {
 # 3. Marco elegible y cobertura
 
 ```{r marco-intro, results='asis'}
-parrafos(sec_marco$frase_general)
+parrafos(sec_marco$aviso_config, sec_marco$frase_general)
 ```
 
 ```{r marco-cobertura}
 if (!is.null(sec_marco$cobertura)) {
-  tabla_pulso(sec_marco$cobertura, caption = "Cobertura del marco elegible por distrito")
+  tabla_pulso(sec_marco$cobertura, caption = "Cobertura del marco elegible por distrito (población 2017)")
 }
 ```
 
@@ -229,126 +221,71 @@ if (!is.null(sec_marco$nse)) {
 
 ```{r marco-piloto, results='asis'}
 parrafos(sec_marco$nota_piloto)
+if (length(sec_marco$supuestos)) {
+  cat("## Supuestos declarados\n\n")
+  cat(paste0("- ", sec_marco$supuestos, collapse = "\n"), "\n\n")
+}
 ```
 
-# 4. Decisiones metodologicas
+# 4. Decisiones metodológicas
 
 ```{r decisiones-metodologicas}
-defaults_metodologicos <- list(
-  list(decision = "Tipo de muestreo",
-       valor = "Probabilistico por conglomerados",
-       justificacion = "La manzana censal es la UPM; selecciones aleatorias dentro de cada manzana."),
-  list(decision = "Unidad primaria de muestreo (UPM)",
-       valor = "Manzana censal INEI",
-       justificacion = "Marco INEI provee georeferencia y conteo de viviendas por manzana."),
-  list(decision = "Estratificacion",
-       valor = "Por distrito (ubigeo)",
-       justificacion = "Permite control de cuotas por distrito y respeta heterogeneidad territorial."),
-  list(decision = "Sub-estratificacion",
-       valor = "Edad x sexo dentro de cada conglomerado",
-       justificacion = "Reproduce composicion sociodemografica del universo."),
-  list(decision = "Seleccion intra-conglomerado",
-       valor = "Random walk con piso de viviendas",
-       justificacion = "Garantiza cobertura sin sesgo de seleccion del enumerador.")
-)
-m <- decisiones$metodologicas %||% defaults_metodologicos
-df_m <- tibble(
-  decision      = vapply(m, function(d) d$decision, character(1)),
-  valor         = vapply(m, function(d) d$valor, character(1)),
-  justificacion = vapply(m, function(d) d$justificacion, character(1))
-)
-tabla_pulso(df_m,
-            caption = "Decisiones metodologicas del diseno territorial",
-            col.names = c("Decision", "Valor", "Justificacion"))
+if (!is.null(sec_diseno$decisiones)) {
+  tabla_pulso(sec_diseno$decisiones, caption = "Decisiones metodológicas del diseño territorial")
+}
 ```
 
-# 5. Parametros estadisticos
+# 5. Parámetros estadísticos
 
 ```{r parametros-tabla}
-ss <- config$sample_size %||% list()
-df_params <- tibble(
-  parametro = c(
-    "Nivel de confianza",
-    "Margen de error declarado",
-    "Proporcion esperada (p)",
-    "Efecto de diseno (deff)",
-    "Correccion por poblacion finita (FPC)",
-    "Tamano de ruta (piso operativo)"
-  ),
-  valor = c(
-    fmt_pct(ss$confidence_level %||% 0.95, dec = 0),
-    fmt_pct(ss$margin %||% ss$target_margin %||% 0.05),
-    sprintf("%.2f", ss$expected_proportion %||% 0.5),
-    sprintf("%.1f", ss$design_effect %||% 1.5),
-    if (isTRUE(ss$apply_fpc)) "Si" else "No",
-    if (!is.null(ss$route_size)) sprintf("%d viviendas", as.integer(ss$route_size)) else "10 viviendas (default)"
-  )
-)
-tabla_pulso(df_params,
-            caption = "Parametros aplicados al calculo",
-            col.names = c("Parametro", "Valor"))
+if (!is.null(sec_diseno$parametros)) {
+  tabla_pulso(sec_diseno$parametros, caption = "Parámetros aplicados al cálculo")
+}
 ```
 
-# 6. Calculo del tamano muestral
+# 6. Cálculo del tamaño de muestra
 
-Se aplica la formula clasica con correccion por poblacion finita (FPC)
-y ajuste por efecto de diseno:
+```{r formula, results='asis'}
+parrafos(sec_diseno$formula_intro)
+if (length(sec_diseno$formula)) cat("$$\n", sec_diseno$formula, "\n$$\n\n", sep = "")
+parrafos(sec_diseno$tamano)
+```
 
-$$
-n = \frac{N \cdot z^2 \cdot p \cdot q \cdot \mathrm{deff}}{(N - 1) \cdot e^2 + z^2 \cdot p \cdot q \cdot \mathrm{deff}}
-$$
-
-```{r sample-size}
-if (!is.null(sample_size) && length(sample_size) > 0L) {
-  n_total <- sample_size$n_total %||% sample_size$n_recommended %||% NA
-  cat(sprintf("\n**Tamano muestral recomendado:** %s viviendas.\n\n", fmt_int(n_total)))
-
-  ndist <- sample_size$by_district %||% sample_size$por_distrito %||% NULL
-  if (!is.null(ndist) && length(ndist) > 0L) {
-    df_dist <- .rows_to_df(ndist)
-    if (!is.null(df_dist) && nrow(df_dist) > 0L) {
-      cols_show <- intersect(c("ubigeo", "distrito", "poblacion",
-                               "n_recomendado", "n", "margen"),
-                             names(df_dist))
-      if (length(cols_show) == 0L) cols_show <- names(df_dist)[seq_len(min(5, ncol(df_dist)))]
-      tabla_pulso(df_dist[, cols_show, drop = FALSE],
-                  caption = "Tamano muestral por distrito")
-    }
-  }
-} else {
-  cat("_Calculo no ejecutado todavia._\n")
+```{r tamano-distrito}
+if (!is.null(sec_diseno$por_distrito)) {
+  tabla_pulso(sec_diseno$por_distrito, caption = "Tamaño de muestra y margen nominal por distrito")
 }
 ```
 
 ## Margen de error y efecto de diseño
 
 ```{r margen, results='asis'}
-parrafos(sec_margen$margen, sec_margen$procedencia, sec_margen$nota_overrides, sec_margen$alcance)
+parrafos(sec_margen$margen, sec_margen$margen_numerico, sec_margen$procedencia,
+         sec_margen$aviso_icc, sec_margen$nota_overrides, sec_margen$alcance)
 ```
 
-# 7. Distribucion de cuotas
+# 7. Distribución de cuotas
+
+```{r cuotas-datos}
+df_q <- if (!is.null(quota) && length(quota) > 0L) .rows_to_df(quota$cells %||% quota) else NULL
+n_celdas <- if (is.null(df_q)) 0L else nrow(df_q)
+cols_q <- if (n_celdas) intersect(c("ubigeo", "distrito", "zona", "edad", "sexo", "manzana", "cuota", "n", "objetivo"), names(df_q)) else character(0)
+```
+
+```{r cuotas-texto, results='asis'}
+if (n_celdas > 0L) {
+  parrafos(sec_diseno$nota_cuotas, sprintf("La matriz tiene **%d celdas**.", n_celdas))
+} else {
+  parrafos("Las cuotas todavía no se han calculado.")
+}
+```
 
 ```{r cuotas-detalle}
-if (!is.null(quota) && length(quota) > 0L) {
-  df_q <- .rows_to_df(quota$cells %||% quota)
-  if (!is.null(df_q) && nrow(df_q) > 0L) {
-    n_celdas <- nrow(df_q)
-    cat(sprintf("Las cuotas se distribuyen en **%d celdas**.\n\n", n_celdas))
-
-    cols_show <- intersect(c("ubigeo", "distrito", "zona", "edad",
-                             "sexo", "manzana", "cuota", "n", "objetivo"),
-                           names(df_q))
-    if (length(cols_show) > 0L) {
-      sample_rows <- if (n_celdas > 30L) df_q[seq_len(30L), cols_show, drop = FALSE]
-                     else df_q[, cols_show, drop = FALSE]
-      tabla_pulso(sample_rows,
-                  caption = if (n_celdas > 30L)
-                    sprintf("Primeras 30 de %d celdas de cuotas", n_celdas)
-                  else "Celdas de cuotas")
-    }
-  }
-} else {
-  cat("_Cuotas no calculadas todavia._\n")
+if (n_celdas > 0L && length(cols_q) > 0L) {
+  filas_q <- if (n_celdas > 30L) df_q[seq_len(30L), cols_q, drop = FALSE] else df_q[, cols_q, drop = FALSE]
+  tabla_pulso(filas_q,
+              caption = if (n_celdas > 30L) sprintf("Primeras 30 de %d celdas de la matriz de cuotas", n_celdas) else "Matriz de cuotas",
+              col.names = rotular(cols_q))
 }
 ```
 
@@ -400,24 +337,20 @@ if (length(a) > 0L) {
     nota      = vapply(a, function(d) d$nota, character(1))
   )
   tabla_pulso(df_a,
-              caption = "Ajustes aplicados durante el calculo",
+              caption = "Ajustes aplicados durante el cálculo",
               col.names = c("Paso", "Resultado", "Nota"))
-} else {
-  cat("_Sin ajustes operativos adicionales._\n")
 }
 ```
 
-# 10. Nota tecnica
+```{r ajustes-vacio, results='asis'}
+if (!length(decisiones$ajustes %||% list())) parrafos("Sin ajustes operativos adicionales.")
+```
 
-El calculo aplica la formula clasica con correccion por poblacion
-finita e integra el efecto de diseno (deff) en la formula misma.
+# 10. Nota técnica
 
-La distribucion entre distritos es proporcional al tamano poblacional
-de cada distrito (no Neyman), y dentro de cada distrito se respetan
-las composiciones reales por edad y sexo del marco INEI.
-
-El piso operativo de viviendas por ruta garantiza que cada enumerador
-maneja al menos una hoja de ruta completa (eliminando fracciones).
+```{r nota-tecnica, results='asis'}
+parrafos(sec_diseno$nota_tecnica)
+```
 
 ---
 

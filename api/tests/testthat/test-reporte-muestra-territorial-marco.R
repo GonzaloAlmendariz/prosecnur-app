@@ -66,16 +66,21 @@ test_that("con marco declarado y sin decisión: % por área y por mínimo sobre 
   expect_identical(cob$Distrito, c("Lima", "Magdalena del Mar"))
   expect_identical(cob$`Excluida por área`, c("8.0 %", "0.0 %"))
   expect_identical(cob$`Excluida por mínimo`, c("4.0 %", "2.0 %"))
+  expect_identical(cob$`Total excluido`, c("12.0 %", "2.0 %"))
   # Lima excluye 12 % (exige), Magdalena 2 % (no exige).
   expect_identical(m$estado$`Decisión de cobertura`, c("Sin decisión registrada", "No requiere decisión (excluye menos del 10 %)"))
   expect_match(m$frases_distrito[1], "La muestra representa a los hogares de manzanas con al menos 3 viviendas registradas en 2017, fuera de las áreas excluidas \\(1 área declarada para el estudio, 8.0 % de la población del distrito\\)", perl = TRUE)
   expect_identical(m$areas$Motivo, "Inseguridad")
   expect_match(m$areas$Evidencia, "Comisaría del sector, 15 de septiembre de 2026")
   expect_identical(m$areas$`Población excluida`, "800")
-  expect_match(m$frases_distrito[2], "el área excluida del estudio no toca manzanas de este distrito")
+  # Muestra sin `por_distrito` en `por_area`: se cae al conteo del estudio.
+  expect_match(m$frases_distrito[2], "las áreas excluidas del estudio no excluyen población de este distrito")
   expect_null(m$decisiones)
   # La piloto no es criterio del marco: va como nota aparte.
-  expect_match(m$nota_piloto, "2 manzanas titulares de la prueba piloto")
+  expect_match(m$nota_piloto, "Lima: 2 manzanas")
+  expect_match(m$nota_piloto, "no suma el 100 % de la población 2017")
+  expect_length(m$supuestos, 3L)
+  expect_match(paste(m$supuestos, collapse = " "), "población INEI 2017 completa")
 })
 
 test_that("con decisión registrada: fecha legible, tipo y justificación tal cual; sin ids ni códigos", {
@@ -147,7 +152,7 @@ test_that("plan: visitas ceil(k/(r·e)) y con margen; regla de no respuesta; pla
   expect_false("Costo estimado" %in% q$plan$resumen$Concepto)
   expect_identical(q$plan$rutas_largas$Ruta, "M2")
   expect_identical(q$plan$rutas_largas$`Días consecutivos`, "2")
-  expect_match(q$plan$nota_largas, "1 ruta requiere más visitas que una jornada de 30")
+  expect_match(q$plan$nota_largas, "1 ruta requiere más visitas esperadas que una jornada de 30")
   expect_false(grepl("W_PLAN", paste(unlist(q), collapse = " ")))
 })
 
@@ -160,14 +165,18 @@ test_that("el router calcula los insumos desde la sesión: bitácora, decisión 
   run <- s$hojas_ruta_runs$field
   run$config$marco_elegible <- cr
   run$config$territorios <- list("150101", "150120")
-  run$ui_state$plan_campo <- list(encuestadores = 2L, visitas_por_jornada = 30L)
   run$workspace_outputs$sample <- list(
     marco_elegible = list(criterios = cr, por_distrito = filas, por_area = list()),
     blocks = list(list(id_manzana = "M1", ubigeo = "150101", distrito = "Lima", entrevistas = 5, visitas_esperadas = 13))
   )
   s$hojas_ruta_runs$field <- run
   s$hojas_ruta_active_phase <- "field"
-  s$hojas_ruta_bitacora <- list(list(id = 3L, accion = "sorteo", resumen = "x", detalle = list()), .u16_decision(cr, "redefinir", id = 9L))
+  s$hojas_ruta_bitacora <- list(
+    list(id = 3L, accion = "sorteo", fase = "field", resumen = "x", detalle = list()),
+    list(id = 4L, accion = "plan_supuestos", fase = "pilot", fecha = "2026-10-01T09:00:00-0500", resumen = "p", detalle = list(supuestos = list(encuestadores = 9L))),
+    list(id = 5L, accion = "plan_supuestos", fase = "field", fecha = "2026-10-21T09:00:00-0500", resumen = "p", detalle = list(supuestos = list(encuestadores = 2L, visitas_por_jornada = 30L))),
+    .u16_decision(cr, "redefinir", id = 9L)
+  )
   .session_env[[sid]] <- s
   local_mocked_bindings(
     hojas_ruta_marco_elegible_puntos = function(ubigeo) data.frame(id_manzana = c("M1", "M9"), lon = c(-77.03, -77.0), lat = c(-12.04, -12.0), nse_nivel = c("B", "C")),
@@ -177,7 +186,11 @@ test_that("el router calcula los insumos desde la sesión: bitácora, decisión 
   ins <- .reporte_mt_insumos_sesion(sid, active, hojas_ruta_integrada_normalize_config(active$run$config), active$run$workspace_outputs$sample)
   expect_length(ins$bitacora, 1L)
   expect_identical(ins$decision_cobertura$vigente, 9L)
-  expect_false(is.null(ins$plan_campo))
+  # El plan sale de la última entrada `plan_supuestos` de la fase activa.
+  expect_identical(ins$plan_campo$supuestos$encuestadores, 2L)
+  expect_identical(ins$plan_fecha, "2026-10-21T09:00:00-0500")
+  expect_identical(ins$estado_muestra, "declarado")
+  expect_false(ins$config_cambio)
   expect_identical(ins$nse_por_distrito[[1]]$excluida$C, 4)
   m <- reporte_mt_marco_modelo(ins)
   expect_match(m$estado$`Decisión de cobertura`[1], "^Decisión registrada \\(20/10/2026, redefinir")
@@ -208,6 +221,10 @@ test_that("render real del HTML: las dos secciones salen en el archivo, en UTF-8
   }
   expect_false(grepl("Prosecnur", html, fixed = TRUE))
   expect_false(grepl("W_COVERAGE|W_PLAN|E_COVERAGE", html))
+  # Las secciones heredadas no imprimen markdown literal ni contradicen el diseño.
+  expect_false(grepl("**Tama", html, fixed = TRUE))
+  expect_false(grepl("_Cuotas no", html, fixed = TRUE))
+  expect_false(grepl("Random walk", html, fixed = TRUE))
 })
 
 test_that("un fallo al calcular la decisión o el NSE no se publica como falta de datos (guardian U16 I1)", {
@@ -227,4 +244,144 @@ test_that("un fallo al calcular la decisión o el NSE no se publica como falta d
   # vigente con forma inesperada no rompe el worker (M2).
   ins$decision_cobertura <- list(exigida = list(), vigente = list(1, 2))
   expect_silent(reporte_mt_marco_modelo(ins, list()))
+})
+
+# ---------- Revisión metodológica de U16 ----------
+
+.u16_sesion <- function(config_me, sample, bitacora = list(), ui_plan = NULL) {
+  sid <- session_create()
+  .hojas_ruta_ensure_runs(sid)
+  s <- session_get(sid)
+  run <- s$hojas_ruta_runs$field
+  run$config$marco_elegible <- config_me
+  run$config$territorios <- list("150101", "150120")
+  if (!is.null(ui_plan)) run$ui_state$plan_campo <- ui_plan
+  run$workspace_outputs$sample <- sample
+  s$hojas_ruta_runs$field <- run
+  s$hojas_ruta_active_phase <- "field"
+  s$hojas_ruta_bitacora <- bitacora
+  .session_env[[sid]] <- s
+  active <- .hojas_ruta_active_run(sid)
+  .reporte_mt_insumos_sesion(sid, active, hojas_ruta_integrada_normalize_config(active$run$config), active$run$workspace_outputs$sample)
+}
+
+.u16_mock_cartografia <- function(env = parent.frame()) {
+  local_mocked_bindings(
+    hojas_ruta_marco_elegible_puntos = function(ubigeo) data.frame(id_manzana = character(0), lon = numeric(0), lat = numeric(0), nse_nivel = character(0)),
+    hojas_ruta_inei_frame = function(...) data.frame(id_manzana = character(0), ubigeo = character(0), distrito = character(0), viviendas = numeric(0), poblacion = numeric(0)),
+    .env = env
+  )
+}
+
+test_that("un área que toca uno de dos distritos: k por distrito en la frase y en la tabla de áreas", {
+  cr <- .u16_criterios()
+  ins <- .u16_insumos(cr)
+  ins$marco$por_area <- list(list(id = "Cerro Norte", motivo = "inseguridad", manzanas = 5, viviendas = 200, poblacion = 800,
+                                  por_distrito = list(list(ubigeo = "150101", manzanas = 5, poblacion = 800))))
+  m <- reporte_mt_marco_modelo(ins)
+  expect_match(m$frases_distrito[1], "fuera de las áreas excluidas \\(1 área, 8.0 % de la población del distrito\\)")
+  expect_match(m$frases_distrito[2], "ninguna de las áreas excluidas del estudio toca este distrito")
+  expect_identical(m$areas$Distritos, "Lima")
+  # El motor devuelve ese desglose desde `aplicar`.
+  frame <- data.frame(id_manzana = c("a", "b", "c"), ubigeo = c("150101", "150101", "150120"), distrito = c("Lima", "Lima", "Magdalena"),
+                      viviendas = c(20, 30, 40), poblacion = c(80, 120, 160), stringsAsFactors = FALSE)
+  puntos <- data.frame(id_manzana = c("a", "b", "c"), lon = c(-77.022, -77.10, -77.025), lat = c(-12.042, -12.10, -12.30), nse_nivel = "B")
+  ap <- hojas_ruta_marco_elegible_aplicar(frame, cr, puntos = puntos)
+  expect_identical(ap$por_area[[1]]$por_distrito, list(list(ubigeo = "150101", manzanas = 1L, poblacion = 80)))
+})
+
+test_that("total excluido ≥ 10 % con cada componente < 10 % exige decisión", {
+  cr <- .u16_criterios(areas = FALSE)
+  filas <- list(.u16_fila("150101", "Lima", 10000, area = 600, minimo = 400))
+  m <- reporte_mt_marco_modelo(.u16_insumos(cr, filas = filas))
+  expect_identical(m$cobertura$`Total excluido`, "10.0 %")
+  expect_identical(m$estado$`Decisión de cobertura`, "Sin decisión registrada")
+})
+
+test_that("piloto con población: la nota explica por qué elegible + área + mínimo no suma 100 %", {
+  cr <- .u16_criterios(areas = FALSE)
+  f <- .u16_fila("150101", "Lima", 10000, minimo = 100)
+  f$excluida_piloto <- list(manzanas = 3, viviendas = 40, poblacion = 160)
+  f$elegible$poblacion <- 10000 - 100 - 160
+  m <- reporte_mt_marco_modelo(.u16_insumos(cr, filas = list(f)))
+  expect_match(m$nota_piloto, "Lima: 3 manzanas y 160 personas", fixed = TRUE)
+  expect_match(m$nota_piloto, "no entra en los porcentajes de exclusión ni en la decisión")
+  expect_identical(m$cobertura$`Total excluido`, "1.0 %")
+})
+
+test_that("config modificada después del sorteo: el informe describe la muestra y la decisión usa su huella", {
+  .u16_mock_cartografia()
+  cr <- .u16_criterios(areas = FALSE)
+  cr_config <- cr; cr_config$minimo_viviendas <- 8L
+  sample <- list(marco_elegible = list(criterios = cr, por_distrito = .u16_filas(), por_area = list()),
+                 blocks = list(list(id_manzana = "M1", ubigeo = "150101", entrevistas = 5)))
+  ins <- .u16_sesion(cr_config, sample, bitacora = list(.u16_decision(cr, "aceptar", id = 4L)))
+  expect_true(ins$config_cambio)
+  expect_identical(ins$decision_cobertura$vigente, 4L)
+  m <- reporte_mt_marco_modelo(ins)
+  expect_identical(m$aviso_config, "La configuración del marco elegible cambió después del sorteo; este informe describe la muestra sorteada.")
+  expect_match(m$frases_distrito[1], "al menos 3 viviendas")
+  expect_match(m$estado$`Decisión de cobertura`[1], "^Decisión registrada")
+})
+
+test_that("sin entrada plan_supuestos no hay plan, aunque ui_state traiga supuestos", {
+  .u16_mock_cartografia()
+  cr <- .u16_criterios(areas = FALSE)
+  sample <- list(marco_elegible = list(criterios = cr, por_distrito = .u16_filas(), por_area = list()),
+                 blocks = list(list(id_manzana = "M1", ubigeo = "150101", entrevistas = 5)))
+  ins <- .u16_sesion(cr, sample, ui_plan = list(encuestadores = 4L, visitas_por_jornada = 30L))
+  expect_null(ins$plan_campo)
+  p <- reporte_mt_plan_modelo(.u16_config(), NULL, ins$plan_campo, ins$plan_fecha, ins$plan_fallo)
+  expect_identical(p$sin_plan, "No se registró un plan de campo para esta muestra.")
+})
+
+test_that("tres estados sin marco: sin sorteo, sorteo previo al marco elegible y sin criterios", {
+  .u16_mock_cartografia()
+  cr <- .u16_criterios(areas = FALSE)
+  terr <- list(list(ubigeo = "150101", distrito = "Lima"))
+  sin <- .u16_sesion(cr, list())
+  expect_identical(sin$estado_muestra, "sin_sorteo")
+  m <- reporte_mt_marco_modelo(sin, terr)
+  expect_match(m$frase_general, "Todavía no hay una muestra sorteada")
+  expect_null(m$estado)
+  previo <- .u16_sesion(cr, list(blocks = list(list(id_manzana = "M1", ubigeo = "150101", entrevistas = 5))))
+  expect_identical(previo$estado_muestra, "previo_al_marco")
+  mp <- reporte_mt_marco_modelo(previo, terr)
+  expect_match(mp$frase_general, "antes de que se declarara el marco elegible")
+  expect_identical(mp$estado$`Decisión de cobertura`, "Sorteado sobre todo el marco 2017")
+  legacy <- .u16_sesion(list(declarado = FALSE), list(blocks = list(list(id_manzana = "M1", ubigeo = "150101", entrevistas = 5))))
+  expect_identical(legacy$estado_muestra, "sin_criterios")
+  expect_match(reporte_mt_marco_modelo(legacy, terr)$frase_general, "sin criterios de elegibilidad declarados")
+})
+
+test_that("ICC con k actual distinto del k con que se aplicó: DEFF con el k actual y aviso", {
+  icc <- list(id = "hsvg-2025", estudio = "HSVG 2025", indicador = "confianza_baja", icc = 0.06, icc_ic95 = list(0.02, 0.10),
+              unidad_conglomerado = "ruta", escala = "proporcion", conglomerados = 142, k_ruta = 5L, deff_resultante = 1.24)
+  cfg <- .u16_config("icc_biblioteca", 1.24, icc = icc, k = 6L)
+  mm <- reporte_mt_margen_modelo(cfg)
+  expect_match(mm$procedencia, "k = 6 entrevistas por ruta, lo que da 1.30")
+  expect_match(mm$procedencia, "indicador «confianza_baja»; conglomerado: ruta; IC 95 %: 0.020 a 0.100")
+  expect_match(mm$aviso_icc, "no coincide")
+  ok <- reporte_mt_margen_modelo(.u16_config("icc_biblioteca", 1.24, icc = icc, k = 5L))
+  expect_null(ok$aviso_icc)
+})
+
+test_that("margen nominal numérico, DEFF con dos decimales y FPC coherente entre parámetros y fórmula", {
+  cfg <- .u16_config("legado", 1.24)
+  cfg$sample_size$apply_fpc <- FALSE
+  mm <- reporte_mt_margen_modelo(cfg, sample_size_preview = list(n_used = 400, total_population = 100000))
+  esperado <- 100 * 1.96 * sqrt(1.24 * 0.25 / 400)
+  expect_match(mm$margen_numerico, sprintf("± %.1f puntos porcentuales al 95 %% de confianza, con p = 0.5, n = 400 y DEFF 1.24.", esperado), fixed = TRUE)
+  d <- reporte_mt_diseno_modelo(cfg, list(n_used = 400))
+  expect_identical(d$parametros$Valor[d$parametros$`Parámetro` == "Efecto de diseño (DEFF)"], "1.24")
+  expect_identical(d$parametros$Valor[d$parametros$`Parámetro` == "Corrección por población finita (FPC)"], "No")
+  expect_match(d$formula_intro, "sin corrección por población finita")
+  expect_false(grepl("N - 1", d$formula, fixed = TRUE))
+  cfg$sample_size$apply_fpc <- TRUE
+  d2 <- reporte_mt_diseno_modelo(cfg, NULL)
+  expect_match(d2$formula_intro, "con corrección por población finita")
+  txt <- paste(unlist(d), collapse = " ")
+  expect_false(grepl("Random walk|aleatorias dentro de cada manzana|dentro de cada conglomerado", txt))
+  expect_match(txt, "Cuotas de totales por sexo y por edad, sin cruces")
+  expect_match(txt, "no probabilístico dentro de ella")
 })
