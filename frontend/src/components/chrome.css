@@ -184,14 +184,23 @@
   transition: background-color 140ms ease;
 }
 
-.pulso-chrome-indicator.is-accion .pulso-chrome-indicator-value {
-  text-decoration: underline dotted color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
-  text-underline-offset: 3px;
+/* Se reconoce como bloque, no con un subrayado punteado: un fondo tenue del tono
+ * del módulo que se intensifica al pasar el mouse. Entre bloques no hay divisoria:
+ * el propio fondo los separa. */
+.pulso-chrome-indicator.is-accion {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+}
+
+.pulso-chrome-indicator.is-accion + .pulso-chrome-indicator.is-accion {
+  border-left: 0;
+  margin-left: 4px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pulso-chrome-indicator.is-accion:hover {
-    background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+    background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
   }
 }
 
