@@ -306,3 +306,35 @@ hojas_ruta_tamano_extras_salto_muestra <- function(resultado, config) {
   resultado$salto_sobre_visitas <- list(respuesta = r, ocupacion = e, modo = as.character(cfg$route_jump_mode %||% "auto"))
   resultado
 }
+
+#' Valores operativos de una ruta para las salidas (Excel, ZIP, hojas de reemplazo):
+#' los del motor (esquina, sentido, inicio) con el salto automático sobre VISITAS
+#' (ADR 0116 §1), igual que el que muestra el sorteo. El motor congelado lo llama
+#' desde `.hojas_ruta_add_operational_values`; antes imprimía `floor(V / k)`.
+hojas_ruta_valores_operativos <- function(block, config = list()) {
+  vals <- .hojas_ruta_route_operational_values(block, config)
+  cfg <- if (is.list(config)) config else list()
+  ss <- if (is.list(cfg$sample_size)) cfg$sample_size else hojas_ruta_integrada_normalize_config(cfg)$sample_size
+  r <- suppressWarnings(as.numeric(ss$response_rate %||% 0.9)[1]); if (is.na(r) || r <= 0) r <- 0.9
+  e <- suppressWarnings(as.numeric(ss$ocupacion %||% 1)[1]); if (is.na(e) || e <= 0) e <- 1
+  k <- max(1L, suppressWarnings(as.integer(block$entrevistas %||% cfg$entrevistas_por_manzana %||% 1L)), na.rm = TRUE)
+  V <- max(0L, suppressWarnings(as.integer(block$viviendas %||% 0L)), na.rm = TRUE)
+  v <- as.integer(hojas_ruta_visitas_por_ruta(k, r, e))
+  vals$visitas_esperadas <- v
+  vals$regla_no_respuesta <- HOJAS_RUTA_REGLA_NO_RESPUESTA
+  if (identical(vals$constante_salto_modo, "auto")) {
+    raw <- if (v > 0) V / v else NA_real_
+    constante <- if (is.finite(raw)) max(1L, as.integer(floor(raw))) else 1L
+    seed <- as.integer(cfg$seed %||% 2017L)
+    id <- as.character(block$id_manzana %||% block$manzana %||% block$orden_seleccion %||% "")
+    inicio <- if (constante > 1L) .hojas_ruta_stable_bucket(seed, id, "start_dwelling", constante) else 1L
+    vals$constante_salto <- as.integer(constante)
+    vals$salto_operativo <- as.integer(constante)
+    vals$constante_salto_raw <- as.numeric(raw)
+    vals$constante_salto_formula <- sprintf("K=%s/%s visitas (v = ceil(%s/(%s·%s))); operativo=floor(K)", V, v, k, format(r), format(e))
+    vals$vivienda_inicio <- as.integer(inicio)
+    vals$domicilio_inicio <- as.integer(inicio)
+    vals$modo_seleccion_vivienda <- if (V <= v || constante <= 1L) "Barrido completo" else "Sistematico por casa/domicilio"
+  }
+  vals
+}

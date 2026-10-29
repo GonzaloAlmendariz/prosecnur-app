@@ -4689,7 +4689,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   values <- lapply(seq_len(nrow(blocks)), function(i) {
     row <- as.list(blocks[i, , drop = FALSE])
     row[] <- lapply(row, function(x) x[[1]])
-    .hojas_ruta_route_operational_values(row, config)
+    hojas_ruta_valores_operativos(row, config)
   })
   fields <- names(values[[1]])
   for (field in fields) {

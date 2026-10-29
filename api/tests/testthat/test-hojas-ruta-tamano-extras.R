@@ -218,3 +218,20 @@ test_that("el salto de la muestra se calcula sobre visitas, con la regla ante la
   sm <- hojas_ruta_tamano_extras_salto_muestra(hojas_ruta_sample_preview_integrado(man), man)
   expect_true(all(.hojas_ruta_rows_df(sm$blocks)$salto_operativo == 3L))
 })
+
+test_that("las salidas imprimen el salto sobre visitas, el mismo que muestra el sorteo (ADR 0116 §1)", {
+  cfg <- list(seed = 2017L, route_jump_mode = "auto", entrevistas_por_manzana = 8L, sample_size = list(response_rate = 0.8, ocupacion = 1))
+  bloques <- data.frame(id_manzana = c("a", "b"), viviendas = c(120L, 5L), entrevistas = c(8L, 8L), stringsAsFactors = FALSE)
+  out <- .hojas_ruta_add_operational_values(bloques, cfg)
+  v <- hojas_ruta_visitas_por_ruta(8L, 0.8, 1)
+  expect_identical(out$visitas_esperadas[1], as.integer(v))
+  expect_identical(out$salto_operativo[1], as.integer(floor(120 / v)))
+  expect_false(identical(out$salto_operativo[1], as.integer(floor(120 / 8))))
+  expect_identical(out$modo_seleccion_vivienda[2], "Barrido completo")
+  # Paridad con el posproceso del sorteo.
+  m <- hojas_ruta_tamano_extras_salto_muestra(list(blocks = bloques, replacement_blocks = list()), cfg)
+  expect_identical(as.integer(.hojas_ruta_rows_df(m$blocks)$salto_operativo[1]), out$salto_operativo[1])
+  # Manual y apagado no cambian.
+  man <- .hojas_ruta_add_operational_values(bloques, modifyList(cfg, list(route_jump_mode = "manual", route_jump_manual = 3L)))
+  expect_identical(man$salto_operativo[1], 3L)
+})
