@@ -9,7 +9,7 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | # | Dónde | Tipo · impacto | Brecha | Dónde vive | Estado |
 |---|---|---|---|---|---|
 | B0 | Selección › ficha | bug · alto | «Ver la hoja de ruta» deja el proyecto «sin guardar» (`.register_output_file` escribe `files`) | `api/R/router_hojas_ruta_vista_previa.R` (`.hojas_ruta_vp_registrar`) | ☑ (ficha y hoja del día; test) |
-| B1 | Barra superior | falta · alto | Zona de acciones: nombre, fase Piloto/Campo real con su regla, Bitácora con contador, «N por revisar», «Enviar a Material» | `HojasRutaMapaPage.tsx` (chrome) | ☐ |
+| B1 | Barra superior | falta · alto | Zona de acciones: nombre, fase Piloto/Campo real con su regla, Bitácora con contador, «N por revisar», «Enviar a Material» | `HojasRutaMapaPage.tsx` (`acciones`/`estado` del ModuleCommandBar); Material deshabilitado hasta U19 | ☑ |
 | B2 | Indicadores | peor · medio (C5) | Población muestra el total, no la objetivo (2.39 M); sin formato compacto; orden distinto; UMP sin «R» | `HojasRutaMapaPage.tsx` | ☐ |
 | B3 | Secciones | peor · medio (a11y) | Las 5 pastillas llevan `aria-current="page"` (NavLink ignora la query) | chrome de secciones | ☐ |
 | B4 | Indicadores 1024 | peor · bajo | A 1024 esconde 2 de 4; el artefacto esconde los 4 y deja acciones | chrome | ☐ |

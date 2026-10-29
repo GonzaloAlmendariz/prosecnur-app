@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BookOpenText, Send } from "../../../vendor/lucide-react";
+import { apiHojasRutaBitacora } from "../../../api/hojasRuta";
 import { codigoDeUmp } from "../seleccion/revisionMarco";
 import { conSelectorDeCapa, leyendaLienzo, migaLienzo, SelectorCapa, type SeccionLienzo } from "./lienzo/flotantes";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
@@ -399,6 +401,53 @@ export default function HojasRutaMapaPage() {
     [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes],
   );
 
+  // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
+  const navegar = useNavigate();
+  const [entradasBitacora, setEntradasBitacora] = useState<number | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    apiHojasRutaBitacora()
+      .then((e) => vivo && setEntradasBitacora(e.length))
+      .catch(() => vivo && setEntradasBitacora(null));
+    return () => {
+      vivo = false;
+    };
+  }, [estado]);
+  const porRevisarTotal = [...estados.values()].filter((e) => e === "error" || e === "aviso").length;
+  const evitaPiloto = fase === "field" && Boolean(estado?.runs?.pilot) && estado?.runs?.field?.pilot_exclusion_mode !== "ignore";
+  const chipsEstado = [
+    {
+      id: "fase",
+      label: fase === "pilot" ? "Piloto" : "Campo real",
+      tone: "info" as const,
+      detail: fase === "pilot" ? "La corrida piloto es histórica: se consulta, no se cambia." : evitaPiloto ? "Campo real · evita las titulares del piloto." : "Campo real.",
+    },
+    ...(porRevisarTotal
+      ? [{ id: "revisar", label: `${porRevisarTotal} por revisar`, tone: "warn" as const, detail: "UMP con observaciones contra el marco: ábrelas en Selección.", onSelect: () => navegar(`${location.pathname}?seccion=seleccion`) }]
+      : []),
+  ];
+  const accionesChrome = [
+    {
+      id: "bitacora",
+      label: entradasBitacora ? `Bitácora · ${entradasBitacora}` : "Bitácora",
+      shortLabel: "Bitácora",
+      icon: BookOpenText,
+      kind: "ghost" as const,
+      rank: 1 as const,
+      title: "Decisiones registradas del diseño muestral",
+      onSelect: () => navegar(`${location.pathname}?seccion=seleccion&panel=salidas`),
+    },
+    {
+      id: "material",
+      label: "Enviar a Material",
+      shortLabel: "Material",
+      icon: Send,
+      kind: "secondary" as const,
+      rank: 2 as const,
+      disabled: true,
+      title: "Llega con la entrega a Recopiladores: las hojas pasarán a Material de campo.",
+    },
+  ];
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
   const chrome = (
     <ModuleCommandBar
@@ -412,6 +461,8 @@ export default function HojasRutaMapaPage() {
           ))}
         </ChromeIndicatorGroup>
       }
+      acciones={accionesChrome}
+      estado={chipsEstado}
       secciones={
         <SectionPillbar
           modulo="hojas-ruta"
