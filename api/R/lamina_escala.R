@@ -181,10 +181,6 @@
 
 # ---- el bloque (recetario.R:238-317) ----------------------------------------
 
-# Umbral de base chica del estándar (`reglas$base_chica` de estandar_pulso.json: «con menos de 30 casos, todas las
-# filas del bloque dicen "x de y"», D12).
-.LAM_BASE_CHICA_N <- 30
-
 #' ¿La especificación tiene base chica? Una sola respuesta para la lámina entera, en filas o en bloque
 #'
 #' Se mira la especificación ENTERA, no la parte de una partición: si una fila tiene menos de 30 casos, todas las
@@ -194,8 +190,7 @@
 #' 2.25 suman 45 y siguen siendo 20 personas, base chica; 40 con peso 0.5 suman 20 y no lo son.
 #' @keywords internal
 .lam_base_chica <- function(espec) {
-  # El ajuste «Casos junto al porcentaje» del informe decide (graficos_casos_junto.R); el umbral por defecto sigue siendo
-  # `.LAM_BASE_CHICA_N`.
+  # El ajuste «Casos junto al porcentaje» del informe decide (graficos_casos_junto.R), con su umbral por defecto.
   .casos_junto_muestra(.espec_casos(espec$filas), espec$casos_junto)
 }
 
@@ -267,13 +262,12 @@
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
                                estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
                                encabezar_tema = FALSE, extra_alto = 0, llenando = NULL, desplazar = 0, con_rotulo_box = TRUE) {
-  g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
+  g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
-  ttb_col <- !is.null(espec$box$unidades)
   # N10: el enunciado gana `ex` in a costa de la barra: públicos y barra se corren a la derecha; la Top Two Box queda donde está.
   ex <- .std_enunciado_extra_in(); L$x_actor <- L$x_actor + ex; L$x_barra <- L$x_barra + ex; L$ancho_barra <- L$ancho_barra - ex
-  cb <- .lam_escala_columnas_box(espec, ex); wcol <- cb$ancho_col; dx_btb <- L$ancho_barra - cb$ancho_barra
+  cb <- .lam_escala_columnas_box(espec, ex); wcol <- cb$ancho_col
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
   con_n <- isTRUE(espec$mostrar_respuestas)   # M10 / N3b: «Respuestas por público»; apagado por defecto, switcher opcional por gráfico
@@ -289,7 +283,7 @@
     alto_grupo <- ht + 1.15 + g + 1.0
     yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2)
     .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
-    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.1   # G13: la columna se acercó 0,15 in; la barra conserva su fin
+    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - xb - 0.1   # sin Bottom Two Box: la barra termina antes de la columna del box
     if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - (if (con_n) 0.18 else 0.15), 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
     if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, fl$i), g)
@@ -417,7 +411,6 @@
     }
     y <- y + a + (if (i < length(premisas)) ta$gaps[i] else 0)
   }
-  fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
   if (isTRUE(leyenda)) .lam_leyenda(lz, min(.lam_piso_leyenda(), ytop + tot + (if (llenando) .LAM_LLENAR_AIRE_LEYENDA else 0.3)), labels, cols, centrar_en = .std_geom("ancho") / 2)   # centrada a la lámina; G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
   invisible(structure(ytop + tot, centro_barras = x_bar + WB / 2))   # N16: la multilista centra su leyenda compartida con este eje
 }

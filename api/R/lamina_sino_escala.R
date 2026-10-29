@@ -5,13 +5,11 @@
 # segmentos, también sobre el celeste del «No» (Contabilidad, vf.pdf p. 23: «8%», «2%» blancos sobre el celeste). Las
 # opciones especiales (SIN INF, en gris) y las cifras que no caben y salen fuera conservan su color legible.
 #
-# G17 («las barras tienen que tener el mismo largo… no puede quedar la barra en tamaño distinto que la de abajo»): en una
-# lámina que junta una Sí/No con una escala con Top Two Box, la Sí/No no llega hasta la columna del box: mide y arranca
-# como la barra de la escala (`.std_geom("likert")$x_barra` y `$ancho_barra`, leídos del token). Sola en su lámina mide lo
-# mismo (Gonzalo, 2026-10-28: en Contabilidad toda barra mide igual, ~6,1 in, haya o no box en la lámina).
+# G17 («las barras tienen que tener el mismo largo»): toda barra, Sí/No o escala, con o sin box, mide
+# `.std_geom("likert")$ancho_barra`; lo decide `.lam_escala_columnas_box()` en `.lam_bloque_escala`, sin marca aparte.
 #
 # Las funciones de aquí son puras; el cableado vive en `.lam_escala_seg`, `.lam_barra_apilada` y `.lam_bloque_escala`
-# (lamina_escala.R) y en `.lam_multilista_bloques` (lamina_multilista.R).
+# (lamina_escala.R).
 
 #' ¿Cada categoría de la escala lleva su cifra en blanco? Sólo las propias de una escala Sí/No (G8)
 #'
@@ -27,15 +25,4 @@
 #' @keywords internal
 .lam_cifra_color_seg <- function(seg, k) {
   if (isTRUE(seg$blanca[k])) "#FFFFFF" else .lam_texto_sobre(seg$color[k])
-}
-
-#' Marca las Sí/No de la lámina para que su barra mida la de la escala (G17), haya o no una escala con box al lado
-#'
-#' @param items Bloques de UNA lámina (`.lam_multilista_items`), cada uno con su `espec`.
-#' @return Los mismos bloques; las Sí/No sin box, con `espec$ancho_como_escala = TRUE`.
-#' @keywords internal
-.lam_multilista_igualar_ancho <- function(items) {
-  con_box <- vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE)
-  for (k in which(!con_box)) if (isTRUE(.lam_dicotomia_es_sino(items[[k]]$espec))) items[[k]]$espec$ancho_como_escala <- TRUE
-  items
 }

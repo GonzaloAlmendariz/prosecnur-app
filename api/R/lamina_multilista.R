@@ -254,8 +254,7 @@
 #' Dibuja los bloques de una lámina, de arriba abajo, con una leyenda compartida o una por bloque
 #' @keywords internal
 .lam_multilista_bloques <- function(lz, items, compartida) {
-  g_ <- .std_geom; L <- g_("likert")
-  items <- .lam_multilista_igualar_ancho(items)   # G17: con una escala con Top Two Box, la Sí/No mide lo que ella
+  g_ <- .std_geom
   disp <- .lam_multilista_disponible(compartida)
   nb <- .lam_multilista_filas(items)
   centro_barras <- NULL
@@ -329,8 +328,6 @@
   y <- componer(lz, dg = dg, entre = entre, extra = extra, sin_tope = !apretar && f >= 1, bajar = bajar)   # lo que sigue sobrando: centrado
   if (compartida) {
     e <- items[[1]]$espec; ley <- e$leyenda
-    con_ttb <- any(vapply(items, function(it) !is.null(it$espec$box$unidades), TRUE))
-    fin_bloque <- if (con_ttb) L$x_top_two_box + 0.75 else g_("ancho") - g_("margen_der") - 0.3
     y_ley <- if (apretar) min(g_("leyenda_y") - 0.15 + .LAM_APRETADO_EXTRA_FRANJA, .lam_piso_leyenda() - 0.01, y - .LAM_MULTILISTA_GAP + 0.12)   # apretado: cerca de la última barra, sin pegarse (G14) si queda sitio
              else if (dg > 0 || entre > 0) min(.lam_piso_leyenda(), y - .LAM_MULTILISTA_GAP + .LAM_LLENAR_AIRE_LEYENDA)   # llena: 0,45 in, como Conta
              else min(g_("leyenda_y") - 0.15, y - .LAM_MULTILISTA_GAP + .LAM_MULTILISTA_AIRE_LEYENDA)
