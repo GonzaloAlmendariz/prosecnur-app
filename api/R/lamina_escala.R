@@ -338,18 +338,8 @@
   } else if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
     fila <- fila + extra; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   }
-  if (!is.null(grosor)) {
-    g <- grosor
-  } else {
-    peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
-    if (peq && fila - g < .std_aire_chica()) g <- max(0.24, fila - .std_aire_chica(), .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
-  }
-  y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
-  # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
-  hr <- if (length(cb$cols) > 1L) 0.1 else 0
-  if (isTRUE(con_rotulo_box)) for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% .std_comp("escala", "rotulo_box_sobre")), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
-                               bold = TRUE, align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
-  ytop <- y
+  # S2 (GOAL estándar de composición): la geometría de «un tema» va ANTES de decidir el grosor, para que la cifra chica
+  # se juzgue con la barra que se dibuja (antes se medía con la barra corta y se dibujaba con la larga).
   # El filete separa los bloques de actores de cada tema; con un solo público cada premisa es una barra y la línea
   # sólo corta la lectura (Gonzalo, 2026-10-14: «en el caso que todas las barras sean de un público es mejor no
   # agregar líneas grises dividiéndolas»).
@@ -370,6 +360,18 @@
     x_bar <- L$x_premisa + w_act + 0.2
     WB <- WB + (L$x_barra - x_bar)
   }
+  if (!is.null(grosor)) {
+    g <- grosor
+  } else {
+    peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
+    if (peq && fila - g < .std_aire_chica()) g <- max(0.24, fila - .std_aire_chica(), .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
+  }
+  y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
+  # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
+  hr <- if (length(cb$cols) > 1L) 0.1 else 0
+  if (isTRUE(con_rotulo_box)) for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% .std_comp("escala", "rotulo_box_sobre")), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
+                               bold = TRUE, align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
+  ytop <- y
   # G11/G19 (lamina_escala_temas.R): filas del tema juntas, el aire que sueltan va entre temas; el bloque no crece.
   lab_alto <- function(fl) if (!nzchar(fl$actor)) 0 else (if (con_n) 0.51 else 0.3) + 0.04 +
     (max(1L, .lam_lineas_tinta(fl$actor, w_act, .std_pt("actor"), TRUE)) - 1L) * .std_pt("actor") * 1.2 / 72
