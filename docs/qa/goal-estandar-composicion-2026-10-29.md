@@ -114,7 +114,7 @@ circ `lamina_circulares.R`, div `lamina_divergentes.R`. Ninguno llamaba a `.std_
 - F2 ☑ paneles: «TOP TWO BOX» en mayúsculas y en una línea (la caja crece con la tinta). Queda div:39 a 10,5 pt.
 - F3 ☒ decidido (N5 de Gonzalo: «en PPT está bien»; el Word siempre apila; Arte usa `barra_estandar` por config). Cifras del Sí/No partido a 34 pt sobre la barra; la estándar las pone sobre el segmento en azul sin guía.
 - F4 ☒ no contradice: lámina de dos columnas (disco y lectura), la leyenda va con su columna, como la del panel (N16). Leyenda centrada en el disco (circ:112) o en el panel (mix:245, 263), no en la lámina.
-- F5 **bloqueado, decide Gonzalo**: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
+- F5 ☑ Gonzalo (2026-10-29): «Sí» — fuera el encabezado de fábrica de opción múltiple y también el de temas de texto abierto («% de comentarios con contenido que toca cada tema»); sólo sale el que escriba el analista. Antes: encabezado «% de encuestados que marcó cada opción» sobre las barras (lamina_compositor.R:330,
   reporte_plan_opciones.R:436). Lo pidió el recetario p72 (CCSS-9b, CCSS-19) y lo guardan 5 tests: avisa que
   en opción múltiple los porcentajes no suman 100. No es un rótulo de eje genérico; quitarlo contradice esa decisión.
 

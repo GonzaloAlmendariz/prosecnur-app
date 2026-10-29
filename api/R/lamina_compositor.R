@@ -323,11 +323,12 @@
                                     layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
-    # Ranking con puntos (lámina 72); en selección múltiple lleva el encabezado del recetario.
+    # Ranking con puntos (lámina 72). El encabezado sobre los puntos lo escribe el analista; el motor no pone uno de
+    # fábrica (Gonzalo, 2026-10-29: «% de encuestados que marcó cada opción» deja de salir por defecto).
     # La nota del recorte («Se muestran 5 de 12 categorías.») va siempre en el pie, junto a la base.
     return(.lam_laminas_lollipop(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                  base = paste(c(texto(base), texto(pie), texto(espec$nota_recorte)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
-                                 encabezado = espec$encabezado %||% (if (sum(espec$valores) > 1.02) "% de encuestados que marcó cada opción" else NULL),
+                                 encabezado = espec$encabezado,
                                  layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
@@ -352,7 +353,7 @@
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
                                    sub = texto(subtitulo), forma = forma, unidad_n = unidad,
-                                   encabezado = .plan_tt_encabezado(el_plot) %||% (if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL),   # TXT-20
+                                   encabezado = .plan_tt_encabezado(el_plot),   # TXT-20; sin encabezado de fábrica en opción múltiple (Gonzalo, 2026-10-29)
                                    layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.

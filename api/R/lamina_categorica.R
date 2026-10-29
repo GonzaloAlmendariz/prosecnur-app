@@ -105,7 +105,7 @@
 #'
 #' Barras: la geometría de la lámina 73 del recetario (recetario_m3a.R:98-101): fila = (6.72 − 1.65 − 0.45) / n
 #' con un tope de 0.62 in, barra = mín(0.42, fila × 0.62), rótulo de hasta 6.3 in (11 pt si los rótulos son largos)
-#' y, en selección múltiple, el encabezado «% de encuestados que marcó cada opción».
+#' y el encabezado que escriba el analista (el motor no pone uno de fábrica).
 #' @keywords internal
 .lam_laminas_categorica <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                     forma = c("columnas", "barras"), unidad_n = "respuestas", encabezado = NULL,

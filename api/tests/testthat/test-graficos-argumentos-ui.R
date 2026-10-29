@@ -1571,9 +1571,9 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # cambio de forma.
   expect_true(grepl(toupper(.PPT_ROTULO_TOP_TWO_BOX), xml, fixed = TRUE))   # la lámina lo escribe en mayúsculas (G20)
   expect_false(grepl("N =", xml, fixed = TRUE))
-  # La selección múltiple se anuncia como en la lámina 73 del recetario (ADR 0093): el encabezado sobre las
-  # barras, no el aviso «Pregunta de opción múltiple» que el gráfico ggplot ponía de subtítulo.
-  expect_true(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
+  # Sin encabezado de fábrica sobre las barras (Gonzalo, 2026-10-29: «% de encuestados que marcó cada opción» deja de
+  # salir por defecto; lo escribe el analista), y tampoco el viejo aviso «Pregunta de opción múltiple».
+  expect_false(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
   expect_false(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })
 
