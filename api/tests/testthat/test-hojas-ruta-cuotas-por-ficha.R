@@ -60,3 +60,31 @@ test_that("la ficha lee la cuota de sexo repartida; sin ella queda equilibrada (
   expect_identical(.hojas_ruta_cuota_sexo_de_ficha(list(), 7L, c(Hombre = 10, Mujer = 30)), c(3L, 4L))
   expect_identical(.hojas_ruta_cuota_sexo_de_ficha(list(), 7L, c(Hombre = 0, Mujer = 0)), c(4L, 3L))
 })
+
+test_that("repartir sin re-sortear: mismas manzanas y orden, Σ = cuota, queda en la bitácora y el router está montado", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .hojas_ruta_ensure_runs(sid)
+  b <- .cpf_bloques()
+  s <- session_get(sid)
+  fase <- s$hojas_ruta_active_phase %||% "field"
+  s$hojas_ruta_runs[[fase]]$config$age_ranges <- .cpf_cfg()$age_ranges
+  s$hojas_ruta_runs[[fase]]$workspace_outputs$sample <- list(blocks = b, replacement_blocks = data.frame())
+  s$hojas_ruta_runs[[fase]]$workspace_outputs$quota <- list(cells = .cpf_celdas())
+  .session_env[[sid]] <- s
+  pr <- mount_hojas_ruta_cuotas(plumber::pr())
+  post <- unlist(pr$endpoints, recursive = FALSE)[[1]]
+  r <- post$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid), res = plumber:::PlumberResponse$new())
+  expect_true(r$ok)
+  ate <- Find(function(d) identical(d$ubigeo, "150103"), r$resumen)
+  expect_identical(c(ate$hombres, ate$mujeres), c(96L, 104L))
+  guardada <- .hojas_ruta_rows_df(.hojas_ruta_active_run(sid)$run$workspace_outputs$sample$blocks)
+  expect_identical(as.character(guardada$id_manzana), b$id_manzana)
+  expect_true(all(nzchar(guardada$cuota_sexo_totals)))
+  expect_identical(hojas_ruta_bitacora_leer(sid)[[1]]$accion, "cuotas_recalculadas")
+  expect_true(grepl("mount_hojas_ruta_cuotas(pr)", paste(deparse(body(build_plumber_app)), collapse = " "), fixed = TRUE))
+  # Sin muestra: 409.
+  sid2 <- session_create(); on.exit(session_delete(sid2), add = TRUE)
+  e <- post$getFunc()(req = list(HTTP_X_PULSO_SESSION = sid2), res = plumber:::PlumberResponse$new())
+  expect_identical(e$error$code %||% e$code %||% "", "E_NO_SAMPLE")
+})

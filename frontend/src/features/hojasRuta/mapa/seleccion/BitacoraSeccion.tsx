@@ -21,6 +21,7 @@ const ACCION: Record<string, string> = {
   plan_supuestos: "Plan de campo",
   reemplazos_puntuales: "Reemplazos puntuales",
   campo_desde_piloto: "Campo desde la piloto",
+  cuotas_recalculadas: "Cuotas por hoja",
   nota: "Nota",
 };
 

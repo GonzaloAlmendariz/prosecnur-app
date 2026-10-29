@@ -174,6 +174,9 @@ export default function HojasRutaMapaPage() {
 
   // U14: los supuestos del plan van al ui_state. Se mandan las salidas actuales: un
   // persist sin ellas manda {} y borra población, tamaño, cuotas y muestra.
+  const releerEstado = useCallback(async () => {
+    setEstado(await apiHojasRutaState());
+  }, []);
   const guardarPlanCampo = useCallback(async (supuestos: HojasRutaPlanSupuestos) => {
     if (!estado) return;
     await apiHojasRutaPersistWorkspace(estado.integrated_config, { ...estado.ui_state, plan_campo: supuestos }, estado.workspace_outputs ?? {}, fase);
@@ -479,7 +482,7 @@ export default function HojasRutaMapaPage() {
               revision={revision}
               totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
-              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} planSupuestos={estado.ui_state?.plan_campo} onGuardarPlan={guardarPlanCampo} />}
+              salidas={<SalidasPanel config={estado.integrated_config} salidas={salidas} planSupuestos={estado.ui_state?.plan_campo} onGuardarPlan={guardarPlanCampo} onCuotasRepartidas={releerEstado} />}
             />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector

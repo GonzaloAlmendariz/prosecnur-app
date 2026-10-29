@@ -1457,6 +1457,27 @@ export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | 
   );
 }
 
+// ---------- Cuotas por hoja sin re-sortear ----------
+
+export type HojasRutaCuotasRepartidas = { resumen: { ubigeo: string; distrito: string; hombres: number; mujeres: number }[] };
+
+/** Reparte la cuota de sexo y edad de cada distrito entre las hojas de la muestra guardada (mismas manzanas). */
+export async function apiHojasRutaCuotasPorFicha(): Promise<HojasRutaCuotasRepartidas> {
+  const r = await handle<{ resumen?: unknown }>(await apiFetch("/api/hojas-ruta/cuotas-por-ficha", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
+  return {
+    resumen: (esArreglo(r.resumen) ? r.resumen : []).map((x) => {
+      const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+      return { ubigeo: comoTexto(d.ubigeo), distrito: comoTexto(d.distrito), hombres: comoNumero(d.hombres), mujeres: comoNumero(d.mujeres) };
+    }),
+  };
+}
+
+/** ¿La muestra trae las cuotas por sexo repartidas por distrito? (las anteriores al reparto piden 4/4 en todas). */
+export function muestraConCuotasRepartidas(blocks: readonly unknown[] | undefined): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every((b) => b != null && typeof b === "object" && /^\d+,\d+$/.test(comoTexto((b as Record<string, unknown>).cuota_sexo_totals)));
+}
+
 // ---------- Decisión de cobertura (ADR 0115 §4, enmienda U17) ----------
 
 export type HojasRutaDecisionCobertura = {
