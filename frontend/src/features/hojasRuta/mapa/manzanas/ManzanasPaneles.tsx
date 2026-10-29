@@ -93,7 +93,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
   return (
     <>
       <InspectorCabecera icono={Shuffle} sobre="Manzanas" titulo={muestra ? `${muestra.blocks.length} UMP sorteadas` : "Sorteo de manzanas"} />
-      <div className="hr-mapa-ins-cuerpo">
+      {/* B56: los bloques del sorteo van numerados en el orden del trabajo (CSS counter). */}
+      <div className="hr-mapa-ins-cuerpo hr-manz-pasos">
         {muestra ? (
           <section className="hr-muestra-resultado" aria-label="Sorteo vigente">
             <div className="hr-mapa-cifras">
@@ -112,8 +113,6 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
         )}
         {muestra ? parecido : null}
         {!listoParaSortear ? <p className="hr-mapa-aviso">Primero calcula el tamaño en Muestra: el sorteo reparte ese N en rutas de {ruta} entrevistas.</p> : null}
-
-        {marcoElegible}
 
         <section className="hr-muestra-grupo" aria-label="Método">
           <h3>Método</h3>
@@ -152,6 +151,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           </div>
           {listoParaSortear ? <CompararSemillas config={config} deshabilitado={ed} onUsar={(seed) => cambiar({ seed })} /> : null}
         </section>
+
+        {marcoElegible}
 
         <section className="hr-muestra-grupo" aria-label="Recorrido en campo">
           <h3>Recorrido en campo</h3>
@@ -250,11 +251,40 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
     <>
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
-          <h2>Por distrito</h2>
-          <small>{muestra ? `${fmt(muestra.n_blocks)} titulares` : "Sin sorteo"}</small>
+          <h2>Ruteos</h2>
+          <small>{historial.length ? `${historial.length} en este proyecto` : "Sin sorteo"}</small>
         </div>
       </div>
       <div className="hr-mapa-ins-cuerpo">
+        <section className="hr-muestra-grupo" aria-label="Historial de ruteos">
+          {historial.length ? (
+            <ul className="hr-sorteo-historial">
+              {historial.map((h) => (
+                <li key={h.id} data-vigente={vigente(h) || undefined}>
+                  <span>
+                    <strong>{h.label}</strong>
+                    <small>{metodoDe(h.method)} · semilla {h.seed} · {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? ` · con N ${fmt(h.n_final)}` : ""}</small>
+                  </span>
+                  {vigente(h) ? (
+                    <em>En uso</em>
+                  ) : !mismoTerritorio(h.territories, territorios) ? (
+                    <em data-otro title="Se sorteó con otros distritos: repetirlo hoy daría otra muestra">Otro territorio</em>
+                  ) : (
+                    <PulsoButton variant="secondary" size="sm" disabled={bloqueado || guardando} onClick={() => onUsar(h)}>
+                      Usar
+                    </PulsoButton>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hr-mapa-nota">Cada sorteo queda aquí para volver a él con la misma semilla.</p>
+          )}
+        </section>
+        <h3 className="hr-mapa-subtitulo hr-sorteo-subtitulo">
+          <span>Rutas por distrito</span>
+          <span>{muestra ? fmt(muestra.n_blocks) : ""}</span>
+        </h3>
         {filas.length ? (
           <ul className="hr-sorteo-distritos">
             {filas.map(([u, f]) => (
@@ -291,32 +321,6 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
             </ul>
           </section>
         ) : null}
-        <section className="hr-muestra-grupo" aria-label="Historial de ruteos">
-          <h3>Historial de ruteos</h3>
-          {historial.length ? (
-            <ul className="hr-sorteo-historial">
-              {historial.map((h) => (
-                <li key={h.id} data-vigente={vigente(h) || undefined}>
-                  <span>
-                    <strong>{h.label}</strong>
-                    <small>{metodoDe(h.method)} · semilla {h.seed} · {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? ` · con N ${fmt(h.n_final)}` : ""}</small>
-                  </span>
-                  {vigente(h) ? (
-                    <em>En uso</em>
-                  ) : !mismoTerritorio(h.territories, territorios) ? (
-                    <em data-otro title="Se sorteó con otros distritos: repetirlo hoy daría otra muestra">Otro territorio</em>
-                  ) : (
-                    <PulsoButton variant="secondary" size="sm" disabled={bloqueado || guardando} onClick={() => onUsar(h)}>
-                      Usar
-                    </PulsoButton>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="hr-mapa-nota">Cada sorteo queda aquí para volver a él con la misma semilla.</p>
-          )}
-        </section>
       </div>
     </>
   );

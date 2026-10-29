@@ -62,8 +62,8 @@ Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado
 | B52 | Muestra › estructura | peor · bajo | Filas del reparto sin el punto de color del distrito | punto con el tono del distrito en el mapa (verificado: los 6 colores coinciden con el lienzo) | ☑ |
 | B53 | Muestra › inspector | peor · medio | Costo estimado como nota; en el artefacto, tarjeta «Costo estimado del campo» con «Supuestos» | `MuestraPaneles.tsx` | ☐ |
 | B54 | Muestra › inspector | falta · medio | Curva del margen total según N bajo «Margen de error» | `margenTotalParaN` (mismo motor) | ☐ |
-| B55 | Manzanas › estructura | peor · medio | Historial de ruteos al final; en el artefacto, arriba («Ruteos · N en este proyecto») | `ManzanasEstructura` | ☐ |
-| B56 | Manzanas › inspector | peor · medio | Secciones sin el orden del trabajo: el artefacto numera «1 · Método», «2 · Carga de la ruta», «3 · Manzanas elegibles» | `ManzanasInspector` | ☐ |
+| B55 | Manzanas › estructura | peor · medio | Historial de ruteos al final; en el artefacto, arriba («Ruteos · N en este proyecto») | «Ruteos · 3 en este proyecto» arriba y «Rutas por distrito · 150» después | ☑ |
+| B56 | Manzanas › inspector | peor · medio | Secciones sin el orden del trabajo: el artefacto numera «1 · Método», «2 · Carga de la ruta», «3 · Manzanas elegibles» | orden del trabajo numerado por CSS: 1 · Método, 2 · Carga de la ruta, 3 · Marco elegible, 4 · Recorrido en campo, 5 · Reemplazos | ☑ |
 | B57 | Selección › estructura | peor · medio | Filtro «Solo por revisar» como interruptor; en el artefacto, segmentado «Todas · N / Por revisar · N»; grupos de distrito sin su punto de color | segmentado «Todas · 150 / Por revisar · 12» (filtra 150 → 12 → 150) y punto con el tono del distrito en cada grupo | ☑ |
 | B48 | Territorio › inspector | pedido de Gonzalo · medio | Aprovechar el espacio vacío con gráficas preliminares de la selección: peso de cada distrito en la población y perfil NSE de las viviendas | `territorio/TerritorioGraficos.tsx` | ☑ |
 
