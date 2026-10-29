@@ -238,7 +238,8 @@
 .hr-muestra-alts small { font-size: 10.5px; line-height: 1.25; font-weight: 700; color: var(--pulso-text-soft); }
 .hr-muestra-alts b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .hr-muestra-formula summary { cursor: pointer; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); padding: 4px 0 8px; }
-.hr-muestra-reparto { list-style: none; margin: 0; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+/* B36: la lista crece entera; el único scroll es el de la estructura (No Scroll Jail). */
+.hr-muestra-reparto { list-style: none; margin: 0; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .hr-muestra-reparto li { display: flex; flex-direction: column; gap: 6px; padding: 9px 8px; border-radius: 10px; }
 .hr-muestra-reparto li:hover { background: var(--pulso-surface-2); }
 .hr-muestra-rep-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
