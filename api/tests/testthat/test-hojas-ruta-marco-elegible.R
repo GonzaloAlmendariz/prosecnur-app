@@ -173,9 +173,13 @@ test_that("paridad: la vista previa reparte por zona exactamente las titulares q
   b <- .hojas_ruta_rows_df(s$blocks)
   sorteadas <- table(as.character(b$zona))
   p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
-  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(min(z$rutas, z$manzanas), z$zona)))
-  expect_identical(as.integer(sorteadas[names(previstas)]), as.integer(previstas))
-  expect_identical(sum(previstas), as.integer(s$n_blocks))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  # ADR 0117: con un sistemático por distrito la zona recibe ⌊Σπ⌋ o ⌈Σπ⌉ rutas.
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
+  expect_true(all(names(sorteadas) %in% names(previstas)))
+  expect_equal(sum(previstas), s$n_blocks, tolerance = 0.05)
   # Con el mínimo activo ninguna titular cae en una manzana sin viviendas.
   expect_true(all(as.numeric(b$viviendas) >= 1))
 })
@@ -231,20 +235,21 @@ test_that("POST /api/hojas-ruta/marco-elegible/preview está montado, pide distr
 
 # ---------- Revisión de la implementación (D1, D2) ----------
 
-test_that("π sigue la regla del sorteo: censo de zona, igual probabilidad en sistemático, medida ≤ 0 pesa 1", {
-  df_z <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
-  censo <- .hojas_ruta_me_pi(df_z, c("a", "b", "c", "d"), "viviendas", "pps")
-  expect_identical(censo$regla_pi, "censo_de_la_zona")
-  expect_true(all(vapply(censo$seleccionadas, `[[`, numeric(1), "pi") == 1))
-  # En sistemático π no depende de la medida: n_z/N_z para todas.
-  sis <- .hojas_ruta_me_pi(df_z, c("a", "c"), "viviendas", "sistematico")
-  expect_identical(sis$regla_pi, "igual_probabilidad")
+test_that("π sigue la fórmula del sorteo (ADR 0117): n·M_i/ΣM con certezas, M ≤ 0 da 0, igual probabilidad en sistemático", {
+  df <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
+  pps <- .hojas_ruta_me_pi(df, c("a", "b"), list(sampling_method = "pps", measure_var = "viviendas"))
+  expect_identical(pps$regla_pi, "pps_sistematico_distrito")
+  expect_identical(pps$probability_source, "formula")
+  expect_identical(pps$medida_total, 40)
+  expect_identical(pps$manzanas_sin_medida, 2L)
+  # n = 2 con dos manzanas de medida > 0: las dos son certeza.
+  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(1, 1))
+  uno <- .hojas_ruta_me_pi(df, "a", list(sampling_method = "pps", measure_var = "viviendas"), "zona")
+  expect_identical(uno$regla_pi, "pps_sistematico_zona")
+  expect_equal(uno$seleccionadas[[1]]$pi, 30 / 40)
+  sis <- .hojas_ruta_me_pi(df, c("a", "c"), list(sampling_method = "sistematico", measure_var = "viviendas"))
+  expect_identical(sis$regla_pi, "igual_probabilidad_distrito")
   expect_equal(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
-  pps <- .hojas_ruta_me_pi(df_z, c("b", "c"), "viviendas", "pps")
-  expect_true(pps$medida_ajustada)
-  expect_identical(pps$medida_total, 42)
-  # La manzana sin viviendas se sorteó con peso 1: su π no es 0.
-  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(2 * 10 / 42, 2 * 1 / 42))
 })
 
 test_that("el sorteo sistemático da a cada manzana π = n/N, sin repetir ni quedarse corto", {
@@ -289,8 +294,10 @@ test_that("D3: en Campo real la vista previa descuenta el piloto y sigue reparti
   p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
   expect_identical(sum(vapply(p$por_distrito, function(d) d$excluida_piloto$manzanas, integer(1))), 3L)
   sorteadas <- table(as.character(.hojas_ruta_rows_df(s$blocks)$zona))
-  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(min(z$rutas, z$manzanas), z$zona)))
-  expect_identical(as.integer(sorteadas[names(previstas)]), as.integer(previstas))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
 })
 
 test_that("D5: el sorteo guarda el resumen por criterio y no pierde el aviso de un área descartada", {

@@ -549,6 +549,7 @@ errores_registrados <- function() {
     "E_FORM_NOT_FOUND",                                      "router_xlsform_editor.R",           "404",
     "E_FORMATO_EXPORT",                                      "router_carga.R",                    "400",
     "E_FORMATO_INVALIDO",                                    "router_hojas_ruta.R",               "400",
+    "E_FRAME_WITHOUT_MEASURE",                               "hojas_ruta_sorteo_pps.R",           "indirecto",
     "E_FUENTE_OTRO_INSTRUMENTO",                             "carga_sm_agregar_fuente.R",         "409",
     "E_FUENTE_REPETIDA",                                     "carga_sm_agregar_fuente.R",         "409",
     "E_CAMPANA_SIN_PRINCIPAL",                               "xlsform_campanas.R",                "409",

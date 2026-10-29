@@ -530,6 +530,10 @@
   )
   ui_state <- .hojas_ruta_ui_state_normalize(active$run$ui_state %||% list(), cfg, frame_summary = frame_summary)
   workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
+  # ADR 0117: una muestra sin firma se sorteó con v1; se avisa, nunca se re-sortea.
+  if (!is.null(workspace_outputs$sample)) {
+    workspace_outputs$sample <- tryCatch(hojas_ruta_sorteo_aviso_v1(workspace_outputs$sample), error = function(e) workspace_outputs$sample)
+  }
   reporte_meta_raw <- s$hojas_ruta_reporte_decisional %||% list(disponible = FALSE)
   reporte_meta <- list(
     disponible   = isTRUE(reporte_meta_raw$disponible),

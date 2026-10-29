@@ -620,7 +620,7 @@
       "frontend/src/features/monitoreo/profiles/territorial/territorialProfile.css": 17116,
       "frontend/src/features/graficos/v2/styles/editor-v2.css": 33119,
       "frontend/src/app/theme.css": 30216,
-      "api/R/hojas_ruta_engine.R": 10309,
+      "api/R/hojas_ruta_engine.R": 10226,
       "frontend/src/features/carga/carga-v2.css": 9534,
       "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8908,
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
