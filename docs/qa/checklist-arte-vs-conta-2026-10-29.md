@@ -52,5 +52,5 @@ Columna **¿Va?**: ☑ va · ☒ no va · evaluar = mostrarle antes y después �
 | 25 | Título: inicio | x 0,45 in | x 0,59 in | ☐ | ☐ |
 | 26 | Portada: color del título, orden de fecha y «Por encargo» | título azul | título rojo, orden invertido | ☑ (Gonzalo) | ☑ título azul y encargo sobre la fecha (lamina_portada_plantilla.R); confirmar en PowerPoint |
 | 27 | Separadores | título rojo 40 pt | número 110 pt + regla + título azul 30 pt | ☐ | ☐ |
-| 28 | Lámina de cierre | sí | no | ☑ (Gonzalo) | ◐ el motor ya la tiene (`p_slide_cierre`, «Contraportada»); falta añadirla al final del plan de Arte |
+| 28 | Lámina de cierre | sí | no | ☑ (Gonzalo) | ☑ contraportada (`p_slide_cierre`) al final del plan, en `Arte_v1-10_con_cierre.pulso` (el v1-9 queda intacto); mazo de 53 |
 | 29 | Índice anuncia «Metodología y ficha técnica» que no está en el mazo | — | sí | ☒ (se ignora) (Gonzalo) | ☐ |
