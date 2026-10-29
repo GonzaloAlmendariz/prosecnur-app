@@ -58,8 +58,14 @@ hojas_ruta_decision_cobertura_estado <- function(por_distrito, me, bitacora) {
 }
 
 .hojas_ruta_cobertura_frase <- function(exigida) {
-  paste(vapply(exigida, function(d) sprintf("%s pierde el %s %% de su población", if (nzchar(d$distrito)) d$distrito else d$ubigeo,
-                                             formatC(100 * d$excluida, format = "f", digits = 1, decimal.mark = ",")), character(1)), collapse = "; ")
+  pct <- function(x) paste(formatC(100 * x, format = "f", digits = 1, decimal.mark = ","), "%")
+  nombre <- function(d) if (nzchar(d$distrito)) d$distrito else d$ubigeo
+  if (length(exigida) <= 2L) {
+    return(paste(vapply(exigida, function(d) sprintf("%s pierde el %s de su población", nombre(d), pct(d$excluida)), character(1)), collapse = "; "))
+  }
+  # Con muchos distritos, una frase legible: cuántos y el rango.
+  p <- vapply(exigida, `[[`, numeric(1), "excluida")
+  sprintf("%d distritos pierden entre el %s y el %s de su población", length(exigida), pct(min(p)), pct(max(p)))
 }
 
 #' Anota el estado de la decisión en la muestra (`marco_elegible$decision_cobertura`)

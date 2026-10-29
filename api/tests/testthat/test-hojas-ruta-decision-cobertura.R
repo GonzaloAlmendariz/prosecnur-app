@@ -101,3 +101,9 @@ test_that("la muestra lleva el estado y el aviso W_COVERAGE_DECISION_MISSING, si
   sin <- hojas_ruta_decision_cobertura_en_muestra(list(alerts = list()), .me_min(10L), list())
   expect_length(sin$alerts, 0)
 })
+
+test_that("la frase nombra hasta dos distritos y resume el rango con más", {
+  d <- function(n, p) list(ubigeo = n, distrito = n, excluida = p)
+  expect_identical(.hojas_ruta_cobertura_frase(list(d("ATE", 0.124))), "ATE pierde el 12,4 % de su población")
+  expect_match(.hojas_ruta_cobertura_frase(list(d("A", 0.5), d("B", 0.6), d("C", 0.817))), "^3 distritos pierden entre el 50,0 % y el 81,7 %")
+})
