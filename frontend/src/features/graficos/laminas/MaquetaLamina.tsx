@@ -24,6 +24,8 @@ import { datosEstructura } from "./maqueta/datosEstructura";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import { tituloQueSale } from "./tituloQueSale";
+import { antetituloQueSale, useAntetituloSeccionActivo } from "./antetituloQueSale";
+import { leerSlideMeta } from "../slideMeta";
 import "./maquetaLamina.css";
 
 type Props = {
@@ -50,7 +52,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const rectDe = dep ? ranuras.find((r) => r.slot === dep.de)?.rect : undefined;
   const rectA = dep ? ranuras.find((r) => r.slot === dep.a)?.rect : undefined;
   const quienes = dep ? (dep.frase || quienesPorDefecto(dep.habilita)) : "";
-  const antetitulo = lamina.antetituloHeredado;
+  const seccionActiva = useAntetituloSeccionActivo();
+  const antetitulo = antetituloQueSale(leerSlideMeta(slide).antetitulo, lamina.antetituloHeredado, seccionActiva);
   // El pie dice lo que saldrá: la base escrita por el usuario o, si no hay, la que arma el motor.
   const baseEscrita = typeof (slide.payload as Record<string, unknown>).base === "string" ? ((slide.payload as Record<string, unknown>).base as string).trim() : "";
   const formatoBase = typeof (presets.base as Record<string, unknown> | undefined)?.formato === "string" ? ((presets.base as Record<string, unknown>).formato as string) : undefined;

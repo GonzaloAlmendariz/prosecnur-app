@@ -22,6 +22,7 @@ import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
+import { useAntetituloSeccionActivo } from "./antetituloQueSale";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { usePlanValidator } from "../usePlanValidator";
 import { contenidoDeLamina } from "./contenidoLamina";
@@ -165,6 +166,7 @@ export function InspectorLamina({
 }
 
 function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEstructura }) {
+  const seccionActiva = useAntetituloSeccionActivo();
   // Campos de texto de alto propio (una línea, varias líneas, con o sin ayuda): grupo intrínseco.
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { slidesById } = useGraficosRegistry();
@@ -197,13 +199,15 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
             data-campo="antetitulo"
             className="pulso-f6-input"
             value={meta.antetitulo ?? ""}
-            placeholder={lamina.antetituloHeredado ?? "Sin antetítulo"}
+            placeholder={(seccionActiva && lamina.antetituloHeredado) || "Sin antetítulo"}
             onChange={(e) => updatePayload(slide.id, { meta: conSlideMeta(slide, { antetitulo: e.target.value }).payload.meta })}
           />
           <span className="pulso-f6-ayuda">
-            {lamina.antetituloHeredado
+            {lamina.antetituloHeredado && seccionActiva
               ? `Vacío, hereda “${lamina.antetituloHeredado}” del separador.`
-              : "Ningún separador lo precede: sin texto, la lámina sale sin antetítulo."}
+              : lamina.antetituloHeredado
+                ? "Vacío, la lámina sale sin antetítulo: el nombre de la sección está apagado en Estilo."
+                : "Ningún separador lo precede: sin texto, la lámina sale sin antetítulo."}
           </span>
         </div>
       ) : ante.modo === "capitulo" ? (
