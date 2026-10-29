@@ -7,6 +7,8 @@ import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
 import type { ResultadoTamano } from "./motorTamano";
+import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
+import { IccPanel } from "./IccPanel";
 
 /**
  * Muestra en la página del lienzo (U7b). El motor completo vive en el
@@ -84,6 +86,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <div><small>Peor distrito</small><strong data-aviso={excedidos > 0 || undefined}>{pct(peor)}</strong></div>
             <div><small>Contactos</small><strong>{fmt(r.contactos)}</strong></div>
           </div>
+          {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
           {!r.multiploDeRuta ? <p className="hr-mapa-aviso">El N no es múltiplo de {ruta} entrevistas por ruta</p> : null}
           {excedidos ? <p className="hr-mapa-aviso">{excedidos} distrito{excedidos > 1 ? "s superan" : " supera"} su margen objetivo</p> : null}
         </section>
@@ -131,12 +134,30 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <Numero etiqueta="Resultado esperado (p)" sufijo="%" valor={Math.round(s.expected_proportion * 1000) / 10} min={0.1} max={99.9} paso={5} deshabilitado={ed} onCambio={(v) => cambiarS({ expected_proportion: Math.min(0.999, Math.max(0.001, v / 100)) })} />
             <Numero etiqueta="Respuesta esperada" sufijo="%" valor={Math.round(s.response_rate * 100)} min={1} max={100} paso={5} deshabilitado={ed} onCambio={(v) => cambiarS({ response_rate: Math.min(1, Math.max(0.01, v / 100)) })} ayuda={`${fmt(r.contactos)} contactos`} />
           </div>
-          <Opciones etiqueta="Efecto de diseño (DEFF)" valor={s.design_effect} deshabilitado={ed} opciones={[[1, "1,0"], [1.2, "1,2"], [1.5, "1,5"], [2, "2,0"]] as const} onCambio={(v) => cambiarS({ design_effect: v })} />
+          <div className="hr-muestra-dos">
+            <Numero etiqueta="Viviendas ocupadas" sufijo="%" valor={Math.round((s.ocupacion ?? 1) * 100)} min={5} max={100} paso={5} deshabilitado={ed} onCambio={(v) => cambiarS({ ocupacion: Math.min(1, Math.max(0.05, v / 100)) })} />
+            <div className="hr-muestra-campo">
+              <small>Visitas por ruta</small>
+              <strong className="hr-muestra-visitas">{visitasPorRuta(ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 })}</strong>
+              <span className="hr-mapa-nota">hasta {visitasCap(ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 })} en el 90 % de las rutas, para {ruta} entrevistas</span>
+            </div>
+          </div>
+          <Opciones etiqueta="Efecto de diseño (DEFF)" valor={s.design_effect} deshabilitado={ed} opciones={[[1, "1,0"], [1.2, "1,2"], [1.5, "1,5"], [2, "2,0"]] as const} onCambio={(v) => cambiarS({ design_effect: v, design_effect_fuente: "manual", icc_aplicado: null })} />
+          <p className="hr-mapa-nota">
+            {s.design_effect_fuente === "icc_biblioteca" && s.icc_aplicado
+              ? `Desde un estudio previo: ICC ${String(s.icc_aplicado.icc).replace(".", ",")} de ${s.icc_aplicado.estudio || s.icc_aplicado.id} con ${ruta} por ruta.`
+              : s.design_effect_fuente === "manual"
+                ? "Escrito a mano."
+                : s.design_effect_fuente === "legado"
+                  ? "Heredado de la versión anterior del estudio: no se sabe de dónde salió."
+                  : "Por declarar: elige un valor o tráelo de un estudio previo."}
+          </p>
+          <IccPanel config={config} deshabilitado={ed} onAplicar={(ss) => cambiar({ sample_size: ss })} />
           <div className="hr-muestra-guia">
-            <small>Con {ruta} entrevistas por manzana, DEFF ≈ 1 + ({ruta} − 1) × ICC</small>
+            <small>Sin un estudio previo, una guía: con {ruta} entrevistas por ruta, DEFF ≈ 1 + ({ruta} − 1) × ICC</small>
             <div className="hr-mapa-chips">
               {[0.02, 0.05, 0.1].map((icc) => (
-                <button key={icc} type="button" className="hr-mapa-zona" disabled={ed} onClick={() => cambiarS({ design_effect: deffPorIcc(ruta, icc) })}>
+                <button key={icc} type="button" className="hr-mapa-zona" disabled={ed} onClick={() => cambiarS({ design_effect: deffPorIcc(ruta, icc), design_effect_fuente: "manual", icc_aplicado: null })}>
                   <span>ICC {String(icc).replace(".", ",")} → {String(deffPorIcc(ruta, icc)).replace(".", ",")}</span>
                 </button>
               ))}

@@ -346,3 +346,17 @@
 .hr-me-cobertura li[data-tono="decision"] span { color: var(--pulso-danger-fg); }
 .hr-me-dibujo .hr-mapa-acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .hr-me-dibujo .hr-mapa-acciones > :last-child { grid-column: 1 / -1; }
+
+/* No respuesta e ICC (U12d, ADR 0116) */
+.hr-muestra-mas { color: var(--pulso-warn-fg); }
+.hr-muestra-visitas { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hr-icc { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-icc-cab { display: flex; align-items: center; justify-content: space-between; }
+.hr-icc-cab small { font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+.hr-icc-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.hr-icc-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 9px; background: var(--pulso-surface); }
+.hr-icc-lista li:not([data-aplicable]) { opacity: 0.75; }
+.hr-icc-lista span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hr-icc-lista strong { font-size: 12px; }
+.hr-icc-lista small { font-size: 11px; color: var(--pulso-text-soft); }
+.hr-icc-lista small.hr-icc-motivo { color: var(--pulso-warn-fg); }
