@@ -10,7 +10,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
@@ -142,8 +142,15 @@ export default function HojasRutaMapaPage() {
         const territorios = agregar ? confirmados : confirmados.filter((u) => !deLaCiudad.has(u));
         const ciudadesNuevas = agregar ? [...new Set([...enEstudio, codigo])] : enEstudio.filter((c) => c !== codigo);
         const cambiaTerritorio = territorios.length !== confirmados.length;
-        await apiHojasRutaPersistWorkspace({ ...estado.integrated_config, territorios, ciudades: ciudadesNuevas }, { ...estado.ui_state, draft_territories: territorios }, cambiaTerritorio ? {} : undefined, fase);
-        setEstado(await apiHojasRutaState());
+        if (cambiaTerritorio) {
+          await apiHojasRutaPersistWorkspace({ ...estado.integrated_config, territorios, ciudades: ciudadesNuevas }, { ...estado.ui_state, draft_territories: territorios }, {}, fase);
+          setEstado(await apiHojasRutaState());
+        } else {
+          // F1: sin distritos que sacar no se invalida nada: guardado ligero y el estado se actualiza
+          // con la config que devuelve (sin volver a pedir los ~3 MB del estado).
+          const r = await apiHojasRutaGuardarConfig({ ...estado.integrated_config, ciudades: ciudadesNuevas }, fase);
+          setEstado((prev) => (prev ? { ...prev, integrated_config: r.integrated_config } : prev));
+        }
         if (cambiaTerritorio) setBorrador(null);
         if (agregar) setFoco(codigo);
       } catch (e: unknown) {

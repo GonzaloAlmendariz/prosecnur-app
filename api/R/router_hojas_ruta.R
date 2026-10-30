@@ -635,8 +635,11 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid, phase)
       current <- active$run$config %||% list()
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% current)
+      # Checklist F1: un ui_state ausente conserva el guardado (antes se normalizaba vacío y se
+      # perdía el historial de ruteos). Ningún llamador lo omitía; el lienzo lo omite al cambiar ciudades.
+      ui_raw <- parsed$ui_state %||% parsed$uiState
       ui_state <- .hojas_ruta_ui_state_normalize(
-        parsed$ui_state %||% parsed$uiState %||% list(),
+        if (is.null(ui_raw)) active$run$ui_state %||% list() else ui_raw,
         cfg
       )
       has_outputs <- any(c("workspace_outputs", "workspaceOutputs", "outputs") %in% names(parsed))
@@ -666,6 +669,11 @@ mount_hojas_ruta <- function(pr) {
       # Plan R3: una ciudad que no existe en el registro se descarta, y se dice.
       descartadas <- .hojas_ruta_ciudades_descartadas(parsed$config[["ciudades"]], cfg)
       alerts <- if (length(descartadas)) list(list(level = "warn", code = "W_HOJAS_RUTA_CIUDAD_DESCARTADA", message = sprintf("Sin cartografía para: %s.", paste(descartadas, collapse = ", ")), codigos = as.list(descartadas))) else list()
+      # Checklist F1: `ligero` devuelve sólo lo que cambia; la respuesta completa pesa ~3 MB
+      # (historial de ruteos y salidas de cada fase) y la página clásica y Material la usan.
+      if (isTRUE(parsed$ligero)) {
+        return(list(ok = TRUE, integrated_config = run$config, active_phase = active$phase, alerts = alerts))
+      }
       list(
         ok = TRUE,
         integrated_config = run$config,

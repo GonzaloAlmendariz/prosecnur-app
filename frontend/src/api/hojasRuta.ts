@@ -871,6 +871,21 @@ export function cuerpoPersistWorkspace(
   };
 }
 
+/**
+ * Guarda sólo la configuración (checklist F1): sin ui_state ni salidas en la ida (el backend
+ * conserva los guardados) y sin el eco de ~3 MB en la vuelta (`ligero`). Para cambios que no
+ * invalidan nada, como agregar una ciudad sin distritos.
+ */
+export async function apiHojasRutaGuardarConfig(config: Partial<HojasRutaIntegratedConfig>, phase?: HojasRutaPhase) {
+  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; active_phase?: HojasRutaPhase; alerts?: HojasRutaAlert[] }>(
+    await apiFetch("/api/hojas-ruta/workspace", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, ...(phase ? { phase } : {}), ligero: true }),
+    }),
+  );
+}
+
 export async function apiHojasRutaPersistWorkspace(
   config: Partial<HojasRutaIntegratedConfig>,
   uiState: Partial<HojasRutaUiState>,
