@@ -34,14 +34,16 @@ type PropsDeVista = {
   estadosDelBarrido?: ReactNode;
   /** «Eventos de contacto» y reglas de estado final, con su propio guardado. */
   eventos?: ReactNode;
+  /** Fuentes del estudio: una con canal telefónico también activa las alertas de llamadas. */
+  fuentes?: MonitoreoState["sources"];
 };
 
-export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, guardando, mensaje, estadosDelBarrido, eventos }: PropsDeVista) {
+export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, guardando, mensaje, estadosDelBarrido, eventos, fuentes }: PropsDeVista) {
   const perfil = config.monitoreo_profile;
   const problemas = problemasDelBorrador(borrador);
   const cambiado = hayCambios(config, borrador);
   // Con barrido o algún público con teléfono, las alertas de llamadas aplican.
-  const conTelefono = Boolean(estadosDelBarrido) || estudioUsaTelefono({ config: { monitoreo_profile: perfil } });
+  const conTelefono = Boolean(estadosDelBarrido) || estudioUsaTelefono({ config: { monitoreo_profile: perfil }, sources: fuentes ?? [] });
   return (
     <div className="acr-rg">
       <section className="acr-av-panel acr-rg-barra-tarjeta" aria-label="Reglas del estudio">
@@ -160,6 +162,7 @@ export function Reglas({
       mensaje={mensaje}
       estadosDelBarrido={estadosDelBarrido}
       eventos={eventos}
+      fuentes={state?.sources}
     />
   );
 }

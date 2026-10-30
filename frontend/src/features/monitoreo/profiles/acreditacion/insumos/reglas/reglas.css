@@ -191,3 +191,7 @@
   outline: 2px solid var(--pulso-brand-navy);
   outline-offset: -2px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .acr-rg-plegable > summary::before { transition: none; }
+}
