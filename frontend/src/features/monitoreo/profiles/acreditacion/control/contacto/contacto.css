@@ -381,9 +381,13 @@
   font-size: 10.5px;
 }
 
+/* El siguiente envío de la serie: dice que falta, no una caja en blanco. */
 .acr-co-celda.is-vacia {
   border: 1px dashed var(--pulso-border);
   background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .acr-co-publico {
@@ -449,7 +453,8 @@
 
 .acr-co-embudos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* auto-fit: con un solo envío el embudo ocupa el ancho, sin media tarjeta vacía. */
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: var(--pulso-space-4);
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
 }
@@ -476,7 +481,7 @@
 
 .acr-co-embudo li {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr) 48px 48px;
+  grid-template-columns: 280px minmax(0, 1fr) 64px 56px;
   align-items: center;
   gap: var(--pulso-space-2);
 }
@@ -486,15 +491,31 @@
   text-align: right;
 }
 
-.acr-co-etiqueta {
-  display: block;
-  font-weight: var(--pulso-weight-regular);
+.acr-co-paso {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Una tasa que no mide lo que su rótulo dice queda atenuada, no escondida. */
+.acr-co-embudo li.is-dudoso .acr-av-pista > i {
+  opacity: 0.35;
+}
+
+.acr-co-embudo li.is-dudoso > b,
+.acr-co-embudo li.is-dudoso > span:last-child {
+  color: var(--pulso-text-soft);
 }
 
 .acr-co-papeles {
-  margin: 0;
+  margin: 2px 0 0;
   padding: 0;
   list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
 }
 
 .acr-co-cuerpo {
@@ -551,6 +572,18 @@
 
 .acr-co-tasas b {
   text-align: right;
+}
+
+.acr-co-tasas li > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+/* Cada público con su color, el mismo de la secuencia de la izquierda. */
+.acr-co-tasas .acr-av-pista > i {
+  background: var(--publico, var(--acr-efectiva));
 }
 
 @media (max-width: 1200px), (max-height: 720px) {

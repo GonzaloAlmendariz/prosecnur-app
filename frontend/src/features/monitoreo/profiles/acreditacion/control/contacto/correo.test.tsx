@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { MonitoreoMailchimpEnvio, MonitoreoMailchimpEstado, MonitoreoMailchimpPublico } from "../../../../../../api/monitoreoMailchimp";
-import { campanas, csvDeInvalidos, secuenciaDeEnvios, tasasPorPublico } from "./correoModelo";
+import { campanas, csvDeInvalidos, secuenciaDeEnvios, tasasPorPublico, aperturaAutomatica, papelesQueInforman } from "./correoModelo";
 import { CorreoVista } from "./Correo";
 
 const cifras = (entregados: number, abrieron: number, clics: number, respuestas: number) => ({
@@ -64,5 +64,14 @@ describe("Control › Correo", () => {
     }
     expect(html).toContain("Base alcanzable de 7");
     expect(html).not.toMatch(/sin_envios|rebote_duro|tasa_alcanzable|>seguir</);
+  });
+
+  it("una apertura casi total no se lee como lectura, y el papel sólo se dice cuando informa", () => {
+    expect(aperturaAutomatica(21808, 22811)).toBe(true);
+    expect(aperturaAutomatica(1727, 11230)).toBe(false);
+    expect(aperturaAutomatica(null, 100)).toBe(false);
+    const lista = campanas(publicos, envios);
+    expect(papelesQueInforman(lista[0])).toEqual([]);
+    expect(papelesQueInforman(lista[1])).toHaveLength(1);
   });
 });
