@@ -30,6 +30,11 @@ describe("Avance › Salidas", () => {
     expect(cierre.puntos.map((punto) => punto.valor)).toEqual(["1 de 2", "23", "Anterior al corte", "Sin aprobar"]);
   });
 
+  it("mientras los casos no llegan, el cierre dice «Contando…» y no una instrucción", () => {
+    const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 1, 10)], esperan: null, publicaciones: publicacionesFrenteAlCorte(null, null, null), acreditacion });
+    expect(cierre.puntos.find((punto) => punto.rotulo === "Casos por resolver")?.valor).toBe("Contando…");
+  });
+
   it("sigue la regla del motor para cerrar", () => {
     expect(puedeCerrar(true, "", false)).toBe(false);
     expect(puedeCerrar(true, "Refuerzo por teléfono", false)).toBe(true);

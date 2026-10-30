@@ -100,4 +100,12 @@ describe("fecha local del corte", () => {
     expect(fechaLocal("no es fecha")).toBeNull();
     expect(fechaLocal(null)).toBeNull();
   });
+
+  it("con un solo día de campo dice la fecha una vez, no «29 oct a 29 oct»", () => {
+    const html = renderToStaticMarkup(
+      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={[{ Actor: "Docentes", Fecha: "2026-10-29", Efectivas: 5 }]} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} />,
+    );
+    expect(html).toMatch(/29 oct, por público/);
+    expect(html).not.toMatch(/29 oct a 29 oct/);
+  });
 });

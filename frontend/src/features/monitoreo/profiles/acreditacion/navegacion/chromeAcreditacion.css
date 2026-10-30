@@ -114,7 +114,7 @@
   /* En una tarjeta angosta (filtros de Por resolver a 1280) el rótulo envuelve
    * en vez de cortarse («POR RESOLVI…», QA 30/10). */
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .acr-enc-derecha,

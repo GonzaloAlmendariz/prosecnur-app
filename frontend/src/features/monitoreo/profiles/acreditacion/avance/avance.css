@@ -1079,9 +1079,9 @@
 /* ------------------------------------------------------------- Ventanas */
 
 /* A 1366 la tabla de Por público con el panel abierto no alcanza para la
- * columna de 14 días (QA 30/10: «columnas ocultas» a 1366x768): se esconde
- * hasta 1500 px; la serie está en el panel del público. */
-@media (max-width: 1500px) {
+ * columna de 14 días (QA 30/10: «columnas ocultas» a 1366x768); a 1440 cabe.
+ * Se esconde hasta 1400 px; la serie está en el panel del público. */
+@media (max-width: 1400px) {
   .acr-pub-col-ultimos { display: none; }
 }
 
@@ -1664,8 +1664,8 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   max-width: 230px;
 }
 
-/* Una celda de fila que es flex (Personas) deja de ser celda: el alto fijo la
- * recortaría con nombres de dos líneas. */
+/* El nombre y la barra de Personas se apilan dentro de la celda: con alto fijo
+ * se recortarían los nombres de dos líneas. */
 .acr-ps-estados tbody th[scope="row"] {
   height: auto;
   min-height: 42px;
