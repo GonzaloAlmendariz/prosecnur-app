@@ -8,6 +8,7 @@ import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { DialogoCerrarCampo } from "./DialogoCerrarCampo";
 import { estadoDelCierre, publicacionesFrenteAlCorte, type EstadoDelCierre, type PublicacionFrenteAlCorte } from "./salidasModelo";
 import "./avance.css";
+import "./salidasEntregables.css";
 import "../insumos/insumos.css";
 import "../insumos/reglas/reglas.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
