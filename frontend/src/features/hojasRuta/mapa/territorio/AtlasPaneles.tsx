@@ -3,6 +3,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { proyectarLonLat } from "../lienzo/camara";
 import type { CiudadAtlas } from "./ciudades";
+import { ciudadesDeDepartamento } from "./atlasFoco";
 import "./atlas.css";
 
 /**
@@ -34,13 +35,17 @@ type EstructuraProps = {
   enEstudio: readonly string[];
   confirmados: readonly string[];
   enfocada: string | null;
+  /** Departamento enfocado en el mapa: la lista de otras ciudades se limita a las suyas. */
+  departamento?: string | null;
   onEnfocar: (codigo: string | null) => void;
   onAbrir: (codigo: string) => void;
+  onTodoPeru?: () => void;
 };
 
-export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, onEnfocar, onAbrir }: EstructuraProps) {
+export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, departamento = null, onEnfocar, onAbrir, onTodoPeru }: EstructuraProps) {
   const delEstudio = ciudades.filter((c) => enEstudio.includes(c.codigo));
-  const otras = ciudades.filter((c) => !enEstudio.includes(c.codigo));
+  const delDepartamento = departamento ? new Set(ciudadesDeDepartamento(ciudades, departamento).map((c) => c.codigo)) : null;
+  const otras = ciudades.filter((c) => !enEstudio.includes(c.codigo) && (!delDepartamento || delDepartamento.has(c.codigo)));
   const elegidos = new Set(confirmados);
   return (
     <div className="hr-atlas-estructura">
@@ -72,7 +77,12 @@ export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, on
         ) : (
           <p className="hr-atlas-vacio">Todavía ninguna. Haz clic en una ciudad del mapa o elígela abajo.</p>
         )}
-        <h3>Otras ciudades con cartografía <span>{otras.length}</span></h3>
+        {departamento || enfocada ? (
+          <button type="button" className="hr-atlas-volver" onClick={onTodoPeru}>
+            <ChevronLeft size={14} aria-hidden="true" /> Todo el Perú
+          </button>
+        ) : null}
+        <h3>{departamento ? `Ciudades de ${departamento}` : "Otras ciudades con cartografía"} <span>{otras.length}</span></h3>
         <ul>
           {otras.map((c) => (
             <li key={c.codigo}>
@@ -86,6 +96,7 @@ export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, on
             </li>
           ))}
         </ul>
+        {departamento && !otras.length ? <p className="hr-atlas-vacio">{departamento} no tiene otras ciudades con cartografía de manzanas.</p> : null}
       </div>
     </div>
   );
@@ -173,5 +184,29 @@ export function CiudadCabecera({ ciudad, onVolver }: { ciudad: CiudadAtlas; onVo
         </span>
       </div>
     </div>
+  );
+}
+
+/** Miga del atlas por niveles: Perú › departamento › ciudad, con cada nivel clicable para subir. */
+export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, onPeru, onDepartamento }: {
+  total: number;
+  departamento: string | null;
+  ciudad: CiudadAtlas | null;
+  distritos: number;
+  cargando: boolean;
+  onPeru: () => void;
+  onDepartamento: (nombre: string) => void;
+}) {
+  const dep = ciudad ? (ciudad.codigo === "lima" ? null : ciudad.departamento) : departamento;
+  if (!dep && !ciudad) return <><b>Perú</b><span className="hr-lienzo-miga-ayuda"> · {total} ciudades con cartografía; el tamaño es su población</span></>;
+  return (
+    <>
+      <button type="button" className="hr-miga-nivel" onClick={onPeru}>Perú</button>
+      {dep ? <> › {ciudad ? <button type="button" className="hr-miga-nivel" onClick={() => onDepartamento(dep)}>{dep}</button> : <b>{dep}</b>}</> : null}
+      {ciudad ? <> › <b>{ciudad.nombre}</b></> : null}
+      <span className="hr-lienzo-miga-ayuda">
+        {ciudad ? (cargando ? " · cargando sus distritos…" : ` · ${distritos} distrito${distritos === 1 ? "" : "s"}; «Elegir distritos» para trabajarlos`) : " · clic en una ciudad para ver su ficha"}
+      </span>
+    </>
   );
 }

@@ -43,6 +43,35 @@ DEPARTAMENTOS <- c(
 )
 # Sin tildes a mano: iconv //TRANSLIT de macOS deja «'A» en vez de «A».
 clave <- function(s) toupper(gsub("^EL\\s+", "", chartr("ÁÉÍÓÚÜÑáéíóúüñ", "AEIOUUNaeiouun", trimws(s))))
+# Nombre de la CIUDAD, no de la provincia: el analista elige Tarapoto, no «San Martín» (Gonzalo, 2026-10-30).
+NOMBRE_CIUDAD <- c(
+  "0201" = "Huaraz",
+  "0218" = "Chimbote",
+  "0401" = "Arequipa",
+  "0501" = "Ayacucho",
+  "0608" = "Jaén",
+  "0801" = "Cusco",
+  "1001" = "Huánuco",
+  "1101" = "Ica",
+  "1102" = "Chincha Alta",
+  "1105" = "Pisco",
+  "1201" = "Huancayo",
+  "1301" = "Trujillo",
+  "1401" = "Chiclayo",
+  "1502" = "Barranca",
+  "1508" = "Huacho",
+  "1601" = "Iquitos",
+  "2001" = "Piura",
+  "2005" = "Paita",
+  "2006" = "Sullana",
+  "2101" = "Puno",
+  "2111" = "Juliaca",
+  "2209" = "Tarapoto",
+  "2301" = "Tacna",
+  "2401" = "Tumbes",
+  "2501" = "Pucallpa"
+)
+
 codigo_de <- function(nombre) {
   hit <- names(DEPARTAMENTOS)[clave(DEPARTAMENTOS) == clave(nombre)]
   if (!length(hit)) stop("Departamento sin código: ", nombre, call. = FALSE)
@@ -151,7 +180,7 @@ indice <- lapply(sort(unique(cod_ciudad)), function(cc) {
   p1 <- fs[[1]]$properties
   list(
     codigo = cc,
-    nombre = if (cc == "lima") "Lima y Callao" else titulo(p1$provincia),
+    nombre = if (cc == "lima") "Lima y Callao" else if (cc %in% names(NOMBRE_CIUDAD)) unname(NOMBRE_CIUDAD[[cc]]) else titulo(p1$provincia),
     departamento = if (cc == "lima") "Lima Metropolitana y Callao" else unname(DEPARTAMENTOS[[substr(p1$ubigeo, 1, 2)]]),
     regiones = if (cc == "lima") c("15", "07") else list(substr(p1$ubigeo, 1, 2)),
     ubigeos = as.list(vapply(fs, function(f) f$properties$ubigeo, "")),  # lista: auto_unbox desarma un solo distrito

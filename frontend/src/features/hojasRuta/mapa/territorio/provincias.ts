@@ -1,4 +1,5 @@
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
+import { CIUDADES, LIMA, ciudadDeUbigeo } from "./ciudades";
 
 /**
  * Provincias del registro de territorios (ADR 0119). Lima y Callao van primero, como siempre;
@@ -27,10 +28,13 @@ export function claveProvincia(t: Pick<HojasRutaTerritory, "provincia" | "provin
   return t.provincia_codigo || t.provincia;
 }
 
-export function etiquetaProvincia(t: Pick<HojasRutaTerritory, "provincia" | "departamento">): string {
+export function etiquetaProvincia(t: Pick<HojasRutaTerritory, "provincia" | "departamento"> & { ubigeo?: string }): string {
   if (t.provincia === "LIMA" && t.departamento === "LIMA") return "Lima Metropolitana";
   if (t.provincia === "CALLAO") return "Callao";
-  const prov = titulo(t.provincia);
+  // La provincia de una ciudad del atlas se nombra como la ciudad: Tarapoto, no «San Martín» (Gonzalo, 2026-10-30).
+  const codigoCiudad = t.ubigeo ? ciudadDeUbigeo(t.ubigeo) : null;
+  const ciudad = codigoCiudad && codigoCiudad !== LIMA ? CIUDADES.find((c) => c.codigo === codigoCiudad)?.nombre : undefined;
+  const prov = ciudad ?? titulo(t.provincia);
   return t.departamento && t.departamento !== t.provincia ? `${prov} · ${titulo(t.departamento)}` : prov;
 }
 

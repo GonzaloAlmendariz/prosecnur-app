@@ -41,6 +41,9 @@ type EstadoLienzo = {
   /** Atlas de Territorio: la ciudad cuya tarjeta se ve en el inspector (dirección A). */
   ciudadEnfocada: string | null;
   setCiudadEnfocada: (codigo: string | null) => void;
+  /** Atlas: departamento enfocado (zoom a sus ciudades); null = todo el Perú. */
+  departamentoEnfocado: string | null;
+  setDepartamentoEnfocado: (nombre: string | null) => void;
   setDistritoEnfocado: (ubigeo: string | null) => void;
   /** Capa de las manzanas en Territorio, Manzanas y Selección (brecha B7). */
   capaMapa: CapaLienzo;
@@ -63,7 +66,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -81,6 +84,7 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada }),
+  setDepartamentoEnfocado: (departamentoEnfocado) => set({ departamentoEnfocado }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
   setBusquedaDistrito: (busquedaDistrito) => set({ busquedaDistrito }),
   setSoloElegidos: (soloElegidos) => set({ soloElegidos }),

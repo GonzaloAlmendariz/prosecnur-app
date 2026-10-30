@@ -18,7 +18,7 @@ import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type Limites
 import { useFoco } from "../../../lib/navegacion/useFoco";
 import { ciudadAbiertaDeFoco, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, LIMA, regionesDe } from "./territorio/ciudades";
 import { useContornosRegiones } from "./territorio/useContornosRegiones";
-import { AtlasEstructura, AtlasInspector, CiudadCabecera } from "./territorio/AtlasPaneles";
+import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
 import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
@@ -54,6 +54,7 @@ import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPanele
 import { MarcoElegiblePanel } from "./manzanas/MarcoElegiblePanel";
 import { cierraEnPrimero, MARCO_NUEVO } from "./manzanas/marcoElegible";
 import { proyectarLonLat } from "./lienzo/camara";
+import { cajaDelAtlas, departamentoEnPunto } from "./territorio/atlasFoco";
 import { revisarSeleccion } from "../seleccion/revisionMarco";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
@@ -83,7 +84,7 @@ export default function HojasRutaMapaPage() {
   const [guardando, setGuardando] = useState(false);
   // Al volver a un ruteo: si la muestra que salió es la de entonces, y si no, por qué.
   const [ruteoUsado, setRuteoUsado] = useState<{ id: string; causa: CausaRuteo } | null>(null);
-  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada, departamentoEnfocado, setDepartamentoEnfocado } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada, cajon } = useSeleccionDireccion();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
@@ -112,7 +113,8 @@ export default function HojasRutaMapaPage() {
   const atlas = useMemo(() => ciudadesDelAtlas(estado?.territories ?? []), [estado]);
   const enEstudio = useMemo(() => ciudadesDelEstudio(estado?.integrated_config.ciudades, confirmados), [estado, confirmados]);
   // Sólo se piden las regiones de las ciudades en juego: las del estudio, la abierta y las del borrador.
-  const regiones = useMemo(() => regionesDe([...enEstudio, ...(ciudadAbierta ? [ciudadAbierta] : []), ...borrador.map((u) => ciudadDeUbigeo(u) ?? "")]), [enEstudio, ciudadAbierta, borrador]);
+  // La ciudad enfocada en el atlas también carga sus distritos: el zoom los muestra.
+  const regiones = useMemo(() => regionesDe([...enEstudio, ...(ciudadAbierta ? [ciudadAbierta] : []), ...(enTerritorio && ciudadEnfocada ? [ciudadEnfocada] : []), ...borrador.map((u) => ciudadDeUbigeo(u) ?? "")]), [enEstudio, ciudadAbierta, enTerritorio, ciudadEnfocada, borrador]);
   const { contornos, cargando: regionesCargando } = useContornosRegiones(regiones);
   // Por ciudad y no por nombre: Arequipa también tiene su Miraflores.
   const zonas = useMemo(() => zonasDeLima(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === LIMA)), [contornos]);
@@ -360,16 +362,30 @@ export default function HojasRutaMapaPage() {
   const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? cajaLima, [contornos, confirmados, cajaLima]);
   // Atlas: el país; ciudad abierta: sus distritos (o su silueta mientras llegan).
   const cajaTerritorio = useMemo(() => {
-    if (enAtlas) return limites.pais[0]?.caja ?? null;
+    // Atlas por niveles: el Perú, un departamento (sus ciudades) o una ciudad (sus distritos).
+    if (enAtlas) return cajaDelAtlas({ atlas, departamentos: limites.departamentos, pais: limites.pais[0]?.caja ?? null, departamento: departamentoEnfocado, ciudad: ciudadEnfocada, distritosCiudad: contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => c.caja) });
     if (!ciudadAbierta) return null;
     return unirCajas(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta).map((c) => c.caja)) ?? atlas.find((c) => c.codigo === ciudadAbierta)?.caja ?? null;
-  }, [enAtlas, ciudadAbierta, contornos, atlas]);
+  }, [enAtlas, ciudadAbierta, contornos, atlas, departamentoEnfocado, ciudadEnfocada]);
   const contornosAbiertos = useMemo(() => (ciudadAbierta ? contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta) : contornos), [contornos, ciudadAbierta]);
 
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       dibujarLimites(ctx, u, limites);
-      if (enAtlas) return;  // en el atlas, las ciudades van en pantalla como círculos
+      if (enAtlas) {
+        // El departamento enfocado se distingue de las provincias con el acento del módulo.
+        const dep = departamentoEnfocado ? limites.departamentos.find((d) => d.nombre === departamentoEnfocado) : null;
+        if (dep) {
+          ctx.save();
+          ctx.strokeStyle = u.colores.acento;
+          ctx.lineWidth = 2 * u.px;
+          ctx.stroke(u.trazo(dep));
+          ctx.restore();
+        }
+        // En el atlas las ciudades van en pantalla como círculos; la enfocada muestra sus distritos.
+        if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), () => ({ relleno: u.colores.fondo, borde: u.colores.distritoBorde, grosor: 0.9 }));
+        return;
+      }
       dibujarContornos(ctx, u, enTerritorio ? contornosAbiertos : contornos, (c) => {
         const conf = confirmados.includes(c.ubigeo);
         // B9: cada distrito confirmado lleva su tono, en el orden de confirmación.
@@ -388,7 +404,7 @@ export default function HojasRutaMapaPage() {
         };
       });
     },
-    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos],
+    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado],
   );
   // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el naranja).
   const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && capaMapa !== "manzanas";
@@ -481,6 +497,8 @@ export default function HojasRutaMapaPage() {
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       if (enAtlas) {
         dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, ciudadEnfocada);
+        // La ciudad enfocada muestra sus distritos con nombre (zoom de ciudad).
+        if (ciudadEnfocada) dibujarNombresFuera(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
         return;
       }
       dibujarNombresDepartamento(ctx, u, limites);
@@ -593,7 +611,7 @@ export default function HojasRutaMapaPage() {
         {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
         <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">
           {enAtlas && estado ? (
-            <AtlasEstructura ciudades={atlas} enEstudio={enEstudio} confirmados={confirmados} enfocada={ciudadEnfocada} onEnfocar={setCiudadEnfocada} onAbrir={(c) => setFoco(c)} />
+            <AtlasEstructura ciudades={atlas} enEstudio={enEstudio} confirmados={confirmados} enfocada={ciudadEnfocada} departamento={departamentoEnfocado} onEnfocar={setCiudadEnfocada} onAbrir={(c) => setFoco(c)} onTodoPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} />
           ) : enTerritorio && estado && ciudadAbierta ? (
             <>
               {atlas.find((c) => c.codigo === ciudadAbierta) ? <CiudadCabecera ciudad={atlas.find((c) => c.codigo === ciudadAbierta)!} onVolver={() => { setCiudadEnfocada(ciudadAbierta); setFoco(null); }} /> : null}
@@ -631,13 +649,13 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <><b>Perú</b><span className="hr-lienzo-miga-ayuda"> · {atlas.length} ciudades con cartografía; el tamaño es su población</span></> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? " · cargando su mapa…" : <span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? " · cargando su mapa…" : <span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={!enAtlas && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? "pe"}:${ciudadAbierta && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornos.some((c) => confirmados.includes(c.ubigeo)) ? "distritos" : "ciudad"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornos.some((c) => confirmados.includes(c.ubigeo)) ? "distritos" : "ciudad"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
@@ -657,7 +675,14 @@ export default function HojasRutaMapaPage() {
                   // El mapa informa: un clic abre la tarjeta de la ciudad en el inspector.
                   const [px, py] = u.aPantalla(x, y);
                   const c = ciudadEnPantalla(u, atlas, px, py);
-                  setCiudadEnfocada(c && c.codigo !== ciudadEnfocada ? c.codigo : null);
+                  if (c) {
+                    setCiudadEnfocada(c.codigo !== ciudadEnfocada ? c.codigo : null);
+                    return;
+                  }
+                  // Fuera de una ciudad: el departamento bajo el clic (zoom a sus ciudades); fuera del país, todo el Perú.
+                  const d = departamentoEnPunto(limites.departamentos, x, y);
+                  setCiudadEnfocada(null);
+                  setDepartamentoEnfocado(d && d.nombre !== departamentoEnfocado ? d.nombre : null);
                 }
               : enTerritorio
               ? ([x, y]) => {
