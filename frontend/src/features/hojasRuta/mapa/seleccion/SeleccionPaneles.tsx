@@ -159,6 +159,12 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           ) : (
             <p className="hr-mapa-nota">La hoja de esta ruta se ve e imprime en Material de campo, después de enviar la muestra desde «Entrega».</p>
           )}
+          {/* Checklist I1: el avance de campo vive en Monitoreo (D2); la UMP es la misma llave en los dos módulos. */}
+          {titular.hoja_num ? (
+            <Link className="hr-entrega-enlace" to={`/monitoreo?modo=territorial&seccion=avance&pestana=mapa&panel=ump&foco=${titular.hoja_num}`}>
+              Ver su avance en Monitoreo
+            </Link>
+          ) : null}
           <section className="hr-muestra-grupo" aria-label="Reemplazos en orden">
             <h3>Reemplazos en orden</h3>
             {suyos.length ? (
