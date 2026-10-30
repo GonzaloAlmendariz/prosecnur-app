@@ -528,6 +528,47 @@
   color: var(--pulso-text);
 }
 
+/* `.mon-page .pulso-panel button` (monitoreo.css, especificidad 0,2,1, y su
+   :hover 0,3,1) viste de botón a todo botón del panel: los encabezados que
+   ordenan y el nombre del público salían en caja, con relleno, mientras el
+   resto de encabezados es texto. Aquí son texto que se puede pulsar; se
+   recupera con más especificidad, no con el orden del bundle. */
+.mon-correo-tabla thead button.mon-correo-orden,
+.mon-correo-tabla tbody button.mon-correo-publico-nombre {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.mon-correo-tabla thead button.mon-correo-orden {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.mon-correo-tabla thead button.mon-correo-orden:hover,
+.mon-correo-tabla thead button.mon-correo-orden.is-activo {
+  color: var(--pulso-text);
+}
+
+.mon-correo-tabla tbody button.mon-correo-publico-nombre {
+  justify-content: flex-start;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-correo-tabla tbody button.mon-correo-publico-nombre:hover {
+  color: var(--pulso-text);
+}
+
+.mon-correo-tabla tbody button.mon-correo-publico-nombre[aria-pressed="true"] {
+  color: var(--publico-texto);
+}
+
 .mon-correo-matriz th.es-publico {
   min-width: 300px;
 }
