@@ -11,6 +11,7 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { Link } from "react-router-dom";
+import { accionDeObservacion, type AccionObservacion } from "./accionesRevision";
 import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
@@ -107,9 +108,11 @@ type InspectorProps = {
   enviada?: boolean;
   /** Rutas por revisar: el número de la barra y de la lista (F15). */
   rutasPorRevisar?: number;
+  /** Mínimo de viviendas del marco elegible declarado; null sin marco (decide la acción de cada observación, F23). */
+  minimoMarco?: number | null;
 };
 
-export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false, rutasPorRevisar }: InspectorProps) {
+export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false, rutasPorRevisar, minimoMarco = null }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
@@ -223,6 +226,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             <article key={g.tipo} className="hr-sel-grupo" data-estado={g.tono}>
               <strong>{g.titulo}</strong>
               <small>{g.detalle}</small>
+              <AccionDelGrupo accion={accionDeObservacion(g.tipo, minimoMarco)} />
               <div className="hr-mapa-chips">
                 {g.umps.slice(0, 12).map((u) => (
                   <button key={u.idManzana} type="button" className="hr-mapa-zona" onClick={() => setUmpEnfocada(reemplazos.find((r) => r.id_manzana === u.idManzana)?.titular_id_manzana ?? u.idManzana)} title={u.titular ? `Abre la ficha de ${u.titular}` : undefined}>
@@ -245,6 +249,17 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         </PulsoButton>
       </footer>
     </>
+  );
+}
+
+/** F23: dónde se arregla lo que la observación describe. */
+function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
+  if (!accion) return null;
+  return (
+    <p className="hr-sel-accion">
+      {accion.texto}{" "}
+      {accion.aManzanas ? <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link> : null}
+    </p>
   );
 }
 

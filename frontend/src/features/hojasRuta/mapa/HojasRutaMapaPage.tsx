@@ -677,6 +677,7 @@ export default function HojasRutaMapaPage() {
             <SeleccionInspector
               enviada={Boolean(envio)}
               rutasPorRevisar={porRevisarTotal}
+              minimoMarco={estado?.integrated_config.marco_elegible?.declarado ? estado.integrated_config.marco_elegible.minimo_viviendas ?? 0 : null}
               titular={titularEnfocada}
               estado={titularEnfocada ? estados.get(titularEnfocada.id_manzana) ?? "ok" : "ok"}
               reemplazos={bloquesReemplazos}
