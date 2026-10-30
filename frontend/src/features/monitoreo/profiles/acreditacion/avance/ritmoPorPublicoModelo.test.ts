@@ -27,6 +27,7 @@ describe("Avance › Ritmo por público", () => {
     expect(pregrado.promedio7).toBe(162);
     expect(pregrado.diasALaMeta).toBe(Math.ceil((4542 - 324) / 162));
     expect(pregrado.ultimos).toEqual([220, 104]);
+    expect(pregrado.diasDelPromedio).toBe(2);
   });
 
   it("«Otros públicos» no lleva tarjeta y sin meta no se proyecta", () => {
@@ -40,5 +41,14 @@ describe("Avance › Ritmo por público", () => {
   it("sin efectivas recientes no hay ritmo con qué proyectar", () => {
     const quieta = { ...serie, capas: [{ publico: "Administrativos", valores: [5, 0, 0, 0, 0, 0, 0, 0], total: 5 }] };
     expect(ritmoPorPublico(quieta, actores)[0].diasALaMeta).toBeNull();
+  });
+
+  it("con exactamente siete públicos el séptimo lleva la capa 7 (no hay «Otros»)", () => {
+    const siete = {
+      fechas: ["2026-10-29"], totales: [70],
+      capas: Array.from({ length: 7 }, (_, i) => ({ publico: `P${i + 1}`, valores: [10 - i], total: 10 - i })),
+    };
+    const capas = ritmoPorPublico(siete, []).map((item) => item.capa).sort((a, b) => a - b);
+    expect(capas).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 });

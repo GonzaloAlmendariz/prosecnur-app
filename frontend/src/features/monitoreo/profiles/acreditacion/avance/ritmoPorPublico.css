@@ -63,6 +63,8 @@
 .acr-rp-publico.is-capa-4 { --acr-rp-color: var(--acr-capa-4); }
 .acr-rp-publico.is-capa-5 { --acr-rp-color: var(--acr-capa-5); }
 .acr-rp-publico.is-capa-6 { --acr-rp-color: var(--acr-capa-6); }
+/* Con exactamente siete públicos no hay «Otros» y el séptimo lleva la capa 7. */
+.acr-rp-publico.is-capa-7 { --acr-rp-color: var(--acr-capa-7); }
 
 .acr-rp-publico .acr-av-pista > i { background: var(--acr-rp-color, var(--acr-efectiva)); }
 .acr-rp-publico .acr-av-minibarras { fill: var(--acr-rp-color, var(--pulso-accent-steel)); }

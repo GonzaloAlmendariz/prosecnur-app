@@ -20,6 +20,8 @@ export type RitmoDePublico = {
   meta: number | null;
   /** Promedio diario de los últimos 7 días del corte (los días sin efectivas cuentan). */
   promedio7: number;
+  /** Cuántos días entran en ese promedio: menos de 7 al empezar el campo. */
+  diasDelPromedio: number;
   faltan: number | null;
   /** Días para llegar a la meta al ritmo de los últimos 7 días; null si no hay meta o ritmo. */
   diasALaMeta: number | null;
@@ -52,6 +54,7 @@ export function ritmoPorPublico(
         efectivas: capa.total,
         meta,
         promedio7,
+        diasDelPromedio: siete.length,
         faltan,
         diasALaMeta,
       };
