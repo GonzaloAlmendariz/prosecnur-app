@@ -42,7 +42,7 @@ export const ROTULO_DEL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
 /** Qué es cada tipo, en una línea, para «Nueva campaña». */
 export const QUE_ES_EL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Fichas con QR por curso-horario, accesos, paquetes y entrega a Monitoreo.",
-  territorial: "Material por UMP para el recorrido en campo.",
+  territorial: "Fichas y hojas de zona por UMP desde la muestra de Hojas de ruta; el avance se sigue en Monitoreo.",
   correo: "Un correo para un grupo, con sus envíos, para Mailchimp o SurveyMonkey.",
 };
 

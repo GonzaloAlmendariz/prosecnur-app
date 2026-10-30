@@ -14,6 +14,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
 import type { RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
 import type { FaseTerritorial } from "../../../api/materialTerritorial";
@@ -73,6 +74,7 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
 }) {
   const ids = useId();
   return (
+    <>
     <ul
       className="rec-nueva-tipos"
       data-qa-geometry-group="material-campo/campanas/nueva-tipos"
@@ -101,6 +103,13 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
         );
       })}
     </ul>
+    {/* Checklist F18: el territorial sin envío dice por qué y lleva a donde se envía (no cabe dentro del botón deshabilitado). */}
+    {registro && /env[ií]a la muestra/i.test(disponibilidadDe(registro, "territorial").motivo ?? "") ? (
+      <p className="rec-nueva-ir-hojas">
+        <Link to="/hojas-ruta?seccion=seleccion&panel=salidas">Enviar la muestra desde Hojas de ruta › Entrega</Link>
+      </p>
+    ) : null}
+    </>
   );
 }
 

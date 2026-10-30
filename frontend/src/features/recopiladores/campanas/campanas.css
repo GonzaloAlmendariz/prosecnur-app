@@ -850,3 +850,7 @@
 .rec-campana-tarjeta > .rec-campana-estado {
   margin-top: auto;
 }
+
+/* Checklist F18: debajo de los tipos, el camino a Hojas de ruta cuando el territorial espera el envío. */
+.rec-nueva-ir-hojas { margin: var(--pulso-space-2) 0 0; font-size: 12.5px; }
+.rec-nueva-ir-hojas a { font-weight: 600; color: var(--pulso-module-routes); }

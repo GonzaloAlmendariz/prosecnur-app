@@ -127,7 +127,7 @@ export function ListaDeCampanas({
               tamano="normal"
               icono={<Layers size={18} />}
               titulo="Todavía no hay campañas"
-              descripcion="Un campo en aulas con fichas QR o un correo para un grupo: elige el tipo y empieza."
+              descripcion="Un campo en aulas con fichas QR, el material territorial de la muestra de Hojas de ruta o un correo para un grupo: elige el tipo y empieza."
               accion={<PulsoButton variant="primary" size="sm" onClick={onNueva} data-retorno="nueva-campana"><Plus size={14} aria-hidden /> Nueva campaña</PulsoButton>}
             />
           </div>
