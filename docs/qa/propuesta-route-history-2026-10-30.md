@@ -1,7 +1,7 @@
 # Propuesta: el historial de ruteos deja de guardar la muestra entera
 
 Fecha: 2026-10-30. Loop de Hojas de ruta, pendiente de fondo del checklist `checklist-flujo-analista-2026-10-30.md`.
-Estado: **revisada por `guardian-contratos` (2026-10-30): aprobada con cambios, requiere enmienda de ADR 0118 §3.** Los cambios están incorporados en «Revisión de guardian-contratos», al final; donde contradicen la propuesta original, manda esa sección.
+Estado: **implementada** (a55151d65 R y migración, da6f1e2a7 aviso por causa en el lienzo y enmienda de ADR 0118 §3, 378412ccc página clásica). **Sin verificar en vivo**: falta relanzar el backend. Revisada por `guardian-contratos` (2026-10-30): aprobada con cambios. Los cambios están incorporados en «Revisión de guardian-contratos», al final; donde contradicen la propuesta original, manda esa sección.
 
 ## Qué pasa hoy (medido en acnur_acg)
 
