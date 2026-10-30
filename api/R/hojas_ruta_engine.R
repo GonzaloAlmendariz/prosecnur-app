@@ -886,6 +886,7 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
       label = "PPS estratificado",
       description = "Seleccion por dominio con probabilidad proporcional a viviendas/poblacion."
     ),
+    list(id = "pps_tope", label = "PPS con tope", description = "PPS con la medida topada en el percentil 95 del distrito: menos rutas en manzanas grandes; no autoponderado (ADR 0120)."),
     list(
       id = "sistematico",
       label = "Sistematico con arranque aleatorio",
@@ -5533,7 +5534,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     quota = quota,
     method = cfg$sampling_method,
     seed = seed,
-    algoritmo_sorteo = HOJAS_RUTA_ALGORITMO_SORTEO,
+    algoritmo_sorteo = .hojas_ruta_sorteo_firma(cfg),
     blocks = .hojas_ruta_df_rows(blocks_public),
     replacement_blocks = .hojas_ruta_df_rows(replacement_public),
     n_blocks = as.integer(nrow(blocks_public)),
@@ -8411,6 +8412,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   switch(
     method,
     pps = "PPS",
+    pps_tope = "PPS con tope",
     sistematico = "Sistematico",
     conglomerado_fijo = "Conglomerado fijo",
     method

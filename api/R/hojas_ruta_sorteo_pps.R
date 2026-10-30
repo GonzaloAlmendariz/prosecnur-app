@@ -26,6 +26,7 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   if (identical(cfg$sampling_method, "sistematico")) return(rep(1, nrow(df)))
   m <- suppressWarnings(as.numeric(df[[cfg$measure_var]]))
   m[!is.finite(m) | m < 0] <- 0
+  if (.hojas_ruta_sorteo_es_tope(cfg)) m <- .hojas_ruta_sorteo_topar(m, cfg)  # ADR 0120
   m
 }
 
@@ -130,6 +131,7 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
 #'   motor espera (territorio_muestral por zona, orden_seleccion dentro de la zona).
 .hojas_ruta_sorteo_titulares_distrito <- function(district_frame, cells, ubigeo, n_district, route_size, cfg) {
   distrito <- if ("distrito" %in% names(district_frame)) as.character(district_frame$distrito[[1]]) else ubigeo
+  cfg <- .hojas_ruta_sorteo_cfg_distrito(cfg, district_frame)
   alertas <- list()
   sin_asignar <- 0L
   medida <- if (identical(cfg$sampling_method, "sistematico")) "manzanas" else cfg$measure_var
@@ -197,8 +199,10 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   n <- length(ids)
   pi <- .hojas_ruta_sorteo_pi(m, n)
   i <- match(as.character(ids), as.character(df$id_manzana))
-  regla <- paste0(if (identical(cfg$sampling_method, "sistematico")) "igual_probabilidad_" else "pps_sistematico_", ambito)
-  list(
+  regla <- paste0(if (identical(cfg$sampling_method, "sistematico")) "igual_probabilidad_" else if (.hojas_ruta_sorteo_es_tope(cfg)) "pps_tope_" else "pps_sistematico_", ambito)
+  # Con tope, `medida` es la del sorteo (M') y `medida_marco` la del marco (M).
+  m_marco <- if (.hojas_ruta_sorteo_es_tope(cfg)) suppressWarnings(as.numeric(df[[cfg$measure_var]])) else NULL
+  c(list(
     regla_pi = regla,
     probability_source = "formula",
     # M del ámbito del sorteo (el distrito, o la zona con cuota por zona), no de la zona.
@@ -206,8 +210,8 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
     medida_total_ambito = sum(m),
     manzanas_sin_medida = as.integer(sum(m <= 0)),
     certezas = as.integer(sum(pi >= 1 - 1e-9)),
-    seleccionadas = lapply(seq_along(ids), function(k) list(id_manzana = as.character(ids[[k]]), medida = m[i[[k]]], pi = pi[i[[k]]]))
-  )
+    seleccionadas = lapply(seq_along(ids), function(k) c(list(id_manzana = as.character(ids[[k]]), medida = m[i[[k]]], pi = pi[i[[k]]]), if (!is.null(m_marco)) list(medida_marco = m_marco[i[[k]]])))
+  ), .hojas_ruta_sorteo_tope_publicado(df, cfg))
 }
 
 #' Aviso de una muestra sorteada con v1 (sin firma = v1). Por distrito, cuánto de
@@ -217,7 +221,7 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
 #' no se pide volver a sortear y se avisa la causa como en v2.
 hojas_ruta_sorteo_aviso_v1 <- function(sample) {
   if (!is.list(sample) || !length(sample$blocks %||% list())) return(sample)
-  if (identical(sample$algoritmo_sorteo %||% "", HOJAS_RUTA_ALGORITMO_SORTEO)) return(sample)
+  if ((sample$algoritmo_sorteo %||% "") %in% .hojas_ruta_sorteo_firmas_vigentes()) return(sample)
   codigos <- vapply(sample$alerts %||% list(), function(a) as.character(a$code %||% ""), character(1))
   sample$algoritmo_sorteo <- HOJAS_RUTA_ALGORITMO_SORTEO_V1
   if (any(c("W_SAMPLE_DRAWN_WITH_V1", "W_ZONE_QUOTA_EXCLUDES_ZONES") %in% codigos)) return(sample)
