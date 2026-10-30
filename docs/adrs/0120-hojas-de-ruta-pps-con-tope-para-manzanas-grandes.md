@@ -85,6 +85,10 @@ abierto del ADR 0073.
 - **`acceso_dificil_probable`.** La marca en la hoja de ruta de las manzanas con 100 viviendas o más y 200 viv/ha
   o más (§2) no se implementó en esta tanda.
 
+- **Cubo balanceado, para después.** Antes de ofrecerlo hay que cumplir tres condiciones: garantizar las 25 rutas
+  (con `BalancedSampling` salen entre 23 y 28), cerrar el rango deficiente del ADR 0073 y conservar la dispersión
+  por zona (por ejemplo, con un cubo estratificado por zona). El estudio de 2026-10-29 tiene las cifras.
+
 ## Cumplimiento
 
 - `api/tests/testthat/test-hojas-ruta-sorteo-tope.R`:
