@@ -118,7 +118,9 @@
   max-height: 100%;
 }
 
-@media (max-width: 1200px), (max-height: 720px) {
+/* Sólo el ancho apila: a 1280x720 apilar por alto dejaba la cuota elegida fuera
+ * de la vista, debajo de una lista a todo el ancho (QA 30/10). */
+@media (max-width: 1100px) {
   .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
 }
 
