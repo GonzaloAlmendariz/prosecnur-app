@@ -320,7 +320,7 @@
     # sin volver a bajar a todos los destinatarios (monitoreo_mailchimp_incremental.R).
     desde <- .mcm_desde(previo$leido_at)
     incremental <- !reutiliza && tiene_previas && nzchar(desde) &&
-      identical(.mcm_chr(anterior$firma_entrega), .mcm_firma_entrega(reporte))
+      identical(.mcm_firma_entrega_guardada(anterior), .mcm_firma_entrega(reporte))
     envios[[id]] <- c(
       list(
         campaign_id = id, titulo = titulo, asunto = .mcm_chr(campana$settings$subject_line),

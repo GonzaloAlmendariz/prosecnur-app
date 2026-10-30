@@ -331,6 +331,8 @@ test_that("si la entrega no cambió, sólo se pide la actividad nueva y se suma 
   local_mocked_bindings(.mc_http = .mcmt_http(llamadas), .mc_sleep = function(...) invisible(NULL))
   snap <- .mcm_leer(.mcmt_key, "L1")
   snap$leido_at <- "2026-10-30T12:25:38-0500"
+  # Una lectura guardada antes del incremental no trae la firma de entrega: igual se reutiliza.
+  snap$envios$c1$firma_entrega <- NULL
 
   # Más aperturas y clics en c1, la misma entrega: tk0004 hizo clic en la encuesta.
   respuestas <- .mcmt_respuestas

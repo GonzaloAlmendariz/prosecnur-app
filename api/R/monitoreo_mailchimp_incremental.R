@@ -20,6 +20,15 @@
   paste(.mcm_int(reporte$emails_sent), .mcm_int(reporte$bounces$hard_bounces), .mcm_int(reporte$bounces$soft_bounces), sep = "|")
 }
 
+# La del envío guardado; las lecturas anteriores a este archivo no la traían y se
+# reconstruye con sus enviados y rebotes, así la primera lectura tras actualizar
+# la app ya es incremental.
+.mcm_firma_entrega_guardada <- function(anterior) {
+  guardada <- .mcm_chr(anterior$firma_entrega)
+  if (nzchar(guardada)) return(guardada)
+  paste(.mcm_int(anterior$enviados), .mcm_int(anterior$rebotes_duros), .mcm_int(anterior$rebotes_blandos), sep = "|")
+}
+
 # Margen para la actividad que Mailchimp registra con algo de retraso.
 .MCM_MARGEN_SEGUNDOS <- 15L * 60L
 
