@@ -22,3 +22,30 @@ test_that("la configuración de monitoreo conserva los colores elegidos", {
   expect_identical(config$publico_colores, list(Profesores = "#b45309"))
   expect_length(prosecnurapp:::monitoreo_normalize_config(list())$publico_colores, 0L)
 })
+
+test_that("los colores sobreviven la ida y vuelta por JSON y se pueden borrar", {
+  # Lo que hace la API: normaliza, sirve con serializer_unboxed_json y el cliente
+  # devuelve la config entera, que .monitoreo_parse_body lee con simplifyVector = FALSE.
+  ida_y_vuelta <- function(cfg) {
+    jsonlite::fromJSON(as.character(jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null")), simplifyVector = FALSE)
+  }
+  cfg <- prosecnurapp:::monitoreo_normalize_config(list(publico_colores = list("Estudiantes de pregrado" = "#1F6F8B")))
+  vuelta <- ida_y_vuelta(cfg)
+  otra <- prosecnurapp:::monitoreo_normalize_config(vuelta, previous_config = cfg)
+  expect_identical(otra$publico_colores, list("Estudiantes de pregrado" = "#1f6f8b"))
+
+  # Borrar el último color: el cliente manda {} y no vuelve el color anterior.
+  vuelta$publico_colores <- stats::setNames(list(), character(0))
+  vacia <- prosecnurapp:::monitoreo_normalize_config(ida_y_vuelta(vuelta), previous_config = cfg)
+  expect_length(vacia$publico_colores, 0L)
+
+  # Sin la clave en el cuerpo, se conservan los colores guardados.
+  vuelta$publico_colores <- NULL
+  sin_clave <- prosecnurapp:::monitoreo_normalize_config(vuelta, previous_config = cfg)
+  expect_identical(sin_clave$publico_colores, list("Estudiantes de pregrado" = "#1f6f8b"))
+
+  # Y el .pulso guarda la config en state.rds: lo que entra, sale.
+  ruta <- tempfile(fileext = ".rds")
+  saveRDS(list(config = otra), ruta)
+  expect_identical(readRDS(ruta)$config$publico_colores, otra$publico_colores)
+})
