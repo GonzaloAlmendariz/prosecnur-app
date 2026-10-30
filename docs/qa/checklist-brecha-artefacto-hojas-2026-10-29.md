@@ -81,3 +81,5 @@ Pausado por Gonzalo; retomado por turnos. B17 Muestra, B35 y el color de Poblaci
 
 - El artefacto se sirve con un server con hilos y `charset=utf-8`; `python -m http.server` a secas rompe los fetch y los acentos.
 - La sesión del navegador integrado es compartida entre pestañas de :5181 (`pulso.sessionId`): lo que muta una pestaña lo ve la otra.
+
+**Pausa 2026-10-30 (~08:50).** El loop de Hojas de ruta quedó en pausa. El estado vivo está en `docs/qa/checklist-flujo-analista-2026-10-30.md` (sección «Pausa») y en `docs/qa/checklist-material-territorial-2026-10-30.md`.

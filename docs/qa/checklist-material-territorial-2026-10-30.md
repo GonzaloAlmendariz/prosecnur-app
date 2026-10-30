@@ -23,3 +23,16 @@ sortear con el método vigente y se envió **sólo en la sesión**: no se guard�
 | M12 | Cada distrito cierra con una jornada de 1 UMP · 9 visitas (J09 Ate, J18 Chorrillos): un encuestador sale un día por una sola ruta | plan de campo (`hojas_ruta_plan_campo.R`) | mejora | ◐ marcadas en el calendario («Jornada corta: una sola ruta»: J09, J18, J27, J36, J45, J54, una por distrito); completarlas es del motor del plan, sin tocar |
 | M13 | Material › Entrega mostraba costos y precios del campo (costo por entrevista, por jornada, movilidad, supervisión, costo total). Gonzalo: «Material no tiene que ver con costos y precios… nadie lo va a usar y no debería estar allí» | `PlanCampo.tsx` (`conCostos`), `EntregaTerritorial.tsx` | **sobra** | ☑ 9e45a6629 en Material el plan va sin costos: sólo encuestadores, visitas por jornada, jornadas, días y km. Los supuestos de costo guardados no se tocan. También fuera de Hojas › Muestra (Gonzalo: «Sí, quítalo»): la tarjeta «Costo aproximado del campo» y su helper `costo.ts` se borran (este commit) |
 | M14 | Gonzalo: «ese módulo sólo recibe la lista, entonces debe mostrar mejor cada pestaña de una forma más profesional» | Catálogo, Paquetes, Entrega (Unidades ya rediseñada, M3–M5) | **pedido** | ◐ Paquetes ☑ (este commit): fuera los chips de Territorio/Población/Cuotas (son de Hojas: sólo se avisa si falta algo); tabla del kit «qué incluye» por distrito (fichas titulares, de reemplazo, hojas por zona, con su total: 150 · 150 · 282); los reemplazos puntuales sugieren primero las titulares por revisar con su motivo («UMP 13 · no alcanza»), con el criterio de Unidades. Entrega ☑ 2a57424f6: el plan es un calendario — un día por fila, un encuestador por columna, cada jornada con su distrito, UMP, visitas, km y «Hoja del día»; los 14 días a la vista, sin «Ver más» ni scroll horizontal. Falta Catálogo |
+
+**Pausa 2026-10-30 (~08:50).** Hecho:
+
+| Ítem | Commit |
+|---|---|
+| M1 | 5a1427f35 |
+| M3–M5 Unidades | 6faf498e4 |
+| M7/M8 Hoja | 2845c62f7 |
+| M11/M14 Entrega calendario | 2a57424f6 |
+| M13 sin costos | 9e45a6629 y 3911d634f |
+| M14 Paquetes | 4d1c12b35 |
+
+Sigue: M14 Catálogo. Pendientes: M2 (envío lento: medir en R), M9 (Catálogo duplica la Hoja de Unidades) y M12 (jornadas de una sola ruta, ya marcadas; completarlas es del motor del plan).

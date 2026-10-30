@@ -127,3 +127,28 @@ completarlo con los códigos observados.
 
 - ☑ 4e7676cd9: Territorio es un atlas de ciudades (dirección A); carga por región; huecos de huellas urbanas.
 - ☑ f4d6bafeb: «PPS con tope» en el selector de métodos.
+
+## Pausa (2026-10-30, ~08:50, pedida por Gonzalo vía Meta B)
+
+**Dónde quedó.** Lo último del loop fue la UI de Material territorial. Ver `docs/qa/checklist-material-territorial-2026-10-30.md`:
+- Unidades, Entrega y Paquetes están rediseñados.
+- Catálogo es lo que sigue (M14).
+
+Antes de eso:
+- atlas por niveles y nombres de ciudad: 1f246045c;
+- entregables: F30–F39;
+- historial de ruteos: a55151d65, da6f1e2a7, 378412ccc.
+
+**Qué falta:**
+- M14 Catálogo, M2 (envío lento) y M9/M12 en Material.
+- Volver al lienzo de Hojas, en Población, Muestra y Manzanas como analista.
+- Verificar en vivo lo que depende del backend nuevo: F1, F13, F20, I2, el historial de ruteos y el informe de diseño. El 8841 corre código viejo desde otra copia (`Documents/Pulso/prosecnur-app`) y hay que relanzarlo con el OK de Gonzalo.
+
+**Qué espera decisión o a otra sesión:**
+- I3: origen del equipo de campo. Decide Gonzalo.
+- F5 e I4: deciden Gonzalo.
+- F4 de Meta B (Material lee la foto): «no la empieces».
+- I1 vuelta (de Monitoreo a Hojas): es de Monitoreo y le toca a Meta B. No se tocó `features/monitoreo/**`.
+- F17: el aviso de la lista está hecho y M1 crea la campaña al enviar. Falta que la dirección territorial con `modo=territorial` conserve la sección pedida al llegar sin campaña.
+
+**Ojo con la sesión de la app.** En la sesión de tab-2, acnur_acg tiene la muestra re-sorteada con v2, enviada y con su campaña territorial. Todo existe solo en memoria: **no guardar el `.pulso`**.
