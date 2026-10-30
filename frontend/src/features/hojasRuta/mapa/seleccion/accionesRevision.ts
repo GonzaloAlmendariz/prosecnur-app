@@ -8,7 +8,8 @@ import type { TipoObservacion } from "../../seleccion/revisionMarco";
  *
  * `minimoMarco`: mínimo de viviendas del marco elegible declarado; null si el estudio no lo declaró.
  */
-export type AccionObservacion = { texto: string; aManzanas: boolean };
+/** `destino`: el bloque del marco elegible en Manzanas, o Manzanas a secas (reemplazos por titular). */
+export type AccionObservacion = { texto: string; destino: "marco" | "manzanas" };
 
 export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number | null): AccionObservacion | null {
   const sinMarco = minimoMarco === null || minimoMarco < 1;
@@ -16,14 +17,14 @@ export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number |
     case "titular-sin-viviendas":
     case "reemplazo-sin-viviendas":
       return sinMarco
-        ? { texto: "Volver a sortear con el marco elegible (mínimo 1 vivienda) las deja fuera.", aManzanas: true }
+        ? { texto: "Volver a sortear con el marco elegible (mínimo 1 vivienda) las deja fuera.", destino: "marco" }
         : null;
     case "titular-corta":
     case "reemplazo-corto":
     case "titular-sin-margen":
-      return { texto: `Un mínimo de viviendas más alto en el marco elegible${sinMarco ? "" : ` (hoy ${minimoMarco})`} deja fuera las manzanas chicas; para una ruta suelta, pide un reemplazo puntual.`, aManzanas: true };
+      return { texto: `Un mínimo de viviendas más alto en el marco elegible${sinMarco ? "" : ` (hoy ${minimoMarco})`} deja fuera las manzanas chicas; para una ruta suelta, pide un reemplazo puntual.`, destino: "marco" };
     case "titular-sin-reemplazo":
-      return { texto: "Sube los reemplazos por titular en Manzanas y vuelve a sortear, o pide un reemplazo puntual para esa ruta.", aManzanas: true };
+      return { texto: "Sube los reemplazos por titular en Manzanas y vuelve a sortear, o pide un reemplazo puntual para esa ruta.", destino: "manzanas" };
     case "titular-atipica":
       // Su detalle ya dice qué hacer (fijar la esquina de inicio en la ficha).
       return null;

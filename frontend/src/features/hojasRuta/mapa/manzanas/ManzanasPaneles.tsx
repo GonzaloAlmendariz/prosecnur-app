@@ -6,7 +6,7 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
-import { tonoCobertura } from "./marcoElegible";
+import { irAlMarcoElegible, tonoCobertura } from "./marcoElegible";
 import { CompararSemillas } from "./CompararSemillas";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
@@ -113,6 +113,13 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           <section className="hr-sorteo-v1" role="alert" aria-label="Muestra con el reparto anterior">
             <strong>Esta muestra no debe ir a campo</strong>
             <p>{resumenV1(v1)}</p>
+            {/* F24: sortear de nuevo no saca las manzanas sin viviendas si el estudio no declaró el marco elegible. */}
+            {!config.marco_elegible?.declarado ? (
+              <p>
+                Antes, revisa el marco elegible: hoy se sortea también sobre manzanas sin viviendas registradas.{" "}
+                <button type="button" className="hr-sorteo-v1-ir" onClick={() => irAlMarcoElegible()}>Ver el marco elegible</button>
+              </p>
+            ) : null}
             <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear} onClick={onSortear}>
               {guardando ? "Sorteando…" : "Sortear de nuevo con el método vigente"}
             </PulsoButton>

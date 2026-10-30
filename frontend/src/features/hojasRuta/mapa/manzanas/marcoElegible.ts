@@ -80,3 +80,9 @@ export function cierraEnPrimero(vertices: readonly [number, number][], punto: [n
   const [x0, y0] = vertices[0];
   return Math.hypot(punto[0] - x0, punto[1] - y0) <= tolerancia;
 }
+
+/** Ancla del bloque del marco elegible en el inspector de Manzanas (F24): `#marco-elegible` lo trae a la vista. */
+export const ANCLA_MARCO = "marco-elegible";
+export function irAlMarcoElegible(suave = true) {
+  document.getElementById(ANCLA_MARCO)?.scrollIntoView({ block: "start", behavior: suave ? "smooth" : "auto" });
+}

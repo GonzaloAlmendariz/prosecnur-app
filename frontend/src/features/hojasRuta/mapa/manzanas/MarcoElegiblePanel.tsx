@@ -4,7 +4,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaBitacoraAnotar, apiHojasRutaDecisionCobertura, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
-import { aLonLat, faltaEnArea, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
+import { ANCLA_MARCO, aLonLat, faltaEnArea, irAlMarcoElegible, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
 
 /**
  * Marco elegible en el inspector de Manzanas (U11d, ADR 0115). Con una corrida
@@ -39,6 +39,10 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
   // La vigencia la decide el servidor (huella del marco guardado): al montar se lee, y
   // un cambio del marco en el borrador obliga a decidir de nuevo (ADR 0115 §4, enmienda U17).
   const huellaBorrador = JSON.stringify(marco ?? null);
+  // F24: se llega con `#marco-elegible` desde las observaciones de Selección; el bloque está abajo del inspector.
+  useEffect(() => {
+    if (window.location.hash === `#${ANCLA_MARCO}`) irAlMarcoElegible(false);
+  }, []);
   useEffect(() => {
     let vivo = true;
     setDecidido("");
@@ -72,7 +76,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
 
   if (!declarado) {
     return (
-      <section className="hr-muestra-grupo" aria-label="Marco elegible">
+      <section id={ANCLA_MARCO} className="hr-muestra-grupo" aria-label="Marco elegible">
         <h3>Marco elegible</h3>
         <p className="hr-mapa-nota">Este estudio sortea sobre todas las manzanas del marco 2017, también las que no tienen viviendas registradas.</p>
         {vista ? (
@@ -104,7 +108,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
 
   const me = marco ?? MARCO_NUEVO;
   return (
-    <section className="hr-muestra-grupo" aria-label="Marco elegible">
+    <section id={ANCLA_MARCO} className="hr-muestra-grupo" aria-label="Marco elegible">
       <h3>Marco elegible</h3>
       {/* B38: cada cifra dice sobre qué base se cuenta; todas salen de la vista previa del motor (por distrito). */}
       <div className="hr-mapa-cifras hr-me-cifras">
