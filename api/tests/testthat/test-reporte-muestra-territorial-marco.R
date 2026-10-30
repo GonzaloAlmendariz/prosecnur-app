@@ -602,3 +602,17 @@ test_that("F34: la estratificación y la selección dicen cómo se sorteó la mu
   todo <- paste(unlist(lapply(list(v2, vz, t1), function(d) d$decisiones)), collapse = " ")
   expect_false(grepl("estrato implícito|topada|medida mayor que cero|v1|v2", todo))
 })
+
+test_that("F35: el salto y los reemplazos salen de la muestra, no de la config vigente", {
+  cfg <- .u16_config("legado", 1)
+  cfg$route_jump_mode <- "manual"; cfg$route_jump_manual <- 3L; cfg$replacements_per_titular <- 1L
+  fila <- function(d, nombre) d$decisiones[d$decisiones$`Decisión` == nombre, ]$Valor
+  muestra <- list(rutas = 1, entrevistas = 8, route_jump_mode = "off", route_jump_manual = 1L, replacements_per_titular = 2L)
+  d <- reporte_mt_diseno_modelo(cfg, NULL, muestra = muestra)
+  expect_match(fila(d, "Selección de viviendas"), "^Sin salto")
+  expect_identical(fila(d, "Reemplazo de rutas"), "2 manzanas de reemplazo por titular")
+  # Sin esos datos en la muestra, la config.
+  d2 <- reporte_mt_diseno_modelo(cfg, NULL, muestra = list(rutas = 1, entrevistas = 8))
+  expect_match(fila(d2, "Selección de viviendas"), "fijo de 3 viviendas")
+  expect_identical(fila(d2, "Reemplazo de rutas"), "1 manzana de reemplazo por titular")
+})

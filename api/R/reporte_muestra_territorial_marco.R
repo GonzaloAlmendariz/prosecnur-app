@@ -211,6 +211,10 @@
     metodo = as.character(sample$config$sampling_method %||% sample$method %||% ""),
     row_var = as.character(sample$config$row_var %||% ""),
     measure_var = as.character(sample$config$measure_var %||% ""),
+    # F35: salto y reemplazos con que se sorteó.
+    route_jump_mode = as.character(sample$config$route_jump_mode %||% ""),
+    route_jump_manual = sample$config$route_jump_manual %||% NULL,
+    replacements_per_titular = sample$config$replacements_per_titular %||% NULL,
     avisos_v1 = (av <- .reporte_mt_avisos_v1(sample))$avisos,
     avisos_v1_fallo = av$fallo
   ) else NULL
@@ -611,11 +615,14 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
 reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decision_log = NULL, territorios = list(), muestra = NULL) {
   pr <- .reporte_mt_params(config)
   cfg <- pr$cfg; ss <- pr$ss; k <- pr$k
-  reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
-  salto_auto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "auto")
+  # F35: salto y reemplazos de la muestra cuando la hay (la config pudo cambiar después).
+  de_m <- function(clave) { v <- muestra[[clave]]; if (is.null(v) || !length(v) || is.na(v[[1]]) || identical(as.character(v[[1]]), "")) cfg[[clave]] else v[[1]] }
+  reemplazos <- as.integer(de_m("replacements_per_titular") %||% 0L)
+  modo_salto <- as.character(de_m("route_jump_mode") %||% "auto")
+  salto_manual <- as.integer(de_m("route_jump_manual") %||% 1L)
+  salto_auto <- identical(modo_salto, "auto")
   # F33 (c): sin salto (modo «off» o salto manual de 1) se visitan las viviendas una tras otra.
-  sin_salto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "off") ||
-    (!salto_auto && as.integer(cfg$route_jump_manual %||% 1L) <= 1L)
+  sin_salto <- identical(modo_salto, "off") || (!salto_auto && salto_manual <= 1L)
   v1 <- Filter(is.list, muestra$avisos_v1 %||% list())
   v1_fallo <- isTRUE(muestra$avisos_v1_fallo)
   est <- .reporte_mt_estrategia(cfg, muestra)
@@ -629,7 +636,7 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
       est$seleccion,
       if (sin_salto) "Sin salto: se visitan las viviendas una tras otra, desde la esquina de inicio y en el sentido de la ficha, hasta completar la ruta"
       else if (salto_auto) "Salto sistemático sobre las visitas esperadas, desde una vivienda de inicio sorteada"
-      else sprintf("Salto sistemático fijo de %d viviendas, desde una vivienda de inicio sorteada", as.integer(cfg$route_jump_manual %||% 1L)),
+      else sprintf("Salto sistemático fijo de %d viviendas, desde una vivienda de inicio sorteada", salto_manual),
       "Cuotas de totales por sexo y por edad, sin cruces",
       if (reemplazos > 0L) sprintf("%d %s de reemplazo por titular", reemplazos, if (reemplazos == 1L) "manzana" else "manzanas") else "Sin manzanas de reemplazo"
     ),
