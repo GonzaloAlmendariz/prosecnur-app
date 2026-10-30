@@ -2077,3 +2077,26 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   outline: 2px solid var(--pulso-module-monitoring);
   outline-offset: 2px;
 }
+
+/* Variables de control: cada tabla se abre con su público (color y nombre en pequeño)
+ * y la variable como título. */
+.acr-vc-grupo-nombre {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acr-vc-grupo-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--publico-texto);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.acr-vc-grupo-nombre strong {
+  font-size: 13.5px;
+}

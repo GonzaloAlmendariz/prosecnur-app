@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { normalizeMonitoreoCuotasEstado } from "../../../../api/monitoreoCuotas";
+import { claveDeSeguida } from "./seguidas";
 import { AvanceCuotasPanel, type AvanceCuotasPanelProps } from "./AvanceCuotasPanel";
 import { AvanceCuotasVista, type AvanceCuotasVistaProps } from "./AvanceCuotasVista";
 import { borradorDeCuota, borradorNuevo, ESTADO_CUOTAS_INICIAL, type EstadoCuotas } from "./avanceCuotasModelo";
@@ -171,6 +172,14 @@ describe("panel de configuración", () => {
     expect(nueva).not.toMatch(/<option[^>]*>[^<]*·/);
     expect(pintaPanel({ onSeguir: noop })).not.toContain("Solo seguimiento");
     expect(pintaPanel({ borrador: borradorNuevo(ESTADO.publicos) })).not.toContain("Solo seguimiento");
+  });
+
+  it("una variable ya seguida abre en «Solo seguimiento» y se puede dejar de seguir", () => {
+    const borrador = { ...borradorNuevo(ESTADO.publicos), actor: "Docentes Campus", variable: "Dedicación" };
+    const html = pintaPanel({ borrador, onSeguir: noop, onDejarDeSeguir: noop, seguidas: new Set([claveDeSeguida("docentes campus", "DEDICACIÓN")]) });
+    expect(html).toContain("Esta variable ya está en seguimiento");
+    expect(html).toContain("Dejar de seguir");
+    expect(html).not.toContain("Seguir variable");
   });
 
   it("con muchas categorías la tabla trae filtro y va completa", () => {

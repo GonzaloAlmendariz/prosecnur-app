@@ -7,6 +7,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { PanelDeclarado } from "../../../../lib/navegacion/paneles";
 import { Eye, Loader2, Trash2, Wand2, X } from "../../../../vendor/lucide-react";
 import { SelectorDeSubvistas } from "../../core/cabeceraDePestana/CabeceraDePestana";
+import { claveDeSeguida } from "./seguidas";
 import { AvanceCuotasEditorMetas } from "./AvanceCuotasEditorMetas";
 import "./cuotasPanelUso.css";
 import {
@@ -44,6 +45,8 @@ export type AvanceCuotasPanelProps = {
   onCerrar: () => void;
   /** Deja la variable en seguimiento, sin metas; sin él, el panel sólo arma cuotas. */
   onSeguir?: () => void;
+  /** Saca la variable del seguimiento. */
+  onDejarDeSeguir?: () => void;
   /** Variables ya en seguimiento (`claveDeSeguida`). */
   seguidas?: ReadonlySet<string>;
 };
@@ -67,13 +70,16 @@ export function AvanceCuotasPanel({
   onQuitar,
   onCerrar,
   onSeguir,
+  onDejarDeSeguir,
   seguidas,
 }: AvanceCuotasPanelProps) {
   // Una variable no siempre es para metas: a veces sólo se sigue su avance frente a
   // la distribución del universo (Gonzalo, 30/10). Editar una cuota es siempre «con metas».
-  const [uso, setUso] = useState<"metas" | "seguimiento">("metas");
+  const [uso, setUso] = useState<"metas" | "seguimiento">(() => (
+    !borrador.id && borrador.actor && borrador.variable && seguidas?.has(claveDeSeguida(borrador.actor, borrador.variable)) ? "seguimiento" : "metas"
+  ));
   const seguimiento = uso === "seguimiento" && !borrador.id && Boolean(onSeguir);
-  const yaSeguida = Boolean(borrador.actor && borrador.variable && seguidas?.has(`${borrador.actor.trim().toLocaleLowerCase("es")}::${borrador.variable}`));
+  const yaSeguida = Boolean(borrador.actor && borrador.variable && seguidas?.has(claveDeSeguida(borrador.actor, borrador.variable)));
   const ids = useId();
   const primero = useRef<HTMLSelectElement | null>(null);
   const ocupado = proponiendo || guardando;
@@ -201,7 +207,7 @@ export function AvanceCuotasPanel({
             {seguimiento ? (
               <p className="mon-cuotas-panel-vacio">
                 {yaSeguida
-                  ? "Esta variable ya está en seguimiento. Su comparación está en Avance › Variables de control."
+                  ? "Esta variable ya está en seguimiento. Su comparación está en Avance › Variables de control; para ponerle metas elige «Con metas»."
                   : borrador.variable ? "Se verá en Avance › Variables de control: universo frente a efectivas, categoría por categoría." : "Elige la variable que quieres seguir."}
               </p>
             ) : borrador.filas.length ? (
@@ -238,7 +244,12 @@ export function AvanceCuotasPanel({
             <span className="mon-cuotas-panel-acciones">
               {problema && borrador.variable && !seguimiento ? <small className="mon-cuotas-tenue">{problema}</small> : null}
               <PulsoButton variant="ghost" size="sm" disabled={guardando} onClick={onCerrar}>Cancelar</PulsoButton>
-              {seguimiento ? (
+              {seguimiento && yaSeguida && onDejarDeSeguir ? (
+                <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={onDejarDeSeguir}>
+                  {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <X size={14} aria-hidden />}
+                  Dejar de seguir
+                </PulsoButton>
+              ) : seguimiento ? (
                 <PulsoButton variant="primary" size="sm" disabled={ocupado || !borrador.actor || !borrador.variable || yaSeguida} onClick={onSeguir}>
                   {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Eye size={14} aria-hidden />}
                   Seguir variable
