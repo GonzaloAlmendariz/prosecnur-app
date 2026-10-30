@@ -548,7 +548,8 @@
   color: var(--pulso-text-soft);
   font-size: 11.5px;
   font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
+  /* Envuelve en vez de salirse de su columna («sin consentimiento» a 1366, QA 30/10). */
+  white-space: normal;
 }
 
 .acr-res-kpi small:last-child:not(:first-child) {
@@ -1069,6 +1070,13 @@
 }
 
 /* ------------------------------------------------------------- Ventanas */
+
+/* A 1366 la tabla de Por público con el panel abierto no alcanza para la
+ * columna de 14 días (QA 30/10: «columnas ocultas» a 1366x768): se esconde
+ * hasta 1500 px; la serie está en el panel del público. */
+@media (max-width: 1500px) {
+  .acr-pub-col-ultimos { display: none; }
+}
 
 @media (max-width: 1365px) {
   .acr-res { grid-template-columns: minmax(0, 1fr) 360px; }

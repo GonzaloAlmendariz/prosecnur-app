@@ -15,11 +15,15 @@
 
 /* 150 y no 180: con 180 la tabla medía 523 px en una tarjeta de 518 y la fila
  * elegida pintaba su fondo fuera del borde. */
+/* La celda sigue siendo celda (QA 30/10, 1280x720: como flex dejaba de tomar
+ * la franja de la fila y se veía un bloque blanco de 230 px); el nombre y la
+ * barra se apilan por dentro. */
 .acr-ps-estados th[scope="row"] {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   min-width: 150px;
+}
+
+.acr-ps-estados th[scope="row"] > .acr-ps-barra {
+  margin-top: 6px;
 }
 
 /* El nombre con su punto es un botón flex: el `justify-content: center` global
