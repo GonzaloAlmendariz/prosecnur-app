@@ -1,7 +1,7 @@
 # Propuesta: el historial de ruteos deja de guardar la muestra entera
 
 Fecha: 2026-10-30. Loop de Hojas de ruta, pendiente de fondo del checklist `checklist-flujo-analista-2026-10-30.md`.
-Estado: **propuesta, revisada por `guardian-contratos` antes de tocar código.**
+Estado: **revisada por `guardian-contratos` (2026-10-30): aprobada con cambios, requiere enmienda de ADR 0118 §3.** Los cambios están incorporados en «Revisión de guardian-contratos», al final; donde contradicen la propuesta original, manda esa sección.
 
 ## Qué pasa hoy (medido en acnur_acg)
 
@@ -78,3 +78,78 @@ Topes distintos: el lienzo guarda hasta 8 (`MAX_HISTORIAL`) y R acepta 12.
   muestra.
 - En vivo sobre acnur_acg: abrir, guardar, medir `state.rds` antes y después; «Usar» un ruteo con el marco intacto
   debe dar la misma huella.
+
+## Revisión de guardian-contratos (2026-10-30): cambios incorporados
+
+**Determinismo, verificado leyendo el código.** Hay un solo `set.seed` (`hojas_ruta_engine.R:5440`), y restaura
+`.Random.seed` al salir. PPS y sistemático usan orden explícito. Reemplazos y valores operativos usan
+`.hojas_ruta_stable_bucket`, que no consume RNG. La huella (`hojas_ruta_envio.R:57-71`) no depende de timestamps ni de
+ids generados, y sobrevive a un ida y vuelta por JSON.
+
+Riesgos residuales aceptados:
+- **Collation del locale.** `order()` y `aggregate()` sobre texto dependen del locale. Si eso cambia el orden, lo peor
+  que pasa es un falso «cambió».
+- **`sample(prob=)` (engine:4578).** Depende del orden de filas del marco empaquetado.
+
+1. **La huella sale de R.** El router agrega `result$sample_fingerprint <- .hojas_ruta_sample_fingerprint(result)` en
+   `/sample-preview`, antes de `.hojas_ruta_workspace_outputs_update` (`router_hojas_ruta.R:~828`; el engine no se
+   toca). `HojasRutaSamplePreview` gana `sample_fingerprint?`, e `instantaneaDeSorteo` y `buildRouteSnapshot` lo
+   copian. El cliente deja de subir la muestra.
+2. **El aviso nombra la causa.** La instantánea guarda `algoritmo_sorteo`, `frame_version`
+   (`sample$frame_meta$version`), `hash_marco` y `hash_criterios` (`hojas_ruta_marco_elegible.R:612-613`), la fase y
+   los `excluded_titular_ids` efectivos. Ante una huella distinta, el aviso dice cuál de estas cuatro causas aplica:
+   - cambió el motor (por ejemplo, una instantánea v1 frente a ADR 0117 v2);
+   - cambió el marco o sus criterios;
+   - cambió la piloto;
+   - cambiaron los parámetros.
+
+   En fase de campo, `.hojas_ruta_effective_config_for_phase` (`router_hojas_ruta.R:423-435`) reinyecta exclusiones
+   desde la piloto **actual**. Re-sortear campo depende de otra corrida, y por eso existe la causa «piloto».
+3. **Una sola semántica de restaurar: la del lienzo.** Se aplican los parámetros del sorteo sobre la configuración
+   vigente (`HojasRutaMapaPage.tsx:301`). Es la decisión vigente del lienzo (ADR 0114) y evita que un ruteo viejo pise
+   en silencio N, rangos o territorio. Las huellas se comparan solo si la config efectiva normalizada coincide con la
+   guardada. Si no coincide, el estado es «parámetros distintos». La página clásica adopta la misma semántica en un
+   helper aparte.
+4. **La migración alcanza todo el `.pulso`.** Al cargar, o en `.hojas_ruta_ensure_runs`, se recorren
+   `hojas_ruta_runs$pilot`, `$field` y `hojas_ruta_ui_state`. La huella se calcula **antes** de recortar y solo si
+   `sample` tiene bloques. Si no los tiene, queda `NA` y la UI dice «sin huella: no se puede comprobar», nunca
+   «coincide». La migración no marca dirty (`.hojas_ruta_runs_huella`, :268, excluye `ui_state`), así que el `.pulso`
+   adelgaza en el siguiente guardado que el usuario haga por otro motivo. Es deliberado y se declara.
+5. **Una huella que llega del cliente** se valida con `^sha256:[0-9a-f]{64}$`. Si no casa, queda `NA`. Es solo
+   informativa.
+6. **Topes (reemplaza el punto 5 de la propuesta):**
+   - R y `normalizeRouteHistory` aceptan 12, así que no se descartan sin aviso entradas de historiales existentes;
+   - al insertar se aplica 8 (`MAX_HISTORIAL`).
+7. **Tipos.** `sample?:` es opcional durante la transición. `normalizeRouteHistory` exige `id`, `config` y `seed`.
+   `restoreRouteSnapshot` deja de leer `snapshot.sample.quota` y enfoca el mapa con la muestra re-sorteada.
+8. **ADR.** Hace falta una enmienda de ADR 0118 §3: el historial pasa a ser el tercer consumidor de la huella. La
+   enmienda deja escritas tres cosas:
+   - restaurar pasa de literal a re-sortear con aviso (ADR 0117: «nunca se vuelve a sortear en silencio»);
+   - la forma persistida nueva;
+   - la regla de migración.
+
+Consumidores que faltaban y que no se afectan o pasan por el normalizador:
+- `router_hojas_ruta.R:240, 336, 407, 499, 536, 641`;
+- `audit_reference.R:536`;
+- `store.ts:56-138`;
+- `ManzanasPaneles.tsx:245-271` (solo el resumen).
+
+Material, Monitoreo, el modo público y desktop no leen `route_history`.
+
+**Gate adicional:**
+- testthat:
+  - la huella es estable en un ida y vuelta por JSON;
+  - dos llamadas idénticas dan la misma huella;
+  - en campo, cambiar la piloto da la causa «piloto»;
+  - una entrada v1 da la causa «motor»;
+  - la corrida no activa también queda migrada.
+- `test-hojas-ruta-ciudades.R:73` sigue en verde.
+- `make gate-area` y `make gate-front AREA=hojasRuta`.
+
+## Orden de implementación
+
+1. **R:** huella en `/sample-preview`, normalizador y migración de las tres ubicaciones, la causa del aviso, y un test
+   nuevo `test-hojas-ruta-route-history.R`.
+2. **Enmienda de ADR 0118 §3.**
+3. **TS del lienzo:** instantánea sin muestra y aviso tras «Usar».
+4. **Página clásica:** un helper aparte; `HojasRutaPage.tsx` a líneas constantes.
