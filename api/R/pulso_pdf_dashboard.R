@@ -769,6 +769,8 @@ pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
 #'
 #' @inheritParams pulso_pdf_serie_diaria
 #' @param reparto proporción del alto que se lleva la caja del acumulado.
+#' @param formato función que escribe cada cifra. Por defecto la de miles con
+#'   coma; el avance de acreditación la pide sin separador de miles.
 #' @export
 pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     metas = numeric(0),
@@ -778,7 +780,8 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     color_linea = tokens$success,
                                     reparto = 0.60, hueco = 0.105,
                                     rotulo_acumulado = "", rotulo_diario = "",
-                                    compacto = FALSE) {
+                                    compacto = FALSE,
+                                    formato = .ppd_miles) {
   pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
@@ -817,7 +820,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   for (v in eje_acu) {
     grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(py_acu(v), "npc"),
                      gp = grid::gpar(col = tokens$rule, lwd = 0.4, lty = if (v == 0) 1 else 3))
-    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
+    grid::grid.text(formato(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
                     gp = grid::gpar(col = tokens$faint, fontsize = fs))
   }
   for (k in seq_along(metas)) {
@@ -826,7 +829,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                      gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 2))
     nombre <- names(metas)[[k]] %||% ""
     if (nzchar(nombre)) {
-      grid::grid.text(paste0(nombre, " ", .ppd_miles(metas[[k]])), x = x + w, y = yy + 0.010,
+      grid::grid.text(paste0(nombre, " ", formato(metas[[k]])), x = x + w, y = yy + 0.010,
                       just = c("right", "bottom"),
                       gp = grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold"))
     }
@@ -869,7 +872,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     diarias, .ppd_cifras_que_caben(diarias, w, fs))
   for (i in vivos) {
     if ((i - 1L) %% salto != 0L && i != n) next
-    grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
+    grid::grid.text(formato(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
   }
@@ -882,7 +885,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   tope_dia <- max(eje_dia) * 1.22
   ancho_barra <- min((w / n) * 0.56, if (isTRUE(compacto)) 0.026 else 0.052)
   for (v in eje_dia[-1]) {
-    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
+    grid::grid.text(formato(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
                     just = c("right", "centre"),
                     gp = grid::gpar(col = tokens$faint, fontsize = fs))
   }
@@ -894,7 +897,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.9))
     if (!(i %in% barras_rotuladas)) next
-    grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
+    grid::grid.text(formato(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
                     gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),

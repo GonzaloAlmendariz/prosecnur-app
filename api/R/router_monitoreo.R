@@ -2491,6 +2491,8 @@
   }
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = isTRUE(include_targets))
   model$report_kind <- "acreditacion_client_report_pdf"
+  # El corte que publica el PDF es la sincronización, no la hora de generarlo.
+  model$synced_at <- .monitoreo_scalar(snapshot$synced_at %||% "", "")
   model
 }
 

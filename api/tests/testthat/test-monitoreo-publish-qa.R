@@ -75,7 +75,7 @@ test_that("publicacion Sheets no reutiliza fuentes Google Sheets como destino", 
   expect_equal(.monitoreo_extract_spreadsheet_id(paste0("https://docs.google.com/open?id=", client_sheet)), client_sheet)
 })
 
-test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico", {
+test_that("PDF cliente acreditacion declara corte y criterio sin texto interno", {
   fixture <- monitoreo_publish_qa_fixture("acreditacion")
   model <- monitoreo_acreditacion_client_report_model(fixture$data, fixture$config)
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = FALSE)
@@ -88,12 +88,12 @@ test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico",
 
   pdf_text <- .monitoreo_publish_qa_pdf_text(pdf_path)
   testthat::skip_if(is.null(pdf_text), "No PDF text extractor available")
-  expect_true(grepl("Corte y fuentes", pdf_text, fixed = TRUE))
-  expect_true(grepl("Fuente de verdad", pdf_text, fixed = TRUE))
-  expect_true(grepl("Fuentes de respuestas", pdf_text, fixed = TRUE))
-  expect_true(grepl("SurveyMonkey", pdf_text, fixed = TRUE))
-  expect_true(grepl("base oficial", pdf_text, ignore.case = TRUE))
-  expect_true(grepl("Apps Script viejo", pdf_text, fixed = TRUE))
+  # El corte y el criterio se declaran en lenguaje del cliente; la mecánica
+  # interna (caso canónico, Apps Script, workbook) no cruza al documento.
+  expect_true(grepl("Corte", pdf_text, fixed = TRUE))
+  expect_true(grepl("hora de Lima", pdf_text, fixed = TRUE))
+  expect_true(grepl("enlace personal", pdf_text, fixed = TRUE))
+  expect_false(grepl("Apps Script|can[oó]nico|Fuente de verdad|workbook|source_id|collector|Ver detalle", pdf_text))
 })
 
 test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {

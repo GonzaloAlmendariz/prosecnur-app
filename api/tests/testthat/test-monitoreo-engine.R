@@ -3713,12 +3713,14 @@ test_that("reporte cliente usa solo efectivas y omite metadata operacional", {
     status <- system2(pdftotext_bin, c(pdf_path, txt_path), stdout = TRUE, stderr = TRUE)
     expect_null(attr(status, "status"))
     pdf_text <- paste(readLines(txt_path, warn = FALSE), collapse = "\n")
-    insight_hits <- gregexpr("Canales y ritmo reciente", pdf_text, fixed = TRUE)[[1]]
-    expect_equal(if (identical(insight_hits, -1L)) 0L else length(insight_hits), nrow(actors))
-    expect_true(grepl("Desde último informe", pdf_text, fixed = TRUE))
-    expect_true(grepl("Rechazo", pdf_text, fixed = TRUE))
-    expect_true(grepl("Sin respuesta", pdf_text, fixed = TRUE))
-    expect_true(grepl("Base reportada", pdf_text, fixed = TRUE))
+    # El PDF de cliente lee el avance por público frente a la meta y nombra a
+    # cada público (checklist-pdf-avance-acreditacion-2026-10-30).
+    # (Los rótulos de sección van en versalitas con aire; pdftotext no los lee
+    # seguidos, así que se comprueban los títulos y el texto corrido.)
+    expect_true(grepl("Resumen del avance", pdf_text, fixed = TRUE))
+    expect_true(grepl("Ritmo del campo", pdf_text, fixed = TRUE))
+    expect_true(grepl("enlace personal", pdf_text, fixed = TRUE))
+    for (actor in actors$Actor) expect_true(grepl(actor, pdf_text, fixed = TRUE), info = actor)
     expect_false(grepl("Lectura del corte|Mayor aporte|Participacion|Participación|Ultima efectiva|Última efectiva|WhatsApp|Whartsapp", pdf_text))
     expect_false(grepl("Rechazos plataforma|Mínimo operativo|brecha contra mínimo|plataforma", pdf_text, ignore.case = TRUE))
   }
