@@ -23,15 +23,8 @@
   border-radius: 10px;
 }
 
-.acr-plan-comparacion > div.is-alerta {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-}
-
-.acr-plan-comparacion > div.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-}
+/* La lectura dice su estado en el color de la cifra, sin teñir la tarjeta
+ * entera (Gonzalo, 30/10: el mismo criterio que sacó las franjas laterales). */
 
 .acr-plan-comparacion dt {
   color: var(--pulso-text-soft);
