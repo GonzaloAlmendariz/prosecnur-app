@@ -392,6 +392,20 @@
   stroke-width: 2;
 }
 
+/* Proyección al ritmo de la última semana: punteada y en el tono de la serie,
+ * para no confundirse con lo ya ocurrido ni con la meta. */
+.acr-av-proyeccion {
+  stroke: var(--acr-efectiva);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.acr-av-hito.is-proyectado {
+  stroke-dasharray: 2 2;
+}
+
 .acr-av-final {
   fill: var(--acr-efectiva);
 }

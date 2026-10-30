@@ -210,6 +210,8 @@ export function ResumenVista({
   // Densidad declarable (Meta B, L29): cómoda con pocos públicos, compacta con muchos.
   const compacta = tarjetas.length > 6;
   const avance = totales.meta > 0 ? totales.efectivas / totales.meta : null;
+  const lecturaDeProyeccion = useMemo(() => proyeccion(serie, totales), [serie, totales]);
+  const ritmoDeProyeccion = lecturaDeProyeccion.tipo === "faltan" ? lecturaDeProyeccion.ritmo : null;
 
   return (
     <div className="acr-res" data-density={compacta ? "compacta" : "comoda"} data-qa-geometry-group="acreditacion-avance-resumen" data-qa-geometry-contract="intrinsic">
@@ -255,7 +257,7 @@ export function ResumenVista({
           </div>
           <div className="acr-res-curva" data-qa-geometry-capacity="owned">
             {serie.length ? (
-              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} />
+              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} ritmo={ritmoDeProyeccion} />
             ) : (
               <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae efectivas con fecha." descripcion="La curva aparece cuando las encuestas devuelven respuestas completas." />
             )}
