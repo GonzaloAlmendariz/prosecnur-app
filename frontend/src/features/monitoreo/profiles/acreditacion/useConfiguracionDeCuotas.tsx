@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getMonitoreoCuotas, postMonitoreoCuotaProponer, postMonitoreoCuotas } from "../../../../api/monitoreoCuotas";
+import { postMonitoreoCuotaProponer, postMonitoreoCuotas } from "../../../../api/monitoreoCuotas";
+import { generacionDeCuotas, leerCuotas, recordarCuotas } from "./insumos/cuotasRecientes";
 import { serializarDireccion } from "../../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { useDireccion } from "../../../../lib/navegacion/useDireccion";
@@ -46,7 +47,7 @@ export function useConfiguracionDeCuotas() {
   const cargar = useCallback(async () => {
     despachar({ tipo: "cargar" });
     try {
-      const estado = await getMonitoreoCuotas();
+      const estado = await leerCuotas();
       if (vivo.current) despachar({ tipo: "cargado", estado });
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo", error: mensajeDeError(e, "No se pudieron leer las cuotas.") });
@@ -115,7 +116,9 @@ export function useConfiguracionDeCuotas() {
     if (!estado) return;
     despachar({ tipo: "guardar" });
     try {
+      const generacion = generacionDeCuotas();
       const nuevo = await postMonitoreoCuotas(entradasConBorrador(estado.cuotas, borrador));
+      recordarCuotas(nuevo, generacion);
       if (!vivo.current) return;
       despachar({ tipo: "guardado", estado: nuevo, aviso: `Cuota guardada: ${borrador.actor} · ${borrador.variable}.` });
       irA({ panel: false, foco: idGuardado(nuevo, borrador) });
@@ -128,7 +131,9 @@ export function useConfiguracionDeCuotas() {
     if (!estado) return;
     despachar({ tipo: "guardar" });
     try {
+      const generacion = generacionDeCuotas();
       const nuevo = await postMonitoreoCuotas(entradasSinCuota(estado.cuotas, id));
+      recordarCuotas(nuevo, generacion);
       if (!vivo.current) return;
       despachar({ tipo: "guardado", estado: nuevo, aviso: "Cuota quitada." });
       irA({ panel: false, foco: "" });
