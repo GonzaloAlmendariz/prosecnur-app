@@ -144,6 +144,8 @@ export type MonitoreoOutputsWorkbenchProps = {
    * telefónico («69 con cuota y 1 sin actor»); los demás modos no cambian.
    */
   notaDeValidas?: string;
+  /** El embudo propio del perfil para el bloque de publicación (ver MonitoreoOutputsReadiness). */
+  embudo?: ReactNode;
   /**
    * Cabecera como primera tarjeta de una ficha (§2a-bis del estándar de
    * Monitoreo): antetítulo sin píldora, el corte en una sola línea (los granos
@@ -653,6 +655,7 @@ export function MonitoreoOutputsWorkbench({
   className = "",
   onPublished,
   notaDeValidas,
+  embudo,
   variante,
   rotulo,
 }: MonitoreoOutputsWorkbenchProps) {
@@ -1275,7 +1278,7 @@ export function MonitoreoOutputsWorkbench({
         ) : null}
       </header>
 
-      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas={notaDeValidas} />
+      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas={notaDeValidas} embudo={embudo} />
 
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">

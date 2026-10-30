@@ -67,7 +67,7 @@ import { chipsDeCabecera, pestanaConLienzo, rotuloEnTarjeta } from "./navegacion
 import { RotuloDePestanaContexto, RotuloEnBarra } from "./navegacion/rotuloDePestana";
 import { SubvistaConRotulo } from "./navegacion/SubvistaConRotulo";
 import { PorPublico } from "./avance/PorPublico";
-import { Resumen } from "./avance/Resumen";
+import { EmbudoDeRespuestas, Resumen } from "./avance/Resumen";
 import { PorResolver } from "./control/casos/PorResolver";
 import { Cruce } from "./control/casos/Cruce";
 import { Personas } from "./control/casos/Personas";
@@ -14756,7 +14756,7 @@ function renderAcreditacionView(
         config={outputState?.config}
         clientSheets={outputState?.publication?.client_last_sheets ?? null}
         internalSheets={outputState?.publication?.internal_last_sheets ?? null}
-        corte={corteAcreditacionDeReports(outputState, reports)}
+        corte={corteAcreditacionDeReports(outputState, reports)} embudo={isPhoneOutputs ? undefined : <EmbudoDeRespuestas />}
         syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
       />

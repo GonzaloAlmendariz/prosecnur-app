@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "../../../vendor/lucide-react";
 import {
@@ -23,11 +24,18 @@ export function MonitoreoOutputsReadiness({
   corte,
   readiness,
   notaDeValidas,
+  embudo,
 }: {
   corte: MonitoreoCorte;
   readiness: MonitoreoSalidaReadiness;
   /** Por qué «Válidas» difiere de la cifra que lee el modo (telefónico: efectivas sin categoría). */
   notaDeValidas?: string;
+  /**
+   * El embudo propio del perfil, en lugar de los tres granos del corte.
+   * Acreditación lo cuenta por respuestas: sus granos sumaban padrón y
+   * respuestas en una cifra («45 956 recibidas, −836 fuera del universo»).
+   */
+  embudo?: ReactNode;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,48 +73,52 @@ export function MonitoreoOutputsReadiness({
         </strong>
       </header>
 
-      <dl className="mon-outputs-readiness__granos" aria-label="Granos del corte">
-        <div>
-          {/* «Snapshot» es vocabulario de la implementación; quien dirige el
-              estudio piensa en respuestas que llegaron. */}
-          <dt>Recibidas</dt>
-          <dd>{fmt(corte.ingesta)}</dd>
-          <small>llegaron de las fuentes</small>
-        </div>
-        <div>
-          <dt>Procesables</dt>
-          <dd>{fmt(corte.procesable)}</dd>
-          <small>{corte.procesableEtiqueta}</small>
-        </div>
-        <div className="is-oficial">
-          <dt>Válidas</dt>
-          <dd>{fmt(corte.oficial, "sin determinar")}</dd>
-          <small>{corte.meta != null ? `${corte.metaEtiqueta} ${fmt(corte.meta)}` : `sin ${corte.metaEtiqueta} declarada`}</small>
-          {notaDeValidas ? <small className="mon-outputs-readiness__nota">{notaDeValidas}</small> : null}
-        </div>
-      </dl>
+      {embudo ?? (
+        <>
+        <dl className="mon-outputs-readiness__granos" aria-label="Granos del corte">
+          <div>
+            {/* «Snapshot» es vocabulario de la implementación; quien dirige el
+                estudio piensa en respuestas que llegaron. */}
+            <dt>Recibidas</dt>
+            <dd>{fmt(corte.ingesta)}</dd>
+            <small>llegaron de las fuentes</small>
+          </div>
+          <div>
+            <dt>Procesables</dt>
+            <dd>{fmt(corte.procesable)}</dd>
+            <small>{corte.procesableEtiqueta}</small>
+          </div>
+          <div className="is-oficial">
+            <dt>Válidas</dt>
+            <dd>{fmt(corte.oficial, "sin determinar")}</dd>
+            <small>{corte.meta != null ? `${corte.metaEtiqueta} ${fmt(corte.meta)}` : `sin ${corte.metaEtiqueta} declarada`}</small>
+            {notaDeValidas ? <small className="mon-outputs-readiness__nota">{notaDeValidas}</small> : null}
+          </div>
+        </dl>
 
-      {corte.saltos.length ? (
-        <ul className="mon-outputs-readiness__saltos" aria-label="Por qué bajan los conteos">
-          {corte.saltos.map((salto) => (
-            <li key={`${salto.de}-${salto.a}`}>
-              <strong>−{fmt(salto.descartados)}</strong>
-              <span>{salto.regla}</span>
-            </li>
-          ))}
-        </ul>
-      ) : sinDescartes ? (
-        /* La lista se llama «Por qué bajan los conteos» y, cuando no bajan,
-           desaparecía: quedaban tres cifras idénticas sin nada que dijera si el
-           filtro corrió y no perdió a nadie o si no había filtro que correr. En
-           aulas las tres son 3 700 justamente porque la base no trae columna de
-           estado —lo dice un control de Calidad, en otra pestaña—. Aquí no se
-           explica el porqué, que es de cada estudio; se dice el hecho, que es lo
-           que esta superficie puede afirmar. */
-        <p className="mon-outputs-readiness__sin-saltos">
-          En este corte no se descarta ningún caso.
-        </p>
-      ) : null}
+        {corte.saltos.length ? (
+          <ul className="mon-outputs-readiness__saltos" aria-label="Por qué bajan los conteos">
+            {corte.saltos.map((salto) => (
+              <li key={`${salto.de}-${salto.a}`}>
+                <strong>−{fmt(salto.descartados)}</strong>
+                <span>{salto.regla}</span>
+              </li>
+            ))}
+          </ul>
+        ) : sinDescartes ? (
+          /* La lista se llama «Por qué bajan los conteos» y, cuando no bajan,
+             desaparecía: quedaban tres cifras idénticas sin nada que dijera si el
+             filtro corrió y no perdió a nadie o si no había filtro que correr. En
+             aulas las tres son 3 700 justamente porque la base no trae columna de
+             estado —lo dice un control de Calidad, en otra pestaña—. Aquí no se
+             explica el porqué, que es de cada estudio; se dice el hecho, que es lo
+             que esta superficie puede afirmar. */
+          <p className="mon-outputs-readiness__sin-saltos">
+            En este corte no se descarta ningún caso.
+          </p>
+        ) : null}
+        </>
+      )}
 
       {readiness.bloqueos.length ? (
         <ul className="mon-outputs-readiness__bloqueos" aria-label="Qué falta para publicar">

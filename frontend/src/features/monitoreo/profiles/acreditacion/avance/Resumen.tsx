@@ -4,6 +4,9 @@ import type { MonitoreoCorte } from "../../../corte/corteContract";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { EmbudoDeRespuestas } from "./EmbudoDeRespuestas";
+
+// La página de Acreditación (congelada) lo toma de aquí para Avance › Salidas.
+export { EmbudoDeRespuestas };
 import { fmt } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { esperanPorPublico, type CasosDelCorte } from "../control/casos/tiposDeCaso";
