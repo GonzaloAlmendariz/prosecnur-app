@@ -548,8 +548,7 @@
   color: var(--pulso-text-soft);
   font-size: 11.5px;
   font-weight: var(--pulso-weight-semibold);
-  /* Envuelve en vez de salirse de su columna («sin consentimiento» a 1366, QA 30/10). */
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .acr-res-kpi small:last-child:not(:first-child) {
@@ -883,9 +882,17 @@
   min-height: 0;
 }
 
+/* Al soltar el scroll la fila queda entera bajo la cabecera pegajosa, como en
+ * las tablas de Control telefónico (detector «cabecera tapa fila», QA 30/10). */
 .acr-pub-tabla-marco {
   min-height: 0;
   overflow: auto;
+  scroll-padding-top: 34px;
+  scroll-snap-type: y proximity;
+}
+
+.acr-pub-tabla-marco tbody tr {
+  scroll-snap-align: start;
 }
 
 .acr-pub-tabla {

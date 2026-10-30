@@ -178,3 +178,9 @@
 .acr-ps-filtros .acr-pr-buscador {
   min-width: 300px;
 }
+
+/* Siete filas que no desplazan por dentro: la cabecera no necesita ser pegajosa,
+ * y pegada al scroll de la página tapaba la primera fila (QA 30/10, 1280x720). */
+.acr-ps-estados thead th {
+  position: static;
+}

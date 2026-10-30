@@ -244,7 +244,7 @@ export function ResumenVista({
             <div className="acr-res-kpi" data-qa-geometry-member>
               <small>Rechazos</small>
               <b className="acr-av-num">{fmt(totales.rechazos)}</b>
-              <small>sin consentimiento</small>
+              <small>no aceptaron</small>
             </div>
             <div className="acr-res-kpi" data-qa-geometry-member>
               <small>Sin respuesta</small>
