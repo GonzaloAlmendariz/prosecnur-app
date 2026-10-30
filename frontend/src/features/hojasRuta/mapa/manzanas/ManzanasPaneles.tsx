@@ -22,6 +22,8 @@ const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
 const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo: string }> = [
   { id: "pps", titulo: "PPS estratificado", cuerpo: "Más viviendas, más probabilidad, dentro de cada distrito." },
+  // ADR 0120: para estudios donde preocupan los condominios; no es autoponderado (W_DESIGN_NOT_SELF_WEIGHTING).
+  { id: "pps_tope", titulo: "PPS con tope", cuerpo: "Como PPS, pero las manzanas enormes (condominios) no acaparan rutas. Obliga a analizar con pesos." },
   { id: "sistematico", titulo: "Sistemático", cuerpo: "Ordena, calcula un salto y arranca al azar." },
   { id: "conglomerado_fijo", titulo: "Conglomerado fijo", cuerpo: "Menos manzanas con carga estable: menos traslados." },
 ];
@@ -36,6 +38,13 @@ function Diagrama({ metodo }: { metodo: SamplingMethod }) {
     return (
       <svg viewBox="0 0 96 28" aria-hidden="true">
         {[10, 28, 50, 77].map((x, i) => <circle key={x} cx={x} cy={14} r={[4, 6, 9, 12][i]} data-activo={i === 3 || undefined} />)}
+      </svg>
+    );
+  if (metodo === "pps_tope")
+    return (
+      <svg viewBox="0 0 96 28" aria-hidden="true">
+        <line x1="4" x2="92" y1="6" y2="6" strokeDasharray="3 3" />
+        {[10, 28, 50, 77].map((x, i) => <circle key={x} cx={x} cy={16} r={[4, 6, 9, 9][i]} data-activo={i === 3 || undefined} />)}
       </svg>
     );
   if (metodo === "sistematico")

@@ -898,7 +898,7 @@ function allocateByMode(
 function methodLabel(method: SamplingMethod) {
   if (method === "pps") return "PPS estratificado";
   if (method === "sistematico") return "Sistemático";
-  return "Conglomerado fijo";
+  return method === "pps_tope" ? "PPS con tope" : "Conglomerado fijo";
 }
 
 function cartographyModeLabel(mode: string | undefined) {

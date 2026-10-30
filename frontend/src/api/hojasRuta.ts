@@ -41,7 +41,7 @@ export type HojasRutaAgeRange = {
   max: number | null;
 };
 
-export type SamplingMethod = "pps" | "sistematico" | "conglomerado_fijo";
+export type SamplingMethod = "pps" | "pps_tope" | "sistematico" | "conglomerado_fijo";
 export type SampleSizeMode = "calculator" | "external_total" | "external_district";
 export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quintiles" | "deciles";
 export type HojasRutaAgeRangeScope = "selected" | "frame";
