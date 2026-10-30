@@ -12,6 +12,7 @@
 // - C5: vacío legítimo —el proyecto todavía no prepara material—.
 
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 import type { CampanaMaterial, RegistroDeCampanas } from "../../../api/materialCampanas";
 import { EstadoVacio } from "../../../components/EstadoVacio";
@@ -26,7 +27,7 @@ import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "./campanas.css";
 import "../correos/correosIconos.css";
 
-export type AvisoDeLaLista = { tono: "ok" | "error"; texto: string };
+export type AvisoDeLaLista = { tono: "ok" | "error"; texto: string; enlace?: { href: string; texto: string } };
 
 type Props = {
   registro: RegistroDeCampanas | null;
@@ -103,6 +104,7 @@ export function ListaDeCampanas({
         {aviso ? (
           <p className={`rec-campanas-aviso${aviso.tono === "error" ? " is-error" : ""}`} role={aviso.tono === "error" ? "alert" : "status"}>
             <span>{aviso.texto}</span>
+            {aviso.enlace ? <Link to={aviso.enlace.href}>{aviso.enlace.texto}</Link> : null}
             <PulsoButton variant="ghost" size="sm" onClick={onCerrarAviso}>Entendido</PulsoButton>
           </p>
         ) : null}

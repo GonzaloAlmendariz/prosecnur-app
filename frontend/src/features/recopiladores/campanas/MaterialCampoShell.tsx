@@ -105,10 +105,15 @@ export function MaterialCampoShell() {
   // Una dirección vieja o en desacuerdo se reescribe a la canónica, sin historial.
   useEffect(() => {
     if (!resolucion?.reescribir) return;
+    // Checklist F17: la campaña territorial pedida (p. ej. desde Hojas de ruta) que aún no existe no
+    // se descarta en silencio: la lista dice cómo nace y lleva a donde se envía la muestra.
+    if (direccion?.modo === "territorial" && !(registro?.campaigns ?? []).some((c) => c.tipo === "territorial")) {
+      setAviso({ tono: "ok", texto: "La campaña territorial nace al enviar la muestra desde Hojas de ruta.", enlace: { href: "/hojas-ruta?seccion=seleccion&panel=salidas", texto: "Ir a Entrega" } });
+    }
     const search = searchDeCampanas(location.search, resolucion.reescribir);
     if (search === location.search || search === `?${location.search.replace(/^\?/, "")}`) return;
     navigate({ pathname: location.pathname, search }, { replace: true });
-  }, [location.pathname, location.search, navigate, resolucion]);
+  }, [location.pathname, location.search, navigate, resolucion, direccion?.modo, registro]);
 
   const vista = resolucion && !resolucion.reescribir ? resolucion.vista : null;
   const abierta = vista?.vista === "campana" ? vista.campana : null;
