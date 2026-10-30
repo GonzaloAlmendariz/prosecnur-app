@@ -2914,6 +2914,8 @@ export type MonitoreoConfig = {
   monitoreo_profile: MonitoreoProfile;
   acreditacion: MonitoreoAcreditacion;
   client_report: MonitoreoClientReportConfig;
+  /** Color elegido por el equipo para cada público (público -> "#rrggbb"); sin entrada, el tono de la paleta. */
+  publico_colores?: Record<string, string>;
   territorial: MonitoreoTerritorialConfig;
   aulas_universitarias: MonitoreoAulasConfig;
 };

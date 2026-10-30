@@ -76,6 +76,7 @@ import { Calidad } from "./control/casos/Calidad";
 import { Publicos } from "./insumos/Publicos";
 import { Metas } from "./modelo/Metas";
 import { Cuotas } from "./modelo/Cuotas";
+import { EstiloDePublicos } from "./EstiloDePublicos";
 import { PlanDeCampo } from "./modelo/PlanDeCampo";
 import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
 import { Fuentes } from "./insumos/Fuentes";
@@ -14753,7 +14754,7 @@ function renderAcreditacionView(
   if (view === "modelo" && (options.activeModelTab ?? "estructura") === "estructura" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Metas (A7).
     return <Metas state={options.state} onStateChange={options.onStateChange} />;
   }
-  if (view === "modelo" && options.activeModelTab === "resumen" && !isTelefonicoMonitoreoState(options.state)) return <Cuotas />; // Modelo › Cuotas (A7).
+  if (view === "modelo" && options.activeModelTab === "resumen" && !isTelefonicoMonitoreoState(options.state)) return <Cuotas state={options.state} onStateChange={options.onStateChange} />; // Modelo › Cuotas (A7).
   if (view === "modelo" && options.activeModelTab === "estrategias" && !isTelefonicoMonitoreoState(options.state)) { // Modelo › Ventana de campo (A7).
     const clienteDelModelo = reports?.client_report;
     const ventana = construirVentana(clienteDelModelo?.actors ?? [], clienteDelModelo?.daily_general ?? [], clienteDelModelo?.daily_actor ?? [], options.state?.config?.strategy_phases ?? []);
@@ -15765,6 +15766,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />
+        <EstiloDePublicos colores={state?.config?.publico_colores} />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
 
         <ModuleChromeConSync

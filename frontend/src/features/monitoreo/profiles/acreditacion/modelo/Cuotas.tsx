@@ -1,8 +1,13 @@
+import type { ReactNode } from "react";
 import { Pencil, Plus, Target } from "lucide-react";
+import type { MonitoreoState } from "../../../../../api/client";
 import type { MonitoreoCuota, MonitoreoCuotaPublico } from "../../../../../api/monitoreoCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
 import { useConfiguracionDeCuotas } from "../useConfiguracionDeCuotas";
+import { clasePublico, paletaDePublicos } from "../paletaPublicos";
+import { ColorDePublico } from "./ColorDePublico";
+import "../paletaPublicos.css";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
@@ -39,10 +44,11 @@ type PropsDeVista = {
   avisos?: readonly string[];
 };
 
-export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNueva, avisos = [] }: PropsDeVista) {
+export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNueva, avisos = [], colorDe }: PropsDeVista & { colorDe?: (actor: string) => ReactNode }) {
   const elegida = cuotas.find((cuota) => cuota.id === foco) ?? cuotas[0] ?? null;
   const sinCuota = variablesSinCuota(publicos, cuotas);
   const metaDelPublico = (actor: string) => publicos.find((publico) => publico.actor === actor)?.meta ?? null;
+  const paleta = paletaDePublicos(publicos.map((publico) => publico.actor));
   return (
     <div className="acr-ps is-cuotas" data-qa-geometry-group="acreditacion-modelo-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Cuotas del estudio">
@@ -60,7 +66,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
                 {cuotas.map((cuota) => (
                   <li key={cuota.id}>
                     <button type="button" className={elegida?.id === cuota.id ? "is-activo" : undefined} aria-pressed={elegida?.id === cuota.id} onClick={() => onElegir(cuota.id)}>
-                      <span>{`${cuota.actor}, ${cuota.variable}`}</span>
+                      <span><i className={`mon-publico-punto ${clasePublico(paleta, cuota.actor)}`} aria-hidden="true" />{`${cuota.actor}, ${cuota.variable}`}</span>
                       <b className="acr-av-num">{cuota.meta == null ? "—" : fmt(cuota.meta)}</b>
                     </button>
                   </li>
@@ -87,6 +93,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
         <section className="acr-av-panel acr-ps-tabla" aria-label={`Cuota de ${elegida.actor} por ${elegida.variable}`}>
           <header className="acr-av-panel-cabecera">
             <h3>
+              {colorDe ? colorDe(elegida.actor) : null}
               {`${elegida.actor}, ${elegida.variable}`}
               <span className="acr-av-tenue">
                 {elegida.cobertura == null ? "Metas escritas a mano" : `Cobertura de ${pctConEspacio(elegida.cobertura * 100)}`}
@@ -165,7 +172,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
  * siempre (`panel=cuota`, «Proponer metas» y guardar), que ahora vive aquí y no
  * en Avance.
  */
-export function Cuotas() {
+export function Cuotas({ state, onStateChange }: { state?: MonitoreoState | null; onStateChange?: (state: MonitoreoState) => void } = {}) {
   const { s, foco, irA, cargar, abrirNueva, panelNode } = useConfiguracionDeCuotas();
   if (!s.estado) {
     return (
@@ -196,6 +203,7 @@ export function Cuotas() {
         onElegir={(id) => irA({ panel: false, foco: id })}
         onEditar={(id) => irA({ panel: true, foco: id })}
         onNueva={abrirNueva}
+        colorDe={state?.config ? (actor) => <ColorDePublico publico={actor} publicos={(s.estado?.publicos ?? []).map((publico) => publico.actor)} state={state} onStateChange={onStateChange} /> : undefined}
       />
       {panelNode}
     </>

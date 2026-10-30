@@ -3913,6 +3913,7 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     monitoreo_profile = .monitoreo_profile_con_reglas(profile, operational_model),
     acreditacion = acreditacion,
     client_report = .monitoreo_client_report_config(config),
+    publico_colores = .monitoreo_publico_colores(config$publico_colores %||% previous_config$publico_colores),
     territorial = territorial,
     aulas_universitarias = aulas
   )
