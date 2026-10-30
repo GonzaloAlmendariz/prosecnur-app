@@ -1709,8 +1709,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 .acr-cl-cifras > .acr-res-kpi,
 .acr-pc-franja > .acr-res-kpi,
-.acr-ri-cifras > div,
-.acr-co-cifras > div {
+.acr-ri-cifras > div {
   padding: var(--pulso-space-3) var(--pulso-space-4);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
   border-radius: var(--pulso-radius-card);

@@ -381,9 +381,9 @@
   font-size: 10.5px;
 }
 
-/* El siguiente envío de la serie: dice que falta, no una caja en blanco. */
+/* El siguiente envío de la serie: dice que falta, en texto tenue y sin caja. */
 .acr-co-celda.is-vacia {
-  border: 1px dashed var(--pulso-border);
+  border: 0;
   background: transparent;
   color: var(--pulso-text-faint);
   font-size: 11.5px;
@@ -534,11 +534,28 @@
   font-size: 16px;
 }
 
+/* Celdas planas con línea fina entre ellas (K4): sin caja dentro de la tarjeta. */
 .acr-co-cifras {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--pulso-space-2);
   margin: var(--pulso-space-2) 0 0;
+  border-block: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+.acr-co-cifras > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-3);
+}
+
+.acr-co-cifras > div:first-child {
+  padding-left: 0;
+}
+
+.acr-co-cifras > div + div {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
 }
 
 .acr-co-cifras dt {
@@ -547,8 +564,8 @@
 }
 
 .acr-co-cifras dd {
-  margin: 2px 0 0;
-  font-size: 16px;
+  margin: 4px 0 0;
+  font-size: 20px;
   font-weight: var(--pulso-weight-bold);
 }
 
