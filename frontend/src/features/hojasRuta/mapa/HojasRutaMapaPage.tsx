@@ -12,6 +12,7 @@ import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/Chrom
 import { apiHojasRutaGeometria, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
+import ciudades from "../ciudadesDistrictCoverage.json";
 import cobertura from "../limaDistrictCoverage.json";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
 import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
@@ -31,6 +32,7 @@ import { nombreDistrito } from "./nombres";
 import { useLienzoHojasRuta } from "./store";
 import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
+import { cajaDeTerritorio, enLimaCallao } from "./territorio/encuadre";
 import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
 import { conTopeAbierto } from "./poblacion/rangos";
@@ -61,8 +63,12 @@ import "./mapaPage.css";
  * Cada sección se llena en U5–U10. Se ve sólo con el interruptor encendido.
  */
 
-const contornos = contornosDeCobertura(cobertura as Parameters<typeof contornosDeCobertura>[0]);
-const zonas = zonasDeLima(contornos);
+// Lima y Callao traen su límite distrital; las ciudades principales (ADR 0119), la
+// huella urbana de sus manzanas (api/inst/hojas_ruta/build_contornos_ciudades.R).
+const contornosLima = contornosDeCobertura(cobertura as Parameters<typeof contornosDeCobertura>[0]);
+const contornos = [...contornosLima, ...contornosDeCobertura(ciudades as Parameters<typeof contornosDeCobertura>[0])];
+// Por nombre y sólo en Lima: Arequipa también tiene su Miraflores.
+const zonas = zonasDeLima(contornosLima);
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(n);
 
 export default function HojasRutaMapaPage() {
@@ -300,8 +306,10 @@ export default function HojasRutaMapaPage() {
     reemplazos: salidas?.sample ? salidas.sample.replacement_blocks.length : null,
   });
 
-  const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? unirCajas(contornos.map((c) => c.caja)), [confirmados]);
-  const cajaLima = useMemo(() => unirCajas(contornos.map((c) => c.caja)), []);
+  const cajaLima = useMemo(() => unirCajas(contornos.filter((c) => enLimaCallao(c.ubigeo)).map((c) => c.caja)), []);
+  const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? cajaLima, [confirmados, cajaLima]);
+  const cajaTerritorio = useMemo(() => cajaDeTerritorio(contornos, borrador, confirmados), [borrador, confirmados]);
+  const fueraDeLima = useMemo(() => [...borrador, ...confirmados].some((u) => !enLimaCallao(u)), [borrador, confirmados]);
 
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) =>
@@ -555,7 +563,7 @@ export default function HojasRutaMapaPage() {
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaLima ? { caja: confirmados.length && caja ? caja : cajaLima, pad: confirmados.length ? 0.14 : 0.03, clave: `territorio:${confirmados.join(",")}` } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: confirmados.length || fueraDeLima ? 0.14 : 0.03, clave: fueraDeLima ? `territorio:${[...new Set([...borrador, ...confirmados].map((u) => u.slice(0, 4)))].sort().join(",")}` : `territorio:${confirmados.join(",")}`, animar: fueraDeLima } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
