@@ -51,6 +51,7 @@ público, una de avance general y una de «Corte y fuentes»).
 | 28 | Faltaban el diario y el acumulado por público | motor | Hecho: página «Avance diario por público», un panel por público con la convención de hostigamiento: acumulado en línea contra el mínimo esperado, completas del día en barras (Gonzalo, 2026-10-30: «el acumulado es una línea y el diario son barras») |
 | 29 | El porcentaje sobre el mínimo no tenía nombre propio | motor | Hecho: «Cumplimiento del mínimo» (tarjeta y columna del resumen), siempre con su frecuencia |
 | 30 | Los paneles del avance diario repetían cifras y el mínimo bajo el nombre del público | motor | Hecho: sólo el título (Gonzalo, 2026-10-30) |
+| 31 | Prueba con más días y más avance (simulación de 18 días, corte 15/11, fuera del repo): rótulos del acumulado montados («3602 3606»), cifra tachada por la línea del mínimo, «hasta 11:40» sobre la fecha vecina en los paneles, tabla partida 14 + 4 | kit (`pulso_pdf_serie_partida`: rótulo pegado al último se calla, cifra bajo el punto si cae sobre una meta, eje de fechas igual) + motor (fecha corta en paneles, tabla de hasta 20 días con reparto parejo) | Hecho; el PDF de aulas re-renderizado se ve igual salvo las cifras que antes tachaba su meta |
 
 ## Cifras contrastadas con la app (corte 30/10/2026 07:20)
 

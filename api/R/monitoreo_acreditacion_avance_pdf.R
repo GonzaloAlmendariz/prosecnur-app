@@ -227,6 +227,8 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   # que el ritmo haya cambiado.
   promedio <- if (dias_cerrados > 0) sum(serie$completas[seq_len(dias_cerrados)]) / dias_cerrados else NA_real_
   etiquetas <- .acav_etiquetas_de_dia(serie$fecha, if (ultimo_en_curso) corte$hora else "")
+  # En un panel «hasta 11:40» no cabe y se monta sobre la fecha vecina.
+  etiquetas_panel <- .acav_etiquetas_de_dia(serie$fecha)
 
   tx <- function(label, x, y, size = ty$body, col = tk$ink, face = "plain",
                  just = c("left", "center"), lineheight = 1.1) {
@@ -252,7 +254,11 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   if (nrow(pub) %in% 5:6) rejilla <- list(columnas = 3L, hojas = 1L, por_hoja = nrow(pub))
   hay_paneles <- n_dias > 0 && nrow(pub) > 1L
   hojas_paneles <- if (hay_paneles) split(seq_len(nrow(pub)), ceiling(seq_len(nrow(pub)) / rejilla$por_hoja)) else list()
-  filas_tabla <- 14L
+  # Veinte días caben en una hoja. Si hay que abrir otra, el reparto es parejo:
+  # 14 + 4 dejaba la segunda hoja con cuatro filas colgando.
+  cabida_tabla <- 20L
+  n_hojas_tabla <- max(1L, ceiling(n_dias / cabida_tabla))
+  filas_tabla <- max(1L, ceiling(n_dias / n_hojas_tabla))
   hojas_tabla <- if (n_dias) split(seq_len(n_dias), ceiling(seq_len(n_dias) / filas_tabla)) else list(integer())
   total_paginas <- 1L + (if (n_dias) 1L else 0L) + length(hojas_paneles) + length(hojas_tabla)
 
@@ -447,7 +453,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       # Sólo el nombre: las cifras del público ya están en la tabla del resumen.
       tx(p$publico, px, py + hp + 0.022, size = ty$body, col = tk$navy, face = "bold", just = c("left", "bottom"))
       diarias <- as.numeric(matriz[, p$publico])
-      pulso_pdf_serie_partida(px, py, w - 0.026, hp, dias = etiquetas, diarias = diarias,
+      pulso_pdf_serie_partida(px, py, w - 0.026, hp, dias = etiquetas_panel, diarias = diarias,
                               acumulado = cumsum(diarias),
                               metas = if (con_meta) stats::setNames(p$meta, "") else numeric(0),
                               tokens = tk, ty = ty, geo = geo, compacto = TRUE, formato = .acav_n)

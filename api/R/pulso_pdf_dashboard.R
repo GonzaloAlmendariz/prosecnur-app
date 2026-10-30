@@ -871,9 +871,16 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   barras_rotuladas <- .ppd_rotulos_de_barras(
     diarias, .ppd_cifras_que_caben(diarias, w, fs))
   for (i in vivos) {
-    if ((i - 1L) %% salto != 0L && i != n) next
-    grid::grid.text(formato(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
-                    just = c("centre", "bottom"),
+    # El rótulo regular que cae a menos de un paso del último se calla: el
+    # último se escribe siempre y los dos se montaban («3602 3606»).
+    if (i != n && ((i - 1L) %% salto != 0L || n - i < salto)) next
+    # Si la cifra cae sobre la regla de una meta, va bajo el punto: encima, la
+    # línea punteada la tacha («3606» sobre el mínimo esperado).
+    y_rot <- py_acu(acumulado[[i]]) + 0.013
+    tachada <- length(metas) && any(abs(py_acu(metas) - (y_rot + 0.007)) < 0.012)
+    grid::grid.text(formato(acumulado[[i]]), x = px(i),
+                    y = if (tachada) py_acu(acumulado[[i]]) - 0.010 else y_rot,
+                    just = c("centre", if (tachada) "top" else "bottom"),
                     gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y_acu, "npc"),
@@ -906,7 +913,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   # --- El eje de fechas, UNO solo al pie ------------------------------------
   cada <- max(1L, ceiling(n / (if (isTRUE(compacto)) 6L else 14L)))
   for (i in seq_len(n)) {
-    if ((i - 1L) %% cada != 0L && i != n) next
+    if (i != n && ((i - 1L) %% cada != 0L || n - i < cada)) next
     grid::grid.text(dias[[i]], x = px(i), y = y - 0.014, just = c("centre", "top"),
                     gp = grid::gpar(col = tokens$soft, fontsize = fs))
   }
