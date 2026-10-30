@@ -3984,9 +3984,9 @@ function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string
 }
 
 const ACREDITACION_BACKGROUND_SCOPES: MonitoreoReportScope[] = [
-  "source",
   "advance_summary",
   "queries_summary",
+  "source",
   "phone_summary",
 ];
 
