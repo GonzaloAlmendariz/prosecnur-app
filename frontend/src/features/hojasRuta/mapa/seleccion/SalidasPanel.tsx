@@ -11,6 +11,7 @@ import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { BitacoraSeccion } from "./BitacoraSeccion";
 import { InformeDiseno } from "./InformeDiseno";
 import { muestraV1 } from "../manzanas/sorteoV1";
+import { useProjectModules } from "../../../project/ProjectModulesContext";
 
 /**
  * «Entrega» de Selección (ADR 0118 §2, F3), en el sideover direccionable `?panel=salidas`
@@ -42,6 +43,8 @@ type Props = {
 
 export function SalidasPanel({ salidas, envio, onCambio }: Props) {
   const nav = useSeccion("hojas-ruta");
+  // Checklist I2: un estudio que envió su muestra a Material de campo no puede tenerlo fuera de la barra.
+  const { addModule } = useProjectModules();
   const [ocupado, setOcupado] = useState<"" | "envio" | "cuotas">("");
   const [error, setError] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -123,7 +126,7 @@ export function SalidasPanel({ salidas, envio, onCambio }: Props) {
             </div>
           ) : null}
           <div className="hr-salidas-acciones">
-            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", () => apiHojasRutaEnviar())}>
+            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { await apiHojasRutaEnviar(); addModule("material-campo"); })}>
               <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
             </PulsoButton>
             {envio ? (
