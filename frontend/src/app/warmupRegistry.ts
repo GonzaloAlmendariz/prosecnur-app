@@ -627,3 +627,13 @@ export async function warmupFrontendModules(
   markWarmupModulesComplete(results.map((item) => item.id));
   return results;
 }
+
+// Frontera de HMR (sólo dev). Sin ella, editar cualquier módulo que este
+// registro alcanza —un perfil de Monitoreo, su `index.ts`, el registro de
+// familias— subía hasta BootGate, Fast Refresh volvía a correr sus efectos y
+// la app relanzaba bootstrap y un job de warmup nuevo con la vista abierta
+// (21.8 s sin readiness, medido). BootGate y ModuleWarmupBoundary quedan con
+// la versión anterior de este registro hasta recargar; si después se edita
+// ModuleWarmupBoundary, toma la nueva con el set de completados vacío y
+// re-calienta su módulo una vez (acotado por su presupuesto, sin job nuevo).
+if (import.meta.hot) import.meta.hot.accept();
