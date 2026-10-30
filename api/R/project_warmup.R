@@ -550,8 +550,10 @@
   "Preparando Monitoreo..."
 }
 
-.project_warmup_monitoreo_compact_scopes <- function(family = "") {
+.project_warmup_monitoreo_compact_scopes <- function(family = "", usa_telefono = TRUE) {
   if (family %in% c("acreditacion", "telefonico")) {
+    # Acreditación sin canal telefónico no prepara el tablero telefónico (monitoreo_estudio_telefono.R).
+    if (identical(family, "acreditacion") && !isTRUE(usa_telefono)) return(c("source", "advance_summary", "queries_summary"))
     return(c("source", "advance_summary", "queries_summary", "phone_summary"))
   }
   character(0)
@@ -568,7 +570,7 @@
     return(.project_warmup_skip("Sin configuracion local de monitoreo."))
   }
   family <- .project_warmup_monitoreo_family_rapida(sid)
-  compact_scopes <- .project_warmup_monitoreo_compact_scopes(family)
+  compact_scopes <- .project_warmup_monitoreo_compact_scopes(family, .monitoreo_estudio_usa_telefono(s$monitoreo_config, s$monitoreo_sources))
   if (length(compact_scopes)) {
     started_at <- Sys.time()
     scopes <- compact_scopes
