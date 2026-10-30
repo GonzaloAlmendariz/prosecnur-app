@@ -365,18 +365,30 @@
 .acr-mo-teselas {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--pulso-space-3);
+  border-block: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
 }
 
+/* Celdas planas con una línea fina entre ellas (K4: nada de caja dentro de la tarjeta);
+ * sólo las entradas llevan borde, porque se editan. */
 .acr-mo-tesela {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 6px;
   min-width: 0;
   padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
+}
+
+.acr-mo-tesela + .acr-mo-tesela {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+.acr-mo-tesela:first-child {
+  padding-left: 0;
+}
+
+.acr-mo-tesela:last-child {
+  padding-right: 0;
 }
 
 .acr-mo-tesela small {
