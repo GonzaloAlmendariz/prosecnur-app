@@ -108,7 +108,11 @@ export function MaterialCampoShell() {
     // Checklist F17: la campaña territorial pedida (p. ej. desde Hojas de ruta) que aún no existe no
     // se descarta en silencio: la lista dice cómo nace y lleva a donde se envía la muestra.
     if (direccion?.modo === "territorial" && !(registro?.campaigns ?? []).some((c) => c.tipo === "territorial")) {
-      setAviso({ tono: "ok", texto: "La campaña territorial nace al enviar la muestra desde Hojas de ruta.", enlace: { href: "/hojas-ruta?seccion=seleccion&panel=salidas", texto: "Ir a Entrega" } });
+      // M1: con la muestra ya enviada (el tipo territorial está disponible) falta crear la campaña, no volver a enviar.
+      const enviada = (registro?.tipos ?? []).some((t) => t.tipo === "territorial" && t.disponible);
+      setAviso(enviada
+        ? { tono: "ok", texto: "La muestra ya se envió desde Hojas de ruta: falta crear su campaña territorial.", enlace: { href: "/material-campo?panel=nueva-campana", texto: "Crear la campaña" } }
+        : { tono: "ok", texto: "La campaña territorial nace al enviar la muestra desde Hojas de ruta.", enlace: { href: "/hojas-ruta?seccion=seleccion&panel=salidas", texto: "Ir a Entrega" } });
     }
     const search = searchDeCampanas(location.search, resolucion.reescribir);
     if (search === location.search || search === `?${location.search.replace(/^\?/, "")}`) return;

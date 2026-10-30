@@ -4,6 +4,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { Sideover } from "../../../../components/Sideover";
 import { ApiError } from "../../../../api/core";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
+import { asegurarCampanaTerritorial } from "./campanaTerritorial";
 import { apiHojasRutaCuotasPorFicha, apiHojasRutaEnviar, muestraConCuotasRepartidas, type HojasRutaWorkspaceOutputs } from "../../../../api/hojasRuta";
 import type { EnvioMeta } from "../../../../api/materialTerritorial";
 import { Send } from "../../../../vendor/lucide-react";
@@ -126,7 +127,7 @@ export function SalidasPanel({ salidas, envio, onCambio }: Props) {
             </div>
           ) : null}
           <div className="hr-salidas-acciones">
-            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { await apiHojasRutaEnviar(); addModule("material-campo"); })}>
+            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { await apiHojasRutaEnviar(); addModule("material-campo"); await asegurarCampanaTerritorial(); })}>
               <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
             </PulsoButton>
             {envio ? (
