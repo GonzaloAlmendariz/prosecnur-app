@@ -43,6 +43,11 @@ describe("agruparFilas", () => {
     expect(g[0].porRango[0]).toEqual({ H: 15, M: 17 });
   });
 
+  test("por provincia, un distrito de Arequipa no cae en «Lima»", () => {
+    const g = agruparFilas([...filas, fila("040103", 2, 2)], "provincia");
+    expect(g.map((f) => f.territorio)).toEqual(["Lima", "Callao", "Arequipa"]);
+  });
+
   test("por zona usa las zonas dadas y manda el resto a «Otros»", () => {
     const g = agruparFilas(filas, "zona", [{ etiqueta: "Este", ubigeos: ["150103", "150132"] }]);
     expect(g.map((f) => [f.territorio, f.total])).toEqual([["Este", 32], ["Otros", 7]]);

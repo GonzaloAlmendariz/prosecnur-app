@@ -1,4 +1,5 @@
 import type { HojasRutaAgeRange, PopulationPlan } from "../../../../api/hojasRuta";
+import { CIUDADES } from "../territorio/ciudades";
 import { firmaRangos } from "./rangos";
 
 /**
@@ -38,17 +39,26 @@ export function resumirMatriz(poblacion: PopulationPlan | null | undefined, rang
 }
 
 export type AgruparFilas = "distrito" | "provincia" | "zona";
+
+function provinciaDe(ubigeo: string): string {
+  const prov = ubigeo.slice(0, 4);
+  if (prov === "1501") return "Lima";
+  if (prov === "0701") return "Callao";
+  return CIUDADES.find((c) => c.ubigeos.includes(ubigeo))?.nombre ?? prov;
+}
 export type GrupoDeZona = { etiqueta: string; ubigeos: readonly string[] };
 
 /**
  * Agrupa las filas de la matriz (brecha B29) sumando sus celdas. La población
- * INEI viene por distrito: provincia sale del ubigeo (07 = Callao) y zona de
- * las zonas usuales de Lima; un distrito que no cae en ninguna va a «Otros».
+ * INEI viene por distrito: provincia sale de los cuatro primeros dígitos del ubigeo
+ * (Lima, Callao o el nombre de la ciudad principal; antes todo lo que no era 07 caía
+ * en «Lima», también Arequipa: checklist del flujo del analista) y zona de las zonas
+ * usuales de Lima; un distrito que no cae en ninguna va a «Otros».
  */
 export function agruparFilas(filas: readonly FilaMatriz[], por: AgruparFilas, zonas: readonly GrupoDeZona[] = []): FilaMatriz[] {
   if (por === "distrito") return [...filas];
   const grupoDe = (f: FilaMatriz) =>
-    por === "provincia" ? (f.ubigeo.startsWith("07") ? "Callao" : "Lima") : zonas.find((z) => z.ubigeos.includes(f.ubigeo))?.etiqueta ?? "Otros";
+    por === "provincia" ? provinciaDe(f.ubigeo) : zonas.find((z) => z.ubigeos.includes(f.ubigeo))?.etiqueta ?? "Otros";
   const grupos = new Map<string, FilaMatriz>();
   for (const f of filas) {
     const clave = grupoDe(f);

@@ -12,11 +12,19 @@ import { MapPinned } from "../../../../vendor/lucide-react";
 
 export type SeccionLienzo = "territorio" | "poblacion" | "muestra" | "manzanas" | "seleccion";
 
-export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { distrito: string; ump: string } | null): ReactNode {
+/** Cómo se nombra el territorio del estudio en la miga (checklist F6): las ciudades, no un «Lima» fijo. */
+export function nombreDelTerritorio(ciudades: readonly string[]): string {
+  if (!ciudades.length) return "Sin ciudades";
+  if (ciudades.length <= 2) return ciudades.join(", ");
+  return `${ciudades.length} ciudades`;
+}
+
+export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { distrito: string; ump: string } | null, ciudades: readonly string[] = []): ReactNode {
   const icono = <MapPinned size={14} aria-hidden="true" />;
+  const donde = nombreDelTerritorio(ciudades);
   if (seccion === "seleccion" && foco) return <>{icono} <b>{foco.distrito}</b> · {foco.ump}</>;
-  if (seccion === "territorio") return <>{icono} <b>Lima y Callao</b><span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span></>;
-  return <>{icono} <b>Lima</b> · {distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"}</>;
+  if (seccion === "territorio") return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span></>;
+  return <>{icono} <b>{donde}</b> · {distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"}</>;
 }
 
 const muestra = (fondo: string, borde?: string, punteado = false) => (
