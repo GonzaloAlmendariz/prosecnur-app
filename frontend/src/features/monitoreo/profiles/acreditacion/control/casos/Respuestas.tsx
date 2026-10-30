@@ -29,6 +29,8 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   const vista = pagina(filtradas, numero);
   const cuentan = respuestas.filter((respuesta) => respuesta.cuenta).length;
   const paleta = useMemo(() => paletaDePublicos(respuestas.map((respuesta) => respuesta.publico)), [respuestas]);
+  // Con un solo canal la columna repite lo mismo en cada fila (la faceta ya lo dice) y empuja la tabla a desplazarse a 1024.
+  const variosCanales = useMemo(() => new Set(respuestas.map((respuesta) => respuesta.canal)).size > 1, [respuestas]);
 
   if (!respuestas.length) {
     return (
@@ -88,7 +90,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                 <tr>
                   <th scope="col">Respuesta</th>
                   <th scope="col">Público y encuesta</th>
-                  <th scope="col">Canal</th>
+                  {variosCanales ? <th scope="col">Canal</th> : null}
                   <th scope="col">Estado</th>
                   <th scope="col">Cruce</th>
                   <th scope="col">Avance</th>
@@ -109,7 +111,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                         {respuesta.encuesta ? <small>{respuesta.encuesta}</small> : null}
                       </span>
                     </td>
-                    <td>{respuesta.canal}</td>
+                    {variosCanales ? <td>{respuesta.canal}</td> : null}
                     <td>{respuesta.estado}</td>
                     <td>{respuesta.cruce}</td>
                     <td><span className={`acr-av-chip${respuesta.cuenta ? " is-cumple" : ""}`}>{respuesta.cuenta ? "Cuenta" : "No cuenta"}</span></td>

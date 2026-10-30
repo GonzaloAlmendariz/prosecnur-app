@@ -26,7 +26,7 @@ Proyecto observado: `Monitoreo Acreditación Institucional PUCP 2026.pulso`, pri
 | 19 | «Errores de distribución» y «cambios de vista que cambian de lugar» (Gonzalo): p. ej. Avance › Por cuota pone el selector «Cuotas / Variables de control» arriba y el título «Variables» debajo, distinto de las demás vistas | por recorrer | ◐ Por cuota hecho (6ccdc1137): marco de dos columnas desde la carga y sin el h3 «Variables»; falta recorrer el resto de las vistas
 | 20 | Control › Correo: «Abrieron, sin contar Apple» 21 808 (95.6 %) a las 19:33 vs 16 672 (73 %) a las 18:xx: ¿de verdad excluye Apple? | motor Mailchimp | Anotado (dato, C5), no estético |
 | 21 | Avance › Salidas: ofrece «Producción por responsable… producción telefónica» en un estudio sin teléfono | `avance/Salidas.tsx` | Pendiente: confirmar que no aplica a correo antes de esconder |
-| 22 | Control › Respuestas a 1024: la tabla desplaza en horizontal (692/731 px) | `Respuestas.tsx` / CSS | Pendiente |
+| 22 | Control › Respuestas a 1024: la tabla desplaza en horizontal (692/731 px) | `Respuestas.tsx` / CSS | ☑ Sin la columna «Canal» cuando hay un solo canal (la faceta ya lo dice): 0 contenedores con desplazamiento a 1024 |
 | 7 | Arranque del proyecto lento: el `advance_summary` tardó 380 s con la máquina cargada (52 s sin carga) | backend, `monitoreo_acreditacion_*` | Anotado, fuera de lo visual |
 
 Notas:
