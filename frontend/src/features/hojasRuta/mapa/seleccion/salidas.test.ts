@@ -47,3 +47,15 @@ it("el plan se agrupa por día y, dentro del día, por encuestador (B20)", () =>
   const dias = porDia([j("J03", 2, 1), j("J02", 1, 2), j("J01", 1, 1)]);
   expect(dias.map(([d, js]) => [d, js.map((x) => x.id)])).toEqual([[1, ["J01", "J02"]], [2, ["J03"]]]);
 });
+
+describe("conteosPorDistrito", () => {
+  it("cuenta fichas y hojas por zona de cada distrito, y suma lo mismo que el total", async () => {
+    const { conteosPorDistrito, conteosDelPaquete } = await import("./salidas");
+    const b = (ubigeo: string, zona: string) => ({ ubigeo, distrito: ubigeo === "1" ? "ATE" : "LIMA", zona } as unknown as import("../../../../api/hojasRuta").SelectedBlock);
+    const t = [b("1", "a"), b("1", "b"), b("2", "a")];
+    const r = [b("1", "c"), b("2", "a")];
+    const d = conteosPorDistrito(t, r);
+    expect(d).toEqual([{ ubigeo: "1", distrito: "ATE", titulares: 2, reemplazos: 1, zonas: 3 }, { ubigeo: "2", distrito: "LIMA", titulares: 1, reemplazos: 1, zonas: 1 }]);
+    expect(d.reduce((a, x) => a + x.zonas, 0)).toBe(conteosDelPaquete(t, r).zonas);
+  });
+});

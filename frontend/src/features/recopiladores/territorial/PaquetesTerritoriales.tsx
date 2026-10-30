@@ -31,10 +31,13 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Archive, FileSpreadsheet, Shuffle } from "../../../vendor/lucide-react";
+import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import { revisarUnidades } from "./revisionUnidades";
 import {
   alternarId,
   candidatasDeReemplazo,
   conteosDelPaquete,
+  conteosPorDistrito,
   listoParaEntregar,
   pasosDeEntrega,
   pesoLegible,
@@ -45,6 +48,13 @@ import { codigoDeUmp } from "../../hojasRuta/seleccion/revisionMarco";
 import { AvisoDesactualizada, HREF_REENVIO, VacioSinFuente } from "./UnidadesTerritoriales";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
+type FilaPaquete = { ubigeo: string; distrito: string; titulares: number; reemplazos: number; zonas: number };
+const COLUMNAS_PAQUETE: PulsoTableColumna<FilaPaquete>[] = [
+  { id: "distrito", encabezado: "Distrito", ancho: 220, celda: (f) => (f.ubigeo === "total" ? <strong>Total</strong> : nombreDistrito(f.distrito)) },
+  { id: "titulares", encabezado: "Fichas titulares", ancho: 130, tipo: "cifra", celda: (f) => fmt(f.titulares) },
+  { id: "reemplazos", encabezado: "Fichas de reemplazo", ancho: 150, tipo: "cifra", celda: (f) => fmt(f.reemplazos) },
+  { id: "zonas", encabezado: "Hojas por zona", ancho: 130, tipo: "cifra", celda: (f) => fmt(f.zonas) },
+];
 const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
 
 type Trabajo = "" | "zip" | "excel" | "puntuales";
@@ -81,7 +91,15 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial
   const corriendo = Boolean(e.jobZip || e.jobPuntuales) || e.ocupado !== "";
   const { filas, coincidencias } = useMemo(() => candidatasDeReemplazo(muestra?.blocks ?? [], busqueda, elegidas), [busqueda, elegidas, muestra]);
   const paquete = conteosDelPaquete(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []);
-  const sugeridas = useMemo(() => sugeridasParaReemplazo(muestra?.blocks ?? []), [muestra]);
+  const porDistrito = useMemo(() => conteosPorDistrito(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []), [muestra]);
+  // M14: las titulares por revisar (mismo criterio que Unidades y Selección) se sugieren primero, con su motivo.
+  const ss = config?.sample_size;
+  const revision = useMemo(() => revisarUnidades(unidades?.units ?? [], ss ? { respuesta: ss.response_rate, ocupacion: ss.ocupacion ?? 1 } : undefined), [unidades, ss]);
+  const sugeridas = useMemo(() => {
+    const titulares = (unidades?.units ?? []).filter((u) => u.role === "titular");
+    const conMotivo = titulares.filter((u) => { const e = revision.porUnidad.get(u.unit_id); return e && (e.tono === "error" || e.tono === "aviso"); });
+    return conMotivo.length ? conMotivo.map((u) => u.unit_id) : sugeridasParaReemplazo(muestra?.blocks ?? []);
+  }, [unidades, revision, muestra]);
 
   if (!unidades) {
     return (
@@ -119,20 +137,26 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial
       <div className="rec-terr-tarjetas" data-qa-geometry-group="material-campo/territorial/paquetes" data-qa-geometry-contract="intrinsic">
         <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Paquete de entrega">
           <h3><Archive size={15} aria-hidden /> Paquete de entrega</h3>
-          <ul className="rec-terr-pasos">
-            {pasos.map((p) => (
-              <li key={p.id} data-ok={p.ok || undefined}>
-                <i aria-hidden="true" />
-                <strong>{p.label}</strong>
-                <small>{p.detalle}</small>
-              </li>
-            ))}
-          </ul>
-          <p className="rec-terr-nota">
-            {muestra
-              ? `${fmt(paquete.titulares)} fichas de titulares en ${fmt(paquete.distritos)} carpeta${paquete.distritos === 1 ? "" : "s"} por distrito, ${fmt(paquete.reemplazos)} de reemplazo, ${fmt(paquete.zonas)} hoja${paquete.zonas === 1 ? "" : "s"} por zona, el Excel operativo y los metadatos del marco.`
-              : "Hojas de ruta no tiene una muestra guardada con la que armar el paquete."}
-          </p>
+          {!listo ? (
+            <p className="rec-terr-aviso" role="status">
+              Falta en Hojas de ruta: {pasos.filter((p) => !p.ok).map((p) => p.label.toLocaleLowerCase("es-PE")).join(", ")}. <Link to={HREF_REENVIO}>Ir a Hojas de ruta</Link>
+            </p>
+          ) : null}
+          {muestra ? (
+            <>
+              <p className="rec-terr-nota">Qué incluye, distrito por distrito: una carpeta con sus fichas, las hojas por zona, el Excel operativo y los metadatos del marco.</p>
+              <PulsoTable
+                columnas={COLUMNAS_PAQUETE}
+                filas={[...porDistrito, { ubigeo: "total", distrito: "Total", titulares: paquete.titulares, reemplazos: paquete.reemplazos, zonas: paquete.zonas }]}
+                idDeFila={(f) => f.ubigeo}
+                ariaLabel="Contenido del paquete por distrito"
+                densidad="compacta"
+                altoMaximo={100000}
+              />
+            </>
+          ) : (
+            <p className="rec-terr-nota">Hojas de ruta no tiene una muestra guardada con la que armar el paquete.</p>
+          )}
           <div className="rec-terr-fila">
             <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
               <Archive size={14} aria-hidden /> {e.ocupado === "zip" ? "Preparando…" : "Generar ZIP"}
@@ -181,13 +205,13 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial
           <p className="rec-terr-nota">Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo.</p>
           {sugeridas.length ? (
             <div className="rec-terr-sugeridas">
-              <small>Sin viviendas en el marco: conviene revisarlas</small>
+              <small>Por revisar en la muestra: conviene mirarlas primero</small>
               <div className="rec-terr-chips">
                 {sugeridas.slice(0, 8).map((id) => {
                   const b = muestra?.blocks.find((x) => x.id_manzana === id);
                   return (
                     <button key={id} type="button" className="rec-terr-chip" aria-pressed={elegidas.includes(id)} disabled={corriendo} onClick={() => setElegidas((l) => alternarId(l, id))}>
-                      {b ? codigoDeUmp(b) : id}
+                      {b ? codigoDeUmp(b) : id}{revision.porUnidad.get(id)?.motivo ? ` · ${revision.porUnidad.get(id)?.motivo}` : ""}
                     </button>
                   );
                 })}

@@ -58,6 +58,20 @@ export function conteosDelPaquete(titulares: readonly SelectedBlock[], reemplazo
   };
 }
 
+/** Material › Paquetes (M14): lo que trae el paquete, distrito por distrito, con el mismo criterio que el total. */
+export function conteosPorDistrito(titulares: readonly SelectedBlock[], reemplazos: readonly SelectedBlock[]): { ubigeo: string; distrito: string; titulares: number; reemplazos: number; zonas: number }[] {
+  const out = new Map<string, { ubigeo: string; distrito: string; titulares: number; reemplazos: number; zonas: Set<string> }>();
+  const fila = (b: SelectedBlock) => {
+    const f = out.get(b.ubigeo) ?? { ubigeo: b.ubigeo, distrito: b.distrito, titulares: 0, reemplazos: 0, zonas: new Set<string>() };
+    out.set(b.ubigeo, f);
+    f.zonas.add(b.zona);
+    return f;
+  };
+  for (const b of titulares) fila(b).titulares += 1;
+  for (const b of reemplazos) fila(b).reemplazos += 1;
+  return [...out.values()].map((f) => ({ ubigeo: f.ubigeo, distrito: f.distrito, titulares: f.titulares, reemplazos: f.reemplazos, zonas: f.zonas.size }));
+}
+
 /**
  * Titulares que conviene revisar para un reemplazo puntual (B22): las que el marco
  * registra sin viviendas. Es una sugerencia; quien decide es el equipo de campo.
