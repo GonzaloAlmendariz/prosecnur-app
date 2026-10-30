@@ -17,7 +17,8 @@ job_submit <- function(sid,
                        on_complete = NULL,
                        libpath = .libPaths(),
                        on_cleanup = NULL,
-                       dedupe_key = NULL) {
+                       dedupe_key = NULL,
+                       retener_resultado = TRUE) {
   sess <- session_get(sid)
   # Opt-in «uno a la vez» por (sesión, dedupe_key): si ya corre uno, se devuelve ése marcado (jobs_dedupe.R).
   en_curso <- .jobs_dedupe_en_curso(sid, dedupe_key)
@@ -198,6 +199,10 @@ job_submit <- function(sid,
     # .job_run_cleanup().
     on_cleanup = on_cleanup,
     cleaned = FALSE,
+    # FALSE: el resultado crudo sólo existe para que on_complete lo aplique; tras
+    # aplicarlo se suelta (el warm start trae un session_patch de ~2,8 GB que el
+    # registro retenía por cada corrida). result_public sigue intacto.
+    retener_resultado = !isFALSE(retener_resultado),
     dedupe_key = if (.jobs_dedupe_clave_valida(dedupe_key)) dedupe_key else NULL,
     error = NULL
   )
@@ -212,6 +217,19 @@ job_unlink_inputs <- function(paths) {
   for (path in paths) {
     tryCatch(unlink(path, force = TRUE), error = function(e) NULL)
   }
+  invisible(NULL)
+}
+
+# Borra los temporales que callr dejó en el tempdir del backend (callr-res-*
+# con el resultado serializado, callr-fun-*, scripts). callr sólo los borra al
+# recolectar el r_process, y `.jobs` lo retiene para siempre: sin esto cada
+# warm start dejaba ~713 MB en disco hasta que el backend moría (y para siempre
+# si moría matado). Se llama cuando el resultado ya está en memoria o el job se
+# canceló. Nunca falla.
+.job_soltar_temporales <- function(j) {
+  rx <- j$rx
+  if (is.null(rx) || !is.function(rx$cleanup)) return(invisible(NULL))
+  tryCatch(rx$cleanup(), error = function(e) NULL)
   invisible(NULL)
 }
 
@@ -336,6 +354,7 @@ job_poll <- function(job_id) {
   if (alive) return(j)
 
   result <- tryCatch(j$rx$get_result(), error = function(e) e)
+  .job_soltar_temporales(j)
   j$finished_at <- Sys.time()
   if (inherits(result, "error")) {
     j$status <- "error"
@@ -361,6 +380,7 @@ job_poll <- function(job_id) {
       } else if (!is.null(public)) {
         j$result_public <- public
       }
+      if (isFALSE(j$retener_resultado)) j$result_data <- NULL
     }
   }
   # Higiene en todo final cosechado (done o error del worker): los insumos
@@ -417,6 +437,7 @@ job_cancel <- function(job_id) {
     }
     if (identical(j$status, "running")) {
       try(j$rx$kill(), silent = TRUE)
+      .job_soltar_temporales(j)
       j$status <- "cancelled"
       j$finished_at <- Sys.time()
       # Cancelar no aplica on_complete, pero SÍ limpia los insumos efímeros
@@ -443,6 +464,7 @@ jobs_kill_all <- function() {
     j <- .jobs[[id]]
     if (j$status == "running") {
       try(j$rx$kill(), silent = TRUE)
+      .job_soltar_temporales(j)
       j$status <- "cancelled"
       j$finished_at <- Sys.time()
       j <- .job_run_cleanup(j)

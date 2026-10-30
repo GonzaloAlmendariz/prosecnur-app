@@ -1323,7 +1323,9 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
         modules = module_ids
       ),
       on_complete = .project_warmup_on_complete,
-      dedupe_key = clave
+      dedupe_key = clave,
+      # El session_patch (~2,8 GB) ya vive en la sesión tras on_complete.
+      retener_resultado = FALSE
     ),
     error = function(e) e
   )
