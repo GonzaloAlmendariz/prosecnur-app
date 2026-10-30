@@ -20,4 +20,6 @@ Pabellón, telefónico, territorial). Continúa el checklist visual del 29/10
 ## Lo aprendido
 
 - Las franjas laterales eran una decisión anterior y deliberada («el estado en el borde lateral sólido»); el criterio nuevo las reemplaza en todo el perfil, no por vista.
+- Inventario de avisos (K5, 00:2x, 17 pestañas con el proyecto real): sólo cuatro y todos dentro de la tarjeta que afectan: Ritmo «El plan de campo no tiene fases con fechas» (con su acción), Correo «4 destinatarios de Mailchimp no están en el universo», Modelo › Cuotas «las metas por categoría suman 844 y la meta del público es 843», Por resolver «Elige a la persona del padrón» (en el panel del caso). Falta mirar si este último aparece antes de que haya algo que elegir.
+- El verificador rechazó 0db98c1cf por el foco recortado del selector (overflow hidden + outline por fuera); corregido en bbdbf8c9a con el foco por dentro.
 - Las «cajas por fila» no venían del CSS de Acreditación sino del `button` global de `theme.css` (sombra + relieve + salto en hover): toda lista hecha de `<button>` lo hereda si no lo anula.
