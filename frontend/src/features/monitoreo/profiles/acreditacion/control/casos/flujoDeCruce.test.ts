@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conteoPor, dibujarFlujo, normalizarFlujo, rotuloDeResultado } from "./flujoDeCruce";
+import { conteoPor, dibujarFlujo, esSinRespuesta, flujoDeRespuestas, normalizarFlujo, rotuloDeResultado } from "./flujoDeCruce";
 
 // Los 26 enlaces del flujo de Contabilidad (corte 23/07/26).
 const FLUJO = [
@@ -36,5 +36,31 @@ describe("flujo de Control › Cruce", () => {
   it("cuenta por rótulo de mayor a menor", () => {
     expect(conteoPor([{ l: "Enlace usado" }, { l: "Código PUCP declarado" }, { l: "Código PUCP declarado" }, { l: "" }], (fila) => fila.l))
       .toEqual([{ rotulo: "Código PUCP declarado", casos: 2 }, { rotulo: "Enlace usado", casos: 1 }]);
+  });
+});
+
+describe("flujo de las respuestas (sin el padrón pendiente)", () => {
+  it("quita la cinta «Sin respuesta» y la descuenta de «En base → canal»", () => {
+    const { enlaces, sinRespuesta } = flujoDeRespuestas(FLUJO);
+    expect(sinRespuesta).toBe(90);
+    expect(enlaces.some((enlace) => enlace.source === "Sin respuesta" || enlace.target === "Sin respuesta")).toBe(false);
+    expect(enlaces.find((enlace) => enlace.source === "En base" && enlace.target === "Correo")?.value).toBe(164 - 90);
+    // Las respuestas se conservan: 551 registros menos los 90 que no respondieron.
+    expect(dibujarFlujo(enlaces, 900, 600).registros).toBe(551 - 90);
+    expect(dibujarFlujo(enlaces, 900, 600).nodos.find((nodo) => nodo.nombre === "Completa")?.valor).toBe(431);
+  });
+
+  it("un canal donde nadie respondió desaparece del origen", () => {
+    const { enlaces } = flujoDeRespuestas([
+      { source: "En base", target: "Correo", value: 5 }, { source: "Correo", target: "Sin respuesta", value: 5 },
+      { source: "Sin respuesta", target: "Pendiente de respuesta", value: 5 },
+    ]);
+    expect(enlaces).toEqual([]);
+  });
+
+  it("reconoce al padrón pendiente por estado o por identidad", () => {
+    expect(esSinRespuesta({ platform_state: "Sin respuesta" })).toBe(true);
+    expect(esSinRespuesta({ identity_status: "pendiente_base" })).toBe(true);
+    expect(esSinRespuesta({ platform_state: "Completa" })).toBe(false);
   });
 });

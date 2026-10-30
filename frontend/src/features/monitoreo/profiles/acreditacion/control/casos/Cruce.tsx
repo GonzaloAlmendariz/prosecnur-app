@@ -3,7 +3,7 @@ import { GitMerge } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { useTamano } from "../../avance/graficosDeAvance";
-import { COLUMNAS, conteoPor, dibujarFlujo, type EnlaceDeFlujo } from "./flujoDeCruce";
+import { COLUMNAS, conteoPor, dibujarFlujo, esSinRespuesta, flujoDeRespuestas, type EnlaceDeFlujo } from "./flujoDeCruce";
 import "../../avance/avance.css";
 import "./cruce.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
@@ -84,8 +84,12 @@ function Diagrama({ enlaces }: { enlaces: readonly EnlaceDeFlujo[] }) {
  * de cada canal, persona por persona (`case_rollup`).
  */
 export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
-  const enlaces = consultas.flow?.links ?? [];
-  const personas = consultas.case_rollup?.length ? consultas.case_rollup : consultas.cases;
+  // Sólo las respuestas: el padrón que aún no respondió se dice aparte (ver flujoDeRespuestas).
+  const { enlaces, sinRespuesta } = useMemo(() => flujoDeRespuestas(consultas.flow?.links ?? []), [consultas.flow?.links]);
+  const personas = useMemo(
+    () => (consultas.case_rollup?.length ? consultas.case_rollup : consultas.cases).filter((caso) => !esSinRespuesta(caso)),
+    [consultas.case_rollup, consultas.cases],
+  );
   const registros = useMemo(() => dibujarFlujo(enlaces, 1, 1).registros, [enlaces]);
   const fuera = useMemo(
     () => enlaces.filter((enlace) => enlace.source === "Fuera de base").reduce((suma, enlace) => suma + enlace.value, 0),
@@ -103,7 +107,12 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
 
   if (!enlaces.length) {
     return (
-      <PestanaSinContenido titulo="De la respuesta al avance" icono={<GitMerge size={18} />} motivo="El corte todavía no trae el cruce del padrón con las respuestas." descripcion="Se calcula al actualizar, con el padrón y las encuestas de cada público." />
+      <PestanaSinContenido
+        titulo="De la respuesta al avance"
+        icono={<GitMerge size={18} />}
+        motivo={sinRespuesta > 0 ? "Todavía no llega ninguna respuesta." : "El corte todavía no trae el cruce del padrón con las respuestas."}
+        descripcion={sinRespuesta > 0 ? `${fmt(sinRespuesta)} personas del padrón esperan responder.` : "Se calcula al actualizar, con el padrón y las encuestas de cada público."}
+      />
     );
   }
   return (
@@ -112,9 +121,10 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
         <CabeceraDeTarjeta primera>
           <h3>
             De la respuesta al avance
-            <span className="acr-av-tenue" title={`${fmt(registros - fuera)} personas del padrón y ${fmt(fuera)} ${fuera === 1 ? "respuesta" : "respuestas"} fuera de él`}>
-              {`${fmt(registros)} registros`}
+            <span className="acr-av-tenue" title={`${fmt(registros - fuera)} del padrón y ${fmt(fuera)} fuera de él`}>
+              {`${fmt(registros)} ${registros === 1 ? "respuesta" : "respuestas"}`}
             </span>
+            {sinRespuesta > 0 ? <span className="acr-av-tenue">{`${fmt(sinRespuesta)} del padrón sin responder`}</span> : null}
           </h3>
         </CabeceraDeTarjeta>
         <div className="acr-cr-cuerpo" data-qa-geometry-capacity="owned">

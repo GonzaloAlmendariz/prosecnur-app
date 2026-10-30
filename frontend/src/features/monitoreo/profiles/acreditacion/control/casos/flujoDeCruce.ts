@@ -169,3 +169,34 @@ export function conteoPor<T>(filas: readonly T[], clave: (fila: T) => string): A
   });
   return [...cuenta].map(([rotulo, casos]) => ({ rotulo, casos })).sort((a, b) => b.casos - a.casos || a.rotulo.localeCompare(b.rotulo, "es"));
 }
+
+/**
+ * El flujo de las respuestas, sin el padrón que todavía no respondió. Al empezar
+ * el campo casi todo el padrón está «Sin respuesta» (44 mil de 45 mil en
+ * Acreditación Institucional) y esa cinta tapaba lo que la vista promete: cómo
+ * cada respuesta llega al avance. Quien no respondió está en la base, así que su
+ * cifra sale de «En base → canal», canal por canal. Devuelve también cuántos
+ * quedaron fuera, para decirlo aparte.
+ */
+export function flujoDeRespuestas(enlaces: readonly EnlaceDeFlujo[]): { enlaces: EnlaceDeFlujo[]; sinRespuesta: number } {
+  const pendientesPorCanal = new Map<string, number>();
+  for (const enlace of enlaces) {
+    if (enlace.target === "Sin respuesta" && enlace.value > 0) {
+      pendientesPorCanal.set(enlace.source, (pendientesPorCanal.get(enlace.source) ?? 0) + enlace.value);
+    }
+  }
+  let sinRespuesta = 0;
+  pendientesPorCanal.forEach((valor) => { sinRespuesta += valor; });
+  const restantes = enlaces
+    .filter((enlace) => enlace.target !== "Sin respuesta" && enlace.source !== "Sin respuesta")
+    .map((enlace) => (enlace.source === "En base" && pendientesPorCanal.has(enlace.target)
+      ? { ...enlace, value: enlace.value - (pendientesPorCanal.get(enlace.target) ?? 0) }
+      : { ...enlace }))
+    .filter((enlace) => enlace.value > 0);
+  return { enlaces: restantes, sinRespuesta };
+}
+
+/** ¿Este caso es del padrón que todavía no respondió? */
+export function esSinRespuesta(caso: { platform_state?: unknown; identity_status?: unknown }): boolean {
+  return normal(String(caso.platform_state ?? "")) === "sin respuesta" || String(caso.identity_status ?? "") === "pendiente_base";
+}

@@ -15,14 +15,38 @@ describe("Control › Cruce", () => {
         { source: "Completa", target: "Incluido en avance", value: 12 },
       ] },
       case_rollup: [
-        { primary_identity_label: "Llave en base", base_result: "Sin respuesta", channel_key_strategy_label: "Base sin respuesta" },
+        { primary_identity_label: "Llave en base", base_result: "Cruzó", platform_state: "Sin respuesta", channel_key_strategy_label: "Base sin respuesta" },
         { primary_identity_label: "Código PUCP declarado", base_result: "Cruzó", channel_key_strategy_label: "Correo: metadata del envío" },
       ],
     } as unknown as MonitoreoInternalQueries;
     const html = renderToStaticMarkup(<Cruce consultas={consultas} />);
-    expect(html).toContain("12 registros");
-    expect(html).toContain("Llave del padrón, sin respuesta");
+    expect(html).toContain("12 respuestas");
+    // El padrón que no respondió no cuenta como «llave usada»: la vista es de respuestas.
+    expect(html).not.toContain("Llave del padrón, sin respuesta");
+    expect(html).toContain("Código PUCP declarado");
     expect(html).toContain("Cruzó por llave");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
+  });
+
+  it("con padrón pendiente, el diagrama es de respuestas y el pendiente se dice aparte", () => {
+    const consultas = {
+      schema: "test", cases: [], issues: [], pending_exit: [],
+      totals: { actor: [], date: [], channel: [], source: [], collector: [] },
+      flow: { nodes: [], links: [
+        { source: "En base", target: "Correo", value: 110 },
+        { source: "Correo", target: "Completa", value: 10 },
+        { source: "Correo", target: "Sin respuesta", value: 100 },
+        { source: "Sin respuesta", target: "Pendiente de respuesta", value: 100 },
+        { source: "Completa", target: "Incluido en avance", value: 10 },
+      ] },
+      case_rollup: [
+        { primary_identity_label: "Llave en base", base_result: "Cruzó", platform_state: "Sin respuesta", identity_status: "pendiente_base", channel_key_strategy_label: "Base sin respuesta" },
+        { primary_identity_label: "Código PUCP declarado", base_result: "Cruzó", platform_state: "Completa", channel_key_strategy_label: "Correo: metadata del envío" },
+      ],
+    } as unknown as MonitoreoInternalQueries;
+    const html = renderToStaticMarkup(<Cruce consultas={consultas} />);
+    expect(html).toContain("10 respuestas");
+    expect(html).toContain("100 del padrón sin responder");
+    expect(html).not.toContain("Base sin respuesta");
   });
 });
