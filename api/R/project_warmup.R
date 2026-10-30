@@ -663,14 +663,7 @@
         pending_scopes = unname(vapply(scope_results, function(item) as.character(item$scope %||% ""), character(1))[scope_status != "ready"]),
         n_rows = as.integer(last_state$n_rows %||% light_state$n_rows %||% 0L)
       ),
-      session_patch = list(
-        monitoreo = .project_warmup_monitoreo_cache_patch(sid, scopes),
-        # Los caches de sesión mueren al cerrar; este viaja en el `.pulso` y es
-        # el que evita recalcular los cuatro scopes en la próxima apertura.
-        monitoreo_acreditacion = list(
-          acreditacion_report_cache = session_get(sid)$monitoreo_snapshot$acreditacion_report_cache %||% NULL
-        )
-      )
+      session_patch = .project_warmup_acr_session_patch(sid, scopes)
     ))
   }
   if (is.function(progress)) {
