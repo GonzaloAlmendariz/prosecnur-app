@@ -161,3 +161,33 @@
   gap: var(--pulso-space-3);
   min-width: 0;
 }
+
+/* El modelo operativo heredado, plegado bajo un encabezado (#14). */
+.acr-rg-plegable > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.acr-rg-plegable > summary::-webkit-details-marker {
+  display: none;
+}
+
+.acr-rg-plegable > summary::before {
+  content: "›";
+  display: inline-block;
+  color: var(--pulso-text-soft);
+  transition: transform 120ms ease;
+}
+
+.acr-rg-plegable[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.acr-rg-plegable > summary:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}

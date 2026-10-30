@@ -1,3 +1,4 @@
+import { Alertas } from "./Alertas";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { MonitoreoConfig } from "../../../../../../api/client";
@@ -72,5 +73,15 @@ describe("Insumos › Reglas", () => {
     );
     expect(html).toContain("Código PUCP declarado");
     expect(html).toContain("233");
+  });
+
+  it("sin teléfono, Alertas muestra sólo las que aplican al correo", () => {
+    const valores = { no_answer_min_attempts: "4", unassigned_cases_min: "5", no_sweep_min_cases: "20", no_sweep_pct: "50", daily_effective_diff_min: "1" };
+    const sinTelefono = renderToStaticMarkup(<Alertas valores={valores} onCambiar={() => {}} bloqueada={false} conTelefono={false} />);
+    expect(sinTelefono).toContain("Diferencia diaria de efectivas");
+    expect(sinTelefono).not.toContain("no contesta");
+    expect(sinTelefono).not.toContain("sin barrer");
+    const conTelefono = renderToStaticMarkup(<Alertas valores={valores} onCambiar={() => {}} bloqueada={false} />);
+    expect(conTelefono).toContain("no contesta");
   });
 });
