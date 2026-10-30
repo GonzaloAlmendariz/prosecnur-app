@@ -146,9 +146,11 @@
   .hfp_line(L, R, 0.052, col = tk$line, lwd = 0.7)
   logo <- .hojas_ruta_ficha_png(.pulso_pdf_logo_path())
   if (!is.null(logo)) {
-    lw <- 0.075
-    lh <- lw * (dim(logo)[1] / dim(logo)[2]) * .hojas_ruta_mapa_aspecto
-    grid::grid.raster(logo, x = L, y = 0.03, width = lw, height = lh, just = c("left", "center"),
+    # Alto acotado bajo la regla del pie (0,052), con aire: el logo de contorno
+    # la cruzaba al ancho de siempre.
+    med <- .pulso_pdf_logo_medidas(logo, 0.075, .hojas_ruta_mapa_aspecto, alto_max = 0.036)
+    lw <- med$ancho; lh <- med$alto
+    grid::grid.raster(logo, x = L, y = 0.027, width = lw, height = lh, just = c("left", "center"),
                       interpolate = TRUE)
   } else {
     .hfp_text("PULSO PUCP", L, 0.03, 8.5, tk$navy, "bold")

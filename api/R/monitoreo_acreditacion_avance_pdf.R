@@ -427,7 +427,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     }
     if (ultimo_en_curso) {
       tx(paste0("* Sin el día en curso (", format(serie$fecha[[n_dias]], "%d/%m"), ", hasta las ", corte$hora, ")."),
-         m, 0.084, size = ty$caption, col = tk$soft)
+         m, 0.092, size = ty$caption, col = tk$soft)
     }
     metas <- if (con_meta) stats::setNames(total_meta, "Mínimo esperado") else numeric(0)
     pulso_pdf_serie_partida(m + 0.030, suelo + 0.040, ancho - 0.030, 0.455,

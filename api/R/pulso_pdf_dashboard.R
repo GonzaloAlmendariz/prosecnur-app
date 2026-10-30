@@ -706,18 +706,21 @@ pulso_pdf_pie <- function(pagina, de = NA_integer_, periodo = "",
                           geo = pulso_pdf_geo("landscape")) {
   pesos <- pulso_pdf_pesos()
   m <- geo$margin; right <- 1 - m
-  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.068, "npc"),
+  # La regla va a 0,080 y no a 0,068: con el texto «PULSO PUCP» del mismo
+  # tamaño de siempre, la insignia de contorno mide 0,061 de alto y tocaba la
+  # regla (2026-10-30). El contenido de las páginas termina en 0,108.
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.080, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = pesos$columna))
-  .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.098, geo = geo, tokens = tokens)
+  .pulso_pdf_draw_logo(m, 0.040, width_npc = 0.098, geo = geo, tokens = tokens)
   if (nzchar(periodo)) {
-    grid::grid.text(periodo, x = 0.5, y = 0.036, just = c("centre", "centre"),
+    grid::grid.text(periodo, x = 0.5, y = 0.040, just = c("centre", "centre"),
                     gp = grid::gpar(fontsize = ty$caption, col = tokens$faint))
   }
   # Folio con el total: «03 / 09» dice cuánto queda; «Pág. 3» no.
   folio <- if (is.finite(de)) {
     sprintf("%02d / %02d", as.integer(pagina), as.integer(de))
   } else sprintf("%02d", as.integer(pagina))
-  grid::grid.text(folio, x = right, y = 0.036, just = c("right", "centre"),
+  grid::grid.text(folio, x = right, y = 0.040, just = c("right", "centre"),
                   gp = grid::gpar(fontsize = ty$caption, col = tokens$soft, fontface = "bold"))
   invisible(NULL)
 }

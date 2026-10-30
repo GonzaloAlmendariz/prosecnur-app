@@ -164,8 +164,14 @@ pulso_pdf_abrir <- function(path, geo = pulso_pdf_geo(), onefile = TRUE) {
 
 # --- Logo con corrección de aspecto -----------------------------------------
 # Rutas candidatas (system.file en el paquete instalado + fallback getwd() en dev).
+# El primero es el logo ESTÁNDAR (emblema de contorno, ADR 0093): la DAA de la
+# PUCP observó el 2026-10-30 que el emblema de círculo relleno no es el
+# oficial. `hojas_ruta/assets/logo_pulso.png` sigue siendo el de círculo relleno
+# y queda sólo como respaldo, para los motores que todavía lo leen directo.
 .pulso_pdf_logo_path <- function() {
   cands <- c(
+    system.file("estandar/logos/logo_pulso.png", package = "prosecnurapp"),
+    file.path(getwd(), "api", "inst", "estandar", "logos", "logo_pulso.png"),
     system.file("hojas_ruta/assets/logo_pulso.png", package = "prosecnurapp"),
     system.file("www/pulso-pucp-logo.png", package = "prosecnurapp"),
     file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
@@ -176,9 +182,35 @@ pulso_pdf_abrir <- function(path, geo = pulso_pdf_geo(), onefile = TRUE) {
   if (length(cands)) cands[[1]] else NA_character_
 }
 
-# Dibuja el logo respetando el aspecto real de la imagen (1078×423) y el aspecto
+# Dibuja el logo respetando el aspecto real de la imagen y el aspecto
 # de la página (npc no es isométrico en una hoja no cuadrada). `just` = c(h, v).
 # Si `png` no está o el archivo falla, degrada al texto "PULSO PUCP".
+# Cuánto se escala el ancho pedido para que el TEXTO «PULSO PUCP» salga del
+# mismo tamaño con cualquiera de los dos archivos: sólo cambia la insignia
+# (Gonzalo, 2026-10-30). Medido sobre el canal alfa: el bloque de texto ocupa
+# 0.565 del alto en el de círculo relleno (1078×423) y 0.504 en el de contorno
+# (1255×577), así que a igual texto el de contorno va al 95.7 % del ancho. Los
+# anchos de los llamadores se calibraron con el de círculo relleno.
+.pulso_pdf_logo_escala <- function(path) {
+  if (is.na(path)) return(1)
+  if (grepl("estandar[/\\]logos[/\\]logo_pulso\\.png$", path)) (0.3924 * 0.565) / (0.4598 * 0.504) else 1
+}
+
+# Ancho y alto con que un motor que dibuja el logo por su cuenta debe pintarlo:
+# la escala que conserva el texto y, si se pide, un alto máximo para no tocar
+# la regla de su pie (el logo de contorno no trae margen transparente y es más
+# alto que el de círculo relleno a igual ancho).
+.pulso_pdf_logo_medidas <- function(img, ancho, aspecto_pagina, path = .pulso_pdf_logo_path(),
+                                    alto_max = Inf) {
+  ancho <- ancho * .pulso_pdf_logo_escala(path)
+  alto <- ancho * (dim(img)[1] / dim(img)[2]) * aspecto_pagina
+  if (is.finite(alto_max) && alto > alto_max) {
+    ancho <- ancho * alto_max / alto
+    alto <- alto_max
+  }
+  list(ancho = ancho, alto = alto)
+}
+
 .pulso_pdf_draw_logo <- function(x, y, width_npc = 0.135, geo = pulso_pdf_geo(),
                                  just = c("left", "center"), tokens = pulso_pdf_tokens()) {
   path <- .pulso_pdf_logo_path()
@@ -186,6 +218,7 @@ pulso_pdf_abrir <- function(path, geo = pulso_pdf_geo(), onefile = TRUE) {
     img <- tryCatch(png::readPNG(path), error = function(e) NULL)
     if (!is.null(img)) {
       img_h <- dim(img)[1]; img_w <- dim(img)[2]
+      width_npc <- width_npc * .pulso_pdf_logo_escala(path)
       h_npc <- width_npc * (img_h / img_w) * (geo$page_w / geo$page_h)
       grid::grid.raster(img, x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
                         just = just, interpolate = TRUE,
@@ -224,9 +257,11 @@ pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
                              ty = pulso_pdf_type(), geo = pulso_pdf_geo(),
                              pagina = TRUE) {
   m <- geo$margin; right <- 1 - m
-  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.062, "npc"),
+  # 0,066 y no 0,062: la insignia de contorno es más alta que la de círculo
+  # relleno a igual texto y tocaba la regla.
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.066, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = 0.7))
-  .pulso_pdf_draw_logo(m, 0.038, width_npc = 0.135, geo = geo, tokens = tokens)
+  .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.135, geo = geo, tokens = tokens)
   if (nzchar(periodo)) {
     grid::grid.text(periodo, x = grid::unit(0.5, "npc"), y = grid::unit(0.038, "npc"),
                     gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))

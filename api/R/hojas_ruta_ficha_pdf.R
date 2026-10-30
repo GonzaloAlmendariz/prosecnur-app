@@ -553,8 +553,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   .hfp_line(L, R, 0.058, col = tk$line, lwd = 0.7)
   logo <- .hojas_ruta_ficha_png(.pulso_pdf_logo_path())
   if (!is.null(logo)) {
-    lw <- 0.11
-    lh <- lw * (dim(logo)[1] / dim(logo)[2]) * aspecto
+    med <- .pulso_pdf_logo_medidas(logo, 0.11, aspecto, alto_max = 0.036)
+    lw <- med$ancho; lh <- med$alto
     grid::grid.raster(logo, x = L, y = 0.036, width = lw, height = lh, just = c("left", "center"),
                       interpolate = TRUE)
   } else {
