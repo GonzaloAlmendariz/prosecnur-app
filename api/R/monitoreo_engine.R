@@ -15824,7 +15824,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     needs_raw <- !nzchar(raw_out) & nzchar(raw)
     if (any(needs_raw)) raw_out[needs_raw] <- raw[needs_raw]
   }
-  out <- ifelse(!is.na(parsed_out), as.character(as.Date(parsed_out)), raw_out)
+  out <- ifelse(!is.na(parsed_out), .monitoreo_dia_local(parsed_out, raw_out), raw_out) # día en la zona del estudio: monitoreo_fecha_local.R
   out[!nzchar(out) | is.na(out)] <- "Sin fecha"
   out
 }
