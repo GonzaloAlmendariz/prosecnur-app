@@ -59,7 +59,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       <div className="acr-ri-izquierda">
         <section className="acr-av-panel acr-ri-diario" aria-label="Efectivas por día">
           <CabeceraDeTarjeta primera>
-            <h3>Efectivas por día <span className="acr-av-tenue">{`${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}, por público`}</span></h3>
+            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}, por público`}</span></h3>
             {onVerFuentes ? (
               <button type="button" className="acr-av-boton" onClick={onVerFuentes}>
                 <ListChecks size={14} aria-hidden="true" /> Por fuente y recopilador
