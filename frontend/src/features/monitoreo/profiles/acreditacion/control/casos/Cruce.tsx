@@ -42,6 +42,34 @@ function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: strin
   );
 }
 
+/**
+ * Una lectura con una sola categoría es un dato, no un desglose (K1, 30/10:
+ * tres tarjetas con una barra al 100 % cada una). Esas van juntas en una ficha
+ * «Cómo se cruzó»; sólo las que reparten casos llevan su tarjeta con barras.
+ */
+function LecturasDelCruce({ lecturas }: { lecturas: ReadonlyArray<{ titulo: string; filas: Array<{ rotulo: string; casos: number }> }> }) {
+  const unicas = lecturas.filter((lectura) => lectura.filas.length === 1);
+  const resto = lecturas.filter((lectura) => lectura.filas.length !== 1);
+  return (
+    <>
+      {unicas.length ? (
+        <section className="acr-av-panel acr-cr-lista-tarjeta" aria-label="Cómo se cruzó">
+          <header className="acr-av-panel-cabecera"><h3>Cómo se cruzó</h3></header>
+          <dl className="acr-cr-datos">
+            {unicas.map((lectura) => (
+              <div key={lectura.titulo}>
+                <dt>{lectura.titulo}</dt>
+                <dd><span>{lectura.filas[0].rotulo}</span><b className="acr-av-num">{`${fmt(lectura.filas[0].casos)} casos`}</b></dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+      {resto.map((lectura) => <Lista key={lectura.titulo} titulo={lectura.titulo} filas={lectura.filas} />)}
+    </>
+  );
+}
+
 function Diagrama({ enlaces }: { enlaces: readonly EnlaceDeFlujo[] }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const arriba = 26;
@@ -135,9 +163,11 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
         </div>
       </section>
       <aside className="acr-cr-derecha acr-cr-pila" aria-label="Llave y estrategia">
-        <Lista titulo="Llave usada" filas={llave} />
-        <Lista titulo="Cómo cruzó con el padrón" filas={cruce} />
-        <Lista titulo="Estrategia por canal" filas={estrategia} />
+        <LecturasDelCruce lecturas={[
+          { titulo: "Llave usada", filas: llave },
+          { titulo: "Cómo cruzó con el padrón", filas: cruce },
+          { titulo: "Estrategia por canal", filas: estrategia },
+        ]} />
       </aside>
     </div>
   );
