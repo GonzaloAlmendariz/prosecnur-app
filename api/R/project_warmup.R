@@ -1295,6 +1295,15 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
   budget_ms <- .project_warmup_budget_ms(budget_ms)
   module_ids <- unique(as.character(unlist(modules %||% character(0), use.names = FALSE)))
   module_ids <- module_ids[nzchar(module_ids) & module_ids %in% vapply(.project_warmup_tasks(), `[[`, character(1), "id")]
+  # Checklist del flujo del analista F20: el mismo warm start (modo y módulos) pedido dos veces
+  # —un efecto que monta dos veces, dos pestañas— corría dos jobs en paralelo y duplicaba el
+  # arranque. Si ya corre, se devuelve ése (jobs_dedupe.R) antes de reparar y guardar la sesión.
+  clave <- paste0("project.warmup:", mode, ":", paste(sort(module_ids), collapse = ","))
+  en_curso <- .jobs_dedupe_en_curso(sid, clave)
+  if (!is.null(en_curso)) {
+    message(sprintf("[jobs] kind=project.warmup ya en curso (%s): se reutiliza.", en_curso))
+    return(c(list(ok = TRUE, job_id = en_curso, kind = "project.warmup", ya_en_curso = TRUE), .project_warmup_estimacion(sid, module_ids)))
+  }
   if (!length(module_ids) || "analitica" %in% module_ids) {
     # El reparador puede reescribir archivos y la sesión: va aquí, en el proceso
     # del backend, y el worker recibe la sesión ya convergida.
@@ -1313,7 +1322,8 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
         budget_ms = budget_ms,
         modules = module_ids
       ),
-      on_complete = .project_warmup_on_complete
+      on_complete = .project_warmup_on_complete,
+      dedupe_key = clave
     ),
     error = function(e) e
   )
