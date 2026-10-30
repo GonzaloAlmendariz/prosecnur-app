@@ -52,6 +52,7 @@ público, una de avance general y una de «Corte y fuentes»).
 | 29 | El porcentaje sobre el mínimo no tenía nombre propio | motor | Hecho: «Cumplimiento del mínimo» (tarjeta y columna del resumen), siempre con su frecuencia |
 | 30 | Los paneles del avance diario repetían cifras y el mínimo bajo el nombre del público | motor | Hecho: sólo el título (Gonzalo, 2026-10-30) |
 | 31 | Prueba con más días y más avance (simulación de 18 días, corte 15/11, fuera del repo): rótulos del acumulado montados («3602 3606»), cifra tachada por la línea del mínimo, «hasta 11:40» sobre la fecha vecina en los paneles, tabla partida 14 + 4 | kit (`pulso_pdf_serie_partida`: rótulo pegado al último se calla, cifra bajo el punto si cae sobre una meta, eje de fechas igual) + motor (fecha corta en paneles, tabla de hasta 20 días con reparto parejo) | Hecho; el PDF de aulas re-renderizado se ve igual salvo las cifras que antes tachaba su meta |
+| 32 | Barras del día con cifras intercaladas (también en cursos-horario): el kit escribía una de cada tantas cuando no cabían todas | kit (`.ppd_cifras_de_barras` reemplaza a `.ppd_rotulos_de_barras` y `.ppd_cifras_que_caben`) + test | Hecho: toda barra lleva su cifra arriba; cede el cuerpo (piso 4.6 pt) y, si ni así caben, alternan dos alturas por encima (Gonzalo, 2026-10-30) |
 
 ## Cifras contrastadas con la app (corte 30/10/2026 07:20)
 

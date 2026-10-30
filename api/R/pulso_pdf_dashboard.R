@@ -581,34 +581,25 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
   v <- suppressWarnings(as.numeric(x)); v[!is.finite(v)] <- NA_real_; v
 }
 
-# Qué barras llevan su cifra encima. Sólo se cuentan las que EXISTEN —una
-# jornada sin efectivas no dibuja barra— porque contar sobre el calendario
-# dejaba mudas la mitad de las dibujadas para hacer sitio a otras que no
-# estaban (Gonzalo, 2026-09-18: «las barras siguen sin números»). Si caben
-# todas, van todas; si no, una de cada tantas y SIEMPRE la última, que es la
-# jornada que se busca.
-# Cuántas cifras caben en un carril de ancho `w` sin tocarse, medidas sobre la
-# MÁS LARGA de las que hay que escribir: es la que decide si se amontonan. El
-# 1,25 es el aire entre dos cifras vecinas. Sustituye al tope fijo de seis, que
-# silenciaba barras aunque sobrara papel (y que con cifras de cuatro dígitos en
-# un panel estrecho se habría quedado corto en el otro sentido).
-.ppd_cifras_que_caben <- function(diarias, w, fontsize) {
-  v <- suppressWarnings(as.numeric(diarias)); v <- v[is.finite(v) & v > 0]
-  if (!length(v)) return(1L)
-  digitos <- max(nchar(vapply(v, .ppd_miles, character(1))))
-  ancho_cifra <- digitos * fontsize * 0.00085 * 1.25
-  if (!is.finite(ancho_cifra) || ancho_cifra <= 0) return(length(v))
-  max(1L, as.integer(floor(w / ancho_cifra)))
-}
-
-.ppd_rotulos_de_barras <- function(diarias, tope) {
+# Las cifras sobre las barras del día. **Toda barra dibujada lleva su cifra
+# encima, siempre** (Gonzalo, 2026-10-30: «las barras del avance diario siempre
+# deben tener sus números arriba»). La versión anterior escribía una de cada
+# tantas cuando no cabían todas, y el panel salía con cifras intercaladas: el
+# lector no sabe si la barra muda es un dato que falta.
+#
+# Lo que cede es el CUERPO, no la cifra: si al tamaño normal se tocarían, la
+# cifra baja hasta un piso legible (4,6 pt); si ni así caben, se alternan dos
+# alturas, las dos por encima de la barra. Una jornada sin efectivas no dibuja
+# barra y tampoco cifra.
+.ppd_cifras_de_barras <- function(diarias, w, n, fontsize, formato = .ppd_miles) {
   v <- suppressWarnings(as.numeric(diarias)); v[!is.finite(v)] <- 0
   vivas <- which(v > 0)
-  if (!length(vivas)) return(integer(0))
-  tope <- max(1L, as.integer(tope))
-  if (length(vivas) <= tope) return(vivas)
-  salto <- max(1L, ceiling(length(vivas) / tope))
-  vivas[unique(c(seq(1L, length(vivas), by = salto), length(vivas)))]
+  if (!length(vivas)) return(list(indices = integer(0), fontsize = fontsize, escalonar = FALSE))
+  digitos <- max(nchar(vapply(v[vivas], formato, character(1))))
+  hueco <- w / max(1L, n)
+  cabe <- hueco / (digitos * 0.00085 * 1.15)
+  piso <- 4.6
+  list(indices = vivas, fontsize = max(piso, min(fontsize, cabe)), escalonar = cabe < piso)
 }
 
 # ¿Hay que marcar la cuota DENTRO de la barra? Sólo cuando se superó: si no se
@@ -868,8 +859,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   # es cuántos días hay sino cuántas cifras caben: el paso entre barras contra
   # el ancho de la cifra más larga. Con dos o tres dígitos en estos paneles
   # caben todas; con cifras de miles en un panel estrecho, el tope baja solo.
-  barras_rotuladas <- .ppd_rotulos_de_barras(
-    diarias, .ppd_cifras_que_caben(diarias, w, fs))
+  cifras_barra <- .ppd_cifras_de_barras(diarias, w, n, fs, formato)
   for (i in vivos) {
     # El rótulo regular que cae a menos de un paso del último se calla: el
     # último se escribe siempre y los dos se montaban («3602 3606»).
@@ -903,9 +893,10 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = alto,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.9))
-    if (!(i %in% barras_rotuladas)) next
-    grid::grid.text(formato(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
-                    gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
+    alterna <- isTRUE(cifras_barra$escalonar) && match(i, cifras_barra$indices) %% 2L == 0L
+    grid::grid.text(formato(v), x = px(i), y = y + alto + 0.008 + if (alterna) 0.013 else 0,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = color_barra, fontsize = cifras_barra$fontsize, fontface = "bold"))
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
