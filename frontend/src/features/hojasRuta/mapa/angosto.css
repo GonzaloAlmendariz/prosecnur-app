@@ -8,4 +8,10 @@
 @media (max-width: 1279px) {
   /* Sin partir una palabra en cualquier letra («Reemplazo/s»): el ancestro hereda overflow-wrap:anywhere; se separa con guion en español. */
   .hr-mapa-cifras small { white-space: normal; line-height: 1.2; overflow-wrap: normal; hyphens: auto; }
+  /* Los chips de zona («Moderna 12») ceden relleno antes que letras. */
+  .hr-mapa-zonas .hr-mapa-zona { padding: 0 8px; gap: 5px; }
+  /* La línea de cada ciudad del atlas («Lambayeque · 541 mil hab.») baja de línea antes que cortarse. */
+  .hr-atlas-ciudad small { white-space: normal; line-height: 1.3; }
+  /* El antetítulo en versalitas del inspector («LIMA METROPOLITANA Y CALLAO») aprieta el espaciado antes de cortarse. */
+  .hr-ins-sobre { letter-spacing: 0.04em; }
 }
