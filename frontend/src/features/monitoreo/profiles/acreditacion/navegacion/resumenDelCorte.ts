@@ -42,6 +42,15 @@ export function barridoDeReports(reports: MonitoreoAcreditacionReports | null | 
   return porPublico;
 }
 
+/** El día local de un instante ISO («2026-10-30T00:33:00Z» en Lima → «2026-10-29»). */
+export function fechaLocal(instante: string | null | undefined): string | null {
+  if (!instante) return null;
+  const fecha = new Date(instante);
+  if (Number.isNaN(fecha.getTime())) return null;
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
+}
+
 export type RespuestaConFila = { response_row: number; response_id: string; actor: string; platform_state: string };
 
 export type AvanceDelCorte = {
@@ -64,12 +73,14 @@ type EstadoDelResumen = {
   cruces: Array<{ rotulo: string; casos: number }> | null;
   /** Las respuestas con su fila del corte (`response_row`), para nombrar por su ID lo que otras hojas citan por fila (Control › Calidad). */
   respuestasConFila: RespuestaConFila[] | null;
+  /** Fecha local (YYYY-MM-DD) del corte: hasta ahí llegan las series diarias aunque los últimos días no traigan efectivas. */
+  fechaDelCorte: string | null;
   /** El embudo del corte por respuestas (recibidas → cruzan → efectivas), del corte de Control. */
   embudo: EmbudoDeRespuestas | null;
   /** La lectura de casos falló: las vistas dejan de esperarla. */
   casosFallaron: boolean;
   marcarFalloDeCasos: () => void;
-  observar: (reports: MonitoreoAcreditacionReports | null | undefined, goals: readonly MonitoreoGoal[]) => void;
+  observar: (reports: MonitoreoAcreditacionReports | null | undefined, goals: readonly MonitoreoGoal[], syncedAt?: string | null) => void;
   olvidar: () => void;
 };
 
@@ -98,11 +109,13 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
   recopiladores: null,
   cruces: null,
   respuestasConFila: null,
+  fechaDelCorte: null,
   embudo: null,
   casosFallaron: false,
   marcarFalloDeCasos: () => set({ casosFallaron: true }),
-  observar: (reports, goals) => {
+  observar: (reports, goals, syncedAt) => {
     if (!reports) return;
+    const fechaDelCorte = fechaLocal(syncedAt);
     const avance = avanceDeReports(reports, goals);
     const consultas = reports.report_scope === "queries_summary" || reports.report_scope === "full"
       || (Array.isArray(reports.internal_queries?.issues) && reports.internal_queries.issues.length > 0);
@@ -127,6 +140,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       respuestasConFila: respuestasConFila?.length ? respuestasConFila : previo.respuestasConFila,
       // Con la bandeja a la vista el embudo es el de este corte, aunque traiga cero respuestas.
       embudo: normalizadas ? embudo : previo.embudo,
+      fechaDelCorte: fechaDelCorte ?? previo.fechaDelCorte,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,
@@ -134,10 +148,10 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       issues: issues ?? previo.issues,
     }));
   },
-  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, respuestasConFila: null, embudo: null, casosFallaron: false }),
+  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, respuestasConFila: null, fechaDelCorte: null, embudo: null, casosFallaron: false }),
 }));
 
 /** Para quien observa fuera de React (el prefetch de scopes). */
-export function observarCorte(reports: MonitoreoAcreditacionReports | null | undefined, goals: readonly MonitoreoGoal[]) {
-  useResumenDelCorte.getState().observar(reports, goals);
+export function observarCorte(reports: MonitoreoAcreditacionReports | null | undefined, goals: readonly MonitoreoGoal[], syncedAt?: string | null) {
+  useResumenDelCorte.getState().observar(reports, goals, syncedAt);
 }

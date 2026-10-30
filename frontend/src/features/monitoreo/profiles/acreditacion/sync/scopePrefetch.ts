@@ -57,7 +57,7 @@ export function schedulePrefetchScopes(
         refs.stateByScopeRef.current.set(scope, next);
         // La barra del modo lee de aquí los casos y el avance aunque la
         // sección a la vista no los traiga (revamp, G1).
-        observarCorte(next.dashboard?.acreditacion_reports, next.config?.goals ?? []);
+        observarCorte(next.dashboard?.acreditacion_reports, next.config?.goals ?? [], next.synced_at);
         return next;
       }).catch(() => {
         if (scope === "queries_summary") useResumenDelCorte.getState().marcarFalloDeCasos();

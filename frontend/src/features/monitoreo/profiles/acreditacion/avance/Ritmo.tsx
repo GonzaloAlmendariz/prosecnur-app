@@ -10,6 +10,7 @@ import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import { ritmoPorPublico } from "./ritmoPorPublicoModelo";
 import { RitmoPorPublico } from "./RitmoPorPublico";
+import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
@@ -27,10 +28,15 @@ type PropsDeVista = {
   fases: readonly MonitoreoStrategyPhase[];
   onDeclararFases: () => void;
   onVerFuentes?: () => void;
+  /** Fecha del corte: la serie llega hasta ahí aunque los últimos días no traigan efectivas. */
+  fechaDelCorte?: string | null;
 };
 
-export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, fases, onDeclararFases, onVerFuentes }: PropsDeVista) {
-  const serie = useMemo(() => seriesApiladas(diarioPorPublico, diarioGeneral, nombresDePublicos(actores)), [diarioPorPublico, diarioGeneral, actores]);
+export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, fases, onDeclararFases, onVerFuentes, fechaDelCorte }: PropsDeVista) {
+  const serie = useMemo(
+    () => seriesApiladas(diarioPorPublico, diarioGeneral, nombresDePublicos(actores), fechaDelCorte),
+    [diarioPorPublico, diarioGeneral, actores, fechaDelCorte],
+  );
   const plan = fasesConFechas(fases);
   const pulso = pulsoDelCampo(serie, fuentes, actores);
   const mapa = mapaPorSemana(serie);
@@ -152,10 +158,12 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
 export function Ritmo({ detallePorFuente, ...props }: Omit<PropsDeVista, "onDeclararFases" | "onVerFuentes"> & { detallePorFuente?: ReactNode }) {
   const [, escribirFoco] = useFocoMonitoreo();
   const panel = usePanelDireccionable(PANEL_FUENTES);
+  const fechaDelCorte = useResumenDelCorte((estado) => estado.fechaDelCorte);
   return (
     <>
       <RitmoVista
         {...props}
+        fechaDelCorte={fechaDelCorte}
         onDeclararFases={() => escribirFoco(null, { seccion: "modelo", pestana: "ventana", panel: null })}
         onVerFuentes={detallePorFuente ? panel.abrir : undefined}
       />

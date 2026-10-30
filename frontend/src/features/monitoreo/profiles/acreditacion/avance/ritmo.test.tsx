@@ -21,6 +21,15 @@ const fuentes = [
 ];
 
 describe("Avance › Ritmo", () => {
+  it("la serie llega hasta la fecha del corte: un campo detenido son días en cero", () => {
+    const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-06-02");
+    expect(serie.fechas.at(-1)).toBe("2026-06-02");
+    expect(serie.totales.slice(-4)).toEqual([0, 0, 0, 0]);
+    // Una fecha anterior al último dato, o absurda, no recorta ni estira.
+    expect(seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-05-20").fechas.at(-1)).toBe("2026-05-29");
+    expect(seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "basura").fechas.at(-1)).toBe("2026-05-29");
+  });
+
   it("apila por público sobre un calendario sin huecos", () => {
     const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores));
     expect(serie.fechas).toEqual(calendario("2026-05-25", "2026-05-29"));
@@ -80,5 +89,15 @@ describe("Avance › Ritmo", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-label="Cerrar"');
+  });
+});
+
+describe("fecha local del corte", () => {
+  it("convierte el instante del corte al día local y rechaza lo que no es fecha", async () => {
+    const { fechaLocal } = await import("../navegacion/resumenDelCorte");
+    const instante = new Date(2026, 9, 29, 19, 33).toISOString();
+    expect(fechaLocal(instante)).toBe("2026-10-29");
+    expect(fechaLocal("no es fecha")).toBeNull();
+    expect(fechaLocal(null)).toBeNull();
   });
 });

@@ -34,12 +34,18 @@ export function seriesApiladas(
   diarioPorPublico: ReadonlyArray<Record<string, unknown>>,
   diarioGeneral: ReadonlyArray<Record<string, unknown>>,
   nombres: ReadonlyMap<string, string> = new Map(),
+  /** Fecha del corte: el calendario llega hasta ella aunque los últimos días no traigan efectivas. */
+  hasta?: string | null,
 ): SerieApilada {
   const porPublico = seriesPorPublico(diarioPorPublico);
   const general = serieDiaria(diarioGeneral);
   const todas = [...general.map((dia) => dia.fecha), ...[...porPublico.values()].flatMap((serie) => serie.map((dia) => dia.fecha))].sort();
   if (!todas.length) return { fechas: [], capas: [], totales: [] };
-  const fechas = calendario(todas[0], todas.at(-1) as string);
+  const ultima = todas.at(-1) as string;
+  // Un campo detenido son días en cero hasta el corte, no una serie que termina
+  // en el último día con efectivas (eso inflaba el ritmo). Tope de 60 días.
+  const fin = hasta && /^\d{4}-\d{2}-\d{2}$/.test(hasta) && hasta > ultima && hasta <= sumarDia(ultima, 60) ? hasta : ultima;
+  const fechas = calendario(todas[0], fin);
   const indice = new Map(fechas.map((fecha, posicion) => [fecha, posicion]));
   const capas: Capa[] = [...porPublico].map(([clave, serie]) => {
     const valores = fechas.map(() => 0);
