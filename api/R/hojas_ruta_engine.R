@@ -3604,6 +3604,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     sample_size_mode = sample_size_mode,
     sample_size = sample_size,
     marco_elegible = hojas_ruta_marco_elegible_normalizar(config$marco_elegible), # ADR 0115
+    ciudades = .hojas_ruta_ciudades_normalizar(config[["ciudades"]], territorios), # plan R3 (hojas_ruta_ciudades.R)
     excluded_titular_ids = as.list(unique(.hojas_ruta_chr_vec(
       config$excluded_titular_ids %||%
         config$excludedTitularIds %||%

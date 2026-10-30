@@ -85,6 +85,8 @@ export type HojasRutaIntegratedConfig = {
   replacement_policy: HojasRutaReplacementPolicy;
   replacements_per_titular: number;
   territorios: string[];
+  /** Plan R3: ciudades del estudio («lima» o código de provincia), aunque aún no tengan distritos. Opcional por snapshots viejos. */
+  ciudades?: string[];
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
   col_var: "rango_edad";
   subquota_var: "sexo" | "ninguna";
@@ -113,6 +115,8 @@ export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzana
 export type HojasRutaUiState = {
   active_stage: HojasRutaUiStage;
   draft_territories: string[];
+  /** Plan R3: ciudades agregadas o quitadas en Territorio antes de confirmar; null si no hay borrador. */
+  draft_ciudades?: string[] | null;
   map_ubigeo: string;
   map_zona: string;
   map_level: "distritos" | "zonas" | "manzanas";

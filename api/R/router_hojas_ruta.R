@@ -97,6 +97,9 @@
   list(
     active_stage = active_stage,
     draft_territories = as.list(draft),
+    # Plan R3: ciudades agregadas o quitadas en Territorio antes de confirmar (lista cerrada:
+    # sin esta línea el autosave las perdería).
+    draft_ciudades = if (is.null(ui[["draft_ciudades"]])) NULL else as.list(intersect(.hojas_ruta_ciudades_pedidas(ui[["draft_ciudades"]]), .hojas_ruta_ciudades_validas())),
     map_ubigeo = map_ubigeo,
     map_zona = map_zona,
     map_level = map_level,
@@ -660,13 +663,17 @@ mount_hojas_ruta <- function(pr) {
       if (length(ahora) && !identical(antes, ahora)) {
         .hojas_ruta_bitacora_intentar(sid, "territorio_confirmado", sprintf("Territorio: %d distrito(s).", length(ahora)), list(ubigeos = as.list(ahora), antes = as.list(antes)))
       }
+      # Plan R3: una ciudad que no existe en el registro se descarta, y se dice.
+      descartadas <- .hojas_ruta_ciudades_descartadas(parsed$config[["ciudades"]], cfg)
+      alerts <- if (length(descartadas)) list(list(level = "warn", code = "W_HOJAS_RUTA_CIUDAD_DESCARTADA", message = sprintf("Sin cartografía para: %s.", paste(descartadas, collapse = ", ")), codigos = as.list(descartadas))) else list()
       list(
         ok = TRUE,
         integrated_config = run$config,
         ui_state = run$ui_state,
         workspace_outputs = run$workspace_outputs,
         active_phase = active$phase,
-        runs = .hojas_ruta_runs_publicos(session_get(sid)$hojas_ruta_runs)
+        runs = .hojas_ruta_runs_publicos(session_get(sid)$hojas_ruta_runs),
+        alerts = alerts
       )
     })) |>
     plumber::pr_post("/api/hojas-ruta/phase", wrap_endpoint(function(req, res, ...) {

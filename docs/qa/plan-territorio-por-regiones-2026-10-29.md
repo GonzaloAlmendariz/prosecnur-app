@@ -59,8 +59,10 @@ estudio antes de tener distritos elegidos.
 
 - Si un estudio viejo no la tiene, se deriva de `territorios`. Ningún `.pulso` existente se abre en blanco.
 - Quitar una ciudad con distritos confirmados lo dice en el botón y saca sus distritos al confirmar.
-- Es un cambio de contrato del estado: pasa por `guardian-contratos` antes (campo declarado, normalizador, contratos
-  `estado-normalizado` y `campos-declarados`).
+- La invariante es `ciudades ⊇ ciudad(territorios)`: el normalizador nunca recorta distritos. Agregar o quitar ciudades
+  vive en `ui_state.draft_ciudades` hasta «Confirmar», y ahí viajan `ciudades` y `territorios` juntos.
+- Revisado por `guardian-contratos` (aprobado con cambios): derivación por registro (no por prefijo de ubigeo, ADR 0119
+  §2), lista aunque sea un solo código, ausente ≠ vacía, aviso en `/workspace` y no en el normalizador.
 
 ### 3. Qué va en el bundle y qué se pide
 
@@ -81,7 +83,7 @@ El nivel va en `foco`: `pe` para el atlas, `lima` o 4 dígitos para una ciudad a
 | R1 ☑ 3c011e8b3 | Contornos partidos por región en `inst/hojas_ruta/contornos/`; país + departamentos ≤ 60 KB | R (scripts) | — | pesos medidos, test de esquema |
 | R2 ☑ ec3f7c2b2 | `GET /api/hojas-ruta/contornos?region=` + contexto distrital de los PDF desde la región | R | R1 | testthat router y contexto |
 | R1b | Índice de ciudades para el bundle: código, nombre, departamento, centro, población y silueta simplificada | R (script) + JSON | R1 | peso ≤ 40 KB, test de cobertura del registro |
-| R3 | `integrated_config.ciudades`: normalizar, derivar de `territorios`, persistir; `guardian-contratos` antes | R + TS | — | estado-normalizado, campos-declarados |
+| R3 ☑ | `integrated_config.ciudades` (derivada del registro, lista, borrador en `ui_state.draft_ciudades`, aviso `W_HOJAS_RUTA_CIUDAD_DESCARTADA` en `/workspace`); `guardian-contratos`: aprobado con cambios, incorporados | R + TS | — | test-hojas-ruta-ciudades, dirty, envio, territorios |
 | R4 | Cliente: `apiHojasRutaContornos(region)` con caché; el lienzo deja de importar 1,67 MB; contornos con todos los anillos (11 de 114 huellas tienen huecos) | TS | R2 | vitest; peso del chunk antes y después |
 | R5 | Atlas + tarjeta de ciudad + ciudad abierta + columna del estudio, según la maqueta A | TS | R1b, R3, R4 | vitest + captura 1440 y 1024 |
 | R6 | Estados de carga de la ciudad (C3), foco direccionable, QA visual | TS | R5 | ui-quick-check de Territorio |

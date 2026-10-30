@@ -63,3 +63,22 @@ test_that("un .pulso anterior a marco_elegible no queda «sin guardar» al re-gu
   .hojas_ruta_save_run(sid, activa$phase, config = otra)
   expect_true(isTRUE(session_get(sid)$project_dirty))
 })
+
+test_that("un .pulso anterior a ciudades no queda «sin guardar»; agregar una ciudad sí ensucia", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  vieja <- activa$run$config
+  vieja$ciudades <- NULL
+  s <- session_get(sid)
+  s$hojas_ruta_runs[[activa$phase]]$config <- vieja
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_save_run(sid, activa$phase, config = vieja)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  con_ciudad <- vieja
+  con_ciudad$ciudades <- list("0401")
+  .hojas_ruta_save_run(sid, activa$phase, config = con_ciudad)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+  expect_true("0401" %in% unlist(.hojas_ruta_active_run(sid)$run$config$ciudades))
+})
