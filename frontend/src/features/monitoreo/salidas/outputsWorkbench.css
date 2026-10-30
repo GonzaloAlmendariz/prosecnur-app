@@ -2027,3 +2027,11 @@
 .mon-outputs-action-motivo > .mon-outputs-primary {
   width: 100%;
 }
+
+/* Los datos del corte en la cabecera de las tarjetas: cada uno en su elemento,
+ * separados por espacio y no por «·». */
+.mon-outputs-corte-datos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}

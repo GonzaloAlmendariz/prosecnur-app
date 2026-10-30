@@ -1204,13 +1204,17 @@ export function MonitoreoOutputsWorkbench({
   // contrato de honestidad defiende es que el conteo crudo no se confunda con
   // las válidas, y «recibidas» lo distingue igual de bien sin hablar de la
   // implementación.
-  const snapshotHint = hasSnapshot
+  // Cada dato del corte en su propio elemento, no unidos por «·» (Gonzalo, 30/10).
+  const piezasDelCorte = hasSnapshot
     ? [
         `${fmt(corte.ingesta)} recibidas`,
         corte.procesable != null ? `${fmt(corte.procesable)} procesables` : null,
         `${corte.oficial == null ? "efectivas sin determinar" : `${fmt(corte.oficial)} válidas`}`,
         syncedAt ? `corte ${formatDate(syncedAt)}` : null,
-      ].filter(Boolean).join(" · ")
+      ].filter((pieza): pieza is string => Boolean(pieza))
+    : [];
+  const snapshotHint = hasSnapshot
+    ? <span className="mon-outputs-corte-datos">{piezasDelCorte.map((pieza) => <span key={pieza}>{pieza}</span>)}</span>
     : "Sin corte sincronizado";
   const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfReady ? 100 : 0;
   const productionPdfButtonProgress = productionPdfJobId
