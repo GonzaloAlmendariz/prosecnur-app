@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { Pencil, Plus, Target } from "lucide-react";
+import { Eye, Pencil, Plus, Target } from "lucide-react";
 import type { MonitoreoState } from "../../../../../api/client";
 import type { MonitoreoCuota, MonitoreoCuotaPublico } from "../../../../../api/monitoreoCuotas";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
-import { useConfiguracionDeCuotas } from "../useConfiguracionDeCuotas";
+import { claveDeSeguida, useConfiguracionDeCuotas } from "../useConfiguracionDeCuotas";
 import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import { ColorDePublico } from "./ColorDePublico";
 import "../paletaPublicos.css";
@@ -45,7 +45,7 @@ type PropsDeVista = {
   avisos?: readonly string[];
 };
 
-export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNueva, avisos = [], colorDe }: PropsDeVista & { colorDe?: (actor: string) => ReactNode }) {
+export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNueva, avisos = [], colorDe, seguidas }: PropsDeVista & { colorDe?: (actor: string) => ReactNode; seguidas?: ReadonlySet<string> }) {
   const elegida = cuotas.find((cuota) => cuota.id === foco) ?? cuotas[0] ?? null;
   const sinCuota = variablesSinCuota(publicos, cuotas);
   const metaDelPublico = (actor: string) => publicos.find((publico) => publico.actor === actor)?.meta ?? null;
@@ -67,7 +67,10 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
           {cuotas.length ? null : <VacioDeBloque icono={<Target size={15} />} titulo="El estudio todavía no declara cuotas." descripcion="Elige una variable sin cuota para definir la primera." />}
           {actores.map((actor) => {
             const propias = cuotas.filter((cuota) => cuota.actor === actor);
-            const libres = sinCuota.filter((item) => item.actor === actor);
+            const delPublico = sinCuota.filter((item) => item.actor === actor);
+            // Las que sólo se siguen (sin metas) van aparte: ya tienen uso, no esperan cuota.
+            const enSeguimiento = delPublico.filter((item) => seguidas?.has(claveDeSeguida(item.actor, item.variable)));
+            const libres = delPublico.filter((item) => !enSeguimiento.includes(item));
             const meta = metaDelPublico(actor);
             return (
               <section key={actor} className={`acr-pr-grupo acr-cu-publico ${clasePublico(paleta, actor)}`} aria-label={`Cuotas de ${actor}`}>
@@ -88,6 +91,22 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
                     ))}
                   </ul>
                 ) : <p className="acr-cu-sin acr-av-tenue">Sin cuotas todavía.</p>}
+                {enSeguimiento.length ? (
+                  <>
+                    <h4 className="acr-av-antetitulo acr-cu-sub">En seguimiento <span className="acr-av-num">{fmt(enSeguimiento.length)}</span></h4>
+                    <ul aria-label="Variables en seguimiento">
+                      {enSeguimiento.map((item) => (
+                        <li key={item.variable}>
+                          <button type="button" className="is-libre is-seguida" onClick={() => onNueva(item.actor, item.variable)} title="Se compara con el universo en Variables de control; clic para ponerle metas">
+                            <Eye size={13} aria-hidden="true" />
+                            <span>{item.variable}</span>
+                            <span className="acr-av-tenue">Sin metas</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
                 {libres.length ? (
                   <>
                     <h4 className="acr-av-antetitulo acr-cu-sub">Sin cuota <span className="acr-av-num">{fmt(libres.length)}</span></h4>
@@ -196,7 +215,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
  * en Avance.
  */
 export function Cuotas({ state, onStateChange }: { state?: MonitoreoState | null; onStateChange?: (state: MonitoreoState) => void } = {}) {
-  const { s, foco, irA, cargar, abrirNueva, panelNode } = useConfiguracionDeCuotas();
+  const { s, foco, irA, cargar, abrirNueva, panelNode, seguidas } = useConfiguracionDeCuotas({ state, onStateChange });
   if (!s.estado) {
     return (
       <>
@@ -226,6 +245,7 @@ export function Cuotas({ state, onStateChange }: { state?: MonitoreoState | null
         onElegir={(id) => irA({ panel: false, foco: id })}
         onEditar={(id) => irA({ panel: true, foco: id })}
         onNueva={abrirNueva}
+        seguidas={seguidas}
         colorDe={state?.config ? (actor) => <ColorDePublico publico={actor} publicos={(s.estado?.publicos ?? []).map((publico) => publico.actor)} state={state} onStateChange={onStateChange} /> : undefined}
       />
       {panelNode}

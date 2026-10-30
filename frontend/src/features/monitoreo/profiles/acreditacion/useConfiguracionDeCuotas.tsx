@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { apiMonitoreoConfig, type MonitoreoState } from "../../../../api/client";
 import { postMonitoreoCuotaProponer, postMonitoreoCuotas } from "../../../../api/monitoreoCuotas";
 import { generacionDeCuotas, leerCuotas, recordarCuotas } from "./insumos/cuotasRecientes";
 import { serializarDireccion } from "../../../../lib/navegacion/direccion";
@@ -29,7 +30,15 @@ function mensajeDeError(e: unknown, respaldo: string) {
   return e instanceof Error && e.message ? e.message : respaldo;
 }
 
-export function useConfiguracionDeCuotas() {
+/** El estudio, para seguir una variable sin metas (`operational_model.interest_variables`). */
+type OpcionesDeCuotas = { state?: MonitoreoState | null; onStateChange?: (state: MonitoreoState) => void };
+
+/** Clave de una variable seguida: público y variable, sin distinguir mayúsculas en el público. */
+export function claveDeSeguida(actor: string, variable: string) {
+  return `${actor.trim().toLocaleLowerCase("es")}::${variable}`;
+}
+
+export function useConfiguracionDeCuotas({ state, onStateChange }: OpcionesDeCuotas = {}) {
   const [s, despachar] = useReducer(reducirCuotas, ESTADO_CUOTAS_INICIAL);
   const [borrador, despacharBorrador] = useReducer(reducirBorrador, borradorNuevo([]));
   const panel = usePanelDireccionable(PANEL_CUOTA);
@@ -142,6 +151,28 @@ export function useConfiguracionDeCuotas() {
     }
   };
 
+  // «Solo seguimiento» (Gonzalo, 30/10): la variable no lleva metas; se compara la
+  // distribución de las efectivas con la del universo en Variables de control.
+  const seguidas = new Set((state?.config?.operational_model?.interest_variables ?? []).map((item) => claveDeSeguida(item.actor, item.variable)));
+  const seguir = async () => {
+    if (!estado || !state?.config || !borrador.actor || !borrador.variable) return;
+    if (seguidas.has(claveDeSeguida(borrador.actor, borrador.variable))) return;
+    despachar({ tipo: "guardar" });
+    try {
+      const previas = state.config.operational_model?.interest_variables ?? [];
+      const result = await apiMonitoreoConfig({
+        ...state.config,
+        operational_model: { ...state.config.operational_model, interest_variables: [...previas, { actor: borrador.actor, variable: borrador.variable, normalization: "ninguna" }] },
+      });
+      onStateChange?.(result.state);
+      if (!vivo.current) return;
+      despachar({ tipo: "guardado", estado, aviso: `${borrador.variable} de ${borrador.actor} queda en seguimiento: su distribución se compara con la del universo en Avance › Variables de control.` });
+      irA({ panel: false, foco });
+    } catch (e) {
+      if (vivo.current) despachar({ tipo: "fallo-panel", error: mensajeDeError(e, "No se pudo dejar la variable en seguimiento.") });
+    }
+  };
+
   const abrirNueva = useCallback((actor = "", variable = "") => {
     semilla.current = { actor, variable };
     irA({ panel: true, foco: "" });
@@ -160,9 +191,11 @@ export function useConfiguracionDeCuotas() {
       onProponer={() => { void proponer(); }}
       onGuardar={() => { void guardar(); }}
       onQuitar={(id) => { void quitar(id); }}
+      onSeguir={state?.config ? () => { void seguir(); } : undefined}
+      seguidas={seguidas}
       onCerrar={cerrar}
     />
   ) : null;
 
-  return { s, foco, irA, cargar, abrirNueva, panelNode };
+  return { s, foco, irA, cargar, abrirNueva, panelNode, seguidas };
 }

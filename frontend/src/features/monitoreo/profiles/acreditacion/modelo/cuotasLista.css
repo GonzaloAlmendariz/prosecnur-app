@@ -81,6 +81,14 @@
   min-width: 0;
 }
 
-.acr-cu-encabezado > .acr-av-tenue {
+.acr-av-panel-cabecera h3.acr-cu-encabezado > .acr-av-tenue {
   align-self: center;
+}
+
+.acr-cu-publico button.is-seguida {
+  color: var(--pulso-text);
+}
+
+.acr-cu-publico button.is-seguida > svg {
+  color: var(--pulso-module-monitoring);
 }

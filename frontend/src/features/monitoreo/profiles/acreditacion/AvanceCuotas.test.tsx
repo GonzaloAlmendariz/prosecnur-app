@@ -144,7 +144,8 @@ describe("panel de configuración", () => {
     const html = pintaPanel();
     expect(html).toContain('data-pulso-panel="cuota"');
     expect(html).toContain('role="dialog"');
-    expect(html).toContain("Docentes Campus · Dedicación");
+    expect(html).toMatch(/<h2[^>]*>Dedicación<\/h2><small[^>]*>Docentes Campus<\/small>/);
+    expect(html).not.toContain("Docentes Campus · Dedicación");
     expect(sinSeparador(html)).toContain("Suma de metas <strong>812</strong>");
     expect(html).toContain("meta del público <strong>811</strong>");
     expect(html).toContain("1 sobre la meta del público");
@@ -161,6 +162,15 @@ describe("panel de configuración", () => {
     expect(html).toContain("Elige la variable de la cuota.");
     expect(html).not.toContain("Quitar cuota");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Guardar/);
+  });
+
+  it("una variable nueva puede ir sólo en seguimiento; editar una cuota no ofrece ese uso", () => {
+    const nueva = pintaPanel({ borrador: borradorNuevo(ESTADO.publicos), onSeguir: noop });
+    expect(nueva).toContain("Con metas");
+    expect(nueva).toContain("Solo seguimiento");
+    expect(nueva).not.toMatch(/<option[^>]*>[^<]*·/);
+    expect(pintaPanel({ onSeguir: noop })).not.toContain("Solo seguimiento");
+    expect(pintaPanel({ borrador: borradorNuevo(ESTADO.publicos) })).not.toContain("Solo seguimiento");
   });
 
   it("con muchas categorías la tabla trae filtro y va completa", () => {
