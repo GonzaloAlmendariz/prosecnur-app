@@ -1,0 +1,10 @@
+/* M2 (pasada a 1024×600): lo que se cortaba con «…» y no debía. */
+
+/* Nombres largos de distrito («San Juan de Lurigancho») pasan a dos líneas en vez de cortarse. */
+.hr-sorteo-dist-copia strong { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.hr-muestra-rep-cab strong.hr-muestra-rep-nombre { white-space: normal; line-height: 1.25; }
+
+/* Angosto, los rótulos de las cifras del inspector («Peor margen», «Entrevistas») bajan de línea. */
+@media (max-width: 1279px) {
+  .hr-mapa-cifras small { white-space: normal; line-height: 1.2; }
+}

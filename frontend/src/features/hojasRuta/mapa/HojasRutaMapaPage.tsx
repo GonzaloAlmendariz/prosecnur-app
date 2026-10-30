@@ -59,6 +59,7 @@ import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./selec
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
 import "./mapaPage.css";
+import "./angosto.css";
 
 /**
  * Hojas de ruta con el mapa como lienzo (ADR 0114). Esqueleto de U4: barra del
@@ -624,7 +625,7 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <><b>Perú</b> · {atlas.length} ciudades con cartografía; el tamaño es su población</> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? " · cargando su mapa…" : " · clic en un distrito para ver su ficha"}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          miga={enAtlas ? <><b>Perú</b><span className="hr-lienzo-miga-ayuda"> · {atlas.length} ciudades con cartografía; el tamaño es su población</span></> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? " · cargando su mapa…" : <span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
