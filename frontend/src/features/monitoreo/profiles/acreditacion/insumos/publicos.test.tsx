@@ -43,4 +43,18 @@ describe("Insumos › Públicos", () => {
     expect(html).toContain("Ciclo de egreso");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
   });
+
+  it("con un solo canal no pinta la matriz de una columna, y una llave de una columna no lleva número", () => {
+    const soloCorreo = [
+      fuente("Universo · Egresados", "universo", "google_sheets", "Egresados"),
+      fuente("SurveyMonkey · Egresados · Correo", "respuestas", "surveymonkey", "Egresados", "correo"),
+    ];
+    const html = renderToStaticMarkup(
+      <MemoryRouter><Publicos sources={soloCorreo} unidades={[]} llave={["Token"]} cuotasDePrueba={CUOTAS} /></MemoryRouter>,
+    );
+    expect(html).not.toContain("Por dónde entra cada público");
+    expect(html).toContain("Llave de cruce");
+    expect(html).toContain('<span class="acr-in-columna">Token</span>');
+    expect(html).not.toMatch(/acr-in-llave"><li><span class="acr-av-tenue/);
+  });
 });

@@ -1718,7 +1718,9 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   box-shadow: var(--pulso-shadow-soft);
 }
 
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness {
+/* Clase repetida a propósito: gana a la base `.mon-outputs-workbench--ficha …is-listo`
+ * (que pinta el borde izquierdo) sin depender del orden de carga de los CSS. */
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.mon-outputs-readiness {
   /* El estado lo dice su chip («Listo», «Bloqueado»…), sin franja lateral (K2). */
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
   background: var(--pulso-surface);
