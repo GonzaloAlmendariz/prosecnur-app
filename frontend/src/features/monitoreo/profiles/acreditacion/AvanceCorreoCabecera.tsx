@@ -83,7 +83,8 @@ export function AvanceCorreoCabecera({
           ) : (
             <>
               <span className="mon-correo-versalita">Audiencia</span>
-              <strong className="mon-correo-audiencia-nombre">{nombreAudiencia(listId, audiencias)}</strong>
+              {/* Sin la lista de audiencias no hay nombre: el identificador crudo no lo reemplaza (va en el title). */}
+              <strong className="mon-correo-audiencia-nombre" title={listId ? `Lista ${listId}` : undefined}>{audiencias.some((a) => a.id === listId) ? nombreAudiencia(listId, audiencias) : "Audiencia de Mailchimp"}</strong>
               <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onCambiar}>Cambiar</PulsoButton>
             </>
           )}
