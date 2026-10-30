@@ -24,7 +24,10 @@ export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: Var
     <section className="acr-av-panel acr-ps-tabla acr-pc-detalle" aria-label={`Composición de ${variable.actor} por ${variable.variable}`}>
       <header className="acr-av-panel-cabecera">
         <h3>
-          {`${variable.actor}, ${variable.variable}`}
+          <span className="acr-pc-titulo">
+            <small className="acr-av-antetitulo">{variable.actor}</small>
+            <span>{variable.variable}</span>
+          </span>
           <span className="acr-av-chip">Sin meta</span>
           <span className="acr-av-tenue" title="Mayor diferencia entre el % de las efectivas y el % del universo">{`Máx. ${pp(variable.maxDelta)}`}</span>
         </h3>

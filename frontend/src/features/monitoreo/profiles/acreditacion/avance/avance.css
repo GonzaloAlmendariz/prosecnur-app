@@ -2162,3 +2162,24 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--pulso-space-3);
 }
+
+/* Por cuota: el público en su línea (color y nombre en pequeño) y la variable debajo;
+ * nunca «público, variable» (Gonzalo, 30/10). */
+.acr-pc-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--publico-texto);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pc-variable {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pc-titulo {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}

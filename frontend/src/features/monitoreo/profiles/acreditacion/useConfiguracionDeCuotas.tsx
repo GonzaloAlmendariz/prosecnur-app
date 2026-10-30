@@ -127,7 +127,7 @@ export function useConfiguracionDeCuotas({ state, onStateChange }: OpcionesDeCuo
       const nuevo = await postMonitoreoCuotas(entradasConBorrador(estado.cuotas, borrador));
       recordarCuotas(nuevo, generacion);
       if (!vivo.current) return;
-      despachar({ tipo: "guardado", estado: nuevo, aviso: `Cuota guardada: ${borrador.actor} · ${borrador.variable}.` });
+      despachar({ tipo: "guardado", estado: nuevo, aviso: `Cuota de ${borrador.actor} por ${borrador.variable} guardada.` });
       irA({ panel: false, foco: idGuardado(nuevo, borrador) });
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo-panel", error: mensajeDeError(e, "No se pudo guardar la cuota.") });

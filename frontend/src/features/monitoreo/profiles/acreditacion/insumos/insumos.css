@@ -330,3 +330,24 @@
   min-width: 160px;
   white-space: normal;
 }
+
+/* Servicio, papel y estado de la fuente como etiquetas separadas, sin «·». */
+.acr-in-fuente-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.acr-in-fuente-meta small {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.acr-in-fuente-meta small.is-apagada {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 12%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+}

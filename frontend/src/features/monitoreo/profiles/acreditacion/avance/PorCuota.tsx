@@ -72,7 +72,8 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
                     <li key={item.id}>
                       <button type="button" className={`acr-in-fuente acr-pc-fila${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
-                          <span className={`acr-celda-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{`${item.actor}, ${item.variable}`}</span>
+                          <small className={`acr-pc-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.actor}</small>
+                          <span className="acr-pc-variable">{item.variable}</span>
                           <small className="acr-av-tenue">{resumen.cumplidas}</small>
                           {/* El avance de la cuota de un vistazo, al pie de la fila (E2, 30/10). */}
                           {resumen.meta > 0 && resumen.avance != null ? (
@@ -97,7 +98,8 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
                     <li key={item.id}>
                       <button type="button" className={`acr-in-fuente${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
-                          <span>{`${item.actor}, ${item.variable}`}</span>
+                          <small className={`acr-pc-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.actor}</small>
+                          <span className="acr-pc-variable">{item.variable}</span>
                           <small className="acr-av-tenue">{`${fmt(item.filas.length)} categorías`}</small>
                         </span>
                         <b className="acr-av-num">{item.maxDelta == null ? "—" : `${item.maxDelta > 0 ? "+" : ""}${item.maxDelta.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`}</b>

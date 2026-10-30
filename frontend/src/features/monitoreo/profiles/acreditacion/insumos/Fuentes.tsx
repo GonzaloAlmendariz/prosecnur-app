@@ -92,7 +92,11 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
                       <button type="button" className={`acr-in-fuente${elegida?.id === item.id ? " is-activo" : ""}${item.activa ? "" : " is-inactiva"}`} aria-pressed={elegida?.id === item.id} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
                           <span>{item.nombre}</span>
-                          <small className="acr-av-tenue">{`${item.servicio} · ${item.papelRotulo}${item.activa ? "" : " · Desactivada"}`}</small>
+                          <span className="acr-in-fuente-meta">
+                            <small>{item.servicio}</small>
+                            <small>{item.papelRotulo}</small>
+                            {item.activa ? null : <small className="is-apagada">Desactivada</small>}
+                          </span>
                         </span>
                         <b className="acr-av-num">{item.filas == null ? "—" : fmt(item.filas)}</b>
                       </button>
