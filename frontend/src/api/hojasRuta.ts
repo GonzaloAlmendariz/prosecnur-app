@@ -551,6 +551,8 @@ export type HojasRutaSamplePreview = {
   algoritmo_sorteo?: string;
   /** Huella de identidad de la muestra (ADR 0118 §3); la calcula R en /sample-preview. */
   sample_fingerprint?: string | null;
+  /** ADR 0115: firmas del marco con que se sorteó (sólo las que lee el historial). */
+  marco_elegible?: { hash_marco?: string | null; hash_criterios?: string | null } | null;
 };
 
 export type HojasRutaWorkspaceOutputs = {
@@ -611,6 +613,8 @@ export type HojasRutaRouteSnapshot = {
   frame_version?: string | null;
   hash_marco?: string | null;
   hash_criterios?: string | null;
+  /** Exclusiones efectivas (en campo, las de la piloto) con que se sorteó. */
+  excluded_titular_ids?: string[] | null;
 };
 
 export type HojasRutaBlockMapFeature = {

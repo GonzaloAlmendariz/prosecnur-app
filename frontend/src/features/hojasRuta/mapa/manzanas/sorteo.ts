@@ -63,6 +63,18 @@ export function saltoVistaPrevia(viviendas: number, manzanas: number, porRuta: n
   return { k, operativo: Math.max(1, Math.floor(k)) };
 }
 
+/** Huella y firmas que dicen, al volver a un ruteo, por qué la muestra cambió (causaRuteo.ts). */
+export function firmasDeMuestra(sample: HojasRutaSamplePreview) {
+  return {
+    sample_fingerprint: sample.sample_fingerprint ?? null,
+    algoritmo_sorteo: sample.algoritmo_sorteo ?? null,
+    frame_version: sample.frame_meta?.version ?? null,
+    hash_marco: sample.marco_elegible?.hash_marco ?? null,
+    hash_criterios: sample.marco_elegible?.hash_criterios ?? null,
+    excluded_titular_ids: [...(sample.config?.excluded_titular_ids ?? [])].map(String),
+  };
+}
+
 /** Lo mismo que guarda la página clásica en `ui_state.route_history` (buildRouteSnapshot). */
 export function instantaneaDeSorteo(sample: HojasRutaSamplePreview, config: HojasRutaIntegratedConfig, ahora: Date, id: string): HojasRutaRouteSnapshot {
   const etiqueta = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(ahora);
@@ -94,7 +106,7 @@ export function instantaneaDeSorteo(sample: HojasRutaSamplePreview, config: Hoja
     territories: [...(config.territorios ?? [])],
     distribution: [...porDistrito.values()],
     config,
-    sample_fingerprint: sample.sample_fingerprint ?? null,
+    ...firmasDeMuestra(sample),
   };
 }
 

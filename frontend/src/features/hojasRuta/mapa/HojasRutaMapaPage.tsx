@@ -10,7 +10,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
@@ -49,6 +49,7 @@ import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
+import { causaDeRuteo, type CausaRuteo } from "./manzanas/causaRuteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
 import { MarcoElegiblePanel } from "./manzanas/MarcoElegiblePanel";
 import { cierraEnPrimero, MARCO_NUEVO } from "./manzanas/marcoElegible";
@@ -80,6 +81,8 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
+  // Al volver a un ruteo: si la muestra que salió es la de entonces, y si no, por qué.
+  const [ruteoUsado, setRuteoUsado] = useState<{ id: string; causa: CausaRuteo } | null>(null);
   const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada, cajon } = useSeleccionDireccion();
   const enTerritorio = nav.seccion === "territorio";
@@ -276,8 +279,8 @@ export default function HojasRutaMapaPage() {
   const marcoDeclarado = configSorteo?.marco_elegible?.declarado === true;
   const zonasCortas = useMemo(() => new Set(marcoDeclarado ? (vistaMarco?.capacidad ?? []).filter((z) => z.falta).map((z) => `${z.ubigeo}|${z.zona}`) : []), [vistaMarco, marcoDeclarado]);
   const sortear = useCallback(
-    async (config: HojasRutaIntegratedConfig) => {
-      if (!estado) return;
+    async (config: HojasRutaIntegratedConfig): Promise<HojasRutaSamplePreview | null> => {
+      if (!estado) return null;
       setGuardando(true);
       try {
         const muestra = await apiHojasRutaSamplePreview(config);
@@ -286,8 +289,11 @@ export default function HojasRutaMapaPage() {
         await apiHojasRutaPersistWorkspace(nuevo.integrated_config, { ...nuevo.ui_state, route_history: conInstantanea(nuevo.ui_state?.route_history ?? [], foto) }, { ...nuevo.workspace_outputs, quota: muestra.quota ?? nuevo.workspace_outputs?.quota ?? null }, fase);
         setEstado(await apiHojasRutaState());
         setSorteoBorrador(null);
+        setRuteoUsado(null);
+        return muestra;
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "No se pudo sortear las manzanas");
+        return null;
       } finally {
         setGuardando(false);
       }
@@ -300,7 +306,7 @@ export default function HojasRutaMapaPage() {
   // no ofrece «Usar» (sortearía otra cosa).
   const usarRuteo = useCallback((h: HojasRutaRouteSnapshot) => {
     if (!estado) return;
-    void sortear(aplicarSorteo(estado.integrated_config, parametrosDeSorteo(h.config)));
+    void sortear(aplicarSorteo(estado.integrated_config, parametrosDeSorteo(h.config))).then((m) => m && setRuteoUsado({ id: h.id, causa: causaDeRuteo(h, m) }));
   }, [estado, sortear]);
 
   // Selección: la revisión contra el marco decide el tono de cada ruta.
@@ -596,7 +602,7 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} confirmados={confirmados} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} usado={ruteoUsado} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (

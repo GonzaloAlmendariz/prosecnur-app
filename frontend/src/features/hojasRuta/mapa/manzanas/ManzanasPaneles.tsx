@@ -12,6 +12,7 @@ import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
+import { TEXTO_CAUSA, type CausaRuteo } from "./causaRuteo";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
 
 /**
@@ -252,9 +253,11 @@ type EstructuraProps = {
   bloqueado: boolean;
   guardando: boolean;
   onUsar: (s: HojasRutaRouteSnapshot) => void;
+  /** El ruteo al que se acaba de volver y si salió la misma muestra (causaRuteo.ts). */
+  usado?: { id: string; causa: CausaRuteo } | null;
 };
 
-export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar }: EstructuraProps) {
+export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar, usado = null }: EstructuraProps) {
   const porDistrito = new Map<string, { distrito: string; titulares: number; entrevistas: number; reemplazos: number }>();
   for (const b of muestra?.blocks ?? []) {
     const f = porDistrito.get(b.ubigeo) ?? { distrito: b.distrito, titulares: 0, entrevistas: 0, reemplazos: 0 };
@@ -268,7 +271,8 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
     porDistrito.set(b.ubigeo, f);
   }
   const filas = [...porDistrito.entries()].sort((a, b) => a[1].distrito.localeCompare(b[1].distrito, "es"));
-  const vigente = (h: HojasRutaRouteSnapshot) => Boolean(muestra) && h.seed === muestra?.seed && h.method === muestra?.method && h.n_blocks === muestra?.n_blocks;
+  // Con huella en los dos lados, «en uso» es la misma muestra; si no, la misma semilla, método y tamaño.
+  const vigente = (h: HojasRutaRouteSnapshot) => Boolean(muestra) && (h.sample_fingerprint && muestra?.sample_fingerprint ? h.sample_fingerprint === muestra.sample_fingerprint : h.seed === muestra?.seed && h.method === muestra?.method && h.n_blocks === muestra?.n_blocks);
 
   return (
     <>
@@ -297,6 +301,11 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                       Usar
                     </PulsoButton>
                   )}
+                  {usado?.id === h.id ? (
+                    <p className="hr-sorteo-causa" data-causa={usado.causa} role="status">
+                      {TEXTO_CAUSA[usado.causa]}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>

@@ -66,6 +66,23 @@ Material y Monitoreo usan la misma función de huella (`.hojas_ruta_sample_finge
 cada bloque más la semilla y el algoritmo del sorteo, nunca sobre la muestra entera); si no coinciden, Material
 muestra `stale`. En F1 Monitoreo sigue leyendo la muestra viva.
 
+**Enmienda (2026-10-30), el historial de ruteos es el tercer consumidor de la huella.** Propuesta y revisión de
+`guardian-contratos` en `docs/qa/propuesta-route-history-2026-10-30.md`.
+
+- **Qué guarda.** Cada instantánea de `ui_state.route_history` guarda el resumen del ruteo, su config, la huella
+  (`sample_fingerprint`) y las firmas que explican una diferencia: `algoritmo_sorteo`, `frame_version`,
+  `hash_marco`, `hash_criterios` y los `excluded_titular_ids` efectivos. **No guarda la muestra.** La vigente
+  vive en `workspace_outputs$sample` y la que salió a campo en esta foto del envío.
+- **Restaurar.** Antes, restaurar un ruteo reponía su muestra literal. Ahora vuelve a sortear con sus parámetros
+  sobre la configuración vigente y compara huellas. Si no coinciden, dice la causa: motor, marco, piloto o
+  parámetros. Una instantánea sin huella dice que no se puede comprobar. Nunca se vuelve a sortear en silencio
+  (ADR 0117).
+- **Migración.** El normalizador de R recorta `sample` al leer, en las corridas piloto y campo y en el
+  `ui_state`. Calcula la huella antes de recortar y solo si la muestra tiene bloques; si no, queda `NA`. No marca
+  el proyecto como sin guardar: el `.pulso` adelgaza en el siguiente guardado.
+- **Topes.** Al leer se aceptan 12 instantáneas; al insertar, 8.
+- **Validación.** Una huella que llega del cliente sin la forma `sha256:` se descarta. Es solo informativa.
+
 ### 4. Direcciones en Material
 
 `/material-campo?modo=territorial&campana=territorial.principal&seccion=<unidades|catalogo|paquetes|entrega>`, con
