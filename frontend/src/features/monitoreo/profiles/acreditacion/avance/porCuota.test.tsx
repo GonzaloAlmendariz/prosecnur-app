@@ -56,4 +56,13 @@ describe("Avance › Por cuota", () => {
     expect(html).toContain("+2.4 pp");
     expect(html).toContain("Definir cuota en Modelo");
   });
+
+  it("mientras lee, el marco de dos columnas ya está y no repite un título «Variables»", () => {
+    const html = renderToStaticMarkup(
+      <PorCuotaVista publicos={[]} cuotas={[]} controles={[]} foco={null} leyendo onElegir={() => {}} onEditarEnModelo={() => {}} onDefinirEnModelo={() => {}} />,
+    );
+    expect(html).toContain("acr-pc-derecha");
+    expect(html).toContain("Leyendo las cuotas del estudio.");
+    expect(html).not.toContain("<h3>Variables</h3>");
+  });
 });
