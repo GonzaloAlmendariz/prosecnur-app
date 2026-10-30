@@ -14,6 +14,11 @@ import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
+import { clasePublico, paletaDePublicos } from "../paletaPublicos";
+import "../paletaPublicos.css";
+
+/** Con menos días el promedio por día de la semana es una o dos muestras por día: no se dibuja. */
+const DIAS_PARA_LEER_LA_SEMANA = 14;
 
 /** El desglose por fuente y recopilador: `panel=fuentes`. */
 export const PANEL_FUENTES: PanelDeclarado = { id: "fuentes", label: "Por fuente y recopilador", clase: "sideover" };
@@ -43,6 +48,9 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const maxSemana = Math.max(1, ...pulso.porDiaDeLaSemana.map((dia) => dia.promedio));
   const totalCanal = pulso.porCanal.reduce((suma, item) => suma + item.efectivas, 0);
   const porPublico = useMemo(() => ritmoPorPublico(serie, actores), [serie, actores]);
+  // Cada público con el color que tiene en Resumen, Correo y Por cuota; «Otros» sigue en gris.
+  const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.filter((capa) => !capa.otros).map((capa) => capa.publico)]), [actores, serie]);
+  const clasesDeCapa = serie.capas.map((capa, indice) => (capa.otros ? `is-capa-${indice + 1}` : `con-publico ${clasePublico(paleta, capa.publico)}`));
   if (!serie.fechas.length) {
     return <PestanaSinContenido titulo="Efectivas por día" icono={<CalendarRange size={18} />} motivo="El corte todavía no trae efectivas con fecha." descripcion="Las efectivas por día aparecen cuando las encuestas conectadas devuelven respuestas completas." />;
   }
@@ -63,14 +71,14 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
               El plan de campo no tiene fases con fechas.
             </AvisoDeTarjeta>
           )}
-          <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} />
+          <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} clasesDeCapa={clasesDeCapa} />
           <ul className="acr-ri-leyenda" aria-label="Públicos">
             {serie.capas.map((capa, indice) => (
-              <li key={capa.publico}><i className={`acr-av-capa-muestra is-capa-${indice + 1}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b></li>
+              <li key={capa.publico}><i className={`acr-av-capa-muestra ${clasesDeCapa[indice]}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b></li>
             ))}
           </ul>
         </section>
-        <RitmoPorPublico publicos={porPublico} />
+        <RitmoPorPublico publicos={porPublico} clase={(publico) => clasePublico(paleta, publico)} />
         <section className="acr-av-panel acr-ri-mapa" aria-label="Efectivas por semana">
           <header className="acr-av-panel-cabecera"><h3>Efectivas por semana <span className="acr-av-tenue">Semanas de lunes a domingo</span></h3></header>
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
@@ -110,7 +118,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
             <div><dt>Días con efectivas</dt><dd className="acr-av-num">{`${fmt(pulso.diasConEfectivas)} de ${fmt(pulso.dias)}`}</dd></div>
             <div><dt>Canal que más aporta</dt><dd>{pulso.porCanal[0] ? pulso.porCanal[0].canal : "—"}</dd></div>
           </dl>
-          <section aria-label="Promedio por día de la semana">
+          {pulso.dias >= DIAS_PARA_LEER_LA_SEMANA ? <section aria-label="Promedio por día de la semana">
             <span className="acr-av-antetitulo">Promedio por día de la semana</span>
             <ul className="acr-ri-barras">
               {pulso.porDiaDeLaSemana.map((dia) => (
@@ -121,7 +129,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
                 </li>
               ))}
             </ul>
-          </section>
+          </section> : null}
           {pulso.porCanal.length ? (
             <section aria-label="Efectivas por canal">
               <span className="acr-av-antetitulo">Efectivas por canal</span>

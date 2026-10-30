@@ -23,7 +23,7 @@ function Proyeccion({ item }: { item: RitmoDePublico }) {
  * frente a la meta, sus últimos 14 días y a qué ritmo llega. Los más lejos de
  * su meta van primero.
  */
-export function RitmoPorPublico({ publicos }: { publicos: readonly RitmoDePublico[] }) {
+export function RitmoPorPublico({ publicos, clase }: { publicos: readonly RitmoDePublico[]; clase?: (publico: string) => string }) {
   if (!publicos.length) return null;
   return (
     <section className="acr-av-panel acr-rp" aria-label="Ritmo por público">
@@ -33,10 +33,11 @@ export function RitmoPorPublico({ publicos }: { publicos: readonly RitmoDePublic
       <ul className="acr-rp-grilla" data-qa-geometry-group="acreditacion-ritmo-publicos" data-qa-geometry-contract="equal">
         {publicos.map((item) => {
           const avance = item.meta ? Math.min(100, (item.efectivas / item.meta) * 100) : 0;
+          const color = clase ? `con-publico ${clase(item.publico)}` : `is-capa-${item.capa}`;
           return (
-            <li key={item.publico} className={`acr-rp-publico is-capa-${item.capa}`} data-qa-geometry-member>
+            <li key={item.publico} className={`acr-rp-publico ${color}`} data-qa-geometry-member>
               <div className="acr-rp-linea">
-                <b className="acr-rp-nombre"><i className={`acr-av-capa-muestra is-capa-${item.capa}`} aria-hidden="true" />{item.publico}</b>
+                <b className="acr-rp-nombre"><i className={`acr-av-capa-muestra ${color}`} aria-hidden="true" />{item.publico}</b>
                 <Proyeccion item={item} />
               </div>
               <div className="acr-rp-cifra">

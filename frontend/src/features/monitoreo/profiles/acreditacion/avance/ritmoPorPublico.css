@@ -72,3 +72,6 @@
 @media (max-width: 1200px) {
   .acr-rp-grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Con la paleta de públicos: el mismo color que en Resumen, Correo y Por cuota. */
+.acr-rp-publico.con-publico { --acr-rp-color: var(--publico); }

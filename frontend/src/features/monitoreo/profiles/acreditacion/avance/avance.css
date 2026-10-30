@@ -1143,6 +1143,10 @@
   padding: var(--pulso-space-2) var(--pulso-space-4) 0;
 }
 
+/* Un público se pinta con su color de toda la app (paletaPublicos.css); la
+ * escala `is-capa-N` queda para «Otros» y para quien no pase la paleta. */
+.acr-av-capa.con-publico { fill: var(--publico); }
+.acr-av-capa-muestra.con-publico { background: var(--publico); }
 .acr-av-capa.is-capa-1, .acr-av-capa-muestra.is-capa-1 { fill: var(--acr-capa-1); background: var(--acr-capa-1); }
 .acr-av-capa.is-capa-2, .acr-av-capa-muestra.is-capa-2 { fill: var(--acr-capa-2); background: var(--acr-capa-2); }
 .acr-av-capa.is-capa-3, .acr-av-capa-muestra.is-capa-3 { fill: var(--acr-capa-3); background: var(--acr-capa-3); }

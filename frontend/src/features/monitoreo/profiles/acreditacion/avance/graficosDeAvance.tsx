@@ -397,12 +397,15 @@ export function BarrasApiladas({
   totales,
   fases,
   etiqueta,
+  clasesDeCapa,
 }: {
   fechas: readonly string[];
   capas: ReadonlyArray<{ publico: string; valores: readonly number[] }>;
   totales: readonly number[];
   fases: ReadonlyArray<{ id: string; rotulo: string; desde: string; hasta: string }>;
   etiqueta: string;
+  /** Clase de color de cada capa (la del público en toda la app); sin ella, la escala `is-capa-N`. */
+  clasesDeCapa?: readonly string[];
 }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 44;
@@ -452,7 +455,7 @@ export function BarrasApiladas({
                   const rect = (
                     <rect
                       key={capa.publico}
-                      className={`acr-av-capa is-capa-${capaIndice + 1}`}
+                      className={`acr-av-capa ${clasesDeCapa?.[capaIndice] ?? `is-capa-${capaIndice + 1}`}`}
                       x={izquierda + indice * paso + paso * 0.12}
                       y={y(base + valor)}
                       width={Math.max(1, paso * 0.76)}
