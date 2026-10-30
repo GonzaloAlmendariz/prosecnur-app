@@ -431,7 +431,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
           if (length(hojas_paneles) > 1L) sprintf("%d de %d", h, length(hojas_paneles)) else "")
     idx <- hojas_paneles[[h]]
     columnas <- rejilla$columnas
-    banda_rotulo <- 0.058; banda_fechas <- 0.034; aire <- 0.022; leyenda <- 0.050
+    banda_rotulo <- 0.044; banda_fechas <- 0.034; aire <- 0.022; leyenda <- 0.050
     hueco_x <- 0.030
     w <- (ancho - hueco_x * (columnas - 1L)) / columnas
     filas_p <- max(1L, ceiling(rejilla$por_hoja / columnas))
@@ -444,10 +444,8 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       r0 <- (k - 1L) %/% columnas
       px <- m + c0 * (w + hueco_x) + 0.026
       py <- techo - banda_rotulo - hp - r0 * paso
-      tx(p$publico, px, py + hp + 0.040, size = ty$body, col = tk$navy, face = "bold", just = c("left", "bottom"))
-      tx(paste0(.acav_n(p$completas), " de ", .acav_n(p$universo), " (", .acav_pct(p$completas, p$universo), ")",
-                if (con_meta) paste0("   Cumplimiento del mínimo: ", .acav_pct_frec(p$completas, p$meta)) else ""),
-         px, py + hp + 0.018, size = ty$caption, col = tk$soft, just = c("left", "bottom"))
+      # Sólo el nombre: las cifras del público ya están en la tabla del resumen.
+      tx(p$publico, px, py + hp + 0.022, size = ty$body, col = tk$navy, face = "bold", just = c("left", "bottom"))
       diarias <- as.numeric(matriz[, p$publico])
       pulso_pdf_serie_partida(px, py, w - 0.026, hp, dias = etiquetas, diarias = diarias,
                               acumulado = cumsum(diarias),

@@ -49,7 +49,8 @@ público, una de avance general y una de «Corte y fuentes»).
 | 26 | «Invitados» no es el término: es el universo (la base del público); no todo estudio de acreditación se recoge por correo (Gonzalo, 2026-10-30) | motor + test (prohíbe «invitad») | Hecho: «Universo» y «Avance sobre el universo» en tarjetas, tabla, portada y paneles |
 | 27 | «Hora de Lima» repetida en títulos, subtítulos y rótulos | motor + test (exige una sola aparición) | Hecho: sólo en el corte de la portada |
 | 28 | Faltaban el diario y el acumulado por público | motor | Hecho: página «Avance diario por público», un panel por público con la convención de hostigamiento: acumulado en línea contra el mínimo esperado, completas del día en barras (Gonzalo, 2026-10-30: «el acumulado es una línea y el diario son barras») |
-| 29 | El porcentaje sobre el mínimo no tenía nombre propio | motor | Hecho: «Cumplimiento del mínimo» (tarjeta en el resumen, columna de la tabla y rótulo de cada panel), siempre con su frecuencia |
+| 29 | El porcentaje sobre el mínimo no tenía nombre propio | motor | Hecho: «Cumplimiento del mínimo» (tarjeta y columna del resumen), siempre con su frecuencia |
+| 30 | Los paneles del avance diario repetían cifras y el mínimo bajo el nombre del público | motor | Hecho: sólo el título (Gonzalo, 2026-10-30) |
 
 ## Cifras contrastadas con la app (corte 30/10/2026 07:20)
 
