@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./planCampo.css";
 import { tonoCss } from "../lienzo/tonos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { downloadUrl } from "../../../../api/core";
@@ -28,6 +29,8 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
   const [error, setError] = useState("");
   const [hoja, setHoja] = useState<string | null>(null);
+  // M11 (C4): los días que no caben al principio se piden, no se esconden detrás de «y N días más».
+  const [todosLosDias, setTodosLosDias] = useState(false);
   const cambiado = JSON.stringify(s) !== JSON.stringify(normalizarPlanSupuestos(guardados));
   const campo = (k: keyof Omit<HojasRutaPlanSupuestos, "moneda">, etiqueta: string, sufijo?: string) => (
     <label className="hr-muestra-campo">
@@ -78,7 +81,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
           {plan.alertas.slice(0, 3).map((a) => (
             <p key={a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
           ))}
-          {porDia(plan.jornadas).slice(0, DIAS_VISIBLES).map(([dia, js]) => (
+          {porDia(plan.jornadas).slice(0, todosLosDias ? undefined : DIAS_VISIBLES).map(([dia, js]) => (
             <section key={dia} className="hr-plan-dia" aria-label={`Día ${dia}`}>
               <h4>Día {dia}</h4>
               <ul className="hr-plan-jornadas">
@@ -109,7 +112,11 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
               </ul>
             </section>
           ))}
-          {porDia(plan.jornadas).length > DIAS_VISIBLES ? <p className="hr-mapa-nota">y {porDia(plan.jornadas).length - DIAS_VISIBLES} días más.</p> : null}
+          {porDia(plan.jornadas).length > DIAS_VISIBLES ? (
+            <button type="button" className="hr-plan-mas" onClick={() => setTodosLosDias((v) => !v)}>
+              {todosLosDias ? "Ver sólo los primeros días" : `Ver los ${porDia(plan.jornadas).length - DIAS_VISIBLES} días más`}
+            </button>
+          ) : null}
         </>
       ) : null}
       <div className="hr-salidas-acciones">

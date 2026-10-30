@@ -1,0 +1,14 @@
+/* M11: ver los días del plan que no caben al principio (C4: todo alcanzable). */
+.hr-plan-mas {
+  all: unset;
+  box-sizing: border-box;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-primary);
+  cursor: pointer;
+}
+.hr-plan-mas:hover { background: var(--pulso-surface-2); }
+.hr-plan-mas:focus-visible { outline: 2px solid var(--pulso-primary-border); outline-offset: 1px; }
