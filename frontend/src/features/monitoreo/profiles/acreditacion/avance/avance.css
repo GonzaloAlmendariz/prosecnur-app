@@ -694,6 +694,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-res[data-density="comoda"] .acr-res-publico {
@@ -804,6 +806,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-res-resolver-lista b {
@@ -947,6 +951,8 @@
   font-weight: var(--pulso-weight-bold);
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-pub-avance {

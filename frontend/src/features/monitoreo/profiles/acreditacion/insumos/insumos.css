@@ -31,6 +31,8 @@
   color: var(--pulso-text);
   font: inherit;
   font-weight: var(--pulso-weight-bold);
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-in-nombre:hover,
