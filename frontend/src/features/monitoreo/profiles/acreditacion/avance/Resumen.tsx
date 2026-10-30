@@ -257,7 +257,7 @@ export function ResumenVista({
           </div>
           <div className="acr-res-curva" data-qa-geometry-capacity="owned">
             {serie.length ? (
-              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} ritmo={ritmoDeProyeccion} />
+              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} ritmo={ritmoDeProyeccion} diasALaMeta={lecturaDeProyeccion.tipo === "faltan" ? lecturaDeProyeccion.dias : null} />
             ) : (
               <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae efectivas con fecha." descripcion="La curva aparece cuando las encuestas devuelven respuestas completas." />
             )}

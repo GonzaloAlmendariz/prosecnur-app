@@ -34,7 +34,7 @@ function Paso({ rotulo, valor, base, aviso }: { rotulo: string; valor: number | 
   const ancho = valor != null && base ? Math.min(100, (valor / base) * 100) : 0;
   return (
     <li className={aviso ? "is-dudoso" : undefined}>
-      <span className="acr-co-paso">{rotulo}{aviso ? <span className="acr-co-chip is-warning" title={aviso}>No mide lectura</span> : null}</span>
+      <span className="acr-co-paso">{rotulo}{aviso ? <span className="acr-co-chip is-warning" title={aviso} tabIndex={0} aria-label={`No mide lectura. ${aviso}`}>No mide lectura</span> : null}</span>
       <span className="acr-av-pista is-gruesa"><i style={{ width: `${ancho}%` }} /></span>
       <b className="acr-av-num">{valor == null ? "—" : cifra(valor)}</b>
       <span className="acr-av-tenue acr-av-num">{valor != null && base ? porcentaje(valor / base) : ""}</span>
@@ -176,6 +176,8 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                     <tr key={campana.campaignId}>
                       <th scope="row">
                         {campana.titulo}
+                        {/* La etiqueta sólo si dice algo que el título no dice. */}
+                        {campana.etiqueta && !campana.titulo.toLowerCase().includes(campana.etiqueta.toLowerCase()) ? <div className="acr-co-papeles">{campana.etiqueta}</div> : null}
                         {papeles.length ? (
                           <ul className="acr-co-papeles">
                             {papeles.map((papel) => (

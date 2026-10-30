@@ -98,9 +98,10 @@ export function sumarDias(fecha: string, dias: number): string {
  * Hasta dónde llega la proyección: al ritmo de la última semana, el día en que
  * se cruzaría la meta, o el borde de la ventana si queda más lejos. Puro.
  */
-export function tramoProyectado(final: number, meta: number, ritmo: number | null, diasReales: number) {
+export function tramoProyectado(final: number, meta: number, ritmo: number | null, diasReales: number, diasDados: number | null = null) {
   if (!(meta > final) || !ritmo || !(ritmo > 0)) return null;
-  const dias = Math.ceil((meta - final) / ritmo);
+  // `diasDados`: los del chip de la cabecera (sobre todas las efectivas, también las sin fecha), para que digan lo mismo.
+  const dias = diasDados ?? Math.ceil((meta - final) / ritmo);
   const visibles = Math.min(dias, DIAS_MAXIMOS_DE_PROYECCION);
   return { dias, visibles, alcanzaLaMeta: dias <= DIAS_MAXIMOS_DE_PROYECCION, valor: Math.min(meta, final + ritmo * visibles), span: Math.max(DIAS_MINIMOS_DE_LA_CURVA, diasReales + visibles) };
 }
@@ -118,12 +119,15 @@ export function CurvaAcumulada({
   meta,
   diaDeMeta,
   ritmo = null,
+  diasALaMeta = null,
 }: {
   serie: readonly DiaDeAvance[];
   meta: number;
   diaDeMeta: string | null;
   /** Efectivas diarias de la última semana: con él se dibuja la proyección. */
   ritmo?: number | null;
+  /** Días a la meta que ya dice el chip; si llega, la fecha punteada sale de él. */
+  diasALaMeta?: number | null;
 }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 52;
@@ -136,7 +140,7 @@ export function CurvaAcumulada({
   const h = Math.max(0, alto - arriba - abajo - banda);
   const n = serie.length;
   const final = serie.at(-1)?.acumulado ?? 0;
-  const tramo = tramoProyectado(final, meta, ritmo, n);
+  const tramo = tramoProyectado(final, meta, ritmo, n, diasALaMeta);
   const span = tramo?.span ?? Math.max(DIAS_MINIMOS_DE_LA_CURVA, n);
   const marcasAcum = marcasDeEje(Math.max(final, meta) * 1.08);
   const maxAcum = marcasAcum.at(-1) ?? 1;
@@ -260,7 +264,8 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
             />
           ))}
           {/* Primero y último bajo su barra, sólo si caben sin montarse («29 30oct»). */}
-          {rotulosDeFecha(dias.length, paso, false).filter(({ indice }) => indice === 0 || indice === dias.length - 1).map(({ indice }) => (
+          {/* El día del corte siempre lleva fecha; el primero, sólo si no se monta con él («29 30oct»). */}
+          {[...new Set([...(dias.length > 1 && (dias.length - 1) * paso >= ANCHO_DE_ROTULO_DE_FECHA ? [0] : []), dias.length - 1])].map((indice) => (
             <text key={dias[indice].fecha} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 4} textAnchor="middle">{fechaCorta(dias[indice].fecha)}</text>
           ))}
         </svg>

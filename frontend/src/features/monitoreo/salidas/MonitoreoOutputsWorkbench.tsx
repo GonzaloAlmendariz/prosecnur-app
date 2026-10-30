@@ -307,7 +307,8 @@ function productionCopyForFamily(family: OutputFamily) {
   return {
     eyebrow: "Producción",
     title: "Producción por responsable",
-    detail: "Resumen por apellido y detalle de producción telefónica por responsable.",
+    // Rama de acreditación: sin «telefónica», que el estudio puede ser sólo de correo (#21, 29/10).
+    detail: "Respuestas del corte por responsable o recopilador, en orden alfabético.",
     button: "Generar PDF de producción",
     progress: "Generando PDF de producción",
     ready: "PDF de producción listo para descargar.",
