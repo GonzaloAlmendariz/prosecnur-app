@@ -40,10 +40,35 @@ Estados: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloquead
 | F15 | «12 por revisar» en la barra y «14 observadas» en el inspector siguen sin explicarse uno al otro: el analista ve dos números para lo mismo | chip de la barra vs inspector (B43 los unificó en definición, no en lectura) | confunde | barra + inspector de Selección | un solo número visible; el otro como desglose («12 rutas · 14 UMP con reemplazos») | ☐ |
 | F16 | Entre secciones, la estructura y el inspector quedan vacíos un momento y la barra de secciones se redibuja con una mancha antes de asentarse | `key` por sección en `.hr-mapa-estructura` + carga de cada sección | pule | capturas a medio cambio en Muestra y Selección | mantener el marco del panel (C2) con un esqueleto en vez de vaciarlo | ☐ |
 
-## Recorrido 3 · Material de campo territorial y Monitoreo territorial
+## Recorrido 3 · Material de campo territorial y Monitoreo territorial (2026-10-30)
 
-Pendiente. Capítulo propio: qué ve Material de la muestra enviada, qué ve Monitoreo del material entregado, y cómo
-vuelve el avance de campo a Hojas de ruta (U18 quedó en Monitoreo, ADR 0118).
+Evidencia: sesión del 8841 sin envío (el `.pulso` de referencia no lo trae). Monitoreo territorial cargó en ~3 min con
+1.283 de 1.200 casos, faltante por UMP, cuota por distrito y celda, y sugerencias de reemplazo cercano: es la pieza más
+madura del recorrido.
+
+| # | Hallazgo | Dónde vive | Severidad | Evidencia | Propuesta | Estado |
+|---|---|---|---|---|---|---|
+| F17 | El enlace de Hojas a la campaña territorial (`/material-campo?modo=territorial&campana=territorial.principal`) redirige en silencio a la lista de campañas cuando no hay envío, y esa lista dice «Todavía no hay campañas · un campo en aulas o un correo»: no menciona el territorial ni que Hojas tiene una muestra lista | lista de campañas de Material, redirección del modo territorial | confunde | captura de `/material-campo` | si no hay campaña territorial, el vacío lo dice y ofrece «Enviar la muestra desde Hojas de ruta» con enlace; el modo territorial sin envío muestra su propio vacío en vez de redirigir | ☐ |
+| F18 | En «Nueva campaña», Territorial está deshabilitado con «Primero envía la muestra desde Hojas de ruta», pero sin enlace para ir; «Campo en aulas» promete «entrega a Monitoreo» y Territorial no dice qué pasa después | diálogo `panel=nueva-campana` | confunde | texto del diálogo | enlace directo a Hojas › Selección › Entrega; describir el ciclo territorial completo (muestra → material → campo → Monitoreo) | ☐ |
+
+### Capítulo · integración Hojas de ruta ↔ Material de campo ↔ Monitoreo
+
+| # | Hallazgo | Dónde vive | Severidad | Evidencia | Propuesta | Estado |
+|---|---|---|---|---|---|---|
+| I1 | No hay ida y vuelta por UMP entre módulos: Monitoreo habla de «UMP 96» (manzana, aplicador, lo que falta) y su «Ver en el mapa» abre el mapa de Monitoreo; la ficha de esa UMP en Hojas no dice cómo va en campo ni enlaza a Monitoreo | ficha UMP de Selección (`SeleccionInspector`), filas de Monitoreo territorial | **confunde** | Monitoreo › Avance › Faltante por UMP | enlaces direccionables en los dos sentidos (`/monitoreo?modo=territorial&…&foco=<id_manzana>` ↔ `/hojas-ruta?seccion=seleccion&foco=<id_manzana>`); en la ficha de Hojas, una línea de avance leída de Monitoreo (sin duplicar su vista, D2) | ☐ |
+| I2 | Material de campo no aparece en la barra de módulos del proyecto: se ve sólo cuando se entra por enlace (en Hojas y Monitoreo la barra lista 7 módulos sin Material) | barra de módulos / módulos habilitados del proyecto | **confunde** | texto de la barra en Monitoreo y en Material | revisar si Material debe habilitarse al enviar la muestra (o siempre en estudios territoriales) y declararlo; un estudio que envió a Material no puede esconderlo | ☐ |
+| I3 | El plan por encuestador (Material › Entrega › Plan, M3 pendiente) y el aplicador real que Monitoreo lee del campo («P844 · Ejemplo Prueba Dieciocho») no se cruzan: nadie ve si el plan se cumplió | Material territorial › Entrega; Monitoreo territorial › Avance | confunde | filas de Monitoreo con aplicador | definir una sola asignación UMP → encuestador (en Material) que Monitoreo compare con lo observado: «asignada a X, la hizo Y» | ☐ |
+| I4 | Monitoreo lee la muestra viva de Hojas, no la foto enviada a Material (ADR 0118 §3 dejó a Monitoreo fuera de F1): si se re-sortea después del envío, Material y Monitoreo hablan de muestras distintas | lectura de la muestra en Monitoreo territorial | confunde | ADR 0118 §3, F4 sin decidir | atado a F4 (decisión de Gonzalo): que Monitoreo también lea la foto, o que avise si la muestra viva difiere de la enviada | ⛔ |
+
+## Orden propuesto
+
+1. **Lo que bloquea**: F11 + F13 (la muestra v1 se ve y frena el envío) y F12 (el diagnóstico nombra la causa). Sin
+   esto el flujo puede mandar a campo una muestra sesgada.
+2. **Integración**: I1 (ida y vuelta por UMP), I2 (Material visible), F17 + F18 (los vacíos de Material guían).
+3. **Territorio por ciudad**: F2 (inspector por ciudad), F4 (jerarquía de distritos), F6 (la miga nombra la ciudad),
+   F3, F1 (guardar con respuesta inmediata).
+4. **Pulido y rendimiento**: F7, F8, F9, F10, F14, F15, F16.
+5. **Decisiones de Gonzalo**: F5 (aterrizar en la ciudad única) e I4/F4 (Monitoreo y Material sobre la foto).
 
 ## Ya resuelto en esta línea de trabajo
 
