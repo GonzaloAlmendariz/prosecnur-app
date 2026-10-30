@@ -6420,70 +6420,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
 .hojas_ruta_pdf_district_outline_cache <- new.env(parent = emptyenv())
 
-.hojas_ruta_district_coverage_path <- function() {
-  repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
-  candidates <- c(
-    .hojas_ruta_inst_path("hojas_ruta", "cartografia_distritos_lima_callao.geojson"),
-    if (nzchar(repo_root)) file.path(repo_root, "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json") else "",
-    file.path(dirname(.app_api_dir()), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "..", "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json")
-  )
-  hit <- candidates[nzchar(candidates) & file.exists(candidates)][1]
-  if (!is.na(hit) && nzchar(hit)) normalizePath(hit, mustWork = FALSE) else ""
-}
-
-.hojas_ruta_pdf_district_context_cache <- new.env(parent = emptyenv())
-
+# Distritos alrededor de uno, desde los contornos por región (hojas_ruta_contornos.R): vale
+# para Lima y para las ciudades. El distrito activo va primero para que gane prioridad.
 .hojas_ruta_pdf_district_context_features <- function(ubigeo = NULL, bbox = NULL) {
-  path <- .hojas_ruta_district_coverage_path()
-  if (!nzchar(path) || !file.exists(path)) return(list())
-  info <- file.info(path)
-  key <- paste(
-    normalizePath(path, mustWork = FALSE),
-    info$size %||% 0,
-    as.numeric(info$mtime %||% 0),
-    "district-context-v1",
-    sep = "|"
-  )
-  cached <- .hojas_ruta_pdf_district_context_cache[[key]]
-  if (is.null(cached)) {
-    geo <- tryCatch(.hojas_ruta_read_json_any(path), error = function(e) NULL)
-    features <- geo$features %||% list()
-    cached <- lapply(features, function(feature) {
-      props <- feature$properties %||% list()
-      rings <- .hojas_ruta_geometry_rings(feature$geometry)
-      if (!length(rings)) return(NULL)
-      feature_bbox <- .hojas_ruta_bbox_from_rings(rings)
-      if (is.null(feature_bbox)) return(NULL)
-      list(
-        ubigeo = sprintf("%06s", as.character(props$ubigeo %||% "")),
-        distrito = as.character(props$distrito %||% props$NOMBDIST %||% ""),
-        label_lon = suppressWarnings(as.numeric(props$label_lon %||% NA_real_)),
-        label_lat = suppressWarnings(as.numeric(props$label_lat %||% NA_real_)),
-        bbox = feature_bbox,
-        rings = rings
-      )
-    })
-    cached <- cached[!vapply(cached, is.null, logical(1))]
-    .hojas_ruta_pdf_district_context_cache[[key]] <- cached
-  }
-  if (!length(cached)) return(list())
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
-  out <- cached
-  if (!is.null(bbox)) {
-    out <- out[vapply(out, function(feature) {
-      .hojas_ruta_bbox_intersects(feature$bbox, bbox)
-    }, logical(1))]
-  }
+  out <- hojas_ruta_contornos_contexto(ubigeo)
+  if (!is.null(bbox)) out <- out[vapply(out, function(f) .hojas_ruta_bbox_intersects(f$bbox, bbox), logical(1))]
   if (!length(out)) return(list())
-  # Mantener el distrito activo primero para que sus capas y etiqueta ganen
-  # prioridad sobre las municipalidades vecinas.
-  out[order(vapply(out, function(feature) {
-    if (identical(as.character(feature$ubigeo), ubigeo)) 0L else 1L
-  }, integer(1)))]
+  out[order(vapply(out, function(f) if (identical(as.character(f$ubigeo), ubigeo)) 0L else 1L, integer(1)))]
 }
 
 .hojas_ruta_pdf_minimap_label <- function(name) {

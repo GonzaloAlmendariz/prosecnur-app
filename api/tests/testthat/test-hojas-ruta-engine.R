@@ -1372,7 +1372,7 @@ test_that("preferencias del PDF aleatorio ponderan poblacion y urbanidad", {
 })
 
 test_that("contexto distrital incluye distritos vecinos y nombres", {
-  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  skip_if_not(length(hojas_ruta_contornos_regiones()) > 0L)
   districts <- .hojas_ruta_pdf_district_context_features("150135")
   expect_gt(length(districts), 1L)
   active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150135"), logical(1))][[1]]
@@ -1384,7 +1384,7 @@ test_that("contexto distrital incluye distritos vecinos y nombres", {
 })
 
 test_that("mapa de zona puede incluir manzanas de distritos vecinos", {
-  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  skip_if_not(length(hojas_ruta_contornos_regiones()) > 0L)
   districts <- .hojas_ruta_pdf_district_context_features("150115")
   active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150115"), logical(1))][[1]]
   bbox <- .hojas_ruta_bbox_fit_aspect(.hojas_ruta_bbox_expand(active$bbox, pad = 0.12), width = 1, height = 1)

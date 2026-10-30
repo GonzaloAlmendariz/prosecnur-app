@@ -117,6 +117,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_label_overrides(pr)
     pr <- mount_hojas_ruta(pr)
     pr <- mount_hojas_ruta_geometria(pr)
+    pr <- mount_hojas_ruta_contornos(pr)
     pr <- mount_hojas_ruta_marco_elegible(pr)
     pr <- mount_hojas_ruta_icc(pr)
     pr <- mount_hojas_ruta_semillas(pr)

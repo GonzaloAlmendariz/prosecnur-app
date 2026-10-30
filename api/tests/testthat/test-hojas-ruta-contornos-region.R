@@ -40,3 +40,29 @@ test_that("Lima Metropolitana y el Callao viven en dos regiones distintas", {
   callao <- vapply(leer_region("07")$distritos$features, function(f) f$properties$provincia, "")
   expect_true(all(callao == "CALLAO"))
 })
+
+test_that("GET /api/hojas-ruta/contornos sirve la región; código mal formado 400, sin cartografía 404", {
+  pr <- mount_hojas_ruta_contornos(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+  ok <- .hre_call(pr, "", "GET", "/api/hojas-ruta/contornos", query = "region=04")
+  expect_identical(ok$status, 200L)
+  expect_identical(ok$body$region, "04")
+  expect_true(length(ok$body$distritos$features) >= 17L)
+  mal <- .hre_call(pr, "", "GET", "/api/hojas-ruta/contornos", query = "region=x")
+  expect_identical(mal$status, 400L)
+  expect_identical(mal$body$error$code, "E_HOJAS_RUTA_REGION")
+  nada <- .hre_call(pr, "", "GET", "/api/hojas-ruta/contornos", query = "region=99")
+  expect_identical(nada$status, 404L)
+  expect_identical(nada$body$error$code, "E_HOJAS_RUTA_REGION_SIN_CONTORNOS")
+})
+
+test_that("el contexto distrital del PDF trae vecinos también en una ciudad", {
+  d <- .hojas_ruta_pdf_district_context_features("040103")  # Cayma, Arequipa
+  expect_gt(length(d), 1L)
+  expect_identical(d[[1]]$ubigeo, "040103")
+  expect_true(all(vapply(d, function(f) startsWith(f$ubigeo, "04"), logical(1))))
+})
+
+test_that("Lima y el Callao se ven como vecinos en el contexto distrital", {
+  d <- .hojas_ruta_pdf_district_context_features("150101")
+  expect_true(any(vapply(d, function(f) startsWith(f$ubigeo, "07"), logical(1))))
+})
