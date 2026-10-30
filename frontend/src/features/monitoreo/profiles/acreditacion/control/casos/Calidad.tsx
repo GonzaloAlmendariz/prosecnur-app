@@ -81,7 +81,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
               </li>
             ))}
           </ul>
-        ) : <VacioDeBloque icono={<CheckCircle2 size={15} />} titulo="La hoja de alertas no trae señales activas." />}
+        ) : <VacioDeBloque icono={<CheckCircle2 size={15} />} titulo="Sin señales de consistencia en este corte." />}
       </section>
     </div>
   );
