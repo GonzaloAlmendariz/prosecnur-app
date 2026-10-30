@@ -85,6 +85,7 @@ import { Salidas } from "./avance/Salidas";
 import { PorCuota } from "./avance/PorCuota";
 import { VariablesDeControl } from "./avance/VariablesDeControl";
 import { VacioDeBloque } from "./piezas/AvisoDeTarjeta";
+import { estudioUsaTelefono } from "./sync/estudioUsaTelefono";
 import type { FilaDeControl } from "./avance/variablesDeControlModelo";
 import { Correo } from "./control/contacto/Correo";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
@@ -15434,8 +15435,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const reports = useMemo(() => reportsFromState(state), [state]);
   const prefetchBackgroundScopes = useCallback((view: MonitoreoSeccion) => {
     const activeScope = scopeForView(view, route.family);
-    const scopes = [activeScope, ...ACREDITACION_BACKGROUND_SCOPES]
-      .filter((scope, index, all) => scope !== "full" && all.indexOf(scope) === index);
+    const scopes = [activeScope, ...ACREDITACION_BACKGROUND_SCOPES] // sin teléfono, sin phone_summary de fondo: sync/estudioUsaTelefono.ts
+      .filter((scope, index, all) => scope !== "full" && all.indexOf(scope) === index && (scope !== "phone_summary" || scope === activeScope || estudioUsaTelefono(stateByScopeRef.current.get(activeScope))));
     schedulePrefetchScopes(
       { stateByScopeRef, warmedScopesRef, inFlightScopeRef, scopeCacheEpochRef },
       prefetchTimeoutsRef,

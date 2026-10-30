@@ -20,3 +20,10 @@ test_that("sin públicos ni fuentes se prepara como antes, y el perfil telefóni
   expect_true("phone_summary" %in% .project_warmup_monitoreo_compact_scopes("telefonico", FALSE))
   expect_true("phone_summary" %in% .project_warmup_monitoreo_compact_scopes("acreditacion", TRUE))
 })
+
+test_that("lee el elenco también bajo `profile` y ante formas inesperadas prepara como antes", {
+  cfg <- list(profile = list(units = list(list(actor = "Egresados", phone = list(enabled = TRUE)))))
+  expect_true(.monitoreo_estudio_usa_telefono(cfg, list(fuente("respuestas", "surveymonkey", "Correo"))))
+  expect_true(.monitoreo_estudio_usa_telefono("texto", list()))
+  expect_true(.monitoreo_estudio_usa_telefono(list(), data.frame(role = "respuestas")))
+})

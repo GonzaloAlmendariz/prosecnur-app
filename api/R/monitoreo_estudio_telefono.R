@@ -6,7 +6,11 @@
 # Conservador: sin públicos ni fuentes declarados no se sabe, y se prepara
 # como antes. Si una vista lo necesita, el scope se pide al entrar.
 .monitoreo_estudio_usa_telefono <- function(config = list(), sources = list()) {
-  units <- ((config %||% list())$monitoreo_profile %||% list())$units %||% list()
+  # Ante una forma inesperada, se prepara como antes.
+  if (!is.list(config %||% list()) || !(is.list(sources %||% list()) || is.data.frame(sources))) return(TRUE)
+  if (is.data.frame(sources)) return(TRUE)
+  perfil <- config$monitoreo_profile %||% config$profile %||% list()
+  units <- if (is.list(perfil)) perfil$units %||% list() else list()
   fuentes <- if (is.list(sources) && !is.null(sources$sources)) sources$sources else sources
   if (!length(units) && !length(fuentes)) return(TRUE)
   for (unit in units) {
