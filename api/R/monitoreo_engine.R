@@ -3440,9 +3440,9 @@ monitoreo_territorial_default_config <- function(data = NULL) {
     supervisor_var = pick(c("^supervisor$", "jefe_campo", "coordinador"), ""),
     kobo_user_var = pick(c("^_submitted_by$", "submitted_by", "username", "usuario_kobo"), "_submitted_by"),
     submission_time_var = pick(c("^kobo_timestamp_iso$", "^_submission_time$", "submission_time", "fecha", "end$"), "_submission_time"),
-    start_var = pick(c("^start$", "inicio", "start_time"), "start"),
-    end_var = pick(c("^end$", "fin", "end_time"), "end"),
-    duration_var = pick(c("^total_time$", "duration", "duracion", "tiempo"), ""),
+    start_var = pick(.MONITOREO_PATRONES_INICIO, "start"), # anclados: monitoreo_columnas_tiempo.R
+    end_var = pick(.MONITOREO_PATRONES_FIN, "end"),
+    duration_var = pick(.MONITOREO_PATRONES_DURACION, ""),
     platform_effective_var = "",
     platform_effective_values = list(),
     valid_statuses = list("submitted_via_web", "submitted_via_kobocollect", "submitted_via_enketo", "submitted"),
@@ -3744,9 +3744,9 @@ monitoreo_default_config <- function(data = NULL) {
   list(
     enumerator_var = pick(c("enumerador", "encuestador", "interviewer", "enumerator", "username", "submitted_by")),
     date_var = pick(c("^kobo_timestamp_iso$", "_submission_time", "submission_time", "date_modified", "date_created", "fecha", "end$")),
-    start_var = pick(c("^start$", "inicio", "start_time")),
-    end_var = pick(c("^end$", "fin", "end_time")),
-    duration_var = pick(c("^total_time$", "duration", "duracion", "tiempo")),
+    start_var = .monitoreo_columna_de_tiempo(pick(.MONITOREO_PATRONES_INICIO), data), # monitoreo_columnas_tiempo.R
+    end_var = .monitoreo_columna_de_tiempo(pick(.MONITOREO_PATRONES_FIN), data),
+    duration_var = pick(.MONITOREO_PATRONES_DURACION),
     status_var = status_var,
     valid_statuses = if (identical(status_var, "response_status")) c("completed") else c("completed", "complete", "valid", "approved", "aprobado"),
     id_var = pick(c("^_uuid$", "^_id$", "^response_id$", "submission_id", "uuid")),
@@ -3893,8 +3893,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
   list(
     enumerator_var = keep_col(config$enumerator_var %||% config$col_enumerador, defaults$enumerator_var),
     date_var = keep_col_or_default(config$date_var %||% config$fecha_var, defaults$date_var),
-    start_var = keep_col_or_default(config$start_var, defaults$start_var),
-    end_var = keep_col_or_default(config$end_var, defaults$end_var),
+    start_var = .monitoreo_columna_de_tiempo(keep_col_or_default(config$start_var, defaults$start_var), data),
+    end_var = .monitoreo_columna_de_tiempo(keep_col_or_default(config$end_var, defaults$end_var), data),
     duration_var = keep_col_or_default(config$duration_var %||% config$tiempo_var, defaults$duration_var),
     status_var = keep_col(config$status_var %||% config$estado_var, defaults$status_var),
     valid_statuses = as.list(.monitoreo_chr_vec(config$valid_statuses %||% defaults$valid_statuses)),
