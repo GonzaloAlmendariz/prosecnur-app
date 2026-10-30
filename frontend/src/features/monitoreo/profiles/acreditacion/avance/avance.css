@@ -997,7 +997,7 @@
   flex: 0 0 auto;
   min-height: 44px;
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 60px;
+  grid-template-columns: 200px minmax(0, 1fr) 128px;
   align-items: center;
   gap: var(--pulso-space-3);
 }
@@ -1119,7 +1119,7 @@
   .acr-res-kpi-principal { grid-column: 1 / -1; }
   .acr-res-kpis > .acr-res-kpi:nth-child(2) { border-left: 0; padding-left: 0; }
   .acr-pub-col-ultimos { display: none; }
-  .acr-pub-estados-lista > li { grid-template-columns: 160px minmax(0, 1fr) 56px; }
+  .acr-pub-estados-lista > li { grid-template-columns: 160px minmax(0, 1fr) 116px; }
 }
 
 /* Dentro del Resumen el embudo es una tira de tres pasos también a 1024. */
@@ -2017,4 +2017,17 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 .acr-pc-pista > i {
   background: var(--publico, var(--acr-efectiva));
+}
+
+/* «Cómo respondió cada público»: a la derecha cuántos respondieron y su parte del universo. */
+.acr-pub-estados-pct {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.acr-pub-estados-pct small {
+  font-size: 11px;
+  white-space: nowrap;
 }

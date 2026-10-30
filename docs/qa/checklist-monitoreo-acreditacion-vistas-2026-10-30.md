@@ -11,8 +11,9 @@ se ve peor de la UI», más un pedido para Ritmo y uno general. Sigue a
 | E2 | Avance › Por cuota: la lista de cuotas de la izquierda (captura) | `avance/PorCuota.tsx`, `avance.css` | ☑ cada cuota con el punto de su público y una pista de avance al pie |
 | E3 | Avance › Ritmo › «Pulso del campo» (captura) | `avance/Ritmo.tsx`, `avance.css` | ☑ de450e566: Pulso del campo como lista rótulo–cifra; canal único en una fila; última efectiva común dicha una vez |
 | E4 | Avance › Ritmo: «botones más elegantes y mejor alineados entre ellos» para intercalar entre el gráfico por público (apilado) y el ritmo diario con el acumulado en dos ejes, «como hacen otros monitoreos» | `avance/Ritmo.tsx`, `graficosDeAvance.tsx`; referencia: Telefónico/territorial (ritmo diario + acumulado) | ☑ 3cc13ff2f: selector «Por público \| Diario y acumulado» alineado con «Por fuente y recopilador»; doble eje con la meta |
-| E5 | «En los demás noto aún que le faltan retoques o reconfiguración total sobre cómo se muestran» | todas las vistas | ◐ hecho de paso: embudo en una fila (2843deaa8). Siguen: Universo por estado en Por público, Control › Correo, Modelo › Metas |
+| E5 | «En los demás noto aún que le faltan retoques o reconfiguración total sobre cómo se muestran» | todas las vistas | ◐ embudo en una fila (2843deaa8); Por público: «Universo por estado» pasa a «Cómo respondió cada público» (composición de los que respondieron, sin la barra 98 % gris). Siguen: Control › Correo, Modelo › Metas |
 
 ## Lo aprendido
 
-- (se llena al cerrar cada ítem)
+- La barra del universo repetía «Del universo» y «Sin respuesta» de la tabla y el gris se comía todo; la tarjeta ahora cuenta lo que la tabla no dice.
+- `ui-quick-check` dio ok=true con una captura en blanco a 1440 (la primera vista de la corrida, 6 KB). Mirar el peso de cada PNG antes de leer el ok.
