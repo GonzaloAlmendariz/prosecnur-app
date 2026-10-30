@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, BarChartBig, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, ListChecks, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
@@ -14650,8 +14650,8 @@ function AcreditacionAdvanceDetailWorkbench({
  */
 function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; label: string }) {
   return (
-    <section className="acr-av-panel" aria-label={`Preparando ${label}`} aria-busy="true">
-      <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
+    <section className="acr-av-panel" role="status" aria-label={`Preparando ${label}`} aria-busy="true">
+      {useContext(RotuloDePestanaContexto) ? <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta> : null}
       <VacioDeBloque vacio="cargando" icono={<Loader2 size={15} />} titulo={view === "consultas" ? "Leyendo los cruces y casos del corte." : "Leyendo el corte para esta sección."} />
     </section>
   );

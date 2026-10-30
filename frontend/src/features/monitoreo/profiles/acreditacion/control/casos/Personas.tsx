@@ -69,7 +69,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
   const filtradas = useMemo(() => filtrarPersonas(personas, { publico, estado, busqueda }), [personas, publico, estado, busqueda]);
   // Si todos los que respondieron entraron por el mismo canal y cruzaron igual, la columna repetiría lo mismo en cada fila.
   const canalVaria = useMemo(() => {
-    const vistos = new Set(personas.filter((persona) => persona.canal).map((persona) => `${persona.canal}|${persona.comoCruzo}`));
+    const vistos = new Set(personas.filter((persona) => persona.canal || persona.comoCruzo).map((persona) => `${persona.canal}|${persona.comoCruzo}`));
     return vistos.size > 1;
   }, [personas]);
   const vista = pagina(filtradas, numero);

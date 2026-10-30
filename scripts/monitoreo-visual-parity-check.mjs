@@ -215,6 +215,8 @@ function loadingReason(text) {
     /Preparando avance/i,
     /Preparando ocurrencias/i,
     /Leyendo cache local/i,
+    /Leyendo el corte para esta secci[oó]n/i,
+    /Leyendo los cruces y casos del corte/i,
     /Cargando monitoreo/i,
     /Preparando monitoreo/i,
     /Cargando datos/i,

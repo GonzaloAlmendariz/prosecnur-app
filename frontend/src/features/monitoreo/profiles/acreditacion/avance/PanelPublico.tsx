@@ -4,7 +4,7 @@ import { fmt, normalizeSourceMatch } from "../formato";
 import { casosDelCorte } from "../control/casos/tiposDeCaso";
 import type { BarridoDelPublico } from "../navegacion/resumenDelCorte";
 import type { MonitoreoInternalQueryIssue } from "../../../../../api/client";
-import { efectivasPorCanal, tieneMeta, type DiaDeAvance } from "./avanceModelo";
+import { diaDeMetaCumplida, efectivasPorCanal, tieneMeta, type DiaDeAvance } from "./avanceModelo";
 import { CurvaAcumulada } from "./graficosDeAvance";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 
@@ -80,7 +80,7 @@ export function PanelPublico({
           <span className="acr-av-antetitulo">Efectivas acumuladas</span>
           {serie.length
             // La misma curva del Resumen (un eje, proyección al ritmo de 7 días): el área con la meta arriba quedaba pegada al piso (K1).
-            ? <CurvaAcumulada serie={serie} meta={conMeta ? meta : 0} diaDeMeta={null} ritmo={serie.length ? serie.slice(-7).reduce((suma, dia) => suma + dia.efectivas, 0) / serie.slice(-7).length : null} />
+            ? <CurvaAcumulada serie={serie} meta={conMeta ? meta : 0} diaDeMeta={conMeta ? diaDeMetaCumplida(serie, meta) : null} ritmo={serie.length ? serie.slice(-7).reduce((suma, dia) => suma + dia.efectivas, 0) / serie.slice(-7).length : null} />
             : <Alert kind="info">Este público aún no tiene efectivas con fecha.</Alert>}
         </div>
         {canales.length ? (

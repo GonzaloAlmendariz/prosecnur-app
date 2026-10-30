@@ -50,4 +50,20 @@ describe("Control › Cruce", () => {
     expect(renderToStaticMarkup(<Cruce consultas={{ ...consultas, case_rollup: [{ primary_identity_label: "Llave usada", base_result: "Cruzó", platform_state: "Completa" }] } as unknown as MonitoreoInternalQueries} />)).toContain("Llave configurada");
     expect(html).not.toContain("Base sin respuesta");
   });
+
+  it("una lectura de una sola categoría va como dato en «Cómo se cruzó», sin barra", () => {
+    const consultas = {
+      schema: "test", cases: [], issues: [], pending_exit: [],
+      totals: { actor: [], date: [], channel: [], source: [], collector: [] },
+      flow: { nodes: [], links: [{ source: "En base", target: "Correo", value: 3 }, { source: "Correo", target: "Completa", value: 3 }] },
+      case_rollup: [
+        { primary_identity_label: "Llave usada", base_result: "Cruzó", platform_state: "Completa", channel_key_strategy_label: "Correo: metadata del envío" },
+        { primary_identity_label: "Llave usada", base_result: "Cruzó", platform_state: "Completa", channel_key_strategy_label: "Correo: metadata del envío" },
+      ],
+    } as unknown as MonitoreoInternalQueries;
+    const html = renderToStaticMarkup(<Cruce consultas={consultas} />);
+    expect(html).toContain("Cómo se cruzó");
+    expect(html).toContain("acr-cr-datos");
+    expect(html).not.toContain('aria-label="Llave usada"');
+  });
 });
