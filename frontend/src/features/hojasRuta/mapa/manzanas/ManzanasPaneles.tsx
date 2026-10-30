@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { CODIGO_V1, muestraV1, resumenV1 } from "./sorteoV1";
+import "./sorteoV1.css";
 import { Shuffle } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -98,12 +100,23 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
   const salto = saltoVistaPrevia(viviendas, manzanas, ruta);
   const ed = bloqueado || guardando;
   const vigente = Boolean(muestra) && !cambios.length;
+  // F11: una muestra v1 deja manzanas sin probabilidad de salir; se dice arriba de todo y se puede re-sortear sin cambiar nada.
+  const v1 = muestraV1(muestra?.alerts);
 
   return (
     <>
       <InspectorCabecera icono={Shuffle} sobre="Manzanas" titulo={muestra ? `${muestra.blocks.length} UMP sorteadas` : "Sorteo de manzanas"} />
       {/* B56: los bloques del sorteo van numerados en el orden del trabajo (CSS counter). */}
       <div className="hr-mapa-ins-cuerpo hr-manz-pasos">
+        {v1 ? (
+          <section className="hr-sorteo-v1" role="alert" aria-label="Muestra con el reparto anterior">
+            <strong>Esta muestra no debe ir a campo</strong>
+            <p>{resumenV1(v1)}</p>
+            <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear} onClick={onSortear}>
+              {guardando ? "Sorteando…" : "Sortear de nuevo con el método vigente"}
+            </PulsoButton>
+          </section>
+        ) : null}
         {muestra ? (
           <section className="hr-muestra-resultado" aria-label="Sorteo vigente">
             <div className="hr-mapa-cifras">
@@ -209,7 +222,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
         <PulsoButton variant="secondary" disabled={!cambios.length || guardando} onClick={() => setSorteoBorrador(null)}>
           Deshacer
         </PulsoButton>
-        <PulsoButton variant="primary" disabled={ed || !listoParaSortear || vigente} onClick={onSortear}>
+        <PulsoButton variant="primary" disabled={ed || !listoParaSortear || (vigente && !v1)} onClick={onSortear}>
           {guardando ? "Sorteando…" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
         </PulsoButton>
       </footer>
@@ -223,7 +236,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
  * equipo; los informativos ya tienen su lugar en el inspector.
  */
 export function avisosDelSorteo(muestra: HojasRutaSamplePreview | null) {
-  return (muestra?.alerts ?? []).filter((a) => a.level !== "info" && /^[WE]_/.test(a.code ?? "")).slice(0, 4);
+  // El aviso del reparto v1 tiene su banda arriba del inspector (F11): no se repite aquí abajo.
+  return (muestra?.alerts ?? []).filter((a) => a.level !== "info" && a.code !== CODIGO_V1 && /^[WE]_/.test(a.code ?? "")).slice(0, 4);
 }
 
 type EstructuraProps = {

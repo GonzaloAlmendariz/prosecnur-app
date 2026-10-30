@@ -547,6 +547,8 @@ export type HojasRutaSamplePreview = {
   total_replacement_interviews: number;
   unassigned: number;
   alerts: HojasRutaAlert[];
+  /** ADR 0117: firma del algoritmo del sorteo; sin firma o «zona_mayor_resto_v1» = reparto v1. */
+  algoritmo_sorteo?: string;
 };
 
 export type HojasRutaWorkspaceOutputs = {

@@ -11,6 +11,8 @@ type Props = {
   marco: Record<number, number> | null;
   /** UMP titulares por nivel NSE de su manzana. */
   muestra: Record<number, number> | null;
+  /** F12: la muestra es del reparto v1; la brecha la explica el algoritmo, no la semilla. */
+  causaV1?: boolean;
 };
 
 const total = (r: Record<number, number>) => Object.values(r).reduce((a, v) => a + v, 0);
@@ -28,7 +30,7 @@ function Barra({ titulo, datos }: { titulo: string; datos: Record<number, number
   );
 }
 
-export function ParecidoAlMarco({ marco, muestra }: Props) {
+export function ParecidoAlMarco({ marco, muestra, causaV1 = false }: Props) {
   if (!marco || !muestra || !total(marco) || !total(muestra)) return null;
   const tm = total(marco), ts = total(muestra);
   const filas = NSE.map(([n, l, tk]) => {
@@ -52,7 +54,9 @@ export function ParecidoAlMarco({ marco, muestra }: Props) {
         ))}
       </ul>
       <p className="hr-graf-nota">
-        {lejos.length
+        {lejos.length && causaV1
+          ? `${lejos.map((f) => f.l).join(", ")} ${lejos.length === 1 ? "se aleja" : "se alejan"} 5 puntos o más del marco por el reparto anterior del sorteo, no por la semilla: sortea de nuevo.`
+          : lejos.length
           ? `${lejos.map((f) => f.l).join(", ")} ${lejos.length === 1 ? "se aleja" : "se alejan"} 5 puntos o más del marco: revisa la semilla o compara con otra.`
           : "Ningún nivel se aleja 5 puntos o más del marco."}
       </p>

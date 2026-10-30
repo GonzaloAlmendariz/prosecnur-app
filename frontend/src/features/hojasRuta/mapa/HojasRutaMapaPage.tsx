@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
+import { muestraV1 } from "./manzanas/sorteoV1";
 import { BookOpenText, Send } from "../../../vendor/lucide-react";
 import { apiHojasRutaBitacora } from "../../../api/hojasRuta";
 import { codigoDeUmp } from "../seleccion/revisionMarco";
@@ -508,6 +509,10 @@ export default function HojasRutaMapaPage() {
       tone: "info" as const,
       detail: fase === "pilot" ? "La corrida piloto es histórica: se consulta, no se cambia." : evitaPiloto ? "Campo real · evita las titulares del piloto." : "Campo real.",
     },
+    // F11: la muestra del reparto v1 se ve desde cualquier sección, no sólo al fondo de Manzanas.
+    ...(muestraV1(salidas?.sample?.alerts)
+      ? [{ id: "sorteo-v1", label: "Re-sortear", tone: "warn" as const, detail: "Se sorteó con el reparto por zonas anterior y deja manzanas sin probabilidad de salir: vuelve a sortear en Manzanas.", onSelect: () => navegar(`${location.pathname}?seccion=manzanas`) }]
+      : []),
     ...(porRevisarTotal
       ? [{ id: "revisar", label: `${porRevisarTotal} por revisar`, tone: "warn" as const, detail: "UMP con observaciones contra el marco: ábrelas en Selección.", onSelect: () => navegar(`${location.pathname}?seccion=seleccion`) }]
       : []),
@@ -616,7 +621,7 @@ export default function HojasRutaMapaPage() {
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={!enAtlas && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? "pe"}:${ciudadAbierta && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? "pe"}:${ciudadAbierta && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornos.some((c) => confirmados.includes(c.ubigeo)) ? "distritos" : "ciudad"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
@@ -671,7 +676,7 @@ export default function HojasRutaMapaPage() {
               viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
               manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
               listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
-              parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} />}
+              parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} causaV1={Boolean(muestraV1(salidas?.sample?.alerts))} />}
               marcoElegible={
                 <MarcoElegiblePanel
                   marco={configSorteo.marco_elegible}

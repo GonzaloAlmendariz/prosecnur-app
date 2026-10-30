@@ -10,6 +10,7 @@ import { Send } from "../../../../vendor/lucide-react";
 import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { BitacoraSeccion } from "./BitacoraSeccion";
 import { InformeDiseno } from "./InformeDiseno";
+import { muestraV1 } from "../manzanas/sorteoV1";
 
 /**
  * «Entrega» de Selección (ADR 0118 §2, F3), en el sideover direccionable `?panel=salidas`
@@ -62,6 +63,8 @@ export function SalidasPanel({ salidas, envio, onCambio }: Props) {
   }
 
   const estado = !envio ? "nunca" : envio.desactualizado ? "desactualizado" : "al-dia";
+  // F13: una muestra del reparto v1 no se envía (el backend también lo rechaza: E_HOJAS_RUTA_ENVIO_SORTEO_V1).
+  const v1 = muestraV1(muestra?.alerts);
 
   return (
     <Sideover
@@ -113,8 +116,14 @@ export function SalidasPanel({ salidas, envio, onCambio }: Props) {
               {estado === "desactualizado" ? <span>Material no genera material mientras no la reenvíes: saldría de una muestra distinta de la enviada.</span> : null}
             </div>
           )}
+          {v1 ? (
+            <div className="hr-mapa-aviso" role="alert">
+              <p className="hr-salidas-error">Esta muestra se sorteó con el reparto por zonas anterior y deja manzanas sin probabilidad de salir: vuelve a sortear en Manzanas antes de enviarla.</p>
+              <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "manzanas")}>Ir a Manzanas</PulsoButton>
+            </div>
+          ) : null}
           <div className="hr-salidas-acciones">
-            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== ""} onClick={() => void correr("envio", () => apiHojasRutaEnviar())}>
+            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", () => apiHojasRutaEnviar())}>
               <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
             </PulsoButton>
             {envio ? (

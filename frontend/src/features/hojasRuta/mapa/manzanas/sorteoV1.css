@@ -1,0 +1,4 @@
+/* F11: banda de la muestra sorteada con el reparto v1, arriba del inspector de Manzanas. */
+.hr-sorteo-v1 { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; border: 1px solid var(--pulso-warn-border); border-radius: 12px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+.hr-sorteo-v1 strong { font-size: 13px; font-weight: 700; }
+.hr-sorteo-v1 p { margin: 0; font-size: 12px; line-height: 1.45; }

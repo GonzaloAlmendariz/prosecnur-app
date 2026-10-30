@@ -150,3 +150,15 @@ test_that("state y workspace no sacan la foto por HTTP; publican envio_meta", {
   # El workspace no borró la foto del servidor.
   expect_false(is.null(session_get(sid)$hojas_ruta_runs$field$envio))
 })
+
+test_that("una muestra sorteada con el reparto v1 no se envía a Material (checklist F13)", {
+  v1 <- .hre_sample()
+  v1$algoritmo_sorteo <- NULL
+  v1$alerts <- list(list(level = "warn", code = "W_SAMPLE_DRAWN_WITH_V1", message = "ATE: …"))
+  sid <- .hre_session(field = v1)
+  on.exit(session_delete(sid), add = TRUE)
+  expect_identical(.hre_code(hojas_ruta_enviar(sid)), "E_HOJAS_RUTA_ENVIO_SORTEO_V1")
+  expect_identical(.hre_status(hojas_ruta_enviar(sid)), 409L)
+  expect_null(session_get(sid)$hojas_ruta_runs$field$envio)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+})

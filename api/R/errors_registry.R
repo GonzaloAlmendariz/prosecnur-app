@@ -181,6 +181,7 @@ errores_registrados <- function() {
     "E_COLLECTION_TERRITORIAL_SIN_FUENTE",                   "collection_campaigns_territorial.R", "409",
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
+    "E_HOJAS_RUTA_ENVIO_SORTEO_V1",                          "hojas_ruta_envio.R",                "409",
     # Contornos por región del lienzo (paquete por regiones, R2).
     "E_HOJAS_RUTA_REGION",                                   "router_hojas_ruta_contornos.R",     "400",
     "E_HOJAS_RUTA_REGION_SIN_CONTORNOS",                     "router_hojas_ruta_contornos.R",     "404",

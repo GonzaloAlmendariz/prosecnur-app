@@ -145,6 +145,15 @@ hojas_ruta_enviar <- function(sid, fase = NULL) {
              "Todavía no hay una muestra sorteada en esta fase para enviar a Material de campo.",
              details = list(fase = fase))
   }
+  # Checklist F13: una muestra sorteada con el reparto por zonas v1 (ADR 0117) deja manzanas sin
+  # probabilidad de salir; no va a campo hasta volver a sortear.
+  avisos_v1 <- Filter(function(a) identical(as.character(a$code %||% ""), "W_SAMPLE_DRAWN_WITH_V1"),
+                      tryCatch(hojas_ruta_sorteo_aviso_v1(sample)$alerts, error = function(e) list()) %||% list())
+  if (length(avisos_v1)) {
+    stop_api(409, "E_HOJAS_RUTA_ENVIO_SORTEO_V1",
+             "Esta muestra se sorteó con el reparto por zonas anterior, que dejó viviendas sin probabilidad de salir: vuelve a sortear en Manzanas antes de enviarla a Material de campo.",
+             details = list(fase = fase, distritos = length(avisos_v1)))
+  }
   envio <- list(
     sample = sample,
     config = hojas_ruta_integrada_normalize_config(run$config %||% list()),
