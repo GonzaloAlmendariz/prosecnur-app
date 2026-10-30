@@ -96,6 +96,7 @@ import { MapaPoblacion } from "./poblacion/MapaPoblacion";
 import { revisarSeleccion } from "./seleccion/revisionMarco";
 import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
 import { describirMarcoCartografia } from "./marcoCartografia";
+import { configDeRestauracion, firmasDeMuestra } from "./rutasHistorialClasica";
 
 type GeoPosition = [number, number];
 type GeoRing = GeoPosition[];
@@ -811,7 +812,7 @@ function buildRouteSnapshot(sample: HojasRutaSamplePreview, config: HojasRutaInt
     territories: [...(config.territorios ?? [])],
     distribution: routeSnapshotDistribution(sample),
     config,
-    sample_fingerprint: sample.sample_fingerprint ?? null,
+    ...firmasDeMuestra(sample),
   };
 }
 
@@ -7435,14 +7436,7 @@ export default function HojasRutaPage() {
   }
 
   function restoreRouteSnapshot(snapshot: HojasRutaRouteSnapshot) {
-    const restoredConfig = {
-      ...snapshot.config,
-      n_por_distrito: snapshot.config.n_por_distrito ?? {},
-      replacement_routes_per_district: snapshot.config.replacement_routes_per_district ?? {},
-      replacement_policy: normalizeReplacementPolicy(snapshot.config.replacement_policy),
-      replacements_per_titular: snapshot.config.replacements_per_titular ?? 1,
-      sample_size: normalizeSampleSizeSettings(snapshot.config.sample_size),
-    };
+    const restoredConfig = configDeRestauracion(config, snapshot);
     setConfig(restoredConfig);
     void apiHojasRutaSamplePreview(restoredConfig, "restauracion").then((s) => { setQuota(s.quota); setSample(s); }).catch((e: Error) => setError(e.message));
     setPopulation(null);
