@@ -616,3 +616,11 @@ test_that("F35: el salto y los reemplazos salen de la muestra, no de la config v
   expect_match(fila(d2, "Selección de viviendas"), "fijo de 3 viviendas")
   expect_identical(fila(d2, "Reemplazo de rutas"), "1 manzana de reemplazo por titular")
 })
+
+test_that("F37: con las cuotas sin repartir por ficha el informe no dice que cada ruta sigue la cuota del distrito", {
+  fila <- function(d) d$decisiones[d$decisiones$`Decisión` == "Selección de personas", ]$`Justificación`
+  cfg <- .u16_config("legado", 1)
+  expect_match(fila(reporte_mt_diseno_modelo(cfg, NULL, muestra = list(rutas = 1, entrevistas = 8, cuotas_repartidas = FALSE))), "la misma cuota en todas las rutas")
+  expect_match(fila(reporte_mt_diseno_modelo(cfg, NULL, muestra = list(rutas = 1, entrevistas = 8, cuotas_repartidas = TRUE))), "^Cada ruta completa sus totales")
+  expect_match(fila(reporte_mt_diseno_modelo(cfg, NULL)), "^Cada ruta completa sus totales")
+})

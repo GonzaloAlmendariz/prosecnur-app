@@ -211,6 +211,9 @@
     metodo = as.character(sample$config$sampling_method %||% sample$method %||% ""),
     row_var = as.character(sample$config$row_var %||% ""),
     measure_var = as.character(sample$config$measure_var %||% ""),
+    # F37: ¿cada ficha trae su cuota de sexo repartida desde la del distrito? Mismo
+    # criterio que muestraConCuotasRepartidas del front («h,m» en todas las titulares).
+    cuotas_repartidas = all(vapply(bloques, function(b) is.list(b) && grepl("^[0-9]+,[0-9]+$", as.character(b$cuota_sexo_totals %||% "")[1]), logical(1))),
     # F35: salto y reemplazos con que se sorteó.
     route_jump_mode = as.character(sample$config$route_jump_mode %||% ""),
     route_jump_manual = sample$config$route_jump_manual %||% NULL,
@@ -649,7 +652,9 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
       est$seleccion_j,
       if (sin_salto) "El encuestador no elige por dónde empezar ni qué viviendas visitar."
       else "El salto distribuye las visitas por toda la manzana y la vivienda de inicio no la elige el encuestador.",
-      "Cada ruta completa sus totales por sexo y por edad según la cuota de su distrito.",
+      if (!is.null(muestra) && identical(muestra$cuotas_repartidas, FALSE))
+        "En esta muestra las hojas piden la misma cuota en todas las rutas (la mitad de hombres y de mujeres y la misma distribución de edad), de modo que la suma de las rutas no reproduce la cuota de cada distrito; las cuotas deben repartirse por distrito antes de imprimir las hojas."
+      else "Cada ruta completa sus totales por sexo y por edad según la cuota de su distrito.",
       "Si una ruta no puede trabajarse, se reemplaza por otra manzana sorteada del mismo distrito."
     ),
     check.names = FALSE, stringsAsFactors = FALSE
