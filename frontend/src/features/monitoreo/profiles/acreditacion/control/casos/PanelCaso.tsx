@@ -219,13 +219,14 @@ export function PanelCaso({
               <span>Motivo{modelo.notaRequerida ? " (obligatorio para asignar)" : ""}</span>
               <textarea value={nota} onChange={(event) => setNota(event.target.value)} rows={2} />
             </label>
-            {modelo.motivoParaNoAsignar ? <Alert kind="info">{modelo.motivoParaNoAsignar}</Alert> : null}
             <div className="acr-pr-acciones">
+              {/* Por qué «Asignar» está apagado: junto al botón, no como aviso suelto en el panel (K5). */}
+              {modelo.motivoParaNoAsignar ? <small className="acr-pr-motivo" id="acr-pr-motivo">{modelo.motivoParaNoAsignar}</small> : null}
               <button type="button" className="acr-av-boton" disabled={ocupado || !modelo.puedeDescartar} onClick={() => enviar("keep_excluded")}>
                 {ocupado ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <XCircle size={14} aria-hidden="true" />}
                 Descartar
               </button>
-              <button type="button" className="acr-av-boton is-primario" disabled={ocupado || !modelo.puedeAsignar} onClick={() => enviar("include_with_caveat")}>
+              <button type="button" className="acr-av-boton is-primario" disabled={ocupado || !modelo.puedeAsignar} aria-describedby={modelo.motivoParaNoAsignar ? "acr-pr-motivo" : undefined} onClick={() => enviar("include_with_caveat")}>
                 {ocupado ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <CheckCircle2 size={14} aria-hidden="true" />}
                 Asignar a esta persona
               </button>

@@ -367,6 +367,8 @@
 
 .acr-pr-acciones {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--pulso-space-2);
 }
@@ -470,4 +472,12 @@
 .acr-av-panel.acr-pr-panel h3 .acr-av-antetitulo {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+/* La razón de un botón apagado va a su lado, en texto tenue (K5). */
+.acr-pr-motivo {
+  flex: 1 1 100%;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  text-align: right;
 }
