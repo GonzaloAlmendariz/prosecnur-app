@@ -3719,7 +3719,7 @@ test_that("reporte cliente usa solo efectivas y omite metadata operacional", {
     # seguidos, así que se comprueban los títulos y el texto corrido.)
     expect_true(grepl("Resumen del avance", pdf_text, fixed = TRUE))
     expect_true(grepl("Ritmo del campo", pdf_text, fixed = TRUE))
-    expect_true(grepl("enlace personal", pdf_text, fixed = TRUE))
+    expect_true(grepl("hora de Lima", pdf_text, fixed = TRUE))
     for (actor in actors$Actor) expect_true(grepl(actor, pdf_text, fixed = TRUE), info = actor)
     expect_false(grepl("Lectura del corte|Mayor aporte|Participacion|Participación|Ultima efectiva|Última efectiva|WhatsApp|Whartsapp", pdf_text))
     expect_false(grepl("Rechazos plataforma|Mínimo operativo|brecha contra mínimo|plataforma", pdf_text, ignore.case = TRUE))

@@ -30,12 +30,12 @@ público, una de avance general y una de «Corte y fuentes»).
 | 7 | La primera página mostraba 4 de 6 públicos («+2 grupos adicionales en el detalle») | motor | Hecho: los seis en una tabla con fila de total |
 | 8 | Botones «Ver detalle» y «Selecciona un grupo…» (texto de interfaz) | motor | Hecho: retirados |
 | 9 | Vocabulario interno: actor, efectivas, rechazo, base reportada, grupo | motor | Hecho: público, encuestas completas, invitados, mínimo esperado, faltan |
-| 10 | Página «Corte y fuentes» con texto interno («Fuente de verdad», «caso canónico», «XLSX/Sheet cliente e interno», «Apps Script viejo») | motor; tests en `test-monitoreo-publish-qa.R` y `test-monitoreo-engine.R` | Hecho: reemplazada por «Cómo se cuentan las cifras» en lenguaje del cliente; tests reescritos |
+| 10 | Página «Corte y fuentes» con texto interno («Fuente de verdad», «caso canónico», «XLSX/Sheet cliente e interno», «Apps Script viejo») | motor; tests en `test-monitoreo-publish-qa.R` y `test-monitoreo-engine.R` | Hecho: retirada; tests reescritos |
 | 11 | Tabla de fuentes con nombres de encuesta truncados con «...» | motor | Hecho: tabla retirada (un solo canal por público; no informa al cliente) |
 | 12 | Gráfico diario con dos ejes sin rotular y altura mínima falsa en barras | motor + kit (`pulso_pdf_serie_partida`) | Hecho: serie partida del kit, acumulado con el mínimo esperado arriba y completas por día abajo, un eje cada caja |
 | 13 | «Canales y ritmo reciente» repetido seis veces con un solo canal; «Desde último informe» con dos significados | motor | Hecho: retirado; el ritmo vive en una página |
 | 14 | La cifra total estaba en la página 8 de 9 | motor | Hecho: es lo primero de la página 1 |
-| 15 | Nueve páginas casi vacías para seis públicos y dos días | motor | Hecho: portada y 4 páginas (resumen, ritmo, ritmo de cada público, completas por día y público con las definiciones); la última pagina sola si el campo se alarga |
+| 15 | Nueve páginas casi vacías para seis públicos y dos días | motor | Hecho: portada y 4 páginas (resumen, ritmo, ritmo de cada público, completas por día y público); la última pagina sola si el campo se alarga |
 | 16 | Cromo fuera del kit Pulso PDF (logo arriba, pie «Avance», fondo gris) | motor (`pulso_pdf_cromo` / `pulso_pdf_pie`) | Hecho: cromo con antetítulo y corte a la derecha, pie con periodo y folio «01 / 04» |
 | 17 | Etiquetas de 4.4–5.2 pt dentro de barras de composición | motor | Hecho: escala `pulso_pdf_type("cliente")` |
 | 18 | Sin lectura de ritmo (promedio, último día) | motor | Hecho: promedio por día sobre días completos, día en curso marcado como parcial |
@@ -45,6 +45,7 @@ público, una de avance general y una de «Corte y fuentes»).
 | 22 | Alinear con el PDF de avance de aulas (HSyVbG), pedido de Gonzalo en la sesión | motor + kit | Hecho: A4 apaisado, portada navy (`pulso_pdf_portada`), tarjetas `pulso_pdf_kpi`, serie partida, un panel por público y leyenda. `pulso_pdf_serie_partida` gana un parámetro `formato` (por defecto el de siempre: aulas no cambia) para escribir sin separador de miles |
 | 23 | Sin «Incluir metas» el documento no publica el mínimo esperado (contrato del interruptor de Salidas, apagado por defecto) | motor | Hecho: sin el interruptor salen sólo invitados, completas y avance sobre el total |
 | 24 | Lenguaje: «meta» no es el término; es un mínimo esperado y lo que interesa es el progreso por público sobre su total (Gonzalo, 2026-10-30) | motor + test (`test-monitoreo-acreditacion-avance-pdf.R` exige que «meta» no aparezca) | Hecho |
+| 25 | El PDF explicaba cómo se cuentan las cifras (sección de definiciones, notas bajo cada tarjeta, bajadas «Ordenado por…», «Cada panel con su propia escala»): debe sólo informar, y una observación va únicamente como asterisco (Gonzalo, 2026-10-30) | motor + test (prohíbe «se cuentan», «enlace personal») | Hecho: quedan tres asteriscos: parciales, promedio sin el día en curso y día en curso en la tabla |
 
 ## Cifras contrastadas con la app (corte 30/10/2026 07:20)
 

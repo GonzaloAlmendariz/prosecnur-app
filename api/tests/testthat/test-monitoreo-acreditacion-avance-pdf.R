@@ -63,6 +63,8 @@ test_that("el PDF publica el avance sobre el total, el mínimo esperado y ningú
   expect_match(txt, "770 de 5385")
   # En acreditación la cifra de referencia no es una «meta» (Gonzalo, 2026-10-30).
   expect_false(grepl("\\bmeta\\b", txt, ignore.case = TRUE))
+  # Informa, no explica: las aclaraciones van sólo como asterisco.
+  expect_false(grepl("se cuentan|enlace personal|Cada persona cuenta", txt))
   expect_match(txt, "hasta las 07:20")
   expect_false(grepl("[0-9],[0-9]{3}", txt))
   expect_false(grepl("Apps Script|can[oó]nico|Ver detalle|Rechazo|actor", txt, ignore.case = FALSE))

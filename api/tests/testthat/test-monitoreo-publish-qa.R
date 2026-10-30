@@ -92,7 +92,7 @@ test_that("PDF cliente acreditacion declara corte y criterio sin texto interno",
   # interna (caso canónico, Apps Script, workbook) no cruza al documento.
   expect_true(grepl("Corte", pdf_text, fixed = TRUE))
   expect_true(grepl("hora de Lima", pdf_text, fixed = TRUE))
-  expect_true(grepl("enlace personal", pdf_text, fixed = TRUE))
+  expect_true(grepl("hora de Lima", pdf_text, fixed = TRUE))
   expect_false(grepl("Apps Script|can[oó]nico|Fuente de verdad|workbook|source_id|collector|Ver detalle", pdf_text))
 })
 

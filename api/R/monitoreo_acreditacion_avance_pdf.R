@@ -297,15 +297,15 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   kpis <- c(
     list(
       list("Avance sobre el total", .acav_pct(total_comp, total_inv), paste(.acav_n(total_comp), "de", .acav_n(total_inv), "invitados"), TRUE),
-      list("Encuestas completas", .acav_n(total_comp), "cuestionarios terminados", FALSE)
+      list("Encuestas completas", .acav_n(total_comp), "", FALSE)
     ),
     if (con_meta) list(
       list("Mínimo esperado", .acav_n(total_meta), paste0(.acav_pct_frec(total_comp, total_meta), " alcanzado"), FALSE),
-      list("Faltan para el mínimo", .acav_n(max(0, total_meta - total_comp)), "encuestas completas", FALSE)
+      list("Faltan para el mínimo", .acav_n(max(0, total_meta - total_comp)), "", FALSE)
     ) else list(
-      list("Personas invitadas", .acav_n(total_inv), "en las bases de envío", FALSE)
+      list("Personas invitadas", .acav_n(total_inv), "", FALSE)
     ),
-    list(list("Respuestas parciales", .acav_n(total_parc), "iniciadas, aún no cuentan", FALSE))
+    list(list("Respuestas parciales*", .acav_n(total_parc), "", FALSE))
   )
   hueco <- 0.014
   w_principal <- 0.250
@@ -324,7 +324,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   }
 
   pulso_pdf_rotulo_seccion(m, 0.600, "Avance por público",
-                           "Ordenado por número de invitados",
+                           "",
                            tokens = tk, ty = ty)
   cols <- list(
     publico = m + 0.008,
@@ -384,6 +384,9 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     fy <- fy - fila_h
     regla(m, right, fy, col = if (es_total) tk$tbl_frame else tk$rule, lwd = if (es_total) pesos$bloque else pesos$fila)
   }
+  # El documento informa; lo único que se aclara va como asterisco al pie de su
+  # cifra (Gonzalo, 2026-10-30: nada de párrafos sobre cómo se cuentan).
+  tx("* Iniciadas y no terminadas; no se suman a las completas.", m, fy - 0.022, size = ty$caption, col = tk$soft)
   pie()
 
   # --- Ritmo del campo -------------------------------------------------------
@@ -392,10 +395,10 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     ritmo <- list(
       list("Completas acumuladas", .acav_n(total_comp),
            paste(.acav_pct(total_comp, total_inv), "de", .acav_n(total_inv), "invitados")),
-      list("Promedio por día", if (!is.finite(promedio)) "-" else if (promedio == round(promedio)) .acav_n(promedio) else sprintf("%.1f", promedio),
-           if (dias_cerrados > 0) paste("en", dias_cerrados, if (dias_cerrados == 1) "día completo" else "días completos") else "aún sin días completos"),
+      list(if (ultimo_en_curso) "Promedio por día*" else "Promedio por día", if (!is.finite(promedio)) "-" else if (promedio == round(promedio)) .acav_n(promedio) else sprintf("%.1f", promedio),
+           ""),
       list(if (ultimo_en_curso) "Día en curso" else "Último día", .acav_n(serie$completas[[n_dias]]),
-           paste0(format(serie$fecha[[n_dias]], "%d/%m"), if (ultimo_en_curso) paste0(", hasta las ", corte$hora, " (hora de Lima)") else "")),
+           paste0(format(serie$fecha[[n_dias]], "%d/%m"), if (ultimo_en_curso) paste0(", hasta las ", corte$hora) else "")),
       list("Mejor día", .acav_n(max(serie$completas)),
            format(serie$fecha[[which.max(serie$completas)]], "%d/%m"))
     )
@@ -403,6 +406,10 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     for (k in seq_along(ritmo)) {
       pulso_pdf_kpi(m + (k - 1L) * (kw + hueco), 0.665, kw, 0.135, ritmo[[k]][[1]], ritmo[[k]][[2]],
                     ritmo[[k]][[3]], tokens = tk, ty = ty)
+    }
+    if (ultimo_en_curso) {
+      tx(paste0("* Sin el día en curso (", format(serie$fecha[[n_dias]], "%d/%m"), ", hasta las ", corte$hora, ")."),
+         m, 0.084, size = ty$caption, col = tk$soft)
     }
     metas <- if (con_meta) stats::setNames(total_meta, "Mínimo esperado") else numeric(0)
     pulso_pdf_serie_partida(m + 0.030, suelo + 0.040, ancho - 0.030, 0.455,
@@ -419,8 +426,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   # egresados de posgrado mueve una vigésima parte que el de pregrado.
   for (h in seq_along(hojas_paneles)) {
     nueva("Ritmo de cada público",
-          if (length(hojas_paneles) > 1L) sprintf("Cada panel con su propia escala (%d de %d)", h, length(hojas_paneles)) else
-            "Cada panel con su propia escala")
+          if (length(hojas_paneles) > 1L) sprintf("%d de %d", h, length(hojas_paneles)) else "")
     idx <- hojas_paneles[[h]]
     columnas <- rejilla$columnas
     banda_rotulo <- 0.058; banda_fechas <- 0.040; aire <- 0.022; leyenda <- 0.032
@@ -455,7 +461,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     pie()
   }
 
-  # --- Completas por día y público, y cómo se cuentan ------------------------
+  # --- Completas por día y público -------------------------------------------
   for (b in seq_along(hojas_tabla)) {
     ultima <- b == length(hojas_tabla)
     nueva("Encuestas completas por día y público",
@@ -509,30 +515,6 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       }
     } else {
       tx("Aún no hay encuestas completas registradas.", m, 0.700, size = ty$body, col = tk$soft)
-    }
-    if (ultima) {
-      # Cómo se cuentan las cifras: en lenguaje del cliente y al cierre, donde
-      # se busca una definición después de haber visto los números.
-      ny <- if (exists("ry", inherits = FALSE)) ry - 0.080 else 0.600
-      pulso_pdf_rotulo_seccion(m, ny, "Cómo se cuentan las cifras", tokens = tk, ty = ty)
-      notas <- c(
-        "Encuesta completa: cuestionario terminado por una persona invitada, identificada por el enlace personal que recibió en su correo. Cada persona cuenta una sola vez.",
-        "No se cuentan las respuestas parciales ni las que llegaron sin un enlace personal válido, como las pruebas internas del cuestionario.",
-        "Cada respuesta se asigna al día en que se completó, en hora de Lima.",
-        "Avance sobre el total: encuestas completas sobre las personas invitadas de cada público.",
-        if (con_meta) "Mínimo esperado: número de encuestas completas que el estudio necesita alcanzar, como mínimo, en cada público." else NULL
-      )
-      py <- ny - 0.040
-      for (n in notas) {
-        grid::grid.circle(x = grid::unit(m + 0.005, "npc"), y = grid::unit(py - 0.007, "npc"),
-                          r = grid::unit(0.0022, "npc"), gp = grid::gpar(fill = tk$navy, col = NA))
-        lineas <- strwrap(n, width = 175)
-        for (l in lineas) {
-          tx(l, m + 0.016, py, size = ty$caption + 0.8, col = tk$soft, just = c("left", "top"))
-          py <- py - 0.026
-        }
-        py <- py - 0.008
-      }
     }
     pie()
   }
