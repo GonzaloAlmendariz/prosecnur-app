@@ -9,7 +9,7 @@
 // Contrato de Superficie: el panel activo es `material-campo/territorial/<sección>`
 // (intrinsic) y es el único dueño del scroll (`.rec-tab-panel`, No Scroll Jail).
 
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
@@ -51,6 +51,9 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
   const { seccion, pestana } = resolverSeccionTerritorial(direccion?.seccion, direccion?.pestana);
   const datos = useCampanaTerritorial(campana.id);
   const { unidades, sinFuente, hojas, carga, error, recargar, guardarPlan } = datos;
+  // M4: «no alcanza» se mide en visitas con la respuesta y la ocupación del estudio, como en Selección.
+  const ss = hojas?.integrated_config.sample_size;
+  const supuestos = useMemo(() => (ss ? { respuesta: ss.response_rate, ocupacion: ss.ocupacion ?? 1 } : undefined), [ss]);
 
   const hrefDe = useCallback((s: SeccionTerritorial, p: string, extra: { panel?: string; foco?: string } = {}) => (
     `${location.pathname}${searchDeCampanas(location.search, { modo: "territorial", campana: campana.id, seccion: s, pestana: p, ...extra })}`
@@ -84,6 +87,7 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
           foco={direccion?.foco ?? null}
           hrefDeFoco={(foco) => hrefDe("unidades", "lista", { foco })}
           hrefDeHoja={(foco) => hrefDe("unidades", "lista", { foco, panel: "hoja" })}
+          supuestos={supuestos}
         />
       ) : null}
       {!cargando && seccion === "catalogo" ? (

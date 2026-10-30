@@ -494,3 +494,102 @@
 .rec-terr-plan .hr-plan-hoja { border: 0; background: transparent; color: var(--pulso-module-fieldkit); font: inherit; font-size: var(--pulso-type-caption-size); font-weight: 700; cursor: pointer; white-space: nowrap; }
 .rec-terr-plan .hr-plan-hoja:disabled { color: var(--pulso-text-soft); cursor: default; }
 .rec-terr-plan .hr-salidas-acciones { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
+
+/* ---- Unidades: franja de distritos y tabla (checklist M3–M5) ---- */
+
+.rec-terr-franja {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.rec-terr-franja-distrito,
+.rec-terr-franja-todos {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.rec-terr-franja-todos {
+  justify-content: center;
+  align-items: center;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+
+.rec-terr-franja-distrito strong {
+  font-size: var(--pulso-type-body-size);
+  font-weight: 700;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.rec-terr-franja-distrito small,
+.rec-terr-franja-distrito em {
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-terr-franja-distrito em[data-estado="aviso"] {
+  color: var(--pulso-warn-fg);
+  font-weight: 700;
+}
+
+.rec-terr-franja-distrito:hover,
+.rec-terr-franja-todos:hover {
+  background: var(--pulso-surface-2);
+}
+
+.rec-terr-franja-distrito[aria-pressed="true"],
+.rec-terr-franja-todos[aria-pressed="true"] {
+  border-color: var(--pulso-module-fieldkit-border);
+  background: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-terr-franja-distrito:focus-visible,
+.rec-terr-franja-todos:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}
+
+/* La tabla es la del kit (PulsoTable); aquí sólo el código de la UMP y su estado. */
+.rec-terr-ump-codigo.is-titular {
+  font-weight: 700;
+}
+
+.rec-terr-ump-codigo.is-reemplazo {
+  padding-left: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+}
+
+.rec-terr-estado {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
+
+.rec-terr-estado[data-estado="aviso"] {
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.rec-terr-estado[data-estado="error"] {
+  color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-bg);
+}

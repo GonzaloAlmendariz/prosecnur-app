@@ -1,22 +1,27 @@
-// Territorial › Unidades › Lista (ADR 0118 §1): las UMP de la foto, titulares
-// con sus reemplazos debajo y agrupadas por distrito. `foco=<id_manzana>`
-// resalta una; `panel=hoja` abre su hoja en grande (DialogoHojaUmp).
+// Territorial › Unidades › Lista (ADR 0118 §1): las UMP de la foto. Una franja
+// de distritos arriba (titulares, reemplazos y rutas por revisar) elige cuál se
+// ve; la lista es una tabla con el reemplazo debajo de su titular y el estado de
+// cada UMP con el criterio de Selección (checklist M3–M5). `foco=<id_manzana>`
+// resalta una (y elige su distrito); `panel=hoja` abre su hoja (DialogoHojaUmp).
 //
 // Contrato de Superficie:
-// - C1: `material-campo/territorial/distritos` (intrinsic), un distrito por miembro.
+// - C1: `material-campo/territorial/distritos` (equal), un distrito por miembro de la franja.
 // - C3: sin foto o sin coincidencias, el vacío es de la lista (EstadoVacio).
-// - C4: el scroll es del panel de la sección; la lista no fija alto propio.
+// - C4: el scroll es del panel de la sección; la tabla del kit (PulsoTable) no fija alto propio.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import type { UnidadTerritorial, UnidadesTerritoriales as Unidades } from "../../../api/materialTerritorial";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoInput } from "../../../components/PulsoInput";
+import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { ROTULO_DE_FASE } from "../campanas/modeloRegistro";
 import { AlertTriangle, FileText, MapPinned, Search } from "../../../vendor/lucide-react";
 import { DialogoHojaUmp } from "./DialogoHojaUmp";
-import { agruparUnidades, fechaDelEnvio, rangoDeLaUmp, unidadDelFoco } from "./modeloUnidades";
+import { agruparUnidades, fechaDelEnvio, unidadDelFoco } from "./modeloUnidades";
+import { revisarUnidades, type EstadoUnidad } from "./revisionUnidades";
+import type { SupuestosVisitas } from "../../hojasRuta/seleccion/visitas";
 
 /** Selección › Entrega en Hojas de ruta: donde se (re)envía la muestra. */
 export const HREF_REENVIO = "/hojas-ruta?seccion=seleccion&panel=salidas";
@@ -28,6 +33,8 @@ type Props = {
   foco: string | null;
   hrefDeFoco: (foco: string) => string;
   hrefDeHoja: (foco: string) => string;
+  /** Respuesta y ocupación del estudio: «no alcanza» se mide en visitas, como en Selección. */
+  supuestos?: SupuestosVisitas;
 };
 
 export function AvisoDesactualizada({ enviadoAt }: { enviadoAt: string | null }) {
@@ -55,29 +62,39 @@ export function VacioSinFuente({ mensaje }: { mensaje: string | null }) {
   );
 }
 
-function FilaUmp({ u, enfocada, hrefDeFoco, hrefDeHoja }: { u: UnidadTerritorial; enfocada: boolean; hrefDeFoco: string; hrefDeHoja: string }) {
-  const ref = useRef<HTMLLIElement>(null);
-  useEffect(() => {
-    if (enfocada) ref.current?.scrollIntoView({ block: "nearest" });
-  }, [enfocada]);
-  const detalle = [u.zona ? `Zona ${u.zona}` : "", u.manzana ? `Mz ${u.manzana}` : "", rangoDeLaUmp(u)].filter(Boolean).join(" · ");
-  return (
-    <li ref={ref} className={`rec-terr-ump is-${u.role}`} data-foco={enfocada || undefined}>
-      <Link className="rec-terr-ump-enlace" to={hrefDeFoco} aria-current={enfocada ? "location" : undefined}>
-        <strong>{u.label}</strong>
-        <small>{detalle || u.unit_id}</small>
-      </Link>
-      <Link className="rec-terr-ump-hoja" to={hrefDeHoja} aria-label={`Ver la hoja de ${u.label}`}>
+const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
+const TODOS = "__todos";
+
+type FilaTabla = { u: UnidadTerritorial; estado: EstadoUnidad | undefined };
+
+function columnasDe(hrefDeHoja: (foco: string) => string): PulsoTableColumna<FilaTabla>[] {
+  return [
+    { id: "ump", encabezado: "UMP", ancho: 110, celda: ({ u }) => <span className={`rec-terr-ump-codigo is-${u.role}`}>{u.label}</span> },
+    { id: "zona", encabezado: "Zona", ancho: 90, celda: ({ u }) => u.zona || "—" },
+    { id: "manzana", encabezado: "Manzana", ancho: 100, celda: ({ u }) => u.manzana || "—" },
+    { id: "encuestas", encabezado: "Encuestas", ancho: 110, tipo: "cifra", celda: ({ u }) => (u.rango_inicio !== null && u.rango_fin !== null ? `${u.rango_inicio}–${u.rango_fin}` : "—") },
+    { id: "viviendas", encabezado: "Viviendas", ancho: 100, tipo: "cifra", celda: ({ u }) => fmt(u.viviendas) },
+    { id: "estado", encabezado: "Estado", ancho: 140, celda: ({ estado }) => (estado && estado.tono !== "ok" ? <span className="rec-terr-estado" data-estado={estado.tono}>{estado.motivo}</span> : null) },
+    { id: "hoja", encabezado: "Hoja", ancho: 90, celda: ({ u }) => (
+      <Link className="rec-terr-ump-hoja" to={hrefDeHoja(u.unit_id)} aria-label={`Ver la hoja de ${u.label}`} onClick={(e) => e.stopPropagation()}>
         <FileText size={13} aria-hidden /> Hoja
       </Link>
-    </li>
-  );
+    ) },
+  ];
 }
 
-export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, hrefDeHoja }: Props) {
+export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, hrefDeHoja, supuestos }: Props) {
   const [busqueda, setBusqueda] = useState("");
-  const grupos = useMemo(() => agruparUnidades(unidades?.units ?? [], busqueda), [busqueda, unidades]);
-  const enfocada = unidadDelFoco(unidades?.units ?? [], foco);
+  const units = useMemo(() => unidades?.units ?? [], [unidades]);
+  const grupos = useMemo(() => agruparUnidades(units, busqueda), [busqueda, units]);
+  const revision = useMemo(() => revisarUnidades(units, supuestos), [units, supuestos]);
+  const enfocada = unidadDelFoco(units, foco);
+  const navigate = useNavigate();
+  const columnas = useMemo(() => columnasDe(hrefDeHoja), [hrefDeHoja]);
+  // Distrito a la vista: el de la UMP enfocada si la hay; si no, el primero. Con búsqueda se ven todos.
+  const [elegido, setElegido] = useState<string | null>(null);
+  const claveFoco = enfocada ? enfocada.ubigeo || enfocada.distrito : null;
+  const visible = busqueda.trim() ? TODOS : elegido ?? claveFoco ?? revision.distritos[0]?.clave ?? TODOS;
 
   if (!unidades) {
     return (
@@ -88,6 +105,8 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
   }
 
   const cuando = fechaDelEnvio(unidades.enviado_at);
+  const porRevisar = revision.distritos.reduce((a, d) => a + d.porRevisar, 0);
+  const mostrados = visible === TODOS ? grupos : grupos.filter((g) => g.clave === visible);
   return (
     <div className="rec-terr-seccion">
       {unidades.stale ? <AvisoDesactualizada enviadoAt={unidades.enviado_at} /> : null}
@@ -98,6 +117,7 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
             {unidades.n_titulares.toLocaleString("es-PE")} titulares y {unidades.n_reemplazos.toLocaleString("es-PE")} reemplazos
             {` · ${ROTULO_DE_FASE[unidades.fase]}`}
             {cuando ? ` · enviada el ${cuando}` : ""}
+            {porRevisar ? ` · ${porRevisar} ${porRevisar === 1 ? "ruta" : "rutas"} por revisar` : ""}
           </p>
         </span>
         <label className="rec-terr-buscar">
@@ -112,32 +132,33 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
         </label>
       </header>
 
-      {grupos.length ? (
-        <div className="rec-terr-distritos" data-qa-geometry-group="material-campo/territorial/distritos" data-qa-geometry-contract="intrinsic">
-          {grupos.map((g) => (
-            <section key={g.clave} className="rec-terr-distrito" data-qa-geometry-member aria-label={`Distrito ${g.distrito || g.clave}`}>
-              <h3>
-                {g.distrito || g.clave}
-                <small>{g.titulares.length.toLocaleString("es-PE")} {g.titulares.length === 1 ? "titular" : "titulares"}</small>
-              </h3>
-              <ul className="rec-terr-umps">
-                {g.titulares.map(({ titular, reemplazos }) => (
-                  <li key={titular.unit_id} className="rec-terr-par">
-                    <ul className="rec-terr-umps">
-                      <FilaUmp u={titular} enfocada={foco === titular.unit_id} hrefDeFoco={hrefDeFoco(titular.unit_id)} hrefDeHoja={hrefDeHoja(titular.unit_id)} />
-                      {reemplazos.map((r) => (
-                        <FilaUmp key={r.unit_id} u={r} enfocada={foco === r.unit_id} hrefDeFoco={hrefDeFoco(r.unit_id)} hrefDeHoja={hrefDeHoja(r.unit_id)} />
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-                {g.sueltos.map((r) => (
-                  <FilaUmp key={r.unit_id} u={r} enfocada={foco === r.unit_id} hrefDeFoco={hrefDeFoco(r.unit_id)} hrefDeHoja={hrefDeHoja(r.unit_id)} />
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+      <nav className="rec-terr-franja" aria-label="Distritos de la muestra" data-qa-geometry-group="material-campo/territorial/distritos" data-qa-geometry-contract="equal">
+        {revision.distritos.map((d) => (
+          <button key={d.clave} type="button" className="rec-terr-franja-distrito" data-qa-geometry-member aria-pressed={visible === d.clave} onClick={() => { setBusqueda(""); setElegido(d.clave); }}>
+            <strong>{d.distrito || d.clave}</strong>
+            <small>{d.titulares} titulares · {d.reemplazos} reemplazos</small>
+            {d.porRevisar ? <em data-estado="aviso">{d.porRevisar} por revisar</em> : <em>sin observaciones</em>}
+          </button>
+        ))}
+        <button type="button" className="rec-terr-franja-todos" aria-pressed={visible === TODOS} onClick={() => setElegido(TODOS)}>Todos</button>
+      </nav>
+
+      {mostrados.length ? (
+        mostrados.map((g) => (
+          <section key={g.clave} className="rec-terr-distrito" aria-label={`Distrito ${g.distrito || g.clave}`}>
+            {visible === TODOS ? <h3>{g.distrito || g.clave}<small>{g.titulares.length.toLocaleString("es-PE")} {g.titulares.length === 1 ? "titular" : "titulares"}</small></h3> : null}
+            <PulsoTable
+              columnas={columnas}
+              filas={[...g.titulares.flatMap(({ titular, reemplazos }) => [titular, ...reemplazos]), ...g.sueltos].map((u) => ({ u, estado: revision.porUnidad.get(u.unit_id) }))}
+              idDeFila={(f) => f.u.unit_id}
+              ariaLabel={`UMP de ${g.distrito || g.clave}`}
+              densidad="compacta"
+              seleccionada={foco}
+              onSeleccionar={(id) => navigate(hrefDeFoco(id))}
+              altoMaximo={100000}
+            />
+          </section>
+        ))
       ) : (
         <EstadoVacio
           icono={<Search size={18} />}
