@@ -139,7 +139,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           <div className="hr-mapa-cifras">
             <div><small>Viviendas</small><strong data-tono={titular.viviendas === 0 ? "error" : titular.viviendas <= titular.entrevistas ? "aviso" : undefined}>{fmt(titular.viviendas)}</strong></div>
             <div><small>Entrevistas</small><strong>{fmt(titular.entrevistas)}</strong></div>
-            <div><small>Salto</small><strong>{(titular.salto_operativo ?? titular.constante_salto) ? `1 de ${titular.salto_operativo ?? titular.constante_salto}` : "Sin salto"}</strong></div>
+            {/* F30: con salto 1 la ficha impresa dice «deshabilitada» (se visita cada vivienda); el inspector habla igual. */}
+            <div><small>Salto</small><strong>{Number(titular.salto_operativo ?? titular.constante_salto ?? 0) > 1 ? `1 de ${titular.salto_operativo ?? titular.constante_salto}` : "Sin salto"}</strong></div>
           </div>
           <OcupacionRuta viviendas={titular.viviendas} visitas={titular.visitas_esperadas ?? titular.entrevistas} />
           <dl className="hr-mapa-filas">
