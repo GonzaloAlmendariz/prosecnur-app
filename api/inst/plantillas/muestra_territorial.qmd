@@ -153,8 +153,11 @@ if (n_territorios == 0L) parrafos("No hay territorios configurados.")
 if (!is.null(population) && length(population) > 0L) {
   df_pop <- .rows_to_df(population$cells %||% population)
   if (!is.null(df_pop) && nrow(df_pop) > 0L && "poblacion" %in% names(df_pop)) {
-    parrafos(sprintf("Población de referencia: **%s** personas, distribuidas en %d celdas de edad, sexo y zona.",
-                     format(sum(df_pop$poblacion, na.rm = TRUE), big.mark = ",", scientific = FALSE), nrow(df_pop)))
+    # El nivel de las celdas es el de las filas de la cuota (row_var), no siempre el distrito.
+    nivel <- c(distrito = "distrito", zona = "zona", provincia = "provincia", departamento = "departamento")[as.character(config$row_var %||% "distrito")[1]]
+    if (is.na(nivel)) nivel <- "territorio"
+    parrafos(sprintf("Población de referencia: **%s** personas, distribuidas en %d celdas de edad y sexo por %s.",
+                     format(sum(df_pop$poblacion, na.rm = TRUE), big.mark = ",", scientific = FALSE), nrow(df_pop), nivel))
   }
 }
 ```
@@ -239,11 +242,15 @@ if (!is.null(sec_diseno$decisiones)) {
 }
 ```
 
+```{r aviso-sorteo-v1, results='asis'}
+parrafos(sec_diseno$aviso_sorteo_v1)
+```
+
 # 5. Parámetros estadísticos
 
 ```{r parametros-tabla}
 if (!is.null(sec_diseno$parametros)) {
-  tabla_pulso(sec_diseno$parametros, caption = "Parámetros aplicados al cálculo")
+  tabla_pulso(sec_diseno$parametros, caption = "Parámetros del diseño")
 }
 ```
 

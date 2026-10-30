@@ -202,7 +202,10 @@
     k = sort(unique(ent_b[ent_b > 0])),
     visitas = if (length(vis_b)) range(vis_b[vis_b > 0]) else NULL,
     respuesta = sample$salto_sobre_visitas$respuesta %||% NULL,
-    ocupacion = sample$salto_sobre_visitas$ocupacion %||% NULL
+    ocupacion = sample$salto_sobre_visitas$ocupacion %||% NULL,
+    # F33 (a): el informe no puede afirmar probabilidad conocida de una muestra v1 (ADR 0117).
+    avisos_v1 = (av <- .reporte_mt_avisos_v1(sample))$avisos,
+    avisos_v1_fallo = av$fallo
   ) else NULL
   list(
     estado_muestra = estado_muestra,
@@ -220,6 +223,24 @@
     nse_fallo = nse_fallo,
     nse_marco_cambio = nse_marco_cambio
   )
+}
+
+# Distritos de una muestra v1 con viviendas sin probabilidad de salir (avisos
+# W_SAMPLE_DRAWN_WITH_V1 y W_ZONE_QUOTA_EXCLUDES_ZONES que recalcula el GET) y su %
+# sobre el marco elegible del distrito. Un fallo NO es «sin aviso»: se marca y la
+# causa va a stderr, como nse_fallo y plan_fallo.
+.HOJAS_RUTA_CODIGOS_SIN_PROBABILIDAD <- c("W_SAMPLE_DRAWN_WITH_V1", "W_ZONE_QUOTA_EXCLUDES_ZONES")
+.reporte_mt_avisos_v1 <- function(sample) {
+  con_aviso <- tryCatch(hojas_ruta_sorteo_aviso_v1(sample), error = function(e) {
+    message("[reporte-decisional] no se pudo comprobar el reparto del sorteo: ", conditionMessage(e))
+    NULL
+  })
+  if (is.null(con_aviso)) return(list(avisos = list(), fallo = TRUE))
+  avisos <- Filter(function(a) as.character(a$code %||% "") %in% .HOJAS_RUTA_CODIGOS_SIN_PROBABILIDAD, con_aviso$alerts %||% list())
+  list(fallo = FALSE, avisos = lapply(avisos, function(a) list(
+    distrito = sub(":.*$", "", as.character(a$message %||% a$ubigeo %||% "")),
+    pct = .reporte_mt_num(a$viviendas_sin_probabilidad_pct %||% a$data$viviendas_sin_probabilidad_pct)
+  )))
 }
 
 # ¿El marco recalculado reproduce los conteos de la muestra? Compara elegible, área,
@@ -505,6 +526,21 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
 
 .REPORTE_MT_REPARTO_CORTO <- c(proportional = "Proporcional a la población", uniform = "Uniforme", compromise = "Compromiso")
 
+# F33 (b): el reparto lo dice la lógica del N (`sample_size_mode`), no sólo
+# `allocation_mode`, que queda con su valor anterior cuando el N se fija por distrito.
+.reporte_mt_reparto <- function(cfg, ss) {
+  alloc <- as.character(ss$allocation_mode %||% "proportional")
+  largo <- unname(.REPORTE_MT_REPARTO[alloc]); if (is.na(largo)) largo <- alloc
+  corto <- unname(.REPORTE_MT_REPARTO_CORTO[alloc]); if (is.na(corto)) corto <- largo
+  forma <- c(proportional = "proporcional a su población", uniform = "uniforme", compromise = "intermedia entre la proporcional y la uniforme")[alloc]
+  if (is.na(forma)) forma <- largo
+  switch(as.character(cfg$sample_size_mode %||% "calculator"),
+    external_district = c(frase = "El número de entrevistas de cada distrito se fijó de antemano para ese distrito.", corto = "Fijado para cada distrito"),
+    external_total = c(frase = sprintf("El total de entrevistas se fijó de antemano y se distribuye entre los distritos de forma %s.", forma), corto = sprintf("Total fijado; %s", tolower(corto))),
+    c(frase = sprintf("La distribución de las entrevistas entre distritos es %s.", largo), corto = corto)
+  )
+}
+
 .reporte_mt_params <- function(config) {
   cfg <- hojas_ruta_integrada_normalize_config(config %||% list())
   list(cfg = cfg, ss = cfg$sample_size %||% list(), k = max(1L, as.integer(cfg$entrevistas_por_manzana %||% 1L)))
@@ -527,6 +563,11 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
   medida <- as.character(cfg$measure_var %||% "viviendas")
   reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
   salto_auto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "auto")
+  # F33 (c): sin salto (modo «off» o salto manual de 1) se recorre la manzana entera.
+  sin_salto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "off") ||
+    (!salto_auto && as.integer(cfg$route_jump_manual %||% 1L) <= 1L)
+  v1 <- Filter(is.list, muestra$avisos_v1 %||% list())
+  v1_fallo <- isTRUE(muestra$avisos_v1_fallo)
   decisiones <- data.frame(
     `Decisión` = c("Tipo de muestreo", "Unidad primaria de muestreo (UPM)", "Estratificación",
                    "Selección de manzanas", "Selección de viviendas", "Selección de personas", "Reemplazo de rutas"),
@@ -536,18 +577,22 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
       "Distrito y zona",
       if (pps) sprintf("Probabilidad proporcional al tamaño (PPS, medida: %s) dentro del distrito y la zona", medida)
       else "Sistemática con igual probabilidad dentro del distrito y la zona",
-      if (salto_auto) "Salto sistemático sobre las visitas esperadas, desde una vivienda de inicio sorteada"
+      if (sin_salto) "Sin salto: se visitan las viviendas una tras otra, desde la esquina de inicio y en el sentido de la ficha, hasta completar la ruta"
+      else if (salto_auto) "Salto sistemático sobre las visitas esperadas, desde una vivienda de inicio sorteada"
       else sprintf("Salto sistemático fijo de %d viviendas, desde una vivienda de inicio sorteada", as.integer(cfg$route_jump_manual %||% 1L)),
       "Cuotas de totales por sexo y por edad, sin cruces",
       if (reemplazos > 0L) sprintf("%d %s de reemplazo por titular", reemplazos, if (reemplazos == 1L) "manzana" else "manzanas") else "Sin manzanas de reemplazo"
     ),
     `Justificación` = c(
-      "Las manzanas se sortean con probabilidad conocida; la selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal.",
+      if (length(v1)) "El diseño sortea las manzanas con probabilidad conocida, pero en esta muestra una parte de las viviendas del marco elegible quedó sin posibilidad de selección (ver la limitación de cobertura de esta sección); la selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal."
+      else if (v1_fallo) "El diseño sortea las manzanas con probabilidad conocida; no se pudo comprobar si el sorteo de esta muestra dejó viviendas sin posibilidad de selección. La selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal."
+      else "Las manzanas se sortean con probabilidad conocida; la selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal.",
       "El marco INEI provee la ubicación y el conteo de viviendas de cada manzana.",
       "Las rutas se reparten por distrito y, dentro de cada distrito, por zona.",
       if (pps) "Las manzanas con más viviendas tienen mayor probabilidad de selección, lo que compensa el número fijo de entrevistas por ruta."
       else "Cada manzana elegible de la zona tiene la misma probabilidad de selección.",
-      "El salto distribuye las visitas por toda la manzana y la vivienda de inicio no la elige el encuestador.",
+      if (sin_salto) "El encuestador no elige por dónde empezar ni qué viviendas visitar."
+      else "El salto distribuye las visitas por toda la manzana y la vivienda de inicio no la elige el encuestador.",
       "Cada ruta completa sus totales por sexo y por edad según la cuota de su distrito.",
       "Si una ruta no puede trabajarse, se reemplaza por otra manzana sorteada del mismo distrito."
     ),
@@ -563,12 +608,14 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
     )
   }
   fpc <- isTRUE(ss$apply_fpc)
-  reparto <- unname(.REPORTE_MT_REPARTO[as.character(ss$allocation_mode %||% "proportional")])
-  if (is.na(reparto)) reparto <- as.character(ss$allocation_mode)
-  reparto_corto <- unname(.REPORTE_MT_REPARTO_CORTO[as.character(ss$allocation_mode %||% "proportional")])
-  if (is.na(reparto_corto)) reparto_corto <- reparto
+  rp <- .reporte_mt_reparto(cfg, ss)
+  reparto_corto <- rp[["corto"]]
+  # El tamaño fijado de antemano no sale de la fórmula: los márgenes objetivo son referencia.
+  n_externo <- as.character(cfg$sample_size_mode %||% "calculator") %in% c("external_district", "external_total")
   parametros <- data.frame(
-    `Parámetro` = c("Nivel de confianza", "Margen de error total objetivo", "Margen de error por distrito objetivo",
+    `Parámetro` = c("Nivel de confianza",
+                    if (n_externo) "Margen de error total de referencia" else "Margen de error total objetivo",
+                    if (n_externo) "Margen de error por distrito de referencia" else "Margen de error por distrito objetivo",
                     "Proporción esperada (p)", "Efecto de diseño (DEFF)", "Corrección por población finita (FPC)",
                     "Entrevistas por ruta (k)", "Reparto entre distritos"),
     Valor = c(.reporte_mt_pct(ss$confidence_level, 0L), .reporte_mt_pct(ss$margin_total), .reporte_mt_pct(ss$margin_district),
@@ -577,19 +624,24 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
               reparto_corto),
     check.names = FALSE, stringsAsFactors = FALSE
   )
-  formula_intro <- if (fpc) {
+  formula_intro <- if (n_externo) {
+    sprintf("El tamaño de muestra se fijó de antemano%s; no resulta de la fórmula para una proporción. Su precisión se evalúa con el margen nominal de la sección siguiente.",
+            if (identical(cfg$sample_size_mode, "external_district")) " para cada distrito" else "")
+  } else if (fpc) {
     "El tamaño se calcula con la fórmula para una proporción, ajustada por el efecto de diseño y con corrección por población finita (FPC):"
   } else {
     "El tamaño se calcula con la fórmula para una proporción, ajustada por el efecto de diseño y sin corrección por población finita:"
   }
-  formula <- if (fpc) {
+  formula <- if (n_externo) NULL else if (fpc) {
     "n = \\frac{N \\cdot z^2 \\cdot p \\cdot q \\cdot \\mathrm{DEFF}}{(N - 1) \\cdot e^2 + z^2 \\cdot p \\cdot q \\cdot \\mathrm{DEFF}}"
   } else {
     "n = \\frac{z^2 \\cdot p \\cdot q \\cdot \\mathrm{DEFF}}{e^2}"
   }
   sp <- sample_size_preview %||% list()
   n_total <- sp$n_used %||% sp$n_total %||% sp$n_recommended
-  tamano <- if (!is.null(n_total)) {
+  tamano <- if (!is.null(n_total) && n_externo) {
+    sprintf("Tamaño de muestra: %s entrevistas completas, fijado de antemano, en rutas de %d entrevistas.", .reporte_mt_int(n_total), k)
+  } else if (!is.null(n_total)) {
     sprintf("Tamaño de muestra: %s entrevistas completas, redondeado hacia arriba a un múltiplo de %d entrevistas por ruta para que cada ruta sea completa.",
             .reporte_mt_int(n_total), k)
   } else "El cálculo del tamaño de muestra todavía no se ha ejecutado."
@@ -624,13 +676,26 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
             if (length(sobre) == 1L) "Un distrito supera" else sprintf("%d distritos superan", length(sobre)),
             paste(unlist(sobre), collapse = "; "), if (length(sobre) == 1L) "ese distrito" else "esos distritos")
   } else NULL
+  # Reparto no proporcional: el total exige ponderar por distrito (se mide, no se supone).
+  pob_d <- vapply(filas, function(f) .reporte_mt_num(f$poblacion), numeric(1))
+  n_d <- vapply(filas, function(f) .reporte_mt_num(f$n_used), numeric(1))
+  desproporcion <- length(filas) > 1L && sum(pob_d) > 0 && sum(n_d) > 0 &&
+    max(abs(n_d / sum(n_d) - pob_d / sum(pob_d))) > 0.02
   nota_tecnica <- c(
-    sprintf("El efecto de diseño se integra en la fórmula del tamaño%s.", if (fpc) ", junto con la corrección por población finita" else "; no se aplica corrección por población finita"),
-    sprintf("La distribución de las entrevistas entre distritos es %s.", reparto),
+    if (n_externo) sprintf("El tamaño se fijó de antemano; el efecto de diseño%s intervienen sólo en el margen nominal.", if (fpc) " y la corrección por población finita" else "")
+    else sprintf("El efecto de diseño se integra en la fórmula del tamaño%s.", if (fpc) ", junto con la corrección por población finita" else "; no se aplica corrección por población finita"),
+    rp[["frase"]],
+    if (desproporcion) "Las entrevistas no se reparten entre distritos en proporción a su población: para estimar el total, los resultados deben ponderarse por el peso de cada distrito en la población. El margen nominal del total no incluye el efecto de esa ponderación." else NULL,
     "Las cuotas por sexo y por edad de cada distrito salen de la población INEI 2017 del distrito y se aplican en campo como totales, sin cruces entre sexo y edad.",
     sprintf("El tamaño total es múltiplo de %d entrevistas por ruta, de modo que cada ruta es completa.", k)
   )
-  list(decisiones = decisiones, parametros = parametros, formula_intro = formula_intro, formula = formula,
+  aviso_sorteo_v1 <- if (length(v1)) {
+    detalle <- paste(vapply(v1, function(a) sprintf("%s, %s %%", a$distrito, format(round(a$pct, 1), nsmall = 1)), character(1)), collapse = "; ")
+    sprintf("**Limitación de cobertura.** Al repartir las rutas de cada distrito entre sus zonas, el sorteo de esta muestra dejó zonas sin ninguna ruta, cuyas viviendas no tenían posibilidad de ser seleccionadas. Porcentaje de las viviendas del marco elegible de cada distrito en esa situación: %s. Los resultados no pueden generalizarse a esas viviendas y, si difieren de las incluidas, las estimaciones del distrito y del total pueden estar sesgadas.", detalle)
+  } else if (v1_fallo) {
+    "No se pudo comprobar si el sorteo de esta muestra dejó viviendas del marco elegible sin posibilidad de selección."
+  } else NULL
+  list(decisiones = decisiones, aviso_sorteo_v1 = aviso_sorteo_v1, parametros = parametros, formula_intro = formula_intro, formula = formula,
        tamano = tamano, aviso_tamano = aviso_tamano, por_distrito = por_distrito,
        aviso_margen_distrito = aviso_margen_distrito, nota_tecnica = nota_tecnica,
        nota_cuotas = "Las cuotas se controlan como totales por sexo y por edad de cada distrito, sin cruces entre sexo y edad. Cada total suma las entrevistas del distrito, y en campo se reparte entre sus rutas.")

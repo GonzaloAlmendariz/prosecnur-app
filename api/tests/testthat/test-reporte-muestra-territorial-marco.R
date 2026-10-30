@@ -499,3 +499,65 @@ test_that("supuestos del margen: nominal por cuotas y, con ICC, el traslado decl
   expect_match(m$supuestos[2], "«HSVG 2025» se traslada")
   expect_null(m$aviso_icc)
 })
+
+test_that("F33: el informe no contradice al estudio (v1, N por distrito, sin salto)", {
+  cfg <- .u16_config("legado", 1)
+  cfg$sample_size_mode <- "external_district"
+  cfg$sample_size$allocation_mode <- "proportional"
+  cfg$route_jump_mode <- "off"
+  v1 <- list(list(distrito = "SAN JUAN DE LURIGANCHO", pct = 70.3), list(distrito = "ATE", pct = 50.2))
+  ssp <- list(n_used = 400, district_rows = list(
+    list(ubigeo = "150132", distrito = "SAN JUAN DE LURIGANCHO", poblacion = 940818, n_used = 200),
+    list(ubigeo = "150108", distrito = "CHORRILLOS", poblacion = 309779, n_used = 200)))
+  d <- reporte_mt_diseno_modelo(cfg, ssp, muestra = list(rutas = 50, entrevistas = 400, avisos_v1 = v1))
+  # (a) limitación de cobertura con su denominador, sin órdenes internas ni jerga.
+  expect_match(d$aviso_sorteo_v1, "Limitación de cobertura")
+  expect_match(d$aviso_sorteo_v1, "marco elegible de cada distrito en esa situación: SAN JUAN DE LURIGANCHO, 70.3 %", fixed = TRUE)
+  expect_false(grepl("v1|vigente|no debe ir a campo", d$aviso_sorteo_v1))
+  expect_match(d$decisiones$`Justificación`[1], "sin posibilidad de selección")
+  # (b) N fijado para cada distrito: sin «proporcional», sin fórmula ni redondeo, y con la nota de ponderación.
+  expect_identical(d$parametros$Valor[d$parametros$`Parámetro` == "Reparto entre distritos"], "Fijado para cada distrito")
+  expect_true("Margen de error total de referencia" %in% d$parametros$`Parámetro`)
+  expect_false(any(grepl("proporcional a la población", d$nota_tecnica)))
+  expect_match(d$formula_intro, "se fijó de antemano para cada distrito")
+  expect_null(d$formula)
+  expect_false(grepl("redondeado", d$tamano))
+  expect_true(any(grepl("deben ponderarse por el peso de cada distrito", d$nota_tecnica)))
+  expect_false(any(grepl("se integra en la fórmula", d$nota_tecnica)))
+  # (c) sin salto: ni salto ni «todas las viviendas».
+  expect_match(d$decisiones$Valor[5], "^Sin salto: se visitan las viviendas una tras otra")
+  expect_false(grepl("sorteada|todas las viviendas", d$decisiones$Valor[5]))
+  # Salto manual de 1 también es sin salto.
+  cfg$route_jump_mode <- "manual"; cfg$route_jump_manual <- 1L
+  expect_match(reporte_mt_diseno_modelo(cfg, ssp)$decisiones$Valor[5], "^Sin salto")
+})
+
+test_that("F33: sin v1, N calculado y salto 3 queda como antes; total fijado con compromiso se lee bien", {
+  cfg <- .u16_config("legado", 1)
+  cfg$sample_size_mode <- "calculator"; cfg$route_jump_mode <- "manual"; cfg$route_jump_manual <- 3L
+  d <- reporte_mt_diseno_modelo(cfg, list(n_used = 400), muestra = list(rutas = 50, entrevistas = 400))
+  expect_null(d$aviso_sorteo_v1)
+  expect_match(d$decisiones$`Justificación`[1], "^Las manzanas se sortean con probabilidad conocida")
+  expect_identical(d$parametros$Valor[d$parametros$`Parámetro` == "Reparto entre distritos"], "Proporcional a la población")
+  expect_match(d$decisiones$Valor[5], "fijo de 3 viviendas")
+  expect_match(d$tamano, "redondeado hacia arriba")
+  cfg$sample_size_mode <- "external_total"; cfg$sample_size$allocation_mode <- "compromise"
+  d2 <- reporte_mt_diseno_modelo(cfg, list(n_used = 400))
+  expect_true(any(grepl("se distribuye entre los distritos de forma intermedia entre la proporcional y la uniforme.", d2$nota_tecnica, fixed = TRUE)))
+})
+
+test_that("F33: los avisos v1 se leen de la muestra, y si no se pueden calcular se dice", {
+  alerta <- list(code = "W_SAMPLE_DRAWN_WITH_V1", message = "ATE: esta muestra se sorteó con un reparto…", viviendas_sin_probabilidad_pct = 50.2)
+  zona <- list(code = "W_ZONE_QUOTA_EXCLUDES_ZONES", message = "CHORRILLOS: la cuota por zona…", viviendas_sin_probabilidad_pct = 12.5)
+  local_mocked_bindings(hojas_ruta_sorteo_aviso_v1 = function(sample) { sample$alerts <- list(alerta, zona, list(code = "W_OTRO")); sample })
+  av <- .reporte_mt_avisos_v1(list(blocks = list(list(id_manzana = "1"))))
+  expect_false(av$fallo)
+  expect_identical(vapply(av$avisos, `[[`, "", "distrito"), c("ATE", "CHORRILLOS"))
+  expect_identical(vapply(av$avisos, `[[`, 0, "pct"), c(50.2, 12.5))
+  local_mocked_bindings(hojas_ruta_sorteo_aviso_v1 = function(sample) stop("sin marco"))
+  av2 <- suppressMessages(.reporte_mt_avisos_v1(list(blocks = list(list(id_manzana = "1")))))
+  expect_true(av2$fallo)
+  d <- reporte_mt_diseno_modelo(.u16_config("legado", 1), NULL, muestra = list(rutas = 1, entrevistas = 8, avisos_v1 = av2$avisos, avisos_v1_fallo = av2$fallo))
+  expect_match(d$aviso_sorteo_v1, "No se pudo comprobar")
+  expect_false(grepl("^Las manzanas se sortean con probabilidad conocida;", d$decisiones$`Justificación`[1]))
+})
