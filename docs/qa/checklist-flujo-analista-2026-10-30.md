@@ -59,8 +59,40 @@ madura del recorrido.
 |---|---|---|---|---|---|---|
 | I1 | No hay ida y vuelta por UMP entre módulos: Monitoreo habla de «UMP 96» (manzana, aplicador, lo que falta) y su «Ver en el mapa» abre el mapa de Monitoreo; la ficha de esa UMP en Hojas no dice cómo va en campo ni enlaza a Monitoreo | ficha UMP de Selección (`SeleccionInspector`), filas de Monitoreo territorial | **confunde** | Monitoreo › Avance › Faltante por UMP | enlaces direccionables en los dos sentidos (`/monitoreo?modo=territorial&…&foco=<id_manzana>` ↔ `/hojas-ruta?seccion=seleccion&foco=<id_manzana>`); en la ficha de Hojas, una línea de avance leída de Monitoreo (sin duplicar su vista, D2) | ◐ ida ☑ (este commit): la ficha de la UMP en Selección lleva «Ver su avance en Monitoreo» → `/monitoreo?modo=territorial&seccion=avance&pestana=mapa&panel=ump&foco=<n.º de UMP>` (verificado: UMP 96 abre su ficha con aplicador y cuota; el n.º de UMP es la llave común). Vuelta ☐: «Ver en Hojas de ruta» en `FichaDeUmp` de Monitoreo — es de `features/monitoreo/**`, pedido de coordinación a Meta B |
 | I2 | Material de campo no aparece en la barra de módulos del proyecto: se ve sólo cuando se entra por enlace (en Hojas y Monitoreo la barra lista 7 módulos sin Material) | barra de módulos / módulos habilitados del proyecto | **confunde** | texto de la barra en Monitoreo y en Material | revisar si Material debe habilitarse al enviar la muestra (o siempre en estudios territoriales) y declararlo; un estudio que envió a Material no puede esconderlo | ◐ (este commit) causa: la barra lista sólo los módulos agregados al proyecto (`addedSlugs`, `ProjectModulesContext`) y acnur_acg nunca agregó Material. Ahora «Enviar a Material» lo agrega (`addModule("material-campo")`). Sin verificar en vivo: en acnur_acg el envío está bloqueado por la muestra v1 (F13) |
-| I3 | El plan por encuestador (Material › Entrega › Plan, M3 pendiente) y el aplicador real que Monitoreo lee del campo («P844 · Ejemplo Prueba Dieciocho») no se cruzan: nadie ve si el plan se cumplió | Material territorial › Entrega; Monitoreo territorial › Avance | confunde | filas de Monitoreo con aplicador | definir una sola asignación UMP → encuestador (en Material) que Monitoreo compare con lo observado: «asignada a X, la hizo Y» | ☐ |
+| I3 | El plan por encuestador (Material › Entrega › Plan, M3 pendiente) y el aplicador real que Monitoreo lee del campo («P844 · Ejemplo Prueba Dieciocho») no se cruzan: nadie ve si el plan se cumplió | Material territorial › Entrega; Monitoreo territorial › Avance | confunde | filas de Monitoreo con aplicador | definir una sola asignación UMP → encuestador (en Material) que Monitoreo compare con lo observado: «asignada a X, la hizo Y» | ⛔ propuesta escrita (sección «Propuesta para I3»); espera la decisión de Gonzalo sobre el origen del equipo |
 | I4 | Monitoreo lee la muestra viva de Hojas, no la foto enviada a Material (ADR 0118 §3 dejó a Monitoreo fuera de F1): si se re-sortea después del envío, Material y Monitoreo hablan de muestras distintas | lectura de la muestra en Monitoreo territorial | confunde | ADR 0118 §3, F4 sin decidir | atado a F4 (decisión de Gonzalo): que Monitoreo también lea la foto, o que avise si la muestra viva difiere de la enviada | ⛔ |
+
+### Propuesta para I3 · una sola asignación UMP → encuestador (2026-10-30, sin código todavía)
+
+**Lo que hay hoy (medido en el código):**
+
+- El plan de campo (`api/R/hojas_ruta_plan_campo.R`, `hojas_ruta_plan_campo`) agrupa las rutas en jornadas y las reparte
+  con un calendario: cada jornada va al encuestador que se libera primero (`jornadas[[i]]$encuestador`, un número de 1 a
+  N). Es un cálculo a partir de los supuestos (`ui_state.plan_campo`, cuántos encuestadores, visitas por jornada): no
+  guarda quién es cada encuestador. Material › Entrega › Plan reutiliza esa misma vista.
+- Monitoreo territorial conoce al aplicador por lo que llega del campo: `responsible_display` (código y nombre,
+  «P844 · Ejemplo Prueba Dieciocho», sin DNI), por formulario y por UMP (`monitoreo_territorial_casos_ump.R`).
+- La única llave común entre los tres módulos es el número de UMP (verificado en I1).
+
+**Propuesta:**
+
+1. **El equipo vive en Material**, en la campaña territorial: una lista de encuestadores con el código que usarán en el
+   formulario (el mismo que después aparece en `responsible_display`) y su nombre. Se puede escribir a mano o sembrar con
+   los códigos que Monitoreo ya vio en el campo.
+2. **La asignación también vive en Material**: el plan sigue proponiendo «Encuestador 1…N» por jornada, y Entrega › Plan
+   deja ponerle a cada uno un código del equipo. El resultado es una tabla UMP → código, guardada en la campaña (no en
+   `ui_state` de Hojas, que es diseño). Si se reenvía la muestra, la asignación de las UMP que siguen se conserva.
+3. **Monitoreo la lee y la compara**: por UMP, «asignada a P844 · la hizo P844» o «asignada a P844 · la hizo P930», y
+   en Avance un filtro «hechas por otro». Monitoreo no edita la asignación.
+4. **Contrato**: un endpoint de lectura en Material (`GET /api/material-campo/territorial/asignacion`) que devuelve
+   `{ump, codigo, nombre}` y la huella de la foto enviada. Monitoreo lo consume sin depender de los archivos de Material.
+
+**Quién toca qué:** Material (backend de la campaña territorial, Entrega › Plan) en esta línea; la columna y el filtro
+de Monitoreo los hace la sesión de Monitoreo (`features/monitoreo/**`), coordinado por Meta B.
+
+**Decisión de Gonzalo antes de construir:** ¿el equipo se escribe en Material o se toma de lo que Monitoreo ve en el
+campo (con el riesgo de no tenerlo antes de salir)? Mi recomendación: escribirlo en Material antes de salir y ofrecer
+completarlo con los códigos observados.
 
 ## Orden propuesto
 
