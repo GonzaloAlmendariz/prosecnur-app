@@ -43,6 +43,9 @@ type PropsDePorPublico = {
 };
 
 /** Lee del corte observado los casos y el barrido, que llegan con Control. */
+/** Hasta cuántos públicos la tabla no necesita cabecera fija. */
+const FILAS_SIN_CABECERA_FIJA = 8;
+
 export function PorPublico(props: PropsDePorPublico) {
   const issues = useResumenDelCorte((estado) => estado.issues);
   const barridos = useResumenDelCorte((estado) => estado.barrido);
@@ -78,7 +81,9 @@ export function PorPublicoVista({
             <h3>{fmt(filas.length)} {filas.length === 1 ? "público" : "públicos"} <span className="acr-av-tenue">Ordenados por universo</span></h3>
           </CabeceraDeTarjeta>
           <div className="acr-pub-tabla-marco" data-qa-geometry-capacity="owned">
-            <table className="acr-pub-tabla">
+            {/* Con pocos públicos la cabecera no se fija: el marco apenas desplaza y una
+                cabecera pegajosa dejaba media fila tapada (QA 30/10, 1440x1000). */}
+            <table className={`acr-pub-tabla${filas.length <= FILAS_SIN_CABECERA_FIJA ? " is-corta" : ""}`}>
               <thead>
                 <tr>
                   <th scope="col">Público</th>

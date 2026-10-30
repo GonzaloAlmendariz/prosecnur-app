@@ -1853,3 +1853,8 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-vc-reporte .mon-gs-report-body {
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
 }
+
+/* Por público con pocos públicos: cabecera estática (ver FILAS_SIN_CABECERA_FIJA). */
+.acr-pub-tabla.is-corta thead th {
+  position: static;
+}
