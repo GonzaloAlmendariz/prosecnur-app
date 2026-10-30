@@ -250,6 +250,17 @@ hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, ren
     y <- y - fh
   }
   .hfp_line(sx, sx + sw, y, col = tk$tbl_frame, lwd = pesos$fila)
+  # F31: las rutas de la zona sin viviendas en el censo se nombran bajo el resumen.
+  sin_viv <- vapply(Filter(function(f) identical(suppressWarnings(as.numeric(f$viviendas_n)), 0), filas), `[[`, "", "codigo")
+  if (length(sin_viv)) {
+    nota <- sprintf("%s: el censo no registra viviendas en %s; si no hay hogares, se sigue en las manzanas aledañas.",
+                    paste(sin_viv, collapse = ", "), if (length(sin_viv) == 1L) "su manzana" else "sus manzanas")
+    for (l in .form_pdf_wrap_fit(nota, sw - 0.008, fontsize = 7.4)) {
+      y <- y - 0.017
+      .hfp_text(l, sx + 0.004, y, 7.4, tk$ink, "bold")
+    }
+    y <- y - 0.006
+  }
 
   # Dónde queda la zona dentro del distrito y entre sus vecinos, como en la cara 2.
   mini_top <- y - 0.058

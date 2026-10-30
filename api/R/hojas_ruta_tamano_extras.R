@@ -262,6 +262,9 @@ HOJAS_RUTA_REGLA_NO_RESPUESTA <- paste(
   "Si aún falta completar la cuota, continúe en las manzanas aledañas (las de al lado), en el orden del esquema (1 a 8), con el mismo sentido y el mismo salto."
 )
 
+# F31: lo que la ficha y la hoja de zona dicen de una manzana con 0 viviendas en el censo.
+HOJAS_RUTA_AVISO_SIN_VIVIENDAS <- "El censo no registra viviendas en esta manzana: si no encuentra hogares, siga el paso 3."
+
 #' La misma regla sin salto (checklist F38): con el salto deshabilitado la ficha dice
 #' «Constante de salto: deshabilitada», y la regla no puede mandar a «la siguiente
 #' que indica el salto».

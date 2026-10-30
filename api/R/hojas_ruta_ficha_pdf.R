@@ -140,6 +140,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     # manzana o, en una muestra anterior a U14a, el canónico. La hoja del día
     # imprime el mismo texto.
     procedimiento = list(
+      # F31 (pedido de Gonzalo): una manzana con 0 viviendas en el censo se avisa en la hoja.
+      aviso = if (max(0L, .hojas_ruta_ficha_int(block$viviendas, 0L)) == 0L) HOJAS_RUTA_AVISO_SIN_VIVIENDAS else "",
       pasos = .hojas_ruta_vp_regla_pasos({
         regla <- .hojas_ruta_vp_regla(block)
         # F38: el texto canónico (o ninguno) con el salto deshabilitado va en su versión sin salto.
@@ -633,12 +635,19 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
   body <- 8.2
   line_h <- 0.0135
   lineas <- lapply(pr$pasos, function(p) .form_pdf_wrap_fit(p, w - 0.06, fontsize = body))
-  h <- 0.03 + sum(lengths(lineas)) * line_h + max(0L, length(lineas) - 1L) * 0.004 + 0.006
+  aviso <- if (nzchar(pr$aviso %||% "")) .form_pdf_wrap_fit(pr$aviso, w - 0.04, fontsize = body) else character(0)
+  h <- 0.03 + sum(lengths(lineas)) * line_h + max(0L, length(lineas) - 1L) * 0.004 + 0.006 +
+    if (length(aviso)) length(aviso) * line_h + 0.006 else 0
   .hfp_rect(x, y, w, h, fill = NA, col = tk$tbl_frame, lwd = pesos$fila)
   grid::grid.rect(x = x, y = y, width = 0.005, height = h, just = c("left", "top"),
                   gp = grid::gpar(fill = tk$navy, col = NA))
   .hfp_text("Procedimiento ante la no respuesta", x + 0.018, y - 0.015, 9.5, tk$navy, "bold")
   yy <- y - 0.032
+  for (l in aviso) {
+    .hfp_text(l, x + 0.018, yy, body, tk$ink, "bold")
+    yy <- yy - line_h
+  }
+  if (length(aviso)) yy <- yy - 0.006
   for (i in seq_along(lineas)) {
     .hfp_text(sprintf("%d.", i), x + 0.018, yy, body, tk$navy, "bold")
     for (l in lineas[[i]]) {

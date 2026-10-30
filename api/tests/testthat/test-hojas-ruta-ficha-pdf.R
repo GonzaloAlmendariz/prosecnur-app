@@ -152,3 +152,19 @@ test_that("F38: con el salto deshabilitado la regla de no respuesta no nombra un
   sm_off <- hojas_ruta_tamano_extras_salto_muestra(list(blocks = sm$blocks[1]), cfg_off)
   expect_identical(sm_off$blocks[[1]]$regla_no_respuesta, sin)
 })
+
+test_that("F31: la ficha de una manzana sin viviendas en el censo lo avisa en el procedimiento", {
+  sm <- hfp_muestra()
+  b <- hfp_bloque(sm)
+  expect_identical(hojas_ruta_ficha_modelo(b, NULL, sm$config)$procedimiento$aviso, if (as.integer(b$viviendas) == 0L) HOJAS_RUTA_AVISO_SIN_VIVIENDAS else "")
+  b0 <- b; b0$viviendas <- 0L
+  m0 <- hojas_ruta_ficha_modelo(b0, NULL, sm$config)
+  expect_identical(m0$procedimiento$aviso, HOJAS_RUTA_AVISO_SIN_VIVIENDAS)
+  b5 <- b; b5$viviendas <- 5L
+  expect_identical(hojas_ruta_ficha_modelo(b5, NULL, sm$config)$procedimiento$aviso, "")
+  skip_if_not_installed("pdftools")
+  out <- tempfile(fileext = ".pdf")
+  .hojas_ruta_ficha_dibujar(m0, out)
+  txt <- paste(pdftools::pdf_text(out), collapse = " ")
+  expect_match(gsub("\\s+", " ", txt), "El censo no registra viviendas en esta manzana", fixed = TRUE)
+})
