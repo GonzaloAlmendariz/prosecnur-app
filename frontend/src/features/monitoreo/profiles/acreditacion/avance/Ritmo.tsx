@@ -8,6 +8,8 @@ import { fmt } from "../formato";
 import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
 import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
+import { ritmoPorPublico } from "./ritmoPorPublicoModelo";
+import { RitmoPorPublico } from "./RitmoPorPublico";
 import "./avance.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
@@ -34,6 +36,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const mapa = mapaPorSemana(serie);
   const maxSemana = Math.max(1, ...pulso.porDiaDeLaSemana.map((dia) => dia.promedio));
   const totalCanal = pulso.porCanal.reduce((suma, item) => suma + item.efectivas, 0);
+  const porPublico = useMemo(() => ritmoPorPublico(serie, actores), [serie, actores]);
   if (!serie.fechas.length) {
     return <PestanaSinContenido titulo="Efectivas por día" icono={<CalendarRange size={18} />} motivo="El corte todavía no trae efectivas con fecha." descripcion="Las efectivas por día aparecen cuando las encuestas conectadas devuelven respuestas completas." />;
   }
@@ -61,6 +64,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
             ))}
           </ul>
         </section>
+        <RitmoPorPublico publicos={porPublico} />
         <section className="acr-av-panel acr-ri-mapa" aria-label="Efectivas por semana">
           <header className="acr-av-panel-cabecera"><h3>Efectivas por semana <span className="acr-av-tenue">Semanas de lunes a domingo</span></h3></header>
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
