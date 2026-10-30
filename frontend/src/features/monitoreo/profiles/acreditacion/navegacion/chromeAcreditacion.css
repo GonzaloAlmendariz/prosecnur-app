@@ -12,6 +12,9 @@
 }
 
 .is-acreditacion-profile .mon-workbench > .pulso-context-tab-rail {
+  /* El borde de la tarjeta sale del padding: con el padding entero la lista
+   * medía 38 px y recortaba 1 px a cada lado de los botones de 40. */
+  padding-inline: calc(var(--pulso-rail-bubble-offset) - 1px);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
@@ -45,17 +48,19 @@
  * pestaña de Casos es siempre Por resolver. */
 .is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"] {
   position: relative;
-  margin-top: var(--pulso-space-4);
+  margin-top: var(--pulso-space-3);
 }
 
 .is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"]::before {
   content: "";
   position: absolute;
-  top: calc(-1 * var(--pulso-space-2) - 1px);
-  left: 8px;
-  right: 8px;
+  /* A media distancia entre los dos grupos y del ancho del botón: a 24 px y en
+   * el gris del borde no se veía, y el hueco se leía como separación dispareja. */
+  top: calc(-1 * (var(--pulso-space-3) + var(--pulso-chrome-commandbar-gap)) / 2 - 1px);
+  left: 2px;
+  right: 2px;
   height: 1px;
-  background: var(--pulso-border);
+  background: var(--pulso-border-strong);
 }
 
 /* Pie del rail: «CORTE» en gris, fecha y hora en dos líneas. */
