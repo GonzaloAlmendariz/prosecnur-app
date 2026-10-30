@@ -402,6 +402,9 @@
   font-weight: var(--pulso-weight-bold);
   text-align: left;
   cursor: pointer;
+  /* Sin la sombra ni el salto del botón global: dibujaban una línea bajo cada nombre. */
+  box-shadow: none;
+  transform: none;
 }
 
 .acr-co-publico:focus-visible {
