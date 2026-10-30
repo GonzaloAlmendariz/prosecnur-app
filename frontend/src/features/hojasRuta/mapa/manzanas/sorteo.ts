@@ -112,6 +112,13 @@ export function instantaneaDeSorteo(sample: HojasRutaSamplePreview, config: Hoja
 
 /** El historial nuevo: la instantánea arriba, sin duplicar semilla y método, con tope. */
 export function conInstantanea(historial: readonly HojasRutaRouteSnapshot[], s: HojasRutaRouteSnapshot): HojasRutaRouteSnapshot[] {
-  const igual = (h: HojasRutaRouteSnapshot) => h.seed === s.seed && h.method === s.method && h.n_blocks === s.n_blocks && h.n_replacement_blocks === s.n_replacement_blocks;
+  // Con huella en los dos, la huella decide; sin ella, los parámetros y el algoritmo (un sorteo v1 y uno
+  // v2 con la misma semilla son muestras distintas y los dos se conservan).
+  const huella = (h: HojasRutaRouteSnapshot) => (typeof h.sample_fingerprint === "string" && h.sample_fingerprint ? h.sample_fingerprint : null);
+  const igual = (h: HojasRutaRouteSnapshot) => {
+    const a = huella(h), b = huella(s);
+    if (a && b) return a === b;
+    return h.seed === s.seed && h.method === s.method && h.n_blocks === s.n_blocks && h.n_replacement_blocks === s.n_replacement_blocks && (h.algoritmo_sorteo ?? null) === (s.algoritmo_sorteo ?? null);
+  };
   return [s, ...historial.filter((h) => h.id !== s.id && !igual(h))].slice(0, MAX_HISTORIAL);
 }

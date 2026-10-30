@@ -88,6 +88,17 @@ describe("historial de ruteos", () => {
     expect(nuevo.filter((h) => h.seed === 3)).toHaveLength(1);
     expect(nuevo).toHaveLength(MAX_HISTORIAL);
   });
+
+  it("un sorteo v1 y uno v2 con la misma semilla se conservan los dos; con huella decide la huella", () => {
+    const base = instantaneaDeSorteo(sample, config, new Date(0), "x");
+    const v1 = { ...base, id: "v1", algoritmo_sorteo: null, sample_fingerprint: null } as HojasRutaRouteSnapshot;
+    const v2 = { ...base, id: "v2", algoritmo_sorteo: "pps_sistematico_distrito_v2", sample_fingerprint: null } as HojasRutaRouteSnapshot;
+    expect(conInstantanea([v1], v2).map((h) => h.id)).toEqual(["v2", "v1"]);
+    const a = { ...v2, id: "a", sample_fingerprint: "sha256:aa" } as HojasRutaRouteSnapshot;
+    const b = { ...v2, id: "b", sample_fingerprint: "sha256:bb" } as HojasRutaRouteSnapshot;
+    expect(conInstantanea([a], b)).toHaveLength(2);
+    expect(conInstantanea([a], { ...a, id: "c" })).toHaveLength(1);
+  });
 });
 
 describe("volver a un ruteo", () => {
