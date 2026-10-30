@@ -1,7 +1,7 @@
 # Hoja de zona del paquete de entrega: una página A4 apaisada por zona con todas
 # sus rutas sobre el mismo mapa de la cara 2 de la ficha (calles con nombre,
-# límites de zona y distrito, referencias), y al lado el resumen y la tabla de
-# rutas con la capa Pulso PDF (hojas_ruta_ficha_pdf.R, hojas_ruta_mapa_marco.R).
+# límites de zona y distrito, referencias), y al lado el resumen, el contexto distrital y
+# la leyenda con la capa Pulso PDF (hojas_ruta_ficha_pdf.R, hojas_ruta_mapa_marco.R).
 #
 # El motor congelado (`hojas_ruta_engine.R`) la llama desde
 # `.hojas_ruta_draw_zone_sheet_pdf` con un enganche de una línea; si no hay
@@ -36,9 +36,32 @@
       manzana = as.character(row$manzana %||% ""),
       encuestas = if (length(a) && length(b) && !is.na(a) && !is.na(b)) sprintf("%d–%d", a, b) else as.character(row$entrevistas %||% ""),
       viviendas = .hojas_ruta_hz_num(row$viviendas),
+      viviendas_n = suppressWarnings(as.integer(row$viviendas %||% NA)),
+      encuestas_n = if (length(a) && length(b) && !is.na(a) && !is.na(b)) b - a + 1L else suppressWarnings(as.integer(row$entrevistas %||% NA)),
       reemplaza = reemplaza
     )
   })
+}
+
+#' Rutas que dibuja la hoja de zona. Una zona con titulares no lleva sus
+#' reemplazos: un reemplazo sólo sale si la titular no se pudo hacer, y entonces
+#' va con su propia ficha. Si la zona sólo entra al paquete por reemplazos, la
+#' hoja es de esos reemplazos.
+#' @keywords internal
+.hojas_ruta_hoja_zona_rutas <- function(zone_blocks) {
+  filas <- .hojas_ruta_hoja_zona_filas(zone_blocks)
+  titulares <- Filter(function(f) !f$reemplazo, filas)
+  if (length(titulares)) titulares else filas
+}
+
+# Lista corta para el resumen: «UMP 1, 2, 5» o «R 3, 4», con «y N más» si no cabe.
+.hojas_ruta_hz_lista_rutas <- function(codigos, max = 6L) {
+  if (!length(codigos)) return("—")
+  prefijo <- sub("\\s*\\d.*$", "", codigos[[1]])
+  nums <- trimws(sub("^\\D*", "", codigos))
+  txt <- paste(utils::head(nums, max), collapse = ", ")
+  if (length(nums) > max) txt <- sprintf("%s y %d más", txt, length(nums) - max)
+  trimws(paste(prefijo, txt))
 }
 
 # Insignia de una ruta sobre el mapa: círculo navy con número blanco (titular) o
@@ -57,7 +80,7 @@
 hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, render_ctx = NULL) {
   ubigeo <- as.character(zone_row$ubigeo %||% "")
   zona <- as.character(zone_row$zona %||% "")
-  filas <- .hojas_ruta_hoja_zona_filas(zone_blocks)
+  filas <- .hojas_ruta_hoja_zona_rutas(zone_blocks)
   ids <- vapply(filas, `[[`, "", "id")
   ctx_zone <- .hojas_ruta_zone_context_features(ubigeo, zona, ids, render_ctx = render_ctx)
   if (is.null(ctx_zone)) return(FALSE)
@@ -87,7 +110,8 @@ hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, ren
   .hfp_rect(chip_x, 0.975, chip_w, 0.078, fill = "#ffffff", col = tk$navy, lwd = 1.6, r = 0.08)
   .hfp_text("ZONA", chip_x + chip_w / 2, 0.958, 6.6, tk$soft, "bold", just = c("center", "center"), spacing = 1.2)
   .hfp_text(zona, chip_x + chip_w / 2, 0.937, 15, tk$navy, "bold", just = c("center", "center"))
-  .hfp_text(sprintf("%d titular%s · %d reemplazo%s", n_tit, if (n_tit == 1) "" else "es", n_rem, if (n_rem == 1) "" else "s"),
+  .hfp_text(if (n_tit) sprintf("%d ruta%s titular%s", n_tit, if (n_tit == 1) "" else "s", if (n_tit == 1) "" else "es")
+            else sprintf("%d reemplazo%s", n_rem, if (n_rem == 1) "" else "s"),
             chip_x + chip_w / 2, 0.913, 7.6, tk$ink, just = c("center", "center"))
   .hfp_line(L, R, 0.886, col = tk$navy, lwd = pesos$bloque)
 
@@ -200,16 +224,22 @@ hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, ren
   grid::grid.rect(x = map_x + map_w / 2, y = map_y + map_h / 2, width = map_w, height = map_h,
                   gp = grid::gpar(fill = NA, col = "black", lwd = 0.7))
 
-  # --- Panel lateral -----------------------------------------------------------
+  # --- Panel lateral: resumen, contexto distrital y leyenda --------------------
   sx <- map_x + map_w + 0.02
   sw <- R - sx
   .hojas_ruta_mapa_rotulo("Resumen de la zona", sx, 0.855, sw, tk)
+  suma <- function(campo) { v <- unlist(lapply(filas, `[[`, campo)); if (length(v) && any(!is.na(v))) sum(v, na.rm = TRUE) else NA }
+  rutas_txt <- .hojas_ruta_hz_lista_rutas(vapply(filas, `[[`, "", "codigo"))
+  mzs <- vapply(filas, `[[`, "", "manzana")
+  mzs_txt <- if (length(mzs) > 4) sprintf("%s y %d más", paste(utils::head(mzs, 4), collapse = ", "), length(mzs) - 4) else paste(mzs, collapse = ", ")
   resumen <- list(
-    c("Distrito", distrito),
-    c("Manzanas de la zona", .hojas_ruta_hz_num(zone_row$manzanas_zona)),
+    c("Población censada", .hojas_ruta_hz_num(zone_row$poblacion)),
     c("Viviendas censadas", .hojas_ruta_hz_num(zone_row$viviendas)),
-    c("Encuestas titulares", .hojas_ruta_hz_num(zone_row$entrevistas_titulares %||% zone_row$entrevistas)),
-    c("Encuestas de reemplazo", .hojas_ruta_hz_num(zone_row$entrevistas_reemplazo))
+    c("Manzanas de la zona", .hojas_ruta_hz_num(zone_row$manzanas_zona)),
+    c(if (n_tit) "Rutas" else "Reemplazos", rutas_txt),
+    c(if (length(mzs) == 1) "Manzana" else "Manzanas", mzs_txt),
+    c("Viviendas en ruta", .hojas_ruta_hz_num(suma("viviendas_n"))),
+    c("Encuestas", .hojas_ruta_hz_num(suma("encuestas_n")))
   )
   y <- 0.835
   fh <- 0.026
@@ -221,53 +251,43 @@ hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, ren
   }
   .hfp_line(sx, sx + sw, y, col = tk$tbl_frame, lwd = pesos$fila)
 
-  y <- y - 0.04
-  .hojas_ruta_mapa_rotulo("Rutas de la zona", sx, y, sw, tk)
-  y <- y - 0.02
-  cols <- c(0.19, 0.17, 0.25, 0.15, 0.24)
-  heads <- c("Ruta", "Mz", "Encuestas", "Viv.", "Reemplaza")
-  xs <- sx + c(0, cumsum(cols * sw))[1:5]
-  .hfp_rect(sx, y, sw, fh, fill = tk$tbl_header, col = NA)
-  for (j in seq_along(heads)) .hfp_text(toupper(heads[[j]]), xs[[j]] + 0.003, y - fh / 2, 5.8, tk$soft, "bold", spacing = 0.3)
-  y <- y - fh
-  maximo <- 12L
-  for (k in seq_len(min(length(filas), maximo))) {
-    fl <- filas[[k]]
-    if (k %% 2 == 0) .hfp_rect(sx, y, sw, fh, fill = tk$tbl_zebra, col = NA)
-    vals <- c(fl$codigo, fl$manzana, fl$encuestas, fl$viviendas, fl$reemplaza)
-    for (j in seq_along(vals)) {
-      .hfp_text(vals[[j]], xs[[j]] + 0.003, y - fh / 2, 7.2, if (j == 1) tk$navy else tk$ink, if (j == 1) "bold" else "plain")
-    }
-    y <- y - fh
-  }
-  .hfp_line(sx, sx + sw, y, col = tk$tbl_frame, lwd = pesos$fila)
-  if (length(filas) > maximo) {
-    .hfp_text(sprintf("y %d ruta%s más en el Excel operativo", length(filas) - maximo, if (length(filas) - maximo == 1) "" else "s"),
-              sx, y - 0.014, 7, tk$soft)
-  }
+  # Dónde queda la zona dentro del distrito y entre sus vecinos, como en la cara 2.
+  mini_top <- y - 0.058
+  mini_h <- 0.29
+  .hojas_ruta_mapa_contexto_distrital(list(ubigeo = ubigeo, zona = zona, distrito = distrito),
+                                      sx, mini_top - mini_h, sw, mini_h,
+                                      fallback_rings = unlist(lapply(ctx_zone$zone_features, `[[`, "rings"), recursive = FALSE),
+                                      render_ctx = render_ctx)
 
-  # Leyenda: sólo lo que el mapa dibujó, con las dos marcas de ruta primero.
-  ly <- 0.27
+  # Leyenda: sólo lo que el mapa dibujó, con la marca de ruta primero.
+  ly <- mini_top - mini_h - 0.04
   .hojas_ruta_mapa_rotulo("Leyenda", sx, ly, sw, tk)
   items <- c(
-    if (n_tit) list(list("UMP titular", function(yy) .hojas_ruta_hz_insignia(sx + 0.012, yy, "1", FALSE, tk))),
-    if (n_rem) list(list("Reemplazo", function(yy) .hojas_ruta_hz_insignia(sx + 0.012, yy, "R1", TRUE, tk))),
-    list(list("Límite de zona", function(yy) grid::grid.lines(x = c(sx + 0.004, sx + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#083f88", lwd = 1.9))))
+    if (n_tit) list(list("Ruta titular", function(x0, yy) .hojas_ruta_hz_insignia(x0 + 0.012, yy, "1", FALSE, tk))),
+    if (n_rem) list(list("Reemplazo", function(x0, yy) .hojas_ruta_hz_insignia(x0 + 0.012, yy, "R1", TRUE, tk))),
+    list(list("Límite de zona", function(x0, yy) grid::grid.lines(x = c(x0 + 0.004, x0 + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#083f88", lwd = 1.9))))
   )
-  if (length(distritos)) items <- c(items, list(list("Límite distrital", function(yy) grid::grid.lines(x = c(sx + 0.004, sx + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#111111", lwd = 0.95)))))
+  if (length(distritos)) items <- c(items, list(list("Límite distrital", function(x0, yy) grid::grid.lines(x = c(x0 + 0.004, x0 + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#111111", lwd = 0.95)))))
   if (any(vapply(zone_outlines, function(z) !identical(as.character(z$zona %||% ""), zona), logical(1)))) {
-    items <- c(items, list(list("Otras zonas INEI", function(yy) grid::grid.lines(x = c(sx + 0.004, sx + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#d7191c", lwd = 0.75)))))
+    items <- c(items, list(list("Otras zonas INEI", function(x0, yy) grid::grid.lines(x = c(x0 + 0.004, x0 + 0.02), y = c(yy, yy), gp = grid::gpar(col = "#d7191c", lwd = 0.75)))))
   }
-  if (hay_sin_poblacion) items <- c(items, list(list("Sin población", function(yy) grid::grid.rect(x = sx + 0.004, y = yy, width = 0.016, height = 0.02, just = c("left", "center"), gp = grid::gpar(fill = "#f1f1f1", col = "#9a9a9a", lwd = 0.4)))))
+  if (hay_sin_poblacion) items <- c(items, list(list("Sin población", function(x0, yy) grid::grid.rect(x = x0 + 0.004, y = yy, width = 0.016, height = 0.02, just = c("left", "center"), gp = grid::gpar(fill = "#f1f1f1", col = "#9a9a9a", lwd = 0.4)))))
   for (tipo in intersect(names(.hojas_ruta_mapa_referencia_tipos), referencias)) {
     items <- c(items, list(list(.hojas_ruta_mapa_referencia_rotulos[[tipo]],
-                                local({ tt <- tipo; function(yy) .hojas_ruta_mapa_icono(tt, sx + 0.012, yy, r_pt = 4.6) }))))
+                                local({ tt <- tipo; function(x0, yy) .hojas_ruta_mapa_icono(tt, x0 + 0.012, yy, r_pt = 4.6) }))))
   }
-  yy <- ly - 0.03
-  for (it in items) {
-    it[[2]](yy)
-    .hfp_text(it[[1]], sx + 0.03, yy, 7.6, tk$ink)
-    yy <- yy - 0.024
+  # Dos columnas cuando no caben en una sobre el pie del mapa.
+  paso <- 0.028
+  cabe <- max(1L, floor((ly - 0.03 - map_y) / paso) + 1L)
+  ncol <- if (length(items) > cabe) 2L else 1L
+  por_col <- ceiling(length(items) / ncol)
+  for (k in seq_along(items)) {
+    col_k <- (k - 1L) %/% por_col
+    xx <- sx + col_k * sw / 2
+    yy <- ly - 0.03 - ((k - 1L) %% por_col) * paso
+    it <- items[[k]]
+    it[[2]](xx, yy)
+    .hfp_text(it[[1]], xx + 0.03, yy, 7.6, tk$ink)
   }
 
   # --- Pie -----------------------------------------------------------------
