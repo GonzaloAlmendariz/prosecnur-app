@@ -29,9 +29,16 @@ Estados: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloquead
 | F9 | `/api/project/status` se consulta en ráfagas (decenas de veces por minuto) y `/api/hojas-ruta/state` dos veces por carga | polling del shell (`BootGate` / estado del proyecto) y efecto de la página | pule | registro de red de la pestaña | revisar el intervalo del sondeo y deduplicar la lectura de estado | ☐ |
 | F10 | Dos errores 500 en consola durante la carga que no quedaron en el registro del backend ni en el buffer de red | sin localizar | confunde | consola de la pestaña | reproducir con red limpia desde el arranque y localizar el endpoint | ☐ |
 
-## Recorrido 2 · Manzanas, Selección, Entrega
+## Recorrido 2 · Manzanas, Selección, Entrega (2026-10-30)
 
-Pendiente.
+| # | Hallazgo | Dónde vive | Severidad | Evidencia | Propuesta | Estado |
+|---|---|---|---|---|---|---|
+| F11 | La muestra de acnur_acg está sorteada con `zona_mayor_resto_v1` (ADR 0117): en Ate el 50,2 % de las viviendas del marco elegible quedó sin probabilidad de salir, y lo mismo en los otros cinco distritos. El backend lo avisa (`W_SAMPLE_DRAWN_WITH_V1`, seis avisos), pero el lienzo lo pinta al fondo del inspector de Manzanas, a ~1.790 px, debajo de toda la configuración del sorteo | `ManzanasInspector` (avisos al final), `hojas_ruta_sorteo_aviso_v1` en `api/R/hojas_ruta_sorteo_pps.R` | **bloquea** | `state.workspace_outputs.sample.algoritmo_sorteo = "zona_mayor_resto_v1"`; posición medida del primer aviso | un aviso v1 va arriba de todo en Manzanas, en la miga del lienzo y en el chip «por revisar» de la barra, con la acción «Sortear de nuevo con el método vigente» | ☐ |
+| F12 | «¿Se parece al marco?» culpa a la semilla («revisa la semilla o compara con otra») cuando la diferencia (Medio 38 → 51 %, Bajo 16 → 4,7 %) la explica el algoritmo v1 | `ParecidoAlMarco` en `mapa/manzanas/` | **confunde** | inspector de Manzanas | si la muestra es v1, el diagnóstico nombra la causa y no ofrece cambiar de semilla | ☐ |
+| F13 | «Enviar a Material» está habilitado con una muestra v1 sesgada: el punto de no retorno no mira los avisos del sorteo | `SalidasPanel` (Entrega) y acción de la barra | **bloquea** | panel Entrega abierto | con avisos `W_SAMPLE_DRAWN_WITH_V1` el envío pide volver a sortear (o confirmación explícita que diga qué se manda) | ☐ |
+| F14 | La tercera cifra del inspector de Selección sale cortada: «UMP observ… 14» | `SeleccionInspector`, cifras de cabecera | pule | captura de Selección | rótulo corto («Observadas») o cifra en dos líneas | ☐ |
+| F15 | «12 por revisar» en la barra y «14 observadas» en el inspector siguen sin explicarse uno al otro: el analista ve dos números para lo mismo | chip de la barra vs inspector (B43 los unificó en definición, no en lectura) | confunde | barra + inspector de Selección | un solo número visible; el otro como desglose («12 rutas · 14 UMP con reemplazos») | ☐ |
+| F16 | Entre secciones, la estructura y el inspector quedan vacíos un momento y la barra de secciones se redibuja con una mancha antes de asentarse | `key` por sección en `.hr-mapa-estructura` + carga de cada sección | pule | capturas a medio cambio en Muestra y Selección | mantener el marco del panel (C2) con un esqueleto en vez de vaciarlo | ☐ |
 
 ## Recorrido 3 · Material de campo territorial y Monitoreo territorial
 
