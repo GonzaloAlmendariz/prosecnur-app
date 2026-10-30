@@ -156,14 +156,19 @@ type InspectorProps = {
   viviendasPorNse?: Record<number, number> | null;
   /** `frame_meta` del estado: de dónde salen marco y cartografía (B27). */
   marcoMeta?: TerritorialFrameMeta | null;
+  /** Checklist F2: con una ciudad abierta, el inspector habla de ella (el estudio entero va aparte). */
+  ciudad?: { nombre: string; ubigeos: readonly string[] } | null;
 };
 
-export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null, marcoMeta = null }: InspectorProps) {
+export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null, marcoMeta = null, ciudad = null }: InspectorProps) {
   const { borrador: b, distritoBajoCursor, setBorrador } = useLienzoHojasRuta();
   const borrador = b ?? [...confirmados];
   const { agrega, quita, pendiente } = cambios(confirmados, borrador);
   const porUbigeo = useMemo(() => new Map(territorios.map((t) => [t.ubigeo, t])), [territorios]);
-  const elegidos = borrador.map((u) => porUbigeo.get(u)).filter((t): t is HojasRutaTerritory => Boolean(t));
+  const delEstudio = borrador.map((u) => porUbigeo.get(u)).filter((t): t is HojasRutaTerritory => Boolean(t));
+  // Lo que se mira: los elegidos de la ciudad abierta, o los del estudio entero en el atlas.
+  const elegidos = ciudad ? delEstudio.filter((t) => ciudad.ubigeos.includes(t.ubigeo)) : delEstudio;
+  const fuera = delEstudio.length - elegidos.length;
   const suma = (k: "poblacion" | "viviendas" | "manzanas") => elegidos.reduce((a, t) => a + t[k], 0);
   const marco = marcoDeProvincias(territorios, elegidos);
   const { distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
@@ -173,7 +178,11 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
 
   return (
     <>
-      <InspectorCabecera icono={MapPinned} sobre="Territorio" titulo={elegidos.length ? `${elegidos.length} distrito${elegidos.length === 1 ? "" : "s"} elegido${elegidos.length === 1 ? "" : "s"}` : "Elige los distritos del estudio"} />
+      <InspectorCabecera
+        icono={MapPinned}
+        sobre={ciudad ? ciudad.nombre : "Territorio"}
+        titulo={ciudad ? (elegidos.length ? `${elegidos.length} de ${ciudad.ubigeos.length} distritos en el estudio` : `Elige los distritos de ${ciudad.nombre}`) : elegidos.length ? `${elegidos.length} distrito${elegidos.length === 1 ? "" : "s"} elegido${elegidos.length === 1 ? "" : "s"}` : "Elige los distritos del estudio"}
+      />
       <div className="hr-mapa-ins-cuerpo">
         {!elegidos.length ? (
           <ol className="hr-mapa-pasos">
@@ -192,6 +201,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             <dl className="hr-mapa-filas">
               <div><dt>Del marco {nombreDelMarco(elegidos)}</dt><dd style={{ whiteSpace: "nowrap" }}>{marco ? `${((suma("poblacion") / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
               <div><dt>Viviendas por manzana</dt><dd>{suma("manzanas") ? (suma("viviendas") / suma("manzanas")).toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}</dd></div>
+              {ciudad && fuera ? <div><dt>En otras ciudades del estudio</dt><dd>{fuera} distrito{fuera === 1 ? "" : "s"}</dd></div> : null}
             </dl>
           </>
         )}

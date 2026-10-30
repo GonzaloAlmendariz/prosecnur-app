@@ -21,6 +21,8 @@ export type LimitesCrudos = {
 export type LimiteNombrado = Pieza & { nombre: string; rotulo: [number, number] };
 export type LimitesPeru = { fuente: string; pais: Pieza[]; departamentos: LimiteNombrado[]; provincias: Pieza[] };
 
+/** Más cerca que esto (una ciudad en pantalla) país y departamentos no orientan: cruzan la ciudad (checklist F3). */
+export const ESCALA_SIN_LIMITES = 0.004;
 /** Las provincias sólo se trazan desde esta escala (una región en pantalla); antes enredan. */
 export const ESCALA_PROVINCIAS = 0.0012;
 /** Por debajo de esta escala (más lejos que Lima entera) se rotulan los departamentos. */
@@ -58,6 +60,7 @@ export function limitesDePeru(crudo: LimitesCrudos): LimitesPeru {
 
 /** Debajo de todo: el país relleno con el fondo, y encima las líneas de provincia, departamento y país. */
 export function dibujarLimites(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: LimitesPeru) {
+  if (u.camara.s >= ESCALA_SIN_LIMITES) return;
   ctx.save();
   ctx.lineJoin = "round";
   if (u.camara.s >= ESCALA_PROVINCIAS) {

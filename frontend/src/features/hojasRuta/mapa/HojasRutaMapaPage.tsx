@@ -364,10 +364,12 @@ export default function HojasRutaMapaPage() {
         if ((enMuestra || enPoblacion) && conf) return { relleno: mezclar(u.colores.distrito, tono, 0.42), borde: u.colores.distritoBorde, grosor: 1.3 };
         if (!enTerritorio) return { relleno: conf ? mezclar(u.colores.distrito, tono, 0.22) : u.colores.fondo, borde: u.colores.distritoBorde, grosor: conf ? 1.3 : 0.8 };
         const enB = borrador.includes(c.ubigeo);
+        // F4: en la ciudad abierta, un distrito disponible se lee como elegible (tinte y borde del acento),
+        // no como fondo; los del estudio llevan su tono y los que cambian, borde fuerte.
         return {
-          relleno: enB && conf ? mezclar(u.colores.distrito, tono, 0.42) : enB ? mezclar(u.colores.distrito, u.colores.acento, 0.3) : u.colores.fondo,
-          borde: enB !== conf ? u.colores.acento : u.colores.distritoBorde,
-          grosor: enB !== conf ? 2 : enB ? 1.3 : 0.8,
+          relleno: enB && conf ? mezclar(u.colores.distrito, tono, 0.42) : enB ? mezclar(u.colores.distrito, u.colores.acento, 0.3) : mezclar(u.colores.fondo, u.colores.acento, 0.07),
+          borde: enB !== conf ? u.colores.acento : enB ? u.colores.distritoBorde : mezclar(u.colores.distritoBorde, u.colores.acento, 0.45),
+          grosor: enB !== conf ? 2 : enB ? 1.3 : 1,
           punteado: enB && !conf,
         };
       });
@@ -717,7 +719,7 @@ export default function HojasRutaMapaPage() {
               onQuitar={(c) => void cambiarCiudades(c, false)}
             />
           ) : enTerritorio && estado ? (
-            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} viviendasPorNse={viviendasPorNse} marcoMeta={estado.frame_meta} />
+            <TerritorioInspector territorios={estado.territories} confirmados={confirmados} bloqueado={bloqueado} guardando={guardando} onConfirmar={(u) => void confirmarTerritorio(u)} viviendasPorNse={viviendasPorNse} marcoMeta={estado.frame_meta} ciudad={ciudadAbierta ? (() => { const c = atlas.find((x) => x.codigo === ciudadAbierta); return c ? { nombre: c.nombre, ubigeos: c.ubigeos } : null; })() : null} />
           ) : (
             <>
               <header className="hr-mapa-cab">
