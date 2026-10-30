@@ -87,7 +87,7 @@ export function PanelPublico({
           <div className="acr-pub-bloque">
             <span className="acr-av-antetitulo">Por canal</span>
             {canales.map((canal) => (
-              <div key={canal.canal} className="acr-pub-embudo-fila">
+              <div key={canal.canal} className={`acr-pub-embudo-fila${canales.length > 1 ? "" : " is-sin-pista"}`}>
                 <span>{canal.canal}</span>
                 {canales.length > 1 ? <span className="acr-av-pista"><i className="is-canal" style={{ width: `${(canal.efectivas / maxCanal) * 100}%` }} /></span> : null}
                 <b className="acr-av-num">{fmt(canal.efectivas)}</b>
@@ -109,11 +109,25 @@ export function PanelPublico({
           <span className="acr-av-antetitulo">Casos de este público</span>
           {casos ? (
             casos.porTipo.length ? (
-              <div className="acr-res-chips">
-                {casos.porTipo.map((tipo) => (
-                  <span key={tipo.tipo} className={`acr-av-chip${tipo.grupo === "espera" ? " is-falta" : ""}`}>{tipo.etiqueta} {fmt(tipo.casos)}</span>
-                ))}
-              </div>
+              // Lista agrupada como en Por resolver, no chips de dos colores (E1, 30/10).
+              <dl className="acr-pub-casos">
+                {[
+                  { grupo: "espera", titulo: "Esperan decisión" },
+                  { grupo: "decidido", titulo: "Decididos" },
+                  { grupo: "regla", titulo: "Resueltos por regla" },
+                ].map(({ grupo, titulo }) => {
+                  const tipos = casos.porTipo.filter((tipo) => tipo.grupo === grupo);
+                  if (!tipos.length) return null;
+                  return (
+                    <div key={grupo} className={`acr-pub-casos-grupo is-${grupo}`}>
+                      <dt>{titulo} <span className="acr-av-num">{fmt(tipos.reduce((suma, tipo) => suma + tipo.casos, 0))}</span></dt>
+                      {tipos.map((tipo) => (
+                        <dd key={tipo.tipo}><span>{tipo.etiqueta}</span><b className="acr-av-num">{fmt(tipo.casos)}</b></dd>
+                      ))}
+                    </div>
+                  );
+                })}
+              </dl>
             ) : <span className="acr-av-tenue">Sin casos marcados en el corte.</span>
           ) : <Alert kind="info">Los casos se están preparando con el cruce del padrón.</Alert>}
         </div>

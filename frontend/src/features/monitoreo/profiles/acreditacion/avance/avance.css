@@ -1943,3 +1943,63 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* Panel del público: los casos agrupados, rótulo a la izquierda y cuántos a la
+ * derecha; los que esperan decisión con su punto de aviso (E1). */
+.acr-pub-casos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.acr-pub-casos-grupo dt {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pub-casos-grupo dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.acr-pub-casos-grupo dd + dd {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-pub-casos-grupo.is-espera dd > span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg);
+  vertical-align: 1px;
+}
+
+/* La curva del público, a un alto acotado: estirada al panel quedaba casi vacía. */
+.acr-pub-acumulado .acr-av-grafico {
+  height: 240px;
+  min-height: 0;
+  flex: none;
+}
+
+.acr-pub-panel-cuerpo .acr-pub-acumulado {
+  min-height: 0;
+  flex: none;
+}
+
+/* Un solo canal no lleva pista: la cifra se alinea a la derecha como las demás. */
+.acr-pub-embudo-fila.is-sin-pista {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
