@@ -266,7 +266,8 @@ function copyForFamily(family: OutputFamily) {
     progress: "Generando PDF ejecutivo",
     ready: "PDF ejecutivo listo para descargar.",
     download: "Descargar PDF ejecutivo",
-    sheetsTitle: "Salidas de acreditación a Sheets",
+    // Reúne Sheets, PDF ejecutivo y producción: no sólo «a Sheets».
+    sheetsTitle: "Entregables del corte",
   };
 }
 
