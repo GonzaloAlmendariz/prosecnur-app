@@ -669,6 +669,7 @@ export default function HojasRutaMapaPage() {
           {enSeleccion && estado ? (
             <SeleccionInspector
               enviada={Boolean(envio)}
+              rutasPorRevisar={porRevisarTotal}
               titular={titularEnfocada}
               estado={titularEnfocada ? estados.get(titularEnfocada.id_manzana) ?? "ok" : "ok"}
               reemplazos={bloquesReemplazos}

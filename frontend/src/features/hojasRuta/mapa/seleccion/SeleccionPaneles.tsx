@@ -106,9 +106,11 @@ type InspectorProps = {
   salidas?: ReactNode;
   /** ¿La muestra ya se envió a Material? Entonces la ficha enlaza su hoja allá. */
   enviada?: boolean;
+  /** Rutas por revisar: el número de la barra y de la lista (F15). */
+  rutasPorRevisar?: number;
 };
 
-export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false }: InspectorProps) {
+export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false, rutasPorRevisar }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
   const nav = useSeccion("hojas-ruta");
   if (titular) {
@@ -209,8 +211,12 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         <div className="hr-mapa-cifras">
           <div><small>Titulares</small><strong>{fmt(totales.titulares)}</strong></div>
           <div><small>Reemplazos</small><strong>{fmt(totales.reemplazos)}</strong></div>
-          <div title="Titulares y reemplazos con alguna observación. «Por revisar» en la lista y la barra cuenta rutas: una ruta con su titular o algún reemplazo observado."><small>UMP observadas</small><strong>{fmt(revision.porRevisar)}</strong></div>
+          {/* F14/F15: un solo número, el mismo de la barra y la lista (rutas); el de UMP va como desglose. */}
+          <div><small>Por revisar</small><strong>{fmt(rutasPorRevisar ?? revision.porRevisar)}</strong></div>
         </div>
+        {rutasPorRevisar !== undefined && revision.porRevisar !== rutasPorRevisar ? (
+          <p className="hr-mapa-nota">{fmt(rutasPorRevisar)} rutas con su titular o algún reemplazo observado: {fmt(revision.porRevisar)} UMP en total.</p>
+        ) : null}
         {revision.grupos.length ? (
           revision.grupos.map((g) => (
             <article key={g.tipo} className="hr-sel-grupo" data-estado={g.tono}>
