@@ -64,7 +64,7 @@ import { pestanaDeEntrada } from "../../core/tablaDeDirecciones";
 import { corteCorto, estadoDelModo } from "../../core/barraComun";
 import { readinessDeAcreditacion, useLecturaCompleta, useNavegacionAcreditacion } from "./navegacion/useNavegacionAcreditacion";
 import { chipsDeCabecera, pestanaConLienzo, rotuloEnTarjeta } from "./navegacion/chipsDeCabecera";
-import { RotuloDePestanaContexto, RotuloEnBarra } from "./navegacion/rotuloDePestana";
+import { CabeceraDeTarjeta, RotuloDePestanaContexto, RotuloEnBarra } from "./navegacion/rotuloDePestana";
 import { SubvistaConRotulo } from "./navegacion/SubvistaConRotulo";
 import { PorPublico } from "./avance/PorPublico";
 import { EmbudoDeRespuestas, Resumen } from "./avance/Resumen";
@@ -14643,43 +14643,16 @@ function AcreditacionAdvanceDetailWorkbench({
   return <VariablesDeControl filas={controlVariableRows(reports, controlRows)} reporte={<AcreditacionGsReportsPanel reports={reports} />} />;
 }
 
+/**
+ * Mientras la sección lee su corte: la misma tarjeta con el rótulo de la pestaña
+ * que tendrá la vista, y una frase de lo que se lee (K5/K6, 30/10: antes salía la
+ * cabecera antigua y casillas «Cache local / Corte reportes» que no decían nada).
+ */
 function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; label: string }) {
-  const items = view === "consultas"
-    ? [
-      { icon: Search, label: "Cruces", value: "plataforma/base" },
-      { icon: Table2, label: "Casos", value: "actor y canal" },
-      { icon: ShieldAlert, label: "Alertas", value: "subsanación" },
-    ]
-    : [
-      { icon: RefreshCw, label: "Cache", value: "local" },
-      { icon: Table2, label: "Corte", value: "reportes" },
-      { icon: CheckCircle2, label: "Vista", value: label },
-    ];
-
   return (
-    <section className={`mon-acr-loading-card is-${view}`} aria-live="polite" aria-label={`Preparando ${label}`}>
-      <div className="mon-acr-loading-card__copy">
-        <span><Loader2 size={14} className="pulso-spin" /> Preparando {label}</span>
-        <strong>Actualizando cache local</strong>
-        <p>{view === "consultas" ? "Leyendo trazabilidad, cruces y revisión asistida." : "Leyendo el corte disponible para esta sección."}</p>
-      </div>
-      <div className="mon-acr-loading-card__items" aria-hidden="true">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span key={`${item.label}-${item.value}`}>
-              <Icon size={13} />
-              <em>{item.label}</em>
-              <strong>{item.value}</strong>
-            </span>
-          );
-        })}
-      </div>
-      <div className="mon-acr-loading-card__skeleton" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
+    <section className="acr-av-panel" aria-label={`Preparando ${label}`} aria-busy="true">
+      <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
+      <VacioDeBloque vacio="cargando" icono={<Loader2 size={15} />} titulo={view === "consultas" ? "Leyendo los cruces y casos del corte." : "Leyendo el corte para esta sección."} />
     </section>
   );
 }
@@ -15760,7 +15733,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const seccionCargando = loading || Boolean(state && !error && cobertura === "otra-seccion");
   const auditReady = !seccionCargando && !error && Boolean(state);
   // §2a-bis: en las pestañas rediseñadas el rótulo va en la primera tarjeta, sin fila propia.
-  const conRotuloEnTarjeta = !seccionCargando && !error && rotuloEnTarjeta(nav.publica) && !isTelefonicoMonitoreoState(state);
+  const conRotuloEnTarjeta = !error && rotuloEnTarjeta(nav.publica) && !isTelefonicoMonitoreoState(state); // también al cargar: la vista no cambia de lugar (K6)
   // Pedir el corte que falta, una vez por desajuste observado. El tope no es
   // defensivo de más: si el backend devolviera siempre un scope que no cubre,
   // reintentar sin límite convertiría un dato incompleto en un bucle de red.
