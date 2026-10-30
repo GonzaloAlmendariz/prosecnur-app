@@ -62,6 +62,27 @@ export function anchoPorDia(ancho: number, dias: number, { ranuras = 1, tope = I
   return Math.min(tope, ancho / Math.max(1, ranuras, dias));
 }
 
+/**
+ * Qué días se rotulan bajo barras de `paso` px y con qué anclaje. Cada rótulo
+ * («30 oct», ~32 px) pide 44 px con su aire: con barras angostas (pocos días con tope de ancho)
+ * dos rótulos anclados a los bordes se montaban («2930octct»). Se rotula un
+ * día cada `ceil(44 / paso)`, centrado bajo su barra; sólo si las barras llenan
+ * el ancho, el primero y el último se anclan al borde para no salirse.
+ */
+export const ANCHO_DE_ROTULO_DE_FECHA = 44;
+export function rotulosDeFecha(n: number, paso: number, llenaElAncho: boolean): Array<{ indice: number; anclaje: "start" | "middle" | "end" }> {
+  if (n <= 0 || !(paso > 0)) return [];
+  const cada = Math.max(1, Math.ceil(ANCHO_DE_ROTULO_DE_FECHA / paso));
+  const indices: number[] = [];
+  for (let indice = 0; indice < n; indice += cada) indices.push(indice);
+  const ultimo = indices[indices.length - 1];
+  if (ultimo !== n - 1 && (n - 1 - ultimo) * paso >= ANCHO_DE_ROTULO_DE_FECHA) indices.push(n - 1);
+  return indices.map((indice) => ({
+    indice,
+    anclaje: llenaElAncho && indice === 0 ? "start" : llenaElAncho && indice === n - 1 ? "end" : "middle",
+  }));
+}
+
 /** Hasta `cuantas` etiquetas de fecha repartidas, siempre con la primera y la última. */
 function indicesDeFecha(total: number, cuantas: number): number[] {
   if (total <= cuantas) return Array.from({ length: total }, (_, indice) => indice);
@@ -403,8 +424,8 @@ export function BarrasApiladas({
               </g>
             );
           })}
-          {indicesDeFecha(n, Math.max(2, Math.min(10, Math.floor((n * paso) / 80)))).map((indice) => (
-            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={indice === 0 ? "start" : indice === n - 1 ? "end" : "middle"}>
+          {rotulosDeFecha(n, paso, paso < PASO_MAXIMO_POR_DIA).map(({ indice, anclaje }) => (
+            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={anclaje}>
               {fechaCorta(fechas[indice])}
             </text>
           ))}
