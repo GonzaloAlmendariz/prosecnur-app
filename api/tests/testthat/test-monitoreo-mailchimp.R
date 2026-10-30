@@ -325,3 +325,36 @@ test_that("las peticiones simultáneas dejan cada respuesta en su lugar y un fal
   expect_null(res[[3]])
   expect_identical(res[[4]]$body$total_items, 1L)
 })
+
+test_that("si la entrega no cambió, sólo se pide la actividad nueva y se suma a los destinatarios guardados", {
+  llamadas <- new.env(); llamadas$paths <- character(0); llamadas$urls <- character(0)
+  local_mocked_bindings(.mc_http = .mcmt_http(llamadas), .mc_sleep = function(...) invisible(NULL))
+  snap <- .mcm_leer(.mcmt_key, "L1")
+  snap$leido_at <- "2026-10-30T12:25:38-0500"
+
+  # Más aperturas y clics en c1, la misma entrega: tk0004 hizo clic en la encuesta.
+  respuestas <- .mcmt_respuestas
+  respuestas[["/reports/c1"]]$opens$opens_total <- 9L
+  respuestas[["/reports/c1"]]$clicks$clicks_total <- 3L
+  respuestas[["/reports/c1/email-activity"]] <- list(total_items = 1L, emails = list(
+    list(email_id = "e4", activity = list(list(action = "open", timestamp = "2026-10-30T17:40:00+00:00"),
+                                          list(action = "click", timestamp = "2026-10-30T17:41:00+00:00", url = "*|HTML:ENLACE|*")))))
+  respuestas[["/lists/L1/members/e4"]] <- list(merge_fields = list(ENLACE = "https://es.surveymonkey.com/r/ABC?t=tk0004"))
+  llamadas$paths <- character(0)
+  local_mocked_bindings(.mc_http = function(method, url, key, body = NULL) {
+    path <- sub("^https://[^/]+/3\\.0", "", sub("\\?.*$", "", url))
+    llamadas$paths <- c(llamadas$paths, path); llamadas$urls <- c(llamadas$urls, url)
+    cuerpo <- respuestas[[path]]
+    if (is.null(cuerpo)) stop("ruta no simulada: ", path)
+    list(status = 200L, body = cuerpo, headers = list())
+  })
+  snap2 <- .mcm_leer(.mcmt_key, "L1", previo = snap)
+
+  expect_false(any(grepl("/sent-to", llamadas$paths)))
+  expect_true(any(grepl("email-activity.*since=2026-10-30T17%3A10%3A38", llamadas$urls)))
+  c1 <- snap2$personas[snap2$personas$campaign_id == "c1", ]
+  expect_identical(c1$clic, c(TRUE, FALSE, FALSE, TRUE, FALSE))
+  expect_identical(c1$abrio[[4]], TRUE)
+  expect_identical(c1$clic_at[[4]], "2026-10-30T17:41:00+00:00")
+  expect_identical(snap2$envios$c1$aperturas_unicas, snap$envios$c1$aperturas_unicas)
+})

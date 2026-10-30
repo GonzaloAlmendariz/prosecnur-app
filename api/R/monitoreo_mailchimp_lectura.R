@@ -314,14 +314,19 @@
     firma <- .mcm_firma(reporte)
     seg <- .mcm_segmento(campana, etiquetas)
     anterior <- previos[[id]]
-    reutiliza <- !is.null(anterior) && identical(.mcm_chr(anterior$firma), firma) &&
-      any(previas_personas$campaign_id == id)
+    tiene_previas <- !is.null(anterior) && any(previas_personas$campaign_id == id)
+    reutiliza <- tiene_previas && identical(.mcm_chr(anterior$firma), firma)
+    # Entrega igual y sólo se movieron aperturas o clics: se suma la actividad nueva
+    # sin volver a bajar a todos los destinatarios (monitoreo_mailchimp_incremental.R).
+    desde <- .mcm_desde(previo$leido_at)
+    incremental <- !reutiliza && tiene_previas && nzchar(desde) &&
+      identical(.mcm_chr(anterior$firma_entrega), .mcm_firma_entrega(reporte))
     envios[[id]] <- c(
       list(
         campaign_id = id, titulo = titulo, asunto = .mcm_chr(campana$settings$subject_line),
         enviado_at = .mcm_chr(campana$send_time), etiqueta = seg$etiqueta, excluye = seg$excluye,
         tipo = if (nzchar(seg$excluye)) "recordatorio" else "invitacion",
-        firma = firma
+        firma = firma, firma_entrega = .mcm_firma_entrega(reporte)
       ),
       .mcm_resumen_reporte(reporte)
     )
@@ -329,6 +334,14 @@
       personas[[id]] <- previas_personas[previas_personas$campaign_id == id, , drop = FALSE]
       bajas[[id]] <- (previo$bajas %||% data.frame())[(previo$bajas$campaign_id %||% character(0)) == id, , drop = FALSE]
       quejas[[id]] <- (previo$quejas %||% data.frame())[(previo$quejas$campaign_id %||% character(0)) == id, , drop = FALSE]
+      next
+    }
+    if (incremental) {
+      personas[[id]] <- .mcm_actualizar_personas(key, list_id, id, previas_personas[previas_personas$campaign_id == id, , drop = FALSE], desde,
+        avance = function(hecho, total) report("campaign", current = i, total = n, percent = base_pct,
+          message = sprintf("Mailchimp: envío %d de %d · actividad nueva de %s personas", i, n, format(total, big.mark = ","))))
+      bajas[[id]] <- if (.mcm_int(reporte$unsubscribed) > 0L) .mcm_leer_bajas(key, id) else NULL
+      quejas[[id]] <- if (.mcm_int(reporte$abuse_reports) > 0L) .mcm_leer_quejas(key, id) else NULL
       next
     }
     personas[[id]] <- .mcm_leer_personas(key, id, avance = function(hecho, total) {
