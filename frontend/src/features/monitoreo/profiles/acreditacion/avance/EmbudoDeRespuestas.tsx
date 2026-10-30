@@ -1,8 +1,10 @@
+import { Fragment } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
-import "../embudoDeCorte.css";
+import "./embudoDeRespuestas.css";
 
 /**
  * El embudo de Avance contado por respuestas: las que llegaron, las que cruzan
@@ -29,41 +31,51 @@ export function EmbudoDeRespuestas() {
     return <VacioDeBloque vacio="cargando" icono={null} titulo="Contando las respuestas del corte." descripcion="El embudo llega con los casos." />;
   }
 
+  const base = Math.max(1, embudo.recibidas);
   const pasos = [
     { key: "ingesta", label: "Respuestas", value: embudo.recibidas, hint: "llegaron de las encuestas" },
     { key: "procesable", label: "Cruzan", value: embudo.cruzan, hint: "están en las bases de envío" },
-    { key: "oficial", label: "Efectivas", value: embudo.efectivas, hint: "respuestas que cuentan como avance" },
+    { key: "oficial", label: "Efectivas", value: embudo.efectivas, hint: "cuentan como avance" },
   ];
-  const mermas = [
-    { clave: "sin-llave", valor: embudo.sinLlave, regla: "llegaron sin llave (pruebas o enlace sin id)", direccion: "seccion=control&pestana=respuestas" },
-    { clave: "sin-cruce", valor: embudo.sinCruce, regla: "traen una llave que no está en las bases", direccion: "seccion=control&pestana=resolver" },
-    { clave: "no-cuentan", valor: embudo.noCuentan, regla: "cruzan pero no cuentan: parciales, rechazos o repetidas", direccion: "seccion=control&pestana=respuestas" },
-  ].filter((merma) => merma.valor > 0);
+  // Cada merma va en el tramo donde se pierde, no en una fila suelta debajo
+  // (Gonzalo, 30/10: el embudo «podría verse mejor»).
+  const tramos = [
+    [
+      { clave: "sin-llave", valor: embudo.sinLlave, regla: "sin llave (pruebas o enlace sin id)", direccion: "seccion=control&pestana=respuestas" },
+      { clave: "sin-cruce", valor: embudo.sinCruce, regla: "con llave fuera de las bases", direccion: "seccion=control&pestana=resolver" },
+    ],
+    [
+      { clave: "no-cuentan", valor: embudo.noCuentan, regla: "parciales, rechazos o repetidas", direccion: "seccion=control&pestana=respuestas" },
+    ],
+  ].map((mermas) => mermas.filter((merma) => merma.valor > 0));
 
   return (
-    <section className="mon-acr-embudo is-avance" aria-label="Embudo de las respuestas del corte">
-      <ol className="mon-acr-embudo-pasos">
-        {pasos.map((paso, index) => (
-          <li key={paso.key} className={`is-${paso.key}`}>
-            <strong>{fmt(paso.value)}</strong>
-            <em>{paso.label}</em>
-            <small>{paso.hint}</small>
-            {index < pasos.length - 1 ? <i aria-hidden="true" /> : null}
-          </li>
-        ))}
-      </ol>
-      {mermas.length ? (
-        <ul className="mon-acr-embudo-mermas" aria-label="Respuestas que no llegan al avance">
-          {mermas.map((merma) => (
-            <li key={merma.clave}>
-              <button type="button" onClick={() => irA(merma.direccion)} title="Ver estas respuestas">
-                <strong>&minus;{fmt(merma.valor)}</strong>
-                <span>{merma.regla}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+    <section className="acr-emb" aria-label="Embudo de las respuestas del corte">
+      {pasos.map((paso, index) => {
+        const mermas = tramos[index] ?? [];
+        const perdidas = mermas.reduce((suma, merma) => suma + merma.valor, 0);
+        return (
+          <Fragment key={paso.key}>
+            <div className={`acr-emb-paso is-${paso.key}`}>
+              <span className="acr-emb-rotulo">{paso.label}</span>
+              <b className="acr-av-num">{fmt(paso.value)}</b>
+              <span className="acr-emb-pista" aria-hidden="true"><i style={{ width: `${Math.min(100, (paso.value / base) * 100)}%` }} /></span>
+              <small title={paso.hint}>{index === 0 ? paso.hint : `${pctConEspacio((paso.value / base) * 100)} de las respuestas`}</small>
+            </div>
+            {index < pasos.length - 1 ? (
+              <div className="acr-emb-tramo" aria-label={`Se pierden ${fmt(perdidas)} entre ${paso.label} y ${pasos[index + 1].label}`}>
+                <span className="acr-emb-flecha" aria-hidden="true" />
+                {perdidas > 0 ? <b className="acr-av-num">&minus;{fmt(perdidas)}</b> : <span className="acr-av-tenue">sin pérdidas</span>}
+                {mermas.map((merma) => (
+                  <button key={merma.clave} type="button" className="acr-emb-merma" onClick={() => irA(merma.direccion)} title="Ver estas respuestas">
+                    <span className="acr-av-num">{fmt(merma.valor)}</span> {merma.regla}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </Fragment>
+        );
+      })}
     </section>
   );
 }
