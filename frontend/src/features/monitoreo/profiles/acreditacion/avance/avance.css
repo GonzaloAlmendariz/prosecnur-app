@@ -2100,3 +2100,65 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-vc-grupo-nombre strong {
   font-size: 13.5px;
 }
+
+/* Variables de control › Tablas del reporte (30/10): las pestañas son el mismo
+ * control con relieve del resto del perfil, a la medida de su contenido; nada de
+ * una barra roja de ancho completo (botón dentro de botón). Conservan su tablist. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs.pulso-gliding-tab-list {
+  /* El indicador deslizante pinta la elegida: tono suave del módulo y texto oscuro. */
+  --pulso-gliding-indicator-bg: color-mix(in srgb, var(--pulso-module-monitoring) 11%, var(--pulso-surface-2));
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: inset 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  --pulso-gliding-active-color: color-mix(in srgb, var(--pulso-module-monitoring) 72%, var(--pulso-text));
+  display: inline-flex;
+  align-self: flex-start;
+  width: auto;
+  max-width: calc(100% - 2 * var(--pulso-space-4));
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-border-strong));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  transform: none;
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button + button {
+  border-left: 1px solid var(--pulso-border);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  color: var(--pulso-text);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+/* Una tabla debajo de otra, a todo el ancho: lado a lado se cortaba la de la izquierda. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-blocks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+}
