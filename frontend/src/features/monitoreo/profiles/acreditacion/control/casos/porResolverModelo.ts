@@ -3,7 +3,7 @@ import type {
   MonitoreoInternalQueryCase,
   MonitoreoInternalQueryIssue,
 } from "../../../../../../api/client";
-import { internalCaseResponseStateLabel, internalCaseResponseStateValue } from "../../../../internalQueries";
+import { internalCaseResponseStateLabel, internalCaseResponseStateValue, mergeAssignmentCandidates } from "../../../../internalQueries";
 import {
   assistedCandidateEvidenceLevel,
   assistedCandidateEvidenceRank,
@@ -182,13 +182,24 @@ export function avisoSinExplicacion(aviso: string): string {
   return cabeza ? `${cabeza}.` : aviso;
 }
 
-export function modeloDeDecision(caso: MonitoreoInternalQueryCase, estado: EstadoDeDecision): ModeloDeDecision {
+/**
+ * `padron` son las personas asignables del público del caso, que el panel pide
+ * aparte (`usePersonasAsignables`). Se suman a las propias del caso para
+ * elegir a quién asignar; «lo que encontró el motor» sigue siendo sólo lo que
+ * el cruce trae con el caso.
+ */
+export function modeloDeDecision(
+  caso: MonitoreoInternalQueryCase,
+  estado: EstadoDeDecision,
+  padron: readonly MonitoreoAssistedReviewCandidate[] = [],
+): ModeloDeDecision {
   const review = caso.assisted_review;
   const candidatos = Array.isArray(review?.candidates) ? review.candidates : [];
-  const asignables = Array.isArray(review?.assignment_candidates) ? review.assignment_candidates : [];
+  const propios = Array.isArray(review?.assignment_candidates) ? review.assignment_candidates : [];
+  const asignables = mergeAssignmentCandidates(propios, [...padron]);
   const avisos = (Array.isArray(review?.warnings) ? review.warnings : []).map((aviso) => avisoSinExplicacion(texto(aviso))).filter(Boolean);
   const nombre = (candidato: MonitoreoAssistedReviewCandidate) => texto(candidato.person_label || candidato.case_key);
-  const evidencia = unicos([...candidatos, ...asignables])
+  const evidencia = unicos([...candidatos, ...propios])
     .sort((a, b) => assistedCandidateEvidenceRank(a) - assistedCandidateEvidenceRank(b) || ORDEN_ES.compare(nombre(a), nombre(b)));
   const todas = unicos([...candidatos, ...asignables], (candidato) => assistedReviewFlagTruthy(candidato.already_effective))
     .sort((a, b) => ORDEN_ES.compare(nombre(a), nombre(b)));

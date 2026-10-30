@@ -226,3 +226,45 @@ test_that("los registros de un data.frame salen iguales que fila por fila", {
   expect_identical(.monitoreo_report_records(data.frame()), list())
   expect_identical(.monitoreo_report_records(df[, 0]), ref_records(df[, 0]))
 })
+
+# --- Personas asignables bajo demanda (Control › Por resolver) ---------------
+# En acreditación el pool ya no viaja con `queries_summary` (4.6 MB de 16.4 a
+# 45 mil personas); el panel del caso lo pide a
+# GET /api/monitoreo/acreditacion/assignment-pool.
+
+test_that("acreditación deja el pool fuera de la respuesta y telefónico lo conserva", {
+  fx <- universo_y_respuestas(30L)
+  iq <- .monitoreo_acreditacion_internal_queries_impl(fx$data, fx$profile)
+  dashboard <- list(acreditacion_reports = list(internal_queries = iq))
+
+  acr <- .monitoreo_acreditacion_dashboard_para_cliente(dashboard, "acreditacion")$acreditacion_reports$internal_queries
+  expect_null(acr$assignment_pool)
+  # Los casos siguen nombrando su pool: es la llave con que el panel lo pide.
+  claves <- unlist(lapply(decodificar_columnas(acr$cases), function(c) c$assisted_review$assignment_pool_key))
+  expect_true("estudiantes de pregrado" %in% claves)
+
+  tel <- .monitoreo_acreditacion_dashboard_para_cliente(dashboard, "telefonico")$acreditacion_reports$internal_queries
+  expect_named(tel$assignment_pool, "estudiantes de pregrado")
+})
+
+test_that("el endpoint del pool sirve las mismas personas que viajaban con el scope", {
+  fx <- universo_y_respuestas(30L)
+  iq <- .monitoreo_acreditacion_internal_queries_impl(fx$data, fx$profile)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  # Sin consultas del corte en la sesión: aún se prepara, no es un error.
+  vacio <- monitoreo_acreditacion_pool_asignable(sid, "estudiantes de pregrado")
+  expect_true(vacio$preparando)
+  expect_null(vacio$personas)
+
+  session_set(sid, "monitoreo_dashboard_cache_queries_summary", list(acreditacion_reports = list(internal_queries = iq)))
+  out <- monitoreo_acreditacion_pool_asignable(sid, "estudiantes de pregrado")
+  expect_false(out$preparando)
+  expect_identical(out$total, 27L)
+  antes <- .monitoreo_internal_queries_para_cliente(iq)$assignment_pool[["estudiantes de pregrado"]]
+  expect_identical(out$personas, antes)
+
+  expect_error(monitoreo_acreditacion_pool_asignable(sid, ""), "Falta el público")
+  expect_error(monitoreo_acreditacion_pool_asignable(sid, "docentes"), "no tiene personas asignables")
+})

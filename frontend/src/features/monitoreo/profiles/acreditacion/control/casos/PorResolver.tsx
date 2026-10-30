@@ -203,6 +203,7 @@ export function PorResolver({
       {enPanel ? (
         <PanelCaso
           fila={enPanel}
+          corte={consultas}
           elegido={Boolean(elegida)}
           ocupado={Boolean(ocupadoId) && ocupadoId === enPanel.responseId}
           estado={estado ?? null}

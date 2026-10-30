@@ -8,11 +8,13 @@
 #
 # El resultado es el mismo que antes, con un solo cambio de forma: la lista de
 # personas del universo a las que se puede asignar a mano una respuesta ya no
-# se copia en cada caso. Viaja una vez por actor en
+# se copia en cada caso. Vive una vez por actor en
 # `internal_queries$assignment_pool` y cada caso la nombra con
-# `assisted_review$assignment_pool_key`. El normalizador del front
-# (`normalizeInternalQueries`) y la validación del servidor
-# (`.monitoreo_acreditacion_apply_case_reconciliation`) la vuelven a unir.
+# `assisted_review$assignment_pool_key`. La validación del servidor
+# (`.monitoreo_acreditacion_apply_case_reconciliation`) la vuelve a unir; en
+# acreditación el navegador la pide bajo demanda
+# (`monitoreo_acreditacion_pool_asignable.R`) y en telefónico viaja en la
+# respuesta y la une `normalizeInternalQueries`.
 
 # --- Revisión asistida -------------------------------------------------------
 
@@ -521,12 +523,16 @@
   list(formato = "indices_v1", indices = I(pos - 1L))
 }
 
-.monitoreo_internal_queries_para_cliente <- function(internal_queries) {
+# `con_pool = FALSE` deja fuera las personas asignables: en acreditación el
+# panel del caso las pide aparte (`monitoreo_acreditacion_pool_asignable.R`).
+.monitoreo_internal_queries_para_cliente <- function(internal_queries, con_pool = TRUE) {
   if (!is.list(internal_queries) || !is.list(internal_queries$cases) || !length(internal_queries$cases)) return(internal_queries)
   out <- internal_queries
   out$case_rollup <- .monitoreo_transporte_indices(internal_queries$case_rollup, internal_queries$cases)
   out$cases <- .monitoreo_transporte_columnas(internal_queries$cases)
-  if (length(internal_queries$assignment_pool)) {
+  if (!isTRUE(con_pool)) {
+    out$assignment_pool <- NULL
+  } else if (length(internal_queries$assignment_pool)) {
     out$assignment_pool <- lapply(internal_queries$assignment_pool, .monitoreo_transporte_columnas)
   }
   out
@@ -535,9 +541,13 @@
 # Lo que sale al navegador del tablero de acreditación o telefónico: la
 # reparación de caché y el transporte compacto de las consultas internas. Sólo
 # para la respuesta; la caché de sesión y los motores siguen con registros.
-.monitoreo_acreditacion_dashboard_para_cliente <- function(dashboard) {
+# Telefónico conserva el pool en la respuesta: su panel de casos lo lee ahí.
+.monitoreo_acreditacion_dashboard_para_cliente <- function(dashboard, family) {
   dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
   if (!is.list(dashboard) || !is.list(dashboard$acreditacion_reports)) return(dashboard)
-  dashboard$acreditacion_reports$internal_queries <- .monitoreo_internal_queries_para_cliente(dashboard$acreditacion_reports$internal_queries)
+  dashboard$acreditacion_reports$internal_queries <- .monitoreo_internal_queries_para_cliente(
+    dashboard$acreditacion_reports$internal_queries,
+    con_pool = !identical(.monitoreo_scalar(family, ""), "acreditacion")
+  )
   dashboard
 }

@@ -767,18 +767,27 @@ function assistedCandidateIsUseful(candidate: MonitoreoAssistedReviewCandidate) 
 type AssignmentPool = Map<string, MonitoreoAssistedReviewCandidate[]>;
 const EMPTY_ASSIGNMENT_POOL: AssignmentPool = new Map();
 
-/** El universo asignable de cada actor llega una sola vez; se normaliza una vez y lo comparten sus casos. */
+/** Las personas asignables de un público, del transporte `columnas_v1` o en registros sueltos. */
+export function normalizarPersonasAsignables(value: unknown): MonitoreoAssistedReviewCandidate[] {
+  return transportRecords<MonitoreoAssistedReviewCandidate>(value).map(normalizeAssistedCandidate).filter(assistedCandidateIsUseful);
+}
+
+/**
+ * El universo asignable de cada actor llega una sola vez; se normaliza una vez
+ * y lo comparten sus casos. Sólo telefónico lo trae en la respuesta: en
+ * acreditación el panel del caso lo pide aparte (`usePersonasAsignables`).
+ */
 function normalizeAssignmentPool(value: MonitoreoInternalQueries["assignment_pool"]): AssignmentPool {
   if (!value || typeof value !== "object") return EMPTY_ASSIGNMENT_POOL;
   const pool: AssignmentPool = new Map();
   Object.entries(value).forEach(([key, candidates]) => {
-    pool.set(key, transportRecords<MonitoreoAssistedReviewCandidate>(candidates).map(normalizeAssistedCandidate).filter(assistedCandidateIsUseful));
+    pool.set(key, normalizarPersonasAsignables(candidates));
   });
   return pool;
 }
 
 /** Candidatos propios del caso (traen la evidencia) más el universo de su actor, sin repetir persona. */
-function mergeAssignmentCandidates(own: MonitoreoAssistedReviewCandidate[], shared: MonitoreoAssistedReviewCandidate[]) {
+export function mergeAssignmentCandidates(own: MonitoreoAssistedReviewCandidate[], shared: MonitoreoAssistedReviewCandidate[]) {
   if (!shared.length) return own;
   if (!own.length) return shared;
   const ownIds = new Set(own.map((candidate) => candidate.candidate_id).filter(Boolean));
@@ -820,6 +829,7 @@ function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefin
     declared_name: cleanString(value.declared_name),
     candidates,
     assignment_candidates: assignmentCandidates,
+    assignment_pool_key: cleanString(value.assignment_pool_key) || undefined,
     warnings,
     manual_decision: manual,
   };

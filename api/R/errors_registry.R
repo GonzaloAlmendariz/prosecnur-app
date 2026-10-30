@@ -693,6 +693,8 @@ errores_registrados <- function() {
     "E_MONITOREO_HF_DISABLED",                               "dashboard_publish.R",               "410",
     "E_MONITOREO_INTERNAL_CONFIRMATION",                     "router_monitoreo.R",                "400",
     "E_MONITOREO_NO_SNAPSHOT",                               "router_monitoreo.R",                "409",
+    "E_MONITOREO_POOL_KEY",                                  "monitoreo_acreditacion_pool_asignable.R", "400",
+    "E_MONITOREO_POOL_NOT_FOUND",                            "monitoreo_acreditacion_pool_asignable.R", "404",
     "E_MONITOREO_NOTE_REQUIRED",                             "router_monitoreo.R",                "400",
     "E_MONITOREO_SUPERVISION_AGREGADO",                      "monitoreo_supervision_rondas.R",    "400",
     "E_MONITOREO_SUPERVISION_HOJA",                          "monitoreo_supervision_rondas.R",    "409",
