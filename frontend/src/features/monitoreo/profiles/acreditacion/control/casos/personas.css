@@ -7,7 +7,9 @@
 
 .acr-ps-izquierda {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Alto natural (K1): «Quiénes respondieron» no se estira con un hueco abajo. */
+  grid-template-rows: auto auto;
+  align-self: start;
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
@@ -183,4 +185,11 @@
  * y pegada al scroll de la página tapaba la primera fila (QA 30/10, 1280x720). */
 .acr-ps-estados thead th {
   position: static;
+}
+
+/* Personas: el buscador cede ancho para que «Exportar CSV» quede en la misma fila
+ * que los estados (en Respuestas conserva sus 300 px para su ejemplo largo). */
+.acr-ps:not(.is-respuestas) .acr-ps-filtros .acr-pr-buscador {
+  flex: 1 1 200px;
+  min-width: 180px;
 }

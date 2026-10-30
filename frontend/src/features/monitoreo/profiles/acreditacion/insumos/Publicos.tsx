@@ -10,7 +10,7 @@ import { claveDeActor } from "../../../fuentes/rosterDeActores";
 import { fmt } from "../formato";
 import { corteCorto } from "../../../core/barraComun";
 import { useElencoDeActores } from "../fuentes/useElencoDeActores";
-import { canalesDeLaMatriz, celda, padronesPorPublico, servicioDe, type PadronDelPublico } from "./publicosModelo";
+import { canalesDeLaMatriz, celda, fuenteRepiteAlPublico, nombreVisibleDeFuente, padronesPorPublico, servicioDe, type PadronDelPublico } from "./publicosModelo";
 import { useEstadoDeCuotas } from "./useEstadoDeCuotas";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
@@ -20,10 +20,6 @@ import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 
 /** El padrón de un público es un panel direccionable: `panel=publico&foco=<público>`. */
 export const PANEL_PADRON: PanelDeclarado = { id: "publico", label: "Padrón del público", clase: "inspector" };
-
-function nombreDeFuente(fuente: MonitoreoSource) {
-  return fuente.label || fuente.survey_title || fuente.id;
-}
 
 function PanelDelPadron({
   fila,
@@ -51,7 +47,7 @@ function PanelDelPadron({
           <span className="acr-av-antetitulo">Fuente del padrón</span>
           {fila.padrones.length ? fila.padrones.map((fuente) => (
             <dl key={fuente.id} className="acr-pr-datos">
-              <div className="acr-pr-dato"><dt>Fuente</dt><dd>{nombreDeFuente(fuente)}</dd></div>
+              <div className="acr-pr-dato"><dt>Fuente</dt><dd>{nombreVisibleDeFuente(fuente)}</dd></div>
               <div className="acr-pr-dato"><dt>Servicio</dt><dd>{servicioDe(fuente)}</dd></div>
               <div className="acr-pr-dato"><dt>Personas</dt><dd className="acr-av-num">{fila.personas == null ? "—" : fmt(fila.personas)}</dd></div>
               <div className="acr-pr-dato"><dt>Última lectura</dt><dd>{fuente.last_sync_at ? corteCorto(fuente.last_sync_at) : "Sin leer"}</dd></div>
@@ -90,7 +86,7 @@ function PanelDelPadron({
             <ul className="acr-in-variables">
               {[...fila.encuestas, ...fila.barridos].map((fuente) => (
                 <li key={fuente.id}>
-                  <span>{nombreDeFuente(fuente)}</span>
+                  <span>{nombreVisibleDeFuente(fuente)}</span>
                   <span className="acr-av-tenue">{servicioDe(fuente)}</span>
                 </li>
               ))}
@@ -196,7 +192,19 @@ export function Publicos({
                         {repetido ? <Alert kind="warn">Ya hay otro público con este nombre.</Alert> : null}
                         {renombrado ? <Alert kind="info">{`Al guardar, «${borrador.guardadoComo}» pasa a llamarse así en ${fuentes === 1 ? "su única fuente" : `sus ${fmt(fuentes)} fuentes`}.`}</Alert> : null}
                       </th>
-                      <td>{fila?.padrones.length ? fila.padrones.map(nombreDeFuente).join(", ") : <span className="acr-av-chip is-falta">Sin padrón</span>}</td>
+                      <td>
+                        {/* Cada padrón como etiqueta de su servicio; el nombre sólo si dice algo más que el público. */}
+                        {fila?.padrones.length ? (
+                          <span className="acr-in-padrones">
+                            {fila.padrones.map((fuente) => (
+                              <span key={fuente.id} className="acr-in-padron">
+                                <small className="acr-in-servicio">{servicioDe(fuente)}</small>
+                                {fuenteRepiteAlPublico(fuente, fila.publico) ? null : <span>{nombreVisibleDeFuente(fuente)}</span>}
+                              </span>
+                            ))}
+                          </span>
+                        ) : <span className="acr-av-chip is-falta">Sin padrón</span>}
+                      </td>
                       <td className="is-num">{fila?.personas == null ? "—" : fmt(fila.personas)}</td>
                       <td>
                         <span className="acr-in-canales">

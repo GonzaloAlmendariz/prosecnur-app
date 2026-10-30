@@ -351,3 +351,25 @@
   background: color-mix(in srgb, var(--pulso-warn-fg) 12%, var(--pulso-surface));
   color: var(--pulso-warn-fg);
 }
+
+/* Públicos › columna Padrón: el servicio como etiqueta y, si hace falta, el nombre. */
+.acr-in-padrones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acr-in-padron {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-in-servicio {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}

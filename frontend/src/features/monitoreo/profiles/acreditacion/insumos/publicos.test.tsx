@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoActorUnit, MonitoreoSource } from "../../../../../api/client";
-import { canalesDeLaMatriz, celda, padronesPorPublico } from "./publicosModelo";
+import { canalesDeLaMatriz, celda, fuenteRepiteAlPublico, nombreVisibleDeFuente, padronesPorPublico } from "./publicosModelo";
 import { Publicos } from "./Publicos";
 
 const fuente = (id: string, role: string, kind: string, actor: string, canal = ""): MonitoreoSource =>
@@ -56,5 +56,14 @@ describe("Insumos › Públicos", () => {
     expect(html).toContain("Llave de cruce");
     expect(html).toContain('<span class="acr-in-columna">Token</span>');
     expect(html).not.toMatch(/acr-in-llave"><li><span class="acr-av-tenue/);
+  });
+});
+
+describe("nombre visible de una fuente", () => {
+  it("quita el papel de la etiqueta guardada y reconoce cuándo repite al público", () => {
+    const padron = fuente("Universo · Egresados", "universo", "google_sheets", "Egresados");
+    expect(nombreVisibleDeFuente(padron)).toBe("Egresados");
+    expect(fuenteRepiteAlPublico(padron, "egresados")).toBe(true);
+    expect(nombreVisibleDeFuente(fuente("Acreditación 2026 - Egresados", "respuestas", "surveymonkey", "Egresados"))).toBe("Acreditación 2026 - Egresados");
   });
 });

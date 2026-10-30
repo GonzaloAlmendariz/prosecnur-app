@@ -26,6 +26,24 @@ export type PadronDelPublico = {
 
 const SERVICIO: Record<string, string> = { google_sheets: "Google Sheets", surveymonkey: "SurveyMonkey", kobo: "Kobo" };
 
+/**
+ * El nombre de una fuente tal como se muestra: sin el prefijo de papel que lleva
+ * la etiqueta guardada («Universo · Profesores» -> «Profesores»). La etiqueta no se
+ * toca porque el motor lee de ella el público; lo que cambia es la lectura.
+ */
+export function nombreVisibleDeFuente(fuente: MonitoreoSource): string {
+  const crudo = String(fuente.label || fuente.survey_title || fuente.id || "").trim();
+  const partes = crudo.split(/\s+[·•|–-]\s+/).map((parte) => parte.trim()).filter(Boolean);
+  if (partes.length > 1 && /^(universo|padr[oó]n|base)$/i.test(partes[0])) return partes.slice(1).join(" ");
+  return crudo;
+}
+
+/** ¿El nombre visible de la fuente no dice más que el público? Entonces basta el servicio. */
+export function fuenteRepiteAlPublico(fuente: MonitoreoSource, publico: string): boolean {
+  const normal = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return normal(nombreVisibleDeFuente(fuente)) === normal(publico);
+}
+
 export function servicioDe(fuente: MonitoreoSource) {
   return SERVICIO[String(fuente.kind ?? "")] ?? "Fuente";
 }
