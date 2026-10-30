@@ -122,6 +122,10 @@ export type ModeloDeDecision = {
   evidencia: MonitoreoAssistedReviewCandidate[];
   /** Personas asignables: sin efectiva todavía. */
   opciones: MonitoreoAssistedReviewCandidate[];
+  /** Las que se pintan: las primeras `MAX_OPCIONES_VISIBLES`, más la elegida si quedó fuera. */
+  opcionesVisibles: MonitoreoAssistedReviewCandidate[];
+  /** Cuántas asignables no se pintan; la búsqueda las alcanza. */
+  opcionesOcultas: number;
   /** Coincidencias de la búsqueda que ya tienen efectiva: se muestran, no se asignan. */
   yaAsignadas: MonitoreoAssistedReviewCandidate[];
   seleccionada: MonitoreoAssistedReviewCandidate | null;
@@ -134,6 +138,15 @@ export type ModeloDeDecision = {
   motivoParaNoAsignar: string;
   candidatoId: string;
 };
+
+/**
+ * El padrón de un público puede tener decenas de miles de personas (22 820 en
+ * pregrado de Acreditación Institucional PUCP 2026). Ordenarlas con
+ * `localeCompare` y pintar una fila por persona trababa Por resolver ~3 s en
+ * cada entrada: se ordena con un `Intl.Collator` y se pintan las primeras.
+ */
+export const MAX_OPCIONES_VISIBLES = 50;
+const ORDEN_ES = new Intl.Collator("es");
 
 function unicos(lista: readonly MonitoreoAssistedReviewCandidate[], excluir?: (candidato: MonitoreoAssistedReviewCandidate) => boolean) {
   const vistos = new Set<string>();
@@ -176,15 +189,18 @@ export function modeloDeDecision(caso: MonitoreoInternalQueryCase, estado: Estad
   const avisos = (Array.isArray(review?.warnings) ? review.warnings : []).map((aviso) => avisoSinExplicacion(texto(aviso))).filter(Boolean);
   const nombre = (candidato: MonitoreoAssistedReviewCandidate) => texto(candidato.person_label || candidato.case_key);
   const evidencia = unicos([...candidatos, ...asignables])
-    .sort((a, b) => assistedCandidateEvidenceRank(a) - assistedCandidateEvidenceRank(b) || nombre(a).localeCompare(nombre(b), "es"));
+    .sort((a, b) => assistedCandidateEvidenceRank(a) - assistedCandidateEvidenceRank(b) || ORDEN_ES.compare(nombre(a), nombre(b)));
   const todas = unicos([...candidatos, ...asignables], (candidato) => assistedReviewFlagTruthy(candidato.already_effective))
-    .sort((a, b) => nombre(a).localeCompare(nombre(b), "es"));
+    .sort((a, b) => ORDEN_ES.compare(nombre(a), nombre(b)));
   const consulta = normalizeCaseSearch(estado.busqueda);
   const opciones = todas.filter((candidato) => coincide(candidato, consulta));
   const yaAsignadas = consulta
     ? evidencia.filter((candidato) => assistedReviewFlagTruthy(candidato.already_effective) && coincide(candidato, consulta))
     : [];
   const seleccionada = todas.find((candidato) => assistedCandidateId(candidato) === estado.seleccion) ?? null;
+  const opcionesVisibles = opciones.slice(0, MAX_OPCIONES_VISIBLES);
+  if (seleccionada && !opcionesVisibles.includes(seleccionada) && opciones.includes(seleccionada)) opcionesVisibles.push(seleccionada);
+  const opcionesOcultas = opciones.length - opcionesVisibles.length;
   const respuesta = internalCaseResponseStateValue(caso);
   const completa = normalizeCaseSearch(internalCaseResponseStateLabel(respuesta)).includes("completa")
     || normalizeCaseSearch(caso.platform_state).includes("completa");
@@ -210,6 +226,8 @@ export function modeloDeDecision(caso: MonitoreoInternalQueryCase, estado: Estad
   return {
     evidencia,
     opciones,
+    opcionesVisibles,
+    opcionesOcultas,
     yaAsignadas,
     seleccionada,
     avisos,

@@ -255,8 +255,25 @@ export function internalQueryTemplateById(id: string) {
   return INTERNAL_QUERY_TEMPLATES.find((template) => template.id === id) ?? INTERNAL_QUERY_TEMPLATES[0];
 }
 
+/**
+ * Un payload ya decodificado no se vuelve a decodificar. La bandeja de un
+ * universo grande (45 mil personas en Acreditación Institucional PUCP 2026)
+ * cuesta ~350 ms en expandirse, y la página la pedía en cada render desde
+ * varios sitios. El resultado se trata como de sólo lectura: el mismo objeto
+ * de entrada devuelve el mismo objeto decodificado.
+ */
+const decodificadas = new WeakMap<object, MonitoreoInternalQueries>();
+
 export function normalizeInternalQueries(value: MonitoreoInternalQueries | null | undefined): MonitoreoInternalQueries {
   if (!value) return EMPTY_INTERNAL_QUERIES;
+  const previa = decodificadas.get(value);
+  if (previa) return previa;
+  const decodificada = decodificarInternalQueries(value);
+  decodificadas.set(value, decodificada);
+  return decodificada;
+}
+
+function decodificarInternalQueries(value: MonitoreoInternalQueries): MonitoreoInternalQueries {
   const pool = normalizeAssignmentPool(value.assignment_pool);
   const normalizeCase = (item: MonitoreoInternalQueryCase) => normalizeInternalCase(item, pool);
   const cases = transportRecords<MonitoreoInternalQueryCase>(value.cases).map(normalizeCase);

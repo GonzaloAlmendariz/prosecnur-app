@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAssistedReviewCandidate, MonitoreoInternalQueryCase, MonitoreoInternalQueryIssue } from "../../../../../../api/client";
-import { avisoSinExplicacion, filasDeCola, filtrarCola, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
+import { avisoSinExplicacion, filasDeCola, filtrarCola, MAX_OPCIONES_VISIBLES, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
 
 function candidato(parcial: Partial<MonitoreoAssistedReviewCandidate>): MonitoreoAssistedReviewCandidate {
   return {
@@ -108,5 +108,36 @@ describe("avisos del motor en el caso", () => {
     );
     const modelo = modeloDeDecision(caso({ assisted_review: { warnings: [aviso] } }), { seleccion: "", confirmado: false, nota: "", busqueda: "" });
     expect(modelo.avisos).toEqual(["Hay personas pendientes del universo con correo, código o nombre compatible."]);
+  });
+});
+
+describe("padrón grande: se pintan las primeras y la búsqueda alcanza al resto", () => {
+  const padron = Array.from({ length: 300 }, (_, i) => candidato({
+    candidate_id: `p-${String(i).padStart(3, "0")}`,
+    person_label: `Persona ${String(i).padStart(3, "0")}`,
+    case_key: `cód. ${i}`,
+    evidence_level: "manual",
+  }));
+  const grande = caso({ assisted_review: { candidates: [], assignment_candidates: padron } });
+  const vacio = { seleccion: "", confirmado: false, nota: "", busqueda: "" };
+
+  it("pinta MAX_OPCIONES_VISIBLES en orden y cuenta las ocultas", () => {
+    const modelo = modeloDeDecision(grande, vacio);
+    expect(modelo.opciones).toHaveLength(300);
+    expect(modelo.opcionesVisibles).toHaveLength(MAX_OPCIONES_VISIBLES);
+    expect(modelo.opcionesVisibles[0].candidate_id).toBe("p-000");
+    expect(modelo.opcionesOcultas).toBe(300 - MAX_OPCIONES_VISIBLES);
+  });
+
+  it("la persona elegida sigue visible aunque quede fuera de las primeras", () => {
+    const modelo = modeloDeDecision(grande, { ...vacio, seleccion: "p-250" });
+    expect(modelo.opcionesVisibles.at(-1)?.candidate_id).toBe("p-250");
+    expect(modelo.seleccionada?.candidate_id).toBe("p-250");
+  });
+
+  it("la búsqueda encuentra a quien no estaba entre las primeras", () => {
+    const modelo = modeloDeDecision(grande, { ...vacio, busqueda: "Persona 287" });
+    expect(modelo.opcionesVisibles.map((item) => item.candidate_id)).toEqual(["p-287"]);
+    expect(modelo.opcionesOcultas).toBe(0);
   });
 });

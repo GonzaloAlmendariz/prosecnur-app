@@ -6,6 +6,7 @@ import type { MonitoreoInternalQueryCase } from "../../../../../../api/client";
 import { motivoDeNoCruce } from "../../../../core/motivoDeNoCruce";
 import { internalCaseCrossingValue, internalCaseResponseStateLabel, internalCaseResponseStateValue } from "../../../../internalQueries";
 import { fechaCorta } from "../../avance/graficosDeAvance";
+import { fmt } from "../../formato";
 import { assistedCandidateEvidenceLabel, assistedCandidateEvidenceLevel, assistedCandidateId } from "./revisionAsistida";
 import { modeloDeDecision, payloadDeDecision, type FilaDeCola, type PayloadDeDecision } from "./porResolverModelo";
 
@@ -166,9 +167,12 @@ export function PanelCaso({
                 aria-label="Buscar en el padrón"
               />
             </label>
+            {modelo.opcionesOcultas > 0 ? (
+              <small className="acr-av-tenue">{`Se muestran ${fmt(modelo.opcionesVisibles.length)} de ${fmt(modelo.opciones.length)}; ${busqueda ? "afina la búsqueda" : "busca para encontrar al resto"}.`}</small>
+            ) : null}
             {modelo.opciones.length ? (
               <ul className="acr-pr-personas" data-qa-geometry-capacity="owned">
-                {modelo.opciones.map((candidato) => {
+                {modelo.opcionesVisibles.map((candidato) => {
                   const id = assistedCandidateId(candidato);
                   const activa = id === seleccion;
                   return (

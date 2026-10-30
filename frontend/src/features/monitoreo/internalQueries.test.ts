@@ -132,6 +132,15 @@ describe("internalQueries", () => {
     expect(summary.duplicates).toBe(1);
   });
 
+  it("decodifica una sola vez el mismo payload y otro payload por separado", () => {
+    const primera = normalizeInternalQueries(model);
+    expect(normalizeInternalQueries(model)).toBe(primera);
+    const copia = structuredClone(model);
+    const otra = normalizeInternalQueries(copia);
+    expect(otra).not.toBe(primera);
+    expect(otra).toEqual(primera);
+  });
+
   it("filters by text and stable option sets", () => {
     const normalized = normalizeInternalQueries(model);
     const filtered = filterInternalQueryCases(normalized.cases, {
