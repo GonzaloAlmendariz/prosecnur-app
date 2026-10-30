@@ -10,11 +10,16 @@ import { fmt } from "../formato";
 import type { FuenteDelMaestro } from "./fuentesModelo";
 import "./repartoDeLaFuente.css";
 
-/** El mapa guardado de la fuente (R lo serializa `[]` cuando está vacío). */
+/** Clave de un valor como la compara el motor (`.monitoreo_text_key`): sin mayúsculas ni tildes. */
+export function claveDeValor(valor: string): string {
+  return String(valor ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** El mapa guardado de la fuente (R lo serializa `[]` cuando está vacío; sus claves vuelven normalizadas). */
 export function mapaGuardado(fuente: FuenteDelMaestro["fuente"]): Record<string, string> {
   const crudo = fuente.actor_map;
   if (!crudo || Array.isArray(crudo) || typeof crudo !== "object") return {};
-  return Object.fromEntries(Object.entries(crudo).map(([valor, publico]) => [valor, String(publico ?? "")]).filter(([, publico]) => publico));
+  return Object.fromEntries(Object.entries(crudo).map(([valor, publico]) => [claveDeValor(valor), String(publico ?? "")]).filter(([, publico]) => publico));
 }
 
 type Valor = { valor: string; personas: number | null };
@@ -126,9 +131,11 @@ export function RepartoDeLaFuente({
         leyendo ? <p className="acr-rp-ayuda" role="status"><Loader2 size={13} className="pulso-spin" aria-hidden="true" /> Leyendo los valores de {columna}.</p> : (
           <div className="acr-rp-valores" role="group" aria-label={`Valores de ${columna} que pasan al público nuevo`}>
             {(valores ?? []).map((item) => {
-              const activo = elegidos.includes(item.valor);
+              // Lo elegido se guarda por su clave: el motor la devuelve normalizada («centrum»).
+              const clave = claveDeValor(item.valor);
+              const activo = elegidos.includes(clave);
               return (
-                <button key={item.valor} type="button" className={`acr-rp-valor${activo ? " is-activo" : ""}`} aria-pressed={activo} onClick={() => setElegidos((previo) => (activo ? previo.filter((valor) => valor !== item.valor) : [...previo, item.valor]))}>
+                <button key={item.valor} type="button" className={`acr-rp-valor${activo ? " is-activo" : ""}`} aria-pressed={activo} onClick={() => setElegidos((previo) => (activo ? previo.filter((valor) => valor !== clave) : [...previo, clave]))}>
                   {activo ? <Check size={12} aria-hidden="true" /> : null}
                   <span>{item.valor}</span>
                   {item.personas == null ? null : <small className="acr-av-num">{fmt(item.personas)}</small>}
@@ -148,7 +155,7 @@ export function RepartoDeLaFuente({
           const nombre = publicoNuevo.trim();
           void guardar(
             { actor_var: columna, actor_map: Object.fromEntries(elegidos.map((valor) => [valor, nombre])) },
-            `${elegidos.join(" y ")} pasan a ${nombre} al actualizar el corte; el resto queda en ${elegida.publico}.`,
+            `${(valores ?? []).filter((item) => elegidos.includes(claveDeValor(item.valor))).map((item) => item.valor).join(" y ") || "Los valores elegidos"} pasan a ${nombre} al actualizar el corte; el resto queda en ${elegida.publico}.`,
           );
         }}>
           {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Split size={14} aria-hidden="true" />} Guardar reparto
