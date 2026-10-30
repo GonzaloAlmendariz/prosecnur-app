@@ -4283,6 +4283,7 @@ monitoreo_normalize_sources <- function(sources = list()) {
       # Dimensiones que salen de una columna en vez de una constante; ver
       # monitoreo_source_dimension_vars.R.
       actor_var = .monitoreo_source_actor_var(src),
+      actor_map = as.list(.monitoreo_source_actor_map(src)), actor_por_padron = .monitoreo_source_actor_por_padron(src),
       dimension_vars = src$dimension_vars %||% src$dimensionVars %||% list(),
       declared_person_code_var = .monitoreo_scalar(
         src$declared_person_code_var %||%
@@ -15180,6 +15181,7 @@ monitoreo_territorial_map_payload <- function(data, cfg, hojas_ruta_context = NU
 monitoreo_build_dashboard <- function(data, config = list(), include_reports = TRUE, territorial_context = NULL, kobo_schema = NULL, report_scope = "full", cached_acreditacion_reports = NULL) {
   if (is.null(data) || !is.data.frame(data)) data <- data.frame()
   cfg <- monitoreo_normalize_config(config, data)
+  data <- monitoreo_heredar_actor_del_padron(data, cfg$monitoreo_profile) # monitoreo_actor_por_padron.R
   n <- nrow(data)
   valid <- .monitoreo_valid_mask(data, cfg)
   valid_n <- sum(valid, na.rm = TRUE)
@@ -16499,6 +16501,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
 }
 
 .monitoreo_report_summary_df <- function(data, profile, case_rollup = NULL) {
+  data <- monitoreo_heredar_actor_del_padron(data, profile) # monitoreo_actor_por_padron.R
   case_summary <- .monitoreo_acreditacion_summary_from_case_rollup(data, profile, case_rollup = case_rollup)
   if (is.data.frame(case_summary) && nrow(case_summary)) return(case_summary)
 

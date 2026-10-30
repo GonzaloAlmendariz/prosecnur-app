@@ -2288,6 +2288,7 @@
     actor_var = parsed$actor_var %||% parsed$actorVar %||%
       parsed$actor_column %||% parsed$actorColumn %||% "",
     dimension_vars = parsed$dimension_vars %||% parsed$dimensionVars %||% list(),
+    actor_map = parsed$actor_map %||% parsed$actorMap %||% list(), actor_por_padron = isTRUE(parsed$actor_por_padron %||% parsed$actorPorPadron),
     dimensions = parsed$dimensions %||% parsed$dimensiones %||% list(
       actor = parsed$actor %||% "",
       servicio = parsed$servicio %||% "",

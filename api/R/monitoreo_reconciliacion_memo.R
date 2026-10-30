@@ -178,6 +178,8 @@ monitoreo_reconciliacion_memo_reset <- function() {
 # Fachada memoizada: el nombre público que consume todo el engine. El cuerpo
 # histórico vive en .monitoreo_acreditacion_internal_queries_impl (engine).
 .monitoreo_acreditacion_internal_queries <- function(data, profile = list()) {
+  # Antes de la clave del memo: el público heredado del padrón es parte de la entrada.
+  data <- monitoreo_heredar_actor_del_padron(data, profile) # monitoreo_actor_por_padron.R
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) {
     return(.monitoreo_acreditacion_internal_queries_impl(data, profile))
   }

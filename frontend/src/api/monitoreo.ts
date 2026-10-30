@@ -69,6 +69,13 @@ export type MonitoreoSource = {
   declared_person_code_var?: string;
   declared_person_code_label?: string;
   dimensions?: Record<string, string>;
+  /** Columna de la que sale el público de cada fila (padrón compartido por varios públicos). */
+  actor_var?: string;
+  /** Valor de `actor_var` -> público; lo que no está en el mapa queda en el público de la fuente. */
+  actor_map?: Record<string, string> | unknown[];
+  /** Respuestas: el público sale de la fila del padrón con la que cruzan, no de la encuesta. */
+  actor_por_padron?: boolean;
+  dimension_vars?: Record<string, string> | unknown[];
   collectors?: MonitoreoSourceCollector[];
   created_at?: string;
   last_sync_at?: string;
@@ -4585,6 +4592,10 @@ export type MonitoreoSourcePayload = {
   declared_person_code_var?: string;
   declared_person_code_label?: string;
   dimensions?: Record<string, string>;
+  actor_var?: string;
+  actor_map?: Record<string, string>;
+  actor_por_padron?: boolean;
+  dimension_vars?: Record<string, string>;
 };
 
 export type MonitoreoSheetsStatus = {

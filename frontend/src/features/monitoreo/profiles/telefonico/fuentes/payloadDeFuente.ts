@@ -6,6 +6,12 @@
 import type { MonitoreoSource, MonitoreoSourcePayload } from "../../../../../api/client";
 import { sourceSheetField } from "./camposDeFuente";
 
+/** R serializa una lista vacía como `[]`: aquí vuelve a ser un objeto (o nada). */
+function objetoDeTextos(valor: unknown): Record<string, string> | undefined {
+  if (!valor || Array.isArray(valor) || typeof valor !== "object") return undefined;
+  return Object.fromEntries(Object.entries(valor as Record<string, unknown>).map(([clave, texto]) => [clave, String(texto ?? "")]));
+}
+
 export function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>): MonitoreoSourcePayload {
   const fallbackSheetBinding = sourceSheetField(source, "spreadsheet_id")
     ? {
@@ -31,6 +37,12 @@ export function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partia
     declared_person_code_var: source.declared_person_code_var,
     declared_person_code_label: source.declared_person_code_label,
     dimensions: source.dimensions,
+    // El reparto del padrón y la herencia del público viajan siempre: el router
+    // reemplaza la fuente entera, y guardar otro campo los borraba en silencio.
+    actor_var: source.actor_var,
+    actor_map: objetoDeTextos(source.actor_map),
+    actor_por_padron: source.actor_por_padron,
+    dimension_vars: objetoDeTextos(source.dimension_vars),
     ...patch,
   };
 }
