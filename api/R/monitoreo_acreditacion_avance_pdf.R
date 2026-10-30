@@ -313,7 +313,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       list("Encuestas completas", .acav_n(total_comp), "", FALSE)
     ),
     if (con_meta) list(
-      list("Mínimo esperado", .acav_n(total_meta), "", FALSE),
+      list("Mínimo esperado", .acav_n(total_meta), paste(.acav_pct(total_meta, total_uni), "del universo"), FALSE),
       list("Cumplimiento del mínimo", .acav_pct(total_comp, total_meta), paste(.acav_n(total_comp), "de", .acav_n(total_meta)), FALSE),
       list("Faltan para el mínimo", .acav_n(max(0, total_meta - total_comp)), "", FALSE)
     ) else list(
@@ -389,7 +389,11 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     tx(.acav_pct(f$completas, den), cols$pct, cy + 0.008, size = ty$body, col = tk$ink, face = "bold")
     tx(paste(.acav_n(f$completas), "de", .acav_n(den)), cols$pct, cy - 0.010, size = ty$caption, col = tk$soft)
     if (con_meta) {
-      tx(.acav_n(f$meta), cols$minimo, cy, size = ty$body, face = cara, just = c("right", "center"))
+      # Bajo el mínimo, la cobertura que fija la propuesta (mínimo sobre el universo):
+      # así se ve que cada mínimo está alineado con su porcentaje (Gonzalo, 30/10).
+      tx(.acav_n(f$meta), cols$minimo, cy + 0.008, size = ty$body, face = cara, just = c("right", "center"))
+      tx(paste(.acav_pct(f$meta, f$universo), "del universo"), cols$minimo, cy - 0.010, size = ty$caption,
+         col = tk$soft, just = c("right", "center"))
       tx(.acav_pct(f$completas, f$meta), cols$pct_min, cy + 0.008, size = ty$body, face = cara, just = c("right", "center"))
       tx(paste(.acav_n(f$completas), "de", .acav_n(f$meta)), cols$pct_min, cy - 0.010, size = ty$caption,
          col = tk$soft, just = c("right", "center"))
