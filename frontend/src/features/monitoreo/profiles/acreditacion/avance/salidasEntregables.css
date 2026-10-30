@@ -132,3 +132,45 @@
 .acr-sa .mon-outputs-audience-tabs .pulso-gliding-tab-indicator {
   opacity: 0;
 }
+
+/* Cajas dentro de la tarjeta (K4): el bloque del título del PDF, la ficha de la
+ * audiencia de Sheets y el estado de la publicación se leen como filas de la
+ * tarjeta, con una línea fina, no como recuadros anidados. */
+.acr-sa .mon-outputs-portada,
+.acr-sa .mon-outputs-audience-copy {
+  padding: var(--pulso-space-3) 0 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.acr-sa .mon-outputs-status {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.acr-sa .mon-outputs-diagnostics {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+  border-radius: 0;
+  background: transparent;
+}
+
+.acr-sa .mon-outputs-diagnostics summary {
+  padding-inline: 0;
+}
+
+/* El título del PDF de producción: un campo, no un recuadro con otro recuadro dentro. */
+.acr-sa .mon-outputs-production-title {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
