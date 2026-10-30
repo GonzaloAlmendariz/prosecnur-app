@@ -1,4 +1,4 @@
-# Paquete: Territorio por regiones en el lienzo de Hojas de ruta
+# Paquete: Territorio por ciudades en el lienzo de Hojas de ruta
 
 Fecha: 2026-10-29 · Encargo de Gonzalo · Amplía ADR 0119 (ciudades principales) y ADR 0114 (el mapa es el lienzo).
 
@@ -28,73 +28,63 @@ capa de contornos.
 `limaDistrictCoverage.json` lo importan también la página clásica, `poblacion/MapaPoblacion.tsx` y tres vistas de
 Monitoreo territorial. Esos usos no se tocan: el cambio vale solo para el lienzo.
 
-## Decisión de diseño
+## Decisión de diseño (revisada: dirección A · Atlas)
 
-### 1. Tres niveles, y las regiones se marcan primero
+La primera maqueta (`tmp/revamp-hojas-material/territorio-regiones.html`, regiones con interruptores) se descartó:
+«Se ve horrible, necesitamos repensar por completo». La segunda
+(`tmp/revamp-hojas-material/territorio-ciudades.html`) comparó dos direcciones y Gonzalo eligió **A · Atlas**
+(2026-10-29).
 
-1. **Perú.** Solo el contorno nacional y los departamentos, con un trazo muy simplificado (presupuesto ≤ 60 KB,
-   empaquetado en el bundle porque es lo único que se ve antes de elegir). Los 19 departamentos con cartografía se
-   resaltan; el resto se ve apagado y no se puede elegir. Lima Metropolitana y Callao tienen un acceso directo.
-   Aquí se **marcan regiones** con interruptores (en la lista y con clic en el mapa). Marcar no elige distritos.
-2. **Región marcada → ciudades.** Al marcar una región se piden sus contornos al backend: sus provincias y los
-   distritos de sus ciudades. Solo entonces aparecen en el mapa y en la lista.
-3. **Ciudad → distritos.** Lo que existe hoy: la lista de distritos con población y captación, interruptores para
-   elegirlos y clic para ver la ficha.
+### 1. Se elige la ciudad, no la región
 
-Las regiones marcadas son las únicas que el lienzo carga en cualquier sección. Población, Muestra, Manzanas y
-Selección ven solo los distritos confirmados, igual que hoy.
+El investigador decide por ciudad (Arequipa, Piura, Lima y Callao). La región es un detalle de carga: el mapa de una
+ciudad se pide al abrirla, nunca antes.
 
-### 2. Las regiones son parte del estudio
+1. **Atlas del Perú.** El país en blanco, con trazo fino y departamentos tenues. Las 26 ciudades con cartografía son
+   círculos de área proporcional a su población; las del estudio van rellenas en el tono del módulo. Sobre el atlas,
+   «¿Dónde se hace el estudio?».
+2. **Tarjeta de ciudad.** Clic en un círculo: silueta real de la huella urbana, habitantes, distritos, manzanas y la
+   captación del marco contra el CPV 2025 (ADR 0119 §7; bajo 55 % se avisa). Acciones explícitas: «Agregar al
+   estudio», «Elegir distritos» y «Quitar con sus N distritos» (dice cuántos salen).
+3. **Ciudad abierta.** Mapa de sus distritos y, al lado, la lista con interruptores, población, manzanas y captación.
+   Clic en el mapa = ficha del distrito; elegir es con el interruptor. «‹ Todas las ciudades» vuelve al atlas.
+4. **Columna del estudio**, siempre visible: cifras de lo elegido (habitantes, viviendas, manzanas) y cada ciudad del
+   estudio con su silueta y «N de M distritos» o «Elige sus distritos»; Deshacer / Confirmar.
 
-`integrated_config.regiones`: lista de códigos de departamento (2 dígitos; Lima Metropolitana y Callao se marcan
-como `15` + `07`). Se guarda con el estudio y se persiste en el `.pulso`, porque decide qué se carga al abrirlo.
+### 2. Las ciudades son parte del estudio
 
-- Si un estudio viejo no tiene `regiones`, se derivan de `territorios` (departamentos de sus distritos
-  confirmados). Así ningún `.pulso` existente se abre en blanco.
-- Desmarcar una región que tiene distritos confirmados no los borra en silencio: pide confirmación y dice cuántos
-  distritos salen (regla de Gonzalo: «ningún atajo elige o borra en bloque sin decir cuántos y sobre qué»).
-- Es un cambio de contrato del estado: pasa por `guardian-contratos` antes de implementarse (campo declarado,
-  normalizador, test de `estado-normalizado` y `campos-declarados`).
+`integrated_config.ciudades`: lista de códigos de ciudad (`lima` para Lima Metropolitana y Callao, o el código de
+provincia de 4 dígitos). Se guarda con el estudio y se persiste en el `.pulso`, porque una ciudad puede estar en el
+estudio antes de tener distritos elegidos.
 
-### 3. Los contornos se sirven por región
+- Si un estudio viejo no la tiene, se deriva de `territorios`. Ningún `.pulso` existente se abre en blanco.
+- Quitar una ciudad con distritos confirmados lo dice en el botón y saca sus distritos al confirmar.
+- Es un cambio de contrato del estado: pasa por `guardian-contratos` antes (campo declarado, normalizador, contratos
+  `estado-normalizado` y `campos-declarados`).
 
-Endpoint nuevo `GET /api/hojas-ruta/contornos?region=04`, que devuelve un FeatureCollection con:
+### 3. Qué va en el bundle y qué se pide
 
-- los distritos de las ciudades de esa región (Lima y Callao: los 50 del límite oficial);
-- las provincias de la región, para el contexto.
+- En el bundle: el país y los departamentos (`peruDepartamentos.json`, 42 KB) y un **índice de ciudades** con código,
+  nombre, departamento, centro y silueta simplificada para la tarjeta y la columna (presupuesto ~1 KB por ciudad).
+- Bajo demanda, al abrir una ciudad: los contornos de distritos de su región
+  (`GET /api/hojas-ruta/contornos?region=`, ya hecho en R2). Lima y Callao pide `15` y `07`.
+- El contexto distrital de los PDF lee los mismos archivos (R2): en una ciudad trae vecinos.
 
-Desde dónde se sirve:
+### 4. Dirección
 
-- La fuente pasa a `api/inst/hojas_ruta/contornos/<region>.json.gz`, generado por `build_contornos_ciudades.R` y
-  `build_limites_peru.R` partidos por departamento.
-- El router es delgado: valida `region` contra el registro y lee el archivo. La caché del navegador va por versión
-  del registro.
-- El mismo archivo sirve al motor de PDF: `.hojas_ruta_pdf_district_context_features` deja de depender del JSON del
-  frontend, y el contexto distrital de la ficha y de la hoja de zona funciona también en ciudades (hoy solo en
-  Lima).
-
-### 4. La UI se adapta
-
-- **Estructura.** Arriba, una ruta «Perú › Arequipa › Arequipa». La lista cambia con el nivel: regiones con
-  interruptor → ciudades de las regiones marcadas → distritos. El buscador encuentra distritos solo dentro de las
-  regiones marcadas, y si no hay ninguna lo dice.
-- **Mapa.** En Perú, departamentos resaltados y clic para entrar. Una región marcada que aún no cargó se ve con su
-  estado de carga en el mapa, no con un vacío mudo (C3).
-- **Inspector.** En Perú dice cuántas regiones hay marcadas, qué pesa cargarlas y la cobertura de cada una
-  (captación CPV 2025, ADR 0119 §7: «la cobertura se informa antes de elegir»).
-- **Dirección.** El nivel va en `foco` (`pe`, `lima`, 2 dígitos = región, 4 dígitos = ciudad). Toda vista se puede
-  enlazar.
+El nivel va en `foco`: `pe` para el atlas, `lima` o 4 dígitos para una ciudad abierta. Toda vista se puede enlazar.
 
 ## Unidades
 
 | # | Unidad | Capa | Depende de | Gate |
 |---|---|---|---|---|
-| R1 | Partir contornos y límites por región en `inst/hojas_ruta/contornos/`; país + departamentos simplificados ≤ 60 KB para el bundle | R (scripts) | — | pesos medidos, test de esquema |
-| R2 | `GET /api/hojas-ruta/contornos?region=` + lectura en el motor de PDF (contexto distrital en ciudades) | R | R1 | testthat del router y del contexto; gate-area hojas-ruta |
-| R3 | `integrated_config.regiones`: normalizar, derivar de `territorios`, persistir; revisión de `guardian-contratos` antes | R + TS | — | estado-normalizado, campos-declarados |
-| R4 | Cliente: `apiHojasRutaContornos(region)` con caché por región; el lienzo deja de importar las tres geometrías | TS | R2 | vitest; peso del chunk medido antes y después |
-| R5 | Territorio por niveles con regiones marcables (rehace el trabajo sin commitear de `territorio/niveles.ts` sobre esto) | TS | R3, R4 | vitest + captura 1440 y 1024 |
-| R6 | Estados de carga por región en el mapa (C3) e inspector de cobertura en Perú | TS | R5 | ui-quick-check de Territorio |
+| R1 ☑ 3c011e8b3 | Contornos partidos por región en `inst/hojas_ruta/contornos/`; país + departamentos ≤ 60 KB | R (scripts) | — | pesos medidos, test de esquema |
+| R2 ☑ ec3f7c2b2 | `GET /api/hojas-ruta/contornos?region=` + contexto distrital de los PDF desde la región | R | R1 | testthat router y contexto |
+| R1b | Índice de ciudades para el bundle: código, nombre, departamento, centro, población y silueta simplificada | R (script) + JSON | R1 | peso ≤ 40 KB, test de cobertura del registro |
+| R3 | `integrated_config.ciudades`: normalizar, derivar de `territorios`, persistir; `guardian-contratos` antes | R + TS | — | estado-normalizado, campos-declarados |
+| R4 | Cliente: `apiHojasRutaContornos(region)` con caché; el lienzo deja de importar 1,67 MB; contornos con todos los anillos (11 de 114 huellas tienen huecos) | TS | R2 | vitest; peso del chunk antes y después |
+| R5 | Atlas + tarjeta de ciudad + ciudad abierta + columna del estudio, según la maqueta A | TS | R1b, R3, R4 | vitest + captura 1440 y 1024 |
+| R6 | Estados de carga de la ciudad (C3), foco direccionable, QA visual | TS | R5 | ui-quick-check de Territorio |
 
 ## Lo que no cambia
 
@@ -111,5 +101,5 @@ de la sesión):
   encuadre por nivel; 7 tests.
 - Cambios en `TerritorioPaneles.tsx`, `HojasRutaMapaPage.tsx` y `puntoEnDistrito.ts` (pieza genérica).
 
-R5 parte de ahí. Lo que asumía «todo el país cargado» (encuadre con todos los contornos, resaltado desde
-`limitesPeru.json` completo) se rehace contra la carga por región.
+R5 aprovecha el catálogo y la lectura del `foco`; la navegación por niveles departamento › ciudad no sobrevive: en
+la dirección A se va del atlas a la ciudad directamente.
