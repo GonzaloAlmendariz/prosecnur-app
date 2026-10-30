@@ -6,7 +6,7 @@ import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
 import { AvanceCuotasDetalle } from "../AvanceCuotasDetalle";
 import { resumenCuota } from "../avanceCuotasModelo";
-import { paletaDePublicos } from "../paletaPublicos";
+import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import { useEstadoDeCuotas } from "../insumos/useEstadoDeCuotas";
 import { PesasDeComposicion } from "./PesasDeComposicion";
 import { franjaDeCuota, variablesDeControl, type VariableDeControl } from "./composicionModelo";
@@ -70,10 +70,14 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
                   const activa = elegidaCuota?.id === item.id;
                   return (
                     <li key={item.id}>
-                      <button type="button" className={`acr-in-fuente${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
+                      <button type="button" className={`acr-in-fuente acr-pc-fila${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
-                          <span>{`${item.actor}, ${item.variable}`}</span>
+                          <span className={`acr-celda-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{`${item.actor}, ${item.variable}`}</span>
                           <small className="acr-av-tenue">{resumen.cumplidas}</small>
+                          {/* El avance de la cuota de un vistazo, al pie de la fila (E2, 30/10). */}
+                          {resumen.meta > 0 && resumen.avance != null ? (
+                            <span className={`acr-av-pista acr-pc-pista ${clasePublico(paleta, item.actor)}`} aria-hidden="true"><i style={{ width: `${Math.min(100, resumen.avance * 100)}%` }} /></span>
+                          ) : null}
                         </span>
                         <b className="acr-av-num">{resumen.meta > 0 && resumen.avance != null ? pctConEspacio(resumen.avance * 100) : "—"}</b>
                       </button>

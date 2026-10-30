@@ -2003,3 +2003,18 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pub-embudo-fila.is-sin-pista {
   grid-template-columns: minmax(0, 1fr) auto;
 }
+
+/* Por cuota: cada cuota con el punto de su público y una pista de avance (E2). */
+.acr-pc-fila .acr-in-fuente-nombre {
+  gap: 4px;
+}
+
+.acr-pc-pista {
+  display: block;
+  width: 100%;
+  height: 4px;
+}
+
+.acr-pc-pista > i {
+  background: var(--publico, var(--acr-efectiva));
+}
