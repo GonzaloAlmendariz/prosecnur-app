@@ -273,7 +273,7 @@
       "pie": {
         "base_x": 0.35,
         "base_y": 7.06,
-        "base_negrita": false
+        "base_negrita": true
       },
       "portada_plantilla": {
         "encargo": {

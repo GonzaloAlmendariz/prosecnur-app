@@ -1,4 +1,4 @@
-# Checklist Arte vs Conta (2026-10-29), ítems 24, 26 y 28: «Base:» en peso normal donde la pone Conta, la portada de
+# Checklist Arte vs Conta (2026-10-29), ítems 24, 26 y 28: «Base:» donde la pone Conta (en negrita desde 2026-10-30), la portada de
 # plantilla con el título azul y el encargo antes que la fecha, y la contraportada al final del mazo.
 
 .pc_mazo <- function(plan) {
@@ -16,7 +16,7 @@
 }
 .pc_titulo_largo <- paste(rep("ESTUDIO DE OPINIÓN SOBRE EL SERVICIO EDUCATIVO OFRECIDO EN LA ETAPA DE FORMACIÓN GENERAL", 3), collapse = " ")
 
-test_that("«Base:» va a 10 pt sin negrita en la caja de Conta (0,35/7,06) y el folio en su misma línea", {
+test_that("«Base:» va a 10 pt en negrita en la caja de Conta (0,35/7,06) y el folio en su misma línea", {
   skip_if_not_installed("officer")
   doc <- officer::add_slide(officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp")),
                             layout = "Graficos", master = "Office Theme")
@@ -25,7 +25,7 @@ test_that("«Base:» va a 10 pt sin negrita en la caja de Conta (0,35/7,06) y el
   base <- .pc_sp(x, "Base lamina"); folio <- .pc_sp(x, "Folio lamina")
   expect_equal(unname(.pc_off(base)), c(0.35, 7.06), tolerance = 0.005)
   rpr <- xml2::xml_find_first(base, ".//a:rPr")
-  expect_identical(xml2::xml_attr(rpr, "b"), "0")
+  expect_identical(xml2::xml_attr(rpr, "b"), "1")   # en negrita (Gonzalo, 2026-10-30)
   expect_identical(xml2::xml_attr(rpr, "sz"), as.character(round(.std_pt("base") * 100)))
   expect_equal(unname(.pc_off(folio))[2], .std_comp("pie", "base_y"), tolerance = 0.005)   # ítem 23: el folio se queda, en la línea de «Base:»
   # La caja de la base no se sale de la lámina (7,5 in) ni se cruza con la del folio.

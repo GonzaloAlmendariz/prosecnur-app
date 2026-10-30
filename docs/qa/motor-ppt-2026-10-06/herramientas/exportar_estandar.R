@@ -121,7 +121,7 @@ composicion <- list(unidad = "in",
     aire_fila = 0.06,                # aire mínimo entre dos barras
     aire_titulo = 0.18,              # de la pregunta (o su público) a la primera barra
     margen_inf = 0.03),              # bajo la última barra
-  pie = list(base_x = 0.35, base_y = 7.06, base_negrita = FALSE),   # «Base:» y folio como Conta (tinta en 0,45/7,12; ítem 24)
+  pie = list(base_x = 0.35, base_y = 7.06, base_negrita = TRUE),   # «Base:» y folio; la base en negrita (Gonzalo, 2026-10-30)
   portada_plantilla = list(         # encargo y fecha de la portada sobre «Title Slide», como Conta (ítem 26; lamina_portada_plantilla.R)
     encargo = list(left = 3.30, top = 5.50, width = 6.75, height = 0.56), fecha = list(left = 9.17, top = 6.21, width = 3.06, height = 0.40),
     encargo_pt = 18, fecha_pt = 18),
