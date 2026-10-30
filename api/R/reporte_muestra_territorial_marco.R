@@ -204,6 +204,13 @@
     respuesta = sample$salto_sobre_visitas$respuesta %||% NULL,
     ocupacion = sample$salto_sobre_visitas$ocupacion %||% NULL,
     # F33 (a): el informe no puede afirmar probabilidad conocida de una muestra v1 (ADR 0117).
+    # F34: con qué algoritmo se sorteó (sin firma = v1, ADR 0117).
+    # Método, nivel de cuota y medida CON QUE SE SORTEÓ: la config vigente puede haber
+    # cambiado después (revisor de F34).
+    algoritmo_sorteo = as.character(sample$algoritmo_sorteo %||% ""),
+    metodo = as.character(sample$config$sampling_method %||% sample$method %||% ""),
+    row_var = as.character(sample$config$row_var %||% ""),
+    measure_var = as.character(sample$config$measure_var %||% ""),
     avisos_v1 = (av <- .reporte_mt_avisos_v1(sample))$avisos,
     avisos_v1_fallo = av$fallo
   ) else NULL
@@ -541,6 +548,51 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
   )
 }
 
+# F34: estratificación y selección de manzanas según el algoritmo real del sorteo
+# (cabeceras de hojas_ruta_sorteo_pps.R y hojas_ruta_sorteo_tope.R). Con muestra,
+# todo sale de la muestra (firma, método, nivel de cuota y medida con que se sorteó);
+# sin muestra, de la config: describe el próximo sorteo.
+.reporte_mt_estrategia <- function(cfg, muestra = NULL) {
+  de_muestra <- function(clave, respaldo) {
+    v <- as.character(unlist(muestra[[clave]] %||% "", use.names = FALSE))[1]
+    if (is.na(v) || !nzchar(v)) as.character(respaldo %||% "") else v
+  }
+  con_muestra <- !is.null(muestra)
+  algoritmo <- if (con_muestra) de_muestra("algoritmo_sorteo", "") else ""
+  metodo <- if (con_muestra) de_muestra("metodo", cfg$sampling_method) else as.character(cfg$sampling_method %||% "pps")
+  por_zona <- identical(if (con_muestra) de_muestra("row_var", cfg$row_var) else as.character(cfg$row_var %||% ""), "zona")
+  medida <- if (con_muestra) de_muestra("measure_var", cfg$measure_var) else as.character(cfg$measure_var %||% "viviendas")
+  if (!nzchar(medida)) medida <- "viviendas"
+  # Igual que el motor: v1 es toda firma que no sea vigente (sin firma, NA o desconocida).
+  v1 <- con_muestra && !(algoritmo %in% .hojas_ruta_sorteo_firmas_vigentes())
+  tope <- !v1 && (if (con_muestra) identical(algoritmo, HOJAS_RUTA_ALGORITMO_SORTEO_TOPE) else identical(metodo, "pps_tope"))
+  igual <- !tope && identical(metodo, "sistematico")
+  sel <- if (igual) "Sistemática con igual probabilidad"
+    else if (tope) sprintf("Sistemática con probabilidad proporcional al tamaño, con el tamaño limitado al percentil 95 de las manzanas del distrito (medida: %s)", medida)
+    else if (v1) sprintf("Probabilidad proporcional al tamaño (medida: %s)", medida)
+    else sprintf("Sistemática con probabilidad proporcional al tamaño (medida: %s)", medida)
+  ponderar <- "los resultados deben ponderarse por la inversa de la probabilidad de selección de cada manzana."
+  sel_j <- if (igual) paste("Cada manzana elegible tiene la misma probabilidad de selección. Como cada ruta hace el mismo número de entrevistas, el diseño no es autoponderado:", ponderar)
+    else if (tope) paste("Las manzanas muy grandes no concentran rutas. El diseño deja de ser autoponderado:", ponderar)
+    else "Las manzanas con más viviendas tienen mayor probabilidad de selección, lo que compensa el número fijo de entrevistas por ruta."
+  if (v1) {
+    return(list(
+      estrato = "Distrito y zona", estrato_j = "Las rutas de cada distrito se repartieron entre sus zonas y se sortearon dentro de cada zona.",
+      seleccion = paste(sel, "dentro de cada zona"), seleccion_j = sel_j))
+  }
+  if (por_zona) {
+    return(list(
+      estrato = "Distrito y zona (cuotas por zona)",
+      estrato_j = "Las rutas de cada distrito se reparten entre sus zonas en proporción a la población de cada zona; las fracciones de ruta se resuelven por sorteo, de modo que toda zona con población tiene posibilidad de recibir ruta. El sorteo de manzanas se hace dentro de cada zona.",
+      seleccion = paste(sel, "dentro de cada zona"), seleccion_j = sel_j))
+  }
+  list(
+    estrato = "Distrito (lista ordenada por zona)",
+    estrato_j = sprintf("Un solo sorteo sistemático por distrito, sobre la lista de manzanas ordenada por zona: en promedio, las rutas se distribuyen entre las zonas en proporción a su tamaño, y %s tiene posibilidad de selección.",
+                        if (igual) "toda manzana elegible" else "toda manzana con viviendas"),
+    seleccion = paste(sel, "dentro del distrito"), seleccion_j = sel_j)
+}
+
 .reporte_mt_params <- function(config) {
   cfg <- hojas_ruta_integrada_normalize_config(config %||% list())
   list(cfg = cfg, ss = cfg$sample_size %||% list(), k = max(1L, as.integer(cfg$entrevistas_por_manzana %||% 1L)))
@@ -559,24 +611,22 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
 reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decision_log = NULL, territorios = list(), muestra = NULL) {
   pr <- .reporte_mt_params(config)
   cfg <- pr$cfg; ss <- pr$ss; k <- pr$k
-  pps <- !identical(cfg$sampling_method, "sistematico")
-  medida <- as.character(cfg$measure_var %||% "viviendas")
   reemplazos <- as.integer(cfg$replacements_per_titular %||% 0L)
   salto_auto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "auto")
-  # F33 (c): sin salto (modo «off» o salto manual de 1) se recorre la manzana entera.
+  # F33 (c): sin salto (modo «off» o salto manual de 1) se visitan las viviendas una tras otra.
   sin_salto <- identical(as.character(cfg$route_jump_mode %||% "auto"), "off") ||
     (!salto_auto && as.integer(cfg$route_jump_manual %||% 1L) <= 1L)
   v1 <- Filter(is.list, muestra$avisos_v1 %||% list())
   v1_fallo <- isTRUE(muestra$avisos_v1_fallo)
+  est <- .reporte_mt_estrategia(cfg, muestra)
   decisiones <- data.frame(
     `Decisión` = c("Tipo de muestreo", "Unidad primaria de muestreo (UPM)", "Estratificación",
                    "Selección de manzanas", "Selección de viviendas", "Selección de personas", "Reemplazo de rutas"),
     Valor = c(
       "Probabilístico hasta la manzana; no probabilístico dentro de ella",
       "Manzana censal INEI 2017 (una ruta)",
-      "Distrito y zona",
-      if (pps) sprintf("Probabilidad proporcional al tamaño (PPS, medida: %s) dentro del distrito y la zona", medida)
-      else "Sistemática con igual probabilidad dentro del distrito y la zona",
+      est$estrato,
+      est$seleccion,
       if (sin_salto) "Sin salto: se visitan las viviendas una tras otra, desde la esquina de inicio y en el sentido de la ficha, hasta completar la ruta"
       else if (salto_auto) "Salto sistemático sobre las visitas esperadas, desde una vivienda de inicio sorteada"
       else sprintf("Salto sistemático fijo de %d viviendas, desde una vivienda de inicio sorteada", as.integer(cfg$route_jump_manual %||% 1L)),
@@ -588,9 +638,8 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
       else if (v1_fallo) "El diseño sortea las manzanas con probabilidad conocida; no se pudo comprobar si el sorteo de esta muestra dejó viviendas sin posibilidad de selección. La selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal."
       else "Las manzanas se sortean con probabilidad conocida; la selección de personas por cuotas no tiene probabilidad conocida, por lo que el margen de error es nominal.",
       "El marco INEI provee la ubicación y el conteo de viviendas de cada manzana.",
-      "Las rutas se reparten por distrito y, dentro de cada distrito, por zona.",
-      if (pps) "Las manzanas con más viviendas tienen mayor probabilidad de selección, lo que compensa el número fijo de entrevistas por ruta."
-      else "Cada manzana elegible de la zona tiene la misma probabilidad de selección.",
+      est$estrato_j,
+      est$seleccion_j,
       if (sin_salto) "El encuestador no elige por dónde empezar ni qué viviendas visitar."
       else "El salto distribuye las visitas por toda la manzana y la vivienda de inicio no la elige el encuestador.",
       "Cada ruta completa sus totales por sexo y por edad según la cuota de su distrito.",

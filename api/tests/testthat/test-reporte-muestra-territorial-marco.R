@@ -561,3 +561,44 @@ test_that("F33: los avisos v1 se leen de la muestra, y si no se pueden calcular 
   expect_match(d$aviso_sorteo_v1, "No se pudo comprobar")
   expect_false(grepl("^Las manzanas se sortean con probabilidad conocida;", d$decisiones$`Justificación`[1]))
 })
+
+test_that("F34: la estratificación y la selección dicen cómo se sorteó la muestra, no la config vigente", {
+  cfg <- .u16_config("legado", 1)
+  cfg$sampling_method <- "pps"; cfg$row_var <- "distrito"
+  fila <- function(d, nombre) d$decisiones[d$decisiones$`Decisión` == nombre, ]
+  m <- function(alg, metodo = "pps", row_var = "distrito") list(rutas = 1, entrevistas = 8, algoritmo_sorteo = alg, metodo = metodo, row_var = row_var, measure_var = "viviendas")
+  modelo <- function(muestra, c = cfg) reporte_mt_diseno_modelo(c, NULL, muestra = muestra)
+  # v1: sin firma, NA o firma desconocida, como el motor.
+  for (alg in list("", NA_character_, "algo_raro")) {
+    d <- modelo(m(alg))
+    expect_identical(fila(d, "Estratificación")$Valor, "Distrito y zona")
+    expect_match(fila(d, "Selección de manzanas")$Valor, "dentro de cada zona$")
+  }
+  # v2 por distrito.
+  v2 <- modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO))
+  expect_identical(fila(v2, "Estratificación")$Valor, "Distrito (lista ordenada por zona)")
+  expect_match(fila(v2, "Estratificación")$`Justificación`, "en promedio")
+  expect_match(fila(v2, "Selección de manzanas")$Valor, "^Sistemática con probabilidad proporcional al tamaño .*dentro del distrito$")
+  # Sin muestra se describe el próximo sorteo.
+  expect_identical(fila(reporte_mt_diseno_modelo(cfg, NULL), "Estratificación")$Valor, "Distrito (lista ordenada por zona)")
+  # v2 con cuotas por zona (de la muestra).
+  vz <- modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO, row_var = "zona"))
+  expect_match(fila(vz, "Estratificación")$Valor, "cuotas por zona")
+  expect_match(fila(vz, "Estratificación")$`Justificación`, "se resuelven por sorteo")
+  # La muestra manda sobre la config vigente.
+  c_tope <- cfg; c_tope$sampling_method <- "pps_tope"
+  t1 <- modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO_TOPE, metodo = "pps_tope"), cfg)  # sorteada con tope, config pasada a pps
+  expect_match(fila(t1, "Selección de manzanas")$Valor, "percentil 95")
+  expect_match(fila(t1, "Selección de manzanas")$`Justificación`, "autoponderado")
+  expect_false(grepl("percentil 95", fila(modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO), c_tope), "Selección de manzanas")$Valor))
+  expect_false(grepl("percentil 95", fila(modelo(m(""), c_tope), "Selección de manzanas")$Valor))
+  expect_match(fila(modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO, metodo = "sistematico"), cfg), "Selección de manzanas")$Valor, "^Sistemática con igual probabilidad")
+  expect_match(fila(modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO, row_var = "distrito"), within(cfg, row_var <- "zona")), "Estratificación")$Valor, "lista ordenada por zona")
+  # Igual probabilidad también pide ponderar; conglomerado fijo sortea como PPS; v1 con zona y sistemático.
+  expect_match(fila(modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO, metodo = "sistematico")), "Selección de manzanas")$`Justificación`, "no es autoponderado")
+  expect_match(fila(modelo(m(HOJAS_RUTA_ALGORITMO_SORTEO, metodo = "conglomerado_fijo")), "Selección de manzanas")$Valor, "probabilidad proporcional al tamaño")
+  expect_match(fila(modelo(m("", metodo = "sistematico", row_var = "zona")), "Selección de manzanas")$Valor, "^Sistemática con igual probabilidad dentro de cada zona$")
+  # Sin jerga interna en lo que lee el cliente.
+  todo <- paste(unlist(lapply(list(v2, vz, t1), function(d) d$decisiones)), collapse = " ")
+  expect_false(grepl("estrato implícito|topada|medida mayor que cero|v1|v2", todo))
+})
