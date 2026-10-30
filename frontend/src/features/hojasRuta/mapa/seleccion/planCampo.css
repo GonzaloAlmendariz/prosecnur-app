@@ -1,14 +1,77 @@
-/* M11: ver los días del plan que no caben al principio (C4: todo alcanzable). */
-.hr-plan-mas {
-  all: unset;
-  box-sizing: border-box;
-  align-self: flex-start;
-  padding: 4px 8px;
-  border-radius: 6px;
+/* M14: el plan como calendario — un día por fila, un encuestador por columna. */
+.hr-plan-calendario {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  overflow-x: auto;
+}
+.hr-plan-fila {
+  display: grid;
+  grid-template-columns: 56px repeat(var(--hr-plan-encuestadores, 4), minmax(150px, 1fr));
+  gap: 4px;
+  align-items: stretch;
+}
+.hr-plan-cabeza span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+.hr-plan-dia-num {
+  display: flex;
+  align-items: center;
   font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.hr-plan-libre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+.hr-plan-jornada {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+.hr-plan-jornada[data-corta] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+.hr-plan-jornada-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.hr-plan-jornada-cab strong { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-plan-jornada-cab span { font-size: 12px; font-weight: 600; color: var(--pulso-text); overflow-wrap: anywhere; text-align: right; }
+.hr-plan-jornada small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-plan-jornada em { font-size: 11px; font-style: normal; font-weight: 700; color: var(--pulso-warn-fg); }
+.hr-plan-jornada .hr-plan-hoja {
+  all: unset;
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--pulso-primary);
   cursor: pointer;
 }
-.hr-plan-mas:hover { background: var(--pulso-surface-2); }
-.hr-plan-mas:focus-visible { outline: 2px solid var(--pulso-primary-border); outline-offset: 1px; }
+.hr-plan-jornada .hr-plan-hoja:hover { text-decoration: underline; }
+.hr-plan-jornada .hr-plan-hoja:disabled { color: var(--pulso-text-soft); cursor: default; }
+.hr-plan-jornada .hr-plan-hoja:focus-visible { outline: 2px solid var(--pulso-primary-border); outline-offset: 1px; border-radius: 3px; }

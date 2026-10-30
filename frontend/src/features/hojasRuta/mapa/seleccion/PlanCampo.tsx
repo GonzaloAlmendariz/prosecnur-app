@@ -14,8 +14,6 @@ import { nombreDistrito } from "../nombres";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("es-PE", { maximumFractionDigits: d });
 
-const DIAS_VISIBLES = 5;
-
 /** Las jornadas agrupadas por el día en que empiezan, en orden de encuestador. */
 export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRutaJornada[]][] {
   const m = new Map<number, HojasRutaJornada[]>();
@@ -33,8 +31,6 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
   const [error, setError] = useState("");
   const [hoja, setHoja] = useState<string | null>(null);
-  // M11 (C4): los días que no caben al principio se piden, no se esconden detrás de «y N días más».
-  const [todosLosDias, setTodosLosDias] = useState(false);
   const cambiado = JSON.stringify(s) !== JSON.stringify(normalizarPlanSupuestos(guardados));
   const campo = (k: keyof Omit<HojasRutaPlanSupuestos, "moneda">, etiqueta: string, sufijo?: string) => (
     <label className="hr-muestra-campo">
@@ -89,42 +85,52 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
           {plan.alertas.slice(0, 3).map((a) => (
             <p key={a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
           ))}
-          {porDia(plan.jornadas).slice(0, todosLosDias ? undefined : DIAS_VISIBLES).map(([dia, js]) => (
-            <section key={dia} className="hr-plan-dia" aria-label={`Día ${dia}`}>
-              <h4>Día {dia}</h4>
-              <ul className="hr-plan-jornadas">
-                {js.map((j) => (
-                  <li key={j.id}>
-                    <i className="hr-plan-enc" style={{ background: tonoCss(j.encuestador - 1) }} aria-hidden="true" />
-                    <strong>Enc. {j.encuestador}</strong>
-                    <span>
-                      {j.id} · {nombreDistrito(j.distrito)} · {j.rutas.length === 1 ? "1 UMP" : `${j.rutas.length} UMP`} · {fmt(j.visitas)} visitas
-                      {j.excede_jornada ? ` · ${j.jornadas_equivalentes} días seguidos` : ` · ${fmt(j.km, 1)} km`}
+          {/* M14: el plan como calendario — un día por fila, un encuestador por columna; todos los días a la vista (C4). */}
+          <div className="hr-plan-calendario" role="table" aria-label="Plan por encuestador y día" style={{ ["--hr-plan-encuestadores" as string]: String(plan.supuestos.encuestadores) }}>
+            <div className="hr-plan-fila hr-plan-cabeza" role="row">
+              <span role="columnheader">Día</span>
+              {Array.from({ length: plan.supuestos.encuestadores }, (_, k) => (
+                <span key={k} role="columnheader"><i className="hr-plan-enc" style={{ background: tonoCss(k) }} aria-hidden="true" /> Encuestador {k + 1}</span>
+              ))}
+            </div>
+            {porDia(plan.jornadas).map(([dia, js]) => (
+              <div key={dia} className="hr-plan-fila" role="row">
+                <span className="hr-plan-dia-num" role="rowheader">Día {dia}</span>
+                {Array.from({ length: plan.supuestos.encuestadores }, (_, k) => {
+                  const j = js.find((x) => x.encuestador === k + 1);
+                  if (!j) return <span key={k} className="hr-plan-libre" role="cell">—</span>;
+                  const corta = j.rutas.length === 1 && !j.excede_jornada;
+                  return (
+                    <span key={k} className="hr-plan-jornada" role="cell" data-corta={corta || undefined} title={j.rutas.join(", ")}>
+                      <span className="hr-plan-jornada-cab">
+                        <strong>{j.id}</strong>
+                        <span>{nombreDistrito(j.distrito)}</span>
+                      </span>
+                      <small>
+                        {j.rutas.length === 1 ? "1 UMP" : `${j.rutas.length} UMP`} · {fmt(j.visitas)} visitas
+                        {j.excede_jornada ? ` · ${j.jornadas_equivalentes} días seguidos` : ` · ${fmt(j.km, 1)} km`}
+                      </small>
+                      {corta ? <em>Jornada corta: una sola ruta</em> : null}
+                      <button
+                        type="button"
+                        className="hr-plan-hoja"
+                        disabled={hoja != null}
+                        onClick={() => {
+                          setHoja(j.id);
+                          apiHojasRutaHojaDia(j.id, s)
+                            .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+                            .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
+                            .finally(() => setHoja(null));
+                        }}
+                      >
+                        {hoja === j.id ? "Generando…" : "Hoja del día"}
+                      </button>
                     </span>
-                    <button
-                      type="button"
-                      className="hr-plan-hoja"
-                      disabled={hoja != null}
-                      onClick={() => {
-                        setHoja(j.id);
-                        apiHojasRutaHojaDia(j.id, s)
-                          .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
-                          .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
-                          .finally(() => setHoja(null));
-                      }}
-                    >
-                      {hoja === j.id ? "Generando…" : "Hoja del día"}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          {porDia(plan.jornadas).length > DIAS_VISIBLES ? (
-            <button type="button" className="hr-plan-mas" onClick={() => setTodosLosDias((v) => !v)}>
-              {todosLosDias ? "Ver sólo los primeros días" : `Ver los ${porDia(plan.jornadas).length - DIAS_VISIBLES} días más`}
-            </button>
-          ) : null}
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </>
       ) : null}
       <div className="hr-salidas-acciones">
