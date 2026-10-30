@@ -549,6 +549,8 @@ export type HojasRutaSamplePreview = {
   alerts: HojasRutaAlert[];
   /** ADR 0117: firma del algoritmo del sorteo; sin firma o «zona_mayor_resto_v1» = reparto v1. */
   algoritmo_sorteo?: string;
+  /** Huella de identidad de la muestra (ADR 0118 §3); la calcula R en /sample-preview. */
+  sample_fingerprint?: string | null;
 };
 
 export type HojasRutaWorkspaceOutputs = {
@@ -601,7 +603,14 @@ export type HojasRutaRouteSnapshot = {
   territories: string[];
   distribution: HojasRutaRouteDistrictSummary[];
   config: HojasRutaIntegratedConfig;
-  sample: HojasRutaSamplePreview;
+  /** Instantáneas viejas: R la recorta al leer (docs/qa/propuesta-route-history-2026-10-30.md). */
+  sample?: HojasRutaSamplePreview;
+  /** Huella de la muestra de este ruteo; NA/null = no se puede comprobar. */
+  sample_fingerprint?: string | null;
+  algoritmo_sorteo?: string | null;
+  frame_version?: string | null;
+  hash_marco?: string | null;
+  hash_criterios?: string | null;
 };
 
 export type HojasRutaBlockMapFeature = {

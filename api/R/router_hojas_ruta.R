@@ -86,13 +86,8 @@
   }
   if (!nzchar(map_ubigeo)) map_level <- "distritos"
   if (identical(map_level, "manzanas") && !nzchar(map_zona)) map_level <- "zonas"
-  route_history <- ui$route_history %||% ui$routeHistory %||% list()
-  if (is.null(route_history) || !is.list(route_history)) route_history <- list()
-  if (is.data.frame(route_history)) {
-    route_history <- lapply(seq_len(nrow(route_history)), function(i) as.list(route_history[i, , drop = FALSE]))
-  }
-  route_history <- Filter(is.list, route_history)
-  if (length(route_history) > 12L) route_history <- route_history[seq_len(12L)]
+  # Instantáneas sin su muestra, con huella y firmas (hojas_ruta_route_history.R).
+  route_history <- .hojas_ruta_route_history_normalizar(ui$route_history %||% ui$routeHistory)
 
   list(
     active_stage = active_stage,
@@ -320,6 +315,8 @@
 
   if (is.list(s$hojas_ruta_runs) && length(s$hojas_ruta_runs)) {
     runs <- list()
+    # El historial con muestras enteras se migra en las tres ubicaciones al leer.
+    changed <- .hojas_ruta_route_history_por_migrar(s)
     if (!is.null(s$hojas_ruta_runs$pilot)) {
       runs$pilot <- .hojas_ruta_run_normalize(s$hojas_ruta_runs$pilot, "pilot")
     }
@@ -823,6 +820,8 @@ mount_hojas_ruta <- function(pr) {
         .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", hojas_ruta_bitacora_detalle_marco(cfg$marco_elegible), origen = parsed$origen)
       }
       .hojas_ruta_bitacora_intentar(sid, "sorteo", hojas_ruta_bitacora_resumen_sorteo(result, effective_cfg), list(seed = result$seed, n_blocks = result$n_blocks), origen = parsed$origen)
+      # La instantánea del historial guarda esta huella en vez de la muestra.
+      result$sample_fingerprint <- .hojas_ruta_sample_fingerprint(result)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>

@@ -94,7 +94,7 @@ export function instantaneaDeSorteo(sample: HojasRutaSamplePreview, config: Hoja
     territories: [...(config.territorios ?? [])],
     distribution: [...porDistrito.values()],
     config,
-    sample,
+    sample_fingerprint: sample.sample_fingerprint ?? null,
   };
 }
 

@@ -365,8 +365,7 @@ function normalizeRouteHistory(value: unknown): HojasRutaRouteSnapshot[] {
       const route = item as Partial<HojasRutaRouteSnapshot>;
       return typeof route.id === "string"
         && !!route.config
-        && !!route.sample
-        && Array.isArray(route.sample.blocks);
+        && typeof route.seed === "number";
     })
     .slice(0, 12);
 }
@@ -812,7 +811,7 @@ function buildRouteSnapshot(sample: HojasRutaSamplePreview, config: HojasRutaInt
     territories: [...(config.territorios ?? [])],
     distribution: routeSnapshotDistribution(sample),
     config,
-    sample,
+    sample_fingerprint: sample.sample_fingerprint ?? null,
   };
 }
 
@@ -7445,8 +7444,7 @@ export default function HojasRutaPage() {
       sample_size: normalizeSampleSizeSettings(snapshot.config.sample_size),
     };
     setConfig(restoredConfig);
-    setQuota(snapshot.sample.quota);
-    setSample(snapshot.sample);
+    void apiHojasRutaSamplePreview(restoredConfig, "restauracion").then((s) => { setQuota(s.quota); setSample(s); }).catch((e: Error) => setError(e.message));
     setPopulation(null);
     setPopulationExport(null);
     setSampleSizePreview(null);
@@ -7459,7 +7457,7 @@ export default function HojasRutaPage() {
     setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
     setAgeDraftScope(restoredConfig.age_range_scope ?? "selected");
     selectStage("manzanas", true);
-    const firstBlock = (snapshot.sample.blocks ?? [])[0] ?? snapshot.sample.replacement_blocks?.[0];
+    const firstBlock = snapshot.distribution?.[0] ? { ubigeo: snapshot.distribution[0].ubigeo, zona: "" } : undefined;
     if (firstBlock?.ubigeo) {
       setMapUbigeo(firstBlock.ubigeo);
       setMapZona(firstBlock.zona ?? "");
@@ -8448,7 +8446,7 @@ export default function HojasRutaPage() {
                             </span>
                           </div>
                           <div className="hojas-ruta-route-history-actions">
-                            <button type="button" onClick={() => restoreRouteSnapshot(route)}>
+                            <button type="button" disabled={isLockedPhase} onClick={() => restoreRouteSnapshot(route)}>
                               Usar ruteo
                             </button>
                             <button type="button" onClick={() => removeRouteSnapshot(route.id)} aria-label={`Quitar ${route.label}`}>
