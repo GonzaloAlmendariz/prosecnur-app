@@ -6,6 +6,8 @@ import { filasDeHoja } from "../../../telefonico/navegacion/bloques";
 import { buildAcreditacionPhoneRealAlertModel, type AcreditacionQualityAlertItem } from "../../AcreditacionPhoneAlerts";
 import { conSuRespuesta, duracionesFueraDeRango, duracionLegible, type DuracionFueraDeRango } from "./calidadModelo";
 import { useResumenDelCorte } from "../../navegacion/resumenDelCorte";
+import { clasePublico, paletaDePublicos } from "../../paletaPublicos";
+import "../../paletaPublicos.css";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
@@ -15,25 +17,35 @@ import { VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 const SIN_RESPUESTAS: never[] = [];
 
+/** Cómo va la unión de cada duración con su respuesta (la bandeja llega con el corte de Control). */
+export type UnionConRespuestas = "uniendo" | "unida" | "fallo";
+
 type PropsDeVista = {
   duraciones: DuracionFueraDeRango[];
+  /** Sin la bandeja, Público y Estado no se conocen todavía: no se pintan como vacíos. */
+  union?: UnionConRespuestas;
   minimo: number;
   maximo: number;
   senales: AcreditacionQualityAlertItem[];
 };
 
-export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVista) {
+export function CalidadVista({ duraciones, minimo, maximo, senales, union = "unida" }: PropsDeVista) {
   // Regla de Gonzalo: el control de tiempo vigila las encuestas CORTAS. Las que
   // pasan del máximo no son un problema: quedan como dato neutro, fuera de lo
   // que se revisa.
   const cortas = duraciones.filter((item) => item.tipo === "corta");
   const largas = duraciones.length - cortas.length;
+  const paleta = paletaDePublicos(cortas.map((item) => item.publico ?? "").filter(Boolean));
+  // Un «—» mudo decía «no tiene público»; lo cierto es «todavía no se sabe» o «no cruzó».
+  const sinDato = union === "uniendo" ? "Uniendo…" : "Sin dato";
   return (
     <div className="acr-ps is-calidad" data-qa-geometry-group="acreditacion-control-calidad" data-qa-geometry-contract="intrinsic">
       <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas demasiado cortas">
         <CabeceraDeTarjeta primera>
           <h3>Respuestas demasiado cortas <span className="acr-av-tenue">{`Se revisan las de menos de ${duracionLegible(minimo)}`}</span></h3>
         </CabeceraDeTarjeta>
+        {union === "uniendo" && cortas.length ? <p className="acr-cal-union" role="status">Uniendo cada respuesta con su público y su estado.</p> : null}
+        {union === "fallo" && cortas.length ? <p className="acr-cal-union is-fallo" role="status">No llegó la bandeja de respuestas: el público y el estado no se pudieron unir. Actualiza el corte para reintentar.</p> : null}
         <div className="acr-cl-cifras is-dos" data-qa-geometry-group="acreditacion-calidad-cifras" data-qa-geometry-contract="equal">
           <div className="acr-res-kpi" data-qa-geometry-member><small>{`Menos de ${duracionLegible(minimo)}`}</small><b className="acr-av-num">{fmt(cortas.length)}</b></div>
           <div className="acr-res-kpi is-neutra" data-qa-geometry-member><small>{`Más de ${duracionLegible(maximo)}, no se revisan`}</small><b className="acr-av-num">{fmt(largas)}</b></div>
@@ -54,8 +66,8 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
                 {cortas.map((item) => (
                   <tr key={`${item.id}-${item.segundos}`}>
                     <th scope="row" className="acr-av-num">{item.respuesta || item.id}</th>
-                    <td>{item.publico || "—"}</td>
-                    <td>{item.estado || "—"}</td>
+                    <td>{item.publico ? <span className={`acr-celda-publico ${clasePublico(paleta, item.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.publico}</span> : <span className="acr-av-tenue">{sinDato}</span>}</td>
+                    <td>{item.estado || <span className="acr-av-tenue">{sinDato}</span>}</td>
                     <td className="is-num">{duracionLegible(item.segundos)}</td>
                     <td><span className="acr-av-chip is-falta">Muy corta</span></td>
                   </tr>
@@ -97,7 +109,10 @@ export function Calidad({ reports, state }: { reports: MonitoreoAcreditacionRepo
   const maximo = state?.config?.max_duration_seconds ?? 7200;
   const inconsistencias = state?.dashboard?.inconsistencies;
   // La bandeja llega con el corte de Control (queries_summary) y queda en el resumen del corte.
-  const casos = useResumenDelCorte((estado) => estado.respuestasConFila) ?? SIN_RESPUESTAS;
+  const respuestasConFila = useResumenDelCorte((estado) => estado.respuestasConFila);
+  const casosFallaron = useResumenDelCorte((estado) => estado.casosFallaron);
+  const casos = respuestasConFila ?? SIN_RESPUESTAS;
+  const union: UnionConRespuestas = respuestasConFila ? "unida" : casosFallaron ? "fallo" : "uniendo";
   const duraciones = useMemo(
     () => conSuRespuesta(duracionesFueraDeRango(inconsistencias ?? [], minimo, maximo), casos),
     [inconsistencias, minimo, maximo, casos],
@@ -106,5 +121,5 @@ export function Calidad({ reports, state }: { reports: MonitoreoAcreditacionRepo
     () => buildAcreditacionPhoneRealAlertModel({ alertRows: filasDeHoja(reports, "alertas", ["alertas"]) }).activeAlerts,
     [reports],
   );
-  return <CalidadVista duraciones={duraciones} minimo={minimo} maximo={maximo} senales={senales} />;
+  return <CalidadVista duraciones={duraciones} minimo={minimo} maximo={maximo} senales={senales} union={union} />;
 }

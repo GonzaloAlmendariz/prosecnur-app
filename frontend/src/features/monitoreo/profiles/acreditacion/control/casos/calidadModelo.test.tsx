@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { conSuRespuesta, duracionesFueraDeRango, duracionLegible } from "./calidadModelo";
-import { Calidad } from "./Calidad";
+import { Calidad, CalidadVista } from "./Calidad";
 
 describe("Control › Calidad", () => {
   it("cada duración se une con su respuesta por la fila del corte", () => {
@@ -59,5 +59,15 @@ describe("Control › Calidad", () => {
     expect(html).toContain("Muy corta");
     expect(html).not.toContain("Muy larga");
     expect(html).not.toContain("900");
+  });
+
+  it("sin la bandeja Público y Estado dicen «Uniendo…»; si falló, «Sin dato» y el aviso", () => {
+    const duraciones = [{ id: "2668", segundos: 4, tipo: "corta" as const, fila: 2668 }];
+    const uniendo = renderToStaticMarkup(<CalidadVista duraciones={duraciones} minimo={60} maximo={7200} senales={[]} union="uniendo" />);
+    expect(uniendo).toContain("Uniendo…");
+    expect(uniendo).not.toMatch(/<td>—<\/td>/);
+    const fallo = renderToStaticMarkup(<CalidadVista duraciones={duraciones} minimo={60} maximo={7200} senales={[]} union="fallo" />);
+    expect(fallo).toContain("Sin dato");
+    expect(fallo).toContain("No llegó la bandeja de respuestas");
   });
 });

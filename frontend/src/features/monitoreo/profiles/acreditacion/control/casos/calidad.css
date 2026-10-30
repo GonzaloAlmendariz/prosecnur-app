@@ -77,3 +77,15 @@
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* Mientras la bandeja no llega, o si falló, la tarjeta lo dice una vez. */
+.acr-cal-union {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.acr-cal-union.is-fallo {
+  color: var(--pulso-warn-fg);
+}
