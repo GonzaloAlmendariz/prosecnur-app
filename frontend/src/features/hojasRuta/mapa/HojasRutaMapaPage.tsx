@@ -14,6 +14,8 @@ import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import ciudades from "../ciudadesDistrictCoverage.json";
 import cobertura from "../limaDistrictCoverage.json";
+import limitesCrudos from "../limitesPeru.json";
+import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type LimitesCrudos } from "./lienzo/limites";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
 import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
 import {
@@ -32,7 +34,7 @@ import { nombreDistrito } from "./nombres";
 import { useLienzoHojasRuta } from "./store";
 import { distritoEnPunto } from "./territorio/puntoEnDistrito";
 import { TerritorioEstructura, TerritorioInspector } from "./territorio/TerritorioPaneles";
-import { cajaDeTerritorio, enLimaCallao } from "./territorio/encuadre";
+import { cajaDeTerritorio, ciudadEnFoco, enLimaCallao } from "./territorio/encuadre";
 import { zonasDeLima } from "./territorio/zonasLima";
 import { resumirMatriz } from "./poblacion/matriz";
 import { conTopeAbierto } from "./poblacion/rangos";
@@ -67,6 +69,7 @@ import "./mapaPage.css";
 // huella urbana de sus manzanas (api/inst/hojas_ruta/build_contornos_ciudades.R).
 const contornosLima = contornosDeCobertura(cobertura as Parameters<typeof contornosDeCobertura>[0]);
 const contornos = [...contornosLima, ...contornosDeCobertura(ciudades as Parameters<typeof contornosDeCobertura>[0])];
+const limites = limitesDePeru(limitesCrudos as LimitesCrudos);
 // Por nombre y sólo en Lima: Arequipa también tiene su Miraflores.
 const zonas = zonasDeLima(contornosLima);
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(n);
@@ -309,10 +312,11 @@ export default function HojasRutaMapaPage() {
   const cajaLima = useMemo(() => unirCajas(contornos.filter((c) => enLimaCallao(c.ubigeo)).map((c) => c.caja)), []);
   const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? cajaLima, [confirmados, cajaLima]);
   const cajaTerritorio = useMemo(() => cajaDeTerritorio(contornos, borrador, confirmados), [borrador, confirmados]);
-  const fueraDeLima = useMemo(() => [...borrador, ...confirmados].some((u) => !enLimaCallao(u)), [borrador, confirmados]);
+  const ciudad = useMemo(() => ciudadEnFoco(borrador, confirmados), [borrador, confirmados]);
 
   const dibujarFondo = useCallback(
-    (ctx: CanvasRenderingContext2D, u: UtilLienzo) =>
+    (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      dibujarLimites(ctx, u, limites);
       dibujarContornos(ctx, u, contornos, (c) => {
         const conf = confirmados.includes(c.ubigeo);
         // B9: cada distrito confirmado lleva su tono, en el orden de confirmación.
@@ -327,7 +331,8 @@ export default function HojasRutaMapaPage() {
           grosor: enB !== conf ? 2 : enB ? 1.3 : 0.8,
           punteado: enB && !conf,
         };
-      }),
+      });
+    },
     [confirmados, borrador, enTerritorio, enPoblacion, enMuestra],
   );
   // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el naranja).
@@ -419,6 +424,7 @@ export default function HojasRutaMapaPage() {
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      dibujarNombresDepartamento(ctx, u, limites);
       if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
       const visibles = enTerritorio ? contornos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
@@ -563,7 +569,7 @@ export default function HojasRutaMapaPage() {
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: confirmados.length || fueraDeLima ? 0.14 : 0.03, clave: fueraDeLima ? `territorio:${[...new Set([...borrador, ...confirmados].map((u) => u.slice(0, 4)))].sort().join(",")}` : `territorio:${confirmados.join(",")}`, animar: fueraDeLima } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: confirmados.length || ciudad ? 0.14 : 0.03, clave: ciudad ? `territorio:ciudad:${ciudad}` : `territorio:${confirmados.join(",")}`, animar: Boolean(ciudad) } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}

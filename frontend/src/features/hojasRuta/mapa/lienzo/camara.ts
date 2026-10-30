@@ -9,8 +9,8 @@ export type Camara = { x: number; y: number; s: number };
 export type Caja = readonly [number, number, number, number];
 export type Tamano = { w: number; h: number };
 
-/** Límites del zoom: de toda Lima (≈ 50 km en pantalla) a una manzana. */
-export const ESCALA_MIN = 0.004;
+/** Límites del zoom: del Perú entero (≈ 1.800 km en pantalla, ADR 0119) a una manzana. */
+export const ESCALA_MIN = 0.0003;
 export const ESCALA_MAX = 6;
 /** El encuadre automático nunca acerca más que esto (una manzana sola no llena la pantalla). */
 export const ESCALA_ENCUADRE_MAX = 2.4;
@@ -89,7 +89,7 @@ export function interpolar(desde: Camara, hasta: Camara, k: number): Camara {
 
 /** Escala gráfica: el largo redondo (en metros) que ocupa al menos `minPx` píxeles. */
 export function escalaGrafica(s: number, minPx = 70): { metros: number; px: number; rotulo: string } {
-  const metros = [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((m) => m * s >= minPx) ?? 10000;
+  const metros = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000].find((m) => m * s >= minPx) ?? 500000;
   return { metros, px: metros * s, rotulo: metros >= 1000 ? `${metros / 1000} km` : `${metros} m` };
 }
 

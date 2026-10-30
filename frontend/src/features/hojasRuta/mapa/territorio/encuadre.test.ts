@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContornoDistrito } from "../lienzo/capas";
-import { cajaDeTerritorio, enLimaCallao } from "./encuadre";
+import { cajaDeTerritorio, ciudadEnFoco, enLimaCallao } from "./encuadre";
 
 const c = (ubigeo: string, caja: [number, number, number, number]): ContornoDistrito =>
   ({ ubigeo, nombre: ubigeo, provincia: "", anillos: [], caja, rotulo: [0, 0] }) as unknown as ContornoDistrito;
@@ -24,8 +24,13 @@ describe("encuadre de Territorio", () => {
   it("un distrito de Arequipa lleva el mapa a toda la ciudad", () => {
     expect(cajaDeTerritorio(contornos, ["040101"], [])).toEqual([500, 900, 530, 920]);
   });
-  it("con Lima y una ciudad encuadra las dos", () => {
-    expect(cajaDeTerritorio(contornos, ["040104"], ["150101"])).toEqual([-10, 0, 530, 920]);
+  it("con Lima y una ciudad encuadra la ciudad: las dos no caben en la cámara", () => {
+    expect(cajaDeTerritorio(contornos, ["040104"], ["150101"])).toEqual([500, 900, 530, 920]);
+  });
+  it("con dos ciudades manda la del último distrito elegido", () => {
+    expect(cajaDeTerritorio(contornos, ["040101", "130101"], [])).toEqual([-300, -600, -290, -590]);
+    expect(ciudadEnFoco(["130101", "040104"], [])).toBe("0401");
+    expect(ciudadEnFoco(["150101"], ["070101"])).toBeNull();
   });
   it("Callao cuenta como Lima", () => {
     expect(enLimaCallao("070101")).toBe(true);
