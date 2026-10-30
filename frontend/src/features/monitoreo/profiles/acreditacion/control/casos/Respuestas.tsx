@@ -41,6 +41,8 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   return (
     <div className="acr-ps is-respuestas" data-qa-geometry-group="acreditacion-control-respuestas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Facetas de las respuestas">
+        {/* El rótulo va en la primera tarjeta, la de la izquierda, como en el resto de Control (K6): en la cola saltaba al centro. */}
+        <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <p className="acr-rs-total">
             <b className="acr-av-num">{fmt(respuestas.length)}</b>
@@ -73,7 +75,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
         </div>
       </nav>
       <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas recibidas">
-        <CabeceraDeTarjeta primera className="acr-ps-filtros">
+        <CabeceraDeTarjeta className="acr-ps-filtros">
           <label className="acr-pr-buscador">
             <Search size={14} aria-hidden="true" />
             <input type="search" value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setNumero(1); }} placeholder="Respuesta, público o encuesta" aria-label="Buscar respuestas" />

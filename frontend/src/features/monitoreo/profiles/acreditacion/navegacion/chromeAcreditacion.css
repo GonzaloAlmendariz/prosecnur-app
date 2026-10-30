@@ -127,6 +127,13 @@
   margin-right: auto;
 }
 
+/* El selector de sub-vistas siempre al extremo derecho de la línea del rótulo;
+ * si en una tarjeta angosta baja de línea, sigue a la derecha (K6: en Por cuota
+ * caía a la izquierda y en Calidad a la derecha). */
+.acr-enc-linea > .acr-enc-derecha {
+  margin-left: auto;
+}
+
 .acr-enc-chip {
   display: inline-flex;
   align-items: center;

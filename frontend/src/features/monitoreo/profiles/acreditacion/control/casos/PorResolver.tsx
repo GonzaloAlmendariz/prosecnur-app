@@ -76,6 +76,8 @@ export function PorResolver({
   return (
     <div className="acr-pr" data-qa-geometry-group="acreditacion-control-resolver" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Tipos de caso">
+        {/* El rótulo va en la primera tarjeta, la de la izquierda, como en el resto de Control (K6): en la cola saltaba al centro. */}
+        <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {GRUPOS.map(({ grupo, titulo }) => {
             const tipos = resumen.porTipo.filter((item) => item.grupo === grupo);
@@ -131,7 +133,7 @@ export function PorResolver({
       </nav>
 
       <section className="acr-av-panel acr-pr-cola" aria-label="Cola del tipo elegido">
-        <CabeceraDeTarjeta primera>
+        <CabeceraDeTarjeta>
           <h3>
             {tipoActual?.etiqueta ?? "Casos"}
             <span className="acr-av-tenue">
