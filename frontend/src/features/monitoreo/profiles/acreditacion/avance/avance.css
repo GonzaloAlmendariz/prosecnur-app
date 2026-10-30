@@ -1865,3 +1865,44 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .is-acreditacion-profile .acr-sa .mon-outputs-workbench--ficha .mon-outputs-workbench__head small {
   display: none;
 }
+
+/* Avance › Ritmo: el selector de gráfico y «Por fuente y recopilador» juntos, a
+ * la misma altura y alineados al borde derecho de la cabecera (E4, 30/10). */
+.acr-ri-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+/* «Diario y acumulado»: barras del día en el tono de la serie; el acumulado y
+ * su eje en el acento del módulo, para leer qué eje es de quién. */
+.acr-av-linea.is-acumulado {
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2.25;
+  fill: none;
+}
+
+.acr-av-final.is-acumulado {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2;
+}
+
+.acr-av-eje.is-acumulado,
+.acr-av-eje-titulo.is-acumulado {
+  fill: var(--pulso-module-monitoring);
+}
+
+.acr-av-capa-muestra.is-dia { background: var(--acr-efectiva); }
+.acr-av-capa-muestra.is-acumulado { background: var(--pulso-module-monitoring); border-radius: 999px; height: 3px; }
+.acr-av-capa-muestra.is-meta { background: transparent; border-top: 2px dashed var(--acr-meta); height: 0; }
+
+/* La cifra del acumulado puede caer sobre una barra: halo del color del fondo. */
+.acr-av-final-texto.is-acumulado {
+  fill: var(--pulso-module-monitoring);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}

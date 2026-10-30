@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { CalendarRange, ListChecks } from "lucide-react";
 import type { MonitoreoStrategyPhase } from "../../../../../api/client";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
@@ -6,6 +6,8 @@ import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { SuperficieFlotante } from "../../../core/superficieFlotante/SuperficieFlotante";
 import { fmt } from "../formato";
 import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
+import { DiarioYAcumulado } from "./DiarioYAcumulado";
+import { SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
 import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import { ritmoPorPublico } from "./ritmoPorPublicoModelo";
@@ -48,6 +50,9 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const maxSemana = Math.max(1, ...pulso.porDiaDeLaSemana.map((dia) => dia.promedio));
   const totalCanal = pulso.porCanal.reduce((suma, item) => suma + item.efectivas, 0);
   const porPublico = useMemo(() => ritmoPorPublico(serie, actores), [serie, actores]);
+  // «Por público» (apilado) o «Diario y acumulado» (doble eje, con la meta del estudio).
+  const [grafico, setGrafico] = useState<"publico" | "acumulado">("publico");
+  const metaDelEstudio = porPublico.reduce((suma, item) => suma + (item.meta ?? 0), 0) || null;
   // Cada público con el color que tiene en Resumen, Correo y Por cuota; «Otros» sigue en gris.
   const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.filter((capa) => !capa.otros).map((capa) => capa.publico)]), [actores, serie]);
   const clasesDeCapa = serie.capas.map((capa, indice) => (capa.otros ? `is-capa-${indice + 1}` : `con-publico ${clasePublico(paleta, capa.publico)}`));
@@ -59,24 +64,44 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       <div className="acr-ri-izquierda">
         <section className="acr-av-panel acr-ri-diario" aria-label="Efectivas por día">
           <CabeceraDeTarjeta primera>
-            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}, por público`}</span></h3>
-            {onVerFuentes ? (
-              <button type="button" className="acr-av-boton" onClick={onVerFuentes}>
-                <ListChecks size={14} aria-hidden="true" /> Por fuente y recopilador
-              </button>
-            ) : null}
+            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}${grafico === "publico" ? ", por público" : ", con el acumulado"}`}</span></h3>
+            <span className="acr-ri-acciones">
+              <SelectorDeSubvistas
+                opciones={[{ clave: "publico", etiqueta: "Por público", valor: "publico" as const }, { clave: "acumulado", etiqueta: "Diario y acumulado", valor: "acumulado" as const }]}
+                esActiva={(valor) => valor === grafico}
+                onElegir={setGrafico}
+              />
+              {onVerFuentes ? (
+                <button type="button" className="acr-av-boton" onClick={onVerFuentes}>
+                  <ListChecks size={14} aria-hidden="true" /> Por fuente y recopilador
+                </button>
+              ) : null}
+            </span>
           </CabeceraDeTarjeta>
           {plan.length ? null : (
             <AvisoDeTarjeta accion={<button type="button" className="acr-av-boton" onClick={onDeclararFases}><CalendarRange size={14} aria-hidden="true" /> Declarar fases</button>}>
               El plan de campo no tiene fases con fechas.
             </AvisoDeTarjeta>
           )}
-          <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} clasesDeCapa={clasesDeCapa} />
-          <ul className="acr-ri-leyenda" aria-label="Públicos">
-            {serie.capas.map((capa, indice) => (
-              <li key={capa.publico}><i className={`acr-av-capa-muestra ${clasesDeCapa[indice]}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b></li>
-            ))}
-          </ul>
+          {grafico === "publico" ? (
+            <>
+              <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} clasesDeCapa={clasesDeCapa} />
+              <ul className="acr-ri-leyenda" aria-label="Públicos">
+                {serie.capas.map((capa, indice) => (
+                  <li key={capa.publico}><i className={`acr-av-capa-muestra ${clasesDeCapa[indice]}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b></li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <>
+              <DiarioYAcumulado fechas={serie.fechas} totales={serie.totales} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(serie.fechas.length)} días`} />
+              <ul className="acr-ri-leyenda" aria-label="Series">
+                <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día <span className="acr-av-tenue">(eje izquierdo)</span></li>
+                <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(serie.totales.reduce((a, b) => a + b, 0))}</b> <span className="acr-av-tenue">(eje derecho)</span></li>
+                {metaDelEstudio ? <li><i className="acr-av-capa-muestra is-meta" aria-hidden="true" />Meta <b className="acr-av-num">{fmt(metaDelEstudio)}</b></li> : null}
+              </ul>
+            </>
+          )}
         </section>
         <RitmoPorPublico publicos={porPublico} clase={(publico) => clasePublico(paleta, publico)} />
         <section className="acr-av-panel acr-ri-mapa" aria-label="Efectivas por semana">

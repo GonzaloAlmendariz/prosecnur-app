@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import { lunesDe, mapaPorSemana } from "./mapaDeCalor";
 import { RitmoVista } from "./Ritmo";
+import { acumulado } from "./DiarioYAcumulado";
 import { SuperficieFlotante } from "../../../core/superficieFlotante/SuperficieFlotante";
 
 const actores = [
@@ -107,5 +108,15 @@ describe("fecha local del corte", () => {
     );
     expect(html).toMatch(/29 oct, por público/);
     expect(html).not.toMatch(/29 oct a 29 oct/);
+  });
+
+  it("ofrece ver el ritmo por público o diario con el acumulado en dos ejes", () => {
+    const html = renderToStaticMarkup(
+      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} />,
+    );
+    expect(html).toContain("Por público");
+    expect(html).toContain("Diario y acumulado");
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Por público/);
+    expect(acumulado([3, 0, 5, 2])).toEqual([3, 3, 8, 10]);
   });
 });
