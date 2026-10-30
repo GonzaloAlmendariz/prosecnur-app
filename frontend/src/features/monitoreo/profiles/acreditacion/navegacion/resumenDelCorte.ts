@@ -5,6 +5,7 @@ import { normalizeSourceMatch } from "../formato";
 import { advanceCardsFromRows, type AcreditacionAdvanceCard } from "../avance/tarjetasDeAvance";
 import { casosDelCorte, type CasosDelCorte } from "../control/casos/tiposDeCaso";
 import { conRespuestaPor, personasDe } from "../control/casos/personasModelo";
+import { embudoDeRespuestas, respuestasDe, type EmbudoDeRespuestas } from "../control/casos/respuestasModelo";
 
 /**
  * Lo último que el corte dijo del avance y de los casos, para que la barra del
@@ -63,6 +64,8 @@ type EstadoDelResumen = {
   cruces: Array<{ rotulo: string; casos: number }> | null;
   /** Las respuestas con su fila del corte (`response_row`), para nombrar por su ID lo que otras hojas citan por fila (Control › Calidad). */
   respuestasConFila: RespuestaConFila[] | null;
+  /** El embudo del corte por respuestas (recibidas → cruzan → efectivas), del corte de Control. */
+  embudo: EmbudoDeRespuestas | null;
   /** La lectura de casos falló: las vistas dejan de esperarla. */
   casosFallaron: boolean;
   marcarFalloDeCasos: () => void;
@@ -95,6 +98,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
   recopiladores: null,
   cruces: null,
   respuestasConFila: null,
+  embudo: null,
   casosFallaron: false,
   marcarFalloDeCasos: () => set({ casosFallaron: true }),
   observar: (reports, goals) => {
@@ -112,6 +116,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
         .filter((caso) => caso.response_id && caso.response_row != null && String(caso.response_row) !== "")
         .map((caso) => ({ response_row: Number(caso.response_row), response_id: String(caso.response_id), actor: String(caso.actor ?? ""), platform_state: String(caso.platform_state ?? "") }))
       : null;
+    const embudo = normalizadas ? embudoDeRespuestas(respuestasDe(normalizadas.cases)) : null;
     const barrido = barridoDeReports(reports);
     const crudas = reports.client_report?.sources;
     const fuentes = Array.isArray(crudas) && crudas.length ? crudas as Array<Record<string, unknown>> : null;
@@ -120,6 +125,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       recopiladores: recopiladores ?? previo.recopiladores,
       cruces: cruces ?? previo.cruces,
       respuestasConFila: respuestasConFila?.length ? respuestasConFila : previo.respuestasConFila,
+      embudo: embudo?.recibidas ? embudo : previo.embudo,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,
@@ -127,7 +133,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       issues: issues ?? previo.issues,
     }));
   },
-  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, respuestasConFila: null, casosFallaron: false }),
+  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, respuestasConFila: null, embudo: null, casosFallaron: false }),
 }));
 
 /** Para quien observa fuera de React (el prefetch de scopes). */

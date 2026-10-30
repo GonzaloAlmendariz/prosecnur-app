@@ -92,3 +92,40 @@ export function csvDeRespuestas(respuestas: readonly Respuesta[]): string {
     ...respuestas.map((r) => [r.id, r.recibida, r.publico, r.canal, r.encuesta, r.estado, r.cruce, r.cuenta ? "Sí" : "No"].map(celda).join(",")),
   ].join("\n");
 }
+
+/** El embudo del corte contado por respuestas (aprobado por Gonzalo, 29/10/2026). */
+export type EmbudoDeRespuestas = {
+  /** Respuestas que llegaron de las plataformas. */
+  recibidas: number;
+  /** De ellas, las que cruzan con las bases (por llave, correo o a mano). */
+  cruzan: number;
+  /** De ellas, las que cuentan en el avance. */
+  efectivas: number;
+  /** Llegaron sin llave: pruebas o enlaces sin `id`. */
+  sinLlave: number;
+  /** Traen llave pero no está en ninguna base. */
+  sinCruce: number;
+  /** Cruzan pero no cuentan: parciales, rechazos, duplicados. */
+  noCuentan: number;
+};
+
+/**
+ * La misma cuenta de Control › Respuestas, dicha como embudo: el embudo de
+ * Avance sumaba filas del padrón y respuestas («45 956 recibidas», «−836
+ * fuera del universo»), dos granos en una cifra.
+ */
+export function embudoDeRespuestas(respuestas: readonly Respuesta[]): EmbudoDeRespuestas {
+  const cruza = (respuesta: Respuesta) => /^cruz[oó]/i.test(respuesta.cruce);
+  const recibidas = respuestas.length;
+  const cruzan = respuestas.filter(cruza).length;
+  const efectivas = respuestas.filter((respuesta) => cruza(respuesta) && respuesta.cuenta).length;
+  const sinLlave = respuestas.filter((respuesta) => respuesta.cruce === "Sin llave").length;
+  return {
+    recibidas,
+    cruzan,
+    efectivas,
+    sinLlave,
+    sinCruce: recibidas - cruzan - sinLlave,
+    noCuentan: cruzan - efectivas,
+  };
+}

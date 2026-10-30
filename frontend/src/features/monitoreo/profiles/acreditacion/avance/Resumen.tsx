@@ -3,7 +3,7 @@ import { ArrowRight, CalendarDays } from "lucide-react";
 import type { MonitoreoCorte } from "../../../corte/corteContract";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { AcreditacionEmbudoCorte } from "../AcreditacionEmbudoCorte";
+import { EmbudoDeRespuestas } from "./EmbudoDeRespuestas";
 import { fmt } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { esperanPorPublico, type CasosDelCorte } from "../control/casos/tiposDeCaso";
@@ -195,7 +195,6 @@ export function Resumen(props: PropsDelResumen) {
 export function ResumenVista({
   tarjetas,
   diarioGeneral,
-  corte,
   casos,
   casosPorPublico = [],
 }: PropsDelResumen & { casos: CasosDelCorte | null; casosPorPublico?: Array<{ actor: string; esperan: number }> }) {
@@ -248,8 +247,8 @@ export function ResumenVista({
               <small>en el universo</small>
             </div>
           </div>
-          <div className="acr-res-embudo" aria-label="Del registro a la efectiva">
-            <AcreditacionEmbudoCorte corte={corte} />
+          <div className="acr-res-embudo" aria-label="De la respuesta a la efectiva">
+            <EmbudoDeRespuestas />
           </div>
           <div className="acr-res-curva" data-qa-geometry-capacity="owned">
             {serie.length ? (
