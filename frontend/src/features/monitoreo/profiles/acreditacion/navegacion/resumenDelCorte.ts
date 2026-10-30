@@ -125,7 +125,8 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       recopiladores: recopiladores ?? previo.recopiladores,
       cruces: cruces ?? previo.cruces,
       respuestasConFila: respuestasConFila?.length ? respuestasConFila : previo.respuestasConFila,
-      embudo: embudo?.recibidas ? embudo : previo.embudo,
+      // Con la bandeja a la vista el embudo es el de este corte, aunque traiga cero respuestas.
+      embudo: normalizadas ? embudo : previo.embudo,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,

@@ -21,6 +21,8 @@ import "./embudoDeCorte.css";
  * quedó del corte, así que pertenece a Avance, que es donde se pregunta cuánto
  * se lleva. Fuera de ahí desordenaba la lectura en vez de guiarla.
  */
+// ⚠ SIN MONTAR desde el 2026-10-29: Avance cuenta el embudo por respuestas
+// (avance/EmbudoDeRespuestas.tsx, pedido de Gonzalo). Retirarlo pide doble confirmación.
 export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
   const navigate = useNavigate();
   const location = useLocation();

@@ -32,7 +32,7 @@ export function EmbudoDeRespuestas() {
   const pasos = [
     { key: "ingesta", label: "Respuestas", value: embudo.recibidas, hint: "llegaron de las encuestas" },
     { key: "procesable", label: "Cruzan", value: embudo.cruzan, hint: "están en las bases de envío" },
-    { key: "oficial", label: "Efectivas", value: embudo.efectivas, hint: "cuentan como avance" },
+    { key: "oficial", label: "Efectivas", value: embudo.efectivas, hint: "respuestas que cuentan como avance" },
   ];
   const mermas = [
     { clave: "sin-llave", valor: embudo.sinLlave, regla: "llegaron sin llave (pruebas o enlace sin id)", direccion: "seccion=control&pestana=respuestas" },
