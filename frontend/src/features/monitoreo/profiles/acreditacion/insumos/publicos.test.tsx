@@ -65,5 +65,7 @@ describe("nombre visible de una fuente", () => {
     expect(nombreVisibleDeFuente(padron)).toBe("Egresados");
     expect(fuenteRepiteAlPublico(padron, "egresados")).toBe(true);
     expect(nombreVisibleDeFuente(fuente("Acreditación 2026 - Egresados", "respuestas", "surveymonkey", "Egresados"))).toBe("Acreditación 2026 - Egresados");
+    expect(nombreVisibleDeFuente(fuente("Universo · Profesores · Lima", "universo", "google_sheets", "Profesores"))).toBe("Profesores · Lima");
+    expect(nombreVisibleDeFuente(fuente("Base - Docentes 2025", "universo", "google_sheets", "Docentes"))).toBe("Base - Docentes 2025");
   });
 });

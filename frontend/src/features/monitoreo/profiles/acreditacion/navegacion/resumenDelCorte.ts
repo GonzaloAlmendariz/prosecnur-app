@@ -137,7 +137,12 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       fuentes: fuentes ?? previo.fuentes,
       recopiladores: recopiladores ?? previo.recopiladores,
       cruces: cruces ?? previo.cruces,
-      respuestasConFila: respuestasConFila?.length ? respuestasConFila : previo.respuestasConFila,
+      // Con la bandeja del corte de Control a la vista, una lista vacía también es la
+      // respuesta («no hay filas que unir»): si se descartara, Calidad diría
+      // «Uniendo…» para siempre. Otros cortes que traen issues sueltos no la pisan.
+      respuestasConFila: respuestasConFila && (respuestasConFila.length || reports.report_scope === "queries_summary" || reports.report_scope === "full")
+        ? respuestasConFila
+        : previo.respuestasConFila,
       // Con la bandeja a la vista el embudo es el de este corte, aunque traiga cero respuestas.
       embudo: normalizadas ? embudo : previo.embudo,
       fechaDelCorte: fechaDelCorte ?? previo.fechaDelCorte,

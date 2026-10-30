@@ -32,10 +32,11 @@ const SERVICIO: Record<string, string> = { google_sheets: "Google Sheets", surve
  * toca porque el motor lee de ella el público; lo que cambia es la lectura.
  */
 export function nombreVisibleDeFuente(fuente: MonitoreoSource): string {
-  const crudo = String(fuente.label || fuente.survey_title || fuente.id || "").trim();
-  const partes = crudo.split(/\s+[·•|–-]\s+/).map((parte) => parte.trim()).filter(Boolean);
-  if (partes.length > 1 && /^(universo|padr[oó]n|base)$/i.test(partes[0])) return partes.slice(1).join(" ");
-  return crudo;
+  const crudo = [fuente.label, fuente.survey_title, fuente.id].map((valor) => String(valor ?? "").trim()).find(Boolean) ?? "";
+  // Sólo se quita el papel del inicio; el resto del nombre queda tal cual se escribió.
+  const papel = crudo.match(/^(universo|padr[oó]n|base)\s+[·•|]\s+/i);
+  const resto = papel ? crudo.slice(papel[0].length).trim() : "";
+  return resto || crudo;
 }
 
 /** ¿El nombre visible de la fuente no dice más que el público? Entonces basta el servicio. */
