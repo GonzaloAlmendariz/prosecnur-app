@@ -265,7 +265,8 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 
-.is-acreditacion-profile .acr-in-barra .mon-acr-source-status-strip {
+.is-acreditacion-profile .acr-in-barra .mon-acr-source-status-strip,
+.is-acreditacion-profile .acr-vista-anterior .mon-acr-source-status-strip {
   padding: 0;
   border: 0;
   background: transparent;
@@ -281,6 +282,24 @@
 .acr-in-barra > :last-child {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Dos filas, como Recopiladores (Gonzalo, 30/10: el botón cambiaba de lugar
+ * entre las dos sub-vistas): arriba el rótulo y el selector a la derecha; abajo
+ * los chips y «Conectar fuente». */
+.acr-in-barra > .acr-enc-barra {
+  flex: 1 1 100%;
+  justify-content: space-between;
+}
+
+.acr-in-barra > .mon-acr-source-status-strip {
+  flex: 1 1 100%;
+}
+
+/* «Conectar fuente» anclado al borde derecho: iba pegado a los chips, que cambian
+ * entre Fuentes y Recopiladores, y el botón saltaba de lugar (Gonzalo, 30/10). */
+.is-acreditacion-profile .mon-acr-source-status-strip > .pulso-button {
+  margin-left: auto;
 }
 
 /* Tarjetas de pocas filas: alto natural, sin vacío abajo. */
