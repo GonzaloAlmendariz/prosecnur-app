@@ -57,7 +57,9 @@ export function RepartoDeLaFuente({
     let vivo = true;
     setLeyendo(true);
     postMonitoreoCuotaProponer({ actor: elegida.publico, variable: columna })
-      .then((propuesta) => { if (vivo) setValores(propuesta.categorias.map((item) => ({ valor: item.categoria, personas: item.universo }))); })
+      // «Sin dato» es el rótulo de Cuotas para la celda vacía: no es un valor de la
+      // columna y el mapa nunca casaría con él (las vacías ya quedan en el público de la fuente).
+      .then((propuesta) => { if (vivo) setValores(propuesta.categorias.filter((item) => claveDeValor(item.categoria) !== "sin dato").map((item) => ({ valor: item.categoria, personas: item.universo }))); })
       .catch(() => { if (vivo) setValores([]); })
       .finally(() => { if (vivo) setLeyendo(false); });
     return () => { vivo = false; };
