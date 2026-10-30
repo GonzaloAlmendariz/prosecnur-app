@@ -1,4 +1,5 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { PiramidePoblacion } from "./PiramidePoblacion";
 import { Info, Table2, Users } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
@@ -237,6 +238,7 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
             <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz · ${matriz.filas.length} distritos`}
           </PulsoButton>
         ) : null}
+        {matriz.vigente && sexo && !cambiaron ? <PiramidePoblacion filas={matriz.filas} rangos={rangosConfig} /> : null}
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null
         ) : null}
