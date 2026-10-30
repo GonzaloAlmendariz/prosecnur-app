@@ -2031,3 +2031,50 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Ritmo: la leyenda de públicos es la botonera que aísla uno (Gonzalo, 30/10). Píldoras
+ * planas con el relieve sólo en la elegida; nada de botón dentro de botón. */
+.acr-ri-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-ri-filtro-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  transform: none;
+  white-space: nowrap;
+}
+
+.acr-ri-filtro-boton:hover {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+  color: var(--pulso-text);
+  transform: none;
+}
+
+.acr-ri-filtro-boton.is-activo {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 9%, var(--pulso-surface));
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  color: var(--pulso-text);
+}
+
+.acr-ri-filtro-boton:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 2px;
+}

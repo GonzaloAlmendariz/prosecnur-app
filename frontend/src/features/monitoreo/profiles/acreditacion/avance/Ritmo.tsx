@@ -52,12 +52,22 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const porPublico = useMemo(() => ritmoPorPublico(serie, actores), [serie, actores]);
   // «Por público» (apilado) o «Diario y acumulado» (doble eje, con la meta del estudio).
   const [grafico, setGrafico] = useState<"publico" | "acumulado">("publico");
-  const metaDelEstudio = porPublico.reduce((suma, item) => suma + (item.meta ?? 0), 0) || null;
+  // Un público a la vez (Gonzalo, 30/10: «seleccionar un actor en específico y que
+  // muestre sólo ese»): un clic en la leyenda lo aísla en los dos gráficos.
+  const [solo, setSolo] = useState<string | null>(null);
+  const capaSola = solo ? serie.capas.find((capa) => capa.publico === solo) ?? null : null;
+  const metaDelEstudio = capaSola
+    ? porPublico.find((item) => item.publico === capaSola.publico)?.meta ?? null
+    : porPublico.reduce((suma, item) => suma + (item.meta ?? 0), 0) || null;
+  const totalesVisibles = capaSola ? capaSola.valores : serie.totales;
   const fechasUltimas = new Set(pulso.ultimaPorPublico.map((item) => item.fecha ?? ""));
   const ultimaComun = pulso.ultimaPorPublico.length > 1 && fechasUltimas.size === 1 ? [...fechasUltimas][0] || null : null;
   // Cada público con el color que tiene en Resumen, Correo y Por cuota; «Otros» sigue en gris.
   const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.filter((capa) => !capa.otros).map((capa) => capa.publico)]), [actores, serie]);
   const clasesDeCapa = serie.capas.map((capa, indice) => (capa.otros ? `is-capa-${indice + 1}` : `con-publico ${clasePublico(paleta, capa.publico)}`));
+  const indiceSolo = capaSola ? serie.capas.indexOf(capaSola) : -1;
+  const capasVisibles = capaSola ? [capaSola] : serie.capas;
+  const clasesVisibles = capaSola ? [clasesDeCapa[indiceSolo]] : clasesDeCapa;
   if (!serie.fechas.length) {
     return <PestanaSinContenido titulo="Efectivas por día" icono={<CalendarRange size={18} />} motivo="El corte todavía no trae efectivas con fecha." descripcion="Las efectivas por día aparecen cuando las encuestas conectadas devuelven respuestas completas." />;
   }
@@ -66,7 +76,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       <div className="acr-ri-izquierda">
         <section className="acr-av-panel acr-ri-diario" aria-label="Efectivas por día">
           <CabeceraDeTarjeta primera>
-            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}${grafico === "publico" ? ", por público" : ", con el acumulado"}`}</span></h3>
+            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}${capaSola ? `, ${capaSola.publico}` : grafico === "publico" ? ", por público" : ", con el acumulado"}`}</span></h3>
             <span className="acr-ri-acciones">
               <SelectorDeSubvistas
                 opciones={[{ clave: "publico", etiqueta: "Por público", valor: "publico" as const }, { clave: "acumulado", etiqueta: "Diario y acumulado", valor: "acumulado" as const }]}
@@ -87,23 +97,29 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
           )}
           {grafico === "publico" ? (
             <>
-              <BarrasApiladas fechas={serie.fechas} capas={serie.capas} totales={serie.totales} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, por público`} clasesDeCapa={clasesDeCapa} />
-              <ul className="acr-ri-leyenda" aria-label="Públicos">
-                {serie.capas.map((capa, indice) => (
-                  <li key={capa.publico}><i className={`acr-av-capa-muestra ${clasesDeCapa[indice]}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b></li>
-                ))}
-              </ul>
+              <BarrasApiladas fechas={serie.fechas} capas={capasVisibles} totales={totalesVisibles} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, ${capaSola ? capaSola.publico : "por público"}`} clasesDeCapa={clasesVisibles} />
             </>
           ) : (
             <>
-              <DiarioYAcumulado fechas={serie.fechas} totales={serie.totales} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(serie.fechas.length)} días`} />
+              <DiarioYAcumulado fechas={serie.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(serie.fechas.length)} días`} />
               <ul className="acr-ri-leyenda" aria-label="Series">
                 <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día <span className="acr-av-tenue">(eje izquierdo)</span></li>
-                <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(serie.totales.reduce((a, b) => a + b, 0))}</b> <span className="acr-av-tenue">(eje derecho)</span></li>
-                {metaDelEstudio ? <li><i className="acr-av-capa-muestra is-meta" aria-hidden="true" />Meta <b className="acr-av-num">{fmt(metaDelEstudio)}</b></li> : null}
+                <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(totalesVisibles.reduce((a, b) => a + b, 0))}</b> <span className="acr-av-tenue">(eje derecho)</span></li>
+                {metaDelEstudio ? <li><i className="acr-av-capa-muestra is-meta" aria-hidden="true" />{capaSola ? "Meta del público" : "Meta"} <b className="acr-av-num">{fmt(metaDelEstudio)}</b></li> : null}
               </ul>
             </>
           )}
+          {/* La misma botonera en los dos gráficos: el público elegido sigue elegido al cambiar de vista. */}
+          <div className="acr-ri-filtro" role="group" aria-label="Mostrar un público">
+            <button type="button" className={`acr-ri-filtro-boton${capaSola ? "" : " is-activo"}`} aria-pressed={!capaSola} onClick={() => setSolo(null)}>
+              Todos <b className="acr-av-num">{fmt(serie.totales.reduce((a, b) => a + b, 0))}</b>
+            </button>
+            {serie.capas.map((capa, indice) => (
+              <button key={capa.publico} type="button" className={`acr-ri-filtro-boton${capaSola === capa ? " is-activo" : ""}`} aria-pressed={capaSola === capa} onClick={() => setSolo(capaSola === capa ? null : capa.publico)}>
+                <i className={`acr-av-capa-muestra ${clasesDeCapa[indice]}`} aria-hidden="true" />{capa.publico} <b className="acr-av-num">{fmt(capa.total)}</b>
+              </button>
+            ))}
+          </div>
         </section>
         <RitmoPorPublico publicos={porPublico} clase={(publico) => clasePublico(paleta, publico)} />
         <section className="acr-av-panel acr-ri-mapa" aria-label="Efectivas por semana">
