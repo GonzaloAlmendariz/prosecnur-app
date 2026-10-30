@@ -114,3 +114,17 @@ test_that("el reparto es una partición: cada fila del padrón en un solo públi
   expect_equal(sum(table(out$dim_actor)), nrow(data))
   expect_identical(out$dim_actor[[3]], "Docentes Campus")
 })
+
+test_that("una cuota con metas para una categoría que ya no está en su público lo avisa", {
+  data <- data.frame(
+    Token = c("T1", "T2"), `Modalidad docente` = c("TPA", "DTC"),
+    .source_role = c("universo", "universo"), dim_actor = c("Docentes Campus", "Docentes Campus"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  universo <- monitoreo_cuotas_universo(data, list("Token"))
+  cuota <- list(id = "q", actor = "Docentes Campus", variable = "Modalidad docente", metas = list(TPA = 1L, DTC = 1L, CENTRUM = 32L))
+  modelo <- monitoreo_cuotas_modelo(universo, list(), list(cuota))
+  avisos <- unlist(modelo$avisos)
+  expect_true(any(grepl("tiene metas para CENTRUM, que ya no está en su público", avisos, fixed = TRUE)))
+  expect_equal(modelo$cuotas[[1]]$meta, 2L)
+})

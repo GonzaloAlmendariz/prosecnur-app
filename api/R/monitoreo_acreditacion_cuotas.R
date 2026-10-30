@@ -159,7 +159,7 @@ monitoreo_cuotas_modelo <- function(universo, case_rollup = list(), cuotas = lis
     variable <- .mcm_chr(q$variable)
     fa <- if (nrow(filas)) filas[filas$.mcu_actor == actor, , drop = FALSE] else filas
     if (!nrow(fa) || !variable %in% names(fa)) {
-      avisos <- c(avisos, sprintf("La cuota «%s · %s» no encuentra esa variable en la base del público.", actor, variable))
+      avisos <- c(avisos, sprintf("La cuota de %s por %s no encuentra esa variable en la base del público.", actor, variable))
       next
     }
     t <- .mcu_ordenar(.mcu_tabla_categorias(fa, variable, efectivas))
@@ -168,6 +168,15 @@ monitoreo_cuotas_modelo <- function(universo, case_rollup = list(), cuotas = lis
       m <- suppressWarnings(as.integer(metas[[cat]] %||% 0L)[1])
       if (is.na(m) || m < 0L) 0L else m
     }, integer(1), USE.NAMES = FALSE)
+    # Metas de categorías que ya no están en el público (p. ej. CENTRUM tras repartir
+    # el padrón): no se cuentan, y se dice cuáles en vez de bajar la suma en silencio.
+    huerfanas <- setdiff(names(metas)[vapply(metas, function(m) isTRUE(suppressWarnings(as.integer(m %||% 0L)[1]) > 0L), logical(1))], t$categoria)
+    if (length(huerfanas)) {
+      avisos <- c(avisos, sprintf(
+        "La cuota de %s por %s tiene metas para %s, que ya no %s en su público: no se cuentan.",
+        actor, variable, paste(huerfanas, collapse = " y "), if (length(huerfanas) == 1L) "está" else "están"
+      ))
+    }
     falta <- pmax(meta - t$efectivas, 0L)
     estado <- .mcu_estado(t$efectivas, meta)
     total_meta <- sum(meta)
