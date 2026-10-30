@@ -246,3 +246,14 @@ test_that("registrar la vista previa no deja el proyecto «sin guardar» (brecha
   expect_false(isTRUE(session_get(sid)$project_dirty))
   expect_false(is.null(session_get(sid)$files[[meta$file_id]]))
 })
+
+test_that("F38: la hoja del día de una muestra sin salto no nombra un salto en la regla", {
+  sm <- vp_muestra()
+  m <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(), puntos = vp_puntos(sm))
+  expect_identical(m$regla, sm$blocks[[1]]$regla_no_respuesta %||% HOJAS_RUTA_REGLA_NO_RESPUESTA)
+  sm_off <- vp_sin_visitas(sm)
+  sm_off$config$route_jump_mode <- "off"
+  for (i in seq_along(sm_off$blocks)) sm_off$blocks[[i]]$regla_no_respuesta <- HOJAS_RUTA_REGLA_NO_RESPUESTA
+  m_off <- hojas_ruta_hoja_dia_modelo(sm_off, "J01", list(), puntos = vp_puntos(sm_off))
+  expect_identical(m_off$regla, hojas_ruta_regla_no_respuesta(TRUE))
+})

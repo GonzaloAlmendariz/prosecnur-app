@@ -140,7 +140,11 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
     entrevistas = sum(vapply(rutas, `[[`, integer(1), "entrevistas")),
     total_jornadas = length(plan$jornadas),
     visitas_declaradas = all(!is.na(vapply(rutas, `[[`, integer(1), "visitas_esperadas"))),
-    regla = if (length(reglas)) reglas[[1]] else HOJAS_RUTA_REGLA_NO_RESPUESTA,
+    # F38: con el salto apagado, el texto canónico (también el que trae una muestra vieja) va sin salto.
+    regla = {
+      rg <- if (length(reglas)) reglas[[1]] else HOJAS_RUTA_REGLA_NO_RESPUESTA
+      if (identical(rg, HOJAS_RUTA_REGLA_NO_RESPUESTA)) hojas_ruta_regla_no_respuesta(identical(as.character(cfg$route_jump_mode %||% ""), "off")) else rg
+    },
     disposiciones = HOJAS_RUTA_DISPOSICIONES,
     rutas = rutas,
     contexto = contexto,
