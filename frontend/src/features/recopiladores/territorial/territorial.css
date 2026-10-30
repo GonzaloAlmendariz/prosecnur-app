@@ -593,3 +593,31 @@
   color: var(--pulso-danger-fg);
   background: var(--pulso-danger-bg);
 }
+
+/* M7: pasar de hoja en hoja dentro del diálogo. */
+.rec-terr-hoja-pasos {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+  margin-right: auto;
+}
+
+.rec-terr-hoja-paso {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 700;
+  color: var(--pulso-module-fieldkit);
+  text-decoration: none;
+}
+
+.rec-terr-hoja-paso:hover {
+  background: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-terr-hoja-paso:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}

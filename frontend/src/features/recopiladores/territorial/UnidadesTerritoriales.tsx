@@ -91,10 +91,16 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
   const enfocada = unidadDelFoco(units, foco);
   const navigate = useNavigate();
   const columnas = useMemo(() => columnasDe(hrefDeHoja), [hrefDeHoja]);
+  // M7: el orden de la lista (todas las UMP, titular y sus reemplazos) para pasar de hoja en hoja.
+  const orden = useMemo(() => agruparUnidades(units).flatMap((g) => [...g.titulares.flatMap(({ titular, reemplazos }) => [titular, ...reemplazos]), ...g.sueltos].map((u) => u.unit_id)), [units]);
+  const iFoco = foco ? orden.indexOf(foco) : -1;
+  const vecinas = { anterior: iFoco > 0 ? orden[iFoco - 1] : null, siguiente: iFoco >= 0 && iFoco < orden.length - 1 ? orden[iFoco + 1] : null };
   // Distrito a la vista: el de la UMP enfocada si la hay; si no, el primero. Con búsqueda se ven todos.
   const [elegido, setElegido] = useState<string | null>(null);
   const claveFoco = enfocada ? enfocada.ubigeo || enfocada.distrito : null;
-  const visible = busqueda.trim() ? TODOS : elegido ?? claveFoco ?? revision.distritos[0]?.clave ?? TODOS;
+  // Si la UMP enfocada es de otro distrito (se llegó con «Siguiente» o por un enlace), la lista la sigue.
+  const sigueAlFoco = claveFoco && elegido && elegido !== TODOS && elegido !== claveFoco;
+  const visible = busqueda.trim() ? TODOS : sigueAlFoco ? claveFoco : elegido ?? claveFoco ?? revision.distritos[0]?.clave ?? TODOS;
 
   if (!unidades) {
     return (
@@ -167,7 +173,13 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
         />
       )}
 
-      <DialogoHojaUmp unidad={enfocada} stale={unidades.stale} />
+      <DialogoHojaUmp
+        unidad={enfocada}
+        stale={unidades.stale}
+        hrefAnterior={vecinas.anterior ? hrefDeHoja(vecinas.anterior) : null}
+        hrefSiguiente={vecinas.siguiente ? hrefDeHoja(vecinas.siguiente) : null}
+        motivo={enfocada ? revision.porUnidad.get(enfocada.unit_id)?.motivo ?? null : null}
+      />
     </div>
   );
 }

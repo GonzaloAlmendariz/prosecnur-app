@@ -14,7 +14,8 @@ import { Dialog } from "../../../components/Dialog";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
-import { FileText, Loader2, Printer } from "../../../vendor/lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Loader2, Printer } from "../../../vendor/lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { PANEL_HOJA_UMP } from "./panelesTerritorial";
 
 type Estado = { png: string | null; pdf: string | null; cargando: boolean; error: string };
@@ -24,8 +25,30 @@ function mensaje(e: unknown, porDefecto: string): string {
   return e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : porDefecto;
 }
 
-export function DialogoHojaUmp({ unidad, stale }: { unidad: UnidadTerritorial | null; stale: boolean }) {
+type Props = {
+  unidad: UnidadTerritorial | null;
+  stale: boolean;
+  /** M7: la hoja anterior y la siguiente en el orden de la lista (hrefs con el panel abierto). */
+  hrefAnterior?: string | null;
+  hrefSiguiente?: string | null;
+  /** M8: lo que la revisión dice de esta UMP («no alcanza»…); null si está bien. */
+  motivo?: string | null;
+};
+
+export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguiente = null, motivo = null }: Props) {
   const { abierto } = usePanelDireccionable(PANEL_HOJA_UMP);
+  const navigate = useNavigate();
+  // Con el diálogo abierto, ← y → pasan a la hoja anterior o siguiente (revisar 150 hojas sin cerrar y abrir).
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const alPulsar = (ev: KeyboardEvent) => {
+      if (ev.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+      if (ev.key === "ArrowLeft" && hrefAnterior) navigate(hrefAnterior);
+      if (ev.key === "ArrowRight" && hrefSiguiente) navigate(hrefSiguiente);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [abierto, hrefAnterior, hrefSiguiente, navigate]);
   const [e, setE] = useState<Estado>(INICIAL);
   const id = unidad?.unit_id ?? null;
 
@@ -67,12 +90,18 @@ export function DialogoHojaUmp({ unidad, stale }: { unidad: UnidadTerritorial | 
       alto="fijo"
       icon={<FileText size={16} />}
       title={unidad ? `Hoja de ruta · ${unidad.label}` : "Hoja de ruta"}
-      subtitle={unidad ? [unidad.distrito, unidad.zona ? `zona ${unidad.zona}` : "", unidad.manzana ? `manzana ${unidad.manzana}` : ""].filter(Boolean).join(" · ") : undefined}
+      subtitle={unidad ? [unidad.distrito, unidad.zona ? `zona ${unidad.zona}` : "", unidad.manzana ? `manzana ${unidad.manzana}` : "", unidad.viviendas !== null ? `${unidad.viviendas.toLocaleString("es-PE")} viv.` : "", motivo ?? ""].filter(Boolean).join(" · ") : undefined}
       bodyClassName="rec-terr-hoja-cuerpo"
       footer={(
-        <PulsoButton variant="primary" size="sm" disabled={!unidad || e.cargando} onClick={imprimir}>
-          <Printer size={14} aria-hidden /> Imprimir o descargar
-        </PulsoButton>
+        <>
+          <span className="rec-terr-hoja-pasos">
+            {hrefAnterior ? <Link className="rec-terr-hoja-paso" to={hrefAnterior} title="Hoja anterior (←)"><ChevronLeft size={14} aria-hidden /> Anterior</Link> : null}
+            {hrefSiguiente ? <Link className="rec-terr-hoja-paso" to={hrefSiguiente} title="Hoja siguiente (→)">Siguiente <ChevronRight size={14} aria-hidden /></Link> : null}
+          </span>
+          <PulsoButton variant="primary" size="sm" disabled={!unidad || e.cargando} onClick={imprimir}>
+            <Printer size={14} aria-hidden /> Imprimir o descargar
+          </PulsoButton>
+        </>
       )}
     >
       {!unidad ? (
