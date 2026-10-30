@@ -2,7 +2,7 @@
 
 Estado: Aceptado (decisión de Gonzalo, 2026-10-29: «Opción, PPS por defecto»)
 
-Implementación: Completa en `api/R/hojas_ruta_sorteo_tope.R` (rama `claude/mecanismos-seleccion-manzanas-9bf61c`), salvo el selector del método en la UI y la marca `acceso_dificil_probable` (ver «Pendiente»). La evidencia es `docs/qa/estudio-mecanismos-seleccion-manzanas-2026-10-29.md`.
+Implementación: Completa en `api/R/hojas_ruta_sorteo_tope.R` (en main desde `82696d33b`; selector de la UI en `f4d6bafeb`), salvo la marca `acceso_dificil_probable` (ver «Pendiente»). La evidencia es `docs/qa/estudio-mecanismos-seleccion-manzanas-2026-10-29.md`.
 
 Fecha: 2026-10-29
 
@@ -78,10 +78,7 @@ abierto del ADR 0073.
 
 ## Pendiente
 
-- **UI.** El selector del método está fijo en el frontend: `METODOS` en
-  `frontend/src/features/hojasRuta/mapa/manzanas/ManzanasPaneles.tsx`, el tipo `SamplingMethod` en
-  `frontend/src/api/hojasRuta.ts` y la lista de `HojasRutaPage.tsx`. Ninguno lee el catálogo del backend, así que
-  hay que agregar `pps_tope` («PPS con tope») a mano. Queda para la sesión de revamp de Hojas de ruta.
+- **UI.** Hecho en `f4d6bafeb`: `pps_tope` («PPS con tope») está en el selector de métodos de Manzanas. El selector sigue sin leer el catálogo del backend, así que un método nuevo se agrega a mano en `METODOS` (`ManzanasPaneles.tsx`), `SamplingMethod` (`api/hojasRuta.ts`) y la lista de `HojasRutaPage.tsx`.
 - **`acceso_dificil_probable`.** La marca en la hoja de ruta de las manzanas con 100 viviendas o más y 200 viv/ha
   o más (§2) no se implementó en esta tanda.
 
