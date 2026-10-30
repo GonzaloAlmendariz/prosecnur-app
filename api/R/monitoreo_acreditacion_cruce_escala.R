@@ -285,7 +285,20 @@
 # columnas: el rbind de miles de filas sueltas era la mitad del costo del cruce.
 .monitoreo_internal_records_to_df <- function(rows) {
   if (!length(rows)) return(data.frame())
-  rows <- lapply(rows, function(row) {
+  rows <- .monitoreo_internal_normalize_records(rows)
+  cols <- names(rows[[1L]])
+  for (row in rows) {
+    if (length(row) != length(cols) || !all(names(row) %in% cols)) {
+      stop("names do not match previous names", call. = FALSE)
+    }
+  }
+  .monitoreo_internal_columns_to_df(lapply(stats::setNames(cols, cols), function(col) lapply(rows, function(row) row[[col]])))
+}
+
+# Cada fila en la forma que espera el armado por columnas: los valores lista
+# quedan envueltos para que la columna sea de lista.
+.monitoreo_internal_normalize_records <- function(rows) {
+  lapply(rows, function(row) {
     if (is.data.frame(row) || inherits(row, "monitoreo_case_row")) {
       return(lapply(stats::setNames(seq_along(row), names(row)), function(j) {
         value <- row[[j]]
@@ -302,14 +315,12 @@
     }
     row
   })
-  cols <- names(rows[[1L]])
-  for (row in rows) {
-    if (length(row) != length(cols) || !all(names(row) %in% cols)) {
-      stop("names do not match previous names", call. = FALSE)
-    }
-  }
-  out <- lapply(stats::setNames(cols, cols), function(col) {
-    values <- lapply(rows, function(row) row[[col]])
+}
+
+# De columnas (cada una, la lista de valores por fila) a data.frame: una columna
+# con algún valor lista queda como columna de lista; las demás, como vector.
+.monitoreo_internal_columns_to_df <- function(columns) {
+  out <- lapply(columns, function(values) {
     if (any(vapply(values, is.list, logical(1)))) {
       return(I(lapply(values, function(value) if (is.list(value)) value[[1L]] else value)))
     }

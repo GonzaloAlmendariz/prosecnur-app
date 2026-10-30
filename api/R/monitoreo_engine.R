@@ -18839,72 +18839,11 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   }
   answered_base_keys <- unique(answered_base_keys[nzchar(answered_base_keys)])
   answered_base_rows <- unique(answered_base_rows[nzchar(answered_base_rows)])
-  if (length(base_records)) {
-    for (base in base_records) {
-      base_row <- .monitoreo_scalar(base$row %||% "", "")
-      if (nzchar(base_row)) {
-        if (base_row %in% answered_base_rows) next
-      } else {
-        base_keys <- unlist(base$all_keys %||% list(base$key %||% ""), use.names = FALSE)
-        base_keys <- unique(base_keys[nzchar(base_keys)])
-        if (length(base_keys) && any(base_keys %in% answered_base_keys)) next
-      }
-      person <- base$person %||% ""
-      if (!nzchar(person)) person <- base$identifier %||% base$value %||% base$key %||% ""
-      cases[[length(cases) + 1L]] <- .monitoreo_internal_case_row(
-        actor = base$actor %||% "",
-        person_label = person,
-        case_key = base$key %||% "",
-        response_id = "",
-        date = base$date %||% "Sin fecha",
-        response_datetime = "",
-        source_id = base$source_id %||% "",
-        source_label = base$source %||% "",
-        channel = base$channel %||% "",
-        collector_id = "",
-        collector_name = base$responsible %||% "Sin responsable",
-        collector_type = "",
-        platform_state = "Sin respuesta",
-        base_result = "Cruzó",
-        base_record = base$identifier %||% "",
-        base_source = base$source %||% "",
-        base_status = base$status %||% "",
-        decision = "Pendiente de respuesta",
-        decision_reason = "Existe en la base del corte y no tiene respuesta de plataforma reconciliada.",
-        advancement = "pending",
-        issue_type = "sin_respuesta",
-        rule = "Caso en base sin respuesta reconciliada; queda para seguimiento operativo.",
-        pending_exit = FALSE,
-        recovery_collector = FALSE,
-        response_row = NA_integer_,
-        partial_answered_questions = 0L,
-        partial_total_questions = 0L,
-        partial_completion_pct = 0L,
-        partial_last_question = "",
-        partial_next_question = "",
-        duplicate_group_key = "",
-        duplicate_group_size = 1L,
-        counts_in_advance = FALSE,
-        duplicate_counting_status = "",
-        identity_status = "pendiente_base",
-        identity_label = .monitoreo_internal_identity_label("pendiente_base"),
-        channel_key_strategy = "base_sin_respuesta",
-        channel_key_strategy_label = "Base sin respuesta",
-        primary_identity_label = "Llave en base",
-        primary_identity_value = base$key %||% "",
-        secondary_identity_label = "Responsable",
-        secondary_identity_value = base$responsible %||% "",
-        review_priority = 10L,
-        phone_audit = I(list(list())),
-        assisted_review = I(list(list())),
-        check.names = FALSE,
-        stringsAsFactors = FALSE
-      )
-    }
-  }
-  if (!length(cases)) return(.monitoreo_internal_empty_queries())
+  # La base sin respuesta se arma por columnas: monitoreo_casos_pendientes.R.
+  pendientes <- .monitoreo_internal_pending_cases(base_records, answered_base_rows, answered_base_keys)
+  if (!length(cases) && !pendientes$n) return(.monitoreo_internal_empty_queries())
 
-  cases_df <- .monitoreo_internal_records_to_df(cases)
+  cases_df <- .monitoreo_internal_cases_df(cases, pendientes)
   key <- as.character(cases_df$case_key %||% "")
   actor_key <- vapply(as.character(cases_df$actor %||% ""), .monitoreo_report_unit_key, character(1))
   actor_key[!nzchar(actor_key) | is.na(actor_key)] <- "sin_actor"
