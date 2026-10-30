@@ -1707,13 +1707,38 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   border-bottom: 0;
 }
 
+/* Filas de cifras planas (K4, 30/10): sin una caja por cifra dentro de la tarjeta;
+ * una línea fina entre ellas, como Metas y Correo. */
+.acr-cl-cifras,
+.acr-pc-franja {
+  column-gap: 0;
+}
+
 .acr-cl-cifras > .acr-res-kpi,
 .acr-pc-franja > .acr-res-kpi,
 .acr-ri-cifras > div {
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
+  padding: 4px var(--pulso-space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.acr-cl-cifras > .acr-res-kpi + .acr-res-kpi,
+.acr-pc-franja > .acr-res-kpi + .acr-res-kpi,
+.acr-ri-cifras > div + div {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+.acr-cl-cifras > .acr-res-kpi:first-child,
+.acr-pc-franja > .acr-res-kpi:first-child {
+  padding-left: 0;
+}
+
+@media (max-width: 1100px) {
+  .acr-pc-franja > .acr-res-kpi:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
 }
 
 /* Leyendas (regla de Gonzalo para los tres modos, 2026-10-24): rótulos cortos,
