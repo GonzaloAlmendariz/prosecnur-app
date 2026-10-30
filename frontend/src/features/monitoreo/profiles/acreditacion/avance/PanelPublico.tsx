@@ -5,7 +5,7 @@ import { casosDelCorte } from "../control/casos/tiposDeCaso";
 import type { BarridoDelPublico } from "../navegacion/resumenDelCorte";
 import type { MonitoreoInternalQueryIssue } from "../../../../../api/client";
 import { efectivasPorCanal, tieneMeta, type DiaDeAvance } from "./avanceModelo";
-import { AreaAcumulada } from "./graficosDeAvance";
+import { CurvaAcumulada } from "./graficosDeAvance";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 
 function Fila({ etiqueta, valor, total, clase }: { etiqueta: string; valor: number; total: number; clase: string }) {
@@ -79,7 +79,8 @@ export function PanelPublico({
         <div className="acr-pub-bloque acr-pub-acumulado" data-qa-geometry-capacity="owned">
           <span className="acr-av-antetitulo">Efectivas acumuladas</span>
           {serie.length
-            ? <AreaAcumulada serie={serie} meta={conMeta ? meta : null} etiqueta={`Efectivas acumuladas de ${tarjeta.actor}`} />
+            // La misma curva del Resumen (un eje, proyección al ritmo de 7 días): el área con la meta arriba quedaba pegada al piso (K1).
+            ? <CurvaAcumulada serie={serie} meta={conMeta ? meta : 0} diaDeMeta={null} ritmo={serie.length ? serie.slice(-7).reduce((suma, dia) => suma + dia.efectivas, 0) / serie.slice(-7).length : null} />
             : <Alert kind="info">Este público aún no tiene efectivas con fecha.</Alert>}
         </div>
         {canales.length ? (
@@ -88,7 +89,7 @@ export function PanelPublico({
             {canales.map((canal) => (
               <div key={canal.canal} className="acr-pub-embudo-fila">
                 <span>{canal.canal}</span>
-                <span className="acr-av-pista"><i className="is-canal" style={{ width: `${(canal.efectivas / maxCanal) * 100}%` }} /></span>
+                {canales.length > 1 ? <span className="acr-av-pista"><i className="is-canal" style={{ width: `${(canal.efectivas / maxCanal) * 100}%` }} /></span> : null}
                 <b className="acr-av-num">{fmt(canal.efectivas)}</b>
               </div>
             ))}
