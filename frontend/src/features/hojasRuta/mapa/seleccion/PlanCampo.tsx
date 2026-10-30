@@ -23,7 +23,11 @@ export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRut
   return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([d, js]) => [d, [...js].sort((x, y) => x.encuestador - y.encuestador)]);
 }
 
-export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void> }) {
+/**
+ * `conCostos = false` (Material de campo): sin costos ni precios, que los lleva otra persona (Gonzalo,
+ * 2026-10-30). Los supuestos de costo guardados no se tocan: se conservan al guardar los demás.
+ */
+export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = true }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void>; conCostos?: boolean }) {
   const [s, setS] = useState<HojasRutaPlanSupuestos>(normalizarPlanSupuestos(guardados));
   const [plan, setPlan] = useState<HojasRutaPlanCampo | null>(null);
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
@@ -55,12 +59,16 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
       <div className="hr-muestra-dos">
         {campo("encuestadores", "Encuestadores")}
         {campo("visitas_por_jornada", "Visitas por jornada")}
-        {campo("costo_por_entrevista", "Costo por entrevista", s.moneda)}
-        {campo("costo_por_jornada", "Costo por jornada", s.moneda)}
-        {campo("costo_por_km", "Movilidad por km", s.moneda)}
-        {campo("supervision_pct", "Supervisión y coordinación", "%")}
+        {conCostos ? (
+          <>
+            {campo("costo_por_entrevista", "Costo por entrevista", s.moneda)}
+            {campo("costo_por_jornada", "Costo por jornada", s.moneda)}
+            {campo("costo_por_km", "Movilidad por km", s.moneda)}
+            {campo("supervision_pct", "Supervisión y coordinación", "%")}
+          </>
+        ) : null}
       </div>
-      {JSON.stringify({ ...s, encuestadores: 0, visitas_por_jornada: 0 }) === JSON.stringify({ ...PLAN_SUPUESTOS_POR_DEFECTO, encuestadores: 0, visitas_por_jornada: 0 }) ? (
+      {conCostos && JSON.stringify({ ...s, encuestadores: 0, visitas_por_jornada: 0 }) === JSON.stringify({ ...PLAN_SUPUESTOS_POR_DEFECTO, encuestadores: 0, visitas_por_jornada: 0 }) ? (
         <p className="hr-mapa-nota">Costos por defecto: {s.moneda} 120 de pago y {s.moneda} 25 de movilidad por jornada, y 15 % de supervisión. Edítalos con los del estudio; el informe los publica.</p>
       ) : null}
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
@@ -69,11 +77,11 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar }: { guardados: 
           <div className="hr-mapa-cifras">
             <div><small>Jornadas</small><strong>{fmt(plan.resumen.jornadas)}</strong></div>
             <div><small>Días</small><strong>{fmt(plan.resumen.dias)}</strong></div>
-            <div><small>Costo</small><strong>{plan.supuestos.moneda} {fmt(plan.resumen.costo)}</strong></div>
+            {conCostos ? <div><small>Costo</small><strong>{plan.supuestos.moneda} {fmt(plan.resumen.costo)}</strong></div> : <div><small>Encuestadores</small><strong>{fmt(plan.supuestos.encuestadores)}</strong></div>}
           </div>
           <dl className="hr-mapa-filas">
             <div><dt>Entre rutas, en promedio</dt><dd>{fmt(plan.jornadas.length ? plan.resumen.km / plan.jornadas.length : 0, 1)} km por jornada</dd></div>
-            <div><dt>Por entrevista completa</dt><dd>{plan.supuestos.moneda} {fmt(plan.resumen.entrevistas ? plan.resumen.costo / plan.resumen.entrevistas : 0)}</dd></div>
+            {conCostos ? <div><dt>Por entrevista completa</dt><dd>{plan.supuestos.moneda} {fmt(plan.resumen.entrevistas ? plan.resumen.costo / plan.resumen.entrevistas : 0)}</dd></div> : null}
           </dl>
           <p className="hr-mapa-nota">
             {fmt(plan.resumen.rutas)} rutas, {fmt(plan.resumen.visitas)} visitas esperadas y unos {fmt(plan.resumen.km, 1)} km entre titulares. Cada jornada es un día de un encuestador, con titulares cercanas del mismo distrito. Se llena con las visitas esperadas, que son un promedio: cerca de la mitad de las jornadas se pasará un poco.

@@ -37,7 +37,8 @@ export function EntregaTerritorial({ unidades, hojas, onGuardarPlan }: Props) {
             Cada jornada es un día de un encuestador, con titulares cercanas del mismo distrito. Los supuestos se guardan en el
             proyecto y los lee también Hojas de ruta.
           </p>
-          <PlanCampo guardados={hojas?.ui_state?.plan_campo} deshabilitado={!muestra} onGuardar={onGuardarPlan} />
+          {/* Material no lleva costos ni precios: de eso se encarga otra persona (Gonzalo, 2026-10-30). */}
+          <PlanCampo guardados={hojas?.ui_state?.plan_campo} deshabilitado={!muestra} onGuardar={onGuardarPlan} conCostos={false} />
           {!muestra ? <p className="rec-terr-nota">Hojas de ruta no tiene una muestra guardada con la que armar el plan.</p> : null}
         </article>
       </div>
