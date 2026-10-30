@@ -60,7 +60,10 @@ function PanelDelPadron({
         </section>
         <section className="acr-pub-bloque" aria-label="Llave de cruce">
           <span className="acr-av-antetitulo">Llave de cruce</span>
-          {llave.length ? (
+          {llave.length === 1 ? (
+            // Una sola columna no necesita su número de orden.
+            <ol className="acr-in-llave"><li><span className="acr-in-columna">{llave[0]}</span></li></ol>
+          ) : llave.length ? (
             <ol className="acr-in-llave">
               {llave.map((columna, indice) => (
                 <li key={columna}><span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span><span className="acr-in-columna">{columna}</span></li>
@@ -232,7 +235,8 @@ export function Publicos({
             {!elenco.borradores.length ? <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">El estudio todavía no declara sus públicos. Agrega el primero.</Alert></div> : null}
           </div>
         </section>
-        <section className="acr-av-panel acr-in-matriz-panel" aria-label="Por dónde entra cada público">
+        {/* Con un solo canal la matriz es una columna de «1 fuente»: lo dice ya la tabla (K1). */}
+        {canales.length > 1 || !canales.length ? <section className="acr-av-panel acr-in-matriz-panel" aria-label="Por dónde entra cada público">
           <header className="acr-av-panel-cabecera"><h3>Por dónde entra cada público</h3></header>
           {canales.length ? (
             <div className="acr-in-matriz-marco">
@@ -263,7 +267,7 @@ export function Publicos({
               </table>
             </div>
           ) : <div className="acr-ct-cuerpo"><Alert kind="info">Ningún público tiene encuestas conectadas todavía.</Alert></div>}
-        </section>
+        </section> : null}
       </div>
       {enPanel ? (
         <PanelDelPadron fila={enPanel} llave={llave} elegido={Boolean(elegida)} onCerrar={() => escribirFoco(null, { panel: null })} />

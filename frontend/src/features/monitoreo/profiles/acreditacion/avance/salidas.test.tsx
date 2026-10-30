@@ -40,7 +40,9 @@ describe("Avance › Salidas", () => {
   it("dibuja publicaciones y cierre sin claves técnicas", () => {
     const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 120, 100)], esperan: 0, publicaciones: [], acreditacion });
     const html = renderToStaticMarkup(<SalidasVista corte="2026-07-23T18:09:00Z" publicaciones={publicacionesFrenteAlCorte("2026-07-23T18:09:00Z", null, null)} cierre={cierre} onAbrirCierre={() => {}} />);
-    expect(html).toContain("Publicaciones frente al corte");
+    // Una sola franja: el estado de Sheets no se repite en una tarjeta aparte.
+    expect(html).not.toContain("Publicaciones frente al corte");
+    expect(html).toContain("Cierre del campo");
     expect(html).toContain("Cerrar campo");
     expect(html).toContain("Sin publicar");
     expect(html).not.toMatch(/cierre_habilitado|aprobacion_metodologica|seguimiento_campo/);

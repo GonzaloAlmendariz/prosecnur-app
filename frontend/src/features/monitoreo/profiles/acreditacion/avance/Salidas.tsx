@@ -27,43 +27,32 @@ type PropsDeVista = {
 export function SalidasVista({ corte, publicaciones, cierre, onAbrirCierre, salidas }: PropsDeVista) {
   return (
     <div className="acr-sa">
-      <div className="acr-sa-arriba" data-qa-geometry-group="acreditacion-avance-salidas" data-qa-geometry-contract="equal">
-        <section className="acr-av-panel" aria-label="Publicaciones frente al corte" data-qa-geometry-member>
-          <CabeceraDeTarjeta primera>
-            <h3>Publicaciones frente al corte <span className="acr-av-tenue">{corte ? `Corte ${corteCorto(corte)}` : "Sin corte"}</span></h3>
-          </CabeceraDeTarjeta>
-          <ul className="acr-sa-puntos acr-sa-cuerpo">
-            {publicaciones.map((item) => (
-              <li key={item.salida} className={item.alDia ? "is-ok" : "is-pendiente"}>
-                <span>
-                  {item.enlace
-                    ? <a href={item.enlace} target="_blank" rel="noreferrer" className="acr-in-enlace">{item.salida} <ExternalLink size={12} aria-hidden="true" /></a>
-                    : item.salida}
-                </span>
-                <b>{item.fecha ? `${corteCorto(item.fecha)}, ${item.alDia ? "al día" : item.alDia === false ? "anterior al corte" : "sin corte para comparar"}` : "Sin publicar"}</b>
-              </li>
-            ))}
+      {/* Una sola franja arriba (Gonzalo, 29/10): «Publicaciones frente al corte» repetía el
+          estado de Sheets que ya dicen el cierre y la tarjeta de Google Sheets de abajo. */}
+      <section className="acr-av-panel" aria-label="Cierre del campo">
+        <CabeceraDeTarjeta primera>
+          <h3>Cierre del campo <span className="acr-av-tenue">{corte ? `Corte ${corteCorto(corte)}` : "Sin corte"}</span></h3>
+          {cierre.cerrado ? null : (
+            <button type="button" className="acr-av-boton is-primario" onClick={onAbrirCierre} disabled={!onAbrirCierre}>
+              <FileCheck2 size={14} aria-hidden="true" /> Cerrar campo
+            </button>
+          )}
+        </CabeceraDeTarjeta>
+        <div className="acr-sa-cuerpo">
+          {cierre.cerrado ? <Alert kind="info">{`Campo cerrado${cierre.cierreAt ? ` el ${corteCorto(cierre.cierreAt)}` : ""}.`}</Alert> : null}
+          <ul className="acr-sa-puntos is-franja" data-qa-geometry-group="acreditacion-avance-salidas" data-qa-geometry-contract="equal">
+            {cierre.puntos.map((punto) => {
+              const enlace = punto.rotulo === "Sheets del cliente" ? publicaciones.find((item) => item.salida === "Sheets del cliente")?.enlace : null;
+              return (
+                <li key={punto.rotulo} className={punto.estado === "ok" ? "is-ok" : "is-pendiente"} data-qa-geometry-member>
+                  <span>{enlace ? <a href={enlace} target="_blank" rel="noreferrer" className="acr-in-enlace">{punto.rotulo} <ExternalLink size={12} aria-hidden="true" /></a> : punto.rotulo}</span>
+                  <b>{punto.valor}</b>
+                </li>
+              );
+            })}
           </ul>
-        </section>
-        <section className="acr-av-panel" aria-label="Cierre del campo" data-qa-geometry-member>
-          <header className="acr-av-panel-cabecera">
-            <h3>Cierre del campo</h3>
-            {cierre.cerrado ? null : (
-              <button type="button" className="acr-av-boton is-primario" onClick={onAbrirCierre} disabled={!onAbrirCierre}>
-                <FileCheck2 size={14} aria-hidden="true" /> Cerrar campo
-              </button>
-            )}
-          </header>
-          <div className="acr-sa-cuerpo">
-            {cierre.cerrado ? <Alert kind="info">{`Campo cerrado${cierre.cierreAt ? ` el ${corteCorto(cierre.cierreAt)}` : ""}.`}</Alert> : null}
-            <ul className="acr-sa-puntos">
-              {cierre.puntos.map((punto) => (
-                <li key={punto.rotulo} className={punto.estado === "ok" ? "is-ok" : "is-pendiente"}><span>{punto.rotulo}</span><b>{punto.valor}</b></li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
       {salidas}
     </div>
   );

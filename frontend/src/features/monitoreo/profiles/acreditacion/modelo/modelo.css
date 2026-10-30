@@ -324,18 +324,13 @@
   gap: var(--pulso-space-4);
   padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 4px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-soft);
 }
 
-/* El estado va en el borde lateral sólido (un `border` real, como las tarjetas
- * de cuotas por UMP del Territorial) y en el chip; nunca en sombra inset ni en
- * un fondo teñido de toda la tarjeta. */
-.acr-mo-tarjeta.is-cumplida { border-left-color: var(--pulso-success-fg); }
-.acr-mo-tarjeta.is-en-curso { border-left-color: var(--pulso-warn-fg); }
-.acr-mo-tarjeta.is-abierta { border-left-color: var(--pulso-brand-navy); }
+/* El estado va sólo en el chip (Gonzalo, 30/10: fuera la franja lateral); nunca
+ * en sombra inset ni en un fondo teñido de toda la tarjeta. */
 .acr-mo-tarjeta.is-cambiada { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pulso-module-monitoring) 30%, transparent); }
 
 .acr-mo-tarjeta-cabecera {

@@ -71,9 +71,7 @@
  * al cambiar de pestaña, sin leer el título. `currentColor` NO sirve —lo medí:
  * daba el mismo `rgb(23,33,47)` en las dos, porque hereda el color del texto y
  * no del tono—; el acento por tono ya existe como variable. */
-.mon-query-answer.is-compacta {
-  border-left: 3px solid var(--query-answer-accent, var(--pulso-border-strong));
-}
+/* Sin franja lateral (Gonzalo, 30/10): el acento del tono queda en el encabezado. */
 
 /* Y el encabezado con el mismo acento, para que la señal no dependa de una
  * línea de 3 px. */

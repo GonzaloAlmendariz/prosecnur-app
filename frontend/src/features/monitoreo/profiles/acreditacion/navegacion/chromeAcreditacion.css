@@ -196,14 +196,14 @@
   background: var(--pulso-surface);
 }
 
+/* Sin franja lateral (K2): el estado de la cifra va en el color de la cifra. */
 .is-acreditacion-profile .acr-vista-anterior .mon-profile-stat {
   border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 3px solid var(--pulso-border);
 }
 
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--good { border-left-color: var(--pulso-success-fg); }
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--warn { border-left-color: var(--pulso-warn-fg); }
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--bad { border-left-color: var(--pulso-danger-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--good strong { color: var(--pulso-success-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--warn strong { color: var(--pulso-warn-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--bad strong { color: var(--pulso-danger-fg); }
 
 /* La franja de lectura de Recopiladores: sin fondo teñido, y el grupo de
  * botones sin su banda blanca, que dejaba un vacío sin motivo entre las cifras
@@ -237,6 +237,7 @@
   box-shadow: none;
 }
 
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-danger { border-left: 4px solid var(--pulso-danger-fg); }
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-warn { border-left: 4px solid var(--pulso-warn-fg); }
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-ok { border-left: 4px solid var(--pulso-success-fg); }
+/* El estado tiñe el borde entero, no una franja a la izquierda (K2). */
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-danger { border-color: var(--pulso-danger-border); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-warn { border-color: var(--pulso-warn-border); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-ok { border-color: var(--pulso-success-border); }

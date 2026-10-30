@@ -215,11 +215,11 @@
   min-width: 0;
   display: grid;
   gap: 7px;
+  /* Sin franja lateral (K2): el bloque se distingue por su antetítulo y su aire. */
   border: 0;
-  border-left: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 46%, var(--pulso-border));
   border-radius: 0;
   background: transparent;
-  padding: 2px 0 2px 10px;
+  padding: 2px 0;
 }
 
 .mon-dist-declarada-head {

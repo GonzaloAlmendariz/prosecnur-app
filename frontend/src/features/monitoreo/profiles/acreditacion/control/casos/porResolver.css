@@ -62,7 +62,7 @@
 .acr-pr-grupo ul {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -75,13 +75,21 @@
   width: 100%;
   min-height: 32px;
   padding: 0 var(--pulso-space-2);
-  border: 1px solid transparent;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
+  /* Una fila de lista no es un botón con relieve: sin la sombra ni el salto del
+   * botón global, que hacían de cada fila una caja dentro de la tarjeta (K4). */
+  box-shadow: none;
+  transform: none;
   color: var(--pulso-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.acr-pr-grupo li + li > button {
+  box-shadow: inset 0 1px 0 var(--pulso-surface-3);
 }
 
 .acr-pr-grupo button > b {
@@ -89,13 +97,21 @@
 }
 
 .acr-pr-grupo button:hover {
-  background: var(--pulso-surface-3);
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  transform: none;
 }
 
-.acr-pr-grupo button.is-activo {
-  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
+/* La elegida: fondo teñido del módulo, sin borde ni franja (K2/K4). */
+.acr-pr-grupo button.is-activo,
+.acr-pr-grupo li + li > button.is-activo {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+  box-shadow: none;
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-text));
   font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pr-grupo li:has(> button.is-activo) + li > button {
+  box-shadow: none;
 }
 
 .acr-pr-grupo button:focus-visible,

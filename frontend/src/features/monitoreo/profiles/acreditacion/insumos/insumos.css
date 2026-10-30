@@ -115,8 +115,12 @@
   background: transparent;
 }
 
+/* Alto natural con tope en la columna (K1, Gonzalo 30/10): estirada al alto de la
+ * vista dejaba media tarjeta en blanco bajo el padrón. Como en Telefónico › Estados. */
 .acr-in-panel {
-  overflow: hidden;
+  align-self: start;
+  max-height: 100%;
+  overflow: hidden auto;
 }
 
 .acr-in-llave,

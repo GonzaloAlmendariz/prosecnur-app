@@ -126,17 +126,35 @@
   gap: var(--pulso-space-1);
   min-height: 30px;
   padding: 0 var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  /* Relieve en todo el borde, como el botón de la app (theme.css): un botón de
+   * verdad, no un texto con fondo (Gonzalo, 30/10). */
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-border-strong));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pulso-text) 8%, transparent);
   color: var(--pulso-text);
   font: inherit;
   font-size: 12.5px;
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
+  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease;
 }
 
-.acr-av-boton:hover,
+.acr-av-boton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 30%, var(--pulso-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent),
+    0 3px 10px color-mix(in srgb, var(--pulso-text) 9%, transparent);
+  transform: translateY(-1px);
+}
+
+.acr-av-boton:active:not(:disabled) {
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  transform: translateY(0);
+}
+
 .acr-av-icono:hover {
   background: var(--pulso-surface-3);
 }
@@ -635,14 +653,12 @@
   flex: none;
   min-height: 0;
   overflow: hidden;
+  /* Sin franja lateral (Gonzalo, 30/10: «este resaltado de la izquierda no me
+   * gusta»): el estado lo dice el chip «Faltan N» / «Cumple». */
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 3px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
-
-.acr-res-publico.is-falta { border-left-color: var(--pulso-warn-fg); }
-.acr-res-publico.is-cumple { border-left-color: var(--pulso-success-fg); }
 
 .acr-res-publico .acr-av-pista > i {
   background: var(--publico, var(--acr-efectiva));
@@ -1295,22 +1311,55 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   gap: var(--pulso-space-3);
   min-height: 32px;
   padding: 0 var(--pulso-space-3);
-  border-left: 3px solid var(--pulso-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--pulso-surface-3);
 }
 
-.acr-sa-puntos li.is-ok {
-  border-left-color: var(--pulso-success-fg);
+/* El estado en un punto junto al rótulo, no en una franja lateral (K2). */
+.acr-sa-puntos li > span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--acr-sa-estado, var(--pulso-border-strong));
+  vertical-align: 1px;
 }
 
-.acr-sa-puntos li.is-pendiente {
-  border-left-color: var(--pulso-warn-fg);
-}
+.acr-sa-puntos li.is-ok { --acr-sa-estado: var(--pulso-success-fg); }
+.acr-sa-puntos li.is-pendiente { --acr-sa-estado: var(--pulso-warn-fg); }
 
 .acr-sa-puntos b {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* El cierre como franja: cada condición en su columna, rótulo arriba y valor debajo. */
+.acr-sa-puntos.is-franja {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--pulso-space-2);
+  padding: 0;
+}
+
+.acr-sa-puntos.is-franja li {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.acr-sa-puntos.is-franja li > span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.acr-sa-puntos.is-franja b {
+  font-size: 15px;
+  text-align: left;
 }
 
 .acr-sa-dialogo {
@@ -1670,16 +1719,11 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 }
 
 .is-acreditacion-profile .acr-sa .mon-outputs-readiness {
+  /* El estado lo dice su chip («Listo», «Bloqueado»…), sin franja lateral (K2). */
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 4px solid var(--pulso-state-unchecked-border);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-soft);
 }
-
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-listo { border-left-color: var(--pulso-state-ready-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-bloqueado { border-left-color: var(--pulso-state-blocked-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-parcial { border-left-color: var(--pulso-state-partial-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-sin-configurar { border-left-color: var(--pulso-state-unset-fg); }
 
 /* Avance › Por cuota › Variables de control (ronda 4): la tabla de la
  * composición en su tarjeta, con una fila de grupo por público y variable, y
