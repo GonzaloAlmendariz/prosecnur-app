@@ -285,11 +285,18 @@
 }
 
 /* Dos filas, como Recopiladores (Gonzalo, 30/10: el botón cambiaba de lugar
- * entre las dos sub-vistas): arriba el rótulo y el selector a la derecha; abajo
- * los chips y «Conectar fuente». */
+ * entre las dos sub-vistas): arriba el rótulo, debajo el selector; abajo los
+ * chips y «Conectar fuente» al borde derecho. */
 .acr-in-barra > .acr-enc-barra {
   flex: 1 1 100%;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px var(--pulso-space-3);
+}
+
+/* Como en el resto del perfil: el selector en su fila, bajo el rótulo. */
+.acr-in-barra > .acr-enc-barra > .acr-enc-rotulo {
+  flex: 1 1 100%;
 }
 
 .acr-in-barra > .mon-acr-source-status-strip {

@@ -131,11 +131,13 @@
   margin-right: auto;
 }
 
-/* El selector de sub-vistas siempre al extremo derecho de la línea del rótulo;
- * si en una tarjeta angosta baja de línea, sigue a la derecha (K6: en Por cuota
- * caía a la izquierda y en Calidad a la derecha). */
+/* El selector de sub-vistas va en su propia fila bajo el rótulo, alineado a la
+ * izquierda (Gonzalo, 30/10: «no me gusta que cambie de lugar conforme aprieto»).
+ * Anclado al borde derecho dependía del ancho de la primera tarjeta, que cambia
+ * entre sub-vistas: en Por cuota saltaba de x=139 a 1114 y en Calidad de 727 a
+ * 1158. Bajo el rótulo cae en el mismo punto en todas. */
 .acr-enc-linea > .acr-enc-derecha {
-  margin-left: auto;
+  justify-content: flex-start;
 }
 
 .acr-enc-chip {
@@ -161,9 +163,9 @@
 .acr-enc-linea {
   display: flex;
   flex: 0 0 100%;
-  flex-wrap: wrap; /* en una tarjeta angosta el selector baja bajo el antetítulo */
-  align-items: center;
-  justify-content: space-between;
+  /* Columna: el selector va siempre en su fila bajo el rótulo (ver .acr-enc-derecha). */
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px var(--pulso-space-3);
   min-height: 26px;
 }
