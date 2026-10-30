@@ -386,7 +386,17 @@
    * filas. A lo ancho, debajo de las dos columnas, la fila de arriba medía lo
    * que los filtros y una cola de 2 casos dejaba 250 px vacíos antes del caso. */
   .acr-pr { grid-template-rows: auto minmax(0, 1fr); }
-  .acr-pr > .acr-pr-filtros { grid-row: 1 / span 2; }
+  /* Con el caso abierto la segunda fila mide lo que el caso (~1 300 px a 1024) y
+   * los filtros, a su alto natural, dejaban esa columna en blanco. Quedan fijos
+   * arriba mientras se baja por el caso; si no caben en lo visible, desplazan
+   * dentro (el tope descuenta la barra de la app y la del módulo). */
+  .acr-pr > .acr-pr-filtros {
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 160px);
+    overflow-y: auto;
+  }
   .acr-pr-panel { grid-column: 2; grid-row: 2; align-self: start; }
   .acr-pr-cola-marco { max-height: 420px; }
   .acr-pr-panel-cuerpo,
