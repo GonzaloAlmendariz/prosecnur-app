@@ -13,6 +13,9 @@
 #     región (mismo esquema de propiedades que las entradas) y sus provincias.
 #   - frontend/src/features/hojasRuta/peruDepartamentos.json: país y departamentos con
 #     su código, simplificados para leerse a escala nacional (presupuesto 60 KB).
+#   - frontend/src/features/hojasRuta/ciudadesIndice.json: una entrada por ciudad (código,
+#     nombre, departamento, regiones que la cargan, ubigeos, centro y silueta simplificada)
+#     para el atlas de Territorio (presupuesto 40 KB).
 #
 # Uso: Rscript api/inst/hojas_ruta/build_contornos_por_region.R
 # Determinista: regiones y distritos ordenados por código, gzip sin marca de tiempo.
@@ -118,6 +121,47 @@ peru <- list(
 )
 peru$departamentos <- peru$departamentos[order(vapply(peru$departamentos, `[[`, "", "codigo"))]
 writeLines(jsonlite::toJSON(peru, auto_unbox = TRUE, digits = NA), out_peru, useBytes = TRUE)
+
+# Índice de ciudades para el atlas (dirección A, R1b): una entrada por ciudad con su
+# centro y una silueta simplificada para la tarjeta y la columna del estudio. Las cifras
+# (habitantes, manzanas, captación) no van aquí: llegan del registro con el estado.
+titulo <- function(x) {
+  palabras <- strsplit(tolower(x), "\\s+")[[1]]
+  paste(ifelse(palabras %in% c("de", "del", "la", "las", "los", "y"), palabras,
+               paste0(toupper(substr(palabras, 1, 1)), substring(palabras, 2))), collapse = " ")
+}
+ciudad_de <- function(u) ifelse(substr(u, 1, 4) %in% c("1501", "0701"), "lima", substr(u, 1, 4))
+cod_ciudad <- ciudad_de(vapply(distritos, function(f) f$properties$ubigeo, ""))
+indice <- lapply(sort(unique(cod_ciudad)), function(cc) {
+  fs <- distritos[cod_ciudad == cc]
+  tmp <- tempfile(fileext = ".geojson")
+  writeLines(jsonlite::toJSON(list(type = "FeatureCollection", features = fs), auto_unbox = TRUE, digits = NA), tmp, useBytes = TRUE)
+  g <- sf::st_make_valid(sf::st_geometry(sf::st_read(tmp, quiet = TRUE)))
+  g <- sf::st_transform(sf::st_union(sf::st_buffer(sf::st_transform(g, CRS_PLANO), 40)), CRS_PLANO)
+  # Todas las siluetas se dibujan al mismo tamaño (56 px): la tolerancia es el 2,2 % del
+  # lado mayor de cada ciudad, no una distancia fija, y se descartan los pedazos que no
+  # llegan al 1 % de su área.
+  bb <- sf::st_bbox(g)
+  g <- sf::st_simplify(g, dTolerance = max(120, 0.022 * max(bb[["xmax"]] - bb[["xmin"]], bb[["ymax"]] - bb[["ymin"]])), preserveTopology = TRUE)
+  partes <- sf::st_cast(sf::st_cast(g, "MULTIPOLYGON"), "POLYGON")
+  area <- as.numeric(sf::st_area(partes))
+  partes <- partes[area >= 0.01 * sum(area) | area == max(area)]
+  centro <- sf::st_coordinates(sf::st_transform(sf::st_centroid(sf::st_union(partes)), 4326))
+  partes <- sf::st_transform(partes, 4326)
+  p1 <- fs[[1]]$properties
+  list(
+    codigo = cc,
+    nombre = if (cc == "lima") "Lima y Callao" else titulo(p1$provincia),
+    departamento = if (cc == "lima") "Lima Metropolitana y Callao" else unname(DEPARTAMENTOS[[substr(p1$ubigeo, 1, 2)]]),
+    regiones = if (cc == "lima") c("15", "07") else list(substr(p1$ubigeo, 1, 2)),
+    ubigeos = as.list(vapply(fs, function(f) f$properties$ubigeo, "")),  # lista: auto_unbox desarma un solo distrito
+    centro = round(as.numeric(centro), 4),
+    silueta = lapply(partes, function(p) round(unclass(p)[[1]][, 1:2], 3))
+  )
+})
+out_indice <- file.path(front, "ciudadesIndice.json")
+writeLines(jsonlite::toJSON(list(ciudades = indice), auto_unbox = TRUE, digits = NA), out_indice, useBytes = TRUE)
+cat(sprintf("%d ciudades -> %s (%.0f KB)\n", length(indice), out_indice, file.size(out_indice) / 1024))
 
 pesos <- file.size(file.path(out_dir, paste0(regiones, ".json.gz")))
 cat(sprintf("%d regiones -> %s (%.0f KB gzip en total, máx %.0f KB)\n", length(regiones), out_dir, sum(pesos) / 1024, max(pesos) / 1024))
