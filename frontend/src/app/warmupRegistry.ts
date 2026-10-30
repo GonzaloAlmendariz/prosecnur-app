@@ -369,9 +369,10 @@ async function warmupMonitoreoLocalData() {
   }
 
   if (family === "acreditacion") {
-    const scopes = familyProfile?.warmupScopes?.length
-      ? [...familyProfile.warmupScopes]
-      : ["source", "advance_summary", "queries_summary", "phone_summary"];
+    // Sólo el corte de la vista de aterrizaje: los demás scopes bloqueaban el
+    // Plumber mono-hilo antes de que Avance pudiera responder.
+    const { scopeDeAterrizaje } = await import("../features/monitoreo/profiles/acreditacion/sync/scopeDeAterrizaje");
+    const scopes = [scopeDeAterrizaje(typeof window === "undefined" ? "" : window.location.search, family)];
     await withTimeout(
       "Monitoreo acreditación",
       settleAllLimited(scopes, async (reportScope) => {
