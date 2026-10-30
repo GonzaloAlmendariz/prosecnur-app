@@ -15,7 +15,8 @@ export function puntoEnAnillo(x: number, y: number, anillo: readonly number[]): 
 export function distritoEnPunto(contornos: readonly ContornoDistrito[], x: number, y: number): ContornoDistrito | null {
   for (const c of contornos) {
     if (x < c.caja[0] || x > c.caja[2] || y < c.caja[1] || y > c.caja[3]) continue;
-    if (c.anillos.some((r) => puntoEnAnillo(x, y, r))) return c;
+    // Par-impar: un punto dentro de un hueco de la huella no es del distrito.
+    if (c.anillos.filter((r) => puntoEnAnillo(x, y, r)).length % 2 === 1) return c;
   }
   return null;
 }

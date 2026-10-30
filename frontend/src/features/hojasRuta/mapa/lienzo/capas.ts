@@ -35,13 +35,15 @@ type CoberturaCruda = {
 const anilloLonLat = (r: unknown): number[] =>
   Array.isArray(r) ? r.flatMap((p) => (Array.isArray(p) && p.length >= 2 ? proyectarLonLat(Number(p[0]), Number(p[1])) : [])) : [];
 
-/** Contornos proyectados de la cobertura de Lima y Callao (`limaDistrictCoverage.json`). */
+/** Contornos proyectados de una FeatureCollection de distritos (`/api/hojas-ruta/contornos`). */
 export function contornosDeCobertura(cobertura: CoberturaCruda): ContornoDistrito[] {
   return (cobertura.features ?? []).flatMap((f) => {
     const g = f.geometry ?? {};
     const coords = Array.isArray(g.coordinates) ? g.coordinates : [];
-    const exteriores = g.type === "Polygon" ? [coords[0]] : g.type === "MultiPolygon" ? coords.map((poly) => (Array.isArray(poly) ? poly[0] : null)) : [];
-    const anillos = exteriores.map(anilloLonLat).filter((r) => r.length >= 6);
+    // Todos los anillos: 11 de las 114 huellas urbanas tienen huecos (cerros, quebradas) que
+    // con sólo el exterior salían rellenos. Se dibujan con la regla par-impar.
+    const todos = g.type === "Polygon" ? coords : g.type === "MultiPolygon" ? coords.flatMap((poly) => (Array.isArray(poly) ? poly : [])) : [];
+    const anillos = todos.map(anilloLonLat).filter((r) => r.length >= 6);
     if (!anillos.length) return [];
     const p = f.properties ?? {};
     const caja = cajaDe(anillos);
@@ -62,7 +64,7 @@ export function dibujarContornos(ctx: CanvasRenderingContext2D, u: UtilLienzo, c
     const t = u.trazo(c);
     if (e.relleno) {
       ctx.fillStyle = e.relleno;
-      ctx.fill(t);
+      ctx.fill(t, "evenodd");
     }
     ctx.strokeStyle = e.borde;
     ctx.lineWidth = e.grosor * u.px;

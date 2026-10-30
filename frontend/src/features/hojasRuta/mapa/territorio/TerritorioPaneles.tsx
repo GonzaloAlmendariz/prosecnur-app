@@ -48,6 +48,8 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
   const visiblesFuera = visibles.filter((t) => !borrador.includes(t.ubigeo)).length;
   const visiblesDentro = visibles.filter((t) => borrador.includes(t.ubigeo)).length;
   const grupos = useMemo(() => gruposPorProvincia(visibles), [visibles]);
+  // La lista puede ser sólo la ciudad abierta: se cuentan los elegidos de esa lista, no del estudio entero.
+  const enLista = borrador.filter((u) => territorios.some((t) => t.ubigeo === u)).length;
 
   return (
     <>
@@ -55,13 +57,15 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
         <div className="hr-mapa-cab-titulo">
           <h2>Distritos</h2>
           <small>
-            {borrador.length} de {territorios.length}
+            {enLista} de {territorios.length}
           </small>
         </div>
         <input className="hr-mapa-buscar" type="search" aria-label="Buscar distrito" placeholder="Buscar distrito o ubigeo" value={busquedaDistrito} onChange={(e) => setBusquedaDistrito(e.target.value)} />
         <GlidingRadioGroup value={soloElegidos ? "elegidos" : "todos"} options={FILTRO} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloElegidos(v === "elegidos")} className="hr-muestra-opciones" aria-label="Qué distritos ver">
-          {(o) => <span>{o[0] === "elegidos" ? `${o[1]} · ${borrador.length}` : `${o[1]} · ${territorios.length}`}</span>}
+          {(o) => <span>{o[0] === "elegidos" ? `${o[1]} · ${enLista}` : `${o[1]} · ${territorios.length}`}</span>}
         </GlidingRadioGroup>
+        {zonas.length ? (
+        <>
         <h3 className="hr-mapa-subtitulo">Zonas de Lima</h3>
         <div className="hr-mapa-zonas" role="group" aria-label="Zonas de Lima">
           {zonas.map((z) => {
@@ -82,6 +86,8 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
             );
           })}
         </div>
+        </>
+        ) : null}
         <div className="hr-mapa-acciones">
           {/* Sólo sobre lo que se ve, con su número: nada se elige ni se quita a ciegas. */}
           <PulsoButton variant="secondary" size="sm" disabled={bloqueado || !filtrado || !visiblesFuera} title={filtrado ? undefined : "Filtra por zona o busca para agregar varios a la vez"} onClick={() => setBorrador(agregarVarios(borrador, visibles.map((t) => t.ubigeo)))}>

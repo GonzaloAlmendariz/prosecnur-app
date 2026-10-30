@@ -1163,6 +1163,26 @@ export async function apiHojasRutaGeometria(ubigeo: string): Promise<HojasRutaGe
   );
 }
 
+// ---------- Contornos por región (paquete por ciudades, R2/R4) ----------
+
+/** Distritos de una región como FeatureCollection, del registro (no del estudio): sin sesión. */
+export type HojasRutaContornosRegion = {
+  region: string;
+  nombre: string;
+  distritos: { features: Array<{ properties?: { ubigeo?: string; distrito?: string; provincia?: string; label_lon?: number; label_lat?: number }; geometry?: { type?: string; coordinates?: unknown } }> };
+};
+
+export async function apiHojasRutaContornos(region: string): Promise<HojasRutaContornosRegion> {
+  const crudo = await handle<unknown>(await apiFetch(`/api/hojas-ruta/contornos?region=${encodeURIComponent(region)}`));
+  const o = (crudo && typeof crudo === "object" ? crudo : {}) as Record<string, unknown>;
+  const d = (o.distritos && typeof o.distritos === "object" ? o.distritos : {}) as Record<string, unknown>;
+  return {
+    region: typeof o.region === "string" ? o.region : region,
+    nombre: typeof o.nombre === "string" ? o.nombre : "",
+    distritos: { features: Array.isArray(d.features) ? (d.features as HojasRutaContornosRegion["distritos"]["features"]) : [] },
+  };
+}
+
 // ---------- Marco elegible (ADR 0115) ----------
 
 export type HojasRutaMotivoExclusion = "inseguridad" | "no_residencial" | "inaccesible" | "otro";
