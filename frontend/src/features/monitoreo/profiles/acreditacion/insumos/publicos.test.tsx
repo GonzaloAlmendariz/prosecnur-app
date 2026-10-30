@@ -69,3 +69,14 @@ describe("nombre visible de una fuente", () => {
     expect(nombreVisibleDeFuente(fuente("Base - Docentes 2025", "universo", "google_sheets", "Docentes"))).toBe("Base - Docentes 2025");
   });
 });
+
+describe("padrón repartido entre dos públicos", () => {
+  it("el padrón y la encuesta que hereda aparecen también bajo el público del mapa", () => {
+    const padron = { ...fuente("Universo · Profesores", "universo", "google_sheets", "Docentes Campus"), actor_var: "Modalidad docente", actor_map: { CENTRUM: "Docentes CENTRUM" } };
+    const encuesta = { ...fuente("Acreditación 2026 - Profesores", "respuestas", "surveymonkey", "Docentes Campus"), actor_por_padron: true };
+    const filas = padronesPorPublico(["Docentes Campus", "Docentes CENTRUM"], [padron, encuesta], []);
+    expect(filas[1].padrones.map((item) => item.label)).toEqual(["Universo · Profesores"]);
+    expect(filas[1].encuestas.map((item) => item.label)).toEqual(["Acreditación 2026 - Profesores"]);
+    expect(filas[0].padrones).toHaveLength(1);
+  });
+});

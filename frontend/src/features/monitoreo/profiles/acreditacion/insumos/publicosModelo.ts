@@ -56,19 +56,32 @@ export function canalDeFuente(fuente: MonitoreoSource): string {
   return rotulo && rotulo !== "Sin canal" ? rotulo : crudo || "Sin canal";
 }
 
+/** Los públicos a los que un padrón repartido manda filas (`actor_map`). */
+export function publicosDelMapa(fuente: MonitoreoSource): string[] {
+  const mapa = fuente.actor_map;
+  if (!mapa || Array.isArray(mapa) || typeof mapa !== "object") return [];
+  return [...new Set(Object.values(mapa).map((valor) => String(valor ?? "").trim()).filter(Boolean))];
+}
+
 export function padronesPorPublico(
   publicos: readonly string[],
   fuentes: readonly MonitoreoSource[],
   cuotas: readonly MonitoreoCuotaPublico[],
 ): PadronDelPublico[] {
+  const activas = fuentes.filter((fuente) => fuente.enabled !== false);
   return publicos.map((publico) => {
     const clave = claveDeActor(publico);
-    const propias = fuentes.filter((fuente) => fuente.enabled !== false && claveDeActor(actorDeLaFuente(fuente)) === clave);
-    const encuestas = propias.filter((fuente) => String(fuente.role ?? "") === "respuestas");
+    // Un padrón repartido (E10) también es el padrón de los públicos de su mapa, y
+    // la encuesta de su público que hereda el público de la fila los alimenta.
+    const repartidos = activas.filter((fuente) => String(fuente.role ?? "") === "universo" && publicosDelMapa(fuente).some((otro) => claveDeActor(otro) === clave));
+    const origenes = new Set(repartidos.map((fuente) => claveDeActor(actorDeLaFuente(fuente))));
+    const propias = activas.filter((fuente) => claveDeActor(actorDeLaFuente(fuente)) === clave);
+    const heredadas = activas.filter((fuente) => fuente.actor_por_padron && String(fuente.role ?? "") === "respuestas" && origenes.has(claveDeActor(actorDeLaFuente(fuente))));
+    const encuestas = [...propias, ...heredadas].filter((fuente) => String(fuente.role ?? "") === "respuestas");
     const cuota = cuotas.find((item) => claveDeActor(item.actor) === clave);
     return {
       publico,
-      padrones: propias.filter((fuente) => String(fuente.role ?? "") === "universo"),
+      padrones: [...propias.filter((fuente) => String(fuente.role ?? "") === "universo"), ...repartidos],
       encuestas,
       barridos: propias.filter((fuente) => String(fuente.role ?? "") === "barrido"),
       canales: [...new Set(encuestas.map(canalDeFuente))],

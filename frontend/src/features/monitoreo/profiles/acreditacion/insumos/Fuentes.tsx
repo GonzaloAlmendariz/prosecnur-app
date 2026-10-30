@@ -16,6 +16,7 @@ import "../avance/avance.css";
 import "../control/casos/porResolver.css";
 import "../control/casos/personas.css";
 import "./insumos.css";
+import { RepartoDeLaFuente } from "./RepartoDeLaFuente";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 type PropsDeVista = {
@@ -33,6 +34,8 @@ type PropsDeVista = {
   declaracion?: ReactNode;
   /** Personas de cada padrón por público (clave normalizada), para las fuentes sin contador. */
   personasPorPublico?: ReadonlyMap<string, number> | null;
+  /** Repartir el padrón entre públicos o heredar el público del padrón (E10), bajo la ficha. */
+  reparto?: (elegida: FuenteDelMaestro) => ReactNode;
 };
 
 function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -60,7 +63,7 @@ function Cabecera({ elegida }: { elegida: FuenteDelMaestro }) {
   );
 }
 
-export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion, personasPorPublico = null }: PropsDeVista) {
+export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion, personasPorPublico = null, reparto }: PropsDeVista) {
   const grupos = useMemo(() => fuentesPorPublico(sources, borrador, personasPorPublico), [sources, borrador, personasPorPublico]);
   const todas = grupos.flatMap((grupo) => grupo.fuentes);
   const elegida = todas.find((item) => item.id === foco) ?? todas[0] ?? null;
@@ -118,6 +121,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
               ) : null}
             </header>
             <div className="acr-ct-cuerpo"><Cabecera elegida={elegida} /></div>
+            {reparto ? reparto(elegida) : null}
             {mensaje ? <div className="acr-ct-cuerpo"><Alert kind={mensaje.tono === "error" ? "error" : "info"}>{mensaje.texto}</Alert></div> : null}
             {conRecopiladores && recopiladores.length ? (
               <>
@@ -237,6 +241,14 @@ export function Fuentes({
       mensaje={mensaje}
       declaracion={declaracion}
       personasPorPublico={personasPorPublico}
+      reparto={(elegida) => (
+        <RepartoDeLaFuente
+          key={elegida.id}
+          elegida={elegida}
+          variables={cuotas?.publicos.find((item) => normalizeSourceMatch(item.actor) === normalizeSourceMatch(elegida.publico))?.variables ?? []}
+          onStateChange={onStateChange}
+        />
+      )}
     />
   );
 }
