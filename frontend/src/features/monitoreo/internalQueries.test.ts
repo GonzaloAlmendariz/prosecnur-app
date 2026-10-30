@@ -237,6 +237,15 @@ describe("internalQueries", () => {
     expect(normalized.cases[2].assisted_review?.assignment_candidates).toBe(sinEvidencia.assisted_review?.assignment_candidates);
   });
 
+  it("conserva la llave del pool para pedir el padrón aparte cuando no viaja con el corte", () => {
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: [{ ...model.cases[1], assisted_review: { eligible: "TRUE", assignment_candidates: [], assignment_pool_key: " docentes " } }],
+    } as unknown as MonitoreoInternalQueries);
+    expect(normalized.cases[0].assisted_review?.assignment_pool_key).toBe("docentes");
+    expect(normalized.cases[0].assisted_review?.assignment_candidates).toEqual([]);
+  });
+
   it("normalizes assisted review evidence and searches declared fields", () => {
     const normalized = normalizeInternalQueries({
       ...model,

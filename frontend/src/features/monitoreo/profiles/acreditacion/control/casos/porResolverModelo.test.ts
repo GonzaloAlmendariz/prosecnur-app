@@ -141,3 +141,38 @@ describe("padrón grande: se pintan las primeras y la búsqueda alcanza al resto
     expect(modelo.opcionesOcultas).toBe(0);
   });
 });
+
+describe("el padrón llega aparte del caso (ya no viaja con queries_summary)", () => {
+  const padron = Array.from({ length: 300 }, (_, i) => candidato({
+    candidate_id: `p-${String(i).padStart(3, "0")}`,
+    person_label: `Persona ${String(i).padStart(3, "0")}`,
+    case_key: `cód. ${i}`,
+    evidence_level: "manual",
+  }));
+  const propio = candidato({ candidate_id: "p-123", person_label: "Persona 123", case_key: "cód. 123", evidence_level: "exact" });
+  const conEvidencia = caso({ assisted_review: { candidates: [], assignment_candidates: [propio], assignment_pool_key: "docentes" } });
+  const vacio = { seleccion: "", confirmado: false, nota: "", busqueda: "" };
+
+  it("ofrece lo mismo que cuando el padrón venía unido al caso", () => {
+    const unido = modeloDeDecision(caso({ assisted_review: { candidates: [], assignment_candidates: [propio, ...padron.filter((p) => p.candidate_id !== "p-123")] } }), vacio);
+    const aparte = modeloDeDecision(conEvidencia, vacio, padron);
+    expect(aparte.opciones.map((item) => item.candidate_id)).toEqual(unido.opciones.map((item) => item.candidate_id));
+    // La copia genérica del padrón no le quita al caso su evidencia exacta.
+    expect(aparte.opciones.find((item) => item.candidate_id === "p-123")?.evidence_level).toBe("exact");
+  });
+
+  it("la búsqueda alcanza a todo el padrón y se puede asignar a quien no estaba entre las primeras", () => {
+    const modelo = modeloDeDecision(conEvidencia, { ...vacio, busqueda: "Persona 287", seleccion: "p-287", confirmado: true, nota: "Confirmado por correo" }, padron);
+    expect(modelo.opcionesVisibles.map((item) => item.candidate_id)).toEqual(["p-287"]);
+    expect(modelo.puedeAsignar).toBe(true);
+    expect(modelo.candidatoId).toBe("p-287");
+  });
+
+  it("«lo que encontró el motor» es sólo lo del caso, no el padrón entero", () => {
+    expect(modeloDeDecision(conEvidencia, vacio, padron).evidencia.map((item) => item.candidate_id)).toEqual(["p-123"]);
+  });
+
+  it("mientras el padrón carga sólo se ofrece lo propio del caso", () => {
+    expect(modeloDeDecision(conEvidencia, vacio).opciones.map((item) => item.candidate_id)).toEqual(["p-123"]);
+  });
+});

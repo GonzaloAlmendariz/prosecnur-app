@@ -3,12 +3,14 @@ import { CheckCircle2, Loader2, Search, X, XCircle } from "lucide-react";
 import { Alert } from "../../../../../../components/Alert";
 import { Switch } from "../../../../../../components/Switch";
 import type { MonitoreoInternalQueryCase } from "../../../../../../api/client";
+import { VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 import { motivoDeNoCruce } from "../../../../core/motivoDeNoCruce";
 import { internalCaseCrossingValue, internalCaseResponseStateLabel, internalCaseResponseStateValue } from "../../../../internalQueries";
 import { fechaCorta } from "../../avance/graficosDeAvance";
 import { fmt } from "../../formato";
 import { assistedCandidateEvidenceLabel, assistedCandidateEvidenceLevel, assistedCandidateId } from "./revisionAsistida";
 import { modeloDeDecision, payloadDeDecision, type FilaDeCola, type PayloadDeDecision } from "./porResolverModelo";
+import { usePersonasAsignables } from "./personasAsignables";
 
 export type EstadoDeGuardado = { tone: "success" | "error" | "info"; message: string } | null;
 
@@ -28,10 +30,13 @@ function nombreDe(candidato: { person_label?: string; base_record?: string }) {
 /**
  * Panel del caso (Ctl5): datos, lo que pasó, la llave por canal, lo que el
  * motor encontró y la decisión. El supervisor busca a la persona del padrón y
- * asigna, o descarta; la decisión queda auditada con su nota, como hoy.
+ * asigna, o descarta; la decisión queda auditada con su nota, como hoy. Las
+ * personas del padrón se piden al abrir el caso (`corte` es el objeto de
+ * consultas que pinta la página; ver `usePersonasAsignables`).
  */
 export function PanelCaso({
   fila,
+  corte,
   elegido,
   ocupado,
   estado,
@@ -39,6 +44,7 @@ export function PanelCaso({
   onCerrar,
 }: {
   fila: FilaDeCola;
+  corte: object;
   elegido: boolean;
   ocupado: boolean;
   estado: EstadoDeGuardado;
@@ -57,9 +63,10 @@ export function PanelCaso({
     setBusqueda("");
   }, [fila.clave]);
 
+  const padron = usePersonasAsignables(caso?.assisted_review?.assignment_pool_key, corte, Boolean(caso && onDecision));
   const modelo = useMemo(
-    () => (caso ? modeloDeDecision(caso, { seleccion, confirmado, nota, busqueda }) : null),
-    [caso, seleccion, confirmado, nota, busqueda],
+    () => (caso ? modeloDeDecision(caso, { seleccion, confirmado, nota, busqueda }, padron.personas) : null),
+    [caso, seleccion, confirmado, nota, busqueda, padron.personas],
   );
   const manual = caso?.assisted_review?.manual_decision ?? null;
   const respuesta = caso ? internalCaseResponseStateValue(caso) : "";
@@ -170,6 +177,10 @@ export function PanelCaso({
             {modelo.opcionesOcultas > 0 ? (
               <small className="acr-av-tenue">{`Se muestran ${fmt(modelo.opcionesVisibles.length)} de ${fmt(modelo.opciones.length)}; ${busqueda ? "afina la búsqueda" : "busca para encontrar al resto"}.`}</small>
             ) : null}
+            {padron.estado === "cargando" ? (
+              <VacioDeBloque vacio="cargando" icono={null} titulo="Cargando el padrón de este público…" />
+            ) : null}
+            {padron.estado === "error" ? <Alert kind="error">{padron.mensaje}</Alert> : null}
             {modelo.opciones.length ? (
               <ul className="acr-pr-personas" data-qa-geometry-capacity="owned">
                 {modelo.opcionesVisibles.map((candidato) => {
@@ -193,9 +204,9 @@ export function PanelCaso({
                   );
                 })}
               </ul>
-            ) : (
+            ) : padron.estado === "listo" || padron.estado === "sin-publico" ? (
               <Alert kind="info">{busqueda ? "Nadie del padrón sin efectiva coincide con la búsqueda." : "Este público no tiene personas sin efectiva para asignar."}</Alert>
-            )}
+            ) : null}
             {modelo.yaAsignadas.length ? (
               <Alert kind="warn">{`${modelo.yaAsignadas.map(nombreDe).join(", ")} ya ${modelo.yaAsignadas.length === 1 ? "tiene" : "tienen"} una efectiva y no se ${modelo.yaAsignadas.length === 1 ? "asigna" : "asignan"} de nuevo.`}</Alert>
             ) : null}

@@ -2967,7 +2967,11 @@ export type MonitoreoAssistedReview = {
   declared_name?: string;
   candidates?: MonitoreoAssistedReviewCandidate[];
   assignment_candidates?: MonitoreoAssistedReviewCandidate[];
-  /** Actor cuyo universo asignable viaja una sola vez en `MonitoreoInternalQueries.assignment_pool`. */
+  /**
+   * Actor cuyo universo asignable vive una sola vez en el corte. En
+   * acreditación se pide con `apiMonitoreoAcreditacionAssignmentPool`; en
+   * telefónico viaja en `MonitoreoInternalQueries.assignment_pool`.
+   */
   assignment_pool_key?: string;
   warnings?: string[];
   manual_decision?: MonitoreoManualCaseReconciliation | null;
@@ -3391,7 +3395,11 @@ export type MonitoreoInternalQueries = {
   pending_exit: MonitoreoInternalQueryCase[];
   issues: MonitoreoInternalQueryIssue[];
   flow: MonitoreoInternalQueryFlow;
-  /** Personas asignables del universo, una lista por actor; los casos las nombran con `assignment_pool_key`. */
+  /**
+   * Personas asignables del universo, una lista por actor; los casos las
+   * nombran con `assignment_pool_key`. Sólo telefónico: acreditación ya no las
+   * manda con el scope (4.6 MB a 45 mil personas) y el panel las pide aparte.
+   */
   assignment_pool?: Record<string, MonitoreoAssistedReviewCandidate[]>;
 };
 
@@ -5888,6 +5896,26 @@ export async function apiMonitoreoAcreditacionCaseReconciliation(payload: {
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     }),
+  );
+}
+
+/**
+ * Personas asignables del padrón de un público (Control › Por resolver). Las
+ * `personas` llegan en el transporte `columnas_v1` de los casos; las decodifica
+ * `normalizarPersonasAsignables`. `preparando` dice que la sesión aún no tiene
+ * las consultas del corte.
+ */
+export type MonitoreoAcreditacionAssignmentPool = {
+  ok: true;
+  preparando: boolean;
+  key: string;
+  total: number;
+  personas: unknown;
+};
+
+export async function apiMonitoreoAcreditacionAssignmentPool(key: string, signal?: AbortSignal) {
+  return handle<MonitoreoAcreditacionAssignmentPool>(
+    await apiFetch(`/api/monitoreo/acreditacion/assignment-pool?key=${encodeURIComponent(key)}`, { headers: headers(), signal }),
   );
 }
 

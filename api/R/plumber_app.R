@@ -138,6 +138,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo_supervision_rondas(pr)
     pr <- mount_monitoreo_mailchimp(pr)
     pr <- mount_monitoreo_cuotas(pr)
+    pr <- mount_monitoreo_acreditacion_pool(pr)   # personas asignables bajo demanda (Por resolver)
     pr <- mount_monitoreo_publicar_ensayo(pr)
     pr <- mount_monitoreo_territorial_mapeo(pr)
     pr <- mount_monitoreo_territorial_casos_ump(pr)
