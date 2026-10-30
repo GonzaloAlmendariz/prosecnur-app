@@ -624,3 +624,13 @@ test_that("F37: con las cuotas sin repartir por ficha el informe no dice que cad
   expect_match(fila(reporte_mt_diseno_modelo(cfg, NULL, muestra = list(rutas = 1, entrevistas = 8, cuotas_repartidas = TRUE))), "^Cada ruta completa sus totales")
   expect_match(fila(reporte_mt_diseno_modelo(cfg, NULL)), "^Cada ruta completa sus totales")
 })
+
+test_that("F38: sin salto, la regla de no respuesta del informe no nombra un salto", {
+  cfg <- .u16_config("legado", 1)
+  cfg$route_jump_mode <- "off"
+  expect_false(grepl("salto", reporte_mt_plan_modelo(cfg)$regla))
+  cfg$route_jump_mode <- "manual"; cfg$route_jump_manual <- 3L
+  expect_match(reporte_mt_plan_modelo(cfg)$regla, "el mismo salto")
+  # La muestra manda: sorteada sin salto, config pasada a salto 3.
+  expect_false(grepl("salto", reporte_mt_plan_modelo(cfg, muestra = list(route_jump_mode = "off"))$regla))
+})

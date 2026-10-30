@@ -600,6 +600,20 @@ reporte_mt_marco_modelo <- function(insumos = list(), territorios = list()) {
     seleccion = paste(sel, "dentro del distrito"), seleccion_j = sel_j)
 }
 
+# Un valor de la muestra si lo trae; si no, el de la config (F35).
+.reporte_mt_de_muestra <- function(muestra, cfg, clave) {
+  v <- muestra[[clave]]
+  if (is.null(v) || !length(v) || is.na(v[[1]]) || identical(as.character(v[[1]]), "")) cfg[[clave]] else v[[1]]
+}
+
+# Salto con que se sorteó: F33 (c), sin salto con modo «off» o salto manual de 1.
+.reporte_mt_salto <- function(cfg, muestra = NULL) {
+  modo <- as.character(.reporte_mt_de_muestra(muestra, cfg, "route_jump_mode") %||% "auto")
+  manual <- as.integer(.reporte_mt_de_muestra(muestra, cfg, "route_jump_manual") %||% 1L)
+  auto <- identical(modo, "auto")
+  list(modo = modo, manual = manual, auto = auto, sin = identical(modo, "off") || (!auto && manual <= 1L))
+}
+
 .reporte_mt_params <- function(config) {
   cfg <- hojas_ruta_integrada_normalize_config(config %||% list())
   list(cfg = cfg, ss = cfg$sample_size %||% list(), k = max(1L, as.integer(cfg$entrevistas_por_manzana %||% 1L)))
@@ -619,13 +633,9 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
   pr <- .reporte_mt_params(config)
   cfg <- pr$cfg; ss <- pr$ss; k <- pr$k
   # F35: salto y reemplazos de la muestra cuando la hay (la config pudo cambiar después).
-  de_m <- function(clave) { v <- muestra[[clave]]; if (is.null(v) || !length(v) || is.na(v[[1]]) || identical(as.character(v[[1]]), "")) cfg[[clave]] else v[[1]] }
-  reemplazos <- as.integer(de_m("replacements_per_titular") %||% 0L)
-  modo_salto <- as.character(de_m("route_jump_mode") %||% "auto")
-  salto_manual <- as.integer(de_m("route_jump_manual") %||% 1L)
-  salto_auto <- identical(modo_salto, "auto")
-  # F33 (c): sin salto (modo «off» o salto manual de 1) se visitan las viviendas una tras otra.
-  sin_salto <- identical(modo_salto, "off") || (!salto_auto && salto_manual <= 1L)
+  reemplazos <- as.integer(.reporte_mt_de_muestra(muestra, cfg, "replacements_per_titular") %||% 0L)
+  sa <- .reporte_mt_salto(cfg, muestra)
+  salto_manual <- sa$manual; salto_auto <- sa$auto; sin_salto <- sa$sin
   v1 <- Filter(is.list, muestra$avisos_v1 %||% list())
   v1_fallo <- isTRUE(muestra$avisos_v1_fallo)
   est <- .reporte_mt_estrategia(cfg, muestra)
@@ -933,7 +943,8 @@ reporte_mt_plan_modelo <- function(config, sample_size_preview = NULL, plan_camp
   sin_plan <- if (!is.null(plan)) NULL else if (isTRUE(plan_fallo)) {
     "El plan de campo registrado no pudo rehacerse al generar este informe."
   } else "No se registró un plan de campo para esta muestra."
-  list(intro = intro, supuestos = supuestos, regla = HOJAS_RUTA_REGLA_NO_RESPUESTA, plan = plan, sin_plan = sin_plan)
+  # F38: sin salto, la regla no manda a «la siguiente que indica el salto».
+  list(intro = intro, supuestos = supuestos, regla = hojas_ruta_regla_no_respuesta(.reporte_mt_salto(pr$cfg, muestra)$sin), plan = plan, sin_plan = sin_plan)
 }
 
 # ---------- Modelo: cuotas ----------

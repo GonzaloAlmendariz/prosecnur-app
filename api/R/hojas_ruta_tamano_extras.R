@@ -262,6 +262,18 @@ HOJAS_RUTA_REGLA_NO_RESPUESTA <- paste(
   "Si aún falta completar la cuota, continúe en las manzanas aledañas (las de al lado), en el orden del esquema (1 a 8), con el mismo sentido y el mismo salto."
 )
 
+#' La misma regla sin salto (checklist F38): con el salto deshabilitado la ficha dice
+#' «Constante de salto: deshabilitada», y la regla no puede mandar a «la siguiente
+#' que indica el salto».
+hojas_ruta_regla_no_respuesta <- function(sin_salto = FALSE) {
+  if (!isTRUE(sin_salto)) return(HOJAS_RUTA_REGLA_NO_RESPUESTA)
+  paste(
+    "Si en la vivienda no responden, está desocupada o no vive nadie del perfil del estudio, pase a la vivienda siguiente.",
+    "Si termina la vuelta a la manzana sin completar la cuota, dé una segunda vuelta por las viviendas que no visitó.",
+    "Si aún falta completar la cuota, continúe en las manzanas aledañas (las de al lado), en el orden del esquema (1 a 8), con el mismo sentido."
+  )
+}
+
 # Recalcula el salto de una tabla de manzanas sobre visitas, con la misma semilla y
 # los mismos cubos estables que el motor para la vivienda de inicio.
 .hojas_ruta_te_salto_tabla <- function(tabla, cfg, r, e) {
@@ -276,7 +288,7 @@ HOJAS_RUTA_REGLA_NO_RESPUESTA <- paste(
     V <- max(0L, suppressWarnings(as.integer(b$viviendas %||% 0L)), na.rm = TRUE)
     v <- hojas_ruta_visitas_por_ruta(k, r, e)
     b$visitas_esperadas <- v
-    b$regla_no_respuesta <- HOJAS_RUTA_REGLA_NO_RESPUESTA
+    b$regla_no_respuesta <- hojas_ruta_regla_no_respuesta(identical(modo, "off"))
     if (identical(modo, "auto")) {
       raw <- if (v > 0) V / v else NA_real_
       constante <- max(1L, as.integer(floor(raw)))

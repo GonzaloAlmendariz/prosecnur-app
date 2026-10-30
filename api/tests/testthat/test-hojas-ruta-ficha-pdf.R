@@ -133,3 +133,22 @@ test_that("una ficha sin visitas esperadas sale sin ese dato y sin fallar", {
   expect_identical(m$procedimiento$pasos, .hojas_ruta_vp_regla_pasos(HOJAS_RUTA_REGLA_NO_RESPUESTA))
   expect_match(txt, "Ficha de trabajo de campo", fixed = TRUE)
 })
+
+test_that("F38: con el salto deshabilitado la regla de no respuesta no nombra un salto", {
+  expect_identical(hojas_ruta_regla_no_respuesta(FALSE), HOJAS_RUTA_REGLA_NO_RESPUESTA)
+  sin <- hojas_ruta_regla_no_respuesta(TRUE)
+  expect_false(grepl("salto", sin))
+  expect_match(sin, "pase a la vivienda siguiente")
+  sm <- hfp_muestra()
+  cfg_off <- sm$config; cfg_off$route_jump_mode <- "off"
+  b <- hfp_bloque(sm)
+  m_off <- hojas_ruta_ficha_modelo(b, NULL, cfg_off)
+  expect_true(m_off$seleccion$sin_salto)
+  expect_false(any(grepl("salto", m_off$procedimiento$pasos)))
+  # Con salto, la regla de siempre.
+  m <- hojas_ruta_ficha_modelo(b, NULL, sm$config)
+  if (!isTRUE(m$seleccion$sin_salto)) expect_true(any(grepl("salto", m$procedimiento$pasos)))
+  # Una muestra nueva con el salto en «off» guarda la versión sin salto en cada manzana.
+  sm_off <- hojas_ruta_tamano_extras_salto_muestra(list(blocks = sm$blocks[1]), cfg_off)
+  expect_identical(sm_off$blocks[[1]]$regla_no_respuesta, sin)
+})

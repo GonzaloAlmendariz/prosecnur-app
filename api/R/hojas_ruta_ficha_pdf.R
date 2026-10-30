@@ -142,7 +142,8 @@ hojas_ruta_ficha_modelo <- function(block, quota_table = NULL, config = list()) 
     procedimiento = list(
       pasos = .hojas_ruta_vp_regla_pasos({
         regla <- .hojas_ruta_vp_regla(block)
-        if (nzchar(regla)) regla else HOJAS_RUTA_REGLA_NO_RESPUESTA
+        # F38: el texto canónico (o ninguno) con el salto deshabilitado va en su versión sin salto.
+        if (!nzchar(regla) || identical(regla, HOJAS_RUTA_REGLA_NO_RESPUESTA)) hojas_ruta_regla_no_respuesta(sin_salto) else regla
       })
     )
   )
