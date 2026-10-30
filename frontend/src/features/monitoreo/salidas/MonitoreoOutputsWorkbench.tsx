@@ -1046,8 +1046,13 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
+  // Entre el clic y el job, el servidor arma el modelo del reporte (~15 s en
+  // Acreditación): sin este estado el botón no decía nada (Gonzalo, 30/10).
+  const [pdfPreparando, setPdfPreparando] = useState(false);
+  const [productionPdfPreparando, setProductionPdfPreparando] = useState(false);
   const generatePdf = async () => {
-    if (!canGeneratePdf) return;
+    if (!canGeneratePdf || pdfPreparando || pdfJobId) return;
+    setPdfPreparando(true);
     setPdfReady(false);
     setPdfProgress(3);
     setPdfMessage("");
@@ -1062,11 +1067,14 @@ export function MonitoreoOutputsWorkbench({
     } catch (e) {
       setPdfProgress(null);
       setPdfError((e as Error).message);
+    } finally {
+      setPdfPreparando(false);
     }
   };
 
   const generateProductionPdf = async () => {
-    if (!canGenerateProductionPdf) return;
+    if (!canGenerateProductionPdf || productionPdfPreparando || productionPdfJobId) return;
+    setProductionPdfPreparando(true);
     setProductionPdfReady(false);
     setProductionPdfProgress(3);
     setProductionPdfMessage("");
@@ -1082,6 +1090,8 @@ export function MonitoreoOutputsWorkbench({
     } catch (e) {
       setProductionPdfProgress(null);
       setProductionPdfError((e as Error).message);
+    } finally {
+      setProductionPdfPreparando(false);
     }
   };
 
@@ -1216,12 +1226,14 @@ export function MonitoreoOutputsWorkbench({
   const snapshotHint = hasSnapshot
     ? <span className="mon-outputs-corte-datos">{piezasDelCorte.map((pieza) => <span key={pieza}>{pieza}</span>)}</span>
     : "Sin corte sincronizado";
-  const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfReady ? 100 : 0;
+  const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfPreparando ? 6 : pdfReady ? 100 : 0;
   const productionPdfButtonProgress = productionPdfJobId
     ? Math.max(8, Math.min(100, productionPdfProgress ?? 35))
-    : productionPdfReady
-      ? 100
-      : 0;
+    : productionPdfPreparando
+      ? 6
+      : productionPdfReady
+        ? 100
+        : 0;
   const publishRunning = publishing === activeAudience || preflighting === activeAudience;
   const publishProgress = publishRunning
     ? activeStatus.kind === "publishing"
@@ -1346,14 +1358,15 @@ export function MonitoreoOutputsWorkbench({
               <span className="mon-outputs-action-motivo" title={motivoPdfBloqueado}>
                 <button
                   type="button"
-                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
+                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId || pdfPreparando ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
                   onClick={() => { void generatePdf(); }}
-                  disabled={!canGeneratePdf}
+                  disabled={!canGeneratePdf || pdfPreparando}
+                  aria-busy={pdfPreparando || Boolean(pdfJobId)}
                   aria-describedby={motivoPdfBloqueado ? "mon-outputs-pdf-motivo" : undefined}
                   style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
                 >
-                  {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
-                  {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
+                  {pdfJobId || pdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
+                  {pdfPreparando ? "Preparando el reporte…" : pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
                 </button>
                 {motivoPdfBloqueado ? (
                   <span id="mon-outputs-pdf-motivo" className="pulso-sr-only">{motivoPdfBloqueado}</span>
@@ -1419,13 +1432,14 @@ export function MonitoreoOutputsWorkbench({
               ) : null}
               <button
                 type="button"
-                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
+                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId || productionPdfPreparando ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
                 onClick={() => { void generateProductionPdf(); }}
-                disabled={!canGenerateProductionPdf}
+                disabled={!canGenerateProductionPdf || productionPdfPreparando}
+                aria-busy={productionPdfPreparando || Boolean(productionPdfJobId)}
                 style={{ "--mon-output-action-progress": `${productionPdfButtonProgress}%` } as CSSProperties}
               >
-                {productionPdfJobId ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
-                {productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
+                {productionPdfJobId || productionPdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
+                {productionPdfPreparando ? "Preparando el reporte…" : productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
               </button>
               <JobStatusLine
                 jobId={productionPdfJobId}

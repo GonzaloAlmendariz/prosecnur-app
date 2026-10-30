@@ -154,11 +154,15 @@
     box-shadow var(--motion-dur-fast, 160ms) var(--motion-ease-out, ease);
 }
 
+/* La barra va DETRÁS del contenido: con z-index 0 tapaba el texto del botón (que
+ * no está envuelto) y al completarse el botón verde quedaba vacío, sólo con el
+ * ícono (Gonzalo, 30/10). El botón aísla su apilamiento, así que -1 la deja
+ * sobre su fondo y bajo el texto. */
 .mon-outputs-action-progress::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: 0;
+  z-index: -1;
   width: var(--mon-output-action-progress);
   border-radius: inherit;
   opacity: 0;
