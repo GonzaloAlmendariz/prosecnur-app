@@ -1,10 +1,26 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
-import { duracionesFueraDeRango, duracionLegible } from "./calidadModelo";
+import { conSuRespuesta, duracionesFueraDeRango, duracionLegible } from "./calidadModelo";
 import { Calidad } from "./Calidad";
 
 describe("Control › Calidad", () => {
+  it("cada duración se une con su respuesta por la fila del corte", () => {
+    const duraciones = duracionesFueraDeRango([
+      { id: "2668", row: 2668, tipo: "duracion_muy_corta", valor: "4" },
+      { id: "9999", row: 9999, tipo: "duracion_muy_corta", valor: "8" },
+      { id: "77", tipo: "duracion_muy_corta", valor: "9" },
+    ], 60, 7200);
+    const unidas = conSuRespuesta(duraciones, [
+      { response_row: 2668, response_id: "115202952682", actor: "Profesores", platform_state: "Parcial" },
+      { response_row: "", response_id: "otro", actor: "X", platform_state: "Completa" },
+    ]);
+    expect(unidas[0]).toMatchObject({ id: "2668", respuesta: "115202952682", publico: "Profesores", estado: "Parcial" });
+    // Sin caso para la fila, o sin fila, queda como venía.
+    expect(unidas[1].respuesta).toBeUndefined();
+    expect(unidas[2]).toEqual({ id: "77", segundos: 9, tipo: "corta" });
+  });
+
   it("clasifica cada duración por su valor frente al rango (H1)", () => {
     const filas = [
       { id: "813", tipo: "duracion_muy_corta", valor: "45" },

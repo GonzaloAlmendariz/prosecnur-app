@@ -9,11 +9,27 @@
 
 import type { MonitoreoRow } from "../../../../../../api/client";
 
-export type DuracionFueraDeRango = { id: string; segundos: number; tipo: "corta" | "larga" };
+export type DuracionFueraDeRango = {
+  id: string;
+  segundos: number;
+  tipo: "corta" | "larga";
+  /** Fila del corte, para unirla con su caso. */
+  fila?: number;
+  /** Del caso de la bandeja: el ID de la respuesta, su público y su estado. */
+  respuesta?: string;
+  publico?: string;
+  estado?: string;
+};
 
 function numero(valor: unknown): number | null {
   const n = Number(String(valor ?? "").replace(/,/g, ""));
   return Number.isFinite(n) ? n : null;
+}
+
+/** Número de fila, o null si no viene (`Number("")` daría 0). */
+function filaDe(valor: unknown): number | null {
+  if (valor == null || String(valor).trim() === "") return null;
+  return numero(valor);
 }
 
 export function duracionesFueraDeRango(
@@ -27,7 +43,8 @@ export function duracionesFueraDeRango(
       const segundos = numero(fila.valor);
       if (segundos == null) return null;
       const tipo: DuracionFueraDeRango["tipo"] = segundos > maximo ? "larga" : segundos < minimo ? "corta" : String(fila.tipo).includes("larga") ? "larga" : "corta";
-      return { id: String(fila.id ?? fila.row ?? indice + 1), segundos, tipo };
+      const numeroDeFila = filaDe(fila.row);
+      return { id: String(fila.id ?? fila.row ?? indice + 1), segundos, tipo, ...(numeroDeFila == null ? {} : { fila: numeroDeFila }) };
     })
     .filter((item): item is DuracionFueraDeRango => Boolean(item))
     .sort((a, b) => a.segundos - b.segundos);
@@ -40,4 +57,25 @@ export function duracionLegible(segundos: number): string {
   if (segundos < 3600) return `${una(segundos / 60)} min`;
   if (segundos < 86400) return `${una(segundos / 3600)} h`;
   return `${una(segundos / 86400)} días`;
+}
+
+/**
+ * Cada duración con su respuesta: sin variable de ID configurada, la hoja de
+ * inconsistencias trae el número de fila del corte (2668), mientras Respuestas
+ * y Por resolver muestran el ID de SurveyMonkey. Se unen por `response_row`.
+ */
+export function conSuRespuesta(
+  duraciones: readonly DuracionFueraDeRango[],
+  casos: ReadonlyArray<{ response_row?: unknown; response_id?: unknown; actor?: unknown; platform_state?: unknown }>,
+): DuracionFueraDeRango[] {
+  const porFila = new Map<number, (typeof casos)[number]>();
+  for (const caso of casos) {
+    const fila = filaDe(caso.response_row);
+    if (fila != null && String(caso.response_id ?? "")) porFila.set(fila, caso);
+  }
+  return duraciones.map((item) => {
+    const caso = item.fila == null ? undefined : porFila.get(item.fila);
+    if (!caso) return item;
+    return { ...item, respuesta: String(caso.response_id), publico: String(caso.actor ?? ""), estado: String(caso.platform_state ?? "") };
+  });
 }

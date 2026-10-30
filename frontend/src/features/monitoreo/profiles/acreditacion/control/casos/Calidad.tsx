@@ -4,13 +4,16 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { fmt } from "../../formato";
 import { filasDeHoja } from "../../../telefonico/navegacion/bloques";
 import { buildAcreditacionPhoneRealAlertModel, type AcreditacionQualityAlertItem } from "../../AcreditacionPhoneAlerts";
-import { duracionesFueraDeRango, duracionLegible, type DuracionFueraDeRango } from "./calidadModelo";
+import { conSuRespuesta, duracionesFueraDeRango, duracionLegible, type DuracionFueraDeRango } from "./calidadModelo";
+import { useResumenDelCorte } from "../../navegacion/resumenDelCorte";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
 import "./calidad.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 import { VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
+
+const SIN_RESPUESTAS: never[] = [];
 
 type PropsDeVista = {
   duraciones: DuracionFueraDeRango[];
@@ -41,6 +44,8 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
               <thead>
                 <tr>
                   <th scope="col">Respuesta</th>
+                  <th scope="col">Público</th>
+                  <th scope="col">Estado</th>
                   <th scope="col" className="is-num">Duración</th>
                   <th scope="col">Lectura</th>
                 </tr>
@@ -48,7 +53,9 @@ export function CalidadVista({ duraciones, minimo, maximo, senales }: PropsDeVis
               <tbody>
                 {cortas.map((item) => (
                   <tr key={`${item.id}-${item.segundos}`}>
-                    <th scope="row" className="acr-av-num">{item.id}</th>
+                    <th scope="row" className="acr-av-num">{item.respuesta || item.id}</th>
+                    <td>{item.publico || "—"}</td>
+                    <td>{item.estado || "—"}</td>
                     <td className="is-num">{duracionLegible(item.segundos)}</td>
                     <td><span className="acr-av-chip is-falta">Muy corta</span></td>
                   </tr>
@@ -89,7 +96,12 @@ export function Calidad({ reports, state }: { reports: MonitoreoAcreditacionRepo
   const minimo = state?.config?.min_duration_seconds ?? 60;
   const maximo = state?.config?.max_duration_seconds ?? 7200;
   const inconsistencias = state?.dashboard?.inconsistencies;
-  const duraciones = useMemo(() => duracionesFueraDeRango(inconsistencias ?? [], minimo, maximo), [inconsistencias, minimo, maximo]);
+  // La bandeja llega con el corte de Control (queries_summary) y queda en el resumen del corte.
+  const casos = useResumenDelCorte((estado) => estado.respuestasConFila) ?? SIN_RESPUESTAS;
+  const duraciones = useMemo(
+    () => conSuRespuesta(duracionesFueraDeRango(inconsistencias ?? [], minimo, maximo), casos),
+    [inconsistencias, minimo, maximo, casos],
+  );
   const senales = useMemo(
     () => buildAcreditacionPhoneRealAlertModel({ alertRows: filasDeHoja(reports, "alertas", ["alertas"]) }).activeAlerts,
     [reports],

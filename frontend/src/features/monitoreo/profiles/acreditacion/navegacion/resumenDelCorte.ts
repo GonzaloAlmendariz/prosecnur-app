@@ -41,6 +41,8 @@ export function barridoDeReports(reports: MonitoreoAcreditacionReports | null | 
   return porPublico;
 }
 
+export type RespuestaConFila = { response_row: number; response_id: string; actor: string; platform_state: string };
+
 export type AvanceDelCorte = {
   tarjetas: AcreditacionAdvanceCard[];
   efectivas: number;
@@ -59,6 +61,8 @@ type EstadoDelResumen = {
   recopiladores: MonitoreoInternalQueryTotal[] | null;
   /** Cómo cruzó con el padrón quien respondió, por rótulo (`case_rollup`), del corte de Control. */
   cruces: Array<{ rotulo: string; casos: number }> | null;
+  /** Las respuestas con su fila del corte (`response_row`), para nombrar por su ID lo que otras hojas citan por fila (Control › Calidad). */
+  respuestasConFila: RespuestaConFila[] | null;
   /** La lectura de casos falló: las vistas dejan de esperarla. */
   casosFallaron: boolean;
   marcarFalloDeCasos: () => void;
@@ -90,6 +94,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
   fuentes: null,
   recopiladores: null,
   cruces: null,
+  respuestasConFila: null,
   casosFallaron: false,
   marcarFalloDeCasos: () => set({ casosFallaron: true }),
   observar: (reports, goals) => {
@@ -102,6 +107,11 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
     const recopiladores = normalizadas?.totals.collector.length ? normalizadas.totals.collector : null;
     const casosDelRollup = normalizadas ? (normalizadas.case_rollup?.length ? normalizadas.case_rollup : normalizadas.cases) : [];
     const cruces = casosDelRollup.length ? conRespuestaPor(personasDe(casosDelRollup), "comoCruzo") : null;
+    const respuestasConFila = normalizadas
+      ? normalizadas.cases
+        .filter((caso) => caso.response_id && caso.response_row != null && String(caso.response_row) !== "")
+        .map((caso) => ({ response_row: Number(caso.response_row), response_id: String(caso.response_id), actor: String(caso.actor ?? ""), platform_state: String(caso.platform_state ?? "") }))
+      : null;
     const barrido = barridoDeReports(reports);
     const crudas = reports.client_report?.sources;
     const fuentes = Array.isArray(crudas) && crudas.length ? crudas as Array<Record<string, unknown>> : null;
@@ -109,6 +119,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       fuentes: fuentes ?? previo.fuentes,
       recopiladores: recopiladores ?? previo.recopiladores,
       cruces: cruces ?? previo.cruces,
+      respuestasConFila: respuestasConFila?.length ? respuestasConFila : previo.respuestasConFila,
       avance: avance ?? previo.avance,
       barrido: barrido ?? previo.barrido,
       casos: issues ? casosDelCorte(issues) : previo.casos,
@@ -116,7 +127,7 @@ export const useResumenDelCorte = create<EstadoDelResumen>()((set) => ({
       issues: issues ?? previo.issues,
     }));
   },
-  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, casosFallaron: false }),
+  olvidar: () => set({ avance: null, casos: null, issues: null, barrido: null, fuentes: null, recopiladores: null, cruces: null, respuestasConFila: null, casosFallaron: false }),
 }));
 
 /** Para quien observa fuera de React (el prefetch de scopes). */

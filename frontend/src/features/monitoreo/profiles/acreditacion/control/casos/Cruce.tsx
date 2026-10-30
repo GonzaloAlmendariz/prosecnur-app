@@ -10,8 +10,11 @@ import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 /** Rótulos que el motor publica con su nombre interno de etapa. */
+// «Llave usada» es lo que pone el motor cuando la respuesta cruzó por la llave
+// configurada del estudio; como fila de «Llave usada» repetía el título.
 const ROTULO_DE_LLAVE: Record<string, string> = {
   "Llave en base": "Llave del padrón, sin respuesta",
+  "Llave usada": "Llave configurada",
 };
 
 function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: string; casos: number }> }) {

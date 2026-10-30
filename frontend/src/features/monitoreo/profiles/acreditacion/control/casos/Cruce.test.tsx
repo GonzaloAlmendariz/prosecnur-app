@@ -47,6 +47,7 @@ describe("Control › Cruce", () => {
     const html = renderToStaticMarkup(<Cruce consultas={consultas} />);
     expect(html).toContain("10 respuestas");
     expect(html).toContain("100 del padrón sin responder");
+    expect(renderToStaticMarkup(<Cruce consultas={{ ...consultas, case_rollup: [{ primary_identity_label: "Llave usada", base_result: "Cruzó", platform_state: "Completa" }] } as unknown as MonitoreoInternalQueries} />)).toContain("Llave configurada");
     expect(html).not.toContain("Base sin respuesta");
   });
 });
