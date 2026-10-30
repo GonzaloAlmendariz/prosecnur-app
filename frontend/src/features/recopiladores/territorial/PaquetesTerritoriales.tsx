@@ -63,12 +63,14 @@ type Props = {
   unidades: UnidadesTerritoriales | null;
   hojas: HojasRutaState | null;
   onRecargar: () => Promise<void>;
+  /** Titular que llega marcada desde la ficha de Selección de Hojas de ruta (`?foco=<id_manzana>`). */
+  focoInicial?: string | null;
 };
 
-export function PaquetesTerritoriales({ unidades, hojas, onRecargar }: Props) {
+export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial = null }: Props) {
   const [e, setE] = useState<Estado>(INICIAL);
   const [busqueda, setBusqueda] = useState("");
-  const [elegidas, setElegidas] = useState<string[]>([]);
+  const [elegidas, setElegidas] = useState<string[]>(() => (focoInicial ? [focoInicial] : []));
   const [porTitular, setPorTitular] = useState(1);
   const config = hojas?.integrated_config ?? null;
   const [politica, setPolitica] = useState<HojasRutaReplacementPolicy>(config?.replacement_policy ?? "alternate_zone_same_district");

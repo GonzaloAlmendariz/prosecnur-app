@@ -8,7 +8,6 @@ import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp, type RevisionMarco } from "../../seleccion/revisionMarco";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
-import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { Link } from "react-router-dom";
@@ -112,7 +111,6 @@ type InspectorProps = {
 
 export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false, rutasPorRevisar }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
-  const nav = useSeccion("hojas-ruta");
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
     const observaciones = revision.grupos.filter((g) => g.umps.some((u) => u.idManzana === titular.id_manzana || suyos.some((r) => r.id_manzana === u.idManzana)));
@@ -185,11 +183,14 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
               <p className="hr-mapa-nota">Esta ruta no tiene reemplazos sorteados.</p>
             )}
           </section>
-          {/* B45: desde la ficha, a lo que se hace con esta UMP. El reemplazo puntual abre Salidas con ella marcada. */}
+          {/* B45 + ADR 0118 F3: el reemplazo puntual se genera en Material › Paquetes, con esta titular marcada. */}
+          {!enviada && estado !== "ok" ? <p className="hr-mapa-nota">Para pedirle reemplazos nuevos sin tocar el sorteo, envía la muestra: el reemplazo puntual se genera en Material de campo.</p> : null}
           <div className="hr-mapa-acciones">
-            <PulsoButton variant="secondary" size="sm" title="Pedir reemplazos nuevos para esta titular sin tocar el sorteo" onClick={() => nav.irA("panel", "salidas")}>
-              Reemplazo puntual
-            </PulsoButton>
+            {enviada ? (
+              <Link className="hr-entrega-enlace" title="Pedir reemplazos nuevos para esta titular sin tocar el sorteo" to={`${HREF_CAMPANA_TERRITORIAL.replace("seccion=unidades&pestana=lista", "seccion=paquetes&pestana=armado")}&foco=${encodeURIComponent(titular.id_manzana)}`}>
+                Reemplazo puntual
+              </Link>
+            ) : null}
             <PulsoButton variant="secondary" size="sm" onClick={() => setCajon("titulares")}>
               Tablas
             </PulsoButton>

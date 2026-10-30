@@ -90,7 +90,7 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
         <CatalogoTerritorial pestana={pestana === "zonas" ? "zonas" : "fichas"} unidades={unidades} hojas={hojas} />
       ) : null}
       {!cargando && seccion === "paquetes" ? (
-        <PaquetesTerritoriales unidades={unidades} hojas={hojas} onRecargar={recargar} />
+        <PaquetesTerritoriales unidades={unidades} hojas={hojas} onRecargar={recargar} focoInicial={direccion?.foco ?? null} />
       ) : null}
       {!cargando && seccion === "entrega" ? (
         <EntregaTerritorial unidades={unidades} hojas={hojas} onGuardarPlan={guardarPlan} />
