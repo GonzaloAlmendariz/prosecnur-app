@@ -124,7 +124,14 @@
     meta = if (isTRUE(con_meta)) .acav_num(meta_col) else rep(NA_real_, nrow(actors)),
     stringsAsFactors = FALSE
   )
-  orden <- order(-out$universo, out$publico)
+  # Por pares (Gonzalo, 30/10): «Docentes Campus» y «Docentes CENTRUM» salen del
+  # mismo padrón y se leen juntos. La familia es el nombre sin la sede; las
+  # familias van por su universo total y, dentro, Campus antes que CENTRUM.
+  sede <- ifelse(grepl("\\s+campus$", out$publico, ignore.case = TRUE), 1L,
+                 ifelse(grepl("\\s+centrum$", out$publico, ignore.case = TRUE), 2L, 0L))
+  familia <- trimws(sub("\\s+(campus|centrum)$", "", out$publico, ignore.case = TRUE))
+  tamano_familia <- ave(out$universo, familia, FUN = function(x) sum(x, na.rm = TRUE))
+  orden <- order(-tamano_familia, familia, sede, -out$universo, out$publico)
   out[orden, , drop = FALSE]
 }
 

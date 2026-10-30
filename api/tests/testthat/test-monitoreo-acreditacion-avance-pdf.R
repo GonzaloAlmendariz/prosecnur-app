@@ -84,3 +84,13 @@ test_that("sin «Incluir metas» el documento no publica el mínimo esperado", {
   expect_false(grepl("5385|m[ií]nimo", txt, ignore.case = TRUE))
   expect_match(txt, "770 de 25485")
 })
+
+test_that("los públicos de un mismo padrón salen por pares: Campus y luego CENTRUM", {
+  actors <- data.frame(
+    Actor = c("Estudiantes de pregrado", "Docentes Campus", "Administrativos", "Docentes CENTRUM", "Egresados de posgrado CENTRUM", "Egresados de posgrado Campus"),
+    Universo = c(22820, 2599, 2194, 66, 417, 849), Efectivas = c(324, 29, 187, 1, 5, 16), Parciales = 0, Meta = 1,
+    stringsAsFactors = FALSE
+  )
+  orden <- .acav_publicos(actors, TRUE)$publico
+  expect_identical(orden, c("Estudiantes de pregrado", "Docentes Campus", "Docentes CENTRUM", "Administrativos", "Egresados de posgrado Campus", "Egresados de posgrado CENTRUM"))
+})
