@@ -42,9 +42,24 @@ monitoreo_heredar_actor_del_padron <- function(data, profile = list()) {
 
   llaves_respuesta <- .monitoreo_report_key_list(data[respuestas, , drop = FALSE], perfil, "respuesta")
   actores <- as.character(data$dim_actor)
+  # Primero las llaves de código (la persona) y después las demás (correo,
+  # teléfono): un correo puede estar compartido. Decide la primera llave que casa
+  # con un solo público; una que casa con dos no decide y se prueba la siguiente.
+  # Exigir que todas coincidieran dejaba en el público de la encuesta una
+  # respuesta con el código de una persona de CENTRUM y un correo compartido con
+  # alguien de Campus, y el cruce la acreditaba a la persona equivocada (revisión
+  # metodológica 30/10).
   for (i in seq_along(llaves_respuesta)) {
-    candidatos <- unique(unlist(lapply(llaves_respuesta[[i]], function(llave) if (nzchar(llave)) get0(llave, envir = indice, inherits = FALSE) else NULL)))
-    if (length(candidatos) == 1L) actores[[respuestas[[i]]]] <- candidatos[[1L]]
+    llaves <- llaves_respuesta[[i]]
+    llaves <- c(llaves[startsWith(llaves, "codigo:")], llaves[!startsWith(llaves, "codigo:")])
+    for (llave in llaves) {
+      if (!nzchar(llave)) next
+      candidatos <- get0(llave, envir = indice, inherits = FALSE)
+      if (length(candidatos) == 1L) {
+        actores[[respuestas[[i]]]] <- candidatos[[1L]]
+        break
+      }
+    }
   }
   data$dim_actor <- actores
   data

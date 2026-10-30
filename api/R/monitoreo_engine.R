@@ -6153,7 +6153,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
     ))
   }
   report("snapshot", percent = 82, message = "Uniendo fuentes en un snapshot local...", step = n_sources + 1L, steps = n_sources + 1L)
-  data <- .monitoreo_bind_rows(dfs)
+  data <- monitoreo_heredar_actor_del_padron(.monitoreo_bind_rows(dfs), config$monitoreo_profile) # una vez al armar el corte: lo ven todos los caminos
   report("config", percent = 85, message = "Recalculando variables y mapeos...")
   cfg <- monitoreo_normalize_config(config, data)
   dashboard <- NULL
