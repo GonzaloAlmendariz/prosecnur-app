@@ -2,9 +2,8 @@
 # cliente periódicamente.
 #
 # Antes vivía como un cierre de mil líneas dentro de `monitoreo_engine.R` y se
-# leía como una pantalla impresa: nueve páginas para seis públicos, el avance
-# medido contra los invitados y no contra la meta, la cifra total en la página
-# ocho, botones «Ver detalle» y una página de «Corte y fuentes» que hablaba de
+# leía como una pantalla impresa: nueve páginas para seis públicos, porcentajes
+# en anillos sin su frecuencia, la cifra total en la página ocho, botones «Ver detalle» y una página de «Corte y fuentes» que hablaba de
 # «caso canónico» y del «Apps Script viejo». Checklist de la reescritura:
 # `docs/qa/checklist-pdf-avance-acreditacion-2026-10-30.md`.
 #
@@ -15,14 +14,15 @@
 # Este archivo sólo decide cómo se leen.
 #
 # Lo que el cliente tiene que leer de un vistazo, en este orden: el avance de
-# cada público en conteo y en porcentaje de su total de invitados, el ritmo, y la
-# fecha y hora del corte.
+# cada público en conteo y en porcentaje de su universo, el ritmo, y la fecha y
+# hora del corte. Universo y no «invitados»: es la base del público, y no todo
+# estudio de acreditación se recoge por correo (Gonzalo, 2026-10-30).
 #
 # «MÍNIMO ESPERADO», NO «META». En acreditación la cifra de referencia por
 # público es el mínimo que el estudio necesita alcanzar, no un objetivo que el
 # cliente persiga: a la DAA le interesa el progreso de cada público sobre su
-# total (Gonzalo, 2026-10-30). Por eso el porcentaje que manda es el del total
-# de invitados, y el mínimo va al lado, como referencia, con su propio nombre.
+# universo (Gonzalo, 2026-10-30). Por eso el porcentaje que manda es el del
+# universo, y el mínimo va al lado, como referencia, con su propio nombre.
 
 .acav_meses <- c("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
                  "agosto", "setiembre", "octubre", "noviembre", "diciembre")
@@ -107,24 +107,24 @@
   out
 }
 
-# Una fila por público con las cifras que lee el documento. El orden es el de los
-# invitados: estable de un corte a otro, para que el cliente compare dos
+# Una fila por público con las cifras que lee el documento. El orden es el del
+# universo: estable de un corte a otro, para que el cliente compare dos
 # informes fila por fila.
 .acav_publicos <- function(actors, con_meta) {
   if (!nrow(actors)) {
-    return(data.frame(publico = character(), invitados = numeric(), completas = numeric(),
+    return(data.frame(publico = character(), universo = numeric(), completas = numeric(),
                       parciales = numeric(), meta = numeric(), stringsAsFactors = FALSE))
   }
   meta_col <- if ("Meta" %in% names(actors)) actors$Meta else actors$`Referencia operativa`
   out <- data.frame(
     publico = as.character(actors$Actor),
-    invitados = .acav_num(actors$Universo),
+    universo = .acav_num(actors$Universo),
     completas = .acav_num(actors$Efectivas),
     parciales = .acav_num(actors$Parciales),
     meta = if (isTRUE(con_meta)) .acav_num(meta_col) else rep(NA_real_, nrow(actors)),
     stringsAsFactors = FALSE
   )
-  orden <- order(-out$invitados, out$publico)
+  orden <- order(-out$universo, out$publico)
   out[orden, , drop = FALSE]
 }
 
@@ -184,7 +184,7 @@
 #'   `actors`, `daily_general`, `daily_actor`, `sources` y `synced_at`.
 #' @param output_file ruta del PDF.
 #' @param include_targets si el documento publica el mínimo esperado por público
-#'   («Incluir metas» en Salidas). El avance se lee siempre contra los invitados.
+#'   («Incluir metas» en Salidas). El avance se lee siempre contra el universo.
 #' @param title título del documento.
 #' @return `output_file`, invisible.
 monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include_targets = FALSE, title = NULL) {
@@ -211,11 +211,11 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   if (!nzchar(titulo)) titulo <- "Avance del trabajo de campo"
   antetitulo <- if (nzchar(estudio)) estudio else "Encuesta en línea"
 
-  total_inv <- sum(pub$invitados)
+  total_uni <- sum(pub$universo)
   total_comp <- sum(pub$completas)
   total_parc <- sum(pub$parciales)
   total_meta <- if (con_meta) sum(pub$meta) else NA_real_
-  den_total <- total_inv
+  den_total <- total_uni
   n_dias <- nrow(serie)
   inicio <- if (n_dias) serie$fecha[[1]] else as.Date(NA)
   # El último día está «en curso» si el corte cae ese mismo día: sus completas
@@ -286,8 +286,8 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   # monta sobre el filete. Las tres cifras se leen juntas: 1148 de 45120, 2.5%.
   destacados <- list(
     list(rotulo = "Completas", valor = .acav_n(total_comp)),
-    list(rotulo = "Invitados", valor = .acav_n(total_inv)),
-    list(rotulo = "Del total", valor = .acav_pct(total_comp, total_inv))
+    list(rotulo = "Universo", valor = .acav_n(total_uni)),
+    list(rotulo = "Del total", valor = .acav_pct(total_comp, total_uni))
   )
   pulso_pdf_portada(portada, tokens = tk, ty = ty, geo = geo, antetitulo = "Monitoreo de la encuesta en línea",
                     destacados = destacados, reparto = "contenido")
@@ -296,19 +296,20 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   nueva("Resumen del avance")
   kpis <- c(
     list(
-      list("Avance sobre el total", .acav_pct(total_comp, total_inv), paste(.acav_n(total_comp), "de", .acav_n(total_inv), "invitados"), TRUE),
+      list("Avance sobre el universo", .acav_pct(total_comp, total_uni), paste(.acav_n(total_comp), "de", .acav_n(total_uni)), TRUE),
       list("Encuestas completas", .acav_n(total_comp), "", FALSE)
     ),
     if (con_meta) list(
-      list("Mínimo esperado", .acav_n(total_meta), paste0(.acav_pct_frec(total_comp, total_meta), " alcanzado"), FALSE),
+      list("Mínimo esperado", .acav_n(total_meta), "", FALSE),
+      list("Cumplimiento del mínimo", .acav_pct(total_comp, total_meta), paste(.acav_n(total_comp), "de", .acav_n(total_meta)), FALSE),
       list("Faltan para el mínimo", .acav_n(max(0, total_meta - total_comp)), "", FALSE)
     ) else list(
-      list("Personas invitadas", .acav_n(total_inv), "", FALSE)
+      list("Universo", .acav_n(total_uni), "", FALSE)
     ),
     list(list("Respuestas parciales*", .acav_n(total_parc), "", FALSE))
   )
   hueco <- 0.014
-  w_principal <- 0.250
+  w_principal <- if (length(kpis) > 5L) 0.215 else 0.250
   w_resto <- (ancho - w_principal - hueco * (length(kpis) - 1L)) / (length(kpis) - 1L)
   kx <- m
   ky <- 0.660; kh <- 0.140
@@ -328,7 +329,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
                            tokens = tk, ty = ty)
   cols <- list(
     publico = m + 0.008,
-    invitados = m + 0.285,
+    universo = m + 0.285,
     completas = m + 0.375,
     barra0 = m + 0.405,
     barra1 = if (con_meta) m + 0.560 else m + 0.700,
@@ -345,15 +346,15 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   enc <- function(label, x, just = "right") tx(toupper(label), x, hy, size = ty$eyebrow,
                                                col = tk$soft, face = "bold", just = c(just, "center"))
   enc("Público", cols$publico, "left")
-  enc("Invitados", cols$invitados)
+  enc("Universo", cols$universo)
   enc("Completas", cols$completas)
-  enc("Avance sobre el total", cols$barra0, "left")
+  enc("Avance sobre el universo", cols$barra0, "left")
   if (con_meta) {
     enc("Mínimo\nesperado", cols$minimo)
-    enc("% del\nmínimo", cols$pct_min)
+    enc("Cumplimiento\ndel mínimo", cols$pct_min)
     enc("Faltan para\nel mínimo", cols$faltan)
   }
-  filas <- rbind(pub, data.frame(publico = "Total", invitados = total_inv, completas = total_comp,
+  filas <- rbind(pub, data.frame(publico = "Total", universo = total_uni, completas = total_comp,
                                  parciales = total_parc, meta = total_meta, stringsAsFactors = FALSE))
   fila_h <- min(0.054, (hy - hh / 2 - suelo - 0.010) / max(1L, nrow(filas)))
   fy <- hy - hh / 2
@@ -366,9 +367,9 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       regla(m, right, fy, col = tk$tbl_frame, lwd = pesos$columna)
     }
     cara <- if (es_total) "bold" else "plain"
-    den <- f$invitados
+    den <- f$universo
     tx(f$publico, cols$publico, cy, size = ty$body + 0.4, col = tk$ink, face = cara)
-    tx(.acav_n(f$invitados), cols$invitados, cy, size = ty$body, face = cara, just = c("right", "center"))
+    tx(.acav_n(f$universo), cols$universo, cy, size = ty$body, face = cara, just = c("right", "center"))
     tx(.acav_n(f$completas), cols$completas, cy, size = ty$body, col = tk$navy, face = "bold", just = c("right", "center"))
     pulso_pdf_barra_progreso(cols$barra0, cy - 0.007, cols$barra1 - cols$barra0, 0.014,
                              if (is.finite(den) && den > 0) f$completas / den else 0, tokens = tk)
@@ -394,7 +395,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     nueva("Ritmo del campo")
     ritmo <- list(
       list("Completas acumuladas", .acav_n(total_comp),
-           paste(.acav_pct(total_comp, total_inv), "de", .acav_n(total_inv), "invitados")),
+           paste(.acav_pct(total_comp, total_uni), "de un universo de", .acav_n(total_uni))),
       list(if (ultimo_en_curso) "Promedio por día*" else "Promedio por día", if (!is.finite(promedio)) "-" else if (promedio == round(promedio)) .acav_n(promedio) else sprintf("%.1f", promedio),
            ""),
       list(if (ultimo_en_curso) "Día en curso" else "Último día", .acav_n(serie$completas[[n_dias]]),
@@ -416,20 +417,21 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
                             dias = etiquetas, diarias = serie$completas, acumulado = serie$acumulado,
                             metas = metas, tokens = tk, ty = ty, geo = geo,
                             rotulo_acumulado = if (con_meta) "Completas acumuladas y mínimo esperado" else "Completas acumuladas",
-                            rotulo_diario = "Encuestas completas por día (hora de Lima)",
+                            rotulo_diario = "Encuestas completas por día",
                             formato = .acav_n)
     pie()
   }
 
-  # --- Ritmo de cada público -------------------------------------------------
-  # El mismo gráfico doble, uno por público y cada uno con su escala: el de
-  # egresados de posgrado mueve una vigésima parte que el de pregrado.
+  # --- Avance diario de cada público ------------------------------------------
+  # El mismo gráfico que el de cursos-horario (hostigamiento): el acumulado es
+  # una línea contra el mínimo esperado y las completas del día son barras, un
+  # panel por público y cada uno con su escala.
   for (h in seq_along(hojas_paneles)) {
-    nueva("Ritmo de cada público",
+    nueva("Avance diario por público",
           if (length(hojas_paneles) > 1L) sprintf("%d de %d", h, length(hojas_paneles)) else "")
     idx <- hojas_paneles[[h]]
     columnas <- rejilla$columnas
-    banda_rotulo <- 0.058; banda_fechas <- 0.040; aire <- 0.022; leyenda <- 0.032
+    banda_rotulo <- 0.058; banda_fechas <- 0.034; aire <- 0.022; leyenda <- 0.050
     hueco_x <- 0.030
     w <- (ancho - hueco_x * (columnas - 1L)) / columnas
     filas_p <- max(1L, ceiling(rejilla$por_hoja / columnas))
@@ -437,15 +439,14 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     hp <- max(0.120, min(0.330, disponible / filas_p - banda_rotulo - banda_fechas))
     paso <- hp + banda_rotulo + banda_fechas + aire
     for (k in seq_along(idx)) {
-      i <- idx[[k]]
+      p <- pub[idx[[k]], , drop = FALSE]
       c0 <- (k - 1L) %% columnas
       r0 <- (k - 1L) %/% columnas
       px <- m + c0 * (w + hueco_x) + 0.026
       py <- techo - banda_rotulo - hp - r0 * paso
-      p <- pub[i, , drop = FALSE]
       tx(p$publico, px, py + hp + 0.040, size = ty$body, col = tk$navy, face = "bold", just = c("left", "bottom"))
-      tx(paste0(.acav_n(p$completas), " de ", .acav_n(p$invitados), " invitados (", .acav_pct(p$completas, p$invitados), ")",
-                if (con_meta) paste0("; mínimo esperado ", .acav_n(p$meta)) else ""),
+      tx(paste0(.acav_n(p$completas), " de ", .acav_n(p$universo), " (", .acav_pct(p$completas, p$universo), ")",
+                if (con_meta) paste0("   Cumplimiento del mínimo: ", .acav_pct_frec(p$completas, p$meta)) else ""),
          px, py + hp + 0.018, size = ty$caption, col = tk$soft, just = c("left", "bottom"))
       diarias <- as.numeric(matriz[, p$publico])
       pulso_pdf_serie_partida(px, py, w - 0.026, hp, dias = etiquetas, diarias = diarias,
@@ -465,7 +466,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   for (b in seq_along(hojas_tabla)) {
     ultima <- b == length(hojas_tabla)
     nueva("Encuestas completas por día y público",
-          if (length(hojas_tabla) > 1L) sprintf("Día en hora de Lima (%d de %d)", b, length(hojas_tabla)) else "Día en hora de Lima")
+          if (length(hojas_tabla) > 1L) sprintf("%d de %d", b, length(hojas_tabla)) else "")
     if (n_dias && nrow(pub)) {
       publicos <- pub$publico
       n_pub <- length(publicos)
@@ -509,7 +510,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
         ry <- ry - fila
         regla(m, right, ry, col = tk$tbl_frame, lwd = pesos$bloque)
         if (ultimo_en_curso) {
-          tx(paste0("* Día en curso: completas registradas hasta las ", corte$hora, " (hora de Lima)."),
+          tx(paste0("* Día en curso: completas registradas hasta las ", corte$hora, "."),
              m, ry - 0.022, size = ty$caption, col = tk$soft)
         }
       }

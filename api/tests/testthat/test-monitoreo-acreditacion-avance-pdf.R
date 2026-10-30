@@ -54,7 +54,7 @@ test_that("el PDF publica el avance sobre el total, el mínimo esperado y ningú
   txt <- paste(system2("pdftotext", c("-layout", pdf, "-"), stdout = TRUE), collapse = "\n")
   expect_match(txt, "trabajo de campo")
   expect_match(txt, "Acreditación Institucional PUCP 2026")
-  expect_match(txt, "07:20 \\(hora de Lima\\)")
+  expect_match(txt, "30 de octubre de 2026, 07:20")
   # El porcentaje que manda es sobre los invitados (770 de 25485) y el mínimo
   # esperado va al lado con su propio porcentaje (770 de 5385).
   expect_match(txt, "3.0%")
@@ -63,6 +63,11 @@ test_that("el PDF publica el avance sobre el total, el mínimo esperado y ningú
   expect_match(txt, "770 de 5385")
   # En acreditación la cifra de referencia no es una «meta» (Gonzalo, 2026-10-30).
   expect_false(grepl("\\bmeta\\b", txt, ignore.case = TRUE))
+  # Universo, no «invitados»: no todo estudio de acreditación va por correo. Y la
+  # hora de Lima se dice una vez, en el corte, no en cada título.
+  expect_false(grepl("invitad", txt, ignore.case = TRUE))
+  expect_equal(lengths(regmatches(txt, gregexpr("hora de Lima", txt, fixed = TRUE))), 1L)
+  expect_match(txt, "Avance diario por p")
   # Informa, no explica: las aclaraciones van sólo como asterisco.
   expect_false(grepl("se cuentan|enlace personal|Cada persona cuenta", txt))
   expect_match(txt, "hasta las 07:20")

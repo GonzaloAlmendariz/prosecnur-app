@@ -46,6 +46,10 @@ público, una de avance general y una de «Corte y fuentes»).
 | 23 | Sin «Incluir metas» el documento no publica el mínimo esperado (contrato del interruptor de Salidas, apagado por defecto) | motor | Hecho: sin el interruptor salen sólo invitados, completas y avance sobre el total |
 | 24 | Lenguaje: «meta» no es el término; es un mínimo esperado y lo que interesa es el progreso por público sobre su total (Gonzalo, 2026-10-30) | motor + test (`test-monitoreo-acreditacion-avance-pdf.R` exige que «meta» no aparezca) | Hecho |
 | 25 | El PDF explicaba cómo se cuentan las cifras (sección de definiciones, notas bajo cada tarjeta, bajadas «Ordenado por…», «Cada panel con su propia escala»): debe sólo informar, y una observación va únicamente como asterisco (Gonzalo, 2026-10-30) | motor + test (prohíbe «se cuentan», «enlace personal») | Hecho: quedan tres asteriscos: parciales, promedio sin el día en curso y día en curso en la tabla |
+| 26 | «Invitados» no es el término: es el universo (la base del público); no todo estudio de acreditación se recoge por correo (Gonzalo, 2026-10-30) | motor + test (prohíbe «invitad») | Hecho: «Universo» y «Avance sobre el universo» en tarjetas, tabla, portada y paneles |
+| 27 | «Hora de Lima» repetida en títulos, subtítulos y rótulos | motor + test (exige una sola aparición) | Hecho: sólo en el corte de la portada |
+| 28 | Faltaban el diario y el acumulado por público | motor | Hecho: página «Avance diario por público», un panel por público con la convención de hostigamiento: acumulado en línea contra el mínimo esperado, completas del día en barras (Gonzalo, 2026-10-30: «el acumulado es una línea y el diario son barras») |
+| 29 | El porcentaje sobre el mínimo no tenía nombre propio | motor | Hecho: «Cumplimiento del mínimo» (tarjeta en el resumen, columna de la tabla y rótulo de cada panel), siempre con su frecuencia |
 
 ## Cifras contrastadas con la app (corte 30/10/2026 07:20)
 
@@ -54,8 +58,8 @@ público, una de avance general y una de «Corte y fuentes»).
 | Completas | 1148 | 1,148 |
 | Mínimo esperado | 8507 | 8,507 («meta» en la app) |
 | Faltan | 7359 | 7,359 |
-| Avance sobre el total | 2.5% (1148 de 45120) | 2.5 % (1,148 de 45,120) |
-| % del mínimo esperado | 13.5% (1148 de 8507) | 13.5 % |
+| Avance sobre el universo | 2.5% (1148 de 45120) | 2.5 % (1,148 de 45,120) |
+| Cumplimiento del mínimo | 13.5% (1148 de 8507) | 13.5 % |
 | Parciales | 203 | 203 |
 | Por público (completas / mínimo esperado) | 709/4542, 79/1125, 200/1115, 61/843, 62/699, 37/183 | idénticas |
 | Completas por día | 29 oct. 1081, 30 oct. 67 (Lima) | 500 / 648 (backend sin relanzar, UTC; ver ítem 21) |
