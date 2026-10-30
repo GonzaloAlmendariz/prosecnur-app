@@ -82,7 +82,7 @@ type InspectorProps = {
   viviendas: number;
   manzanas: number;
   listoParaSortear: boolean;
-  /** El bloque del marco elegible (ADR 0115): va antes del método porque decide sobre qué se sortea. */
+  /** El bloque del marco elegible (ADR 0115): tercer paso, después de Método y Carga, como numera el artefacto aprobado (B56). */
   marcoElegible?: ReactNode;
   /** «¿Se parece al marco?» (B38): NSE del marco frente al de la muestra. */
   parecido?: ReactNode;
