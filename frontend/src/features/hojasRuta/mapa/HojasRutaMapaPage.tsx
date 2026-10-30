@@ -735,7 +735,7 @@ export default function HojasRutaMapaPage() {
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
-            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} planSupuestos={estado?.ui_state?.plan_campo} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
+            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}

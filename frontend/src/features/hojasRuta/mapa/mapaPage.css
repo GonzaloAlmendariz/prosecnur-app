@@ -560,14 +560,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-sorteo-historial-cab small { font-weight: 600; letter-spacing: 0; text-transform: none; }
 .hr-sorteo-subtitulo { display: flex; justify-content: space-between; margin-top: 10px; }
 .hr-mapa-estructura .hr-muestra-grupo[aria-label="Historial de ruteos"] { border-top: 0; padding-top: 0; }
-.hr-muestra-costo-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); }
-.hr-muestra-costo-card > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.hr-muestra-costo-card small { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
-.hr-muestra-costo-card strong { font-size: 18px; font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-.hr-muestra-costo-card em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
-.hr-muestra-costo-supuestos { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--pulso-module-routes); }
-.hr-muestra-costo-supuestos:hover { text-decoration: underline; }
-.hr-muestra-costo-supuestos:focus-visible { outline: 2px solid var(--pulso-module-routes-border); border-radius: 4px; }
 .hr-margen-curva { width: 100%; height: auto; display: block; }
 .hr-margen-curva text { font-size: 9px; fill: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-margen-curva-guia { stroke: var(--pulso-border); stroke-width: 1; }

@@ -7,8 +7,7 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import { normalizarPlanSupuestos, type HojasRutaAlert, type HojasRutaIntegratedConfig, type HojasRutaPlanSupuestos, type HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
-import { costoEstimado } from "./costo";
+import type { HojasRutaAlert, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
@@ -78,8 +77,6 @@ type InspectorProps = {
   hayMuestra: boolean;
   /** Avisos del último tamaño calculado en R (ADR 0116 y otros); no se recalculan con el borrador. */
   avisosServidor?: readonly HojasRutaAlert[];
-  /** U14: supuestos guardados del plan de campo, para el costo estimado. */
-  planSupuestos?: HojasRutaPlanSupuestos;
   onGuardar: () => void;
   /** Margen total que daría otro N con los supuestos en vista (B34). */
   margenPara?: (n: number) => number | null;
@@ -88,7 +85,7 @@ type InspectorProps = {
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], planSupuestos, margenPara, onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], margenPara, onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
@@ -120,27 +117,6 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <div><small>Peor distrito</small><strong data-aviso={excedidos > 0 || undefined}>{pct(peor)}</strong></div>
             <div><small>Contactos</small><strong>{fmt(r.contactos)}</strong></div>
           </div>
-          {(() => {
-            const c = costoEstimado(r.filas.map((f) => f.nUsado), ruta, { respuesta: s.response_rate, ocupacion: s.ocupacion ?? 1 }, normalizarPlanSupuestos(planSupuestos));
-            const plan = normalizarPlanSupuestos(planSupuestos);
-            // B53: el costo es una tarjeta, como en el artefacto, con el acceso a sus supuestos.
-            return (
-              <div className="hr-muestra-costo-card">
-                <span>
-                  <small>Costo aproximado del campo</small>
-                  <strong>{c.tieneCostos ? `${plan.moneda} ${fmt(c.costo)}` : "Sin costos"}</strong>
-                  <em>
-                    {fmt(c.jornadas)} jornadas · {fmt(c.dias)} días con {plan.encuestadores} encuestadores
-                    {c.tieneCostos && r.nUsado ? ` · ${plan.moneda} ${fmt(c.costo / r.nUsado)} por entrevista` : ""}
-                  </em>
-                  <em>Con promedios por ruta: el plan por encuestador de Material de campo, que agrupa titulares cercanas, lo afina.</em>
-                </span>
-                <button type="button" className="hr-muestra-costo-supuestos" onClick={() => nav.irA("seccion", "seleccion")} title="Los supuestos y el plan por encuestador se arman en Material de campo › Entrega, después de enviar la muestra">
-                  Supuestos
-                </button>
-              </div>
-            );
-          })()}
           {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
           {!r.multiploDeRuta ? <p className="hr-mapa-aviso">El N no es múltiplo de {ruta} entrevistas por ruta</p> : null}
           {avisosServidor.filter((a) => a.level !== "info" && !AVISOS_YA_DICHOS.test(a.code)).map((a) => (
