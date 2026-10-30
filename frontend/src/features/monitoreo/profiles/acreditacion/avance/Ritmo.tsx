@@ -53,6 +53,8 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   // «Por público» (apilado) o «Diario y acumulado» (doble eje, con la meta del estudio).
   const [grafico, setGrafico] = useState<"publico" | "acumulado">("publico");
   const metaDelEstudio = porPublico.reduce((suma, item) => suma + (item.meta ?? 0), 0) || null;
+  const fechasUltimas = new Set(pulso.ultimaPorPublico.map((item) => item.fecha ?? ""));
+  const ultimaComun = pulso.ultimaPorPublico.length > 1 && fechasUltimas.size === 1 ? [...fechasUltimas][0] || null : null;
   // Cada público con el color que tiene en Resumen, Correo y Por cuota; «Otros» sigue en gris.
   const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.filter((capa) => !capa.otros).map((capa) => capa.publico)]), [actores, serie]);
   const clasesDeCapa = serie.capas.map((capa, indice) => (capa.otros ? `is-capa-${indice + 1}` : `con-publico ${clasePublico(paleta, capa.publico)}`));
@@ -137,11 +139,16 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       <aside className="acr-av-panel acr-ri-pulso" aria-label="Pulso del campo">
         <header className="acr-av-panel-cabecera"><h3>Pulso del campo</h3></header>
         <div className="acr-ri-pulso-cuerpo" data-qa-geometry-capacity="owned">
-          <dl className="acr-ri-cifras">
-            <div><dt>Promedio de los últimos 7 días</dt><dd className="acr-av-num">{UNA_DECIMAL(pulso.promedio7)}</dd></div>
+          {/* Una lista de datos, no cuatro recuadros (E3, 30/10): con un solo canal no
+              se repite en una barra llena, y si todos los públicos tuvieron su última
+              efectiva el mismo día se dice una vez. */}
+          <dl className="acr-ri-datos">
+            <div><dt>Promedio diario, últimos 7 días</dt><dd className="acr-av-num">{UNA_DECIMAL(pulso.promedio7)}</dd></div>
             <div><dt>Mejor día</dt><dd className="acr-av-num">{pulso.mejor ? `${fmt(pulso.mejor.efectivas)}, ${fechaCorta(pulso.mejor.fecha)}` : "—"}</dd></div>
             <div><dt>Días con efectivas</dt><dd className="acr-av-num">{`${fmt(pulso.diasConEfectivas)} de ${fmt(pulso.dias)}`}</dd></div>
-            <div><dt>Canal que más aporta</dt><dd>{pulso.porCanal[0] ? pulso.porCanal[0].canal : "—"}</dd></div>
+            {pulso.porCanal.length === 1 ? (
+              <div><dt>Canal</dt><dd>{pulso.porCanal[0].canal} <span className="acr-av-tenue acr-av-num">{fmt(pulso.porCanal[0].efectivas)}</span></dd></div>
+            ) : null}
           </dl>
           {pulso.dias >= DIAS_PARA_LEER_LA_SEMANA ? <section aria-label="Promedio por día de la semana">
             <span className="acr-av-antetitulo">Promedio por día de la semana</span>
@@ -155,7 +162,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
               ))}
             </ul>
           </section> : null}
-          {pulso.porCanal.length ? (
+          {pulso.porCanal.length > 1 ? (
             <section aria-label="Efectivas por canal">
               <span className="acr-av-antetitulo">Efectivas por canal</span>
               <ul className="acr-ri-barras">
@@ -171,11 +178,15 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
           ) : null}
           <section aria-label="Última efectiva por público">
             <span className="acr-av-antetitulo">Última efectiva por público</span>
-            <ul className="acr-ri-ultimas">
-              {pulso.ultimaPorPublico.map((item) => (
-                <li key={item.publico}><span>{item.publico}</span><b className="acr-av-num">{item.fecha ? fechaCorta(item.fecha) : "Sin efectivas"}</b></li>
-              ))}
-            </ul>
+            {ultimaComun ? (
+              <p className="acr-ri-comun">{`Todos los públicos, ${fechaCorta(ultimaComun)}`}</p>
+            ) : (
+              <ul className="acr-ri-ultimas">
+                {pulso.ultimaPorPublico.map((item) => (
+                  <li key={item.publico}><span>{item.publico}</span><b className="acr-av-num">{item.fecha ? fechaCorta(item.fecha) : "Sin efectivas"}</b></li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       </aside>

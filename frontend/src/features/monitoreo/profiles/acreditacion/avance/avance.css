@@ -1906,3 +1906,40 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   stroke-width: 4px;
   stroke-linejoin: round;
 }
+
+/* Pulso del campo como lista de datos: rótulo a la izquierda, cifra a la derecha. */
+.acr-ri-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.acr-ri-datos > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: 8px 0;
+}
+
+.acr-ri-datos > div + div {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-ri-datos dt {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.acr-ri-datos dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.acr-ri-comun {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
