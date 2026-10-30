@@ -1861,7 +1861,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 /* Salidas: el corte y el antetítulo ya los dice la franja de cierre de arriba;
  * el bloque de entregables no los repite. */
-.is-acreditacion-profile .acr-sa .mon-outputs-workbench__antetitulo,
-.is-acreditacion-profile .acr-sa .mon-outputs-workbench__head small {
+.is-acreditacion-profile .acr-sa .mon-outputs-workbench--ficha .mon-outputs-workbench__antetitulo,
+.is-acreditacion-profile .acr-sa .mon-outputs-workbench--ficha .mon-outputs-workbench__head small {
   display: none;
 }

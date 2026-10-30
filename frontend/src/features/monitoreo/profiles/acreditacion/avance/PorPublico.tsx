@@ -42,10 +42,10 @@ type PropsDePorPublico = {
   fuentes: ReadonlyArray<Record<string, unknown>>;
 };
 
-/** Lee del corte observado los casos y el barrido, que llegan con Control. */
 /** Hasta cuántos públicos la tabla no necesita cabecera fija. */
 const FILAS_SIN_CABECERA_FIJA = 8;
 
+/** Lee del corte observado los casos y el barrido, que llegan con Control. */
 export function PorPublico(props: PropsDePorPublico) {
   const issues = useResumenDelCorte((estado) => estado.issues);
   const barridos = useResumenDelCorte((estado) => estado.barrido);

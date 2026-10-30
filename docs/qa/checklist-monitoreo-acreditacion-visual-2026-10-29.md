@@ -29,7 +29,7 @@ Proyecto observado: `Monitoreo Acreditación Institucional PUCP 2026.pulso`, pri
 | 22 | Control › Respuestas a 1024: la tabla desplaza en horizontal (692/731 px) | `Respuestas.tsx` / CSS | ☑ Sin la columna «Canal» cuando hay un solo canal (la faceta ya lo dice): 0 contenedores con desplazamiento a 1024 |
 | 23 | Control › Correo «se ve profundamente mal» (Gonzalo, captura 23:4x): cajas vacías «2.º/3.º», Universo≈Alcanzable en dos columnas, embudo a media tarjeta, «·», campañas que repiten público y papel, quejas en dos filas iguales, tasas en navy con decimales dispares, inválidos sin orden | `control/contacto/Correo.tsx`, `correoModelo.ts`, `contacto.css` | ☑ rediseño en un commit; verificado a 1440 y 1024 sin desplazamiento |
 | 24 | Ritmo: cada público con otro color que en Resumen, Correo y Por cuota; «Promedio por día de la semana» con cinco ceros a los dos días | `avance/Ritmo.tsx`, `RitmoPorPublico.tsx`, `graficosDeAvance.tsx` | ☑ a9b768899 |
-| 25 | Salidas: el estado de Sheets aparecía tres veces (Publicaciones, Cierre y Google Sheets) | `avance/Salidas.tsx` | ☑ una franja de cierre; queda el encabezado heredado «Salidas de acreditación a Sheets» del workbench (página congelada) |
+| 25 | Salidas: el estado de Sheets aparecía tres veces (Publicaciones, Cierre y Google Sheets) | `avance/Salidas.tsx` | ☑ una franja de cierre; el bloque compartido pasa a «Entregables del corte» sin repetir antetítulo ni fecha (2ea696d84) |
 | 7 | Arranque del proyecto lento: el `advance_summary` tardó 380 s con la máquina cargada (52 s sin carga) | backend, `monitoreo_acreditacion_*` | Anotado, fuera de lo visual |
 
 Notas:
