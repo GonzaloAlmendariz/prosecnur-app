@@ -187,8 +187,3 @@ button.acr-color-muestra:focus-visible {
   font-size: 12px;
 }
 
-/* El punto del público en la lista de cuotas, separado de su nombre. */
-.acr-pr-grupo li .mon-publico-punto {
-  margin-inline-end: 8px;
-  vertical-align: 1px;
-}

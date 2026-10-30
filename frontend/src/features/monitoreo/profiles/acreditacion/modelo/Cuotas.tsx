@@ -11,6 +11,7 @@ import "../paletaPublicos.css";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
 import "./modelo.css";
+import "./cuotasLista.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 import { AvisosDeTarjeta, PestanaSinContenido, VacioDeBloque } from "../piezas/AvisoDeTarjeta";
@@ -49,6 +50,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
   const sinCuota = variablesSinCuota(publicos, cuotas);
   const metaDelPublico = (actor: string) => publicos.find((publico) => publico.actor === actor)?.meta ?? null;
   const paleta = paletaDePublicos(publicos.map((publico) => publico.actor));
+  const actores = [...new Set([...publicos.map((publico) => publico.actor), ...cuotas.map((cuota) => cuota.actor)])];
   return (
     <div className="acr-ps is-cuotas" data-qa-geometry-group="acreditacion-modelo-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Cuotas del estudio">
@@ -58,43 +60,64 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
             <Plus size={14} aria-hidden="true" /> Nueva cuota
           </button>
         </CabeceraDeTarjeta>
-        <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
-          <section className="acr-pr-grupo">
-            <h3 className="acr-av-antetitulo">Declaradas <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
-            {cuotas.length ? (
-              <ul>
-                {cuotas.map((cuota) => (
-                  <li key={cuota.id}>
-                    <button type="button" className={elegida?.id === cuota.id ? "is-activo" : undefined} aria-pressed={elegida?.id === cuota.id} onClick={() => onElegir(cuota.id)}>
-                      <span><i className={`mon-publico-punto ${clasePublico(paleta, cuota.actor)}`} aria-hidden="true" />{`${cuota.actor}, ${cuota.variable}`}</span>
-                      <b className="acr-av-num">{cuota.meta == null ? "—" : fmt(cuota.meta)}</b>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : <VacioDeBloque icono={<Target size={15} />} titulo="El estudio todavía no declara cuotas." descripcion="Elige una variable sin cuota para definir la primera." />}
-          </section>
-          <section className="acr-pr-grupo">
-            <h3 className="acr-av-antetitulo">Variables sin cuota <span className="acr-av-num">{fmt(sinCuota.length)}</span></h3>
-            <ul>
-              {sinCuota.map((item) => (
-                <li key={`${item.actor}::${item.variable}`}>
-                  <button type="button" onClick={() => onNueva(item.actor, item.variable)} title="Definir una cuota con esta variable">
-                    <span>{`${item.actor}, ${item.variable}`}</span>
-                    <span className="acr-av-tenue acr-av-num">{item.categorias == null ? "" : `${fmt(item.categorias)} categorías`}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {/* Un contenedor por público (Gonzalo, 30/10: «separar cosas por comas cuando deberían ir
+            en sus propios contenedores»): su color y su meta arriba, sus cuotas y, aparte, las
+            variables que todavía no la tienen. */}
+        <div className="acr-pr-filtros-cuerpo acr-cu-lista" data-qa-geometry-capacity="owned">
+          {cuotas.length ? null : <VacioDeBloque icono={<Target size={15} />} titulo="El estudio todavía no declara cuotas." descripcion="Elige una variable sin cuota para definir la primera." />}
+          {actores.map((actor) => {
+            const propias = cuotas.filter((cuota) => cuota.actor === actor);
+            const libres = sinCuota.filter((item) => item.actor === actor);
+            const meta = metaDelPublico(actor);
+            return (
+              <section key={actor} className={`acr-pr-grupo acr-cu-publico ${clasePublico(paleta, actor)}`} aria-label={`Cuotas de ${actor}`}>
+                <header className="acr-cu-publico-cabecera">
+                  <i className="mon-publico-punto" aria-hidden="true" />
+                  <strong>{actor}</strong>
+                  {meta == null ? null : <span className="acr-av-tenue acr-av-num">{`Meta ${fmt(meta)}`}</span>}
+                </header>
+                {propias.length ? (
+                  <ul aria-label="Cuotas declaradas">
+                    {propias.map((cuota) => (
+                      <li key={cuota.id}>
+                        <button type="button" className={elegida?.id === cuota.id ? "is-activo" : undefined} aria-pressed={elegida?.id === cuota.id} onClick={() => onElegir(cuota.id)}>
+                          <span>{cuota.variable}</span>
+                          <b className="acr-av-num">{cuota.meta == null ? "—" : fmt(cuota.meta)}</b>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="acr-cu-sin acr-av-tenue">Sin cuotas todavía.</p>}
+                {libres.length ? (
+                  <>
+                    <h4 className="acr-av-antetitulo acr-cu-sub">Sin cuota <span className="acr-av-num">{fmt(libres.length)}</span></h4>
+                    <ul aria-label="Variables sin cuota">
+                      {libres.map((item) => (
+                        <li key={item.variable}>
+                          <button type="button" className="is-libre" onClick={() => onNueva(item.actor, item.variable)} title="Definir una cuota con esta variable">
+                            <Plus size={13} aria-hidden="true" />
+                            <span>{item.variable}</span>
+                            <span className="acr-av-tenue acr-av-num">{item.categorias == null ? "" : `${fmt(item.categorias)} categorías`}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </section>
+            );
+          })}
         </div>
       </nav>
       {elegida ? (
         <section className="acr-av-panel acr-ps-tabla" aria-label={`Cuota de ${elegida.actor} por ${elegida.variable}`}>
           <header className="acr-av-panel-cabecera">
-            <h3>
+            <h3 className="acr-cu-encabezado">
               {colorDe ? colorDe(elegida.actor) : null}
-              {`${elegida.actor}, ${elegida.variable}`}
+              <span className="acr-cu-nombres">
+                <small className="acr-av-antetitulo">{elegida.actor}</small>
+                <span>{elegida.variable}</span>
+              </span>
               <span className="acr-av-tenue">
                 {elegida.cobertura == null ? "Metas escritas a mano" : `Cobertura de ${pctConEspacio(elegida.cobertura * 100)}`}
               </span>
