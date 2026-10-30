@@ -11,13 +11,15 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
+import { captacionDe, contarProvincias, etiquetaProvincia, gruposPorProvincia, marcoDeProvincias, nombreDelMarco } from "./provincias";
 
 const FILTRO = [["todos", "Todos"], ["elegidos", "Elegidos"]] as const;
 
 /**
  * Territorio en la página del lienzo (ADR 0114 §2, U5). La estructura es el
- * catálogo de los 50 distritos del marco con interruptores y buscador (nunca
- * casillas); el inspector dice qué está elegido y qué cambia al confirmar.
+ * catálogo de los distritos del registro de territorios (Lima, Callao y las ciudades del
+ * ADR 0119), agrupado por provincia, con interruptores y buscador (nunca casillas); el
+ * inspector dice qué está elegido, qué cambia al confirmar y cuánto capta el marco.
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(n);
@@ -45,10 +47,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
   const filtrado = Boolean(q || zona || soloElegidos);
   const visiblesFuera = visibles.filter((t) => !borrador.includes(t.ubigeo)).length;
   const visiblesDentro = visibles.filter((t) => borrador.includes(t.ubigeo)).length;
-  const grupos = [
-    { id: "LIMA", etiqueta: "Lima Metropolitana" },
-    { id: "CALLAO", etiqueta: "Callao" },
-  ].map((g) => ({ ...g, filas: visibles.filter((t) => t.provincia === g.id).sort((x, y) => x.distrito.localeCompare(y.distrito, "es")) }));
+  const grupos = useMemo(() => gruposPorProvincia(visibles), [visibles]);
 
   return (
     <>
@@ -98,9 +97,10 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
           .filter((g) => g.filas.length)
           .map((g) => (
             <section key={g.id} aria-label={g.etiqueta}>
-              <h3>
+              <h3 title={g.nivel && g.nivel !== "fuera" ? `Cobertura del marco contra el Censo 2025: nivel ${g.nivel} (ADR 0119)` : undefined}>
                 {g.etiqueta}
-                <span>
+                {/* Con nombres de provincia largos (Coronel Portillo · Ucayali) el contador se partía. */}
+                <span style={{ whiteSpace: "nowrap" }}>
                   {g.filas.filter((t) => borrador.includes(t.ubigeo)).length}/{g.filas.length}
                 </span>
               </h3>
@@ -108,6 +108,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                 {g.filas.map((t) => {
                   const enBorrador = borrador.includes(t.ubigeo);
                   const cambio = enBorrador !== confirmados.includes(t.ubigeo) ? (enBorrador ? "se agrega" : "se quita") : null;
+                  const capta = captacionDe(t);
                   return (
                     <li key={t.ubigeo} data-elegido={enBorrador} data-enfocado={distritoEnfocado === t.ubigeo || undefined}>
                       {/* El punto lleva el color del distrito en el mapa; uno por agregar va en contorno. */}
@@ -117,6 +118,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                         <small>
                           {cambio ? <em>{cambio} · </em> : null}
                           {enMiles(t.poblacion)} hab. · {fmt(t.manzanas)} <span className="hr-largo">manzanas</span><span className="hr-corto" aria-hidden="true">mz</span>
+                          {capta ? <span title="Población 2017 en manzanas del marco frente a la censada en 2025" data-baja={capta.baja || undefined} style={{ whiteSpace: "nowrap" }}> · {capta.texto}</span> : null}
                         </small>
                       </span>
                       <PulsoSwitch
@@ -157,7 +159,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
   const porUbigeo = useMemo(() => new Map(territorios.map((t) => [t.ubigeo, t])), [territorios]);
   const elegidos = borrador.map((u) => porUbigeo.get(u)).filter((t): t is HojasRutaTerritory => Boolean(t));
   const suma = (k: "poblacion" | "viviendas" | "manzanas") => elegidos.reduce((a, t) => a + t[k], 0);
-  const marco = territorios.reduce((a, t) => a + t.poblacion, 0);
+  const marco = marcoDeProvincias(territorios, elegidos);
   const { distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
   const enfocado = distritoEnfocado ? porUbigeo.get(distritoEnfocado) : undefined;
   const bajo = distritoBajoCursor && distritoBajoCursor !== distritoEnfocado ? porUbigeo.get(distritoBajoCursor) : undefined;
@@ -182,7 +184,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
               <div><small>Manzanas</small><strong>{fmt(suma("manzanas"))}</strong></div>
             </div>
             <dl className="hr-mapa-filas">
-              <div><dt>Del marco de Lima y Callao</dt><dd>{marco ? `${((suma("poblacion") / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
+              <div><dt>Del marco {nombreDelMarco(elegidos)}</dt><dd style={{ whiteSpace: "nowrap" }}>{marco ? `${((suma("poblacion") / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
               <div><dt>Viviendas por manzana</dt><dd>{suma("manzanas") ? (suma("viviendas") / suma("manzanas")).toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}</dd></div>
             </dl>
           </>
@@ -192,7 +194,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             <header className="hr-ter-ficha-cab">
               <div>
                 <strong>{nombreDistrito(enfocado.distrito)}</strong>
-                <small>{enfocado.provincia === "CALLAO" ? "Callao" : "Lima"} · {enfocado.ubigeo} · {borrador.includes(enfocado.ubigeo) ? "en el estudio" : "fuera del estudio"}</small>
+                <small>{etiquetaProvincia(enfocado)} · {enfocado.ubigeo} · {borrador.includes(enfocado.ubigeo) ? "en el estudio" : "fuera del estudio"}</small>
               </div>
               <button type="button" className="hr-ter-cerrar" aria-label="Cerrar la ficha" onClick={() => setDistritoEnfocado(null)}><X size={14} /></button>
             </header>
@@ -202,9 +204,18 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
               <div><dt>Manzanas</dt><dd>{fmt(enfocado.manzanas)}</dd></div>
             </dl>
             <p className="hr-ter-ficha-nota">
-              {marco ? `${((enfocado.poblacion / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % del marco de Lima y Callao` : null}
+              {(() => {
+                const marcoEnfocado = marcoDeProvincias(territorios, [enfocado]);
+                return marcoEnfocado ? `${((enfocado.poblacion / marcoEnfocado) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % del marco ${nombreDelMarco([enfocado])}` : null;
+              })()}
               {enfocado.manzanas ? ` · ${(enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 })} viviendas por manzana` : null}
             </p>
+            {captacionDe(enfocado) ? (
+              <p className="hr-ter-ficha-nota">
+                {`El marco 2017 ${captacionDe(enfocado)?.texto} de la población censada en 2025`}
+                {captacionDe(enfocado)?.baja ? ": la ciudad creció fuera de la cartografía y parte de su población no se puede sortear." : "."}
+              </p>
+            ) : null}
             <PulsoButton variant="secondary" size="sm" disabled={bloqueado} onClick={() => setBorrador(alternar(borrador, enfocado.ubigeo))}>
               {borrador.includes(enfocado.ubigeo) ? "Quitar del estudio" : "Agregar al estudio"}
             </PulsoButton>
@@ -231,7 +242,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
         ) : null}
         <TerritorioGraficos elegidos={elegidos} confirmados={confirmados} viviendasPorNse={viviendasPorNse} />
         <dl className="hr-mapa-filas" aria-label="Marco territorial">
-          <div><dt>Cobertura</dt><dd>Lima y Callao · {territorios.length} distritos</dd></div>
+          <div><dt>Cobertura</dt><dd>{contarProvincias(territorios)} provincias · {territorios.length} distritos</dd></div>
           <div><dt>Manzanas</dt><dd>INEI 2017</dd></div>
         </dl>
         {bloqueado ? <p className="hr-mapa-aviso">El piloto es histórico: su territorio no se cambia.</p> : null}

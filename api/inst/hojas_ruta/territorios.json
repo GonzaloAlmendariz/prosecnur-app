@@ -91,6 +91,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -188,6 +199,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -417,6 +439,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -525,6 +558,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -592,6 +636,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -721,6 +776,17 @@
           "checksums": {
             "nse_geoperu_inei_lima_callao_manzanas.csv.gz": "b4c9e1679b6646d87e915eb742cc32e9"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_lima_callao_edad_simple_distrito.csv",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-03",
+          "version": "inei2017-lima-callao-edad-simple-v1",
+          "checksums": {
+            "inei2017_lima_callao_edad_simple_distrito.csv": "091fd97f893d516a80c881daa2b44618"
+          }
         }
       }
     },
@@ -829,6 +895,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -916,6 +993,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -1045,6 +1133,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -1143,6 +1242,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -1240,6 +1350,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -1378,6 +1499,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -1527,6 +1659,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -1654,6 +1797,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -2143,6 +2297,17 @@
           "checksums": {
             "nse_geoperu_inei_lima_callao_manzanas.csv.gz": "b4c9e1679b6646d87e915eb742cc32e9"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_lima_callao_edad_simple_distrito.csv",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-03",
+          "version": "inei2017-lima-callao-edad-simple-v1",
+          "checksums": {
+            "inei2017_lima_callao_edad_simple_distrito.csv": "091fd97f893d516a80c881daa2b44618"
+          }
         }
       }
     },
@@ -2240,6 +2405,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -2349,6 +2525,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -2446,6 +2633,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -2575,6 +2773,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -2642,6 +2851,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -2731,6 +2951,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -2799,6 +3030,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -2866,6 +3108,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -2954,6 +3207,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -3063,6 +3327,17 @@
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
           }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
         }
       }
     },
@@ -3130,6 +3405,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }
@@ -3218,6 +3504,17 @@
           "version": "nse-geoperu-inei-ciudades-manzanas-v1",
           "checksums": {
             "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
           }
         }
       }

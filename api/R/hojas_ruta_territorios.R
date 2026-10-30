@@ -60,6 +60,64 @@ hojas_ruta_territorios <- function() {
   )
 }
 
+# Archivos compartidos (capas con `filtro`) que el registro suma a los de Lima y Callao.
+# Lima y Callao se siguen leyendo por sus rutas históricas, así que aquí no se repiten.
+.hojas_ruta_registro_archivos <- function(capa) {
+  rutas <- unlist(lapply(hojas_ruta_territorios()$provincias %||% list(), function(prov) {
+    if ((prov$capas$manzanas$perfil %||% "ciudades") %in% c("lima", "callao")) return(NULL)
+    def <- prov$capas[[capa]]
+    if (is.null(def) || is.null(def$filtro)) return(NULL)
+    def$ruta
+  }))
+  paths <- vapply(unique(rutas), function(r) .hojas_ruta_inst_path("hojas_ruta", r), character(1))
+  unname(paths[file.exists(paths)])
+}
+
+.hojas_ruta_rbind_fill <- function(dfs) {
+  dfs <- Filter(function(d) is.data.frame(d) && nrow(d), dfs)
+  if (!length(dfs)) return(data.frame())
+  cols <- unique(unlist(lapply(dfs, names)))
+  dfs <- lapply(dfs, function(d) {
+    for (nm in setdiff(cols, names(d))) d[[nm]] <- NA
+    d[cols]
+  })
+  out <- do.call(rbind, dfs)
+  rownames(out) <- NULL
+  out
+}
+
+# Lee el CSV histórico de Lima y Callao y le suma las ciudades del registro (ADR 0119).
+# En las ciudades los códigos se leen como texto: con ceros a la izquierda no hay ambigüedad.
+.hojas_ruta_leer_csv_con_registro <- function(path, capa, colClasses = NA) {
+  base <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE,
+                          fileEncoding = "UTF-8", colClasses = colClasses)
+  codigos <- c("ubigeo", "zona", "manzana", "id_manzana", "id_manzana_norm", "cartografia_id", "nse_idmz18")
+  extras <- lapply(.hojas_ruta_registro_archivos(capa), function(p) {
+    head <- names(utils::read.csv(p, nrows = 1L, check.names = FALSE))
+    clases <- stats::setNames(rep("character", length(intersect(codigos, head))), intersect(codigos, head))
+    d <- utils::read.csv(p, stringsAsFactors = FALSE, check.names = FALSE, fileEncoding = "UTF-8", colClasses = clases)
+    # El esquema lo pone el archivo histórico: una columna que solo traen las ciudades
+    # (p. ej. id_manzana_norm, que el engine deriva cuando falta) quedaría en NA para Lima.
+    d[intersect(names(d), names(base))]
+  })
+  .hojas_ruta_rbind_fill(c(list(base), extras))
+}
+
+# Suma a la lista de territorios su provincia y su cobertura (ADR 0119 §7).
+.hojas_ruta_territorios_con_cobertura <- function(agg) {
+  if (!is.data.frame(agg) || !nrow(agg)) return(agg)
+  cob <- lapply(agg$ubigeo, hojas_ruta_territorio_cobertura)
+  campo <- function(nm) vapply(cob, function(c) {
+    v <- c[[nm]]
+    if (is.null(v)) NA_character_ else as.character(v)
+  }, character(1))
+  agg$provincia_codigo <- campo("provincia")
+  agg$cobertura_nivel <- campo("nivel")
+  agg$cobertura_cartografica <- suppressWarnings(as.numeric(campo("cobertura_cartografica")))
+  agg$captacion <- suppressWarnings(as.numeric(campo("captacion")))
+  agg
+}
+
 # Cobertura de un distrito (ADR 0119 §7): nivel de su provincia más las cifras del distrito.
 hojas_ruta_territorio_cobertura <- function(ubigeo) {
   prov <- .hojas_ruta_territorio_de_ubigeo(ubigeo)

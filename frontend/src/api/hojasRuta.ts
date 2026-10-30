@@ -373,6 +373,11 @@ export type HojasRutaTerritory = {
   viviendas: number;
   poblacion: number;
   manzanas: number;
+  /** ADR 0119 §7: provincia del registro de territorios y cobertura del distrito contra el CPV 2025. */
+  provincia_codigo?: string | null;
+  cobertura_nivel?: string | null;
+  cobertura_cartografica?: number | null;
+  captacion?: number | null;
 };
 
 export type HojasRutaAlert = {

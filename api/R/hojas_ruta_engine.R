@@ -640,7 +640,7 @@ hojas_ruta_contexto_curado_path <- function() {
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_frame_summary_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
-.hojas_ruta_inei_frame_summary_cache_version <- "summary-v2-territories-zones"
+.hojas_ruta_inei_frame_summary_cache_version <- "summary-v3-registro-ciudades-adr0119"
 
 .hojas_ruta_frame_summary_signature <- function(source, path, info) {
   paste(
@@ -720,17 +720,13 @@ hojas_ruta_inei_frame <- function(source = "current") {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "frame-v5-nse-geoperu-official",
+    "frame-v6-registro-ciudades-adr0119",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_frame_cache[[key]]
   if (!is.null(cached)) return(cached)
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8"
-  )
+  # ADR 0119: el marco histórico de Lima y Callao más las ciudades del registro.
+  df <- .hojas_ruta_leer_csv_con_registro(path, "marco")
   required <- c(
     "ubigeo", "departamento", "provincia", "distrito", "zona", "manzana",
     "id_manzana", "viviendas", "poblacion"
@@ -781,12 +777,8 @@ hojas_ruta_inei_frame_summary <- function(source = "current") {
     return(cached_disk)
   }
 
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8"
-  )
+  # ADR 0119: el marco histórico de Lima y Callao más las ciudades del registro.
+  df <- .hojas_ruta_leer_csv_con_registro(path, "marco")
   required <- c(
     "ubigeo", "departamento", "provincia", "distrito",
     "id_manzana", "viviendas", "poblacion", "zona"
@@ -837,18 +829,12 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "age-simple-v1",
+    "age-simple-v2-registro-adr0119",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_age_simple_cache[[key]]
   if (!is.null(cached)) return(cached)
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8",
-    colClasses = c(ubigeo = "character")
-  )
+  df <- .hojas_ruta_leer_csv_con_registro(path, "edad", colClasses = c(ubigeo = "character"))
   required_cols <- c("ubigeo", "distrito", "edad", "sexo", "poblacion")
   missing <- setdiff(required_cols, names(df))
   if (length(missing)) {
@@ -982,7 +968,7 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
   names(n_manzanas)[2] <- "manzanas"
   agg <- merge(agg, n_manzanas, by = "ubigeo", all.x = TRUE)
   agg <- agg[order(agg$departamento, agg$provincia, agg$distrito), , drop = FALSE]
-  .hojas_ruta_df_rows(agg)
+  .hojas_ruta_df_rows(.hojas_ruta_territorios_con_cobertura(agg))
 }
 
 .hojas_ruta_age_simple_meta <- function(age = NULL) {
@@ -1267,8 +1253,7 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
     if (isTRUE(required)) stop("No se encontro NSE oficial GeoPeru/INEI empaquetado.", call. = FALSE)
     return(data.frame())
   }
-  df <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE,
-                        fileEncoding = "UTF-8")
+  df <- .hojas_ruta_leer_csv_con_registro(path, "nse")
   if ("ubigeo" %in% names(df)) df$ubigeo <- sprintf("%06s", as.character(df$ubigeo))
   if ("id_manzana" %in% names(df)) df$id_manzana <- as.character(df$id_manzana)
   if ("id_manzana_norm" %in% names(df)) df$id_manzana_norm <- as.character(df$id_manzana_norm)
@@ -2899,7 +2884,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
     packaged_at = if (requested_official) NA_character_ else "2026-05-03",
     checksum = .hojas_ruta_checksum(path),
-    coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
+    coverage = if (full_frame) "Lima Metropolitana, Callao y ciudades principales" else "Piloto Lima/Callao",
     pilot = !full_frame,
     granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
     path = normalizePath(path, mustWork = FALSE),
@@ -2930,7 +2915,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
     packaged_at = if (requested_official) NA_character_ else "2026-05-03",
     checksum = .hojas_ruta_checksum(path),
-    coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
+    coverage = if (full_frame) "Lima Metropolitana, Callao y ciudades principales" else "Piloto Lima/Callao",
     pilot = !full_frame,
     granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
     path = normalizePath(path, mustWork = FALSE),
@@ -2986,7 +2971,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     methods = .hojas_ruta_sampling_methods(),
     note = if (full_frame) {
       paste(
-        "Marco local completo para Lima Metropolitana y Callao urbano.",
+        "Marco local completo para Lima Metropolitana, Callao y las ciudades del registro de territorios (ADR 0119).",
         "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
       )
     } else {
@@ -3044,7 +3029,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     methods = .hojas_ruta_sampling_methods(),
     note = if (full_frame) {
       paste(
-        "Marco local completo para Lima Metropolitana y Callao urbano.",
+        "Marco local completo para Lima Metropolitana, Callao y las ciudades del registro de territorios (ADR 0119).",
         "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
       )
     } else {

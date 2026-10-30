@@ -56,6 +56,14 @@ Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-
   engine normaliza y enriquece por `ID_MANZANA` = `id_manzana` del marco. Con otro esquema, el id salía vacío.
 - **Empaquetar no basta para sortear**: el engine solo lee el marco y el NSE de Lima. Eso es el ítem 7b (B2).
 
+- **Combinar marcos exige el esquema del histórico**: el marco `current` de Lima no trae `id_manzana_norm` (el
+  engine la deriva) y el de ciudades sí; al combinarlos Lima quedaba sin NSE. Las ciudades se recortan a las columnas
+  del archivo histórico.
+- **El resumen del marco se cachea en disco** con una firma que solo mira el archivo de Lima: hubo que subir la versión
+  de las cachés del marco, del resumen y de la edad.
+- **Por defecto se ve la vista heredada de Territorio**: el lienzo del ADR 0114 está detrás del interruptor
+  `prosecnur:hojas-ruta:lienzo` en `localStorage`. El runner de QA lo siembra con `UI_QA_LOCAL_STORAGE`.
+
 ## Checklist
 
 | # | Ítem | Dónde vive | Responsable | Estado |
@@ -69,15 +77,15 @@ Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-
 | 6 | `anio_dato` y `descargado` obligatorios; corregir `year: 2026` del NSE GeoPeru | manifiestos en `api/inst/hojas_ruta/` | backend-r | hecho — NSE con `anio_dato: 2017`; el engine lee `anio_dato` y cae en 2017, no en 2026 |
 | 7 | Empaquetar las ciudades: manzanas (6 decimales, salida determinista), marco 2017, NSE con `sin_estrato`, zonas derivadas de `IDMZ18`, calles OSM (Geofabrik Perú) | `api/inst/hojas_ruta/cartografia/*` | backend-r | hecho (parcial) — manzanas, marco 2017 y NSE de 25 provincias en el paquete (~11 MB, `api/inst/hojas_ruta` pasa de 68 a 77 MB); salida determinista. Faltan zonas derivadas y calles OSM de las ciudades (opcionales en el registro) |
 | 8 | Tests de contrato del ADR 0119 (registro↔archivos, `anio_dato`, `sin_estrato`) | `test-hojas-ruta-anio-dato.R` (verde) + `test-hojas-ruta-territorios.R` (rojo hasta la oleada B) | autor-regresiones | hecho — `test-hojas-ruta-territorios.R` en verde (5 tests) |
-| 7b | **B2 — el engine carga marco y NSE de las ciudades**: `hojas_ruta_inei_frame` y `hojas_ruta_nse_inei` suman los archivos del registro; cambian contratos (`n_distritos == 50` en `test-hojas-ruta-engine.R`, la lista de territorios que lee el selector), así que va junto con el ítem 9 y revisión de `guardian-contratos` | `api/R/hojas_ruta_territorios.R` + cargadores | backend-r | pendiente — hoy una ciudad muestra su cartografía, pero no se puede sortear |
-| 9 | Front: el selector de territorio y el encuadre del mapa salen del registro, no de `limaDistrictCoverage.json`; se muestra el año del dato | `frontend/src/features/hojasRuta/` | frontend-react | pendiente |
+| 7b | **B2 — el engine carga marco y NSE de las ciudades**: `hojas_ruta_inei_frame` y `hojas_ruta_nse_inei` suman los archivos del registro; cambian contratos (`n_distritos == 50` en `test-hojas-ruta-engine.R`, la lista de territorios que lee el selector), así que va junto con el ítem 9 y revisión de `guardian-contratos` | `api/R/hojas_ruta_territorios.R` + cargadores | backend-r | hecho — marco (current y oficial), NSE y edad simple suman las ciudades del registro; Lima y Callao idénticos a antes (comparado contra HEAD~2); sorteo en Arequipa: 20 manzanas + 20 reemplazos, 120 entrevistas, 0 sin asignar, PPS v2 con NSE |
+| 9 | Front: el selector de territorio y el encuadre del mapa salen del registro, no de `limaDistrictCoverage.json`; se muestra el año del dato | `frontend/src/features/hojasRuta/` | frontend-react | en curso — el catálogo de Territorio del lienzo agrupa por provincia, cada distrito dice «capta X %», el marco de un porcentaje es el de su provincia; falta que el mapa dibuje las ciudades (hoy solo Lima) y que la vista heredada (`HojasRutaPage`, la que se ve sin el interruptor del lienzo) también agrupe |
 | 10 | `sin_estrato` con color y conteo propios en el mapa y en las salidas | front + PDF de hojas | frontend-react / especialista-entregables | pendiente |
 | 11 | QA visual con una ciudad fuera de Lima (Arequipa) en la matriz de viewports | `make ui-quick-check` / `/ver-ui` | qa-visual-desktop | pendiente |
 | 12 | Crecimiento edificado 2017→2023 por manzana con Open Buildings Temporal (vía Earth Engine o descarga de HDX) | script de build (nuevo) | backend-r | **bloqueado: acceso** (definir si se usa cuenta de Earth Engine o el archivo de HDX) |
 | 13 | Marco `inei2017_calibrado_cpv2025`: viviendas × crecimiento, rastrillado a los totales CPV 2025 por distrito; brecha de cobertura por distrito | `api/R/hojas_ruta_marco_2025.R` (nuevo) | backend-r | pendiente (después de 12) |
 | 14 | Revisión metodológica del marco 2025 (cambia `M_i` del PPS del ADR 0117) | ADR 0119 §5 | revisor-metodologico | pendiente (después de 13) |
 | 15 | Opcional: rehacer la cartografía de Lima a 6 decimales (de 23 MB a ~11 MB), comprobando que el sorteo y las exclusiones del ADR 0115 dan lo mismo | `cartografia/manzanas_inei2017_lima_callao` | backend-r | **bloqueado: decisión** |
-| 17 | **Cobertura en el mapa** (ADR 0119 §7): el selector de Territorio pinta cada provincia y distrito por nivel y muestra cobertura cartográfica y captación antes de elegir; aviso bajo 55 %; el informe de diseño y la ficha técnica repiten la cobertura de lo sorteado | `frontend/src/features/hojasRuta/mapa/territorio/` + informe | frontend-react / especialista-entregables | pendiente — los datos ya salen en el registro |
+| 17 | **Cobertura en el mapa** (ADR 0119 §7): el selector de Territorio pinta cada provincia y distrito por nivel y muestra cobertura cartográfica y captación antes de elegir; aviso bajo 55 %; el informe de diseño y la ficha técnica repiten la cobertura de lo sorteado | `frontend/src/features/hojasRuta/mapa/territorio/` + informe | frontend-react / especialista-entregables | en curso — la captación por distrito se ve en la lista y en la ficha, con aviso bajo 55 %; falta pintar el nivel en el mapa del Perú y repetirla en el informe y la ficha técnica |
 | 16 | Gate: `make gate-area AREA=hojas-ruta`, `make gate-front AREA=hojasRuta`, `verificador` | — | verificador | pendiente |
 
 ## Orden y oleadas

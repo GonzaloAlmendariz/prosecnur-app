@@ -99,16 +99,21 @@ test_that("hojas_ruta_inei_frame carga marco completo versionado", {
   expect_true(meta$ok)
   expect_equal(meta$year, 2017L)
   expect_false(meta$pilot)
-  expect_equal(meta$n_distritos, 50L)
-  expect_true(meta$n_manzanas > 100000L)
-  expect_true(all(c("150103", "150143", "070106") %in% unique(frame$ubigeo)))
+  # ADR 0119: 50 distritos de Lima y Callao más los de las ciudades del registro.
+  distritos_registro <- unlist(lapply(hojas_ruta_territorios()$provincias, function(p) unlist(p$distritos)))
+  expect_equal(meta$n_distritos, length(unique(distritos_registro)))
+  expect_true(meta$n_manzanas > 200000L)
+  expect_true(all(c("150103", "150143", "070106", "040101", "080101") %in% unique(frame$ubigeo)))
 })
 
 test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
   current <- hojas_ruta_inei_frame()
   official <- hojas_ruta_inei_frame("inei2017_official")
-  expect_equal(nrow(official), 118408L)
-  expect_equal(length(unique(official$ubigeo)), 50L)
+  # ADR 0119: 118 408 manzanas de Lima y Callao más las ciudades del registro.
+  lima_callao <- official[substr(official$ubigeo, 1L, 4L) %in% c("1501", "0701"), ]
+  expect_equal(nrow(lima_callao), 118408L)
+  expect_equal(length(unique(lima_callao$ubigeo)), 50L)
+  expect_equal(length(unique(official$ubigeo)), length(unique(unlist(lapply(hojas_ruta_territorios()$provincias, function(p) unlist(p$distritos))))))
   expect_true(all(c("id_manzana", "id_manzana_norm", "cartografia_id") %in% names(official)))
   expect_equal(length(unique(official$id_manzana_norm)), nrow(official))
 
@@ -123,7 +128,7 @@ test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
   meta <- .hojas_ruta_frame_meta(current, cfg_default$frame_source)
   expect_equal(meta$active_source, "current")
   expect_true(meta$official$available)
-  expect_equal(meta$official$n_manzanas, 118408L)
+  expect_equal(meta$official$n_manzanas, nrow(official))
   expect_true(meta$audit$available)
 })
 
@@ -162,8 +167,9 @@ test_that("hojas_ruta_inei_age_simple carga edad simple oficial REDATAM", {
   expect_true(all(c("Hombre", "Mujer") %in% unique(age$sexo)))
   expect_true(min(age$edad, na.rm = TRUE) == 0L)
   expect_true(max(age$edad, na.rm = TRUE) >= 100L)
-  expect_equal(length(unique(age$ubigeo)), 50L)
-  expect_true(all(c("150110", "150143", "070106") %in% unique(age$ubigeo)))
+  # ADR 0119: los 50 distritos de Lima y Callao más los de las ciudades del registro.
+  expect_equal(sum(substr(unique(age$ubigeo), 1L, 4L) %in% c("1501", "0701")), 50L)
+  expect_true(all(c("150110", "150143", "070106", "040101", "080104") %in% unique(age$ubigeo)))
 })
 
 test_that("hojas_ruta_quota_preview_integrado asigna N objetivo por cuotas", {

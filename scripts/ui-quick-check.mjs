@@ -1194,8 +1194,10 @@ async function runCaptures(opts, stack) {
   try {
     for (const viewport of opts.viewports) {
       const context = await browser.newContext({ viewport });
-      await context.addInitScript(({ layoutPreset, session, focusedWarmup, warmupModuleIds }) => {
+      await context.addInitScript(({ layoutPreset, session, focusedWarmup, warmupModuleIds, extraStorage }) => {
         window.localStorage.setItem("pulso.layoutPreset", layoutPreset);
+        // UI_QA_LOCAL_STORAGE='{"clave":"valor"}' siembra interruptores de vista (p. ej. el lienzo de Hojas de ruta).
+        for (const [k, v] of Object.entries(extraStorage || {})) window.localStorage.setItem(k, String(v));
         if (session) window.localStorage.setItem("pulso.sessionId", session);
         if (focusedWarmup) {
           window.localStorage.setItem("pulso.visualQaWarmup", "1");
@@ -1209,6 +1211,7 @@ async function runCaptures(opts, stack) {
       }, {
         layoutPreset: opts.layoutPreset,
         session: stack.session || "",
+        extraStorage: JSON.parse(process.env.UI_QA_LOCAL_STORAGE || "{}"),
         focusedWarmup: opts.focusedWarmup,
         warmupModuleIds: focusedWarmupModuleIds,
       });

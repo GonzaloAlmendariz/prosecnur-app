@@ -14,6 +14,13 @@
 #   HOJAS_RUTA_CIUDADES_DISTRITOS  lista de ubigeos separados por coma, para correr un subconjunto
 #
 # La salida es determinista: filas ordenadas por id, 6 decimales y gzip sin marca de tiempo.
+#
+# La edad simple 2017 de las ciudades (capa `edad`) se extrae aparte, porque son 114 consultas
+# REDATAM más; el registro la incluye si el archivo existe en la salida:
+#   HOJAS_RUTA_INEI_FRAME=<salida>/inei2017_ciudades_manzanas.csv.gz \
+#   HOJAS_RUTA_INEI_AGE_OUT=<tmp>/edad.csv Rscript api/inst/hojas_ruta/extract_inei2017_age_simple.R
+# y luego, sin `fetched_at` ni `redatam_table_url` (cambian en cada corrida), ordenado por
+# ubigeo, sexo y edad, a <salida>/inei2017_ciudades_edad_simple_distrito.csv.gz con `gzip -n`.
 
 options(stringsAsFactors = FALSE, warn = 1)
 
@@ -39,6 +46,10 @@ VERSION_NSE <- "nse-geoperu-inei-ciudades-manzanas-v1"
 DIR_MANZANAS <- "manzanas_inei2017_ciudades"
 ARCHIVO_MARCO <- "inei2017_ciudades_manzanas.csv.gz"
 ARCHIVO_NSE <- "nse_geoperu_inei_ciudades_manzanas.csv.gz"
+ARCHIVO_EDAD <- "inei2017_ciudades_edad_simple_distrito.csv.gz"
+FUENTE_EDAD <- "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)"
+# Fecha en que se extrajo la edad de las ciudades; se actualiza al volver a extraerla.
+EDAD_CIUDADES_DESCARGADO <- "2026-10-29"
 # ADR 0119 §1 y §7. Sobre los distritos que la capa cubre:
 #   cobertura cartográfica = pob REDATAM 2017 en manzanas de la capa / pob REDATAM 2017 en manzanas del distrito
 #   captación              = pob REDATAM 2017 en manzanas de la capa / pob censada CPV 2025
@@ -348,6 +359,8 @@ capa_meta <- function(ruta, fuente, version, checksums, patron = NULL, filtro = 
 carto_md5 <- md5s(carto_files)
 marco_md5 <- md5s(marco_path)
 nse_md5 <- md5s(nse_path)
+edad_path <- file.path(out_dir, ARCHIVO_EDAD)
+edad_md5 <- if (file.exists(edad_path)) md5s(edad_path) else NULL
 prov_cod <- substr(marco$ubigeo, 1L, 4L)
 provincias <- lapply(sort(unique(prov_cod)), function(pc) {
   rows <- marco[prov_cod == pc, ]
@@ -363,7 +376,11 @@ provincias <- lapply(sort(unique(prov_cod)), function(pc) {
                    capa_meta(file.path("cartografia", DIR_MANZANAS), "INEI - CENSO 2017 (GeoPeru/IDEP)", VERSION_MANZANAS,
                              carto_md5[paste0(dist, ".geojson.gz")], patron = "<ubigeo>.geojson.gz")),
       marco = capa_meta(ARCHIVO_MARCO, FUENTE_MARCO, VERSION_MARCO, marco_md5, filtro = "ubigeo"),
-      nse = capa_meta(ARCHIVO_NSE, FUENTE_NSE, VERSION_NSE, nse_md5, filtro = "ubigeo")
+      nse = capa_meta(ARCHIVO_NSE, FUENTE_NSE, VERSION_NSE, nse_md5, filtro = "ubigeo"),
+      edad = if (!is.null(edad_md5)) {
+        utils::modifyList(capa_meta(ARCHIVO_EDAD, FUENTE_EDAD, "inei2017-ciudades-edad-simple-v1", edad_md5, filtro = "ubigeo"),
+                          list(descargado = EDAD_CIUDADES_DESCARGADO))
+      }
     )
   )
 })
@@ -421,7 +438,11 @@ registro_lima_callao <- function() {
                      version = marco_manifest$version, checksums = marco_md5),
         nse = list(ruta = "nse_geoperu_inei_lima_callao_manzanas.csv.gz", filtro = "ubigeo",
                    fuente = nse_manifest$source, anio_dato = as.integer(nse_manifest$anio_dato),
-                   descargado = nse_manifest$descargado, version = nse_manifest$version, checksums = nse_md5)
+                   descargado = nse_manifest$descargado, version = nse_manifest$version, checksums = nse_md5),
+        edad = list(ruta = "inei2017_lima_callao_edad_simple_distrito.csv", filtro = "ubigeo",
+                    fuente = FUENTE_EDAD, anio_dato = 2017L, descargado = "2026-05-03",
+                    version = "inei2017-lima-callao-edad-simple-v1",
+                    checksums = md5s(file.path(base, "inei2017_lima_callao_edad_simple_distrito.csv")))
       )
     )
   })
