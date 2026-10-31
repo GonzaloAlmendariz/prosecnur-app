@@ -1,82 +1,216 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
 <title>Maqueta de remasterización de la UI — Prosecnur</title>
 <link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/remaster.css">
 <style>
-  body { overflow: auto !important; background: var(--pulso-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--pulso-text); }
-  .mq-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-  .mq-hdr .pulso-brand-wordmark { font-weight: 800; font-size: 18px; color: var(--pulso-primary); }
-  .mq-legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--pulso-text-soft); margin-bottom: 8px; }
-  .mq-legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  /* Una sola columna de fichas: cada L abierto con su captura de hoy y lo que falta. Tema único de la app (el oscuro está descartado). */
+  :root { color-scheme: light; --warn-bg: #FEF6E7; --warn-fg: #8A5A00; --warn-bd: #F3D9A4; }
+  body { margin: 0; background: var(--pulso-bg); color: var(--pulso-text); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .pag { max-width: 1120px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+  .cab { display: flex; align-items: center; gap: 12px; }
+  .cab b { font-size: 18px; font-weight: 800; color: var(--pulso-primary); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: 12px; color: var(--pulso-text-soft); white-space: nowrap; }
+  .chip.decide { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn-fg); }
+  .chip.listo { background: var(--pulso-success-bg); border-color: var(--pulso-success-border); color: var(--pulso-success-fg); }
+  h1 { margin: 0; font-size: 28px; line-height: 1.2; text-wrap: balance; }
+  .lead { margin: 6px 0 0; max-width: 68ch; color: var(--pulso-text-soft); }
+  .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .resumen div { background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: 12px; padding: 12px 14px; }
+  .resumen strong { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .resumen span { font-size: 13px; color: var(--pulso-text-soft); }
+  h2 { margin: 12px 0 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--pulso-text-muted); }
+  .ficha { background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card, 14px); padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; }
+  .ficha header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .ficha header code { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--pulso-primary); }
+  .ficha h3 { margin: 0; font-size: 18px; }
+  .ficha figure { margin: 0; min-width: 0; }
+  .ficha img { width: 100%; border-radius: 8px; border: 1px solid var(--pulso-border); display: block; }
+  .ficha figcaption { font-size: 12px; color: var(--pulso-text-muted); margin-top: 6px; }
+  .txt { min-width: 0; display: grid; align-content: start; gap: 12px; }
+  .txt h4 { margin: 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--pulso-text-muted); }
+  .txt p, .txt ul { margin: 0; }
+  .txt ul { padding-left: 18px; display: grid; gap: 6px; }
+  .visto { background: var(--pulso-surface-2); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .nota { font-size: 13px; color: var(--pulso-text-soft); }
+  .sin-img { display: grid; place-items: center; min-height: 180px; border: 1px dashed var(--pulso-border-strong); border-radius: 8px; color: var(--pulso-text-muted); font-size: 13px; text-align: center; padding: 16px; }
+  a { color: var(--pulso-primary); }
+  a:focus-visible { outline: 2px solid var(--pulso-primary-focus, var(--pulso-primary)); outline-offset: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tabla { overflow-x: auto; background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: 12px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--pulso-border); vertical-align: top; }
+  th { font-size: 12px; color: var(--pulso-text-muted); font-weight: 600; }
+  @media (max-width: 820px) { .ficha { grid-template-columns: 1fr; } }
 </style>
-</head>
-<body>
-<main class="mq-index">
-  <div class="mq-hdr">
-    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15.4" fill="#002457"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#fff"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#fff"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#fff"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#fff"/></svg>
-    <span class="pulso-brand-wordmark">Prosecnur</span>
-    <span class="mq-chip is-accent">maqueta de remasterización · 2026-10-10</span>
-  </div>
-  <h1>Cada propuesta del plan, dibujada</h1>
-  <p class="lead">Una maqueta por unidad de la cola del GOAL <code>docs/qa/goal-modernizacion-ui-2026-10-10.md</code>. Cada página pinta el <b>después</b> con el CSS real del shell (tokens, command bar, rail, botones) y deja el <b>hoy</b> a un clic: la captura real del censo. Las burbujas numeradas señalan qué cambia; el bloque oscuro al pie lo explica. Nada de esto está implementado: es para decidir mirando.</p>
-  <div class="mq-legend"><span><i class="dot" style="background:#0F766E"></i> Procesamiento</span><span><i class="dot" style="background:#A0464E"></i> Monitoreo</span><span><i class="dot" style="background:#7260AE"></i> Cálculo de muestra</span><span><i class="dot" style="background:#7172C1"></i> Formularios</span><span><i class="dot" style="background:#AC563B"></i> Hojas de ruta</span><span><i class="dot" style="background:#106E8C"></i> Recopiladores</span><span><i class="dot" style="background:#4A6EB6"></i> Dashboard</span><span><i class="dot" style="background:#A16207"></i> Bitácora</span><span><i class="dot" style="background:#002457"></i> Shell / Home</span></div>
 
-  <h2><i>1</i> Lo que abre ventanas y Carga</h2>
-  <div class="mq-cards" id="o1"></div>
-  <h2><i>2</i> Verde por conformidad (instrumento)</h2>
-  <div class="mq-cards" id="o2"></div>
-  <h2><i>3</i> Un solo chrome en los ocho módulos</h2>
-  <div class="mq-cards" id="o3"></div>
-  <h2><i>4</i> Cifras honestas y feedback</h2>
-  <div class="mq-cards" id="o4"></div>
-  <h2><i>5</i> El kit por debajo del chrome</h2>
-  <div class="mq-cards" id="o5"></div>
-  <h2><i>6</i> Lo que se nota sin abrir un módulo</h2>
-  <div class="mq-cards" id="o6"></div>
+<main class="pag">
+  <div>
+    <div class="cab">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15.4" fill="#002457"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#fff"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#fff"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#fff"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#fff"/></svg>
+      <b>Prosecnur</b>
+      <span class="chip">Meta B · lo que falta · 31 oct 2026</span>
+    </div>
+    <h1>Las unidades abiertas de la Meta B, cómo se ven hoy y cómo mejorarlas</h1>
+    <p class="lead">Esta página ya no muestra las 37 unidades del plan: solo las que siguen abiertas fuera de Monitoreo. Cada ficha trae una captura tomada hoy en la app con el proyecto de referencia <code>acnur_acg</code> a 1440×1000, lo que se ve en ella y lo que falta para cerrarla. La maqueta original completa sigue en <a href="historico.html">la versión del 10 de octubre</a>.</p>
+  </div>
+
+  <div class="resumen">
+    <div><strong>18</strong><span>unidades cerradas de 37</span></div>
+    <div><strong>7</strong><span>abiertas que se pueden avanzar sin preguntarte</span></div>
+    <div><strong>5</strong><span>abiertas que esperan una decisión tuya</span></div>
+    <div><strong>6</strong><span>abiertas que dependen de Monitoreo</span></div>
+  </div>
+
+  <h2>Se pueden avanzar sin decisión tuya</h2>
+
+  <article class="ficha" id="L5">
+    <header><code>L5b · L6 · L9</code><h3>Carga: un solo importador de plataforma</h3><span class="chip">en curso</span></header>
+    <figure><img src="hoy-2026-10-31/carga-plan.png" alt="Carga, pestaña Plan, con «Varias bases» y «Bases separadas» elegidas y una sola base cargada"><figcaption>Carga › Plan, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> el estudio tiene una sola base, pero Plan marca «Varias bases» y «Bases separadas». La importación por plataforma no está a la vista desde aquí: se entra por Fuentes.</div>
+      <h4>Qué falta</h4>
+      <ul>
+        <li><b>L5b:</b> el importador único (job con cuatro fases y opción de cancelar) ya existe en <code>carga/plataforma/</code>, pero no está conectado. Debe ser el único camino para traer SurveyMonkey o Kobo, tanto en base única como en varias bases.</li>
+        <li><b>L9:</b> la base integrada y el paquete .sav ya se importan en segundo plano y dicen en qué van. Falta verlo en vivo, y eso exige reinstalar el paquete de R.</li>
+        <li><b>L6:</b> el asistente de hermanas independientes ya salió de BasesPanel y tiene su stepper. Falta verlo con un proyecto que use bases independientes; ninguno de los de referencia lo hace.</li>
+      </ul>
+      <h4>Cómo mejorarlo</h4>
+      <ul>
+        <li>Plan debería decir lo que hay: con una sola base, mostrar «Una base» y ofrecer pasar a varias cuando se agregue la segunda.</li>
+        <li>Un botón «Agregar base» visible en Plan que abra el importador único con SurveyMonkey, Kobo y archivo como opciones de una misma lista.</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L7">
+    <header><code>L7 · L8</code><h3>Credenciales y diálogo de SurveyMonkey</h3><span class="chip">en curso</span></header>
+    <figure><img src="hoy-2026-10-31/formularios-surveymonkey.png" alt="Diálogo «Traducir encuesta de SurveyMonkey» con la conexión lista y 545 encuestas visibles"><figcaption>Formularios › Traducir encuesta de SurveyMonkey, hoy. El fragmento del token está tapado en la imagen.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> el diálogo ya usa el kit: pasos arriba, Escape cierra y el foco vuelve al botón que lo abrió. Con un token guardado comprueba la conexión al abrir y muestra «545 encuestas visibles».</div>
+      <h4>Qué falta</h4>
+      <ul>
+        <li><b>L7:</b> abrir las credenciales desde el error ya funciona. Falta que cada proyecto recuerde su perfil de SurveyMonkey: el borrador del asistente guarda las encuestas elegidas, pero no el perfil.</li>
+        <li><b>L8:</b> queda abierta una sola desviación. El diálogo verifica la conexión al abrir porque el revamp de Formularios lo pidió así; el plan original pedía no conectar hasta que el usuario lo indique.</li>
+      </ul>
+      <h4>Cómo mejorarlo</h4>
+      <ul>
+        <li>El pegado del enlace y el botón «Buscar mis encuestas» compiten. Conviene un solo campo que busque por nombre o acepte el enlace.</li>
+        <li>Los pasos «Secciones», «Contenido» y «Saltos» aparecen en «Sin cargar» antes de elegir la encuesta; podrían mostrarse atenuados hasta entonces.</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L28">
+    <header><code>L28 · L29</code><h3>Tablas densas y tipografía por roles</h3><span class="chip decide">L28 espera D-L28</span></header>
+    <figure><img src="hoy-2026-10-31/analitica-datos.png" alt="Analítica › Datos con una tarjeta por variable y cinco variables por pantalla"><figcaption>Analítica › Datos, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> cada variable ocupa una tarjeta de unos 80 px y caben cinco por pantalla, aunque el estudio tiene 96. El chip de la cabecera repite «Codificada Codificación».</div>
+      <h4>Qué falta</h4>
+      <ul>
+        <li><b>L29:</b> el piso de 10 px ya se cumple fuera de Monitoreo. Falta pasar los tamaños escritos a mano a los ocho roles tipográficos; todavía no hay una cifra de cierre.</li>
+        <li><b>L28:</b> la tabla compartida <code>PulsoTable</code>, con cabecera fija, anchos declarados y filas virtualizadas, sigue sin empezar porque espera la decisión D-L28.</li>
+      </ul>
+      <h4>Cómo mejorarlo</h4>
+      <ul>
+        <li>Datos es el mejor primer consumidor de <code>PulsoTable</code>: una fila de 36 px por variable (incluir, código, tipo, con dato, etiqueta) lleva de 5 a unas 20 variables por pantalla, y las etiquetas de opciones se abren en el inspector.</li>
+        <li>Quitar la repetición del chip: «Codificada» basta.</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L31">
+    <header><code>L31</code><h3>Home vivo</h3><span class="chip decide">el bloque «hoy» espera tu decisión</span></header>
+    <figure><img src="hoy-2026-10-31/home.png" alt="Home del proyecto con siete tarjetas de módulo"><figcaption>Home del proyecto, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> las tarjetas se recargan solas y muestran su siguiente acción. Hay tres problemas a la vista:
+        <ul>
+          <li>Monitoreo dice «1,283 de 1,200 levantadas, meta cumplida» y, debajo, «85.7% avance de meta». Las dos cifras se contradicen.</li>
+          <li>Formularios dice «66 preguntas», pero el editor abre «Nuevo formulario · 1 pregunta».</li>
+          <li>Hojas de ruta repite «Campo fase actual / Campo derivado del piloto».</li>
+        </ul>
+      </div>
+      <h4>Qué falta</h4>
+      <ul>
+        <li>El bloque «desde tu última apertura», que necesita guardar esa fecha. Decisión tuya: ¿en el <code>.pulso</code> o en el equipo?</li>
+      </ul>
+      <h4>Cómo mejorarlo</h4>
+      <ul>
+        <li>Corregir las tres frases que se contradicen antes de sumar nada nuevo: cada cifra con su base, y la de Monitoreo alineada con lo que dice el módulo (L20).</li>
+        <li>El espacio vacío sobre las tarjetas (unos 200 px a 1440) es el lugar natural del bloque «hoy».</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L37">
+    <header><code>L37</code><h3>Sistema de movimiento</h3><span class="chip">casi cerrada</span></header>
+    <div class="sin-img">El movimiento no se ve en una captura fija. El laboratorio con las 22 coreografías sigue en <a href="m/L37-movimiento.html">la maqueta de L37</a>.</div>
+    <div class="txt">
+      <h4>Qué falta</h4>
+      <ul>
+        <li>Las nueve transiciones de layout que quedan en <code>theme.css</code> (indicador de pestañas, switch, barra de job y etiquetas) deberían pasar a <code>transform</code>.</li>
+        <li>Las animaciones infinitas que quedan informan carga o la dirección del flujo y se quedan a propósito. Las excepciones con su motivo ya están en el contrato.</li>
+      </ul>
+    </div>
+  </article>
+
+  <h2>Esperan una decisión tuya</h2>
+
+  <article class="ficha" id="L16">
+    <header><code>L16 · D2</code><h3>Dashboard con el chrome de los demás módulos</h3><span class="chip decide">espera D2</span></header>
+    <figure><img src="hoy-2026-10-31/dashboard.png" alt="Dashboard con su propia barra de pestañas y el panel «Fuente del dashboard»"><figcaption>Dashboard, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> el Dashboard tiene su propia barra de pestañas a la derecha (Deploy, Vista previa, Personalizar, Datos) y no usa el rail de los otros módulos. Además dice «Proyecto: falta XLSForm o data» mientras los dos selectores muestran un archivo elegido.</div>
+      <h4>Qué decides</h4>
+      <p>D2: si la administración del Dashboard adopta el rail y la barra de comandos del resto de la app. El tablero que se publica para el cliente conservaría su diseño propio.</p>
+      <h4>Cómo mejorarlo, decidas lo que decidas</h4>
+      <ul><li>El aviso de «falta XLSForm o data» debería decir cuál de los dos falta, o desaparecer si los dos están elegidos.</li></ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L16b">
+    <header><code>L16</code><h3>Material de campo sin campañas</h3><span class="chip listo">se resuelve con el ADR 0118</span></header>
+    <figure><img src="hoy-2026-10-31/material.png" alt="Material de campo con el vacío «Todavía no hay campañas»"><figcaption>Material de campo, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> el vacío ya explica qué es una campaña y ofrece crearla. Dentro de una campaña, el rail ya existe.</div>
+      <h4>Qué falta</h4>
+      <p>L16 pedía el rail de 56 px aquí. Con la mudanza de Salidas a Material (ADR 0118), la parte de Hojas de ruta › Entrega dejó de existir. La fila del GOAL tiene que reescribirse con lo que queda.</p>
+    </div>
+  </article>
+
+  <article class="ficha" id="L17">
+    <header><code>L17 · D1</code><h3>Formularios con la barra de comandos común</h3><span class="chip decide">espera D1</span></header>
+    <figure><img src="hoy-2026-10-31/formularios.png" alt="Editor de Formularios con banda superior, rail de doce íconos e inspector de pregunta"><figcaption>Formularios › Constructor, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> la banda ya está más contenida que en octubre (selector, conteos, un aviso, agregar y exportar). El rail tiene doce íconos sin texto.</div>
+      <h4>Qué decides</h4>
+      <p>D1: qué parte de esa banda entra a la barra de comandos común, que esconde en un menú lo que no cabe.</p>
+      <h4>Cómo mejorarlo</h4>
+      <ul><li>Doce íconos sin nombre exigen pasar el mouse por cada uno. Agruparlos (construir, revisar, publicar) o mostrar el nombre de la pestaña activa ayudaría a ubicarse.</li></ul>
+    </div>
+  </article>
+
+  <article class="ficha" id="L36">
+    <header><code>L36</code><h3>Formularios › Documento</h3><span class="chip decide">espera la sesión de diseño DOC.0</span></header>
+    <figure><img src="hoy-2026-10-31/formularios-impreso.png" alt="Pestaña Impreso del editor con formato, cabecera, matrices y vista previa"><figcaption>Formularios › Impreso, hoy.</figcaption></figure>
+    <div class="txt">
+      <div class="visto"><b>Lo que se ve:</b> la pestaña Impreso ya reemplazó al antiguo «Configurar PDF». Tiene partes a la izquierda, opciones al centro, una vista previa y exportación a Word y PDF.</div>
+      <h4>Qué falta</h4>
+      <p>L36 pide más: portada, lógica impresa, estilos con candado, páginas con bloques que se pueden seleccionar, inspector y versiones, igual que el editor de láminas. Eso empieza con una sesión de diseño contigo (DOC.0).</p>
+      <h4>Cómo mejorarlo ya</h4>
+      <ul><li>La vista previa es un esquema genérico. Mostrar la primera página real del cuestionario, aunque sea en baja resolución, la haría útil para decidir.</li></ul>
+    </div>
+  </article>
+
+  <h2>Dependen de Monitoreo</h2>
+  <div class="tabla">
+    <table>
+      <thead><tr><th>Unidad</th><th>Qué falta</th></tr></thead>
+      <tbody>
+        <tr><td>L10</td><td>Readiness por pestaña: ya está en los cuatro perfiles de Monitoreo y en Analítica. Falta una verificación final para darla por cerrada.</td></tr>
+        <tr><td>L18</td><td>Bandas fijas de contexto en Monitoreo territorial (la parte de Cálculo está cerrada).</td></tr>
+        <tr><td>L19</td><td>Sub-barras sin dirección en Monitoreo; Bitácora, Carga y Hojas de ruta están resueltos.</td></tr>
+        <tr><td>L20</td><td>Una sola lectura de avance con su base. La contradicción del Home («meta cumplida» y 85.7 %) cae aquí.</td></tr>
+        <tr><td>L33</td><td>Desduplicar Telefónico y Acreditación: falta la segunda parte, 242 declaraciones repetidas.</td></tr>
+        <tr><td>L38</td><td>Un verbo por dirección en Monitoreo: falta cerrarlo en todos los perfiles.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="nota">Las capturas se tomaron el 31 de octubre de 2026 con una copia de <code>acnur_acg</code>; ninguna marcó problemas de geometría. El detalle de cada unidad vive en <code>docs/qa/goal-modernizacion-ui-2026-10-10.md</code>.</p>
 </main>
-<script>
-const M = [
-  { o: 1, code: "L1 · L8", t: "Diálogo canónico, enlazable y con foco", d: "Una sola primitiva (Radix) con cabecera, pasos, pie y Escape; aquí sobre «Traducir encuesta de SurveyMonkey», que hoy abre con error y token residual.", href: "m/L01-dialogo-canonico.html", hoy: "hoy/dialogo-sm-editor.png", tags: ["Formularios", "kit"] },
-  { o: 1, code: "L3 · L5", t: "Carga › Plataforma: catálogo + job cancelable", d: "El disparador de SurveyMonkey/Kobo que hoy no existe en «bases separadas», con importación como job visible y credenciales a un clic.", href: "m/L03-carga-plataforma.html", hoy: "hoy/carga-plataforma.png", tags: ["Procesamiento", "Carga"] },
-  { o: 1, code: "L4", t: "Carga › Fuentes: hidratación honesta", d: "Skeleton con la silueta de la base mientras llega, en vez de «Pendiente · 0/1 base» durante ocho segundos con readiness verde.", href: "m/L04-carga-skeleton.html", hoy: "hoy/carga-fuentes-pendiente.png", tags: ["Procesamiento", "estados"] },
-  { o: 1, code: "L6", t: "Wizard independiente con stepper", d: "Los siete subpaneles apilados de BasesPanel como un recorrido con pasos, estado en el store y jobs por paso.", href: "m/L06-wizard-stepper.html", hoy: "hoy/carga-fuentes.png", tags: ["Procesamiento", "Carga"] },
-  { o: 1, code: "L7", t: "Credenciales en el sitio del error", d: "Sideover de conexiones abierto desde el strip de token, que vuelve al mismo paso al cerrar.", href: "m/L07-credenciales-sideover.html", hoy: "hoy/carga-plataforma.png", tags: ["Procesamiento", "panel"] },
-  { o: 2, code: "L10 · L11", t: "Readiness por pestaña y de render", d: "Cómo se ve una pestaña que todavía no terminó: skeleton declarado, no spinner aprobado. Diagrama del contrato.", href: "m/L10-readiness.html", hoy: "hoy/carga-fuentes-pendiente.png", tags: ["instrumento"] },
-  { o: 2, code: "L13", t: "Formularios enlazable", d: "Constructor, Hojas y las vistas de «Más vistas» como pestañas del rail con dirección propia.", href: "m/L13-formularios-rail.html", hoy: "hoy/formularios.png", tags: ["Formularios"] },
-  { o: 3, code: "L14", t: "Una sola cabecera de pestaña", d: "Las doce variantes de hoy y la única propuesta, con su versión compacta y la que lleva el control de sección.", href: "m/L14-cabecera-unica.html", hoy: "hoy/territorial-fuente.png", tags: ["chrome"] },
-  { o: 3, code: "L15 · L16", t: "Recopiladores con el chrome canónico", d: "Píldoras de sección sin numerar y rail de pestañas de 56 px en vez del stepper y las píldoras inline.", href: "m/L15-recopiladores.html", hoy: "hoy/recopiladores.png", tags: ["Recopiladores"] },
-  { o: 3, code: "L16", t: "Hojas de ruta › Entrega con rail", d: "Las pestañas Cuotas/Titulares/Reemplazos en el rail; la barra densa de KPIs pasa a la command bar y a la cabecera.", href: "m/L16-hojas-entrega.html", hoy: "hoy/hojas-entrega.png", tags: ["Hojas de ruta"] },
-  { o: 3, code: "D1 · L17", t: "Formularios con ModuleCommandBar", d: "Qué se recoge de su banda: métricas en la cabecera, acciones secundarias al menú, excepción retirada.", href: "m/L17-formularios-commandbar.html", hoy: "hoy/formularios.png", tags: ["Formularios", "decisión D1"] },
-  { o: 3, code: "D2", t: "Dashboard: chrome de administración canónico", d: "Rail y command bar en la administración; el artefacto publicado conserva su capa propia.", href: "m/D02-dashboard-admin.html", hoy: "hoy/dashboard.png", tags: ["Dashboard", "decisión D2"] },
-  { o: 3, code: "L18", t: "Monitoreo territorial sin bandas repetidas", d: "El contenido empieza a 250 px como en aulas: la banda Piloto/Campo y la card de fuente viven solo en Fuente.", href: "m/L18-territorial-bandas.html", hoy: "hoy/territorial-fuente.png", tags: ["Monitoreo"] },
-  { o: 4, code: "L20", t: "Una sola lectura de avance con su base", d: "Home y Monitoreo dicen la misma cifra o rotulan su denominador; la card del Home no cambia con el warm start.", href: "m/L20-avance-con-base.html", hoy: "hoy/home.png", tags: ["Home", "Monitoreo"] },
-  { o: 4, code: "L23", t: "Warm start con tiempo", d: "«2:40 transcurridos · ~1:10 restantes · preparando avance» y skeleton de la vista destino, en vez de un porcentaje mudo.", href: "m/L23-warmstart.html", hoy: "hoy/territorial-avance.png", tags: ["Monitoreo", "estados"] },
-  { o: 4, code: "L25", t: "Toasts con acción", d: "Resultados que hoy son banners inline pasan a toasts con «Deshacer» o «Ver».", href: "m/L25-toast.html", hoy: "hoy/codificacion-preparar.png", tags: ["estados"] },
-  { o: 5, code: "L26 · L27", t: "Kit de inputs aplicado a Analítica › Datos", d: "PulsoField/Input/Select en una lista densa: 12 variables por viewport donde hoy caben 4.", href: "m/L26-kit-inputs.html", hoy: "hoy/analitica-datos.png", tags: ["Procesamiento", "kit"] },
-  { o: 5, code: "L28", t: "PulsoTable + inspector", d: "Reporte UMP con cabecera sticky, anchos declarados, densidad y fila seleccionada que abre el inspector.", href: "m/L28-tabla-inspector.html", hoy: "hoy/territorial-reporte-ump.png", tags: ["Monitoreo", "kit"] },
-  { o: 6, code: "L30", t: "Paleta de comandos ⌘K", d: "Saltar a cualquiera de las 186 pestañas o ejecutar una acción de la command bar desde el teclado.", href: "m/L30-paleta.html", hoy: "hoy/home.png", tags: ["shell"] },
-  { o: 6, code: "L31", t: "Home vivo", d: "Cards que se mueven solas: job en curso, «hoy» de Monitoreo, siguiente acción por módulo; sin gradientes.", href: "m/L31-home-vivo.html", hoy: "hoy/home.png", tags: ["Home"] },
-  { o: 2, code: "L19", t: "Sub-barras de pestañas al rail", d: "Las consultas de Acreditación dejan de ser una barra dentro de la pestaña: son pestañas del rail con dirección propia; los reportes de Salidas, un control de sección.", href: "m/L19-subbarras-rail.html", hoy: "hoy/acreditacion-actores.png", tags: ["Monitoreo", "chrome"] },
-  { o: 4, code: "L21", t: "Criterios de revisión honestos", d: "Cada sugerencia trae su cifra y su base; la heurística de continuidad se desactiva sola en vez de publicar «faltan 1.970.691 envíos».", href: "m/L21-criterios-honestos.html", hoy: "hoy/validacion-explorar.png", tags: ["Procesamiento", "C5"] },
-  { o: 4, code: "L22", t: "«Sin guardar» que dice qué cambió", d: "El chip del header se abre y lista las mutaciones reales; leer una pestaña nunca ensucia el proyecto.", href: "m/L22-guardado-honesto.html", hoy: "hoy/carga-fuentes.png", tags: ["shell", "C5"] },
-  { o: 5, code: "L27", t: "Kit de inputs en Cálculo de muestra", d: "Criterios del estudiante con PulsoField y una cadena de filtros que dice cuánto resta cada paso.", href: "m/L27-kit-calc-muestra.html", hoy: "hoy/calc-poblacion.png", tags: ["Cálculo de muestra", "kit"] },
-  { o: 5, code: "L29", t: "Densidad y tipografía declarables", d: "Cómoda y compacta sobre la misma pestaña, y la escala tipográfica de ocho roles con su piso de 10 px.", href: "m/L29-densidad-tipografia.html", hoy: "hoy/aulas-avance.png", tags: ["Monitoreo", "tokens"] },
-  { o: 6, code: "L32", t: "Materiales y motion", d: "Un solo blur en el chrome, hairlines, las seis sombras y la firma de movimiento con hover real.", href: "m/L32-materiales-motion.html", hoy: "hoy/home.png", tags: ["shell", "motion"] },
-  { o: 3, code: "L36", t: "Formularios › Documento: el cuestionario como Word", d: "Formularios gana una segunda sección: el cuestionario en Word generado con officer desde la misma lógica, con pestañas de portada, preguntas, lógica impresa, estilos, vista previa y versiones.", href: "m/L36-formularios-documento.html", hoy: "hoy/formularios.png", tags: ["Formularios", "entregable"] },
-  { o: 6, code: "L37", t: "Sistema de movimiento (laboratorio)", d: "Las 22 coreografías para sentirlas: navegación, paneles, press y hover, listas, carga, toast, scroll y barras, con un switch que simula «reducir movimiento».", href: "m/L37-movimiento.html", hoy: "hoy/home.png", tags: ["shell", "motion"] },
-  { o: 3, code: "L38", t: "Monitoreo: un verbo por dirección", d: "Un solo control «Actualizar ▾» en la barra de los cuatro perfiles, una fila por fuente, Publicar con ensayo y el diccionario de siete verbos.", href: "m/L38-actualizar-monitoreo.html", hoy: "hoy/acreditacion-actores.png", tags: ["monitoreo", "chrome", "acciones"] },
-];
-for (const m of M) {
-  const card = document.createElement("a");
-  card.className = "mq-card"; card.href = m.href;
-  const despues = m.href.replace("m/", "despues/").replace(".html", ".png");
-  card.innerHTML = `<span class="mq-card-code">${m.code}</span><h3>${m.t}</h3><p>${m.d}</p><div class="mq-card-pair"><figure><figcaption>Hoy</figcaption><img class="mq-card-img" src="${m.hoy}" alt="" loading="lazy"></figure><figure><figcaption>Después</figcaption><img class="mq-card-img" src="${despues}?v=${Date.now()}" alt="" loading="lazy" onerror="this.closest('figure').classList.add('is-pendiente'); this.replaceWith(Object.assign(document.createElement('div'),{className:'mq-card-img mq-empty',textContent:'en construcción'}))"></figure></div><div class="mq-card-foot">${m.tags.map(t => `<span class="mq-chip">${t}</span>`).join("")}</div>`;
-  document.getElementById("o" + m.o).appendChild(card);
-}
-</script>
-</body>
-</html>
