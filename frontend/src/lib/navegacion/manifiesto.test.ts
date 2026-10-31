@@ -72,7 +72,7 @@ describe("manifiesto de navegación", () => {
 
   it("aterriza los nodos de módulo en una sección real de ese módulo", () => {
     // El landing de un módulo puede coincidir con su primera sección
-    // (`/bitacora` es a la vez el módulo y su sección `bitacora`). Eso es
+    // (`/planner` es a la vez el módulo y su sección `estudio`). Eso es
     // correcto: lo que no puede pasar es que aterrice en una sección ajena.
     for (const nodo of MANIFIESTO_NAVEGACION) {
       if (nodo.nivel !== "modulo") continue;

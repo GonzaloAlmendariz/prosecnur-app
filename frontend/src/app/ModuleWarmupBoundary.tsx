@@ -202,11 +202,11 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
   },
   {
     key: "bitacora",
-    title: "Bitácora",
-    moduleTo: "/bitacora",
+    title: "Planner",
+    moduleTo: "/planner",
     frontend: ["diseno_estudio"],
     backend: ["project"],
-    messages: ["Leyendo bitácora", "Preparando cronograma", "Abriendo módulo"],
+    messages: ["Leyendo el estudio", "Preparando cronograma", "Abriendo módulo"],
   },
 ];
 
@@ -231,7 +231,7 @@ function warmupProfileForPath(pathname: string) {
   if (path === "/material-campo" || path === "/recopiladores") {
     return MODULE_PROFILES.find((profile) => profile.key === "material-campo") ?? null;
   }
-  if (path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
+  if (path === "/planner" || path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
     return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
   }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;

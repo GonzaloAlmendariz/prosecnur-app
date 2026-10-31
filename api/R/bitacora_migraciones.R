@@ -127,6 +127,36 @@ BITACORA_MAX_REVISIONES <- 10L
   utils::head(out[orden], max_items)
 }
 
+# --- Lienzo: destinos de las secciones que pasaron a pestañas (ADR 0122) ------
+#
+# Calendario y Lienzo dejaron de ser secciones del módulo: ahora son pestañas
+# de Cronograma y Bitácora. Un nodo guardado que apuntaba a
+# `diseno-estudio/calendario` (o a una de sus pestañas) o a
+# `diseno-estudio/canvas` quedaría huérfano; aquí se reescribe a su destino
+# nuevo. Sólo toca claves de módulo; idempotente: una clave ya migrada no casa.
+BITACORA_DESTINOS_RENOMBRADOS <- c(
+  "diseno-estudio/calendario" = "diseno-estudio/cronograma/mes",
+  "diseno-estudio/calendario/mes" = "diseno-estudio/cronograma/mes",
+  "diseno-estudio/calendario/semana" = "diseno-estudio/cronograma/semana",
+  "diseno-estudio/canvas" = "diseno-estudio/bitacora/lienzo"
+)
+
+.bit_migrar_destinos_lienzo <- function(canvas) {
+  if (!is.list(canvas) || !is.list(canvas$canvases)) return(canvas)
+  canvas$canvases <- lapply(canvas$canvases, function(lienzo) {
+    if (!is.list(lienzo) || !is.list(lienzo$nodes)) return(lienzo)
+    lienzo$nodes <- lapply(lienzo$nodes, function(nodo) {
+      ref <- if (is.list(nodo)) nodo$ref else NULL
+      if (!is.list(ref) || !identical(calc_str(ref$target_type, ""), "modulo")) return(nodo)
+      nuevo <- BITACORA_DESTINOS_RENOMBRADOS[calc_str(ref$target_id, "")]
+      if (!is.na(nuevo)) nodo$ref$target_id <- unname(nuevo)
+      nodo
+    })
+    lienzo
+  })
+  canvas
+}
+
 # --- Entrada única -----------------------------------------------------------
 
 # Migra el estado de Bitácora dentro de una sesión. Idempotente: se puede
@@ -151,6 +181,11 @@ BITACORA_MAX_REVISIONES <- 10L
   entradas <- s$diseno_estudio_bitacora
   if (is.list(entradas) && length(entradas)) {
     s$diseno_estudio_bitacora <- .bit_migrar_entradas(entradas)
+  }
+
+  canvas <- s[["bitacora_canvas"]]
+  if (is.list(canvas)) {
+    s["bitacora_canvas"] <- list(.bit_migrar_destinos_lienzo(canvas))
   }
 
   s

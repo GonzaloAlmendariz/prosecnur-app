@@ -26,7 +26,7 @@ afterEach(() => {
 test("es un diálogo del kit, no deja importar sin revisión y Escape lo cierra", () => {
   const onCerrar = vi.fn();
   act(() => root.render(
-    <MemoryRouter initialEntries={["/bitacora"]}>
+    <MemoryRouter initialEntries={["/planner"]}>
       <PanelImportar onImportado={() => {}} onCerrar={onCerrar} />
     </MemoryRouter>,
   ));

@@ -84,7 +84,7 @@ type DragState = {
 
 type CalendarView = "month" | "week";
 
-const CALENDAR_VIEW_A11Y: Record<
+export const CALENDAR_VIEW_A11Y: Record<
   CalendarView,
   { tabId: string; panelId: string }
 > = {
@@ -144,9 +144,16 @@ function buildEvents(tasks: PlanTrabajoTask[]): { events: CalEvent[]; undated: P
 export function Calendar({
   state,
   onChange,
+  selectorDeVista = true,
 }: {
   state: PlanTrabajoState;
   onChange: (next: PlanTrabajoState) => void;
+  /**
+   * Dentro del Planner, Mes y Semana son pestañas del rail (ADR 0122 §1): el
+   * selector propio se calla para no duplicar la navegación, y el rail usa los
+   * mismos ids de tab/panel, así que el tabpanel sigue etiquetado.
+   */
+  selectorDeVista?: boolean;
 }) {
   const tasks = state.plan.tasks ?? [];
   const { events, undated } = useMemo(() => buildEvents(tasks), [tasks]);
@@ -317,6 +324,7 @@ export function Calendar({
           onNext={() => shift(1)}
           onToday={goToday}
           onCreate={() => setModal({ mode: "create", date: todayIso })}
+          selectorDeVista={selectorDeVista}
         />
         <section
           id={CALENDAR_VIEW_A11Y[view].panelId}
@@ -356,6 +364,7 @@ export function Calendar({
         onNext={() => shift(1)}
         onToday={goToday}
         onCreate={() => setModal({ mode: "create", date: todayIso })}
+        selectorDeVista={selectorDeVista}
       />
 
       <div className="bcal-legend" aria-hidden="true">
@@ -432,7 +441,7 @@ export function Calendar({
 }
 
 function CalendarToolbar({
-  view, onView, title, onPrev, onNext, onToday, onCreate,
+  view, onView, title, onPrev, onNext, onToday, onCreate, selectorDeVista,
 }: {
   view: CalendarView;
   onView: (v: CalendarView) => void;
@@ -441,6 +450,7 @@ function CalendarToolbar({
   onNext: () => void;
   onToday: () => void;
   onCreate: () => void;
+  selectorDeVista: boolean;
 }) {
   return (
     <div className="bcal-toolbar">
@@ -451,6 +461,7 @@ function CalendarToolbar({
         <strong className="bcal-title">{title}</strong>
       </div>
       <div className="bcal-toolbar-right">
+        {selectorDeVista ? (
         <GlidingTabList activeKey={view} className="bcal-segmented" role="tablist" aria-label="Vista del calendario">
           <button
             id={CALENDAR_VIEW_A11Y.month.tabId}
@@ -477,6 +488,7 @@ function CalendarToolbar({
             Semana
           </button>
         </GlidingTabList>
+        ) : null}
         <button type="button" className="plan-button plan-button--primary" onClick={onCreate}>
           <Plus size={15} /> <span>Nueva actividad</span>
         </button>

@@ -39,10 +39,20 @@ describe("gramática de direcciones", () => {
     expect(hojas?.pestana).toBe("cuotas");
   });
 
+  it("lee las secciones que pasaron a pestañas del Planner (ADR 0122) sin escribirlas", () => {
+    // Calendario y Lienzo dejaron de ser secciones: un enlace viejo aterriza en
+    // su pestaña nueva y conserva la que pedía (mes o semana).
+    expect(parsearDireccion("/planner", "?seccion=calendario")).toMatchObject({ seccion: "cronograma", pestana: "mes" });
+    expect(parsearDireccion("/planner", "?seccion=calendario&pestana=semana")).toMatchObject({ seccion: "cronograma", pestana: "semana" });
+    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
+    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
+    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=bitacora&pestana=lienzo");
+  });
+
   it("acepta los alias legacy de cada módulo", () => {
     expect(parsearDireccion("/calc-muestra", "?mesa=aulas")?.modo).toBe("aulas");
     expect(parsearDireccion("/calc-muestra", "?desk=aulas")?.modo).toBe("aulas");
-    expect(parsearDireccion("/bitacora", "?tab=cronograma")?.seccion).toBe(
+    expect(parsearDireccion("/planner", "?tab=cronograma")?.seccion).toBe(
       "cronograma",
     );
     expect(parsearDireccion("/monitoreo", "?perfil=aulas")?.modo).toBe("aulas");
@@ -132,7 +142,7 @@ describe("gramática de direcciones", () => {
       "/monitoreo?modo=territorial&seccion=avance",
       "/hojas-ruta?seccion=seleccion&pestana=titulares",
       "/carga",
-      "/bitacora?seccion=cronograma",
+      "/planner?seccion=cronograma",
       "/calc-muestra?modo=aulas",
     ];
     for (const href of casos) {

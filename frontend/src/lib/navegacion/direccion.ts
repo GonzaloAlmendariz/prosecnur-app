@@ -112,6 +112,19 @@ const ALIAS_LEGACY: Partial<Record<ProsecnurModuleSlug, AliasPorNivel>> = {
   },
 };
 
+// Alias por VALOR, no por nombre de parámetro: una sección que dejó de existir
+// y cuyo contenido vive ahora en otra sección y pestaña. Se lee, nunca se
+// escribe. ADR 0122 §1: Calendario y Lienzo pasaron a ser pestañas del
+// Planner; la pestaña pedida (mes/semana) se conserva si venía.
+type SeccionRenombrada = { seccion: string; pestana: string };
+
+const SECCIONES_RENOMBRADAS: Partial<Record<ProsecnurModuleSlug, Readonly<Record<string, SeccionRenombrada>>>> = {
+  "diseno-estudio": {
+    calendario: { seccion: "cronograma", pestana: "mes" },
+    canvas: { seccion: "bitacora", pestana: "lienzo" },
+  },
+};
+
 const PARAMS_RESERVADOS = new Set<string>([
   ...PARAMS_CANONICOS,
   PARAM_PROYECTO,
@@ -242,9 +255,14 @@ export function parsearDireccion(
   const alias = ALIAS_LEGACY[nodo.modulo] ?? {};
 
   const modo = leerParam(params, PARAMS_DIRECCION.modo, alias.modo);
-  const seccion =
+  const seccionLeida =
     leerParam(params, PARAMS_DIRECCION.seccion, alias.seccion) ?? nodo.seccion;
-  const pestana = leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana);
+  const renombrada = seccionLeida
+    ? SECCIONES_RENOMBRADAS[nodo.modulo]?.[normalizarToken(seccionLeida)]
+    : undefined;
+  const seccion = renombrada ? renombrada.seccion : seccionLeida;
+  const pestana =
+    leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana) ?? renombrada?.pestana;
   const panel = leerParam(params, PARAMS_DIRECCION.panel);
   const foco = leerParam(params, PARAMS_DIRECCION.foco);
   const campana = leerParam(params, PARAM_CAMPANA);

@@ -1,17 +1,21 @@
+// El Planner del estudio (ADR 0122): la Bitácora renombrada. Seis secciones
+// —Estudio, Muestra, Equipo, Códigos, Cronograma y Bitácora— con la dirección
+// canónica (`useSeccion`): las secciones van en el pillbar compartido y las
+// pestañas de una sección con dos o más, en el rail de la casa.
+//
+// Contrato de Superficie: el panel activo es `diseno-estudio/<sección>` y es el
+// único dueño del scroll (`.planner-panel`, No Scroll Jail).
+
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
-import {
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
 import {
   apiBitacoraState,
   apiPlanTrabajoState,
   type DisenoEstudioBitacoraEntry,
   type PlanTrabajoState,
 } from "../../api/client";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { Alert } from "../../components/Alert";
+import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
@@ -24,56 +28,67 @@ import {
 } from "../../lib/modules";
 import { LogbookSection } from "./LogbookSection";
 import { CronogramaSection } from "./CronogramaSection";
-import { Calendar } from "./Calendar";
+import { Calendar, CALENDAR_VIEW_A11Y } from "./Calendar";
 import { CanvasSection } from "./canvas/CanvasSection";
 import { PanelImportar } from "./portabilidad/PanelImportar";
 import { descargarMapaDelEstudio } from "./portabilidad/descargar";
 import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
 import { PANEL_IMPORTAR } from "../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { PlannerCodigos } from "./planner/PlannerCodigos";
+import { PlannerEquipo } from "./planner/PlannerEquipo";
+import { PlannerEstudio } from "./planner/PlannerEstudio";
+import { PlannerMuestra } from "./planner/PlannerMuestra";
+import { usePlanner } from "./planner/usePlanner";
 import "./bitacora.css";
+import "./planner/planner.css";
 
-type Tab = "bitacora" | "cronograma" | "calendario" | "canvas";
+type Seccion = "estudio" | "muestra" | "equipo" | "codigos" | "cronograma" | "bitacora";
 
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
 
-type BitacoraSection = ProsecnurModuleSectionMeta & { id: Tab };
+type PlannerSection = ProsecnurModuleSectionMeta & { id: Seccion };
 
-function isBitacoraSection(section: ProsecnurModuleSectionMeta): section is BitacoraSection {
-  return (
-    section.id === "bitacora" ||
-    section.id === "cronograma" ||
-    section.id === "calendario" ||
-    section.id === "canvas"
-  );
+const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "equipo", "codigos", "cronograma", "bitacora"];
+
+function isPlannerSection(section: ProsecnurModuleSectionMeta): section is PlannerSection {
+  return SECCIONES_PLANNER.includes(section.id);
 }
 
-const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isBitacoraSection);
+const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isPlannerSection);
 
-// Bitácora llamaba `tab` a lo que la gramática canónica llama SECCIÓN: sus
-// tres destinos son el recorrido del módulo, no pestañas dentro de uno.
-// Contrato: `lib/navegacion/direccion.ts`.
-function seccionFromSearch(search: string): Tab {
-  const params = new URLSearchParams(search);
-  const value = params.get(PARAMS_DIRECCION.seccion) ?? params.get("tab");
-  if (value === "cronograma" || value === "calendario" || value === "canvas") return value;
-  return "bitacora";
+// El rail de Cronograma usa los mismos ids de tab/panel que el calendario: la
+// vista Mes o Semana sigue siendo un tabpanel etiquetado por su pestaña.
+function tabIdDe(key: string) {
+  if (key === "mes") return CALENDAR_VIEW_A11Y.month.tabId;
+  if (key === "semana") return CALENDAR_VIEW_A11Y.week.tabId;
+  return `planner-tab-${key}`;
+}
+
+function panelIdDe(key: string) {
+  if (key === "mes") return CALENDAR_VIEW_A11Y.month.panelId;
+  if (key === "semana") return CALENDAR_VIEW_A11Y.week.panelId;
+  return `planner-panel-${key}`;
 }
 
 export default function BitacoraPage() {
-  const location = useLocation();
-  const [tab, setTab] = useState<Tab>(() => seccionFromSearch(location.search));
+  const navegacion = useSeccion("diseno-estudio");
+  const tab = (navegacion.seccion ?? "estudio") as Seccion;
+  const pestanas = navegacion.pestanas;
+  const pestana = navegacion.pestana && pestanas.some((p) => p.id === navegacion.pestana)
+    ? navegacion.pestana
+    : pestanas[0]?.id ?? "";
+  const conRail = pestanas.length > 1;
+  const rail: readonly ContextTabRailItem<string>[] = pestanas.map((p) => ({ key: p.id, label: p.label, icon: p.icon }));
+  const planner = usePlanner();
   const [plan, setPlan] = useState<PlanTrabajoState | null>(null);
   const [bitacoraEstado, setBitacoraEstado] = useState<BitacoraEstado | null>(null);
   const [entries, setEntries] = useState<DisenoEstudioBitacoraEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const panelImportar = usePanelDireccionable(PANEL_IMPORTAR);
-
-  useEffect(() => {
-    setTab(seccionFromSearch(location.search));
-  }, [location.search]);
 
   async function load() {
     setError(null);
@@ -88,7 +103,7 @@ export default function BitacoraPage() {
       setEntries(bitacora.bitacora);
       setBitacoraEstado(consolidado);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo abrir la bitácora.");
+      setError(err instanceof Error ? err.message : "No se pudo abrir el Planner.");
     } finally {
       setLoading(false);
     }
@@ -107,13 +122,45 @@ export default function BitacoraPage() {
   }
 
   if (loading && !plan) {
-    return <LoadingBlock label="Abriendo bitácora..." />;
+    return <LoadingBlock label="Abriendo el Planner..." />;
+  }
+
+  function contenido() {
+    const rol = conRail && pestana !== "mes" && pestana !== "semana";
+    // El cronograma y el lienzo traen su propio marco a toda altura (ADR 0047):
+    // el grupo intrinsic sólo se declara para las secciones nuevas del Planner.
+    const propia = tab !== "cronograma" && tab !== "bitacora";
+    return (
+      <section
+        id={rol ? panelIdDe(pestana) : undefined}
+        role={rol ? "tabpanel" : undefined}
+        aria-labelledby={rol ? tabIdDe(pestana) : undefined}
+        className={`planner-panel planner-panel--${tab}`}
+        data-qa-geometry-group={propia ? `diseno-estudio/${tab}` : undefined}
+        data-qa-geometry-contract={propia ? "intrinsic" : undefined}
+      >
+        {tab === "estudio" && <PlannerEstudio control={planner} pestana={pestana} />}
+        {tab === "muestra" && <PlannerMuestra control={planner} />}
+        {tab === "equipo" && <PlannerEquipo control={planner} />}
+        {tab === "codigos" && <PlannerCodigos control={planner} pestana={pestana} />}
+        {tab === "cronograma" && plan && pestana === "gantt" && (
+          <CronogramaSection state={plan} onChange={setPlan} onReload={reloadPlan} />
+        )}
+        {tab === "cronograma" && plan && (pestana === "mes" || pestana === "semana") && (
+          <Calendar state={plan} onChange={setPlan} selectorDeVista={false} />
+        )}
+        {tab === "bitacora" && pestana === "registro" && <LogbookSection entries={entries} onChange={setEntries} />}
+        {tab === "bitacora" && pestana === "lienzo" && bitacoraEstado && (
+          <CanvasSection estado={bitacoraEstado} onEstado={setBitacoraEstado} />
+        )}
+      </section>
+    );
   }
 
   return (
     <PageFrame
-      auditReady={!loading && !error ? `bitacora-${tab}` : false}
-      title="Bitácora"
+      auditReady={!loading && !error && !planner.cargando ? `bitacora-${tab}` : false}
+      title="Planner"
       headerMode="sr-only"
       layout="workbench"
       bodyMode="fill"
@@ -127,21 +174,25 @@ export default function BitacoraPage() {
             dice. En su lugar va el dato que sí se consulta desde acá. */}
         <ModuleCommandBar
           modulo="diseno-estudio"
-          ariaLabel="Acciones de la bitácora"
+          ariaLabel="Acciones del Planner"
           className="bitacora-commandbar"
           contexto={
-            <ChromeIndicatorGroup ariaLabel="Contexto de la bitácora">
+            <ChromeIndicatorGroup ariaLabel="Contexto del Planner">
               <ChromeIndicator
-                label="Entradas"
-                value={entries.length ? String(entries.length) : "sin entradas"}
+                label="Estudio"
+                value={planner.estado?.planner.estudio.nombre || "sin nombre"}
                 prioridad="alta"
+              />
+              <ChromeIndicator
+                label="Perfiles"
+                value={planner.estado ? String(planner.estado.planner.perfiles.length) : "—"}
               />
             </ChromeIndicatorGroup>
           }
           secciones={
             <SectionPillbar
               modulo="diseno-estudio"
-              ariaLabel="Secciones de la bitácora"
+              ariaLabel="Secciones del Planner"
               seccionActiva={tab}
               items={BITACORA_SECTIONS.map((item) => ({
                 id: item.id,
@@ -155,9 +206,12 @@ export default function BitacoraPage() {
               id: "actualizar",
               label: "Actualizar",
               rank: 1,
-              onSelect: load,
-              disabled: loading,
-              busy: loading,
+              onSelect: () => {
+                void load();
+                void planner.recargar();
+              },
+              disabled: loading || planner.cargando,
+              busy: loading || planner.cargando,
             },
             {
               id: "exportar",
@@ -175,18 +229,28 @@ export default function BitacoraPage() {
         />
 
         {error && <Alert kind="error">{error}</Alert>}
+        {planner.error && <Alert kind="error">{planner.error}</Alert>}
 
         <div className="bitacora-body">
-          {tab === "bitacora" && <LogbookSection entries={entries} onChange={setEntries} />}
-          {tab === "cronograma" && plan && (
-            <CronogramaSection state={plan} onChange={setPlan} onReload={reloadPlan} />
-          )}
-          {tab === "calendario" && plan && (
-            <Calendar state={plan} onChange={setPlan} />
-          )}
-          {tab === "canvas" && bitacoraEstado && (
-            <CanvasSection estado={bitacoraEstado} onEstado={setBitacoraEstado} />
-          )}
+          {conRail ? (
+            <AdaptiveSplitView
+              ariaLabel={`Mesa de ${BITACORA_SECTIONS.find((s) => s.id === tab)?.label ?? "Planner"}`}
+              railLabel="Pestañas de la sección"
+              className="planner-split pulso-context-tab-layout"
+              rail={(
+                <ContextTabRail
+                  ariaLabel="Pestañas de la sección"
+                  activeKey={pestana}
+                  items={rail}
+                  panelId={panelIdDe}
+                  tabId={tabIdDe}
+                  onChange={(key) => navegacion.irA("pestana", key)}
+                />
+              )}
+            >
+              {contenido()}
+            </AdaptiveSplitView>
+          ) : contenido()}
         </div>
       </div>
 

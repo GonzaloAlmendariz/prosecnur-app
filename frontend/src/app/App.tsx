@@ -153,11 +153,13 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
-                  <Route path="/bitacora" element={<BitacoraPage />} />
+                  <Route path="/planner" element={<BitacoraPage />} />
+                  {/* ADR 0122: la Bitácora es el Planner; los enlaces viejos llegan con su query. */}
+                  <Route path="/bitacora" element={<RedireccionConQuery to="/planner" />} />
                   <Route path="/material-campo" element={<RecopiladoresPage />} />
                   <Route path="/recopiladores" element={<RedireccionConQuery to="/material-campo" />} />
-                  <Route path="/diseno-estudio" element={<Navigate to="/bitacora" replace />} />
-                  <Route path="/plan-trabajo" element={<Navigate to="/bitacora?seccion=cronograma" replace />} />
+                  <Route path="/diseno-estudio" element={<RedireccionConQuery to="/planner" />} />
+                  <Route path="/plan-trabajo" element={<Navigate to="/planner?seccion=cronograma" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/muestra" element={<MuestraHub />} />

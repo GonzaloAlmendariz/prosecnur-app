@@ -26,7 +26,7 @@ afterEach(() => {
 test("«Nueva actividad» es un diálogo del kit y Escape lo cierra", () => {
   const onClose = vi.fn();
   act(() => root.render(
-    <MemoryRouter initialEntries={["/bitacora"]}>
+    <MemoryRouter initialEntries={["/planner"]}>
       <EventModal modal={{ mode: "create", date: "2026-10-28" }} onClose={onClose} onChange={() => {}} />
     </MemoryRouter>,
   ));

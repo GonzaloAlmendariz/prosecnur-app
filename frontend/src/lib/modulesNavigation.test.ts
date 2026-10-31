@@ -36,12 +36,14 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
 > = {
   "diseno-estudio": {
     landingKind: "section",
-    to: "/bitacora",
+    to: "/planner",
     sections: [
-      { id: "bitacora", label: "Bitácora", to: "/bitacora", layoutPolicy: "viewport" },
-      { id: "cronograma", label: "Cronograma", to: "/bitacora?seccion=cronograma", layoutPolicy: "viewport" },
-      { id: "calendario", label: "Calendario", to: "/bitacora?seccion=calendario", layoutPolicy: "viewport" },
-      { id: "canvas", label: "Lienzo", to: "/bitacora?seccion=canvas", layoutPolicy: "viewport" },
+      { id: "estudio", label: "Estudio", to: "/planner", layoutPolicy: "viewport" },
+      { id: "muestra", label: "Muestra", to: "/planner?seccion=muestra", layoutPolicy: "viewport" },
+      { id: "equipo", label: "Equipo", to: "/planner?seccion=equipo", layoutPolicy: "viewport" },
+      { id: "codigos", label: "Códigos", to: "/planner?seccion=codigos", layoutPolicy: "viewport" },
+      { id: "cronograma", label: "Cronograma", to: "/planner?seccion=cronograma", layoutPolicy: "viewport" },
+      { id: "bitacora", label: "Bitácora", to: "/planner?seccion=bitacora", layoutPolicy: "viewport" },
     ],
   },
   "calc-muestra": {

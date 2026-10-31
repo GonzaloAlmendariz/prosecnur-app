@@ -1,0 +1,327 @@
+/* Planner del estudio (ADR 0122). Hereda el acento del módulo desde
+   .bitacora-shell (--bitacora-accent*); aquí sólo vive la geometría de las
+   secciones nuevas y del rail de pestañas. */
+
+.planner-split {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* El panel activo es el único dueño del scroll (No Scroll Jail). */
+.planner-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+}
+
+.planner-split > .planner-panel,
+.planner-split .pulso-adaptive-main > .planner-panel {
+  padding: var(--pulso-rail-bubble-offset);
+}
+
+/* El cronograma y el lienzo ya traen su propio marco: el panel no les suma padding. */
+.planner-panel--cronograma,
+.planner-panel--bitacora {
+  overflow: hidden;
+}
+
+.planner-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.planner-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.planner-cabecera-texto h2 {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+
+.planner-cabecera-texto p {
+  margin: 4px 0 0;
+  max-width: 68ch;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.planner-cabecera-lado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.planner-origen {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
+
+.planner-origen--declarado {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+}
+
+.planner-avisos {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-2) calc(var(--pulso-space-3) + 14px);
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.planner-avisos--aviso {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.planner-avisos--conflicto {
+  border-color: var(--pulso-danger-fg);
+  color: var(--pulso-danger-fg);
+}
+
+.planner-vacio {
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.planner-ayuda {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* --- Formularios ------------------------------------------------------------ */
+
+.planner-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.planner-form--fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.planner-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.planner-campo--ancho {
+  grid-column: span 2;
+  flex: 2 1 280px;
+}
+
+.planner-campo--corto {
+  flex: 0 1 96px;
+}
+
+.planner-campo > span,
+.planner-subtitulo {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.planner-campo input,
+.planner-campo select,
+.planner-poblacion input {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  min-width: 0;
+}
+
+.planner-campo output {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* --- Perfiles ---------------------------------------------------------------- */
+
+.planner-tipos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.planner-tipo {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.planner-tipo:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.planner-tipo.is-activo {
+  border-color: var(--bitacora-accent-border);
+  background: var(--bitacora-accent-soft);
+}
+
+.planner-tipo-detalle {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.planner-perfiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.planner-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  min-width: 0;
+}
+
+.planner-perfil h3 {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.planner-poblaciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  align-items: flex-start;
+}
+
+.planner-poblacion {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+}
+
+.planner-poblacion input {
+  flex: 1 1 auto;
+}
+
+.planner-modos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.planner-modos dt {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-faint);
+}
+
+.planner-modos dd {
+  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.planner-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+/* --- Celdas editables dentro de PulsoTable ------------------------------- */
+
+.planner-celda-input {
+  width: 100%;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+}
+
+.planner-codigo {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .planner-campo--ancho {
+    grid-column: auto;
+  }
+
+  .planner-modos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planner-tipo {
+    transition: none;
+  }
+}

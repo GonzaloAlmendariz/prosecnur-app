@@ -6,7 +6,7 @@ import {
 } from "./moduleDockModel";
 
 const OCHO = [
-  "/bitacora",
+  "/planner",
   "/calc-muestra",
   "/editor-xlsform",
   "/hojas-ruta",

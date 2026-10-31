@@ -94,7 +94,7 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/calc-muestra",
-  "/bitacora",
+  "/planner",
   "/material-campo",
   "/hojas-ruta",
   "/monitoreo",
@@ -208,12 +208,13 @@ function SessionErrorChip() {
 
 function activeModuleRoute(pathname: string): string {
   if (isProcesamientoRoute(pathname)) return "/procesamiento";
-  // Cronograma y Diseño del estudio se fusionaron en Bitácora.
+  // Cronograma y Diseño del estudio se fusionaron en Bitácora, que es el Planner (ADR 0122).
   if (
     pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/") ||
-    pathname === "/diseno-estudio" || pathname.startsWith("/diseno-estudio/")
+    pathname === "/diseno-estudio" || pathname.startsWith("/diseno-estudio/") ||
+    pathname === "/bitacora" || pathname.startsWith("/bitacora/")
   ) {
-    return "/bitacora";
+    return "/planner";
   }
   const match = MODULE_SWITCHER_ITEMS
     .filter((item) => item.to !== "/")

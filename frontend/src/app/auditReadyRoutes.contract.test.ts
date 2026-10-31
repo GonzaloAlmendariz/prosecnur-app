@@ -482,20 +482,24 @@ describe("audit-ready route root contract", () => {
     const { tag } = pageFunctionRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Bitácora");
 
-    // El lienzo entra como cuarta sección con el ADR 0047: es la vista que
-    // aporta la ramificación que un cronograma lineal no puede expresar.
+    // ADR 0122: la Bitácora es el Planner. Seis secciones; Calendario y Lienzo
+    // pasaron a ser pestañas de Cronograma y Bitácora. La clave conserva el
+    // prefijo `bitacora-` que ya usan las readiness anidadas del cronograma y
+    // del lienzo.
     expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
-      "bitacora",
+      "estudio",
+      "muestra",
+      "equipo",
+      "codigos",
       "cronograma",
-      "calendario",
-      "canvas",
+      "bitacora",
     ]);
     expect(hasBitacoraTabKey(value), "Bitácora readiness must be `bitacora-${tab}`").toBe(true);
     expectNegatedGuard(value, "Bitácora", "loading");
     expectNegatedGuard(value, "Bitácora", "error");
     expectSemanticReadiness(value, "Bitácora", "bitacora-");
     expect(compactExpression(value), "Bitácora guard polarity and fallback").toBe(
-      "!loading&&!error?`bitacora-${tab}`:false",
+      "!loading&&!error&&!planner.cargando?`bitacora-${tab}`:false",
     );
   });
 

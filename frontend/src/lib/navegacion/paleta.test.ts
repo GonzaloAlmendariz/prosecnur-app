@@ -15,10 +15,10 @@ describe("paleta de comandos (L30)", () => {
     expect(r.every((x) => x.href.startsWith("/"))).toBe(true);
   });
 
-  test("varias palabras acotan por las migas: «calendario bitácora» llega al calendario", () => {
-    const r = buscarEnPaleta(MANIFIESTO_NAVEGACION, "calendario bitacora");
-    expect(r[0].label).toBe("Calendario");
-    expect(r[0].href).toContain("seccion=calendario");
+  test("varias palabras acotan por las migas: «semana cronograma» llega a la vista semanal", () => {
+    const r = buscarEnPaleta(MANIFIESTO_NAVEGACION, "semana cronograma");
+    expect(r[0].label).toBe("Semana");
+    expect(r[0].href).toContain("seccion=cronograma&pestana=semana");
   });
 
   test("una consulta sin coincidencias devuelve vacío", () => {
