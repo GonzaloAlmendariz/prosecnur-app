@@ -8,6 +8,32 @@ Fuentes que lo alimentan: `docs/qa/checklist-formatos-campo-2026-10-31.md` (C1�
 `docs/qa/contrato-equipo-territorial-2026-10-31.md`, ADR 0118 (y su enmienda del 31 oct), ADR 0121, y los aportes de
 las sesiones «Monitoreo: cierre de Aulas y pendientes del loop» y «Meta B: revamp completo de la app».
 
+## 0. Carta de módulos: cada uno hace una cosa (31 oct, pedido de Gonzalo)
+
+Gonzalo: «definir bastante bien finalmente qué va a ser monitoreo, qué va a ser material, qué va a ser cálculo de muestra,
+qué va a ser el planner, qué va a ser el editor de formularios, y cómo luego todo eso termina en procesamiento y eso
+termina en dashboards, sin tratar tampoco de sobremezclar […] cada cosa haga una cosa y se puedan comunicar entre sí de
+forma adecuada». Y: «hay cosas que se hacen en los Excels, pero quizás los Excels o el formato de los Excels lo podemos
+diseñar nosotros».
+
+| Módulo | Hace una cosa | Recibe de | Entrega a | No hace | Formatos que diseña |
+|---|---|---|---|---|---|
+| Planner | Define el estudio una sola vez. | El equipo PULSO: las decisiones del estudio | Todos los módulos: las definiciones, para que nadie las copie | No calcula muestras; No genera archivos de campo | Plantilla del equipo de campo |
+| Cálculo de muestra | Decide cuántas encuestas y cómo se reparten. | Planner: universo y variables de cuota; Cliente: el marco (padrones, aulas) | Hojas de ruta: cuántas por distrito o zona; Material: las aulas sorteadas; Monitoreo: las metas por celda, como foto con sello | No elige manzanas en el territorio (eso es Hojas de ruta); No mide el avance | Reporte del diseño muestral |
+| Formularios | Arma el instrumento. | Planner: variables de cuota y criterio de elegibilidad | Kobo: el formulario publicado; Procesamiento: la estructura del instrumento; Monitoreo: qué variables leer | No guarda respuestas; No decide la muestra | XLSForm del instrumento, Instrumento para revisión |
+| Hojas de ruta | Elige dónde se encuesta en el territorio. | Cálculo de muestra: cuántas por distrito (hoy lo calcula Hojas por su cuenta); Censo INEI: el marco de manzanas | Material: la muestra enviada; Monitoreo: la muestra enviada (no la de ese momento) | No imprime material (eso pasó a Material); No asigna encuestadores | Excel operativo, Reporte del sorteo |
+| Material de campo | Prepara todo lo que sale a campo y lee lo que campo devuelve en sus Excel. | Hojas de ruta: la muestra enviada; Cálculo de muestra: las aulas sorteadas; Planner: equipo y códigos | Campo: paquetes impresos y Excel; Monitoreo: la asignación, como consulta | No mide el avance; No escribe en Monitoreo | Ficha de la UMP, Hoja de ruteo, Hoja de consolidados, Hoja del día, Excel de asignación, Plantillas del libro de aulas, Barrido telefónico |
+| Campo | Aplica las encuestas y llena los formatos. | Material: todo lo que sale | Material: los Excel llenados que Material generó; Monitoreo: las respuestas y los Excel de seguimiento | No usa la app | — |
+| Monitoreo | Mide el campo con lo que vuelve. | Kobo / SurveyMonkey / Sheets: las respuestas y el barrido; Material: la asignación; Cálculo de muestra: las metas (foto con sello) | Procesamiento: la base de campo con el estado de cada caso; Cliente y equipo: reportes de avance | No genera formatos de campo; No corrige respuestas | Hojas de seguimiento, Reporte de avance |
+| Procesamiento | Convierte la base de campo en resultados. | Monitoreo: la base de campo con estados; Formularios: la estructura del instrumento | Dashboard: la analítica; Cliente: bases, tablas e informes | No cambia lo que pasó en campo | Plantilla de codificación, Libro de códigos, Frecuencias y cruces, Informe |
+| Dashboard | Publica los resultados para el cliente. | Procesamiento: la analítica | Cliente: el tablero publicado | No calcula nada nuevo | — |
+
+**Reglas para los Excel de campo** (los diseñamos nosotros): un Excel, un dueño que lo genera y lo lee de vuelta; las
+columnas que llena campo en ámbar y con desplegable, el resto bloqueado; hoja «Léeme» primero; hoja «Control» oculta con
+el sello de la muestra y la versión; la app lee sólo lo de campo y reporta por fila lo que no pudo leer; mismo estilo en
+todos (cabecera navy, titulares azul / reemplazos amarillo, fechas día/mes/año, nombres de columna estables); Excel o
+Sheets con el mismo formato.
+
 ## 1. Lo que dijo Gonzalo (textual)
 
 Sobre cómo trabaja campo:
@@ -32,6 +58,13 @@ Sobre Material:
 
 - «Material no tiene que ver con costos y precios, de eso se encarga otra persona»
 - «ese módulo solo recibe la lista entonces debe mostrar mejor cada pestaña de una forma más profesional»
+
+Sobre el orden de la app:
+
+- «falta organización, falta un orden, falta respetar más la intuitividad y el dinamismo […] cada cosa haga una cosa y se
+  puedan comunicar entre sí de forma adecuada»
+- «no estás respetando la identidad de la app»
+- «y las maquetas de los subtab» · «y las vistas de la app? las maquetas de las vistas?»
 
 Sobre la forma de trabajar:
 
