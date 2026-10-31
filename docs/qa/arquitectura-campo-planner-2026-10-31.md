@@ -113,9 +113,34 @@ Cursos-horario es el mismo perfil que aulas.
 | Excel de asignación | Excel donde campo escribe quién hace cada UMP; la app lo lee de vuelta | Excel operativo de Hojas de ruta |
 | Planner | Propuesta: la Bitácora renombrada, donde se define el estudio para todos los módulos | Plan de campo (jornadas por encuestador) |
 
-## 8. Pendiente de estructurar (tablero del loop)
+## 8. Planner: qué definiría y dónde vive hoy (L5, verificado en `session_schema.R` y ADR 0121)
 
-- Planner: campos del estudio, dueño, consumidores, dónde viven hoy y cómo se mudan (L5).
+Principio de mudanza: **un campo a la vez, sin mudanza en bloque**. El Planner pasa a ser el único que escribe ese
+campo; el lugar viejo deja de escribirlo y sus lectores consultan el Planner con respaldo al lugar viejo para los
+`.pulso` anteriores. Nada se copia de un módulo a otro.
+
+| Campo del estudio | Hoy vive en (clave de sesión) | Lo usan | Cómo se muda |
+|---|---|---|---|
+| Identidad del estudio (nombre, código, cliente) | `estudio`, `calc_muestra_estudio`, `project_modules` | Todos | El Planner escribe; los demás leen con respaldo |
+| Perfil de recojo y canales (territorial, aulas, telefónico, correo) | `monitoreo_config$monitoreo_profile`, `material_campaigns` (tipos) | Monitoreo, Material, Home | El perfil lo declara el Planner; Monitoreo y Material lo leen |
+| Universo y variables de cuota | Aulas: escenario de Cálculo de muestra, **copiado** a `design_targets.representatividad` (ADR 0121 §2). Acreditación: `monitoreo_cuotas`. Territorial: cuotas del censo dentro de la muestra de `hojas_ruta_runs` | Cálculo de muestra, Hojas de ruta, Monitoreo | Una sola declaración (el bloque `representatividad_v1` del ADR 0121) que todos consultan; la copia a `design_targets` pasa a ser lectura |
+| Códigos de resultado de la visita | En ningún lado: cada hoja de Word trae los suyos | Material (hojas de ruteo y consolidados), Monitoreo (lectura) | Nacen en Material con D1 y se mudan al Planner cuando exista |
+| Status del barrido telefónico | En el Sheets de campo, a mano | Material (plantilla), Monitoreo (lectura) | Igual que los códigos de resultado |
+| Equipo de campo con códigos | Territorial: `monitoreo_config$territorial$enumerator_roster`. Aulas: libro del operativo y `monitoreo_aulas_disponibilidad`. Telefónico: columna «Responsable» del barrido | Material (asignación, distribución), Monitoreo (atribución) | Una lista por estudio en el Planner; cada perfil la filtra |
+| Cronograma y fases | `plan_trabajo` (cronograma de la Bitácora), `hojas_ruta_active_phase` y `hojas_ruta_runs` (piloto/campo), marcas de piloto en Monitoreo | Hojas de ruta, Monitoreo, Material | El Planner dice qué fase está activa y sus fechas; los módulos la leen |
+| Insumos del cliente (padrones, listados) | `monitoreo_aulas_padron`, `monitoreo_sources`, `files/` | Monitoreo, Material | Se registran en el Planner como insumos con su origen; el archivo sigue en `files/` |
+
+**Hallazgos de L5**
+
+- **Las cuotas viven en tres lugares** según el perfil (escenario de Cálculo de muestra, `monitoreo_cuotas`, muestra de
+  Hojas de ruta). Es el mismo concepto con tres formas.
+- **El ADR 0121 copia** el bloque de Cálculo de muestra a `design_targets` (§2). Va contra la regla 3 de §4 («nunca se
+  copia estado»). No es urgente: el ADR del Planner debería convertir esa copia en una consulta.
+- **El equipo de campo no tiene una sola casa**: lista territorial en Monitoreo, aplicadores de aulas en el libro y la
+  disponibilidad, operadores telefónicos como texto libre.
+
+## 9. Pendiente de estructurar (tablero del loop)
+
 - Contratos de lectura entre módulos (L6).
 - Formatos con maqueta fiel (L8).
 - Datos personales (L9).
