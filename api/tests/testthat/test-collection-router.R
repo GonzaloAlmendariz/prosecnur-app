@@ -52,6 +52,7 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/campaigns/territorial/asignacion",
     "/api/recopiladores/campaigns/territorial/asignacion/excel",
     "/api/recopiladores/campaigns/territorial/asignacion/importar",
+    "/api/recopiladores/campaigns/territorial/formatos",
     # Campañas (E1h): lista, crear, duplicar, renombrar y borrar (POST con
     # confirm_name; no DELETE con cuerpo).
     "/api/recopiladores/mail-campaigns",

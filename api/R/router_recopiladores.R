@@ -161,6 +161,17 @@ mount_recopiladores <- function(pr) {
       collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
                                                  file_name = input$file_name, content_base64 = input$content_base64)
     })) |>
+    # Códigos de resultado del estudio y formato de las hojas de campo (D1,
+    # collection_territorial_formatos.R). GET puro: lo leen las hojas y Monitoreo.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/formatos", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_formatos_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/territorial/formatos", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_formatos_put(session_header(req), campaign_id = body[["id"]], rotulos = body[["rotulos"]],
+                                          con_99 = body[["con_99"]], columna_criterio = body[["columna_criterio"]],
+                                          caras_ruteo = body[["caras_ruteo"]], expected_revision = body[["expected_revision"]])
+    })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_campaign_meta_put(session_header(req), id = body$id, name = body$name, actor = body$actor,

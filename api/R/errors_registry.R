@@ -185,6 +185,9 @@ errores_registrados <- function() {
     "E_COLLECTION_TERRITORIAL_ASIGNACION_INVALIDA",          "collection_territorial_asignacion.R", "422",
     # El Excel de asignación que llena campo (C1/C3).
     "E_COLLECTION_TERRITORIAL_SIN_EQUIPO",                   "collection_territorial_excel.R", "409",
+    # Códigos de resultado y formato de las hojas (D1).
+    "E_COLLECTION_TERRITORIAL_FORMATOS_STALE",               "collection_territorial_formatos.R", "409",
+    "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS",           "collection_territorial_formatos.R", "422",
     "E_COLLECTION_TERRITORIAL_EXCEL_ILEGIBLE",               "collection_territorial_excel.R", "400,422",
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
