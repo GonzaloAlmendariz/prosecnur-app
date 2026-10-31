@@ -1839,6 +1839,32 @@ export type MonitoreoAulasReemplazosPorTipo = {
   total?: number;
 };
 
+/** La tasa de un tipo de curso-horario aplicado, en `refuerzos.rendimiento`. */
+export type MonitoreoAulasTasaPorTipo = {
+  /** Cursos-horario aplicados de ese tipo. */
+  n: number;
+  elegibles: number;
+  efectivas: number;
+  /** Efectivas sobre elegibles, en proporción; `null` sin elegibles. */
+  tasa: number | null;
+};
+
+/**
+ * El bloque `refuerzos` del tablero (`monitoreo_aulas_refuerzos()`). Sólo se
+ * declara lo que la vista lee —`ok`, `motivo` y `rendimiento`—; el resto
+ * (techo, activadas, disponibles) viaja igual y queda abierto.
+ */
+export type MonitoreoAulasRefuerzosTablero = {
+  ok: boolean;
+  motivo?: string;
+  /** Rendimiento de cada tipo de curso-horario ya aplicado, según su procedencia. */
+  rendimiento?: Partial<Record<
+    "titulares" | "reemplazo" | "complemento" | "refuerzo" | "adicional" | "banco",
+    MonitoreoAulasTasaPorTipo
+  >>;
+  [clave: string]: unknown;
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1854,6 +1880,11 @@ export type MonitoreoAulasDashboard = {
    * anteriores al bloque (backend viejo): la vista lo declara, no revienta.
    */
   dos_tasas?: MonitoreoAulasDosTasas | null;
+  /**
+   * Refuerzos y el rendimiento por tipo de curso-horario. Ausente en cortes
+   * anteriores al bloque: A2 lo declara.
+   */
+  refuerzos?: MonitoreoAulasRefuerzosTablero | null;
   /**
    * El mapa de horas por día: qué ventana ocupa cada cita y cuántas aulas
    * caen a la vez (el número que dimensiona a los aplicadores). Ausente en

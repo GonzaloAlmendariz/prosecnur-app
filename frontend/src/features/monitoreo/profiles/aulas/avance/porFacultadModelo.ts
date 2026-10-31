@@ -1,4 +1,4 @@
-import type { MonitoreoAulasDashboard, MonitoreoAulasDesenlace } from "../../../../../api/monitoreo";
+import type { MonitoreoAulasDashboard, MonitoreoAulasDesenlace, MonitoreoAulasRefuerzosTablero } from "../../../../../api/monitoreo";
 import { avanceCuota, numeroONulo } from "../avanceCuota";
 import { composicionReferencial } from "../composicionReferencial";
 import { colchonPorFacultad, SIN_VALOR_DEL_EJE } from "../consumoDeCadena";
@@ -370,7 +370,7 @@ function franjaDe(dashboard: MonitoreoAulasDashboard | null): { cifras: CifraDeL
   };
 }
 
-const TIPOS_DE_RENDIMIENTO: ReadonlyArray<[string, string]> = [
+const TIPOS_DE_RENDIMIENTO: ReadonlyArray<[keyof NonNullable<MonitoreoAulasRefuerzosTablero["rendimiento"]>, string]> = [
   ["titulares", "Titulares"],
   ["reemplazo", "Reemplazos"],
   ["complemento", "Complementos"],
@@ -380,11 +380,12 @@ const TIPOS_DE_RENDIMIENTO: ReadonlyArray<[string, string]> = [
 ];
 
 /**
- * `refuerzos.rendimiento` del motor (`monitoreo_aulas_refuerzos.R`). El tipo
- * del payload todavía no declara el bloque `refuerzos`: se lee defensivo.
+ * `refuerzos.rendimiento` del motor (`monitoreo_aulas_refuerzos.R`), tipado en
+ * `MonitoreoAulasRefuerzosTablero`. Cada cifra se sigue leyendo con
+ * `numeroONulo`: jsonlite puede mandar un NA como cadena.
  */
 function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: FilaDeRendimiento[]; vacio: Vacio | null } {
-  const refuerzos = registro((dashboard as unknown as Record<string, unknown> | null)?.refuerzos);
+  const refuerzos = dashboard?.refuerzos ?? null;
   if (!refuerzos) {
     return {
       filas: [],
@@ -398,9 +399,9 @@ function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: Fila
       vacio: { causa: motivo ? `Sin rendimiento por tipo: ${motivo}` : "El motor no pudo medir el rendimiento por tipo.", clase: "legitimo" },
     };
   }
-  const rendimiento = registro(refuerzos.rendimiento) ?? {};
+  const rendimiento = refuerzos.rendimiento ?? {};
   const filas = TIPOS_DE_RENDIMIENTO.map(([clave, tipo]): FilaDeRendimiento => {
-    const r = registro(rendimiento[clave]);
+    const r = rendimiento[clave];
     const n = numeroONulo(r?.n) ?? 0;
     const elegibles = numeroONulo(r?.elegibles) ?? 0;
     const efectivas = numeroONulo(r?.efectivas) ?? 0;
