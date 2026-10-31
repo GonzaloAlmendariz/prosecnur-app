@@ -83,6 +83,26 @@ muestra `stale`. En F1 Monitoreo sigue leyendo la muestra viva.
 - **Topes.** Al leer se aceptan 12 instantáneas; al insertar, 8.
 - **Validación.** Una huella que llega del cliente sin la forma `sha256:` se descarta. Es solo informativa.
 
+**Enmienda (2026-10-31), quién hace cada UMP.** Decisiones de Gonzalo sobre I3: «equipo en Material» y, ante la lista
+que Monitoreo ya tenía, «la de Monitoreo». Contrato y revisión de `guardian-contratos` en
+`docs/qa/contrato-equipo-territorial-2026-10-31.md`.
+
+- **Dueño de la lista.** Monitoreo: `monitoreo_config$territorial$enumerator_roster`, con su `code_format`. Material
+  no guarda personas; lee la lista con el normalizador de Monitoreo y expone sólo código y nombre, nunca el DNI.
+- **Qué guarda Material.** La asignación UMP → código, en la clave persistible `material_territorial_asignacion`
+  (`material_territorial_asignacion/v1`, dueño `collection_territorial_asignacion.R`), por `id_manzana` sobre la
+  foto enviada de la fase de la campaña, con su propia revisión y la huella de esa foto. Un reemplazo hereda en lectura
+  el código de su titular salvo que tenga uno propio. Se asigna por columna del calendario del plan, pero se guarda
+  por UMP: «Encuestador k» cambia al recalcular el plan.
+- **Plan desde la foto o bloqueo.** El plan se arma con la muestra viva. Mientras no lea la foto, la asignación se
+  bloquea con la foto desactualizada (409 `E_COLLECTION_TERRITORIAL_DESACTUALIZADA`), como F2b bloquea generar.
+- **Lectura de Monitoreo.** `GET /api/recopiladores/campaigns/territorial/asignacion` es puro. Monitoreo compara
+  asignado contra observado sólo si su huella coincide con `sample_fingerprint`, por código limpio
+  (`.monitoreo_territorial_clean_code`), en una columna `codigo_planificado`. `monitoreo_engine.R` y
+  `router_monitoreo.R` no crecen por esto.
+- **Datos personales.** Nombres de encuestadores, el mismo dato que Monitoreo muestra en `responsible_display`.
+  Pendiente: el anonimizador de proyectos de referencia no cubre `enumerator_roster` (nombres y DNI) ni esta clave.
+
 ### 4. Direcciones en Material
 
 `/material-campo?modo=territorial&campana=territorial.principal&seccion=<unidades|catalogo|paquetes|entrega>`, con

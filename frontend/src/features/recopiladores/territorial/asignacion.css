@@ -1,0 +1,38 @@
+/* Material › Entrega: asignación de encuestadores de la lista de Monitoreo (decisión I3). */
+.rec-asig {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.rec-asig-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.rec-asig-cab strong { display: block; font-size: 13px; color: var(--pulso-text); }
+.rec-asig-cab small { display: block; font-size: 11.5px; color: var(--pulso-text-soft); }
+
+.rec-asig-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 600;
+}
+
+/* El selector vive en la cabecera de la columna del calendario (planCampo.css la pinta en fila). */
+.hr-plan-cabeza span:has(> .rec-asig-selector) { flex-wrap: wrap; }
+.rec-asig-selector { flex: 1 1 100%; min-width: 0; }

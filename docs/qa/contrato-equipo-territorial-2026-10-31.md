@@ -1,9 +1,10 @@
 # Contrato: el equipo de campo y la asignación UMP → encuestador en Material territorial
 
-Fecha: 2026-10-31. Decisión de Gonzalo sobre I3 (`checklist-flujo-analista-2026-10-30.md`): **el equipo se escribe en
-Material**.
+Fecha: 2026-10-31. Decisiones de Gonzalo sobre I3 (`checklist-flujo-analista-2026-10-30.md`): **el equipo se asigna
+en Material** y, ante B1, **«la de Monitoreo»**: la lista de encuestadores es una sola, la de Monitoreo.
 
-Estado: **revisado por `guardian-contratos` (2026-10-31): aprobado con cambios y requiere enmienda de ADR 0118.** No se construye hasta que Gonzalo decida B1 (ver «Revisión», al final).
+Estado: **revisado por `guardian-contratos` (2026-10-31) y B1 decidido.** Lo que sigue es el contrato construido; el
+borrador previo (equipo propio en Material) queda descartado.
 
 ## Problema
 
@@ -13,63 +14,62 @@ Estado: **revisado por `guardian-contratos` (2026-10-31): aprobado con cambios y
   por UMP).
 - Nadie cruza las dos cosas, así que no se puede saber si el plan se cumplió.
 
-## Decisión de diseño
+## Decisión
 
-1. **El equipo vive en Material**, en la campaña territorial. Es una lista `{codigo, nombre}`. `codigo` es el que el
-   encuestador usará en el formulario, el mismo que aparece después en `responsible_display`.
-2. **La asignación también vive en Material**: una tabla UMP → `codigo`, guardada en la campaña. La UI de Entrega deja
-   asignar un integrante del equipo a cada columna «Encuestador k» del calendario del plan, y eso asigna todas las UMP
-   de sus jornadas. La asignación se guarda materializada por UMP; no se recalcula del plan.
-3. **Monitoreo la lee** (sólo lectura) y compara con lo observado: «asignada a P844 · la hizo P930». La columna y el
-   filtro de Monitoreo los hace su sesión, coordinada por Meta B. No se toca `features/monitoreo/**` desde aquí.
+1. **La lista manda en Monitoreo**: `monitoreo_config$territorial$enumerator_roster` (se carga desde Excel en
+   Monitoreo, con su `code_format` PXXX o DNI). Material no guarda personas: la lee con
+   `.monitoreo_territorial_normalize_enumerator_roster` y expone sólo `{codigo, nombre}`, **nunca el DNI**.
+   Si la lista usa `code_format = "DNI"`, el código ES el DNI: el GET no expone a nadie y la asignación queda
+   bloqueada con un aviso que pide cargarla con códigos (hallazgo del `verificador`, 2026-10-31).
+2. **Material guarda sólo la asignación UMP → código**, materializada por `id_manzana` sobre la foto enviada de la fase
+   de la campaña. La UI de Entrega deja elegir un encuestador de esa lista para cada columna «Encuestador k» del
+   calendario, y eso asigna todas las UMP de sus jornadas. «Encuestador k» no sigue a la persona (cambia al recalcular
+   el plan), por eso se guarda por UMP.
+3. **Un reemplazo hereda en lectura** el código de su titular, salvo que tenga uno propio.
+4. **Monitoreo la lee** y compara con lo observado. Lo construye su sesión, coordinada por Meta B (B3, abajo).
 
 ## Persistencia
 
-Nueva clave de sesión **persistible** `material_territorial_equipo`, schema `material_territorial_equipo/v1`. Va en
-una clave aparte para no abrir la lista cerrada `.MCAMP_ENTRY_KEYS` ni cambiar `material_campaigns/v1`.
+Clave de sesión **persistible** `material_territorial_asignacion`, schema `material_territorial_asignacion/v1`, aparte
+para no abrir la lista cerrada `.MCAMP_ENTRY_KEYS` ni mover `registry_revision`. Dueño:
+`api/R/collection_territorial_asignacion.R`, que la normaliza al leer.
 
 ```text
 list(
-  schema = "material_territorial_equipo/v1",
-  revision = <int>,                       # concurrencia optimista, como material_campaigns
-  equipo = list(list(codigo = "P844", nombre = "Ejemplo Prueba Dieciocho"), ...),
-  asignacion = list(list(id_manzana = "15011703200032 0", hoja_num = 71L, codigo = "P844"), ...),
-  sample_fingerprint = "sha256:…",        # huella de la foto enviada cuando se guardó
+  schema = "material_territorial_asignacion/v1",
+  campaign_id = "territorial.principal", fase = "field",
+  revision = <int>,                                   # concurrencia optimista propia
+  asignacion = list(list(id_manzana = "…", codigo = "P844"), ...),
+  sample_fingerprint = "sha256:…",                    # huella de la foto cuando se guardó
   updated_at = "<ISO>"
 )
 ```
 
-- Se declara en `session_schema.R` como `literal` / `persistible`, con su normalizador.
-- Un `.pulso` viejo no la trae y se lee como vacía, sin marcar dirty.
-- **Datos personales:** son nombres de encuestadores, el mismo dato que Monitoreo ya muestra en `responsible_display`.
-  Viajan en el `.pulso` como el resto del estado. El anonimizador de proyectos de referencia
-  (`api/scripts/pulso_anonimizar.R`) debe cubrir esta clave.
+Un `.pulso` viejo no la trae y se lee vacía. Una asignación de otra campaña o fase se ignora.
 
 ## API
 
 | Método y ruta | Qué hace |
 |---|---|
-| `GET /api/recopiladores/campaigns/territorial/equipo` | Devuelve `{equipo, asignacion, revision, sample_fingerprint, desactualizada, huerfanas}`. `asignacion` sólo trae las UMP que siguen en la foto enviada; `huerfanas` cuenta las que ya no están; `desactualizada` es verdadero si la huella guardada difiere de la de la foto actual. Es lectura pura y la consume también Monitoreo. |
-| `PUT /api/recopiladores/campaigns/territorial/equipo` | Recibe `{equipo, asignacion, expected_revision}` y guarda; marca `project_dirty`. |
+| `GET /api/recopiladores/campaigns/territorial/asignacion?id=` | Lectura pura. `{equipo, code_format, asignacion[{id_manzana, label, role, codigo, origen: explicita\|heredada}], asignacion_revision, sample_fingerprint, sin_fuente, stale, desactualizada, huerfanas, codigos_fuera_del_equipo}`. Sin envío: 200 con `sin_fuente`. Sin campaña: 404 `E_COLLECTION_CAMPAIGN_NOT_FOUND`. |
+| `PUT /api/recopiladores/campaigns/territorial/asignacion` | `{id, asignacion[{id_manzana, codigo}], expected_revision}`. Reemplaza la asignación entera; un código vacío deja la UMP sin asignar. Devuelve lo mismo que el GET más `descartadas` (las guardadas que ya no están en la foto). |
 
-Validación del `PUT` (errores con `stop_api`, códigos nuevos en `errors_registry.R`):
+Errores del `PUT`:
 
-- **Equipo:** `codigo` obligatorio, único, de 1 a 20 caracteres, sin espacios a los lados; `nombre` de 0 a 80.
-  Error `E_TERRITORIAL_EQUIPO_INVALIDO` (422).
-- **Asignación:** cada `codigo` debe estar en el equipo y cada `id_manzana` en la foto enviada. Error
-  `E_TERRITORIAL_ASIGNACION_INVALIDA` (422).
-- **Sin campaña territorial o sin envío:** error 409, con los códigos existentes.
-- **Revisión desfasada:** error `E_TERRITORIAL_EQUIPO_STALE` (409).
-
-**Reenvío de la muestra:** la asignación de las UMP que siguen en la foto se conserva; las demás cuentan como
-`huerfanas` hasta el siguiente guardado, que las descarta.
+- Sin envío: 409 `E_COLLECTION_TERRITORIAL_SIN_FUENTE`.
+- Foto desactualizada (la muestra viva cambió desde el envío): 409 `E_COLLECTION_TERRITORIAL_DESACTUALIZADA`. Es la
+  opción (b) de B2 mientras F4 siga sin empezar.
+- Revisión desfasada: 409 `E_COLLECTION_TERRITORIAL_ASIGNACION_STALE`.
+- UMP fuera de la foto o código fuera de la lista de Monitoreo (comparado limpio, con
+  `.monitoreo_territorial_clean_code`): 422 `E_COLLECTION_TERRITORIAL_ASIGNACION_INVALIDA`, con el detalle por fila.
+  Nada se descarta en silencio.
 
 ## UI (Material › Entrega)
 
-- **Bloque «Equipo»:** tabla del kit con código y nombre, para agregar y quitar integrantes.
-- **Calendario del plan:** cada columna «Encuestador k» tiene un selector del equipo. Elegir asigna todas las UMP de
-  esa columna. Las UMP ya asignadas muestran el código.
-- **Guardar:** botón «Guardar equipo y asignación», con su estado.
+- **Calendario del plan:** cada columna «Encuestador k» lleva un selector con la lista de Monitoreo
+  («P844 · Nombre»). Elegir asigna todas las UMP de esa columna; «Guardar asignación» lo persiste.
+- **Sin lista:** aviso que remite a cargar los encuestadores en Monitoreo. **Foto desactualizada o sin envío:** el
+  selector se bloquea con el motivo.
 
 ## Gate
 
@@ -90,7 +90,7 @@ Validación del `PUT` (errores con `stop_api`, códigos nuevos en `errors_regist
 - Se carga desde Excel (`router_monitoreo.R:3615`), tiene su libro de códigos (`:3693`) y se reconcilia (`:3717`).
 - De ella sale `responsible_display` (`monitoreo_engine.R:14449-14459`). Un código que no esté en esa lista se pinta
   «Responsable no identificado».
-- Un equipo aparte en Material sería una segunda lista para lo mismo. **Decisión de Gonzalo:** qué lista manda.
+- Un equipo aparte en Material sería una segunda lista para lo mismo. **Decidido por Gonzalo: «la de Monitoreo».**
 
 **B2. El plan de Material se arma con la muestra viva de la fase activa, no con la foto enviada.**
 - `EntregaTerritorial.tsx:30` y `router_hojas_ruta_plan_campo.R:10-16` usan la muestra viva.

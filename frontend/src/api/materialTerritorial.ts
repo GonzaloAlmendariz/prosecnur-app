@@ -201,3 +201,87 @@ export async function apiMaterialTerritorialUnidades(campaignId: string): Promis
 export async function apiMaterialTerritorialEnvios(): Promise<EnviosPorFase> {
   return normalizarEnviosPorFase(await handle<unknown>(await apiFetch("/api/hojas-ruta/state", { headers: headers() })));
 }
+
+// ---- asignación UMP → encuestador (decisión I3, «la de Monitoreo») ---------------
+//
+//   GET campaigns/territorial/asignacion?id=   lectura pura; sin envío, `sin_fuente`.
+//   PUT campaigns/territorial/asignacion       {id, asignacion[{id_manzana, codigo}], expected_revision}
+//
+// El equipo es la lista de encuestadores de Monitoreo (sólo código y nombre); Material
+// guarda qué código va a cada UMP. Un reemplazo hereda en lectura el de su titular.
+
+export type IntegranteEquipo = { codigo: string; nombre: string };
+
+export type UmpAsignada = { id_manzana: string; label: string; role: RolDeUmp; codigo: string; origen: "explicita" | "heredada" };
+
+export type AsignacionTerritorial = {
+  campaign_id: string;
+  /** "DNI": la lista de Monitoreo identifica por DNI y no se expone (equipo vacío). */
+  code_format: string;
+  equipo: IntegranteEquipo[];
+  asignacion: UmpAsignada[];
+  revision: number;
+  sin_fuente: boolean;
+  /** La muestra viva cambió desde el envío: no se puede asignar. */
+  stale: boolean;
+  /** Lo guardado es de otra foto (se reenvió la muestra). */
+  desactualizada: boolean;
+  huerfanas: number;
+  codigos_fuera_del_equipo: string[];
+  descartadas: number;
+};
+
+export function normalizarAsignacionTerritorial(valor: unknown): AsignacionTerritorial {
+  if (!esRegistro(valor)) throw new Error("El backend devolvió una asignación territorial inválida.");
+  const equipo: IntegranteEquipo[] = [];
+  for (const crudo of lista(valor.equipo)) {
+    if (!esRegistro(crudo)) continue;
+    const codigo = texto(crudo.codigo);
+    if (codigo && !equipo.some((e) => e.codigo === codigo)) equipo.push({ codigo, nombre: texto(crudo.nombre) });
+  }
+  const asignacion: UmpAsignada[] = [];
+  for (const crudo of lista(valor.asignacion)) {
+    if (!esRegistro(crudo)) continue;
+    const id_manzana = texto(crudo.id_manzana);
+    const codigo = texto(crudo.codigo);
+    const role = texto(crudo.role);
+    if (!id_manzana || !codigo || (role !== "titular" && role !== "reemplazo")) continue;
+    asignacion.push({ id_manzana, label: texto(crudo.label) || id_manzana, role, codigo, origen: texto(crudo.origen) === "heredada" ? "heredada" : "explicita" });
+  }
+  return {
+    campaign_id: texto(valor.campaign_id),
+    code_format: texto(valor.code_format) || "PXXX",
+    equipo,
+    asignacion,
+    revision: entero(valor.asignacion_revision),
+    sin_fuente: logico(valor.sin_fuente),
+    stale: logico(valor.stale),
+    desactualizada: logico(valor.desactualizada),
+    huerfanas: entero(valor.huerfanas),
+    codigos_fuera_del_equipo: lista(valor.codigos_fuera_del_equipo).map(texto).filter(Boolean),
+    descartadas: entero(valor.descartadas),
+  };
+}
+
+export async function apiMaterialTerritorialAsignacion(campaignId: string): Promise<AsignacionTerritorial> {
+  const qs = new URLSearchParams({ id: campaignId });
+  return normalizarAsignacionTerritorial(
+    await handle<unknown>(await apiFetch(`/api/recopiladores/campaigns/territorial/asignacion?${qs.toString()}`, { headers: headers() })),
+  );
+}
+
+export async function apiMaterialTerritorialGuardarAsignacion(
+  campaignId: string,
+  asignacion: { id_manzana: string; codigo: string }[],
+  expectedRevision: number,
+): Promise<AsignacionTerritorial> {
+  return normalizarAsignacionTerritorial(
+    await handle<unknown>(
+      await apiFetch("/api/recopiladores/campaigns/territorial/asignacion", {
+        method: "PUT",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ id: campaignId, asignacion, expected_revision: expectedRevision }),
+      }),
+    ),
+  );
+}

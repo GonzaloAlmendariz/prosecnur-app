@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import "./planCampo.css";
 import { tonoCss } from "../lienzo/tonos";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -24,8 +24,11 @@ export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRut
 /**
  * `conCostos = false` (Material de campo): sin costos ni precios, que los lleva otra persona (Gonzalo,
  * 2026-10-30). Los supuestos de costo guardados no se tocan: se conservan al guardar los demás.
+ *
+ * `cabezaEncuestador` (Material, decisión I3): reemplaza el rótulo «Encuestador k» de la columna, con las
+ * UMP (`id_manzana`) de todas sus jornadas, para asignarle una persona de la lista de Monitoreo.
  */
-export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = true }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void>; conCostos?: boolean }) {
+export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = true, cabezaEncuestador }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void>; conCostos?: boolean; cabezaEncuestador?: (k: number, umps: string[]) => ReactNode }) {
   const [s, setS] = useState<HojasRutaPlanSupuestos>(normalizarPlanSupuestos(guardados));
   const [plan, setPlan] = useState<HojasRutaPlanCampo | null>(null);
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
@@ -90,7 +93,10 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
             <div className="hr-plan-fila hr-plan-cabeza" role="row">
               <span role="columnheader">Día</span>
               {Array.from({ length: plan.supuestos.encuestadores }, (_, k) => (
-                <span key={k} role="columnheader"><i className="hr-plan-enc" style={{ background: tonoCss(k) }} aria-hidden="true" /> Encuestador {k + 1}</span>
+                <span key={k} role="columnheader">
+                  <i className="hr-plan-enc" style={{ background: tonoCss(k) }} aria-hidden="true" /> Encuestador {k + 1}
+                  {cabezaEncuestador ? cabezaEncuestador(k, plan.jornadas.filter((j) => j.encuestador === k + 1).flatMap((j) => j.rutas)) : null}
+                </span>
               ))}
             </div>
             {porDia(plan.jornadas).map(([dia, js]) => (

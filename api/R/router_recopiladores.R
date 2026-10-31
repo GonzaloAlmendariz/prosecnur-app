@@ -140,6 +140,16 @@ mount_recopiladores <- function(pr) {
     plumber::pr_get("/api/recopiladores/campaigns/territorial/unidades", wrap_endpoint(function(req, res, id = NULL, ...) {
       collection_territorial_unidades(session_header(req), id)
     })) |>
+    # Qué encuestador (del equipo de Monitoreo) va a cada UMP de la campaña territorial
+    # (decisión I3; collection_territorial_asignacion.R). GET puro, lo lee también Monitoreo.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_asignacion_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/territorial/asignacion", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_asignacion_put(session_header(req), campaign_id = body$id, asignacion = body$asignacion,
+                                            expected_revision = body$expected_revision)
+    })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_campaign_meta_put(session_header(req), id = body$id, name = body$name, actor = body$actor,

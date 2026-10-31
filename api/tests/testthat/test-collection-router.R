@@ -46,6 +46,10 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # Campañas tipadas (ADR 0111): lista, crear y meta (renombrar/archivar).
     "/api/recopiladores/campaigns",
     "/api/recopiladores/campaigns/meta",
+    # Campaña territorial (ADR 0118): las UMP de la foto enviada y qué encuestador de la
+    # lista de Monitoreo va a cada una (decisión I3). `unidades` faltaba desde F1.
+    "/api/recopiladores/campaigns/territorial/unidades",
+    "/api/recopiladores/campaigns/territorial/asignacion",
     # Campañas (E1h): lista, crear, duplicar, renombrar y borrar (POST con
     # confirm_name; no DELETE con cuerpo).
     "/api/recopiladores/mail-campaigns",
@@ -57,6 +61,9 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-template/review",
     "/api/recopiladores/mail-template/export",
     "/api/recopiladores/mail-template/import-html",
+    # «Vista para revisión» y textos en Word: montadas sin actualizar esta lista cerrada.
+    "/api/recopiladores/mail-revision",
+    "/api/recopiladores/mail-textos-word",
     "/api/recopiladores/mail-recipients/import",
     "/api/recopiladores/mail-recipients",
     "/api/recopiladores/mail-recipients/mapping",

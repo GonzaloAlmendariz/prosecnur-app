@@ -179,6 +179,10 @@ errores_registrados <- function() {
     "E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA",               "collection_campaigns_territorial.R", "409",
     "E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO",           "collection_campaigns_territorial.R", "409",
     "E_COLLECTION_TERRITORIAL_SIN_FUENTE",                   "collection_campaigns_territorial.R", "409",
+    # Asignación UMP → encuestador del equipo de Monitoreo (decisión I3).
+    "E_COLLECTION_TERRITORIAL_DESACTUALIZADA",               "collection_territorial_asignacion.R", "409",
+    "E_COLLECTION_TERRITORIAL_ASIGNACION_STALE",             "collection_territorial_asignacion.R", "409",
+    "E_COLLECTION_TERRITORIAL_ASIGNACION_INVALIDA",          "collection_territorial_asignacion.R", "422",
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
     "E_HOJAS_RUTA_ENVIO_SORTEO_V1",                          "hojas_ruta_envio.R",                "409",
