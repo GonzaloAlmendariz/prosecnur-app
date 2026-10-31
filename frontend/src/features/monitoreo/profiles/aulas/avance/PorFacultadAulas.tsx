@@ -206,7 +206,7 @@ function Cuota({ cuota, etiquetaEje, procedencia, avisoDelEje, enFoco, onFoco }:
             <thead>
               <tr>
                 <th scope="col">{etiquetaEje}</th>
-                <th scope="col">Sexo</th>
+                <th scope="col">{cuota.segunda}</th>
                 <th scope="col" className="is-num">Logradas</th>
                 <th scope="col" className="is-num">Cuota</th>
                 <th scope="col"><span className="aulas-pf-oculto">Avance a la cuota</span></th>
@@ -312,9 +312,15 @@ function LateralDeLaPestana({ lateral, etiquetaEje, enFoco }: { lateral: Lateral
           )}
         </Cabecera>
         {lateral.vacio ? <Nota vacio={lateral.vacio} /> : (
-          <div className="aulas-pf-dimensiones" data-qa-geometry-capacity="owned">
+          <div
+            className="aulas-pf-dimensiones"
+            data-qa-geometry-capacity="owned"
+            data-qa-geometry-group="aulas-porfacultad-alcance"
+            data-qa-geometry-contract="intrinsic"
+          >
+            {/* Una tabla por dimensión (sexo, carrera…): cada una mide sus filas. */}
             {lateral.dimensiones.map((d) => (
-              <table key={d.clave} className="aulas-pf-tabla is-alcance">
+              <table key={d.clave} className="aulas-pf-tabla is-alcance" data-qa-geometry-member={d.clave}>
                 <caption>{d.etiqueta}</caption>
                 <colgroup>
                   <col className="is-grupo" />

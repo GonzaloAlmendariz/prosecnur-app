@@ -6,6 +6,7 @@ import { fmt, pctPerfil } from "../kpisDeAulas";
 import { readinessDeAulas } from "../navegacion/readinessDeAulas";
 import { personasProyectadas } from "../redondeoConservador";
 import { sexoEnPalabra } from "../tresLecturasDeCuota";
+import { etiquetaDeVariable, gruposPorCruce, variablesDeCuota, type GrupoDeCruce } from "./cuotaPorCruce";
 import { nombreDelGrupo, type EjeDelResumen } from "./resumenAulasModelo";
 
 /**
@@ -76,7 +77,14 @@ export type FilaDelEje = {
 };
 
 export type CuotaDeLaPestana =
-  | { tipo: "sexo"; titulo: string; sub: string; grupos: GrupoDeSexo[] }
+  | {
+    tipo: "sexo";
+    titulo: string;
+    sub: string;
+    grupos: GrupoDeSexo[];
+    /** Rótulo de la columna de la segunda variable declarada: «Sexo», «Nivel». */
+    segunda: string;
+  }
   | { tipo: "eje"; titulo: string; sub: string; filas: FilaDelEje[] }
   | { tipo: "vacio"; titulo: string; vacio: Vacio };
 
@@ -287,7 +295,42 @@ function cuotaPorSexo(celdas: CeldaDeSexo[], eje: EjeDelResumen): CuotaDeLaPesta
       : cumplen === 0
         ? `${fmt(conCuota)} grupos; ninguno cumple todavía`
         : `${fmt(conCuota)} grupos; ${fmt(cumplen)} ya cumplen y ${fmt(conCuota - cumplen)} todavía no`;
-  return { tipo: "sexo", titulo: `Cuota por ${enMinuscula(eje.etiqueta)} y sexo`, sub, grupos };
+  return { tipo: "sexo", titulo: `Cuota por ${enMinuscula(eje.etiqueta)} y sexo`, sub, grupos, segunda: "Sexo" };
+}
+
+// ---------------------------------------------------------------------------
+// Cuota por cualquier otra combinación declarada (ADR 0121)
+
+function cuotaDesdeCruce(grupos: GrupoDeCruce[], eje: EjeDelResumen, segundas: string[]): CuotaDeLaPestana {
+  let conCuota = 0;
+  let cumplen = 0;
+  const comoSexo: GrupoDeSexo[] = grupos.map((g) => ({
+    clave: g.clave,
+    valor: g.valor,
+    nombre: g.nombre,
+    filas: g.filas.map((f): FilaDeSexo => {
+      if (f.cuota != null) {
+        conCuota += 1;
+        if (f.cumple) cumplen += 1;
+      }
+      return {
+        clave: f.clave, sexo: f.rotulo, logradas: f.logradas, cuota: f.cuota, relleno: f.relleno, cumple: f.cumple,
+        // Las celdas declaradas no traen proyección todavía: se dice con la raya.
+        alCierre: "—", lectura: f.lectura, tono: f.tono, aria: f.aria,
+      };
+    }),
+  }));
+  const sub = !conCuota
+    ? "Ninguna celda tiene cuota trazada"
+    : `${fmt(conCuota)} celdas; ${fmt(cumplen)} ya cumplen`;
+  const nombres = segundas.map(enMinuscula).join(" y ");
+  return {
+    tipo: "sexo",
+    titulo: `Cuota por ${enMinuscula(eje.etiqueta)} y ${nombres}`,
+    sub,
+    grupos: comoSexo,
+    segunda: segundas.join(" y "),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -486,10 +529,27 @@ function alcanceDe(dashboard: MonitoreoAulasDashboard | null): Extract<Lateral, 
 export function construirPorFacultad(dashboard: MonitoreoAulasDashboard | null): ModeloPorFacultad {
   const eje = ejeDe(dashboard);
   const rotulo = `Por ${enMinuscula(eje.etiqueta)}`;
-  const porFacultad = eje.clave === "facultad";
-  const celdas = porFacultad ? celdasDeSexo(dashboard) : [];
-  const cuota = celdas.length ? cuotaPorSexo(celdas, eje) : cuotaPorEje(dashboard, eje);
-  const lateral: Lateral = porFacultad
+  // **Qué se cruza lo declara el estudio (ADR 0121), no el nombre del eje.**
+  // Con «eje × sexo» se usan las celdas del motor con su proyección al cierre
+  // (HSVG queda igual); con cualquier otra combinación, las celdas declaradas;
+  // con una sola variable, la cuota por el eje.
+  const variables = variablesDeCuota(dashboard, eje);
+  // Un corte anterior a la declaración (sin `celdas_declaradas` ni
+  // `representatividad_declarada`) conserva lo de siempre: si el motor publica
+  // celdas por sexo, se cruzan.
+  const declarado = variables.length > 1 || Boolean(dashboard?.avance_cuota?.celdas_declaradas || dashboard?.representatividad_declarada);
+  const celdas = (variables.length === 2 && variables[1] === "sexo") || !declarado ? celdasDeSexo(dashboard) : [];
+  const cruce = variables.length >= 2 && !celdas.length ? gruposPorCruce(dashboard, eje) : [];
+  const cuota = celdas.length
+    ? cuotaPorSexo(celdas, eje)
+    : cruce.length
+      ? cuotaDesdeCruce(cruce, eje, variables.slice(1).map((k) => etiquetaDeVariable(dashboard, k)))
+      : cuotaPorEje(dashboard, eje);
+  // El lateral depende de dónde sale el valor del eje: del AULA (lo operativo
+  // del plan: reemplazos, rendimiento, reserva) o de la PERSONA (a quién se
+  // alcanza contra el padrón). Antes se decidía por «¿es facultad?».
+  const porAula = (dashboard?.avance_cuota?.eje?.atribucion ?? "aula") !== "persona";
+  const lateral: Lateral = porAula
     ? { tipo: "operativo", franja: franjaDe(dashboard), rendimiento: rendimientoDe(dashboard), consumo: consumoDe(dashboard, eje) }
     : alcanceDe(dashboard);
   const estado: ModeloPorFacultad["estado"] = !dashboard
