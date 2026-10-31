@@ -212,7 +212,21 @@ describe("dirección pública del modo cursos-horario", () => {
     expect(vistaDeDireccion(d("avance", "rendimiento", "efectividad"))).toEqual({ seccion: "avance", pestana: "efectividad" });
   });
 
-  it("el enlace a la ficha de un curso-horario es la dirección pública", () => {
+  it("A4 Rendimiento tiene contenido propio y conserva la vista heredada como sub-vista", () => {
+    expect(esPestanaPropia(d("avance", "rendimiento"))).toBe(true);
+    expect(esPestanaPropia(d("avance", "rendimiento", "diario"))).toBe(false);
+    expect(esPestanaPropia(d("avance", "rendimiento", "efectividad"))).toBe(false);
+    expect(subvistasDePestana("avance", "rendimiento")).toEqual([
+      { panel: null, etiqueta: "Rendimiento" },
+      { panel: "diario", etiqueta: "Día a día por facultad" },
+      { panel: "efectividad", etiqueta: "Efectividad" },
+    ]);
+    expect(vistaDeDireccion(d("avance", "rendimiento", "diario"))).toEqual({ seccion: "avance", pestana: "rendimiento" });
+    // La clave vieja regresa a la vista principal, no a la sub-vista.
+    expect(direccionDeVista({ seccion: "avance", pestana: "rendimiento" })).toEqual(d("avance", "rendimiento"));
+  });
+
+    it("el enlace a la ficha de un curso-horario es la dirección pública", () => {
     const href = hrefDeFichaDeAula("CH 21");
     expect(href).toBe("/monitoreo?modo=aulas&seccion=control&pestana=partes&panel=codigo&foco=aula%3ACH%2021");
     expect(href).not.toContain("seccion=consultas");

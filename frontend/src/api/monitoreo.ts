@@ -2173,6 +2173,12 @@ export type MonitoreoAulasDashboard = {
 	    mejor_dia?: { fecha: string; validas: number } | null;
 	    media_diaria: number;
 	    meta: number;
+	    /**
+	     * Válidas por hora local del día (0–23), sólo las horas con alguna. Sale
+	     * de la misma marca que fecha el día. Ausente en cortes anteriores al
+	     * 2026-10-31: la vista lo declara.
+	     */
+	    por_hora?: Array<{ hora: number; validas: number }>;
 	  };
 	  /**
 	   * La MISMA serie, repartida por facultad y sobre el mismo eje de días.

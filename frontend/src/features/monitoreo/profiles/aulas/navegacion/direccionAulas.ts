@@ -129,7 +129,14 @@ const TABLA: readonly Entrada[] = [
   // entera en Avance › Rendimiento › Efectividad y en Modelo › Metas.
   entrada("avance", "cursos", null, v("avance", "resumen"), { vista: "Contra su tasa", regreso: false, propia: true }),
   entrada("avance", "cursos", "campo", v("avance", "resumen"), { vista: "Estado del campo", regreso: false }),
-  entrada("avance", "rendimiento", null, v("avance", "rendimiento"), { vista: "Rendimiento" }),
+  // A4 Rendimiento: contenido propio (`avance/RendimientoAulas.tsx`): por día,
+  // por hora, la tasa del campo contra la del diseño, día de la semana y
+  // aplicador. Sigue pidiendo el corte de Rendimiento. La vista heredada queda
+  // como sub-vista «Día a día por facultad» con los paneles que A4 no reparte
+  // (serie por facultad, franja horaria, pronóstico de cierre, consumo del
+  // banco…).
+  entrada("avance", "rendimiento", null, v("avance", "rendimiento"), { vista: "Rendimiento", propia: true }),
+  entrada("avance", "rendimiento", "diario", v("avance", "rendimiento"), { vista: "Día a día por facultad", regreso: false }),
   entrada("avance", "rendimiento", "efectividad", v("avance", "efectividad"), { vista: "Efectividad" }),
   entrada("avance", "salidas", null, v("avance", "salidas")),
 ];

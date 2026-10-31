@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { CursosHorarioAulas } from "../avance/CursosHorarioAulas";
 import { PorFacultadAulas } from "../avance/PorFacultadAulas";
+import { RendimientoAulas } from "../avance/RendimientoAulas";
 import { ResumenAulas } from "../avance/ResumenAulas";
 import type { DireccionAulas } from "./direccionAulas";
 
@@ -26,6 +27,9 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   // vista heredada de Resumen.
   if (direccion.seccion === "avance" && direccion.pestana === "cursos" && direccion.panel == null) {
     return <CursosHorarioAulas {...props} />;
+  }
+  if (direccion.seccion === "avance" && direccion.pestana === "rendimiento" && direccion.panel == null) {
+    return <RendimientoAulas {...props} />;
   }
   return null;
 }

@@ -3117,7 +3117,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # pueda compartir su eje de dias: dos series temporales del mismo operativo, una
   # encima de la otra, con calendarios distintos, no se pueden comparar.
   ritmo_global <- monitoreo_aulas_ritmo_diario(
-    responses, valid_response,
+    responses, valid_response, con_hora = TRUE,
     meta = {
       m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
       if (length(m) == 1L && is.finite(m)) m else 0
