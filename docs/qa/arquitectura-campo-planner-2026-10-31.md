@@ -196,6 +196,62 @@ junto a otros nombres reales; se avisa a Meta B.
 **Regla para lo que viene**: los ejemplos de tests, docs y artefactos usan nombres ficticios evidentes, nunca nombres
 copiados de una base, un Sheets o un parte de campo.
 
-## 12. Pendiente de estructurar (tablero del loop)
+## 12. Revisión independiente de guardian-contratos (L11, 31 oct)
+
+**Veredicto: con cambios; el Planner exige ADR antes de construir.** Lo que corrige de este doc (las secciones de arriba
+quedan como estaban; esta sección manda sobre ellas donde difieren):
+
+1. **«Nunca se copia» no es una regla de §4** y choca con el ADR 0121 §2 (aceptado) y con su cláusula de ownership
+   (sólo la sesión de Monitoreo toca `calc_muestra_*`, `design_targets` y el foco). La copia de X6 **cumple un papel**:
+   congela la meta del diseño durante el campo (ADR 0079). Modelo correcto: **foto con huella de su origen**, igual que
+   la muestra enviada; si la huella diverge, Monitoreo lo dice. Se enmienda el ADR 0121 §2, no se reemplaza la copia
+   por una consulta viva. Corrige la columna «Debería» de X6 y la fila «Universo» de §8.
+2. **Regla 3 vs §5**: hay que elegir entre «quien genera, lee y expone sin efectos» y «la plantilla es de Material y el
+   archivo llenado es de Monitoreo» (barrido, libro de aulas). Decisión abierta.
+3. **La regla 4 sólo existe para territorial**: aulas usa `selection_run_id`, `plan.input_fingerprint` y
+   `deployment_fingerprint` (`collection_engine.R:1140-1146`); telefónico no tiene huella. Material tampoco la cumple del
+   todo: el plan por encuestador sale de la muestra viva y lo protege el 409 (excepción hasta F4).
+4. **X5** además **muta estado ajeno**: la lectura llama a `.hojas_ruta_ensure_runs(sid)` (`router_monitoreo.R:620`), que
+   puede escribir en Hojas de ruta (`.hojas_ruta_store_runs`, `router_hojas_ruta.R:375`).
+5. **X6** también **fija el perfil** de Monitoreo (`router_monitoreo.R:5461-5467`) y acepta `estudio`, `selection` y
+   `frame` desde el body (`:5447-5449`, `:5650`): el cliente puede inyectar un plan que no es el persistido.
+6. **X7 estaba mal**: la semilla de Material (`.collection_seed_source`, `collection_engine.R:175-182`) **prefiere
+   `monitoreo_aulas_plan`** y sólo cae a `calc_muestra_aulas_selection` como respaldo; la línea 237 de
+   `collection_origen.R` sólo lee el `run_id` para el desfase. Es un **ciclo**: Cálculo → (copia X6) →
+   `monitoreo_aulas_plan` → semilla de Material → (escritura X8) → `monitoreo_aulas_plan`, contenido hoy por
+   `.collection_origen_circular`. **X7 y X8 se arreglan como una sola unidad.** (`collection_origen.R:255` es comentario,
+   no código.)
+7. **«Cálculo → Hojas de ruta: tamaño y reparto» no existe en el código**: ningún `hojas_ruta*.R` lee `calc_muestra_*`;
+   `TerritorialHandoff.tsx` es un puntero de UI. En territorial, universo y cuotas viven sólo en Hojas.
+8. **X4** se acopla a un helper privado de un archivo congelado (`.monitoreo_territorial_normalize_enumerator_roster`,
+   `monitoreo_engine.R:2459`), no a un contrato.
+9. **Home** (`project_overview.R`) consume todos los campos del Planner y faltaba en §8.
+10. **Datos personales (§11)**:
+    - El barrido telefónico **sí entra al `.pulso`** (`/api/monitoreo/sheets/sync` → `monitoreo_sources`/snapshot); si
+      Material lo genera desde la muestra + backup, entra a `files/`.
+    - La lógica del anonimizador vive en `api/R/pulso_anonimizar_proyecto.R` (la CLI es `api/scripts/pulso_anonimizar.R`).
+      Recorre sólo `data.frame` (`:9-13`, `:32-56`) y `pulso_detectar_pii` igual (`:475`): `enumerator_roster$assignments`
+      es lista de registros, así que **ni se anonimiza ni lo ve el gate** (verde por ceguera). Hay que tratarla como el
+      padrón (`:479-488`).
+    - Faltan filas: `monitoreo_aulas_disponibilidad` (nombres de aplicadores), snapshot y fuentes con respuestas de
+      Kobo/SurveyMonkey, `monitoreo_aulas_padron` (se purga al exportar, `:209`), el Excel original de la lista en
+      `files/` (lo barre el escaneo XLSX).
+    - Falta decir dónde queda el Excel de asignación devuelto: hoy se lee del upload y no se guarda (lectura pura,
+      `collection_territorial_asignacion_importar` escribe a un temporal y lo borra).
+    - A favor: con `code_format = "DNI"` la asignación se bloquea sin exponer DNI.
+
+**El ADR del Planner debe decidir antes de escribir código**: (1) relación con el ADR 0121 (enmienda §2 y ownership de
+`representatividad`/`design_targets`); (2) foto con huella vs consulta viva, campo por campo; (3) huella por perfil;
+(4) clave, schema y versión propios (`planner/v1`; no `estudio`, que es el contenedor multibase de Procesamiento:
+`session_store.R:195`); (5) compatibilidad hacia atrás (un `.pulso` nuevo abierto en 0.8.0: doble escritura temporal o
+versión mínima en `manifest.json`); (6) cardinalidad multibase, multiactor y multiperfil (acrconta, MDV, varios perfiles;
+`monitoreo_profile` hoy es un solo valor); (7) qué expone el modo público (whitelist `forbid_mutations.R:61-65`);
+(8) política de PII del equipo centralizado (retención, purga, exclusión del modo público); (9) romper el ciclo X7/X8
+como una unidad; (10) nombre y ruta del módulo (ADR 0047, navegación v3, `plan_trabajo_v<N>`).
+
+**Evidencia que falta**: si `.hojas_ruta_store_runs` marca dirty cuando lo dispara una lectura de Monitoreo; inventario
+de consumidores frontend de `design_targets` y `monitoreo_profile`.
+
+## 13. Pendiente de estructurar (tablero del loop)
 
 - Formatos con maqueta fiel (L8).
