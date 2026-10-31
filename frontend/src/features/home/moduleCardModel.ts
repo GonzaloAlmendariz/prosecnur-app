@@ -205,6 +205,24 @@ const MONITOREO_FAMILY_LABEL: Record<string, string> = {
   digital_general: "Digital",
 };
 
+/**
+ * Lo que dice la tarjeta debajo de la cifra de preguntas. Si la cifra sale del
+ * instrumento vinculado y el editor tiene abierto otro borrador, «en edición»
+ * sería falso: el editor abre ese borrador, no el instrumento.
+ */
+export function subDelCuestionario(editor: {
+  questions_count: number;
+  draft_questions_count?: number;
+  from_instrument?: boolean;
+}): string {
+  if (!editor.from_instrument) return "Cuestionario en edición";
+  const borrador = editor.draft_questions_count ?? 0;
+  if (borrador === editor.questions_count) return "Cuestionario en edición";
+  return borrador > 0
+    ? `Instrumento del estudio; el editor tiene abierto un borrador de ${formatCount(borrador)} ${borrador === 1 ? "pregunta" : "preguntas"}`
+    : "Instrumento del estudio; todavía no está abierto en el editor";
+}
+
 const FORM_ORIGIN_LABEL: Record<string, string> = {
   "": "Desde cero",
   xlsform: "Importado",
@@ -524,7 +542,7 @@ export function buildModuleCardView(
         sub: multiInstrument
           ? `${formatCount(editor.questions_count)} preguntas en el que estás editando`
           : hasQuestions
-            ? "Cuestionario en edición"
+            ? subDelCuestionario(editor)
             : "Empieza o importa un formulario",
         facts: [
           { label: "secciones", value: formatCount(editor.sections_count) },
@@ -564,7 +582,7 @@ export function buildModuleCardView(
         sub:
           nodeState === "ready"
             ? routes.from_pilot
-              ? "Campo derivado del piloto"
+              ? "A partir de la muestra del piloto"
               : "Rutas y cartografía generadas"
             : "Genera las rutas para el equipo de campo",
         facts: routeFacts,

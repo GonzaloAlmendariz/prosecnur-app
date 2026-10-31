@@ -177,11 +177,13 @@
   if (identical(fam, "territorial")) {
     k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
-    # El numerador del avance es lo LEVANTADO: validadas + en revision, el mismo
-    # criterio que publica el KPI del modulo y el PDF de avance. Mostrar aqui
-    # solo las validadas hacia que la tarjeta se contradijera sola: "106.9%"
-    # encima de "975 de 1.200".
-    valid <- as.integer(.diseno_num(k$validas, 0) + .diseno_num(k$revision, 0))
+    # El numerador del avance son las VALIDADAS, el mismo criterio que el
+    # `avance_pct` del modulo (validas / meta) y el PDF de avance. Sumar las de
+    # revision al numerador y dejar el porcentaje en validadas hacia que la
+    # tarjeta se contradijera sola: "1,283 de 1,200 levantadas, meta cumplida"
+    # encima de "85.7%" (Gonzalo, 2026-10-31: «solo validadas»). Las de revision
+    # siguen en la tarjeta como alerta («N por revisar»).
+    valid <- as.integer(.diseno_num(k$validas, 0))
     target <- as.integer(.diseno_num(k$meta, 0))
     avance <- .overview_pct(k$avance_pct)
     # Solo `revision`: validas + revision + no_defendibles particionan el total,
@@ -190,7 +192,7 @@
     # Los casos en revision cuentan para el avance Y siguen pidiendo revision:
     # son dos lecturas distintas del mismo caso, no una contradiccion.
     alerts <- as.integer(.diseno_num(k$revision, 0))
-    valid_label <- "levantadas"
+    valid_label <- "validadas"
     # Territorial ya mide validas sobre meta; se nombra igual que las demas
     # familias para que "avance" signifique lo mismo en toda la app.
     if (target > 0L) avance_label <- "avance de meta"
@@ -461,7 +463,12 @@
   # El instrumento vinculado describe el estudio; el borrador del editor solo
   # describe lo que se esta editando. Cuando hay vinculado, manda ese.
   vinculado <- .overview_instrumento_conteos(.overview_instrumento_vinculado(s))
+  # Lo que tiene abierto el editor, aparte: si la cifra sale del instrumento
+  # vinculado, la tarjeta no puede decir «en edición» de un borrador distinto.
+  draft_questions <- questions
+  from_instrument <- FALSE
   if (!is.null(vinculado) && vinculado$questions_count > questions) {
+    from_instrument <- TRUE
     questions <- vinculado$questions_count
     sections <- vinculado$sections_count
     catalogs <- vinculado$catalogs_count
@@ -475,7 +482,9 @@
     # Cuantos instrumentos hay vinculados al estudio: el borrador del editor es
     # UNO de ellos, asi que con varios la cuenta de preguntas de arriba no
     # describe el estudio y la tarjeta debe decir cuantos hay.
-    instruments_count = as.integer(.diseno_instruments_count(s))
+    instruments_count = as.integer(.diseno_instruments_count(s)),
+    draft_questions_count = as.integer(draft_questions),
+    from_instrument = isTRUE(from_instrument)
   )
 }
 
@@ -599,7 +608,8 @@
     ),
     editor = safe(.overview_form_facts(s),
                   list(source_kind = "", questions_count = 0L, sections_count = 0L,
-                       catalogs_count = 0L, instruments_count = 0L)),
+                       catalogs_count = 0L, instruments_count = 0L,
+                       draft_questions_count = 0L, from_instrument = FALSE)),
     procesamiento = safe(.overview_procesamiento_facts(s, protocol),
                          list(processing_mode = "multibase", bases_count = 0L,
                               bases_con_analitica = 0L)),

@@ -121,6 +121,11 @@ export type ProjectOverviewFacts = {
     /** Instrumentos vinculados al estudio. El borrador del editor es uno de
         ellos, así que con varios `questions_count` no describe el estudio. */
     instruments_count?: number;
+    /** Preguntas del borrador que tiene abierto el editor. Opcional: un backend
+        anterior no lo manda. */
+    draft_questions_count?: number;
+    /** La cifra sale del instrumento vinculado y no del borrador del editor. */
+    from_instrument?: boolean;
   };
   procesamiento?: {
     /** "unibase" | "multibase". */

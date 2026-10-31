@@ -70,8 +70,9 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Sin fact fresco, el home cae al tablero congelado (compat hacia atras).
   mon_stale <- .project_overview_payload(sid)$facts$monitoreo
-  # Levantadas = validadas (1028) + en revision (6).
-  expect_equal(mon_stale$valid, 1034L)
+  # Numerador = validadas (1028), el mismo criterio que avance_pct; las de
+  # revision van como alerta (decision de Gonzalo, 2026-10-31).
+  expect_equal(mon_stale$valid, 1028L)
   expect_equal(mon_stale$target, 1351L)
   expect_equal(mon_stale$avance_pct, 85.7)
 
@@ -91,7 +92,7 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Ahora el home debe coincidir EXACTAMENTE con lo que sirve el modulo.
   mon_live <- .project_overview_payload(sid)$facts$monitoreo
-  expect_equal(mon_live$valid, as.integer(module_kpis$validas + module_kpis$revision))
+  expect_equal(mon_live$valid, as.integer(module_kpis$validas))
   expect_equal(mon_live$target, as.integer(module_kpis$meta))
   expect_equal(mon_live$collected, as.integer(module_kpis$total_respuestas))
   expect_equal(mon_live$avance_pct, module_kpis$avance_pct)
