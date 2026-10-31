@@ -230,7 +230,8 @@
     nuevas <- c(
       list(.monitoreo_aviso_cruce_llave(barrido, respuestas, profile)),
       .monitoreo_aviso_filtro_columna(respuestas, profile),
-      .monitoreo_aviso_status_desconocido(barrido, profile)
+      .monitoreo_aviso_status_desconocido(barrido, profile),
+      .monitoreo_aviso_status_vacio(barrido)
     )
     nuevas <- Filter(Negate(is.null), nuevas)
   }
