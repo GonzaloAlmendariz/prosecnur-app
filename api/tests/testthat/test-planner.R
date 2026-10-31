@@ -237,3 +237,66 @@ test_that("los cinco proyectos de referencia proyectan su perfil sin escribir", 
     expect_false(any(grepl("dni", names(unlist(p$planner$equipo)), fixed = TRUE)), info = slug)
   }
 })
+
+# --- P2: el modo que cada perfil fija en cada módulo (ADR 0122 §4) -------------
+
+test_that("la tabla perfil → modo del §4, perfil por perfil", {
+  m <- function(...) .planner_modos_de(list(.planner_norm_perfil(list(...))))
+  t <- m(tipo = "territorial")
+  expect_equal(t$calc$modo, "territorial-handoff")
+  expect_true(t$hojas_ruta$aplica)
+  expect_equal(t$monitoreo$familia, "territorial")
+  expect_equal(unlist(t$material$campanas), "territorial")
+
+  a <- m(tipo = "aulas", seleccion = "conglomerados")
+  expect_equal(a$calc$modo, "opinion-universitaria")
+  expect_equal(a$calc$macro_familia, "encuesta_estudiantes")
+  expect_equal(a$monitoreo$modo, "aulas")
+  expect_equal(a$monitoreo$familia, "aulas_universitarias")
+  expect_false(a$hojas_ruta$aplica)
+  expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$modo, "marco-disponible")
+
+  tel <- m(tipo = "telefonico")
+  expect_equal(tel$calc$modo, "marco-disponible")
+  expect_equal(unlist(tel$material$campanas), "telefonica")
+  # Una lista que entrega el cliente: Cálculo no diseña nada.
+  cli <- m(tipo = "telefonico", diseno = "cliente")
+  expect_null(cli$calc$modo)
+  expect_equal(unlist(cli$calc$del_cliente), "telefonico")
+
+  acr <- m(tipo = "acreditacion")
+  expect_equal(acr$calc$modo, "acreditacion")
+  expect_equal(unlist(acr$material$campanas), "correo")
+})
+
+test_that("con varios perfiles cada módulo recibe la lista y ningún modo único", {
+  modos <- .planner_modos_de(list(
+    .planner_norm_perfil(list(tipo = "territorial")),
+    .planner_norm_perfil(list(tipo = "telefonico", diseno = "cliente", canales = list("telefono", "correo")))
+  ))
+  expect_equal(unlist(modos$monitoreo$modos), c("territorial", "telefonico"))
+  expect_null(modos$monitoreo$modo)
+  expect_equal(unlist(modos$material$campanas), c("territorial", "telefonica", "correo"))
+  # Nadie diseña en Cálculo: el territorial lo lleva a su puntero a Hojas de ruta.
+  expect_equal(modos$calc$modo, "territorial-handoff")
+})
+
+test_that("sin perfiles no hay modo: cada módulo muestra su vacío", {
+  sid <- .pl_sesion()
+  modos <- .planner_modos(session_get(sid))
+  expect_null(modos$calc$modo)
+  expect_null(modos$monitoreo$modo)
+  expect_length(modos$material$campanas, 0L)
+  expect_false(modos$hojas_ruta$aplica)
+})
+
+test_that("leer los modos es puro y sigue lo declarado", {
+  sid <- .pl_sesion(list(calc_muestra_estudio = list(macro_familia = "acreditacion", workspace = list(frame_mode = "x"))))
+  antes <- .pl_huella(sid)
+  expect_equal(.planner_modos(session_get(sid))$calc$modo, "acreditacion")
+  expect_identical(.pl_huella(sid), antes)
+  .planner_declarar(sid, "perfiles", list(list(tipo = "aulas", seleccion = "marco")), 0L)
+  modos <- .planner_modos(session_get(sid))
+  expect_equal(modos$calc$modo, "marco-disponible")
+  expect_equal(modos$origen, "declarado")
+})

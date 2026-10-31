@@ -194,3 +194,40 @@ export async function apiPlannerDeclarar(seccion: PlannerSeccion, valor: unknown
     ),
   );
 }
+
+// --- Modos que los perfiles fijan en cada módulo (ADR 0122 §4, fase P2) -------
+
+export type PlannerModos = {
+  perfiles: PlannerTipoPerfil[];
+  calc: { modo: string | null; perfil: PlannerTipoPerfil | null; macroFamilia: string | null; delCliente: PlannerTipoPerfil[] };
+  monitoreo: { modos: string[]; familias: string[]; modo: string | null; familia: string | null };
+  material: { campanas: string[] };
+  hojasRuta: { aplica: boolean };
+  origen: PlannerOrigen;
+  revision: number;
+};
+
+export function normalizarPlannerModos(raw: unknown): PlannerModos {
+  const r = obj(raw);
+  const calc = obj(r.calc);
+  const mon = obj(r.monitoreo);
+  const tiposDe = (x: unknown) => textos(x).filter(esTipo);
+  return {
+    perfiles: tiposDe(r.perfiles),
+    calc: {
+      modo: txt(calc.modo) || null,
+      perfil: esTipo(txt(calc.perfil)) ? (txt(calc.perfil) as PlannerTipoPerfil) : null,
+      macroFamilia: txt(calc.macro_familia) || null,
+      delCliente: tiposDe(calc.del_cliente),
+    },
+    monitoreo: { modos: textos(mon.modos), familias: textos(mon.familias), modo: txt(mon.modo) || null, familia: txt(mon.familia) || null },
+    material: { campanas: textos(obj(r.material).campanas) },
+    hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
+    origen: txt(r.origen) === "declarado" ? "declarado" : "proyectado",
+    revision: num(r.revision) ?? 0,
+  };
+}
+
+export async function apiPlannerModos(): Promise<PlannerModos> {
+  return normalizarPlannerModos(await handle<unknown>(await apiFetch("/api/planner/modos", { headers: headers() })));
+}

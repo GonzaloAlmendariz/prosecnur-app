@@ -1,0 +1,107 @@
+# =============================================================================
+# Planner: el modo que el perfil de recojo fija en cada módulo (ADR 0122 §4)
+# =============================================================================
+#
+# La tabla «perfil → modo» vive aquí y sólo aquí. Cálculo de muestra, Material
+# de campo, Monitoreo, Hojas de ruta y el Home la consultan (fase P2) en vez de
+# preguntarle al usuario el tipo de estudio. Lectura pura: parte del payload
+# del Planner (lo declarado o, si no, lo proyectado) y no escribe nada.
+#
+# Con un perfil, cada módulo aterriza en su modo. Con varios, el landing del
+# módulo lista sólo los declarados (§8): por eso cada módulo recibe la LISTA de
+# sus modos y, aparte, el que corresponde cuando hay uno solo.
+
+# Familia del cable de Monitoreo (ADR 0044: `family` no se renombra).
+.PLANNER_PERFIL_A_FAMILIA <- c(
+  territorial = "territorial",
+  aulas = "aulas_universitarias",
+  telefonico = "telefonico",
+  acreditacion = "acreditacion"
+)
+
+# Modo de Monitoreo en la navegación (lib/modules.ts).
+.PLANNER_PERFIL_A_MODO_MONITOREO <- c(
+  territorial = "territorial",
+  aulas = "aulas",
+  telefonico = "telefonico",
+  acreditacion = "acreditacion"
+)
+
+# Tipo de campaña de Material (collection_campaigns.R, .MCAMP_TIPOS).
+.PLANNER_PERFIL_A_CAMPANA <- c(
+  territorial = "territorial",
+  aulas = "aulas",
+  telefonico = "telefonica",
+  acreditacion = "correo"
+)
+
+# `macro_familia` que `iniciar-estudio` deriva del perfil (.CM_MACRO_FAMILIAS).
+.PLANNER_PERFIL_A_MACRO <- c(
+  territorial = "territorial",
+  aulas = "encuesta_estudiantes",
+  telefonico = "listado_telefonico",
+  acreditacion = "acreditacion"
+)
+
+.planner_modo_calc <- function(perfil) {
+  if (identical(perfil$tipo, "territorial")) return("territorial-handoff")
+  switch(perfil$tipo,
+         aulas = if (identical(perfil$seleccion, "marco")) "marco-disponible" else "opinion-universitaria",
+         telefonico = "marco-disponible",
+         acreditacion = "acreditacion",
+         NULL)
+}
+
+#' Los modos que los perfiles del estudio fijan en cada módulo. Lectura pura.
+#'
+#' `calc$modo` sale del único perfil con `diseno = calc-muestra` (§4); si no
+#' hay, de un territorial (puntero a Hojas de ruta); si tampoco, es `NULL` y
+#' Cálculo muestra su vacío propio. `monitoreo$modos` y `material$campanas` son
+#' listas: con más de un perfil, el landing del módulo ofrece sólo esas.
+#' @keywords internal
+.planner_modos_de <- function(perfiles) {
+  perfiles <- Filter(function(p) is.list(p) && nzchar(p$tipo %||% ""), perfiles %||% list())
+  tipos <- vapply(perfiles, `[[`, "", "tipo")
+  con_calc <- Filter(function(p) identical(p$diseno, "calc-muestra"), perfiles)
+  territorial <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
+  perfil_calc <- if (length(con_calc)) con_calc[[1]] else if (length(territorial)) territorial[[1]] else NULL
+  sin_calc <- Filter(function(p) identical(p$diseno, "cliente"), perfiles)
+
+  modos_mon <- unname(.PLANNER_PERFIL_A_MODO_MONITOREO[tipos])
+  familias <- unname(.PLANNER_PERFIL_A_FAMILIA[tipos])
+  campanas <- unname(.PLANNER_PERFIL_A_CAMPANA[tipos])
+  # Un perfil que declara el canal correo también abre campañas de correo.
+  con_correo <- vapply(perfiles, function(p) "correo" %in% unlist(p$canales), logical(1))
+  if (any(con_correo)) campanas <- c(campanas, "correo")
+
+  list(
+    perfiles = as.list(tipos),
+    calc = list(
+      modo = if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc),
+      perfil = if (is.null(perfil_calc)) NULL else perfil_calc$tipo,
+      macro_familia = if (is.null(perfil_calc)) NULL else unname(.PLANNER_PERFIL_A_MACRO[[perfil_calc$tipo]]),
+      # Perfiles cuya muestra entrega el cliente: Cálculo no tiene nada que hacer con ellos.
+      del_cliente = as.list(vapply(sin_calc, `[[`, "", "tipo"))
+    ),
+    monitoreo = list(
+      modos = as.list(modos_mon),
+      familias = as.list(familias),
+      modo = if (length(modos_mon) == 1L) modos_mon[[1]] else NULL,
+      familia = if (length(familias) == 1L) familias[[1]] else NULL
+    ),
+    material = list(
+      campanas = as.list(unique(campanas))
+    ),
+    hojas_ruta = list(
+      aplica = "territorial" %in% tipos
+    )
+  )
+}
+
+#' Los modos según el Planner de la sesión (declarado o proyectado).
+#' @keywords internal
+.planner_modos <- function(s) {
+  payload <- .planner_payload(s)
+  c(.planner_modos_de(payload$planner$perfiles),
+    list(origen = payload$origen$perfiles, revision = payload$revision))
+}

@@ -23,6 +23,13 @@ mount_planner <- function(pr) {
       .planner_payload(session_get(session_header(req)))
     })) |>
 
+    # El modo que los perfiles fijan en cada módulo (§4). Lectura pura; la
+    # consumen Cálculo, Material, Monitoreo, Hojas de ruta y el Home (P2).
+    plumber::pr_get("/api/planner/modos",
+                    wrap_endpoint(function(req, res, ...) {
+      .planner_modos(session_get(session_header(req)))
+    })) |>
+
     plumber::pr_put("/api/planner/<seccion>",
                     wrap_endpoint(function(req, res, seccion, ...) {
       sid <- session_header(req)
