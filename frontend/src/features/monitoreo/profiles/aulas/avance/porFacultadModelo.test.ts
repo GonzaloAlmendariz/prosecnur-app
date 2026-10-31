@@ -253,6 +253,20 @@ describe("construirPorFacultad · procedencia de la cuota y aviso del eje", () =
     expect(m.procedencia?.detalle).toBe("el sello no coincide");
   });
 
+  it("F4: con la declaración del Planner la procedencia lo dice y las discrepancias se avisan", () => {
+    const d = hsvg();
+    (d as unknown as Record<string, unknown>).representatividad_declarada = {
+      schema: "representatividad_v1", origen: "planner", origen_celdas: "traducida_v1",
+      universo: { nivel: "universidad", etiqueta: "PUCP" },
+      variables: [{ clave: "facultad" }, { clave: "nivel" }],
+      celdas: [],
+      discrepancias: [{ tipo: "variable_sin_celdas", variable: "nivel", texto: "El Planner declara «nivel» como variable de cuota y el diseño no reparte metas por ella." }],
+    };
+    const m = construirPorFacultad(d);
+    expect(m.procedencia?.detalle).toContain("Universo y variables declarados en el Planner.");
+    expect(m.avisoDelEje).toBe("El Planner declara «nivel» como variable de cuota y el diseño no reparte metas por ella.");
+  });
+
   it("el aviso del eje del motor llega a la pestaña; sin aviso, nada", () => {
     expect(construirPorFacultad(hsvg()).avisoDelEje).toBeNull();
     const d = ccss();

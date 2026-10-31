@@ -564,10 +564,17 @@ export function construirPorFacultad(dashboard: MonitoreoAulasDashboard | null):
       : "listo";
   const bloque = dashboard?.avance_cuota ?? null;
   const procedencia = bloque ? avanceCuota(bloque).procedencia : null;
-  const avisoDelEje = texto(bloque?.aviso_eje) || null;
+  // F4 del ADR 0121: lo que no casa entre el Planner y el diseño se dice junto
+  // al aviso del eje. No se corrige: las cuotas siguen siendo las del diseño.
+  const rep = dashboard?.representatividad_declarada;
+  const discrepancias = (rep?.discrepancias ?? []).map((d) => texto(d.texto)).filter(Boolean);
+  const avisoDelEje = [texto(bloque?.aviso_eje), ...discrepancias].filter(Boolean).join(" ") || null;
+  const conPlanner = rep?.origen === "planner" && procedencia && procedencia.chip
+    ? { ...procedencia, detalle: `${procedencia.detalle}${procedencia.detalle ? " " : ""}Universo y variables declarados en el Planner.` }
+    : procedencia;
   return {
     estado, eje, rotulo, cuota,
-    procedencia: procedencia && procedencia.chip ? procedencia : null,
+    procedencia: conPlanner && conPlanner.chip ? conPlanner : null,
     avisoDelEje,
     lateral,
   };

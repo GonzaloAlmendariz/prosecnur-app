@@ -1890,7 +1890,11 @@ export type MonitoreoAulasVariableDeCuota = {
  */
 export type MonitoreoAulasRepresentatividad = {
   schema: "representatividad_v1" | string;
-  origen: "diseno" | "traducida_v1" | string;
+  origen: "diseno" | "traducida_v1" | "planner" | string;
+  /** Con `origen = "planner"`: de dónde salen las celdas (el diseño). */
+  origen_celdas?: string;
+  /** F4: lo que no casa entre lo declarado en el Planner y las celdas del diseño. */
+  discrepancias?: Array<{ tipo: "variable_sin_celdas" | "celdas_sin_variable" | string; variable: string; texto: string }>;
   universo: {
     nivel: "universidad" | "facultad" | "carrera" | "" | string;
     valor?: string | null;
