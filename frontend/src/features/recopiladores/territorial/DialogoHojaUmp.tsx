@@ -2,8 +2,11 @@
 // brecha B46). Panel direccionable `?panel=hoja&foco=<id_manzana>` sobre
 // Territorial › Unidades; cerrar quita sólo el panel y deja la UMP resaltada.
 //
+// Abrir NO genera nada (Gonzalo, 2026-10-31): se ve la maqueta de la ficha con los
+// datos de la UMP; la vista previa real (PNG con el mapa) se pide con un botón.
+//
 // Contrato de Superficie: diálogo `lg` de alto fijo (C2): el cuerpo es dueño
-// del vacío mientras se genera, del error y de la imagen, con su scroll (C4).
+// de la maqueta, del vacío mientras se genera, del error y de la imagen, con su scroll (C4).
 
 import { useEffect, useState } from "react";
 
@@ -16,6 +19,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { ChevronLeft, ChevronRight, FileText, Loader2, Printer } from "../../../vendor/lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { MaquetaFicha } from "./MaquetaFicha";
 import { PANEL_HOJA_UMP } from "./panelesTerritorial";
 
 type Estado = { png: string | null; pdf: string | null; cargando: boolean; error: string };
@@ -52,10 +56,12 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
   const [e, setE] = useState<Estado>(INICIAL);
   const id = unidad?.unit_id ?? null;
 
-  // Abrir (o cambiar de UMP con el diálogo abierto) genera la vista previa.
+  // La vista previa real se genera sólo si se pide; cambiar de UMP vuelve a la maqueta.
+  const [pedida, setPedida] = useState(false);
+  useEffect(() => { setPedida(false); }, [id]);
   useEffect(() => {
     setE(INICIAL);
-    if (!abierto || !id) return;
+    if (!abierto || !id || !pedida) return;
     let vivo = true;
     setE({ ...INICIAL, cargando: true });
     apiHojasRutaFichaUmp(id, "png")
@@ -66,7 +72,7 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
       })
       .catch((err: unknown) => { if (vivo) setE({ ...INICIAL, error: mensaje(err, "No se pudo generar la hoja.") }); });
     return () => { vivo = false; };
-  }, [abierto, id]);
+  }, [abierto, id, pedida]);
 
   const imprimir = () => {
     if (e.pdf) {
@@ -113,6 +119,16 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
       ) : null}
       {unidad && stale ? (
         <p className="rec-terr-nota">La muestra cambió en Hojas de ruta desde el envío: la hoja se arma con la muestra vigente.</p>
+      ) : null}
+      {unidad && !pedida ? (
+        <>
+          <MaquetaFicha unidad={unidad} />
+          <p className="rec-terr-nota rec-terr-hoja-real">
+            Esta es la estructura de la ficha.{" "}
+            <button type="button" className="rec-terr-hoja-generar" onClick={() => setPedida(true)}>Generar la vista previa real</button>
+            {" "}(tarda unos segundos por el mapa).
+          </p>
+        </>
       ) : null}
       {e.cargando ? (
         <p className="rec-terr-nota rec-terr-generando"><Loader2 size={14} className="pulso-spin" aria-hidden /> Generando la hoja… tarda unos segundos por el mapa.</p>

@@ -621,3 +621,14 @@
   outline: 2px solid var(--pulso-module-fieldkit);
   outline-offset: 1px;
 }
+
+/* La vista previa real de la hoja se pide: no se genera al abrir. */
+.rec-terr-hoja-real { margin-top: var(--pulso-space-2); }
+.rec-terr-hoja-generar {
+  all: unset;
+  font-weight: 700;
+  color: var(--pulso-module-fieldkit);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.rec-terr-hoja-generar:focus-visible { outline: 2px solid var(--pulso-module-fieldkit); outline-offset: 1px; border-radius: 3px; }
