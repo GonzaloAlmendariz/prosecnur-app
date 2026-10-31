@@ -2531,6 +2531,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   }
 
   s <- session_get(sid)
+  .pulso_version_exigir_guardado(sid)   # ADR 0122 §7: no pisar un .pulso que exige algo que esta app no conoce
   .pulso_refuse_empty_project_overwrite(s, dest_path, allow_empty_overwrite = allow_empty_overwrite)
   # Convierte referencias legacy path-only a file_id antes de decidir qué
   # inputs viajan. Opera sobre una copia y no altera la sesión abierta.
@@ -2612,6 +2613,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   )
   modules_summary <- .pulso_manifest_modules_summary(s)
   if (!is.null(modules_summary)) manifest$modules_summary <- modules_summary
+  manifest <- .pulso_version_al_guardar(manifest, s)   # ADR 0122 §7: requiere + min_app_version
   # Contactos de las campañas de correo (ADR 0112): files/contactos/, fuera de state.rds.
   contactos <- .cmail_contactos_pack(s, stage_dir)
   if (length(contactos)) manifest$contactos <- contactos
@@ -2759,6 +2761,7 @@ load_pulso <- function(src_path) {
   # `_strip_caches` lo invalidara.
   s_saved$dashboard_dim_ctx <- NULL
   .session_env[[new_sid]] <- s_saved
+  .pulso_version_al_abrir(new_sid, manifest, s_saved)   # ADR 0122 §7: candado y aviso, en memoria
 
   # Publica el override de etiquetas del proyecto en el env ambiente ANTES de
   # reconstruir las fuentes runtime (rebuild llama reporte_data/instrumento, que

@@ -905,6 +905,7 @@ errores_registrados <- function() {
     "E_PULSO_CORRUPT",                                       "project_pulso.R",                   "400",
     "E_PULSO_NOT_FOUND",                                     "project_pulso.R",                   "404",
     "E_PULSO_READ_FAILED",                                   "project_pulso.R",                   "400",
+    "E_PULSO_VERSION_SUPERIOR",                              "pulso_version_minima.R",            "409",
     "E_PULSO_ZIP_FAILED",                                    "project_pulso.R",                   "500",
     "E_QUARTO_OLD",                                          "reporte_calc_muestra.R",            "500",
     "E_RADAR_SIN_CORTE",                                     "graficos_radar_multibase.R",        "400",

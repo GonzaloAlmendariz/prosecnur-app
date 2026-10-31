@@ -2,7 +2,7 @@
 
 Estado: Aceptado (Gonzalo, 2026-10-31: «sí»)
 
-Implementación: No iniciada
+Implementación: En curso — P1 backend 14ffb0a63, P1 frontend a40635f8a, candado del §7 (unidad 5) en el commit que suma esta línea
 
 Fecha: 2026-10-31
 
@@ -345,8 +345,23 @@ planner = {
     que es barata y del lado seguro.
   - Las versiones anteriores a P1 no conocen nada de esto. El riesgo (editar en la app vieja un valor que el Planner ya
     no lee) se acepta, lo detecta la regla anterior y se documenta en las notas de la versión que introduzca P1.
-- **Fin del respaldo**: las lecturas de respaldo se retiran en la fase P6, no antes de que la versión con
-  `min_app_version` lleve un corte estable publicado.
+- **Enmienda de implementación (2026-10-31, revisión de `guardian-contratos`): el candado compara capacidades, no
+  números de versión.** La 0.9.6 ya estaba publicada sin Planner y el build de desarrollo también decía 0.9.6:
+  comparar números bloqueaba a la propia app o dejaba pasar a la vieja. Queda así (`api/R/pulso_version_minima.R`):
+  - El manifest de un proyecto con secciones declaradas en el Planner lleva `requiere = {planner: "planner/v1"}`;
+    `min_app_version` (`0.9.7`) va al lado, sólo como dato para personas y notas de versión.
+  - Al abrir, si el `.pulso` exige una capacidad o un schema que esta app no conoce, el candado se pone para ese
+    `sid` (en memoria, fuera de la sesión y del `.pulso`) y `build_pulso` responde 409 `E_PULSO_VERSION_SUPERIOR`:
+    guardar, guardar como, duplicar y publicar quedan cerrados; revisar, no. El candado sigue a la sesión si cambia
+    de `sid` (abrir «en el lugar», duplicar abriendo la copia) y se borra con `session_delete`. Duplicar con
+    `overwrite` consulta el candado antes de borrar el destino.
+  - «Lo guardó una app anterior» se detecta por capacidad y no por `app_version`: estado con secciones declaradas en
+    el Planner y manifest sin `requiere`. El Planner lo dice en sus avisos; no bloquea. La comparación campo por
+    campo contra los lugares viejos queda para P2, cuando los módulos lean el Planner.
+  - **Lo que no cubre**: la 0.9.6 publicada (y anteriores) no trae el candado y sí puede guardar encima de un
+    `.pulso` con Planner. Contra ella sólo queda la detección después del hecho.
+- **Fin del respaldo**: las lecturas de respaldo se retiran en la fase P6, no antes de que la versión que exige
+  `requiere` lleve un corte estable publicado.
 
 ### 8. Cardinalidad: multiperfil, multiactor y multibase (decisión 6)
 
@@ -472,8 +487,10 @@ Ratifica las reglas de §4 del doc vivo, ya corregidas por la revisión:
 - `test-sello.R`: `sello_v1()` rechaza huellas sin `sha256:`; las huellas de telefónico y acreditación no cambian al
   cambiar una columna que no sea la identificadora (nombre, teléfono, carrera), y sí cambian al cambiar un
   identificador, la semilla o el método.
-- `test-pulso-version.R`: un manifest con `min_app_version` mayor activa el candado del `sid` y el guardado responde
-  `E_PULSO_VERSION_SUPERIOR`; `"dev"` y ausente no lo activan.
+- `test-pulso-version.R`: una app sin la capacidad (o un `planner/v2`) abre el `.pulso` y no lo pisa: guardar y
+  guardar como responden `E_PULSO_VERSION_SUPERIOR` y el archivo queda con la misma huella; duplicar con
+  `overwrite` no borra el destino; el candado sigue al `sid` y se va con la sesión; un manifest sin `requiere` con
+  Planner declarado da el aviso.
 - `test-bitacora-migracion.R`: un lienzo con destinos `calendario` y `canvas` sale con `cronograma`/`mes` y
   `bitacora`/`lienzo`, sin nodos huérfanos; la migración es idempotente.
 - `test-pulso-anonimizar*.R`: `pulso_detectar_pii` encuentra nombres en `planner$equipo$personas` y en

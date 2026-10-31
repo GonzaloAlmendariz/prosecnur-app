@@ -180,6 +180,7 @@ session_delete <- function(sid) {
   }
   unlink(s$dir, recursive = TRUE, force = TRUE)
   rm(list = sid, envir = .session_env)
+  if (exists(".pulso_version_olvidar", mode = "function")) .pulso_version_olvidar(sid)  # ADR 0122 §7
   TRUE
 }
 

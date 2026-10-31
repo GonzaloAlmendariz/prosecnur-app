@@ -248,7 +248,7 @@
     origen = origen,
     declarado_en = declarado_en,
     escribibles = as.list(PLANNER_SECCIONES_ESCRIBIBLES),
-    avisos = proy_perfiles$avisos,
+    avisos = c(.pulso_version_avisos_planner(s[["id"]]), proy_perfiles$avisos),
     conflictos = proy_perfiles$conflictos
   )
 }
