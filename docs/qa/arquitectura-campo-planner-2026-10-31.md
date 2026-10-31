@@ -97,6 +97,13 @@ Sobre la forma de trabajar:
 | C2: quién genera y lee el Excel de asignación | «Sí, Material» | Excel de asignación (6adbef00e) |
 | D1 y D2: hojas de ruteo y consolidados; Hoja del día | «Sí, D1 y D2(a)» | Aprobado, sin construir: espera el visto bueno al plan |
 
+**31 oct: «go, define todas las sesiones que lo necesiten y continúa las que ya están en progreso».** Se toma como visto
+bueno a P1 y a las recomendaciones de P2–P11 que necesitan dueño ya; Gonzalo puede corregir cualquiera. Reparto:
+etapa 1 en esta sesión; ADR del Planner (P9/P11) en la sesión «ADR del Planner y modos por estudio»
+(local_1f698e68-aef4-4f05-ba53-27721621e0df); anonimizador en «Anonimizador: equipo de campo y asignación»
+(local_b5eaca57-c882-42fe-a073-7ae9614d1a98); Monitoreo toma B3 adelantado (P8), P4 y C7 como declarado (P3); Meta B
+enruta C8 (P5) a la sesión «ACNUR RMS».
+
 ## 3. Lo que falta decidir
 
 Mismo número que en el artefacto (pestaña «Resumen y decisiones»; P9 en la pestaña «Planner»). Sólo P1 bloquea.
