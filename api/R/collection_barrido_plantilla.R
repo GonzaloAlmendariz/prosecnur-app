@@ -44,11 +44,7 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
   list(codigo = "ND", status = "No disponible en el periodo", clase = "terminal")
 )
 
-.mbp_txt <- function(x) {
-  v <- if (is.null(x) || !length(x)) "" else as.character(unlist(x)[1])
-  if (is.na(v)) "" else trimws(v)
-}
-
+# Escalares de un body con `.mtf_txt` (collection_territorial_formatos.R); listas, aquí.
 .mbp_textos <- function(x) {
   v <- trimws(as.character(unlist(x %||% list())))
   unique(v[!is.na(v) & nzchar(v)])
@@ -57,18 +53,18 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
 # Parámetros validados; lo que no tiene forma es 422 con su motivo (nada se adivina).
 .mbp_parametros <- function(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas) {
   problemas <- character(0)
-  llave <- .mbp_txt(llave); if (!nzchar(llave)) llave <- "Código"
+  llave <- .mtf_txt(llave); if (!nzchar(llave)) llave <- "Código"
   estratos <- .mbp_textos(estratos)
-  telefonos <- suppressWarnings(as.integer(.mbp_txt(telefonos))); if (is.na(telefonos)) telefonos <- 2L
+  telefonos <- suppressWarnings(as.integer(.mtf_txt(telefonos))); if (is.na(telefonos)) telefonos <- 2L
   if (!telefonos %in% 1:3) problemas <- c(problemas, "Los teléfonos por caso van de 1 a 3")
-  filas <- suppressWarnings(as.integer(.mbp_txt(filas))); if (is.na(filas)) filas <- 2000L
+  filas <- suppressWarnings(as.integer(.mtf_txt(filas))); if (is.na(filas)) filas <- 2000L
   if (filas < 1L || filas > .MBP_FILAS_MAX) problemas <- c(problemas, sprintf("Las filas van de 1 a %d", .MBP_FILAS_MAX))
   responsables <- setdiff(.mbp_textos(responsables), "Responsable")  # el rótulo no es una opción (RMS)
   fijas <- c(llave, "Origen", "Tanda", "Nombre", .MBP_COLA)
   choque <- intersect(estratos, fijas)
   if (length(choque)) problemas <- c(problemas, sprintf("El estrato «%s» se llama como una columna fija", choque[[1]]))
   catalogo <- if (is.null(status) || !length(status)) .MBP_STATUS else lapply(Filter(is.list, status), function(s) {
-    list(codigo = toupper(.mbp_txt(s$codigo)), status = .mbp_txt(s$status %||% s$etiqueta), clase = .mbp_txt(s$clase))
+    list(codigo = toupper(.mtf_txt(s$codigo)), status = .mtf_txt(s$status %||% s$etiqueta), clase = .mtf_txt(s$clase))
   })
   if (!length(catalogo)) problemas <- c(problemas, "El catálogo de Status está vacío")
   for (s in catalogo) {
@@ -81,8 +77,8 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
     stop_api(422, "E_COLLECTION_BARRIDO_PLANTILLA_INVALIDA", "La plantilla del barrido no se puede armar así.",
              details = list(problemas = as.list(problemas)))
   }
-  list(estudio = .mbp_txt(estudio), llave = llave, estratos = estratos, telefonos = telefonos,
-       reemplazo = isTRUE(as.logical(.mbp_txt(reemplazo))), responsables = responsables, status = catalogo, filas = filas)
+  list(estudio = .mtf_txt(estudio), llave = llave, estratos = estratos, telefonos = telefonos,
+       reemplazo = isTRUE(as.logical(.mtf_txt(reemplazo))), responsables = responsables, status = catalogo, filas = filas)
 }
 
 .mbp_columnas <- function(p) {
