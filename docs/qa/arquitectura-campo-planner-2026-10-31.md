@@ -70,13 +70,18 @@ Propuestas por Meta B y la sesión de Monitoreo (31 oct), extienden el ADR 0118.
    Excel de asignación, plantilla del barrido telefónico, plantillas en blanco del libro de aulas y correos.
 2. **Monitoreo lee lo que vuelve y calcula**: Kobo, SurveyMonkey, el barrido llenado, el libro de aulas; avance y
    control. Material no calcula avance; Monitoreo no escribe en Material.
-3. **Un escritor por archivo**: el Excel que campo devuelve lleno lo lee el módulo que lo generó. Si a Monitoreo le
-   sirve, lo consulta después por un endpoint sin efectos (como `GET /api/recopiladores/campaigns/territorial/asignacion`).
-4. **Siempre desde la muestra enviada**: todo lo que sale a campo nace de la foto enviada, con su `sample_fingerprint`.
-   Si no coincide, Monitoreo dice «de otra muestra» y no compara.
+3. **Plantilla y archivo lleno con dueños claros** (corregida tras §12): Material genera la plantilla; el archivo que
+   campo devuelve lleno lo lee el módulo que mide con él (asignación → Material; barrido y libro de aulas → Monitoreo) y
+   lo expone sin efectos al otro (como `GET /api/recopiladores/campaigns/territorial/asignacion`).
+4. **Todo sale de una foto con sello** (corregida tras §12): lo que va a campo y las metas se toman como foto con la
+   huella de su origen; copiar está bien si lleva huella (la copia de `design_targets` del ADR 0121 congela la meta, ADR
+   0079). Si la huella diverge, el módulo lo dice y no compara. Huella por perfil: territorial `sample_fingerprint` de la
+   foto enviada; aulas `selection_run_id` / `plan.input_fingerprint` / `deployment_fingerprint`
+   (`collection_engine.R:1140-1146`); telefónico, por definir. Excepción vigente: el plan por encuestador de Material
+   sale de la muestra viva y lo protege el 409 hasta F4.
 5. **La app no pisa lo que llena campo**: dueño por hoja, como ya rige el libro de aulas.
 6. **Datos personales antes de existir**: todo insumo con nombres, DNI o teléfonos declara cómo lo cubre
-   `api/scripts/pulso_anonimizar.R`. Hoy faltan `enumerator_roster` y `material_territorial_asignacion`.
+   `api/R/pulso_anonimizar_proyecto.R` (CLI: `api/scripts/pulso_anonimizar.R`). Hoy faltan `enumerator_roster` (lista de registros, ciega para el anonimizador y el gate) y `material_territorial_asignacion`.
 
 ## 5. Perfil por perfil (verificado en el código por la sesión de Monitoreo, 31 oct)
 
