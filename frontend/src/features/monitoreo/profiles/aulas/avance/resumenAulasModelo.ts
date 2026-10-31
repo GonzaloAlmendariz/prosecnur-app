@@ -130,7 +130,8 @@ function texto(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
-function ejeDe(dashboard: MonitoreoAulasDashboard | null): EjeDelResumen {
+/** El eje de la cuota que declara el estudio (facultad, nivel, carrera); facultad si el corte no lo trae. */
+export function ejeDe(dashboard: MonitoreoAulasDashboard | null): EjeDelResumen {
   const eje = dashboard?.avance_cuota?.eje ?? null;
   const etiqueta = texto(eje?.etiqueta) || "Facultad";
   return {

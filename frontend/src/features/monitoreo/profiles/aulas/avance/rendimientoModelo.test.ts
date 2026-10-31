@@ -71,6 +71,22 @@ describe("construirRendimiento (A4)", () => {
     expect(m.tasas.pie).toBe("1 facultad queda fuera por no tener cursos-horario aplicados o tasa del diseño.");
   });
 
+  it("tasas: con el eje por nivel (CCSS) el grupo es el nivel, no una facultad", () => {
+    const ccss = {
+      ...base,
+      avance_cuota: { eje: { clave: "nivel", columna: "nivel", etiqueta: "Nivel", etiqueta_plural: "Niveles", etiqueta_sin: "Sin nivel", atribucion: "persona", fuente_valor: "padron", motivo: "" } },
+      efectividad_seguimiento: { facultades: [
+        { facultad: "9", faculty_key: "9", tau_previsto: 0.6, tau_observado: 0.5, senal: "bajo" },
+        { facultad: "6", faculty_key: "6", tau_previsto: 0.6, tau_observado: null, senal: "sin_banda" },
+      ] },
+    } as unknown as MonitoreoAulasDashboard;
+    const m = construirRendimiento(ccss);
+    if (m.tasas.tipo !== "pesas") throw new Error("sin pesas");
+    expect(m.tasas.eje).toBe("Nivel");
+    expect(m.tasas.filas[0].facultad).toBe("Nivel 9");
+    expect(m.tasas.pie).toBe("1 nivel queda fuera por no tener cursos-horario aplicados o tasa del diseño.");
+  });
+
   it("día de la semana: suma la serie diaria, lunes primero y domingo sólo si tuvo campo", () => {
     const m = construirRendimiento(base);
     if (m.semana.tipo !== "barras") throw new Error("sin barras");

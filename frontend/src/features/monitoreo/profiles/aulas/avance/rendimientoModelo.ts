@@ -1,8 +1,8 @@
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../../api/monitoreo";
-import { facultadEnPalabras } from "../../../../../lib/nombresDeFacultad";
 import { numeroONulo } from "../avanceCuota";
 import { fmt, pctPerfil, unDecimalPerfil } from "../kpisDeAulas";
 import { readinessDeAulas } from "../navegacion/readinessDeAulas";
+import { ejeDe, nombreDelGrupo } from "./resumenAulasModelo";
 import { parteDeCampo } from "../parteDeCampo";
 import { partesSinCifraDeEfectivas, rendimientoPorFacultad } from "../rendimientoPorFacultad";
 import type { Vacio } from "./porFacultadModelo";
@@ -62,7 +62,7 @@ export type FilaDeTasa = {
 };
 
 export type Tasas =
-  | { tipo: "pesas"; escala: string; filas: FilaDeTasa[]; pie: string | null }
+  | { tipo: "pesas"; escala: string; filas: FilaDeTasa[]; pie: string | null; /** «Facultad», «Nivel»: el eje de la cuota. */ eje: string }
   | { tipo: "vacio"; vacio: Vacio };
 
 export type FilaDeSemana = { clave: string; dia: string; validas: number; relleno: number };
@@ -216,10 +216,13 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
   const rango = techo - piso || 1;
   const x = (p: number) => (100 * (p - piso)) / rango;
   const pct = (p: number) => `${fmt(Math.round(p * 100))} %`;
+  // El grupo es un valor del EJE de la cuota que declara el estudio: una
+  // facultad en HSVG, un nivel en CCSS. Nunca «facultad» fijo.
+  const eje = ejeDe(dashboard);
   const filas = medibles
     .sort((a, b) => (a.campo - a.diseno) - (b.campo - b.diseno) || a.f.facultad.localeCompare(b.f.facultad, "es"))
     .map(({ f, diseno, campo }) => {
-      const nombre = facultadEnPalabras(f.facultad) || texto(f.facultad);
+      const nombre = nombreDelGrupo(texto(f.facultad), eje);
       return {
         clave: texto(f.faculty_key) || nombre,
         facultad: nombre,
@@ -232,12 +235,14 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
       };
     });
   const sinCampo = bloque.facultades.length - medibles.length;
+  const grupo = sinCampo === 1 ? eje.etiqueta.toLocaleLowerCase("es") : eje.plural.toLocaleLowerCase("es");
   return {
     tipo: "pesas",
+    eje: eje.etiqueta,
     escala: `Del ${fmt(Math.round(piso * 100))} % al ${fmt(Math.round(techo * 100))} %`,
     filas,
     pie: sinCampo > 0
-      ? `${fmt(sinCampo)} ${sinCampo === 1 ? "facultad queda" : "facultades quedan"} fuera por no tener cursos-horario aplicados o tasa del diseño.`
+      ? `${fmt(sinCampo)} ${grupo} ${sinCampo === 1 ? "queda" : "quedan"} fuera por no tener cursos-horario aplicados o tasa del diseño.`
       : null,
   };
 }

@@ -194,7 +194,7 @@ function TasaContraDiseno({ tasas }: { tasas: Tasas }) {
         <>
           <div className="aulas-rd-pesas" role="table" aria-labelledby={id}>
             <div className="aulas-rd-pesa is-cabeza" role="row">
-              <span role="columnheader">Facultad</span>
+              <span role="columnheader">{tasas.eje}</span>
               <span role="columnheader">{tasas.escala}</span>
               <span role="columnheader" className="is-num">Diseño</span>
               <span role="columnheader" className="is-num">Campo</span>
