@@ -21,6 +21,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { FileText, Loader2, MapPinned, Printer } from "../../../vendor/lucide-react";
+import { CodigosDeResultado, HojaDePapel } from "./HojasDeCampo";
 import { AvisoDesactualizada, VacioSinFuente } from "./UnidadesTerritoriales";
 
 const PREFERENCIAS = [["balanced", "Balanceado"], ["population", "Alta población"], ["urban", "Urbana compacta"]] as const;
@@ -29,8 +30,16 @@ function mensaje(e: unknown, porDefecto: string): string {
   return e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : porDefecto;
 }
 
+const PESTANAS_DE_CATALOGO = ["fichas", "zonas", "ruteo", "consolidados", "codigos"] as const;
+export type PestanaDeCatalogo = (typeof PESTANAS_DE_CATALOGO)[number];
+
+export function esPestanaDeCatalogo(valor: string): valor is PestanaDeCatalogo {
+  return (PESTANAS_DE_CATALOGO as readonly string[]).includes(valor);
+}
+
 type Props = {
-  pestana: "fichas" | "zonas";
+  pestana: PestanaDeCatalogo;
+  campaignId: string;
   unidades: UnidadesTerritoriales | null;
   hojas: HojasRutaState | null;
 };
@@ -146,7 +155,7 @@ function HojaDeZona({ unidades }: { unidades: UnidadesTerritoriales }) {
   );
 }
 
-export function CatalogoTerritorial({ pestana, unidades, hojas }: Props) {
+export function CatalogoTerritorial({ pestana, campaignId, unidades, hojas }: Props) {
   if (!unidades) {
     return (
       <div className="rec-terr-seccion" data-qa-geometry-capacity="owned">
@@ -158,11 +167,15 @@ export function CatalogoTerritorial({ pestana, unidades, hojas }: Props) {
     <div className="rec-terr-seccion">
       {unidades.stale ? <AvisoDesactualizada enviadoAt={unidades.enviado_at} /> : null}
       <div className="rec-terr-tarjetas" data-qa-geometry-group={`material-campo/territorial/catalogo-${pestana}`} data-qa-geometry-contract="intrinsic">
-        {pestana === "fichas" ? (
-          unidades.units.length ? <FichaPorUmp unidades={unidades} hojas={hojas} /> : (
-            <EstadoVacio icono={<FileText size={18} />} titulo="La muestra enviada no trae UMP" descripcion="Vuelve a enviarla desde Hojas de ruta." />
-          )
-        ) : <HojaDeZona unidades={unidades} />}
+        {pestana === "zonas" ? <HojaDeZona unidades={unidades} /> : null}
+        {pestana === "codigos" ? <CodigosDeResultado campaignId={campaignId} /> : null}
+        {(pestana === "fichas" || pestana === "ruteo" || pestana === "consolidados") && !unidades.units.length ? (
+          <EstadoVacio icono={<FileText size={18} />} titulo="La muestra enviada no trae UMP" descripcion="Vuelve a enviarla desde Hojas de ruta." />
+        ) : null}
+        {pestana === "fichas" && unidades.units.length ? <FichaPorUmp unidades={unidades} hojas={hojas} /> : null}
+        {(pestana === "ruteo" || pestana === "consolidados") && unidades.units.length ? (
+          <HojaDePapel key={pestana} pieza={pestana} campaignId={campaignId} unidades={unidades} />
+        ) : null}
       </div>
     </div>
   );

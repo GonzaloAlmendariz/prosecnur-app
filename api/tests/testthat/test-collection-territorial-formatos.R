@@ -33,6 +33,7 @@ test_that("PUT: cambia rótulos editables, quita el 99, fija criterio y caras; m
                                            expected_revision = 0L)
   expect_identical(r$revision, 1L)
   expect_identical(vapply(r$codigos, `[[`, "", "codigo"), c("1", "2", "3", "4", "5", "6", "7", "8"))
+  expect_identical(r$rotulos[["99"]], "Manzana no elegible (terreno, parque)")
   expect_identical(r$codigos[[3]]$rotulo, "Miembros del hogar migrantes o refugiados")
   expect_identical(r$columna_criterio, "Cursa estudios")
   expect_identical(r$caras_ruteo, 1L)

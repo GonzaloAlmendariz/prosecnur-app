@@ -13,7 +13,7 @@ export const SECCIONES_TERRITORIALES = MODO?.sections ?? [];
 
 export const PESTANAS_TERRITORIALES: Readonly<Record<SeccionTerritorial, readonly string[]>> = {
   unidades: ["lista"],
-  catalogo: ["fichas", "zonas"],
+  catalogo: ["fichas", "zonas", "ruteo", "consolidados", "codigos"],
   paquetes: ["armado"],
   entrega: ["plan"],
 };

@@ -362,3 +362,97 @@ export async function apiMaterialTerritorialImportarAsignacion(campaignId: strin
     ),
   );
 }
+
+// ---- códigos de resultado y hojas de campo (D1) ----------------------------------
+//
+//   GET/PUT campaigns/territorial/formatos   núcleo fijo 1/4/6/7/8, rótulos editables
+//       2/3/5/99, uso del 99, columna del criterio y caras de la hoja de ruteo.
+//   POST campaigns/territorial/papel         {id, pieza, unidad?, alcance} → PDF.
+
+export type GrupoDeCodigo = "no_aplicada" | "efectiva" | "manzana";
+
+export type CodigoDeResultado = { codigo: string; rotulo: string; grupo: GrupoDeCodigo; editable: boolean };
+
+export type FormatosTerritoriales = {
+  codigos: CodigoDeResultado[];
+  editables: string[];
+  /** Los rótulos de 2, 3, 5 y 99, también el del 99 cuando no se usa. */
+  rotulos: Record<string, string>;
+  con_99: boolean;
+  columna_criterio: string;
+  caras_ruteo: 1 | 2;
+  revision: number;
+};
+
+export type CambioDeFormatos = Partial<{
+  rotulos: Record<string, string>;
+  con_99: boolean;
+  columna_criterio: string;
+  caras_ruteo: 1 | 2;
+}>;
+
+const GRUPOS: readonly GrupoDeCodigo[] = ["no_aplicada", "efectiva", "manzana"];
+
+export function normalizarFormatosTerritoriales(valor: unknown): FormatosTerritoriales {
+  const o = esRegistro(valor) ? valor : {};
+  const codigos = lista(o.codigos).flatMap((c): CodigoDeResultado[] => {
+    if (!esRegistro(c)) return [];
+    const codigo = texto(c.codigo);
+    const grupo = texto(c.grupo) as GrupoDeCodigo;
+    return codigo ? [{ codigo, rotulo: texto(c.rotulo), grupo: GRUPOS.includes(grupo) ? grupo : "no_aplicada", editable: logico(c.editable) }] : [];
+  });
+  return {
+    codigos,
+    editables: lista(o.editables).map(texto).filter(Boolean),
+    rotulos: esRegistro(o.rotulos) ? Object.fromEntries(Object.entries(o.rotulos).map(([k, v]) => [k, texto(v)])) : {},
+    con_99: logico(o.con_99),
+    columna_criterio: texto(o.columna_criterio),
+    caras_ruteo: enteroONulo(o.caras_ruteo) === 1 ? 1 : 2,
+    revision: entero(o.revision),
+  };
+}
+
+export async function apiMaterialTerritorialFormatos(campaignId: string): Promise<FormatosTerritoriales> {
+  const qs = new URLSearchParams({ id: campaignId });
+  return normalizarFormatosTerritoriales(
+    await handle<unknown>(await apiFetch(`/api/recopiladores/campaigns/territorial/formatos?${qs.toString()}`, { headers: headers() })),
+  );
+}
+
+export async function apiMaterialTerritorialGuardarFormatos(
+  campaignId: string,
+  cambio: CambioDeFormatos,
+  expectedRevision: number,
+): Promise<FormatosTerritoriales> {
+  return normalizarFormatosTerritoriales(
+    await handle<unknown>(
+      await apiFetch("/api/recopiladores/campaigns/territorial/formatos", {
+        method: "PUT",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ id: campaignId, ...cambio, expected_revision: expectedRevision }),
+      }),
+    ),
+  );
+}
+
+export type PiezaDePapel = "ruteo" | "consolidados";
+
+export type HojaDePapel = { file_id: string; filename: string; umps: number; paginas: number };
+
+export async function apiMaterialTerritorialPapel(
+  campaignId: string,
+  pieza: PiezaDePapel,
+  opciones: { unidad?: string; alcance?: "titulares" | "todas" } = {},
+): Promise<HojaDePapel> {
+  const r = await handle<unknown>(
+    await apiFetch("/api/recopiladores/campaigns/territorial/papel", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ id: campaignId, pieza, ...opciones }),
+    }),
+  );
+  const o = esRegistro(r) ? r : {};
+  const file_id = texto(o.file_id);
+  if (!file_id) throw new Error("El backend no devolvió la hoja.");
+  return { file_id, filename: texto(o.filename), umps: entero(o.umps), paginas: entero(o.paginas) };
+}

@@ -22,7 +22,7 @@ import { SectionPillbar } from "../../../components/SectionPillbar";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
 import { RefreshCw } from "../../../vendor/lucide-react";
 import { searchDeCampanas } from "../campanas/direccionDeCampanas";
-import { CatalogoTerritorial } from "./CatalogoTerritorial";
+import { CatalogoTerritorial, esPestanaDeCatalogo } from "./CatalogoTerritorial";
 import { EntregaTerritorial } from "./EntregaTerritorial";
 import { PESTANAS_TERRITORIALES, SECCIONES_TERRITORIALES, resolverSeccionTerritorial, type SeccionTerritorial } from "./navegacionTerritorial";
 import { PaquetesTerritoriales } from "./PaquetesTerritoriales";
@@ -33,8 +33,8 @@ import "./territorial.css";
 
 const COPIA: Record<SeccionTerritorial, { title: string; lead: string }> = {
   unidades: { title: "Unidades", lead: "Las UMP titulares y sus reemplazos, tal como las envió Hojas de ruta." },
-  catalogo: { title: "Catálogo", lead: "Las piezas que se imprimen: la ficha de cada UMP y la hoja de cada zona." },
-  paquetes: { title: "Paquetes", lead: "El ZIP de fichas por distrito, el Excel operativo y los reemplazos puntuales." },
+  catalogo: { title: "Catálogo", lead: "Las piezas que se imprimen: la ficha de cada UMP, la hoja de cada zona y el papel que campo llena." },
+  paquetes: { title: "Paquetes", lead: "El ZIP de fichas por distrito, el Excel operativo, las hojas de campo y los reemplazos puntuales." },
   entrega: { title: "Entrega", lead: "Cómo se reparte el campo: jornadas por encuestador y día, con su hoja del día." },
 };
 
@@ -91,10 +91,10 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
         />
       ) : null}
       {!cargando && seccion === "catalogo" ? (
-        <CatalogoTerritorial pestana={pestana === "zonas" ? "zonas" : "fichas"} unidades={unidades} hojas={hojas} />
+        <CatalogoTerritorial pestana={esPestanaDeCatalogo(pestana) ? pestana : "fichas"} campaignId={campana.id} unidades={unidades} hojas={hojas} />
       ) : null}
       {!cargando && seccion === "paquetes" ? (
-        <PaquetesTerritoriales unidades={unidades} hojas={hojas} onRecargar={recargar} focoInicial={direccion?.foco ?? null} />
+        <PaquetesTerritoriales campaignId={campana.id} unidades={unidades} hojas={hojas} onRecargar={recargar} focoInicial={direccion?.foco ?? null} />
       ) : null}
       {!cargando && seccion === "entrega" ? (
         <EntregaTerritorial unidades={unidades} hojas={hojas} onGuardarPlan={guardarPlan} />

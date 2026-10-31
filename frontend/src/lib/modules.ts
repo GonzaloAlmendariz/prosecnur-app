@@ -8,11 +8,13 @@ import {
   ClipboardList,
   DatabaseZap,
   FileText,
+  Hash,
   Link2,
   LayoutGrid,
   Layers,
   Mail,
   ListChecks,
+  ListOrdered,
   MapPinned,
   Network,
   PhoneCall,
@@ -647,6 +649,10 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             tabs: [
               { id: "fichas", label: "Ficha por UMP", icon: FileText, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", layoutPolicy: "viewport" },
               { id: "zonas", label: "Hoja de zona", icon: MapPinned, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas", layoutPolicy: "viewport" },
+              // D1: el papel que campo llena, con los códigos de resultado del estudio.
+              { id: "ruteo", label: "Hoja de ruteo", icon: ListOrdered, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=ruteo", layoutPolicy: "viewport" },
+              { id: "consolidados", label: "Hoja de consolidados", icon: Table2, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=consolidados", layoutPolicy: "viewport" },
+              { id: "codigos", label: "Códigos de resultado", icon: Hash, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos", layoutPolicy: "viewport" },
             ],
           },
           {

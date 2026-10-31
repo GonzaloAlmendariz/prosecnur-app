@@ -45,6 +45,7 @@ import {
 } from "../../hojasRuta/mapa/seleccion/salidas";
 import { nombreDistrito } from "../../hojasRuta/mapa/nombres";
 import { codigoDeUmp } from "../../hojasRuta/seleccion/revisionMarco";
+import { HojasDelPaquete } from "./HojasDeCampo";
 import { AvisoDesactualizada, HREF_REENVIO, VacioSinFuente } from "./UnidadesTerritoriales";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
@@ -70,6 +71,7 @@ type Estado = {
 const INICIAL: Estado = { ocupado: "", error: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null };
 
 type Props = {
+  campaignId: string;
   unidades: UnidadesTerritoriales | null;
   hojas: HojasRutaState | null;
   onRecargar: () => Promise<void>;
@@ -77,7 +79,7 @@ type Props = {
   focoInicial?: string | null;
 };
 
-export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial = null }: Props) {
+export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar, focoInicial = null }: Props) {
   const [e, setE] = useState<Estado>(INICIAL);
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<string[]>(() => (focoInicial ? [focoInicial] : []));
@@ -199,6 +201,8 @@ export function PaquetesTerritoriales({ unidades, hojas, onRecargar, focoInicial
             <PulsoButton variant="ghost" size="sm" onClick={() => { void onRecargar(); }}>Volver a leer Hojas de ruta</PulsoButton>
           ) : null}
         </article>
+
+        <HojasDelPaquete campaignId={campaignId} unidades={unidades} />
 
         <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Reemplazos puntuales">
           <h3><Shuffle size={15} aria-hidden /> Reemplazos puntuales</h3>

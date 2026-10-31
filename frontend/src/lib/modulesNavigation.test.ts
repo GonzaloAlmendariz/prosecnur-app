@@ -302,7 +302,7 @@ describe("manifiesto primario de navegación", () => {
         id: "territorial",
         sections: [
           { id: "unidades", to: "/material-campo?modo=territorial&seccion=unidades", tabs: ["/material-campo?modo=territorial&seccion=unidades&pestana=lista"] },
-          { id: "catalogo", to: "/material-campo?modo=territorial&seccion=catalogo", tabs: ["/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas"] },
+          { id: "catalogo", to: "/material-campo?modo=territorial&seccion=catalogo", tabs: ["/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas", "/material-campo?modo=territorial&seccion=catalogo&pestana=ruteo", "/material-campo?modo=territorial&seccion=catalogo&pestana=consolidados", "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos"] },
           { id: "paquetes", to: "/material-campo?modo=territorial&seccion=paquetes", tabs: ["/material-campo?modo=territorial&seccion=paquetes&pestana=armado"] },
           { id: "entrega", to: "/material-campo?modo=territorial&seccion=entrega", tabs: ["/material-campo?modo=territorial&seccion=entrega&pestana=plan"] },
         ],

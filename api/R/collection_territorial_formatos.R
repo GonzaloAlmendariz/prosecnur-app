@@ -73,6 +73,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
   g <- .mtf_guardado(s, hit$entry$id)
   list(ok = TRUE, campaign_id = hit$entry$id, schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA,
        codigos = .mtf_catalogo(g), editables = as.list(names(.MTF_EDITABLES)),
+       # Los cuatro rótulos editables aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
+       rotulos = g$rotulos,
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
        revision = g$revision)
 }

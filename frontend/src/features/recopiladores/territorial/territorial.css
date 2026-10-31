@@ -632,3 +632,63 @@
   text-decoration: underline;
 }
 .rec-terr-hoja-generar:focus-visible { outline: 2px solid var(--pulso-module-fieldkit); outline-offset: 1px; border-radius: 3px; }
+
+/* Catálogo › Códigos de resultado (D1): el código en su ficha, el rótulo al lado. */
+.rec-terr-codigos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rec-terr-codigos li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 32px;
+}
+
+.rec-terr-codigo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--pulso-module-fieldkit-border);
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-terr-codigos li.es-efectiva .rec-terr-codigo {
+  background: var(--pulso-module-fieldkit);
+  border-color: var(--pulso-module-fieldkit);
+  color: var(--pulso-surface);
+}
+
+/* Mismo cuerpo e inset que el texto del input sm: fijos y editables se leen en una columna. */
+.rec-terr-codigo-rotulo {
+  padding-left: 11px;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+/* Un rótulo de 60 caracteres cabe en 640 px: más ancho, el ojo pierde el código. */
+.rec-terr-codigos,
+.rec-terr-criterio {
+  max-width: 640px;
+}
+
+.rec-terr-criterio {
+  flex: none;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.rec-terr-guardar {
+  align-items: center;
+}
