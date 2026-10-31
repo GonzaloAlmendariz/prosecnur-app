@@ -19,6 +19,7 @@
 #   fields = [ { key, tag, label, fallback?, sm?, destino? } ],   # sm: etiqueta SurveyMonkey (E1j)
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
 #   greeting.trato = { modo, columna?, masculino, femenino, respaldo, sm? }   # collection_mail_trato.R
+#   registro = "tu" | "usted"                 # [[tú|usted]] en el texto: collection_mail_registro.R
 #
 # Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
 # `fill`, `level`, `style`, `variant`, `align`). Enlaces `[texto](url)` solo en
@@ -262,7 +263,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(list(.cmail_problem("template.schema", "bad_schema", sprintf("Se esperaba '%s'.", COLLECTION_MAIL_TEMPLATE_SCHEMA))))
   }
   known_top <- c("schema", "template_id", "preset_id", "title", "revision", "template_sha256",
-                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "blocks")
+                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "registro", "blocks")
   for (k in setdiff(names(template), known_top)) {
     add(list(.cmail_problem(paste0("template.", k), "unknown_key", sprintf("`%s` no pertenece al contrato.", k))))
   }
@@ -330,6 +331,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
 
   # Datos fijos de la campaña (collection_mail_constantes.R): se usan como un campo.
   add(.cmail_constants_problems(template, keys))
+  add(.cmail_registro_problems(template))
   keys <- unique(c(keys, .cmail_constant_keys(template)))
 
   add(.cmail_text_problems(template$subject %||% "", "template.subject", keys))

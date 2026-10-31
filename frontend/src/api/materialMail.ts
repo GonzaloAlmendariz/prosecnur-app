@@ -352,8 +352,12 @@ export type MailTemplate = {
   fields: MailField[];
   /** Datos fijos de la campaña (L6): `{{key}}` vale lo mismo para toda la campaña; el render lo escribe como texto. */
   constants?: MailConstant[];
+  /** Trato de la campaña (L16): escribe cada `[[forma de tú|forma de usted]]` del texto; sin él, usted. */
+  registro?: MailRegistro;
   blocks: MailBlock[];
 };
+
+export type MailRegistro = "tu" | "usted";
 
 export type MailConstant = { key: string; label: string; value: string };
 
@@ -1167,6 +1171,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
   const presetId = optStr(value.preset_id);
   const title = optStr(value.title);
   const sha = optStr(value.template_sha256);
+  const registro = value.registro === "tu" || value.registro === "usted" ? value.registro : undefined;
   return {
     schema: MAIL_TEMPLATE_SCHEMA,
     template_id: str(value.template_id) || "correo",
@@ -1181,6 +1186,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),
     ...(constantes.length ? { constants: constantes } : {}),
+    ...(registro ? { registro } : {}),
     blocks,
   };
 }

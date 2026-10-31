@@ -163,6 +163,9 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_CAMPAIGN_NAME",                       "collection_mail_campaigns.R",       "422",
     "E_COLLECTION_MAIL_CAMPAIGN_LIMIT",                      "collection_mail_campaigns.R",       "409",
     "E_COLLECTION_MAIL_CAMPAIGN_CONFIRM",                    "collection_mail_campaigns.R",       "422",
+    # «Aplicar a las campañas hermanas» (GOAL editor de correos, L16).
+    "E_COLLECTION_MAIL_HERMANAS_PARTES",                     "collection_mail_hermanas.R",        "422",
+    "E_COLLECTION_MAIL_HERMANAS_SIN_DESTINO",                "collection_mail_hermanas.R",        "422",
     # «Mis secciones» del correo (ADR 0113).
     "E_COLLECTION_MAIL_SECTION_INVALID",                     "collection_mail_sections.R",        "422",
     "E_COLLECTION_MAIL_SECTION_NAME",                        "collection_mail_sections.R",        "422",

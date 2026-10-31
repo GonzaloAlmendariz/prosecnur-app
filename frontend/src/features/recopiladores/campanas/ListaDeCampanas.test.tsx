@@ -92,7 +92,10 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     const [aulas, correo] = LLENO.campaigns;
     expect(accionesDeCampana(aulas, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "archivar"]);
     expect(accionesDeCampana({ ...aulas, archived: true }, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["reabrir"]);
-    expect(accionesDeCampana(correo, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "duplicar", "borrar"]);
+    expect(accionesDeCampana(correo, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "duplicar", "hermanas", "borrar"]);
+    // «Aplicar a las hermanas» (L16) pide otra campaña de correo: con una sola, deshabilitada con su motivo.
+    expect(accionesDeCampana(correo, { fuente: "registro", correos: 1 }).find((a) => a.id === "hermanas")?.motivo).toBeTruthy();
+    expect(accionesDeCampana(correo, { fuente: "registro", correos: 2 }).find((a) => a.id === "hermanas")?.motivo).toBeNull();
     // Sin registro en el backend, archivar se ve deshabilitado con su motivo.
     expect(accionesDeCampana(aulas, { fuente: "derivada", correos: 1 }).every((a) => a.motivo)).toBe(true);
     // Revamp v5: la supervisión ya no tiene el menú vacío.

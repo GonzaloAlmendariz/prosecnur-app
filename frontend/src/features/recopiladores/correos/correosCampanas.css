@@ -787,3 +787,52 @@
     padding-top: var(--pulso-space-2);
   }
 }
+
+/* «Aplicar a las campañas hermanas» (L16): elegir campañas y partes, luego ver qué cambia en cada una. */
+.rec-camp-dialogo--hermanas {
+  width: min(620px, calc(100vw - var(--pulso-space-6)));
+}
+
+.rec-hermanas-lista {
+  border: 0;
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.rec-hermanas-fila {
+  align-items: center;
+  display: flex;
+  gap: var(--pulso-space-2);
+}
+
+.rec-hermanas-partes {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-hermanas-resumen {
+  display: grid;
+  gap: var(--pulso-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-hermanas-resumen-fila ul {
+  display: grid;
+  gap: 2px;
+  margin: var(--pulso-space-1) 0 0;
+  padding-left: var(--pulso-space-4);
+}
+
+.rec-hermanas-resumen-fila li.is-suave {
+  color: var(--pulso-text-soft);
+}
+
+.rec-hermanas-resumen-fila li.is-error {
+  color: var(--pulso-danger-fg);
+}

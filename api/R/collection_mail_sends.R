@@ -140,6 +140,7 @@
     if (is.null(v)) next
     add(.cmail_text_problems(v, paste0(path, ".", k), keys))
     add(.cmail_link_problems(v, paste0(path, ".", k), keys, FALSE))
+    add(.cmail_variante_problems(v, paste0(path, ".", k)))
     out[[k]] <- v
   }
 
@@ -164,6 +165,7 @@
     }
     add(.cmail_text_problems(opening, paste0(path, ".opening"), keys))
     add(.cmail_link_problems(opening, paste0(path, ".opening"), keys, TRUE))
+    add(.cmail_variante_problems(opening, paste0(path, ".opening")))
     out$opening <- opening
   }
   list(send = .cmc_drop_nulls_deep(out[intersect(.CMAIL_SEND_KEYS, names(out))]), problems = p)
@@ -310,7 +312,8 @@
   limpio <- function(x) tolower(trimws(.cmail_one(x) %||% ""))
   propio <- limpio(tpl$subject)
   base_subject <- if (is.null(.cmail_opt_text(send$subject))) tpl$subject else campaign$template$subject %||% ""
-  escrito <- function(x) .cmail_constants_apply(list(subject = x, constants = tpl$constants))$subject
+  # Con el trato de la campaña: en una que tutea, `[[Responde|Responda]]` se compara como «Responde».
+  escrito <- function(x) .cmail_constants_apply(list(subject = x, constants = tpl$constants, registro = tpl$registro))$subject
   asunto <- function(s) limpio(escrito(.cmail_opt_text(s$subject) %||% base_subject))
   otros <- Filter(function(s) !identical(.cmail_one(s$send_id), .cmail_one(send$send_id)), sends)
   iguales <- Filter(function(s) nzchar(propio) && identical(asunto(s), propio), otros)

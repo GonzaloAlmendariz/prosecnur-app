@@ -81,6 +81,8 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-campaigns/duplicate",
     "/api/recopiladores/mail-campaigns/meta",
     "/api/recopiladores/mail-campaigns/delete",
+    # «Aplicar a las campañas hermanas» (L16; ADR 0136).
+    "/api/recopiladores/mail-campaigns/apply-siblings",
     "/api/recopiladores/mail-template",
     "/api/recopiladores/mail-template/preview",
     "/api/recopiladores/mail-template/review",

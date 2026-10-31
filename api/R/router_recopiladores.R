@@ -301,6 +301,13 @@ mount_recopiladores <- function(pr) {
                                         campaign_id = body$campaign_id, name = body$name, actor = body$actor,
                                         platform = body$platform)
     })) |>
+    # «Aplicar a las campañas hermanas» (L16): con dry_run sólo dice qué cambiaría.
+    plumber::pr_post("/api/recopiladores/mail-campaigns/apply-siblings", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_campaigns_apply_siblings(session_header(req), expected_revision = body$expected_revision,
+                                               campaign_id = body$campaign_id, target_ids = body$target_ids,
+                                               partes = body$partes, dry_run = isTRUE(body$dry_run))
+    })) |>
     # Borrar es POST (no DELETE con cuerpo); confirm_name es la segunda confirmación.
     plumber::pr_post("/api/recopiladores/mail-campaigns/delete", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
