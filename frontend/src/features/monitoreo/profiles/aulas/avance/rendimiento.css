@@ -336,6 +336,13 @@
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
   scroll-padding-top: var(--aulas-rd-cabecera);
+  /* Encaje por fila: al desplazar, la fila se detiene bajo la cabecera fija y
+   * no a medias detrás de ella. */
+  scroll-snap-type: y proximity;
+}
+
+.aulas-rd-tabla tbody tr {
+  scroll-snap-align: start;
 }
 
 .aulas-rd-tabla {
@@ -457,6 +464,7 @@
 
   .aulas-rd-tabla-marco {
     overflow: visible;
+    scroll-snap-type: none;
   }
 }
 
