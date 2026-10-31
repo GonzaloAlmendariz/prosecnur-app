@@ -28,7 +28,18 @@ export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRut
  * `cabezaEncuestador` (Material, decisión I3): reemplaza el rótulo «Encuestador k» de la columna, con las
  * UMP (`id_manzana`) de todas sus jornadas, para asignarle una persona de la lista de Monitoreo.
  */
-export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = true, cabezaEncuestador }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void>; conCostos?: boolean; cabezaEncuestador?: (k: number, umps: string[]) => ReactNode }) {
+/**
+ * De dónde salen el plan y la hoja del día. Por defecto, de la muestra viva de Hojas de
+ * ruta; Material pasa los de la foto enviada (P6), para repartir lo que recibió.
+ */
+export type FuenteDelPlan = {
+  plan: (s: HojasRutaPlanSupuestos) => Promise<HojasRutaPlanCampo>;
+  hojaDia: (jornada: string, s: HojasRutaPlanSupuestos) => Promise<{ file_id: string }>;
+};
+
+const FUENTE_VIVA: FuenteDelPlan = { plan: apiHojasRutaPlanCampo, hojaDia: apiHojasRutaHojaDia };
+
+export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = true, cabezaEncuestador, fuente = FUENTE_VIVA }: { guardados: HojasRutaPlanSupuestos | undefined; deshabilitado: boolean; onGuardar: (s: HojasRutaPlanSupuestos) => Promise<void>; conCostos?: boolean; cabezaEncuestador?: (k: number, umps: string[]) => ReactNode; fuente?: FuenteDelPlan }) {
   const [s, setS] = useState<HojasRutaPlanSupuestos>(normalizarPlanSupuestos(guardados));
   const [plan, setPlan] = useState<HojasRutaPlanCampo | null>(null);
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
@@ -47,7 +58,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
   const calcular = () => {
     setOcupado("calcular");
     setError("");
-    apiHojasRutaPlanCampo(s)
+    fuente.plan(s)
       .then(setPlan)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo armar el plan"))
       .finally(() => setOcupado(""));
@@ -123,7 +134,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
                         disabled={hoja != null}
                         onClick={() => {
                           setHoja(j.id);
-                          apiHojasRutaHojaDia(j.id, s)
+                          fuente.hojaDia(j.id, s)
                             .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
                             .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
                             .finally(() => setHoja(null));

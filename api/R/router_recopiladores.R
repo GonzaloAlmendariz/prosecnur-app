@@ -161,6 +161,16 @@ mount_recopiladores <- function(pr) {
       collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
                                                  file_name = input$file_name, content_base64 = input$content_base64)
     })) |>
+    # Plan de campo y Hoja del día sobre la foto enviada (P6, collection_territorial_plan.R).
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/plan", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_plan(session_header(req), campaign_id = body[["id"]], supuestos = body[["supuestos"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/hoja-dia", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_hoja_dia(session_header(req), campaign_id = body[["id"]], jornada = body[["jornada"]],
+                                      supuestos = body[["supuestos"]])
+    })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
     plumber::pr_post("/api/recopiladores/barrido/plantilla", wrap_endpoint(function(req, res, ...) {
