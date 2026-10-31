@@ -9747,7 +9747,8 @@ h1.pulso-page-title {
   border-radius: 50%;
   background: #fff;
   box-shadow: var(--pulso-switch-knob-shadow);
-  transition: left var(--motion-dur-fast) var(--motion-ease-out);
+  /* L37: la perilla se desliza con transform, no con `left` (que anima el layout). */
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 /* El recorrido se deriva de la escala en vez de fijarse: la perilla apoya a 2px
  * de cada extremo, así que encendida arranca en `ancho - perilla - 4px`. Con el
@@ -9755,7 +9756,8 @@ h1.pulso-page-title {
  * donde su `translateX(14px)` la dejaba. Fijar el número obligaba a cada piel a
  * redeclararlo, y era media razón de que existieran switches paralelos. */
 .pulso-switch[aria-checked="true"] .pulso-switch-thumb {
-  left: calc(var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 4px);
+  /* Desde `left: 2px`: queda a `ancho - perilla - 4px`, como antes. */
+  transform: translateX(calc(var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 6px));
 }
 /* Indeterminado: la perilla se queda a medio camino entre apagado y encendido.
  * Lo pedía el `SwitchTri` de criterios (un grupo con algunos hijos marcados),
@@ -9765,7 +9767,7 @@ h1.pulso-page-title {
   background: color-mix(in srgb, var(--pulso-switch-accent) 42%, var(--pulso-text-muted) 20%);
 }
 .pulso-switch[aria-checked="mixed"] .pulso-switch-thumb {
-  left: calc((var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 2px) / 2);
+  transform: translateX(calc((var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 2px) / 2 - 2px));
 }
 
 .pulso-upload-card {
@@ -11665,7 +11667,7 @@ h1.pulso-page-title {
     0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 .analitica-switch-row .pulso-switch[aria-checked="true"] .pulso-switch-thumb {
-  left: 17px;
+  transform: translateX(15px);
 }
 .analitica-segmented {
   align-self: flex-start;
@@ -20929,7 +20931,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--pulso-primary) 0%, #14b8a6 100%);
-  transition: width 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* L37: la barra ocupa el ancho entero y avanza con translateX (JobProgress.tsx);
+     el extremo redondeado se conserva, cosa que scaleX deformaría. */
+  width: 100%;
+  transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .job-progress-bar-fill.is-indeterminate {

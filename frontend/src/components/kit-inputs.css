@@ -41,7 +41,7 @@
 }
 
 .pulso-switch.pulso-switch--sm[aria-checked="true"] .pulso-switch-thumb {
-  left: 14px;
+  transform: translateX(13px);
 }
 
 /* Etiqueta visible al lado (nunca dentro). */

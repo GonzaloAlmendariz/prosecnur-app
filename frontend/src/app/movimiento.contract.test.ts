@@ -22,7 +22,11 @@ const LAYOUT = /\b(width|height|top|left|right|bottom|margin(?:-[a-z]+)?|padding
 
 const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number>> = {
   layout: {
-    "app/theme.css": 9,
+    // 2026-10-31: perilla del switch y barra de job pasan a transform (9 → 7). Las 7 restantes tienen motivo:
+    // el indicador deslizante cambia de tamaño entre pestañas de distinto ancho (scale deformaría el radio),
+    // los segmentados de Carga/estrategia/plataforma/fuente de Analítica se expanden como un solo gesto
+    // (flex-basis + etiqueta) y rehacerlos exige rediseñar el control, y el nodo del mapa de lógica es SVG.
+    "app/theme.css": 7,
     "features/calcMuestra/calcMuestra.css": 3,
     "features/calcMuestra/didactica/didactica.css": 1,
     "features/calcMuestra/motor/pestanas/cobertura.css": 1,
