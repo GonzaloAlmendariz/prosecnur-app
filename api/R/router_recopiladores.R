@@ -148,7 +148,7 @@ mount_recopiladores <- function(pr) {
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/territorial/asignacion", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_territorial_asignacion_put(session_header(req), campaign_id = body$id, asignacion = body$asignacion,
-                                            expected_revision = body$expected_revision)
+                                            expected_revision = body$expected_revision, estados = body[["estados"]])
     })) |>
     # El Excel con el que campo asigna y reasigna (C1/C3, collection_territorial_excel.R):
     # generarlo y leerlo de vuelta. Leer es puro; guarda el PUT de arriba.
@@ -160,6 +160,10 @@ mount_recopiladores <- function(pr) {
       input <- .mtx_import_request(req)
       collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
                                                  file_name = input$file_name, content_base64 = input$content_base64)
+    })) |>
+    # El Estado que declara campo en el Excel, por UMP, para Monitoreo (C7, collection_territorial_estado.R).
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion/estado", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_estado_get(session_header(req), id)
     })) |>
     # Hoja de ruteo y hoja de consolidados por UMP (D1, collection_territorial_papel.R).
     plumber::pr_post("/api/recopiladores/campaigns/territorial/papel", wrap_endpoint(function(req, res, ...) {

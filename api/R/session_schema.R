@@ -420,7 +420,7 @@ session_schema <- function() {
     # --- Recopiladores (ADR 0046: estado propio, aditivo al legado de aulas) ---
     "collection_state",           "literal", "persistible",    "collection_engine.R", "directa",     "schema collection_state/v1; load_pulso siembra aulas_v1 sin marcar dirty",
     "material_territorial_formatos", "literal", "persistible", "collection_territorial_formatos.R", "session_set", "D1: códigos de resultado editables (2, 3, 5, 99), uso del 99, columna del criterio y caras del ruteo (schema material_territorial_formatos/v1). Sin clave (.pulso viejo) se lee con los valores por defecto y no marca dirty",
-    "material_territorial_asignacion", "literal", "persistible", "collection_territorial_asignacion.R", "session_set", "Decisión I3: asignación UMP → código del equipo de Monitoreo (schema material_territorial_asignacion/v1, por id_manzana sobre la foto enviada). Sin clave (.pulso viejo) se lee vacía y no marca dirty",
+    "material_territorial_asignacion", "literal", "persistible", "collection_territorial_asignacion.R", "session_set", "Decisión I3: asignación UMP → código del equipo de Monitoreo (schema material_territorial_asignacion/v1, por id_manzana sobre la foto enviada; C7 suma `estados`/`estados_at`, el Estado y las fechas que declara campo en el Excel, aditivo). Sin clave (.pulso viejo) se lee vacía y no marca dirty",
     "material_campaigns",         "literal", "persistible",    "collection_campaigns.R", "session_set", "ADR 0111: registro material_campaigns/v1 de las campañas sin otro dueño (aulas); las de correo se proyectan de collection_state$mail_campaigns. Sin clave (.pulso viejo) la lista se proyecta al leer y no marca dirty",
 
     # --- Hojas de ruta ---

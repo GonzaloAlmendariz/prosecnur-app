@@ -30,7 +30,8 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 .mta_guardada <- function(s) {
   x <- s$material_territorial_asignacion
   vacia <- list(schema = MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA, campaign_id = NA_character_, fase = NA_character_,
-                revision = 0L, asignacion = list(), sample_fingerprint = NA_character_, updated_at = NA_character_)
+                revision = 0L, asignacion = list(), sample_fingerprint = NA_character_, updated_at = NA_character_,
+                estados = list(), estados_at = NA_character_)
   if (!is.list(x) || !identical(as.character(x$schema %||% ""), MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA)) return(vacia)
   filas <- Filter(function(a) is.list(a) && nzchar(.hojas_ruta_envio_chr(a$id_manzana)) && nzchar(.hojas_ruta_envio_chr(a$codigo)),
                   x$asignacion %||% list())
@@ -38,7 +39,9 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
        campaign_id = .hojas_ruta_envio_chr(x$campaign_id), fase = .hojas_ruta_envio_chr(x$fase),
        revision = max(0L, suppressWarnings(as.integer(x$revision %||% 0L)), na.rm = TRUE),
        asignacion = lapply(filas, function(a) list(id_manzana = .hojas_ruta_envio_chr(a$id_manzana), codigo = .hojas_ruta_envio_chr(a$codigo))),
-       sample_fingerprint = .hojas_ruta_envio_chr(x$sample_fingerprint), updated_at = .hojas_ruta_envio_chr(x$updated_at))
+       sample_fingerprint = .hojas_ruta_envio_chr(x$sample_fingerprint), updated_at = .hojas_ruta_envio_chr(x$updated_at),
+       # C7: el Estado y las fechas que campo declara en el Excel (campo aditivo; sin él, vacío).
+       estados = .mte_limpiar(x$estados), estados_at = .hojas_ruta_envio_chr(x$estados_at))
 }
 
 .mta_campana <- function(s, campaign_id) {
@@ -102,7 +105,8 @@ collection_territorial_asignacion_get <- function(sid, campaign_id = NULL) {
 #' campaña y contra el equipo de Monitoreo; con la foto desactualizada no se asigna
 #' (como F2b no genera). Devuelve cuántas asignaciones viejas se descartaron.
 #' @keywords internal
-collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asignacion = list(), expected_revision = NULL) {
+collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asignacion = list(), expected_revision = NULL,
+                                                  estados = NULL) {
   s <- session_get(sid)
   hit <- .mta_campana(s, campaign_id)
   fase <- .mcamp_territorial_fase_of(hit$entry)
@@ -146,9 +150,19 @@ collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asign
              details = list(invalidas = malas))
   }
   previas <- if (propia) vapply(g$asignacion, `[[`, "", "id_manzana") else character(0)
+  ahora <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  # C7: `estados` llega sólo al aplicar un Excel leído; sin él (el selector de la app) se
+  # conserva lo declarado, salvo que sea de otra muestra.
+  if (is.null(estados)) {
+    misma <- propia && identical(g$sample_fingerprint, envio$sample_fingerprint)
+    est <- if (misma) g$estados else list(); est_at <- if (misma) g$estados_at else NA_character_
+  } else {
+    filas_e <- if (is.data.frame(estados)) lapply(seq_len(nrow(estados)), function(i) as.list(estados[i, , drop = FALSE])) else estados
+    est <- Filter(function(e) e$id_manzana %in% ids, .mte_limpiar(filas_e)); est_at <- ahora
+  }
   nuevo <- list(schema = MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA, campaign_id = hit$entry$id, fase = fase,
                 revision = actual + 1L, asignacion = unname(limpias), sample_fingerprint = envio$sample_fingerprint,
-                updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+                updated_at = ahora, estados = unname(est), estados_at = est_at)
   session_set(sid, "material_territorial_asignacion", nuevo)
   r <- collection_territorial_asignacion_get(sid, hit$entry$id)
   r$descartadas <- as.integer(sum(!previas %in% ids))

@@ -91,7 +91,8 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
   }
   const original = formatos.rotulos;
   const cambiados = Object.fromEntries(Object.entries(rotulos).filter(([k, v]) => v.trim() !== (original[k] ?? "")));
-  const vacio = Object.values(rotulos).some((v) => !v.trim());
+  // El 99 apagado no se imprime: su rótulo vacío no bloquea el guardado.
+  const vacio = Object.entries(rotulos).some(([k, v]) => !v.trim() && !(k === "99" && !con99));
   const sucio = Object.keys(cambiados).length > 0 || con99 !== formatos.con_99 || criterio.trim() !== formatos.columna_criterio;
   // El 99 apagado no sale en el catálogo leído: se pinta con su rótulo guardado para poder volver a prenderlo.
   const filas = formatos.codigos.some((c) => c.codigo === "99") ? formatos.codigos : [...formatos.codigos, { codigo: "99", rotulo: rotulos["99"] ?? "", grupo: "manzana" as const, editable: true }];
@@ -144,7 +145,7 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
           variant="primary"
           size="sm"
           disabled={!sucio || vacio || guardando}
-          onClick={() => void guardar({ rotulos: cambiados, con_99: con99, columna_criterio: criterio.trim() })}
+          onClick={() => void guardar({ rotulos: Object.fromEntries(Object.entries(cambiados).filter(([, v]) => v.trim())), con_99: con99, columna_criterio: criterio.trim() })}
         >
           {guardando ? "Guardando…" : "Guardar códigos"}
         </PulsoButton>

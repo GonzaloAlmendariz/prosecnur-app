@@ -9,6 +9,7 @@ import { downloadUrl } from "../../../api/core";
 import {
   apiMaterialTerritorialExcelAsignacion,
   apiMaterialTerritorialImportarAsignacion,
+  type EstadoDeclarado,
   type ImportacionAsignacion,
 } from "../../../api/materialTerritorial";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -19,7 +20,7 @@ const MAX_PROBLEMAS = 8;
 type Props = {
   campaignId: string | null;
   deshabilitado: boolean;
-  aplicar: (propuesta: { id_manzana: string; codigo: string }[]) => Promise<boolean>;
+  aplicar: (propuesta: { id_manzana: string; codigo: string }[], estados?: EstadoDeclarado[]) => Promise<boolean>;
 };
 
 export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props) {
@@ -77,6 +78,7 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
               {lectura.titulares_con_encuestador} de {lectura.titulares} UMP titulares con encuestador
             </strong>
             {lectura.filas_sin_encuestador ? ` · ${lectura.filas_sin_encuestador} filas sin encuestador` : ""}
+            {lectura.estados_declarados ? ` · ${lectura.estados_declarados} UMP con estado declarado` : ""}
           </p>
           <ul className="rec-asig-lectura-equipo">
             {lectura.por_encuestador
@@ -129,7 +131,7 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
               disabled={ocupado !== "" || deshabilitado || !lectura.propuesta.length}
               onClick={() => {
                 setOcupado("aplicar");
-                void aplicar(lectura.propuesta).then((ok) => {
+                void aplicar(lectura.propuesta, lectura.estados).then((ok) => {
                   setOcupado("");
                   if (ok) setLectura(null);
                 });

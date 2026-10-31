@@ -9,6 +9,7 @@ import {
   apiMaterialTerritorialAsignacion,
   apiMaterialTerritorialGuardarAsignacion,
   type AsignacionTerritorial,
+  type EstadoDeclarado,
 } from "../../../api/materialTerritorial";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSelect } from "../../../components/PulsoSelect";
@@ -46,11 +47,11 @@ export function useAsignacionEquipo(campaignId: string | null) {
 
   /** Guarda una asignación entera (la del calendario o la leída del Excel de campo). */
   const guardarCuerpo = useCallback(
-    (cuerpo: { id_manzana: string; codigo: string }[]): Promise<boolean> => {
+    (cuerpo: { id_manzana: string; codigo: string }[], estados?: EstadoDeclarado[]): Promise<boolean> => {
       if (!campaignId || !datos) return Promise.resolve(false);
       setEstado("guardando");
       setError("");
-      return apiMaterialTerritorialGuardarAsignacion(campaignId, cuerpo, datos.revision)
+      return apiMaterialTerritorialGuardarAsignacion(campaignId, cuerpo, datos.revision, estados)
         .then((a) => {
           setDatos(a);
           setBorrador(borradorDe(a));

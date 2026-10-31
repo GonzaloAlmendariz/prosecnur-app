@@ -191,7 +191,10 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
       ce <- .mtx_columna(cab, c("Encuestador"))
       if (!is.na(ci) && !is.na(ce)) {
         cuerpo <- if (r < nrow(crudo)) crudo[(r + 1L):nrow(crudo), , drop = FALSE] else crudo[0, , drop = FALSE]
-        return(list(hoja = h, fila0 = r, id = cuerpo[[ci]], encuestador = cuerpo[[ce]]))
+        # C7: Estado y fechas son opcionales (el Excel operativo viejo no los trae).
+        opcional <- function(nombres) { k <- .mtx_columna(cab, nombres); if (is.na(k)) rep(NA, nrow(cuerpo)) else cuerpo[[k]] }
+        return(list(hoja = h, fila0 = r, id = cuerpo[[ci]], encuestador = cuerpo[[ce]], estado = opcional("Estado"),
+                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional("Fecha de entrega")))
       }
     }
   }
@@ -249,7 +252,7 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
 
   ids <- .mtx_texto_id(t$id)
   encs <- trimws(vapply(t$encuestador, function(x) if (is.null(x) || is.na(x)) "" else as.character(x), ""))
-  propuesta <- list(); problemas <- list(); vistos <- character(0)
+  propuesta <- list(); problemas <- list(); vistos <- character(0); estados <- list()
   sin_encuestador <- 0L
   for (i in seq_along(ids)) {
     fila <- t$fila0 + i
@@ -266,6 +269,17 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
       next
     }
     vistos <- c(vistos, id)
+    # C7: lo declarado se lee en toda UMP de la muestra, tenga o no encuestador.
+    est <- .mte_estado(t$estado[i]); fs <- .mte_fecha(t$fecha_salida[i]); fe <- .mte_fecha(t$fecha_entrega[i])
+    crudo_fecha <- function(x) { v <- x[[1]]; !is.null(v) && !is.na(v) && nzchar(trimws(as.character(v))) }
+    if (is.na(est)) problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(t$estado[[i]]), motivo = "El Estado no es uno de la lista; no se lee")
+    if (is.na(fs) && crudo_fecha(t$fecha_salida[i])) problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(t$fecha_salida[[i]]), motivo = "La fecha de salida no se reconoce")
+    if (is.na(fe) && crudo_fecha(t$fecha_entrega[i])) problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(t$fecha_entrega[[i]]), motivo = "La fecha de entrega no se reconoce")
+    est <- if (is.na(est)) "" else est
+    if (nzchar(est) || !is.na(fs) || !is.na(fe)) {
+      estados[[id]] <- list(id_manzana = id, estado_declarado = est,
+                            fecha_salida = if (is.na(fs)) "" else fs, fecha_entrega = if (is.na(fe)) "" else fe)
+    }
     if (!nzchar(encs[[i]])) { sin_encuestador <- sin_encuestador + 1L; next }
     cod <- resolver(encs[[i]])
     if (is.na(cod)) {
@@ -296,13 +310,15 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
   list(
     ok = TRUE, campaign_id = ctx$hit$entry$id, hoja = t$hoja,
     propuesta = unname(lapply(propuesta, function(p) p[c("id_manzana", "codigo")])),
+    estados = unname(estados),
     problemas = problemas,
     resumen = list(titulares = length(titulares), titulares_con_encuestador = as.integer(sum(con)),
                    filas_sin_encuestador = sin_encuestador, problemas = length(problemas),
-                   pierden_encuestador = length(pierden)),
+                   pierden_encuestador = length(pierden),
+                   estados_declarados = length(Filter(function(e) nzchar(e$estado_declarado) && !identical(e$estado_declarado, "Pendiente"), estados))),
     por_encuestador = lapply(seq_along(codigos), function(i) list(codigo = codigos[[i]], nombre = equipo[[i]]$nombre, umps = as.integer(conteo[[i]]))),
     otra_muestra = nzchar(control$sample_fingerprint %||% "") && !identical(control$sample_fingerprint, ctx$envio$sample_fingerprint),
-    nota = "Sólo se lee el encuestador. Fechas, estado y observaciones se quedan en el Excel para campo."
+    nota = "Se leen el encuestador, el Estado y las fechas; el Estado es lo que declara campo y no cambia el avance, que sale de Kobo. Las observaciones se quedan en el Excel."
   )
 }
 

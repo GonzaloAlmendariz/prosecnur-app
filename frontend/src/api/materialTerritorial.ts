@@ -274,13 +274,15 @@ export async function apiMaterialTerritorialGuardarAsignacion(
   campaignId: string,
   asignacion: { id_manzana: string; codigo: string }[],
   expectedRevision: number,
+  /** C7: lo declarado en el Excel leído; sin él, el backend conserva lo que había. */
+  estados?: EstadoDeclarado[],
 ): Promise<AsignacionTerritorial> {
   return normalizarAsignacionTerritorial(
     await handle<unknown>(
       await apiFetch("/api/recopiladores/campaigns/territorial/asignacion", {
         method: "PUT",
         headers: headers({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ id: campaignId, asignacion, expected_revision: expectedRevision }),
+        body: JSON.stringify({ id: campaignId, asignacion, expected_revision: expectedRevision, ...(estados ? { estados } : {}) }),
       }),
     ),
   );
@@ -297,8 +299,14 @@ export type ExcelAsignacion = { file_id: string; filename: string; umps: number 
 
 export type ProblemaDeFila = { fila: number; id_manzana: string; valor: string; motivo: string };
 
+/** C7: Estado y fechas que campo declara por UMP (no es avance: el avance sale de Kobo). */
+export type EstadoDeclarado = { id_manzana: string; estado_declarado: string; fecha_salida: string; fecha_entrega: string };
+
 export type ImportacionAsignacion = {
   propuesta: { id_manzana: string; codigo: string }[];
+  estados: EstadoDeclarado[];
+  /** UMP con un Estado distinto de «Pendiente». */
+  estados_declarados: number;
   problemas: ProblemaDeFila[];
   titulares: number;
   titulares_con_encuestador: number;
@@ -325,8 +333,14 @@ export function normalizarImportacionAsignacion(valor: unknown): ImportacionAsig
     .filter(esRegistro)
     .map((p) => ({ codigo: texto(p.codigo), nombre: texto(p.nombre), umps: entero(p.umps) }))
     .filter((p) => p.codigo);
+  const estados = lista(valor.estados)
+    .filter(esRegistro)
+    .map((e) => ({ id_manzana: texto(e.id_manzana), estado_declarado: texto(e.estado_declarado), fecha_salida: texto(e.fecha_salida), fecha_entrega: texto(e.fecha_entrega) }))
+    .filter((e) => e.id_manzana);
   return {
     propuesta,
+    estados,
+    estados_declarados: entero(resumen.estados_declarados),
     problemas,
     titulares: entero(resumen.titulares),
     titulares_con_encuestador: entero(resumen.titulares_con_encuestador),
