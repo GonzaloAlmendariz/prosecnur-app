@@ -62,14 +62,61 @@ Se dibuja en el artefacto, sección «Lo que necesitamos que decidas». Al día 
 8. Dónde vive la lista de encuestadores (Monitoreo, Material o Planner).
 9. Abrir el ADR del Planner.
 
-## 4. Estructura (se completa tick a tick; ver el tablero del loop)
+## 4. Reglas del reparto entre módulos
 
-- Regla de reparto entre módulos.
-- Circuito: lo que sale a campo, lo que llena campo, lo que vuelve.
-- Perfil por perfil.
-- Planner: campos del estudio, dueño, consumidores, dónde viven hoy y cómo se mudan.
-- Contratos de lectura entre módulos.
-- Glosario: una palabra por cosa.
-- Formatos de papel y Excel, con maqueta.
-- Datos personales.
-- Hoja de ruta por fases y sesiones.
+Propuestas por Meta B y la sesión de Monitoreo (31 oct), extienden el ADR 0118. No contradicen el checklist C1–C8.
+
+1. **Material produce lo que sale a campo**: fichas, hojas de ruta, hoja de ruteo, hoja de consolidados, hoja del día,
+   Excel de asignación, plantilla del barrido telefónico, plantillas en blanco del libro de aulas y correos.
+2. **Monitoreo lee lo que vuelve y calcula**: Kobo, SurveyMonkey, el barrido llenado, el libro de aulas; avance y
+   control. Material no calcula avance; Monitoreo no escribe en Material.
+3. **Un escritor por archivo**: el Excel que campo devuelve lleno lo lee el módulo que lo generó. Si a Monitoreo le
+   sirve, lo consulta después por un endpoint sin efectos (como `GET /api/recopiladores/campaigns/territorial/asignacion`).
+4. **Siempre desde la muestra enviada**: todo lo que sale a campo nace de la foto enviada, con su `sample_fingerprint`.
+   Si no coincide, Monitoreo dice «de otra muestra» y no compara.
+5. **La app no pisa lo que llena campo**: dueño por hoja, como ya rige el libro de aulas.
+6. **Datos personales antes de existir**: todo insumo con nombres, DNI o teléfonos declara cómo lo cubre
+   `api/scripts/pulso_anonimizar.R`. Hoy faltan `enumerator_roster` y `material_territorial_asignacion`.
+
+## 5. Perfil por perfil (verificado en el código por la sesión de Monitoreo, 31 oct)
+
+Cursos-horario es el mismo perfil que aulas.
+
+| Perfil | Sale a campo (Material) | Vuelve (Monitoreo) | Quién | Cuándo |
+|---|---|---|---|---|
+| Territorial | Ficha UMP y Excel operativo (existen); Excel de asignación (6adbef00e); hoja de ruteo y de consolidados (hoy en Word, a mano: D1); Hoja del día sin grilla (D2a) | Kobo y ocurrencias (`/territorial/source`, `/occurrences/sync`); lista de encuestadores (`/territorial/enumerators/upload`); asignado vs observado (B3, aún no); declarado vs Kobo | Material: esta sesión. Monitoreo: sesión de Monitoreo | Ahora |
+| Aulas / cursos-horario | Fichas QR y afiche (ya en Material). Pasarían a Material las plantillas en blanco que campo llena: «Aulas Agendadas», «Aulas Aplicadas», disponibilidad, parte en papel | Kobo por API; libro en Sheets (`/aulas/importar-sheets`; el parte se lee sólo de ahí); Excel del libro; disponibilidad; hoja de aplicadores (`/aulas/sincronizar-distribucion`). Se quedan en Monitoreo las hojas que la app reescribe (avance, base de control, riesgo) | Monitoreo: sesión de Monitoreo (ADR 0121). Material de aulas: esta sesión | Después del ADR 0121 F3 |
+| Telefónico | Hoy el barrido se arma a mano en Sheets. Material lo generaría desde la muestra + backup del cliente, con columnas fijas (código, status, intentos, observación, responsable, fecha, sede, muestra/backup) y el catálogo de status del estudio | Barrido desde Sheets (`/api/monitoreo/sheets/source|sync`); Kobo; publica a Sheets | Plantilla: esta sesión. Lectura: sesión de Monitoreo. Revisar el Excel del RMS (C8): por decidir (Meta B recomienda la sesión «ACNUR RMS») | Después de D1 y D2a |
+| Acreditación | Correos para SurveyMonkey y Mailchimp (ya en Material). Propuesta: barrido telefónico como en telefónico; padrones siguen siendo del cliente | SurveyMonkey por API; padrones y barrido desde Sheets; Mailchimp | Sesiones de Acreditación y de correos | Fuera de este plan |
+
+## 6. Mapa de módulos (texto del diagrama del artefacto)
+
+- Planner (propuesta) → todos los módulos: define el estudio una vez.
+- Cálculo de muestra → Hojas de ruta: tamaño y reparto.
+- Hojas de ruta → Material: muestra enviada.
+- Material → Campo: fichas, hojas, Excel. Campo → Material: Excel llenado.
+- Campo → Monitoreo: respuestas en Kobo.
+- Material → Monitoreo: la asignación (consulta sin efectos).
+- Monitoreo → Procesamiento: base de campo.
+
+## 7. Glosario (una palabra por cosa)
+
+| Término | Significa | No confundir con |
+|---|---|---|
+| UMP | Unidad de trabajo territorial: una manzana con su rango de encuestas | «Ruta»: en el plan de campo una jornada agrupa varias UMP |
+| Titular / reemplazo | La UMP sorteada y la que va en su lugar | — |
+| Muestra enviada (foto) | La muestra que Hojas de ruta pasa a Material, con su huella | La muestra viva de Hojas de ruta, que puede cambiar después |
+| Código de resultado | El número con que campo anota qué pasó en cada visita (1–8, 99) | Las «disposiciones» de la Hoja del día, que se retiran (D2a) |
+| Encuestador / aplicador | Quien hace la encuesta: encuestador en territorial y telefónico, aplicador en aulas | Responsable (columna del barrido) |
+| Hoja de ruteo | Papel donde se anota cada vivienda visitada y su código | Hoja de ruta (la ficha de la UMP) y Hoja del día (portada de la jornada) |
+| Hoja de consolidados | Resumen de la UMP: visitas por código y registro de encuestados | — |
+| Excel de asignación | Excel donde campo escribe quién hace cada UMP; la app lo lee de vuelta | Excel operativo de Hojas de ruta |
+| Planner | Propuesta: la Bitácora renombrada, donde se define el estudio para todos los módulos | Plan de campo (jornadas por encuestador) |
+
+## 8. Pendiente de estructurar (tablero del loop)
+
+- Planner: campos del estudio, dueño, consumidores, dónde viven hoy y cómo se mudan (L5).
+- Contratos de lectura entre módulos (L6).
+- Formatos con maqueta fiel (L8).
+- Datos personales (L9).
+- Hoja de ruta por fases y sesiones (L10).
