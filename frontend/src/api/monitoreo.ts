@@ -1051,6 +1051,11 @@ export type MonitoreoAulasAvanceCuota = {
    * Sin esta declaración el mismo payload significa dos cosas y la UI adivina.
    * Un contrato viejo sin `eje` se lee como `facultad`, que es lo que es.
    */
+  /**
+   * El avance por celdas de las variables que declara el estudio (ADR 0121,
+   * F2). Cuenta lo mismo que este bloque, repartido. Ausente sin metas.
+   */
+  celdas_declaradas?: MonitoreoAulasAvancePorCeldas | null;
   eje?: {
     clave: string;
     columna: string;
@@ -1842,6 +1847,27 @@ export type MonitoreoAulasReemplazosPorTipo = {
   /** Casos A o B que no dicen CON CUÁL se resolvieron. */
   sin_aula_utilizada?: number;
   total?: number;
+};
+
+/** Una celda del avance por variables declaradas (ADR 0121, F2). */
+export type MonitoreoAulasCeldaDeAvance = {
+  valores: Record<string, string>;
+  cuota: number | null;
+  logradas: number;
+  /** Lo que falta en ESA celda; un marginal suma las brechas de sus celdas. */
+  brecha: number | null;
+};
+
+/** `avance_cuota.celdas_declaradas`: lo que lleva el estudio, celda a celda. */
+export type MonitoreoAulasAvancePorCeldas = {
+  schema: "avance_por_celdas_v1" | string;
+  variables: string[];
+  celdas: MonitoreoAulasCeldaDeAvance[];
+  marginales: Record<string, Array<{ valor: string; cuota: number | null; logradas: number; brecha: number }>>;
+  total: { cuota: number | null; logradas: number; brecha: number };
+  /** Cuentan para el estudio y no caen en ninguna celda declarada. */
+  fuera_de_celdas: number;
+  sin_valor: Record<string, number>;
 };
 
 /** Una variable de cuota del estudio (ADR 0121). */

@@ -595,6 +595,11 @@
     # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
     # `eje` se lee como `facultad`, que es lo que es.
     eje = monitoreo_aulas_eje_declaracion(eje),
+    # **El avance por celdas de las variables que declara el estudio** (ADR
+    # 0121, F2): facultad × sexo, nivel, nivel × sexo… Cuenta lo mismo que este
+    # bloque; sólo lo reparte. Ver `monitoreo_aulas_avance_celdas.R`.
+    celdas_declaradas = monitoreo_aulas_avance_por_celdas(
+      cfg, eje, eje_atr, sexo_key, atr, plan_df, responses = responses, padron = padron),
     # **Por qué el eje no puede resolver, cuando no puede.** El satélite lo
     # diagnostica y lo escribía en un atributo que NADIE leía: ni este motor, ni
     # el payload, ni la pantalla. Un aviso escrito, correcto y sin consumidor no
