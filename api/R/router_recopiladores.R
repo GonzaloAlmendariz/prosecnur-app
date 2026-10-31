@@ -161,6 +161,14 @@ mount_recopiladores <- function(pr) {
       collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
                                                  file_name = input$file_name, content_base64 = input$content_base64)
     })) |>
+    # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
+    # libro; dónde vive el barrido en Material (P10) está por decidir.
+    plumber::pr_post("/api/recopiladores/barrido/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_barrido_plantilla(session_header(req), estudio = body[["estudio"]], llave = body[["llave"]],
+                                   estratos = body[["estratos"]], telefonos = body[["telefonos"]], reemplazo = body[["reemplazo"]],
+                                   responsables = body[["responsables"]], status = body[["status"]], filas = body[["filas"]])
+    })) |>
     # El Estado que declara campo en el Excel, por UMP, para Monitoreo (C7, collection_territorial_estado.R).
     plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion/estado", wrap_endpoint(function(req, res, id = NULL, ...) {
       collection_territorial_estado_get(session_header(req), id)
