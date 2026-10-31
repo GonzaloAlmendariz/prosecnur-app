@@ -161,6 +161,12 @@ mount_recopiladores <- function(pr) {
       collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
                                                  file_name = input$file_name, content_base64 = input$content_base64)
     })) |>
+    # Hoja de ruteo y hoja de consolidados por UMP (D1, collection_territorial_papel.R).
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/papel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_papel(session_header(req), campaign_id = body[["id"]], pieza = body[["pieza"]],
+                                   unidad = body[["unidad"]], alcance = body[["alcance"]])
+    })) |>
     # Códigos de resultado del estudio y formato de las hojas de campo (D1,
     # collection_territorial_formatos.R). GET puro: lo leen las hojas y Monitoreo.
     plumber::pr_get("/api/recopiladores/campaigns/territorial/formatos", wrap_endpoint(function(req, res, id = NULL, ...) {

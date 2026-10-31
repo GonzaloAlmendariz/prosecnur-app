@@ -188,6 +188,8 @@ errores_registrados <- function() {
     # Códigos de resultado y formato de las hojas (D1).
     "E_COLLECTION_TERRITORIAL_FORMATOS_STALE",               "collection_territorial_formatos.R", "409",
     "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS",           "collection_territorial_formatos.R", "422",
+    "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA",                  "collection_territorial_papel.R",    "422",
+    "E_COLLECTION_TERRITORIAL_PAPEL_UNIDAD",                 "collection_territorial_papel.R",    "404",
     "E_COLLECTION_TERRITORIAL_EXCEL_ILEGIBLE",               "collection_territorial_excel.R", "400,422",
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
