@@ -13,9 +13,13 @@ test_that("el libro trae las cinco hojas, la identidad del estudio y la cola id�
   r <- collection_barrido_plantilla(sid, estudio = "RMS prueba", llave = "Código proGres", estratos = list("Periodo de Llegada"),
                                     telefonos = 3, responsables = list("Responsable", "Agente Uno", "Agente Dos"), filas = 300)
   l <- .mbp_libro(sid, r)
-  expect_identical(names(l$wb), c("Léeme", "Barrido", "Listas", "Parámetros", "Control"))
+  expect_identical(names(l$wb), c("Léeme", "Barrido", "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"))
   cab <- names(openxlsx::read.xlsx(l$path, sheet = "Barrido", check.names = FALSE, sep.names = " "))
-  expect_identical(cab[1:4], c("Código proGres", "Origen", "Tanda", "Nombre"))
+  # T1: el correlativo de Pulso va primero; T7: sin backup no hay Origen ni Tanda.
+  expect_identical(cab[1:3], c("Cod pulso", "Código proGres", "Nombre"))
+  expect_false(any(c("Origen", "Tanda") %in% cab))
+  barrido <- openxlsx::read.xlsx(l$path, sheet = "Barrido", check.names = FALSE, sep.names = " ")
+  expect_identical(barrido[["Cod pulso"]], as.numeric(1:300))
   expect_true(all(c("Teléfono 1", "Teléfono 3", "Periodo de Llegada") %in% cab))
   expect_identical(utils::tail(cab, 6), c("Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", "Observación"))
   expect_false("Reemplaza a" %in% cab)
@@ -68,4 +72,27 @@ test_that("HTTP: POST de la plantilla devuelve el archivo registrado", {
   r <- .hre_call(pr, sid, "POST", "/api/recopiladores/barrido/plantilla", body = .hre_json(list(llave = "Código proGres", estratos = list("Sede"))))
   expect_identical(r$status, 200L)
   expect_true(nzchar(r$body$file_id))
+})
+
+test_that("T2/T4/T5/T7: identidad bloqueada, Indicadores por fórmula, Incidencias y Origen sólo con backup", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  r <- collection_barrido_plantilla(sid, llave = "Código proGres", estratos = list("Periodo de Llegada"), reemplazo = TRUE,
+                                    responsables = list("Agente Uno"), filas = 50)
+  path <- session_get(sid)$files[[r$file_id]]$path
+  cab <- names(openxlsx::read.xlsx(path, sheet = "Barrido", check.names = FALSE, sep.names = " "))
+  expect_identical(cab[1:4], c("Cod pulso", "Código proGres", "Origen", "Tanda"))
+  # Estilos de la fila 2: la identidad hereda «locked» (no trae createStyle(locked = FALSE)); la cola sí.
+  dir <- tempfile(); utils::unzip(path, exdir = dir)
+  xml_estilos <- paste(readLines(file.path(dir, "xl/styles.xml"), warn = FALSE), collapse = "")
+  expect_match(xml_estilos, "locked=\"0\"", fixed = TRUE)
+  # El XML de cada hoja se numera por orden de creación: se busca en todas.
+  ind <- paste(unlist(lapply(list.files(file.path(dir, "xl/worksheets"), "\\.xml$", full.names = TRUE),
+                             function(f) readLines(f, warn = FALSE))), collapse = "")
+  expect_match(ind, "COUNTIFS(INDEX(", fixed = TRUE)
+  expect_match(ind, "Efectivo", fixed = TRUE)
+  expect_match(ind, "Agente Uno|COUNTIFS\\(", perl = TRUE)
+  inc <- names(openxlsx::read.xlsx(path, sheet = "Incidencias", check.names = FALSE, sep.names = " "))
+  expect_identical(inc, c("Fecha", "Caso", "Responsable", "Incidencia", "Resolución"))
+  leeme <- openxlsx::read.xlsx(path, sheet = "Léeme", colNames = FALSE)[[1]]
+  expect_true(any(grepl("desprotege la hoja", leeme)))
 })
