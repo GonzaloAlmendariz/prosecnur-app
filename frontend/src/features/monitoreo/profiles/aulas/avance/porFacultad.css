@@ -73,6 +73,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Pie de un panel: lo que la tabla no debe leerse como (A2, tipos no
+   comparables). */
+.aulas-pf-pie {
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
 .aulas-pf-nota {
   display: flex;
   align-items: flex-start;

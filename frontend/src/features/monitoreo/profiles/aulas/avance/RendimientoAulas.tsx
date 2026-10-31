@@ -12,6 +12,7 @@ import {
   type PorHora,
   type Semana,
   type Tasas,
+  TOPE_RAZON,
 } from "./rendimientoModelo";
 import "./rendimiento.css";
 
@@ -54,11 +55,11 @@ function RendimientoAulasImpl({ dashboard, cargando, vacioSinTablero }: {
       data-qa-geometry-group="aulas-rendimiento"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="aulas-rd-columna is-tiempo" data-qa-geometry-member="tiempo">
+      <div className="aulas-rd-columna is-tiempo" data-qa-geometry-member="tiempo" data-qa-geometry-group="aulas-rd-tiempo" data-qa-geometry-contract="intrinsic">
         <EfectivasPorDia porDia={modelo.porDia} />
         <HoraEnQueSeResponde porHora={modelo.porHora} />
       </div>
-      <div className="aulas-rd-columna is-tasa" data-qa-geometry-member="tasa">
+      <div className="aulas-rd-columna is-tasa" data-qa-geometry-member="tasa" data-qa-geometry-capacity="owned">
         <TasaContraDiseno tasas={modelo.tasas} />
       </div>
       <div className="aulas-rd-columna is-esfuerzo" data-qa-geometry-member="esfuerzo">
@@ -124,7 +125,7 @@ function Cabecera({ id, titulo, sub, children }: { id: string; titulo: string; s
 function EfectivasPorDia({ porDia }: { porDia: PorDia }) {
   const id = "aulas-rd-dia-titulo";
   return (
-    <section className="aulas-rd-panel is-grafico" aria-labelledby={id}>
+    <section className="aulas-rd-panel is-grafico" aria-labelledby={id} data-qa-geometry-member="dias">
       <Cabecera id={id} titulo="Efectivas por día" sub={porDia.tipo === "barras" ? porDia.sub : undefined}>
         {porDia.tipo === "barras" && porDia.barras.some((b) => b.finDeSemana) ? (
           <span className="aulas-rd-leyenda" aria-hidden="true">
@@ -135,9 +136,9 @@ function EfectivasPorDia({ porDia }: { porDia: PorDia }) {
       </Cabecera>
       {porDia.tipo === "vacio" ? <Nota vacio={porDia.vacio} /> : (
         <div className="aulas-rd-barras" role="img" aria-label={`Efectivas por día: ${porDia.barras.filter((b) => b.validas).map((b) => b.titulo).join(", ")}`}>
-          <div className="aulas-rd-barras-zona">
+          <div className="aulas-rd-barras-zona" data-qa-geometry-group="aulas-rd-dias" data-qa-geometry-contract="equal">
             {porDia.barras.map((b) => (
-              <div key={b.fecha} className="aulas-rd-barra" title={b.titulo}>
+              <div key={b.fecha} className="aulas-rd-barra" title={b.titulo} data-qa-geometry-member={b.fecha}>
                 <span className="aulas-rd-num">{b.validas ? fmt(b.validas) : ""}</span>
                 <i className={b.finDeSemana ? "is-fin" : undefined} style={{ height: `${b.alto}%` }} />
               </div>
@@ -155,23 +156,31 @@ function EfectivasPorDia({ porDia }: { porDia: PorDia }) {
 function HoraEnQueSeResponde({ porHora }: { porHora: PorHora }) {
   const id = "aulas-rd-hora-titulo";
   return (
-    <section className="aulas-rd-panel is-grafico" aria-labelledby={id}>
-      <Cabecera id={id} titulo="Hora en que se responde" sub={porHora.tipo === "barras" ? porHora.sub : undefined} />
+    <section className="aulas-rd-panel is-grafico" aria-labelledby={id} data-qa-geometry-member="horas">
+      <Cabecera id={id} titulo="Rendimiento por hora de aplicación" sub={porHora.tipo === "barras" ? porHora.sub : undefined} />
       {porHora.tipo === "vacio" ? <Nota vacio={porHora.vacio} /> : (
         <>
-          <div className="aulas-rd-barras" role="img" aria-label={`Hora en que se responde: ${porHora.barras.filter((b) => b.validas).map((b) => b.titulo).join(", ")}`}>
-            <div className="aulas-rd-barras-zona is-hora">
+          <div className="aulas-rd-barras" role="img" aria-label={`Rendimiento por hora: ${porHora.barras.filter((b) => b.aulas).map((b) => b.titulo).join(", ")}`}>
+            <div
+              className="aulas-rd-barras-zona is-hora is-razon"
+              style={{ ["--aulas-rd-cien" as string]: `${(100 / TOPE_RAZON).toFixed(1)}%` }}
+              data-qa-geometry-group="aulas-rd-horas"
+              data-qa-geometry-contract="equal"
+            >
               {porHora.barras.map((b) => (
-                <div key={b.hora} className="aulas-rd-barra" title={b.titulo}>
-                  <i className={b.pico ? "is-hora is-pico" : "is-hora"} style={{ height: `${b.alto}%` }} />
+                <div key={b.clave} className="aulas-rd-barra" title={b.titulo} data-qa-geometry-member={b.clave}>
+                  {/* Sin «%» sobre la barra: con dieciséis horas se pisaban
+                      entre vecinas. El subtítulo dice que es % de lo previsto. */}
+                  <span className="aulas-rd-num">{b.aulas ? b.razon.replace(" %", "") : ""}</span>
+                  <i className={b.pocos ? "is-hora is-pocos" : "is-hora"} style={{ height: `${b.relleno}%` }} />
                 </div>
               ))}
             </div>
             <div className="aulas-rd-eje" aria-hidden="true">
-              {porHora.barras.map((b) => <span key={b.hora}>{b.etiqueta}</span>)}
+              {porHora.barras.map((b) => <span key={b.clave}>{b.etiqueta.replace(":00", "")}</span>)}
             </div>
           </div>
-          {porHora.pie ? <p className="aulas-rd-pie">{porHora.pie}</p> : null}
+          <p className="aulas-rd-pie">La línea es 100 %, lo previsto. En gris claro, horas con menos de 3 cursos-horario: no se comparan.{porHora.pie ? ` ${porHora.pie}` : ""}</p>
         </>
       )}
     </section>
@@ -192,32 +201,35 @@ function TasaContraDiseno({ tasas }: { tasas: Tasas }) {
       </Cabecera>
       {tasas.tipo === "vacio" ? <Nota vacio={tasas.vacio} /> : (
         <>
-          <div className="aulas-rd-pesas" role="table" aria-labelledby={id}>
-            <div className="aulas-rd-pesa is-cabeza" role="row">
+          <div className="aulas-rd-pesas" role="table" aria-labelledby={id} data-qa-geometry-group="aulas-rd-pesas" data-qa-geometry-contract="equal">
+            <div className="aulas-rd-pesa is-cabeza" role="row" data-qa-geometry-member="cabeza" data-qa-geometry-group="aulas-rd-pesa-cabeza" data-qa-geometry-contract="intrinsic">
               <span role="columnheader">{tasas.eje}</span>
               <span role="columnheader">{tasas.escala}</span>
               <span role="columnheader" className="is-num">Diseño</span>
               <span role="columnheader" className="is-num">Campo</span>
+              <span role="columnheader" className="is-num">Aulas</span>
             </div>
             {tasas.filas.map((f) => (
-              <div key={f.clave} className="aulas-rd-pesa" role="row">
-                <span role="rowheader" className="aulas-rd-facultad" title={f.facultad}>{f.facultad}</span>
+              <div key={f.clave} className="aulas-rd-pesa" role="row" data-qa-geometry-member={f.clave} data-qa-geometry-group={`aulas-rd-pesa-${f.clave}`} data-qa-geometry-contract="intrinsic">
+                <span role="rowheader" className="aulas-rd-facultad" title={`${f.facultad}: ${f.senal}`}>{f.facultad}</span>
                 <span role="cell">
                   <span className="aulas-rd-riel" role="img" aria-label={f.aria}>
                     <i
                       className="is-tramo"
                       style={{ left: `${Math.min(f.xDiseno, f.xCampo)}%`, width: `${Math.abs(f.xDiseno - f.xCampo)}%` }}
                     />
+                    {f.banda ? <i className="is-banda" style={{ left: `${f.banda.x0}%`, width: `${Math.max(0, f.banda.x1 - f.banda.x0)}%` }} /> : null}
                     <i className="is-diseno" style={{ left: `${f.xDiseno}%` }} />
                     <i className={f.bajo ? "is-campo is-bajo" : "is-campo"} style={{ left: `${f.xCampo}%` }} />
                   </span>
                 </span>
                 <span role="cell" className="is-num aulas-rd-tenue">{f.diseno}</span>
                 <b role="cell" className="is-num">{f.campo}</b>
+                <span role="cell" className="is-num aulas-rd-tenue">{f.aulas}</span>
               </div>
             ))}
           </div>
-          {tasas.pie ? <p className="aulas-rd-pie">{tasas.pie}</p> : null}
+          <p className="aulas-rd-pie">Ordenadas por la señal del motor; la franja gris es la banda del 95 % (sin banda con menos de dos cursos-horario).{tasas.pie ? ` ${tasas.pie}` : ""}</p>
         </>
       )}
     </section>
@@ -228,17 +240,21 @@ function DiaDeLaSemana({ semana }: { semana: Semana }) {
   const id = "aulas-rd-semana-titulo";
   return (
     <section className="aulas-rd-panel is-semana" aria-labelledby={id}>
-      <Cabecera id={id} titulo="Día de la semana" />
+      <Cabecera id={id} titulo="Día de la semana" sub={semana.tipo === "barras" ? semana.sub : undefined} />
       {semana.tipo === "vacio" ? <Nota vacio={semana.vacio} /> : (
-        <ul className="aulas-rd-semana">
-          {semana.filas.map((f) => (
-            <li key={f.clave}>
-              <span>{f.dia}</span>
-              <span className="aulas-rd-pista" aria-hidden="true"><i style={{ width: `${f.relleno}%` }} /></span>
-              <b className="aulas-rd-num">{fmt(f.validas)}</b>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="aulas-rd-semana is-razon" style={{ ["--aulas-rd-cien" as string]: `${(100 / TOPE_RAZON).toFixed(1)}%` }}>
+            {semana.filas.map((f) => (
+              <li key={f.clave} title={f.titulo} className={f.pocos ? "is-pocos" : undefined}>
+                <span>{f.etiqueta}</span>
+                <span className="aulas-rd-pista" aria-hidden="true"><i style={{ width: `${f.relleno}%` }} /></span>
+                <b className="aulas-rd-num">{f.razon}</b>
+                <span className="aulas-rd-tenue aulas-rd-num">{f.aulas} aulas</span>
+              </li>
+            ))}
+          </ul>
+          {semana.pie ? <p className="aulas-rd-pie">{semana.pie}</p> : null}
+        </>
       )}
     </section>
   );
@@ -262,17 +278,19 @@ function PorAplicador({ aplicadores }: { aplicadores: Aplicadores }) {
                 <tr>
                   <th scope="col">Aplicador</th>
                   <th scope="col" className="is-num">Aulas</th>
-                  <th scope="col" className="is-num">Efectivas</th>
-                  <th scope="col" className="is-num">Tasa</th>
+                  <th scope="col" className="is-num" title="Efectivas contra lo esperado de sus aulas">Esperado</th>
+                  <th scope="col" className="is-num" title="Efectivas sobre los asistentes: lo que depende del trabajo en el aula">De asist.</th>
                 </tr>
               </thead>
               <tbody>
                 {aplicadores.filas.map((f) => (
-                  <tr key={f.clave}>
-                    <th scope="row" title={f.aplicador}>{f.aplicador}</th>
+                  <tr key={f.clave} className={f.pocos ? "is-pocos" : undefined} title={f.titulo}>
+                    {/* Apellidos y la inicial del nombre: el nombre completo no cabía en la
+                        columna y se recortaba; va entero en el title. */}
+                    <th scope="row" title={f.aplicador}>{nombreCorto(f.aplicador)}</th>
                     <td className="is-num">{f.aulas}</td>
-                    <td className="is-num">{f.efectivas}</td>
-                    <td className="is-num" title={f.tituloTasa}>{f.tasa}</td>
+                    <td className="is-num">{f.contraEsperado}</td>
+                    <td className="is-num">{f.deAsistentes}</td>
                   </tr>
                 ))}
               </tbody>
@@ -283,6 +301,14 @@ function PorAplicador({ aplicadores }: { aplicadores: Aplicadores }) {
       )}
     </section>
   );
+}
+
+/** «Chamorro Rodriguez, Rosa Alejandrina» → «Chamorro R., Rosa». */
+function nombreCorto(nombre: string): string {
+  const [apellidos, nombres] = nombre.split(",").map((t) => t.trim());
+  if (!nombres) return nombre;
+  const [paterno, materno] = apellidos.split(/\s+/);
+  return `${paterno}${materno ? ` ${materno[0]}.` : ""}, ${nombres.split(/\s+/)[0]}`;
 }
 
 export const RendimientoAulas = memo(RendimientoAulasImpl);

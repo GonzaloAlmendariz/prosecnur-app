@@ -14,7 +14,7 @@ import { claveDeGrupo, type Vacio } from "./porFacultadModelo";
  *
  * - «Cada curso-horario contra su tasa prevista»: el bloque `dos_tasas` del
  *   motor (`monitoreo_aulas_dos_tasas()`), sólo los APLICADOS —los que el motor
- *   contrasta—, ordenados del que más se aleja hacia abajo. La lectura es la
+ *   contrasta—, ordenados primero lo señalado bajo lo previsto, por encuestas perdidas. La lectura es la
  *   `senal` del motor con nombre en castellano: aquí no se recalcula ninguna
  *   tasa ni ninguna banda (la proyección la hace `senalesPorAula`).
  * - «Titulares»: `course_status_rol_y_estado`, con el reparto que ya nombra
@@ -171,23 +171,33 @@ function filaDe(a: AulaMedida): FilaDeCursoHorario {
   };
 }
 
-/** Cuánto se aleja de SU prevista; sin las dos tasas no tiene posición. */
-const desvio = (a: AulaMedida): number | null =>
-  a.tasaObservada != null && a.tasaPrevista != null ? a.tasaObservada - a.tasaPrevista : null;
+/**
+ * Cuántas encuestas se perdieron contra lo previsto: elegibles × (prevista −
+ * observada). Es lo que pesa para operar: un aula de 5 elegibles a −35 puntos
+ * pierde menos que una de 80 a −20 (revisor-metodológico, 2026-10-31). Sin las
+ * dos tasas o sin elegibles no tiene posición.
+ */
+const perdidas = (a: AulaMedida): number | null =>
+  a.tasaObservada != null && a.tasaPrevista != null && a.elegibles != null
+    ? a.elegibles * (a.tasaPrevista - a.tasaObservada)
+    : null;
+
+/** El orden de la señal del motor: primero lo que se aleja con evidencia. */
+const RANGO_SENAL: Record<string, number> = { bajo: 0, descuadre: 1, sobre: 2, conforme: 3, sin_banda: 4 };
 
 /**
- * Del que más se aleja hacia abajo al que más se pasa. Los que no tienen las
- * dos tasas van al final, en el orden del plan. `sort` es estable: un empate
- * conserva el orden en que el motor los publica.
+ * Primero por la señal del motor (bajo lo previsto con evidencia, luego el
+ * resto) y dentro de cada señal por encuestas perdidas, de más a menos. Los que
+ * no tienen las dos tasas van al final, en el orden del plan. `sort` es estable.
  */
 export function ordenarPorDesvio(aulas: readonly AulaMedida[]): AulaMedida[] {
   return aulas
-    .map((a, i) => ({ a, i, d: desvio(a) }))
+    .map((a, i) => ({ a, i, p: perdidas(a), r: RANGO_SENAL[a.senal] ?? 5 }))
     .sort((x, y) => {
-      if (x.d == null && y.d == null) return x.i - y.i;
-      if (x.d == null) return 1;
-      if (y.d == null) return -1;
-      return x.d - y.d || x.i - y.i;
+      if (x.p == null && y.p == null) return x.i - y.i;
+      if (x.p == null) return 1;
+      if (y.p == null) return -1;
+      return x.r - y.r || y.p - x.p || x.i - y.i;
     })
     .map((x) => x.a);
 }
@@ -248,7 +258,7 @@ function tablaDe(dashboard: MonitoreoAulasDashboard, foco: string): TablaDeCurso
   ].filter(Boolean);
   return {
     tipo: "filas",
-    sub: `${fmt(aplicadas.length)} ${aplicadas.length === 1 ? "aplicado" : "aplicados"}${donde}, del que más se aleja hacia abajo`,
+    sub: `${fmt(aplicadas.length)} ${aplicadas.length === 1 ? "aplicado" : "aplicados"}${donde}, primero lo señalado bajo lo previsto, por encuestas perdidas`,
     filas: ordenarPorDesvio(aplicadas).map(filaDe),
     pie: fuera.length ? `No entran ${fuera.join(" y ")}: la tasa prevista sólo se contrasta en los aplicados.` : null,
   };

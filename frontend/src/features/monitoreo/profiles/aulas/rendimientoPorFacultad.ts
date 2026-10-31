@@ -254,6 +254,11 @@ export function rendimientoPorFacultad(
   }
 
   const acumulado = new Map<string, RendimientoDeFacultad>();
+  // Efectivas de los partes CUYOS elegibles se conocen: el numerador del
+  // potencial. Sumar al numerador las de un parte sin elegibles en el plan y
+  // nada al denominador inflaba «del potencial» (revisión metodológica,
+  // 2026-10-31): numerador y denominador salen de los mismos partes.
+  const efectivasConElegibles = new Map<string, number>();
   for (const fila of partes) {
     const facultad = clave === "franja"
       // `applied_at` PRIMERO: el parte publicado no manda `applied_time`, manda
@@ -296,7 +301,11 @@ export function rendimientoPorFacultad(
     f.aulas += 1;
     f.efectivas += efectivas;
     f.asistentes += asistentes;
-    f.elegibles += elegiblesPorCodigo.get(texto(fila.operational_code)) ?? 0;
+    const elegiblesDelAula = elegiblesPorCodigo.get(texto(fila.operational_code));
+    if (elegiblesDelAula != null && elegiblesDelAula > 0) {
+      f.elegibles += elegiblesDelAula;
+      efectivasConElegibles.set(facultad, (efectivasConElegibles.get(facultad) ?? 0) + efectivas);
+    }
   }
 
   // La media del estudio, que es hacia donde encoge. Sale del total y no del
@@ -308,27 +317,31 @@ export function rendimientoPorFacultad(
   // La media del POTENCIAL, ponderada por elegibles y no promediando tasas: es
   // hacia donde encoge `delPotencialAjustado`.
   const totalElegibles = [...acumulado.values()].reduce((n, f) => n + f.elegibles, 0);
-  const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
+  const totalConElegibles = [...efectivasConElegibles.values()].reduce((n, v) => n + v, 0);
+  const mediaPotencial = totalElegibles ? (100 * totalConElegibles) / totalElegibles : 0;
 
-  const salida = [...acumulado.values()].map((f) => ({
+  const salida = [...acumulado.values()].map((f) => {
+    const efPot = efectivasConElegibles.get(f.facultad) ?? 0;
+    return {
     ...f,
     porAula: f.aulas ? Math.round((10 * f.efectivas) / f.aulas) / 10 : null,
     porAulaAjustado: f.aulas
       ? Math.round((10 * (f.efectivas + PESO_DEL_PRIOR * media)) / (f.aulas + PESO_DEL_PRIOR)) / 10
       : null,
     deLosAsistentes: f.asistentes ? Math.round((1000 * f.efectivas) / f.asistentes) / 10 : null,
-    delPotencial: f.elegibles ? Math.round((1000 * f.efectivas) / f.elegibles) / 10 : null,
+    delPotencial: f.elegibles ? Math.round((1000 * efPot) / f.elegibles) / 10 : null,
     // El encogimiento se pondera en CURSOS-HORARIO y no en elegibles, que es lo
     // que dice el prior: «cinco cursos-horario imaginarios al rendimiento
     // medio». Ponderarlo en elegibles haría que una facultad de un aula pequeña
     // pesara un 8 % de lo suyo en vez del 17 % que le toca por tener un aula.
     delPotencialAjustado: f.elegibles
       ? Math.round(
-          (10 * (f.aulas * ((100 * f.efectivas) / f.elegibles) + PESO_DEL_PRIOR * mediaPotencial))
+          (10 * (f.aulas * ((100 * efPot) / f.elegibles) + PESO_DEL_PRIOR * mediaPotencial))
             / (f.aulas + PESO_DEL_PRIOR),
         ) / 10
       : null,
-  }));
+    };
+  });
 
   // **Por el % DEL POTENCIAL, que es la única medida sin tamaño.**
   //

@@ -9,6 +9,22 @@ import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 const parte = (f: Partial<MonitoreoRow>) => f as MonitoreoRow;
 
 describe("rendimientoPorFacultad", () => {
+  it("un parte sin elegibles en el plan no infla el % del potencial (mismo numerador y denominador)", () => {
+    // Revisión metodológica, 2026-10-31: las efectivas de X entraban al
+    // numerador y sus elegibles (desconocidos) sumaban 0 al denominador: 30+20
+    // sobre 50 daba 100 %, cuando lo medible es 30 de 50.
+    const salida = rendimientoPorFacultad(
+      [
+        parte({ operational_code: "A", faculty: "Derecho", effective_surveys: 30, observed_students: 40 }),
+        parte({ operational_code: "X", faculty: "Derecho", effective_surveys: 20, observed_students: 25 }),
+      ],
+      [parte({ operational_code: "A", eligible_n: 50 })],
+      "faculty",
+    );
+    expect(salida[0].efectivas).toBe(50);
+    expect(salida[0].delPotencial).toBe(60);
+  });
+
   it("ordena por lo que deja cada visita, NO por porcentaje", () => {
     // El caso que Gonzalo describió: un aula de 100 elegibles al 40 % rinde más
     // que una de 20 al 70 %. Ordenar por porcentaje pondría primero a la que

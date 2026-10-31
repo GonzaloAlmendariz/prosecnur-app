@@ -186,7 +186,7 @@ describe("construirResumenAulas", () => {
     const m = construirResumenAulas(hsvg());
     expect(m.ritmo.tipo).toBe("serie");
     if (m.ritmo.tipo !== "serie") return;
-    expect(m.ritmo.resumen).toBe("21 días con campo; el mejor, el 9 set con 466");
+    expect(m.ritmo.resumen).toBe("21 días con campo; el día con más efectivas, el 9 set con 466");
     expect(m.ritmo.metas.map((x) => [x.rotulo, x.valor, x.y])).toEqual([
       ["Muestra", 2500, 24.75],
       ["Meta operativa", 3750, 4.125],

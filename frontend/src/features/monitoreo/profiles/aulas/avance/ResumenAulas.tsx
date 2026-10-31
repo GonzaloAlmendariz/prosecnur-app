@@ -155,7 +155,7 @@ function DeLasEfectivasALaCuota({ invariante }: { invariante: Invariante }) {
           {invariante.total == null ? "Sin total de efectivas en este corte" : `${fmt(invariante.total)}, cada una en un solo lugar`}
         </span>
       </header>
-      <dl className="aulas-res-lista">
+      <dl className="aulas-res-lista" data-qa-geometry-group="aulas-res-lista" data-qa-geometry-contract="intrinsic">
         {invariante.partes.map((parte) => (
           <div key={parte.clave} className={parte.principal ? "is-principal" : parte.valor ? "" : "is-cero"}>
             <dt>{parte.rotulo}</dt>
@@ -196,7 +196,7 @@ function Acumuladas({ ritmo }: { ritmo: Ritmo }) {
               ))}
               <span className="aulas-res-eje-banda" style={{ top: `${(ritmo.bandaDia + 100) / 2}%` }}>Del día</span>
             </div>
-            <div className="aulas-res-trazado">
+            <div className="aulas-res-trazado" data-qa-geometry-group="aulas-res-trazado" data-qa-geometry-contract="intrinsic">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={ritmo.aria}>
                 {ritmo.marcasY.map((m) => (
                   <line key={m.valor} x1="0" x2="100" y1={m.y} y2={m.y} className="aulas-res-guia" />

@@ -74,13 +74,14 @@ function hsvg(): MonitoreoAulasDashboard {
 }
 
 describe("construirCursosHorario — la tabla", () => {
-  it("sólo entran los aplicados, del que más se aleja hacia abajo, con la lectura del motor", () => {
+  it("sólo entran los aplicados, primero lo señalado bajo lo previsto, por encuestas perdidas, con la lectura del motor", () => {
     const m = construirCursosHorario(hsvg());
     expect(m.estado).toBe("listo");
     if (m.tabla.tipo !== "filas") throw new Error("esperaba filas");
-    expect(m.tabla.sub).toBe("6 aplicados, del que más se aleja hacia abajo");
-    expect(m.tabla.filas.map((f) => f.codigo)).toEqual(["CH 172", "EXTRA 31", "R 3.1", "CH 64", "CH 82", "CH 121"]);
-    const primera = m.tabla.filas[0];
+    expect(m.tabla.sub).toBe("6 aplicados, primero lo señalado bajo lo previsto, por encuestas perdidas");
+    expect(m.tabla.filas.map((f) => f.codigo)).toEqual(["EXTRA 31", "R 3.1", "CH 121", "CH 82", "CH 64", "CH 172"]);
+    // Pocos elegibles para juzgar va al final aunque su tasa sea la más baja.
+    const primera = m.tabla.filas.find((f) => f.codigo === "CH 172");
     expect(primera).toMatchObject({
       facultad: "Letras y Ciencias Humanas", elegibles: "10", efectivas: "1",
       prevista: "80.0 %", observada: "10.0 %", lectura: "Pocos elegibles para juzgar", tono: "neutro",
@@ -125,7 +126,7 @@ describe("construirCursosHorario — la tabla", () => {
     expect(m.enFoco).toBe("Derecho");
     if (m.tabla.tipo !== "filas") throw new Error("esperaba filas");
     expect(m.tabla.filas.map((f) => f.codigo)).toEqual(["EXTRA 31", "CH 82"]);
-    expect(m.tabla.sub).toBe("2 aplicados de Derecho, del que más se aleja hacia abajo");
+    expect(m.tabla.sub).toBe("2 aplicados de Derecho, primero lo señalado bajo lo previsto, por encuestas perdidas");
     // El nombre se empareja sin tildes ni mayúsculas.
     const conTilde = construirCursosHorario(hsvg(), "Arte y Diseno");
     if (conTilde.tabla.tipo !== "filas") throw new Error("esperaba filas");
@@ -154,9 +155,23 @@ describe("construirCursosHorario — la tabla", () => {
     if (res.estado !== "medido") throw new Error("esperaba medido");
     const ordenadas = ordenarPorDesvio(res.conformes);
     expect(ordenadas).toHaveLength(185);
+    // Misma señal y mismos elegibles: más perdidas primero = menor observada primero.
     for (let i = 1; i < ordenadas.length; i += 1) {
       expect(ordenadas[i].tasaObservada! - ordenadas[i - 1].tasaObservada!).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("ordena por encuestas perdidas, no por puntos: el aula grande a −20 va antes que la chica a −35", () => {
+    const res = senalesPorAula({
+      aulas: [
+        aula("CH 1", "DERECHO", 5, 1, 0.55, "bajo"),
+        aula("CH 2", "DERECHO", 80, 28, 0.55, "bajo"),
+      ],
+      criterio: { numerador: "", denominador: "", banda: "", vara_agregada: "", senal: "" },
+    });
+    if (res.estado !== "medido") throw new Error("esperaba medido");
+    // CH 1 pierde 5 × 0.35 = 1.75 encuestas; CH 2, 80 × 0.20 = 16.
+    expect(ordenarPorDesvio(res.senalados).map((a) => a.codigo)).toEqual(["CH 2", "CH 1"]);
   });
 });
 

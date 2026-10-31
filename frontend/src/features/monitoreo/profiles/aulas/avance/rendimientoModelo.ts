@@ -1,25 +1,27 @@
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../../api/monitoreo";
 import { numeroONulo } from "../avanceCuota";
-import { fmt, pctPerfil, unDecimalPerfil } from "../kpisDeAulas";
+import { fmt, unDecimalPerfil } from "../kpisDeAulas";
 import { readinessDeAulas } from "../navegacion/readinessDeAulas";
 import { ejeDe, nombreDelGrupo } from "./resumenAulasModelo";
 import { parteDeCampo } from "../parteDeCampo";
-import { partesSinCifraDeEfectivas, rendimientoPorFacultad } from "../rendimientoPorFacultad";
+import { diaDeSemanaDeAplicacion } from "../rendimientoPorFacultad";
+import { rendimientoContraEsperado, textoDeRazon, type GrupoDeRendimiento } from "./rendimientoContraEsperado";
 import type { Vacio } from "./porFacultadModelo";
 
 /**
  * Avance › Rendimiento (ficha A4 de `docs/qa/revamp-monitoreo/aulas.md`), listo
  * para pintar. ¿Cuándo y con quién rinde el campo?
  *
- * - «Efectivas por día» y «Día de la semana»: `ritmo_diario.dias` del motor, la
- *   misma serie de Avance › Resumen. El día de la semana es la suma de esa
- *   serie por día, así que las dos cifras no pueden discrepar.
- * - «Hora en que se responde»: `ritmo_diario.por_hora`, de la misma marca local
- *   que fecha el día.
+ * - «Efectivas por día»: `ritmo_diario.dias`, VOLUMEN (cuánto se consiguió cada
+ *   día). No se lee como rendimiento y no se dice «el mejor».
+ * - «Hora de aplicación», «Día de la semana» y «Por aplicador»: RENDIMIENTO, la
+ *   razón observadas ÷ esperadas de los cursos-horario aplicados en ese grupo
+ *   (`rendimientoContraEsperado`), con su número de aulas y la guarda de pocos
+ *   casos. Sumar efectivas por día o por hora repetiría la agenda (Gonzalo,
+ *   2026-10-31; revisor-metodológico, mismo día).
  * - «Tasa del campo contra la del diseño»: `efectividad_seguimiento.facultades`,
- *   τ prevista y observada con la señal del motor; aquí no se recalcula ninguna.
- * - «Por aplicador»: el parte de campo agrupado por `applied_by` con
- *   `rendimientoPorFacultad`, el mismo cálculo del ranking heredado.
+ *   τ prevista y observada con su banda y la señal del motor; ordenada por la
+ *   señal, no por la diferencia cruda.
  *
  * Un dato que no llega se dice con su causa, nunca como un 0 que parezca medido.
  */
@@ -42,10 +44,24 @@ export type PorDia =
   | { tipo: "barras"; sub: string; barras: BarraDelDia[] }
   | { tipo: "vacio"; vacio: Vacio };
 
-export type BarraDeHora = { hora: number; etiqueta: string; validas: number; alto: number; pico: boolean; titulo: string };
+/** Una barra de rendimiento: razón contra lo esperado, con su evidencia. */
+export type BarraDeRendimiento = {
+  clave: string;
+  etiqueta: string;
+  /** «94 %» de lo esperado. */
+  razon: string;
+  /** Alto o ancho 0–100 en la escala de 0 a `TOPE_RAZON` (150 %). */
+  relleno: number;
+  aulas: number;
+  /** Menos de 3 cursos-horario: no se compara. */
+  pocos: boolean;
+  titulo: string;
+};
+/** La escala de las barras de razón: hasta 150 % de lo esperado. */
+export const TOPE_RAZON = 1.5;
 
 export type PorHora =
-  | { tipo: "barras"; sub: string; barras: BarraDeHora[]; pie: string | null }
+  | { tipo: "barras"; sub: string; barras: BarraDeRendimiento[]; pie: string | null }
   | { tipo: "vacio"; vacio: Vacio };
 
 export type FilaDeTasa = {
@@ -58,6 +74,11 @@ export type FilaDeTasa = {
   xCampo: number;
   /** El campo rinde bajo su τ con evidencia (señal `bajo` del motor). */
   bajo: boolean;
+  /** Banda del motor (95 %) en la escala; `null` con menos de dos aulas. */
+  banda: { x0: number; x1: number } | null;
+  aulas: string;
+  /** «Bajo lo previsto», «Conforme», «Sobre lo previsto», «Sin banda». */
+  senal: string;
   aria: string;
 };
 
@@ -65,13 +86,22 @@ export type Tasas =
   | { tipo: "pesas"; escala: string; filas: FilaDeTasa[]; pie: string | null; /** «Facultad», «Nivel»: el eje de la cuota. */ eje: string }
   | { tipo: "vacio"; vacio: Vacio };
 
-export type FilaDeSemana = { clave: string; dia: string; validas: number; relleno: number };
-
 export type Semana =
-  | { tipo: "barras"; filas: FilaDeSemana[] }
+  | { tipo: "barras"; sub: string; filas: BarraDeRendimiento[]; pie: string | null }
   | { tipo: "vacio"; vacio: Vacio };
 
-export type FilaDeAplicador = { clave: string; aplicador: string; aulas: string; efectivas: string; tasa: string; tituloTasa: string };
+export type FilaDeAplicador = {
+  clave: string;
+  aplicador: string;
+  aulas: string;
+  efectivas: string;
+  /** Observadas ÷ esperadas de sus aulas. */
+  contraEsperado: string;
+  /** Efectivas ÷ asistentes: lo que depende del trabajo en el aula. */
+  deAsistentes: string;
+  pocos: boolean;
+  titulo: string;
+};
 
 export type Aplicadores =
   | { tipo: "tabla"; sub: string; filas: FilaDeAplicador[]; pie: string | null }
@@ -82,8 +112,8 @@ export type ModeloRendimiento =
   | { estado: "listo"; porDia: PorDia; porHora: PorHora; tasas: Tasas; semana: Semana; aplicadores: Aplicadores };
 
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-/** Lunes primero, como lo lee el equipo; el domingo sólo si tuvo campo. */
-const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
+/** Lunes primero, como lo lee el equipo. */
+const ORDEN_DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 function texto(valor: unknown): string {
   if (typeof valor === "string") return valor.trim();
@@ -120,7 +150,7 @@ function porDiaDe(dashboard: MonitoreoAulasDashboard): PorDia {
   const media = numeroONulo(dashboard.ritmo_diario?.media_diaria);
   return {
     tipo: "barras",
-    sub: media != null ? `media de ${unDecimalPerfil(media)} por día con campo` : `${fmt(dias.length)} días`,
+    sub: media != null ? `volumen; media de ${unDecimalPerfil(media)} por día con campo` : `volumen de ${fmt(dias.length)} días`,
     barras: dias.map((d) => {
       const dia = diaDeLaSemana(d.fecha);
       const nombre = dia == null ? "" : DIAS_CORTOS[dia];
@@ -136,50 +166,86 @@ function porDiaDe(dashboard: MonitoreoAulasDashboard): PorDia {
   };
 }
 
+// La hora en que se APLICÓ el aula, del parte: «2026-09-29 9:36» → 9.
+/** El horario de clases: fuera de él una hora no se grafica, se declara. */
+const HORA_DESDE = 7;
+const HORA_HASTA = 22;
+
+/**
+ * La hora de aplicación, respetando «am/pm» si el texto lo trae. Una hora
+ * fuera del horario de clases no se corrige a ojo: en HSVG llegan «2:10» sin
+ * am/pm que casi seguro son de la tarde, pero adivinarlo es inventar el dato.
+ * Va al pie como «fuera del horario» (`"fuera"`).
+ */
+function horaDeAplicacion(valor: unknown): number | "fuera" | null {
+  const m = /(\d{1,2}):(\d{2})\s*([ap])?\.?\s*m?/i.exec(texto(valor));
+  if (!m) return null;
+  let h = Number(m[1]);
+  if (!(h >= 0 && h < 24)) return null;
+  const sufijo = m[3]?.toLowerCase();
+  if (sufijo === "p" && h < 12) h += 12;
+  if (sufijo === "a" && h === 12) h = 0;
+  return h >= HORA_DESDE && h < HORA_HASTA ? h : "fuera";
+}
+
+function partesYPlan(dashboard: MonitoreoAulasDashboard) {
+  const agenda = (dashboard.agenda ?? []) as MonitoreoRow[];
+  const partes = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], agenda).filas as MonitoreoRow[];
+  return { partes, agenda };
+}
+
+function barra(g: GrupoDeRendimiento, etiqueta: string): BarraDeRendimiento {
+  const r = g.razon ?? 0;
+  return {
+    clave: g.grupo,
+    etiqueta,
+    razon: textoDeRazon(g.razon),
+    relleno: Math.max(0, Math.min(100, (100 * r) / TOPE_RAZON)),
+    aulas: g.aulas,
+    pocos: g.pocos,
+    titulo: `${etiqueta}: ${fmt(g.efectivas)} efectivas de ${fmt(Math.round(g.esperadas))} esperadas en ${fmt(g.aulas)} ${g.aulas === 1 ? "curso-horario" : "cursos-horario"}` +
+      (g.pocos ? ". Pocos cursos-horario para comparar." : `; ajustado por evidencia, ${textoDeRazon(g.razonAjustada)}.`),
+  };
+}
+
+function pieDeExclusiones(sinEsperadas: number, sinCifra: number): string | null {
+  const partes: string[] = [];
+  if (sinEsperadas) partes.push(`${fmt(sinEsperadas)} ${sinEsperadas === 1 ? "parte sin esperadas en el plan" : "partes sin esperadas en el plan"}`);
+  if (sinCifra) partes.push(`${fmt(sinCifra)} ${sinCifra === 1 ? "parte sin cifra de efectivas" : "partes sin cifra de efectivas"}`);
+  return partes.length ? `Fuera de la cuenta: ${partes.join(" y ")}.` : null;
+}
+
+const SIN_PARTES: Vacio = { clase: "legitimo", causa: "Aún no hay partes de campo con sus efectivas." };
+
 function porHoraDe(dashboard: MonitoreoAulasDashboard): PorHora {
-  const ritmo = dashboard.ritmo_diario ?? null;
-  if (!ritmo || !Array.isArray(ritmo.por_hora)) {
-    return {
-      tipo: "vacio",
-      vacio: {
-        clase: "desconexion",
-        causa: "Este corte se calculó antes de que el motor publicara la hora de cada respuesta. Actualizar la trae.",
-      },
-    };
+  const { partes, agenda } = partesYPlan(dashboard);
+  const r = rendimientoContraEsperado(partes, agenda, (p) => {
+    const h = horaDeAplicacion(p.applied_at ?? p.applied_time);
+    return h == null ? "" : String(h);
+  });
+  const conHora = r.grupos.filter((g) => g.grupo !== "" && g.grupo !== "fuera");
+  if (!conHora.length) return { tipo: "vacio", vacio: SIN_PARTES };
+  const horas = conHora.map((g) => Number(g.grupo));
+  const porHora = new Map(conHora.map((g) => [Number(g.grupo), g]));
+  const barras: BarraDeRendimiento[] = [];
+  for (let h = Math.min(...horas); h <= Math.max(...horas); h += 1) {
+    const g = porHora.get(h);
+    barras.push(g
+      ? barra(g, `${h}:00`)
+      : { clave: String(h), etiqueta: `${h}:00`, razon: "—", relleno: 0, aulas: 0, pocos: true, titulo: `${h}:00: sin cursos-horario aplicados a esa hora` });
   }
-  const horas = new Map<number, number>();
-  for (const h of ritmo.por_hora) {
-    const hora = numeroONulo(h?.hora);
-    const validas = numeroONulo(h?.validas);
-    if (hora == null || validas == null || hora < 0 || hora > 23) continue;
-    horas.set(Math.trunc(hora), (horas.get(Math.trunc(hora)) ?? 0) + Math.max(0, validas));
-  }
-  if (!horas.size) return { tipo: "vacio", vacio: SIN_DIAS };
-  const claves = [...horas.keys()];
-  const desde = Math.min(...claves);
-  const hasta = Math.max(...claves);
-  const techo = Math.max(...horas.values());
-  const pico = claves.find((h) => horas.get(h) === techo)!;
-  const barras: BarraDeHora[] = [];
-  for (let h = desde; h <= hasta; h += 1) {
-    const validas = horas.get(h) ?? 0;
-    barras.push({
-      hora: h,
-      etiqueta: String(h),
-      validas,
-      alto: techo ? (100 * validas) / techo : 0,
-      pico: h === pico,
-      titulo: `De ${h}:00 a ${h}:59: ${fmt(validas)} efectivas`,
-    });
-  }
-  const suma = [...horas.values()].reduce((a, b) => a + b, 0);
-  const totalDias = (diasDe(dashboard) ?? []).reduce((a, d) => a + d.validas, 0);
-  const sinHora = totalDias - suma;
+  const sinHora = r.grupos.find((g) => g.grupo === "")?.aulas ?? 0;
+  const fuera = r.grupos.find((g) => g.grupo === "fuera")?.aulas ?? 0;
+  const pie = [
+    pieDeExclusiones(r.sinEsperadas, r.sinCifra),
+    sinHora ? `${fmt(sinHora)} sin hora de aplicación.` : null,
+    fuera ? `${fmt(fuera)} con hora fuera de ${HORA_DESDE}:00–${HORA_HASTA}:00, probablemente sin «am/pm»: no se grafican.` : null,
+  ].filter(Boolean).join(" ");
   return {
     tipo: "barras",
-    sub: `pico a las ${pico}:00`,
+    sub: `efectivas contra lo esperado de los cursos-horario aplicados a esa hora; 100 % es lo previsto`,
     barras,
-    pie: sinHora > 0 ? `${fmt(sinHora)} efectivas sin hora legible no entran en ninguna barra.` : null,
+    pie: pie || null,
   };
 }
 
@@ -210,19 +276,35 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
         : { clase: "legitimo", causa: "Ninguna facultad tiene todavía cursos-horario aplicados con elegibles." },
     };
   }
-  const valores = medibles.flatMap((x) => [x.diseno, x.campo]);
+  const banda = (f: (typeof medibles)[number]["f"]) => {
+    const b0 = proporcion(f.banda_bajo);
+    const b1 = proporcion(f.banda_alto);
+    return b0 != null && b1 != null ? { b0, b1 } : null;
+  };
+  const valores = medibles.flatMap((x) => {
+    const b = banda(x.f);
+    return [x.diseno, x.campo, ...(b ? [b.b0, b.b1] : [])];
+  });
   const piso = Math.max(0, Math.floor(Math.min(...valores) * 10) / 10);
   const techo = Math.min(1, Math.ceil(Math.max(...valores) * 10) / 10);
+  // (la banda entra en la escala para que nunca se salga del riel)
   const rango = techo - piso || 1;
   const x = (p: number) => (100 * (p - piso)) / rango;
   const pct = (p: number) => `${fmt(Math.round(p * 100))} %`;
   // El grupo es un valor del EJE de la cuota que declara el estudio: una
   // facultad en HSVG, un nivel en CCSS. Nunca «facultad» fijo.
   const eje = ejeDe(dashboard);
+  // Primero lo que el motor señala con evidencia; dentro, por la diferencia.
+  // Una facultad sin banda (menos de dos aulas) no encabeza nada.
+  const RANGO_SENAL: Record<string, number> = { bajo: 0, sobre: 1, conforme: 2, sin_banda: 3, sin_previsto: 4 };
+  const SENAL: Record<string, string> = { bajo: "Bajo lo previsto", sobre: "Sobre lo previsto", conforme: "Conforme", sin_banda: "Sin banda", sin_previsto: "Sin previsto" };
   const filas = medibles
-    .sort((a, b) => (a.campo - a.diseno) - (b.campo - b.diseno) || a.f.facultad.localeCompare(b.f.facultad, "es"))
+    .sort((a, b) => (RANGO_SENAL[a.f.senal] ?? 5) - (RANGO_SENAL[b.f.senal] ?? 5)
+      || (a.campo - a.diseno) - (b.campo - b.diseno) || a.f.facultad.localeCompare(b.f.facultad, "es"))
     .map(({ f, diseno, campo }) => {
       const nombre = nombreDelGrupo(texto(f.facultad), eje);
+      const b = banda(f);
+      const aulas = numeroONulo(f.aulas_aplicadas) ?? 0;
       return {
         clave: texto(f.faculty_key) || nombre,
         facultad: nombre,
@@ -231,7 +313,10 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
         xDiseno: x(diseno),
         xCampo: x(campo),
         bajo: f.senal === "bajo",
-        aria: `${nombre}: diseño ${pct(diseno)}, campo ${pct(campo)}`,
+        banda: b ? { x0: x(b.b0), x1: x(b.b1) } : null,
+        aulas: fmt(aulas),
+        senal: SENAL[f.senal] ?? f.senal,
+        aria: `${nombre}: diseño ${pct(diseno)}, campo ${pct(campo)} en ${fmt(aulas)} cursos-horario; ${(SENAL[f.senal] ?? f.senal).toLocaleLowerCase("es")}`,
       };
     });
   const sinCampo = bloque.facultades.length - medibles.length;
@@ -248,57 +333,50 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
 }
 
 function semanaDe(dashboard: MonitoreoAulasDashboard): Semana {
-  const dias = diasDe(dashboard);
-  if (!dias) return { tipo: "vacio", vacio: SIN_SERIE };
-  const suma = new Map<number, number>();
-  for (const d of dias) {
-    const dia = diaDeLaSemana(d.fecha);
-    if (dia == null) continue;
-    suma.set(dia, (suma.get(dia) ?? 0) + d.validas);
-  }
-  if (![...suma.values()].some((v) => v > 0)) return { tipo: "vacio", vacio: SIN_DIAS };
-  const techo = Math.max(...suma.values());
+  const { partes, agenda } = partesYPlan(dashboard);
+  const r = rendimientoContraEsperado(partes, agenda, (p) => diaDeSemanaDeAplicacion(p.applied_at ?? p.applied_date));
+  const conDia = r.grupos.filter((g) => ORDEN_DIAS.includes(g.grupo));
+  if (!conDia.length) return { tipo: "vacio", vacio: SIN_PARTES };
+  // Sólo los días con campo: un día sin aulas aplicadas no es un cero.
+  const filas = ORDEN_DIAS
+    .map((dia) => conDia.find((g) => g.grupo === dia))
+    .filter((g): g is GrupoDeRendimiento => Boolean(g))
+    .map((g) => barra(g, g.grupo.slice(0, 3)));
   return {
     tipo: "barras",
-    filas: ORDEN_SEMANA
-      .filter((dia) => dia !== 0 || (suma.get(0) ?? 0) > 0)
-      .map((dia) => {
-        const validas = suma.get(dia) ?? 0;
-        return { clave: String(dia), dia: DIAS_CORTOS[dia], validas, relleno: techo ? (100 * validas) / techo : 0 };
-      }),
+    sub: "efectivas contra lo esperado de los cursos-horario aplicados ese día",
+    filas,
+    pie: pieDeExclusiones(r.sinEsperadas, r.sinCifra),
   };
 }
 
 function aplicadoresDe(dashboard: MonitoreoAulasDashboard): Aplicadores {
-  const partes = (dashboard.partes_campo ?? []) as MonitoreoRow[];
-  if (!partes.length) {
-    return { tipo: "vacio", vacio: { clase: "legitimo", causa: "Aún no hay partes de campo." } };
-  }
-  const agenda = (dashboard.agenda ?? []) as MonitoreoRow[];
-  const conFacultad = parteDeCampo(partes, agenda).filas as MonitoreoRow[];
-  const grupos = rendimientoPorFacultad(conFacultad, agenda, "applied_by")
-    .sort((a, b) => b.efectivas - a.efectivas || a.facultad.localeCompare(b.facultad, "es"));
-  if (!grupos.length) {
-    return { tipo: "vacio", vacio: { clase: "legitimo", causa: "Ningún parte trae todavía su cifra de efectivas." } };
-  }
-  const conAplicador = grupos.filter((g) => g.facultad !== "Sin aplicador").length;
-  const sinCifra = partesSinCifraDeEfectivas(conFacultad);
+  const { partes, agenda } = partesYPlan(dashboard);
+  if (!partes.length) return { tipo: "vacio", vacio: { clase: "legitimo", causa: "Aún no hay partes de campo." } };
+  const r = rendimientoContraEsperado(partes, agenda, (p) => texto(p.applied_by) || "Sin aplicador");
+  if (!r.grupos.length) return { tipo: "vacio", vacio: SIN_PARTES };
+  // Los que tienen evidencia, de mejor a peor por la razón ajustada; los de
+  // pocos cursos-horario, al final y sin orden de mérito. Juzga personas: la
+  // guarda no es opcional.
+  const ordenados = [...r.grupos].sort((a, b) =>
+    Number(a.pocos) - Number(b.pocos)
+    || (a.pocos ? a.grupo.localeCompare(b.grupo, "es") : (b.razonAjustada ?? 0) - (a.razonAjustada ?? 0)));
+  const conEvidencia = r.grupos.filter((g) => !g.pocos && g.grupo !== "Sin aplicador").length;
   return {
     tipo: "tabla",
-    sub: `${fmt(conAplicador)} con partes`,
-    filas: grupos.map((g) => ({
-      clave: g.facultad,
-      aplicador: g.facultad,
+    sub: `${fmt(conEvidencia)} con ${fmt(3)} o más cursos-horario; los demás, al final`,
+    filas: ordenados.map((g) => ({
+      clave: g.grupo,
+      aplicador: g.grupo,
       aulas: fmt(g.aulas),
       efectivas: fmt(g.efectivas),
-      tasa: g.delPotencial != null ? pctPerfil(g.delPotencial) : "—",
-      tituloTasa: g.delPotencial != null
-        ? `${fmt(g.efectivas)} efectivas de ${fmt(g.elegibles)} elegibles`
-        : "El plan no trae los elegibles de sus cursos-horario.",
+      contraEsperado: textoDeRazon(g.razon),
+      deAsistentes: g.deAsistentes == null ? "—" : `${Math.round(g.deAsistentes * 100)} %`,
+      pocos: g.pocos,
+      titulo: `${fmt(g.efectivas)} efectivas de ${fmt(Math.round(g.esperadas))} esperadas y ${fmt(g.asistentes)} asistentes` +
+        (g.pocos ? ". Pocos cursos-horario para comparar." : `; ajustado por evidencia, ${textoDeRazon(g.razonAjustada)}.`),
     })),
-    pie: sinCifra > 0
-      ? `${fmt(sinCifra)} ${sinCifra === 1 ? "parte sin cifra de efectivas no entra" : "partes sin cifra de efectivas no entran"} en la tabla.`
-      : null,
+    pie: pieDeExclusiones(r.sinEsperadas, r.sinCifra),
   };
 }
 

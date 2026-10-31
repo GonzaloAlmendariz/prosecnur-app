@@ -371,7 +371,9 @@ function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protag
     ? { etiqueta: fechaCorta(texto(ritmo.mejor_dia.fecha)), validas: numeroONulo(ritmo.mejor_dia.validas) ?? 0 }
     : null;
   const dias1 = diasConCampo === 1 ? "1 día con campo" : `${fmt(diasConCampo)} días con campo`;
-  const resumen = mejor ? `${dias1}; el mejor, el ${mejor.etiqueta} con ${fmt(mejor.validas)}` : dias1;
+  // «El mejor» prometía rendimiento con una cifra de volumen (revisión
+  // metodológica, 2026-10-31): se dice lo que es, el día con más efectivas.
+  const resumen = mejor ? `${dias1}; el día con más efectivas, el ${mejor.etiqueta} con ${fmt(mejor.validas)}` : dias1;
   const ultimo = dias[n - 1];
   return {
     tipo: "serie",

@@ -410,6 +410,7 @@ function LateralDeLaPestana({ lateral, etiquetaEje, enFoco }: { lateral: Lateral
             </tbody>
           </table>
         )}
+        {rendimiento.nota ? <p className="aulas-pf-pie">{rendimiento.nota}</p> : null}
       </section>
       <section className="aulas-pf-panel aulas-pf-consumo" aria-labelledby="aulas-pf-consumo-titulo">
         <Cabecera id="aulas-pf-consumo-titulo" titulo="Consumo de la reserva" sub={consumo.sub}>

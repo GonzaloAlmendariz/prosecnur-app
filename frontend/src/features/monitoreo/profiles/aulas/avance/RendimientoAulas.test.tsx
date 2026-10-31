@@ -18,8 +18,8 @@ const hsvg = {
   efectividad_seguimiento: {
     facultades: [{ facultad: "DERECHO", faculty_key: "derecho", tau_previsto: 0.57, tau_observado: 0.44, senal: "bajo" }],
   },
-  partes_campo: [{ operational_code: "CH 1", applied_by: "Aplicador 08", effective_surveys: 30, observed_students: 40 }],
-  agenda: [{ operational_code: "CH 1", eligible_n: 50, faculty: "DERECHO" }],
+  partes_campo: [{ operational_code: "CH 1", applied_by: "Aplicador 08", applied_at: "2026-09-09 11:05", effective_surveys: 30, observed_students: 40 }],
+  agenda: [{ operational_code: "CH 1", eligible_n: 50, expected_valid: 28, faculty: "DERECHO" }],
 } as unknown as MonitoreoAulasDashboard;
 
 function pintar(dashboard: MonitoreoAulasDashboard | null, cargando = false) {
@@ -39,10 +39,10 @@ describe("RendimientoAulas", () => {
     expect(html).toContain('data-qa-geometry-member="tasa"');
     expect(html).toContain('data-qa-geometry-member="esfuerzo"');
     expect(html).toContain('data-qa-geometry-capacity="owned"');
-    for (const titulo of ["Efectivas por día", "Hora en que se responde", "Tasa del campo contra la del diseño", "Día de la semana", "Por aplicador"]) {
+    for (const titulo of ["Efectivas por día", "Rendimiento por hora de aplicación", "Tasa del campo contra la del diseño", "Día de la semana", "Por aplicador"]) {
       expect(html).toContain(titulo);
     }
-    expect(html).toContain("pico a las 11:00");
+    expect(html).not.toContain("pico");
     expect(html).toContain("Aplicador 08");
     expect(html).toContain('<th scope="col">Aplicador</th>');
   });

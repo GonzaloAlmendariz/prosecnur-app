@@ -51,7 +51,7 @@ describe("CursosHorarioAulas", () => {
     expect(html).toContain('data-qa-geometry-member="lateral"');
     expect(html).toContain('data-qa-geometry-capacity="owned"');
     expect(html).toContain("Cada curso-horario contra su tasa prevista");
-    expect(html).toContain("3 aplicados, del que más se aleja hacia abajo");
+    expect(html).toContain("3 aplicados, primero lo señalado bajo lo previsto, por encuestas perdidas");
     expect(html).toContain("Pocos elegibles para juzgar");
     expect(html).toContain("Por debajo de lo previsto");
     expect(html).toContain("Titulares");
@@ -68,9 +68,10 @@ describe("CursosHorarioAulas", () => {
     expect(html).toContain('<th scope="col">Código</th>');
     expect(html).toContain('<th scope="row" class="aulas-ch-codigo">');
     expect(html).toContain('href="/monitoreo?modo=aulas&amp;seccion=control&amp;pestana=partes&amp;panel=codigo&amp;foco=aula%3ACH%20172"');
-    // El primero es el que más se aleja hacia abajo.
-    expect(html.indexOf("CH 172")).toBeLessThan(html.indexOf("EXTRA 31"));
+    // Primero lo señalado bajo lo previsto (EXTRA 31 pierde ~22 encuestas);
+    // CH 172, con pocos elegibles para juzgar, va detrás aunque su tasa sea peor.
     expect(html.indexOf("EXTRA 31")).toBeLessThan(html.indexOf("CH 82"));
+    expect(html.indexOf("CH 82")).toBeLessThan(html.indexOf("CH 172"));
     // El pendiente no entra.
     expect(html).not.toContain(">CH 140<");
     expect(html).toContain("No entran 1 sin aplicar todavía");

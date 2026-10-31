@@ -130,7 +130,7 @@ export type Lateral =
   | {
     tipo: "operativo";
     franja: { cifras: CifraDeLaFranja[]; vacio: Vacio | null };
-    rendimiento: { filas: FilaDeRendimiento[]; vacio: Vacio | null };
+    rendimiento: { filas: FilaDeRendimiento[]; vacio: Vacio | null; nota: string | null };
     consumo: { filas: FilaDeConsumo[]; sub: string; vacio: Vacio | null };
   }
   | { tipo: "alcance"; dimensiones: DimensionDeAlcance[]; sub: string; vacio: Vacio | null };
@@ -427,12 +427,13 @@ const TIPOS_DE_RENDIMIENTO: ReadonlyArray<[keyof NonNullable<MonitoreoAulasRefue
  * `MonitoreoAulasRefuerzosTablero`. Cada cifra se sigue leyendo con
  * `numeroONulo`: jsonlite puede mandar un NA como cadena.
  */
-function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: FilaDeRendimiento[]; vacio: Vacio | null } {
+function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: FilaDeRendimiento[]; vacio: Vacio | null; nota: string | null } {
   const refuerzos = dashboard?.refuerzos ?? null;
   if (!refuerzos) {
     return {
       filas: [],
       vacio: { causa: "Este corte no trae el rendimiento por tipo de curso-horario: lo publica el motor al recalcular el tablero.", clase: "desconexion" },
+      nota: null,
     };
   }
   if (refuerzos.ok === false) {
@@ -440,6 +441,7 @@ function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: Fila
     return {
       filas: [],
       vacio: { causa: motivo ? `Sin rendimiento por tipo: ${motivo}` : "El motor no pudo medir el rendimiento por tipo.", clase: "legitimo" },
+      nota: null,
     };
   }
   const rendimiento = refuerzos.rendimiento ?? {};
@@ -459,7 +461,10 @@ function rendimientoDe(dashboard: MonitoreoAulasDashboard | null): { filas: Fila
       sinAulas: n === 0,
     };
   });
-  return { filas, vacio: null };
+  // Cada tipo se elige de forma distinta y cae en otra mezcla de facultades:
+  // la diferencia entre sus tasas no es efecto del tipo (revisión metodológica,
+  // 2026-10-31). Se dice al pie en vez de dejar que se lea como ranking.
+  return { filas, vacio: null, nota: "Las tasas no se comparan entre tipos: cada uno cae en otra mezcla de facultades." };
 }
 
 function consumoDe(

@@ -474,3 +474,62 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Rendimiento como razón contra lo esperado (revisión metodológica, 31 oct):
+ * la línea marca 100 %; lo que tiene menos de 3 cursos-horario va atenuado. */
+.aulas-rd-barras-zona.is-razon {
+  position: relative;
+}
+
+.aulas-rd-barras-zona.is-razon::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: var(--aulas-rd-cien);
+  left: 0;
+  border-top: 1px dashed var(--aulas-rd-diseno);
+  pointer-events: none;
+}
+
+.aulas-rd-barra > i.is-pocos {
+  background: var(--pulso-surface-3);
+}
+
+.aulas-rd-semana.is-razon > li {
+  grid-template-columns: 40px minmax(0, 1fr) 48px 56px;
+}
+
+.aulas-rd-semana.is-razon .aulas-rd-pista {
+  position: relative;
+  overflow: visible;
+}
+
+.aulas-rd-semana.is-razon .aulas-rd-pista::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: var(--aulas-rd-cien);
+  border-left: 1px dashed var(--aulas-rd-diseno);
+}
+
+.aulas-rd-semana > li.is-pocos,
+.aulas-rd-tabla tr.is-pocos {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-rd-semana > li.is-pocos .aulas-rd-pista > i {
+  background: var(--pulso-border-strong);
+}
+
+.aulas-rd-riel > .is-banda {
+  top: 3px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-border-strong);
+  opacity: 0.6;
+}
+
+.aulas-rd-pesa {
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 150px) 48px 48px 40px;
+}
