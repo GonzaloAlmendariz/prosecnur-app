@@ -67,7 +67,7 @@
       <div class="visto"><b>Lo que se ve:</b> el estudio tiene una sola base, pero Plan marca «Varias bases» y «Bases separadas». La importación por plataforma no está a la vista desde aquí: se entra por Fuentes.</div>
       <h4>Qué falta</h4>
       <ul>
-        <li><b>L5b:</b> el importador único (job con cuatro fases y opción de cancelar) ya existe en <code>carga/plataforma/</code>, pero no está conectado. Debe ser el único camino para traer SurveyMonkey o Kobo, tanto en base única como en varias bases.</li>
+        <li><b>L5b, hecho el 31 de octubre</b> (<code>e978499e2</code>): SurveyMonkey y Kobo, en base única o separada, se importan por el importador único. El trabajo sigue aunque cambies de pestaña, se puede cancelar y muestra sus fases. Falta verlo con una plataforma real.</li>
         <li><b>L9:</b> la base integrada y el paquete .sav ya se importan en segundo plano y dicen en qué van. Falta verlo en vivo, y eso exige reinstalar el paquete de R.</li>
         <li><b>L6:</b> el asistente de hermanas independientes ya salió de BasesPanel y tiene su stepper. Falta verlo con un proyecto que use bases independientes; ninguno de los de referencia lo hace.</li>
       </ul>
@@ -86,7 +86,7 @@
       <div class="visto"><b>Lo que se ve:</b> el diálogo ya usa el kit: pasos arriba, Escape cierra y el foco vuelve al botón que lo abrió. Con un token guardado comprueba la conexión al abrir y muestra «545 encuestas visibles».</div>
       <h4>Qué falta</h4>
       <ul>
-        <li><b>L7:</b> abrir las credenciales desde el error ya funciona. Falta que cada proyecto recuerde su perfil de SurveyMonkey: el borrador del asistente guarda las encuestas elegidas, pero no el perfil.</li>
+        <li><b>L7, hecho el 31 de octubre</b> (<code>0ec53dc32</code>): abrir las credenciales desde el error ya funcionaba, y ahora cada proyecto recuerda también el perfil de SurveyMonkey con que se trabajó. Queda la captura de ida y vuelta.</li>
         <li><b>L8:</b> queda abierta una sola desviación. El diálogo verifica la conexión al abrir porque el revamp de Formularios lo pidió así; el plan original pedía no conectar hasta que el usuario lo indique.</li>
       </ul>
       <h4>Cómo mejorarlo</h4>
