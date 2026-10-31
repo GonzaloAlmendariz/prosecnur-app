@@ -50,17 +50,19 @@ Sobre la forma de trabajar:
 
 ## 3. Lo que falta decidir
 
-Se dibuja en el artefacto, sección «Lo que necesitamos que decidas». Al día de hoy:
+Mismo número que en el artefacto (pestaña «Resumen y decisiones»; P9 en la pestaña «Planner»). Sólo P1 bloquea.
 
-1. Visto bueno al plan para construir D1 y D2(a).
-2. Conteos del consolidado transcritos en el Excel de asignación.
-3. El «Estado» que llena campo: leerlo como declarado o quitarlo (C7).
-4. El importador de la lista respeta el código del Excel.
-5. Quién revisa el barrido telefónico del RMS (C8).
-6. F4: el plan de campo desde la foto.
-7. Adelantar «asignado frente a observado» (B3).
-8. Dónde vive la lista de encuestadores (Monitoreo, Material o Planner).
-9. Abrir el ADR del Planner.
+| # | Decisión | Recomendación | Quién la ejecuta |
+|---|---|---|---|
+| P1 | Visto bueno al plan para construir D1 y D2(a) | Sí | Esta sesión |
+| P2 | Campo transcribe los conteos del consolidado en el Excel de asignación | Sí, una columna por código | Material lee; Monitoreo consulta |
+| P3 | El «Estado» que llena campo (C7): leerlo como declarado o quitarlo | Leerlo como declarado, sin usarlo para el avance | Sesión de Monitoreo |
+| P4 | El importador de la lista respeta el código PXXX del Excel | Sí | Sesión de Monitoreo |
+| P5 | Quién revisa el barrido telefónico actual del RMS (C8) | La sesión «ACNUR RMS» (Meta B) | Esa sesión |
+| P6 | Plan de campo desde la muestra enviada (antes «F4») | Sí (Meta B) | Esta sesión, tras la etapa 1 |
+| P7 | Dónde vive la lista de encuestadores (Monitoreo, Material o Planner) | Dejarla en Monitoreo y arreglar el importador, o moverla al Planner | Ambas sesiones |
+| P8 | Adelantar «asignado frente a observado» (B3) | Se puede: no comparte archivos con ADR 0121 F2 | Sesión de Monitoreo |
+| P9 | Abrir el ADR del Planner | Sí, como propuesta; debe resolver las 10 decisiones de §12 antes de código | Meta B coordina |
 
 ## 4. Reglas del reparto entre módulos
 
