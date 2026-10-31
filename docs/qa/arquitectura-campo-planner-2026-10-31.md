@@ -28,6 +28,22 @@ diseñar nosotros».
 | Procesamiento | Convierte la base de campo en resultados. | Monitoreo: la base de campo con estados; Formularios: la estructura del instrumento | Dashboard: la analítica; Cliente: bases, tablas e informes | No cambia lo que pasó en campo | Plantilla de codificación, Libro de códigos, Frecuencias y cruces, Informe |
 | Dashboard | Publica los resultados para el cliente. | Procesamiento: la analítica | Cliente: el tablero publicado | No calcula nada nuevo | — |
 
+**El tipo de estudio decide los modos** (Gonzalo: «¿qué tipo de monitoreo es? ¿qué tipo de cálculo de muestra es? Todo
+eso ya se puede definir en el planner […] ya no necesitamos que cálculo de muestra tenga como caminos […] Vale la pena
+que hoja de ruta siga teniendo como un mapa de las ciudades o un mapa del Perú. Yo creo que sí […] es algo muy identitario
+de hojas de ruta […] monitoreo necesita como caminos o ya que de frente funcione a partir de lo que el planner le diga»).
+Coincide con el ADR 0044 («el modo lo determina el estudio, no un click»).
+
+| Perfil de recojo (Planner) | Cálculo de muestra | Hojas de ruta | Material de campo | Monitoreo |
+|---|---|---|---|---|
+| Territorial presencial | tamaño y reparto por distrito (`territorial-handoff`) | sí: mapa y sorteo de manzanas | campaña territorial | `territorial` |
+| Aulas universitarias | `opinion-universitaria` o `marco-disponible` | — | campo en aulas | aulas · `cursos-horario` |
+| Telefónico | `marco-disponible` | — | campaña telefónica (P10) | `telefonico` |
+| Acreditación | `acreditacion` | — | correo | `acreditacion` |
+
+Multiperfil (ACNUR acogida: territorial + telefónico; Contabilidad: varios públicos): cada módulo muestra sólo los perfiles
+declarados. Decisión P11 (va en el ADR del Planner, P9).
+
 **Reglas para los Excel de campo** (los diseñamos nosotros): un Excel, un dueño que lo genera y lo lee de vuelta; las
 columnas que llena campo en ámbar y con desplegable, el resto bloqueado; hoja «Léeme» primero; hoja «Control» oculta con
 el sello de la muestra y la versión; la app lee sólo lo de campo y reporta por fila lo que no pudo leer; mismo estilo en
@@ -97,6 +113,7 @@ Mismo número que en el artefacto (pestaña «Resumen y decisiones»; P9 en la p
 | P8 | Adelantar «asignado frente a observado» (B3) | Se puede: no comparte archivos con ADR 0121 F2 | Sesión de Monitoreo |
 | P9 | Abrir el ADR del Planner | Sí, como propuesta; debe resolver las 10 decisiones de §12 antes de código | Meta B coordina |
 | P10 | Dónde vive el barrido telefónico en Material (hoy no tiene lugar: modos aulas, territorial y correo) | Un tipo de campaña «Telefónica»; dentro de Correo se mezcla con los envíos por mail | Esta sesión, etapa 4 |
+| P11 | El Planner fija el modo de Cálculo, Material y Monitoreo (se quitan los selectores de camino) | Sí; con multiperfil, sólo los perfiles declarados | ADR del Planner; sesiones de cada módulo |
 
 ## 4. Reglas del reparto entre módulos
 
