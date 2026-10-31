@@ -52,9 +52,9 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
     setBorrador({ ...borrador, [catalogo]: filas.map((k) => (k.codigo === codigo ? { ...k, ...cambio } : k)) });
   };
   const columnas: PulsoTableColumna<PlannerCodigo>[] = [
-    { id: "codigo", encabezado: "Código", ancho: 90, tipo: "cifra", celda: (k) => <span className="planner-codigo">{k.codigo}</span>, valor: (k) => k.codigo },
+    { id: "codigo", encabezado: "Código", ancho: 80, tipo: "cifra", celda: (k) => <span className="planner-codigo">{k.codigo}</span>, valor: (k) => k.codigo },
     {
-      id: "rotulo", encabezado: "Rótulo", ancho: 380, valor: (k) => k.rotulo, celda: (k) => (
+      id: "rotulo", encabezado: "Rótulo", ancho: 290, valor: (k) => k.rotulo, celda: (k) => (
         <input
           className="planner-celda-input"
           aria-label={`Rótulo del código ${k.codigo}`}
@@ -65,16 +65,16 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
         />
       ),
     },
-    { id: "grupo", encabezado: "Grupo", ancho: 170, celda: (k) => GRUPO[k.grupo], valor: (k) => k.grupo },
+    { id: "grupo", encabezado: "Grupo", ancho: 160, celda: (k) => GRUPO[k.grupo], valor: (k) => k.grupo },
     {
-      id: "estado", encabezado: "Estado", ancho: 200, celda: (k) => (
+      id: "estado", encabezado: "Estado", ancho: 170, celda: (k) => (
         k.retirado_en_version != null
           ? `Retirado en la versión ${k.retirado_en_version}`
           : k.retirar ? "Se retira al guardar" : "Vigente"
       ),
     },
     {
-      id: "acciones", encabezado: "", ancho: 120, celda: (k) => (
+      id: "acciones", encabezado: "", ancho: 110, celda: (k) => (
         k.retirado_en_version != null ? null : guardados.has(k.codigo) ? (
           <button type="button" className="plan-button" onClick={() => editar(k.codigo, { retirar: !k.retirar })}>
             {k.retirar ? <><Undo2 size={14} /> <span>Mantener</span></> : <span>Retirar</span>}
@@ -120,7 +120,7 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
         columnas={columnas}
         filas={filas}
         idDeFila={(k) => k.codigo}
-        densidad="compacta"
+        densidad="comoda"
         vacio={<p className="planner-vacio">{copia.vacio}</p>}
       />
       <div className="planner-form planner-form--fila" aria-label="Agregar código">

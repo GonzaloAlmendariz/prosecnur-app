@@ -5,7 +5,8 @@
 # - leer el Planner es PURO: ni escribe ni marca el proyecto como modificado;
 # - sólo lo declarado se guarda; lo demás se proyecta con la precedencia del §7;
 # - el catálogo de códigos sólo agrega;
-# - el equipo no se escribe en P1 y la proyección nunca trae el DNI.
+# - el equipo se guarda donde lo leen el anonimizador y el gate de datos
+#   personales (`planner$equipo$personas`) y la proyección nunca trae el DNI.
 
 source("setup-load-all.R")
 
@@ -43,15 +44,17 @@ test_that("una clave ausente o ajena se lee como un Planner vacío en la revisi�
 })
 
 test_that("normalizar es idempotente", {
-  crudo <- list(schema = PLANNER_SCHEMA, revision = 3L, secciones = list(
-    estudio = list(valor = list(nombre = "  Estudio X  ", cliente = "PUCP"), declarado_en = "2026-10-31T10:00:00Z"),
-    perfiles = list(valor = list(list(tipo = "aulas", seleccion = "marco", poblaciones = list(
+  crudo <- list(schema = PLANNER_SCHEMA, revision = 3L,
+    declarado_en = list(estudio = "2026-10-31T10:00:00Z", perfiles = "2026-10-31T10:05:00Z"),
+    estudio = list(nombre = "  Estudio X  ", cliente = "PUCP"),
+    perfiles = list(list(tipo = "aulas", seleccion = "marco", poblaciones = list(
       list(etiqueta = "Estudiantes", representatividad = list(universo = list(nivel = "universidad"),
-                                                              variables = list(), celdas = list(list(cuota = 1)))))))),
-    basura = list(valor = 1)
-  ))
+                                                              variables = list(), celdas = list(list(cuota = 1))))))),
+    basura = 1
+  )
   una <- .planner_normalizar(crudo)
-  expect_identical(.planner_normalizar(una), una)
+  expect_identical(.planner_normalizar(.planner_a_persistir(una)), una)
+  expect_equal(una$secciones$estudio$declarado_en, "2026-10-31T10:00:00Z")
   expect_equal(names(una$secciones), c("estudio", "perfiles"))
   expect_equal(una$secciones$estudio$valor$nombre, "Estudio X")
   # Las celdas son del diseñador: el Planner nunca las guarda (ADR 0122 §3).
@@ -136,12 +139,35 @@ test_that("declarar exige la revisión vigente y la sube en uno", {
   expect_equal(err$code, "E_PLANNER_DESACTUALIZADO")
 })
 
-test_that("el equipo no se escribe en P1 y una sección desconocida es 404", {
+test_that("una sección desconocida es 404", {
   sid <- .pl_sesion()
-  err <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list()), 0L), error = identity)
-  expect_equal(err$code, "E_PLANNER_SECCION_PENDIENTE")
   err <- tryCatch(.planner_declarar(sid, "cuotas", list(), 0L), error = identity)
   expect_equal(err$code, "E_PLANNER_SECCION")
+})
+
+test_that("el equipo se guarda donde lo leen el anonimizador y el gate, sin campos de más", {
+  sid <- .pl_sesion()
+  .planner_declarar(sid, "equipo", list(code_format = "PXXX", personas = list(
+    list(codigo = "P001", nombre = "Encuestador Ejemplo Uno", rol = "encuestador", perfiles = list("territorial"),
+         dni = "00000000", telefono = "999999999"),
+    list(codigo = "", nombre = "Aplicadora Ejemplo Dos", rol = "aplicador", perfiles = list("aulas"))
+  )), 0L)
+  guardado <- session_get(sid)$planner
+  # La ruta del ADR 0122 §6: es la que recorre .pulso_anon_roster_planner.
+  expect_equal(guardado$equipo$personas[[1]]$nombre, "Encuestador Ejemplo Uno")
+  expect_length(.pulso_anon_roster_planner(session_get(sid)), 2L)
+  # El Planner no guarda DNI ni teléfono como campo: el anonimizador no los cubre.
+  expect_setequal(names(guardado$equipo$personas[[1]]), c("codigo", "nombre", "rol", "perfiles", "activo"))
+  expect_equal(.planner_payload(session_get(sid))$origen$equipo, "declarado")
+})
+
+test_that("un código del equipo es de una sola persona y nadie queda sin nombre", {
+  sid <- .pl_sesion()
+  dup <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list(
+    list(codigo = "P001", nombre = "Uno"), list(codigo = "P001", nombre = "Dos"))), 0L), error = identity)
+  expect_equal(dup$code, "E_PLANNER_INVALIDO")
+  sin <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list(list(codigo = "P002", nombre = ""), list(codigo = "P003", nombre = "Tres"))), 0L), error = identity)
+  expect_equal(sin$code, "E_PLANNER_INVALIDO")
 })
 
 test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {

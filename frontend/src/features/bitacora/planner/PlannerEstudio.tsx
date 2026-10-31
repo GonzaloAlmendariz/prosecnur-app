@@ -211,7 +211,7 @@ function PerfilTarjeta({ perfil, onCambio }: { perfil: PlannerPerfil; onCambio: 
               maxLength={80}
               onChange={(e) => editarPoblacion(i, e.target.value)}
             />
-            {x.bases.length ? <span className="planner-chip">Base: {x.bases.join(", ")}</span> : null}
+            {x.bases.length ? <span className="planner-chip" title={`Base: ${x.bases.join(", ")}`}>Base: {x.bases.join(", ")}</span> : null}
             <button
               type="button"
               className="plan-icon-button"

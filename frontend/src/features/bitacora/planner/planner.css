@@ -289,6 +289,30 @@
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El chip de la base cede ancho al campo del nombre: nunca se sale de la tarjeta. */
+.planner-poblacion .planner-chip {
+  flex: 0 1 auto;
+  display: block;
+  line-height: 22px;
+}
+
+/* --- PulsoTable dentro del Planner ---------------------------------------- */
+
+/* Al desplazar, la fila se encaja bajo la cabecera pegada (32 px, kit-table):
+   ninguna queda a medias detrás de ella. Patrón de Monitoreo › cola. */
+.planner-seccion .pulso-table-scroll {
+  scroll-padding-top: 32px;
+  scroll-snap-type: y proximity;
+}
+
+.planner-seccion .pulso-table tbody > tr {
+  scroll-snap-align: start;
 }
 
 /* --- Celdas editables dentro de PulsoTable ------------------------------- */
@@ -324,4 +348,10 @@
   .planner-tipo {
     transition: none;
   }
+}
+
+.planner-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }

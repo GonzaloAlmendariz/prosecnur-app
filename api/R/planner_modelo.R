@@ -18,9 +18,10 @@
 
 PLANNER_SCHEMA <- "planner/v1"
 PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos")
-# Equipo no se escribe en P1: el anonimizador debe cubrirlo antes de que el
-# Planner guarde su primera persona (ADR 0122 §10). Se proyecta y se muestra.
-PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "codigos", "insumos")
+# Equipo se escribe desde que el anonimizador y el gate de datos personales
+# cubren `planner$equipo$personas` (ec07d41d0; ADR 0122 §10). Si se agrega a
+# las personas otro campo con datos personales, hay que avisar al anonimizador.
+PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos")
 PLANNER_TIPOS_PERFIL <- c("territorial", "aulas", "telefonico", "acreditacion")
 PLANNER_SELECCION_AULAS <- c("conglomerados", "marco")
 PLANNER_DISENO <- c("calc-muestra", "hojas-ruta", "cliente")
@@ -194,23 +195,36 @@ PLANNER_MAX_INSUMOS <- 60L
 }
 
 #' Normaliza la clave `planner` tal como vive en la sesión. Idempotente.
-#' Sólo conserva las secciones declaradas; una clave ausente o ajena devuelve
-#' un Planner vacío en la revisión 0.
+#'
+#' Forma persistida (la del ADR 0122 §6, la que leen el anonimizador y el gate
+#' de datos personales): plana, una clave por sección declarada
+#' (`planner$equipo$personas`) y `declarado_en` con la fecha de cada una. Una
+#' sección ausente es una sección no declarada. Devuelve la vista interna
+#' (`secciones[[k]]$valor`); `.planner_a_persistir` la vuelve a aplanar.
+#' Una clave ausente o ajena es un Planner vacío en la revisión 0.
 #' @keywords internal
 .planner_normalizar <- function(x) {
   if (!is.list(x) || !identical(.bit_texto(x$schema, 40L), PLANNER_SCHEMA)) {
     return(list(schema = PLANNER_SCHEMA, revision = 0L, secciones = list()))
   }
+  fechas <- if (is.list(x$declarado_en)) x$declarado_en else list()
   secciones <- list()
   for (seccion in PLANNER_SECCIONES) {
-    entrada <- (x$secciones %||% list())[[seccion]]
-    if (!is.list(entrada)) next
+    valor <- x[[seccion]]
+    if (is.null(valor)) next
     secciones[[seccion]] <- list(
-      valor = .planner_normalizar_seccion(seccion, entrada$valor),
-      declarado_en = .bit_texto(entrada$declarado_en, 40L)
+      valor = .planner_normalizar_seccion(seccion, valor),
+      declarado_en = .bit_texto(fechas[[seccion]], 40L)
     )
   }
   list(schema = PLANNER_SCHEMA, revision = calc_int(x$revision, 0L, min = 0L), secciones = secciones)
+}
+
+.planner_a_persistir <- function(p) {
+  out <- list(schema = PLANNER_SCHEMA, revision = p$revision,
+              declarado_en = lapply(p$secciones, `[[`, "declarado_en"))
+  for (seccion in names(p$secciones)) out[[seccion]] <- p$secciones[[seccion]]$valor
+  out
 }
 
 .planner_leer <- function(s) .planner_normalizar(s[["planner"]] %||% NULL)
@@ -245,6 +259,24 @@ PLANNER_MAX_INSUMOS <- 60L
     }
   }
   perfiles
+}
+
+# Un código identifica a una sola persona: dos con el mismo código harían que
+# Material asigne y Monitoreo atribuya a la persona equivocada. El código puede
+# faltar (aplicadores de aulas que todavía no lo tienen); el nombre no.
+.planner_validar_equipo <- function(valor) {
+  equipo <- .planner_norm_equipo(valor)
+  sin_nombre <- vapply(equipo$personas, function(p) !nzchar(p$nombre), logical(1))
+  if (any(sin_nombre)) {
+    .planner_invalido("Cada persona del equipo necesita un nombre.",
+                      codigos = as.list(vapply(equipo$personas[sin_nombre], `[[`, "", "codigo")))
+  }
+  codigos <- vapply(equipo$personas, `[[`, "", "codigo")
+  codigos <- codigos[nzchar(codigos)]
+  if (anyDuplicated(codigos)) {
+    .planner_invalido("Dos personas del equipo tienen el mismo código.", codigo = codigos[duplicated(codigos)][[1]])
+  }
+  equipo
 }
 
 # El catálogo sólo agrega (ADR 0122 §6): un código no se borra ni cambia de
@@ -328,11 +360,12 @@ PLANNER_MAX_INSUMOS <- 60L
   }
   limpio <- switch(seccion,
                    perfiles = .planner_validar_perfiles(valor),
+                   equipo = .planner_validar_equipo(valor),
                    codigos = .planner_validar_codigos(valor, actual$secciones$codigos$valor),
                    .planner_normalizar_seccion(seccion, valor))
   actual$secciones[[seccion]] <- list(valor = limpio, declarado_en = .bit_now_iso())
   actual$revision <- actual$revision + 1L
-  session_set(sid, "planner", actual)
+  session_set(sid, "planner", .planner_a_persistir(actual))
   invisible(actual)
 }
 
