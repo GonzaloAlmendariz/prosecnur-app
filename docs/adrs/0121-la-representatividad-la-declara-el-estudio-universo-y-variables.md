@@ -1,7 +1,7 @@
 # ADR 0121 — La representatividad la declara el estudio: universo y variables de cuota
 
 - **Estado**: Aceptado (Gonzalo, 2026-10-31: «Aprobado, empieza F1»)
-- **Implementación**: F1 completa (`monitoreo_aulas_representatividad_declarada()`, publicada como `representatividad_declarada`); F2 completa (`monitoreo_aulas_avance_por_celdas()`, publicada como `avance_cuota.celdas_declaradas`; sobre HSVG y CCSS reales da las mismas cifras que `avance_cuota` y `quotas_sex_faculty`, celda por celda); F3 completa en Avance (Por facultad cruza por las variables declaradas y el lateral sale de la atribución del eje; guard `ejeSinCablear`); F4 espera al Planner; F5 pendiente
+- **Implementación**: F1 completa (`monitoreo_aulas_representatividad_declarada()`, publicada como `representatividad_declarada`); F2 completa (`monitoreo_aulas_avance_por_celdas()`, publicada como `avance_cuota.celdas_declaradas`; sobre HSVG y CCSS reales da las mismas cifras que `avance_cuota` y `quotas_sex_faculty`, celda por celda); F3 completa en Avance (Por facultad cruza por las variables declaradas y el lateral sale de la atribución del eje; guard `ejeSinCablear`); F4 en curso: la LECTURA está hecha (`monitoreo_aulas_representatividad_planner.R`: Monitoreo toma universo y variables de lo declarado en el Planner —nunca de lo proyectado— y las celdas del escenario, y publica `discrepancias` sin cambiar cifras); falta la escritura por `.planner_declarar_representatividad`, con la decisión de UI consultada a Meta B; F5 pendiente
 - **Ámbito**: Cálculo de muestra (la declaración) · Monitoreo de cursos-horario
   (el avance) · todas las vistas de Avance, Modelo y Control del modo
 - **Fecha**: 2026-10-31

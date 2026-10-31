@@ -100,6 +100,13 @@
 monitoreo_aulas_representatividad_declarada <- function(cfg = list(), plan = NULL, padron = NULL) {
   if (!is.list(cfg)) cfg <- list()
   aulas <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else cfg
+  # F4: si el Planner declara universo y variables, mandan sobre lo traducido;
+  # las celdas siguen saliendo del diseño (monitoreo_aulas_representatividad_planner.R).
+  planner <- aulas[["representatividad_planner"]]
+  if (is.list(planner)) {
+    aulas$representatividad_planner <- NULL
+    return(.mrpl_combinar(monitoreo_aulas_representatividad_declarada(aulas, plan, padron), planner))
+  }
   dt <- aulas[["design_targets"]]
   if (!is.list(dt)) return(NULL)
   declarada <- dt[["representatividad"]]
