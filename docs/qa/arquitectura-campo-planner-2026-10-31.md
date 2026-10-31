@@ -159,8 +159,25 @@ estado ajeno.
 **Hallazgos de L6**: X5, X6 y X8 no cumplen la regla. Ninguno es urgente ni lo arregla esta sesión (X5, X6 y X8 tocan
 `monitoreo_*` o el ADR 0121). Van como insumo del ADR del Planner y de la cola de Monitoreo.
 
-## 10. Pendiente de estructurar (tablero del loop)
+## 10. En qué orden (L10)
+
+Se dice «etapa» para no confundir con las fases de los ADR (F1–F5 del ADR 0121, F4 «plan desde la foto»).
+
+| Etapa | Qué | Quién | Espera |
+|---|---|---|---|
+| 0 | Decisiones de Gonzalo (§3); sólo el visto bueno al plan bloquea | Gonzalo | — |
+| 1 | Códigos de resultado, hoja de ruteo y de consolidados por UMP (D1), Hoja del día sin grilla (D2a), regla CSS de ModuleChrome | Esta sesión | Visto bueno al plan |
+| 2 | Asignado vs observado leyendo la foto enviada (B3, X5); consolidados declarados → Material los lee y publica, Monitoreo los cruza con Kobo (X3) | Sesión de Monitoreo + esta sesión | Etapa 1; decisiones «conteos en el Excel» y «Estado» (C7) |
+| ∥ | ADR 0121 F2–F3 (aulas) | Sesión de Monitoreo | — (no depende de este plan) |
+| 3 | Aulas en Material: plantillas en blanco del libro y disponibilidad; X8 (Material deja de escribir `monitoreo_aulas_plan`) | Esta sesión, coordinada con Monitoreo | ADR 0121 F3 |
+| 4 | Barrido telefónico: plantilla en Material (X9), lectura en Monitoreo; revisión del RMS (C8) | Esta sesión + Monitoreo + la sesión que elija Gonzalo | Etapa 1; elección de C8 |
+| 5 | ADR del Planner y mudanzas campo a campo (§8); X6 pasa a consulta | Meta B coordina | OK de Gonzalo para abrir el ADR |
+| — | F4 «plan de campo desde la muestra enviada» | Esta sesión, tras la etapa 1 | Aprobación de Gonzalo |
+
+**Hallazgo de L10**: la etapa 4 depende de una revisión (C8) que nadie tiene asignada hasta que Gonzalo elija; la etapa 5
+asume que Meta B redacta el ADR, y eso aún no está confirmado por Gonzalo.
+
+## 11. Pendiente de estructurar (tablero del loop)
 
 - Formatos con maqueta fiel (L8).
 - Datos personales (L9).
-- Hoja de ruta por fases y sesiones (L10).
