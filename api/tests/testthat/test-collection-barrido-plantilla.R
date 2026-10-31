@@ -22,7 +22,10 @@ test_that("el libro trae las cinco hojas, la identidad del estudio y la cola id�
   listas <- openxlsx::read.xlsx(l$path, sheet = "Listas", check.names = FALSE, sep.names = " ")
   expect_identical(nrow(listas[!is.na(listas$Status), ]), 14L)
   expect_true(all(c("Efectivo", "Rechazo") %in% listas$Status))
-  expect_setequal(stats::na.omit(listas$Clase), c("efectivo", "en_gestion", "reintentable", "terminal"))
+  expect_setequal(stats::na.omit(listas$Clase), c("efectiva", "pendiente", "no_contacto", "rechazo", "invalido"))
+  # Catálogo real del RMS: el orden y la ortografía de su Sheets.
+  expect_identical(listas$Status[1:2], c("No barrido", "Efectivo"))
+  expect_true("Número Incorrecto" %in% listas$Status)
   # El rótulo de la columna no es una opción de Responsable (caso RMS).
   expect_identical(stats::na.omit(listas$Responsable)[1:2], c("Agente Uno", "Agente Dos"))
   expect_false("Responsable" %in% listas$Responsable)
@@ -50,7 +53,7 @@ test_that("la hoja va protegida con el cuerpo editable hasta la última fila y l
 
 test_that("un catálogo propio reemplaza al de defecto y lo malo es 422", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
-  propio <- list(list(codigo = "ef", status = "Efectivo", clase = "efectivo"), list(codigo = "RE", status = "Rechazo", clase = "terminal"))
+  propio <- list(list(codigo = "ef", status = "Efectivo", clase = "efectiva"), list(codigo = "re", status = "Rechazo", clase = "rechazo"))
   r <- collection_barrido_plantilla(sid, status = propio)
   expect_identical(r$status, 2L)
   expect_identical(.mbp_code(collection_barrido_plantilla(sid, status = list(list(codigo = "X", status = "Raro", clase = "otra")))),

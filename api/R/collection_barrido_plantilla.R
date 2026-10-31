@@ -11,7 +11,7 @@
 #   - Encabezados protegidos de verdad (la hoja va protegida y sólo el cuerpo queda
 #     editable, hasta la última fila de la plantilla, no hasta la última usada).
 #   - «Listas» con los valores permitidos; las validaciones apuntan ahí. Status lleva
-#     código corto y clase (efectivo, en gestión, reintentable, terminal).
+#     código y clase (efectiva, pendiente, no contacto, rechazo, inválido).
 #   - «Parámetros» con la meta por estrato, fuera de las fórmulas; «Léeme»; «Control»
 #     oculta con el sello de la plantilla.
 # Lo que Monitoreo lee hoy (llave declarada, estrato, Status, Responsable, Intentos y
@@ -22,27 +22,32 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
 .MBP_HOJA <- "Barrido"
 .MBP_COLA <- c("Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", "Observación")
 .MBP_ORIGEN <- c("Muestra", "Backup")
-.MBP_CLASES <- c("efectivo", "en_gestion", "reintentable", "terminal")
+.MBP_CLASES <- c("efectiva", "pendiente", "no_contacto", "rechazo", "invalido")
 .MBP_FILAS_MAX <- 20000L
 
-# Vocabulario por defecto: «Efectivo» y «Rechazo» con su nombre literal, porque son los
-# dos que Monitoreo reconoce sin reglas; el estudio puede mandar el suyo.
+# Vocabulario por defecto: el del barrido del RMS 2026, leído de la validación de su
+# Sheets el 31 oct (14 etiquetas literales, en su orden; ortografía exacta: «Número
+# Incorrecto» con una r). El Sheets no trae códigos ni clases: el código es el slug de
+# los outcome_values del perfil telefónico de Monitoreo y la clase es la propuesta de la
+# sesión RMS (sin confirmar con ACNUR). «Efectivo» y «Rechazo» son los dos que Monitoreo
+# reconoce sin reglas. El estudio puede mandar el suyo.
 .MBP_STATUS <- list(
-  list(codigo = "EF", status = "Efectivo", clase = "efectivo"),
-  list(codigo = "EP", status = "Encuesta parcial", clase = "en_gestion"),
-  list(codigo = "AG", status = "Agendado", clase = "en_gestion"),
-  list(codigo = "NB", status = "No barrido", clase = "en_gestion"),
-  list(codigo = "NC", status = "No contesta", clase = "reintentable"),
-  list(codigo = "AP", status = "Apagado", clase = "reintentable"),
-  list(codigo = "OC", status = "Ocupado", clase = "reintentable"),
-  list(codigo = "BV", status = "Buzón de voz", clase = "reintentable"),
-  list(codigo = "CC", status = "Colgó", clase = "reintentable"),
-  list(codigo = "RE", status = "Rechazo", clase = "terminal"),
-  list(codigo = "NI", status = "Número incorrecto", clase = "terminal"),
-  list(codigo = "FS", status = "Fuera de servicio", clase = "terminal"),
-  list(codigo = "NE", status = "No elegible", clase = "terminal"),
-  list(codigo = "ND", status = "No disponible en el periodo", clase = "terminal")
+  list(codigo = "no_barrido", status = "No barrido", clase = "pendiente"),
+  list(codigo = "efectivo", status = "Efectivo", clase = "efectiva"),
+  list(codigo = "encuesta_parcial", status = "Encuesta parcial", clase = "pendiente"),
+  list(codigo = "contactar_despues", status = "Contactar después", clase = "pendiente"),
+  list(codigo = "rechazo", status = "Rechazo", clase = "rechazo"),
+  list(codigo = "colgo_corto", status = "Colgó / Cortó la llamada", clase = "pendiente"),
+  list(codigo = "apagado", status = "Apagado", clase = "no_contacto"),
+  list(codigo = "numero_incorrecto", status = "Número Incorrecto", clase = "invalido"),
+  list(codigo = "no_contesta", status = "No contesta", clase = "no_contacto"),
+  list(codigo = "no_existe_numero", status = "No existe el número", clase = "invalido"),
+  list(codigo = "numero_suspendido", status = "Número suspendido", clase = "invalido"),
+  list(codigo = "no_efectivo", status = "No efectivo / No beneficiario", clase = "invalido"),
+  list(codigo = "contactado_whatsapp", status = "Contactado por WhatsApp", clase = "pendiente"),
+  list(codigo = "contactado_sms", status = "Contactado por mensaje de texto", clase = "pendiente")
 )
+
 
 # Escalares de un body con `.mtf_txt` (collection_territorial_formatos.R); listas, aquí.
 .mbp_textos <- function(x) {
@@ -64,12 +69,12 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
   choque <- intersect(estratos, fijas)
   if (length(choque)) problemas <- c(problemas, sprintf("El estrato «%s» se llama como una columna fija", choque[[1]]))
   catalogo <- if (is.null(status) || !length(status)) .MBP_STATUS else lapply(Filter(is.list, status), function(s) {
-    list(codigo = toupper(.mtf_txt(s$codigo)), status = .mtf_txt(s$status %||% s$etiqueta), clase = .mtf_txt(s$clase))
+    list(codigo = .mtf_txt(s$codigo), status = .mtf_txt(s$status %||% s$etiqueta), clase = .mtf_txt(s$clase))
   })
   if (!length(catalogo)) problemas <- c(problemas, "El catálogo de Status está vacío")
   for (s in catalogo) {
     if (!nzchar(s$codigo) || !nzchar(s$status)) { problemas <- c(problemas, "Cada Status necesita código y etiqueta"); break }
-    if (!s$clase %in% .MBP_CLASES) { problemas <- c(problemas, sprintf("La clase de «%s» no es efectivo, en_gestion, reintentable ni terminal", s$status)); break }
+    if (!s$clase %in% .MBP_CLASES) { problemas <- c(problemas, sprintf("La clase de «%s» no es efectiva, pendiente, no_contacto, rechazo ni invalido", s$status)); break }
   }
   etiquetas <- vapply(catalogo, `[[`, "", "status"); codigos <- vapply(catalogo, `[[`, "", "codigo")
   if (anyDuplicated(etiquetas) || anyDuplicated(codigos)) problemas <- c(problemas, "Hay un Status o un código repetido")
