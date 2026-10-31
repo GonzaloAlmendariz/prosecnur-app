@@ -119,9 +119,23 @@ PULSO_VERSION_PLANNER <- "0.9.7"
 .pulso_version_exigir_guardado <- function(sid) {
   estado <- .pulso_version_de_sesion(sid)
   if (!isTRUE(estado$bloqueado)) return(invisible(TRUE))
-  stop_api(409, "E_PULSO_VERSION_SUPERIOR",
-           "Este proyecto se guardó con una versión más nueva de la app. Puedes revisarlo, pero para guardarlo o publicarlo actualiza la app.",
+  stop_api(409, "E_PULSO_VERSION_SUPERIOR", PULSO_VERSION_MENSAJE_CANDADO,
            details = list(requiere = estado$faltan, min_app_version = estado$min_app_version))
+}
+
+PULSO_VERSION_MENSAJE_CANDADO <- "Este proyecto se guardó con una versión más nueva de la app. Puedes revisarlo, pero para guardarlo o publicarlo actualiza la app."
+
+#' Lo que `project_status` dice del candado: la UI lo avisa antes de que guardar
+#' responda 409 (revisión de guardian-contratos a la unidad del §7).
+#' @keywords internal
+.pulso_version_para_status <- function(sid) {
+  estado <- .pulso_version_de_sesion(sid)
+  bloqueado <- isTRUE(estado$bloqueado)
+  list(
+    guardado_bloqueado = bloqueado,
+    guardado_bloqueado_motivo = if (bloqueado) PULSO_VERSION_MENSAJE_CANDADO else NA_character_,
+    min_app_version = if (bloqueado && nzchar(estado$min_app_version %||% "")) estado$min_app_version else NA_character_
+  )
 }
 
 .pulso_version_avisos_planner <- function(sid) {

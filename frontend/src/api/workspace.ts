@@ -24,7 +24,22 @@ export type ProjectStatus = {
   contactos_campanas?: number;
   /** Qué dejó el proyecto «sin guardar» (L22), lo más reciente primero. Ausente en backends viejos. */
   dirty_reasons?: unknown;
+  /** Candado de guardado (ADR 0122 §7): el .pulso exige algo que esta app no conoce. Ausente en backends viejos. */
+  guardado?: {
+    guardado_bloqueado?: boolean;
+    guardado_bloqueado_motivo?: string | null;
+    min_app_version?: string | null;
+  };
 };
+
+/** El motivo del candado de guardado, o `null` si se puede guardar (ADR 0122 §7). */
+export function motivoGuardadoBloqueado(status: ProjectStatus): string | null {
+  if (status.guardado?.guardado_bloqueado !== true) return null;
+  const motivo = status.guardado.guardado_bloqueado_motivo;
+  return typeof motivo === "string" && motivo && motivo !== "NA"
+    ? motivo
+    : "Este proyecto se guardó con una versión más nueva de la app: para guardarlo, actualiza la app.";
+}
 
 export async function apiProjectStatus(): Promise<ProjectStatus> {
   return handle<ProjectStatus>(

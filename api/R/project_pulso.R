@@ -2865,7 +2865,8 @@ project_status <- function(sid) {
     dirty         = isTRUE(s$project_dirty),
     dirty_reasons = if (isTRUE(s$project_dirty)) .project_dirty_reasons_payload(s) else list(),
     last_saved_at = s$project_last_saved_at %||% NA_character_,
-    contactos_campanas = .cmail_contactos_count(s)
+    contactos_campanas = .cmail_contactos_count(s),
+    guardado = .pulso_version_para_status(sid)   # ADR 0122 §7: el candado, antes del 409
   )
 }
 

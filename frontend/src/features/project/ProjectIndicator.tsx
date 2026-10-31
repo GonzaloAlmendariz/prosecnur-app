@@ -17,6 +17,7 @@ import {
   Folder,
   Home,
 } from "lucide-react";
+import { motivoGuardadoBloqueado } from "../../api/client";
 import { projectRelTime } from "./ProjectLifecycleDialog";
 import type { UseProjectReturn } from "./useProject";
 
@@ -30,6 +31,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
   const [viewerOpen, setViewerOpen] = useState(false);
   const { status } = project;
   const refsPerdidas = project.refsPerdidas ?? [];
+  const bloqueo = motivoGuardadoBloqueado(status);
   const projectPath = status.path ?? "";
 
   if (!status.has_project) {
@@ -73,6 +75,14 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
             el `.pulso` sale completo a la vista y roto al reabrirlo en otra
             máquina. Se dice en el chip —que es donde el analista mira si
             guardó— y el detalle va en el tooltip, con la salida. */}
+        {/* ADR 0122 §7: el .pulso exige algo que esta app no conoce. Se dice en
+            el chip, antes de que guardar responda 409. */}
+        {bloqueo && (
+          <span className="pulso-project-chip-status is-dirty" title={bloqueo} aria-label={bloqueo}>
+            <AlertTriangle size={10} />
+            <span>sólo lectura</span>
+          </span>
+        )}
         {refsPerdidas.length > 0 && (
           <span
             className="pulso-project-chip-status is-dirty"

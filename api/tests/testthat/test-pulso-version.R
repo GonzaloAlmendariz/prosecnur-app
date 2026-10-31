@@ -161,3 +161,17 @@ test_that("borrar la sesión borra su candado", {
   session_delete(ld$session_id)
   expect_null(.pulso_version_de_sesion(ld$session_id))
 })
+
+test_that("project_status avisa del candado antes de que guardar responda 409", {
+  ruta <- .pv_proyecto_con_planner(withr::local_tempdir())
+  libre <- .pv_abrir(ruta)
+  expect_false(project_status(libre)$guardado$guardado_bloqueado)
+  testthat::local_mocked_bindings(.pulso_capacidades_conocidas = function() c(otra = "otra/v1"))
+  sid <- .pv_abrir(ruta)
+  st <- project_status(sid)$guardado
+  expect_true(st$guardado_bloqueado)
+  expect_equal(st$min_app_version, PULSO_VERSION_PLANNER)
+  # El mismo texto que el 409: la UI no puede prometer otra cosa que el backend.
+  err <- tryCatch(build_pulso(sid, ruta, project_name = "proyecto"), error = identity)
+  expect_identical(st$guardado_bloqueado_motivo, conditionMessage(err))
+})
