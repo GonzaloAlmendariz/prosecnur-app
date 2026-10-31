@@ -1203,7 +1203,7 @@ export type HojasRutaContornosRegion = {
 };
 
 export async function apiHojasRutaContornos(region: string): Promise<HojasRutaContornosRegion> {
-  const crudo = await handle<unknown>(await apiFetch(`/api/hojas-ruta/contornos?region=${encodeURIComponent(region)}`));
+  const crudo = await handle<unknown>(await apiFetch(`/api/hojas-ruta/contornos?region=${encodeURIComponent(region)}`, { headers: headers() }));
   const o = (crudo && typeof crudo === "object" ? crudo : {}) as Record<string, unknown>;
   const d = (o.distritos && typeof o.distritos === "object" ? o.distritos : {}) as Record<string, unknown>;
   return {

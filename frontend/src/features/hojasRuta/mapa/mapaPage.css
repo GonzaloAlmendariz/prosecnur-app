@@ -561,7 +561,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-sorteo-subtitulo { display: flex; justify-content: space-between; margin-top: 10px; }
 .hr-mapa-estructura .hr-muestra-grupo[aria-label="Historial de ruteos"] { border-top: 0; padding-top: 0; }
 .hr-margen-curva { width: 100%; height: auto; display: block; }
-.hr-margen-curva text { font-size: 9px; fill: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-margen-curva text { font-size: 10px; fill: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-margen-curva-guia { stroke: var(--pulso-border); stroke-width: 1; }
 .hr-margen-curva-objetivo { stroke: var(--pulso-module-routes); stroke-width: 1.2; stroke-dasharray: 3 3; }
 .hr-margen-curva text.hr-margen-curva-objetivo-texto { fill: var(--pulso-module-routes); font-weight: 700; }
