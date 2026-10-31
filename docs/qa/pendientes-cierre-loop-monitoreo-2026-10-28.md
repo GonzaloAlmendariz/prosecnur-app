@@ -30,12 +30,13 @@ mergeó ni se borró al cerrar. `main` local va **175 commits por delante de
 | # | Qué | Dónde vive | Estado |
 |---|---|---|---|
 | 1 | ~~Aulas A3 · Avance › Cursos-horario~~ | merge `23a275cb4` (2026-10-31) | **Cerrado**: recaptura sin rótulos partidos ni textos fuera a 1440/1366/1024; queda un desborde en la sub-vista heredada «Estado del campo» a 1024 (cabecera del panel «Respuestas que pide el plan…») |
-| 2 | Aulas A4 · Avance › Rendimiento y A5 · Avance › Salidas | `docs/qa/revamp-monitoreo/aulas.md` §3; tableros en el lienzo https://claude.ai/artifact/DUz7BW49dHvfQX34wrmaPo (`project/A4-Rendimiento.dc.html`, `project/A5-Salidas.dc.html`) | Pendiente. Mismo patrón que A1–A3: modelo puro + componente + CSS enganchado en `navegacion/PestanaPropiaDeAulas.tsx` |
+| 2 | ~~Aulas A4 · Avance › Rendimiento y A5 · Avance › Salidas~~ | `docs/qa/revamp-monitoreo/aulas.md` §3; tableros en el lienzo https://claude.ai/artifact/DUz7BW49dHvfQX34wrmaPo (`project/A4-Rendimiento.dc.html`, `project/A5-Salidas.dc.html`) | **Cerrado** 2026-10-31: A4 en `e15c5cca0` y `d91a046ff`, A5 en `538820197`; capturas 1440/1280/1024 sin hallazgos en las vistas nuevas |
 | 3 | Aulas, resto de fichas: Insumos (I1–I3), Modelo (M1–M2), Control (Ctl1–Ctl8), paneles y estados | `aulas.md` §3 | Pendiente |
 | 4 | Territorial › Bandeja a 1280: el aplicador se parte en tres líneas («P132 · Venturo / Perales Rosa / Magda») y las filas quedan altas | `profiles/territorial/control/bandeja.css` | Pendiente. El detector no lo marca: sólo se ve en la captura |
 | 5 | L33 parte 2: los 51 componentes restantes, uno por commit con captura | GOAL `docs/qa/goal-modernizacion-ui-2026-10-10.md` | Pendiente |
 | 6 | L14 (TabHeading en Monitoreo), L25 y L26 en Monitoreo | GOAL | Pendiente |
 | 7 | Tipar `refuerzos.rendimiento` en el cliente (hoy A2 lo lee de forma defensiva) | `frontend/src/api/monitoreo.ts` | Pendiente; no bloquea |
+| 2b | B3 · Territorial: asignado contra observado (`codigo_planificado`), pedido por Material | Archivo nuevo en `api/R/monitoreo_territorial_*`; contrato en `docs/qa/contrato-equipo-territorial-2026-10-31.md` | Encolado tras el ADR 0121 F2. **Leer la foto enviada (`envio`) y su `sample_fingerprint`, no la muestra viva** (`hojas_ruta_runs[[fase]]$workspace_outputs`, cruce X5 de `arquitectura-campo-planner-2026-10-31.md` §9): si se vuelve a sortear, la viva compara contra otra muestra |
 | 8 | Limpiar los worktrees de agentes ya mergeados: `agent-a3c482c61f6bd5b8c` (A1) y `agent-ac16cbeac941345aa` (A2). `agent-adfbd8f406336e5eb` no es de este loop: verificar su dueño antes de tocarlo | `.claude/worktrees/` | Pendiente; no se borró al cerrar |
 
 **Traspaso (2026-10-31):** lo que sigue de esta lista pasa a una sesión nueva que propone Meta B, con alcance `frontend/src/features/monitoreo/**` y `api/R/monitoreo_*`. La sesión que cerró el loop no vuelve a tocar Monitoreo.
