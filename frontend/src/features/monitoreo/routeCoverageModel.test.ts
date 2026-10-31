@@ -64,7 +64,7 @@ describe("routeCoverageModel", () => {
     expect(filterTerritorialRouteBlocks(blocks, { query: "89" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "0590" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "705-712" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
-    expect(filterTerritorialRouteBlocks(blocks, { query: "persona ficticia" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
+    expect(filterTerritorialRouteBlocks(blocks, { query: "ficticia cinco" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { districtFilter: "150140", query: "sur" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[1])]);
   });
 
