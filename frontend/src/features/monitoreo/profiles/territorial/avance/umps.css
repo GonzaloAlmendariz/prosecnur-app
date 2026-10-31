@@ -605,3 +605,23 @@
   margin: 0;
   padding-bottom: var(--pulso-space-1);
 }
+
+/* B3: la columna «Planificado» (lo que asignó Material) y su línea de resumen. */
+.mon-umps-planificado {
+  white-space: nowrap;
+}
+
+.mon-umps-planificado-codigo {
+  margin-right: var(--pulso-space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-umps-planificado-vacio {
+  color: var(--pulso-text-faint);
+}
+
+.mon-umps-planificado-aviso {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

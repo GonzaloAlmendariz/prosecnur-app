@@ -7,6 +7,8 @@ import { ExploracionUmp } from "./ExploracionUmp";
 import { construirFichaDeUmp } from "./fichaUmpModel";
 import { construirHistoriaDeUmp } from "./historiaUmpModel";
 import { construirUmps, csvDeUmps, filtrarUmps, type FiltroDeUmps } from "./umpsModel";
+import { columnaPlanificada, type CeldaPlanificada } from "./asignacionPlanificadaModelo";
+import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./umps.css";
 
@@ -51,6 +53,9 @@ function UmpsTabImpl({
   const filas = useMemo(() => filtrarUmps(modelo.filas, filtro, busqueda), [busqueda, filtro, modelo.filas]);
   const ficha = useMemo(() => construirFichaDeUmp(avance, validacion, foco), [avance, foco, validacion]);
   const historia = useMemo(() => (ficha ? construirHistoriaDeUmp(avance, validacion, ficha.ump) : null), [avance, ficha, validacion]);
+  // B3: lo que Material asignó a cada UMP, contra quién respondió.
+  const asignacion = useAsignacionPlanificada(avance?.generated_at ?? "");
+  const planificado = useMemo(() => columnaPlanificada(asignacion), [asignacion]);
 
   if (!modelo.filas.length) {
     return (
@@ -88,7 +93,8 @@ function UmpsTabImpl({
   const filtros: FiltroDeUmps[] = modelo.conOcurrencias
     ? ["todas", "pendientes", "subsanadas", "completas", "sin-parte"]
     : ["todas", "pendientes", "subsanadas", "completas"];
-  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0);
+  const conPlanificado = planificado.tipo === "columna";
+  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0) + (conPlanificado ? 1 : 0);
 
   return (
     <section
@@ -120,6 +126,8 @@ function UmpsTabImpl({
             CSV
           </button>
         </header>
+        {planificado.tipo === "aviso" ? <p className="mon-umps-planificado-aviso" role="status">{planificado.texto}</p> : null}
+        {planificado.tipo === "columna" ? <p className="mon-umps-planificado-aviso">{planificado.resumen}</p> : null}
         <div className="mon-umps-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="UMP del corte, con desplazamiento">
           <table className="mon-umps-tabla">
             <thead>
@@ -129,6 +137,7 @@ function UmpsTabImpl({
                 <th scope="col">Manzana</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Aplicador</th>
+                {conPlanificado ? <th scope="col">Planificado</th> : null}
                 <th scope="col">Cuentan</th>
                 <th scope="col" className="is-num">En observación</th>
                 <th scope="col">Cuota</th>
@@ -153,6 +162,7 @@ function UmpsTabImpl({
                     <td>{fila.manzana}</td>
                     <td>{fila.tipo}</td>
                     <td>{fila.aplicador}</td>
+                    {conPlanificado ? <CeldaDePlanificado celda={planificado.porManzana.get(fila.idManzana)} /> : null}
                     <td>
                       <span className="mon-umps-avance">
                         <span className="mon-umps-avance-barra" aria-hidden="true">
@@ -178,6 +188,18 @@ function UmpsTabImpl({
       </section>
 
     </section>
+  );
+}
+
+/** B3: a quién le asignó Material la UMP y si coincide con quien respondió. */
+function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) {
+  if (!celda) return <td className="mon-umps-planificado"><span className="mon-umps-planificado-vacio">Sin asignar</span></td>;
+  const chip = celda.tono === "falta" ? "is-falta" : celda.tono === "ok" ? "is-ok" : "is-info";
+  return (
+    <td className="mon-umps-planificado" title={celda.detalle}>
+      <span className="mon-umps-planificado-codigo">{celda.rotulo}</span>
+      <span className={`mon-ter-chip ${chip}`}>{celda.texto}</span>
+    </td>
   );
 }
 
