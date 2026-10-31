@@ -53,10 +53,18 @@ source("setup-load-all.R")
   asignaciones[[4]] <- list(codigo_pulso = "P004", nombre = "P004",
                             nombre_normalizado = .monitoreo_territorial_enumerator_key("P004"), dni = "",
                             source_row = 4L)
+  # Las anulaciones de producción guardan al responsable como `codigo_clave`, con la clave sacada del DATO DE
+  # CAMPO: otra variante del nombre (otro orden, menos piezas) que no casa con la de la lista. Así se filtraron
+  # 7 encuestadores de acnur_acg.
+  llave <- function(i, variante) paste0(tolower(codigos[[i]]), "_", variante)
+  anulaciones <- list(field = list(list(
+    responsible_key = llave(1, "prueba_fulano_de_tal"), responsible_label = paste(codigos[[1]], "·", .par_nombres[[1]]),
+    impact = list(responsible_key = llave(1, "prueba_fulano")))))
   estado <- list(
     monitoreo_config = list(territorial = list(enumerator_roster = list(
       enabled = TRUE, code_format = code_format, code_var = "codigo_pulso", source_file_id = fid,
-      file_name = "encuestadores.xlsx", assignments = asignaciones))),
+      file_name = "encuestadores.xlsx", assignments = asignaciones),
+      production_annulments = anulaciones)),
     material_territorial_asignacion = list(
       schema = MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA, campaign_id = "territorial", fase = "field", revision = 2L,
       asignacion = list(list(id_manzana = "M-01", codigo = codigos[[1]]),
@@ -77,7 +85,16 @@ source("setup-load-all.R")
       enumerator_assigned = .par_nombres,
       responsible_display = paste(codigos, .par_nombres, sep = " · "),
       stringsAsFactors = FALSE),
-      otros = data.frame(pulso_code = c("P004", "P0041"), stringsAsFactors = FALSE))
+      otros = data.frame(pulso_code = c("P004", "P0041"), stringsAsFactors = FALSE),
+      reports = list(production_annulments = list(responsibles = list(
+        list(key = llave(2, "ejemplo_mengana"), label = paste(codigos[[2]], "·", "MENGANA EJEMPLO")),
+        # Un código con clave que no es un nombre de su persona no se toca.
+        list(key = "p003_sin_dato", label = "P003 · sin dato"),
+        # Código mal digitado (no está en la lista) con una variante del nombre: sólo lo alcanza el barrido por
+        # pares de piezas (acnur_acg: «p844_…» con la lista en P884 y P824).
+        list(key = "p999_inventado_zutano_demo", label = "P999 · INVENTADO ZUTANO"))),
+      # Un nombre que vive como CLAVE de una lista, no como valor.
+      por_responsable = stats::setNames(list(list(n = 3L)), "ficticia_mengana")))
   )
   estado$monitoreo_dashboard_cache_token_full <- paste0(
     "monitoreo-dashboard-v1|full|", jsonlite::toJSON(estado$monitoreo_config, auto_unbox = TRUE))
@@ -121,6 +138,10 @@ test_that("el gate de PII ve los nombres y DNI reales de la lista de encuestador
   expect_true(any(grepl("ocurrencias_xlsform.xlsx", h$ruta, fixed = TRUE) & h$tipo == "nombre"))
   # El equipo del Planner, con la misma política.
   expect_true("state$planner$equipo$personas" %in% h$ruta)
+  # Las claves `codigo_variante` de las anulaciones, aunque la variante no sea la de la lista.
+  expect_true("prueba fulano de tal" %in% .pulso_anon_roster_llave_hallazgos(c("p001_prueba_fulano_de_tal",
+                                                                                "p001_ana_rojas_tapia", "p003_sin_dato")))
+  expect_length(.pulso_anon_roster_llave_hallazgos(c("p001_ana_rojas_tapia", "p003_sin_dato")), 0L)
   # Y la copia serializada dentro del token de caché.
   token <- h[h$ruta == "state$monitoreo_dashboard_cache_token_full", , drop = FALSE]
   expect_setequal(token$tipo, c("nombre", "dni_pe"))
@@ -164,6 +185,22 @@ test_that("la lista PXXX sale con seudónimos estables, sin DNI y con sus códig
   expect_identical(pl[[2]]$codigo, "E09")
   expect_true(.pulso_anon_roster_firmado(pl[[2]]$nombre))
   expect_identical(pl[[2]]$rol, "supervisor")
+
+  # Las claves de anulación pasan al seudónimo de SU persona (por el código), sea cual sea la variante.
+  llave_fake <- function(cod) paste0(tolower(cod), "_", tolower(gsub(" ", "_", nombres[[cod]])))
+  an <- s$monitoreo_config$territorial$production_annulments$field[[1]]
+  expect_identical(an$responsible_key, llave_fake("P001"))
+  expect_identical(an$impact$responsible_key, llave_fake("P001"))
+  expect_identical(an$responsible_label, paste("P001 ·", nombres[["P001"]]))
+  resp <- s$monitoreo_snapshot$reports$production_annulments$responsibles
+  expect_identical(resp[[1]]$key, llave_fake("P002"))
+  expect_identical(resp[[1]]$label, paste("P002 ·", nombres[["P002"]]))
+  expect_identical(resp[[2]]$key, "p003_sin_dato")
+  # Pares de piezas con código ajeno: las dos piezas pasan al seudónimo de su persona, en su caja y con su separador.
+  expect_true(.pulso_anon_roster_firmado(gsub("_", " ", sub("^p999_", "", resp[[3]]$key))))
+  expect_true(.pulso_anon_roster_firmado(sub("^P999 · ", "", resp[[3]]$label)))
+  # El nombre que era clave de lista ya no está.
+  expect_false("ficticia_mengana" %in% names(s$monitoreo_snapshot$por_responsable))
 
   # Lo derivado nombra al mismo seudónimo que la lista.
   aud <- s$monitoreo_snapshot$audit_summary

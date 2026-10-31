@@ -32,7 +32,13 @@
 .PULSO_ANON_ROSTER_PXXX_RE <- "^P[0-9]{3}$"
 # Marca intermedia entre el barrido de la lista y el de las abiertas. Ver
 # `.pulso_anon_roster_marcar`.
-.PULSO_ANON_ROSTER_MARCA <- "⁣PULSOROSTER%05d⁣"
+.PULSO_ANON_ROSTER_MARCA <- "\u2063PULSOROSTER%05d\u2063"
+.PULSO_ANON_ROSTER_LLAVE <- "\u2063PULSOLLAVE%05d\u2063"
+.PULSO_ANON_ROSTER_PAR <- "\u2063PULSOPAR%05d\u2063"
+# Palabras que acompañan a un código sin ser el nombre de nadie («p003_sin_dato»,
+# «P003 · sin asignar»). El gate no las toma por un nombre real.
+.PULSO_ANON_ROSTER_NO_NOMBRE <- c("sin", "dato", "datos", "no", "identificado", "asignado", "asignar", "responsable",
+                                  "encuestador", "encuestadora", "otro", "otros", "ninguno", "pendiente", "de", "del")
 # Cabeceras del Excel de origen que el anonimizador reescribe.
 .PULSO_ANON_ROSTER_CABECERAS <- c("N°", "AP PATERNO", "AP MATERNO", "NOMBRES", "DNI", "CODIGO PULSO")
 
@@ -146,6 +152,7 @@
   codigos <- character()
   claves_por_nombre <- character()
   dnis <- character()
+  pares <- character()                                 # código -> nombre real
   for (nodo in .pulso_anon_roster_listas(estado)) {
     ro <- .pulso_anon_roster_normalizar(nodo)
     if (is.null(ro)) next
@@ -156,6 +163,7 @@
       # rellena): no es una persona, y tratarlo como nombre convertiría el
       # código en seudónimo en todo el proyecto.
       if (identical(a$nombre, a$codigo_pulso)) next
+      pares[[a$codigo_pulso]] <- a$nombre
       reales <- c(reales, a$nombre)
       claves_por_nombre[[a$nombre]] <- a$nombre_normalizado
     }
@@ -167,6 +175,9 @@
         !(nombre %in% names(claves_por_nombre))) {
       reales <- c(reales, nombre)
       claves_por_nombre[[nombre]] <- .monitoreo_territorial_enumerator_key(nombre)
+    }
+    if (!is.na(nombre) && nzchar(nombre) && nzchar(codigo) && !identical(nombre, codigo) && !(codigo %in% names(pares))) {
+      pares[[codigo]] <- nombre
     }
     codigos <- c(codigos, codigo)
   }
@@ -201,13 +212,167 @@
   # distrito—; en la lista se seudonimiza igual.
   sustituciones <- c(nombres[lengths(strsplit(trimws(names(nombres)), "\\s+")) >= 2L],
                      claves[grepl("_", names(claves), fixed = TRUE)])
+  por_piezas <- .pulso_anon_roster_pares(nombres)
+  # Por código: lo que dejan los responsables en claves y rótulos derivados del
+  # DATO DE CAMPO («p446_apellido_nombre»), donde el nombre viene en otra variante
+  # que la de la lista y no casa con ella.
+  por_codigo <- data.frame(codigo = as.character(names(pares)), real = as.character(unname(pares)),
+                           stringsAsFactors = FALSE)
+  por_codigo$nuevo <- if (nrow(por_codigo)) .pulso_anon_roster_recodificar(por_codigo$codigo, sal) else character()
+  por_codigo$fake <- if (nrow(por_codigo)) unname(nombres[por_codigo$real]) else character()
+  por_codigo <- por_codigo[!is.na(por_codigo$fake), , drop = FALSE]
+  llave <- tolower(gsub("\\s+", "_", por_codigo$fake))
   list(
     sal = sal,
     nombres = nombres,
     sustituciones = sustituciones,
     codigos = stats::setNames(nuevos[cambian], codigos[cambian]),
-    dnis = dnis
+    dnis = dnis,
+    por_codigo = por_codigo,
+    pares = por_piezas,
+    # Una sola pasada que descarta lo que no tiene dos piezas juntas de NADIE:
+    # sin ella, un `grepl` por persona en cada columna costaba minutos.
+    pares_prefiltro = if (length(por_piezas)) {
+      alt <- paste0("(?:", paste(unique(unlist(lapply(por_piezas, function(p) {
+        vapply(p$piezas, .pulso_anon_roster_patron_pieza, "")
+      }))), collapse = "|"), ")")
+      paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "[_ \u00b7]+", alt, "(?![[:alpha:]])")
+    },
+    # Los reemplazos de pares dependen del separador y de la caja de cada
+    # aparición: se registran al marcar y se leen al restaurar.
+    pares_env = new.env(parent = emptyenv()),
+    # Reemplazos de la marca de llave: por código, el seudónimo, su llave en
+    # minúsculas y en mayúsculas.
+    llaves = as.vector(rbind(por_codigo$fake, llave, toupper(llave)))
   )
+}
+
+# Dos piezas consecutivas del nombre real, en cualquier orden, con `_`, espacio o
+# `·` entre ellas, sin distinguir caja ni tildes: «quispe_ana», «ROJAS QUISPE».
+# Es lo que queda cuando el nombre se escribe en otra variante y además con un
+# código equivocado (acnur_acg: «p844_…» cuando la lista sólo tiene P884 y P824),
+# donde ni el nombre exacto ni el código lo encuentran.
+.PULSO_ANON_ROSTER_PIEZAS_RELLENO <- c("de", "del", "la", "las", "los", "y", "san", "santa")
+
+.pulso_anon_roster_patron_pieza <- function(pieza) {
+  clases <- c(a = "[a\u00e1\u00e0\u00e4\u00e2]", e = "[e\u00e9\u00e8\u00eb\u00ea]",
+              i = "[i\u00ed\u00ec\u00ef\u00ee]", o = "[o\u00f3\u00f2\u00f6\u00f4]",
+              u = "[u\u00fa\u00f9\u00fc\u00fb]", n = "[n\u00f1]")
+  letras <- strsplit(pieza, "")[[1]]
+  paste(ifelse(letras %in% names(clases), clases[letras], letras), collapse = "")
+}
+
+.pulso_anon_roster_pares <- function(nombres) {
+  filas <- list()
+  for (k in seq_along(nombres)) {
+    reales <- strsplit(trimws(names(nombres)[[k]]), "\\s+")[[1]]
+    ascii <- gsub("[^a-z]", "", tolower(iconv(enc2utf8(reales), "UTF-8", "ASCII//TRANSLIT", sub = "")))
+    util <- nchar(ascii) >= 3L & !(ascii %in% .PULSO_ANON_ROSTER_PIEZAS_RELLENO)
+    if (sum(util) < 2L) next
+    fake <- strsplit(trimws(nombres[[k]]), "\\s+")[[1]]
+    piezas <- ascii[util]
+    destino <- fake[pmin(seq_along(piezas), length(fake))]
+    alt <- paste0("(?:", paste(vapply(piezas, .pulso_anon_roster_patron_pieza, ""), collapse = "|"), ")")
+    filas[[length(filas) + 1L]] <- list(
+      piezas = piezas, destino = destino,
+      patron = paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "(?:[_ \u00b7]+", alt, ")+(?![[:alpha:]])"))
+  }
+  filas
+}
+
+# Un tramo de dos o más piezas de la MISMA persona, en cualquier orden, cambia
+# pieza por pieza a la que le toca en su seudónimo; el separador y la caja de cada
+# pieza se conservan. Dos piezas juntas de una persona son su nombre aunque falte
+# el resto o el código sea ajeno; una pieza suelta no, porque es un apellido común.
+.pulso_anon_roster_marcar_pares <- function(v, mapa) {
+  personas <- mapa$pares
+  if (!length(personas) || !length(v)) return(v)
+  candidatos <- grepl(mapa$pares_prefiltro, v, perl = TRUE)
+  if (!any(candidatos)) return(v)
+  v_todo <- v
+  v <- v[candidatos]
+  env <- mapa$pares_env
+  caja <- function(x, molde) {
+    if (identical(molde, toupper(molde))) toupper(x) else if (identical(molde, tolower(molde))) tolower(x) else x
+  }
+  for (p in personas) {
+    hit <- grepl(p$patron, v, perl = TRUE)
+    if (!any(hit)) next
+    m <- gregexpr(p$patron, v[hit], perl = TRUE)
+    regmatches(v[hit], m) <- lapply(regmatches(v[hit], m), function(ms) vapply(ms, function(tramo) {
+      tokens <- regmatches(tramo, gregexpr("(*UCP)[[:alpha:]]+", tramo, perl = TRUE))[[1]]
+      seps <- regmatches(tramo, gregexpr("(*UCP)[^[:alpha:]]+", tramo, perl = TRUE))[[1]]
+      norm <- gsub("[^a-z]", "", tolower(iconv(enc2utf8(tokens), "UTF-8", "ASCII//TRANSLIT", sub = "")))
+      nuevos <- vapply(seq_along(tokens), function(j) caja(p$destino[[match(norm[[j]], p$piezas)]], tokens[[j]]), "")
+      reemplazo <- paste0(c(rbind(nuevos, c(seps, ""))), collapse = "")
+      # Contador y no `length(ls(env))`: contar las claves en cada aparición es cuadrático.
+      n <- (if (exists("n", envir = env, inherits = FALSE)) get("n", envir = env) else 0L) + 1L
+      assign("n", n, envir = env)
+      assign(paste0("k", n), reemplazo, envir = env)
+      sprintf(.PULSO_ANON_ROSTER_PAR, n)
+    }, character(1), USE.NAMES = FALSE))
+  }
+  v_todo[candidatos] <- v
+  v_todo
+}
+
+# Piezas de un nombre para compararlo con una variante: sin tildes, en minúsculas
+# y de tres letras o más.
+.pulso_anon_roster_piezas <- function(x) {
+  x <- tolower(iconv(enc2utf8(as.character(x)), "UTF-8", "ASCII//TRANSLIT", sub = ""))
+  p <- strsplit(x, "[^a-z]+")[[1]]
+  unique(p[nchar(p) >= 3L])
+}
+
+#' Reescribe por CÓDIGO las claves «pXXX_variante» y los rótulos «PXXX · variante»
+#' cuyo nombre comparte alguna pieza con el de la persona de ese código.
+#'
+#' Medido en acnur_acg: las anulaciones de producción guardan al responsable como
+#' `production_annulment_key("P446 · ...")`, una variante del nombre sacada del
+#' dato de campo (otro orden, otras piezas) que no casa con la lista. 7 de los 26
+#' encuestadores salían así. Exigir una pieza compartida evita reescribir lo que
+#' acompaña a un código sin ser su persona («p003_sin_dato»). Trabaja en bytes: los
+#' códigos y las claves son ASCII y los tokens de caché pesan cientos de KB.
+#' @keywords internal
+.pulso_anon_roster_por_codigo <- function(v, mapa) {
+  pc <- mapa$por_codigo
+  if (is.null(pc) || !nrow(pc) || !length(v)) return(v)
+  codigos_re <- paste(.pulso_pii_escape_regex(pc$codigo), collapse = "|")
+  re_llave <- paste0("(?i)(?<![A-Za-z0-9])(", codigos_re, ")_((?:[A-Za-z]+_)*[A-Za-z]+)(?![A-Za-z0-9])")
+  re_rotulo <- paste0("(?i)(?<![A-Za-z0-9])(", codigos_re, ") \u00b7 ((?:[A-Za-z]|[\\x80-\\xff])+",
+                      "(?: (?:[A-Za-z]|[\\x80-\\xff])+)*)")
+  piezas_reales <- lapply(pc$real, .pulso_anon_roster_piezas)
+  fila <- function(cod) match(toupper(cod), toupper(pc$codigo))
+  comparte <- function(i, variante) any(.pulso_anon_roster_piezas(variante) %in% piezas_reales[[i]])
+  # «p446» en una clave sigue en minúsculas; un DNI no tiene caja y el código nuevo va como en la lista.
+  codigo_en_su_caja <- function(original, nuevo) {
+    if (grepl("[a-z]", original) && !grepl("[A-Z]", original)) tolower(nuevo) else nuevo
+  }
+  reescribir <- function(x, re, armar) {
+    hit <- grepl(re, x, perl = TRUE, useBytes = TRUE)
+    if (!any(hit)) return(x)
+    m <- gregexpr(re, x[hit], perl = TRUE, useBytes = TRUE)
+    regmatches(x[hit], m) <- lapply(regmatches(x[hit], m), function(ms) vapply(ms, armar, character(1), USE.NAMES = FALSE))
+    x
+  }
+  v <- reescribir(v, re_llave, function(s) {
+    cod <- sub(re_llave, "\\1", s, perl = TRUE, useBytes = TRUE)
+    resto <- sub(re_llave, "\\2", s, perl = TRUE, useBytes = TRUE)
+    i <- fila(cod)
+    if (is.na(i) || !comparte(i, resto)) return(s)
+    caja <- if (identical(resto, toupper(resto))) 3L else 2L
+    paste0(codigo_en_su_caja(cod, pc$nuevo[[i]]), "_", sprintf(.PULSO_ANON_ROSTER_LLAVE, 3L * (i - 1L) + caja))
+  })
+  v <- reescribir(v, re_rotulo, function(s) {
+    cod <- sub(re_rotulo, "\\1", s, perl = TRUE, useBytes = TRUE)
+    resto <- sub(re_rotulo, "\\2", s, perl = TRUE, useBytes = TRUE)
+    Encoding(resto) <- "UTF-8"
+    i <- fila(cod)
+    if (is.na(i) || !comparte(i, resto)) return(s)
+    paste0(codigo_en_su_caja(cod, pc$nuevo[[i]]), " \u00b7 ", sprintf(.PULSO_ANON_ROSTER_LLAVE, 3L * (i - 1L) + 1L))
+  })
+  Encoding(v) <- "UTF-8"
+  v
 }
 
 # -----------------------------------------------------------------------------
@@ -297,7 +462,8 @@
 
 #' @keywords internal
 .pulso_anon_roster_marcar <- function(df, mapa) {
-  if (!is.data.frame(df) || !ncol(df) || (!length(mapa$sustituciones) && !length(mapa$codigos))) {
+  if (!is.data.frame(df) || !ncol(df) ||
+      (!length(mapa$sustituciones) && !length(mapa$codigos) && !NROW(mapa$por_codigo) && !length(mapa$pares))) {
     return(list(data = df, reemplazos = 0L))
   }
   reales <- names(mapa$sustituciones)
@@ -315,6 +481,16 @@
   reemplazos <- 0L
   barrer <- function(v) {
     antes <- v
+    # Primero por código, con los códigos y nombres originales todavía en su sitio.
+    if (NROW(mapa$por_codigo)) {
+      u0 <- unique(v[!is.na(v)])
+      u1 <- .pulso_anon_roster_por_codigo(u0, mapa)
+      cambia <- u1 != u0
+      if (any(cambia)) {
+        k <- match(v, u0[cambia])
+        v[!is.na(k)] <- u1[cambia][k[!is.na(k)]]
+      }
+    }
     u <- unique(v[!is.na(v)])
     if (!is.null(patron_codigos) && any(grepl(patron_codigos, u, perl = TRUE))) {
       for (cod in names(mapa$codigos)) {
@@ -331,6 +507,15 @@
                   sprintf(.PULSO_ANON_ROSTER_MARCA, i), v, perl = TRUE)
       }
     }
+    if (length(mapa$pares)) {
+      u0 <- unique(v[!is.na(v)])
+      u1 <- .pulso_anon_roster_marcar_pares(u0, mapa)
+      cambia <- u1 != u0
+      if (any(cambia)) {
+        k <- match(v, u0[cambia])
+        v[!is.na(k)] <- u1[cambia][k[!is.na(k)]]
+      }
+    }
     reemplazos <<- reemplazos + sum(!is.na(v) & v != antes)
     v
   }
@@ -340,11 +525,25 @@
 
 #' @keywords internal
 .pulso_anon_roster_restaurar <- function(df, mapa) {
-  if (!is.data.frame(df) || !ncol(df) || !length(mapa$sustituciones)) return(df)
+  if (!is.data.frame(df) || !ncol(df) || (!length(mapa$sustituciones) && !length(mapa$llaves) && !length(mapa$pares))) {
+    return(df)
+  }
   fakes <- unname(mapa$sustituciones)
+  llaves <- mapa$llaves %||% character()
   restaurar <- function(v) {
-    if (!any(grepl("PULSOROSTER", v, fixed = TRUE))) return(v)
-    for (i in seq_along(fakes)) v <- gsub(sprintf(.PULSO_ANON_ROSTER_MARCA, i), fakes[[i]], v, fixed = TRUE)
+    if (any(grepl("PULSOROSTER", v, fixed = TRUE))) {
+      for (i in seq_along(fakes)) v <- gsub(sprintf(.PULSO_ANON_ROSTER_MARCA, i), fakes[[i]], v, fixed = TRUE)
+    }
+    if (any(grepl("PULSOLLAVE", v, fixed = TRUE))) {
+      for (i in seq_along(llaves)) v <- gsub(sprintf(.PULSO_ANON_ROSTER_LLAVE, i), llaves[[i]], v, fixed = TRUE)
+    }
+    if (any(grepl("PULSOPAR", v, fixed = TRUE)) && !is.null(mapa$pares_env)) {
+      hit <- grepl("PULSOPAR", v, fixed = TRUE)
+      m <- gregexpr("\u2063PULSOPAR([0-9]{5})\u2063", v[hit], perl = TRUE)
+      regmatches(v[hit], m) <- lapply(regmatches(v[hit], m), function(ms) vapply(ms, function(t) {
+        get(paste0("k", as.integer(sub("\u2063PULSOPAR([0-9]{5})\u2063", "\\1", t, perl = TRUE))), envir = mapa$pares_env)
+      }, character(1), USE.NAMES = FALSE))
+    }
     v
   }
   for (i in seq_along(df)) df[[i]] <- .pulso_anon_roster_columna(df[[i]], restaurar)
@@ -368,7 +567,7 @@
 #' únicos y luego se sustituye por búsqueda exacta.
 #' @keywords internal
 .pulso_anon_roster_barrer_textos <- function(estado, mapa) {
-  if (!length(mapa$sustituciones) && !length(mapa$codigos) && !length(mapa$dnis)) return(estado)
+  if (!length(mapa$sustituciones) && !length(mapa$codigos) && !length(mapa$dnis) && !NROW(mapa$por_codigo)) return(estado)
   # Recursión por `lapply` y sin `tryCatch` por elemento: acumular en una lista
   # de un environment copiaba la lista en cada inserción (cuadrático), y un
   # `tryCatch` por cada uno de los millones de textos dominaba el tiempo. El
@@ -381,16 +580,43 @@
   cambia <- nuevos != valores
   if (!any(cambia)) return(estado)
   antes <- valores[cambia]; despues <- nuevos[cambia]
+  # Búsqueda en un environment y no con `match()`: `match` rehace el hash de
+  # `antes` en CADA llamada, y aquí son ~1,2 millones de textos sueltos contra
+  # miles de valores cambiados (minutos). Un environment se arma una vez.
+  # Un nombre de environment no pasa de 10.000 bytes; los tokens de caché pesan
+  # cientos de KB. Esos pocos van por `match` aparte.
+  largo <- nchar(antes, type = "bytes") > 9000L
+  largos_antes <- antes[largo]; largos_despues <- despues[largo]
+  tabla <- new.env(hash = TRUE, parent = emptyenv(), size = max(1L, sum(!largo)))
+  for (i in which(!largo)) assign(antes[[i]], despues[[i]], envir = tabla)
+  traducir <- function(x) {
+    if (!length(x)) return(x)
+    hay <- !is.na(x) & nzchar(x)
+    if (!any(hay)) return(x)
+    idx <- which(hay)
+    nuevo <- vapply(x[idx], function(k) {
+      if (nchar(k, type = "bytes") > 9000L) {
+        j <- match(k, largos_antes)
+        return(if (is.na(j)) NA_character_ else largos_despues[[j]])
+      }
+      r <- get0(k, envir = tabla, inherits = FALSE)
+      if (is.null(r)) NA_character_ else r
+    }, character(1), USE.NAMES = FALSE)
+    cambia <- !is.na(nuevo)
+    if (any(cambia)) x[idx[cambia]] <- nuevo[cambia]
+    x
+  }
   reemplazar <- function(x, profundidad) {
-    if (is.character(x)) {
-      k <- match(x, antes)
-      if (any(!is.na(k))) x[!is.na(k)] <- despues[k[!is.na(k)]]
-      return(x)
-    }
+    if (is.character(x)) return(traducir(x))
     if (profundidad > .PULSO_ANON_MAX_PROFUNDIDAD || is.data.frame(x) || !is.list(x) || !length(x)) return(x)
     nuevo <- tryCatch({
       y <- x
       y[] <- lapply(x, reemplazar, profundidad = profundidad + 1L)
+      nms <- names(y)
+      if (!is.null(nms)) {
+        nms2 <- traducir(nms)
+        if (!identical(nms2, nms)) names(y) <- nms2
+      }
       y
     }, error = function(e) x)
     nuevo
@@ -398,10 +624,13 @@
   reemplazar(estado, 0L)
 }
 
+# Los valores de texto fuera de las tablas y también los NOMBRES de las listas: un
+# nombre de persona puede vivir como clave («$responsables$p446_...»).
 .pulso_anon_roster_recolectar_textos <- function(x, profundidad = 0L) {
   if (is.character(x)) return(x)
   if (profundidad > .PULSO_ANON_MAX_PROFUNDIDAD || is.data.frame(x) || !is.list(x) || !length(x)) return(NULL)
-  tryCatch(unlist(lapply(x, .pulso_anon_roster_recolectar_textos, profundidad = profundidad + 1L), use.names = FALSE),
+  tryCatch(c(names(x), unlist(lapply(x, .pulso_anon_roster_recolectar_textos, profundidad = profundidad + 1L),
+                              use.names = FALSE)),
            error = function(e) NULL)
 }
 
@@ -505,7 +734,7 @@
 #' instrumento. El zip se rearma con las mismas entradas en el mismo orden.
 #' @keywords internal
 .pulso_anon_roster_barrer_xlsx_crudo <- function(files_dir, mapa) {
-  if (!dir.exists(files_dir) || (!length(mapa$sustituciones) && !length(mapa$codigos) && !length(mapa$dnis))) {
+  if (!dir.exists(files_dir) || (!length(mapa$sustituciones) && !length(mapa$codigos) && !length(mapa$dnis) && !NROW(mapa$por_codigo))) {
     return(0L)
   }
   archivos <- list.files(files_dir, full.names = TRUE, recursive = TRUE)
@@ -570,13 +799,34 @@
 # código va delante y lo que sigue tiene que ser un seudónimo del catálogo.
 .PULSO_ANON_ROSTER_DISPLAY_RE <- "^\\s*(P[0-9]{3}|ANON[0-9A-F]{6}|[0-9]{6,12})\\s+\u00b7\\s+(.+?)\\s*$"
 
+# Lo que acompaña a un código sin ser una persona: sólo palabras de relleno.
+.pulso_anon_roster_no_nombre <- function(x) {
+  vapply(tolower(as.character(x)), function(t) {
+    p <- strsplit(t, "[^a-z]+")[[1]]; p <- p[nzchar(p)]
+    length(p) > 0L && all(p %in% .PULSO_ANON_ROSTER_NO_NOMBRE)
+  }, logical(1), USE.NAMES = FALSE)
+}
+
+# «p446_apellido_nombre»: la clave con que las anulaciones de producción guardan
+# al responsable. Misma firma que el rótulo: lo que sigue al código tiene que ser
+# un seudónimo del catálogo.
+.PULSO_ANON_ROSTER_LLAVE_RE <- "(?i)^(P[0-9]{3}|ANON[0-9A-F]{6})_([a-z]+(?:_[a-z]+)+)$"
+
+.pulso_anon_roster_llave_hallazgos <- function(v) {
+  v <- unique(as.character(v[!is.na(v)]))
+  v <- v[grepl(.PULSO_ANON_ROSTER_LLAVE_RE, v, perl = TRUE)]
+  if (!length(v)) return(character())
+  resto <- gsub("_", " ", sub(.PULSO_ANON_ROSTER_LLAVE_RE, "\\2", v, perl = TRUE))
+  resto[!.pulso_anon_roster_firmado(resto) & !.pulso_anon_roster_no_nombre(resto)]
+}
+
 .pulso_anon_roster_display_hallazgos <- function(v) {
   v <- unique(as.character(v[!is.na(v)]))
   v <- v[grepl(.PULSO_ANON_ROSTER_DISPLAY_RE, v, perl = TRUE)]
   if (!length(v)) return(list(nombres = character(), documentos = character()))
   codigo <- sub(.PULSO_ANON_ROSTER_DISPLAY_RE, "\\1", v, perl = TRUE)
   nombre <- sub(.PULSO_ANON_ROSTER_DISPLAY_RE, "\\2", v, perl = TRUE)
-  list(nombres = nombre[!.pulso_anon_roster_firmado(nombre) & nombre != codigo],
+  list(nombres = nombre[!.pulso_anon_roster_firmado(nombre) & nombre != codigo & !.pulso_anon_roster_no_nombre(nombre)],
        # Aquí sólo cuenta como documento un DNI (8 dígitos, no una fecha), como en el
        # resto del gate: delante del « · » también van ids de respuesta de 7 dígitos.
        documentos = codigo[grepl("^[0-9]{8}$", codigo) & !.pulso_pii_solo_fechas_compactas(codigo)])
@@ -638,6 +888,7 @@
     d <- .pulso_anon_roster_display_hallazgos(v)
     agregar(ruta, columna, "nombre", d$nombres)
     agregar(ruta, columna, "documento", d$documentos)
+    agregar(ruta, columna, "nombre", .pulso_anon_roster_llave_hallazgos(v))
   }
   if (is.list(estado)) {
     .pulso_anon_walk_dataframes(estado, function(df, ruta) {
