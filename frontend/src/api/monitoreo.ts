@@ -1844,6 +1844,40 @@ export type MonitoreoAulasReemplazosPorTipo = {
   total?: number;
 };
 
+/** Una variable de cuota del estudio (ADR 0121). */
+export type MonitoreoAulasVariableDeCuota = {
+  clave: string;
+  etiqueta: string;
+  etiqueta_plural: string;
+  etiqueta_sin: string;
+  /** De dónde sale el valor de cada respuesta: del aula, de la persona (padrón) o de lo que declara. */
+  atribucion: "aula" | "persona" | "respuesta" | string;
+  fuente_valor: "plan" | "padron" | "respuesta" | string;
+  categorias: Array<{ valor: string; etiqueta: string; orden: number; clave?: string }>;
+};
+
+/**
+ * La representatividad que prometió el estudio (ADR 0121): universo, variables
+ * de cuota en orden (la primera agrupa las vistas) y las celdas con meta. En F1
+ * se traduce del contrato v1 (`origen: "traducida_v1"`); ninguna cifra sale de
+ * aquí todavía.
+ */
+export type MonitoreoAulasRepresentatividad = {
+  schema: "representatividad_v1" | string;
+  origen: "diseno" | "traducida_v1" | string;
+  universo: {
+    nivel: "universidad" | "facultad" | "carrera" | "" | string;
+    valor?: string | null;
+    etiqueta: string;
+    poblacion?: number | null;
+    inferido?: boolean;
+    motivo?: string;
+  };
+  variables: MonitoreoAulasVariableDeCuota[];
+  celdas: Array<{ valores: Record<string, string>; cuota: number | null; sobremuestra?: number | null; tau?: number | null }>;
+  agrupacion_operativa?: string;
+};
+
 /** La tasa de un tipo de curso-horario aplicado, en `refuerzos.rendimiento`. */
 export type MonitoreoAulasTasaPorTipo = {
   /** Cursos-horario aplicados de ese tipo. */
@@ -1890,6 +1924,8 @@ export type MonitoreoAulasDashboard = {
    * anteriores al bloque: A2 lo declara.
    */
   refuerzos?: MonitoreoAulasRefuerzosTablero | null;
+  /** La representatividad declarada (ADR 0121). Ausente sin metas del diseño. */
+  representatividad_declarada?: MonitoreoAulasRepresentatividad | null;
   /**
    * El mapa de horas por día: qué ventana ocupa cada cita y cuántas aulas
    * caen a la vez (el número que dimensiona a los aplicadores). Ausente en

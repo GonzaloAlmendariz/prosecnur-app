@@ -1,6 +1,7 @@
 # ADR 0121 — La representatividad la declara el estudio: universo y variables de cuota
 
-- **Estado**: Propuesto (pendiente de revisión de Gonzalo)
+- **Estado**: Aceptado (Gonzalo, 2026-10-31: «Aprobado, empieza F1»)
+- **Implementación**: F1 completa (`monitoreo_aulas_representatividad_declarada()`, publicada en el tablero como `representatividad_declarada`); F2–F5 pendientes
 - **Ámbito**: Cálculo de muestra (la declaración) · Monitoreo de cursos-horario
   (el avance) · todas las vistas de Avance, Modelo y Control del modo
 - **Fecha**: 2026-10-31

@@ -3296,6 +3296,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # El resumen es lo PUBLICABLE del padrón: conteos, sin un solo código. Es lo
     # mismo que queda cuando se purga, así que publicarlo no reabre el F114.
     padron = monitoreo_aulas_padron_resumen(padron %||% list()),
+    # La representatividad que el estudio prometió (ADR 0121): universo,
+    # variables de cuota y celdas. En F1 se traduce del contrato v1; ninguna
+    # cifra del tablero sale de aquí todavía.
+    representatividad_declarada = monitoreo_aulas_representatividad_declarada(
+      cfg, plan = plan_df, padron = monitoreo_aulas_padron_resumen(padron %||% list())),
     ritmo_diario = ritmo_global,
     # **La misma serie, repartida por facultad.** Con una facultad en el selector
     # del encabezado, «Ritmo de la recoleccion» seguia dibujando el operativo
