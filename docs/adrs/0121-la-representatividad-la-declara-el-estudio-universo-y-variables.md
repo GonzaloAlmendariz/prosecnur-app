@@ -120,6 +120,21 @@ representatividad = {
 | F4 | Cálculo de muestra declara universo y variables en el escenario y escribe `celdas` | Sí, en estudios nuevos |
 | F5 | Modelo › Metas (M1) muestra y explica la declaración; Insumos › Reglas deja elegirla | No |
 
+### Coordinación (Meta B, 2026-10-31)
+
+- F4 la hace la misma sesión que F1–F3, después de F3. Ninguna otra sesión toca
+  `calc_muestra_*`, `design_targets` ni el foco.
+- El foco nuevo `foco=<clave>:<valor>` lee `foco=facultad:` como alias y nunca lo
+  vuelve a escribir (`lib/navegacion/direccion.ts`): hay enlaces y capturas de QA
+  con la forma vieja.
+- `monitoreo_engine.R` y `router_monitoreo.R` no crecen: el código nuevo va en
+  archivos propios.
+- Si F2 cambia `avance_pct` o la base del avance, revisar `project_overview.R` y
+  `test-project-overview.R`: la tarjeta del Home no puede contradecir al módulo.
+- F4 no cambia cifras ni la UI de Cálculo de muestra sin capturarla antes y
+  después con HSVG 2026, y corre el gate de aulas más `test-calc-muestra*`. Una
+  decisión de producto en la UI de Cálculo se consulta a Meta B antes.
+
 ## Lo que no decide
 
 - Cómo se reparte la muestra entre celdas de N variables en Cálculo de muestra
