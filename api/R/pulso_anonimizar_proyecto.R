@@ -210,6 +210,9 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   }
   # Después del barrido de XLSX, que si no lo pisaría con su versión celda a celda.
   roster_fuentes <- .pulso_anon_roster_reescribir_fuentes(estado, file.path(stage, "files"))
+  # Y el XML de todo xlsx: el genérico salta las hojas del instrumento y los
+  # archivos que readxl no abre, y ahí también viajan encuestadores.
+  roster_xlsx <- .pulso_anon_roster_barrer_xlsx_crudo(file.path(stage, "files"), roster)
 
   # Las decisiones guardadas nombran los valores que acaban de cambiar. Sin este
   # paso el fixture queda inconsistente consigo mismo y no puede reproducir su
@@ -273,6 +276,7 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     n_encuestadores_seudonimizados = roster_aplicado$encuestadores,
     n_asignaciones_territoriales_recodificadas = roster_aplicado$asignaciones_recodificadas,
     n_fuentes_encuestadores_reescritas = roster_fuentes,
+    n_xlsx_barridos_encuestadores = roster_xlsx,
     files_deduplicados = dedup$eliminados,
     contactos_retirados = contactos_retirados,
     n_logos_neutralizados = logos$neutralizados,
@@ -527,6 +531,15 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     if (!.pulso_anon_es_xlsx(p)) next
     hojas <- .pulso_anon_leer_hojas(p)
     for (h in names(hojas)) registrar(hojas[[h]], paste0(basename(p), "!", h))
+    # Un xlsx que readxl no abre (el XLSForm de ocurrencias de acnur_acg no trae
+    # `_rels/.rels`) no es un xlsx vacío: se escanea su XML.
+    ilegible <- inherits(tryCatch(readxl::excel_sheets(p), error = function(e) e), "error")
+    if (ilegible) {
+      crudos <- .pulso_anon_xlsx_textos_crudos(p)
+      if (length(crudos)) {
+        registrar(data.frame(texto = crudos, stringsAsFactors = FALSE), paste0(basename(p), " (xml)"))
+      }
+    }
   }
 
   if (!length(hallazgos)) {

@@ -150,19 +150,25 @@
     ro <- .pulso_anon_roster_normalizar(nodo)
     if (is.null(ro)) next
     for (a in ro$assignments) {
-      reales <- c(reales, a$nombre)
       codigos <- c(codigos, a$codigo_pulso)
-      claves_por_nombre[[a$nombre]] <- a$nombre_normalizado
       dnis <- c(dnis, a$dni)
+      # Un registro sin nombre lleva su código como nombre (el normalizador lo
+      # rellena): no es una persona, y tratarlo como nombre convertiría el
+      # código en seudónimo en todo el proyecto.
+      if (identical(a$nombre, a$codigo_pulso)) next
+      reales <- c(reales, a$nombre)
+      claves_por_nombre[[a$nombre]] <- a$nombre_normalizado
     }
   }
   for (p in .pulso_anon_roster_planner(estado)) {
     nombre <- trimws(as.character(p$nombre %||% "")[1])
-    if (!is.na(nombre) && nzchar(nombre) && !(nombre %in% names(claves_por_nombre))) {
+    codigo <- trimws(as.character(p$codigo %||% "")[1])
+    if (!is.na(nombre) && nzchar(nombre) && !identical(nombre, codigo) &&
+        !(nombre %in% names(claves_por_nombre))) {
       reales <- c(reales, nombre)
       claves_por_nombre[[nombre]] <- .monitoreo_territorial_enumerator_key(nombre)
     }
-    codigos <- c(codigos, trimws(as.character(p$codigo %||% "")[1]))
+    codigos <- c(codigos, codigo)
   }
   reales <- sort(unique(reales[nzchar(reales)]))
   claves_reales <- vapply(reales, .monitoreo_territorial_enumerator_key, character(1), USE.NAMES = FALSE)
@@ -190,10 +196,15 @@
     unname(claves_por_nombre[reales]))
   claves <- claves[nzchar(names(claves)) & !is.na(names(claves)) & names(claves) != claves]
   dnis <- unique(dnis[nzchar(dnis) & !(dnis %in% codigos[cambian])])
+  # Fuera de la lista sólo se barren nombres de dos piezas o más. Un nombre de
+  # una sola palabra («ROSA») se comería texto ajeno —«Santa Rosa» es un
+  # distrito—; en la lista se seudonimiza igual.
+  sustituciones <- c(nombres[lengths(strsplit(trimws(names(nombres)), "\\s+")) >= 2L],
+                     claves[grepl("_", names(claves), fixed = TRUE)])
   list(
     sal = sal,
     nombres = nombres,
-    sustituciones = c(nombres, claves),
+    sustituciones = sustituciones,
     codigos = stats::setNames(nuevos[cambian], codigos[cambian]),
     dnis = dnis
   )
@@ -211,10 +222,16 @@
     ro <- .pulso_anon_roster_normalizar(nodo)
     if (is.null(ro)) return(nodo)
     asignaciones <- lapply(ro$assignments, function(a) {
+      codigo <- .pulso_anon_roster_recodificar(a$codigo_pulso, mapa$sal)
+      if (identical(a$nombre, a$codigo_pulso)) {
+        return(list(codigo_pulso = codigo, nombre = codigo,
+                    nombre_normalizado = .monitoreo_territorial_enumerator_key(codigo),
+                    dni = "", source_row = a$source_row))
+      }
       fake <- unname(mapa$nombres[a$nombre])
       if (is.na(fake)) fake <- .pulso_pii_fake_nombre(
         digest::digest(paste0(mapa$sal, "|roster|", a$nombre), algo = "sha256", serialize = FALSE), 3L)
-      list(codigo_pulso = .pulso_anon_roster_recodificar(a$codigo_pulso, mapa$sal),
+      list(codigo_pulso = codigo,
            nombre = fake,
            nombre_normalizado = .monitoreo_territorial_enumerator_key(fake),
            dni = "",
@@ -245,8 +262,12 @@
   if (length(personas)) {
     estado$planner$equipo$personas <- lapply(personas, function(p) {
       nombre <- trimws(as.character(p$nombre %||% "")[1])
-      if (!is.na(nombre) && nzchar(nombre)) p$nombre <- unname(mapa$nombres[nombre])
-      if (!is.null(p$codigo)) p$codigo <- .pulso_anon_roster_recodificar(trimws(as.character(p$codigo)[1]), mapa$sal)
+      codigo <- trimws(as.character(p$codigo %||% "")[1])
+      nuevo_codigo <- .pulso_anon_roster_recodificar(codigo, mapa$sal)
+      if (!is.na(nombre) && nzchar(nombre)) {
+        p$nombre <- if (identical(nombre, codigo)) nuevo_codigo else unname(mapa$nombres[nombre])
+      }
+      if (!is.null(p$codigo)) p$codigo <- nuevo_codigo
       p
     })
     n <- n + length(personas)
@@ -282,7 +303,8 @@
   reales <- names(mapa$sustituciones)
   orden <- order(-nchar(reales))
   patron_nombres <- if (length(reales)) {
-    paste0("(?i)(", paste(.pulso_pii_escape_regex(reales[orden]), collapse = "|"), ")")
+    paste0("(*UCP)(?i)(?<![[:alnum:]])(", paste(.pulso_pii_escape_regex(reales[orden]), collapse = "|"),
+           ")(?![[:alnum:]])")
   }
   patron_codigos <- if (length(mapa$codigos)) {
     paste0("(?<![0-9A-Z])(", paste(.pulso_pii_escape_regex(names(mapa$codigos)), collapse = "|"), ")(?![0-9A-Z])")
@@ -305,7 +327,7 @@
     }
     if (!is.null(patron_nombres) && any(grepl(patron_nombres, u, perl = TRUE))) {
       for (i in orden) {
-        v <- gsub(paste0("(?i)", .pulso_pii_escape_regex(reales[[i]])),
+        v <- gsub(paste0("(*UCP)(?i)(?<![[:alnum:]])", .pulso_pii_escape_regex(reales[[i]]), "(?![[:alnum:]])"),
                   sprintf(.PULSO_ANON_ROSTER_MARCA, i), v, perl = TRUE)
       }
     }
@@ -352,14 +374,7 @@
   # `tryCatch` por cada uno de los millones de textos dominaba el tiempo. El
   # `tryCatch` queda por NODO, para las ramas que `is.list()` acepta pero no se
   # dejan recorrer (ver `.pulso_anon_reemplazar_strings`).
-  recolectar <- function(x, profundidad) {
-    if (is.character(x)) return(x)
-    if (profundidad > .PULSO_ANON_MAX_PROFUNDIDAD || is.data.frame(x) || !is.list(x) || !length(x)) return(NULL)
-    tryCatch(unlist(lapply(x, recolectar, profundidad = profundidad + 1L), use.names = FALSE),
-             error = function(e) NULL)
-  }
-  todos <- recolectar(estado, 0L)
-  valores <- unique(todos)
+  valores <- unique(.pulso_anon_roster_recolectar_textos(estado))
   valores <- valores[!is.na(valores) & nzchar(valores)]
   if (!length(valores)) return(estado)
   nuevos <- .pulso_anon_roster_transformar_textos(valores, mapa)
@@ -381,6 +396,13 @@
     nuevo
   }
   reemplazar(estado, 0L)
+}
+
+.pulso_anon_roster_recolectar_textos <- function(x, profundidad = 0L) {
+  if (is.character(x)) return(x)
+  if (profundidad > .PULSO_ANON_MAX_PROFUNDIDAD || is.data.frame(x) || !is.list(x) || !length(x)) return(NULL)
+  tryCatch(unlist(lapply(x, .pulso_anon_roster_recolectar_textos, profundidad = profundidad + 1L), use.names = FALSE),
+           error = function(e) NULL)
 }
 
 .pulso_anon_roster_transformar_textos <- function(x, mapa) {
@@ -465,6 +487,102 @@
 }
 
 # -----------------------------------------------------------------------------
+# XML crudo de los xlsx de files/
+# -----------------------------------------------------------------------------
+
+# Las partes de un xlsx que llevan texto de celda.
+.PULSO_ANON_XLSX_PARTES_TEXTO <- "^xl/(sharedStrings|worksheets/sheet[0-9]+)\\.xml$"
+
+#' Barre con el mapa del equipo el XML de TODO xlsx de `files/`.
+#'
+#' Dos cosas dejaban pasar a los encuestadores aquí. El barrido genérico salta
+#' las hojas del instrumento (survey/choices/settings), y la lista de
+#' encuestadores de un XLSForm de ocurrencias vive justo en `choices`
+#' («P316 · Nombre»). Y un xlsx que readxl no abre —al de `acnur_acg` le falta
+#' `_rels/.rels`— se lee como vacío y no se toca. Trabajar sobre el XML evita las
+#' dos: no depende de que el archivo se pueda abrir ni de cómo se llame la hoja,
+#' y como sólo cambia los nombres, códigos y DNI del mapa, no altera el
+#' instrumento. El zip se rearma con las mismas entradas en el mismo orden.
+#' @keywords internal
+.pulso_anon_roster_barrer_xlsx_crudo <- function(files_dir, mapa) {
+  if (!dir.exists(files_dir) || (!length(mapa$sustituciones) && !length(mapa$codigos) && !length(mapa$dnis))) {
+    return(0L)
+  }
+  archivos <- list.files(files_dir, full.names = TRUE, recursive = TRUE)
+  archivos <- archivos[grepl("\\.xls[xm]$", tolower(archivos))]
+  tocados <- 0L
+  for (p in archivos) {
+    entradas <- tryCatch(zip::zip_list(p)$filename, error = function(e) NULL)
+    if (is.null(entradas)) next
+    partes <- entradas[grepl(.PULSO_ANON_XLSX_PARTES_TEXTO, entradas)]
+    if (!length(partes)) next
+    dir <- tempfile("xlsx-crudo-"); dir.create(dir)
+    zip::unzip(p, exdir = dir)
+    cambio <- FALSE
+    for (parte in partes) {
+      f <- file.path(dir, parte)
+      xml <- readChar(f, file.info(f)$size, useBytes = TRUE)
+      Encoding(xml) <- "UTF-8"
+      nuevo <- .pulso_anon_roster_transformar_textos(xml, mapa)
+      if (!identical(nuevo, xml)) {
+        writeChar(nuevo, f, eos = NULL, useBytes = TRUE)
+        cambio <- TRUE
+      }
+    }
+    if (cambio) {
+      archivos_zip <- entradas[!grepl("/$", entradas)]
+      unlink(p, force = TRUE)
+      zip::zip(zipfile = p, files = archivos_zip, root = dir)
+      tocados <- tocados + 1L
+    }
+    unlink(dir, recursive = TRUE, force = TRUE)
+  }
+  tocados
+}
+
+# Texto de las celdas de un xlsx leído del XML, se abra o no con readxl.
+.pulso_anon_xlsx_textos_crudos <- function(path) {
+  entradas <- tryCatch(zip::zip_list(path)$filename, error = function(e) character())
+  partes <- entradas[grepl(.PULSO_ANON_XLSX_PARTES_TEXTO, entradas)]
+  if (!length(partes)) return(character())
+  dir <- tempfile("xlsx-txt-"); dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE, force = TRUE), add = TRUE)
+  zip::unzip(path, files = partes, exdir = dir)
+  textos <- unlist(lapply(partes, function(parte) {
+    f <- file.path(dir, parte)
+    xml <- readChar(f, file.info(f)$size, useBytes = TRUE)
+    Encoding(xml) <- "UTF-8"
+    # `useBytes`: sobre un XML UTF-8 de varios MB, `gregexpr` convierte offsets de
+    # carácter en cada coincidencia y se vuelve cuadrático (316 s por un xlsx de
+    # 1 MB en acnur_acg). En bytes es lineal y las etiquetas son ASCII.
+    m <- regmatches(xml, gregexpr("<t(\\s[^>]*)?>[^<]*</t>", xml, perl = TRUE, useBytes = TRUE))[[1]]
+    out <- sub("^<t(\\s[^>]*)?>([^<]*)</t>$", "\\2", m, perl = TRUE, useBytes = TRUE)
+    Encoding(out) <- "UTF-8"
+    out
+  }), use.names = FALSE)
+  textos <- gsub("&lt;", "<", gsub("&gt;", ">", gsub("&quot;", "\"", gsub("&apos;", "'", textos, fixed = TRUE),
+                                                     fixed = TRUE), fixed = TRUE), fixed = TRUE)
+  gsub("&amp;", "&", textos, fixed = TRUE)
+}
+
+# «P316 · Nombre»: la forma en que Monitoreo y los XLSForm de ocurrencias nombran
+# al encuestador. Es una firma que el gate SÍ puede juzgar sin la lista real: el
+# código va delante y lo que sigue tiene que ser un seudónimo del catálogo.
+.PULSO_ANON_ROSTER_DISPLAY_RE <- "^\\s*(P[0-9]{3}|ANON[0-9A-F]{6}|[0-9]{6,12})\\s+\u00b7\\s+(.+?)\\s*$"
+
+.pulso_anon_roster_display_hallazgos <- function(v) {
+  v <- unique(as.character(v[!is.na(v)]))
+  v <- v[grepl(.PULSO_ANON_ROSTER_DISPLAY_RE, v, perl = TRUE)]
+  if (!length(v)) return(list(nombres = character(), documentos = character()))
+  codigo <- sub(.PULSO_ANON_ROSTER_DISPLAY_RE, "\\1", v, perl = TRUE)
+  nombre <- sub(.PULSO_ANON_ROSTER_DISPLAY_RE, "\\2", v, perl = TRUE)
+  list(nombres = nombre[!.pulso_anon_roster_firmado(nombre) & nombre != codigo],
+       # Aquí sólo cuenta como documento un DNI (8 dígitos, no una fecha), como en el
+       # resto del gate: delante del « · » también van ids de respuesta de 7 dígitos.
+       documentos = codigo[grepl("^[0-9]{8}$", codigo) & !.pulso_pii_solo_fechas_compactas(codigo)])
+}
+
+# -----------------------------------------------------------------------------
 # Gate
 # -----------------------------------------------------------------------------
 
@@ -496,7 +614,8 @@
     agregar(ruta, "dni", "dni_pe", campo("dni"))
     agregar(ruta, "nombre", "nombre", nombres[!.pulso_anon_roster_firmado(nombres) & nombres != codigos])
     norm <- campo("nombre_normalizado")
-    agregar(ruta, "nombre_normalizado", "nombre", norm[!.pulso_anon_roster_firmado(norm)])
+    clave_codigo <- vapply(codigos, .monitoreo_territorial_enumerator_key, character(1), USE.NAMES = FALSE)
+    agregar(ruta, "nombre_normalizado", "nombre", norm[!.pulso_anon_roster_firmado(norm) & norm != clave_codigo])
     agregar(ruta, "codigo_pulso", "documento", codigos[!.pulso_anon_roster_codigo_ok(codigos)])
     # Un campo que la lista normalizada no tiene (correo, apellidos sueltos) sólo
     # puede venir de una lista cruda: no se adivina si es PII, se marca.
@@ -513,6 +632,29 @@
     if (length(codigos) == length(nombres)) sin_firma <- sin_firma & nombres != codigos
     agregar(ruta, "nombre", "nombre", nombres[sin_firma])
   }
+  # «CÓDIGO · Nombre» en tablas, en textos fuera de tablas y en el XML de todo
+  # xlsx de files/ (legible o no).
+  agregar_display <- function(ruta, columna, v) {
+    d <- .pulso_anon_roster_display_hallazgos(v)
+    agregar(ruta, columna, "nombre", d$nombres)
+    agregar(ruta, columna, "documento", d$documentos)
+  }
+  if (is.list(estado)) {
+    .pulso_anon_walk_dataframes(estado, function(df, ruta) {
+      for (nm in names(df)) {
+        col <- df[[nm]]
+        if (is.factor(col)) col <- levels(col)
+        if (is.character(col)) agregar_display(ruta, nm, col)
+      }
+    }, ruta = "state")
+    agregar_display("state (textos fuera de tablas)", "*", .pulso_anon_roster_recolectar_textos(estado))
+  }
+  if (dir.exists(files_dir)) {
+    xlsx <- list.files(files_dir, full.names = TRUE, recursive = TRUE)
+    for (p in xlsx[grepl("\\.xls[xm]$", tolower(xlsx))]) {
+      agregar_display(paste0(basename(p), " (xml)"), "*", .pulso_anon_xlsx_textos_crudos(p))
+    }
+  }
   mta <- if (is.list(estado)) estado$material_territorial_asignacion else NULL
   if (is.list(mta) && is.list(mta$asignacion)) {
     cod <- vapply(Filter(is.list, mta$asignacion), function(a) as.character(a$codigo %||% ""), character(1))
@@ -526,6 +668,10 @@
     agregar("state$planner$equipo$personas", "nombre", "nombre",
             nombres[!.pulso_anon_roster_firmado(nombres) & nombres != codigos])
     agregar("state$planner$equipo$personas", "codigo", "documento", codigos[!.pulso_anon_roster_codigo_ok(codigos)])
+    # Un campo nuevo en `planner_equipo/v1` (DNI, teléfono, correo) no se anonimiza
+    # hasta que alguien lo agregue aquí: el gate lo marca en vez de dejarlo pasar.
+    extras <- setdiff(unique(unlist(lapply(personas, names))), c("codigo", "nombre", "rol", "perfiles", "activo"))
+    for (k in extras) agregar("state$planner$equipo$personas", k, "campo_no_esperado", campo(k))
   }
   for (p in .pulso_anon_roster_fuentes(estado, files_dir)) {
     hojas <- tryCatch(readxl::excel_sheets(p), error = function(e) character())
@@ -585,6 +731,7 @@ pulso_anonimizar_encuestadores_archivo <- function(origen, destino, sal) {
   }, ruta = "state")
   estado <- .pulso_anon_roster_barrer_textos(estado, mapa)
   fuentes <- .pulso_anon_roster_reescribir_fuentes(estado, file.path(stage, "files"))
+  xlsx_crudos <- .pulso_anon_roster_barrer_xlsx_crudo(file.path(stage, "files"), mapa)
   saveRDS(.pulso_anon_lista_como_state(estado, envuelto$era_env), state_path)
 
   dir.create(dirname(destino), recursive = TRUE, showWarnings = FALSE)
@@ -596,5 +743,6 @@ pulso_anonimizar_encuestadores_archivo <- function(origen, destino, sal) {
        n_registros = aplicado$encuestadores,
        n_asignaciones_recodificadas = aplicado$asignaciones_recodificadas,
        n_celdas_derivadas = celdas,
-       n_fuentes_reescritas = fuentes)
+       n_fuentes_reescritas = fuentes,
+       n_xlsx_barridos = xlsx_crudos)
 }

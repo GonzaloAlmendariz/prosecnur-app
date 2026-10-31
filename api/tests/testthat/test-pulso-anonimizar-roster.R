@@ -15,6 +15,31 @@ source("setup-load-all.R")
 .par_tokens_reales <- c("FULANO", "MENGANA", "ZUTANO", "FICTICIA", "INVENTADO", "PRUEBA", "EJEMPLO", "DEMO",
                         "PERENGANO", "SUPUESTO", "MODELO")
 
+# Un XLSForm de ocurrencias con la lista de encuestadores en `choices` («P001 · Nombre»), al que le falta
+# `_rels/.rels` como al de acnur_acg: readxl no lo abre y el anonimizador y el gate lo saltaban en silencio.
+.par_xlsform_ilegible <- function(path, codigos) {
+  wb <- openxlsx::createWorkbook()
+  for (h in c("survey", "choices", "settings")) openxlsx::addWorksheet(wb, h)
+  openxlsx::writeData(wb, "survey", data.frame(type = "select_one encuestador", name = "encuestador",
+                                               label = "Encuestador"))
+  openxlsx::writeData(wb, "choices", data.frame(list_name = "encuestador", name = tolower(codigos),
+                                                label = paste(codigos, .par_nombres, sep = " · ")))
+  openxlsx::writeData(wb, "settings", data.frame(form_id = "ocurrencias"))
+  tmp <- tempfile(fileext = ".xlsx"); openxlsx::saveWorkbook(wb, tmp)
+  dir <- tempfile("xf-"); zip::unzip(tmp, exdir = dir)
+  unlink(file.path(dir, "_rels", ".rels"))
+  entradas <- list.files(dir, recursive = TRUE, all.files = TRUE)
+  zip::zip(path, files = entradas, root = dir)
+  invisible(path)
+}
+
+# Texto crudo de todas las celdas de los xlsx (sharedStrings + hojas), legibles o no.
+.par_xml_xlsx <- function(path) {
+  dir <- tempfile("xx-"); zip::unzip(path, exdir = dir)
+  xml <- list.files(file.path(dir, "xl"), pattern = "\\.xml$", recursive = TRUE, full.names = TRUE)
+  unlist(lapply(xml, function(f) paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "")))
+}
+
 # Un .pulso mínimo armado a mano: manifest + state.rds + el Excel de origen de la lista en files/.
 .par_pulso <- function(code_format = "PXXX") {
   codigos <- if (identical(code_format, "DNI")) .par_dnis else c("P001", "P002", "P003")
@@ -23,6 +48,11 @@ source("setup-load-all.R")
     codigo_pulso = codigos[[i]], nombre = .par_nombres[[i]],
     nombre_normalizado = .monitoreo_territorial_enumerator_key(.par_nombres[[i]]),
     dni = .par_dnis[[i]], source_row = i))
+  # Un registro con código y sin nombre: el normalizador le pone el código como nombre (así queda guardado). No
+  # es una persona y su código no debe convertirse en seudónimo.
+  asignaciones[[4]] <- list(codigo_pulso = "P004", nombre = "P004",
+                            nombre_normalizado = .monitoreo_territorial_enumerator_key("P004"), dni = "",
+                            source_row = 4L)
   estado <- list(
     monitoreo_config = list(territorial = list(enumerator_roster = list(
       enabled = TRUE, code_format = code_format, code_var = "codigo_pulso", source_file_id = fid,
@@ -46,7 +76,8 @@ source("setup-load-all.R")
       pulso_code = codigos,
       enumerator_assigned = .par_nombres,
       responsible_display = paste(codigos, .par_nombres, sep = " · "),
-      stringsAsFactors = FALSE))
+      stringsAsFactors = FALSE),
+      otros = data.frame(pulso_code = c("P004", "P0041"), stringsAsFactors = FALSE))
   )
   estado$monitoreo_dashboard_cache_token_full <- paste0(
     "monitoreo-dashboard-v1|full|", jsonlite::toJSON(estado$monitoreo_config, auto_unbox = TRUE))
@@ -58,6 +89,8 @@ source("setup-load-all.R")
     `AP PATERNO` = vapply(partes, `[[`, "", 2L), `AP MATERNO` = vapply(partes, `[[`, "", 3L),
     NOMBRES = vapply(partes, `[[`, "", 1L), DNI = .par_dnis, check.names = FALSE),
     file.path(stage, "files", paste0(fid, "__encuestadores.xlsx")), sheetName = "Encuestadores")
+  .par_xlsform_ilegible(file.path(stage, "files", "f0000000-0000-4000-8000-0000000000bb__ocurrencias_xlsform.xlsx"),
+                        codigos)
   origen <- tempfile(fileext = ".pulso")
   zip::zip(origen, files = c("manifest.json", "state.rds", "files"), root = stage)
   origen
@@ -67,9 +100,7 @@ source("setup-load-all.R")
   stage <- tempfile("par-out-"); dir.create(stage)
   zip::unzip(path, exdir = stage)
   xlsx <- list.files(file.path(stage, "files"), full.names = TRUE)
-  celdas <- unlist(lapply(xlsx, function(p) lapply(readxl::excel_sheets(p), function(h)
-    unlist(readxl::read_excel(p, sheet = h, col_names = FALSE, col_types = "text", .name_repair = "minimal")))))
-  list(state = readRDS(file.path(stage, "state.rds")), celdas = celdas[!is.na(celdas)])
+  list(state = readRDS(file.path(stage, "state.rds")), celdas = unlist(lapply(xlsx, .par_xml_xlsx)))
 }
 
 .par_texto_state <- function(s) rawToChar(serialize(s, NULL, ascii = TRUE))
@@ -86,6 +117,8 @@ test_that("el gate de PII ve los nombres y DNI reales de la lista de encuestador
   lista <- h[h$ruta == "state$monitoreo_config$territorial$enumerator_roster", , drop = FALSE]
   expect_true(all(c("nombre", "dni_pe") %in% lista$tipo))
   expect_equal(lista$n[lista$columna == "nombre"], 3L)
+  # El XLSForm que readxl no abre: el gate lee su XML y reconoce «P001 · Nombre» sin firma de catálogo.
+  expect_true(any(grepl("ocurrencias_xlsform.xlsx", h$ruta, fixed = TRUE) & h$tipo == "nombre"))
   # El equipo del Planner, con la misma política.
   expect_true("state$planner$equipo$personas" %in% h$ruta)
   # Y la copia serializada dentro del token de caché.
@@ -106,13 +139,17 @@ test_that("la lista PXXX sale con seudónimos estables, sin DNI y con sus códig
 
   .par_sin_reales(.par_texto_state(s))
   .par_sin_reales(e$celdas)
-  expect_equal(rep$n_encuestadores_seudonimizados, 5L)                # registros: 3 de la lista + 2 del Planner
+  expect_equal(rep$n_encuestadores_seudonimizados, 6L)                # registros: 4 de la lista + 2 del Planner
 
   ro <- .monitoreo_territorial_normalize_enumerator_roster(s$monitoreo_config$territorial$enumerator_roster)
-  expect_equal(ro$total, 3L)                                          # ningún seudónimo colisiona y se pierde
+  expect_equal(ro$total, 4L)                                          # ningún seudónimo colisiona y se pierde
   codigos <- vapply(ro$assignments, `[[`, "", "codigo_pulso")
   nombres <- stats::setNames(vapply(ro$assignments, `[[`, "", "nombre"), codigos)
-  expect_identical(unname(codigos), c("P001", "P002", "P003"))
+  expect_identical(unname(codigos), c("P001", "P002", "P003", "P004"))
+  # El registro sin nombre conserva su código como nombre, y ese código no se toca en ninguna parte.
+  expect_identical(unname(nombres["P004"]), "P004")
+  expect_identical(s$monitoreo_snapshot$otros$pulso_code, c("P004", "P0041"))
+  nombres <- nombres[c("P001", "P002", "P003")]
   expect_true(all(vapply(ro$assignments, function(a) identical(a$dni, ""), logical(1))))
   expect_true(all(.pulso_anon_roster_firmado(nombres)))
 
@@ -154,11 +191,11 @@ test_that("con formato DNI el código se recodifica igual en la lista, la asigna
   .par_sin_reales(.par_texto_state(s))
   ro <- .monitoreo_territorial_normalize_enumerator_roster(s$monitoreo_config$territorial$enumerator_roster)
   expect_identical(ro$code_format, "DNI")
-  expect_equal(ro$total, 3L)
-  codigos <- vapply(ro$assignments, `[[`, "", "codigo_pulso")
+  expect_equal(ro$total, 3L)                                          # «P004» no es un código DNI válido
+  codigos <- vapply(ro$assignments, `[[`, "", "codigo_pulso")[1:3]
   expect_true(all(grepl(.PULSO_ANON_ROSTER_CODIGO_RE, codigos)))
   expect_true(all(.monitoreo_territorial_valid_code(codigos, "DNI")))
-  nombres <- stats::setNames(vapply(ro$assignments, `[[`, "", "nombre"), codigos)
+  nombres <- stats::setNames(vapply(ro$assignments, `[[`, "", "nombre")[1:3], codigos)
 
   expect_identical(vapply(s$material_territorial_asignacion$asignacion, `[[`, "", "codigo"), codigos[c(1, 3)])
   expect_identical(s$planner$equipo$personas[[1]]$codigo, codigos[[1]])

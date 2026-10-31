@@ -83,8 +83,8 @@ cat(sprintf("[anonimizar] destino: %s\n", destino))
 
 if (tiene_flag("solo-encuestadores")) {
   r <- pulso_anonimizar_encuestadores_archivo(origen, destino, sal = sal)
-  cat(sprintf("[anonimizar] equipo: %d personas, %d DNI, %d registros reescritos, %d celdas derivadas, %d Excel\n",
-              r$n_personas, r$n_dnis, r$n_registros, r$n_celdas_derivadas, r$n_fuentes_reescritas))
+  cat(sprintf("[anonimizar] equipo: %d personas, %d DNI, %d registros reescritos, %d celdas derivadas, %d Excel de origen, %d xlsx barridos\n",
+              r$n_personas, r$n_dnis, r$n_registros, r$n_celdas_derivadas, r$n_fuentes_reescritas, r$n_xlsx_barridos))
   hallazgos <- pulso_detectar_pii(destino)
   if (nrow(hallazgos)) {
     cat(sprintf("\n[anonimizar] FALLA: quedaron %d hallazgos de PII.\n", nrow(hallazgos)))
