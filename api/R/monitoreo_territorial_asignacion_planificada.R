@@ -79,7 +79,8 @@
 #' @param phase fase de la ruta.
 #' @return lista del contrato `asignacion-planificada`.
 #' @keywords internal
-monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, anulado = NULL, phase = "field") {
+monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, anulado = NULL, phase = "field",
+                                                             estados = NULL) {
   est <- .mtap_estado(asig)
   code_format <- .monitoreo_scalar((asig %||% list())$code_format, "PXXX")
   base <- list(ok = TRUE, estado = est$estado, motivo = est$motivo, phase = phase, code_format = code_format)
@@ -101,6 +102,17 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
   keep <- vivo & nzchar(bloque)
   bloque <- bloque[keep]; codigo <- codigo[keep]
 
+  # C7: el Estado que declara campo en el Excel de asignación (Material, lectura
+  # pura). Es DECLARADO: no entra al avance. Sólo se usa si es de la misma
+  # muestra (`stale` y `desactualizada` en FALSE), como la asignación.
+  declarado <- list()
+  if (is.list(estados) && !isTRUE(estados$stale) && !isTRUE(estados$desactualizada)) {
+    for (u in estados$unidades %||% list()) {
+      id_u <- .monitoreo_scalar(u$id_manzana, "")
+      if (nzchar(id_u)) declarado[[id_u]] <- u
+    }
+  }
+
   por_ump <- lapply(asig$asignacion, function(a) {
     id <- .monitoreo_scalar(a$id_manzana, "")
     plan <- .monitoreo_territorial_clean_code(.monitoreo_scalar(a$codigo, ""), code_format)
@@ -120,6 +132,16 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       "otro_encuestador"
     }
     nombre_plan <- unname(nombre_de[plan])
+    d <- declarado[[id]] %||% list()
+    estado_declarado <- .monitoreo_scalar(d$estado_declarado, "")
+    # El contraste con Kobo: lo que campo dice contra lo que llegó. Sólo dos
+    # señales, las que contradicen: «terminada» sin una sola respuesta y
+    # «pendiente» con respuestas ya en Kobo.
+    contraste <- if (identical(estado_declarado, "Finalizada") && !length(suyos)) {
+      "finalizada_sin_respuestas"
+    } else if (estado_declarado %in% c("Pendiente", "") && nzchar(estado_declarado) && length(suyos)) {
+      "pendiente_con_respuestas"
+    } else ""
     list(
       id_manzana = id,
       label = .monitoreo_scalar(a$label, id),
@@ -129,7 +151,11 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       nombre_planificado = if (length(nombre_plan) && !is.na(nombre_plan)) nombre_plan else "",
       observados = observados,
       respuestas = length(suyos),
-      lectura = lectura
+      lectura = lectura,
+      estado_declarado = estado_declarado,
+      fecha_salida = .monitoreo_scalar(d$fecha_salida, ""),
+      fecha_entrega = .monitoreo_scalar(d$fecha_entrega, ""),
+      contraste = contraste
     )
   })
 
@@ -144,7 +170,9 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       otro_encuestador = as.integer(sum(lecturas == "otro_encuestador")),
       sin_respuestas = as.integer(sum(lecturas == "sin_respuestas")),
       # UMP con respuestas que Material no asignó a nadie: se dicen, no se cruzan.
-      sin_planificar = length(setdiff(unique(bloque), asignadas_ids))
+      sin_planificar = length(setdiff(unique(bloque), asignadas_ids)),
+      con_estado_declarado = as.integer(sum(nzchar(vapply(por_ump, `[[`, "", "estado_declarado")))),
+      contrastes = as.integer(sum(nzchar(vapply(por_ump, `[[`, "", "contraste"))))
     ),
     por_ump = por_ump
   ))
@@ -188,7 +216,9 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
     valor
   }
   anulado <- .monitoreo_territorial_production_annulment_mask(auditoria, cfg$territorial %||% list(), phase)
-  monitoreo_territorial_asignacion_planificada_desde(auditoria, asig, anulado = anulado, phase = phase)
+  # C7: el Estado declarado por campo, también de Material y de solo lectura.
+  estados <- tryCatch(collection_territorial_estado_get(sid), error = function(e) NULL)
+  monitoreo_territorial_asignacion_planificada_desde(auditoria, asig, anulado = anulado, phase = phase, estados = estados)
 }
 
 mount_monitoreo_territorial_asignacion_planificada <- function(pr) {

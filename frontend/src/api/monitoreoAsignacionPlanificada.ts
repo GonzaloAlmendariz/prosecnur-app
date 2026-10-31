@@ -27,6 +27,12 @@ export type UmpPlanificada = {
   observados: Array<{ codigo: string; nombre: string; respuestas: number }>;
   respuestas: number;
   lectura: LecturaDeAsignacion;
+  /** C7: el Estado que declara campo en el Excel (Pendiente, En campo, Finalizada…). Declarado, no avance. */
+  estadoDeclarado: string;
+  fechaSalida: string;
+  fechaEntrega: string;
+  /** Lo declarado contradice lo que llegó a Kobo. */
+  contraste: "" | "finalizada_sin_respuestas" | "pendiente_con_respuestas";
 };
 
 export type AsignacionPlanificada = {
@@ -40,6 +46,8 @@ export type AsignacionPlanificada = {
     otroEncuestador: number;
     sinRespuestas: number;
     sinPlanificar: number;
+    conEstadoDeclarado: number;
+    contrastes: number;
   };
 };
 
@@ -66,6 +74,10 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
         observados: lista(u.observados).map((o) => ({ codigo: texto(o.codigo), nombre: texto(o.nombre), respuestas: entero(o.respuestas) })),
         respuestas: entero(u.respuestas),
         lectura: LECTURAS.includes(lecturaCruda) ? lecturaCruda : "sin_respuestas",
+        estadoDeclarado: texto(u.estado_declarado),
+        fechaSalida: texto(u.fecha_salida),
+        fechaEntrega: texto(u.fecha_entrega),
+        contraste: (["finalizada_sin_respuestas", "pendiente_con_respuestas"] as const).find((c) => c === texto(u.contraste)) ?? "",
       };
     }),
     resumen: {
@@ -75,6 +87,8 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
       otroEncuestador: entero(resumen.otro_encuestador),
       sinRespuestas: entero(resumen.sin_respuestas),
       sinPlanificar: entero(resumen.sin_planificar),
+      conEstadoDeclarado: entero(resumen.con_estado_declarado),
+      contrastes: entero(resumen.contrastes),
     },
   };
 }

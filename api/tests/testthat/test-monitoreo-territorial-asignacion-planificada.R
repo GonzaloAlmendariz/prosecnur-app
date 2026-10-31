@@ -60,3 +60,21 @@ test_that("no viaja DNI: el equipo sólo aporta código y nombre", {
   r <- monitoreo_territorial_asignacion_planificada_desde(.tap_audit, .tap_asig())
   expect_false(any(grepl("dni", names(unlist(r)), ignore.case = TRUE)))
 })
+
+test_that("C7: el Estado declarado por campo viaja por UMP y contrasta con Kobo sin entrar al avance", {
+  estados <- list(stale = FALSE, desactualizada = FALSE, unidades = list(
+    list(id_manzana = "M1", estado_declarado = "Pendiente", fecha_salida = "2026-10-01", fecha_entrega = ""),
+    list(id_manzana = "M4", estado_declarado = "Finalizada", fecha_salida = "2026-10-01", fecha_entrega = "2026-10-02")
+  ))
+  r <- monitoreo_territorial_asignacion_planificada_desde(.tap_audit, .tap_asig(), estados = estados)
+  por <- stats::setNames(r$por_ump, vapply(r$por_ump, `[[`, "", "id_manzana"))
+  expect_identical(por$M1$estado_declarado, "Pendiente")
+  expect_identical(por$M1$contraste, "pendiente_con_respuestas")
+  expect_identical(por$M4$contraste, "finalizada_sin_respuestas")
+  expect_identical(por$M4$fecha_entrega, "2026-10-02")
+  expect_identical(r$resumen$contrastes, 2L)
+  # Con el estado de otra muestra no se usa.
+  otro <- monitoreo_territorial_asignacion_planificada_desde(.tap_audit, .tap_asig(),
+    estados = modifyList(estados, list(stale = TRUE)))
+  expect_identical(otro$resumen$con_estado_declarado, 0L)
+})

@@ -33,3 +33,23 @@ describe("columna Planificado (B3)", () => {
     expect(columnaPlanificada(null)).toEqual({ tipo: "nada" });
   });
 });
+
+describe("C7: estado declarado por campo", () => {
+  it("lo pone en la celda con su contraste y lo cuenta en el resumen", () => {
+    const a = normalizeAsignacionPlanificada({
+      estado: "comparable",
+      resumen: { asignadas: 1, coinciden: 0, con_estado_declarado: 1, contrastes: 1 },
+      por_ump: [{ id_manzana: "M4", codigo_planificado: "P101", observados: [], respuestas: 0, lectura: "sin_respuestas",
+        estado_declarado: "Finalizada", fecha_salida: "2026-10-01", fecha_entrega: "2026-10-02", contraste: "finalizada_sin_respuestas" }],
+    });
+    const c = columnaPlanificada(a);
+    if (c.tipo !== "columna") throw new Error("sin columna");
+    expect(c.conDeclarado).toBe(true);
+    expect(c.porManzana.get("M4")?.declarado).toEqual({
+      estado: "Finalizada",
+      fechas: "salió 2026-10-01, entregó 2026-10-02",
+      contraste: "Campo la da por finalizada y no llegó ninguna respuesta a Kobo.",
+    });
+    expect(c.resumen).toContain("Estado declarado por campo en 1; 1 no cuadra con Kobo.");
+  });
+});

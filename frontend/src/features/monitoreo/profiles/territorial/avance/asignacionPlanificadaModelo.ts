@@ -16,10 +16,12 @@ export type CeldaPlanificada = {
   tono: "ok" | "info" | "falta" | "neutro";
   /** Lo que se vio, para el `title`: «P844 (2), P101 (1)». */
   detalle: string;
+  /** C7: lo que declara campo y, si contradice a Kobo, por qué. */
+  declarado: { estado: string; fechas: string; contraste: string | null } | null;
 };
 
 export type ColumnaPlanificada =
-  | { tipo: "columna"; porManzana: Map<string, CeldaPlanificada>; resumen: string }
+  | { tipo: "columna"; porManzana: Map<string, CeldaPlanificada>; resumen: string; conDeclarado: boolean }
   | { tipo: "aviso"; texto: string }
   | { tipo: "nada" };
 
@@ -46,6 +48,17 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
       detalle: u.observados.length
         ? `Llegaron: ${u.observados.map((o) => `${o.codigo || "sin código"} (${o.respuestas})`).join(", ")}${u.heredada ? ". Código heredado del titular." : ""}`
         : `Sin respuestas todavía${u.heredada ? ". Código heredado del titular." : ""}`,
+      declarado: u.estadoDeclarado
+        ? {
+          estado: u.estadoDeclarado,
+          fechas: [u.fechaSalida && `salió ${u.fechaSalida}`, u.fechaEntrega && `entregó ${u.fechaEntrega}`].filter(Boolean).join(", "),
+          contraste: u.contraste === "finalizada_sin_respuestas"
+            ? "Campo la da por finalizada y no llegó ninguna respuesta a Kobo."
+            : u.contraste === "pendiente_con_respuestas"
+              ? `Campo la tiene pendiente y ya llegaron ${u.respuestas} respuestas a Kobo.`
+              : null,
+        }
+        : null,
     });
   }
   const r = asignacion.resumen;
@@ -53,5 +66,13 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
   if (r.otroEncuestador) partes.push(`${r.otroEncuestador} con otro encuestador`);
   if (r.coincidenConOtros) partes.push(`${r.coincidenConOtros} con otros además`);
   if (r.sinPlanificar) partes.push(`${r.sinPlanificar} con respuestas sin asignar`);
-  return { tipo: "columna", porManzana, resumen: `Planificado en Material: ${partes.join(", ")}.` };
+  const declarado = r.conEstadoDeclarado
+    ? ` Estado declarado por campo en ${r.conEstadoDeclarado}${r.contrastes ? `; ${r.contrastes} no cuadra${r.contrastes === 1 ? "" : "n"} con Kobo` : ""}.`
+    : "";
+  return {
+    tipo: "columna",
+    porManzana,
+    resumen: `Planificado en Material: ${partes.join(", ")}.${declarado}`,
+    conDeclarado: r.conEstadoDeclarado > 0,
+  };
 }

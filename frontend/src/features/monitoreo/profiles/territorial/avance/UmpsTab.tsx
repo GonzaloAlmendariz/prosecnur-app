@@ -94,7 +94,8 @@ function UmpsTabImpl({
     ? ["todas", "pendientes", "subsanadas", "completas", "sin-parte"]
     : ["todas", "pendientes", "subsanadas", "completas"];
   const conPlanificado = planificado.tipo === "columna";
-  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0) + (conPlanificado ? 1 : 0);
+  const conDeclarado = planificado.tipo === "columna" && planificado.conDeclarado;
+  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0) + (conPlanificado ? 1 : 0) + (conDeclarado ? 1 : 0);
 
   return (
     <section
@@ -138,6 +139,7 @@ function UmpsTabImpl({
                 <th scope="col">Tipo</th>
                 <th scope="col">Aplicador</th>
                 {conPlanificado ? <th scope="col">Planificado</th> : null}
+                {conDeclarado ? <th scope="col" title="Lo que declara campo en el Excel de asignación; no entra al avance">Declarado por campo</th> : null}
                 <th scope="col">Cuentan</th>
                 <th scope="col" className="is-num">En observación</th>
                 <th scope="col">Cuota</th>
@@ -163,6 +165,7 @@ function UmpsTabImpl({
                     <td>{fila.tipo}</td>
                     <td>{fila.aplicador}</td>
                     {conPlanificado ? <CeldaDePlanificado celda={planificado.porManzana.get(fila.idManzana)} /> : null}
+                    {conDeclarado ? <CeldaDeclarada celda={planificado.porManzana.get(fila.idManzana)} /> : null}
                     <td>
                       <span className="mon-umps-avance">
                         <span className="mon-umps-avance-barra" aria-hidden="true">
@@ -199,6 +202,17 @@ function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) 
     <td className="mon-umps-planificado" title={celda.detalle}>
       <span className="mon-umps-planificado-codigo">{celda.rotulo}</span>
       <span className={`mon-ter-chip ${chip}`}>{celda.texto}</span>
+    </td>
+  );
+}
+
+/** C7: el Estado que declara campo; si contradice a Kobo, en ámbar con la causa. */
+function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
+  const d = celda?.declarado;
+  if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado-vacio">Sin declarar</span></td>;
+  return (
+    <td className="mon-umps-planificado" title={[d.fechas, d.contraste].filter(Boolean).join(". ") || undefined}>
+      <span className={`mon-ter-chip ${d.contraste ? "is-falta" : "is-info"}`}>{d.estado}</span>
     </td>
   );
 }
