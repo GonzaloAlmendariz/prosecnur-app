@@ -42,7 +42,7 @@ dibujada en el lienzo, y en P1, la que se le recomendó:
 | P2 | (a) «Avance de campo» y las demás hojas de la app se publican a mano desde Avance › Salidas, con «Revisar cambios» antes. Actualizar no escribe hacia afuera. |
 | P3 | (a) Botón «Retirar las cerradas» en Control › Distribución, con ensayo. |
 | P4 | (b) Al declarar B, el curso-horario que completa viene prellenado con su titular y es editable. |
-| P5 | ~~(b) Las dos vías~~ → **(a) Manda la hoja** (Gonzalo, 2026-10-31: «ya no se edita el control de campo en la app, se lee de Excel»). Registro de campo (Ctl4) pasa a ser lectura del parte; el formulario de la app (`POST /aulas/agenda` para partes) se retira de la pantalla. |
+| P5 | ~~(b) Las dos vías~~ → **(a) Manda la hoja** (Gonzalo, 2026-10-31: «ya no se edita el control de campo en la app, se lee de Excel»). Registro de campo (Ctl4) pasa a ser lectura del parte; el formulario de la app (`POST /aulas/agenda` para partes) se retira de la pantalla. **La declaración B o C de una reserva sigue en la app** (Gonzalo, mismo día): Registro de campo conserva esa acción y el diálogo P3 se mantiene. |
 | P6 | Sin efecto desde el cambio de P5: la app ya no tiene formulario del parte. Se lee `effective_surveys` de la hoja. |
 | P7 | (a) La fila del día anterior la quita el coordinador a mano; la app avisa en Distribución › «Cruce con la agenda». |
 | P8 | (a) Manda el parte: Agenda, Registro y el inspector leen la existencia del parte. |
