@@ -150,6 +150,17 @@ mount_recopiladores <- function(pr) {
       collection_territorial_asignacion_put(session_header(req), campaign_id = body$id, asignacion = body$asignacion,
                                             expected_revision = body$expected_revision)
     })) |>
+    # El Excel con el que campo asigna y reasigna (C1/C3, collection_territorial_excel.R):
+    # generarlo y leerlo de vuelta. Leer es puro; guarda el PUT de arriba.
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/asignacion/excel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_asignacion_excel(session_header(req), body$id)
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/asignacion/importar", wrap_endpoint(function(req, res, ...) {
+      input <- .mtx_import_request(req)
+      collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
+                                                 file_name = input$file_name, content_base64 = input$content_base64)
+    })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_campaign_meta_put(session_header(req), id = body$id, name = body$name, actor = body$actor,

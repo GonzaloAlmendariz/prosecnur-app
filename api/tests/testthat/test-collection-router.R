@@ -50,6 +50,8 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # lista de Monitoreo va a cada una (decisión I3). `unidades` faltaba desde F1.
     "/api/recopiladores/campaigns/territorial/unidades",
     "/api/recopiladores/campaigns/territorial/asignacion",
+    "/api/recopiladores/campaigns/territorial/asignacion/excel",
+    "/api/recopiladores/campaigns/territorial/asignacion/importar",
     # Campañas (E1h): lista, crear, duplicar, renombrar y borrar (POST con
     # confirm_name; no DELETE con cuerpo).
     "/api/recopiladores/mail-campaigns",

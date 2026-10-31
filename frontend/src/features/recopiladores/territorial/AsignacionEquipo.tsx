@@ -13,6 +13,7 @@ import {
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { AlertTriangle } from "../../../vendor/lucide-react";
+import { ExcelDeAsignacion } from "./ExcelDeAsignacion";
 import { asignarColumna, borradorDe, codigoDeColumna, cuerpoDelBorrador, hayCambios, motivoDeBloqueo, type Borrador } from "./modeloAsignacion";
 
 const SIN_ASIGNAR = "__sin_asignar";
@@ -43,23 +44,30 @@ export function useAsignacionEquipo(campaignId: string | null) {
     };
   }, [campaignId]);
 
-  const guardar = useCallback(() => {
-    if (!campaignId || !datos) return;
-    setEstado("guardando");
-    setError("");
-    apiMaterialTerritorialGuardarAsignacion(campaignId, cuerpoDelBorrador(borrador), datos.revision)
-      .then((a) => {
-        setDatos(a);
-        setBorrador(borradorDe(a));
-        setEstado("guardado");
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "No se pudo guardar la asignación");
-        setEstado("");
-        // Tras un 409/422 se relee lo guardado (revisión, bloqueo) sin perder el borrador.
-        apiMaterialTerritorialAsignacion(campaignId).then(setDatos).catch(() => undefined);
-      });
-  }, [campaignId, datos, borrador]);
+  /** Guarda una asignación entera (la del calendario o la leída del Excel de campo). */
+  const guardarCuerpo = useCallback(
+    (cuerpo: { id_manzana: string; codigo: string }[]): Promise<boolean> => {
+      if (!campaignId || !datos) return Promise.resolve(false);
+      setEstado("guardando");
+      setError("");
+      return apiMaterialTerritorialGuardarAsignacion(campaignId, cuerpo, datos.revision)
+        .then((a) => {
+          setDatos(a);
+          setBorrador(borradorDe(a));
+          setEstado("guardado");
+          return true;
+        })
+        .catch((e: unknown) => {
+          setError(e instanceof Error ? e.message : "No se pudo guardar la asignación");
+          setEstado("");
+          // Tras un 409/422 se relee lo guardado (revisión, bloqueo) sin perder el borrador.
+          apiMaterialTerritorialAsignacion(campaignId).then(setDatos).catch(() => undefined);
+          return false;
+        });
+    },
+    [campaignId, datos],
+  );
+  const guardar = useCallback(() => void guardarCuerpo(cuerpoDelBorrador(borrador)), [guardarCuerpo, borrador]);
 
   const bloqueo = motivoDeBloqueo(datos);
   const cabeza = (k: number, umps: string[]) => {
@@ -85,13 +93,13 @@ export function useAsignacionEquipo(campaignId: string | null) {
     );
   };
 
-  return { datos, borrador, bloqueo, cabeza, estado, error, guardar, cambiado: hayCambios(borrador, datos) };
+  return { campaignId, datos, borrador, bloqueo, cabeza, estado, error, guardar, aplicar: guardarCuerpo, cambiado: hayCambios(borrador, datos) };
 }
 
 type Props = Omit<ReturnType<typeof useAsignacionEquipo>, "cabeza" | "borrador">;
 
 /** Encabezado de la asignación: el motivo de bloqueo, lo que quedó fuera y el guardado. */
-export function BarraAsignacion({ datos, bloqueo, estado, error, guardar, cambiado }: Props) {
+export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, guardar, aplicar, cambiado }: Props) {
   if (!datos) return error ? <p className="rec-terr-nota" role="alert">{error}</p> : null;
   const asignadas = datos.asignacion.length;
   return (
@@ -102,7 +110,7 @@ export function BarraAsignacion({ datos, bloqueo, estado, error, guardar, cambia
           <small>
             {bloqueo
               ? "Se eligen de la lista de Monitoreo."
-              : `${datos.equipo.length} en la lista de Monitoreo · ${asignadas} UMP asignadas. Elige quién hace cada columna del calendario.`}
+              : `${datos.equipo.length} en la lista de Monitoreo · ${asignadas} UMP asignadas. Campo asigna en el Excel; también puedes elegir por columna del calendario.`}
           </small>
         </span>
         {!bloqueo ? (
@@ -112,6 +120,7 @@ export function BarraAsignacion({ datos, bloqueo, estado, error, guardar, cambia
         ) : null}
       </div>
       {bloqueo ? <p className="rec-asig-aviso" role="status"><AlertTriangle size={14} aria-hidden /> {bloqueo}</p> : null}
+      {!bloqueo ? <ExcelDeAsignacion campaignId={campaignId} deshabilitado={estado === "guardando"} aplicar={aplicar} /> : null}
       {datos.desactualizada && datos.huerfanas > 0 ? (
         <p className="rec-asig-aviso" role="status">
           <AlertTriangle size={14} aria-hidden /> {datos.huerfanas === 1 ? "1 UMP asignada ya no está" : `${datos.huerfanas} UMP asignadas ya no están`} en la muestra reenviada; se descartan al guardar.

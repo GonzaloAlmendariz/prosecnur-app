@@ -36,3 +36,35 @@
 /* El selector vive en la cabecera de la columna del calendario (planCampo.css la pinta en fila). */
 .hr-plan-cabeza span:has(> .rec-asig-selector) { flex-wrap: wrap; }
 .rec-asig-selector { flex: 1 1 100%; min-width: 0; }
+
+/* El Excel de campo (C1/C3): descargar, subir y lo que se leyó antes de aplicar. */
+.rec-asig-excel { display: flex; flex-direction: column; gap: var(--pulso-space-2); }
+.rec-asig-excel-acciones { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
+.rec-asig-lectura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+.rec-asig-lectura p { margin: 0; font-size: 12.5px; color: var(--pulso-text); }
+.rec-asig-lectura-equipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-asig-lectura-equipo li {
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+.rec-asig-lectura-equipo b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.rec-asig-aviso ul { margin: 2px 0 0; padding-left: 16px; font-weight: 400; }
+.rec-asig-aviso p { margin: 0; }

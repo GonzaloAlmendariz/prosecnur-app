@@ -102,6 +102,12 @@ que Monitoreo ya tenía, «la de Monitoreo». Contrato y revisión de `guardian-
   `router_monitoreo.R` no crecen por esto.
 - **Datos personales.** Nombres de encuestadores, el mismo dato que Monitoreo muestra en `responsible_display`.
   Pendiente: el anonimizador de proyectos de referencia no cubre `enumerator_roster` (nombres y DNI) ni esta clave.
+- **El Excel de campo es la vía principal** (Gonzalo, «Sí, Material», `docs/qa/checklist-formatos-campo-2026-10-31.md`).
+  El equipo de campo no usa la app: Material genera el Excel de asignación desde la foto, con el desplegable de la lista
+  de Monitoreo, y lo lee de vuelta sin escribir (`collection_territorial_excel.R`); lo guarda el mismo PUT, que vuelve
+  a validar. Reasignar es editar el Excel y subirlo otra vez. Sólo se lee el encuestador; fechas, estado y
+  observaciones se quedan en el Excel (el avance lo mide Monitoreo). El selector por columna del calendario queda como
+  respaldo.
 
 ### 4. Direcciones en Material
 

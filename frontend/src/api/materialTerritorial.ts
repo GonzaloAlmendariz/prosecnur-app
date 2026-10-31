@@ -285,3 +285,80 @@ export async function apiMaterialTerritorialGuardarAsignacion(
     ),
   );
 }
+
+// ---- el Excel con el que campo asigna (checklist-formatos-campo C1/C3) ------------
+//
+//   POST campaigns/territorial/asignacion/excel     {id}  → {file_id, filename, umps}
+//   POST campaigns/territorial/asignacion/importar  multipart {file, id}: lectura pura;
+//        devuelve la propuesta UMP → código y las filas que no se pudieron leer. Se
+//        guarda con apiMaterialTerritorialGuardarAsignacion.
+
+export type ExcelAsignacion = { file_id: string; filename: string; umps: number };
+
+export type ProblemaDeFila = { fila: number; id_manzana: string; valor: string; motivo: string };
+
+export type ImportacionAsignacion = {
+  propuesta: { id_manzana: string; codigo: string }[];
+  problemas: ProblemaDeFila[];
+  titulares: number;
+  titulares_con_encuestador: number;
+  filas_sin_encuestador: number;
+  /** UMP que hoy tienen encuestador y lo perderían al aplicar (aplicar reemplaza todo). */
+  pierden_encuestador: number;
+  por_encuestador: { codigo: string; nombre: string; umps: number }[];
+  /** El archivo se generó con otra muestra enviada. */
+  otra_muestra: boolean;
+  nota: string;
+};
+
+export function normalizarImportacionAsignacion(valor: unknown): ImportacionAsignacion {
+  if (!esRegistro(valor)) throw new Error("El backend devolvió una lectura del Excel inválida.");
+  const resumen = esRegistro(valor.resumen) ? valor.resumen : {};
+  const propuesta = lista(valor.propuesta)
+    .filter(esRegistro)
+    .map((p) => ({ id_manzana: texto(p.id_manzana), codigo: texto(p.codigo) }))
+    .filter((p) => p.id_manzana && p.codigo);
+  const problemas = lista(valor.problemas)
+    .filter(esRegistro)
+    .map((p) => ({ fila: entero(p.fila), id_manzana: texto(p.id_manzana), valor: texto(p.valor), motivo: texto(p.motivo) }));
+  const por_encuestador = lista(valor.por_encuestador)
+    .filter(esRegistro)
+    .map((p) => ({ codigo: texto(p.codigo), nombre: texto(p.nombre), umps: entero(p.umps) }))
+    .filter((p) => p.codigo);
+  return {
+    propuesta,
+    problemas,
+    titulares: entero(resumen.titulares),
+    titulares_con_encuestador: entero(resumen.titulares_con_encuestador),
+    filas_sin_encuestador: entero(resumen.filas_sin_encuestador),
+    pierden_encuestador: entero(resumen.pierden_encuestador),
+    por_encuestador,
+    otra_muestra: logico(valor.otra_muestra),
+    nota: texto(valor.nota),
+  };
+}
+
+export async function apiMaterialTerritorialExcelAsignacion(campaignId: string): Promise<ExcelAsignacion> {
+  const r = await handle<unknown>(
+    await apiFetch("/api/recopiladores/campaigns/territorial/asignacion/excel", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ id: campaignId }),
+    }),
+  );
+  const o = esRegistro(r) ? r : {};
+  const file_id = texto(o.file_id);
+  if (!file_id) throw new Error("El backend no devolvió el Excel de asignación.");
+  return { file_id, filename: texto(o.filename), umps: entero(o.umps) };
+}
+
+export async function apiMaterialTerritorialImportarAsignacion(campaignId: string, archivo: File): Promise<ImportacionAsignacion> {
+  const fd = new FormData();
+  fd.append("file", archivo, archivo.name);
+  fd.append("id", campaignId);
+  return normalizarImportacionAsignacion(
+    await handle<unknown>(
+      await apiFetch("/api/recopiladores/campaigns/territorial/asignacion/importar", { method: "POST", headers: headers(), body: fd }),
+    ),
+  );
+}
