@@ -13,8 +13,6 @@ import {
   apiCargaReview,
   apiCargaReviewSummary,
   apiCargaReviewReconciliation,
-  apiCargaImportKoboAsync,
-  apiCargaImportSurveyMonkeyAsync,
   apiCargaData,
   apiCargaExportNormalized,
   apiCargaConfirmChoiceMapping,
@@ -48,7 +46,7 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaAgregarFuenteSm, apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
+import { apiCargaAgregarFuenteSm, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
 import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
@@ -106,7 +104,6 @@ import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
 import { CargaHidratando } from "./CargaHidratando";
 import { marcaReadinessCarga, resolverHidratacionCarga } from "./cargaHidratacion";
 import { useEstudioCarga } from "./useEstudioCarga";
-import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import {
   CARGA_REVISION_SIN_LEER,
   baseRevisadaElegida,
@@ -114,6 +111,8 @@ import {
   type CargaRevisionLectura,
 } from "./cargaRevisionLecturaModel";
 import { baseDeLaDireccion } from "./fuentesEmparejamientoModel";
+import { ImportadorPlataforma } from "./plataforma/ImportadorPlataforma";
+import { exitoDe, useImportsDeCarga } from "./plataforma/useImportsDeCarga";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Switch } from "../../components/Switch";
 
@@ -278,6 +277,15 @@ export default function CargaPage() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [platformError, setPlatformError] = useState("");
   const [platformMessage, setPlatformMessage] = useState("");
+  // L5b: los imports de plataforma corren en el store (sobreviven a cambiar de
+  // pestaña y se cancelan); aquí solo se aplica lo que dejaron en el estudio.
+  const importsPlataforma = useImportsDeCarga(({ terminado }) => {
+    const exito = exitoDe(terminado);
+    if (!exito) return;
+    if (exito.unico) applyPlatformImportResult(exito.unico);
+    if (exito.estudio) void onEstudioChanged(exito.estudio);
+    void refresh();
+  });
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
   const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
   const [monitoringReviewed, setMonitoringReviewed] = useState(false);
@@ -498,39 +506,27 @@ export default function CargaPage() {
         // «Bases separadas»: la encuesta entra como una base NUEVA con nombre corto («docentes»), sin tocar las demás.
         if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
           const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(survey.nickname || survey.title), Object.keys(estudio?.bases ?? {}));
-          setBusy(`Importando ${survey.title} como la base «${baseName}»…`);
-          const startSep = await apiCargaImportSurveyMonkeySeparadaAsync({
-            survey_id: survey.id,
-            title: survey.title,
-            connection_profile_id: activeSmProfile?.id || "",
-            source_alias: survey.nickname || survey.title,
-            response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
-            keep_missing_status: false,
-            base_name: baseName,
+          await importsPlataforma.lanzar("surveymonkey", "separada", {
+            id: survey.id,
+            titulo: survey.title,
+            alias: survey.nickname || survey.title,
+            perfilId: activeSmProfile?.id || "",
+            baseUrl: "",
+            baseNombre: baseName,
+            incluirParciales: includePartials,
           });
-          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
-            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
-          });
-          await onEstudioChanged(sep.estudio);
-          setPlatformMessage(`${survey.title} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
           return;
         }
-        setBusy(`Importando ${survey.title} desde SurveyMonkey…`);
-        // Import como job en segundo plano (async: true): la app queda usable
-        // durante el pull y el resultado es el mismo payload síncrono.
-        const start = await apiCargaImportSurveyMonkeyAsync({
-          survey_id: survey.id,
-          title: survey.title,
-          connection_profile_id: activeSmProfile?.id || "",
-          source_alias: survey.nickname || survey.title,
-          response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
-          keep_missing_status: false,
+        await importsPlataforma.lanzar("surveymonkey", "unica", {
+          id: survey.id,
+          titulo: survey.title,
+          alias: survey.nickname || survey.title,
+          perfilId: activeSmProfile?.id || "",
+          baseUrl: "",
+          baseNombre: "",
+          incluirParciales: includePartials,
         });
-        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
-        });
-        applyPlatformImportResult(result);
-        setPlatformMessage(`${survey.title} quedó cargada como formulario y respuestas.`);
+        return;
       } else {
         const asset = koboAssets.find((item) => item.uid === selectedAssetUid);
         if (!asset) {
@@ -540,33 +536,27 @@ export default function CargaPage() {
         const baseUrl = activeKoboProfile?.base_url || koboConnection?.active_profile_base_url || "https://kf.kobotoolbox.org";
         if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
           const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(asset.name), Object.keys(estudio?.bases ?? {}));
-          setBusy(`Importando ${asset.name} como la base «${baseName}»…`);
-          const startSep = await apiCargaImportKoboSeparadaAsync({
-            asset_uid: asset.uid,
-            title: asset.name,
-            base_url: baseUrl,
-            connection_profile_id: activeKoboProfile?.id || "",
-            base_name: baseName,
+          await importsPlataforma.lanzar("kobo", "separada", {
+            id: asset.uid,
+            titulo: asset.name,
+            alias: null,
+            perfilId: activeKoboProfile?.id || "",
+            baseUrl,
+            baseNombre: baseName,
+            incluirParciales: false,
           });
-          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
-            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
-          });
-          await onEstudioChanged(sep.estudio);
-          setPlatformMessage(`${asset.name} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
           return;
         }
-        setBusy(`Importando ${asset.name} desde KoboToolbox…`);
-        const start = await apiCargaImportKoboAsync({
-          asset_uid: asset.uid,
-          title: asset.name,
-          base_url: baseUrl,
-          connection_profile_id: activeKoboProfile?.id || "",
+        await importsPlataforma.lanzar("kobo", "unica", {
+          id: asset.uid,
+          titulo: asset.name,
+          alias: null,
+          perfilId: activeKoboProfile?.id || "",
+          baseUrl,
+          baseNombre: "",
+          incluirParciales: false,
         });
-        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
-        });
-        applyPlatformImportResult(result);
-        setPlatformMessage(`${asset.name} quedó cargado como formulario y respuestas.`);
+        return;
       }
       await refresh();
     } catch (e: unknown) {
@@ -605,20 +595,16 @@ export default function CargaPage() {
       setPlatformError("Conecta KoboToolbox en Configuración para importar la fuente detectada.");
       return;
     }
-    setBusy(`Importando ${source.name || source.asset_uid} desde KoboToolbox…`);
     try {
-      const start = await apiCargaImportKoboAsync({
-        asset_uid: source.asset_uid,
-        title: source.name || source.source_title,
-        base_url: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
-        connection_profile_id: source.connection_profile_id || activeKoboProfile?.id || "",
+      await importsPlataforma.lanzar("kobo", "unica", {
+        id: source.asset_uid,
+        titulo: source.name || source.source_title || source.asset_uid,
+        alias: null,
+        perfilId: source.connection_profile_id || activeKoboProfile?.id || "",
+        baseUrl: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
+        baseNombre: "",
+        incluirParciales: false,
       });
-      const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-        onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${source.name || source.asset_uid}`, p)),
-      });
-      applyPlatformImportResult(result);
-      setPlatformMessage(`${source.name || source.asset_uid} quedó cargado como formulario y respuestas.`);
-      await refresh();
     } catch (e: unknown) {
       setPlatformError((e as Error).message);
     } finally {
@@ -1232,9 +1218,16 @@ export default function CargaPage() {
               onAssetSelect={setSelectedAssetUid}
               includePartials={includePartials}
               onIncludePartialsChange={setIncludePartials}
-              busy={!!busy}
+              busy={!!busy || importsPlataforma.jobEnCurso}
               error={platformError}
               message={platformMessage}
+              importador={importsPlataforma.activo ? (
+                <ImportadorPlataforma
+                  proveedor={importsPlataforma.activo.proveedor}
+                  estrategia={importsPlataforma.activo.estrategia}
+                  importacion={importsPlataforma.activo.importacion}
+                />
+              ) : null}
               detectedKoboSource={detectedKoboSource}
               onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
               onImport={() => void onPlatformImport()}
@@ -2094,6 +2087,7 @@ function PlatformImportPanel({
   busy,
   error,
   message,
+  importador,
   detectedKoboSource,
   onImportDetectedKoboSource,
   onImport,
@@ -2124,6 +2118,8 @@ function PlatformImportPanel({
   busy: boolean;
   error: string;
   message: string;
+  /** L5b: la tarjeta del import en curso o del último desenlace. */
+  importador?: ReactNode;
   detectedKoboSource: DetectedKoboSource | null;
   onImportDetectedKoboSource: () => void;
   onImport: () => void;
@@ -2264,6 +2260,7 @@ function PlatformImportPanel({
         />
       )}
 
+      {importador}
       {error && <div className="pulso-platform-alert is-error">{error}</div>}
       {message && !error && <div className="pulso-platform-alert">{message}</div>}
 
