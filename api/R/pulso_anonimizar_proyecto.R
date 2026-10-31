@@ -144,6 +144,11 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   dedup <- .pulso_anon_deduplicar_files(estado, file.path(stage, "files"))
   estado <- dedup$estado
 
+  # La lista de encuestadores de Monitoreo es una lista de registros, no un
+  # data.frame: el recorrido genérico no la ve. Su mapa se toma del estado
+  # original, antes de que ninguna pasada lo toque (pulso_anonimizar_roster.R).
+  roster <- .pulso_anon_roster_mapa(estado, sal)
+
   archivos <- list.files(file.path(stage, "files"), full.names = TRUE, recursive = TRUE)
   archivos_xlsx <- archivos[.pulso_anon_es_xlsx(archivos)]
 
@@ -163,24 +168,34 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     hojas_por_archivo[[p]] <- hojas
     for (h in names(hojas)) acumular(hojas[[h]], paste0(basename(p), "!", h))
   }
+  # Los nombres de la lista entran al diccionario con SU seudónimo, para que una
+  # abierta que nombre al encuestador diga lo mismo que la lista.
+  diccionario <- c(roster$nombres, diccionario[!(names(diccionario) %in% names(roster$nombres))])
 
   # --- Pasada 2: aplicar ------------------------------------------------------
   reporte_tablas <- list()
   aplicar <- function(df, ruta) {
     res <- pulso_anonimizar_data(df, sal = sal, offset_gps = offset)
-    abiertas <- pulso_anonimizar_abiertas(res$data, diccionario, sal = sal)
-    if (length(res$columnas) || abiertas$reemplazos > 0) {
+    marcado <- .pulso_anon_roster_marcar(res$data, roster)
+    abiertas <- pulso_anonimizar_abiertas(marcado$data, diccionario, sal = sal)
+    if (length(res$columnas) || abiertas$reemplazos > 0 || marcado$reemplazos > 0) {
       reporte_tablas[[length(reporte_tablas) + 1L]] <<- list(
         ruta = ruta,
         filas = nrow(df),
         columnas_pii = res$columnas,
         columnas_abiertas = abiertas$columnas,
-        reemplazos_abiertas = abiertas$reemplazos
+        reemplazos_abiertas = abiertas$reemplazos,
+        reemplazos_encuestadores = marcado$reemplazos
       )
     }
-    abiertas$data
+    .pulso_anon_roster_restaurar(abiertas$data, roster)
   }
+  roster_aplicado <- .pulso_anon_roster_aplicar(estado, roster)
+  estado <- roster_aplicado$estado
   estado <- .pulso_anon_map_dataframes(estado, aplicar, ruta = "state")
+  # Y fuera de las tablas: los tokens de caché de Monitoreo llevan la lista
+  # serializada en JSON.
+  estado <- .pulso_anon_roster_barrer_textos(estado, roster)
 
   for (p in names(hojas_por_archivo)) {
     hojas <- hojas_por_archivo[[p]]
@@ -193,6 +208,8 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     # Reescribir solo las hojas de datos, preservando las del instrumento.
     .pulso_anon_reescribir_xlsx(p, hojas)
   }
+  # Después del barrido de XLSX, que si no lo pisaría con su versión celda a celda.
+  roster_fuentes <- .pulso_anon_roster_reescribir_fuentes(estado, file.path(stage, "files"))
 
   # Las decisiones guardadas nombran los valores que acaban de cambiar. Sin este
   # paso el fixture queda inconsistente consigo mismo y no puede reproducir su
@@ -253,6 +270,9 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     # anonimizada—, pero es lo primero que hay que mirar cuando un fixture
     # anonimizado no reproduce su propio marco.
     n_criterios_traducidos = criterios$traducidas,
+    n_encuestadores_seudonimizados = roster_aplicado$encuestadores,
+    n_asignaciones_territoriales_recodificadas = roster_aplicado$asignaciones_recodificadas,
+    n_fuentes_encuestadores_reescritas = roster_fuentes,
     files_deduplicados = dedup$eliminados,
     contactos_retirados = contactos_retirados,
     n_logos_neutralizados = logos$neutralizados,
@@ -482,6 +502,10 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     # `monitoreo_aulas_padron_purga.R`). Sin esta comprobación la purga al
     # exportar sería una intención; con ella es un gate, y
     # `make reference-project-verify` se pone rojo si una copia sale con padrón.
+    # **La lista de encuestadores tampoco**: nombres, DNI y códigos en una lista
+    # de registros, más el Excel con que se subió (pulso_anonimizar_roster.R).
+    roster <- .pulso_anon_roster_hallazgos(envuelto$datos, file.path(stage, "files"))
+    if (nrow(roster)) hallazgos[[length(hallazgos) + 1L]] <- roster
     hallado <- monitoreo_aulas_padron_hallazgo_pii(envuelto$datos)
     if (is.list(hallado)) {
       hallazgos[[length(hallazgos) + 1L]] <- data.frame(

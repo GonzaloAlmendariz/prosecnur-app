@@ -178,7 +178,7 @@ describe("bibliotecas gobernadas por el registry L6", () => {
     expect(fixture.schema).toBe("prosecnur.qa.graficos_libraries_fixture.v1");
     expect(fixture.source).toMatchObject({
       reference_project: "acnur_acg",
-      sha256: "70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70",
+      sha256: "2766a32c23fe6f1e07b57eb2910f346ba8bf6c005473cee14dfde385e5e4f4d1",
       sanitized: true,
     });
     expect(registry.slides).toHaveLength(20);

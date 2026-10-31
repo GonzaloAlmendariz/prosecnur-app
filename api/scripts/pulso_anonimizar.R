@@ -14,6 +14,11 @@
 # estudio real. Sin ella el seudónimo sería recomputable por cualquiera.
 #
 # Con --verificar solo corre el detector sobre un .pulso ya escrito.
+#
+# Con --solo-encuestadores el origen es un fixture YA anonimizado y sólo se trata
+# el equipo de campo (lista de Monitoreo, asignación territorial, equipo del
+# Planner y sus copias derivadas); el resto queda intacto. Es la vía para sanear
+# un fixture publicado antes de que el anonimizador viera esas claves.
 
 script_path <- local({
   a <- commandArgs(trailingOnly = FALSE)
@@ -40,6 +45,7 @@ tiene_flag <- function(nombre) paste0("--", nombre) %in% args
 if (tiene_flag("help") || !length(args)) {
   cat("uso: pulso_anonimizar.R --origen <in.pulso> --destino <out.pulso> [--slug <slug>]\n")
   cat("     pulso_anonimizar.R --verificar <fixture.pulso>\n")
+  cat("     pulso_anonimizar.R --solo-encuestadores --origen <fixture.pulso> --destino <out.pulso>\n")
   quit(status = 0)
 }
 
@@ -75,12 +81,30 @@ if (!nzchar(sal)) {
 cat(sprintf("[anonimizar] origen : %s\n", origen))
 cat(sprintf("[anonimizar] destino: %s\n", destino))
 
+if (tiene_flag("solo-encuestadores")) {
+  r <- pulso_anonimizar_encuestadores_archivo(origen, destino, sal = sal)
+  cat(sprintf("[anonimizar] equipo: %d personas, %d DNI, %d registros reescritos, %d celdas derivadas, %d Excel\n",
+              r$n_personas, r$n_dnis, r$n_registros, r$n_celdas_derivadas, r$n_fuentes_reescritas))
+  hallazgos <- pulso_detectar_pii(destino)
+  if (nrow(hallazgos)) {
+    cat(sprintf("\n[anonimizar] FALLA: quedaron %d hallazgos de PII.\n", nrow(hallazgos)))
+    print(hallazgos)
+    unlink(destino, force = TRUE)
+    quit(status = 1)
+  }
+  cat(sprintf("[anonimizar] OK: %s, sin PII detectable.\n", destino))
+  quit(status = 0)
+}
+
 reporte <- pulso_anonimizar_archivo(origen, destino, sal = sal, slug = slug)
 
 cat(sprintf("[anonimizar] tablas tocadas       : %d\n", reporte$n_tablas_tocadas))
 cat(sprintf("[anonimizar] nombres seudonimizados: %d\n", reporte$n_nombres_seudonimizados))
 cat(sprintf("[anonimizar] logos neutralizados  : %d (retirados sin PNG: %d)\n",
             reporte$n_logos_neutralizados, length(reporte$logos_retirados)))
+cat(sprintf("[anonimizar] encuestadores (lista) : %d (asignaciones recodificadas: %d, Excel reescritos: %d)\n",
+            reporte$n_encuestadores_seudonimizados, reporte$n_asignaciones_territoriales_recodificadas,
+            reporte$n_fuentes_encuestadores_reescritas))
 for (t in reporte$tablas) {
   cat(sprintf("  - %s (%d filas)\n", t$ruta, t$filas))
   if (length(t$columnas_pii)) {
