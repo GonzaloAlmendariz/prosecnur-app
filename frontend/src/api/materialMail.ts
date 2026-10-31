@@ -309,6 +309,8 @@ export type MailHeader =
       logo_tone?: "original" | "blanco";
       /** `false` quita la línea entre logos; sin él, la línea sigue. */
       divider?: boolean;
+      /** Sólo con fondo oscuro: color propio de la franja (#rrggbb); sin él, el acento (L15). */
+      color?: string;
     }
   | { kind: "banner"; image_ref: string };
 
@@ -1054,6 +1056,7 @@ function normalizeHeader(value: unknown): MailHeader {
     background: str(raw.background) === "dark" ? "dark" : "light",
     ...(tono === "blanco" || tono === "original" ? { logo_tone: tono } : {}),
     ...(raw.divider === false ? { divider: false } : {}),
+    ...(hexColor(raw.color) ? { color: hexColor(raw.color) } : {}),
   };
 }
 

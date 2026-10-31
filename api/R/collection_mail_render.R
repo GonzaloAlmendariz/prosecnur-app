@@ -240,8 +240,13 @@
                            ctx, "__cabecera", "header"))
   }
   dark <- identical(h$background %||% "light", "dark")
-  bg <- if (dark) accent else "#ffffff"
-  divider <- if (dark) "#5a6a94" else .CMAIL_BORDER
+  # La franja oscura es el acento salvo que la cabecera declare su color (GOAL editor L15:
+  # en Acreditación 2026 la franja es #022051 y el acento #004dac).
+  propio <- if (dark) .cmail_one(h$color) else NULL
+  propio <- if (!is.null(propio) && .cmail_hex_ok(propio)) tolower(propio) else NULL
+  bg <- if (!dark) "#ffffff" else propio %||% accent
+  # La línea entre logos sobre un color propio sale de ese color; sin él, la de siempre (paridad).
+  divider <- if (!dark) .CMAIL_BORDER else if (!is.null(propio)) .cmail_mix("#ffffff", propio, 0.35) else "#5a6a94"
   height <- if (dark) 46L else 40L
   ids <- as.character(unlist(h$logo_ids, use.names = FALSE))
   blancos <- dark && identical(.cmail_one(h$logo_tone), "blanco")

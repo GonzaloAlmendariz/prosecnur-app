@@ -9,6 +9,7 @@ import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { Cuentagotas } from "./Cuentagotas";
 import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
+import { ColorDeLaFranja } from "./ColorDeLaFranja";
 import { FranjaDeLogos } from "./FranjaDeLogos";
 import { nombreDeImagen } from "./nombresDeImagen";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
@@ -268,6 +269,17 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
                 })}
               />
             ) : null}
+            {fondo === "dark" ? (
+              <ColorDeLaFranja
+                color={template.header.color}
+                acento={template.theme.accent}
+                onColor={(color) => onEditar((t) => {
+                  if (t.header.kind !== "logos") return t;
+                  const { color: _color, ...resto } = t.header;
+                  return { ...t, header: color ? { ...resto, color: color.toLowerCase() } : resto };
+                })}
+              />
+            ) : null}
             {logos.length > 1 ? (
               <Segmented
                 aria-label="Línea entre logos"
@@ -288,7 +300,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           logoIds={logos}
           images={template.images}
           fondo={fondo}
-          acento={template.theme.accent}
+          acento={(template.header.kind === "logos" && template.header.color) || template.theme.accent}
           imagenesLocales={imagenesLocales}
           htmlDeLaVista={conBanner ? null : htmlDeLaVista}
           enReserva={conBanner}
