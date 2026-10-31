@@ -139,9 +139,28 @@ campo; el lugar viejo deja de escribirlo y sus lectores consultan el Planner con
 - **El equipo de campo no tiene una sola casa**: lista territorial en Monitoreo, aplicadores de aulas en el libro y la
   disponibilidad, operadores telefónicos como texto libre.
 
-## 9. Pendiente de estructurar (tablero del loop)
+## 9. Cómo se leen los datos entre módulos (L6, verificado en el código)
 
-- Contratos de lectura entre módulos (L6).
+Regla (§4): un módulo **consulta** al otro, con la huella de la muestra cuando aplica; nunca copia ni escribe en el
+estado ajeno.
+
+| # | Cruce | Cómo pasa hoy | Dónde | ¿Cumple? | Debería |
+|---|---|---|---|---|---|
+| X1 | Hojas de ruta → Material: muestra enviada | Hojas de ruta guarda la foto con huella; Material la lee | `POST /api/hojas-ruta/envio`; `GET /api/recopiladores/campaigns/territorial/unidades` | ✓ consulta con huella | — |
+| X2 | Material → Monitoreo: asignación UMP → encuestador | Material la publica; Monitoreo todavía no la lee | `GET /api/recopiladores/campaigns/territorial/asignacion` | ✓ (falta el lado de Monitoreo, B3) | — |
+| X3 | Material → Monitoreo: consolidados declarados por campo | No existe | Por crear con D1 | — | Consulta con huella y con el catálogo de códigos |
+| X4 | Monitoreo → Material: lista de encuestadores | Material la lee en el mismo proceso, sin DNI | `.mta_equipo` (collection_territorial_asignacion.R) sobre `monitoreo_config$territorial$enumerator_roster` | ✓ consulta | Mudarla al Planner (§8) |
+| X5 | Hojas de ruta → Monitoreo territorial: muestra | Monitoreo lee la muestra **viva**, no la enviada | `router_monitoreo.R` ~618 (`hojas_ruta_runs[[fase]]$workspace_outputs`) | ✗ lee la muestra viva | Leer la muestra enviada (ADR 0118 §3 lo dejó para después de F1) |
+| X6 | Cálculo de muestra → Monitoreo (aulas, acreditación): plan y cuotas | Monitoreo **copia** al importar | `POST /api/monitoreo/aulas/import-from-calc-muestra` (`monitoreo_aulas_from_calc`), `POST /api/monitoreo/import-from-calc-muestra` (`monitoreo_acreditacion_from_calc`) | ✗ copia (el ADR 0121 §2 la mantiene) | Consulta a la declaración de `representatividad` |
+| X7 | Cálculo de muestra → Material (aulas): aulas sorteadas | Material las lee | `collection_origen.R:237` (`s$calc_muestra_aulas_selection`) | ✓ consulta | — |
+| X8 | Material → Monitoreo (aulas): plan de monitoreo | La entrega de Material **escribe** el plan de Monitoreo | `collection_engine.R:150` (`fresh$monitoreo_aulas_plan <- …`), `collection_origen.R:255` | ✗ escribe en estado ajeno | Monitoreo consulta la entrega de Material |
+| X9 | Material → Monitoreo: plantilla del barrido telefónico | No existe | Por crear | — | Material la genera; Monitoreo lee el barrido llenado |
+
+**Hallazgos de L6**: X5, X6 y X8 no cumplen la regla. Ninguno es urgente ni lo arregla esta sesión (X5, X6 y X8 tocan
+`monitoreo_*` o el ADR 0121). Van como insumo del ADR del Planner y de la cola de Monitoreo.
+
+## 10. Pendiente de estructurar (tablero del loop)
+
 - Formatos con maqueta fiel (L8).
 - Datos personales (L9).
 - Hoja de ruta por fases y sesiones (L10).
