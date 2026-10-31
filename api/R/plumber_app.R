@@ -132,6 +132,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_diseno_estudio(pr)
     pr <- mount_bitacora(pr)
     pr <- mount_planner(pr)                   # ADR 0122: fuera del modo público (trae el equipo)
+    pr <- mount_calc_muestra_representatividad(pr)  # ADR 0121 F4: declara en el Planner; fuera del modo público
     pr <- mount_recopiladores(pr)
     pr <- mount_monitoreo(pr)
     pr <- mount_monitoreo_telefonico(pr)
