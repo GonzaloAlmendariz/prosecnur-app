@@ -814,6 +814,11 @@ export type MonitoreoAulasConfig = {
    */
   libro_publicado?: {
     publicado_en?: string; synced_at?: string; hojas?: number; partes?: number;
+    /**
+     * Qué pasó con cada hoja en esa publicación, tal como lo declaró el recibo.
+     * Ausente en sellos anteriores al 2026-10-31.
+     */
+    detalle?: Array<{ hoja: string; accion: string; filas: number }>;
   } | null;
   /**
    * **Contra qué otro estudio se cruza, y de dónde se lee.** Es una decisión de

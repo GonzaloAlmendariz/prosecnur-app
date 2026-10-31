@@ -201,6 +201,17 @@ export const PANEL_REVISAR_PUBLICACION: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/**
+ * «Revisar cambios» del libro del operativo, en Monitoreo › Cursos-horario ›
+ * Avance › Salidas (ficha A5, P2): qué hojas escribe Publicar y cuáles nunca.
+ * Abrirlo no escribe nada.
+ */
+export const PANEL_REVISAR_LIBRO: PanelDeclarado = {
+  id: "revisar-libro",
+  label: "Revisar cambios del libro",
+  clase: "dialogo",
+};
+
 /** Centro de avisos del cronograma (ADR 0047). */
 export const PANEL_AVISOS: PanelDeclarado = {
   id: "avisos",
@@ -227,7 +238,7 @@ export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION, PANEL_PALETA, PANEL_ATAJOS_APP],
-  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION],
+  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION, PANEL_REVISAR_LIBRO],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR, PANEL_REFERENCIAS],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.

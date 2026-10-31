@@ -1,0 +1,349 @@
+/* Avance › Salidas (aulas.md, ficha A5). Izquierda, las salidas del corte y
+ * la vista previa de «Avance de campo»; derecha, 400 px con lo que toca
+ * Publicar hoja por hoja. Escala 4/8/12/16, sólo tokens.
+ *
+ * Desplazamiento (C4): en escritorio amplio la vista llena el alto y la vista
+ * previa desplaza dentro de su marco con la cabecera fija; en compacto
+ * (≤ 1180 px de ancho o ≤ 720 px de alto) mide por contenido y desplaza
+ * `.mon-profile-content`. */
+
+.aulas-sl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-sl-izquierda,
+.aulas-sl-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.aulas-sl-derecha {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.aulas-sl-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.aulas-sl-izquierda > .aulas-sl-panel:first-child {
+  flex: 0 0 auto;
+}
+
+/* «Qué toca Publicar» llena su columna: es el único panel de la derecha. */
+.aulas-sl-derecha > .aulas-sl-panel {
+  flex: 1 0 auto;
+}
+
+.aulas-sl-vista {
+  flex: 1 1 auto;
+}
+
+.aulas-sl-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-sl-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-sl-sub {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-sl-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-sl-nota svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.aulas-sl-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* ---- Salidas del corte ---- */
+
+.aulas-sl-lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-sl-salida {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-sl-salida:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.aulas-sl-icono {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.aulas-sl-texto {
+  min-width: 0;
+}
+
+.aulas-sl-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-sl-texto p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-sl-chip {
+  padding: 1px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.aulas-sl-chip[data-tono="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.aulas-sl-chip[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-sl-chip[data-tono="info"] {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.aulas-sl-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-sl-condicional {
+  margin-left: var(--pulso-space-2);
+  padding: 0 var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+}
+
+/* ---- Vista previa de «Avance de campo» ---- */
+
+.aulas-sl-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  /* Encaje por fila bajo la cabecera fija, como en Rendimiento y Cursos-horario. */
+  scroll-padding-top: 32px;
+  scroll-snap-type: y proximity;
+}
+
+.aulas-sl-tabla tbody tr {
+  scroll-snap-align: start;
+}
+
+.aulas-sl-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-sl-tabla th,
+.aulas-sl-tabla td {
+  height: 28px;
+  padding: 0 var(--pulso-space-2);
+  box-shadow: inset 0 1px 0 var(--pulso-surface-3);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.aulas-sl-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 32px;
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aulas-sl-tabla tbody th {
+  font-weight: var(--pulso-weight-regular);
+}
+
+.aulas-sl-tabla tfoot th,
+.aulas-sl-tabla tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-sl-tabla .is-num {
+  text-align: right;
+}
+
+/* ---- Qué toca Publicar ---- */
+
+.aulas-sl-grupo h4 {
+  margin: 0 0 var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aulas-sl-hojas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-sl-hojas > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  min-height: 30px;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-sl-hojas > li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aulas-sl-regla {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.aulas-sl-regla[data-tono="escribe"] { color: var(--pulso-info-fg); }
+.aulas-sl-regla[data-tono="agrega"] { color: var(--pulso-warn-fg); }
+.aulas-sl-regla[data-tono="nunca"] { color: var(--pulso-text-faint); }
+
+.aulas-sl-revision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.aulas-sl-revision-estado {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 1180px), (max-height: 720px) {
+  .mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .aulas-sl) {
+    flex: 0 0 auto;
+    grid-template-rows: auto;
+  }
+
+  .aulas-sl {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .aulas-sl-izquierda,
+  .aulas-sl-derecha,
+  .aulas-sl-panel {
+    min-height: auto;
+  }
+
+  .aulas-sl-derecha,
+  .aulas-sl-tabla-marco {
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .aulas-sl-salida {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .aulas-sl-acciones {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

@@ -226,6 +226,17 @@ describe("dirección pública del modo cursos-horario", () => {
     expect(direccionDeVista({ seccion: "avance", pestana: "rendimiento" })).toEqual(d("avance", "rendimiento"));
   });
 
+    it("A5 Salidas tiene contenido propio y deja PDF y cliente en la sub-vista heredada", () => {
+    expect(esPestanaPropia(d("avance", "salidas"))).toBe(true);
+    expect(esPestanaPropia(d("avance", "salidas", "herramientas"))).toBe(false);
+    expect(subvistasDePestana("avance", "salidas")).toEqual([
+      { panel: null, etiqueta: "Salidas" },
+      { panel: "herramientas", etiqueta: "PDF y cliente" },
+    ]);
+    expect(direccionDeVista({ seccion: "avance", pestana: "salidas" })).toEqual(d("avance", "salidas"));
+    expect(direccionPedida(pedida("avance", "salidas", "herramientas"))).toEqual(d("avance", "salidas", "herramientas"));
+  });
+
     it("el enlace a la ficha de un curso-horario es la dirección pública", () => {
     const href = hrefDeFichaDeAula("CH 21");
     expect(href).toBe("/monitoreo?modo=aulas&seccion=control&pestana=partes&panel=codigo&foco=aula%3ACH%2021");

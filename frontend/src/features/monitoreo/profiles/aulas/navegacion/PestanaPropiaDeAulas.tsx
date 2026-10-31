@@ -4,6 +4,7 @@ import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { CursosHorarioAulas } from "../avance/CursosHorarioAulas";
 import { PorFacultadAulas } from "../avance/PorFacultadAulas";
 import { RendimientoAulas } from "../avance/RendimientoAulas";
+import { SalidasAulas, type ContextoDeSalidas } from "../avance/SalidasAulas";
 import { ResumenAulas } from "../avance/ResumenAulas";
 import type { DireccionAulas } from "./direccionAulas";
 
@@ -14,11 +15,13 @@ import type { DireccionAulas } from "./direccionAulas";
  *
  * Devuelve `null` si la dirección no tiene contenido propio todavía.
  */
-export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero }: {
+export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero, salidas }: {
   direccion: DireccionAulas;
   dashboard: MonitoreoAulasDashboard | null;
   cargando: boolean;
   vacioSinTablero: ReactNode;
+  /** El estado y las acciones que Salidas toma de la página (A5). */
+  salidas?: ContextoDeSalidas;
 }) {
   const props = { dashboard, cargando, vacioSinTablero };
   if (direccion.seccion === "avance" && direccion.pestana === "resumen") return <ResumenAulas {...props} />;
@@ -30,6 +33,10 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "avance" && direccion.pestana === "rendimiento" && direccion.panel == null) {
     return <RendimientoAulas {...props} />;
+  }
+  // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
+  if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {
+    return <SalidasAulas contexto={salidas} />;
   }
   return null;
 }

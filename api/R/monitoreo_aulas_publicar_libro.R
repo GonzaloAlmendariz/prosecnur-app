@@ -35,6 +35,25 @@
 
 # --- destino recordado --------------------------------------------------------
 
+#' El detalle por hoja del sello de publicación: hoja, acción y filas.
+#'
+#' Sale del recibo de `monitoreo_aulas_publicar_libro()` tal cual, sin
+#' reinterpretar la acción (la lista es abierta). Una entrada sin nombre de hoja
+#' no se guarda: no hay a qué atribuirla.
+#' @keywords internal
+.malp_sello_detalle <- function(hojas) {
+  if (!is.list(hojas) || !length(hojas)) return(list())
+  out <- lapply(hojas, function(h) {
+    if (!is.list(h)) return(NULL)
+    hoja <- trimws(.monitoreo_scalar(h[["hoja"]], ""))
+    if (!nzchar(hoja)) return(NULL)
+    filas <- suppressWarnings(as.integer(.monitoreo_scalar(h[["filas"]], NA)))
+    list(hoja = hoja, accion = trimws(.monitoreo_scalar(h[["accion"]], "")),
+         filas = if (is.na(filas)) 0L else filas)
+  })
+  Filter(Negate(is.null), out)
+}
+
 #' El Google Sheets del operativo guardado en la config de monitoreo.
 #'
 #' Lectura con `[[` de punta a punta: el `$` de R parcial-matchea y una clave
@@ -1180,6 +1199,10 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       publicado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       synced_at = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       hojas = length(publicado$hojas %||% list()),
+      # Qué pasó con CADA hoja: Avance › Salidas lo muestra como «Qué toca
+      # Publicar» sin tener que volver a calcular el juego de hojas, que
+      # depende de condicionales caros (riesgo, control, asignación).
+      detalle = .malp_sello_detalle(publicado$hojas),
       partes = length(s$monitoreo_aulas_partes_campo %||% list()),
       # Las huellas del formato que llegó a las hojas del equipo: la próxima
       # publicación no lo reenvía si no cambió.

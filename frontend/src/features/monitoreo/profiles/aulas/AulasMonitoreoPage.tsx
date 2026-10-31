@@ -90,7 +90,7 @@ import {
   modoIdDesdeFamily, AULAS_SECCIONES_PUBLICAS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
 import { useDireccionAulas } from "./navegacion/useDireccionAulas";
-import { esPestanaPropia, FICHA_DE_AULA, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
+import { esPestanaPropia, FICHA_DE_AULA, HREF_HERRAMIENTAS_DE_SALIDAS, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
 import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -1972,7 +1972,23 @@ export default function AulasMonitoreoPage() {
   // Por facultad. Pintan también su silueta mientras carga (S1).
   const propia = esPestanaPropia(direccion);
   const resumenPropio = propia
-    ? <PestanaPropiaDeAulas direccion={direccion} dashboard={dashboard} cargando={loading} vacioSinTablero={vacioSinTablero} />
+    ? (
+      <PestanaPropiaDeAulas
+        direccion={direccion}
+        dashboard={dashboard}
+        cargando={loading}
+        vacioSinTablero={vacioSinTablero}
+        salidas={{
+          config: aulasConfig,
+          corte: state?.synced_at ?? "",
+          clientSheets: state?.publication?.client_last_sheets ?? null,
+          ocupado: busy,
+          publicarLibro: () => publicarASheets(),
+          generarLibro,
+          hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
+        }}
+      />
+    )
     : null;
 
   return (

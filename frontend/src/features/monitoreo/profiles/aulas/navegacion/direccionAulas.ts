@@ -138,7 +138,12 @@ const TABLA: readonly Entrada[] = [
   entrada("avance", "rendimiento", null, v("avance", "rendimiento"), { vista: "Rendimiento", propia: true }),
   entrada("avance", "rendimiento", "diario", v("avance", "rendimiento"), { vista: "Día a día por facultad", regreso: false }),
   entrada("avance", "rendimiento", "efectividad", v("avance", "efectividad"), { vista: "Efectividad" }),
-  entrada("avance", "salidas", null, v("avance", "salidas")),
+  // A5 Salidas: contenido propio (`avance/SalidasAulas.tsx`): las salidas del
+  // corte, la vista previa de «Avance de campo» y qué toca Publicar (P2). Los
+  // flujos de PDF y del Sheets del cliente siguen en el banco de salidas
+  // heredado, como sub-vista «PDF y cliente».
+  entrada("avance", "salidas", null, v("avance", "salidas"), { vista: "Salidas", propia: true }),
+  entrada("avance", "salidas", "herramientas", v("avance", "salidas"), { vista: "PDF y cliente", regreso: false }),
 ];
 
 /**
@@ -323,6 +328,9 @@ export function tieneSubvistas(direccion: DireccionAulas): boolean {
  * cambia esta dirección.
  */
 export const FICHA_DE_AULA: DireccionAulas = d("control", "partes", "codigo");
+
+/** La sub-vista de Salidas con los flujos de PDF y del Sheets del cliente. */
+export const HREF_HERRAMIENTAS_DE_SALIDAS = "/monitoreo?modo=aulas&seccion=avance&pestana=salidas&panel=herramientas";
 
 /** El enlace a la ficha de un curso-horario, con su código en el `foco`. */
 export function hrefDeFichaDeAula(codigo: string): string {
