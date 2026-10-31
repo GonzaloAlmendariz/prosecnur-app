@@ -33,6 +33,10 @@ export type UmpPlanificada = {
   fechaEntrega: string;
   /** Lo declarado contradice lo que llegó a Kobo. */
   contraste: "" | "finalizada_sin_respuestas" | "pendiente_con_respuestas";
+  /** P2: efectivas que campo transcribe del consolidado; `null` si no transcribió nada. */
+  efectivasDeclaradas: number | null;
+  /** Efectivas válidas que llegaron a Kobo para esa UMP. */
+  efectivasKobo: number;
 };
 
 export type AsignacionPlanificada = {
@@ -48,6 +52,8 @@ export type AsignacionPlanificada = {
     sinPlanificar: number;
     conEstadoDeclarado: number;
     contrastes: number;
+    conConteos: number;
+    conteosDistintos: number;
   };
 };
 
@@ -78,6 +84,8 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
         fechaSalida: texto(u.fecha_salida),
         fechaEntrega: texto(u.fecha_entrega),
         contraste: (["finalizada_sin_respuestas", "pendiente_con_respuestas"] as const).find((c) => c === texto(u.contraste)) ?? "",
+        efectivasDeclaradas: enteroONulo(u.efectivas_declaradas),
+        efectivasKobo: entero(u.efectivas_kobo),
       };
     }),
     resumen: {
@@ -89,6 +97,8 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
       sinPlanificar: entero(resumen.sin_planificar),
       conEstadoDeclarado: entero(resumen.con_estado_declarado),
       contrastes: entero(resumen.contrastes),
+      conConteos: entero(resumen.con_conteos),
+      conteosDistintos: entero(resumen.conteos_distintos),
     },
   };
 }

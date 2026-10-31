@@ -17,7 +17,13 @@ export type CeldaPlanificada = {
   /** Lo que se vio, para el `title`: «P844 (2), P101 (1)». */
   detalle: string;
   /** C7: lo que declara campo y, si contradice a Kobo, por qué. */
-  declarado: { estado: string; fechas: string; contraste: string | null } | null;
+  declarado: {
+    estado: string;
+    fechas: string;
+    contraste: string | null;
+    /** P2: «Campo 5 · Kobo 1», o `null` si campo no transcribió conteos. */
+    conteo: { texto: string; distinto: boolean } | null;
+  } | null;
 };
 
 export type ColumnaPlanificada =
@@ -48,7 +54,7 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
       detalle: u.observados.length
         ? `Llegaron: ${u.observados.map((o) => `${o.codigo || "sin código"} (${o.respuestas})`).join(", ")}${u.heredada ? ". Código heredado del titular." : ""}`
         : `Sin respuestas todavía${u.heredada ? ". Código heredado del titular." : ""}`,
-      declarado: u.estadoDeclarado
+      declarado: u.estadoDeclarado || u.efectivasDeclaradas != null
         ? {
           estado: u.estadoDeclarado,
           fechas: [u.fechaSalida && `salió ${u.fechaSalida}`, u.fechaEntrega && `entregó ${u.fechaEntrega}`].filter(Boolean).join(", "),
@@ -57,6 +63,9 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
             : u.contraste === "pendiente_con_respuestas"
               ? `Campo la tiene pendiente y ya llegaron ${u.respuestas} respuestas a Kobo.`
               : null,
+          conteo: u.efectivasDeclaradas == null
+            ? null
+            : { texto: `Campo ${u.efectivasDeclaradas} · Kobo ${u.efectivasKobo}`, distinto: u.efectivasDeclaradas !== u.efectivasKobo },
         }
         : null,
     });
@@ -69,10 +78,13 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
   const declarado = r.conEstadoDeclarado
     ? ` Estado declarado por campo en ${r.conEstadoDeclarado}${r.contrastes ? `; ${r.contrastes} no cuadra${r.contrastes === 1 ? "" : "n"} con Kobo` : ""}.`
     : "";
+  const conteos = r.conConteos
+    ? ` Efectivas del consolidado en ${r.conConteos}${r.conteosDistintos ? `; ${r.conteosDistintos} distinta${r.conteosDistintos === 1 ? "" : "s"} de Kobo` : ", iguales a Kobo"}.`
+    : "";
   return {
     tipo: "columna",
     porManzana,
-    resumen: `Planificado en Material: ${partes.join(", ")}.${declarado}`,
-    conDeclarado: r.conEstadoDeclarado > 0,
+    resumen: `Planificado en Material: ${partes.join(", ")}.${declarado}${conteos}`,
+    conDeclarado: r.conEstadoDeclarado > 0 || r.conConteos > 0,
   };
 }

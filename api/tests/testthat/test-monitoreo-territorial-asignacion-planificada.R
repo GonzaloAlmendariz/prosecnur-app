@@ -78,3 +78,23 @@ test_that("C7: el Estado declarado por campo viaja por UMP y contrasta con Kobo 
     estados = modifyList(estados, list(stale = TRUE)))
   expect_identical(otro$resumen$con_estado_declarado, 0L)
 })
+
+test_that("P2: las efectivas que campo transcribe del consolidado se cruzan con las válidas de Kobo", {
+  audit <- .tap_audit
+  audit$advance_valid <- c(TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE)
+  estados <- list(stale = FALSE, desactualizada = FALSE,
+    codigos = list(list(codigo = "8", grupo = "efectiva"), list(codigo = "1", grupo = "no_aplicada")),
+    unidades = list(
+      list(id_manzana = "M1", estado_declarado = "Finalizada", conteos = list(`8` = 2L, `1` = 3L)),
+      list(id_manzana = "M2", estado_declarado = "En campo", conteos = list(`8` = 5L)),
+      list(id_manzana = "M4", estado_declarado = "Pendiente", conteos = list())
+    ))
+  r <- monitoreo_territorial_asignacion_planificada_desde(audit, .tap_asig(), anulado = c(rep(FALSE, 6), TRUE), estados = estados)
+  por <- stats::setNames(r$por_ump, vapply(r$por_ump, `[[`, "", "id_manzana"))
+  expect_identical(c(por$M1$efectivas_declaradas, por$M1$efectivas_kobo), c(2L, 2L))
+  # M2: campo dice 5 efectivas; en Kobo hay una válida (la otra no cuenta).
+  expect_identical(c(por$M2$efectivas_declaradas, por$M2$efectivas_kobo), c(5L, 1L))
+  expect_true(is.na(por$M4$efectivas_declaradas))
+  expect_identical(r$resumen$con_conteos, 2L)
+  expect_identical(r$resumen$conteos_distintos, 1L)
+})

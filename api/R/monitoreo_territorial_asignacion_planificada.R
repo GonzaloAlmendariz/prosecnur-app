@@ -99,14 +99,20 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
   vivo <- if (length(anulado) == n) !(anulado %in% TRUE) else rep(TRUE, n)
   bloque <- .mtap_chr(auditoria, "advance_block_id")
   codigo <- .monitoreo_territorial_clean_code(.mtap_chr(auditoria, "pulso_code"), code_format)
+  valida <- tolower(.mtap_chr(auditoria, "advance_valid")) %in% c("true", "1", "si", "sí")
   keep <- vivo & nzchar(bloque)
-  bloque <- bloque[keep]; codigo <- codigo[keep]
+  bloque <- bloque[keep]; codigo <- codigo[keep]; valida <- valida[keep]
 
   # C7: el Estado que declara campo en el Excel de asignación (Material, lectura
   # pura). Es DECLARADO: no entra al avance. Sólo se usa si es de la misma
   # muestra (`stale` y `desactualizada` en FALSE), como la asignación.
   declarado <- list()
+  # P2: los códigos del catálogo del estudio que cuentan como efectiva.
+  codigos_efectiva <- character(0)
   if (is.list(estados) && !isTRUE(estados$stale) && !isTRUE(estados$desactualizada)) {
+    for (c in estados$codigos %||% list()) {
+      if (identical(.monitoreo_scalar(c$grupo, ""), "efectiva")) codigos_efectiva <- c(codigos_efectiva, .monitoreo_scalar(c$codigo, ""))
+    }
     for (u in estados$unidades %||% list()) {
       id_u <- .monitoreo_scalar(u$id_manzana, "")
       if (nzchar(id_u)) declarado[[id_u]] <- u
@@ -142,6 +148,12 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
     } else if (estado_declarado %in% c("Pendiente", "") && nzchar(estado_declarado) && length(suyos)) {
       "pendiente_con_respuestas"
     } else ""
+    # P2: lo que campo transcribe del consolidado contra lo que llegó a Kobo.
+    conteos <- d$conteos %||% list()
+    declaradas <- if (length(codigos_efectiva) && length(conteos)) {
+      sum(vapply(codigos_efectiva, function(k) suppressWarnings(as.integer(.monitoreo_scalar(conteos[[k]], 0L))), integer(1)), na.rm = TRUE)
+    } else NA_integer_
+    efectivas_kobo <- as.integer(sum(valida[bloque == id]))
     list(
       id_manzana = id,
       label = .monitoreo_scalar(a$label, id),
@@ -155,7 +167,9 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       estado_declarado = estado_declarado,
       fecha_salida = .monitoreo_scalar(d$fecha_salida, ""),
       fecha_entrega = .monitoreo_scalar(d$fecha_entrega, ""),
-      contraste = contraste
+      contraste = contraste,
+      efectivas_declaradas = declaradas,
+      efectivas_kobo = efectivas_kobo
     )
   })
 
@@ -172,7 +186,11 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       # UMP con respuestas que Material no asignó a nadie: se dicen, no se cruzan.
       sin_planificar = length(setdiff(unique(bloque), asignadas_ids)),
       con_estado_declarado = as.integer(sum(nzchar(vapply(por_ump, `[[`, "", "estado_declarado")))),
-      contrastes = as.integer(sum(nzchar(vapply(por_ump, `[[`, "", "contraste"))))
+      contrastes = as.integer(sum(nzchar(vapply(por_ump, `[[`, "", "contraste")))),
+      con_conteos = as.integer(sum(!is.na(vapply(por_ump, function(u) as.integer(u$efectivas_declaradas), integer(1))))),
+      conteos_distintos = as.integer(sum(vapply(por_ump, function(u) {
+        !is.na(u$efectivas_declaradas) && !identical(as.integer(u$efectivas_declaradas), u$efectivas_kobo)
+      }, logical(1))))
     ),
     por_ump = por_ump
   ))

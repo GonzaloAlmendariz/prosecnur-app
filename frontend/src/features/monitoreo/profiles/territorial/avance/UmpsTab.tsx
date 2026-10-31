@@ -212,7 +212,12 @@ function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
   if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado-vacio">Sin declarar</span></td>;
   return (
     <td className="mon-umps-planificado" title={[d.fechas, d.contraste].filter(Boolean).join(". ") || undefined}>
-      <span className={`mon-ter-chip ${d.contraste ? "is-falta" : "is-info"}`}>{d.estado}</span>
+      {d.estado ? <span className={`mon-ter-chip ${d.contraste ? "is-falta" : "is-info"}`}>{d.estado}</span> : null}
+      {d.conteo ? (
+        <span className={`mon-umps-conteo${d.conteo.distinto ? " is-distinto" : ""}`} title="Efectivas que campo transcribe del consolidado, contra las válidas que llegaron a Kobo">
+          {d.conteo.texto}
+        </span>
+      ) : null}
     </td>
   );
 }

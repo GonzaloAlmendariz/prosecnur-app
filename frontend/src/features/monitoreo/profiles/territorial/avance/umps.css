@@ -625,3 +625,16 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
+
+/* P2: efectivas del consolidado contra Kobo; en ámbar cuando no cuadran. */
+.mon-umps-conteo {
+  margin-left: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-umps-conteo.is-distinto {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}

@@ -49,7 +49,23 @@ describe("C7: estado declarado por campo", () => {
       estado: "Finalizada",
       fechas: "salió 2026-10-01, entregó 2026-10-02",
       contraste: "Campo la da por finalizada y no llegó ninguna respuesta a Kobo.",
+      conteo: null,
     });
     expect(c.resumen).toContain("Estado declarado por campo en 1; 1 no cuadra con Kobo.");
+  });
+});
+
+describe("P2: efectivas del consolidado contra Kobo", () => {
+  it("pone «Campo X · Kobo Y» en la celda y lo cuenta en el resumen", () => {
+    const a = normalizeAsignacionPlanificada({
+      estado: "comparable",
+      resumen: { asignadas: 1, con_conteos: 1, conteos_distintos: 1 },
+      por_ump: [{ id_manzana: "M2", codigo_planificado: "P844", observados: [], respuestas: 2, lectura: "coincide_con_otros",
+        estado_declarado: "En campo", efectivas_declaradas: 5, efectivas_kobo: 1 }],
+    });
+    const c = columnaPlanificada(a);
+    if (c.tipo !== "columna") throw new Error("sin columna");
+    expect(c.porManzana.get("M2")?.declarado?.conteo).toEqual({ texto: "Campo 5 · Kobo 1", distinto: true });
+    expect(c.resumen).toContain("Efectivas del consolidado en 1; 1 distinta de Kobo.");
   });
 });
