@@ -119,10 +119,16 @@ const TABLA: readonly Entrada[] = [
   // Sigue pidiendo el corte de Avance › Metas; esa vista heredada queda en
   // Modelo › Metas con sus mandos de meta y de tasa.
   entrada("avance", "porfacultad", null, v("avance", "cuotas"), { propia: true }),
-  // A3 Cursos-horario: los paneles de grano aula de Resumen y, de Efectividad,
-  // «Cada curso-horario contra su propio margen».
-  entrada("avance", "cursos", null, v("avance", "resumen"), { vista: "Cobertura", regreso: false }),
-  entrada("avance", "cursos", "efectividad", v("avance", "efectividad"), { vista: "Contra su margen", regreso: false }),
+  // A3 Cursos-horario: contenido propio (`avance/CursosHorarioAulas.tsx`), que
+  // absorbe «Cada curso-horario contra su propio margen» (la tabla), el estado
+  // por rol (Titulares) y la cobertura. Sigue pidiendo el corte de Avance.
+  // La sub-vista «Estado del campo» conserva la vista heredada de Resumen con
+  // los paneles que A1–A3 todavía no reparten (agendación, cierre por agenda,
+  // desenlaces, qué hacer hoy con sus códigos, alerta de anticipación…).
+  // «Contra su margen» (Efectividad) deja de colgar de aquí: esa vista sigue
+  // entera en Avance › Rendimiento › Efectividad y en Modelo › Metas.
+  entrada("avance", "cursos", null, v("avance", "resumen"), { vista: "Contra su tasa", regreso: false, propia: true }),
+  entrada("avance", "cursos", "campo", v("avance", "resumen"), { vista: "Estado del campo", regreso: false }),
   entrada("avance", "rendimiento", null, v("avance", "rendimiento"), { vista: "Rendimiento" }),
   entrada("avance", "rendimiento", "efectividad", v("avance", "efectividad"), { vista: "Efectividad" }),
   entrada("avance", "salidas", null, v("avance", "salidas")),

@@ -379,7 +379,7 @@ export function AulasPestanaResumen({
                     cumplen meta, cuántas faltan». «Cumplimiento aula por aula»
                     promete un recuento de AULAS y la cifra grande cuenta
                     RESPUESTAS; el rótulo y el número no hablaban de lo mismo. */}
-                <h3>Respuestas que pide el plan, curso-horario a curso-horario</h3>
+                <h3>Respuestas que pide el plan, curso{"\u2011"}horario a curso{"\u2011"}horario</h3>
                 {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
                     recortado a 500 filas. */}
                 {/* Una meta de respuestas no puede ser fraccionaria: sale de
