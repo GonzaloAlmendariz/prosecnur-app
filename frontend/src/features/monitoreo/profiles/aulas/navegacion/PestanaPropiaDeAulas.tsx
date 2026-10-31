@@ -5,6 +5,7 @@ import { CursosHorarioAulas } from "../avance/CursosHorarioAulas";
 import { PorFacultadAulas } from "../avance/PorFacultadAulas";
 import { RendimientoAulas } from "../avance/RendimientoAulas";
 import { SalidasAulas, type ContextoDeSalidas } from "../avance/SalidasAulas";
+import { AgendaAulas } from "../control/AgendaAulas";
 import { ResumenAulas } from "../avance/ResumenAulas";
 import type { DireccionAulas } from "./direccionAulas";
 
@@ -33,6 +34,9 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "avance" && direccion.pestana === "rendimiento" && direccion.panel == null) {
     return <RendimientoAulas {...props} />;
+  }
+  if (direccion.seccion === "control" && direccion.pestana === "agenda" && direccion.panel == null) {
+    return <AgendaAulas {...props} />;
   }
   // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
   if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {

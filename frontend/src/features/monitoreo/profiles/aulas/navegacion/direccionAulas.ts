@@ -92,7 +92,10 @@ const TABLA: readonly Entrada[] = [
   entrada("modelo", "muestra", null, v("consultas", "reemplazos"), { vista: "Reemplazos" }),
   entrada("modelo", "muestra", "banco", v("consultas", "extras"), { vista: "Banco de extras" }),
   // Control, grupo Agenda.
-  entrada("control", "agenda", null, v("modelo", "agenda"), { vista: "Agenda" }),
+  // Ctl1 Agenda: contenido propio (`control/AgendaAulas.tsx`): franja, sin
+  // cita, citas vencidas y la semana de 7:00 a 22:00. Sigue pidiendo el corte
+  // de la Agenda heredada; «Por facultad» queda como sub-vista heredada.
+  entrada("control", "agenda", null, v("modelo", "agenda"), { vista: "Agenda", propia: true }),
   entrada("control", "agenda", "facultad", v("modelo", "facultad"), { vista: "Por facultad" }),
   entrada("control", "contacto", null, v("modelo", "contacto")),
   entrada("control", "distribucion", null, v("modelo", "carga")),
