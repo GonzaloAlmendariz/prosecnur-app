@@ -8,7 +8,7 @@ describe("lectura del Excel de asignación de campo", () => {
       propuesta: [{ id_manzana: ["a"], codigo: "P844" }, { id_manzana: "b", codigo: "" }],
       problemas: { fila: 6, id_manzana: "c", valor: "Juan Pérez", motivo: "No está en la lista de encuestadores de Monitoreo" },
       resumen: { titulares: 150, titulares_con_encuestador: 142, filas_sin_encuestador: 8 },
-      por_encuestador: [{ codigo: "P844", nombre: "Ejemplo Prueba Dieciocho", umps: 38 }],
+      por_encuestador: [{ codigo: "P844", nombre: "Encuestador Ejemplo Uno", umps: 38 }],
       otra_muestra: [true],
       nota: "Sólo se lee el encuestador.",
     });

@@ -6,7 +6,7 @@ import { asignarColumna, borradorDe, codigoDeColumna, cuerpoDelBorrador, hayCamb
 const leida = (extra: Record<string, unknown> = {}): AsignacionTerritorial =>
   normalizarAsignacionTerritorial({
     campaign_id: "territorial.principal",
-    equipo: [{ codigo: "P844", nombre: "Ejemplo Prueba Dieciocho" }, { codigo: "P930", nombre: "Quispe Mamani Lucía" }],
+    equipo: [{ codigo: "P844", nombre: "Encuestador Ejemplo Uno" }, { codigo: "P930", nombre: "Encuestadora Ejémplo Dos" }],
     asignacion: [
       { id_manzana: "a", label: "UMP 1", role: "titular", codigo: "P844", origen: "explicita" },
       { id_manzana: "r", label: "R 1", role: "reemplazo", codigo: "P844", origen: "heredada" },

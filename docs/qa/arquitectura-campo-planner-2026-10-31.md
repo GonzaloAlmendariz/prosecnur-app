@@ -177,7 +177,25 @@ Se dice «etapa» para no confundir con las fases de los ADR (F1–F5 del ADR 01
 **Hallazgo de L10**: la etapa 4 depende de una revisión (C8) que nadie tiene asignada hasta que Gonzalo elija; la etapa 5
 asume que Meta B redacta el ADR, y eso aún no está confirmado por Gonzalo.
 
-## 11. Pendiente de estructurar (tablero del loop)
+## 11. Datos personales (L9)
+
+| Insumo | Trae | Dónde vive | ¿Lo cubre `api/scripts/pulso_anonimizar.R`? |
+|---|---|---|---|
+| Lista de encuestadores territorial | Nombres y DNI | `monitoreo_config$territorial$enumerator_roster` | No |
+| Asignación UMP → encuestador | Códigos de encuestador | `material_territorial_asignacion` | No (sólo códigos, pero se cruzan con la lista) |
+| Libro del operativo de aulas | Nombres de aplicadores | Sheets del operativo, `monitoreo_aulas_libro` | Por verificar |
+| Barrido telefónico y listados del cliente | Nombres y teléfonos de personas refugiadas | Archivo del operativo (Drive) | No debe entrar nunca al repo |
+| Excel de asignación descargado | Nombres de encuestadores (desplegable) | Descargas del proyecto | Se genera al vuelo; no se versiona |
+
+**Hallazgo de L9 (corregido en este tick)**: el nombre de ejemplo que usaban los tests y docs de esta sesión era el de un
+aplicador real del operativo de aulas. Se reemplazó por «Encuestador Ejemplo Uno» y «Encuestadora Ejémplo Dos» en los
+archivos de esta sesión. Sigue en el historial de git y en dos archivos de otras sesiones
+(`docs/qa/checklist-asignacion-aplicadores-2026-09-04.md`, `api/tests/testthat/test-monitoreo-aulas-fijaciones-desfasadas.R`),
+junto a otros nombres reales; se avisa a Meta B.
+
+**Regla para lo que viene**: los ejemplos de tests, docs y artefactos usan nombres ficticios evidentes, nunca nombres
+copiados de una base, un Sheets o un parte de campo.
+
+## 12. Pendiente de estructurar (tablero del loop)
 
 - Formatos con maqueta fiel (L8).
-- Datos personales (L9).

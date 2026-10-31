@@ -9,8 +9,8 @@
   s$monitoreo_config$territorial$enumerator_roster <- list(
     code_format = code_format,
     assignments = list(
-      list(codigo_pulso = "P844", nombre = "Ejemplo Prueba Dieciocho", dni = "40000001"),
-      list(codigo_pulso = "P930", nombre = "Quispe Mamani Lucía", dni = "40000002")
+      list(codigo_pulso = "P844", nombre = "Encuestador Ejemplo Uno", dni = "40000001"),
+      list(codigo_pulso = "P930", nombre = "Encuestadora Ejémplo Dos", dni = "40000002")
     )
   )
   .session_env[[sid]] <- s
@@ -141,7 +141,7 @@ test_that("lista de Monitoreo por DNI: no se expone nadie ni un DNI, y no se asi
   .mta_roster(sid, code_format = "DNI")
   s <- session_get(sid)
   s$monitoreo_config$territorial$enumerator_roster$assignments <- list(
-    list(codigo_pulso = "40000001", nombre = "Ejemplo Prueba Dieciocho", dni = "40000001"))
+    list(codigo_pulso = "40000001", nombre = "Encuestador Ejemplo Uno", dni = "40000001"))
   .session_env[[sid]] <- s
   g <- collection_territorial_asignacion_get(sid)
   expect_identical(g$code_format, "DNI")

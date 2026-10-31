@@ -26,7 +26,7 @@
                    "Estado", "Observaciones")
 .MTX_ESTADOS <- c("Pendiente", "En campo", "Finalizada", "Reemplazada", "Anulada")
 
-# «P844 · Ejemplo Prueba Dieciocho»: lo que muestra el desplegable y lo que se lee de vuelta.
+# «P844 · Encuestador Ejemplo Uno»: lo que muestra el desplegable y lo que se lee de vuelta.
 .mtx_etiqueta <- function(e) if (nzchar(e$nombre)) paste0(e$codigo, " · ", e$nombre) else e$codigo
 
 .mtx_normalizar_nombre <- function(x) {

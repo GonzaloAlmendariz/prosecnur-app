@@ -10,8 +10,8 @@
   collection_campaign_create(sid, "territorial", "UMP Lima")
   s <- session_get(sid)
   s$monitoreo_config$territorial$enumerator_roster <- list(code_format = "PXXX", assignments = list(
-    list(codigo_pulso = "P844", nombre = "Ejemplo Prueba Dieciocho", dni = "40000001"),
-    list(codigo_pulso = "P930", nombre = "Quispe Mamani Lucía", dni = "40000002")))
+    list(codigo_pulso = "P844", nombre = "Encuestador Ejemplo Uno", dni = "40000001"),
+    list(codigo_pulso = "P930", nombre = "Encuestadora Ejémplo Dos", dni = "40000002")))
   .session_env[[sid]] <- s
   sid
 }
@@ -49,7 +49,7 @@ test_that("generar: una fila por UMP de la foto, la lista sin DNI y lo ya asigna
   expect_identical(as.character(t[["Código.de.manzana"]]), c(T1, R1, T2))
   expect_identical(t$Tipo, c("Titular", "Reemplazo", "Titular"))
   expect_identical(t$Reemplaza.a[[2]], "UMP 1")
-  expect_identical(t$Encuestador[[1]], "P844 · Ejemplo Prueba Dieciocho")
+  expect_identical(t$Encuestador[[1]], "P844 · Encuestador Ejemplo Uno")
   expect_true(t$Encuestador[[2]] %in% c(NA, ""))  # el reemplazo hereda: no se escribe
   eq <- openxlsx::read.xlsx(g$path, sheet = "Encuestadores")
   expect_false(any(grepl("40000001", unlist(eq))))
@@ -58,8 +58,8 @@ test_that("generar: una fila por UMP de la foto, la lista sin DNI y lo ya asigna
 test_that("importar: lee la etiqueta, el código suelto y el nombre; es puro y lo aplica el PUT", {
   sid <- .mtx_sesion(); on.exit(session_delete(sid), add = TRUE)
   g <- .mtx_generar(sid)
-  raw <- .mtx_llenar(g$path, list(`150101001001` = "P844 · Ejemplo Prueba Dieciocho", `150101001002` = "930",
-                                  `150101001009` = "quispe mamani lucia"))
+  raw <- .mtx_llenar(g$path, list(`150101001001` = "P844 · Encuestador Ejemplo Uno", `150101001002` = "930",
+                                  `150101001009` = "encuestadora ejemplo dos"))
   antes <- session_get(sid)$material_territorial_asignacion
   r <- collection_territorial_asignacion_importar(sid, file_raw = raw)
   expect_identical(session_get(sid)$material_territorial_asignacion, antes)
