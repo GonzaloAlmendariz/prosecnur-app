@@ -3643,7 +3643,7 @@ mount_monitoreo <- function(pr) {
       }
       current_roster <- cfg$territorial$enumerator_roster %||% list()
       roster <- tryCatch(
-        monitoreo_territorial_enumerator_roster_from_excel(
+        monitoreo_territorial_enumerator_roster_desde_excel(
           .monitoreo_scalar(meta$path, ""),
           previous = current_roster,
           file_name = .monitoreo_scalar(meta$original_name, original),
