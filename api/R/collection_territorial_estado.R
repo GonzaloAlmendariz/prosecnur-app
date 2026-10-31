@@ -41,8 +41,15 @@
     est <- .hojas_ruta_envio_chr(e$estado_declarado)
     fs <- .hojas_ruta_envio_chr(e$fecha_salida); fe <- .hojas_ruta_envio_chr(e$fecha_entrega)
     if (!nzchar(id) || !(est %in% c("", .MTX_ESTADOS))) return(NULL)
-    if (!nzchar(est) && !nzchar(fs) && !nzchar(fe)) return(NULL)
-    list(id_manzana = id, estado_declarado = est, fecha_salida = fs, fecha_entrega = fe)
+    # P2: conteos por código de resultado, enteros desde cero; lo demás se descarta.
+    cr <- if (is.list(e$conteos)) e$conteos else list()
+    conteos <- list()
+    for (k in names(cr)) {
+      v <- suppressWarnings(as.integer(unlist(cr[[k]])[1]))
+      if (grepl("^[0-9]+$", k) && !is.na(v) && v >= 0L) conteos[[k]] <- v
+    }
+    if (!nzchar(est) && !nzchar(fs) && !nzchar(fe) && !length(conteos)) return(NULL)
+    list(id_manzana = id, estado_declarado = est, fecha_salida = fs, fecha_entrega = fe, conteos = conteos)
   })
   Filter(Negate(is.null), out)
 }
@@ -64,12 +71,17 @@ collection_territorial_estado_get <- function(sid, campaign_id = NULL) {
     d <- de_id[[u$unit_id]] %||% list()
     list(id_manzana = u$unit_id, label = u$label, role = u$role,
          codigo = unname(codigo_de[u$unit_id]) %||% "",
-         estado_declarado = d$estado_declarado %||% "", fecha_salida = d$fecha_salida %||% "", fecha_entrega = d$fecha_entrega %||% "")
+         estado_declarado = d$estado_declarado %||% "", fecha_salida = d$fecha_salida %||% "", fecha_entrega = d$fecha_entrega %||% "",
+         # P2: totales de la hoja de consolidados transcritos por campo, por código.
+         conteos = if (length(d$conteos)) d$conteos else structure(list(), names = character(0)))
   })
   for (i in seq_along(unidades)) if (is.na(unidades[[i]]$codigo)) unidades[[i]]$codigo <- ""
   list(ok = TRUE, campaign_id = asig$campaign_id, fase = asig$fase,
        fuente = "excel_asignacion", es_avance = FALSE,
        sample_fingerprint = asig$sample_fingerprint, stale = asig$stale, desactualizada = asig$desactualizada,
        leido_at = if (propia && length(declarado)) g$estados_at else NA_character_,
-       declaradas = length(declarado), unidades = unidades)
+       declaradas = length(declarado),
+       # P2: el catálogo de códigos con que se leen los conteos (collection_territorial_formatos.R).
+       codigos = lapply(collection_territorial_formatos_get(sid, asig$campaign_id)$codigos, function(k) k[c("codigo", "rotulo", "grupo")]),
+       unidades = unidades)
 }

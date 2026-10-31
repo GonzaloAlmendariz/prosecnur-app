@@ -33,3 +33,17 @@ describe("normalizarFormatosTerritoriales", () => {
     expect(normalizarFormatosTerritoriales(null)).toMatchObject({ codigos: [], caras_ruteo: 2, revision: 0, rotulos: {} });
   });
 });
+
+describe("normalizarImportacionAsignacion · conteos (P2)", () => {
+  it("conserva los conteos por código para que aplicar no los pierda", async () => {
+    const { normalizarImportacionAsignacion } = await import("./materialTerritorial");
+    const r = normalizarImportacionAsignacion({
+      propuesta: [],
+      problemas: [],
+      estados: [{ id_manzana: "1", estado_declarado: "Finalizada", fecha_salida: "", fecha_entrega: "", conteos: { "8": [6], "4": 3, "1": -2 } }],
+      resumen: { conteos_declarados: 1 },
+    });
+    expect(r.estados[0].conteos).toEqual({ "8": 6, "4": 3 });
+    expect(r.conteos_declarados).toBe(1);
+  });
+});

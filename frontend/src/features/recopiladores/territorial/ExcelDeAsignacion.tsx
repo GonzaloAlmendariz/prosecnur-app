@@ -79,6 +79,7 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
             </strong>
             {lectura.filas_sin_encuestador ? ` · ${lectura.filas_sin_encuestador} filas sin encuestador` : ""}
             {lectura.estados_declarados ? ` · ${lectura.estados_declarados} UMP con estado declarado` : ""}
+            {lectura.conteos_declarados ? ` · ${lectura.conteos_declarados} con conteos de consolidado` : ""}
           </p>
           <ul className="rec-asig-lectura-equipo">
             {lectura.por_encuestador

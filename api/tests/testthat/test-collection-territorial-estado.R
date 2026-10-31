@@ -86,3 +86,24 @@ test_that("HTTP: GET del estado declarado", {
   expect_identical(g$body$declaradas, 0L)
   expect_true(length(g$body$unidades) > 0L)
 })
+
+test_that("P2: el Excel trae una columna por código, se leen los conteos y el GET los publica con el catálogo", {
+  sid <- .mte_sesion(); on.exit(session_delete(sid), add = TRUE)
+  collection_territorial_formatos_put(sid, rotulos = list(`5` = "No hay persona de 18 a 25 años"))
+  raw <- .mte_llenar(sid, list(
+    `150101001001` = list(Encuestador = "P844", `8 · Encuesta efectiva` = 6, `4 · Nadie en casa` = 3, `1 · No quiso participar` = "dos"),
+    `150101001002` = list(`5 · No hay persona de 18 a 25 años` = 2)
+  ))
+  r <- collection_territorial_asignacion_importar(sid, file_raw = raw)
+  e1 <- Filter(function(e) identical(e$id_manzana, T1), r$estados)[[1]]
+  expect_identical(e1$conteos, list(`4` = 3L, `8` = 6L))
+  expect_true(any(grepl("conteo del código 1", vapply(r$problemas, `[[`, "", "motivo"))))
+  expect_identical(r$resumen$conteos_declarados, 2L)
+  collection_territorial_asignacion_put(sid, asignacion = r$propuesta, estados = r$estados)
+  g <- collection_territorial_estado_get(sid)
+  expect_identical(vapply(g$codigos, `[[`, "", "codigo")[1:3], c("1", "2", "3"))
+  u2 <- Filter(function(u) identical(u$id_manzana, T2), g$unidades)[[1]]
+  expect_identical(u2$conteos, list(`5` = 2L))
+  sin <- Filter(function(u) !u$id_manzana %in% c(T1, T2), g$unidades)
+  if (length(sin)) expect_identical(jsonlite::toJSON(sin[[1]]$conteos, auto_unbox = TRUE), structure("{}", class = "json"))
+})

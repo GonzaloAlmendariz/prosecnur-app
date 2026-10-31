@@ -300,13 +300,22 @@ export type ExcelAsignacion = { file_id: string; filename: string; umps: number 
 export type ProblemaDeFila = { fila: number; id_manzana: string; valor: string; motivo: string };
 
 /** C7: Estado y fechas que campo declara por UMP (no es avance: el avance sale de Kobo). */
-export type EstadoDeclarado = { id_manzana: string; estado_declarado: string; fecha_salida: string; fecha_entrega: string };
+export type EstadoDeclarado = {
+  id_manzana: string;
+  estado_declarado: string;
+  fecha_salida: string;
+  fecha_entrega: string;
+  /** P2: totales de la hoja de consolidados transcritos por campo, por código de resultado. */
+  conteos: Record<string, number>;
+};
 
 export type ImportacionAsignacion = {
   propuesta: { id_manzana: string; codigo: string }[];
   estados: EstadoDeclarado[];
   /** UMP con un Estado distinto de «Pendiente». */
   estados_declarados: number;
+  /** UMP con conteos por código transcritos (P2). */
+  conteos_declarados: number;
   problemas: ProblemaDeFila[];
   titulares: number;
   titulares_con_encuestador: number;
@@ -335,12 +344,21 @@ export function normalizarImportacionAsignacion(valor: unknown): ImportacionAsig
     .filter((p) => p.codigo);
   const estados = lista(valor.estados)
     .filter(esRegistro)
-    .map((e) => ({ id_manzana: texto(e.id_manzana), estado_declarado: texto(e.estado_declarado), fecha_salida: texto(e.fecha_salida), fecha_entrega: texto(e.fecha_entrega) }))
+    .map((e) => ({
+      id_manzana: texto(e.id_manzana),
+      estado_declarado: texto(e.estado_declarado),
+      fecha_salida: texto(e.fecha_salida),
+      fecha_entrega: texto(e.fecha_entrega),
+      conteos: esRegistro(e.conteos)
+        ? Object.fromEntries(Object.entries(e.conteos).flatMap(([k, v]) => { const n = enteroONulo(v); return n === null || n < 0 ? [] : [[k, n]]; }))
+        : {},
+    }))
     .filter((e) => e.id_manzana);
   return {
     propuesta,
     estados,
     estados_declarados: entero(resumen.estados_declarados),
+    conteos_declarados: entero(resumen.conteos_declarados),
     problemas,
     titulares: entero(resumen.titulares),
     titulares_con_encuestador: entero(resumen.titulares_con_encuestador),

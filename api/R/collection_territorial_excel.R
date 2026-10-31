@@ -98,6 +98,11 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
     )
   })
   tabla <- do.call(rbind, filas)
+  # P2: una columna por código de resultado del estudio, donde campo transcribe los
+  # totales de su hoja de consolidados. Se leen de vuelta como declarados (C7).
+  conteo_cols <- .mtx_columnas_conteo(collection_territorial_formatos_get(sid, ctx$hit$entry$id)$codigos)
+  for (cc in conteo_cols) tabla[[cc]] <- NA_integer_
+  columnas <- names(tabla)
   n <- nrow(tabla)
   primera <- .MTX_FILA_CABECERA + 1L
   ultima <- .MTX_FILA_CABECERA + n
@@ -113,7 +118,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   ), startRow = 2)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(fontSize = 14, textDecoration = "bold"), rows = 1, cols = 1)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(fontSize = 10, fontColour = "#5B6573", wrapText = TRUE), rows = 2, cols = 1)
-  openxlsx::mergeCells(wb, .MTX_HOJA, cols = seq_along(.MTX_COLUMNAS), rows = 2)
+  openxlsx::mergeCells(wb, .MTX_HOJA, cols = seq_along(columnas), rows = 2)
   openxlsx::setRowHeights(wb, .MTX_HOJA, rows = 2, heights = 32)
   openxlsx::writeData(wb, .MTX_HOJA, tabla, startRow = .MTX_FILA_CABECERA,
                       headerStyle = openxlsx::createStyle(textDecoration = "bold", fgFill = "#1F3A5F", fontColour = "#FFFFFF",
@@ -121,16 +126,16 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   # Titulares en azul y reemplazos en amarillo, como el Excel operativo que campo ya conoce.
   es_reemplazo <- tabla$Tipo == "Reemplazo"
   if (any(!es_reemplazo)) openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(fgFill = "#E8F0FB"),
-                                             rows = which(!es_reemplazo) + .MTX_FILA_CABECERA, cols = seq_along(.MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
+                                             rows = which(!es_reemplazo) + .MTX_FILA_CABECERA, cols = seq_along(columnas), gridExpand = TRUE, stack = TRUE)
   if (any(es_reemplazo)) openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(fgFill = "#FFF6D6"),
-                                            rows = which(es_reemplazo) + .MTX_FILA_CABECERA, cols = seq_along(.MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
+                                            rows = which(es_reemplazo) + .MTX_FILA_CABECERA, cols = seq_along(columnas), gridExpand = TRUE, stack = TRUE)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "@"), rows = primera:ultima, cols = match("Código de manzana", .MTX_COLUMNAS), stack = TRUE)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "dd/mm/yyyy"), rows = primera:ultima,
                      cols = match(c("Fecha de salida", "Fecha de entrega"), .MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
-  openxlsx::setColWidths(wb, .MTX_HOJA, cols = seq_along(.MTX_COLUMNAS),
-                         widths = c(18, 8, 9, 18, 10, 8, 11, 10, 9, 34, 13, 13, 12, 36))
+  openxlsx::setColWidths(wb, .MTX_HOJA, cols = seq_along(columnas),
+                         widths = c(18, 8, 9, 18, 10, 8, 11, 10, 9, 34, 13, 13, 12, 36, rep(14, length(conteo_cols))))
   openxlsx::freezePane(wb, .MTX_HOJA, firstActiveRow = primera, firstActiveCol = col_enc)
-  openxlsx::addFilter(wb, .MTX_HOJA, rows = .MTX_FILA_CABECERA, cols = seq_along(.MTX_COLUMNAS))
+  openxlsx::addFilter(wb, .MTX_HOJA, rows = .MTX_FILA_CABECERA, cols = seq_along(columnas))
   openxlsx::pageSetup(wb, .MTX_HOJA, orientation = "landscape", fitToWidth = TRUE, fitToHeight = FALSE,
                       printTitleRows = .MTX_FILA_CABECERA)
 
@@ -151,6 +156,13 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
                            value = sprintf("'%s'!$C$2:$C$%d", .MTX_HOJA_EQUIPO, length(etiquetas) + 1L))
   openxlsx::writeData(wb, .MTX_HOJA, data.frame(e = .MTX_ESTADOS), startCol = 30, startRow = 1, colNames = FALSE)
   openxlsx::setColWidths(wb, .MTX_HOJA, cols = 30, widths = 0, hidden = TRUE)
+  if (length(conteo_cols)) {
+    openxlsx::dataValidation(wb, .MTX_HOJA, cols = match(conteo_cols, columnas), rows = primera:ultima, type = "whole",
+                             operator = "greaterThanOrEqual", value = 0)
+    openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(textDecoration = "bold", fgFill = "#B7791F", fontColour = "#FFFFFF",
+                                                            border = "Bottom", wrapText = TRUE, valign = "center"),
+                       rows = .MTX_FILA_CABECERA, cols = match(conteo_cols, columnas))
+  }
   openxlsx::dataValidation(wb, .MTX_HOJA, cols = match("Estado", .MTX_COLUMNAS), rows = primera:ultima, type = "list",
                            value = sprintf("$AD$1:$AD$%d", length(.MTX_ESTADOS)))
 
@@ -170,6 +182,9 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
 }
 
 # Columna por su rótulo, con los nombres del Excel operativo viejo como alias.
+# P2: «1 · No quiso participar»: el código va delante y es lo que se lee de vuelta.
+.mtx_columnas_conteo <- function(codigos) vapply(codigos, function(k) sprintf("%s · %s", k$codigo, k$rotulo), "")
+
 .mtx_columna <- function(cabecera, opciones) {
   norm <- .mtx_normalizar_nombre(cabecera)
   hit <- match(.mtx_normalizar_nombre(opciones), norm)
@@ -193,8 +208,11 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
         cuerpo <- if (r < nrow(crudo)) crudo[(r + 1L):nrow(crudo), , drop = FALSE] else crudo[0, , drop = FALSE]
         # C7: Estado y fechas son opcionales (el Excel operativo viejo no los trae).
         opcional <- function(nombres) { k <- .mtx_columna(cab, nombres); if (is.na(k)) rep(NA, nrow(cuerpo)) else cuerpo[[k]] }
+        # P2: columnas de conteo por su código delante («8 · Encuesta efectiva»).
+        de_conteo <- which(grepl("^\\s*[0-9]+\\s*·", cab))
+        conteos <- stats::setNames(lapply(de_conteo, function(k) cuerpo[[k]]), trimws(sub("·.*$", "", cab[de_conteo])))
         return(list(hoja = h, fila0 = r, id = cuerpo[[ci]], encuestador = cuerpo[[ce]], estado = opcional("Estado"),
-                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional("Fecha de entrega")))
+                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional("Fecha de entrega"), conteos = conteos))
       }
     }
   }
@@ -276,9 +294,19 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
     if (is.na(fs) && crudo_fecha(t$fecha_salida[i])) problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(t$fecha_salida[[i]]), motivo = "La fecha de salida no se reconoce")
     if (is.na(fe) && crudo_fecha(t$fecha_entrega[i])) problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(t$fecha_entrega[[i]]), motivo = "La fecha de entrega no se reconoce")
     est <- if (is.na(est)) "" else est
-    if (nzchar(est) || !is.na(fs) || !is.na(fe)) {
+    cuenta <- list()
+    for (k in names(t$conteos)) {
+      v <- t$conteos[[k]][[i]]
+      if (is.null(v) || is.na(v) || !nzchar(trimws(as.character(v)))) next
+      num <- suppressWarnings(as.numeric(v))
+      if (is.na(num) || num < 0 || num != floor(num)) {
+        problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(v), motivo = sprintf("El conteo del código %s no es un entero desde cero", k))
+      } else cuenta[[k]] <- as.integer(num)
+    }
+    if (nzchar(est) || !is.na(fs) || !is.na(fe) || length(cuenta)) {
       estados[[id]] <- list(id_manzana = id, estado_declarado = est,
-                            fecha_salida = if (is.na(fs)) "" else fs, fecha_entrega = if (is.na(fe)) "" else fe)
+                            fecha_salida = if (is.na(fs)) "" else fs, fecha_entrega = if (is.na(fe)) "" else fe,
+                            conteos = cuenta)
     }
     if (!nzchar(encs[[i]])) { sin_encuestador <- sin_encuestador + 1L; next }
     cod <- resolver(encs[[i]])
@@ -315,10 +343,11 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
     resumen = list(titulares = length(titulares), titulares_con_encuestador = as.integer(sum(con)),
                    filas_sin_encuestador = sin_encuestador, problemas = length(problemas),
                    pierden_encuestador = length(pierden),
+                   conteos_declarados = length(Filter(function(e) length(e$conteos) > 0L, estados)),
                    estados_declarados = length(Filter(function(e) nzchar(e$estado_declarado) && !identical(e$estado_declarado, "Pendiente"), estados))),
     por_encuestador = lapply(seq_along(codigos), function(i) list(codigo = codigos[[i]], nombre = equipo[[i]]$nombre, umps = as.integer(conteo[[i]]))),
     otra_muestra = nzchar(control$sample_fingerprint %||% "") && !identical(control$sample_fingerprint, ctx$envio$sample_fingerprint),
-    nota = "Se leen el encuestador, el Estado y las fechas; el Estado es lo que declara campo y no cambia el avance, que sale de Kobo. Las observaciones se quedan en el Excel."
+    nota = "Se leen el encuestador, el Estado, las fechas y los conteos por código de resultado; es lo que declara campo y no cambia el avance, que sale de Kobo. Las observaciones se quedan en el Excel."
   )
 }
 
