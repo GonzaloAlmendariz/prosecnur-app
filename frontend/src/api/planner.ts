@@ -231,3 +231,42 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
 export async function apiPlannerModos(): Promise<PlannerModos> {
   return normalizarPlannerModos(await handle<unknown>(await apiFetch("/api/planner/modos", { headers: headers() })));
 }
+
+// --- Cronograma y etapa operativa (ADR 0122 §2) ---------------------------------
+
+export type PlannerEtapa = "piloto" | "campo";
+export type PlannerCalendario = {
+  hoy: string;
+  campo: { inicio: string; fin: string };
+  etapa: {
+    valor: PlannerEtapa | null;
+    /** De dónde sale cada respuesta hoy: `hojas_ruta` y `monitoreo`. */
+    fuentes: Partial<Record<"hojas_ruta" | "monitoreo", { etapa: PlannerEtapa | null; pilotoDesde?: string; campoDesde?: string }>>;
+  };
+  avisos: PlannerAviso[];
+};
+
+const etapaDe = (x: unknown): PlannerEtapa | null => (txt(x) === "piloto" || txt(x) === "campo" ? (txt(x) as PlannerEtapa) : null);
+
+export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
+  const r = obj(raw);
+  const campo = obj(r.campo);
+  const etapa = obj(r.etapa);
+  const fuentesCrudas = obj(etapa.fuentes);
+  const fuentes: PlannerCalendario["etapa"]["fuentes"] = {};
+  for (const clave of ["hojas_ruta", "monitoreo"] as const) {
+    const f = obj(fuentesCrudas[clave]);
+    if (!Object.keys(f).length) continue;
+    fuentes[clave] = { etapa: etapaDe(f.etapa), pilotoDesde: txt(f.piloto_desde) || undefined, campoDesde: txt(f.campo_desde) || undefined };
+  }
+  return {
+    hoy: txt(r.hoy),
+    campo: { inicio: txt(campo.inicio), fin: txt(campo.fin) },
+    etapa: { valor: etapaDe(etapa.valor), fuentes },
+    avisos: arr(r.avisos).map((x) => ({ codigo: txt(obj(x).codigo), mensaje: txt(obj(x).mensaje) })).filter((a) => a.mensaje),
+  };
+}
+
+export async function apiPlannerCalendario(): Promise<PlannerCalendario> {
+  return normalizarPlannerCalendario(await handle<unknown>(await apiFetch("/api/planner/calendario", { headers: headers() })));
+}

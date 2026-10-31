@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
+import { normalizarPlannerCalendario, normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
 
 describe("normalizadores del Planner", () => {
   it("lee los modos como los serializa R: escalares sueltos y listas vacías como {}", () => {
@@ -39,5 +39,18 @@ describe("normalizadores del Planner", () => {
     expect(estado.planner.perfiles[0].poblaciones[0].representatividad).toBeNull();
     expect(estado.origen.perfiles).toBe("declarado");
     expect(estado.origen.equipo).toBe("proyectado");
+  });
+
+  it("lee la etapa con sus fuentes y no inventa acuerdo cuando no lo hay", () => {
+    const cal = normalizarPlannerCalendario({
+      hoy: "2026-10-31",
+      campo: { inicio: "2026-11-10", fin: "" },
+      etapa: { valor: null, fuentes: { hojas_ruta: { etapa: "campo" }, monitoreo: { etapa: "piloto", campo_desde: "2026-11-12" } } },
+      avisos: [{ codigo: "etapa_no_coincide", mensaje: "Hojas de ruta dice campo y Monitoreo, piloto." }],
+    });
+    expect(cal.etapa.valor).toBeNull();
+    expect(cal.etapa.fuentes.monitoreo).toEqual({ etapa: "piloto", pilotoDesde: undefined, campoDesde: "2026-11-12" });
+    expect(cal.campo).toEqual({ inicio: "2026-11-10", fin: "" });
+    expect(cal.avisos).toHaveLength(1);
   });
 });

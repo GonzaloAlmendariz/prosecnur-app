@@ -36,6 +36,7 @@ import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
 import { PANEL_IMPORTAR } from "../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { PlannerCalendarioResumen } from "./planner/PlannerCalendarioResumen";
 import { PlannerCodigos } from "./planner/PlannerCodigos";
 import { PlannerEquipo } from "./planner/PlannerEquipo";
 import { PlannerEstudio } from "./planner/PlannerEstudio";
@@ -144,7 +145,10 @@ export default function BitacoraPage() {
         {tab === "equipo" && <PlannerEquipo control={planner} />}
         {tab === "codigos" && <PlannerCodigos control={planner} pestana={pestana} />}
         {tab === "cronograma" && plan && pestana === "gantt" && (
-          <CronogramaSection state={plan} onChange={setPlan} onReload={reloadPlan} />
+          <>
+            <PlannerCalendarioResumen recarga={plan} />
+            <CronogramaSection state={plan} onChange={setPlan} onReload={reloadPlan} />
+          </>
         )}
         {tab === "cronograma" && plan && (pestana === "mes" || pestana === "semana") && (
           <Calendar state={plan} onChange={setPlan} selectorDeVista={false} />

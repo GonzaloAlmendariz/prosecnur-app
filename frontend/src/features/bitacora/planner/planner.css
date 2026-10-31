@@ -377,3 +377,41 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-body-size);
 }
+
+/* --- Cronograma › Plan: campo y etapa ------------------------------------- */
+
+.planner-calendario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.planner-calendario-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+}
+
+.planner-calendario-datos dt {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-faint);
+}
+
+.planner-calendario-datos dd {
+  margin: 2px 0 0;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.planner-calendario-fuente {
+  margin-left: var(--pulso-space-1);
+  font-weight: normal;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

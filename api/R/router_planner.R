@@ -30,6 +30,13 @@ mount_planner <- function(pr) {
       .planner_modos(session_get(session_header(req)))
     })) |>
 
+    # Cronograma, ventana de campo y etapa operativa (piloto o campo) leídos
+    # juntos de donde viven hoy, con aviso si no coinciden. Lectura pura.
+    plumber::pr_get("/api/planner/calendario",
+                    wrap_endpoint(function(req, res, ...) {
+      .planner_calendario(session_get(session_header(req)))
+    })) |>
+
     plumber::pr_put("/api/planner/<seccion>",
                     wrap_endpoint(function(req, res, seccion, ...) {
       sid <- session_header(req)
