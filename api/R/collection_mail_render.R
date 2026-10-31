@@ -43,7 +43,9 @@
 .CMAIL_BORDER <- "#e2e6ed"
 .CMAIL_MUTED <- "#5f6673"
 .CMAIL_PAGE_BG <- "#eef1f5"
-.CMAIL_FOOTER_TEXT <- "#8a909c"
+# El pie (dirección y por qué recibe el correo) a 12 px sobre el gris de la
+# página: 4,66:1, que pasa AA (4,5). Era #8a909c, 2,83:1 (GOAL editor L17).
+.CMAIL_FOOTER_TEXT <- "#666c78"
 .CMAIL_PAD_X <- 48L
 .CMAIL_FIELD_TINT <- "#eef3e8"
 

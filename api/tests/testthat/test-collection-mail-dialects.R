@@ -34,14 +34,14 @@ test_that("paridad: export/mailchimp da el MISMO SHA256 que el render anterior (
     c <- cases[[n]]
     new <- collection_mail_render(c$t, "export", "mailchimp", images = c$images)$html
     alias <- collection_mail_render(c$t, "mailchimp", images = c$images)$html
-    expect_identical(.cmail_fx_sha(new), fx$sha256[[n]], label = paste("export/mailchimp", n))
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(new)), fx$sha256[[n]], label = paste("export/mailchimp", n))
     expect_identical(alias, new, label = paste("alias mode = mailchimp", n))
     pv <- collection_mail_render(c$t, "preview", values = fx$preview_values, images = c$images)$html
-    expect_identical(.cmail_fx_sha(pv), fx$preview_sha256[[n]], label = paste("preview mailchimp", n))
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(pv)), fx$preview_sha256[[n]], label = paste("preview mailchimp", n))
   }
   # Los dos presets reales, como los sirve la app hoy (con `sm` en el enlace).
   for (id in c("recuperacion", "invitacion")) {
-    expect_identical(.cmail_fx_sha(collection_mail_render(cases[[id]]$t, "export")$html), fx$sha256[[id]])
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(collection_mail_render(cases[[id]]$t, "export")$html)), fx$sha256[[id]])
   }
 })
 

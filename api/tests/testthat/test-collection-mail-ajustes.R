@@ -27,7 +27,7 @@
 # Quita SOLO lo que E1p agrega a todo correo: la clase cmail-pad y su regla, y la
 # clase cmail-logo de los logos de la cabecera con su regla (test-collection-mail-logos.R).
 .cma_strip_pad <- function(html) {
-  html <- sub(.cmail_pad_style(), "", html, fixed = TRUE)
+  html <- .cmail_fx_pie_l17(sub(.cmail_pad_style(), "", html, fixed = TRUE))
   logo_rule <- .cmail_logo_style(html)
   if (nzchar(logo_rule)) html <- sub(logo_rule, "", html, fixed = TRUE)
   html <- gsub('<img class="cmail-logo" ', "<img ", html, fixed = TRUE)
@@ -200,7 +200,7 @@ test_that("page_bg en sobrio pinta la página fuera de la tarjeta y el pie conse
   expect_match(html, "border-radius:8px;border-collapse:separate;overflow:hidden;background-color:#ffffff;", fixed = TRUE)
   expect_match(html, "height:4px;line-height:4px", fixed = TRUE)
   expect_false(grepl(.CMAIL_PAGE_BG, html, fixed = TRUE))
-  # El pie: tono calculado sobre el navy (no el gris #8a909c) y enlaces de la plataforma del mismo tono.
+  # El pie: tono calculado sobre el navy (no el gris de siempre) y enlaces de la plataforma del mismo tono.
   pal <- .cmail_theme_palette(t, "#0b1f54", "#0b1f54")
   expect_false(identical(pal$footer, .CMAIL_FOOTER_TEXT))
   expect_gte(.cmail_contrast(pal$footer, "#0b1f54"), 4.5)
@@ -222,6 +222,14 @@ test_that("page_bg en sobrio pinta la página fuera de la tarjeta y el pie conse
   expect_length(.cma_checks(.cma_with(base, page_bg = .CMAIL_PAGE_BG)), 0L)
   expect_identical(collection_mail_render(.cma_with(base, page_bg = toupper(.CMAIL_PAGE_BG)), "export")$html,
                    collection_mail_render(base, "export")$html)
+})
+
+test_that("el pie por defecto del estilo sobrio se lee: 4,5:1 o más sobre el gris de la página (L17)", {
+  # Lo llevan todos los correos sobrios sin fondo propio, y ahí la revisión no lo mide: lo guarda este test.
+  expect_gte(.cmail_contrast(.CMAIL_FOOTER_TEXT, .CMAIL_PAGE_BG), 4.5)
+  html <- collection_mail_render(.cmail_template_normalize(.cmail_preset_recuperacion()), "export")$html
+  expect_match(html, sprintf("color:%s;", .CMAIL_FOOTER_TEXT), fixed = TRUE)
+  expect_false(grepl("#8a909c", html, fixed = TRUE))
 })
 
 test_that("el contraste del pie da error en sobrio cuando no alcanza 4,5:1, con target a la Identidad", {

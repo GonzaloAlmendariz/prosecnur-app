@@ -175,6 +175,12 @@
 
 .cmail_fx_sha <- function(x) paste0("sha256:", digest::digest(x, algo = "sha256", serialize = FALSE))
 
+# Las huellas de paridad son de antes de L17 (GOAL editor de correos): el pie
+# sobrio pasó de #8a909c (2,83:1) a `.CMAIL_FOOTER_TEXT` para leerse (AA). Ese
+# es el único cambio deliberado; se devuelve al de antes para que la huella siga
+# probando que nada más cambió.
+.cmail_fx_pie_l17 <- function(html) gsub(sprintf("color:%s;", .CMAIL_FOOTER_TEXT), "color:#8a909c;", html, fixed = TRUE)
+
 .cmail_fx_mail_import_path <- function(name) test_path("fixtures", "mail-import", name)
 
 .cmail_fx_read_text <- function(path) {

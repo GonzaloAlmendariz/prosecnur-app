@@ -81,12 +81,12 @@ test_that("paridad: sin columna (o en fijo) el HTML de Mailchimp es el de siempr
   for (id in c("recuperacion", "invitacion")) {
     t <- .cmail_template_normalize(if (id == "recuperacion") .cmail_preset_recuperacion() else .cmail_preset_invitacion())
     expect_identical(t$blocks[[1]]$trato$modo, "por_sexo")
-    expect_identical(.cmail_fx_sha(collection_mail_render(t, "export")$html), fx$sha256[[id]], label = id)
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(collection_mail_render(t, "export")$html)), fx$sha256[[id]], label = id)
     sin <- t; sin$blocks[[1]]$trato <- NULL
     expect_identical(collection_mail_render(sin, "export")$html, collection_mail_render(t, "export")$html)
     fijo <- .cmt_with_column(t); fijo$blocks[[1]]$trato$modo <- "fijo"
-    expect_identical(.cmail_fx_sha(collection_mail_render(fijo, "export")$html), fx$sha256[[id]], label = paste(id, "fijo"))
-    expect_identical(.cmail_fx_sha(collection_mail_render(t, "preview", values = fx$preview_values)$html), fx$preview_sha256[[id]])
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(collection_mail_render(fijo, "export")$html)), fx$sha256[[id]], label = paste(id, "fijo"))
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(collection_mail_render(t, "preview", values = fx$preview_values)$html)), fx$preview_sha256[[id]])
   }
 })
 
