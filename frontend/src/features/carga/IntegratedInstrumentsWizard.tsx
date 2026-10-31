@@ -471,6 +471,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
     origin_key_name: originKeyName,
     base_name: baseName,
     query,
+    sm_profile_id: selectedSmProfileId,
     rows: rows.map((row) => ({
       source_kind: row.source_kind,
       key_value: row.key_value,
@@ -485,7 +486,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
     })),
     audit,
     decisions,
-  }), [audit, baseName, decisions, guideFileId, guideOptions, guideSurveyId, originKeyName, query, rows, sourceMode]);
+  }), [audit, baseName, decisions, guideFileId, guideOptions, guideSurveyId, originKeyName, query, rows, selectedSmProfileId, sourceMode]);
   const draftFingerprint = useMemo(() => JSON.stringify(draftPayload), [draftPayload]);
 
   async function persistDraft(draft: MultiIntegratedDraft) {
@@ -552,6 +553,9 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
           setOriginKeyName(draft.origin_key_name || "origen");
           setBaseName(draft.base_name || "base_integrada");
           setQuery(draft.query ?? "");
+          // L7: el perfil con que se trabajó este proyecto; si ya no existe,
+          // `resolveSurveyMonkeyProfileId` cae al perfil activo.
+          if (draft.sm_profile_id) setSelectedSmProfileId(draft.sm_profile_id);
           const savedRows = draftRows(draft.rows);
           setRows(draft.source_mode === "surveymonkey"
             ? savedRows

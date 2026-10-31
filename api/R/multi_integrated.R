@@ -1037,6 +1037,9 @@
     origin_key_name = .mi_scalar(x$origin_key_name, "origen"),
     base_name = .mi_scalar(x$base_name, "base_integrada"),
     query = .mi_scalar(x$query, ""),
+    # L7: el perfil de SurveyMonkey elegido viaja con el proyecto. Es un id de
+    # perfil, no un secreto: el token sigue fuera del .pulso (ADR 0005).
+    sm_profile_id = .mi_scalar(x$sm_profile_id, ""),
     rows = x$rows %||% list(),
     audit = x$audit %||% NULL,
     decisions = x$decisions %||% list(resolved_ids = character(0)),

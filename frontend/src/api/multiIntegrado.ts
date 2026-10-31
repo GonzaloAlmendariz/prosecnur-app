@@ -68,6 +68,8 @@ export type MultiIntegratedDraft = {
   origin_key_name?: string;
   base_name?: string;
   query?: string;
+  /** Perfil de SurveyMonkey elegido (L7): se recuerda por proyecto. */
+  sm_profile_id?: string;
   rows?: Array<MultiIntegratedOrigin & {
     localId?: string;
     local_id?: string;
