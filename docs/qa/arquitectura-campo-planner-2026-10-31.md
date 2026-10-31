@@ -259,6 +259,18 @@ como una unidad; (10) nombre y ruta del módulo (ADR 0047, navegación v3, `plan
 **Evidencia que falta**: si `.hojas_ruta_store_runs` marca dirty cuando lo dispara una lectura de Monitoreo; inventario
 de consumidores frontend de `design_targets` y `monitoreo_profile`.
 
-## 13. Pendiente de estructurar (tablero del loop)
+## 13. Pantallas (maquetas de subpestañas, L15)
+
+Pedido de Gonzalo: «y las maquetas de los subtab». Están en la pestaña «Pantallas» del artefacto (v15). Resumen:
+
+- **Material › Campaña territorial**: Unidades (igual); Catálogo (cambia: formatos nuevos y **editor de códigos de
+  resultado**, que se mueve aquí desde Paquetes porque Catálogo es donde se define cómo es cada formato); Paquetes
+  (cambia: descargas de todo, por distrito o por UMP, con hoja de ruteo y de consolidados); Entrega (cambia: Excel de
+  asignación arriba, calendario como respaldo, Hoja del día sin grilla).
+- **Planner (propuesta)**: Estudio, Cuotas, Equipo, Códigos, Cronograma, Insumos.
+- **Monitoreo territorial**: dónde verías asignado vs observado y declarado vs Kobo (ubicación ilustrativa; la decide la
+  sesión de Monitoreo).
+
+## 14. Pendiente de estructurar (tablero del loop)
 
 - Formatos con maqueta fiel (L8).
