@@ -29,7 +29,7 @@ mergeó ni se borró al cerrar. `main` local va **175 commits por delante de
 
 | # | Qué | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | **Aulas A3 · Avance › Cursos-horario**: revisar la recaptura y mergear | Rama `worktree-agent-a87038e112e2c2698` (commits `8db7a84b3` + `e1a6afd60`), worktree `.claude/worktrees/agent-a87038e112e2c2698`. La recaptura quedó corriendo al cerrar; su salida está en el scratchpad de la sesión (`aulas/a3.log` y los PNG en `aulas/a3/`) | Pendiente. La 1.ª captura falló a 1366 (facultad partida letra a letra) y a 1024 (la tabla se montaba sobre Titulares). Los arreglos están en `e1a6afd60` y aún no tienen captura leída. Gate aulas 342/4688 en la rama |
+| 1 | ~~Aulas A3 · Avance › Cursos-horario~~ | merge `23a275cb4` (2026-10-31) | **Cerrado**: recaptura sin rótulos partidos ni textos fuera a 1440/1366/1024; queda un desborde en la sub-vista heredada «Estado del campo» a 1024 (cabecera del panel «Respuestas que pide el plan…») |
 | 2 | Aulas A4 · Avance › Rendimiento y A5 · Avance › Salidas | `docs/qa/revamp-monitoreo/aulas.md` §3; tableros en el lienzo https://claude.ai/artifact/DUz7BW49dHvfQX34wrmaPo (`project/A4-Rendimiento.dc.html`, `project/A5-Salidas.dc.html`) | Pendiente. Mismo patrón que A1–A3: modelo puro + componente + CSS enganchado en `navegacion/PestanaPropiaDeAulas.tsx` |
 | 3 | Aulas, resto de fichas: Insumos (I1–I3), Modelo (M1–M2), Control (Ctl1–Ctl8), paneles y estados | `aulas.md` §3 | Pendiente |
 | 4 | Territorial › Bandeja a 1280: el aplicador se parte en tres líneas («P132 · Venturo / Perales Rosa / Magda») y las filas quedan altas | `profiles/territorial/control/bandeja.css` | Pendiente. El detector no lo marca: sólo se ve en la captura |
@@ -37,6 +37,8 @@ mergeó ni se borró al cerrar. `main` local va **175 commits por delante de
 | 6 | L14 (TabHeading en Monitoreo), L25 y L26 en Monitoreo | GOAL | Pendiente |
 | 7 | Tipar `refuerzos.rendimiento` en el cliente (hoy A2 lo lee de forma defensiva) | `frontend/src/api/monitoreo.ts` | Pendiente; no bloquea |
 | 8 | Limpiar los worktrees de agentes ya mergeados: `agent-a3c482c61f6bd5b8c` (A1) y `agent-ac16cbeac941345aa` (A2). `agent-adfbd8f406336e5eb` no es de este loop: verificar su dueño antes de tocarlo | `.claude/worktrees/` | Pendiente; no se borró al cerrar |
+
+**Traspaso (2026-10-31):** lo que sigue de esta lista pasa a una sesión nueva que propone Meta B, con alcance `frontend/src/features/monitoreo/**` y `api/R/monitoreo_*`. La sesión que cerró el loop no vuelve a tocar Monitoreo.
 
 ## Decisiones que esperan a Gonzalo
 
