@@ -1,12 +1,12 @@
 # ADR 0122: El Planner define el estudio una sola vez y su perfil de recojo fija los modos
 
-Estado: Propuesto
+Estado: Aceptado (Gonzalo, 2026-10-31: «sí»)
 
 Implementación: No iniciada
 
 Fecha: 2026-10-31
 
-Fecha de decisión: —
+Fecha de decisión: 2026-10-31
 
 Reemplaza: —
 
