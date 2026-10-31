@@ -135,12 +135,12 @@ representatividad = {
   después con HSVG 2026, y corre el gate de aulas más `test-calc-muestra*`. Una
   decisión de producto en la UI de Cálculo se consulta a Meta B antes.
 
-### Enmienda pendiente (ADR 0122, Propuesto)
+### Enmienda del ADR 0122 (ratificado por Gonzalo, 8373777f4)
 
 El [ADR 0122](0122-el-planner-define-el-estudio-y-fija-los-modos.md) enmienda el §2: la
 declaración de universo y variables (F4) se escribe en el Planner, no en
-`calc_muestra_*` como destino final. **F4 queda en espera** hasta que Gonzalo
-ratifique el 0122 y exista la P1 del Planner. F1–F3 no cambian.
+`calc_muestra_*` como destino final. **F4 queda en espera** hasta que exista la P1 del
+Planner. F1–F3 no cambian.
 
 ## Lo que no decide
 
