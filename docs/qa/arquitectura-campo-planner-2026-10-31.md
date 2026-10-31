@@ -63,6 +63,7 @@ Mismo número que en el artefacto (pestaña «Resumen y decisiones»; P9 en la p
 | P7 | Dónde vive la lista de encuestadores (Monitoreo, Material o Planner) | Dejarla en Monitoreo y arreglar el importador, o moverla al Planner | Ambas sesiones |
 | P8 | Adelantar «asignado frente a observado» (B3) | Se puede: no comparte archivos con ADR 0121 F2 | Sesión de Monitoreo |
 | P9 | Abrir el ADR del Planner | Sí, como propuesta; debe resolver las 10 decisiones de §12 antes de código | Meta B coordina |
+| P10 | Dónde vive el barrido telefónico en Material (hoy no tiene lugar: modos aulas, territorial y correo) | Un tipo de campaña «Telefónica»; dentro de Correo se mezcla con los envíos por mail | Esta sesión, etapa 4 |
 
 ## 4. Reglas del reparto entre módulos
 
@@ -263,6 +264,7 @@ de consumidores frontend de `design_targets` y `monitoreo_profile`.
 
 Pedido de Gonzalo: «y las maquetas de los subtab». Están en la pestaña «Pantallas» del artefacto (v15). Resumen:
 
+- **Pestañas reales verificadas en `lib/modules.ts`**: territorial Catálogo = «Ficha por UMP», «Hoja de zona» (se suman «Hoja de ruteo», «Hoja de consolidados», «Códigos»); territorial Entrega = «Plan de campo» (se suma «Asignación»); aulas = Unidades (Lista, Origen), Accesos (Canales, Vinculación), Catálogo (Tipos, Editor), Paquetes (Armado), Entrega (Monitoreo; se suma «Plantillas del equipo»). El telefónico no tiene modo en Material (P10).
 - **Material › Campaña territorial**: Unidades (igual); Catálogo (cambia: formatos nuevos y **editor de códigos de
   resultado**, que se mueve aquí desde Paquetes porque Catálogo es donde se define cómo es cada formato); Paquetes
   (cambia: descargas de todo, por distrito o por UMP, con hoja de ruteo y de consolidados); Entrega (cambia: Excel de
