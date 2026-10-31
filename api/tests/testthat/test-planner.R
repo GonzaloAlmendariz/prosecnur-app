@@ -1,0 +1,213 @@
+# Planner (ADR 0122, fase P1): la clave `planner/v1`, la proyección desde los
+# lugares viejos y la escritura con revisión.
+#
+# Lo que fija este archivo:
+# - leer el Planner es PURO: ni escribe ni marca el proyecto como modificado;
+# - sólo lo declarado se guarda; lo demás se proyecta con la precedencia del §7;
+# - el catálogo de códigos sólo agrega;
+# - el equipo no se escribe en P1 y la proyección nunca trae el DNI.
+
+source("setup-load-all.R")
+
+.pl_sesion <- function(estado = list(), envir = parent.frame()) {
+  sid <- session_create()
+  withr::defer(session_delete(sid), envir = envir)
+  s <- session_get(sid)
+  for (k in names(estado)) s[k] <- list(estado[[k]])
+  s$project_path <- "/tmp/planner-test.pulso"
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  sid
+}
+
+.pl_huella <- function(sid) {
+  s <- .session_env[[sid]]
+  s$last_access <- NULL
+  digest::digest(s)
+}
+
+.pl_referencia <- function(slug, envir = parent.frame()) {
+  pulso <- system.file("reference_projects", slug, paste0(slug, ".pulso"), package = "prosecnurapp")
+  if (!nzchar(pulso)) pulso <- testthat::test_path("..", "..", "inst", "reference_projects", slug, paste0(slug, ".pulso"))
+  testthat::skip_if_not(file.exists(pulso), paste("sin el proyecto de referencia", slug))
+  copia <- withr::local_tempdir(.local_envir = envir)
+  file.copy(pulso, file.path(copia, "ref.pulso"))
+  ld <- suppressMessages(load_pulso(file.path(copia, "ref.pulso")))
+  withr::defer(session_delete(ld$session_id), envir = envir)
+  ld$session_id
+}
+
+test_that("una clave ausente o ajena se lee como un Planner vacío en la revisión 0", {
+  expect_equal(.planner_normalizar(NULL)$revision, 0L)
+  expect_equal(.planner_normalizar(list(schema = "otro/v9", revision = 7L))$secciones, list())
+})
+
+test_that("normalizar es idempotente", {
+  crudo <- list(schema = PLANNER_SCHEMA, revision = 3L, secciones = list(
+    estudio = list(valor = list(nombre = "  Estudio X  ", cliente = "PUCP"), declarado_en = "2026-10-31T10:00:00Z"),
+    perfiles = list(valor = list(list(tipo = "aulas", seleccion = "marco", poblaciones = list(
+      list(etiqueta = "Estudiantes", representatividad = list(universo = list(nivel = "universidad"),
+                                                              variables = list(), celdas = list(list(cuota = 1)))))))),
+    basura = list(valor = 1)
+  ))
+  una <- .planner_normalizar(crudo)
+  expect_identical(.planner_normalizar(una), una)
+  expect_equal(names(una$secciones), c("estudio", "perfiles"))
+  expect_equal(una$secciones$estudio$valor$nombre, "Estudio X")
+  # Las celdas son del diseñador: el Planner nunca las guarda (ADR 0122 §3).
+  rep <- una$secciones$perfiles$valor[[1]]$poblaciones[[1]]$representatividad
+  expect_null(rep$celdas)
+  expect_equal(rep$schema, "representatividad_v1")
+})
+
+test_that("leer el Planner no escribe ni marca el proyecto como modificado", {
+  sid <- .pl_sesion(list(
+    monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE),
+                            territorial = list(enumerator_roster = list(code_format = "PXXX", assignments = list(
+                              list(codigo_pulso = "P001", nombre = "Encuestador Ejemplo Uno", dni = "00000000")))))
+  ))
+  antes <- .pl_huella(sid)
+  payload <- .planner_payload(session_get(sid))
+  expect_identical(.pl_huella(sid), antes)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  expect_equal(payload$origen$perfiles, "proyectado")
+  expect_equal(payload$revision, 0L)
+})
+
+test_that("la proyección del equipo nunca trae el DNI", {
+  sid <- .pl_sesion(list(
+    monitoreo_config = list(territorial = list(enumerator_roster = list(code_format = "PXXX", assignments = list(
+      list(codigo_pulso = "P001", nombre = "Encuestador Ejemplo Uno", dni = "00000000")))))
+  ))
+  equipo <- .planner_payload(session_get(sid))$planner$equipo
+  expect_equal(equipo$personas[[1]]$codigo, "P001")
+  expect_false(any(grepl("00000000", unlist(equipo), fixed = TRUE)))
+  expect_null(equipo$personas[[1]]$dni)
+})
+
+test_that("la precedencia del perfil: Monitoreo elegido gana y lo más débil queda como aviso", {
+  # Forma de acnur_acg: Monitoreo territorial elegido, Cálculo con un diseño de aulas.
+  sid <- .pl_sesion(list(
+    monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE)),
+    calc_muestra_estudio = list(macro_familia = "encuesta_estudiantes", workspace = list(frame_mode = "opinion_universitaria"))
+  ))
+  p <- .planner_payload(session_get(sid))
+  expect_equal(vapply(p$planner$perfiles, `[[`, "", "tipo"), "territorial")
+  expect_equal(p$planner$perfiles[[1]]$diseno, "hojas-ruta")
+  expect_length(p$conflictos, 0L)
+  expect_equal(vapply(p$avisos, `[[`, "", "codigo"), "fuente_contradice")
+})
+
+test_that("una familia sin route_selected no cuenta como elección", {
+  sid <- .pl_sesion(list(
+    monitoreo_config = list(monitoreo_profile = list(family = "telefonico")),
+    calc_muestra_estudio = list(macro_familia = "acreditacion", workspace = list(frame_mode = "x"))
+  ))
+  p <- .planner_payload(session_get(sid))
+  expect_equal(p$planner$perfiles[[1]]$tipo, "acreditacion")
+  expect_equal(p$planner$perfiles[[1]]$diseno, "calc-muestra")
+})
+
+test_that("una familia sin equivalente abre conflicto y no inventa un perfil", {
+  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "digital_general", route_selected = TRUE))))
+  p <- .planner_payload(session_get(sid))
+  expect_length(p$planner$perfiles, 0L)
+  expect_equal(vapply(p$conflictos, `[[`, "", "codigo"), "perfil_sin_equivalente")
+})
+
+test_that("aulas con marco disponible proyecta la selección por marco", {
+  sid <- .pl_sesion(list(calc_muestra_estudio = list(macro_familia = "hsvg_universitario",
+                                                     workspace = list(frame_mode = "marco_disponible"))))
+  perfil <- .planner_payload(session_get(sid))$planner$perfiles[[1]]
+  expect_equal(perfil$tipo, "aulas")
+  expect_equal(perfil$seleccion, "marco")
+})
+
+test_that("declarar exige la revisión vigente y la sube en uno", {
+  sid <- .pl_sesion()
+  expect_error(.planner_declarar(sid, "estudio", list(nombre = "X"), 5L), class = "api_error")
+  .planner_declarar(sid, "estudio", list(nombre = "Estudio X", cliente = "Cliente"), 0L)
+  p <- .planner_payload(session_get(sid))
+  expect_equal(p$revision, 1L)
+  expect_equal(p$origen$estudio, "declarado")
+  expect_equal(p$planner$estudio$nombre, "Estudio X")
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+  err <- tryCatch(.planner_declarar(sid, "estudio", list(nombre = "Y"), 0L), error = identity)
+  expect_equal(err$code, "E_PLANNER_DESACTUALIZADO")
+})
+
+test_that("el equipo no se escribe en P1 y una sección desconocida es 404", {
+  sid <- .pl_sesion()
+  err <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list()), 0L), error = identity)
+  expect_equal(err$code, "E_PLANNER_SECCION_PENDIENTE")
+  err <- tryCatch(.planner_declarar(sid, "cuotas", list(), 0L), error = identity)
+  expect_equal(err$code, "E_PLANNER_SECCION")
+})
+
+test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {
+  sid <- .pl_sesion()
+  dup <- tryCatch(.planner_declarar(sid, "perfiles", list(list(tipo = "aulas"), list(tipo = "aulas")), 0L), error = identity)
+  expect_equal(dup$code, "E_PLANNER_INVALIDO")
+  dos_calc <- tryCatch(.planner_declarar(sid, "perfiles", list(
+    list(tipo = "aulas", diseno = "calc-muestra"), list(tipo = "telefonico", diseno = "calc-muestra")), 0L), error = identity)
+  expect_equal(dos_calc$code, "E_PLANNER_INVALIDO")
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", diseno = "calc-muestra"),
+                                          list(tipo = "telefonico", diseno = "cliente")), 0L)
+  perfiles <- .planner_payload(session_get(sid))$planner$perfiles
+  # Territorial lo diseña siempre Hojas de ruta, diga lo que diga el cliente.
+  expect_equal(vapply(perfiles, `[[`, "", "diseno"), c("hojas-ruta", "cliente"))
+})
+
+test_that("el catálogo de códigos sólo agrega: no se borra, no cambia de grupo, se retira", {
+  sid <- .pl_sesion()
+  base <- list(resultado = list(list(codigo = "1", rotulo = "No quiso", grupo = "no_aplicada"),
+                                list(codigo = "8", rotulo = "Efectiva", grupo = "efectiva")))
+  .planner_declarar(sid, "codigos", base, 0L)
+  expect_equal(.planner_payload(session_get(sid))$planner$codigos$version, 1L)
+
+  borrar <- tryCatch(.planner_declarar(sid, "codigos", list(resultado = base$resultado[2]), 1L), error = identity)
+  expect_equal(borrar$code, "E_PLANNER_INVALIDO")
+  regrupar <- base; regrupar$resultado[[1]]$grupo <- "efectiva"
+  expect_equal(tryCatch(.planner_declarar(sid, "codigos", regrupar, 1L), error = identity)$code, "E_PLANNER_INVALIDO")
+
+  # Corregir un rótulo no cambia la versión; retirar sí, y sella con ella.
+  rotulo <- base; rotulo$resultado[[1]]$rotulo <- "No quiso participar"
+  .planner_declarar(sid, "codigos", rotulo, 1L)
+  expect_equal(.planner_payload(session_get(sid))$planner$codigos$version, 1L)
+  retiro <- rotulo; retiro$resultado[[1]]$retirar <- TRUE
+  .planner_declarar(sid, "codigos", retiro, 2L)
+  cod <- .planner_payload(session_get(sid))$planner$codigos
+  expect_equal(cod$version, 2L)
+  expect_equal(cod$resultado[[1]]$retirado_en_version, 2L)
+  vuelve <- tryCatch(.planner_declarar(sid, "codigos", rotulo, 3L), error = identity)
+  expect_equal(vuelve$code, "E_PLANNER_INVALIDO")
+})
+
+test_that("la puerta de la F4 del 0121 declara universo y variables sin celdas", {
+  sid <- .pl_sesion(list(calc_muestra_estudio = list(macro_familia = "encuesta_estudiantes",
+                                                     workspace = list(frame_mode = "opinion_universitaria"))))
+  bloque <- list(schema = "representatividad_v1", universo = list(nivel = "universidad", etiqueta = "PUCP"),
+                 variables = list(list(clave = "facultad")), celdas = list(list(valores = list(facultad = "X"), cuota = 10)))
+  .planner_declarar_representatividad(sid, "aulas", "principal", bloque, 0L)
+  p <- .planner_payload(session_get(sid))
+  expect_equal(p$origen$perfiles, "declarado")
+  rep <- p$planner$perfiles[[1]]$poblaciones[[1]]$representatividad
+  expect_equal(rep$universo$etiqueta, "PUCP")
+  expect_null(rep$celdas)
+})
+
+test_that("los cinco proyectos de referencia proyectan su perfil sin escribir", {
+  esperados <- list(acnur_acg = "territorial", acnur_pdm = "telefonico", acrconta = "acreditacion",
+                    hsvg2026 = "aulas", acrconta_mazo = character(0))
+  for (slug in names(esperados)) {
+    sid <- .pl_referencia(slug)
+    dirty_antes <- isTRUE(session_get(sid)$project_dirty)
+    antes <- .pl_huella(sid)
+    p <- .planner_payload(session_get(sid))
+    expect_identical(.pl_huella(sid), antes, info = slug)
+    expect_identical(isTRUE(session_get(sid)$project_dirty), dirty_antes, info = slug)
+    expect_equal(vapply(p$planner$perfiles, `[[`, "", "tipo"), esperados[[slug]], info = slug)
+    expect_length(p$conflictos, 0L)
+    expect_false(any(grepl("dni", names(unlist(p$planner$equipo)), fixed = TRUE)), info = slug)
+  }
+})
