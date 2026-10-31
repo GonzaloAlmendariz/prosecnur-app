@@ -3,22 +3,15 @@
 # Una jornada del plan de campo (`hojas_ruta_plan_campo`, U14) impresa para el
 # encuestador: el distrito, las rutas en orden de visita (código UMP, zona,
 # manzana, viviendas, salto, visitas esperadas, esquina y casa de inicio,
-# reemplazo), la regla ante la no respuesta y, por ruta, una grilla de
-# disposición por visita —Completa / Rechazo / Ausente / Desocupada / No elegible—
-# que Monitoreo (U18) registrará para medir la respuesta (r) y la ocupación (e)
-# reales por ruta y zona.
+# reemplazo) y la regla ante la no respuesta. Es la portada de la jornada: cada
+# visita se anota en la hoja de ruteo de su UMP, con los códigos de resultado del
+# estudio (Material de campo, `collection_territorial_papel.R`; decisión D2(a) del
+# 31 oct, que retiró la grilla con disposiciones propias que campo no usaba).
 #
 # Dos capas, como todo PDF de la casa: un modelo puro (`hojas_ruta_hoja_dia_modelo`)
 # que se prueba sin dibujar, y un render con el kit Pulso PDF
 # (`pulso_pdf_theme.R`). Audiencia interna (equipo de campo); grano: la jornada.
 
-HOJAS_RUTA_DISPOSICIONES <- c("Completa", "Rechazo", "Ausente", "Desocupada", "No elegible")
-
-# Columnas de visita de la grilla: las visitas con margen del ADR 0116 (`visitas_cap`,
-# percentil 90 de la binomial negativa, que ya cubre la segunda pasada), todas numeradas
-# —Monitoreo necesita el ordinal de la visita—, con tope para que la casilla siga
-# siendo marcable. Las que pasan las esperadas se sombrean como reserva.
-HOJAS_RUTA_HD_MAX_COLUMNAS <- 30L
 
 .hojas_ruta_hd_int <- function(x) {
   v <- suppressWarnings(as.integer(if (is.null(x) || !length(x)) NA else x[[1]]))
@@ -116,9 +109,8 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
       # La ruta va entera aunque no quepa en la jornada: sigue al día siguiente.
       excede_jornada = isTRUE(j$excede_jornada),
       jornadas_equivalentes = as.integer(j$jornadas_equivalentes %||% 1L),
+      # Visitas con margen del ADR 0116 (percentil 90 de la binomial negativa).
       visitas_cap = cap_v,
-      columnas = as.integer(min(HOJAS_RUTA_HD_MAX_COLUMNAS, max(1L, cap_v))),
-      truncada = cap_v > HOJAS_RUTA_HD_MAX_COLUMNAS,
       lat = .hojas_ruta_hd_coord(block$lat, pts$lat[match(id, as.character(pts$id_manzana))]),
       lon = .hojas_ruta_hd_coord(block$lon, pts$lon[match(id, as.character(pts$id_manzana))])
     )
@@ -145,7 +137,6 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
       rg <- if (length(reglas)) reglas[[1]] else HOJAS_RUTA_REGLA_NO_RESPUESTA
       if (identical(rg, HOJAS_RUTA_REGLA_NO_RESPUESTA)) hojas_ruta_regla_no_respuesta(identical(as.character(cfg$route_jump_mode %||% ""), "off")) else rg
     },
-    disposiciones = HOJAS_RUTA_DISPOSICIONES,
     rutas = rutas,
     contexto = contexto,
     proyecto = .hojas_ruta_hd_txt(cfg$project_code, "")
@@ -243,73 +234,6 @@ hojas_ruta_hoja_dia_modelo <- function(sample, jornada_id, supuestos = list(), p
   list(x = x / mm_x, y = y / mm_y)
 }
 
-.hojas_ruta_hd_casilla <- function(x, y, lado, geo, col) {
-  grid::grid.rect(x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
-                  width = grid::unit(lado, "npc"), height = grid::unit(lado * geo$page_w / geo$page_h, "npc"),
-                  gp = grid::gpar(col = col, fill = "white", lwd = 0.5))
-}
-
-# Grilla de disposición de una ruta. Devuelve la altura usada (npc).
-.hojas_ruta_hd_grilla <- function(r, x0, top, w, tk, ty, geo, fila_h = 0.0165) {
-  etiqueta_w <- 0.105
-  total_w <- 0.048
-  n <- r$columnas
-  col_w <- (w - etiqueta_w - total_w) / n
-  # Título de la ruta
-  titulo <- sprintf("%d · %s · Zona %s · Mz %s", r$orden, r$codigo, r$zona, r$manzana)
-  .hojas_ruta_hd_txt_at(titulo, x0, top - 0.008, 8.4, tk$navy, "bold")
-  meta <- sprintf("Meta: %d completas%s%s%s", r$entrevistas,
-                  if (!is.na(r$visitas_esperadas)) sprintf(" · %d visitas esperadas", r$visitas_esperadas) else "",
-                  if (isTRUE(r$excede_jornada)) sprintf(" · %d jornadas, mismo encuestador", r$jornadas_equivalentes) else "",
-                  if (isTRUE(r$truncada)) sprintf(" · grilla hasta %d de %d visitas", r$columnas, r$visitas_cap) else "")
-  .hojas_ruta_hd_txt_at(meta, x0 + w, top - 0.008, 7.2, tk$soft, just = c("right", "center"))
-  y <- top - 0.020
-  filas <- c("Visita", "Vivienda N°", HOJAS_RUTA_DISPOSICIONES)
-  alto <- length(filas) * fila_h
-  # Banda de encabezado y zebra
-  grid::grid.rect(x = x0, y = y, width = w, height = fila_h, just = c("left", "top"),
-                  gp = grid::gpar(col = NA, fill = tk$tbl_header))
-  for (i in seq_along(filas)) {
-    yi <- y - (i - 1) * fila_h
-    if (i >= 3L && i %% 2L == 0L) {
-      grid::grid.rect(x = x0, y = yi, width = w, height = fila_h, just = c("left", "top"),
-                      gp = grid::gpar(col = NA, fill = tk$tbl_zebra))
-    }
-    face <- if (i <= 2L) "bold" else "plain"
-    .hojas_ruta_hd_txt_at(filas[[i]], x0 + 0.006, yi - fila_h / 2, 7.2, tk$ink, face)
-  }
-  # Encabezados de visita y total
-  for (cidx in seq_len(n)) {
-    xc <- x0 + etiqueta_w + (cidx - 0.5) * col_w
-    reserva <- !is.na(r$visitas_esperadas) && cidx > r$visitas_esperadas
-    if (reserva) {
-      grid::grid.rect(x = xc, y = y - fila_h, width = col_w, height = alto - fila_h, just = c("center", "top"),
-                      gp = grid::gpar(col = NA, fill = tk$canvas))
-    }
-    .hojas_ruta_hd_txt_at(as.character(cidx), xc, y - fila_h / 2, 6.6,
-                          if (reserva) tk$soft else tk$ink, "bold", just = c("center", "center"))
-    for (i in 3:length(filas)) {
-      .hojas_ruta_hd_casilla(xc, y - (i - 0.5) * fila_h, min(col_w * 0.48, 0.016), geo, tk$tbl_frame)
-    }
-  }
-  .hojas_ruta_hd_txt_at("Total", x0 + w - total_w / 2, y - fila_h / 2, 6.6, tk$ink, "bold", just = c("center", "center"))
-  # Reglas: marco, divisorias de fila, columnas finas
-  grid::grid.rect(x = x0, y = y, width = w, height = alto, just = c("left", "top"),
-                  gp = grid::gpar(col = tk$tbl_frame, fill = NA, lwd = pulso_pdf_pesos()$fila * 2))
-  for (i in seq_len(length(filas) - 1L)) {
-    lw <- if (i <= 2L) pulso_pdf_pesos()$columna else pulso_pdf_pesos()$fila
-    grid::grid.lines(x = c(x0, x0 + w), y = rep(y - i * fila_h, 2), gp = grid::gpar(col = tk$tbl_div, lwd = lw))
-  }
-  for (cidx in 0:n) {
-    xc <- x0 + etiqueta_w + cidx * col_w
-    grid::grid.lines(x = rep(xc, 2), y = c(y, y - alto),
-                     gp = grid::gpar(col = tk$tbl_div, lwd = if (cidx == 0L || cidx == n) pulso_pdf_pesos()$columna else 0.25))
-  }
-  0.020 + alto
-}
-
-.hojas_ruta_hd_alto_grilla <- function(fila_h = 0.0165) 0.020 + (2 + length(HOJAS_RUTA_DISPOSICIONES)) * fila_h
-
 #' Dibuja la hoja del día en un PDF A4 vertical.
 #' @param m Salida de `hojas_ruta_hoja_dia_modelo()`.
 #' @param out_pdf Ruta del PDF.
@@ -328,13 +252,10 @@ hojas_ruta_hoja_dia_pdf <- function(m, out_pdf, fecha = Sys.Date()) {
                        m$entrevistas, if (is.na(m$visitas)) "-" else as.character(m$visitas),
                        formatC(m$km, format = "f", digits = 1))
 
+  # Una sola página: sin la grilla, la jornada cabe entera (las rutas que no, se cuentan).
   pagina <- 1L
-  nueva_pagina <- function(continuacion = FALSE) {
-    grid::grid.newpage()
-    pulso_pdf_header(if (continuacion) paste(titulo, "(continuación)") else titulo, subtitulo,
-                     tokens = tk, ty = ty, geo = geo, y_subtitulo = 0.944, y_regla = 0.922)
-  }
-  nueva_pagina()
+  grid::grid.newpage()
+  pulso_pdf_header(titulo, subtitulo, tokens = tk, ty = ty, geo = geo, y_subtitulo = 0.944, y_regla = 0.922)
 
   # --- Banda superior: datos del encuestador (izq) y mapa (der) ---
   band_top <- 0.902; band_h <- 0.150
@@ -421,49 +342,36 @@ hojas_ruta_hoja_dia_pdf <- function(m, out_pdf, fecha = Sys.Date()) {
     "Esta muestra se sorteó sin visitas esperadas: el salto supone respuesta total. Vuelva a sortear para calcularlo sobre visitas."
   }
   .hojas_ruta_hd_txt_at(nota, margen, y - 0.011, 6.6, if (omitidas > 0L) tk$danger else tk$soft)
+  # Una ruta más larga que la jornada sigue al día siguiente con la misma persona.
+  largas <- Filter(function(r) isTRUE(r$excede_jornada), m$rutas)
+  if (length(largas)) {
+    y <- y - 0.012
+    .hojas_ruta_hd_txt_at(paste(vapply(largas, function(r) sprintf("La ruta %d (%s) toma %d jornadas, mismo encuestador.",
+                                                                    r$orden, r$codigo, r$jornadas_equivalentes), ""), collapse = " "),
+                          margen, y - 0.011, 6.6, tk$ink)
+  }
 
   # --- Regla ante la no respuesta ---
   y <- y - 0.030
   pasos <- .hojas_ruta_vp_regla_pasos(m$regla)
-  regla_h <- 0.022 + length(pasos) * 0.0135 + 0.006
+  # Cada paso parte en líneas al ancho de la hoja: el tercero se salía por el borde.
+  lineas <- lapply(seq_along(pasos), function(i) strwrap(sprintf("%d.  %s", i, pasos[[i]]), width = floor((ancho - 0.03) * 165), exdent = 4L))
+  regla_h <- 0.022 + length(unlist(lineas)) * 0.0135 + 0.006
   grid::grid.rect(x = margen, y = y, width = ancho, height = regla_h, just = c("left", "top"),
                   gp = grid::gpar(col = NA, fill = tk$canvas))
   grid::grid.lines(x = rep(margen, 2), y = c(y, y - regla_h), gp = grid::gpar(col = tk$navy, lwd = pulso_pdf_pesos()$acento))
   .hojas_ruta_hd_txt_at("Ante la no respuesta", margen + 0.014, y - 0.012, 9, tk$navy, "bold")
-  for (i in seq_along(pasos)) {
-    .hojas_ruta_hd_txt_at(sprintf("%d.  %s", i, pasos[[i]]), margen + 0.014, y - 0.022 - (i - 0.5) * 0.0135, 7.8, tk$ink)
+  for (i in seq_along(unlist(lineas))) {
+    .hojas_ruta_hd_txt_at(unlist(lineas)[[i]], margen + 0.014, y - 0.022 - (i - 0.5) * 0.0135, 7.8, tk$ink)
   }
   y <- y - regla_h - 0.026
 
-  # --- Registro de visitas, una grilla por ruta ---
+  # --- Dónde se anotan las visitas: la hoja de ruteo de cada UMP (D2(a)) ---
   .hojas_ruta_hd_txt_at("Registro de visitas", margen, y, 10.5, tk$navy, "bold")
-  # La instrucción va en su propia línea: junto al título se le montaba encima.
   .hojas_ruta_hd_txt_at(
-    "Anote la vivienda y marque una sola disposición por visita. Columnas sombreadas: reserva por si hacen falta más visitas (incluye la segunda pasada).",
-    margen, y - 0.013, 6.8, tk$soft
-  )
-  y <- y - 0.027
-  fondo <- 0.080
-  paginas_multiples <- FALSE
-  # Con pocas rutas sobra hoja: las filas crecen (hasta 0,023) para marcar con
-  # lápiz con holgura; con muchas, se quedan en el mínimo y la grilla pagina.
-  filas_grilla <- 2L + length(HOJAS_RUTA_DISPOSICIONES)
-  fila_h <- ((y - fondo) / max(1L, n_rutas) - 0.016 - 0.020) / filas_grilla
-  fila_h <- if (fila_h >= 0.0165) min(0.023, fila_h) else 0.0165
-  for (r in m$rutas) {
-    if (y - .hojas_ruta_hd_alto_grilla(fila_h) < fondo) {
-      pulso_pdf_footer(pagina, periodo, tokens = tk, ty = ty, geo = geo, pagina = TRUE)
-      pagina <- pagina + 1L
-      paginas_multiples <- TRUE
-      nueva_pagina(continuacion = TRUE)
-      y <- 0.895
-      .hojas_ruta_hd_txt_at("Registro de visitas (continuación)", margen, y, 10.5, tk$navy, "bold")
-      y <- y - 0.014
-    }
-    usado <- .hojas_ruta_hd_grilla(r, margen, y, ancho, tk, ty, geo, fila_h = fila_h)
-    y <- y - usado - 0.016
-  }
-  pulso_pdf_footer(pagina, periodo, tokens = tk, ty = ty, geo = geo, pagina = paginas_multiples)
+    "Cada visita se anota en la hoja de ruteo de su UMP, con los códigos de resultado del estudio. Las efectivas van a la hoja de consolidados.",
+    margen, y - 0.014, 7.4, tk$ink)
+  pulso_pdf_footer(pagina, periodo, tokens = tk, ty = ty, geo = geo, pagina = FALSE)
   attr(out_pdf, "paginas") <- pagina
   invisible(out_pdf)
 }

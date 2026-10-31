@@ -107,20 +107,22 @@ test_that("hoja del día con una ruta y con muchas rutas", {
   m1 <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(visitas_por_jornada = 1), puntos = puntos)
   expect_length(m1$rutas, 1L)
   expect_identical(m1$rutas[[1]]$visitas_esperadas, sm$blocks[[1]]$visitas_esperadas)
-  expect_identical(m1$disposiciones, c("Completa", "Rechazo", "Ausente", "Desocupada", "No elegible"))
+  # D2(a): sin grilla de disposiciones propias; las visitas van a la hoja de ruteo.
+  expect_null(m1$disposiciones)
   p1 <- hojas_ruta_hoja_dia_pdf(m1, tempfile(fileext = ".pdf"))
   expect_identical(pdftools::pdf_info(p1)$pages, 1L)
   txt1 <- vp_pdf_texto(p1)
-  for (d in m1$disposiciones) expect_match(txt1, d, fixed = TRUE)
+  for (d in c("Rechazo", "Desocupada", "No elegible")) expect_false(grepl(d, txt1, fixed = TRUE))
+  expect_match(txt1, "hoja de ruteo", fixed = TRUE)
   expect_match(txt1, "Hoja del día", fixed = TRUE)
 
-  # Capacidad enorme: todo el distrito en una jornada, la grilla pagina.
+  # Capacidad enorme: todo el distrito en una jornada, sigue en una hoja.
   mm <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(visitas_por_jornada = 10000), puntos = puntos)
   expect_identical(length(mm$rutas), length(sm$blocks))
   expect_identical(vapply(mm$rutas, `[[`, integer(1), "orden"), seq_along(mm$rutas))
   pm <- hojas_ruta_hoja_dia_pdf(mm, tempfile(fileext = ".pdf"))
   expect_gt(file.size(pm), 1000)
-  expect_gte(pdftools::pdf_info(pm)$pages, if (length(mm$rutas) > 3L) 2L else 1L)
+  expect_identical(pdftools::pdf_info(pm)$pages, 1L)
   # Cada ruta lleva su reemplazo en la tabla.
   expect_true(all(lengths(lapply(mm$rutas, `[[`, "reemplazos")) >= 1L))
 
@@ -210,7 +212,7 @@ test_that("HTTP: montado, errores 400/409/404 y artefactos registrados", {
   expect_identical(length(.hojas_ruta_active_run(sid)$run$workspace_outputs$sample$blocks), length(sm$blocks))
 })
 
-test_that("la grilla de la hoja del día sale de las visitas con margen, numerada y sin partes (revisión U15)", {
+test_that("la hoja del día lleva las visitas con margen por ruta y no parte rutas (revisión U15)", {
   skip_if_not_installed("pdftools")
   sm <- vp_muestra()
   puntos <- vp_puntos(sm)
@@ -218,20 +220,18 @@ test_that("la grilla de la hoja del día sale de las visitas con margen, numerad
   r1 <- m$rutas[[1]]
   k <- r1$entrevistas
   expect_identical(r1$visitas_cap, as.integer(hojas_ruta_visitas_cap(k, 0.6, 1)))
-  expect_identical(r1$columnas, min(30L, r1$visitas_cap))
   expect_null(r1$parte)
   # Las metas suman el N de la jornada: ninguna ruta se cuenta dos veces.
   expect_identical(sum(vapply(m$rutas, `[[`, integer(1), "entrevistas")), sum(vapply(m$rutas, function(r) as.integer(r$entrevistas), integer(1))))
   txt <- vp_pdf_texto(hojas_ruta_hoja_dia_pdf(m, tempfile(fileext = ".pdf")))
   expect_false(grepl("«+»", txt, fixed = TRUE))
-  expect_match(txt, "Columnas sombreadas", fixed = TRUE)
   # Una ruta que excede la jornada lo dice en su meta.
   m1 <- hojas_ruta_hoja_dia_modelo(sm, "J01", list(visitas_por_jornada = 2), puntos = puntos)
   expect_true(m1$rutas[[1]]$excede_jornada)
   expect_match(vp_pdf_texto(hojas_ruta_hoja_dia_pdf(m1, tempfile(fileext = ".pdf"))), "mismo encuestador", fixed = TRUE)
 })
 
-test_that("con respuesta total la grilla tiene k columnas; con respuesta muy baja se trunca y lo avisa", {
+test_that("con respuesta total las visitas con margen son k; con respuesta muy baja crecen", {
   expect_identical(hojas_ruta_visitas_cap(8L, 1, 1), 8L)
   expect_gt(hojas_ruta_visitas_cap(8L, 0.05, 1), 30L)
 })
