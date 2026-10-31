@@ -118,6 +118,7 @@ Cursos-horario es el mismo perfil que aulas.
 | Encuestador / aplicador | Quien hace la encuesta: encuestador en territorial y telefónico, aplicador en aulas | Responsable (columna del barrido) |
 | Hoja de ruteo | Papel donde se anota cada vivienda visitada y su código | Hoja de ruta (la ficha de la UMP) y Hoja del día (portada de la jornada) |
 | Hoja de consolidados | Resumen de la UMP: visitas por código y registro de encuestados | — |
+| Excel operativo | Lista de todas las UMP que genera Hojas de ruta (`route-workbook`); en acogida campo le agregó a mano el encuestador | Excel de asignación |
 | Excel de asignación | Excel donde campo escribe quién hace cada UMP; la app lo lee de vuelta | Excel operativo de Hojas de ruta |
 | Planner | Propuesta: la Bitácora renombrada, donde se define el estudio para todos los módulos | Plan de campo (jornadas por encuestador) |
 
@@ -173,14 +174,14 @@ Se dice «etapa» para no confundir con las fases de los ADR (F1–F5 del ADR 01
 
 | Etapa | Qué | Quién | Espera |
 |---|---|---|---|
-| 0 | Decisiones de Gonzalo (§3); sólo el visto bueno al plan bloquea | Gonzalo | — |
-| 1 | Códigos de resultado, hoja de ruteo y de consolidados por UMP (D1), Hoja del día sin grilla (D2a), regla CSS de ModuleChrome | Esta sesión | Visto bueno al plan |
-| 2 | Asignado vs observado leyendo la foto enviada (B3, X5); consolidados declarados → Material los lee y publica, Monitoreo los cruza con Kobo (X3) | Sesión de Monitoreo + esta sesión | Etapa 1; decisiones «conteos en el Excel» y «Estado» (C7) |
+| 0 | Decisiones de Gonzalo (§3); sólo el visto bueno al plan bloquea | Gonzalo | P1 |
+| 1 | Códigos de resultado, hoja de ruteo y de consolidados por UMP (D1), Hoja del día sin grilla (D2a), regla CSS de ModuleChrome | Esta sesión | P1 |
+| 2 | Asignado vs observado leyendo la foto enviada (B3, X5); consolidados declarados → Material los lee y publica, Monitoreo los cruza con Kobo (X3) | Sesión de Monitoreo + esta sesión | Etapa 1; P2 y P3 |
 | ∥ | ADR 0121 F2–F3 (aulas) | Sesión de Monitoreo | — (no depende de este plan) |
 | 3 | Aulas en Material: plantillas en blanco del libro y disponibilidad; X8 (Material deja de escribir `monitoreo_aulas_plan`) | Esta sesión, coordinada con Monitoreo | ADR 0121 F3 |
-| 4 | Barrido telefónico: plantilla en Material (X9), lectura en Monitoreo; revisión del RMS (C8) | Esta sesión + Monitoreo + la sesión que elija Gonzalo | Etapa 1; elección de C8 |
-| 5 | ADR del Planner y mudanzas campo a campo (§8); X6 pasa a consulta | Meta B coordina | OK de Gonzalo para abrir el ADR |
-| — | F4 «plan de campo desde la muestra enviada» | Esta sesión, tras la etapa 1 | Aprobación de Gonzalo |
+| 4 | Barrido telefónico: plantilla en Material (X9), lectura en Monitoreo; revisión del RMS (C8) | Esta sesión + Monitoreo + la sesión que elija Gonzalo | Etapa 1, P5 y P10 |
+| 5 | ADR del Planner y mudanzas campo a campo (§8); X6 pasa a consulta | Meta B coordina | P9 |
+| — | F4 «plan de campo desde la muestra enviada» | Esta sesión, tras la etapa 1 | P6 |
 
 **Hallazgo de L10**: la etapa 4 depende de una revisión (C8) que nadie tiene asignada hasta que Gonzalo elija; la etapa 5
 asume que Meta B redacta el ADR, y eso aún no está confirmado por Gonzalo.
