@@ -44,9 +44,12 @@ Lo que está mal, por orden de lo que se ve primero:
   la hay, la matriz va sin enunciado, sin el marco vacío.
 - **D-L36-3 · Numeración legible en una línea.** El número de fila de la matriz
   (`10.1`) no se parte. La columna se mide con el número más largo.
-- **D-L36-4 · Códigos sólo numéricos en papel.** Si el `name` de una opción no
-  es un número, la casilla lleva su orden (1, 2, 3…) y el código real queda en
-  el libro de códigos, no en el cuestionario.
+- **D-L36-4 · Retirada el mismo día.** Proponía numerar las opciones cuyo
+  código es texto (`femenino` → 1). Choca con la decisión del 2026-10-15
+  (paridad Word/PDF en `.form_pdf_options_code_mark`): se imprime todo código
+  no vacío, también el que repite su etiqueta, porque el papel tiene que decir
+  el mismo código que el libro de códigos y que la base. Renumerar le daría a
+  quien digita dos verdades. Manda la de octubre.
 - **D-L36-5 · Portada con identidad del estudio.** Título del estudio (no el
   `form_id`), institución, periodo y bloque de control (folio, encuestador,
   fecha). Se lee de los ajustes del formulario; si falta el título humano, se
@@ -67,7 +70,7 @@ Lo que está mal, por orden de lo que se ve primero:
 |---|---|---|
 | DOC.0 | Esta dirección | ☑ 2026-11-01 |
 | DOC.0b | Arreglar 1–3 (D-L36-1, 2 y 3) en el motor actual, con test y página rasterizada | ☑ `042c770fc`: Word y PDF sin bandas vacías ni bloques de plataforma, número de fila en una línea, 7 → 6 páginas; «Así queda» con la misma regla |
-| DOC.0c | D-L36-4 y D-L36-5 (códigos numéricos, portada) | ☐ siguiente |
+| DOC.0c | D-L36-5 (portada). D-L36-4 retirada: manda la decisión del 2026-10-15 | ☐ siguiente |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☐ |
 | DOC.2–DOC.5 | Visor fiel, bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
 
