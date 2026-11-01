@@ -3,3 +3,6 @@
 .hr-sorteo-v1 strong { font-size: 13px; font-weight: 700; }
 .hr-sorteo-v1 p { margin: 0; font-size: 12px; line-height: 1.45; }
 .hr-sorteo-v1 .hr-sorteo-v1-ir { padding: 0; min-height: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Volver a sortear una muestra enviada: Cancelar y Sortear igual, en fila. */
+.hr-sorteo-confirmar { display: flex; gap: 8px; }

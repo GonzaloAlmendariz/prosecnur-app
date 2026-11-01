@@ -404,7 +404,9 @@
     run$ui_state <- .hojas_ruta_ui_state_normalize(ui_state, run$config)
   }
   if (!is.null(workspace_outputs) && !(identical(phase, "pilot") && isTRUE(run$locked))) {
-    run$workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(workspace_outputs)
+    # La muestra lleva la fecha de su sorteo junto a la semilla (hojas_ruta_sorteo_fecha.R).
+    run$workspace_outputs <- .hojas_ruta_sellar_sorteo(run$workspace_outputs,
+                                                       .hojas_ruta_workspace_outputs_normalize(workspace_outputs))
   }
   if (identical(phase, "field")) {
     run$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(

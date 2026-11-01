@@ -50,6 +50,8 @@ export type UnidadesTerritoriales = {
 
 export type EnvioMeta = {
   enviado_at: string | null;
+  /** Cuándo se sorteó la muestra enviada (ISO UTC); null si se envió antes de sellar fechas. */
+  sorteado_en: string | null;
   sample_fingerprint: string;
   n_titulares: number;
   n_reemplazos: number;
@@ -156,6 +158,7 @@ export function normalizarEnvioMeta(valor: unknown): EnvioMeta | null {
   if (!huella) return null;
   return {
     enviado_at: textoONulo(valor.enviado_at),
+    sorteado_en: textoONulo(valor.sorteado_en),
     sample_fingerprint: huella,
     n_titulares: entero(valor.n_titulares),
     n_reemplazos: entero(valor.n_reemplazos),

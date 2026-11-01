@@ -539,6 +539,8 @@ export type HojasRutaSamplePreview = {
   quota: QuotaPlan;
   method: SamplingMethod;
   seed: number;
+  /** Cuándo se sorteó (ISO UTC), sellado al guardar; falta en las muestras guardadas antes del 1 nov 2026. */
+  sorteado_en?: string;
   blocks: SelectedBlock[];
   replacement_blocks: SelectedBlock[];
   n_blocks: number;

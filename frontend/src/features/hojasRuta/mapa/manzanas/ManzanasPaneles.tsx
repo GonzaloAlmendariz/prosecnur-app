@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CODIGO_V1, muestraV1, resumenV1 } from "./sorteoV1";
 import "./sorteoV1.css";
 import { Shuffle } from "../../../../vendor/lucide-react";
@@ -8,6 +8,8 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
 import { irAlMarcoElegible, tonoCobertura } from "./marcoElegible";
 import { CompararSemillas } from "./CompararSemillas";
+import { ConfirmarResorteo } from "./ConfirmarResorteo";
+import { fechaDelSorteo } from "./fechaSorteo";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
@@ -88,10 +90,15 @@ type InspectorProps = {
   parecido?: ReactNode;
   bloqueado: boolean;
   guardando: boolean;
+  /** La muestra vigente ya está en Material: volver a sortear pide confirmación (1 nov 2026). */
+  enviada?: { enviadoEl: string | null } | null;
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, bloqueado, guardando, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, bloqueado, guardando, enviada, onSortear }: InspectorProps) {
+  const [confirmando, setConfirmando] = useState(false);
+  const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
+  const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
@@ -120,7 +127,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
                 <button type="button" className="hr-sorteo-v1-ir" onClick={() => irAlMarcoElegible()}>Ver el marco elegible</button>
               </p>
             ) : null}
-            <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear} onClick={onSortear}>
+            <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear || confirmando} onClick={pedirSorteo}>
               {guardando ? "Sorteando…" : "Sortear de nuevo con el método vigente"}
             </PulsoButton>
           </section>
@@ -132,7 +139,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               <div><small>Reemplazos</small><strong>{fmt(muestra.n_replacement_blocks ?? 0)}</strong></div>
               <div><small>Entrevistas</small><strong>{fmt(muestra.total_entrevistas)}</strong></div>
             </div>
-            <p className="hr-mapa-nota">{metodoDe(muestra.method)} · semilla {muestra.seed}{vigente ? "" : " · cambiaste parámetros: sortea de nuevo para verlos"}</p>
+            <p className="hr-mapa-nota">{metodoDe(muestra.method)} · semilla {muestra.seed}{sorteadaEl ? ` · sorteada el ${sorteadaEl}` : ""}{vigente ? "" : " · cambiaste parámetros: sortea de nuevo para verlos"}</p>
           </section>
         ) : (
           <ol className="hr-mapa-pasos">
@@ -225,12 +232,23 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
         ))}
         {muestra && cambios.length ? <p className="hr-mapa-aviso">Sortear de nuevo reemplaza las titulares y reemplazos actuales. El sorteo anterior queda en el historial.</p> : null}
+        {confirmando && enviada ? (
+          <ConfirmarResorteo
+            enviadoEl={enviada.enviadoEl}
+            guardando={guardando}
+            onCancelar={() => setConfirmando(false)}
+            onConfirmar={() => {
+              setConfirmando(false);
+              onSortear();
+            }}
+          />
+        ) : null}
       </div>
       <footer className="hr-mapa-pie">
         <PulsoButton variant="secondary" disabled={!cambios.length || guardando} onClick={() => setSorteoBorrador(null)}>
           Deshacer
         </PulsoButton>
-        <PulsoButton variant="primary" disabled={ed || !listoParaSortear || (vigente && !v1)} onClick={onSortear}>
+        <PulsoButton variant="primary" disabled={ed || !listoParaSortear || (vigente && !v1) || confirmando} onClick={pedirSorteo}>
           {guardando ? "Sorteando…" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
         </PulsoButton>
       </footer>

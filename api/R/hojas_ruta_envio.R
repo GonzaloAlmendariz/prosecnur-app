@@ -97,6 +97,8 @@ hojas_ruta_envio_meta <- function(run) {
   vigente <- .hojas_ruta_sample_fingerprint(.hojas_ruta_list_get(run$workspace_outputs, "sample"))
   list(
     enviado_at = envio$enviado_at,
+    # Cuándo se sorteó la muestra enviada ("" si se guardó antes de que se sellara la fecha).
+    sorteado_en = .hojas_ruta_envio_chr(envio$sample$sorteado_en),
     sample_fingerprint = envio$sample_fingerprint,
     n_titulares = as.integer(envio$n_titulares),
     n_reemplazos = as.integer(envio$n_reemplazos),

@@ -771,6 +771,7 @@ export default function HojasRutaMapaPage() {
               }
               bloqueado={bloqueado}
               guardando={guardando}
+              enviada={envio ? { enviadoEl: envio.enviado_at } : null}
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
