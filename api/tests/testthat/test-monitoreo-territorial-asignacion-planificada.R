@@ -120,6 +120,10 @@ test_that("2h: lo declarado por coordinación va al lado de Kobo, con su diferen
   # Se suma por sexo, no sexo + edad: la misma encuesta no cuenta dos veces.
   expect_identical(m1$efectivas_coordinacion, 2L)
   expect_identical(m1$diferencia_coordinacion, 0L)
+  # 2h parte 2: las dos marginales viajan enteras para el cruce celda por celda.
+  expect_identical(m1$efectivas_por_edad, list(`18-29` = 2L))
+  expect_identical(m1$efectivas_por_sexo, list(H = 1L, M = 1L))
+  expect_length(m2$efectivas_por_edad, 0L)
   expect_identical(m2$diferencia_coordinacion, 2L)
   expect_identical(m1$fecha_visita, "2026-10-20")
   expect_identical(r$resumen$con_registro_coordinacion, 2L)

@@ -41,6 +41,9 @@ export type UmpPlanificada = {
   efectivasCoordinacion: number | null;
   /** Coordinación menos Kobo; `null` sin registro. */
   diferenciaCoordinacion: number | null;
+  /** 2h parte 2: lo que declara coordinación por celda de cada marginal, sin sumar. */
+  coordinacionPorSexo: Array<{ celda: string; valor: number }>;
+  coordinacionPorEdad: Array<{ celda: string; valor: number }>;
   fechaVisita: string;
   supervisionAprobadas: number | null;
   supervisionNoAprobadas: number | null;
@@ -88,6 +91,12 @@ export type AsignacionPlanificada = {
 const ESTADOS: EstadoDeAsignacionPlanificada[] = ["comparable", "otra_muestra", "sin_asignacion", "sin_envio", "sin_campana"];
 const LECTURAS: LecturaDeAsignacion[] = ["coincide", "coincide_con_otros", "otro_encuestador", "sin_respuestas"];
 
+function celdas(v: unknown): Array<{ celda: string; valor: number }> {
+  return Object.entries(registro(v))
+    .map(([celda, x]) => ({ celda, valor: enteroONulo(x) }))
+    .filter((c): c is { celda: string; valor: number } => Boolean(c.celda) && c.valor != null);
+}
+
 export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanificada {
   const r = registro(raw);
   const estadoCrudo = texto(r.estado) as EstadoDeAsignacionPlanificada;
@@ -116,6 +125,8 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
         efectivasKobo: entero(u.efectivas_kobo),
         efectivasCoordinacion: enteroONulo(u.efectivas_coordinacion),
         diferenciaCoordinacion: enteroONulo(u.diferencia_coordinacion),
+        coordinacionPorSexo: celdas(u.efectivas_por_sexo),
+        coordinacionPorEdad: celdas(u.efectivas_por_edad),
         fechaVisita: texto(u.fecha_visita),
         supervisionAprobadas: enteroONulo(u.supervision_aprobadas),
         supervisionNoAprobadas: enteroONulo(u.supervision_no_aprobadas),

@@ -1,0 +1,42 @@
+/* 2h parte 2 · Declarado por coordinación contra Kobo, dentro del detalle de la UMP. */
+.mon-falt-coord {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.mon-falt-coord > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.mon-falt-coord h5 {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-falt-coord-marginales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--pulso-space-3);
+  align-items: start;
+}
+
+.mon-falt-coord tr.is-no-cuadra td:last-child {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-coord-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}

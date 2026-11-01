@@ -15,6 +15,8 @@ import {
   type ModeloFaltante,
 } from "./faltanteModel";
 import { DetalleDeUmp } from "./DetalleDeUmp";
+import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
+import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./faltante.css";
@@ -34,6 +36,11 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
   const [filtro, setFiltro] = useState<FiltroDeFaltante>("todas");
   const [conReemplazos, setConReemplazos] = useState(true);
   const filas = useMemo(() => filtrarFilas(modelo.filas, filtro, conReemplazos), [conReemplazos, filtro, modelo.filas]);
+  // 2h: el registro del coordinador por manzana, sólo si la asignación es de la muestra en campo.
+  const asignacion = useAsignacionPlanificada(reports?.generated_at ?? "");
+  const coordinacionDe = useMemo(() => new Map(
+    asignacion?.estado === "comparable" ? asignacion.porUmp.map((u) => [u.idManzana, u]) : [],
+  ), [asignacion]);
 
   if (!modelo.configurado) {
     return (
@@ -109,6 +116,7 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
           columnas={modelo.columnas}
           foco={foco}
           onFoco={(ump) => escribirFoco(foco === ump ? null : ump)}
+          coordinacionDe={coordinacionDe}
         />
       </section>
     </section>
@@ -254,11 +262,13 @@ function TablaDeCuotas({
   columnas,
   foco,
   onFoco,
+  coordinacionDe,
 }: {
   filas: readonly FilaDeUmp[];
   columnas: ModeloFaltante["columnas"];
   foco: string | null;
   onFoco: (ump: string) => void;
+  coordinacionDe: ReadonlyMap<string, UmpPlanificada>;
 }) {
   const filaAbierta = useRef<HTMLTableRowElement | null>(null);
   const abiertaPorClick = useRef<string | null>(null);
@@ -341,7 +351,7 @@ function TablaDeCuotas({
                 {abierta ? (
                   <tr className="mon-falt-detalle-fila" id={`mon-falt-detalle-${fila.ump}`}>
                     <td colSpan={columnas.length + 7}>
-                      <DetalleDeUmp fila={fila} />
+                      <DetalleDeUmp fila={fila} coordinacion={coordinacionDe.get(fila.bloque.id_manzana) ?? null} />
                     </td>
                   </tr>
                 ) : null}

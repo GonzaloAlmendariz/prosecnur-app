@@ -1,7 +1,10 @@
 import type { TerritorialQuotaProgressBlock } from "../../../../../api/client";
+import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { diaYMes, fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
 import type { FilaDeUmp } from "./faltanteModel";
 import { CuotaPorVariable } from "./CuotaPorVariable";
+import { CruceConCoordinacion } from "./CruceConCoordinacion";
+import { construirCruceConCoordinacion } from "./cruceConCoordinacionModelo";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 
 /**
@@ -15,7 +18,11 @@ import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 const ROTULO_DE_ESTADO = { pendiente: "Cuota pendiente", subsanada: "Completa con subsanación", completa: "Completa" } as const;
 const TONO_DE_ESTADO = { pendiente: "is-falta", subsanada: "is-info", completa: "is-ok" } as const;
 
-export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
+export function DetalleDeUmp({ fila, coordinacion = null }: {
+  fila: FilaDeUmp;
+  /** 2h: el registro del coordinador de esta manzana; `null` mientras no hay asignación comparable. */
+  coordinacion?: UmpPlanificada | null;
+}) {
   const bloque = fila.bloque;
   const cruce = bloque.observed_cross ?? null;
   const columnas = cruce?.columns ?? [];
@@ -113,6 +120,10 @@ export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
           <p className="mon-falt-detalle-vacio">La manzana en uso no tiene casos con consentimiento.</p>
         )}
       </section>
+
+      {coordinacion ? (
+        <CruceConCoordinacion modelo={construirCruceConCoordinacion(cruce, coordinacion)} ump={String(fila.ump)} />
+      ) : null}
 
       {fila.otras.length ? (
         <ul className="mon-falt-otras" aria-label="Otras manzanas de la UMP">

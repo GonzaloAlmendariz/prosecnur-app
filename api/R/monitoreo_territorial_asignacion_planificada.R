@@ -220,6 +220,10 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       efectivas_coordinacion = coordinacion,
       diferencia_coordinacion = if (is.na(coordinacion)) NA_integer_ else as.integer(coordinacion - efectivas_kobo),
       efectivas_por_celda = if (length(por_celda)) por_celda else structure(list(), names = character(0)),
+      # 2h parte 2: las dos marginales tal cual, para cruzarlas celda por celda
+      # con lo observado en Kobo (`observed_cross` del avance de cuota).
+      efectivas_por_sexo = if (length(ef$sexo)) ef$sexo else structure(list(), names = character(0)),
+      efectivas_por_edad = if (length(ef$edad)) ef$edad else structure(list(), names = character(0)),
       fecha_visita = .monitoreo_scalar(d$fecha_visita, ""),
       se_reemplaza = .monitoreo_scalar(d$se_reemplaza, ""),
       supervision_aprobadas = suppressWarnings(as.integer(.monitoreo_scalar(sup$aprobadas, NA))),
