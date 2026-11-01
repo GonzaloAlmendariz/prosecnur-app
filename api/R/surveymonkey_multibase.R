@@ -975,7 +975,7 @@ sm_multibase_inspect_survey <- function(survey_id,
     stop_api(
       504,
       "E_SM_TIMEOUT",
-      "SurveyMonkey no respondio dentro del tiempo de espera. Revisa tu conexion y vuelve a buscar."
+      "SurveyMonkey no respondió dentro del tiempo de espera. Revisa tu conexión y vuelve a buscar."
     )
   }
   stop_api(400, "E_SM_SURVEY_CATALOG", message)
