@@ -10,6 +10,9 @@ import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./profiles/types"
 import { MonitoreoModeChoice } from "./MonitoreoModeChoice";
 import type { MonitoreoModo, MonitoreoModoDefinicion } from "./core/monitoreoRegistry";
 import { sugerirModoDeMonitoreo, type SugerenciaDeModo } from "./core/sugerenciaDeModo";
+import { decidirAterrizajeDeMonitoreo } from "./core/aterrizajeDeMonitoreo";
+import { usePlannerModos } from "../bitacora/planner/usePlannerModos";
+import { PerfilNoDeclarado } from "../bitacora/planner/PerfilNoDeclarado";
 import "./MonitoreoShell.css";
 
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
@@ -43,6 +46,11 @@ export default function MonitoreoShell() {
   const [error, setError] = useState("");
   const [busyFamily, setBusyFamily] = useState<MonitoreoModo | null>(null);
   const [sugerencia, setSugerencia] = useState<SugerenciaDeModo | null>(null);
+  // ADR 0122 P2: el modo lo fijan los perfiles declarados en el Planner.
+  const { modos: plannerModos, error: plannerError } = usePlannerModos();
+  const familiaElegida = state && routeSelectedFromState(state) ? familyFromState(state) : null;
+  const aterrizaje = decidirAterrizajeDeMonitoreo(plannerModos, plannerError, familiaElegida);
+  const puedeAbrir = aterrizaje.tipo === "abrir" || aterrizaje.tipo === "respaldo";
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +83,7 @@ export default function MonitoreoShell() {
   }, []);
 
   useEffect(() => {
-    if (!state || !routeSelectedFromState(state)) {
+    if (!state || !routeSelectedFromState(state) || !puedeAbrir) {
       setProfile(null);
       setPage(null);
       return;
@@ -107,7 +115,7 @@ export default function MonitoreoShell() {
     return () => {
       cancelled = true;
     };
-  }, [state]);
+  }, [state, puedeAbrir]);
 
   const chooseMode = async (mode: MonitoreoModoDefinicion) => {
     if (!state || busyFamily) return;
@@ -147,6 +155,31 @@ export default function MonitoreoShell() {
           <span>{error}</span>
         </div>
       </div>
+    );
+  }
+
+  if (state && aterrizaje.tipo === "cargando") return <ShellFallback label="Leyendo el Planner" />;
+  if (state && aterrizaje.tipo === "sin-perfil") {
+    return (
+      <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
+        <PerfilNoDeclarado detalle="Monitoreo abre en el modo que fija el perfil de recojo del estudio." />
+      </div>
+    );
+  }
+  // Alinear o elegir: el Planner declara el modo y la config todavía no lo tiene.
+  // Un clic explícito lo fija; nada se escribe sólo por abrir el módulo.
+  if (state && (aterrizaje.tipo === "alinear" || aterrizaje.tipo === "elegir")) {
+    const modos = aterrizaje.tipo === "alinear" ? [aterrizaje.modo] : aterrizaje.modos;
+    return (
+      <MonitoreoModeChoice
+        modes={modos}
+        busyFamily={busyFamily}
+        error={error}
+        sugerencia={aterrizaje.tipo === "alinear"
+          ? { family: aterrizaje.modo.family, motivo: "Es el perfil de recojo que declara el Planner." } as SugerenciaDeModo
+          : null}
+        onChoose={(mode) => void chooseMode(mode)}
+      />
     );
   }
 
