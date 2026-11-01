@@ -334,3 +334,9 @@ test_that("sin nombre en ningún lado, el Home usa el nombre del archivo y no un
   s <- session_get(sid); s$project_path <- "/ruta/HSVG2026.pulso"; .session_env[[sid]] <- s
   expect_equal(.project_overview_payload(sid)$project$name, "HSVG2026")
 })
+
+test_that("el rótulo por defecto de Cálculo no se toma como nombre del estudio", {
+  sid <- .pl_sesion(list(calc_muestra_estudio = list(titulo = "Estudio sin título"),
+                         dashboard_config = list(titulo = "Tablero de HSVG")))
+  expect_equal(.planner_identidad(session_get(sid))$nombre, "Tablero de HSVG")
+})

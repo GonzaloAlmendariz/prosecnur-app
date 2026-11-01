@@ -169,11 +169,23 @@
 # (`estudio$nombre`), Cálculo de muestra (`titulo`, `contexto$cliente`) y el
 # Dashboard (`titulo`, `cliente`). Se siembra en ese orden, que es el que ya
 # usaba el Home (.diseno_protocol_summary). El código no existía en ninguno.
+# Rótulos por defecto que escriben otros módulos cuando nadie puso nombre
+# (Cálculo guarda «Estudio sin título»): no son un nombre.
+.PLANNER_NOMBRES_VACIOS <- c("Estudio sin título", "Estudio sin titulo", "Proyecto sin titulo", "Proyecto sin título")
+
+.planner_nombre_real <- function(...) {
+  for (x in list(...)) {
+    v <- .planner_chr1(x)
+    if (nzchar(v) && !v %in% .PLANNER_NOMBRES_VACIOS) return(v)
+  }
+  ""
+}
+
 .planner_proyectar_estudio <- function(s) {
   calc <- s[["calc_muestra_estudio"]] %||% list()
   dash <- s[["dashboard_config"]] %||% list()
   .planner_norm_estudio(list(
-    nombre = .planner_chr1((s[["estudio"]] %||% list())$nombre %||% calc$titulo %||% dash$titulo),
+    nombre = .planner_nombre_real((s[["estudio"]] %||% list())$nombre, calc$titulo, dash$titulo),
     cliente = .planner_chr1((calc$contexto %||% list())$cliente %||% dash$cliente)
   ))
 }
