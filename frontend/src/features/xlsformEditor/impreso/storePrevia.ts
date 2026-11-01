@@ -14,12 +14,21 @@
 
 import { create } from "zustand";
 import { downloadUrl } from "../../../api/core";
-import { apiXlsformEditorExportPdf, type XlsformPaperExportOptions } from "../../../api/xlsformEditor";
+import {
+  apiXlsformEditorExportPdf,
+  apiXlsformEditorWordVisor,
+  normalizeXlsformWordVisor,
+  type XlsformPaperExportOptions,
+  type XlsformWordVisor,
+} from "../../../api/xlsformEditor";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import { esperarExportPapel } from "../shell/paperExportJob";
 import { contarPaginasPdf, firmaOpciones, type CifrasPrevia } from "./modeloImpreso";
 
 export type FasePrevia = "inactiva" | "generando" | "descargando" | "lista" | "error";
+
+/** L36 · DOC.2: la previa se lee como el PDF embebido o como las páginas reales del Word. */
+export type LecturaPrevia = "pdf" | "word";
 
 export type EstadoPrevia = {
   /** Formulario al que pertenece la previa; otro formulario la descarta. */
@@ -34,6 +43,12 @@ export type EstadoPrevia = {
   /** El workbook con que se generó: si el formulario cambia, la previa queda vieja. */
   workbook: XlsformEditorWorkbook | null;
   error: string;
+  /** La lectura elegida en la pestaña. */
+  lectura: LecturaPrevia;
+  /** Con qué lectura se generó lo que hay: si no coincide con la elegida, no se muestra. */
+  lecturaGenerada: LecturaPrevia | null;
+  /** Páginas del Word (data URI) y en qué página empieza cada pregunta. */
+  word: XlsformWordVisor | null;
 };
 
 const INICIAL: EstadoPrevia = {
@@ -45,6 +60,9 @@ const INICIAL: EstadoPrevia = {
   firma: null,
   workbook: null,
   error: "",
+  lectura: "pdf",
+  lecturaGenerada: null,
+  word: null,
 };
 
 type StorePrevia = EstadoPrevia & {
@@ -59,7 +77,8 @@ export const usePreviaImpreso = create<StorePrevia>((set, get) => ({
   descartar: () => {
     const url = get().url;
     if (url) URL.revokeObjectURL(url);
-    set({ ...INICIAL });
+    // La lectura elegida es una preferencia de la pestaña: sobrevive a descartar.
+    set({ ...INICIAL, lectura: get().lectura });
   },
 }));
 
@@ -75,6 +94,7 @@ export function previaVieja(
 
 type DepsPrevia = {
   exportar: typeof apiXlsformEditorExportPdf;
+  visorWord: typeof apiXlsformEditorWordVisor;
   esperar: typeof esperarExportPapel;
   descargar: (fileId: string) => Promise<Uint8Array>;
   crearUrl: (bytes: Uint8Array) => string;
@@ -82,6 +102,7 @@ type DepsPrevia = {
 
 const DEPS: DepsPrevia = {
   exportar: apiXlsformEditorExportPdf,
+  visorWord: apiXlsformEditorWordVisor,
   esperar: esperarExportPapel,
   descargar: async (fileId) => {
     const res = await fetch(downloadUrl(fileId));
@@ -103,7 +124,35 @@ export async function generarPrevia(
 ): Promise<void> {
   const store = usePreviaImpreso.getState();
   const anterior = store.url;
+  const lectura = store.lectura;
   store.parchar({ formId: entrada.formId, fase: "generando", detalle: "", error: "" });
+  if (lectura === "word") {
+    try {
+      let crudo: unknown = null;
+      const job = await deps.visorWord({ ...entrada.workbook, diagnostico: null }, entrada.filename.replace(/\.pdf$/i, ".docx"), entrada.opciones);
+      const resultado = await deps.esperar(job.job_id, {
+        onFase: (fase) => usePreviaImpreso.getState().parchar({ detalle: fase }),
+        onCrudo: (r) => { crudo = r; },
+      });
+      const word = normalizeXlsformWordVisor(crudo);
+      if (!word.paginas.length) throw new Error("El Word se generó, pero no llegaron sus páginas.");
+      usePreviaImpreso.getState().parchar({
+        fase: "lista",
+        lecturaGenerada: "word",
+        word,
+        cifras: { paginas: word.paginas.length, preguntas: resultado.summary.n_questions },
+        firma: firmaOpciones(entrada.opciones),
+        workbook: entrada.workbook,
+        detalle: "",
+      });
+    } catch (e) {
+      usePreviaImpreso.getState().parchar({
+        fase: "error",
+        error: e instanceof Error && e.message ? e.message : "No se pudo armar las páginas del Word.",
+      });
+    }
+    return;
+  }
   try {
     const job = await deps.exportar({ ...entrada.workbook, diagnostico: null }, entrada.filename, entrada.opciones);
     const resultado = await deps.esperar(job.job_id, {
@@ -115,6 +164,7 @@ export async function generarPrevia(
     if (anterior) URL.revokeObjectURL(anterior);
     usePreviaImpreso.getState().parchar({
       fase: "lista",
+      lecturaGenerada: "pdf",
       url,
       cifras: { paginas: await contarPaginasPdf(bytes), preguntas: resultado.summary.n_questions },
       firma: firmaOpciones(entrada.opciones),

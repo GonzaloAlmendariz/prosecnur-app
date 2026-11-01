@@ -404,6 +404,53 @@
   background: var(--pulso-surface);
 }
 
+/* L36 · DOC.2 — las páginas reales del Word, en columna, dentro del marco de la
+   previa (que ya es dueño de su alto). El scroll es de la columna de páginas. */
+.pulso-xf-imp-lectura {
+  margin-inline: auto var(--pulso-space-2);
+}
+
+.pulso-xf-imp-ir {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-imp-paginas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4);
+}
+
+.pulso-xf-imp-pagina {
+  margin: 0;
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-xf-imp-pagina img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-xf-imp-pagina figcaption {
+  align-self: center;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+}
+
 .pulso-xf-imp-previa-vacia {
   display: flex;
   flex: 1 1 auto;

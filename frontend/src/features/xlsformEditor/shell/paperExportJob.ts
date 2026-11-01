@@ -25,6 +25,8 @@ export function textoExportando(label: string, fase: string): string {
 
 export type EsperarExportOpciones = {
   onFase?: (fase: string) => void;
+  /** El `result_data` tal cual, antes de normalizarlo: el visor del Word (L36 · DOC.2) lee de ahí sus páginas. */
+  onCrudo?: (resultData: unknown) => void;
   pollDeps?: JobPollerDeps<unknown>;
 };
 
@@ -61,6 +63,7 @@ export function esperarExportPapel(
         if (snap.status === "done") {
           try {
             const result = normalizeXlsformPaperExportResult(snap.result_data);
+            opciones.onCrudo?.(snap.result_data);
             finish(() => resolve(result));
           } catch (e) {
             finish(() => reject(e instanceof Error ? e : new ApiError("E_EXPORT_JOB_RESULT", String(e))));

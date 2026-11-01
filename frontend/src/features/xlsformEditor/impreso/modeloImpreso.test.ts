@@ -129,6 +129,7 @@ describe("cifras de la previa", () => {
 describe("previa", () => {
   afterEach(() => usePreviaImpreso.setState({
     formId: null, fase: "inactiva", detalle: "", url: null, cifras: null, firma: null, workbook: null, error: "",
+    lectura: "pdf", lecturaGenerada: null, word: null,
   }));
 
   const workbook = { survey: { columns: [], rows: [] } } as never;
@@ -139,6 +140,7 @@ describe("previa", () => {
     const unsub = usePreviaImpreso.subscribe((s) => fases.push(s.fase));
     await generarPrevia({ formId: "f1", workbook, filename: "x.pdf", opciones }, {
       exportar: vi.fn(async () => ({ ok: true as const, job_id: "j1" })) as never,
+      visorWord: vi.fn() as never,
       esperar: vi.fn(async (_id, o) => {
         o?.onFase?.("Dibujando");
         return { ok: true as const, file_id: "file1", original_name: "x.pdf", size: 10, warnings: [],
@@ -159,9 +161,35 @@ describe("previa", () => {
     expect(previaVieja(s, opciones, { ...(workbook as object) } as never)).toBe(true);
   });
 
+  test("la lectura Word arma las páginas y el mapa del visor, sin descargar ni URL de objeto (L36 · DOC.2)", async () => {
+    usePreviaImpreso.setState({ lectura: "word" });
+    const visorWord = vi.fn(async (..._args: unknown[]) => ({ ok: true as const, job_id: "j2" }));
+    const descargar = vi.fn(async () => new Uint8Array());
+    await generarPrevia({ formId: "f1", workbook, filename: "cuestionario.pdf", opciones }, {
+      exportar: vi.fn() as never,
+      visorWord: visorWord as never,
+      esperar: vi.fn(async (_id, o) => {
+        o?.onCrudo?.({
+          paginas: ["data:image/png;base64,AAA", "data:image/png;base64,BBB", "texto suelto"],
+          mapa: [{ numero: "1", pagina: 1 }, { numero: "8.1", pagina: 2 }, { numero: "9", pagina: null }, { numero: "", pagina: 1 }],
+        });
+        return { ok: true as const, file_id: "w1", original_name: "cuestionario.docx", size: 10, warnings: [],
+          summary: { n_blocks: 4, n_questions: 32, n_sections: 2, n_matrices: 15 } };
+      }),
+      descargar,
+      crearUrl: () => "",
+    });
+    const s = usePreviaImpreso.getState();
+    expect(visorWord.mock.calls[0]?.[1]).toBe("cuestionario.docx");
+    expect(descargar).not.toHaveBeenCalled();
+    expect(s).toMatchObject({ fase: "lista", lecturaGenerada: "word", url: null, cifras: { paginas: 2, preguntas: 32 } });
+    expect(s.word?.mapa).toEqual([{ numero: "1", pagina: 1 }, { numero: "8.1", pagina: 2 }, { numero: "9", pagina: null }]);
+  });
+
   test("un error del job queda dicho, no se traga", async () => {
     await generarPrevia({ formId: "f1", workbook, filename: "x.pdf", opciones }, {
       exportar: vi.fn(async () => ({ ok: true as const, job_id: "j1" })) as never,
+      visorWord: vi.fn() as never,
       esperar: vi.fn(async () => { throw new Error("El worker murió."); }),
       descargar: async () => new Uint8Array(),
       crearUrl: () => "",

@@ -200,7 +200,7 @@ export function PestanaImpreso({
               />
             )}
           </div>
-          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
+          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} onLectura={(lectura) => previa.parchar({ lectura })} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
         </div>
       </div>
     </div>

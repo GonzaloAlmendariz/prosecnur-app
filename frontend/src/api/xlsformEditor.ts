@@ -975,7 +975,7 @@ export function normalizeXlsformPaperExportResult(data: unknown): XlsformPaperEx
 }
 
 async function startPaperExport(
-  path: "/api/xlsform-editor/export-pdf" | "/api/xlsform-editor/export-word",
+  path: "/api/xlsform-editor/export-pdf" | "/api/xlsform-editor/export-word" | "/api/xlsform-editor/word-visor",
   workbook: XlsformEditorWorkbook,
   filename: string | undefined,
   options: XlsformPaperExportOptions,
@@ -1015,6 +1015,45 @@ export async function apiXlsformEditorExportWord(
   options: XlsformPaperExportOptions = {},
 ) {
   return startPaperExport("/api/xlsform-editor/export-word", workbook, filename, options);
+}
+
+/**
+ * L36 · DOC.2: el Word del cuestionario como páginas reales y el mapa pregunta → página. Mismo cuerpo y misma forma
+ * de job que export-word; el `result_data` trae además `paginas` (data URI PNG) y `mapa`.
+ */
+export async function apiXlsformEditorWordVisor(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: XlsformPaperExportOptions = {},
+) {
+  return startPaperExport("/api/xlsform-editor/word-visor", workbook, filename, options);
+}
+
+export type XlsformWordVisor = {
+  paginas: string[];
+  /** Página (desde 1) en que empieza cada número impreso; `null` si no se encontró. */
+  mapa: Array<{ numero: string; pagina: number | null }>;
+};
+
+/** Normalizador defensivo de las páginas y el mapa del visor del Word. */
+export function normalizeXlsformWordVisor(raw: unknown): XlsformWordVisor {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const paginas = Array.isArray(r.paginas)
+    ? r.paginas.filter((p): p is string => typeof p === "string" && p.startsWith("data:image/"))
+    : [];
+  const mapa = Array.isArray(r.mapa)
+    ? r.mapa.flatMap((m) => {
+        if (!m || typeof m !== "object") return [];
+        const o = m as Record<string, unknown>;
+        const numero = typeof o.numero === "string" ? o.numero.trim() : "";
+        if (!numero) return [];
+        const pagina = typeof o.pagina === "number" && Number.isInteger(o.pagina) && o.pagina >= 1 && o.pagina <= paginas.length
+          ? o.pagina
+          : null;
+        return [{ numero, pagina }];
+      })
+    : [];
+  return { paginas, mapa };
 }
 
 /**

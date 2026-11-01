@@ -3,24 +3,37 @@
 // cambiaron después.
 
 import { AlertTriangle, Check, FileText, Loader2, RotateCcw } from "../../../vendor/lucide-react";
+import { useRef } from "react";
+import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../components/PulsoButton";
-import type { EstadoPrevia } from "./storePrevia";
+import { PulsoSelect } from "../../../components/PulsoSelect";
+import type { EstadoPrevia, LecturaPrevia } from "./storePrevia";
 import type { PdfDialogState } from "../shell/pdfExportPreference";
 import { MaquetaPagina } from "./MaquetaPagina";
 import type { PrimeraPagina } from "./primeraPagina";
 
 type Paso = { clave: string; rotulo: string; estado: "hecho" | "en-curso" | "pendiente" };
 
-function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle">): Paso[] {
+const LECTURAS: ReadonlyArray<{ id: LecturaPrevia; rotulo: string }> = [
+  { id: "pdf", rotulo: "PDF" },
+  { id: "word", rotulo: "Páginas del Word" },
+];
+
+function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle" | "lectura">): Paso[] {
   const generando = previa.fase === "generando";
+  if (previa.lectura === "word") {
+    return [{ clave: "word", rotulo: generando && previa.detalle ? `Armando las páginas del Word · ${previa.detalle}` : "Armando las páginas del Word", estado: "en-curso" }];
+  }
   return [
     { clave: "pdf", rotulo: generando && previa.detalle ? `Generando el PDF · ${previa.detalle}` : "Generando el PDF", estado: generando ? "en-curso" : "hecho" },
     { clave: "leer", rotulo: "Leyendo el archivo", estado: previa.fase === "descargando" ? "en-curso" : "pendiente" },
   ];
 }
 
-export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMatrices, pagina }: {
+export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, estado, hayMatrices, pagina }: {
   previa: EstadoPrevia;
+  /** Cambia entre el PDF embebido y las páginas reales del Word (L36 · DOC.2). */
+  onLectura: (lectura: LecturaPrevia) => void;
   /** Opciones actuales: dibujan el esquema de página mientras no hay PDF. */
   estado: PdfDialogState;
   hayMatrices: boolean;
@@ -32,23 +45,41 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMat
   onGenerar: () => void;
 }) {
   const ocupada = previa.fase === "generando" || previa.fase === "descargando";
+  // Lo generado con la otra lectura no se muestra: para esta lectura todavía no hay previa.
+  const fase = previa.fase === "lista" && previa.lecturaGenerada !== previa.lectura ? "inactiva" : previa.fase;
+  const paginasRef = useRef<HTMLDivElement | null>(null);
+  const irAPagina = (n: number) => {
+    paginasRef.current?.querySelector(`[data-pagina="${n}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+  const ubicadas = previa.word?.mapa.filter((m) => m.pagina !== null) ?? [];
   return (
     <aside className="pulso-xf-imp-previa" aria-label="Así queda" data-qa-surface="xlsform/impreso-previa">
       <div className="pulso-xf-imp-previa-cabeza">
         <span className="pulso-xf-imp-eyebrow">Así queda</span>
-        {previa.fase === "lista" && (
+        <GlidingRadioGroup
+          value={previa.lectura}
+          options={LECTURAS}
+          getOptionValue={(o) => o.id}
+          onValueChange={onLectura}
+          className="pulso-segmented pulso-xf-imp-lectura"
+          aria-label="Cómo leer la previa"
+          getOptionProps={() => ({ disabled: ocupada })}
+        >
+          {(o) => o.rotulo}
+        </GlidingRadioGroup>
+        {fase === "lista" && (
           <PulsoButton variant="ghost" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? undefined}>
             <RotateCcw size={13} aria-hidden="true" /> Volver a generar
           </PulsoButton>
         )}
       </div>
       <div className="pulso-xf-imp-previa-marco" data-qa-geometry-capacity="owned">
-        {previa.fase === "inactiva" && (
+        {fase === "inactiva" && (
           <div className="pulso-xf-imp-previa-esquema">
             <MaquetaPagina estado={estado} hayMatrices={hayMatrices} pagina={pagina} />
             <div className="pulso-xf-imp-previa-esquema-pie">
               <p>{pagina?.preguntas.length ? "Primera página, en baja resolución." : "Esquema de la primera página."}</p>
-              <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? "Genera el PDF con estas opciones"}>
+              <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? (previa.lectura === "word" ? "Arma el Word con estas opciones y muestra sus páginas" : "Genera el PDF con estas opciones")}>
                 <FileText size={13} aria-hidden="true" /> Previsualizar
               </PulsoButton>
             </div>
@@ -66,7 +97,7 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMat
             ))}
           </ol>
         )}
-        {previa.fase === "error" && (
+        {fase === "error" && (
           <div className="pulso-xf-imp-previa-vacia is-error" role="alert">
             <span className="pulso-xf-imp-previa-icono" aria-hidden="true"><AlertTriangle size={20} /></span>
             <strong>No se pudo generar la previa</strong>
@@ -74,7 +105,40 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMat
             <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)}>Reintentar</PulsoButton>
           </div>
         )}
-        {previa.fase === "lista" && previa.url && (
+        {fase === "lista" && previa.lectura === "word" && previa.word && (
+          <>
+            {vieja && (
+              <p className="pulso-xf-imp-previa-vieja" role="status">
+                <AlertTriangle size={14} aria-hidden="true" />
+                Cambiaste opciones o el formulario después de estas páginas: vuelve a generarlas para ver lo que saldrá.
+              </p>
+            )}
+            {ubicadas.length > 0 && (
+              <div className="pulso-xf-imp-ir">
+                <PulsoSelect
+                  size="sm"
+                  value={undefined}
+                  placeholder="Ir a la pregunta…"
+                  ariaLabel="Ir a la página de una pregunta"
+                  options={ubicadas.map((m) => ({ value: m.numero, label: `${m.numero} · página ${m.pagina}` }))}
+                  onValueChange={(numero) => {
+                    const destino = ubicadas.find((m) => m.numero === numero)?.pagina;
+                    if (destino) irAPagina(destino);
+                  }}
+                />
+              </div>
+            )}
+            <div className="pulso-xf-imp-paginas" ref={paginasRef}>
+              {previa.word.paginas.map((src, i) => (
+                <figure key={i} className="pulso-xf-imp-pagina" data-pagina={i + 1}>
+                  <img src={src} alt={`Página ${i + 1} de ${previa.word?.paginas.length ?? 0} del Word`} loading="lazy" />
+                  <figcaption>{`Página ${i + 1}`}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </>
+        )}
+        {fase === "lista" && previa.lectura === "pdf" && previa.url && (
           <>
             {vieja && (
               <p className="pulso-xf-imp-previa-vieja" role="status">
