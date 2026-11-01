@@ -2494,7 +2494,7 @@ export default function XlsformEditorPage() {
       headerMode="sr-only"
       auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${pestana}`}
-      toolbar={workbook ? (
+      chrome={workbook ? (
         <EditorCommandBar
           pestana={pestana}
           switcher={{

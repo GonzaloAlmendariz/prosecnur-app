@@ -21033,7 +21033,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   padding: 9px 12px 14px;
 }
 
-.pulso-xlsform-frame .pulso-page-frame-toolbar {
+.pulso-xlsform-frame .pulso-page-frame-chrome {
   position: relative;
   z-index: 1000;
   padding-top: 10px;
