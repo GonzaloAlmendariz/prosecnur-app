@@ -117,7 +117,8 @@ const TABLA: readonly Entrada[] = [
   // curso-horario (`panel=aula&foco=<código>`), que todavía no existe. Mientras
   // tanto la ficha sigue alcanzable como sub-vista de Partes, la pestaña cuya
   // pregunta —qué dice el parte de UN aula— contesta.
-  entrada("control", "partes", null, v("consultas", "parte"), { vista: "Partes" }),
+  // Ctl5 Partes: contenido propio (`control/PartesAulas.tsx`).
+  entrada("control", "partes", null, v("consultas", "parte"), { vista: "Partes", propia: true }),
   entrada("control", "partes", "codigo", v("consultas", "ficha"), { vista: "Buscar por código" }),
   entrada("control", "calidad", null, v("calidad", "controles"), { vista: "Controles" }),
   entrada("control", "calidad", "base", v("calidad", "base"), { vista: "Base de control" }),
