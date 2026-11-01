@@ -11,6 +11,7 @@ import { fmt } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { esperanPorPublico, type CasosDelCorte } from "../control/casos/tiposDeCaso";
 import {
+  rotuloDeDiasALaMeta,
   diaDeMetaCumplida,
   proyeccion,
   rezagadosPrimero,
@@ -44,12 +45,12 @@ function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDi
     return <span className="acr-av-chip is-cumple">{lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"}</span>;
   }
   // El chip dice la cifra; el cálculo que la sostiene va en el tooltip.
-  const ritmo = fmt(Math.round(lectura.ritmo));
+  const ritmo = lectura.ritmo.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   return (
     <span className="acr-res-chips-proyeccion">
       <span className="acr-av-chip is-falta">{`Faltan ${fmt(lectura.faltan)}`}</span>
       {lectura.dias != null ? (
-        <span className="acr-av-chip" title={`Al ritmo de ${ritmo} efectivas diarias`}>{`≈ ${fmt(lectura.dias)} ${lectura.dias === 1 ? "día" : "días"}`}</span>
+        <span className="acr-av-chip" title={`Al ritmo de ${ritmo} efectivas diarias: ≈ ${fmt(lectura.dias)} días`}>{rotuloDeDiasALaMeta(lectura.dias)}</span>
       ) : (
         <span className="acr-av-chip" title="Sin efectivas en los últimos siete días">Sin ritmo</span>
       )}

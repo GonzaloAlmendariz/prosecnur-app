@@ -158,3 +158,14 @@ export function marcasDeEje(maximo: number): number[] {
   for (let valor = 0; valor < maximo + paso * 0.999; valor += paso) marcas.push(Math.round(valor * 1000) / 1000);
   return marcas;
 }
+
+/**
+ * Los días que faltan a la meta al ritmo actual, en palabras. Más allá de tres
+ * meses la cifra exacta ya no informa —«≈ 693 días» se leía como un error— y
+ * se dice el orden de magnitud; la cifra queda en el tooltip.
+ */
+export const DIAS_PROYECCION_LEJANA = 90;
+export function rotuloDeDiasALaMeta(dias: number): string {
+  if (dias > DIAS_PROYECCION_LEJANA) return "Más de 3 meses";
+  return `≈ ${dias.toLocaleString("es-PE")} ${dias === 1 ? "día" : "días"}`;
+}

@@ -1,6 +1,7 @@
 import { fmt } from "../formato";
 import { Minibarras } from "./graficosDeAvance";
 import type { RitmoDePublico } from "./ritmoPorPublicoModelo";
+import { rotuloDeDiasALaMeta } from "./avanceModelo";
 import "./ritmoPorPublico.css";
 
 const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { maximumFractionDigits: 1 });
@@ -15,7 +16,7 @@ function Proyeccion({ item }: { item: RitmoDePublico }) {
   if (item.meta == null) return <span className="acr-av-chip">Sin meta</span>;
   if (item.faltan === 0) return <span className="acr-av-chip is-cumple">Meta cumplida</span>;
   if (item.diasALaMeta == null) return <span className="acr-av-chip is-falta" title="Sin efectivas en los últimos siete días">Sin ritmo</span>;
-  return <span className="acr-av-chip" title={`Al ritmo de ${UNA_DECIMAL(item.promedio7)} efectivas diarias de ${ventana(item)}`}>{`≈ ${fmt(item.diasALaMeta)} ${item.diasALaMeta === 1 ? "día" : "días"}`}</span>;
+  return <span className="acr-av-chip" title={`Al ritmo de ${UNA_DECIMAL(item.promedio7)} efectivas diarias de ${ventana(item)}: ≈ ${fmt(item.diasALaMeta)} días`}>{rotuloDeDiasALaMeta(item.diasALaMeta)}</span>;
 }
 
 /**
