@@ -27,6 +27,15 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
 .MBP_CLASES <- c("efectiva", "pendiente", "no_contacto", "rechazo", "invalido")
 .MBP_FILAS_MAX <- 20000L
 .MBP_FILAS_PARAMETROS <- 20L
+.MBP_TELEFONOS_MAX <- 4L          # PDM llega a Teléfono 4 (T15)
+.MBP_OBSERVACION <- "Observación"  # RMS la llama «Observaciones» (T13): el rótulo se configura
+.MBP_ROTULO_MAX <- 30L
+# Al final, después de la observación, con la instrucción en el rótulo como en RMS (T12).
+.MBP_REEMPLAZO <- c("Reemplaza a", "Reemplazado por", "¿Se reemplaza con el Backup?")
+.MBP_ASIGNACIONES_FILAS <- 40L
+
+# La cola de campo con el rótulo de la observación del estudio.
+.mbp_cola <- function(observacion = .MBP_OBSERVACION) c(.MBP_COLA[-length(.MBP_COLA)], observacion)
 
 # Vocabulario por defecto: el del barrido del RMS 2026, leído de la validación de su
 # Sheets el 31 oct (14 etiquetas literales, en su orden; ortografía exacta: «Número
@@ -59,18 +68,25 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
 }
 
 # Parámetros validados; lo que no tiene forma es 422 con su motivo (nada se adivina).
-.mbp_parametros <- function(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas) {
+.mbp_parametros <- function(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas,
+                            observacion = NULL, sensibles = NULL) {
   problemas <- character(0)
   llave <- .mtf_txt(llave); if (!nzchar(llave)) llave <- "Código"
   estratos <- .mbp_textos(estratos)
   telefonos <- suppressWarnings(as.integer(.mtf_txt(telefonos))); if (is.na(telefonos)) telefonos <- 2L
-  if (!telefonos %in% 1:3) problemas <- c(problemas, "Los teléfonos por caso van de 1 a 3")
+  if (!telefonos %in% seq_len(.MBP_TELEFONOS_MAX)) problemas <- c(problemas, sprintf("Los teléfonos por caso van de 1 a %d", .MBP_TELEFONOS_MAX))
+  observacion <- .mtf_txt(observacion); if (!nzchar(observacion)) observacion <- .MBP_OBSERVACION
+  if (nchar(observacion) > .MBP_ROTULO_MAX) problemas <- c(problemas, sprintf("El rótulo de la observación tiene hasta %d caracteres", .MBP_ROTULO_MAX))
   filas <- suppressWarnings(as.integer(.mtf_txt(filas))); if (is.na(filas)) filas <- 2000L
   if (filas < 1L || filas > .MBP_FILAS_MAX) problemas <- c(problemas, sprintf("Las filas van de 1 a %d", .MBP_FILAS_MAX))
   responsables <- setdiff(.mbp_textos(responsables), "Responsable")  # el rótulo no es una opción (RMS)
-  fijas <- c(.MBP_COD_PULSO, llave, "Origen", "Tanda", "Nombre", .MBP_COLA)
+  fijas <- c(.MBP_COD_PULSO, llave, "Origen", "Tanda", "Nombre", .mbp_cola(observacion), .MBP_REEMPLAZO)
   choque <- intersect(estratos, fijas)
   if (length(choque)) problemas <- c(problemas, sprintf("El estrato «%s» se llama como una columna fija", choque[[1]]))
+  # T14: sólo una columna propia del estudio (un estrato) puede marcarse sensible.
+  sensibles <- .mbp_textos(sensibles)
+  ajenas <- setdiff(sensibles, estratos)
+  if (length(ajenas)) problemas <- c(problemas, sprintf("«%s» no es una columna del estudio: sólo un estrato se marca sensible", ajenas[[1]]))
   catalogo <- if (is.null(status) || !length(status)) .MBP_STATUS else lapply(Filter(is.list, status), function(s) {
     list(codigo = .mtf_txt(s$codigo), status = .mtf_txt(s$status %||% s$etiqueta), clase = .mtf_txt(s$clase))
   })
@@ -86,22 +102,25 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
              details = list(problemas = as.list(problemas)))
   }
   list(estudio = .mtf_txt(estudio), llave = llave, estratos = estratos, telefonos = telefonos,
-       reemplazo = isTRUE(as.logical(.mtf_txt(reemplazo))), responsables = responsables, status = catalogo, filas = filas)
+       reemplazo = isTRUE(as.logical(.mtf_txt(reemplazo))), responsables = responsables, status = catalogo, filas = filas,
+       observacion = observacion, sensibles = intersect(sensibles, estratos))
 }
 
 .mbp_columnas <- function(p) {
   # Origen y Tanda sólo con backup: RMS 2025, MDV y CBI no los tienen (revisión de Drive, T7).
   identidad <- c(.MBP_COD_PULSO, p$llave, if (p$reemplazo) c("Origen", "Tanda"), "Nombre", paste("Teléfono", seq_len(p$telefonos)), p$estratos)
-  reemplazo <- if (p$reemplazo) c("Reemplaza a", "Reemplazado por", "¿Se reemplaza?") else character(0)
-  list(todas = c(identidad, reemplazo, .MBP_COLA), campo = .MBP_COLA, identidad = identidad)
+  reemplazo <- if (p$reemplazo) .MBP_REEMPLAZO else character(0)
+  cola <- .mbp_cola(p$observacion)
+  # La cola de campo contigua y el reemplazo al final (T12).
+  list(todas = c(identidad, cola, reemplazo), campo = c(cola, reemplazo), identidad = identidad, cola = cola)
 }
 
 #' Genera el libro de la plantilla del barrido telefónico (C8). No toca el estado del
 #' proyecto: registra el archivo en la sesión y devuelve su `file_id`.
 #' @keywords internal
 collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estratos = list(), telefonos = 2L, reemplazo = FALSE,
-                                         responsables = list(), status = NULL, filas = 2000L) {
-  p <- .mbp_parametros(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas)
+                                         responsables = list(), status = NULL, filas = 2000L, observacion = NULL, sensibles = NULL) {
+  p <- .mbp_parametros(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas, observacion, sensibles)
   col <- .mbp_columnas(p)
   n <- length(col$todas); ultima <- p$filas + 1L
   idx <- function(nombre) match(nombre, col$todas)
@@ -116,7 +135,10 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
     sprintf("«%s» es el correlativo de Pulso y «%s» la llave del caso: escríbela como texto y no la repitas.", .MBP_COD_PULSO, p$llave),
     if (p$reemplazo) "Origen es Muestra o Backup; la tanda va aparte, en «Tanda» (1, 2, 3…).",
     "La identidad del caso (de «Cod pulso» al último estrato) va protegida. Para pegar la base del cliente, desprotege la hoja (no tiene contraseña) y vuelve a protegerla.",
-    "Las columnas en ámbar las llena campo: Responsable, Status, Teléfono de la encuesta, Intentos, Fecha y Observación.",
+    sprintf("Las columnas en ámbar las llena campo: %s.", paste(col$campo, collapse = ", ")),
+    if (length(p$sensibles)) sprintf("Columnas sensibles (en rojo): %s. No se copian al Sheets compartido ni salen en ningún artefacto.",
+                                     paste(p$sensibles, collapse = ", ")),
+    if (length(p$responsables)) "Cuántos casos lleva cada responsable está en «Asignaciones».",
     "Status es obligatorio en cuanto hay Intentos o Fecha: la fila se marca si falta.",
     "Los valores permitidos están en «Listas»; las metas por estrato, en «Parámetros»; el avance se calcula solo en «Indicadores».",
     "Lo que pase en el barrido y no quepa en una fila va en «Incidencias».",
@@ -134,6 +156,12 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   openxlsx::addStyle(wb, .MBP_HOJA, openxlsx::createStyle(textDecoration = "bold", fgFill = "#B7791F", fontColour = "#FFFFFF",
                                                           border = "Bottom", wrapText = TRUE, valign = "center", locked = TRUE),
                      rows = 1, cols = match(col$campo, col$todas))
+  # T14: las columnas sensibles (p. ej. «Estatus Legal») con su encabezado en rojo.
+  if (length(p$sensibles)) {
+    openxlsx::addStyle(wb, .MBP_HOJA, openxlsx::createStyle(textDecoration = "bold", fgFill = "#8E2424", fontColour = "#FFFFFF",
+                                                            border = "Bottom", wrapText = TRUE, valign = "center", locked = TRUE),
+                       rows = 1, cols = match(p$sensibles, col$todas))
+  }
   cuerpo <- 2:ultima
   # La identidad queda bloqueada como en las bases reales (A–G en RMS, A–J en MDV); sólo lo de campo es editable.
   editables <- setdiff(col$todas, col$identidad)
@@ -170,7 +198,7 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   valida("Intentos", type = "whole", operator = "greaterThanOrEqual", value = 0)
   if (p$reemplazo) valida("Tanda", type = "whole", operator = "greaterThanOrEqual", value = 1)
   valida("Fecha", type = "date", operator = "greaterThanOrEqual", value = as.Date("2020-01-01"))
-  if (p$reemplazo) valida("¿Se reemplaza?", type = "list", value = '"Sí,No"')
+  if (p$reemplazo) valida("¿Se reemplaza con el Backup?", type = "list", value = '"Sí,No"')
   # Status obligatorio si hay Intentos o Fecha: la fila se pinta en rojo suave.
   openxlsx::conditionalFormatting(wb, .MBP_HOJA, cols = idx("Status"), rows = cuerpo, type = "expression",
                                   rule = sprintf('AND($%s2="",OR($%s2<>"",$%s2<>""))', letra("Status"), letra("Intentos"), letra("Fecha")),
@@ -193,6 +221,9 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   # --- Indicadores: avance por estrato, Status y responsable × Status (T4), todo por fórmula ---
   .mbp_indicadores(wb, p, col, ultima, filas_par)
 
+  # --- Asignaciones: cuántos casos lleva cada responsable (T11), por fórmula ---
+  .mbp_asignaciones(wb, p, col, ultima)
+
   # --- Incidencias: lo que no cabe en una fila del barrido (T5) ---
   openxlsx::addWorksheet(wb, "Incidencias", gridLines = TRUE)
   openxlsx::writeData(wb, "Incidencias", data.frame(Fecha = character(0), Caso = character(0), Responsable = character(0),
@@ -205,8 +236,9 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   # --- Control (oculta): sello de la plantilla ---
   openxlsx::addWorksheet(wb, "Control", visible = FALSE)
   openxlsx::writeData(wb, "Control", data.frame(
-    clave = c("plantilla", "estudio", "llave", "estratos", "filas", "generado"),
+    clave = c("plantilla", "estudio", "llave", "estratos", "sensibles", "filas", "generado"),
     valor = c(COLLECTION_BARRIDO_PLANTILLA_VERSION, p$estudio, p$llave, paste(p$estratos, collapse = " | "),
+              paste(p$sensibles, collapse = " | "),
               as.character(p$filas), format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
   ), colNames = FALSE)
 
@@ -217,7 +249,8 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   openxlsx::protectWorksheet(wb, "Listas", protect = TRUE)
   openxlsx::protectWorksheet(wb, "Léeme", protect = TRUE)
   openxlsx::protectWorksheet(wb, "Indicadores", protect = TRUE)
-  openxlsx::worksheetOrder(wb) <- match(c("Léeme", .MBP_HOJA, "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"), names(wb))
+  openxlsx::protectWorksheet(wb, "Asignaciones", protect = TRUE)
+  openxlsx::worksheetOrder(wb) <- match(c("Léeme", .MBP_HOJA, "Asignaciones", "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"), names(wb))
   openxlsx::activeSheet(wb) <- 2L
 
   path <- tempfile(fileext = ".xlsx")
@@ -225,7 +258,35 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   nombre <- .export_filename(sid, "plantilla_barrido", "xlsx")
   meta <- .register_output_file(sid, "plantilla_barrido", path, original_name = nombre)
   list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, version = COLLECTION_BARRIDO_PLANTILLA_VERSION,
-       columnas = as.list(col$todas), status = length(p$status), filas = p$filas)
+       columnas = as.list(col$todas), sensibles = as.list(p$sensibles), status = length(p$status), filas = p$filas)
+}
+
+# Asignaciones (T11): «Responsable» y «Casos asignados», como en el barrido del RMS. Con
+# lista de responsables, la lista; sin ella, filas en blanco donde el equipo escribe los
+# nombres (lo único editable) y la fórmula cuenta igual.
+.mbp_asignaciones <- function(wb, p, col, ultima) {
+  h <- "Asignaciones"
+  openxlsx::addWorksheet(wb, h, gridLines = FALSE)
+  l <- openxlsx::int2col(match("Responsable", col$todas))
+  rango <- sprintf("'%s'!$%s$2:$%s$%d", .MBP_HOJA, l, l, ultima)
+  n <- if (length(p$responsables)) length(p$responsables) else .MBP_ASIGNACIONES_FILAS
+  openxlsx::writeData(wb, h, data.frame(Responsable = if (length(p$responsables)) p$responsables else rep("", n),
+                                        `Casos asignados` = NA_integer_, check.names = FALSE),
+                      headerStyle = openxlsx::createStyle(textDecoration = "bold", fgFill = "#1F3A5F", fontColour = "#FFFFFF", border = "Bottom"))
+  for (i in seq_len(n)) {
+    r <- i + 1L
+    openxlsx::writeFormula(wb, h, sprintf("=IF(A%d=\"\",\"\",COUNTIF(%s,A%d))", r, rango, r), startCol = 2, startRow = r)
+  }
+  r_tot <- n + 3L
+  openxlsx::writeData(wb, h, "Sin responsable", startRow = r_tot)
+  openxlsx::writeFormula(wb, h, sprintf("=COUNTIFS('%s'!$%s$2:$%s$%d,\"<>\",%s,\"\")", .MBP_HOJA,
+                                        openxlsx::int2col(match(p$llave, col$todas)), openxlsx::int2col(match(p$llave, col$todas)), ultima, rango),
+                         startCol = 2, startRow = r_tot)
+  if (!length(p$responsables)) {
+    openxlsx::addStyle(wb, h, openxlsx::createStyle(locked = FALSE, fgFill = "#FFF6D6"), rows = 2:(n + 1L), cols = 1)
+  }
+  openxlsx::setColWidths(wb, h, cols = 1:2, widths = c(34, 16))
+  openxlsx::freezePane(wb, h, firstRow = TRUE)
 }
 
 # Indicadores por fórmula sobre la hoja Barrido (T4): como las tablas dinámicas que el equipo

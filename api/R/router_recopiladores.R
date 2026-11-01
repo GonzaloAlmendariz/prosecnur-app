@@ -182,7 +182,8 @@ mount_recopiladores <- function(pr) {
                                        estratos = body[["estratos"]], telefonos = body[["telefonos"]],
                                        reemplazo = body[["reemplazo"]], muestra = body[["muestra"]], backup = body[["backup"]],
                                        responsables = body[["responsables"]], status = body[["status"]],
-                                       expected_revision = body[["expected_revision"]])
+                                       expected_revision = body[["expected_revision"]],
+                                       observacion = body[["observacion"]], sensibles = body[["sensibles"]])
     })) |>
     plumber::pr_post("/api/recopiladores/campaigns/telefonica/plantilla", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
@@ -194,7 +195,8 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_barrido_plantilla(session_header(req), estudio = body[["estudio"]], llave = body[["llave"]],
                                    estratos = body[["estratos"]], telefonos = body[["telefonos"]], reemplazo = body[["reemplazo"]],
-                                   responsables = body[["responsables"]], status = body[["status"]], filas = body[["filas"]])
+                                   responsables = body[["responsables"]], status = body[["status"]], filas = body[["filas"]],
+                                   observacion = body[["observacion"]], sensibles = body[["sensibles"]])
     })) |>
     # El Estado que declara campo en el Excel, por UMP, para Monitoreo (C7, collection_territorial_estado.R).
     plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion/estado", wrap_endpoint(function(req, res, id = NULL, ...) {

@@ -13,7 +13,7 @@ test_that("el libro trae las cinco hojas, la identidad del estudio y la cola id�
   r <- collection_barrido_plantilla(sid, estudio = "RMS prueba", llave = "Código proGres", estratos = list("Periodo de Llegada"),
                                     telefonos = 3, responsables = list("Responsable", "Agente Uno", "Agente Dos"), filas = 300)
   l <- .mbp_libro(sid, r)
-  expect_identical(names(l$wb), c("Léeme", "Barrido", "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"))
+  expect_identical(names(l$wb), c("Léeme", "Barrido", "Asignaciones", "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"))
   cab <- names(openxlsx::read.xlsx(l$path, sheet = "Barrido", check.names = FALSE, sep.names = " "))
   # T1: el correlativo de Pulso va primero; T7: sin backup no hay Origen ni Tanda.
   expect_identical(cab[1:3], c("Cod pulso", "Código proGres", "Nombre"))
@@ -95,4 +95,47 @@ test_that("T2/T4/T5/T7: identidad bloqueada, Indicadores por fórmula, Incidenci
   expect_identical(inc, c("Fecha", "Caso", "Responsable", "Incidencia", "Resolución"))
   leeme <- openxlsx::read.xlsx(path, sheet = "Léeme", colNames = FALSE)[[1]]
   expect_true(any(grepl("desprotege la hoja", leeme)))
+})
+
+test_that("T11–T15: Asignaciones, reemplazo al final, rótulo de la observación, columnas sensibles y hasta 4 teléfonos", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  r <- collection_barrido_plantilla(sid, llave = "Código proGres", estratos = list("Estatus Legal", "Periodo de Llegada"),
+                                    telefonos = 4, reemplazo = TRUE, responsables = list("Agente Uno", "Agente Dos"),
+                                    observacion = "Observaciones", sensibles = list("Estatus Legal"), filas = 40)
+  l <- .mbp_libro(sid, r)
+  cab <- names(openxlsx::read.xlsx(l$path, sheet = "Barrido", check.names = FALSE, sep.names = " "))
+  expect_true("Teléfono 4" %in% cab)
+  # T12: la cola contigua, la observación con su rótulo y el reemplazo al final.
+  expect_identical(utils::tail(cab, 9), c("Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", "Observaciones",
+                                          "Reemplaza a", "Reemplazado por", "¿Se reemplaza con el Backup?"))
+  # T14: la sensible se declara en la respuesta, en Control y en el Léeme.
+  expect_identical(unlist(r$sensibles), "Estatus Legal")
+  control <- openxlsx::read.xlsx(l$path, sheet = "Control", colNames = FALSE)
+  expect_identical(control[[2]][control[[1]] == "sensibles"], "Estatus Legal")
+  leeme <- unlist(openxlsx::read.xlsx(l$path, sheet = "Léeme", colNames = FALSE))
+  expect_true(any(grepl("sensibles.*Estatus Legal", leeme)))
+  # T11: Responsable y Casos asignados, por fórmula sobre la hoja Barrido.
+  asig <- openxlsx::read.xlsx(l$path, sheet = "Asignaciones", check.names = FALSE, sep.names = " ")
+  expect_identical(names(asig)[1:2], c("Responsable", "Casos asignados"))
+  expect_identical(asig$Responsable[1:2], c("Agente Uno", "Agente Dos"))
+  f <- l$wb$worksheets[[match("Asignaciones", names(l$wb))]]$sheet_data$f
+  expect_true(any(grepl("COUNTIF('Barrido'", gsub("&apos;", "'", f), fixed = TRUE)))
+  # Lo que no es un estrato no se marca sensible; 5 teléfonos es demasiado.
+  expect_identical(.mbp_code(collection_barrido_plantilla(sid, estratos = list("Sede"), sensibles = list("Nombre"))),
+                   "E_COLLECTION_BARRIDO_PLANTILLA_INVALIDA")
+  expect_identical(.mbp_code(collection_barrido_plantilla(sid, telefonos = 5)), "E_COLLECTION_BARRIDO_PLANTILLA_INVALIDA")
+})
+
+test_that("la campaña telefónica guarda la observación y las sensibles y arma la plantilla con ellas", {
+  local_mocked_bindings(.mcamp_territorial_habilitada = function() TRUE)
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "telefonica", "RMS")
+  g <- collection_telefonica_config_put(sid, estratos = list("Estatus Legal"), observacion = "Observaciones",
+                                        sensibles = list("Estatus Legal"), telefonos = 4)
+  expect_identical(g$observacion, "Observaciones")
+  expect_identical(unlist(g$sensibles), "Estatus Legal")
+  expect_identical(g$telefonos, 4L)
+  r <- collection_telefonica_plantilla(sid)
+  expect_true("Observaciones" %in% unlist(r$columnas))
+  expect_identical(unlist(r$sensibles), "Estatus Legal")
 })

@@ -17,11 +17,15 @@ export type ConfigTelefonica = {
   campaign_id: string;
   llave: string;
   estratos: string[];
-  telefonos: 1 | 2 | 3;
+  telefonos: TelefonosPorCaso;
   reemplazo: boolean;
   muestra: number;
   backup: number;
   responsables: string[];
+  /** Rótulo de la última columna de la cola: «Observación» u «Observaciones» según el estudio (T13). */
+  observacion: string;
+  /** Estratos marcados sensibles (p. ej. «Estatus Legal»): no salen al Sheets ni a ningún artefacto (T14). */
+  sensibles: string[];
   status: StatusDelBarrido[];
   /** El estudio mandó su propio catálogo (si no, es el del RMS). */
   status_propio: boolean;
@@ -30,10 +34,14 @@ export type ConfigTelefonica = {
   lee_monitoreo: string[];
 };
 
+export type TelefonosPorCaso = 1 | 2 | 3 | 4;
+
 export type CambioTelefonico = Partial<{
   llave: string;
   estratos: string[];
-  telefonos: 1 | 2 | 3;
+  telefonos: TelefonosPorCaso;
+  observacion: string;
+  sensibles: string[];
   reemplazo: boolean;
   muestra: number;
   backup: number;
@@ -85,11 +93,13 @@ export function normalizarConfigTelefonica(valor: unknown): ConfigTelefonica {
     campaign_id: texto(o.campaign_id),
     llave: texto(o.llave) || "Código",
     estratos: lista(o.estratos).map(texto).filter(Boolean),
-    telefonos: tel === 1 || tel === 3 ? tel : 2,
+    telefonos: tel === 1 || tel === 3 || tel === 4 ? tel : 2,
     reemplazo: escalar(o.reemplazo) === true,
     muestra: entero(o.muestra),
     backup: entero(o.backup),
     responsables: lista(o.responsables).map(texto).filter(Boolean),
+    observacion: texto(o.observacion) || "Observación",
+    sensibles: lista(o.sensibles).map(texto).filter(Boolean),
     status,
     status_propio: escalar(o.status_propio) === true,
     revision: entero(o.revision),

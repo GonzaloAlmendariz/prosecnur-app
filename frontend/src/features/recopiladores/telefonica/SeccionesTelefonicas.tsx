@@ -20,7 +20,10 @@ import type { useConfigTelefonica } from "./useConfigTelefonica";
 
 type Datos = ReturnType<typeof useConfigTelefonica>;
 
-const TELEFONOS = [[1, "Uno"], [2, "Dos"], [3, "Tres"]] as const;
+const TELEFONOS = [[1, "Uno"], [2, "Dos"], [3, "Tres"], [4, "Cuatro"]] as const;
+// T13: RMS dice «Observaciones»; PDM, MDV y CBI, «Observación». Monitoreo no lee esa columna.
+const OBSERVACIONES = ["Observación", "Observaciones"] as const;
+const REEMPLAZO = ["Reemplaza a", "Reemplazado por", "¿Se reemplaza con el Backup?"];
 const ROTULO_CLASE: Readonly<Record<ClaseDeStatus, string>> = {
   efectiva: "Efectiva",
   pendiente: "Pendiente",
@@ -125,7 +128,39 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
           {(o) => <span>{o[1]}</span>}
         </GlidingRadioGroup>
         <PulsoSwitch size="sm" label="Con reemplazo desde el backup" checked={config.reemplazo} disabled={guardando} onCheckedChange={(v) => void guardar({ reemplazo: v })} />
+        <span className="rec-terr-nota">Rótulo de la observación</span>
+        <GlidingRadioGroup
+          value={config.observacion}
+          options={OBSERVACIONES}
+          getOptionValue={(o) => o}
+          onValueChange={(v) => void guardar({ observacion: v })}
+          className="rec-terr-opciones"
+          aria-label="Rótulo de la observación"
+          getOptionProps={() => ({ disabled: guardando })}
+        >
+          {(o) => <span>{o}</span>}
+        </GlidingRadioGroup>
       </article>
+
+      {config.estratos.length ? (
+        <article className="rec-terr-tarjeta rec-tel-tarjeta" data-qa-geometry-member>
+          <h3><ShieldAlert size={15} aria-hidden /> Columnas sensibles</h3>
+          <p className="rec-terr-nota">
+            Una columna sensible, como el estatus legal, va marcada en rojo y no se copia al Sheets compartido ni sale en ningún
+            artefacto. Se guarda al elegir.
+          </p>
+          {config.estratos.map((e) => (
+            <PulsoSwitch
+              key={e}
+              size="sm"
+              label={e}
+              checked={config.sensibles.includes(e)}
+              disabled={guardando}
+              onCheckedChange={(v) => void guardar({ sensibles: v ? [...config.sensibles, e] : config.sensibles.filter((x) => x !== e) })}
+            />
+          ))}
+        </article>
+      ) : null}
     </>
   );
 }
@@ -155,11 +190,12 @@ export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos
     );
   }
   const casos = config.muestra + config.backup;
-  // Igual que la plantilla (collection_barrido_plantilla.R): «Cod pulso» primero; Origen y Tanda sólo con backup.
+  // Igual que la plantilla (collection_barrido_plantilla.R): «Cod pulso» primero; Origen y Tanda sólo con backup;
+  // la cola de campo contigua y el reemplazo al final (T12).
   const columnas = ["Cod pulso", config.llave, ...(config.reemplazo ? ["Origen", "Tanda"] : []), "Nombre",
-    ...Array.from({ length: config.telefonos }, (_, i) => `Teléfono ${i + 1}`), ...config.estratos,
-    ...(config.reemplazo ? ["Reemplaza a", "Reemplazado por", "¿Se reemplaza?"] : [])];
-  const cola = ["Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", "Observación"];
+    ...Array.from({ length: config.telefonos }, (_, i) => `Teléfono ${i + 1}`), ...config.estratos];
+  const cola = ["Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", config.observacion,
+    ...(config.reemplazo ? REEMPLAZO : [])];
   const descargar = () => {
     setOcupado(true);
     setError("");
@@ -176,7 +212,7 @@ export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos
         la pega el equipo desde la base del cliente; la cola, en ámbar, la llena quien llama.
       </p>
       <div className="rec-tel-columnas" aria-label="Columnas de la plantilla">
-        {columnas.map((c) => <span key={c} className="rec-tel-col">{c}</span>)}
+        {columnas.map((c) => <span key={c} className={config.sensibles.includes(c) ? "rec-tel-col is-sensible" : "rec-tel-col"}>{c}</span>)}
         {cola.map((c) => <span key={c} className="rec-tel-col is-campo">{c}</span>)}
       </div>
       <div className="rec-terr-fila">

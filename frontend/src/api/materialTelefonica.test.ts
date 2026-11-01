@@ -22,6 +22,11 @@ describe("normalizarConfigTelefonica", () => {
       lee_monitoreo: ["Código proGres", "Status"],
     });
     expect(c.telefonos).toBe(3);
+    expect(c.observacion).toBe("Observación");
+    expect(c.sensibles).toEqual([]);
+    expect(normalizarConfigTelefonica({ telefonos: [4], observacion: ["Observaciones"], sensibles: ["Estatus Legal"] })).toMatchObject({
+      telefonos: 4, observacion: "Observaciones", sensibles: ["Estatus Legal"],
+    });
     expect(c.reemplazo).toBe(true);
     expect(c.muestra + c.backup).toBe(800);
     expect(c.responsables).toEqual([]);

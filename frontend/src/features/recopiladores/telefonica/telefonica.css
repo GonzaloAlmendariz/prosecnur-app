@@ -20,6 +20,13 @@
   background: var(--pulso-warn-bg);
 }
 
+/* T14: la columna sensible, como en la plantilla (encabezado en rojo). */
+.rec-tel-col.is-sensible {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
 .rec-tel-lista {
   margin: 0;
   padding-left: 18px;

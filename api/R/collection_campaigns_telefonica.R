@@ -22,7 +22,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
 .mtel_config <- function(s, campaign_id) {
   x <- s$material_telefonica_config
   base <- list(llave = "Código", estratos = list(), telefonos = 2L, reemplazo = FALSE, muestra = 0L, backup = 0L,
-               responsables = list(), status = NULL, revision = 0L)
+               responsables = list(), status = NULL, observacion = .MBP_OBSERVACION, sensibles = list(), revision = 0L)
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_TELEFONICA_CONFIG_SCHEMA) ||
       !identical(.mtf_txt(x$campaign_id), campaign_id)) return(base)
   entero <- function(v, defecto) { n <- suppressWarnings(as.integer(.mtf_txt(v))); if (is.na(n) || n < 0L) defecto else n }
@@ -31,6 +31,8 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
        reemplazo = isTRUE(x$reemplazo), muestra = entero(x$muestra, 0L), backup = entero(x$backup, 0L),
        responsables = as.list(.mbp_textos(x$responsables)),
        status = if (is.list(x$status) && length(x$status)) x$status else NULL,
+       observacion = if (nzchar(.mtf_txt(x$observacion))) .mtf_txt(x$observacion) else .MBP_OBSERVACION,
+       sensibles = as.list(intersect(.mbp_textos(x$sensibles), .mbp_textos(x$estratos))),
        revision = entero(x$revision, 0L))
 }
 
@@ -88,6 +90,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
        llave = cfg$llave, estratos = cfg$estratos, telefonos = cfg$telefonos, reemplazo = cfg$reemplazo,
        muestra = cfg$muestra, backup = cfg$backup, responsables = cfg$responsables,
        status = catalogo, status_propio = !is.null(cfg$status), revision = cfg$revision,
+       observacion = cfg$observacion, sensibles = cfg$sensibles, telefonos_max = .MBP_TELEFONOS_MAX,
        # Lo que Monitoreo telefónico lee del Sheets: no se cambia de nombre.
        lee_monitoreo = list(cfg$llave, "Status", "Responsable", "Intentos", "Fecha"))
 }
@@ -105,7 +108,7 @@ collection_telefonica_config_get <- function(sid, campaign_id = NULL) {
 #' @keywords internal
 collection_telefonica_config_put <- function(sid, campaign_id = NULL, llave = NULL, estratos = NULL, telefonos = NULL,
                                              reemplazo = NULL, muestra = NULL, backup = NULL, responsables = NULL,
-                                             status = NULL, expected_revision = NULL) {
+                                             status = NULL, expected_revision = NULL, observacion = NULL, sensibles = NULL) {
   s <- session_get(sid)
   hit <- .mtel_campana(s, campaign_id)
   cfg <- .mtel_config(s, hit$entry$id)
@@ -132,15 +135,18 @@ collection_telefonica_config_put <- function(sid, campaign_id = NULL, llave = NU
   nuevo$muestra <- casos(muestra, cfg$muestra, "muestra"); nuevo$backup <- casos(backup, cfg$backup, "backup")
   if (!is.null(responsables)) nuevo$responsables <- as.list(.mbp_textos(responsables))
   if (!is.null(status)) nuevo$status <- if (length(status)) status else NULL
+  if (!is.null(observacion)) nuevo$observacion <- .mtf_txt(observacion)
+  if (!is.null(sensibles)) nuevo$sensibles <- as.list(.mbp_textos(sensibles))
   # Las reglas de la plantilla deciden: lo que no arma un libro no se guarda.
   p <- tryCatch(.mbp_parametros("", nuevo$llave, nuevo$estratos, nuevo$telefonos, nuevo$reemplazo, nuevo$responsables,
-                                nuevo$status, max(1L, nuevo$muestra + nuevo$backup)),
+                                nuevo$status, max(1L, nuevo$muestra + nuevo$backup), nuevo$observacion, nuevo$sensibles),
                 api_error = function(e) stop_api(422, "E_COLLECTION_TELEFONICA_CONFIG_INVALIDA", conditionMessage(e),
                                                  details = e$details))
   guardado <- list(schema = MATERIAL_TELEFONICA_CONFIG_SCHEMA, campaign_id = hit$entry$id, llave = p$llave,
                    estratos = as.list(p$estratos), telefonos = p$telefonos, reemplazo = p$reemplazo,
                    muestra = nuevo$muestra, backup = nuevo$backup, responsables = as.list(p$responsables),
                    status = if (is.null(nuevo$status)) NULL else p$status,
+                   observacion = p$observacion, sensibles = as.list(p$sensibles),
                    revision = cfg$revision + 1L, updated_at = .collection_now_iso())
   session_set(sid, "material_telefonica_config", guardado)
   collection_telefonica_config_get(sid, hit$entry$id)
@@ -155,5 +161,6 @@ collection_telefonica_plantilla <- function(sid, campaign_id = NULL) {
   filas <- cfg$muestra + cfg$backup
   collection_barrido_plantilla(sid, estudio = hit$entry$name, llave = cfg$llave, estratos = cfg$estratos,
                                telefonos = cfg$telefonos, reemplazo = cfg$reemplazo, responsables = cfg$responsables,
-                               status = cfg$status, filas = if (filas > 0L) filas else 2000L)
+                               status = cfg$status, filas = if (filas > 0L) filas else 2000L,
+                               observacion = cfg$observacion, sensibles = cfg$sensibles)
 }
