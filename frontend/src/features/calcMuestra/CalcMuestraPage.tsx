@@ -163,7 +163,8 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizEjemplo } from "./ComponenteTablas";
-import { SelectorTipo } from "./SelectorTipo";
+import { AterrizajeDelPlanner, decidirAterrizaje } from "./AterrizajeDelPlanner";
+import { usePlannerModos } from "../bitacora/planner/usePlannerModos";
 import { loQueSePierde } from "./modeloVistaPreviaTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
@@ -769,6 +770,8 @@ export default function CalcMuestraPage() {
   // no perder el sitio al ir y volver; la dirección manda, la memoria restaura.
   const [activeLocalTabs, setActiveLocalTabs] = useState<Record<string, string>>({});
   const [choosingDesk, setChoosingDesk] = useState(false);
+  // ADR 0122 P2: el modo que fija el perfil de recojo declarado en el Planner.
+  const { modos: plannerModos, error: plannerError } = usePlannerModos();
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
   const [pendingDeskReset, setPendingDeskReset] = useState<ActiveDesk | null>(null);
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
@@ -2419,15 +2422,17 @@ export default function CalcMuestraPage() {
             />
           )}
 
+          {/* ADR 0122 P2: el tipo de estudio lo fija el perfil del Planner; aquí
+              sólo se empieza o se confirma el cambio. */}
           {desk === "sin_definir" && (
-            <SelectorTipo
-              currentDesk={currentDesk}
-              hasExistingStudy={hasExistingDesk}
-              pendingReset={pendingDeskReset}
-              onSelect={elegirEstudio}
-              onCancelReset={() => setPendingDeskReset(null)}
-              onConfirmReset={confirmarCambioEstudio}
+            <AterrizajeDelPlanner
+              decision={decidirAterrizaje(plannerModos, currentDesk, hasExistingDesk, plannerError)}
               perdidas={loQueSePierde({ titulo: estudio.titulo, componentes: estudio.componentes, tieneEstadoAulas: hasAulasDeskState })}
+              confirmando={pendingDeskReset != null}
+              onEmpezar={elegirEstudio}
+              onPedirCambio={elegirEstudio}
+              onCancelar={() => { setPendingDeskReset(null); setChoosingDesk(false); }}
+              onConfirmar={confirmarCambioEstudio}
             />
           )}
 

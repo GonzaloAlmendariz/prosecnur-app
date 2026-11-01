@@ -127,6 +127,10 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "features/calcMuestra/universidad/salidas/DeclararRepresentatividad.tsx":
+    "lectura del escenario y del Planner (ADR 0121 F4): el `finally` apaga la carga con datos o con error",
+  "features/calcMuestra/AterrizajeDelPlanner.tsx":
+    "lectura de GET /api/planner/modos (ADR 0122 P2): con los modos decide el aterrizaje y con el error publica vacio:planner-ilegible",
   "features/hojasRuta/mapa/HojasRutaMapaPage.tsx":
     "lectura de /api/hojas-ruta/state del lienzo (ADR 0114): con el estado o con el error de lectura publica hojas-ruta",
   "features/recopiladores/ConfirmarResembrado.tsx":

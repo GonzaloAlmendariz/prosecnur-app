@@ -71,6 +71,7 @@ export function DeclararRepresentatividad({ inicial }: {
       aria-label="Representatividad del estudio"
       aria-busy={cargando || undefined}
       data-qa-geometry-member="representatividad"
+      data-audit-ready={cargando ? "false" : modelo.estado === "sin-diseno" ? "vacio:sin-metas" : "calc-muestra-representatividad"}
     >
       <div className="cmv2-panel-head">
         <strong>Representatividad del estudio</strong>

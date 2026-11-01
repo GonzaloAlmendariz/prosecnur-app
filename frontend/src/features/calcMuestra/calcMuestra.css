@@ -4316,3 +4316,18 @@
       visibility 0s;
   }
 }
+
+/* Aterrizaje según el Planner (ADR 0122 P2): reemplaza al selector de tipos. */
+.cmv2-aterrizaje {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  max-width: 720px;
+  padding: var(--pulso-space-5);
+}
+
+.cmv2-aterrizaje-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
