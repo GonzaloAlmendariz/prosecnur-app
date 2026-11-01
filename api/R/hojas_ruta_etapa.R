@@ -1,12 +1,14 @@
-# hojas_ruta_etapa.R — la etapa operativa (piloto o campo) la declara el Planner
-# (ADR 0122; sección `etapa` del Planner, GET /api/planner/calendario).
+# hojas_ruta_etapa.R — la etapa operativa (piloto o campo) es la corrida que mira Hojas de ruta;
+# lo que declara el Planner es una propuesta (ADR 0123 §6, decisión de Gonzalo del 1 nov 2026:
+# «fase y ventana: propuesta; se mantiene Alinear en Monitoreo y Hojas»).
 #
-# Hojas de ruta guardaba en `hojas_ruta_active_phase` dos cosas a la vez: qué corrida se
-# está mirando (la pestaña Piloto / Campo) y en qué etapa está el estudio. La segunda deja
-# de ser suya: si el Planner declara la etapa, manda, y Hojas aterriza en ella, y el envío a
-# Material y la campaña territorial la usan cuando nadie pide otra fase. Mientras el Planner
-# no la declare, se lee la de Hojas como respaldo. `hojas_ruta_active_phase` sigue siendo la
-# pestaña que se mira y Hojas no escribe en el Planner.
+# Con el ADR 0122 el Planner mandaba: Hojas aterrizaba en su etapa sin clic. Eso dejaba dos fases
+# en juego —la que se ve y la guardada en `hojas_ruta_active_phase`— y los cálculos que resuelven la
+# corrida sin `phase` (previas, sorteo, cuotas, marco elegible, plan de campo) podían caer en la que
+# no se ve (revisión de guardian-contratos de la P1, B1). Ahora hay una sola: `hojas_ruta_active_phase`
+# es a la vez la corrida que se mira y la etapa que usan el envío a Material y la campaña territorial
+# cuando nadie pide otra fase. La del Planner viaja al lado sólo para avisar y ofrecer «Alinear», que
+# es un clic sobre `/api/hojas-ruta/phase`. Hojas no escribe en el Planner.
 
 # «pilot» / «field» si el Planner declaró la etapa; NA si no.
 .hojas_ruta_etapa_planner <- function(s) {
@@ -17,11 +19,26 @@
   if (nzchar(fase)) fase else NA_character_
 }
 
-#' La etapa operativa del estudio para Hojas de ruta: la del Planner si está declarada;
-#' si no, la de Hojas (`hojas_ruta_active_phase`). Lectura pura.
+#' La etapa operativa del estudio: la corrida de Hojas de ruta, con la propuesta del Planner al
+#' lado (`planner`, NA si no declaró) y si coinciden. Lectura pura.
 #' @keywords internal
 .hojas_ruta_etapa <- function(s) {
+  fase <- .hojas_ruta_phase_normalize(s$hojas_ruta_active_phase %||% "field", default = "field")
+  # Sin corrida piloto se mira campo (misma regla que .hojas_ruta_active_run).
+  if (identical(fase, "pilot") && is.null((s$hojas_ruta_runs %||% list())$pilot)) fase <- "field"
   planner <- .hojas_ruta_etapa_planner(s)
-  if (!is.na(planner)) return(list(fase = planner, origen = "planner"))
-  list(fase = .hojas_ruta_phase_normalize(s$hojas_ruta_active_phase %||% "field", default = "field"), origen = "hojas_ruta")
+  list(fase = fase, origen = "hojas_ruta",
+       # NA y no NULL: con el serializador de la API (`na = "null"`) sale `null`; un NULL saldría `{}`.
+       planner = planner,
+       alineada = is.na(planner) || identical(planner, fase))
+}
+
+#' ¿Se puede crear Campo real desde el piloto sin perder nada? No, si la corrida de campo ya tiene
+#' muestra sorteada o un envío a Material: crearla desde el piloto la reemplaza entera.
+#' @keywords internal
+.hojas_ruta_campo_reemplazable <- function(run) {
+  if (!is.list(run)) return(list(ok = TRUE, tiene_muestra = FALSE, tiene_envio = FALSE))
+  muestra <- .hojas_ruta_envio_tiene_bloques(.hojas_ruta_list_get(run$workspace_outputs, "sample"))
+  envio <- !is.null(.hojas_ruta_envio_normalize(run$envio))
+  list(ok = !muestra && !envio, tiene_muestra = muestra, tiene_envio = envio)
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { chipsDeFase, type ChipDeFase } from "../chrome/chipsDeFase";
 import { ReglaPiloto } from "./manzanas/ReglaPiloto";
 import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
 import { muestraV1 } from "./manzanas/sorteoV1";
@@ -11,7 +12,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
@@ -288,6 +289,26 @@ export default function HojasRutaMapaPage() {
   // Con una corrida legacy la vista previa describe la adopción, no el estado actual: no se pinta como vigente.
   const marcoDeclarado = configSorteo?.marco_elegible?.declarado === true;
   const zonasCortas = useMemo(() => new Set(marcoDeclarado ? (vistaMarco?.capacidad ?? []).filter((z) => z.falta).map((z) => `${z.ubigeo}|${z.zona}`) : []), [vistaMarco, marcoDeclarado]);
+  // P1: mirar la otra corrida, alinear con la propuesta del Planner o crear Campo real desde el
+  // piloto. La corrida que se mira es la etapa del estudio (hojas_ruta_etapa.R, ADR 0123 §6).
+  const cambiarFase = useCallback(
+    async (accion: NonNullable<ChipDeFase["accion"]>) => {
+      if (guardando) return;
+      setGuardando(true);
+      try {
+        if (accion.tipo === "crear-campo") await apiHojasRutaCreateFieldFromPilot();
+        else await apiHojasRutaSetPhase(accion.fase);
+        setBorrador(null);
+        setSorteoBorrador(null);
+        setEstado(await apiHojasRutaState());
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo cambiar de corrida");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [guardando, setBorrador, setSorteoBorrador],
+  );
   // P2: la regla del piloto vive en la corrida de campo; guardarla no toca la muestra (se avisa si quedó con la otra).
   const cambiarReglaPiloto = useCallback(
     async (modo: HojasRutaPilotExclusionMode) => {
@@ -572,12 +593,20 @@ export default function HojasRutaMapaPage() {
   const porRevisarTotal = [...estados.values()].filter((e) => e === "error" || e === "aviso").length;
   const evitaPiloto = fase === "field" && Boolean(estado?.runs?.pilot) && estado?.runs?.field?.pilot_exclusion_mode !== "ignore";
   const chipsEstado = [
-    {
-      id: "fase",
-      label: fase === "pilot" ? "Piloto" : "Campo real",
-      tone: "info" as const,
-      detail: fase === "pilot" ? "La corrida piloto es histórica: se consulta, no se cambia." : evitaPiloto ? "Campo real · evita las titulares del piloto." : "Campo real.",
-    },
+    // P1: la fase se mira, se alinea con el Planner y se crea desde la barra (chrome/chipsDeFase.ts).
+    ...chipsDeFase({
+      fase,
+      hayPiloto: Boolean(estado?.runs?.pilot),
+      campoConMuestra: Boolean(estado?.runs?.field?.workspace_outputs?.sample?.blocks?.length) || Boolean(estado?.runs?.field?.envio_meta),
+      evitaPiloto,
+      etapa: estado?.etapa ?? null,
+    }).map((c) => ({
+      id: c.id,
+      label: c.label,
+      tone: c.tone,
+      detail: c.detail,
+      ...(c.accion ? { onSelect: () => void cambiarFase(c.accion!) } : {}),
+    })),
     // F11: la muestra del reparto v1 se ve desde cualquier sección, no sólo al fondo de Manzanas.
     ...(muestraV1(salidas?.sample?.alerts)
       ? [{ id: "sorteo-v1", label: "Re-sortear", tone: "warn" as const, detail: "Se sorteó con el reparto por zonas anterior y deja manzanas sin probabilidad de salir: vuelve a sortear en Manzanas.", onSelect: () => navegar(`${location.pathname}?seccion=manzanas`) }]
@@ -765,7 +794,7 @@ export default function HojasRutaMapaPage() {
               revision={revision}
               totales={{ titulares: bloquesTitulares.length, reemplazos: bloquesReemplazos.length, entrevistas: salidas?.sample?.total_entrevistas ?? 0 }}
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
-              salidas={<SalidasPanel salidas={salidas} envio={envio} onCambio={releerEstado} />}
+              salidas={<SalidasPanel salidas={salidas} envio={envio} onCambio={releerEstado} fase={fase} />}
             />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector

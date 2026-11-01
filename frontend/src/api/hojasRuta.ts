@@ -574,6 +574,8 @@ export type HojasRutaRun = {
   locked?: boolean;
   role: HojasRutaPhase;
   pilot_exclusion_mode?: HojasRutaPilotExclusionMode;
+  /** Metadatos del envío a Material de esta corrida (sin la foto); null si nunca se envió. */
+  envio_meta?: unknown;
 };
 
 export type HojasRutaPhaseNotice = {
@@ -764,6 +766,8 @@ export type HojasRutaState = {
   runs?: Partial<Record<HojasRutaPhase, HojasRutaRun>>;
   active_phase?: HojasRutaPhase;
   phase_notice?: HojasRutaPhaseNotice | null;
+  /** La etapa del estudio: la corrida que mira Hojas; la del Planner es una propuesta (ADR 0123 §6). */
+  etapa?: { fase: HojasRutaPhase; origen: "hojas_ruta"; planner?: HojasRutaPhase | null; alineada?: boolean };
   frame_meta: TerritorialFrameMeta;
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;

@@ -524,9 +524,9 @@
 
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
-  # Al abrir, Hojas aterriza en la etapa que declara el Planner (hojas_ruta_etapa.R).
+  # La corrida que se ve es la de Hojas; la etapa del Planner sólo avisa (ADR 0123 §6, hojas_ruta_etapa.R).
+  active <- .hojas_ruta_active_run(sid)
   etapa <- .hojas_ruta_etapa(session_get(sid))
-  active <- .hojas_ruta_active_run(sid, if (identical(etapa$origen, "planner")) etapa$fase else NULL)
   s <- active$session
   legacy_cfg <- hojas_ruta_normalize_config(active$run$config %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
@@ -702,6 +702,14 @@ mount_hojas_ruta <- function(pr) {
       pilot <- runs$pilot %||% NULL
       if (is.null(pilot)) {
         stop_api(409, "E_NO_PILOT_RUN", "No hay una piloto historica desde la cual crear campo real.")
+      }
+      # Crear campo desde el piloto reemplaza la corrida de campo entera: con muestra o envío, sólo
+      # si se pide explícitamente (revisión de guardian-contratos de la P1, B2).
+      reemplazable <- .hojas_ruta_campo_reemplazable(runs$field)
+      if (!reemplazable$ok && !isTRUE(as.logical(unlist(parsed$reemplazar %||% FALSE))[1])) {
+        stop_api(409, "E_HOJAS_RUTA_CAMPO_CON_MUESTRA",
+                 "Campo real ya tiene una muestra sorteada o enviada a Material: crearlo desde el piloto la reemplazaría.",
+                 details = list(tiene_muestra = reemplazable$tiene_muestra, tiene_envio = reemplazable$tiene_envio))
       }
       mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
         parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode,

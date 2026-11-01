@@ -40,9 +40,11 @@ type Props = {
   envio: EnvioMeta | null;
   /** Tras enviar o repartir cuotas, la página relee el estado. */
   onCambio?: () => Promise<void>;
+  /** La corrida que se envía (la que se mira). */
+  fase?: "pilot" | "field";
 };
 
-export function SalidasPanel({ salidas, envio, onCambio }: Props) {
+export function SalidasPanel({ salidas, envio, onCambio, fase = "field" }: Props) {
   const nav = useSeccion("hojas-ruta");
   // Checklist I2: un estudio que envió su muestra a Material de campo no puede tenerlo fuera de la barra.
   const { addModule } = useProjectModules();
@@ -126,6 +128,10 @@ export function SalidasPanel({ salidas, envio, onCambio }: Props) {
               <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "manzanas")}>Ir a Manzanas</PulsoButton>
             </div>
           ) : null}
+          {/* ADR 0118: el primer envío fija la fase de la campaña territorial de Material para siempre. */}
+          <p className="hr-mapa-nota">
+            Se envía la corrida de {fase === "pilot" ? "Piloto" : "Campo real"}.{estado === "nunca" ? " La campaña territorial de Material queda en esa fase." : ""}
+          </p>
           <div className="hr-salidas-acciones">
             <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { await apiHojasRutaEnviar(); addModule("material-campo"); await asegurarCampanaTerritorial(); })}>
               <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
