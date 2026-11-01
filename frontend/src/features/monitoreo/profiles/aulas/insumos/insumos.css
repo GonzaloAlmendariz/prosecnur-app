@@ -51,6 +51,11 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
+/* El último hijo de un panel no suma margen: el aire lo pone el panel. */
+.aulas-ins-panel > :last-child {
+  margin-bottom: 0;
+}
+
 .aulas-ins-cabecera {
   display: flex;
   align-items: center;

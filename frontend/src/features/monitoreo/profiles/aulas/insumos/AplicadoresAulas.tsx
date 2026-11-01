@@ -126,7 +126,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
               <thead>
                 <tr>
                   <th scope="col">Aplicador</th>
-                  <th scope="col">Disponible (lun a sáb, 7:00–22:00)</th>
+                  <th scope="col" title="Disponibilidad declarada de lunes a sábado, de 7:00 a 22:00">Disponible</th>
                   <th scope="col" className="is-num">Horas</th>
                   <th scope="col" className="is-num" title="Citas que le asignó el reparto en este tramo">Citas</th>
                   <th scope="col" className="is-num" title="Fijadas a mano por el equipo: mandan sobre el reparto">Fijadas</th>
