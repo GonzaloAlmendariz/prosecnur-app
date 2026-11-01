@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { describirMarcoCartografia } from "./marcoCartografia";
 import { TerritorioGraficos } from "./TerritorioGraficos";
 import { MapPinned, Minus, Plus, X } from "../../../../vendor/lucide-react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -281,6 +282,17 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
  */
 function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
   if (!meta) return null;
+  // P6/P9 de la paridad: sin paquete del marco no hay nada que elegir, y se dice.
+  if (!meta.ok) {
+    return (
+      <section className="hr-muestra-grupo" aria-label="Marco territorial">
+        <h3>Marco territorial</h3>
+        <p className="hr-mapa-aviso">Marco territorial no disponible: falta el paquete INEI de manzanas en este equipo.</p>
+      </section>
+    );
+  }
+  const cartografiaMarco = describirMarcoCartografia(meta);
+  const miles = (n: number | undefined) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? n.toLocaleString("es-PE") : "—");
   const fuentes = meta.block_cartography?.sources ?? {};
   const cartografia = (["lima", "callao"] as const)
     .map((k) => (fuentes[k]?.year ? `${k === "lima" ? "Lima" : "Callao"} ${fuentes[k].year}` : ""))
@@ -293,7 +305,14 @@ function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
         <div><dt>Cobertura</dt><dd>{meta.coverage || "—"}{meta.n_distritos ? ` · ${meta.n_distritos} distritos` : ""}</dd></div>
         <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
         <div><dt>Cartografía</dt><dd>{cartografia || "—"}</dd></div>
+        <div><dt>En el marco</dt><dd>{miles(meta.n_manzanas)} manzanas · {miles(meta.viviendas)} viviendas · {miles(meta.poblacion)} hab.</dd></div>
       </dl>
+      {/* P6: la nota del motor y la comparación con la cartografía oficial INEI, para sustentar el marco. */}
+      {cartografiaMarco ? (
+        <p className={cartografiaMarco.piloto ? "hr-mapa-aviso" : "hr-mapa-nota"} title={cartografiaMarco.detalle} data-audit-marco-cartografia>
+          {cartografiaMarco.detalle}
+        </p>
+      ) : null}
     </section>
   );
 }
