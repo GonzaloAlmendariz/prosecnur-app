@@ -57,6 +57,24 @@ describe("construirAplicadores", () => {
     expect(m.filas[0].nombre).toBe("Ana Ruiz");
   });
 
+  it("si el vigente no tiene citas en el reparto, abre en el tramo con más citas", () => {
+    const d = tablero();
+    (d.tramos as Array<Record<string, unknown>>).push({ nombre: "Semana 3", desde: "2026-09-21", hasta: "2026-09-27", citas: 0, aplicadas: 0 });
+    (d.tramos as Array<Record<string, unknown>>).forEach((t) => { t.vigente = t.nombre === "Semana 3"; });
+    const m = construirAplicadores(d, config);
+    if (m.estado !== "listo") throw new Error("esperaba listo");
+    expect(m.elegido?.nombre).toBe("Semana 2");
+  });
+
+  it("un tramo fuera del reparto no dice cero: dice que no se conoce", () => {
+    const d = tablero();
+    (d.tramos as Array<Record<string, unknown>>).push({ nombre: "Semana 5", desde: "2026-10-05", hasta: "2026-10-11", citas: 9, aplicadas: 0 });
+    const m = construirAplicadores(d, config, "Semana 5");
+    if (m.estado !== "listo") throw new Error("esperaba listo");
+    expect(m.fueraDelReparto).toBe(true);
+    expect(m.pie).toContain("este tramo queda fuera");
+  });
+
   it("otro tramo cuenta sólo lo suyo", () => {
     const m = construirAplicadores(tablero(), config, "Semana 1");
     if (m.estado !== "listo") throw new Error("esperaba listo");

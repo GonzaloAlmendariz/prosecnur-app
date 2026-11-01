@@ -71,6 +71,12 @@ export type ModeloAplicadores =
     filas: FilaDeAplicador[];
     distribucion: EstadoDeDistribucion;
     pie: string;
+    /**
+     * El tramo queda fuera de los días que cubre el reparto: las asignaciones
+     * sólo existen dentro de él, así que las columnas del tramo no son ceros,
+     * son «sin dato».
+     */
+    fueraDelReparto: boolean;
   };
 
 function sinTilde(s: string): string {
@@ -195,8 +201,16 @@ export function construirAplicadores(
     desde: t.desde,
     hasta: t.hasta,
   }));
+  // Por defecto, el vigente; pero si el reparto no le asigna nada (el corte es
+  // de antes de esa semana), el tramo con más citas del reparto: abrir en una
+  // tabla de ceros no dice a quién le tocó qué.
+  const citasDe = (t: TramoDeLaVista) => asignaciones.filter((a) => dentro(a.fecha, t.desde, t.hasta)).length;
+  const vigente = tramos.find((t) => t.vigente);
+  const conMasCitas = [...tramos].sort((a, b) => citasDe(b) - citasDe(a))[0];
   const elegido = tramos.find((t) => t.nombre === tramoPedido)
-    ?? tramos.find((t) => t.vigente)
+    ?? (vigente && citasDe(vigente) > 0 ? vigente : null)
+    ?? (conMasCitas && citasDe(conMasCitas) > 0 ? conMasCitas : null)
+    ?? vigente
     ?? tramos[tramos.length - 1]
     ?? null;
   if (elegido) elegido.elegido = true;
@@ -227,14 +241,20 @@ export function construirAplicadores(
     };
   }).sort((a, b) => b.citas - a.citas || a.nombre.localeCompare(b.nombre, "es"));
 
+  const dias = asignaciones.map((a) => a.fecha.slice(0, 10)).filter(Boolean).sort();
+  const cubre = dias.length ? `${fechaCorta(dias[0])} – ${fechaCorta(dias[dias.length - 1])}` : "";
+  const fueraDelReparto = Boolean(elegido) && enTramo.length === 0;
   const sinCitas = filas.filter((f) => !f.citas && !f.sinDisponibilidad).length;
-  const pie = [
+  const pie = fueraDelReparto ? [
+    `${fmt(declaradas.size)} con disponibilidad declarada`,
+    cubre ? `el reparto vigente cubre ${cubre}; este tramo queda fuera y sus asignaciones no se conocen aquí` : "todavía no hay reparto",
+  ].join(" · ") : [
     `${fmt(declaradas.size)} con disponibilidad declarada`,
     sinCitas ? `${fmt(sinCitas)} sin citas en este tramo` : null,
     filas.some((f) => f.sinDisponibilidad) ? `${fmt(filas.filter((f) => f.sinDisponibilidad).length)} con citas pero sin disponibilidad declarada` : null,
   ].filter(Boolean).join(" · ");
 
-  return { estado: "listo", tramos, elegido, filas, distribucion: estadoDeDistribucion(dashboard, config), pie };
+  return { estado: "listo", tramos, elegido, filas, distribucion: estadoDeDistribucion(dashboard, config), pie, fueraDelReparto };
 }
 
 export const MARCA_APLICADORES_AULAS = "monitoreo-aulas-insumos-aplicadores";

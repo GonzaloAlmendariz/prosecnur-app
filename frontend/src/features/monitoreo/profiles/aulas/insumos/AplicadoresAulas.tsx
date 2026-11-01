@@ -141,7 +141,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
                     <th scope="row">{f.nombre}</th>
                     <td>{f.sinDisponibilidad ? <span className="aulas-ins-chip" data-tono="aviso">Sin disponibilidad declarada</span> : <Semana semana={f.semana} />}</td>
                     <td className="is-num">{f.horas ? fmt(Math.round(f.horas)) : "—"}</td>
-                    <td className="is-num">{fmt(f.citas)}</td>
+                    <td className="is-num">{modelo.fueraDelReparto ? "—" : fmt(f.citas)}</td>
                     <td className="is-num">{f.fijadas ? fmt(f.fijadas) : "—"}</td>
                     <td className="is-num">{f.dias ? fmt(f.dias) : "—"}</td>
                     <td className="is-num">
