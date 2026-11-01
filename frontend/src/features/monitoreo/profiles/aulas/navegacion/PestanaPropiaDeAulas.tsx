@@ -6,6 +6,10 @@ import { PorFacultadAulas } from "../avance/PorFacultadAulas";
 import { RendimientoAulas } from "../avance/RendimientoAulas";
 import { SalidasAulas, type ContextoDeSalidas } from "../avance/SalidasAulas";
 import { AgendaAulas } from "../control/AgendaAulas";
+import { FuentesAulas } from "../insumos/FuentesAulas";
+import { ReglasAulas } from "../insumos/ReglasAulas";
+import { AplicadoresAulas } from "../insumos/AplicadoresAulas";
+import type { ContextoDeInsumos } from "../insumos/contextoDeInsumos";
 import { ResumenAulas } from "../avance/ResumenAulas";
 import type { DireccionAulas } from "./direccionAulas";
 
@@ -16,13 +20,15 @@ import type { DireccionAulas } from "./direccionAulas";
  *
  * Devuelve `null` si la dirección no tiene contenido propio todavía.
  */
-export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero, salidas }: {
+export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero, salidas, insumos }: {
   direccion: DireccionAulas;
   dashboard: MonitoreoAulasDashboard | null;
   cargando: boolean;
   vacioSinTablero: ReactNode;
   /** El estado y las acciones que Salidas toma de la página (A5). */
   salidas?: ContextoDeSalidas;
+  /** El estado de la sesión y las acciones que Insumos toma de la página (I1). */
+  insumos?: ContextoDeInsumos;
 }) {
   const props = { dashboard, cargando, vacioSinTablero };
   if (direccion.seccion === "avance" && direccion.pestana === "resumen") return <ResumenAulas {...props} />;
@@ -37,6 +43,16 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "control" && direccion.pestana === "agenda" && direccion.panel == null) {
     return <AgendaAulas {...props} />;
+  }
+  // I1 se muestra aunque no haya tablero: importar el plan es la acción de arranque.
+  if (direccion.seccion === "insumos" && direccion.pestana === "fuentes" && direccion.panel == null && insumos) {
+    return <FuentesAulas dashboard={dashboard} cargando={cargando} contexto={insumos} />;
+  }
+  if (direccion.seccion === "insumos" && direccion.pestana === "reglas" && direccion.panel == null && insumos) {
+    return <ReglasAulas {...props} contexto={insumos} />;
+  }
+  if (direccion.seccion === "insumos" && direccion.pestana === "aplicadores" && direccion.panel == null && insumos) {
+    return <AplicadoresAulas {...props} contexto={insumos} />;
   }
   // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
   if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {

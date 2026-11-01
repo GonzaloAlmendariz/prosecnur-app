@@ -1970,6 +1970,104 @@ export default function AulasMonitoreoPage() {
   );
   // Las pestañas del revamp con contenido propio (lote 2): Avance › Resumen y
   // Por facultad. Pintan también su silueta mientras carga (S1).
+  // Las reglas del estudio, construidas una vez: las monta la hoja Fuentes
+  // heredada y las ordena Insumos › Reglas (I2).
+  const comoMideDelEstudio = (
+                <AulasComoMideElEstudio
+                  valores={{
+                    eje: state?.aulas_universitarias?.eje_cuota ?? "",
+                    ejeMotivo: state?.aulas_universitarias?.eje_cuota_motivo ?? "",
+                    agrupacion: state?.aulas_universitarias?.agrupacion_operativa ?? "",
+                    inicioCampo: state?.aulas_universitarias?.inicio_campo ?? "",
+                  }}
+                  dimensiones={dashboard?.ejes_declarables ?? []}
+                  padron={{
+                    personas: Number(dashboard?.padron?.personas ?? 0) || 0,
+                    sinNivel: Number(dashboard?.padron?.sin_nivel ?? 0) || 0,
+                  }}
+                  fueraDelOperativo={
+                    dashboard?.respuestas_desglose?.total
+                      ? Number(dashboard.respuestas_desglose.total.fuera_del_operativo ?? 0) || 0
+                      : null
+                  }
+                  guardando={guardandoComoMide}
+                  onGuardar={(cambio) => { void declararComoMide(cambio); }}
+                />
+  );
+  const criterioDeEfectivaDelEstudio = (
+                filtrosEfectiva && (state?.variables ?? []).length ? (
+                  <AulasFiltrosDeEfectiva
+                    filtros={filtrosEfectiva}
+                    variables={state?.variables ?? []}
+                    criterio={((dashboard?.validation ?? []).find(
+                      (c) => (c as { check?: string }).check === "valid_response_criterion",
+                    )?.detail as string | undefined) || undefined}
+                    guardando={guardandoCriterio}
+                    onChange={setFiltrosEfectiva}
+                    onGuardar={() => { void guardarCriterio(); }}
+                    variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
+                    facultadDeclarada={{
+                      variables: (state?.variables ?? []).map((v) => ({
+                        name: v.name, values: (v.values ?? []).map(String),
+                      })),
+                      facultadVar: state?.aulas_universitarias?.source_mapping?.faculty_var ?? "",
+                      etiquetas: (state?.aulas_universitarias?.source_mapping?.faculty_labels ?? {}) as Record<string, string>,
+                      // Las facultades que ofrece el desplegable salen del
+                      // DISEÑO, no de la base: son las que tienen cuota, y son
+                      // las que el cruce va a comparar contra lo declarado.
+                      facultadesDelPlan: (aulasConfig?.design_targets?.facultades ?? [])
+                        .map((f) => String(f?.facultad ?? "")).filter((f) => f !== ""),
+                      control: dashboard?.control_facultad ?? null,
+                      onDeclarar: declararFacultad,
+                      ocupado: guardandoFacultad,
+                    }}
+                    onVariableDeSexo={declararVariableDeSexo}
+                    valoresDeSexo={{
+                      mujeres: (state?.aulas_universitarias?.source_mapping?.sex_female_values ?? []).map(String),
+                      hombres: (state?.aulas_universitarias?.source_mapping?.sex_male_values ?? []).map(String),
+                    }}
+                    onValoresDeSexo={(v) => { void declararValoresDeSexo(v); }}
+                    descartes={descartesDeclarados}
+                    onDescartes={(v) => { void declararDescartes(v); }}
+                    sugerenciasDeDescarte={sugerenciasDeDescarte(
+                      (state?.variables ?? []).find((v) => v.name === colectorDeclarado)?.values?.map(String) ?? [],
+                      (dashboard?.agenda ?? []).map((r) => String((r as { operational_code?: unknown }).operational_code ?? "")),
+                      descartesDeclarados,
+                    )}
+                  />
+                ) : null
+  );
+  const criterioDeAulaDelEstudio = (
+                <AulasCriterioDeAula
+                  criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
+                  hayMetas={metasDelDiseno}
+                  onGuardar={guardarCriterioDeAula}
+                />
+  );
+  // Las operaciones del plan, una sola vez: las monta la hoja Fuentes heredada
+  // y, bajo «Más operaciones», Insumos › Fuentes (I1).
+  const operacionesDelPlan = (
+                <AulasOperationsPanel
+                  config={aulasConfig}
+                  sources={state?.sources ?? []}
+                  busy={busy}
+                  origen={state?.aulas_origen}
+                  onImportPlan={() => { void importPlan(); }}
+                  onSyncField={() => { void syncField(); }}
+              selloDeLibro={aulasConfig?.libro_publicado ?? null}
+              sincronizadoEn={state?.synced_at ?? ""}
+                  onGenerarLibro={() => { void generarLibro(); }}
+                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
+                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
+                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
+                  onRecalcularTraslape={
+                    aulasConfig?.traslape_fuente?.etiqueta
+                      ? () => { void recalcularTraslape(); }
+                      : undefined
+                  }
+                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
+                />
+  );
   const propia = esPestanaPropia(direccion);
   const resumenPropio = propia
     ? (
@@ -1986,6 +2084,19 @@ export default function AulasMonitoreoPage() {
           publicarLibro: () => publicarASheets(),
           generarLibro,
           hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
+        }}
+        insumos={{
+          config: aulasConfig,
+          fuentes: state?.sources ?? [],
+          ocupado: busy,
+          importarPlan: () => { void importPlan(); },
+          operaciones: operacionesDelPlan,
+          comoMide: comoMideDelEstudio,
+          criterioDeEfectiva: criterioDeEfectivaDelEstudio,
+          criterioDeAula: criterioDeAulaDelEstudio,
+          onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
+          plantillaDisponibilidad: () => { void plantillaDisponibilidad(); },
+          importarDisponibilidad: (archivo) => { void importarDisponibilidad(archivo); },
         }}
       />
     )
@@ -2251,28 +2362,7 @@ export default function AulasMonitoreoPage() {
               onGuardado: () => { void loadView(seccionActiva, true, true); },
               view: seccionActiva,
               dashboard,
-              operations: (
-                <AulasOperationsPanel
-                  config={aulasConfig}
-                  sources={state?.sources ?? []}
-                  busy={busy}
-                  origen={state?.aulas_origen}
-                  onImportPlan={() => { void importPlan(); }}
-                  onSyncField={() => { void syncField(); }}
-              selloDeLibro={aulasConfig?.libro_publicado ?? null}
-              sincronizadoEn={state?.synced_at ?? ""}
-                  onGenerarLibro={() => { void generarLibro(); }}
-                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
-                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
-                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
-                  onRecalcularTraslape={
-                    aulasConfig?.traslape_fuente?.etiqueta
-                      ? () => { void recalcularTraslape(); }
-                      : undefined
-                  }
-                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
-                />
-              ),
+              operations: operacionesDelPlan,
               vacioSinTablero,
               registro: (
                 <RegistroDeCampo
@@ -2310,82 +2400,13 @@ export default function AulasMonitoreoPage() {
               ),
               // Las tres declaraciones de «cómo mide este estudio», ya
               // construidas: la sección no ve el estado ni sabe guardar.
-              comoMide: (
-                <AulasComoMideElEstudio
-                  valores={{
-                    eje: state?.aulas_universitarias?.eje_cuota ?? "",
-                    ejeMotivo: state?.aulas_universitarias?.eje_cuota_motivo ?? "",
-                    agrupacion: state?.aulas_universitarias?.agrupacion_operativa ?? "",
-                    inicioCampo: state?.aulas_universitarias?.inicio_campo ?? "",
-                  }}
-                  dimensiones={dashboard?.ejes_declarables ?? []}
-                  padron={{
-                    personas: Number(dashboard?.padron?.personas ?? 0) || 0,
-                    sinNivel: Number(dashboard?.padron?.sin_nivel ?? 0) || 0,
-                  }}
-                  fueraDelOperativo={
-                    dashboard?.respuestas_desglose?.total
-                      ? Number(dashboard.respuestas_desglose.total.fuera_del_operativo ?? 0) || 0
-                      : null
-                  }
-                  guardando={guardandoComoMide}
-                  onGuardar={(cambio) => { void declararComoMide(cambio); }}
-                />
-              ),
+              comoMide: comoMideDelEstudio,
               // El panel del criterio, ya construido: el render no ve el estado
               // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
               // no hay nada que elegir y el panel sería un formulario vacío.
-              criterioDeEfectiva: (
-                filtrosEfectiva && (state?.variables ?? []).length ? (
-                  <AulasFiltrosDeEfectiva
-                    filtros={filtrosEfectiva}
-                    variables={state?.variables ?? []}
-                    criterio={((dashboard?.validation ?? []).find(
-                      (c) => (c as { check?: string }).check === "valid_response_criterion",
-                    )?.detail as string | undefined) || undefined}
-                    guardando={guardandoCriterio}
-                    onChange={setFiltrosEfectiva}
-                    onGuardar={() => { void guardarCriterio(); }}
-                    variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
-                    facultadDeclarada={{
-                      variables: (state?.variables ?? []).map((v) => ({
-                        name: v.name, values: (v.values ?? []).map(String),
-                      })),
-                      facultadVar: state?.aulas_universitarias?.source_mapping?.faculty_var ?? "",
-                      etiquetas: (state?.aulas_universitarias?.source_mapping?.faculty_labels ?? {}) as Record<string, string>,
-                      // Las facultades que ofrece el desplegable salen del
-                      // DISEÑO, no de la base: son las que tienen cuota, y son
-                      // las que el cruce va a comparar contra lo declarado.
-                      facultadesDelPlan: (aulasConfig?.design_targets?.facultades ?? [])
-                        .map((f) => String(f?.facultad ?? "")).filter((f) => f !== ""),
-                      control: dashboard?.control_facultad ?? null,
-                      onDeclarar: declararFacultad,
-                      ocupado: guardandoFacultad,
-                    }}
-                    onVariableDeSexo={declararVariableDeSexo}
-                    valoresDeSexo={{
-                      mujeres: (state?.aulas_universitarias?.source_mapping?.sex_female_values ?? []).map(String),
-                      hombres: (state?.aulas_universitarias?.source_mapping?.sex_male_values ?? []).map(String),
-                    }}
-                    onValoresDeSexo={(v) => { void declararValoresDeSexo(v); }}
-                    descartes={descartesDeclarados}
-                    onDescartes={(v) => { void declararDescartes(v); }}
-                    sugerenciasDeDescarte={sugerenciasDeDescarte(
-                      (state?.variables ?? []).find((v) => v.name === colectorDeclarado)?.values?.map(String) ?? [],
-                      (dashboard?.agenda ?? []).map((r) => String((r as { operational_code?: unknown }).operational_code ?? "")),
-                      descartesDeclarados,
-                    )}
-                  />
-                ) : null
-              ),
+              criterioDeEfectiva: criterioDeEfectivaDelEstudio,
               // La vara de aula válida, también construida aquí por lo mismo.
-              criterioDeAula: (
-                <AulasCriterioDeAula
-                  criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
-                  hayMetas={metasDelDiseno}
-                  onGuardar={guardarCriterioDeAula}
-                />
-              ),
+              criterioDeAula: criterioDeAulaDelEstudio,
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
               irAPestana: (clave) => elegirPestana(seccionActiva, clave),

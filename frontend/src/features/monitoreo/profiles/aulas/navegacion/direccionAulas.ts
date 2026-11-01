@@ -78,12 +78,18 @@ const TABLA: readonly Entrada[] = [
   // dónde salen las respuestas). I2 Reglas lee la misma hoja —«Cómo mide el
   // estudio», «Qué cuenta como efectiva», el umbral de duración— y el criterio
   // de aula, que hoy vive en Validación › Controles.
-  entrada("insumos", "fuentes", null, v("fuentes", "")),
-  entrada("insumos", "reglas", null, v("fuentes", ""), { vista: "Cómo mide el estudio", regreso: false }),
+  // I1 Fuentes: contenido propio (`insumos/FuentesAulas.tsx`). Sigue pidiendo
+  // el corte de la hoja Fuentes heredada, de donde toma las operaciones.
+  entrada("insumos", "fuentes", null, v("fuentes", ""), { propia: true }),
+  // I2 Reglas: contenido propio (`insumos/ReglasAulas.tsx`) sobre el mismo
+  // corte de Fuentes; «Criterio de aula» queda como sub-vista heredada.
+  entrada("insumos", "reglas", null, v("fuentes", ""), { vista: "Cómo mide el estudio", regreso: false, propia: true }),
   entrada("insumos", "reglas", "criterio", v("calidad", "controles"), { vista: "Criterio de aula", regreso: false }),
   // I3 Aplicadores: la disponibilidad y los tramos viven hoy en Agenda › Carga,
   // que en la propuesta es Control › Distribución.
-  entrada("insumos", "aplicadores", null, v("modelo", "carga"), { regreso: false }),
+  // I3 Aplicadores: contenido propio (`insumos/AplicadoresAulas.tsx`), por
+  // tramo y sobre el mecanismo real de la distribución semanal.
+  entrada("insumos", "aplicadores", null, v("modelo", "carga"), { regreso: false, propia: true }),
   // M1 Metas: los mandos de Avance › Metas y la tasa del diseño de Efectividad.
   // Las dos vistas regresan a Avance (Por facultad y Rendimiento).
   entrada("modelo", "metas", null, v("avance", "cuotas"), { vista: "Metas", regreso: false }),
