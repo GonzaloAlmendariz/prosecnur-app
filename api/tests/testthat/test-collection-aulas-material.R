@@ -33,6 +33,8 @@ test_that("con entrega: el GET trae el recibo sellado y las unidades, y el libro
   expect_identical(session_get(sid), antes)  # lectura pura
   expect_true(g$entregada)
   expect_true(g$vigente)
+  expect_false(g$stale)
+  expect_false(g$desactualizada)
   expect_identical(g$handoff$schema, "collection_handoff/v1")
   expect_identical(g$deployment_fingerprint, g$handoff$deployment_fingerprint)
   expect_true(length(g$unidades) > 0L)

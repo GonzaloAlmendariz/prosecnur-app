@@ -34,6 +34,11 @@ collection_aulas_entrega_get <- function(sid) {
     handoff = receipt,
     # El sello vigente coincide con el del recibo sólo si nada cambió desde la entrega.
     vigente = entregada && identical(receipt$deployment_fingerprint, fp_vigente),
+    # Mismas banderas que la lectura territorial (asignación planificada): `stale`, el
+    # despliegue cambió desde la entrega; `desactualizada`, el plan de Material ya no es
+    # el del despliegue (hay que re-preparar). Monitoreo compara sólo si ambas son FALSE.
+    stale = entregada && !identical(receipt$deployment_fingerprint, fp_vigente),
+    desactualizada = entregada && length(tryCatch(.collection_stale_reasons(current), error = function(e) "error")) > 0L,
     deployment_fingerprint = if (entregada) receipt$deployment_fingerprint else NULL,
     unidades = unidades
   )
