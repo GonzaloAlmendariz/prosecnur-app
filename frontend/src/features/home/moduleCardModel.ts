@@ -269,8 +269,22 @@ export function buildModuleCardView(
   switch (module.slug) {
     case "procesamiento": {
       const total = PROCESSING_STEPS.length;
-      const done = Math.min(total, Math.max(0, Math.trunc(proc.done)));
-      const nextIndex = Math.min(done, total - 1);
+      // Una sola definición de avance, la del motor (L31): cada fase cuenta si
+      // `overview.modules` la declara lista. Las banderas de la sesión que lee
+      // `proc` exigían `state.xlsform` en una sesión multibase y la tarjeta
+      // decía «Por iniciar · Sigue: Carga» con la base ya codificada y
+      // Analítica lista. `proc` queda sólo para un backend que no publique fases.
+      const fasesDelMotor = PROCESSING_STEPS.map(({ route }) =>
+        overview.modules.find((item) => item.id === route.slice(1)),
+      );
+      const delMotor = fasesDelMotor.every(Boolean);
+      const done = delMotor
+        ? fasesDelMotor.filter((item) => item?.state === "ready").length
+        : Math.min(total, Math.max(0, Math.trunc(proc.done)));
+      const pendiente = delMotor ? fasesDelMotor.findIndex((item) => item?.state !== "ready") : -1;
+      const nextIndex = delMotor
+        ? (pendiente >= 0 ? pendiente : total - 1)
+        : Math.min(done, total - 1);
       const next = PROCESSING_STEPS[nextIndex];
       const warningStep = PROCESSING_STEPS.find(({ route }) =>
         overview.modules.some(

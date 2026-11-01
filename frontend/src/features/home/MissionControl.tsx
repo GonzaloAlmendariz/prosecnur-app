@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../../lib/modules";
 import type { ProjectOverview } from "../../api/client";
 import { ModuleStatusCard } from "./ModuleStatusCard";
+import { BloqueHoy } from "./BloqueHoy";
 import { buildModuleCardView, formatSavedAt, type ProcState } from "./moduleCardModel";
 
 export type { ProcState } from "./moduleCardModel";
@@ -88,6 +89,10 @@ export function MissionControl({
           introductoria que consume el primer viewport. Queda el h1 para
           lectores de pantalla, que sí necesitan encabezado. */}
       <h1 className="pulso-sr-only">{[overview.project.name, ...metaLine].join(" · ")}</h1>
+
+      {/* L31: lo que cambió desde la última apertura en este equipo, en el
+          hueco que dejaba el centrado sobre las tarjetas. */}
+      <BloqueHoy overview={overview} />
 
       {/* Las columnas las decide la cantidad de módulos, no el ancho: con
           `auto-fill` seis tarjetas caían como 4+2 y la fila huérfana se leía

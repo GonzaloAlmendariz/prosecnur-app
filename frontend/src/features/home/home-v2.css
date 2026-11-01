@@ -2840,3 +2840,62 @@
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* --- L31: bloque «desde tu última apertura» ---------------------------- */
+/* Una banda baja sobre las tarjetas, del ancho de la rejilla. Dice lo que
+   cambió, o que no cambió nada, o que es la primera apertura en el equipo:
+   nunca queda vacía (C3). */
+.home-hoy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.home-hoy-icono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.home-hoy-texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  margin: 0;
+  padding-top: 3px;
+}
+
+.home-hoy-texto strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.home-hoy-cambios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin color por dirección: que suban los casos por revisar no es una buena
+   noticia, y que suban las válidas sí. El signo ya lo dice. */
+.home-hoy-cambios li {
+  color: var(--pulso-text);
+}

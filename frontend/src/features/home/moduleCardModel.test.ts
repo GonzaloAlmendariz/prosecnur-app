@@ -281,7 +281,23 @@ describe("moduleCardModel", () => {
     const procesamiento = view("procesamiento");
     expect(["progress", "phases"]).toContain(procesamiento.viz.kind);
     expect(procesamiento.action).toMatchObject({ route: "/validacion" });
-    expect(JSON.stringify(procesamiento)).toContain("1/5");
+    // Cuatro fases listas según el motor (`overview.modules`); la que sigue es
+    // la primera que no lo está, aunque las de después ya lo estén.
+    expect(JSON.stringify(procesamiento)).toContain("4/5");
+  });
+
+  it("Procesamiento cuenta las fases del motor y no las banderas de la sesión (L31)", () => {
+    // Sesión multibase: `proc` no ve `state.xlsform` y daría 0/5 «Por iniciar».
+    const overview = makeOverview();
+    overview.modules = overview.modules.map((item) =>
+      ["carga", "validacion", "codificacion", "analitica"].includes(item.id)
+        ? { ...item, state: "ready" }
+        : item.id === "graficos" ? { ...item, state: "active" } : item,
+    );
+    const card = buildModuleCardView(PROSECNUR_PRIMARY_ACTIVE_MODULES.find((m) => m.slug === "procesamiento")!, overview, { ...proc, done: 0 });
+    expect(card.viz).toMatchObject({ kind: "progress", current: 4, total: 5 });
+    expect(card.sub).toBe("Sigue: Gráficos");
+    expect(card.state).toBe("active");
   });
 
   it("conserva advertencias y dirige a la revisión que las resuelve", () => {
