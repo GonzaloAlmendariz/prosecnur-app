@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { MonitoreoTerritorialPhase } from "../../../../../api/client";
 import type { OpcionDeFase } from "./fase";
+import { discrepanciaDeEtapa, usePlannerCalendario } from "./etapaDelPlanner";
 
 /**
  * `FASE ▾` en la barra del modo (A4): abre la lista de fases con lo que trae
@@ -22,6 +23,8 @@ export function SelectorDeFase({
   const boton = useRef<HTMLButtonElement | null>(null);
   const listaId = useId();
   const activa = opciones.find((item) => item.activa) ?? opciones[0];
+  // 2i: la etapa que declara el Planner; si discrepa, se ofrece alinear.
+  const discrepancia = discrepanciaDeEtapa(usePlannerCalendario(), activa?.fase);
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -43,6 +46,17 @@ export function SelectorDeFase({
 
   return (
     <span className="mon-ter-fase" ref={raiz}>
+      {discrepancia ? (
+        <button
+          type="button"
+          className="mon-ter-fase-alinear"
+          title={`${discrepancia.texto} Alinear cambia la fase de Monitoreo; la ventana de campo no se toca.`}
+          disabled={deshabilitado}
+          onClick={() => onElegir(discrepancia.fase)}
+        >
+          {discrepancia.texto} <b>Alinear la fase</b>
+        </button>
+      ) : null}
       <button
         ref={boton}
         type="button"

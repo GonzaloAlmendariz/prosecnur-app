@@ -325,3 +325,15 @@
 [class*="-vacio"]:has(> .mon-ter-rotulo) > :last-child {
   margin-bottom: auto;
 }
+
+/* 2i: el Planner declara otra etapa; un clic alinea la fase (nada cambia solo). */
+.mon-ter-fase-alinear {
+  margin-right: var(--pulso-space-2);
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  cursor: pointer;
+}
