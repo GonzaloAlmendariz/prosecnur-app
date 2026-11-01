@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { EvidenciaRevision } from "./EvidenciaRevision";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { cuotasDescuadradas } from "../filtroDeAvisos";
 import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide-react";
@@ -248,6 +249,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           <p className="hr-mapa-nota">Ninguna observación: cada ruta tiene viviendas suficientes en el marco.</p>
         ) : null}
         {totales.titulares ? <p className="hr-mapa-nota">Toca una ruta en el mapa o en la lista para ver su ficha.</p> : <p className="hr-mapa-aviso">Sin sorteo: sortea las manzanas en la sección Manzanas para revisar las rutas.</p>}
+        {/* P8: la tira de viviendas y la tabla por distrito, la evidencia de la lista de arriba. */}
+        <EvidenciaRevision revision={revision} />
       </div>
       <footer className="hr-mapa-pie hr-sel-pie">
         {salidas}
