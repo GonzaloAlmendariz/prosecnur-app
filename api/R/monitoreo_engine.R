@@ -3254,6 +3254,11 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
       pulso_code = .monitoreo_scalar(row$pulso_code[[1]] %||% "", ""),
       responses = as.integer(nrow(row)),
       valid_responses = as.integer(sum(row$source_effective %in% TRUE, na.rm = TRUE)),
+      # Lo que cuenta en el avance: efectivas validadas no anuladas (extensión de
+      # la decisión de 2h, Gonzalo 1 nov). `valid_responses` queda para el impacto
+      # de una anulación, que mide sobre la efectiva de la plataforma.
+      advance_valid_responses = as.integer(sum((row$advance_valid %in% TRUE) &
+        !(if (is.null(row$production_annulled)) rep(FALSE, nrow(row)) else row$production_annulled %in% TRUE), na.rm = TRUE)),
       umps = as.integer(length(umps)),
       districts = paste(districts, collapse = " · "),
       latest_activity = if (is.finite(latest)) as.character(latest) else "",

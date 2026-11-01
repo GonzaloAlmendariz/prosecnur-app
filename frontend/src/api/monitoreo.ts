@@ -2907,6 +2907,8 @@ export type MonitoreoTerritorialProductionAnnulmentsPayload = {
     pulso_code?: string;
     responses?: number;
     valid_responses?: number;
+    /** Efectivas validadas no anuladas: la base del avance. */
+    advance_valid_responses?: number;
     umps?: number;
     districts?: string;
     latest_activity?: string;

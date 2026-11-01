@@ -33,7 +33,20 @@ describe("Control › Equipo", () => {
 
   it("una fila por código, los activos primero y con su base de anulaciones", () => {
     expect(modelo.filas.map((fila) => [fila.codigo, fila.anulado])).toEqual([["P198", false], ["P702", true]]);
-    expect(p198).toMatchObject({ aplicador: "P198 · Aplicador Uno", recibidas: 80, cuentan: 74, umps: 9, distritos: ["Ate", "San Martín de Porres"], ultimo: "02/07" });
+    expect(p198).toMatchObject({ aplicador: "P198 · Aplicador Uno", recibidas: 80, cuentan: null, umps: 9, distritos: ["Ate", "San Martín de Porres"], ultimo: "02/07" });
+  });
+
+  it("«Cuentan» es la base del avance cuando el corte la trae, no la efectiva de la plataforma", () => {
+    const conValidadas = {
+      production_annulments: {
+        responsibles: [{ key: "p198_a", label: "P198 · Aplicador Uno", pulso_code: "P198", responses: 80, valid_responses: 74, advance_valid_responses: 69, status: "activo" }],
+      },
+    } as unknown as MonitoreoTerritorialDashboard;
+    expect(construirEquipo(conValidadas, VALIDACION).filas[0].cuentan).toBe(69);
+  });
+
+  it("sin la cifra validada (corte anterior) «Cuentan» queda sin dato, no con consentimientos", () => {
+    expect(p198.cuentan).toBeNull();
   });
 
   it("las señales del código salen de la auditoría con su base", () => {

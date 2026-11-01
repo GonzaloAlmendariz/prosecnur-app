@@ -81,7 +81,7 @@ function EquipoTabImpl({
                 <th scope="col">Código</th>
                 <th scope="col">Estado</th>
                 <th scope="col" className="is-num">Recibidas</th>
-                <th scope="col" className="is-num">Cuentan</th>
+                <th scope="col" className="is-num" title="Efectivas validadas que no se anularon, por quien las envió: la base del avance">Cuentan</th>
                 <th scope="col" className="is-num">UMP</th>
                 <th scope="col" className="is-distritos">Distritos</th>
                 <th scope="col">GPS observado</th>
@@ -92,7 +92,7 @@ function EquipoTabImpl({
                   <>
                     <th scope="col" className="is-num" title="Efectivas que declara coordinación en su registro; no se suman a Kobo">Declaradas</th>
                     <th scope="col" className="is-num" title="UMP donde lo declarado no coincide con Kobo validado">No cuadran</th>
-                    <th scope="col" className="is-num" title="Efectivas en Kobo sobre intentos declarados por coordinación">Rendimiento</th>
+                    <th scope="col" className="is-num" title="Efectivas validadas en sus UMP planificadas sobre los intentos que declara coordinación">Rendimiento</th>
                     <th scope="col" title="Supervisión: aprobadas / no aprobadas">Supervisión</th>
                   </>
                 ) : null}
@@ -115,7 +115,7 @@ function EquipoTabImpl({
                   </th>
                   <td>{fila.anulado ? "Producción anulada" : "Activo"}</td>
                   <td className="is-num">{fmt(fila.recibidas)}</td>
-                  <td className="is-num">{fmt(fila.cuentan)}</td>
+                  <td className="is-num">{fila.cuentan == null ? "—" : fmt(fila.cuentan)}</td>
                   <td className="is-num">{fmt(fila.umps)}</td>
                   <td className="is-distritos">{fila.distritos.join(", ") || "—"}</td>
                   <td>{fila.gpsObservado ? <BarraDeProporcion casos={fila.gpsObservado.casos} base={fila.gpsObservado.base} texto={fila.gpsObservado.texto} /> : "—"}</td>
@@ -203,7 +203,7 @@ function InspectorDeCodigo({
         </button>
       </header>
       <dl className="mon-eq-cifras">
-        <div><dt>Cuentan</dt><dd>{fmt(fila.cuentan)}</dd></div>
+        <div><dt>Cuentan</dt><dd>{fila.cuentan == null ? "—" : fmt(fila.cuentan)}</dd></div>
         <div><dt>UMP</dt><dd>{fmt(fila.umps)}</dd></div>
         <div><dt>En bandeja</dt><dd>{fila.enBandeja == null ? "—" : fmt(fila.enBandeja)}</dd></div>
       </dl>
