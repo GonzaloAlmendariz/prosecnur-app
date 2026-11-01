@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PulsoSwitch } from "../../components/PulsoSwitch";
+import { useFocoDeVuelta } from "../../components/useFocoDeVuelta";
 import type { SettingsTab } from "./seccionesConfiguracion";
 import { createPortal } from "react-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -383,6 +384,9 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionI
     () => Object.values(connections).filter((item) => item.has_token).length + (hfSettings.token_configured ? 1 : 0),
     [connections, hfSettings.token_configured],
   );
+
+  // Abierta por dirección desde otro módulo (L7), devuelve el foco a quien la abrió.
+  useFocoDeVuelta(open);
 
   useEffect(() => {
     if (!open) return;
