@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
 import { AjustesPorDistrito } from "./AjustesPorDistrito";
+import { pasosDelN } from "./pasosDelN";
 import { EscenariosMuestra } from "./EscenariosMuestra";
 import { MargenCurva } from "./MargenCurva";
 import { repartoMinimos, repartoPorPoblacion } from "./repartos";
@@ -96,6 +97,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
   const cambiar = (b: BorradorMuestra) => setMuestraBorrador({ ...muestraBorrador, ...b, sample_size: { ...muestraBorrador?.sample_size, ...b.sample_size } });
   const cambiarS = (x: Partial<HojasRutaSampleSizeConfig>) => cambiar({ sample_size: x });
   const peor = r.filas.length ? Math.max(...r.filas.map((f) => f.margen ?? 0)) : null;
+  const pasosN = pasosDelN({ z: r.z, p: s.expected_proportion, margenTotal: s.margin_total, deff: s.design_effect, fpc: s.apply_fpc, poblacion: r.poblacionTotal, porRuta: ruta, piso: Boolean(s.enforce_district_floor), margenDistrito: s.margin_district, sumaMinimos: r.sumaMinimos });
   const excedidos = r.filas.filter((f) => (f.margen ?? 0) > f.margenObjetivo + 1e-9).length;
   const razon = config.sample_size_mode === "calculator" ? (s.enforce_district_floor && r.sumaMinimos > r.nTotalMinimo ? "Manda la suma de mínimos por distrito" : "Manda el margen total") : config.sample_size_mode === "external_total" ? "N aprobado por el cliente" : "N aprobado por distrito";
   const alternativas = [
@@ -247,12 +249,19 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
 
         <details className="hr-muestra-formula">
           <summary>¿De dónde sale este N?</summary>
-          <dl className="hr-mapa-filas">
-            <div><dt>z (confianza {Math.round(s.confidence_level * 100)} %)</dt><dd>{r.z.toFixed(3)}</dd></div>
-            <div><dt>Mínimo por margen total, a rutas de {ruta}</dt><dd>{fmt(r.nTotalMinimo)}</dd></div>
-            <div><dt>Suma de mínimos por distrito</dt><dd>{fmt(r.sumaMinimos)}</dd></div>
-            <div><dt>Población de los distritos</dt><dd>{fmt(r.poblacionTotal)}</dd></div>
+          {/* P7: la cadena de fórmulas con los supuestos del estudio (pasosDelN.ts, mismas fórmulas que el motor). */}
+          <dl className="hr-mapa-filas" aria-label="Cálculo del N paso a paso">
+            {pasosN.pasos.map((p, i) => (
+              <div key={p.titulo}>
+                <dt>
+                  {i + 1}. {p.titulo} <small>{p.formula}</small>
+                </dt>
+                <dd>{p.manda ? <strong>{p.cuenta}</strong> : p.cuenta}</dd>
+              </div>
+            ))}
+            <div><dt>N recomendado</dt><dd><strong>{fmt(pasosN.n)}</strong></dd></div>
           </dl>
+          <p className="hr-mapa-nota">z = {r.z.toFixed(3)} para una confianza de {Math.round(s.confidence_level * 100)} %. Cambiar el margen, p, el DEFF o los márgenes por distrito recalcula este N.</p>
         </details>
         {muestraBorrador && hayMuestra ? <p className="hr-mapa-aviso">Guardar recalcula el tamaño y descarta las cuotas y el sorteo actual.</p> : null}
       </div>
