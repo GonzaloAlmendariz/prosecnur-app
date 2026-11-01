@@ -120,7 +120,8 @@ const TABLA: readonly Entrada[] = [
   // Ctl5 Partes: contenido propio (`control/PartesAulas.tsx`).
   entrada("control", "partes", null, v("consultas", "parte"), { vista: "Partes", propia: true }),
   entrada("control", "partes", "codigo", v("consultas", "ficha"), { vista: "Buscar por código" }),
-  entrada("control", "calidad", null, v("calidad", "controles"), { vista: "Controles" }),
+  // Ctl6 Calidad: contenido propio (`control/CalidadAulas.tsx`).
+  entrada("control", "calidad", null, v("calidad", "controles"), { vista: "Controles", propia: true }),
   entrada("control", "calidad", "base", v("calidad", "base"), { vista: "Base de control" }),
   entrada("control", "calidad", "abiertas", v("calidad", "abiertas"), { vista: "Respuestas abiertas" }),
   // Control, grupo Casos.
