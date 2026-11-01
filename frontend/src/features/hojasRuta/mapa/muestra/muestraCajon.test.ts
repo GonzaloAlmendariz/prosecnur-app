@@ -29,3 +29,12 @@ describe("pivotarCuotas", () => {
     expect(pivotarCuotas(null).filas).toEqual([]);
   });
 });
+
+describe("P4: cuotas antes de sortear", () => {
+  it("sin cuotas y con quien las calcule, se ofrece calcularlas", async () => {
+    const { ofreceCalcularCuotas } = await import("./MuestraCajon");
+    expect(ofreceCalcularCuotas(null, () => undefined)).toBe(true);
+    expect(ofreceCalcularCuotas({ cells: [] } as unknown as QuotaPlan, () => undefined)).toBe(false);
+    expect(ofreceCalcularCuotas(null, undefined)).toBe(false);
+  });
+});

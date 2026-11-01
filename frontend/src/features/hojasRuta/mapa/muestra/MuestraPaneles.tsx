@@ -78,6 +78,8 @@ type InspectorProps = {
   hayMuestra: boolean;
   /** Avisos del último tamaño calculado en R (ADR 0116 y otros); no se recalculan con el borrador. */
   avisosServidor?: readonly HojasRutaAlert[];
+  /** P4: hay un tamaño guardado, así que las cuotas se pueden calcular antes de sortear. */
+  hayTamano?: boolean;
   onGuardar: () => void;
   /** Margen total que daría otro N con los supuestos en vista (B34). */
   margenPara?: (n: number) => number | null;
@@ -86,7 +88,7 @@ type InspectorProps = {
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, avisosServidor = [], margenPara, onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, hayTamano = false, avisosServidor = [], margenPara, onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
@@ -267,7 +269,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
         ) : (
           // B35: sin cambios pendientes, el pie lleva a lo que sigue.
           <>
-            <PulsoButton variant="secondary" disabled={!hayMuestra} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
+            <PulsoButton variant="secondary" disabled={!hayMuestra && !hayTamano} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
               {cajonMuestra ? "Ocultar cuotas" : "Ver cuotas"}
             </PulsoButton>
             <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", "manzanas")}>

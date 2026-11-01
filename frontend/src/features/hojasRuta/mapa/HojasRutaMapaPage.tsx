@@ -12,7 +12,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
@@ -309,6 +309,19 @@ export default function HojasRutaMapaPage() {
     },
     [guardando, setBorrador, setSorteoBorrador],
   );
+  // P4: las cuotas antes de sortear, con el tamaño guardado (el endpoint las guarda en las salidas).
+  const calcularCuotas = useCallback(async () => {
+    if (!estado) return;
+    setGuardando(true);
+    try {
+      await apiHojasRutaQuotaPreview(estado.integrated_config);
+      setEstado(await apiHojasRutaState());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudieron calcular las cuotas");
+    } finally {
+      setGuardando(false);
+    }
+  }, [estado]);
   // P2: la regla del piloto vive en la corrida de campo; guardarla no toca la muestra (se avisa si quedó con la otra).
   const cambiarReglaPiloto = useCallback(
     async (modo: HojasRutaPilotExclusionMode) => {
@@ -771,7 +784,7 @@ export default function HojasRutaMapaPage() {
           alMover={enTerritorio && ciudadAbierta ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornosAbiertos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
-        {enMuestra ? <MuestraCajon cuotas={cuotas} /> : null}
+        {enMuestra ? <MuestraCajon cuotas={cuotas} calculando={guardando} onCalcular={salidas?.sample_size_preview && !bloqueado ? () => void calcularCuotas() : undefined} /> : null}
         {enPoblacion && estado ? <PoblacionCajon matriz={matriz} rangos={rangosConfig} sexo={estado.integrated_config.subquota_var !== "ninguna"} zonas={zonas} config={estado.integrated_config} /> : null}
         <section className="hr-mapa-inspector" aria-label={enTerritorio ? "Territorio" : "Lo decidido"}>
           {(enSeleccion && !titularEnfocada) || enManzanas ? (manzanaFicha ? (
@@ -833,7 +846,7 @@ export default function HojasRutaMapaPage() {
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
-            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
+            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} hayTamano={Boolean(salidas?.sample_size_preview)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}

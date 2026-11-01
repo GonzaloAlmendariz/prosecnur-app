@@ -34,7 +34,15 @@ export function pivotarCuotas(cuotas: QuotaPlan | null): { rangos: string[]; sex
   return { rangos, sexos, filas: [...porDistrito.values()] };
 }
 
-export function MuestraCajon({ cuotas }: { cuotas: QuotaPlan | null }) {
+/** P4: el botón «Calcular cuotas» sale sólo sin cuotas y con quien las calcule. */
+export const ofreceCalcularCuotas = (cuotas: QuotaPlan | null, onCalcular?: () => void) => !cuotas && Boolean(onCalcular);
+
+/**
+ * P4 de la paridad con la página clásica: sin cuotas todavía (la muestra no se sorteó), el cajón
+ * las calcula con el tamaño guardado (`/api/hojas-ruta/quota-preview`, que las guarda en las salidas)
+ * en vez de esperar al sorteo.
+ */
+export function MuestraCajon({ cuotas, onCalcular, calculando = false }: { cuotas: QuotaPlan | null; onCalcular?: () => void; calculando?: boolean }) {
   const { cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   if (!cajonMuestra) return null;
   const { rangos, sexos, filas } = pivotarCuotas(cuotas);
@@ -46,6 +54,14 @@ export function MuestraCajon({ cuotas }: { cuotas: QuotaPlan | null }) {
           <X size={14} aria-hidden />
         </PulsoButton>
       </header>
+      {ofreceCalcularCuotas(cuotas, onCalcular) ? (
+        <div className="hr-mapa-acciones">
+          <PulsoButton variant="primary" size="sm" disabled={calculando} onClick={onCalcular}>
+            {calculando ? "Calculando…" : "Calcular cuotas"}
+          </PulsoButton>
+          <span className="hr-mapa-nota">Con el tamaño guardado, antes de sortear.</span>
+        </div>
+      ) : null}
       <PulsoTable
         ariaLabel="Cuotas por distrito"
         densidad="compacta"
