@@ -70,8 +70,6 @@ export type SurveyOutlineProps = {
   onSelect: (value: BuilderSelection) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   /** Aplica un arrastre concreto al workbook. */
   onApplyMove: (plan: RowMovePlan) => void;
   /** Avisos por fila, armados por la página desde los diagnósticos (contrato con la ficha: no cambiar la forma). */
@@ -99,8 +97,6 @@ export function SurveyOutline({
   onSelect,
   onMoveUp,
   onMoveDown,
-  canMoveUp,
-  canMoveDown,
   onApplyMove,
   avisosPorFila,
   onInsertar,
@@ -261,8 +257,6 @@ export function SurveyOutline({
     },
     [structure, alternarPlegada, flip],
   );
-  const moverArriba = useCallback(() => ultimo.current.onMoveUp(), []);
-  const moverAbajo = useCallback(() => ultimo.current.onMoveDown(), []);
   const abrirInsertar = useCallback((destino: DestinoInsercion, ancla: HTMLElement) => setInsertando({ destino, ancla }), []);
   const hayInsertar = !!onInsertar;
 
@@ -502,17 +496,13 @@ export function SurveyOutline({
             arrastrable: !filtrando,
             plegada,
             avisos: avisosPorFila,
-            canMoveUp,
-            canMoveDown,
             limite: limiteSeccion,
             onElegir,
             onPlegar,
-            onMoveUp: moverArriba,
-            onMoveDown: moverAbajo,
             onInsertar: hayInsertar ? abrirInsertar : undefined,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, canMoveUp, canMoveDown, limiteSeccion, onElegir, onPlegar, moverArriba, moverAbajo, hayInsertar, abrirInsertar],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar],
   );
 
   const itemsMenu = useMemo(

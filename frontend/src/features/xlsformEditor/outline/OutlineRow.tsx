@@ -13,7 +13,6 @@
 // =============================================================================
 
 import { memo, useMemo } from "react";
-import { ArrowDown, ArrowUp } from "../../../vendor/lucide-react";
 import { AsaArrastre } from "./AsaArrastre";
 import type { BuilderNode } from "../types";
 import { stripMarkdown } from "../helpers/markdown";
@@ -44,11 +43,7 @@ export type OutlineRowProps = {
   enRecorrido: boolean;
   arrastrable: boolean;
   avisos?: readonly AvisoFila[];
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onElegir: (rowIndex: number) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onInsertar?: AbrirInsertar;
 };
 
@@ -60,11 +55,7 @@ export const OutlineRow = memo(function OutlineRow({
   enRecorrido,
   arrastrable,
   avisos,
-  canMoveUp,
-  canMoveDown,
   onElegir,
-  onMoveUp,
-  onMoveDown,
   onInsertar,
 }: OutlineRowProps) {
   const reglas = useContextoReglas();
@@ -117,36 +108,6 @@ export const OutlineRow = memo(function OutlineRow({
           </span>
         </div>
 
-        {active && (
-          <span className="pulso-outline-actions">
-            <button
-              type="button"
-              className="pulso-icon"
-              disabled={!canMoveUp}
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveUp();
-              }}
-              title="Mover arriba · Alt+↑"
-              aria-label="Mover arriba"
-            >
-              <ArrowUp size={13} />
-            </button>
-            <button
-              type="button"
-              className="pulso-icon"
-              disabled={!canMoveDown}
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveDown();
-              }}
-              title="Mover abajo · Alt+↓"
-              aria-label="Mover abajo"
-            >
-              <ArrowDown size={13} />
-            </button>
-          </span>
-        )}
 
         {/* El riel va al final para que su columna no se corra en la fila elegida (las flechas quedan antes). */}
         <Riel nodo={node} marcas={marcas} scope={reglas?.scope} className="pulso-outline-riel" tabIndex={enRecorrido ? undefined : -1} />

@@ -10,7 +10,7 @@
 // =============================================================================
 
 import { useId, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronDown } from "../../../vendor/lucide-react";
+import { ChevronDown } from "../../../vendor/lucide-react";
 import { AsaArrastre } from "./AsaArrastre";
 import type { BuilderNode } from "../types";
 import { TypeIcon } from "../kit/TypeIcon";
@@ -38,13 +38,9 @@ export type SeccionEstructuraProps = {
   /** Es lo que se está arrastrando: el contenedor se esconde y su lugar lo toma el hueco. */
   origen: boolean;
   avisos?: readonly AvisoFila[];
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   limite?: LimiteSeccion;
   onElegir: (rowIndex: number) => void;
   onPlegar: (rowIndex: number) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onInsertar?: AbrirInsertar;
   children: ReactNode;
 };
@@ -59,13 +55,9 @@ export function SeccionEstructura({
   arrastrable,
   origen,
   avisos,
-  canMoveUp,
-  canMoveDown,
   limite,
   onElegir,
   onPlegar,
-  onMoveUp,
-  onMoveDown,
   onInsertar,
   children,
 }: SeccionEstructuraProps) {
@@ -138,36 +130,6 @@ export function SeccionEstructura({
               {conteo}
             </small>
           </div>
-          {active && (
-            <span className="pulso-outline-actions">
-              <button
-                type="button"
-                className="pulso-icon"
-                disabled={!canMoveUp}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveUp();
-                }}
-                title="Mover arriba · Alt+↑"
-                aria-label="Mover arriba"
-              >
-                <ArrowUp size={13} />
-              </button>
-              <button
-                type="button"
-                className="pulso-icon"
-                disabled={!canMoveDown}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDown();
-                }}
-                title="Mover abajo · Alt+↓"
-                aria-label="Mover abajo"
-              >
-                <ArrowDown size={13} />
-              </button>
-            </span>
-          )}
         </div>
         {onInsertar ? (
           <BotonInsertar

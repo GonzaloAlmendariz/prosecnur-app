@@ -22,7 +22,9 @@
   min-height: 0;
   max-height: none;
   gap: 2px;
-  padding: 0 4px 10px 6px;
+  /* 20 px a la izquierda: es la sangría donde vive el asa de arrastre (abajo, «Aire horizontal»). Con 6 px la lista,
+   * que tiene su propio scroll, recortaba el asa contra su borde y sólo asomaban los puntos aplastados. */
+  padding: 0 4px 10px 20px;
 }
 /* Sin el marco de viewport (documento largo) la columna no tiene alto propio: la lista conserva un tope. */
 .pulso-xlsform-frame:not(:where(.pulso-main--viewport *)) .pulso-xlsform-sidebar-panel .xfe-estructura > .pulso-outline-scroll.xfe-arbol {
@@ -165,7 +167,15 @@
 .xfe-fantasma.is-alzado { transform: scale(1.015); box-shadow: var(--pulso-shadow-popover), 0 0 0 1px var(--pulso-border-strong); }
 .xfe-fantasma.is-asentando { box-shadow: 0 0 0 1px var(--pulso-border); }
 .xfe-fantasma > .pulso-outline-row { margin: 0; background: var(--pulso-surface); border-color: transparent; }
-.xfe-fantasma .pulso-outline-grip { opacity: 1; color: var(--pulso-primary); }
+/* El asa del fantasma es la misma que se tomó: mismo sitio en la sangría y el mismo estado que con el mouse encima.
+ * La copia vive fuera de `.xfe-arbol`, así que sin esto el asa caía dentro de la tarjeta, empujaba el sello y se veía
+ * otra al empezar a arrastrar. */
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-row { position: relative; }
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-grip:not(.is-decor) {
+  position: absolute; left: -19px; top: 50%; width: 16px; height: 24px; margin: 0; transform: translateY(-50%);
+  opacity: 1; color: var(--pulso-primary); background: var(--pulso-primary-soft);
+}
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-grip.is-decor { display: none; }
 .xfe-fantasma .xfe-mas { display: none; }
 
 /* ── «+» entre líneas (C18) ─────────────────────────────────────────────── */
@@ -257,13 +267,14 @@
  * sombreado izquierdo es cliché») ──────────────────────────────────────────────────────────────────────────── */
 /* La fila elegida se distingue por fondo y borde finos, sin barra interna ni sombra (theme.css pone ambas). */
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row.is-active { box-shadow: none; border-color: var(--pulso-primary-border); }
-/* El asa ya no reserva 16 px en cada fila: aparece en la sangría, a la izquierda del sello. */
+/* El asa ya no reserva 16 px en cada fila: aparece en la sangría, a la izquierda del sello. Mide 16 px para que su
+ * ícono de 14 quepa entero (con 12 se salía) y queda 2 px fuera del borde de la fila, dentro de los 20 px de relleno
+ * de la lista (arriba): así ni la lista la recorta ni toca la tarjeta. */
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row { position: relative; }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-grip:not(.is-decor) {
-  position: absolute; left: -13px; top: 50%; width: 12px; height: 22px; margin: 0; transform: translateY(-50%);
+  position: absolute; left: -19px; top: 50%; width: 16px; height: 24px; margin: 0; transform: translateY(-50%);
 }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-grip.is-decor { display: none; }
-.xfe-arbol { padding-left: 12px; }
 /* Sin sangría (Gonzalo, 2026-10-17: «la sangría hace que todo se vea desordenado»): todas las piezas alinean su sello
  * en una sola columna. La jerarquía la dicen las cabeceras de sección: una banda tenue en el tono de la familia, y
  * cada nivel de anidación corre sólo la cabecera 12 px. */

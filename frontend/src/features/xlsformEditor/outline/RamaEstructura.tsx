@@ -19,13 +19,9 @@ export type ValorEstructura = {
   arrastrable: boolean;
   plegada: (fila: number) => boolean;
   avisos?: ReadonlyMap<number, readonly AvisoFila[]>;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   limite?: LimiteSeccion;
   onElegir: (fila: number) => void;
   onPlegar: (fila: number) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onInsertar?: AbrirInsertar;
 };
 
@@ -69,11 +65,7 @@ export function RamaEstructura({
                 enRecorrido={c.enRecorrido === fila}
                 arrastrable={c.arrastrable}
                 avisos={c.avisos?.get(fila)}
-                canMoveUp={active && c.canMoveUp}
-                canMoveDown={active && c.canMoveDown}
                 onElegir={c.onElegir}
-                onMoveUp={c.onMoveUp}
-                onMoveDown={c.onMoveDown}
                 onInsertar={c.onInsertar}
               />
             </Fragment>
@@ -93,13 +85,9 @@ export function RamaEstructura({
               arrastrable={c.arrastrable}
               origen={origen}
               avisos={c.avisos?.get(fila)}
-              canMoveUp={active && c.canMoveUp}
-              canMoveDown={active && c.canMoveDown}
               limite={active ? c.limite : undefined}
               onElegir={c.onElegir}
               onPlegar={c.onPlegar}
-              onMoveUp={c.onMoveUp}
-              onMoveDown={c.onMoveDown}
               onInsertar={c.onInsertar}
             >
               {abierta ? (

@@ -2737,8 +2737,6 @@ export default function XlsformEditorPage() {
                         onSelect={selectBuilderFocus}
                         onMoveUp={() => moveSelection("up")}
                         onMoveDown={() => moveSelection("down")}
-                        canMoveUp={!!movement.prevRow}
-                        canMoveDown={!!movement.nextRow}
                         onApplyMove={applyOutlineMove}
                         avisosPorFila={avisosPorFila}
                         onInsertar={insertarDesdeEstructura}
