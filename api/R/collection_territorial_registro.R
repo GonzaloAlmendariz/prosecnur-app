@@ -28,6 +28,11 @@
 # Variante del territorial (informe de brechas §1): «conveniencia» (cuotas, como Ser
 # Adolescente) o «ump_aleatoria» (hoja de ruta, como acogida). Sale del perfil territorial
 # del Planner; mientras el Planner no la declare, UMP aleatoria, que es lo que arma Hojas de ruta.
+# A4 (1A, decidido el 1 nov 2026): el Estado por fórmula se queda porque el formato real lo trae,
+# rotulado como declarado por campo. Se lee como «declarado» y nunca cuenta para el avance, que
+# sigue saliendo de Kobo validado (P3 del plan, 31 oct), así que no compite con Monitoreo.
+.MTR_ESTADO_DECLARADO <- "Estado (declarado)"
+
 .mtr_variante <- function(s) {
   perfiles <- tryCatch(.planner_payload_perfiles(s), error = function(e) list())
   ter <- Filter(function(p) is.list(p) && identical(p$tipo, "territorial"), perfiles %||% list())
@@ -75,7 +80,7 @@
   identidad <- c("Distrito", "UMP", "Código de manzana", "Tipo", "Reemplaza a", "Encuestador", "Cuestionarios", "Meta")
   metas <- if (length(cel)) paste0(.MTR_META, cel) else character(0)
   efectivas <- if (length(cel)) paste0(.MTR_EFECTIVAS, cel) else "Efectivas"
-  ayuda <- if (conveniencia) c("Total efectivas", "Faltan para la meta", "Estado") else c("Total efectivas", "Faltan para la meta", "Total de intentos")
+  ayuda <- if (conveniencia) c("Total efectivas", "Faltan para la meta", .MTR_ESTADO_DECLARADO) else c("Total efectivas", "Faltan para la meta", "Total de intentos")
   reportado <- if (conveniencia) .MTR_REPORTADO else character(0)
   columnas <- c(identidad, metas, efectivas, cols_cod, ayuda, reportado, campo)
   ambar <- c(efectivas, cols_cod, reportado, campo)
@@ -123,7 +128,8 @@
     openxlsx::writeData(wb, hoja, sprintf("%s · %s%s", if (conveniencia) "Seguimiento de campo" else "Registro del coordinador",
                                           ctx$hit$entry$name, if (nzchar(reg)) paste0(" · ", reg) else ""), startRow = 1)
     openxlsx::writeData(wb, hoja, if (conveniencia) paste(
-      "Anota por UMP las encuestas logradas en cada celda de cuota y el total que reporta coordinación. El Estado sale solo.",
+      "Anota por UMP las encuestas logradas en cada celda de cuota y el total que reporta coordinación. El «Estado (declarado)» sale solo de lo que anotas;",
+      "el avance oficial no es este: lo calcula Monitoreo con lo que llega a Kobo validado.",
       "Llena sólo las columnas en ámbar. Es lo declarado por coordinación: Monitoreo lo compara con lo que llega a Kobo, que es el avance oficial."
     ) else paste(
       "Anota por UMP lo que pasó en campo: efectivas por celda de cuota, no efectivas por código (los totales de la hoja de consolidados),",
@@ -192,7 +198,7 @@
         # Como en Ser Adolescente: Completa al llegar a la meta, En curso con algo logrado.
         openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"%s\",IF(AND(%s%d<>\"\",%s>=%s%d),\"%s\",\"%s\"))", vacio, .MTR_ESTADOS_1A[[1]],
                                                  letra("Meta"), r, tot, letra("Meta"), r, .MTR_ESTADOS_1A[[3]], .MTR_ESTADOS_1A[[2]]),
-                               startCol = idx("Estado"), startRow = r)
+                               startCol = idx(.MTR_ESTADO_DECLARADO), startRow = r)
       } else {
         intentos <- if (length(cols_cod)) sprintf("%s+SUM(%s)", tot, rango(cols_cod, r)) else tot
         openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"\",%s)", vacio, intentos), startCol = idx("Total de intentos"), startRow = r)

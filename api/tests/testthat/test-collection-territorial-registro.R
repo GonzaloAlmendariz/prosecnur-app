@@ -96,7 +96,7 @@ test_that("conveniencia (1A, desde el Planner): seguimiento con Estado calculado
   expect_identical(r$variante, "conveniencia")
   path <- session_get(sid)$files[[r$file_id]]$path
   lima <- .mtr_tabla(path, "Registro Lima")
-  expect_true(all(c("Efectivas · Hombre", "Total efectivas", "Estado", "Total reportado por coordinación",
+  expect_true(all(c("Efectivas · Hombre", "Total efectivas", "Estado (declarado)", "Total reportado por coordinación",
                     "Supervisión: aprobadas") %in% names(lima)))
   expect_false(any(grepl("^[0-9]+ · ", names(lima))))
   expect_false("¿Se reemplaza?" %in% names(lima))
