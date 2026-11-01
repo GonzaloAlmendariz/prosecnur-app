@@ -191,6 +191,15 @@ mount_recopiladores <- function(pr) {
     })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
+    # Etapa 3 (collection_aulas_material.R): la entrega de aulas de solo lectura, para
+    # Monitoreo, y las plantillas del equipo de aulas.
+    plumber::pr_get("/api/recopiladores/campaigns/aulas/entrega", wrap_endpoint(function(req, res, ...) {
+      collection_aulas_entrega_get(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/aulas/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_aulas_plantilla(session_header(req), pieza = body[["pieza"]], body = body)
+    })) |>
     plumber::pr_post("/api/recopiladores/barrido/plantilla", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_barrido_plantilla(session_header(req), estudio = body[["estudio"]], llave = body[["llave"]],

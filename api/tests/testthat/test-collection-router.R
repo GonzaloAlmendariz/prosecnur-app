@@ -54,6 +54,9 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/campaigns/territorial/asignacion/importar",
     "/api/recopiladores/campaigns/territorial/asignacion/estado",
     "/api/recopiladores/barrido/plantilla",
+    # Etapa 3: la entrega de aulas de solo lectura y las plantillas del equipo de aulas.
+    "/api/recopiladores/campaigns/aulas/entrega",
+    "/api/recopiladores/campaigns/aulas/plantilla",
     "/api/recopiladores/campaigns/telefonica/config",
     "/api/recopiladores/campaigns/telefonica/plantilla",
     "/api/recopiladores/campaigns/territorial/plan",
