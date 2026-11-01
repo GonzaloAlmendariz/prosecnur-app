@@ -1,5 +1,7 @@
 # Loop de bóvedas — dos grafos que se hablan
 
+> **Retirado el 1/11/2026.** Gonzalo: «eso de obsidian ya hay que matarlo porque ya está desfasado». Se borraron la bóveda de producto `Obsidian_Prosecnur/`, `scripts/vaults-check.mjs` con su test, los targets `vaults-*` del Makefile y su paso en CI. `docs/sistema/direcciones/` queda como foto de esa fecha y ya no se regenera. Copia de la bóveda fuera del repo: `~/Documents/Pulso/99_Archivo/Obsidian_Prosecnur-2026-11-01`; el historial de git la conserva entera.
+
 Prosecnur tiene hoy una bóveda Obsidian que describe la aplicación y un `docs/`
 que describe por qué la aplicación es así. Ninguno de los dos sabe que el otro
 existe, y ninguno se entera cuando la app cambia. Este loop los convierte en dos

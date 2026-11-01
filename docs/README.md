@@ -51,7 +51,8 @@ Antes de seguir uno, revise el estado y la fecha que declara en su cabecera.
   superficies de la aplicación.
 - [Índice de direcciones](sistema/direcciones/README.md): cada dirección del
   contrato de navegación con su sello, qué documento la gobierna y si la bóveda
-  de producto la documenta. Generado por `make vaults-index`; no editar a mano.
+  de producto la documentaba. Lo generaba `make vaults-index`, retirado el
+  1/11/2026 con la bóveda de producto: queda como foto de esa fecha.
 
 ## Referencias por dominio
 
@@ -194,8 +195,8 @@ arquitectura canónica.
 - [Optimización de performance](plan-optimizacion-perf-2026-07.md).
 - [Recopiladores](plan-recopiladores-2026-07.md).
 - [Saneamiento del repositorio](plan-saneamiento-repo-2026-07.md).
-- [Loop de bóvedas](plan-vaults-2026-07.md): la bóveda de producto, esta
-  documentación y la costura verificable entre ambas.
+- [Loop de bóvedas](plan-vaults-2026-07.md) (retirado el 1/11/2026): la bóveda
+  de producto en Obsidian, esta documentación y la costura entre ambas.
 
 ### Suite de revamp visual
 

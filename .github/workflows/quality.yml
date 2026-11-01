@@ -102,9 +102,6 @@ jobs:
         run: |
           node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-|visual-qa-readiness')
 
-      - name: Check product and system vaults
-        run: node scripts/vaults-check.mjs --check
-
       - name: Check technical-debt baseline
         run: node scripts/debt-audit.mjs --check
 
