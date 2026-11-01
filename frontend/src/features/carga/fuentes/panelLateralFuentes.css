@@ -82,14 +82,14 @@
 .pulso-plf-antetitulo {
   margin: 0 0 2px;
   color: var(--module-accent);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
 }
 
 .pulso-plf-titulo {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
@@ -99,7 +99,7 @@
   margin: 0;
   max-width: 72ch;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -149,13 +149,13 @@
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
 .pulso-plf-estado strong {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 

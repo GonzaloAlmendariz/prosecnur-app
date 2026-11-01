@@ -19,7 +19,7 @@
 .pulso-rangos-head h5,
 .pulso-rangos-aparte h6 {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -38,7 +38,7 @@
   grid-template-columns: 9ch auto 9ch auto minmax(160px, 1fr) 10ch 28px;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -54,7 +54,7 @@
   width: 100%;
   min-width: 0;
   height: 30px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-rangos-flecha {
@@ -62,7 +62,7 @@
 }
 
 .pulso-rangos-casos {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -98,7 +98,7 @@
   grid-template-columns: minmax(0, 1fr) 10ch minmax(160px, 1fr);
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-rangos-aparte-valor {
@@ -110,13 +110,13 @@
 }
 
 .pulso-rangos-aparte-valor code {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
 .pulso-rangos-detalle summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 

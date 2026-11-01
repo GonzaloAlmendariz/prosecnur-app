@@ -55,7 +55,7 @@
   border-radius: 8px;
   background: var(--cf-a-suave);
   color: var(--cf-a);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -73,7 +73,7 @@
 
 .pulso-cf-fuente-texto strong {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -84,7 +84,7 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-datos {
@@ -93,7 +93,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-cf-datos.is-depurada {
@@ -111,26 +111,26 @@
 
 .pulso-cf-fuente-n strong {
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
 .pulso-cf-fuente-n small {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-cf-casos {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
 .pulso-cf-casos small {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* --- Contadores pares ----------------------------------------------------- */
@@ -154,14 +154,14 @@
 
 .pulso-cf-contador dt {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
 }
 
 .pulso-cf-contador dd {
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
@@ -172,7 +172,7 @@
 
 .pulso-cf-contador small {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* --- Aviso de categorías perdidas al cargar ------------------------------- */
@@ -195,12 +195,12 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-aviso-texto strong {
   color: var(--pulso-text);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-aviso-texto ul {
@@ -238,7 +238,7 @@
 .pulso-cf-lista-titulo {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -247,7 +247,7 @@
 .pulso-cf-lista-nota {
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -284,7 +284,7 @@
   gap: 8px;
   min-width: 0;
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -306,7 +306,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-cf-estado {
@@ -341,14 +341,14 @@
   inline-size: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-cats thead th {
   padding: 4px 8px 6px;
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   overflow-wrap: anywhere;
@@ -384,7 +384,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
   text-align: center;
@@ -397,7 +397,7 @@
   margin-inline-start: 6px;
   padding: 0 6px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -428,7 +428,7 @@
 
 .pulso-cf-cifra {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -440,7 +440,7 @@
   padding: 8px 8px 3px;
   border-bottom: 1px dashed var(--pulso-border);
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   text-align: left;
@@ -459,7 +459,7 @@
   align-items: center;
   gap: 4px 6px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-exclusivas-rotulo {
@@ -481,7 +481,7 @@
 .pulso-cf-nota {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* --- Iguales, plegadas ---------------------------------------------------- */
@@ -498,7 +498,7 @@
   gap: 6px;
   padding: var(--pulso-space-3) var(--pulso-space-4);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   list-style: none;
   cursor: pointer;
@@ -535,7 +535,7 @@
   gap: var(--pulso-space-3);
   padding: 5px 0;
   border-top: 1px solid var(--pulso-border);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-iguales-etiqueta {
@@ -558,7 +558,7 @@
   gap: 3px;
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -571,7 +571,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cf-selector select:focus-visible {

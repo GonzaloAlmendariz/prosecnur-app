@@ -80,7 +80,7 @@
 
 .pulso-armon-eyebrow {
   margin: 0 0 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   color: var(--module-accent);
@@ -88,7 +88,7 @@
 
 .pulso-armon-titulo {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
@@ -120,7 +120,7 @@
 .pulso-armon-regla {
   margin: 0;
   max-width: 72ch;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -153,7 +153,7 @@
   flex-wrap: wrap;
   gap: var(--pulso-space-2);
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -193,13 +193,13 @@
 
 .pulso-armon-seccion-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-armon-seccion-head h3 small {
   margin-left: var(--pulso-space-1);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: 400;
   color: var(--pulso-text-soft);
 }
@@ -208,7 +208,7 @@
 .pulso-armon-nota,
 .pulso-armon-aviso {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -223,7 +223,7 @@
 
 .pulso-armon-tenue {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* --- Escala común -------------------------------------------------------- */
@@ -245,7 +245,7 @@
 }
 
 .pulso-armon-escala-pos {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-faint);
   text-align: right;
@@ -254,7 +254,7 @@
 .pulso-armon-escala input {
   min-width: 0;
   height: 30px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* --- Mapa por base ------------------------------------------------------- */
@@ -263,7 +263,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-3);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-comparable label {
@@ -278,14 +278,14 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-armon-nota-campo input {
   min-width: 0;
   height: 30px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-base-acciones {
@@ -297,7 +297,7 @@
 
 .pulso-armon-base-resumen {
   flex: 1 1 240px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -310,7 +310,7 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-tabla th:nth-child(1) {
@@ -350,7 +350,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   text-align: left;
@@ -381,7 +381,7 @@
   width: 100%;
   min-width: 0;
   height: 28px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* «Sin mapa»: el aviso va en el selector (borde, color y el texto «Sin mapa»),
@@ -405,7 +405,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-periodos-titulo {
@@ -505,7 +505,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.5;
 }
@@ -527,7 +527,7 @@
 
 .pulso-armon-ayuda {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -554,7 +554,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-6);
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-indice-titulo {
@@ -581,7 +581,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.6;
   cursor: pointer;
 }
@@ -620,7 +620,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--module-accent);
 }
@@ -653,7 +653,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-masa.is-vacia {
@@ -665,7 +665,7 @@
 .pulso-armon-masa-ayuda {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -692,7 +692,7 @@
 .pulso-armon-masa-destino select {
   width: 100%;
   height: 28px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-masa-sep {
@@ -712,7 +712,7 @@
   flex-direction: column;
   gap: var(--pulso-space-1);
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -723,7 +723,7 @@
 .pulso-armon-informe-campo input {
   min-width: 0;
   height: 30px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-armon-informe-campo small {

@@ -23,7 +23,7 @@
   margin-bottom: var(--pulso-space-2);
   padding: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -56,8 +56,8 @@
 .pulso-bfp-formulario:disabled { cursor: default; opacity: 0.7; }
 
 .pulso-bfp-formulario-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.pulso-bfp-formulario-texto strong { color: var(--pulso-text); font-size: 13px; overflow-wrap: anywhere; }
-.pulso-bfp-formulario-texto small { color: var(--pulso-text-soft); font-size: 11.5px; }
+.pulso-bfp-formulario-texto strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); overflow-wrap: anywhere; }
+.pulso-bfp-formulario-texto small { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
 .pulso-bfp-formulario-meta { color: var(--pulso-text-muted); }
 
 .pulso-bfp-casilla {
@@ -65,7 +65,7 @@
   align-items: center;
   gap: 8px;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-progreso {
@@ -75,7 +75,7 @@
   min-height: 1.4em;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-progreso:empty { display: none; }
@@ -115,8 +115,8 @@
 .pulso-bfp-veredicto-icono { display: inline-grid; color: var(--pulso-success-fg); }
 .pulso-bfp-veredicto.is-bloqueado .pulso-bfp-veredicto-icono { color: var(--pulso-danger-fg); }
 .pulso-bfp-veredicto-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pulso-bfp-veredicto-texto strong { color: var(--pulso-text); font-size: 14px; }
-.pulso-bfp-veredicto-texto span { color: var(--pulso-text-soft); font-size: 12.5px; }
+.pulso-bfp-veredicto-texto strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.pulso-bfp-veredicto-texto span { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); }
 .pulso-bfp-fuentes { color: var(--pulso-text-muted); }
 
 .pulso-bfp-medidor-caja { display: flex; align-items: center; gap: 8px; }
@@ -150,7 +150,7 @@
 .pulso-bfp-medidor-cifra {
   min-inline-size: 3.5em;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -173,10 +173,10 @@
   background: var(--pulso-surface);
 }
 
-.pulso-bfp-contador dt { color: var(--pulso-text-soft); font-size: 12px; font-weight: var(--pulso-weight-medium); }
-.pulso-bfp-contador dd { margin: 0; color: var(--pulso-text-muted); font-size: 20px; font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.pulso-bfp-contador dt { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-medium); }
+.pulso-bfp-contador dd { margin: 0; color: var(--pulso-text-muted); font-size: var(--pulso-type-kpi-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
 .pulso-bfp-contador.has-valor dd { color: var(--pulso-warn-fg); }
-.pulso-bfp-contador small { color: var(--pulso-text-muted); font-size: 11.5px; }
+.pulso-bfp-contador small { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); }
 
 .pulso-bfp-seccion {
   display: flex;
@@ -189,21 +189,21 @@
   background: var(--pulso-surface);
 }
 
-.pulso-bfp-seccion h5 { margin: 0; color: var(--pulso-text); font-size: 13px; font-weight: var(--pulso-weight-semibold); }
+.pulso-bfp-seccion h5 { margin: 0; color: var(--pulso-text); font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); }
 .pulso-bfp-seccion h5 span { color: var(--pulso-text-muted); font-weight: var(--pulso-weight-medium); }
-.pulso-bfp-seccion > p { margin: 0; color: var(--pulso-text-soft); font-size: 12.5px; }
+.pulso-bfp-seccion > p { margin: 0; color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); }
 
 .pulso-bfp-recod {
   inline-size: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-recod th {
   padding: 4px 8px;
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
 }
@@ -237,7 +237,7 @@
 
 .pulso-bfp-detalle summary {
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -249,13 +249,13 @@
   margin: 6px 0 0;
   padding-left: 18px;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-detalle li { display: flex; flex-wrap: wrap; gap: 8px; }
 .pulso-bfp-var { color: var(--pulso-text); font-weight: var(--pulso-weight-medium); }
 
-.pulso-bfp-nota { margin: 6px 0 0; color: var(--pulso-text-muted); font-size: 12px; }
+.pulso-bfp-nota { margin: 6px 0 0; color: var(--pulso-text-muted); font-size: var(--pulso-type-body-size); }
 
 .pulso-bfp-etiquetas-perdidas { display: flex; flex-wrap: wrap; gap: 4px; flex-basis: 100%; }
 
@@ -265,7 +265,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-etiqueta-perdida .is-n { color: var(--pulso-text-muted); font-variant-numeric: tabular-nums; }
@@ -297,8 +297,8 @@
 }
 
 .pulso-bfp-aviso > span { display: flex; flex: 1; flex-direction: column; min-width: min(240px, 100%); }
-.pulso-bfp-aviso strong { color: var(--pulso-text); font-size: 13px; }
-.pulso-bfp-aviso small { color: var(--pulso-text-soft); font-size: 12px; }
+.pulso-bfp-aviso strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.pulso-bfp-aviso small { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); }
 
 /* Tarjeta de la base: el formulario al que quedó ligada */
 
@@ -311,7 +311,7 @@
   gap: 4px 6px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bfp-vinculo > svg { margin-top: 2px; }
@@ -325,7 +325,7 @@
   border-radius: 999px;
   background: var(--pulso-info-bg);
   color: var(--pulso-info-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* «Ver armonización» y «Comparar con…» bajo el formulario de la tarjeta. */

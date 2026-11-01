@@ -29,7 +29,7 @@
   gap: var(--pulso-space-1);
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
 }
 
@@ -39,7 +39,7 @@
 
 .pulso-recorrido-resumen {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-recorrido-plegar {
@@ -53,7 +53,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -131,7 +131,7 @@
   border-radius: 50%;
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -140,7 +140,7 @@
   flex: 1;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -153,7 +153,7 @@
 
 .pulso-recorrido-detalle {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   /* Los nombres de base y de columna no se cortan con elipsis: envuelven. */
   overflow-wrap: anywhere;
