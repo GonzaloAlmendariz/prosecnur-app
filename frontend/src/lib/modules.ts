@@ -421,15 +421,6 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       densidad: "compact",
       rail: true,
       chromeOwner: "page",
-      chromeExcepcion: {
-        adr: "0042-chrome-modulo-uniforme-topbar.md",
-        motivo:
-          "Su banda es del formulario abierto: selector de formulario, metricas, " +
-          "estado, listas, avisos y exportar .xlsx. Las vistas (Constructor, Hojas, " +
-          "Mapa de logica, Impreso…) son pestañas del rail izquierdo desde el " +
-          "2026-10-15, no controles de la banda. Conserva el material, el radio, " +
-          "el acento y los estados del canon.",
-      },
     },
     title: "Editor de formularios",
     shortLabel: "Formularios",

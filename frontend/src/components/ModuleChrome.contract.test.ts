@@ -487,16 +487,17 @@ describe("manifiesto de chrome", () => {
     ).toEqual([]);
   });
 
-  test("las excepciones son las tres decididas, ni una más", () => {
+  test("las excepciones son las decididas, ni una más", () => {
     const conExcepcion = PROSECNUR_MODULES.filter((m) => m.chrome.chromeExcepcion)
       .map((m) => m.slug)
       .sort();
     // Gráficos no está porque no necesita excepción de FILA: su banda invisible
     // es la variante declarada `material="none"`, y sus cinco filas eran alertas
     // que van al slot `notices`. Es una sección de Procesamiento, además.
+    // Formularios la retiró con L17 (D1, 2026-10-31): monta `ModuleCommandBar`.
     expect(
       conExcepcion,
       "Una excepción de chrome nueva es una decisión de producto, no de código.",
-    ).toEqual(["dashboard", "editor-xlsform"]);
+    ).toEqual(["dashboard"]);
   });
 });

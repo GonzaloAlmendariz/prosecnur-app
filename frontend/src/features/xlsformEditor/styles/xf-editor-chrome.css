@@ -518,3 +518,33 @@
   field-sizing: content;
   max-height: 40vh;
 }
+
+/* ── L17 · D1: la banda es `ModuleCommandBar` ─────────────────────────────
+   El selector de formulario abre su menú dentro de la zona de contexto, y esa
+   zona recorta con `clip` en el canon. Aquí el menú no va en portal, así que la
+   zona deja ver lo que cae fuera; los hijos siguen sin envolver y en compacto
+   las métricas y la procedencia se recogen, que es lo que evita el desborde. */
+.pulso-xlsform-frame .pulso-xf-cmdbar > .pulso-command-bar-zone[data-zone="contexto"] {
+  overflow: visible;
+}
+
+/* El nombre de la pestaña activa del rail, al centro de la banda. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Mismo borde que el workbench de abajo: la clase vieja de la banda traía
+   `margin: 0 12px` y sin ella la barra sobresalía 12 px por cada lado. */
+.pulso-xlsform-frame .pulso-xf-cmdbar.pulso-module-command-bar {
+  margin-inline: 12px;
+}

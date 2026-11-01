@@ -2496,6 +2496,7 @@ export default function XlsformEditorPage() {
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${pestana}`}
       toolbar={workbook ? (
         <EditorCommandBar
+          pestana={pestana}
           switcher={{
             forms,
             activeFormId,
