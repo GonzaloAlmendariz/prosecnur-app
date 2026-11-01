@@ -87,3 +87,42 @@
   margin: 0;
   color: var(--pulso-text-faint);
 }
+
+/* P1a/P1b · Actualizar abierto y corriendo: el mismo marco que el recibo. */
+.aulas-actualizar-pasos li[data-en-curso] {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.aulas-actualizar-pasos li:not([data-tono]):not([data-en-curso]) {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-actualizar-n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-actualizar-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-actualizar-giro {
+  animation: aulas-actualizar-giro 1s linear infinite;
+}
+
+@keyframes aulas-actualizar-giro {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aulas-actualizar-giro { animation: none; }
+}

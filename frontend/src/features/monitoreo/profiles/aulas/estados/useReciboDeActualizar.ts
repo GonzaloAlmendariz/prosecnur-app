@@ -1,21 +1,29 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 
 /**
- * P1 · Actualizar explica su proceso (aulas.md, G3). Toma las cifras de antes
- * y de después, el tiempo y si la descarga de la plataforma falló, para que el
- * recibo diga qué cambió y qué no se tocó. No interviene en el sync: sólo lo
- * mide desde fuera.
+ * P1 · Actualizar explica su proceso (aulas.md, G3), en tres momentos:
+ * abierto (P1a: qué va a leer y qué no toca, antes de empezar), corriendo
+ * (P1b: en qué paso va y cuánto lleva) y recibo (P1c: qué cambió). Mide el
+ * sync desde fuera: no cambia lo que hace.
  */
 
 export type Cifras = { efectivas: number | null; porResolver: number | null; partes: number };
+
+export type PasoDeActualizar = "traer" | "recalcular" | "recibo";
 
 export type ReciboDeActualizar = {
   pasos: Array<{ clave: string; rotulo: string; detalle: string; tono: "ok" | "aviso" }>;
   cambios: Array<{ rotulo: string; antes: number | null; despues: number | null }>;
   segundos: number;
 };
+
+export type EstadoDeActualizar =
+  | { momento: "cerrado" }
+  | { momento: "abierto" }
+  | { momento: "corriendo"; paso: PasoDeActualizar; segundos: number; leyendo: boolean }
+  | { momento: "recibo"; recibo: ReciboDeActualizar };
 
 function n(v: unknown): number | null {
   const x = typeof v === "number" ? v : Number(v);
@@ -31,15 +39,17 @@ export function cifrasDe(d: MonitoreoAulasDashboard | null): Cifras {
   };
 }
 
-export function construirRecibo(antes: Cifras, despues: Cifras, segundos: number, fuentes: number, avisoDescarga: string): ReciboDeActualizar {
+export function construirRecibo(antes: Cifras, despues: Cifras, segundos: number, fuentes: number, avisoDescarga: string, leyo = true): ReciboDeActualizar {
   return {
     pasos: [
       {
         clave: "traer",
         rotulo: "Traer lo nuevo",
-        detalle: !fuentes
-          ? "Sin fuentes activas: no se pidió nada a la plataforma."
-          : avisoDescarga ? `La plataforma no respondió (${avisoDescarga}); se recalculó con lo que ya había.` : "Respuestas nuevas de la plataforma y el libro del operativo.",
+        detalle: !leyo
+          ? "No se leyó nada: se pidió recalcular con lo que ya había."
+          : !fuentes
+            ? "Sin fuentes activas: no se pidió nada a la plataforma."
+            : avisoDescarga ? `La plataforma no respondió (${avisoDescarga}); se recalculó con lo que ya había.` : "Respuestas nuevas de la plataforma y el libro del operativo.",
         tono: avisoDescarga ? "aviso" : "ok",
       },
       { clave: "recalcular", rotulo: "Recalcular", detalle: `Tablero de cursos-horario en ${segundos.toFixed(1)} s.`, tono: "ok" },
@@ -55,18 +65,34 @@ export function construirRecibo(antes: Cifras, despues: Cifras, segundos: number
 }
 
 export function useReciboDeActualizar() {
-  const inicio = useRef<{ cifras: Cifras; t: number } | null>(null);
-  const [recibo, setRecibo] = useState<ReciboDeActualizar | null>(null);
-  const empezar = useCallback((d: MonitoreoAulasDashboard | null) => {
-    inicio.current = { cifras: cifrasDe(d), t: Date.now() };
-    setRecibo(null);
+  const inicio = useRef<{ cifras: Cifras; t: number; leyendo: boolean } | null>(null);
+  const [estado, setEstado] = useState<EstadoDeActualizar>({ momento: "cerrado" });
+
+  // El reloj del paso en curso (P1b): un tic por segundo mientras corre.
+  useEffect(() => {
+    if (estado.momento !== "corriendo") return undefined;
+    const id = window.setInterval(() => {
+      const i = inicio.current;
+      if (!i) return;
+      setEstado((e) => (e.momento === "corriendo" ? { ...e, segundos: (Date.now() - i.t) / 1000 } : e));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [estado.momento]);
+
+  const abrir = useCallback(() => setEstado({ momento: "abierto" }), []);
+  const empezar = useCallback((d: MonitoreoAulasDashboard | null, leyendo = true) => {
+    inicio.current = { cifras: cifrasDe(d), t: Date.now(), leyendo };
+    setEstado({ momento: "corriendo", paso: leyendo ? "traer" : "recalcular", segundos: 0, leyendo });
+  }, []);
+  const paso = useCallback((p: PasoDeActualizar) => {
+    setEstado((e) => (e.momento === "corriendo" ? { ...e, paso: p } : e));
   }, []);
   const terminar = useCallback((d: MonitoreoAulasDashboard | null, fuentes: number, avisoDescarga: string) => {
     const i = inicio.current;
     if (!i) return;
-    setRecibo(construirRecibo(i.cifras, cifrasDe(d), (Date.now() - i.t) / 1000, fuentes, avisoDescarga));
+    setEstado({ momento: "recibo", recibo: construirRecibo(i.cifras, cifrasDe(d), (Date.now() - i.t) / 1000, fuentes, avisoDescarga, i.leyendo) });
     inicio.current = null;
   }, []);
-  const cerrar = useCallback(() => setRecibo(null), []);
-  return { recibo, empezar, terminar, cerrar };
+  const cerrar = useCallback(() => { inicio.current = null; setEstado({ momento: "cerrado" }); }, []);
+  return { estado, abrir, empezar, paso, terminar, cerrar };
 }

@@ -93,6 +93,7 @@ import { useDireccionAulas } from "./navegacion/useDireccionAulas";
 import { esPestanaPropia, FICHA_DE_AULA, HREF_HERRAMIENTAS_DE_SALIDAS, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
 import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
 import { AvisoDeLecturaFallida } from "./estados/AvisoDeLecturaFallida";
+import { ActualizarAbierto, ActualizarCorriendo } from "./estados/ActualizarEnCurso";
 import { ReciboDeActualizar } from "./estados/ReciboDeActualizar";
 import { useReciboDeActualizar } from "./estados/useReciboDeActualizar";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
@@ -1888,12 +1889,13 @@ export default function AulasMonitoreoPage() {
     }
   }, [irAVista]);
 
-  // P1: el recibo de «Traer respuestas», medido desde fuera del sync.
+  // P1: «Traer respuestas» se abre (qué hará), corre (en qué paso va) y deja
+  // recibo, medido desde fuera del sync. `leer=false` recalcula sin pedir nada.
   const reciboSync = useReciboDeActualizar();
-  const syncField = useCallback(async () => {
+  const syncField = useCallback(async (leer = true) => {
     setMutating(true);
     setError("");
-    reciboSync.empezar(dashboardFromState(state));
+    reciboSync.empezar(dashboardFromState(state), leer);
     try {
       // **Primero TRAER de la plataforma, y sólo después recalcular.**
       //
@@ -1909,7 +1911,7 @@ export default function AulasMonitoreoPage() {
       // fuentes activas no se pide nada y no es un error: hay estudios de aulas
       // que cargan la base a mano.
       let avisoDescarga = "";
-      if (activeSources > 0) {
+      if (leer && activeSources > 0) {
         try {
           // **Sin config.** La de la pantalla viene RECORTADA del payload (sin
           // plan ni tablas del marco) y el backend la guardaba tal cual: tras
@@ -1922,6 +1924,7 @@ export default function AulasMonitoreoPage() {
           avisoDescarga = cause instanceof Error ? cause.message : String(cause);
         }
       }
+      reciboSync.paso("recalcular");
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
       reciboSync.terminar(dashboardFromState(result.state), activeSources, avisoDescarga);
@@ -1959,6 +1962,8 @@ export default function AulasMonitoreoPage() {
         setAviso((elegido ?? retiro)!);
       }
     } catch (e) {
+      // El fallo lo dice S3; el «corriendo» no se queda girando.
+      reciboSync.cerrar();
       setError((e as Error).message);
     } finally {
       setMutating(false);
@@ -2174,7 +2179,7 @@ export default function AulasMonitoreoPage() {
         syncDisabled={busy || !imported}
         syncLabel="Traer respuestas"
         syncTitle={refreshTitle}
-        onSyncAll={() => { void syncField(); }}
+        onSyncAll={reciboSync.abrir}
         onCambioSeccion={(view) => {
           if (view !== direccion.seccion) irASeccion(view);
         }}
@@ -2342,7 +2347,18 @@ export default function AulasMonitoreoPage() {
             {error ? <AvisoDeLecturaFallida error={error} corte={state?.synced_at ?? ""} onReintentar={() => { void loadView(seccionActiva, true); }} /> : null}
             {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
                 de pasar no puede vivir dentro de lo que la acción remonta. */}
-            {reciboSync.recibo ? <ReciboDeActualizar recibo={reciboSync.recibo} onCerrar={reciboSync.cerrar} /> : null}
+            {reciboSync.estado.momento === "abierto" ? (
+              <ActualizarAbierto
+                fuentes={activeSources}
+                onActualizar={() => { void syncField(true); }}
+                onRecalcular={() => { void syncField(false); }}
+                onCerrar={reciboSync.cerrar}
+              />
+            ) : reciboSync.estado.momento === "corriendo" ? (
+              <ActualizarCorriendo paso={reciboSync.estado.paso} segundos={reciboSync.estado.segundos} leyendo={reciboSync.estado.leyendo} fuentes={activeSources} />
+            ) : reciboSync.estado.momento === "recibo" ? (
+              <ReciboDeActualizar recibo={reciboSync.estado.recibo} onCerrar={reciboSync.cerrar} />
+            ) : null}
             {aviso.texto ? (
               <div className="aulas-aviso" data-tono={aviso.tono}>
                 {aviso.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso.texto}

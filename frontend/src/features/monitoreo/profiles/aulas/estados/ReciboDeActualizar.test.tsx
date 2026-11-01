@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
+import { ActualizarAbierto, ActualizarCorriendo, detalleDelPaso } from "./ActualizarEnCurso";
 import { ReciboDeActualizar } from "./ReciboDeActualizar";
 import { cifrasDe, construirRecibo } from "./useReciboDeActualizar";
 
@@ -28,5 +29,29 @@ describe("ReciboDeActualizar", () => {
     const r = construirRecibo(cifrasDe(antes), cifrasDe(antes), 2, 1, "timeout");
     expect(r.pasos[0]).toMatchObject({ tono: "aviso" });
     expect(r.pasos[0].detalle).toContain("timeout");
+  });
+});
+
+describe("Actualizar abierto y corriendo (P1a, P1b)", () => {
+  it("abierto dice los tres pasos, lo que no toca y las dos salidas", () => {
+    const html = renderToStaticMarkup(<ActualizarAbierto fuentes={2} onActualizar={() => {}} onRecalcular={() => {}} onCerrar={() => {}} />);
+    expect(html).toContain("Traer lo nuevo");
+    expect(html).toContain("2 fuentes activas");
+    expect(html).toContain("No toca la hoja de los aplicadores");
+    expect(html).toContain("Actualizar ahora");
+    expect(html).toContain("Recalcular sin leer");
+  });
+
+  it("corriendo marca el paso en curso y el tiempo que lleva", () => {
+    const html = renderToStaticMarkup(<ActualizarCorriendo paso="recalcular" segundos={12.7} fuentes={1} leyendo />);
+    expect(html).toContain("lleva 12 s");
+    expect(html).toMatch(/data-tono="ok"[^>]*>.*Traer lo nuevo/);
+    expect(html).toMatch(/data-en-curso="true"[^>]*>.*Recalcular/);
+  });
+
+  it("sin leer, el primer paso se salta y el recibo lo dice", () => {
+    expect(detalleDelPaso("traer", 1, false)).toContain("Se salta");
+    const r = construirRecibo(cifrasDe(antes), cifrasDe(antes), 3, 1, "", false);
+    expect(r.pasos[0].detalle).toContain("No se leyó nada");
   });
 });

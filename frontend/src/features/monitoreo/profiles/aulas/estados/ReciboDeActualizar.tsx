@@ -4,7 +4,7 @@ import { fmt } from "../kpisDeAulas";
 import type { ReciboDeActualizar as Recibo } from "./useReciboDeActualizar";
 import "./estados.css";
 
-const NO_TOCA = [
+export const NO_TOCA = [
   "No publica las hojas de la app",
   "No escribe en las hojas del equipo",
   "No toca la hoja de los aplicadores",

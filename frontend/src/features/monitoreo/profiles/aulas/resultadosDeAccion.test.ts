@@ -35,7 +35,10 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     // A26b (dictado 2026-09-01): «Recargar es para cargar el excel y todo lo
     // demás» — ahora dispara el ciclo completo (syncField: libro + corte),
     // que pone estado fresco y su aviso; el blanqueo sigue siendo la señal.
-    expect(page).toContain("onSyncAll={() => { void syncField(); }}");
+    // P1a (2026-11-01): el botón abre primero el panel que explica los pasos;
+    // «Actualizar ahora» es el que corre el ciclo completo.
+    expect(page).toContain("onSyncAll={reciboSync.abrir}");
+    expect(page).toContain("onActualizar={() => { void syncField(true); }}");
   });
 
   it("«Avance» lleva a VER el avance con datos frescos (A26b)", () => {
