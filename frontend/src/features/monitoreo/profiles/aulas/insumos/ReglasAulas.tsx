@@ -45,7 +45,7 @@ function ReglasAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }: {
       data-qa-geometry-group="aulas-insumos-reglas"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="aulas-ins-columna" data-qa-geometry-member="efectiva">
+      <div className="aulas-ins-columna" data-qa-geometry-member="efectiva" data-qa-geometry-group="aulas-insumos-reglas-efectiva" data-qa-geometry-contract="intrinsic">
         <Panel id="aulas-ins-efectiva" titulo="Qué cuenta como encuesta efectiva" sub="se cumplen todas las condiciones">
           <AulasCadenaDeFiltros bloque={dashboard.cadena_filtros} />
           {contexto.criterioDeEfectiva ?? (
@@ -93,7 +93,7 @@ function ReglasAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }: {
         ) : null}
       </div>
 
-      <div className="aulas-ins-columna" data-qa-geometry-member="eje">
+      <div className="aulas-ins-columna" data-qa-geometry-member="eje" data-qa-geometry-group="aulas-insumos-reglas-eje" data-qa-geometry-contract="intrinsic">
         <Panel id="aulas-ins-eje" titulo="Eje de la cuota y cómo se mide" sub="de qué son los grupos y desde cuándo es campo">
           {contexto.comoMide ?? (
             <p className="aulas-ins-nota" data-qa-geometry-empty="legitimo">El eje se declara cuando el plan está importado.</p>
@@ -101,7 +101,7 @@ function ReglasAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }: {
         </Panel>
       </div>
 
-      <div className="aulas-ins-columna" data-qa-geometry-member="duracion">
+      <div className="aulas-ins-columna" data-qa-geometry-member="duracion" data-qa-geometry-group="aulas-insumos-reglas-duracion" data-qa-geometry-contract="intrinsic">
         <Panel id="aulas-ins-duracion" titulo="Duración sospechosa" sub={m.duracion.resumen}>
           {contexto.onDeclararUmbralDeDuracion ? (
             <AulasUmbralDeDuracion

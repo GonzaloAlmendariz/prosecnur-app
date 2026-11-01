@@ -92,8 +92,8 @@ export function AulasComoMideElEstudio({
   const bloqueada = (d: DimensionDeclarable) => d.requiere_padron && !hayPadron;
 
   return (
-    <div className="aulas-como-mide">
-      <div className="aulas-como-mide-campo">
+    <div className="aulas-como-mide" data-qa-geometry-group="aulas-como-mide" data-qa-geometry-contract="intrinsic">
+      <div className="aulas-como-mide-campo" data-qa-geometry-group="aulas-como-mide-campo-1" data-qa-geometry-contract="intrinsic">
         <span className="aulas-como-mide-rotulo">Contra qué se mide la cuota</span>
         <p className="aulas-como-mide-nota">
           Decide de qué es cada grupo del avance. Con una dimensión que se
@@ -166,7 +166,7 @@ export function AulasComoMideElEstudio({
         ) : null}
       </div>
 
-      <div className="aulas-como-mide-campo">
+      <div className="aulas-como-mide-campo" data-qa-geometry-group="aulas-como-mide-campo-2" data-qa-geometry-contract="intrinsic">
         <span className="aulas-como-mide-rotulo">Cómo se agrupa el resumen de Avance</span>
         <p className="aulas-como-mide-nota">
           No es la cuota: es la tabla que cuenta cursos-horario planificados y
@@ -191,7 +191,7 @@ export function AulasComoMideElEstudio({
         </div>
       </div>
 
-      <div className="aulas-como-mide-campo">
+      <div className="aulas-como-mide-campo" data-qa-geometry-group="aulas-como-mide-campo-3" data-qa-geometry-contract="intrinsic">
         <span className="aulas-como-mide-rotulo">Desde cuándo esto es campo</span>
         <p className="aulas-como-mide-nota">
           Lo recogido antes de esa fecha es ensayo —capacitación, pruebas del

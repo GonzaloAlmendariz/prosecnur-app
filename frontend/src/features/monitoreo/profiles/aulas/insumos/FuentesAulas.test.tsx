@@ -37,6 +37,8 @@ function tablero(): MonitoreoAulasDashboard {
       hojas_ausentes: 1,
       control_sin_nombre: 0,
       estados_desconocidos: [{ valor: "LLAMAR LUEGO", filas: 3 }],
+      codigos_sin_plan: [{ codigo: "CH 999", filas: 2 }],
+      reservas_sin_cadena: [],
       resumen: { unidades: 1392, titulares: 174, reservas: 1173 },
     },
     respuestas_desglose: {
@@ -64,8 +66,8 @@ describe("construirFuentes", () => {
       ["hojas", "Faltan 1"],
       ["campos", "Todas reconocidas"],
       ["estados", "3 filas"],
-      ["titulares", "174, iguales"],
-      ["reservas", "1,173, iguales"],
+      ["sin-plan", "1 código"],
+      ["sin-cadena", "Ninguna"],
       ["control", "Ninguna"],
     ]);
     expect(r.comprobaciones[0].detalle).toBe("Control");

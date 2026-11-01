@@ -156,19 +156,22 @@ function reciboDe(dashboard: MonitoreoAulasDashboard | null): ModeloFuentes["rec
   const libro = dashboard?.libro as (NonNullable<MonitoreoAulasDashboard["libro"]> & {
     agenda_campos_ausentes?: string[];
     estados_desconocidos?: Array<{ valor: string; filas: number }>;
+    codigos_sin_plan?: Array<{ codigo: string; filas: number }>;
+    reservas_sin_cadena?: unknown;
   }) | undefined;
   if (!libro) return null;
-  const rol = dashboard?.course_status_rol_y_estado;
   const ausentes = (libro.hojas ?? []).filter((h) => !h.vino).map((h) => h.hoja);
   const campos = libro.agenda_campos_ausentes ?? [];
   const estados = libro.estados_desconocidos ?? [];
-  const titularesLibro = n(libro.resumen?.titulares);
-  const titularesPlan = n(rol?.titulares?.total);
-  const reservasLibro = n(libro.resumen?.reservas);
-  const reservasPlan = n(rol?.reemplazos?.total);
+  const sinPlan = libro.codigos_sin_plan ?? [];
+  // `reservas_sin_cadena` llega como lista de códigos o como conteo, según la versión.
+  const crudoSinCadena = libro.reservas_sin_cadena;
+  const sinCadena = Array.isArray(crudoSinCadena) ? crudoSinCadena.length : n(crudoSinCadena);
   const sinNombre = n(libro.control_sin_nombre);
   // C3: cada comprobación dice su resultado aunque sea «ninguno»; el recibo no
-  // se vacía cuando todo está bien.
+  // se vacía cuando todo está bien. No se compara «titulares» del libro con el
+  // plan: el libro cuenta el banco de extras como titular (219 = 174 + 45 en
+  // HSVG) y la diferencia saldría en rojo sin ser un error.
   const comprobaciones: Comprobacion[] = [
     {
       clave: "hojas", rotulo: "Hojas del libro",
@@ -187,18 +190,15 @@ function reciboDe(dashboard: MonitoreoAulasDashboard | null): ModeloFuentes["rec
       detalle: estados.map((e) => `«${e.valor}» (${fmt(n(e.filas))})`).join(", "),
     },
     {
-      clave: "titulares", rotulo: "Titulares del libro contra el plan",
-      resultado: titularesLibro && titularesPlan
-        ? titularesLibro === titularesPlan ? `${fmt(titularesLibro)}, iguales` : `${fmt(titularesLibro)} contra ${fmt(titularesPlan)}`
-        : "Sin comparar",
-      tono: titularesLibro && titularesPlan ? (titularesLibro === titularesPlan ? "ok" : "riesgo") : "neutro", detalle: "",
+      clave: "sin-plan", rotulo: "Códigos que el plan no reconoce",
+      resultado: sinPlan.length ? `${fmt(sinPlan.length)} ${sinPlan.length === 1 ? "código" : "códigos"}` : "Ninguno",
+      tono: sinPlan.length ? "riesgo" : "ok",
+      detalle: sinPlan.map((c) => `${c.codigo} (${fmt(n(c.filas))})`).join(", "),
     },
     {
-      clave: "reservas", rotulo: "Reservas encadenadas",
-      resultado: reservasLibro && reservasPlan
-        ? reservasLibro === reservasPlan ? `${fmt(reservasLibro)}, iguales` : `${fmt(reservasLibro)} contra ${fmt(reservasPlan)}`
-        : reservasLibro ? fmt(reservasLibro) : "Sin comparar",
-      tono: reservasLibro && reservasPlan ? (reservasLibro === reservasPlan ? "ok" : "aviso") : "neutro", detalle: "",
+      clave: "sin-cadena", rotulo: "Reservas sin su titular",
+      resultado: sinCadena ? fmt(sinCadena) : "Ninguna",
+      tono: sinCadena ? "aviso" : "ok", detalle: "",
     },
     {
       clave: "control", rotulo: "Filas de control sin aplicador",

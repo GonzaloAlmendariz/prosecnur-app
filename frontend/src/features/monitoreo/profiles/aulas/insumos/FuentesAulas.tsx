@@ -62,8 +62,8 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
       data-qa-geometry-group="aulas-insumos-fuentes"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="aulas-ins-izquierda" data-qa-geometry-member="izquierda">
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-fuentes-titulo">
+      <div className="aulas-ins-izquierda" data-qa-geometry-member="izquierda" data-qa-geometry-group="aulas-insumos-fuentes-izquierda" data-qa-geometry-contract="intrinsic">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-fuentes-titulo" data-qa-geometry-member="fuentes">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-fuentes-titulo">Fuentes del estudio</h3>
             <span className="aulas-ins-acciones">
@@ -117,7 +117,7 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
           <p className="aulas-ins-pie">{m.pie}</p>
         </section>
 
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-recibo-titulo">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-recibo-titulo" data-qa-geometry-member="recibo">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-recibo-titulo">Recibo de la última lectura del libro</h3>
             {m.recibo?.importadoEn ? <span className="aulas-ins-sub">{m.recibo.importadoEn}</span> : null}
@@ -144,8 +144,8 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
         </details>
       </div>
 
-      <div className="aulas-ins-derecha" data-qa-geometry-member="derecha">
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-libro-titulo">
+      <div className="aulas-ins-derecha" data-qa-geometry-member="derecha" data-qa-geometry-group="aulas-insumos-fuentes-derecha" data-qa-geometry-contract="intrinsic">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-libro-titulo" data-qa-geometry-member="libro">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-libro-titulo">Libro del operativo</h3>
             {m.libro?.publicadoEn ? <span className="aulas-ins-sub">publicado {m.libro.publicadoEn}</span> : null}
@@ -168,7 +168,7 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
           )}
         </section>
 
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-union-titulo">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-union-titulo" data-qa-geometry-member="union">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-union-titulo">Cómo se une cada respuesta a su curso-horario</h3>
           </header>

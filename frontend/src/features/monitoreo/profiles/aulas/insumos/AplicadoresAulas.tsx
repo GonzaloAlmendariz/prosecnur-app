@@ -99,8 +99,8 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
       data-qa-geometry-group="aulas-insumos-aplicadores"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="aulas-ins-izquierda" data-qa-geometry-member="izquierda">
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-apl-titulo">
+      <div className="aulas-ins-izquierda" data-qa-geometry-member="izquierda" data-qa-geometry-group="aulas-insumos-apl-izquierda" data-qa-geometry-contract="intrinsic">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-apl-titulo" data-qa-geometry-member="aplicadores">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-apl-titulo">Aplicadores del tramo</h3>
             {modelo.elegido ? <span className="aulas-ins-sub">{modelo.elegido.nombre} · {modelo.elegido.rango}</span> : null}
@@ -157,8 +157,8 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
         </section>
       </div>
 
-      <div className="aulas-ins-derecha" data-qa-geometry-member="derecha">
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-dist-titulo">
+      <div className="aulas-ins-derecha" data-qa-geometry-member="derecha" data-qa-geometry-group="aulas-insumos-apl-derecha" data-qa-geometry-contract="intrinsic">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-dist-titulo" data-qa-geometry-member="distribucion">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-dist-titulo">Distribución que ven los aplicadores</h3>
             <span className="aulas-ins-chip" data-tono={modelo.distribucion.estado === "al-dia" ? "ok" : modelo.distribucion.estado === "desactualizada" ? "aviso" : "neutro"}>
@@ -173,7 +173,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
           </ol>
         </section>
 
-        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-tramos-titulo">
+        <section className="aulas-ins-panel" aria-labelledby="aulas-ins-tramos-titulo" data-qa-geometry-member="tramos">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-tramos-titulo">Tramos del operativo</h3>
           </header>
