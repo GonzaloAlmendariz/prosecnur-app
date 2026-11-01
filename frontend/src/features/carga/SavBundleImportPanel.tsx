@@ -40,6 +40,7 @@ import {
 } from "./savBundleImportModel";
 import { SavNormalizationReviewDialog } from "./SavNormalizationReviewDialog";
 import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
+import { BotonCancelarImport, useCancelarImport } from "./cancelarImport";
 import {
   savNormalizationApplyReason,
   savNormalizationConfirmationState,
@@ -73,6 +74,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
   const [busy, setBusy] = useState<"" | "inspect" | "import">("");
   /** Avance del job de importación (L9): el import corre en segundo plano y dice en qué va. */
   const [progresoImport, setProgresoImport] = useState("");
+  const importEnCurso = useCancelarImport();
   const [error, setError] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewEntryName, setReviewEntryName] = useState("");
@@ -215,6 +217,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
         expected_inspection_fingerprint: credit.backendFingerprint,
       };
       const start = await apiSurveyMonkeyMultibaseSavBundleImportAsync(payload);
+      importEnCurso.registrar(start.job_id);
       setProgresoImport(textoDeProgresoImport("Aplicando el SAV", null));
       const raw = await esperarResultadoImport<{ ok: boolean }>(start.job_id, {
         onProgress: (p) => setProgresoImport(textoDeProgresoImport("Aplicando el SAV", p)),
@@ -230,6 +233,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo aplicar el SAV.");
     } finally {
+      importEnCurso.limpiar();
       setBusy("");
       setProgresoImport("");
     }
@@ -268,7 +272,12 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
       </div>
       <p id="sav-import-apply-reason" className="pulso-sr-only" aria-live="polite">{applyDisabledReason}</p>
       {busy === "import" && progresoImport ? (
-        <div className="pulso-sm-status" role="status"><Loader2 size={13} className="pulso-spin" /> {progresoImport}</div>
+        <div className="pulso-sm-status" role="status">
+          <Loader2 size={13} className="pulso-spin" /> {progresoImport}
+          {importEnCurso.jobId && (
+            <BotonCancelarImport cancelando={importEnCurso.cancelando} onCancelar={() => void importEnCurso.cancelar()} />
+          )}
+        </div>
       ) : null}
 
       <div className="pulso-sav-import-commandbar">

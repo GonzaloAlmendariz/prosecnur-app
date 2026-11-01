@@ -92,7 +92,7 @@ export function esperarResultadoImport<T extends { ok: boolean }>(
         return;
       }
       if (snap.status === "cancelled") {
-        finish(() => reject(new Error("El trabajo en segundo plano fue cancelado.")));
+        finish(() => reject(new Error("Cancelaste la importación. El estudio no cambió.")));
         return;
       }
       // status === "error": el worker murió; el mensaje viaja en snap.error.

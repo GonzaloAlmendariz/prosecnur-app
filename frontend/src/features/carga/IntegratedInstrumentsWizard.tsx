@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
+import { BotonCancelarImport, useCancelarImport } from "./cancelarImport";
 import { BotonConfigurarCredenciales } from "./BotonConfigurarCredenciales";
 import {
   AlertTriangle, CheckCircle2, Cloud, Database, FileSpreadsheet, FileUp,
@@ -392,6 +393,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
   const [decisions, setDecisions] = useState<MultiIntegratedDecisions>({ resolved_ids: [] });
   const [activeWordingTabs, setActiveWordingTabs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
+  const importEnCurso = useCancelarImport();
   const [error, setError] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -824,6 +826,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
         decisions,
         profile_id: profileId || undefined,
       });
+      importEnCurso.registrar(start.job_id);
       const raw = await esperarResultadoImport<{ ok: boolean }>(start.job_id, {
         onProgress: (p) => setBusy(textoDeProgresoImport("Importando base integrada", p)),
       });
@@ -839,6 +842,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
       setError((e as Error).message);
       void persistDraft(draftPayload);
     } finally {
+      importEnCurso.limpiar();
       setBusy("");
     }
   }
@@ -1198,7 +1202,14 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
         </button>
       </div>
 
-      {busy && <div className="pulso-sm-status"><Loader2 size={13} className="pulso-spin" /> {busy}</div>}
+      {busy && (
+        <div className="pulso-sm-status">
+          <Loader2 size={13} className="pulso-spin" /> {busy}
+          {importEnCurso.jobId && (
+            <BotonCancelarImport cancelando={importEnCurso.cancelando} onCancelar={() => void importEnCurso.cancelar()} />
+          )}
+        </div>
+      )}
       {error && <ErrorBlock label="No se pudo completar la integración" detail={error} />}
 
       {audit && (

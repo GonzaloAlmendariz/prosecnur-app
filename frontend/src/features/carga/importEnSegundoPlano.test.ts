@@ -88,12 +88,12 @@ describe("esperarResultadoImport", () => {
     ).rejects.toThrow("sin conexión con Kobo");
   });
 
-  it("rechaza cuando el job fue cancelado", async () => {
+  it("rechaza cuando el job fue cancelado, diciendo que el estudio no cambió (L9)", async () => {
     await expect(
       esperarResultadoImport("job-1", {
         pollDeps: depsConSecuencia([snapshot({ status: "cancelled" })]),
       }),
-    ).rejects.toThrow(/cancelado/);
+    ).rejects.toThrow("Cancelaste la importación. El estudio no cambió.");
   });
 
   it("rechaza con terminal del poll cuando el job se pierde (backend reiniciado)", async () => {
