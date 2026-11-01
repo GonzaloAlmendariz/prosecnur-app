@@ -76,10 +76,19 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
   codigos
 }
 
-# El catálogo de resultado que declaró el Planner (ADR 0122: el Planner es dueño de los
-# códigos); NULL si no lo declaró o está vacío, y entonces vale el de Material. Se lee la
-# sección declarada directamente: la proyección del Planner se siembra de Material y
-# leerla aquí sería circular. Los retirados no se ofrecen; «otro» se cuenta como no aplicada.
+# ¿Material ya guardó su catálogo para esta campaña? (ADR 0123 §2: «el dueño tiene el dato»
+# cuando el catálogo está guardado, no el de fábrica.)
+.mtf_tiene_guardado <- function(s, campaign_id) {
+  x <- s$material_territorial_formatos
+  is.list(x) && identical(.mtf_txt(x$schema), MATERIAL_TERRITORIAL_FORMATOS_SCHEMA) && identical(.mtf_txt(x$campaign_id), campaign_id)
+}
+
+# Respaldo de lectura (ADR 0123 §2, Q3): el catálogo que un `.pulso` ya tenía declarado en el
+# Planner, para cuando Material todavía no guardó el suyo. Material es el dueño de los códigos;
+# esto sólo evita que un estudio que los declaró allá vuelva a los de fábrica. NULL si no lo
+# declaró o está vacío. Se lee la sección declarada directamente: la proyección del Planner se
+# siembra de Material y leerla aquí sería circular. Los retirados no se ofrecen; «otro» se
+# cuenta como no aplicada. Se retira en la Q6.
 .mtf_catalogo_planner <- function(s) {
   decl <- tryCatch(.planner_leer(s)$secciones$codigos, error = function(e) NULL)
   res <- if (is.list(decl) && is.list(decl$valor)) decl$valor$resultado else NULL
@@ -87,7 +96,17 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
   if (!length(vigentes)) return(NULL)
   lapply(vigentes, function(k) list(codigo = k$codigo, rotulo = k$rotulo %||% "",
                                     grupo = if (k$grupo %in% c("efectiva", "no_aplicada", "manzana")) k$grupo else "no_aplicada",
-                                    editable = FALSE))
+                                    editable = k$codigo %in% .MTF_ORDEN))
+}
+
+# Los rótulos y el 99 del respaldo del Planner sobre el formato de Material. Un código del Planner
+# que Material no tiene (fuera de 1–8 y 99) no se trae: el número y el grupo son fijos.
+.mtf_sembrar_de_planner <- function(g, respaldo) {
+  for (k in respaldo) {
+    if (k$codigo %in% .MTF_ORDEN && nzchar(k$rotulo) && nchar(k$rotulo) <= .MTF_ROTULO_MAX) g$rotulos[[k$codigo]] <- k$rotulo
+  }
+  g$con_99 <- any(vapply(respaldo, function(k) identical(k$codigo, "99"), TRUE))
+  g
 }
 
 #' Códigos de resultado y formato de las hojas de la campaña territorial (lectura pura).
@@ -96,12 +115,14 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
   s <- session_get(sid)
   hit <- .mta_campana(s, campaign_id)
   g <- .mtf_guardado(s, hit$entry$id)
-  del_planner <- .mtf_catalogo_planner(s)
+  respaldo <- if (.mtf_tiene_guardado(s, hit$entry$id)) NULL else .mtf_catalogo_planner(s)
+  if (!is.null(respaldo)) g <- .mtf_sembrar_de_planner(g, respaldo)
   list(ok = TRUE, campaign_id = hit$entry$id, schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA,
-       codigos = del_planner %||% .mtf_catalogo(g),
-       # De dónde salen los códigos: «planner» si el Planner los declaró (se editan allá).
-       origen_codigos = if (is.null(del_planner)) "material" else "planner",
-       editables = if (is.null(del_planner)) as.list(.MTF_ORDEN) else list(),
+       codigos = respaldo %||% .mtf_catalogo(g),
+       # «planner»: Material todavía no guardó su catálogo y muestra el que el `.pulso` tenía
+       # declarado en el Planner (respaldo, ADR 0123). Al guardar aquí pasa a ser de Material.
+       origen_codigos = if (is.null(respaldo)) "material" else "planner",
+       editables = as.list(.MTF_ORDEN),
        # Todos los rótulos aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
        rotulos = g$rotulos,
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
@@ -128,12 +149,14 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
                details = list(expected = if (is.na(esperada)) NULL else esperada, current = g$revision))
     }
   }
+  # El primer guardado de un estudio que tenía los códigos en el Planner parte de esos rótulos,
+  # no de los de fábrica: editar uno no borra los demás (ADR 0123, Q3).
+  if (!.mtf_tiene_guardado(s, hit$entry$id)) {
+    respaldo <- .mtf_catalogo_planner(s)
+    if (!is.null(respaldo)) g <- .mtf_sembrar_de_planner(g, respaldo)
+  }
   problemas <- list()
   rotulos <- if (is.list(rotulos)) rotulos else list()
-  if (length(rotulos) && !is.null(.mtf_catalogo_planner(s))) {
-    problemas[[length(problemas) + 1L]] <- list(campo = "rotulos", motivo = "Los códigos los declara el Planner: edítalos allá")
-    rotulos <- list()
-  }
   for (k in names(rotulos)) {
     v <- .mtf_txt(rotulos[[k]])
     if (!k %in% .MTF_ORDEN) {

@@ -2,7 +2,7 @@
 
 Estado: Aceptado (Gonzalo, 2026-11-01: «Aprobado»)
 
-Implementación: En curso — Q0 hecha (338745126, 0dd24b6bb); Q1–Q6 pendientes
+Implementación: En curso — Q0 hecha (338745126, 0dd24b6bb); Q3, lado de Material, hecha (Material lee primero su catálogo de códigos y el roster de Monitoreo, con el Planner de respaldo; falta el alias de las secciones en el Planner); Q1, Q2 y Q4–Q6 pendientes
 
 Fecha: 2026-11-01
 

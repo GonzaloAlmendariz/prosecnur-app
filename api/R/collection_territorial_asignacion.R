@@ -18,9 +18,17 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 # Con `code_format = "DNI"` el código ES el DNI: no se expone nadie y la asignación queda
 # bloqueada (la UI lo explica); nunca sale un DNI de aquí.
 .mta_equipo <- function(s) {
-  # ADR 0122 §10: si el Planner declaró el equipo, la lista es la suya para el perfil
-  # territorial (activos, sólo código y nombre); si no, el roster de Monitoreo de respaldo.
+  # ADR 0123 §2 (Q3): el equipo es de Monitoreo. Su roster manda en cuanto tiene una persona;
+  # el equipo que un `.pulso` tenía declarado en el Planner (perfil territorial, activos, sólo
+  # código y nombre) queda de respaldo para cuando el roster está vacío, y se retira en la Q6.
   # Con code_format DNI no se entrega a nadie, venga de donde venga.
+  raw <- ((s$monitoreo_config %||% list())$territorial %||% list())$enumerator_roster %||% list()
+  ro <- tryCatch(.monitoreo_territorial_normalize_enumerator_roster(raw), error = function(e) NULL)
+  if (!is.null(ro) && identical(ro$code_format, "DNI")) return(list(code_format = "DNI", equipo = list(), origen = "monitoreo"))
+  if (!is.null(ro) && length(ro$assignments)) {
+    return(list(code_format = ro$code_format, origen = "monitoreo",
+                equipo = lapply(ro$assignments, function(a) list(codigo = a$codigo_pulso, nombre = a$nombre))))
+  }
   pl <- tryCatch(.planner_equipo_de(s, "territorial"), error = function(e) NULL)
   if (is.list(pl) && identical(pl$origen, "declarado")) {
     if (isTRUE(pl$bloqueado)) return(list(code_format = "DNI", equipo = list(), origen = "planner"))
@@ -30,12 +38,7 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
                   equipo = lapply(activos, function(p) list(codigo = p$codigo, nombre = p$nombre %||% ""))))
     }
   }
-  raw <- ((s$monitoreo_config %||% list())$territorial %||% list())$enumerator_roster %||% list()
-  ro <- tryCatch(.monitoreo_territorial_normalize_enumerator_roster(raw), error = function(e) NULL)
-  if (is.null(ro)) return(list(code_format = "PXXX", equipo = list()))
-  if (identical(ro$code_format, "DNI")) return(list(code_format = "DNI", equipo = list()))
-  list(code_format = ro$code_format,
-       equipo = lapply(ro$assignments, function(a) list(codigo = a$codigo_pulso, nombre = a$nombre)))
+  list(code_format = (ro %||% list())$code_format %||% "PXXX", equipo = list())
 }
 
 # La asignación guardada, normalizada al leer (lo que no tiene forma se ignora; nada se escribe).

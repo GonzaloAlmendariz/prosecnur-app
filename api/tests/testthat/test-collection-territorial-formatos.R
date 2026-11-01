@@ -79,20 +79,31 @@ test_that("HTTP: GET y PUT de los formatos", {
   expect_identical(p$body$codigos[[2]]$rotulo, "Casa vacía")
 })
 
-test_that("con los códigos declarados en el Planner, Material los lee de ahí y no los edita", {
+test_that("Material es el dueño de los códigos; lo declarado en el Planner sólo es respaldo (ADR 0123, Q3)", {
   sid <- .mtf_sesion(); on.exit(session_delete(sid), add = TRUE)
   expect_identical(collection_territorial_formatos_get(sid)$origen_codigos, "material")
-  .planner_declarar(sid, "codigos", list(version = 1L, resultado = list(
+  declarar <- function(rotulo4) .planner_declarar(sid, "codigos", list(version = 1L, resultado = list(
     list(codigo = "1", rotulo = "No quería participar", grupo = "no_aplicada"),
-    list(codigo = "4", rotulo = "Miembros del hogar ausentes", grupo = "no_aplicada"),
+    list(codigo = "4", rotulo = rotulo4, grupo = "no_aplicada"),
     list(codigo = "8", rotulo = "Encuesta efectiva", grupo = "efectiva"),
-    list(codigo = "99", rotulo = "Manzana no elegible", grupo = "manzana")), status_barrido = list()), 0L)
+    list(codigo = "99", rotulo = "Manzana no elegible", grupo = "manzana")), status_barrido = list()),
+    session_get(sid)$planner$revision %||% 0L)
+  declarar("Miembros del hogar ausentes")
+  # Sin catálogo guardado en Material, el del Planner es el respaldo, y se puede editar aquí.
   r <- collection_territorial_formatos_get(sid)
   expect_identical(r$origen_codigos, "planner")
   expect_identical(vapply(r$codigos, `[[`, "", "codigo"), c("1", "4", "8", "99"))
   expect_identical(r$codigos[[2]]$rotulo, "Miembros del hogar ausentes")
-  expect_false(any(vapply(r$codigos, `[[`, TRUE, "editable")))
-  expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`2` = "Otra"))), "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
-  # El resto del formato sigue siendo de Material.
+  expect_true(all(vapply(r$codigos, `[[`, TRUE, "editable")))
+  # El primer guardado parte de los rótulos del Planner: editar el 2 no borra el 4.
+  g <- collection_territorial_formatos_put(sid, rotulos = list(`2` = "Vivienda abandonada"))
+  expect_identical(g$origen_codigos, "material")
+  rot <- stats::setNames(vapply(g$codigos, `[[`, "", "rotulo"), vapply(g$codigos, `[[`, "", "codigo"))
+  expect_identical(unname(rot[c("2", "4", "99")]), c("Vivienda abandonada", "Miembros del hogar ausentes", "Manzana no elegible"))
+  # Guardado en Material, lo que cambie en el Planner ya no manda.
+  declarar("Nadie en casa (Planner)")
+  r2 <- collection_territorial_formatos_get(sid)
+  expect_identical(r2$origen_codigos, "material")
+  expect_identical(r2$codigos[[4]]$rotulo, "Miembros del hogar ausentes")
   expect_identical(collection_territorial_formatos_put(sid, caras_ruteo = 1L)$caras_ruteo, 1L)
 })

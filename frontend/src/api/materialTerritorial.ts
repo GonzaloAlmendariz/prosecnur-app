@@ -410,7 +410,7 @@ export type CodigoDeResultado = { codigo: string; rotulo: string; grupo: GrupoDe
 
 export type FormatosTerritoriales = {
   codigos: CodigoDeResultado[];
-  /** «planner» cuando el Planner declaró los códigos: se leen de ahí y se editan allá. */
+  /** «planner» cuando Material aún no guardó su catálogo y muestra el que el estudio tenía en el Planner (respaldo, ADR 0123); al guardar pasa a «material». */
   origen_codigos: "material" | "planner";
   editables: string[];
   /** Los rótulos de 2, 3, 5 y 99, también el del 99 cuando no se usa. */

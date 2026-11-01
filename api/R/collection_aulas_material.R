@@ -44,9 +44,12 @@ collection_aulas_entrega_get <- function(sid) {
   )
 }
 
-# Nombres de aplicadores para la plantilla: el equipo del Planner (perfil aulas) si está
-# declarado; si no, los que Monitoreo ya tiene declarados en su disponibilidad.
+# Nombres de aplicadores para la plantilla: los que Monitoreo ya tiene declarados en su
+# disponibilidad, que es el dueño del equipo (ADR 0123 §2, Q3). Si Monitoreo no tiene a nadie,
+# el equipo que el `.pulso` declaró en el Planner (perfil aulas) queda de respaldo (se retira en la Q6).
 .mau_aplicadores <- function(sid) {
+  de_monitoreo <- .monitoreo_aulas_plantilla_args(sid, list())$aplicadores
+  if (length(de_monitoreo)) return(de_monitoreo)
   s <- session_get(sid)
   pl <- tryCatch(.planner_equipo_de(s, "aulas"), error = function(e) NULL)
   if (is.list(pl) && identical(pl$origen, "declarado") && !isTRUE(pl$bloqueado)) {
@@ -54,7 +57,7 @@ collection_aulas_entrega_get <- function(sid) {
     nombres <- unique(nombres[nzchar(nombres)])
     if (length(nombres)) return(nombres)
   }
-  .monitoreo_aulas_plantilla_args(sid, list())$aplicadores
+  de_monitoreo
 }
 
 #' Plantilla del equipo de aulas generada por Material: `libro` (en blanco, desde la

@@ -124,18 +124,25 @@ test_that("generar e importar exigen lista de Monitoreo y foto vigente; un archi
   expect_identical(.mtx_code(collection_territorial_asignacion_excel(sid)), "E_COLLECTION_TERRITORIAL_DESACTUALIZADA")
 })
 
-test_that("con el equipo declarado en el Planner, el desplegable es el suyo (activos); con DNI no se entrega", {
+test_that("el equipo es el roster de Monitoreo; el del Planner sólo es respaldo con el roster vacío (ADR 0123, Q3)", {
   sid <- .mtx_sesion(); on.exit(session_delete(sid), add = TRUE)
   .planner_declarar(sid, "equipo", list(code_format = "PXXX", personas = list(
     list(codigo = "P101", nombre = "Encuestador Planner", rol = "encuestador", perfiles = list()),
     list(codigo = "P102", nombre = "Inactiva Planner", rol = "encuestador", perfiles = list(), activo = FALSE),
     list(codigo = "A01", nombre = "Aplicadora", rol = "aplicador", perfiles = list()))), 0L)
+  # Con roster en Monitoreo, manda Monitoreo aunque el Planner tenga equipo declarado.
+  eq <- .mta_equipo(session_get(sid))
+  expect_identical(eq$origen, "monitoreo")
+  expect_false("P101" %in% vapply(eq$equipo, `[[`, "", "codigo"))
+  # Con el roster vacío, el del Planner es el respaldo (sólo activos).
+  s <- session_get(sid); s$monitoreo_config$territorial$enumerator_roster <- list(); .session_env[[sid]] <- s
   eq <- .mta_equipo(session_get(sid))
   expect_identical(eq$origen, "planner")
   expect_identical(vapply(eq$equipo, `[[`, "", "codigo"), "P101")
   g <- .mtx_generar(sid)
   lista <- openxlsx::read.xlsx(g$path, sheet = "Encuestadores")
   expect_identical(lista$Código, "P101")
+  # Un respaldo con códigos DNI no entrega a nadie.
   .planner_declarar(sid, "equipo", list(code_format = "DNI", personas = list(
     list(codigo = "40000009", nombre = "X", rol = "encuestador", perfiles = list()))), 1L)
   expect_identical(.mtx_code(collection_territorial_asignacion_excel(sid)), "E_COLLECTION_TERRITORIAL_SIN_EQUIPO")
