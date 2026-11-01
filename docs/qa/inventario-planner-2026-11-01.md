@@ -33,6 +33,24 @@ tipos, cronograma (opcional) y definir la relación entre los módulos y alguna 
 | Q3 · Fase y ventana | Abierta (sigue la recomendación: propuesta) | El cronograma pasa a ser opcional: un estudio sin cronograma no bloquea nada |
 | Q2, Q6, Q7, Q8 | Abiertas | — |
 
+### Segunda ronda (1/11, con opciones)
+
+| Tema | Respuesta de Gonzalo | Consecuencia |
+|---|---|---|
+| Insumos del cliente (Q5) | «No es necesario saber cuáles son sus insumos» | **Cerrada: salen del Planner** |
+| Bitácora (Q4, corrige la primera ronda) | «Registro de decisiones queda como una opción dentro de cronograma; el lienzo podría utilizarlo para indicar cómo se conectan los módulos y definir los paths de cálculo de la muestra […], pero ojo, los mismos módulos pueden mostrar su camino, el planner solo es un camino» | El registro vive dentro del cronograma (opcional). El lienzo pasa a ser el mapa de módulos y caminos |
+| Alcance (Q1) | «Sí, esas cuatro» | Identificación, tipos, relación entre módulos y cronograma (opcional). El objetivo va dentro de la identificación |
+| Obligatorio | Nombre, tipos y diseño | Cliente, código y cronograma no bloquean |
+| Relación entre módulos (Q8) | «En el lienzo» | Se dibuja en el lienzo como mapa de módulos y caminos, y cada módulo sigue mostrando su propio camino. Ni ruta en el Home ni ruta lineal aparte |
+| Quién diseña la muestra | Dentro de los tipos | Es una rama de cada perfil; deja de ser un paso propio |
+| Declaración (Q2) | Por perfil, con públicos dentro | Acreditación multiactor: un perfil con varios públicos |
+| Proyecto viejo (Q6) | **Todo vacío** | No se deduce nada, ni siquiera los modos. **Implicación a resolver en el ADR:** hoy los modos de Cálculo, Material y Monitoreo salen de la deducción; con el Planner vacío, un proyecto viejo abre esos módulos sin modo hasta que alguien conteste |
+| Reverts (Q7) | Revertir los dos | 9b3380299 y e3666de17, cada uno en su commit, **después** de la enmienda del ADR (ver orden) |
+| Orden | ADR, reverts, código | Enmienda del ADR 0122 revisada por guardian-contratos y aprobada por Gonzalo → reverts → Planner nuevo |
+| Fase y ventana (Q3) | Propuesta | Se mantiene «Alinear» con un clic en Monitoreo y Hojas de ruta |
+
+Las ocho preguntas quedan cerradas. Lo que sigue es la enmienda del ADR 0122.
+
 Cambia el contrato (ADR 0122: la Bitácora como sección del Planner y el cronograma como dato que los módulos leen),
 así que va a una enmienda del ADR antes de tocar código.
 
