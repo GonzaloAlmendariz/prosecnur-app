@@ -384,6 +384,18 @@
   )
 }
 
+#' La familia del estudio que fija el Planner (ADR 0122 P2), o 409 si el
+#' estudio todavía no declara un perfil de recojo con diseño en Cálculo.
+#' @keywords internal
+.cm_familia_del_planner <- function(s) {
+  tipo <- .planner_modos(s)$calc$macro_familia
+  if (is.null(tipo) || !nzchar(tipo)) {
+    stop_api(409, "E_PLANNER_SECCION_PENDIENTE",
+             "Declara el perfil de recojo del estudio en el Planner antes de iniciar el diseño.")
+  }
+  tipo
+}
+
 mount_calc_muestra <- function(pr) {
   pr |>
     # -----------------------------------------------------------------------
@@ -520,10 +532,9 @@ mount_calc_muestra <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
-    # POST /api/calc-muestra/iniciar-estudio — inicia estudio por tipo
-    # Body: { tipo: "acreditacion"|"hsvg_universitario"|"territorial"|
-    #              "linea_base_servicios"|"listado_telefonico"|"estudio_propio",
-    #         variante: "vacio"|"modelo_universitario" }
+    # POST /api/calc-muestra/iniciar-estudio — inicia el estudio del tipo que
+    # fija el Planner (`.planner_modos(s)$calc$macro_familia`, ADR 0122 P2).
+    # Body: { variante: "vacio"|"modelo_universitario" }; `tipo` ya no se lee.
     # La UI solo ofrece plantillas calculables. `territorial` y
     # `listado_telefonico` se conservan por compatibilidad legacy.
     # Reemplaza los componentes del estudio actual con la estructura del tipo.
@@ -536,7 +547,9 @@ mount_calc_muestra <- function(pr) {
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
-      tipo <- calc_str(body$tipo, "estudio_propio")
+      # ADR 0122 P2: el tipo lo fija el perfil del Planner, no el cuerpo. Un
+      # estudio sin perfil declarado no tiene diseño que iniciar.
+      tipo <- .cm_familia_del_planner(session_get(sid))
       variante <- calc_str(body$variante, "vacio")
       iniciado <- calc_muestra_iniciar_estudio(tipo, variante)
       s <- session_get(sid)
