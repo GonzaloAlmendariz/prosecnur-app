@@ -36,7 +36,7 @@ export function AulasPartesQueNoCuadran({ filas }: {
   if (!noCuadran.length) return null;
 
   return (
-    <div className="aulas-descuadres" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+    <div className="aulas-descuadres" data-qa-geometry-capacity="owned" data-qa-geometry-member data-qa-geometry-group="aulas-descuadres" data-qa-geometry-contract="intrinsic">
       {noCuadran.map((f) => {
         const codigo = texto(f.operational_code);
         const aula = texto(f.actual_room);

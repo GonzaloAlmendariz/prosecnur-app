@@ -190,7 +190,7 @@ export function AulasControles({ filas, plan = [] }: {
           <> · <strong>{sinComprobar}</strong> sin comprobar</>
         ) : null}
       </p>
-      <ul className="aulas-controles-lista">
+      <ul className="aulas-controles-lista" data-qa-geometry-group="aulas-controles-lista" data-qa-geometry-contract="intrinsic">
         {controles.map((control) => {
           const Icono = ICONO[control.severidad];
           return (

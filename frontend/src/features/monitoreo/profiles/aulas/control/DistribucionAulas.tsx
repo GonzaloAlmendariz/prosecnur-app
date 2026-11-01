@@ -95,7 +95,7 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
             </button>
           ))}
         </div>
-        <div className="aulas-dist-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Reparto del día, con desplazamiento">
+        <div className="aulas-dist-marco" data-qa-geometry-capacity="owned" data-qa-geometry-group="aulas-dist-marco" data-qa-geometry-contract="equal" tabIndex={0} aria-label="Reparto del día, con desplazamiento">
           <div className="aulas-dist-escala" aria-hidden="true">
             <span />
             <span className="aulas-dist-horas">
@@ -103,12 +103,12 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
             </span>
           </div>
           {modelo.filas.map((f) => (
-            <div key={f.aplicador} className="aulas-dist-fila">
+            <div key={f.aplicador} className="aulas-dist-fila" data-qa-geometry-member={f.aplicador}>
               <span className="aulas-dist-nombre">
                 <b>{f.aplicador}</b>
                 <small>{fmt(f.semana)} en el rango</small>
               </span>
-              <span className="aulas-dist-linea">
+              <span className="aulas-dist-linea" data-qa-geometry-capacity="owned">
                 {f.disponible.map((b, i) => <i key={`d${i}`} className="is-disponible" style={{ left: `${b.izquierda}%`, width: `${b.ancho}%` }} />)}
                 {f.citas.map((c) => (
                   <span key={c.codigo}>

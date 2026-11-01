@@ -76,7 +76,7 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
   }
 
   return (
-    <div className="aulas-pedidos" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+    <div className="aulas-pedidos" data-qa-geometry-capacity="owned" data-qa-geometry-member data-qa-geometry-group="aulas-pedidos" data-qa-geometry-contract="intrinsic">
       <p className="aulas-pedidos-lectura">
         La app pidió <strong>{fmt(s.pedidos.length)}</strong>{" "}
         {s.pedidos.length === 1 ? "curso-horario de refuerzo" : "cursos-horario de refuerzo"}.

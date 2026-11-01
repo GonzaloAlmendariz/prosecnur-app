@@ -392,3 +392,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Listas heredadas que en su sección vivían con el alto acotado por su panel:
+   en las vistas nuevas el alto lo pone la lista, con su barra (C4). */
+.aulas-ins-panel .aulas-descuadres,
+.aulas-ins-panel .aulas-cambio-aula-lista,
+.aulas-ins-panel .aulas-cxc-scroll {
+  max-height: 520px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+/* La facultad larga se parte en la lista de partes en vez de salirse. */
+.aulas-reg-items .aulas-ins-sub {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
