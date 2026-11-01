@@ -29,6 +29,7 @@ import { DiagnosticsBadge, type LogicaExternaCabecera } from "./DiagnosticsPopov
 import { deriveEditorHeaderStatus } from "./editorHeaderStatus";
 import { formatSaveStatus, plural } from "./editorMetrics";
 import { ExportMenu } from "./ExportMenu";
+import { LeyendaIconos } from "./LeyendaIconos";
 import { FormIntakeMenu } from "./FormIntakeMenu";
 import { FormSwitcher, type FormSwitcherProps } from "./FormSwitcher";
 import { PESTANAS_EDITOR, type EditorFormulariosPestanaId } from "./pestanaEditor";
@@ -150,6 +151,7 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
             onReviewLogic={props.onReviewLogic}
             logicaExterna={props.logicaExterna}
           />
+          <LeyendaIconos />
           <FormIntakeMenu
             canCreate={props.canCreate}
             maxForms={props.maxForms}
