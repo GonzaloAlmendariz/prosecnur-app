@@ -36,8 +36,8 @@ Inventario completo de HojasRutaPage.tsx, el router y el engine, hecho el 2026-1
 | Buscador, «Agregar visibles», «Limpiar borrador», tarjetas por distrito | Territorio › estructura (catálogo con interruptores y buscador) | Hecho en prototipo |
 | Borrador frente a confirmados; «Confirmar selección» invalida lo posterior | Territorio › inspector, con la consecuencia dicha | Hecho en prototipo |
 | Empezar sin distritos | Territorio vacío: mapa de los 50 y catálogo | Hecho en prototipo |
-| Distrito → Zonas → Manzanas; capas Campo y NSE; ficha de la manzana | Mapa (zoom continuo), capas Manzanas · Viviendas · NSE, ficha al pasar el cursor | Parcial: la capa NSE está; falta la ficha de cualquier manzana (hoy solo de titulares) |
-| Agrupar filas por distrito, provincia, ubigeo o zona; sexo sí o no | Población › inspector | Parcial: el sexo funciona; el control de agrupar está, pero la matriz todavía agrupa solo por distrito |
+| Distrito → Zonas → Manzanas; capas Campo y NSE; ficha de la manzana | Mapa (zoom continuo), capas Manzanas · Viviendas · NSE, ficha al pasar el cursor | Hecho en la app (1 nov): clic en cualquier manzana en Manzanas, o fuera de una titular en Selección, abre su ficha |
+| Agrupar filas por distrito, provincia, ubigeo o zona; sexo sí o no | Población › inspector | Hecho en la app: el cajón de Población agrupa por distrito, provincia o zona (B29) |
 | Rangos de edad manuales (Desde, Hasta, A más) o por cortes (terciles a deciles; base seleccionados o marco) | Población › estructura (editor de rangos) | Hecho en prototipo |
 | Matriz poblacional y proporcional, «Exportar Excel» | Población › cajón inferior | Hecho en prototipo |
 | Lógica del N: calculadora, N total o N por distrito (pegar desde Excel, sugerir) | Muestra › inspector; N por distrito editable en la estructura | Hecho en prototipo |

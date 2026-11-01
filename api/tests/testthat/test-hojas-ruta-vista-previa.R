@@ -257,3 +257,19 @@ test_that("F38: la hoja del día de una muestra sin salto no nombra un salto en 
   m_off <- hojas_ruta_hoja_dia_modelo(sm_off, "J01", list(), puntos = vp_puntos(sm_off))
   expect_identical(m_off$regla, hojas_ruta_regla_no_respuesta(TRUE))
 })
+
+test_that("B50: exportar la matriz poblacional a Excel no guarda la config ni deja el proyecto «sin guardar»", {
+  skip_if_not_installed("openxlsx")
+  sid <- .hre_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid); s$project_dirty <- FALSE; .session_env[[sid]] <- s
+  config_antes <- session_get(sid)$hojas_ruta_runs$field$config
+  pr <- mount_hojas_ruta(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+  r <- .hre_call(pr, sid, "POST", "/api/hojas-ruta/population-export",
+                 body = .hre_json(list(config = list(territorios = list("150110")))))
+  expect_identical(r$status, 200L)
+  expect_true(nzchar(r$body$file_id))
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  expect_identical(session_get(sid)$hojas_ruta_runs$field$config, config_antes)
+  expect_false(is.null(session_get(sid)$files[[r$body$file_id]]))
+})

@@ -18,9 +18,11 @@
   --pulso-mapa-fondo: #fafbff;
   --pulso-mapa-distrito: #e6eaf0;
   --pulso-mapa-distrito-borde: #bcc5d1;
-  --pulso-mapa-manzana: #dde2ea;
-  --pulso-mapa-manzana-lejos: #c9d1dc;
-  --pulso-mapa-manzana-borde: #cdd4de;
+  /* Manzanas en blanco con borde casi negro (pedido de Gonzalo, 1 nov): en gris sobre el
+     tono del distrito no se distinguían. */
+  --pulso-mapa-manzana: #ffffff;
+  --pulso-mapa-manzana-lejos: #ffffff;
+  --pulso-mapa-manzana-borde: #1f2328;
   --pulso-mapa-zona: #b9c2cf;
   --pulso-mapa-via: #ffffff;
   --pulso-mapa-via-borde: #cfd6e0;

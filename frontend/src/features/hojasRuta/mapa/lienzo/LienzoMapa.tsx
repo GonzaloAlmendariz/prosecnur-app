@@ -230,7 +230,8 @@ export function LienzoMapa({
     }
     if (c.s > 0.25) {
       ctx.strokeStyle = k === "manzanas" ? col.manzanaBorde : col.fondo;
-      ctx.lineWidth = 0.6 * px;
+      // Borde de 1 px: con 0,6 el negro se antialiasa a gris y la manzana no se recorta.
+      ctx.lineWidth = (k === "manzanas" ? 1 : 0.6) * px;
       for (const m of manzanasVisibles) ctx.stroke(trazoDe(m));
     }
     if (c.s > 0.12) {

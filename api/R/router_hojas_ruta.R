@@ -748,12 +748,12 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      active <- .hojas_ruta_active_run(sid)
-      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      # Exportar es leer (B50 del checklist de brecha): no guarda la config ni deja el
+      # proyecto «sin guardar»; el archivo se registra como las vistas previas.
       out_path <- tempfile(fileext = ".xlsx")
       summary <- hojas_ruta_exportar_matriz_poblacional(cfg, out_path)
       out_name <- .export_filename(sid, "hojas_ruta_population_matrix", "xlsx")
-      meta <- .register_output_file(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
+      meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
       list(
         ok = TRUE,
         file_id = meta$file_id,

@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { downloadUrl } from "../../../../api/core";
+import { apiHojasRutaPopulationExport, type HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable } from "../../../../components/PulsoTable";
-import { Download, X } from "../../../../vendor/lucide-react";
+import { Download, FileSpreadsheet, X } from "../../../../vendor/lucide-react";
 import type { HojasRutaAgeRange } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
@@ -11,7 +13,8 @@ import { agruparFilas, type AgruparFilas, type FilaMatriz, type GrupoDeZona, typ
 /**
  * Cajón inferior de Población (brecha B17/B29): la matriz distrito × rango de
  * edad entera, sobre el mapa, en vez de recortada en el inspector. Dos lecturas
- * —personas y distribución por fila— y la descarga en CSV.
+ * —personas y distribución por fila—, el Excel de la matriz del motor (B50, por distrito,
+ * como el artefacto) y el CSV de la vista agrupada que se está mirando.
  */
 
 const PESTANAS = [["matriz", "Personas"], ["pct", "Distribución %"]] as const;
@@ -40,11 +43,21 @@ function descargarCsv(filasCsv: readonly FilaMatriz[], por: AgruparFilas, rangos
   URL.revokeObjectURL(url);
 }
 
-type Props = { matriz: ResumenMatriz; rangos: readonly HojasRutaAgeRange[]; sexo: boolean; zonas: readonly GrupoDeZona[] };
+type Props = { matriz: ResumenMatriz; rangos: readonly HojasRutaAgeRange[]; sexo: boolean; zonas: readonly GrupoDeZona[]; config: Partial<HojasRutaIntegratedConfig> };
 
-export function PoblacionCajon({ matriz, rangos, sexo, zonas }: Props) {
+export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
   const { cajonPoblacion: vista, setCajonPoblacion } = useLienzoHojasRuta();
   const [por, setPor] = useState<AgruparFilas>("distrito");
+  const [exportando, setExportando] = useState(false);
+  const [errorExcel, setErrorExcel] = useState("");
+  const descargarExcel = () => {
+    setExportando(true);
+    setErrorExcel("");
+    apiHojasRutaPopulationExport(config)
+      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+      .catch((e: unknown) => setErrorExcel(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo armar el Excel."))
+      .finally(() => setExportando(false));
+  };
   if (!vista || !matriz.vigente) return null;
   const filas = agruparFilas(matriz.filas, por, zonas);
   const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : f.territorio);
@@ -68,7 +81,10 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas }: Props) {
           <GlidingRadioGroup value={por} options={AGRUPAR} getOptionValue={(o) => o[0]} onValueChange={setPor} className="hr-muestra-opciones hr-cajon-agrupar" aria-label="Agrupar filas por">
             {(o) => <span>{o[1]}</span>}
           </GlidingRadioGroup>
-          <PulsoButton variant="secondary" size="sm" onClick={() => descargarCsv(filas, por, rangos, sexo)}>
+          <PulsoButton variant="secondary" size="sm" disabled={exportando} onClick={descargarExcel}>
+            <FileSpreadsheet size={14} aria-hidden /> {exportando ? "Armando…" : "Excel"}
+          </PulsoButton>
+          <PulsoButton variant="secondary" size="sm" onClick={() => descargarCsv(filas, por, rangos, sexo)} title="La vista agrupada que estás mirando">
             <Download size={14} aria-hidden /> CSV
           </PulsoButton>
           <PulsoButton variant="icon" size="sm" aria-label="Cerrar la matriz" onClick={() => setCajonPoblacion(null)}>
@@ -76,6 +92,7 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas }: Props) {
           </PulsoButton>
         </span>
       </header>
+      {errorExcel ? <p className="hr-mapa-aviso" role="alert">{errorExcel}</p> : null}
       <PulsoTable
         ariaLabel={vista === "pct" ? "Distribución por edad de cada distrito" : "Personas por distrito y rango de edad"}
         densidad="compacta"

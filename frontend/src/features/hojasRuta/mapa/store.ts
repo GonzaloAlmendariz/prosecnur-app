@@ -45,6 +45,9 @@ type EstadoLienzo = {
   departamentoEnfocado: string | null;
   setDepartamentoEnfocado: (nombre: string | null) => void;
   setDistritoEnfocado: (ubigeo: string | null) => void;
+  /** Manzanas y Selección: la manzana cuya ficha se ve, cualquiera, no sólo una titular (paridad §7). */
+  manzanaEnfocada: string | null;
+  setManzanaEnfocada: (id: string | null) => void;
   /** Capa de las manzanas en Territorio, Manzanas y Selección (brecha B7). */
   capaMapa: CapaLienzo;
   /** Cajón inferior de Población (brecha B17/B29): la matriz entera, fuera del inspector. */
@@ -66,7 +69,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, manzanaEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -85,6 +88,7 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada }),
   setDepartamentoEnfocado: (departamentoEnfocado) => set({ departamentoEnfocado }),
+  setManzanaEnfocada: (manzanaEnfocada) => set({ manzanaEnfocada }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),
   setBusquedaDistrito: (busquedaDistrito) => set({ busquedaDistrito }),
   setSoloElegidos: (soloElegidos) => set({ soloElegidos }),
