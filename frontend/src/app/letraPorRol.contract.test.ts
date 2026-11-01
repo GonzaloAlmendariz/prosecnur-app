@@ -54,7 +54,6 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/dashboard/tabs/RelacionTab/relacion.css": 7,
   "features/dashboard/theme/tokens.css": 78,
   "features/home/home-v2.css": 2,
-  "features/procesamiento/processingSheetViewer.css": 36,
   "features/xlsformEditor/ajustes/calidadCampo.css": 7,
   "features/xlsformEditor/canvas-graph/condicionPanel.css": 16,
   "features/xlsformEditor/canvas-graph/detalleNodo.css": 4,
