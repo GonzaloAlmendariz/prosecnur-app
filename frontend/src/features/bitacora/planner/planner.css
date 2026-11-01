@@ -466,12 +466,3 @@
   font-weight: var(--pulso-weight-semibold);
   color: var(--plan-accent);
 }
-
-.planner-equipo-excel-aviso p {
-  margin: 0;
-}
-
-.planner-equipo-excel-aviso ul {
-  margin: var(--pulso-space-1) 0 0;
-  padding-left: var(--pulso-space-4);
-}

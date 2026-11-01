@@ -171,11 +171,6 @@ function normalizarCodigo(x: unknown): PlannerCodigo | null {
 
 const SECCIONES: PlannerSeccion[] = ["estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana"];
 
-function persona(x: unknown): PlannerPersona {
-  const p = obj(x);
-  return { codigo: txt(p.codigo), nombre: txt(p.nombre), rol: txt(p.rol), perfiles: textos(p.perfiles), activo: p.activo !== false };
-}
-
 export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
   const r = obj(raw);
   const pl = obj(r.planner);
@@ -197,7 +192,10 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
       perfiles: arr(pl.perfiles).map(normalizarPerfil).filter((p): p is PlannerPerfil => p !== null),
       equipo: {
         code_format: txt(eq.code_format),
-        personas: arr(eq.personas).map(persona),
+        personas: arr(eq.personas).map((x) => {
+          const p = obj(x);
+          return { codigo: txt(p.codigo), nombre: txt(p.nombre), rol: txt(p.rol), perfiles: textos(p.perfiles), activo: p.activo !== false };
+        }),
       },
       codigos: {
         version: num(cod.version) ?? 1,
@@ -375,34 +373,5 @@ export async function apiPlannerEquipoDe(perfil: PlannerTipoPerfil): Promise<Pla
   return normalizarPlannerEquipoDe(
     await handle<unknown>(await apiFetch(`/api/planner/equipo/${perfil}`, { headers: headers() })),
     perfil,
-  );
-}
-
-// --- El equipo en Excel (figura vg-planner) ---------------------------------------
-//
-//   POST /api/planner/equipo-excel            → {file_id, filename, personas}
-//   POST /api/planner/equipo-excel/importar   multipart {file}: lectura pura; guarda el PUT del equipo.
-
-export type PlannerEquipoImportado = { personas: PlannerPersona[]; problemas: { fila: number; motivo: string }[] };
-
-export function normalizarPlannerEquipoImportado(raw: unknown): PlannerEquipoImportado {
-  const r = obj(raw);
-  return {
-    personas: arr(r.personas).map(persona).filter((p) => p.nombre),
-    problemas: arr(r.problemas).map((x) => ({ fila: num(obj(x).fila) ?? 0, motivo: txt(obj(x).motivo) })).filter((p) => p.motivo),
-  };
-}
-
-export async function apiPlannerEquipoExcel(): Promise<{ file_id: string; filename: string }> {
-  const r = obj(await handle<unknown>(await apiFetch("/api/planner/equipo-excel", { method: "POST", headers: headers() })));
-  if (!txt(r.file_id)) throw new Error("El backend no devolvió la plantilla del equipo.");
-  return { file_id: txt(r.file_id), filename: txt(r.filename) };
-}
-
-export async function apiPlannerEquipoImportar(archivo: File): Promise<PlannerEquipoImportado> {
-  const fd = new FormData();
-  fd.append("file", archivo, archivo.name);
-  return normalizarPlannerEquipoImportado(
-    await handle<unknown>(await apiFetch("/api/planner/equipo-excel/importar", { method: "POST", headers: headers(), body: fd })),
   );
 }
