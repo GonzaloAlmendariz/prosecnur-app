@@ -18,6 +18,18 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 # Con `code_format = "DNI"` el código ES el DNI: no se expone nadie y la asignación queda
 # bloqueada (la UI lo explica); nunca sale un DNI de aquí.
 .mta_equipo <- function(s) {
+  # ADR 0122 §10: si el Planner declaró el equipo, la lista es la suya para el perfil
+  # territorial (activos, sólo código y nombre); si no, el roster de Monitoreo de respaldo.
+  # Con code_format DNI no se entrega a nadie, venga de donde venga.
+  pl <- tryCatch(.planner_equipo_de(s, "territorial"), error = function(e) NULL)
+  if (is.list(pl) && identical(pl$origen, "declarado")) {
+    if (isTRUE(pl$bloqueado)) return(list(code_format = "DNI", equipo = list(), origen = "planner"))
+    activos <- Filter(function(p) isTRUE(p$activo) && nzchar(p$codigo %||% ""), pl$personas %||% list())
+    if (length(activos)) {
+      return(list(code_format = pl$code_format %||% "PXXX", origen = "planner",
+                  equipo = lapply(activos, function(p) list(codigo = p$codigo, nombre = p$nombre %||% ""))))
+    }
+  }
   raw <- ((s$monitoreo_config %||% list())$territorial %||% list())$enumerator_roster %||% list()
   ro <- tryCatch(.monitoreo_territorial_normalize_enumerator_roster(raw), error = function(e) NULL)
   if (is.null(ro)) return(list(code_format = "PXXX", equipo = list()))
