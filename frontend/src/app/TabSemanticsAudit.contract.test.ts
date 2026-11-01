@@ -263,14 +263,12 @@ const SELECTORS_WITHOUT_PANELS: readonly SelectorCase[] = [
     rootMarker: 'aria-label="Formato de ficha"',
     semantics: "radio",
   },
-  {
-    name: "A02 CalcMuestra · rail con destinos compartidos",
-    file: "features/calcMuestra/CalcMuestraPage.tsx",
-    rootMarker: "cmv2-section-local-tabs",
-    // Varias opciones pueden resolver al mismo destino, pero activeTabId
-    // mantiene exactamente una elección: semánticamente sigue siendo radio.
-    semantics: "radio",
-  },
+  // A02 «CalcMuestra · rail con destinos compartidos» RETIRADA, no perdida, por
+  // la misma razón que B08 y B11: en 9f80662fd (L16) todos los escritorios de
+  // Cálculo pasaron al rail compartido `ContextTabRail` y el rail propio
+  // (`CalcMuestraContextSidebar`, clase `cmv2-section-local-tabs`) dejó de
+  // existir. La semántica la pone el rail compartido y la prueba
+  // `ContextTabRail.test.tsx`.
   {
     name: "A03 BaseDatosTab · códigos/etiquetas",
     file: "features/dashboard/tabs/BaseDatosTab/index.tsx",
