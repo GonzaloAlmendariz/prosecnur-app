@@ -16,7 +16,7 @@ import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
 import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type LimitesCrudos } from "./lienzo/limites";
 import { useFoco } from "../../../lib/navegacion/useFoco";
-import { ciudadAbiertaDeFoco, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, LIMA, regionesDe } from "./territorio/ciudades";
+import { ciudadAbiertaDeFoco, ciudadDeEntrada, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, FOCO_ATLAS, LIMA, regionesDe } from "./territorio/ciudades";
 import { useContornosRegiones } from "./territorio/useContornosRegiones";
 import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
@@ -116,6 +116,11 @@ export default function HojasRutaMapaPage() {
   // Sólo se piden las regiones de las ciudades en juego: las del estudio, la abierta y las del borrador.
   // La ciudad enfocada en el atlas también carga sus distritos: el zoom los muestra.
   const regiones = useMemo(() => regionesDe([...enEstudio, ...(ciudadAbierta ? [ciudadAbierta] : []), ...(enTerritorio && ciudadEnfocada ? [ciudadEnfocada] : []), ...borrador.map((u) => ciudadDeUbigeo(u) ?? "")]), [enEstudio, ciudadAbierta, enTerritorio, ciudadEnfocada, borrador]);
+  // F5: con una sola ciudad en el estudio y sin `foco`, Territorio abre esa ciudad (el atlas, a un clic).
+  const entrada = enTerritorio && estado ? ciudadDeEntrada(foco, enEstudio) : null;
+  useEffect(() => {
+    if (entrada) setFoco(entrada);
+  }, [entrada, setFoco]);
   const { contornos, cargando: regionesCargando } = useContornosRegiones(regiones);
   // Por ciudad y no por nombre: Arequipa también tiene su Miraflores.
   const zonas = useMemo(() => zonasDeLima(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === LIMA)), [contornos]);
@@ -626,7 +631,7 @@ export default function HojasRutaMapaPage() {
             <AtlasEstructura ciudades={atlas} enEstudio={enEstudio} confirmados={confirmados} enfocada={ciudadEnfocada} departamento={departamentoEnfocado} onEnfocar={setCiudadEnfocada} onAbrir={(c) => setFoco(c)} onTodoPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} />
           ) : enTerritorio && estado && ciudadAbierta ? (
             <>
-              {atlas.find((c) => c.codigo === ciudadAbierta) ? <CiudadCabecera ciudad={atlas.find((c) => c.codigo === ciudadAbierta)!} onVolver={() => { setCiudadEnfocada(ciudadAbierta); setFoco(null); }} /> : null}
+              {atlas.find((c) => c.codigo === ciudadAbierta) ? <CiudadCabecera ciudad={atlas.find((c) => c.codigo === ciudadAbierta)!} onVolver={() => { setCiudadEnfocada(ciudadAbierta); setFoco(FOCO_ATLAS); }} /> : null}
               <TerritorioEstructura territorios={estado.territories.filter((t) => ciudadDeUbigeo(t.ubigeo) === ciudadAbierta)} confirmados={confirmados} zonas={ciudadAbierta === LIMA ? zonas : []} bloqueado={bloqueado} />
             </>
           ) : enSeleccion && estado ? (

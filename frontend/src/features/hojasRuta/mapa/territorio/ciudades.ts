@@ -76,3 +76,15 @@ export function ciudadAbiertaDeFoco(foco: string | null): string | null {
   if (foco === LIMA) return LIMA;
   return /^\d{4}$/.test(foco) && CIUDADES.some((c) => c.codigo === foco) ? foco : null;
 }
+
+/** El atlas pedido a propósito: «Todas las ciudades» escribe este `foco` para no volver a entrar a la ciudad. */
+export const FOCO_ATLAS = "pe";
+
+/**
+ * F5: sin `foco` y con una sola ciudad en el estudio, Territorio entra directo a ella; el atlas queda
+ * a un clic. Con varias ciudades, ninguna, o un `foco` ya escrito (también «pe»), no se redirige.
+ */
+export function ciudadDeEntrada(foco: string | null, enEstudio: readonly string[]): string | null {
+  if (foco || enEstudio.length !== 1) return null;
+  return ciudadAbiertaDeFoco(enEstudio[0]);
+}

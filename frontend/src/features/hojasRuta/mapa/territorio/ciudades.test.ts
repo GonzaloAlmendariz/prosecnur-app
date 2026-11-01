@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
-import { ciudadAbiertaDeFoco, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, radioCiudad, regionesDe } from "./ciudades";
+import { ciudadAbiertaDeFoco, ciudadDeEntrada, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, radioCiudad, regionesDe } from "./ciudades";
 
 const t = (ubigeo: string, poblacion: number, captacion: number | null = null) => ({ ubigeo, poblacion, viviendas: poblacion / 4, manzanas: 10, captacion }) as unknown as HojasRutaTerritory;
 
@@ -31,6 +31,15 @@ describe("ciudades del atlas", () => {
     expect(ciudadAbiertaDeFoco("9999")).toBeNull();
     expect(ciudadAbiertaDeFoco("pe")).toBeNull();
     expect(ciudadAbiertaDeFoco("150101001000390")).toBeNull();
+  });
+  it("F5: con una sola ciudad y sin foco se entra a ella; el atlas pedido se respeta", () => {
+    expect(ciudadDeEntrada(null, ["lima"])).toBe("lima");
+    expect(ciudadDeEntrada(null, ["0401"])).toBe("0401");
+    expect(ciudadDeEntrada("pe", ["lima"])).toBeNull();
+    expect(ciudadDeEntrada("0401", ["lima"])).toBeNull();
+    expect(ciudadDeEntrada(null, ["0401", "lima"])).toBeNull();
+    expect(ciudadDeEntrada(null, [])).toBeNull();
+    expect(ciudadDeEntrada(null, ["9999"])).toBeNull();
   });
   it("el área del círculo crece con la población", () => {
     expect(radioCiudad(10_000_000)).toBeGreaterThan(radioCiudad(100_000) * 3);
