@@ -1,0 +1,80 @@
+/* Modelo › Metas (aulas.md, ficha M1). Franja arriba; cuota a la izquierda y la
+ * meta de cada curso-horario a la derecha (360 px). Sólo tokens. */
+
+.aulas-mm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-mm-franja {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.aulas-mm-franja > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-left: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-mm-franja > div:first-child {
+  border-left: 0;
+}
+
+.aulas-mm-franja dt {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aulas-mm-franja dd {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-mm-franja span {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-mm-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  align-self: flex-start;
+  white-space: normal;
+}
+
+.aulas-mm-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: var(--pulso-space-3);
+}
+
+@media (max-width: 1280px) {
+  .aulas-mm-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aulas-mm-franja {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

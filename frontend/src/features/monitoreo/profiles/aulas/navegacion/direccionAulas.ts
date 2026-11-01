@@ -92,7 +92,9 @@ const TABLA: readonly Entrada[] = [
   entrada("insumos", "aplicadores", null, v("modelo", "carga"), { regreso: false, propia: true }),
   // M1 Metas: los mandos de Avance › Metas y la tasa del diseño de Efectividad.
   // Las dos vistas regresan a Avance (Por facultad y Rendimiento).
-  entrada("modelo", "metas", null, v("avance", "cuotas"), { vista: "Metas", regreso: false }),
+  // M1 Metas: contenido propio (`modelo/MetasAulas.tsx`), leído de la
+  // representatividad declarada (F5 del ADR 0121).
+  entrada("modelo", "metas", null, v("avance", "cuotas"), { vista: "Metas", regreso: false, propia: true }),
   entrada("modelo", "metas", "efectividad", v("avance", "efectividad"), { vista: "Tasa del diseño", regreso: false }),
   // M2 Muestra: la cadena de reemplazos y el alcance del banco de extras.
   entrada("modelo", "muestra", null, v("consultas", "reemplazos"), { vista: "Reemplazos" }),
