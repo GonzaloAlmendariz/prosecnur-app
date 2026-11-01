@@ -1120,3 +1120,36 @@
   border-color: color-mix(in srgb, var(--pulso-danger-fg) 38%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-danger-bg) 40%, var(--pulso-surface));
 }
+
+/* Representatividad del estudio (ADR 0121 F4): universo y variables de cuota
+   que se declaran en el Planner. */
+.cmv2-sal-rep-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: var(--pulso-space-2) var(--pulso-space-6);
+  margin: 0;
+}
+
+.cmv2-sal-rep-datos dt {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmv2-sal-rep-datos dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.cmv2-sal-rep-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-sal-rep-accion {
+  display: flex;
+  justify-content: flex-start;
+}

@@ -31,6 +31,7 @@ import {
   type AulasNavigate,
 } from "../aulas/aulasSurfaceState";
 import { ROTULO_RESERVAS_TOTALES } from "../aulas/rotulosReservas";
+import { DeclararRepresentatividad } from "./DeclararRepresentatividad";
 
 export function SalidasMonitoreoTab({
   model,
@@ -140,6 +141,9 @@ export function SalidasMonitoreoTab({
           />
         </CifraFila>
       </section>
+
+      {/* ADR 0121 F4: universo y variables de cuota se declaran en el Planner. */}
+      <DeclararRepresentatividad />
 
       <AulasApplicationFlow
         tone="calc-muestra"
