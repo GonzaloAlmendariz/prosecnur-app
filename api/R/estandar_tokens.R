@@ -52,6 +52,11 @@
   v
 }
 
+#' Token del cuestionario impreso (L36 · DOC.1): `tipografia` (fuente, cuerpo, minimo, titulo) o `colores` (tinta,
+#' rejilla, banda, banda_sub, cebra). El motor de Word del cuestionario los leía de constantes propias.
+#' @keywords internal
+.std_cuestionario <- function(grupo, nombre) .std_valor("cuestionario", grupo, nombre)
+
 #' Color con nombre de la lámina PPT (`coral`, `azul`, `tenue`, `filete`...)
 #' @keywords internal
 .std_color <- function(nombre) .std_valor("ppt", "colores", nombre)

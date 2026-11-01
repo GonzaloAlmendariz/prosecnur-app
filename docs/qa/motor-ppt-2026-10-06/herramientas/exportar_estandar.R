@@ -205,8 +205,16 @@ word <- list(
   documento = c("portada tipográfica sola en su página", "resumen", "índice, índice de gráficos e índice de tablas en página propia", "una sección de Word por capítulo con su encabezado escrito",
                 "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"))
 
+# ---- Cuestionario impreso (L36 · DOC.1; reporte_formulario_word.R y docs/qa/l36-doc0-direccion-cuestionario-2026-11-01.md)
+# Los valores son los que el motor ya imprimía como constantes: Arial Narrow en dos cuerpos (la referencia medida,
+# 2026-09-24), negro para todo el texto y la rejilla (decisión de Gonzalo del 2026-09-25: la línea casi no gasta tinta
+# y sobrevive a la fotocopiadora) y grises sólo para los rellenos. Ahora viven aquí y el motor los lee por nombre.
+cuestionario <- list(
+  tipografia = list(unidad = "pt", fuente = "Arial Narrow", cuerpo = 10, minimo = 8, titulo = 20),
+  colores = list(tinta = "#000000", rejilla = "#000000", banda = "#D9D9D9", banda_sub = "#E8E8E8", cebra = "#F2F2F2"))
+
 est <- list(version = "2026.10", fuente = c("docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx", "docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx"),
-            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, composicion = composicion, reglas = reglas, tipos_lamina = tipos), word = word)
+            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, composicion = composicion, reglas = reglas, tipos_lamina = tipos), word = word, cuestionario = cuestionario)
 dir.create("api/inst/estandar", showWarnings = FALSE, recursive = TRUE)
 salida <- commandArgs(trailingOnly = TRUE)[1]
 if (is.na(salida)) salida <- "api/inst/estandar/estandar_pulso.json"

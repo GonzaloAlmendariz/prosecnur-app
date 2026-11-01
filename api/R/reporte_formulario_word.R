@@ -25,23 +25,19 @@
 # Tipografia de la referencia: Arial Narrow en sus 4 138 usos. Estrecha a
 # proposito — es lo que permite meter una matriz de 9 columnas en una pagina A4
 # sin partir los rotulos de la escala. Va en UNA constante y no repetida por
-# sitio: habia nueve .FORM_WORD_FONT sueltos y uno olvidado deja el documento con dos
+# sitio: habia nueve definiciones de la fuente sueltas y una olvidada deja el documento con dos
 # tipografias sin que falle ningun test.
-.FORM_WORD_FONT    <- "Arial Narrow"
+# L36 · DOC.1: fuente, cuerpos y colores ya no son constantes de este archivo:
+# viven en `inst/estandar/estandar_pulso.json` -> `cuestionario` y se leen con
+# `.std_cuestionario()` (estandar_tokens.R). Los motivos de cada valor siguen
+# escritos aqui abajo.
 # Dos cuerpos, como la referencia: 10 pt el cuerpo (w:sz=20, 2 244 usos) y 8 pt
 # lo accesorio (w:sz=16, 154). Aqui habia nueve tamanos distintos entre 7 y 11
 # decididos sitio a sitio.
-.FORM_WORD_SZ      <- 10
-.FORM_WORD_SZ_MIN  <- 8
-.FORM_WORD_SZ_TITULO <- 20   # solo la portada
-.FORM_WORD_INK     <- "#000000"   # TODO el texto
-.FORM_WORD_BAND    <- "#D9D9D9"   # banda de seccion y cabecera de matriz
-.FORM_WORD_ZEBRA   <- "#F2F2F2"   # relleno suave de fila alterna
 # SUBSECCION (L17): la referencia separa seccion y subseccion por TONO, no por
 # forma — misma caja, misma negrita, mismo cuerpo, relleno mas claro (D9D9D9
 # luma 217 contra DBE5F1 luma 227). E8E8E8 (232) es su equivalente monocromo y
 # ya esta en el inventario de grises de la referencia: no se inventa uno nuevo.
-.FORM_WORD_BAND_SUB <- "#E8E8E8"
 # Rejilla: NEGRA. Decision de Gonzalo (2026-09-25): «que vaya en negro lo mas
 # adecuado como bordes de tablas, pero cosas con fondo usar negro por completo
 # gastaria mucha tinta». El criterio es exacto y vale la pena dejarlo escrito:
@@ -63,7 +59,6 @@
 # (F1F4F9, 4%) desaparecen igual en una fotocopia. Valor tomado de la referencia
 # medida: A6A6A6 en 2 666 de sus bordes (~35% de tinta) frente al 19% del azul
 # que habia aqui. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
-.FORM_WORD_LINE    <- "#000000"   # rejilla: NEGRA, ver el bloque de arriba
 
 # Ancho util: ya NO es una constante (§17). Sale de la geometria de la seccion
 # (pagina - margenes, y por columna en las de dos), que es la misma que emite el
@@ -81,13 +76,13 @@
 # Parrafo con formato. Devuelve el doc (officer es inmutable: hay que reasignar).
 # `keep_with_next` emite `w:keepNext` en el pPr: el parrafo no se separa de lo
 # que le sigue (item 3 del checklist: el enunciado no se queda solo al pie).
-.form_word_par <- function(doc, text, size = .FORM_WORD_SZ, bold = FALSE, italic = FALSE,
-                           color = .FORM_WORD_INK, align = "left", shade = NULL,
+.form_word_par <- function(doc, text, size = .std_cuestionario("tipografia", "cuerpo"), bold = FALSE, italic = FALSE,
+                           color = .std_cuestionario("colores", "tinta"), align = "left", shade = NULL,
                            space_after = 4, space_before = 0,
                            keep_with_next = FALSE, borde = NULL, rt = NULL) {
   txt <- .form_pdf_clean_text(text %||% "")
   fp_t <- officer::fp_text(font.size = size, bold = bold, italic = italic,
-                           color = color, font.family = .FORM_WORD_FONT)
+                           color = color, font.family = .std_cuestionario("tipografia", "fuente"))
   args <- list(
     text.align = align,
     shading.color = if (!is.null(shade)) shade else "transparent",
@@ -157,7 +152,7 @@
 .FORM_WORD_FILAS_CORTA <- 12L
 
 .form_word_table_base <- function(ft, col_ids, no_split = TRUE) {
-  bd <- officer::fp_border(color = .FORM_WORD_LINE, width = 0.5)
+  bd <- officer::fp_border(color = .std_cuestionario("colores", "rejilla"), width = 0.5)
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(ft, border = bd, part = "all")
   # REJILLA COMPLETA (L3 del GOAL). Antes solo habia borde exterior y cada tabla
@@ -166,7 +161,7 @@
   # insideH/insideV en 46 de sus 50 tablas.
   ft <- flextable::border_inner(ft, border = bd, part = "all")
   ft <- flextable::padding(ft, padding = 3, part = "all")
-  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
+  ft <- flextable::font(ft, fontname = .std_cuestionario("tipografia", "fuente"), part = "all")
   ft <- flextable::valign(ft, valign = "center", part = "all")
   ft <- flextable::set_table_properties(
     ft, layout = "fixed",
@@ -251,7 +246,7 @@
   # el default de flextable, 11 pt: el codigo de las opciones salia mas grande
   # que su propia etiqueta. No puede ir en .form_word_table_base(), que corre
   # al final y se llevaria por delante el 8 pt de la cabecera de la matriz.
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
 
   # --- Anchos. Se calculan ANTES de componer la cabecera porque el envoltorio
   # de las etiquetas de escala depende del ancho REAL de su columna. ---
@@ -266,7 +261,7 @@
   # L36 · D-L36-3: «10.1» no cabe en 0.26 in y salía partido en dos líneas
   # («10.» / «1»). La columna se mide con el número más largo, con el mismo
   # padding de 3 pt por lado y la misma holgura que la cota de la escala.
-  num_max_pt <- max(c(0, vapply(df$num, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ)))
+  num_max_pt <- max(c(0, vapply(df$num, .form_word_ancho_pt, numeric(1), size = .std_cuestionario("tipografia", "cuerpo"))))
   num_w <- max(num_w, (num_max_pt + 9) / 72)
   resto <- usable - num_w
   lbl_w <- resto * frac
@@ -283,7 +278,7 @@
   pad_pt <- 7
   min_col <- (.form_word_palabra_mas_ancha_pt(
     c(scale_labels, if (has_special) sp_label else character(0)),
-    .FORM_WORD_SZ_MIN) + pad_pt) / 72
+    .std_cuestionario("tipografia", "minimo")) + pad_pt) / 72
   if (identical(header_mode, "categorias") && min_col > col_w) {
     # La etiqueta no baja de este minimo: una matriz con la escala comoda y el
     # enunciado ilegible no es mejor que al reves.
@@ -311,9 +306,9 @@
     # comprobaba que la palabra mas larga cupiera, y no cabia.
     ancho_pt <- col_w * 72 - pad_pt
     for (k in seq_len(n_scale)) {
-      hdr[[paste0("s", k)]] <- .form_word_wrap_pt(scale_labels[k], ancho_pt, .FORM_WORD_SZ_MIN)
+      hdr[[paste0("s", k)]] <- .form_word_wrap_pt(scale_labels[k], ancho_pt, .std_cuestionario("tipografia", "minimo"))
     }
-    if (has_special) hdr[["sp"]] <- .form_word_wrap_pt(sp_label, ancho_pt, .FORM_WORD_SZ_MIN)
+    if (has_special) hdr[["sp"]] <- .form_word_wrap_pt(sp_label, ancho_pt, .std_cuestionario("tipografia", "minimo"))
   } else if (merge_extremos) {
     hdr[["s1"]] <- scale_labels[1]                                       # ancla izquierda
     if (length(right_ids)) hdr[[right_ids[1]]] <- scale_labels[n_scale]  # ancla derecha
@@ -334,13 +329,13 @@
 
   # --- Estilo: cabecera con relleno gris, todo el texto negro; la jerarquia la
   # llevan negrita y cuerpo, no el color. Escala centrada, zebra por fila. ---
-  ft <- flextable::bg(ft, bg = .FORM_WORD_BAND, part = "header")
-  ft <- flextable::color(ft, color = .FORM_WORD_INK, part = "header")
-  ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_INK, part = "header")
+  ft <- flextable::bg(ft, bg = .std_cuestionario("colores", "banda"), part = "header")
+  ft <- flextable::color(ft, color = .std_cuestionario("colores", "tinta"), part = "header")
+  ft <- flextable::color(ft, j = "lbl", color = .std_cuestionario("colores", "tinta"), part = "header")
   ft <- flextable::bold(ft, part = "header")
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ_MIN, part = "header")
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "body")
-  ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_INK, part = "body")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "minimo"), part = "header")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "body")
+  ft <- flextable::color(ft, j = "lbl", color = .std_cuestionario("colores", "tinta"), part = "body")
   ft <- flextable::align(ft, j = scale_ids, align = "center", part = "all")
   ft <- flextable::align(ft, j = "lbl", align = "left", part = "all")
   ft <- flextable::align(ft, j = "num", align = "center", part = "all")
@@ -350,7 +345,7 @@
     if (length(right_ids)) ft <- flextable::align(ft, i = 1, j = right_ids, align = "center", part = "header")
   }
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
-  if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
+  if (length(even)) ft <- flextable::bg(ft, i = even, bg = .std_cuestionario("colores", "cebra"), part = "body")
   # Sub-preguntas (competencias): el enunciado madre ocupa toda la fila (merge)
   # y los hijos van sangrados con su letra a/b/c.
   parent_rows <- which(roles == "parent")
@@ -375,8 +370,8 @@
     if (nzchar(item_skips[ri])) {
       trozos <- c(trozos, list(flextable::as_chunk(
         paste0("\n", item_skips[ri]),
-        props = officer::fp_text(italic = TRUE, color = .FORM_WORD_INK,
-                                 font.size = .FORM_WORD_SZ_MIN, font.family = .FORM_WORD_FONT))))
+        props = officer::fp_text(italic = TRUE, color = .std_cuestionario("colores", "tinta"),
+                                 font.size = .std_cuestionario("tipografia", "minimo"), font.family = .std_cuestionario("tipografia", "fuente")))))
     } else if (!.form_rt_tiene_formato(rt)) {
       next   # sin formato ni salto no hay nada que componer
     }
@@ -478,7 +473,7 @@
   chunks <- c(chunks, .form_word_hint_chunks(hint, hint_rt))
   ft <- flextable::compose(ft, i = 1, j = col_ids[1], part = "header",
                            value = do.call(flextable::as_paragraph, chunks))
-  ft <- flextable::bg(ft, bg = .FORM_WORD_ZEBRA, part = "header")
+  ft <- flextable::bg(ft, bg = .std_cuestionario("colores", "cebra"), part = "header")
   ft <- flextable::align(ft, align = "left", part = "header")
   ft <- flextable::valign(ft, valign = "top", part = "header")
   ft
@@ -518,7 +513,7 @@
                            value = do.call(flextable::as_paragraph, chunks))
   # La esquina va al cuerpo (10 pt) y alineada a la izquierda: el resto de la
   # cabecera es escala a 8 pt centrada, y heredarlo dejaba el enunciado diminuto.
-  ft <- flextable::fontsize(ft, j = "num", size = .FORM_WORD_SZ, part = "header")
+  ft <- flextable::fontsize(ft, j = "num", size = .std_cuestionario("tipografia", "cuerpo"), part = "header")
   ft <- flextable::align(ft, j = "num", align = "left", part = "header")
   ft <- flextable::valign(ft, j = "num", valign = "top", part = "header")
   ft
@@ -554,7 +549,7 @@
   cod_w <- cg_h$width
   pad_pt <- 6
   anchos <- vapply(seq_along(labels), function(i) {
-    .form_word_ancho_pt(labels[i], .FORM_WORD_SZ) + cod_w * 72 + pad_pt * 2
+    .form_word_ancho_pt(labels[i], .std_cuestionario("tipografia", "cuerpo")) + cod_w * 72 + pad_pt * 2
   }, numeric(1))
   horizontal <- !has_skip && length(opts) >= 2L && sum(anchos) <= usable * 72
 
@@ -570,14 +565,14 @@
     if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
       ft <- flextable::delete_part(ft, part = "header")
     }
-    ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+    ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
     # Las etiquetas se reparten TODO el ancho sobrante en proporcion a lo que
     # miden, para que la tabla llene su columna: si no, queda mas corta que sus
     # vecinas y en la pagina se nota el desnivel. El denominador es la suma de
     # los anchos de ETIQUETA, no la de `anchos` (que ya incluye codigo y padding);
     # con esa de mas, la tabla se quedaba corta.
     sobra <- usable - cod_w * length(labels)
-    w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ) / 72
+    w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .std_cuestionario("tipografia", "cuerpo")) / 72
     suma_lbl <- max(sum(w_lbl), 1e-6)
     for (i in seq_along(labels)) {
       ft <- flextable::width(ft, j = paste0("l", i),
@@ -586,7 +581,7 @@
       ft <- flextable::align(ft, j = paste0("c", i), align = "center", part = "body")
       ft <- flextable::bold(ft, j = paste0("c", i), part = "body")
       ft <- flextable::align(ft, j = paste0("l", i), align = "left", part = "body")
-      if (cg_h$size < .FORM_WORD_SZ) {
+      if (cg_h$size < .std_cuestionario("tipografia", "cuerpo")) {
         ft <- flextable::fontsize(ft, j = paste0("c", i), size = cg_h$size, part = "body")
       }
     }
@@ -613,7 +608,7 @@
   # el default de flextable, 11 pt: el codigo de las opciones salia mas grande
   # que su propia etiqueta. No puede ir en .form_word_table_base(), que corre
   # al final y se llevaria por delante el 8 pt de la cabecera de la matriz.
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
 
   # En un tramo angosto (dos columnas) la columna de saltos se encoge con el
   # resto; nunca puede llevarse mas de un tercio del ancho disponible.
@@ -628,20 +623,20 @@
     ft <- flextable::width(ft, j = "skip", width = skip_w)
     ft <- flextable::align(ft, j = "skip", align = "right", part = "body")
     ft <- flextable::italic(ft, j = "skip", part = "body")
-    ft <- flextable::color(ft, j = "skip", color = .FORM_WORD_INK, part = "body")
-    ft <- flextable::fontsize(ft, j = "skip", size = .FORM_WORD_SZ_MIN, part = "body")
+    ft <- flextable::color(ft, j = "skip", color = .std_cuestionario("colores", "tinta"), part = "body")
+    ft <- flextable::fontsize(ft, j = "skip", size = .std_cuestionario("tipografia", "minimo"), part = "body")
   } else {
     ft <- flextable::width(ft, j = "label", width = usable - code_w)
   }
   ft <- flextable::align(ft, j = "code", align = "center", part = "body")
-  ft <- flextable::color(ft, j = "code", color = .FORM_WORD_INK, part = "body")
+  ft <- flextable::color(ft, j = "code", color = .std_cuestionario("colores", "tinta"), part = "body")
   ft <- flextable::bold(ft, j = "code", part = "body")
-  if (cg_v$size < .FORM_WORD_SZ) {
+  if (cg_v$size < .std_cuestionario("tipografia", "cuerpo")) {
     ft <- flextable::fontsize(ft, j = "code", size = cg_v$size, part = "body")
   }
-  ft <- flextable::fontsize(ft, j = "label", size = .FORM_WORD_SZ, part = "body")
+  ft <- flextable::fontsize(ft, j = "label", size = .std_cuestionario("tipografia", "cuerpo"), part = "body")
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
-  if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
+  if (length(even)) ft <- flextable::bg(ft, i = even, bg = .std_cuestionario("colores", "cebra"), part = "body")
   ft <- .form_word_opciones_rt(ft, opts, labels, "label")
   ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint, enunciado_rt, hint_rt)
   ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
@@ -705,8 +700,8 @@
   df <- as.data.frame(as.list(stats::setNames(vals, ids)), stringsAsFactors = FALSE)
   ft <- flextable::flextable(df)
   ft <- flextable::delete_part(ft, part = "header")
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
-  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
+  ft <- flextable::font(ft, fontname = .std_cuestionario("tipografia", "fuente"), part = "all")
   # El rotulo mide lo que mide su texto, no media pagina: repartir el ancho a
   # partes iguales dejaba dos bloques enormes con una rendija entre medias, que
   # no se parece a una casilla marcable.
@@ -715,7 +710,7 @@
   # rotulo no cabe se parte en dos lineas y el alto exacto de la fila lo recorta.
   # Es el mismo error del numero de item: ajustar al pixel con una medida
   # aproximada es como no ajustar.
-  w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ) / 72 + 0.30
+  w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .std_cuestionario("tipografia", "cuerpo")) / 72 + 0.30
   ft <- flextable::width(ft, j = "pad",
                          width = max(0.1, usable - sum(w_lbl) - marca_w * length(labels)))
   for (i in seq_along(labels)) {
@@ -729,7 +724,7 @@
   # CORTADO a media letra en vez de empujar la fila.
   ft <- flextable::hrule(ft, rule = "atleast", part = "body")
   ft <- flextable::border_remove(ft)
-  bd <- officer::fp_border(color = .FORM_WORD_INK, width = 0.5)
+  bd <- officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 0.5)
   # Se enmarcan SOLO las celdas de marca: el rotulo va suelto a su izquierda, como
   # en la referencia («☐ Si  ☐ No»), no dentro de una caja.
   # `vline_left`/`hline_top` no aceptan `j`: se dibuja celda a celda con
@@ -760,13 +755,13 @@
   # y se quedo con los de flextable (Helvetica 11 pt): 14 runs con otra fuente y
   # 8 cuerpos a 11 pt en un documento que se declara todo Arial Narrow a 10/8.
   # Ningun test lo vio; lo destapo medir la vara del GOAL.
-  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::font(ft, fontname = .std_cuestionario("tipografia", "fuente"), part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
   for (cid in names(df)) ft <- flextable::width(ft, j = cid, width = ancho_celda)
   ft <- flextable::height(ft, height = 0.24, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
   ft <- flextable::border_remove(ft)
-  bd <- officer::fp_border(color = .FORM_WORD_INK, width = 0.5)
+  bd <- officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 0.5)
   ft <- flextable::border_outer(ft, border = bd, part = "body")
   ft <- flextable::border_inner_v(ft, border = bd, part = "body")
   flextable::set_table_properties(ft, layout = "fixed", opts_word = list(split = FALSE))
@@ -783,15 +778,15 @@
   if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
     ft <- flextable::delete_part(ft, part = "header")
   }
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
-  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
+  ft <- flextable::font(ft, fontname = .std_cuestionario("tipografia", "fuente"), part = "all")
   ft <- flextable::width(ft, j = "cell", width = usable)
   ft <- flextable::height(ft, height = alto, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
   ft <- .form_word_cabecera_enunciado(ft, "cell", enunciado, hint, enunciado_rt, hint_rt)
   ft <- flextable::border_remove(ft)
-  ft <- flextable::border_outer(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
-  ft <- flextable::border_inner_h(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
+  ft <- flextable::border_outer(ft, border = officer::fp_border(color = .std_cuestionario("colores", "rejilla"), width = 0.5), part = "all")
+  ft <- flextable::border_inner_h(ft, border = officer::fp_border(color = .std_cuestionario("colores", "rejilla"), width = 0.5), part = "all")
   flextable::set_table_properties(ft, layout = "fixed",
                                   opts_word = list(split = FALSE))
 }
@@ -807,7 +802,7 @@
     cell = c(if (nzchar(title)) toupper(title), if (nzchar(body)) body),
     stringsAsFactors = FALSE))
   ft <- flextable::delete_part(ft, part = "header")
-  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::fontsize(ft, size = .std_cuestionario("tipografia", "cuerpo"), part = "all")
   if (nzchar(title)) {
     ft <- flextable::bold(ft, i = 1, j = "cell", part = "body")
     ft <- flextable::align(ft, i = 1, j = "cell", align = "left", part = "body")
@@ -837,10 +832,10 @@
   }
   ft <- flextable::padding(ft, padding = 7, part = "body")
   ft <- flextable::valign(ft, valign = "top", part = "body")
-  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
+  ft <- flextable::font(ft, fontname = .std_cuestionario("tipografia", "fuente"), part = "all")
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(
-    ft, border = officer::fp_border(color = .FORM_WORD_INK, width = 1), part = "body")
+    ft, border = officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 1), part = "body")
   flextable::set_table_properties(
     ft, layout = "fixed",
     opts_word = list(split = !.form_word_tramo_is_full(usable))
@@ -863,13 +858,13 @@
 # `headerReference`/`footerReference` se queda sin pie (item 9 del checklist).
 # Si el logo no existe, cae a texto "PULSO PUCP" en el encabezado.
 .form_word_furniture_parts <- function(model = NULL) {
-  tinta <- .FORM_WORD_INK
+  tinta <- .std_cuestionario("colores", "tinta")
   logo <- .form_word_logo_path()
   hdr_runs <- if (nzchar(logo)) {
     list(officer::external_img(src = logo, width = 1.15, height = 0.45))
   } else {
     list(officer::ftext("PULSO PUCP",
-      prop = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, bold = TRUE, color = tinta, font.family = .FORM_WORD_FONT)))
+      prop = officer::fp_text(font.size = .std_cuestionario("tipografia", "minimo"), bold = TRUE, color = tinta, font.family = .std_cuestionario("tipografia", "fuente"))))
   }
   header_par <- officer::fpar(
     values = hdr_runs,
@@ -877,10 +872,10 @@
       border.bottom = officer::fp_border(color = tinta, width = 1))
   )
   header_items <- list(header_par)
-  soft_fp <- officer::fp_text(font.size = .FORM_WORD_SZ_MIN, color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT)
+  soft_fp <- officer::fp_text(font.size = .std_cuestionario("tipografia", "minimo"), color = .std_cuestionario("colores", "tinta"), font.family = .std_cuestionario("tipografia", "fuente"))
   footer_par <- officer::fpar(
     officer::ftext("PULSO PUCP",
-      prop = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, bold = TRUE, color = tinta, font.family = .FORM_WORD_FONT)),
+      prop = officer::fp_text(font.size = .std_cuestionario("tipografia", "minimo"), bold = TRUE, color = tinta, font.family = .std_cuestionario("tipografia", "fuente"))),
     officer::ftext("     ·     Página ", prop = soft_fp),
     officer::run_word_field("PAGE", prop = soft_fp),
     # «Página N de M»: el total es otro campo de Word. Ojo al verificarlo — un
@@ -889,7 +884,7 @@
     officer::ftext(" de ", prop = soft_fp),
     officer::run_word_field("NUMPAGES", prop = soft_fp),
     fp_p = officer::fp_par(text.align = "center", padding.top = 4,
-      border.top = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5))
+      border.top = officer::fp_border(color = .std_cuestionario("colores", "rejilla"), width = 0.5))
   )
   list(header = header_items, footer = footer_par)
 }
@@ -1117,22 +1112,22 @@ formulario_word_render <- function(model, output_file) {
 
     # Condicion de apertura (lenguaje "condiciones") antes del bloque.
     if (nzchar(block$opening_condition %||% "")) {
-      doc <- .form_word_par(doc, block$opening_condition, size = .FORM_WORD_SZ_MIN, italic = TRUE,
-                            color = .FORM_WORD_INK, space_after = 2, space_before = 2,
+      doc <- .form_word_par(doc, block$opening_condition, size = .std_cuestionario("tipografia", "minimo"), italic = TRUE,
+                            color = .std_cuestionario("colores", "tinta"), space_after = 2, space_before = 2,
                             keep_with_next = TRUE)
     }
 
     if (identical(kind, "cover")) {
       if (isTRUE(folio)) {
-        doc <- .form_word_par(doc, "N.º de encuesta", size = .FORM_WORD_SZ_MIN,
-                              color = .FORM_WORD_INK, align = "right", space_after = 1)
+        doc <- .form_word_par(doc, "N.º de encuesta", size = .std_cuestionario("tipografia", "minimo"),
+                              color = .std_cuestionario("colores", "tinta"), align = "right", space_after = 1)
         doc <- flextable::body_add_flextable(doc, .form_word_casillas_folio(), align = "right")
       }
-      doc <- .form_word_par(doc, block$title, size = .FORM_WORD_SZ_TITULO, bold = TRUE, color = .FORM_WORD_INK,
+      doc <- .form_word_par(doc, block$title, size = .std_cuestionario("tipografia", "titulo"), bold = TRUE, color = .std_cuestionario("colores", "tinta"),
                             rt = .form_rt_campo(block, "title"),
                             align = "center", space_before = 6, space_after = 2)
       # Regla corta centrada bajo el titulo (paridad con la portada del PDF).
-      doc <- .form_word_par(doc, strrep("─", 10), size = .FORM_WORD_SZ, color = .FORM_WORD_INK,
+      doc <- .form_word_par(doc, strrep("─", 10), size = .std_cuestionario("tipografia", "cuerpo"), color = .std_cuestionario("colores", "tinta"),
                             align = "center", space_after = 10)
 
     } else if (identical(kind, "paper")) {
@@ -1153,14 +1148,14 @@ formulario_word_render <- function(model, output_file) {
         doc <- .form_word_blank(doc)
       } else {
         if (nzchar(block$title %||% "")) {
-          doc <- .form_word_par(doc, toupper(block$title), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
+          doc <- .form_word_par(doc, toupper(block$title), size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE, color = .std_cuestionario("colores", "tinta"),
                                 rt = .form_rt_mayusculas(.form_rt_campo(block, "title")),
-                                shade = .FORM_WORD_BAND, space_before = 4, space_after = 2,
-                                borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
+                                shade = .std_cuestionario("colores", "banda"), space_before = 4, space_after = 2,
+                                borde = officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 0.5, style = "solid"),
                                 keep_with_next = nzchar(block$body %||% ""))
         }
         if (nzchar(block$body %||% "")) {
-          doc <- .form_word_par(doc, block$body, size = .FORM_WORD_SZ, space_after = 6,
+          doc <- .form_word_par(doc, block$body, size = .std_cuestionario("tipografia", "cuerpo"), space_after = 6,
                                 rt = .form_rt_campo(block, "body"))
         }
       }
@@ -1169,11 +1164,11 @@ formulario_word_render <- function(model, output_file) {
       # Misma caja que la banda de seccion: sombreada, con sus cuatro bordes y
       # arrastrando lo que sigue. Cambian el tono y la alineacion (la seccion va
       # centrada, la subseccion pegada al margen, como en la referencia).
-      doc <- .form_word_par(doc, toupper(block$title %||% ""), size = .FORM_WORD_SZ, bold = TRUE,
+      doc <- .form_word_par(doc, toupper(block$title %||% ""), size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE,
                             rt = .form_rt_mayusculas(.form_rt_campo(block, "title")),
-                            color = .FORM_WORD_INK, shade = .FORM_WORD_BAND_SUB,
+                            color = .std_cuestionario("colores", "tinta"), shade = .std_cuestionario("colores", "banda_sub"),
                             align = "left", space_before = 4, space_after = 3,
-                            borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
+                            borde = officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 0.5, style = "solid"),
                             keep_with_next = TRUE)
 
     } else if (identical(kind, "section")) {
@@ -1181,14 +1176,14 @@ formulario_word_render <- function(model, output_file) {
       num <- .form_pdf_clean_text(block$number %||% "")
       ttl <- if (nzchar(num)) paste0(num, "  ", block$title) else (block$title %||% "")
       # La banda de sección no se queda sola al pie: arrastra lo que sigue.
-      doc <- .form_word_par(doc, toupper(ttl), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
+      doc <- .form_word_par(doc, toupper(ttl), size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE, color = .std_cuestionario("colores", "tinta"),
                             rt = .form_rt_mayusculas(.form_word_rt_prefijo(
                               if (nzchar(num)) paste0(num, "  ") else "", .form_rt_campo(block, "title"))),
-                            shade = .FORM_WORD_BAND, align = "center", space_after = 4,
-                            borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
+                            shade = .std_cuestionario("colores", "banda"), align = "center", space_after = 4,
+                            borde = officer::fp_border(color = .std_cuestionario("colores", "tinta"), width = 0.5, style = "solid"),
                             keep_with_next = TRUE)
       if (nzchar(block$hint %||% "")) {
-        doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
+        doc <- .form_word_par(doc, block$hint, size = .std_cuestionario("tipografia", "minimo"), italic = TRUE, color = .std_cuestionario("colores", "tinta"),
                               keep_with_next = TRUE, rt = .form_rt_campo(block, "hint"))
       }
 
@@ -1199,7 +1194,7 @@ formulario_word_render <- function(model, output_file) {
       # superior izquierda; no se emite parrafo alguno encima de la tabla. Sin
       # tenor no hay enunciado que mover y la pista sigue como parrafo pegado.
       if (!nzchar(block$tenor %||% "") && nzchar(block$hint %||% "")) {
-        doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
+        doc <- .form_word_par(doc, block$hint, size = .std_cuestionario("tipografia", "minimo"), italic = TRUE, color = .std_cuestionario("colores", "tinta"),
                               keep_with_next = TRUE, rt = .form_rt_campo(block, "hint"))
       }
       ft <- .form_word_matrix_flextable(block, usable = usable)
@@ -1213,8 +1208,8 @@ formulario_word_render <- function(model, output_file) {
         # Nota informativa (tipo `note` del XLSForm): texto de sección/escala como
         # en la referencia — párrafo justificado semibold, NO una pregunta numerada.
         # Item 17: si la nota introduce el bloque que sigue, va pegada a el.
-        doc <- .form_word_par(doc, block$label %||% "", size = .FORM_WORD_SZ, bold = TRUE,
-                              color = .FORM_WORD_INK, align = "justify",
+        doc <- .form_word_par(doc, block$label %||% "", size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE,
+                              color = .std_cuestionario("colores", "tinta"), align = "justify",
                               space_before = 4, space_after = 6,
                               keep_with_next = isTRUE(block$keep_with_next),
                               rt = .form_rt_campo(block, "label"))
@@ -1244,11 +1239,11 @@ formulario_word_render <- function(model, output_file) {
           doc <- flextable::body_add_flextable(doc, ft, align = "left")
           doc <- .form_word_blank(doc)
         } else {
-          doc <- .form_word_par(doc, lbl, size = .FORM_WORD_SZ, bold = TRUE,
+          doc <- .form_word_par(doc, lbl, size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE,
                                 space_before = 4, space_after = 3, rt = lbl_rt)
           if (nzchar(hint)) {
-            doc <- .form_word_par(doc, hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, rt = hint_rt,
-                                  color = .FORM_WORD_INK)
+            doc <- .form_word_par(doc, hint, size = .std_cuestionario("tipografia", "minimo"), italic = TRUE, rt = hint_rt,
+                                  color = .std_cuestionario("colores", "tinta"))
           }
         }
       }
@@ -1256,8 +1251,8 @@ formulario_word_render <- function(model, output_file) {
 
     # Salto (lenguaje "saltos") despues del bloque.
     if (nzchar(block$skip %||% "")) {
-      doc <- .form_word_par(doc, block$skip, size = .FORM_WORD_SZ_MIN, italic = TRUE,
-                            color = .FORM_WORD_INK, space_before = 2, space_after = 4)
+      doc <- .form_word_par(doc, block$skip, size = .std_cuestionario("tipografia", "minimo"), italic = TRUE,
+                            color = .std_cuestionario("colores", "tinta"), space_before = 2, space_after = 4)
     }
   }
   doc

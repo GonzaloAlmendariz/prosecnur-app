@@ -1143,5 +1143,21 @@
     },
     "rotulo": "«Gráfico N» en negrita con campo SEQ y, en la línea siguiente, el título en cursiva; la base y la fuente centradas debajo, sin la palabra Nota",
     "documento": ["portada tipográfica sola en su página", "resumen", "índice, índice de gráficos e índice de tablas en página propia", "una sección de Word por capítulo con su encabezado escrito", "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"]
+  },
+  "cuestionario": {
+    "tipografia": {
+      "unidad": "pt",
+      "fuente": "Arial Narrow",
+      "cuerpo": 10,
+      "minimo": 8,
+      "titulo": 20
+    },
+    "colores": {
+      "tinta": "#000000",
+      "rejilla": "#000000",
+      "banda": "#D9D9D9",
+      "banda_sub": "#E8E8E8",
+      "cebra": "#F2F2F2"
+    }
   }
 }
