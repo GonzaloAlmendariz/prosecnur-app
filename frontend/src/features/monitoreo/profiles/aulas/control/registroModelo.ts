@@ -62,11 +62,20 @@ function cifra(v: unknown): string {
   return n == null ? "—" : fmt(n);
 }
 
+/** «2026-09-10 10:58» (hora del libro) → «10/09 10:58», como el resto de la app. */
+export function fechaDelParte(raw: unknown): string {
+  const valor = texto(raw);
+  const m = valor.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
+  if (!m) return valor;
+  return m[4] ? `${m[3]}/${m[2]} ${m[4]}` : `${m[3]}/${m[2]}/${m[1].slice(2)}`;
+}
+
 function lecturaDe(p: MonitoreoRow): Pick<ItemDeParte, "lectura" | "tono"> {
   const dif = numero(p.diferencia);
   if (p.cuadra === true) return { lectura: "Cuadra", tono: "ok" };
   if (p.cuadra === false && dif != null) {
-    return { lectura: dif < 0 ? `Faltan ${fmt(Math.abs(dif))}` : `Sobran ${fmt(dif)}`, tono: "aviso" };
+    const k = Math.abs(dif);
+    return { lectura: dif < 0 ? `${k === 1 ? "Falta" : "Faltan"} ${fmt(k)}` : `${k === 1 ? "Sobra" : "Sobran"} ${fmt(k)}`, tono: "aviso" };
   }
   return { lectura: "Sin datos para cuadrar", tono: "neutro" };
 }
@@ -110,7 +119,7 @@ export function construirRegistro(
       { rotulo: "Estado", valor: texto(p.application_status) || "—" },
       { rotulo: "Aula real", valor: texto(p.actual_room) || "—" },
       { rotulo: "Aplicador", valor: texto(p.applied_by) || "—" },
-      { rotulo: "Fecha y hora", valor: texto(p.applied_at) || "—" },
+      { rotulo: "Fecha y hora", valor: fechaDelParte(p.applied_at) || "—" },
       { rotulo: "Asistentes", valor: cifra(p.observed_students) },
       { rotulo: "Rechazos", valor: cifra(p.refusals) },
       { rotulo: "Ya habían respondido", valor: cifra(p.duplicates) },

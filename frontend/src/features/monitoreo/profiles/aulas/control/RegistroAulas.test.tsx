@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
-import { construirRegistro } from "./registroModelo";
+import { construirRegistro, fechaDelParte } from "./registroModelo";
 import { RegistroAulas } from "./RegistroAulas";
 
 // Ficha Ctl4 con P5 («manda la hoja»): el parte se lee del libro; en la app
@@ -55,5 +55,10 @@ describe("RegistroAulas", () => {
     expect(html).toContain("B · complemento");
     expect(html).toContain("C · refuerzo");
     expect(html).toContain("se corrige allí");
+  });
+  it("la fecha del parte se dice como el resto de la app", () => {
+    expect(fechaDelParte("2026-09-10 10:58")).toBe("10/09 10:58");
+    expect(fechaDelParte("2026-09-10")).toBe("10/09/26");
+    expect(fechaDelParte("sin fecha")).toBe("sin fecha");
   });
 });
