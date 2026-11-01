@@ -239,7 +239,10 @@ export function ProcessingSheetViewer({
       className={`pulso-processing-sheet${isWideSheet ? " is-wide" : ""}${isRoster ? " is-roster" : ""}`}
       aria-label={title}
       data-repeat-roster={isRoster ? "true" : undefined}
-      data-audit-ready={isRoster ? "true" : undefined}
+      // Mientras no hay datos ni error, la vista todavía no es la tabla: «todavía
+      // no» (false) bloquea a la marca de la pestaña, que antes se daba por lista
+      // con «Armando vista previa» en pantalla (Analítica › Base final, L29).
+      data-audit-ready={isRoster ? "true" : !payload && !error ? "false" : undefined}
     >
       <div className="pulso-processing-sheet-toolbar">
         <div className="pulso-processing-sheet-title">
