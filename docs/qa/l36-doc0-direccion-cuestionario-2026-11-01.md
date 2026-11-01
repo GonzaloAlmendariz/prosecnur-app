@@ -66,8 +66,8 @@ Lo que está mal, por orden de lo que se ve primero:
 | Fase | Qué | Estado |
 |---|---|---|
 | DOC.0 | Esta dirección | ☑ 2026-11-01 |
-| DOC.0b | Arreglar 1–3 (D-L36-1, 2 y 3) en el motor actual, con test y página rasterizada | ☐ siguiente |
-| DOC.0c | D-L36-4 y D-L36-5 (códigos numéricos, portada) | ☐ |
+| DOC.0b | Arreglar 1–3 (D-L36-1, 2 y 3) en el motor actual, con test y página rasterizada | ☑ `042c770fc`: Word y PDF sin bandas vacías ni bloques de plataforma, número de fila en una línea, 7 → 6 páginas; «Así queda» con la misma regla |
+| DOC.0c | D-L36-4 y D-L36-5 (códigos numéricos, portada) | ☐ siguiente |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☐ |
 | DOC.2–DOC.5 | Visor fiel, bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
 
