@@ -316,7 +316,7 @@ const FECHAS_QUE_CABEN = 14;
 function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protagonista, metaOperativa: number | null): Ritmo {
   const ritmo = dashboard?.ritmo_diario ?? null;
   if (!ritmo || !Array.isArray(ritmo.dias)) {
-    return { tipo: "sin-dato", causa: "Este corte no trae la serie diaria: la publica el motor al traer respuestas." };
+    return { tipo: "sin-dato", causa: "Este corte no trae la serie diaria: la publica el motor al actualizar." };
   }
   const brutos = ritmo.dias
     .map((d) => ({

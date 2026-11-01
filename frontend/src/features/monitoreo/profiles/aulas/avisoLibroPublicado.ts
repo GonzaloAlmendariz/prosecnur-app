@@ -144,7 +144,7 @@ export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefine
   return {
     texto:
       `No se pudo leer el Sheets antes de publicar${causa ? ` (${causa})` : ""}: ` +
-      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa Traer respuestas cuando el enlace responda.",
+      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa «Actualizar» cuando el enlace responda.",
     tono: "atencion",
   };
 }

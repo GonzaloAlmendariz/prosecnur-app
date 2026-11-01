@@ -168,7 +168,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
           <p className="aulas-ins-texto">{modelo.distribucion.texto}</p>
           <ol className="aulas-ins-mecanismo">
             <li>La app siembra la pestaña de cada semana una sola vez, con el reparto equitativo.</li>
-            <li>Después sólo agrega filas por lo nuevo agendado y retira las cerradas al traer respuestas.</li>
+            <li>Después sólo agrega filas por lo nuevo agendado y retira las cerradas al actualizar.</li>
             <li>Lo que el equipo fija o ajusta a mano manda: no se reescribe.</li>
           </ol>
         </section>

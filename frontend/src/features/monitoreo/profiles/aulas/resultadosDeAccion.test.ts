@@ -36,8 +36,9 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     // demás» — ahora dispara el ciclo completo (syncField: libro + corte),
     // que pone estado fresco y su aviso; el blanqueo sigue siendo la señal.
     // P1a (2026-11-01): el botón abre primero el panel que explica los pasos;
-    // «Actualizar ahora» es el que corre el ciclo completo.
-    expect(page).toContain("onSyncAll={reciboSync.abrir}");
+    // «Actualizar ahora» es el que corre el ciclo completo. L38 (2026-11-01):
+    // el botón es el «Actualizar» de la barra común (`barraDeAulas.ts`).
+    expect(page).toContain("onActualizar: reciboSync.abrir,");
     expect(page).toContain("onActualizar={() => { void syncField(true); }}");
   });
 

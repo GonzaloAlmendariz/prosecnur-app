@@ -138,7 +138,7 @@ function diasDe(dashboard: MonitoreoAulasDashboard): Array<{ fecha: string; vali
 
 const SIN_SERIE: Vacio = {
   clase: "desconexion",
-  causa: "Este corte no trae la serie diaria: la publica el motor al traer respuestas.",
+  causa: "Este corte no trae la serie diaria: la publica el motor al actualizar.",
 };
 const SIN_DIAS: Vacio = { clase: "legitimo", causa: "Aún no hay efectivas con fecha de envío." };
 
@@ -261,7 +261,7 @@ function tasasDe(dashboard: MonitoreoAulasDashboard): Tasas {
   if (!bloque || !Array.isArray(bloque.facultades)) {
     return {
       tipo: "vacio",
-      vacio: { clase: "desconexion", causa: "Este corte no trae el seguimiento de la tasa: lo publica el motor al traer respuestas." },
+      vacio: { clase: "desconexion", causa: "Este corte no trae el seguimiento de la tasa: lo publica el motor al actualizar." },
     };
   }
   const medibles = bloque.facultades

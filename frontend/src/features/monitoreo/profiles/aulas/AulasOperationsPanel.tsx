@@ -251,12 +251,10 @@ export function AulasOperationsPanel({
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
           {/* **El rótulo promete lo que el botón hace, desde el 2026-09-09.**
-              Antes sólo recalculaba con el snapshot que ya había en la sesión, y
-              el nombre decía «sincronizar»: dos jornadas devolviendo las mismas
-              cifras de la víspera sin nada en pantalla que lo explicara. Ahora
-              baja primero de la plataforma; el rótulo se queda porque ya es
-              cierto. */}
-          <span>Traer respuestas</span>
+              Baja primero de la plataforma y después recalcula. Desde L38
+              (2026-11-01) se llama como el «Actualizar» de la barra del modo:
+              es el mismo acto, y un segundo nombre para él confundía. */}
+          <span>Actualizar</span>
         </button>
         {/* Lo que el botón deja detrás: si el Sheets quedó escrito con este
             mismo corte o se quedó en uno anterior. Sin esto, «se supone que
@@ -267,7 +265,7 @@ export function AulasOperationsPanel({
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
             app lo relee. Sin estos dos botones sólo se podía cerrar por API.
             Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
-            que el ciclo completo son dos clics —«Traer respuestas» para traer
+            que el ciclo completo son dos clics —«Actualizar» para traer
             las respuestas y «Publicar al Sheets» para el resto— y no hace falta
             acordarse de «Leer del Sheets» en medio. */}
         <button

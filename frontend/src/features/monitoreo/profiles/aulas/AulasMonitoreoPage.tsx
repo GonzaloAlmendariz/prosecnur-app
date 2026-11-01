@@ -130,6 +130,7 @@ import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQ
 // telefónico y acreditación (su vocabulario, sus fases), y esto no es eso — es
 // esperar a un job y leer su progreso, idéntico para cualquier familia.
 import { useWaitForSourceSyncJob } from "../../sync/pollSourceSync";
+import { construirBarraDeAulas } from "./barraDeAulas";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -1239,12 +1240,6 @@ export default function AulasMonitoreoPage() {
     : imported
       ? "Pide las respuestas nuevas a la plataforma y recalcula el corte de campo, la agenda y el avance"
       : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
-  // «Avance» NO trae datos: abre la sección y la recalcula con lo que el
-  // proyecto ya tiene. Decirlo evita que se lea como una segunda sincronización.
-  const advanceTitle = busy
-    ? "Actualizando vista de cursos-horario..."
-    : "Abre la sección Avance y la recalcula con los datos que ya están en el proyecto (no pide nada a la plataforma)";
-
   /**
    * Relee el estado del proyecto.
    *
@@ -2164,22 +2159,28 @@ export default function AulasMonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={busy}
-        // A26b — semántica dictada por el dueño (2026-09-01): «Avance es para
-        // ver el avance en plataforma; Recargar es para cargar el excel y
-        // todo lo demás». Estaba al revés: «Avance» conversaba con el libro y
-        // «Recargar» solo releía memoria — medido: un Recargar dejó la agenda
-        // en 12 con el libro en 28.
-        advanceSyncDisabled={busy}
-        advanceSyncLabel="Avance"
-        advanceSyncTitle={advanceTitle}
-        onSyncAdvance={() => {
-          if (direccion.seccion !== "avance") irASeccion("avance");
-          void loadView("avance", true);
-        }}
-        syncDisabled={busy || !imported}
-        syncLabel="Traer respuestas"
-        syncTitle={refreshTitle}
-        onSyncAll={reciboSync.abrir}
+        // L38: un solo «Actualizar ▾» en la barra común, como los otros tres
+        // perfiles. El viejo «Avance» (A26b: nunca trajo datos) y «Recalcular
+        // sin leer» viven en su menú (`barraDeAulas.ts`).
+        barraDelModo={construirBarraDeAulas({
+          registros: state?.n_rows ?? 0,
+          syncedAt: state?.synced_at ?? "",
+          generationStatus: state?.generation_status ?? "",
+          pendienteDeRecalcular: Boolean(state?.pending_regeneration),
+          hayEstado: Boolean(state),
+          cargando: loading,
+          actualizando: reciboSync.estado.momento === "corriendo",
+          error,
+          ocupado: busy,
+          importado: imported,
+          tituloActualizar: refreshTitle,
+          onActualizar: reciboSync.abrir,
+          onRecalcular: () => { void syncField(false); },
+          onReleerAvance: () => {
+            if (direccion.seccion !== "avance") irASeccion("avance");
+            void loadView("avance", true);
+          },
+        })}
         onCambioSeccion={(view) => {
           if (view !== direccion.seccion) irASeccion(view);
         }}
