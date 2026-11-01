@@ -72,7 +72,8 @@ Lo que está mal, por orden de lo que se ve primero:
 | DOC.0b | Arreglar 1–3 (D-L36-1, 2 y 3) en el motor actual, con test y página rasterizada | ☑ `042c770fc`: Word y PDF sin bandas vacías ni bloques de plataforma, número de fila en una línea, 7 → 6 páginas; «Así queda» con la misma regla |
 | DOC.0c | D-L36-5, primer paso: «Título del documento» en Impreso › Formato; viaja como `options$title` y «Así queda» lo dibuja. D-L36-4 retirada (manda la decisión del 2026-10-15) | ☑ `81baf012d`. Portada completa (institución, periodo, bloque de control) queda con DOC.1 |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☑ `1c2457aae`: tipografía y colores en `estandar_pulso.json`, el motor sin hex propios y el `.docx` idéntico byte a byte |
-| DOC.2–DOC.5 | Visor fiel, bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
+| DOC.2 | Visor fiel: páginas del Word y mapa pregunta → página | ☑ `002be9126`, `325f40903`, `b1f56dd23` |
+| DOC.3–DOC.5 | Bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
 esperar al visor para que el papel deje de tener marcos vacíos.
@@ -107,5 +108,11 @@ DOC.3 (bloques seleccionables sobre la página).
   Las páginas van en columna con su número; una lista «Ir a la pregunta»
   salta a la página donde empieza cada pregunta.
 
-Verlo en vivo exige `R CMD INSTALL` (el worker resuelve contra el paquete
-instalado): se coordina antes con la sesión de coordinación.
+**Hecho (2026-11-01):** backend `002be9126`, front `325f40903` y arreglos de lo
+visto en vivo `b1f56dd23`. Con el instrumento de docentes a dos columnas: 9
+páginas, 87 de 87 preguntas ubicadas e «Ir a la pregunta» lleva a la página
+correcta (la 65, a la 7). Corrección del supuesto inicial: en desarrollo no
+hizo falta `R CMD INSTALL`, porque `launch.R` define `PULSO_REPO_ROOT` y el
+worker carga el código fuente con `load_all`. Para la app de escritorio
+instalada sí hará falta, como con cualquier cambio de R (eso es del corte de
+versión). Sigue DOC.3: bloques seleccionables sobre la página.
