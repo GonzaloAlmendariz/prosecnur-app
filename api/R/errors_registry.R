@@ -1130,6 +1130,7 @@ errores_registrados <- function() {
     "E_VALIDACION_REPEAT_FILE",                              "validacion_repeats_multibase.R",    "409",
     "E_WORD_DEPS",                                           "reporte_formulario_word.R",         "500",
     "E_WORD_EXPORT_FAILED",                                  "router_xlsform_editor.R",           "500",
+    "E_WORD_VISOR_FAILED",                                   "router_xlsform_editor.R",           "500",
     "E_WRONG_DATA",                                          "dashboard_source.R",                "400",
     "E_WRONG_KIND",                                          "router_carga.R",                    "400",
     "E_WRONG_XLSFORM",                                       "dashboard_source.R",                "400",

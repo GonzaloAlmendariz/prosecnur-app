@@ -1622,6 +1622,19 @@ mount_xlsform_editor <- function(pr) {
         fail_message = "No pude generar el Word del formulario"
       ))
     })) |>
+    plumber::pr_post("/api/xlsform-editor/word-visor", wrap_endpoint(function(req, res, ...) {
+      # L36 · DOC.2: el Word del cuestionario como páginas reales y el mapa
+      # pregunta -> página. Mismo cuerpo que export-word; el .docx queda
+      # registrado igual (xlsform_editor_word_visor.R).
+      .xlsform_editor_export_formulario(req, res, list(
+        ext = "docx",
+        output_kind = "formulario_word",
+        fail_code = "E_WORD_VISOR_FAILED",
+        fail_message = "No pude armar las páginas del Word del formulario",
+        runner = xlsform_editor_word_visor_job_runner,
+        on_complete = .xlsform_editor_word_visor_on_complete
+      ))
+    })) |>
     plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {
       # Validador estructural ligero. El frontend lo invoca debounced (cada
       # ~1s tras una edición) para refrescar el DiagnosticsBadge. Devuelve

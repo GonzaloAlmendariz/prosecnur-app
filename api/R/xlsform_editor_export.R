@@ -176,8 +176,13 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
 
   input_path <- job_save_rds(sid, "xlsform_export", list(
     survey = survey, choices = choices, settings = settings, paper = paper, options = options))
-  runner <- xlsform_editor_export_job_runner
-  attr(runner, "prosecnur_job_function_name") <- "xlsform_editor_export_job_runner"
+  # El visor del Word (L36 · DOC.2) comparte este handler con su propio worker
+  # y su propio on_complete; los exports usan los de este archivo.
+  runner <- spec$runner %||% xlsform_editor_export_job_runner
+  if (is.null(attr(runner, "prosecnur_job_function_name"))) {
+    attr(runner, "prosecnur_job_function_name") <- "xlsform_editor_export_job_runner"
+  }
+  armar_on_complete <- spec$on_complete %||% .xlsform_editor_export_on_complete
   kind <- paste0("xlsform_editor.", spec$output_kind)
   job_id <- tryCatch(
     job_submit(
@@ -187,7 +192,7 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
       args = list(input_path = input_path, formato = ext,
                   fail_code = spec$fail_code, fail_message = spec$fail_message),
       result_filename = paste0("formulario.", ext),
-      on_complete = .xlsform_editor_export_on_complete(sid, spec, filename),
+      on_complete = armar_on_complete(sid, spec, filename),
       on_cleanup = function(j) job_unlink_inputs(input_path)
     ),
     error = function(e) {
