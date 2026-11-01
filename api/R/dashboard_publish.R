@@ -301,6 +301,9 @@
     }
     .session_env[[sid]] <- s
   }
+  # ADR 0122 §9: del Planner sólo viaja la identidad, haya artefacto o no.
+  # La sesión original vuelve con restore_project() al salir.
+  .session_env[[sid]] <- .planner_para_publicar(session_get(sid))
   tmp <- tempfile("proyecto_", fileext = ".pulso")
   result <- build_pulso(sid, tmp, project_name = project_name)
   list(path = tmp, size = result$size)
