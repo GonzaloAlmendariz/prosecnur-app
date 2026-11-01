@@ -322,6 +322,8 @@ export default function HojasRutaMapaPage() {
   const grupos = useMemo(() => rutasPorDistrito(bloquesTitulares, bloquesReemplazos, estados, { soloPorRevisar, busqueda: busquedaUmp }), [bloquesTitulares, bloquesReemplazos, estados, soloPorRevisar, busquedaUmp]);
   const manzanaPorId = useMemo(() => new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const))), [distritos]);
 
+  // La ficha de manzana es de la sección donde se abrió: al cambiar de sección no tapa su inspector.
+  useEffect(() => { setManzanaEnfocada(null); }, [nav.seccion, setManzanaEnfocada]);
   // Paridad §7: la ficha de cualquier manzana del marco, con su papel en la muestra.
   const manzanaFicha = manzanaEnfocada ? manzanaPorId.get(manzanaEnfocada) ?? null : null;
   const papelEnMuestra = useMemo(() => {
