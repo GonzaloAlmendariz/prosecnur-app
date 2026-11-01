@@ -295,6 +295,7 @@ import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, p
 import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, caseIsAuditable, casePrimaryEvidence, caseSecondaryEvidence, casePhoneAction, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
+import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
@@ -2243,14 +2244,6 @@ function calendarPhaseFromPlan(plan: AcreditacionCalendarActorPlan, index: numbe
   };
 }
 
-const PHONE_QUOTA_ACTOR_FILTER_KEYS = new Set([
-  "actor",
-  "dim actor",
-  "unidad",
-  "publico objetivo",
-  "público objetivo",
-]);
-
 export type AcreditacionPhoneQuotaEditorRow = {
   key: string;
   variable: string;
@@ -2268,51 +2261,11 @@ export type AcreditacionPhoneQuotaEditorRow = {
   source: "base" | "configured";
 };
 
-function phoneQuotaIsActorFilterKey(key: string) {
-  return PHONE_QUOTA_ACTOR_FILTER_KEYS.has(normalizeSourceMatch(key));
-}
 
-function phoneQuotaGoalHasActor(goal: MonitoreoGoal) {
-  return Object.keys(goal.filters ?? {}).some(phoneQuotaIsActorFilterKey);
-}
 
-function phoneQuotaGoalTotal(goals: MonitoreoGoal[], variable: string) {
-  return goals.reduce((sum, goal) => (
-    !phoneQuotaGoalHasActor(goal) && phoneQuotaGoalValue(goal, variable)
-      ? sum + Math.max(0, Number(goal.meta) || 0)
-      : sum
-  ), 0);
-}
 
-function phoneQuotaGoalVariables(goals: MonitoreoGoal[] = []) {
-  const names = goals.flatMap((goal) => (
-    phoneQuotaGoalHasActor(goal)
-      ? []
-      : Object.keys(goal.filters ?? {}).filter((key) => String(goal.filters?.[key] ?? "").trim())
-  ));
-  return uniqueDisplayValues(names);
-}
 
-function phoneQuotaUpsertGoal(goals: MonitoreoGoal[], variable: string, value: string, meta: number, keepZero = false) {
-  const cleanValue = value.trim();
-  const cleanMeta = Math.max(0, Number(meta) || 0);
-  const next = goals.filter((goal) => {
-    if (phoneQuotaGoalHasActor(goal)) return true;
-    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
-  });
-  if (cleanValue && (cleanMeta > 0 || keepZero)) {
-    next.push({ filters: { [variable]: cleanValue }, meta: cleanMeta });
-  }
-  return next;
-}
 
-function phoneQuotaRemoveGoal(goals: MonitoreoGoal[], variable: string, value: string) {
-  const cleanValue = value.trim();
-  return goals.filter((goal) => {
-    if (phoneQuotaGoalHasActor(goal)) return true;
-    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
-  });
-}
 
 function phoneQuotaVariableOptions(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
   const names = uniqueDisplayValues([
