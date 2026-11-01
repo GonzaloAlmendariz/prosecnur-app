@@ -1,0 +1,32 @@
+# Checklist: lo que hacía la página clásica de Hojas de ruta y ya no está
+
+Fecha: 2026-11-01. Pedido de Gonzalo tras el retiro de la clásica (2c641554b): «Evaluemos que podríamos usar porque
+material ya cubre las fichas y el motor actual entiendo que cubre todo lo que antes cubría el antiguo».
+
+Método: inventario de funciones de `HojasRutaPage.tsx` y sus módulos tal como estaban en `2c641554b^` (leídos con
+`git show`, sin restaurarlos), contrastado con el atlas (`frontend/src/features/hojasRuta/mapa/**`) y Material de
+campo (`frontend/src/features/recopiladores/territorial/**`). Salieron 68 funciones: 49 cubiertas (igual o de otra
+forma), 4 nuevas sin equivalente clásico y 15 que faltan o quedaron más pobres. Abajo solo las que faltan, por
+importancia para un analista que arma un estudio territorial. Rescatar algo se hace en archivo nuevo del atlas, con
+el código viejo como referencia (`git show 2c641554b^:<ruta>`), nunca restaurando la página.
+
+Estados: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado (decisión).
+
+| # | Falta o quedó más pobre | Dónde vivía (2c641554b^) | Dónde viviría hoy | Estado |
+|---|---|---|---|---|
+| P1 | Ver la otra corrida (Piloto ↔ Campo real) y crear la de campo desde el piloto. La etapa del estudio la declara el Planner (ADR 0122, `hojas_ruta_etapa.R`) y el atlas solo la muestra en un chip; `apiHojasRutaSetPhase` y `apiHojasRutaCreateFieldFromPilot` quedaron sin consumidor. Sin Planner que declare la etapa, no hay cómo pasar a campo desde la interfaz | `PhaseHeaderControl`, `changePhase` (C:1050-1125, C:7044) | Chip de fase de la barra (`HojasRutaMapaPage.tsx:557`) como selector | ⛔ decidir: ¿la vista de la otra corrida y «crear campo desde el piloto» vuelven a Hojas, o todo pasa por la etapa del Planner (ADR 0123 la deja en el cronograma)? |
+| P2 | Regla de exclusión del piloto en Campo real («Evita titulares» / «No evita piloto») y ver en el mapa las titulares del piloto que se excluyen | `setPilotExclusionMode` (C:1104-1120, C:7058); `pilotTitularIds` (C:8128) | Inspector de Manzanas, junto al método; capa del lienzo | ☐ — nadie más la fija; hoy sólo se lee para el texto del chip |
+| P3 | Margen y DEFF ajustados por distrito (`margin_district_overrides`, `design_effect_overrides`): se conservan pero no se ven ni se editan | C:6049-6100, C:7496, C:7508 | Inspector de Muestra › reparto por distrito (`MuestraPaneles.tsx`) | ☐ |
+| P4 | Cuotas antes de sortear: ya no hay «Calcular cuotas»; la matriz de cuotas aparece sólo con el sorteo | `previewQuota` (C:7219), `QuotaMatrixPreview` (C:5233) | Muestra › «Ver cuotas» (`MuestraCajon.tsx`), con `apiHojasRutaQuotaPreview` | ☐ |
+| P5 | Avisos de población y de cuotas (`population.alerts`, `quota.alerts`) y el aviso de cuotas que no cuadran en los chips de la selección | C:8045-8052, C:8463-8470, `chipsDeSeleccion.ts` | Inspectores de Población y Selección | ☐ — «un dato que muere camino a la UI» |
+| P6 | Aviso de cartografía del marco: nota del motor y auditoría contra la cartografía oficial (manzanas sólo-oficial / sólo-activa); estado «marco no disponible» | `MarcoCartografiaAviso.tsx`, `marcoCartografia.ts` (C:7673, C:7790) | `MarcoTerritorial` en `TerritorioPaneles.tsx:282` | ☐ |
+| P7 | Explicación metodológica del N: cadena de fórmulas (z²pq/e², ×DEFF, FPC, redondeo a rutas, garantía distrital), criterios estadísticos, semáforos de decisión y la recomendación automática de DEFF | C:6126-6190, C:6337-6395, C:5938-6000 | «¿De dónde sale este N?» en `MuestraPaneles.tsx:245` | ☐ |
+| P8 | Revisión contra el marco: la tira de viviendas por manzana (escala log) y la tabla por distrito | `seleccion/RevisionContraMarco.tsx` | Inspector de Selección › Revisión (`SeleccionPaneles.tsx:212`) | ☐ |
+| P9 | Menores: matriz agrupada por ubigeo y `row_var` en el Excel; quitar un ruteo del historial; capa de contexto OSM; totales del marco (manzanas, viviendas, población); hojas de zona y versión del marco en las descargas | C:7896, C:8445, C:4273, C:7830, C:8717 | Varios | ☐ |
+| P10 | Etapas sin marca de «hecho» en el rail | `hojasRutaNavigation.ts` | `SectionPillbar` | ☑ decidido: las etapas no bloquean (ADR 0114 §4, D3); cada inspector dice qué falta |
+
+## Notas
+
+- Las funciones nuevas que no tenía la clásica: atlas de ciudades del Perú, comparar semillas, marco elegible,
+  «¿se parece al marco?», cuotas por ficha, bitácora, informe de diseño y plan de campo.
+- P1 y P2 son las únicas que impiden hacer algo (no sólo verlo). El resto es información que ya calcula el motor.
