@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizarPlannerCalendario, normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
+import { normalizarPlannerCalendario, normalizarPlannerEquipoDe, normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
 
 describe("normalizadores del Planner", () => {
   it("lee los modos como los serializa R: escalares sueltos y listas vacías como {}", () => {
@@ -52,5 +52,14 @@ describe("normalizadores del Planner", () => {
     expect(cal.etapa.fuentes.monitoreo).toEqual({ etapa: "piloto", pilotoDesde: undefined, campoDesde: "2026-11-12" });
     expect(cal.campo).toEqual({ inicio: "2026-11-10", fin: "" });
     expect(cal.avisos).toHaveLength(1);
+  });
+
+  it("lee el equipo de un perfil; con DNI llega bloqueado y sin personas", () => {
+    const eq = normalizarPlannerEquipoDe({ origen: "declarado", bloqueado: false, personas: [{ codigo: "P001", nombre: "Uno", rol: "encuestador", activo: false }] }, "territorial");
+    expect(eq.personas).toEqual([{ codigo: "P001", nombre: "Uno", rol: "encuestador", activo: false }]);
+    expect(eq.origen).toBe("declarado");
+    const dni = normalizarPlannerEquipoDe({ bloqueado: true, motivo: "El código del equipo es el DNI", personas: {} }, "territorial");
+    expect(dni.bloqueado).toBe(true);
+    expect(dni.personas).toEqual([]);
   });
 });

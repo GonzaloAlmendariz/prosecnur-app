@@ -44,6 +44,13 @@ mount_planner <- function(pr) {
       .planner_codigos(session_get(session_header(req)))
     })) |>
 
+    # El equipo de un perfil (encuestadores, aplicadores) para Material y
+    # Monitoreo: código y nombre, nunca el DNI. Lectura pura.
+    plumber::pr_get("/api/planner/equipo/<perfil>",
+                    wrap_endpoint(function(req, res, perfil, ...) {
+      .planner_equipo_de(session_get(session_header(req)), .bit_texto(perfil, 40L))
+    })) |>
+
     plumber::pr_put("/api/planner/<seccion>",
                     wrap_endpoint(function(req, res, seccion, ...) {
       sid <- session_header(req)

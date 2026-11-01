@@ -305,3 +305,35 @@ export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
 export async function apiPlannerCalendario(): Promise<PlannerCalendario> {
   return normalizarPlannerCalendario(await handle<unknown>(await apiFetch("/api/planner/calendario", { headers: headers() })));
 }
+
+// --- Equipo de un perfil, para Material y Monitoreo (ADR 0122 §10) ------------
+
+export type PlannerEquipoDePerfil = {
+  perfil: PlannerTipoPerfil;
+  origen: PlannerOrigen;
+  /** Con códigos que son DNI no se entrega a nadie (misma regla que Material). */
+  bloqueado: boolean;
+  motivo: string;
+  personas: { codigo: string; nombre: string; rol: string; activo: boolean }[];
+};
+
+export function normalizarPlannerEquipoDe(raw: unknown, perfil: PlannerTipoPerfil): PlannerEquipoDePerfil {
+  const r = obj(raw);
+  return {
+    perfil,
+    origen: txt(r.origen) === "declarado" ? "declarado" : "proyectado",
+    bloqueado: r.bloqueado === true,
+    motivo: txt(r.motivo),
+    personas: arr(r.personas).map((x) => {
+      const p = obj(x);
+      return { codigo: txt(p.codigo), nombre: txt(p.nombre), rol: txt(p.rol), activo: p.activo !== false };
+    }).filter((p) => p.codigo || p.nombre),
+  };
+}
+
+export async function apiPlannerEquipoDe(perfil: PlannerTipoPerfil): Promise<PlannerEquipoDePerfil> {
+  return normalizarPlannerEquipoDe(
+    await handle<unknown>(await apiFetch(`/api/planner/equipo/${perfil}`, { headers: headers() })),
+    perfil,
+  );
+}
