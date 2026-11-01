@@ -21,7 +21,7 @@ source("setup-load-all.R")
 
 test_that("cada perfil recibe a los suyos: por perfil declarado o, si no, por rol", {
   sid <- .pe_sesion()
-  .planner_declarar(sid, "equipo", .pe_equipo(), 0L)
+  .planner_sembrar_legado(sid, "equipo", .pe_equipo())
   s <- session_get(sid)
   codigos <- function(perfil) vapply(.planner_equipo_de(s, perfil)$personas, `[[`, "", "codigo")
   expect_equal(codigos("territorial"), c("P001", "P002", "S01"))
@@ -45,7 +45,7 @@ test_that("leer el equipo de un perfil es puro y nunca trae el DNI", {
 
 test_that("con códigos que son DNI no se entrega a nadie, como en Material", {
   sid <- .pe_sesion()
-  .planner_declarar(sid, "equipo", .pe_equipo("DNI"), 0L)
+  .planner_sembrar_legado(sid, "equipo", .pe_equipo("DNI"))
   eq <- .planner_equipo_de(session_get(sid), "territorial")
   expect_true(eq$bloqueado)
   expect_length(eq$personas, 0L)

@@ -18,10 +18,12 @@
 
 PLANNER_SCHEMA <- "planner/v1"
 PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana")
-# Equipo se escribe desde que el anonimizador y el gate de datos personales
-# cubren `planner$equipo$personas` (ec07d41d0; ADR 0122 §10). Si se agrega a
-# las personas otro campo con datos personales, hay que avisar al anonimizador.
-PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana")
+PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "insumos", "etapa", "ventana")
+# Secciones que salieron del Planner (ADR 0123 §2): el equipo es de Monitoreo y
+# los códigos de Material. Se siguen normalizando porque Material las lee como
+# respaldo de lectura en los .pulso que las declararon (hasta la fase Q6), y el
+# anonimizador sigue cubriendo `planner$equipo$personas` mientras existan.
+PLANNER_SECCIONES_LECTURA <- c(equipo = "Monitoreo", codigos = "Material de campo")
 # Etapa operativa del estudio (Meta B, 2026-10-31, con el ADR 0122 ratificado:
 # «el Planner dice qué fase está activa»). Hojas de ruta y Monitoreo la leen
 # del Planner en una fase posterior; hasta entonces el Planner muestra lo que
@@ -318,83 +320,6 @@ PLANNER_MAX_INSUMOS <- 60L
   perfiles
 }
 
-# Un código identifica a una sola persona: dos con el mismo código harían que
-# Material asigne y Monitoreo atribuya a la persona equivocada. El código puede
-# faltar (aplicadores de aulas que todavía no lo tienen); el nombre no.
-.planner_validar_equipo <- function(valor) {
-  equipo <- .planner_norm_equipo(valor)
-  sin_nombre <- vapply(equipo$personas, function(p) !nzchar(p$nombre), logical(1))
-  if (any(sin_nombre)) {
-    .planner_invalido("Cada persona del equipo necesita un nombre.",
-                      codigos = as.list(vapply(equipo$personas[sin_nombre], `[[`, "", "codigo")))
-  }
-  codigos <- vapply(equipo$personas, `[[`, "", "codigo")
-  codigos <- codigos[nzchar(codigos)]
-  if (anyDuplicated(codigos)) {
-    .planner_invalido("Dos personas del equipo tienen el mismo código.", codigo = codigos[duplicated(codigos)][[1]])
-  }
-  equipo
-}
-
-# El catálogo sólo agrega (ADR 0122 §6): un código no se borra ni cambia de
-# grupo; se retira. El rótulo sí se puede corregir. La versión la sube el
-# servidor cuando cambia qué códigos se ofrecen.
-.planner_validar_catalogo <- function(nuevo, previo, nombre) {
-  previos <- stats::setNames(previo, vapply(previo, `[[`, "", "codigo"))
-  codigos_nuevos <- vapply(nuevo, `[[`, "", "codigo")
-  faltan <- setdiff(names(previos), codigos_nuevos)
-  if (length(faltan)) {
-    .planner_invalido("Un código del estudio no se borra: se retira, y se sigue leyendo en lo que ya volvió de campo.",
-                      catalogo = nombre, codigos = as.list(faltan))
-  }
-  for (k in nuevo) {
-    p <- previos[[k$codigo]]
-    if (!is.null(p) && !identical(p$grupo, k$grupo)) {
-      .planner_invalido("Un código no cambia de significado: retíralo y agrega uno nuevo.",
-                        catalogo = nombre, codigo = k$codigo)
-    }
-    if (!is.null(p$retirado_en_version) && is.null(k$retirado_en_version)) {
-      .planner_invalido("Un código retirado no vuelve: agrega uno nuevo.", catalogo = nombre, codigo = k$codigo)
-    }
-  }
-  invisible(TRUE)
-}
-
-.planner_ofrecidos <- function(catalogo) {
-  sort(vapply(Filter(function(k) is.null(k$retirado_en_version), catalogo), `[[`, "", "codigo"))
-}
-
-.planner_validar_codigos <- function(valor, previo) {
-  nuevo <- .planner_norm_codigos(valor)
-  previo <- previo %||% list(version = 1L, resultado = list(), status_barrido = list())
-  .planner_validar_catalogo(nuevo$resultado, previo$resultado, "resultado")
-  .planner_validar_catalogo(nuevo$status_barrido, previo$status_barrido, "status_barrido")
-  cambio <- !identical(.planner_ofrecidos(nuevo$resultado), .planner_ofrecidos(previo$resultado)) ||
-    !identical(.planner_ofrecidos(nuevo$status_barrido), .planner_ofrecidos(previo$status_barrido))
-  version <- as.integer(previo$version %||% 1L)
-  # La primera declaración es la versión 1; desde ahí, cada cambio en lo que se
-  # ofrece sube una.
-  version_nueva <- if (cambio && length(previo$resultado) + length(previo$status_barrido)) version + 1L else version
-  # Un retiro sella con la versión en la que dejó de ofrecerse, y ese sello no
-  # se reescribe después.
-  sellar <- function(cat, prev) {
-    prev <- stats::setNames(prev, vapply(prev, `[[`, "", "codigo"))
-    lapply(cat, function(k) {
-      anterior <- prev[[k$codigo]]$retirado_en_version
-      if (!is.null(anterior)) {
-        k$retirado_en_version <- anterior
-      } else if (!is.null(k$retirado_en_version)) {
-        k$retirado_en_version <- version_nueva
-      }
-      k
-    })
-  }
-  nuevo$resultado <- sellar(nuevo$resultado, previo$resultado)
-  nuevo$status_barrido <- sellar(nuevo$status_barrido, previo$status_barrido)
-  nuevo$version <- version_nueva
-  nuevo
-}
-
 # --- Escritura -----------------------------------------------------------------
 
 #' Declara una sección del Planner. Exige la revisión vigente y la sube en uno.
@@ -402,6 +327,12 @@ PLANNER_MAX_INSUMOS <- 60L
 .planner_declarar <- function(sid, seccion, valor, expected_revision) {
   if (!seccion %in% PLANNER_SECCIONES) {
     stop_api(404, "E_PLANNER_SECCION", "El Planner no tiene esa sección.", details = list(seccion = seccion))
+  }
+  if (seccion %in% names(PLANNER_SECCIONES_LECTURA)) {
+    modulo <- PLANNER_SECCIONES_LECTURA[[seccion]]
+    stop_api(409, "E_PLANNER_SECCION_RETIRADA",
+             sprintf("Esa sección ya no se declara en el Planner: vive en %s.", modulo),
+             details = list(seccion = seccion, modulo = modulo))
   }
   if (!seccion %in% PLANNER_SECCIONES_ESCRIBIBLES) {
     stop_api(409, "E_PLANNER_SECCION_PENDIENTE",
@@ -417,10 +348,8 @@ PLANNER_MAX_INSUMOS <- 60L
   }
   limpio <- switch(seccion,
                    perfiles = .planner_validar_perfiles(valor),
-                   equipo = .planner_validar_equipo(valor),
                    etapa = .planner_validar_etapa(valor),
                    ventana = .planner_validar_ventana(valor),
-                   codigos = .planner_validar_codigos(valor, actual$secciones$codigos$valor),
                    .planner_normalizar_seccion(seccion, valor))
   actual$secciones[[seccion]] <- list(valor = limpio, declarado_en = .bit_now_iso())
   actual$revision <- actual$revision + 1L

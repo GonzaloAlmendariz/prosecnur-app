@@ -12,10 +12,9 @@ import {
   type PlannerTipoPerfil,
 } from "../../../api/planner";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
-import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import { PULSO_TABLE_ALTO_FILA, PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import { PlannerAvisos, PlannerCabecera } from "./PlannerCabecera";
-import { altoSinScrollPropio } from "./PlannerCodigos";
 import { DETALLE_PERFIL, ETIQUETA_DISENO, ETIQUETA_PERFIL, modosDelPerfil } from "./plannerCopia";
 import { PlannerFaseActiva } from "./PlannerFaseActiva";
 import { usePlannerCalendario } from "./usePlannerCalendario";
@@ -259,6 +258,12 @@ function PerfilTarjeta({ perfil, onCambio }: { perfil: PlannerPerfil; onCambio: 
 }
 
 // --- Insumos del cliente --------------------------------------------------------
+
+// Alto con la tabla entera a la vista: la sección ya está dentro de un panel
+// que es el único dueño del desplazamiento (No Scroll Jail).
+function altoSinScrollPropio(filas: number) {
+  return 32 + PULSO_TABLE_ALTO_FILA.comoda * Math.max(filas, 1) + 4;
+}
 
 const TIPOS_INSUMO: Record<string, string> = { padron: "Padrón", listado: "Listado", marco: "Marco muestral", otro: "Otro" };
 

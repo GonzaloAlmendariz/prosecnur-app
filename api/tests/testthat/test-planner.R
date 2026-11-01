@@ -145,13 +145,13 @@ test_that("una sección desconocida es 404", {
   expect_equal(err$code, "E_PLANNER_SECCION")
 })
 
-test_that("el equipo se guarda donde lo leen el anonimizador y el gate, sin campos de más", {
+test_that("un equipo declarado antes del 0123 se lee donde lo leen el anonimizador y el gate, sin campos de más", {
   sid <- .pl_sesion()
-  .planner_declarar(sid, "equipo", list(code_format = "PXXX", personas = list(
+  .planner_sembrar_legado(sid, "equipo", list(code_format = "PXXX", personas = list(
     list(codigo = "P001", nombre = "Encuestador Ejemplo Uno", rol = "encuestador", perfiles = list("territorial"),
          dni = "00000000", telefono = "999999999"),
     list(codigo = "", nombre = "Aplicadora Ejemplo Dos", rol = "aplicador", perfiles = list("aulas"))
-  )), 0L)
+  )))
   guardado <- session_get(sid)$planner
   # La ruta del ADR 0122 §6: es la que recorre .pulso_anon_roster_planner.
   expect_equal(guardado$equipo$personas[[1]]$nombre, "Encuestador Ejemplo Uno")
@@ -161,13 +161,17 @@ test_that("el equipo se guarda donde lo leen el anonimizador y el gate, sin camp
   expect_equal(.planner_payload(session_get(sid))$origen$equipo, "declarado")
 })
 
-test_that("un código del equipo es de una sola persona y nadie queda sin nombre", {
+test_that("el equipo y los códigos ya no se declaran en el Planner (ADR 0123 §2)", {
   sid <- .pl_sesion()
-  dup <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list(
-    list(codigo = "P001", nombre = "Uno"), list(codigo = "P001", nombre = "Dos"))), 0L), error = identity)
-  expect_equal(dup$code, "E_PLANNER_INVALIDO")
-  sin <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list(list(codigo = "P002", nombre = ""), list(codigo = "P003", nombre = "Tres"))), 0L), error = identity)
-  expect_equal(sin$code, "E_PLANNER_INVALIDO")
+  equipo <- tryCatch(.planner_declarar(sid, "equipo", list(personas = list(list(codigo = "P001", nombre = "Uno"))), 0L),
+                     error = identity)
+  expect_equal(equipo$code, "E_PLANNER_SECCION_RETIRADA")
+  expect_equal(equipo$details$modulo, "Monitoreo")
+  codigos <- tryCatch(.planner_declarar(sid, "codigos", list(resultado = list()), 0L), error = identity)
+  expect_equal(codigos$code, "E_PLANNER_SECCION_RETIRADA")
+  expect_equal(codigos$details$modulo, "Material de campo")
+  expect_equal(.planner_leer(session_get(sid))$revision, 0L)
+  expect_false(any(c("equipo", "codigos") %in% unlist(.planner_payload(session_get(sid))$escribibles)))
 })
 
 test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {
@@ -182,31 +186,6 @@ test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {
   perfiles <- .planner_payload(session_get(sid))$planner$perfiles
   # Territorial lo diseña siempre Hojas de ruta, diga lo que diga el cliente.
   expect_equal(vapply(perfiles, `[[`, "", "diseno"), c("hojas-ruta", "cliente"))
-})
-
-test_that("el catálogo de códigos sólo agrega: no se borra, no cambia de grupo, se retira", {
-  sid <- .pl_sesion()
-  base <- list(resultado = list(list(codigo = "1", rotulo = "No quiso", grupo = "no_aplicada"),
-                                list(codigo = "8", rotulo = "Efectiva", grupo = "efectiva")))
-  .planner_declarar(sid, "codigos", base, 0L)
-  expect_equal(.planner_payload(session_get(sid))$planner$codigos$version, 1L)
-
-  borrar <- tryCatch(.planner_declarar(sid, "codigos", list(resultado = base$resultado[2]), 1L), error = identity)
-  expect_equal(borrar$code, "E_PLANNER_INVALIDO")
-  regrupar <- base; regrupar$resultado[[1]]$grupo <- "efectiva"
-  expect_equal(tryCatch(.planner_declarar(sid, "codigos", regrupar, 1L), error = identity)$code, "E_PLANNER_INVALIDO")
-
-  # Corregir un rótulo no cambia la versión; retirar sí, y sella con ella.
-  rotulo <- base; rotulo$resultado[[1]]$rotulo <- "No quiso participar"
-  .planner_declarar(sid, "codigos", rotulo, 1L)
-  expect_equal(.planner_payload(session_get(sid))$planner$codigos$version, 1L)
-  retiro <- rotulo; retiro$resultado[[1]]$retirar <- TRUE
-  .planner_declarar(sid, "codigos", retiro, 2L)
-  cod <- .planner_payload(session_get(sid))$planner$codigos
-  expect_equal(cod$version, 2L)
-  expect_equal(cod$resultado[[1]]$retirado_en_version, 2L)
-  vuelve <- tryCatch(.planner_declarar(sid, "codigos", rotulo, 3L), error = identity)
-  expect_equal(vuelve$code, "E_PLANNER_INVALIDO")
 })
 
 test_that("la puerta de la F4 del 0121 declara universo y variables sin celdas", {
@@ -422,21 +401,6 @@ test_that("si la campaña telefónica personalizó sus Status, se siembran ésos
     list(codigo = "no_contesta", status = "No contesta", clase = "no_contacto")))))
   st <- .planner_codigos(session_get(sid))$status_barrido
   expect_equal(vapply(st, `[[`, "", "codigo"), c("efectivo", "no_contesta"))
-})
-
-test_that("los rótulos del núcleo se editan (K1); el grupo o la clase no", {
-  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE))))
-  cod <- .planner_codigos(session_get(sid))
-  base <- list(resultado = cod$resultado, status_barrido = list(list(codigo = "efectivo", rotulo = "Efectivo", grupo = "efectiva")))
-  .planner_declarar(sid, "codigos", base, 0L)
-  editado <- base
-  editado$resultado[[8]]$rotulo <- "Encuesta completa"
-  .planner_declarar(sid, "codigos", editado, 1L)
-  expect_equal(.planner_codigos(session_get(sid))$resultado[[8]]$rotulo, "Encuesta completa")
-  expect_equal(.planner_codigos(session_get(sid))$origen, "declarado")
-  reclase <- editado
-  reclase$status_barrido[[1]]$grupo <- "pendiente"
-  expect_equal(tryCatch(.planner_declarar(sid, "codigos", reclase, 2L), error = identity)$code, "E_PLANNER_INVALIDO")
 })
 
 # --- Territorial: UMP aleatoria con hoja de ruta, o conveniencia (Gonzalo) -------

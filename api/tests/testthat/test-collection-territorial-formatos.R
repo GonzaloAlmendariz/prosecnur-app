@@ -82,12 +82,11 @@ test_that("HTTP: GET y PUT de los formatos", {
 test_that("Material es el dueño de los códigos; lo declarado en el Planner sólo es respaldo (ADR 0123, Q3)", {
   sid <- .mtf_sesion(); on.exit(session_delete(sid), add = TRUE)
   expect_identical(collection_territorial_formatos_get(sid)$origen_codigos, "material")
-  declarar <- function(rotulo4) .planner_declarar(sid, "codigos", list(version = 1L, resultado = list(
+  declarar <- function(rotulo4) .planner_sembrar_legado(sid, "codigos", list(version = 1L, resultado = list(
     list(codigo = "1", rotulo = "No quería participar", grupo = "no_aplicada"),
     list(codigo = "4", rotulo = rotulo4, grupo = "no_aplicada"),
     list(codigo = "8", rotulo = "Encuesta efectiva", grupo = "efectiva"),
-    list(codigo = "99", rotulo = "Manzana no elegible", grupo = "manzana")), status_barrido = list()),
-    session_get(sid)$planner$revision %||% 0L)
+    list(codigo = "99", rotulo = "Manzana no elegible", grupo = "manzana")), status_barrido = list()))
   declarar("Miembros del hogar ausentes")
   # Sin catálogo guardado en Material, el del Planner es el respaldo, y se puede editar aquí.
   r <- collection_territorial_formatos_get(sid)

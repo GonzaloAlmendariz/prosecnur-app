@@ -1,5 +1,5 @@
-// El Planner del estudio (ADR 0122): la Bitácora renombrada. Seis secciones
-// —Estudio, Muestra, Equipo, Códigos, Cronograma y Bitácora— con la dirección
+// El Planner del estudio (ADR 0122, reemplazado en parte por el 0123). Cuatro
+// secciones —Estudio, Muestra, Cronograma y Bitácora— con la dirección
 // canónica (`useSeccion`): las secciones van en el pillbar compartido y las
 // pestañas de una sección con dos o más, en el rail de la casa.
 //
@@ -7,6 +7,7 @@
 // único dueño del scroll (`.planner-panel`, No Scroll Jail).
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   apiBitacoraState,
   apiPlanTrabajoState,
@@ -35,24 +36,22 @@ import { descargarMapaDelEstudio } from "./portabilidad/descargar";
 import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
 import { PANEL_IMPORTAR } from "../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { useDireccion, useSeccion } from "../../lib/navegacion/useDireccion";
 import { PlannerCalendarioResumen } from "./planner/PlannerCalendarioResumen";
-import { PlannerCodigos } from "./planner/PlannerCodigos";
-import { PlannerEquipo } from "./planner/PlannerEquipo";
 import { PlannerEstudio } from "./planner/PlannerEstudio";
 import { PlannerMuestra } from "./planner/PlannerMuestra";
 import { usePlanner } from "./planner/usePlanner";
 import "./bitacora.css";
 import "./planner/planner.css";
 
-type Seccion = "estudio" | "muestra" | "equipo" | "codigos" | "cronograma" | "bitacora";
+type Seccion = "estudio" | "muestra" | "cronograma" | "bitacora";
 
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
 
 type PlannerSection = ProsecnurModuleSectionMeta & { id: Seccion };
 
-const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "equipo", "codigos", "cronograma", "bitacora"];
+const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "cronograma", "bitacora"];
 
 function isPlannerSection(section: ProsecnurModuleSectionMeta): section is PlannerSection {
   return SECCIONES_PLANNER.includes(section.id);
@@ -62,6 +61,21 @@ const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isPlannerSection);
 
 // El rail de Cronograma usa los mismos ids de tab/panel que el calendario: la
 // vista Mes o Semana sigue siendo un tabpanel etiquetado por su pestaña.
+// Secciones que salieron del Planner (ADR 0123 §2): lo que dice el aviso
+// cuando alguien llega por una dirección vieja.
+const MUDANZAS: Record<string, { texto: string; enlace: string; href: string }> = {
+  "equipo-en-monitoreo": {
+    texto: "El equipo de campo ya no se declara en el Planner: vive en Monitoreo, con el control de encuestadores y aplicadores.",
+    enlace: "Ir a Monitoreo",
+    href: "/monitoreo",
+  },
+  "codigos-en-material": {
+    texto: "Los códigos de resultado y los status del barrido ya no se declaran en el Planner: viven en Material de campo.",
+    enlace: "Ir a Material de campo",
+    href: "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos",
+  },
+};
+
 function tabIdDe(key: string) {
   if (key === "mes") return CALENDAR_VIEW_A11Y.month.tabId;
   if (key === "semana") return CALENDAR_VIEW_A11Y.week.tabId;
@@ -76,6 +90,9 @@ function panelIdDe(key: string) {
 
 export default function BitacoraPage() {
   const navegacion = useSeccion("diseno-estudio");
+  // Una dirección vieja a una sección que el Planner ya no tiene llega aquí con
+  // el aviso de dónde vive ahora su dato (ADR 0123 §3).
+  const mudanza = MUDANZAS[useDireccion()?.aviso ?? ""];
   const tab = (navegacion.seccion ?? "estudio") as Seccion;
   const pestanas = navegacion.pestanas;
   const pestana = navegacion.pestana && pestanas.some((p) => p.id === navegacion.pestana)
@@ -142,8 +159,6 @@ export default function BitacoraPage() {
       >
         {tab === "estudio" && <PlannerEstudio control={planner} pestana={pestana} />}
         {tab === "muestra" && <PlannerMuestra control={planner} />}
-        {tab === "equipo" && <PlannerEquipo control={planner} />}
-        {tab === "codigos" && <PlannerCodigos control={planner} pestana={pestana} />}
         {tab === "cronograma" && plan && pestana === "gantt" && (
           <>
             <PlannerCalendarioResumen recarga={plan} control={planner} />
@@ -232,6 +247,11 @@ export default function BitacoraPage() {
           ]}
         />
 
+        {mudanza && (
+          <Alert kind="info">
+            {mudanza.texto} <Link to={mudanza.href}>{mudanza.enlace}</Link>
+          </Alert>
+        )}
         {error && <Alert kind="error">{error}</Alert>}
         {planner.error && <Alert kind="error">{planner.error}</Alert>}
 

@@ -32,8 +32,8 @@ test_that("al publicar, del Planner sólo viaja la identidad", {
   sid <- session_create()
   withr::defer(session_delete(sid))
   .planner_declarar(sid, "estudio", list(nombre = "Estudio de prueba", codigo = "EP26", cliente = "Cliente"), 0L)
-  .planner_declarar(sid, "equipo", list(personas = list(list(codigo = "P001", nombre = "Encuestador Ejemplo Uno"))), 1L)
-  .planner_declarar(sid, "codigos", list(resultado = list(list(codigo = "8", rotulo = "Efectiva", grupo = "efectiva"))), 2L)
+  .planner_sembrar_legado(sid, "equipo", list(personas = list(list(codigo = "P001", nombre = "Encuestador Ejemplo Uno"))))
+  .planner_sembrar_legado(sid, "codigos", list(resultado = list(list(codigo = "8", rotulo = "Efectiva", grupo = "efectiva"))))
   .planner_declarar(sid, "etapa", list(valor = "campo"), 3L)
   original <- session_get(sid)$planner
 

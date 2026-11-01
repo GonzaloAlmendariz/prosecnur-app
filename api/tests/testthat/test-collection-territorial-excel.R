@@ -126,10 +126,10 @@ test_that("generar e importar exigen lista de Monitoreo y foto vigente; un archi
 
 test_that("el equipo es el roster de Monitoreo; el del Planner sólo es respaldo con el roster vacío (ADR 0123, Q3)", {
   sid <- .mtx_sesion(); on.exit(session_delete(sid), add = TRUE)
-  .planner_declarar(sid, "equipo", list(code_format = "PXXX", personas = list(
+  .planner_sembrar_legado(sid, "equipo", list(code_format = "PXXX", personas = list(
     list(codigo = "P101", nombre = "Encuestador Planner", rol = "encuestador", perfiles = list()),
     list(codigo = "P102", nombre = "Inactiva Planner", rol = "encuestador", perfiles = list(), activo = FALSE),
-    list(codigo = "A01", nombre = "Aplicadora", rol = "aplicador", perfiles = list()))), 0L)
+    list(codigo = "A01", nombre = "Aplicadora", rol = "aplicador", perfiles = list()))))
   # Con roster en Monitoreo, manda Monitoreo aunque el Planner tenga equipo declarado.
   eq <- .mta_equipo(session_get(sid))
   expect_identical(eq$origen, "monitoreo")
@@ -143,7 +143,7 @@ test_that("el equipo es el roster de Monitoreo; el del Planner sólo es respaldo
   lista <- openxlsx::read.xlsx(g$path, sheet = "Encuestadores")
   expect_identical(lista$Código, "P101")
   # Un respaldo con códigos DNI no entrega a nadie.
-  .planner_declarar(sid, "equipo", list(code_format = "DNI", personas = list(
-    list(codigo = "40000009", nombre = "X", rol = "encuestador", perfiles = list()))), 1L)
+  .planner_sembrar_legado(sid, "equipo", list(code_format = "DNI", personas = list(
+    list(codigo = "40000009", nombre = "X", rol = "encuestador", perfiles = list()))))
   expect_identical(.mtx_code(collection_territorial_asignacion_excel(sid)), "E_COLLECTION_TERRITORIAL_SIN_EQUIPO")
 })

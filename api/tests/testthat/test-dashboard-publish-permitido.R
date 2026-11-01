@@ -64,7 +64,7 @@ source("setup-load-all.R")
                                 path = roster, size = file.size(roster), ext = "xlsx", uploaded_at = "2026-10-31T00:00:00Z")
   .session_env[[sid]] <- s
   .planner_declarar(sid, "estudio", list(nombre = "PDM de prueba"), 0L)
-  .planner_declarar(sid, "equipo", list(personas = list(list(codigo = "P900", nombre = "Nombre Sembrado Uno"))), 1L)
+  .planner_sembrar_legado(sid, "equipo", list(personas = list(list(codigo = "P900", nombre = "Nombre Sembrado Uno"))))
   sid
 }
 

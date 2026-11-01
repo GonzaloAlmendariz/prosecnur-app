@@ -482,15 +482,13 @@ describe("audit-ready route root contract", () => {
     const { tag } = pageFunctionRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Bitácora");
 
-    // ADR 0122: la Bitácora es el Planner. Seis secciones; Calendario y Lienzo
-    // pasaron a ser pestañas de Cronograma y Bitácora. La clave conserva el
-    // prefijo `bitacora-` que ya usan las readiness anidadas del cronograma y
-    // del lienzo.
+    // ADR 0122: la Bitácora es el Planner; Calendario y Lienzo pasaron a ser
+    // pestañas de Cronograma y Bitácora. ADR 0123: Equipo y Códigos salieron
+    // del Planner. La clave conserva el prefijo `bitacora-` que ya usan las
+    // readiness anidadas del cronograma y del lienzo.
     expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
       "estudio",
       "muestra",
-      "equipo",
-      "codigos",
       "cronograma",
       "bitacora",
     ]);

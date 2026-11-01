@@ -47,6 +47,15 @@ describe("gramática de direcciones", () => {
     expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
     expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
     expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=bitacora&pestana=lienzo");
+    // ADR 0123 §3: Equipo y Códigos salieron del Planner. La dirección vieja
+    // aterriza en Estudio con el aviso de dónde vive el dato, y la pestaña vieja
+    // (que Estudio no tiene) se descarta. El aviso nunca se escribe.
+    expect(parsearDireccion("/planner", "?seccion=equipo")).toMatchObject({ seccion: "estudio", aviso: "equipo-en-monitoreo" });
+    const codigos = parsearDireccion("/planner", "?seccion=codigos&pestana=barrido");
+    expect(codigos).toMatchObject({ seccion: "estudio", aviso: "codigos-en-material" });
+    expect(codigos?.pestana).toBeUndefined();
+    expect(serializarDireccion(codigos!)).toBe("/planner");
+    expect(parsearDireccion("/planner", "?seccion=cronograma")?.aviso).toBeUndefined();
   });
 
   it("acepta los alias legacy de cada módulo", () => {

@@ -280,24 +280,6 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         layoutPolicy: "viewport",
       },
       {
-        id: "equipo",
-        label: "Equipo",
-        icon: Users,
-        to: "/planner?seccion=equipo",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "codigos",
-        label: "Códigos",
-        icon: Hash,
-        to: "/planner?seccion=codigos",
-        layoutPolicy: "viewport",
-        tabs: [
-          { id: "resultado", label: "Resultado de la visita", icon: ListChecks, to: "/planner?seccion=codigos&pestana=resultado", layoutPolicy: "viewport" },
-          { id: "barrido", label: "Status del barrido", icon: PhoneCall, to: "/planner?seccion=codigos&pestana=barrido", layoutPolicy: "viewport" },
-        ],
-      },
-      {
         id: "cronograma",
         label: "Cronograma",
         icon: IconWorkPlan,

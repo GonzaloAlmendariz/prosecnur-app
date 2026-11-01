@@ -79,6 +79,8 @@ export type DireccionProsecnur = {
   proyecto?: string;
   /** Params ajenos a la gramática que la dirección no debe perder. */
   extra?: Readonly<Record<string, string>>;
+  /** La sección pedida salió del módulo: clave del aviso de dónde vive ahora (ADR 0123 §3). Se lee, nunca se escribe. */
+  aviso?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -116,12 +118,17 @@ const ALIAS_LEGACY: Partial<Record<ProsecnurModuleSlug, AliasPorNivel>> = {
 // y cuyo contenido vive ahora en otra sección y pestaña. Se lee, nunca se
 // escribe. ADR 0122 §1: Calendario y Lienzo pasaron a ser pestañas del
 // Planner; la pestaña pedida (mes/semana) se conserva si venía.
-type SeccionRenombrada = { seccion: string; pestana: string };
+// ADR 0123 §3: una sección que salió del módulo lleva además un `aviso` (dónde
+// vive ahora su dato). Su pestaña vieja no existe en el destino, así que se
+// descarta y manda la del alias.
+type SeccionRenombrada = { seccion: string; pestana?: string; aviso?: string };
 
 const SECCIONES_RENOMBRADAS: Partial<Record<ProsecnurModuleSlug, Readonly<Record<string, SeccionRenombrada>>>> = {
   "diseno-estudio": {
     calendario: { seccion: "cronograma", pestana: "mes" },
     canvas: { seccion: "bitacora", pestana: "lienzo" },
+    equipo: { seccion: "estudio", aviso: "equipo-en-monitoreo" },
+    codigos: { seccion: "estudio", aviso: "codigos-en-material" },
   },
 };
 
@@ -261,8 +268,9 @@ export function parsearDireccion(
     ? SECCIONES_RENOMBRADAS[nodo.modulo]?.[normalizarToken(seccionLeida)]
     : undefined;
   const seccion = renombrada ? renombrada.seccion : seccionLeida;
-  const pestana =
-    leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana) ?? renombrada?.pestana;
+  const pestana = renombrada?.aviso
+    ? renombrada.pestana
+    : leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana) ?? renombrada?.pestana;
   const panel = leerParam(params, PARAMS_DIRECCION.panel);
   const foco = leerParam(params, PARAMS_DIRECCION.foco);
   const campana = leerParam(params, PARAM_CAMPANA);
@@ -297,6 +305,7 @@ export function parsearDireccion(
     ...(foco ? { foco } : {}),
     ...(campana ? { campana } : {}),
     ...(proyecto ? { proyecto } : {}),
+    ...(renombrada?.aviso ? { aviso: renombrada.aviso } : {}),
     ...(Object.keys(extra).length > 0 ? { extra } : {}),
   };
 }

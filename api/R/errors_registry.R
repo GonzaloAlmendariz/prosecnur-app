@@ -876,6 +876,7 @@ errores_registrados <- function() {
     "E_PLANNER_JSON",                                        "router_planner.R",                  "400",
     "E_PLANNER_SECCION",                                     "planner_modelo.R",                  "404",
     "E_PLANNER_SECCION_PENDIENTE",                           "planner_modelo.R",                  "409",
+    "E_PLANNER_SECCION_RETIRADA",                            "planner_modelo.R",                  "409",
     "E_PLAN_EMPTY",                                          "router_plan_trabajo.R",             "404",
     "E_PLAN_FILE_EXT",                                       "router_plan_trabajo.R",             "400",
     "E_PLAN_FILE_ID",                                        "router_plan_trabajo.R",             "400",
