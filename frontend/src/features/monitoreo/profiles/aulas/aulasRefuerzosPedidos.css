@@ -145,6 +145,33 @@
   .mon-profile-page.is-aulas-flow .aulas-pedidos-para { grid-column: 2 / -1; }
 }
 
+/* En un contenedor angosto (el lateral de Brechas, ~360 px) las cinco pistas
+ * dejaban el código y el destino en cero: cada fila decía «espera llamada · sin
+ * respuestas aún · Retirar» sin decir qué curso-horario era (revisión por
+ * perfil en hsvg2026, 1 nov). Ahí cada pedido va en dos líneas: el código con
+ * su paso arriba; destino, fruto y acción abajo. La escalera pasa a dos y dos
+ * para que «espera llamada» no se corte. */
+.mon-profile-page.is-aulas-flow .aulas-pedidos {
+  container-type: inline-size;
+}
+@container (max-width: 520px) {
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-lista li,
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-lista.es-con-accion li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "quien paso" "para fruto" "accion accion";
+    row-gap: 3px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-quien { grid-area: quien; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-paso { grid-area: paso; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-para { grid-area: para; grid-column: auto; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-fruto { grid-area: fruto; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-accion { grid-area: accion; justify-items: end; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-accion:empty { display: none; }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-escalera {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* El acuse de una marca hecha desde un popover de Consultas. Vive en esta hoja
    —y no en la del reparto— porque la hoja del reparto sólo se carga con su
    pestaña: el popover de complemento se abre desde la cadena, que es otra. */
