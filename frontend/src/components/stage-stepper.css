@@ -1,0 +1,33 @@
+/* StageStepper en anchos de trabajo (L6).
+ *
+ * El stepper base (.pulso-stepper, theme.css) no se encoge: desplaza en
+ * horizontal. Con los cuatro pasos del asistente de fuentes independientes, a
+ * 1024 px faltaban 87 px y el paso 4 quedaba cortado en el borde, sin señal de
+ * que existiera. Aquí se compacta según el ancho del propio stepper, no del
+ * viewport: primero se acortan conectores y relleno, y si aún no cabe la
+ * descripción de cada paso pasa a dos líneas. El desplazamiento queda como
+ * último recurso. */
+.pulso-stage-stepper {
+  container-type: inline-size;
+}
+
+@container (max-width: 1000px) {
+  .pulso-stage-stepper .pulso-step-connector {
+    flex-basis: 14px;
+    margin-inline: 2px;
+  }
+
+  .pulso-stage-stepper .pulso-step-chip {
+    padding-inline: 10px;
+  }
+}
+
+@container (max-width: 820px) {
+  .pulso-stage-stepper .pulso-step-chip {
+    white-space: normal;
+  }
+
+  .pulso-stage-stepper .pulso-step-hint {
+    max-inline-size: 18ch;
+  }
+}
