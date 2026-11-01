@@ -162,7 +162,8 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
 
   variante <- .mtr_variante(ctx$s)
   registro <- .mtr_agregar(wb, ctx, ordenadas, label_de, codigos, .MTX_HOJA,
-                           col_id = match("Código de manzana", .MTX_COLUMNAS), col_enc = col_enc, variante = variante)
+                           col_id = match("Código de manzana", .MTX_COLUMNAS), col_enc = col_enc,
+                           col_ump = match("UMP", .MTX_COLUMNAS), variante = variante)
 
   # Con qué foto se generó: al subirlo, una huella distinta se avisa.
   openxlsx::addWorksheet(wb, .MTX_HOJA_CONTROL, visible = FALSE)

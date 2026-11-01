@@ -65,7 +65,7 @@
 #' declarado (fórmula) y el reportado por coordinación, y un Estado calculado; sin códigos
 #' de resultado ni reemplazo (P2 no va en 1A). En UMP aleatoria (1B), lo de §1C.
 #' @keywords internal
-.mtr_agregar <- function(wb, ctx, ordenadas, label_de, codigos, hoja_asignacion, col_id, col_enc, variante = "ump_aleatoria") {
+.mtr_agregar <- function(wb, ctx, ordenadas, label_de, codigos, hoja_asignacion, col_id, col_enc, col_ump, variante = "ump_aleatoria") {
   conveniencia <- identical(variante, "conveniencia")
   celdas <- .mtr_celdas(ctx$envio)
   cel <- c(celdas$sexo, celdas$edad)
@@ -163,13 +163,18 @@
     # que una celda vacía se lea como 0.
     ref_id <- sprintf("'%s'!$%s:$%s", hoja_asignacion, openxlsx::int2col(col_id), openxlsx::int2col(col_id))
     ref_enc <- sprintf("'%s'!$%s:$%s", hoja_asignacion, openxlsx::int2col(col_enc), openxlsx::int2col(col_enc))
+    ref_ump <- sprintf("'%s'!$%s:$%s", hoja_asignacion, openxlsx::int2col(col_ump), openxlsx::int2col(col_ump))
     # Cada efectiva cae en una celda de sexo y en una de edad: el total sale de un solo eje.
     total_de <- if (length(celdas$sexo)) paste0(.MTR_EFECTIVAS, celdas$sexo)
                 else if (length(celdas$edad)) paste0(.MTR_EFECTIVAS, celdas$edad) else efectivas
     rango <- function(cols, r) paste(sprintf("%s%d", vapply(cols, letra, ""), r), collapse = ",")
     for (i in seq_len(n)) {
       r <- .MTR_FILA_CABECERA + i
-      openxlsx::writeFormula(wb, hoja, sprintf("IFERROR(INDEX(%s,MATCH($%s%d,%s,0))&\"\",\"\")", ref_enc, letra("Código de manzana"), r, ref_id),
+      # Un reemplazo sin encuestador propio hereda el de su titular (se busca por la UMP en «Reemplaza a»).
+      propio <- sprintf("IFERROR(INDEX(%s,MATCH($%s%d,%s,0))&\"\",\"\")", ref_enc, letra("Código de manzana"), r, ref_id)
+      heredado <- sprintf("IF($%s%d=\"\",\"\",IFERROR(INDEX(%s,MATCH($%s%d,%s,0))&\"\",\"\"))",
+                          letra("Reemplaza a"), r, ref_enc, letra("Reemplaza a"), r, ref_ump)
+      openxlsx::writeFormula(wb, hoja, sprintf("IF(%s<>\"\",%s,%s)", propio, propio, heredado),
                              startCol = idx("Encuestador"), startRow = r)
       tot <- sprintf("SUM(%s)", rango(total_de, r))
       vacio <- sprintf("COUNT(%s)=0", rango(c(efectivas, cols_cod), r))
