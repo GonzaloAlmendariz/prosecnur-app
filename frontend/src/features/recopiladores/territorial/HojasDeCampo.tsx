@@ -197,7 +197,7 @@ const PIEZAS: Record<PiezaDePapel, { titulo: string; icono: typeof ListOrdered; 
   ruteo: {
     titulo: "Hoja de ruteo",
     icono: ListOrdered,
-    texto: "Una por UMP, para anotar cada vivienda visitada: dirección, puerta, el código de resultado, y nombre, edad y sexo de quien responde. La cabecera sale con el distrito, la zona, la manzana, el rango de encuestas y el encuestador asignado.",
+    texto: "Una por UMP, para anotar cada vivienda visitada: dirección, número, el código de resultado, y nombre, edad y sexo de quien responde. La cabecera sale con el distrito, la zona, la manzana, el rango de encuestas y el encuestador asignado.",
   },
   consolidados: {
     titulo: "Hoja de consolidados",

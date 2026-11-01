@@ -195,7 +195,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
             </a>
           ) : null}
           <p className="rec-terr-nota">
-            Se arman con la muestra vigente de Hojas de ruta. Si cambia el sorteo, estos archivos quedan desactualizados: vuelve a generarlos.
+            Se arman con la muestra enviada desde Hojas de ruta. Si allí se vuelve a sortear, Material queda desfasado y no genera nada hasta que la muestra se envíe de nuevo; después, vuelve a generarlos.
           </p>
           {!muestra ? (
             <PulsoButton variant="ghost" size="sm" onClick={() => { void onRecargar(); }}>Volver a leer Hojas de ruta</PulsoButton>
