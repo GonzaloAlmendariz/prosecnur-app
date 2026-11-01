@@ -2,7 +2,7 @@
   "schema": "prosecnur.qa.graficos_libraries_fixture.v1",
   "source": {
     "reference_project": "acnur_acg",
-    "sha256": "64b7776bd28a63cf5c0932c68d90b3b877159946a37bbab2bb262030dde3c9cd",
+    "sha256": "24b9027912870783904dd6952de2bbd9a8262c355b9a8c3059502ae0d9ee1264",
     "sanitized": true,
     "note": "Contrato mínimo derivado del proyecto de referencia; no contiene respuestas, secretos ni rutas de cliente."
   },

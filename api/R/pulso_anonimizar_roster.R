@@ -236,7 +236,7 @@
       alt <- paste0("(?:", paste(unique(unlist(lapply(por_piezas, function(p) {
         vapply(p$piezas, .pulso_anon_roster_patron_pieza, "")
       }))), collapse = "|"), ")")
-      paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "[_ \u00b7]+", alt, "(?![[:alpha:]])")
+      paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "[_ \u00b7,.\\-/\t]+", alt, "(?![[:alpha:]])")
     },
     # Los reemplazos de pares dependen del separador y de la caja de cada
     # aparición: se registran al marcar y se leen al restaurar.
@@ -247,8 +247,9 @@
   )
 }
 
-# Dos piezas consecutivas del nombre real, en cualquier orden, con `_`, espacio o
-# `·` entre ellas, sin distinguir caja ni tildes: «quispe_ana», «ROJAS QUISPE».
+# Dos piezas DISTINTAS del nombre real, en cualquier orden, con `_`, espacio, `·`,
+# coma, punto, guion, barra o tab entre ellas, sin distinguir caja ni tildes:
+# «quispe_ana», «ROJAS QUISPE», «Quispe, Ana», «QUISPE-ROJAS».
 # Es lo que queda cuando el nombre se escribe en otra variante y además con un
 # código equivocado (acnur_acg: «p844_…» cuando la lista sólo tiene P884 y P824),
 # donde ni el nombre exacto ni el código lo encuentran.
@@ -275,7 +276,7 @@
     alt <- paste0("(?:", paste(vapply(piezas, .pulso_anon_roster_patron_pieza, ""), collapse = "|"), ")")
     filas[[length(filas) + 1L]] <- list(
       piezas = piezas, destino = destino,
-      patron = paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "(?:[_ \u00b7]+", alt, ")+(?![[:alpha:]])"))
+      patron = paste0("(*UCP)(?i)(?<![[:alpha:]])", alt, "(?:[_ \u00b7,.\\-/\t]+", alt, ")+(?![[:alpha:]])"))
   }
   filas
 }
@@ -293,7 +294,9 @@
   v <- v[candidatos]
   env <- mapa$pares_env
   caja <- function(x, molde) {
-    if (identical(molde, toupper(molde))) toupper(x) else if (identical(molde, tolower(molde))) tolower(x) else x
+    if (identical(molde, toupper(molde))) return(toupper(x))
+    if (identical(molde, tolower(molde))) return(tolower(x))
+    paste0(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))))
   }
   for (p in personas) {
     hit <- grepl(p$patron, v, perl = TRUE)
@@ -303,6 +306,8 @@
       tokens <- regmatches(tramo, gregexpr("(*UCP)[[:alpha:]]+", tramo, perl = TRUE))[[1]]
       seps <- regmatches(tramo, gregexpr("(*UCP)[^[:alpha:]]+", tramo, perl = TRUE))[[1]]
       norm <- gsub("[^a-z]", "", tolower(iconv(enc2utf8(tokens), "UTF-8", "ASCII//TRANSLIT", sub = "")))
+      # Una pieza repetida («Rosa rosa», «quispe_quispe») no son dos piezas: no es un nombre.
+      if (length(unique(norm)) < 2L) return(tramo)
       nuevos <- vapply(seq_along(tokens), function(j) caja(p$destino[[match(norm[[j]], p$piezas)]], tokens[[j]]), "")
       reemplazo <- paste0(c(rbind(nuevos, c(seps, ""))), collapse = "")
       # Contador y no `length(ls(env))`: contar las claves en cada aparición es cuadrático.

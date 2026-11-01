@@ -258,6 +258,26 @@ test_that("--solo-encuestadores sanea un fixture ya publicado sin tocar el resto
   expect_identical(e$state$material_territorial_asignacion, antes$material_territorial_asignacion)
 })
 
+test_that("el barrido por piezas exige dos piezas DISTINTAS y respeta caja y separadores", {
+  # Una pieza repetida no es un nombre: «Rosa rosa» en una etiqueta del instrumento se reescribía (72 textos de
+  # acnur_acg entre el instrumento, su plan de validación y dos plantillas de codificación).
+  estado <- list(monitoreo_config = list(territorial = list(enumerator_roster = list(code_format = "PXXX",
+    assignments = list(list(codigo_pulso = "P001", nombre = "FULANO DE TAL PRUEBA")))))) 
+  mapa <- .pulso_anon_roster_mapa(estado, "sal-piezas")
+  barrer <- function(v) .pulso_anon_roster_restaurar(
+    .pulso_anon_roster_marcar(data.frame(v = v, stringsAsFactors = FALSE), mapa)$data, mapa)$v
+  intactos <- c("Una prueba prueba del instrumento", "prueba_prueba", "PRUEBA PRUEBA", "fulano")
+  expect_identical(barrer(intactos), intactos)
+
+  fake <- strsplit(unname(mapa$nombres[["FULANO DE TAL PRUEBA"]]), " ")[[1]]
+  titulo <- function(x) paste0(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))))
+  # Title case se queda en Title case; cada pieza va a la que le toca en el seudónimo.
+  expect_identical(barrer("Atendió Fulano Prueba"), paste("Atendió", titulo(fake[[1]]), titulo(fake[[3]])))
+  # «Apellido, Nombre» y apellidos compuestos con guion también son dos piezas juntas.
+  expect_identical(barrer("PRUEBA, FULANO"), paste0(toupper(fake[[3]]), ", ", toupper(fake[[1]])))
+  expect_identical(barrer("prueba-fulano"), paste0(tolower(fake[[3]]), "-", tolower(fake[[1]])))
+})
+
 test_that("un proyecto sin lista de encuestadores no cambia de comportamiento", {
   expect_length(.pulso_anon_roster_mapa(list(monitoreo_config = list()), sal = "x")$nombres, 0L)
   expect_equal(nrow(.pulso_anon_roster_hallazgos(list(), tempfile())), 0L)

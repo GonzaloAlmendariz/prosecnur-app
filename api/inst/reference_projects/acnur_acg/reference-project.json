@@ -8,7 +8,7 @@
   "description": "Territorial completo: hojas de ruta por distrito con piloto y campo, codificación aplicada, y analítica con secciones, cruces y dimensiones.",
   "anonimizado": true,
   "origen_basename": "ACNURCG.pulso",
-  "project_sha256": "64b7776bd28a63cf5c0932c68d90b3b877159946a37bbab2bb262030dde3c9cd",
+  "project_sha256": "24b9027912870783904dd6952de2bbd9a8262c355b9a8c3059502ae0d9ee1264",
   "cobertura": {
     "diseno_estudio": false,
     "calc_muestra": true,
