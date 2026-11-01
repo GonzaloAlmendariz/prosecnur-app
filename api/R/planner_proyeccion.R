@@ -350,7 +350,8 @@
     codigos = if (!is.null(decl$codigos)) decl$codigos$valor else .planner_proyectar_codigos(s, perfiles),
     insumos = .planner_insumos_con_archivo(
       if (!is.null(decl$insumos)) decl$insumos$valor else .planner_proyectar_insumos(s), .planner_archivos(s)),
-    etapa = if (!is.null(decl$etapa)) decl$etapa$valor else .planner_proyectar_etapa(s)$etapa
+    etapa = if (!is.null(decl$etapa)) decl$etapa$valor else .planner_proyectar_etapa(s)$etapa,
+    ventana = if (!is.null(decl$ventana)) decl$ventana$valor else .planner_proyectar_ventana(s)[c("inicio", "fin")]
   )
   origen <- lapply(stats::setNames(PLANNER_SECCIONES, PLANNER_SECCIONES), function(k) {
     if (!is.null(decl[[k]])) "declarado" else "proyectado"

@@ -62,4 +62,22 @@ describe("normalizadores del Planner", () => {
     expect(dni.bloqueado).toBe(true);
     expect(dni.personas).toEqual([]);
   });
+
+  it("lee la ventana de campo: la propuesta, su origen y lo que cuenta cada fuente", () => {
+    const cal = normalizarPlannerCalendario({
+      ventana: {
+        inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado",
+        fuentes: { monitoreo: { inicio: "2026-11-12", fin: "2026-12-02", de: "fases" }, cronograma: { inicio: "2026-11-10T00:00:00Z", fin: "x", de: "cronograma" } },
+      },
+    });
+    expect(cal.ventana).toMatchObject({ inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado" });
+    expect(cal.ventana.fuentes.monitoreo).toEqual({ inicio: "2026-11-12", fin: "2026-12-02", de: "fases" });
+    // Lo que no es un día cae al vacío.
+    expect(cal.ventana.fuentes.cronograma).toEqual({ inicio: "2026-11-10", fin: "", de: "cronograma" });
+    // Un backend anterior sin ventana: vacía, proyectada, sin fuentes.
+    const viejo = normalizarPlannerCalendario({ fuentes: {} });
+    expect(viejo.ventana).toEqual({ inicio: "", fin: "", fuente: "", origen: "proyectado", fuentes: {} });
+    expect(normalizarPlannerEstado({ planner: { ventana: { inicio: "2026-11-10", fin: "2026-12-02" } } }).planner.ventana)
+      .toEqual({ inicio: "2026-11-10", fin: "2026-12-02" });
+  });
 });

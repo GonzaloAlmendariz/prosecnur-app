@@ -9,7 +9,7 @@ import { apiFetch, handle, headers } from "./core";
 
 export const PLANNER_TIPOS_PERFIL = ["territorial", "aulas", "telefonico", "acreditacion"] as const;
 export type PlannerTipoPerfil = (typeof PLANNER_TIPOS_PERFIL)[number];
-export type PlannerSeccion = "estudio" | "perfiles" | "equipo" | "codigos" | "insumos" | "etapa";
+export type PlannerSeccion = "estudio" | "perfiles" | "equipo" | "codigos" | "insumos" | "etapa" | "ventana";
 export type PlannerDiseno = "calc-muestra" | "hojas-ruta" | "cliente" | "cuotas";
 export type PlannerSeleccionAulas = "conglomerados" | "marco";
 /** Territorial: por UMP aleatoria con hoja de ruta (acogida) o por conveniencia o cuotas (Ser Adolescente). */
@@ -83,6 +83,8 @@ export type PlannerEstado = {
     insumos: PlannerInsumo[];
     /** Etapa operativa del estudio; `null` si nadie la declaró y las fuentes no coinciden. */
     etapa: { valor: "piloto" | "campo" | null };
+    /** Ventana de campo que PROPONE el Planner (AAAA-MM-DD; vacío si nadie dice nada). */
+    ventana: PlannerVentanaRango;
   };
   origen: Record<PlannerSeccion, PlannerOrigen>;
   declaradoEn: Partial<Record<PlannerSeccion, string>>;
@@ -98,6 +100,14 @@ export type PlannerEstado = {
 // todo se lee como arreglo o texto, y lo que no tiene forma cae al vacío.
 
 type Crudo = Record<string, unknown>;
+
+export type PlannerVentanaRango = { inicio: string; fin: string };
+const DIA = /^\d{4}-\d{2}-\d{2}$/;
+function rango(x: unknown): PlannerVentanaRango {
+  const r = obj(x);
+  const dia = (v: unknown) => (DIA.test(txt(v).slice(0, 10)) ? txt(v).slice(0, 10) : "");
+  return { inicio: dia(r.inicio), fin: dia(r.fin) };
+}
 
 const obj = (x: unknown): Crudo => (x && typeof x === "object" && !Array.isArray(x) ? (x as Crudo) : {});
 const arr = (x: unknown): unknown[] => (Array.isArray(x) ? x : x == null || (typeof x === "object" && Object.keys(x as object).length === 0) ? [] : [x]);
@@ -159,7 +169,7 @@ function normalizarCodigo(x: unknown): PlannerCodigo | null {
   };
 }
 
-const SECCIONES: PlannerSeccion[] = ["estudio", "perfiles", "equipo", "codigos", "insumos", "etapa"];
+const SECCIONES: PlannerSeccion[] = ["estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana"];
 
 export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
   const r = obj(raw);
@@ -202,6 +212,7 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
         } satisfies PlannerInsumo;
       }).filter((k) => k.id),
       etapa: { valor: txt(obj(pl.etapa).valor) === "piloto" || txt(obj(pl.etapa).valor) === "campo" ? (txt(obj(pl.etapa).valor) as "piloto" | "campo") : null },
+      ventana: rango(pl.ventana),
     },
     origen,
     declaradoEn,
@@ -274,9 +285,18 @@ export async function apiPlannerModos(): Promise<PlannerModos> {
 // --- Cronograma y etapa operativa (ADR 0122 §2) ---------------------------------
 
 export type PlannerEtapa = "piloto" | "campo";
+export type PlannerVentanaFuente = "monitoreo" | "cronograma";
+/** La ventana de campo: la PROPUESTA del Planner y lo que cuenta cada fuente hoy. */
+export type PlannerVentana = PlannerVentanaRango & {
+  /** De dónde sale: `planner` si se declaró; si no, la fuente que la sembró, o vacío. */
+  fuente: PlannerVentanaFuente | "planner" | "";
+  origen: PlannerOrigen;
+  fuentes: Partial<Record<PlannerVentanaFuente, PlannerVentanaRango & { de: string }>>;
+};
 export type PlannerCalendario = {
   hoy: string;
   campo: { inicio: string; fin: string };
+  ventana: PlannerVentana;
   etapa: {
     valor: PlannerEtapa | null;
     origen: PlannerOrigen;
@@ -290,6 +310,13 @@ const etapaDe = (x: unknown): PlannerEtapa | null => (txt(x) === "piloto" || txt
 
 export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
   const r = obj(raw);
+  const v = obj(r.ventana);
+  const fuentesVentana: PlannerVentana["fuentes"] = {};
+  for (const clave of ["monitoreo", "cronograma"] as const) {
+    const f = obj(obj(v.fuentes)[clave]);
+    if (Object.keys(f).length) fuentesVentana[clave] = { ...rango(f), de: txt(f.de) };
+  }
+  const fuenteVentana = txt(v.fuente);
   const campo = obj(r.campo);
   const etapa = obj(r.etapa);
   const fuentesCrudas = obj(etapa.fuentes);
@@ -302,6 +329,12 @@ export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
   return {
     hoy: txt(r.hoy),
     campo: { inicio: txt(campo.inicio), fin: txt(campo.fin) },
+    ventana: {
+      ...rango(v),
+      fuente: fuenteVentana === "monitoreo" || fuenteVentana === "cronograma" || fuenteVentana === "planner" ? fuenteVentana : "",
+      origen: txt(v.origen) === "declarado" ? "declarado" : "proyectado",
+      fuentes: fuentesVentana,
+    },
     etapa: { valor: etapaDe(etapa.valor), origen: txt(etapa.origen) === "declarado" ? "declarado" : "proyectado", fuentes },
     avisos: arr(r.avisos).map((x) => ({ codigo: txt(obj(x).codigo), mensaje: txt(obj(x).mensaje) })).filter((a) => a.mensaje),
   };

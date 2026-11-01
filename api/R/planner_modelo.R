@@ -17,16 +17,19 @@
 # mudanza de la fase P3 no tenga que traducir nada.
 
 PLANNER_SCHEMA <- "planner/v1"
-PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa")
+PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana")
 # Equipo se escribe desde que el anonimizador y el gate de datos personales
 # cubren `planner$equipo$personas` (ec07d41d0; ADR 0122 §10). Si se agrega a
 # las personas otro campo con datos personales, hay que avisar al anonimizador.
-PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa")
+PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana")
 # Etapa operativa del estudio (Meta B, 2026-10-31, con el ADR 0122 ratificado:
 # «el Planner dice qué fase está activa»). Hojas de ruta y Monitoreo la leen
 # del Planner en una fase posterior; hasta entonces el Planner muestra lo que
 # cada uno dice todavía (planner_calendario.R).
 PLANNER_ETAPAS <- c("piloto", "campo")
+# Ventana de campo (decisión de Gonzalo vía Meta B, 2026-10-31): el Planner la
+# declara como PROPUESTA. Monitoreo no la adopta sola: muestra la discrepancia
+# con la suya y ofrece «Alinear la ventana» con un clic, como con la etapa.
 PLANNER_TIPOS_PERFIL <- c("territorial", "aulas", "telefonico", "acreditacion")
 PLANNER_SELECCION_AULAS <- c("conglomerados", "marco")
 # Gonzalo: «una cosa es el territorial con conveniencia y otra el territorial
@@ -220,9 +223,27 @@ PLANNER_MAX_INSUMOS <- 60L
   etapa
 }
 
+# Fechas ISO (AAAA-MM-DD); lo que no lo es queda vacío.
+.planner_norm_ventana <- function(x) {
+  x <- if (is.list(x)) x else list()
+  dia <- function(v) {
+    v <- substr(.bit_texto(v, 40L), 1L, 10L)
+    if (grepl("^\\d{4}-\\d{2}-\\d{2}$", v) && !is.na(as.Date(v, format = "%Y-%m-%d"))) v else ""
+  }
+  list(inicio = dia(x$inicio), fin = dia(x$fin))
+}
+
+.planner_validar_ventana <- function(valor) {
+  v <- .planner_norm_ventana(valor)
+  if (!nzchar(v$inicio) || !nzchar(v$fin)) .planner_invalido("La ventana de campo necesita un día de inicio y uno de fin.")
+  if (v$fin < v$inicio) .planner_invalido("La ventana de campo no puede terminar antes de empezar.")
+  v
+}
+
 .planner_normalizar_seccion <- function(seccion, valor) {
   switch(seccion,
          etapa = .planner_norm_etapa(valor),
+         ventana = .planner_norm_ventana(valor),
          estudio = .planner_norm_estudio(valor),
          perfiles = .planner_norm_perfiles(valor),
          equipo = .planner_norm_equipo(valor),
@@ -398,6 +419,7 @@ PLANNER_MAX_INSUMOS <- 60L
                    perfiles = .planner_validar_perfiles(valor),
                    equipo = .planner_validar_equipo(valor),
                    etapa = .planner_validar_etapa(valor),
+                   ventana = .planner_validar_ventana(valor),
                    codigos = .planner_validar_codigos(valor, actual$secciones$codigos$valor),
                    .planner_normalizar_seccion(seccion, valor))
   actual$secciones[[seccion]] <- list(valor = limpio, declarado_en = .bit_now_iso())

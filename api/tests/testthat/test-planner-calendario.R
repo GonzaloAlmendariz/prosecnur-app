@@ -140,3 +140,89 @@ test_that("las etapas por defecto de un estudio no territorial no cuentan como f
   expect_true(is.na(cal$etapa$valor))
   expect_length(.planner_payload(session_get(sid))$conflictos, 0L)
 })
+
+# --- La ventana de campo, PROPUESTA del Planner (Gonzalo vía Meta B, 2026-10-31) --
+
+.plc_fases_monitoreo <- function(...) {
+  list(monitoreo_config = list(monitoreo_profile = list(family = "telefonico"), strategy_phases = list(...)))
+}
+
+test_that("sin fuentes, la ventana queda vacía y no inventa fechas", {
+  sid <- .plc_sesion()
+  cal <- .planner_calendario(session_get(sid))
+  expect_equal(cal$ventana[c("inicio", "fin", "fuente", "origen")],
+               list(inicio = "", fin = "", fuente = "", origen = "proyectado"))
+  expect_true(cal$ventana$propuesta)
+  expect_true(cal$ventana$declarable)
+})
+
+test_that("se siembra de las fases de Monitoreo: del primer inicio al último fin", {
+  sid <- .plc_sesion(c(
+    .plc_fases_monitoreo(list(id = "f1", start_date = "2026-11-12", end_date = "2026-11-20"),
+                         list(id = "f2", start_date = "2026-11-21", end_date = "2026-12-02"),
+                         list(id = "f3")),
+    list(plan_trabajo = .plc_plan())))
+  antes <- .plc_huella(sid)
+  cal <- .planner_calendario(session_get(sid))
+  expect_equal(cal$ventana$inicio, "2026-11-12")
+  expect_equal(cal$ventana$fin, "2026-12-02")
+  expect_equal(cal$ventana$fuente, "monitoreo")
+  expect_equal(cal$ventana$fuentes$cronograma[c("inicio", "fin")], list(inicio = "2026-11-10", fin = "2026-11-28"))
+  p <- .planner_payload(session_get(sid))
+  expect_equal(p$planner$ventana, list(inicio = "2026-11-12", fin = "2026-12-02"))
+  expect_equal(p$origen$ventana, "proyectado")
+  # Leer no escribe nada.
+  expect_identical(.plc_huella(sid), antes)
+})
+
+test_that("en territorial se siembra del inicio del campo y, sin Monitoreo, del cronograma", {
+  sid <- .plc_sesion(.plc_en_uso(monitoreo = "field", ventanas = list(field = list(start_at = "2026-06-12T10:00:00Z"))))
+  v <- .planner_calendario(session_get(sid))$ventana
+  expect_equal(v[c("inicio", "fin", "fuente")], list(inicio = "2026-06-12", fin = "", fuente = "monitoreo"))
+  expect_equal(v$fuentes$monitoreo$de, "territorial")
+
+  sid2 <- .plc_sesion(list(plan_trabajo = .plc_plan()))
+  v2 <- .planner_calendario(session_get(sid2))$ventana
+  expect_equal(v2[c("inicio", "fin", "fuente")], list(inicio = "2026-11-10", fin = "2026-11-28", fuente = "cronograma"))
+})
+
+test_that("declarada, la propuesta manda y se dice qué fuente cuenta otra ventana, sin escribir en ella", {
+  sid <- .plc_sesion(c(
+    .plc_fases_monitoreo(list(id = "f1", start_date = "2026-11-12", end_date = "2026-12-02")),
+    list(plan_trabajo = .plc_plan())))
+  .planner_declarar(sid, "ventana", list(inicio = "2026-11-10", fin = "2026-12-02"), 0L)
+  s <- session_get(sid)
+  cal <- .planner_calendario(s)
+  expect_equal(cal$ventana[c("inicio", "fin", "fuente", "origen")],
+               list(inicio = "2026-11-10", fin = "2026-12-02", fuente = "planner", origen = "declarado"))
+  codigos <- vapply(cal$avisos, `[[`, "", "codigo")
+  expect_setequal(codigos, c("ventana_monitoreo_distinta", "ventana_cronograma_distinta"))
+  expect_match(cal$avisos[[which(codigos == "ventana_monitoreo_distinta")]]$mensaje, "del 2026-11-12 al 2026-12-02")
+  # Persistida plana; Monitoreo y el cronograma siguen como estaban.
+  expect_equal(s$planner$ventana, list(inicio = "2026-11-10", fin = "2026-12-02"))
+  expect_equal(s$monitoreo_config$strategy_phases[[1]]$start_date, "2026-11-12")
+  expect_equal(.planner_payload(s)$origen$ventana, "declarado")
+  # Alineado Monitoreo con la propuesta, el aviso se va.
+  s$monitoreo_config$strategy_phases[[1]]$start_date <- "2026-11-10"
+  expect_false("ventana_monitoreo_distinta" %in% vapply(.planner_calendario(s)$avisos, `[[`, "", "codigo"))
+})
+
+test_that("la ventana necesita inicio y fin, en ese orden", {
+  sid <- .plc_sesion()
+  for (malo in list(list(inicio = "2026-11-10"), list(inicio = "2026-11-10", fin = "2026-11-01"),
+                    list(inicio = "2026-02-30", fin = "2026-03-02"))) {
+    err <- tryCatch(.planner_declarar(sid, "ventana", malo, 0L), error = identity)
+    expect_equal(err$code, "E_PLANNER_INVALIDO")
+  }
+})
+
+test_that("la ventana declarada sobrevive al guardado y no viaja al publicar", {
+  sid <- .plc_sesion()
+  .planner_declarar(sid, "ventana", list(inicio = "2026-11-10", fin = "2026-12-02"), 0L)
+  ruta <- withr::local_tempfile(fileext = ".pulso")
+  build_pulso(sid, ruta, project_name = "ventana", allow_empty_overwrite = TRUE)
+  ld <- suppressMessages(load_pulso(ruta))
+  withr::defer(session_delete(ld$session_id))
+  expect_equal(.planner_payload(session_get(ld$session_id))$planner$ventana, list(inicio = "2026-11-10", fin = "2026-12-02"))
+  expect_null(.planner_para_publicar(session_get(sid))$ventana)
+})

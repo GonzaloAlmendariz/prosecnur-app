@@ -429,3 +429,23 @@
 .planner-insumo-falta {
   color: var(--pulso-warn-fg);
 }
+
+.planner-ventana {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+  font-weight: normal;
+}
+
+.planner-campo--fecha {
+  flex: 0 0 auto;
+}
+
+.planner-ventana .planner-calendario-fuente {
+  align-self: center;
+}
+
+.planner-ventana .planner-campo > span {
+  font-weight: normal;
+}

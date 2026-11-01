@@ -63,10 +63,9 @@
   fuentes
 }
 
-#' Cronograma, ventana de campo y etapa operativa del estudio. Lectura pura.
-#' @keywords internal
-.planner_calendario <- function(s) {
-  s_migrado <- .bitacora_migrar_estado(s)   # transforma en memoria; no persiste
+# La fase Campo del cronograma (plan_trabajo). Lectura pura: migra en memoria.
+.planner_campo_cronograma <- function(s) {
+  s_migrado <- .bitacora_migrar_estado(s)
   plan <- .bit_plan_actual(s_migrado)
   fases <- lapply(.bit_cron_vista_fases(s_migrado, plan), function(f) {
     list(id = f$id, label = f$label, modulo = f$modulo, inicio = f$start_date, fin = f$end_date,
@@ -74,6 +73,87 @@
   })
   campo <- Filter(function(f) identical(f$id, "campo"), fases)
   campo <- if (length(campo)) campo[[1]] else list(inicio = "", fin = "")
+  list(fases = fases, campo = list(inicio = .planner_fecha(campo$inicio), fin = .planner_fecha(campo$fin)))
+}
+
+# Lo que Monitoreo dice hoy de la ventana de campo. Dos lugares, en este orden:
+# las fases del plan de campo con fechas (`strategy_phases`, telefónico y
+# acreditación: del primer inicio al último fin) y el inicio del campo
+# territorial (`phase_windows$field$start_at`, que no guarda fin).
+.planner_ventana_monitoreo <- function(s) {
+  mc <- s[["monitoreo_config"]] %||% list()
+  if (!is.list(mc)) return(NULL)
+  fases <- Filter(is.list, mc$strategy_phases %||% list())
+  inicios <- Filter(nzchar, vapply(fases, function(f) .planner_fecha(f$start_date), ""))
+  fines <- Filter(nzchar, vapply(fases, function(f) .planner_fecha(f$end_date), ""))
+  if (length(inicios)) {
+    return(list(inicio = min(inicios), fin = if (length(fines)) max(fines) else "", de = "fases"))
+  }
+  if (.planner_monitoreo_territorial_en_uso(s)) {
+    campo <- .planner_fecha((((mc$territorial %||% list())$phase_windows %||% list())$field %||% list())$start_at)
+    if (nzchar(campo)) return(list(inicio = campo, fin = "", de = "territorial"))
+  }
+  NULL
+}
+
+.planner_ventanas_fuente <- function(s, campo_cronograma = .planner_campo_cronograma(s)$campo) {
+  fuentes <- list()
+  mon <- .planner_ventana_monitoreo(s)
+  if (!is.null(mon)) fuentes$monitoreo <- mon
+  if (nzchar(campo_cronograma$inicio) || nzchar(campo_cronograma$fin)) {
+    fuentes$cronograma <- list(inicio = campo_cronograma$inicio, fin = campo_cronograma$fin, de = "cronograma")
+  }
+  fuentes
+}
+
+# La ventana sembrada: la de Monitoreo si dice algo (es la que opera), si no la
+# del cronograma. `fuente` dice de cuál salió.
+.planner_proyectar_ventana <- function(s, fuentes = .planner_ventanas_fuente(s)) {
+  for (k in c("monitoreo", "cronograma")) {
+    f <- fuentes[[k]]
+    if (!is.null(f) && nzchar(f$inicio)) return(list(inicio = f$inicio, fin = f$fin, fuente = k))
+  }
+  list(inicio = "", fin = "", fuente = "")
+}
+
+.planner_rango_texto <- function(f) {
+  if (nzchar(f$fin %||% "")) sprintf("del %s al %s", f$inicio, f$fin) else sprintf("desde el %s, sin fin", f$inicio)
+}
+
+#' Ventana de campo del estudio: la PROPUESTA del Planner y lo que dice cada
+#' fuente. Lectura pura; la lee el Planner y la puede leer Monitoreo para
+#' mostrar la discrepancia con la suya.
+#' @keywords internal
+.planner_ventana_campo <- function(s, campo_cronograma = .planner_campo_cronograma(s)$campo) {
+  fuentes <- .planner_ventanas_fuente(s, campo_cronograma)
+  declarada <- .planner_leer(s)$secciones$ventana
+  v <- if (!is.null(declarada)) c(declarada$valor, list(fuente = "planner")) else .planner_proyectar_ventana(s, fuentes)
+  avisos <- list()
+  if (!is.null(declarada)) {
+    # Declarada, manda como propuesta: se dice qué fuente cuenta otra cosa.
+    for (k in names(fuentes)) {
+      f <- fuentes[[k]]
+      if (!identical(f$inicio, v$inicio) || (nzchar(f$fin) && !identical(f$fin, v$fin))) {
+        avisos[[length(avisos) + 1L]] <- .planner_aviso(
+          paste0("ventana_", k, "_distinta"),
+          sprintf("%s cuenta el campo %s.", c(monitoreo = "Monitoreo", cronograma = "El cronograma")[[k]],
+                  .planner_rango_texto(f)),
+          fuente = k)
+      }
+    }
+  }
+  list(inicio = v$inicio, fin = v$fin, fuente = v$fuente,
+       origen = if (is.null(declarada)) "proyectado" else "declarado",
+       propuesta = TRUE, declarable = TRUE, fuentes = fuentes, avisos = avisos)
+}
+
+#' Cronograma, ventana de campo y etapa operativa del estudio. Lectura pura.
+#' @keywords internal
+.planner_calendario <- function(s) {
+  crono <- .planner_campo_cronograma(s)   # migra en memoria; no persiste
+  fases <- crono$fases
+  campo <- crono$campo
+  ventana <- .planner_ventana_campo(s, campo)
 
   etapas <- .planner_etapas_declaradas(s)
   valores <- unique(vapply(etapas, `[[`, "", "etapa"))
@@ -100,7 +180,10 @@
     valor <- if (length(valores) == 1L) valores[[1]] else NA_character_
   }
   campo_mon <- etapas$monitoreo$campo_desde %||% ""
-  if (nzchar(campo_mon) && nzchar(campo$inicio) && !identical(campo_mon, campo$inicio)) {
+  # Con la ventana declarada, sus avisos dicen ya qué fuente difiere.
+  if (identical(ventana$origen, "declarado")) {
+    avisos <- c(avisos, ventana$avisos)
+  } else if (nzchar(campo_mon) && nzchar(campo$inicio) && !identical(campo_mon, campo$inicio)) {
     avisos[[length(avisos) + 1L]] <- .planner_aviso(
       "campo_no_coincide",
       sprintf("El cronograma empieza el campo el %s y Monitoreo lo cuenta desde el %s.", campo$inicio, campo_mon))
@@ -110,6 +193,7 @@
     hoy = .bit_cron_hoy_servidor(),
     fases = fases,
     campo = list(inicio = campo$inicio, fin = campo$fin),
+    ventana = ventana[setdiff(names(ventana), "avisos")],
     etapa = list(
       valor = valor,
       origen = if (is.null(declarada)) "proyectado" else "declarado",

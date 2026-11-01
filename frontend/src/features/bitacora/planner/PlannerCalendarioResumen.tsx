@@ -2,24 +2,20 @@
 // estudio (ADR 0122 §2). El Planner DECLARA la etapa (decisión de Meta B sobre
 // el ADR ratificado): se siembra de Hojas de ruta y Monitoreo si coinciden; si
 // no, queda sin valor y lo decide el usuario aquí. Mientras esos módulos no la
-// lean del Planner, se dice cuál sigue en otra etapa.
+// lean del Planner, se dice cuál sigue en otra etapa. La ventana de campo es la
+// PROPUESTA del Planner (PlannerVentanaCampo).
 
 import { useEffect, useState } from "react";
 
 import { apiPlannerCalendario, type PlannerCalendario, type PlannerEtapa } from "../../../api/planner";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
-import { parseLocalDate } from "../dateUtils";
 import { PlannerAvisos } from "./PlannerCabecera";
+import { PlannerVentanaCampo } from "./PlannerVentanaCampo";
 import { textoOrigen } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
 
 const FUENTE: Record<string, string> = { hojas_ruta: "Hojas de ruta", monitoreo: "Monitoreo" };
 const ETAPAS: readonly (readonly [PlannerEtapa, string])[] = [["piloto", "Piloto"], ["campo", "Campo"]];
-
-function fecha(iso: string) {
-  const d = parseLocalDate(iso);
-  return d ? d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
-}
 
 export function PlannerCalendarioResumen({ recarga, control }: { recarga: unknown; control: ControlPlanner }) {
   const [cal, setCal] = useState<PlannerCalendario | null>(null);
@@ -32,9 +28,6 @@ export function PlannerCalendarioResumen({ recarga, control }: { recarga: unknow
   if (!cal) return null;
 
   const fuentes = Object.entries(cal.etapa.fuentes);
-  const campo = cal.campo.inicio || cal.campo.fin
-    ? `${fecha(cal.campo.inicio) || "sin inicio"} – ${fecha(cal.campo.fin) || "sin fin"}`
-    : "Sin fechas en el cronograma";
   const guardando = control.guardando === "etapa";
   const origen = cal.etapa.origen === "declarado"
     ? textoOrigen("declarado", control.estado?.declaradoEn.etapa)
@@ -43,11 +36,11 @@ export function PlannerCalendarioResumen({ recarga, control }: { recarga: unknow
         : `sin acuerdo entre ${fuentes.map(([k]) => FUENTE[k] ?? k).join(" y ")}`;
 
   return (
-    <section className="planner-calendario" aria-label="Campo y etapa del estudio" data-audit-ready="planner-calendario">
+    <section className="planner-calendario" aria-label="Ventana de campo y etapa del estudio" data-audit-ready="planner-calendario">
       <dl className="planner-calendario-datos">
         <div>
-          <dt>Campo</dt>
-          <dd>{campo}</dd>
+          <dt>Ventana de campo</dt>
+          <dd><PlannerVentanaCampo ventana={cal.ventana} control={control} /></dd>
         </div>
         <div>
           <dt>Etapa operativa</dt>
