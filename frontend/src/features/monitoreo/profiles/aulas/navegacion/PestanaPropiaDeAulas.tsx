@@ -10,6 +10,7 @@ import { FuentesAulas } from "../insumos/FuentesAulas";
 import { ReglasAulas } from "../insumos/ReglasAulas";
 import { AplicadoresAulas } from "../insumos/AplicadoresAulas";
 import { MetasAulas } from "../modelo/MetasAulas";
+import { MuestraAulas } from "../modelo/MuestraAulas";
 import type { ContextoDeInsumos } from "../insumos/contextoDeInsumos";
 import { ResumenAulas } from "../avance/ResumenAulas";
 import type { DireccionAulas } from "./direccionAulas";
@@ -57,6 +58,9 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "modelo" && direccion.pestana === "metas" && direccion.panel == null) {
     return <MetasAulas {...props} />;
+  }
+  if (direccion.seccion === "modelo" && direccion.pestana === "muestra" && direccion.panel == null) {
+    return <MuestraAulas {...props} />;
   }
   // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
   if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {

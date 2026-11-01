@@ -78,3 +78,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Muestra (M2): tres cifras y un cuerpo con la reserva a la izquierda y el banco a la derecha (440 px). */
+.aulas-mm-franja--tres {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aulas-mm-cuerpo--ancho {
+  grid-template-columns: minmax(0, 1fr) 440px;
+}
+
+@media (max-width: 1280px) {
+  .aulas-mm-cuerpo--ancho {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

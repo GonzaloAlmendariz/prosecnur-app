@@ -97,7 +97,9 @@ const TABLA: readonly Entrada[] = [
   entrada("modelo", "metas", null, v("avance", "cuotas"), { vista: "Metas", regreso: false, propia: true }),
   entrada("modelo", "metas", "efectividad", v("avance", "efectividad"), { vista: "Tasa del diseño", regreso: false }),
   // M2 Muestra: la cadena de reemplazos y el alcance del banco de extras.
-  entrada("modelo", "muestra", null, v("consultas", "reemplazos"), { vista: "Reemplazos" }),
+  // M2 Muestra: contenido propio (`modelo/MuestraAulas.tsx`); «Banco de
+  // extras» queda como sub-vista heredada con el detalle.
+  entrada("modelo", "muestra", null, v("consultas", "reemplazos"), { vista: "Reemplazos", propia: true }),
   entrada("modelo", "muestra", "banco", v("consultas", "extras"), { vista: "Banco de extras" }),
   // Control, grupo Agenda.
   // Ctl1 Agenda: contenido propio (`control/AgendaAulas.tsx`): franja, sin
