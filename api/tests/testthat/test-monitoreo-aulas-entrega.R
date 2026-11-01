@@ -60,3 +60,22 @@ test_that("una entrega no vigente no se trae", {
   err <- tryCatch(monitoreo_aulas_traer_entrega(sid), error = identity)
   expect_equal(err$code, "E_COLLECTION_HANDOFF_STALE")
 })
+
+test_that("con stale o desactualizada no se compara ni se trae", {
+  sid <- session_create()
+  withr::defer(session_delete(sid))
+  local_mocked_bindings(collection_aulas_entrega_get = function(sid) list(
+    entregada = TRUE, vigente = TRUE, stale = FALSE, desactualizada = TRUE, unidades = list()))
+  expect_identical(monitoreo_aulas_entrega_estado(sid)$estado, "desactualizada")
+  expect_equal(tryCatch(monitoreo_aulas_traer_entrega(sid), error = identity)$code, "E_COLLECTION_HANDOFF_STALE")
+})
+
+test_that("una unidad nueva entra sin inventar lo operativo; las existentes lo conservan", {
+  plan <- list(list(operational_code = "CH 1", expected_valid = 17.2, scheduled_date = "2026-09-21"))
+  r <- .monitoreo_aulas_aplicar_entrega(plan, list(
+    list(operational_code = "CH 1", classroom_id = "CH 1", link = "l1"),
+    list(operational_code = "CH 2", classroom_id = "CH 2", link = "l2")))
+  expect_equal(r$plan[[1]]$expected_valid, 17.2)
+  expect_identical(r$plan[[1]]$scheduled_date, "2026-09-21")
+  expect_null(r$plan[[2]]$expected_valid)
+})

@@ -54,6 +54,12 @@
        conservadas = as.integer(length(plan) - actualizadas - agregadas))
 }
 
+# Sólo se compara una entrega de la misma muestra: vigente y sin `stale` ni
+# `desactualizada` (contrato collection_aulas_entrega/v1).
+.mae_comparable <- function(entrega) {
+  isTRUE(entrega$vigente %||% TRUE) && !isTRUE(entrega$stale) && !isTRUE(entrega$desactualizada)
+}
+
 #' El estado de la entrega frente al plan de Monitoreo (lectura pura).
 #' @keywords internal
 monitoreo_aulas_entrega_estado <- function(sid) {
@@ -65,7 +71,7 @@ monitoreo_aulas_entrega_estado <- function(sid) {
   fp <- if (is.list(entrega)) .monitoreo_scalar(entrega$deployment_fingerprint, "") else ""
   estado <- if (!is.list(entrega) || !isTRUE(entrega$entregada)) {
     "sin_entrega"
-  } else if (!isTRUE(entrega$vigente)) {
+  } else if (!.mae_comparable(entrega)) {
     "desactualizada"
   } else if (nzchar(fp) && fp %in% sellos) {
     "aplicada"
@@ -89,7 +95,7 @@ monitoreo_aulas_traer_entrega <- function(sid) {
   if (!isTRUE(entrega$entregada)) {
     stop_api(409, "E_COLLECTION_HANDOFF_STALE", "Material todavía no entregó los cursos-horario a Monitoreo.")
   }
-  if (!isTRUE(entrega$vigente)) {
+  if (!.mae_comparable(entrega)) {
     stop_api(409, "E_COLLECTION_HANDOFF_STALE",
              "La entrega cambió después de su recibo: vuelve a entregar desde Material antes de traerla.")
   }
