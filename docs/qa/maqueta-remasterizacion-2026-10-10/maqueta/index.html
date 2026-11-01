@@ -52,9 +52,9 @@
   </div>
 
   <div class="resumen">
-    <div><strong>18</strong><span>unidades cerradas de 37</span></div>
+    <div><strong>22</strong><span>unidades cerradas de 37</span></div>
     <div><strong>7</strong><span>abiertas que se pueden avanzar sin preguntarte</span></div>
-    <div><strong>5</strong><span>abiertas que esperan una decisión tuya</span></div>
+    <div><strong>1</strong><span>abierta que espera una decisión tuya (DOC.0 para el resto de L36)</span></div>
     <div><strong>6</strong><span>abiertas que dependen de Monitoreo</span></div>
   </div>
 
@@ -98,14 +98,14 @@
   </article>
 
   <article class="ficha" id="L28">
-    <header><code>L28 · L29</code><h3>Tablas densas y tipografía por roles</h3><span class="chip decide">L28 espera D-L28</span></header>
+    <header><code>L28 · L29</code><h3>Tablas densas y tipografía por roles</h3><span class="chip">L28 hecho; L29 en curso</span></header>
     <figure><img src="hoy-2026-10-31/analitica-datos.png" alt="Analítica › Datos con una tarjeta por variable y cinco variables por pantalla"><figcaption>Analítica › Datos, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> cada variable ocupa una tarjeta de unos 80 px y caben cinco por pantalla, aunque el estudio tiene 96. El chip de la cabecera repite «Codificada Codificación».</div>
       <h4>Qué falta</h4>
       <ul>
         <li><b>L29:</b> el piso de 10 px ya se cumple fuera de Monitoreo. Falta pasar los tamaños escritos a mano a los ocho roles tipográficos; todavía no hay una cifra de cierre.</li>
-        <li><b>L28:</b> la tabla compartida <code>PulsoTable</code>, con cabecera fija, anchos declarados y filas virtualizadas, sigue sin empezar porque espera la decisión D-L28.</li>
+        <li><b>L28, hecho el 1 de noviembre</b> (<code>868bf7bdc</code>): Datos es el primer consumidor de <code>PulsoTable</code>. Una fila de 36 px por variable (incluir, código, tipo, con dato, etiqueta, opciones) pasa de cinco tarjetas a unas catorce filas a 1440; las etiquetas de opciones, la cobertura y los avisos se abren en un inspector que lee <code>?foco=</code>. El chip dice «Codificada» sola.</li>
       </ul>
       <h4>Cómo mejorarlo</h4>
       <ul>
@@ -116,7 +116,7 @@
   </article>
 
   <article class="ficha" id="L31">
-    <header><code>L31</code><h3>Home vivo</h3><span class="chip decide">el bloque «hoy» espera tu decisión</span></header>
+    <header><code>L31</code><h3>Home vivo</h3><span class="chip listo">hecha</span></header>
     <figure><img src="hoy-2026-10-31/home.png" alt="Home del proyecto con siete tarjetas de módulo"><figcaption>Home del proyecto, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> las tarjetas se recargan solas y muestran su siguiente acción. Hay tres problemas a la vista:
@@ -128,7 +128,7 @@
       </div>
       <h4>Qué falta</h4>
       <ul>
-        <li>El bloque «desde tu última apertura», que necesita guardar esa fecha. Decisión tuya: ¿en el <code>.pulso</code> o en el equipo?</li>
+        <li><b>Hecho el 1 de noviembre</b> (<code>1edc02e45</code>): el bloque «desde tu última apertura» ocupa el hueco sobre las tarjetas y dice qué cambió (+245 validadas, −5 por revisar…). La fecha vive en el equipo (<code>localStorage</code>), no en el <code>.pulso</code>. Procesamiento ya no decía «Por iniciar · 0/5» con Analítica lista: cuenta las fases que declara el motor.</li>
       </ul>
       <h4>Cómo mejorarlo</h4>
       <ul>
@@ -153,14 +153,12 @@
   <h2>Esperan una decisión tuya</h2>
 
   <article class="ficha" id="L16">
-    <header><code>L16 · D2</code><h3>Dashboard con el chrome de los demás módulos</h3><span class="chip decide">espera D2</span></header>
+    <header><code>L16 · D2</code><h3>Dashboard con el chrome de los demás módulos</h3><span class="chip listo">hecha</span></header>
     <figure><img src="hoy-2026-10-31/dashboard.png" alt="Dashboard con su propia barra de pestañas y el panel «Fuente del dashboard»"><figcaption>Dashboard, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> el Dashboard tiene su propia barra de pestañas a la derecha (Deploy, Vista previa, Personalizar, Datos) y no usa el rail de los otros módulos. Además dice «Proyecto: falta XLSForm o data» mientras los dos selectores muestran un archivo elegido.</div>
-      <h4>Qué decides</h4>
-      <p>D2: si la administración del Dashboard adopta el rail y la barra de comandos del resto de la app. El tablero que se publica para el cliente conservaría su diseño propio.</p>
-      <h4>Cómo mejorarlo, decidas lo que decidas</h4>
-      <ul><li>El aviso de «falta XLSForm o data» debería decir cuál de los dos falta, o desaparecer si los dos están elegidos.</li></ul>
+      <h4>Qué se hizo</h4>
+      <ul><li><b>Hecho el 1 de noviembre</b> (<code>ac9cd52a4</code>): la administración usa el rail de 56 px con Resumen, Relaciones, Base de datos y Dimensiones; vista previa y el tablero publicado conservan su fila de píldoras. Las acciones llevan ícono y «Deploy» pasa a «Publicar». El aviso de la fuente nombra la pieza que falta y sólo aparece cuando se usa la sesión porque el proyecto quedó fuera.</li></ul>
     </div>
   </article>
 
@@ -175,26 +173,27 @@
   </article>
 
   <article class="ficha" id="L17">
-    <header><code>L17 · D1</code><h3>Formularios con la barra de comandos común</h3><span class="chip decide">espera D1</span></header>
+    <header><code>L17 · D1</code><h3>Formularios con la barra de comandos común</h3><span class="chip listo">hecha</span></header>
     <figure><img src="hoy-2026-10-31/formularios.png" alt="Editor de Formularios con banda superior, rail de doce íconos e inspector de pregunta"><figcaption>Formularios › Constructor, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> la banda ya está más contenida que en octubre (selector, conteos, un aviso, agregar y exportar). El rail tiene doce íconos sin texto.</div>
-      <h4>Qué decides</h4>
-      <p>D1: qué parte de esa banda entra a la barra de comandos común, que esconde en un menú lo que no cabe.</p>
-      <h4>Cómo mejorarlo</h4>
-      <ul><li>Doce íconos sin nombre exigen pasar el mouse por cada uno. Agruparlos (construir, revisar, publicar) o mostrar el nombre de la pestaña activa ayudaría a ubicarse.</li></ul>
+      <h4>Qué se hizo</h4>
+      <ul>
+        <li><b>Hecho el 1 de noviembre</b> (<code>6f3a76547</code>): la banda es la barra de mando común (selector, conteos y estado a la izquierda; el nombre de la pestaña activa al centro; aviso, agregar y exportar a la derecha). Se retira la excepción de chrome de Formularios. El rail lleva tooltip con nombre y descripción.</li>
+        <li>Pedidos de Gonzalo en la misma tanda: el asa de arrastre se ve entera e igual al arrastrar, y la fila suelta las flechas (<code>45b5cc1a4</code>); un botón «?» junto al aviso explica cada ícono de tipo, lógica y restricción (<code>9f3bdccf3</code>).</li>
+      </ul>
     </div>
   </article>
 
   <article class="ficha" id="L36">
-    <header><code>L36</code><h3>Formularios › Documento</h3><span class="chip decide">espera la sesión de diseño DOC.0</span></header>
+    <header><code>L36</code><h3>Formularios › Documento</h3><span class="chip">mejora hecha; el resto espera DOC.0</span></header>
     <figure><img src="hoy-2026-10-31/formularios-impreso.png" alt="Pestaña Impreso del editor con formato, cabecera, matrices y vista previa"><figcaption>Formularios › Impreso, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> la pestaña Impreso ya reemplazó al antiguo «Configurar PDF». Tiene partes a la izquierda, opciones al centro, una vista previa y exportación a Word y PDF.</div>
       <h4>Qué falta</h4>
       <p>L36 pide más: portada, lógica impresa, estilos con candado, páginas con bloques que se pueden seleccionar, inspector y versiones, igual que el editor de láminas. Eso empieza con una sesión de diseño contigo (DOC.0).</p>
       <h4>Cómo mejorarlo ya</h4>
-      <ul><li>La vista previa es un esquema genérico. Mostrar la primera página real del cuestionario, aunque sea en baja resolución, la haría útil para decidir.</li></ul>
+      <ul><li><b>Hecho el 1 de noviembre</b> (<code>14589c198</code>): «Así queda» dibuja la primera página real (título, preguntas numeradas y sus opciones) en baja resolución y al instante, con las columnas y la cabecera elegidas. Portada, estilos con candado y lo demás siguen esperando DOC.0.</li></ul>
     </div>
   </article>
 
