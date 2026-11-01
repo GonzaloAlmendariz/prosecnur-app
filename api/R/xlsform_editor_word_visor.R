@@ -55,6 +55,80 @@
   })
 }
 
+#' Variable de cada número impreso (L36 · DOC.3): con ella el editor sabe qué fila abrir
+#' @return Vector con nombre: `c("1" = "p1", "8.1" = "p8_1")`.
+#' @keywords internal
+.cuestionario_variables_del_modelo <- function(model) {
+  out <- character(0)
+  agregar <- function(numero, nombre) {
+    numero <- .form_pdf_clean_text(numero %||% "")
+    if (nzchar(numero) && !numero %in% names(out)) out[[numero]] <<- .form_pdf_chr(nombre %||% "")
+  }
+  for (b in model$blocks %||% list()) {
+    if (identical(b$kind, "question")) agregar(b$number, b$name)
+    if (identical(b$kind, "matrix")) for (it in b$items %||% list()) agregar(it$number, it$name)
+  }
+  out
+}
+
+#' Caja de cada pregunta sobre su página (L36 · DOC.3), en fracciones de la página
+#'
+#' Parte de las palabras con posición de `pdftools::pdf_data`: una pregunta `7`
+#' empieza en la palabra «7.» y un ítem `8.1` en «8.1». La caja va desde ese
+#' número hasta donde empieza la siguiente pregunta de su misma columna (o el
+#' fin del contenido de la página). En una página a dos columnas, una pregunta
+#' de la izquierda llega hasta donde empieza la columna derecha; los ítems de
+#' matriz son filas de tabla y van a todo el ancho.
+#'
+#' @param datos Lista de `data.frame` por página (`x`, `y`, `width`, `height`, `text`), en puntos.
+#' @param numeros Números impresos, en el orden del modelo.
+#' @param ancho,alto Tamaño de la página en puntos.
+#' @return Lista con nombre por número: `list(pagina, x, y, ancho, alto)` o `NULL` si no se encontró.
+#' @keywords internal
+.cuestionario_visor_cajas <- function(datos, numeros, ancho, alto) {
+  inicios <- list()
+  for (num in numeros) {
+    token <- if (grepl(".", num, fixed = TRUE)) num else paste0(num, ".")
+    for (p in seq_along(datos)) {
+      d <- datos[[p]]
+      k <- which(d$text == token)
+      if (length(k)) {
+        inicios[[num]] <- list(numero = num, pagina = p, x = d$x[k[1]], y = d$y[k[1]],
+                               item = grepl(".", num, fixed = TRUE))
+        break
+      }
+    }
+  }
+  cajas <- list()
+  for (p in seq_along(datos)) {
+    en_pagina <- Filter(function(i) i$pagina == p, inicios)
+    if (!length(en_pagina)) next
+    d <- datos[[p]]
+    cuerpo <- d[d$y < alto - 50, , drop = FALSE]   # sin el pie de página
+    izq <- if (nrow(cuerpo)) min(cuerpo$x) else 30
+    der <- if (nrow(cuerpo)) max(cuerpo$x + cuerpo$width) else ancho - 30
+    fondo <- if (nrow(cuerpo)) max(cuerpo$y + cuerpo$height) else alto - 60
+    medio <- ancho * 0.45
+    preguntas <- Filter(function(i) !i$item, en_pagina)
+    derechas <- Filter(function(i) i$x > medio, preguntas)
+    corte_columna <- if (length(derechas)) min(vapply(derechas, function(i) i$x, numeric(1))) - 8 else der
+    for (i in en_pagina) {
+      columna <- if (i$item) "ancho" else if (i$x > medio) "der" else "izq"
+      siguientes <- Filter(function(o) o$y > i$y + 1 && (
+        identical(columna, "ancho") ||
+          (if (o$item) TRUE else identical(if (o$x > medio) "der" else "izq", columna))
+      ), en_pagina)
+      y1 <- if (length(siguientes)) min(vapply(siguientes, function(o) o$y, numeric(1))) - 3 else fondo + 2
+      x0 <- max(0, i$x - 4)
+      x1 <- if (identical(columna, "izq")) corte_columna else der + 2
+      y0 <- max(0, i$y - 3)
+      cajas[[i$numero]] <- list(pagina = p, x = x0 / ancho, y = y0 / alto,
+                                ancho = max(0, x1 - x0) / ancho, alto = max(0, y1 - y0) / alto)
+    }
+  }
+  cajas
+}
+
 # Worker del job (subproceso callr). Misma firma que `xlsform_editor_export_job_runner`
 # para compartir el handler de export; `formato` no se usa: siempre es docx.
 xlsform_editor_word_visor_job_runner <- function(input_path, formato, fail_code, fail_message,
@@ -86,7 +160,22 @@ xlsform_editor_word_visor_job_runner <- function(input_path, formato, fail_code,
       destino
     }, character(1))
     progreso("mapa", percent = 90, message = "Ubicando las preguntas")
-    mapa <- .cuestionario_visor_mapa(pdftools::pdf_text(pdf), .cuestionario_numeros_del_modelo(model))
+    numeros <- .cuestionario_numeros_del_modelo(model)
+    mapa <- .cuestionario_visor_mapa(pdftools::pdf_text(pdf), numeros)
+    # L36 · DOC.3: variable y caja de cada pregunta, para elegirla sobre la página.
+    tam <- pdftools::pdf_pagesize(pdf)[1, ]
+    cajas <- .cuestionario_visor_cajas(pdftools::pdf_data(pdf), numeros, tam$width, tam$height)
+    variables <- .cuestionario_variables_del_modelo(model)
+    mapa <- lapply(mapa, function(m) {
+      m$nombre <- unname(variables[m$numero]) %||% ""
+      if (is.na(m$nombre)) m$nombre <- ""
+      caja <- cajas[[m$numero]]
+      if (!is.null(caja)) {
+        if (is.na(m$pagina)) m$pagina <- caja$pagina
+        if (identical(as.integer(m$pagina), as.integer(caja$pagina))) m$caja <- caja[c("x", "y", "ancho", "alto")]
+      }
+      m
+    })
     list(ok = TRUE, summary = model$summary, warnings = model$warnings,
          n = n, archivos = archivos, mapa = mapa)
   }, error = function(e) .xlsform_editor_export_error(e, fail_code, fail_message))

@@ -200,7 +200,15 @@ export function PestanaImpreso({
               />
             )}
           </div>
-          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} onLectura={(lectura) => previa.parchar({ lectura })} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
+          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} onLectura={(lectura) => previa.parchar({ lectura })}
+            bloqueElegido={parte === "papel" && papelAbierto !== null ? structure?.byRow.get(papelAbierto)?.name ?? null : null}
+            onElegirBloque={(nombre) => {
+              // L36 · DOC.3: la pregunta elegida sobre la página abre su fila en «Papel por pregunta».
+              const nodo = structure?.outline.find((n) => n.name === nombre);
+              if (!nodo) return;
+              onParte("papel");
+              setPapelAbierto(nodo.rowIndex);
+            }} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
         </div>
       </div>
     </div>

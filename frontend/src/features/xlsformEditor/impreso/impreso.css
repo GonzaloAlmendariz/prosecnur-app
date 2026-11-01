@@ -437,6 +437,33 @@
   gap: var(--pulso-space-1);
 }
 
+.pulso-xf-imp-word-lienzo {
+  position: relative;
+}
+
+/* L36 · DOC.3: cada pregunta es un bloque que se elige sobre la página. Invisible
+   hasta pasar el mouse o tenerla elegida; el foco de teclado también se ve. */
+.pulso-xf-imp-word-bloque {
+  position: absolute;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pulso-xf-imp-word-bloque:hover,
+.pulso-xf-imp-word-bloque:focus-visible {
+  border-color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 6%, transparent);
+  outline: none;
+}
+
+.pulso-xf-imp-word-bloque[aria-pressed="true"] {
+  border: 2px solid var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+}
+
 .pulso-xf-imp-word-hoja img {
   display: block;
   width: 100%;

@@ -171,7 +171,12 @@ describe("previa", () => {
       esperar: vi.fn(async (_id, o) => {
         o?.onCrudo?.({
           paginas: ["data:image/png;base64,AAA", "data:image/png;base64,BBB", "texto suelto"],
-          mapa: [{ numero: "1", pagina: 1 }, { numero: "8.1", pagina: 2 }, { numero: "9", pagina: null }, { numero: "", pagina: 1 }],
+          mapa: [
+            { numero: "1", pagina: 1, nombre: "p1", caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "8.1", pagina: 2, nombre: "p8_1", caja: { x: 2, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "9", pagina: null, caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "", pagina: 1 },
+          ],
         });
         return { ok: true as const, file_id: "w1", original_name: "cuestionario.docx", size: 10, warnings: [],
           summary: { n_blocks: 4, n_questions: 32, n_sections: 2, n_matrices: 15 } };
@@ -183,7 +188,12 @@ describe("previa", () => {
     expect(visorWord.mock.calls[0]?.[1]).toBe("cuestionario.docx");
     expect(descargar).not.toHaveBeenCalled();
     expect(s).toMatchObject({ fase: "lista", lecturaGenerada: "word", url: null, cifras: { paginas: 2, preguntas: 32 } });
-    expect(s.word?.mapa).toEqual([{ numero: "1", pagina: 1 }, { numero: "8.1", pagina: 2 }, { numero: "9", pagina: null }]);
+    // Una caja fuera de la página o de una pregunta sin página no llega: no se dibuja un bloque donde no está.
+    expect(s.word?.mapa).toEqual([
+      { numero: "1", pagina: 1, nombre: "p1", caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+      { numero: "8.1", pagina: 2, nombre: "p8_1", caja: null },
+      { numero: "9", pagina: null, nombre: "", caja: null },
+    ]);
   });
 
   test("un error del job queda dicho, no se traga", async () => {

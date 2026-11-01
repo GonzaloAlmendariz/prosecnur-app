@@ -30,8 +30,12 @@ function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle" | "lectura">): Pa
   ];
 }
 
-export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, estado, hayMatrices, pagina }: {
+export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, estado, hayMatrices, pagina, bloqueElegido = null, onElegirBloque }: {
   previa: EstadoPrevia;
+  /** Variable de la pregunta abierta en «Papel por pregunta»: su bloque queda marcado (L36 · DOC.3). */
+  bloqueElegido?: string | null;
+  /** Elegir una pregunta sobre la página abre sus ajustes de papel. */
+  onElegirBloque?: (nombre: string) => void;
   /** Cambia entre el PDF embebido y las páginas reales del Word (L36 · DOC.2). */
   onLectura: (lectura: LecturaPrevia) => void;
   /** Opciones actuales: dibujan el esquema de página mientras no hay PDF. */
@@ -139,7 +143,21 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, est
             <div className="pulso-xf-imp-word-paginas" ref={paginasRef}>
               {previa.word.paginas.map((src, i) => (
                 <figure key={i} className="pulso-xf-imp-word-hoja" data-pagina={i + 1}>
-                  <img src={src} alt={`Página ${i + 1} de ${previa.word?.paginas.length ?? 0} del Word`} loading="lazy" />
+                  <div className="pulso-xf-imp-word-lienzo">
+                    <img src={src} alt={`Página ${i + 1} de ${previa.word?.paginas.length ?? 0} del Word`} loading="lazy" />
+                    {onElegirBloque && previa.word?.mapa.map((m) => (m.pagina === i + 1 && m.caja && m.nombre ? (
+                      <button
+                        key={m.numero}
+                        type="button"
+                        className="pulso-xf-imp-word-bloque"
+                        style={{ left: `${m.caja.x * 100}%`, top: `${m.caja.y * 100}%`, width: `${m.caja.ancho * 100}%`, height: `${m.caja.alto * 100}%` }}
+                        aria-pressed={m.nombre === bloqueElegido}
+                        aria-label={`Pregunta ${m.numero}: abrir sus ajustes de papel`}
+                        title={`Pregunta ${m.numero} · ${m.nombre}`}
+                        onClick={() => onElegirBloque(m.nombre)}
+                      />
+                    ) : null))}
+                  </div>
                   <figcaption>{`Página ${i + 1}`}</figcaption>
                 </figure>
               ))}

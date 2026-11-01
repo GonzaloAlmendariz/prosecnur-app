@@ -31,6 +31,31 @@ test_that("los números del modelo salen de preguntas e ítems de matriz, en ord
   expect_identical(.cuestionario_numeros_del_modelo(model), c("1", "2.1", "2.2"))
 })
 
+test_that("cada pregunta tiene su caja: columna izquierda, derecha e ítems de matriz a todo el ancho (DOC.3)", {
+  palabra <- function(x, y, texto) data.frame(x = x, y = y, width = 10, height = 11, text = texto)
+  pagina <- rbind(
+    palabra(40, 100, "1."), palabra(60, 100, "Edad"),
+    palabra(320, 100, "2."), palabra(340, 100, "Sexo"),
+    palabra(40, 200, "3."), palabra(320, 260, "4."),
+    palabra(40, 400, "5.1"), palabra(40, 430, "5.2"), palabra(500, 430, "99"),
+    palabra(250, 800, "Página")
+  )
+  cajas <- .cuestionario_visor_cajas(list(pagina), c("1", "2", "3", "4", "5.1", "5.2", "6"), 595, 842)
+  expect_null(cajas[["6"]])
+  # La 1 (izquierda) va hasta donde empieza la 3, sin invadir la columna derecha.
+  expect_equal(cajas[["1"]]$y * 842, 97)
+  expect_equal((cajas[["1"]]$y + cajas[["1"]]$alto) * 842, 197)
+  expect_lt((cajas[["1"]]$x + cajas[["1"]]$ancho) * 595, 320)
+  # La 2 (derecha) va hasta la 4, de su misma columna.
+  expect_equal((cajas[["2"]]$y + cajas[["2"]]$alto) * 842, 257)
+  # La 3 sigue en su columna hasta el primer ítem de matriz, que corta a ambas.
+  expect_equal((cajas[["3"]]$y + cajas[["3"]]$alto) * 842, 397)
+  # Los ítems son filas a todo el ancho y el último llega al fin del contenido, no al pie.
+  expect_gt(cajas[["5.1"]]$ancho * 595, 400)
+  expect_equal((cajas[["5.1"]]$y + cajas[["5.1"]]$alto) * 842, 427)
+  expect_lt((cajas[["5.2"]]$y + cajas[["5.2"]]$alto) * 842, 800)
+})
+
 test_that("el worker dibuja el Word, lo pasa a páginas y ubica las preguntas", {
   skip_if_not_installed("pdftools")
   skip_if(!nzchar(Sys.which("soffice")) && !file.exists("/Applications/LibreOffice.app/Contents/MacOS/soffice"),
@@ -52,4 +77,10 @@ test_that("el worker dibuja el Word, lo pasa a páginas y ubica las preguntas", 
   ubicadas <- Filter(function(m) !is.na(m$pagina), r$mapa)
   expect_gt(length(ubicadas), length(r$mapa) * 0.8)
   expect_identical(as.integer(r$mapa[[1]]$pagina), 1L)
+  # DOC.3: cada pregunta ubicada trae su variable y una caja dentro de la página.
+  con_caja <- Filter(function(m) !is.null(m$caja), r$mapa)
+  expect_gt(length(con_caja), length(ubicadas) * 0.9)
+  expect_true(all(nzchar(vapply(con_caja, function(m) m$nombre, character(1)))))
+  dentro <- vapply(con_caja, function(m) with(m$caja, x >= 0 && y >= 0 && x + ancho <= 1.001 && y + alto <= 1.001 && alto > 0), logical(1))
+  expect_true(all(dentro))
 })

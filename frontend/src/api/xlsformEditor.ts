@@ -1032,8 +1032,26 @@ export async function apiXlsformEditorWordVisor(
 export type XlsformWordVisor = {
   paginas: string[];
   /** Página (desde 1) en que empieza cada número impreso; `null` si no se encontró. */
-  mapa: Array<{ numero: string; pagina: number | null }>;
+  mapa: XlsformWordVisorPregunta[];
 };
+
+export type XlsformWordVisorPregunta = {
+  numero: string;
+  pagina: number | null;
+  /** Variable de la pregunta (L36 · DOC.3): con ella se abre su fila en el editor. */
+  nombre: string;
+  /** Dónde está sobre su página, en fracciones (0–1) del ancho y el alto; `null` si no se ubicó. */
+  caja: { x: number; y: number; ancho: number; alto: number } | null;
+};
+
+function cajaValida(raw: unknown): XlsformWordVisorPregunta["caja"] {
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : NaN);
+  const caja = { x: n(c.x), y: n(c.y), ancho: n(c.ancho), alto: n(c.alto) };
+  const ok = Object.values(caja).every((v) => v >= 0 && v <= 1.01) && caja.ancho > 0 && caja.alto > 0;
+  return ok ? caja : null;
+}
 
 /** Normalizador defensivo de las páginas y el mapa del visor del Word. */
 export function normalizeXlsformWordVisor(raw: unknown): XlsformWordVisor {
@@ -1050,7 +1068,8 @@ export function normalizeXlsformWordVisor(raw: unknown): XlsformWordVisor {
         const pagina = typeof o.pagina === "number" && Number.isInteger(o.pagina) && o.pagina >= 1 && o.pagina <= paginas.length
           ? o.pagina
           : null;
-        return [{ numero, pagina }];
+        const nombre = typeof o.nombre === "string" ? o.nombre.trim() : "";
+        return [{ numero, pagina, nombre, caja: pagina === null ? null : cajaValida(o.caja) }];
       })
     : [];
   return { paginas, mapa };
