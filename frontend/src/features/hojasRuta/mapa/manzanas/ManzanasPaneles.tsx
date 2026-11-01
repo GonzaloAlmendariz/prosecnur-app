@@ -88,6 +88,8 @@ type InspectorProps = {
   marcoElegible?: ReactNode;
   /** «¿Se parece al marco?» (B38): NSE del marco frente al de la muestra. */
   parecido?: ReactNode;
+  /** P2: en Campo real con piloto, si el sorteo evita sus titulares. Último paso, tras Reemplazos. */
+  reglaPiloto?: ReactNode;
   bloqueado: boolean;
   guardando: boolean;
   /** La muestra vigente ya está en Material: volver a sortear pide confirmación (1 nov 2026). */
@@ -95,7 +97,7 @@ type InspectorProps = {
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, bloqueado, guardando, enviada, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, reglaPiloto, bloqueado, guardando, enviada, onSortear }: InspectorProps) {
   const [confirmando, setConfirmando] = useState(false);
   const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
   const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
@@ -228,6 +230,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           </div>
           <Opciones etiqueta="Dónde buscar el reemplazo" valor={config.replacement_policy} opciones={POLITICAS} onCambio={(replacement_policy) => cambiar({ replacement_policy })} deshabilitado={ed || reemplazos === 0} />
         </section>
+        {reglaPiloto}
         {avisosDelSorteo(muestra).map((a) => (
           <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
         ))}

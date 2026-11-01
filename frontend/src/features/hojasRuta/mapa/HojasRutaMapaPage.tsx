@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ReglaPiloto } from "./manzanas/ReglaPiloto";
 import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
 import { muestraV1 } from "./manzanas/sorteoV1";
 import { BookOpenText, Send } from "../../../vendor/lucide-react";
@@ -10,7 +11,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
@@ -287,6 +288,22 @@ export default function HojasRutaMapaPage() {
   // Con una corrida legacy la vista previa describe la adopción, no el estado actual: no se pinta como vigente.
   const marcoDeclarado = configSorteo?.marco_elegible?.declarado === true;
   const zonasCortas = useMemo(() => new Set(marcoDeclarado ? (vistaMarco?.capacidad ?? []).filter((z) => z.falta).map((z) => `${z.ubigeo}|${z.zona}`) : []), [vistaMarco, marcoDeclarado]);
+  // P2: la regla del piloto vive en la corrida de campo; guardarla no toca la muestra (se avisa si quedó con la otra).
+  const cambiarReglaPiloto = useCallback(
+    async (modo: HojasRutaPilotExclusionMode) => {
+      if (!estado) return;
+      setGuardando(true);
+      try {
+        await apiHojasRutaPersistWorkspace(estado.integrated_config, estado.ui_state, undefined, "field", modo);
+        setEstado(await apiHojasRutaState());
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo guardar la regla del piloto");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [estado],
+  );
   const sortear = useCallback(
     async (config: HojasRutaIntegratedConfig): Promise<HojasRutaSamplePreview | null> => {
       if (!estado) return null;
@@ -758,6 +775,17 @@ export default function HojasRutaMapaPage() {
               viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
               manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
               listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
+              reglaPiloto={
+                fase === "field" && estado?.runs?.pilot ? (
+                  <ReglaPiloto
+                    modo={estado.runs.field?.pilot_exclusion_mode ?? "exclude_titulars"}
+                    titularesPiloto={estado.runs.pilot.workspace_outputs?.sample?.blocks?.length ?? 0}
+                    excluidasEnLaMuestra={salidas?.sample ? (salidas.sample.config?.excluded_titular_ids?.length ?? 0) : null}
+                    deshabilitado={bloqueado || guardando}
+                    onCambiar={(modo: HojasRutaPilotExclusionMode) => void cambiarReglaPiloto(modo)}
+                  />
+                ) : null
+              }
               parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} causaV1={Boolean(muestraV1(salidas?.sample?.alerts))} />}
               marcoElegible={
                 <MarcoElegiblePanel
