@@ -130,6 +130,12 @@
       "fecha de visita y si se reemplaza. Llena sólo las columnas en ámbar. Es lo declarado por coordinación:",
       "Monitoreo lo compara con lo que llega a Kobo, que es el avance oficial."
     ), startRow = 2)
+    # Una muestra sorteada antes del reparto de cuotas por ficha no trae celdas: se dice por qué.
+    if (!length(cel)) {
+      openxlsx::writeData(wb, hoja, paste("La muestra enviada no trae cuotas por ficha, así que las efectivas van en una sola columna.",
+                                          "Para anotarlas por sexo y edad, vuelve a sortear y a enviar la muestra desde Hojas de ruta."),
+                          startRow = 3)
+    }
     openxlsx::addStyle(wb, hoja, openxlsx::createStyle(fontSize = 14, textDecoration = "bold"), rows = 1, cols = 1)
     openxlsx::addStyle(wb, hoja, openxlsx::createStyle(fontSize = 10, fontColour = "#5B6573", wrapText = TRUE), rows = 2, cols = 1)
     openxlsx::mergeCells(wb, hoja, cols = seq_along(columnas), rows = 2)
@@ -143,6 +149,7 @@
     }
     openxlsx::addStyle(wb, hoja, openxlsx::createStyle(textDecoration = "bold", fontColour = "#5B6573", halign = "center"),
                        rows = 3, cols = seq_along(columnas))
+    if (!length(cel)) openxlsx::addStyle(wb, hoja, openxlsx::createStyle(fontSize = 10, fontColour = "#8A5A00"), rows = 3, cols = 1)
     openxlsx::writeData(wb, hoja, tabla, startRow = .MTR_FILA_CABECERA,
                         headerStyle = openxlsx::createStyle(textDecoration = "bold", fgFill = "#1F3A5F", fontColour = "#FFFFFF",
                                                             border = "Bottom", wrapText = TRUE, valign = "center", locked = TRUE))
@@ -202,7 +209,7 @@
     }
     openxlsx::setColWidths(wb, hoja, cols = seq_along(columnas),
                            widths = pmin(26, pmax(9, nchar(columnas) * 0.7 + 3)))
-    openxlsx::setColWidths(wb, hoja, cols = idx(c("Distrito", "Encuestador", "Observaciones")), widths = c(18, 30, 36))
+    openxlsx::setColWidths(wb, hoja, cols = idx(c("Distrito", "Código de manzana", "Encuestador", "Observaciones")), widths = c(18, 18, 30, 36))
     openxlsx::setRowHeights(wb, hoja, rows = .MTR_FILA_CABECERA, heights = 44)
     openxlsx::freezePane(wb, hoja, firstActiveRow = primera, firstActiveCol = idx("Tipo"))
     openxlsx::addFilter(wb, hoja, rows = .MTR_FILA_CABECERA, cols = seq_along(columnas))
