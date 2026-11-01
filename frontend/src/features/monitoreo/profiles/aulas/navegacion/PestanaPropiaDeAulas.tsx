@@ -10,6 +10,7 @@ import { ContactoAulas } from "../control/ContactoAulas";
 import { PartesAulas } from "../control/PartesAulas";
 import { RegistroAulas } from "../control/RegistroAulas";
 import { BrechasAulas } from "../control/BrechasAulas";
+import { AlumnosAulas } from "../control/AlumnosAulas";
 import { CalidadAulas } from "../control/CalidadAulas";
 import { DistribucionAulas, type ContextoDeDistribucion } from "../control/DistribucionAulas";
 import { FuentesAulas } from "../insumos/FuentesAulas";
@@ -89,6 +90,9 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "control" && direccion.pestana === "brechas" && direccion.panel == null) {
     return <BrechasAulas {...props} onGuardado={insumos?.recargar} />;
+  }
+  if (direccion.seccion === "control" && direccion.pestana === "alumnos" && direccion.panel == null) {
+    return <AlumnosAulas {...props} />;
   }
   // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
   if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {

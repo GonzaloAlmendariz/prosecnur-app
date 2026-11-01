@@ -130,7 +130,8 @@ const TABLA: readonly Entrada[] = [
   // Ctl7 Brechas: contenido propio (`control/BrechasAulas.tsx`).
   entrada("control", "brechas", null, v("consultas", "brechas"), { vista: "Brechas", propia: true }),
   entrada("control", "brechas", "refuerzos", v("consultas", "refuerzos"), { vista: "Refuerzos" }),
-  entrada("control", "alumnos", null, v("calidad", "alumnos")),
+  // Ctl8 Alumnos: contenido propio (`control/AlumnosAulas.tsx`).
+  entrada("control", "alumnos", null, v("calidad", "alumnos"), { propia: true }),
   // Avance.
   // A1 Resumen: contenido propio (`avance/ResumenAulas.tsx`). Sigue pidiendo
   // el corte de Avance; Cursos-horario conserva la vista heredada de Resumen.
