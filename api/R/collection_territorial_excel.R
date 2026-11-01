@@ -24,7 +24,7 @@
 .MTX_HOJA_CONTROL <- "Control"
 .MTX_FILA_CABECERA <- 4L
 .MTX_COLUMNAS <- c("Distrito", "Zona", "Manzana", "Código de manzana", "Tipo", "UMP", "Reemplaza a",
-                   "Encuestas", "Viviendas", "Encuestador", "Fecha de salida", "Fecha de entrega",
+                   "Encuestas", "Viviendas", "Encuestador", "Fecha de salida", "Fecha de retorno",
                    "Estado", "Observaciones")
 .MTX_ESTADOS <- c("Pendiente", "En campo", "Finalizada", "Reemplazada", "Anulada")
 
@@ -94,7 +94,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
       `Reemplaza a` = if (identical(u$role, "reemplazo") && !is.na(u$titular_id)) txt(unname(label_de[u$titular_id])) else "",
       Encuestas = if (!is.na(u$rango_inicio) && !is.na(u$rango_fin)) sprintf("%d a %d", u$rango_inicio, u$rango_fin) else "",
       Viviendas = if (is.na(u$viviendas)) NA_integer_ else u$viviendas,
-      Encuestador = if (is.na(enc)) "" else enc, `Fecha de salida` = "", `Fecha de entrega` = "",
+      Encuestador = if (is.na(enc)) "" else enc, `Fecha de salida` = "", `Fecha de retorno` = "",
       Estado = "Pendiente", Observaciones = "",
       check.names = FALSE, stringsAsFactors = FALSE
     )
@@ -132,7 +132,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
                                             rows = which(es_reemplazo) + .MTX_FILA_CABECERA, cols = seq_along(columnas), gridExpand = TRUE, stack = TRUE)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "@"), rows = primera:ultima, cols = match("Código de manzana", .MTX_COLUMNAS), stack = TRUE)
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "dd/mm/yyyy"), rows = primera:ultima,
-                     cols = match(c("Fecha de salida", "Fecha de entrega"), .MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
+                     cols = match(c("Fecha de salida", "Fecha de retorno"), .MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
   openxlsx::setColWidths(wb, .MTX_HOJA, cols = seq_along(columnas),
                          widths = c(18, 8, 9, 18, 10, 8, 11, 10, 9, 34, 13, 13, 12, 36))
   openxlsx::freezePane(wb, .MTX_HOJA, firstActiveRow = primera, firstActiveCol = col_enc)
@@ -208,13 +208,15 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
       ce <- .mtx_columna(cab, c("Encuestador"))
       if (!is.na(ci) && !is.na(ce)) {
         cuerpo <- if (r < nrow(crudo)) crudo[(r + 1L):nrow(crudo), , drop = FALSE] else crudo[0, , drop = FALSE]
-        # C7: Estado y fechas son opcionales (el Excel operativo viejo no los trae).
+        # C7: Estado y fechas son opcionales (el Excel operativo viejo no los trae). La fecha de
+        # vuelta se rotula «Fecha de retorno», como el seguimiento real (brechas A7); los archivos ya
+        # repartidos dicen «Fecha de entrega» y se siguen leyendo.
         opcional <- function(nombres) { k <- .mtx_columna(cab, nombres); if (is.na(k)) rep(NA, nrow(cuerpo)) else cuerpo[[k]] }
         # P2: columnas de conteo por su código delante («8 · Encuesta efectiva»).
         de_conteo <- which(grepl("^\\s*[0-9]+\\s*·", cab))
         conteos <- stats::setNames(lapply(de_conteo, function(k) cuerpo[[k]]), trimws(sub("·.*$", "", cab[de_conteo])))
         return(list(hoja = h, fila0 = r, id = cuerpo[[ci]], encuestador = cuerpo[[ce]], estado = opcional("Estado"),
-                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional("Fecha de entrega"), conteos = conteos))
+                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional(c("Fecha de retorno", "Fecha de entrega")), conteos = conteos))
       }
     }
   }

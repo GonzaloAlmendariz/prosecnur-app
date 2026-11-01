@@ -78,6 +78,26 @@ Con esos códigos se miden la respuesta y la ocupación reales (lo que la grilla
 - **D2.** Qué hacer con la **Hoja del día**: (a) dejarla como portada de la jornada (orden de rutas, km, reemplazos) y
   quitarle la grilla de disposiciones, que la hoja de ruteo reemplaza con los códigos de campo; (b) retirarla. Recomendado: (a).
 
+## Lectura desde R del Excel por variante (2026-11-01)
+
+openpyxl no abría el archivo; se leyó con `openxlsx` desde R. Se generó el Excel real de acnur_acg (300 UMP, 26
+encuestadores) en las dos variantes, sobre una copia sin guardar (`load_pulso` + envío + campaña en memoria; la 1A con
+el Planner simulado en `conveniencia`). Se contrastó contra la tabla A1–A10 y el §1C del informe de brechas. Gonzalo
+(1 nov): «manda el formato, pero desde la app podemos mejorarlo».
+
+| Brecha | 1B UMP aleatoria | 1A conveniencia | Estado |
+|---|---|---|---|
+| A1 Pestañas | `Asignación`, `Registro` (una región: Lima), `Encuestadores`, `Control` oculta | Igual, con el Registro titulado «Seguimiento de campo» | ☑ coincide |
+| A2 Encuestador | Desplegable «Pxxx · Nombre» desde la lista de Monitoreo; en el Registro es fórmula que lee la Asignación | Igual | ☑ coincide |
+| A3 Avance por celda | «La muestra enviada no trae cuotas por ficha»: una sola columna «Efectivas» | Igual | ◐ es del dato, no del motor: el sorteo de las copias de acnur_acg es el reparto por zonas v1 y no trae `cuota_*_totals` por ficha. Con un re-sorteo aparecen las celdas (lo cubre `test-collection-territorial-registro.R`) |
+| A4 Estado | Manual en la Asignación (Pendiente, En campo, Finalizada, Reemplazada, Anulada); el Registro no trae Estado | Fórmula «Sin iniciar / En curso / Completa» en el Registro | ⛔ decidir: en 1A el Estado por fórmula es el del formato real, pero el límite Material/Monitoreo del 31 oct dice que la plantilla no trae «un Estado que compita con el de Monitoreo» |
+| A5 Totales | Total efectivas, Faltan para la meta y Total de intentos como ayuda de llenado | Total efectivas, Faltan y «Total reportado por coordinación» | ☑ coincide |
+| A6 Supervisión | Aprobadas / No aprobadas en blanco | Igual | ☑ coincide |
+| A7 Fechas | Asignación: «Fecha de salida» y «Fecha de entrega»; Registro: «Fecha de visita» | Igual | ☑ (este commit) la Asignación dice «Fecha de retorno», como el real; un Excel ya repartido con «Fecha de entrega» se sigue leyendo. El campo del GET sigue siendo `fecha_entrega` (lo consume Monitoreo) |
+| A8 Reporte | No hay pestaña Reporte | No hay | ☑ coincide (es de Monitoreo) |
+| A10 Reemplazos | Fila bajo su titular, con «Reemplaza a» y «¿Se reemplaza?» | Sin «¿Se reemplaza?» | ☑ coincide |
+| P2 / K1 Códigos | 1–7 y 99 como «no efectivas por código»; rótulos del catálogo de Material, editables también en el núcleo | Sin columnas de código | ☑ coincide. Los rótulos salen por defecto (2 «Vivienda desocupada», 5 «No hay persona elegible») porque acnur_acg no tiene su catálogo de acogida cargado: es configuración del proyecto, no del motor |
+
 ## Notas
 
 - La lista de encuestadores que campo maneja («codigos_pulso_encuestadores-VF», con código PULSO) es la misma pieza que

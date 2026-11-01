@@ -38,7 +38,7 @@ T1 <- "150101001001"; T2 <- "150101001002"
 test_that("importar lee Estado y fechas (serial, Date o texto) y reporta lo que no reconoce", {
   sid <- .mte_sesion(); on.exit(session_delete(sid), add = TRUE)
   raw <- .mte_llenar(sid, list(
-    `150101001001` = list(Encuestador = "P844", Estado = "en campo", `Fecha de salida` = as.Date("2026-11-03"), `Fecha de entrega` = "05/11/2026"),
+    `150101001001` = list(Encuestador = "P844", Estado = "en campo", `Fecha de salida` = as.Date("2026-11-03"), `Fecha de retorno` = "05/11/2026"),
     `150101001002` = list(Estado = "Terminada", `Fecha de salida` = "mañana")
   ))
   antes <- session_get(sid)
@@ -54,10 +54,28 @@ test_that("importar lee Estado y fechas (serial, Date o texto) y reporta lo que 
   expect_identical(r$resumen$estados_declarados, 1L)
 })
 
+test_that("la fecha de vuelta se rotula «Fecha de retorno» y un Excel ya repartido con «Fecha de entrega» se sigue leyendo", {
+  sid <- .mte_sesion(); on.exit(session_delete(sid), add = TRUE)
+  r <- collection_territorial_asignacion_excel(sid)
+  path <- session_get(sid)$files[[r$file_id]]$path
+  t <- openxlsx::read.xlsx(path, sheet = "Asignación", startRow = 4, check.names = FALSE, sep.names = " ")
+  expect_true("Fecha de retorno" %in% names(t))
+  expect_false("Fecha de entrega" %in% names(t))
+  # El archivo viejo: mismo libro con el rótulo anterior.
+  wb <- openxlsx::loadWorkbook(path)
+  col <- match("Fecha de retorno", names(t))
+  openxlsx::writeData(wb, "Asignación", "Fecha de entrega", startCol = col, startRow = 4)
+  openxlsx::writeData(wb, "Asignación", "07/11/2026", startCol = col, startRow = 4 + match(T1, as.character(t[["Código de manzana"]])))
+  f <- tempfile(fileext = ".xlsx"); openxlsx::saveWorkbook(wb, f)
+  imp <- collection_territorial_asignacion_importar(sid, file_raw = readBin(f, "raw", file.info(f)$size))
+  e1 <- Filter(function(e) identical(e$id_manzana, T1), imp$estados)[[1]]
+  expect_identical(e1$fecha_entrega, "2026-11-07")
+})
+
 test_that("aplicar guarda lo declarado; el GET lo publica con huella y el selector no lo borra", {
   sid <- .mte_sesion(); on.exit(session_delete(sid), add = TRUE)
   r <- collection_territorial_asignacion_importar(sid, file_raw = .mte_llenar(sid, list(
-    `150101001001` = list(Encuestador = "P844", Estado = "Finalizada", `Fecha de entrega` = 46331))))
+    `150101001001` = list(Encuestador = "P844", Estado = "Finalizada", `Fecha de retorno` = 46331))))
   collection_territorial_asignacion_put(sid, asignacion = r$propuesta, estados = r$estados)
   g <- collection_territorial_estado_get(sid)
   expect_false(g$es_avance)
