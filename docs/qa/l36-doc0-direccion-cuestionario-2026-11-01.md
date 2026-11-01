@@ -76,3 +76,36 @@ Lo que está mal, por orden de lo que se ve primero:
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
 esperar al visor para que el papel deje de tener marcos vacíos.
+
+## DOC.2 · Diseño del visor fiel (2026-11-01)
+
+**Qué ya existe y no se rehace.** «Previsualizar» en Impreso lanza el job de
+`export-pdf`, baja el PDF y lo muestra embebido; además sabe cuándo quedó viejo
+(`previaVieja`: firma de opciones + workbook). Eso es la vista rápida del PDF.
+
+**Qué falta.** L36 pide ver el *Word*, que es el entregable editable, como
+páginas reales, y saber en qué página cae cada pregunta. Esa es la base de
+DOC.3 (bloques seleccionables sobre la página).
+
+**Decisiones (D-L36-9 … 12):**
+
+- **D-L36-9 · Un solo job, `xlsform_editor.formulario_word_visor`.** Arma el
+  modelo, dibuja el `.docx` (mismo `formulario_word_render`), lo convierte a
+  PDF con LibreOffice y rasteriza cada página a 60 dpi
+  (`.word_visor_paginas`, el mismo de Gráficos). Registra el `.docx` en la
+  sesión como cualquier export: lo que se ve es lo que se descarga.
+- **D-L36-10 · Mapa pregunta → página con los números que el modelo ya
+  conoce.** No se adivina leyendo cifras sueltas: el worker pasa la lista de
+  números impresos del modelo (`1`, `8.1`…) y se busca cada uno al inicio de
+  línea en el texto de cada página (`N. ` en preguntas, `N.M ` en ítems de
+  matriz). Una pregunta que no aparece queda sin página, no con una inventada.
+- **D-L36-11 · Endpoint `POST /api/xlsform-editor/word-visor`,** con el mismo
+  cuerpo que `export-word` (workbook, filename, options). La respuesta trae
+  `file_id`, `n`, `paginas` (data URI) y `mapa` (`[{numero, pagina}]`).
+- **D-L36-12 · En Impreso, la previa tiene dos lecturas:** «PDF» (la de hoy) y
+  «Páginas del Word» (la nueva), con la misma regla de «desactualizada».
+  Las páginas van en columna con su número; una lista «Ir a la pregunta»
+  salta a la página donde empieza cada pregunta.
+
+Verlo en vivo exige `R CMD INSTALL` (el worker resuelve contra el paquete
+instalado): se coordina antes con la sesión de coordinación.
