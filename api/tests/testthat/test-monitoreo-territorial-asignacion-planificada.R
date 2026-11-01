@@ -143,3 +143,22 @@ test_that("2h: lo declarado por coordinación va al lado de Kobo, con su diferen
   expect_true(is.na(luis$efectivas_coordinacion))
   expect_true(is.na(luis$rendimiento))
 })
+
+test_that("2h: el Reporte por región agrupa las UMP con las cifras del control", {
+  audit <- data.frame(advance_block_id = c("M1", "M1", "M2"), pulso_code = c("P844", "P844", "P844"),
+                      advance_valid = c("true", "true", "true"), stringsAsFactors = FALSE)
+  estados <- list(stale = FALSE, desactualizada = FALSE, codigos = list(),
+                  unidades = list(list(id_manzana = "M2", efectivas = list(sexo = list(H = 2L, M = 1L)))))
+  r <- monitoreo_territorial_asignacion_planificada_desde(audit, .tap_asig(), estados = estados,
+                                                         regiones = c(M1 = "Lima", M2 = "Tumbes"))
+  expect_identical(r$por_ump[[1]]$region, "Lima")
+  reg <- stats::setNames(r$por_region, vapply(r$por_region, `[[`, "", "region"))
+  expect_true(all(c("Lima", "Tumbes") %in% names(reg)))
+  expect_identical(reg$Lima$efectivas_kobo, 2L)
+  expect_true(is.na(reg$Lima$efectivas_coordinacion))
+  expect_identical(reg$Tumbes$efectivas_coordinacion, 3L)
+  expect_identical(reg$Tumbes$ump_que_no_cuadran, 1L)
+  # Sin región en la muestra, una sola fila que lo dice.
+  r2 <- monitoreo_territorial_asignacion_planificada_desde(audit, .tap_asig(), estados = estados)
+  expect_identical(vapply(r2$por_region, `[[`, "", "region"), "Sin región")
+})

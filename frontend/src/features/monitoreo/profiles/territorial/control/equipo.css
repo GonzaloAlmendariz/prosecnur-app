@@ -337,3 +337,15 @@
 .mon-eq-no-cuadra {
   color: var(--pulso-warn-fg);
 }
+
+/* 2h · El control por región, plegable bajo la línea de coordinación. */
+.mon-eq-region > summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-eq-region[open] > summary {
+  margin-bottom: var(--pulso-space-2);
+}

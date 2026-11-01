@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeAsignacionPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
-import { controlDeCoordinacion } from "./coordinacionModelo";
+import { controlDeCoordinacion, reportePorRegion } from "./coordinacionModelo";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import { ReportePorRegion } from "./ReportePorRegion";
 import { columnaPlanificada } from "../avance/asignacionPlanificadaModelo";
 
 // 2h: lo declarado por coordinación al lado de Kobo validado, con su
@@ -45,5 +48,29 @@ describe("controlDeCoordinacion", () => {
     expect(col.porManzana.get("M2")?.declarado?.coordinacion).toEqual({ texto: "Coordinación 3 · Kobo 1", distinto: true });
     expect(col.porManzana.get("M1")?.declarado?.coordinacion?.distinto).toBe(false);
     expect(col.resumen).toContain("Coordinación declara 2 UMP; 1 no cuadra con Kobo.");
+  });
+});
+
+describe("reportePorRegion", () => {
+  const conRegiones = {
+    ...crudo,
+    por_region: [
+      { region: "Lima", ump: 3, efectivas_kobo: 10, efectivas_coordinacion: 12, ump_que_no_cuadran: 1, intentos_declarados: 20 },
+      { region: "Tumbes", ump: 1, efectivas_kobo: 4 },
+    ],
+  };
+
+  it("una fila por región con las cifras del control; sin registro, rayas", () => {
+    const filas = reportePorRegion(normalizeAsignacionPlanificada(conRegiones));
+    expect(filas).toHaveLength(2);
+    expect(filas[0]).toMatchObject({ region: "Lima", kobo: "10", declaradas: "12", noCuadran: 1, rendimiento: "50 %" });
+    expect(filas[1]).toMatchObject({ region: "Tumbes", declaradas: "—", rendimiento: "—", supervision: "—" });
+    const html = renderToStaticMarkup(createElement(ReportePorRegion, { filas }));
+    expect(html).toContain("2 regiones, 1 con UMP que no cuadran");
+  });
+
+  it("con una sola región no se pinta: repetiría el resumen", () => {
+    expect(reportePorRegion(normalizeAsignacionPlanificada({ ...crudo, por_region: [{ region: "Sin región", ump: 4 }] }))).toEqual([]);
+    expect(reportePorRegion(normalizeAsignacionPlanificada({ ...conRegiones, resumen: {} }))).toEqual([]);
   });
 });

@@ -55,3 +55,38 @@ export function controlDeCoordinacion(asig: AsignacionPlanificada | null): Contr
     hayAlerta: r.coordinacionDistinta > 0,
   };
 }
+
+export type FilaDeRegion = {
+  region: string;
+  ump: string;
+  kobo: string;
+  declaradas: string;
+  noCuadran: number;
+  rendimiento: string;
+  tituloRendimiento: string;
+  supervision: string;
+};
+
+/**
+ * 2h · El Reporte por región: las mismas cifras del control por encuestador,
+ * agrupadas con la llave de las pestañas del registro del coordinador. Con una
+ * sola región no se pinta: repetiría la línea de resumen.
+ */
+export function reportePorRegion(asig: AsignacionPlanificada | null): FilaDeRegion[] {
+  if (!asig || asig.estado !== "comparable" || !asig.resumen.conRegistroCoordinacion) return [];
+  if (asig.porRegion.length < 2) return [];
+  return asig.porRegion.map((r) => ({
+    region: r.region,
+    ump: fmt(r.ump),
+    kobo: fmt(r.efectivasKobo),
+    declaradas: r.efectivasCoordinacion == null ? "—" : fmt(r.efectivasCoordinacion),
+    noCuadran: r.umpQueNoCuadran,
+    rendimiento: r.intentosDeclarados ? pctEntero(r.efectivasKobo, r.intentosDeclarados) : "—",
+    tituloRendimiento: r.intentosDeclarados == null
+      ? "Sin intentos declarados por coordinación"
+      : `${fmt(r.efectivasKobo)} efectivas en Kobo sobre ${fmt(r.intentosDeclarados)} intentos declarados`,
+    supervision: r.supervisionAprobadas == null && r.supervisionNoAprobadas == null
+      ? "—"
+      : `${fmt(r.supervisionAprobadas ?? 0)} / ${fmt(r.supervisionNoAprobadas ?? 0)}`,
+  }));
+}

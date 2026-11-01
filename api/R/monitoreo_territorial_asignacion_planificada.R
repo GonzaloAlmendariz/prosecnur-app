@@ -77,30 +77,43 @@
 # 2h: el control por encuestador. El encuestador es el PLANIFICADO de la UMP
 # (la llave es su código); el rendimiento es efectivas validadas en Kobo sobre
 # los intentos que declara coordinación, sólo cuando hay intentos declarados.
+# Las cifras del control para un grupo de UMP (un encuestador, una región).
+.mtap_agregar <- function(suyas) {
+  kobo <- as.integer(sum(vapply(suyas, `[[`, 0L, "efectivas_kobo")))
+  intentos <- .mtap_suma(suyas, "intentos_declarados")
+  list(
+    ump = length(suyas),
+    con_respuestas = as.integer(sum(vapply(suyas, function(u) u$respuestas > 0L, logical(1)))),
+    efectivas_kobo = kobo,
+    efectivas_coordinacion = .mtap_suma(suyas, "efectivas_coordinacion"),
+    ump_que_no_cuadran = as.integer(sum(vapply(suyas, function(u) {
+      !is.na(u$diferencia_coordinacion) && u$diferencia_coordinacion != 0L
+    }, logical(1)))),
+    intentos_declarados = intentos,
+    rendimiento = if (is.na(intentos) || intentos <= 0L) NA_real_ else round(kobo / intentos, 4),
+    supervision_aprobadas = .mtap_suma(suyas, "supervision_aprobadas"),
+    supervision_no_aprobadas = .mtap_suma(suyas, "supervision_no_aprobadas")
+  )
+}
+
 .mtap_por_encuestador <- function(por_ump) {
   codigos <- unique(vapply(por_ump, `[[`, "", "codigo_planificado"))
   codigos <- codigos[nzchar(codigos)]
   filas <- lapply(codigos, function(cod) {
     suyas <- Filter(function(u) identical(u$codigo_planificado, cod), por_ump)
-    kobo <- as.integer(sum(vapply(suyas, `[[`, 0L, "efectivas_kobo")))
-    intentos <- .mtap_suma(suyas, "intentos_declarados")
-    list(
-      codigo = cod,
-      nombre = suyas[[1]]$nombre_planificado %||% "",
-      ump = length(suyas),
-      con_respuestas = as.integer(sum(vapply(suyas, function(u) u$respuestas > 0L, logical(1)))),
-      efectivas_kobo = kobo,
-      efectivas_coordinacion = .mtap_suma(suyas, "efectivas_coordinacion"),
-      ump_que_no_cuadran = as.integer(sum(vapply(suyas, function(u) {
-        !is.na(u$diferencia_coordinacion) && u$diferencia_coordinacion != 0L
-      }, logical(1)))),
-      intentos_declarados = intentos,
-      rendimiento = if (is.na(intentos) || intentos <= 0L) NA_real_ else round(kobo / intentos, 4),
-      supervision_aprobadas = .mtap_suma(suyas, "supervision_aprobadas"),
-      supervision_no_aprobadas = .mtap_suma(suyas, "supervision_no_aprobadas")
-    )
+    c(list(codigo = cod, nombre = suyas[[1]]$nombre_planificado %||% ""), .mtap_agregar(suyas))
   })
   filas[order(vapply(filas, `[[`, "", "codigo"))]
+}
+
+# 2h: el Reporte por región, con la misma llave con que el Excel del
+# coordinador abre una pestaña por región (`departamento` del bloque enviado).
+# Sin región en la muestra, una sola fila «Sin región».
+.mtap_por_region <- function(por_ump) {
+  regiones <- vapply(por_ump, function(u) u$region %||% "", "")
+  regiones[!nzchar(regiones)] <- "Sin región"
+  filas <- lapply(sort(unique(regiones)), function(r) c(list(region = r), .mtap_agregar(por_ump[regiones == r])))
+  filas
 }
 
 #' Asignado contra observado por UMP (núcleo puro).
@@ -115,7 +128,7 @@
 #' @return lista del contrato `asignacion-planificada`.
 #' @keywords internal
 monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, anulado = NULL, phase = "field",
-                                                             estados = NULL) {
+                                                             estados = NULL, regiones = NULL) {
   est <- .mtap_estado(asig)
   code_format <- .monitoreo_scalar((asig %||% list())$code_format, "PXXX")
   base <- list(ok = TRUE, estado = est$estado, motivo = est$motivo, phase = phase, code_format = code_format)
@@ -204,6 +217,7 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
     list(
       id_manzana = id,
       label = .monitoreo_scalar(a$label, id),
+      region = if (length(regiones) && id %in% names(regiones)) unname(regiones[[id]]) else "",
       role = .monitoreo_scalar(a$role, "titular"),
       origen = .monitoreo_scalar(a$origen, "explicita"),
       codigo_planificado = plan,
@@ -260,7 +274,8 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       supervision_no_aprobadas = .mtap_suma(por_ump, "supervision_no_aprobadas")
     ),
     por_ump = por_ump,
-    por_encuestador = por_encuestador
+    por_encuestador = por_encuestador,
+    por_region = .mtap_por_region(por_ump)
   ))
 }
 
@@ -304,7 +319,18 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
   anulado <- .monitoreo_territorial_production_annulment_mask(auditoria, cfg$territorial %||% list(), phase)
   # C7: el Estado declarado por campo, también de Material y de solo lectura.
   estados <- tryCatch(collection_territorial_estado_get(sid), error = function(e) NULL)
-  monitoreo_territorial_asignacion_planificada_desde(auditoria, asig, anulado = anulado, phase = phase, estados = estados)
+  monitoreo_territorial_asignacion_planificada_desde(auditoria, asig, anulado = anulado, phase = phase, estados = estados,
+                                                     regiones = .mtap_regiones(s, asig$fase))
+}
+
+# La región de cada UMP de la muestra enviada, leída de la foto de Material.
+.mtap_regiones <- function(s, fase) {
+  envio <- tryCatch(.mcamp_territorial_envio(s, fase), error = function(e) NULL)
+  if (is.null(envio)) return(character(0))
+  filas <- c(.hojas_ruta_envio_rows(envio$sample$blocks), .hojas_ruta_envio_rows(envio$sample$replacement_blocks))
+  if (!length(filas)) return(character(0))
+  stats::setNames(vapply(filas, function(b) .hojas_ruta_envio_chr(b[["departamento"]]), ""),
+                  vapply(filas, function(b) .hojas_ruta_envio_chr(b[["id_manzana"]]), ""))
 }
 
 mount_monitoreo_territorial_asignacion_planificada <- function(pr) {

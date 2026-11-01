@@ -65,11 +65,15 @@ export type EncuestadorControlado = {
   supervisionNoAprobadas: number | null;
 };
 
+/** 2h: el Reporte por región (la llave de las pestañas del registro del coordinador). */
+export type RegionControlada = Omit<EncuestadorControlado, "codigo" | "nombre"> & { region: string };
+
 export type AsignacionPlanificada = {
   estado: EstadoDeAsignacionPlanificada;
   motivo: string;
   porUmp: UmpPlanificada[];
   porEncuestador: EncuestadorControlado[];
+  porRegion: RegionControlada[];
   resumen: {
     asignadas: number;
     coinciden: number;
@@ -90,6 +94,22 @@ export type AsignacionPlanificada = {
 
 const ESTADOS: EstadoDeAsignacionPlanificada[] = ["comparable", "otra_muestra", "sin_asignacion", "sin_envio", "sin_campana"];
 const LECTURAS: LecturaDeAsignacion[] = ["coincide", "coincide_con_otros", "otro_encuestador", "sin_respuestas"];
+
+// Las cifras del control de un grupo de UMP (un encuestador o una región).
+function cifrasDelControl(e: Record<string, unknown>): Omit<EncuestadorControlado, "codigo" | "nombre"> {
+  const entero = (v: unknown) => enteroONulo(v) ?? 0;
+  return {
+    ump: entero(e.ump),
+    conRespuestas: entero(e.con_respuestas),
+    efectivasKobo: entero(e.efectivas_kobo),
+    efectivasCoordinacion: enteroONulo(e.efectivas_coordinacion),
+    umpQueNoCuadran: entero(e.ump_que_no_cuadran),
+    intentosDeclarados: enteroONulo(e.intentos_declarados),
+    rendimiento: numeroONulo(e.rendimiento),
+    supervisionAprobadas: enteroONulo(e.supervision_aprobadas),
+    supervisionNoAprobadas: enteroONulo(e.supervision_no_aprobadas),
+  };
+}
 
 function celdas(v: unknown): Array<{ celda: string; valor: number }> {
   return Object.entries(registro(v))
@@ -135,16 +155,9 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
     porEncuestador: lista(r.por_encuestador).map((e) => ({
       codigo: texto(e.codigo),
       nombre: texto(e.nombre),
-      ump: entero(e.ump),
-      conRespuestas: entero(e.con_respuestas),
-      efectivasKobo: entero(e.efectivas_kobo),
-      efectivasCoordinacion: enteroONulo(e.efectivas_coordinacion),
-      umpQueNoCuadran: entero(e.ump_que_no_cuadran),
-      intentosDeclarados: enteroONulo(e.intentos_declarados),
-      rendimiento: numeroONulo(e.rendimiento),
-      supervisionAprobadas: enteroONulo(e.supervision_aprobadas),
-      supervisionNoAprobadas: enteroONulo(e.supervision_no_aprobadas),
+      ...cifrasDelControl(e),
     })).filter((e) => e.codigo),
+    porRegion: lista(r.por_region).map((e) => ({ region: texto(e.region), ...cifrasDelControl(e) })).filter((e) => e.region),
     resumen: {
       asignadas: entero(resumen.asignadas),
       coinciden: entero(resumen.coinciden),

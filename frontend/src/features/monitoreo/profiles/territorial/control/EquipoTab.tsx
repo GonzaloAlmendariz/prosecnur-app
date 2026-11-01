@@ -6,7 +6,8 @@ import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { construirEquipo, type FilaDeEquipo } from "./equipoModel";
-import { controlDeCoordinacion, type ControlDeCodigo } from "./coordinacionModelo";
+import { controlDeCoordinacion, reportePorRegion, type ControlDeCodigo } from "./coordinacionModelo";
+import { ReportePorRegion } from "./ReportePorRegion";
 import { useAsignacionPlanificada } from "../avance/useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./equipo.css";
@@ -33,6 +34,7 @@ function EquipoTabImpl({
   // 2h: el registro del coordinador, al lado de Kobo y nunca sumado.
   const asignacion = useAsignacionPlanificada(phase);
   const coordinacion = useMemo(() => controlDeCoordinacion(asignacion), [asignacion]);
+  const porRegion = useMemo(() => reportePorRegion(asignacion), [asignacion]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const anular = usePanelDireccionable(PANEL_ANULAR);
   const elegida = modelo.filas.find((fila) => fila.codigo === String(foco ?? "").toUpperCase()) ?? null;
@@ -71,6 +73,7 @@ function EquipoTabImpl({
         {coordinacion?.resumen ? (
           <p className="mon-eq-coordinacion" data-tono={coordinacion.hayAlerta ? "aviso" : "ok"} role="status">{coordinacion.resumen}</p>
         ) : null}
+        <ReportePorRegion filas={porRegion} />
         <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Equipo por código, con desplazamiento">
           <table className="mon-eq-tabla">
             <thead>
