@@ -152,8 +152,22 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
+  const crearTelefonica = useCallback(async (name: string): Promise<ResultadoDelRegistro> => {
+    setOcupado(true);
+    try {
+      const out = await apiMaterialCampanaCrear({ tipo: "telefonica", name: name.trim(), expected_registry_revision: delBackend?.registry_revision ?? null });
+      if (!out) return { ok: false, mensaje: "Esta versión del backend no registra campañas telefónicas." };
+      poner(out.campaign, out.registry_revision);
+      return { ok: true, campana: out.campaign };
+    } catch (causa) {
+      return fallo(causa, "No se pudo crear la campaña telefónica.");
+    } finally {
+      if (vivo.current) setOcupado(false);
+    }
+  }, [delBackend?.registry_revision, fallo, poner]);
+
   /**
-   * Renombra, archiva o reabre una campaña del registro: aulas o territorial
+   * Renombra, archiva o reabre una campaña del registro: aulas, territorial o telefónica
    * (las de correo se renombran por su engine).
    */
   const cambiarAulas = useCallback(async (id: string, cambio: { name?: string; archived?: boolean }): Promise<ResultadoDelRegistro> => {
@@ -175,7 +189,7 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
-  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, crearTerritorial, cambiarAulas, marcarExportacion };
+  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, crearTerritorial, crearTelefonica, cambiarAulas, marcarExportacion };
 }
 
 export type RegistroVivo = ReturnType<typeof useRegistroDeCampanas>;

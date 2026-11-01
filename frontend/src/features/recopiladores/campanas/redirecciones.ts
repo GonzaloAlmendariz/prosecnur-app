@@ -13,6 +13,7 @@
 import type { CampanaMaterial, RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
 import { SEPARADOR_FOCO } from "../editor/modeloEditor";
 import { PESTANAS_DEL_CORREO_LEGADAS } from "../navegacion";
+import { resolverSeccionTelefonica } from "../telefonica/navegacionTelefonica";
 import { resolverSeccionTerritorial } from "../territorial/navegacionTerritorial";
 import { PANEL_NUEVA_CAMPANA_ID, PANEL_RENOMBRAR_CAMPANA } from "./panelesCampanas";
 import {
@@ -126,6 +127,19 @@ function aTerritorial(campana: CampanaMaterial, entrada: EntradaDeCampanas): Res
   return resolucion({ vista: "campana", campana, modo: "territorial" }, deseada, entrada);
 }
 
+/** La campaña telefónica abierta (P10): sección y pestaña siempre canónicas. */
+function aTelefonica(campana: CampanaMaterial, entrada: EntradaDeCampanas): ResolucionDeCampanas {
+  const { seccion, pestana } = resolverSeccionTelefonica(entrada.seccion, entrada.pestana);
+  const deseada: DireccionDeCampanas = {
+    modo: "telefonica",
+    campana: campana.id,
+    seccion,
+    pestana,
+    ...(entrada.panel ? { panel: entrada.panel } : {}),
+  };
+  return resolucion({ vista: "campana", campana, modo: "telefonica" }, deseada, entrada);
+}
+
 /**
  * El correo abierto: una sección con dos pestañas, el editor y los contactos;
  * `foco` es el bloque del editor y se conserva también en Contactos, donde el
@@ -186,6 +200,7 @@ export function resolverVistaDeCampanas(entrada: EntradaDeCampanas, registro: Re
     if (campana && !campana.archived) {
       if (campana.tipo === "aulas") return aAulas(campana, entrada);
       if (campana.tipo === "correo") return aCorreo(campana, entrada, limpio(entrada.foco) || null);
+      if (campana.tipo === "telefonica") return aTelefonica(campana, entrada);
       return aTerritorial(campana, entrada);
     }
     // La de aulas que todavía no existe pero se puede crear: nace al abrirla.
@@ -211,6 +226,11 @@ export function resolverVistaDeCampanas(entrada: EntradaDeCampanas, registro: Re
   if (limpio(entrada.modo) === "territorial") {
     const territorial = laUnicaDe(registro, "territorial");
     return territorial ? aTerritorial(territorial, entrada) : aLaLista(entrada, "");
+  }
+
+  if (limpio(entrada.modo) === "telefonica") {
+    const telefonica = laUnicaDe(registro, "telefonica");
+    return telefonica ? aTelefonica(telefonica, entrada) : aLaLista(entrada, "");
   }
 
   if (limpio(entrada.modo) === "aulas" || nombraAlgoDeAulas(entrada)) {

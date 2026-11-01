@@ -29,7 +29,7 @@ import { origenDePreset } from "../correos/modeloCorreo";
 import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import { hrefDeCampana } from "./direccionDeCampanas";
 import { useFocoDeRetorno } from "./focoDeRetorno";
-import { NOMBRE_CAMPANA_AULAS, NOMBRE_CAMPANA_TERRITORIAL, QUE_ES_EL_TIPO, ROTULO_DE_FASE, ROTULO_DEL_TIPO, disponibilidadDe, fechaCorta } from "./modeloRegistro";
+import { NOMBRE_CAMPANA_AULAS, NOMBRE_CAMPANA_TELEFONICA, NOMBRE_CAMPANA_TERRITORIAL, QUE_ES_EL_TIPO, ROTULO_DE_FASE, ROTULO_DEL_TIPO, disponibilidadDe, fechaCorta } from "./modeloRegistro";
 import { eleccionDeFase, faseParaCrear } from "../territorial/fasesDelEnvio";
 import { useEnviosTerritoriales } from "../territorial/useEnviosTerritoriales";
 import { campanaHomonima } from "./nombreUnico";
@@ -50,12 +50,13 @@ type Props = {
   onCrearAulas: (name: string) => Promise<Resultado>;
   /** `fase` es `null` cuando el backend debe usar la activa (ninguna fase con envío conocida). */
   onCrearTerritorial: (name: string, fase: FaseTerritorial | null) => Promise<Resultado>;
+  onCrearTelefonica: (name: string) => Promise<Resultado>;
   onCrearCorreo: (input: { name: string; actor: string; origen: string; platform: MailPlatform }) => Promise<Resultado>;
   /** «Desde un correo existente…»: cambia este diálogo por el de importar. */
   onImportar: (platform: MailPlatform) => void;
 };
 
-const TIPOS: readonly TipoDeCampana[] = ["aulas", "territorial", "correo"];
+const TIPOS: readonly TipoDeCampana[] = ["aulas", "territorial", "telefonica", "correo"];
 
 function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: string }) {
   return (
@@ -113,7 +114,7 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
   );
 }
 
-export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearCorreo, onImportar }: Props) {
+export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, onCrearCorreo, onImportar }: Props) {
   const ids = useId();
   const { abierto, cerrar } = panel;
   const [tipo, setTipo] = useState<TipoDeCampana | null>(null);
@@ -148,7 +149,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   const elegir = (t: TipoDeCampana) => {
     setTipo(t);
     setError("");
-    setNombre(t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : "");
+    setNombre(t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : t === "telefonica" ? NOMBRE_CAMPANA_TELEFONICA : "");
   };
 
   const problema = nombre.trim() ? problemaDelNombre(nombre) ?? (tipo === "correo" ? problemaDelActor(actor) : null) : null;
@@ -175,6 +176,8 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
       ? await onCrearAulas(nombre)
       : tipo === "territorial"
         ? await onCrearTerritorial(nombre, faseParaCrear(eleccion, fase))
+        : tipo === "telefonica"
+        ? await onCrearTelefonica(nombre)
         : await onCrearCorreo({ name: nombre, actor, origen, platform: plataforma });
     if (!out.ok) setError(out.mensaje);
   };

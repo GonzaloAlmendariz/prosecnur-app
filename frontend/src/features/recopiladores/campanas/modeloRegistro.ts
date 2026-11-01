@@ -27,6 +27,10 @@ export const MOTIVO_TERRITORIAL = "Requiere leer las UMP de Hojas de ruta";
 export const ID_CAMPANA_TERRITORIAL = "territorial.principal";
 export const NOMBRE_CAMPANA_TERRITORIAL = "Campo territorial";
 
+/** La única campaña telefónica del proyecto (P10). */
+export const ID_CAMPANA_TELEFONICA = "telefonica.principal";
+export const NOMBRE_CAMPANA_TELEFONICA = "Barrido telefónico";
+
 /** Cómo se dice cada fase de Hojas de ruta a quien elige la foto. */
 export const ROTULO_DE_FASE: Readonly<Record<"pilot" | "field", string>> = {
   pilot: "Piloto",
@@ -37,6 +41,7 @@ export const ROTULO_DEL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Campo en aulas",
   territorial: "Territorial",
   correo: "Correo",
+  telefonica: "Telefónica",
 };
 
 /** Qué es cada tipo, en una línea, para «Nueva campaña». */
@@ -44,6 +49,7 @@ export const QUE_ES_EL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Fichas con QR por curso-horario, accesos, paquetes y entrega a Monitoreo.",
   territorial: "Fichas y hojas de zona por UMP desde la muestra de Hojas de ruta; el avance se sigue en Monitoreo.",
   correo: "Un correo para un grupo, con sus envíos, para Mailchimp o SurveyMonkey.",
+  telefonica: "La plantilla del barrido de un listado de casos; Monitoreo lee el Sheets que llena el equipo.",
 };
 
 export function idDeCorreo(campaignId: string): string {
@@ -59,7 +65,7 @@ export function refDeCorreo(id: string | null | undefined): string | null {
 
 export function tipoDelId(id: string | null | undefined): TipoDeCampana | null {
   const prefijo = (id ?? "").split(".")[0];
-  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" ? prefijo : null;
+  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" || prefijo === "telefonica" ? prefijo : null;
 }
 
 /** Las que se ven en la lista: todas menos las archivadas, en el orden del registro. */
@@ -177,7 +183,8 @@ export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMa
   const campaigns = existe ? registro.campaigns.map((c) => (c.id === campana.id ? campana : c)) : [...registro.campaigns, campana];
   const unica = campana.tipo === "aulas"
     ? "El proyecto ya tiene su campaña de aulas."
-    : campana.tipo === "territorial" ? "El proyecto ya tiene su campaña territorial." : null;
+    : campana.tipo === "territorial" ? "El proyecto ya tiene su campaña territorial."
+    : campana.tipo === "telefonica" ? "El proyecto ya tiene su campaña telefónica." : null;
   const tipos = unica
     ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: t.motivo ?? unica } : t))
     : registro.tipos;
@@ -341,6 +348,22 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
         `${ROTULO_DE_FASE[estado.fase]} · enviada el ${cuando}`,
         ...(estado.stale ? ["La muestra cambió en Hojas de ruta: reenvíala"] : []),
       ],
+    };
+  }
+  if (campana.tipo === "telefonica") {
+    if (!estado || estado.tipo !== "telefonica" || !estado.configurada) {
+      return { estado: "Por configurar", tono: "neutral", avance: null, hechos: ["Declara los casos y la llave en Casos"], cifras: [], envios: [] };
+    }
+    return {
+      estado: "Configurada",
+      tono: "activo",
+      avance: null,
+      cifras: [
+        { valor: estado.muestra, rotulo: "muestra" },
+        { valor: estado.backup, rotulo: "backup" },
+      ],
+      envios: [],
+      hechos: [`Llave: ${estado.llave}`],
     };
   }
   return { estado: "No disponible", tono: "neutral", avance: null, hechos: [], cifras: [], envios: [] };

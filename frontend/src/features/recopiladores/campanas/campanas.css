@@ -550,7 +550,8 @@
   display: grid;
   gap: var(--pulso-space-3);
   grid-auto-rows: 1fr;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Cuatro tipos (aulas, territorial, telefónica, correo): dos por fila, sin uno huérfano. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -810,7 +811,7 @@
     padding: 14px 16px;
   }
 
-  /* Con un tipo elegido, los tres quedan en una fila corta: el paso del tipo
+  /* Con un tipo elegido, los cuatro quedan en filas cortas: el paso del tipo
      es lo que se completa y necesita el alto. */
   .rec-nueva-tipos:has([aria-pressed="true"]) .rec-nueva-tipo small,
   .rec-nueva-tipos:has([aria-pressed="true"]) .rec-nueva-motivo {

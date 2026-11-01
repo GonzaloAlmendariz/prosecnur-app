@@ -712,6 +712,46 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         ],
       },
       {
+        // P10 (etapa 4): el barrido telefónico de un listado de casos. Material
+        // guarda sólo la configuración; nombres y teléfonos viven en el archivo
+        // del operativo, que Monitoreo telefónico sigue leyendo como hoy.
+        id: "telefonica",
+        label: "Telefónica",
+        sections: [
+          {
+            id: "casos",
+            label: "Casos",
+            icon: ClipboardList,
+            to: "/material-campo?modo=telefonica&seccion=casos",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "configuracion", label: "Configuración", icon: ClipboardList, to: "/material-campo?modo=telefonica&seccion=casos&pestana=configuracion", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "barrido",
+            label: "Barrido",
+            icon: PhoneCall,
+            to: "/material-campo?modo=telefonica&seccion=barrido",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "plantilla", label: "Plantilla", icon: Table2, to: "/material-campo?modo=telefonica&seccion=barrido&pestana=plantilla", layoutPolicy: "viewport" },
+              { id: "status", label: "Status", icon: ListChecks, to: "/material-campo?modo=telefonica&seccion=barrido&pestana=status", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=telefonica&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "monitoreo", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=telefonica&seccion=entrega&pestana=monitoreo", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
         // Una sola sección: el correo, con identidad, destinatarios, plataforma,
         // envíos, revisión e importar como paneles (ADR 0111 §3).
         id: "correo",

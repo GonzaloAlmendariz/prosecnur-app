@@ -310,6 +310,15 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
       {
+        // P10: la campaña telefónica, sólo con su configuración.
+        id: "telefonica",
+        sections: [
+          { id: "casos", to: "/material-campo?modo=telefonica&seccion=casos", tabs: ["/material-campo?modo=telefonica&seccion=casos&pestana=configuracion"] },
+          { id: "barrido", to: "/material-campo?modo=telefonica&seccion=barrido", tabs: ["/material-campo?modo=telefonica&seccion=barrido&pestana=plantilla", "/material-campo?modo=telefonica&seccion=barrido&pestana=status"] },
+          { id: "entrega", to: "/material-campo?modo=telefonica&seccion=entrega", tabs: ["/material-campo?modo=telefonica&seccion=entrega&pestana=monitoreo"] },
+        ],
+      },
+      {
         id: "correo",
         sections: [
           { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor", "/material-campo?modo=correo&seccion=correo&pestana=contactos"] },

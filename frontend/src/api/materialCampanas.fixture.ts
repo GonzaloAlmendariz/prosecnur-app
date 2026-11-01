@@ -55,6 +55,7 @@ export const REGISTRO_CRUDO = {
     { tipo: ["aulas"], disponible: [false], motivo: ["El proyecto ya tiene su campaña de aulas."] },
     { tipo: ["territorial"], disponible: [false], motivo: ["Requiere leer las UMP de Hojas de ruta"] },
     { tipo: ["correo"], disponible: [true] },
+    { tipo: ["telefonica"], disponible: [true] },
   ],
 } as const;
 
@@ -69,5 +70,6 @@ export const REGISTRO_VACIO_CRUDO = {
     { tipo: "aulas", disponible: true },
     { tipo: "territorial", disponible: false, motivo: "Requiere leer las UMP de Hojas de ruta" },
     { tipo: "correo", disponible: true },
+    { tipo: "telefonica", disponible: true },
   ],
 } as const;

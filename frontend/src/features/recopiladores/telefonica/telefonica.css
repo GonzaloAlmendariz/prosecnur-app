@@ -1,0 +1,37 @@
+/* Campaña telefónica (P10): las columnas de la plantilla como fichas; las que llena
+   campo, en el ámbar de las columnas de campo. */
+.rec-tel-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.rec-tel-col {
+  padding: 3px 8px;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.rec-tel-col.is-campo {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.rec-tel-lista {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+/* Los campos no crecen en la tarjeta en columna: `.rec-terr-campo` trae flex-basis
+   para las filas y en columna se estira hacia abajo. */
+.rec-tel-tarjeta .rec-terr-campo {
+  flex: none;
+}

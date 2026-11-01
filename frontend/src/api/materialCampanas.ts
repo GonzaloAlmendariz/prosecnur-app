@@ -29,11 +29,11 @@ import { ApiError, apiFetch, handle, headers } from "./core";
 
 export const MATERIAL_CAMPANAS_SCHEMA = "material_campaigns/v1";
 
-export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo"] as const;
+export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo", "telefonica"] as const;
 export type TipoDeCampana = (typeof TIPOS_DE_CAMPANA)[number];
 
-/** `^(aulas|territorial|correo)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4). */
-export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo)\.[a-z0-9][a-z0-9-]{0,39}$/;
+/** `^(aulas|territorial|correo|telefonica)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4; P10). */
+export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo|telefonica)\.[a-z0-9][a-z0-9-]{0,39}$/;
 
 export type EstadoCampanaAulas = {
   tipo: "aulas";
@@ -76,7 +76,17 @@ export type EstadoCampanaTerritorial = {
   fase: "pilot" | "field";
 };
 
-export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial;
+/** La campaña telefónica (P10): sólo su configuración; el listado vive en el archivo del operativo. */
+export type EstadoCampanaTelefonica = {
+  tipo: "telefonica";
+  muestra: number;
+  backup: number;
+  casos: number;
+  llave: string;
+  configurada: boolean;
+};
+
+export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial | EstadoCampanaTelefonica;
 
 export type CampanaMaterial = {
   id: string;
@@ -184,6 +194,16 @@ function normalizarEstado(tipo: TipoDeCampana, valor: unknown, ref?: unknown): E
       stale: logico(valor.stale),
       enviado_at: textoONulo(valor.enviado_at),
       fase: fase === "pilot" ? "pilot" : "field",
+    };
+  }
+  if (tipo === "telefonica") {
+    return {
+      tipo,
+      muestra: entero(valor.muestra),
+      backup: entero(valor.backup),
+      casos: entero(valor.casos),
+      llave: texto(valor.llave).trim(),
+      configurada: logico(valor.configurada),
     };
   }
   if (tipo === "aulas") {
@@ -397,6 +417,7 @@ const AVISO_DEL_REGISTRO: Readonly<Record<string, string>> = {
   E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE: "Ese tipo de campaña todavía no se puede crear en este proyecto.",
   E_COLLECTION_CAMPAIGN_AULAS_UNICA: "El proyecto ya tiene su campaña de aulas: ábrela desde la lista.",
   E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA: "El proyecto ya tiene su campaña territorial: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TELEFONICA_UNICA: "El proyecto ya tiene su campaña telefónica: ábrela desde la lista.",
   E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO: "Esa fase no tiene una muestra enviada: envíala desde Hojas de ruta.",
   E_COLLECTION_CAMPAIGN_STALE: "Otro cambio se guardó antes. Se volvió a leer la lista de campañas.",
   E_COLLECTION_STATE_STALE: "Otro cambio del módulo se guardó antes. Se volvió a leer la lista de campañas.",

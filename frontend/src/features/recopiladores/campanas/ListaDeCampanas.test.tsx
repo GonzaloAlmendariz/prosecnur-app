@@ -101,9 +101,10 @@ describe("«Nueva campaña»", () => {
     return renderToStaticMarkup(<TiposDeCampana registro={registro} elegido={null} ocupado={false} onElegir={noop} />);
   }
 
-  it("muestra los tres tipos; territorial deshabilitada con su motivo", () => {
+  it("muestra los cuatro tipos; territorial deshabilitada con su motivo", () => {
     const html = tipos(VACIO);
-    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(3);
+    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(4);
+    expect(html).toContain("Telefónica");
     expect(html).toContain("Campo en aulas");
     expect(html).toContain("Requiere leer las UMP de Hojas de ruta");
     expect(html.match(/disabled=""/g)).toHaveLength(1);
