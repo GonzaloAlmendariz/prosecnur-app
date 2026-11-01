@@ -68,6 +68,41 @@
   list(estado = "comparable", motivo = "")
 }
 
+# Suma de un campo entero de las UMP, ignorando las que no lo traen; NA si ninguna.
+.mtap_suma <- function(ump, campo) {
+  v <- vapply(ump, function(u) suppressWarnings(as.integer(u[[campo]] %||% NA)), integer(1))
+  if (all(is.na(v))) NA_integer_ else as.integer(sum(v, na.rm = TRUE))
+}
+
+# 2h: el control por encuestador. El encuestador es el PLANIFICADO de la UMP
+# (la llave es su código); el rendimiento es efectivas validadas en Kobo sobre
+# los intentos que declara coordinación, sólo cuando hay intentos declarados.
+.mtap_por_encuestador <- function(por_ump) {
+  codigos <- unique(vapply(por_ump, `[[`, "", "codigo_planificado"))
+  codigos <- codigos[nzchar(codigos)]
+  filas <- lapply(codigos, function(cod) {
+    suyas <- Filter(function(u) identical(u$codigo_planificado, cod), por_ump)
+    kobo <- as.integer(sum(vapply(suyas, `[[`, 0L, "efectivas_kobo")))
+    intentos <- .mtap_suma(suyas, "intentos_declarados")
+    list(
+      codigo = cod,
+      nombre = suyas[[1]]$nombre_planificado %||% "",
+      ump = length(suyas),
+      con_respuestas = as.integer(sum(vapply(suyas, function(u) u$respuestas > 0L, logical(1)))),
+      efectivas_kobo = kobo,
+      efectivas_coordinacion = .mtap_suma(suyas, "efectivas_coordinacion"),
+      ump_que_no_cuadran = as.integer(sum(vapply(suyas, function(u) {
+        !is.na(u$diferencia_coordinacion) && u$diferencia_coordinacion != 0L
+      }, logical(1)))),
+      intentos_declarados = intentos,
+      rendimiento = if (is.na(intentos) || intentos <= 0L) NA_real_ else round(kobo / intentos, 4),
+      supervision_aprobadas = .mtap_suma(suyas, "supervision_aprobadas"),
+      supervision_no_aprobadas = .mtap_suma(suyas, "supervision_no_aprobadas")
+    )
+  })
+  filas[order(vapply(filas, `[[`, "", "codigo"))]
+}
+
 #' Asignado contra observado por UMP (núcleo puro).
 #'
 #' @param auditoria data.frame o lista de registros de `response_audit` de la
@@ -154,6 +189,18 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       sum(vapply(codigos_efectiva, function(k) suppressWarnings(as.integer(.monitoreo_scalar(conteos[[k]], 0L))), integer(1)), na.rm = TRUE)
     } else NA_integer_
     efectivas_kobo <- as.integer(sum(valida[bloque == id]))
+    # 2h: el registro del coordinador (§1C). Lo declarado por celda se suma por
+    # una sola variable (sexo; si no trae, edad) para no contar dos veces la
+    # misma encuesta. Nunca se suma a Kobo: se pone al lado con su diferencia.
+    ef <- d$efectivas %||% list()
+    por_celda <- if (length(ef$sexo)) ef$sexo else ef$edad %||% list()
+    coordinacion <- if (length(por_celda)) {
+      sum(vapply(por_celda, function(v) suppressWarnings(as.integer(.monitoreo_scalar(v, 0L))), integer(1)), na.rm = TRUE)
+    } else NA_integer_
+    sup <- d$supervision %||% list()
+    intentos <- if (length(conteos)) {
+      sum(vapply(conteos, function(v) suppressWarnings(as.integer(.monitoreo_scalar(v, 0L))), integer(1)), na.rm = TRUE)
+    } else NA_integer_
     list(
       id_manzana = id,
       label = .monitoreo_scalar(a$label, id),
@@ -169,11 +216,20 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       fecha_entrega = .monitoreo_scalar(d$fecha_entrega, ""),
       contraste = contraste,
       efectivas_declaradas = declaradas,
-      efectivas_kobo = efectivas_kobo
+      efectivas_kobo = efectivas_kobo,
+      efectivas_coordinacion = coordinacion,
+      diferencia_coordinacion = if (is.na(coordinacion)) NA_integer_ else as.integer(coordinacion - efectivas_kobo),
+      efectivas_por_celda = if (length(por_celda)) por_celda else structure(list(), names = character(0)),
+      fecha_visita = .monitoreo_scalar(d$fecha_visita, ""),
+      se_reemplaza = .monitoreo_scalar(d$se_reemplaza, ""),
+      supervision_aprobadas = suppressWarnings(as.integer(.monitoreo_scalar(sup$aprobadas, NA))),
+      supervision_no_aprobadas = suppressWarnings(as.integer(.monitoreo_scalar(sup$no_aprobadas, NA))),
+      intentos_declarados = intentos
     )
   })
 
   lecturas <- vapply(por_ump, `[[`, "", "lectura")
+  por_encuestador <- .mtap_por_encuestador(por_ump)
   asignadas_ids <- vapply(asig$asignacion, function(a) .monitoreo_scalar(a$id_manzana, ""), "")
   c(base, list(
     resumen = list(
@@ -190,9 +246,17 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
       con_conteos = as.integer(sum(!is.na(vapply(por_ump, function(u) as.integer(u$efectivas_declaradas), integer(1))))),
       conteos_distintos = as.integer(sum(vapply(por_ump, function(u) {
         !is.na(u$efectivas_declaradas) && !identical(as.integer(u$efectivas_declaradas), u$efectivas_kobo)
-      }, logical(1))))
+      }, logical(1)))),
+      # 2h: el registro del coordinador frente a Kobo validado.
+      con_registro_coordinacion = as.integer(sum(!is.na(vapply(por_ump, function(u) as.integer(u$efectivas_coordinacion), integer(1))))),
+      coordinacion_distinta = as.integer(sum(vapply(por_ump, function(u) {
+        !is.na(u$diferencia_coordinacion) && u$diferencia_coordinacion != 0L
+      }, logical(1)))),
+      supervision_aprobadas = .mtap_suma(por_ump, "supervision_aprobadas"),
+      supervision_no_aprobadas = .mtap_suma(por_ump, "supervision_no_aprobadas")
     ),
-    por_ump = por_ump
+    por_ump = por_ump,
+    por_encuestador = por_encuestador
   ))
 }
 

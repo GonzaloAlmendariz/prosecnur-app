@@ -6,6 +6,8 @@ import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { construirEquipo, type FilaDeEquipo } from "./equipoModel";
+import { controlDeCoordinacion, type ControlDeCodigo } from "./coordinacionModelo";
+import { useAsignacionPlanificada } from "../avance/useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./equipo.css";
 import { PulsoButton } from "../../../../../components/PulsoButton";
@@ -28,6 +30,9 @@ function EquipoTabImpl({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const modelo = useMemo(() => construirEquipo(consultas, validacion), [consultas, validacion]);
+  // 2h: el registro del coordinador, al lado de Kobo y nunca sumado.
+  const asignacion = useAsignacionPlanificada(phase);
+  const coordinacion = useMemo(() => controlDeCoordinacion(asignacion), [asignacion]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const anular = usePanelDireccionable(PANEL_ANULAR);
   const elegida = modelo.filas.find((fila) => fila.codigo === String(foco ?? "").toUpperCase()) ?? null;
@@ -63,6 +68,9 @@ function EquipoTabImpl({
           <h3 id="mon-eq-titulo" className="pulso-sr-only">Equipo por código</h3>
           <span className="mon-eq-base" title="Señales sobre los casos del corte">{fmt(modelo.filas.length)} códigos</span>
         </header>
+        {coordinacion?.resumen ? (
+          <p className="mon-eq-coordinacion" data-tono={coordinacion.hayAlerta ? "aviso" : "ok"} role="status">{coordinacion.resumen}</p>
+        ) : null}
         <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Equipo por código, con desplazamiento">
           <table className="mon-eq-tabla">
             <thead>
@@ -77,6 +85,14 @@ function EquipoTabImpl({
                 <th scope="col" className="is-num">Menos de 5 min</th>
                 <th scope="col">Cuentan por día</th>
                 <th scope="col" className="is-num">En bandeja</th>
+                {coordinacion ? (
+                  <>
+                    <th scope="col" className="is-num" title="Efectivas que declara coordinación en su registro; no se suman a Kobo">Declaradas</th>
+                    <th scope="col" className="is-num" title="UMP donde lo declarado no coincide con Kobo validado">No cuadran</th>
+                    <th scope="col" className="is-num" title="Efectivas en Kobo sobre intentos declarados por coordinación">Rendimiento</th>
+                    <th scope="col" title="Supervisión: aprobadas / no aprobadas">Supervisión</th>
+                  </>
+                ) : null}
                 <th scope="col">Último</th>
               </tr>
             </thead>
@@ -103,6 +119,7 @@ function EquipoTabImpl({
                   <td className="is-num">{fila.cortas == null ? "—" : fmt(fila.cortas)}</td>
                   <td>{fila.porDia ? <Sparkline valores={fila.porDia} codigo={fila.codigo} /> : "—"}</td>
                   <td className="is-num">{fila.enBandeja == null ? "—" : fmt(fila.enBandeja)}</td>
+                  {coordinacion ? <CeldasDeCoordinacion control={coordinacion.porCodigo.get(fila.codigo.toUpperCase()) ?? null} /> : null}
                   <td>{fila.ultimo || "—"}</td>
                 </tr>
               ))}
@@ -124,6 +141,18 @@ function EquipoTabImpl({
         <DialogoDeAnulacion pedido={pedido} phase={phase} panel={anular.props} onCerrar={anular.cerrar} onAplicada={(state) => onStateChange?.(state)} />
       ) : null}
     </section>
+  );
+}
+
+function CeldasDeCoordinacion({ control }: { control: ControlDeCodigo | null }) {
+  if (!control) return <><td className="is-num">—</td><td className="is-num">—</td><td className="is-num">—</td><td>—</td></>;
+  return (
+    <>
+      <td className="is-num">{control.declaradas}</td>
+      <td className="is-num">{control.noCuadran ? <b className="mon-eq-no-cuadra">{fmt(control.noCuadran)}</b> : "0"}</td>
+      <td className="is-num" title={control.tituloRendimiento}>{control.rendimiento}</td>
+      <td>{control.supervision}</td>
+    </>
   );
 }
 

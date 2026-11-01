@@ -318,3 +318,22 @@
 .mon-eq-tabla td:last-child {
   padding-right: var(--pulso-space-4);
 }
+
+/* 2h: el registro del coordinador al lado de Kobo (nunca sumado). */
+.mon-eq-coordinacion {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-eq-coordinacion[data-tono="aviso"] {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-eq-no-cuadra {
+  color: var(--pulso-warn-fg);
+}

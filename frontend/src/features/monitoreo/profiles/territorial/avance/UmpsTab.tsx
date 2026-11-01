@@ -218,6 +218,11 @@ function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
           {d.conteo.texto}
         </span>
       ) : null}
+      {d.coordinacion ? (
+        <span className={`mon-umps-conteo${d.coordinacion.distinto ? " is-distinto" : ""}`} title="Efectivas que declara coordinación en su registro, contra las válidas de Kobo. No se suman.">
+          {d.coordinacion.texto}
+        </span>
+      ) : null}
     </td>
   );
 }

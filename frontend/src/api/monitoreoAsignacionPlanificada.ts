@@ -10,7 +10,7 @@
 // objeto suelto, escalar como vector de largo uno).
 
 import { apiFetch, handle, headers } from "./core";
-import { enteroONulo, lista, registro, texto } from "./normalizarR";
+import { enteroONulo, lista, numeroONulo, registro, texto } from "./normalizarR";
 
 export type EstadoDeAsignacionPlanificada = "comparable" | "otra_muestra" | "sin_asignacion" | "sin_envio" | "sin_campana";
 
@@ -37,12 +37,36 @@ export type UmpPlanificada = {
   efectivasDeclaradas: number | null;
   /** Efectivas válidas que llegaron a Kobo para esa UMP. */
   efectivasKobo: number;
+  /** 2h: efectivas que declara coordinación en su registro (§1C); `null` sin registro. Nunca se suman a Kobo. */
+  efectivasCoordinacion: number | null;
+  /** Coordinación menos Kobo; `null` sin registro. */
+  diferenciaCoordinacion: number | null;
+  fechaVisita: string;
+  supervisionAprobadas: number | null;
+  supervisionNoAprobadas: number | null;
+};
+
+/** 2h: el control por encuestador (el planificado de cada UMP). */
+export type EncuestadorControlado = {
+  codigo: string;
+  nombre: string;
+  ump: number;
+  conRespuestas: number;
+  efectivasKobo: number;
+  efectivasCoordinacion: number | null;
+  umpQueNoCuadran: number;
+  intentosDeclarados: number | null;
+  /** Efectivas de Kobo sobre intentos declarados, 0–1; `null` sin intentos. */
+  rendimiento: number | null;
+  supervisionAprobadas: number | null;
+  supervisionNoAprobadas: number | null;
 };
 
 export type AsignacionPlanificada = {
   estado: EstadoDeAsignacionPlanificada;
   motivo: string;
   porUmp: UmpPlanificada[];
+  porEncuestador: EncuestadorControlado[];
   resumen: {
     asignadas: number;
     coinciden: number;
@@ -54,6 +78,10 @@ export type AsignacionPlanificada = {
     contrastes: number;
     conConteos: number;
     conteosDistintos: number;
+    conRegistroCoordinacion: number;
+    coordinacionDistinta: number;
+    supervisionAprobadas: number | null;
+    supervisionNoAprobadas: number | null;
   };
 };
 
@@ -86,8 +114,26 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
         contraste: (["finalizada_sin_respuestas", "pendiente_con_respuestas"] as const).find((c) => c === texto(u.contraste)) ?? "",
         efectivasDeclaradas: enteroONulo(u.efectivas_declaradas),
         efectivasKobo: entero(u.efectivas_kobo),
+        efectivasCoordinacion: enteroONulo(u.efectivas_coordinacion),
+        diferenciaCoordinacion: enteroONulo(u.diferencia_coordinacion),
+        fechaVisita: texto(u.fecha_visita),
+        supervisionAprobadas: enteroONulo(u.supervision_aprobadas),
+        supervisionNoAprobadas: enteroONulo(u.supervision_no_aprobadas),
       };
     }),
+    porEncuestador: lista(r.por_encuestador).map((e) => ({
+      codigo: texto(e.codigo),
+      nombre: texto(e.nombre),
+      ump: entero(e.ump),
+      conRespuestas: entero(e.con_respuestas),
+      efectivasKobo: entero(e.efectivas_kobo),
+      efectivasCoordinacion: enteroONulo(e.efectivas_coordinacion),
+      umpQueNoCuadran: entero(e.ump_que_no_cuadran),
+      intentosDeclarados: enteroONulo(e.intentos_declarados),
+      rendimiento: numeroONulo(e.rendimiento),
+      supervisionAprobadas: enteroONulo(e.supervision_aprobadas),
+      supervisionNoAprobadas: enteroONulo(e.supervision_no_aprobadas),
+    })).filter((e) => e.codigo),
     resumen: {
       asignadas: entero(resumen.asignadas),
       coinciden: entero(resumen.coinciden),
@@ -99,6 +145,10 @@ export function normalizeAsignacionPlanificada(raw: unknown): AsignacionPlanific
       contrastes: entero(resumen.contrastes),
       conConteos: entero(resumen.con_conteos),
       conteosDistintos: entero(resumen.conteos_distintos),
+      conRegistroCoordinacion: entero(resumen.con_registro_coordinacion),
+      coordinacionDistinta: entero(resumen.coordinacion_distinta),
+      supervisionAprobadas: enteroONulo(resumen.supervision_aprobadas),
+      supervisionNoAprobadas: enteroONulo(resumen.supervision_no_aprobadas),
     },
   };
 }

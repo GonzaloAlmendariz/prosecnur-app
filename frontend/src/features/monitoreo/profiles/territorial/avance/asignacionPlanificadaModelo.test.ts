@@ -50,6 +50,7 @@ describe("C7: estado declarado por campo", () => {
       fechas: "salió 2026-10-01, entregó 2026-10-02",
       contraste: "Campo la da por finalizada y no llegó ninguna respuesta a Kobo.",
       conteo: null,
+      coordinacion: null,
     });
     expect(c.resumen).toContain("Estado declarado por campo en 1; 1 no cuadra con Kobo.");
   });

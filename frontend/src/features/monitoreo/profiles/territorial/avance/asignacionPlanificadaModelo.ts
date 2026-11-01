@@ -23,6 +23,8 @@ export type CeldaPlanificada = {
     contraste: string | null;
     /** P2: «Campo 5 · Kobo 1», o `null` si campo no transcribió conteos. */
     conteo: { texto: string; distinto: boolean } | null;
+    /** 2h: «Coordinación 6 · Kobo 4», o `null` sin registro del coordinador. */
+    coordinacion: { texto: string; distinto: boolean } | null;
   } | null;
 };
 
@@ -54,7 +56,7 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
       detalle: u.observados.length
         ? `Llegaron: ${u.observados.map((o) => `${o.codigo || "sin código"} (${o.respuestas})`).join(", ")}${u.heredada ? ". Código heredado del titular." : ""}`
         : `Sin respuestas todavía${u.heredada ? ". Código heredado del titular." : ""}`,
-      declarado: u.estadoDeclarado || u.efectivasDeclaradas != null
+      declarado: u.estadoDeclarado || u.efectivasDeclaradas != null || u.efectivasCoordinacion != null
         ? {
           estado: u.estadoDeclarado,
           fechas: [u.fechaSalida && `salió ${u.fechaSalida}`, u.fechaEntrega && `entregó ${u.fechaEntrega}`].filter(Boolean).join(", "),
@@ -66,6 +68,9 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
           conteo: u.efectivasDeclaradas == null
             ? null
             : { texto: `Campo ${u.efectivasDeclaradas} · Kobo ${u.efectivasKobo}`, distinto: u.efectivasDeclaradas !== u.efectivasKobo },
+          coordinacion: u.efectivasCoordinacion == null
+            ? null
+            : { texto: `Coordinación ${u.efectivasCoordinacion} · Kobo ${u.efectivasKobo}`, distinto: (u.diferenciaCoordinacion ?? 0) !== 0 },
         }
         : null,
     });
@@ -78,13 +83,16 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
   const declarado = r.conEstadoDeclarado
     ? ` Estado declarado por campo en ${r.conEstadoDeclarado}${r.contrastes ? `; ${r.contrastes} no cuadra${r.contrastes === 1 ? "" : "n"} con Kobo` : ""}.`
     : "";
+  const coordinacion = r.conRegistroCoordinacion
+    ? ` Coordinación declara ${r.conRegistroCoordinacion} UMP${r.coordinacionDistinta ? `; ${r.coordinacionDistinta} no cuadra${r.coordinacionDistinta === 1 ? "" : "n"} con Kobo` : ", iguales a Kobo"}.`
+    : "";
   const conteos = r.conConteos
     ? ` Efectivas del consolidado en ${r.conConteos}${r.conteosDistintos ? `; ${r.conteosDistintos} distinta${r.conteosDistintos === 1 ? "" : "s"} de Kobo` : ", iguales a Kobo"}.`
     : "";
   return {
     tipo: "columna",
     porManzana,
-    resumen: `Planificado en Material: ${partes.join(", ")}.${declarado}${conteos}`,
-    conDeclarado: r.conEstadoDeclarado > 0 || r.conConteos > 0,
+    resumen: `Planificado en Material: ${partes.join(", ")}.${declarado}${conteos}${coordinacion}`,
+    conDeclarado: r.conEstadoDeclarado > 0 || r.conConteos > 0 || r.conRegistroCoordinacion > 0,
   };
 }

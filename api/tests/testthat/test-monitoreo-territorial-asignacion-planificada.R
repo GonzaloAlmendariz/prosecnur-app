@@ -98,3 +98,44 @@ test_that("P2: las efectivas que campo transcribe del consolidado se cruzan con 
   expect_identical(r$resumen$con_conteos, 2L)
   expect_identical(r$resumen$conteos_distintos, 1L)
 })
+
+test_that("2h: lo declarado por coordinación va al lado de Kobo, con su diferencia, y nunca se suma", {
+  audit <- data.frame(advance_block_id = c("M1", "M1", "M2"), pulso_code = c("P844", "P844", "P844"),
+                      advance_valid = c("true", "true", "true"), stringsAsFactors = FALSE)
+  estados <- list(
+    stale = FALSE, desactualizada = FALSE,
+    codigos = list(list(codigo = "8", grupo = "efectiva"), list(codigo = "1", grupo = "no_aplicada")),
+    unidades = list(
+      # M1: coordinación declara 2 por sexo (1 + 1) y Kobo tiene 2: cuadra.
+      list(id_manzana = "M1", efectivas = list(sexo = list(H = 1L, M = 1L), edad = list(`18-29` = 2L)),
+           conteos = list(`8` = 2L, `1` = 6L), supervision = list(aprobadas = 2L, no_aprobadas = 0L),
+           fecha_visita = "2026-10-20"),
+      # M2: declara 3 y Kobo tiene 1: no cuadra.
+      list(id_manzana = "M2", efectivas = list(sexo = list(H = 2L, M = 1L)), conteos = list(`8` = 3L, `1` = 1L),
+           supervision = list(aprobadas = 1L, no_aprobadas = 1L))
+    )
+  )
+  r <- monitoreo_territorial_asignacion_planificada_desde(audit, .tap_asig(), estados = estados)
+  m1 <- r$por_ump[[1]]; m2 <- r$por_ump[[2]]
+  # Se suma por sexo, no sexo + edad: la misma encuesta no cuenta dos veces.
+  expect_identical(m1$efectivas_coordinacion, 2L)
+  expect_identical(m1$diferencia_coordinacion, 0L)
+  expect_identical(m2$diferencia_coordinacion, 2L)
+  expect_identical(m1$fecha_visita, "2026-10-20")
+  expect_identical(r$resumen$con_registro_coordinacion, 2L)
+  expect_identical(r$resumen$coordinacion_distinta, 1L)
+  expect_identical(r$resumen$supervision_no_aprobadas, 1L)
+  # Por encuestador: el planificado; rendimiento = efectivas Kobo / intentos declarados.
+  ana <- Filter(function(e) identical(e$codigo, "P844"), r$por_encuestador)[[1]]
+  expect_identical(ana$ump, 2L)
+  expect_identical(ana$efectivas_kobo, 3L)
+  expect_identical(ana$efectivas_coordinacion, 5L)
+  expect_identical(ana$ump_que_no_cuadran, 1L)
+  expect_identical(ana$intentos_declarados, 12L)
+  expect_equal(ana$rendimiento, round(3 / 12, 4))
+  expect_identical(ana$supervision_aprobadas, 3L)
+  # Sin registro, NA y no cero.
+  luis <- Filter(function(e) identical(e$codigo, "P101"), r$por_encuestador)[[1]]
+  expect_true(is.na(luis$efectivas_coordinacion))
+  expect_true(is.na(luis$rendimiento))
+})
