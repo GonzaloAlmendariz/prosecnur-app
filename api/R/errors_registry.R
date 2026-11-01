@@ -903,6 +903,7 @@ errores_registrados <- function() {
     "E_PROCESSING_RELEASE_NOT_READY",                        "processing_release.R",              "422",
     "E_PROCESSING_RELEASE_STALE",                            "processing_release.R",              "409",
     "E_PROFILE_NOT_FOUND",                                   "router_connections.R",              "404",
+    "E_PUBLICACION_BASE_FORMATO",                            "dashboard_publish_permitido.R",     "409",
     "E_PUBLIC_MODE",                                         "dashboard_publish.R",               "403",
     "E_PUBLIC_RUNTIME",                                      "dashboard_publish.R",               "500",
     "E_PUBLISH_ROOT",                                        "dashboard_publish.R",               "500",
