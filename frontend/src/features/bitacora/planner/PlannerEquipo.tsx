@@ -12,6 +12,7 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import { PlannerCabecera } from "./PlannerCabecera";
+import { usePlannerEquipoExcel } from "./PlannerEquipoExcel";
 import { ETIQUETA_PERFIL } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
 
@@ -32,6 +33,7 @@ export function PlannerEquipo({ control }: { control: ControlPlanner }) {
   const { estado, declarar, guardando } = control;
   const [filas, setFilas] = useState<Fila[]>([]);
   const [nueva, setNueva] = useState({ codigo: "", nombre: "", rol: "encuestador" });
+  const excel = usePlannerEquipoExcel((leido) => setFilas(conClave(leido.personas)));
   useEffect(() => {
     if (estado) setFilas(conClave(estado.planner.equipo.personas));
   }, [estado]);
@@ -114,6 +116,7 @@ export function PlannerEquipo({ control }: { control: ControlPlanner }) {
         acciones={(
           <>
             {equipo.code_format ? <span className="planner-chip">Formato de código: {equipo.code_format}</span> : null}
+            {excel.botones}
             <button
               type="button"
               className="plan-button plan-button--primary"
@@ -125,6 +128,7 @@ export function PlannerEquipo({ control }: { control: ControlPlanner }) {
           </>
         )}
       />
+      {excel.aviso}
       {repetido ? <p className="planner-ayuda" role="status">El código {repetido} está en dos personas.</p> : null}
       {sinNombre ? <p className="planner-ayuda" role="status">Cada persona necesita un nombre.</p> : null}
       <PulsoTable

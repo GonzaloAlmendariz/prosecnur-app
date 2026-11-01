@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizarPlannerCalendario, normalizarPlannerEquipoDe, normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
+import { normalizarPlannerCalendario, normalizarPlannerEquipoDe, normalizarPlannerEquipoImportado, normalizarPlannerEstado, normalizarPlannerModos } from "./planner";
 
 describe("normalizadores del Planner", () => {
   it("lee los modos como los serializa R: escalares sueltos y listas vacías como {}", () => {
@@ -79,5 +79,15 @@ describe("normalizadores del Planner", () => {
     expect(viejo.ventana).toEqual({ inicio: "", fin: "", fuente: "", origen: "proyectado", fuentes: {} });
     expect(normalizarPlannerEstado({ planner: { ventana: { inicio: "2026-11-10", fin: "2026-12-02" } } }).planner.ventana)
       .toEqual({ inicio: "2026-11-10", fin: "2026-12-02" });
+  });
+
+  it("lee el equipo que vuelve del Excel: una persona sola como escalar y los problemas por fila", () => {
+    const leido = normalizarPlannerEquipoImportado({
+      personas: { codigo: "P010", nombre: "Ana Ejemplo", rol: "encuestador", perfiles: "territorial", activo: false },
+      problemas: [{ fila: 6, motivo: "El código P012 no tiene nombre; no se lee." }, { fila: 7 }],
+    });
+    expect(leido.personas).toEqual([{ codigo: "P010", nombre: "Ana Ejemplo", rol: "encuestador", perfiles: ["territorial"], activo: false }]);
+    expect(leido.problemas).toEqual([{ fila: 6, motivo: "El código P012 no tiene nombre; no se lee." }]);
+    expect(normalizarPlannerEquipoImportado({ personas: {}, problemas: {} })).toEqual({ personas: [], problemas: [] });
   });
 });

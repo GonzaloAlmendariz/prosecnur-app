@@ -51,6 +51,18 @@ mount_planner <- function(pr) {
       .planner_equipo_de(session_get(session_header(req)), .bit_texto(perfil, 40L))
     })) |>
 
+    # La plantilla del equipo en Excel y su lectura de vuelta (planner_equipo_excel.R).
+    # Leer es puro: devuelve las personas para revisar; guarda el PUT de abajo.
+    plumber::pr_post("/api/planner/equipo-excel",
+                     wrap_endpoint(function(req, res, ...) {
+      .planner_equipo_excel(session_header(req))
+    })) |>
+    plumber::pr_post("/api/planner/equipo-excel/importar",
+                     wrap_endpoint(function(req, res, ...) {
+      input <- .planner_import_request(req)
+      .planner_equipo_importar(session_header(req), file_raw = input$file_raw, content_base64 = input$content_base64)
+    })) |>
+
     plumber::pr_put("/api/planner/<seccion>",
                     wrap_endpoint(function(req, res, seccion, ...) {
       sid <- session_header(req)
