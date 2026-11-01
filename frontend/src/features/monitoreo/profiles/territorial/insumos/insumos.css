@@ -99,6 +99,36 @@
   overflow: auto;
 }
 
+/* I4: la muestra viva ya no es la que se envió a Material. */
+.mon-ins-aviso-muestra {
+  display: grid;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-ins-aviso-muestra strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-ins-aviso-muestra p {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.mon-ins-aviso-muestra .mon-ins-boton {
+  justify-self: start;
+}
+
 /* Tarjeta de fuente. */
 .mon-ins-fuente.is-activa {
   border-color: var(--pulso-module-monitoring-border);

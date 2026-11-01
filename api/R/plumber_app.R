@@ -145,6 +145,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo_territorial_mapeo(pr)
     pr <- mount_monitoreo_territorial_casos_ump(pr)
     pr <- mount_monitoreo_territorial_asignacion_planificada(pr)
+    pr <- mount_monitoreo_territorial_muestra_enviada(pr)
     pr <- mount_monitoreo_aulas_entrega(pr)   # X8: Monitoreo trae la entrega de Material (ADR 0122 §11)
     pr <- mount_monitoreo_territorial_rechazos(pr)
     pr <- mount_monitoreo_aulas_plantilla(pr)

@@ -4,6 +4,8 @@ import { PlugZap } from "lucide-react";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { construirConexiones, type TarjetaDeFuente } from "./conexionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { AvisoDeMuestraEnviada } from "./AvisoDeMuestraEnviada";
+import { useMuestraEnviada } from "./useMuestraEnviada";
 import "./insumos.css";
 
 /**
@@ -36,6 +38,7 @@ function ConexionesTabImpl({
 }) {
   const modelo = useMemo(() => construirConexiones(state, reports, phase, { avance, consultas }), [avance, consultas, phase, reports, state]);
   const navigate = useNavigate();
+  const muestraEnviada = useMuestraEnviada(`${phase}:${reports?.generated_at ?? ""}`);
 
   if (!modelo.conFuenteDeCampo) {
     return (
@@ -83,6 +86,7 @@ function ConexionesTabImpl({
             {modelo.ventanas.map((ventana) => <li key={ventana.fase}>{ventana.fase} desde {ventana.desde}</li>)}
           </ul>
         ) : null}
+        <AvisoDeMuestraEnviada muestra={muestraEnviada} onAbrirHojas={() => navigate("/hojas-ruta?seccion=seleccion&panel=salidas")} />
         <button type="button" className="mon-ins-boton" onClick={() => navigate("/hojas-ruta?seccion=muestra")}>Abrir Hojas de ruta</button>
       </aside>
     </section>
