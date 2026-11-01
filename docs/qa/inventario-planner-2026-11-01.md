@@ -51,6 +51,15 @@ tipos, cronograma (opcional) y definir la relación entre los módulos y alguna 
 
 Las ocho preguntas quedan cerradas. Lo que sigue es la enmienda del ADR 0122.
 
+### Tercera ronda (1/11, tras la revisión de guardian-contratos del ADR 0123)
+
+| Tema | Respuesta de Gonzalo | Consecuencia |
+|---|---|---|
+| Modos con el Planner vacío | Deducción oculta | El Planner se ve vacío, pero `/api/planner/modos` sigue deduciendo por dentro, sólo para el modo, hasta que el estudio se declare. Medido: con el estado propio de cada módulo, hsvg2026 perdía el modo aulas en Monitoreo, los cinco proyectos perdían la campaña de Material y acnur_acg caía en un diseño de aulas ajeno en Cálculo |
+| Objetivo del estudio en modo público | No se publica | `.planner_para_publicar` publica nombre, código y cliente |
+
+Enmienda redactada como ADR 0123 (Propuesto), que reemplaza en parte al 0122 porque un ADR aceptado no se reescribe.
+
 Cambia el contrato (ADR 0122: la Bitácora como sección del Planner y el cronograma como dato que los módulos leen),
 así que va a una enmienda del ADR antes de tocar código.
 
