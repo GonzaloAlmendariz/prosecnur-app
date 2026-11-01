@@ -148,6 +148,8 @@ export type ProjectOverviewFacts = {
 export type ProjectOverviewProject = {
   name: string;
   client: string;
+  /** Código del estudio declarado en el Planner (ADR 0122). Ausente en backends viejos. */
+  code?: string;
   project_file: string;
   has_project: boolean;
   processing_mode: string;

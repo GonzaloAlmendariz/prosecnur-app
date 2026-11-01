@@ -300,3 +300,37 @@ test_that("leer los modos es puro y sigue lo declarado", {
   expect_equal(modos$calc$modo, "marco-disponible")
   expect_equal(modos$origen, "declarado")
 })
+
+# --- Identidad del estudio: una sola, la del Planner (ADR 0122) -----------------
+
+test_that("la identidad se siembra de los cuatro lugares viejos, en el orden del Home", {
+  sid <- .pl_sesion(list(
+    calc_muestra_estudio = list(titulo = "Encuesta a estudiantes", contexto = list(cliente = "Universidad Ejemplo")),
+    dashboard_config = list(titulo = "Tablero", cliente = "Otro cliente")
+  ))
+  id <- .planner_identidad(session_get(sid))
+  expect_equal(id$nombre, "Encuesta a estudiantes")
+  expect_equal(id$cliente, "Universidad Ejemplo")
+  expect_equal(id$origen, "proyectado")
+  # Sin Cálculo, el Dashboard.
+  sid2 <- .pl_sesion(list(dashboard_config = list(titulo = "Tablero", cliente = "Otro cliente")))
+  expect_equal(.planner_identidad(session_get(sid2))$cliente, "Otro cliente")
+})
+
+test_that("el Home dice la identidad que declara el Planner, con su código", {
+  sid <- .pl_sesion(list(calc_muestra_estudio = list(titulo = "Título viejo", contexto = list(cliente = "Cliente viejo"))))
+  .planner_declarar(sid, "estudio", list(nombre = "HSVG 2026", codigo = "HSVG26", cliente = "Cliente nuevo"), 0L)
+  protocol <- .diseno_protocol_summary(session_get(sid))
+  expect_equal(protocol$title, "HSVG 2026")
+  expect_equal(protocol$client, "Cliente nuevo")
+  expect_equal(protocol$code, "HSVG26")
+  proyecto <- .project_overview_payload(sid)$project
+  expect_equal(proyecto$name, "HSVG 2026")
+  expect_equal(proyecto$code, "HSVG26")
+})
+
+test_that("sin nombre en ningún lado, el Home usa el nombre del archivo y no un rótulo genérico", {
+  sid <- .pl_sesion()
+  s <- session_get(sid); s$project_path <- "/ruta/HSVG2026.pulso"; .session_env[[sid]] <- s
+  expect_equal(.project_overview_payload(sid)$project$name, "HSVG2026")
+})

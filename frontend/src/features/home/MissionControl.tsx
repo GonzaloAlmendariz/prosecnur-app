@@ -70,6 +70,7 @@ export function MissionControl({
   }, [addedKey]);
 
   const metaLine = [
+    overview.project.code,
     overview.project.client,
     overview.project.project_file,
     formatSavedAt(overview.project.saved_at),

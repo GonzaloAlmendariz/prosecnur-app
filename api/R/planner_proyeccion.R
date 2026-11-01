@@ -165,10 +165,26 @@
   list(perfiles = perfiles, avisos = avisos, conflictos = conflictos, fuente = ganadora)
 }
 
+# La identidad vive hoy en cuatro lugares: el contenedor de Procesamiento
+# (`estudio$nombre`), Cálculo de muestra (`titulo`, `contexto$cliente`) y el
+# Dashboard (`titulo`, `cliente`). Se siembra en ese orden, que es el que ya
+# usaba el Home (.diseno_protocol_summary). El código no existía en ninguno.
 .planner_proyectar_estudio <- function(s) {
+  calc <- s[["calc_muestra_estudio"]] %||% list()
+  dash <- s[["dashboard_config"]] %||% list()
   .planner_norm_estudio(list(
-    nombre = .planner_chr1((s[["estudio"]] %||% list())$nombre %||% (s[["calc_muestra_estudio"]] %||% list())$titulo)
+    nombre = .planner_chr1((s[["estudio"]] %||% list())$nombre %||% calc$titulo %||% dash$titulo),
+    cliente = .planner_chr1((calc$contexto %||% list())$cliente %||% dash$cliente)
   ))
+}
+
+#' La identidad del estudio, declarada o sembrada. Lectura pura y liviana: no
+#' arma el payload entero (el Home la pide en cada carga).
+#' @keywords internal
+.planner_identidad <- function(s) {
+  decl <- .planner_leer(s)$secciones$estudio
+  if (!is.null(decl)) return(c(decl$valor, list(origen = "declarado")))
+  c(.planner_proyectar_estudio(s), list(origen = "proyectado"))
 }
 
 # El equipo proyectado nunca trae el DNI: la lista vieja lo tiene, el Planner no

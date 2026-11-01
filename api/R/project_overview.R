@@ -625,7 +625,7 @@
 # placeholder genérico. Solo si tampoco hay archivo cae al sentinel.
 .overview_project_name <- function(protocol, project_path) {
   title <- trimws(.diseno_scalar(protocol$title, ""))
-  if (nzchar(title) && !identical(title, "Estudio sin título")) return(title)
+  if (nzchar(title) && !title %in% c("Estudio sin título", "Proyecto sin titulo")) return(title)
   path <- .diseno_scalar(project_path, "")
   if (!nzchar(path)) path <- .diseno_scalar(protocol$project_file, "")
   path <- gsub("\\\\", "/", path)
@@ -651,6 +651,7 @@
     project = list(
       name = .overview_project_name(protocol, s$project_path),
       client = .diseno_scalar(protocol$client, ""),
+      code = .diseno_scalar(protocol$code, ""),   # ADR 0122: código del estudio, del Planner
       project_file = .diseno_scalar(protocol$project_file, ""),
       has_project = isTRUE(has_project),
       processing_mode = .diseno_scalar(protocol$processing_mode, "multibase"),
