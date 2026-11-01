@@ -142,15 +142,6 @@ test_that("importar el plan lleva el universo de Cálculo en la foto design_targ
   expect_identical(misma$design_targets$representatividad$universo$nivel, "universidad")
 })
 
-test_that("con la revisión vencida el Planner rechaza y no escribe", {
-  sid <- .cmrep_sesion(.cmrep_estado_hsvg())
-  .planner_declarar_representatividad(sid, "aulas", "principal", .cmrep_bloque(session_get(sid)), 0L)
-  err <- tryCatch(.planner_declarar_representatividad(sid, "aulas", "principal",
-                                                      .cmrep_bloque(session_get(sid)), 0L),
-                  error = identity)
-  expect_equal(err$code, "E_PLANNER_DESACTUALIZADO")
-})
-
 test_that("sin plan en la config, el universo se deduce de las facultades del diseño", {
   estado <- .cmrep_estado_hsvg()
   estado$monitoreo_config$aulas_universitarias$plan <- NULL

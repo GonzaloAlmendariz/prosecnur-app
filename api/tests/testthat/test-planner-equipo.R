@@ -32,15 +32,15 @@ test_that("cada perfil recibe a los suyos: por perfil declarado o, si no, por ro
   expect_false(p002$activo)
 })
 
-test_that("leer el equipo de un perfil es puro y nunca trae el DNI", {
+test_that("leer el equipo de un perfil es puro y no lo siembra del roster de Monitoreo (ADR 0123 §2)", {
   sid <- .pe_sesion(list(monitoreo_config = list(territorial = list(enumerator_roster = list(code_format = "PXXX", assignments = list(
     list(codigo_pulso = "P001", nombre = "Encuestador Ejemplo Uno", dni = "00000000")))))))
   antes <- digest::digest(.session_env[[sid]])
   eq <- .planner_equipo_de(session_get(sid), "territorial")
   expect_identical(digest::digest(.session_env[[sid]]), antes)
-  expect_equal(eq$origen, "proyectado")
+  expect_equal(eq$origen, "vacio")
+  expect_length(eq$personas, 0L)
   expect_false(any(grepl("00000000", unlist(eq), fixed = TRUE)))
-  expect_setequal(names(eq$personas[[1]]), c("codigo", "nombre", "rol", "activo"))
 })
 
 test_that("con códigos que son DNI no se entrega a nadie, como en Material", {

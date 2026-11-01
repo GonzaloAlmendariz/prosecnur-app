@@ -1,9 +1,9 @@
 # La identidad del estudio en Cálculo de muestra (ADR 0122).
 #
 # Nombre y cliente se declaran una sola vez en el Planner. Cálculo ya no los
-# escribe; el reporte metodológico los toma de `.planner_identidad()` (lo
-# declarado o, en un .pulso anterior, lo proyectado). Si el Planner no trae
-# nombre, se conserva lo que el estudio tenga.
+# escribe; el reporte metodológico los toma de `.planner_identidad()`, que sólo
+# trae lo declarado (ADR 0123 §5). Si el Planner no los declara, se conserva lo
+# que el estudio de Cálculo tenga.
 
 #' El estudio con el nombre y el cliente del Planner, para el reporte.
 #' @param estudio estudio de Cálculo (normalizado).

@@ -2,7 +2,8 @@
 # Planner: el equipo de cada perfil, para Material y Monitoreo (ADR 0122 §10)
 # =============================================================================
 #
-# Una sola lista del estudio (P7 resuelta por el ADR: vive en el Planner) y una
+# El equipo es de Monitoreo (ADR 0123 §2). Esto lee el que un .pulso declaró en
+# el Planner antes del 0123, que Material usa de respaldo, con una
 # lectura por perfil: encuestadores en territorial y telefónico, aplicadores en
 # aulas. Lectura pura; nadie escribe el equipo desde aquí.
 #
@@ -40,8 +41,10 @@
     stop_api(404, "E_PLANNER_SECCION", "El Planner no tiene ese perfil de recojo.", details = list(perfil = perfil))
   }
   decl <- .planner_leer(s)$secciones$equipo
-  equipo <- if (!is.null(decl)) decl$valor else .planner_proyectar_equipo(s)
-  base <- list(ok = TRUE, perfil = perfil, origen = if (is.null(decl)) "proyectado" else "declarado",
+  # Sin declarar no hay equipo: es de Monitoreo (ADR 0123 §2) y el Planner no
+  # lo siembra. Lo declarado antes del 0123 sigue siendo el respaldo de Material.
+  equipo <- if (!is.null(decl)) decl$valor else .planner_norm_equipo(list())
+  base <- list(ok = TRUE, perfil = perfil, origen = if (is.null(decl)) "vacio" else "declarado",
                code_format = equipo$code_format)
   if (identical(toupper(equipo$code_format %||% ""), "DNI")) {
     return(c(base, list(bloqueado = TRUE,

@@ -40,7 +40,7 @@ function PlannerIdentidad({ control }: { control: ControlPlanner }) {
   }, [base]);
   if (!estado || !base) return null;
   const cambio = form.nombre !== base.nombre || form.codigo !== base.codigo || form.cliente !== base.cliente;
-  const declarable = cambio || estado.origen.estudio === "proyectado";
+  const declarable = cambio;
 
   return (
     <div className="planner-seccion">
@@ -107,7 +107,7 @@ function PlannerPerfiles({ control }: { control: ControlPlanner }) {
   const activos = new Set(perfiles.map((p) => p.tipo));
   const conCalc = perfiles.filter((p) => p.diseno === "calc-muestra");
   const sinCambios = JSON.stringify(perfiles) === JSON.stringify(estado.planner.perfiles);
-  const declarable = (!sinCambios || estado.origen.perfiles === "proyectado") && perfiles.length > 0 && conCalc.length <= 1;
+  const declarable = (!sinCambios || estado.origen.perfiles === "vacio") && perfiles.length > 0 && conCalc.length <= 1;
 
   const alternar = (tipo: PlannerTipoPerfil) => {
     setPerfiles((prev) => (prev.some((p) => p.tipo === tipo)
@@ -132,7 +132,7 @@ function PlannerPerfiles({ control }: { control: ControlPlanner }) {
             disabled={!declarable || guardando === "perfiles"}
             onClick={() => void declarar("perfiles", perfiles)}
           >
-            {guardando === "perfiles" ? "Guardando…" : estado.origen.perfiles === "proyectado" ? "Declarar perfiles" : "Guardar"}
+            {guardando === "perfiles" ? "Guardando…" : estado.origen.perfiles === "vacio" ? "Declarar perfiles" : "Guardar"}
           </button>
         )}
       />

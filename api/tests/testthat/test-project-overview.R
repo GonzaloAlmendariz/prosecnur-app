@@ -179,9 +179,9 @@ test_that("facts de campo/formulario/dashboard se extraen de sus claves de sesio
 test_that("overview de proyecto reporta madurez 'in_progress' con trabajo real", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
-  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "project_path", file.path(tempdir(), "Estudio de prueba.pulso"))
   session_set(sid, "calc_muestra_estudio", list(
-    titulo = "Estudio de prueba",
+    titulo = "Título del diseño en Cálculo",
     contexto = list(cliente = "Cliente"),
     componentes = list(
       list(actor = "estudiantes", resultado = list(n_objetivo = 200L))
@@ -195,7 +195,13 @@ test_that("overview de proyecto reporta madurez 'in_progress' con trabajo real",
   expect_true(overview$maturity$has_any_work)
   expect_equal(overview$metrics$sample_target_n, 200L)
   expect_equal(overview$metrics$monitoreo_last_cut, "2026-07-01T10:00:00Z")
+  # Sin identidad declarada en el Planner, el Home nombra el proyecto por su
+  # archivo y no por el título de Cálculo (ADR 0123 §5).
   expect_equal(overview$project$name, "Estudio de prueba")
+  expect_equal(overview$project$client, "")
+  .planner_declarar(sid, "estudio", list(nombre = "Percepción del servicio", cliente = "Cliente"), 0L)
+  overview <- .project_overview_payload(sid)
+  expect_equal(overview$project$name, "Percepción del servicio")
   expect_equal(overview$project$client, "Cliente")
 })
 

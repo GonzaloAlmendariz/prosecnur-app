@@ -333,8 +333,8 @@
   mon_cfg <- s$monitoreo_config %||% list()
   mon_profile <- mon_cfg$monitoreo_profile %||% mon_cfg$profile %||% list()
 
-  # ADR 0122: la identidad la dice el Planner (declarada o sembrada de estos
-  # mismos lugares); ya no se arma aquí por su cuenta.
+  # ADR 0122: la identidad la dice el Planner, y sólo si se declaró (ADR 0123
+  # §5). Sin nombre declarado, el Home usa el del archivo (.overview_project_name).
   identidad <- .planner_identidad(s)
   list(
     title = .diseno_scalar(if (nzchar(identidad$nombre)) identidad$nombre else NULL, "Proyecto sin titulo"),

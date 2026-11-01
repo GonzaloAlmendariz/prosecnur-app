@@ -46,7 +46,7 @@ export function modosDelPerfil(perfil: PlannerPerfil): ModoPorModulo {
 }
 
 export function textoOrigen(origen: PlannerOrigen, declaradoEn?: string) {
-  if (origen === "proyectado") return "Leído de lo que ya tiene el proyecto";
+  if (origen === "vacio") return "Sin declarar todavía";
   const fecha = declaradoEn ? new Date(declaradoEn) : null;
   return fecha && !Number.isNaN(fecha.getTime())
     ? `Declarado el ${fecha.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}`

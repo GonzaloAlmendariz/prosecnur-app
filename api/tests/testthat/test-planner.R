@@ -71,34 +71,41 @@ test_that("leer el Planner no escribe ni marca el proyecto como modificado", {
   ))
   antes <- .pl_huella(sid)
   payload <- .planner_payload(session_get(sid))
+  modos <- .planner_modos(session_get(sid))
   expect_identical(.pl_huella(sid), antes)
   expect_false(isTRUE(session_get(sid)$project_dirty))
-  expect_equal(payload$origen$perfiles, "proyectado")
+  # El Planner se ve vacío; el modo se sigue deduciendo por dentro (ADR 0123 §5).
+  expect_equal(payload$origen$perfiles, "vacio")
+  expect_length(payload$planner$perfiles, 0L)
+  expect_equal(modos$origen, "deducido")
+  expect_equal(modos$monitoreo$modo, "territorial")
   expect_equal(payload$revision, 0L)
 })
 
-test_that("la proyección del equipo nunca trae el DNI", {
+test_that("sin declarar, el Planner no trae equipo: es de Monitoreo (ADR 0123 §2)", {
   sid <- .pl_sesion(list(
     monitoreo_config = list(territorial = list(enumerator_roster = list(code_format = "PXXX", assignments = list(
       list(codigo_pulso = "P001", nombre = "Encuestador Ejemplo Uno", dni = "00000000")))))
   ))
-  equipo <- .planner_payload(session_get(sid))$planner$equipo
-  expect_equal(equipo$personas[[1]]$codigo, "P001")
-  expect_false(any(grepl("00000000", unlist(equipo), fixed = TRUE)))
-  expect_null(equipo$personas[[1]]$dni)
+  p <- .planner_payload(session_get(sid))
+  expect_length(p$planner$equipo$personas, 0L)
+  expect_equal(p$origen$equipo, "vacio")
+  expect_false(any(grepl("Encuestador|00000000", unlist(p))))
 })
 
-test_that("la precedencia del perfil: Monitoreo elegido gana y lo más débil queda como aviso", {
+test_that("la deducción del modo: Monitoreo elegido gana, y nada de eso se muestra en el Planner", {
   # Forma de acnur_acg: Monitoreo territorial elegido, Cálculo con un diseño de aulas.
   sid <- .pl_sesion(list(
     monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE)),
     calc_muestra_estudio = list(macro_familia = "encuesta_estudiantes", workspace = list(frame_mode = "opinion_universitaria"))
   ))
+  perfiles <- .planner_payload_perfiles(session_get(sid))
+  expect_equal(vapply(perfiles, `[[`, "", "tipo"), "territorial")
+  expect_equal(perfiles[[1]]$diseno, "hojas-ruta")
   p <- .planner_payload(session_get(sid))
-  expect_equal(vapply(p$planner$perfiles, `[[`, "", "tipo"), "territorial")
-  expect_equal(p$planner$perfiles[[1]]$diseno, "hojas-ruta")
+  expect_length(p$planner$perfiles, 0L)
+  expect_length(p$avisos, 0L)
   expect_length(p$conflictos, 0L)
-  expect_equal(vapply(p$avisos, `[[`, "", "codigo"), "fuente_contradice")
 })
 
 test_that("una familia sin route_selected no cuenta como elección", {
@@ -106,22 +113,21 @@ test_that("una familia sin route_selected no cuenta como elección", {
     monitoreo_config = list(monitoreo_profile = list(family = "telefonico")),
     calc_muestra_estudio = list(macro_familia = "acreditacion", workspace = list(frame_mode = "x"))
   ))
-  p <- .planner_payload(session_get(sid))
-  expect_equal(p$planner$perfiles[[1]]$tipo, "acreditacion")
-  expect_equal(p$planner$perfiles[[1]]$diseno, "calc-muestra")
+  perfiles <- .planner_payload_perfiles(session_get(sid))
+  expect_equal(perfiles[[1]]$tipo, "acreditacion")
+  expect_equal(perfiles[[1]]$diseno, "calc-muestra")
 })
 
-test_that("una familia sin equivalente abre conflicto y no inventa un perfil", {
+test_that("una familia sin equivalente no inventa un perfil", {
   sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "digital_general", route_selected = TRUE))))
-  p <- .planner_payload(session_get(sid))
-  expect_length(p$planner$perfiles, 0L)
-  expect_equal(vapply(p$conflictos, `[[`, "", "codigo"), "perfil_sin_equivalente")
+  expect_length(.planner_payload_perfiles(session_get(sid)), 0L)
+  expect_length(.planner_payload(session_get(sid))$conflictos, 0L)
 })
 
-test_that("aulas con marco disponible proyecta la selección por marco", {
+test_that("aulas con marco disponible deduce la selección por marco", {
   sid <- .pl_sesion(list(calc_muestra_estudio = list(macro_familia = "hsvg_universitario",
                                                      workspace = list(frame_mode = "marco_disponible"))))
-  perfil <- .planner_payload(session_get(sid))$planner$perfiles[[1]]
+  perfil <- .planner_payload_perfiles(session_get(sid))[[1]]
   expect_equal(perfil$tipo, "aulas")
   expect_equal(perfil$seleccion, "marco")
 })
@@ -188,32 +194,31 @@ test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {
   expect_equal(vapply(perfiles, `[[`, "", "diseno"), c("hojas-ruta", "cliente"))
 })
 
-test_that("la puerta de la F4 del 0121 declara universo y variables sin celdas", {
-  sid <- .pl_sesion(list(calc_muestra_estudio = list(macro_familia = "encuesta_estudiantes",
-                                                     workspace = list(frame_mode = "opinion_universitaria"))))
-  bloque <- list(schema = "representatividad_v1", universo = list(nivel = "universidad", etiqueta = "PUCP"),
-                 variables = list(list(clave = "facultad")), celdas = list(list(valores = list(facultad = "X"), cuota = 10)))
-  .planner_declarar_representatividad(sid, "aulas", "principal", bloque, 0L)
-  p <- .planner_payload(session_get(sid))
-  expect_equal(p$origen$perfiles, "declarado")
-  rep <- p$planner$perfiles[[1]]$poblaciones[[1]]$representatividad
-  expect_equal(rep$universo$etiqueta, "PUCP")
-  expect_null(rep$celdas)
-})
-
-test_that("los cinco proyectos de referencia proyectan su perfil sin escribir", {
-  esperados <- list(acnur_acg = "territorial", acnur_pdm = "telefonico", acrconta = "acreditacion",
-                    hsvg2026 = "aulas", acrconta_mazo = character(0))
+test_that("los cinco proyectos de referencia abren el Planner vacío y conservan su modo (ADR 0123 §5)", {
+  # Oráculo medido el 1/11 (tabla de Cumplimiento del ADR 0123).
+  esperados <- list(
+    acnur_acg = list(calc = "territorial-handoff", mon = "territorial", mat = "territorial", hojas = TRUE),
+    acnur_pdm = list(calc = NA, mon = "telefonico", mat = "telefonica", hojas = FALSE),
+    hsvg2026 = list(calc = "opinion-universitaria", mon = "aulas", mat = "aulas", hojas = FALSE),
+    acrconta = list(calc = NA, mon = "acreditacion", mat = "correo", hojas = FALSE),
+    acrconta_mazo = list(calc = NA, mon = NA, mat = character(0), hojas = FALSE)
+  )
   for (slug in names(esperados)) {
     sid <- .pl_referencia(slug)
     dirty_antes <- isTRUE(session_get(sid)$project_dirty)
     antes <- .pl_huella(sid)
     p <- .planner_payload(session_get(sid))
+    m <- .planner_modos(session_get(sid))
     expect_identical(.pl_huella(sid), antes, info = slug)
     expect_identical(isTRUE(session_get(sid)$project_dirty), dirty_antes, info = slug)
-    expect_equal(vapply(p$planner$perfiles, `[[`, "", "tipo"), esperados[[slug]], info = slug)
-    expect_length(p$conflictos, 0L)
-    expect_false(any(grepl("dni", names(unlist(p$planner$equipo)), fixed = TRUE)), info = slug)
+    expect_true(all(unlist(p$origen) == "vacio"), info = slug)
+    expect_length(p$planner$perfiles, 0L)
+    expect_equal(p$planner$estudio$nombre, "", info = slug)
+    e <- esperados[[slug]]
+    expect_identical(m$calc$modo %||% NA, e$calc, info = slug)
+    expect_identical(m$monitoreo$modo %||% NA, e$mon, info = slug)
+    expect_identical(as.character(unlist(m$material$campanas)), e$mat, info = slug)
+    expect_identical(isTRUE(m$hojas_ruta$aplica), e$hojas, info = slug)
   }
 })
 
@@ -287,18 +292,19 @@ test_that("leer los modos es puro y sigue lo declarado", {
 
 # --- Identidad del estudio: una sola, la del Planner (ADR 0122) -----------------
 
-test_that("la identidad se siembra de los cuatro lugares viejos, en el orden del Home", {
+test_that("la identidad sólo vale declarada: no se toma el título de Cálculo ni del Dashboard", {
   sid <- .pl_sesion(list(
     calc_muestra_estudio = list(titulo = "Encuesta a estudiantes", contexto = list(cliente = "Universidad Ejemplo")),
     dashboard_config = list(titulo = "Tablero", cliente = "Otro cliente")
   ))
   id <- .planner_identidad(session_get(sid))
-  expect_equal(id$nombre, "Encuesta a estudiantes")
-  expect_equal(id$cliente, "Universidad Ejemplo")
-  expect_equal(id$origen, "proyectado")
-  # Sin Cálculo, el Dashboard.
-  sid2 <- .pl_sesion(list(dashboard_config = list(titulo = "Tablero", cliente = "Otro cliente")))
-  expect_equal(.planner_identidad(session_get(sid2))$cliente, "Otro cliente")
+  expect_equal(id$nombre, "")
+  expect_equal(id$cliente, "")
+  expect_equal(id$origen, "vacio")
+  .planner_declarar(sid, "estudio", list(nombre = "Percepción de la comunidad", cliente = "Cliente Ejemplo"), 0L)
+  id <- .planner_identidad(session_get(sid))
+  expect_equal(id$nombre, "Percepción de la comunidad")
+  expect_equal(id$origen, "declarado")
 })
 
 test_that("el Home dice la identidad que declara el Planner, con su código", {
@@ -319,11 +325,6 @@ test_that("sin nombre en ningún lado, el Home usa el nombre del archivo y no un
   expect_equal(.project_overview_payload(sid)$project$name, "HSVG2026")
 })
 
-test_that("el rótulo por defecto de Cálculo no se toma como nombre del estudio", {
-  sid <- .pl_sesion(list(calc_muestra_estudio = list(titulo = "Estudio sin título"),
-                         dashboard_config = list(titulo = "Tablero de HSVG")))
-  expect_equal(.planner_identidad(session_get(sid))$nombre, "Tablero de HSVG")
-})
 
 # --- Insumos del cliente: se registran, el archivo no se mueve (ADR 0122) -------
 
@@ -334,20 +335,12 @@ test_that("el rótulo por defecto de Cálculo no se toma como nombre del estudio
   )
 }
 
-test_that("el marco que leyó Cálculo se siembra como insumo enlazado a su archivo", {
-  # Forma real (hsvg2026): una vinculación por hoja; dos hojas del mismo archivo.
+test_that("el marco que leyó Cálculo no se siembra como insumo; los archivos del proyecto sí se listan", {
   sid <- .pl_sesion(list(files = .pl_archivos(),
                          calc_muestra_estudio = list(workspace = list(source_bindings = list(
-                           list(id = "src-estudiantes", label = "Base principal de matrícula", file_id = "f-marco"),
-                           list(id = "src-cursos", label = "Cursos", file_id = "f-marco"))))))
+                           list(id = "src-estudiantes", label = "Base principal de matrícula", file_id = "f-marco"))))))
   p <- .planner_payload(session_get(sid))
-  expect_length(p$planner$insumos, 1L)
-  marco <- p$planner$insumos[[1]]
-  expect_equal(marco$etiqueta, "Base principal de matrícula")
-  expect_equal(marco$tipo, "marco")
-  expect_equal(marco$archivo, "f-marco")
-  expect_equal(marco$archivo_nombre, "BD estudiantes 2026-2.xlsx")
-  expect_equal(marco$archivo_estado, "en_proyecto")
+  expect_length(p$planner$insumos, 0L)
   expect_setequal(vapply(p$archivos, `[[`, "", "file_id"), c("f-marco", "f-xls"))
 })
 
@@ -370,38 +363,19 @@ test_that("un insumo declarado guarda sólo el file_id; el nombre se resuelve al
 
 # --- Códigos: se siembran de Material y se leen del Planner (ADR 0122) -----------
 
-test_that("territorial siembra el catálogo de la visita de Material: 1 a 8 con 8 efectiva, y 99", {
-  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE))))
+test_that("sin declarar, el Planner no trae códigos: son de Material (ADR 0123 §2)", {
+  sid <- .pl_sesion(list(
+    monitoreo_config = list(monitoreo_profile = list(family = "telefonico", route_selected = TRUE)),
+    material_telefonica_config = list(status = list(list(codigo = "efectivo", status = "Efectivo", clase = "efectiva")))))
   antes <- .pl_huella(sid)
   cod <- .planner_codigos(session_get(sid))
   expect_identical(.pl_huella(sid), antes)
-  expect_equal(cod$origen, "proyectado")
-  codigos <- vapply(cod$resultado, `[[`, "", "codigo")
-  expect_equal(codigos, c(as.character(1:8), "99"))
-  grupos <- stats::setNames(vapply(cod$resultado, `[[`, "", "grupo"), codigos)
-  expect_equal(unname(grupos["8"]), "efectiva")
-  expect_equal(unname(grupos["99"]), "manzana")
+  expect_equal(cod$origen, "vacio")
+  expect_length(cod$resultado, 0L)
   expect_length(cod$status_barrido, 0L)
 })
 
-test_that("telefónico siembra los 14 Status del RMS con su clase", {
-  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "telefonico", route_selected = TRUE))))
-  st <- .planner_codigos(session_get(sid))$status_barrido
-  expect_length(st, 14L)
-  expect_equal(st[[1]]$codigo, "no_barrido")
-  expect_equal(st[[2]]$grupo, "efectiva")
-  expect_true(all(vapply(st, `[[`, "", "grupo") %in% PLANNER_CLASES_BARRIDO))
-  # Ortografía literal del Sheets del RMS.
-  expect_true("Número Incorrecto" %in% vapply(st, `[[`, "", "rotulo"))
-})
 
-test_that("si la campaña telefónica personalizó sus Status, se siembran ésos", {
-  sid <- .pl_sesion(list(material_telefonica_config = list(status = list(
-    list(codigo = "efectivo", status = "Efectivo", clase = "efectiva"),
-    list(codigo = "no_contesta", status = "No contesta", clase = "no_contacto")))))
-  st <- .planner_codigos(session_get(sid))$status_barrido
-  expect_equal(vapply(st, `[[`, "", "codigo"), c("efectivo", "no_contesta"))
-})
 
 # --- Territorial: UMP aleatoria con hoja de ruta, o conveniencia (Gonzalo) -------
 

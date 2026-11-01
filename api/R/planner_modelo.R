@@ -3,14 +3,12 @@
 # =============================================================================
 #
 # La clave `planner` (schema `planner/v1`) guarda SÓLO lo que el equipo declaró,
-# sección por sección. Lo que todavía no se declaró se proyecta al leer desde
-# los lugares viejos (planner_proyeccion.R) y nunca se escribe por proyectarlo:
-# así un .pulso anterior abre igual que antes y no queda marcado como
-# modificado.
+# sección por sección. Lo que todavía no se declaró viene vacío (ADR 0123 §5);
+# el modo de cada módulo se deduce aparte, sin mostrarse (planner_proyeccion.R).
+# Un .pulso anterior abre igual que antes y no queda marcado como modificado.
 #
 # Dueño único de la clave: este archivo y router_planner.R. Ningún otro módulo
-# la escribe; la única excepción declarada es `.planner_declarar_representatividad`,
-# que es la puerta por la que la F4 del ADR 0121 declara universo y variables.
+# la escribe.
 #
 # Vocabulario de los códigos: el mismo que ya usa Material
 # (`material_territorial_formatos/v1`: codigo, rotulo, grupo), para que la
@@ -357,25 +355,3 @@ PLANNER_MAX_INSUMOS <- 60L
   invisible(actual)
 }
 
-#' Puerta de la F4 del ADR 0121: declara universo y variables de una población.
-#'
-#' Las celdas se descartan (son del diseñador). Si los perfiles todavía no se
-#' declararon, se declaran con lo proyectado más esta representatividad.
-#' @keywords internal
-.planner_declarar_representatividad <- function(sid, tipo, poblacion_id, bloque, expected_revision) {
-  s <- session_get(sid)
-  perfiles <- .planner_payload(s)$planner$perfiles
-  i <- which(vapply(perfiles, `[[`, "", "tipo") == tipo)
-  if (!length(i)) {
-    stop_api(409, "E_PLANNER_SECCION_PENDIENTE", "El estudio no declara ese perfil de recojo.",
-             details = list(tipo = tipo))
-  }
-  pobl <- perfiles[[i]]$poblaciones
-  j <- which(vapply(pobl, `[[`, "", "id") == poblacion_id)
-  if (!length(j)) {
-    stop_api(409, "E_PLANNER_SECCION_PENDIENTE", "El perfil no declara esa población.",
-             details = list(tipo = tipo, poblacion = poblacion_id))
-  }
-  perfiles[[i]]$poblaciones[[j]]$representatividad <- bloque
-  .planner_declarar(sid, "perfiles", perfiles, expected_revision)
-}

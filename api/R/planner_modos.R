@@ -5,7 +5,7 @@
 # La tabla «perfil → modo» vive aquí y sólo aquí. Cálculo de muestra, Material
 # de campo, Monitoreo, Hojas de ruta y el Home la consultan (fase P2) en vez de
 # preguntarle al usuario el tipo de estudio. Lectura pura: parte del payload
-# del Planner (lo declarado o, si no, lo proyectado) y no escribe nada.
+# del Planner (lo declarado o, si no, lo deducido para el modo) y no escribe nada.
 #
 # Con un perfil, cada módulo aterriza en su modo. Con varios, el landing del
 # módulo lista sólo los declarados (§8): por eso cada módulo recibe la LISTA de
@@ -115,10 +115,12 @@
   )
 }
 
-#' Los modos según el Planner de la sesión (declarado o proyectado).
+#' Los modos según el Planner de la sesión: de los perfiles declarados o, sin
+#' declaración, deducidos de lo que ya guardan los módulos (ADR 0123 §5).
 #' @keywords internal
 .planner_modos <- function(s) {
-  payload <- .planner_payload(s)
-  c(.planner_modos_de(payload$planner$perfiles),
-    list(origen = payload$origen$perfiles, revision = payload$revision))
+  guardado <- .planner_leer(s)
+  c(.planner_modos_de(.planner_payload_perfiles(s)),
+    list(origen = if (is.null(guardado$secciones$perfiles)) "deducido" else "declarado",
+         revision = guardado$revision))
 }

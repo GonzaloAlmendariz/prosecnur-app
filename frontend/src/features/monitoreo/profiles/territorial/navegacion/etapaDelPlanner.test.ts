@@ -15,29 +15,30 @@ describe("discrepanciaDeEtapa", () => {
     });
   });
 
-  it("coinciden, o la etapa sólo está proyectada, o no hay Planner: nada", () => {
+  it("coinciden, o la etapa no está declarada, o no hay Planner: nada", () => {
     expect(discrepanciaDeEtapa(cal("campo"), "field")).toBeNull();
-    expect(discrepanciaDeEtapa(cal("campo", "proyectado"), "pilot")).toBeNull();
+    expect(discrepanciaDeEtapa(cal("campo", "vacio"), "pilot")).toBeNull();
     expect(discrepanciaDeEtapa(null, "pilot")).toBeNull();
   });
 });
 
 describe("discrepanciaDeVentana", () => {
-  const conVentana = (inicio: string, origen: string, campoDesde?: string) => normalizarPlannerCalendario({
+  const conVentana = (inicio: string, origen: string) => normalizarPlannerCalendario({
     ventana: { inicio, fin: "2026-11-30", origen },
-    etapa: { fuentes: { monitoreo: { etapa: "campo", piloto_desde: "2026-10-01", campo_desde: campoDesde } } },
   });
+  // Lo que guarda Monitoreo: lo pone Monitoreo, el Planner no lo lee (ADR 0123 §5).
+  const mon = (campoDesde: string) => ({ pilotoDesde: "2026-10-01", campoDesde });
 
   it("propuesta declarada distinta del inicio de Monitoreo: ofrece alinear y conserva el piloto", () => {
-    expect(discrepanciaDeVentana(conVentana("2026-10-15", "declarado", "2026-10-20"))).toEqual({
+    expect(discrepanciaDeVentana(conVentana("2026-10-15", "declarado"), mon("2026-10-20T10:00:00Z"))).toEqual({
       inicio: "2026-10-15", pilotoDesde: "2026-10-01",
       texto: "El Planner propone campo desde el 15/10; Monitoreo lo cuenta desde el 20/10.",
     });
   });
 
   it("igual, sólo proyectada o sin propuesta: nada", () => {
-    expect(discrepanciaDeVentana(conVentana("2026-10-20", "declarado", "2026-10-20"))).toBeNull();
-    expect(discrepanciaDeVentana(conVentana("2026-10-15", "proyectado", "2026-10-20"))).toBeNull();
-    expect(discrepanciaDeVentana(null)).toBeNull();
+    expect(discrepanciaDeVentana(conVentana("2026-10-20", "declarado"), mon("2026-10-20"))).toBeNull();
+    expect(discrepanciaDeVentana(conVentana("2026-10-15", "vacio"), mon("2026-10-20"))).toBeNull();
+    expect(discrepanciaDeVentana(null, mon("2026-10-20"))).toBeNull();
   });
 });

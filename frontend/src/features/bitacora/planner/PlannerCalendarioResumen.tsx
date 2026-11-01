@@ -1,9 +1,7 @@
 // La franja de Cronograma › Plan: cuándo es el campo y en qué etapa está el
-// estudio (ADR 0122 §2). El Planner DECLARA la etapa (decisión de Meta B sobre
-// el ADR ratificado): se siembra de Hojas de ruta y Monitoreo si coinciden; si
-// no, queda sin valor y lo decide el usuario aquí. Mientras esos módulos no la
-// lean del Planner, se dice cuál sigue en otra etapa. La ventana de campo es la
-// PROPUESTA del Planner (PlannerVentanaCampo).
+// estudio. Las dos son propuestas del Planner (ADR 0123 §6): la etapa se declara
+// aquí y no se siembra de Hojas de ruta ni de Monitoreo, que la comparan desde
+// su lado y ofrecen «Alinear». La ventana es PlannerVentanaCampo.
 
 import type { PlannerEtapa } from "../../../api/planner";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
@@ -13,20 +11,14 @@ import { textoOrigen } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
 import { usePlannerCalendario } from "./usePlannerCalendario";
 
-const FUENTE: Record<string, string> = { hojas_ruta: "Hojas de ruta", monitoreo: "Monitoreo" };
 const ETAPAS: readonly (readonly [PlannerEtapa, string])[] = [["piloto", "Piloto"], ["campo", "Campo"]];
 
 export function PlannerCalendarioResumen({ recarga, control }: { recarga: unknown; control: ControlPlanner }) {
   const cal = usePlannerCalendario(control.estado?.revision, recarga);
   if (!cal) return null;
 
-  const fuentes = Object.entries(cal.etapa.fuentes);
   const guardando = control.guardando === "etapa";
-  const origen = cal.etapa.origen === "declarado"
-    ? textoOrigen("declarado", control.estado?.declaradoEn.etapa)
-    : !fuentes.length ? "sin declarar"
-      : cal.etapa.valor ? `según ${fuentes.map(([k]) => FUENTE[k] ?? k).join(" y ")}`
-        : `sin acuerdo entre ${fuentes.map(([k]) => FUENTE[k] ?? k).join(" y ")}`;
+  const origen = cal.etapa.origen === "declarado" ? textoOrigen("declarado", control.estado?.declaradoEn.etapa) : "sin declarar";
 
   return (
     <section className="planner-calendario" aria-label="Ventana de campo y etapa del estudio" data-audit-ready="planner-calendario">

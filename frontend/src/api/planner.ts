@@ -14,7 +14,10 @@ export type PlannerDiseno = "calc-muestra" | "hojas-ruta" | "cliente" | "cuotas"
 export type PlannerSeleccionAulas = "conglomerados" | "marco";
 /** Territorial: por UMP aleatoria con hoja de ruta (acogida) o por conveniencia o cuotas (Ser Adolescente). */
 export type PlannerSeleccionTerritorial = "ump_aleatoria" | "conveniencia";
-export type PlannerOrigen = "declarado" | "proyectado";
+/** `vacio`: la sección no se declaró; el Planner no la siembra de otros módulos (ADR 0123 §5). */
+export type PlannerOrigen = "declarado" | "vacio";
+/** Los modos se deducen de lo que guardan los módulos mientras los perfiles no se declaren. */
+export type PlannerOrigenModos = "declarado" | "deducido";
 
 export type PlannerVariable = { clave: string; etiqueta?: string; plural?: string };
 export type PlannerRepresentatividad = {
@@ -81,7 +84,7 @@ export type PlannerEstado = {
     equipo: PlannerEquipo;
     codigos: PlannerCodigos;
     insumos: PlannerInsumo[];
-    /** Etapa operativa del estudio; `null` si nadie la declaró y las fuentes no coinciden. */
+    /** Etapa operativa del estudio; `null` si nadie la declaró. */
     etapa: { valor: "piloto" | "campo" | null };
     /** Ventana de campo que PROPONE el Planner (AAAA-MM-DD; vacío si nadie dice nada). */
     ventana: PlannerVentanaRango;
@@ -180,7 +183,7 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
   const origenCrudo = obj(r.origen);
   const declCrudo = obj(r.declarado_en);
   const origen = Object.fromEntries(
-    SECCIONES.map((s) => [s, txt(origenCrudo[s]) === "declarado" ? "declarado" : "proyectado"]),
+    SECCIONES.map((s) => [s, txt(origenCrudo[s]) === "declarado" ? "declarado" : "vacio"]),
   ) as Record<PlannerSeccion, PlannerOrigen>;
   const declaradoEn: Partial<Record<PlannerSeccion, string>> = {};
   for (const s of SECCIONES) if (txt(declCrudo[s])) declaradoEn[s] = txt(declCrudo[s]);
@@ -252,7 +255,7 @@ export type PlannerModos = {
   hojasRuta: { aplica: boolean };
   /** Variante del perfil territorial, si hay uno. */
   territorial: { seleccion: PlannerSeleccionTerritorial | null };
-  origen: PlannerOrigen;
+  origen: PlannerOrigenModos;
   revision: number;
 };
 
@@ -273,7 +276,7 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
     material: { campanas: textos(obj(r.material).campanas) },
     hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
     territorial: { seleccion: (["ump_aleatoria", "conveniencia"] as const).find((v) => v === txt(obj(r.territorial).seleccion)) ?? null },
-    origen: txt(r.origen) === "declarado" ? "declarado" : "proyectado",
+    origen: txt(r.origen) === "declarado" ? "declarado" : "deducido",
     revision: num(r.revision) ?? 0,
   };
 }
@@ -282,27 +285,20 @@ export async function apiPlannerModos(): Promise<PlannerModos> {
   return normalizarPlannerModos(await handle<unknown>(await apiFetch("/api/planner/modos", { headers: headers() })));
 }
 
-// --- Cronograma y etapa operativa (ADR 0122 §2) ---------------------------------
+// --- Cronograma y etapa operativa (ADR 0122 §2, 0123 §6) -------------------------
 
 export type PlannerEtapa = "piloto" | "campo";
-export type PlannerVentanaFuente = "monitoreo" | "cronograma";
-/** La ventana de campo: la PROPUESTA del Planner y lo que cuenta cada fuente hoy. */
+/** La ventana de campo: la PROPUESTA del Planner. Sin declarar, la fase Campo del cronograma (ADR 0123 §6). */
 export type PlannerVentana = PlannerVentanaRango & {
-  /** De dónde sale: `planner` si se declaró; si no, la fuente que la sembró, o vacío. */
-  fuente: PlannerVentanaFuente | "planner" | "";
+  /** De dónde sale: `planner` si se declaró; `cronograma` si sale de su fase Campo; vacío si de ninguno. */
+  fuente: "planner" | "cronograma" | "";
   origen: PlannerOrigen;
-  fuentes: Partial<Record<PlannerVentanaFuente, PlannerVentanaRango & { de: string }>>;
 };
 export type PlannerCalendario = {
   hoy: string;
   campo: { inicio: string; fin: string };
   ventana: PlannerVentana;
-  etapa: {
-    valor: PlannerEtapa | null;
-    origen: PlannerOrigen;
-    /** De dónde sale cada respuesta hoy: `hojas_ruta` y `monitoreo`. */
-    fuentes: Partial<Record<"hojas_ruta" | "monitoreo", { etapa: PlannerEtapa | null; pilotoDesde?: string; campoDesde?: string }>>;
-  };
+  etapa: { valor: PlannerEtapa | null; origen: PlannerOrigen };
   avisos: PlannerAviso[];
 };
 
@@ -311,31 +307,18 @@ const etapaDe = (x: unknown): PlannerEtapa | null => (txt(x) === "piloto" || txt
 export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
   const r = obj(raw);
   const v = obj(r.ventana);
-  const fuentesVentana: PlannerVentana["fuentes"] = {};
-  for (const clave of ["monitoreo", "cronograma"] as const) {
-    const f = obj(obj(v.fuentes)[clave]);
-    if (Object.keys(f).length) fuentesVentana[clave] = { ...rango(f), de: txt(f.de) };
-  }
   const fuenteVentana = txt(v.fuente);
   const campo = obj(r.campo);
   const etapa = obj(r.etapa);
-  const fuentesCrudas = obj(etapa.fuentes);
-  const fuentes: PlannerCalendario["etapa"]["fuentes"] = {};
-  for (const clave of ["hojas_ruta", "monitoreo"] as const) {
-    const f = obj(fuentesCrudas[clave]);
-    if (!Object.keys(f).length) continue;
-    fuentes[clave] = { etapa: etapaDe(f.etapa), pilotoDesde: txt(f.piloto_desde) || undefined, campoDesde: txt(f.campo_desde) || undefined };
-  }
   return {
     hoy: txt(r.hoy),
     campo: { inicio: txt(campo.inicio), fin: txt(campo.fin) },
     ventana: {
       ...rango(v),
-      fuente: fuenteVentana === "monitoreo" || fuenteVentana === "cronograma" || fuenteVentana === "planner" ? fuenteVentana : "",
-      origen: txt(v.origen) === "declarado" ? "declarado" : "proyectado",
-      fuentes: fuentesVentana,
+      fuente: fuenteVentana === "cronograma" || fuenteVentana === "planner" ? fuenteVentana : "",
+      origen: txt(v.origen) === "declarado" ? "declarado" : "vacio",
     },
-    etapa: { valor: etapaDe(etapa.valor), origen: txt(etapa.origen) === "declarado" ? "declarado" : "proyectado", fuentes },
+    etapa: { valor: etapaDe(etapa.valor), origen: txt(etapa.origen) === "declarado" ? "declarado" : "vacio" },
     avisos: arr(r.avisos).map((x) => ({ codigo: txt(obj(x).codigo), mensaje: txt(obj(x).mensaje) })).filter((a) => a.mensaje),
   };
 }
@@ -359,7 +342,7 @@ export function normalizarPlannerEquipoDe(raw: unknown, perfil: PlannerTipoPerfi
   const r = obj(raw);
   return {
     perfil,
-    origen: txt(r.origen) === "declarado" ? "declarado" : "proyectado",
+    origen: txt(r.origen) === "declarado" ? "declarado" : "vacio",
     bloqueado: r.bloqueado === true,
     motivo: txt(r.motivo),
     personas: arr(r.personas).map((x) => {

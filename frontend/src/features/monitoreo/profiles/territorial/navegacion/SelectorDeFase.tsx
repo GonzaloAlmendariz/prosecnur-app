@@ -29,7 +29,10 @@ export function SelectorDeFase({
   const discrepancia = discrepanciaDeEtapa(calendario, activa?.fase);
   // La ventana que propone el Planner; alinearla cambia qué respuestas cuentan
   // como campo, así que sólo con el clic. Se aplica al volver a actualizar.
-  const ventana = discrepanciaDeVentana(calendario);
+  const ventana = discrepanciaDeVentana(calendario, {
+    pilotoDesde: opciones.find((o) => o.fase === "pilot")?.inicio ?? "",
+    campoDesde: opciones.find((o) => o.fase === "field")?.inicio ?? "",
+  });
   const [ventanaAlineada, setVentanaAlineada] = useState("");
   async function alinearVentana() {
     if (!ventana) return;

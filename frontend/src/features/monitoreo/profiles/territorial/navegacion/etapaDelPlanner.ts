@@ -28,7 +28,8 @@ export function discrepanciaDeEtapa(cal: PlannerCalendario | null, activa: Monit
  * La ventana de campo que PROPONE el Planner frente al inicio de campo de
  * Monitoreo (decisión de Meta B, 2026-11-01: el Planner propone, Monitoreo se
  * alinea con un clic). Monitoreo sólo guarda el inicio de cada fase, así que se
- * compara el inicio; el piloto se conserva tal cual al alinear.
+ * compara el inicio; el piloto se conserva tal cual al alinear. Los inicios de
+ * Monitoreo los pone Monitoreo: el Planner va primero y no los lee (ADR 0123 §5).
  */
 export type DiscrepanciaDeVentana = { inicio: string; pilotoDesde: string; texto: string } | null;
 
@@ -37,14 +38,16 @@ function fechaCorta(iso: string): string {
   return m ? `${Number(m[3])}/${m[2]}` : iso;
 }
 
-export function discrepanciaDeVentana(cal: PlannerCalendario | null): DiscrepanciaDeVentana {
+export function discrepanciaDeVentana(
+  cal: PlannerCalendario | null,
+  monitoreo: { pilotoDesde: string; campoDesde: string },
+): DiscrepanciaDeVentana {
   if (!cal || cal.ventana.origen !== "declarado" || !cal.ventana.inicio) return null;
-  const monitoreo = cal.etapa.fuentes.monitoreo;
-  const actual = monitoreo?.campoDesde ?? "";
+  const actual = monitoreo.campoDesde.slice(0, 10);
   if (actual === cal.ventana.inicio) return null;
   return {
     inicio: cal.ventana.inicio,
-    pilotoDesde: monitoreo?.pilotoDesde ?? "",
+    pilotoDesde: monitoreo.pilotoDesde,
     texto: actual
       ? `El Planner propone campo desde el ${fechaCorta(cal.ventana.inicio)}; Monitoreo lo cuenta desde el ${fechaCorta(actual)}.`
       : `El Planner propone campo desde el ${fechaCorta(cal.ventana.inicio)}; Monitoreo no tiene inicio de campo.`,

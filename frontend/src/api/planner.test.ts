@@ -26,7 +26,7 @@ describe("normalizadores del Planner", () => {
     expect(modos.calc.modo).toBeNull();
     expect(modos.monitoreo.modo).toBeNull();
     expect(modos.material.campanas).toEqual([]);
-    expect(modos.origen).toBe("proyectado");
+    expect(modos.origen).toBe("deducido");
   });
 
   it("descarta perfiles desconocidos y lee la representatividad vacía como nula", () => {
@@ -38,20 +38,21 @@ describe("normalizadores del Planner", () => {
     expect(estado.planner.perfiles.map((p) => p.tipo)).toEqual(["aulas"]);
     expect(estado.planner.perfiles[0].poblaciones[0].representatividad).toBeNull();
     expect(estado.origen.perfiles).toBe("declarado");
-    expect(estado.origen.equipo).toBe("proyectado");
+    expect(estado.origen.equipo).toBe("vacio");
   });
 
-  it("lee la etapa con sus fuentes y no inventa acuerdo cuando no lo hay", () => {
+  it("lee la etapa sin declarar como vacía, y una sección ausente no se lee como proyectada", () => {
     const cal = normalizarPlannerCalendario({
       hoy: "2026-10-31",
       campo: { inicio: "2026-11-10", fin: "" },
-      etapa: { valor: null, fuentes: { hojas_ruta: { etapa: "campo" }, monitoreo: { etapa: "piloto", campo_desde: "2026-11-12" } } },
-      avisos: [{ codigo: "etapa_no_coincide", mensaje: "Hojas de ruta dice campo y Monitoreo, piloto." }],
+      etapa: { valor: null, origen: "vacio" },
+      avisos: [{ codigo: "algo", mensaje: "Un aviso." }],
     });
-    expect(cal.etapa.valor).toBeNull();
-    expect(cal.etapa.fuentes.monitoreo).toEqual({ etapa: "piloto", pilotoDesde: undefined, campoDesde: "2026-11-12" });
+    expect(cal.etapa).toEqual({ valor: null, origen: "vacio" });
     expect(cal.campo).toEqual({ inicio: "2026-11-10", fin: "" });
     expect(cal.avisos).toHaveLength(1);
+    // ADR 0123 §5: lo que no vino declarado es vacío, también con un origen desconocido.
+    expect(normalizarPlannerEstado({ origen: { estudio: "proyectado" } }).origen.estudio).toBe("vacio");
   });
 
   it("lee el equipo de un perfil; con DNI llega bloqueado y sin personas", () => {
@@ -63,20 +64,19 @@ describe("normalizadores del Planner", () => {
     expect(dni.personas).toEqual([]);
   });
 
-  it("lee la ventana de campo: la propuesta, su origen y lo que cuenta cada fuente", () => {
+  it("lee la ventana de campo: la propuesta y su origen", () => {
     const cal = normalizarPlannerCalendario({
-      ventana: {
-        inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado",
-        fuentes: { monitoreo: { inicio: "2026-11-12", fin: "2026-12-02", de: "fases" }, cronograma: { inicio: "2026-11-10T00:00:00Z", fin: "x", de: "cronograma" } },
-      },
+      ventana: { inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado" },
     });
-    expect(cal.ventana).toMatchObject({ inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado" });
-    expect(cal.ventana.fuentes.monitoreo).toEqual({ inicio: "2026-11-12", fin: "2026-12-02", de: "fases" });
-    // Lo que no es un día cae al vacío.
-    expect(cal.ventana.fuentes.cronograma).toEqual({ inicio: "2026-11-10", fin: "", de: "cronograma" });
-    // Un backend anterior sin ventana: vacía, proyectada, sin fuentes.
-    const viejo = normalizarPlannerCalendario({ fuentes: {} });
-    expect(viejo.ventana).toEqual({ inicio: "", fin: "", fuente: "", origen: "proyectado", fuentes: {} });
+    expect(cal.ventana).toEqual({ inicio: "2026-11-10", fin: "2026-12-02", fuente: "planner", origen: "declarado" });
+    // Sin declarar, del cronograma; lo que no es un día cae al vacío.
+    const del_cronograma = normalizarPlannerCalendario({ ventana: { inicio: "2026-11-10T00:00:00Z", fin: "x", fuente: "cronograma", origen: "vacio" } });
+    expect(del_cronograma.ventana).toEqual({ inicio: "2026-11-10", fin: "", fuente: "cronograma", origen: "vacio" });
+    // Una fuente que ya no existe (Monitoreo) no se lee.
+    expect(normalizarPlannerCalendario({ ventana: { fuente: "monitoreo" } }).ventana.fuente).toBe("");
+    // Un backend anterior sin ventana: vacía.
+    const viejo = normalizarPlannerCalendario({});
+    expect(viejo.ventana).toEqual({ inicio: "", fin: "", fuente: "", origen: "vacio" });
     expect(normalizarPlannerEstado({ planner: { ventana: { inicio: "2026-11-10", fin: "2026-12-02" } } }).planner.ventana)
       .toEqual({ inicio: "2026-11-10", fin: "2026-12-02" });
   });

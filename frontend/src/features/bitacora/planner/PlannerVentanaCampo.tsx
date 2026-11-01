@@ -1,14 +1,13 @@
 // Ventana de campo del estudio: el Planner la PROPONE (decisión de Gonzalo vía
-// Meta B, 2026-10-31). Se siembra de Monitoreo o del cronograma; declararla no
-// escribe en ninguno: Monitoreo muestra la discrepancia y ofrece alinearse.
+// Meta B, 2026-10-31). Sin declarar, sale de la fase Campo del cronograma; el
+// Planner no lee a Monitoreo (ADR 0123 §6). Declararla no escribe en ningún
+// módulo: Monitoreo muestra la discrepancia y ofrece alinearse.
 
 import { useEffect, useState } from "react";
 
 import type { PlannerVentana } from "../../../api/planner";
 import { textoOrigen } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
-
-const FUENTE = { monitoreo: "Monitoreo", cronograma: "el cronograma" } as const;
 
 export function PlannerVentanaCampo({ ventana, control }: { ventana: PlannerVentana; control: ControlPlanner }) {
   const [inicio, setInicio] = useState(ventana.inicio);
@@ -19,13 +18,13 @@ export function PlannerVentanaCampo({ ventana, control }: { ventana: PlannerVent
   const cambio = inicio !== ventana.inicio || fin !== ventana.fin;
   const invertida = Boolean(inicio && fin && fin < inicio);
   const listo = Boolean(inicio && fin) && !invertida;
-  // Sembrada y sin tocar también se puede proponer tal cual: así queda declarada.
-  const proponible = listo && (cambio || ventana.origen === "proyectado") && !guardando && Boolean(control.estado);
+  // La del cronograma, sin tocar, también se puede proponer tal cual: así queda declarada.
+  const proponible = listo && (cambio || ventana.origen === "vacio") && !guardando && Boolean(control.estado);
   const origen = guardando ? "Guardando…"
     : invertida ? "El fin va después del inicio."
       : ventana.origen === "declarado" ? `Propuesta del Planner · ${textoOrigen("declarado", control.estado?.declaradoEn.ventana).toLowerCase()}`
-        : ventana.fuente === "monitoreo" || ventana.fuente === "cronograma"
-          ? `Según ${FUENTE[ventana.fuente]}${inicio && !fin ? ", que no da el fin: ponlo para proponerla" : ", sin proponer"}`
+        : ventana.fuente === "cronograma"
+          ? `Según el cronograma${inicio && !fin ? ", que no da el fin: ponlo para proponerla" : ", sin proponer"}`
           : "Nadie la declara todavía: pon las dos fechas";
 
   return (
