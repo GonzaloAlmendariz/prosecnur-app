@@ -42,7 +42,7 @@ import {
 } from "./modeloImpreso";
 import { generarPrevia, previaVieja, usePreviaImpreso } from "./storePrevia";
 import { PreviaImpreso } from "./PreviaImpreso";
-import { primeraPagina } from "./primeraPagina";
+import { primeraPagina, tituloDelFormulario } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
 import "./impreso.css";
 
@@ -118,7 +118,12 @@ export function PestanaImpreso({
   );
 
   const previa = usePreviaImpreso();
-  const pagina = useMemo(() => primeraPagina(workbook, structure), [workbook, structure]);
+  const pagina = useMemo(() => {
+    const p = primeraPagina(workbook, structure);
+    // L36 · D-L36-5: «Así queda» dibuja el mismo título que imprimirá el motor.
+    const propio = estado.documentTitle.trim();
+    return propio ? { ...p, titulo: propio } : p;
+  }, [workbook, structure, estado.documentTitle]);
   // Otra previa de otro formulario no se muestra: se descarta al llegar.
   useEffect(() => {
     if (previa.formId !== null && previa.formId !== formId) previa.descartar();
@@ -178,7 +183,7 @@ export function PestanaImpreso({
             data-qa-geometry-group="xlsform/impreso-detalle"
             data-qa-geometry-contract="intrinsic"
           >
-            {parte === "formato" && <DetalleFormato estado={estado} actualizar={actualizar} />}
+            {parte === "formato" && <DetalleFormato estado={estado} actualizar={actualizar} tituloDelFormulario={tituloDelFormulario(workbook)} />}
             {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
             {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} plano={plano} />}

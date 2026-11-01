@@ -157,6 +157,8 @@ export type PdfDialogState = {
   /** Banda «INSTRUCCIONES» por defecto cuando no hay intro propia. */
   defaultIntro: boolean;
   showHeaderTitle: boolean;
+  /** Título impreso del documento (L36 · D-L36-5). Vacío = el `form_title` del formulario. */
+  documentTitle: string;
   /** Elecciones por matriz, indexadas por `matrixSignature`. */
   matrices: Record<string, PdfMatrixChoice>;
 };
@@ -168,6 +170,7 @@ export const DEFAULT_PDF_DIALOG_STATE: PdfDialogState = {
   maxOptionsPerQuestion: ENGINE_MAX_OPTIONS_PER_QUESTION,
   defaultIntro: true,
   showHeaderTitle: true,
+  documentTitle: "",
   matrices: {},
 };
 
@@ -242,6 +245,7 @@ export function buildPaperExportOptions(
   max_options_per_question?: number;
   no_default_intro?: boolean;
   show_header_title?: boolean;
+  title?: string;
 } {
   const consent = state.consentVar.trim();
   const maxOptions = parseMaxOptionsPerQuestion(state.maxOptionsPerQuestion);
@@ -257,6 +261,7 @@ export function buildPaperExportOptions(
       : {}),
     ...(state.defaultIntro ? {} : { no_default_intro: true }),
     ...(state.showHeaderTitle ? {} : { show_header_title: false }),
+    ...(state.documentTitle.trim() ? { title: state.documentTitle.trim() } : {}),
   };
 }
 
@@ -320,6 +325,7 @@ export function parsePdfDialogState(raw: string | null | undefined): PdfDialogSt
     maxOptionsPerQuestion: parseMaxOptionsPerQuestion(data.maxOptionsPerQuestion) ?? d.maxOptionsPerQuestion,
     defaultIntro: bool(data.defaultIntro, d.defaultIntro),
     showHeaderTitle: bool(data.showHeaderTitle, d.showHeaderTitle),
+    documentTitle: str(data.documentTitle) ?? d.documentTitle,
     matrices,
   };
 }

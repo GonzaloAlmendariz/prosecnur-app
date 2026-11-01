@@ -333,3 +333,20 @@ describe("exportWarningDetail", () => {
     expect(exportWarningDetail(["uno", " ", "dos", "tres"])).toBe(" · uno (+2 más)");
   });
 });
+
+describe("título del documento (L36 · D-L36-5)", () => {
+  it("viaja al motor como `title` sólo cuando no está vacío, sin espacios sobrantes", () => {
+    const base = { ...DEFAULT_PDF_DIALOG_STATE, matrices: {} };
+    expect(buildPaperExportOptions(base, [], []).title).toBeUndefined();
+    expect(buildPaperExportOptions({ ...base, documentTitle: "   " }, [], []).title).toBeUndefined();
+    expect(buildPaperExportOptions({ ...base, documentTitle: "  Encuesta a docentes 2026 " }, [], []).title).toBe(
+      "Encuesta a docentes 2026",
+    );
+  });
+
+  it("se guarda y se recupera con el resto de preferencias; uno viejo sin el campo queda vacío", () => {
+    const state = { ...DEFAULT_PDF_DIALOG_STATE, matrices: {}, documentTitle: "Encuesta a docentes" };
+    expect(parsePdfDialogState(serializePdfDialogState(state, [])).documentTitle).toBe("Encuesta a docentes");
+    expect(parsePdfDialogState(JSON.stringify({ columns: 2 })).documentTitle).toBe("");
+  });
+});

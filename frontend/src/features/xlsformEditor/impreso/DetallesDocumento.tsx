@@ -19,6 +19,8 @@ import {
   parseMaxOptionsPerQuestion,
   type PdfDialogState,
 } from "../shell/pdfExportPreference";
+import { PulsoField } from "../../../components/PulsoField";
+import { PulsoInput } from "../../../components/PulsoInput";
 import { InterruptorImpreso, TarjetaImpreso } from "./TarjetaImpreso";
 
 const MIN_MAX_OPCIONES = MIN_MAX_OPTIONS_PER_QUESTION;
@@ -75,9 +77,23 @@ const LOGICA: readonly OpcionTarjeta<"saltos" | "condiciones">[] = [
   { valor: "condiciones", icono: GitBranch, titulo: "Condiciones", detalle: "Apertura antes de la pregunta — «En caso…»." },
 ];
 
-export function DetalleFormato({ estado, actualizar }: { estado: PdfDialogState; actualizar: Actualizar }) {
+export function DetalleFormato({ estado, actualizar, tituloDelFormulario }: {
+  estado: PdfDialogState;
+  actualizar: Actualizar;
+  /** El `form_title` del formulario: es lo que se imprime si el campo queda vacío. */
+  tituloDelFormulario: string;
+}) {
   return (
     <>
+      <TarjetaImpreso id="imp-titulo" titulo="Título del documento" ayuda="El nombre que lleva la portada y la cabecera de cada página.">
+        <PulsoField label="Título impreso" hint={tituloDelFormulario ? `Si lo dejas vacío se imprime «${tituloDelFormulario}».` : "Si lo dejas vacío se imprime el título del formulario."}>
+          <PulsoInput
+            value={estado.documentTitle}
+            placeholder={tituloDelFormulario || "Título del formulario"}
+            onChange={(e) => actualizar({ documentTitle: e.target.value })}
+          />
+        </PulsoField>
+      </TarjetaImpreso>
       <TarjetaImpreso id="imp-columnas" titulo="Columnas" ayuda="Cómo se reparte el cuestionario en la página.">
         <Opciones etiqueta="Columnas" valor={estado.columns} opciones={COLUMNAS} onElegir={(columns) => actualizar({ columns })} />
       </TarjetaImpreso>
