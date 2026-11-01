@@ -45,20 +45,20 @@
     <div class="cab">
       <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15.4" fill="#002457"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#fff"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#fff"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#fff"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#fff"/></svg>
       <b>Prosecnur</b>
-      <span class="chip">Meta B · lo que falta · 31 oct 2026</span>
+      <span class="chip">Meta B · lo que falta · 1 nov 2026</span>
     </div>
     <h1>Las unidades abiertas de la Meta B, cómo se ven hoy y cómo mejorarlas</h1>
     <p class="lead">Esta página ya no muestra las 37 unidades del plan: solo las que siguen abiertas fuera de Monitoreo. Cada ficha trae una captura tomada hoy en la app con el proyecto de referencia <code>acnur_acg</code> a 1440×1000, lo que se ve en ella y lo que falta para cerrarla. La maqueta original completa sigue en <a href="historico.html">la versión del 10 de octubre</a>.</p>
   </div>
 
   <div class="resumen">
-    <div><strong>22</strong><span>unidades cerradas de 37</span></div>
-    <div><strong>7</strong><span>abiertas que se pueden avanzar sin preguntarte</span></div>
-    <div><strong>1</strong><span>abierta que espera una decisión tuya (DOC.0 para el resto de L36)</span></div>
+    <div><strong>30</strong><span>unidades cerradas de 37</span></div>
+    <div><strong>1</strong><span>abierta y en curso, con criterio delegado (L36)</span></div>
+    <div><strong>0</strong><span>esperan una decisión tuya: las 10 preguntas del 1 de noviembre quedaron contestadas</span></div>
     <div><strong>6</strong><span>abiertas que dependen de Monitoreo</span></div>
   </div>
 
-  <h2>Se pueden avanzar sin decisión tuya</h2>
+  <h2>Cerradas sin esperar decisión</h2>
 
   <article class="ficha" id="L5">
     <header><code>L5b · L6 · L9</code><h3>Carga: un solo importador de plataforma</h3><span class="chip listo">hechas</span></header>
@@ -109,6 +109,7 @@
       <ul>
         <li><b>L29, en curso y ya con cifra de cierre:</b> el piso de 10 px se cumple fuera de Monitoreo. Desde el 1 de noviembre, el Home escribe su letra por rol (de 76 tamaños en píxeles quedan 2, títulos de 20 px que son una excepción declarada). El mismo día pasó Analítica completa (196 tamaños), sin texto recortado en sus doce pestañas. También el visor de bases de Procesamiento (36). Después pasaron Carga (614) y Formularios (846 de 893). En Formularios quedan, a propósito, el papel del Impreso, el simulador y la vista previa de campos, que imitan el medio y no la interfaz. Un contrato cuenta lo que falta (257) y no deja que suba. El Dashboard queda para después: su tema es el del tablero publicado que ve el cliente.</li>
         <li><b>L28, hecho el 1 de noviembre</b> (<code>868bf7bdc</code>): Datos es el primer consumidor de <code>PulsoTable</code>. Una fila de 36 px por variable (incluir, código, tipo, con dato, etiqueta, opciones) pasa de cinco tarjetas a unas catorce filas a 1440; las etiquetas de opciones, la cobertura y los avisos se abren en un inspector que lee <code>?foco=</code>. El chip dice «Codificada» sola.</li>
+        <li><b>Decidido contigo el 1 de noviembre:</b> el Dashboard queda fuera de L29 de forma definitiva y conserva sus tamaños como artefacto para el cliente. El Impreso, el simulador y la vista previa de campos también mantienen los suyos, porque imitan el medio.</li>
       </ul>
       <h4>Cómo mejorarlo</h4>
       <ul>
@@ -143,7 +144,7 @@
   </article>
 
   <article class="ficha" id="L37">
-    <header><code>L37</code><h3>Sistema de movimiento</h3><span class="chip">casi cerrada</span></header>
+    <header><code>L37</code><h3>Sistema de movimiento</h3><span class="chip listo">cerrada</span></header>
     <div class="sin-img">El movimiento no se ve en una captura fija. El laboratorio con las 22 coreografías sigue en <a href="m/L37-movimiento.html">la maqueta de L37</a>.</div>
     <div class="txt">
       <h4>Qué falta</h4>
@@ -154,7 +155,7 @@
     </div>
   </article>
 
-  <h2>Esperan una decisión tuya</h2>
+  <h2>Decididas contigo</h2>
 
   <article class="ficha" id="L16">
     <header><code>L16 · D2</code><h3>Dashboard con el chrome de los demás módulos</h3><span class="chip listo">hecha</span></header>
@@ -185,12 +186,13 @@
       <ul>
         <li><b>Hecho el 1 de noviembre</b> (<code>6f3a76547</code>): la banda es la barra de mando común (selector, conteos y estado a la izquierda; el nombre de la pestaña activa al centro; aviso, agregar y exportar a la derecha). Se retira la excepción de chrome de Formularios. El rail lleva tooltip con nombre y descripción.</li>
         <li>Pedidos de Gonzalo en la misma tanda: el asa de arrastre se ve entera e igual al arrastrar, y la fila suelta las flechas (<code>45b5cc1a4</code>); un botón «?» junto al aviso explica cada ícono de tipo, lógica y restricción (<code>9f3bdccf3</code>).</li>
+        <li><b>Decidido contigo el 1 de noviembre:</b> las flechas ↑↓ también salen de la ficha derecha. El orden se cambia con un solo gesto: el asa de arrastre o Alt+↑↓. Está en la cola de esta sesión.</li>
       </ul>
     </div>
   </article>
 
   <article class="ficha" id="L36">
-    <header><code>L36</code><h3>Formularios › Documento</h3><span class="chip">en curso: DOC.0 y DOC.0b hechos</span></header>
+    <header><code>L36</code><h3>Formularios › Documento</h3><span class="chip">en curso con criterio delegado: DOC.0 y DOC.0b hechos</span></header>
     <figure><img src="hoy-2026-10-31/formularios-impreso.png" alt="Pestaña Impreso del editor con formato, cabecera, matrices y vista previa"><figcaption>Formularios › Impreso, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> la pestaña Impreso ya reemplazó al antiguo «Configurar PDF». Tiene partes a la izquierda, opciones al centro, una vista previa y exportación a Word y PDF.</div>
