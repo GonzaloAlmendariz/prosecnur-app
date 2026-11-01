@@ -127,7 +127,8 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "calidad", "base", v("calidad", "base"), { vista: "Base de control" }),
   entrada("control", "calidad", "abiertas", v("calidad", "abiertas"), { vista: "Respuestas abiertas" }),
   // Control, grupo Casos.
-  entrada("control", "brechas", null, v("consultas", "brechas"), { vista: "Brechas" }),
+  // Ctl7 Brechas: contenido propio (`control/BrechasAulas.tsx`).
+  entrada("control", "brechas", null, v("consultas", "brechas"), { vista: "Brechas", propia: true }),
   entrada("control", "brechas", "refuerzos", v("consultas", "refuerzos"), { vista: "Refuerzos" }),
   entrada("control", "alumnos", null, v("calidad", "alumnos")),
   // Avance.
