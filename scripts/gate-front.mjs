@@ -26,6 +26,16 @@ const TRANSVERSALES = [
   "src/app/readinessAnidada.contract.test.ts",     // un false terminal que cuelga el QA
   "src/app/chunksSinCiclos.contract.test.ts",      // dos chunks que se importan: TDZ sólo en el bundle
   "src/lib/modulesNavigation.test.ts",             // el registro y las rutas no divergen
+  // Más contratos que escanean el árbol entero y ningún área corría (2026-11-01):
+  // el rojo A02 de TabSemanticsAudit (9f80662fd) lo vio el Planner, no un gate.
+  "src/app/TabSemanticsAudit.contract.test.ts",    // semántica de pestañas de todos los módulos
+  "src/app/readinessQueSeDeclara.contract.test.ts", // una marca de readiness que no se declara
+  "src/app/letraPorRol.contract.test.ts",          // font-size en px en los módulos sin dueño (L29)
+  "src/app/pisoTipografico.contract.test.ts",      // letra bajo el piso de 10 px
+  "src/app/movimiento.contract.test.ts",           // transiciones de layout y animaciones sin motivo
+  "src/components/ModuleChrome.contract.test.ts",  // estados de navegación del chrome
+  "src/components/toaster.contract.test.ts",       // avisos fuera del toaster
+  "src/lib/teclado.contract.test.ts",              // atajos de teclado en conflicto
   // Ratchets del kit: escanean todo el árbol y CI los corre con `pnpm test`.
   // Fuera de aquí, un gate de área daba verde con una tabla a mano que el CI
   // sí rechazaba (revisión de la fase 3 del lienzo de Hojas de ruta, 2026-10-29).
