@@ -6,9 +6,16 @@
 #     sorteo (un plan que entró a Monitoreo por otro lado), cae al plan de Monitoreo.
 #   - «monitoreo» (el de antes): la siembra prefiere el plan de Monitoreo.
 #
-# Sin elección guardada: «monitoreo» en un estudio que ya sembró desde Monitoreo o que es
-# HSVG 2026 (su plan vivo no cambia mientras dure el operativo), y «calculo» en el resto,
-# es decir, en los estudios nuevos.
+# Sin elección guardada: «monitoreo» en un estudio que ya sembró desde Monitoreo, en uno en
+# operativo (ya tiene plan de Material y un plan vivo en Monitoreo) o que es HSVG 2026 (su
+# plan vivo no cambia mientras dure el operativo), y «calculo» en el resto, es decir, en los
+# estudios nuevos.
+#
+# El operativo se reconoce por el estado, no por el nombre (1 nov 2026): el nombre que deduce
+# el Planner de HSVG es «Muestra de cursos-horario» y la ADR 0123 (Q2) deja de exponerlo, y la
+# ruta del archivo cambia con sólo copiarlo. Los dos modos sólo difieren cuando hay plan vivo
+# en Monitoreo; con él y un plan ya sembrado en Material, cambiar de rama movería un plan en
+# pleno campo. El nombre queda como último recurso.
 
 MATERIAL_AULAS_SIEMBRA_MODOS <- c("calculo", "monitoreo")
 
@@ -25,6 +32,8 @@ MATERIAL_AULAS_SIEMBRA_MODOS <- c("calculo", "monitoreo")
   if (!is.na(guardado) && guardado %in% MATERIAL_AULAS_SIEMBRA_MODOS) return(list(modo = guardado, origen = "elegido"))
   modulo <- as.character(((s$collection_state %||% list())$plan$source_ref$module) %||% "")
   if (identical(modulo, "monitoreo")) return(list(modo = "monitoreo", origen = "plan_existente"))
+  sembrado <- length(((s$collection_state %||% list())$plan %||% list())$units %||% list()) > 0L
+  if (sembrado && length(.collection_rows(s$monitoreo_aulas_plan))) return(list(modo = "monitoreo", origen = "operativo_en_curso"))
   if (isTRUE(tryCatch(.mas_es_hsvg(s), error = function(e) FALSE))) return(list(modo = "monitoreo", origen = "operativo_hsvg"))
   list(modo = "calculo", origen = "estudio_nuevo")
 }
