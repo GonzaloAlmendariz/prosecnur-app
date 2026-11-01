@@ -438,3 +438,36 @@ test_that("los rótulos del núcleo se editan (K1); el grupo o la clase no", {
   reclase$status_barrido[[1]]$grupo <- "pendiente"
   expect_equal(tryCatch(.planner_declarar(sid, "codigos", reclase, 2L), error = identity)$code, "E_PLANNER_INVALIDO")
 })
+
+# --- Territorial: UMP aleatoria con hoja de ruta, o conveniencia (Gonzalo) -------
+
+test_that("el territorial declara su variante; por defecto, UMP aleatoria", {
+  p <- .planner_norm_perfil(list(tipo = "territorial"))
+  expect_equal(p$seleccion, "ump_aleatoria")
+  expect_equal(p$diseno, "hojas-ruta")
+  expect_equal(.planner_norm_perfil(list(tipo = "territorial", seleccion = "otra"))$seleccion, "ump_aleatoria")
+  conv <- .planner_norm_perfil(list(tipo = "territorial", seleccion = "conveniencia"))
+  expect_equal(conv$seleccion, "conveniencia")
+  expect_equal(conv$diseno, "cuotas")
+  # «cuotas» es sólo del territorial por conveniencia.
+  expect_equal(.planner_norm_perfil(list(tipo = "telefonico", diseno = "cuotas"))$diseno, "calc-muestra")
+})
+
+test_that("sólo el territorial por UMP aleatoria hace hoja de ruta", {
+  ump <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "territorial"))))
+  expect_true(ump$hojas_ruta$aplica)
+  expect_equal(ump$calc$modo, "territorial-handoff")
+  expect_equal(ump$territorial$seleccion, "ump_aleatoria")
+  conv <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "territorial", seleccion = "conveniencia"))))
+  expect_false(conv$hojas_ruta$aplica)
+  expect_null(conv$calc$modo)
+  expect_equal(conv$monitoreo$modo, "territorial")
+  expect_equal(conv$territorial$seleccion, "conveniencia")
+})
+
+test_that("declarar la variante la persiste y llega a quien lee los perfiles", {
+  sid <- .pl_sesion()
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", seleccion = "conveniencia")), 0L)
+  expect_equal(session_get(sid)$planner$perfiles[[1]]$seleccion, "conveniencia")
+  expect_equal(.planner_payload_perfiles(session_get(sid))[[1]]$seleccion, "conveniencia")
+})

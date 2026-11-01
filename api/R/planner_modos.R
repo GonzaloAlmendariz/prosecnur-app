@@ -49,7 +49,11 @@
 )
 
 .planner_modo_calc <- function(perfil) {
-  if (identical(perfil$tipo, "territorial")) return("territorial-handoff")
+  # Territorial por conveniencia o cuotas: no hay sorteo ni hoja de ruta, así
+  # que Cálculo no tiene un puntero a Hojas de ruta que ofrecer.
+  if (identical(perfil$tipo, "territorial")) {
+    return(if (identical(perfil$diseno, "cuotas")) NULL else "territorial-handoff")
+  }
   switch(perfil$tipo,
          aulas = if (identical(perfil$seleccion, "marco")) "marco-disponible" else "opinion-universitaria",
          telefonico = "marco-disponible",
@@ -68,7 +72,7 @@
   perfiles <- Filter(function(p) is.list(p) && nzchar(p$tipo %||% ""), perfiles %||% list())
   tipos <- vapply(perfiles, `[[`, "", "tipo")
   con_calc <- Filter(function(p) identical(p$diseno, "calc-muestra"), perfiles)
-  territorial <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
+  territorial <- Filter(function(p) identical(p$tipo, "territorial") && !identical(p$diseno, "cuotas"), perfiles)
   perfil_calc <- if (length(con_calc)) con_calc[[1]] else if (length(territorial)) territorial[[1]] else NULL
   sin_calc <- Filter(function(p) identical(p$diseno, "cliente"), perfiles)
 
@@ -99,7 +103,14 @@
       campanas = as.list(unique(campanas))
     ),
     hojas_ruta = list(
-      aplica = "territorial" %in% tipos
+      # Sólo el territorial por UMP aleatoria hace hoja de ruta.
+      aplica = length(territorial) > 0L
+    ),
+    territorial = list(
+      seleccion = {
+        t <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
+        if (length(t)) t[[1]]$seleccion else NULL
+      }
     )
   )
 }

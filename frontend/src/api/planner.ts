@@ -10,8 +10,10 @@ import { apiFetch, handle, headers } from "./core";
 export const PLANNER_TIPOS_PERFIL = ["territorial", "aulas", "telefonico", "acreditacion"] as const;
 export type PlannerTipoPerfil = (typeof PLANNER_TIPOS_PERFIL)[number];
 export type PlannerSeccion = "estudio" | "perfiles" | "equipo" | "codigos" | "insumos" | "etapa";
-export type PlannerDiseno = "calc-muestra" | "hojas-ruta" | "cliente";
+export type PlannerDiseno = "calc-muestra" | "hojas-ruta" | "cliente" | "cuotas";
 export type PlannerSeleccionAulas = "conglomerados" | "marco";
+/** Territorial: por UMP aleatoria con hoja de ruta (acogida) o por conveniencia o cuotas (Ser Adolescente). */
+export type PlannerSeleccionTerritorial = "ump_aleatoria" | "conveniencia";
 export type PlannerOrigen = "declarado" | "proyectado";
 
 export type PlannerVariable = { clave: string; etiqueta?: string; plural?: string };
@@ -30,7 +32,7 @@ export type PlannerPoblacion = {
 
 export type PlannerPerfil = {
   tipo: PlannerTipoPerfil;
-  seleccion: PlannerSeleccionAulas | null;
+  seleccion: PlannerSeleccionAulas | PlannerSeleccionTerritorial | null;
   diseno: PlannerDiseno;
   canales: string[];
   poblaciones: PlannerPoblacion[];
@@ -132,8 +134,8 @@ function normalizarPerfil(x: unknown): PlannerPerfil | null {
   const diseno = txt(p.diseno);
   return {
     tipo,
-    seleccion: seleccion === "marco" || seleccion === "conglomerados" ? seleccion : null,
-    diseno: diseno === "hojas-ruta" || diseno === "cliente" ? diseno : "calc-muestra",
+    seleccion: (["marco", "conglomerados", "ump_aleatoria", "conveniencia"] as const).find((v) => v === seleccion) ?? null,
+    diseno: (["hojas-ruta", "cliente", "cuotas"] as const).find((v) => v === diseno) ?? "calc-muestra",
     canales: textos(p.canales),
     poblaciones: arr(p.poblaciones).map((y) => {
       const o = obj(y);
@@ -237,6 +239,8 @@ export type PlannerModos = {
   monitoreo: { modos: string[]; familias: string[]; modo: string | null; familia: string | null };
   material: { campanas: string[] };
   hojasRuta: { aplica: boolean };
+  /** Variante del perfil territorial, si hay uno. */
+  territorial: { seleccion: PlannerSeleccionTerritorial | null };
   origen: PlannerOrigen;
   revision: number;
 };
@@ -257,6 +261,7 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
     monitoreo: { modos: textos(mon.modos), familias: textos(mon.familias), modo: txt(mon.modo) || null, familia: txt(mon.familia) || null },
     material: { campanas: textos(obj(r.material).campanas) },
     hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
+    territorial: { seleccion: (["ump_aleatoria", "conveniencia"] as const).find((v) => v === txt(obj(r.territorial).seleccion)) ?? null },
     origen: txt(r.origen) === "declarado" ? "declarado" : "proyectado",
     revision: num(r.revision) ?? 0,
   };

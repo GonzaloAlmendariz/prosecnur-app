@@ -81,7 +81,7 @@ function PlannerIdentidad({ control }: { control: ControlPlanner }) {
 function perfilNuevo(tipo: PlannerTipoPerfil): PlannerPerfil {
   return {
     tipo,
-    seleccion: tipo === "aulas" ? "conglomerados" : null,
+    seleccion: tipo === "aulas" ? "conglomerados" : tipo === "territorial" ? "ump_aleatoria" : null,
     diseno: tipo === "territorial" ? "hojas-ruta" : "calc-muestra",
     canales: [],
     poblaciones: [{ id: "principal", etiqueta: tipo === "aulas" ? "Estudiantes" : "Población", bases: [], representatividad: null }],
@@ -183,7 +183,7 @@ function PerfilTarjeta({ perfil, onCambio }: { perfil: PlannerPerfil; onCambio: 
         <label className="planner-campo">
           <span>Diseña la muestra</span>
           {perfil.tipo === "territorial" ? (
-            <output>{ETIQUETA_DISENO["hojas-ruta"]}</output>
+            <output>{ETIQUETA_DISENO[perfil.seleccion === "conveniencia" ? "cuotas" : "hojas-ruta"]}</output>
           ) : (
             <select value={perfil.diseno} onChange={(e) => onCambio({ diseno: e.target.value as PlannerDiseno })}>
               <option value="calc-muestra">{ETIQUETA_DISENO["calc-muestra"]}</option>
@@ -191,6 +191,21 @@ function PerfilTarjeta({ perfil, onCambio }: { perfil: PlannerPerfil; onCambio: 
             </select>
           )}
         </label>
+        {perfil.tipo === "territorial" ? (
+          <label className="planner-campo">
+            <span>Selección</span>
+            <select
+              value={perfil.seleccion === "conveniencia" ? "conveniencia" : "ump_aleatoria"}
+              onChange={(e) => onCambio({
+                seleccion: e.target.value as PlannerPerfil["seleccion"],
+                diseno: e.target.value === "conveniencia" ? "cuotas" : "hojas-ruta",
+              })}
+            >
+              <option value="ump_aleatoria">UMP aleatoria con hoja de ruta</option>
+              <option value="conveniencia">Por conveniencia o cuotas</option>
+            </select>
+          </label>
+        ) : null}
         {perfil.tipo === "aulas" ? (
           <label className="planner-campo">
             <span>Selección</span>

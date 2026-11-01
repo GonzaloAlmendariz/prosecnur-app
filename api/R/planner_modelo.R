@@ -29,7 +29,12 @@ PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "
 PLANNER_ETAPAS <- c("piloto", "campo")
 PLANNER_TIPOS_PERFIL <- c("territorial", "aulas", "telefonico", "acreditacion")
 PLANNER_SELECCION_AULAS <- c("conglomerados", "marco")
-PLANNER_DISENO <- c("calc-muestra", "hojas-ruta", "cliente")
+# Gonzalo: «una cosa es el territorial con conveniencia y otra el territorial
+# por UMP aleatoria que hace hoja de ruta» (acogida vs Ser Adolescente). Sólo
+# la UMP aleatoria pasa por Hojas de ruta; la de conveniencia o cuotas se
+# diseña con las cuotas del Planner, sin sorteo.
+PLANNER_SELECCION_TERRITORIAL <- c("ump_aleatoria", "conveniencia")
+PLANNER_DISENO <- c("calc-muestra", "hojas-ruta", "cliente", "cuotas")
 PLANNER_CANALES <- c("presencial", "telefono", "correo", "qr")
 PLANNER_ROLES <- c("encuestador", "aplicador", "supervisor", "operador")
 # Cada catálogo tiene su vocabulario de grupos: el de la visita es el de las
@@ -114,10 +119,18 @@ PLANNER_MAX_INSUMOS <- 60L
   pobl <- lapply(seq_along(pobl), function(i) .planner_norm_poblacion(pobl[[i]], i))
   if (!length(pobl)) pobl <- list(.planner_norm_poblacion(list(id = "principal"), 1L))
   canales <- .planner_lista_enum(x$canales, PLANNER_CANALES)
+  seleccion <- switch(tipo,
+                      aulas = calc_enum(x$seleccion, PLANNER_SELECCION_AULAS, "conglomerados"),
+                      territorial = calc_enum(x$seleccion, PLANNER_SELECCION_TERRITORIAL, "ump_aleatoria"),
+                      NULL)
   list(
     tipo = tipo,
-    seleccion = if (identical(tipo, "aulas")) calc_enum(x$seleccion, PLANNER_SELECCION_AULAS, "conglomerados") else NULL,
-    diseno = if (identical(tipo, "territorial")) "hojas-ruta" else calc_enum(x$diseno, PLANNER_DISENO, .planner_diseno_por_tipo(tipo)),
+    seleccion = seleccion,
+    diseno = if (identical(tipo, "territorial")) {
+      if (identical(seleccion, "conveniencia")) "cuotas" else "hojas-ruta"
+    } else {
+      calc_enum(x$diseno, setdiff(PLANNER_DISENO, "cuotas"), .planner_diseno_por_tipo(tipo))
+    },
     canales = if (length(canales)) canales else .planner_canales_por_tipo(tipo),
     poblaciones = pobl
   )

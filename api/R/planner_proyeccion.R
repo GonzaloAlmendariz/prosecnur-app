@@ -157,7 +157,11 @@
     diseno <- if (identical(tipo, "territorial")) "hojas-ruta" else if (identical(tipo, tipo_calc)) "calc-muestra" else "cliente"
     .planner_norm_perfil(list(
       tipo = tipo,
-      seleccion = if (identical(tipo, "aulas") && identical(marco, "marco_disponible")) "marco" else "conglomerados",
+      # Un territorial de antes se proyecta como UMP aleatoria: es la única
+      # variante que la app sabía operar (Hojas de ruta).
+      seleccion = if (identical(tipo, "aulas")) {
+        if (identical(marco, "marco_disponible")) "marco" else "conglomerados"
+      } else NULL,
       diseno = diseno,
       poblaciones = .planner_poblaciones_proyectadas(s, tipo)
     ))
