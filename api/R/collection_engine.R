@@ -173,7 +173,10 @@
 }
 
 .collection_seed_source <- function(s) {
-  monitoring_rows <- .collection_rows(s$monitoreo_aulas_plan)
+  # X7 detrás del interruptor por estudio (collection_aulas_siembra.R): en modo «calculo»
+  # el plan de Monitoreo no es fuente mientras Cálculo tenga sorteo.
+  desde_calculo <- identical(.collection_siembra_modo(s)$modo, "calculo") && .collection_hay_sorteo(s)
+  monitoring_rows <- if (desde_calculo) list() else .collection_rows(s$monitoreo_aulas_plan)
   if (length(monitoring_rows)) {
     return(list(
       rows = monitoring_rows,
@@ -209,6 +212,12 @@
     ))
   }
   list(rows = list(), source = NULL, module = NULL)
+}
+
+.collection_hay_sorteo <- function(s) {
+  selection <- s$calc_muestra_aulas_selection
+  rows <- if (is.list(selection) && !is.null(selection$selection)) .collection_rows(selection$selection) else .collection_rows(selection)
+  length(rows) > 0L
 }
 
 # `trimws()` exacto (mismos espacios, ambos extremos) sin su `match.arg()` ni

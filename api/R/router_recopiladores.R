@@ -196,6 +196,13 @@ mount_recopiladores <- function(pr) {
     plumber::pr_get("/api/recopiladores/campaigns/aulas/entrega", wrap_endpoint(function(req, res, ...) {
       collection_aulas_entrega_get(session_header(req))
     })) |>
+    plumber::pr_get("/api/recopiladores/campaigns/aulas/siembra", wrap_endpoint(function(req, res, ...) {
+      collection_aulas_siembra_get(session_header(req))
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/aulas/siembra", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_aulas_siembra_put(session_header(req), modo = body[["modo"]])
+    })) |>
     plumber::pr_post("/api/recopiladores/campaigns/aulas/plantilla", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_aulas_plantilla(session_header(req), pieza = body[["pieza"]], body = body)

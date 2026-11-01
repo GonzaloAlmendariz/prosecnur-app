@@ -57,6 +57,8 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # Etapa 3: la entrega de aulas de solo lectura y las plantillas del equipo de aulas.
     "/api/recopiladores/campaigns/aulas/entrega",
     "/api/recopiladores/campaigns/aulas/plantilla",
+    # X7 detrás del interruptor por estudio: de dónde siembra Material su plan de aulas.
+    "/api/recopiladores/campaigns/aulas/siembra",
     "/api/recopiladores/campaigns/telefonica/config",
     "/api/recopiladores/campaigns/telefonica/plantilla",
     "/api/recopiladores/campaigns/territorial/plan",
