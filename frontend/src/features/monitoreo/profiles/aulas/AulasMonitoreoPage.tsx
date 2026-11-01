@@ -2086,6 +2086,15 @@ export default function AulasMonitoreoPage() {
           hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
         }}
         agendaVisible={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+        distribucion={{
+          config: aulasConfig,
+          ocupado: busy,
+          onConcentrar: (valor) => { void concentrar(valor); },
+          onResortear: (semilla) => { void resortear(semilla); },
+          onPublicarDistribucion: () => { void publicarDistribucion(); },
+          onSincronizarDistribucion: (aplicar) => { void sincronizarDistribucion(aplicar); },
+          sincronizacion,
+        }}
         insumos={{
           config: aulasConfig,
           fuentes: state?.sources ?? [],

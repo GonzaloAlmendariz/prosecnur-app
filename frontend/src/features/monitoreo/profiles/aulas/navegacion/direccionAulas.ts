@@ -109,7 +109,8 @@ const TABLA: readonly Entrada[] = [
   entrada("control", "agenda", "facultad", v("modelo", "facultad"), { vista: "Por facultad" }),
   // Ctl2 Contacto: contenido propio (`control/ContactoAulas.tsx`).
   entrada("control", "contacto", null, v("modelo", "contacto"), { propia: true }),
-  entrada("control", "distribucion", null, v("modelo", "carga")),
+  // Ctl3 Distribución: contenido propio (`control/DistribucionAulas.tsx`, maqueta v3).
+  entrada("control", "distribucion", null, v("modelo", "carga"), { propia: true }),
   // Control, grupo Campo.
   entrada("control", "registro", null, v("calidad", "registro")),
   // «Buscar por código» deja de ser pestaña: será el inspector del
