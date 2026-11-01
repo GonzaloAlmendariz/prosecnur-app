@@ -418,6 +418,9 @@ export type FormatosTerritoriales = {
   /** Columnas opcionales del registro de la hoja de consolidados (acogida: Mz., NSE, Hora final). */
   extras_consolidado: string[];
   extras_disponibles: { id: string; rotulo: string }[];
+  /** Columnas opcionales de la hoja de ruteo (ACNUR: Mz. y N.º de encuesta; Ser Adolescente: SUP.). */
+  extras_ruteo: string[];
+  extras_ruteo_disponibles: { id: string; rotulo: string }[];
   revision: number;
 };
 
@@ -427,6 +430,7 @@ export type CambioDeFormatos = Partial<{
   columna_criterio: string;
   caras_ruteo: 1 | 2;
   extras_consolidado: string[];
+  extras_ruteo: string[];
 }>;
 
 const GRUPOS: readonly GrupoDeCodigo[] = ["no_aplicada", "efectiva", "manzana"];
@@ -449,6 +453,8 @@ export function normalizarFormatosTerritoriales(valor: unknown): FormatosTerrito
     caras_ruteo: enteroONulo(o.caras_ruteo) === 1 ? 1 : 2,
     extras_consolidado: lista(o.extras_consolidado).map(texto).filter(Boolean),
     extras_disponibles: lista(o.extras_disponibles).flatMap((x) => (esRegistro(x) && texto(x.id) ? [{ id: texto(x.id), rotulo: texto(x.rotulo) || texto(x.id) }] : [])),
+    extras_ruteo: lista(o.extras_ruteo).map(texto).filter(Boolean),
+    extras_ruteo_disponibles: lista(o.extras_ruteo_disponibles).flatMap((x) => (esRegistro(x) && texto(x.id) ? [{ id: texto(x.id), rotulo: texto(x.rotulo) || texto(x.id) }] : [])),
     revision: entero(o.revision),
   };
 }

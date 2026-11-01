@@ -29,6 +29,10 @@ describe("normalizarFormatosTerritoriales", () => {
     expect(f.revision).toBe(3);
     expect(f.extras_consolidado).toEqual([]);
     expect(f.origen_codigos).toBe("material");
+    expect(f.extras_ruteo).toEqual([]);
+    expect(normalizarFormatosTerritoriales({ extras_ruteo: ["manzana", "cuestionario"], extras_ruteo_disponibles: [{ id: "manzana", rotulo: "Mz." }] })).toMatchObject({
+      extras_ruteo: ["manzana", "cuestionario"], extras_ruteo_disponibles: [{ id: "manzana", rotulo: "Mz." }],
+    });
     expect(normalizarFormatosTerritoriales({ origen_codigos: ["planner"] }).origen_codigos).toBe("planner");
   });
 

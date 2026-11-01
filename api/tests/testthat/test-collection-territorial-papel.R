@@ -46,6 +46,18 @@ test_that("ruteo: una hoja por UMP titular y cara, con el encuestador asignado y
   expect_match(txt, "\\b105\\b", perl = TRUE)
 })
 
+test_that("ruteo: columnas opcionales de la hoja de seguimiento de ACNUR (Mz., N.º de encuesta) y SUP. apagable", {
+  sid <- .mtp_sesion(); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(unlist(collection_territorial_formatos_get(sid)$extras_ruteo), "supervision")
+  collection_territorial_formatos_put(sid, extras_ruteo = list("manzana", "cuestionario"))
+  r <- collection_territorial_papel(sid, pieza = "ruteo", unidad = T1)
+  txt <- .mtp_texto(sid, r$file_id)
+  expect_match(txt, "Mz.", fixed = TRUE)
+  expect_match(txt, "encuesta", fixed = TRUE)
+  expect_false(grepl("SUP.", txt, fixed = TRUE))
+  expect_identical(.mtp_code(collection_territorial_formatos_put(sid, extras_ruteo = list("otra"))), "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
+})
+
 test_that("ruteo a una cara y consolidados con el rango de cuestionarios ya numerado", {
   sid <- .mtp_sesion(); on.exit(session_delete(sid), add = TRUE)
   collection_territorial_formatos_put(sid, caras_ruteo = 1L)

@@ -218,7 +218,7 @@ mount_recopiladores <- function(pr) {
       collection_territorial_formatos_put(session_header(req), campaign_id = body[["id"]], rotulos = body[["rotulos"]],
                                           con_99 = body[["con_99"]], columna_criterio = body[["columna_criterio"]],
                                           caras_ruteo = body[["caras_ruteo"]], expected_revision = body[["expected_revision"]],
-                                          extras_consolidado = body[["extras_consolidado"]])
+                                          extras_consolidado = body[["extras_consolidado"]], extras_ruteo = body[["extras_ruteo"]])
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

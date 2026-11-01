@@ -141,6 +141,24 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
           consolidados. Vacío, no sale.
         </small>
       </div>
+      {formatos.extras_ruteo_disponibles.length ? (
+        <div className="rec-terr-campo rec-terr-criterio">
+          <span aria-hidden>Columnas de la hoja de ruteo</span>
+          {formatos.extras_ruteo_disponibles.map((x) => (
+            <PulsoSwitch
+              key={x.id}
+              size="sm"
+              label={x.rotulo}
+              checked={formatos.extras_ruteo.includes(x.id)}
+              disabled={guardando}
+              onCheckedChange={(v) => void guardar({
+                extras_ruteo: v ? [...formatos.extras_ruteo, x.id] : formatos.extras_ruteo.filter((e) => e !== x.id),
+              })}
+            />
+          ))}
+          <small className="rec-terr-nota">Mz. y N.º de encuesta las usa la hoja de seguimiento de ACNUR. Se guardan al elegir.</small>
+        </div>
+      ) : null}
       {formatos.extras_disponibles.length ? (
         <div className="rec-terr-campo rec-terr-criterio">
           <span aria-hidden>Columnas del registro de consolidados</span>

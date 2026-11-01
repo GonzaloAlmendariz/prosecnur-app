@@ -110,19 +110,29 @@
   y2
 }
 
-# Leyenda de códigos en `n_col` columnas, sobre lienzo con el acento navy.
-.mtp_leyenda <- function(codigos, x0, y, w, tk, n_col = 3L, titulo = "Códigos de resultado") {
+# Leyenda de códigos en `n_col` columnas, sobre lienzo con el acento navy. Un rótulo largo
+# («Vivienda abandonada / sin vivencia / inaccesible») se parte en líneas dentro de su
+# columna en vez de montarse sobre la vecina; la fila crece con el rótulo más largo.
+.mtp_leyenda <- function(codigos, x0, y, w, tk, n_col = 3L, titulo = "Códigos de resultado", chars_npc = 175) {
   filas <- ceiling(length(codigos) / n_col)
-  h <- 0.024 + filas * 0.0135 + 0.004
+  cw <- (w - 0.014) / n_col
+  ancho_txt <- max(8L, floor((cw - 0.036) * chars_npc))
+  lineas <- lapply(codigos, function(k) strwrap(k$rotulo, width = ancho_txt))
+  linea_h <- 0.0108
+  alto_fila <- vapply(seq_len(filas), function(f) {
+    en_fila <- which(((seq_along(codigos) - 1L) %% filas) + 1L == f)
+    max(1L, vapply(lineas[en_fila], length, 1L)) * linea_h + 0.0028
+  }, numeric(1))
+  h <- 0.024 + sum(alto_fila) + 0.004
   grid::grid.rect(x = x0, y = y, width = w, height = h, just = c("left", "top"), gp = grid::gpar(col = NA, fill = tk$canvas))
   grid::grid.lines(x = rep(x0, 2), y = c(y, y - h), gp = grid::gpar(col = tk$navy, lwd = pulso_pdf_pesos()$acento))
   .hojas_ruta_hd_txt_at(titulo, x0 + 0.014, y - 0.012, 9, tk$navy, "bold")
-  cw <- (w - 0.014) / n_col
+  y_fila <- y - 0.026 - c(0, cumsum(alto_fila))[seq_len(filas)]
   for (i in seq_along(codigos)) {
     col <- (i - 1L) %/% filas; fila <- (i - 1L) %% filas
-    xc <- x0 + 0.014 + col * cw; yc <- y - 0.026 - fila * 0.0135
+    xc <- x0 + 0.014 + col * cw; yc <- y_fila[[fila + 1L]]
     .hojas_ruta_hd_txt_at(codigos[[i]]$codigo, xc, yc, 8, tk$navy, "bold")
-    .hojas_ruta_hd_txt_at(codigos[[i]]$rotulo, xc + 0.030, yc, 7.6, tk$ink)
+    for (j in seq_along(lineas[[i]])) .hojas_ruta_hd_txt_at(lineas[[i]][[j]], xc + 0.030, yc - (j - 1L) * linea_h, 7.6, tk$ink)
   }
   h
 }
@@ -153,11 +163,19 @@
   f <- ctx$formatos
   crit <- f$columna_criterio
   # Columnas de la hoja real de Ser Adolescente (03_Hoja_de_ruteo): N°, dirección, N.º de la vivienda,
-  # resultado, participante, edad, sexo, el criterio del estudio y SUP. (Sí / No) de supervisión.
-  cols <- c("N°", "Dirección: calle, avenida o pasaje", "N.º", "Resultado", "Nombre del participante", "Edad", "Sexo",
-            if (nzchar(crit)) crit, "SUP. (Sí / No)")
-  anchos <- c(0.035, 0.250, 0.050, 0.065, 0.200, 0.040, 0.040, if (nzchar(crit)) 0.090, 0)
-  anchos[length(anchos)] <- ancho - sum(anchos)
+  # resultado, participante, edad, sexo y el criterio del estudio. Opcionales (formatos, extras_ruteo):
+  # «Mz.» y el número de encuesta de la hoja de seguimiento de ACNUR, y SUP. (Sí / No) de supervisión.
+  ex <- unlist(f$extras_ruteo %||% list("supervision"))
+  fijas <- list(list("N°", 0.035), if ("manzana" %in% ex) list("Mz.", 0.045), list("Dirección: calle, avenida o pasaje", NA),
+                list("N.º", 0.050), list("Resultado", 0.065), list("Nombre del participante", NA), list("Edad", 0.040),
+                list("Sexo", 0.040), if (nzchar(crit)) list(crit, 0.090),
+                if ("cuestionario" %in% ex) list("N.º de encuesta", 0.060), if ("supervision" %in% ex) list("SUP. (Sí / No)", 0.100))
+  fijas <- Filter(Negate(is.null), fijas)
+  cols <- vapply(fijas, `[[`, "", 1L)
+  anchos <- vapply(fijas, function(x) x[[2]], numeric(1))
+  # Dirección y participante se reparten lo que queda (55 / 45).
+  libre <- ancho - sum(anchos, na.rm = TRUE)
+  anchos[is.na(anchos)] <- libre * c(0.55, 0.45)
   fila_h <- 0.0140  # ~49 filas en la cara 1 y ~58 en la 2, como la hoja real (49 + 56)
   pulso_pdf_abrir(out_pdf, geo)
   on.exit(grDevices::dev.off(), add = TRUE)
@@ -180,7 +198,8 @@
         y <- 0.945
       }
       n <- max(1L, floor((y - 0.100) / fila_h) - 1L)
-      yb <- .mtp_tabla(cols, anchos, margen, y, fila_h, n, tk, primera = n0 + seq_len(n), sombra = 4L, cuerpo = 6.8, cab_h = 0.022)
+      yb <- .mtp_tabla(cols, anchos, margen, y, fila_h, n, tk, primera = n0 + seq_len(n), sombra = match("Resultado", cols),
+                       cuerpo = 6.8, cab_h = 0.022)
       n0 <- n0 + n
       if (cara == 1L) {
         .hojas_ruta_hd_txt_at("Un código por visita, en la columna sombreada. Con 8 (efectiva), registre a la persona en la hoja de consolidados.",

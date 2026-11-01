@@ -31,6 +31,9 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
 .MTF_ROTULO_MAX <- 60L
 # Columnas opcionales del registro de la hoja de consolidados (acogida las usa; Ser Adolescente no).
 .MTF_EXTRAS_CONSOLIDADO <- c(manzana = "Mz.", nse = "NSE", hora_final = "Hora final")
+# Columnas opcionales de la hoja de ruteo: la de seguimiento de ACNUR lleva «MZ» y el número de
+# encuesta; la de Ser Adolescente, «SUP. (Sí / No)» (que sale por defecto, como antes).
+.MTF_EXTRAS_RUTEO <- c(manzana = "Mz.", cuestionario = "N.º de encuesta", supervision = "SUP. (Sí / No)")
 .MTF_CRITERIO_MAX <- 40L
 
 .mtf_txt <- function(x) {
@@ -42,7 +45,7 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
 .mtf_guardado <- function(s, campaign_id) {
   x <- s$material_territorial_formatos
   base <- list(rotulos = as.list(.MTF_ROTULOS_DEFECTO), con_99 = TRUE, columna_criterio = "", caras_ruteo = 2L,
-               extras_consolidado = list(), revision = 0L)
+               extras_consolidado = list(), extras_ruteo = list("supervision"), revision = 0L)
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_TERRITORIAL_FORMATOS_SCHEMA) ||
       !identical(.mtf_txt(x$campaign_id), campaign_id)) return(base)
   rot <- base$rotulos
@@ -56,6 +59,8 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
        columna_criterio = if (nchar(crit) <= .MTF_CRITERIO_MAX) crit else "",
        caras_ruteo = if (!is.na(caras) && caras %in% c(1L, 2L)) caras else 2L,
        extras_consolidado = as.list(intersect(names(.MTF_EXTRAS_CONSOLIDADO), as.character(unlist(x$extras_consolidado)))),
+       # Sin la clave (guardado anterior) vale el defecto, con SUP.
+       extras_ruteo = if (is.null(x$extras_ruteo)) list("supervision") else as.list(intersect(names(.MTF_EXTRAS_RUTEO), as.character(unlist(x$extras_ruteo)))),
        revision = max(0L, suppressWarnings(as.integer(.mtf_txt(x$revision))), na.rm = TRUE))
 }
 
@@ -102,6 +107,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
        extras_consolidado = g$extras_consolidado,
        extras_disponibles = lapply(names(.MTF_EXTRAS_CONSOLIDADO), function(k) list(id = k, rotulo = .MTF_EXTRAS_CONSOLIDADO[[k]])),
+       extras_ruteo = g$extras_ruteo,
+       extras_ruteo_disponibles = lapply(names(.MTF_EXTRAS_RUTEO), function(k) list(id = k, rotulo = .MTF_EXTRAS_RUTEO[[k]])),
        revision = g$revision)
 }
 
@@ -110,7 +117,7 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
 #' @keywords internal
 collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos = list(), con_99 = NULL,
                                                 columna_criterio = NULL, caras_ruteo = NULL, expected_revision = NULL,
-                                                extras_consolidado = NULL) {
+                                                extras_consolidado = NULL, extras_ruteo = NULL) {
   s <- session_get(sid)
   hit <- .mta_campana(s, campaign_id)
   g <- .mtf_guardado(s, hit$entry$id)
@@ -157,6 +164,13 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
       problemas[[length(problemas) + 1L]] <- list(campo = "extras_consolidado", motivo = sprintf("«%s» no es una columna opcional del consolidado", raros[[1]]))
     } else g$extras_consolidado <- as.list(intersect(names(.MTF_EXTRAS_CONSOLIDADO), pedidos))
   }
+  if (!is.null(extras_ruteo)) {
+    pedidos <- as.character(unlist(extras_ruteo))
+    raros <- setdiff(pedidos, names(.MTF_EXTRAS_RUTEO))
+    if (length(raros)) {
+      problemas[[length(problemas) + 1L]] <- list(campo = "extras_ruteo", motivo = sprintf("«%s» no es una columna opcional de la hoja de ruteo", raros[[1]]))
+    } else g$extras_ruteo <- as.list(intersect(names(.MTF_EXTRAS_RUTEO), pedidos))
+  }
   if (length(problemas)) {
     stop_api(422, "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS",
              sprintf("%d cambio(s) no se pueden guardar.", length(problemas)), details = list(problemas = problemas))
@@ -164,7 +178,7 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
   session_set(sid, "material_territorial_formatos", list(
     schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA, campaign_id = hit$entry$id, rotulos = g$rotulos,
     con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
-    extras_consolidado = g$extras_consolidado, revision = g$revision + 1L, updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    extras_consolidado = g$extras_consolidado, extras_ruteo = g$extras_ruteo, revision = g$revision + 1L, updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   ))
   collection_territorial_formatos_get(sid, hit$entry$id)
 }
