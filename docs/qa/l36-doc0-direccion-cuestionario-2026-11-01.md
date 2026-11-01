@@ -74,7 +74,8 @@ Lo que está mal, por orden de lo que se ve primero:
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☑ `1c2457aae`: tipografía y colores en `estandar_pulso.json`, el motor sin hex propios y el `.docx` idéntico byte a byte |
 | DOC.2 | Visor fiel: páginas del Word y mapa pregunta → página | ☑ `002be9126`, `325f40903`, `b1f56dd23` |
 | DOC.3 | Bloques seleccionables sobre la página, con «Papel por pregunta» como inspector | ◐ `64de55dee`, con tests; falta verlo en vivo |
-| DOC.4–DOC.5 | Opciones en el `.pulso`, versiones, QA | ☐ (ver fila L36 del GOAL) |
+| DOC.4 | Opciones en el `.pulso` y versiones | ☐ |
+| DOC.5 | QA: golden de estructura del `.docx` y OOXML válido | ☑ golden del instrumento de docentes (`test-xlsform-formulario-golden.R`) |
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
 esperar al visor para que el papel deje de tener marcos vacíos.
