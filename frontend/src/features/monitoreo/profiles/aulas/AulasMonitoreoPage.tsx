@@ -93,6 +93,8 @@ import { useDireccionAulas } from "./navegacion/useDireccionAulas";
 import { esPestanaPropia, FICHA_DE_AULA, HREF_HERRAMIENTAS_DE_SALIDAS, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
 import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
 import { AvisoDeLecturaFallida } from "./estados/AvisoDeLecturaFallida";
+import { ReciboDeActualizar } from "./estados/ReciboDeActualizar";
+import { useReciboDeActualizar } from "./estados/useReciboDeActualizar";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
@@ -1886,9 +1888,12 @@ export default function AulasMonitoreoPage() {
     }
   }, [irAVista]);
 
+  // P1: el recibo de «Traer respuestas», medido desde fuera del sync.
+  const reciboSync = useReciboDeActualizar();
   const syncField = useCallback(async () => {
     setMutating(true);
     setError("");
+    reciboSync.empezar(dashboardFromState(state));
     try {
       // **Primero TRAER de la plataforma, y sólo después recalcular.**
       //
@@ -1919,6 +1924,7 @@ export default function AulasMonitoreoPage() {
       }
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
+      reciboSync.terminar(dashboardFromState(result.state), activeSources, avisoDescarga);
       if (avisoDescarga) {
         setAviso({
           texto: `No se pudieron traer respuestas nuevas de la plataforma (${avisoDescarga}). Las cifras son las de la última sincronización que sí entró.`,
@@ -1957,7 +1963,7 @@ export default function AulasMonitoreoPage() {
     } finally {
       setMutating(false);
     }
-  }, [activeSources, state?.config, esperarSyncDeFuentes]);
+  }, [activeSources, state, esperarSyncDeFuentes, reciboSync]);
 
   const vacioSinTablero = (
     <VacioSinTablero
@@ -2336,6 +2342,7 @@ export default function AulasMonitoreoPage() {
             {error ? <AvisoDeLecturaFallida error={error} corte={state?.synced_at ?? ""} onReintentar={() => { void loadView(seccionActiva, true); }} /> : null}
             {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
                 de pasar no puede vivir dentro de lo que la acción remonta. */}
+            {reciboSync.recibo ? <ReciboDeActualizar recibo={reciboSync.recibo} onCerrar={reciboSync.cerrar} /> : null}
             {aviso.texto ? (
               <div className="aulas-aviso" data-tono={aviso.tono}>
                 {aviso.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso.texto}

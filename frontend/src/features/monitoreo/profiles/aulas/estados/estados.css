@@ -18,3 +18,72 @@
   font-size: var(--pulso-type-caption-size);
   opacity: 0.85;
 }
+
+/* P1c · Recibo de Actualizar. */
+.aulas-recibo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin-bottom: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-recibo > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aulas-recibo-cerrar {
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.aulas-recibo-pasos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-recibo-pasos li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-recibo-pasos li[data-tono="ok"] svg { color: var(--pulso-success-fg); }
+.aulas-recibo-pasos li[data-tono="aviso"] svg { color: var(--pulso-warn-fg); }
+
+.aulas-recibo-cambios {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.aulas-recibo-cambios dt {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-recibo-cambios dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-recibo-cambios small {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.aulas-recibo-notoca {
+  margin: 0;
+  color: var(--pulso-text-faint);
+}
