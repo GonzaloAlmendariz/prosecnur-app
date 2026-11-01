@@ -17,8 +17,8 @@ import { describe, expect, test } from "vitest";
  * Analítica (196 → 0), Procesamiento (36 → 0), Carga (614 → 0) y Formularios
  * (893 → 47: quedan las hojas que dibujan el medio —el papel del Impreso, el
  * simulador y la vista previa de campos— y cuatro excepciones declaradas).
- * Dashboard (208) queda fuera hasta verificar su artefacto publicado, porque
- * su tema es el que ve el cliente.
+ * Dashboard (208) queda fuera de forma definitiva (decisión de Gonzalo,
+ * 2026-11-01): su tema es el del tablero publicado que ve el cliente.
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
