@@ -6,6 +6,7 @@ import {
   fasesDeImport,
   formatoTranscurrido,
   type EstrategiaImport,
+  textoDeExcluidas,
   type ImportExitoso,
   type ProveedorPlataforma,
 } from "./modeloPlataforma";
@@ -26,7 +27,13 @@ const NUMERO = new Intl.NumberFormat("es-PE");
 
 function detalleExito(exito: ImportExitoso): string {
   const partes: string[] = [];
-  if (exito.nFilas != null) partes.push(`${NUMERO.format(exito.nFilas)} registros`);
+  const filtro = exito.filtro;
+  if (filtro && filtro.excluidas > 0) {
+    partes.push(`${NUMERO.format(filtro.conservadas)} de ${NUMERO.format(filtro.originales)} respuestas`);
+    partes.push(textoDeExcluidas(filtro));
+  } else if (exito.nFilas != null) {
+    partes.push(`${NUMERO.format(exito.nFilas)} registros`);
+  }
   if (exito.nColumnas != null) partes.push(`${NUMERO.format(exito.nColumnas)} columnas`);
   if (exito.basesHijas.length) {
     partes.push(`${exito.basesHijas.length} base${exito.basesHijas.length === 1 ? "" : "s"} de repeat`);

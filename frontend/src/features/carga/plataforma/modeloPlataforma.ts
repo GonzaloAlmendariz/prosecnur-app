@@ -465,6 +465,8 @@ export type ImportExitoso = {
   nColumnas: number | null;
   nBases: number | null;
   basesHijas: string[];
+  /** Qué respuestas de la plataforma quedaron fuera y por qué; null si no se sabe. */
+  filtro: FiltroDeRespuestas | null;
   estudio: EstudioPayload | null;
   /** Payload de `/import-separate` (estrategia separada). */
   separado: CargaImportSeparadaResult | null;
@@ -514,6 +516,53 @@ export function clasificarErrorLanzamiento(e: unknown): ResultadoImport {
   return error(split.code, mensaje);
 }
 
+/**
+ * Lo que el filtro de respuestas dejó fuera al importar. El catálogo de
+ * SurveyMonkey cuenta TODAS las respuestas («69 resp.») y la base guarda sólo
+ * las que pasan el filtro (59): sin este desglose, la tarjeta decía «59
+ * registros» y las diez restantes desaparecían sin explicación (L5b).
+ */
+export type FiltroDeRespuestas = {
+  originales: number;
+  conservadas: number;
+  excluidas: number;
+  parciales: number;
+  sinConsentimiento: number;
+  /** Excluidas que ninguna de las dos causas anteriores explica. */
+  otras: number;
+};
+
+/** Lee `base.response_filter` del backend; null si falta o no cuadra. */
+export function filtroDeRespuestas(base: unknown): FiltroDeRespuestas | null {
+  if (!esObjeto(base) || !esObjeto(base.response_filter)) return null;
+  const rf = base.response_filter;
+  const originales = numeroONulo(rf.original_rows);
+  const conservadas = numeroONulo(rf.kept_rows);
+  if (originales == null || conservadas == null || conservadas > originales) return null;
+  const excluidas = numeroONulo(rf.excluded_rows) ?? originales - conservadas;
+  const conteo = (grupo: unknown, estado: string) =>
+    esObjeto(grupo) ? numeroONulo(grupo[estado]) ?? 0 : 0;
+  const parciales = Math.max(0, conteo(rf.original_status_counts, "partial") - conteo(rf.kept_status_counts, "partial"));
+  const sinConsentimiento = Math.max(0, numeroONulo(rf.consent_excluded_rows) ?? 0);
+  // Si las causas se solapan y suman más que lo excluido, no se inventa un reparto.
+  if (parciales + sinConsentimiento > excluidas) {
+    return { originales, conservadas, excluidas, parciales: 0, sinConsentimiento: 0, otras: excluidas };
+  }
+  return { originales, conservadas, excluidas, parciales, sinConsentimiento, otras: excluidas - parciales - sinConsentimiento };
+}
+
+const NUMERO_ES = new Intl.NumberFormat("es-PE");
+
+/** «fuera: 8 parciales, 2 sin consentimiento»; vacío si no quedó nada fuera. */
+export function textoDeExcluidas(filtro: FiltroDeRespuestas): string {
+  if (filtro.excluidas <= 0) return "";
+  const causas: string[] = [];
+  if (filtro.parciales) causas.push(`${NUMERO_ES.format(filtro.parciales)} parcial${filtro.parciales === 1 ? "" : "es"}`);
+  if (filtro.sinConsentimiento) causas.push(`${NUMERO_ES.format(filtro.sinConsentimiento)} sin consentimiento`);
+  if (filtro.otras) causas.push(`${NUMERO_ES.format(filtro.otras)} por otras reglas`);
+  return `fuera: ${causas.join(", ")}`;
+}
+
 function exitosoSeparado(data: unknown): ImportExitoso | null {
   const r = normalizeCargaImportSeparada(data);
   if (!r) return null;
@@ -523,6 +572,7 @@ function exitosoSeparado(data: unknown): ImportExitoso | null {
     nColumnas: r.n_columnas,
     nBases: r.n_bases ?? r.estudio?.n_bases ?? null,
     basesHijas: r.child_bases,
+    filtro: filtroDeRespuestas(r.base),
     estudio: r.estudio,
     separado: r,
     unico: null,
@@ -540,6 +590,7 @@ function exitosoUnico(data: unknown): ImportExitoso | null {
     nColumnas: preview ? numeroONulo(preview.n_columnas ?? preview.n_cols) : null,
     nBases: estudio ? numeroONulo(estudio.n_bases) : null,
     basesHijas: [],
+    filtro: null,
     estudio,
     separado: null,
     unico,

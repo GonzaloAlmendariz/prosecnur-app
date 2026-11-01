@@ -53,6 +53,7 @@ const exito = {
   nColumnas: 80,
   nBases: 2,
   basesHijas: [],
+  filtro: null,
   estudio: null,
   separado: null,
   unico: null,
@@ -98,6 +99,13 @@ describe("ImportadorPlataforma", () => {
     expect(html).not.toMatch(/Ir\s*→/);
     expect(html).toContain('role="status"');
     expect(html).not.toContain("Reintentar");
+  });
+
+  it("importado con respuestas filtradas: dice cuántas quedaron fuera y por qué (L5b)", () => {
+    const filtro = { originales: 69, conservadas: 59, excluidas: 10, parciales: 8, sinConsentimiento: 2, otras: 0 };
+    const html = render({ importacion: importacion({ estado: "terminado", terminado: terminado({ tipo: "importado", ...exito, filtro }) }) });
+    expect(html).toContain("59 de 69 respuestas · fuera: 8 parciales, 2 sin consentimiento · 80 columnas");
+    expect(html).not.toContain("registros");
   });
 
   it("cancelado pero importado: avisa que la base quedó", () => {
