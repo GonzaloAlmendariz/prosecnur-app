@@ -1,17 +1,16 @@
-import type { PlannerEstado } from "../../../../api/planner";
 import type { VistaPreviaDeRepresentatividad } from "../../../../api/calcMuestraRepresentatividad";
 
 /**
- * «Declarar en el Planner» (ADR 0121 F4, decisión de Meta B 2026-10-31): el
- * escenario dice qué universo y qué variables de cuota usa, y se declaran en el
- * Planner, que es donde el estudio se define una sola vez. Monitoreo los lee de
- * ahí. Las cuotas no se tocan: siguen en el escenario.
+ * Representatividad del estudio (ADR 0121; ADR 0123 Q1): el escenario dice qué
+ * universo y qué variables de cuota usa, y Cálculo las guarda en su propia clave.
+ * Monitoreo las recibe en la foto del plan al importarlo. Las cuotas no se tocan:
+ * siguen en el escenario.
  *
- * El estado compara lo que se declararía con lo que el Planner ya declara:
- * - sin-diseno: el escenario todavía no fija metas; no hay qué declarar.
- * - sin-declarar: el Planner no declara la representatividad de aulas.
- * - al-dia: lo declarado coincide con el escenario (universo y variables).
- * - distinto: el Planner declara otra cosa; se dice qué y se ofrece actualizar.
+ * El estado compara lo que se guardaría con lo que Cálculo ya guardó:
+ * - sin-diseno: el escenario todavía no fija metas; no hay qué guardar.
+ * - sin-declarar: Cálculo todavía no guardó la representatividad.
+ * - al-dia: lo guardado coincide con el escenario (variables).
+ * - distinto: lo guardado es otra cosa; se dice qué y se ofrece actualizar.
  */
 
 export type EstadoDeDeclaracion = "sin-diseno" | "sin-declarar" | "al-dia" | "distinto";
@@ -20,24 +19,12 @@ export type ModeloDeclaracion = {
   estado: EstadoDeDeclaracion;
   universo: string;
   variables: string[];
-  /** Lo que difiere del Planner, en una frase; vacío si nada. */
+  /** Lo que difiere de lo guardado, en una frase; vacío si nada. */
   diferencia: string;
+  /** Lo guardado todavía no viaja en la foto del plan que mide Monitoreo. */
+  reimportar: boolean;
   boton: string | null;
-  revision: number;
 };
-
-type Declarada = { universo: string; claves: string[] };
-
-function declaradaEnPlanner(planner: PlannerEstado | null): Declarada | null {
-  if (!planner || planner.origen.perfiles !== "declarado") return null;
-  const aulas = planner.planner.perfiles.find((p) => p.tipo === "aulas");
-  const rep = aulas?.poblaciones.find((p) => (p.representatividad?.variables ?? []).length)?.representatividad;
-  if (!rep) return null;
-  return {
-    universo: rep.universo?.etiqueta || rep.universo?.valor || rep.universo?.nivel || "",
-    claves: (rep.variables ?? []).map((v) => v.clave),
-  };
-}
 
 function rotuloDeUniverso(u: { nivel: string; valor: string; etiqueta: string }): string {
   if (u.nivel === "facultad") return `Facultad: ${u.etiqueta || u.valor}`;
@@ -45,29 +32,35 @@ function rotuloDeUniverso(u: { nivel: string; valor: string; etiqueta: string })
   return u.etiqueta || u.valor || "Sin universo deducible";
 }
 
-export function construirDeclaracion(vista: VistaPreviaDeRepresentatividad | null, planner: PlannerEstado | null): ModeloDeclaracion {
-  const revision = planner?.revision ?? 0;
+export function construirDeclaracion(vista: VistaPreviaDeRepresentatividad | null): ModeloDeclaracion {
   const rep = vista?.representatividad ?? null;
   if (!vista?.disponible || !rep) {
-    return { estado: "sin-diseno", universo: "", variables: [], diferencia: "", boton: null, revision };
+    return { estado: "sin-diseno", universo: "", variables: [], diferencia: "", boton: null, reimportar: false };
   }
   const universo = rotuloDeUniverso(rep.universo);
   const variables = rep.variables.map((v) => v.etiqueta);
   const claves = rep.variables.map((v) => v.clave);
-  const declarada = declaradaEnPlanner(planner);
+  const declarada = vista.declarada ?? null;
   if (!declarada) {
-    return { estado: "sin-declarar", universo, variables, diferencia: "", boton: "Declarar en el Planner", revision };
+    return { estado: "sin-declarar", universo, variables, diferencia: "", boton: "Guardar en Cálculo", reimportar: false };
   }
-  const mismasVariables = declarada.claves.join("|") === claves.join("|");
-  if (mismasVariables) {
-    return { estado: "al-dia", universo, variables, diferencia: "", boton: null, revision };
+  if (vista.sorteoVigente === false) {
+    return {
+      estado: "distinto", universo, variables, reimportar: false,
+      diferencia: "Lo guardado es de un sorteo anterior; Monitoreo mide otro.",
+      boton: "Actualizar lo guardado",
+    };
+  }
+  const guardadas = declarada.variables.map((v) => v.clave);
+  if (guardadas.join("|") === claves.join("|")) {
+    return { estado: "al-dia", universo, variables, diferencia: "", boton: null, reimportar: !vista.enLaFoto };
   }
   return {
     estado: "distinto",
     universo,
     variables,
-    diferencia: `El Planner declara ${declarada.claves.join(" × ") || "otras variables"}; el escenario usa ${claves.join(" × ")}.`,
-    boton: "Actualizar la declaración",
-    revision,
+    diferencia: `Lo guardado reparte por ${guardadas.join(" × ") || "otras variables"}; el escenario usa ${claves.join(" × ")}.`,
+    boton: "Actualizar lo guardado",
+    reimportar: false,
   };
 }

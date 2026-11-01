@@ -100,8 +100,19 @@
 monitoreo_aulas_representatividad_declarada <- function(cfg = list(), plan = NULL, padron = NULL) {
   if (!is.list(cfg)) cfg <- list()
   aulas <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else cfg
-  # F4: si el Planner declara universo y variables, mandan sobre lo traducido;
-  # las celdas siguen saliendo del diseño (monitoreo_aulas_representatividad_planner.R).
+  # ADR 0123 §2 (Q1): universo y variables son de Cálculo de muestra y llegan en
+  # la foto sellada `design_targets.representatividad` (sin celdas: las celdas
+  # siguen saliendo del diseño). Mandan sobre lo traducido y sobre el Planner.
+  desde_calculo <- .mrdec_desde_calculo(aulas[["design_targets"]])
+  if (is.list(desde_calculo)) {
+    aulas$design_targets$representatividad <- NULL
+    planner_previo <- aulas[["representatividad_planner"]]
+    aulas$representatividad_planner <- NULL
+    return(.mrdec_combinar_calculo(monitoreo_aulas_representatividad_declarada(aulas, plan, padron), desde_calculo,
+                                   planner_previo))
+  }
+  # Respaldo de lectura (ADR 0123 §2, se retira en Q6): un .pulso que declaró en
+  # el Planner antes de Q1 y cuya foto no trae el universo de Cálculo.
   planner <- aulas[["representatividad_planner"]]
   if (is.list(planner)) {
     aulas$representatividad_planner <- NULL
@@ -160,4 +171,35 @@ monitoreo_aulas_representatividad_declarada <- function(cfg = list(), plan = NUL
     celdas = celdas,
     agrupacion_operativa = .monitoreo_scalar(aulas[["agrupacion_operativa"]] %||% "", "")
   )
+}
+
+# Lo que declaró Cálculo de muestra y viaja en la foto (ADR 0123 Q1): un bloque
+# con `universo` y `variables` y sin celdas. Con celdas es el bloque completo del
+# escenario, que se devuelve tal cual más abajo.
+.mrdec_desde_calculo <- function(dt) {
+  rep <- if (is.list(dt)) dt[["representatividad"]] else NULL
+  if (!is.list(rep) || !is.list(rep[["universo"]]) || !length(rep[["variables"]]) || length(rep[["celdas"]])) return(NULL)
+  rep
+}
+
+# Universo y variables de Cálculo con las celdas del diseño. Reusa el combinador
+# del Planner (mismas discrepancias), y dice que el origen es Cálculo.
+.mrdec_combinar_calculo <- function(rep, desde_calculo, planner = NULL) {
+  out <- .mrpl_combinar(rep, list(universo = desde_calculo$universo, variables = desde_calculo$variables,
+                                  poblacion = "", declarado_en = .monitoreo_scalar(desde_calculo$declarado_en, "")),
+                        sujeto = "Cálculo de muestra")
+  out$origen <- "calculo"
+  out$planner <- NULL
+  out$calculo <- list(declarado_en = .monitoreo_scalar(desde_calculo$declarado_en, ""))
+  # Mientras exista el respaldo del Planner (hasta Q6): si declaraba otro
+  # universo, se dice en vez de reemplazarlo en silencio.
+  uni_planner <- if (is.list(planner) && is.list(planner$universo)) planner$universo else NULL
+  firma <- function(u) paste(.monitoreo_scalar(u$nivel, ""), .monitoreo_scalar(u$valor, ""), sep = ":")
+  if (!is.null(uni_planner) && !identical(firma(uni_planner), firma(desde_calculo$universo))) {
+    nombre <- function(u) .monitoreo_scalar(u$etiqueta %||% u$valor %||% u$nivel, "")
+    out$discrepancias <- c(out$discrepancias %||% list(), list(list(
+      tipo = "universo_distinto_planner", variable = "",
+      texto = sprintf("El Planner declaraba %s; manda Cálculo de muestra: %s.", nombre(uni_planner), nombre(desde_calculo$universo)))))
+  }
+  out
 }

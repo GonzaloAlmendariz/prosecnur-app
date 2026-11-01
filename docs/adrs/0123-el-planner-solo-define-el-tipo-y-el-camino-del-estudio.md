@@ -2,7 +2,7 @@
 
 Estado: Aceptado (Gonzalo, 2026-11-01: «Aprobado»)
 
-Implementación: En curso — Q0 hecha (338745126, 0dd24b6bb); Q3 hecha (Material d4b8b3cb1: lee primero su catálogo de códigos y el roster de Monitoreo, con el Planner de respaldo; Planner 05a19eca9: secciones retiradas con su alias y aviso); Q1, Q2 y Q4–Q6 pendientes
+Implementación: En curso — Q0 hecha (338745126, 0dd24b6bb); Q3 hecha (Material d4b8b3cb1: lee primero su catálogo de códigos y el roster de Monitoreo, con el Planner de respaldo; Planner 05a19eca9: secciones retiradas con su alias y aviso); Q1 hecha (este commit: clave `calc_muestra_representatividad`, el declarar deja de escribir en el Planner, la foto `design_targets.representatividad` con sello del sorteo y Monitoreo la lee con el Planner de respaldo); Q2 y Q4–Q6 pendientes
 
 Fecha: 2026-11-01
 

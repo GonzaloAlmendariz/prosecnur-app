@@ -1410,7 +1410,7 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
 }
 
 monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list(),
-                                      referencia_asistencia = NULL) {
+                                      referencia_asistencia = NULL, representatividad = NULL) {
   sel <- selection$selection %||% selection
   plan <- monitoreo_aulas_normalize_plan(sel)
   cfg <- monitoreo_aulas_normalize_config(config)
@@ -1468,6 +1468,17 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # qué eje son esas filas. Un `design_targets` viejo no lo trae y se lee como
     # facultad, que es lo que es.
     metas$eje <- monitoreo_aulas_eje_declaracion(monitoreo_aulas_eje(cfg))
+    # ADR 0123 Q1: universo y variables que declaró Cálculo viajan en la foto;
+    # Monitoreo los lee de aquí, no del estado vivo de Cálculo.
+    # Sólo si se declaró sobre este mismo sorteo (o antes de que la declaración
+    # guardara el suyo): una declaración de otro sorteo no viaja bajo este sello.
+    sorteo_decl <- .monitoreo_scalar((representatividad %||% list())$selection_run_id, "")
+    mismo_sorteo <- !nzchar(sorteo_decl) || identical(sorteo_decl, .monitoreo_scalar(cfg$selection_run_id, ""))
+    if (mismo_sorteo && is.list(representatividad) && is.list(representatividad$universo) && length(representatividad$variables)) {
+      metas$representatividad <- list(schema = "representatividad_v1", universo = representatividad$universo,
+                                      variables = representatividad$variables,
+                                      declarado_en = .monitoreo_scalar(representatividad$declarado_en, ""))
+    }
     cfg$design_targets <- metas
     cfg$plan <- .monitoreo_aulas_aplicar_meta_tau(cfg$plan, metas)
   }

@@ -453,6 +453,7 @@ errores_registrados <- function() {
     "E_CALC_MUESTRA_GENERAL_SIN_MARCO",                      "calc_muestra_general_marco.R",      "409",
     "E_CALC_MUESTRA_FILE_INSPECT",                           "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_FILE_REQUIRED",                          "router_calc_muestra.R",             "400",
+    "E_CALC_MUESTRA_SIN_UNIVERSO",                           "router_calc_muestra_representatividad.R", "409",
     "E_CALC_P_RANGO",                                        "helpers_calc_comunes.R",            "400",
     "E_CALC_PARAMS",                                         "calc_muestra_engine.R",             "400",
     "E_CARGA_JOB_ACTION",                                    "carga_platform_jobs.R",             "400",

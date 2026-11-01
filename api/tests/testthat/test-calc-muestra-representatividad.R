@@ -1,5 +1,5 @@
-# ADR 0121 F4, escritura: Cálculo de muestra declara en el Planner el universo y
-# las variables de su escenario. Sólo eso: las celdas se quedan en el diseño y
+# ADR 0121 F4 y ADR 0123 Q1, escritura: Cálculo de muestra declara en su clave
+# propia el universo y las variables de su escenario. Sólo eso: las celdas se quedan en el diseño y
 # ninguna cifra del tablero cambia por declarar. Y el ciclo se cierra: lo que se
 # declara es lo que el tablero lee después.
 
@@ -45,21 +45,101 @@ test_that("el bloque lleva universo confirmado y variables, nunca celdas", {
   expect_false(b2$universo$inferido)
 })
 
-test_that("declarar escribe en el Planner y el tablero lo lee sin cambiar cifras", {
+test_that("declarar escribe en la clave de Cálculo, no en el Planner (ADR 0123 Q1)", {
+  sid <- .cmrep_sesion(.cmrep_estado_hsvg())
+  planner_antes <- session_get(sid)$planner
+  b <- .cmrep_declarar(sid)
+  s <- session_get(sid)
+  expect_identical(vapply(s$calc_muestra_representatividad$variables, `[[`, "", "clave"), c("facultad", "sexo"))
+  expect_match(s$calc_muestra_representatividad$declarado_en, "^\\d{4}-\\d{2}-\\d{2}T")
+  expect_identical(s$planner, planner_antes)
+  expect_null(.mrpl_de_sesion(sid))
+})
+
+test_that("Monitoreo lee la foto de Cálculo antes que el Planner, sin cambiar cifras", {
   sid <- .cmrep_sesion(.cmrep_estado_hsvg())
   cfg <- session_get(sid)$monitoreo_config$aulas_universitarias
   antes <- monitoreo_aulas_representatividad_declarada(cfg)
-  .planner_declarar_representatividad(sid, "aulas", "principal", .cmrep_bloque(session_get(sid)), 0L)
+  # Dos fuentes distintas: Cálculo declara la universidad; el Planner, DERECHO.
+  cfg$design_targets$representatividad <- list(
+    schema = "representatividad_v1", declarado_en = "2026-11-01T15:00:00Z",
+    universo = list(nivel = "universidad", etiqueta = "Universidad"),
+    variables = .cmrep_bloque(session_get(sid))$variables)
+  cfg$representatividad_planner <- list(universo = list(nivel = "facultad", valor = "DERECHO"),
+                                        variables = list(list(clave = "facultad")), poblacion = "principal",
+                                        declarado_en = "2026-10-31")
+  r <- monitoreo_aulas_representatividad_declarada(cfg)
+  expect_identical(r$origen, "calculo")
+  expect_identical(r$universo$nivel, "universidad")
+  # El universo distinto del Planner se dice; no se reemplaza en silencio.
+  expect_identical(vapply(r$discrepancias, `[[`, "", "tipo"), "universo_distinto_planner")
+  expect_match(r$discrepancias[[1]]$texto, "El Planner declaraba DERECHO; manda Cálculo de muestra", fixed = TRUE)
+  expect_equal(sum(vapply(r$celdas, `[[`, 0, "cuota")), sum(vapply(antes$celdas, `[[`, 0, "cuota")))
+  # Sin el dato de Cálculo en la foto, el Planner es el respaldo.
+  cfg$design_targets$representatividad <- NULL
+  expect_identical(monitoreo_aulas_representatividad_declarada(cfg)$origen, "planner")
+})
 
-  declarado <- .mrpl_de_sesion(sid)
-  expect_identical(vapply(declarado$variables, `[[`, "", "clave"), c("facultad", "sexo"))
-  cfg$representatividad_planner <- declarado
-  despues <- monitoreo_aulas_representatividad_declarada(cfg)
-  expect_identical(despues$origen, "planner")
-  expect_false(despues$universo$inferido)
-  expect_length(despues$discrepancias, 0L)
-  expect_identical(lapply(despues$celdas, `[[`, "valores"), lapply(antes$celdas, `[[`, "valores"))
-  expect_equal(sum(vapply(despues$celdas, `[[`, 0, "cuota")), sum(vapply(antes$celdas, `[[`, 0, "cuota")))
+test_that("una variable de Cálculo sin celdas se dice con su origen", {
+  sid <- .cmrep_sesion(.cmrep_estado_hsvg())
+  cfg <- session_get(sid)$monitoreo_config$aulas_universitarias
+  cfg$design_targets$representatividad <- list(universo = list(nivel = "universidad"), declarado_en = "x",
+    variables = list(list(clave = "facultad"), list(clave = "sexo"), list(clave = "nivel")))
+  r <- monitoreo_aulas_representatividad_declarada(cfg)
+  d <- Filter(function(x) identical(x$tipo, "variable_sin_celdas"), r$discrepancias)
+  expect_match(d[[1]]$texto, "Cálculo de muestra declara «nivel»", fixed = TRUE)
+})
+
+test_that("volver a declarar sale del escenario vigente, no de la foto ni del Planner", {
+  estado <- .cmrep_estado_hsvg()
+  estado$monitoreo_config$aulas_universitarias$design_targets$representatividad <- list(
+    universo = list(nivel = "facultad", valor = "DERECHO"), variables = list(list(clave = "facultad")), declarado_en = "x")
+  sid <- .cmrep_sesion(estado)
+  b <- .cmrep_bloque(session_get(sid))
+  expect_identical(vapply(b$variables, `[[`, "", "clave"), c("facultad", "sexo"))
+  expect_identical(b$universo$nivel, "universidad")
+})
+
+test_that("sin universo deducible no se guarda una declaración a medias", {
+  estado <- .cmrep_estado_hsvg()
+  estado$monitoreo_config$aulas_universitarias$plan <- NULL
+  estado$monitoreo_config$aulas_universitarias$eje_cuota <- "nivel"
+  sid <- .cmrep_sesion(estado)
+  err <- tryCatch(.cmrep_declarar(sid), error = identity)
+  expect_equal(err$code, "E_CALC_MUESTRA_SIN_UNIVERSO")
+  expect_null(session_get(sid)$calc_muestra_representatividad)
+})
+
+test_that("lo guardado dice si ya viaja en la foto de Monitoreo", {
+  sid <- .cmrep_sesion(.cmrep_estado_hsvg())
+  expect_true(is.na(.cmrep_en_la_foto(session_get(sid))))
+  b <- .cmrep_declarar(sid)
+  expect_false(.cmrep_en_la_foto(session_get(sid)))
+  s <- session_get(sid)
+  s$monitoreo_config$aulas_universitarias$design_targets$representatividad <- list(declarado_en = b$declarado_en)
+  expect_true(.cmrep_en_la_foto(s))
+  expect_true(.cmrep_sorteo_vigente(s))
+  s$monitoreo_config$aulas_universitarias$selection_run_id <- "otro-sorteo"
+  s$calc_muestra_representatividad$selection_run_id <- "run-1"
+  expect_false(.cmrep_sorteo_vigente(s))
+})
+
+test_that("importar el plan lleva el universo de Cálculo en la foto design_targets", {
+  sel <- list(selection = list(list(course_key = "CH 1", faculty = "DERECHO")))
+  rep <- list(universo = list(nivel = "universidad"), variables = list(list(clave = "facultad")), declarado_en = "x")
+  dt <- list(facultades = list(list(facultad = "DERECHO", cuota = 10)))
+  local_mocked_bindings(.monitoreo_aulas_metas_diseno = function(...) dt)
+  cfg <- monitoreo_aulas_from_calc(NULL, sel, NULL, list(), NULL, representatividad = rep)
+  expect_identical(cfg$design_targets$representatividad$universo$nivel, "universidad")
+  sin <- monitoreo_aulas_from_calc(NULL, sel, NULL, list(), NULL)
+  expect_null(sin$design_targets$representatividad)
+  # Declarada sobre otro sorteo: no viaja bajo el sello de éste.
+  otra <- monitoreo_aulas_from_calc(NULL, c(sel, list(selection_run_id = "run-2")), NULL, list(), NULL,
+                                    representatividad = c(rep, list(selection_run_id = "run-1")))
+  expect_null(otra$design_targets$representatividad)
+  misma <- monitoreo_aulas_from_calc(NULL, c(sel, list(selection_run_id = "run-2")), NULL, list(), NULL,
+                                     representatividad = c(rep, list(selection_run_id = "run-2")))
+  expect_identical(misma$design_targets$representatividad$universo$nivel, "universidad")
 })
 
 test_that("con la revisión vencida el Planner rechaza y no escribe", {

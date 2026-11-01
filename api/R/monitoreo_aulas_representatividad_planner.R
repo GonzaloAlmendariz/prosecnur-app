@@ -69,7 +69,8 @@
 #' @return `rep` con universo y variables del Planner, `origen = "planner"` y
 #'   `discrepancias` (lista, vacía si todo casa). Sin `declarado`, `rep` tal cual.
 #' @keywords internal
-.mrpl_combinar <- function(rep, declarado) {
+.mrpl_combinar <- function(rep, declarado, sujeto = "el Planner") {
+  Sujeto <- paste0(toupper(substr(sujeto, 1L, 1L)), substr(sujeto, 2L, nchar(sujeto)))
   if (!is.list(declarado) || !length(declarado$variables)) return(rep)
   claves_planner <- vapply(declarado$variables, function(v) .monitoreo_scalar(v$clave, ""), "")
   celdas <- if (is.list(rep)) rep$celdas %||% list() else list()
@@ -78,12 +79,12 @@
   for (k in setdiff(claves_planner, claves_celdas)) {
     discrepancias[[length(discrepancias) + 1L]] <- list(
       tipo = "variable_sin_celdas", variable = k,
-      texto = sprintf("El Planner declara «%s» como variable de cuota y el diseño no reparte metas por ella.", k))
+      texto = sprintf("%s declara «%s» como variable de cuota y el diseño no reparte metas por ella.", Sujeto, k))
   }
   for (k in setdiff(claves_celdas, claves_planner)) {
     discrepancias[[length(discrepancias) + 1L]] <- list(
       tipo = "celdas_sin_variable", variable = k,
-      texto = sprintf("El diseño reparte metas por «%s» y el Planner no la declara.", k))
+      texto = sprintf("El diseño reparte metas por «%s» y %s no la declara.", k, sujeto))
   }
   base <- if (is.list(rep)) rep else list(schema = "representatividad_v1", celdas = list())
   base$universo <- declarado$universo %||% base$universo
