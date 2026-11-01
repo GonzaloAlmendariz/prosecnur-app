@@ -90,7 +90,6 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/dashboard/tabs/RelacionTab/index.tsx": 1,
   "features/graficos/estiloInforme/SeccionCalculos.tsx": 1,
   "features/graficos/laminas/selectores/MedidasEstandar.tsx": 1,
-  "features/hojasRuta/HojasRutaPage.tsx": 11,
   "features/procesamiento/ProcessingSheetViewer.tsx": 1,
   "features/recopiladores/AccessSection.tsx": 1,
   "features/recopiladores/OrigenDiferencias.tsx": 1,

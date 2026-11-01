@@ -487,7 +487,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   {
     id: "hojas_ruta",
     label: "Hojas de ruta",
-    load: () => import("../features/hojasRuta/HojasRutaPage"),
+    load: () => import("../features/hojasRuta/mapa/HojasRutaMapaPage"),
   },
   {
     id: "hojas_ruta_datos",

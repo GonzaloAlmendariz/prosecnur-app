@@ -1,8 +1,0 @@
-/* Los avisos de la página (marco cartográfico, piloto guardado) van en una
- * fila que envuelve, no uno por renglón: cada renglón le quitaba ~30 px a la
- * mesa de trabajo, y a 1024×600 eso era una fila menos de tabla. */
-.hojas-ruta-frame .pulso-page-frame-notices {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-}

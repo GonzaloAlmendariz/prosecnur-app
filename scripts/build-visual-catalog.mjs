@@ -698,7 +698,7 @@ const DECLARED_VISUAL_SURFACES = [
     "Piloto / Campo real",
     "Mapa de Lima y Callao",
     "Cartografía prioritariamente vertical con jerarquía distrito → zona → manzana, capas Campo/NSE, hover, popup, zoom y selección.",
-    "frontend/src/features/hojasRuta/HojasRutaPage.tsx",
+    "frontend/src/features/hojasRuta/mapa/HojasRutaMapaPage.tsx",
   ),
   surface(
     "hojas-ruta",
@@ -706,7 +706,7 @@ const DECLARED_VISUAL_SURFACES = [
     "Piloto / Campo real",
     "Mapa de rutas y selección",
     "Canvas/SVG cartográfico con zonas, manzanas, titulares, reemplazos, rutas y mini diagramas metodológicos.",
-    "frontend/src/features/hojasRuta/HojasRutaPage.tsx",
+    "frontend/src/features/hojasRuta/mapa/HojasRutaMapaPage.tsx",
   ),
   surface(
     "material-campo",

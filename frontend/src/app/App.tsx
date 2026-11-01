@@ -69,10 +69,10 @@ const GraficosPage = lazyWithReload(
   () => import("../features/graficos/GraficosPage"),
   "GraficosPage",
 );
-// La entrada elige entre la página vieja y la del lienzo (interruptor del ADR 0114 §8).
+// El lienzo es la única página de Hojas de ruta: la clásica se retiró (ADR 0114 §8).
 const HojasRutaPage = lazyWithReload(
-  () => import("../features/hojasRuta/mapa/HojasRutaEntrada"),
-  "HojasRutaEntrada",
+  () => import("../features/hojasRuta/mapa/HojasRutaMapaPage"),
+  "HojasRutaMapaPage",
 );
 const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),

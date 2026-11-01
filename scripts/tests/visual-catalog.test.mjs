@@ -562,27 +562,10 @@ test("traza hosts polimórficos e iconos dinámicos hasta su proveedor", () => {
   assert.ok(selectedIcon.visualVariants.includes("icon-option=Sliders"));
 });
 
-test("materializa navegación y estados de Hojas, Material de campo y Monitoreo", () => {
-  const hojasFile =
-    "frontend/src/features/hojasRuta/hojasRutaNavigation.ts";
-  const hojasSections = declared(hojasFile, "sections");
-  const hojasTabs = declared(hojasFile, "deliveryTabs");
-  assert.deepEqual(labels(hojasSections), [
-    "Territorio",
-    "Población",
-    "Muestra",
-    "Manzanas",
-    "Selección",
-  ]);
-  assert.deepEqual(labels(hojasTabs), [
-    "Cuotas",
-    "Titulares",
-    "Reemplazos",
-  ]);
-  for (const entry of [...hojasSections, ...hojasTabs]) {
-    assert.ok(entry.states.length >= 2, entry.label);
-    assert.ok(entry.stateModel);
-  }
+test("materializa navegación y estados de Material de campo y Monitoreo", () => {
+  // Hojas de ruta ya no declara navegación propia: la página clásica y su
+  // `hojasRutaNavigation.ts` se retiraron (ADR 0114 §8) y las secciones del
+  // lienzo salen del manifiesto v3 (`lib/modules.ts`).
 
   // La carpeta conserva el nombre `recopiladores`; el módulo es Material de
   // campo (ADR 0108).

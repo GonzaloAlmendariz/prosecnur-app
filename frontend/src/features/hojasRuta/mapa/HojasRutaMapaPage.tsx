@@ -61,6 +61,7 @@ import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, veci
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
+import "./marco.css";
 import "./mapaPage.css";
 import "./angosto.css";
 

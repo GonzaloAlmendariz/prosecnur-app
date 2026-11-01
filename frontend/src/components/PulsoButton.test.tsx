@@ -126,10 +126,8 @@ describe("PulsoButton", () => {
     const serializedColors = primaryColors.map((channels) => channels.join(","));
 
     expect(new Set(serializedColors).size).toBe(moduleAccentTokens.length);
-    // Ancla al acento de Hojas de ruta, que ademas esta COPIADO en la paleta
-    // cartografica de HojasRutaPage (el mapa pinta en <canvas>, donde las CSS
-    // vars no resuelven). Si este valor cambia, esa copia tiene que moverse con
-    // el o el mapa queda mas encendido que el chrome que lo rodea.
+    // Ancla al acento de Hojas de ruta. La copia que tenia la paleta cartografica
+    // de la pagina clasica se fue con ella (ADR 0114 §8); el lienzo lee el token.
     expect(theme).toContain("--pulso-module-routes: #ac563b;");
     for (const channels of primaryColors) {
       const contrastWithWhite = 1.05 / (relativeLuminance(channels) + 0.05);

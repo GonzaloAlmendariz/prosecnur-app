@@ -420,11 +420,8 @@ describe("estados de navegación", () => {
   });
 
   /** Estados de navegación con color crudo en vez de acento del módulo. */
-  const HEX_CRUDO_PENDIENTE = [
-    "features/hojasRuta/hojasRuta.css :: .hojas-ruta-delivery-tabs button.is-active span",
-    "features/hojasRuta/hojasRuta.css :: .hojas-ruta-frame :is( .hojas-ruta-phase-tabs button.is-active, .hojas-ruta-map-layer-toggle button.is-acti...",
-    "features/hojasRuta/hojasRuta.css :: .hojas-ruta-sample-tabs button.is-active span",
-  ];
+  // Vacío desde el retiro de la página clásica de Hojas de ruta (ADR 0114 §8).
+  const HEX_CRUDO_PENDIENTE: string[] = [];
 
   test("un estado de navegación no pinta con hex crudo", () => {
     const infractores = todasLasReglas()

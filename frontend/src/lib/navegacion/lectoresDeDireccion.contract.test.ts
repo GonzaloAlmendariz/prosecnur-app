@@ -31,7 +31,6 @@ const SRC = join(AQUI, "..", "..");
 const LECTORES_HEREDADOS = [
   "features/analitica/AnaliticaPage.tsx",
   "features/codificacion/CodificacionPage.tsx",
-  "features/hojasRuta/hojasRutaNavigation.ts",
   "features/monitoreo/shell/MonitoreoModuleChrome.tsx",
   "features/monitoreo/useMonitoreoDireccion.ts",
 ] as const;

@@ -146,6 +146,24 @@ todo Lima.
 La página nueva se monta detrás de un interruptor hasta cubrir la paridad del checklist §7. Al retirarse la página
 vieja se aplica el gate 3 (borrado con doble confirmación) y se baja su línea base en `agentic/manifest.json`.
 
+**Retiro (U20), 2026-11-01.** Con el checklist de brechas cerrado (B0–B57) y la §7 cubierta, Gonzalo lo confirmó en
+sus palabras: «Retira la clásica». Un solo commit:
+
+- se borra `HojasRutaPage.tsx` (8.900 líneas), la entrada `mapa/HojasRutaEntrada.tsx` y el interruptor
+  `mapa/interruptor.ts` (`prosecnur:hojas-ruta:lienzo`) con su test; `/hojas-ruta` y el warm start cargan
+  `mapa/HojasRutaMapaPage.tsx` directo;
+- se van con ella los módulos que sólo ella usaba (`SeleccionMesa`, `RevisionContraMarco`, `MapaPoblacion`,
+  `CurvaMargenN`, `muestra/margen`, `chipsDeSeleccion`, `listaMuestraDireccion`, `hojasRutaNavigation`,
+  `cartographicViewport`, `marcoCartografia`, `MarcoCartografiaAviso`, `rutasHistorialClasica`), sus hojas
+  (`hojasRuta.css`, `avisosEnFila.css` y las cuatro de esos componentes) y los tests que leían su fuente;
+- el lienzo heredaba cinco reglas de `hojasRuta.css` porque el warm start cargaba el chunk viejo: se midió en vivo
+  qué reglas tocaban su DOM en las cinco secciones y pasaron, tal cual, a `mapa/marco.css`;
+- salen sus entradas de los ratchets `inputsDelKit` y `tablasDelKit`, de `ModuleChrome` (hex crudo pendiente) y de
+  `lectoresDeDireccion`, y su línea base de `agentic/manifest.json`.
+
+Quedan pendientes, aparte: el panel propio de la bitácora (enmienda de U17) y las notas del vault de Obsidian que
+aún citan `HojasRutaPage.tsx`.
+
 ## Consecuencias
 
 - Una sola superficie cartográfica para todo el módulo y, después, para Monitoreo territorial.
