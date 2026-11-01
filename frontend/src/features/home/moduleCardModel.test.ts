@@ -263,6 +263,16 @@ describe("moduleCardModel", () => {
     expect(hojas.facts).not.toContainEqual({ label: "entrevistas", value: "24" });
   });
 
+  it("Hojas de ruta en un territorial por conveniencia: «No aplica», sin pedirla (ADR 0122 P2)", () => {
+    const overview = makeOverview();
+    overview.facts.hojas = { ...overview.facts.hojas, aplica: false };
+    const hojas = view("hojas-ruta", overview);
+    expect(hojas.viz).toMatchObject({ kind: "stat", value: "No aplica", label: "en este estudio" });
+    expect(hojas.statusLabel).toBe("No aplica");
+    expect(hojas.alert).toBeNull();
+    expect(hojas.facts).toEqual([]);
+  });
+
   it("prioriza el avance accionable de Monitoreo y Procesamiento", () => {
     const monitoreo = view("monitoreo");
     expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "8" });

@@ -329,6 +329,16 @@
   )
 }
 
+# ¿Aplica Hojas de ruta en este estudio? Lo dice el Planner (ADR 0122 P2,
+# `modos$hojas_ruta$aplica`): sólo un territorial por UMP aleatoria hace hoja de ruta;
+# uno por conveniencia, o un estudio sin territorial, no. Sin perfiles en el Planner
+# no se sabe, y se asume que aplica, como antes.
+.overview_hojas_aplica <- function(s) {
+  modos <- tryCatch(.planner_modos(s), error = function(e) NULL)
+  if (!is.list(modos) || !length(modos$perfiles)) return(TRUE)
+  isTRUE(modos$hojas_ruta$aplica)
+}
+
 # Hojas de ruta: fase + salidas territoriales reales (distritos, manzanas,
 # entrevistas, cuotas). Sustituye al enganoso "bloques de salida".
 .overview_hojas_facts <- function(s) {
@@ -345,7 +355,8 @@
     replacement_blocks_count = as.integer(.diseno_num(sample$n_replacement_blocks, 0)),
     interviews_count = as.integer(.diseno_num(sample$total_entrevistas, 0)),
     quota_assigned = as.integer(.diseno_num(quota$total_asignado, 0)),
-    from_pilot = .diseno_has_content(runs$pilot) && .diseno_has_content(runs$field)
+    from_pilot = .diseno_has_content(runs$pilot) && .diseno_has_content(runs$field),
+    aplica = .overview_hojas_aplica(s)
   )
 }
 
@@ -598,7 +609,7 @@
     hojas = safe(.overview_hojas_facts(s),
                  list(phase = "", districts_count = 0L, n_objetivo = 0L, blocks_count = 0L,
                       replacement_blocks_count = 0L, interviews_count = 0L,
-                      quota_assigned = 0L, from_pilot = FALSE)),
+                      quota_assigned = 0L, from_pilot = FALSE, aplica = TRUE)),
     "material-campo" = c(
       safe(.overview_fichas_facts(s),
            list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
@@ -638,10 +649,19 @@
   s <- session_get(sid)
   protocol <- .diseno_protocol_summary(s)
   statuses <- .diseno_module_statuses(s, protocol)
-  weights <- vapply(statuses, function(item) .diseno_state_weight(item$state), numeric(1))
-  score <- as.integer(round(100 * sum(weights) / max(length(statuses), 1L)))
-  risks <- .diseno_risks(statuses, protocol)
-  maturity <- .overview_maturity(statuses, score)
+  # Un módulo que no aplica en el estudio (Hojas de ruta en conveniencia) no es un
+  # pendiente: no entra al puntaje, a la madurez, a las siguientes acciones ni a los riesgos.
+  if (!isTRUE(tryCatch(.overview_hojas_aplica(s), error = function(e) TRUE))) {
+    statuses <- lapply(statuses, function(item) {
+      if (identical(item$id, "hojas-ruta")) { item$aplica <- FALSE; item$summary <- "No aplica en este estudio" }
+      item
+    })
+  }
+  cuentan <- Filter(function(item) !identical(item$aplica, FALSE), statuses)
+  weights <- vapply(cuentan, function(item) .diseno_state_weight(item$state), numeric(1))
+  score <- as.integer(round(100 * sum(weights) / max(length(cuentan), 1L)))
+  risks <- .diseno_risks(cuentan, protocol)
+  maturity <- .overview_maturity(cuentan, score)
   has_project <- nzchar(.diseno_scalar(s$project_path, ""))
 
   payload <- list(
@@ -662,7 +682,7 @@
     protocol = protocol,
     facts = .overview_facts(s, protocol),
     modules = statuses,
-    next_actions = .diseno_next_actions(statuses),
+    next_actions = .diseno_next_actions(cuentan),
     risks = risks
   )
   # added_modules solo se incluye cuando el proyecto YA curó su lista (lista,

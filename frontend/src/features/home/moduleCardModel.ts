@@ -557,6 +557,19 @@ export function buildModuleCardView(
 
     case "hojas-ruta": {
       const routes = facts.hojas;
+      // ADR 0122 P2: un territorial por conveniencia no sortea UMP. Es un vacío legítimo, no un pendiente.
+      if (routes.aplica === false) {
+        return {
+          state: "pending",
+          statusLabel: "No aplica",
+          viz: { kind: "stat", value: "No aplica", label: "en este estudio" },
+          sub: "Este estudio no sortea manzanas: no lleva hojas de ruta.",
+          facts: [],
+          action: moduleAction(module, "Abrir hojas de ruta"),
+          alert: null,
+          summary: "No aplica en este estudio",
+        };
+      }
       const routeFacts: ModuleCardFact[] = [
         { label: "distritos", value: formatCount(routes.districts_count) },
         routes.blocks_count > 0

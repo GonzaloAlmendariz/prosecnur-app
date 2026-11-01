@@ -99,6 +99,8 @@ export type ProjectOverviewFacts = {
     interviews_count: number;
     quota_assigned: number;
     from_pilot: boolean;
+    /** ADR 0122 P2: `false` cuando el Planner dice que el estudio no hace hoja de ruta (conveniencia). */
+    aplica?: boolean;
   };
   /** Fichas del plan de unidades. Un backend anterior al ADR 0108 la publicaba
       como `recopiladores`; `normalizeProjectOverview` la mueve aquí. */

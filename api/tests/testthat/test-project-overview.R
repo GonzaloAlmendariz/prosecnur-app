@@ -272,3 +272,18 @@ test_that("sin instrumento vinculado, facts.editor sigue leyendo el borrador", {
   expect_equal(editor$sections_count, 1L)
   expect_equal(editor$instruments_count, 0L)
 })
+
+test_that("un territorial por conveniencia: Hojas de ruta no aplica y no cuenta como pendiente (ADR 0122 P2)", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  antes <- .project_overview_payload(sid)
+  expect_true(antes$facts$hojas$aplica)  # sin perfiles en el Planner no se sabe: aplica
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", seleccion = "conveniencia")), 0L)
+  o <- .project_overview_payload(sid)
+  expect_false(o$facts$hojas$aplica)
+  hr <- Filter(function(m) identical(m$id, "hojas-ruta"), o$modules)
+  if (length(hr)) expect_false(hr[[1]]$aplica)
+  expect_identical(o$maturity$total_count, antes$maturity$total_count - length(hr))
+  expect_false(any(grepl("hojas-ruta", vapply(o$next_actions, function(a) as.character(a$id %||% a$module %||% ""), ""))))
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", seleccion = "ump_aleatoria")), 1L)
+  expect_true(.project_overview_payload(sid)$facts$hojas$aplica)
+})
