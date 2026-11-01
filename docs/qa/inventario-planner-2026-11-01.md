@@ -16,7 +16,9 @@ Propuestas posibles por sección: **queda** (es del Planner), **vuelve** (a su m
 convierte en una pregunta al analista, sin sembrarse desde otros módulos).
 
 La propuesta de diseño que acompaña este inventario (seis preguntas y la ruta del estudio) está en el artefacto
-«Planner como guía»: https://claude.ai/artifact/BGTjLb9JkzWDxUtDXrT16H. Hay copia local en la carpeta común de artefactos.
+«Planner como guía»: https://claude.ai/artifact/Rya7P5jZfN4cjLN6vDRJ5Q (cuenta nueva; la anterior era
+BGTjLb9JkzWDxUtDXrT16H), con su prototipo navegable en https://claude.ai/artifact/4FGYFbie5F4JeUdLAc88k9. Hay copia
+local en la carpeta común de artefactos.
 
 ## Resumen
 
@@ -126,6 +128,24 @@ La propuesta de diseño que acompaña este inventario (seis preguntas y la ruta 
 - **De dónde lee.** De nada posterior.
 - **Propuesta.** El registro queda como «¿qué decidimos y por qué?». Del lienzo se decide en la sesión si sale o queda
   como vista del cronograma.
+
+## Lo que deduce hoy el Planner de los cinco proyectos de referencia
+
+Medido el 1/11 con `.planner_payload` y `.planner_modos` sobre los `.pulso` de `api/inst/reference_projects/`.
+Ninguno tiene nada declarado en el Planner: todo sale de la proyección.
+
+| Proyecto | Tipo de estudio deducido | Nombre sembrado y su fuente | Otras siembras |
+|---|---|---|---|
+| acnur_acg | territorial, `ump_aleatoria`, diseña Hojas de ruta | «Encuesta a estudiantes» (`calc_muestra_estudio$titulo`) | equipo de 26 personas, etapa campo, ventana desde 2026-06-12 sin fin; aviso `fuente_contradice` (Cálculo tiene un diseño de aulas) |
+| acnur_pdm | telefónico, lista del cliente | «Auditoria Telefonica Con Cuotas» (`dashboard_config$titulo`) | una población «Población» |
+| hsvg2026 | aulas, `conglomerados`, diseña Cálculo (opinión universitaria) | «Muestra de cursos-horario» (`calc_muestra_estudio$titulo`) | insumo marco «Base principal de matrícula» |
+| acrconta | acreditación, lista del cliente | ninguno | ventana 2026-07-10 → 2026-07-13; una población genérica (es multiactor) |
+| acrconta_mazo | ninguno: los modos quedan vacíos | ninguno | aviso `bases_sin_perfil` (4 bases) |
+
+Ninguno trae cliente ni código, y los cinco traen los códigos sembrados de Material. Lectura para la sesión:
+el tipo de estudio se deduce bien (sostiene los modos y conviene proyectarlo hasta que exista el «completar desde
+el proyecto»), y el nombre sale mal las tres veces que se deduce, porque es el título de otra cosa. El prototipo
+tiene «Probar con» para abrir cada uno como proyecto viejo.
 
 ## Unidades del 31/10 y el 1/11 que van contra los principios
 
