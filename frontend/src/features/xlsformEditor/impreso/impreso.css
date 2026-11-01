@@ -416,7 +416,7 @@
   background: var(--pulso-surface);
 }
 
-.pulso-xf-imp-paginas {
+.pulso-xf-imp-word-paginas {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -427,7 +427,9 @@
   padding: var(--pulso-space-4);
 }
 
-.pulso-xf-imp-pagina {
+.pulso-xf-imp-word-hoja {
+  /* Sin esto la columna (flex de alto fijo) encoge cada página y se montan. */
+  flex: 0 0 auto;
   margin: 0;
   width: min(100%, 520px);
   display: flex;
@@ -435,7 +437,7 @@
   gap: var(--pulso-space-1);
 }
 
-.pulso-xf-imp-pagina img {
+.pulso-xf-imp-word-hoja img {
   display: block;
   width: 100%;
   height: auto;
@@ -444,7 +446,7 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
-.pulso-xf-imp-pagina figcaption {
+.pulso-xf-imp-word-hoja figcaption {
   align-self: center;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-micro-size);

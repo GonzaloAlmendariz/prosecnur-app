@@ -26,8 +26,7 @@
 #' Página en que empieza cada pregunta, a partir del texto de cada página
 #'
 #' Sólo se buscan los números que el modelo imprimió (D-L36-10): una pregunta
-#' `7` es una línea que empieza con «7.» y un ítem `8.1`, una que empieza con
-#' «8.1». Así un código de opción («1 Técnico») o una celda de escala no se
+#' `7` es «7.» al inicio de una línea o de su columna, y un ítem `8.1`, «8.1». Así un código de opción («1 Técnico») o una celda de escala no se
 #' confunden con una pregunta. Un número que no aparece queda con `pagina = NA`.
 #'
 #' @param textos Un texto por página (`pdftools::pdf_text`).
@@ -39,10 +38,14 @@
   # Los números impresos sólo llevan cifras y puntos: basta con escapar el punto.
   escapar <- function(x) gsub(".", "\\.", x, fixed = TRUE)
   lapply(numeros, function(num) {
+    # Al inicio de línea o tras el hueco entre columnas (dos espacios o más):
+    # con dos columnas, pdftotext pone la pregunta de la derecha en la misma
+    # línea que la de la izquierda («3. ¿Cuál…   4. ¿Cuenta…»).
+    inicio <- "(^|\\s{2,})"
     patron <- if (grepl(".", num, fixed = TRUE)) {
-      paste0("^", escapar(num), "(\\s|$)")
+      paste0(inicio, escapar(num), "(\\s|$)")
     } else {
-      paste0("^", escapar(num), "\\.(\\s|$)")
+      paste0(inicio, escapar(num), "\\.(\\s|$)")
     }
     pagina <- NA_integer_
     for (p in seq_along(lineas)) {

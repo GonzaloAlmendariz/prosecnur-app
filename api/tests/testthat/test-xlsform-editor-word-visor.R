@@ -14,6 +14,13 @@ test_that("el mapa ubica cada número del modelo en su primera página y no conf
   expect_true(is.na(paginas[["10"]]))
 })
 
+test_that("con dos columnas encuentra la pregunta de la derecha en la misma línea", {
+  textos <- "3. ¿Cuál es su grado?            4. ¿Cuenta con experiencia?\n1 Técnico                         Sí 1 No 2\n8.2 Ítem   1  2  3  4  99"
+  mapa <- .cuestionario_visor_mapa(textos, c("3", "4", "2", "8.2", "99"))
+  paginas <- vapply(mapa, function(m) as.integer(m$pagina), integer(1))
+  expect_identical(paginas, c(1L, 1L, NA, 1L, NA))
+})
+
 test_that("los números del modelo salen de preguntas e ítems de matriz, en orden", {
   model <- list(blocks = list(
     list(kind = "cover"),

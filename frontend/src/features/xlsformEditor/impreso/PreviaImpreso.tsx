@@ -48,8 +48,16 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, est
   // Lo generado con la otra lectura no se muestra: para esta lectura todavía no hay previa.
   const fase = previa.fase === "lista" && previa.lecturaGenerada !== previa.lectura ? "inactiva" : previa.fase;
   const paginasRef = useRef<HTMLDivElement | null>(null);
+  // Sólo se desplaza la columna de páginas (scrollIntoView movería también la pestaña) y después de que el menú se
+  // cierra: Radix devuelve el foco al disparador al cerrar y eso cancelaba un desplazamiento lanzado antes.
   const irAPagina = (n: number) => {
-    paginasRef.current?.querySelector(`[data-pagina="${n}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    window.setTimeout(() => {
+      const columna = paginasRef.current;
+      const hoja = columna?.querySelector<HTMLElement>(`[data-pagina="${n}"]`);
+      if (!columna || !hoja) return;
+      const destino = columna.scrollTop + hoja.getBoundingClientRect().top - columna.getBoundingClientRect().top - 8;
+      columna.scrollTo({ top: Math.max(0, destino), behavior: "smooth" });
+    }, 0);
   };
   const ubicadas = previa.word?.mapa.filter((m) => m.pagina !== null) ?? [];
   return (
@@ -128,9 +136,9 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, est
                 />
               </div>
             )}
-            <div className="pulso-xf-imp-paginas" ref={paginasRef}>
+            <div className="pulso-xf-imp-word-paginas" ref={paginasRef}>
               {previa.word.paginas.map((src, i) => (
-                <figure key={i} className="pulso-xf-imp-pagina" data-pagina={i + 1}>
+                <figure key={i} className="pulso-xf-imp-word-hoja" data-pagina={i + 1}>
                   <img src={src} alt={`Página ${i + 1} de ${previa.word?.paginas.length ?? 0} del Word`} loading="lazy" />
                   <figcaption>{`Página ${i + 1}`}</figcaption>
                 </figure>
