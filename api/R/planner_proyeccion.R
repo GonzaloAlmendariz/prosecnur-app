@@ -86,10 +86,30 @@
   if (is.na(tipo)) "" else tipo
 }
 
+# Las bases que pueden ser una población: las principales, con su nombre
+# legible (el alias o el título de la fuente, no el id técnico) y sus repeats.
+# Un grupo repetido (`parent_base`) es parte de la encuesta de su base madre,
+# no otra población: acnur_pdm salía con «rep_servicios» como segunda población.
+.planner_bases_poblacion <- function(s) {
+  todas <- (s[["estudio"]] %||% list())$bases %||% list()
+  if (!is.list(todas) || !length(todas)) return(list())
+  madre <- vapply(todas, function(b) .planner_chr1(b$parent_base), "")
+  principales <- names(todas)[!nzchar(madre) | !madre %in% names(todas)]
+  lapply(stats::setNames(principales, principales), function(id) {
+    b <- todas[[id]]
+    etiqueta <- .planner_chr1(b$source_alias)
+    if (!nzchar(etiqueta)) etiqueta <- .planner_chr1(b$source_title)
+    if (!nzchar(etiqueta)) etiqueta <- .planner_chr1(b$nombre)
+    if (!nzchar(etiqueta)) etiqueta <- id
+    list(id = id, etiqueta = etiqueta, bases = as.list(c(id, names(todas)[madre == id])))
+  })
+}
+
 .planner_poblaciones_proyectadas <- function(s, tipo) {
   perfil_mon <- (s[["monitoreo_config"]] %||% list())$monitoreo_profile
   unidades <- if (is.list(perfil_mon)) perfil_mon$units else NULL
-  bases <- names((s[["estudio"]] %||% list())$bases %||% list())
+  principales <- .planner_bases_poblacion(s)
+  bases <- unname(unlist(lapply(principales, `[[`, "bases")))
   rep <- NULL
   if (identical(tipo, "aulas")) {
     rep <- tryCatch(monitoreo_aulas_representatividad_declarada(s[["monitoreo_config"]] %||% list()),
@@ -102,9 +122,7 @@
       list(id = .planner_chr1(u$id %||% u$key %||% etiqueta), etiqueta = etiqueta, bases = list())
     }))
   }
-  if (length(bases) > 1L) {
-    return(lapply(bases, function(b) list(id = b, etiqueta = b, bases = list(b))))
-  }
+  if (length(principales) > 1L) return(unname(principales))
   list(list(id = "principal", etiqueta = if (identical(tipo, "aulas")) "Estudiantes" else "Población",
             bases = as.list(bases), representatividad = rep))
 }
@@ -130,7 +148,7 @@
   }
   con_tipos <- Filter(function(f) length(f$tipos) > 0L, fuentes)
   if (!length(con_tipos)) {
-    bases <- names((s[["estudio"]] %||% list())$bases %||% list())
+    bases <- names(.planner_bases_poblacion(s))
     if (length(bases) > 1L) {
       avisos[[length(avisos) + 1L]] <- .planner_aviso(
         "bases_sin_perfil",
