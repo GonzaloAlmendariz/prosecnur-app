@@ -20,6 +20,7 @@ vi.mock("../../api/client", () => api);
 vi.mock("../../lib/SessionContext", () => ({ useSession: () => ({ sessionId: "sid-1" }) }));
 
 import { ProjectModulesProvider } from "./ProjectModulesContext";
+import { avisarCambioDelEstudio } from "../../lib/avisoDeCambioDelEstudio";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -52,6 +53,14 @@ describe("Home vivo (L31)", () => {
       window.dispatchEvent(new Event("pulso:session-changed"));
       window.dispatchEvent(new Event("pulso:session-changed"));
     });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(api.apiProjectOverview.mock.calls.length).toBe(alMontar + 1);
+  });
+
+  test("en el Home, una base que llega por un import en segundo plano recarga sin cambiar de sesión (L31b)", async () => {
+    montar("/");
+    const alMontar = api.apiProjectOverview.mock.calls.length;
+    act(() => { avisarCambioDelEstudio("prueba"); });
     await act(async () => { vi.advanceTimersByTime(500); });
     expect(api.apiProjectOverview.mock.calls.length).toBe(alMontar + 1);
   });

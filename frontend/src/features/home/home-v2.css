@@ -2843,6 +2843,39 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/* L31b: mientras corre un import de plataforma, el renglón de la siguiente
+   acción de Procesamiento es la barra viva. Mismo alto que el renglón, así la
+   tarjeta no cambia de tamaño (contrato `equal` del grupo). */
+.home-mc-siguiente.is-importando {
+  display: flex;
+  min-width: 0;
+  gap: var(--pulso-space-2);
+}
+
+.home-mc-import-barra {
+  flex: 0 0 56px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 16%, transparent);
+}
+
+.home-mc-import-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--home-mod-accent, var(--pulso-primary));
+  transform-origin: left center;
+  transition: transform var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.home-mc-import-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --- L31: bloque «desde tu última apertura» ---------------------------- */
 /* Una banda baja sobre las tarjetas, del ancho de la rejilla. Dice lo que
    cambió, o que no cambió nada, o que es la primera apertura en el equipo:

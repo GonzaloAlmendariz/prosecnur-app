@@ -1,5 +1,6 @@
 import { forwardRef, useRef, useState, type CSSProperties } from "react";
 import { accionVisible } from "./siguienteAccion";
+import { useImportEnCurso } from "./importEnCurso";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
@@ -167,6 +168,9 @@ export const ModuleStatusCard = forwardRef<
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [menuState, setMenuState] = useState<MissionControlMenuState>({ kind: "closed" });
   const [showProgress, setShowProgress] = useState(false);
+  // L31b: el import de plataforma que corre en Carga se ve en la tarjeta de Procesamiento.
+  const importando = useImportEnCurso();
+  const enCurso = module.slug === "procesamiento" ? importando : null;
 
   function applyMenuEvent(event: MissionControlMenuEvent) {
     const transition = transitionMissionControlMenu(menuState, event);
@@ -247,8 +251,24 @@ export const ModuleStatusCard = forwardRef<
             porque la tarjeta entera ya es el botón. */}
         {/* El renglón se reserva aunque no haya acción: así todas las tarjetas
             miden lo mismo (contrato `equal` del grupo). */}
-        <span className="home-mc-siguiente" aria-hidden={accionVisible(view.action) ? undefined : true}>
-          {accionVisible(view.action) && (
+        <span
+          className={`home-mc-siguiente${enCurso ? " is-importando" : ""}`}
+          aria-hidden={enCurso || accionVisible(view.action) ? undefined : true}
+        >
+          {enCurso ? (
+            <>
+              <span className="home-mc-import-barra" aria-hidden="true">
+                <span style={{ transform: `scaleX(${(enCurso.percent ?? 0) / 100})` }} />
+              </span>
+              {/* El avance va primero: el nombre de la encuesta suele ser largo y es lo que se trunca. */}
+              <span className="home-mc-import-texto" title={`Importando ${enCurso.etiqueta}`}>
+                Importando · {enCurso.fase}
+                {enCurso.percent != null ? ` · ${enCurso.percent} %` : ""}
+                {enCurso.otros > 0 ? ` · y ${enCurso.otros} más` : ""}
+                {` · ${enCurso.etiqueta}`}
+              </span>
+            </>
+          ) : accionVisible(view.action) && (
             <>
               <ArrowRight size={12} aria-hidden="true" />
               {accionVisible(view.action)}

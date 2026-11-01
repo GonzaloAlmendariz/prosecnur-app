@@ -15,6 +15,7 @@ import {
   type ProjectOverview,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { EVENTO_CAMBIO_DEL_ESTUDIO } from "../../lib/avisoDeCambioDelEstudio";
 import { slugCanonicoDeModulo, slugsCanonicosDeModulo } from "../../lib/navegacion/aliasDeModulo";
 
 // Slugs de módulos primarios que un proyecto puede agregar (coincide con
@@ -163,8 +164,11 @@ export function ProjectModulesProvider({ children }: { children: ReactNode }) {
       espera = setTimeout(() => void load(), 400);
     };
     window.addEventListener("pulso:session-changed", alCambiar);
+    // Una base que llega por un import en segundo plano no cambia el sid (L31b).
+    window.addEventListener(EVENTO_CAMBIO_DEL_ESTUDIO, alCambiar);
     return () => {
       window.removeEventListener("pulso:session-changed", alCambiar);
+      window.removeEventListener(EVENTO_CAMBIO_DEL_ESTUDIO, alCambiar);
       if (espera) clearTimeout(espera);
     };
   }, [load, pathname, sessionId]);
