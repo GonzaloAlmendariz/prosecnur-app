@@ -112,7 +112,9 @@ const TABLA: readonly Entrada[] = [
   // Ctl3 Distribución: contenido propio (`control/DistribucionAulas.tsx`, maqueta v3).
   entrada("control", "distribucion", null, v("modelo", "carga"), { propia: true }),
   // Control, grupo Campo.
-  entrada("control", "registro", null, v("calidad", "registro")),
+  // Ctl4 Registro de campo: contenido propio (`control/RegistroAulas.tsx`),
+  // lectura del parte (P5: manda la hoja) y declaración B o C.
+  entrada("control", "registro", null, v("calidad", "registro"), { propia: true }),
   // «Buscar por código» deja de ser pestaña: será el inspector del
   // curso-horario (`panel=aula&foco=<código>`), que todavía no existe. Mientras
   // tanto la ficha sigue alcanzable como sub-vista de Partes, la pestaña cuya
