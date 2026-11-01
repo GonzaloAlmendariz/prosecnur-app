@@ -2,7 +2,7 @@
 
 Estado: Aceptado (Gonzalo, 2026-11-01: «Aprobado»)
 
-Implementación: En curso — Q0 (reverts) en los commits que siguen a la aceptación
+Implementación: En curso — Q0 hecha (338745126, 0dd24b6bb); Q1–Q6 pendientes
 
 Fecha: 2026-11-01
 
