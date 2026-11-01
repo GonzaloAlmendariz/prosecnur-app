@@ -16,12 +16,13 @@
 
 PLANNER_SCHEMA <- "planner/v1"
 PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa", "ventana")
-PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "insumos", "etapa", "ventana")
-# Secciones que salieron del Planner (ADR 0123 §2): el equipo es de Monitoreo y
-# los códigos de Material. Se siguen normalizando porque Material las lee como
-# respaldo de lectura en los .pulso que las declararon (hasta la fase Q6), y el
-# anonimizador sigue cubriendo `planner$equipo$personas` mientras existan.
-PLANNER_SECCIONES_LECTURA <- c(equipo = "Monitoreo", codigos = "Material de campo")
+PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "etapa", "ventana")
+# Secciones que salieron del Planner (ADR 0123 §2): el equipo es de Monitoreo,
+# los códigos de Material y los insumos del cliente no se registran. Se siguen
+# normalizando porque Material lee equipo y códigos como respaldo en los .pulso
+# que los declararon (hasta la fase Q6), y el anonimizador sigue cubriendo
+# `planner$equipo$personas` mientras existan. El valor dice dónde viven ahora.
+PLANNER_SECCIONES_LECTURA <- c(equipo = "Monitoreo", codigos = "Material de campo", insumos = "")
 # Etapa operativa del estudio (Meta B, 2026-10-31, con el ADR 0122 ratificado:
 # «el Planner dice qué fase está activa»). Hojas de ruta y Monitoreo la leen
 # del Planner en una fase posterior; hasta entonces el Planner muestra lo que
@@ -329,7 +330,8 @@ PLANNER_MAX_INSUMOS <- 60L
   if (seccion %in% names(PLANNER_SECCIONES_LECTURA)) {
     modulo <- PLANNER_SECCIONES_LECTURA[[seccion]]
     stop_api(409, "E_PLANNER_SECCION_RETIRADA",
-             sprintf("Esa sección ya no se declara en el Planner: vive en %s.", modulo),
+             if (nzchar(modulo)) sprintf("Esa sección ya no se declara en el Planner: vive en %s.", modulo)
+             else "Esa sección ya no se declara en el Planner: los insumos del cliente no se registran.",
              details = list(seccion = seccion, modulo = modulo))
   }
   if (!seccion %in% PLANNER_SECCIONES_ESCRIBIBLES) {

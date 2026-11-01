@@ -44,9 +44,23 @@ describe("gramática de direcciones", () => {
     // su pestaña nueva y conserva la que pedía (mes o semana).
     expect(parsearDireccion("/planner", "?seccion=calendario")).toMatchObject({ seccion: "cronograma", pestana: "mes" });
     expect(parsearDireccion("/planner", "?seccion=calendario&pestana=semana")).toMatchObject({ seccion: "cronograma", pestana: "semana" });
-    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
-    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "bitacora", pestana: "lienzo" });
-    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=bitacora&pestana=lienzo");
+    // ADR 0123: el lienzo es ahora la sección Camino; el alias se encadena.
+    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "camino" });
+    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "camino" });
+    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=camino");
+    // La Bitácora dejó de ser sección: el registro es una pestaña del cronograma
+    // y el lienzo, Camino. La pareja sección/pestaña gana a la sección sola.
+    expect(parsearDireccion("/planner", "?seccion=bitacora")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
+    expect(parsearDireccion("/planner", "?seccion=bitacora&pestana=registro")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
+    const lienzo = parsearDireccion("/planner", "?seccion=bitacora&pestana=lienzo");
+    expect(lienzo).toMatchObject({ seccion: "camino" });
+    expect(lienzo?.pestana).toBeUndefined();
+    // Los insumos del cliente ya no se registran: Estudio, con el aviso.
+    const insumos = parsearDireccion("/planner", "?seccion=estudio&pestana=insumos");
+    expect(insumos).toMatchObject({ seccion: "estudio", aviso: "insumos-no-se-registran" });
+    expect(insumos?.pestana).toBeUndefined();
+    expect(parsearDireccion("/planner", "?seccion=estudio&pestana=perfiles")).toMatchObject({ seccion: "estudio", pestana: "perfiles" });
+    expect(parsearDireccion("/planner", "?seccion=estudio&pestana=perfiles")?.aviso).toBeUndefined();
     // ADR 0123 §3: Equipo y Códigos salieron del Planner. La dirección vieja
     // aterriza en Estudio con el aviso de dónde vive el dato, y la pestaña vieja
     // (que Estudio no tiene) se descarta. El aviso nunca se escribe.

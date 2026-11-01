@@ -138,7 +138,19 @@ BITACORA_DESTINOS_RENOMBRADOS <- c(
   "diseno-estudio/calendario" = "diseno-estudio/cronograma/mes",
   "diseno-estudio/calendario/mes" = "diseno-estudio/cronograma/mes",
   "diseno-estudio/calendario/semana" = "diseno-estudio/cronograma/semana",
-  "diseno-estudio/canvas" = "diseno-estudio/bitacora/lienzo"
+  "diseno-estudio/canvas" = "diseno-estudio/camino",
+  # ADR 0123 §3: la Bitácora dejó de ser sección. El registro es una pestaña del
+  # cronograma y el lienzo es la sección Camino.
+  "diseno-estudio/bitacora" = "diseno-estudio/cronograma/registro",
+  "diseno-estudio/bitacora/registro" = "diseno-estudio/cronograma/registro",
+  "diseno-estudio/bitacora/lienzo" = "diseno-estudio/camino",
+  # Secciones que salieron del Planner (ADR 0123 §2): su destino es Estudio,
+  # que dice dónde vive ahora el dato.
+  "diseno-estudio/equipo" = "diseno-estudio/estudio",
+  "diseno-estudio/codigos" = "diseno-estudio/estudio",
+  "diseno-estudio/codigos/resultado" = "diseno-estudio/estudio",
+  "diseno-estudio/codigos/barrido" = "diseno-estudio/estudio",
+  "diseno-estudio/estudio/insumos" = "diseno-estudio/estudio"
 )
 
 .bit_migrar_destinos_lienzo <- function(canvas) {

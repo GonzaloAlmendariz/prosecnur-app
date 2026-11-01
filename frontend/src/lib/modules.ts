@@ -243,17 +243,18 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     // ADR 0122: la Bitácora pasa a ser el Planner. El slug `diseno-estudio` no
     // cambia (tonos, manifiesto, lienzo y tests lo usan como contrato); cambian
     // el nombre visible, la ruta y las secciones. `/bitacora` redirige aquí con
-    // su query, y `calendario`/`canvas` se leen como alias por valor.
+    // su query, y `calendario`/`canvas` se leen como alias por valor. ADR 0123:
+    // ya no es bitácora; el registro es una pestaña del cronograma y el lienzo
+    // es el camino entre módulos.
     title: "Planner del estudio",
     shortLabel: "Planner",
     tagline: "El estudio definido una vez para todos los módulos",
     blurb:
-      "Define el estudio una sola vez —identidad, perfiles de recojo, poblaciones, equipo y códigos— para que cada módulo lo lea en vez de volver a preguntarlo, con el cronograma y la bitácora de decisiones.",
+      "Define el estudio una sola vez —su nombre, sus tipos y el camino entre los módulos— para que cada módulo abra en su modo sin volver a preguntarlo, con un cronograma opcional.",
     features: [
-      "Perfiles de recojo y poblaciones del estudio",
-      "Equipo de campo y códigos de resultado en un solo lugar",
-      "Cronograma con fases, Gantt y calendario",
-      "Bitácora de decisiones y lienzo del estudio",
+      "Perfiles de recojo y quién diseña la muestra",
+      "El camino del estudio entre los módulos",
+      "Cronograma opcional, con registro de decisiones",
     ],
     icon: IconStudyDesign,
     tone: MODULE_TONES["diseno-estudio"],
@@ -269,7 +270,6 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         tabs: [
           { id: "identidad", label: "Identidad", icon: FileText, to: "/planner?seccion=estudio&pestana=identidad", layoutPolicy: "viewport" },
           { id: "perfiles", label: "Perfiles de recojo", icon: Layers, to: "/planner?seccion=estudio&pestana=perfiles", layoutPolicy: "viewport" },
-          { id: "insumos", label: "Insumos", icon: DatabaseZap, to: "/planner?seccion=estudio&pestana=insumos", layoutPolicy: "viewport" },
         ],
       },
       {
@@ -277,6 +277,15 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         label: "Muestra",
         icon: Target,
         to: "/planner?seccion=muestra",
+        layoutPolicy: "viewport",
+      },
+      {
+        // El lienzo, que ya no es bitácora: el camino del estudio entre los
+        // módulos (ADR 0123 §4). Un camino, no un mando.
+        id: "camino",
+        label: "Camino",
+        icon: Network,
+        to: "/planner?seccion=camino",
         layoutPolicy: "viewport",
       },
       {
@@ -292,17 +301,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
           { id: "gantt", label: "Plan", icon: GanttChart, to: "/planner?seccion=cronograma&pestana=gantt", layoutPolicy: "viewport" },
           { id: "mes", label: "Mes", icon: CalendarDays, to: "/planner?seccion=cronograma&pestana=mes", layoutPolicy: "viewport" },
           { id: "semana", label: "Semana", icon: CalendarRange, to: "/planner?seccion=cronograma&pestana=semana", layoutPolicy: "viewport" },
-        ],
-      },
-      {
-        id: "bitacora",
-        label: "Bitácora",
-        icon: ClipboardList,
-        to: "/planner?seccion=bitacora",
-        layoutPolicy: "viewport",
-        tabs: [
-          { id: "registro", label: "Registro", icon: ClipboardList, to: "/planner?seccion=bitacora&pestana=registro", layoutPolicy: "viewport" },
-          { id: "lienzo", label: "Lienzo", icon: Network, to: "/planner?seccion=bitacora&pestana=lienzo", layoutPolicy: "viewport" },
+          // Opcional (ADR 0123 §1): el registro de decisiones vive dentro del cronograma.
+          { id: "registro", label: "Registro de decisiones", icon: ClipboardList, to: "/planner?seccion=cronograma&pestana=registro", layoutPolicy: "viewport" },
         ],
       },
     ],

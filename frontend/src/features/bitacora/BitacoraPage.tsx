@@ -1,5 +1,5 @@
 // El Planner del estudio (ADR 0122, reemplazado en parte por el 0123). Cuatro
-// secciones —Estudio, Muestra, Cronograma y Bitácora— con la dirección
+// secciones —Estudio, Muestra, Camino y Cronograma— con la dirección
 // canónica (`useSeccion`): las secciones van en el pillbar compartido y las
 // pestañas de una sección con dos o más, en el rail de la casa.
 //
@@ -44,14 +44,14 @@ import { usePlanner } from "./planner/usePlanner";
 import "./bitacora.css";
 import "./planner/planner.css";
 
-type Seccion = "estudio" | "muestra" | "cronograma" | "bitacora";
+type Seccion = "estudio" | "muestra" | "camino" | "cronograma";
 
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
 
 type PlannerSection = ProsecnurModuleSectionMeta & { id: Seccion };
 
-const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "cronograma", "bitacora"];
+const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "camino", "cronograma"];
 
 function isPlannerSection(section: ProsecnurModuleSectionMeta): section is PlannerSection {
   return SECCIONES_PLANNER.includes(section.id);
@@ -63,7 +63,7 @@ const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isPlannerSection);
 // vista Mes o Semana sigue siendo un tabpanel etiquetado por su pestaña.
 // Secciones que salieron del Planner (ADR 0123 §2): lo que dice el aviso
 // cuando alguien llega por una dirección vieja.
-const MUDANZAS: Record<string, { texto: string; enlace: string; href: string }> = {
+const MUDANZAS: Record<string, { texto: string; enlace?: string; href?: string }> = {
   "equipo-en-monitoreo": {
     texto: "El equipo de campo ya no se declara en el Planner: vive en Monitoreo, con el control de encuestadores y aplicadores.",
     enlace: "Ir a Monitoreo",
@@ -73,6 +73,9 @@ const MUDANZAS: Record<string, { texto: string; enlace: string; href: string }> 
     texto: "Los códigos de resultado y los status del barrido ya no se declaran en el Planner: viven en Material de campo.",
     enlace: "Ir a Material de campo",
     href: "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos",
+  },
+  "insumos-no-se-registran": {
+    texto: "Los insumos del cliente ya no se registran en el Planner: cada módulo pide y lee el archivo que usa.",
   },
 };
 
@@ -147,7 +150,7 @@ export default function BitacoraPage() {
     const rol = conRail && pestana !== "mes" && pestana !== "semana";
     // El cronograma y el lienzo traen su propio marco a toda altura (ADR 0047):
     // el grupo intrinsic sólo se declara para las secciones nuevas del Planner.
-    const propia = tab !== "cronograma" && tab !== "bitacora";
+    const propia = tab !== "cronograma" && tab !== "camino";
     return (
       <section
         id={rol ? panelIdDe(pestana) : undefined}
@@ -168,8 +171,8 @@ export default function BitacoraPage() {
         {tab === "cronograma" && plan && (pestana === "mes" || pestana === "semana") && (
           <Calendar state={plan} onChange={setPlan} selectorDeVista={false} />
         )}
-        {tab === "bitacora" && pestana === "registro" && <LogbookSection entries={entries} onChange={setEntries} />}
-        {tab === "bitacora" && pestana === "lienzo" && bitacoraEstado && (
+        {tab === "cronograma" && pestana === "registro" && <LogbookSection entries={entries} onChange={setEntries} />}
+        {tab === "camino" && bitacoraEstado && (
           <CanvasSection estado={bitacoraEstado} onEstado={setBitacoraEstado} />
         )}
       </section>
@@ -249,7 +252,7 @@ export default function BitacoraPage() {
 
         {mudanza && (
           <Alert kind="info">
-            {mudanza.texto} <Link to={mudanza.href}>{mudanza.enlace}</Link>
+            {mudanza.texto}{mudanza.href && <> <Link to={mudanza.href}>{mudanza.enlace}</Link></>}
           </Alert>
         )}
         {error && <Alert kind="error">{error}</Alert>}

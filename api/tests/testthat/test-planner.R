@@ -344,14 +344,17 @@ test_that("el marco que leyó Cálculo no se siembra como insumo; los archivos d
   expect_setequal(vapply(p$archivos, `[[`, "", "file_id"), c("f-marco", "f-xls"))
 })
 
-test_that("un insumo declarado guarda sólo el file_id; el nombre se resuelve al leer", {
+test_that("los insumos ya no se declaran (ADR 0123 §2); los de un .pulso viejo se siguen leyendo", {
   sid <- .pl_sesion(list(files = .pl_archivos()))
-  .planner_declarar(sid, "insumos", list(
+  err <- tryCatch(.planner_declarar(sid, "insumos", list(), 0L), error = identity)
+  expect_equal(err$code, "E_PLANNER_SECCION_RETIRADA")
+  expect_match(err$message, "no se registran")
+  .planner_sembrar_legado(sid, "insumos", list(
     list(id = "padron", tipo = "padron", etiqueta = "Padrón 2026", archivo = "f-marco", origen = "DTI",
          archivo_nombre = "no se guarda"),
     list(id = "listado", tipo = "listado", etiqueta = "Listado del cliente", archivo = "", origen = "Drive del cliente"),
     list(id = "viejo", tipo = "otro", etiqueta = "Ya no está", archivo = "f-borrado", origen = "Correo")
-  ), 0L)
+  ))
   guardado <- session_get(sid)$planner$insumos
   expect_null(guardado[[1]]$archivo_nombre)
   expect_equal(guardado[[1]]$archivo, "f-marco")

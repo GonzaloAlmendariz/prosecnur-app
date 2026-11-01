@@ -120,15 +120,21 @@ const ALIAS_LEGACY: Partial<Record<ProsecnurModuleSlug, AliasPorNivel>> = {
 // Planner; la pestaña pedida (mes/semana) se conserva si venía.
 // ADR 0123 §3: una sección que salió del módulo lleva además un `aviso` (dónde
 // vive ahora su dato). Su pestaña vieja no existe en el destino, así que se
-// descarta y manda la del alias.
+// descarta y manda la del alias. La clave también puede ser una pareja
+// `seccion/pestana` cuando sólo esa pestaña se mudó; la pareja gana a la
+// sección sola y su pestaña manda.
 type SeccionRenombrada = { seccion: string; pestana?: string; aviso?: string };
 
 const SECCIONES_RENOMBRADAS: Partial<Record<ProsecnurModuleSlug, Readonly<Record<string, SeccionRenombrada>>>> = {
   "diseno-estudio": {
     calendario: { seccion: "cronograma", pestana: "mes" },
-    canvas: { seccion: "bitacora", pestana: "lienzo" },
+    canvas: { seccion: "camino" },
+    bitacora: { seccion: "cronograma", pestana: "registro" },
+    "bitacora/registro": { seccion: "cronograma", pestana: "registro" },
+    "bitacora/lienzo": { seccion: "camino" },
     equipo: { seccion: "estudio", aviso: "equipo-en-monitoreo" },
     codigos: { seccion: "estudio", aviso: "codigos-en-material" },
+    "estudio/insumos": { seccion: "estudio", aviso: "insumos-no-se-registran" },
   },
 };
 
@@ -264,13 +270,14 @@ export function parsearDireccion(
   const modo = leerParam(params, PARAMS_DIRECCION.modo, alias.modo);
   const seccionLeida =
     leerParam(params, PARAMS_DIRECCION.seccion, alias.seccion) ?? nodo.seccion;
-  const renombrada = seccionLeida
-    ? SECCIONES_RENOMBRADAS[nodo.modulo]?.[normalizarToken(seccionLeida)]
+  const pestanaLeida = leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana);
+  const renombradas = SECCIONES_RENOMBRADAS[nodo.modulo];
+  const porPareja = seccionLeida && pestanaLeida
+    ? renombradas?.[`${normalizarToken(seccionLeida)}/${normalizarToken(pestanaLeida)}`]
     : undefined;
+  const renombrada = porPareja ?? (seccionLeida ? renombradas?.[normalizarToken(seccionLeida)] : undefined);
   const seccion = renombrada ? renombrada.seccion : seccionLeida;
-  const pestana = renombrada?.aviso
-    ? renombrada.pestana
-    : leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana) ?? renombrada?.pestana;
+  const pestana = porPareja || renombrada?.aviso ? renombrada?.pestana : pestanaLeida ?? renombrada?.pestana;
   const panel = leerParam(params, PARAMS_DIRECCION.panel);
   const foco = leerParam(params, PARAMS_DIRECCION.foco);
   const campana = leerParam(params, PARAM_CAMPANA);
