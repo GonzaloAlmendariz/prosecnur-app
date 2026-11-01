@@ -1,11 +1,16 @@
 // Planner › Muestra: universo y variables de cuota de cada población
-// (ADR 0122 §3). En esta etapa es de lectura: la declaración la escribe la F4
-// del ADR 0121 por la puerta del Planner. Las celdas con cuota no viven aquí:
-// son del diseñador (Cálculo de muestra u Hojas de ruta).
+// (ADR 0122 §3). Es de lectura (decisión de Meta B): se edita en Cálculo de
+// muestra, que la declara en el Planner (F4 del ADR 0121). Las celdas con
+// cuota no viven aquí: son del diseñador (Cálculo de muestra u Hojas de ruta).
+
+import { Link } from "react-router-dom";
 
 import { PlannerCabecera } from "./PlannerCabecera";
 import { ETIQUETA_PERFIL } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
+
+// Cálculo aterriza en el modo que fija el perfil; Hojas de ruta diseña el territorial.
+const RUTA_CALCULO = "/calc-muestra";
 
 export function PlannerMuestra({ control }: { control: ControlPlanner }) {
   const { estado } = control;
@@ -19,6 +24,7 @@ export function PlannerMuestra({ control }: { control: ControlPlanner }) {
         lead="A quién representa cada población del estudio y por qué variables se fija su cuota."
         origen={estado.origen.perfiles}
         declaradoEn={estado.declaradoEn.perfiles}
+        acciones={<Link className="plan-button" to={RUTA_CALCULO}>Editar en Cálculo de muestra</Link>}
       />
       {poblaciones.length === 0 ? (
         <p className="planner-vacio">Declara primero los perfiles de recojo: cada población declara aquí su universo.</p>

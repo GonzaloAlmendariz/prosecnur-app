@@ -415,3 +415,9 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
+
+.planner-calendario-etapa {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}

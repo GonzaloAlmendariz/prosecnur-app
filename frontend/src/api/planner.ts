@@ -9,7 +9,7 @@ import { apiFetch, handle, headers } from "./core";
 
 export const PLANNER_TIPOS_PERFIL = ["territorial", "aulas", "telefonico", "acreditacion"] as const;
 export type PlannerTipoPerfil = (typeof PLANNER_TIPOS_PERFIL)[number];
-export type PlannerSeccion = "estudio" | "perfiles" | "equipo" | "codigos" | "insumos";
+export type PlannerSeccion = "estudio" | "perfiles" | "equipo" | "codigos" | "insumos" | "etapa";
 export type PlannerDiseno = "calc-muestra" | "hojas-ruta" | "cliente";
 export type PlannerSeleccionAulas = "conglomerados" | "marco";
 export type PlannerOrigen = "declarado" | "proyectado";
@@ -61,6 +61,8 @@ export type PlannerEstado = {
     equipo: PlannerEquipo;
     codigos: PlannerCodigos;
     insumos: PlannerInsumo[];
+    /** Etapa operativa del estudio; `null` si nadie la declaró y las fuentes no coinciden. */
+    etapa: { valor: "piloto" | "campo" | null };
   };
   origen: Record<PlannerSeccion, PlannerOrigen>;
   declaradoEn: Partial<Record<PlannerSeccion, string>>;
@@ -133,7 +135,7 @@ function normalizarCodigo(x: unknown): PlannerCodigo | null {
   };
 }
 
-const SECCIONES: PlannerSeccion[] = ["estudio", "perfiles", "equipo", "codigos", "insumos"];
+const SECCIONES: PlannerSeccion[] = ["estudio", "perfiles", "equipo", "codigos", "insumos", "etapa"];
 
 export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
   const r = obj(raw);
@@ -170,6 +172,7 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
         const k = obj(x);
         return { id: txt(k.id), tipo: txt(k.tipo), etiqueta: txt(k.etiqueta), archivo: txt(k.archivo), origen: txt(k.origen), registrado_en: txt(k.registrado_en) };
       }).filter((k) => k.id),
+      etapa: { valor: txt(obj(pl.etapa).valor) === "piloto" || txt(obj(pl.etapa).valor) === "campo" ? (txt(obj(pl.etapa).valor) as "piloto" | "campo") : null },
     },
     origen,
     declaradoEn,
@@ -240,6 +243,7 @@ export type PlannerCalendario = {
   campo: { inicio: string; fin: string };
   etapa: {
     valor: PlannerEtapa | null;
+    origen: PlannerOrigen;
     /** De dónde sale cada respuesta hoy: `hojas_ruta` y `monitoreo`. */
     fuentes: Partial<Record<"hojas_ruta" | "monitoreo", { etapa: PlannerEtapa | null; pilotoDesde?: string; campoDesde?: string }>>;
   };
@@ -262,7 +266,7 @@ export function normalizarPlannerCalendario(raw: unknown): PlannerCalendario {
   return {
     hoy: txt(r.hoy),
     campo: { inicio: txt(campo.inicio), fin: txt(campo.fin) },
-    etapa: { valor: etapaDe(etapa.valor), fuentes },
+    etapa: { valor: etapaDe(etapa.valor), origen: txt(etapa.origen) === "declarado" ? "declarado" : "proyectado", fuentes },
     avisos: arr(r.avisos).map((x) => ({ codigo: txt(obj(x).codigo), mensaje: txt(obj(x).mensaje) })).filter((a) => a.mensaje),
   };
 }

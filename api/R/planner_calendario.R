@@ -7,14 +7,16 @@
 # etapa activa de Hojas de ruta (`hojas_ruta_active_phase`: piloto o campo) y
 # la de Monitoreo territorial (`active_route_phase` y sus `phase_windows`).
 # Este archivo las lee juntas, sin escribir en ninguna, y dice cuando no
-# coinciden. Quién pasa a ser dueño de la etapa es otra decisión (Hojas de
-# ruta y Monitoreo, con Meta B): hasta entonces el Planner la muestra, no la
-# declara.
+# coinciden. Desde la decisión de Meta B (2026-10-31) el Planner DECLARA la
+# etapa (sección `etapa`): sembrada desde Hojas de ruta y Monitoreo si
+# coinciden, en conflicto si no. Mientras esos dos no la lean del Planner, se
+# dice cuál sigue en otra.
 #
 # Lectura pura: no llama a nada que escriba ni a helpers privados de archivos
 # congelados; lee la forma cruda de cada clave con defensas.
 
 .PLANNER_ETAPAS <- c(pilot = "piloto", piloto = "piloto", field = "campo", campo = "campo", real = "campo")
+.PLANNER_FUENTE_ETAPA <- c(hojas_ruta = "Hojas de ruta", monitoreo = "Monitoreo")
 
 .planner_etapa_de <- function(x) {
   v <- tolower(.planner_chr1(x))
@@ -28,12 +30,28 @@
   if (grepl("^\\d{4}-\\d{2}-\\d{2}$", v)) v else ""
 }
 
+# Una fuente cuenta sólo si su módulo se usa en el estudio: `field` en Hojas de
+# ruta y `pilot` en Monitoreo territorial son los valores por defecto, y en un
+# estudio telefónico o de acreditación aparecen sin que nadie los haya elegido
+# (acnur_pdm y acrconta los traen). Leerlos inventaba un desacuerdo.
+.planner_hojas_en_uso <- function(s) {
+  runs <- s[["hojas_ruta_runs"]]
+  is.list(runs) && any(vapply(runs, function(r) {
+    is.list(r) && length(((r$workspace_outputs %||% list())$sample) %||% list()) > 0L
+  }, logical(1)))
+}
+
+.planner_monitoreo_territorial_en_uso <- function(s) {
+  perfil <- (s[["monitoreo_config"]] %||% list())$monitoreo_profile
+  is.list(perfil) && identical(.planner_chr1(perfil$family), "territorial")
+}
+
 .planner_etapas_declaradas <- function(s) {
   fuentes <- list()
-  hojas <- .planner_etapa_de(s[["hojas_ruta_active_phase"]])
+  hojas <- if (.planner_hojas_en_uso(s)) .planner_etapa_de(s[["hojas_ruta_active_phase"]]) else NA_character_
   if (!is.na(hojas)) fuentes$hojas_ruta <- list(etapa = hojas)
   ter <- ((s[["monitoreo_config"]] %||% list())$territorial) %||% list()
-  mon <- .planner_etapa_de(ter$active_route_phase)
+  mon <- if (.planner_monitoreo_territorial_en_uso(s)) .planner_etapa_de(ter$active_route_phase) else NA_character_
   if (is.list(ter) && !is.na(mon)) {
     ventanas <- ter$phase_windows %||% list()
     fuentes$monitoreo <- list(
@@ -59,12 +77,27 @@
 
   etapas <- .planner_etapas_declaradas(s)
   valores <- unique(vapply(etapas, `[[`, "", "etapa"))
+  declarada <- .planner_leer(s)$secciones$etapa
   avisos <- list()
-  if (length(valores) > 1L) {
+  if (!is.null(declarada)) {
+    # Declarada en el Planner: manda. Hojas de ruta y Monitoreo todavía no la
+    # leen, así que se dice cuál de los dos sigue en otra.
+    valor <- declarada$valor$valor
+    for (k in names(etapas)) {
+      if (!identical(etapas[[k]]$etapa, valor)) {
+        avisos[[length(avisos) + 1L]] <- .planner_aviso(
+          "etapa_modulo_desfasado",
+          sprintf("%s todavía trabaja en %s.", .PLANNER_FUENTE_ETAPA[[k]], etapas[[k]]$etapa), fuente = k)
+      }
+    }
+  } else if (length(valores) > 1L) {
     avisos[[length(avisos) + 1L]] <- .planner_aviso(
       "etapa_no_coincide",
-      sprintf("Hojas de ruta dice que el estudio está en %s y Monitoreo, en %s.",
+      sprintf("Hojas de ruta dice que el estudio está en %s y Monitoreo, en %s: declara la etapa aquí.",
               etapas$hojas_ruta$etapa, etapas$monitoreo$etapa))
+    valor <- NA_character_
+  } else {
+    valor <- if (length(valores) == 1L) valores[[1]] else NA_character_
   }
   campo_mon <- etapas$monitoreo$campo_desde %||% ""
   if (nzchar(campo_mon) && nzchar(campo$inicio) && !identical(campo_mon, campo$inicio)) {
@@ -78,10 +111,10 @@
     fases = fases,
     campo = list(inicio = campo$inicio, fin = campo$fin),
     etapa = list(
-      valor = if (length(valores) == 1L) valores[[1]] else NA_character_,
+      valor = valor,
+      origen = if (is.null(declarada)) "proyectado" else "declarado",
       fuentes = etapas,
-      # El Planner la muestra; todavía no la declara (ver encabezado).
-      declarable = FALSE
+      declarable = TRUE
     ),
     avisos = avisos
   )

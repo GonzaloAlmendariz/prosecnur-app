@@ -146,7 +146,7 @@ export default function BitacoraPage() {
         {tab === "codigos" && <PlannerCodigos control={planner} pestana={pestana} />}
         {tab === "cronograma" && plan && pestana === "gantt" && (
           <>
-            <PlannerCalendarioResumen recarga={plan} />
+            <PlannerCalendarioResumen recarga={plan} control={planner} />
             <CronogramaSection state={plan} onChange={setPlan} onReload={reloadPlan} />
           </>
         )}

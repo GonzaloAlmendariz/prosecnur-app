@@ -17,11 +17,16 @@
 # mudanza de la fase P3 no tenga que traducir nada.
 
 PLANNER_SCHEMA <- "planner/v1"
-PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos")
+PLANNER_SECCIONES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa")
 # Equipo se escribe desde que el anonimizador y el gate de datos personales
 # cubren `planner$equipo$personas` (ec07d41d0; ADR 0122 §10). Si se agrega a
 # las personas otro campo con datos personales, hay que avisar al anonimizador.
-PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos")
+PLANNER_SECCIONES_ESCRIBIBLES <- c("estudio", "perfiles", "equipo", "codigos", "insumos", "etapa")
+# Etapa operativa del estudio (Meta B, 2026-10-31, con el ADR 0122 ratificado:
+# «el Planner dice qué fase está activa»). Hojas de ruta y Monitoreo la leen
+# del Planner en una fase posterior; hasta entonces el Planner muestra lo que
+# cada uno dice todavía (planner_calendario.R).
+PLANNER_ETAPAS <- c("piloto", "campo")
 PLANNER_TIPOS_PERFIL <- c("territorial", "aulas", "telefonico", "acreditacion")
 PLANNER_SELECCION_AULAS <- c("conglomerados", "marco")
 PLANNER_DISENO <- c("calc-muestra", "hojas-ruta", "cliente")
@@ -185,8 +190,20 @@ PLANNER_MAX_INSUMOS <- 60L
   out[!duplicated(vapply(out, `[[`, "", "id"))]
 }
 
+.planner_norm_etapa <- function(x) {
+  x <- if (is.list(x)) x else list(valor = x)
+  list(valor = calc_enum(x$valor, PLANNER_ETAPAS, NA_character_))
+}
+
+.planner_validar_etapa <- function(valor) {
+  etapa <- .planner_norm_etapa(valor)
+  if (is.na(etapa$valor)) .planner_invalido("La etapa del estudio es piloto o campo.")
+  etapa
+}
+
 .planner_normalizar_seccion <- function(seccion, valor) {
   switch(seccion,
+         etapa = .planner_norm_etapa(valor),
          estudio = .planner_norm_estudio(valor),
          perfiles = .planner_norm_perfiles(valor),
          equipo = .planner_norm_equipo(valor),
@@ -361,6 +378,7 @@ PLANNER_MAX_INSUMOS <- 60L
   limpio <- switch(seccion,
                    perfiles = .planner_validar_perfiles(valor),
                    equipo = .planner_validar_equipo(valor),
+                   etapa = .planner_validar_etapa(valor),
                    codigos = .planner_validar_codigos(valor, actual$secciones$codigos$valor),
                    .planner_normalizar_seccion(seccion, valor))
   actual$secciones[[seccion]] <- list(valor = limpio, declarado_en = .bit_now_iso())

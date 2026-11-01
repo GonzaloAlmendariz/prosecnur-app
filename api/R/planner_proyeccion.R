@@ -218,6 +218,19 @@
   .planner_norm_insumos(insumos)
 }
 
+# La etapa sembrada desde lo que dicen hoy Hojas de ruta y Monitoreo: si
+# coinciden (o sólo uno dice algo), ésa; si discrepan, ninguna y un conflicto.
+.planner_proyectar_etapa <- function(s) {
+  fuentes <- .planner_etapas_declaradas(s)
+  valores <- unique(vapply(fuentes, `[[`, "", "etapa"))
+  if (length(valores) == 1L) return(list(etapa = list(valor = valores[[1]]), conflictos = list()))
+  conflictos <- if (length(valores) > 1L) list(.planner_aviso(
+    "etapa_sin_acuerdo",
+    sprintf("Hojas de ruta dice que el estudio está en %s y Monitoreo, en %s: declara la etapa en Cronograma.",
+            fuentes$hojas_ruta$etapa, fuentes$monitoreo$etapa))) else list()
+  list(etapa = list(valor = NA_character_), conflictos = conflictos)
+}
+
 #' Payload completo del Planner: lo declarado gana; lo demás se proyecta.
 #' Lectura pura (ADR 0122 §2).
 #' @keywords internal
@@ -231,7 +244,8 @@
     perfiles = perfiles,
     equipo = if (!is.null(decl$equipo)) decl$equipo$valor else .planner_proyectar_equipo(s),
     codigos = if (!is.null(decl$codigos)) decl$codigos$valor else .planner_proyectar_codigos(s, perfiles),
-    insumos = if (!is.null(decl$insumos)) decl$insumos$valor else .planner_proyectar_insumos(s)
+    insumos = if (!is.null(decl$insumos)) decl$insumos$valor else .planner_proyectar_insumos(s),
+    etapa = if (!is.null(decl$etapa)) decl$etapa$valor else .planner_proyectar_etapa(s)$etapa
   )
   origen <- lapply(stats::setNames(PLANNER_SECCIONES, PLANNER_SECCIONES), function(k) {
     if (!is.null(decl[[k]])) "declarado" else "proyectado"
@@ -240,6 +254,9 @@
   # Avisos y conflictos de la proyección sólo valen mientras los perfiles no se declaren.
   if (!is.null(decl$perfiles)) proy_perfiles$avisos <- list()
   if (!is.null(decl$perfiles)) proy_perfiles$conflictos <- list()
+  # La etapa: si Hojas de ruta y Monitoreo no coinciden y el Planner todavía no
+  # la declara, es un conflicto que resuelve el usuario; el Planner no elige.
+  if (is.null(decl$etapa)) proy_perfiles$conflictos <- c(proy_perfiles$conflictos, .planner_proyectar_etapa(s)$conflictos)
   list(
     ok = TRUE,
     schema = PLANNER_SCHEMA,
