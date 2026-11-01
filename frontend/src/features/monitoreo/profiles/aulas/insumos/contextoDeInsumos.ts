@@ -31,4 +31,6 @@ export type ContextoDeInsumos = {
   plantillaDisponibilidad?: () => void;
   /** I3: reemplaza la disponibilidad entera con la del archivo. */
   importarDisponibilidad?: (archivo: File) => void;
+  /** Vuelve a pedir el corte (después de traer la entrega de Material). */
+  recargar?: () => void;
 };

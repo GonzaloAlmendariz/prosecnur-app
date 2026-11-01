@@ -2100,6 +2100,7 @@ export default function AulasMonitoreoPage() {
           fuentes: state?.sources ?? [],
           ocupado: busy,
           importarPlan: () => { void importPlan(); },
+          recargar: () => { void loadView(seccionActiva, true, true); },
           operaciones: operacionesDelPlan,
           comoMide: comoMideDelEstudio,
           criterioDeEfectiva: criterioDeEfectivaDelEstudio,
