@@ -323,3 +323,22 @@ describe("filtro de respuestas (L5b)", () => {
     expect(filtroDeRespuestas({ response_filter: { original_rows: 5, kept_rows: 9 } })).toBeNull();
   });
 });
+
+describe("plataforma sin respuesta (L5c)", () => {
+  it("un timeout llega con título propio y el texto del backend, sin el error crudo", () => {
+    const r = clasificarResultadoJob({
+      estrategia: "separada",
+      status: "done",
+      resultData: {
+        ok: false,
+        error: {
+          code: "E_CARGA_PLATAFORMA_SIN_RESPUESTA",
+          message: "SurveyMonkey no respondió a tiempo. El estudio no cambió; revisa la conexión y vuelve a importar.",
+        },
+      },
+      cancelSolicitado: false,
+    });
+    expect(r).toMatchObject({ tipo: "error", codigo: "E_CARGA_PLATAFORMA_SIN_RESPUESTA", titulo: "La plataforma no respondió a tiempo" });
+    expect(r?.tipo === "error" && r.mensaje).toMatch(/^SurveyMonkey no respondió a tiempo/);
+  });
+});

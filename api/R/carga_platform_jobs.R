@@ -339,6 +339,31 @@
 # locale UTF-8; acá solo se siembra el sandbox y se corre el import real.
 # ---------------------------------------------------------------------------
 
+# Un fallo de red de la plataforma (timeout, conexión rechazada) no es un
+# api_error: llega como error de curl y, sin traducir, salía por el canal de
+# callr tal cual («in callr subprocess. Caused by error in curl_fetch_memory…»)
+# hasta la tarjeta de Carga (L5c). Se traduce a un error de dominio con texto
+# para la persona; cualquier otro error sigue su camino sin cambios.
+.carga_platform_error_de_red <- function(err, action) {
+  mensaje <- conditionMessage(err)
+  red <- grepl(
+    "Timeout was reached|timed out|time-out|Could not resolve host|Failed to connect|Connection refused|Couldn't connect",
+    mensaje,
+    ignore.case = TRUE
+  )
+  if (!red) return(NULL)
+  plataforma <- if (grepl("^kobo", action %||% "")) "KoboToolbox" else "SurveyMonkey"
+  list(
+    code = "E_CARGA_PLATAFORMA_SIN_RESPUESTA",
+    status = 504L,
+    message = sprintf(
+      "%s no respondió a tiempo. El estudio no cambió; revisa la conexión y vuelve a importar.",
+      plataforma
+    ),
+    details = list(plataforma = plataforma)
+  )
+}
+
 carga_platform_job_runner <- function(sid, action, state_path, parsed_path,
                                       secrets_path = NULL, progress_path = NULL) {
   report <- job_progress_writer(progress_path)
@@ -375,6 +400,11 @@ carga_platform_job_runner <- function(sid, action, state_path, parsed_path,
         message = conditionMessage(e),
         details = e$details
       ))
+    },
+    error = function(e) {
+      de_red <- .carga_platform_error_de_red(e, action)
+      if (is.null(de_red)) stop(e)
+      list(ok = FALSE, error = de_red)
     }
   )
   if (!isTRUE(outcome$ok)) {

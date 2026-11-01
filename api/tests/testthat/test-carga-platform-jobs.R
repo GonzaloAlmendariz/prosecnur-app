@@ -1022,3 +1022,21 @@ test_that("L9: base integrada y paquete .sav pasan por el mismo dispatch que su 
 
   expect_true(all(c("multi_integrated_import", "sav_bundle_import") %in% .CARGA_PLATFORM_JOB_ACTIONS))
 })
+
+test_that("un timeout de la plataforma llega con código y texto, no como error crudo de curl (L5c)", {
+  crudo <- simpleError(paste(
+    "Timeout was reached [api.surveymonkey.com]:",
+    "Operation timed out after 20002 milliseconds with 0 bytes received"
+  ))
+  err <- .carga_platform_error_de_red(crudo, "surveymonkey_import_separate")
+  expect_identical(err$code, "E_CARGA_PLATAFORMA_SIN_RESPUESTA")
+  expect_identical(err$status, 504L)
+  expect_match(err$message, "^SurveyMonkey no respondió a tiempo")
+  expect_false(grepl("curl|callr|millisecond", err$message))
+
+  kobo <- .carga_platform_error_de_red(simpleError("Could not resolve host: kf.kobotoolbox.org"), "kobo_import_separate")
+  expect_match(kobo$message, "^KoboToolbox no respondió a tiempo")
+
+  # Lo que no es de red sigue su camino (el runner lo relanza).
+  expect_null(.carga_platform_error_de_red(simpleError("objeto 'x' no encontrado"), "surveymonkey_import"))
+})

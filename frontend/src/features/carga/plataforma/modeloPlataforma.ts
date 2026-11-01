@@ -492,6 +492,7 @@ const TITULOS_ERROR: Record<string, string> = {
   E_BASE_LIMITE: "El estudio llegó al límite de bases",
   E_CARGA_JOB_RUNNING: "Ya hay una importación en curso",
   E_CARGA_JOB_FAILED: "La importación falló en segundo plano",
+  E_CARGA_PLATAFORMA_SIN_RESPUESTA: "La plataforma no respondió a tiempo",
   E_CARGA_JOB_CONTRATO: "La respuesta de la importación no se reconoce",
 };
 

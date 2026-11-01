@@ -459,6 +459,7 @@ errores_registrados <- function() {
     "E_CARGA_JOB_FAILED",                                    "carga_platform_jobs.R",             "indirecto",
     "E_CARGA_JOB_RUNNING",                                   "carga_platform_jobs.R",             "409",
     "E_CARGA_JOB_STALE_SESSION",                             "carga_platform_jobs.R",             "indirecto",
+    "E_CARGA_PLATAFORMA_SIN_RESPUESTA",                      "carga_platform_jobs.R",             "indirecto",
     "E_CARGA_SAV_ZIP_BAD",                                   "router_carga.R",                    "400",
     "E_CARGA_SAV_ZIP_EMPTY",                                 "router_carga.R",                    "400",
     "E_CARGA_SAV_ZIP_EXTRACT_FAILED",                        "router_carga.R",                    "400",
