@@ -29,8 +29,8 @@ test_that("se vuelve a sortear después de enviar: lo dice con la causa, la fech
   expect_setequal(unlist(r$entran), c("M4", "M5"))
   expect_setequal(unlist(r$salen), c("M2", "M3"))
   expect_identical(r$cambian, 4L)
-  expect_match(r$texto, "se volvió a sortear después del envío (semilla 42; Material tiene la 11)", fixed = TRUE)
-  expect_match(r$texto, "Material recibió la del 20 de octubre", fixed = TRUE)
+  expect_match(r$texto, "se volvió a sortear después del envío (semilla 42; la enviada es la 11)", fixed = TRUE)
+  expect_match(r$texto, "Material y Monitoreo miden la enviada el 20 de octubre", fixed = TRUE)
   expect_match(r$texto, "2 UMP entran, 2 UMP salen", fixed = TRUE)
 })
 
@@ -74,12 +74,21 @@ test_that("sin semilla en un lado no se afirma la causa", {
   viva <- .tme_muestra(NULL, c("M1", "M3"))
   r <- monitoreo_territorial_muestra_enviada_desde(.tme_enviar(enviada), viva)
   expect_true(is.na(r$semilla_viva))
-  expect_match(r$texto, "^La muestra cambió después del envío\\. ")
+  expect_match(r$texto, "^La muestra de Hojas de ruta cambió después del envío\\. ")
   expect_false(grepl("misma semilla", r$texto, fixed = TRUE))
 })
 
 test_that("un envío de noche en Lima se fecha ese día, no el siguiente en UTC", {
   m <- .tme_muestra(11L, c("M1"))
   r <- monitoreo_territorial_muestra_enviada_desde(.tme_enviar(m, at = "2026-10-21T04:30:00Z"), .tme_muestra(42L, c("M2")))
-  expect_match(r$texto, "Material recibió la del 20 de octubre", fixed = TRUE)
+  expect_match(r$texto, "Material y Monitoreo miden la enviada el 20 de octubre", fixed = TRUE)
+})
+
+test_that("con la fecha del sorteo en la muestra viva, el aviso fecha el re-sorteo", {
+  enviada <- .tme_muestra(11L, c("M1", "M2"))
+  viva <- .tme_muestra(42L, c("M1", "M3"))
+  viva$sorteado_en <- "2026-10-25T15:00:00Z"
+  r <- monitoreo_territorial_muestra_enviada_desde(.tme_enviar(enviada), viva)
+  expect_match(r$texto, "la enviada es la 11), el 25 de octubre.", fixed = TRUE)
+  expect_match(r$texto, "Material y Monitoreo miden la enviada el 20 de octubre", fixed = TRUE)
 })

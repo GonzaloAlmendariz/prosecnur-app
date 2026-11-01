@@ -815,7 +815,8 @@ monitoreo_sync_noop_result <- function(sid,
     list(synced_at = prev_snapshot$synced_at %||% ""),
     display_data,
     result$config,
-    report_scope = prev_scope
+    report_scope = prev_scope,
+    route_sig = .monitoreo_territorial_route_sig(sid, result$config)
   )
   valido <- tryCatch(
     .monitoreo_snapshot_dashboard_valid(prev_snapshot, display_data, result$config, token, report_scope = prev_scope),

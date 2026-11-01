@@ -2,9 +2,10 @@
 // que se envió a Material (I4, Monitoreo › Territorial › Insumos › Conexiones).
 //
 // Contrato: GET /api/monitoreo/territorial/muestra-enviada
-// (`api/R/monitoreo_territorial_muestra_enviada.R`). Solo lectura: Monitoreo
-// sigue leyendo la viva y aquí sólo se entera de si difiere de la enviada. La
-// viva no guarda la fecha de su sorteo, así que lo que se fecha es el envío.
+// (`api/R/monitoreo_territorial_muestra_enviada.R`). Solo lectura: Monitoreo y
+// Material miden contra la muestra enviada (ADR 0118 §3, enmienda 2026-11-01);
+// esto dice si la de Hojas de ruta ya es otra, cuándo se volvió a sortear y
+// cuándo se envió la que se mide.
 //
 // Normalizador defensivo: Plumber serializa con auto_unbox (lista de uno como
 // valor suelto, escalar como vector de largo uno, NA como null).

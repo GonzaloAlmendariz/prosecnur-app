@@ -2,20 +2,17 @@
 # monitoreo_territorial_muestra_enviada.R — la muestra viva contra la enviada (I4)
 # =============================================================================
 #
-# Monitoreo territorial lee la muestra VIVA de Hojas de ruta; Material imprime y
-# asigna sobre la FOTO que se le envió (ADR 0118 §3). Si alguien vuelve a sortear
-# después del envío, las dos hablan de muestras distintas sin que nadie lo vea.
-#
-# Decisión de Meta B (2026-11-01, reversible y revisable por Gonzalo): Monitoreo
-# sigue leyendo la viva, pero cuando difiere de la enviada lo dice en Insumos ›
-# Fuentes, con la causa —otra semilla, la misma semilla con otra configuración, o
-# sin semilla para decidirlo—, la fecha en que Material recibió la suya y qué UMP
-# entran, salen o cambian de papel (titular ↔ reemplazo). Aquí no se corrige
-# nada: sólo se compara. La fase es la de la campaña territorial de Material
-# cuando existe; si no, la activa de Monitoreo.
-#
-# La muestra viva no guarda la fecha de su sorteo; por eso el aviso fecha el envío
-# y no el re-sorteo. El envío se guarda en UTC y se fecha en hora de Lima.
+# Gonzalo (2026-11-01; ADR 0118 §3, enmienda): Hojas de ruta envía la muestra a
+# Material y a Monitoreo, y los dos miden contra esa foto
+# (`monitoreo_territorial_fuente_muestra.R`). Volver a sortear en Hojas queda
+# permitido: este aviso dice en Insumos › Conexiones que la muestra de Hojas ya
+# no es la enviada, con la causa —otra semilla, la misma semilla con otra
+# configuración, o sin semilla para decidirlo—, cuándo se volvió a sortear
+# (`sorteado_en`, si la muestra lo trae), cuándo se envió la que miden Material
+# y Monitoreo, y qué UMP entran, salen o cambian de papel (titular ↔ reemplazo).
+# Aquí no se corrige nada: sólo se compara. La fase es la misma con la que
+# Monitoreo arma su contexto: la activa. Las fechas se guardan en UTC y se dicen
+# en hora de Lima.
 #
 # Contrato (solo lectura):
 #   GET /api/monitoreo/territorial/muestra-enviada
@@ -85,14 +82,16 @@ monitoreo_territorial_muestra_enviada_desde <- function(envio, viva, phase = "fi
   sv <- out$semilla_viva
   se <- out$semilla_enviada
   causa <- if (is.na(sv) || is.na(se)) {
-    "La muestra cambió después del envío"
+    "La muestra de Hojas de ruta cambió después del envío"
   } else if (sv != se) {
-    sprintf("La muestra se volvió a sortear después del envío (semilla %d; Material tiene la %d)", sv, se)
+    sprintf("La muestra de Hojas de ruta se volvió a sortear después del envío (semilla %d; la enviada es la %d)", sv, se)
   } else {
-    "La muestra cambió después del envío (misma semilla, otra configuración)"
+    "La muestra de Hojas de ruta cambió después del envío (misma semilla, otra configuración)"
   }
   fecha <- .mtme_fecha(out$enviado_at)
-  envio_txt <- if (nzchar(fecha)) sprintf("Material recibió la del %s", fecha) else "Material recibió la enviada"
+  envio_txt <- if (nzchar(fecha)) sprintf("Material y Monitoreo miden la enviada el %s", fecha) else "Material y Monitoreo miden la enviada"
+  resorteo <- .mtme_fecha(.monitoreo_scalar((viva %||% list())$sorteado_en, ""))
+  if (nzchar(resorteo)) causa <- sprintf("%s, el %s", causa, resorteo)
   verbo <- function(k, uno, varios) sprintf("%d UMP %s", k, if (k == 1L) uno else varios)
   partes <- c(
     if (length(entran)) verbo(length(entran), "entra", "entran"),
@@ -110,7 +109,7 @@ monitoreo_territorial_muestra_enviada_desde <- function(envio, viva, phase = "fi
   out$salen <- as.list(salen)
   out$cambian_rol <- as.list(cambian_rol)
   out$cambian <- as.integer(cambian)
-  out$texto <- sprintf("%s. %s; %s. Monitoreo sigue la muestra viva: reenvía desde Hojas de ruta para que Material y Monitoreo hablen de la misma.",
+  out$texto <- sprintf("%s. %s; en la de Hojas %s. Si la nueva es la que va a campo, reenvíala desde Hojas de ruta.",
                     causa, envio_txt, cambio_txt)
   out
 }
@@ -123,11 +122,9 @@ monitoreo_territorial_muestra_enviada_desde <- function(envio, viva, phase = "fi
   if (!identical(cfg$monitoreo_profile$family %||% "acreditacion", "territorial")) {
     stop_api(409, "E_MONITOREO_TERRITORIAL_REQUIRED", "La comparación de la muestra requiere un monitoreo territorial activo.")
   }
-  # La foto contra la que se compara es la que usa Material: la fase de su
-  # campaña territorial si existe; si no, la fase activa de Monitoreo.
-  campana <- .mcamp_territorial_entry(.mcamp_registry(s))
-  phase <- if (!is.null(campana)) .mcamp_territorial_fase_of(campana$entry)
-           else .monitoreo_territorial_phase(cfg$territorial$active_route_phase, "pilot")
+  # La misma fase con la que Monitoreo arma su contexto (la activa): si no, el
+  # aviso y lo que se mide hablarían de fases distintas.
+  phase <- .monitoreo_territorial_phase(cfg$territorial$active_route_phase, "pilot")
   run <- (s$hojas_ruta_runs %||% list())[[phase]]
   viva <- if (is.list(run)) .hojas_ruta_list_get(run$workspace_outputs, "sample") else NULL
   monitoreo_territorial_muestra_enviada_desde(.mcamp_territorial_envio(s, phase), viva, phase = phase)

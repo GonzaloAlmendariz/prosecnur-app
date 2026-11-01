@@ -27,8 +27,9 @@
 # - Viaja código y nombre, nunca DNI.
 #
 # Sobre la muestra viva (cruce X5): lo OBSERVADO se atribuye a su UMP con el
-# contexto territorial común (`.monitoreo_territorial_context`), que lee la
-# muestra vigente de Hojas de ruta y llama a `.hojas_ruta_ensure_runs`. B3 no
+# contexto territorial común (`.monitoreo_territorial_context`), que desde el
+# 2026-11-01 lee la foto enviada (la viva sin envío; ADR 0118 §3, enmienda) y
+# llama a `.hojas_ruta_ensure_runs`. B3 no
 # agrega esa dependencia: sólo compara cuando la foto enviada ES la muestra
 # vigente (`stale = FALSE`), así que atribuir contra la viva equivale a hacerlo
 # contra la foto. Sacar `ensure_runs` del contexto es deuda de todo Monitoreo
@@ -298,7 +299,7 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
     return(monitoreo_territorial_asignacion_planificada_desde(data.frame(), asig, phase = phase))
   }
   data <- .monitoreo_territorial_filter_data_for_phase(data, cfg, phase = phase)
-  key <- .casos_ump_cache_key(data, .monitoreo_scalar(snapshot$synced_at, ""), cfg, phase)
+  key <- .casos_ump_cache_key(data, .monitoreo_scalar(snapshot$synced_at, ""), cfg, phase, .monitoreo_territorial_route_sig(sid, cfg))
   hit <- .monitoreo_territorial_casos_ump_cache[[sid]]
   auditoria <- if (is.list(hit) && identical(hit$key, key)) {
     hit$auditoria

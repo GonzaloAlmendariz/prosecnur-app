@@ -2,7 +2,7 @@
 
 Estado: Aceptado (decisión de Gonzalo, 2026-10-29; visto bueno al resumen: «ok»)
 
-Implementación: F1 ccef864ca (envío con huella, fuente territorial) · F2 f8d86dd9c (Material › campaña territorial) + F2b 0c97c8cad (con la foto desactualizada Material no genera) · F3 62f9e94cf («Entrega» en Hojas y retiro de lo mudado). Pendiente: mapa por encuestador en Entrega › Plan, entrada de bitácora del envío, y que los motores lean la foto en vez de la muestra viva (hoy lo garantiza el bloqueo de F2b).
+Implementación: F1 ccef864ca (envío con huella, fuente territorial) · F2 f8d86dd9c (Material › campaña territorial) + F2b 0c97c8cad (con la foto desactualizada Material no genera) · F3 62f9e94cf («Entrega» en Hojas y retiro de lo mudado). Pendiente: mapa por encuestador en Entrega › Plan, entrada de bitácora del envío, y que los motores lean la foto en vez de la muestra viva (hoy lo garantiza el bloqueo de F2b; Monitoreo ya la lee, enmienda del 2026-11-01).
 
 Fecha: 2026-10-29
 
@@ -64,7 +64,8 @@ marca su lista `stale` (ADR 0108 §1). Reenviar no borra material ya generado; l
 
 Material y Monitoreo usan la misma función de huella (`.hojas_ruta_sample_fingerprint`, sobre la identidad de
 cada bloque más la semilla y el algoritmo del sorteo, nunca sobre la muestra entera); si no coinciden, Material
-muestra `stale`. En F1 Monitoreo sigue leyendo la muestra viva.
+muestra `stale`. ~~En F1 Monitoreo sigue leyendo la muestra viva.~~ Desde la enmienda del 2026-11-01, Monitoreo también
+lee la foto (abajo).
 
 **Enmienda (2026-10-30), el historial de ruteos es el tercer consumidor de la huella.** Propuesta y revisión de
 `guardian-contratos` en `docs/qa/propuesta-route-history-2026-10-30.md`.
@@ -108,6 +109,25 @@ que Monitoreo ya tenía, «la de Monitoreo». Contrato y revisión de `guardian-
   a validar. Reasignar es editar el Excel y subirlo otra vez. Sólo se lee el encuestador; fechas, estado y
   observaciones se quedan en el Excel (el avance lo mide Monitoreo). El selector por columna del calendario queda como
   respaldo.
+
+**Enmienda (2026-11-01), Monitoreo mide contra la foto enviada.** Decisión de Gonzalo en las preguntas de rumbo de
+I4: el orden es Planner → Hojas de ruta define la muestra → la **envía** a Material de campo y a Monitoreo; Monitoreo
+mide contra lo enviado, igual que Material. Dictamen de `guardian-contratos` del mismo día.
+
+- **Fuente, por fase.** `.monitoreo_territorial_context` toma `runs[[fase]]$envio` de la fase con la que mide (la
+  activa); sin envío, la muestra viva de esa fase, como antes (`monitoreo_territorial_fuente_muestra.R`). De la foto
+  salen los bloques, la `config` y la cuota que la muestra guarda al sortearse (`sample$quota`); si la foto no la
+  trae, se usa la viva sólo con la misma config, y si no, ninguna. `population` sigue siendo la viva: depende de la
+  config, no del sorteo.
+- **Cachés.** El `route_hash` suma la huella y la config de la foto sólo cuando la fuente es la foto; el token del
+  dashboard y la llave de casos por UMP suman la firma del envío (`.monitoreo_territorial_route_sig`). Sin envío las
+  tres llaves son las de antes: ningún proyecto que nunca envió pierde su caché.
+- **Volver a sortear.** Sigue permitido en Hojas, y no debe ser fácil (pendiente de Hojas). El aviso de I4 en
+  Monitoreo › Insumos › Conexiones dice que la muestra de Hojas ya no es la enviada, cuándo se volvió a sortear
+  (`sorteado_en`, eae59ba2f), cuándo se envió la que se mide y qué UMP cambian; el remedio es reenviar.
+- **Riesgo conocido.** Lo que Monitoreo guardó por UMP sobre la viva (conciliaciones, decisiones, anulaciones,
+  ajustes) puede apuntar a UMP fuera de la foto en un estudio que envió y luego re-sorteó. Ningún proyecto de
+  referencia tiene envío.
 
 ### 4. Direcciones en Material
 

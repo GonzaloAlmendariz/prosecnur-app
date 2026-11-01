@@ -624,8 +624,10 @@
   outputs <- run$workspace_outputs %||% run$outputs %||% list()
   population <- outputs$population %||% outputs$population_preview %||% outputs$populationPreview %||% NULL
   sample_size_preview <- outputs$sample_size_preview %||% outputs$sampleSizePreview %||% NULL
-  quota <- outputs$quota %||% outputs$quota_preview %||% outputs$quotaPreview %||% NULL
-  sample <- outputs$sample %||% outputs$sample_preview %||% outputs$samplePreview %||% run$sample %||% list()
+  # I4 paso 2: la foto enviada a Material si existe; si no, la viva (monitoreo_territorial_fuente_muestra.R).
+  fuente <- .monitoreo_territorial_fuente_muestra(run, tryCatch(.mcamp_territorial_envio(s, requested_phase), error = function(e) NULL))
+  quota <- fuente$quota
+  sample <- fuente$sample
   blocks <- tryCatch(.monitoreo_territorial_rows_df(sample$blocks %||% list()), error = function(e) data.frame())
   replacements <- tryCatch(.monitoreo_territorial_rows_df(sample$replacement_blocks %||% list()), error = function(e) data.frame())
   phase_note <- if (identical(requested_phase, "pilot") && !is.null(runs$field)) {
@@ -640,7 +642,9 @@
     phase_note = phase_note,
     run_locked = isTRUE(run$locked),
     phases_available = names(runs),
-    config = run$config %||% list(),
+    config = fuente$config,
+    sample_source = fuente$source,
+    sample_fingerprint = fuente$sample_fingerprint,
     blocks = blocks,
     replacement_blocks = replacements,
     population = population,
@@ -944,7 +948,8 @@
   if (.monitoreo_acr_cache_aplica(family, report_scope, include_reports)) {
     acr_cache_info <- .monitoreo_acr_cache_key_info(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
   }
-  cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
+  route_sig <- .monitoreo_territorial_route_sig(sid, cfg)
+  cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope, route_sig = route_sig)
   dashboard <- if (isTRUE(territorial_light_state)) NULL else snapshot$dashboard %||% NULL
   cached_acreditacion_reports <- if (
     isTRUE(include_reports) &&
@@ -957,7 +962,7 @@
         snapshot,
         display_data,
         cfg,
-        .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full"),
+        .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full", route_sig = route_sig),
         report_scope = "full"
       )
   ) {
