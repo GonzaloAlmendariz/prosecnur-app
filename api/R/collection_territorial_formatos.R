@@ -24,6 +24,8 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
                     `5` = "No hay persona elegible", `99` = "Manzana no elegible (terreno, parque)")
 .MTF_ORDEN <- c("1", "2", "3", "4", "5", "6", "7", "8", "99")
 .MTF_ROTULO_MAX <- 60L
+# Columnas opcionales del registro de la hoja de consolidados (acogida las usa; Ser Adolescente no).
+.MTF_EXTRAS_CONSOLIDADO <- c(manzana = "Mz.", nse = "NSE", hora_final = "Hora final")
 .MTF_CRITERIO_MAX <- 40L
 
 .mtf_txt <- function(x) {
@@ -34,7 +36,8 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
 # Lo guardado, normalizado al leer: lo que no tiene forma vuelve al valor por defecto.
 .mtf_guardado <- function(s, campaign_id) {
   x <- s$material_territorial_formatos
-  base <- list(rotulos = as.list(.MTF_EDITABLES), con_99 = TRUE, columna_criterio = "", caras_ruteo = 2L, revision = 0L)
+  base <- list(rotulos = as.list(.MTF_EDITABLES), con_99 = TRUE, columna_criterio = "", caras_ruteo = 2L,
+               extras_consolidado = list(), revision = 0L)
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_TERRITORIAL_FORMATOS_SCHEMA) ||
       !identical(.mtf_txt(x$campaign_id), campaign_id)) return(base)
   rot <- base$rotulos
@@ -47,6 +50,7 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
   list(rotulos = rot, con_99 = !identical(x$con_99, FALSE),
        columna_criterio = if (nchar(crit) <= .MTF_CRITERIO_MAX) crit else "",
        caras_ruteo = if (!is.na(caras) && caras %in% c(1L, 2L)) caras else 2L,
+       extras_consolidado = as.list(intersect(names(.MTF_EXTRAS_CONSOLIDADO), as.character(unlist(x$extras_consolidado)))),
        revision = max(0L, suppressWarnings(as.integer(.mtf_txt(x$revision))), na.rm = TRUE))
 }
 
@@ -76,6 +80,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
        # Los cuatro rótulos editables aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
        rotulos = g$rotulos,
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
+       extras_consolidado = g$extras_consolidado,
+       extras_disponibles = lapply(names(.MTF_EXTRAS_CONSOLIDADO), function(k) list(id = k, rotulo = .MTF_EXTRAS_CONSOLIDADO[[k]])),
        revision = g$revision)
 }
 
@@ -83,7 +89,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
 #' El núcleo no se edita: un rótulo para 1, 4, 6, 7 u 8 es 422.
 #' @keywords internal
 collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos = list(), con_99 = NULL,
-                                                columna_criterio = NULL, caras_ruteo = NULL, expected_revision = NULL) {
+                                                columna_criterio = NULL, caras_ruteo = NULL, expected_revision = NULL,
+                                                extras_consolidado = NULL) {
   s <- session_get(sid)
   hit <- .mta_campana(s, campaign_id)
   g <- .mtf_guardado(s, hit$entry$id)
@@ -119,6 +126,13 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
     } else g$caras_ruteo <- caras
   }
   if (!is.null(con_99)) g$con_99 <- isTRUE(as.logical(unlist(con_99)[1]))
+  if (!is.null(extras_consolidado)) {
+    pedidos <- as.character(unlist(extras_consolidado))
+    raros <- setdiff(pedidos, names(.MTF_EXTRAS_CONSOLIDADO))
+    if (length(raros)) {
+      problemas[[length(problemas) + 1L]] <- list(campo = "extras_consolidado", motivo = sprintf("«%s» no es una columna opcional del consolidado", raros[[1]]))
+    } else g$extras_consolidado <- as.list(intersect(names(.MTF_EXTRAS_CONSOLIDADO), pedidos))
+  }
   if (length(problemas)) {
     stop_api(422, "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS",
              sprintf("%d cambio(s) no se pueden guardar.", length(problemas)), details = list(problemas = problemas))
@@ -126,7 +140,7 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
   session_set(sid, "material_territorial_formatos", list(
     schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA, campaign_id = hit$entry$id, rotulos = g$rotulos,
     con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
-    revision = g$revision + 1L, updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    extras_consolidado = g$extras_consolidado, revision = g$revision + 1L, updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   ))
   collection_territorial_formatos_get(sid, hit$entry$id)
 }

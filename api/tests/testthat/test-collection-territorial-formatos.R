@@ -47,6 +47,7 @@ test_that("PUT: el núcleo no se edita, los rótulos tienen tope y la revisión 
   expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`2` = strrep("x", 61)))),
                    "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
   expect_identical(.mtf_code(collection_territorial_formatos_put(sid, caras_ruteo = 3L)), "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
+  expect_identical(.mtf_code(collection_territorial_formatos_put(sid, extras_consolidado = list("otra"))), "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
   expect_null(session_get(sid)$material_territorial_formatos)
   collection_territorial_formatos_put(sid, rotulos = list(`5` = "No hay persona de 18 a 25 años"))
   expect_identical(.mtf_code(collection_territorial_formatos_put(sid, con_99 = FALSE, expected_revision = 0L)),

@@ -18,10 +18,6 @@
   sprintf("%s · %s", pieza, if (grepl("^UMP\\b", label)) label else paste("UMP", label))
 }
 
-.mtp_periodo <- function(fecha = Sys.Date()) {
-  sprintf("%s %s", .hojas_ruta_hd_meses[as.integer(format(fecha, "%m"))], format(fecha, "%Y"))
-}
-
 # Lo que comparten las dos hojas: qué UMP salen y la cabecera de cada una.
 .mtp_contexto <- function(sid, campaign_id, unidad, alcance) {
   s <- session_get(sid)
@@ -66,7 +62,10 @@
     list(unit_id = u$unit_id, label = u$label, encuestador = enc, rango = rango,
          subtitulo = paste(Filter(nzchar, partes), collapse = " · "))
   })
-  list(campana = hit$entry, cabeceras = cabeceras, formatos = collection_territorial_formatos_get(sid, hit$entry$id))
+  # El nombre del estudio va en el título y el pie, como en las hojas reales (sale del Planner).
+  estudio <- tryCatch(.mtp_txt(.planner_leer(s)$estudio$nombre), error = function(e) "")
+  list(campana = hit$entry, cabeceras = cabeceras, estudio = estudio,
+       formatos = collection_territorial_formatos_get(sid, hit$entry$id))
 }
 
 # Una fila de campos con línea para escribir; `valor` ya impreso cuando la app lo sabe.
@@ -81,18 +80,19 @@
 }
 
 # Tabla vacía con banda de encabezado; devuelve la y inferior.
-.mtp_tabla <- function(cols, anchos, x0, y, fila_h, n_filas, tk, primera = NULL, sombra = integer(0), cuerpo = 7.4, chars_npc = 160) {
+.mtp_tabla <- function(cols, anchos, x0, y, fila_h, n_filas, tk, primera = NULL, sombra = integer(0), cuerpo = 7.4, chars_npc = 160,
+                       cab_h = fila_h) {
   w <- sum(anchos); xs <- x0 + c(0, cumsum(anchos))
-  grid::grid.rect(x = x0, y = y, width = w, height = fila_h, just = c("left", "top"), gp = grid::gpar(col = NA, fill = tk$tbl_header))
+  grid::grid.rect(x = x0, y = y, width = w, height = cab_h, just = c("left", "top"), gp = grid::gpar(col = NA, fill = tk$tbl_header))
   # El rótulo largo parte en dos líneas antes que montarse sobre la columna vecina.
   for (c in seq_along(cols)) {
     rot <- paste(strwrap(cols[[c]], width = max(6L, floor(anchos[[c]] * chars_npc))), collapse = "\n")
-    grid::grid.text(rot, x = grid::unit(xs[[c]] + 0.005, "npc"), y = grid::unit(y - fila_h / 2, "npc"), just = c("left", "center"),
+    grid::grid.text(rot, x = grid::unit(xs[[c]] + 0.005, "npc"), y = grid::unit(y - cab_h / 2, "npc"), just = c("left", "center"),
                     gp = grid::gpar(fontsize = 6.8, fontface = "bold", col = tk$ink, lineheight = 0.95))
   }
   grid::grid.lines(x = c(x0, x0 + w), y = rep(y, 2), gp = grid::gpar(col = tk$navy, lwd = pulso_pdf_pesos()$bloque))
-  grid::grid.lines(x = c(x0, x0 + w), y = rep(y - fila_h, 2), gp = grid::gpar(col = tk$tbl_frame, lwd = pulso_pdf_pesos()$columna))
-  y1 <- y - fila_h
+  grid::grid.lines(x = c(x0, x0 + w), y = rep(y - cab_h, 2), gp = grid::gpar(col = tk$tbl_frame, lwd = pulso_pdf_pesos()$columna))
+  y1 <- y - cab_h
   for (c in sombra) {
     grid::grid.rect(x = xs[[c]], y = y1, width = anchos[[c]], height = n_filas * fila_h, just = c("left", "top"),
                     gp = grid::gpar(col = NA, fill = tk$canvas))
@@ -127,14 +127,38 @@
   h
 }
 
+# Casillas para marcar a mano (☐ no está en la fuente del PDF: se dibujan).
+.mtp_casillas <- function(etiqueta, opciones, x0, y, tk, ty, geo) {
+  .hojas_ruta_hd_txt_at(toupper(etiqueta), x0, y + 0.018, ty$eyebrow, tk$soft, "bold")
+  x <- x0
+  lado <- 0.011
+  for (o in opciones) {
+    grid::grid.rect(x = grid::unit(x, "npc"), y = grid::unit(y + 0.006, "npc"), width = grid::unit(lado, "npc"),
+                    height = grid::unit(lado * geo$page_w / geo$page_h, "npc"), just = c("left", "center"),
+                    gp = grid::gpar(col = tk$ink, fill = "white", lwd = 0.6))
+    .hojas_ruta_hd_txt_at(o, x + lado + 0.006, y + 0.006, 8.4, tk$ink)
+    x <- x + lado + 0.012 + nchar(o) * 0.0075
+  }
+}
+
+# Pie de las hojas impresas: el estudio y la pieza, como en las reales («… Hoja de ruteo, cara 1 de 2»).
+.mtp_pie <- function(ctx, pieza, paginas, tk, ty, geo) {
+  rot <- paste(Filter(nzchar, c(ctx$estudio, pieza)), collapse = " · ")
+  pulso_pdf_footer(paginas, rot, tokens = tk, ty = ty, geo = geo, pagina = FALSE)
+}
+
 .mtp_ruteo_pdf <- function(ctx, out_pdf) {
   tk <- pulso_pdf_tokens(); ty <- pulso_pdf_type(); geo <- pulso_pdf_geo("portrait")
   margen <- geo$margin; ancho <- 1 - 2 * margen
-  f <- ctx$formatos; periodo <- .mtp_periodo()
+  f <- ctx$formatos
   crit <- f$columna_criterio
-  cols <- c("N.º", "Dirección o referencia", "Puerta", "Resultado", "Nombre", "Edad", "Sexo", if (nzchar(crit)) crit)
-  anchos <- if (nzchar(crit)) c(0.040, 0.270, 0.065, 0.075, 0.190, 0.050, 0.050, 0) else c(0.040, 0.310, 0.070, 0.080, 0.290, 0.055, 0)
+  # Columnas de la hoja real de Ser Adolescente (03_Hoja_de_ruteo): N°, dirección, N.º de la vivienda,
+  # resultado, participante, edad, sexo, el criterio del estudio y SUP. (Sí / No) de supervisión.
+  cols <- c("N°", "Dirección: calle, avenida o pasaje", "N.º", "Resultado", "Nombre del participante", "Edad", "Sexo",
+            if (nzchar(crit)) crit, "SUP. (Sí / No)")
+  anchos <- c(0.035, 0.250, 0.050, 0.065, 0.200, 0.040, 0.040, if (nzchar(crit)) 0.090, 0)
   anchos[length(anchos)] <- ancho - sum(anchos)
+  fila_h <- 0.0140  # ~49 filas en la cara 1 y ~58 en la 2, como la hoja real (49 + 56)
   pulso_pdf_abrir(out_pdf, geo)
   on.exit(grDevices::dev.off(), add = TRUE)
   paginas <- 0L
@@ -142,20 +166,27 @@
     n0 <- 0L
     for (cara in seq_len(f$caras_ruteo)) {
       grid::grid.newpage(); paginas <- paginas + 1L
-      pulso_pdf_header(.mtp_titulo("Hoja de ruteo", cab$label), cab$subtitulo, tokens = tk, ty = ty, geo = geo,
-                       y_subtitulo = 0.944, y_regla = 0.922)
-      .mtp_campos(list(list("Encuestador", cab$encuestador), list("Fecha", ""), list("Supervisor", ""),
-                       list("Cara", sprintf("%d de %d", cara, f$caras_ruteo))), margen, 0.872, ancho, tk, ty)
-      y <- 0.846
-      if (cara == 1L) y <- y - .mtp_leyenda(f$codigos, margen, y, ancho, tk) - 0.016
-      fila_h <- 0.0205
-      n <- max(1L, floor((y - 0.115) / fila_h) - 1L)
-      yb <- .mtp_tabla(cols, anchos, margen, y, fila_h, n, tk, primera = n0 + seq_len(n), sombra = 4L)
+      pie <- sprintf("Hoja de ruteo, cara %d de %d", cara, f$caras_ruteo)
+      if (cara == 1L) {
+        pulso_pdf_header(.mtp_titulo("Hoja de ruteo", cab$label), cab$subtitulo, tokens = tk, ty = ty, geo = geo,
+                         y_subtitulo = 0.944, y_regla = 0.922)
+        .mtp_campos(list(list("Encuestador", cab$encuestador), list("Fecha", ""), list("Hoja n.º", "")), margen, 0.876, ancho * 0.66, tk, ty)
+        .mtp_casillas("Ámbito", c("Urbano", "Periurbano"), margen + ancho * 0.70, 0.876, tk, ty, geo)
+        y <- 0.852
+        y <- y - .mtp_leyenda(f$codigos, margen, y, ancho, tk) - 0.012
+      } else {
+        # La cara 2 sólo sigue la tabla; arriba, lo justo para no confundir la hoja.
+        .hojas_ruta_hd_txt_at(sprintf("%s · %s", .mtp_titulo("Hoja de ruteo", cab$label), pie), margen, 0.962, 9, tk$navy, "bold")
+        y <- 0.945
+      }
+      n <- max(1L, floor((y - 0.100) / fila_h) - 1L)
+      yb <- .mtp_tabla(cols, anchos, margen, y, fila_h, n, tk, primera = n0 + seq_len(n), sombra = 4L, cuerpo = 6.8, cab_h = 0.022)
       n0 <- n0 + n
-      .hojas_ruta_hd_txt_at(
-        "Un código por visita, en la columna sombreada. Con 8 (efectiva), registre a la persona en la hoja de consolidados.",
-        margen, yb - 0.012, 6.8, tk$soft)
-      pulso_pdf_footer(paginas, periodo, tokens = tk, ty = ty, geo = geo, pagina = FALSE)
+      if (cara == 1L) {
+        .hojas_ruta_hd_txt_at("Un código por visita, en la columna sombreada. Con 8 (efectiva), registre a la persona en la hoja de consolidados.",
+                              margen, yb - 0.010, 6.6, tk$soft)
+      }
+      .mtp_pie(ctx, pie, paginas, tk, ty, geo)
     }
   }
   attr(out_pdf, "paginas") <- paginas
@@ -165,14 +196,13 @@
 .mtp_consolidados_pdf <- function(ctx, out_pdf) {
   tk <- pulso_pdf_tokens(); ty <- pulso_pdf_type(); geo <- pulso_pdf_geo("landscape")
   margen <- geo$margin; derecha <- 1 - margen; ancho <- derecha - margen
-  f <- ctx$formatos; periodo <- .mtp_periodo()
+  f <- ctx$formatos
   crit <- f$columna_criterio
+  extras <- unlist(f$extras_consolidado %||% list())
   grupo <- vapply(f$codigos, `[[`, "", "grupo")
-  no_apl <- vapply(f$codigos[grupo == "no_aplicada"], `[[`, "", "codigo")
-  izq_w <- 0.26; der_x <- margen + izq_w + 0.03; der_w <- derecha - der_x
-  cols <- c("N.º cuestionario", "Nombre", "Edad", "Sexo", if (nzchar(crit)) crit, "Dirección completa", "Teléfono", "Hora de inicio")
-  anchos <- c(0.070, 0.130, 0.035, 0.035, if (nzchar(crit)) 0.075, 0, 0.080, 0.060)
-  anchos[anchos == 0] <- der_w - sum(anchos)
+  no_apl <- f$codigos[grupo == "no_aplicada"]
+  efectiva <- f$codigos[grupo == "efectiva"]
+  manzana <- f$codigos[grupo == "manzana"]
   pulso_pdf_abrir(out_pdf, geo)
   on.exit(grDevices::dev.off(), add = TRUE)
   paginas <- 0L
@@ -180,50 +210,54 @@
     grid::grid.newpage(); paginas <- paginas + 1L
     pulso_pdf_header(.mtp_titulo("Hoja de consolidados", cab$label), cab$subtitulo, tokens = tk, ty = ty, geo = geo,
                      y_subtitulo = 0.940, y_regla = 0.912)
-    .mtp_campos(list(list("Encuestador", cab$encuestador), list("Fecha", ""), list("Supervisor", "")), margen, 0.850, ancho * 0.75, tk, ty)
+    .mtp_campos(list(list("Encuestador", cab$encuestador), list("Fecha", ""), list("Hoja n.º", "")), margen, 0.858, ancho * 0.62, tk, ty)
+    .mtp_casillas("Ámbito", c("Urbano", "Periurbano"), margen + ancho * 0.66, 0.858, tk, ty, geo)
 
-    # --- Ocurrencias del recorrido: un total por código y los tres resúmenes ---
-    y <- 0.800
+    # --- Ocurrencias del recorrido: una fila, el código arriba y la casilla abajo (como la hoja real) ---
+    y <- 0.818
     .hojas_ruta_hd_txt_at("Ocurrencias del recorrido", margen, y, 10.5, tk$navy, "bold")
-    y <- y - 0.018
-    fila_h <- 0.030
-    filas <- c(lapply(f$codigos, function(k) c(k$codigo, k$rotulo)),
-               list(c("", sprintf("Total no aplicadas (%s)", paste(no_apl, collapse = ", "))),
-                    c("", "Encuestas efectivas (8)"), c("", "Total de intentos")))
-    yb <- .mtp_tabla(c("Código", "Resultado", "Total"), c(0.045, izq_w - 0.045 - 0.055, 0.055), margen, y, fila_h, length(filas), tk, sombra = 3L)
-    for (i in seq_along(filas)) {
-      yi <- y - fila_h - (i - 0.5) * fila_h
-      resumen <- i > length(f$codigos)
-      .hojas_ruta_hd_txt_at(filas[[i]][[1]], margen + 0.005, yi, 8, tk$navy, "bold")
-      .hojas_ruta_hd_txt_at(filas[[i]][[2]], margen + 0.050, yi, 7.6, tk$ink, if (resumen) "bold" else "plain")
-    }
-    grid::grid.lines(x = c(margen, margen + izq_w), y = rep(y - fila_h * (1 + length(f$codigos)), 2),
-                     gp = grid::gpar(col = tk$navy, lwd = pulso_pdf_pesos()$columna))
-    if ("99" %in% vapply(f$codigos, `[[`, "", "codigo")) {
-      .hojas_ruta_hd_txt_at("El 99 es de la manzana: no entra en los intentos.", margen, yb - 0.014, 6.8, tk$soft)
+    y <- y - 0.016
+    cols_oc <- c(vapply(no_apl, function(k) sprintf("%s (%s)", k$rotulo, k$codigo), ""),
+                 sprintf("Total no aplicadas (%s)", paste(vapply(no_apl, `[[`, "", "codigo"), collapse = ", ")),
+                 vapply(efectiva, function(k) sprintf("%s (%s)", k$rotulo, k$codigo), ""),
+                 "Total de intentos",
+                 vapply(manzana, function(k) sprintf("%s (%s)", k$rotulo, k$codigo), ""))
+    anchos_oc <- rep(ancho / length(cols_oc), length(cols_oc))
+    yb <- .mtp_tabla(cols_oc, anchos_oc, margen, y, 0.040, 1L, tk, cab_h = 0.062, chars_npc = 230,
+                     sombra = match(c(sprintf("Total no aplicadas (%s)", paste(vapply(no_apl, `[[`, "", "codigo"), collapse = ", ")), "Total de intentos"), cols_oc))
+    if (length(manzana)) {
+      .hojas_ruta_hd_txt_at("El código de la manzana no entra en los intentos.", margen, yb - 0.012, 6.6, tk$soft)
     }
 
-    # --- Registro de encuestados: una fila por cuestionario del rango de la UMP ---
-    y <- 0.800
-    .hojas_ruta_hd_txt_at("Registro de encuestados", der_x, y, 10.5, tk$navy, "bold")
+    # --- Registro de encuestados: una fila por cuestionario del rango de la UMP (pre-numerado, decisión d) ---
+    y <- yb - 0.040
+    .hojas_ruta_hd_txt_at("Registro de encuestados", margen, y, 10.5, tk$navy, "bold")
+    if ("manzana" %in% extras) .mtp_campos(list(list("Total de manzanas recorridas", "")), margen + ancho * 0.62, y - 0.010, ancho * 0.38, tk, ty)
     y <- y - 0.018
+    cols <- c("N.º de cuestionario", if ("manzana" %in% extras) "Mz.", "Nombre del participante", "Edad", "Sexo",
+              if (nzchar(crit)) crit, if ("nse" %in% extras) "NSE",
+              "Dirección completa: avenida, calle, jirón, n.º, lote, interior, piso, urbanización o asentamiento humano",
+              "Teléfono", "Hora de inicio", if ("hora_final" %in% extras) "Hora final")
+    base <- c(0.070, if ("manzana" %in% extras) 0.040, 0.150, 0.035, 0.035, if (nzchar(crit)) 0.075, if ("nse" %in% extras) 0.040,
+              0, 0.080, 0.060, if ("hora_final" %in% extras) 0.060)
+    base[base == 0] <- ancho - sum(base)
     numeros <- if (length(cab$rango)) seq.int(cab$rango[1], cab$rango[2]) else rep("", 12L)
-    piso <- 0.25  # deja sitio a las observaciones
-    fila_h <- max(0.026, min(0.036, (y - piso) / (length(numeros) + 1L)))
-    n_cabe <- floor((y - piso) / fila_h) - 1L
+    piso <- 0.20
+    fila_h <- max(0.026, min(0.034, (y - piso) / (length(numeros) + 1L)))
+    n_cabe <- floor((y - 0.032 - piso) / fila_h)
     mostrados <- utils::head(numeros, n_cabe)
-    yb <- .mtp_tabla(cols, anchos, der_x, y, fila_h, length(mostrados), tk, primera = mostrados, cuerpo = 8, chars_npc = 230)
+    yb <- .mtp_tabla(cols, base, margen, y, fila_h, length(mostrados), tk, primera = mostrados, cuerpo = 8, chars_npc = 230, cab_h = 0.032)
     if (length(numeros) > n_cabe) {
       .hojas_ruta_hd_txt_at(sprintf("Faltan %d cuestionarios en esta hoja: anótelos al reverso.", length(numeros) - n_cabe),
-                            der_x, yb - 0.014, 6.8, tk$danger)
+                            margen, yb - 0.012, 6.6, tk$danger)
     }
-    # --- Observaciones de la jornada: líneas para escribir hasta el pie ---
-    yo <- yb - 0.050
-    .hojas_ruta_hd_txt_at("Observaciones", der_x, yo, 10.5, tk$navy, "bold")
-    for (yl in utils::head(seq(yo - 0.036, 0.105, by = -0.030), 6L)) {
-      grid::grid.lines(x = c(der_x, derecha), y = rep(yl, 2), gp = grid::gpar(col = tk$tbl_frame, lwd = 0.6))
+    # --- Observaciones: líneas para escribir hasta el pie ---
+    yo <- yb - 0.040
+    .hojas_ruta_hd_txt_at("Observaciones", margen, yo, 10.5, tk$navy, "bold")
+    for (yl in utils::head(seq(yo - 0.030, 0.100, by = -0.028), 4L)) {
+      grid::grid.lines(x = c(margen, derecha), y = rep(yl, 2), gp = grid::gpar(col = tk$tbl_frame, lwd = 0.6))
     }
-    pulso_pdf_footer(paginas, periodo, tokens = tk, ty = ty, geo = geo, pagina = FALSE)
+    .mtp_pie(ctx, "Hoja de consolidados", paginas, tk, ty, geo)
   }
   attr(out_pdf, "paginas") <- paginas
   invisible(out_pdf)

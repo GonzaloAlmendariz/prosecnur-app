@@ -140,6 +140,24 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
           consolidados. Vacío, no sale.
         </small>
       </div>
+      {formatos.extras_disponibles.length ? (
+        <div className="rec-terr-campo rec-terr-criterio">
+          <span aria-hidden>Columnas del registro de consolidados</span>
+          {formatos.extras_disponibles.map((x) => (
+            <PulsoSwitch
+              key={x.id}
+              size="sm"
+              label={x.rotulo}
+              checked={formatos.extras_consolidado.includes(x.id)}
+              disabled={guardando}
+              onCheckedChange={(v) => void guardar({
+                extras_consolidado: v ? [...formatos.extras_consolidado, x.id] : formatos.extras_consolidado.filter((e) => e !== x.id),
+              })}
+            />
+          ))}
+          <small className="rec-terr-nota">Las que usa el estudio, además de las fijas. Se guardan al elegir.</small>
+        </div>
+      ) : null}
       <div className="rec-terr-fila rec-terr-guardar">
         <PulsoButton
           variant="primary"

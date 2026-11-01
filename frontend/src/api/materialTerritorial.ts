@@ -413,6 +413,9 @@ export type FormatosTerritoriales = {
   con_99: boolean;
   columna_criterio: string;
   caras_ruteo: 1 | 2;
+  /** Columnas opcionales del registro de la hoja de consolidados (acogida: Mz., NSE, Hora final). */
+  extras_consolidado: string[];
+  extras_disponibles: { id: string; rotulo: string }[];
   revision: number;
 };
 
@@ -421,6 +424,7 @@ export type CambioDeFormatos = Partial<{
   con_99: boolean;
   columna_criterio: string;
   caras_ruteo: 1 | 2;
+  extras_consolidado: string[];
 }>;
 
 const GRUPOS: readonly GrupoDeCodigo[] = ["no_aplicada", "efectiva", "manzana"];
@@ -440,6 +444,8 @@ export function normalizarFormatosTerritoriales(valor: unknown): FormatosTerrito
     con_99: logico(o.con_99),
     columna_criterio: texto(o.columna_criterio),
     caras_ruteo: enteroONulo(o.caras_ruteo) === 1 ? 1 : 2,
+    extras_consolidado: lista(o.extras_consolidado).map(texto).filter(Boolean),
+    extras_disponibles: lista(o.extras_disponibles).flatMap((x) => (esRegistro(x) && texto(x.id) ? [{ id: texto(x.id), rotulo: texto(x.rotulo) || texto(x.id) }] : [])),
     revision: entero(o.revision),
   };
 }
@@ -488,3 +494,4 @@ export async function apiMaterialTerritorialPapel(
   if (!file_id) throw new Error("El backend no devolvió la hoja.");
   return { file_id, filename: texto(o.filename), umps: entero(o.umps), paginas: entero(o.paginas) };
 }
+

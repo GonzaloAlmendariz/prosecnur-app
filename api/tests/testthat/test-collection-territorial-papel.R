@@ -37,8 +37,13 @@ test_that("ruteo: una hoja por UMP titular y cara, con el encuestador asignado y
   txt <- .mtp_texto(sid, una$file_id)
   expect_match(txt, "P844 · Encuestador Ejemplo Uno", fixed = TRUE)
   expect_match(txt, "No hay persona de 18 a 25", fixed = TRUE)
-  expect_match(txt, "Cursa estudios", fixed = TRUE)
+  expect_match(txt, "Cursa", fixed = TRUE)  # el rótulo parte en dos líneas en la cabecera
   expect_false(grepl("40000001", txt, fixed = TRUE))
+  # Como la hoja real: supervisión, hoja n.º y ámbito; cara 2 hasta la fila 105.
+  expect_match(txt, "SUP. (Sí / No)", fixed = TRUE)
+  expect_match(txt, "Periurbano", fixed = TRUE)
+  expect_match(txt, "Hoja de ruteo, cara 2 de 2", fixed = TRUE)
+  expect_match(txt, "\\b105\\b", perl = TRUE)
 })
 
 test_that("ruteo a una cara y consolidados con el rango de cuestionarios ya numerado", {
@@ -51,6 +56,14 @@ test_that("ruteo a una cara y consolidados con el rango de cuestionarios ya nume
   txt <- .mtp_texto(sid, r$file_id)
   expect_match(txt, "Ocurrencias del recorrido", fixed = TRUE)
   expect_match(txt, "Total de intentos", fixed = TRUE)
+  expect_false(grepl("NSE", txt, fixed = TRUE))
+  # Columnas opcionales del consolidado (acogida): Mz., NSE y Hora final.
+  collection_territorial_formatos_put(sid, extras_consolidado = list("manzana", "nse", "hora_final"))
+  r2 <- collection_territorial_papel(sid, pieza = "consolidados", unidad = T1)  # antes: .mtp_texto lee la sesión al entrar
+  txt2 <- .mtp_texto(sid, r2$file_id)
+  expect_match(txt2, "NSE", fixed = TRUE)
+  expect_match(txt2, "Hora final", fixed = TRUE)
+  expect_match(txt2, "TOTAL DE MANZANAS RECORRIDAS", fixed = TRUE)  # los rótulos de campo van en mayúsculas
   expect_match(txt, as.character(u$rango_inicio), fixed = TRUE)
   expect_match(txt, as.character(u$rango_fin), fixed = TRUE)
 })

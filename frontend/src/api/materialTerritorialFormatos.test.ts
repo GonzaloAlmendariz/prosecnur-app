@@ -17,7 +17,9 @@ describe("normalizarFormatosTerritoriales", () => {
       columna_criterio: null,
       caras_ruteo: [1],
       revision: [3],
+      extras_disponibles: [{ id: "nse", rotulo: "NSE" }, { rotulo: "sin id" }],
     });
+    expect(f.extras_disponibles).toEqual([{ id: "nse", rotulo: "NSE" }]);
     expect(f.codigos.map((c) => c.codigo)).toEqual(["1", "8"]);
     expect(f.codigos[1].grupo).toBe("efectiva");
     expect(f.rotulos["99"]).toBe("Manzana no elegible");
@@ -25,6 +27,7 @@ describe("normalizarFormatosTerritoriales", () => {
     expect(f.columna_criterio).toBe("");
     expect(f.caras_ruteo).toBe(1);
     expect(f.revision).toBe(3);
+    expect(f.extras_consolidado).toEqual([]);
   });
 
   it("descarta códigos sin número y cae en valores seguros con un payload vacío", () => {
