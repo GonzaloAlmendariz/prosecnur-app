@@ -1,0 +1,74 @@
+/* Entrega › Plantillas del equipo (campaña de aulas, etapa 3): dos tarjetas, una fila por
+   plantilla con su descarga y el estado del traspaso a Monitoreo. */
+.rec-equipo-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  align-items: start;
+  gap: var(--pulso-space-3);
+}
+
+.rec-equipo-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.rec-equipo-tarjeta h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+
+.rec-equipo-tarjeta h3 svg {
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-equipo-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.rec-equipo-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+
+.rec-equipo-piezas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rec-equipo-piezas li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.rec-equipo-piezas li > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-equipo-piezas small {
+  color: var(--pulso-text-soft);
+}

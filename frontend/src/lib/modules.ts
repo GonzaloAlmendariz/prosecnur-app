@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   DatabaseZap,
+  FileSpreadsheet,
   FileText,
   GanttChart,
   Hash,
@@ -643,6 +644,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             layoutPolicy: "viewport",
             tabs: [
               { id: "traspaso", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", layoutPolicy: "viewport" },
+              // Etapa 3: las plantillas del equipo de aulas salen de Material (ADR 0122 §11).
+              { id: "plantillas", label: "Plantillas del equipo", icon: FileSpreadsheet, to: "/material-campo?modo=aulas&seccion=entrega&pestana=plantillas", layoutPolicy: "viewport" },
             ],
           },
         ],

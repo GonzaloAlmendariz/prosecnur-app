@@ -296,7 +296,7 @@ describe("manifiesto primario de navegación", () => {
           { id: "accesos", to: "/material-campo?modo=aulas&seccion=accesos", tabs: ["/material-campo?modo=aulas&seccion=accesos&pestana=canales", "/material-campo?modo=aulas&seccion=accesos&pestana=vinculacion"] },
           { id: "catalogo", to: "/material-campo?modo=aulas&seccion=catalogo", tabs: ["/material-campo?modo=aulas&seccion=catalogo&pestana=tipos", "/material-campo?modo=aulas&seccion=catalogo&pestana=editor"] },
           { id: "paquetes", to: "/material-campo?modo=aulas&seccion=paquetes", tabs: ["/material-campo?modo=aulas&seccion=paquetes&pestana=armado"] },
-          { id: "entrega", to: "/material-campo?modo=aulas&seccion=entrega", tabs: ["/material-campo?modo=aulas&seccion=entrega&pestana=traspaso"] },
+          { id: "entrega", to: "/material-campo?modo=aulas&seccion=entrega", tabs: ["/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", "/material-campo?modo=aulas&seccion=entrega&pestana=plantillas"] },
         ],
       },
       {

@@ -13,6 +13,7 @@ import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
 import { CatalogoTipos } from "./catalogo/CatalogoTipos";
 import { DeliverySection } from "./DeliverySection";
+import { PlantillasDelEquipo } from "./PlantillasDelEquipo";
 import { EditorDeMaterial } from "./editor/EditorDeMaterial";
 import { MaterialsSection } from "./MaterialsSection";
 import { OrigenSection } from "./OrigenSection";
@@ -308,9 +309,10 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           onIr={irA}
         />
       ) : null}
-      {!loading && direction.seccion === "entrega" ? (
+      {!loading && direction.seccion === "entrega" && direction.pestana === "traspaso" ? (
         <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} />
       ) : null}
+      {!loading && direction.seccion === "entrega" && direction.pestana === "plantillas" ? <PlantillasDelEquipo /> : null}
     </section>
   );
 
