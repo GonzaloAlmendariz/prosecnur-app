@@ -257,6 +257,23 @@
 .mon-ban-tabla.is-casos col.is-motivo { width: 21%; }
 .mon-ban-tabla.is-casos col.is-cifra { width: 92px; }
 
+/* 1280–1440: con los anchos de arriba al aplicador le quedaban ~100 px y se
+ * partía en tres líneas («P132 · Venturo / Perales Rosa / Magda»). Distrito y
+ * motivo ceden un poco y las columnas cortas se ajustan, para que el aplicador
+ * quepa en una o dos. Con el inspector abierto la tabla no baja de 820 px:
+ * desplaza dentro de su marco antes que aplastar al aplicador. */
+@media (min-width: 1181px) and (max-width: 1440px) {
+  .mon-ban-tabla.is-casos {
+    min-width: 820px;
+  }
+
+  .mon-ban-tabla.is-casos col.is-caso { width: 92px; }
+  .mon-ban-tabla.is-casos col.is-dia { width: 96px; }
+  .mon-ban-tabla.is-casos col.is-distrito { width: 14%; }
+  .mon-ban-tabla.is-casos col.is-motivo { width: 16%; }
+  .mon-ban-tabla.is-casos col.is-cifra { width: 84px; }
+}
+
 /* Sin elipsis (§2a, g): el aplicador, el distrito y el motivo largos pasan a
  * una segunda línea dentro de su columna. */
 .mon-ban-tabla.is-casos tbody td {

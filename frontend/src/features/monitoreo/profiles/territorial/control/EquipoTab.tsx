@@ -83,7 +83,7 @@ function EquipoTabImpl({
                 <th scope="col" className="is-num">Recibidas</th>
                 <th scope="col" className="is-num">Cuentan</th>
                 <th scope="col" className="is-num">UMP</th>
-                <th scope="col">Distritos</th>
+                <th scope="col" className="is-distritos">Distritos</th>
                 <th scope="col">GPS observado</th>
                 <th scope="col" className="is-num">Menos de 5 min</th>
                 <th scope="col">Cuentan por día</th>
@@ -117,7 +117,7 @@ function EquipoTabImpl({
                   <td className="is-num">{fmt(fila.recibidas)}</td>
                   <td className="is-num">{fmt(fila.cuentan)}</td>
                   <td className="is-num">{fmt(fila.umps)}</td>
-                  <td>{fila.distritos.join(", ") || "—"}</td>
+                  <td className="is-distritos">{fila.distritos.join(", ") || "—"}</td>
                   <td>{fila.gpsObservado ? <BarraDeProporcion casos={fila.gpsObservado.casos} base={fila.gpsObservado.base} texto={fila.gpsObservado.texto} /> : "—"}</td>
                   <td className="is-num">{fila.cortas == null ? "—" : fmt(fila.cortas)}</td>
                   <td>{fila.porDia ? <Sparkline valores={fila.porDia} codigo={fila.codigo} /> : "—"}</td>
