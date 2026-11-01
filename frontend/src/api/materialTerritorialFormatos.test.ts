@@ -28,6 +28,8 @@ describe("normalizarFormatosTerritoriales", () => {
     expect(f.caras_ruteo).toBe(1);
     expect(f.revision).toBe(3);
     expect(f.extras_consolidado).toEqual([]);
+    expect(f.origen_codigos).toBe("material");
+    expect(normalizarFormatosTerritoriales({ origen_codigos: ["planner"] }).origen_codigos).toBe("planner");
   });
 
   it("descarta códigos sin número y cae en valores seguros con un payload vacío", () => {

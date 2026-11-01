@@ -78,3 +78,21 @@ test_that("HTTP: GET y PUT de los formatos", {
   expect_identical(p$status, 200L)
   expect_identical(p$body$codigos[[2]]$rotulo, "Casa vacía")
 })
+
+test_that("con los códigos declarados en el Planner, Material los lee de ahí y no los edita", {
+  sid <- .mtf_sesion(); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(collection_territorial_formatos_get(sid)$origen_codigos, "material")
+  .planner_declarar(sid, "codigos", list(version = 1L, resultado = list(
+    list(codigo = "1", rotulo = "No quería participar", grupo = "no_aplicada"),
+    list(codigo = "4", rotulo = "Miembros del hogar ausentes", grupo = "no_aplicada"),
+    list(codigo = "8", rotulo = "Encuesta efectiva", grupo = "efectiva"),
+    list(codigo = "99", rotulo = "Manzana no elegible", grupo = "manzana")), status_barrido = list()), 0L)
+  r <- collection_territorial_formatos_get(sid)
+  expect_identical(r$origen_codigos, "planner")
+  expect_identical(vapply(r$codigos, `[[`, "", "codigo"), c("1", "4", "8", "99"))
+  expect_identical(r$codigos[[2]]$rotulo, "Miembros del hogar ausentes")
+  expect_false(any(vapply(r$codigos, `[[`, TRUE, "editable")))
+  expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`2` = "Otra"))), "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
+  # El resto del formato sigue siendo de Material.
+  expect_identical(collection_territorial_formatos_put(sid, caras_ruteo = 1L)$caras_ruteo, 1L)
+})

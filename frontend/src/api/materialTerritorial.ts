@@ -407,6 +407,8 @@ export type CodigoDeResultado = { codigo: string; rotulo: string; grupo: GrupoDe
 
 export type FormatosTerritoriales = {
   codigos: CodigoDeResultado[];
+  /** «planner» cuando el Planner declaró los códigos: se leen de ahí y se editan allá. */
+  origen_codigos: "material" | "planner";
   editables: string[];
   /** Los rótulos de 2, 3, 5 y 99, también el del 99 cuando no se usa. */
   rotulos: Record<string, string>;
@@ -439,6 +441,7 @@ export function normalizarFormatosTerritoriales(valor: unknown): FormatosTerrito
   });
   return {
     codigos,
+    origen_codigos: texto(o.origen_codigos) === "planner" ? "planner" : "material",
     editables: lista(o.editables).map(texto).filter(Boolean),
     rotulos: esRegistro(o.rotulos) ? Object.fromEntries(Object.entries(o.rotulos).map(([k, v]) => [k, texto(v)])) : {},
     con_99: logico(o.con_99),

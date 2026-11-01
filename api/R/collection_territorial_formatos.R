@@ -71,14 +71,32 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
   codigos
 }
 
+# El catálogo de resultado que declaró el Planner (ADR 0122: el Planner es dueño de los
+# códigos); NULL si no lo declaró o está vacío, y entonces vale el de Material. Se lee la
+# sección declarada directamente: la proyección del Planner se siembra de Material y
+# leerla aquí sería circular. Los retirados no se ofrecen; «otro» se cuenta como no aplicada.
+.mtf_catalogo_planner <- function(s) {
+  decl <- tryCatch(.planner_leer(s)$secciones$codigos, error = function(e) NULL)
+  res <- if (is.list(decl) && is.list(decl$valor)) decl$valor$resultado else NULL
+  vigentes <- Filter(function(k) is.list(k) && is.null(k$retirado_en_version) && nzchar(k$codigo %||% ""), res %||% list())
+  if (!length(vigentes)) return(NULL)
+  lapply(vigentes, function(k) list(codigo = k$codigo, rotulo = k$rotulo %||% "",
+                                    grupo = if (k$grupo %in% c("efectiva", "no_aplicada", "manzana")) k$grupo else "no_aplicada",
+                                    editable = FALSE))
+}
+
 #' Códigos de resultado y formato de las hojas de la campaña territorial (lectura pura).
 #' @keywords internal
 collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
   s <- session_get(sid)
   hit <- .mta_campana(s, campaign_id)
   g <- .mtf_guardado(s, hit$entry$id)
+  del_planner <- .mtf_catalogo_planner(s)
   list(ok = TRUE, campaign_id = hit$entry$id, schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA,
-       codigos = .mtf_catalogo(g), editables = as.list(.MTF_ORDEN),
+       codigos = del_planner %||% .mtf_catalogo(g),
+       # De dónde salen los códigos: «planner» si el Planner los declaró (se editan allá).
+       origen_codigos = if (is.null(del_planner)) "material" else "planner",
+       editables = if (is.null(del_planner)) as.list(.MTF_ORDEN) else list(),
        # Todos los rótulos aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
        rotulos = g$rotulos,
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
@@ -105,6 +123,10 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
   }
   problemas <- list()
   rotulos <- if (is.list(rotulos)) rotulos else list()
+  if (length(rotulos) && !is.null(.mtf_catalogo_planner(s))) {
+    problemas[[length(problemas) + 1L]] <- list(campo = "rotulos", motivo = "Los códigos los declara el Planner: edítalos allá")
+    rotulos <- list()
+  }
   for (k in names(rotulos)) {
     v <- .mtf_txt(rotulos[[k]])
     if (!k %in% .MTF_ORDEN) {

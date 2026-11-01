@@ -95,14 +95,15 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
   const vacio = Object.entries(rotulos).some(([k, v]) => !v.trim() && !(k === "99" && !con99));
   const sucio = Object.keys(cambiados).length > 0 || con99 !== formatos.con_99 || criterio.trim() !== formatos.columna_criterio;
   // El 99 apagado no sale en el catálogo leído: se pinta con su rótulo guardado para poder volver a prenderlo.
-  const filas = formatos.codigos.some((c) => c.codigo === "99") ? formatos.codigos : [...formatos.codigos, { codigo: "99", rotulo: rotulos["99"] ?? "", grupo: "manzana" as const, editable: true }];
+  const delPlanner = formatos.origen_codigos === "planner";
+  const filas = delPlanner || formatos.codigos.some((c) => c.codigo === "99") ? formatos.codigos : [...formatos.codigos, { codigo: "99", rotulo: rotulos["99"] ?? "", grupo: "manzana" as const, editable: true }];
 
   return (
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
       <h3><Hash size={15} aria-hidden /> Códigos de resultado</h3>
       <p className="rec-terr-nota">
         El código con el que campo anota cada visita en la hoja de ruteo. Qué significa cada número es igual en todos los estudios (el 8
-        es la efectiva); los rótulos se ajustan al papel del estudio.
+        es la efectiva); los rótulos se ajustan al papel del estudio.{delPlanner ? " Los declara el Planner: se editan allá." : ""}
       </p>
       <ul className="rec-terr-codigos" aria-label="Códigos de resultado del estudio">
         {filas.map((c) => (
@@ -118,7 +119,7 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
                 onChange={(ev) => setRotulos((r) => ({ ...r, [c.codigo]: ev.target.value }))}
               />
             ) : <span className="rec-terr-codigo-rotulo">{c.rotulo}</span>}
-            {c.codigo === "99" ? (
+            {c.codigo === "99" && !delPlanner ? (
               <PulsoSwitch size="sm" ariaLabel="Usar el código 99" checked={con99} disabled={guardando} onCheckedChange={setCon99} />
             ) : null}
           </li>
