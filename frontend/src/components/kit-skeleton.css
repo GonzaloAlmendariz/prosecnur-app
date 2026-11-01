@@ -81,7 +81,7 @@
 }
 
 /* Geometría ajustable por quien monta la silueta, para calzar con la vista
-   real (Δ ≤ 2 px). Se declaran en un ANCESTRO (p. ej. .pulso-route-skeleton) y
+   real (Δ ≤ 2 px). Se declaran en un ANCESTRO (el contenedor que la monta) y
    aquí solo se leen con su valor por defecto: declararlas en la propia vista
    taparía las del ancestro.
      --pulso-skeleton-cabecera-alto   62px (TabHeading estándar)
@@ -335,138 +335,19 @@
 }
 
 /* --- Usos del shell --------------------------------------------------------
-   El fallback de ruta conserva la clase `.pulso-module-warmup` A PROPÓSITO:
-   `estadoListo()` (lib/navegacion/runtime.ts) la lee como «warm start» y el
-   runner sigue esperando la readiness real. Sin ella, el skeleton respondería
-   `sin-marca-de-readiness` y el QA dejaría de esperar. Aquí se anula la
-   puesta en escena centrada del warm start: la silueta ocupa la superficie de
-   ruta ENTERA, que es exactamente el marco del PageFrame destino. */
-.pulso-module-warmup.pulso-route-skeleton {
-  display: flex;
-  flex-direction: column;
-  place-items: stretch;
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-  background: transparent;
-}
+   Las siluetas por destino del fallback de ruta (L24: `.pulso-route-skeleton`
+   con `data-skeleton-destino`) se retiraron el 2026-11-01: desde el rescate
+   del 26/10 nadie las montaba. El warm start pinta `VistaSkeleton` (las mismas
+   piezas de este archivo) y dentro de un módulo se usa `SkeletonVista`.
 
-/* Geometría por destino, medida contra la vista real (acnur_acg, 1440x1000 y
-   1024x600). `data-skeleton-destino` lo pone RouteLoadingFallback. */
-
-/* Procesamiento: rail de 40 + gutter 16; cabecera de panel de 66 px; la
-   columna principal deja 30 px a la derecha (gutter del split + del main). */
-.pulso-route-skeleton[data-skeleton-destino="procesamiento"] {
-  --pulso-skeleton-cabecera-alto: 66px;
-  --pulso-skeleton-principal-fin: 30px;
-}
-
-/* Monitoreo: el shell real quita el tope de ancho y deja 8 px de padding
-   (`.pulso-main:has(.mon-page)`). Mientras carga, el main tiene el skeleton y
-   no `.mon-page`: se replica aquí para que el marco no salte al montar. */
-.pulso-main:has(.pulso-route-skeleton[data-skeleton-destino="monitoreo"]),
+   `.mon-shell-fallback` es la segunda espera de Monitoreo (MonitoreoShell, ya
+   con el chunk cargado y el estado aún en camino). El shell real quita el tope
+   de ancho y deja 8 px de padding (`.pulso-main:has(.mon-page)`); sin esta
+   regla el main pasaba de 8 a 20 px al soltar la espera y volvía a 8 al montar
+   `.mon-page`: dos saltos. */
 .pulso-main:has(.mon-shell-fallback) {
   max-width: none;
   padding: 8px;
-}
-/* `.mon-shell-fallback` es la segunda espera de Monitoreo (MonitoreoShell, ya
-   con el chunk cargado y el estado aún en camino). Sin esta línea el main
-   pasaba de 8 a 20 px al soltar el skeleton y volvía a 8 al montar `.mon-page`:
-   dos saltos. TEMPORAL hasta que ShellFallback adopte `SkeletonVista`
-   (fuera del alcance de L24: features/monitoreo). */
-
-.pulso-route-skeleton[data-skeleton-destino="monitoreo"] {
-  --pulso-skeleton-cabecera-alto: 84px;
-  --pulso-skeleton-banda-gap: var(--pulso-space-2);
-  --pulso-skeleton-gutter: 15px;
-}
-
-@media (max-height: 720px) {
-  .pulso-route-skeleton[data-skeleton-destino="monitoreo"] {
-    --pulso-skeleton-cabecera-alto: 41px;
-    --pulso-skeleton-banda-gap: var(--pulso-space-1);
-  }
-}
-
-/* Monitoreo ≥ ~1516 px: la command bar real (.mon-commandbar) se topa a
-   1500 px y se centra (monitoreoShell.css); la banda del skeleton, igual. */
-.pulso-route-skeleton[data-skeleton-destino="monitoreo"] .pulso-skeleton-banda {
-  inline-size: 100%;
-  max-inline-size: 1500px;
-  margin-inline: auto;
-}
-
-/* Editor de formularios: la barra de comandos real cambia de filas con el
-   ancho (xlsform-v2.css): una fila (52) por encima de 1520 px, dos (92) entre
-   1101 y 1520, tres (130) hasta 1100. Siempre 10 px por arriba. */
-.pulso-route-skeleton[data-skeleton-destino="formularios"] {
-  --pulso-skeleton-banda-alto: 52px;
-  --pulso-skeleton-banda-margen: 10px 12px 0;
-}
-
-@media (max-width: 1520px) {
-  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
-    --pulso-skeleton-banda-alto: 92px;
-  }
-}
-
-@media (max-width: 1100px) {
-  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
-    --pulso-skeleton-banda-alto: 130px;
-    --pulso-skeleton-banda-margen: 10px 8px 0;
-  }
-}
-
-/* Gap entre banda y cuerpo = gap del .pulso-page-frame real: 12 px, y 8 px
-   bajo las mismas condiciones que lo bajan en theme.css — viewport ≤ 1320 px
-   de ancho o ≤ 720 de alto, o densidad compacta/corta del layout. Aplica a
-   los destinos cuya banda es hija directa del PageFrame (Recopiladores y el
-   Editor); en Bitácora la banda vive dentro del cuerpo y el gap es fijo. */
-@media (max-width: 1320px), (max-height: 720px) {
-  .pulso-route-skeleton[data-skeleton-destino="seccion"],
-  .pulso-route-skeleton[data-skeleton-destino="formularios"] {
-    --pulso-skeleton-banda-gap: var(--pulso-space-2);
-  }
-}
-
-:root[data-pulso-layout-density="compact"] .pulso-route-skeleton[data-skeleton-destino="seccion"],
-:root[data-pulso-layout-density="short"] .pulso-route-skeleton[data-skeleton-destino="seccion"],
-:root[data-pulso-layout-density="compact"] .pulso-route-skeleton[data-skeleton-destino="formularios"],
-:root[data-pulso-layout-density="short"] .pulso-route-skeleton[data-skeleton-destino="formularios"] {
-  --pulso-skeleton-banda-gap: var(--pulso-space-2);
-}
-
-/* Bitácora: la banda y el cuerpo reservan el gutter de scroll de 15 px. */
-.pulso-route-skeleton[data-skeleton-destino="bitacora"] {
-  --pulso-skeleton-gutter: 15px;
-}
-
-/* Decisión del lead (D4 aplicado a la espera): donde el cuerpo real
-   (.pulso-page-frame-body) no dibuja marco —Recopiladores, Bitácora— la
-   superficie del skeleton tampoco: solo quedan las piezas de la silueta. */
-.pulso-route-skeleton[data-skeleton-destino="seccion"] .pulso-skeleton-superficie,
-.pulso-route-skeleton[data-skeleton-destino="bitacora"] .pulso-skeleton-superficie {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-/* En la superficie de ruta la silueta no lleva marco propio: el marco es de la
-   superficie interior (.pulso-skeleton-superficie), como en la vista real. */
-.pulso-route-skeleton > .pulso-skeleton-vista {
-  background: transparent;
-}
-
-/* Bajo la pantalla de warm start: la vista destino, recortada a un alto que
-   deja el mensaje y el avance a la vista también en 1024x600. */
-.pulso-skeleton-vista--destino {
-  justify-self: stretch;
-  inline-size: min(100%, 1120px);
-  block-size: auto;
-  max-block-size: clamp(120px, 30vh, 340px);
-  margin-inline: auto;
-  -webkit-mask-image: linear-gradient(180deg, var(--pulso-surface) 70%, transparent);
-  mask-image: linear-gradient(180deg, var(--pulso-surface) 70%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
