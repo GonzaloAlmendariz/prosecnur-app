@@ -340,3 +340,46 @@ test_that("el rótulo por defecto de Cálculo no se toma como nombre del estudio
                          dashboard_config = list(titulo = "Tablero de HSVG")))
   expect_equal(.planner_identidad(session_get(sid))$nombre, "Tablero de HSVG")
 })
+
+# --- Insumos del cliente: se registran, el archivo no se mueve (ADR 0122) -------
+
+.pl_archivos <- function() {
+  list(
+    `f-marco` = list(file_id = "f-marco", kind = "data", original_name = "BD estudiantes 2026-2.xlsx", uploaded_at = "2026-10-20T10:00:00Z"),
+    `f-xls` = list(file_id = "f-xls", kind = "xlsform", original_name = "Instrumento.xlsx", uploaded_at = "2026-10-21T10:00:00Z")
+  )
+}
+
+test_that("el marco que leyó Cálculo se siembra como insumo enlazado a su archivo", {
+  # Forma real (hsvg2026): una vinculación por hoja; dos hojas del mismo archivo.
+  sid <- .pl_sesion(list(files = .pl_archivos(),
+                         calc_muestra_estudio = list(workspace = list(source_bindings = list(
+                           list(id = "src-estudiantes", label = "Base principal de matrícula", file_id = "f-marco"),
+                           list(id = "src-cursos", label = "Cursos", file_id = "f-marco"))))))
+  p <- .planner_payload(session_get(sid))
+  expect_length(p$planner$insumos, 1L)
+  marco <- p$planner$insumos[[1]]
+  expect_equal(marco$etiqueta, "Base principal de matrícula")
+  expect_equal(marco$tipo, "marco")
+  expect_equal(marco$archivo, "f-marco")
+  expect_equal(marco$archivo_nombre, "BD estudiantes 2026-2.xlsx")
+  expect_equal(marco$archivo_estado, "en_proyecto")
+  expect_setequal(vapply(p$archivos, `[[`, "", "file_id"), c("f-marco", "f-xls"))
+})
+
+test_that("un insumo declarado guarda sólo el file_id; el nombre se resuelve al leer", {
+  sid <- .pl_sesion(list(files = .pl_archivos()))
+  .planner_declarar(sid, "insumos", list(
+    list(id = "padron", tipo = "padron", etiqueta = "Padrón 2026", archivo = "f-marco", origen = "DTI",
+         archivo_nombre = "no se guarda"),
+    list(id = "listado", tipo = "listado", etiqueta = "Listado del cliente", archivo = "", origen = "Drive del cliente"),
+    list(id = "viejo", tipo = "otro", etiqueta = "Ya no está", archivo = "f-borrado", origen = "Correo")
+  ), 0L)
+  guardado <- session_get(sid)$planner$insumos
+  expect_null(guardado[[1]]$archivo_nombre)
+  expect_equal(guardado[[1]]$archivo, "f-marco")
+  estados <- vapply(.planner_payload(session_get(sid))$planner$insumos, `[[`, "", "archivo_estado")
+  expect_equal(estados, c("en_proyecto", "externo", "falta"))
+  # Registrar no mueve ni toca el archivo.
+  expect_equal(session_get(sid)$files$`f-marco`$original_name, "BD estudiantes 2026-2.xlsx")
+})

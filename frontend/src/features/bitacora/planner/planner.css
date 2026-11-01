@@ -421,3 +421,11 @@
   align-items: center;
   gap: var(--pulso-space-2);
 }
+
+.planner-insumo-externo {
+  color: var(--pulso-text-soft);
+}
+
+.planner-insumo-falta {
+  color: var(--pulso-warn-fg);
+}

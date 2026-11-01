@@ -49,7 +49,20 @@ export type PlannerCodigo = {
 };
 export type PlannerCodigos = { version: number; resultado: PlannerCodigo[]; status_barrido: PlannerCodigo[] };
 
-export type PlannerInsumo = { id: string; tipo: string; etiqueta: string; archivo: string; origen: string; registrado_en: string };
+export type PlannerInsumo = {
+  id: string;
+  tipo: string;
+  etiqueta: string;
+  /** `file_id` de un archivo del proyecto, o vacío si el insumo está fuera (Drive, correo). */
+  archivo: string;
+  origen: string;
+  registrado_en: string;
+  /** Sólo de lectura: lo resuelve el backend; no se guarda. */
+  archivo_nombre?: string;
+  archivo_estado?: "en_proyecto" | "externo" | "falta";
+};
+
+export type PlannerArchivo = { file_id: string; nombre: string; tipo: string; subido_en: string };
 
 export type PlannerAviso = { codigo: string; mensaje: string; fuente?: string | null };
 
@@ -69,6 +82,8 @@ export type PlannerEstado = {
   escribibles: PlannerSeccion[];
   avisos: PlannerAviso[];
   conflictos: PlannerAviso[];
+  /** Archivos del proyecto (`files/`) a los que un insumo puede apuntar. */
+  archivos: PlannerArchivo[];
 };
 
 // --- Normalizador defensivo ------------------------------------------------
@@ -170,7 +185,12 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
       },
       insumos: arr(pl.insumos).map((x) => {
         const k = obj(x);
-        return { id: txt(k.id), tipo: txt(k.tipo), etiqueta: txt(k.etiqueta), archivo: txt(k.archivo), origen: txt(k.origen), registrado_en: txt(k.registrado_en) };
+        const estado = txt(k.archivo_estado);
+        return {
+          id: txt(k.id), tipo: txt(k.tipo), etiqueta: txt(k.etiqueta), archivo: txt(k.archivo), origen: txt(k.origen), registrado_en: txt(k.registrado_en),
+          archivo_nombre: txt(k.archivo_nombre),
+          archivo_estado: estado === "en_proyecto" || estado === "falta" ? estado : "externo",
+        } satisfies PlannerInsumo;
       }).filter((k) => k.id),
       etapa: { valor: txt(obj(pl.etapa).valor) === "piloto" || txt(obj(pl.etapa).valor) === "campo" ? (txt(obj(pl.etapa).valor) as "piloto" | "campo") : null },
     },
@@ -179,6 +199,10 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
     escribibles: textos(r.escribibles).filter((s): s is PlannerSeccion => (SECCIONES as string[]).includes(s)),
     avisos: arr(r.avisos).map(aviso).filter((a) => a.mensaje),
     conflictos: arr(r.conflictos).map(aviso).filter((a) => a.mensaje),
+    archivos: arr(r.archivos).map((x) => {
+      const f = obj(x);
+      return { file_id: txt(f.file_id), nombre: txt(f.nombre), tipo: txt(f.tipo), subido_en: txt(f.subido_en) };
+    }).filter((f) => f.file_id),
   };
 }
 

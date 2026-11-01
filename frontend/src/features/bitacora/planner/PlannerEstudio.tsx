@@ -244,12 +244,21 @@ const TIPOS_INSUMO: Record<string, string> = { padron: "Padrón", listado: "List
 
 function columnasInsumos(quitar: (id: string) => void): PulsoTableColumna<PlannerInsumo>[] {
   return [
-    { id: "etiqueta", encabezado: "Insumo", ancho: 320, celda: (k) => k.etiqueta, valor: (k) => k.etiqueta },
-    { id: "tipo", encabezado: "Tipo", ancho: 150, celda: (k) => TIPOS_INSUMO[k.tipo] ?? k.tipo, valor: (k) => k.tipo },
-    { id: "origen", encabezado: "Origen", ancho: 260, celda: (k) => k.origen || "—", valor: (k) => k.origen },
-    { id: "registrado", encabezado: "Registrado", ancho: 120, celda: (k) => k.registrado_en || "—", valor: (k) => k.registrado_en },
+    { id: "etiqueta", encabezado: "Insumo", ancho: 210, celda: (k) => k.etiqueta, valor: (k) => k.etiqueta },
+    { id: "tipo", encabezado: "Tipo", ancho: 110, celda: (k) => TIPOS_INSUMO[k.tipo] ?? k.tipo, valor: (k) => k.tipo },
     {
-      id: "acciones", encabezado: "", ancho: 56, celda: (k) => (
+      id: "archivo", encabezado: "Archivo", ancho: 210, valor: (k) => k.archivo_nombre ?? "",
+      // El archivo se queda donde está: el Planner sólo dice a cuál apunta.
+      celda: (k) => (k.archivo_estado === "en_proyecto"
+        ? <span title={k.archivo_nombre}>{k.archivo_nombre}</span>
+        : k.archivo_estado === "falta"
+          ? <span className="planner-insumo-falta">Ya no está en el proyecto</span>
+          : <span className="planner-insumo-externo">Fuera del proyecto</span>),
+    },
+    { id: "origen", encabezado: "Origen", ancho: 150, celda: (k) => k.origen || "—", valor: (k) => k.origen },
+    { id: "registrado", encabezado: "Registrado", ancho: 100, celda: (k) => k.registrado_en || "—", valor: (k) => k.registrado_en },
+    {
+      id: "acciones", encabezado: "", ancho: 50, celda: (k) => (
         <button type="button" className="plan-icon-button" aria-label={`Quitar ${k.etiqueta}`} onClick={() => quitar(k.id)}>
           <Trash2 size={14} />
         </button>
@@ -261,7 +270,7 @@ function columnasInsumos(quitar: (id: string) => void): PulsoTableColumna<Planne
 function PlannerInsumos({ control }: { control: ControlPlanner }) {
   const { estado, declarar, guardando } = control;
   const [insumos, setInsumos] = useState<PlannerInsumo[]>([]);
-  const [nuevo, setNuevo] = useState({ tipo: "padron", etiqueta: "", origen: "" });
+  const [nuevo, setNuevo] = useState({ tipo: "padron", etiqueta: "", origen: "", archivo: "" });
   useEffect(() => {
     if (estado) setInsumos(estado.planner.insumos);
   }, [estado]);
@@ -271,15 +280,20 @@ function PlannerInsumos({ control }: { control: ControlPlanner }) {
   const agregar = () => {
     const etiqueta = nuevo.etiqueta.trim();
     if (!etiqueta) return;
-    setInsumos([...insumos, { id: idDeEtiqueta(etiqueta, insumos.length), tipo: nuevo.tipo, etiqueta, archivo: "", origen: nuevo.origen.trim(), registrado_en: new Date().toISOString().slice(0, 10) }]);
-    setNuevo({ tipo: nuevo.tipo, etiqueta: "", origen: "" });
+    const archivo = estado.archivos.find((f) => f.file_id === nuevo.archivo);
+    setInsumos([...insumos, {
+      id: idDeEtiqueta(etiqueta, insumos.length), tipo: nuevo.tipo, etiqueta, archivo: nuevo.archivo, origen: nuevo.origen.trim(),
+      registrado_en: new Date().toISOString().slice(0, 10),
+      archivo_nombre: archivo?.nombre ?? "", archivo_estado: archivo ? "en_proyecto" : "externo",
+    }]);
+    setNuevo({ tipo: nuevo.tipo, etiqueta: "", origen: "", archivo: "" });
   };
 
   return (
     <div className="planner-seccion">
       <PlannerCabecera
         titulo="Insumos del cliente"
-        lead="Padrones, listados y marcos que entrega el cliente: qué es cada uno y de dónde vino."
+        lead="Padrones, listados y marcos que entrega el cliente: qué es cada uno, de dónde vino y qué archivo es. El archivo se queda donde está."
         origen={estado.origen.insumos}
         declaradoEn={estado.declaradoEn.insumos}
         acciones={(
@@ -306,6 +320,19 @@ function PlannerInsumos({ control }: { control: ControlPlanner }) {
           <span>Tipo</span>
           <select value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}>
             {Object.entries(TIPOS_INSUMO).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <label className="planner-campo">
+          <span>Archivo</span>
+          <select
+            value={nuevo.archivo}
+            onChange={(e) => {
+              const archivo = estado.archivos.find((f) => f.file_id === e.target.value);
+              setNuevo({ ...nuevo, archivo: e.target.value, etiqueta: nuevo.etiqueta || archivo?.nombre || "" });
+            }}
+          >
+            <option value="">Fuera del proyecto</option>
+            {estado.archivos.map((f) => <option key={f.file_id} value={f.file_id}>{f.nombre}</option>)}
           </select>
         </label>
         <label className="planner-campo planner-campo--ancho">

@@ -237,13 +237,57 @@
   .planner_norm_codigos(list(version = 1L, resultado = resultado, status_barrido = list()))
 }
 
+# Los archivos del proyecto (`files/`), para registrar un insumo sin moverlo:
+# el insumo guarda el `file_id` y el archivo se queda donde está.
+.planner_archivos <- function(s) {
+  files <- s[["files"]]
+  if (!is.list(files) || !length(files)) return(list())
+  out <- lapply(names(files), function(id) {
+    f <- files[[id]]
+    if (!is.list(f)) return(NULL)
+    list(file_id = .planner_chr1(f$file_id %||% id), nombre = .planner_chr1(f$original_name %||% f$name),
+         tipo = .planner_chr1(f$kind), subido_en = substr(.planner_chr1(f$uploaded_at), 1L, 10L))
+  })
+  Filter(function(f) !is.null(f) && nzchar(f$file_id), out)
+}
+
 .planner_proyectar_insumos <- function(s) {
   insumos <- list()
+  # Las bases que Cálculo de muestra leyó como marco: casi siempre las entrega
+  # el cliente. `source_bindings` es una lista (una por hoja); un archivo con
+  # dos hojas es un solo insumo, con el nombre de su primera vinculación.
+  bindings <- (((s[["calc_muestra_estudio"]] %||% list())$workspace %||% list())$source_bindings) %||% list()
+  if (is.list(bindings) && !is.null(bindings$file_id)) bindings <- list(bindings)
+  archivos <- .planner_archivos(s)
+  vistos <- character(0)
+  for (b in Filter(is.list, bindings)) {
+    marco_id <- .planner_chr1(b$file_id)
+    if (!nzchar(marco_id) || marco_id %in% vistos) next
+    vistos <- c(vistos, marco_id)
+    archivo <- Filter(function(f) identical(f$file_id, marco_id), archivos)
+    etiqueta <- .planner_chr1(b$label)
+    insumos[[length(insumos) + 1L]] <- list(
+      id = paste0("marco-", .planner_id(b$id %||% marco_id, as.character(length(vistos)))), tipo = "marco",
+      etiqueta = if (nzchar(etiqueta)) etiqueta else if (length(archivo)) archivo[[1]]$nombre else "Marco muestral",
+      archivo = marco_id, origen = "Cálculo de muestra",
+      registrado_en = if (length(archivo)) archivo[[1]]$subido_en else "")
+  }
   if (!is.null(s[["monitoreo_aulas_padron"]])) {
-    insumos[[1]] <- list(id = "padron-aulas", tipo = "padron", etiqueta = "Padrón de la población",
-                         origen = "Monitoreo › Insumos")
+    insumos[[length(insumos) + 1L]] <- list(id = "padron-aulas", tipo = "padron", etiqueta = "Padrón de la población",
+                                            origen = "Monitoreo › Insumos")
   }
   .planner_norm_insumos(insumos)
+}
+
+# Cada insumo dice a qué archivo apunta y si sigue en el proyecto. Se resuelve
+# al leer: el nombre del archivo no se copia al Planner.
+.planner_insumos_con_archivo <- function(insumos, archivos) {
+  por_id <- stats::setNames(archivos, vapply(archivos, `[[`, "", "file_id"))
+  lapply(insumos, function(k) {
+    a <- if (nzchar(k$archivo %||% "")) por_id[[k$archivo]] else NULL
+    c(k, list(archivo_nombre = if (is.null(a)) "" else a$nombre,
+              archivo_estado = if (!nzchar(k$archivo %||% "")) "externo" else if (is.null(a)) "falta" else "en_proyecto"))
+  })
 }
 
 # La etapa sembrada desde lo que dicen hoy Hojas de ruta y Monitoreo: si
@@ -272,7 +316,8 @@
     perfiles = perfiles,
     equipo = if (!is.null(decl$equipo)) decl$equipo$valor else .planner_proyectar_equipo(s),
     codigos = if (!is.null(decl$codigos)) decl$codigos$valor else .planner_proyectar_codigos(s, perfiles),
-    insumos = if (!is.null(decl$insumos)) decl$insumos$valor else .planner_proyectar_insumos(s),
+    insumos = .planner_insumos_con_archivo(
+      if (!is.null(decl$insumos)) decl$insumos$valor else .planner_proyectar_insumos(s), .planner_archivos(s)),
     etapa = if (!is.null(decl$etapa)) decl$etapa$valor else .planner_proyectar_etapa(s)$etapa
   )
   origen <- lapply(stats::setNames(PLANNER_SECCIONES, PLANNER_SECCIONES), function(k) {
@@ -293,6 +338,7 @@
     origen = origen,
     declarado_en = declarado_en,
     escribibles = as.list(PLANNER_SECCIONES_ESCRIBIBLES),
+    archivos = .planner_archivos(s),
     avisos = c(.pulso_version_avisos_planner(s[["id"]]), proy_perfiles$avisos),
     conflictos = proy_perfiles$conflictos
   )
