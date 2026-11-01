@@ -1,12 +1,12 @@
 # ADR 0123: El Planner sólo define el estudio, sus tipos, el camino entre módulos y el cronograma
 
-Estado: Propuesto
+Estado: Aceptado (Gonzalo, 2026-11-01: «Aprobado»)
 
-Implementación: No iniciada
+Implementación: En curso — Q0 (reverts) en los commits que siguen a la aceptación
 
 Fecha: 2026-11-01
 
-Fecha de decisión: —
+Fecha de decisión: 2026-11-01
 
 Reemplaza: [ADR 0122](0122-el-planner-define-el-estudio-y-fija-los-modos.md), **en parte**:
 

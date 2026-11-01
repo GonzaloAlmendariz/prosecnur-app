@@ -10,6 +10,8 @@ Fecha de decisión: 2026-10-31
 
 Reemplaza: —
 
+Reemplazado en parte por: [ADR 0123](0123-el-planner-solo-define-el-tipo-y-el-camino-del-estudio.md) (2026-11-01). Ya no rigen: el alcance y las secciones de §1, las filas de §2 y §3 que hacen del Planner dueño de universo, variables, equipo, códigos e insumos, la escritura de esos bloques en §6 y la proyección visible de §7 (sobrevive sólo como deducción interna del modo). El resto sigue vigente; el detalle está en la cabecera del 0123.
+
 Extiende: [ADR 0044](0044-jerarquia-y-direcciones-de-navegacion.md) (dice quién determina el modo) y
 [ADR 0118](0118-hojas-de-ruta-entrega-a-material-de-campo.md) (la foto con huella se generaliza a todos los perfiles).
 
