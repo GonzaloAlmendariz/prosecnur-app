@@ -77,6 +77,8 @@ export function AulasColchonPorFacultad({ filas, eje }: {
         role="table"
         aria-label={`Reservas por ${unidad}`}
         className="aulas-colchon-lista"
+        data-qa-geometry-group="aulas-colchon-lista"
+        data-qa-geometry-contract="intrinsic"
         data-qa-geometry-capacity="owned"
         data-qa-geometry-member
       >

@@ -99,7 +99,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
   }
 
   return (
-    <div className="aulas-cola">
+    <div className="aulas-cola" data-qa-geometry-group="aulas-cola" data-qa-geometry-contract="intrinsic">
       <p className="aulas-medio-titulo">A quién llamar</p>
       <p className="aulas-cola-lectura">
         {pendientes.length ? (
