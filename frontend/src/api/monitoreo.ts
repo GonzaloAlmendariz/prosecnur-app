@@ -4186,6 +4186,9 @@ export type TerritorialQuotaObservedCrossColumn = {
 export type TerritorialQuotaObservedCross = {
   schema?: string;
   source?: string;
+  /** Sólo en `observed_valid_cross`: el marginal tiene meta y variable en la base. */
+  sex_evaluable?: boolean;
+  age_evaluable?: boolean;
   total?: number;
   total_consentido?: number;
   adjustment_delta?: number;
@@ -4233,6 +4236,8 @@ export type TerritorialQuotaProgressBlock = {
   age: TerritorialQuotaProgressItem[];
   cross: TerritorialQuotaProgressItem[];
   observed_cross?: TerritorialQuotaObservedCross | null;
+  /** 2h: el mismo cruce sobre las efectivas validadas (`advance_valid`), con todos los rangos de la meta. */
+  observed_valid_cross?: TerritorialQuotaObservedCross | null;
   missing: TerritorialQuotaProgressItem[];
 };
 

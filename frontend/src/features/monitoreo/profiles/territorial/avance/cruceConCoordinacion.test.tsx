@@ -8,6 +8,7 @@ import { claveDeCelda, construirCruceConCoordinacion } from "./cruceConCoordinac
 
 // 2h parte 2: lo declarado por coordinación contra Kobo, celda por celda.
 
+// `observed_valid_cross`: totales observados sobre las efectivas validadas.
 const cruce = {
   rows: [{ label: "Hombre", total: 3, cells: [] }, { label: "Mujer", total: 2, cells: [] }],
   columns: [{ label: "18-29", total: 4 }, { label: "30-44", total: 1 }],
@@ -40,6 +41,28 @@ describe("cruce con coordinación", () => {
     if (m.estado !== "listo") throw new Error("debía estar listo");
     expect(m.marginales).toHaveLength(1);
     expect(m.marginales[0].celdas.at(-1)).toMatchObject({ celda: "60+", coordinacion: 2, kobo: 0, diferencia: 2 });
+  });
+
+  it("Kobo es lo observado, sin la subsanación (total, no adjusted_total)", () => {
+    const conSubsanacion = {
+      rows: [{ label: "Mujer", total: 2, adjusted_total: 4, cells: [] }],
+      columns: [],
+    } as unknown as TerritorialQuotaObservedCross;
+    const m = construirCruceConCoordinacion(conSubsanacion, ump([["M", 2]], []));
+    if (m.estado !== "listo") throw new Error("debía estar listo");
+    expect(m.marginales[0].celdas.find((c) => c.celda === "Mujer")).toMatchObject({ coordinacion: 2, kobo: 2, diferencia: 0 });
+  });
+
+  it("un marginal no evaluable se muestra sin diferencias y no cuenta como «no cuadra»", () => {
+    const sinEdad = { ...cruce, age_evaluable: false } as TerritorialQuotaObservedCross;
+    const m = construirCruceConCoordinacion(sinEdad, ump([["H", 3]], [["18 a 29", 4]]));
+    if (m.estado !== "listo") throw new Error("debía estar listo");
+    const edad = m.marginales.find((x) => x.variable === "Edad");
+    expect(edad?.evaluable).toBe(false);
+    expect(edad?.celdas[0]).toMatchObject({ coordinacion: 4, diferencia: null });
+    expect(m.noCuadran).toBe(0);
+    const html = renderToStaticMarkup(<CruceConCoordinacion modelo={m} ump="12" />);
+    expect(html).toContain("no se cruza");
   });
 
   it("sin registro lo dice; con diferencias pinta la alerta", () => {

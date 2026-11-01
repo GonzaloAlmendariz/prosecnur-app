@@ -121,8 +121,9 @@ export function DetalleDeUmp({ fila, coordinacion = null }: {
         )}
       </section>
 
-      {coordinacion ? (
-        <CruceConCoordinacion modelo={construirCruceConCoordinacion(cruce, coordinacion)} ump={String(fila.ump)} />
+      {/* Sin `observed_valid_cross` (un corte anterior al 1 nov) no se cruza: daría diferencias contra 0. */}
+      {coordinacion && bloque.observed_valid_cross ? (
+        <CruceConCoordinacion modelo={construirCruceConCoordinacion(bloque.observed_valid_cross, coordinacion)} ump={String(fila.ump)} />
       ) : null}
 
       {fila.otras.length ? (

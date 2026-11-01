@@ -10607,6 +10607,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     sex_targets <- integer(0)
     age_targets <- integer(0)
     cross_targets <- integer(0)
+    rangos_meta <- character(0)  # rangos de edad declarados, también los de meta 0
     if (nrow(block_marginal)) {
       sex_items <- quota_items_col(block_marginal, "sex_totals")
       labels <- vapply(sex_items, quota_item_label, character(1))
@@ -10616,6 +10617,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       labels <- vapply(age_items, quota_item_label, character(1))
       values <- vapply(age_items, quota_item_value, integer(1))
       age_targets <- aggregate_targets(labels, values)
+      rangos_meta <- labels
     }
     if (nrow(block_quota)) {
       cuota <- int_col(block_quota, "cuota", 0L)
@@ -10629,6 +10631,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       if (!length(age_targets)) {
         age_targets <- aggregate_targets(age_raw[nzchar(age_raw)], cuota[nzchar(age_raw)])
       }
+      if (!length(rangos_meta)) rangos_meta <- age_raw
       cross_labels <- paste(.monitoreo_territorial_quota_sex_label(sex_raw), age_raw)
       cross_ok <- nzchar(age_raw) & !(sex_key %in% c("", "total"))
       cross_targets <- aggregate_targets(cross_labels[cross_ok], cuota[cross_ok])
@@ -10654,6 +10657,17 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     age_rows <- adjust_quota_items(item_rows(age_targets, age_counts), id, "age")
     cross_rows <- adjust_quota_items(item_rows(cross_targets, cross_counts), id, "cross")
     observed_cross <- observed_cross_payload(consented_rows(all_rows), sex_targets, age_targets, id = id)
+    # 2h (Gonzalo, 1 nov): lo que se cruza con coordinación son las efectivas
+    # validadas (`advance_valid`, la base del avance), con todos los rangos de la
+    # meta —también los de meta 0— para que ningún caso caiga fuera de su celda.
+    rangos_meta <- unique(c(rangos_meta[!is.na(rangos_meta) & nzchar(rangos_meta)], names(age_targets)))
+    observed_valid_cross <- observed_cross_payload(valid_rows, sex_targets,
+      stats::setNames(vapply(rangos_meta, function(r) named_int_value(age_targets, r), integer(1)), rangos_meta), id = id)
+    observed_valid_cross$source <- "kobo_validadas"
+    # Sin meta o sin la variable en la base, ese marginal no se puede cruzar:
+    # todo caería en «Sin rango»/«Sin dato» y lo declarado se compararía con 0.
+    observed_valid_cross$sex_evaluable <- isTRUE(sex_available) && length(sex_targets) > 0L
+    observed_valid_cross$age_evaluable <- isTRUE(age_available) && length(rangos_meta) > 0L
     sex_missing_total <- missing_sum(sex_rows)
     age_missing_total <- missing_sum(age_rows)
     demographic_missing_total <- as.integer(sex_missing_total + age_missing_total)
@@ -10710,6 +10724,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       age = age_rows,
       cross = cross_rows,
       observed_cross = observed_cross,
+      observed_valid_cross = observed_valid_cross,
       missing = missing_items
     )
   }

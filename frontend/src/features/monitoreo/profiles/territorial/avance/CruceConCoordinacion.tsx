@@ -35,16 +35,19 @@ export function CruceConCoordinacion({ modelo, ump }: { modelo: Modelo; ump: str
                 <tr key={c.celda} className={c.diferencia ? "is-no-cuadra" : undefined}>
                   <th scope="row">{rotuloDeCelda(c.celda)}</th>
                   <td>{c.coordinacion == null ? "—" : fmt(c.coordinacion)}</td>
-                  <td>{fmt(c.kobo)}</td>
+                  <td>{m.evaluable ? fmt(c.kobo) : "—"}</td>
                   <td>{c.diferencia == null ? "—" : c.diferencia === 0 ? "0" : fmtConSigno(c.diferencia)}</td>
                 </tr>
               ))}
             </tbody>
+            {m.evaluable ? null : (
+              <caption>Sin meta de {m.variable.toLowerCase()} o sin esa variable en la base: no se cruza.</caption>
+            )}
           </table>
         ))}
       </div>
       <p className="mon-falt-coord-pie">
-        Kobo cuenta los casos con consentimiento de la manzana en uso. Lo declarado no se suma al avance: si no cuadra, se revisa en el Excel o en Kobo.
+        Kobo cuenta las efectivas validadas de la manzana en uso (la misma base del avance, sin las subsanaciones). Lo declarado no se suma al avance: si no cuadra, se revisa en el Excel o en Kobo.
       </p>
     </section>
   );
