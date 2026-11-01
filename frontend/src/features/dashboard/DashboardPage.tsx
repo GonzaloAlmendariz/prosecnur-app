@@ -26,6 +26,8 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
 import { isPublicMode } from "../../lib/runtime";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
+import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
@@ -136,8 +138,14 @@ export default function DashboardPage({
       return [{ ...tab, available: runtime.available, reason: runtime.reason }];
     });
   }, [manifest, tabsEnabled]);
-  const unavailableVisibleTabs = useMemo(
-    () => visibleTabs.filter((t) => !t.available),
+  const railItems = useMemo<ContextTabRailItem<DashboardTabId>[]>(
+    () => visibleTabs.map((t) => ({
+      key: t.id,
+      label: t.label,
+      icon: t.icon,
+      disabled: !t.available,
+      description: t.available ? undefined : t.reason ?? "Pendiente de configuración",
+    })),
     [visibleTabs],
   );
 
@@ -234,7 +242,8 @@ export default function DashboardPage({
             acciones={[
               {
                 id: "deploy",
-                label: config.last_deploy ? "Re-publicar" : "Deploy",
+                label: config.last_deploy ? "Re-publicar" : "Publicar",
+                icon: Rocket,
                 rank: 1,
                 kind: "primary",
                 onSelect: () => setPublishOpen(true),
@@ -246,6 +255,7 @@ export default function DashboardPage({
               {
                 id: "vista-previa",
                 label: "Vista previa",
+                icon: Eye,
                 rank: 2,
                 onSelect: () => setPreviewMode(true),
                 disabled: !hasDashboardSource,
@@ -254,6 +264,7 @@ export default function DashboardPage({
               {
                 id: "personalizar",
                 label: "Personalizar",
+                icon: Settings,
                 rank: 2,
                 onSelect: () => setCustomizeOpen(true),
                 disabled: !hasDashboardSource,
@@ -262,6 +273,7 @@ export default function DashboardPage({
               {
                 id: "datos",
                 label: "Datos",
+                icon: UploadCloud,
                 rank: 3,
                 onSelect: () => setSourceOpen((v) => !v),
                 disabled: !manifest,
@@ -270,6 +282,7 @@ export default function DashboardPage({
               {
                 id: "paletas",
                 label: "Paletas",
+                icon: Palette,
                 rank: 3,
                 onSelect: () => setPalettesOpen(true),
                 disabled: !hasDashboardSource,
@@ -339,6 +352,37 @@ export default function DashboardPage({
       )}
 
       {manifest && manifest.estado.tiene_data && !sourceOpen && (manifest.estado.curacion_confirmed || adminHidden) && (
+        editorChromeVisible ? (
+          // Administración (L16 · D2): las pestañas del tablero viven en el
+          // rail de 56 px, como en el resto de los módulos. El motivo de una
+          // pestaña bloqueada viaja en su tooltip, así que la fila de avisos
+          // sobra aquí. Vista previa y el artefacto publicado conservan la
+          // fila de píldoras: esa es la que ve el cliente.
+          <AdaptiveSplitView
+            ariaLabel="Tablero"
+            railLabel="Pestañas del dashboard"
+            className="dash-admin-split pulso-context-tab-layout"
+            rail={(
+              <ContextTabRail
+                ariaLabel="Pestañas del dashboard"
+                activeKey={tabActiva}
+                items={railItems}
+                panelId={(key) => `dash-section-${key}`}
+                tabId={(key) => `dash-tab-${key}`}
+                onChange={setTabActiva}
+              />
+            )}
+          >
+            <section
+              id={`dash-section-${tabActiva}`}
+              className="dash-section-workspace dash-admin-main"
+              role="tabpanel"
+              aria-labelledby={`dash-tab-${tabActiva}`}
+            >
+              <TabContent tab={tabActiva} />
+            </section>
+          </AdaptiveSplitView>
+        ) : (
         <>
           <nav
             aria-label="Secciones del dashboard"
@@ -350,16 +394,6 @@ export default function DashboardPage({
               onSelect={setTabActiva}
             />
           </nav>
-          {unavailableVisibleTabs.length > 0 && !previewMode && !adminHidden && (
-            <div className="dash-tab-blocked-hints" role="status" aria-label="Pestañas pendientes">
-              {unavailableVisibleTabs.map((tab) => (
-                <span key={tab.id}>
-                  <strong>{tab.label}</strong>
-                  {tab.reason ? `: ${tab.reason}` : ": pendiente de configuración."}
-                </span>
-              ))}
-            </div>
-          )}
 
           <section
             id={`dash-section-${tabActiva}`}
@@ -370,6 +404,7 @@ export default function DashboardPage({
             <TabContent tab={tabActiva} />
           </section>
         </>
+        )
       )}
 
       {palettesOpen && (
