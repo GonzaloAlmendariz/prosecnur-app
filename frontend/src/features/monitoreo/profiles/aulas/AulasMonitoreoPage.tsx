@@ -2085,6 +2085,7 @@ export default function AulasMonitoreoPage() {
           generarLibro,
           hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
         }}
+        agendaVisible={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
         insumos={{
           config: aulasConfig,
           fuentes: state?.sources ?? [],

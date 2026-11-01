@@ -101,6 +101,6 @@ describe("PestanaPropiaDeAulas", () => {
   });
 
   it("una pestaña sin contenido propio no pinta nada", () => {
-    expect(pinta("control", "contacto")).toBe("");
+    expect(pinta("control", "calidad")).toBe("");
   });
 });

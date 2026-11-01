@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 
-import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
+import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../../api/monitoreo";
 import { CursosHorarioAulas } from "../avance/CursosHorarioAulas";
 import { PorFacultadAulas } from "../avance/PorFacultadAulas";
 import { RendimientoAulas } from "../avance/RendimientoAulas";
 import { SalidasAulas, type ContextoDeSalidas } from "../avance/SalidasAulas";
 import { AgendaAulas } from "../control/AgendaAulas";
+import { ContactoAulas } from "../control/ContactoAulas";
 import { FuentesAulas } from "../insumos/FuentesAulas";
 import { ReglasAulas } from "../insumos/ReglasAulas";
 import { AplicadoresAulas } from "../insumos/AplicadoresAulas";
@@ -22,7 +23,7 @@ import type { DireccionAulas } from "./direccionAulas";
  *
  * Devuelve `null` si la dirección no tiene contenido propio todavía.
  */
-export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero, salidas, insumos }: {
+export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinTablero, salidas, insumos, agendaVisible }: {
   direccion: DireccionAulas;
   dashboard: MonitoreoAulasDashboard | null;
   cargando: boolean;
@@ -31,6 +32,8 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   salidas?: ContextoDeSalidas;
   /** El estado de la sesión y las acciones que Insumos toma de la página (I1). */
   insumos?: ContextoDeInsumos;
+  /** Las filas de la agenda que arma la página (titulares y reservas despiertas). */
+  agendaVisible?: ReadonlyArray<MonitoreoAulasPlanRow>;
 }) {
   const props = { dashboard, cargando, vacioSinTablero };
   if (direccion.seccion === "avance" && direccion.pestana === "resumen") return <ResumenAulas {...props} />;
@@ -61,6 +64,9 @@ export function PestanaPropiaDeAulas({ direccion, dashboard, cargando, vacioSinT
   }
   if (direccion.seccion === "modelo" && direccion.pestana === "muestra" && direccion.panel == null) {
     return <MuestraAulas {...props} />;
+  }
+  if (direccion.seccion === "control" && direccion.pestana === "contacto" && direccion.panel == null) {
+    return <ContactoAulas {...props} agenda={agendaVisible ?? []} />;
   }
   // A5 se muestra aunque no haya tablero: sus salidas no dependen de él.
   if (direccion.seccion === "avance" && direccion.pestana === "salidas" && direccion.panel == null && salidas) {

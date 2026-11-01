@@ -107,7 +107,8 @@ const TABLA: readonly Entrada[] = [
   // de la Agenda heredada; «Por facultad» queda como sub-vista heredada.
   entrada("control", "agenda", null, v("modelo", "agenda"), { vista: "Agenda", propia: true }),
   entrada("control", "agenda", "facultad", v("modelo", "facultad"), { vista: "Por facultad" }),
-  entrada("control", "contacto", null, v("modelo", "contacto")),
+  // Ctl2 Contacto: contenido propio (`control/ContactoAulas.tsx`).
+  entrada("control", "contacto", null, v("modelo", "contacto"), { propia: true }),
   entrada("control", "distribucion", null, v("modelo", "carga")),
   // Control, grupo Campo.
   entrada("control", "registro", null, v("calidad", "registro")),
