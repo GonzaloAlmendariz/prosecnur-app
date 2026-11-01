@@ -70,7 +70,7 @@ Lo que está mal, por orden de lo que se ve primero:
 |---|---|---|
 | DOC.0 | Esta dirección | ☑ 2026-11-01 |
 | DOC.0b | Arreglar 1–3 (D-L36-1, 2 y 3) en el motor actual, con test y página rasterizada | ☑ `042c770fc`: Word y PDF sin bandas vacías ni bloques de plataforma, número de fila en una línea, 7 → 6 páginas; «Así queda» con la misma regla |
-| DOC.0c | D-L36-5 (portada). D-L36-4 retirada: manda la decisión del 2026-10-15. Hallado: el motor ya acepta `options$title` (gana sobre `form_title`, `reporte_formulario_pdf.R` ~523) y `XlsformPaperExportOptions.title` existe en `api/xlsformEditor.ts`, pero Impreso no lo ofrece ni lo guarda (`shell/pdfExportPreference.ts`). Primer paso: campo «Título del documento» en la parte Portada, por defecto el `form_title`, guardado con las demás preferencias; «Así queda» lo usa en `tituloDelFormulario` | ☐ siguiente |
+| DOC.0c | D-L36-5, primer paso: «Título del documento» en Impreso › Formato; viaja como `options$title` y «Así queda» lo dibuja. D-L36-4 retirada (manda la decisión del 2026-10-15) | ☑ `81baf012d`. Portada completa (institución, periodo, bloque de control) queda con DOC.1 |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☐ |
 | DOC.2–DOC.5 | Visor fiel, bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
 
