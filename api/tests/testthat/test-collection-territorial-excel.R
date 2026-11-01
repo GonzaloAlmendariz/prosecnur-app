@@ -43,7 +43,7 @@ test_that("generar: una fila por UMP de la foto, la lista sin DNI y lo ya asigna
   g <- .mtx_generar(sid)
   expect_identical(g$r$umps, 3L)
   expect_true(file.exists(g$path))
-  expect_setequal(openxlsx::getSheetNames(g$path), c("Asignación", "Encuestadores", "Control"))
+  expect_identical(openxlsx::getSheetNames(g$path), c("Asignación", "Registro", "Encuestadores", "Control"))
   t <- openxlsx::read.xlsx(g$path, sheet = "Asignación", startRow = 4)
   # Cada reemplazo debajo de su titular.
   expect_identical(as.character(t[["Código.de.manzana"]]), c(T1, R1, T2))

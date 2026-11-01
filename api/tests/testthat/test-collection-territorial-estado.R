@@ -17,16 +17,17 @@
 
 T1 <- "150101001001"; T2 <- "150101001002"
 
-# Llena celdas de la hoja Asignación como lo haría campo: lista UMP → list(columna = valor).
-.mte_llenar <- function(sid, celdas) {
+# Llena celdas de una hoja (Asignación o Registro) como lo haría campo: lista UMP → list(columna = valor).
+.mte_llenar <- function(sid, celdas, hoja = "Asignación") {
   r <- collection_territorial_asignacion_excel(sid)
   path <- session_get(sid)$files[[r$file_id]]$path
   wb <- openxlsx::loadWorkbook(path)
-  t <- openxlsx::read.xlsx(path, sheet = "Asignación", startRow = 4, check.names = FALSE, sep.names = " ")
+  t <- openxlsx::read.xlsx(path, sheet = hoja, startRow = 4, check.names = FALSE, sep.names = " ")
   for (id in names(celdas)) {
     fila <- match(id, as.character(t[["Código de manzana"]]))
     for (col in names(celdas[[id]])) {
-      openxlsx::writeData(wb, "Asignación", celdas[[id]][[col]], startCol = match(col, names(t)), startRow = 4 + fila)
+      stopifnot(!is.na(match(col, names(t))))
+      openxlsx::writeData(wb, hoja, celdas[[id]][[col]], startCol = match(col, names(t)), startRow = 4 + fila)
     }
   }
   out <- tempfile(fileext = ".xlsx")
@@ -87,13 +88,14 @@ test_that("HTTP: GET del estado declarado", {
   expect_true(length(g$body$unidades) > 0L)
 })
 
-test_that("P2: el Excel trae una columna por código, se leen los conteos y el GET los publica con el catálogo", {
+test_that("P2: el Registro trae una columna por código no efectivo, se leen los conteos y el GET los publica con el catálogo", {
   sid <- .mte_sesion(); on.exit(session_delete(sid), add = TRUE)
   collection_territorial_formatos_put(sid, rotulos = list(`5` = "No hay persona de 18 a 25 años"))
+  # Sin cuotas en la muestra de prueba, las efectivas van en una sola columna y son el código 8.
   raw <- .mte_llenar(sid, list(
-    `150101001001` = list(Encuestador = "P844", `8 · Encuesta efectiva` = 6, `4 · Nadie en casa` = 3, `1 · No quiso participar` = "dos"),
+    `150101001001` = list(Efectivas = 6, `4 · Nadie en casa` = 3, `1 · No quiso participar` = "dos"),
     `150101001002` = list(`5 · No hay persona de 18 a 25 años` = 2)
-  ))
+  ), hoja = "Registro")
   r <- collection_territorial_asignacion_importar(sid, file_raw = raw)
   e1 <- Filter(function(e) identical(e$id_manzana, T1), r$estados)[[1]]
   expect_identical(e1$conteos, list(`4` = 3L, `8` = 6L))

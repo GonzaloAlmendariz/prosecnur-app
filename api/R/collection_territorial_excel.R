@@ -13,6 +13,8 @@
 #     cada fila que no se pudo leer con su motivo; la escribe el PUT de
 #     collection_territorial_asignacion.R, que la vuelve a validar. Lee también el
 #     Excel operativo viejo («Codigo manzana», «Encuestador»).
+#   - Registro del coordinador (§1C del informe de brechas): pestañas por región con lo
+#     que coordinación declara por UMP; las arma y las lee collection_territorial_registro.R.
 #
 # Sólo se lee el encuestador. Fechas, estado y observaciones se quedan en el Excel para
 # campo (el avance lo mide Monitoreo, C7), y la respuesta lo dice.
@@ -98,10 +100,9 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
     )
   })
   tabla <- do.call(rbind, filas)
-  # P2: una columna por código de resultado del estudio, donde campo transcribe los
-  # totales de su hoja de consolidados. Se leen de vuelta como declarados (C7).
-  conteo_cols <- .mtx_columnas_conteo(collection_territorial_formatos_get(sid, ctx$hit$entry$id)$codigos)
-  for (cc in conteo_cols) tabla[[cc]] <- NA_integer_
+  # P2: los conteos por código ya no van aquí sino en el Registro del coordinador, junto a
+  # las efectivas por celda (§1C): una sola fila por UMP donde campo transcribe su consolidado.
+  codigos <- collection_territorial_formatos_get(sid, ctx$hit$entry$id)$codigos
   columnas <- names(tabla)
   n <- nrow(tabla)
   primera <- .MTX_FILA_CABECERA + 1L
@@ -133,7 +134,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "dd/mm/yyyy"), rows = primera:ultima,
                      cols = match(c("Fecha de salida", "Fecha de entrega"), .MTX_COLUMNAS), gridExpand = TRUE, stack = TRUE)
   openxlsx::setColWidths(wb, .MTX_HOJA, cols = seq_along(columnas),
-                         widths = c(18, 8, 9, 18, 10, 8, 11, 10, 9, 34, 13, 13, 12, 36, rep(14, length(conteo_cols))))
+                         widths = c(18, 8, 9, 18, 10, 8, 11, 10, 9, 34, 13, 13, 12, 36))
   openxlsx::freezePane(wb, .MTX_HOJA, firstActiveRow = primera, firstActiveCol = col_enc)
   openxlsx::addFilter(wb, .MTX_HOJA, rows = .MTX_FILA_CABECERA, cols = seq_along(columnas))
   openxlsx::pageSetup(wb, .MTX_HOJA, orientation = "landscape", fitToWidth = TRUE, fitToHeight = FALSE,
@@ -156,15 +157,11 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
                            value = sprintf("'%s'!$C$2:$C$%d", .MTX_HOJA_EQUIPO, length(etiquetas) + 1L))
   openxlsx::writeData(wb, .MTX_HOJA, data.frame(e = .MTX_ESTADOS), startCol = 30, startRow = 1, colNames = FALSE)
   openxlsx::setColWidths(wb, .MTX_HOJA, cols = 30, widths = 0, hidden = TRUE)
-  if (length(conteo_cols)) {
-    openxlsx::dataValidation(wb, .MTX_HOJA, cols = match(conteo_cols, columnas), rows = primera:ultima, type = "whole",
-                             operator = "greaterThanOrEqual", value = 0)
-    openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(textDecoration = "bold", fgFill = "#B7791F", fontColour = "#FFFFFF",
-                                                            border = "Bottom", wrapText = TRUE, valign = "center"),
-                       rows = .MTX_FILA_CABECERA, cols = match(conteo_cols, columnas))
-  }
   openxlsx::dataValidation(wb, .MTX_HOJA, cols = match("Estado", .MTX_COLUMNAS), rows = primera:ultima, type = "list",
                            value = sprintf("$AD$1:$AD$%d", length(.MTX_ESTADOS)))
+
+  registro <- .mtr_agregar(wb, ctx, ordenadas, label_de, codigos, .MTX_HOJA,
+                           col_id = match("Código de manzana", .MTX_COLUMNAS), col_enc = col_enc)
 
   # Con qué foto se generó: al subirlo, una huella distinta se avisa.
   openxlsx::addWorksheet(wb, .MTX_HOJA_CONTROL, visible = FALSE)
@@ -173,12 +170,14 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
     valor = c(ctx$hit$entry$id, ctx$fase, ctx$envio$sample_fingerprint, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
   ), colNames = FALSE)
 
+  openxlsx::worksheetOrder(wb) <- match(c(.MTX_HOJA, registro, .MTX_HOJA_EQUIPO, .MTX_HOJA_CONTROL), names(wb))
+
   path <- tempfile(fileext = ".xlsx")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   nombre <- .export_filename(sid, "asignacion_encuestadores", "xlsx")
   meta <- .register_output_file(sid, "asignacion_encuestadores", path, original_name = nombre)
   list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, umps = n,
-       encuestadores = length(equipo), asignadas = length(explicita))
+       encuestadores = length(equipo), asignadas = length(explicita), hojas_registro = as.list(registro))
 }
 
 # Columna por su rótulo, con los nombres del Excel operativo viejo como alias.
@@ -195,7 +194,8 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
 .mtx_leer_tabla <- function(path) {
   hojas <- tryCatch(suppressWarnings(openxlsx::getSheetNames(path)), error = function(e) character(0))
   if (!length(hojas)) stop_api(422, "E_COLLECTION_TERRITORIAL_EXCEL_ILEGIBLE", "El archivo no se pudo abrir como Excel (.xlsx).")
-  orden <- unique(c(intersect(c(.MTX_HOJA, "Hojas_de_ruta"), hojas), setdiff(hojas, c(.MTX_HOJA_EQUIPO, .MTX_HOJA_CONTROL))))
+  orden <- unique(c(intersect(c(.MTX_HOJA, "Hojas_de_ruta"), hojas),
+                    setdiff(hojas, c(.MTX_HOJA_EQUIPO, .MTX_HOJA_CONTROL, hojas[startsWith(hojas, .MTR_PREFIJO)]))))
   for (h in orden) {
     crudo <- tryCatch(openxlsx::read.xlsx(path, sheet = h, colNames = FALSE, skipEmptyRows = FALSE, skipEmptyCols = FALSE),
                       error = function(e) NULL)
@@ -316,6 +316,21 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
     }
     propuesta[[id]] <- list(id_manzana = id, codigo = cod, fila = fila)
   }
+  # Registro del coordinador: lo declarado por UMP se suma a lo leído de la Asignación; sus
+  # conteos mandan sobre los de un Excel viejo que los traía en la Asignación.
+  reg <- .mtr_leer(path, collection_territorial_formatos_get(sid, ctx$hit$entry$id)$codigos)
+  problemas <- c(problemas, reg$problemas)
+  for (id in names(reg$por_id)) {
+    d <- reg$por_id[[id]]
+    if (is.null(unidades[[id]])) {
+      problemas[[length(problemas) + 1L]] <- list(fila = NA_integer_, id_manzana = id, valor = "", motivo = "La UMP del Registro no está en la muestra enviada")
+      next
+    }
+    e <- estados[[id]] %||% list(id_manzana = id, estado_declarado = "", fecha_salida = "", fecha_entrega = "", conteos = list())
+    for (k in names(d$conteos)) e$conteos[[k]] <- d$conteos[[k]]
+    estados[[id]] <- c(e[c("id_manzana", "estado_declarado", "fecha_salida", "fecha_entrega", "conteos")],
+                       d[c("efectivas", "fecha_visita", "se_reemplaza", "supervision")])
+  }
   # Un reemplazo con el mismo encuestador que su titular hereda: no se guarda aparte.
   for (id in names(propuesta)) {
     u <- unidades[[id]]
@@ -344,10 +359,11 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
                    filas_sin_encuestador = sin_encuestador, problemas = length(problemas),
                    pierden_encuestador = length(pierden),
                    conteos_declarados = length(Filter(function(e) length(e$conteos) > 0L, estados)),
+                   registro_declarado = length(reg$por_id),
                    estados_declarados = length(Filter(function(e) nzchar(e$estado_declarado) && !identical(e$estado_declarado, "Pendiente"), estados))),
     por_encuestador = lapply(seq_along(codigos), function(i) list(codigo = codigos[[i]], nombre = equipo[[i]]$nombre, umps = as.integer(conteo[[i]]))),
     otra_muestra = nzchar(control$sample_fingerprint %||% "") && !identical(control$sample_fingerprint, ctx$envio$sample_fingerprint),
-    nota = "Se leen el encuestador, el Estado, las fechas y los conteos por código de resultado; es lo que declara campo y no cambia el avance, que sale de Kobo. Las observaciones se quedan en el Excel."
+    nota = "Se leen el encuestador, el Estado, las fechas y el Registro del coordinador (efectivas por celda, conteos por código, visita, reemplazo y supervisión); es lo que declara campo y no cambia el avance, que sale de Kobo validado. Las observaciones se quedan en el Excel."
   )
 }
 

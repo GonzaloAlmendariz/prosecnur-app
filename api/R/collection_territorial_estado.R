@@ -48,8 +48,22 @@
       v <- suppressWarnings(as.integer(unlist(cr[[k]])[1]))
       if (grepl("^[0-9]+$", k) && !is.na(v) && v >= 0L) conteos[[k]] <- v
     }
-    if (!nzchar(est) && !nzchar(fs) && !nzchar(fe) && !length(conteos)) return(NULL)
-    list(id_manzana = id, estado_declarado = est, fecha_salida = fs, fecha_entrega = fe, conteos = conteos)
+    # Registro del coordinador (§1C): efectivas por celda, visita, reemplazo y supervisión.
+    enteros <- function(x) {
+      x <- if (is.list(x)) x else list()
+      out <- list()
+      for (k in names(x)) { v <- suppressWarnings(as.integer(unlist(x[[k]])[1])); if (nzchar(k) && !is.na(v) && v >= 0L) out[[k]] <- v }
+      out
+    }
+    ef <- if (is.list(e$efectivas)) e$efectivas else list()
+    efectivas <- list(sexo = enteros(ef$sexo), edad = enteros(ef$edad))
+    fv <- .hojas_ruta_envio_chr(e$fecha_visita)
+    sr <- .hojas_ruta_envio_chr(e$se_reemplaza); if (!sr %in% .MTR_SI_NO) sr <- ""
+    sup <- enteros(e$supervision); sup <- sup[intersect(names(sup), c("aprobadas", "no_aprobadas"))]
+    hay_registro <- length(efectivas$sexo) || length(efectivas$edad) || nzchar(fv) || nzchar(sr) || length(sup)
+    if (!nzchar(est) && !nzchar(fs) && !nzchar(fe) && !length(conteos) && !hay_registro) return(NULL)
+    list(id_manzana = id, estado_declarado = est, fecha_salida = fs, fecha_entrega = fe, conteos = conteos,
+         efectivas = efectivas, fecha_visita = fv, se_reemplaza = sr, supervision = sup)
   })
   Filter(Negate(is.null), out)
 }
@@ -73,7 +87,13 @@ collection_territorial_estado_get <- function(sid, campaign_id = NULL) {
          codigo = unname(codigo_de[u$unit_id]) %||% "",
          estado_declarado = d$estado_declarado %||% "", fecha_salida = d$fecha_salida %||% "", fecha_entrega = d$fecha_entrega %||% "",
          # P2: totales de la hoja de consolidados transcritos por campo, por código.
-         conteos = if (length(d$conteos)) d$conteos else structure(list(), names = character(0)))
+         conteos = if (length(d$conteos)) d$conteos else structure(list(), names = character(0)),
+         # Registro del coordinador: lo declarado por celda de cuota y la supervisión que
+         # anotó campo. Monitoreo lo cruza con Kobo; aquí no se calcula Estado ni avance.
+         efectivas = list(sexo = if (length(d$efectivas$sexo)) d$efectivas$sexo else structure(list(), names = character(0)),
+                          edad = if (length(d$efectivas$edad)) d$efectivas$edad else structure(list(), names = character(0))),
+         fecha_visita = d$fecha_visita %||% "", se_reemplaza = d$se_reemplaza %||% "",
+         supervision = if (length(d$supervision)) d$supervision else structure(list(), names = character(0)))
   })
   for (i in seq_along(unidades)) if (is.na(unidades[[i]]$codigo)) unidades[[i]]$codigo <- ""
   list(ok = TRUE, campaign_id = asig$campaign_id, fase = asig$fase,
