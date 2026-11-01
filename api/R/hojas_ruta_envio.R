@@ -118,7 +118,7 @@ hojas_ruta_envio_meta <- function(run) {
 
 .hojas_ruta_envio_fase_arg <- function(fase, sid) {
   if (is.null(fase) || !length(fase)) {
-    return(.hojas_ruta_phase_normalize(session_get(sid)$hojas_ruta_active_phase %||% "field", default = "field"))
+    return(.hojas_ruta_etapa(session_get(sid))$fase)  # la del Planner si está declarada (hojas_ruta_etapa.R)
   }
   value <- .hojas_ruta_phase_normalize(fase, default = "")
   if (!nzchar(value)) {

@@ -522,7 +522,9 @@
 
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
-  active <- .hojas_ruta_active_run(sid)
+  # Al abrir, Hojas aterriza en la etapa que declara el Planner (hojas_ruta_etapa.R).
+  etapa <- .hojas_ruta_etapa(session_get(sid))
+  active <- .hojas_ruta_active_run(sid, if (identical(etapa$origen, "planner")) etapa$fase else NULL)
   s <- active$session
   legacy_cfg <- hojas_ruta_normalize_config(active$run$config %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
@@ -563,6 +565,7 @@
       runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
       envio_meta = hojas_ruta_envio_meta(active$run),
       active_phase = active$phase,
+      etapa = etapa,
       phase_notice = s$hojas_ruta_phase_notice %||% NULL,
       frame_meta = frame_meta,
       territories = territories,
@@ -584,6 +587,7 @@
     runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
     envio_meta = hojas_ruta_envio_meta(active$run),
     active_phase = active$phase,
+    etapa = etapa,
     phase_notice = s$hojas_ruta_phase_notice %||% NULL,
     frame_meta = frame_meta,
     territories = territories,

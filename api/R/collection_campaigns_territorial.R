@@ -88,7 +88,7 @@
 
 .mcamp_territorial_fase_arg <- function(s, fase) {
   if (is.null(fase) || !length(fase)) {
-    return(.hojas_ruta_phase_normalize(s$hojas_ruta_active_phase %||% "field", default = "field"))
+    return(.hojas_ruta_etapa(s)$fase)  # la del Planner si está declarada (hojas_ruta_etapa.R)
   }
   value <- .hojas_ruta_phase_normalize(fase, default = "")
   if (!nzchar(value)) {
