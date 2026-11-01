@@ -15,7 +15,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-tabla thead th {
@@ -26,7 +26,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   white-space: nowrap;
@@ -132,7 +132,7 @@
 .pulso-xf-res-seccion-texto > small {
   display: none;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xf-res-pesada {
@@ -141,7 +141,7 @@
   border-radius: 999px;
   background: var(--xf-res-acento-suave);
   color: var(--xf-res-acento);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -181,7 +181,7 @@
   display: inline-block;
   width: 38px;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   vertical-align: middle;
@@ -192,7 +192,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   flex: 0 0 auto;
 }
 
@@ -244,13 +244,13 @@
 
 .pulso-xf-res-tiempo-cabeza h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-res-tiempo-cabeza span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-tiempo-barra {
@@ -291,7 +291,7 @@
   background: color-mix(in srgb, var(--xf-res-acento) 30%, var(--pulso-surface));
   color: var(--pulso-text);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: filter var(--motion-dur-fast) var(--motion-ease-out);
@@ -326,7 +326,7 @@
   height: 18px;
   margin-top: 4px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -441,7 +441,7 @@
   align-items: center;
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-preguntas li + li {
@@ -463,7 +463,7 @@
 .pulso-xf-res-preg-tipo,
 .pulso-xf-res-preg-min {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 

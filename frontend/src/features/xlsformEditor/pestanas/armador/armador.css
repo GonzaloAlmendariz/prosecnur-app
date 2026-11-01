@@ -23,7 +23,7 @@
 .xfa-rotulo,
 .xfa-paso__titulo {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -32,13 +32,14 @@
 .xfa-respuesta { display: grid; gap: var(--pulso-space-2); min-width: 0; }
 .xfa-frase {
   margin: 0;
+  /* L29, excepción declarada: la frase del Armador es grande a propósito: es lo que se arma. */
   font-size: 20px;
   line-height: 1.3;
   font-weight: var(--pulso-weight-medium);
   overflow-wrap: anywhere;
 }
 .xfa-frase strong { font-weight: var(--pulso-weight-bold); }
-.xfa-frase--nula { font-size: 14px; color: var(--pulso-text-muted); font-weight: var(--pulso-weight-regular); }
+.xfa-frase--nula { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); font-weight: var(--pulso-weight-regular); }
 .xfa-ejemplo-caja { display: grid; gap: var(--pulso-space-1); margin-top: var(--pulso-space-1); }
 .xfa-ejemplo { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-start; }
 .xfa-seg { display: grid; gap: 2px; justify-items: start; min-width: 0; }
@@ -48,11 +49,12 @@
   background: color-mix(in srgb, var(--xfa-tono) 14%, transparent);
   color: color-mix(in srgb, var(--xfa-tono) 80%, var(--pulso-text));
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
+  /* L29, excepción declarada: segmento de la frase del Armador, mismo cuerpo que la frase. */
   font-size: 18px;
   white-space: pre;
 }
-.xfa-seg__rot { padding: 0 6px; font-size: 11px; color: var(--pulso-text-soft); }
-.xfa-aviso { margin: 0; font-size: 12px; color: var(--pulso-text-muted); }
+.xfa-seg__rot { padding: 0 6px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.xfa-aviso { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
 
 .xfa-paso { display: grid; gap: var(--pulso-space-2); min-width: 0; }
 .xfa-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: var(--pulso-space-2); }
@@ -70,14 +72,14 @@
   cursor: pointer;
   min-width: 0;
 }
-.xfa-formato b { font-size: 12.5px; font-weight: var(--pulso-weight-semibold); }
+.xfa-formato b { font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); }
 .xfa-formato span {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 .xfa-formato:hover { border-color: var(--pulso-border-strong); }
@@ -94,7 +96,7 @@
   background: var(--pulso-surface);
   min-width: 0;
 }
-.xfa-bloque__dice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1; margin: 0; font-size: 13px; min-width: 0; }
+.xfa-bloque__dice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1; margin: 0; font-size: var(--pulso-type-body-size); min-width: 0; }
 .xfa-bloque__pre { color: var(--pulso-text-soft); }
 .xfa-bloque__num,
 .xfa-bloque__txt,
@@ -106,7 +108,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 .xfa-bloque__num { width: 4.5em; font-variant-numeric: tabular-nums; }
 .xfa-bloque__txt { font-family: var(--pulso-font-mono, ui-monospace, monospace); }
@@ -140,7 +142,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -152,7 +154,7 @@
 
 .xfa :is(button, input, select, summary):focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
 
-.xfa-vacio { margin: 0; padding: var(--pulso-space-2); font-size: 13px; color: var(--pulso-text-muted); }
+.xfa-vacio { margin: 0; padding: var(--pulso-space-2); font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
 .xfa-agregar { position: relative; justify-self: start; }
 .xfa-menu {
   position: absolute;
@@ -177,12 +179,12 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
 .xfa-menu__item:is(:hover, :focus-visible) { background: var(--pulso-surface-2); }
-.xfa-menu__item code { font-size: 12px; color: var(--pulso-text-soft); }
+.xfa-menu__item code { font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 
 .xfa-prueba { display: flex; gap: var(--pulso-space-2); }
 .xfa-prueba__input { flex: 1; min-width: 0; font-family: var(--pulso-font-mono, ui-monospace, monospace); }
@@ -193,8 +195,8 @@
 .xfa-caso--ok .xfa-caso__estado { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
 .xfa-caso--no .xfa-caso__estado { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
 .xfa-caso__cuerpo { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pulso-space-2); flex: 1; min-width: 0; }
-.xfa-caso__motivo { font-size: 12px; color: var(--pulso-danger-fg); }
-.xfa-valor { font-family: var(--pulso-font-mono, ui-monospace, monospace); font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.xfa-caso__motivo { font-size: var(--pulso-type-body-size); color: var(--pulso-danger-fg); }
+.xfa-valor { font-family: var(--pulso-font-mono, ui-monospace, monospace); font-size: var(--pulso-type-body-size); white-space: pre-wrap; overflow-wrap: anywhere; }
 .xfa-valor__p { color: color-mix(in srgb, var(--xfa-tono) 80%, var(--pulso-text)); }
 .xfa-valor__mal {
   border-radius: 3px;
@@ -218,7 +220,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
   list-style: none;
@@ -232,7 +234,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -250,7 +252,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }

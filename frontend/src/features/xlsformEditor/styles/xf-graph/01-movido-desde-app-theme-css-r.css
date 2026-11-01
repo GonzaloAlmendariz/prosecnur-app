@@ -16,14 +16,14 @@
 
 .pulso-graph-detail p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   line-height: 1.4;
 }
 
 .pulso-graph-detail p code {
   font-family: ui-monospace, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   background: var(--pulso-surface-2);
   padding: 1px 5px;
   border-radius: 4px;
@@ -41,7 +41,7 @@
   border: 1px solid transparent;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   transition: background 120ms ease, border-color 120ms ease;
   /* Permitir flow natural: la fila puede ser multi-línea si la
@@ -101,7 +101,7 @@
   border: none;
   min-height: 30px;
   padding: 6px 10px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   cursor: pointer;
@@ -130,7 +130,7 @@
   position: static;
   width: 32px;
   height: 32px;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   background: white;
   border: 1px solid var(--pulso-border);
   box-shadow: var(--pulso-shadow-low);
@@ -283,7 +283,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   box-shadow: var(--pulso-shadow-soft);
@@ -338,14 +338,14 @@
 
 .pulso-graph-empty p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   line-height: 1.55;
 }
 
 .pulso-graph-empty p code {
   font-family: ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   background: var(--pulso-surface-2);
   padding: 1px 5px;
   border-radius: 4px;
@@ -366,7 +366,7 @@
 }
 
 .pulso-graph-empty-no-edges p {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ─── Loading spinner ───────────────────────────────────────────── */
@@ -379,7 +379,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   background: rgba(255, 255, 255, 0.92);
   padding: 24px 32px;

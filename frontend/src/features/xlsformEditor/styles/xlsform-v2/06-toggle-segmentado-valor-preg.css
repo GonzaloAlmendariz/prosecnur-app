@@ -16,7 +16,7 @@
   border-radius: 5px;
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
@@ -41,7 +41,7 @@
   display: block;
   margin-top: 4px;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.25;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .pulso-logic-group-prompt {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -70,7 +70,7 @@
 .pulso-logic-group-copy p {
   margin: 0;
   color: #667386;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
 }
 
@@ -101,7 +101,7 @@
 
 .pulso-logic-group-sep {
   align-self: flex-start;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -133,7 +133,7 @@
   border-radius: 7px;
   background: var(--pulso-surface-2);
   border: 1px solid var(--pulso-border);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   min-width: 0;
 }
@@ -161,7 +161,7 @@
 
 .pulso-logic-calc-templates p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   display: inline-flex;
   align-items: center;
@@ -198,7 +198,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-logic-calc-textarea {
   width: 100%;
   font-family: ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--pulso-border);
@@ -211,7 +211,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-logic-calc-varempty {
   padding: 12px;
   text-align: center;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -241,7 +241,7 @@ button.pulso-focus-calculation-recipe {
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
@@ -290,13 +290,13 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-empty strong {
   display: block;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
 .pulso-questionnaire-empty p {
   margin: 3px 0 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -325,7 +325,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-questionnaire-overview-copy strong {
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.22;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
@@ -335,7 +335,7 @@ button.pulso-focus-calculation-recipe {
   max-width: 720px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
@@ -351,7 +351,7 @@ button.pulso-focus-calculation-recipe {
 }
 
 .pulso-questionnaire-quality strong {
-  font-size: 24px;
+  font-size: var(--pulso-type-kpi-size);
   line-height: 1;
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-primary);
@@ -361,7 +361,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-questionnaire-quality span {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -415,7 +415,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-questionnaire-summary-tile strong {
   color: var(--pulso-text);
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
   line-height: 1;
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
@@ -424,7 +424,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-summary-tile span:not(.pulso-questionnaire-summary-icon) {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
   overflow: hidden;
@@ -453,7 +453,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-map-header strong {
   display: block;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   line-height: 1.35;
   font-weight: var(--pulso-weight-heavy);
 }
@@ -461,7 +461,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-map-header p {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -484,7 +484,7 @@ button.pulso-focus-calculation-recipe {
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
   background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff 24%);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.1;
   font-weight: var(--pulso-weight-heavy);
   font-style: normal;

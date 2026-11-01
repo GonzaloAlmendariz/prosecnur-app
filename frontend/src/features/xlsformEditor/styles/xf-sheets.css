@@ -56,7 +56,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -85,7 +85,7 @@
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
 }
 .pulso-xlsform-frame .pulso-xfs-tab .pulso-xf-tech {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 .pulso-xlsform-frame .pulso-xfs-tab.is-active .pulso-xf-tech {
   color: rgba(255, 255, 255, 0.72);
@@ -101,7 +101,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
@@ -132,7 +132,7 @@
   background: #ffffff;
   color: var(--pulso-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -198,7 +198,7 @@
   background: #ffffff;
   color: var(--pulso-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   transition:
     border-color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) ease;
@@ -215,7 +215,7 @@
 
 .pulso-xlsform-frame .pulso-xfs-meta {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
@@ -223,7 +223,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xfs-hint {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.3;
   color: var(--pulso-text-soft);
   margin-top: -4px;
@@ -248,7 +248,7 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xlsform-frame .pulso-xfs-table thead th {
@@ -272,7 +272,7 @@
    en español vive en el title del th). */
 .pulso-xlsform-frame .pulso-xfs-colcode {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.01em;
   color: var(--pulso-text-soft);
@@ -289,7 +289,7 @@
   border-radius: 4px;
   background: var(--pulso-surface);
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
@@ -343,7 +343,7 @@
 }
 .pulso-xlsform-frame .pulso-xfs-row-num {
   min-width: 18px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
@@ -430,7 +430,7 @@
   background: transparent;
   color: var(--pulso-text);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   resize: none;
   field-sizing: content;
@@ -442,7 +442,7 @@
 }
 .pulso-xlsform-frame .pulso-xfs-cell.is-expression {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: color-mix(in srgb, var(--pulso-primary) 82%, #1f2937);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -489,7 +489,7 @@
   padding: 3px 6px;
   border-radius: 999px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: color-mix(in srgb, var(--xfs-type-color) 78%, #1f2937);
 }
@@ -514,7 +514,7 @@
   gap: 8px;
   padding: 32px 20px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   text-align: center;
 }

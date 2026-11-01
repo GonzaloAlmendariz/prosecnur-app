@@ -198,7 +198,7 @@
 .pulso-graph-detail-vacio {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -217,7 +217,7 @@
 .pulso-graph-empty-accion {
   display: inline-flex; align-items: center; margin-top: 8px; height: 30px; padding: 0 12px;
   border: 1px solid var(--pulso-primary); border-radius: var(--pulso-radius); background: var(--pulso-primary);
-  color: var(--pulso-surface); font: inherit; font-size: 12px; font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
+  color: var(--pulso-surface); font: inherit; font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
 }
 .pulso-graph-empty-accion:hover { filter: brightness(1.05); }
 .pulso-graph-empty-accion:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 2px; }

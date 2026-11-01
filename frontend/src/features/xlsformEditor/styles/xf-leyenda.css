@@ -35,14 +35,14 @@
 
 .xf-leyenda-cuerpo h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 
 .xf-leyenda-cuerpo h4 {
   margin: 8px 0 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -51,7 +51,7 @@
 
 .xf-leyenda-nota {
   margin: 2px 0 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -77,12 +77,12 @@
 .xf-leyenda-marcas li > span {
   display: grid;
   gap: 1px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
 .xf-leyenda-marcas small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -97,7 +97,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
