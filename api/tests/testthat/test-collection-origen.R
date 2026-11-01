@@ -235,7 +235,11 @@ test_that("tras la entrega la copia de Monitoreo es el eco del plan: no inventa 
   on.exit(session_delete(sid), add = TRUE)
   st <- collection_state_get(sid)
   expect_identical(st$state$deployment$status, "prepared")
+  antes <- session_get(sid)$monitoreo_aulas_plan
   collection_handoff(sid, st$state_revision)
+  # X8: la entrega no escribe el plan de Monitoreo; Monitoreo la trae.
+  expect_identical(session_get(sid)$monitoreo_aulas_plan, antes)
+  monitoreo_aulas_traer_entrega(sid)
   expect_true(length(.collection_rows(session_get(sid)$monitoreo_aulas_plan)) > 0L)
 
   g <- collection_origen_get(sid)
