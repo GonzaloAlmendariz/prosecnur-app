@@ -20,6 +20,22 @@ La propuesta de diseño que acompaña este inventario (seis preguntas y la ruta 
 BGTjLb9JkzWDxUtDXrT16H), con su prototipo navegable en https://claude.ai/artifact/4FGYFbie5F4JeUdLAc88k9. Hay copia
 local en la carpeta común de artefactos.
 
+## Respuestas de la sesión de definición
+
+**1/11, Gonzalo (textual):** «el planner ya no es bitácora, solo sirve para definir el nombre del estudio, sus
+tipos, cronograma (opcional) y definir la relación entre los módulos y alguna otra cosa más pero nada más».
+
+| Pregunta | Estado | Lo que queda |
+|---|---|---|
+| Q1 · Qué pregunta y en qué orden | **Alcance cerrado; orden y forma abiertos** | Nombre del estudio, tipos (perfiles y su rama), relación entre los módulos (quién diseña la muestra y la ruta) y, opcional, el cronograma. «Alguna otra cosa más» está por precisar |
+| Q4 · Qué queda de la Bitácora | **Cerrada: nada** | Salen el registro de decisiones y el lienzo. El Planner deja de ser Bitácora |
+| Q5 · Insumos | **Abierta** | No están en la lista de Gonzalo: ¿son la «otra cosa más» o salen? |
+| Q3 · Fase y ventana | Abierta (sigue la recomendación: propuesta) | El cronograma pasa a ser opcional: un estudio sin cronograma no bloquea nada |
+| Q2, Q6, Q7, Q8 | Abiertas | — |
+
+Cambia el contrato (ADR 0122: la Bitácora como sección del Planner y el cronograma como dato que los módulos leen),
+así que va a una enmienda del ADR antes de tocar código.
+
 ## Resumen
 
 | Sección | Qué hace | Lee de un módulo posterior | Responsabilidad ajena | Propuesta |
