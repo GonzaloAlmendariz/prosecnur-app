@@ -163,7 +163,7 @@ function HoraEnQueSeResponde({ porHora }: { porHora: PorHora }) {
           <div className="aulas-rd-barras" role="img" aria-label={`Rendimiento por hora: ${porHora.barras.filter((b) => b.aulas).map((b) => b.titulo).join(", ")}`}>
             <div
               className="aulas-rd-barras-zona is-hora is-razon"
-              style={{ ["--aulas-rd-cien" as string]: `${(100 / TOPE_RAZON).toFixed(1)}%` }}
+              style={{ ["--aulas-rd-cien" as string]: String(1 / TOPE_RAZON) }}
               data-qa-geometry-group="aulas-rd-horas"
               data-qa-geometry-contract="equal"
             >
@@ -243,7 +243,7 @@ function DiaDeLaSemana({ semana }: { semana: Semana }) {
       <Cabecera id={id} titulo="Día de la semana" sub={semana.tipo === "barras" ? semana.sub : undefined} />
       {semana.tipo === "vacio" ? <Nota vacio={semana.vacio} /> : (
         <>
-          <ul className="aulas-rd-semana is-razon" style={{ ["--aulas-rd-cien" as string]: `${(100 / TOPE_RAZON).toFixed(1)}%` }}>
+          <ul className="aulas-rd-semana is-razon" style={{ ["--aulas-rd-cien" as string]: String(1 / TOPE_RAZON) }}>
             {semana.filas.map((f) => (
               <li key={f.clave} title={f.titulo} className={f.pocos ? "is-pocos" : undefined}>
                 <span>{f.etiqueta}</span>

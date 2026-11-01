@@ -485,7 +485,8 @@
   content: "";
   position: absolute;
   right: 0;
-  bottom: var(--aulas-rd-cien);
+  /* --aulas-rd-cien es la fracción de la escala donde cae el 100 %. */
+  bottom: calc(var(--aulas-rd-cien) * 100%);
   left: 0;
   border-top: 1px dashed var(--aulas-rd-diseno);
   pointer-events: none;
@@ -509,7 +510,7 @@
   position: absolute;
   top: -3px;
   bottom: -3px;
-  left: var(--aulas-rd-cien);
+  left: calc(var(--aulas-rd-cien) * 100%);
   border-left: 1px dashed var(--aulas-rd-diseno);
 }
 
