@@ -42,6 +42,13 @@ cat(sprintf("[launch_server] bootstrap = %s\n", bootstrap_path))
 bs <- tryCatch(prosecnurapp:::load_pulso(bootstrap_path), error = function(e) {
   stop(sprintf("[launch_server] error cargando .pulso: %s", conditionMessage(e)))
 })
+# ADR 0122 §9: el Space público sólo sirve un .pulso PREPARADO para publicar
+# (lista permitida, base podada). Uno entero —el del proyecto— trae la lista de
+# encuestadores, la base completa y lo demás: no se sirve.
+if (!isTRUE(prosecnurapp:::.publicacion_preparada(prosecnurapp:::session_get(bs$session_id)))) {
+  stop("[launch_server] el .pulso no está preparado para publicar: es el del proyecto, entero. ",
+       "Prepáralo con el botón Deploy o con `Rscript api/scripts/publicacion_preparar.R --project <proyecto.pulso> --out data/proyecto.pulso`.")
+}
 Sys.setenv(PULSO_BOOTSTRAP_SID = bs$session_id)
 cat(sprintf("[launch_server] sesión SID=%s, escuchando en %s:%d\n",
             bs$session_id, host, port))

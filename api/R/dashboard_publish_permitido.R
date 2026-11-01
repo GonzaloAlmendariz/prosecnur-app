@@ -31,6 +31,22 @@
 # Lo que la propia sesión necesita para existir y guardarse (no es del estudio).
 .PUBLICACION_CLAVES_SESION <- c("id", "created_at", "dir", "project_path", "project_dirty", "project_last_saved_at")
 
+# La marca de un .pulso armado por esta ruta. El runtime público
+# (launcher/launch_server.R) se niega a arrancar sin ella: un deploy manual no
+# puede subir por error el .pulso entero del proyecto.
+PUBLICACION_SCHEMA <- "publicacion/v1"
+
+.publicacion_marca <- function(lista) {
+  list(schema = PUBLICACION_SCHEMA, lista = lista, preparada_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+}
+
+#' ¿El estado viene de un .pulso preparado para publicar?
+#' @keywords internal
+.publicacion_preparada <- function(s) {
+  m <- if (is.list(s)) s[["publicacion_preparada"]] else NULL
+  is.list(m) && identical(as.character(m$schema %||% "")[1], PUBLICACION_SCHEMA)
+}
+
 .publicacion_archivos_dashboard <- function(s) {
   fuente <- s[["dashboard_source"]] %||% list()
   ids <- unique(c(.planner_chr1(fuente$xlsform_file_id), .planner_chr1(fuente$data_file_id)))
@@ -62,6 +78,7 @@
     out$codif_por_base <- lapply(cpb, function(b) list(grupos_recod = if (is.list(b)) b$grupos_recod else NULL))
   }
   if (!is.null(s[["planner"]])) out$planner <- s[["planner"]]
+  out$publicacion_preparada <- .publicacion_marca("dashboard")
   .planner_para_publicar(out)
 }
 

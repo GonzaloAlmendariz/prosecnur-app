@@ -293,7 +293,8 @@
         project_dirty = s$project_dirty,
         project_last_saved_at = s$project_last_saved_at,
         public_artifact = artifact,
-        public_artifact_payload = public_payload
+        public_artifact_payload = public_payload,
+        publicacion_preparada = .publicacion_marca("monitoreo")
       )
     } else {
       s$public_artifact <- artifact
@@ -342,13 +343,10 @@
   dir.create(stage, recursive = TRUE, showWarnings = FALSE)
 
   dir.create(file.path(stage, "data"), recursive = TRUE, showWarnings = FALSE)
-  for (file in c("Dockerfile", ".dockerignore")) {
-    src <- file.path(root, file)
-    if (file.exists(src)) file.copy(src, file.path(stage, file), overwrite = TRUE)
-  }
-  .dashboard_publish_copy_dir(file.path(root, "api"), file.path(stage, "api"))
-  .dashboard_publish_copy_dir(file.path(root, "frontend"), file.path(stage, "frontend"))
-  .dashboard_publish_copy_dir(file.path(root, "launcher"), file.path(stage, "launcher"))
+  # ADR 0122 §9: al Space va sólo lo que el Dockerfile necesita (lista
+  # permitida y, en un repo git, sólo lo versionado). Ver
+  # dashboard_publish_space.R.
+  .space_copiar_permitido(root, stage)
   # NOTA: tsconfig.json vive dentro de frontend/, ya viene en el copy
   # de arriba. No hay tsconfig en raíz.
   if (!is.null(snap)) file.copy(snap$path, file.path(stage, "data", "proyecto.pulso"), overwrite = TRUE)
