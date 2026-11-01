@@ -235,11 +235,14 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
 #' Campañas del proyecto (ADR 0111): GET /api/recopiladores/campaigns.
 #' @keywords internal
 collection_campaigns_get <- function(sid) {
-  l <- .mcamp_list(session_get(sid))
+  s <- session_get(sid)
+  l <- .mcamp_list(s)
+  # ADR 0122 P2: qué tipos declara el estudio en el Planner (collection_campaigns_planner.R).
+  m <- .mcamp_marcar_del_estudio(s, l$tipos, l$campaigns)
   list(ok = TRUE, schema = MATERIAL_CAMPAIGNS_SCHEMA,
        registry_revision = .mcamp_revision_of(l$reg),
        state_revision = as.integer(l$state$state_revision),
-       campaigns = l$campaigns, tipos = l$tipos)
+       campaigns = m$campaigns, tipos = m$tipos, tipos_del_estudio = m$tipos_del_estudio)
 }
 
 #' Resumen corto para la tarjeta del inicio del proyecto (ADR 0111 §9).
@@ -327,6 +330,7 @@ collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform =
                                        template = NULL, import_id = NULL, expected_state_revision = NULL,
                                        expected_registry_revision = NULL, fase = NULL) {
   tipo <- .mcamp_tipo_arg(tipo)
+  .mcamp_assert_del_estudio(session_get(sid), tipo)
   if (identical(tipo, "territorial")) {
     if (!.mcamp_territorial_habilitada()) .mcamp_territorial_stop()
     return(.mcamp_territorial_create(sid, name, fase,

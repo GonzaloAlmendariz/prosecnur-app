@@ -52,13 +52,18 @@ describe("normalizarRegistroDeCampanas", () => {
     });
   });
 
-  it("devuelve los tres tipos en orden, con su motivo cuando no se pueden crear", () => {
+  it("devuelve los cuatro tipos en orden, con su motivo cuando no se pueden crear", () => {
     const r = normalizarRegistroDeCampanas(REGISTRO_CRUDO);
-    expect(r.tipos).toEqual([
+    expect(r.tipos.map(({ tipo, disponible, motivo }) => ({ tipo, disponible, motivo }))).toEqual([
       { tipo: "aulas", disponible: false, motivo: "El proyecto ya tiene su campaña de aulas." },
       { tipo: "territorial", disponible: false, motivo: "Requiere leer las UMP de Hojas de ruta" },
       { tipo: "correo", disponible: true, motivo: null },
+      { tipo: "telefonica", disponible: true, motivo: null },
     ]);
+    // Sin `del_estudio` (backend anterior al ADR 0122 P2), los tipos que llegan son del estudio.
+    expect(r.tipos.every((t) => t.del_estudio === true)).toBe(true);
+    const conPlanner = normalizarRegistroDeCampanas({ campaigns: [], tipos: [{ tipo: "correo", disponible: true, del_estudio: [false] }] });
+    expect(conPlanner.tipos.find((t) => t.tipo === "correo")?.del_estudio).toBe(false);
     // `ref` llega como objeto: se lee el nombre en su fuente.
     expect(r.campaigns.map((c) => c.ref)).toEqual(["principal", "egresados"]);
   });

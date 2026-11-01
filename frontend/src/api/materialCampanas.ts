@@ -101,6 +101,8 @@ export type CampanaMaterial = {
   ref: string;
   /** `null` cuando la respuesta no trae estado (o no es de un tipo conocido). */
   estado: EstadoCampana | null;
+  /** ADR 0122 P2: el Planner declara perfiles y este tipo no es de ellos. Se abre igual. */
+  fuera_del_estudio?: boolean;
 };
 
 export type DisponibilidadDeTipo = {
@@ -108,6 +110,8 @@ export type DisponibilidadDeTipo = {
   disponible: boolean;
   /** Por qué no se puede crear, en el idioma de quien la usa. */
   motivo: string | null;
+  /** ADR 0122 P2: `false` si el Planner declaró perfiles y este tipo no es de ellos. */
+  del_estudio?: boolean;
 };
 
 export type RegistroDeCampanas = {
@@ -261,6 +265,7 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
     persisted: logico(valor.persisted),
     ref: refDe(valor.ref, id, tipo),
     estado: normalizarEstado(tipo, valor.estado, valor.ref),
+    fuera_del_estudio: logico(valor.fuera_del_estudio),
   };
 }
 
@@ -279,7 +284,9 @@ function normalizarTipo(valor: unknown): DisponibilidadDeTipo | null {
   const tipo = texto(valor.tipo).trim();
   if (!esTipoDeCampana(tipo)) return null;
   const disponible = logico(valor.disponible);
-  return { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)) };
+  // Sin el campo (backend anterior) el tipo es del estudio.
+  const delEstudio = valor.del_estudio == null ? true : logico(valor.del_estudio);
+  return { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)), del_estudio: delEstudio };
 }
 
 export function normalizarRegistroDeCampanas(valor: unknown): RegistroDeCampanas {

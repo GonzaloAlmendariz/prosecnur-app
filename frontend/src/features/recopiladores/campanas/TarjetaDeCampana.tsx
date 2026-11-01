@@ -63,8 +63,8 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
         <MenuDeCampana campana={campana} acciones={acciones} onAccion={onAccion} subtitulo={subtitulo} />
       </header>
 
-      <span className={`rec-campana-estado is-${campana.archived ? "neutral" : resumen.tono}`}>
-        {campana.archived ? "Archivada" : resumen.estado}
+      <span className={`rec-campana-estado is-${campana.archived || campana.fuera_del_estudio ? "neutral" : resumen.tono}`}>
+        {campana.archived ? "Archivada" : campana.fuera_del_estudio ? "Fuera del estudio" : resumen.estado}
       </span>
 
       {resumen.cifras.length ? (

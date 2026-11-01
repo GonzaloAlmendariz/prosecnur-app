@@ -1,7 +1,8 @@
 // «Nueva campaña» (ADR 0111 §2): primero el tipo, después lo que ese tipo pide.
 //
-// Panel direccionable `?panel=nueva-campana` (clase «dialogo»). Los tres tipos
-// se ven siempre; el que no se puede crear dice por qué (aulas y territorial
+// Panel direccionable `?panel=nueva-campana` (clase «dialogo»). Se ven los tipos
+// que el estudio declara en el Planner (todos si no declaró perfiles, ADR 0122 P2);
+// el que no se puede crear dice por qué (aulas y territorial
 // si el proyecto ya tiene la suya; territorial sin muestra enviada desde Hojas
 // de ruta). La territorial pide la fase cuando piloto y campo real tienen envío. Un correo nace de una plantilla real, en
 // blanco o de un correo existente (abre «Importar un correo existente»).
@@ -66,7 +67,7 @@ function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: 
   );
 }
 
-/** Los tres tipos, siempre a la vista; el que no se puede crear dice por qué. */
+/** Los tipos del estudio a la vista; el que no se puede crear dice por qué. */
 export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
   registro: RegistroDeCampanas | null;
   elegido: TipoDeCampana | null;
@@ -82,7 +83,8 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
       data-qa-geometry-contract="equal"
       aria-label="Tipo de campaña"
     >
-      {TIPOS.map((t) => {
+      {/* ADR 0122 P2: sólo los tipos que el estudio declara en el Planner. */}
+      {TIPOS.filter((t) => !registro || disponibilidadDe(registro, t).del_estudio !== false).map((t) => {
         const disp = registro ? disponibilidadDe(registro, t) : { disponible: false, motivo: null };
         const Icono = ICONO_DEL_TIPO[t];
         return (
