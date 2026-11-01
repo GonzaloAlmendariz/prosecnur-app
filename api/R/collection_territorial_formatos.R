@@ -3,10 +3,13 @@
 # 31 oct). Campo anota cada visita con un código; salen impresos en la hoja de ruteo y se
 # cuentan en la de consolidados.
 #
-# Núcleo fijo (igual en todos los estudios) y cuatro rótulos que el estudio ajusta:
+# Núcleo con número y grupo fijos (igual en todos los estudios) y cuatro códigos propios:
 #   1 No quiso participar · 4 Nadie en casa · 6 Fuera de cuota · 7 Inconclusa · 8 Efectiva
-#   2, 3, 5 y 99 editables (ACNUR acogida usó el 3 para «miembros del hogar migrantes o
-#   refugiados»; Ser Adolescente el 5 para «no hay persona de 18 a 25 años»).
+#   2, 3, 5 y 99 (ACNUR acogida usó el 3 para «miembros del hogar migrantes o refugiados»;
+#   Ser Adolescente el 5 para «no hay persona de 18 a 25 años»).
+# Todos los rótulos se editan (K1 del informe de brechas): el papel de acogida dice
+# «Miembros del hogar ausentes» donde el núcleo decía «Nadie en casa». Lo que no cambia es
+# qué número significa qué: el 8 es siempre la efectiva y el 99 la manzana no elegible.
 # Además: si se usa el 99, la columna del criterio de elegibilidad del estudio (vacía = no
 # hay) y cuántas caras lleva la hoja de ruteo. Nacen aquí y se mudan al Planner cuando
 # exista (ADR del Planner, P9); por eso la lectura es pura y la expone un GET.
@@ -23,6 +26,8 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
 .MTF_EDITABLES <- c(`2` = "Vivienda desocupada", `3` = "Vivienda inaccesible",
                     `5` = "No hay persona elegible", `99` = "Manzana no elegible (terreno, parque)")
 .MTF_ORDEN <- c("1", "2", "3", "4", "5", "6", "7", "8", "99")
+.MTF_ROTULOS_DEFECTO <- c(stats::setNames(vapply(.MTF_NUCLEO, `[[`, "", "rotulo"), vapply(.MTF_NUCLEO, `[[`, "", "codigo")),
+                          .MTF_EDITABLES)[.MTF_ORDEN]
 .MTF_ROTULO_MAX <- 60L
 # Columnas opcionales del registro de la hoja de consolidados (acogida las usa; Ser Adolescente no).
 .MTF_EXTRAS_CONSOLIDADO <- c(manzana = "Mz.", nse = "NSE", hora_final = "Hora final")
@@ -36,12 +41,12 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
 # Lo guardado, normalizado al leer: lo que no tiene forma vuelve al valor por defecto.
 .mtf_guardado <- function(s, campaign_id) {
   x <- s$material_territorial_formatos
-  base <- list(rotulos = as.list(.MTF_EDITABLES), con_99 = TRUE, columna_criterio = "", caras_ruteo = 2L,
+  base <- list(rotulos = as.list(.MTF_ROTULOS_DEFECTO), con_99 = TRUE, columna_criterio = "", caras_ruteo = 2L,
                extras_consolidado = list(), revision = 0L)
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_TERRITORIAL_FORMATOS_SCHEMA) ||
       !identical(.mtf_txt(x$campaign_id), campaign_id)) return(base)
   rot <- base$rotulos
-  for (k in names(.MTF_EDITABLES)) {
+  for (k in names(.MTF_ROTULOS_DEFECTO)) {
     v <- .mtf_txt(x$rotulos[[k]])
     if (nzchar(v) && nchar(v) <= .MTF_ROTULO_MAX) rot[[k]] <- v
   }
@@ -60,11 +65,8 @@ MATERIAL_TERRITORIAL_FORMATOS_SCHEMA <- "material_territorial_formatos/v1"
   codigos <- list()
   for (k in .MTF_ORDEN) {
     if (identical(k, "99") && !isTRUE(g$con_99)) next
-    codigos[[length(codigos) + 1L]] <- if (!is.null(nucleo[[k]])) {
-      c(nucleo[[k]], list(editable = FALSE))
-    } else {
-      list(codigo = k, rotulo = g$rotulos[[k]], grupo = if (identical(k, "99")) "manzana" else "no_aplicada", editable = TRUE)
-    }
+    grupo <- if (!is.null(nucleo[[k]])) nucleo[[k]]$grupo else if (identical(k, "99")) "manzana" else "no_aplicada"
+    codigos[[length(codigos) + 1L]] <- list(codigo = k, rotulo = g$rotulos[[k]], grupo = grupo, editable = TRUE)
   }
   codigos
 }
@@ -76,8 +78,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
   hit <- .mta_campana(s, campaign_id)
   g <- .mtf_guardado(s, hit$entry$id)
   list(ok = TRUE, campaign_id = hit$entry$id, schema = MATERIAL_TERRITORIAL_FORMATOS_SCHEMA,
-       codigos = .mtf_catalogo(g), editables = as.list(names(.MTF_EDITABLES)),
-       # Los cuatro rótulos editables aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
+       codigos = .mtf_catalogo(g), editables = as.list(.MTF_ORDEN),
+       # Todos los rótulos aunque el 99 esté apagado: la pantalla lo vuelve a prender con el suyo.
        rotulos = g$rotulos,
        con_99 = g$con_99, columna_criterio = g$columna_criterio, caras_ruteo = g$caras_ruteo,
        extras_consolidado = g$extras_consolidado,
@@ -85,8 +87,8 @@ collection_territorial_formatos_get <- function(sid, campaign_id = NULL) {
        revision = g$revision)
 }
 
-#' Guarda los rótulos editables, el 99, la columna del criterio y las caras del ruteo.
-#' El núcleo no se edita: un rótulo para 1, 4, 6, 7 u 8 es 422.
+#' Guarda los rótulos, el 99, la columna del criterio y las caras del ruteo.
+#' Un código que no existe es 422; el número y el grupo no se cambian.
 #' @keywords internal
 collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos = list(), con_99 = NULL,
                                                 columna_criterio = NULL, caras_ruteo = NULL, expected_revision = NULL,
@@ -105,8 +107,8 @@ collection_territorial_formatos_put <- function(sid, campaign_id = NULL, rotulos
   rotulos <- if (is.list(rotulos)) rotulos else list()
   for (k in names(rotulos)) {
     v <- .mtf_txt(rotulos[[k]])
-    if (!k %in% names(.MTF_EDITABLES)) {
-      problemas[[length(problemas) + 1L]] <- list(codigo = k, motivo = "Ese código es del núcleo y no se edita")
+    if (!k %in% .MTF_ORDEN) {
+      problemas[[length(problemas) + 1L]] <- list(codigo = k, motivo = "Ese código no existe")
     } else if (!nzchar(v) || nchar(v) > .MTF_ROTULO_MAX) {
       problemas[[length(problemas) + 1L]] <- list(codigo = k, motivo = sprintf("El rótulo debe tener entre 1 y %d caracteres", .MTF_ROTULO_MAX))
     } else {

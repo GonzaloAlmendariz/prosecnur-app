@@ -11,15 +11,15 @@
   sid
 }
 
-test_that("GET: lectura pura con el núcleo fijo, los editables por defecto y el 99", {
+test_that("GET: lectura pura con el núcleo, los rótulos por defecto y el 99", {
   sid <- .mtf_sesion(); on.exit(session_delete(sid), add = TRUE)
   antes <- session_get(sid)
   r <- collection_territorial_formatos_get(sid)
   expect_identical(session_get(sid), antes)
   expect_identical(vapply(r$codigos, `[[`, "", "codigo"), c("1", "2", "3", "4", "5", "6", "7", "8", "99"))
   expect_identical(r$codigos[[8]]$grupo, "efectiva")
-  expect_false(r$codigos[[1]]$editable)
-  expect_true(r$codigos[[2]]$editable)
+  expect_true(all(vapply(r$codigos, `[[`, TRUE, "editable")))  # K1: todos los rótulos se editan
+  expect_identical(r$codigos[[4]]$rotulo, "Nadie en casa")
   expect_identical(r$codigos[[2]]$rotulo, "Vivienda desocupada")
   expect_identical(r$caras_ruteo, 2L)
   expect_identical(r$columna_criterio, "")
@@ -38,11 +38,15 @@ test_that("PUT: cambia rótulos editables, quita el 99, fija criterio y caras; m
   expect_identical(r$columna_criterio, "Cursa estudios")
   expect_identical(r$caras_ruteo, 1L)
   expect_true(isTRUE(session_get(sid)$project_dirty))
+  # K1: el rótulo del núcleo se ajusta al papel del estudio; el número y el grupo no cambian.
+  r <- collection_territorial_formatos_put(sid, rotulos = list(`4` = "Miembros del hogar ausentes"))
+  expect_identical(r$codigos[[4]]$rotulo, "Miembros del hogar ausentes")
+  expect_identical(r$codigos[[8]]$grupo, "efectiva")
 })
 
-test_that("PUT: el núcleo no se edita, los rótulos tienen tope y la revisión se respeta", {
+test_that("PUT: un código inexistente es 422, los rótulos tienen tope y la revisión se respeta", {
   sid <- .mtf_sesion(); on.exit(session_delete(sid), add = TRUE)
-  expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`8` = "Otra cosa"))),
+  expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`9` = "Otra cosa"))),
                    "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")
   expect_identical(.mtf_code(collection_territorial_formatos_put(sid, rotulos = list(`2` = strrep("x", 61)))),
                    "E_COLLECTION_TERRITORIAL_FORMATOS_INVALIDOS")

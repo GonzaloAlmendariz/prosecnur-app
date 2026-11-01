@@ -101,8 +101,8 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
       <h3><Hash size={15} aria-hidden /> Códigos de resultado</h3>
       <p className="rec-terr-nota">
-        El código con el que campo anota cada visita en la hoja de ruteo. 1, 4, 6, 7 y 8 son iguales en todos los estudios; 2, 3, 5 y 99
-        se ajustan al estudio.
+        El código con el que campo anota cada visita en la hoja de ruteo. Qué significa cada número es igual en todos los estudios (el 8
+        es la efectiva); los rótulos se ajustan al papel del estudio.
       </p>
       <ul className="rec-terr-codigos" aria-label="Códigos de resultado del estudio">
         {filas.map((c) => (

@@ -397,7 +397,7 @@ export async function apiMaterialTerritorialImportarAsignacion(campaignId: strin
 
 // ---- códigos de resultado y hojas de campo (D1) ----------------------------------
 //
-//   GET/PUT campaigns/territorial/formatos   núcleo fijo 1/4/6/7/8, rótulos editables
+//   GET/PUT campaigns/territorial/formatos   números fijos 1–8 y 99, todos los rótulos editables (K1)
 //       2/3/5/99, uso del 99, columna del criterio y caras de la hoja de ruteo.
 //   POST campaigns/territorial/papel         {id, pieza, unidad?, alcance} → PDF.
 
