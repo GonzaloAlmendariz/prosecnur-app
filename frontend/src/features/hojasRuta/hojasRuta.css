@@ -7114,3 +7114,16 @@
      dejaría píldoras VACÍAS, que es navegación invisible. Cuando no caben, el
      rail hace scroll interno, que es su degradación de siempre. */
 }
+
+/* B4 (lienzo): bajo 1080 px de barra todos los indicadores ceden; sin esto la zona de
+   contexto seguía reservando 272 px vacíos al inicio de la barra (C3). Las secciones
+   toman ese ancho. El dato sigue en el `title` del grupo y en cada sección. */
+@container pulso-chrome (max-width: 1080px) {
+  .hr-mapa-frame .hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="contexto"] {
+    display: none;
+  }
+
+  .hr-mapa-frame .hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="secciones"] {
+    grid-column: 1 / span 2;
+  }
+}
