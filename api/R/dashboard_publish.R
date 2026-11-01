@@ -298,12 +298,17 @@
     } else {
       s$public_artifact <- artifact
       if (!is.null(public_payload)) s$public_artifact_payload <- public_payload
+      # ADR 0122 §9: un dashboard publica SÓLO lo que el artefacto lee (lista
+      # permitida, dashboard_publish_permitido.R). La rama de monitoreo ya
+      # armaba un estado mínimo.
+      s <- .publicacion_estado_dashboard(s)
     }
     .session_env[[sid]] <- s
+  } else {
+    # Sin artefacto también es un dashboard: misma lista permitida.
+    .session_env[[sid]] <- .publicacion_estado_dashboard(s)
   }
-  # ADR 0122 §9: del Planner sólo viaja la identidad, haya artefacto o no.
   # La sesión original vuelve con restore_project() al salir.
-  .session_env[[sid]] <- .planner_para_publicar(session_get(sid))
   tmp <- tempfile("proyecto_", fileext = ".pulso")
   result <- build_pulso(sid, tmp, project_name = project_name)
   list(path = tmp, size = result$size)
