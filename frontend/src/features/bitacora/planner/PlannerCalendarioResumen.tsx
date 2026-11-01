@@ -5,26 +5,19 @@
 // lean del Planner, se dice cuál sigue en otra etapa. La ventana de campo es la
 // PROPUESTA del Planner (PlannerVentanaCampo).
 
-import { useEffect, useState } from "react";
-
-import { apiPlannerCalendario, type PlannerCalendario, type PlannerEtapa } from "../../../api/planner";
+import type { PlannerEtapa } from "../../../api/planner";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PlannerAvisos } from "./PlannerCabecera";
 import { PlannerVentanaCampo } from "./PlannerVentanaCampo";
 import { textoOrigen } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
+import { usePlannerCalendario } from "./usePlannerCalendario";
 
 const FUENTE: Record<string, string> = { hojas_ruta: "Hojas de ruta", monitoreo: "Monitoreo" };
 const ETAPAS: readonly (readonly [PlannerEtapa, string])[] = [["piloto", "Piloto"], ["campo", "Campo"]];
 
 export function PlannerCalendarioResumen({ recarga, control }: { recarga: unknown; control: ControlPlanner }) {
-  const [cal, setCal] = useState<PlannerCalendario | null>(null);
-  const revision = control.estado?.revision;
-  useEffect(() => {
-    let vivo = true;
-    apiPlannerCalendario().then((c) => { if (vivo) setCal(c); }).catch(() => { if (vivo) setCal(null); });
-    return () => { vivo = false; };
-  }, [recarga, revision]);
+  const cal = usePlannerCalendario(control.estado?.revision, recarga);
   if (!cal) return null;
 
   const fuentes = Object.entries(cal.etapa.fuentes);

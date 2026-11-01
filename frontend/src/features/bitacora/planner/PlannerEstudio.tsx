@@ -17,6 +17,8 @@ import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import { PlannerAvisos, PlannerCabecera } from "./PlannerCabecera";
 import { altoSinScrollPropio } from "./PlannerCodigos";
 import { DETALLE_PERFIL, ETIQUETA_DISENO, ETIQUETA_PERFIL, modosDelPerfil } from "./plannerCopia";
+import { PlannerFaseActiva } from "./PlannerFaseActiva";
+import { usePlannerCalendario } from "./usePlannerCalendario";
 import type { ControlPlanner } from "./usePlanner";
 
 type Props = { control: ControlPlanner; pestana: string };
@@ -33,6 +35,7 @@ function PlannerIdentidad({ control }: { control: ControlPlanner }) {
   const { estado, declarar, guardando } = control;
   const base = estado?.planner.estudio;
   const [form, setForm] = useState({ nombre: "", codigo: "", cliente: "" });
+  const cal = usePlannerCalendario(estado?.revision);
   useEffect(() => {
     if (base) setForm(base);
   }, [base]);
@@ -72,6 +75,7 @@ function PlannerIdentidad({ control }: { control: ControlPlanner }) {
           <input value={form.cliente} maxLength={160} onChange={(e) => setForm({ ...form, cliente: e.target.value })} />
         </label>
       </div>
+      <PlannerFaseActiva cal={cal} />
     </div>
   );
 }

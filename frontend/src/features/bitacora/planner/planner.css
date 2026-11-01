@@ -449,3 +449,20 @@
 .planner-ventana .planner-campo > span {
   font-weight: normal;
 }
+
+.planner-fase-activa {
+  margin-top: var(--pulso-space-3);
+}
+
+.planner-fase-activa dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+}
+
+.planner-fase-activa-enlace {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--plan-accent);
+}
