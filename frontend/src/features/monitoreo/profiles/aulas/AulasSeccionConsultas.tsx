@@ -203,6 +203,7 @@ export function AulasSeccionConsultas({
               // por qué.
               codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
               onElegir={(codigo) => onFoco?.({ tipo: "aula", valor: codigo })}
+              onReemplazar={(codigo) => setRelevoDe(codigo)}
               agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               bandas={(dashboard.dos_tasas?.aulas ?? []) as Array<Record<string, unknown>>}
