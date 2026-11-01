@@ -73,7 +73,8 @@ Lo que está mal, por orden de lo que se ve primero:
 | DOC.0c | D-L36-5, primer paso: «Título del documento» en Impreso › Formato; viaja como `options$title` y «Así queda» lo dibuja. D-L36-4 retirada (manda la decisión del 2026-10-15) | ☑ `81baf012d`. Portada completa (institución, periodo, bloque de control) queda con DOC.1 |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☑ `1c2457aae`: tipografía y colores en `estandar_pulso.json`, el motor sin hex propios y el `.docx` idéntico byte a byte |
 | DOC.2 | Visor fiel: páginas del Word y mapa pregunta → página | ☑ `002be9126`, `325f40903`, `b1f56dd23` |
-| DOC.3–DOC.5 | Bloques seleccionables, versiones, QA | ☐ (ver fila L36 del GOAL) |
+| DOC.3 | Bloques seleccionables sobre la página, con «Papel por pregunta» como inspector | ◐ `64de55dee`, con tests; falta verlo en vivo |
+| DOC.4–DOC.5 | Opciones en el `.pulso`, versiones, QA | ☐ (ver fila L36 del GOAL) |
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
 esperar al visor para que el papel deje de tener marcos vacíos.
@@ -116,3 +117,16 @@ hizo falta `R CMD INSTALL`, porque `launch.R` define `PULSO_REPO_ROOT` y el
 worker carga el código fuente con `load_all`. Para la app de escritorio
 instalada sí hará falta, como con cualquier cambio de R (eso es del corte de
 versión). Sigue DOC.3: bloques seleccionables sobre la página.
+
+## DOC.3 · Bloques seleccionables (2026-11-01)
+
+- **D-L36-13 · La caja sale de la posición del número**, no de un modelo de
+  página propio: `pdftools::pdf_data` da cada palabra con su posición y el
+  número de una pregunta es una palabra suelta («7.», «8.1»). La caja va hasta
+  la siguiente pregunta de su columna; los ítems de matriz son filas a todo el
+  ancho y el último bloque de la página llega al fin del contenido, no al pie.
+- **D-L36-14 · El inspector del bloque es «Papel por pregunta».** Ya tiene los
+  ajustes por fila (formato, columnas, salto, nota). Elegir un bloque abre esa
+  parte (`foco=papel`) con la fila de la pregunta, y el bloque queda marcado
+  mientras esa fila está abierta. Un inspector flotante propio duplicaría esa
+  navegación.
