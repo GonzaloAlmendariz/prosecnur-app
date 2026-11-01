@@ -41,7 +41,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
           id="distancia"
           encabezado={<RotuloDePestana />}
           titulo="Distancia del GPS a la manzana"
-          base={`${fmt(modelo.distancia.base)} casos con GPS cruzable`}
+          base={`${fmt(modelo.distancia.base)} que cuentan con GPS cruzable`}
           criterio="En observación desde 150 m"
           mediana={modelo.distancia.mediana != null ? `Mediana ${fmt(Math.round(modelo.distancia.mediana))} m` : "Sin mediana"}
           histograma={modelo.distancia}
@@ -49,7 +49,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
         <PanelDeHistograma
           id="duracion"
           titulo="Duración del formulario"
-          base={`${fmt(modelo.duracion.base)} casos con duración`}
+          base={`${fmt(modelo.duracion.base)} que cuentan con duración`}
           criterio="Se revisan las de menos de 5 min"
           mediana={modelo.duracion.mediana != null ? `Mediana ${modelo.duracion.mediana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min` : "Sin mediana"}
           histograma={modelo.duracion}
@@ -119,8 +119,9 @@ function MatrizPorDistrito({ modelo }: { modelo: ReturnType<typeof construirSena
       <header className="mon-sen-cabecera">
         <h3 id="mon-sen-matriz">Señales por distrito</h3>
         <span className="mon-sen-base">
-          {fmt(modelo.total.casos)} casos con distrito
-          {modelo.sinDistrito ? <span className="mon-ter-cuenta" title="Casos del corte sin distrito: no entran a la matriz">{fmt(modelo.sinDistrito)} sin distrito</span> : null}
+          {fmt(modelo.total.casos)} que cuentan
+          {modelo.fuera ? <span className="mon-ter-cuenta" title="Sin consentimiento o no válidas: no entran a las señales">{fmt(modelo.fuera)} fuera del conteo</span> : null}
+          {modelo.sinDistrito ? <span className="mon-ter-cuenta" title="Cuentan pero no traen distrito: no entran a la matriz">{fmt(modelo.sinDistrito)} sin distrito</span> : null}
         </span>
       </header>
       <div className="mon-sen-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Señales por distrito, con desplazamiento">

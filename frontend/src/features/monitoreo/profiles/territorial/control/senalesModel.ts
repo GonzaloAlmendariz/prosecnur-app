@@ -36,8 +36,10 @@ export type ModeloSenales = {
   duracion: Histograma;
   distritos: FilaDeSenales[];
   total: FilaDeSenales;
-  /** Casos del corte sin distrito: quedan fuera de la matriz y se declaran. */
+  /** Casos que cuentan pero sin distrito: quedan fuera de la matriz y se declaran. */
   sinDistrito: number;
+  /** Casos del corte que no cuentan (sin consentimiento o no válidos): fuera de las señales. */
+  fuera: number;
 };
 
 const CORTES_DE_DISTANCIA = [0, 25, 50, 100, 150, 200, 300, 500, 1000, 2000];
@@ -80,15 +82,21 @@ function filaVacia(distrito: string): FilaDeSenales {
 
 export function construirSenales(reports: MonitoreoTerritorialDashboard | null | undefined): ModeloSenales {
   const filas = Array.isArray(reports?.response_audit) ? reports.response_audit : [];
-  const distancias = filas.map(distanciaDe).filter((valor): valor is number => valor != null);
-  const duraciones = filas
+  // Una sola base para toda la pestaña, la del motor: cuenta si es efectiva y
+  // válida (`advance_valid & source_effective`, monitoreo_engine.R; nulo cuenta).
+  // Los rechazos de consentimiento duran poco por naturaleza y el motor nunca
+  // los revisa: dentro del histograma inflaban «menos de 2 min» (17 contra 3).
+  const base = filas.filter((fila) => fila.advance_valid !== false && fila.source_effective !== false);
+  const fuera = filas.length - base.length;
+  const distancias = base.map(distanciaDe).filter((valor): valor is number => valor != null);
+  const duraciones = base
     .map((fila) => Number(fila.duration_seconds))
     .filter((segundos) => Number.isFinite(segundos) && segundos > 0)
     .map((segundos) => segundos / 60);
 
   const porDistrito = new Map<string, FilaDeSenales>();
   let sinDistrito = 0;
-  for (const fila of filas) {
+  for (const fila of base) {
     if (!String(fila.distrito ?? "").trim()) {
       sinDistrito += 1;
       continue;
@@ -130,5 +138,6 @@ export function construirSenales(reports: MonitoreoTerritorialDashboard | null |
     distritos,
     total,
     sinDistrito,
+    fuera,
   };
 }
