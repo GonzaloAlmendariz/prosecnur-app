@@ -71,6 +71,7 @@ export function construirConexiones(
   // partes del de consultas, que es donde el motor los calcula.
   const conRuta = [cortes.avance, reports].find((corte) => n(corte?.route_overview?.route_count) != null) ?? null;
   const conMeta = [cortes.avance, reports].find((corte) => n(corte?.advance?.meta) != null) ?? null;
+  const enLaFase = n([cortes.avance, reports].find((corte) => n(corte?.source_validity?.total_responses) != null)?.source_validity?.total_responses);
   const conPartes = [cortes.consultas, reports].find((corte) => corte?.field_occurrences?.summary) ?? null;
   const territorial = state?.config?.territorial;
   const historial = state?.territorial_update_history ?? [];
@@ -86,6 +87,11 @@ export function construirConexiones(
     const estado = ESTADO[String(item?.status ?? "source_not_applied")] ?? { texto: item?.message || "Estado sin rótulo", tono: "aviso" as const };
     const cifras = [
       { rotulo: "Respuestas", valor: texto(n(item?.local_rows)) },
+      // Lo que se envió antes del inicio de la fase no entra al avance: si hay,
+      // se dice aquí, para que «Recibidas en la fase» de Avance no parezca otra cifra.
+      esActiva && enLaFase != null && n(item?.local_rows) != null && enLaFase < (n(item?.local_rows) ?? 0)
+        ? { rotulo: `En la fase · ${texto((n(item?.local_rows) ?? 0) - enLaFase)} antes`, valor: texto(enLaFase) }
+        : null,
       esActiva ? { rotulo: "Preguntas", valor: texto(n(reports?.source_coherence?.survey_count)) } : null,
       esActiva ? { rotulo: "Opciones", valor: texto(n(reports?.source_coherence?.choices_count)) } : null,
       { rotulo: "Última lectura", valor: fechaYHoraDeLima(item?.last_sync_at || fuente?.last_sync_at) || "—" },

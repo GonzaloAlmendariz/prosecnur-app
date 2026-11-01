@@ -104,7 +104,9 @@ export function construirResumen(reports: MonitoreoTerritorialDashboard | null |
   const anuladas = Math.round(n(reports?.production_annulments?.summary?.annulled_responses));
 
   const embudo: PasoDelEmbudo[] = [
-    { clave: "recibidas", rotulo: "Recibidas de Kobo", valor: recibidas },
+    // «en la fase»: Monitoreo deja fuera lo enviado antes del inicio de la fase
+    // (prueba de formularios); Insumos › Conexiones dice cuántas son.
+    { clave: "recibidas", rotulo: "Recibidas en la fase", valor: recibidas },
     { clave: "anuladas", rotulo: "Anuladas", valor: anuladas, resta: true },
     { clave: "corte", rotulo: "En el corte", valor: enCorte },
     { clave: "no-cuentan", rotulo: "No cuentan", valor: noCuentan, resta: true },
