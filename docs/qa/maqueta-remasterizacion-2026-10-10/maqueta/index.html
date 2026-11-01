@@ -80,14 +80,15 @@
   </article>
 
   <article class="ficha" id="L7">
-    <header><code>L7 · L8</code><h3>Credenciales y diálogo de SurveyMonkey</h3><span class="chip">en curso</span></header>
+    <header><code>L7 · L8</code><h3>Credenciales y diálogo de SurveyMonkey</h3><span class="chip listo">hechas</span></header>
     <figure><img src="hoy-2026-10-31/formularios-surveymonkey.png" alt="Diálogo «Traducir encuesta de SurveyMonkey» con la conexión lista y 545 encuestas visibles"><figcaption>Formularios › Traducir encuesta de SurveyMonkey, hoy. El fragmento del token está tapado en la imagen.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> el diálogo ya usa el kit: pasos arriba, Escape cierra y el foco vuelve al botón que lo abrió. Con un token guardado comprueba la conexión al abrir y muestra «545 encuestas visibles».</div>
       <h4>Qué falta</h4>
       <ul>
-        <li><b>L7, hecho el 31 de octubre</b> (<code>0ec53dc32</code>): abrir las credenciales desde el error ya funcionaba, y ahora cada proyecto recuerda también el perfil de SurveyMonkey con que se trabajó. Queda la captura de ida y vuelta.</li>
-        <li><b>L8:</b> queda abierta una sola desviación. El diálogo verifica la conexión al abrir porque el revamp de Formularios lo pidió así; el plan original pedía no conectar hasta que el usuario lo indique.</li>
+        <li><b>L7, cerrada el 1 de noviembre</b> (<code>0ec53dc32</code> y el foco de vuelta): cada proyecto recuerda el perfil de SurveyMonkey con que se trabajó. La ida y la vuelta se vieron en vivo con una base integrada nueva: «Configurar credenciales» abre Configuración › Conexiones sobre el mismo paso, y al cerrarla se vuelve a ese paso con el perfil elegido. Al verlo apareció un defecto: el foco caía al inicio de la página. Ahora vuelve al botón que abrió el panel.
+          <figure style="margin-top:8px"><img src="hoy-2026-11-01/carga-credenciales-vuelta.png" alt="Carga › Fuentes con una base integrada: la franja de SurveyMonkey con el perfil Principal elegido y el foco de vuelta en «Cambiar credenciales»"><figcaption>La vuelta: mismo paso, perfil elegido y el foco en el botón que abrió el panel.</figcaption></figure></li>
+        <li><b>L8, cerrada el 1 de noviembre con una desviación declarada:</b> con un token guardado, el diálogo verifica la conexión al abrir, como pidió el revamp de Formularios (U4). Sin token no conecta. El plan original pedía no conectar hasta que el usuario lo indicara; volver a eso es un cambio de una línea.</li>
       </ul>
       <h4>Cómo mejorarlo</h4>
       <ul>
