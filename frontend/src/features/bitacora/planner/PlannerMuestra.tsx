@@ -5,12 +5,17 @@
 
 import { Link } from "react-router-dom";
 
+import type { PlannerTipoPerfil } from "../../../api/planner";
 import { PlannerCabecera } from "./PlannerCabecera";
 import { ETIQUETA_PERFIL } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
 
 // Cálculo aterriza en el modo que fija el perfil; Hojas de ruta diseña el territorial.
 const RUTA_CALCULO = "/calc-muestra";
+
+// Quién lee hoy lo declarado (sólo lo declarado, no lo proyectado): Monitoreo de
+// aulas lo cruza con las celdas del diseño (monitoreo_aulas_representatividad_planner.R).
+const LA_LEE: Partial<Record<PlannerTipoPerfil, string>> = { aulas: "Monitoreo de aulas, contra las celdas del diseño" };
 
 export function PlannerMuestra({ control }: { control: ControlPlanner }) {
   const { estado } = control;
@@ -52,6 +57,7 @@ export function PlannerMuestra({ control }: { control: ControlPlanner }) {
                           : "Ninguna"}
                       </dd>
                     </div>
+                    <div><dt>La lee</dt><dd>{LA_LEE[perfil.tipo] ?? "Ningún módulo todavía"}</dd></div>
                   </dl>
                 ) : (
                   <p className="planner-vacio">Sin universo ni variables de cuota declarados todavía.</p>
