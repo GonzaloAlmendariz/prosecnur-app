@@ -171,6 +171,23 @@ mount_recopiladores <- function(pr) {
       collection_territorial_hoja_dia(session_header(req), campaign_id = body[["id"]], jornada = body[["jornada"]],
                                       supuestos = body[["supuestos"]])
     })) |>
+    # Campaña telefónica (P10, collection_campaigns_telefonica.R): su configuración y la
+    # plantilla del barrido armada con ella.
+    plumber::pr_get("/api/recopiladores/campaigns/telefonica/config", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_telefonica_config_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/telefonica/config", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_config_put(session_header(req), campaign_id = body[["id"]], llave = body[["llave"]],
+                                       estratos = body[["estratos"]], telefonos = body[["telefonos"]],
+                                       reemplazo = body[["reemplazo"]], muestra = body[["muestra"]], backup = body[["backup"]],
+                                       responsables = body[["responsables"]], status = body[["status"]],
+                                       expected_revision = body[["expected_revision"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/telefonica/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_plantilla(session_header(req), body[["id"]])
+    })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
     plumber::pr_post("/api/recopiladores/barrido/plantilla", wrap_endpoint(function(req, res, ...) {

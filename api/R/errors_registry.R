@@ -191,6 +191,10 @@ errores_registrados <- function() {
     "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA",                  "collection_territorial_papel.R",    "422",
     "E_COLLECTION_TERRITORIAL_PAPEL_UNIDAD",                 "collection_territorial_papel.R",    "404",
     "E_COLLECTION_BARRIDO_PLANTILLA_INVALIDA",               "collection_barrido_plantilla.R",    "422",
+    # Campaña telefónica (P10, etapa 4).
+    "E_COLLECTION_CAMPAIGN_TELEFONICA_UNICA",                "collection_campaigns_telefonica.R", "409",
+    "E_COLLECTION_TELEFONICA_CONFIG_STALE",                  "collection_campaigns_telefonica.R", "409",
+    "E_COLLECTION_TELEFONICA_CONFIG_INVALIDA",               "collection_campaigns_telefonica.R", "422",
     "E_COLLECTION_TERRITORIAL_EXCEL_ILEGIBLE",               "collection_territorial_excel.R", "400,422",
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",

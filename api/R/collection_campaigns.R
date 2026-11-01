@@ -28,8 +28,8 @@
 # correo delegan con la segunda.
 
 MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
-.MCAMP_ID_RE <- "^(aulas|territorial|correo)\\.[a-z0-9][a-z0-9-]{0,39}$"
-.MCAMP_TIPOS <- c("aulas", "territorial", "correo")
+.MCAMP_ID_RE <- "^(aulas|territorial|correo|telefonica)\\.[a-z0-9][a-z0-9-]{0,39}$"
+.MCAMP_TIPOS <- c("aulas", "territorial", "correo", "telefonica")
 .MCAMP_AULAS_ID <- "aulas.principal"
 .MCAMP_TERRITORIAL_MOTIVO <- "Requiere leer las UMP de Hojas de ruta"
 .MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref")
@@ -41,7 +41,7 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   reg <- s$material_campaigns
   if (!is.list(reg)) reg <- list()
   entries <- Filter(function(e) {
-    is.list(e) && .mcamp_id_ok(e$id) && (e$tipo %||% "") %in% c("aulas", "territorial") &&
+    is.list(e) && .mcamp_id_ok(e$id) && (e$tipo %||% "") %in% c("aulas", "territorial", "telefonica") &&
       startsWith(e$id, paste0(e$tipo, "."))
   }, unname(reg$campaigns %||% list()))
   rev <- suppressWarnings(as.integer(unlist(reg$revision)))
@@ -197,7 +197,8 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
 }
 
 .mcamp_tipos <- function(aulas_hit, n_correo, territorial_tipo = list(tipo = "territorial", disponible = FALSE,
-                                                                      motivo = .MCAMP_TERRITORIAL_MOTIVO)) {
+                                                                      motivo = .MCAMP_TERRITORIAL_MOTIVO),
+                         telefonica_tipo = .mcamp_telefonica_tipo(NULL)) {
   list(
     if (is.null(aulas_hit)) list(tipo = "aulas", disponible = TRUE)
     else list(tipo = "aulas", disponible = FALSE,
@@ -206,7 +207,8 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
     territorial_tipo,
     if (n_correo < .CMAIL_CAMPAIGNS_MAX) list(tipo = "correo", disponible = TRUE)
     else list(tipo = "correo", disponible = FALSE,
-              motivo = sprintf("Un proyecto admite hasta %d campañas de correo.", .CMAIL_CAMPAIGNS_MAX))
+              motivo = sprintf("Un proyecto admite hasta %d campañas de correo.", .CMAIL_CAMPAIGNS_MAX)),
+    telefonica_tipo
   )
 }
 
@@ -216,14 +218,18 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   reg <- .mcamp_registry(s)
   aulas <- .mcamp_aulas_entry(s, state, reg)
   territorial <- .mcamp_territorial_entry(reg)
+  telefonica <- .mcamp_telefonica_entry(reg)
   correo <- .mcamp_correo_visibles(state)
   campaigns <- c(
     if (!is.null(aulas)) list(.mcamp_aulas_public(s, state, aulas)),
     if (!is.null(territorial)) list(.mcamp_territorial_public(s, territorial)),
+    if (!is.null(telefonica)) list(.mcamp_telefonica_public(s, telefonica)),
     lapply(correo$campaigns, function(c) .mcamp_correo_public(s, c, correo$set))
   )
-  list(state = state, reg = reg, aulas = aulas, territorial = territorial, correo = correo, campaigns = campaigns,
-       tipos = .mcamp_tipos(aulas, length(correo$set$campaigns), .mcamp_territorial_tipo(s, territorial)))
+  list(state = state, reg = reg, aulas = aulas, territorial = territorial, telefonica = telefonica, correo = correo,
+       campaigns = campaigns,
+       tipos = .mcamp_tipos(aulas, length(correo$set$campaigns), .mcamp_territorial_tipo(s, territorial),
+                            .mcamp_telefonica_tipo(telefonica)))
 }
 
 #' Campañas del proyecto (ADR 0111): GET /api/recopiladores/campaigns.
@@ -249,7 +255,7 @@ collection_campaigns_get <- function(sid) {
 .mcamp_tipo_arg <- function(tipo) {
   value <- .cmail_one(as.list(tipo %||% list(NA_character_)))
   if (is.null(value) || !(value %in% .MCAMP_TIPOS)) {
-    stop_api(422, "E_COLLECTION_CAMPAIGN_TIPO", "tipo es aulas, territorial o correo.",
+    stop_api(422, "E_COLLECTION_CAMPAIGN_TIPO", "tipo es aulas, territorial, correo o telefonica.",
              details = list(tipos = as.list(.MCAMP_TIPOS)))
   }
   value
@@ -328,6 +334,11 @@ collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform =
                                           template = template, import_id = import_id),
                                      expected_registry_revision))
   }
+  if (identical(tipo, "telefonica")) {
+    return(.mcamp_telefonica_create(sid, name, list(actor = actor, platform = platform, preset_id = preset_id,
+                                                    template = template, import_id = import_id, fase = fase),
+                                    expected_registry_revision))
+  }
   if (identical(tipo, "correo")) {
     created <- collection_mail_campaign_create(sid, expected_revision = expected_state_revision, name = name,
                                                actor = actor, preset_id = preset_id, platform = platform,
@@ -384,12 +395,12 @@ collection_campaign_meta_put <- function(sid, id, name = NULL, actor = NULL, pla
                                       platform = platform)
     return(.mcamp_response(sid, id))
   }
-  # aulas y territorial: entradas del registro
+  # aulas, territorial y telefonica: entradas del registro
   .mcamp_assert_registry_revision(l$reg, expected_registry_revision)
   if (!is.null(actor) || !is.null(platform)) {
     stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "actor y platform solo aplican a campañas de correo.")
   }
-  hit <- if (identical(tipo, "territorial")) l$territorial else l$aulas
+  hit <- switch(tipo, territorial = l$territorial, telefonica = l$telefonica, l$aulas)
   entry <- hit$entry
   next_entry <- entry
   if (!is.null(name)) next_entry$name <- .cmail_campaign_text(name, "name", 1L, 80L)
