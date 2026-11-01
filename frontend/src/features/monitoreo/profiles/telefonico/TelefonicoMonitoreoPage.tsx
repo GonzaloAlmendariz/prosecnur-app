@@ -296,6 +296,7 @@ import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calend
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
 import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
+import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
@@ -3674,20 +3675,8 @@ function phoneRowValue(row: Record<string, unknown>, keys: string[], fallback = 
   return rowText(row, keys, fallback).trim();
 }
 
-function phoneRowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  return rowNumber(row, keys, fallback);
-}
 
-function phoneRowOptionalNumber(row: Record<string, unknown>, keys: string[]) {
-  const value = rowNumber(row, keys, Number.NaN);
-  return Number.isFinite(value) ? value : null;
-}
 
-function phoneRowRatioPct(row: Record<string, unknown>, keys: string[]) {
-  const value = phoneRowOptionalNumber(row, keys);
-  if (value == null) return null;
-  return Math.abs(value) <= 1 ? value * 100 : value;
-}
 
 function phoneQuotaVariableLabel(value: string) {
   return rotuloDeVariable(value);
@@ -4234,21 +4223,7 @@ function phoneTimeCaseSort(a: AcreditacionPhoneTimeCase, b: AcreditacionPhoneTim
     || a.code.localeCompare(b.code, "es", { numeric: true });
 }
 
-function phoneDurationAlertThreshold(alert: AcreditacionQualityAlertItem) {
-  const text = normalizeSourceMatch(`${alert.title} ${alert.type} ${alert.detail} ${alert.signal.detail}`);
-  const explicit = text.match(/(?:menor(?:es)?\s*a|menos\s*de|<)\s*(\d+(?:[.,]\d+)?)\s*(?:min|minuto|minutos)?/);
-  if (explicit) {
-    const parsed = Number(explicit[1].replace(",", "."));
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  if (text.includes("2 min") || text.includes("2 minuto") || text.includes("extremadamente")) return 2;
-  if (text.includes("5 min") || text.includes("5 minuto")) return 5;
-  return 5;
-}
 
-function phoneAlertCaseCount(alert: AcreditacionQualityAlertItem) {
-  return Math.max(1, Math.round(alert.count ?? alert.total ?? 1));
-}
 
 function phoneSupervisionBaseResponsibleName(row: Record<string, unknown>, index: number) {
   const raw = phoneRowValue(row, ["Responsable", "Encuestador", "Operador", "Agente", "Owner"], "") || `Responsable ${index + 1}`;
@@ -4961,9 +4936,6 @@ function AcreditacionPhoneIncidenceSection({
   );
 }
 
-function phoneAttemptValue(row: Record<string, unknown>, label: string) {
-  return phoneRowNumber(row, [label], 0);
-}
 
 const ACREDITACION_PHONE_ATTEMPT_BUCKETS = [
   { key: "1", label: "1", detail: "1 intento", candidates: ["1 intento"] },
@@ -5345,11 +5317,6 @@ function phoneTimeCaseSourceLabel(item: AcreditacionPhoneTimeCase) {
   return "KoboToolbox";
 }
 
-function phoneDurationAlertDisplayDetail(alert: AcreditacionQualityAlertItem) {
-  return (alert.detail || "Revisar duración y consistencia de la respuesta.")
-    .replace(/\s*Fuente:.*$/i, "")
-    .trim();
-}
 
 function AcreditacionPhoneSupervisionSamplePlan({
   plan,
@@ -5549,15 +5516,6 @@ function AcreditacionPhoneQualityAlertsPanel({
   );
 }
 
-function acreditacionPhoneAlertSignalRows(alerts: AcreditacionQualityAlertItem[]) {
-  const rows = new Map<string, { kind: string; label: string; count: number }>();
-  alerts.forEach((alert) => {
-    const current = rows.get(alert.signal.kind) ?? { kind: alert.signal.kind, label: alert.signal.label, count: 0 };
-    current.count += alert.count ?? 1;
-    rows.set(alert.signal.kind, current);
-  });
-  return Array.from(rows.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
-}
 
 function AcreditacionPhoneQualityAlertCard({ alert }: { alert: AcreditacionQualityAlertItem }) {
   const displayCode = alert.code.replace(/^(codpulso|cod pulso|codigo|código|id|cv_id|custom_value):/i, "");
@@ -17381,9 +17339,6 @@ function renderAcreditacionView(
   );
 }
 
-function phoneContractReadyCount(contract: AcreditacionPhoneSourceContract) {
-  return [contract.universe, contract.sweep, contract.platform].filter((slot) => slot.ready).length;
-}
 
 function activeSourceCount(state: MonitoreoState | null) {
   if (isTelefonicoMonitoreoState(state)) {

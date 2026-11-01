@@ -46,6 +46,9 @@ import type { AcreditacionSourceTab } from "./pestanasDeFuentes";
 export { pct } from "../../core/formatoComun";
 import { pct } from "../../core/formatoComun";
 import { pctDecimal } from "../../core/formatoComun";
+import { num, rowNumber } from "../../core/numerosDeFila";
+
+export { num, rowNumber };
 
 export const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 export const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -200,27 +203,11 @@ export function pctFrom(value: number, total: number) {
   return pctDecimal((value / total) * 100);
 }
 
-export function num(value: unknown, fallback = 0) {
-  if (value == null || value === "") return fallback;
-  const parsed = Number(String(value).replace(/%/g, "").replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
 
 export function unknownArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
-export function rowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  const normalized = new Map(Object.keys(row).map((key) => [
-    key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
-    key,
-  ]));
-  for (const key of keys) {
-    const hit = normalized.get(key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-    if (hit) return num(row[hit], fallback);
-  }
-  return fallback;
-}
 
 export type SeguimientoDraft = {
   n_efectivo: string;
