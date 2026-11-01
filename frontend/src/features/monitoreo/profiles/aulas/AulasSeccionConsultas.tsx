@@ -23,8 +23,7 @@ import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasLlamadaDeFacultad } from "./AulasLlamadaDeFacultad";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
-import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
-import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
+import { PopoverDeRefuerzoDeFacultad, PopoverDeRelevo } from "./PopoversDeCaso";
 import { AulasTresCaminos } from "./AulasTresCaminos";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
@@ -650,118 +649,17 @@ export function AulasSeccionConsultas({
             estuviera puesto en otra facultad no habría ninguno. El filtro por
             facultad ya lo hace el propio motor de candidatos, que nunca sale de
             la del aula que releva. */}
-        {relevoDe ? (() => {
-          const todas = (dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[];
-          const caido = todas.find((f) =>
-            String(f.operational_code ?? "").trim() === relevoDe
-            || String(f.classroom_id ?? "").trim() === relevoDe);
-          if (!caido) return null;
-          return (
-            <AulasPopoverReemplazo
-              abierto
-              caido={caido}
-              filas={todas}
-              // Lo que le falta a SU facultad, por sexo: es contra lo que se
-              // elige, y el motor ya lo tiene por celda.
-              // **`quotas_sex_faculty` y no `avance_sexo_facultad`.** El
-              // segundo trae `brecha`, que es lo que faltará AL CIERRE
-              // proyectando todo el plan: en este corte vale 0 en las treinta
-              // celdas —«llega con todo el plan, con margen»— y con eso la
-              // ayuda de cada candidato se apagaba entera. Lo que decide a
-              // quién meter es lo que falta HOY, que es `missing`, y ése vive
-              // en las cuotas. Es el mismo bloque que lee Registro de campo.
-              brecha={brechaDeLaFacultad(
-                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-                String(caido.faculty ?? ""),
-              )}
-              // El plazo sale del MISMO sitio que la tabla «Cuándo pedir aula
-              // adicional» de Resumen y que el popover de refuerzo: dos fechas
-              // distintas para el mismo día útil es la avería más cara de este
-              // perfil.
-              pedirAntesDe={alertaDeAnticipacion(
-                proyeccionPorAgenda(
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[],
-                ),
-                dashboard.banco_extras?.por_facultad ?? [],
-              ).find((a) => a.facultad === String(caido.faculty ?? ""))?.pedirAntesDe ?? null}
-              // **Aquí conviven A y B, y sólo B se marca.** Si el titular cayó
-              // —rechazo o reemplazada— esto es un reemplazo (A), y A se aplica
-              // en el Sheets: la app sólo lo lee. Si el titular sigue en pie y
-              // lo que se busca es sumar, es un complemento (B) y sí se marca.
-              onElegir={(fila) => {
-                const cayo = /^(rechaz|reemplazada)/.test(
-                  String(caido.sample_status ?? "").trim().toLowerCase());
-                if (!cayo) {
-                  void marcar(String(fila.operational_code ?? ""), "complemento",
-                              String(caido.operational_code ?? ""));
-                }
-                setRelevoDe("");
-              }}
-              onCerrar={() => setRelevoDe("")}
-            />
-          );
-        })() : null}
+        {relevoDe ? (
+          <PopoverDeRelevo dashboard={dashboard} codigo={relevoDe} marcar={marcar} onCerrar={() => setRelevoDe("")} />
+        ) : null}
 
         {/* **El refuerzo (C), abierto desde una facultad.** Toma el plan entero
             —el motor acota a la facultad por su cuenta, que es la frontera
             dura— y la deuda de esa facultad de las mismas cuotas que usa el
             complemento, para que las dos puertas midan contra el mismo número. */}
-        {refuerzoDe ? (() => {
-          // El plazo sale del mismo sitio que la tabla «Cuándo pedir aula
-          // adicional» de Resumen, no de una segunda cuenta: dos fechas
-          // distintas para el mismo día útil es la avería más cara del perfil.
-          const alerta = alertaDeAnticipacion(
-            proyeccionPorAgenda(
-              (dashboard.agenda ?? []) as MonitoreoRow[],
-              (dashboard.partes_campo ?? []) as MonitoreoRow[],
-              (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[],
-            ),
-            dashboard.banco_extras?.por_facultad ?? [],
-          ).find((a) => a.facultad === refuerzoDe);
-          return (
-            <AulasPopoverRefuerzo
-              facultad={refuerzoDe}
-              filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
-              deuda={brechaDeLaFacultad(
-                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-                refuerzoDe,
-              ) ?? { mujeres: 0, hombres: 0 }}
-              // La meta y lo logrado, para que la cifra se explique sola y no
-              // parezca contradecir al ranking del que se viene.
-              cuota={cuotaDeLaFacultad(
-                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-                refuerzoDe,
-              )}
-              // **Lo que ya viene descontado, y el marco del plan.** El déficit
-              // sin descontar lo agendado manda a reforzar facultades que ya
-              // están cubiertas, y eso gasta una reserva que otra necesita.
-              deficit={(() => {
-                const c = cuotaDeLaFacultad(
-                  (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-                  refuerzoDe,
-                );
-                return c
-                  ? deficitOperativo(
-                    c,
-                    (dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[],
-                    refuerzoDe,
-                  )
-                  : undefined;
-              })()}
-              pedirAntesDe={alerta?.pedirAntesDe ?? null}
-              // **C se marca desde aquí.** Antes sólo cerraba y la decisión se
-              // perdía. Ahora el aula queda en REFUERZO POR CONTACTAR —no
-              // agendada, que nadie la ha llamado—, visible en la app.
-              onElegir={(fila) => {
-                void marcar(String(fila.operational_code ?? ""), "refuerzo", refuerzoDe);
-                setRefuerzoDe("");
-              }}
-              onCerrar={() => setRefuerzoDe("")}
-            />
-          );
-        })() : null}
+        {refuerzoDe ? (
+          <PopoverDeRefuerzoDeFacultad dashboard={dashboard} facultad={refuerzoDe} marcar={marcar} onCerrar={() => setRefuerzoDe("")} />
+        ) : null}
       </div>
   );
 }

@@ -61,7 +61,11 @@ describe("las tres puertas llegan a la pestaña Refuerzos", () => {
     // la decisión vuelve a perderse como antes de 2026-09-11.
     const seccion = readFileSync(path.join(dir, "AulasSeccionConsultas.tsx"), "utf8");
     expect(seccion).toContain("AulasLlamadaDeFacultad");
-    expect(seccion).toMatch(/onElegir=\{\(fila\)\s*=>\s*\{\s*void marcar\(/);
+    // Los popovers que marcan viven en PopoversDeCaso.tsx (los abren Consultas
+    // y Control › Brechas); la sección los monta.
+    expect(seccion).toContain("PopoverDeRefuerzoDeFacultad");
+    const popovers = readFileSync(path.join(dir, "PopoversDeCaso.tsx"), "utf8");
+    expect(popovers).toMatch(/onElegir=\{\(fila\)\s*=>\s*\{\s*void marcar\(/);
   });
 
   it("las tres pestañas siguen declaradas en la misma sección", () => {
