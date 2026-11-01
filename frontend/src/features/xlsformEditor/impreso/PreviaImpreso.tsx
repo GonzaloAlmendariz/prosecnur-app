@@ -7,6 +7,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import type { EstadoPrevia } from "./storePrevia";
 import type { PdfDialogState } from "../shell/pdfExportPreference";
 import { MaquetaPagina } from "./MaquetaPagina";
+import type { PrimeraPagina } from "./primeraPagina";
 
 type Paso = { clave: string; rotulo: string; estado: "hecho" | "en-curso" | "pendiente" };
 
@@ -18,11 +19,13 @@ function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle">): Paso[] {
   ];
 }
 
-export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMatrices }: {
+export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMatrices, pagina }: {
   previa: EstadoPrevia;
   /** Opciones actuales: dibujan el esquema de página mientras no hay PDF. */
   estado: PdfDialogState;
   hayMatrices: boolean;
+  /** El título y las primeras preguntas reales (L36): la página se dibuja con ellas y no con barras. */
+  pagina: PrimeraPagina | null;
   vieja: boolean;
   /** Si no se puede previsualizar (p. ej. una exportación en curso), por qué. */
   motivo: string | null;
@@ -42,9 +45,9 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMat
       <div className="pulso-xf-imp-previa-marco" data-qa-geometry-capacity="owned">
         {previa.fase === "inactiva" && (
           <div className="pulso-xf-imp-previa-esquema">
-            <MaquetaPagina estado={estado} hayMatrices={hayMatrices} />
+            <MaquetaPagina estado={estado} hayMatrices={hayMatrices} pagina={pagina} />
             <div className="pulso-xf-imp-previa-esquema-pie">
-              <p>Esquema de la primera página.</p>
+              <p>{pagina?.preguntas.length ? "Primera página, en baja resolución." : "Esquema de la primera página."}</p>
               <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? "Genera el PDF con estas opciones"}>
                 <FileText size={13} aria-hidden="true" /> Previsualizar
               </PulsoButton>

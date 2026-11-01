@@ -42,6 +42,7 @@ import {
 } from "./modeloImpreso";
 import { generarPrevia, previaVieja, usePreviaImpreso } from "./storePrevia";
 import { PreviaImpreso } from "./PreviaImpreso";
+import { primeraPagina } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
 import "./impreso.css";
 
@@ -117,6 +118,7 @@ export function PestanaImpreso({
   );
 
   const previa = usePreviaImpreso();
+  const pagina = useMemo(() => primeraPagina(workbook, structure), [workbook, structure]);
   // Otra previa de otro formulario no se muestra: se descarta al llegar.
   useEffect(() => {
     if (previa.formId !== null && previa.formId !== formId) previa.descartar();
@@ -193,7 +195,7 @@ export function PestanaImpreso({
               />
             )}
           </div>
-          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} />
+          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
         </div>
       </div>
     </div>
