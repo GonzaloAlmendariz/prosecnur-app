@@ -156,6 +156,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "vista previa pedida («Previsualizar») mientras el motor dibuja; lista o en error (también desactualizada) publica true",
   "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
+  "features/bitacora/CronogramaSection.tsx":
+    "lectura del estado de la bitácora (fases y lista del cronograma): con el estado monta su superficie y con el error publica vacio:cronograma-ilegible",
   "features/calcMuestra/CalcMuestraPage.tsx":
     "`calc-muestra-hidratando`: la rehidratación del estado del proyecto",
   "features/calcMuestra/general/ArchivoMarcoGeneral.tsx":

@@ -227,6 +227,19 @@ export function CronogramaSection({
     }
   }
 
+  // Sin el estado de la bitácora: cargando (false, transitorio) o, si la lectura
+  // falló, un vacío terminal; el error ya se dice arriba en el Alert.
+  const abriendo = error ? (
+    <div className="plan-empty" data-audit-ready="vacio:cronograma-ilegible">
+      <strong>No se pudo abrir el cronograma.</strong>
+    </div>
+  ) : (
+    <div className="plan-empty" aria-busy="true" data-audit-ready="false">
+      <Loader2 size={26} className="spin" />
+      <strong>Abriendo el cronograma…</strong>
+    </div>
+  );
+
   return (
     <div
       className="plan-shell plan-shell--embedded"
@@ -320,19 +333,13 @@ export function CronogramaSection({
         bitacora ? (
           <CompositorDeFases estado={bitacora} onEstado={adoptarEstado} />
         ) : (
-          <div className="plan-empty">
-            <Loader2 size={26} className="spin" />
-            <strong>Abriendo el cronograma…</strong>
-          </div>
+          abriendo
         )
       ) : vista === "lista" ? (
         bitacora ? (
           <ListaCronologica estado={bitacora} onEstado={adoptarEstado} />
         ) : (
-          <div className="plan-empty">
-            <Loader2 size={26} className="spin" />
-            <strong>Abriendo el cronograma…</strong>
-          </div>
+          abriendo
         )
       ) : !tasks.length ? (
         <div className="plan-empty">
