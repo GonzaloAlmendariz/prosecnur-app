@@ -117,7 +117,8 @@ export function ProcessingSheetViewer({
         if (!cancelled) setPayload(next);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError((e as Error).message);
+        // Nunca vacío: un error sin texto dejaría la marca en «todavía no» para siempre.
+        if (!cancelled) setError((e as Error)?.message || "No se pudo cargar la base.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

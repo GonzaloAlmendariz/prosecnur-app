@@ -149,6 +149,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "panel «Qué casos cuentan»: sólo mientras lee el universo de las bases; el error es terminal y publica true",
   "features/analitica/PanelVariablesExcluidas.tsx":
     "panel «Variables excluidas»: config de Analítica sin hidratar, variables cargando o cambio de base en curso; en error publica true",
+  "features/procesamiento/ProcessingSheetViewer.tsx":
+    "sin datos ni error: `load` siempre termina en payload o en un error con texto (nunca vacío); deshabilitado no publica",
   "features/graficos/GraficosPage.tsx":
     "fallbacks de Suspense de las pestañas perezosas: los reemplaza el chunk al cargar",
   "features/graficos/estilo/PestanaEstilo.tsx": "listo al llegar las opciones o su error",
