@@ -2789,14 +2789,11 @@ export default function XlsformEditorPage() {
                       obligatoria: (si) => selectedNode && toggleRequired(selectedNode.rowIndex, si),
                       asignarLista: (lista) => selectedNode && assignCatalogToQuestion(selectedNode.rowIndex, lista),
                       ...accionesNuevasFicha({ structure, workbook, selection, updateWorkbook, seleccionar: selectBuilderFocus, irALista: (l) => pestanaEditor.irConFoco("opciones", l) }),
-                      mover: (dir) => moveSelection(dir),
                       eliminar: deleteCurrentSelection,
                       seleccionarFila: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
                       irPestana: pestanaEditor.irConFoco,
                       ajuste: updateSettingsField,
                       editarFormulario: updateWorkbook,
-                      puedeSubir: movement.prevRow != null,
-                      puedeBajar: movement.nextRow != null,
                     }}
                   />
 
