@@ -10,7 +10,7 @@ describe("CalcMuestra section rail semantics", () => {
     );
     const rail = source.slice(
       source.indexOf("function CalcMuestraSectionRail"),
-      source.indexOf("function CalcMuestraContextSidebar"),
+      source.indexOf("function chooseSourceSheet"),
     );
 
     expect(rail).toContain('role="group"');
@@ -21,23 +21,20 @@ describe("CalcMuestra section rail semantics", () => {
     expect(rail).not.toContain("aria-selected={active}");
   });
 
-  it("uses ContextTabRail only for the university courses-schedule desk", () => {
+  it("uses the shared ContextTabRail for every desk, with no rail of its own (L16)", () => {
     const source = fs.readFileSync(
       path.join(__dirname, "CalcMuestraPage.tsx"),
       "utf8",
     );
     const contextStart = source.indexOf("<ContextTabRail");
-    const contextEnd = source.indexOf(') : desk !== "sin_definir"', contextStart);
-    const universityBranch = source.slice(contextStart, contextEnd);
+    const branch = source.slice(contextStart, source.indexOf('<main className="cmv2-main">', contextStart));
 
     expect(source).toContain('import { ContextTabRail } from "../../components/ContextTabRail"');
-    expect(source).toContain('desk === "opinion_universitaria" ? (');
-    expect(source).toContain('desk === "opinion_universitaria" ? " pulso-context-tab-layout" : ""');
-    expect(universityBranch).toContain("items={universityContextItems}");
-    expect(universityBranch).toContain("onChange={selectUniversityContextTab}");
-    expect(universityBranch).not.toContain("cmv2-section-local-dot");
-    expect(universityBranch).not.toContain("cmv2-section-local-flag");
-    expect(source.slice(contextEnd, source.indexOf('<main className="cmv2-main">', contextEnd))).toContain("<CalcMuestraContextSidebar");
+    expect(source).toContain('desk !== "sin_definir" && !sinRailLocal ? " pulso-context-tab-layout" : ""');
+    expect(branch).toContain("items={contextItems}");
+    expect(branch).toContain("onChange={selectContextTab}");
+    expect(branch).not.toContain("cmv2-section-local-dot");
+    expect(source).not.toContain("CalcMuestraContextSidebar");
   });
 
   it("keeps guided progress accessible in descriptions and labels panels from the active tab", () => {

@@ -51,7 +51,7 @@
   gap: var(--cmv2-space-2);
 }
 
-.cmv2-frame .pulso-page-frame-toolbar {
+.cmv2-frame .pulso-page-frame-chrome {
   width: 100%;
   justify-content: center;
   min-width: 0;
@@ -3389,7 +3389,7 @@
   background-size: auto, 32px 32px, 32px 32px, auto;
 }
 
-.cmv2-frame .pulso-page-frame-toolbar {
+.cmv2-frame .pulso-page-frame-chrome {
   position: relative;
   z-index: 4;
 }
@@ -3829,7 +3829,7 @@
     gap: 3px;
   }
 
-  .cmv2-frame .pulso-page-frame-toolbar {
+  .cmv2-frame .pulso-page-frame-chrome {
     padding-block: 2px 3px;
   }
 
