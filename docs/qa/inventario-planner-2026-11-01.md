@@ -60,6 +60,15 @@ Las ocho preguntas quedan cerradas. Lo que sigue es la enmienda del ADR 0122.
 
 Enmienda redactada como ADR 0123 (Propuesto), que reemplaza en parte al 0122 porque un ADR aceptado no se reescribe.
 
+### Corrección del 1/11, revisando la propuesta de la pantalla nueva (Q5)
+
+**Gonzalo (textual):** «acreditación no solo es por correo».
+
+Consecuencia para la Q5: el perfil `acreditacion` declara sus canales (correo, teléfono, presencial con QR; el schema ya
+trae `perfiles[].canales`) y cada canal abre su campaña en Material (correo, telefónica, campo en aula con QR). Hoy el
+Planner le pone `correo` por defecto y la pantalla no deja elegir; el prototipo ya lo muestra. Falta verificar con la
+sesión de Material que «Nueva campaña» ofrezca la telefónica y la de aula cuando el perfil de acreditación las declara.
+
 Cambia el contrato (ADR 0122: la Bitácora como sección del Planner y el cronograma como dato que los módulos leen),
 así que va a una enmienda del ADR antes de tocar código.
 
