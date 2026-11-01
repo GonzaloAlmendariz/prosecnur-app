@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { AvisosDelMotor } from "../AvisosDelMotor";
+import { cuotasDescuadradas } from "../filtroDeAvisos";
 import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -104,6 +106,8 @@ type InspectorProps = {
   onVecina: (paso: 1 | -1) => void;
   /** El disparador de la entrega (sideover `?panel=salidas`); va en el pie de las dos vistas. */
   salidas?: ReactNode;
+  /** P5: el plan de cuotas de la muestra, para sus avisos y si no cuadra con el N. */
+  cuotas?: QuotaPlan | null;
   /** ¿La muestra ya se envió a Material? Entonces la ficha enlaza su hoja allá. */
   enviada?: boolean;
   /** Rutas por revisar: el número de la barra y de la lista (F15). */
@@ -112,7 +116,7 @@ type InspectorProps = {
   minimoMarco?: number | null;
 };
 
-export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, enviada = false, rutasPorRevisar, minimoMarco = null }: InspectorProps) {
+export function SeleccionInspector({ titular, estado, reemplazos, revision, totales, onVecina, salidas, cuotas = null, enviada = false, rutasPorRevisar, minimoMarco = null }: InspectorProps) {
   const { setUmpEnfocada, setCajon } = useSeleccionDireccion();
   if (titular) {
     const suyos = reemplazosDe(titular.id_manzana, reemplazos);
@@ -219,6 +223,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           {/* F14/F15: un solo número, el mismo de la barra y la lista (rutas); el de UMP va como desglose. */}
           <div><small>Por revisar</small><strong>{fmt(rutasPorRevisar ?? revision.porRevisar)}</strong></div>
         </div>
+        {/* P5: los avisos de las cuotas y las que no cuadran con el N (eran chips de la clásica). */}
+        <AvisosDelMotor avisos={cuotas?.alerts} extra={[cuotasDescuadradas(cuotas)].filter((t): t is string => Boolean(t))} />
         {rutasPorRevisar !== undefined && revision.porRevisar !== rutasPorRevisar ? (
           <p className="hr-mapa-nota">{fmt(rutasPorRevisar)} rutas con su titular o algún reemplazo observado: {fmt(revision.porRevisar)} UMP en total.</p>
         ) : null}

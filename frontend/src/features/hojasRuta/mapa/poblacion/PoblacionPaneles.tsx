@@ -3,7 +3,8 @@ import { PiramidePoblacion } from "./PiramidePoblacion";
 import { Info, Table2, Users } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
+import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaAlert, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
+import { AvisosDelMotor } from "../AvisosDelMotor";
 import { useLienzoHojasRuta } from "../store";
 import type { ResumenMatriz } from "./matriz";
 
@@ -207,9 +208,11 @@ type InspectorProps = {
   guardando: boolean;
   hayMuestra: boolean;
   onGuardarYCalcular: (cambios: Partial<HojasRutaIntegratedConfig>) => void;
+  /** P5: los avisos que devolvió el cálculo de la matriz (`population.alerts`). */
+  avisos?: readonly HojasRutaAlert[];
 };
 
-export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, onGuardarYCalcular }: InspectorProps) {
+export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, avisos, onGuardarYCalcular }: InspectorProps) {
   const { rangosBorrador, setRangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
   const { modo, base, pendiente, deshacer } = useModoRangos(config);
   const rangos = rangosBorrador ?? rangosConfig;
@@ -231,6 +234,7 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
           <Info size={14} aria-hidden />
           <span>Edad simple oficial INEI 2017 (C5P41 × sexo) por distrito.</span>
         </p>
+        {matriz.vigente ? <AvisosDelMotor avisos={avisos} /> : null}
         <h3 className="hr-mapa-subtitulo">Matriz</h3>
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (

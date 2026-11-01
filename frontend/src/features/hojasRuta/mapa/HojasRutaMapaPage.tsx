@@ -785,6 +785,7 @@ export default function HojasRutaMapaPage() {
           ) : null) : null}
           {manzanaFicha && ((enSeleccion && !titularEnfocada) || enManzanas) ? null : enSeleccion && estado ? (
             <SeleccionInspector
+              cuotas={salidas?.quota ?? salidas?.sample?.quota ?? null}
               enviada={Boolean(envio)}
               rutasPorRevisar={porRevisarTotal}
               minimoMarco={estado?.integrated_config.marco_elegible?.declarado ? estado.integrated_config.marco_elegible.minimo_viviendas ?? 0 : null}
@@ -842,6 +843,7 @@ export default function HojasRutaMapaPage() {
               bloqueado={bloqueado}
               guardando={guardando}
               hayMuestra={Boolean(salidas?.sample_size_preview || salidas?.sample)}
+              avisos={salidas?.population?.alerts}
               onGuardarYCalcular={(c) => void guardarYCalcularPoblacion(c)}
             />
           ) : enAtlas && estado ? (
