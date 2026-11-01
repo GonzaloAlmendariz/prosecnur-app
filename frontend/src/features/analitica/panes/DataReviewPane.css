@@ -19,7 +19,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -103,7 +103,7 @@
 }
 
 .pulso-datos-inspector-titulo code {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
@@ -113,7 +113,7 @@
 .pulso-datos-inspector-nota {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-datos-inspector-nota[data-estado="vacia"],
@@ -137,7 +137,7 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -145,7 +145,7 @@
 .pulso-datos-inspector-campo {
   display: grid;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
@@ -161,7 +161,7 @@
 }
 
 .pulso-datos-codigo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -169,7 +169,7 @@
 .pulso-datos-cobertura,
 .pulso-datos-sin-opciones {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-datos-cobertura[data-estado="vacia"],
@@ -190,7 +190,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-primary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }

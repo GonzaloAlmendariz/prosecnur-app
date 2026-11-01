@@ -94,7 +94,7 @@
 
 .pulso-excluidas-titular h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
@@ -111,7 +111,7 @@
 
 .pulso-excluidas-alcance {
   margin: var(--pulso-space-1) 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-module-processing);
   overflow-wrap: anywhere;
@@ -142,7 +142,7 @@
 
 .pulso-excluidas-regla {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -159,7 +159,7 @@
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
@@ -192,7 +192,7 @@
 }
 
 .pulso-excluidas-buscador-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
@@ -221,7 +221,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   outline: none;
 }
 
@@ -245,13 +245,13 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .pulso-excluidas-cuenta {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -294,7 +294,7 @@
 
 .pulso-excluidas-fila-texto code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
@@ -302,7 +302,7 @@
 
 .pulso-excluidas-fila-etiqueta {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;
@@ -322,7 +322,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -338,7 +338,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 

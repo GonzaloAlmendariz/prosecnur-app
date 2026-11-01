@@ -18,14 +18,14 @@
 }
 
 .pulso-peso-columna-head strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-peso-columna-head small,
 .pulso-peso-columna-nota {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -45,14 +45,14 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-peso-columna-campo select {
   width: min(420px, 100%);
   height: 32px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-peso-columna-aviso {
@@ -62,5 +62,5 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }

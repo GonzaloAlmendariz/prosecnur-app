@@ -21,18 +21,6 @@ const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor"
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {
-  "features/analitica/analitica-v2.css": 97,
-  "features/analitica/cifrasPestana.css": 2,
-  "features/analitica/panes/CodebookPane.css": 4,
-  "features/analitica/panes/ComparativosPane.css": 36,
-  "features/analitica/panes/ComparativosPonderacion.css": 1,
-  "features/analitica/panes/DataReviewPane.css": 8,
-  "features/analitica/panes/NotasPieEditor.css": 6,
-  "features/analitica/panes/PesoPorColumna.css": 5,
-  "features/analitica/panes/PonderacionPane.css": 22,
-  "features/analitica/panes/revisionEtiquetas/avisosEtiqueta.css": 1,
-  "features/analitica/universoAnalisis.css": 2,
-  "features/analitica/variablesExcluidas.css": 12,
   "features/carga/ArmonizacionEscalaCompartida.css": 5,
   "features/carga/ArmonizacionFilaEditor.css": 28,
   "features/carga/BaseSavPanel.css": 6,

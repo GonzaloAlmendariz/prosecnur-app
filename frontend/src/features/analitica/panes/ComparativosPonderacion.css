@@ -25,7 +25,7 @@
   gap: var(--pulso-space-1);
   margin: 0;
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 

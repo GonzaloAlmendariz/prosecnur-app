@@ -17,7 +17,7 @@
 }
 
 .analitica-codebook-code-nota {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -41,7 +41,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -60,7 +60,7 @@
 .analitica-codebook-code-otras {
   flex: none;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Cada código dice dónde aparece y qué pasa al marcarlo. */
@@ -80,7 +80,7 @@
 
 .analitica-codebook-code-uso,
 .analitica-codebook-code-efecto {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 400;
   color: var(--pulso-text-soft);
 }
