@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
+import { AjustesPorDistrito } from "./AjustesPorDistrito";
 import { EscenariosMuestra } from "./EscenariosMuestra";
 import { MargenCurva } from "./MargenCurva";
 import { repartoMinimos, repartoPorPoblacion } from "./repartos";
@@ -366,7 +367,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
           </li>
         ))}
       </ul>
-      {porDistrito ? <p className="hr-mapa-nota hr-muestra-pie">Puedes pegar una columna desde Excel o Sheets sobre el primer campo.</p> : null}
+      {porDistrito ? <p className="hr-mapa-nota hr-muestra-pie">Puedes pegar una columna desde Excel o Sheets sobre el primer campo.</p> : <AjustesPorDistrito config={config} filas={r.filas} bloqueado={bloqueado} />}
       <EscenariosMuestra config={config} resultado={r} bloqueado={bloqueado} />
     </>
   );
