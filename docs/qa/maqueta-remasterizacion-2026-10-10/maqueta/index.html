@@ -61,15 +61,15 @@
   <h2>Se pueden avanzar sin decisión tuya</h2>
 
   <article class="ficha" id="L5">
-    <header><code>L5b · L6 · L9</code><h3>Carga: un solo importador de plataforma</h3><span class="chip">en curso</span></header>
+    <header><code>L5b · L6 · L9</code><h3>Carga: un solo importador de plataforma</h3><span class="chip listo">hechas</span></header>
     <figure><img src="hoy-2026-10-31/carga-plan.png" alt="Carga, pestaña Plan, con «Varias bases» y «Bases separadas» elegidas y una sola base cargada"><figcaption>Carga › Plan, hoy.</figcaption></figure>
     <div class="txt">
       <div class="visto"><b>Lo que se ve:</b> el estudio tiene una sola base, pero Plan marca «Varias bases» y «Bases separadas». La importación por plataforma no está a la vista desde aquí: se entra por Fuentes.</div>
       <h4>Qué falta</h4>
       <ul>
         <li><b>L5b, cerrada el 1 de noviembre</b> (<code>e978499e2</code>; visto en vivo): con encuestas reales de SurveyMonkey, el importador único muestra sus cuatro fases. El trabajo sigue al ir a Plan y volver, y «Cancelar» deja el estudio sin cambios. Al verlo apareció un defecto: el catálogo decía «69 resp.» y la base guardaba 59 sin explicar la diferencia. Ahora dice «59 de 69 respuestas · fuera: 8 parciales, 2 sin consentimiento» (<code>f1b26637d</code>).</li>
-        <li><b>L5c, hecha en código el 1 de noviembre</b> (<code>289dd263e</code>): cuando SurveyMonkey o Kobo no responden a tiempo, el aviso dice «SurveyMonkey no respondió a tiempo. El estudio no cambió», ya no el error interno de R. Para verlo en la app hay que reinstalar el paquete de R, igual que L9.</li>
-        <li><b>L9:</b> la base integrada y el paquete .sav ya se importan en segundo plano y dicen en qué van. Falta verlo en vivo, y eso exige reinstalar el paquete de R.</li>
+        <li><b>L5c, hecha en código el 1 de noviembre</b> (<code>289dd263e</code>): cuando SurveyMonkey o Kobo no responden a tiempo, el aviso dice «SurveyMonkey no respondió a tiempo. El estudio no cambió», ya no el error interno de R. Visto en vivo con la red cortada.</li>
+        <li><b>L9, cerrada el 1 de noviembre:</b> con el paquete reinstalado, la base integrada se importa en segundo plano y muestra en qué va. Ahora también se puede cancelar («Cancelaste la importación. El estudio no cambió.»), y lo mismo vale para el paquete .sav (<code>a81d84dda</code>).</li>
         <li><b>L6, cerrada el 1 de noviembre:</b> se vio en vivo con un proyecto nuevo de hermanas independientes. El asistente ya vive fuera de BasesPanel y tiene sus cuatro pasos. A 1024 aparecieron dos defectos y quedaron corregidos: el paso 4 se cortaba en el borde, y cada paso decía su número dos veces («1 1 Referencia»). Ahora el stepper se compacta según su propio ancho.
           <figure style="margin-top:8px"><img src="hoy-2026-11-01/carga-independientes-1024.png" alt="Fuentes independientes a 1024 px con los cuatro pasos visibles: Referencia, Familia cargada, Catálogo y alcance (activo) y Auditar e importar"><figcaption>A 1024 px, con el arreglo. El fragmento del token está tapado en la imagen.</figcaption></figure></li>
       </ul>
