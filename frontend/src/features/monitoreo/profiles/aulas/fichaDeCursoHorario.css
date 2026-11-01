@@ -175,6 +175,17 @@
   overflow-y: auto;
 }
 
+/* Pantalla baja (1024 × 600): una lista con scroll propio dentro del panel que
+ * ya desplaza dejaba los últimos códigos sin alcanzar (captura del 1 nov,
+ * `scroll-unreachable` en Partes › Buscar por código). Ahí la lista crece
+ * entera y la desplaza su panel: un solo dueño del scroll. */
+@media (max-height: 760px) {
+  .aulas-ficha-atajo-codigos {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
 .aulas-ficha-atajo-codigos button {
   padding: 4px 10px;
   border: 1px solid var(--pulso-border);
