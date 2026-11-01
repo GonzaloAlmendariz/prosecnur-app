@@ -35,11 +35,16 @@
   acreditacion = "correo"
 )
 
-# `macro_familia` que `iniciar-estudio` deriva del perfil (.CM_MACRO_FAMILIAS).
-.PLANNER_PERFIL_A_MACRO <- c(
-  territorial = "territorial",
-  aulas = "encuesta_estudiantes",
-  telefonico = "listado_telefonico",
+# `macro_familia` que `iniciar-estudio` toma del Planner (.CM_MACRO_FAMILIAS).
+# Sale del MODO de Cálculo y no del perfil: `inferDesk` manda
+# `listado_telefonico` a la mesa legacy, así que un telefónico nuevo debe llegar
+# como `estudio_propio`, que es lo que la UI de Cálculo envía para «marco
+# disponible» (aviso de la sesión de Monitoreo y Cálculo, P2). Leer un .pulso
+# viejo sigue traduciendo `listado_telefonico` → telefónico (proyección, §7).
+.PLANNER_MODO_A_MACRO <- c(
+  `territorial-handoff` = "territorial",
+  `opinion-universitaria` = "encuesta_estudiantes",
+  `marco-disponible` = "estudio_propio",
   acreditacion = "acreditacion"
 )
 
@@ -74,12 +79,13 @@
   con_correo <- vapply(perfiles, function(p) "correo" %in% unlist(p$canales), logical(1))
   if (any(con_correo)) campanas <- c(campanas, "correo")
 
+  modo_calc <- if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc)
   list(
     perfiles = as.list(tipos),
     calc = list(
-      modo = if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc),
+      modo = modo_calc,
       perfil = if (is.null(perfil_calc)) NULL else perfil_calc$tipo,
-      macro_familia = if (is.null(perfil_calc)) NULL else unname(.PLANNER_PERFIL_A_MACRO[[perfil_calc$tipo]]),
+      macro_familia = if (is.null(modo_calc)) NULL else unname(.PLANNER_MODO_A_MACRO[[modo_calc]]),
       # Perfiles cuya muestra entrega el cliente: Cálculo no tiene nada que hacer con ellos.
       del_cliente = as.list(vapply(sin_calc, `[[`, "", "tipo"))
     ),

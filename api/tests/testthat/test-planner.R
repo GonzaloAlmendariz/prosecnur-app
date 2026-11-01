@@ -258,6 +258,11 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
 
   tel <- m(tipo = "telefonico")
   expect_equal(tel$calc$modo, "marco-disponible")
+  # No `listado_telefonico`: Cálculo lo manda a su mesa legacy (inferDesk).
+  expect_equal(tel$calc$macro_familia, "estudio_propio")
+  expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$macro_familia, "estudio_propio")
+  expect_equal(m(tipo = "territorial")$calc$macro_familia, "territorial")
+  expect_equal(m(tipo = "acreditacion")$calc$macro_familia, "acreditacion")
   expect_equal(unlist(tel$material$campanas), "telefonica")
   # Una lista que entrega el cliente: Cálculo no diseña nada.
   cli <- m(tipo = "telefonico", diseno = "cliente")
