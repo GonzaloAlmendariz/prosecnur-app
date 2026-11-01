@@ -21,6 +21,13 @@ export type PreguntaDePagina = {
 
 export type PrimeraPagina = { titulo: string; preguntas: PreguntaDePagina[] };
 
+/**
+ * Grupos que arma el traductor de SurveyMonkey sólo para la plataforma. El motor del papel los omite enteros
+ * (L36 · D-L36-1, `.FORM_CAMPOS_GRUPOS_PLATAFORMA` en api/R/reporte_formulario_campos.R): «Así queda» también, o la
+ * vista previa numeraría `respondent_id` como pregunta 1 y el documento no.
+ */
+export const GRUPOS_DE_PLATAFORMA = new Set(["survey_monkey_metadata", "survey_monkey_auxiliary", "MetaSM", "AuxSM"]);
+
 /** Más que esto no cabe en una página A4 ni a una columna angosta. */
 const TOPE_PREGUNTAS = 14;
 const TOPE_OPCIONES = 5;
@@ -36,8 +43,16 @@ export function primeraPagina(
 ): PrimeraPagina {
   const preguntas: PreguntaDePagina[] = [];
   let correlativo = 0;
+  // Profundidad del grupo de plataforma abierto: todo lo que cuelga de él se salta.
+  let omitidoDesde: number | null = null;
   for (const nodo of structure?.outline ?? []) {
     if (preguntas.length >= TOPE_PREGUNTAS) break;
+    if (omitidoDesde !== null && nodo.depth > omitidoDesde) continue;
+    omitidoDesde = null;
+    if ((nodo.kind === "section" || nodo.kind === "repeat") && GRUPOS_DE_PLATAFORMA.has(nodo.name)) {
+      omitidoDesde = nodo.depth;
+      continue;
+    }
     // Lo que no sale en papel: secciones (son títulos), cálculos, metadatos y cierres.
     if (nodo.kind !== "question" && nodo.kind !== "note") continue;
     const base = nodo.typeInfo.base;

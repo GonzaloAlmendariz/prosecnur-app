@@ -263,6 +263,11 @@
   # "11" en Arial Narrow 10 pt necesita ~9 -- los items de dos cifras envolvian a
   # dos lineas y su fila salia mas alta que las demas.
   num_w <- 0.26
+  # L36 · D-L36-3: «10.1» no cabe en 0.26 in y salía partido en dos líneas
+  # («10.» / «1»). La columna se mide con el número más largo, con el mismo
+  # padding de 3 pt por lado y la misma holgura que la cota de la escala.
+  num_max_pt <- max(c(0, vapply(df$num, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ)))
+  num_w <- max(num_w, (num_max_pt + 9) / 72)
   resto <- usable - num_w
   lbl_w <- resto * frac
   col_w <- (resto - lbl_w) / max(1L, total_cols)

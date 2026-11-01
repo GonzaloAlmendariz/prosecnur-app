@@ -21,6 +21,19 @@ const workbook = {
 } as unknown as XlsformEditorWorkbook;
 
 describe("primera página real de «Así queda» (L36)", () => {
+  it("omite los grupos de la plataforma con todo lo que cuelga de ellos, como el documento (D-L36-1)", () => {
+    const structure = {
+      outline: [
+        nodo({ base: "begin_group", kind: "section", name: "survey_monkey_metadata", label: "Metadata SurveyMonkey", depth: 0 }),
+        nodo({ base: "text", label: "respondent_id", depth: 1 }),
+        nodo({ base: "text", label: "collector_id", depth: 1 }),
+        nodo({ base: "begin_group", kind: "section", name: "grp_p1", label: "Datos", depth: 0 }),
+        nodo({ base: "integer", label: "Edad", depth: 1 }),
+      ],
+    } as unknown as BuilderStructure;
+    expect(primeraPagina(workbook, structure).preguntas.map((p) => [p.numero, p.texto])).toEqual([["1", "Edad"]]);
+  });
+
   it("lleva el título y las preguntas imprimibles con su número y sus opciones", () => {
     const structure = {
       outline: [

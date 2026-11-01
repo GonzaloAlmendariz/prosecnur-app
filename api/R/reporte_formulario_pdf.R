@@ -486,6 +486,13 @@
   unique(nums)
 }
 
+# ¿La banda de sección tiene algo que decir? (L36 · D-L36-2)
+.form_pdf_seccion_dice_algo <- function(seccion) {
+  texto <- function(x) nzchar(trimws(paste(as.character(x %||% ""), collapse = "")))
+  isTRUE(seccion$repeatable) || texto(seccion$title) || texto(seccion$hint) ||
+    texto(seccion$skip) || texto(seccion$opening_condition)
+}
+
 formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper = NULL, options = list()) {
   # Item 46: NFC al leer (la tilde combinada salia con otra fuente).
   survey <- .form_pdf_nfc(survey); choices <- .form_pdf_nfc(choices)
@@ -861,7 +868,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       # begin_group para marcar la sección como repetible (one-to-many/roster) y,
       # si el instrumento lo trae, su repeat_count.
       is_repeat <- identical(base, "begin_repeat")
-      add_block(list(
+      seccion <- list(
         kind = "section",
         number = numbers[i],
         name = .form_pdf_chr(survey$name[i]),
@@ -875,7 +882,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         repeatable = is_repeat,
         repeat_count = if (is_repeat) .form_pdf_clean_text(survey$repeat_count[i]) else "",
         full_width = TRUE
-      ))
+      )
+      # L36 · D-L36-2: un grupo que no dice nada (sin título, pista, salto ni
+      # condición, y que no se repite) no dibuja banda. Los grupos de matriz que
+      # llegan de SurveyMonkey sin etiqueta dejaban marcos grises vacíos en papel.
+      if (.form_pdf_seccion_dice_algo(seccion)) add_block(seccion)
       i <- i + 1L
       next
     }
