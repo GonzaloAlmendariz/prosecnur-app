@@ -88,3 +88,31 @@ test_that("importar: lee efectivas por celda, conteos, visita, reemplazo y super
   sin <- Filter(function(u) identical(u$id_manzana, R1), g$unidades)[[1]]
   expect_identical(jsonlite::toJSON(sin$supervision, auto_unbox = TRUE), structure("{}", class = "json"))
 })
+
+test_that("conveniencia (1A, desde el Planner): seguimiento con Estado calculado y total reportado, sin códigos ni reemplazo", {
+  sid <- .mtr_sesion(); on.exit(session_delete(sid), add = TRUE)
+  local_mocked_bindings(.planner_payload_perfiles = function(s) list(list(tipo = "territorial", seleccion = "conveniencia")))
+  r <- collection_territorial_asignacion_excel(sid)
+  expect_identical(r$variante, "conveniencia")
+  path <- session_get(sid)$files[[r$file_id]]$path
+  lima <- .mtr_tabla(path, "Registro Lima")
+  expect_true(all(c("Efectivas · Hombre", "Total efectivas", "Estado", "Total reportado por coordinación",
+                    "Supervisión: aprobadas") %in% names(lima)))
+  expect_false(any(grepl("^[0-9]+ · ", names(lima))))
+  expect_false("¿Se reemplaza?" %in% names(lima))
+  wb <- openxlsx::loadWorkbook(path)
+  f_est <- wb$worksheets[[match("Registro Lima", names(wb))]]$sheet_data$f
+  expect_true(any(grepl("Completa", f_est, fixed = TRUE) & grepl("Sin iniciar", f_est, fixed = TRUE)))  # el Estado es fórmula
+  t <- lima; fila <- match(T1, as.character(t[["Código de manzana"]]))
+  openxlsx::writeData(wb, "Registro Lima", 3, startCol = match("Efectivas · Hombre", names(t)), startRow = 4 + fila)
+  openxlsx::writeData(wb, "Registro Lima", 4, startCol = match("Total reportado por coordinación", names(t)), startRow = 4 + fila)
+  f <- tempfile(fileext = ".xlsx"); openxlsx::saveWorkbook(wb, f)
+  imp <- collection_territorial_asignacion_importar(sid, file_raw = readBin(f, "raw", file.info(f)$size))
+  e1 <- Filter(function(e) identical(e$id_manzana, T1), imp$estados)[[1]]
+  expect_identical(e1$total_reportado, 4L)
+  expect_identical(e1$efectivas$sexo, list(Hombre = 3L))
+  collection_territorial_asignacion_put(sid, asignacion = imp$propuesta, estados = imp$estados)
+  g <- collection_territorial_estado_get(sid)
+  expect_identical(g$variante, "conveniencia")
+  expect_identical(Filter(function(u) identical(u$id_manzana, T1), g$unidades)[[1]]$total_reportado, 4L)
+})

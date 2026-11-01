@@ -22,6 +22,18 @@
 .MTR_META <- "Meta · "
 .MTR_SI_NO <- c("Sí", "No")
 .MTR_CAMPO <- c("Fecha de visita", "¿Se reemplaza?", "Supervisión: aprobadas", "Supervisión: no aprobadas", "Observaciones")
+.MTR_REPORTADO <- "Total reportado por coordinación"
+.MTR_ESTADOS_1A <- c("Sin iniciar", "En curso", "Completa")
+
+# Variante del territorial (informe de brechas §1): «conveniencia» (cuotas, como Ser
+# Adolescente) o «ump_aleatoria» (hoja de ruta, como acogida). Sale del perfil territorial
+# del Planner; mientras el Planner no la declare, UMP aleatoria, que es lo que arma Hojas de ruta.
+.mtr_variante <- function(s) {
+  perfiles <- tryCatch(.planner_payload_perfiles(s), error = function(e) list())
+  ter <- Filter(function(p) is.list(p) && identical(p$tipo, "territorial"), perfiles %||% list())
+  sel <- if (length(ter)) as.character(ter[[1]]$seleccion %||% "") else ""
+  if (identical(sel, "conveniencia")) "conveniencia" else "ump_aleatoria"
+}
 
 # Las celdas de cuota del envío: sexo y rangos de edad, sólo las que la muestra trae.
 .mtr_celdas <- function(envio) {
@@ -48,18 +60,25 @@
 }
 
 #' Agrega al libro las pestañas del Registro del coordinador. Devuelve sus nombres.
+#'
+#' En conveniencia (1A) es el seguimiento de Ser Adolescente: logradas por celda, el total
+#' declarado (fórmula) y el reportado por coordinación, y un Estado calculado; sin códigos
+#' de resultado ni reemplazo (P2 no va en 1A). En UMP aleatoria (1B), lo de §1C.
 #' @keywords internal
-.mtr_agregar <- function(wb, ctx, ordenadas, label_de, codigos, hoja_asignacion, col_id, col_enc) {
+.mtr_agregar <- function(wb, ctx, ordenadas, label_de, codigos, hoja_asignacion, col_id, col_enc, variante = "ump_aleatoria") {
+  conveniencia <- identical(variante, "conveniencia")
   celdas <- .mtr_celdas(ctx$envio)
   cel <- c(celdas$sexo, celdas$edad)
   no_efectivos <- Filter(function(k) !identical(k$grupo, "efectiva"), codigos)
-  cols_cod <- .mtx_columnas_conteo(no_efectivos)
+  cols_cod <- if (conveniencia) character(0) else .mtx_columnas_conteo(no_efectivos)
+  campo <- if (conveniencia) setdiff(.MTR_CAMPO, "¿Se reemplaza?") else .MTR_CAMPO
   identidad <- c("Distrito", "UMP", "Código de manzana", "Tipo", "Reemplaza a", "Encuestador", "Cuestionarios", "Meta")
   metas <- if (length(cel)) paste0(.MTR_META, cel) else character(0)
   efectivas <- if (length(cel)) paste0(.MTR_EFECTIVAS, cel) else "Efectivas"
-  ayuda <- c("Total efectivas", "Faltan para la meta", "Total de intentos")
-  columnas <- c(identidad, metas, efectivas, cols_cod, ayuda, .MTR_CAMPO)
-  ambar <- c(efectivas, cols_cod, .MTR_CAMPO)
+  ayuda <- if (conveniencia) c("Total efectivas", "Faltan para la meta", "Estado") else c("Total efectivas", "Faltan para la meta", "Total de intentos")
+  reportado <- if (conveniencia) .MTR_REPORTADO else character(0)
+  columnas <- c(identidad, metas, efectivas, cols_cod, ayuda, reportado, campo)
+  ambar <- c(efectivas, cols_cod, reportado, campo)
   idx <- function(x) match(x, columnas)
   letra <- function(x) openxlsx::int2col(idx(x))
   txt <- function(x) if (is.null(x) || is.na(x)) "" else as.character(x)
@@ -96,13 +115,17 @@
       vals <- c(if (length(celdas$sexo)) (q$sexo %||% rep(NA_integer_, 2L)),
                 if (length(celdas$edad)) (q$edad %||% rep(NA_integer_, length(celdas$edad))))
       for (i in seq_along(metas)) fila[[metas[[i]]]] <- as.integer(vals[[i]])
-      for (c in c(efectivas, cols_cod, ayuda, .MTR_CAMPO)) fila[[c]] <- NA
+      for (c in c(efectivas, cols_cod, ayuda, reportado, campo)) fila[[c]] <- NA
       as.data.frame(fila, check.names = FALSE, stringsAsFactors = FALSE)
     }))
 
     openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
-    openxlsx::writeData(wb, hoja, sprintf("Registro del coordinador · %s%s", ctx$hit$entry$name, if (nzchar(reg)) paste0(" · ", reg) else ""), startRow = 1)
-    openxlsx::writeData(wb, hoja, paste(
+    openxlsx::writeData(wb, hoja, sprintf("%s · %s%s", if (conveniencia) "Seguimiento de campo" else "Registro del coordinador",
+                                          ctx$hit$entry$name, if (nzchar(reg)) paste0(" · ", reg) else ""), startRow = 1)
+    openxlsx::writeData(wb, hoja, if (conveniencia) paste(
+      "Anota por UMP las encuestas logradas en cada celda de cuota y el total que reporta coordinación. El Estado sale solo.",
+      "Llena sólo las columnas en ámbar. Es lo declarado por coordinación: Monitoreo lo compara con lo que llega a Kobo, que es el avance oficial."
+    ) else paste(
       "Anota por UMP lo que pasó en campo: efectivas por celda de cuota, no efectivas por código (los totales de la hoja de consolidados),",
       "fecha de visita y si se reemplaza. Llena sólo las columnas en ámbar. Es lo declarado por coordinación:",
       "Monitoreo lo compara con lo que llega a Kobo, que es el avance oficial."
@@ -113,7 +136,7 @@
     openxlsx::setRowHeights(wb, hoja, rows = 2, heights = 32)
     # Fila de grupos sobre la cabecera: de dónde sale cada bloque.
     grupos <- list(list("Cuota (de Hojas de ruta)", metas), list("Efectivas", efectivas), list("No efectivas por código", cols_cod),
-                   list("Ayuda de llenado", ayuda), list("Campo", .MTR_CAMPO))
+                   list("Ayuda de llenado", ayuda), list("Coordinación", reportado), list("Campo", campo))
     for (g in grupos) if (length(g[[2]])) {
       openxlsx::writeData(wb, hoja, g[[1]], startCol = idx(g[[2]][[1]]), startRow = 3)
       if (length(g[[2]]) > 1L) openxlsx::mergeCells(wb, hoja, cols = idx(g[[2]]), rows = 3)
@@ -153,16 +176,25 @@
       openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"\",%s)", vacio, tot), startCol = idx("Total efectivas"), startRow = r)
       openxlsx::writeFormula(wb, hoja, sprintf("IF(OR(%s,%s%d=\"\"),\"\",MAX(0,%s%d-%s))", vacio, letra("Meta"), r, letra("Meta"), r, tot),
                              startCol = idx("Faltan para la meta"), startRow = r)
-      intentos <- if (length(cols_cod)) sprintf("%s+SUM(%s)", tot, rango(cols_cod, r)) else tot
-      openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"\",%s)", vacio, intentos), startCol = idx("Total de intentos"), startRow = r)
+      if (conveniencia) {
+        # Como en Ser Adolescente: Completa al llegar a la meta, En curso con algo logrado.
+        openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"%s\",IF(AND(%s%d<>\"\",%s>=%s%d),\"%s\",\"%s\"))", vacio, .MTR_ESTADOS_1A[[1]],
+                                                 letra("Meta"), r, tot, letra("Meta"), r, .MTR_ESTADOS_1A[[3]], .MTR_ESTADOS_1A[[2]]),
+                               startCol = idx("Estado"), startRow = r)
+      } else {
+        intentos <- if (length(cols_cod)) sprintf("%s+SUM(%s)", tot, rango(cols_cod, r)) else tot
+        openxlsx::writeFormula(wb, hoja, sprintf("IF(%s,\"\",%s)", vacio, intentos), startCol = idx("Total de intentos"), startRow = r)
+      }
     }
-    enteros <- c(efectivas, cols_cod, "Supervisión: aprobadas", "Supervisión: no aprobadas")
+    enteros <- c(efectivas, cols_cod, reportado, "Supervisión: aprobadas", "Supervisión: no aprobadas")
     openxlsx::dataValidation(wb, hoja, cols = idx(enteros), rows = cuerpo, type = "whole", operator = "greaterThanOrEqual", value = 0)
-    openxlsx::writeData(wb, hoja, data.frame(x = .MTR_SI_NO), startCol = length(columnas) + 3L, startRow = 1, colNames = FALSE)
-    lista <- openxlsx::int2col(length(columnas) + 3L)
-    openxlsx::setColWidths(wb, hoja, cols = length(columnas) + 3L, widths = 0, hidden = TRUE)
-    openxlsx::dataValidation(wb, hoja, cols = idx("¿Se reemplaza?"), rows = cuerpo, type = "list",
-                             value = sprintf("$%s$1:$%s$%d", lista, lista, length(.MTR_SI_NO)))
+    if (!conveniencia) {
+      openxlsx::writeData(wb, hoja, data.frame(x = .MTR_SI_NO), startCol = length(columnas) + 3L, startRow = 1, colNames = FALSE)
+      lista <- openxlsx::int2col(length(columnas) + 3L)
+      openxlsx::setColWidths(wb, hoja, cols = length(columnas) + 3L, widths = 0, hidden = TRUE)
+      openxlsx::dataValidation(wb, hoja, cols = idx("¿Se reemplaza?"), rows = cuerpo, type = "list",
+                               value = sprintf("$%s$1:$%s$%d", lista, lista, length(.MTR_SI_NO)))
+    }
     openxlsx::setColWidths(wb, hoja, cols = seq_along(columnas),
                            widths = pmin(26, pmax(9, nchar(columnas) * 0.7 + 3)))
     openxlsx::setColWidths(wb, hoja, cols = idx(c("Distrito", "Encuestador", "Observaciones")), widths = c(18, 30, 36))
@@ -241,15 +273,18 @@
       sr <- trimws(as.character(col("¿Se reemplaza?")[[i]] %||% ""))
       sr <- if (is.na(sr) || !nzchar(sr)) "" else .MTR_SI_NO[match(.mtx_normalizar_nombre(sr), .mtx_normalizar_nombre(.MTR_SI_NO))]
       if (is.na(sr)) { malo(col("¿Se reemplaza?")[[i]], "«¿Se reemplaza?» no es Sí ni No"); sr <- "" }
+      reportado <- .mtr_entero(col(.MTR_REPORTADO)[i])
+      if (identical(reportado, FALSE)) { malo(col(.MTR_REPORTADO)[[i]], sprintf("«%s» no es un entero desde cero", .MTR_REPORTADO)); reportado <- NA }
       sup <- list()
       for (par in list(c("aprobadas", "Supervisión: aprobadas"), c("no_aprobadas", "Supervisión: no aprobadas"))) {
         v <- .mtr_entero(col(par[[2]])[i])
         if (identical(v, FALSE)) malo(col(par[[2]])[[i]], sprintf("«%s» no es un entero desde cero", par[[2]]))
         else if (!is.na(v)) sup[[par[[1]]]] <- v
       }
-      if (!length(sexo) && !length(edad) && !length(conteos) && is.na(fv) && !nzchar(sr) && !length(sup)) next
+      if (!length(sexo) && !length(edad) && !length(conteos) && is.na(fv) && !nzchar(sr) && !length(sup) && is.na(reportado)) next
       por_id[[id]] <- list(efectivas = list(sexo = sexo, edad = edad), conteos = conteos,
-                           fecha_visita = if (is.na(fv)) "" else fv, se_reemplaza = sr, supervision = sup)
+                           fecha_visita = if (is.na(fv)) "" else fv, se_reemplaza = sr, supervision = sup,
+                           total_reportado = if (is.na(reportado)) NA_integer_ else reportado)
     }
   }
   list(hojas = hojas, por_id = por_id, problemas = problemas)

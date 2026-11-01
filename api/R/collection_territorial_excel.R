@@ -160,8 +160,9 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   openxlsx::dataValidation(wb, .MTX_HOJA, cols = match("Estado", .MTX_COLUMNAS), rows = primera:ultima, type = "list",
                            value = sprintf("$AD$1:$AD$%d", length(.MTX_ESTADOS)))
 
+  variante <- .mtr_variante(ctx$s)
   registro <- .mtr_agregar(wb, ctx, ordenadas, label_de, codigos, .MTX_HOJA,
-                           col_id = match("Código de manzana", .MTX_COLUMNAS), col_enc = col_enc)
+                           col_id = match("Código de manzana", .MTX_COLUMNAS), col_enc = col_enc, variante = variante)
 
   # Con qué foto se generó: al subirlo, una huella distinta se avisa.
   openxlsx::addWorksheet(wb, .MTX_HOJA_CONTROL, visible = FALSE)
@@ -177,7 +178,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   nombre <- .export_filename(sid, "asignacion_encuestadores", "xlsx")
   meta <- .register_output_file(sid, "asignacion_encuestadores", path, original_name = nombre)
   list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, umps = n,
-       encuestadores = length(equipo), asignadas = length(explicita), hojas_registro = as.list(registro))
+       encuestadores = length(equipo), asignadas = length(explicita), hojas_registro = as.list(registro), variante = variante)
 }
 
 # Columna por su rótulo, con los nombres del Excel operativo viejo como alias.
@@ -329,7 +330,7 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
     e <- estados[[id]] %||% list(id_manzana = id, estado_declarado = "", fecha_salida = "", fecha_entrega = "", conteos = list())
     for (k in names(d$conteos)) e$conteos[[k]] <- d$conteos[[k]]
     estados[[id]] <- c(e[c("id_manzana", "estado_declarado", "fecha_salida", "fecha_entrega", "conteos")],
-                       d[c("efectivas", "fecha_visita", "se_reemplaza", "supervision")])
+                       d[c("efectivas", "fecha_visita", "se_reemplaza", "supervision", "total_reportado")])
   }
   # Un reemplazo con el mismo encuestador que su titular hereda: no se guarda aparte.
   for (id in names(propuesta)) {

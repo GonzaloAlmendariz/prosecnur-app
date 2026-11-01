@@ -60,10 +60,11 @@
     fv <- .hojas_ruta_envio_chr(e$fecha_visita)
     sr <- .hojas_ruta_envio_chr(e$se_reemplaza); if (!sr %in% .MTR_SI_NO) sr <- ""
     sup <- enteros(e$supervision); sup <- sup[intersect(names(sup), c("aprobadas", "no_aprobadas"))]
-    hay_registro <- length(efectivas$sexo) || length(efectivas$edad) || nzchar(fv) || nzchar(sr) || length(sup)
+    tr <- suppressWarnings(as.integer(unlist(e$total_reportado)[1])); if (length(tr) != 1L || is.na(tr) || tr < 0L) tr <- NA_integer_
+    hay_registro <- length(efectivas$sexo) || length(efectivas$edad) || nzchar(fv) || nzchar(sr) || length(sup) || !is.na(tr)
     if (!nzchar(est) && !nzchar(fs) && !nzchar(fe) && !length(conteos) && !hay_registro) return(NULL)
     list(id_manzana = id, estado_declarado = est, fecha_salida = fs, fecha_entrega = fe, conteos = conteos,
-         efectivas = efectivas, fecha_visita = fv, se_reemplaza = sr, supervision = sup)
+         efectivas = efectivas, fecha_visita = fv, se_reemplaza = sr, supervision = sup, total_reportado = tr)
   })
   Filter(Negate(is.null), out)
 }
@@ -93,11 +94,15 @@ collection_territorial_estado_get <- function(sid, campaign_id = NULL) {
          efectivas = list(sexo = if (length(d$efectivas$sexo)) d$efectivas$sexo else structure(list(), names = character(0)),
                           edad = if (length(d$efectivas$edad)) d$efectivas$edad else structure(list(), names = character(0))),
          fecha_visita = d$fecha_visita %||% "", se_reemplaza = d$se_reemplaza %||% "",
-         supervision = if (length(d$supervision)) d$supervision else structure(list(), names = character(0)))
+         supervision = if (length(d$supervision)) d$supervision else structure(list(), names = character(0)),
+         # Conveniencia (1A): el total que reporta coordinación, al lado del declarado por celda.
+         total_reportado = if (is.null(d$total_reportado) || is.na(d$total_reportado)) NULL else d$total_reportado)
   })
   for (i in seq_along(unidades)) if (is.na(unidades[[i]]$codigo)) unidades[[i]]$codigo <- ""
   list(ok = TRUE, campaign_id = asig$campaign_id, fase = asig$fase,
        fuente = "excel_asignacion", es_avance = FALSE,
+       # Variante del territorial con que se armó el Registro (conveniencia / ump_aleatoria).
+       variante = .mtr_variante(s),
        sample_fingerprint = asig$sample_fingerprint, stale = asig$stale, desactualizada = asig$desactualizada,
        leido_at = if (propia && length(declarado)) g$estados_at else NA_character_,
        declaradas = length(declarado),
