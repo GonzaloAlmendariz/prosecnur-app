@@ -70,3 +70,18 @@ test_that("con la revisión vencida el Planner rechaza y no escribe", {
                   error = identity)
   expect_equal(err$code, "E_PLANNER_DESACTUALIZADO")
 })
+
+test_that("sin plan en la config, el universo se deduce de las facultades del diseño", {
+  estado <- .cmrep_estado_hsvg()
+  estado$monitoreo_config$aulas_universitarias$plan <- NULL
+  sid <- .cmrep_sesion(estado)
+  expect_identical(.cmrep_bloque(session_get(sid))$universo$nivel, "universidad")
+})
+
+test_that("con el eje en nivel no se deduce el universo de los niveles", {
+  estado <- .cmrep_estado_hsvg()
+  estado$monitoreo_config$aulas_universitarias$plan <- NULL
+  estado$monitoreo_config$aulas_universitarias$eje_cuota <- "nivel"
+  sid <- .cmrep_sesion(estado)
+  expect_false(identical(.cmrep_bloque(session_get(sid))$universo$nivel, "universidad"))
+})

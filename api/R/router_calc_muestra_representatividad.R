@@ -25,6 +25,17 @@
   cfg <- s[["monitoreo_config"]] %||% list()
   aulas <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
   plan <- tryCatch(.monitoreo_aulas_df(aulas[["plan"]] %||% list(), "plan"), error = function(e) NULL)
+  # El plan ya no viaja en la config: sin él, el universo se deduce de las
+  # facultades con meta en el diseño (una = esa facultad; varias = universidad).
+  # Sólo con el eje «facultad»: en CCSS el campo `facultad` del contrato v1
+  # trae niveles y la deducción diría «universidad» de una sola facultad.
+  eje_facultad <- identical(.monitoreo_scalar(monitoreo_aulas_eje(aulas)$clave, "facultad"), "facultad")
+  if ((!is.data.frame(plan) || !nrow(plan)) && eje_facultad) {
+    fac <- vapply((aulas$design_targets %||% list())$facultades %||% list(),
+                  function(f) .monitoreo_scalar(f$facultad, ""), "")
+    fac <- fac[nzchar(fac)]
+    if (length(fac)) plan <- data.frame(faculty = fac, stringsAsFactors = FALSE)
+  }
   rep <- monitoreo_aulas_representatividad_declarada(aulas, plan = plan)
   if (!is.list(rep) || !length(rep$variables)) return(NULL)
   uni <- if (is.list(universo) && length(universo)) universo else rep$universo
