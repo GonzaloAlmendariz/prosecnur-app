@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { CheckCircle2, ChevronDown, Database, Eye, EyeOff, FolderSearch, RefreshCw, RotateCcw, Tags } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { CheckCircle2, Database, Eye, EyeOff, FolderSearch, RefreshCw } from "lucide-react";
 import {
   apiAnaliticaDataReview,
   apiAnaliticaDetectSecciones,
@@ -9,11 +9,11 @@ import {
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Switch } from "../../../components/Switch";
+import { PulsoTable } from "../../../components/PulsoTable";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana, type CifraPestana } from "../CifrasPestana";
-import { describirCobertura, padresConDummies } from "../coberturaVariable";
+import { padresConDummies } from "../coberturaVariable";
 import {
   PLAZO_DETECCION_MS,
   conPlazo,
@@ -23,13 +23,15 @@ import {
 } from "../estructuraDeSecciones";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { conNivel } from "../../../lib/navegacion/direccion";
 import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
 import { conteoExclusion } from "../variablesExcluidasModel";
 import "../variablesExcluidas.css";
 import "./DataReviewPane.css";
 import { textoPlano } from "../../../lib/textoPlano";
-import { AvisosEtiqueta } from "./revisionEtiquetas/AvisosEtiqueta";
-import { opcionesEquivalentes, problemasDeEtiqueta, type ProblemaEtiqueta } from "./revisionEtiquetas/detectorEtiquetas";
+import { opcionesEquivalentes, problemasDeEtiqueta } from "./revisionEtiquetas/detectorEtiquetas";
+import { columnasDeDatos } from "./datosColumnas";
+import { DatosInspector } from "./DatosInspector";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
   const tipo = (variable.tipo_xlsform ?? "").trim().toLowerCase();
@@ -167,7 +169,6 @@ export function buildDataReviewSectionGroups(
 
 export function DataReviewPane() {
   const [variables, setVariables] = useState<DataReviewVariable[]>([]);
-  const [openOptions, setOpenOptions] = useState<Set<string>>(new Set());
   // Lectura de la estructura del instrumento (P-M11). `silenciosa` es la que
   // corre sola al entrar: no bloquea el botón ni pinta «Detectando…», y su
   // resultado NO se escribe en la config (ver estructuraDeSecciones.ts).
@@ -267,13 +268,12 @@ export function DataReviewPane() {
     if (aEscribir) setSecciones(aEscribir);
   }
 
-  function toggleOptions(name: string) {
-    setOpenOptions((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  // La variable del inspector vive en la dirección (`?foco=`), no en un
+  // useState: un enlace abre la misma variable y «atrás» no la pierde.
+  const navigate = useNavigate();
+  const foco = new URLSearchParams(location.search).get("foco");
+  function abrirVariable(name: string | null) {
+    navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", name) }, { replace: true });
   }
 
   function setSectionVariablesIncluded(names: string[], include: boolean) {
@@ -294,6 +294,8 @@ export function DataReviewPane() {
     () => buildDataReviewSectionGroups(variables, seccionesDePantalla),
     [variables, seccionesDePantalla],
   );
+  const variableEnFoco = foco ? variables.find((variable) => variable.name === foco) ?? null : null;
+  const grupoEnFoco = variableEnFoco ? groups.find((group) => group.variables.includes(variableEnFoco)) ?? null : null;
   // Sobre el payload completo y no sobre el grupo: si un dummy cayera en otra
   // sección, su padre se leería como ausente y avisaría en falso.
   const padresRepartidos = useMemo(() => padresConDummies(variables), [variables]);
@@ -540,38 +542,58 @@ export function DataReviewPane() {
                 descripcion="Verifica la fuente activa en Carga o vuelve a preparar Analítica."
               />
             ) : null}
-            <div
-              className="pulso-data-review-section-list"
-              data-qa-geometry-group="analitica/data-review-sections"
-              data-qa-geometry-contract="intrinsic"
-            >
-              {groups.map((group) => (
-                <DataReviewSection
-                  key={group.id}
-                  group={group}
-                  excluded={excluded}
-                  padresRepartidos={padresRepartidos}
-                  baselineDraft={baselineDraft}
-                  draftVariableLabels={draftVariableLabels}
-                  draftValueLabels={draftValueLabels}
-                  openOptions={openOptions}
-                  onToggleOptions={toggleOptions}
-                  onToggleVariable={toggleVariableExcluida}
-                  onSetSectionIncluded={setSectionVariablesIncluded}
-                  onRenameSection={(id, name) => {
-                    materializarSecciones();
-                    renameSeccion(id, name);
-                  }}
-                  onToggleSectionHidden={(id, names, hide) => {
-                    materializarSecciones();
-                    toggleSeccionOculto(id);
-                    if (hide) setSectionVariablesIncluded(names, false);
-                  }}
-                  onSetVariableLabel={setDraftVariableLabel}
-                  onSetValueLabel={setDraftValueLabel}
-                  onResetVariable={resetDraftVariable}
-                />
-              ))}
+            {/* L28: la lista de secciones y el inspector de la variable en
+                `?foco=`. El inspector está siempre: sin variable elegida
+                contiene su propio vacío (C3) y el marco no salta (C2). */}
+            <div className="pulso-datos-mesa">
+              <div
+                className="pulso-data-review-section-list"
+                data-qa-geometry-group="analitica/data-review-sections"
+                data-qa-geometry-contract="intrinsic"
+              >
+                {groups.map((group) => (
+                  <DataReviewSection
+                    key={group.id}
+                    group={group}
+                    excluded={excluded}
+                    padresRepartidos={padresRepartidos}
+                    draftVariableLabels={draftVariableLabels}
+                    draftValueLabels={draftValueLabels}
+                    seleccionada={foco}
+                    onSeleccionar={abrirVariable}
+                    onToggleVariable={toggleVariableExcluida}
+                    onSetSectionIncluded={setSectionVariablesIncluded}
+                    onRenameSection={(id, name) => {
+                      materializarSecciones();
+                      renameSeccion(id, name);
+                    }}
+                    onToggleSectionHidden={(id, names, hide) => {
+                      materializarSecciones();
+                      toggleSeccionOculto(id);
+                      if (hide) setSectionVariablesIncluded(names, false);
+                    }}
+                    onSetVariableLabel={setDraftVariableLabel}
+                  />
+                ))}
+              </div>
+              <DatosInspector
+                variable={variableEnFoco}
+                bloqueada={grupoEnFoco ? grupoEnFoco.hidden && !grupoEnFoco.synthetic : false}
+                incluida={variableEnFoco ? !excluded.has(variableEnFoco.name) : false}
+                tieneDummies={variableEnFoco ? padresRepartidos.has(variableEnFoco.name) : false}
+                etiqueta={variableEnFoco ? draftVariableLabels[variableEnFoco.name] ?? dataReviewEffectiveVariableLabel(variableEnFoco) : ""}
+                etiquetaDeOpcion={(code) => {
+                  if (!variableEnFoco) return "";
+                  const option = variableEnFoco.opciones.find((o) => o.code === code);
+                  return draftValueLabels[variableEnFoco.name]?.[code] ?? (option ? dataReviewEffectiveOptionLabel(option) : "");
+                }}
+                editables={variableEnFoco ? dataReviewHasEditableOptions(variableEnFoco) : false}
+                hayCambios={variableEnFoco ? variableTieneCambios(variableEnFoco, draftVariableLabels, draftValueLabels, baselineDraft) : false}
+                onSetVariableLabel={setDraftVariableLabel}
+                onSetValueLabel={setDraftValueLabel}
+                onResetVariable={resetDraftVariable}
+                onCerrar={() => abrirVariable(null)}
+              />
             </div>
           </section>
         ) : null}
@@ -584,40 +606,45 @@ function DataReviewSection({
   group,
   excluded,
   padresRepartidos,
-  baselineDraft,
   draftVariableLabels,
   draftValueLabels,
-  openOptions,
-  onToggleOptions,
+  seleccionada,
+  onSeleccionar,
   onToggleVariable,
   onSetSectionIncluded,
   onRenameSection,
   onToggleSectionHidden,
   onSetVariableLabel,
-  onSetValueLabel,
-  onResetVariable,
 }: {
   group: DataReviewSectionGroup;
   excluded: Set<string>;
   padresRepartidos: Set<string>;
-  baselineDraft: DataReviewDraft;
   draftVariableLabels: Record<string, string>;
   draftValueLabels: Record<string, Record<string, string>>;
-  openOptions: Set<string>;
-  onToggleOptions: (name: string) => void;
+  seleccionada: string | null;
+  onSeleccionar: (name: string) => void;
   onToggleVariable: (name: string) => void;
   onSetSectionIncluded: (names: string[], include: boolean) => void;
   onRenameSection: (id: string, name: string) => void;
   onToggleSectionHidden: (id: string, names: string[], hide: boolean) => void;
   onSetVariableLabel: (name: string, label: string) => void;
-  onSetValueLabel: (name: string, code: string, label: string) => void;
-  onResetVariable: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(group.name);
   const includedInSection = group.variables.filter((variable) => !excluded.has(variable.name)).length;
   const allIncluded = includedInSection === group.variables.length;
   const variableNames = group.variables.map((variable) => variable.name);
+  const columnas = columnasDeDatos({
+    excluded,
+    bloqueada: group.hidden && !group.synthetic,
+    padresRepartidos,
+    etiquetaDe: (variable) => draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable),
+    detallesDe: (variable) => opcionesConDetalles(variable, draftValueLabels),
+    editables: dataReviewHasEditableOptions,
+    onToggleVariable,
+    onSetVariableLabel,
+    onAbrir: onSeleccionar,
+  });
 
   useEffect(() => {
     if (editing) setDraft(group.name);
@@ -690,188 +717,56 @@ function DataReviewSection({
         </div>
       </div>
 
-      {/* `intrinsic` y no `equal`: una variable con opciones editables monta
-          además su barra de «Etiquetas de opciones», así que el alto de cada
-          fila es función de los datos de esa variable. Son hermanas de la
-          misma variante con capacidad distinta, no un marco desparejo. */}
+      {/* L28: una fila de 36 px por variable (PulsoTable). La tabla mide
+          lo que declaran sus columnas y virtualiza sobre 80 filas. */}
       <div
         className="pulso-data-review-variable-list"
         data-qa-geometry-group="analitica/datos-variables"
         data-qa-geometry-contract="intrinsic"
       >
-        {group.variables.map((variable) => {
-          const included = !excluded.has(variable.name);
-          const draftLabel = draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
-          const baselineLabel = baselineDraft.variableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
-          const originalLabel = dataReviewEffectiveVariableLabel(variable);
-          const canEditOptions = dataReviewHasEditableOptions(variable);
-          const optionsOpen = openOptions.has(variable.name);
-          const variableLocked = group.hidden && !group.synthetic;
-          const isDummyOption = Boolean(variable.dummy_parent);
-          const dummyParent = variable.dummy_parent ?? "";
-          const dummyParentLabel = variable.dummy_parent_label?.trim() || dummyParent;
-          const dummyOptionLabel = variable.dummy_option_label?.trim() || draftLabel;
-          const cobertura = describirCobertura(variable, padresRepartidos.has(variable.name));
-          const typeCaption = isDummyOption
-            ? `dummy de ${dummyParent} · ${cobertura.texto}`
-            : `${variable.tipo_xlsform || "data"} · ${cobertura.texto}`;
-          const hasOptionDraftChanges = canEditOptions && variable.opciones.some((option) => {
-            const draftOption = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-            const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-            const originalOption = dataReviewEffectiveOptionLabel(option);
-            return draftOption !== baselineOption || baselineOption !== originalOption;
-          });
-          const hasEdits = draftLabel !== baselineLabel || baselineLabel !== originalLabel || Boolean(hasOptionDraftChanges);
-          // G18: detalles de redacción de las opciones, contados también con el panel cerrado para que no se escondan.
-          const etiquetaOpcion = (option: (typeof variable.opciones)[number]) =>
-            draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-          const equivalentes = canEditOptions
-            ? opcionesEquivalentes(variable.opciones.map((o) => ({ code: o.code, label: etiquetaOpcion(o) })))
-            : new Map<string, ProblemaEtiqueta>();
-          const conDetalles = canEditOptions
-            ? variable.opciones.filter((o) => problemasDeEtiqueta(etiquetaOpcion(o), { esOpcion: true }).length > 0 || equivalentes.has(o.code)).length
-            : 0;
-          return (
-            <div
-              key={variable.name}
-              className={`pulso-data-review-card${included ? "" : " is-excluded"}${variableLocked ? " is-section-hidden" : ""}`}
-            >
-              <div className="pulso-data-review-row">
-                <label className="pulso-data-review-include">
-                  <span>{variableLocked ? "Oculta" : "Incluir"}</span>
-                  <Switch
-                    checked={variableLocked ? false : included}
-                    disabled={variableLocked}
-                    ariaLabel={`Incluir ${variable.name}`}
-                    className="analitica-interruptor"
-                    onToggle={() => onToggleVariable(variable.name)}
-                  />
-                </label>
-                <div className="pulso-data-review-variable-copy">
-                  <code className="pulso-data-review-variable-code">
-                    {variable.name}
-                  </code>
-                  {isDummyOption ? (
-                    <span
-                      className="pulso-data-review-dummy-badge"
-                      title={`Opción de «${dummyParentLabel}»`}
-                    >
-                      opción dummy
-                    </span>
-                  ) : null}
-                  {cobertura.aviso ? (
-                    <span
-                      className="pulso-data-review-cobertura-badge"
-                      data-estado={cobertura.estado}
-                      title={cobertura.aviso.detalle}
-                    >
-                      {cobertura.aviso.etiqueta}
-                    </span>
-                  ) : null}
-                  <div className="pulso-data-review-variable-meta">
-                    {typeCaption}
-                  </div>
-                  {isDummyOption ? (
-                    <div
-                      className="pulso-data-review-dummy-parent"
-                      title={dummyParentLabel}
-                    >
-                      Pertenece a <code>{dummyParent}</code> · {dummyOptionLabel}
-                    </div>
-                  ) : null}
-                </div>
-                <label className="pulso-data-review-label">
-                  <span>Etiqueta de pregunta</span>
-                  <input
-                    type="text"
-                    value={draftLabel}
-                    onChange={(e) => onSetVariableLabel(variable.name, e.target.value)}
-                    className={`pulso-data-review-input${draftLabel.trim() ? "" : " is-empty"}`}
-                    aria-label={`Etiqueta de ${variable.name}`}
-                  />
-                  <AvisosEtiqueta problemas={problemasDeEtiqueta(draftLabel)} onAplicar={(t) => onSetVariableLabel(variable.name, t)} />
-                </label>
-                {/* «Restaurar» solo cuando hay algo que restaurar: un botón
-                    deshabilitado repetido en cada fila era ruido (P-M2). El
-                    hueco conserva el ancho para que la etiqueta no salte. */}
-                <span className="pulso-data-review-restore-slot">
-                  {hasEdits ? (
-                    <PulsoButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onResetVariable(variable.name)}
-                      aria-label={`Restaurar etiquetas originales de ${variable.name}`}
-                      title="Restaurar las etiquetas originales de esta variable"
-                    >
-                      <RotateCcw size={12} aria-hidden="true" />
-                      Restaurar
-                    </PulsoButton>
-                  ) : null}
-                </span>
-              </div>
-
-              {canEditOptions ? (
-                <div className="pulso-data-review-options">
-                  <button
-                    type="button"
-                    className="pulso-data-review-options-toggle"
-                    aria-expanded={optionsOpen}
-                    onClick={() => onToggleOptions(variable.name)}
-                  >
-                    <span className="pulso-data-review-options-title">
-                      <Tags size={14} />
-                      Etiquetas de opciones
-                    </span>
-                    <span className="pulso-data-review-options-summary">
-                      {formatoConteo(variable.opciones.length)} código{variable.opciones.length === 1 ? "" : "s"}
-                      {conDetalles > 0 ? ` · ${formatoConteo(conDetalles)} con detalles de redacción` : ""}
-                    </span>
-                    <ChevronDown size={15} className="pulso-data-review-options-chevron" />
-                  </button>
-                  {optionsOpen ? (
-                    <div className="pulso-data-review-options-panel">
-                      <div className="pulso-data-review-option-head">
-                        <span>Código</span>
-                        <span>Etiqueta editable</span>
-                        <span>Conteo</span>
-                      </div>
-                      <div className="pulso-data-review-option-list">
-                        {variable.opciones.map((option) => {
-                          const optionDraft = etiquetaOpcion(option);
-                          const avisos = [...problemasDeEtiqueta(optionDraft, { esOpcion: true }), ...(equivalentes.get(option.code) ? [equivalentes.get(option.code)!] : [])];
-                          return (
-                            <div
-                              key={`${variable.name}-${option.code}`}
-                              className="pulso-data-review-option-row"
-                            >
-                              <code className="pulso-data-review-option-code">
-                                {option.code}
-                              </code>
-                              <input
-                                type="text"
-                                value={optionDraft}
-                                onChange={(e) => onSetValueLabel(variable.name, option.code, e.target.value)}
-                                className={`pulso-data-review-input${optionDraft.trim() ? "" : " is-empty"}`}
-                                aria-label={`Etiqueta de ${variable.name} código ${option.code}`}
-                              />
-                              <span className="pulso-data-review-option-count">
-                                n={formatoConteo(option.count)}
-                              </span>
-                              <AvisosEtiqueta problemas={avisos} onAplicar={(t) => onSetValueLabel(variable.name, option.code, t)} />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+        <PulsoTable
+          columnas={columnas}
+          filas={group.variables}
+          idDeFila={(variable) => variable.name}
+          ariaLabel={`Variables de ${textoPlano(group.name)}`}
+          seleccionada={seleccionada}
+          onSeleccionar={onSeleccionar}
+          altoMaximo={36 * 20 + 32}
+        />
       </div>
     </section>
   );
+}
+
+/** Opciones con detalles de redacción (G18), contadas sin abrir el inspector. */
+function opcionesConDetalles(variable: DataReviewVariable, draftValueLabels: Record<string, Record<string, string>>) {
+  if (!dataReviewHasEditableOptions(variable)) return 0;
+  const etiqueta = (option: DataReviewVariable["opciones"][number]) =>
+    draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
+  const equivalentes = opcionesEquivalentes(variable.opciones.map((o) => ({ code: o.code, label: etiqueta(o) })));
+  return variable.opciones.filter(
+    (o) => problemasDeEtiqueta(etiqueta(o), { esOpcion: true }).length > 0 || equivalentes.has(o.code),
+  ).length;
+}
+
+/** La variable tiene algo que restaurar: borrador distinto del guardado, o guardado distinto del original. */
+function variableTieneCambios(
+  variable: DataReviewVariable,
+  draftVariableLabels: Record<string, string>,
+  draftValueLabels: Record<string, Record<string, string>>,
+  baselineDraft: DataReviewDraft,
+) {
+  const original = dataReviewEffectiveVariableLabel(variable);
+  const draft = draftVariableLabels[variable.name] ?? original;
+  const baseline = baselineDraft.variableLabels[variable.name] ?? original;
+  if (draft !== baseline || baseline !== original) return true;
+  if (!dataReviewHasEditableOptions(variable)) return false;
+  return variable.opciones.some((option) => {
+    const originalOption = dataReviewEffectiveOptionLabel(option);
+    const draftOption = draftValueLabels[variable.name]?.[option.code] ?? originalOption;
+    const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? originalOption;
+    return draftOption !== baselineOption || baselineOption !== originalOption;
+  });
 }
 
 /**

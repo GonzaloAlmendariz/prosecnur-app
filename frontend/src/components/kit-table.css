@@ -91,3 +91,15 @@
   text-align: center;
   white-space: normal;
 }
+
+/* La cabecera pegada no tapa la fila que asoma: al desplazar, el scroll encaja
+   al inicio de una fila y deja libre el alto de la cabecera (32 px). Sin esto,
+   la primera fila visible quedaba media escondida bajo los encabezados. */
+.pulso-table-scroll {
+  scroll-padding-top: 32px;
+  scroll-snap-type: y proximity;
+}
+
+.pulso-table tbody tr {
+  scroll-snap-align: start;
+}

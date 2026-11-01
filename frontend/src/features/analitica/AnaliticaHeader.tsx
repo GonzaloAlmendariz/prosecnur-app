@@ -216,7 +216,9 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
           active={fuenteActiva === "adaptados"}
           disabled={prepBusy || switching || !codificadaDisponible}
           bases={detalle?.codificada.bases ?? []}
-          description={codificadaDisponible ? "Codificación" : "Pendiente"}
+          // «Codificada Codificación» repetía la misma palabra (L28): con la
+          // fuente lista, el título basta; sólo se dice cuando está pendiente.
+          description={codificadaDisponible ? undefined : "Pendiente"}
           onSelect={selectFuente}
         />
       </div>
@@ -410,16 +412,17 @@ function SourceButton({
   icon: ReactNode;
   active: boolean;
   disabled: boolean;
-  description: string;
+  description?: string;
   bases: AnaliticaFuenteBase[];
   onSelect: (source: FuentePreferida) => Promise<void>;
 }) {
   const first = bases.find((b) => b.available) ?? bases[0];
+  const encabezado = description ? `${title} - ${description}` : title;
   const xls = first?.xlsform?.filename ?? "Formulario XLSForm no resuelto";
   const data = first?.data?.filename ?? "Base de datos no resuelta";
   const titleAttr = bases.length > 1
-    ? `${title} - ${description}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin formulario XLSForm"} + ${b.data?.filename ?? "sin base de datos"}`).join("\n")}`
-    : `${title} - ${description}\n${xls}\n${data}`;
+    ? `${encabezado}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin formulario XLSForm"} + ${b.data?.filename ?? "sin base de datos"}`).join("\n")}`
+    : `${encabezado}\n${xls}\n${data}`;
 
   return (
     <button
@@ -435,7 +438,7 @@ function SourceButton({
       </span>
       <span className="pulso-analitica-source-option-copy">
         <strong>{title}</strong>
-        <span>{description}</span>
+        {description ? <span>{description}</span> : null}
       </span>
       {active ? <CheckCircle2 size={13} /> : null}
     </button>

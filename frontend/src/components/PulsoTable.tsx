@@ -170,6 +170,9 @@ export function PulsoTable<T>({
                 tabIndex={onSeleccionar ? 0 : undefined}
                 onClick={onSeleccionar ? () => onSeleccionar(fila.id) : undefined}
                 onKeyDown={onSeleccionar ? (evento) => {
+                  // Sólo la fila misma: una celda puede llevar un input o un
+                  // interruptor, y su Espacio o su Enter son del control.
+                  if (evento.target !== evento.currentTarget) return;
                   if (evento.key === "Enter" || evento.key === " ") {
                     evento.preventDefault();
                     onSeleccionar(fila.id);

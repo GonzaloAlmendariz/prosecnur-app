@@ -47,3 +47,160 @@
     display: none;
   }
 }
+
+/* ── L28 · D-L28: Datos sobre PulsoTable ─────────────────────────────────
+ * Una fila de 36 px por variable y un inspector a la derecha con lo que no
+ * cabe en la fila (etiquetas de opciones, avisos, cobertura, Restaurar). El
+ * inspector está siempre: sin variable elegida contiene su propio vacío.
+ * Bajo 1200 px se apila arriba de la lista para que la tabla conserve su
+ * ancho declarado. */
+.pulso-datos-mesa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: var(--pulso-space-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.pulso-datos-inspector {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  max-height: calc(100dvh - 220px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+@media (max-width: 1200px) {
+  .pulso-datos-mesa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-datos-inspector {
+    position: static;
+    order: -1;
+    max-height: none;
+  }
+}
+
+.pulso-datos-inspector-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-datos-inspector-titulo {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-datos-inspector-titulo code {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-datos-inspector-titulo span,
+.pulso-datos-inspector-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-datos-inspector-nota[data-estado="vacia"],
+.pulso-datos-inspector-nota[data-estado="ausente"] {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-datos-inspector-bloque {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-datos-inspector-bloque + .pulso-datos-inspector-bloque {
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-datos-inspector-bloque h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-datos-inspector-campo {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+/* En el inspector la fila de opción no tiene sitio para tres columnas anchas. */
+.pulso-datos-inspector .pulso-data-review-option-row {
+  grid-template-columns: 64px minmax(0, 1fr) 56px;
+}
+
+/* Celdas: los controles caben en la fila de 36 px. */
+.pulso-data-review-variable-list .pulso-table td {
+  vertical-align: middle;
+}
+
+.pulso-datos-codigo {
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.pulso-datos-tipo,
+.pulso-datos-cobertura,
+.pulso-datos-sin-opciones {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-datos-cobertura[data-estado="vacia"],
+.pulso-datos-cobertura[data-estado="ausente"] {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-data-review-input.pulso-datos-etiqueta {
+  height: 28px;
+  padding-block: 4px;
+}
+
+.pulso-datos-opciones {
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pulso-datos-opciones[data-detalles="true"] {
+  border-color: var(--pulso-warn-border, var(--pulso-border));
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-datos-opciones:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 1px;
+}
