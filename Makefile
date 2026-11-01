@@ -425,12 +425,12 @@ package-local: build-if-stale
 	# Copia del template del .app (Info.plist + Contents/MacOS/Prosecnur bash).
 	bash scripts/copy-tree.sh Prosecnur.app "$(PACKAGE_STAGING)/Prosecnur.app" ".DS_Store"
 	# Fuentes embebidas dentro del .app (modo packaged usa Resources/Internals).
-	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api" ".DS_Store" "tests"
+	bash scripts/stage-api.sh api "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api"
 	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher" ".DS_Store"
 	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/desktop" ".DS_Store" "node_modules"
 	# Fuentes para el launcher Windows (.bat). Las espeja al lado del .bat.
 	cp Prosecnur.bat "$(PACKAGE_STAGING)/Prosecnur.bat"
-	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Internals/api" ".DS_Store" "tests"
+	bash scripts/stage-api.sh api "$(PACKAGE_STAGING)/Internals/api"
 	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Internals/launcher" ".DS_Store"
 	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Internals/desktop" ".DS_Store" "node_modules"
 	# Docs
