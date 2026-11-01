@@ -24,6 +24,33 @@ export function discrepanciaDeEtapa(cal: PlannerCalendario | null, activa: Monit
   return { fase, texto: `El Planner dice ${cal.etapa.valor}; Monitoreo sigue en ${ETAPA_DE_FASE[activa]}.` };
 }
 
+/**
+ * La ventana de campo que PROPONE el Planner frente al inicio de campo de
+ * Monitoreo (decisión de Meta B, 2026-11-01: el Planner propone, Monitoreo se
+ * alinea con un clic). Monitoreo sólo guarda el inicio de cada fase, así que se
+ * compara el inicio; el piloto se conserva tal cual al alinear.
+ */
+export type DiscrepanciaDeVentana = { inicio: string; pilotoDesde: string; texto: string } | null;
+
+function fechaCorta(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${Number(m[3])}/${m[2]}` : iso;
+}
+
+export function discrepanciaDeVentana(cal: PlannerCalendario | null): DiscrepanciaDeVentana {
+  if (!cal || cal.ventana.origen !== "declarado" || !cal.ventana.inicio) return null;
+  const monitoreo = cal.etapa.fuentes.monitoreo;
+  const actual = monitoreo?.campoDesde ?? "";
+  if (actual === cal.ventana.inicio) return null;
+  return {
+    inicio: cal.ventana.inicio,
+    pilotoDesde: monitoreo?.pilotoDesde ?? "",
+    texto: actual
+      ? `El Planner propone campo desde el ${fechaCorta(cal.ventana.inicio)}; Monitoreo lo cuenta desde el ${fechaCorta(actual)}.`
+      : `El Planner propone campo desde el ${fechaCorta(cal.ventana.inicio)}; Monitoreo no tiene inicio de campo.`,
+  };
+}
+
 export function usePlannerCalendario(): PlannerCalendario | null {
   const [cal, setCal] = useState<PlannerCalendario | null>(null);
   useEffect(() => {

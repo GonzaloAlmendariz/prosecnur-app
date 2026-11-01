@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { MonitoreoTerritorialPhase } from "../../../../../api/client";
 import type { OpcionDeFase } from "./fase";
-import { discrepanciaDeEtapa, usePlannerCalendario } from "./etapaDelPlanner";
+import { apiMonitoreoTerritorialConfig } from "../../../../../api/monitoreo";
+import { discrepanciaDeEtapa, discrepanciaDeVentana, usePlannerCalendario } from "./etapaDelPlanner";
 
 /**
  * `FASE ▾` en la barra del modo (A4): abre la lista de fases con lo que trae
@@ -24,7 +25,26 @@ export function SelectorDeFase({
   const listaId = useId();
   const activa = opciones.find((item) => item.activa) ?? opciones[0];
   // 2i: la etapa que declara el Planner; si discrepa, se ofrece alinear.
-  const discrepancia = discrepanciaDeEtapa(usePlannerCalendario(), activa?.fase);
+  const calendario = usePlannerCalendario();
+  const discrepancia = discrepanciaDeEtapa(calendario, activa?.fase);
+  // La ventana que propone el Planner; alinearla cambia qué respuestas cuentan
+  // como campo, así que sólo con el clic. Se aplica al volver a actualizar.
+  const ventana = discrepanciaDeVentana(calendario);
+  const [ventanaAlineada, setVentanaAlineada] = useState("");
+  async function alinearVentana() {
+    if (!ventana) return;
+    try {
+      await apiMonitoreoTerritorialConfig({
+        phase_windows: {
+          pilot: { start_at: ventana.pilotoDesde },
+          field: { start_at: ventana.inicio },
+        },
+      } as never);
+      setVentanaAlineada("Ventana alineada: las cifras la usan al actualizar.");
+    } catch (e) {
+      setVentanaAlineada(`No se pudo alinear la ventana: ${(e as Error).message}`);
+    }
+  }
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -55,6 +75,19 @@ export function SelectorDeFase({
           onClick={() => onElegir(discrepancia.fase)}
         >
           {discrepancia.texto} <b>Alinear la fase</b>
+        </button>
+      ) : null}
+      {ventanaAlineada ? (
+        <span className="mon-ter-fase-alinear" role="status">{ventanaAlineada}</span>
+      ) : ventana ? (
+        <button
+          type="button"
+          className="mon-ter-fase-alinear"
+          title={`${ventana.texto} Alinear cambia qué respuestas cuentan como campo.`}
+          disabled={deshabilitado}
+          onClick={() => { void alinearVentana(); }}
+        >
+          {ventana.texto} <b>Alinear la ventana</b>
         </button>
       ) : null}
       <button
