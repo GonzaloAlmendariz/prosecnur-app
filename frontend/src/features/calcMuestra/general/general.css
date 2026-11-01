@@ -1023,3 +1023,23 @@
     max-width: 96px;
   }
 }
+
+/* Identidad del estudio leída del Planner (ADR 0122): no se edita aquí. */
+.cmg-ficha-identidad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.cmg-ficha-identidad > span {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.cmg-ficha-identidad-nota {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}

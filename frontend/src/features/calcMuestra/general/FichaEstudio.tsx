@@ -1,5 +1,8 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
+import { Link } from "react-router-dom";
+
 import { CambiarTipoEstudio } from "./CambiarTipoEstudio";
+import { RUTA_IDENTIDAD_DEL_PLANNER, usePlannerIdentidad } from "../usePlannerIdentidad";
 import "./general.css";
 
 type CampoContexto = "cliente" | "tipo_cliente" | "descripcion_libre";
@@ -14,7 +17,6 @@ export function FichaEstudio({
   variante,
   estudio,
   workspace,
-  onTitulo,
   onContexto,
   onWorkspace,
   onCambiarTipo,
@@ -22,13 +24,16 @@ export function FichaEstudio({
   variante: "general" | "acreditacion";
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
-  onTitulo: (titulo: string) => void;
+  /** Ya no se usa: el título lo declara el Planner (ADR 0122). */
+  onTitulo?: (titulo: string) => void;
   onContexto: (campo: CampoContexto, valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   /** Volver a elegir el tipo de estudio (antes era un atajo en la barra del módulo). */
   onCambiarTipo?: () => void;
 }) {
   const acreditacion = variante === "acreditacion";
+  // Nombre y cliente los declara el Planner; aquí se leen (ADR 0122).
+  const identidad = usePlannerIdentidad();
   return (
     <section className="cmv2-panel cmv2-basics" aria-labelledby="cmg-ficha-estudio-titulo">
       <div className="cmv2-panel-head">
@@ -39,18 +44,18 @@ export function FichaEstudio({
         {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
       </div>
       <div className="cmv2-form-grid">
-        <label>
+        <div className="cmg-ficha-identidad">
           <span>Título</span>
-          <input value={estudio.titulo} placeholder="Nombre del estudio o propuesta" onChange={(e) => onTitulo(e.currentTarget.value)} />
-        </label>
-        <label>
+          <b>{identidad?.nombre || "sin título"}</b>
+        </div>
+        <div className="cmg-ficha-identidad">
           <span>{acreditacion ? "Institución" : "Cliente"}</span>
-          <input
-            value={estudio.contexto.cliente}
-            placeholder={acreditacion ? "Universidad o facultad" : "Institución o área solicitante"}
-            onChange={(e) => onContexto("cliente", e.currentTarget.value)}
-          />
-        </label>
+          <b>{identidad?.cliente || "sin declarar"}</b>
+        </div>
+        <p className="cmg-ficha-identidad-nota">
+          Nombre y {acreditacion ? "institución" : "cliente"} se declaran una vez en el Planner.{" "}
+          <Link to={RUTA_IDENTIDAD_DEL_PLANNER}>Editar en el Planner</Link>
+        </p>
         <label>
           <span>{acreditacion ? "Fuente de los marcos" : "Fuente del marco"}</span>
           <input

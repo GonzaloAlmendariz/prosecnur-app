@@ -104,7 +104,6 @@ import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
 import { avisoMarcoConstruido } from "./universidad/marco/avisoMarcoConstruido";
 import { avisoTrasCalcular } from "./universidad/calculo/avisoCalculo";
 import {
-  defaultTitleFor,
   filtrosLegacyPayload,
   hasUsefulResult,
   normalizeUniversityAulasConfig,
@@ -1089,8 +1088,8 @@ export default function CalcMuestraPage() {
         ? universityWorkspace(nextWorkspace, componentes[0], componentes[1])
         : nextWorkspace;
       replaceEstudio({
+        // El título lo declara el Planner (ADR 0122): Cálculo ya no lo siembra.
         ...res.estudio,
-        titulo: defaultTitleFor(mode),
         componentes,
         workspace: finalWorkspace,
       });

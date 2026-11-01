@@ -12,6 +12,7 @@
  */
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import type { CalcMuestraEstudio } from "../../../../api/calcMuestra";
@@ -68,12 +69,8 @@ describe("Ver otros tipos de estudio vive arriba en la ficha", () => {
   it("la ficha lo ofrece sólo si recibe el handler, en su cabecera", () => {
     const estudio = DEFAULT_CALC_MUESTRA_ESTUDIO as CalcMuestraEstudio;
     const ws = estudio.workspace ?? ({} as never);
-    const con = renderToStaticMarkup(
-      <FichaEstudio variante="general" estudio={estudio} workspace={ws} onTitulo={noop} onContexto={noop} onWorkspace={noop} onCambiarTipo={noop} />,
-    );
-    const sin = renderToStaticMarkup(
-      <FichaEstudio variante="general" estudio={estudio} workspace={ws} onTitulo={noop} onContexto={noop} onWorkspace={noop} />,
-    );
+    const con = renderToStaticMarkup(<MemoryRouter><FichaEstudio variante="general" estudio={estudio} workspace={ws} onTitulo={noop} onContexto={noop} onWorkspace={noop} onCambiarTipo={noop} /></MemoryRouter>);
+    const sin = renderToStaticMarkup(<MemoryRouter><FichaEstudio variante="general" estudio={estudio} workspace={ws} onTitulo={noop} onContexto={noop} onWorkspace={noop} /></MemoryRouter>);
     expect(con).toContain("Ver otros tipos de estudio");
     expect(sin).not.toContain("Ver otros tipos de estudio");
     // Arriba: el botón va antes del primer campo de la ficha, no al final.

@@ -65,7 +65,8 @@ test_that("distribuir_proporcional_pesos reparte por mayor resto en ambos modos 
 
 test_that("calc_muestra_normalize_estudio aplica defaults a entrada vacía", {
   e <- calc_muestra_normalize_estudio(list())
-  expect_equal(e$titulo, "Estudio sin título")
+  # El nombre del estudio lo declara el Planner (ADR 0122): Cálculo no lo siembra.
+  expect_equal(e$titulo, "")
   expect_equal(e$modo_trabajo, "estimacion_preliminar")
   expect_equal(e$macro_familia, "estudio_propio")
   expect_false(e$modo_sensible)

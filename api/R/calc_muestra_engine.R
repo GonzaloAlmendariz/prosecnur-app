@@ -238,7 +238,8 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
   list(
     version          = .CM_VERSION,
     id               = calc_str(estudio$id, ""),
-    titulo           = calc_str(estudio$titulo, "Estudio sin título"),
+    # Sin título por defecto: el nombre del estudio lo declara el Planner (ADR 0122).
+    titulo           = calc_str(estudio$titulo, ""),
     fecha_creacion   = calc_str(estudio$fecha_creacion,
                                 format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")),
     modo_trabajo     = calc_enum(estudio$modo_trabajo, .CM_MODOS_TRABAJO,

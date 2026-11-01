@@ -1367,7 +1367,8 @@ mount_calc_muestra <- function(pr) {
         sid    = sid,
         kind   = "calc_muestra_reporte",
         func   = calc_muestra_render_job,
-        args   = list(estudio = estudio, formato = formato,
+        # El nombre y el cliente del reporte salen del Planner (ADR 0122).
+        args   = list(estudio = .cm_estudio_con_identidad(estudio, s), formato = formato,
                       tasas_facultad = tasas_fac,
                       general = calc_muestra_general_resumen(s$calc_muestra_general)),
         result_filename = filename,
