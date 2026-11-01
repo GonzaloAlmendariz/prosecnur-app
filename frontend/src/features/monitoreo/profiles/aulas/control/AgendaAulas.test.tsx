@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
@@ -15,8 +16,10 @@ const dash = {
 
 describe("AgendaAulas", () => {
   it("declara su marca y superficies, y apila dos citas a la misma hora", () => {
-    const html = renderToStaticMarkup(<AgendaAulas dashboard={dash} cargando={false} vacioSinTablero={<p>x</p>} hoy="2026-10-01" />);
+    const html = renderToStaticMarkup(<MemoryRouter><AgendaAulas dashboard={dash} cargando={false} vacioSinTablero={<p>x</p>} hoy="2026-10-01" /></MemoryRouter>);
     expect(html).toContain('data-audit-ready="monitoreo-aulas-control-agenda"');
+    // P2: el código abre la ficha del curso-horario.
+    expect(html).toContain("pestana=partes&amp;panel=codigo&amp;foco=aula");
     expect(html).toContain('data-qa-geometry-group="aulas-agenda"');
     expect(html).toContain("Sin cita");
     expect(html).toContain("Todos los titulares tienen cita.");

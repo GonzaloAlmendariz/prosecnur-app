@@ -2,7 +2,10 @@ import { memo, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
+import { Link } from "react-router-dom";
+
 import { ChipHora, ChipLugar } from "../AulasSistemaPabellon";
+import { hrefDeFichaDeAula } from "../navegacion/direccionAulas";
 import type { Vacio } from "../avance/porFacultadModelo";
 import {
   construirAgenda,
@@ -96,7 +99,7 @@ function ListaPendiente({ titulo, tono, filas, vacio }: { titulo: string; tono: 
           {filas.map((f) => (
             <li key={f.codigo}>
               <span className="aulas-ag-linea">
-                <b>{f.codigo}</b>
+                <Link className="aulas-ag-ficha" to={hrefDeFichaDeAula(f.codigo)} title={`Abrir la ficha de ${f.codigo}`}><b>{f.codigo}</b></Link>
                 {f.lugar ? <ChipLugar lugar={f.lugar} /> : null}
                 <span className="aulas-ag-tenue">{f.elegibles} elegibles</span>
               </span>
@@ -209,7 +212,7 @@ function TarjetaDeCita({ cita, top }: { cita: Cita; top: number }) {
   return (
     <li className="aulas-ag-cita" data-estado={cita.estado} style={{ top, height: ALTO_TARJETA }} data-qa-geometry-member={cita.codigo}>
       <span className="aulas-ag-linea">
-        <b>{cita.codigo}</b>
+        <Link className="aulas-ag-ficha" to={hrefDeFichaDeAula(cita.codigo)} title={`Abrir la ficha de ${cita.codigo}`}><b>{cita.codigo}</b></Link>
         <span className="aulas-ag-tenue aulas-ag-papel">{cita.papel}</span>
       </span>
       {/* Hora y lugar en su propia línea: junto al código, a 1024 la hora se

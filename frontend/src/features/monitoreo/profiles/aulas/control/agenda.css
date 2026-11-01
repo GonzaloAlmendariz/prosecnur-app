@@ -416,3 +416,14 @@
     overflow: visible;
   }
 }
+
+/* P2: el código abre la ficha del curso-horario (inspector). */
+.aulas-ag-ficha {
+  color: inherit;
+  text-decoration: none;
+}
+
+.aulas-ag-ficha:hover b,
+.aulas-ag-ficha:focus-visible b {
+  text-decoration: underline;
+}
