@@ -92,6 +92,7 @@ import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
 import { useDireccionAulas } from "./navegacion/useDireccionAulas";
 import { esPestanaPropia, FICHA_DE_AULA, HREF_HERRAMIENTAS_DE_SALIDAS, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
 import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
+import { AvisoDeLecturaFallida } from "./estados/AvisoDeLecturaFallida";
 import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
@@ -2332,7 +2333,7 @@ export default function AulasMonitoreoPage() {
             id={pestanaActiva ? `aulas-mon-panel-${pestanaActiva}` : undefined}
             aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
           >
-            {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
+            {error ? <AvisoDeLecturaFallida error={error} corte={state?.synced_at ?? ""} onReintentar={() => { void loadView(seccionActiva, true); }} /> : null}
             {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
                 de pasar no puede vivir dentro de lo que la acción remonta. */}
             {aviso.texto ? (

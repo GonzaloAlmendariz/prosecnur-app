@@ -1,0 +1,20 @@
+/* S3 · Falló: el error con su código y lo que sigue valiendo. */
+.aulas-s3 {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-s3 > span {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aulas-s3-codigo,
+.aulas-s3-vigente {
+  font-size: var(--pulso-type-caption-size);
+  opacity: 0.85;
+}
