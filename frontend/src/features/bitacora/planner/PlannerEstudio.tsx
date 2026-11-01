@@ -15,6 +15,7 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import { PlannerAvisos, PlannerCabecera } from "./PlannerCabecera";
+import { altoSinScrollPropio } from "./PlannerCodigos";
 import { DETALLE_PERFIL, ETIQUETA_DISENO, ETIQUETA_PERFIL, modosDelPerfil } from "./plannerCopia";
 import type { ControlPlanner } from "./usePlanner";
 
@@ -312,7 +313,8 @@ function PlannerInsumos({ control }: { control: ControlPlanner }) {
         columnas={columnasInsumos((id) => setInsumos(insumos.filter((x) => x.id !== id)))}
         filas={insumos}
         idDeFila={(k) => k.id}
-        densidad="compacta"
+        densidad="comoda"
+        altoMaximo={altoSinScrollPropio(insumos.length)}
         vacio={<p className="planner-vacio">Este estudio todavía no registra insumos del cliente.</p>}
       />
       <div className="planner-form planner-form--fila" aria-label="Agregar insumo">

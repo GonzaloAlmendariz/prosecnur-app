@@ -4,20 +4,28 @@
 
 import { useEffect, useState } from "react";
 
-import type { PlannerCodigo, PlannerCodigos as Catalogos } from "../../../api/planner";
-import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import type { PlannerCodigo, PlannerCodigos as Catalogos, PlannerGrupoCodigo } from "../../../api/planner";
+import { PULSO_TABLE_ALTO_FILA, PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { Plus, Undo2 } from "../../../vendor/lucide-react";
 import { PlannerCabecera } from "./PlannerCabecera";
 import type { ControlPlanner } from "./usePlanner";
 
-const GRUPO: Record<PlannerCodigo["grupo"], string> = {
-  efectiva: "Efectiva",
-  no_aplicada: "No aplicada",
-  manzana: "Unidad no elegible",
-  otro: "Otro",
-};
-
 type Catalogo = "resultado" | "status_barrido";
+
+// Un catálogo es corto (40 códigos a lo más): la tabla no lleva scroll propio
+// y el panel es el único dueño del desplazamiento (No Scroll Jail). Con el tope
+// por defecto de PulsoTable (520 px) los 14 Status del RMS desbordaban 16 px y
+// la tabla quedaba con un scroll de casi nada que tapaba la primera fila.
+export function altoSinScrollPropio(filas: number) {
+  return 32 + PULSO_TABLE_ALTO_FILA.comoda * Math.max(filas, 1) + 4;
+}
+
+// Cada catálogo con su vocabulario: los grupos de la hoja de ruteo y las cinco
+// clases del Status del RMS. Un código no cambia de grupo (se retira).
+const GRUPOS: Record<Catalogo, Partial<Record<PlannerGrupoCodigo, string>>> = {
+  resultado: { efectiva: "Efectiva", no_aplicada: "No aplicada", manzana: "Unidad no elegible", otro: "Otro" },
+  status_barrido: { efectiva: "Efectiva", pendiente: "Pendiente", no_contacto: "No contacto", rechazo: "Rechazo", invalido: "Inválido" },
+};
 
 const COPIA: Record<Catalogo, { titulo: string; lead: string; vacio: string }> = {
   resultado: {
@@ -36,7 +44,7 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
   const { estado, declarar, guardando } = control;
   const catalogo: Catalogo = pestana === "barrido" ? "status_barrido" : "resultado";
   const [borrador, setBorrador] = useState<Catalogos | null>(null);
-  const [nuevo, setNuevo] = useState<{ codigo: string; rotulo: string; grupo: PlannerCodigo["grupo"] }>({ codigo: "", rotulo: "", grupo: "no_aplicada" });
+  const [nuevo, setNuevo] = useState<{ codigo: string; rotulo: string; grupo: PlannerGrupoCodigo }>({ codigo: "", rotulo: "", grupo: "no_aplicada" });
   useEffect(() => {
     if (estado) setBorrador(estado.planner.codigos);
   }, [estado]);
@@ -51,10 +59,14 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
   const editar = (codigo: string, cambio: Partial<PlannerCodigo>) => {
     setBorrador({ ...borrador, [catalogo]: filas.map((k) => (k.codigo === codigo ? { ...k, ...cambio } : k)) });
   };
+  const barrido = catalogo === "status_barrido";
   const columnas: PulsoTableColumna<PlannerCodigo>[] = [
-    { id: "codigo", encabezado: "Código", ancho: 80, tipo: "cifra", celda: (k) => <span className="planner-codigo">{k.codigo}</span>, valor: (k) => k.codigo },
+    // Los de la visita son números (a la derecha); los del barrido, texto.
+    barrido
+      ? { id: "codigo", encabezado: "Código", ancho: 180, celda: (k) => <span className="planner-codigo" title={k.codigo}>{k.codigo}</span>, valor: (k) => k.codigo }
+      : { id: "codigo", encabezado: "Código", ancho: 80, tipo: "cifra", celda: (k) => <span className="planner-codigo">{k.codigo}</span>, valor: (k) => k.codigo },
     {
-      id: "rotulo", encabezado: "Rótulo", ancho: 290, valor: (k) => k.rotulo, celda: (k) => (
+      id: "rotulo", encabezado: "Rótulo", ancho: barrido ? 230 : 290, valor: (k) => k.rotulo, celda: (k) => (
         <input
           className="planner-celda-input"
           aria-label={`Rótulo del código ${k.codigo}`}
@@ -65,9 +77,9 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
         />
       ),
     },
-    { id: "grupo", encabezado: "Grupo", ancho: 160, celda: (k) => GRUPO[k.grupo], valor: (k) => k.grupo },
+    { id: "grupo", encabezado: barrido ? "Clase" : "Grupo", ancho: barrido ? 120 : 160, celda: (k) => GRUPOS[catalogo][k.grupo] ?? k.grupo, valor: (k) => k.grupo },
     {
-      id: "estado", encabezado: "Estado", ancho: 170, celda: (k) => (
+      id: "estado", encabezado: "Estado", ancho: barrido ? 150 : 170, celda: (k) => (
         k.retirado_en_version != null
           ? `Retirado en la versión ${k.retirado_en_version}`
           : k.retirar ? "Se retira al guardar" : "Vigente"
@@ -87,10 +99,12 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
       ),
     },
   ];
+  // El grupo elegido en una pestaña puede no existir en la otra.
+  const grupoNuevo = (GRUPOS[catalogo][nuevo.grupo] ? nuevo.grupo : Object.keys(GRUPOS[catalogo])[0]) as PlannerGrupoCodigo;
   const agregar = () => {
     const codigo = nuevo.codigo.trim();
     if (!codigo || repetido) return;
-    setBorrador({ ...borrador, [catalogo]: [...filas, { codigo, rotulo: nuevo.rotulo.trim(), grupo: nuevo.grupo, retirado_en_version: null }] });
+    setBorrador({ ...borrador, [catalogo]: [...filas, { codigo, rotulo: nuevo.rotulo.trim(), grupo: grupoNuevo, retirado_en_version: null }] });
     setNuevo({ codigo: "", rotulo: "", grupo: nuevo.grupo });
   };
 
@@ -121,21 +135,22 @@ export function PlannerCodigos({ control, pestana }: { control: ControlPlanner; 
         filas={filas}
         idDeFila={(k) => k.codigo}
         densidad="comoda"
+        altoMaximo={altoSinScrollPropio(filas.length)}
         vacio={<p className="planner-vacio">{copia.vacio}</p>}
       />
       <div className="planner-form planner-form--fila" aria-label="Agregar código">
         <label className="planner-campo planner-campo--corto">
           <span>Código</span>
-          <input value={nuevo.codigo} maxLength={8} onChange={(e) => setNuevo({ ...nuevo, codigo: e.target.value })} />
+          <input value={nuevo.codigo} maxLength={catalogo === "status_barrido" ? 40 : 8} onChange={(e) => setNuevo({ ...nuevo, codigo: e.target.value })} />
         </label>
         <label className="planner-campo planner-campo--ancho">
           <span>Rótulo</span>
           <input value={nuevo.rotulo} maxLength={60} onChange={(e) => setNuevo({ ...nuevo, rotulo: e.target.value })} />
         </label>
         <label className="planner-campo">
-          <span>Grupo</span>
-          <select value={nuevo.grupo} onChange={(e) => setNuevo({ ...nuevo, grupo: e.target.value as PlannerCodigo["grupo"] })}>
-            {Object.entries(GRUPO).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <span>{catalogo === "status_barrido" ? "Clase" : "Grupo"}</span>
+          <select value={grupoNuevo} onChange={(e) => setNuevo({ ...nuevo, grupo: e.target.value as PlannerGrupoCodigo })}>
+            {Object.entries(GRUPOS[catalogo]).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
         <button type="button" className="plan-button" disabled={!nuevo.codigo.trim() || repetido} onClick={agregar}>

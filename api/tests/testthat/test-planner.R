@@ -388,3 +388,53 @@ test_that("un insumo declarado guarda sólo el file_id; el nombre se resuelve al
   # Registrar no mueve ni toca el archivo.
   expect_equal(session_get(sid)$files$`f-marco`$original_name, "BD estudiantes 2026-2.xlsx")
 })
+
+# --- Códigos: se siembran de Material y se leen del Planner (ADR 0122) -----------
+
+test_that("territorial siembra el catálogo de la visita de Material: 1 a 8 con 8 efectiva, y 99", {
+  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE))))
+  antes <- .pl_huella(sid)
+  cod <- .planner_codigos(session_get(sid))
+  expect_identical(.pl_huella(sid), antes)
+  expect_equal(cod$origen, "proyectado")
+  codigos <- vapply(cod$resultado, `[[`, "", "codigo")
+  expect_equal(codigos, c(as.character(1:8), "99"))
+  grupos <- stats::setNames(vapply(cod$resultado, `[[`, "", "grupo"), codigos)
+  expect_equal(unname(grupos["8"]), "efectiva")
+  expect_equal(unname(grupos["99"]), "manzana")
+  expect_length(cod$status_barrido, 0L)
+})
+
+test_that("telefónico siembra los 14 Status del RMS con su clase", {
+  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "telefonico", route_selected = TRUE))))
+  st <- .planner_codigos(session_get(sid))$status_barrido
+  expect_length(st, 14L)
+  expect_equal(st[[1]]$codigo, "no_barrido")
+  expect_equal(st[[2]]$grupo, "efectiva")
+  expect_true(all(vapply(st, `[[`, "", "grupo") %in% PLANNER_CLASES_BARRIDO))
+  # Ortografía literal del Sheets del RMS.
+  expect_true("Número Incorrecto" %in% vapply(st, `[[`, "", "rotulo"))
+})
+
+test_that("si la campaña telefónica personalizó sus Status, se siembran ésos", {
+  sid <- .pl_sesion(list(material_telefonica_config = list(status = list(
+    list(codigo = "efectivo", status = "Efectivo", clase = "efectiva"),
+    list(codigo = "no_contesta", status = "No contesta", clase = "no_contacto")))))
+  st <- .planner_codigos(session_get(sid))$status_barrido
+  expect_equal(vapply(st, `[[`, "", "codigo"), c("efectivo", "no_contesta"))
+})
+
+test_that("los rótulos del núcleo se editan (K1); el grupo o la clase no", {
+  sid <- .pl_sesion(list(monitoreo_config = list(monitoreo_profile = list(family = "territorial", route_selected = TRUE))))
+  cod <- .planner_codigos(session_get(sid))
+  base <- list(resultado = cod$resultado, status_barrido = list(list(codigo = "efectivo", rotulo = "Efectivo", grupo = "efectiva")))
+  .planner_declarar(sid, "codigos", base, 0L)
+  editado <- base
+  editado$resultado[[8]]$rotulo <- "Encuesta completa"
+  .planner_declarar(sid, "codigos", editado, 1L)
+  expect_equal(.planner_codigos(session_get(sid))$resultado[[8]]$rotulo, "Encuesta completa")
+  expect_equal(.planner_codigos(session_get(sid))$origen, "declarado")
+  reclase <- editado
+  reclase$status_barrido[[1]]$grupo <- "pendiente"
+  expect_equal(tryCatch(.planner_declarar(sid, "codigos", reclase, 2L), error = identity)$code, "E_PLANNER_INVALIDO")
+})

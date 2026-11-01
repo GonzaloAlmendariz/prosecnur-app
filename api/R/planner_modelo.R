@@ -32,7 +32,11 @@ PLANNER_SELECCION_AULAS <- c("conglomerados", "marco")
 PLANNER_DISENO <- c("calc-muestra", "hojas-ruta", "cliente")
 PLANNER_CANALES <- c("presencial", "telefono", "correo", "qr")
 PLANNER_ROLES <- c("encuestador", "aplicador", "supervisor", "operador")
+# Cada catálogo tiene su vocabulario de grupos: el de la visita es el de las
+# hojas de ruteo y consolidados de Material (D1); el del barrido, las cinco
+# clases del Status del RMS (collection_barrido_plantilla.R, .MBP_CLASES).
 PLANNER_GRUPOS_CODIGO <- c("efectiva", "no_aplicada", "manzana", "otro")
+PLANNER_CLASES_BARRIDO <- c("efectiva", "pendiente", "no_contacto", "rechazo", "invalido")
 PLANNER_TIPOS_INSUMO <- c("padron", "listado", "marco", "otro")
 PLANNER_MAX_POBLACIONES <- 12L
 PLANNER_MAX_PERSONAS <- 500L
@@ -145,8 +149,9 @@ PLANNER_MAX_INSUMOS <- 60L
   )
 }
 
-.planner_norm_codigo <- function(k) {
-  codigo <- .bit_texto(k$codigo, 8L)
+.planner_norm_codigo <- function(k, grupos = PLANNER_GRUPOS_CODIGO, defecto = "otro") {
+  # Los Status del barrido llevan códigos de texto («numero_incorrecto»).
+  codigo <- .bit_texto(k$codigo, 40L)
   if (!nzchar(codigo)) return(NULL)
   retirado <- suppressWarnings(as.integer(k$retirado_en_version %||% NA))
   if (!length(retirado)) retirado <- NA_integer_
@@ -154,14 +159,15 @@ PLANNER_MAX_INSUMOS <- 60L
   if (calc_bool(k$retirar, FALSE) && (is.na(retirado) || retirado <= 0L)) retirado <- .Machine$integer.max
   list(
     codigo = codigo,
-    rotulo = .bit_texto(k$rotulo, 60L),
-    grupo = calc_enum(k$grupo, PLANNER_GRUPOS_CODIGO, "otro"),
+    rotulo = .bit_texto(k$rotulo %||% k$status, 60L),
+    grupo = calc_enum(k$grupo %||% k$clase, grupos, defecto),
     retirado_en_version = if (!is.na(retirado) && retirado > 0L) retirado else NULL
   )
 }
 
-.planner_norm_catalogo <- function(x) {
-  out <- Filter(Negate(is.null), lapply(.planner_registros(x, PLANNER_MAX_CODIGOS), .planner_norm_codigo))
+.planner_norm_catalogo <- function(x, grupos = PLANNER_GRUPOS_CODIGO, defecto = "otro") {
+  out <- Filter(Negate(is.null), lapply(.planner_registros(x, PLANNER_MAX_CODIGOS), .planner_norm_codigo,
+                                        grupos = grupos, defecto = defecto))
   out[!duplicated(vapply(out, `[[`, "", "codigo"))]
 }
 
@@ -170,7 +176,7 @@ PLANNER_MAX_INSUMOS <- 60L
   list(
     version = calc_int(x$version, 1L, min = 1L),
     resultado = .planner_norm_catalogo(x$resultado),
-    status_barrido = .planner_norm_catalogo(x$status_barrido)
+    status_barrido = .planner_norm_catalogo(x$status_barrido, PLANNER_CLASES_BARRIDO, "pendiente")
   )
 }
 

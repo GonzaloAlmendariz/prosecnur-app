@@ -37,6 +37,13 @@ mount_planner <- function(pr) {
       .planner_calendario(session_get(session_header(req)))
     })) |>
 
+    # Los catálogos de códigos (resultado de la visita y status del barrido)
+    # para Material y Monitoreo. Lectura pura.
+    plumber::pr_get("/api/planner/codigos",
+                    wrap_endpoint(function(req, res, ...) {
+      .planner_codigos(session_get(session_header(req)))
+    })) |>
+
     plumber::pr_put("/api/planner/<seccion>",
                     wrap_endpoint(function(req, res, seccion, ...) {
       sid <- session_header(req)

@@ -224,8 +224,14 @@
   .planner_norm_equipo(list(code_format = code_format, personas = personas))
 }
 
-# Los códigos de resultado nacieron en Material (D1) y se mudan en la fase P3.
-# Mientras tanto se leen de ahí, sin escribir.
+# Los códigos nacieron en Material y se mudan al Planner (fase P3). Se
+# siembran de ahí, sin escribir y sin cambiar Material:
+# - resultado de la visita: el catálogo de las hojas de ruteo (D1), 1 a 8 con
+#   8 = efectiva, y 99; con los rótulos que el estudio ya ajustó;
+# - status del barrido: el catálogo de la campaña telefónica si lo personalizó,
+#   o los 14 Status del RMS con su clase (.MBP_STATUS).
+# Los rótulos del núcleo quedan editables en el Planner (decisión K1 del
+# informe de brechas); el grupo no, porque es el significado del código.
 .planner_proyectar_codigos <- function(s, perfiles) {
   tipos <- vapply(perfiles, `[[`, "", "tipo")
   resultado <- list()
@@ -234,7 +240,29 @@
     g <- tryCatch(.mtf_guardado(s, campana), error = function(e) NULL)
     if (is.list(g)) resultado <- tryCatch(.mtf_catalogo(g), error = function(e) list())
   }
-  .planner_norm_codigos(list(version = 1L, resultado = resultado, status_barrido = list()))
+  barrido <- list()
+  tel <- s[["material_telefonica_config"]]
+  campanas <- vapply(((s[["material_campaigns"]] %||% list())$campaigns) %||% list(),
+                     function(c) .planner_chr1(c$tipo %||% c$type), "")
+  if ("telefonico" %in% tipos || is.list(tel) || "telefonica" %in% campanas) {
+    propio <- if (is.list(tel)) tel$status else NULL
+    barrido <- if (is.list(propio) && length(propio)) propio else tryCatch(.MBP_STATUS, error = function(e) list())
+  }
+  .planner_norm_codigos(list(version = 1L, resultado = resultado, status_barrido = barrido))
+}
+
+#' Los catálogos de códigos del estudio, declarados o sembrados. Lectura pura.
+#' @keywords internal
+.planner_codigos <- function(s) {
+  guardado <- .planner_leer(s)
+  decl <- guardado$secciones$codigos
+  valor <- if (!is.null(decl)) decl$valor else .planner_proyectar_codigos(s, .planner_payload_perfiles(s))
+  c(list(ok = TRUE, origen = if (is.null(decl)) "proyectado" else "declarado", revision = guardado$revision), valor)
+}
+
+.planner_payload_perfiles <- function(s) {
+  decl <- .planner_leer(s)$secciones$perfiles
+  if (!is.null(decl)) decl$valor else .planner_proyectar_perfiles(s)$perfiles
 }
 
 # Los archivos del proyecto (`files/`), para registrar un insumo sin moverlo:

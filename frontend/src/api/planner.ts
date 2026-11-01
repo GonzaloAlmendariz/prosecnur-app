@@ -42,11 +42,16 @@ export type PlannerEquipo = { code_format: string; personas: PlannerPersona[] };
 export type PlannerCodigo = {
   codigo: string;
   rotulo: string;
-  grupo: "efectiva" | "no_aplicada" | "manzana" | "otro";
+  /** Resultado de la visita: efectiva · no_aplicada · manzana · otro. Status del barrido: las cinco clases del RMS. */
+  grupo: PlannerGrupoCodigo;
   retirado_en_version: number | null;
   /** Sólo de ida: pide retirarlo; la versión la pone el servidor. */
   retirar?: boolean;
 };
+export const PLANNER_GRUPOS_RESULTADO = ["efectiva", "no_aplicada", "manzana", "otro"] as const;
+export const PLANNER_CLASES_BARRIDO = ["efectiva", "pendiente", "no_contacto", "rechazo", "invalido"] as const;
+export type PlannerGrupoCodigo = (typeof PLANNER_GRUPOS_RESULTADO)[number] | (typeof PLANNER_CLASES_BARRIDO)[number];
+
 export type PlannerCodigos = { version: number; resultado: PlannerCodigo[]; status_barrido: PlannerCodigo[] };
 
 export type PlannerInsumo = {
@@ -145,7 +150,9 @@ function normalizarCodigo(x: unknown): PlannerCodigo | null {
   return {
     codigo,
     rotulo: txt(k.rotulo),
-    grupo: grupo === "efectiva" || grupo === "no_aplicada" || grupo === "manzana" ? grupo : "otro",
+    grupo: ([...PLANNER_GRUPOS_RESULTADO, ...PLANNER_CLASES_BARRIDO] as readonly string[]).includes(grupo)
+      ? (grupo as PlannerGrupoCodigo)
+      : "otro",
     retirado_en_version: num(k.retirado_en_version),
   };
 }
