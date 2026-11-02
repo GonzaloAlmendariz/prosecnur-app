@@ -69,6 +69,7 @@
 #' @keywords internal
 collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
   ctx <- .mtx_contexto(sid, campaign_id)
+  if (identical(ctx$envio$kind, "cuotas")) return(.mtx_asignacion_excel_cuotas(sid, ctx))  # collection_territorial_excel_cuotas.R
   equipo <- ctx$eq$equipo
   etiquetas <- vapply(equipo, .mtx_etiqueta, "")
   etiqueta_de <- stats::setNames(etiquetas, vapply(equipo, `[[`, "", "codigo"))
@@ -204,7 +205,7 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
     if (!is.data.frame(crudo) || !nrow(crudo)) next
     for (r in seq_len(min(15L, nrow(crudo)))) {
       cab <- vapply(crudo[r, ], function(x) as.character(x %||% ""), "")
-      ci <- .mtx_columna(cab, c("Código de manzana", "Codigo manzana", "id_manzana"))
+      ci <- .mtx_columna(cab, c("Código de manzana", "Codigo manzana", "id_manzana", "Código de zona", "id_zona"))
       ce <- .mtx_columna(cab, c("Encuestador"))
       if (!is.na(ci) && !is.na(ce)) {
         cuerpo <- if (r < nrow(crudo)) crudo[(r + 1L):nrow(crudo), , drop = FALSE] else crudo[0, , drop = FALSE]
@@ -342,7 +343,7 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
       propuesta[[id]] <- NULL
     }
   }
-  titulares <- Filter(function(u) identical(u$role, "titular"), ctx$unidades)
+  titulares <- Filter(function(u) u$role %in% c("titular", "zona"), ctx$unidades)  # en cuotas cuentan las zonas
   con <- vapply(titulares, function(u) !is.null(propuesta[[u$unit_id]]), TRUE)
   conteo <- table(factor(vapply(propuesta, `[[`, "", "codigo"), levels = codigos))
   # Aplicar reemplaza todo: cuántas UMP con encuestador hoy se quedarían sin él.

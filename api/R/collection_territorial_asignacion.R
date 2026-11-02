@@ -69,8 +69,10 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 }
 
 # UMP de la foto: titulares y reemplazos con su titular.
+# En cuotas (ADR 0125 §2) las unidades son las zonas: se asignan igual, por su `id_zona`.
 .mta_unidades <- function(envio) {
   if (is.null(envio)) return(list())
+  if (identical(envio$kind, "cuotas")) return(lapply(envio$zonas %||% list(), .mcamp_territorial_unidad_zona))
   c(lapply(.hojas_ruta_envio_rows(envio$sample$blocks), .mcamp_territorial_unidad, role = "titular"),
     lapply(.hojas_ruta_envio_rows(envio$sample$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo"))
 }
@@ -98,12 +100,15 @@ collection_territorial_asignacion_get <- function(sid, campaign_id = NULL) {
       codigo <- unname(explicita[u$titular_id]); origen <- "heredada"
     }
     if (is.na(codigo)) return(NULL)
-    list(id_manzana = u$unit_id, label = u$label, role = u$role, codigo = codigo, origen = origen)
+    fila <- list(id_manzana = u$unit_id, label = u$label, role = u$role, codigo = codigo, origen = origen)
+    # Monitoreo lee la asignación por zona con `id_zona` (contrato §1); la clave guardada sigue siendo la misma.
+    if (identical(u$role, "zona")) fila <- c(list(id_zona = u$unit_id), fila)
+    fila
   })
   asignacion <- Filter(Negate(is.null), asignacion)
   codigos_equipo <- vapply(eq$equipo, `[[`, "", "codigo")
   list(
-    ok = TRUE, campaign_id = hit$entry$id, fase = fase,
+    ok = TRUE, campaign_id = hit$entry$id, fase = fase, kind = if (is.null(envio)) NA_character_ else envio$kind %||% "ump",
     equipo = eq$equipo, code_format = eq$code_format,
     asignacion = asignacion,
     asignacion_revision = if (propia) g$revision else 0L,
@@ -151,7 +156,7 @@ collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asign
   filas <- if (is.data.frame(asignacion)) lapply(seq_len(nrow(asignacion)), function(i) as.list(asignacion[i, , drop = FALSE])) else Filter(is.list, asignacion %||% list())
   limpias <- list(); malas <- list()
   for (a in filas) {
-    id <- .hojas_ruta_envio_chr(a$id_manzana)
+    id <- .hojas_ruta_envio_chr(a[["id_zona"]] %||% a[["id_manzana"]])
     crudo <- .hojas_ruta_envio_chr(a$codigo)
     if (!nzchar(crudo)) next  # vacío = sin asignar
     codigo <- .monitoreo_territorial_clean_code(crudo, eq$code_format)
