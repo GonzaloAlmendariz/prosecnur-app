@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, CSSProperties } from "react";
 import { AlertCircle } from "lucide-react";
 import { LoadingBlock } from "../../components/States";
@@ -141,6 +141,18 @@ export default function MonitoreoShell() {
     }
   };
 
+  // D7b (coordinación, 2 nov, reversible): el modo «lo determina el estudio,
+  // no un click» y el tipo vive en la Ficha (ADR 0124). Con un tipo declarado y
+  // la config todavía sin él, Monitoreo entra solo, una vez; si falla, vuelve
+  // la tarjeta con el error para elegir a mano.
+  const autoAlineado = useRef(false);
+  useEffect(() => {
+    if (!state || aterrizaje.tipo !== "alinear" || busyFamily || autoAlineado.current) return;
+    autoAlineado.current = true;
+    void chooseMode(aterrizaje.modo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, aterrizaje.tipo]);
+
   const label = useMemo(
     () => profile?.label ?? (state ? familyFromState(state) : "Monitoreo"),
     [profile, state],
@@ -166,8 +178,11 @@ export default function MonitoreoShell() {
       </div>
     );
   }
-  // Alinear o elegir: el Planner declara el modo y la config todavía no lo tiene.
-  // Un clic explícito lo fija; nada se escribe sólo por abrir el módulo.
+  // Alinear: entra solo (arriba); mientras guarda, y salvo que falle, no pregunta.
+  if (state && aterrizaje.tipo === "alinear" && !error) {
+    return <ShellFallback label={`Abriendo ${aterrizaje.modo.label}, el tipo que declara la ficha`} />;
+  }
+  // Elegir (el Planner deja más de un modo) o alinear que falló: un clic lo fija.
   if (state && (aterrizaje.tipo === "alinear" || aterrizaje.tipo === "elegir")) {
     const modos = aterrizaje.tipo === "alinear" ? [aterrizaje.modo] : aterrizaje.modos;
     return (
