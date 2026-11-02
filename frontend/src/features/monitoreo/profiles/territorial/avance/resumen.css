@@ -378,6 +378,31 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+  /* Al soltar el scroll la fila que asoma queda entera entre la cabecera
+   * (36 px) y el pie «Total» pegajosos, como las demás tablas de la casa. */
+  scroll-padding-top: 36px;
+  scroll-padding-bottom: 30px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-res-tabla tbody > tr {
+  scroll-snap-align: start;
+}
+
+/* 1181–1365: la columna UMP quedaba 60 px fuera del marco (medido a 1280 en
+ * acnur_acg). La tira de UMP se acorta y el relleno se aprieta. */
+@media (min-width: 1181px) and (max-width: 1365px) {
+  .mon-res-tabla :is(thead th, tbody th, tbody td, tfoot th, tfoot td) {
+    padding-inline: 6px;
+  }
+  .mon-res-tabla .mon-res-tiras {
+    width: 72px;
+  }
+  /* «147 de 150 completas» del pie fijaba el ancho mínimo de la columna UMP. */
+  .mon-res-tabla tfoot :is(th, td):last-child {
+    white-space: normal;
+    line-height: 1.25;
+  }
 }
 
 .mon-res-tabla-marco::-webkit-scrollbar,
