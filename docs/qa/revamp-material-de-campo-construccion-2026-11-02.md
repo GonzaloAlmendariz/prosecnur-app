@@ -169,7 +169,7 @@ Cada fila pasó `make gate-front AREA=recopiladores`; las que tienen copia D1, u
 | Aulas | e54c8d7ea | Hecho: entrada del plan, ✓ por sección, bloqueo por materiales desfasados arriba. Sin captura con datos (D17) |
 | Supervisión | 7c94242a7 | Hecho: menú ⋯ con renombrar, ver el lote y archivar. Sin captura: ninguna copia D1 la tiene |
 | Registro por público y ronda | 2d3cac005 | Hecho: un bloque por público en orden de ronda, procedencia en cada tarjeta |
-| Correo en el chrome común | | **Bloqueado**: contradice el pedido de Gonzalo del 2026-10-20 (la miga vive en la barra de cada pestaña para ganar alto). Decide Gonzalo |
+| Correo en el chrome común | | **Excepción declarada** (Gonzalo, 2 nov 2026: «Sin banda, como el 20/10»). El correo no lleva banda de módulo: la miga vive en la barra de cada pestaña para que el cuerpo gane alto. No se aplica el chrome común ni el chip de entrada |
 
 Datos que el backend aún no entrega: el desfase de ruteo y consolidados cuando cambia la asignación, la fecha en que se
 generó cada pieza territorial y el porcentaje del ZIP. Sin ellos, Paquetes no pinta esos estados.
