@@ -37,32 +37,50 @@
   g
 }
 
-#' Mapa de la distribución en el Word: el mapa con su leyenda debajo y las barras de las áreas al costado
+#' La leyenda en rampa del Word: la misma de la lámina (`.lam_mapa_leyenda_abajo`) dibujada en ggplot
+#' @param w Ancho de la celda (in). @return ggplot.
+#' @keywords internal
+.word_mapa_leyenda_rampa <- function(leyenda, w, pt) {
+  navy <- .std_word("colores", "titulos"); cortes <- leyenda$cortes; k <- length(cortes) + 1L
+  cols <- leyenda$colores[seq_len(k)]; vacio <- leyenda$colores[k + 1L]
+  w_barra <- min(2.2, w - 1.25); paso <- w_barra / k
+  bloques <- data.frame(x0 = (seq_len(k) - 1) * paso, x1 = seq_len(k) * paso, fill = cols)
+  marcas <- data.frame(x = seq_along(cortes) * paso, lab = paste0(format(cortes, trim = TRUE), " %"))
+  ggplot2::ggplot() +
+    ggplot2::annotate("text", x = 0, y = 0.62, label = leyenda$titulo, hjust = 0, size = pt / ggplot2::.pt, fontface = "bold",
+                      colour = .WORD_TINTA$gris, family = "Arial") +
+    ggplot2::geom_rect(data = bloques, ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0.3, ymax = 0.44, fill = .data$fill)) +
+    ggplot2::geom_segment(data = marcas, ggplot2::aes(x = .data$x, xend = .data$x, y = 0.3, yend = 0.24), colour = navy, linewidth = 0.3) +
+    ggplot2::geom_text(data = marcas, ggplot2::aes(.data$x, 0.12, label = .data$lab), size = pt / ggplot2::.pt, colour = navy, family = "Arial") +
+    ggplot2::annotate("rect", xmin = w_barra + 0.2, xmax = w_barra + 0.34, ymin = 0.3, ymax = 0.44, fill = vacio) +
+    ggplot2::annotate("text", x = w_barra + 0.4, y = 0.37, label = leyenda$rotulos[k + 1L], hjust = 0, size = pt / ggplot2::.pt,
+                      colour = navy, family = "Arial") +
+    ggplot2::scale_fill_identity() +
+    ggplot2::scale_x_continuous(limits = c(0, w), expand = c(0, 0)) + ggplot2::scale_y_continuous(limits = c(0, 0.72), expand = c(0, 0)) +
+    ggplot2::coord_cartesian(clip = "off") + ggplot2::theme_void() + ggplot2::theme(plot.margin = ggplot2::margin(2, 4, 2, 4))
+}
+
+#' Mapa de la distribución en el Word: el mapa con su leyenda en rampa debajo y las barras de las áreas al costado
 #' @param mapa El ggplot de `.word_g_mapa` (con atributo `alto`).
 #' @keywords internal
 .word_g_mapa_con_ranking <- function(espec, mapa) {
   pt <- 8 + .word_desplazo("leyenda")
   barras <- .word_mapa_barras(espec$ranking, espec$escala_max %||% 100, pt)
-  n_ley <- length(espec$leyenda$rotulos %||% character(0))
-  mapa <- mapa + ggplot2::guides(colour = ggplot2::guide_legend(ncol = 2, byrow = TRUE, title.position = "top",
-                                                                override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = espec$leyenda$colores,
-                                                                                    colour = .std_color("mapa_borde")))) +
+  mapa <- mapa + ggplot2::guides(colour = "none") +
     # El recorte a los datos lleva el mismo marco fino que en la lámina (lamina_mapa_resultado.R).
-    ggplot2::theme(panel.border = if (isTRUE(espec$recortado)) ggplot2::element_rect(fill = NA, colour = .std_color("mapa_borde"), linewidth = 0.4)
-                                  else ggplot2::element_blank()) +
-    ggplot2::theme(legend.position = "bottom", legend.justification = "center", legend.box.spacing = ggplot2::unit(0.08, "in"),
-                   legend.key.spacing.x = ggplot2::unit(0.12, "in"))   # dos columnas: cabe bajo un mapa de 2 in
+    ggplot2::theme(legend.position = "none",
+                   panel.border = if (isTRUE(espec$recortado)) ggplot2::element_rect(fill = NA, colour = .std_color("mapa_borde"), linewidth = 0.4)
+                                  else ggplot2::element_blank())
   # El alto lo pone lo mayor: el mapa del recetario (4 in) o la columna de barras; con muchas áreas crece hasta 7.5 in.
   alto <- min(7.5, max(attr(mapa, "alto") %||% 3.8, attr(barras, "alto")))
   cj <- espec$caja
   asp <- unname((cj[["ymax"]] - cj[["ymin"]]) / ((cj[["xmax"]] - cj[["xmin"]]) * cos(mean(cj[c("ymin", "ymax")]) * pi / 180)))
   tope <- .std_word("pagina", "ancho_util")
   w_barras <- attr(barras, "ancho")
-  alto_mapa <- alto - 0.35 - 0.2 * ceiling(n_ley / 2)   # lo que deja la leyenda de abajo
-  # La celda del mapa mide al menos su leyenda (dos columnas de cuadro y rótulo): un mapa alto, como el del Perú, la cortaba.
-  w_ley <- 2 * (0.3 + max(c(0.5, .lam_ancho_tinta(espec$leyenda$rotulos %||% "", pt))) * 1.15) + 0.25
-  w_mapa <- max(2, w_ley, min(tope - w_barras, alto_mapa / asp, 3.6))
-  g <- cowplot::plot_grid(mapa, barras, nrow = 1, rel_widths = c(w_mapa, w_barras))
+  h_ley <- 0.72; alto_mapa <- alto - h_ley - 0.1
+  w_mapa <- max(3, min(tope - w_barras, alto_mapa / asp, 3.6))   # al menos lo que pide la rampa con «Sin encuestados»
+  izq <- cowplot::plot_grid(mapa, .word_mapa_leyenda_rampa(espec$leyenda, w_mapa, pt), ncol = 1, rel_heights = c(alto_mapa, h_ley))
+  g <- cowplot::plot_grid(izq, barras, nrow = 1, rel_widths = c(w_mapa, w_barras))
   attr(g, "alto") <- alto
   attr(g, "ancho") <- min(tope, w_mapa + w_barras)
   g

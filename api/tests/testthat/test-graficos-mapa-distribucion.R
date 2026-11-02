@@ -154,4 +154,10 @@ test_that("la lámina de distribución gana calidad: recorte geométrico, leyend
   nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
   expect_identical(sum(nm == "mapa:marco"), 4L)
   expect_true("mapa:leyenda_titulo" %in% nm)
+  # La leyenda es una rampa: un bloque por clase, un corte entre bloques y «Sin encuestados» aparte.
+  esp <- .espec_mapa_distribucion(.mapa_distribucion_casar(.mapa_distribucion_calcular(fx$data, fx$inst, "dist"), lima, "lima_callao"), lima)
+  expect_identical(sum(nm == "leyenda:rampa"), length(esp$leyenda$cortes) + 1L)
+  cortes_txt <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:corte']]"))
+  expect_identical(cortes_txt, paste0(esp$leyenda$cortes, " %"))
+  expect_identical(xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:texto']]")), "Sin encuestados")
 })

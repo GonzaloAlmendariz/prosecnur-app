@@ -109,20 +109,32 @@
   G$y_ult <= G$yf - 0.1 && all(.lam_ancho_tinta(espec$ranking$distrito, G$pt) <= G$w_nombre - 0.15) && ley_ok
 }
 
-#' Alto (in) de la leyenda de dos columnas bajo el mapa: título y una fila cada dos rótulos
+#' Alto (in) de la leyenda bajo el mapa (rampa de clases): título, barra y cortes
 #' @keywords internal
-.lam_mapa_leyenda_abajo_alto <- function(leyenda) 0.32 + ceiling(length(leyenda$rotulos %||% character(0)) / 2) * 0.28
+.lam_mapa_leyenda_abajo_alto <- function(leyenda) 0.78
 
-#' Leyenda bajo el mapa en dos columnas (la distribución de encuestados)
+#' Leyenda bajo el mapa como rampa: una barra con los tonos de las clases, los cortes entre bloque y bloque y, aparte,
+#' el gris de «Sin encuestados»
+#'
+#' Gonzalo, 2026-11-02: la lista de cuadros con rótulos («Menos de 6 %», «6 %», «7 a 8 %») «se ve bastante feo». La
+#' rampa es la convención de los mapas por clases: se lee de un vistazo que el tono sube con el porcentaje, y los cortes
+#' van donde cambia el tono. `leyenda$cortes` trae los cortes; sin ellos queda la lista de antes.
 #' @keywords internal
 .lam_mapa_leyenda_abajo <- function(lz, x, y, leyenda, w) {
-  n <- length(leyenda$rotulos); col_w <- w / 2
-  .lam_txt(lz, leyenda$titulo, x - 0.06, y, w, 0.26, 10, .std_color("texto_suave"), bold = TRUE, nombre = "mapa:leyenda_titulo")
-  for (k in seq_len(n)) {
-    xk <- x + ((k - 1) %% 2) * col_w; yk <- y + 0.32 + ((k - 1) %/% 2) * 0.28; col <- leyenda$colores[k]
-    .lam_caja(lz, xk, yk + 0.06, 0.16, 0.16, col, nombre = "leyenda:cuadro", borde = col, borde_pt = 0.5)
-    .lam_txt(lz, leyenda$rotulos[k], xk + 0.2, yk, col_w - 0.24, 0.28, 11, .std_color("azul"), nombre = "leyenda:texto")
+  azul <- .std_color("azul"); suave <- .std_color("texto_suave")
+  cortes <- leyenda$cortes; k <- length(cortes) + 1L
+  cols <- leyenda$colores[seq_len(k)]; vacio <- leyenda$colores[k + 1L]
+  .lam_txt(lz, leyenda$titulo, x - 0.06, y, w, 0.26, 10, suave, bold = TRUE, nombre = "mapa:leyenda_titulo")
+  w_vacio <- 1.35; w_barra <- min(2.8, w - w_vacio - 0.3); paso <- w_barra / k; yb <- y + 0.3
+  for (j in seq_len(k)) .lam_caja(lz, x + (j - 1) * paso, yb, paso, 0.16, cols[j], nombre = "leyenda:rampa")
+  for (j in seq_along(cortes)) {
+    xc <- x + j * paso
+    .lam_caja(lz, xc - 0.004, yb + 0.16, 0.008, 0.06, azul, nombre = "leyenda:marca")
+    .lam_txt(lz, paste0(format(cortes[j], trim = TRUE), " %"), xc - 0.4, yb + 0.2, 0.8, 0.26, 10, azul, align = "center", nombre = "leyenda:corte")
   }
+  xv <- x + w_barra + 0.3
+  .lam_caja(lz, xv, yb, 0.16, 0.16, vacio, nombre = "leyenda:cuadro", borde = vacio, borde_pt = 0.5)
+  .lam_txt(lz, leyenda$rotulos[k + 1L], xv + 0.2, yb - 0.06, w_vacio, 0.28, 10, azul, nombre = "leyenda:texto")
   invisible(y)
 }
 

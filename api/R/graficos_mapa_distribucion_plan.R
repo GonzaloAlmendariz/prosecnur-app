@@ -233,8 +233,8 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
        # Borde blanco más grueso que en el resultado: dos vecinos de la misma clase no se funden en una mancha.
        capas = list(list(datos = poly, borde = "#FFFFFF", grosor = 0.55)), caja = bb,
-       leyenda = list(titulo = paste("Por", carto$unidad), rotulos = c(.mapa_clases_rotulos(cortes, pal), "Sin encuestados"),
-                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO)),
+       leyenda = list(titulo = paste("Porcentaje de encuestados por", carto$unidad), rotulos = c(.mapa_clases_rotulos(cortes, pal), "Sin encuestados"),
+                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO), cortes = cortes),
        ranking = data.frame(distrito = nombre[o], valor = valor[o], n = ok$n[o], color = pal[clase][o], cifra = cifra[o], stringsAsFactors = FALSE),
        escala_max = max(c(1, ok$porcentaje)),
        panel = list(titulo = paste("Encuestados por", carto$unidad), sub = "Número y porcentaje, de mayor a menor"),
