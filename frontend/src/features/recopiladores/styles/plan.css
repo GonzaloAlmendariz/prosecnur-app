@@ -276,13 +276,22 @@
 }
 
 .rec-plan-tabla th:nth-child(1),
-.rec-plan-tabla td:nth-child(1) { width: 15%; }
+.rec-plan-tabla td:nth-child(1) { width: 18%; }
+
+/* El código del curso-horario es la llave con que campo encuentra el aula: no se parte. Con 15 %
+   (90 px a 1024) «dee207_0504» salía en dos renglones; el más largo de HSVG mide 75 px + 24 de
+   relleno, el 16,5 % de la tabla de 600 (revisión con ojo de usuario, 2 nov 2026). */
+.rec-plan-tabla td:nth-child(1) :is(strong, small) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .rec-plan-tabla th:nth-child(2),
-.rec-plan-tabla td:nth-child(2) { width: 29%; }
+.rec-plan-tabla td:nth-child(2) { width: 27%; }
 
 .rec-plan-tabla th:nth-child(3),
-.rec-plan-tabla td:nth-child(3) { width: 27%; }
+.rec-plan-tabla td:nth-child(3) { width: 26%; }
 
 .rec-plan-tabla th:nth-child(4),
 .rec-plan-tabla td:nth-child(4) { width: 13%; }
