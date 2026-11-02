@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
-import { normalizarRegistroDeCampanas, type RegistroDeCampanas } from "../../../api/materialCampanas";
+import { normalizarRegistroDeCampanas, type RegistroDeCampanas, type TipoDeCampana } from "../../../api/materialCampanas";
 import { REGISTRO_CRUDO, REGISTRO_VACIO_CRUDO } from "../../../api/materialCampanas.fixture";
 import { accionesDeCampana } from "./accionesDeCampana";
 import { TiposDeCampana } from "./DialogoNuevaCampana";
@@ -97,8 +97,8 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
 });
 
 describe("«Nueva campaña»", () => {
-  function tipos(registro: RegistroDeCampanas) {
-    return renderToStaticMarkup(<TiposDeCampana registro={registro} elegido={null} ocupado={false} onElegir={noop} />);
+  function tipos(registro: RegistroDeCampanas, elegido: TipoDeCampana | null = null) {
+    return renderToStaticMarkup(<MemoryRouter><TiposDeCampana registro={registro} elegido={elegido} ocupado={false} onElegir={noop} /></MemoryRouter>);
   }
 
   it("muestra los cuatro tipos; territorial deshabilitada con su motivo", () => {
@@ -108,6 +108,16 @@ describe("«Nueva campaña»", () => {
     expect(html).toContain("Campo en aulas");
     expect(html).toContain("Requiere leer las UMP de Hojas de ruta");
     expect(html.match(/disabled=""/g)).toHaveLength(1);
+  });
+
+  it("el enlace a Hojas de ruta sólo acompaña la elección, no a otro tipo ya elegido", () => {
+    const sinEnvio: RegistroDeCampanas = {
+      ...VACIO,
+      tipos: VACIO.tipos.map((t) => (t.tipo === "territorial" ? { ...t, motivo: "Primero envía la muestra desde Hojas de ruta" } : t)),
+    };
+    const enlace = "Enviar la muestra desde Hojas de ruta";
+    expect(tipos(sinEnvio)).toContain(enlace);
+    expect(tipos(sinEnvio, "telefonica")).not.toContain(enlace);
   });
 
   it("aulas se deshabilita si el proyecto ya tiene la suya", () => {

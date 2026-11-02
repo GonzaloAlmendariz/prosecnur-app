@@ -107,7 +107,8 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
       })}
     </ul>
     {/* Checklist F18: el territorial sin envío dice por qué y lleva a donde se envía (no cabe dentro del botón deshabilitado). */}
-    {registro && /env[ií]a la muestra/i.test(disponibilidadDe(registro, "territorial").motivo ?? "") ? (
+    {/* Revisión con ojo de usuario (1 nov 2026): elegido otro tipo, el enlace a Hojas de ruta ya no viene al caso. */}
+    {!elegido && registro && /env[ií]a la muestra/i.test(disponibilidadDe(registro, "territorial").motivo ?? "") ? (
       <p className="rec-nueva-ir-hojas">
         <Link to="/hojas-ruta?seccion=seleccion&panel=salidas">Enviar la muestra desde Hojas de ruta › Entrega</Link>
       </p>
@@ -231,6 +232,28 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                 <p className="rec-nueva-pie-nota">
                   Las unidades salen de la muestra decidida en Cálculo de muestra: al abrir la campaña se siembran desde Unidades.
                   {fuente === "derivada" ? " Esta versión del backend no guarda el nombre: la campaña se llama «Campo en aulas»." : ""}
+                </p>
+              </div>
+            ) : null}
+
+            {/* Revisión con ojo de usuario (1 nov 2026): Telefónica no tenía paso; se creaba sin poder nombrarla
+                ni saber qué seguía. */}
+            {tipo === "telefonica" ? (
+              <div className="rec-nueva-paso">
+                <label className="rec-camp-campo rec-nueva-campo">
+                  <span>Nombre de la campaña</span>
+                  <input
+                    value={nombre}
+                    maxLength={LARGO_NOMBRE}
+                    autoFocus
+                    aria-invalid={problema || homonima ? true : undefined}
+                    aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                    onChange={(e) => setNombre(e.target.value)}
+                  />
+                </label>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
+                <p className="rec-nueva-pie-nota">
+                  En la campaña declaras cuántos casos entrega el cliente y quién llama; de ahí sale la plantilla del barrido que llena el equipo y lee Monitoreo.
                 </p>
               </div>
             ) : null}
