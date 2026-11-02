@@ -551,7 +551,8 @@ export async function apiMaterialTerritorialGuardarFormatos(
   );
 }
 
-export type PiezaDePapel = "ruteo" | "consolidados";
+/** `conteo` es la hoja por zona de un territorial por cuotas (ADR 0125 §2); el backend la niega en UMP. */
+export type PiezaDePapel = "ruteo" | "consolidados" | "conteo";
 
 export type HojaDePapel = { file_id: string; filename: string; umps: number; paginas: number };
 

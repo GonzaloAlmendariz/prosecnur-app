@@ -28,6 +28,7 @@ import { EntregaTerritorial } from "./EntregaTerritorial";
 import { PESTANAS_TERRITORIALES, SECCIONES_TERRITORIALES, resolverSeccionTerritorial, type SeccionTerritorial } from "./navegacionTerritorial";
 import { PaquetesTerritoriales } from "./PaquetesTerritoriales";
 import { UnidadesTerritoriales } from "./UnidadesTerritoriales";
+import { ZonasDeCuotas } from "./ZonasDeCuotas";
 import { useCampanaTerritorial } from "./useCampanaTerritorial";
 import "../styles/recopiladores-shell.css";
 import "./territorial.css";
@@ -82,7 +83,10 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
       {cargando && !hojas ? (
         <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo la muestra enviada…</div>
       ) : null}
-      {!cargando && seccion === "unidades" ? (
+      {!cargando && seccion === "unidades" && unidades?.kind === "cuotas" ? (
+        <ZonasDeCuotas campaignId={campana.id} unidades={unidades} />
+      ) : null}
+      {!cargando && seccion === "unidades" && unidades?.kind !== "cuotas" ? (
         <UnidadesTerritoriales
           unidades={unidades}
           sinFuente={sinFuente}
@@ -122,7 +126,12 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
           contexto={(
             <>
               {cabecera}
-              {unidades ? (
+              {unidades?.kind === "cuotas" ? (
+                <ChromeIndicatorGroup ariaLabel="Contexto de la campaña territorial">
+                  <ChromeIndicator label="Zonas" value={unidades.n_zonas.toLocaleString("es-PE")} prioridad="alta" />
+                  <ChromeIndicator label="Entrevistas" value={unidades.n_entrevistas.toLocaleString("es-PE")} />
+                </ChromeIndicatorGroup>
+              ) : unidades ? (
                 <ChromeIndicatorGroup ariaLabel="Contexto de la campaña territorial">
                   <ChromeIndicator label="Titulares" value={unidades.n_titulares.toLocaleString("es-PE")} prioridad="alta" />
                   <ChromeIndicator label="Reemplazos" value={unidades.n_reemplazos.toLocaleString("es-PE")} />

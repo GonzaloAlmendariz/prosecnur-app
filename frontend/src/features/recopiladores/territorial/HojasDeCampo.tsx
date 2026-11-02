@@ -193,7 +193,10 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
   );
 }
 
-const PIEZAS: Record<PiezaDePapel, { titulo: string; icono: typeof ListOrdered; texto: string }> = {
+/** Las hojas por UMP; la de conteo por zona vive en ZonasDeCuotas. */
+type PiezaPorUmp = Exclude<PiezaDePapel, "conteo">;
+
+const PIEZAS: Record<PiezaPorUmp, { titulo: string; icono: typeof ListOrdered; texto: string }> = {
   ruteo: {
     titulo: "Hoja de ruteo",
     icono: ListOrdered,
@@ -206,7 +209,7 @@ const PIEZAS: Record<PiezaDePapel, { titulo: string; icono: typeof ListOrdered; 
   },
 };
 
-export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { pieza: PiezaDePapel }) {
+export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { pieza: PiezaPorUmp }) {
   const { formatos, error: errorFormatos, guardando, guardar } = useFormatos(campaignId);
   const [elegida, setElegida] = useState(unidades.units[0]?.unit_id ?? "");
   const [ocupado, setOcupado] = useState(false);
@@ -262,12 +265,12 @@ export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { piez
 /** Paquetes: las dos hojas para todas las UMP, en un PDF cada una. */
 export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
   const [conReemplazos, setConReemplazos] = useState(false);
-  const [ocupado, setOcupado] = useState<PiezaDePapel | "">("");
+  const [ocupado, setOcupado] = useState<PiezaPorUmp | "">("");
   const [error, setError] = useState("");
   const titulares = unidades.units.filter((u) => u.role === "titular").length;
   const reemplazos = unidades.units.length - titulares;
   const total = conReemplazos ? unidades.units.length : titulares;
-  const generar = (pieza: PiezaDePapel) => {
+  const generar = (pieza: PiezaPorUmp) => {
     setOcupado(pieza);
     setError("");
     apiMaterialTerritorialPapel(campaignId, pieza, { alcance: conReemplazos ? "todas" : "titulares" })
