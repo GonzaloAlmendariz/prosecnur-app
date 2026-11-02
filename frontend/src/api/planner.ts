@@ -252,7 +252,8 @@ export type PlannerModos = {
   perfiles: PlannerTipoPerfil[];
   calc: { modo: string | null; perfil: PlannerTipoPerfil | null; macroFamilia: string | null; delCliente: PlannerTipoPerfil[] };
   monitoreo: { modos: string[]; familias: string[]; modo: string | null; familia: string | null };
-  material: { campanas: string[] };
+  /** `pendientes`: un canal declarado que todavía no abre su campaña, con qué falta y adónde ir. */
+  material: { campanas: string[]; pendientes: { canal: string; campana: string; texto: string; href: string }[] };
   hojasRuta: { aplica: boolean };
   /** Variante del perfil territorial, si hay uno. */
   territorial: { seleccion: PlannerSeleccionTerritorial | null };
@@ -274,7 +275,13 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
       delCliente: tiposDe(calc.del_cliente),
     },
     monitoreo: { modos: textos(mon.modos), familias: textos(mon.familias), modo: txt(mon.modo) || null, familia: txt(mon.familia) || null },
-    material: { campanas: textos(obj(r.material).campanas) },
+    material: {
+      campanas: textos(obj(r.material).campanas),
+      pendientes: (Array.isArray(obj(r.material).pendientes) ? (obj(r.material).pendientes as unknown[]) : [])
+        .map((x) => obj(x))
+        .map((x) => ({ canal: txt(x.canal), campana: txt(x.campana), texto: txt(x.texto), href: txt(x.href) }))
+        .filter((x) => x.texto),
+    },
     hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
     territorial: { seleccion: (["ump_aleatoria", "conveniencia"] as const).find((v) => v === txt(obj(r.territorial).seleccion)) ?? null },
     origen: txt(r.origen) === "declarado" ? "declarado" : "deducido",

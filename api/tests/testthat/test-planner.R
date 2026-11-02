@@ -448,12 +448,35 @@ test_that("editar perfiles conserva lo que la pantalla no manda (ADR 0123 §2)",
   expect_equal(unlist(session_get(sid)$planner$perfiles[[1]]$canales), "correo")
 })
 
+test_that("el QR presencial de acreditación abre la campaña de aulas sólo con un sorteo de aulas", {
+  qr <- list(.planner_norm_perfil(list(tipo = "acreditacion", canales = list("correo", "qr"))))
+  sin <- .planner_modos_de(qr)$material
+  expect_equal(unlist(sin$campanas), "correo")
+  expect_length(sin$pendientes, 1L)
+  expect_identical(sin$pendientes[[1]]$campana, "aulas")
+  con <- .planner_modos_de(qr, sorteo_aulas = TRUE)$material
+  expect_setequal(unlist(con$campanas), c("correo", "aulas"))
+  expect_length(con$pendientes, 0L)
+
+  # El sorteo se lee de Cálculo de muestra o del plan de aulas de Monitoreo.
+  expect_false(.collection_hay_sorteo_aulas(list()))
+  expect_true(.collection_hay_sorteo_aulas(list(calc_muestra_aulas_selection = list(selection = data.frame(course_id = "CH 1")))))
+  expect_true(.collection_hay_sorteo_aulas(list(monitoreo_aulas_plan = data.frame(aula = "A1"))))
+
+  # Y Material ofrece la campaña de aulas sólo en el segundo caso.
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  .planner_declarar(sid, "perfiles", qr, 0L)
+  expect_false("aulas" %in% .mcamp_tipos_del_estudio(session_get(sid)))
+  session_set(sid, "calc_muestra_aulas_selection", list(selection = data.frame(course_id = "CH 1")))
+  expect_true("aulas" %in% .mcamp_tipos_del_estudio(session_get(sid)))
+})
+
 test_that("acreditación abre las campañas de sus canales, no sólo la de correo", {
   campanas <- function(canales) unlist(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion", canales = canales))))$material$campanas)
   expect_equal(campanas(list("correo")), "correo")
   expect_setequal(campanas(list("correo", "telefono")), c("correo", "telefonica"))
   expect_equal(campanas(list("telefono")), "telefonica")
-  # Presencial con QR: lo decide Material (checklist-planner-q5, 4b); por ahora no abre campaña.
+  # Presencial con QR sin sorteo de aulas: no abre una campaña vacía (checklist-planner-q5, 4b).
   expect_length(campanas(list("qr")), 0L)
   # Sin canales declarados, el de siempre: correo.
   expect_equal(campanas(NULL), "correo")

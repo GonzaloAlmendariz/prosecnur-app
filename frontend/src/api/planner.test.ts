@@ -29,6 +29,13 @@ describe("normalizadores del Planner", () => {
     expect(modos.origen).toBe("deducido");
   });
 
+  it("lee los canales que todavía no abren su campaña (checklist-planner-q5, 4b)", () => {
+    const pendiente = { canal: "qr", campana: "aulas", texto: "Falta un sorteo de cursos-horario.", href: "/calc-muestra" };
+    const modos = normalizarPlannerModos({ material: { campanas: ["correo"], pendientes: [pendiente, { canal: "x" }, "basura"] } });
+    expect(modos.material.pendientes).toEqual([pendiente]);
+    expect(normalizarPlannerModos({ material: {} }).material.pendientes).toEqual([]);
+  });
+
   it("descarta perfiles desconocidos y lee la representatividad vacía como nula", () => {
     const estado = normalizarPlannerEstado({
       revision: 1,

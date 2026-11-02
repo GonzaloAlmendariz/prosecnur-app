@@ -68,7 +68,7 @@
 #' Cálculo muestra su vacío propio. `monitoreo$modos` y `material$campanas` son
 #' listas: con más de un perfil, el landing del módulo ofrece sólo esas.
 #' @keywords internal
-.planner_modos_de <- function(perfiles) {
+.planner_modos_de <- function(perfiles, sorteo_aulas = FALSE) {
   perfiles <- Filter(function(p) is.list(p) && nzchar(p$tipo %||% ""), perfiles %||% list())
   tipos <- vapply(perfiles, `[[`, "", "tipo")
   con_calc <- Filter(function(p) identical(p$diseno, "calc-muestra"), perfiles)
@@ -79,13 +79,17 @@
   modos_mon <- unname(.PLANNER_PERFIL_A_MODO_MONITOREO[tipos])
   familias <- unname(.PLANNER_PERFIL_A_FAMILIA[tipos])
   # Acreditación no es sólo por correo (Gonzalo, 1/11): sus campañas salen de sus
-  # canales, correo y teléfono. Qué abre su canal presencial con QR lo decide
-  # Material (checklist-planner-q5, ítem 4b). Los demás perfiles abren la suya,
-  # y cualquiera que declare el canal correo abre además campañas de correo.
+  # canales. El presencial con QR abre la campaña de aulas sólo si el estudio ya
+  # tiene un sorteo de aulas del que sembrarla (checklist-planner-q5, 4b, opción b);
+  # sin él queda declarado y `material$pendientes` dice qué falta. Los demás perfiles
+  # abren la suya, y cualquiera que declare el canal correo abre además la de correo.
+  qr_sin_sorteo <- FALSE
   campanas <- unlist(lapply(perfiles, function(p) {
     canales <- unlist(p$canales)
     if (!identical(p$tipo, "acreditacion")) return(unname(.PLANNER_PERFIL_A_CAMPANA[p$tipo]))
-    c(if ("correo" %in% canales) "correo", if ("telefono" %in% canales) "telefonica")
+    if ("qr" %in% canales && !isTRUE(sorteo_aulas)) qr_sin_sorteo <<- TRUE
+    c(if ("correo" %in% canales) "correo", if ("telefono" %in% canales) "telefonica",
+      if ("qr" %in% canales && isTRUE(sorteo_aulas)) "aulas")
   }))
   con_correo <- vapply(perfiles, function(p) "correo" %in% unlist(p$canales), logical(1))
   if (any(con_correo)) campanas <- c(campanas, "correo")
@@ -107,7 +111,12 @@
       familia = if (length(familias) == 1L) familias[[1]] else NULL
     ),
     material = list(
-      campanas = as.list(unique(campanas))
+      campanas = as.list(unique(campanas)),
+      pendientes = if (qr_sin_sorteo) list(list(
+        canal = "qr", campana = "aulas",
+        texto = "El presencial con QR abre la campaña de aulas cuando haya un sorteo de cursos-horario.",
+        href = "/calc-muestra"
+      )) else list()
     ),
     hojas_ruta = list(
       # Sólo el territorial por UMP aleatoria hace hoja de ruta.
@@ -127,7 +136,7 @@
 #' @keywords internal
 .planner_modos <- function(s) {
   guardado <- .planner_leer(s)
-  c(.planner_modos_de(.planner_payload_perfiles(s)),
+  c(.planner_modos_de(.planner_payload_perfiles(s), sorteo_aulas = .collection_hay_sorteo_aulas(s)),
     list(origen = if (is.null(guardado$secciones$perfiles)) "deducido" else "declarado",
          revision = guardado$revision))
 }

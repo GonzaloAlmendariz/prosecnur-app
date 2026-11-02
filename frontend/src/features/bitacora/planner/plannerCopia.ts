@@ -25,12 +25,12 @@ export const ETIQUETA_DISENO: Record<PlannerDiseno, string> = {
 };
 
 // Acreditación no es sólo por correo (Gonzalo, 1/11): el perfil declara sus canales
-// y cada uno abre su campaña en Material. El presencial con QR todavía no abre
-// ninguna: lo decide Material (checklist-planner-q5, ítem 4b).
+// y cada uno abre su campaña en Material. El presencial con QR abre la de aulas
+// cuando el estudio tiene un sorteo de cursos-horario (checklist-planner-q5, 4b).
 export const CANALES_ACREDITACION: readonly (readonly [string, string, string])[] = [
   ["correo", "Correo", "Campaña de correo"],
   ["telefono", "Teléfono", "Campaña telefónica"],
-  ["qr", "Presencial con QR", "Presencial con QR (por definir en Material)"],
+  ["qr", "Presencial con QR", "Campaña de aulas, con sorteo de cursos-horario"],
 ];
 
 export function campanasDeAcreditacion(perfil: PlannerPerfil): string[] {

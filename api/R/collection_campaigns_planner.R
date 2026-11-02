@@ -14,7 +14,7 @@
 .mcamp_tipos_del_estudio <- function(s) {
   decl <- tryCatch(.planner_leer(s)$secciones$perfiles, error = function(e) NULL)
   if (is.null(decl) || !length(decl$valor)) return(NULL)
-  campanas <- tryCatch(unlist(.planner_modos_de(decl$valor)$material$campanas), error = function(e) NULL)
+  campanas <- tryCatch(unlist(.planner_modos_de(decl$valor, sorteo_aulas = .collection_hay_sorteo_aulas(s))$material$campanas), error = function(e) NULL)
   if (!length(campanas)) return(NULL)
   intersect(.MCAMP_TIPOS, campanas)
 }

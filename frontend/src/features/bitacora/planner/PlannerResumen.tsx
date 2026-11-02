@@ -124,6 +124,12 @@ export function PlannerResumen({ control }: { control: ControlPlanner }) {
               </div>
             ))}
           </dl>
+          {/* checklist-planner-q5, 4b: un canal declarado que todavía no abre su campaña dice qué falta. */}
+          {modos.material.pendientes.map((p) => (
+            <p key={p.canal} className="planner-comoabre-nota">
+              {p.texto} {p.href ? <Link to={p.href}>Ir a Cálculo de muestra</Link> : null}
+            </p>
+          ))}
         </section>
       ) : null}
     </div>
