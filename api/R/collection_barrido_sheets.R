@@ -12,6 +12,30 @@
 #   - No toca una pestaña que ya existe. Sembrar es sólo crear lo que falta: si «Barrido» ya está, es
 #     del equipo (alguien puede estar llenándola en vivo) y queda `respetada`, sin un solo request.
 #   - Si no puede leer qué pestañas tiene el documento, no escribe: no se siembra a ciegas.
+#   - No escribe en un Sheets que use Monitoreo para el control. Gonzalo (2 nov 2026): «los enumeradores
+#     solo tienen acceso a la base de barrido no la de control». El barrido es un documento propio, el que
+#     se comparte con los enumeradores; si el enlace es uno de control, es 409 y no se toca.
+
+.MBS_CLAVES_ID <- c("spreadsheet_id", "spreadsheetId", "url", "enlace")
+
+# Los Sheets que Monitoreo usa para el control: todo id de Google Sheets en su estado (config, fuentes,
+# libro de aulas, distribución, rondas publicadas), salvo una fuente con papel `barrido`, que es
+# justamente el documento de los enumeradores. Recorre el árbol entero para no depender de dónde lo
+# guarde cada perfil: un destino nuevo de Monitoreo queda protegido sin tocar este archivo.
+.mbs_documentos_de_control <- function(s) {
+  ids <- character(0)
+  visitar <- function(x) {
+    if (!is.list(x)) return(invisible())
+    if (identical(.mtf_txt(x[["role"]] %||% x[["rol"]] %||% x[["papel"]]), "barrido")) return(invisible())
+    for (k in intersect(.MBS_CLAVES_ID, names(x))) {
+      id <- .monitoreo_extract_spreadsheet_id(.mtf_txt(x[[k]]))
+      if (nzchar(id) && (k != "url" || grepl("docs.google.com/spreadsheets", .mtf_txt(x[[k]]), fixed = TRUE))) ids <<- c(ids, id)
+    }
+    for (v in x) visitar(v)
+  }
+  for (clave in grep("^monitoreo_", names(s), value = TRUE)) visitar(s[[clave]])
+  unique(ids)
+}
 
 .MBS_HOJA_LISTAS <- "Listas"
 .MBS_HOJA_LEEME <- "Léeme"
@@ -97,6 +121,11 @@ collection_telefonica_sheets_sembrar <- function(sid, campaign_id = NULL, enlace
   if (!nzchar(id)) {
     stop_api(422, "E_COLLECTION_BARRIDO_SHEETS_SIN_ENLACE",
              "Pega el enlace del Sheets del estudio: ahí se construye la base de barrido.")
+  }
+  if (id %in% .mbs_documentos_de_control(s)) {
+    stop_api(409, "E_COLLECTION_BARRIDO_SHEETS_ES_CONTROL",
+             "Ese Sheets lo usa Monitoreo para el control. El barrido va en un documento propio, el que se comparte con los enumeradores: crea uno nuevo y pega su enlace.",
+             details = list(spreadsheet_id = id))
   }
   casos <- cfg$muestra + cfg$backup
   p <- .mbp_parametros(hit$entry$name, cfg$llave, cfg$estratos, cfg$telefonos, cfg$reemplazo, cfg$responsables,

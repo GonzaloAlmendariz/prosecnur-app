@@ -97,3 +97,31 @@ test_that("sin enlace es 422; si Google no deja leer el documento, no se escribe
   expect_match(conditionMessage(e), "PERMISSION_DENIED")
   expect_false(escrito)
 })
+
+test_that("el barrido nunca se arma en un Sheets de control de Monitoreo: es un documento propio", {
+  sid <- .mbs_sesion(); on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$monitoreo_config <- list(
+    aulas_universitarias = list(libro_sheets = list(spreadsheet_id = "CtrlLibro1")),
+    fuentes = list(
+      list(role = "respuestas", sheet_binding = list(spreadsheet_id = "https://docs.google.com/spreadsheets/d/CtrlResp2/edit")),
+      list(role = "barrido", sheet_binding = list(spreadsheet_id = "Barrido9"))
+    )
+  )
+  s$monitoreo_supervision_rondas <- list(rondas = list(list(numero = 1, publicada = list(spreadsheet_id = "CtrlSup3"))))
+  .session_env[[sid]] <- s
+  expect_setequal(.mbs_documentos_de_control(session_get(sid)), c("CtrlLibro1", "CtrlResp2", "CtrlSup3"))
+  escrito <- FALSE
+  local_mocked_bindings(
+    .monitoreo_sheets_metadata = function(...) { escrito <<- TRUE; list() },
+    .monitoreo_sheets_batch_update = function(...) { escrito <<- TRUE; list() },
+    .monitoreo_google_api = function(...) { escrito <<- TRUE; list() }
+  )
+  for (enlace in c("CtrlLibro1", "https://docs.google.com/spreadsheets/d/CtrlResp2/edit#gid=0", "CtrlSup3")) {
+    e <- tryCatch(collection_telefonica_sheets_sembrar(sid, enlace = enlace), api_error = function(e) e)
+    expect_identical(e$code, "E_COLLECTION_BARRIDO_SHEETS_ES_CONTROL")
+  }
+  expect_false(escrito)
+  # El que Monitoreo ya conecta como barrido sí es el de los enumeradores.
+  expect_false("Barrido9" %in% .mbs_documentos_de_control(session_get(sid)))
+})

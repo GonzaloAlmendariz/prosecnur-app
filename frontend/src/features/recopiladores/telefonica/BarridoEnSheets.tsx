@@ -26,16 +26,17 @@ export function BarridoEnSheets({ campaignId, sensibles }: { campaignId: string;
   };
   return (
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
-      <h3><FileSpreadsheet size={15} aria-hidden /> En el Sheets del estudio</h3>
+      <h3><FileSpreadsheet size={15} aria-hidden /> En su propio Sheets</h3>
       <p className="rec-terr-nota">
-        Crea en el Sheets del operativo las pestañas «Barrido», «Listas» y «Léeme» con estas columnas y sus desplegables. Ahí
-        pega el analista la base del cliente, con nombres y teléfonos: compártelo sólo con el equipo. Si una pestaña ya existe,
-        no se toca.
+        La base de barrido es un documento propio, el que se comparte con los enumeradores: crea un Sheets nuevo para ella, aparte
+        de la base de control de Monitoreo, que los enumeradores no ven. Aquí se crean sus pestañas «Barrido», «Listas» y «Léeme»
+        con estas columnas y sus desplegables; el analista pega ahí la base del cliente, con nombres y teléfonos. Si una pestaña
+        ya existe, no se toca, y si el enlace es un Sheets de control, no se construye.
         {sensibles.length ? ` Las columnas sensibles (${sensibles.join(", ")}) no se copian.` : ""}
       </p>
       <div className="rec-terr-fila">
         <PulsoInput
-          aria-label="Enlace del Sheets del estudio"
+          aria-label="Enlace del Sheets del barrido"
           placeholder="https://docs.google.com/spreadsheets/d/…"
           value={enlace}
           onChange={(e) => setEnlace(e.target.value)}

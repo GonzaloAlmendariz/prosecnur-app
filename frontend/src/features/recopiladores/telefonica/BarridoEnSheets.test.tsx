@@ -18,7 +18,7 @@ describe("el barrido en el Sheets del estudio", () => {
 
   it("dice qué crea, que no pisa lo que existe y que las sensibles no se copian", () => {
     const html = renderToStaticMarkup(<BarridoEnSheets campaignId="telefonica.principal" sensibles={["Estatus Legal"]} />);
-    for (const t of ["En el Sheets del estudio", "«Barrido», «Listas» y «Léeme»", "Si una pestaña ya existe", "Estatus Legal", "Construir en el Sheets"]) {
+    for (const t of ["En su propio Sheets", "aparte de la base de control de Monitoreo", "los enumeradores no ven", "«Barrido», «Listas» y «Léeme»", "si el enlace es un Sheets de control, no se construye", "Estatus Legal", "Construir en el Sheets"]) {
       expect(html).toContain(t);
     }
   });
