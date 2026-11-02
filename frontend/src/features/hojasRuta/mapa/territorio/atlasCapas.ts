@@ -9,7 +9,10 @@ import { radioCiudad, type CiudadAtlas } from "./ciudades";
  */
 export function dibujarCiudadesAtlas(ctx: CanvasRenderingContext2D, u: UtilLienzo, ciudades: readonly CiudadAtlas[], enEstudio: readonly string[], enfocada: string | null) {
   const acento = u.colores.acento;
-  const puntos = ciudades.map((c) => ({ c, p: u.aPantalla(c.centroMundo[0], c.centroMundo[1]), r: radioCiudad(c.poblacion), est: enEstudio.includes(c.codigo) }));
+  // La ciudad enfocada ya muestra sus distritos con nombre: su círculo, encima, tapaba el centro.
+  const puntos = ciudades
+    .filter((c) => c.codigo !== enfocada)
+    .map((c) => ({ c, p: u.aPantalla(c.centroMundo[0], c.centroMundo[1]), r: radioCiudad(c.poblacion), est: enEstudio.includes(c.codigo) }));
   for (const { c, p, r, est } of puntos) {
     ctx.beginPath();
     ctx.arc(p[0], p[1], r, 0, Math.PI * 2);

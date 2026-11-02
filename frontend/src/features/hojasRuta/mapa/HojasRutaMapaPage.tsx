@@ -483,7 +483,10 @@ export default function HojasRutaMapaPage() {
           ctx.restore();
         }
         // En el atlas las ciudades van en pantalla como círculos; la enfocada muestra sus distritos.
-        if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), () => ({ relleno: u.colores.fondo, borde: u.colores.distritoBorde, grosor: 0.9 }));
+        // Con el mismo trato que la ciudad abierta (F4): tinte del acento y borde a medio tono. Con relleno de
+        // fondo y borde de 0.9, sobre el fondo blanco los distritos se leían como trazos sueltos (revisión de
+        // UI, 2 nov 2026: «todas las ciudades deben verse así de bien», como Lima).
+        if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), () => ({ relleno: mezclar(u.colores.fondo, u.colores.acento, 0.07), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 }));
         return;
       }
       dibujarContornos(ctx, u, enTerritorio ? contornosAbiertos : contornos, (c) => {
