@@ -6,6 +6,7 @@ import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
+import { useDensidadDelChrome } from "./useDensidadDelChrome";
 import { PageFrame } from "../../components/PageFrame";
 import { SectionPillbar } from "../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../lib/modules";
@@ -98,6 +99,7 @@ type Props = {
 
 /** La campaña de aulas abierta: sus cinco secciones (ADR 0108 §5, ADR 0111 §3). */
 export function RecopiladoresShell({ cabecera = null }: Props = {}) {
+  const densidadChrome = useDensidadDelChrome();
   const location = useLocation();
   const navigate = useNavigate();
   const { overview, addedSlugs } = useProjectModules();
@@ -329,6 +331,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
       className="rec-page"
       chrome={(
         <ModuleCommandBar
+          densidad={densidadChrome}
           modulo="material-campo"
           contexto={cabecera || state?.plan ? (
             <>
@@ -367,7 +370,6 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           acciones={[{
             id: "refresh",
             label: "Actualizar",
-            shortLabel: "Actualizar",
             icon: RefreshCw,
             onSelect: () => { void refresh(); },
             kind: "ghost",

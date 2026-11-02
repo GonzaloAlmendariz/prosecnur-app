@@ -13,6 +13,7 @@ import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
+import { useDensidadDelChrome } from "../useDensidadDelChrome";
 import { PageFrame } from "../../../components/PageFrame";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
+  const densidadChrome = useDensidadDelChrome();
   const location = useLocation();
   const navigate = useNavigate();
   const direccion = useDireccion();
@@ -87,6 +89,7 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
       className="rec-page"
       chrome={(
         <ModuleCommandBar
+          densidad={densidadChrome}
           modulo="material-campo"
           contexto={(
             <>
@@ -114,7 +117,6 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
           acciones={[{
             id: "refresh",
             label: "Actualizar",
-            shortLabel: "Actualizar",
             icon: RefreshCw,
             onSelect: () => { void recargar(); },
             kind: "ghost",
