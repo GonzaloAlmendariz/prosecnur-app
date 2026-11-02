@@ -51,6 +51,16 @@
   align-self: stretch;
 }
 
+/* Sin cursos-horario que medir, la tabla es una nota: el marco mide la nota
+ * en vez de estirarse al alto de la vista (C2). */
+.aulas-ch.is-tabla-vacia {
+  align-content: start;
+}
+
+.aulas-ch.is-tabla-vacia .aulas-ch-izquierda {
+  align-self: start;
+}
+
 /* La derecha mide lo que trae; si una pantalla baja no le alcanza, desplaza
  * ella misma en vez de empujar el pie fuera de la vista. */
 .aulas-ch-derecha {

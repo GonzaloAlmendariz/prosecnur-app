@@ -60,7 +60,7 @@ function CursosHorarioAulasImpl({ dashboard, cargando, vacioSinTablero }: {
 
   return (
     <section
-      className="aulas-ch"
+      className={modelo.tabla.tipo === "vacio" ? "aulas-ch is-tabla-vacia" : "aulas-ch"}
       aria-label="Cursos-horario"
       data-audit-ready={readiness}
       data-qa-geometry-group="aulas-cursos"

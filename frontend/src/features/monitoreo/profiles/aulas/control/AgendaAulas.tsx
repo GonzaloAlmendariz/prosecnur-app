@@ -89,7 +89,7 @@ function Nota({ vacio }: { vacio: Vacio }) {
 function ListaPendiente({ titulo, tono, filas, vacio }: { titulo: string; tono: "aviso" | "riesgo"; filas: FilaPendiente[]; vacio: string }) {
   const id = `aulas-ag-${tono}`;
   return (
-    <section className="aulas-ag-panel aulas-ag-lista" aria-labelledby={id} data-qa-geometry-member={tono}>
+    <section className="aulas-ag-panel aulas-ag-lista" aria-labelledby={id} data-qa-geometry-member={tono} data-vacia={filas.length ? undefined : ""}>
       <header className="aulas-ag-cabecera">
         <h3 id={id} className="aulas-ag-titulo">{titulo}</h3>
         <span className="aulas-ag-cuenta" data-tono={tono}>{filas.length}</span>

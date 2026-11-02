@@ -126,6 +126,12 @@
   flex: 1 1 0;
 }
 
+/* Una lista sin filas es una nota: mide la nota y no se reparte el alto de la
+ * columna con la otra (C2). */
+.aulas-ag-lista[data-vacia] {
+  flex: 0 0 auto;
+}
+
 .aulas-ag-semana {
   min-height: 0;
 }
