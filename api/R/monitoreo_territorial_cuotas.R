@@ -39,10 +39,14 @@
 #' @param envio la foto `runs[[fase]]$envio` de Hojas de ruta.
 #' @param audit el audit territorial (ubigeo, sex, age, advance_valid,
 #'   observation_status), ya sin anuladas.
+#' @param asignacion filas de la asignación por zona que arma Material
+#'   (`GET /api/recopiladores/campaigns/territorial/asignacion`, 2d6b8d6d1):
+#'   `{id_zona, codigo, parte}`, con un `id_zona` que puede repetirse cuando dos
+#'   o más personas se reparten la cuota (decisión de Gonzalo).
 #' @return `NULL` si el envío no es por cuotas; si no, `list(kind, zonas, total,
-#'   sin_zona, sin_celda)`.
+#'   sin_zona, sin_celda)`; cada zona trae `personas` con su parte y sus efectivas.
 #' @keywords internal
-monitoreo_territorial_avance_cuotas <- function(envio, audit) {
+monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list()) {
   if (!is.list(envio) || !identical(.monitoreo_scalar(envio$kind, ""), "cuotas")) return(NULL)
   zonas <- Filter(is.list, envio$zonas %||% list())
   n <- if (is.data.frame(audit)) nrow(audit) else 0L
@@ -50,6 +54,10 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit) {
   ubigeo <- if (n) trimws(as.character(audit$ubigeo %||% rep("", n))) else character(0)
   sexo <- if (n) .mtcu_sexo(audit$sex %||% rep("", n)) else character(0)
   edad <- if (n) suppressWarnings(as.numeric(audit$age %||% rep(NA, n))) else numeric(0)
+  # Quién levantó cada caso: el código Pulso normalizado, el mismo de la lista de códigos.
+  codigo <- if (n) toupper(trimws(as.character(audit$pulso_code_normalized %||% audit$pulso_code %||% rep("", n)))) else character(0)
+  filas_asig <- Filter(function(a) is.list(a) && nzchar(.monitoreo_scalar(a$id_zona %||% a$id_manzana, "")),
+                       asignacion %||% list())
 
   en_alguna_celda <- rep(FALSE, n)
   ubigeos <- character(0)
@@ -71,9 +79,19 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit) {
     })
     meta <- suppressWarnings(as.integer(.monitoreo_scalar(z$n, 0L)))
     if (is.na(meta)) meta <- 0L
+    id_z <- .monitoreo_scalar(z$id_zona %||% u, "")
+    suyas <- Filter(function(a) identical(.monitoreo_scalar(a$id_zona %||% a$id_manzana, ""), id_z), filas_asig)
+    personas <- lapply(suyas, function(a) {
+      cod <- toupper(trimws(.monitoreo_scalar(a$codigo, "")))
+      parte <- suppressWarnings(as.integer(.monitoreo_scalar(a$parte, NA)))
+      ef <- as.integer(sum(en_zona & m$efectiva & nzchar(cod) & codigo == cod))
+      list(codigo = .monitoreo_scalar(a$codigo, ""), parte = if (is.na(parte)) NA_integer_ else parte,
+           efectivas = ef, falta = if (is.na(parte)) NA_integer_ else as.integer(max(0L, parte - ef)))
+    })
     list(
-      id_zona = .monitoreo_scalar(z$id_zona %||% u, ""), ubigeo = u, nombre = .monitoreo_scalar(z$nombre, ""),
+      id_zona = id_z, ubigeo = u, nombre = .monitoreo_scalar(z$nombre, ""),
       meta = meta,
+      personas = personas,
       efectivas = as.integer(sum(en_zona & m$efectiva)),
       en_observacion = as.integer(sum(en_zona & m$observacion)),
       celdas = celdas,

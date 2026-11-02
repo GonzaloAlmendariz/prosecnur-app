@@ -55,3 +55,24 @@ test_that("un envío por UMP no es de cuotas", {
   vacio <- monitoreo_territorial_avance_cuotas(envio_cuotas(), data.frame())
   expect_identical(vacio$total$efectivas, 0L)
 })
+
+test_that("una zona con dos personas reparte su cuota y cada una lleva sus efectivas", {
+  audit <- audit_cuotas()
+  audit$pulso_code_normalized <- c("P101", "P102", "P101", "P101", "P103", "P101", "P102")
+  asignacion <- list(
+    list(id_zona = "150101", id_manzana = "150101", codigo = "P101", parte = 3L, role = "zona"),
+    list(id_zona = "150101", id_manzana = "150101", codigo = "P102", parte = 1L, role = "zona"),
+    list(id_zona = "150132", id_manzana = "150132", codigo = "P103", parte = 2L, role = "zona")
+  )
+  out <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit, asignacion)
+  lima <- out$zonas[[1]]
+  expect_length(lima$personas, 2L)
+  expect_identical(lima$personas[[1]]$efectivas, 3L)   # P101: casos 1, 3 y 4
+  expect_identical(lima$personas[[1]]$falta, 0L)
+  expect_identical(lima$personas[[2]]$efectivas, 2L)   # P102: casos 2 y 7
+  # El caso de P103 en SJL no es efectivo.
+  expect_identical(out$zonas[[2]]$personas[[1]]$efectivas, 0L)
+  expect_identical(out$zonas[[2]]$personas[[1]]$falta, 2L)
+  # Sin asignación, las zonas no inventan personas.
+  expect_length(monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]$personas, 0L)
+})
