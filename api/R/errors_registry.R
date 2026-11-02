@@ -140,6 +140,7 @@ errores_registrados <- function() {
     "E_MAILCHIMP_TOKEN",                                     "collection_mail_mailchimp.R",       "400",
     "E_MAILCHIMP_API",                                       "collection_mail_mailchimp.R",       "502",
     "E_MAILCHIMP_SYNC_SURVEYMONKEY",                         "collection_mail_mailchimp.R",       "502",
+    "E_MONITOREO_DESTINO_ES_BARRIDO",                        "monitoreo_destino_no_barrido.R",    "409",
     # Monitoreo › Avance › Correo (T3, docs/qa/checklist-monitoreo-mailchimp-t3-2026-10-22.md).
     "E_MONITOREO_MAILCHIMP_AUDIENCIA",                       "router_monitoreo_mailchimp.R",      "400,409",
     # Monitoreo › Avance › Cuotas (T2).
@@ -194,6 +195,7 @@ errores_registrados <- function() {
     # La base de barrido sembrada en el Sheets del estudio (decisión de Gonzalo 2 nov 2026).
     "E_COLLECTION_BARRIDO_SHEETS_SIN_ENLACE",                "collection_barrido_sheets.R",       "422",
     "E_COLLECTION_BARRIDO_SHEETS_GOOGLE",                    "collection_barrido_sheets.R",       "502",
+    "E_COLLECTION_BARRIDO_SHEETS_ES_CONTROL",                "collection_barrido_sheets.R",       "409",
     # Campaña de supervisión del telefónico (ADR 0125 anexo A3).
     "E_COLLECTION_SUPERVISION_SIN_LOTE",                     "collection_campaigns_supervision.R", "409",
     "E_COLLECTION_SUPERVISION_UNICA",                        "collection_campaigns_supervision.R", "409",

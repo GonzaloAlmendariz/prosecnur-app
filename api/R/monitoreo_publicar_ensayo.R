@@ -41,6 +41,7 @@ monitoreo_publicar_destino_interno <- function(sid, s, parsed = list()) {
   cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
   spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "internal")
   if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino.")
+  monitoreo_guarda_destino_no_barrido(s, spreadsheet_id, "la base de control")
   tabs <- .monitoreo_sheets_publish_payload(snapshot, cfg)
   list(
     spreadsheet_id = spreadsheet_id,
@@ -59,6 +60,7 @@ monitoreo_publicar_destino_cliente <- function(sid, s, parsed = list()) {
                                                       padron = s[["monitoreo_aulas_padron"]])
   spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
   if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
+  monitoreo_guarda_destino_no_barrido(s, spreadsheet_id, "el reporte a cliente")
   tabs <- .monitoreo_client_report_tabs_payload(model)
   list(
     spreadsheet_id = spreadsheet_id,
@@ -79,6 +81,7 @@ monitoreo_publicar_destino_publicacion <- function(sid, s, parsed = list()) {
   audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
   spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
   if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para publicar el ejecutivo en Sheets.")
+  monitoreo_guarda_destino_no_barrido(s, spreadsheet_id, "el ejecutivo")
   bundle <- .monitoreo_publication_preflight_bundle(sid, s, snapshot, parsed,
                                                     audience = audience, spreadsheet_id = spreadsheet_id)
   if (identical(bundle$preflight$status, "blocked")) {

@@ -525,6 +525,8 @@ mount_monitoreo_supervision_rondas <- function(pr) {
                  list(numero = .monitoreo_scalar(parsed$numero %||% parsed$ronda, "")))
       }
       fuente <- .monitoreo_supervision_fuente_hoja(ctx$sources)
+      # La hoja de supervisión no puede ser el documento del barrido.
+      monitoreo_guarda_destino_no_barrido(ctx$s, fuente$sheet_binding$spreadsheet_id, "la ronda de supervisión")
       data <- ctx$data
       phone <- .monitoreo_report_phone_data(.monitoreo_report_phone_scope_data(data, ctx$cfg$monitoreo_profile %||% list(), ctx$cfg))
       respuestas <- data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE]
