@@ -1796,8 +1796,9 @@ mount_validacion <- function(pr) {
         instrumento = resolved$instrumento,
         filtros = filtros
       )
+      cruce <- explorador_cruce_filtrado(resolved$data, var_x, var_y, resolved$instrumento, filtros)  # E8
       list(ok = TRUE, base_nombre = resolved$effective_base,
-            fuente = resolved$fuente, view = view)
+            fuente = resolved$fuente, view = view, cruce = cruce)
     })) |>
 
     # --- Explorar: valores distintos de una variable (para filtro UI) -------

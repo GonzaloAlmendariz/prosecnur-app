@@ -567,6 +567,7 @@ errores_registrados <- function() {
     "E_EQUIV_BLOQUES_FORMATO",                               "equivalencias_importar_bloques.R",  "400",
     "E_EQUIV_BLOQUES_MODO",                                  "router_equivalencias.R",            "400",
     "E_EQUIV_BLOQUES_PERIODOS",                              "equivalencias_importar_bloques.R",  "400",
+    "E_EXPLORAR_VAR_NOT_FOUND",                              "explorador_ficha.R",                "404",
     "E_EXPORT_COPY_FAILED",                                  "router_analitica.R",                "500",
     "E_FILE_EXISTS",                                         "router_proyecto.R",                 "409",
     "E_FILE_NOT_FOUND",                                      "router_proyecto.R",                 "404",

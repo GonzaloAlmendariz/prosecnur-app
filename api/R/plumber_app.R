@@ -106,6 +106,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_carga_columnas_anexadas(pr)
     pr <- mount_validacion(pr)
     pr <- mount_validacion_caso_valido_manual(pr)
+    pr <- mount_explorador_ficha(pr)          # E10/E11: ficha de la pregunta en Validación › Explorar
     pr <- mount_codificacion(pr)
     pr <- mount_codificacion_textos_en_otro(pr)
     pr <- mount_texto_abierto(pr)   # TXT-6/7: diccionario del proyecto por pregunta abierta

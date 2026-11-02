@@ -1047,6 +1047,7 @@ build_view_univariado <- function(data, var, instrumento, filtros = NULL) {
     label = .explorar_label_var(var, instrumento),
     kpis = kpis,
     chart = chart,
+    dist = explorador_distribucion(data_f, var, instrumento),  # E6 (explorador_distribucion.R)
     n_tras_filtro = as.integer(n_tras_filtro),
     n_total = as.integer(n_total),
     filtros_aplicados = length(filtros %||% list())
