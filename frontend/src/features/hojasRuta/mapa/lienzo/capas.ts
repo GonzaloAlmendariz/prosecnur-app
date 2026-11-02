@@ -241,6 +241,78 @@ export function elegirRotulos(
   return puestos;
 }
 
+export type RotuloAlCostado = CandidatoRotulo & { cx: number; cy: number; lado: "izq" | "der" };
+
+/**
+ * Fichas en dos columnas al costado del lienzo, cada una con su guía al distrito (revisión de UI
+ * del mapa, 2 nov 2026). Corridas sólo hacia arriba o abajo, las fichas de distritos vecinos —seis
+ * en Lima— se apilaban justo encima de ellos y tapaban su color y los nombres de alrededor: lo que
+ * el mapa tiene que mostrar es dónde están. Aquí cada ficha va al lado más cercano, ordenada por su
+ * altura para que las guías no se crucen, y la columna se acomoda dentro de `limites`.
+ *
+ * Devuelve `null` si no hacen falta (ninguna ficha choca en su sitio, o los distritos no están
+ * apiñados) o si no caben sin tapar ningún distrito: el llamador sigue con el reparto de siempre.
+ */
+export function rotulosAlCostado(
+  candidatos: readonly CandidatoRotulo[],
+  ancho: number,
+  limites: { arriba: number; abajo: number },
+  margen = 6,
+  borde = 14,
+): RotuloAlCostado[] | null {
+  if (candidatos.length < 2) return null;
+  const chocan = candidatos.some((a, i) => candidatos.some((b, j) => i < j
+    && Math.abs(a.x - b.x) * 2 < a.w + b.w + margen * 2 && Math.abs(a.y - b.y) * 2 < a.h + b.h + margen * 2));
+  if (!chocan) return null;
+  const alto = limites.abajo - limites.arriba;
+  // Sólo con los distritos apiñados (Lima entera en Territorio). Con el lienzo encuadrado en ellos
+  // (Muestra) cada distrito es grande y su ficha cabe dentro: llevarla al costado sólo alarga las
+  // guías y las cruza sobre los vecinos.
+  const xs = candidatos.map((c) => c.x), ys = candidatos.map((c) => c.y);
+  const apinados = Math.max(...xs) - Math.min(...xs) < ancho * 0.35 && Math.max(...ys) - Math.min(...ys) < alto * 0.45;
+  if (!apinados) return null;
+  const altoDe = (xs: readonly CandidatoRotulo[]) => xs.reduce((t, c) => t + c.h + margen, -margen);
+  // Un lado sirve sólo si la ficha queda entera fuera de su distrito (a 1024 el lienzo es angosto y
+  // la columna izquierda caía encima de los distritos del oeste).
+  const holgura = 10;
+  const sirveIzq = (c: CandidatoRotulo) => c.x - holgura > borde + c.w;
+  const sirveDer = (c: CandidatoRotulo) => c.x + holgura < ancho - borde - c.w;
+  if (candidatos.some((c) => !sirveIzq(c) && !sirveDer(c))) return null;
+  const izq = candidatos.filter((c) => sirveIzq(c) && (!sirveDer(c) || c.x < ancho / 2));
+  const der = candidatos.filter((c) => !izq.includes(c));
+  // Si un lado no cabe, pasan al otro sus fichas más cercanas al centro que también sirvan allá.
+  const mover = (desde: CandidatoRotulo[], hacia: CandidatoRotulo[], sirve: (c: CandidatoRotulo) => boolean, cercania: (c: CandidatoRotulo) => number) => {
+    while (altoDe(desde) > alto) {
+      const pasa = desde.filter(sirve).sort((a, b) => cercania(a) - cercania(b))[0];
+      if (!pasa || altoDe([...hacia, pasa]) > alto) return;
+      desde.splice(desde.indexOf(pasa), 1);
+      hacia.push(pasa);
+    }
+  };
+  mover(izq, der, sirveDer, (c) => ancho / 2 - c.x);
+  mover(der, izq, sirveIzq, (c) => c.x - ancho / 2);
+  if (altoDe(izq) > alto || altoDe(der) > alto) return null;
+  const columna = (xs: CandidatoRotulo[], lado: "izq" | "der"): RotuloAlCostado[] => {
+    const orden = [...xs].sort((a, b) => a.y - b.y);
+    // Cada ficha quiere quedar a la altura de su distrito; se empujan hacia abajo sin pisarse…
+    const ys: number[] = [];
+    orden.forEach((c, i) => {
+      const deseada = Math.max(c.y, limites.arriba + c.h / 2);
+      ys.push(i ? Math.max(deseada, ys[i - 1] + orden[i - 1].h / 2 + margen + c.h / 2) : deseada);
+    });
+    // …y si la última se sale por abajo, la columna sube entera lo que haga falta.
+    for (let i = orden.length - 1; i >= 0; i--) {
+      const tope = i === orden.length - 1 ? limites.abajo - orden[i].h / 2 : ys[i + 1] - orden[i + 1].h / 2 - margen - orden[i].h / 2;
+      ys[i] = Math.min(ys[i], tope);
+    }
+    return orden.map((c, i) => ({ ...c, lado, cy: ys[i], cx: lado === "izq" ? borde + c.w / 2 : ancho - borde - c.w / 2 }));
+  };
+  const fichas = [...columna(izq, "izq"), ...columna(der, "der")];
+  // Ninguna ficha puede tapar el punto de otro distrito.
+  const tapa = fichas.some((f) => candidatos.some((c) => Math.abs(c.x - f.cx) * 2 < f.w + holgura && Math.abs(c.y - f.cy) * 2 < f.h + holgura));
+  return tapa ? null : fichas;
+}
+
 export type RotuloDistrito = { ubigeo: string; nombre: string; detalle?: string; x: number; y: number; tono: string };
 
 /** Rótulos de distrito. Con más de ocho van compactos (sólo el nombre). */
@@ -277,23 +349,32 @@ export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLie
     return { r, x, y, w: Math.max(w1, w2) + 24, h: compactos || !r.detalle ? 22 : 38 };
   });
   const dentro = medidos.filter((m) => m.x > 20 && m.y > 16 && m.x < u.tamano.w - 20 && m.y < u.tamano.h - 16);
-  const elegidos = new Map(elegirRotulos(dentro.map((m) => ({ clave: m.r.ubigeo, x: m.x, y: m.y, w: m.w, h: m.h })), 4, !compactos, { arriba: 52, abajo: u.tamano.h - 52 }).map((c) => [c.clave, c.dy]));
+  const limites = { arriba: 52, abajo: u.tamano.h - 52 };
+  const candidatos = dentro.map((m) => ({ clave: m.r.ubigeo, x: m.x, y: m.y, w: m.w, h: m.h }));
+  // Con pocas fichas apiñadas, van a los costados con su guía (rotulosAlCostado); si no, como siempre.
+  const alCostado = compactos ? null : rotulosAlCostado(candidatos, u.tamano.w, limites);
+  const puestos = new Map<string, { x: number; y: number; guia: [number, number] | null }>();
+  if (alCostado) {
+    for (const f of alCostado) puestos.set(f.clave, { x: f.cx, y: f.cy, guia: [f.lado === "izq" ? f.cx + f.w / 2 : f.cx - f.w / 2, f.cy] });
+  } else {
+    for (const c of elegirRotulos(candidatos, 4, !compactos, limites)) puestos.set(c.clave, { x: c.x, y: c.y + c.dy, guia: c.dy ? [c.x, c.dy > 0 ? c.y + c.dy - c.h / 2 : c.y + c.dy + c.h / 2] : null });
+  }
   for (const m of dentro) {
-    const dy = elegidos.get(m.r.ubigeo);
-    if (dy === undefined) continue;
-    const { x, w, h } = m;
-    const y = m.y + dy;
-    if (dy !== 0) {
-      // Guía al punto del distrito: el rótulo corrido no debe señalar al vecino.
+    const puesto = puestos.get(m.r.ubigeo);
+    if (!puesto) continue;
+    const { w, h } = m;
+    const { x, y } = puesto;
+    if (puesto.guia) {
+      // Guía al punto del distrito: la ficha corrida no debe señalar al vecino.
       ctx.strokeStyle = m.r.tono;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(x, m.y);
-      ctx.lineTo(x, dy > 0 ? y - h / 2 : y + h / 2);
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(puesto.guia[0], puesto.guia[1]);
       ctx.stroke();
       ctx.fillStyle = m.r.tono;
       ctx.beginPath();
-      ctx.arc(x, m.y, 2.5, 0, Math.PI * 2);
+      ctx.arc(m.x, m.y, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.beginPath();

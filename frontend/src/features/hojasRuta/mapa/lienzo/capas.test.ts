@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import cobertura from "../../limaDistrictCoverage.json";
 import { proyectarLonLat } from "./camara";
-import { contornosDeCobertura, elegirRotulos, mezclar } from "./capas";
+import { contornosDeCobertura, elegirRotulos, mezclar, rotulosAlCostado } from "./capas";
 
 describe("proyección lon/lat", () => {
   test("coincide con la de R (.hojas_ruta_geometria_proyectar)", () => {
@@ -89,3 +89,49 @@ describe("tonos de distrito sin repetir (pedido de Gonzalo: 20 distritos)", () =
     expect(tonoGenerado(8)).toMatch(/^hsl\(/);
   });
 });
+
+describe("fichas al costado del lienzo (revisión del mapa, 2 nov 2026)", () => {
+  const limites = { arriba: 52, abajo: 548 };
+  test("con los distritos repartidos por el lienzo (Muestra encuadrada), se quedan en su sitio aunque choquen", () => {
+    const repartidos = [{ clave: "a", x: 250, y: 200, w: 160, h: 38 }, { clave: "b", x: 300, y: 215, w: 160, h: 38 }, { clave: "c", x: 600, y: 450, w: 160, h: 38 }];
+    expect(rotulosAlCostado(repartidos, 800, limites)).toBeNull();
+  });
+  test("si ninguna choca en su sitio, no se mueven", () => {
+    expect(rotulosAlCostado([{ clave: "a", x: 100, y: 100, w: 120, h: 38 }, { clave: "b", x: 500, y: 400, w: 120, h: 38 }], 800, limites)).toBeNull();
+  });
+  test("apiñadas, van al lado más cercano, ordenadas por altura, dentro de los límites y sin pisarse", () => {
+    const juntos = [0, 1, 2, 3, 4, 5].map((i) => ({ clave: String(i), x: 380 + (i % 2) * 60, y: 280 + i * 8, w: 140, h: 38 }));
+    const r = rotulosAlCostado(juntos, 800, limites);
+    expect(r).not.toBeNull();
+    if (!r) return;
+    expect(r).toHaveLength(6);
+    for (const f of r) {
+      expect(f.lado === "izq" ? f.x < 400 : f.x >= 400).toBe(true);
+      expect(f.cy - f.h / 2).toBeGreaterThanOrEqual(limites.arriba);
+      expect(f.cy + f.h / 2).toBeLessThanOrEqual(limites.abajo);
+      expect(f.lado === "izq" ? f.cx - f.w / 2 : 800 - (f.cx + f.w / 2)).toBe(14);
+    }
+    for (const lado of ["izq", "der"] as const) {
+      const col = r.filter((f) => f.lado === lado);
+      // El orden de la columna sigue el de los distritos: las guías no se cruzan.
+      expect(col.map((f) => f.y)).toEqual([...col.map((f) => f.y)].sort((a, b) => a - b));
+      for (let i = 1; i < col.length; i++) expect(col[i].cy - col[i - 1].cy).toBeGreaterThanOrEqual(38 + 6);
+    }
+  });
+  test("una columna llena cede al otro lado; si tampoco caben, el llamador sigue como antes", () => {
+    const izquierda = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ clave: String(i), x: 300, y: 300, w: 140, h: 60 }));
+    const r = rotulosAlCostado(izquierda, 800, limites);
+    expect(r?.some((f) => f.lado === "der")).toBe(true);
+    const demasiadas = Array.from({ length: 20 }, (_, i) => ({ clave: String(i), x: 400, y: 300, w: 140, h: 60 }));
+    expect(rotulosAlCostado(demasiadas, 800, limites)).toBeNull();
+  });
+  test("ninguna ficha tapa su distrito: en un lienzo angosto sin lado libre, sigue el reparto de siempre", () => {
+    // 380 px de ancho: una ficha de 140 a cualquier lado cae encima de distritos que están en el centro.
+    const angosto = [0, 1, 2].map((i) => ({ clave: String(i), x: 150 + i * 20, y: 300, w: 140, h: 38 }));
+    expect(rotulosAlCostado(angosto, 380, limites)).toBeNull();
+    // Con espacio, la que está al oeste va a la izquierda sin taparse.
+    const r = rotulosAlCostado([{ clave: "o", x: 300, y: 300, w: 140, h: 38 }, { clave: "e", x: 320, y: 305, w: 140, h: 38 }], 800, limites);
+    for (const f of r ?? []) expect(f.lado === "izq" ? f.cx + f.w / 2 < f.x : f.cx - f.w / 2 > f.x).toBe(true);
+  });
+});
+
