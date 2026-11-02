@@ -22,9 +22,11 @@ function compactLastUpdate(value: string): CompactLastUpdate {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
   if (!normalized || normalizedLabel.startsWith("sin actualizacion")) {
+    // En dos líneas, como la fecha y la hora de un corte: «Sin act.» en una
+    // sola no cabía en los 40 px de la cápsula y salía cortado.
     return {
-      date: "Sin act.",
-      time: "",
+      date: "Sin",
+      time: "corte",
       fullValue: "Sin actualización",
     };
   }
@@ -60,8 +62,8 @@ function compactLastUpdate(value: string): CompactLastUpdate {
   }
 
   return {
-    date: "Sin hora",
-    time: "",
+    date: "Sin",
+    time: "hora",
     fullValue: normalized || "Sin actualización",
   };
 }
