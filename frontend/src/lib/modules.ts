@@ -242,13 +242,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Cálculo de muestra",
     tagline: "Marco muestral, escenarios y selección de unidades",
     blurb:
-      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, cursos-horario, actores, manzanas o viviendas—. El plan resultante se enlaza con Monitoreo para el seguimiento de campo.",
+      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, cursos-horario o actores—. El muestreo territorial aleatorio (zonas, manzanas y viviendas) se hace en Hojas de ruta. La selección pasa a Material de campo y las metas, a Monitoreo.",
     features: [
       "Construcción y auditoría del marco muestral",
       "Escenarios de tamaño, cuotas, estratos y conglomerados",
       "Selección aleatoria, sistemática o por reglas operativas",
-      "Procedimientos por estudiantes, cursos-horario, actores y territorio",
-      "Reporte metodológico y enlace con Monitoreo",
+      "Procedimientos por estudiantes, cursos-horario y actores",
+      "Reporte metodológico; la selección pasa a Material y las metas a Monitoreo",
     ],
     icon: IconSample,
     tone: MODULE_TONES["calc-muestra"],
@@ -368,13 +368,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Hojas de ruta",
     tagline: "Cuotas, rutas y cartografía para el equipo de campo",
     blurb:
-      "Hojas de ruta imprimibles para el equipo de campo: cuotas por conglomerado, rutas de visita y puntos de muestra georreferenciados, consolidados en un paquete listo para impresión.",
+      "Muestreo territorial aleatorio: sortea zonas, manzanas y viviendas sobre la cartografía, arma cuotas y rutas por conglomerado y envía la selección a Material de campo, que imprime las hojas de zona. Monitoreo recibe las metas.",
     features: [
       "Cuotas por conglomerado (UPM)",
-      "Rutas de visita imprimibles",
+      "Rutas de visita por conglomerado",
       "Puntos de muestra georreferenciados",
       "Validación de territorio (UBIGEO)",
-      "Paquete de PDF listo para impresión",
+      "Envío de la selección a Material de campo",
     ],
     icon: IconRoutes,
     tone: MODULE_TONES["hojas-ruta"],
@@ -462,12 +462,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     cardTitle: "Material de campo",
     tagline: "Fichas, accesos y paquetes",
     blurb:
-      "Produce y entrega el material de campo de cada unidad que otro módulo decidió: accesos, fichas imprimibles y paquetes listos para el equipo, con constancia de qué recibió cada unidad.",
+      "Produce el material de campo de cada unidad que decidieron Cálculo de muestra u Hojas de ruta: accesos, fichas imprimibles, paquetes y las tablas de seguimiento en el Sheets del estudio, que campo llena al inicio. No hace seguimiento: entrega a Monitoreo, con constancia de qué recibió cada unidad.",
     features: [
       "Lista de unidades tomada de la muestra decidida",
       "Un acceso trazable por unidad",
       "Fichas imprimibles con los datos de cada unidad",
       "Paquetes agrupados para el reparto en campo",
+      "Tablas de seguimiento en el Sheets del estudio",
       "Entrega registrada para Monitoreo",
     ],
     icon: IconFieldKit,
@@ -687,9 +688,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Monitoreo",
     tagline: "Seguimiento del trabajo de campo",
     blurb:
-      "Seguimiento del trabajo de campo a partir de Kobo y SurveyMonkey: cumplimiento de metas, control de calidad, producción y supervisión durante el levantamiento.",
+      "Seguimiento del trabajo de campo: avance contra las metas, control del equipo y de calidad, ritmo y reporte de avance. Lee las respuestas de Kobo y SurveyMonkey y las tablas que Material de campo dejó en el Sheets del estudio.",
     features: [
-      "Sincronización con Kobo y SurveyMonkey",
+      "Sincronización con Kobo, SurveyMonkey y el Sheets de Material",
       "Cumplimiento de metas por variables de control",
       "Detección de inconsistencias y tiempos atípicos",
       "Muestra para supervisión telefónica",
