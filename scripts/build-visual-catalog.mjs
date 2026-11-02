@@ -327,7 +327,9 @@ const HIERARCHY = [
       {
         id: "unidades",
         label: "Unidades",
-        tabs: ["Lista"],
+        // Las pestañas siguen a PESTANAS_POR_SECCION (features/recopiladores/navegacion.ts)
+        // con los rótulos de lib/modules.ts.
+        tabs: ["Lista", "Origen"],
       },
       {
         id: "accesos",
@@ -337,7 +339,7 @@ const HIERARCHY = [
       {
         id: "catalogo",
         label: "Catálogo",
-        tabs: ["Editor"],
+        tabs: ["Tipos", "Editor"],
       },
       {
         id: "paquetes",
@@ -347,7 +349,7 @@ const HIERARCHY = [
       {
         id: "entrega",
         label: "Entrega",
-        tabs: ["Monitoreo"],
+        tabs: ["Monitoreo", "Plantillas del equipo"],
       },
     ],
   },
@@ -742,6 +744,14 @@ const DECLARED_VISUAL_SURFACES = [
   ),
   surface(
     "procesamiento",
+    "graficos",
+    "Láminas",
+    "Lámina rasterizada por el motor",
+    "La lámina real que va a salir, rasterizada por el export (preview-slide), con ranuras seleccionables, zoom, guías y tira de miniaturas. Reemplaza a «Previews de slides» (SlidePreview.tsx, retirado en 85f5400f8).",
+    "frontend/src/features/graficos/laminas/VisorLamina.tsx",
+  ),
+  surface(
+    "procesamiento",
     "validacion",
     "Explorar respuestas",
     "Visualizaciones Plotly de validación",
@@ -920,6 +930,9 @@ const SOURCE_CONTEXT_RULES = [
   ),
   rule(/features\/xlsformEditor\//, "formularios", "constructor", null),
   rule(/features\/hojasRuta\//, "hojas-ruta", "territorio", null),
+  // El editor de correos es del modo «correo» de Material, que la jerarquía (modo
+  // aulas) no modela: sus pestañas internas no son pestañas de las secciones de aulas.
+  rule(/features\/recopiladores\/correos\//, "material-campo", "correo", null),
   rule(/features\/recopiladores\//, "material-campo", "unidades", null),
   rule(
     /features\/monitoreo\/profiles\/territorial\/TerritorialSourceConsole/,
@@ -1732,7 +1745,8 @@ function refineContext(
     }
   }
 
-  if (context.module === "material-campo") {
+  // El modo correo no se reparte en las secciones de aulas (ver la regla de `correos/`).
+  if (context.module === "material-campo" && context.section !== "correo") {
     const sectionMap = {
       plan: "unidades",
       unidad: "unidades",
@@ -2675,6 +2689,15 @@ function refineDeclaredContext(
       }
     }
     if (next.module === "material-campo") {
+      // La jerarquía de Material modela el modo «aulas» (HIERARCHY). Los otros
+      // modos (territorial, telefónica, correo) tienen sus propias secciones y
+      // pestañas: un enlace suyo no es una pestaña de las secciones de aulas y
+      // queda como contexto múltiple hasta que el catálogo modele los modos.
+      const modo = url.searchParams.get("modo");
+      if (modo && modo !== "aulas") {
+        next.tab = TAB_SCOPE_MULTIPLE;
+        return next;
+      }
       const section = url.searchParams.get("seccion") || "unidades";
       const validSections = new Set([
         "unidades",
@@ -2686,11 +2709,14 @@ function refineDeclaredContext(
       if (validSections.has(section)) next.section = section;
       const tabMap = {
         lista: "Lista",
+        origen: "Origen",
         canales: "Canales",
         vinculacion: "Vinculación",
+        tipos: "Tipos",
         editor: "Editor",
         armado: "Armado",
         traspaso: "Monitoreo",
+        plantillas: "Plantillas del equipo",
       };
       next.tab = tabMap[url.searchParams.get("pestana")] ?? next.tab;
     }
@@ -2793,11 +2819,14 @@ function refineDeclaredContext(
   if (next.module === "material-campo") {
     const tabByToken = {
       lista: ["unidades", "Lista"],
+      origen: ["unidades", "Origen"],
       canales: ["accesos", "Canales"],
       vinculacion: ["accesos", "Vinculación"],
+      tipos: ["catalogo", "Tipos"],
       editor: ["catalogo", "Editor"],
       armado: ["paquetes", "Armado"],
       traspaso: ["entrega", "Monitoreo"],
+      plantillas: ["entrega", "Plantillas del equipo"],
     };
     const tabToken = Object.keys(tabByToken).find(
       (key) => normalizedLabel === key,
