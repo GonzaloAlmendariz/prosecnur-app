@@ -93,6 +93,10 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     expect(accionesDeCampana(correo, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "duplicar", "borrar"]);
     // Sin registro en el backend, archivar se ve deshabilitado con su motivo.
     expect(accionesDeCampana(aulas, { fuente: "derivada", correos: 1 }).every((a) => a.motivo)).toBe(true);
+    // Revamp v5: la supervisión ya no tiene el menú vacío.
+    const supervision = { ...aulas, id: "supervision.lote-2", tipo: "supervision" as const };
+    expect(accionesDeCampana(supervision, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "ver-lote", "archivar"]);
+    expect(accionesDeCampana({ ...supervision, archived: true }, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["reabrir"]);
   });
 });
 

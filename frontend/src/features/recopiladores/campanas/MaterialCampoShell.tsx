@@ -12,7 +12,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
 import type { MailPlatform } from "../../../api/materialMail";
-import { conNivel } from "../../../lib/navegacion/direccion";
+import { conNivel, serializarDireccion } from "../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
 import { ConfirmarBorrarCampana } from "../correos/ConfirmarBorrarCampana";
@@ -38,6 +38,9 @@ import { ListaDeCampanas, type AvisoDeLaLista } from "./ListaDeCampanas";
 import { useMiniaturasDeCorreo } from "./miniaturaDeCorreo";
 import { ID_CAMPANA_AULAS, campanaPorId, exportadosDe, idDeCorreo, refDeCorreo } from "./modeloRegistro";
 import { subtituloDeCampana } from "./nombreUnico";
+
+/** Donde Monitoreo calcula y sigue los lotes de supervisión (ADR 0125 A3). */
+const A_MONITOREO_SUPERVISION = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "control", pestana: "supervision" });
 import { PANEL_NUEVA_CAMPANA, PANEL_RENOMBRAR_CAMPANA } from "./panelesCampanas";
 import { resolverVistaDeCampanas } from "./redirecciones";
 import { useRegistroDeCampanas } from "./useRegistroDeCampanas";
@@ -171,6 +174,7 @@ export function MaterialCampoShell() {
     setAviso(null);
     if (accion === "renombrar") return abrirPanelSobre(PANEL_RENOMBRAR_CAMPANA.id, campana);
     if (accion === "borrar") return abrirPanelSobre(PANEL_CORREO_CAMPANA_BORRAR.id, campana);
+    if (accion === "ver-lote") return navigate(A_MONITOREO_SUPERVISION);
     if (accion === "duplicar") {
       const resumen = correos.find((c) => idDeCorreo(c.campaign_id) === campana.id);
       if (!resumen) return;
@@ -197,7 +201,7 @@ export function MaterialCampoShell() {
       });
       if (archivar && direccion?.campana === campana.id) aLaLista();
     });
-  }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, reg]);
+  }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, navigate, reg]);
 
   const guardarNombre = useCallback(async (campana: CampanaMaterial, cambio: { name: string; actor: string; platform?: MailPlatform }): Promise<Resultado> => {
     if (campana.tipo === "aulas" || campana.tipo === "territorial" || campana.tipo === "telefonica" || campana.tipo === "supervision") {

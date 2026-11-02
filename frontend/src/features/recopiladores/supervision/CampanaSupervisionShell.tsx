@@ -8,7 +8,7 @@ import { useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
-import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
+import { ChipDeEntrada } from "../campanas/ChipDeEntrada";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { PageFrame } from "../../../components/PageFrame";
 import { SectionPillbar } from "../../../components/SectionPillbar";
@@ -65,10 +65,13 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
             <>
               {cabecera}
               {estado ? (
-                <ChromeIndicatorGroup ariaLabel="Contexto de la supervisión">
-                  <ChromeIndicator label="Lote" value={estado.lote_id.replace(/^ronda-/, "Ronda ")} prioridad="alta" />
-                  <ChromeIndicator label="Casos" value={casos.toLocaleString("es-PE")} />
-                </ChromeIndicatorGroup>
+                <ChipDeEntrada
+                  origen="monitoreo"
+                  rotulo={estado.lote_id.replace(/^ronda-/, "Lote ")}
+                  dato={`${casos.toLocaleString("es-PE")} ${casos === 1 ? "caso" : "casos"}`}
+                  aviso={Boolean(estado.sin_lote)}
+                  detalle={estado.sin_lote ? "Monitoreo ya no tiene este lote" : "Lote que calculó Monitoreo con el avance de la campaña telefónica"}
+                />
               ) : null}
             </>
           )}
