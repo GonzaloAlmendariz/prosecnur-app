@@ -125,10 +125,15 @@
 
 /* Las tarjetas de método pintan su propio estado activo (`.cmv2-method.is-active`);
  * el indicador deslizante del grupo queda transparente para no duplicarlo. */
-.cmg-metodos {
+.cmg-metodos.pulso-gliding-tab-list {
+  /* Con dos clases: con una sola empataba con el kit y ganaba el último en el
+   * bundle (contrato `indicadorDelKit`). */
   --pulso-gliding-indicator-bg: transparent;
   --pulso-gliding-indicator-border: transparent;
   --pulso-gliding-indicator-shadow: none;
+}
+
+.cmg-metodos {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--cmv2-space-2);

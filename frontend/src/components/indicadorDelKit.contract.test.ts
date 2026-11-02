@@ -26,8 +26,6 @@ const KIT = new Set(["app/theme.css"]);
 
 /** Selectores de una sola clase que redefinen el indicador, a 2026-11-02. Sólo baja. */
 const CONOCIDOS = new Set([
-  "features/calcMuestra/general/general.css :: .cmg-metodos",
-  "features/calcMuestra/universidad/aulas/aulas.css :: .cmv2-aulas-modalidad",
   "features/recopiladores/correos/correos.css :: .rec-mail-tabs",
   "features/recopiladores/correos/correosCaja.css :: .rec-caja-vistas",
 ]);

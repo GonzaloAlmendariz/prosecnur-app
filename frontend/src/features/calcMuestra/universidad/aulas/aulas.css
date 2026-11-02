@@ -408,9 +408,13 @@
 /* L27: la modalidad son tres opciones excluyentes → segmentado del kit sobre
    GlidingRadioGroup (teclado con flechas, indicador que se desliza). Tres
    columnas iguales; el texto parte en dos líneas antes que recortarse. */
-.cmv2-aulas-modalidad {
+.cmv2-aulas-modalidad.pulso-gliding-tab-list {
+  /* Con dos clases, para no empatar con el kit (contrato `indicadorDelKit`). */
   --pulso-gliding-indicator-bg: linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-surface) 12%), var(--cmv2-accent));
   --pulso-gliding-indicator-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+}
+
+.cmv2-aulas-modalidad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
