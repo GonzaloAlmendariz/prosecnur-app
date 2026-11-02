@@ -20,7 +20,9 @@
 # «Sin encuestados» (#C9D5EA contra #E2E6EC). Aquí cada clase da un salto claro de luminosidad (de celeste a navy) y lo
 # vacío va en un gris neutro, sin tinte azul, para que no se lea como una clase más.
 .MAPA_DISTRIBUCION_PALETA <- c("#BFD7EF", "#6FA3D6", "#2F64A8", "#081F5C")
-.MAPA_DISTRIBUCION_VACIO <- "#D9D9D9"
+.MAPA_DISTRIBUCION_VACIO <- "#EBEBEB"   # más tenue que el primero (#D9D9D9): lo vacío no compite con las clases
+# Bordes negros finos entre áreas (Gonzalo, 2026-11-02): separan vecinos de la misma clase y dibujan el contorno sobre el gris tenue.
+.MAPA_DISTRIBUCION_BORDE <- "#1A1A1A"
 
 #' Mapa de la distribución de los encuestados por distrito de Lima y Callao o por departamento del Perú
 #'
@@ -231,10 +233,9 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
     bb[["ymin"]] > min(poly$y) + 1e-9 || bb[["ymax"]] < max(poly$y) - 1e-9
   poly <- .mapa_distribucion_recortar(poly, bb)
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
-       # Borde blanco más grueso que en el resultado: dos vecinos de la misma clase no se funden en una mancha.
-       capas = list(list(datos = poly, borde = "#FFFFFF", grosor = 0.55)), caja = bb,
+       capas = list(list(datos = poly, borde = .MAPA_DISTRIBUCION_BORDE, grosor = 0.2)), caja = bb,
        leyenda = list(titulo = paste("Porcentaje de encuestados por", carto$unidad), rotulos = c(.mapa_clases_rotulos(cortes, pal), "Sin encuestados"),
-                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO), cortes = cortes),
+                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO), cortes = cortes, borde = .MAPA_DISTRIBUCION_BORDE),
        ranking = data.frame(distrito = nombre[o], valor = valor[o], n = ok$n[o], color = pal[clase][o], cifra = cifra[o], stringsAsFactors = FALSE),
        escala_max = max(c(1, ok$porcentaje)),
        panel = list(titulo = paste("Encuestados por", carto$unidad), sub = "Número y porcentaje, de mayor a menor"),

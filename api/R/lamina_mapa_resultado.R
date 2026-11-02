@@ -126,14 +126,15 @@
   cols <- leyenda$colores[seq_len(k)]; vacio <- leyenda$colores[k + 1L]
   .lam_txt(lz, leyenda$titulo, x - 0.06, y, w, 0.26, 10, suave, bold = TRUE, nombre = "mapa:leyenda_titulo")
   w_vacio <- 1.35; w_barra <- min(2.8, w - w_vacio - 0.3); paso <- w_barra / k; yb <- y + 0.3
-  for (j in seq_len(k)) .lam_caja(lz, x + (j - 1) * paso, yb, paso, 0.16, cols[j], nombre = "leyenda:rampa")
+  for (j in seq_len(k)) .lam_caja(lz, x + (j - 1) * paso, yb, paso, 0.16, cols[j], nombre = "leyenda:rampa",
+                                  borde = leyenda$borde %||% cols[j], borde_pt = 0.4)   # el borde del mapa también en la rampa
   for (j in seq_along(cortes)) {
     xc <- x + j * paso
     .lam_caja(lz, xc - 0.004, yb + 0.16, 0.008, 0.06, azul, nombre = "leyenda:marca")
     .lam_txt(lz, paste0(format(cortes[j], trim = TRUE), " %"), xc - 0.4, yb + 0.2, 0.8, 0.26, 10, azul, align = "center", nombre = "leyenda:corte")
   }
   xv <- x + w_barra + 0.3
-  .lam_caja(lz, xv, yb, 0.16, 0.16, vacio, nombre = "leyenda:cuadro", borde = vacio, borde_pt = 0.5)
+  .lam_caja(lz, xv, yb, 0.16, 0.16, vacio, nombre = "leyenda:cuadro", borde = leyenda$borde %||% vacio, borde_pt = 0.5)
   .lam_txt(lz, leyenda$rotulos[k + 1L], xv + 0.2, yb - 0.06, w_vacio, 0.28, 10, azul, nombre = "leyenda:texto")
   invisible(y)
 }

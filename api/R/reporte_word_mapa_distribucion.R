@@ -49,10 +49,12 @@
   ggplot2::ggplot() +
     ggplot2::annotate("text", x = 0, y = 0.62, label = leyenda$titulo, hjust = 0, size = pt / ggplot2::.pt, fontface = "bold",
                       colour = .WORD_TINTA$gris, family = "Arial") +
-    ggplot2::geom_rect(data = bloques, ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0.3, ymax = 0.44, fill = .data$fill)) +
+    ggplot2::geom_rect(data = bloques, ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0.3, ymax = 0.44, fill = .data$fill),
+                       colour = leyenda$borde %||% NA, linewidth = 0.2) +
     ggplot2::geom_segment(data = marcas, ggplot2::aes(x = .data$x, xend = .data$x, y = 0.3, yend = 0.24), colour = navy, linewidth = 0.3) +
     ggplot2::geom_text(data = marcas, ggplot2::aes(.data$x, 0.12, label = .data$lab), size = pt / ggplot2::.pt, colour = navy, family = "Arial") +
-    ggplot2::annotate("rect", xmin = w_barra + 0.2, xmax = w_barra + 0.34, ymin = 0.3, ymax = 0.44, fill = vacio) +
+    ggplot2::annotate("rect", xmin = w_barra + 0.2, xmax = w_barra + 0.34, ymin = 0.3, ymax = 0.44, fill = vacio,
+                      colour = leyenda$borde %||% NA, linewidth = 0.2) +
     ggplot2::annotate("text", x = w_barra + 0.4, y = 0.37, label = leyenda$rotulos[k + 1L], hjust = 0, size = pt / ggplot2::.pt,
                       colour = navy, family = "Arial") +
     ggplot2::scale_fill_identity() +
