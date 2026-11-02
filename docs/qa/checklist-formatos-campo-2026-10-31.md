@@ -98,6 +98,18 @@ el Planner simulado en `conveniencia`). Se contrastó contra la tabla A1–A10 y
 | A10 Reemplazos | Fila bajo su titular, con «Reemplaza a» y «¿Se reemplaza?» | Sin «¿Se reemplaza?» | ☑ coincide |
 | P2 / K1 Códigos | 1–7 y 99 como «no efectivas por código»; rótulos del catálogo de Material, editables también en el núcleo | Sin columnas de código | ☑ coincide. Los rótulos salen por defecto (2 «Vivienda desocupada», 5 «No hay persona elegible») porque acnur_acg no tiene su catálogo de acogida cargado: es configuración del proyecto, no del motor |
 
+## Figuras de Material contra el plan conjunto, aulas y telefónica (2026-11-01)
+
+Copias sin guardar de hsvg2026 (aulas) y acnur_pdm (telefónica), con una campaña creada en memoria; contraste con
+«Vistas de la app» del plan conjunto. Territorial ya se contrastó (commit 9cc3d621a).
+
+| Figura | La app | Diferencia | Estado |
+|---|---|---|---|
+| Aulas › Entrega › Plantillas del equipo | «Libro del equipo» (Aulas Agendadas y Aulas Aplicadas, un Excel con dos pestañas, sale después de entregar), «Disponibilidad de aplicadores» (Excel) y el estado del traspaso | La figura las pone como tres filas con «quién la lee» (Monitoreo) y botones Excel y Sheets | ◐ el libro de dos pestañas es la misma pieza; ⛔ decidir si Material publica en Sheets: en HSVG hay gente agendando en vivo en los Sheets y el libro del operativo lo publica Monitoreo, así que no se agrega sin decisión |
+| Telefónica › Barrido › Plantilla | Columnas del barrido real del RMS 2026 (C8): Cod pulso, Código, Nombre, Teléfono 1 y 2, Responsable, Status, Teléfono de la encuesta, Intentos, Fecha, Observación; Excel del barrido | La figura muestra columnas genéricas (Sede, Lista Muestra/Backup) y «Publicar en Sheets» | ☑ manda el formato real (Gonzalo, 1 nov); ⛔ la misma decisión de Sheets; ☐ la marca muestra/backup por fila, si el estudio entrega backup, falta en la plantilla |
+| Telefónica › Barrido › Status | El catálogo de Status del RMS 2026 con su ortografía, código y clase | La figura lo hacía salir «del catálogo de códigos (Planner, cuando exista)» | ☑ con el ADR 0123 (Q3) el catálogo es de Material |
+| Aulas en hsvg2026 de referencia | La copia de referencia no trae el sorteo de aulas: sin unidades, el libro no sale | — | nota: para ver el libro lleno hace falta una copia con plan (la de trabajo del operativo) |
+
 ## Notas
 
 - La lista de encuestadores que campo maneja («codigos_pulso_encuestadores-VF», con código PULSO) es la misma pieza que
