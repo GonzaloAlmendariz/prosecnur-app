@@ -1074,6 +1074,7 @@ export function UniversidadDesk({
                 currentFrameHash={aulasState?.frame?.frame_hash}
                 escenario={escenarioVigente}
                 onEscenario={seleccionarEscenarioAulas}
+                onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
               />
             </div>}
             {showLocalTab("calculo-certeza") && <div id="cmv2-local-calculo-certeza">

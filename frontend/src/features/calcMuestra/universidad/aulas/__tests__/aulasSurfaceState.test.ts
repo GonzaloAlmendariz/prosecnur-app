@@ -182,3 +182,36 @@ describe("la comparacion vieja no apaga la lectura de una seleccion valida", () 
     expect(aviso?.kind).toBe("missing-comparison");
   });
 });
+
+// Gonzalo, 2026-11-01: «Sí, que deje sortear». Con un método elegido en la
+// configuración, Selección sortea aunque no haya comparación vigente; la
+// comparación queda en Método como evidencia. Sin método elegido, el aviso
+// sigue pidiendo elegir o comparar (las pruebas de arriba, cuyo modelo no trae
+// `metodoElegido`, cubren esa rama).
+describe("con un método elegido, Selección sortea sin comparar", () => {
+  const sinComparar = { comparisonReady: false, selectionReady: false };
+
+  it("en Selección el aviso es «Generar selección» con acción local de sortear", () => {
+    const notice = resolveAulasStageNotice(
+      model({ ...sinComparar, metodoElegido: true, metodoParaSortear: "cube_balanceado" }),
+      "seleccion",
+    );
+    expect(notice?.kind).toBe("missing-selection");
+    expect(notice?.localAction).toBe("select");
+    expect(notice?.actionLabel).toBe("Generar selección");
+    expect(notice?.detail).toContain("no hace falta para sortear");
+  });
+
+  it("sin método elegido, Selección sigue mandando a Método a comparar", () => {
+    const notice = resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: false }), "seleccion");
+    expect(notice?.kind).toBe("missing-comparison");
+    expect(notice?.destination).toEqual({ section: "aulas", tab: "metodo" });
+    expect(notice?.localAction).toBeUndefined();
+  });
+
+  it("en Método y Simulación la comparación sigue siendo lo que se ejecuta", () => {
+    for (const stage of ["metodo", "laboratorio"] as AulasSurfaceStage[]) {
+      expect(resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: true }), stage)?.kind, stage).toBe("missing-comparison");
+    }
+  });
+});

@@ -10,6 +10,7 @@ import {
 import { rowsFrom } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import type { ClassroomLabModel } from "./classroomLabModel";
+import { classroomMethodLabel } from "./classroomLabels";
 
 export type AulasNavigate = (section: string, tab?: string) => void;
 export type AulasSurfaceStage =
@@ -126,8 +127,12 @@ export function resolveAulasStageNotice(
   // mordida 1 del ADR 0080.
   //
   // Sin seleccion valida el aviso vuelve, porque entonces no hay nada que leer.
+  //
+  // Y sin selección tampoco la exige si ya hay un método elegido (Gonzalo,
+  // 2026-11-01: «Sí, que deje sortear»): el aviso pasa a «Generar selección»
+  // con ese método. Sin método elegido sigue pidiendo elegir o comparar.
   const etapaEjecuta = stage === "metodo" || stage === "laboratorio";
-  if (!model.comparisonReady && (etapaEjecuta || !model.selectionReady)) {
+  if (!model.comparisonReady && (etapaEjecuta || (!model.selectionReady && !model.metodoElegido))) {
     const stored = model.hasStoredComparison || model.hasStoredSelection;
     const partialSimulation = stage === "laboratorio" && hasAulasSimulationEvidence(model);
     return {
@@ -192,7 +197,9 @@ export function resolveAulasStageNotice(
         : "Falta generar la selección",
       detail: model.hasStoredSelection
         ? "La corrida permanece guardada, pero no coincide con el objetivo o la firma vigente. Regenera titulares sin relajar la validación."
-        : "El método ya está comparado. Genera los cursos-horario titulares y sus reservas con esa recomendación.",
+        : model.comparisonReady
+          ? "El método ya está comparado. Genera los cursos-horario titulares y sus reservas con esa recomendación."
+          : `Se sortea con ${classroomMethodLabel(model.metodoParaSortear)}, el método elegido. Comparar los cuatro sigue disponible en Método, pero no hace falta para sortear.`,
       actionLabel: stage === "seleccion" ? "Generar selección" : "Ir a Selección",
       ...(stage === "seleccion"
         ? { localAction: "select" as const }

@@ -147,13 +147,7 @@ export function AulasSeleccionTab({
             ? () => void onSelectMethod(model.config, model.metodoParaSortear)
             : undefined}
           disabled={Boolean(stageNotice.localAction) && Boolean(busy)}
-          disabledReason={
-            busy
-              ? `No se puede generar mientras corre «${busy}».`
-              : !comparisonReady
-                ? "Falta una comparación de métodos vigente: se genera desde Comparar métodos."
-                : undefined
-          }
+          disabledReason={busy ? `No se puede generar mientras corre «${busy}».` : undefined}
         />
       )}
       {!selectionReady ? (
