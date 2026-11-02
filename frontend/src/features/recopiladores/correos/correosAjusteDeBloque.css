@@ -20,7 +20,8 @@
   border-radius: 10px;
   display: grid;
   gap: 2px;
-  grid-template-columns: repeat(var(--rec-ajuste-columnas, 2), minmax(0, 1fr));
+  /* Iguales mientras quepan; ninguna baja de su rótulo: a 1024 «Original» salía «Origi…» en Proporción. */
+  grid-template-columns: repeat(var(--rec-ajuste-columnas, 2), minmax(min-content, 1fr));
   padding: 3px;
 }
 
