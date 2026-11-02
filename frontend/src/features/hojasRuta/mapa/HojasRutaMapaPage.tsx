@@ -16,6 +16,7 @@ import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGu
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { usePlannerModos } from "../../estudio/usePlannerModos";
 import { EntregaCuotas } from "./seleccion/EntregaCuotas";
+import { salidasSanas } from "./salidasSanas";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
 import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type LimitesCrudos } from "./lienzo/limites";
@@ -237,7 +238,8 @@ export default function HojasRutaMapaPage() {
 
   const distritos = useMemo(() => confirmados.map((u) => geometrias[u]).filter((d): d is PiezasDistrito => Boolean(d)), [confirmados, geometrias]);
   const territorios = useMemo(() => (estado?.territories ?? []).filter((t) => confirmados.includes(t.ubigeo)), [estado, confirmados]);
-  const salidas = estado?.workspace_outputs;
+  // Una muestra vaciada llega como `{}`: salidasSanas la lee como «no hay» (visto en vivo, se caía la página).
+  const salidas = useMemo(() => salidasSanas(estado?.workspace_outputs), [estado]);
   // Las cuotas que el sorteo usó viajan en sample.quota: respaldo para corridas sorteadas sin outputs.quota.
   const cuotas = salidas?.quota ?? salidas?.sample?.quota ?? null;
   // Con cortes poblacionales (B28) los rangos los pone el motor en la config; el tope abierto llega como "NA".
@@ -468,6 +470,9 @@ export default function HojasRutaMapaPage() {
 
   const cajaLima = useMemo(() => atlas.find((c) => c.codigo === LIMA)?.caja ?? null, [atlas]);
   const caja = useMemo(() => unirCajas(contornos.filter((c) => confirmados.includes(c.ubigeo)).map((c) => c.caja)) ?? cajaLima, [contornos, confirmados, cajaLima]);
+  // Los contornos llegan por región: el encuadre se rehace con cada una que llega (visto en vivo: un estudio de
+  // seis ciudades quedaba encuadrado en la primera región que respondió, Jaén).
+  const contornosConfirmados = useMemo(() => contornos.filter((c) => confirmados.includes(c.ubigeo)).length, [contornos, confirmados]);
   // Atlas: el país; ciudad abierta: sus distritos (o su silueta mientras llegan).
   const cajaTerritorio = useMemo(() => {
     // Atlas por niveles: el Perú, un departamento (sus ciudades) o una ciudad (sus distritos).
@@ -833,7 +838,7 @@ export default function HojasRutaMapaPage() {
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           controles={!enAtlas && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornos.some((c) => confirmados.includes(c.ubigeo)) ? "distritos" : "ciudad"}`, animar: false } : null}
+          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
