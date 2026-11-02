@@ -164,5 +164,7 @@
   ley_w <- 0.35 + max(nchar(c(titulo, ley_rot))) * (8.5 + .word_desplazo("leyenda")) * 0.5 / 72
   attr(g, "alto") <- alto - 0.22
   attr(g, "ancho") <- min(.std_word("pagina", "ancho_util"), (alto - 0.35) / asp + ley_w + 0.25)
+  # La distribución de encuestados lleva sus cifras al lado del mapa (reporte_word_mapa_distribucion.R).
+  if (!is.null(espec$ranking$cifra) && NROW(espec$ranking)) return(.word_g_mapa_con_ranking(espec, g))
   g
 }

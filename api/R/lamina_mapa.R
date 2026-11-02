@@ -26,6 +26,8 @@
                             colour = capa$borde, linewidth = capa$grosor)
     }
   }
+  # Puntos de referencia (la PUCP, una sede): graficos_mapa_puntos.R. Sin puntos no añade nada.
+  for (capa in .mapa_puntos_capas(espec$puntos, cj)) g <- g + capa
   g + ggplot2::scale_fill_identity() +
     ggplot2::coord_quickmap(xlim = cj[c("xmin", "xmax")], ylim = cj[c("ymin", "ymax")], expand = FALSE) +
     ggplot2::theme_void() +

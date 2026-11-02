@@ -727,6 +727,21 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       <Leyenda x={128} y={44} tonos={["e4"]} />
     </>
   ),
+  // Distribución de encuestados: el mapa por zonas, un punto de referencia y las áreas en barras al costado (CCSS 2026).
+  p_mapa_distribucion: () => (
+    <>
+      <path d="M22 26L48 14L54 46L16 48Z" className="pulso-glifo__p" />
+      <path d="M16 48L54 46L50 84L30 80Z" className="pulso-glifo__e2" />
+      <path d="M48 14L74 22L80 50L54 46Z" className="pulso-glifo__e4" />
+      <path d="M54 46L80 50L72 82L50 84Z" className="pulso-glifo__e3" />
+      <path d="M22 26L48 14L74 22L80 50L72 82L50 84L30 80L16 48Z" className="pulso-glifo__contorno" />
+      <circle cx={44} cy={52} r={4} className="pulso-glifo__p" />
+      <rect x={98} y={20} width={56} height={9} className="pulso-glifo__p" />
+      <rect x={98} y={36} width={40} height={9} className="pulso-glifo__e4" />
+      <rect x={98} y={52} width={28} height={9} className="pulso-glifo__e3" />
+      <rect x={98} y={68} width={16} height={9} className="pulso-glifo__e2" />
+    </>
+  ),
   // Cifra destacada: el número manda y su rótulo lo explica (p17–18, 172–175).
   p_cifra: (o) => (
     <>

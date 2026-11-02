@@ -294,8 +294,8 @@
   # (`mostrar_respuestas`, N3b+): apagado no se dibuja; la regla sigue en `.lam_base_chica` y el pie «Base: N» no cambia.
   hay_chica <- con_n && .lam_base_chica(espec)
   wp <- .lam_escala_ancho_prem(premisas)
-  # CCSS 2026 (lámina 51): sin públicos, la columna mide sus rótulos (o lo que declare el gráfico) y la barra arranca ahí.
-  # En la multilista sólo manda la declaración, para que los bloques apilados no corran sus barras por separado.
+  # CCSS 2026 (lámina 51): en un cruce sin públicos, la columna mide sus rótulos (o lo que declare el gráfico) y la barra
+  # arranca ahí. La multilista (`estirar`) no se ajusta a la tinta, para que sus bloques no corran sus barras por separado.
   dx_prem <- 0
   if (.lam_escala_sin_actor(premisas) && !(isTRUE(encabezar_tema) && length(premisas) == 1L)) {
     wp2 <- .lam_escala_columna_premisa(premisas, wp, espec, auto = is.null(estirar))

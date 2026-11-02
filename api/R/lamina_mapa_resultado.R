@@ -26,6 +26,9 @@
 .lam_mapa_resultado_geo <- function(espec) {
   R <- .LAM_MAPA_RES; g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   r <- .lam_mapa_rect(espec, ml, yt, R$ancho_mapa, yf - yt - 0.1)
+  # Un mapa ancho (el encuadre a los datos de la distribución) llegaría al margen y la leyenda caería encima: se achica
+  # hasta dejarle su columna de 1.75 in. El de Lima y Callao entero es alto y no llega a esto.
+  if (R$ancho_mapa - r$w < 1.75) r <- .lam_mapa_rect(espec, ml, yt, R$ancho_mapa - 1.75, yf - yt - 0.1)
   r$x <- ml + R$ancho_mapa - r$w   # alineado a la derecha de su caja
   xr <- ml + R$ancho_mapa + R$aire; fin <- W - g_("margen_der")
   n <- nrow(espec$ranking); forma <- .lam_mapa_resultado_forma(n)
@@ -33,10 +36,14 @@
   fila <- if (identical(forma, "lista")) R$fila_lista else R$fila
   wcol <- (fin - xr - (ncol - 1L) * 0.3) / ncol
   # En una columna, las medidas del recetario; en dos, el nombre y la barra se reparten el ancho de su columna.
-  w_nombre <- switch(forma, una = R$w_nombre, dos = min(R$w_nombre, wcol * 0.52), lista = wcol - 0.63)
+  pt <- if (identical(forma, "lista")) 9 else if (identical(forma, "dos")) 10 else 11
+  # La cifra de la distribución («103 (26%)», graficos_mapa_distribucion_plan.R) es más ancha que «77%»: su columna
+  # mide su tinta. Sin esa columna rigen las medidas del recetario.
+  w_cifra <- if (!is.null(espec$ranking$cifra)) max(0.45, max(c(0, .lam_ancho_tinta(espec$ranking$cifra, pt, TRUE))) + 0.28)   # 0.2 in de márgenes internos de la caja else NULL
+  w_nombre <- switch(forma, una = R$w_nombre, dos = min(R$w_nombre, wcol * 0.52), lista = wcol - 0.18 - (w_cifra %||% 0.45))
   list(ml = ml, yt = yt, yf = yf, r = r, xr = xr, fin = fin, wr = fin - xr, w_ley = max(1.75, r$x - ml), forma = forma,
-       ncol = ncol, por_col = por_col, fila = fila, wcol = wcol, w_nombre = w_nombre,
-       pt = if (identical(forma, "lista")) 9 else if (identical(forma, "dos")) 10 else 11,
+       ncol = ncol, por_col = por_col, fila = fila, wcol = wcol, w_nombre = w_nombre, w_cifra = w_cifra,
+       pt = pt,
        y_ult = yt + R$inicio + (por_col - 1L) * fila + 0.28)
 }
 
@@ -63,13 +70,15 @@
     if (identical(G$forma, "lista")) {
       .lam_caja(lz, x0, yk + 0.05, 0.14, 0.14, f$color, nombre = "mapa:clase", borde = .std_color("mapa_borde"), borde_pt = 0.5)
       .lam_txt(lz, f$distrito, x0 + 0.18, yk - 0.03, G$w_nombre, 0.26, G$pt, azul, nombre = "mapa:distrito")
-      .lam_txt(lz, paste0(f$valor, "%"), x0 + G$wcol - 0.45, yk - 0.03, 0.45, 0.26, G$pt, azul, bold = TRUE, align = "right", nombre = "mapa:valor")
+      wc <- G$w_cifra %||% 0.45
+      .lam_txt(lz, f$cifra %||% paste0(f$valor, "%"), x0 + G$wcol - wc, yk - 0.03, wc, 0.26, G$pt, azul, bold = TRUE, align = "right", nombre = "mapa:valor")
       next
     }
-    x_barra <- x0 + G$w_nombre + 0.1; wbar <- x0 + G$wcol - x_barra - 0.45; wb <- wbar * f$valor / 100
+    # La distribución escala sus barras a su área mayor (`escala_max`): sobre 100 %, un distrito con el 6 % no se ve.
+    x_barra <- x0 + G$w_nombre + 0.1; wbar <- x0 + G$wcol - x_barra - (G$w_cifra %||% 0.45); wb <- wbar * f$valor / (espec$escala_max %||% 100)
     .lam_txt(lz, f$distrito, x0, yk, G$w_nombre, 0.28, G$pt, azul, align = "right", nombre = "mapa:distrito")
     if (wb > 0) .lam_caja(lz, x_barra, yk + 0.05, wb, 0.2, f$color, nombre = "mapa:barra")
-    .lam_txt(lz, paste0(f$valor, "%"), x_barra + 0.05 + wb, yk - 0.01, 0.6, 0.28, G$pt, azul, bold = TRUE, nombre = "mapa:valor")
+    .lam_txt(lz, f$cifra %||% paste0(f$valor, "%"), x_barra + 0.05 + wb, yk - 0.01, max(0.6, G$w_cifra %||% 0), 0.28, G$pt, azul, bold = TRUE, nombre = "mapa:valor")
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:panel")
   doc <- .lam_pie(doc, base, folio)

@@ -1776,6 +1776,31 @@
     ), .args_graf_comunes())
   ),
 
+  # CCSS Perfil 2026: dónde están los encuestados, por distrito de Lima y Callao o por departamento del Perú.
+  p_mapa_distribucion = list(
+    titulo_humano = "Mapa de distribución de encuestados",
+    descripcion   = "Pinta cuántos encuestados hay en cada distrito de Lima y Callao o en cada departamento del Perú y los lista con su número y porcentaje.",
+    icono_ui      = "Map",
+    categoria     = "territory",
+    blueprint     = "territory-map",
+    args = c(list(
+      list(name = "var", label = "Área del encuestado", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta con el distrito o el departamento: códigos UBIGEO o nombres."),
+      list(name = "area", label = "Mapa", tipo_input = "choice", grupo = "datos", default = "lima_callao",
+           choices = list(list(value = "lima_callao", label = "Distritos de Lima y Callao"),
+                           list(value = "peru", label = "Departamentos del Perú"))),
+      list(name = "encuadre", label = "Encuadre", tipo_input = "choice", grupo = "estilo", default = "datos",
+           choices = list(list(value = "datos", label = "Acercar a las áreas con datos"),
+                           list(value = "completo", label = "Todo el territorio"))),
+      list(name = "excluir_opciones", label = "Excluir del total", tipo_input = "codigos_list", grupo = "filtro"),
+      list(name = "cortes", label = "Cortes de las clases (%)", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Vacío los toma de los cuartiles de la distribución."),
+      list(name = "rotulo", label = "Título del panel", tipo_input = "string", grupo = "textos"),
+      list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794")
+    ), .args_graf_comunes())
+  ),
+
   # ADR 0093: lámina 104 del recetario, un indicador por distrito en el mapa de Lima.
   p_mapa_resultado_distrital = list(
     titulo_humano = "Mapa de resultado por distrito",
@@ -2384,6 +2409,7 @@
   p_barras_divergentes = list("escalas", "nativa"),
   p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
+  p_mapa_distribucion = list("territorio", "nativa", condicion = "Si el ranking no cabe en la lámina, sale el mapa con su leyenda."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
@@ -2435,6 +2461,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_barras_divergentes = "barras_divergentes",
   p_puntos_comparativos = "puntos_comparativos",
   p_mapa_resultado_distrital = "",
+  p_mapa_distribucion = "",
   p_cifra = "",
   p_dumbbell = "dumbbell",
   p_filtro_subpregunta = "",
