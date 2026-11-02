@@ -188,8 +188,10 @@ export function CiudadCabecera({ ciudad, onVolver }: { ciudad: CiudadAtlas; onVo
 }
 
 /** Miga del atlas por niveles: Perú › departamento › ciudad, con cada nivel clicable para subir. */
-export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, onPeru, onDepartamento }: {
+export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, enEstudio = false, onPeru, onDepartamento }: {
   total: number;
+  /** Si la ciudad ya está en el estudio: sólo entonces existe «Elegir distritos». */
+  enEstudio?: boolean;
   departamento: string | null;
   ciudad: CiudadAtlas | null;
   distritos: number;
@@ -205,7 +207,8 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, on
       {dep ? <> › {ciudad ? <button type="button" className="hr-miga-nivel" onClick={() => onDepartamento(dep)}>{dep}</button> : <b>{dep}</b>}</> : null}
       {ciudad ? <> › <b>{ciudad.nombre}</b></> : null}
       <span className="hr-lienzo-miga-ayuda">
-        {ciudad ? (cargando ? " · cargando sus distritos…" : ` · ${distritos} distrito${distritos === 1 ? "" : "s"}; «Elegir distritos» para trabajarlos`) : " · clic en una ciudad para ver su ficha"}
+        {/* Nombra el botón que de verdad está en la ficha: fuera del estudio es «Agregar al estudio». */}
+        {ciudad ? (cargando ? " · cargando sus distritos…" : ` · ${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? "; «Elegir distritos» para trabajarlos" : "; agrégala al estudio para elegirlos"}`) : " · clic en una ciudad para ver su ficha"}
       </span>
     </>
   );
