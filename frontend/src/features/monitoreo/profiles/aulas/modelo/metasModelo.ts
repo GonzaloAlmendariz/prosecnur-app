@@ -1,6 +1,6 @@
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../../api/monitoreo";
 import { cintaDeMetas } from "../metasDeLaPestana";
-import { fmt } from "../kpisDeAulas";
+import { fmt, pctPerfil } from "../kpisDeAulas";
 import { proyeccionElegida } from "../proyeccionDeMetas";
 
 /**
@@ -58,7 +58,7 @@ function texto(v: unknown): string {
 function pct(proporcion: number | null | undefined): string {
   if (proporcion == null || !Number.isFinite(proporcion)) return "—";
   const p = proporcion > 1 ? proporcion : proporcion * 100;
-  return `${p.toFixed(1)} %`;
+  return pctPerfil(p);
 }
 
 const ORIGEN: Record<string, string> = {
@@ -151,7 +151,7 @@ export function construirMetas(dashboard: MonitoreoAulasDashboard | null): Model
     filas,
     total,
     cobertura: total.esperadas != null && total.cuota > 0
-      ? `Las esperadas de los titulares (${fmt(total.esperadas)}) cubren el ${(100 * total.esperadas / total.cuota).toFixed(1)} % de la cuota.`
+      ? `Las esperadas de los titulares (${fmt(total.esperadas)}) cubren el ${pctPerfil(100 * total.esperadas / total.cuota)} de la cuota.`
       : null,
     desfasado: vigencia && vigencia !== "vigente"
       ? "El diseño cambió después de este corte: las metas pueden no ser las vigentes."

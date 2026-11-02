@@ -2,7 +2,7 @@ import { memo, type ReactNode } from "react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { AulasCrucePorCarrera } from "../AulasCrucePorCarrera";
-import { fmt } from "../kpisDeAulas";
+import { fmt, pctPerfil } from "../kpisDeAulas";
 import "../insumos/insumos.css";
 import "../modelo/modelo.css";
 
@@ -22,7 +22,7 @@ export function franjaDeAlumnos(dashboard: MonitoreoAulasDashboard) {
     { clave: "personas", rotulo: "Alumnos distintos", valor: fmt(t.personas) },
     { clave: "duplicadas", rotulo: "Dos veces", valor: fmt(t.duplicadas) },
     { clave: "sin-cruce", rotulo: "Sin cruce con el padrón", valor: fmt(t.sin_cruce) },
-    { clave: "tasa", rotulo: "Cruzan", valor: t.tasa == null ? "—" : `${(100 * (t.tasa > 1 ? t.tasa / 100 : t.tasa)).toFixed(1)} %` },
+    { clave: "tasa", rotulo: "Cruzan", valor: t.tasa == null ? "—" : pctPerfil(100 * (t.tasa > 1 ? t.tasa / 100 : t.tasa)) },
   ];
 }
 
