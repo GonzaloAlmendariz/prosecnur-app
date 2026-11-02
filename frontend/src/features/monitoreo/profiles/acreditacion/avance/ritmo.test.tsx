@@ -39,11 +39,11 @@ describe("Avance › Ritmo", () => {
     expect(serie.totales).toEqual([10, 3, 0, 0, 4]);
   });
 
-  it("junta en «Otros» a los públicos que no caben con color propio", () => {
+  it("cada público es su capa: ninguno se junta en «Otros»", () => {
     const filas = Array.from({ length: 9 }, (_, indice) => ({ Actor: `P${indice}`, Fecha: "2026-05-25", Efectivas: 9 - indice }));
     const serie = seriesApiladas(filas, []);
-    expect(serie.capas).toHaveLength(7);
-    expect(serie.capas.at(-1)?.publico).toBe("Otros 3 públicos");
+    expect(serie.capas).toHaveLength(9);
+    expect(serie.capas.some((capa) => capa.publico.startsWith("Otros"))).toBe(false);
     expect(serie.totales[0]).toBe(45);
   });
 

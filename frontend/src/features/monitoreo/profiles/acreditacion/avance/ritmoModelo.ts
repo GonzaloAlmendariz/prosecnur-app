@@ -10,10 +10,8 @@ import { normalizeSourceMatch } from "../formato";
 import { serieDiaria, seriesPorPublico } from "./avanceModelo";
 import { rowNumber, rowText } from "./tarjetasDeAvance";
 
-/** Cuántos públicos se apilan con color propio; el resto va junto en «Otros públicos». */
-export const CAPAS_CON_COLOR = 6;
-
-export type Capa = { publico: string; valores: number[]; total: number; otros?: boolean };
+/** Cada público es su propia capa, con su color: no se junta ninguno en «Otros» (Gonzalo, 2/11). */
+export type Capa = { publico: string; valores: number[]; total: number };
 
 export type SerieApilada = { fechas: string[]; capas: Capa[]; totales: number[] };
 
@@ -56,11 +54,6 @@ export function seriesApiladas(
     return { publico: nombres.get(clave) ?? clave, valores, total: valores.reduce((suma, valor) => suma + valor, 0) };
   }).filter((capa) => capa.total > 0).sort((a, b) => b.total - a.total);
   let finales = capas;
-  if (capas.length > CAPAS_CON_COLOR + 1) {
-    const resto = capas.slice(CAPAS_CON_COLOR);
-    const valores = fechas.map((_, posicion) => resto.reduce((suma, capa) => suma + capa.valores[posicion], 0));
-    finales = [...capas.slice(0, CAPAS_CON_COLOR), { publico: `Otros ${resto.length} públicos`, valores, total: valores.reduce((suma, valor) => suma + valor, 0), otros: true }];
-  }
   // Sin desglose por público, la serie general va como una sola capa.
   if (!finales.length && general.length) {
     const valores = fechas.map(() => 0);

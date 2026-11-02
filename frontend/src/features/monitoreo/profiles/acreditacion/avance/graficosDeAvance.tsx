@@ -470,6 +470,10 @@ export function BarrasApiladas({
                   base += valor;
                   return rect;
                 })}
+                {/* El total del día sobre la barra: la suma de sus públicos, sin sumar a ojo. */}
+                {paso >= 22 && totales[indice] > 0 ? (
+                  <text className="acr-av-eje is-cifra" x={izquierda + indice * paso + paso / 2} y={y(totales[indice]) - 4} textAnchor="middle">{fmt(totales[indice])}</text>
+                ) : null}
               </g>
             );
           })}

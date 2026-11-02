@@ -7,7 +7,6 @@ const serie = {
   capas: [
     { publico: "Administrativos", valores: [163, 24], total: 187 },
     { publico: "Estudiantes de pregrado", valores: [220, 104], total: 324 },
-    { publico: "Otros 2 públicos", valores: [17, 0], total: 17, otros: true },
   ],
 };
 const actores = [

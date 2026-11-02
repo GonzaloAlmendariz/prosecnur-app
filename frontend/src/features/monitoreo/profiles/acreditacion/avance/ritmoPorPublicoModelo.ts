@@ -40,7 +40,6 @@ export function ritmoPorPublico(
   }
   return serie.capas
     .map((capa, indice) => ({ capa, indice }))
-    .filter(({ capa }) => !capa.otros)
     .map(({ capa, indice }) => {
       const meta = metas.get(normalizeSourceMatch(capa.publico)) ?? null;
       const siete = capa.valores.slice(-7);

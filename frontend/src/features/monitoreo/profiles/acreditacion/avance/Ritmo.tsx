@@ -66,9 +66,9 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const totalesVisibles = capaSola ? capaSola.valores : serie.totales;
   const fechasUltimas = new Set(pulso.ultimaPorPublico.map((item) => item.fecha ?? ""));
   const ultimaComun = pulso.ultimaPorPublico.length > 1 && fechasUltimas.size === 1 ? [...fechasUltimas][0] || null : null;
-  // Cada público con el color que tiene en Resumen, Correo y Por cuota; «Otros» sigue en gris.
-  const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.filter((capa) => !capa.otros).map((capa) => capa.publico)]), [actores, serie]);
-  const clasesDeCapa = serie.capas.map((capa, indice) => (capa.otros ? `is-capa-${indice + 1}` : `con-publico ${clasePublico(paleta, capa.publico)}`));
+  // Cada público con el color que tiene en Resumen, Correo y Por cuota.
+  const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.map((capa) => capa.publico)]), [actores, serie]);
+  const clasesDeCapa = serie.capas.map((capa) => `con-publico ${clasePublico(paleta, capa.publico)}`);
   const indiceSolo = capaSola ? serie.capas.indexOf(capaSola) : -1;
   const capasVisibles = capaSola ? [capaSola] : serie.capas;
   const clasesVisibles = capaSola ? [clasesDeCapa[indiceSolo]] : clasesDeCapa;
