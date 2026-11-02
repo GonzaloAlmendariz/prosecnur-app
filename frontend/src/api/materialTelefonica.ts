@@ -22,6 +22,8 @@ export type ConfigTelefonica = {
   muestra: number;
   backup: number;
   responsables: string[];
+  /** Los responsables vienen del padrón del equipo de Monitoreo, no tecleados (se siembran, no se guardan). */
+  responsables_del_padron: boolean;
   /** Rótulo de la última columna de la cola: «Observación» u «Observaciones» según el estudio (T13). */
   observacion: string;
   /** Estratos marcados sensibles (p. ej. «Estatus Legal»): no salen al Sheets ni a ningún artefacto (T14). */
@@ -98,6 +100,7 @@ export function normalizarConfigTelefonica(valor: unknown): ConfigTelefonica {
     muestra: entero(o.muestra),
     backup: entero(o.backup),
     responsables: lista(o.responsables).map(texto).filter(Boolean),
+    responsables_del_padron: escalar(o.responsables_del_padron) === true,
     observacion: texto(o.observacion) || "Observación",
     sensibles: lista(o.sensibles).map(texto).filter(Boolean),
     status,

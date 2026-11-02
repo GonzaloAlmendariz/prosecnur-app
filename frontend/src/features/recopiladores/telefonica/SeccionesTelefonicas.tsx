@@ -108,6 +108,7 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
         <div className="rec-terr-campo">
           <span aria-hidden>Responsables (separados por coma)</span>
           <PulsoInput size="sm" aria-label="Responsables" placeholder="Sin lista: la columna queda libre" value={responsables} disabled={guardando} onChange={(e) => setResponsables(e.target.value)} />
+          {config.responsables_del_padron ? <small className="rec-terr-nota">Del equipo de Monitoreo. Si escribes otra lista y la guardas, manda la tuya.</small> : null}
         </div>
         <div className="rec-terr-fila rec-terr-guardar">
           <PulsoButton variant="primary" size="sm" disabled={!sucio || !casosValidos || guardando} onClick={() => void guardar(cambio)}>

@@ -108,3 +108,25 @@ test_that("en acreditación la telefónica y la de aulas guardan su propósito; 
   expect_false("proposito" %in% names(entry2))
   expect_null(collection_campaigns_get(sid2)$campaigns[[1]]$proposito)
 })
+
+test_that("los responsables se siembran del padrón de Monitoreo y no se guardan hasta que el analista los teclea", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "telefonica", "Barrido")
+  local_mocked_bindings(monitoreo_equipo_padron = function(s) list(familia = "telefonico", code_format = "nombre", origen = "equivalencias",
+    personas = list(list(codigo = "", nombre = "Agente Uno", rol = "encuestador", activo = TRUE),
+                    list(codigo = "", nombre = "Agente Baja", rol = "encuestador", activo = FALSE))))
+  g <- collection_telefonica_config_get(sid)
+  expect_identical(g$responsables, list("Agente Uno"))
+  expect_true(g$responsables_del_padron)
+  # Guardar otra cosa no congela la siembra.
+  collection_telefonica_config_put(sid, muestra = 10, expected_revision = 0L)
+  expect_length(session_get(sid)$material_telefonica_config$responsables, 0L)
+  expect_true(collection_telefonica_config_get(sid)$responsables_del_padron)
+  # La pantalla reenvía la lista sembrada al guardar otro campo: tampoco la congela.
+  collection_telefonica_config_put(sid, muestra = 12, responsables = list("Agente Uno"), expected_revision = 1L)
+  expect_length(session_get(sid)$material_telefonica_config$responsables, 0L)
+  # Tecleados, mandan los suyos.
+  r <- collection_telefonica_config_put(sid, responsables = list("Otra Persona"), expected_revision = 2L)
+  expect_identical(r$responsables, list("Otra Persona"))
+  expect_false(r$responsables_del_padron)
+})

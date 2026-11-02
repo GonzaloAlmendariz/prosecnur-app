@@ -167,3 +167,15 @@ test_that("HTTP: GET y PUT de la asignación", {
                    body = .hre_json(list(id = "territorial.principal", asignacion = list(list(id_manzana = T1, codigo = "X")))))
   expect_identical(mal$status, 422L)
 })
+
+test_that("la asignación territorial toma el equipo del padrón de Monitoreo: activos con código, nunca un DNI", {
+  local_mocked_bindings(monitoreo_equipo_padron = function(s) list(familia = "territorial", code_format = "PXXX", origen = "lista_de_codigos",
+    personas = list(list(codigo = "P101", nombre = "Uno", rol = "encuestador", activo = TRUE),
+                    list(codigo = "P102", nombre = "Baja", rol = "encuestador", activo = FALSE))))
+  eq <- .mta_equipo(list())
+  expect_identical(vapply(eq$equipo, `[[`, "", "codigo"), "P101")
+  expect_identical(eq$origen, "monitoreo")
+  local_mocked_bindings(monitoreo_equipo_padron = function(s) list(familia = "territorial", code_format = "DNI", origen = "lista_de_codigos", personas = list()))
+  expect_identical(.mta_equipo(list())$code_format, "DNI")
+  expect_length(.mta_equipo(list())$equipo, 0L)
+})

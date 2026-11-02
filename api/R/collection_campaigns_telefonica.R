@@ -24,7 +24,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
   base <- list(llave = "Código", estratos = list(), telefonos = 2L, reemplazo = FALSE, muestra = 0L, backup = 0L,
                responsables = list(), status = NULL, observacion = .MBP_OBSERVACION, sensibles = list(), revision = 0L)
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_TELEFONICA_CONFIG_SCHEMA) ||
-      !identical(.mtf_txt(x$campaign_id), campaign_id)) return(base)
+      !identical(.mtf_txt(x$campaign_id), campaign_id)) return(.mtel_responsables_del_padron(s, base))
   entero <- function(v, defecto) { n <- suppressWarnings(as.integer(.mtf_txt(v))); if (is.na(n) || n < 0L) defecto else n }
   list(llave = if (nzchar(.mtf_txt(x$llave))) .mtf_txt(x$llave) else "Código",
        estratos = as.list(.mbp_textos(x$estratos)), telefonos = entero(x$telefonos, 2L),
@@ -33,7 +33,21 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
        status = if (is.list(x$status) && length(x$status)) x$status else NULL,
        observacion = if (nzchar(.mtf_txt(x$observacion))) .mtf_txt(x$observacion) else .MBP_OBSERVACION,
        sensibles = as.list(intersect(.mbp_textos(x$sensibles), .mbp_textos(x$estratos))),
-       revision = entero(x$revision, 0L))
+       revision = entero(x$revision, 0L)) |> (\(cfg) .mtel_responsables_del_padron(s, cfg))()
+}
+
+# Sin responsables tecleados, los del padrón de Monitoreo (cola de coordinación, punto 4): se siembran,
+# no se guardan; en cuanto el analista guarda su lista, manda la suya.
+.mtel_responsables_del_padron <- function(s, cfg) {
+  cfg$responsables_del_padron <- FALSE
+  if (length(cfg$responsables)) return(cfg)
+  p <- tryCatch(monitoreo_equipo_padron(s), error = function(e) NULL)
+  if (!is.list(p) || !p$familia %in% c("telefonico", "acreditacion")) return(cfg)
+  nombres <- .mbp_textos(lapply(Filter(function(x) isTRUE(x$activo), p$personas %||% list()), function(x) x$nombre))
+  if (!length(nombres)) return(cfg)
+  cfg$responsables <- as.list(nombres)
+  cfg$responsables_del_padron <- TRUE
+  cfg
 }
 
 .mcamp_telefonica_estado <- function(s, entry) {
@@ -90,6 +104,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
   list(ok = TRUE, campaign_id = campaign_id, schema = MATERIAL_TELEFONICA_CONFIG_SCHEMA,
        llave = cfg$llave, estratos = cfg$estratos, telefonos = cfg$telefonos, reemplazo = cfg$reemplazo,
        muestra = cfg$muestra, backup = cfg$backup, responsables = cfg$responsables,
+       responsables_del_padron = isTRUE(cfg$responsables_del_padron),
        status = catalogo, status_propio = !is.null(cfg$status), revision = cfg$revision,
        observacion = cfg$observacion, sensibles = cfg$sensibles, telefonos_max = .MBP_TELEFONOS_MAX,
        # Lo que Monitoreo telefónico lee del Sheets: no se cambia de nombre. Con reemplazo, la cola y los
@@ -131,12 +146,16 @@ collection_telefonica_config_put <- function(sid, campaign_id = NULL, llave = NU
     as.integer(n)
   }
   pedida <- cfg
+  # Lo sembrado del padrón no se guarda como si el analista lo hubiera tecleado: sigue al padrón.
+  if (isTRUE(cfg$responsables_del_padron)) pedida$responsables <- list()
   if (!is.null(llave)) pedida$llave <- .mtf_txt(llave)
   if (!is.null(estratos)) pedida$estratos <- as.list(.mbp_textos(estratos))
   if (!is.null(telefonos)) pedida$telefonos <- suppressWarnings(as.integer(.mtf_txt(telefonos)))
   if (!is.null(reemplazo)) pedida$reemplazo <- isTRUE(as.logical(.mtf_txt(reemplazo)))
   pedida$muestra <- casos(muestra, cfg$muestra, "muestra"); pedida$backup <- casos(backup, cfg$backup, "backup")
-  if (!is.null(responsables)) pedida$responsables <- as.list(.mbp_textos(responsables))
+  # La pantalla reenvía la lista que muestra: si es la misma sembrada del padrón, no es una lista propia.
+  sembrada <- isTRUE(cfg$responsables_del_padron) && identical(.mbp_textos(responsables), .mbp_textos(cfg$responsables))
+  if (!is.null(responsables) && !sembrada) pedida$responsables <- as.list(.mbp_textos(responsables))
   if (!is.null(status)) pedida$status <- if (length(status)) status else NULL
   if (!is.null(observacion)) pedida$observacion <- .mtf_txt(observacion)
   if (!is.null(sensibles)) pedida$sensibles <- as.list(.mbp_textos(sensibles))

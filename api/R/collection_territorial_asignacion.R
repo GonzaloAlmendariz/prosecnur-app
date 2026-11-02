@@ -18,6 +18,19 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 # Con `code_format = "DNI"` el código ES el DNI: no se expone nadie y la asignación queda
 # bloqueada (la UI lo explica); nunca sale un DNI de aquí.
 .mta_equipo <- function(s) {
+  # El padrón de Monitoreo (monitoreo_equipo_padron.R, f42e758f9): «una sola lista, tu padrón; Material
+  # asigna desde él». Se asigna a quien está activo y tiene código; sin padrón territorial (la familia del
+  # perfil no está declarada) queda la lectura de antes, que es la misma lista y el mismo respaldo.
+  p <- tryCatch(monitoreo_equipo_padron(s), error = function(e) NULL)
+  if (is.list(p) && identical(p$familia, "territorial")) {
+    origen <- if (identical(p$origen, "planner")) "planner" else "monitoreo"
+    if (identical(p$code_format, "DNI")) return(list(code_format = "DNI", equipo = list(), origen = origen))
+    con <- Filter(function(x) isTRUE(x$activo) && nzchar(x$codigo %||% ""), p$personas %||% list())
+    if (length(con)) {
+      return(list(code_format = p$code_format, origen = origen,
+                  equipo = lapply(con, function(x) list(codigo = x$codigo, nombre = x$nombre %||% ""))))
+    }
+  }
   # ADR 0123 §2 (Q3): el equipo es de Monitoreo. Su roster manda en cuanto tiene una persona;
   # el equipo que un `.pulso` tenía declarado en el Planner (perfil territorial, activos, sólo
   # código y nombre) queda de respaldo para cuando el roster está vacío, y se retira en la Q6.
