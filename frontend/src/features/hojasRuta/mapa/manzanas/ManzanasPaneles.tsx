@@ -8,6 +8,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
 import { irAlMarcoElegible, tonoCobertura } from "./marcoElegible";
 import { CompararSemillas } from "./CompararSemillas";
+import { SorteoEnCurso } from "./SorteoEnCurso";
 import { ConfirmarResorteo } from "./ConfirmarResorteo";
 import { fechaDelSorteo } from "./fechaSorteo";
 import { nombreDistrito } from "../nombres";
@@ -94,10 +95,12 @@ type InspectorProps = {
   guardando: boolean;
   /** La muestra vigente ya está en Material: volver a sortear pide confirmación (1 nov 2026). */
   enviada?: { enviadoEl: string | null } | null;
+  /** El sorteo en curso: desde cuándo y sobre cuántos distritos (SorteoEnCurso). */
+  sorteando?: { desde: number; distritos: number } | null;
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, reglaPiloto, bloqueado, guardando, enviada, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, reglaPiloto, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
   const [confirmando, setConfirmando] = useState(false);
   const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
   const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
@@ -118,6 +121,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
       <InspectorCabecera icono={Shuffle} sobre="Manzanas" titulo={muestra ? `${muestra.blocks.length} UMP sorteadas` : "Sorteo de manzanas"} />
       {/* B56: los bloques del sorteo van numerados en el orden del trabajo (CSS counter). */}
       <div className="hr-mapa-ins-cuerpo hr-manz-pasos">
+        {sorteando ? <SorteoEnCurso desde={sorteando.desde} distritos={sorteando.distritos} /> : null}
         {v1 ? (
           <section className="hr-sorteo-v1" role="alert" aria-label="Muestra con el reparto anterior">
             <strong>Esta muestra no debe ir a campo</strong>

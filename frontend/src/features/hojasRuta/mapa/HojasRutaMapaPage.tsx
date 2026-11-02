@@ -89,6 +89,8 @@ export default function HojasRutaMapaPage() {
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
   const [guardando, setGuardando] = useState(false);
+  // Desde cuándo corre el sorteo (SorteoEnCurso): el pedido tarda minutos y no informa avance.
+  const [sorteoDesde, setSorteoDesde] = useState<number | null>(null);
   // Al volver a un ruteo: si la muestra que salió es la de entonces, y si no, por qué.
   const [ruteoUsado, setRuteoUsado] = useState<{ id: string; causa: CausaRuteo } | null>(null);
   const { borrador: borradorCrudo, distritoBajoCursor, setBorrador, setDistritoBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada, departamentoEnfocado, setDepartamentoEnfocado, manzanaEnfocada, setManzanaEnfocada } = useLienzoHojasRuta();
@@ -345,6 +347,7 @@ export default function HojasRutaMapaPage() {
     async (config: HojasRutaIntegratedConfig): Promise<HojasRutaSamplePreview | null> => {
       if (!estado) return null;
       setGuardando(true);
+      setSorteoDesde(Date.now());
       try {
         const muestra = await apiHojasRutaSamplePreview(config);
         const nuevo = await apiHojasRutaState();
@@ -359,6 +362,7 @@ export default function HojasRutaMapaPage() {
         return null;
       } finally {
         setGuardando(false);
+        setSorteoDesde(null);
       }
     },
     [estado, fase, setSorteoBorrador],
@@ -871,6 +875,7 @@ export default function HojasRutaMapaPage() {
               bloqueado={bloqueado}
               guardando={guardando}
               enviada={envio ? { enviadoEl: envio.enviado_at } : null}
+              sorteando={sorteoDesde !== null ? { desde: sorteoDesde, distritos: configSorteo.territorios.length } : null}
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
