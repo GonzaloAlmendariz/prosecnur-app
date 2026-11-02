@@ -56,7 +56,7 @@ Los ocho módulos del proyecto son:
 | Bitácora (`diseno-estudio`) | `/bitacora` | bitácora · cronograma · calendario · canvas |
 | Cálculo de muestra | `/calc-muestra` | modos `opinion-universitaria`, `marco-disponible`, `acreditacion`, `territorial-handoff` |
 | Formularios (`editor-xlsform`) | `/editor-xlsform` | formularios |
-| Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · entrega (tabs: cuotas, titulares, reemplazos) |
+| Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · selección (`seccion=seleccion`; en modo cuotas se rotula «Entrega»; tabs: cuotas, titulares, reemplazos, revisión) |
 | Recopiladores | `/recopiladores` | plan de recolección · accesos · materiales · entrega a campo |
 | Monitoreo | `/monitoreo` | modos acreditación · telefónico · territorial · cursos-horario (ADR 0022) |
 | Procesamiento | `/procesamiento` | carga · validación · codificación · analítica · gráficos |
