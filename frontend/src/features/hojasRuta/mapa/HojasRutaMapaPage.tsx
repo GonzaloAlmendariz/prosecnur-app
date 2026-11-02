@@ -370,6 +370,21 @@ export default function HojasRutaMapaPage() {
     void sortear(aplicarSorteo(estado.integrated_config, parametrosDeSorteo(h.config))).then((m) => m && setRuteoUsado({ id: h.id, causa: causaDeRuteo(h, m) }));
   }, [estado, sortear]);
 
+  // P9: quitar un ruteo del historial. Sólo toca ui_state.route_history; la muestra vigente no se ofrece.
+  const quitarRuteo = useCallback(async (h: HojasRutaRouteSnapshot) => {
+    if (!estado) return;
+    setGuardando(true);
+    try {
+      const resto = (estado.ui_state?.route_history ?? []).filter((x) => x.id !== h.id);
+      await apiHojasRutaPersistWorkspace(estado.integrated_config, { ...estado.ui_state, route_history: resto }, undefined, fase);
+      setEstado(await apiHojasRutaState());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo quitar el ruteo");
+    } finally {
+      setGuardando(false);
+    }
+  }, [estado, fase]);
+
   // Selección: la revisión contra el marco decide el tono de cada ruta.
   const bloquesTitulares = useMemo(() => salidas?.sample?.blocks ?? [], [salidas]);
   const bloquesReemplazos = useMemo(() => salidas?.sample?.replacement_blocks ?? [], [salidas]);
@@ -704,7 +719,7 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} confirmados={confirmados} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} usado={ruteoUsado} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} onQuitar={(h) => void quitarRuteo(h)} usado={ruteoUsado} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { CODIGO_V1, muestraV1, resumenV1 } from "./sorteoV1";
 import "./sorteoV1.css";
-import { Shuffle } from "../../../../vendor/lucide-react";
+import { Shuffle, Trash2 } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -281,11 +281,13 @@ type EstructuraProps = {
   bloqueado: boolean;
   guardando: boolean;
   onUsar: (s: HojasRutaRouteSnapshot) => void;
+  /** P9: quita un ruteo del historial (nunca el que está en uso). */
+  onQuitar?: (s: HojasRutaRouteSnapshot) => void;
   /** El ruteo al que se acaba de volver y si salió la misma muestra (causaRuteo.ts). */
   usado?: { id: string; causa: CausaRuteo } | null;
 };
 
-export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar, usado = null }: EstructuraProps) {
+export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar, onQuitar, usado = null }: EstructuraProps) {
   const porDistrito = new Map<string, { distrito: string; titulares: number; entrevistas: number; reemplazos: number }>();
   for (const b of muestra?.blocks ?? []) {
     const f = porDistrito.get(b.ubigeo) ?? { distrito: b.distrito, titulares: 0, entrevistas: 0, reemplazos: 0 };
@@ -329,6 +331,11 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                       Usar
                     </PulsoButton>
                   )}
+                  {onQuitar && !vigente(h) ? (
+                    <PulsoButton variant="icon" size="sm" aria-label={`Quitar ${h.label} del historial`} title="Quitar del historial" disabled={bloqueado || guardando} onClick={() => onQuitar(h)}>
+                      <Trash2 size={13} aria-hidden />
+                    </PulsoButton>
+                  ) : null}
                   {usado?.id === h.id ? (
                     <p className="hr-sorteo-causa" data-causa={usado.causa} role="status">
                       {TEXTO_CAUSA[usado.causa]}
