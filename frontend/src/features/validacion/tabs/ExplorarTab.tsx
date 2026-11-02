@@ -453,11 +453,20 @@ export default function ExplorarTab({
       <aside className="vx-lateral" aria-label="Lectura del cruce">
         <PanelApartaTotal modelo={modelo} />
       </aside>
-    ) : !crossVar && ficha && uniVigente ? (
-      <aside className="vx-lateral" aria-label="Ficha de la pregunta">
+    ) : !crossVar && uniVigente && (ficha || !fichaVigente) ? (
+      // La columna se reserva mientras llega la ficha: el gráfico no ocupa el
+      // ancho entero para encogerse un instante después (C2). Si la ficha
+      // falló, no hay columna.
+      <aside className="vx-lateral" aria-label="Ficha de la pregunta" aria-busy={!ficha}>
         <div className="vx-tarjeta vx-ficha">
-          <PanelFormulario ficha={ficha} />
-          <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+          {ficha ? (
+            <>
+              <PanelFormulario ficha={ficha} />
+              <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+            </>
+          ) : (
+            <p className="vx-ficha-cargando" role="status">Leyendo el formulario…</p>
+          )}
         </div>
       </aside>
     ) : null;

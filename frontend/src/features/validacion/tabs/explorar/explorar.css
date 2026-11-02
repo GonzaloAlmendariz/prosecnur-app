@@ -100,16 +100,16 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
-/* Rejilla de celdas iguales: en la lista (angosta) dos columnas, cada chip con
-   su nombre entero y el conteo alineado a la derecha; en el selector de cruce
-   (ancho) las seis en una fila. */
+/* Rejilla de celdas iguales, cada chip con su nombre entero y el conteo
+   alineado a la derecha: dos columnas en la lista, tres en el selector de cruce
+   (~430 px: seis en una fila se cortan). */
 .vx-chips {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 .crossbar-panel-cab .vx-chips {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .vx-chip {
   display: flex;
@@ -1019,6 +1019,13 @@
 .vx-ficha {
   display: flex;
   flex-direction: column;
+}
+.vx-ficha-cargando {
+  margin: 0;
+  padding: var(--pulso-space-4) 18px;
+  min-height: 240px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
 }
 .vx-ficha > .vx-panel + .vx-panel {
   border-top: 1px solid var(--pulso-border);
