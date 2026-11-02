@@ -40,7 +40,8 @@ test_that("acreditación abre los canales que el Modelo de Monitoreo declara (AD
   # Egresados: correo, luego llamadas, luego otra ronda de correos.
   session_set(sid, "monitoreo_config", list(monitoreo_profile = list(units = list(list(actor = "Egresados", canales = list(
     list(ronda = 1L, canal = "correo"), list(ronda = 2L, canal = "telefonico"), list(ronda = 3L, canal = "correo")))))))
-  expect_setequal(unlist(collection_campaigns_get(sid)$tipos_del_estudio), c("correo", "telefonica"))
+  # La telefónica trae su supervisión (ADR 0125 anexo A3).
+  expect_setequal(unlist(collection_campaigns_get(sid)$tipos_del_estudio), c("correo", "telefonica", "supervision"))
   r <- collection_campaign_create(sid, "telefonica", "Acreditación telefónica")
   expect_identical(r$campaign$tipo, "telefonica")
   expect_false(r$campaign$fuera_del_estudio)
