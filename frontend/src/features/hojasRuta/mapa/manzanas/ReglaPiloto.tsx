@@ -44,6 +44,7 @@ export function ReglaPiloto({ modo, titularesPiloto, excluidasEnLaMuestra, desha
       </GlidingRadioGroup>
       <p className="hr-mapa-nota">
         El piloto sorteó {titularesPiloto.toLocaleString("es-PE")} {titularesPiloto === 1 ? "titular" : "titulares"}.
+        {modo === "exclude_titulars" ? " En el mapa se ven en gris, con trazo cortado." : ""}
       </p>
       {desfasada ? (
         <p className="hr-mapa-aviso" role="status">

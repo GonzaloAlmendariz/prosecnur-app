@@ -23,6 +23,7 @@ import { useContornosRegiones } from "./territorio/useContornosRegiones";
 import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
+import { dibujarExcluidasPiloto } from "./lienzo/excluidasPiloto";
 import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
 import {
   dibujarContornos,
@@ -412,6 +413,11 @@ export default function HojasRutaMapaPage() {
     return m ? m.centro : null;
   }, [titularEnfocada, manzanaPorId]);
 
+  // P2: en Campo real que evita el piloto, sus titulares se ven en Manzanas como excluidas.
+  const excluidasPiloto = useMemo<PiezaManzana[]>(() => {
+    if (fase !== "field" || estado?.runs?.field?.pilot_exclusion_mode === "ignore") return [];
+    return (estado?.runs?.pilot?.workspace_outputs?.sample?.blocks ?? []).flatMap((b) => manzanaPorId.get(String(b.id_manzana)) ?? []);
+  }, [fase, estado, manzanaPorId]);
   const reemplazos = useMemo<PiezaManzana[]>(() => {
     const porId = new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const)));
     return (salidas?.sample?.replacement_blocks ?? []).flatMap((b) => porId.get(b.id_manzana) ?? []);
@@ -532,12 +538,13 @@ export default function HojasRutaMapaPage() {
             ctx.fill();
           }
         }
+        dibujarExcluidasPiloto(ctx, u, excluidasPiloto);
         dibujarReemplazosMundo(ctx, u, reemplazos);
       }
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null, capaContraste);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, excluidasPiloto, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
