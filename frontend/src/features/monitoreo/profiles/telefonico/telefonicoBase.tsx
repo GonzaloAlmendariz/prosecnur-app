@@ -47,6 +47,9 @@ export { pct } from "../../core/formatoComun";
 import { pct } from "../../core/formatoComun";
 import { pctDecimal } from "../../core/formatoComun";
 import { num, rowNumber } from "../../core/numerosDeFila";
+import { cumplimientoLabel, formatCaseLabel, isTelefonicoMonitoreoState, pctFrom, unknownArray } from "../../core/baseComunTelAcr";
+
+export { cumplimientoLabel, formatCaseLabel, isTelefonicoMonitoreoState, pctFrom, unknownArray };
 
 export { num, rowNumber };
 
@@ -189,24 +192,11 @@ export type AcreditacionCaseReconciliationPayload = {
   note?: string;
 };
 
-export function isTelefonicoMonitoreoState(state?: MonitoreoState | null) {
-  return (state?.monitoreo_profile?.family ?? state?.config?.monitoreo_profile?.family) === "telefonico";
-}
-
-export function formatCaseLabel(value: number) {
-  return `${fmt(value)} caso${value === 1 ? "" : "s"}`;
-}
 
 
-export function pctFrom(value: number, total: number) {
-  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
-  return pctDecimal((value / total) * 100);
-}
 
 
-export function unknownArray<T = unknown>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
-}
+
 
 
 export type SeguimientoDraft = {
@@ -375,12 +365,6 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
   );
 }
 
-export function cumplimientoLabel(estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"]) {
-  if (estado === "cumple_meta") return "Cumple";
-  if (estado === "brecha_menor_documentada") return "Brecha menor";
-  if (estado === "brecha_relevante") return "Brecha relevante";
-  return "Sin meta";
-}
 
 export function AcreditacionCumplimientoBadge({ estado }: { estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"] }) {
   return (

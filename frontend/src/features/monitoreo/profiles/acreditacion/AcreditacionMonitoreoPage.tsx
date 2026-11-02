@@ -272,6 +272,7 @@ import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, case
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
 import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
+import { cumplimientoLabel, formatCaseLabel, isTelefonicoMonitoreoState, pctFrom, unknownArray } from "../../core/baseComunTelAcr";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
@@ -374,19 +375,9 @@ type AcreditacionCaseReconciliationPayload = {
   note?: string;
 };
 
-function isTelefonicoMonitoreoState(state?: MonitoreoState | null) {
-  return (state?.monitoreo_profile?.family ?? state?.config?.monitoreo_profile?.family) === "telefonico";
-}
-
-function formatCaseLabel(value: number) {
-  return `${fmt(value)} caso${value === 1 ? "" : "s"}`;
-}
 
 
-function pctFrom(value: number, total: number) {
-  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
-  return pctDecimal((value / total) * 100);
-}
+
 
 function num(value: unknown, fallback = 0) {
   if (value == null || value === "") return fallback;
@@ -394,9 +385,6 @@ function num(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function unknownArray<T = unknown>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
-}
 
 type SeguimientoDraft = {
   n_efectivo: string;
@@ -566,12 +554,6 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
   );
 }
 
-function cumplimientoLabel(estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"]) {
-  if (estado === "cumple_meta") return "Cumple";
-  if (estado === "brecha_menor_documentada") return "Brecha menor";
-  if (estado === "brecha_relevante") return "Brecha relevante";
-  return "Sin meta";
-}
 
 function AcreditacionCumplimientoBadge({ estado }: { estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"] }) {
   return (
