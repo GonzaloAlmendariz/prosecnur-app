@@ -119,7 +119,8 @@ COLLECTION_BARRIDO_PLANTILLA_VERSION <- "barrido_telefonico/v1"
 #' proyecto: registra el archivo en la sesión y devuelve su `file_id`.
 #' @keywords internal
 collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estratos = list(), telefonos = 2L, reemplazo = FALSE,
-                                         responsables = list(), status = NULL, filas = 2000L, observacion = NULL, sensibles = NULL) {
+                                         responsables = list(), status = NULL, filas = 2000L, observacion = NULL, sensibles = NULL,
+                                         muestra = 0L, backup = 0L) {
   p <- .mbp_parametros(estudio, llave, estratos, telefonos, reemplazo, responsables, status, filas, observacion, sensibles)
   col <- .mbp_columnas(p)
   n <- length(col$todas); ultima <- p$filas + 1L
@@ -167,6 +168,14 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   editables <- setdiff(col$todas, col$identidad)
   openxlsx::addStyle(wb, .MBP_HOJA, openxlsx::createStyle(locked = FALSE), rows = cuerpo, cols = idx(editables), gridExpand = TRUE)
   openxlsx::writeData(wb, .MBP_HOJA, data.frame(x = seq_len(p$filas)), startCol = idx(.MBP_COD_PULSO), startRow = 2, colNames = FALSE)
+  # Con reemplazo y los casos declarados, Origen llega lleno: primero la muestra, luego el backup,
+  # en el orden en que el equipo pega la base del cliente (decisión de coordinación, 1 nov 2026).
+  n_muestra <- max(0L, suppressWarnings(as.integer(muestra %||% 0L))[1], na.rm = TRUE)
+  n_backup <- max(0L, suppressWarnings(as.integer(backup %||% 0L))[1], na.rm = TRUE)
+  if (p$reemplazo && (n_muestra + n_backup) > 0L) {
+    origen <- utils::head(c(rep(.MBP_ORIGEN[[1]], n_muestra), rep(.MBP_ORIGEN[[2]], n_backup)), p$filas)
+    openxlsx::writeData(wb, .MBP_HOJA, data.frame(x = origen), startCol = idx("Origen"), startRow = 2, colNames = FALSE)
+  }
   openxlsx::addStyle(wb, .MBP_HOJA, openxlsx::createStyle(locked = FALSE, fgFill = "#FFF6D6"), rows = cuerpo,
                      cols = match(col$campo, col$todas), gridExpand = TRUE, stack = TRUE)
   texto <- c(p$llave, paste("Teléfono", seq_len(p$telefonos)), if (p$reemplazo) c("Reemplaza a", "Reemplazado por"))

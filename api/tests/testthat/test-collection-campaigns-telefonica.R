@@ -52,6 +52,20 @@ test_that("la plantilla sale con la configuración y con tantas filas como casos
   expect_identical(.mtel_code(collection_telefonica_config_get(sid, "telefonica.otra")), "E_COLLECTION_CAMPAIGN_NOT_FOUND")
 })
 
+test_that("con reemplazo, la columna Origen llega llena: muestra primero, backup después", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "telefonica", "Barrido RMS")
+  collection_telefonica_config_put(sid, reemplazo = TRUE, muestra = 3, backup = 2)
+  r <- collection_telefonica_plantilla(sid)
+  path <- session_get(sid)$files[[r$file_id]]$path
+  hoja <- openxlsx::read.xlsx(path, sheet = "Barrido", check.names = FALSE, sep.names = " ")
+  expect_identical(hoja$Origen, c("Muestra", "Muestra", "Muestra", "Backup", "Backup"))
+  # Sin reemplazo no hay columna Origen.
+  collection_telefonica_config_put(sid, reemplazo = FALSE)
+  r2 <- collection_telefonica_plantilla(sid)
+  expect_false("Origen" %in% unlist(r2$columnas))
+})
+
 test_that("HTTP: config y plantilla", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
   collection_campaign_create(sid, "telefonica", "Barrido RMS")

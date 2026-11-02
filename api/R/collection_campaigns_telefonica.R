@@ -162,5 +162,6 @@ collection_telefonica_plantilla <- function(sid, campaign_id = NULL) {
   collection_barrido_plantilla(sid, estudio = hit$entry$name, llave = cfg$llave, estratos = cfg$estratos,
                                telefonos = cfg$telefonos, reemplazo = cfg$reemplazo, responsables = cfg$responsables,
                                status = cfg$status, filas = if (filas > 0L) filas else 2000L,
-                               observacion = cfg$observacion, sensibles = cfg$sensibles)
+                               observacion = cfg$observacion, sensibles = cfg$sensibles,
+                               muestra = cfg$muestra, backup = cfg$backup)
 }
