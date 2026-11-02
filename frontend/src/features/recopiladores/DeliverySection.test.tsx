@@ -223,6 +223,7 @@ describe("las tablas en Sheets se construyen desde Material (R13)", () => {
     expect(html).toContain("Construir las tablas en Sheets");
     expect(html).toContain("no pisa sus hojas");
     expect(html).toContain("Monitoreo las lee para el seguimiento");
+    expect(html).toContain("Construir la distribución en Sheets");
     expect(html).toMatch(/disabled=""[^>]*title="Primero entrega a Monitoreo/);
   });
 });

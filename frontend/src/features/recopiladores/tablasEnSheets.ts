@@ -13,7 +13,8 @@ import type { MonitoreoAulasHojaPublicada } from "../../api/monitoreo";
 export type DepsDeTablas = {
   entrega: () => Promise<{ estado: EstadoDeEntrega }>;
   traer: () => Promise<unknown>;
-  publicar: (enlace?: string) => Promise<{ spreadsheet_url: string; hojas: MonitoreoAulasHojaPublicada[] }>;
+  /** Devuelve la URL del Sheets escrito y qué le pasó a cada hoja. */
+  publicar: (enlace?: string) => Promise<{ url: string; hojas: MonitoreoAulasHojaPublicada[] }>;
 };
 
 export type ResultadoDeTablas =
@@ -28,7 +29,7 @@ export async function construirTablasEnSheets(deps: DepsDeTablas, enlace: string
   const trajo = estado === "por_traer";
   if (trajo) await deps.traer();
   const r = await deps.publicar(enlace.trim() || undefined);
-  return { ok: true, url: r.spreadsheet_url, hojas: r.hojas, trajo };
+  return { ok: true, url: r.url, hojas: r.hojas, trajo };
 }
 
 const ACCION: Record<string, string> = {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { construirTablasEnSheets, rotuloDeHoja } from "./tablasEnSheets";
 
-const publicado = { spreadsheet_url: "https://docs.google.com/spreadsheets/d/x", hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 193 }] };
+const publicado = { url: "https://docs.google.com/spreadsheets/d/x", hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 193 }] };
 
 function deps(estado: "sin_entrega" | "desactualizada" | "por_traer" | "aplicada") {
   return { entrega: vi.fn(async () => ({ estado })), traer: vi.fn(async () => ({})), publicar: vi.fn(async () => publicado) };

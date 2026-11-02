@@ -135,6 +135,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </Panel>
       <ConstruirTablasEnSheets entregado={Boolean(receipt)} />
+      <ConstruirTablasEnSheets entregado={Boolean(receipt)} tabla="distribucion" />
       </div>
 
       <Panel
