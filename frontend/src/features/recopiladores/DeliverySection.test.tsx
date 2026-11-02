@@ -196,3 +196,20 @@ describe("entrega bloqueada sin accesos", () => {
   });
 });
 
+describe("las tablas en Sheets se construyen desde Material (R13)", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("la acción está y dice qué hace; sin entregar, apagada y con su motivo", () => {
+    const base = payloadWithReceipts([receipt("x")]);
+    const sinEntregar = { ...base, state: { ...base.state, deployment: null } } as CollectionStatePayload;
+    const html = renderToStaticMarkup(<DeliverySection payload={sinEntregar} latestArtifact={null} onState={() => undefined} />);
+    expect(html).toContain("Construir las tablas en Sheets");
+    expect(html).toContain("no pisa sus hojas");
+    expect(html).toContain("Monitoreo las lee para el seguimiento");
+    expect(html).toMatch(/disabled=""[^>]*title="Primero entrega a Monitoreo/);
+  });
+});
+

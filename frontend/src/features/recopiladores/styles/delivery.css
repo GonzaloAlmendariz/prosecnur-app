@@ -239,3 +239,30 @@
 .rec-receipt-card .rec-receipt-empty span {
   max-width: 46ch;
 }
+
+/* R13: la columna izquierda lleva la entrega y, debajo, las tablas en Sheets. */
+.rec-delivery-columna {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rec-tablas-sheets-hojas {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  margin: 0;
+  padding-left: 18px;
+}
+
+
+.rec-tablas-sheets-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.rec-tablas-sheets-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+}

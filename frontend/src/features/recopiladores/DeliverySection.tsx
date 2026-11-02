@@ -16,6 +16,7 @@ import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
+import { ConstruirTablasEnSheets } from "./ConstruirTablasEnSheets";
 import "./styles/delivery.css";
 
 type Props = {
@@ -100,6 +101,8 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
 
   return (
     <div className="rec-delivery-layout">
+      {/* La columna de lo que hace Material: entregar y, con lo entregado, armar las tablas (R13). */}
+      <div className="rec-delivery-columna">
       <Panel
         className="rec-handoff-card"
         eyebrow="Entrega"
@@ -131,6 +134,8 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         <p className="rec-policy-note">Entregar dos veces no duplica nada: con la misma huella se conserva un solo recibo y el traspaso no se repite.</p>
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </Panel>
+      <ConstruirTablasEnSheets entregado={Boolean(receipt)} />
+      </div>
 
       <Panel
         className="rec-receipt-card"
