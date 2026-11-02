@@ -278,7 +278,17 @@ por la coordinación como decisión reversible. Cada dueño construye su lado co
 
 - Material nombra «Acreditación telefónica» y «Acreditación en aulas» cuando `material.proposito = "acreditacion"`.
 - `proposito` y `relacion = list(publico, ronda, viene_de)` van en la entrada del registro de cada campaña.
-- Se construye cuando Monitoreo exponga `canales` por público (contrato del §5).
+- Construido (c070da965, 053487ea4), sobre los `canales` de Monitoreo (c36597d3d):
+  - cada ronda telefónica del Modelo es una campaña `telefonica.<público>-r<n>`, con su configuración y su plantilla;
+    `viene_de` es la campaña del registro de la ronda anterior de ese público, o `NULL` si esa ronda fue de correo,
+    que no vive en el registro;
+  - el barrido es **un solo Sheets por estudio**, con una pestaña por campaña telefónica (`Barrido <público>-r<n>`;
+    la principal conserva «Barrido»), para no multiplicar los documentos que se comparten con los enumeradores;
+  - la supervisión de cada lote toma como `viene_de` su campaña telefónica concreta (`campana_origen` del lote) y
+    lee la pestaña de barrido de esa campaña.
+- **Límite conocido** (coordinación, 2 nov 2026, decisión reversible): «Acreditación en aulas» queda como **una sola
+  campaña por estudio**, atada al plan único de aulas (`collection_state`). No se parte por público ni por ronda
+  hasta que un estudio real lo pida.
 
 ## Notas
 
