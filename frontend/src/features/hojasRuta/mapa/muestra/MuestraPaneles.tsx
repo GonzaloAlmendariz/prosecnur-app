@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
 import { AjustesPorDistrito } from "./AjustesPorDistrito";
+import { GuiaDeMuestra } from "./GuiaDeMuestra";
 import { pasosDelN } from "./pasosDelN";
 import { EscenariosMuestra } from "./EscenariosMuestra";
 import { MargenCurva } from "./MargenCurva";
@@ -263,6 +264,13 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           </dl>
           <p className="hr-mapa-nota">z = {r.z.toFixed(3)} para una confianza de {Math.round(s.confidence_level * 100)} %. Cambiar el margen, p, el DEFF o los márgenes por distrito recalcula este N.</p>
         </details>
+        {/* P7: la recomendación de DEFF, los semáforos de los supuestos y los criterios de la clásica. */}
+        <GuiaDeMuestra
+          entrevistasPorManzana={ruta}
+          supuestos={{ margenTotal: s.margin_total, p: s.expected_proportion, deff: s.design_effect, respuesta: s.response_rate }}
+          deshabilitado={ed}
+          onUsarDeff={(design_effect) => cambiarS({ design_effect })}
+        />
         {muestraBorrador && hayMuestra ? <p className="hr-mapa-aviso">Guardar recalcula el tamaño y descarta las cuotas y el sorteo actual.</p> : null}
       </div>
       <footer className="hr-mapa-pie">

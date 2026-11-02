@@ -1,0 +1,11 @@
+/* P7: guía de decisión de Muestra (recomendación de DEFF, semáforos y criterios), plegada. */
+.hr-muestra-decision { display: flex; flex-direction: column; gap: 8px; }
+.hr-muestra-decision > summary { cursor: pointer; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); padding: 4px 0 8px; }
+.hr-muestra-decision-rec { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-muestra-decision-rec small { color: var(--pulso-text-soft); }
+.hr-muestra-decision-rec p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-muted, var(--pulso-text-soft)); }
+.hr-muestra-decision-consejos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hr-muestra-decision-consejos li { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px 6px 10px; border-left: 3px solid var(--pulso-success-border); border-radius: 4px; background: var(--pulso-surface); font-size: 12px; }
+.hr-muestra-decision-consejos li[data-tono="aviso"] { border-left-color: var(--pulso-warn-border); }
+.hr-muestra-decision-consejos li[data-tono="error"] { border-left-color: var(--pulso-danger-border); }
+.hr-muestra-decision-consejos small { color: var(--pulso-text-soft); line-height: 1.4; }
