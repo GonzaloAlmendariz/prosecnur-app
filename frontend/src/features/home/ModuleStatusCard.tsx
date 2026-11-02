@@ -136,22 +136,6 @@ function StatView({
   );
 }
 
-function DateView({ viz, sub }: { viz: Extract<ModuleCardViz, { kind: "date" }>; sub: string }) {
-  return (
-    <span className="home-mc-viz">
-      <span className={`home-mc-daychip is-${viz.tone}`} aria-hidden="true">
-        <span className="home-mc-daychip-month">{viz.month || "fecha"}</span>
-        <span className="home-mc-daychip-day">{viz.day || "?"}</span>
-      </span>
-      <span className="home-mc-stat">
-        <span className="home-mc-stat-label">{viz.label}</span>
-        <span className="home-mc-date-title">{sub}</span>
-        <span className={`home-mc-countdown is-${viz.tone}`}>{viz.countdown}</span>
-      </span>
-    </span>
-  );
-}
-
 export const ModuleStatusCard = forwardRef<
   HTMLDivElement,
   {
@@ -241,7 +225,6 @@ export const ModuleStatusCard = forwardRef<
             activityFirst={view.emphasis === "activity"}
           />
         )}
-        {view.viz.kind === "date" && <DateView viz={view.viz} sub={view.sub} />}
 
         {/* Línea de metadatos, no tres mini-stats. Los facts de módulos
             distintos no son comparables entre sí (nadie compara "universo" de

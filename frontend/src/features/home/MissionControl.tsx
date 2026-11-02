@@ -82,6 +82,9 @@ export function MissionControl({
       className="home-mission"
       aria-label="Estado del proyecto"
       data-audit-ready="home"
+      // Las columnas viven en la sección: la franja «desde tu última apertura»
+      // toma el mismo techo que la rejilla y no queda más ancha que las tarjetas.
+      style={{ ["--home-cols" as string]: gridColumns(cards.length) }}
     >
       {/* Sin franja de título. El nombre del proyecto, su archivo y el estado
           de guardado ya viven en el chip del topbar, y la norma del sistema es

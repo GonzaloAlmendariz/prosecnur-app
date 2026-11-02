@@ -14,14 +14,6 @@ export type ModuleCardViz =
   | { kind: "phases"; done: number; total: number; labels: string[] }
   | { kind: "stat"; value: string; label: string }
   | {
-      kind: "date";
-      day: string;
-      month: string;
-      label: string;
-      countdown: string;
-      tone: "future" | "today" | "past" | "empty";
-    }
-  | {
       kind: "progress";
       current: number;
       total: number;
@@ -87,22 +79,6 @@ function calendarDateFromIso(value: string): CalendarDate | null {
   return calendar;
 }
 
-function calendarDateInLima(timestamp: number): CalendarDate {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: LIMA_TIME_ZONE,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(new Date(timestamp));
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((item) => item.type === type)?.value ?? 0);
-  return { year: part("year"), month: part("month"), day: part("day") };
-}
-
-function calendarOrdinal({ year, month, day }: CalendarDate): number {
-  return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-}
-
 function formatCutDate(iso: string): string {
   if (!iso) return "Sin corte";
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
@@ -143,38 +119,6 @@ export function formatSavedAt(iso: string, now?: number): string {
   if (days === 1) return "guardado ayer";
   if (days < 30) return `guardado hace ${days} días`;
   return `guardado el ${date.toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}`;
-}
-
-const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-function dateViz(
-  iso: string,
-  now?: number,
-): Extract<ModuleCardViz, { kind: "date" }> {
-  const date = calendarDateFromIso(iso);
-  if (!date) {
-    return {
-      kind: "date",
-      day: "",
-      month: "",
-      label: "fecha programada",
-      countdown: "Fecha por confirmar",
-      tone: "empty",
-    };
-  }
-  const today = calendarDateInLima(now ?? Date.now());
-  const diff = calendarOrdinal(date) - calendarOrdinal(today);
-  const tone = diff < 0 ? "past" : diff === 0 ? "today" : "future";
-  const countdown =
-    diff < 0 ? "Fecha programada" : diff === 0 ? "Es hoy" : diff === 1 ? "Mañana" : `En ${diff} días`;
-  return {
-    kind: "date",
-    day: String(date.day),
-    month: MONTHS_SHORT[date.month - 1] ?? "",
-    label: tone === "past" ? "fecha de cronograma" : "próximo entregable",
-    countdown,
-    tone,
-  };
 }
 
 function capitalize(value: string): string {
@@ -244,8 +188,7 @@ function progressSteps(labels: string[], current: number): ModuleProgressStep[] 
 }
 
 function nodeForModule(module: ProsecnurModuleMeta, overview: ProjectOverview) {
-  const nodeId = module.slug === "diseno-estudio" ? "plan-trabajo" : module.slug;
-  return overview.modules.find((item) => item.id === nodeId);
+  return overview.modules.find((item) => item.id === module.slug);
 }
 
 function moduleAction(module: ProsecnurModuleMeta, label: string, route?: string) {
@@ -783,99 +726,18 @@ export function buildModuleCardView(
       };
     }
 
-    case "diseno-estudio":
-    default: {
-      const log = facts.bitacora;
-      const total = Math.max(0, log.total_tasks);
-      const pending = Math.max(0, log.pending);
-      const completed = Math.max(0, Math.min(total, total - pending));
-      const scheduledDate = log.next_date ? dateViz(log.next_date, now) : null;
-      const scheduledDateIsPast = scheduledDate?.tone === "past";
-      const cardFacts: ModuleCardFact[] = [
-        { label: "registros", value: formatCount(log.entries_count) },
-        { label: "decisiones", value: formatCount(log.decisions_count) },
-        { label: "pendientes", value: formatCount(pending) },
-      ];
-      if (log.next_date) {
-        cardFacts.push({
-          label: scheduledDateIsPast ? "fecha de cronograma" : "próxima fecha",
-          value: formatCutDate(log.next_date),
-        });
-      }
-      if (total > 0) {
-        const state: ModuleStatusState =
-          nodeState === "warning" ? "warning" : pending === 0 ? "ready" : "active";
-        const actionLabel =
-          state === "warning"
-            ? "Revisar cronograma"
-            : pending > 0
-              ? "Continuar cronograma"
-              : "Revisar bitácora";
-        return {
-          state,
-          statusLabel: stateLabel(state),
-          viz: {
-            kind: "progress",
-            current: completed,
-            total,
-            display: `${completed}/${total}`,
-            label: "actividades",
-          },
-          sub:
-            log.next_title
-              ? `${scheduledDateIsPast ? "Fecha" : "Próximo"}: ${log.next_title}`
-              : pending > 0
-                ? `${formatCount(pending)} actividades pendientes`
-                : "Cronograma completado",
-          facts: cardFacts,
-          action: moduleAction(
-            module,
-            actionLabel,
-            state === "warning" || pending > 0
-              ? "/planner?seccion=cronograma"
-              : undefined,
-          ),
-          alert: state === "warning" ? "Revisar cronograma" : null,
-          summary,
-        };
-      }
-      if (log.next_date) {
-        const viz = scheduledDate as Extract<ModuleCardViz, { kind: "date" }>;
-        return {
-          state: nodeState === "warning" ? "warning" : "active",
-          statusLabel: nodeState === "warning" ? "Requiere atención" : "En curso",
-          viz,
-          sub: log.next_title || "Hay una fecha registrada en el cronograma",
-          facts: cardFacts,
-          action: moduleAction(module, "Abrir cronograma", "/planner?seccion=cronograma"),
-          alert: nodeAlert,
-          summary,
-        };
-      }
-      if (log.entries_count > 0) {
-        const state: ModuleStatusState = nodeState === "warning" ? "warning" : "active";
-        return {
-          state,
-          statusLabel: stateLabel(state),
-          emphasis: log.last_entry_title ? "activity" : undefined,
-          viz: { kind: "stat", value: formatCount(log.entries_count), label: "registros" },
-          sub: log.last_entry_title ? `Última: ${log.last_entry_title}` : "Bitácora con actividad",
-          facts: cardFacts,
-          action: moduleAction(module, "Registrar avance"),
-          alert: nodeAlert,
-          summary,
-        };
-      }
+    default:
+      // Un slug sin tarjeta propia: el manifiesto ya no tiene Bitácora (ADR
+      // 0124), y los slugs de legado sólo sobreviven en el tipo. Lectura
+      // neutra, sin inventar datos.
       return {
         state: "pending",
         statusLabel: "Por iniciar",
-        emphasis: "activity",
-        viz: { kind: "stat", value: "Sin actividad", label: "bitácora y cronograma" },
-        sub: "Registra avances y arma el cronograma del estudio",
-        facts: cardFacts,
-        action: moduleAction(module, "Registrar primer avance"),
+        viz: { kind: "stat", value: "Sin lectura", label: "en este estudio" },
+        sub: module.tagline,
+        facts: [],
+        action: moduleAction(module, `Abrir ${module.shortLabel}`),
         summary,
       };
-    }
   }
 }

@@ -48,7 +48,6 @@ export function cifrasDelProyecto(overview: ProjectOverview): Cifra[] {
   ).length;
   const validas = monitoreo?.valid_label || "válidas";
   const cifras: Cifra[] = [
-    { clave: "planner.registros", etiqueta: "registros en el Planner", singular: "registro en el Planner", valor: facts.bitacora?.entries_count ?? 0 },
     { clave: "editor.preguntas", etiqueta: "preguntas en el instrumento", singular: "pregunta en el instrumento", valor: facts.editor?.questions_count ?? 0 },
     // El rótulo lo manda el backend según la familia («validadas», «efectivas»): el singular le quita la «s».
     { clave: "monitoreo.validas", etiqueta: `${validas} en Monitoreo`, singular: `${validas.replace(/s$/, "")} en Monitoreo`, valor: monitoreo?.valid ?? 0 },

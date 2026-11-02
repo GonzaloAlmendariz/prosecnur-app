@@ -2881,6 +2881,12 @@
    cambió, o que no cambió nada, o que es la primera apertura en el equipo:
    nunca queda vacía (C3). */
 .home-hoy {
+  /* Mismo techo y centrado que .home-mission-grid: con dos módulos la franja
+     medía el ancho entero y las tarjetas, 800 px (2026-11-02, sin Bitácora). */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(var(--home-cols, 4) * 400px);
+  margin-inline: auto;
   display: flex;
   align-items: flex-start;
   gap: 10px;
