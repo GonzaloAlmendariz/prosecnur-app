@@ -1,4 +1,5 @@
 # collection_campaigns_planner.R — qué tipos de campaña declara el estudio (ADR 0122 P2).
+# ADR 0125 §5: en acreditación, los canales que el Modelo de Monitoreo declara por público.
 #
 # El perfil de recojo del Planner fija qué campañas abre Material (.planner_modos_de:
 # territorial → territorial, aulas → aulas, telefónico → telefonica, acreditación o un
@@ -14,7 +15,7 @@
 .mcamp_tipos_del_estudio <- function(s) {
   decl <- tryCatch(.planner_leer(s)$secciones$perfiles, error = function(e) NULL)
   if (is.null(decl) || !length(decl$valor)) return(NULL)
-  campanas <- tryCatch(unlist(.planner_modos_de(decl$valor)$material$campanas), error = function(e) NULL)
+  campanas <- tryCatch(unlist(.planner_modos_de(decl$valor, .planner_canales_del_modelo(s))$material$campanas), error = function(e) NULL)
   if (!length(campanas)) return(NULL)
   intersect(.MCAMP_TIPOS, campanas)
 }

@@ -210,6 +210,7 @@ test_that("los cinco proyectos de referencia abren el Planner vacío y conservan
     acnur_acg = list(calc = "territorial-handoff", mon = "territorial", mat = "territorial", hojas = TRUE),
     acnur_pdm = list(calc = NA, mon = "telefonico", mat = "telefonica", hojas = FALSE),
     hsvg2026 = list(calc = "opinion-universitaria", mon = "aulas", mat = "aulas", hojas = FALSE),
+    # ADR 0125 §5: sin canales declarados en el Modelo, acreditación abre correo.
     acrconta = list(calc = NA, mon = "acreditacion", mat = "correo", hojas = FALSE),
     acrconta_mazo = list(calc = NA, mon = NA, mat = character(0), hojas = FALSE)
   )
@@ -248,7 +249,14 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_equal(a$monitoreo$modo, "aulas")
   expect_equal(a$monitoreo$familia, "aulas_universitarias")
   expect_false(a$hojas_ruta$aplica)
-  expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$modo, "marco-disponible")
+  expect_false(a$aulas$con_marco)
+  # ADR 0125 §3: con marco de alumnos sigue siendo cursos-horario; el marco es un atributo.
+  am <- m(tipo = "aulas", seleccion = "marco")
+  expect_equal(am$calc$modo, "opinion-universitaria")
+  expect_equal(am$calc$macro_familia, "encuesta_estudiantes")
+  expect_true(am$aulas$con_marco)
+  expect_equal(unlist(am$material$campanas), "aulas")
+  expect_false(t$aulas$con_marco)
 
   # ADR 0124: el telefónico usa por defecto la lista del cliente; con Cálculo
   # declarado (un .pulso anterior) sigue en marco disponible.
@@ -257,7 +265,6 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_equal(tel$calc$modo, "marco-disponible")
   # No `listado_telefonico`: Cálculo lo manda a su mesa legacy (inferDesk).
   expect_equal(tel$calc$macro_familia, "estudio_propio")
-  expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$macro_familia, "estudio_propio")
   expect_equal(m(tipo = "territorial")$calc$macro_familia, "territorial")
   expect_equal(m(tipo = "acreditacion", diseno = "calc-muestra")$calc$macro_familia, "acreditacion")
   expect_equal(unlist(tel$material$campanas), "telefonica")
@@ -269,7 +276,34 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   # Acreditación: la muestra la define Monitoreo con porcentajes (ADR 0124).
   acr <- m(tipo = "acreditacion")
   expect_null(acr$calc$modo)
+  # ADR 0125 §5: los canales los declara el Modelo de Monitoreo; sin ellos, correo.
   expect_equal(unlist(acr$material$campanas), "correo")
+  expect_equal(acr$material$proposito, "acreditacion")
+  expect_null(tel$material$proposito)
+  tres <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion"))), c("telefonica", "correo", "aulas"))
+  expect_equal(unlist(tres$material$campanas), c("telefonica", "correo", "aulas"))
+  # Los canales del Modelo no tocan a un estudio que no es de acreditación.
+  expect_equal(unlist(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "aulas"))), "telefonica")$material$campanas), "aulas")
+})
+
+test_that("los canales de acreditación salen del Modelo, por público y en rondas (ADR 0125 §5)", {
+  s <- list(monitoreo_config = list(monitoreo_profile = list(units = list(
+    list(actor = "Egresados", canales = list(list(ronda = 1L, canal = "correo"), list(ronda = 2L, canal = "telefonico"),
+                                             list(ronda = 3L, canal = "correo"))),
+    list(actor = "Estudiantes", canales = list(list(ronda = 1L, canal = "presencial"))),
+    list(actor = "Docentes")
+  ))))
+  expect_identical(.planner_canales_del_modelo(s), c("correo", "telefonica", "aulas"))
+  expect_identical(.planner_canales_del_modelo(list()), character(0))
+  solo_correo <- list(monitoreo_config = list(monitoreo_profile = list(units = list(
+    list(actor = "Egresados", canales = list(list(ronda = 1L, canal = "correo")))))))
+  expect_identical(.planner_canales_del_modelo(solo_correo), "correo")
+  # Las rondas se suman sobre la marcha: llamadas que no llegan a la meta y, después, correo.
+  llamadas <- list(monitoreo_config = list(monitoreo_profile = list(units = list(
+    list(actor = "Egresados", canales = list(list(ronda = 1L, canal = "telefonico")))))))
+  expect_identical(.planner_canales_del_modelo(llamadas), "telefonica")
+  llamadas$monitoreo_config$monitoreo_profile$units[[1]]$canales[[2]] <- list(ronda = 2L, canal = "correo")
+  expect_identical(.planner_canales_del_modelo(llamadas), c("telefonica", "correo"))
 })
 
 test_that("con dos perfiles (un .pulso anterior al ADR 0124) los módulos reciben sólo el primero", {
@@ -299,7 +333,8 @@ test_that("leer los modos es puro y sigue lo declarado", {
   expect_identical(.pl_huella(sid), antes)
   .planner_declarar(sid, "perfiles", list(list(tipo = "aulas", seleccion = "marco")), 0L)
   modos <- .planner_modos(session_get(sid))
-  expect_equal(modos$calc$modo, "marco-disponible")
+  expect_equal(modos$calc$modo, "opinion-universitaria")
+  expect_true(modos$aulas$con_marco)
   expect_equal(modos$origen, "declarado")
 })
 

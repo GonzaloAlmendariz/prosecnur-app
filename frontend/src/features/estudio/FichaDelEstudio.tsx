@@ -10,10 +10,11 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { PulsoField, PulsoFieldRow } from "../../components/PulsoField";
 import { PulsoInput } from "../../components/PulsoInput";
 import { PulsoSelect } from "../../components/PulsoSelect";
+import { PulsoSwitch } from "../../components/PulsoSwitch";
 import { FileText } from "../../vendor/lucide-react";
 import {
   OPCIONES_TIPO,
-  SELECCION_AULAS,
+  MARCO_DE_ALUMNOS,
   opcionDelPerfil,
   perfilDeOpcion,
   textoOrigen,
@@ -32,28 +33,29 @@ export default function FichaDelEstudio() {
   const perfilPrevio = estado?.planner.perfiles[0];
   const [form, setForm] = useState(VACIO);
   const [opcion, setOpcion] = useState<OpcionTipo | "">("");
-  const [seleccionAulas, setSeleccionAulas] = useState("conglomerados");
+  // ADR 0125 §3: el marco de alumnos es un atributo; se guarda en `seleccion`.
+  const [conMarco, setConMarco] = useState(false);
 
   useEffect(() => {
     if (!estado) return;
     setForm(estado.planner.estudio);
     setOpcion(opcionDelPerfil(estado.planner.perfiles[0]));
-    setSeleccionAulas(estado.planner.perfiles[0]?.seleccion === "marco" ? "marco" : "conglomerados");
+    setConMarco(estado.planner.perfiles[0]?.seleccion === "marco");
   }, [estado]);
 
   const cambioEstudio = form.nombre !== base.nombre || form.codigo !== base.codigo
     || form.cliente !== base.cliente || form.objetivo !== base.objetivo;
   const opcionPrevia = opcionDelPerfil(perfilPrevio);
   const cambioTipo = opcion !== "" && (opcion !== opcionPrevia
-    || (opcion === "aulas" && seleccionAulas !== (perfilPrevio?.seleccion === "marco" ? "marco" : "conglomerados")));
+    || (opcion === "aulas" && conMarco !== (perfilPrevio?.seleccion === "marco")));
   const detalleTipo = OPCIONES_TIPO.find((o) => o.valor === opcion)?.diseno;
 
   const pasos = useMemo(() => {
     const lista: Array<readonly [PlannerSeccion, unknown]> = [];
     if (cambioEstudio) lista.push(["estudio", form]);
-    if (cambioTipo && opcion) lista.push(["perfiles", [perfilDeOpcion(opcion, seleccionAulas, perfilPrevio)]]);
+    if (cambioTipo && opcion) lista.push(["perfiles", [perfilDeOpcion(opcion, conMarco, perfilPrevio)]]);
     return lista;
-  }, [cambioEstudio, cambioTipo, form, opcion, seleccionAulas, perfilPrevio]);
+  }, [cambioEstudio, cambioTipo, form, opcion, conMarco, perfilPrevio]);
 
   const nombreFalta = cambioEstudio && !form.nombre.trim();
   const origen = estado
@@ -115,12 +117,15 @@ export default function FichaDelEstudio() {
                 options={OPCIONES_TIPO.map((o) => ({ value: o.valor, label: o.rotulo }))}
               />
             </PulsoField>
-            {opcion === "aulas" ? (
-              <PulsoField label="Selección">
-                <PulsoSelect value={seleccionAulas} onValueChange={setSeleccionAulas} options={SELECCION_AULAS} />
-              </PulsoField>
-            ) : null}
           </PulsoFieldRow>
+          {opcion === "aulas" ? (
+            <PulsoSwitch
+              checked={conMarco}
+              onCheckedChange={setConMarco}
+              label={MARCO_DE_ALUMNOS.rotulo}
+              description={conMarco ? MARCO_DE_ALUMNOS.con : MARCO_DE_ALUMNOS.sin}
+            />
+          ) : null}
         </fieldset>
       </div>
     </Dialog>

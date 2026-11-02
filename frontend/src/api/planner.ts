@@ -253,10 +253,13 @@ export type PlannerModos = {
   calc: { modo: string | null; perfil: PlannerTipoPerfil | null; macroFamilia: string | null; delCliente: PlannerTipoPerfil[] };
   monitoreo: { modos: string[]; familias: string[]; modo: string | null; familia: string | null };
   /** `pendientes`: un canal declarado que todavía no abre su campaña, con qué falta y adónde ir. */
-  material: { campanas: string[]; pendientes: { canal: string; campana: string; texto: string; href: string }[] };
+  /** `proposito: "acreditacion"`: las campañas telefónica y de aulas son de acreditación (ADR 0125 §5). */
+  material: { campanas: string[]; proposito: "acreditacion" | null; pendientes: { canal: string; campana: string; texto: string; href: string }[] };
   hojasRuta: { aplica: boolean };
   /** Variante del perfil territorial, si hay uno. */
   territorial: { seleccion: PlannerSeleccionTerritorial | null };
+  /** Aulas con marco de alumnos: identidad, variables y metas del marco (ADR 0125 §3). */
+  aulas: { conMarco: boolean };
   origen: PlannerOrigenModos;
   revision: number;
 };
@@ -277,6 +280,7 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
     monitoreo: { modos: textos(mon.modos), familias: textos(mon.familias), modo: txt(mon.modo) || null, familia: txt(mon.familia) || null },
     material: {
       campanas: textos(obj(r.material).campanas),
+      proposito: txt(obj(r.material).proposito) === "acreditacion" ? "acreditacion" : null,
       pendientes: (Array.isArray(obj(r.material).pendientes) ? (obj(r.material).pendientes as unknown[]) : [])
         .map((x) => obj(x))
         .map((x) => ({ canal: txt(x.canal), campana: txt(x.campana), texto: txt(x.texto), href: txt(x.href) }))
@@ -284,6 +288,7 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
     },
     hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
     territorial: { seleccion: (["ump_aleatoria", "conveniencia"] as const).find((v) => v === txt(obj(r.territorial).seleccion)) ?? null },
+    aulas: { conMarco: obj(r.aulas).con_marco === true || txt(obj(r.aulas).con_marco) === "true" },
     origen: txt(r.origen) === "declarado" ? "declarado" : "deducido",
     revision: num(r.revision) ?? 0,
   };

@@ -13,7 +13,8 @@ export const ETIQUETA_PERFIL: Record<PlannerTipoPerfil, string> = {
 /**
  * Las opciones del tipo, con la variante territorial ya resuelta: un estudio
  * territorial es aleatorio (Hojas de ruta) o por cuotas, y son estudios
- * distintos. Las de aulas se eligen aparte (`SELECCION_AULAS`).
+ * distintos. Aulas no tiene variantes: el marco de alumnos es un atributo
+ * (`MARCO_DE_ALUMNOS`, ADR 0125 §3).
  */
 export type OpcionTipo = "territorial:ump_aleatoria" | "territorial:conveniencia" | "aulas" | "telefonico" | "acreditacion";
 
@@ -25,10 +26,15 @@ export const OPCIONES_TIPO: readonly { valor: OpcionTipo; rotulo: string; diseno
   { valor: "acreditacion", rotulo: "Acreditación", diseno: "Los públicos y sus porcentajes se fijan en Monitoreo." },
 ];
 
-export const SELECCION_AULAS = [
-  { value: "conglomerados", label: "Cursos-horario (conglomerados)" },
-  { value: "marco", label: "Personas de un marco" },
-];
+/**
+ * ADR 0125 §3: siempre cursos-horario con fichas QR. El marco sólo dice quién
+ * es cada alumno, y de ahí salen sus variables y metas.
+ */
+export const MARCO_DE_ALUMNOS = {
+  rotulo: "Con marco de alumnos",
+  con: "Se sabe quién es cada alumno: sus variables y metas salen del marco. Las fichas QR van igual a los cursos-horario sorteados.",
+  sin: "Anónimo. Las fichas QR van a los cursos-horario sorteados.",
+} as const;
 
 export function opcionDelPerfil(perfil: PlannerPerfil | undefined): OpcionTipo | "" {
   if (!perfil) return "";
@@ -41,12 +47,12 @@ export function opcionDelPerfil(perfil: PlannerPerfil | undefined): OpcionTipo |
  * que ya estaba, para no perder lo que el backend conserva (quién diseña la
  * muestra, las bases de cada población).
  */
-export function perfilDeOpcion(opcion: OpcionTipo, seleccionAulas: string, previo: PlannerPerfil | undefined): PlannerPerfil {
+export function perfilDeOpcion(opcion: OpcionTipo, conMarco: boolean, previo: PlannerPerfil | undefined): PlannerPerfil {
   const [tipo, variante] = opcion.split(":") as [PlannerTipoPerfil, string | undefined];
   const base: PlannerPerfil = previo && previo.tipo === tipo
     ? previo
     : { tipo, seleccion: null, diseno: tipo === "territorial" ? "hojas-ruta" : tipo === "aulas" ? "calc-muestra" : "cliente", canales: [], poblaciones: [] };
-  const seleccion = tipo === "territorial" ? (variante as PlannerPerfil["seleccion"]) : tipo === "aulas" ? (seleccionAulas as PlannerPerfil["seleccion"]) : null;
+  const seleccion = tipo === "territorial" ? (variante as PlannerPerfil["seleccion"]) : tipo === "aulas" ? (conMarco ? "marco" : "conglomerados") : null;
   return {
     ...base,
     seleccion,

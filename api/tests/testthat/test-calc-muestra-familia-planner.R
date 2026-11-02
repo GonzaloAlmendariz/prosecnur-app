@@ -17,11 +17,12 @@ source("setup-load-all.R")
   perfiles = perfiles
 ))
 
-test_that("aulas por conglomerados da encuesta_estudiantes; por marco, estudio_propio", {
+# ADR 0125 §3: aulas con marco de alumnos sigue siendo cursos-horario; el marco es un atributo.
+test_that("aulas da encuesta_estudiantes, con o sin marco de alumnos", {
   sid <- .cmfp_sesion(.cmfp_planner(list(list(tipo = "aulas", seleccion = "conglomerados", diseno = "calc-muestra"))))
   expect_identical(.cm_familia_del_planner(session_get(sid)), "encuesta_estudiantes")
   sid2 <- .cmfp_sesion(.cmfp_planner(list(list(tipo = "aulas", seleccion = "marco", diseno = "calc-muestra"))))
-  expect_identical(.cm_familia_del_planner(session_get(sid2)), "estudio_propio")
+  expect_identical(.cm_familia_del_planner(session_get(sid2)), "encuesta_estudiantes")
 })
 
 test_that("telefónico no cae en la mesa legacy", {

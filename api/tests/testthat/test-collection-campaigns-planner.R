@@ -29,3 +29,21 @@ test_that("con perfiles declarados, sólo esos tipos; lo existente fuera del est
   expect_identical(r$campaign$tipo, "territorial")
   expect_false(r$campaign$fuera_del_estudio)
 })
+
+test_that("acreditación abre los canales que el Modelo de Monitoreo declara (ADR 0125 §5)", {
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  .planner_declarar(sid, "perfiles", list(list(tipo = "acreditacion")), 0L)
+  # Sin canales en el Modelo: sólo correo, como antes; telefónica da 409.
+  expect_identical(unlist(collection_campaigns_get(sid)$tipos_del_estudio), "correo")
+  expect_identical(.mcp_code(collection_campaign_create(sid, "telefonica", "Acreditación telefónica")),
+                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+  # Egresados: correo, luego llamadas, luego otra ronda de correos.
+  session_set(sid, "monitoreo_config", list(monitoreo_profile = list(units = list(list(actor = "Egresados", canales = list(
+    list(ronda = 1L, canal = "correo"), list(ronda = 2L, canal = "telefonico"), list(ronda = 3L, canal = "correo")))))))
+  expect_setequal(unlist(collection_campaigns_get(sid)$tipos_del_estudio), c("correo", "telefonica"))
+  r <- collection_campaign_create(sid, "telefonica", "Acreditación telefónica")
+  expect_identical(r$campaign$tipo, "telefonica")
+  expect_false(r$campaign$fuera_del_estudio)
+  expect_identical(.mcp_code(collection_campaign_create(sid, "aulas", "Acreditación en aulas")),
+                   "E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE")
+})

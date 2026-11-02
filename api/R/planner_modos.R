@@ -35,6 +35,29 @@
   acreditacion = "correo"
 )
 
+# Canal del Modelo de Monitoreo → tipo de campaña de Material (ADR 0125 §5).
+.PLANNER_CANAL_A_CAMPANA <- c(correo = "correo", telefonico = "telefonica", presencial = "aulas")
+
+#' Los canales que el Modelo de Monitoreo declara por público en acreditación,
+#' en el orden de sus rondas (ADR 0125 §5). Contrato: cada unidad del modelo
+#' (`monitoreo_config$monitoreo_profile$units[[i]]`, el elenco de
+#' `POST /api/monitoreo/actores`) trae
+#' `canales = list(list(ronda = 1L, canal = "correo"), list(ronda = 2L, canal =
+#' "telefonico"), …)` con `canal` ∈ correo · telefonico · presencial. Devuelve
+#' los tipos de campaña distintos, o vacío si ningún público declara canales.
+#' Lectura pura.
+#' @keywords internal
+.planner_canales_del_modelo <- function(s) {
+  units <- tryCatch(s$monitoreo_config$monitoreo_profile$units, error = function(e) NULL)
+  if (!is.list(units)) return(character(0))
+  canales <- unlist(lapply(units, function(u) {
+    if (!is.list(u) || !is.list(u$canales)) return(NULL)
+    vapply(Filter(is.list, u$canales), function(r) as.character(r$canal %||% "")[1], "")
+  }), use.names = FALSE)
+  campanas <- unname(.PLANNER_CANAL_A_CAMPANA[intersect(canales, names(.PLANNER_CANAL_A_CAMPANA))])
+  unique(campanas[!is.na(campanas)])
+}
+
 # `macro_familia` que `iniciar-estudio` toma del Planner (.CM_MACRO_FAMILIAS).
 # Sale del MODO de Cálculo y no del perfil: `inferDesk` manda
 # `listado_telefonico` a la mesa legacy, así que un telefónico nuevo debe llegar
@@ -55,7 +78,10 @@
     return(if (identical(perfil$diseno, "cuotas")) NULL else "territorial-handoff")
   }
   switch(perfil$tipo,
-         aulas = if (identical(perfil$seleccion, "marco")) "marco-disponible" else "opinion-universitaria",
+         # ADR 0125 §3: aulas es siempre cursos-horario con fichas QR; el marco
+         # de alumnos es un atributo (identidad, variables y metas), no otra
+         # selección.
+         aulas = "opinion-universitaria",
          telefonico = "marco-disponible",
          acreditacion = "acreditacion",
          NULL)
@@ -68,7 +94,7 @@
 #' Cálculo muestra su vacío propio. `monitoreo$modos` y `material$campanas` son
 #' listas: con más de un perfil, el landing del módulo ofrece sólo esas.
 #' @keywords internal
-.planner_modos_de <- function(perfiles) {
+.planner_modos_de <- function(perfiles, canales_acreditacion = character(0)) {
   perfiles <- Filter(function(p) is.list(p) && nzchar(p$tipo %||% ""), perfiles %||% list())
   # ADR 0124: un estudio, un tipo. Un .pulso que guardó dos fija el modo con el primero.
   perfiles <- utils::head(perfiles, 1L)
@@ -80,9 +106,16 @@
 
   modos_mon <- unname(.PLANNER_PERFIL_A_MODO_MONITOREO[tipos])
   familias <- unname(.PLANNER_PERFIL_A_FAMILIA[tipos])
-  # ADR 0124: un estudio, un tipo, y el Planner no declara canales: acreditación
-  # abre la de correo y Material crea las demás campañas que Monitoreo defina.
+  # ADR 0124: un estudio, un tipo, y el Planner no declara canales. ADR 0125 §5:
+  # en acreditación los canales los declara el Modelo de Monitoreo por público
+  # (correo, telefónico, presencial; a veces en rondas). Material abre los que
+  # el Modelo declara —campañas `telefonica` y `aulas` de siempre con
+  # `proposito = "acreditacion"`— y, si todavía no declara ninguno, la de correo.
   campanas <- unname(.PLANNER_PERFIL_A_CAMPANA[tipos])
+  if ("acreditacion" %in% tipos && length(canales_acreditacion)) {
+    campanas <- c(setdiff(campanas, "correo"), canales_acreditacion)
+  }
+  aulas <- Filter(function(p) identical(p$tipo, "aulas"), perfiles)
 
   modo_calc <- if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc)
   list(
@@ -101,7 +134,13 @@
       familia = if (length(familias) == 1L) familias[[1]] else NULL
     ),
     material = list(
-      campanas = as.list(unique(campanas))
+      campanas = as.list(unique(campanas)),
+      proposito = if ("acreditacion" %in% tipos) "acreditacion" else NULL
+    ),
+    # ADR 0125 §3: anónimo o con marco de alumnos. Se guarda en `seleccion`
+    # (`marco`) para que ningún .pulso se migre.
+    aulas = list(
+      con_marco = length(aulas) > 0L && identical(aulas[[1]]$seleccion, "marco")
     ),
     hojas_ruta = list(
       # Sólo el territorial por UMP aleatoria hace hoja de ruta.
@@ -121,7 +160,7 @@
 #' @keywords internal
 .planner_modos <- function(s) {
   guardado <- .planner_leer(s)
-  c(.planner_modos_de(.planner_payload_perfiles(s)),
+  c(.planner_modos_de(.planner_payload_perfiles(s), .planner_canales_del_modelo(s)),
     list(origen = if (is.null(guardado$secciones$perfiles)) "deducido" else "declarado",
          revision = guardado$revision))
 }

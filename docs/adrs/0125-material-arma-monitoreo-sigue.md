@@ -15,7 +15,8 @@ Extiende:
 
 - [ADR 0124](0124-el-planner-sale-como-modulo.md): el tipo declarado en la Ficha del estudio fija el modo de cada
   módulo. Este ADR dice qué hace cada módulo en ese modo. Cambia dos filas de su §3: aulas deja de tener dos
-  variantes de selección (pasa a ser un atributo, §3 abajo) y acreditación declara tres canales en Material (§5).
+  variantes de selección (pasa a ser un atributo, §3 abajo) y los canales de acreditación los declara el Modelo de
+  Monitoreo (§5).
 - [ADR 0118](0118-hojas-de-ruta-entrega-a-material-de-campo.md) §3 (la foto que Hojas de ruta envía) y
   [ADR 0111](0111-material-de-campo-se-organiza-por-campanas-tipadas.md) (campañas de Material).
 
@@ -119,22 +120,61 @@ Monitoreo no asigna encuestadores: compara lo asignado con lo que llega del camp
 
 Monitoreo deja de publicar la base de supervisión: calcula el lote y lo entrega.
 
-### 5. Acreditación: tres canales
+### 5. Acreditación: los canales que declara el Modelo, por público
 
 > «Solo indicando que es de acreditación, o sea es Acreditación telefónica o Acreditación en aulas».
 
-- Material ofrece tres canales en un estudio de acreditación: **correo**, **Acreditación telefónica** y
-  **Acreditación en aulas** (presencial, con fichas QR). Las dos nuevas son campañas `telefonica` y `aulas` de
-  siempre, marcadas como de acreditación. No son tipos nuevos de campaña.
-- `/api/planner/modos` devuelve, para acreditación, `material.campanas = [correo, telefonica, aulas]` y
-  `material.proposito = "acreditacion"`. Material usa ese propósito para nombrarlas.
+Enmienda del mismo día (Gonzalo, ~07:15, textual):
+
+> «todo es depende del tipo de recolección a veces todo es por correo, a veces es por correo y teléfono y a veces es
+> por teléfono, correo y presencial en aula, eso se define en el modelo e incluso a veces hay perfiles como egresado
+> que es correo una vez, luego llamadas y al final otra ronda de correos, o sea que hay campañas relacionadas».
+
+- Hay tres canales posibles: **correo**, **telefónico** y **presencial en aula** (fichas QR). No siempre van los
+  tres. El **Modelo de Monitoreo** los declara **por público** y pueden ir **en secuencia**, por rondas. Por ejemplo,
+  egresados: correo, luego llamadas y al final otra ronda de correos.
+- En Material, «Acreditación telefónica» y «Acreditación en aulas» son campañas `telefonica` y `aulas` de siempre,
+  marcadas como de acreditación. No son tipos nuevos de campaña.
+- `/api/planner/modos` devuelve, para acreditación:
+  - `material.proposito = "acreditacion"`;
+  - en `material.campanas`, los tipos de campaña de los canales que el Modelo declara.
+  - Si el Modelo todavía no declara canales, devuelve sólo `correo`, como antes del ADR. La lista **no** es fija.
+- **Las campañas de un mismo público quedan relacionadas**: la ronda 2 dice de qué campaña viene, igual que la
+  supervisión telefónica se relaciona con su campaña (§4).
+- **Las rondas se agregan sobre la marcha, no son un plan fijo.** Gonzalo, textual:
+  > «A veces el orden no es 100% claro, por ejemplo hacemos llamada y no llegamos a la meta y se decide después
+  > iniciar una campaña de correo».
+
+  - A un público se le puede sumar una ronda en cualquier momento. Lo típico: Monitoreo ve que no se llega a la meta.
+  - La ronda nueva se agrega al final de `canales`, con el número siguiente. Su campaña la abre Material, con
+    `viene_de` apuntando a la campaña de la ronda anterior.
+  - Las rondas ya abiertas no se rehacen ni se renumeran.
 - Las metas siguen en Monitoreo › Modelo › Metas, con porcentajes por público (R17, excepción declarada el 1/11).
+
+**Contrato de los canales (lo escribe Monitoreo, lo lee el Planner y Material).** Hoy el Modelo sólo guarda
+`phone$enabled` por público, deducido de las fuentes, sin orden ni rondas. El contrato nuevo:
+
+- Cada unidad del elenco, en `monitoreo_config$monitoreo_profile$units[[i]]` (`POST /api/monitoreo/actores`), trae:
+  ```
+  canales = list(list(ronda = 1L, canal = "correo"),
+                 list(ronda = 2L, canal = "telefonico"),
+                 list(ronda = 3L, canal = "correo"))
+  ```
+  `canal` ∈ `correo` · `telefonico` · `presencial`. `ronda` es el orden: empieza en 1 y no se repite dentro del
+  público. La lista sólo crece: una ronda nueva toma el número siguiente y no reescribe las anteriores.
+- `.monitoreo_normalize_model_units` conserva `canales`. Hoy descarta los campos que no conoce.
+- El Planner lo lee con `.planner_canales_del_modelo(s)` (`planner_modos.R`). La equivalencia con las campañas es
+  `correo` → `correo`, `telefonico` → `telefonica` y `presencial` → `aulas`.
+- Cada campaña de acreditación en Material guarda su relación en la entrada del registro:
+  `relacion = list(publico = <actor>, ronda = <n>, viene_de = <id de campaña o NULL>)`. La supervisión telefónica
+  usa el mismo `viene_de`.
 
 | Entrega | Qué | Lee | Por dónde |
 |---|---|---|---|
-| Material | Campaña de correo: contactos y envío | Monitoreo | `/api/recopiladores/mail-campaigns`, `mail-sync` |
-| Material | Campaña Acreditación telefónica: base de barrido, como en §4 | Monitoreo | Contrato de §4 |
-| Material | Campaña Acreditación en aulas: fichas QR por curso-horario, como en §3 | Monitoreo | Contrato de §3 |
+| Monitoreo | Canales por público y su orden en rondas | Planner y Material | `monitoreo_profile$units[[i]]$canales` (contrato de arriba) → `/api/planner/modos` (`material.campanas`) y `/api/recopiladores/campaigns` (`tipos_del_estudio`) |
+| Material | Campaña de correo de cada ronda: contactos y envío | Monitoreo | `/api/recopiladores/mail-campaigns`, `mail-sync` |
+| Material | Campaña Acreditación telefónica de cada ronda: base de barrido, como en §4 | Monitoreo | Contrato de §4, con `relacion` |
+| Material | Campaña Acreditación en aulas: fichas QR por curso-horario, como en §3 | Monitoreo | Contrato de §3, con `relacion` |
 | Monitoreo | Metas por público | Monitoreo | Modelo › Metas (R17) |
 
 ## Consecuencias
@@ -143,24 +183,30 @@ Monitoreo deja de publicar la base de supervisión: calcula el lote y lo entrega
   o una foto con nombre.
 - Aulas deja de tener dos selecciones. La Ficha del estudio pregunta si hay marco de alumnos. Cálculo trata los dos
   casos como cursos-horario.
-- Acreditación deja de dar 409 al crear campañas telefónica o de aulas.
+- Acreditación abre en Material sólo los canales que su Modelo declara. Deja de dar 409 en telefónica o aulas
+  cuando el Modelo los declara, y sigue dándolo cuando no.
 - Hay tres traspasos que todavía no existen y quedan como trabajo:
   - asignación de aplicadores en Material de aulas (R7);
   - entrega del lote de supervisión de Monitoreo a Material, y base de supervisión armada en Material (§4);
-  - nombres de las campañas de acreditación en Material (§5).
+  - los canales por público con sus rondas en el Modelo de Monitoreo, y la `relacion` entre campañas en Material
+    (§5).
 
 ## Cumplimiento
 
 - `test-planner.R`:
   - aulas con y sin marco aterrizan en `opinion-universitaria`;
   - `aulas$con_marco` sigue a `seleccion`;
-  - acreditación abre `correo`, `telefonica` y `aulas`, con `proposito = "acreditacion"`;
-  - el oráculo de los proyectos de referencia no cambia, salvo acrconta en Material, que pasa a las tres campañas.
+  - acreditación abre los canales del Modelo (egresados: correo → telefónico → correo), con
+    `proposito = "acreditacion"`, y sólo `correo` si el Modelo no los declara;
+  - el oráculo de los proyectos de referencia no cambia.
+- `test-collection-campaigns-planner.R`: sin canales, telefónica da 409; con correo y telefónico en el Modelo, se
+  crea.
 - Frontend (`features/estudio`): la Ficha ofrece «Con marco de alumnos» como interruptor, no como otra selección.
 - Por módulo, con su sesión dueña:
-  - **Hojas (Material)**: nombres de las campañas de acreditación; asignación de aplicadores en aulas (R7); la
-    campaña de supervisión con su selector.
-  - **Monitoreo-Cálculo**: entregar el lote en vez de publicar la ronda; pasar a lectura la asignación de aulas
+  - **Hojas (Material)**: nombres de las campañas de acreditación y su `relacion`; asignación de aplicadores en
+    aulas (R7); la campaña de supervisión con su selector.
+  - **Monitoreo-Cálculo**: declarar `canales` por público en el Modelo de acreditación y conservarlos al
+    normalizar; entregar el lote en vez de publicar la ronda; pasar a lectura la asignación de aulas
     cuando Material la tenga; usar el marco de alumnos como fuente de variables y metas en cursos-horario.
 
 ## Notas
