@@ -275,7 +275,8 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
 function MarcoTerritorial({ meta, ubigeosDeLaCiudad = null }: { meta: TerritorialFrameMeta | null; ubigeosDeLaCiudad?: readonly string[] | null }) {
   // Con una ciudad abierta, su cartografía: el frame_meta del estado sólo trae la del paquete de Lima y Callao.
   const [deLaCiudad, setDeLaCiudad] = useState<string | null>(null);
-  const clave = ubigeosDeLaCiudad?.slice(0, 1).join(",") ?? "";
+  // Un ubigeo por provincia: la «ciudad» de Lima trae también al Callao, y cada una tiene su cartografía.
+  const clave = ubigeosDeLaCiudad ? [...new Map(ubigeosDeLaCiudad.map((u) => [u.slice(0, 4), u])).values()].sort().join(",") : "";
   useEffect(() => {
     if (!clave) { setDeLaCiudad(null); return undefined; }
     let vivo = true;
