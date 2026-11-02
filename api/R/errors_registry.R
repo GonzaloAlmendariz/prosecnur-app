@@ -194,6 +194,9 @@ errores_registrados <- function() {
     # La base de barrido sembrada en el Sheets del estudio (decisión de Gonzalo 2 nov 2026).
     "E_COLLECTION_BARRIDO_SHEETS_SIN_ENLACE",                "collection_barrido_sheets.R",       "422",
     "E_COLLECTION_BARRIDO_SHEETS_GOOGLE",                    "collection_barrido_sheets.R",       "502",
+    # Campaña de supervisión del telefónico (ADR 0125 anexo A3).
+    "E_COLLECTION_SUPERVISION_SIN_LOTE",                     "collection_campaigns_supervision.R", "409",
+    "E_COLLECTION_SUPERVISION_UNICA",                        "collection_campaigns_supervision.R", "409",
     # Campaña telefónica (P10, etapa 4).
     "E_COLLECTION_CAMPAIGN_TELEFONICA_UNICA",                "collection_campaigns_telefonica.R", "409",
     "E_COLLECTION_TELEFONICA_CONFIG_STALE",                  "collection_campaigns_telefonica.R", "409",

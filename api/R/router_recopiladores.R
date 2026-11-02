@@ -133,7 +133,7 @@ mount_recopiladores <- function(pr) {
                                  import_id = body$import_id,
                                  expected_state_revision = body$expected_state_revision,
                                  expected_registry_revision = body$expected_registry_revision,
-                                 fase = body$fase)
+                                 fase = body$fase, lote = body$lote)
     })) |>
     # Unidades de la campaña territorial: la foto enviada desde Hojas de ruta
     # (ADR 0118 §3). Lectura pura.

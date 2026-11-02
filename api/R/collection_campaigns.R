@@ -28,11 +28,12 @@
 # correo delegan con la segunda.
 
 MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
-.MCAMP_ID_RE <- "^(aulas|territorial|correo|telefonica)\\.[a-z0-9][a-z0-9-]{0,39}$"
-.MCAMP_TIPOS <- c("aulas", "territorial", "correo", "telefonica")
+.MCAMP_ID_RE <- "^(aulas|territorial|correo|telefonica|supervision)\\.[a-z0-9][a-z0-9-]{0,39}$"
+.MCAMP_TIPOS <- c("aulas", "territorial", "correo", "telefonica", "supervision")
 .MCAMP_AULAS_ID <- "aulas.principal"
 .MCAMP_TERRITORIAL_MOTIVO <- "Requiere leer las UMP de Hojas de ruta"
-.MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref")
+# `relacion` (ADR 0125 anexo A3/A4): de qué campaña viene una supervisión y, en acreditación, su público y ronda.
+.MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref", "relacion")
 
 # ---- lectura ------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   reg <- s$material_campaigns
   if (!is.list(reg)) reg <- list()
   entries <- Filter(function(e) {
-    is.list(e) && .mcamp_id_ok(e$id) && (e$tipo %||% "") %in% c("aulas", "territorial", "telefonica") &&
+    is.list(e) && .mcamp_id_ok(e$id) && (e$tipo %||% "") %in% c("aulas", "territorial", "telefonica", "supervision") &&
       startsWith(e$id, paste0(e$tipo, "."))
   }, unname(reg$campaigns %||% list()))
   rev <- suppressWarnings(as.integer(unlist(reg$revision)))
@@ -198,7 +199,8 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
 
 .mcamp_tipos <- function(aulas_hit, n_correo, territorial_tipo = list(tipo = "territorial", disponible = FALSE,
                                                                       motivo = .MCAMP_TERRITORIAL_MOTIVO),
-                         telefonica_tipo = .mcamp_telefonica_tipo(NULL)) {
+                         telefonica_tipo = .mcamp_telefonica_tipo(NULL),
+                         supervision_tipo = list(tipo = "supervision", disponible = FALSE, motivo = .MCAMP_SUPERVISION_SIN_TELEFONICA)) {
   list(
     if (is.null(aulas_hit)) list(tipo = "aulas", disponible = TRUE)
     else list(tipo = "aulas", disponible = FALSE,
@@ -208,7 +210,8 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
     if (n_correo < .CMAIL_CAMPAIGNS_MAX) list(tipo = "correo", disponible = TRUE)
     else list(tipo = "correo", disponible = FALSE,
               motivo = sprintf("Un proyecto admite hasta %d campañas de correo.", .CMAIL_CAMPAIGNS_MAX)),
-    telefonica_tipo
+    telefonica_tipo,
+    supervision_tipo
   )
 }
 
@@ -219,17 +222,19 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   aulas <- .mcamp_aulas_entry(s, state, reg)
   territorial <- .mcamp_territorial_entry(reg)
   telefonica <- .mcamp_telefonica_entry(reg)
+  supervision <- .mcamp_supervision_entries(reg)  # collection_campaigns_supervision.R
   correo <- .mcamp_correo_visibles(state)
   campaigns <- c(
     if (!is.null(aulas)) list(.mcamp_aulas_public(s, state, aulas)),
     if (!is.null(territorial)) list(.mcamp_territorial_public(s, territorial)),
     if (!is.null(telefonica)) list(.mcamp_telefonica_public(s, telefonica)),
+    lapply(supervision, function(h) .mcamp_supervision_public(s, h)),
     lapply(correo$campaigns, function(c) .mcamp_correo_public(s, c, correo$set))
   )
   list(state = state, reg = reg, aulas = aulas, territorial = territorial, telefonica = telefonica, correo = correo,
-       campaigns = campaigns,
+       supervision = supervision, campaigns = campaigns,
        tipos = .mcamp_tipos(aulas, length(correo$set$campaigns), .mcamp_territorial_tipo(s, territorial),
-                            .mcamp_telefonica_tipo(telefonica)))
+                            .mcamp_telefonica_tipo(telefonica), .mcamp_supervision_tipo(s, telefonica, supervision)))
 }
 
 #' Campañas del proyecto (ADR 0111): GET /api/recopiladores/campaigns.
@@ -258,7 +263,7 @@ collection_campaigns_get <- function(sid) {
 .mcamp_tipo_arg <- function(tipo) {
   value <- .cmail_one(as.list(tipo %||% list(NA_character_)))
   if (is.null(value) || !(value %in% .MCAMP_TIPOS)) {
-    stop_api(422, "E_COLLECTION_CAMPAIGN_TIPO", "tipo es aulas, territorial, correo o telefonica.",
+    stop_api(422, "E_COLLECTION_CAMPAIGN_TIPO", "tipo es aulas, territorial, correo, telefonica o supervision.",
              details = list(tipos = as.list(.MCAMP_TIPOS)))
   }
   value
@@ -328,9 +333,14 @@ collection_campaigns_get <- function(sid) {
 #' @keywords internal
 collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform = NULL, preset_id = NULL,
                                        template = NULL, import_id = NULL, expected_state_revision = NULL,
-                                       expected_registry_revision = NULL, fase = NULL) {
+                                       expected_registry_revision = NULL, fase = NULL, lote = NULL) {
   tipo <- .mcamp_tipo_arg(tipo)
   .mcamp_assert_del_estudio(session_get(sid), tipo)
+  if (identical(tipo, "supervision")) {
+    return(.mcamp_supervision_create(sid, name, lote, list(actor = actor, platform = platform, preset_id = preset_id,
+                                                           template = template, import_id = import_id, fase = fase),
+                                     expected_registry_revision))
+  }
   if (identical(tipo, "territorial")) {
     if (!.mcamp_territorial_habilitada()) .mcamp_territorial_stop()
     return(.mcamp_territorial_create(sid, name, fase,
@@ -404,7 +414,8 @@ collection_campaign_meta_put <- function(sid, id, name = NULL, actor = NULL, pla
   if (!is.null(actor) || !is.null(platform)) {
     stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "actor y platform solo aplican a campañas de correo.")
   }
-  hit <- switch(tipo, territorial = l$territorial, telefonica = l$telefonica, l$aulas)
+  hit <- switch(tipo, territorial = l$territorial, telefonica = l$telefonica,
+                supervision = Find(function(h) identical(h$entry$id, id), l$supervision), l$aulas)
   entry <- hit$entry
   next_entry <- entry
   if (!is.null(name)) next_entry$name <- .cmail_campaign_text(name, "name", 1L, 80L)
