@@ -63,3 +63,70 @@ test_that("si Monitoreo borra el lote, la campaña lo dice en vez de inventar ca
   expect_true(c$estado$sin_lote)
   expect_identical(c$estado$casos, 0L)
 })
+
+# ---- columnas y Excel de la base (collection_supervision_base.R) ----
+
+test_that("las columnas: del barrido sin llave ni sensibles, Responsable y Status por defecto, y las tres fijas", {
+  sid <- .msupt_sesion(); on.exit(session_delete(sid), add = TRUE)
+  collection_telefonica_config_put(sid, llave = "Código", estratos = list("Región", "Estatus Legal"), sensibles = list("Estatus Legal"),
+                                   expected_revision = 0L)
+  collection_campaign_create(sid, "supervision", "Sup", lote = "ronda-1")
+  g <- collection_supervision_columnas_get(sid, "supervision.ronda-1")
+  disp <- unlist(g$disponibles$barrido)
+  expect_true(all(c("Nombre", "Teléfono 1", "Región", "Responsable", "Status") %in% disp))
+  expect_false(any(c("Código", "Cod pulso", "Estatus Legal") %in% disp))
+  expect_identical(unlist(g$elegidas$barrido), c("Responsable", "Status"))
+  expect_identical(unlist(g$fijas), c("Observaciones del supervisor", "Estatus de la llamada de supervisión", "Veredicto"))
+  expect_identical(unlist(g$veredictos), c("Confirmada", "No confirmada", "No contactado"))
+  # Sin XLSForm cargado no hay variables de resultados que ofrecer, y no se inventan.
+  expect_length(g$disponibles$resultados, 0L)
+
+  r <- collection_supervision_columnas_put(sid, "supervision.ronda-1", barrido = list("Nombre", "Teléfono 1", "Status"), expected_revision = 0L)
+  expect_identical(r$revision, 1L)
+  expect_identical(unlist(r$elegidas$barrido), c("Nombre", "Teléfono 1", "Status"))
+  expect_identical(.msupt_code(collection_supervision_columnas_put(sid, "supervision.ronda-1", barrido = list("Estatus Legal"))),
+                   "E_COLLECTION_SUPERVISION_COLUMNAS_INVALIDAS")
+  expect_identical(.msupt_code(collection_supervision_columnas_put(sid, "supervision.ronda-1", expected_revision = 0L)),
+                   "E_COLLECTION_SUPERVISION_COLUMNAS_STALE")
+  expect_identical(.msupt_code(collection_supervision_columnas_get(sid, "supervision.ronda-9")), "E_COLLECTION_CAMPAIGN_NOT_FOUND")
+})
+
+test_that("las variables de resultados salen del instrumento, sin notas, grupos ni metadatos", {
+  sid <- .msupt_sesion(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "supervision", "Sup", lote = "ronda-1")
+  xls <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook(); openxlsx::addWorksheet(wb, "survey")
+  openxlsx::writeData(wb, "survey", data.frame(
+    type = c("start", "note", "begin group", "select_one sino", "integer", "end group", "calculate"),
+    name = c("start", "intro", "g1", "recibio", "monto", "", "total"),
+    `label::Español` = c("", "Hola", "Grupo", "¿Recibió la ayuda?", "¿Cuánto recibió?", "", ""), check.names = FALSE))
+  openxlsx::saveWorkbook(wb, xls)
+  local_mocked_bindings(codif_xlsform_path = function(sid, source = NULL) xls)
+  g <- collection_supervision_columnas_get(sid, "supervision.ronda-1")
+  expect_identical(vapply(g$disponibles$resultados, `[[`, "", "nombre"), c("recibio", "monto"))
+  expect_identical(g$disponibles$resultados[[1]]$etiqueta, "¿Recibió la ayuda?")
+  r <- collection_supervision_columnas_put(sid, "supervision.ronda-1", resultados = list("recibio"))
+  expect_identical(unlist(r$elegidas$resultados), "recibio")
+})
+
+test_that("el Excel: una fila por caso del lote, con lo elegido vacío y el Veredicto con su catálogo", {
+  sid <- .msupt_sesion(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "supervision", "Sup", lote = "ronda-2")
+  collection_supervision_columnas_put(sid, "supervision.ronda-2", barrido = list("Nombre", "Status"))
+  r <- collection_supervision_excel(sid, "supervision.ronda-2")
+  expect_identical(r$casos, 2L)
+  path <- session_get(sid)$files[[r$file_id]]$path
+  t <- openxlsx::read.xlsx(path, sheet = "Supervisión", check.names = FALSE, sep.names = " ")
+  esperadas <- c("Código", "Enumerador", "Fecha de la llamada", "Nombre", "Status",
+                 "Observaciones del supervisor", "Estatus de la llamada de supervisión", "Veredicto")
+  expect_identical(names(t)[seq_along(esperadas)], esperadas)
+  expect_identical(t[["Código"]], c("P021", "P022"))
+  expect_identical(t$Enumerador, c("Ana", "Beto"))
+  expect_true(all(is.na(t$Nombre)))  # Material no tiene los nombres: se completan desde el barrido
+  control <- openxlsx::read.xlsx(path, sheet = "Control", colNames = FALSE)
+  expect_identical(control[[2]][control[[1]] == "lote_id"], "ronda-2")
+  expect_identical(control[[2]][control[[1]] == "viene_de"], "telefonica.principal")
+  # Sin el lote en Monitoreo, no se arma.
+  s <- session_get(sid); s$monitoreo_supervision_rondas <- list(rondas = list(.msupt_ronda(1))); .session_env[[sid]] <- s
+  expect_identical(.msupt_code(collection_supervision_excel(sid, "supervision.ronda-2")), "E_COLLECTION_SUPERVISION_SIN_LOTE")
+})

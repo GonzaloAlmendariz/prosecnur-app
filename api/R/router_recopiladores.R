@@ -195,6 +195,20 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_telefonica_sheets_sembrar(session_header(req), body[["id"]], body[["enlace"]])
     })) |>
+    # La base de supervisión de un lote de Monitoreo (collection_supervision_base.R, ADR 0125 A3): qué
+    # columnas lleva y el Excel con una fila por caso del lote.
+    plumber::pr_get("/api/recopiladores/campaigns/supervision/columnas", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_supervision_columnas_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/supervision/columnas", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_columnas_put(session_header(req), body[["id"]], barrido = body[["barrido"]],
+                                          resultados = body[["resultados"]], expected_revision = body[["expected_revision"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/supervision/excel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_excel(session_header(req), body[["id"]])
+    })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
     # Etapa 3 (collection_aulas_material.R): la entrega de aulas de solo lectura, para

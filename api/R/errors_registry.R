@@ -197,6 +197,8 @@ errores_registrados <- function() {
     # Campaña de supervisión del telefónico (ADR 0125 anexo A3).
     "E_COLLECTION_SUPERVISION_SIN_LOTE",                     "collection_campaigns_supervision.R", "409",
     "E_COLLECTION_SUPERVISION_UNICA",                        "collection_campaigns_supervision.R", "409",
+    "E_COLLECTION_SUPERVISION_COLUMNAS_STALE",               "collection_supervision_base.R",     "409",
+    "E_COLLECTION_SUPERVISION_COLUMNAS_INVALIDAS",           "collection_supervision_base.R",     "422",
     # Campaña telefónica (P10, etapa 4).
     "E_COLLECTION_CAMPAIGN_TELEFONICA_UNICA",                "collection_campaigns_telefonica.R", "409",
     "E_COLLECTION_TELEFONICA_CONFIG_STALE",                  "collection_campaigns_telefonica.R", "409",
