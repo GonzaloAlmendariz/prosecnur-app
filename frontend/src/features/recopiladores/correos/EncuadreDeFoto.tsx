@@ -6,6 +6,7 @@
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import type { MailBlock, MailBlockConFoto, MailImageBlock } from "../../../api/materialMail";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTE_DE_PROPORCION, conRecorte, recorteDe, rectDelRecorte } from "./modeloRecorte";
 import "./correosRecorte.css";
@@ -48,10 +49,13 @@ export function EncuadreDeFoto({ block, vista, onEditarBloque }: Props) {
   return (
     <div className="rec-recorte">
       {admiteAjuste ? (
-        <label className="rec-recorte-margenes">
-          <input type="checkbox" checked={sinMargenes} onChange={alternarMargenes} />
-          <span>Quitar los márgenes de la imagen</span>
-        </label>
+        <PulsoSwitch
+          size="sm"
+          className="rec-recorte-margenes"
+          label="Quitar los márgenes de la imagen"
+          checked={sinMargenes}
+          onCheckedChange={alternarMargenes}
+        />
       ) : null}
       <AjusteDeBloque
         ajuste={AJUSTE_DE_PROPORCION}

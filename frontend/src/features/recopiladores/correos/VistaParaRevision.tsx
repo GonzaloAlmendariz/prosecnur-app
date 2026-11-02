@@ -14,6 +14,7 @@ import {
   type MailRevisionEnvio,
 } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Download, Eye, FileText } from "../../../vendor/lucide-react";
 import "./correosExportar.css";
 
@@ -84,15 +85,13 @@ export function VistaParaRevision({ campana }: Props) {
           const marcada = elegidas.includes(c.campaign_id);
           return (
             <li key={c.campaign_id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={marcada}
-                  disabled={!marcada && elegidas.length >= MAX}
-                  onChange={() => alternar(c.campaign_id)}
-                />
-                <span>{c.name}</span>
-              </label>
+              <PulsoSwitch
+                size="sm"
+                label={c.name}
+                checked={marcada}
+                disabled={!marcada && elegidas.length >= MAX}
+                onCheckedChange={() => alternar(c.campaign_id)}
+              />
             </li>
           );
         })}
